@@ -1,0 +1,5 @@
+tojson and fromjson for windows have been changed to .old in this directory and are not used
+
+the new tojson and fromjson for windows are in the /ops/conversion directory
+
+tojson and fromjson linux are still in this directory for now
