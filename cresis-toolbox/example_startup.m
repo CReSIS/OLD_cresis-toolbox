@@ -40,7 +40,7 @@ if ~(~ismcc && isdeployed)
   pidx = 1; % profile index
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/users/paden/scripts/matlab/';
-  profile(pidx).ct_path                   = '/users/paden/scripts/cresis-toolbox/';
+  profile(pidx).ct_path                   = '/users/paden/scripts/cresis-toolbox/cresis-toolbox/';
   profile(pidx).param_path                = '/users/paden/scripts/params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
@@ -78,7 +78,7 @@ if ~(~ismcc && isdeployed)
   pidx = 2; % profile index
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/N/u/paden/Quarry/scripts/matlab/';
-  profile(pidx).ct_path                   = '/N/u/paden/Quarry/scripts/cresis-toolbox/';
+  profile(pidx).ct_path                   = '/N/u/paden/Quarry/scripts/cresis-toolbox/cresis-toolbox/';
   profile(pidx).param_path                = '/N/u/paden/Quarry/scripts/params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
@@ -114,7 +114,7 @@ if ~(~ismcc && isdeployed)
   pidx = 3; % profile index
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/scratch/scripts/matlab/';
-  profile(pidx).ct_path                   = '/scratch/scripts/cresis-toolbox/';
+  profile(pidx).ct_path                   = '/scratch/scripts/cresis-toolbox/cresis-toolbox/';
   profile(pidx).param_path                = '/scratch/scripts/params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
@@ -147,7 +147,7 @@ if ~(~ismcc && isdeployed)
   pidx = 5; % profile index
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = 'C:\Users\paden\Documents\scripts\matlab\';
-  profile(pidx).ct_path                   = 'C:\Users\paden\Documents\scripts\cresis-toolbox\';
+  profile(pidx).ct_path                   = 'C:\Users\paden\Documents\scripts\cresis-toolbox\cresis-toolbox\';
   profile(pidx).param_path                = 'C:\Users\paden\Documents\scripts\params\';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
@@ -189,7 +189,7 @@ if ~(~ismcc && isdeployed)
   pidx = 6; % profile index
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = 'C:\Users\paden\Documents\scripts\matlab\';
-  profile(pidx).ct_path                   = 'C:\Users\paden\Documents\scripts\cresis-toolbox\';
+  profile(pidx).ct_path                   = 'C:\Users\paden\Documents\scripts\cresis-toolbox\cresis-toolbox\';
   profile(pidx).param_path                = 'C:\Users\paden\Documents\scripts\params\';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
@@ -241,7 +241,7 @@ if ~(~ismcc && isdeployed)
     for fn_idx = 1:length(fns)
       [fn_dir fn_name] = fileparts(fns{fn_idx});
       if ~isempty(fn_name) && fn_name(1) ~= '@' && fn_name(1) ~= '+' ...
-          && isempty(strfind(fns{fn_idx},'.svn'))
+          && isempty(strfind(fns{fn_idx},'.svn')) && isempty(strfind(fns{fn_idx},'.git'))
         % Ignore .svn directories and Matlab class and package directories
         addpath(fns{fn_idx});
         AdditionalPaths{end+1} = fns{fn_idx};
@@ -260,7 +260,7 @@ if ~(~ismcc && isdeployed)
     for fn_idx = 1:length(fns)
       [fn_dir fn_name] = fileparts(fns{fn_idx});
       if ~isempty(fn_name) && fn_name(1) ~= '@' && fn_name(1) ~= '+' ...
-          && isempty(strfind(fns{fn_idx},'.svn'))
+          && isempty(strfind(fns{fn_idx},'.svn')) && isempty(strfind(fns{fn_idx},'.git'))
         % Ignore .svn directories and Matlab class and package directories
         addpath(fns{fn_idx});
         AdditionalPaths{end+1} = fns{fn_idx};
