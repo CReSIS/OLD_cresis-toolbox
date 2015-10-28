@@ -21,8 +21,14 @@ signal_name = {};
 signal = {};
 marker = {};
 
+correction.freq = [12e9 17e9];
+correction.power = [6.6 0.4];
+
+correction.freq = [2e9 8e9];
+correction.power = [0 0];
+
 if 1
-  fs = 25e9;
+  fs = 22e9;
   dt = 1/fs;
   Tpd = 240e-6*6/16;
   Nt = (Tpd + 16e-6)*fs;
@@ -33,9 +39,9 @@ if 1
   K = BW/Tpd;
   td = 0e-6;
   
-  signal_name{end+1} = 'chirp2to8';
+  signal_name{end+1} = sprintf('chirp%.0fto%.0fGHz_td%.0fus',f0/1e9,f1/1e9,td*1e6);
   
-  signal{end+1} = tukeywin_cont((time-Tpd/2-td)/Tpd, 0) .* cos(2*pi*f0*(time-td) + pi*K*(time-td).^2);
+  signal{end+1} = awg_sinc_correction(f0+K*(time-td),fs,18e9,correction) .* tukeywin_cont((time-Tpd/2-td)/Tpd, 0) .* cos(2*pi*f0*(time-td) + pi*K*(time-td).^2);
 
   % Marker: creates 1 us pulse at start on both marker channels
   marker{end+1} = zeros(size(signal{end}),'uint8');
@@ -43,7 +49,7 @@ if 1
 end
 
 if 1
-  fs = 25e9;
+  fs = 22e9;
   dt = 1/fs;
   Tpd = 240e-6*6/16;
   Nt = (Tpd + 16e-6)*fs;
@@ -54,9 +60,9 @@ if 1
   K = BW/Tpd;
   td = 3e-6;
   
-  signal_name{end+1} = 'chirp2to8_delayed2us';
+  signal_name{end+1} = sprintf('chirp%.0fto%.0fGHz_td%.0fus',f0/1e9,f1/1e9,td*1e6);
   
-  signal{end+1} = tukeywin_cont((time-Tpd/2-td)/Tpd, 0) .* cos(2*pi*f0*(time-td) + pi*K*(time-td).^2);
+  signal{end+1} = awg_sinc_correction(f0+K*(time-td),fs,18e9,correction) .* tukeywin_cont((time-Tpd/2-td)/Tpd, 0) .* cos(2*pi*f0*(time-td) + pi*K*(time-td).^2);
 
   % Marker: creates 1 us pulse at start on both marker channels
   marker{end+1} = zeros(size(signal{end}),'uint8');
@@ -64,7 +70,7 @@ if 1
 end
 
 if 1
-  fs = 25e9;
+  fs = 22e9;
   dt = 1/fs;
   Tpd = 240e-6*6/16;
   Nt = (Tpd + 16e-6)*fs;
@@ -75,9 +81,30 @@ if 1
   K = BW/Tpd;
   td = 0e-6;
   
-  signal_name{end+1} = 'tone2GHz';
+  signal_name{end+1} = sprintf('tone%.0fGHz',f0/1e9);
   
-  signal{end+1} = tukeywin_cont((time-Tpd/2-td)/Tpd, 0) .* cos(2*pi*f0*(time-td) + pi*K*(time-td).^2);
+  signal{end+1} = awg_sinc_correction(f0+K*(time-td),fs,18e9,correction) .* tukeywin_cont((time-Tpd/2-td)/Tpd, 0) .* cos(2*pi*f0*(time-td) + pi*K*(time-td).^2);
+
+  % Marker: creates 1 us pulse at start on both marker channels
+  marker{end+1} = zeros(size(signal{end}),'uint8');
+  marker{end}(time<1e-6,:) = 255;
+end
+
+if 1
+  fs = 22e9;
+  dt = 1/fs;
+  Tpd = 240e-6*6/16;
+  Nt = (Tpd + 16e-6)*fs;
+  time = dt * (0:Nt-1).';
+  f0 = 8e9;
+  f1 = 8e9;
+  BW = (f1-f0);
+  K = BW/Tpd;
+  td = 0e-6;
+  
+  signal_name{end+1} = sprintf('tone%.0fGHz',f0/1e9);
+  
+  signal{end+1} = awg_sinc_correction(f0+K*(time-td),fs,18e9,correction) .* tukeywin_cont((time-Tpd/2-td)/Tpd, 0) .* cos(2*pi*f0*(time-td) + pi*K*(time-td).^2);
 
   % Marker: creates 1 us pulse at start on both marker channels
   marker{end+1} = zeros(size(signal{end}),'uint8');
