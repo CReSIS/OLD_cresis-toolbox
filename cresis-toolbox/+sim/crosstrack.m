@@ -13,7 +13,7 @@ function results = crosstrack(param)
 %      should be in a 3 by Nc array. First row is "x" or along-track
 %      and is generally not used, second row is "y" , and third row is "z".
 %      Nc is the number of sensors/channels of data.
-%    .lever_arm.args: arguments to be passed to the lever arm function
+%    .lever_arm.fh_args: arguments to be passed to the lever arm function
 %      handle
 %    FIELDS REQUIRED BY sim.crossover_data.m
 %  .monte: structure describing the monte carlo simulation setup
@@ -38,7 +38,7 @@ param.src.fc = (param.src.f0 + param.src.f1)/2;
 param.src.fs = abs(param.src.f1 - param.src.f0);
 
 % phase_center: get phase center positions of antenna array
-[phase_center] = param.src.lever_arm.fh(param.src.lever_arm.args{:});
+[phase_center] = param.src.lever_arm.fh(param.src.lever_arm.fh_args{:});
 
 % Convert phase_center's from aircraft coordinate system into flight coordinate system
 % y_pc: cross track with positive pointing to the left

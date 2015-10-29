@@ -9,10 +9,11 @@
 
 physical_constants;
 
-if 1
+if 0
   fprintf('=======================================================================\n');
   fprintf('Running sim.crosstrack_example example #1\n');
   fprintf('  Narrowband altimeter (e.g. snow radar) simulation \n');
+  fprintf('  Linear array in y-dimension\n');
   fprintf('=======================================================================\n');
   %% Setup simulation parameters
   param = [];
@@ -32,15 +33,16 @@ if 1
   param.src.ft_func                 = @(t) tukeywin_cont(t * BW);
   param.src.ft_wind                 = @(N) hanning(N);
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  Nc = 16;
-  param.src.lever_arm.args          = {[],ones(1,Nc),1:Nc,Nc,c/fc/4};
+  % Nsep: number of lambda/4 steps between sensors
+  Nsep = 8;
+  % Nc: number of sensors
+  Nc = 32;
+  % param.src.lever_arm.fh_args: Arguments for a linear array in y-dimension
+  param.src.lever_arm.fh_args       = {[], 1, 1:Nc, [0; Nsep*c/fc/2; 0]};
   param.src.noise_power             = 10*log10(BoltzmannConst*290*abs(param.src.f0-param.src.f1)) + 2*ones(1,Nc);
   
   % DOA method parameters
   param.method.list                   = [7];
-  param.method.Nsv                    = 32;
-  param.method.OneD_Nsv               = 256;
-  param.method.theta_guard            = 0.75/180*pi;
   
   %% Simulation Runs Setup
   
@@ -86,17 +88,22 @@ if 1
   fc = (param.src.f0+param.src.f1)/2;
   fs = param.src.f1-param.src.f0;
   
-  Nsep = 16;
+  %% NN: total length of the sensor array (in lambda/4 units)
   NN = Nc*Nsep;
-  lambda = fc/3e8;
-  k = 2*pi/lambda;
-  dy = lambda/4;
-  My = 16;
-  dky = 2*pi / (NN*dy) / My;
-  
+  % lambda: wavelength
+  lambda = c/fc;
+  % k: wavenumber
+  k = 2*pi/(lambda/2);
+  % My: over sampling factor
+  My = 4;
+  % dy: phase center spacing
+  dy = Nsep*lambda/4;
+  % dky and ky: y-component of wavenumber (spacing and axis)
+  dky = 2*pi / (Nc*dy) / My;
   ky = dky * ifftshift(-floor(My*Nc/2) : floor((My*Nc-1)/2));
+  % theta: theta values associated with ky axis
   theta = fftshift(asin(ky/k));
-  array_param.Nsv = {'theta', asin(ky/k)};
+  array_param.Nsv = {'theta', asin(ky/k)};  
   
   array_param.sv_fh = @array_proc_sv;
   
@@ -109,7 +116,7 @@ if 1
   array_param.Nsig = 2;
   
   array_param.init = 'ap';
-  array_param.theta_guard = (max(theta)-min(theta))/64;
+  array_param.theta_guard = (max(theta)-min(theta))/length(ky);
   
   array_param.W = 1;
   dt = 1/fs;
@@ -179,10 +186,11 @@ if 1
   return;
 end
 
-if 0
+if 1
   fprintf('=======================================================================\n');
   fprintf('Running sim.crosstrack_example example #2\n');
   fprintf('  Narrowband radar depth sounder simulation\n');
+  fprintf('  Linear array in y-dimension\n');
   fprintf('=======================================================================\n');
   %% Setup simulation parameters
   param = [];
@@ -197,20 +205,22 @@ if 0
   BW = 10e6;
   param.src.f0                      = fc-BW/2;
   param.src.f1                      = fc+BW/2;
-  param.src.t0                      = 2*(1500-50)/c;
-  param.src.t1                      = 2*(1500+500)/c;
+  param.src.t0                      = 2*(1500-500)/c;
+  param.src.t1                      = 2*(1500+1000)/c;
   param.src.ft_func                 = @(t) tukeywin_cont(t * BW);
   param.src.ft_wind                 = @(N) hanning(N);
   param.src.lever_arm.fh            = @sim.lever_arm_example;
+  % Nsep: number of lambda/4 steps between sensors
+  Nsep = 1;
+  % Nc: number of sensors
   Nc = 8;
-  param.src.lever_arm.args          = {[],ones(1,Nc),1:Nc,Nc,c/fc/4};
+  % Arguments for a linear array in y-dimension
+  % param.src.lever_arm.fh_args: Arguments for a linear array in y-dimension
+  param.src.lever_arm.fh_args       = {[], 1, 1:Nc, [0; Nsep*c/fc/2; 0]};
   param.src.noise_power             = 10*log10(BoltzmannConst*290*abs(param.src.f0-param.src.f1)) + 2*ones(1,Nc);
   
   % DOA method parameters
   param.method.list                   = [7];
-  param.method.Nsv                    = 9;
-  param.method.OneD_Nsv               = 256;
-  param.method.theta_guard            = 0.75/180*pi;
   
   %% Simulation Runs Setup
   
@@ -221,18 +231,18 @@ if 0
   
   % Target surface parameters
   surf_param = [];
-  surf_param.z.mean = -500;
-  surf_param.z.rms_height = 0.15;
-  surf_param.z.corr_length_x = 40;
-  surf_param.z.corr_length_y = 40;
+  surf_param.z.mean = -1500;
+  surf_param.z.rms_height = 100;
+  surf_param.z.corr_length_x = 400;
+  surf_param.z.corr_length_y = 400;
   surf_param.rcs_in.mean = 0;
   surf_param.rcs_in.var = 100;
-  surf_param.dy = 1;
-  surf_param.y_range = [-1500 1500];
-  surf_param.dx = 1;
-  surf_param.x_range = [-1500 1500];
-  surf_param.x = [-50:1:50];
-  surf_param.y = [-50:1:50].';
+  surf_param.dy = 10;
+  surf_param.y_range = [-2500 2500];
+  surf_param.dx = 10;
+  surf_param.x_range = [-2500 2500];
+  surf_param.x = [-500:5:500];
+  surf_param.y = [-1500:20:1500].';
   param.monte.target_param{1} = surf_param;
   
   % surf_param = [];
@@ -256,15 +266,20 @@ if 0
   fc = (param.src.f0+param.src.f1)/2;
   fs = param.src.f1-param.src.f0;
   
-  Nsep = 16;
+  %% NN: total length of the sensor array (in lambda/4 units)
   NN = Nc*Nsep;
-  lambda = fc/3e8;
-  k = 2*pi/lambda;
-  dy = lambda/4;
-  My = 16;
-  dky = 2*pi / (NN*dy) / My;
-  
+  % lambda: wavelength
+  lambda = c/fc;
+  % k: wavenumber
+  k = 2*pi/(lambda/2);
+  % My: over sampling factor
+  My = 4;
+  % dy: phase center spacing
+  dy = Nsep*lambda/4;
+  % dky and ky: y-component of wavenumber (spacing and axis)
+  dky = 2*pi / (Nc*dy) / My;
   ky = dky * ifftshift(-floor(My*Nc/2) : floor((My*Nc-1)/2));
+  % theta: theta values associated with ky axis
   theta = fftshift(asin(ky/k));
   array_param.Nsv = {'theta', asin(ky/k)};
   
@@ -273,13 +288,13 @@ if 0
   array_param.dbin = 1;
   array_param.dline = 1;
   
-  array_param.bin_rng = -1:1;
+  array_param.bin_rng = 0;
   array_param.rline_rng = -10:10;
   
   array_param.Nsig = 2;
   
   array_param.init = 'ap';
-  array_param.theta_guard = (max(theta)-min(theta))/64;
+  array_param.theta_guard = (max(theta)-min(theta))/(4*Nc);
   
   array_param.W = 1;
   dt = 1/fs;

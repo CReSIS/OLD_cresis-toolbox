@@ -7,13 +7,15 @@
 %
 % See also: array_proc_update.m, sim.crosstrack_example.m
 
+physical_constants;
+
 % =========================================================================
 %% Step 1. Run crosstrack_example.m example 1 with debug_level set to 3
 % =========================================================================
 
 if 1
   % Generate simulation results
-  fprintf('Ensure sim.crosstrack_example.m runs example #1!!!\n\n');
+  fprintf('Ensure sim.crosstrack_example.m runs example #1 or #2!!!\n\n');
   sim.crosstrack_example;
   save('c:\temp\run_array_proc_update.mat','results');
 else
@@ -58,7 +60,7 @@ x = repmat(permute(surf_model.x(array_param.lines),[1 3 2]),[size(y,1) size(y,2)
 % x_Axis: along track positions (Nx by 1, units: meters)
 x_axis = param.monte.target_param{1}.x(array_param.lines);
 
-if 0
+if 1
   % Debug: Basic surface extraction/gridding process
   figure(2); clf;
   imagesc(surf_model.x, surf_model.y, surf_model.z-param.monte.target_param{1}.z.mean);
@@ -70,9 +72,9 @@ if 0
   h_cb = colorbar;
   set(get(h_cb,'YLabel'),'String','WGS-84 elevation (m)');
   
-  good_mask = zeros(size(tomo.doa));
-  good_mask = good_mask | db(tomo.power) > 10;
-  good_mask = good_mask | repmat(permute(tomo.cost,[1 3 2]),[1 size(good_mask,2) 1]) < -25;
+  good_mask = zeros(size(doa));
+  good_mask = good_mask | db(power) > 10;
+  good_mask = good_mask | repmat(permute(cost,[1 3 2]),[1 size(good_mask,2) 1]) < -25;
   
   z_grid = griddata(double(x(good_mask)),double(y(good_mask)),double(z(good_mask)), ...
     surf_model.x,surf_model.y);
@@ -93,14 +95,14 @@ end
 % =========================================================================
 
 % Step 2a: Choose which bin_idx and line_idx you want to update:
-bin_idx = 210;
+bin_idx = 35;
 line_idx = 1;
 % Set the new DOA for this pixel (perturb first source):
 doa_new = doa(bin_idx,:,line_idx);
 doa_new(1) = doa_new(1) + 0.0;
 
 % Step 2b: Update the results with the new DOA:
-[tomo_update] = array_proc_update(results.sim_data,results.array_param,bin_idx,line_idx,doa_new);
+[tomo_update] = sim.array_proc_update(results.sim_data,results.array_param,bin_idx,line_idx,doa_new);
 
 % Step 2c: Compare new results with old results:
 fprintf('\n');
@@ -112,7 +114,7 @@ fprintf('Source power (original and perturbed)\n');
 power(bin_idx,:,line_idx)
 tomo_update.power
 
-fprintf('Local cost function (original and perturbed)\n');
+fprintf('Local cost function (original and perturbed), lower is better\n');
 cost(bin_idx,line_idx)
 tomo_update.cost
 

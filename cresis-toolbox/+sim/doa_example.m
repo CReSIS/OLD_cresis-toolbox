@@ -23,7 +23,7 @@ if 0
   param.src.f1                      = fc+BW/2;
   param.src.ft_wind                 = @boxcar;
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  param.src.lever_arm.args          = {[],[1 1 1],[1:3],3,c/fc/4};
+  param.src.lever_arm.args          = {[],1,[1:3],[0; c/fc/2; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 9;
@@ -98,7 +98,7 @@ if 0
   param.src.f1                      = fc+BW/2;
   param.src.ft_wind                 = @boxcar;
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  param.src.lever_arm.args          = {[],[1 1 1],[1:3],3,c/fc/4};
+  param.src.lever_arm.args          = {[],1,[1:3],[0; c/fc/2; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 9;
@@ -173,7 +173,7 @@ if 0
   param.src.f1                      = fc+BW/2;
   param.src.ft_wind                 = @boxcar;
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  param.src.lever_arm.args          = {[],[1 1 1],[1:3],3,c/fc/4};
+  param.src.lever_arm.args          = {[],1,[1:3],[0; c/fc/2; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 9;
@@ -248,7 +248,7 @@ if 1
   param.src.f1                      = fc+BW/2;
   param.src.ft_wind                 = @boxcar;
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  param.src.lever_arm.args          = {[],ones(1,7),[1:7],7,c/fc/4};
+  param.src.lever_arm.args          = {[],1,[1:7],[0; c/fc/2; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 21;
@@ -339,7 +339,7 @@ if 0
   param.src.f1                      = 450e6;
   param.src.ft_wind                 = @boxcar;
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  param.src.lever_arm.args          = {[],ones(1,8),[1:8],8,0.24};
+  param.src.lever_arm.args          = {[],1,[1:8],[0; 0.24; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 24;
@@ -421,7 +421,7 @@ if 0
   param.src.f1                      = 450e6;
   param.src.ft_wind                 = @boxcar;
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  param.src.lever_arm.args          = {[],ones(1,8),[1:8],8,0.24};
+  param.src.lever_arm.args          = {[],1,[1:8],[0; 0.24; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 24;
@@ -495,7 +495,7 @@ if 0
   param.src.f1                      = 450e6;
   param.src.ft_wind                 = @boxcar;
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  param.src.lever_arm.args          = {[],ones(1,8),[1:8],8,0.24};
+  param.src.lever_arm.args          = {[],1,[1:8],[0; 0.24; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 24;
@@ -569,7 +569,7 @@ if 1
   param.src.f1                      = 450e6;
   param.src.ft_wind                 = @boxcar;
   param.src.lever_arm.fh            = @sim.lever_arm_example;
-  param.src.lever_arm.args          = {[],ones(1,8),[1:8],8,0.24};
+  param.src.lever_arm.args          = {[],1,[1:8],[0; 0.24; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 24;

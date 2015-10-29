@@ -161,7 +161,8 @@ function [array_param,dout] = array_proc(array_param,din,dout)
 %    bins that are to be used for the sinc interpolation that is done
 %    to determine the pixel power after DOA estimation.
 %  .theta_guard: the minimum source separation in radians. Used with DOA
-%    methods. Default is 1.5 degrees.
+%    methods. Default is 1.5 degrees, but should be set relative to the
+%    electrical size of the array.
 %  .init: string specifying the initialization method:
 %    'ap': alternating projection (not global)
 %    'grid': sparse grid search (slower, but global)
