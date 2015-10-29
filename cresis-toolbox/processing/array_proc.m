@@ -26,8 +26,8 @@ function [array_param,dout] = array_proc(array_param,din,dout)
 %    4. Re-iterative super resolution, Blunt (RISR)
 %    6. Minimum Variance Distortionless Response (Robust MVDR)
 %    7. Maximum Likelihood Estimator (MLE)
-%    8. DCM Correlation Method, Stumpf
-%    9. Wideband Maximum Likelihood Estimator
+%    8. Wideband Data Covariance Matrix Correlation Method, Stumpf (WBDCM)
+%    9. Wideband Maximum Likelihood Estimator (WBMLE)
 %    Should be a scalar, defaults to Periodogram
 %  .window
 %    Periodogram only: window to be applied to din before the FFT
@@ -226,7 +226,7 @@ if ischar(array_param.method)
     array_param.method = 6;
   elseif strcmpi(array_param.method,'mle')
     array_param.method = 7;
-  elseif strcmpi(array_param.method,'wideband')
+  elseif strcmpi(array_param.method,'wbdcm')
     array_param.method = 8;
   elseif strcmpi(array_param.method,'wbmle')
     array_param.method = 9;
@@ -343,7 +343,9 @@ switch (array_param.method)
     % Narrowband methods
     array_param.bins = 1-min(array_param.bin_rng) : array_param.dbin ...
       : Nt-max(array_param.bin_rng);
+    
   case {8}
+    % Wideband DCM
     array_param.bins = 1 - min(array_param.bin_rng) - min(array_param.reg_bins) - floor((array_param.W-1)/2) : array_param.dbin ...
       : Nt - max(array_param.bin_rng) - max(array_param.reg_bins) + floor((array_param.W-1)/2);
     
@@ -392,7 +394,7 @@ if ~exist('dout','var')
   dout.freq ...
     = NaN*zeros(length(array_param.bins),length(array_param.lines),'single');
   switch (array_param.method)
-    case {7,8,9} % MLE DOA, Wideband DOA
+    case {7,8,9} % DOA Methods
       dout.doa = ...
         NaN*zeros(length(array_param.bins),array_param.Nsig,length(array_param.lines),'single');
       dout.hessian = ...
@@ -410,7 +412,7 @@ if ~exist('dout','var')
       % dout.mle = ...
       %   NaN*zeros(length(array_param.bins),array_param.Nsig,length(array_param.lines),'single');
       
-    otherwise % All other methods (beam-forming)
+    otherwise % Beam Forming Methods
       if array_param.three_dim.en
         dout.img ...
           = NaN*zeros(length(array_param.bins),Nsv,length(array_param.lines),'single');
@@ -427,13 +429,13 @@ for ml_idx = 1:length(din)
       % Periodogram method
       din{ml_idx}(:,:,:,:,chan) = din{ml_idx}(:,:,:,:,chan) * (Hwindow(chan) / array_param.chan_equal{ml_idx}(chan));
     else
-      % All others
+      % All other methods
       din{ml_idx}(:,:,:,:,chan) = din{ml_idx}(:,:,:,:,chan) / array_param.chan_equal{ml_idx}(chan);
     end
   end
 end
 
-%% Setup parameterization for mle
+%% Setup parameterization for MLE
 if array_param.method == 7
   doa_param.fs              = array_param.wfs.fs;
   doa_param.fc              = array_param.wfs.fc;
@@ -444,7 +446,7 @@ if array_param.method == 7
   doa_param.search_type     = array_param.init;
 end
 
-%% Setup parameterization for wideband doa estimator
+%% Setup parameterization for WBDCM
 if array_param.method == 8
   doa_param.h               = array_param.imp_resp.vals(:);
   doa_param.t0              = array_param.imp_resp.time_vec(1);
@@ -459,7 +461,7 @@ if array_param.method == 8
   doa_param.search_type     = array_param.init;
 end
 
-%% Setup parameterization for wideband mle
+%% Setup parameterization for WBMLE
 if array_param.method == 9
   doa_param.fs              = array_param.wfs.fs;
   doa_param.fc              = array_param.wfs.fc;
@@ -534,7 +536,7 @@ for lineIdx = 1:1:length(array_param.lines)
     [~,array_param.sv{ml_idx}] = array_param.sv_fh(array_param.Nsv,array_param.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
   end
   
-  %% Setup line-varying parameters for wideband doa estimator
+  %% Setup line-varying parameters for MLE
   if array_param.method == 7
     doa_param.y_pc  = y_pos{1};
     doa_param.z_pc  = z_pos{1};
@@ -542,14 +544,14 @@ for lineIdx = 1:1:length(array_param.lines)
     doa_param.SV    = fftshift(array_param.sv{1},2);
   end
   
-  %% Setup line-varying parameters for wideband doa estimator
+  %% Setup line-varying parameters for WBDCM
   if array_param.method == 8
     doa_param.y_pc   = y_pos{1};
     doa_param.z_pc   = z_pos{1};
     doa_param.theta  = fftshift(theta);
   end
   
-  %% Setup line-varying parameters for wideband doa estimator
+  %% Setup line-varying parameters for WBMLE
   if array_param.method == 9
     doa_param.y_pc  = y_pos{1};
     doa_param.z_pc  = z_pos{1};
@@ -1396,9 +1398,9 @@ for lineIdx = 1:1:length(array_param.lines)
   
   %% Reformat output for this range line into a single slice of a 3D echogram
   switch array_param.method
-    case {0,1,2,3,4,5,6}
+    case {0,1,2,3,4,5,6} % Beamforming Methods
       Sarray = fftshift(Sarray.',2);
-    case {7,8,9}
+    case {7,8,9} % DOA Methods
       %% Not supported yet.
       
   end
@@ -1406,10 +1408,10 @@ for lineIdx = 1:1:length(array_param.lines)
   %% Reformat output to store full 3-D image (if enabled)
   if array_param.three_dim.en
     switch array_param.method
-      case {0,1,2,3,4,5,6}
+      case {0,1,2,3,4,5,6} % Beamforming Methods
         dout.img(:,:,lineIdx) = Sarray;
         
-      case {7,8,9}
+      case {7,8,9} % DOA Methods
         % Nothing to be done at this point
     end
   end
@@ -1425,7 +1427,7 @@ for lineIdx = 1:1:length(array_param.lines)
   if 0 && (~mod(lineIdx,size(dout.val,2)) || lineIdx == 1)
     % DEBUG CODE: change 0&& to 1&& on line above to run it
     switch array_param.method
-      case {0,1,2,3,4,5,6}
+      case {0,1,2,3,4,5,6} % Beamforming Methods
         figure(1); clf;
         imagesc(10*log10(Sarray));
         hold on
@@ -1435,7 +1437,7 @@ for lineIdx = 1:1:length(array_param.lines)
         figure(2); clf;
         imagesc(10*log10(dout.val));
         
-      case {7,8,9}
+      case {7,8,9} % DOA Methods
         figure(1); clf;
         plot(dout.doa(:,:,lineIdx)*180/pi,'.')
         hold on;

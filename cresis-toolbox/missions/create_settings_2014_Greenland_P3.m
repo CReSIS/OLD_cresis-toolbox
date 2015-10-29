@@ -194,7 +194,7 @@ param.phase = final_DDS_phase;
 param.tg.look_angle = [-30 0 30];
 for wf = 1:length(param.tg.look_angle)
   nadir_vec = [0 0 1];
-  beam_vec = [0 sind(param.tg.look_angle(wf)) cos(param.tg.look_angle(wf))];
+  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))]
   nadir_delay = -nadir_vec * phase_centers;
   beam_delay = -beam_vec * phase_centers;
   nadir_delay = nadir_delay - nadir_delay(4);
@@ -203,10 +203,15 @@ for wf = 1:length(param.tg.look_angle)
   beam_delay = beam_delay / c - nadir_delay; % Only include delay relative to nadir
   beam_delay = [beam_delay - mean(beam_delay) 0];
   param.wfs(wf).delay = (final_DDS_time/1e9 - beam_delay)*1e9;
+  fprintf('%d\t', wf);
+  fprintf('%.1f\t',param.wfs(wf).delay);
+  fprintf('\n');
   % To do phase only correction:
   %param.wfs(wf).phase = final_DDS_phase + beam_delay * 2*pi*(f0+f1)/2;
   %param.wfs(wf).delay = final_DDS_time;
 end
+
+
 param.wfs(1).f0 = f0;
 param.wfs(1).f1 = f1;
 param.wfs(2).f0 = f0;
@@ -241,7 +246,7 @@ param.phase = final_DDS_phase;
 param.tg.look_angle = [-30 0 30];
 for wf = 1:length(param.tg.look_angle)
   nadir_vec = [0 0 1];
-  beam_vec = [0 sind(param.tg.look_angle(wf)) cos(param.tg.look_angle(wf))];
+  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))];
   nadir_delay = -nadir_vec * phase_centers;
   beam_delay = -beam_vec * phase_centers;
   nadir_delay = nadir_delay - nadir_delay(4);
@@ -285,7 +290,7 @@ param.phase = final_DDS_phase;
 param.tg.look_angle = [-30 0 30];
 for wf = 1:length(param.tg.look_angle)
   nadir_vec = [0 0 1];
-  beam_vec = [0 sind(param.tg.look_angle(wf)) cos(param.tg.look_angle(wf))];
+  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))];
   nadir_delay = -nadir_vec * phase_centers;
   beam_delay = -beam_vec * phase_centers;
   nadir_delay = nadir_delay - nadir_delay(4);
@@ -329,7 +334,7 @@ param.phase = final_DDS_phase;
 param.tg.look_angle = [-30 0 30];
 for wf = 1:length(param.tg.look_angle)
   nadir_vec = [0 0 1];
-  beam_vec = [0 sind(param.tg.look_angle(wf)) cos(param.tg.look_angle(wf))];
+  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))];
   nadir_delay = -nadir_vec * phase_centers;
   beam_delay = -beam_vec * phase_centers;
   nadir_delay = nadir_delay - nadir_delay(4);
@@ -376,7 +381,7 @@ param.phase = final_DDS_phase;
 param.tg.look_angle = [-34 -17 0 17 34];
 for wf = 1:length(param.tg.look_angle)
   nadir_vec = [0 0 1];
-  beam_vec = [0 sind(param.tg.look_angle(wf)) cos(param.tg.look_angle(wf))];
+  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))];
   nadir_delay = -nadir_vec * phase_centers;
   beam_delay = -beam_vec * phase_centers;
   nadir_delay = nadir_delay - nadir_delay(4);

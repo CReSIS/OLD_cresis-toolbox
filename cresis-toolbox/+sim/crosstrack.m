@@ -93,7 +93,7 @@ for run_idx = 1:param.monte.runs
   end
   
   %% Create simulated data
-  sim_data = sim.crossover_data(param, surf_model);
+  sim_data = sim.crosstrack_data(param, surf_model);
   
   if 0
     imagesc(squeeze(lp(sim_data(:,1,:))))

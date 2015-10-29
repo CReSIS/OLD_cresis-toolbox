@@ -8,12 +8,18 @@
 % See also: array_proc_update.m, sim.crosstrack_example.m
 
 % =========================================================================
-%% Step 1. Run crosstrack_example.m example 1 with debug_level set to 2 or
-% higher
+%% Step 1. Run crosstrack_example.m example 1 with debug_level set to 3
 % =========================================================================
 
-fprintf('Ensure sim.crosstrack_example.m runs example #1!!!\n\n');
-sim.crosstrack_example;
+if 1
+  % Generate simulation results
+  fprintf('Ensure sim.crosstrack_example.m runs example #1!!!\n\n');
+  sim.crosstrack_example;
+  save('c:\temp\run_array_proc_update.mat','results');
+else
+  % Load previously existing simulation results
+  load('c:\temp\run_array_proc_update.mat','results');
+end
 
 % Extract results from "crosstrack_example":
 
@@ -33,8 +39,12 @@ doa = results.tomo.doa;
 power = results.tomo.power;
 cost = results.tomo.cost;
 hessian = results.tomo.hessian;
+
+% surf_model: the target surface grid
 surf_model = results.surf_model;
+% param: parameters used to setup the simulation
 param = results.param;
+% array_param: array processing parameters
 array_param = results.array_param;
 
 % x: along track position of target
