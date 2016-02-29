@@ -334,8 +334,9 @@ classdef (HandleCompatible = true) vector_editor < handle
       %% Source list box context menu
       obj.h_gui.flines.listCM = uicontextmenu;
       % Define the context menu items and install their callbacks
-      obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Delete', 'Callback', @obj.flinesLB_menu_callback);
       obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Copy', 'Callback', @obj.flinesLB_menu_callback);
+      obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Delete', 'Callback', @obj.flinesLB_menu_callback);
+      obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Geometry Sort', 'Callback', @obj.flinesLB_menu_callback);
       obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Merge', 'Callback', @obj.flinesLB_menu_callback);
       obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Move', 'Callback', @obj.flinesLB_menu_callback);
       obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Paste', 'Callback', @obj.flinesLB_menu_callback);
@@ -1582,6 +1583,57 @@ classdef (HandleCompatible = true) vector_editor < handle
       elseif strcmpi(command,'Cut')
       elseif strcmpi(command,'Delete')
         deletePB_callback(obj,h_obj,event)
+        
+      elseif strcmpi(command,'Geometry Sort')
+        cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
+        if iscell(cur_fline_selected)
+          cur_fline_selected = cell2mat(cur_fline_selected);
+        end
+        
+        % Sort the selected flight line structures
+        cur_pos = cur_fline_selected(1);
+        sort_order = cur_fline_selected(1);
+        used_mask = zeros(size(cur_fline_selected));
+        used_mask(1) = 1;
+        while length(sort_order) < length(cur_fline_selected)
+          min_dist = inf;
+          for pos = cur_fline_selected(~used_mask)
+            % Search for next closest flight line (look at the start/stop
+            % position of each line)
+            dist_begin = sqrt(abs(obj.flines(pos).x(1) - obj.flines(cur_pos).x(end)).^2 ...
+              + abs(obj.flines(pos).y(1) - obj.flines(cur_pos).y(end)).^2);
+            dist_end = sqrt(abs(obj.flines(pos).x(end) - obj.flines(cur_pos).x(end)).^2 ...
+              + abs(obj.flines(pos).y(end) - obj.flines(cur_pos).y(end)).^2);
+            if dist_end < dist_begin && dist_end < min_dist
+              % The end point of the next potential line is closer
+              closest_pos = pos;
+              min_dist = dist_end;
+              min_is_end = true;
+            elseif dist_begin < min_dist
+              % The begin point of the next potential line is closer
+              closest_pos = pos;
+              min_dist = dist_begin;
+              min_is_end = false;
+            end
+          end
+          cur_pos = closest_pos;
+          used_mask(closest_pos == cur_fline_selected) = 1;
+          sort_order = cat(2,sort_order,closest_pos);
+          if min_is_end
+            % Reverse the waypoint order in the flight line since this
+            % flight line will be flown from end to beginning
+            obj.reverse_waypoints(cur_pos);
+          end
+        end
+        
+        % Update our "database" of flight lines
+        obj.flines(cur_fline_selected) = obj.flines(sort_order);
+        
+        % Update the listbox
+        flines = get(obj.h_gui.flines.listLB,'String');
+        flines(cur_fline_selected) = flines(sort_order);
+        set(obj.h_gui.flines.listLB,'String',flines);
+        
       elseif strcmpi(command,'Merge')
         cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
         if iscell(cur_fline_selected)
@@ -1756,34 +1808,38 @@ classdef (HandleCompatible = true) vector_editor < handle
         
       elseif strcmpi(command,'Reverse Wpnts')
         cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
-        if iscell(cur_fline_selected)
-          cur_fline_selected = cell2mat(cur_fline_selected);
-        end
-        if isempty(cur_fline_selected)
-          warning('No flight line selected');
-          return;
-        end
-        
-        % Reverse the waypoints
-        for pos = cur_fline_selected
-          obj.flines(pos).lat = obj.flines(pos).lat(end:-1:1);
-          obj.flines(pos).lon = obj.flines(pos).lon(end:-1:1);
-          obj.flines(pos).wpnt_names = obj.flines(pos).wpnt_names(end:-1:1);
-          obj.flines(pos).x = obj.flines(pos).x(end:-1:1);
-          obj.flines(pos).y = obj.flines(pos).y(end:-1:1);
-          
-          obj.flines(pos).along_track ...
-            = geodetic_to_along_track(obj.flines(pos).lat, ...
-            obj.flines(pos).lon);
-          
-          cur_wpnt_names = get(obj.h_gui.wpnts.listLB,'String');
-          cur_wpnt_names = cur_wpnt_names(end:-1:1);
-          set(obj.h_gui.wpnts.listLB,'String',cur_wpnt_names);
-        end
-        
-        obj.update_statusText();
-        obj.update_flineGraphics();
+        obj.reverse_waypoints(cur_fline_selected);
       end
+    end
+    
+    function reverse_waypoints(obj,cur_fline_selected)
+      if iscell(cur_fline_selected)
+        cur_fline_selected = cell2mat(cur_fline_selected);
+      end
+      if isempty(cur_fline_selected)
+        warning('No flight line selected');
+        return;
+      end
+      
+      % Reverse the waypoints
+      for pos = cur_fline_selected
+        obj.flines(pos).lat = obj.flines(pos).lat(end:-1:1);
+        obj.flines(pos).lon = obj.flines(pos).lon(end:-1:1);
+        obj.flines(pos).wpnt_names = obj.flines(pos).wpnt_names(end:-1:1);
+        obj.flines(pos).x = obj.flines(pos).x(end:-1:1);
+        obj.flines(pos).y = obj.flines(pos).y(end:-1:1);
+        
+        obj.flines(pos).along_track ...
+          = geodetic_to_along_track(obj.flines(pos).lat, ...
+          obj.flines(pos).lon);
+        
+        cur_wpnt_names = get(obj.h_gui.wpnts.listLB,'String');
+        cur_wpnt_names = cur_wpnt_names(end:-1:1);
+        set(obj.h_gui.wpnts.listLB,'String',cur_wpnt_names);
+      end
+      
+      obj.update_statusText();
+      obj.update_flineGraphics();
     end
     
     function delete_flines(obj,delete_mask)
@@ -1814,36 +1870,62 @@ classdef (HandleCompatible = true) vector_editor < handle
       if iscell(cur_fline_selected)
         cur_fline_selected = cell2mat(cur_fline_selected);
       end
-      
-      % Sort the selected flight line structures
-      cur_pos = cur_fline_selected(1);
-      sort_order = cur_fline_selected(1);
-      used_mask = zeros(size(cur_fline_selected));
-      used_mask(1) = 1;
-      while length(sort_order) < length(cur_fline_selected)
-        min_dist = inf;
-        for pos = cur_fline_selected(~used_mask)
-          % Search for next closest flight line
-          dist = sqrt(abs(obj.flines(pos).x(1) - obj.flines(cur_pos).x(end)).^2 ...
-            + abs(obj.flines(pos).y(1) - obj.flines(cur_pos).y(end)).^2);
-          if dist < min_dist
-            closest_pos = pos;
-            min_dist = dist;
-          end
-        end
-        cur_pos = closest_pos;
-        used_mask(closest_pos == cur_fline_selected) = 1;
-        sort_order = cat(2,sort_order,closest_pos);
+      if isempty(cur_fline_selected)
+        warning('No flight line selected');
+        return;
       end
       
-      % Update our "database" of flight lines
-      obj.flines(cur_fline_selected) = obj.flines(sort_order);
+      % Geometry sort the waypoints (i.e. order them starting from the
+      % first according to the distance between them)
+      for pos = cur_fline_selected
+        cur_wpnt_selected = get(obj.h_gui.wpnts.listLB,'Value');
+        if iscell(cur_wpnt_selected)
+          cur_wpnt_selected = cell2mat(cur_wpnt_selected);
+        end
+        if isempty(cur_wpnt_selected)
+          warning('No waypoint selected');
+          return;
+        end
+
+        % Sort the selected waypoints
+        cur_pos = cur_wpnt_selected(1);
+        sort_order = cur_wpnt_selected(1);
+        used_mask = zeros(size(cur_wpnt_selected));
+        used_mask(1) = 1;
+        while length(sort_order) < length(cur_wpnt_selected)
+          min_dist = inf;
+          for next_pos = cur_wpnt_selected(~used_mask)
+            % Search for next closest waypoint
+            dist = sqrt(abs(obj.flines(pos).x(next_pos) - obj.flines(pos).x(cur_pos)).^2 ...
+              + abs(obj.flines(pos).y(next_pos) - obj.flines(pos).y(cur_pos)).^2);
+            if dist < min_dist
+              % The begin point of the next potential line is closer
+              closest_pos = next_pos;
+              min_dist = dist;
+            end
+          end
+          cur_pos = closest_pos;
+          used_mask(closest_pos == cur_wpnt_selected) = 1;
+          sort_order = cat(2,sort_order,closest_pos);
+        end
+
+        obj.flines(pos).lat(cur_wpnt_selected) = obj.flines(pos).lat(cur_wpnt_selected(sort_order));
+        obj.flines(pos).lon(cur_wpnt_selected) = obj.flines(pos).lon(cur_wpnt_selected(sort_order));
+        obj.flines(pos).wpnt_names(cur_wpnt_selected) = obj.flines(pos).wpnt_names(cur_wpnt_selected(sort_order));
+        obj.flines(pos).x(cur_wpnt_selected) = obj.flines(pos).x(cur_wpnt_selected(sort_order));
+        obj.flines(pos).y(cur_wpnt_selected) = obj.flines(pos).y(cur_wpnt_selected(sort_order));
+        
+        obj.flines(pos).along_track ...
+          = geodetic_to_along_track(obj.flines(pos).lat, ...
+          obj.flines(pos).lon);
+        
+        cur_wpnt_names = get(obj.h_gui.wpnts.listLB,'String');
+        cur_wpnt_names = cur_wpnt_names(end:-1:1);
+        set(obj.h_gui.wpnts.listLB,'String',cur_wpnt_names);
+      end
       
-      % Update the listbox
-      flines = get(obj.h_gui.flines.listLB,'String');
-      flines(cur_fline_selected) = flines(sort_order);
-      set(obj.h_gui.flines.listLB,'String',flines);
-      
+      obj.update_statusText();
+      obj.update_flineGraphics();
     end
     
     function deletePB_callback(obj,h_obj,event)
