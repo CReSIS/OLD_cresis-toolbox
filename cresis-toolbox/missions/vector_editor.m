@@ -9,7 +9,9 @@
 classdef (HandleCompatible = true) vector_editor < handle
   properties
     flines % Struct array of flight line vector data
+    plotonly % Struct array of plotonly vector data
     cur % Index to selected flight line
+    geotiff_fn % geotiff filename
     proj % Projection information (empty is geodetic)
     
     selection % Structure of selection information
@@ -28,18 +30,23 @@ classdef (HandleCompatible = true) vector_editor < handle
   end
   
   methods
-    function obj = vector_editor(geotiff_fn,data_dir)
+    function obj = vector_editor(geotiff_fn,save_fn)
       if ~exist('geotiff_fn','var')
         geotiff_fn = '';
       end
-      if ~exist('data_dir','var')
-        data_dir = '';
+      obj.geotiff_fn = geotiff_fn;
+      if ~exist('save_fn','var')
+        save_fn = '';
       end
+      obj.save_fn = save_fn;
       
       obj.flines = struct([]);
-      obj.save_fn = data_dir;
-      obj.export_fn = 'data_dir';
-      obj.open_fn_dir = fileparts(obj.save_fn);
+      obj.plotonly = [];
+      
+      save_fn_dir = fileparts(obj.save_fn);
+      obj.save_fn = obj.save_fn;
+      obj.export_fn = fullfile(save_fn_dir,'export');
+      obj.open_fn_dir = save_fn_dir;
       
       % geotiff_fn = Geotiff to load, leave empty for no raster image
       obj.special_mode.type = false;
@@ -64,27 +71,8 @@ classdef (HandleCompatible = true) vector_editor < handle
       
       obj.h_axes = axes('Parent',obj.h_gui.h_rpanel);
       
-      if isempty(geotiff_fn)
-        obj.proj = [];
-      else
-        obj.proj = geotiffinfo(geotiff_fn);
-        
-        % Read the image
-        [RGB, R, tmp] = geotiffread(geotiff_fn);
-        if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
-          RGB = uint8(RGB);
-        end
-        R = R/1e3;
-        
-        if strcmpi(class(RGB),'int16')
-          RGB = double(RGB);
-          RGB(RGB == 32767) = NaN;
-          RGB = (RGB - min(RGB(:))) / (max(RGB(:)) - min(RGB(:)));
-        end
-        obj.h_image = mapshow(RGB,R,'Parent',obj.h_axes);
-        xlabel('X (km)');
-        ylabel('Y (km)');
-      end
+      obj.update_geotiff(false);
+      
       hold(obj.h_axes,'on');
       obj.selection.h_wpnt_plot = plot(xlim,ylim,'rx','Parent',obj.h_axes,'LineWidth',3,'MarkerSize',15);
       set(obj.selection.h_wpnt_plot,'XData',[]);
@@ -412,6 +400,15 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_fig,'WindowButtonUpFcn',@obj.button_up);
       set(obj.h_fig,'WindowScrollWheelFcn',@obj.button_scroll);
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
+
+      %% Load file if passed in to constructor
+      if exist(obj.save_fn,'file')
+        [save_fn_dir,save_fn_name,save_fn_ext] = fileparts(obj.save_fn);
+        if strcmpi(save_fn_ext,'.mat')
+          obj.openMatFile(obj.save_fn);
+        end
+      end
+
     end
     
     function delete(obj)
@@ -423,6 +420,56 @@ classdef (HandleCompatible = true) vector_editor < handle
     
     function close_win(obj,h_obj,event)
       delete(obj);
+    end
+    
+    function update_geotiff(obj,update_graphics)
+      if isempty(obj.geotiff_fn)
+        obj.proj = [];
+      else
+        obj.proj = geotiffinfo(obj.geotiff_fn);
+        
+        % Read the image
+        fprintf('Reading the geotiff %s... may take a while\n', obj.geotiff_fn);
+        [RGB, R, tmp] = geotiffread(obj.geotiff_fn);
+        fprintf('  Done loading geotiff\n');
+        if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
+          RGB = uint8(RGB);
+        end
+        R = R/1e3;
+        
+        if strcmpi(class(RGB),'int16')
+          RGB = double(RGB);
+          RGB(RGB == 32767) = NaN;
+          RGB = (RGB - min(RGB(:))) / (max(RGB(:)) - min(RGB(:)));
+        end
+        
+        % Store all the existing plotonly objects
+        plotonly = handle2struct(obj.plotonly);
+        
+        obj.h_image = mapshow(RGB,R,'Parent',obj.h_axes);
+        xlabel('X (km)');
+        ylabel('Y (km)');
+        
+        % Put all the existing plotonly objects back on the plot
+        obj.plotonly = struct2handle(plotonly,obj.h_axes);
+        
+        % For each plotonly handle, update the projection
+        for plotonly_idx=1:length(obj.plotonly)
+          userdata = get(obj.plotonly(plotonly_idx),'userdata');
+          [x,y] = projfwd(obj.proj,userdata.lat,userdata.lon);
+          set(obj.plotonly(plotonly_idx),'XData',x/1e3,'YData',y/1e3);
+        end
+      end
+      
+      for pos = 1:length(obj.flines)
+        [obj.flines(pos).x,obj.flines(pos).y] ...
+          = projfwd(obj.proj,obj.flines(pos).lat,obj.flines(pos).lon);
+      end
+
+      if update_graphics
+        obj.update_statusText();
+        obj.update_flineGraphics();
+      end
     end
     
     function button_up(obj,h_obj,event)
@@ -935,7 +982,10 @@ classdef (HandleCompatible = true) vector_editor < handle
               obj.insert_fline(fline,[],true);
             else
               hold(obj.h_axes, 'on');
-              plot(x/1e3,y/1e3,default_plot_params,'Parent',obj.h_axes);
+              % Store the geodetic coordinates in the plot handle so we can
+              % update the projection later if we need to.
+              [userdata.lat,userdata.lon] = projinv(obj.proj,x,y);
+              obj.plotonly(end+1) = plot(x/1e3,y/1e3,default_plot_params,'Parent',obj.h_axes,'UserData',userdata);
             end
           end
           
@@ -1030,13 +1080,25 @@ classdef (HandleCompatible = true) vector_editor < handle
           end
           
         elseif strcmpi(ext,'.mat')
-          % Insert all flight lines
-          new_flines = load(fn);
-          for pos = 1:length(new_flines.flines)
-            obj.insert_fline(new_flines.flines(pos),[],0);
-          end
+          obj.openMatFile(fn);
         end
       end
+    end
+
+    function openMatFile(obj,fn)
+      new_data = load(fn);
+      % Update geotiff
+      if isfield(new_data,'geotiff_fn') && exist(new_data.geotiff_fn,'file')
+        obj.geotiff_fn = new_data.geotiff_fn;
+        obj.update_geotiff(true);
+      end
+      % Insert all flight lines
+      for pos = 1:length(new_data.flines)
+        obj.insert_fline(new_data.flines(pos),[],0);
+      end
+      % Insert all plotonly graphics
+      new_plotonly = struct2handle(new_data.plotonly,obj.h_axes);
+      obj.plotonly = [obj.plotonly new_plotonly];
     end
     
     function savePB_callback(obj,h_obj,event)
@@ -1044,8 +1106,10 @@ classdef (HandleCompatible = true) vector_editor < handle
         saveasPB_callback(obj,h_obj,event)
       else
         fprintf('Saving flight lines to %s\n',obj.save_fn);
+        geotiff_fn = obj.geotiff_fn;
         flines = obj.flines;
-        save(obj.save_fn, 'flines')
+        plotonly = handle2struct(obj.plotonly);
+        save(obj.save_fn, 'flines', 'geotiff_fn', 'plotonly')
       end
     end
     
@@ -1060,8 +1124,10 @@ classdef (HandleCompatible = true) vector_editor < handle
       
       obj.save_fn = fullfile(pathname, filename);
       fprintf('Saving flight lines to %s\n',obj.save_fn);
+      geotiff_fn = obj.geotiff_fn;
       flines = obj.flines;
-      save(obj.save_fn, 'flines')
+      plotonly = handle2struct(obj.plotonly);
+      save(obj.save_fn, 'flines', 'geotiff_fn', 'plotonly')
     end
     
     function insert_fline(obj,fline,pos,selected)
@@ -1549,7 +1615,9 @@ classdef (HandleCompatible = true) vector_editor < handle
       
       % Update flines listbox names
       cur_fline_names = cell(size(obj.flines));
-      [cur_fline_names{:}] = deal(obj.flines(:).name);
+      if ~isempty(obj.flines)
+        [cur_fline_names{:}] = deal(obj.flines(:).name);
+      end
       set(obj.h_gui.flines.listLB,'String',cur_fline_names);
       
       % Set ListTopBox
