@@ -342,19 +342,19 @@ classdef (HandleCompatible = true) clip_matrix < handle
               fprintf('No more commands to undo.\n');
             end
             
-          case 'downarrow' % Down-arrow: Move Echogram Down
+          case 'downarrow' % Down-arrow: Pan down
             zoom_arrow(event,struct('h_axes',obj.h_axes, ...
               'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
             
-          case 'uparrow' % Up-arrow: Move Echogram Up
+          case 'uparrow' % Up-arrow: Pan up
             zoom_arrow(event,struct('h_axes',obj.h_axes, ...
               'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
             
-          case 'rightarrow' % Right arrow
+          case 'rightarrow' % Right arrow: Pan right
             zoom_arrow(event,struct('h_axes',obj.h_axes, ...
               'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
             
-          case 'leftarrow' % Left arrow
+          case 'leftarrow' % Left arrow: Pan left
             zoom_arrow(event,struct('h_axes',obj.h_axes, ...
               'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
             

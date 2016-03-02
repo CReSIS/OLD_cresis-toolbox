@@ -22,6 +22,9 @@ classdef (HandleCompatible = true) vector_editor < handle
     h_axes % Axes handle
     h_image % Image handle
     h_gui % Structure of graphics handles
+    zoom_mode % logical indicating the current zoom mode
+    zoom_mode_x % double containing x-position of button down
+    zoom_mode_y % double containing y-position of button down
     
     save_fn % Filename to save lines to
     export_fn % Filename to export to
@@ -52,6 +55,10 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.h_fig = figure;
       h_fig_pos = get(obj.h_fig,'Position');
       set(obj.h_fig,'Position',h_fig_pos + [0 -150 150 150]);
+      set(obj.h_fig,'NumberTitle','off');
+      set(obj.h_fig,'Name',sprintf('Vec %d',obj.h_fig));
+      set(obj.h_fig,'MenuBar','none');
+      set(obj.h_fig,'ToolBar','none');
       
       % h_gui.h_panel
       % h_gui.h_axes
@@ -69,12 +76,14 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_gui.h_rpanel,'ShadowColor',[0.6 0.6 0.6]);
       
       obj.h_axes = axes('Parent',obj.h_gui.h_rpanel);
+      title(obj.save_fn,'interpreter','none','parent',obj.h_axes);
       obj.plotonly = graphics_handler(obj.h_axes,'none');
+      set(obj.plotonly.h_fig,'NumberTitle','off');
+      set(obj.plotonly.h_fig,'Name',sprintf('VecGH %d %d',obj.h_fig,obj.plotonly.h_fig));
       axes(obj.h_axes);
       
       obj.update_geotiff(false);
       
-      hold(obj.h_axes,'on');
       obj.selection.h_wpnt_plot = plot(xlim,ylim,'rx','Parent',obj.h_axes,'LineWidth',3,'MarkerSize',15);
       set(obj.selection.h_wpnt_plot,'XData',[]);
       set(obj.selection.h_wpnt_plot,'YData',[]);
@@ -205,6 +214,13 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_gui.multi_or_singleCB,'String','Multi-Select');
       set(obj.h_gui.multi_or_singleCB,'Value',0);
       
+      obj.h_gui.zoom_selectCB = uicontrol('Parent',obj.h_gui.h_lpanel);
+      set(obj.h_gui.zoom_selectCB,'Style','checkbox');
+      set(obj.h_gui.zoom_selectCB,'HorizontalAlignment','Center');
+      set(obj.h_gui.zoom_selectCB,'FontName','fixed');
+      set(obj.h_gui.zoom_selectCB,'String','Zoom-Select');
+      set(obj.h_gui.zoom_selectCB,'Value',1);
+      
       obj.h_gui.wpnts.insert_beforePB = uicontrol('Parent',obj.h_gui.h_lpanel);
       set(obj.h_gui.wpnts.insert_beforePB,'Style','PushButton');
       set(obj.h_gui.wpnts.insert_beforePB,'String','Insert-Before');
@@ -278,6 +294,10 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.h_gui.h_subpanel_table.height(row,col)    = 25;
       col = col + 1;
       obj.h_gui.h_subpanel_table.handles{row,col}   = obj.h_gui.multi_or_singleCB;
+      obj.h_gui.h_subpanel_table.width(row,col)     = inf;
+      obj.h_gui.h_subpanel_table.height(row,col)    = 25;
+      col = col + 1;
+      obj.h_gui.h_subpanel_table.handles{row,col}   = obj.h_gui.zoom_selectCB;
       obj.h_gui.h_subpanel_table.width(row,col)     = inf;
       obj.h_gui.h_subpanel_table.height(row,col)    = 25;
       col = 1; row = row + 1;
@@ -401,12 +421,18 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_fig,'WindowButtonUpFcn',@obj.button_up);
       set(obj.h_fig,'WindowScrollWheelFcn',@obj.button_scroll);
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
+      set(obj.h_fig,'WindowKeyPressFcn',@obj.key_press);
+      
+      % Set up zoom
+      zoom_setup(obj.h_fig);
+      obj.zoom_mode = true;
+      set(obj.h_fig,'pointer','custom');
       
       %% Load file if passed in to constructor
       if exist(obj.save_fn,'file')
         [save_fn_dir,save_fn_name,save_fn_ext] = fileparts(obj.save_fn);
         if strcmpi(save_fn_ext,'.mat')
-          obj.openMatFile(obj.save_fn,1,1,1);
+          obj.openMatFile(obj.save_fn,0,1,1,1);
         end
       end
       
@@ -484,13 +510,21 @@ classdef (HandleCompatible = true) vector_editor < handle
       % Make sure that click is on the right side panel
       mouse_pos = get(obj.h_fig,'CurrentPoint');
       
-      % Check to make sure mouse clicked inside of obj.h_axes.handle
+      % Check to make sure mouse clicked inside of obj.h_axes
       %   Since extends the full y-length, just check to the right of minimum x
       set(obj.h_gui.h_rpanel,'Units','normalized');
       uipanel_pos = get(obj.h_gui.h_rpanel,'Position');
       set(obj.h_gui.h_rpanel,'Units','Points');
       if mouse_pos(1) <= uipanel_pos(1)
         return
+      end
+      
+      if obj.zoom_mode && obj.special_mode.type ~= 2
+        xlims = get(obj.h_image,'XData'); xlims = sort(xlims([1 end]));
+        ylims = get(obj.h_image,'YData'); ylims = sort(ylims([1 end]));
+        zoom_button_up(x,y,but,struct('x',obj.zoom_mode_x,'y',obj.zoom_mode_y, ...
+          'h_axes',obj.h_axes,'xlims',xlims,'ylims',ylims));
+        return;
       end
       
       tools = get(obj.h_gui.toolPM,'String');
@@ -515,6 +549,11 @@ classdef (HandleCompatible = true) vector_editor < handle
           elseif fline_select
             % Find the closest flight line
             % interpm, reducem
+            xlims = xlim;
+            ylims = ylim;
+            if x<xlims(1) || x>xlims(2) || y<ylims(1) || y>ylims(2)
+              return
+            end
             x = x*1e3;
             y = y*1e3;
             min_dist = inf;
@@ -551,6 +590,11 @@ classdef (HandleCompatible = true) vector_editor < handle
           else
             % Find the closest waypoint
             % interpm, reducem
+            xlims = xlim;
+            ylims = ylim;
+            if x<xlims(1) || x>xlims(2) || y<ylims(1) || y>ylims(2)
+              return
+            end
             x = x*1e3;
             y = y*1e3;
             min_dist = inf;
@@ -595,13 +639,20 @@ classdef (HandleCompatible = true) vector_editor < handle
       % Make sure that click is on the right side panel
       mouse_pos = get(obj.h_fig,'CurrentPoint');
       
-      % Check to make sure mouse clicked inside of obj.h_axes.handle
+      % Check to make sure mouse clicked inside of obj.h_axes
       %   Since extends the full y-length, just check to the right of minimum x
       set(obj.h_gui.h_rpanel,'Units','normalized');
       uipanel_pos = get(obj.h_gui.h_rpanel,'Position');
       set(obj.h_gui.h_rpanel,'Units','Points');
       if mouse_pos(1) <= uipanel_pos(1)
         return
+      end
+      
+      if obj.zoom_mode && obj.special_mode.type ~= 2
+        obj.zoom_mode_x = x;
+        obj.zoom_mode_y = y;
+        rbbox;
+        return;
       end
       
       tools = get(obj.h_gui.toolPM,'String');
@@ -625,7 +676,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       % Make sure that click is on the right side panel
       mouse_pos = get(obj.h_fig,'CurrentPoint');
       
-      % Check to make sure mouse clicked inside of obj.h_axes.handle
+      % Check to make sure mouse clicked inside of obj.h_axes
       %   Since extends the full y-length, just check to the right of minimum x
       set(obj.h_gui.h_rpanel,'Units','normalized');
       uipanel_pos = get(obj.h_gui.h_rpanel,'Position');
@@ -647,9 +698,53 @@ classdef (HandleCompatible = true) vector_editor < handle
       xlims = [x - x_extent*2^(zooms+1)*x_percent, x + x_extent*2^(zooms+1)*(1-x_percent)];
       ylims = [y - y_extent*2^(zooms+1)*y_percent, y + y_extent*2^(zooms+1)*(1-y_percent)];
       
-      xlim(xlims);
-      ylim(ylims);
+      xlim(obj.h_axes,xlims);
+      ylim(obj.h_axes,ylims);
       
+    end
+    
+    function key_press(obj,src,event)
+      % see event.Modifier for modifiers
+
+      current_object = gco;
+      xlims = get(obj.h_image,'XData'); xlims = sort(xlims([1 end]));
+      ylims = get(obj.h_image,'YData'); ylims = sort(ylims([1 end]));
+      
+      switch event.Key
+        case 'f1'
+          % Print out help for this window
+          
+        case 'z'
+          %% toggle zoom mode
+          obj.zoom_mode = ~obj.zoom_mode;
+          if obj.zoom_mode
+            set(obj.h_fig,'pointer','custom');
+          else
+            set(obj.h_fig,'pointer','arrow');
+          end
+          
+        case 'downarrow' % Down-arrow: Pan down
+          if any(current_object == obj.h_gui.flines.listLB) || any(current_object == obj.h_gui.wpnts.listLB)
+            return
+          end
+          zoom_arrow(event,struct('h_axes',obj.h_axes, ...
+            'xlims',xlims,'ylims',ylims));
+          
+        case 'uparrow' % Up-arrow: Pan up
+          if any(current_object == obj.h_gui.flines.listLB) || any(current_object == obj.h_gui.wpnts.listLB)
+            return
+          end
+          zoom_arrow(event,struct('h_axes',obj.h_axes, ...
+            'xlims',xlims,'ylims',ylims));
+          
+        case 'rightarrow' % Right arrow: Pan right
+          zoom_arrow(event,struct('h_axes',obj.h_axes, ...
+            'xlims',xlims,'ylims',ylims));
+          
+        case 'leftarrow' % Left arrow: Pan left
+          zoom_arrow(event,struct('h_axes',obj.h_axes, ...
+            'xlims',xlims,'ylims',ylims));
+      end
     end
     
     function flinesLB_callback(obj,h_obj,event)
@@ -687,7 +782,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.update_flineGraphics();
       
       %% Set map axis
-      if isfinite(xlims(1))
+      if get(obj.h_gui.zoom_selectCB,'Value') && isfinite(xlims(1))
         axis(obj.h_axes,'normal');
         
         xlims = xlims/1e3;
@@ -761,7 +856,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       end
       
       %% Set map axis
-      if isfinite(xlims(1))
+      if get(obj.h_gui.zoom_selectCB,'Value') && isfinite(xlims(1))
         axis(obj.h_axes,'normal');
         
         xlims = xlims/1e3;
@@ -835,6 +930,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       default_num_header_lines = '0';
       default_plot_params = 'k.';
       default_map_only = 'false';
+      default_unload_field = '1';
       default_geotiff_field = '1';
       default_plotonly_field = '1';
       default_flightlines_field = '1';
@@ -1090,61 +1186,93 @@ classdef (HandleCompatible = true) vector_editor < handle
           end
           
         elseif strcmpi(ext,'.mat')
-          prompt = {'Load geotiff','Load plotonly', ...
+          prompt = {'Unload all first','Load geotiff','Load plotonly', ...
             'Load flightlines'};
           dlg_title = 'Define which values to load:';
           num_lines = 1;
-          def = {default_geotiff_field, default_plotonly_field, ...
+          def = {default_unload_field, default_geotiff_field, default_plotonly_field, ...
             default_flightlines_field};
           answer = inputdlg(prompt,dlg_title,num_lines,def);
           
-          if length(answer) == 3
-            default_geotiff_field = answer{1};
-            default_plotonly_field = answer{2};
-            default_flightlines_field = answer{3};
+          if length(answer) == 4
+            default_unload_field = answer{1};
+            default_geotiff_field = answer{2};
+            default_plotonly_field = answer{3};
+            default_flightlines_field = answer{4};
+            try
+              unload_field = eval(default_unload_field);
+              if (unload_field)
+                unload_field = true;
+              else
+                unload_field = false;
+              end
+            catch
+              unload_field = true;
+            end
             try
               load_geotiff_field = eval(default_geotiff_field);
+              if (load_geotiff_field)
+                load_geotiff_field = true;
+              else
+                load_geotiff_field = false;
+              end
             catch
               load_geotiff_field = true;
             end
             try
-              load_plotonly_field = eval(default_plotonly_field);
+              load_plotonly_field = eval(default_geotiff_field);
+              if (load_plotonly_field)
+                load_plotonly_field = true;
+              else
+                load_plotonly_field = false;
+              end
             catch
               load_plotonly_field = true;
             end
             try
-              load_flightlines_field = eval(default_flightlines_field);
+              load_flightlines_field = eval(default_geotiff_field);
+              if (load_flightlines_field)
+                load_flightlines_field = true;
+              else
+                load_flightlines_field = false;
+              end
             catch
               load_flightlines_field = true;
             end
             
-            obj.openMatFile(fn,load_geotiff_field,load_plotonly_field,load_flightlines_field);
+            obj.openMatFile(fn,unload_field,load_geotiff_field,load_plotonly_field,load_flightlines_field);
           end
           
         end
       end
     end
     
-    function openMatFile(obj,fn,load_geotiff_field,load_plotonly_field,load_flightlines_field)
+    function openMatFile(obj,fn,unload_field,load_geotiff_field,load_plotonly_field,load_flightlines_field)
       new_data = load(fn);
       obj.save_fn = fn;
+      title(obj.save_fn,'interpreter','none','parent',obj.h_axes);
+      % Unload all data
+      if unload_field
+        delete_flines(obj,ones(size(obj.flines)));
+        obj.plotonly.delete_handle(1:length(obj.plotonly.handles));
+      end
       % Update geotiff
       if load_geotiff_field && isfield(new_data,'geotiff_fn') && exist(new_data.geotiff_fn,'file') ...
           && ~strcmpi(obj.geotiff_fn,new_data.geotiff_fn)
         obj.geotiff_fn = new_data.geotiff_fn;
         obj.update_geotiff(true);
       end
-      if load_flightlines_field
-        % Insert all flight lines
-        for pos = 1:length(new_data.flines)
-          obj.insert_fline(new_data.flines(pos),[],0);
-        end
-      end
       if load_plotonly_field
         % Insert all plotonly graphics
         new_plotonly = struct2handle(new_data.plotonly,obj.h_axes);
         
         obj.plotonly.insert_handle(new_plotonly);
+      end
+      if load_flightlines_field
+        % Insert all flight lines
+        for pos = 1:length(new_data.flines)
+          obj.insert_fline(new_data.flines(pos),[],0);
+        end
       end
     end
     
@@ -1170,10 +1298,11 @@ classdef (HandleCompatible = true) vector_editor < handle
       end
       
       obj.save_fn = fullfile(pathname, filename);
+      title(obj.save_fn,'interpreter','none','parent',obj.h_axes);
       fprintf('Saving flight lines to %s\n',obj.save_fn);
       geotiff_fn = obj.geotiff_fn;
       flines = obj.flines;
-      plotonly = handle2struct(obj.plotonly);
+      plotonly = handle2struct(obj.plotonly.handles);
       save(obj.save_fn, 'flines', 'geotiff_fn', 'plotonly')
     end
     
@@ -1211,6 +1340,7 @@ classdef (HandleCompatible = true) vector_editor < handle
           = plot(obj.flines(pos).x(1)/1e3,obj.flines(pos).y(1)/1e3,'bo','Parent',obj.h_axes);
       else
         obj.flines(pos).handle = plot(0,0,'b.-','Parent',obj.h_axes);
+        uistack(obj.flines(pos).handle, 'top');
         set(obj.flines(pos).handle,'XData',[]);
         set(obj.flines(pos).handle,'YData',[]);
         obj.flines(pos).start_handle = plot(0,0,'bo','Parent',obj.h_axes);
@@ -1848,21 +1978,20 @@ classdef (HandleCompatible = true) vector_editor < handle
         obj.special_mode.type = 0;
         
         cur_names = get(obj.h_gui.flines.listLB,'String');
-        prompt = {'Line Spacing (km):','Aircraft Spacing (km)'};
+        prompt = {'Aircraft Spacing (km)'};
         dlg_title = 'Paste Special';
         num_lines = 1;
-        def = {'2','1'};
+        def = {'1'};
         answer = inputdlg(prompt,dlg_title,num_lines,def);
         
-        if ~isempty(answer) && ~isempty(answer{1}) && ~isempty(answer{2})
+        if ~isempty(answer) && ~isempty(answer{1})
           % Paste away (If "R" is fline, "R_0", "R_1", etc will be lines
           answer{1} = str2double(answer{1});
-          answer{2} = str2double(answer{2});
           
           [lat,lon] = projinv(obj.proj,xPoly*1e3,yPoly*1e3);
           [lat,lon] = interpm(lat,lon,1/100);
           along_track = geodetic_to_along_track(lat,lon);
-          along_track_axis = 0:answer{2}*1e3:along_track(end);
+          along_track_axis = 0:answer{1}*1e3:along_track(end);
           
           obj.selection.copy.flines = obj.selection.copy.flines(1);
           
@@ -2142,6 +2271,21 @@ classdef (HandleCompatible = true) vector_editor < handle
     end
     
     function exportPB_callback(obj,h_obj,event)
+      % Try to create a default file path that makes sense
+      [save_fn_dir,save_fn_name,save_fn_ext] = fileparts(obj.save_fn);
+      if exist(save_fn_dir,'dir')
+        export_fn_dir = save_fn_dir;
+        if strcmpi(save_fn_ext,'.mat')
+          export_fn_name = save_fn_name;
+          export_fn_ext = '.jpg';
+        else
+          export_fn_name = 'export'
+          export_fn_ext = '.jpg';
+        end
+        obj.export_fn = fullfile(export_fn_dir,[export_fn_name export_fn_ext]);
+      end
+
+      % Ask the user for the file path to use
       [filename, pathname] = uiputfile( ...
         {'*.jpg', 'All JPG Images (*.jpg)'; ...
         '*.fig', 'All MATLAB Figures (*.fig)'; ...
@@ -2167,7 +2311,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       XData = get(h_image,'XData');
       YData = get(h_image,'YData');
       CData = get(h_image,'CData');
-      imagesc(XData,YData,CData,'Parent',h_export_axes);
+      h_export_image = imagesc(XData,YData,CData,'Parent',h_export_axes);
       xlabel('X (km)');
       ylabel('Y (km)');
       set(h_export_axes,'YDir','normal');
@@ -2183,9 +2327,16 @@ classdef (HandleCompatible = true) vector_editor < handle
       hold(h_export_axes,'off')
       
       saveas(h_export_fig, obj.export_fn);
+      [export_fn_dir export_fn_name] = fileparts(obj.export_fn);
+      
+      %% Create a Matlab figure file (normally the map is too large so commented out for now)
+      [export_fn_dir export_fn_name] = fileparts(obj.export_fn);
+      export_fig_fn = fullfile(export_fn_dir,[export_fn_name '.fig']);
+      clip_and_resample_image(h_export_image,h_export_axes,8);
+      saveas(h_export_fig, export_fig_fn);
+      fprintf('  %s\n', export_fig_fn);
       
       %% Create a separate CSV file for each flight line
-      [export_fn_dir export_fn_name] = fileparts(obj.export_fn);
       for pos = 1:length(obj.flines)
         export_csv_fn = fullfile(export_fn_dir,sprintf('%s_%s.csv', ...
           export_fn_name, obj.flines(pos).name));

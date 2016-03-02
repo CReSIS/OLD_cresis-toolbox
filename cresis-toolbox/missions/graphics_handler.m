@@ -58,7 +58,6 @@ classdef (HandleCompatible = true) graphics_handler < handle
       set(obj.h_gui.handleText,'Style','text');
       set(obj.h_gui.handleText,'HorizontalAlignment','left');
       set(obj.h_gui.handleText,'String','Graphics handle list');
-      set(obj.h_gui.handleText,'Position',[1 1 120 15]);
       set(obj.h_gui.handleText,'Units','points');
       
       obj.h_gui.handlesLB = uicontrol('Parent',obj.h_fig);
@@ -79,14 +78,12 @@ classdef (HandleCompatible = true) graphics_handler < handle
       set(obj.h_gui.selectText,'Style','text');
       set(obj.h_gui.selectText,'HorizontalAlignment','left');
       set(obj.h_gui.selectText,'String','Selection properties');
-      set(obj.h_gui.selectText,'Position',[1 1 120 15]);
       set(obj.h_gui.selectText,'Units','points');
       
       obj.h_gui.selectLE = uicontrol('parent',obj.h_fig);
       set(obj.h_gui.selectLE,'Style','edit');
       set(obj.h_gui.selectLE,'HorizontalAlignment','left');
       set(obj.h_gui.selectLE,'String','{''LineWidth'',2,''MarkerSize'',20}');
-      set(obj.h_gui.selectLE,'Position',[1 1 120 20]);
       set(obj.h_gui.selectLE,'Units','points');
       
       %% Setup main table
