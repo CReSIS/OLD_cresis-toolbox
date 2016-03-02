@@ -9,7 +9,7 @@
 classdef (HandleCompatible = true) vector_editor < handle
   properties
     flines % Struct array of flight line vector data
-    plotonly % Struct array of plotonly vector data
+    plotonly % graphics_handler class
     cur % Index to selected flight line
     geotiff_fn % geotiff filename
     proj % Projection information (empty is geodetic)
@@ -41,7 +41,6 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.save_fn = save_fn;
       
       obj.flines = struct([]);
-      obj.plotonly = [];
       
       save_fn_dir = fileparts(obj.save_fn);
       obj.save_fn = obj.save_fn;
@@ -53,7 +52,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.h_fig = figure;
       h_fig_pos = get(obj.h_fig,'Position');
       set(obj.h_fig,'Position',h_fig_pos + [0 -150 150 150]);
-     
+      
       % h_gui.h_panel
       % h_gui.h_axes
       % h_gui.h_table
@@ -70,6 +69,8 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_gui.h_rpanel,'ShadowColor',[0.6 0.6 0.6]);
       
       obj.h_axes = axes('Parent',obj.h_gui.h_rpanel);
+      obj.plotonly = graphics_handler(obj.h_axes,'none');
+      axes(obj.h_axes);
       
       obj.update_geotiff(false);
       
@@ -77,7 +78,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.selection.h_wpnt_plot = plot(xlim,ylim,'rx','Parent',obj.h_axes,'LineWidth',3,'MarkerSize',15);
       set(obj.selection.h_wpnt_plot,'XData',[]);
       set(obj.selection.h_wpnt_plot,'YData',[]);
-
+      
       obj.h_gui.statusText = uicontrol('parent',obj.h_gui.h_rpanel);
       set(obj.h_gui.statusText,'Style','text');
       set(obj.h_gui.statusText,'HorizontalAlignment','left');
@@ -110,7 +111,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         = obj.h_gui.h_table.false_height(1:row,1:col);
       clear row col
       table_draw(obj.h_gui.h_table);
-
+      
       %% Setup right panel table
       obj.h_gui.h_rpanel_table.ui = obj.h_gui.h_rpanel;
       obj.h_gui.h_rpanel_table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
@@ -400,21 +401,24 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_fig,'WindowButtonUpFcn',@obj.button_up);
       set(obj.h_fig,'WindowScrollWheelFcn',@obj.button_scroll);
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
-
+      
       %% Load file if passed in to constructor
       if exist(obj.save_fn,'file')
         [save_fn_dir,save_fn_name,save_fn_ext] = fileparts(obj.save_fn);
         if strcmpi(save_fn_ext,'.mat')
-          obj.openMatFile(obj.save_fn);
+          obj.openMatFile(obj.save_fn,1,1,1);
         end
       end
-
+      
     end
     
     function delete(obj)
       % Delete the map figure handle
       try
         delete(obj.h_fig);
+      end
+      try
+         delete(obj.plotonly);
       end
     end
     
@@ -444,20 +448,22 @@ classdef (HandleCompatible = true) vector_editor < handle
         end
         
         % Store all the existing plotonly objects
-        plotonly = handle2struct(obj.plotonly);
+        plotonly = handle2struct(obj.plotonly.handles);
+        obj.plotonly.delete_handle(1:length(obj.plotonly.handles));
         
         obj.h_image = mapshow(RGB,R,'Parent',obj.h_axes);
         xlabel('X (km)');
         ylabel('Y (km)');
         
         % Put all the existing plotonly objects back on the plot
-        obj.plotonly = struct2handle(plotonly,obj.h_axes);
+        new_plotonly = struct2handle(plotonly,obj.h_axes);
+        obj.plotonly.insert_handle(new_plotonly);
         
         % For each plotonly handle, update the projection
-        for plotonly_idx=1:length(obj.plotonly)
-          userdata = get(obj.plotonly(plotonly_idx),'userdata');
+        for plotonly_idx=1:length(obj.plotonly.handles)
+          userdata = get(obj.plotonly.handles(plotonly_idx),'userdata');
           [x,y] = projfwd(obj.proj,userdata.lat,userdata.lon);
-          set(obj.plotonly(plotonly_idx),'XData',x/1e3,'YData',y/1e3);
+          set(obj.plotonly.handles(plotonly_idx),'XData',x/1e3,'YData',y/1e3);
         end
       end
       
@@ -465,7 +471,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         [obj.flines(pos).x,obj.flines(pos).y] ...
           = projfwd(obj.proj,obj.flines(pos).lat,obj.flines(pos).lon);
       end
-
+      
       if update_graphics
         obj.update_statusText();
         obj.update_flineGraphics();
@@ -640,7 +646,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       y_percent = (y-cur_axis(3))/y_extent;
       xlims = [x - x_extent*2^(zooms+1)*x_percent, x + x_extent*2^(zooms+1)*(1-x_percent)];
       ylims = [y - y_extent*2^(zooms+1)*y_percent, y + y_extent*2^(zooms+1)*(1-y_percent)];
-
+      
       xlim(xlims);
       ylim(ylims);
       
@@ -729,7 +735,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       if iscell(cur_wpnt_selected)
         cur_wpnt_selected = cell2mat(cur_wpnt_selected);
       end
-
+      
       set(obj.selection.h_wpnt_plot, ...
         'XData', obj.flines(cur_fline_selected).x(cur_wpnt_selected)/1e3, ...
         'YData', obj.flines(cur_fline_selected).y(cur_wpnt_selected)/1e3);
@@ -829,6 +835,9 @@ classdef (HandleCompatible = true) vector_editor < handle
       default_num_header_lines = '0';
       default_plot_params = 'k.';
       default_map_only = 'false';
+      default_geotiff_field = '1';
+      default_plotonly_field = '1';
+      default_flightlines_field = '1';
       for file_idx = 1:length(open_fns)
         fn = fullfile(open_fn_dir, open_fns{file_idx});
         
@@ -985,7 +994,8 @@ classdef (HandleCompatible = true) vector_editor < handle
               % Store the geodetic coordinates in the plot handle so we can
               % update the projection later if we need to.
               [userdata.lat,userdata.lon] = projinv(obj.proj,x,y);
-              obj.plotonly(end+1) = plot(x/1e3,y/1e3,default_plot_params,'Parent',obj.h_axes,'UserData',userdata);
+              new_plotonly = plot(x/1e3,y/1e3,default_plot_params,'Parent',obj.h_axes,'UserData',userdata);
+              obj.plotonly.insert_handle(new_plotonly);
             end
           end
           
@@ -1080,25 +1090,62 @@ classdef (HandleCompatible = true) vector_editor < handle
           end
           
         elseif strcmpi(ext,'.mat')
-          obj.openMatFile(fn);
+          prompt = {'Load geotiff','Load plotonly', ...
+            'Load flightlines'};
+          dlg_title = 'Define which values to load:';
+          num_lines = 1;
+          def = {default_geotiff_field, default_plotonly_field, ...
+            default_flightlines_field};
+          answer = inputdlg(prompt,dlg_title,num_lines,def);
+          
+          if length(answer) == 3
+            default_geotiff_field = answer{1};
+            default_plotonly_field = answer{2};
+            default_flightlines_field = answer{3};
+            try
+              load_geotiff_field = eval(default_geotiff_field);
+            catch
+              load_geotiff_field = true;
+            end
+            try
+              load_plotonly_field = eval(default_plotonly_field);
+            catch
+              load_plotonly_field = true;
+            end
+            try
+              load_flightlines_field = eval(default_flightlines_field);
+            catch
+              load_flightlines_field = true;
+            end
+            
+            obj.openMatFile(fn,load_geotiff_field,load_plotonly_field,load_flightlines_field);
+          end
+          
         end
       end
     end
-
-    function openMatFile(obj,fn)
+    
+    function openMatFile(obj,fn,load_geotiff_field,load_plotonly_field,load_flightlines_field)
       new_data = load(fn);
+      obj.save_fn = fn;
       % Update geotiff
-      if isfield(new_data,'geotiff_fn') && exist(new_data.geotiff_fn,'file')
+      if load_geotiff_field && isfield(new_data,'geotiff_fn') && exist(new_data.geotiff_fn,'file') ...
+          && ~strcmpi(obj.geotiff_fn,new_data.geotiff_fn)
         obj.geotiff_fn = new_data.geotiff_fn;
         obj.update_geotiff(true);
       end
-      % Insert all flight lines
-      for pos = 1:length(new_data.flines)
-        obj.insert_fline(new_data.flines(pos),[],0);
+      if load_flightlines_field
+        % Insert all flight lines
+        for pos = 1:length(new_data.flines)
+          obj.insert_fline(new_data.flines(pos),[],0);
+        end
       end
-      % Insert all plotonly graphics
-      new_plotonly = struct2handle(new_data.plotonly,obj.h_axes);
-      obj.plotonly = [obj.plotonly new_plotonly];
+      if load_plotonly_field
+        % Insert all plotonly graphics
+        new_plotonly = struct2handle(new_data.plotonly,obj.h_axes);
+        
+        obj.plotonly.insert_handle(new_plotonly);
+      end
     end
     
     function savePB_callback(obj,h_obj,event)
@@ -1108,7 +1155,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         fprintf('Saving flight lines to %s\n',obj.save_fn);
         geotiff_fn = obj.geotiff_fn;
         flines = obj.flines;
-        plotonly = handle2struct(obj.plotonly);
+        plotonly = handle2struct(obj.plotonly.handles);
         save(obj.save_fn, 'flines', 'geotiff_fn', 'plotonly')
       end
     end
@@ -1419,7 +1466,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         end
         obj.wpntsLB_callback();
         obj.update_statusText();
-                
+        
       elseif strcmpi(command,'Insert Map')
         obj.reset_copy()
         prompt = {'X (km):','Y (km):','Name:'};
@@ -1433,7 +1480,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         end
         obj.wpntsLB_callback();
         obj.update_statusText();
-                
+        
       elseif strcmpi(command,'Copy')
         cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
         if iscell(cur_fline_selected)
@@ -1526,7 +1573,7 @@ classdef (HandleCompatible = true) vector_editor < handle
             set(obj.h_gui.wpnts.listLB,'String',cur_names);
           end
         end
-      
+        
       elseif strcmpi(command,'Reverse Order')
         obj.reset_copy()
         cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
@@ -1546,7 +1593,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         if isempty(cur_wpnt_selected)
           cur_wpnt_selected = 1:length(obj.flines(cur_fline_selected));
         end
-
+        
         obj.flines(cur_fline_selected).lat(cur_wpnt_selected) = obj.flines(cur_fline_selected).lat(cur_wpnt_selected(end:-1:1));
         obj.flines(cur_fline_selected).lon(cur_wpnt_selected) = obj.flines(cur_fline_selected).lon(cur_wpnt_selected(end:-1:1));
         obj.flines(cur_fline_selected).wpnt_names(cur_wpnt_selected) = obj.flines(cur_fline_selected).wpnt_names(cur_wpnt_selected(end:-1:1));
@@ -1575,7 +1622,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       if iscell(cur_wpnt_selected)
         cur_wpnt_selected = cell2mat(cur_wpnt_selected);
       end
-
+      
       axes_children = get(obj.h_axes,'children');
       children_mask = zeros(size(axes_children));
       for pos = 1:length(obj.flines)
@@ -1933,6 +1980,49 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_gui.wpnts.listLB,'String',{});
     end
     
+    function name_sortPB_callback(obj,h_obj,event)
+      cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
+      if iscell(cur_fline_selected)
+        cur_fline_selected = cell2mat(cur_fline_selected);
+      end
+      if isempty(cur_fline_selected)
+        warning('No flight line selected');
+        return;
+      end
+      
+      % Name sort the waypoints (i.e. order them alphebetically)
+      for pos = cur_fline_selected
+        cur_wpnt_selected = get(obj.h_gui.wpnts.listLB,'Value');
+        if iscell(cur_wpnt_selected)
+          cur_wpnt_selected = cell2mat(cur_wpnt_selected);
+        end
+        if isempty(cur_wpnt_selected)
+          warning('No waypoint selected');
+          return;
+        end
+        
+        % Sort the selected waypoints by their names
+        sort_order = sort(obj.flines(pos).wpnt_names(cur_wpnt_selected));
+        
+        obj.flines(pos).lat(cur_wpnt_selected) = obj.flines(pos).lat(cur_wpnt_selected(sort_order));
+        obj.flines(pos).lon(cur_wpnt_selected) = obj.flines(pos).lon(cur_wpnt_selected(sort_order));
+        obj.flines(pos).wpnt_names(cur_wpnt_selected) = obj.flines(pos).wpnt_names(cur_wpnt_selected(sort_order));
+        obj.flines(pos).x(cur_wpnt_selected) = obj.flines(pos).x(cur_wpnt_selected(sort_order));
+        obj.flines(pos).y(cur_wpnt_selected) = obj.flines(pos).y(cur_wpnt_selected(sort_order));
+        
+        obj.flines(pos).along_track ...
+          = geodetic_to_along_track(obj.flines(pos).lat, ...
+          obj.flines(pos).lon);
+        
+        cur_wpnt_names = get(obj.h_gui.wpnts.listLB,'String');
+        cur_wpnt_names = cur_wpnt_names(end:-1:1);
+        set(obj.h_gui.wpnts.listLB,'String',cur_wpnt_names);
+      end
+      
+      obj.update_statusText();
+      obj.update_flineGraphics();
+    end
+    
     function geo_sortPB_callback(obj,h_obj,event)
       cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
       if iscell(cur_fline_selected)
@@ -1954,7 +2044,7 @@ classdef (HandleCompatible = true) vector_editor < handle
           warning('No waypoint selected');
           return;
         end
-
+        
         % Sort the selected waypoints
         cur_pos = cur_wpnt_selected(1);
         sort_order = cur_wpnt_selected(1);
@@ -1976,7 +2066,7 @@ classdef (HandleCompatible = true) vector_editor < handle
           used_mask(closest_pos == cur_wpnt_selected) = 1;
           sort_order = cat(2,sort_order,closest_pos);
         end
-
+        
         obj.flines(pos).lat(cur_wpnt_selected) = obj.flines(pos).lat(cur_wpnt_selected(sort_order));
         obj.flines(pos).lon(cur_wpnt_selected) = obj.flines(pos).lon(cur_wpnt_selected(sort_order));
         obj.flines(pos).wpnt_names(cur_wpnt_selected) = obj.flines(pos).wpnt_names(cur_wpnt_selected(sort_order));
@@ -2036,13 +2126,13 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.flines(cur_fline_selected).along_track ...
         = geodetic_to_along_track(obj.flines(cur_fline_selected).lat, ...
         obj.flines(cur_fline_selected).lon);
-
+      
       wpnts = wpnts(~delete_mask);
       set(obj.h_gui.wpnts.listLB,'Value',[]);
       set(obj.h_gui.wpnts.listLB,'String',wpnts);
       
       set(obj.flines(cur_fline_selected).handle,'XData',obj.flines(cur_fline_selected).x/1e3,'YData',obj.flines(cur_fline_selected).y/1e3);
-    
+      
       obj.update_statusText();
       obj.wpntsLB_callback();
     end
@@ -2364,7 +2454,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       end
       obj.wpntsLB_callback();
       obj.update_statusText();
-
+      
     end
     
     function update_statusText(obj)
