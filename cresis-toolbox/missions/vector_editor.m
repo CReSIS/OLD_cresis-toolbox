@@ -82,8 +82,6 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.plotonly.h_fig,'Name',sprintf('VecGH %d %d',obj.h_fig,obj.plotonly.h_fig));
       axes(obj.h_axes);
       
-      obj.update_geotiff(false);
-      
       obj.selection.h_wpnt_plot = plot(xlim,ylim,'rx','Parent',obj.h_axes,'LineWidth',3,'MarkerSize',15);
       set(obj.selection.h_wpnt_plot,'XData',[]);
       set(obj.selection.h_wpnt_plot,'YData',[]);
@@ -429,11 +427,11 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_fig,'pointer','custom');
       
       %% Load file if passed in to constructor
-      if exist(obj.save_fn,'file')
-        [save_fn_dir,save_fn_name,save_fn_ext] = fileparts(obj.save_fn);
-        if strcmpi(save_fn_ext,'.mat')
-          obj.openMatFile(obj.save_fn,0,1,1,1);
-        end
+      [save_fn_dir,save_fn_name,save_fn_ext] = fileparts(obj.save_fn);
+      if strcmpi(save_fn_ext,'.mat')
+        obj.openMatFile(obj.save_fn,0,1,1,1);
+      else
+        obj.update_geotiff(false);
       end
       
     end
@@ -453,44 +451,61 @@ classdef (HandleCompatible = true) vector_editor < handle
     end
     
     function update_geotiff(obj,update_graphics)
-      if isempty(obj.geotiff_fn)
-        obj.proj = [];
-      else
-        obj.proj = geotiffinfo(obj.geotiff_fn);
+      if ~exist(obj.geotiff_fn,'file')
+        warning('Valid geotiff file required.\n  Current file: (%s).', obj.geotiff_fn);
         
-        % Read the image
-        fprintf('Reading the geotiff %s... may take a while\n', obj.geotiff_fn);
-        [RGB, R, tmp] = geotiffread(obj.geotiff_fn);
-        fprintf('  Done loading geotiff\n');
-        if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
-          RGB = uint8(RGB);
-        end
-        R = R/1e3;
+        [geotiff_fn, geotiff_fn_dir, filterindex] = uigetfile( ...
+          {'*.tif','GeoTiff files (*.tif)'}, ...
+          'Select Geotiff map file', ...
+          obj.geotiff_fn, 'MultiSelect', 'off');
         
-        if strcmpi(class(RGB),'int16')
-          RGB = double(RGB);
-          RGB(RGB == 32767) = NaN;
-          RGB = (RGB - min(RGB(:))) / (max(RGB(:)) - min(RGB(:)));
+        if isequal(geotiff_fn,0) || isequal(geotiff_fn_dir,0)
+          if isempty(obj.proj)
+            % No projection, cannot continue
+            error('Aborting... failed to open (%s)',geotiff_fn);
+          else
+            warning('Aborting... failed to open (%s)',geotiff_fn);
+            return;
+          end
         end
         
-        % Store all the existing plotonly objects
-        plotonly = handle2struct(obj.plotonly.handles);
-        obj.plotonly.delete_handle(1:length(obj.plotonly.handles));
-        
-        obj.h_image = mapshow(RGB,R,'Parent',obj.h_axes);
-        xlabel('X (km)');
-        ylabel('Y (km)');
-        
-        % Put all the existing plotonly objects back on the plot
-        new_plotonly = struct2handle(plotonly,obj.h_axes);
-        obj.plotonly.insert_handle(new_plotonly);
-        
-        % For each plotonly handle, update the projection
-        for plotonly_idx=1:length(obj.plotonly.handles)
-          userdata = get(obj.plotonly.handles(plotonly_idx),'userdata');
-          [x,y] = projfwd(obj.proj,userdata.lat,userdata.lon);
-          set(obj.plotonly.handles(plotonly_idx),'XData',x/1e3,'YData',y/1e3);
-        end
+        obj.geotiff_fn = fullfile(geotiff_fn_dir, geotiff_fn);
+      end
+      
+      obj.proj = geotiffinfo(obj.geotiff_fn);
+      
+      % Read the image
+      fprintf('Reading the geotiff %s... may take a while\n', obj.geotiff_fn);
+      [RGB, R, tmp] = geotiffread(obj.geotiff_fn);
+      fprintf('  Done loading geotiff\n');
+      if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
+        RGB = uint8(RGB);
+      end
+      R = R/1e3;
+      
+      if strcmpi(class(RGB),'int16')
+        RGB = double(RGB);
+        RGB(RGB == 32767) = NaN;
+        RGB = (RGB - min(RGB(:))) / (max(RGB(:)) - min(RGB(:)));
+      end
+      
+      % Store all the existing plotonly objects
+      plotonly = handle2struct(obj.plotonly.handles);
+      obj.plotonly.delete_handle(1:length(obj.plotonly.handles));
+      
+      obj.h_image = mapshow(RGB,R,'Parent',obj.h_axes);
+      xlabel('X (km)');
+      ylabel('Y (km)');
+      
+      % Put all the existing plotonly objects back on the plot
+      new_plotonly = struct2handle(plotonly,obj.h_axes);
+      obj.plotonly.insert_handle(new_plotonly);
+      
+      % For each plotonly handle, update the projection
+      for plotonly_idx=1:length(obj.plotonly.handles)
+        userdata = get(obj.plotonly.handles(plotonly_idx),'userdata');
+        [x,y] = projfwd(obj.proj,userdata.lat,userdata.lon);
+        set(obj.plotonly.handles(plotonly_idx),'XData',x/1e3,'YData',y/1e3);
       end
       
       for pos = 1:length(obj.flines)
@@ -1248,6 +1263,10 @@ classdef (HandleCompatible = true) vector_editor < handle
     end
     
     function openMatFile(obj,fn,unload_field,load_geotiff_field,load_plotonly_field,load_flightlines_field)
+      if ~exist(fn,'file')
+        warning('Could not find file %s\n', obj.save_fn);
+        return;
+      end
       new_data = load(fn);
       obj.save_fn = fn;
       title(obj.save_fn,'interpreter','none','parent',obj.h_axes);
@@ -1606,7 +1625,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         answer = inputdlg(prompt,dlg_title,num_lines,def);
         
         if length(answer) == 3 && ~isempty(answer{1}) && ~isempty(answer{2})
-          obj.insert_wpnt(answer{1},answer{2},answer{3});
+          obj.insert_wpnt(eval(answer{1}),eval(answer{2}),answer{3});
         end
         obj.wpntsLB_callback();
         obj.update_statusText();
@@ -2105,6 +2124,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       set(obj.h_gui.flines.listLB,'Value',[]);
       set(obj.h_gui.flines.listLB,'String',cur_fline_names);
       
+      set(obj.h_gui.wpnts.listLB,'ListboxTop',1);
       set(obj.h_gui.wpnts.listLB,'Value',[]);
       set(obj.h_gui.wpnts.listLB,'String',{});
     end
@@ -2131,7 +2151,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         end
         
         % Sort the selected waypoints by their names
-        sort_order = sort(obj.flines(pos).wpnt_names(cur_wpnt_selected));
+        [tmp,sort_order] = sort(obj.flines(pos).wpnt_names(cur_wpnt_selected));
         
         obj.flines(pos).lat(cur_wpnt_selected) = obj.flines(pos).lat(cur_wpnt_selected(sort_order));
         obj.flines(pos).lon(cur_wpnt_selected) = obj.flines(pos).lon(cur_wpnt_selected(sort_order));
