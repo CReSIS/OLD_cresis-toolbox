@@ -190,7 +190,7 @@ else
 end
 
 settings_enc(1).('Version') = reshape(char(param.version),[1 length(param.version)]);
-if 1
+if isfield(param,'DDC_freq')
   %% DDC Settings
   settings_enc(1).DDCZ20Ctrl.NCOZ20freq = reshape(uint32(param.DDC_freq/1e6),[1 1]);
   settings_enc(1).DDCZ20Ctrl.DDCZ20sel.Val = reshape(uint32(param.DDC_select),[1 1]);
@@ -535,6 +535,13 @@ end
 
 if data_rate / 2^20 > param.max_data_rate
   error('Data rate %f MB/sec is too high', data_rate/2^20);
+end
+
+if isfield(param,'DDC_freq')
+  settings_enc.sys.DDCZ20Ctrl = settings_enc.DDCZ20Ctrl;
+  settings_enc.sys.DDSZ20Setup = settings_enc.DDSZ20Setup;
+  settings_enc = rmfield(settings_enc,'DDCZ20Ctrl');
+  settings_enc = rmfield(settings_enc,'DDSZ20Setup');
 end
 
 fid = fopen(out_xml_fn,'w');
