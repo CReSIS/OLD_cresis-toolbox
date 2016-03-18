@@ -1,3 +1,4 @@
+
 % script create_segments_icards.m
 %
 % Creates the vectors worksheet for the param spreadsheet.
@@ -8,13 +9,13 @@
 %find date which non chronological data 
 %% User Settings
 param=[];
-base_dir = 'Z:\ICARDS\2002\';
-adc_folder_name='jun04\';
-param.year = 2002;
-param.month = 6;
-param.day = 04;
+base_dir = 'Z:\ICARDS\1993\';
+adc_folder_name='jul09\';                                    %change needed
+param.year = 1993;                                           %change needed
+param.month = 7;                                             %change needed
+param.day = 09;                                              %change needed   
 param.radar_name = 'icards';
-param.season_name = '2002_Greenland_P3';
+param.season_name = '1993_Greenland_P3';                     %change needed   
 param.file_regexp = '\S+\.[0-9][0-9][0-9]$';
 plot_en = 0; % Set to 1 for gps plots.
 
@@ -38,6 +39,8 @@ MIN_PRF = 100;
 full_dir = fullfile(base_dir,adc_folder_name);
 
 fns = get_filenames(full_dir,'','','',struct('regexp',param.file_regexp));
+% fns = fns(2:205);  %to ignore "fiberdly" of 20020524!!!!!!!!!!!!!!!!!!!!!
+% fns = fns(1:43);   %to ignore "seaice"   of 20020520!!!!!!!!!!!!!!!!!!!!!
 
 %If segment goes from 1 to 10 the files for that segment are .000 to .009
 for fn_idx = 1:size(fns,1)

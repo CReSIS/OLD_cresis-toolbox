@@ -108,6 +108,7 @@ global GB; % Geobase: contains all the geographic info
 GB = [];
 
 hui.fig.handle = figure;
+set(hui.fig.handle,'Name',param.day_seg);
 
 % =====================================================================
 % =====================================================================
@@ -383,7 +384,7 @@ GB.records = records_file.records;
 GB.records.along_track = geodetic_to_along_track(GB.records.lat, ...
   GB.records.lon, GB.records.elev);
 
-if any(strcmpi(param.radar_name,{'mcords','mcrds','mcords2','mcords3','mcords4','mcords5','acords'}))
+if any(strcmpi(param.radar_name,{'icards','mcords','mcrds','mcords2','mcords3','mcords4','mcords5','acords'}))
   GB.default_frame_len = 50000;
 elseif any(strcmpi(param.radar_name,{'accum','accum2'}))
   GB.default_frame_len = 20000;

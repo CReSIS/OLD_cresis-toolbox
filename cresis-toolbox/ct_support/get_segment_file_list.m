@@ -31,7 +31,7 @@ elseif any(strcmpi(param.radar_name,{'acords'}))
 elseif strcmpi(param.radar_name,'mcrds')
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.raw';
-elseif any(strcmpi(param.radar_name,{'accum2','snow2','kuband2','snow3','kuband3','mcords','mcords4','mcords5','snow5'}))
+elseif any(strcmpi(param.radar_name,{'accum2','snow2','kuband2','snow3','kuband3','icards','mcords','mcords4','mcords5','snow5'}))
   % Create sub-folder name for the particular receiver
   adc_folder_name = param.vectors.file.adc_folder_name;
   board_idx_insert_idxs = strfind(adc_folder_name,'%d');
@@ -43,7 +43,7 @@ elseif any(strcmpi(param.radar_name,{'accum2','snow2','kuband2','snow3','kuband3
   mat_cmd = [mat_cmd ');'];
   eval(mat_cmd);
   
-  if param.records.file_version == 401
+  if param.records.file_version == 401 || param.records.file_version == 409
     ext = '.dat';
   else
     ext = '.bin';

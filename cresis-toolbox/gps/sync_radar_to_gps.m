@@ -57,7 +57,7 @@ end
 if any(strcmpi(param.radar_name,{'mcrds','accum2'}))
   %% Isolate the section of radar time from gps.radar_time that will be
   % used to interpolate with.
-  if strcmpi(param.season_name,'2013_Antarctica_P3') & strcmpi(param.radar_name,'accum2') & strcmpi(param.day_seg(1:8),'20131119') 
+  if strcmpi(param.season_name,'2013_Antarctica_P3') & strcmpi(param.radar_name,'accum2') & strcmpi(param.day_seg(1:8),'20131119')
     % no gps sync files, set radar_gps_time = comp_time(1) + radar_time -
     % radar_time(1) + comp_time_offset (-6*3600), the computer time offset
     % from gps time was 6 hours late
@@ -83,6 +83,35 @@ if any(strcmpi(param.radar_name,{'mcrds','accum2'}))
   
   %% DO NOT Apply GPS sync correction to radar time (this is done already
   % in create_records for these radars)
+  
+elseif any(strcmpi(param.radar_name,{'icards'}))% there's a minor inacurracy (1e-7)of first
+  % when read the csv file. This may cause radar_gps_time start earlier than gps.gps_time(first file)
+  % or later than gps.gps_time(last file). This phenomenon will further
+  % cause NaN when using interp1 to sync radar and gps!!This problem
+  % cannot be solved in other scripts----qishi
+  utc_time_sod = radar_time;
+  
+  %% Check for seconds of day roll over and unwrap (assume jump backward
+  % of more than 23 hours is a roll over)
+  wrap_idxs = find(abs(diff(utc_time_sod) + 86400) < 3600);
+  for wrap_idx = wrap_idxs
+    utc_time_sod(wrap_idx+1:end) = utc_time_sod(wrap_idx+1:end) + 86400;
+  end
+  
+  %% Apply GPS sync correction to radar time
+  utc_time_sod = utc_time_sod + param.vectors.gps.time_offset;
+  
+  %% Determine absolute radar time and convert from UTC to GPS
+  year = str2double(param.day_seg(1:4));
+  month = str2double(param.day_seg(5:6));
+  day = str2double(param.day_seg(7:8));
+  radar_gps_time = datenum_to_epoch(datenum(year,month,day,0,0,utc_time_sod)) + utc_leap_seconds(gps.gps_time(1));
+  if radar_gps_time(1)<gps.gps_time(1)
+    radar_gps_time=radar_gps_time(find(radar_gps_time>=gps.gps_time(1)));
+  end
+  if radar_gps_time(end)>gps.gps_time(end)
+    radar_gps_time=radar_gps_time(find(radar_gps_time<=gps.gps_time(end)));
+  end
   
 else
   utc_time_sod = radar_time;

@@ -140,6 +140,8 @@ cur_frm = find(x_min >= obj.eg.start_gps_time,1,'last');
 if isempty(cur_frm)
   cur_frm = 1;
 end
+  
+% Update the selection in the frame LB and the source LB
 obj.update_frame_and_sourceLB(cur_frm);
 
 if ~load_new_data

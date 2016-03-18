@@ -4,8 +4,8 @@ function autogenerate_frames(param,param_override)
 % segment selected.  Everything is automated.  This is useful for the
 % FMCW radars where frames are always auto generated.
 %
-% param.records.frame_mode
-%  ~= 0: autogenerate_frames is run
+% param.records.frame_mode: decimal scalar interpretted as a bit mask
+%  bit 1: autogenerate frames (i.e. call this function)
 %  bit 2: special FMCW mode for breaking frames at settings changes
 %  bit 3: overwrites frame without asking
 
@@ -44,18 +44,18 @@ param = merge_structs(param, param_override);
 fprintf('  autogenerate_frames %s\n', param.day_seg);
 fprintf('==============================================\n\n');
 
-if any(strcmpi(param.radar_name,{'mcords','mcrds','mcords2','mcords3','mcords4','mcords5'}))
+if any(strcmpi(param.radar_name,{'icards','mcords','mcrds','mcords2','mcords3','mcords4','mcords5'}))
   frame_length = 50000;
 elseif any(strcmpi(param.radar_name,{'accum','accum2'}))
   frame_length = 20000;
 elseif any(strcmpi(param.radar_name,{'kaband3','kuband','kuband2','kuband3','snow','snow2','snow3','snow5'}))
   frame_length = 5000;
 end
-if isfield(param.records,'frame_length') & ~isempty(param.records.frame_length)
+if isfield(param.records,'frame_length') && ~isempty(param.records.frame_length)
   frame_length = param.records.frame_length;
 end
   
-param.records.frame_mode = dec2bin(param.records.frame_mode,8);
+frame_mode = dec2bin(param.records.frame_mode,8);
 
 fprintf('Autogenerating frames for %s (%s)\n', param.day_seg, datestr(now))
 
@@ -64,7 +64,7 @@ frames_fn = ct_filename_support(param,'','frames');
 
 if exist(frames_fn,'file')
   fprintf('  Frame already exists %s\n', frames_fn);
-  if param.records.frame_mode(3) == '1'
+  if frame_mode(end-2) == '0'
     user_input = input('  Type ''o'' to overwrite or return to skip: ', 's');
     if isempty(user_input) || ~strcmpi(user_input(1),'o')
       fprintf('    Skipping frame generation\n');
@@ -91,7 +91,7 @@ frames.frame_idxs = zeros(size(frame_breaks));
 frames.frame_idxs(1) = 1;
 idx = 2;
 rec = 2;
-if any(strcmp(param.radar_name,{'snow2','kuband2'})) && param.records.frame_mode(2) == '1' ...
+if any(strcmp(param.radar_name,{'snow2','kuband2'})) && frame_mode(end-1) == '1' ...
     && str2double(param.day_seg(1:8)) > 20120630
   % Only 2012 Antarctica DC8 and later snow2/kuband2 supports "settings" field, so the
   % "> 20120630" check supports this... NEEDS TO BE SET TO CORRECT DATE WHICH IS SOMETIME

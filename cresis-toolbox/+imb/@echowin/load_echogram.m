@@ -11,10 +11,16 @@ function [x_min,x_max,y_min,y_max] = load_echogram(obj,desire_frame_idxs,clipped
 %   is correct.
 
 %% Determine which frames need/can be loaded
+  
+% Get the "most" desired frame
+most_desire_frame_idx = get(obj.left_panel.frameLB,'Value');
 
 % Determine the desired source
 source_idx = get(obj.left_panel.sourceLB,'Value');
 current_sources = get(obj.left_panel.sourceLB,'String');
+if isempty(current_sources)
+  error('No source files exist for frame %03d.', most_desire_frame_idx);
+end
 source_idx = find(strcmp(current_sources{source_idx},obj.eg.sources));
 
 % Determine the desired image
@@ -26,9 +32,6 @@ desire_exists = obj.eg.source_fns_existence(desire_frame_idxs,source_idx,img+1);
 
 if any(~desire_exists)
   % Some sources don't exist, so requires special handling
-  
-  % Get the "most" desired frame
-  most_desire_frame_idx = get(obj.left_panel.frameLB,'Value');
   
   if ~obj.eg.source_fns_existence(most_desire_frame_idx,source_idx,img+1)
     % The most desired frame does not exist for the selected source/image,

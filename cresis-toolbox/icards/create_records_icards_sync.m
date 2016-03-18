@@ -16,7 +16,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % Debug Setup
   % =====================================================================
   
-  new_param = read_param_xls(ct_filename_param('rds_param_2002_Greenland_P3.xls'),'20020518_01');
+  new_param = read_param_xls(ct_filename_param('rds_param_2002_Greenland_P3.xls'),'20020520_01');
   new_param.vectors.file.base_dir='Z:\ICARDS\2002\';
   new_param.date=new_param.day_seg(1:8);
   fn = ct_filename_tmp(new_param,new_param.records.records_fn,'records','workspace');
@@ -79,9 +79,9 @@ records=[];
 
 
 %% Correct for digital errors in epri
-if param.records.gps.en
-    utc_time_sod = epoch_to_sod(hdr.radar_time,param.day_seg(1:8));
-    utc_time_sod = utc_time_sod + param.vectors.gps.time_offset;
+if param.records.gps.en        
+   utc_time_sod = epoch_to_sod(hdr.radar_time,param.day_seg(1:8));
+   utc_time_sod = utc_time_sod + param.vectors.gps.time_offset;
    records = sync_radar_to_gps(param,records,utc_time_sod);
 else
   records.lat = NaN*zeros(size(hdr.utc_time_sod));
@@ -128,13 +128,30 @@ records.relative_rec_num{1}=hdr.file_rec_offset;
 % % % % % % % records.offset=hdr.offset;
 records.radar_name = param.radar_name;
 records.ver = 3;
+%-----------add settings field---------------------------------------------
+records.settings = [];
+records.settings.wfs_records = 1;
+records.settings.wfs_file=1;
+wf=1;%icards has only 1 waveform? the spread sheet says there are 2
+records.settings.wfs(wf).num_sam = num_rec_sample; %derive from icards_get_data when datatype==2 ??QISHI
+records.settings.wfs(wf).t0 = 0;
+records.settings.wfs(wf).presums = 1;
+records.settings.wfs(wf).bit_shifts = 0;
+records.settings.wfs(wf).fs = 1.88e7;                        %get from parameter spread sheet
+records.settings.wfs(wf).f0 = 1.8e8;                         %get from parameter spread sheet
+records.settings.wfs(wf).f1 = 2.1e8;                         %get from parameter spread sheet
+records.settings.wfs(wf).Tpd=3e-6;                           %get from parameter spread sheet
+records.settings.wfs(wf).adc_gains=10.^((52-0*ones(1,7))/20);%get from parameter spread sheet
+%--------------------------------------------------------------------------
 records.notes = '';
 records.param_records = param;
-if length(hdr.offset)~=records.gps_time
-    records.offset=cat(2,hdr.offset,hdr.offset(end)+[1:1:(length(records.gps_time)-length(hdr.offset))]*hdr.offset(1));
-else
+   
+% % % % if length(hdr.offset)~=records.gps_time
+% % % %     records.offset=cat(2,hdr.offset,hdr.offset(end)+[1:1:(length(records.gps_time)-length(hdr.offset))]*hdr.offset(1));
+% % % % else
+% % % % records.offset=hdr.offset;
+% % % % end
 records.offset=hdr.offset;
-end
 
 fprintf('Saving records file %s (%s)\n',records_fn,datestr(now));
 save(records_fn,'-v6','-struct','records');

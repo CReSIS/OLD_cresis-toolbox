@@ -10,34 +10,9 @@
 % which segments and frames are compressed (using the generic field).
 % The posting worksheet is also used.
 %
-% Settings for NSIDC:
-% compress_type = '';
-% truncate_data = true;
-% guard_depth_rng = [0 0];
-% min_depth_rng = [-8 5];
-% elev_comp = true;
+% See run_compress_echogram.m for how to run.
 %
 % Author: John Paden
-
-% ====================================================================
-% User Settings
-% ====================================================================
-echogram_dir = '/cresis/snfs1/dataproducts/ct_data/snow/2011_Greenland_P3/CSARP_qlook/';
-param_fn = ct_filename_param('snow_param_2011_Greenland_P3.xls');
-out_dir = '/cresis/snfs1/dataproducts/ct_data/snow/2011_Greenland_P3/CSARP_post/CSARP_qlook/';
-
-% echogram_dir = '/cresis/scratch2/mdce/cr1/kuband/2012_Antarctica_DC8/CSARP_qlook/';
-% param_fn = ct_filename_param('kuband_param_2012_Antarctica_DC8.xls');
-% out_dir = '/cresis/scratch2/mdce/cr1/kuband/2012_Antarctica_DC8/CSARP_post/CSARP_qlook/';
-
-% Generally speaking do not change these parameters
-compress_type = '';
-truncate_data = true;
-guard_depth_rng = [0 0];
-min_depth_rng = [-8 5];
-elev_comp = true;
-%param_post_echo_depth_override = '[min(Surface_Depth)-3 max(Surface_Depth)+5]'; % Sea Ice Segments Only
-param_post_echo_depth_override = '[min(Surface_Depth)-15 max(Surface_Depth)+50]'; % Land Ice Segments Only
 
 % ====================================================================
 % Automated Section
@@ -67,6 +42,13 @@ for param_idx = 1:length(params)
   end
   fprintf('Compress echogram %s (%s)\n', param.day_seg, datestr(now,'HH:MM:SS'));
   
+  % Determine if segment is sea or land ice
+  if ~isempty(regexpi(param.cmd.mission_names,'Sea'))
+    param_post_echo_depth_override = param_post_echo_depth_override_sea;
+  else
+    param_post_echo_depth_override = param_post_echo_depth_override_land;
+  end
+  
   % Load the frames file
   frames_fn = ct_filename_support(param,'','frames');
   load(frames_fn);
@@ -89,7 +71,13 @@ for param_idx = 1:length(params)
     % Get the filename
     fn = fullfile(echogram_dir,param.day_seg,sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));
-    fprintf(' Input %s\n', fn);
+    
+    if ct_proc_frame(frames.proc_mode(frm),frm_types)
+      fprintf(' Input %s (%s)\n', fn, datestr(now));
+    else
+      fprintf(' Skipping %s (%s)\n', fn, datestr(now));
+      continue;
+    end
     
     if ~exist(fn,'file')
       warning('File %s does not exist!!!!!', fn);

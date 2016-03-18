@@ -33,6 +33,11 @@ function destroy_jobs(match_param,sched)
 %         override with sched.name = 'jm2'
 %
 % See also list_jobs.m, get_job.m, findJob.m, findTask.m, destroy_jobs.m
+ 
+% Get Matlab Version Information
+[~,version_date] = version;
+version_date = datenum(version_date);
+version_two_date = datenum('Sept 15, 2014'); % Estimate of when Matlab changed versions
 
 % Get the global structure
 if ~isempty(whos('global','gRadar'))
@@ -49,10 +54,6 @@ if ~exist('sched','var') || isempty(sched) || ~isstruct(sched)
   else
     error('sched and gRadar.sched are not set');
   end
-end
-
-if ~isfield(sched,'ver')
-  sched.ver = 1;
 end
 
 if ~isfield(sched,'type')
@@ -87,7 +88,7 @@ elseif strcmp(sched.type,'torque')
     jm = findResource('scheduler','type',sched.type,'LookupUrl',sched.url);
   end
 elseif strcmpi(sched.type,'local')
-  if sched.ver == 1
+  if (version_date < version_two_date)
     jm = findResource('scheduler','type',sched.type);
   else
     jm = parcluster();
@@ -104,7 +105,7 @@ jobs = get(jm,'Jobs');
 
 job_struct = [];
 for ind = 1:length(jobs)
-  if sched.ver == 1
+  if (version_date < version_two_date)
     job_struct.UserName = get(jobs(ind),'UserName');
   else
     job_struct.UserName = get(jobs(ind),'Username');

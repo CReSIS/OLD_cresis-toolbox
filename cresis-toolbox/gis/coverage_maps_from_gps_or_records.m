@@ -13,6 +13,7 @@
 %
 % Author: John Paden
 
+global gRadar
 %% User Settings
 
 % fig_h = figure handle to use for plotting
@@ -22,18 +23,20 @@ fig_h = 1;
 dt = 1;
 
 % data_source: string 'gps' or 'records' (which files in csarp_support to use)
-data_source = 'gps'; 
+data_source = 'records'; 
 
 % Greenland
-% geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/arctic/NaturalEarth_Data/Arctic_NaturalEarth.tif';
-geotiff_fn = 'X:\GIS_data/arctic/NaturalEarth_Data/Arctic_NaturalEarth.tif';
+% geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif'));
+% geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','Landsat-7','arctic_natural_90m.tif'));
+geotiff_fn = ct_filename_gis(gRadar,fullfile('canada','Landsat-7','Canada_90m.tif'));
+axis_limits = [-1024        -207       -1363        -560];
 
 % Antarctica
-geotiff_fn = ct_filename_gis(gRadar,'antarctica/NaturalEarth_Data/Antarctica_NaturalEarth.tif');
-axis_limits = [-2800    500       -1500       1800];
+% geotiff_fn = ct_filename_gis(gRadar,fullfile('antarctica','NaturalEarth_Data','Antarctica_NaturalEarth.tif'));
+% axis_limits = [-2800    500       -1500       1800];
 
 % Cell vector of param spreadsheet filenames
-param_fns = {ct_filename_param('snow_param_2014_Greenland_P3.xls')};
+param_fns = {ct_filename_param('rds_param_2014_Greenland_P3.xls')};
 
 % plot_color: string argument to plot function (e.g. 'b.' for blue dots)
 plot_color = 'b.';

@@ -87,7 +87,7 @@ obj.table.height_margin(row,col)  = 0;
 row = 3; col = 1;
 obj.table.handles{row,col}        = obj.status_panel.handle;
 obj.table.width(row,col)          = inf;
-obj.table.height(row,col)         = 10;
+obj.table.height(row,col)         = 12;
 obj.table.width_margin(row,col)   = 0;
 obj.table.height_margin(row,col)  = 0;
 
@@ -250,7 +250,7 @@ obj.status_panel.table.false_height = NaN*zeros(30,30);
 obj.status_panel.table.offset = [0 0];
 
 obj.status_panel.table.ui = obj.status_panel.handle;
-obj.status_panel.table.offset = [-1 -2];
+obj.status_panel.table.offset = [0 2];
 row = 1; col = 1;
 obj.status_panel.table.handles{row,col}       = obj.status_panel.mouseCoordText;
 obj.status_panel.table.width(row,col)         = inf;

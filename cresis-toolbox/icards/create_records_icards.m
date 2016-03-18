@@ -38,8 +38,8 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % =====================================================================
   % Debug Setup
   % =====================================================================
-  param = read_param_xls(ct_filename_param('rds_param_2002_Greenland_P3.xls'),'20020518_01');
-  param.vectors.file.base_dir='Z:\ICARDS\2002\' %edit this.. 
+  param = read_param_xls(ct_filename_param('rds_param_2002_Greenland_P3.xls'),'20020520_01');
+  param.vectors.file.base_dir='Z:\ICARDS\2002\';  
   
   clear('param_override');
   param_override.sched.type = 'no scheduler';
@@ -97,10 +97,15 @@ param.sched.type = 'no scheduler';
 param.file_regexp = '\S+\.[0-9][0-9][0-9]$';
 full_dir = fullfile(param.vectors.file.base_dir,param.vectors.file.adc_folder_name);
 fns = get_filenames(full_dir,'','','',struct('regexp',param.file_regexp));
+% fns = fns(2:205);  %to ignore "fiberdly" of 20020524!!!!!!!!!!!!!!!!!!!!!
+% fns = fns(1:43); %to ignore "fiberely" of 20020520!!!!!!!!!!!!!!!!!!!!!!!!
 file_idxs=param.vectors.file.start_idx:param.vectors.file.stop_idx;
 param_1=param;
 param_1.day_seg=[];
 
+hdrs.offset=[];
+
+num_rec_sample=0;%initial number of samples per record
 for file_idxs_idx = 1:length(file_idxs)
   file_idx = file_idxs(file_idxs_idx);
   fn=fns{file_idx};
@@ -118,13 +123,29 @@ for file_idxs_idx = 1:length(file_idxs)
     hdrs.filenames{1}=[fn_name fn_ext];
     hdrs.file_rec_offset = 1;
     hdrs.nmea_time = hdr.nmea_time;
-    hdrs.offset=hdr.offset;
   else
     hdrs.filenames{file_idxs_idx}=[fn_name fn_ext];
     hdrs.file_rec_offset(file_idxs_idx) = length(hdrs.nmea_time) + 1;
     hdrs.nmea_time = cat(2,hdrs.nmea_time,hdr.nmea_time);
-    hdrs.offset=cat(2,hdrs.offset,(hdr.offset+hdrs.offset(end)));
   end
+%==========================================================================  
+  %create offset parameter here: offset vector contains the location of
+  %first I sample from every record. These hearder information is observed
+  %from function "icards_get_data" with "Z:\ICARDS\2002\may18\may18_02.074"
+  %as an example. The data structure may be different for other day's data.
+  %so this script should be modified!!??-------qishi/20150825
+  num_records=length(hdr.nmea_time);
+  header_size=64;
+  secondary_header_size=12;
+  if num_rec_sample==0
+    num_rec_sample=size(icards_get_data(fn,2),1);
+  else
+      num_rec_sample=num_rec_sample;
+  end
+  sample_size=2;
+  rec_data_size=num_rec_sample*sample_size;
+  hdrs.offset=[hdrs.offset header_size+secondary_header_size+rec_data_size*(0:num_records-1)];%this offset is the location of each I sample
+%==========================================================================  
 end
 % =====================================================================
 %% interpolation to make time monotonically increasing 

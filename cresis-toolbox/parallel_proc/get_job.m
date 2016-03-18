@@ -1,5 +1,5 @@
-function [job] = get_job(sched,ID)
-% [jobs] = get_job(sched,ID)
+function [job,tasks] = get_job(sched,ID)
+% [jobs,tasks] = get_job(sched,ID)
 %
 % sched = scheduler struct OR a jobmanager handle
 %   If a struct:
@@ -29,6 +29,11 @@ function [job] = get_job(sched,ID)
 %
 % See also list_jobs.m, get_job.m, findJob.m, findTask.m, destroy_jobs.m
 
+% Get Matlab Version Information
+[~,version_date] = version;
+version_date = datenum(version_date);
+version_two_date = datenum('Sept 15, 2014'); % Estimate of when Matlab changed versions
+
 if isstruct(sched) || isempty(sched)
   % Get the global structure
   if ~isempty(whos('global','gRadar'))
@@ -45,10 +50,6 @@ if isstruct(sched) || isempty(sched)
     else
       error('sched and gRadar.sched are not set');
     end
-  end
-
-  if ~isfield(sched,'ver')
-    sched.ver = 1;
   end
 
   if ~isfield(sched,'type')
@@ -77,7 +78,7 @@ if isstruct(sched) || isempty(sched)
     jm = findResource('scheduler','type',sched.type,'LookupUrl', ...
       sched.url,'name',sched.name);
   elseif strcmpi(sched.type,'local')
-    if sched.ver == 1
+    if (version_date < version_two_date)
       jm = findResource('scheduler','type',sched.type);
     else
       jm = parcluster();
@@ -98,13 +99,14 @@ job = jm.findJob('ID',ID);
 if isempty(job)
   fprintf('Job not found, try running list_jobs or findJob\n');
   job = [];
+  tasks = [];
 else
   job = job(1);
   get(job)
-  if sched.ver == 1
-    get(job,'tasks')
+  if (version_date < version_two_date)
+    tasks = get(job,'tasks')
   else
-    get(job,'Tasks')
+    tasks = get(job,'Tasks')
   end
 end
 
