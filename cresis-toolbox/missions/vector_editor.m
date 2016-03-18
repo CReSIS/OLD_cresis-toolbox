@@ -56,7 +56,11 @@ classdef (HandleCompatible = true) vector_editor < handle
       h_fig_pos = get(obj.h_fig,'Position');
       set(obj.h_fig,'Position',h_fig_pos + [0 -150 150 150]);
       set(obj.h_fig,'NumberTitle','off');
-      set(obj.h_fig,'Name',sprintf('Vec %d',obj.h_fig));
+      if isa(obj.h_fig,'double')
+          set(obj.h_fig,'Name',sprintf('Vec %d',obj.h_fig));
+      else
+          set(obj.h_fig,'Name',sprintf('Vec %d',obj.h_fig.Number));
+      end
       set(obj.h_fig,'MenuBar','none');
       set(obj.h_fig,'ToolBar','none');
       
@@ -79,7 +83,11 @@ classdef (HandleCompatible = true) vector_editor < handle
       title(obj.save_fn,'interpreter','none','parent',obj.h_axes);
       obj.plotonly = graphics_handler(obj.h_axes,'none');
       set(obj.plotonly.h_fig,'NumberTitle','off');
-      set(obj.plotonly.h_fig,'Name',sprintf('VecGH %d %d',obj.h_fig,obj.plotonly.h_fig));
+      if isa(obj.h_fig,'double')
+          set(obj.plotonly.h_fig,'Name',sprintf('VecGH %d %d',obj.h_fig,obj.plotonly.h_fig));
+      else
+          set(obj.plotonly.h_fig,'Name',sprintf('VecGH %d %d',obj.h_fig.Number,obj.plotonly.h_fig.Number));
+      end
       axes(obj.h_axes);
       
       obj.selection.h_wpnt_plot = plot(xlim,ylim,'rx','Parent',obj.h_axes,'LineWidth',3,'MarkerSize',15);
@@ -476,7 +484,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       
       % Read the image
       fprintf('Reading the geotiff %s... may take a while\n', obj.geotiff_fn);
-      [RGB, R, tmp] = geotiffread(obj.geotiff_fn);
+      [RGB, CMAP, R, tmp] = geotiffread(obj.geotiff_fn);
       fprintf('  Done loading geotiff\n');
       if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
         RGB = uint8(RGB);
@@ -1276,8 +1284,9 @@ classdef (HandleCompatible = true) vector_editor < handle
         obj.plotonly.delete_handle(1:length(obj.plotonly.handles));
       end
       % Update geotiff
-      if load_geotiff_field && isfield(new_data,'geotiff_fn') && exist(new_data.geotiff_fn,'file') ...
-          && ~strcmpi(obj.geotiff_fn,new_data.geotiff_fn)
+      if isempty(obj.proj) || (load_geotiff_field && isfield(new_data,'geotiff_fn') ...
+          && exist(new_data.geotiff_fn,'file') ...
+          && ~strcmpi(obj.geotiff_fn,new_data.geotiff_fn))
         obj.geotiff_fn = new_data.geotiff_fn;
         obj.update_geotiff(true);
       end
@@ -1699,24 +1708,54 @@ classdef (HandleCompatible = true) vector_editor < handle
         if strcmpi(command,'Rename')
           prompt = {'Rename waypoint:'};
           dlg_title = 'Waypoint rename';
+          def = cur_names(cur_wpnt_selected(1));
         else
-          prompt = {'Auto rename waypoint (base):'};
+          prompt = {'Auto rename waypoint (base):','Repeat if same: '};
           dlg_title = 'Waypoint auto rename';
+          def = [cur_names(cur_wpnt_selected(1)) {'true'}];
         end
         num_lines = 1;
-        def = cur_names(cur_wpnt_selected(1));
         answer = inputdlg(prompt,dlg_title,num_lines,def);
         
-        if length(answer)==1 && ~isempty(answer{1})
-          answer = answer{1};
+        if length(answer)>=1 && ~isempty(answer{1})
           if strcmpi(command,'Rename')
+            answer = answer{1};
             cur_names{cur_wpnt_selected} = answer;
             set(obj.h_gui.wpnts.listLB,'String',cur_names);
             obj.flines(cur_fline_selected).wpnt_names{cur_wpnt_selected} = answer;
           else
+            if length(answer)>=2 && ~isempty(answer{2})
+              try
+                repeat_if_same = eval(answer{2});
+              catch
+                repeat_if_same = true;
+              end
+            end
+            answer = answer{1};
+            wpnt_idx_rename = 1;
             for wpnt_idx = 1:length(cur_wpnt_selected)
               wpnt = cur_wpnt_selected(wpnt_idx);
-              cur_names{wpnt} = sprintf('%s_%d', answer, wpnt_idx);
+              if repeat_if_same
+                wpnt_is_same = false;
+                for same_wpnt_idx = 1:wpnt_idx-1
+                  same_wpnt = cur_wpnt_selected(same_wpnt_idx);
+                  if (obj.flines(cur_fline_selected).lat(wpnt) ...
+                      == obj.flines(cur_fline_selected).lat(same_wpnt) ...
+                      && obj.flines(cur_fline_selected).lon(wpnt) ...
+                      == obj.flines(cur_fline_selected).lon(same_wpnt))
+                    wpnt_is_same = true;
+                    break;
+                  end
+                end
+              else
+                wpnt_is_same = false;
+              end
+              if wpnt_is_same
+                cur_names{wpnt} = obj.flines(cur_fline_selected).wpnt_names{same_wpnt};
+              else
+                cur_names{wpnt} = sprintf('%s%d', answer, wpnt_idx_rename);
+                wpnt_idx_rename = wpnt_idx_rename + 1;
+              end
               obj.flines(cur_fline_selected).wpnt_names{wpnt} = cur_names{wpnt};
             end
             set(obj.h_gui.wpnts.listLB,'String',cur_names);
@@ -2343,13 +2382,24 @@ classdef (HandleCompatible = true) vector_editor < handle
         if ~isempty(obj.flines(pos).x)
           plot(obj.flines(pos).x(1)/1e3,obj.flines(pos).y(1)/1e3,'bo','Parent',h_export_axes);
         end
+        for wpnt_idx = 1:length(obj.flines(pos).x)
+          text(obj.flines(pos).x(wpnt_idx)/1e3,obj.flines(pos).y(wpnt_idx)/1e3, ...
+            obj.flines(pos).wpnt_names{wpnt_idx}, 'Color','magenta', ...
+            'Parent',h_export_axes);
+        end
       end
       hold(h_export_axes,'off')
       
-      saveas(h_export_fig, obj.export_fn);
-      [export_fn_dir export_fn_name] = fileparts(obj.export_fn);
+      hold(h_export_axes,'on')
+      plotonly = handle2struct(obj.plotonly.handles);
+      struct2handle(plotonly,h_export_axes);
+      hold(h_export_axes,'off')
       
-      %% Create a Matlab figure file (normally the map is too large so commented out for now)
+      set(h_export_fig,'PaperPosition',[0.5 0.5 10 7.5]);
+      set(h_export_fig,'PaperOrientation','Portrait');
+      print(h_export_fig,'-djpeg','-r200',obj.export_fn);
+      
+      %% Create a Matlab figure file
       [export_fn_dir export_fn_name] = fileparts(obj.export_fn);
       export_fig_fn = fullfile(export_fn_dir,[export_fn_name '.fig']);
       clip_and_resample_image(h_export_image,h_export_axes,8);
@@ -2387,7 +2437,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         if fid < 0
           error('Could not open %s for writing: %s', export_csv_fn, msg);
         end
-        fprintf(fid,'%15s,%15s,%15s,%15s,%15s,%15s\n', ...
+        fprintf(fid,'%s,%s,%s,%s,%s,%s\n', ...
           'Lat_North_deg','Lat_North_min', ...
           'Lon_East_deg','Lon_East_min','Name','Distance_km');
         along_track = geodetic_to_along_track(obj.flines(pos).lat,obj.flines(pos).lon,zeros(size(obj.flines(pos).lat)));
