@@ -1,5 +1,5 @@
-function val = mle_cost_function(theta, param)
-% val = mle_cost_function(theta,param)
+function val = wbmle_cost_function(theta, param)
+% val = wbmle_cost_function(theta,param)
 %
 % Function that computes the cost of a given solution vector theta,
 %

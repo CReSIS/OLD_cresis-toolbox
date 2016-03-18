@@ -1,27 +1,26 @@
- function [Data, DCM, imp_resp, DCM_fd] = doa_wideband_data(param)
+function [Data, DCM, imp_resp, DCM_fd] = doa_wideband_data(param)
 % [Data, DCM, imp_resp, DCM_fd] = doa_wideband_data(param)
 %
 % Funcion to simulate multichannel array wideband data.
 %
 % Inputs:
 % param
-%       source
+%       .src
 %           .Nsnap = scalar value where user specifies number of snapshots.
 %            Used to compute number of fast time bins, Nt, needed in
 %            simulation to obtain the specified number of snapshots.  When
 %            the widening factor is 0 (narrowband assumption), Nsnap = Nt.
 %            When W > 0, Nsnap = W*Nt.
 %           .SNR  = 1xQ vector specifying SNR per channel of each source.
-%           .DOAs = 1xQ vector used to define manifold,
-%       .radar
-%           .fs = sampling frequency (Hz)
-%           .f0 = chirp start frequency (Hz)
-%           .f1 = chirp stop frequency (Hz)
-%           .fc = carrier frequency (Hz)
+%           .DOAs = 1xQ vector used to define manifold (degrees),
 %           .y_pc = Px1 vector containing y coordinate of phase
 %           centers (meters) obtained from lever_arm.m
 %           .z_pc = Px1 vector containing z coordinate of phase
 %           centers (meters) obtained from lever_arm.m
+%           .fs = sampling frequency (Hz)
+%           .f0 = chirp start frequency (Hz)
+%           .f1 = chirp stop frequency (Hz)
+%           .fc = carrier frequency (Hz)
 %           .widening factor = maximum number of samples for  a signal to
 %           propagate over the aperture,
 %           .ft_wind = fast time windowing function (i.e. @boxcar or

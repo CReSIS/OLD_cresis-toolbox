@@ -133,6 +133,8 @@ for run_idx = 1:param.monte.runs
       range = array_param.wfs.time(array_param.bins)*c/2;
       
       if array_param.method < 7
+        theta = array_param.theta;
+        
         z = bsxfun(@times,-range,cos(theta));
         y = bsxfun(@times,range,sin(theta));
         y_axis = (min(y(:)):max(y(:))).';

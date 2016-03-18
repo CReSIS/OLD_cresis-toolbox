@@ -15,7 +15,7 @@ physical_constants;
 
 if 1
   % Generate simulation results
-  fprintf('Ensure sim.crosstrack_example.m runs example #1 or #2!!!\n\n');
+  fprintf('Ensure sim.crosstrack_example.m runs example #1 or #2 with debug_level set to 3!!!\n\n');
   sim.crosstrack_example;
   save('c:\temp\run_array_proc_update.mat','results');
 else

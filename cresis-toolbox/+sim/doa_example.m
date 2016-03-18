@@ -77,8 +77,8 @@ if 0
     mkdir(out_fn_dir);
   end
   out_fn = fullfile(out_fn_dir,out_fn_name);
-  savefig(1,[out_fn '_src1.fig']);
-  savefig(2,[out_fn '_src2.fig']);
+  saveas(1,[out_fn '_src1.fig']);
+  saveas(2,[out_fn '_src2.fig']);
   save([out_fn '.mat'],'param','results')
   
   return;
@@ -152,8 +152,8 @@ if 0
     mkdir(out_fn_dir);
   end
   out_fn = fullfile(out_fn_dir,out_fn_name);
-  savefig(1,[out_fn '_src1.fig']);
-  savefig(2,[out_fn '_src2.fig']);
+  saveas(1,[out_fn '_src1.fig']);
+  saveas(2,[out_fn '_src2.fig']);
   save([out_fn '.mat'],'param','results')
   
   return;
@@ -227,8 +227,8 @@ if 0
     mkdir(out_fn_dir);
   end
   out_fn = fullfile(out_fn_dir,out_fn_name);
-  savefig(1,[out_fn '_src1.fig']);
-  savefig(2,[out_fn '_src2.fig']);
+  saveas(1,[out_fn '_src1.fig']);
+  saveas(2,[out_fn '_src2.fig']);
   save([out_fn '.mat'],'param','results')
   
   return;
@@ -318,10 +318,10 @@ if 1
     mkdir(out_fn_dir);
   end
   out_fn = fullfile(out_fn_dir,out_fn_name);
-  savefig(1,[out_fn '_src1.fig']);
-  savefig(2,[out_fn '_src2.fig']);
-  savefig(3,[out_fn '_src3.fig']);
-  savefig(4,[out_fn '_src4.fig']);
+  saveas(1,[out_fn '_src1.fig']);
+  saveas(2,[out_fn '_src2.fig']);
+  saveas(3,[out_fn '_src3.fig']);
+  saveas(4,[out_fn '_src4.fig']);
   save([out_fn '.mat'],'param','results')
   
   return;
@@ -401,9 +401,9 @@ if 0
     mkdir(out_fn_dir);
   end
   out_fn = fullfile(out_fn_dir,out_fn_name);
-  savefig(1,[out_fn '_src1.fig']);
-  savefig(2,[out_fn '_src2.fig']);
-  savefig(3,[out_fn '_src3.fig']);
+  saveas(1,[out_fn '_src1.fig']);
+  saveas(2,[out_fn '_src2.fig']);
+  saveas(3,[out_fn '_src3.fig']);
   save([out_fn '.mat'],'param','results')
   
   return;
@@ -476,8 +476,8 @@ if 0
     mkdir(out_fn_dir);
   end
   out_fn = fullfile(out_fn_dir,out_fn_name);
-  savefig(1,[out_fn '_src1.fig']);
-  savefig(2,[out_fn '_src2.fig']);
+  saveas(1,[out_fn '_src1.fig']);
+  saveas(2,[out_fn '_src2.fig']);
   save([out_fn '.mat'],'param','results')
   
   return;
@@ -550,8 +550,8 @@ if 0
     mkdir(out_fn_dir);
   end
   out_fn = fullfile(out_fn_dir,out_fn_name);
-  savefig(1,[out_fn '_src1.fig']);
-  savefig(2,[out_fn '_src2.fig']);
+  saveas(1,[out_fn '_src1.fig']);
+  saveas(2,[out_fn '_src2.fig']);
   save([out_fn '.mat'],'param','results')
   
   return;
@@ -639,10 +639,10 @@ if 1
     mkdir(out_fn_dir);
   end
   out_fn = fullfile(out_fn_dir,out_fn_name);
-  savefig(1,[out_fn '_src1.fig']);
-  savefig(2,[out_fn '_src2.fig']);
-  savefig(3,[out_fn '_src3.fig']);
-  savefig(4,[out_fn '_src4.fig']);
+  saveas(1,[out_fn '_src1.fig']);
+  saveas(2,[out_fn '_src2.fig']);
+  saveas(3,[out_fn '_src3.fig']);
+  saveas(4,[out_fn '_src4.fig']);
   save([out_fn '.mat'],'param','results')
   
   return;
