@@ -14,7 +14,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % Debug Setup
   % =====================================================================
   
-  new_param = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150913_01');
+  new_param = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150911_02');
 
   fn = ct_filename_tmp(new_param,new_param.records.records_fn,'records','workspace');
   fn = [fn '.mat'];
@@ -526,15 +526,12 @@ for board_idx = 1:length(board_hdrs)
   board_hdrs{board_idx}.offset = board_hdrs{board_idx}.offset(good_idxs);
 end
 
-records.relative_filename = [];
 records.relative_rec_num = [];
 records.offset = [];
 for board_idx = 1:length(board_hdrs)
   unique_file_idxs = unique(board_hdrs{board_idx}.file_idx);
   for file_idx = 1:length(unique_file_idxs)
     records.relative_rec_num{board_idx}(file_idx) = find(board_hdrs{board_idx}.file_idx == unique_file_idxs(file_idx),1);
-    [fn_dir fn_name fn_ext] = fileparts(board_fns{board_idx}{unique_file_idxs(file_idx)});
-    records.relative_filename{board_idx}{file_idx} = [fn_name fn_ext];
   end
   records.offset(board_idx,:) = board_hdrs{board_idx}.offset;
 end

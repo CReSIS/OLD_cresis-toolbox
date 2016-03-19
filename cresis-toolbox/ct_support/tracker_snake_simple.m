@@ -34,7 +34,7 @@ end
 if ~isfield(surf,'min_bin')
   surf.min_bin = 1;
 end
-if ~isfield(surf,'max_bin') | isempty(surf.max_bin)
+if ~isfield(surf,'max_bin') || isempty(surf.max_bin) || ~isfinite(surf.max_bin)
   surf.max_bin = size(data,1);
 end
 if ~isfield(surf,'search_rng')
@@ -61,7 +61,7 @@ end
 %    bin become the initial point.
 Ninit_pnts = surf.Ninit_pnts;
 sort_ind = surf.sort_ind;
-startInds = unique(round(size(data,2) * linspace(0.2,0.8,Ninit_pnts)));
+start_idxs = unique(round(size(data,2) * linspace(0.2,0.8,Ninit_pnts)));
 surface = zeros(1,size(data,2));
 if isfield(surf,'dem') & ~isempty(surf.dem)
   dem_low = round(surf.dem - surf.max_diff);
@@ -70,17 +70,17 @@ if isfield(surf,'dem') & ~isempty(surf.dem)
   dem_high = round(surf.dem + surf.max_diff);
   dem_high(dem_high < 1) = 1;
   dem_high(dem_high > size(data,1)) = 1;
-  for idx=1:length(startInds)
-    rline = startInds(idx);
+  for idx=1:length(start_idxs)
+    rline = start_idxs(idx);
     [tmp surfBins_init(idx)] = max(data(dem_low(rline):dem_high(rline),rline));
     surfBins_init(idx) = surfBins_init(idx) + dem_low(rline) - 1;
   end
 else
-  [tmp surfBins_init] = max(data(surf.min_bin:surf.max_bin,startInds));
+  [tmp surfBins_init] = max(data(surf.min_bin:surf.max_bin,start_idxs));
   surfBins_init = surfBins_init + surf.min_bin - 1;
 end
 [tmp surfBins_init_sort_ind] = sort(surfBins_init);
-startInd = startInds(surfBins_init_sort_ind(sort_ind));
+startInd = start_idxs(surfBins_init_sort_ind(sort_ind));
 surface(startInd) = surfBins_init(surfBins_init_sort_ind(sort_ind));
 for idx = 1:length(startInd)
   pnt(idx).col = startInd(idx);

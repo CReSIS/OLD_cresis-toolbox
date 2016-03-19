@@ -76,7 +76,7 @@ elseif any(strcmpi(param.radar_name,{'mcrds'}))
   stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
   % Get the filenames associated with the frame
   fns = records.relative_filename{1}(start_filenum:stop_filenum).';
-elseif any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4'}))
+elseif any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5'}))
   % Get the filenames associated with the frame (channel 0, 1, 2, etc)
   filenames_idxs = 1:length(records.relative_filename);
   for fns_idx = 1:length(filenames_idxs)

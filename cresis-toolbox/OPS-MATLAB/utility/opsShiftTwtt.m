@@ -23,7 +23,7 @@ function [status,message] = opsShiftTwtt(sys,param)
 [authParam,~,~] = opsAuthenticate(struct('properties',[]));
 
 % Create SQL query to shift twtt
-query = sprintf('UPDATE %s_layer_points SET twtt = twtt + %s WHERE layer_id = (SELECT id FROM %s_layers WHERE name = ''%s'') AND point_path_id IN (SELECT pp.id FROM %s_point_paths pp JOIN %s_segments seg ON pp.segment_id=seg.id WHERE seg.name= ''%s'') RETURNING 1;', sys,param.properties.offset,sys,param.properties.lyr_name,sys,sys,param.properties.segment);
+query = sprintf('UPDATE %s_layer_points SET twtt=(twtt+%s) WHERE layer_id = (SELECT id FROM %s_layers WHERE name = ''%s'') AND point_path_id IN (SELECT pp.id FROM %s_point_paths pp JOIN %s_segments seg ON pp.segment_id=seg.id WHERE seg.name= ''%s'') RETURNING 1;', sys,param.properties.offset,sys,param.properties.lyr_name,sys,sys,param.properties.segment);
 % Query the DB to update layer points with twtt shift
 [status,data] = opsQuery(query);
 

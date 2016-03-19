@@ -24,6 +24,11 @@ function [jm,jobs] = list_jobs(sched)
 %
 % See also list_jobs.m, get_job.m, findJob.m, findTask.m, destroy_jobs.m
  
+% Get Matlab Version Information
+[~,version_date] = version;
+version_date = datenum(version_date);
+version_two_date = datenum('Sept 15, 2014'); % Estimate of when Matlab changed versions
+
 % Get the global structure
 if ~isempty(whos('global','gRadar'))
   % gRadar exists, so let us declare and use it
@@ -39,10 +44,6 @@ if ~exist('sched','var') || isempty(sched) || ~isstruct(sched)
   else
     error('sched and gRadar.sched are not set');
   end
-end
-
-if ~isfield(sched,'ver')
-  sched.ver = 1;
 end
 
 if ~isfield(sched,'type')
@@ -77,7 +78,7 @@ elseif strcmp(sched.type,'torque')
     jm = findResource('scheduler','type',sched.type,'LookupUrl',sched.url);
   end
 elseif strcmpi(sched.type,'local')
-  if sched.ver == 1
+  if (version_date < version_two_date)
     jm = findResource('scheduler','type',sched.type);
   else
     jm = parcluster();
@@ -100,7 +101,7 @@ else
   for ind = 1:length(jobs)
     job = jobs(ind);
   
-    if sched.ver == 1
+    if (version_date < version_two_date)
       fprintf('%8d %12s %12s %12s %8d\n', ind, get(job,'UserName'), ...
         get(job,'State'), get(job,'Name'), get(job,'ID'));
     else

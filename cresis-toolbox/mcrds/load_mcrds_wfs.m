@@ -119,7 +119,11 @@ for wf = 1:length(records_wfs.wfs(1).wfs)
   else
     wfs(wf).t0    = records_wfs.wfs(1).wfs(wf).Tadc + Tadc_adjust;
   end
-  wfs(wf).blank   = param.radar.wfs(wf).blank;
+  if isfield(param.radar.wfs(wf),'blank')
+    wfs(wf).blank   = param.radar.wfs(wf).blank;
+  else
+    wfs(wf).blank   = [];
+  end
   wfs(wf).presums = records_wfs.wfs(1).wfs(wf).presums;
   wfs(wf).Nt_ref  = round(wfs(wf).Tpd * fs)+1;
   num_samples = records_wfs.wfs(1).wfs(wf).num_sam;

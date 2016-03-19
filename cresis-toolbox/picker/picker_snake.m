@@ -38,7 +38,7 @@ for idx = 1:length(indices)
   dataPnts(idx).snake.search_range = search_range;
 end
 
-layer = track_layer(A,dataPnts);
+layer = tracker_snake(A,dataPnts);
 
 vals = interp1(1:length(gCtrl.pick.time),gCtrl.pick.time*1e6,layer,'linear','extrap');
 

@@ -252,7 +252,7 @@ for board_idx = 1:length(boards)
         end
         if param.records.file_version == 2
           board_hdrs{board_idx}.nyquist_zone = cat(2,board_hdrs{board_idx}.nyquist_zone,hdr_tmp.nyquist_zone);
-          board_hdrs{board_idx}.loopback_mode = cat(2,board_hdrs{board_idx}.loopback_mode,hdr_tmp.loopback_mode);
+          board_hdrs{board_idx}.loopback_mode = cat(2,board_hdrs{board_idx}.loopback_mode,hdr_tmp.loopback);
         end
         board_hdrs{board_idx}.wfs{file_idx} = hdr_tmp.wfs;
       end

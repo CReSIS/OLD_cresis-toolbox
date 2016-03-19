@@ -132,6 +132,10 @@ while length(obj)
     elseif strcmp(tag_name,'Boolean')
       val = logical(str2double(char(obj.item(3).getTextContent)));
       val_enc = val;
+    elseif any(strcmp(tag_name,{'String','Path'}))
+      val = {struct('type',tag_name,'values',[])};
+      val{1}.values = {obj.item(3).getTextContent.char};
+      val_enc = val;
     elseif strcmp(tag_name,'Array')
       dim_size = str2double(char(obj.item(3).getTextContent));
       [val,val_enc] = read_ni_xml_object(obj.item(5),cur_string);
@@ -158,8 +162,13 @@ while length(obj)
         struct_val_enc = val_enc;
         first_time = 0;
       else
-        struct_val(end+1) = val;
-        struct_val_enc(end+1) = val_enc;
+        if iscell(val)
+          struct_val{1}.values{end+1} = val{1}.values{1};
+          struct_val_enc{1}.values{end+1} = val_enc{1}.values{1};
+        else
+          struct_val(end+1) = val;
+          struct_val_enc(end+1) = val_enc;
+        end
       end
     end
   end

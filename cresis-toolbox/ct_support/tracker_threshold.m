@@ -4,14 +4,17 @@ function surface = tracker_threshold(data,surf)
 % data = Nt by Nx 2D matrix of nonnegative linear power values
 % surf = structure controlling operating of the tracker
 %  .noise_rng = [100 -700 -300];
-%    1 by 3 integer array
+%    Specifies the region relative to the peak power to estimate the noise
+%    power from. It is a 1 by 3 integer array.
 %    first element: All data points that are zero at the beginning of the
 %      record will be ignored in the noise calculation. This specifies a
 %      buffer beyond this in sample bins that will also be ignored.
 %    second and third elements: Specifies a range of bins relative to the
 %      max bin that will be used to estimate the noise (usually these
-%      are negative such as [-50 -10] since the noise estimate uses data
+%      are negative such as [-50 -10] so that the noise estimate uses data
 %      before the peak).
+%  .noise_override: double scalar, use this value for the noise estimate
+%     rather than the value estimated from noise_rng
 %  .threshold = double scalar, relative threshold above noise estimate
 %    in log10 scale
 %  .sidelobe	= double scalar, sidelobe value that specifies the minimum
@@ -41,6 +44,9 @@ if ~exist('surf','var')
 end
 if ~isfield(surf,'noise_rng')
   surf.noise_rng = [0 -inf -1];
+end
+if ~isfield(surf,'noise_override')
+  surf.noise_override = [];
 end
 if ~isfield(surf,'search_rng')
   surf.search_rng = 0;
@@ -141,7 +147,11 @@ if all(median_mdata==0)
   surface = new_surface_max;
   return
 end
-THRESHOLD = surf.threshold + median(median_mdata(median_mdata ~= 0));
+if isempty(surf.noise_override)
+  THRESHOLD = surf.threshold + median(median_mdata(median_mdata ~= 0));
+else
+  THRESHOLD = surf.threshold + surf.noise_override;
+end
 
 %% Perform thresholding
 surface = NaN*zeros(1,size(surf_data,2));

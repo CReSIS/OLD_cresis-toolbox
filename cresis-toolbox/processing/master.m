@@ -79,6 +79,8 @@ for param_idx = 1:length(params)
       create_records_mcords2(param,param_override);
     elseif strcmpi(param.radar_name,'mcrds')
       create_records_mcrds(param,param_override);
+    elseif strcmpi(param.radar_name,'icards')
+      create_records_icards(param,param_override);
     elseif strcmpi(param.radar_name,'accum')
       create_records_fmcw_accum(param,param_override);
     elseif strcmpi(param.radar_name,'accum2')
@@ -90,7 +92,7 @@ for param_idx = 1:length(params)
     end
   end
   if isfield(cmd,'create_frames') && cmd.create_frames
-    if isempty(param.records.frame_mode) || param.records.frame_mode == 0
+    if isempty(param.records.frame_mode) || mod(param.records.frame_mode,2)==0
       create_frames(param,param_override);
       fprintf('Type dbcont to continue when you are done creating frames for this segment.\n');
       keyboard;

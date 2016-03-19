@@ -2,99 +2,11 @@
 %
 % Updates the Surface variable in an echogram using one of three surface
 % detections methods.
-
-%% User Settings
-% ----------------------------------------------------------------------
-% params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),'20090421_04','post');
-params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),'20100419_02','post');
-% params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),'20110325_02','post');
-% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'','post');
-params.cmd.generic = 1;
-% params.cmd.frms = [140:520];
-% params.cmd.frms = [1:5]; %0412_02
-% params.cmd.frms = [1:113];%0412_3
-params.cmd.frms = [131:360]; %419_02
-% params.cmd.frms = [228:521]; %20_02
-% params.cmd.frms = [215:229,383:394]; %21_01
-% params.cmd.frms = [24:28,128:132]; %21_03
-debug_level = 0;
-
-
-echogram_source = 'deconv'; % location of echogram data
-layerdata_source = 'layerData'; % location of layerData
-% save_sources: cell array of strings indicating which layer sources
-%   should be updated (options are ops, layerData, and echogram)
-save_sources = {'echogram'};
-save_ops_layer = 'surface';
-
-surf_override = [];
-surf_override.en = true;
-surf_override.min_bin = 0;
-surf_override.manual = false;
-
-% 
-% % RDS threshold
-% surf_override.method = 'threshold';
-% surf_override.noise_rng = [0 -50 -10];
-% surf_override.min_bin = 0.75e-6;
-% surf_override.threshold = 9;
-% surf_override.sidelobe	= 15;
-% surf_override.max_diff	= inf;
-% surf_override.filter_len	= 1;
-% surf_override.medfilt = 3;
-% surf_override.search_rng	= 0:2;
-
-% % RDS
-% surf_override.method = 'max';
-% surf_override.min_bin = 0.75e-6;
-% surf_override.search_rng	= [-11:0];
-% surf_override.threshold = 13;
-% surf_override.medfilt = 3;
-% FEEDTHRU IS SEASON DEPENDENT (this example is for RDS 2009 Greenland TO)
-% surf_override.feedthru.time = 1e-9*[102;1069;1803;2436;3003;3603];
-% surf_override.feedthru.power_dB = [-50.9;-82.0;-106.3;-128.9;-131.7;-152.1];
-
-% % Accum
-% surf_override.method = 'threshold';
-% surf_override.noise_rng = [200 -300 -100];
-% surf_override.min_bin = 0.1e-6;
-% surf_override.threshold = 9;
-% surf_override.sidelobe	= 12;
-% surf_override.max_diff	= inf;
-% surf_override.filter_len	= 5;
-% surf_override.search_rng	= 0:1;
-
-% % FMCW Land Ice
-surf_override.method = 'threshold';
-surf_override.noise_rng = [100 -400 -200];
-surf_override.min_bin = 1e-6;
-surf_override.threshold = 7;
-surf_override.sidelobe	= 13;
-surf_override.max_diff	= 30e-9;
-surf_override.filter_len	= [3 13];
-surf_override.search_rng	= 0:30;
-surf_override.detrend = 0;
-% surf_override.init.method	= 'medfilt';
-% surf_override.init.medfilt	= 11;
-surf_override.init.method	= 'dem';
-surf_override.init.dem_offset = 30e-9;
-% surf_override.init.method	= 'snake';
-% surf_override.init.search_rng	= [-240:240];
-% surf_override.method = 'snake';
-% surf_override.search_rng	= -90:90;
-
-% 
-% % FMCW Sea Ice
-% surf_override.method = 'threshold';
-% surf_override.noise_rng = [100 -400 -100];
-% surf_override.threshold = 9;
-% surf_override.sidelobe	= 13;
-% surf_override.max_diff	= 30e-9;
-% surf_override.filter_len	= 7;
-% surf_override.search_rng	= 0:30;
-% surf_override.detrend = 2;
-% surf_override.init.method	= 'medfilt';
-% surf_override.init.medfilt	= 51;
+%
+% Example:
+%   See run_update_surface_with_tracker.m to run.
+%
+% Author: John Paden
 
 %% Automated Section
 % ----------------------------------------------------------------------
@@ -118,20 +30,44 @@ for param_idx = 1:length(params)
   fprintf('Updating surface %s (%s)\n', param.day_seg, datestr(now,'HH:MM:SS'));
   
   %% Load in GIMP and Geoid
-  if strcmpi(orig_surf.init.method,'dem') & ~gimp_geoid_loaded
-    % Load in Geoid
-    fn = ct_filename_gis([],'world\egm96_geoid\WW15MGH.DAC');
-    [egm96_lat,egm96_lon,egm96] = egm96_loader(fn);
-    egm96_lon = [egm96_lon 360];
-    egm96 = [egm96 egm96(:,1)];
-    
-    % Interpolate to find GIMP elevation along flight path
-    [gimp_dem, gimp_R, tmp] = geotiffread('/cresis/snfs1/dataproducts/GIS_data/greenland/DEM/GIMP/gimpdem_90m.tif');
-    gimp_dem = double(gimp_dem);
-    gimp_proj = geotiffinfo('/cresis/snfs1/dataproducts/GIS_data/greenland/DEM/GIMP/gimpdem_90m.tif');
-    gimp_geoid_loaded = true;
+  load_surface_land_dems = false;
+  if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem') ...
+      && (~exist('load_surface_land_dems_finished','var') || ~load_surface_land_dems_finished)
+    load_surface_land_dems = true;
   end
   
+  if load_surface_land_dems
+    sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
+    sea_surface.lat = ncread(sea_surface.fn,'lat');
+    sea_surface.lon = ncread(sea_surface.fn,'lon');
+    sea_surface.elev = ncread(sea_surface.fn,'mss').';
+    if 0
+      sea_surface.fn = ct_filename_gis([],fullfile('world','egm96_geoid','WW15MGH.DAC'));
+      [sea_surface.lat,sea_surface.lon,sea_surface.elev] = egm96_loader(sea_surface.fn);
+    end
+    
+    if strcmpi(params(end).post.ops.location,'arctic')
+      land_surface.fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
+    elseif strcmpi(params(end).post.ops.location,'antarctic')
+      land_surface.fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
+    end
+    [land_surface.dem, land_surface.R, tmp] = geotiffread(land_surface.fn);
+    land_surface.dem = double(land_surface.dem);
+    land_surface.dem(land_surface.dem == 32767) = NaN;
+    land_surface.proj = geotiffinfo(land_surface.fn);
+    
+    load_surface_land_dems_finished = true;
+    
+    if 0
+      % Debug Plot
+      figure(1); clf;
+      land_surface.x = land_surface.R(3,1) + land_surface.R(2,1)*(0:size(land_surface.dem,2)-1);
+      land_surface.y = land_surface.R(3,2) + land_surface.R(1,2)*(0:size(land_surface.dem,1)-1);
+      imagesc(land_surface.x,land_surface.y,land_surface.dem)
+      set(gca,'YDir','normal');
+    end
+  end
+
   %% Load "frames" for this segment
   load(ct_filename_support(param,'','frames'));
   
@@ -170,7 +106,7 @@ for param_idx = 1:length(params)
     %   be converted to range bins
     surf = orig_surf;
     surf.min_bin = find(mdata.Time > orig_surf.min_bin, 1);
-    if isfield(orig_surf,'max_bin')
+    if isfield(orig_surf,'max_bin') && ~isempty(orig_surf.max_bin)
       surf.max_bin = find(mdata.Time > orig_surf.max_bin, 1);
     else
       surf.max_bin = inf;
@@ -186,7 +122,7 @@ for param_idx = 1:length(params)
       
       % Interpolate feed through power levels on to data time axis
       feedthru_threshold = interp1(surf.feedthru.time,surf.feedthru.power_dB,mdata.Time);
-      feedthru_threshold = interp_finite(feedthru_threshold);
+      feedthru_threshold = interp_finite(feedthru_threshold,-inf);
       
       % Set all data to zero that does not exceed the feed through
       % threshold power
@@ -196,14 +132,15 @@ for param_idx = 1:length(params)
     end
     
     %% Interpolate GIMP and Geoid
-    if strcmpi(orig_surf.init.method,'dem')
-      mdata.geoid_elev = interp2(egm96_lon,egm96_lat,egm96,mod(mdata.Longitude,360),mdata.Latitude);
-      [mdata.x,mdata.y] = projfwd(gimp_proj,mdata.Latitude,mdata.Longitude);
-      mdata.gimp_dem = interp2(gimp_dem,(mdata.x-gimp_R(3,1))/gimp_R(2,1)+1,(mdata.y-gimp_R(3,2))/gimp_R(1,2)+1);
+    if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
+      mdata.sea_dem = interp2(sea_surface.lon,sea_surface.lat,sea_surface.elev,mod(mdata.Longitude,360),mdata.Latitude);
+      [mdata.x,mdata.y] = projfwd(land_surface.proj,mdata.Latitude,mdata.Longitude);
+      mdata.land_dem = interp2(land_surface.dem,(mdata.x-land_surface.R(3,1))/land_surface.R(2,1)+1, ...
+        (mdata.y-land_surface.R(3,2))/land_surface.R(1,2)+1);
       
       % Merge GIMP and Geoid
-      surf.dem = mdata.gimp_dem;
-      surf.dem(isnan(surf.dem)) = mdata.geoid_elev(isnan(surf.dem));
+      surf.dem = mdata.land_dem;
+      surf.dem(isnan(surf.dem)) = mdata.sea_dem(isnan(surf.dem));
       surf.dem = (mdata.Elevation - surf.dem) / (c/2);
       surf.dem = interp1(mdata.Time,1:length(mdata.Time),surf.dem + surf.init.dem_offset);
       surf.dem = interp_finite(surf.dem,length(mdata.Time)/2);
@@ -250,13 +187,13 @@ for param_idx = 1:length(params)
       colormap(1-gray(256));
       hold on;
       plot(Surface);
-      if strcmpi(orig_surf.init.method,'dem')
+      if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem),'g')
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem-surf.max_diff),'r')
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem+surf.max_diff),'b')
       end
       hold off;
-      ylim([min(Surface)-10e-9 max(Surface)+10e-9])
+      %ylim([min(Surface)-10e-9 max(Surface)+10e-9])
       keyboard
     end
     
@@ -284,17 +221,15 @@ for param_idx = 1:length(params)
       ops_param = struct('properties',[]);
       ops_param.properties.location = param.post.ops.location;
       ops_param.properties.season = param.season_name;
-      ops_param.properties.segment = param.day_seg;
       ops_param.properties.start_gps_time = mdata.GPS_time(1);
       ops_param.properties.stop_gps_time = mdata.GPS_time(end);
-      ops_param.properties.lyr_name = save_ops_layer;
       
       sys = ct_output_dir(param.radar_name);
-      [status,data] = opsGetLayerPoints(sys,ops_param);
+      [status,data] = opsGetPath(sys,ops_param);
       
       % Write the new layer information to these point path ID's
       ops_param = struct('properties',[]);
-      ops_param.properties.point_path_id = data.properties.point_path_id;
+      ops_param.properties.point_path_id = data.properties.id;
       ops_param.properties.twtt = interp1(mdata.GPS_time,Surface,data.properties.gps_time);
       ops_param.properties.type = 2*ones(size(ops_param.properties.twtt));
       ops_param.properties.quality = 1*ones(size(ops_param.properties.twtt));

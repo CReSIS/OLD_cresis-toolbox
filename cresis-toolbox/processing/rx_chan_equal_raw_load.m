@@ -1,6 +1,10 @@
 % script rx_chan_equal_raw_load
 %
 % Script for loading the output of rx_chan_equal_raw.m
+% Updates adc_phase_corr_deg field in records file.
+%
+% Author: John Paden
+
 
 % params = read_param_xls(ct_filename_param('rds_param_2006_Greenland_TO.xls'),'20060530_01'); params(1).cmd.generic = 1;
 % params = read_param_xls(ct_filename_param('rds_param_2009_Greenland_TO.xls'),'20090331_05'); params(1).cmd.generic = 1;
@@ -10,6 +14,8 @@ params = read_param_xls(ct_filename_param('rds_param_2008_Greenland_TO.xls'),[],
 feedthru_expected = [168.58	    -21.75	   -170.71	      0.00	   -167.48	     14.56]; % 2008
 % feedthru_expected = [122.28	    -46.99	    167.64	      0.00	   -156.38	     58.29]; % 2009
 % feedthru_expected = [-93.62	     35.22	     -0.00	    110.45	    176.14	    -20.50]; % 2009 antennas rotated
+
+save_records_en = false;
 
 for param_idx = 1:length(params)
   param = params(param_idx);
@@ -181,7 +187,7 @@ for param_idx = 1:length(params)
   end
   
   %   pause
-  if 1
+  if save_records_en
     records_fn = ct_filename_support(param,'','records');
     records = load(records_fn);
     [B,A] = butter(4,0.01);

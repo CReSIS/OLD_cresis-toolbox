@@ -19,8 +19,10 @@ function [hdr,data] = basic_load_mcords5(fn,param)
 %   .debug_level = 1 is default, 2 generates plots/print-outs
 %   .first_byte = first byte to start reading at (default is zero0)
 %   .start_index_time_offset = time offset between transmit waveform start
-%     and the start index (default is -10.8e-6 implying that the first
-%     sample collected is 10.8 us before the transmit event starts)
+%     and the start index. The default is -1.0665e-05 implying that the first
+%     sample collected is 10.665 us before the transmit event starts. This
+%     value can be very different for each radar system (e.g. AWI system
+%     is 0.6 us).
 %
 % hdr = file header for each record
 % data = cell vector of single matrices of radar data where each entry

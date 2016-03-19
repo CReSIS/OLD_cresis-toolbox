@@ -139,7 +139,7 @@ else
 end
 old_param_records.gps_source = records.gps_source;
 
-if isfield(param.slope,'surface_src') && param.slope.surface_src
+if isfield(param.slope,'surface_src') % && ~isempty(param.slope.surface_src)
   %% Get the generic layer data path
   layer_path = fullfile(ct_filename_out(param,'layerData','',0));
   
@@ -377,12 +377,12 @@ for img_idx = 1:length(param.load.imgs)
   %% Load data into g_data using load_mcords_data
   load_param.load.imgs = param.load.imgs(img_idx);
   
-  if param.slope.wf_adc_comb.en
+  if param.slope.qlook.wf_adc_comb.en
     % Waveforms-adc pairs are combined in fast-time during loading and pulse compression
-    %   param.slope.wf_adc_comb.comb_times <-- cell vector of strings containing Matlab
+    %   param.slope.qlook.wf_adc_comb.comb_times <-- cell vector of strings containing Matlab
     %      command which uses "wf_adc_surface" variable to determine where
     %      first wf-adc pair will transition to second wf-adc pair and so on.
-    %   param.slope.wf_adc_comb.out_times <-- two-element vector that truncates the
+    %   param.slope.qlook.wf_adc_comb.out_times <-- two-element vector that truncates the
     %      fast-time to a range of interest... hack?
     %
     % This section creates three variables for loading:
@@ -405,7 +405,7 @@ for img_idx = 1:length(param.load.imgs)
     
     % comb_time = time to switch from wf-adc pair 1 to wf-adc pair 2
     wf_adc_surface = records.surface;
-    comb_time = eval(param.slope.wf_adc_comb.comb_times{1});
+    comb_time = eval(param.slope.qlook.wf_adc_comb.comb_times{1});
     
     % If the time to switch is longer than wf1 then it gets capped to wf1
     comb_time(comb_time > wfs(wf1).time(end) - wfs(wf1).Tpd) = wfs(wf1).time(end) - wfs(wf1).Tpd;
@@ -418,7 +418,7 @@ for img_idx = 1:length(param.load.imgs)
     
     new_wfs.fc = wfs(wf1).fc;
     new_wfs.time = (wfs(1).time(1) : wfs(1).dt : wfs(2).time(end)).';
-    keep_bins = find(new_wfs.time > param.slope.wf_adc_comb.out_times(1) & new_wfs.time < param.slope.wf_adc_comb.out_times(end) );
+    keep_bins = find(new_wfs.time > param.slope.qlook.wf_adc_comb.out_times(1) & new_wfs.time < param.slope.qlook.wf_adc_comb.out_times(end) );
     new_wfs.time = new_wfs.time(keep_bins);
     load_param.load.wf_adc_comb.keep_bins = keep_bins;
     load_param.load.wf_adc_comb.Nt_orig = load_param.load.wf_adc_comb.Nt;

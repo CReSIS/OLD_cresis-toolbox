@@ -4,16 +4,29 @@ function layers = opsLoadLayers(param, layer_params)
 % This function loads layer data for specified frames from a single segment.
 % The main differences compared to opsGetLayerPoints are:
 % * The source of the layer data can be records, echogram files, layerData files,
-% ATM Lidar, or the OPS.
+%   ATM or AWI Lidar, OPS.
 % * Controlled from param spreadsheet
+% * Use opsInsertLayerFromGrid and opsInsertLayerFromPointCloud to compare
+%   layers to grids and point clouds
+% * Use runOpsCopyLayers to copy layers from one radar to another
 %
 % param = param spreadsheet structure
 % layer_params = N element struct array indicating which layers are to be loaded
 %   and which source to use for each layer
 %  .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc)
-%  .source: string (e.g. 'records', 'echogram', 'layerdata', 'lidar', or 'ops')
-%  .echogram_source = string (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
-%  .layerdata_source = string (e.g. 'layerData', 'CSARP_post/layerData')
+%  .source: string
+%    'records': Loads layer data from records file
+%    'echogram': Loads layer data from echogram files
+%    'layerdata': Loads layer data from layer data files
+%    'lidar': Loads (ATM or AWI) lidar data
+%    'ops': Loads layer data from Open Polar Server
+%  .echogram_source = string containing ct_filename_out argument if using 
+%    'echogram' source
+%    (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
+%  .layerdata_source = string containing ct_filename_out argument if using 
+%    'echogram' source
+%    (e.g. 'layerData', 'CSARP_post/layerData')
+%  .lidar_source = string containing 'awi' or 'atm' if using lidar source
 %  .existence_check = boolean, default is true and causes an error to be
 %    thrown if the layer does not exist. If false, no data points are
 %    returned when the layer does not exist and only a warning is given.
@@ -70,10 +83,27 @@ if any(strcmpi('records',{layer_params.source})) || any(strcmpi('lidar',{layer_p
 end
 
 if any(strcmpi('lidar',{layer_params.source}))
-  %% Load LIDAR surface to replace with
-  atm_fns = get_filenames_atm(param.post.ops.location,param.day_seg(1:8),param.data_support_path);
-  
-  lidar = read_lidar_atm(atm_fns);
+  %% Load LIDAR surface
+  if any(strcmpi('atm',{layer_params.lidar_source}))
+    lidar_fns = get_filenames_atm(param.post.ops.location,param.day_seg(1:8),param.data_support_path);
+    
+    lidar = read_lidar_atm(lidar_fns);
+    
+  elseif any(strcmpi('awi',{layer_params.lidar_source}))
+    lidar_fns = get_filenames_lidar(param,param.day_seg(1:8));
+    
+    lidar_param = struct('time_reference','utc');
+    lidar_param.nc_field = {'TIME','LATITUDE','LONGITUDE','ELEVATION','MJD','FOOT_ROUGH'};
+    lidar_param.nc_type = {'v','v','v','v','v','v'};
+    lidar_param.types = {'sec','lat_deg','lon_deg','elev_m','mjd_18581117','rms'};
+    lidar_param.scale = [1 1 1 1 1 1];
+    lidar_param.custom_flag = [0 0 0 0 0 1];
+    lidar_param.reshape_en = [1 1 1 1 1 1];
+    lidar = read_lidar_netcdf(lidar_fns,lidar_param);
+    
+  else
+    error('Invalid LIDAR source %s', layer_params.lidar_source);
+  end
   
   % Remove NAN's from LIDAR Data
   good_lidar_idxs = ~isnan(lidar.gps_time);
@@ -92,6 +122,8 @@ if any(strcmpi('lidar',{layer_params.source}))
   
 end
 
+
+%% Initialize Outputs
 for layer_idx = 1:length(layer_params)
   layers(layer_idx).gps_time = [];
   layers(layer_idx).twtt = [];
@@ -103,7 +135,7 @@ for layer_idx = 1:length(layer_params)
   layers(layer_idx).point_path_id = [];
 end
 
-%% Update each of the frames
+%% Load each of the frames
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
   

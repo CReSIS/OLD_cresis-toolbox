@@ -393,6 +393,7 @@ while ftell(fid) <= eof_pos-HEADER_SIZE
     if hdr.DDC_or_raw_select(rline)
       % Real data
       data(1:hdr.num_sam(rline),rline) = fread(fid,hdr.num_sam(rline),'int16=>single');
+      % The following line is not necessary with some data files (e.g. 2015 Alaska TO_NRL)
       data(:,rline) = data(reshape([2:2:hdr.num_sam(rline);1:2:hdr.num_sam(rline)-1],[hdr.num_sam(rline) 1]),rline);
     else
       % Complex data

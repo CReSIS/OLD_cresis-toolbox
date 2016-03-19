@@ -1,4 +1,4 @@
-function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq] = load_fmcw_data(param,records)
+function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt] = load_fmcw_data(param,records)
 % [img_time,img_valid_rng,img_deconv_filter_idx,img_freq] = load_fmcw_data(param,records)
 %
 % Loads and pulse compresses the FMCW data for functions like
@@ -17,6 +17,7 @@ function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq] = load_fmcw_dat
 % deconv_filter_idx: cell vector for each image: 1 by Nx vector with the
 %   deconvolution GPS time specified
 % img_freq = cell vector containing the fast-time frequency axis for each image
+% img_Mt = cell vector containing the decimation number by DDC_filter:1 by Nx vector
 
 global g_data;
 physical_constants;
@@ -95,9 +96,6 @@ for accum_idx = 1:length(accum(board).wf)
   wf_adc_idx = accum(board).wf_adc_idx(accum_idx);
   iq_mode = accum(board).iq_mode(accum_idx);
   
-  rec = param.load.recs(1);
-  rec_load_offset = 0;
-  
   total_recs = param.load.recs(2)-param.load.recs(1)+1;
   DDC_or_raw_select = ones(1,total_recs); % Default is raw (not complex) data
   Mt = ones(1,total_recs); % Default is raw (not complex) data
@@ -109,7 +107,7 @@ for accum_idx = 1:length(accum(board).wf)
   presums = zeros(1,total_recs);
   bit_shifts = zeros(1,total_recs);
   rline = 0;
-  a_data = zeros(1,Nx);
+  a_data = zeros(1,Nx,'single');
   
   for file_idx = unique(param.load.file_idx{adc})
     % Load the records one file at a time
@@ -142,12 +140,6 @@ for accum_idx = 1:length(accum(board).wf)
       % Close file
       fclose(fid);
       
-      % rec: This is the absolute record number in the segment
-      rec = rec + num_rec;
-      % rec_load_offset: This is the relative record number of this particular call to
-      % load_fmcw_data
-      rec_load_offset = rec_load_offset + num_rec;
-      
     elseif param.load.file_version == 2 || param.load.file_version == 4
       %% File Version 2 and 4: Carl Leuschen's First NI system
       % Open file
@@ -175,12 +167,6 @@ for accum_idx = 1:length(accum(board).wf)
       end
       % Close file
       fclose(fid);
-      
-      % rec: This is the absolute record number in the segment
-      rec = rec + num_rec;
-      % rec_load_offset: This is the relative record number of this particular call to
-      % load_fmcw_data
-      rec_load_offset = rec_load_offset + num_rec;
       
       nyquist_zone(:) = param.radar.wfs.nyquist_zone;
       
@@ -322,6 +308,9 @@ for accum_idx = 1:length(accum(board).wf)
           % DDC/complex data
           DDC_radiometric_correction_hack = 1/10*2^(DDC_filter_select(rline)-1);
           data = fread(fid,2*num_sam(rline),'int16=>single')*DDC_radiometric_correction_hack;
+          if length(data) < 2*num_sam(rline)
+            data(2*num_sam(rline)) = 0;
+          end
           a_data(1:num_sam(rline),rline) = data(1:2:end) + 1i*data(2:2:end);
         end
         if interp_flag
@@ -502,6 +491,7 @@ for accum_idx = 1:length(accum(board).wf)
     img_valid_rng = [];
     img_deconv_filter_idx = [];
     img_freq = [];
+    img_Mt = [];
     g_data{img_idx} = a_data;
     return;
   end
@@ -543,13 +533,8 @@ for accum_idx = 1:length(accum(board).wf)
       end
     end
     if param.proc.coh_noise_method == 19
-      % append zeros on both sides to avoid artifact at edges of fft
-      a_data = [zeros(size(a_data,1),100),a_data,zeros(size(a_data,1),100)];
       doppler_weights = interp1(0:numel(noise.doppler_weights)-1,noise.doppler_weights,linspace(0,numel(noise.doppler_weights)-1,size(a_data,2)));
       a_data = ifft(fft(a_data,[],2).*repmat(doppler_weights,[size(a_data,1),1]), [], 2);
-      % remove appended zeros after ifft
-      a_data(:,1:100) = [];
-      a_data(:,end-99:end) =[];
     end
   end
   
@@ -804,7 +789,9 @@ for accum_idx = 1:length(accum(board).wf)
     a_data = a_data(:,1:num_rec,:);
     dec_records.gps_time = dec_records.gps_time(:,1:num_rec);
     dec_records.elev = dec_records.elev(:,1:num_rec);
-    
+    Mt = Mt([1:param.proc.presums:length(Mt)]);
+    Mt = Mt(1:num_rec);
+
     % Update invalid bins
     for rline = 1:size(a_data,2)
       first_valid_bin = find(~isnan(a_data(:,rline,1)),1);
@@ -1012,7 +999,7 @@ for accum_idx = 1:length(accum(board).wf)
 %   freq = (param.wfs(wf).fc + 2*param.wfs(wf).chirp_rate / param.wfs(wf).fs_raw * ((0:Nt-1) - floor(Nt/2))).';
 %   freq = (param.wfs(wf).fc + abs(param.wfs(wf).chirp_rate) / (param.wfs(wf).fs_raw/Mt(1)) * ((0:Nt-1) - floor(Nt/2))).';
    Nt = size(a_data,1);
-   freq = param.wfs(wf).fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+   freq = param.wfs(wf).fc + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
 
   % =======================================================================
   %% Presum a_data (with elevation compensation)
@@ -1025,13 +1012,17 @@ for accum_idx = 1:length(accum(board).wf)
     drange = dec_records.elev(1:length(drange)) - drange;
     a_data = a_data(:,1:length(drange));
     Nt = size(a_data,1);
-    % This sign of the exp(-j ...) correction seems backwards, yet works...
+    % This sign of the center frequency is backwards, yet works for some seasons...
     % Greater range implies more negative phase, so the correction should be
     % a more positive phase and this is the opposite. Not sure why??? May have
     % something to do with how we do complex baseband with FFT... maybe this
     % is causing a conjugation of the phase.
-%     a_data = ifft(fft(a_data) .* exp(-j*2*pi*freq*drange/(c/2)));
-    a_data = ifft(fft(a_data) .* exp(j*2*pi*freq*drange/(c/2)));
+    if isfield(param.radar.wfs,'fc_sign') && param.radar.wfs.fc_sign < 0
+      freq_hack = -param.wfs(wf).fc + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+    else
+      freq_hack = param.wfs(wf).fc + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+    end
+    a_data = ifft(fft(a_data) .* exp(j*2*pi*freq_hack*drange/(c/2)));
   
     % Set invalid bins to NaN, so that averaging with invalid bins results
     % in an invalid bin (NaN).
@@ -1046,7 +1037,9 @@ for accum_idx = 1:length(accum(board).wf)
     a_data = a_data(:,1:num_rec);
     dec_records.gps_time = dec_records.gps_time(:,1:num_rec);
     dec_records.elev = dec_records.elev(:,1:num_rec);
-    
+    Mt = Mt([1:param.proc.presums:length(Mt)]);
+    Mt = Mt(1:num_rec);
+   
     % Update invalid bins
     valid_rng = [];
     for rline = 1:size(a_data,2)
@@ -1085,59 +1078,98 @@ for accum_idx = 1:length(accum(board).wf)
       end
     end
     if size(spec.deconv_H,2) > 0
+      % group data according to DDC filter and apply deconvolution
+      % waveforms from the same DDC filter
       
-      % Find the two way travel time to the surface (HACK! a surface
-      % parameter should be passed in so this works over land too)
-      twtt_bins = unique(round(dec_records.elev / (c/2)/spec.twtt_bin_spacing));
-            
-      % We then take these two way travel times and bin them. We will apply
-      % different deconvolution waveforms to each bin.
-      for twtt_bin = twtt_bins
-        % Only use deconvolution waveforms that were taken with a similar
-        % two way travel time (this is because twtt effects the corrections
-        % that need to be applied).
-        valid_idxs = find(twtt_bin >= spec.deconv_twtt_min & twtt_bin <= spec.deconv_twtt_max);
-        if isempty(valid_idxs)
-          % If no valid waveforms exist, then just choose the closest in twtt
-          min_dist = min(abs(twtt_bin-spec.deconv_twtt_max),abs(twtt_bin-spec.deconv_twtt_min));
-          min_dist_min = min(min_dist);
-          valid_idxs = find(min_dist == min_dist_min);
-        end
+      [Mts,mm,nn] = unique(Mt);
+      mm = sort(mm);
+      for Mt_idx = 1:length(Mts)
+        Mt_current = Mt(mm(Mt_idx));
+        idxs = find(Mt == Mt_current);
+        tmp_data = a_data(:,idxs);
+        % Find the two way travel time to the surface (HACK! a surface
+        % parameter should be passed in so this works over land too)
+        twtt_bins = unique(round(dec_records.elev(idxs) / (c/2)/spec.twtt_bin_spacing));
         
-        closest_idx = [];
-        if ~isempty(param.proc.deconv_enforce_wf_idx)
-          if numel(param.proc.deconv_enforce_wf_idx)>1 % first column is frame number, second colume is deconvolution wf idx
-            param.support_path = '/cresis/snfs1/dataproducts/csarp_support/';
-            load(fullfile(param.support_path,'frames','snow',param.season_name,sprintf('frames_%s.mat',param.day_seg)));
-            frm = find(mean(param.load.recs) >= frames.frame_idxs,1,'last');
-            closest_idx = param.proc.deconv_enforce_wf_idx(find(param.proc.deconv_enforce_wf_idx(:,1) == frm),2);
+        % We then take these two way travel times and bin them. We will apply
+        % different deconvolution waveforms to each bin.
+        for twtt_bin = twtt_bins
+          % Only use deconvolution waveforms that were taken with a similar
+          % two way travel time (this is because twtt effects the corrections
+          % that need to be applied).
+          if param.proc.deconv_same_twtt_bin
+            valid_idxs = find(twtt_bin == (spec.deconv_twtt_min+spec.deconv_twtt_max)/2 & ~isnan(spec.deconv_frame));
           else
-            closest_idx = param.proc.deconv_enforce_wf_idx;
+            valid_idx = [];
           end
+          if isempty(valid_idxs)
+            valid_idxs = find(twtt_bin >= spec.deconv_twtt_min & twtt_bin <= spec.deconv_twtt_max);
+          end
+          if isempty(valid_idxs)
+            % If no valid waveforms exist, then just choose the closest in twtt
+            min_dist = min(abs(twtt_bin-spec.deconv_twtt_max),abs(twtt_bin-spec.deconv_twtt_min));
+            min_dist_min = min(min_dist);
+            valid_idxs = find(min_dist == min_dist_min);
+          end
+          % find valid_idxs that have Mt_current
+          valid_idxs_tmp = valid_idxs;
+          valid_idxs(spec.deconv_DDC_Mt(valid_idxs)~=Mt_current) = [];
+          if isempty(valid_idxs)
+            idxs_tmp = find(spec.deconv_DDC_Mt==Mt_current);
+            if ~isempty(idxs_tmp)
+              min_dist = min(abs(twtt_bin-spec.deconv_twtt_max(idxs_tmp)),abs(twtt_bin-spec.deconv_twtt_min(idxs_tmp)));
+              min_dist_min = min(min_dist);
+              valid_idxs = idxs_tmp(find(min_dist == min_dist_min));% use the closest twtt with the same DDC filter
+            else
+              valid_idxs= valid_idxs_tmp; % remove the DDC filter constrain to let code run
+            end
+          end
+          
+          closest_idx = [];
+          if ~isempty(param.proc.deconv_enforce_wf_idx)
+            if numel(param.proc.deconv_enforce_wf_idx)>1
+              % If 2 or more values are passed in, then:
+              %   First column is frame number
+              %   Second column is deconvolution wf idx
+              % If the frame is not found in the list, then closest_idx
+              % will be empty and the deconv waveform that is closest in
+              % time will be selected below (which is the default mode).
+              load(ct_filename_support(param,'','frames'));
+              frm = find(mean(param.load.recs) >= frames.frame_idxs,1,'last');
+              closest_idx = param.proc.deconv_enforce_wf_idx(find(param.proc.deconv_enforce_wf_idx(:,1) == frm),2);
+            else
+              % If a single value is passed in, then this waveform is used
+              % for all frames.
+              closest_idx = param.proc.deconv_enforce_wf_idx;
+            end
+          end
+          if isempty(closest_idx)
+            % Now find the closest of the valid waveforms in time... the idea
+            % being that the system parameters change over time so we want to
+            % deconvolve with a reference measurement that was taken with close
+            % temporal proximity
+            [tmp,closest_idx] = min(abs(mean(dec_records.gps_time) - spec.deconv_gps_time(valid_idxs)));
+            closest_idx = valid_idxs(closest_idx);
+          end
+          
+          deconv_H = spec.deconv_H{closest_idx};
+          if length(freq) ~= length(spec.freq{closest_idx}) ...
+            || any(abs(freq([1 end]) - spec.freq{closest_idx}([1 end])) > 0.1e6)
+            deconv_H = spec.deconv_H{closest_idx};
+            % If we ever needed to apply frequency domain interpolation... initial
+            % results indicate that this does not work very well... possibly because
+            % the corrections at each frequency change for different chirp parameters.
+            %           deconv_H = interp1(fftshift(spec.freq(:,closest_idx)), spec.deconv_H(:,closest_idx), fftshift(freq),'linear','extrap');
+            deconv_H = interp1(spec.freq{closest_idx}, spec.deconv_H{closest_idx}, freq,'linear','extrap');
+            deconv_H = interp_finite(deconv_H);
+          end
+          % Create a mask that will apply the deconvolution only to the data
+          % collected in this twtt bin.
+          mask = round(dec_records.elev(idxs)/ (c/2)/spec.twtt_bin_spacing) == twtt_bin;
+          tmp_data(:,mask) = ifft(fft(tmp_data(:,mask)) .* repmat(deconv_H,[1 sum(mask)]));
+          deconv_filter_idx(mask) = closest_idx;
         end
-        if isempty(closest_idx)
-          % Now find the closest of the valid waveforms in time... the idea
-          % being that the system parameters change over time so we want to
-          % deconvolve with a reference measurement that was taken with close
-          % temporal proximity
-          [tmp,closest_idx] = min(abs(mean(dec_records.gps_time) - spec.deconv_gps_time(valid_idxs)));
-          closest_idx = valid_idxs(closest_idx);
-        end
-        fprintf('%dth deconvolution waveform used',closest_idx)
-
-        deconv_H = spec.deconv_H(:,closest_idx);
-        if length(freq) ~= length(spec.freq(:,closest_idx)) % replace with ~isequal?
-        % If we ever needed to apply frequency domain interpolation... initial
-        % results indicate that this does not work very well... possibly because
-        % the corrections at each frequency change for different chirp parameters.
-          deconv_H = interp1(fftshift(spec.freq(:,closest_idx)), spec.deconv_H(:,closest_idx), fftshift(freq),'linear','extrap');
-          deconv_H = interp_finite(deconv_H);
-        end
-        % Create a mask that will apply the deconvolution only to the data
-        % collected in this twtt bin.
-        mask = round(dec_records.elev/ (c/2)/spec.twtt_bin_spacing) == twtt_bin;
-        a_data(:,mask) = ifft(fft(a_data(:,mask)) .* repmat(deconv_H,[1 sum(mask)]));
-        deconv_filter_idx(mask) = closest_idx;
+        a_data(:,idxs) = tmp_data;
       end
       %clf; imagesc(lp(a_data)); % DEBUG
     end
@@ -1204,6 +1236,7 @@ for accum_idx = 1:length(accum(board).wf)
   img_valid_rng{img_idx} = valid_rng;
   img_deconv_filter_idx{img_idx} = deconv_filter_idx;
   img_freq{img_idx} = freq;
+  img_Mt{img_idx} = Mt;
 end
 end
 

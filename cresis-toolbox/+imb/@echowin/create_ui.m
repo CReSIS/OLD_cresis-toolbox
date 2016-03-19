@@ -443,7 +443,7 @@ set(obj.right_panel.status_panel.statusText,'uicontextmenu',obj.right_panel.echo
 
 % create statusbar's table
 obj.right_panel.status_panel.table.ui = obj.right_panel.status_panel.handle;
-obj.right_panel.status_panel.table.offset = [-1 -2];
+obj.right_panel.status_panel.table.offset = [0 2];
 row = 1; col = 1;
 obj.right_panel.status_panel.table.handles{row,col}       = obj.right_panel.status_panel.statusText;
 obj.right_panel.status_panel.table.width(row,col)         = inf;
@@ -475,9 +475,10 @@ obj.right_panel.table.height_margin(row,col)=0;
 row = 2; col = 1;
 obj.right_panel.table.handles{row,col}   = obj.right_panel.status_panel.handle;
 obj.right_panel.table.width(row,col)     = inf;
-obj.right_panel.table.height(row,col)    = 10;
+obj.right_panel.table.height(row,col)    = 15;
 obj.right_panel.table.width_margin(row,col)=0;
 obj.right_panel.table.height_margin(row,col)=0;
+obj.right_panel.table.false_height(row,col)=0;
 clear row col
 table_draw(obj.right_panel.table);
 

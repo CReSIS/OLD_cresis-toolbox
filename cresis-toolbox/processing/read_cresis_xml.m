@@ -12,6 +12,19 @@ xDoc = xmlread(xml_fn);
 settings.fn = xml_fn;
 settings_enc.fn = xml_fn;
 
+if isfield(settings,'sys')
+  settings_enc.DDCZ20Ctrl = settings_enc.sys.DDCZ20Ctrl;
+  settings_enc.DDSZ5FSetup = settings_enc.sys.DDSZ5FSetup;
+  settings_enc.XMLZ20FileZ20Path = settings_enc.sys.XMLZ20FileZ20Path;
+  settings_enc.xmlversion = settings_enc.sys.xmlversion;
+  settings_enc = rmfield(settings_enc,'sys');
+  settings.DDC_Ctrl = settings.sys.DDC_Ctrl;
+  settings.DDS_Setup = settings.sys.DDS_Setup;
+  settings.XML_File_Path = settings.sys.XML_File_Path;
+  settings.xmlversion = settings.sys.xmlversion;
+  settings= rmfield(settings,'sys');
+end
+
 %% Convert filename time stamp to datenum that is included with settings
 [tmp xml_fn_name] = fileparts(xml_fn);
 try

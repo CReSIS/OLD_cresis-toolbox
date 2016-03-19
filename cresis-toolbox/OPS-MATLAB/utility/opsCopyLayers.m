@@ -1,48 +1,98 @@
 function layers = opsCopyLayers(param,copy_param)
 % layers = opsCopyLayers(param,copy_param)
 %
-% Copies contents from one layers into another layer. The copy method can
-% be merge, overwrite, or fill gaps.
+% Copies contents from one layer into another layer. The copy method can
+% be merge, overwrite, or fill gaps. If the destination layer does not
+% exist, it will be created. The source and destination for the data can be 
+% OPS, layerData, echogram, or records. Additionally, the source can be
+% lidar (ATM) or a custom GPS-time/two-way-travel-time.
 %
-% NOT COMPLETE, DOES NOT SUPPORT echogram destination or  "eval" field
+% An operation on the source data using the eval field can be added. More
+% complicated operations can be done using opsLoadLayers, applying the 
+% complex operation on that result and then using the custom input.
 %
 % Input:
-%   params: Specify the segment you wish to copy on the params spreadsheet
-%   copy_param:
-%     .layer_source = structure specifying the source layer
+%   param: Parameter structure from read_param_xls parameter spreadsheet
+%   copy_param: Structure which controls copying process
+%     .layer_source: structure specifying the source layer
 %       .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc)
-%       .source: string (e.g. 'records', 'echogram', 'layerdata', or 'ops')
-%       .echogram_source = string (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
-%       .layerdata_source = string (e.g. 'layerData', 'CSARP_post/layerData')
+%       .source: string (e.g. 'records', 'echogram', 'layerdata', 'lidar',
+%         'custom', or 'ops')
+%       .echogram_source: used only with echogram source, string
+%         containing file path argument to ct_filename_out.m
+%         (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
+%       .layerdata_source: used only with layerdata source, string
+%         containing file path argument to ct_filename_out.m
+%         (e.g. 'layerData', 'CSARP_post/layerData')
+%       .existence_check: used only with ops source, set to false to allow
+%         layers that do not exist (default is true)
+%       .gps_time: used only with custom source, Nx by 1 vector,
+%         GPS time (ANSI-C standard: seconds since Jan 1, 1970)
+%       .twtt: used only with custom source, Nx by 1 vector corresponding
+%         to gps_time field containing two way travel time to layer 
+%       .type: used only with custom source, Nx by 1 vector corresponding
+%         to gps_time field containing type (1=manual, 2=auto), 2 is
+%         default when not specified or NaN
+%       .quality: used only with custom source, Nx by 1 vector corresponding
+%         to gps_time field containing quality (1=good, 2=moderate,
+%         3=derived/poor), 1 is default when not specified or NaN
 %     .layer_dest = structure specifying the destination layer
 %       .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc)
 %       .source: string (e.g. 'records', 'echogram', 'layerdata', or 'ops')
-%       .echogram_source = string (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
-%       .layerdata_source = string (e.g. 'layerData', 'CSARP_post/layerData')
-%     .group and .description fields must also be included if the layer does
-%        not exist and is being inserted into "ops" source
-%     .eval = Optional. If included, function evaluates this string with eval.
-%        Variables available are gps_time (sec), along_track (m), source
-%         interpolated onto dest (twtt in sec), and dest (twtt in sec).
-%        The string should generally update "source" variable. For example:
-%           '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);'
-%           'source = source + 0.1;'
-%           'source = my_interp_function(gps_time,along_track,source,dest);'
+%       .echogram_source: used only with echogram source, string
+%         containing file path argument to ct_filename_out.m
+%         (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
+%       .layerdata_source: used only with layerdata source, string
+%         containing file path argument to ct_filename_out.m
+%         (e.g. 'layerData', 'CSARP_post/layerData')
+%       .existence_check: used only with ops source, set to false to allow
+%         layers that do not exist (default is true). If false, the layer
+%         will be created if it does not exist. If true, an error will be
+%         thrown if the layer does not exist.
+%       .group: used only with ops source and only needed when the layer
+%         does not already exist. Should be a string containing the group
+%         name that the layer should be added to. Leave blank to use the
+%         standard group.
+%       .description: used only with ops source and only needed when the layer
+%         does not already exist. Should be a string containing a
+%         description of the layer contents.
+%     .eval: Optional structure for performing operations on the source
+%       before it is written to the destination.
+%       .cmd: Command string that will be passed to eval
+%       .$(custom): Custom fields
+%        Variables available are:
+%          physical_constants
+%          "gps_time" (sec)
+%          "along_track" (m)
+%          "lat" (deg)
+%          "lon" (deg)
+%          "elev" (m)
+%          "source" (twtt in sec)
+%          "eval_struct" (the eval structure passed in by the user)
+%        The cmd string should generally update "source" variable. For example:
+%           '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
+%           'source = source + 0.1;' % Apply a twtt shift
+%           'source = source*2;' % Surface multiple
 %     .copy_method = string specifying one of these methods
 %       'fillgaps': only gaps in destination data will be written to
 %       'overwrite': none of the previous data are kept
 %       'merge': anywhere source data exists, destination data will be
 %         overwritten
-%     .gap_fill: struct controlling interpolation across gaps in source
-%     .gaps_dist: two element vector used by opsInterpLayersToMasterGPSTime
-%     .method: string specifying one of these methods
-%       'preserve_gaps': runs opsInterpLayersToMasterGPSTime
-%       'interp_finite': runs interp_finite
+%     .gaps_fill: struct controlling interpolation across gaps in source
+%       .method: string specifying one of these methods
+%         'preserve_gaps': runs opsInterpLayersToMasterGPSTime which tries
+%           to interpolate where there is data and leave gaps where there
+%           is not data (method_args controls this behavior)
+%         'interp_finite': runs interp_finite which fills EVERY point
+%       .method_args: arguments based on chosen method
+%         'preserve_gaps': two element vector used by opsInterpLayersToMasterGPSTime
+%         'interp_finite': not used
 %
 % Authors: John Paden, Abbey Whisler
 %
 % See also: runOpsCopyLayers.m, opsMergeLayerData, opsCopyLayers
 
+physical_constants;
 
 %% Determine if the copy method and gap filling method are valid
 if ~any(strcmpi(copy_param.copy_method,{'fillgaps','overwrite','merge'}))
@@ -54,11 +104,9 @@ if ~any(strcmpi(copy_param.gaps_fill.method,{'preserve_gaps','interp_finite'}))
 end
 
 if strcmpi(copy_param.gaps_fill.method,'preserve_gaps') ...
-    && ~isfield(copy_param.gaps_fill,'method_args') || isempty(copy_param.gaps_fill.method_args)
+    && (~isfield(copy_param.gaps_fill,'method_args') || isempty(copy_param.gaps_fill.method_args))
   copy_param.gaps_fill.method_args = [300 60];
 end
-
-physical_constants;
 
 %% Load "frames" file
 load(ct_filename_support(param,param.records.frames_fn,'frames'));
@@ -81,7 +129,24 @@ end
 % Load all frames (for better edge interpolation)
 load_param = param;
 load_param.cmd.frms = 1:length(frames.frame_idxs);
-layer_source = opsLoadLayers(load_param,copy_param.layer_source);
+if strcmpi(copy_param.layer_source.source,'custom')
+  layer_source.gps_time = copy_param.layer_source.gps_time;
+  layer_source.twtt = copy_param.layer_source.twtt;
+  if isfield(copy_param.layer_source,'type') ...
+      && ~isempty(copy_param.layer_source.type)
+    layer_source.type = copy_param.layer_source.type;
+  else
+    layer_source.type = 2*ones(size(layer_source.gps_time));
+  end
+  if isfield(copy_param.layer_source,'quality') ...
+      && ~isempty(copy_param.layer_source.quality)
+    layer_source.quality = copy_param.layer_source.quality;
+  else
+    layer_source.quality = ones(size(layer_source.gps_time));
+  end
+else
+  layer_source = opsLoadLayers(load_param,copy_param.layer_source);
+end
 layer_dest = opsLoadLayers(load_param,copy_param.layer_dest);
 
 %% Load framing information (to determine start/stop gps times of each frame)
@@ -208,6 +273,19 @@ layer_source.type(isnan(layer_source.type)) = 2;
 layer_source.quality(isnan(layer_source.quality)) = 1;
 layer_source.quality(layer_source.quality ~= 1 & layer_source.quality ~= 2 & layer_source.quality ~= 3) = 1;
 
+%% Apply evaluation operation to source
+if isfield(copy_param,'eval') && ~isempty(copy_param.eval)
+  source = layer_source.twtt;
+  gps_time = layer_source.gps_time;
+  lat = layer_source.lat;
+  lon = layer_source.lon;
+  elev = layer_source.elev;
+  along_track = geodetic_to_along_track(lat,lon,elev);
+  eval_struct = copy_param.eval;
+  eval(copy_param.eval.cmd);
+  layer_source.twtt = source;
+end
+
 if strcmpi(copy_param.gaps_fill.method,'preserve_gaps')
   %% interpolation preserves_gaps
   
@@ -230,7 +308,7 @@ elseif strcmpi(copy_param.gaps_fill.method,'interp_finite')
   % Interpolate source onto destination points using linear interpolation
   all_points.twtt_interp = interp1(layer_source.gps_time, layer_source.twtt, all_points.gps_time);
   % Fill in NaN gaps using interp_finite
-  all_points.twtt_interp = interp_finite(all_points.twtt_interp,1);
+  all_points.twtt_interp = interp_finite(all_points.twtt_interp,0);
 end
 
 %% Combine the newly interpolated result with the current values
@@ -271,11 +349,6 @@ end
 
 update_mask = frms_mask & update_mask;
 
-%% Perform function evaluation
-if isfield(copy_param,'eval') && ~isempty(copy_param.eval)
-  error('copy_param.eval is not supported');
-end
-
 %% Write the new layer data to the destination
 surface = all_points.twtt;
 surface(update_mask) = all_points.twtt_interp(update_mask);
@@ -293,6 +366,19 @@ if 0
 end
 
 if strcmpi(copy_param.layer_dest.source,'ops')
+  %% Check to see if layer exists
+  [status,data] = opsGetLayers(sys);
+  if ~any(strcmpi(data.properties.lyr_name,copy_param.layer_dest.name))
+    % Create the layer if it does not exist
+    ops_param = [];
+    ops_param.properties.lyr_name = copy_param.layer_dest.name;
+    ops_param.properties.lyr_group_name = copy_param.layer_dest.group;
+    ops_param.properties.lyr_description = copy_param.layer_dest.description;
+    ops_param.properties.public = true;
+    
+    [status,ops_data] = opsCreateLayer(sys,ops_param);
+  end
+  
   %% Remove all_points that are not in the selected frames
   % Use update_mask to exclude all points that are not getting updated
   ops_param.properties.point_path_id = all_points.ids(update_mask);

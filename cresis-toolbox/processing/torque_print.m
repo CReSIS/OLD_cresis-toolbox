@@ -101,10 +101,10 @@ while status ~= 0
   if status ~= 0
     warning('qstat failed %d %s', status, result);
     torque_attempts = torque_attempts + 1;
-    pause(2);
-    if torque_attempts >= 2
+    if torque_attempts >= 1
       break;
     end
+    pause(2);
   end
 end
 

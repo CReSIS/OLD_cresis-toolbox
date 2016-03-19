@@ -21,7 +21,7 @@ function [params] = read_param_xls(param_fn, day_seg_filter, generic_ws)
 %   param_fn = '/mnt/scratch2/csarp_support/documents/mcords_param_2011_Greenland_P3.xls';
 %   [params] = read_param_xls(param_fn,'20110329_02');
 %
-%   param_fn = '/mnt/scratch2/csarp_support/documents/accum_param_2011_Greenland_P3.xls';
+%   param_fn = ct_filename_param('rds_param_2011_Greenland_P3.xls');
 %   [params] = read_param_xls(param_fn);
 %
 % Author: Brady Maasen, John Paden
@@ -36,12 +36,6 @@ cell_read = @read_param_xls_general;
 % CREATING THE PARAM STRUCTURE ARRAY FROM PARAM_STARTER.XLS
 % ======================================================================%
 warning('off','MATLAB:xlsread:Mode');
-
-% =======================================================================
-% Create Command Parameters
-% =======================================================================
-sheet_name = 'command';
-fprintf('Reading sheet %s of xls file: %s\n', sheet_name, param_fn);
 
 %% Load standard worksheets
 [params] = read_param_xls_radar(param_fn);

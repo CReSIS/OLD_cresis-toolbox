@@ -23,7 +23,9 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % =====================================================================
   % Debug Setup
   % =====================================================================
-  param = read_param_xls('/users/paden/scripts/branch/params-cr1/rds_param_2011_Greenland_P3.xls','20110506_01','slope');
+  param = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'),'20110429_01','slope');
+%   param = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'),'20110506_01','slope');
+%   param = read_param_xls(ct_filename_param('rds_param_2013_Antarctica_P3.xls'),'20131127_01','slope');
   
   clear('param_override');
   param_override.sched.type = 'no scheduler';

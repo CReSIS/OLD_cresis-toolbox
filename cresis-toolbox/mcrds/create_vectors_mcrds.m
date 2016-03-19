@@ -114,8 +114,8 @@ for file_num = 1:length(file_idxs)
   fclose(fid);
   
   % Print basic file information to console
-  fprintf('  File index %d (filename file_num %d) (%.1f sec)\n', ...
-    file_num, fname.idx, toc(tstart_create_vectors_mcrds));
+  fprintf('  File index %d (filename file_num %d) (%s sec)\n', ...
+    file_num, fname.idx, datestr(now));
 end
 
 if param.vectors.gps.time_offset ~= 0

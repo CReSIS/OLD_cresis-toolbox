@@ -172,6 +172,10 @@ elseif any(strcmpi(param.radar_name,{'acords','mcords','mcords2','mcords3','mcor
   [wfs,rec_data_size] = load_mcords_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
   load_param.load.rec_data_size = rec_data_size;
+elseif any(strcmpi(param.radar_name,{'icards'}))% add icards----qishi
+  [wfs,rec_data_size] = load_icards_wfs(orig_records.settings, param, ...
+    1:max(old_param_records.records.file.adcs), param.csarp);
+    load_param.load.rec_data_size = rec_data_size;
 elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   wfs = load_fmcw_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
@@ -192,25 +196,32 @@ for idx = 1:length(param.load.imgs)
 end
 
 recs = param.load.recs - param.load.recs(1) + 1;
-if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
-  % Determine which ADC boards are supported and which ones were actually loaded
+if any(strcmpi(param.radar_name,{'icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  % adc_headers: the actual adc headers that were loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
   end
-  boards = adc_to_board(param.radar_name,old_param_records.records.file.adcs);
-  boards_headers = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers);
+  
+  % boards_headers: the boards that the actual adc headers were loaded from
+  boards_headers = adc_to_board(param.radar_name,old_param_records.records.file.adcs);
   
   for idx = 1:length(param.load.adcs)
+    % adc: the specific ADC we would like to load
     adc = param.load.adcs(idx);
-    adc_idx = find(old_param_records.records.file.adcs == param.load.adcs(idx));
+    % adc_idx: the records file index for this adc
+    adc_idx = find(old_param_records.records.file.adcs == adc);
     if isempty(adc_idx)
-      error('ADC %d not present in records file\n', param.load.adcs(idx));
+      error('ADC %d not present in records file\n', adc);
     end
     
-    % Just get the file-information for the records we need
+    % board: the board associated with the ADC we would like to load
     board = adc_to_board(param.radar_name,adc);
-    actual_board_idx = find(board == boards);
-    board_idx = find(old_param_records.records.file.adc_headers(actual_board_idx) == boards_headers);
+    % board_header: the board headers that we will use with this ADC
+    board_header = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers(adc_idx));
+    % board_idx: the index into the records board list to use
+    board_idx = find(board_header == boards_headers);
+    
+    % Just get the file-information for the records we need
     load_param.load.file_idx{idx} = relative_rec_num_to_file_idx_vector( ...
       param.load.recs,orig_records.relative_rec_num{board_idx});
     load_param.load.offset{idx} = orig_records.offset(board_idx,:);
@@ -260,6 +271,15 @@ elseif strcmpi(param.radar_name,'acords')
   load_param.load.filepath = fullfile(base_dir, adc_folder_name);
   load_param.load.wfs = orig_records.settings.wfs;
   load_param.load.wfs_records = orig_records.settings.wfs_records;
+elseif strcmpi(param.radar_name,'icards')% add icards---qishi
+  load_param.load.offset = orig_records.offset;
+  load_param.load.file_rec_offset = orig_records.relative_rec_num;
+  load_param.load.filenames = orig_records.relative_filename;
+  base_dir = ct_filename_data(param,param.vectors.file.base_dir);
+  adc_folder_name = param.vectors.file.adc_folder_name;
+  load_param.load.filepath = fullfile(base_dir, adc_folder_name);
+  load_param.load.wfs = orig_records.settings.wfs;
+  load_param.load.wfs_records = orig_records.settings.wfs_records; 
 elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   % Determine which ADC boards are supported and which ones were actually loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
@@ -363,6 +383,8 @@ elseif strcmpi(param.radar_name,'mcrds')
     load_param.adc_phase_corr_deg = zeros(length(load_param.surface),max(orig_records.param_records.records.file.adcs));
   end
   load_mcrds_data(load_param);
+elseif strcmpi(param.radar_name,'icards')
+  load_icards_data(load_param);
 elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   load_param.proc.elev_correction = 0;%param.csarp.elev_correction;
   load_param.proc.deconvolution = param.csarp.deconvolution;

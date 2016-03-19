@@ -35,6 +35,9 @@ physical_constants;
 if ~isfield(param,'er_ice') || isempty(param.er_ice)
   param.er_ice = er_ice;
 end
+if ~isfield(param,'er_depth') || isempty(param.er_depth)
+  param.er_depth = 0;
+end
 if ~isfield(param,'axis_type') || isempty(param.axis_type)
   param.axis_type = 'standard';
 end
@@ -51,6 +54,10 @@ end
 if ~isfield(param,'time_offset') || isempty(param.time_offset) 
   % Adds an offset to the two way travel time tics (in seconds)
   param.time_offset = 0;
+end
+if ~isreal(mdata.Data)
+  warning('Input data are complex. Taking the abs()^2 of the data.');
+  mdata.Data = abs(mdata.Data).^2;
 end
 
 % =======================================================================
@@ -133,26 +140,46 @@ elseif param.elev_comp == 2
   lay.Surface = surf_filt;
   mdata.Elevation = mean(mdata.Elevation) + (surf_filt - mean(surf_filt)) * c/2;  
   
-  max_elev = max(mdata.Elevation);
-  dRange = max_elev - mdata.Elevation;
-  dt = mdata.Time(2)-mdata.Time(1);
-  dBins = round(dRange / (c/2) / dt);
-  dtime = dRange/(c/2);
-  zero_pad_len = max(abs(dBins));
-  mdata.Data = cat(1,mdata.Data,zeros(zero_pad_len,size(mdata.Data,2)));
-  mdata.Time = mdata.Time(1) + (mdata.Time(2)-mdata.Time(1)) * (0:1:size(mdata.Data,1)-1).';
+
+  Surface_Depth = zeros(size(mdata.GPS_time));
+  depth_range = eval(param.depth);
+
   
+    % Determine sampling
+  max_er = max(param.er_ice);
+  dt = mdata.Time(2) - mdata.Time(1);
+  dz = dt * c/2/sqrt(max_er);
+
+  % Depth axis
+  depth = (round(depth_range(1)/dz)*dz : dz : depth_range(end)).';
+  
+  % Depth time axis
+  depth_time = size(depth);
+  % Above surface
+  depth_time(depth <= 0) = depth(depth <= 0) / (c/2);
+  % Below surface and within dielectric profile defined depth
+  if length(param.er_depth) > 1
+    TWtime = genPropProfileFromPerm(param.er_depth,param.er_ice,1);
+    profile_idxs = depth > 0 & depth < param.er_depth(end);
+    depth_time(profile_idxs) = interp1(param.er_depth, [0; TWtime], depth(profile_idxs));
+  end
+  % Below surface and below dielectric profile defined depth
+  const_idxs = depth >= param.er_depth(end);
+  depth_time(const_idxs) = TWtime(end) + (depth(const_idxs) - param.er_depth(end)) / (c/2/sqrt(param.er_ice(end)));
+  
+  % Re-interpolate data to a constant depth axis
+  newData = zeros(length(depth),size(mdata.Data,2));
   warning off;
   mdata.Data(mdata.Data == 0) = NaN;
-  for rline = 1:size(mdata.Data,2)   
-    mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(:,rline), mdata.Time - dtime(rline), 'linear',0);
-    mdata.Elevation(rline) = mdata.Elevation(rline) + dRange(rline);
-    lay.Surface(rline) = lay.Surface(rline) + dtime(rline);
-    lay.Bottom(rline) = lay.Bottom(rline) + dtime(rline);
+  for rline = 1:size(mdata.Data,2)
+    newData(:,rline) = interp1(mdata.Time, mdata.Data(:,rline), ...
+      mdata.Surface(rline) + depth_time);
+    lay.Bottom(:) = lay.Bottom(rline) - lay.Surface(rline);
   end
+  mdata.Data = newData;
   mdata.Data(isnan(mdata.Data)) = 0;
   warning on;
-  
+
 elseif param.elev_comp == 3
   %% Elevation compensate to WGS-84 y-axis
   
@@ -245,6 +272,19 @@ if param.elev_comp == 3
     detrend_depth_range = eval(param.detrend.depth);
     detrend_depth_good_idxs = find(elev_axis >= detrend_depth_range(1) ...
       & elev_axis <= detrend_depth_range(end));
+  end
+elseif param.elev_comp == 2
+  Depth = depth;
+  DSurface = lay.Surface; % All zero
+  DBottom = interp1(depth_time,depth,lay.Bottom);
+  Surface_Depth = DSurface;
+  Bbad = sum(isnan(DBottom)) / numel(DBottom);
+  
+  depth_good_idxs = 1:length(Depth);
+  if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'polynomial')
+    detrend_depth_range = eval(param.detrend.depth);
+    detrend_depth_good_idxs = find(Depth >= detrend_depth_range(1) ...
+      & Depth <= detrend_depth_range(end));
   end
 else
   Depth = (mdata.Time-mean_surface_time)*c/2/sqrt(param.er_ice);
@@ -377,7 +417,11 @@ else
       echogram_vals,'Parent',ah_echo);
     axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 reshape(mdata.Time(depth_good_idxs([1 end]))*1e6 + param.time_offset*1e6,[1 2])])
   end
-  ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
+  if length(param.er_ice) == 1;
+    ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
+  else
+    ylabel(ah_echo,sprintf('depth, e_r from profile (m)', param.er_ice));
+  end
 end
 ylabel(ah_echo_time,'Propagation delay (us)');
 set(ah_echo_time,'XTickLabel','');

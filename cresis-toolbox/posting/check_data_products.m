@@ -3,49 +3,10 @@
 % Script for checking non-RDS data products (needs to be modified to fully
 % support RDS data products).  Lists missing and extra files.
 %
+% Example:
+%   See run_check_data_products.m for how to run.
+%
 % Author: John Paden, Logan Smith
-
-%% User Settings
-clear; clc
-global gRadar
-params = read_param_xls(ct_filename_param('kuband_param_2015_Greenland_LC130.xls'),[],'post');
-
-source_dir = '/scratch/';
-backup_dirs = {};
-dirs_list = [source_dir backup_dirs];
-support_dir = gRadar.support_path;
-support_backup_dirs = {'',''};
-support_dirs_list = [support_dir support_backup_dirs];
-
-if any(strcmp(params(1).radar_name,{'mcrds','mcords','mcords2','mcords3','mcords4','mcords5'}))
-  supports = {'gps','vectors','frames','records'};
-  outputs = {'CSARP_qlook','CSARP_standard','CSARP_mvdr','CSARP_layerData','CSARP_out'};
-%   outputs = {'CSARP_qlook','CSARP_csarp-combined'};
-  outputs_post_dir = '';
-  images = {'maps','echo'};
-  pdf_en = 1;
-  csv_outputs = {'csv','csv_good','kml','kml_good'};
-  csv_en = 1;
-elseif strcmp(params(1).radar_name,'accum2')
-  supports = {'gps', 'vectors','frames','records'};
-  outputs = {'CSARP_qlook','CSARP_layerData'};
-  outputs_post_dir = 'CSARP_post';
-  images = {'maps','echo'};
-  pdf_en = 1;
-  csv_outputs = {'csv','csv_good','kml','kml_good'};
-  csv_en = 0;
-elseif any(strcmp(params(1).radar_name,{'kaband3','kuband3','snow3','kuband2','snow2','kuband','snow'}))
-  supports = {'gps', 'vectors','frames','records'};
-  outputs = {'CSARP_qlook'};
-  outputs_post_dir = 'CSARP_post';
-  images = {'maps','echo'};
-  pdf_en = 0;
-  csv_en = 0;
-end
-% gps_sources = {'ATM-final_20120701'}; % Leave empty/undefined to not check gps_sources
-% processing_date_check = datenum(2012,09,01); % Leave empty/undefined to not check porcessing date
-gps_sources = {}; % Leave empty/undefined to not check gps_sources
-processing_date_check = []; % Leave empty/undefined to not check porcessing date
 
 %% Automated Section
 
@@ -107,7 +68,7 @@ for param_idx = 1:length(params)
         
         % Check for existance of vectors file
         clear vectors;
-        if length(outputs) >= 1 || length(images) >=1 || strmatch('vectors',supports)
+        if strmatch('vectors',supports)
           vectors_fn = ct_filename_support(param,'','vectors');
           fprintf('  Vectors %s\n', vectors_fn);
           if exist(vectors_fn,'file')
@@ -159,10 +120,7 @@ for param_idx = 1:length(params)
           out_dir = fullfile(ct_filename_out(param,'','',1),outputs_post_dir, ...
             outputs{output_idx},param.day_seg);
           fprintf('  Output %s\n', out_dir);
-          frms = 1:length(frames.frame_idxs);
-          if length(unique(frms)) ~= length(frms)
-            fprintf('    VECTORS CONTAINS NONUNIQUE FRAMES !!!!!!!!!!!!!!!!!!!!!!!!\n');
-          end
+          frms = find(ct_proc_frame(frames.proc_mode,frm_types));
           found_mask = zeros(1,length(frms));
           if exist(out_dir,'dir')
             if strcmp(outputs{output_idx},'CSARP_out')
@@ -194,6 +152,9 @@ for param_idx = 1:length(params)
               if isempty(frm_idx)
                 fprintf('    FILE SHOULD NOT BE HERE !!!!!!!!!!!!!!!!!!!!!!!!!\n');
                 fprintf('      %s\n', fn);
+                if delete_bad_files
+                  delete(fn);
+                end
               else
                 if exist('gps_sources','var') && ~isempty(gps_sources) && ~strcmp(outputs{output_idx},'CSARP_layerData')
                   if strcmp(outputs{output_idx},'CSARP_out')
@@ -243,7 +204,7 @@ for param_idx = 1:length(params)
           image_dir = fullfile(ct_filename_out(param, ...
             param.post.out_path, 'CSARP_post', true),'images',param.day_seg);
           fprintf('  Images %s in %s\n', images{image_idx}, image_dir);
-          frms = 1:length(frames.frame_idxs);
+          frms = find(ct_proc_frame(frames.proc_mode,frm_types));
           if length(unique(frms)) ~= length(frms)
             fprintf('    VECTORS CONTAINS NONUNIQUE FRAMES !!!!!!!!!!!!!!!!!!!!!!!!\n');
           end
@@ -284,6 +245,9 @@ for param_idx = 1:length(params)
               else
                 fprintf('    FILE SHOULD NOT BE HERE !!!!!!!!!!!!!!!!!!!!!!!!!\n');
                 fprintf('      %s\n', fn);
+                if delete_bad_files
+                  delete(fn);
+                end
               end
             end
             if any(~found_mask)

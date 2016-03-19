@@ -9,53 +9,59 @@
 %
 % Author: John Paden
 
-% ======================================================================
-% User Settings
-% ======================================================================
+%% User Settings
 
-% Parameters spreadsheet to use for updating
-%   1. Segment and frame list are taken from the parameter sheet
-%   2. For GPS update, GPS time offsets are pulled from the parameter sheet
-param_fn = '/users/paden/scripts/branch/params-cr1/kuband_param_2012_Antarctica_DC8.xls';
-
-% param.post_dir: occasionally you may want to operate in the post directory
-%   set this to CSARP_post, otherwise leave empty
-post_dir = '';
-
-% param.skip_phrase: All segments will be skipped with this phrase in their
-%   verification field. "do not process" is the standard. Leave this field
-%   blank to do all segments.
-skip_phrase = 'do not process';
+% params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'),[],'post');
+params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),[],'post');
 
 % point_spacing: specifies the spacing between geographic points in the CSV
 % and KML files
 point_spacing = 1000;
 
-% ======================================================================
-% Automated Section
-% ======================================================================
+%% Automated Section
 
 fprintf('=============================================================\n');
 fprintf('post_csv_kml (%s)\n\n', datestr(now));
+fprintf('=============================================================\n');
 
-% params: structure of parameters for each segment
-params = read_param_xls(param_fn);
+% =====================================================================
+% Create param structure array
+% =====================================================================
+tic;
+global gRadar;
 
+clear('param_override');
+
+% Input checking
+if ~exist('params','var')
+  error('Use run_master: A struct array of parameters must be passed in\n');
+end
+if exist('param_override','var')
+  param_override = merge_structs(gRadar,param_override);
+else
+  param_override = gRadar;
+end
+
+%% Process each of the segments
+% =====================================================================
 for param_idx = 1:length(params)
   param = params(param_idx);
-  if ~isempty(skip_phrase) ...
-      && ~isempty(strfind(lower(param.cmd.notes),skip_phrase)) ...
-      || ~param.cmd.generic
+  if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
   end
-  
-  csv_dir = fullfile(ct_filename_out(param, ...
-    post_dir, 'CSARP_post', true),'csv');
+ 
+  csv_dir = fullfile(ct_filename_out(param,'post','',true),'csv');
   if ~exist(csv_dir,'dir')
     mkdir(csv_dir)
   end
-  kml_dir = fullfile(ct_filename_out(param, ...
-    post_dir, 'CSARP_post', true),'kml');
+  kml_dir = fullfile(ct_filename_out(param,'post','',true),'kml');
   if ~exist(kml_dir,'dir')
     mkdir(kml_dir)
   end

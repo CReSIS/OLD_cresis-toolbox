@@ -19,9 +19,13 @@ source_mask = any(obj.eg.source_fns_existence(frm,:,:),3);
 
 % Get the current source so that we can try to keep the string selected after
 % updating the source listbox
-source_idx = get(obj.left_panel.sourceLB,'Value');
 current_sources = get(obj.left_panel.sourceLB,'String');
-source_idx = find(strcmp(current_sources{source_idx},obj.eg.sources(source_mask)));
+if ~isempty(current_sources)
+  source_idx = get(obj.left_panel.sourceLB,'Value');
+  source_idx = find(strcmp(current_sources{source_idx},obj.eg.sources(source_mask)));
+else
+  source_idx = [];
+end
 
 % Keep matlab from complaining when current Value ends up being larger than
 % the length of sources.

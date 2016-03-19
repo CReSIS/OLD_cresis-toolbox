@@ -190,14 +190,14 @@ elseif nargout == 2
   rline = 0;
   rline_out = 0;
   FRAME_SYNC = hex2dec('1ACFFC1D');
-  for wf = hdr.num_waveforms
+  for wf = 1:hdr.num_waveforms
     data{wf} = zeros(0,0,'single'); % Data is pre-allocated in the loop
   end
   while ftell(fid) <= hdr.finfo.file_size-HEADER_SIZE && rline_out < param.recs(2)
     rline = rline + 1;
     frame_sync_test = fread(fid,1,'uint32');
     if frame_sync_test ~= FRAME_SYNC
-      % Search for next frame sync
+      fprintf('Frame sync lost (line %d, byte %d). Searching for next frame sync.\n', rline_out, ftell(fid));
       %     keyboard
       found = false;
       while ~feof(fid)

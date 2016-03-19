@@ -1,56 +1,127 @@
 % script runOpsLoadLayers.m
 %
-% Runs opsLoadLayers.m
+% Example script for running opsLoadLayers.m. Demonstrates a few of the
+% most common operations to be performed with opsLoadLayers and supports
+% interpolation of various layer sources for better comparison.
+%
+% Authors: John Paden
 
-if 1
-  %% User Settings
-  params = read_param_xls(ct_filename_param('rds_param_2008_Greenland_TO.xls'),'20080715_05','post');
-  
-  layer_params = [];
-  
-  idx = 0;
-  ref_idx = 2;
-  
-  idx = idx + 1;
-  layer_params(idx).name = 'atm';
-  layer_params(idx).source = 'ops';
-  layer_params(idx).echogram_source = 'qlook';
-  layer_params(idx).layerdata_source = 'layerData';
+% =====================================================================
+%% User Settings
+% =====================================================================
+
+  params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'','post');
+% params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150913_01','post');
+
+layer_params = [];
+idx = 0;
+
+%% Example Inputs (just choose one)
+
+if 0
+  %% Load a single layer from the echogram
+  ref_idx = 1;
   idx = idx + 1;
   layer_params(idx).name = 'surface';
-  layer_params(idx).source = 'ops';
+  layer_params(idx).source = 'echogram';
   layer_params(idx).echogram_source = 'qlook';
+
+elseif 0
+  %% Load a single layer from the layerData file
+  ref_idx = 1;
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'layerData';
+  layer_params(idx).layerdata_source = 'layerData';
+
+elseif 0
+  %% Compare echogram, layerData, and records
+  ref_idx = 1;
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'echogram';
+  layer_params(idx).echogram_source = 'qlook';
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'layerData';
   layer_params(idx).layerdata_source = 'layerData';
   idx = idx + 1;
   layer_params(idx).name = 'surface';
   layer_params(idx).source = 'records';
-  layer_params(idx).echogram_source = 'qlook';
-  layer_params(idx).layerdata_source = 'layerData';
+ 
+elseif 1
+  %% Compare echogram and custom layers in layerData
+  ref_idx = 1;
   idx = idx + 1;
   layer_params(idx).name = 'surface';
   layer_params(idx).source = 'lidar';
-  layer_params(idx).echogram_source = 'qlook';
+  layer_params(idx).lidar_source = 'awi';
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'layerData';
   layer_params(idx).layerdata_source = 'layerData';
+  layer_params(idx).twtt_offset = 0;
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'echogram';
+  layer_params(idx).echogram_source = 'standard';
+  layer_params(idx).twtt_offset = 0;% 1.18603e-07;
+  idx = idx + 1;
+  layer_params(idx).name = 'GIMP';
+  layer_params(idx).source = 'layerData';
+  layer_params(idx).layerdata_source = 'layerData';
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'records';
+  layer_params(idx).twtt_offset = 0;
   
-  %% Automated Section
-  
-  %% Load each of the day segments
-  % =====================================================================
-  layers = {};
-  day_seg = {};
-  for param_idx = 1:length(params)
-    param = params(param_idx);
-    if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
-      continue;
-    end
-    param = merge_structs(param,gRadar);
-    fprintf('opsLoadLayers %s\n', param.day_seg);
-    layers{end+1} = opsLoadLayers(param,layer_params);
-    day_seg{end+1} = param.day_seg;
+elseif 0
+  %% Compare OPS surface (records and OPS) to ATM data (raw and OPS)
+  ref_idx = 2;
+  idx = idx + 1;
+  layer_params(idx).name = 'atm';
+  layer_params(idx).source = 'ops';
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'ops';
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'records';
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'lidar';
+end
+
+% =====================================================================
+%% Automated Section
+% =====================================================================
+
+global gRadar;
+
+%% Load each of the day segments
+layers = {};
+day_seg = {};
+for param_idx = 1:length(params)
+  param = params(param_idx);
+  if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) ...
+      || ischar(param.cmd.generic) || ~param.cmd.generic
+    continue;
   end
   
+  param = merge_structs(param,gRadar);
+  
+  fprintf('opsLoadLayers %s\n', param.day_seg);
+  layers{end+1} = opsLoadLayers(param,layer_params);
+  day_seg{end+1} = param.day_seg;
+end
+
+% =====================================================================
+%% Example Section
+% =====================================================================
+
+if 1
+  %% Interpolate all layers onto a common reference (ref_idx)
   for seg_idx = 1:length(layers)
-    % Interpolate onto reference
     lay_idxs = [1:ref_idx-1 ref_idx+1:length(layers{seg_idx})];
     
     layers{seg_idx}(ref_idx).twtt_ref = layers{seg_idx}(ref_idx).twtt;
@@ -72,58 +143,155 @@ if 1
       layers{seg_idx}(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
     end
   end
-
 end
 
-status = {};
-for seg_idx = 1:length(layers)
+if 1
+  %% Simple plot of all layers versus time
+  % ref_color: Reference plot color
+  ref_color = 'k.';
+  % Layer indexes for comparison layers
+  lay_idxs = [1:ref_idx-1 ref_idx+1:length(layers{seg_idx})];
+  % plot_modes: Different colors used to plot
+  plot_modes = {'r.','g.','c.','b.','m.'};
   
-  figure(1); clf;
-  plot(layers{seg_idx}(2).gps_time, layers{seg_idx}(2).twtt, '.')
-  hold on;
-  plot(layers{seg_idx}(1).gps_time, layers{seg_idx}(1).twtt, 'r.')
-  plot(layers{seg_idx}(3).gps_time, layers{seg_idx}(3).twtt, 'g.')
-  plot(layers{seg_idx}(4).gps_time, layers{seg_idx}(4).twtt, 'k.')
-  grid on
-  
-  figure(2); clf;
-  plot(layers{seg_idx}(ref_idx).gps_time, layers{seg_idx}(ref_idx).twtt, '.')
-  for lay_idx = lay_idxs
-    hold on;
-    plot(layers{seg_idx}(ref_idx).gps_time, layers{seg_idx}(lay_idx).twtt_ref, 'r.')
-    grid on
-    hold off;
-  end
+  for seg_idx = 1:length(layers)
+    if ~isfield(layer_params(ref_idx),'twtt_offset') ...
+        || isempty(layer_params(ref_idx).twtt_offset)
+      layer_params(ref_idx).twtt_offset = 0;
+    end
+    figure(1); clf;
+    h_axes = axes('Parent',1);
+    h_plot = plot(layers{seg_idx}(ref_idx).gps_time, ...
+      layers{seg_idx}(ref_idx).twtt + layer_params(ref_idx).twtt_offset, ...
+      'k.','Parent',h_axes);
+    title(sprintf('%s', day_seg{seg_idx}),'Interpreter','none','Parent',h_axes);
+    legend_strs = {sprintf('Ref %d', ref_idx)};
+    hold(h_axes,'on');
+    grid(h_axes,'on');
+    xlabel('GPS time (sec)','Parent',h_axes);
+    ylabel('TWTT (us)','Parent',h_axes);
     
-  fprintf('%s', day_seg{seg_idx});
-  figure(3); clf;
-  plot_modes = {'r.' 'b.' 'g.' 'k.'};
-  for lay_idx = lay_idxs
-    plot(layers{seg_idx}(ref_idx).gps_time, layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt, plot_modes{lay_idx})
-    mean_offset = nanmean(layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt);
-    fprintf('\t%.3f\t%.3f\t%.3f', ...
-      1e6*mean_offset, ...
-      1e6*nanmedian(layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt), ...
-      1e6*nanstd(layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt), ...
-      1e6*nanmax(abs(layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt - mean_offset)));
-    hold on;
-    grid on
+    figure(2); clf(2);
+    h_axes_comp = axes('Parent',2);
+    h_plot_comp = plot(layers{seg_idx}(ref_idx).gps_time, ...
+      layers{seg_idx}(ref_idx).twtt_ref + layer_params(ref_idx).twtt_offset ...
+      - (layers{seg_idx}(ref_idx).twtt_ref + layer_params(ref_idx).twtt_offset), ...
+      'k.','Parent',h_axes_comp);
+    title(sprintf('%s', day_seg{seg_idx}),'Interpreter','none','Parent',h_axes_comp);
+    hold(h_axes_comp,'on');
+    grid(h_axes_comp,'on');
+    xlabel('GPS time (sec)','Parent',h_axes_comp);
+    ylabel('TWTT Difference (us)','Parent',h_axes_comp);
+    
+    fprintf('Layer Index\tMedian Offset\tMean Offset\n');
+    
+    for lay_idx = lay_idxs
+      if ~isfield(layer_params(lay_idx),'twtt_offset') ...
+          || isempty(layer_params(lay_idx).twtt_offset)
+        layer_params(lay_idx).twtt_offset = 0;
+      end
+      
+      h_plot(end+1) = plot(layers{seg_idx}(lay_idx).gps_time, ...
+        layers{seg_idx}(lay_idx).twtt + layer_params(lay_idx).twtt_offset, ...
+        plot_modes{mod(lay_idx-1,length(plot_modes))+1},'Parent',h_axes);
+      legend_strs{end+1} = sprintf('Layer %d', lay_idx);
+
+      h_plot_comp(end+1) = plot(layers{seg_idx}(ref_idx).gps_time, ...
+        layers{seg_idx}(lay_idx).twtt_ref + layer_params(lay_idx).twtt_offset ...
+        - (layers{seg_idx}(ref_idx).twtt_ref + layer_params(ref_idx).twtt_offset), ...
+        plot_modes{mod(lay_idx-1,length(plot_modes))+1},'Parent',h_axes_comp);
+      
+      fprintf('%11d\t%13g\t%11g\n', lay_idx, ...
+        nanmedian(layers{seg_idx}(lay_idx).twtt_ref + layer_params(lay_idx).twtt_offset ...
+        - (layers{seg_idx}(ref_idx).twtt_ref + layer_params(ref_idx).twtt_offset)), ...
+        nanmean(layers{seg_idx}(lay_idx).twtt_ref + layer_params(lay_idx).twtt_offset ...
+        - (layers{seg_idx}(ref_idx).twtt_ref + layer_params(ref_idx).twtt_offset)));
+    end
+    legend(h_plot, legend_strs);
+    legend(h_plot_comp, legend_strs);
+    linkaxes([h_axes_comp h_axes],'x');
+    
+    if seg_idx ~= length(layers)
+      pause;
+    end
   end
-  hold off;
-  fprintf('\n');
-  
-  %status{seg_idx} = input(sprintf('%s: ', day_seg{seg_idx}), 's');
-
-  pause;
-  
 end
 
-layers_fn = ct_filename_tmp(rmfield(param,'day_seg'),'','surf_layers','surf_layers.mat')
-layers_fn_dir = fileparts(layers_fn);
-if ~exist(layers_fn_dir,'dir')
-  mkdir(layers_fn_dir);
-end
-save(layers_fn,'-v7.3','day_seg','layers')
+if 0
+  %% Compare N layers
+  % ref_color: Reference plot color
+  ref_color = 'k.';
+  % Layer indexes for comparison layers
+  lay_idxs = [1:ref_idx-1 ref_idx+1:length(layers{seg_idx})];
+  % plot_modes: Different colors used to plot
+  plot_modes = {'r.','g.','c.','b.','m.'};
+  
+  status = {};
+  for seg_idx = 1:length(layers)
 
+    figure(1); clf;
+    plot(layers{seg_idx}(2).gps_time, layers{seg_idx}(ref_idx).twtt, 'k.');
+    title(sprintf('%s', day_seg{seg_idx}),'Interpreter','none');
+    hold on;
+    for lay_idx = lay_idxs
+      plot(layers{seg_idx}(lay_idx).gps_time, layers{seg_idx}(lay_idx).twtt, ...
+        plot_modes{mod(lay_idx-1,length(plot_modes))+1});
+    end
+    h_axis = gca;
+    grid on
+    xlabel('GPS time (sec)');
+    ylabel('TWTT ({\mieu}s)');
+    
+    figure(2); clf;
+    plot(layers{seg_idx}(ref_idx).gps_time, layers{seg_idx}(ref_idx).twtt, '.');
+    title(sprintf('%s', day_seg{seg_idx}),'Interpreter','none');
+    for lay_idx = lay_idxs
+      hold on;
+      plot(layers{seg_idx}(ref_idx).gps_time, layers{seg_idx}(lay_idx).twtt_ref, 'r.')
+      grid on
+      hold off;
+    end
+    h_axis(2) = gca;
+    xlabel('GPS time (sec)');
+    ylabel('TWTT ({\mieu}s)');
+    
+    figure(3); clf;
+    for lay_idx = lay_idxs
+      plot(layers{seg_idx}(ref_idx).gps_time, layers{seg_idx}(lay_idx).twtt_ref ...
+        - layers{seg_idx}(ref_idx).twtt, plot_modes{lay_idx});
+      title(sprintf('%s', day_seg{seg_idx}),'Interpreter','none');
+      mean_offset = nanmean(layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt);
+      fprintf('\t%.3f\t%.3f\t%.3f', ...
+        1e6*mean_offset, ...
+        1e6*nanmedian(layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt), ...
+        1e6*nanstd(layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt), ...
+        1e6*nanmax(abs(layers{seg_idx}(lay_idx).twtt_ref - layers{seg_idx}(ref_idx).twtt - mean_offset)));
+      hold on;
+      grid on
+    end
+    hold off;
+    h_axis(3) = gca;
+    xlabel('GPS time (sec)');
+    ylabel('TWTT ({\mieu}s)');
+    fprintf('\n');
+
+    linkaxes(h_axis,'x');
+    
+    if seg_idx ~= length(layers)
+      pause;
+    end
+    
+  end
+end
+
+if 0
+  %% Example for saving output
+  layers_fn = ct_filename_tmp(rmfield(param,'day_seg'),'','surf_layers','surf_layers.mat')
+  layers_fn_dir = fileparts(layers_fn);
+  if ~exist(layers_fn_dir,'dir')
+    mkdir(layers_fn_dir);
+  end
+  save(layers_fn,'-v7.3','day_seg','layers')
+end
 
 

@@ -1,6 +1,6 @@
 %NOTES:This function load NMEA and TRAJ data of one certain day !
 %% Preparations
-param1 = read_param_xls(ct_filename_param('rds_param_2002_Greenland_P3.xls'),'20020604_01');
+param1 = read_param_xls(ct_filename_param('rds_param_2002_Greenland_P3.xls'),'20020520_01');%change the data (segment does not matter)
 param1.date=param1.day_seg(1:8);
 param1.year=param1.day_seg(3:4);
 out_fn='X:\metadata\';
@@ -8,13 +8,13 @@ out_dir=fullfile(out_fn,param1.season_name,'\');
 full_file_out=strcat(out_dir,param1.date,'_nmea','.csv');
 D= datevec(param1.date,'yyyymmdd');
 day= daysact(strcat('1-1-',num2str(param1.year)),sprintf('%4d-%0.2d-%2d',D(1),D(2),D(3)));
-base_dir = 'Z:\ICARDS\2002\';
-adc_folder_name='jun04\';
-param.year = 2002;
-param.month = 6;
-param.day = 04;
+base_dir = 'Z:\ICARDS\2002\';                                %change needed
+adc_folder_name='may20\';                                    %change needed
+param.year = 2002;                                           %change needed
+param.month = 5;
+param.day = 20;                                              %change needed
 param.radar_name = 'icards';
-param.season_name = '2002_Greenland_P3';
+param.season_name = '2002_Greenland_P3';                     %change needed
 param.file_regexp = '\S+\.[0-9][0-9][0-9]$';
 
 plot_en = 0; % Set to 1 for gps plots.
@@ -39,6 +39,8 @@ MIN_PRF = 100;
 full_dir = fullfile(base_dir,adc_folder_name);
 
 fns = get_filenames(full_dir,'','','',struct('regexp',param.file_regexp));
+% fns = fns(2:205);  %to ignore "fiberdly" of 20020524!!!!!!!!!!!!!!!!!!!!!
+fns = fns(1:43);   %to ignore "seaice"   of 20020520!!!!!!!!!!!!!!!!!!!!!
 
 % Load the parsed header data from temporary files
 comp_time = [];
@@ -108,7 +110,7 @@ nmea_elev = nmea_elev(~bad_mask);
 nmea_lat = nmea_lat(~bad_mask);
 nmea_lon = nmea_lon(~bad_mask);
 
-NMEA.time=nmea_time-utc_leap_seconds(nmea_time(1));
+NMEA.time=nmea_time;
 NMEA.elev=nmea_elev;
 NMEA.lat=nmea_lat;
 NMEA.lon=nmea_lon;
@@ -116,7 +118,7 @@ NMEA.roll=zeros(1,length(NMEA.time));
 NMEA.pitch=zeros(1,length(NMEA.time));
 NMEA.heading=zeros(1,length(NMEA.time));
 
-if 1
+if 0                                     %ONLY enable when traj file exists
 %% Load TRAJ FILES 
 global gRadar;
 data_support_path = '';
@@ -127,12 +129,12 @@ end
 
 debug_level = 1;
 
-in_base_path = fullfile(data_support_path,'2002_Greenland_P3');
+in_base_path = fullfile(data_support_path,'2002_Greenland_P3');%change needed
 
-in_fn = fullfile(in_base_path,'2002_Greenland_P3_traj','020604_aa_l12_jgs_itrf00_09jul02_6138');
+in_fn = fullfile(in_base_path,'2002_Greenland_P3_traj','020524_aa_l12_jgs_itrf00_17jul02_npm');%change needed
 file_type = 'Traj';
 params = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc');
-gps_source = 'atm-final_20020604';
+gps_source = 'atm-final_20020524';                           %change needed
 sync_flag = 0;
 
 gps_tmp = read_gps_traj(in_fn,params);

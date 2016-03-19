@@ -29,14 +29,27 @@ if strcmpi(fn_ext,'.nc')
   mdata = rmfield(mdata,'lat');
   mdata.Longitude = mdata.lon;
   mdata = rmfield(mdata,'lon');
-  mdata.Elevation = mdata.alt;
-  mdata = rmfield(mdata,'alt');
-  mdata.Data = mdata.amplitude;
+  mdata.Elevation = mdata.altitude;
+  mdata = rmfield(mdata,'altitude');
+  
+  mdata.Data = 10.^(mdata.amplitude/10);
   mdata = rmfield(mdata,'amplitude');
+  
   mdata.GPS_time = mdata.time;
+  epoch_date_str = ncreadatt(fn, 'time', 'units');
+  mdata.GPS_time = mdata.GPS_time + datenum_to_epoch(datenum(epoch_date_str(15:end)));
+  mdata.GPS_time = mdata.GPS_time + utc_leap_seconds(mdata.GPS_time(1))
   mdata = rmfield(mdata,'time');
-  mdata.Time = mdata.fasttime;
+  
+  mdata.Time = mdata.fasttime/1e6;
   mdata = rmfield(mdata,'fasttime');
+  
+  mdata.Roll = mdata.roll/180*pi;
+  mdata = rmfield(mdata,'roll');
+  mdata.Pitch = mdata.pitch/180*pi;
+  mdata = rmfield(mdata,'pitch');
+  mdata.Heading = mdata.heading/180*pi;
+  mdata = rmfield(mdata,'heading');
   
 elseif strcmpi(fn_ext,'.mat')
   mdata = load(fn);

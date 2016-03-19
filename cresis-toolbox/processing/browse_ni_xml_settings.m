@@ -7,35 +7,64 @@
 %
 % Author: John Paden
 
-fns = {'D:\20150913\awi\'};
+fns = {'Z:\MCoRDS\2014_Greenland_P3\20140325'};
+
 sub_directory = '';
 
-header_load_date = datenum(2015,9,13);
+header_load_date = datenum(2014,3,25);
+
+param_write_flag = 1;
+param_path = '';
+
+%% MCORDS 5: 2015 Greenland Polar6
+% param.radar_name = 'mcords5';
+% xml_file_prefix = 'mcords5_20150916';
+% data_file_prefix = 'mcords5';
+% board_sub_directory = 'chan1';
+% header_load_func = @basic_load_mcords5;
+% header_load_params.clk = 1600e6;
+% adc_bits = 12;
+% adc_full_scale = 2;
+% rx_paths = [1:24];
+% chan_equal_dB = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
+% chan_equal_deg = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
+% chan_equal_Tsys = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]/1e9';
+% Tadc = []; % normally leave empty to use value in file header
+% Tadc_adjust = 0.000010179163; % leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+% max_DDS_RAM = 3000;
+% tx_voltage = sqrt(1000*50)*10^(-2/20);
+% iq_mode = 0;
+% fs = 1600e6;
+% fs_sync = 1.6e9/8;
+% tx_DDS_mask = [1 1 1 1 1 1 1 1];
+% imgs_adcs = 1:8;
+% radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DDC_mode','DDC_freq'};
+% radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 %% MCORDS 5: 2015 Greenland C130
-param.radar_name = 'mcords5';
-xml_file_prefix = 'mcords5_20150913';
-data_file_prefix = 'mcords5';
-board_sub_directory = 'chan1';
-header_load_func = @basic_load_mcords5;
-header_load_params.clk = 1600e6;
-adc_bits = 12;
-adc_full_scale = 2;
-rx_paths = [1:24];
-chan_equal_dB = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
-chan_equal_deg = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
-chan_equal_Tsys = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]/1e9';
-Tadc = []; % normally leave empty to use value in file header
-Tadc_adjust = 9.92e-6; % leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
-max_DDS_RAM = 3000;
-tx_voltage = sqrt(1000*50)*10^(-2/20);
-iq_mode = 0;
-fs = 1600e6;
-fs_sync = 1.6e9/8;
-tx_DDS_mask = [1 1 1 1 1 1 1 1];
-imgs_adcs = 1:8;
-radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DDC_mode','DDC_freq'};
-radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
+% param.radar_name = 'mcords5';
+% xml_file_prefix = 'mcords5';
+% data_file_prefix = 'mcords5';
+% board_sub_directory = 'chan1';
+% header_load_func = @basic_load_mcords5;
+% header_load_params.clk = 1600e6;
+% adc_bits = 12;
+% adc_full_scale = 2;
+% rx_paths = [1:2];
+% chan_equal_dB = '[0 0]';
+% chan_equal_deg = '[0 0]';
+% chan_equal_Tsys = '[0 0]/1e9';
+% Tadc = []; % normally leave empty to use value in file header
+% Tadc_adjust = 9.92e-6; % leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+% max_DDS_RAM = 3000;
+% tx_voltage = sqrt(1000*50)*10^(-2/20);
+% iq_mode = 0;
+% fs = 1600e6;
+% fs_sync = 1.6e9/8;
+% tx_DDS_mask = [1 1];
+% imgs_adcs = 1:2;
+% radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DDC_mode','DDC_freq'};
+% radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 %% MCORDS 4: 2013 Antarctica Basler
 % param.radar_name = 'mcords4';
@@ -64,26 +93,28 @@ radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r',
 % radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r'};
 
 %% MCORDS 3: 2014 Greenland P3
-% param.radar_name = 'mcords3';
-% data_file_prefix = 'mcords3';
-% board_sub_directory = 'board0';
-% header_load_func = @basic_load_mcords3;
-% header_load_params.clk = 1e9/9;
-% adc_bits = 14;
-% adc_full_scale = 2;
-% rx_paths = [1 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15];
-% chan_equal_dB = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
-% chan_equal_deg = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
-% chan_equal_Tsys = '([0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]+1640)/1e9';
-% max_DDS_RAM = 30000;
-% tx_voltage = sqrt(300*50)*10^(-2/20);
-% iq_mode = 0;
-% fs = 1e9/9;
-% fs_sync = 1e9/18;
-% tx_DDS_mask = [1 1 1 1 1 1 1 0];
-% imgs_adcs = 2:15;
-% radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys'};
-% radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r'};
+param.radar_name = 'mcords3';
+data_file_prefix = 'mcords3';
+board_sub_directory = 'board0';
+header_load_func = @basic_load_mcords3;
+header_load_params.clk = 1e9/9;
+adc_bits = 14;
+adc_full_scale = 2;
+rx_paths = [1 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15];
+chan_equal_dB = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
+chan_equal_deg = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
+chan_equal_Tsys = '([0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]+1640)/1e9';
+Tadc = []; % normally leave empty to use value in file header
+Tadc_adjust = []; % leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+max_DDS_RAM = 30000;
+tx_voltage = sqrt(300*50)*10^(-2/20);
+iq_mode = 0;
+fs = 1e9/9;
+fs_sync = 1e9/18;
+tx_DDS_mask = [1 1 1 1 1 1 1 0];
+imgs_adcs = 2:15;
+radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys'};
+radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 %% MCORDS 3: 2014 Antarctica DC8
 % param.radar_name = 'mcords3';
@@ -139,7 +170,7 @@ radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r',
 %   mcords4: 2
 %   mcords5: 4 (e.g. 2015 LC130, 2015 Polar6)
 %   (THIS OFTEN NEEDS TO BE SET)
-xml_version = 4;
+xml_version = 3;
 
 gps_fn = '/cresis/snfs1/dataproducts/csarp_support/gps/2013_Antarctica_Basler/gps_20131216.mat';
 gps_fn = '';
@@ -265,11 +296,68 @@ end
 max_wfs = 0;
 for fn_idx = 1:length(fns);
   fn = fns{fn_idx};
+  
+
+  
   [~,fn_name] = fileparts(fn);
   fprintf('Processing %s (%d of %d)\n', fn_name, fn_idx, length(fns));
-  settings = read_ni_xml_directory(fullfile(fn,sub_directory),xml_file_prefix,false);
+  
+  %Jordan
+  if ~exist('settings','var')
+    settings = read_ni_xml_directory(fullfile(fn,sub_directory),xml_file_prefix,false);
+  end
+  
   data_fns = get_filenames(fullfile(fn,sub_directory,board_sub_directory),data_file_prefix,'','.bin',struct('recursive',1));
   fn_datenums = [];
+  
+  
+  if param_write_flag
+    
+    new_date_flag = 0;
+    param_file_prefix = 'rds_param_';
+    [fn2] = fileparts(fn);
+    [~,param_name,~] = fileparts(fn2);
+    param_file_name = cat(2,param_file_prefix,param_name);
+    param_fn = ct_filename_param([param_file_name '.xls']);
+    
+    param_struct = read_param_xls(param_fn);
+    
+    radar_worksheet_headers = fieldnames(param_struct(1).radar.wfs(1))';
+    param_idxs = [];
+    segs = [];
+    param_length = numel(param_struct);
+    
+    for p = 1:length(param_struct)
+      day_seg = param_struct(p).day_seg;
+      if strcmp(day_seg(1:8),datestr(header_load_date,'YYYYmmDD'))
+        param_idxs(end+1) = p;
+        segs(end+1) = str2double(day_seg(10:11));
+      end
+    end
+    
+    if isempty(param_idxs)
+      %jordan
+      param_empty = empty_struct_element(param_struct);
+      new_date_flag = 1;
+      param_idxs = length(param_struct)+1:length(param_struct)+length(settings);
+      segs = 1:length(settings);
+      
+      for d = 1:length(settings)
+        param_struct(param_length+d) = param_empty;
+        field_names = fieldnames(param_struct);
+        for f = 1:length(field_names)
+          if ~isstruct(param_struct(1).(field_names{f}))
+            param_struct(param_length+d).(field_names{f}) = param_struct(1).(field_names{f});
+          end
+        end
+        param_struct(param_length+d).day_seg = sprintf('%s_%02d',datestr(header_load_date,'YYYYmmDD'),d);
+      end
+    end
+    
+    
+  end
+  
+  
   for data_fn_idx = 1:length(data_fns)
     fname = fname_info_mcords2(data_fns{data_fn_idx});
     fn_datenums(end+1) = fname.datenum;
@@ -392,29 +480,60 @@ fprintf('\n');
 
 for set_idx = 1:length(settings)
   if settings(set_idx).match_idxs(end) - settings(set_idx).match_idxs(1) >= MIN_FILES_IN_SEGMENT-1
+    
+    if param_write_flag
+      param_idx = param_idxs(find(segs==set_idx));
+      param_struct(param_idx).radar.fs = fs;
+      param_struct(param_idx).radar.prf = settings(set_idx).(config_var).(prf_var);
+      param_struct(param_idx).radar.adc_bits = adc_bits;
+      param_struct(param_idx).radar.Vpp_scale = adc_full_scale;
+    end
+    
     row_str = sprintf('%s\t%02d\t%.16g\t%g\t%d\t%g\t%d',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
       fs, settings(set_idx).(config_var).(prf_var), adc_bits, adc_full_scale, length(settings(set_idx).(config_var).Waveforms));
+    
     for wf = 1:length(settings(set_idx).(config_var).Waveforms)
 
       if any(strcmpi('Tpd',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).Tpd = double(settings(set_idx).(config_var).Waveforms(wf).Len_Mult)*settings(set_idx).(config_var).Base_Len;
+        end
         row_str = cat(2,row_str, sprintf('\t%g',double(settings(set_idx).(config_var).Waveforms(wf).Len_Mult)*settings(set_idx).(config_var).Base_Len));
       end
       if any(strcmpi('Tadc',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).Tadc = Tadc;
+        end
         row_str = cat(2,row_str, sprintf('\t%g',Tadc));
       end
       if any(strcmpi('Tadc_adjust',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).Tadc_adjust = Tadc_adjust;
+        end
         row_str = cat(2,row_str, sprintf('\t%g',Tadc_adjust));
       end
       if any(strcmpi('f0',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).f0 = settings(set_idx).(config_var).Waveforms(wf).Start_Freq(1);
+        end
         row_str = cat(2,row_str, sprintf('\t%.16g',settings(set_idx).(config_var).Waveforms(wf).Start_Freq(1)));
       end
       if any(strcmpi('f1',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).f1 = settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1);
+        end
         row_str = cat(2,row_str, sprintf('\t%.16g',settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1)));
       end
       if any(strcmpi('ref_fn',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).ref_fn = '';
+        end
         row_str = cat(2,row_str, sprintf('\t'));
       end
       if any(strcmpi('tukey',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).tukey = settings(set_idx).(config_var).RAM_Taper;
+        end
         row_str = cat(2,row_str, sprintf('\t%g',settings(set_idx).(config_var).RAM_Taper));
       end
       
@@ -427,6 +546,9 @@ for set_idx = 1:length(settings)
         tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / max_DDS_RAM*tx_voltage;
       end
       tx_weights = tx_weights(logical(tx_DDS_mask));
+      if param_write_flag
+        param_struct(param_idx).radar.wfs(wf).tx_weights = tx_weights;
+      end
       row_str = cat(2,row_str, ...
         sprintf('\t[%g', tx_weights(1)));
       row_str = cat(2,row_str, ...
@@ -434,6 +556,9 @@ for set_idx = 1:length(settings)
       row_str = cat(2,row_str, ...
         sprintf(']'));
       % Rx paths
+      if param_write_flag
+        param_struct(param_idx).radar.wfs(wf).rx_paths = rx_paths;
+      end
       row_str = cat(2,row_str, ...
         sprintf('\t[%d', rx_paths(1)));
       row_str = cat(2,row_str, ...
@@ -443,6 +568,13 @@ for set_idx = 1:length(settings)
       % ADC Gains
       atten = double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_1(1)) ...
         + double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_2(1));
+      if param_write_flag
+        if 0
+          param_struct(param_idx).radar.wfs(wf).adc_gains = 10.^((52 - atten)/20);
+        else
+          param_struct(param_idx).radar.wfs(wf).adc_gains = 10.^((52 - atten(1)*ones(1,length(rx_paths)))/20);
+        end
+      end
       if 0
         atten = atten * ones(size(rx_paths));
         row_str = cat(2,row_str, ...
@@ -456,20 +588,44 @@ for set_idx = 1:length(settings)
           sprintf('\t10.^((52 - %g*ones(1,%d))/20)', atten(1), length(rx_paths)));
       end
       % Chan Equal DB
+      if param_write_flag
+        param_struct(param_idx).radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+      end
       row_str = cat(2,row_str, sprintf('\t%s',chan_equal_dB));
       % Chan Equal deg
+      if param_write_flag
+        param_struct(param_idx).radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+      end
       row_str = cat(2,row_str, sprintf('\t%s',chan_equal_deg));
       % Tsys
+      if param_write_flag
+        param_struct(param_idx).radar.wfs(wf).Tsys = chan_equal_Tsys;
+      end
       row_str = cat(2,row_str, sprintf('\t%s',chan_equal_Tsys));
       if any(strcmpi('DDC_mode',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).DDC_mode = settings(set_idx).DDC_Ctrl.DDC_sel.Val;
+        end
         row_str = cat(2,row_str, sprintf('\t%d',settings(set_idx).DDC_Ctrl.DDC_sel.Val));
       end
       if any(strcmpi('DDC_freq',radar_worksheet_headers))
+        if param_write_flag
+          param_struct(param_idx).radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
+        end
         row_str = cat(2,row_str, sprintf('\t%g',settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6));
       end
     end
     fprintf('%s\n',row_str)
   end
+end
+if param_write_flag
+  fprintf('\n');
+  if new_date_flag
+    insert_param_xls(param_fn,param_struct,[],'wfs');
+  else
+    insert_param_xls(param_fn,param_struct,'radar','wfs');
+  end
+  fprintf('\n');
 end
 
 %% Processing Worksheets: Get Heights, CSARP, and Combine Wf Chan
@@ -528,3 +684,5 @@ for set_idx = 1:length(settings)
 end
 
 return;
+
+

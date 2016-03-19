@@ -3,8 +3,8 @@
 % Creates NI radar depth sounder settings
 
 % Define waveforms
-base_dir = '/process/mcords/';
-base_dir = 'c:\tmp\';
+base_dir = '/cresis/snfs1/scratch/paden/waveforms/';
+% base_dir = 'c:\tmp\';
 final_DDS_phase = [179.7	-174	147.4	0	110.5	133.7	116.5 0];
 final_DDS_amp = [11849	14598	17772	30000	16162	13620	13140	0];
 final_DDS_time = [3.7	3.35	3.67	-0.63	-0.45	-1.38	3 0];
@@ -122,7 +122,7 @@ param.tg.staged_recording = true;
 param.tg.Haltitude = 10000*12*2.54/100;
 param.tg.Hice_thick = 3500;
 param.fn = fullfile(base_dir,'survey_mode_10us_2wf_3000mthick_high_altitude.xml');
-param.prf = 12000;
+param.prf = 10000;
 param.presums = [3 29];
 param.wfs(1).atten = 10;
 param.wfs(2).atten = 0;
@@ -194,7 +194,7 @@ param.phase = final_DDS_phase;
 param.tg.look_angle = [-30 0 30];
 for wf = 1:length(param.tg.look_angle)
   nadir_vec = [0 0 1];
-  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))]
+  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))];
   nadir_delay = -nadir_vec * phase_centers;
   beam_delay = -beam_vec * phase_centers;
   nadir_delay = nadir_delay - nadir_delay(4);

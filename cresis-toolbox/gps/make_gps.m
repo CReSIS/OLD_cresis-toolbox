@@ -42,6 +42,9 @@
 for file_idx = 1:length(in_fns)
   in_fn = in_fns{file_idx};
   out_fn = fullfile(gps_path,out_fns{file_idx});
+  if isempty(in_fn)
+    error('No input GPS files found in in_fns{%d} variable. Usually this is because the file path is not setup.\n', file_idx);
+  end
   if iscell(in_fn)
     fprintf('Input files (%.1f sec)\n', toc);
     for in_fn_idx = 1:length(in_fn)
@@ -176,6 +179,9 @@ for file_idx = 1:length(in_fns)
       params_ins{file_idx} = repmat({params_ins{file_idx}},size(in_fns_ins{file_idx}));
     end
     clear ins;
+    if isempty(in_fns_ins{file_idx})
+      error('No input INS files found in in_fns{%d} variable. Usually this is because the file path is not setup.\n', file_idx);
+    end
     for in_fn_idx = 1:length(in_fns_ins{file_idx})
       fprintf('  INS file %s\n', in_fns_ins{file_idx}{in_fn_idx});
       if strcmpi(file_type{file_idx},'Traj+Litton')

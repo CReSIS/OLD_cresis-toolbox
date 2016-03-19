@@ -58,12 +58,13 @@ end
 while ~all(ctrl.job_status == 'C' | ctrl.job_status == 'E')
   pause(3);
   if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
+    % Hold keyboard file exists
     keyboard
   end
   ctrl = torque_job_status(ctrl);
 end
 if any(ctrl.job_status == 'E' & ctrl.error_mask == 0)
-  warning('Some jobs are still in the "Exiting" state. Check ctrl/jobs to ensure outputs are correct. Consider running torque_job_status line above again. Then run "dbcont"');
+  warning(sprintf('Some jobs are still in the "Exiting" state. Consider waiting a few moments and then running:\nctrl = torque_job_status(ctrl);\nany(ctrl.job_status == ''E'' & ctrl.error_mask == 0) %% Should return zero when all jobs are done exiting\ndbcont\n'));
   keyboard
 end
 
@@ -115,6 +116,7 @@ while retry < ctrl.sched.max_retries
   while ~all(ctrl.job_status == 'C' | ctrl.job_status == 'E')
     pause(3);
     if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
+      % Hold keyboard file exists
       keyboard
     end
     ctrl = torque_job_status(ctrl);

@@ -73,6 +73,10 @@ elseif any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mco
   [wfs,rec_data_size] = load_mcords_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.load_data);
   load_param.load.rec_data_size = rec_data_size;
+elseif strcmpi(param.radar_name,'icards')%try to add icards radar here--------------QISHI
+  [wfs,rec_data_size] = load_icards_wfs(records.settings, param, ...
+    1:max(old_param_records.records.file.adcs), param.load_data);
+  load_param.load.rec_data_size = rec_data_size;
 elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
   [path name] = fileparts(records_fn);
   cdf_fn = fullfile(path, sprintf('%s.nc', name));
@@ -145,26 +149,33 @@ for break_idx = 1:length(breaks)
   end
   
   load_param.load.recs = cur_recs(1):cur_recs(end);
-
-  if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','accum2'}))
-    % Determine which ADC boards are supported and which ones were actually loaded
+  
+  if any(strcmpi(param.radar_name,{'icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+    % adc_headers: the actual adc headers that were loaded
     if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
       old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
     end
-    boards = adc_to_board(param.radar_name,old_param_records.records.file.adcs);
-    boards_headers = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers);
+    
+    % boards_headers: the boards that the actual adc headers were loaded from
+    boards_headers = adc_to_board(param.radar_name,old_param_records.records.file.adcs);
     
     for idx = 1:length(param.load.adcs)
+      % adc: the specific ADC we would like to load
       adc = param.load.adcs(idx);
-      adc_idx = find(old_param_records.records.file.adcs == param.load.adcs(idx));
+      % adc_idx: the records file index for this adc
+      adc_idx = find(old_param_records.records.file.adcs == adc);
       if isempty(adc_idx)
-        error('ADC %d not present in records file\n', param.load.adcs(idx));
+        error('ADC %d not present in records file\n', adc);
       end
       
-      % Just get the file-information for the records we need
+      % board: the board associated with the ADC we would like to load
       board = adc_to_board(param.radar_name,adc);
-      actual_board_idx = find(board == boards);
-      board_idx = find(old_param_records.records.file.adc_headers(actual_board_idx) == boards_headers);
+      % board_header: the board headers that we will use with this ADC
+      board_header = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers(adc_idx))
+      % board_idx: the index into the records board list to use
+      board_idx = find(board_header == boards_headers);
+      
+      % Just get the file-information for the records we need
       load_param.load.file_idx{idx} = relative_rec_num_to_file_idx_vector( ...
         load_param.load.recs,records.relative_rec_num{board_idx});
       load_param.load.offset{idx} = records.offset(board_idx,load_param.load.recs);
@@ -214,6 +225,17 @@ for break_idx = 1:length(breaks)
     load_param.load.file_version = param.records.file_version;
     load_param.load.offset = records.offset;
 %     load_param.load.wfs_records = records.settings.wfs_records;
+
+%   elseif strcmpi(param.radar_name,'icards')%try to add a situation of icards----------QISHI
+%       load_param.load.file_rec_offset = records.relative_rec_num;%file_rec_offset---->relative_rec_num
+%       load_param.load.filenames = records.relative_filename;     %filenames------>relative_filename
+%       % %     base_dir = ct_filename_data(ct_filename_param,param.vectors.file.base_dir);%get_heights---->vectors
+%       base_dir = param.vectors.file.base_dir;
+%       adc_folder_name = param.vectors.file.adc_folder_name;                      %get_heights---->vectors
+%       load_param.load.filepath = fullfile(base_dir, adc_folder_name);
+%       load_param.load.wfs = records.settings.wfs;          %records.wfs---->records.settings.wfs
+%       load_param.load.wfs_file = records.settings.wfs_file;%records.wfs_file---->records.settings.wfs_file(wfs_file is always assumed to be 1 for icards)
+
   elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
     load_param.load.offset = records.offset;
     load_param.load.file_rec_offset = records.relative_rec_num;
@@ -258,6 +280,8 @@ for break_idx = 1:length(breaks)
     load_mcrds_data(load_param);
   elseif strcmpi(param.radar_name,'acords')
     load_acords_data(load_param);
+  elseif any(strcmpi(param.radar_name,{'icards'}))
+    load_icards_data(load_param);%try to add a loader of icards----------QISHI
   elseif strcmpi(param.radar_name,'accum2')
     load_accum2_data(load_param);
   elseif any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','snow3'}))

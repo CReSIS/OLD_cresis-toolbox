@@ -25,10 +25,11 @@ end
 [path name] = fileparts(records_fn);
 cdf_fn = fullfile(path, sprintf('%s.nc', name));
 
-if recs(1) == inf
-  finfo = ncinfo(cdf_fn);
+finfo = ncinfo(cdf_fn);
+num_recs = finfo.Variables(find(strcmp('lat',{finfo.Variables.Name}))).Size(2);
+if recs(2) == inf || recs(2) > num_recs;
   % Determine number of records and set recs(1) to this
-  recs(1) = finfo.Variables(find(strcmp('lat',{finfo.Variables.Name}))).Size(2);
+  recs(2) = num_recs;
 end
 
 records.lat = ncread(cdf_fn,'lat',[1 recs(1)],[1 recs(2)-recs(1)+1]);
