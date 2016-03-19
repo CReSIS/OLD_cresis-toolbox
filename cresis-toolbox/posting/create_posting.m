@@ -12,11 +12,16 @@ if ~exist('param','var')
   error('Call function from run_create_posting');
 end
 
-if ~isfield(param.post,'ops') || isempty(param.post.ops.en)
+param = merge_structs(param,param_override);
+
+if ~isfield(param.post,'ops')|| isempty(param.post.ops) ...
+    || isempty(param.post.ops.en)
   param.post.ops.en = 0;
 end
 
-param = merge_structs(param,param_override);
+if ~isfield(param.post,'frm_types') || isempty(param.post.frm_types)
+  param.post.frm_types = {-1,0,-1,-1,-1};
+end
 
 % =========================================================================
 % Automated Section
@@ -175,11 +180,9 @@ frm_idx = 0;
 frms = {};
 day_segs = {};
 for frm = param.cmd.frms
-  if mod(floor(frames.proc_mode(frm)/10),10) ~= 0
-    % UUUUUUUURRRR
-    %           ^
-    %    This is the digit we want for controlling posting
-    % R must be zero to post.
+  % Check to make sure this frame should be processed (frames file field
+  % proc_mode and param.post.frm_types controls this)
+  if ~ct_proc_frame(frames.proc_mode(frm),param.post.frm_types)
     continue;
   end
   

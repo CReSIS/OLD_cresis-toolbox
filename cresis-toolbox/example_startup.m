@@ -358,6 +358,7 @@ if ~(~ismcc && isdeployed)
   gRadar.sched.hidden_depend_funs{end+1} = {'get_heights_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'csarp_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'combine_wf_chan_task.m' 2};
+  gRadar.sched.hidden_depend_funs{end+1} = {'nsidc_delivery_script_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'hanning.m' 0};
   gRadar.sched.hidden_depend_funs{end+1} = {'hamming.m' 0};
   gRadar.sched.hidden_depend_funs{end+1} = {'blackman.m' 0};
@@ -369,6 +370,7 @@ if ~(~ismcc && isdeployed)
   gRadar.sched.hidden_depend_funs{end+1} = {'butter.m' 0};
   gRadar.sched.hidden_depend_funs{end+1} = {'array_proc_sv.m' 1};
   gRadar.sched.hidden_depend_funs{end+1} = {'lever_arm.m' 1};
+  gRadar.sched.hidden_depend_funs{end+1} = {'doa_nonlcon.m' 1};
   % For newer Matlab cluster access, we need a list of all the paths
   gRadar.sched.AdditionalPaths = AdditionalPaths;
   clear AdditionalPaths;

@@ -84,6 +84,9 @@ for map_idx = 1:length(varmap)
   % Check to make sure the number of dimensions match
   num_dims_spec = length(varmap(map_idx).dim_name);
   num_dims = sum(vars(var_idx).size ~= 1);
+  if num_dims == 0
+    num_dims = 1;
+  end
   if num_dims ~= num_dims_spec
     error('Number of dimensions for %s (%d) does not match what is in mat file (%d)', ...
       varmap(map_idx).mat_name, num_dims_spec, num_dims);

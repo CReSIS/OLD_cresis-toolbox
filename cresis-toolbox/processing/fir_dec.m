@@ -4,11 +4,16 @@ function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormali
 % Applies a finite impulse response filter to the data and then decimates.
 % The FIR only operates on the second dimension of 2D datasets.
 %
+% With 2 input arguments, it does simple coherent averaging (also known as
+% stacking or presumming).
+%
 % data = 1D row or column vector or 2D array
 %
 % If only 2 arguments and second argument is a scalar:
 %  Bfilter = scalar, amount to presum (boxcar window and then decimate)
 %    boxcar window is normalized so that it is a mean (as opposed to sum)
+%    If Bfilter (the amount to presum) is less than one, then nothing
+%    happens.
 %
 % If 3 or more arguments:
 %  Bfilter = FIR filter coefficients (row vector), must be even order
@@ -24,20 +29,22 @@ function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormali
 
 if nargin == 2 && length(Bfilter) == 1
   coh_avgs = Bfilter;
-  siz = size(data);
-  if siz(1) == 1
+  if coh_avgs >= 1
+    siz = size(data);
+    if siz(1) == 1
       new_len     = floor(siz(2)/coh_avgs);
       nearest_len = floor(siz(2)/coh_avgs)*coh_avgs;
       data        = mean(reshape(data(1:nearest_len),coh_avgs,new_len),1);
-  elseif siz(2) == 1
+    elseif siz(2) == 1
       new_len     = floor(siz(1)/coh_avgs);
       nearest_len = floor(siz(1)/coh_avgs)*coh_avgs;
       data        = mean(reshape(data(1:nearest_len),coh_avgs,new_len),1).';
-  else
+    else
       new_len     = floor(siz(2)/coh_avgs);
       nearest_len = floor(siz(2)/coh_avgs)*coh_avgs;
       data        = reshape(mean(reshape(data(:,1:nearest_len), ...
-                           [siz(1) coh_avgs new_len]),2),[siz(1) new_len]);
+        [siz(1) coh_avgs new_len]),2),[siz(1) new_len]);
+    end
   end
   
 else
@@ -55,6 +62,10 @@ else
   
   if ~exist('renormalize_en','var') || isempty(renormalize_en)
     renormalize_en = true;
+  end
+  
+  if size(Bfilter,1) ~= 1
+    error('Bfilter must be a row vector');
   end
   
   filter_order = (length(Bfilter) - 1);

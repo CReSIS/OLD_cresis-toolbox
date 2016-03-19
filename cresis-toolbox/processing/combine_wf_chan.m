@@ -179,12 +179,12 @@ end
 retry_fields = {};
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
-  if mod(floor(frames.proc_mode(frm)/10),10) == 2
-    fprintf('Skipping frame %d (no process frame)\n', frm);
+  
+  if ct_proc_frame(frames.proc_mode(frm),param.csarp.frm_types)
+    fprintf('combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+  else
+    fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
-  end
-  if param.debug_level >= 1
-    fprintf('\nProcessing %s_%03d (%d of %d)\n', param.day_seg, frm, frm_idx, length(param.cmd.frms));
   end
   
   %% Input directory for this frame (only look at the first subaperture
@@ -432,8 +432,12 @@ end
 % =====================================================================
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
-  if param.debug_level >= 1
-    fprintf('Combining %s_%03d (%d of %d)\n', param.day_seg, frm, frm_idx, length(param.cmd.frms));
+  
+  if ct_proc_frame(frames.proc_mode(frm),param.csarp.frm_types)
+    fprintf('combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+  else
+    fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
+    continue;
   end
   
   %% Output directory

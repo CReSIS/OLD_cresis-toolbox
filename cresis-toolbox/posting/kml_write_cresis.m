@@ -2,25 +2,7 @@ function kml_write_cresis(in_fn,out_fn,doc_name,type,sample_spacing)
 % kml_write_cresis(in_fn,out_fn,doc_name,type,sample_spacing)
 %
 % A very limited KML writer for the specific purpose of reading
-% in a CReSIS CSV file and writing a KML file with the format below.
-%
-% in_fn: input filename (cresis CSV file)
-% out_fn: output filename (KML file)
-% doc_name: document name to be placed inside KML file
-% type: string indicating the type of KML file to create:
-%   'vectors': creates points
-%   'segment': creates lines
-% sample_spacing: only used for type "segment"
-%   2 element vector: [max_step_size num_points_in_line]
-%     At least one must be finite.
-%   max_step_size: can be inf in which case it is ignored, this sets the
-%     maximum number of points that can be skipped (overrides
-%     num_points_in_line).
-%   num_points_in_line: set the step size to make this many points in the
-%     line (useful for really long CSV lines where you don't need a lot of
-%     detail). Set to inf to ignore.
-%
-% File Format For Type "Segment"
+% in a CReSIS CSV file and writing a KML file with the format:
 %
 % <?xml version="1.0" encoding="utf-8"?>
 % <kml xmlns="http://earth.google.com/kml/2.1">

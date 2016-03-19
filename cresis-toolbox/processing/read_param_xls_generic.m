@@ -1,7 +1,11 @@
 function [params] = read_param_xls_generic(param_fn, generic_ws, params)
-% [params] = read_param_xls_generic(param_fn, generic_ws,params)
+% [params] = read_param_xls_generic(param_fn, generic_ws, params)
 %
 % Support function for read_param_xls, generic worksheet reader.
+%
+% param_fn: MS Excel .xls parameter spreadsheet to load in
+% generic_ws: worksheet name to load in
+% params: add new fields to this structure
 % 
 % Author: Theresa Stumpf, John Paden
 %
@@ -28,10 +32,14 @@ end
 
 [num txt] = xlsread(param_fn,sheet_name,'','basic');
 
-num_header_rows = 2;
+num_header_rows = find(strcmp( 'Date' , txt(1:end,1) )) + 1;
+if isempty(num_header_rows)
+  error('Could not find required "Date" field in first column.');
+end
+
 rows = max(size(num,1), size(txt,1)) - num_header_rows;
-field_names = txt(1,:);
-field_types = txt(2,:);
+field_names = txt(num_header_rows-1,:);
+field_types = txt(num_header_rows,:);
 
 missing_types = find(cellfun('isempty',field_types) & ~cellfun('isempty',field_names));
 if ~isempty(missing_types)
@@ -44,7 +52,9 @@ end
 for idx = 1:rows
   row = idx + num_header_rows;
   day_seg = sprintf('%08.0f_%02.0f',num(row,1),num(row,2));
-  if idx > length(params) || ~strcmpi(params(idx).day_seg,day_seg)
+  if strcmpi(generic_ws,'cmd')
+    params(idx).day_seg = day_seg;
+  elseif (idx > length(params) || ~strcmpi(params(idx).day_seg,day_seg))
     error('The date segment order of sheets cmd and %s do not match at row %d in the excel spreadsheet. Each sheet must have the same date and segment list.',sheet_name,row);
   end
   for col = 3:length(field_names)

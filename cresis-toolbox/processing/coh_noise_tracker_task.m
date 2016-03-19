@@ -182,25 +182,32 @@ for idx = 1:length(param.load.imgs)
 end
 
 recs = load_param.load.recs - load_param.load.recs(1) + 1;
-if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','accum2'}))
-  % Determine which ADC boards are supported and which ones were actually loaded
+if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  % adc_headers: the actual adc headers that were loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
   end
-  boards = adc_to_board(param.radar_name,old_param_records.records.file.adcs);
-  boards_headers = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers);
+  
+  % boards_headers: the boards that the actual adc headers were loaded from
+  boards_headers = adc_to_board(param.radar_name,old_param_records.records.file.adcs);
   
   for idx = 1:length(param.load.adcs)
+    % adc: the specific ADC we would like to load
     adc = param.load.adcs(idx);
-    adc_idx = find(param_records.records.file.adcs == param.load.adcs(idx));
+    % adc_idx: the records file index for this adc
+    adc_idx = find(old_param_records.records.file.adcs == adc);
     if isempty(adc_idx)
-      error('ADC %d not present in records file\n', param.load.adcs(idx));
+      error('ADC %d not present in records file\n', adc);
     end
     
-    % Just get the file-information for the records we need
+    % board: the board associated with the ADC we would like to load
     board = adc_to_board(param.radar_name,adc);
-    actual_board_idx = find(board == boards);
-    board_idx = find(old_param_records.records.file.adc_headers(actual_board_idx) == boards_headers);
+    % board_header: the board headers that we will use with this ADC
+    board_header = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers(adc_idx));
+    % board_idx: the index into the records board list to use
+    board_idx = find(board_header == boards_headers);
+    
+    % Just get the file-information for the records we need
     load_param.load.file_idx{idx} = relative_rec_num_to_file_idx_vector( ...
       load_param.load.recs,records.relative_rec_num{board_idx});
     load_param.load.offset{idx} = records.offset(board_idx,:);
@@ -389,7 +396,7 @@ for img_idx = 1:length(param.load.imgs)
     load_param.season_name = param.season_name;
     load_param.day_seg = param.day_seg;
     load_param.out_path = param.out_path;
-    [img_time,img_valid_rng,img_deconv_filter_idx,img_freq] = load_fmcw_data(load_param,out_records);
+    [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt] = load_fmcw_data(load_param,out_records);
     wfs.time = img_time;
   end
   
@@ -400,6 +407,28 @@ for img_idx = 1:length(param.load.imgs)
     layer_params(idx).name = 'surface';
     layer_params(idx).source = 'records';
     layers = opsLoadLayers(param,layer_params);
+    
+    %% Apply lever arm correction to trajectory data, but preserve each
+    %% channel separately.
+    trajectory_param = struct('gps_source',param_records.gps_source, ...
+      'season_name',param.season_name,'radar_name',param.radar_name, ...
+      'rx_path', wfs(wf).rx_paths(adc), ...
+      'tx_weights', wfs(wf).tx_weights, 'lever_arm_fh', param.get_heights.lever_arm_fh);
+    out_records = trajectory_with_leverarm(records,trajectory_param);
+    for tmp_wf_adc_idx = 2:size(param.load.imgs{1},1)
+      tmp_wf = abs(param.load.imgs{1}(tmp_wf_adc_idx,1));
+      tmp_adc = abs(param.load.imgs{1}(tmp_wf_adc_idx,2));
+      trajectory_param.rx_path = wfs(tmp_wf).rx_paths(tmp_adc);
+      tmp_records = trajectory_with_leverarm(records,trajectory_param);
+      % Add the positions to the existing out_records
+      out_records.gps_time = cat(1,out_records.gps_time,tmp_records.gps_time);
+      out_records.lat = cat(1,out_records.lat,tmp_records.lat);
+      out_records.lon = cat(1,out_records.lon,tmp_records.lon);
+      out_records.elev = cat(1,out_records.elev,tmp_records.elev);
+      out_records.roll = cat(1,out_records.roll,tmp_records.roll);
+      out_records.pitch = cat(1,out_records.pitch,tmp_records.pitch);
+      out_records.heading = cat(1,out_records.heading,tmp_records.heading);
+    end
     
     %% FIR Decimate
     if simple_firdec
@@ -448,15 +477,18 @@ for img_idx = 1:length(param.load.imgs)
     heading = out_records.heading;
     
     %% 2. Extract surface values according to bin_rng
-    layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time);
-    start_bin = min(length(wfs(wf).time),max(1,round(interp1(wfs(wf).time, 1:length(wfs(wf).time), ...
-      layers(1).twtt)+param.analysis.surf.bin_rng(1))));
-    stop_bin = min(length(wfs(wf).time),max(1,start_bin+diff(param.analysis.surf.bin_rng([1 end])) ));
-    
-    surf_vals = zeros(diff(param.analysis.surf.bin_rng([1 end])), size(g_data,2), size(g_data,3));
+    layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
+    zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
+    start_bin = param.analysis.surf.bin_rng(1) + zero_bin;
+    stop_bin = param.analysis.surf.bin_rng(end) + zero_bin;
+    surf_vals = zeros(1+diff(param.analysis.surf.bin_rng([1 end])), size(g_data,2), size(g_data,3));
     surf_bins = start_bin;
     for rline = 1:size(g_data,2)
-      surf_vals(1+(0:stop_bin-start_bin),rline,:) = g_data(start_bin(rline):stop_bin(rline),rline,:);
+      start_bin0 = max(1,start_bin(rline));
+      stop_bin0 = min(size(g_data,1),stop_bin(rline));
+      out_bin0 = 1 + start_bin0-start_bin(rline);
+      out_bin1 = size(surf_vals,1) - (stop_bin(rline)-stop_bin0);
+      surf_vals(out_bin0:out_bin1,rline,:) = g_data(start_bin0:stop_bin0,rline,:);
     end
 
     %% 3. Save
@@ -489,6 +521,14 @@ for img_idx = 1:length(param.load.imgs)
     T = Nt*dt;
     df = 1/T;
     freq = wfs(wf).fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+    if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+      % HACK: Sign error in pulse compression causes fc to be negative
+      if isfield(param.radar.wfs,'fc_sign') && param.radar.wfs.fc_sign < 0
+        freq_hack = -wfs(wf).fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+      else
+        freq_hack = wfs(wf).fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+      end
+    end
 
     % Correct all the data to a constant elevation (no zero padding is
     % applied so wrap around could be an issue for DDC data)
@@ -496,7 +536,7 @@ for img_idx = 1:length(param.load.imgs)
     for rline = 1:size(g_data,2)
       elev_dt = (out_records.elev(rline) - out_records.elev(1)) / (c/2);
       if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
-        g_data(:,rline) = ifft(ifftshift(fft(g_data(:,rline)),1) .* exp(j*2*pi*freq*elev_dt));
+        g_data(:,rline) = ifft(ifftshift(fft(g_data(:,rline)),1) .* exp(j*2*pi*freq_hack*elev_dt));
       else
         g_data(:,rline) = ifft(fft(g_data(:,rline)) .* exp(j*2*pi*freq*elev_dt));
       end
@@ -579,6 +619,7 @@ for img_idx = 1:length(param.load.imgs)
     deconv_std = {};
     deconv_sample = {};
     deconv_twtt = [];
+    deconv_DDC_Mt = [];
     for good_rline_idx = 1:length(final_good_rlines)
       % Get the specific STFT group we will be extracting an answer from
       final_good_rline = final_good_rlines(good_rline_idx);
@@ -593,7 +634,12 @@ for img_idx = 1:length(param.load.imgs)
       % Find the max values and correponding indices for all the range lines
       % in this group. Since we over-interpolate by Mt and the memory
       % requirements may be prohibitive, we do this in a loop
-      STFT_rlines = -param.analysis.specular.ave/4 : param.analysis.specular.ave/4-1;
+      % Enforce the same DDC filter in this group. Skip groups that have DDC filter swiches. 
+      STFT_rlines = -param.analysis.specular.ave/4 : param.analysis.specular.ave/4-1;         
+      if any(diff(img_Mt{1}(center_rline + STFT_rlines)))
+        fprintf('    Including different DDC filters, skipped.\n');
+        continue
+      end
       Mt = 100;
       max_value = zeros(size(STFT_rlines));
       max_idx_unfilt = zeros(size(STFT_rlines));
@@ -619,11 +665,12 @@ for img_idx = 1:length(param.load.imgs)
       % Apply phase correction (compensating for phase from time delay shift)
       comp_data = comp_data .* repmat(exp(-j*(phase_corr + 2*pi*wfs(1).fc*max_idx*dt)), [Nt 1]);
 
-      deconv_twtt(:,end+1) = wfs(1).time{adc}(round(mean(max_idx)));
       deconv_gps_time(end+1) = records.gps_time(center_rline);
       deconv_mean{end+1} = mean(comp_data,2);
       deconv_std{end+1} = std(comp_data,[],2);
       deconv_sample{end+1} = g_data(:,center_rline+1+param.analysis.specular.ave/4);
+      deconv_twtt(:,end+1) = wfs(1).time{adc}(round(mean(max_idx)));
+      deconv_DDC_Mt(end+1) = img_Mt{1}(center_rline);
     end
         
     wfs(wf).freq = freq;
@@ -637,13 +684,23 @@ for img_idx = 1:length(param.load.imgs)
     end
     param_analysis = param;
     fprintf('  Saving outputs %s\n', out_fn);
-    save(out_fn, 'deconv_gps_time', 'deconv_mean', 'deconv_std', ...
-      'deconv_sample','deconv_twtt','deconv_forced','peakiness', 'wfs', 'gps_time', 'lat', ...
+    save(out_fn, 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
+      'deconv_DDC_Mt','deconv_forced','peakiness', 'wfs', 'gps_time', 'lat', ...
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
   
   if param.analysis.coh_ave.en
-    g_data = fft(cell2mat(g_data));
+    g_data = cell2mat(g_data);
+    % Implement memory efficient fft operations
+    doppler = zeros(1,size(g_data,2));
+    for rbin=1:size(g_data,1)
+      doppler = doppler + abs(fft(conj(g_data(mod(rbin-1,size(g_data,1))+1,:)))).^2;
+    end
+    doppler = doppler*size(g_data,1);
+    for rline=1:size(g_data,2)
+      g_data(:,rline) = fft(g_data(:,rline));
+    end
+    
     % Do averaging
     rline0_list = 1:param.analysis.coh_ave.block_ave:size(g_data,2);
     for rline0_idx = 1:length(rline0_list)
@@ -684,12 +741,14 @@ for img_idx = 1:length(param.load.imgs)
       end
       
       if 0
-        % Debug Plots
+        % Debug Plots for determining coh_ave.power_threshold
         figure(1); clf;
         imagesc(lp(g_data(:,rlines)));
         a1 = gca;
         figure(2); clf;
         imagesc(good_samples);
+        colormap(gray);
+        title('Good sample mask (black is thresholded)');
         a2 = gca;
         figure(3); clf;
         imagesc(lp(g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)])) );
@@ -707,7 +766,6 @@ for img_idx = 1:length(param.load.imgs)
       pitch(rline0_idx) = mean(records.pitch(rlines));
       heading(rline0_idx) = mean(records.heading(rlines));
     end
-    doppler = mean(abs(fft2(g_data)).^2);
     
     time = wfs(wf).time;
     

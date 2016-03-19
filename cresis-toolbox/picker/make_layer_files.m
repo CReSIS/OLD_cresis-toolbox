@@ -15,6 +15,10 @@ if ~isfield(layer_param,'post_dir')
   layer_param.post_dir = '';
 end
 
+if ~isfield(layer_param,'frm_types') || isempty(layer_param.frm_types)
+  layer_param.frm_types = {-1,0,-1,-1,-1};
+end
+
 params = read_param_xls(layer_param.param_fn);
 
 dbstack_info = dbstack;
@@ -52,14 +56,10 @@ for param_idx = 1:length(params)
 
   % Create each layer file
   for frm_idx = 1:length(param.cmd.frms)
-    if mod(floor(frames.proc_mode(frm_idx)/10),10) == 2
-      % UUUUUUUURRRR
-      %           ^
-      %    This is the digit we want for controlling posting
-      % R must be zero to post.
+    frm = param.cmd.frms(frm_idx);
+    if ~ct_proc_frame(frames.proc_mode(frm),layer_param.frm_types)
       continue;
     end
-    frm = param.cmd.frms(frm_idx);
     
     in_fn = fullfile(in_fn_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));

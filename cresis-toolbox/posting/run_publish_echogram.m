@@ -12,9 +12,10 @@ function run_publish_echogram
 % User Settings
 % ========================================================================
 fns = {};
-fns{end+1} = 'Y:/ct_data/rds/2009_Greenland_TO/CSARP_mvdr/20090409_01/Data_20090409_01_005.mat';
+fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/kuband/2012_Greenland_P3/CSARP_wo_avg/20120322_06/Data_20120322_06_069.mat';
 lay_fns = {};
-lay_fns{end+1} = 'Y:/ct_data/rds/2009_Greenland_TO/CSARP_layerData/20090409_01/Data_20090409_01_005.mat';
+lay_fns{end+1} = '';
+%lay_fns{end+1} = '/cresis/snfs1/dataproducts/ct_data/kuband/2012_Greenland_P3/CSARP_layerData/20120322_06/Data_20120322_06_069.mat';
 
 create_map = false;
 map_param.type = 'contour';
@@ -25,9 +26,10 @@ map_param.decimate_seg = false;
 
 echo_param.fig_hand = 2;
 echo_param.num_x_tics = 4;
-echo_param.depth = '[-500 2000]'; % depth range to plot (-500 to 3500 typical, deep antarctica -500 to 4000)
+echo_param.depth = '[min(Surface_Depth)-2 max(Surface_Depth) +20]'; % depth range to plot (-500 to 3500 typical, deep antarctica -500 to 4000)
 echo_param.elev_comp = true;
-echo_param.plot_quality = 1;
+echo_param.plot_quality = 0;
+echo_param.surf_filt_en = true;
 
 create_outputs = false;
 out_fn_dir = '~/';
@@ -58,7 +60,14 @@ for fn_idx = 1:length(fns)
     X = cat(2,X,frame_X{fn_idx});
     Y = cat(2,Y,frame_Y{fn_idx});
   end
-  lay{fn_idx} = load(lay_fns{fn_idx});
+  if isempty(lay_fns{fn_idx})
+    lay{fn_idx}.GPS_time = mdata{fn_idx}.GPS_time;
+    lay{fn_idx}.Elevation = mdata{fn_idx}.Elevation;
+    lay{fn_idx}.layerData{1}.value{2}.data = mdata{fn_idx}.Surface;
+    lay{fn_idx}.layerData{2}.value{2}.data = NaN*ones(1,size(mdata{fn_idx}.Data,2));
+  else
+    lay{fn_idx} = load(lay_fns{fn_idx});
+  end
   [fn_dir fn_name] = fileparts(fns{fn_idx});
   echo_param.frm_id = fn_name(end-14:end);
   echo_info = publish_echogram(echo_param,mdata{fn_idx},lay{fn_idx});

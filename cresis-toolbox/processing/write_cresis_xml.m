@@ -448,9 +448,9 @@ for wf = 1:length(param.wfs)
   end
   
   settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Stop') = reshape(uint16(bin_stop),[1 1]);
-  if uint16(bin_start) < 1
-      % Force record start to be at least 1
-      settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(1),[1 1]);
+  if uint16(bin_start) < 32
+      % Force record start to be at least 32
+      settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(32),[1 1]);
   else
       settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(bin_start),[1 1]);
   end
@@ -540,6 +540,10 @@ end
 if isfield(param,'DDC_freq')
   settings_enc.sys.DDCZ20Ctrl = settings_enc.DDCZ20Ctrl;
   settings_enc.sys.DDSZ20Setup = settings_enc.DDSZ20Setup;
+  settings_enc.sys.XMLZ20FileZ20Path = {struct('type','Path','values',[])};
+  settings_enc.sys.XMLZ20FileZ20Path{1}.values = {out_xml_fn};
+  settings_enc.sys.xmlversion = {struct('type','String','values',[])};
+  settings_enc.sys.xmlversion{1}.values = {'2.0'};
   settings_enc = rmfield(settings_enc,'DDCZ20Ctrl');
   settings_enc = rmfield(settings_enc,'DDSZ20Setup');
 end

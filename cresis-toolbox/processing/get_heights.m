@@ -13,44 +13,26 @@ function get_heights(param,param_override)
 %         in param.  This struct must also contain the gRadar fields.
 %         Typically global gRadar; param_override = gRadar;
 %
+% Example:
+%  See run_get_heights.m for how to run this function directly.
+%  Normally this function is called from master.m using the param spreadsheet.
+%
 % Authors: John Paden
 %
-% See also: master.m, get_heights_task.m
+% See also: run_master.m, master.m, run_get_heights.m, get_heights.m,
+%   get_heights_task.m
 
 % =====================================================================
 % General Setup
 % =====================================================================
 
-dbstack_info = dbstack;
-if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
-  % =====================================================================
-  % Debug Setup
-  % =====================================================================
-  param = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'20150911_15');
-%   param = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150818_01');
-  
-  clear('param_override');
-  param_override.sched.type = 'no scheduler';
-%   param_override.sched.type = 'local';
-  param_override.sched.rerun_only = false;
-
-  % Input checking
-  if ~exist('param','var')
-    error('A struct array of parameters must be passed in\n');
-  end
-  global gRadar;
-  if exist('param_override','var')
-    param_override = merge_structs(gRadar,param_override);
-  else
-    param_override = gRadar;
-  end
-  
-elseif ~isstruct(param)
+if ~isstruct(param)
   % Functional form
   param();
 end
 param = merge_structs(param, param_override);
 
+dbstack_info = dbstack;
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
 fprintf('=====================================================================\n');
@@ -93,6 +75,11 @@ end
 if ~isfield(param.get_heights,'ground_based')
   param.get_heights.ground_based = [];
 end
+
+if ~isfield(param.get_heights.qlook,'save_format') || isempty(param.get_heights.qlook.save_format)
+  param.get_heights.qlook.save_format = '6';
+end
+save_format = sprintf('-v%s',param.get_heights.qlook.save_format);
 
 if isfield(param.get_heights,'deconvolution') ...
     && ~isempty(param.get_heights.deconvolution) ...
@@ -193,26 +180,28 @@ end
 % =====================================================================
 out_recs = {};
 retry_fields = {};
-for frame_idx = 1:length(param.cmd.frms)
-  frame = param.cmd.frms(frame_idx);
-  % Check second digit of proc_mode (if ~= 2, then we processed it)
-  if mod(frames.proc_mode(frame)/10,10) ~= 2
-    fprintf('get_heights frame %s_%03i (%i of %i) %s\n', param.day_seg, frame, frame_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+for frm_idx = 1:length(param.cmd.frms)
+  frm = param.cmd.frms(frm_idx);
+  
+  % Check digits of proc_mode from frames file and make sure the user has
+  % specified to process this frame type
+  if ct_proc_frame(frames.proc_mode(frm),param.get_heights.frm_types)
+    fprintf('get_heights %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
   else
-    fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frame);
+    fprintf('Skipping %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
   end
   
-  ql_path = fullfile(qlook_out_path, sprintf('ql_data_%03d_01_01',frame));
+  ql_path = fullfile(qlook_out_path, sprintf('ql_data_%03d_01_01',frm));
   % Create the array_proc output directories
   if ~exist(ql_path,'dir')
     mkdir(ql_path);
   end
   
-  if frame < length(frames.frame_idxs)
-    recs = frames.frame_idxs(frame):frames.frame_idxs(frame+1);
+  if frm < length(frames.frame_idxs)
+    recs = frames.frame_idxs(frm):frames.frame_idxs(frm+1);
   else
-    recs = frames.frame_idxs(frame):length(records.lat);
+    recs = frames.frame_idxs(frm):length(records.lat);
   end
   
   % Determine where breaks in processing are going to occur
@@ -234,7 +223,7 @@ for frame_idx = 1:length(param.cmd.frms)
     breaks = 1:REC_BLOCK_SIZE:length(recs)-REC_BLOCK_SIZE;
   end
   
-  task_param.proc.frm = frame;
+  task_param.proc.frm = frm;
   
   % Begin loading data
   for break_idx = 1:length(breaks)
@@ -264,7 +253,7 @@ for frame_idx = 1:length(param.cmd.frms)
       sub_band_idx = 1;
       out_path = fullfile(ct_filename_out(param, ...
         param.get_heights.qlook.out_path, 'CSARP_qlook'), ...
-        sprintf('ql_data_%03d_%02d_%02d',frame, ...
+        sprintf('ql_data_%03d_%02d_%02d',frm, ...
         sub_apt_shift_idx, sub_band_idx));
       start_time_for_fn = records.gps_time(cur_recs(1));
       for imgs_list_idx = 1:length(param.get_heights.imgs)
@@ -294,8 +283,8 @@ for frame_idx = 1:length(param.cmd.frms)
     % =================================================================
     % Execute tasks/jobs
     fh = @get_heights_task;
-    if isfield(frames,'nyquist_zone') && ~isnan(frames.nyquist_zone(frame))
-      task_param.radar.wfs(1).nyquist_zone = frames.nyquist_zone(frame);
+    if isfield(frames,'nyquist_zone') && ~isnan(frames.nyquist_zone(frm))
+      task_param.radar.wfs(1).nyquist_zone = frames.nyquist_zone(frm);
     elseif isfield(param.radar.wfs(1),'nyquist_zone') ...
         && ~isempty(param.radar.wfs(1).nyquist_zone) ...
         && ~isnan(param.radar.wfs(1).nyquist_zone)
@@ -306,21 +295,21 @@ for frame_idx = 1:length(param.cmd.frms)
     if strcmp(param.sched.type,'custom_torque')
       create_task_param.conforming = true;
       create_task_param.notes = sprintf('%s_%03d (%d of %d)/%d of %d records %d-%d', ...
-        param.day_seg, frame, frame_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end));
+        param.day_seg, frm, frm_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end));
       ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
       
     elseif ~strcmp(param.sched.type,'no scheduler')
       [ctrl,job_id,task_id] = create_task(ctrl,fh,1,arg);
       fprintf('  %d/%d: records %d to %d in job,task %d,%d (%s)\n', ...
-        frame, break_idx, cur_recs(1), cur_recs(end), job_id, task_id, datestr(now));
-      retry_fields{job_id,task_id}.frm = frame;
+        frm, break_idx, cur_recs(1), cur_recs(end), job_id, task_id, datestr(now));
+      retry_fields{job_id,task_id}.frm = frm;
       retry_fields{job_id,task_id}.break_idx = break_idx;
       retry_fields{job_id,task_id}.arg = arg;
       out_recs{end + 1} = cur_recs;
       retry_fields{job_id,task_id}.out_idx = length(out_recs);
     else
       fprintf('  %s_%03d (%d of %d)/%d of %d: records %d-%d (%s)\n', ...
-        param.day_seg, frame, frame_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end), datestr(now));
+        param.day_seg, frm, frm_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end), datestr(now));
       [success] = fh(arg{1});
     end
     
@@ -344,6 +333,7 @@ if strcmpi(param.sched.type,'custom_torque')
   else
     fprintf('Jobs completed (%s)\n\n', datestr(now));
   end
+  get_heights_check_cluster_files; % Function call temporarily added to track down compute system problem
   torque_cleanup(ctrl);
   
 elseif ~strcmpi(param.sched.type,'no scheduler')
@@ -439,18 +429,20 @@ end
 % =====================================================================
 %% Loop through all the frames: combine and surface track
 [output_dir,radar_type] = ct_output_dir(param.radar_name);
-for frame_idx = 1:length(param.cmd.frms);
-  frame = param.cmd.frms(frame_idx);
-  % Check second digit of proc_mode (if ~= 2, then we processed it)
-  if mod(frames.proc_mode(frame)/10,10) ~= 2
-    fprintf('get_heights combine frame %s_%03i (%i of %i) %s\n', param.day_seg, frame, frame_idx, length(param.cmd.frms), datestr(now));
+for frm_idx = 1:length(param.cmd.frms);
+  frm = param.cmd.frms(frm_idx);
+  
+  % Check digits of proc_mode from frames file and make sure the user has
+  % specified to process this frame type
+  if ct_proc_frame(frames.proc_mode(frm),param.get_heights.frm_types)
+    fprintf('get_heights combine frame %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
-    fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frame);
+    fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
   end
   
   %% Output directory
-  in_path = fullfile(qlook_out_path, sprintf('ql_data_%03d_01_01',frame));
+  in_path = fullfile(qlook_out_path, sprintf('ql_data_%03d_01_01',frm));
   
   %% Concatenate blocks for each of the images
   for img = 1:length(param.get_heights.imgs)
@@ -529,18 +521,19 @@ for frame_idx = 1:length(param.cmd.frms);
     %% Save output
     if length(param.get_heights.imgs) == 1
       out_fn = fullfile(qlook_out_path, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frame));
+        param.day_seg, frm));
     else
       out_fn = fullfile(qlook_out_path, sprintf('Data_img_%02d_%s_%03d.mat', ...
-        img, param.day_seg, frame));
+        img, param.day_seg, frm));
     end
     fprintf('  Writing output to %s\n', out_fn);
+    Data = single(Data);
     if isempty(custom)
-      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      save(save_format,out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
         'param_get_heights','param_records');
     else
-      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      save(save_format,out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
         'param_get_heights','param_records','custom');
     end
@@ -637,33 +630,35 @@ for frame_idx = 1:length(param.cmd.frms);
     end
   end
   
-  if surf.manual
-    [new_surface,pnt] = tracker_snake_simple(Data,surf);
-    fprintf('  Press F1 for help\n');
-    layer = tracker_snake_manual_gui(lp(Data),pnt);
-    
-  elseif strcmpi(surf.method,'threshold')
-    new_surface = tracker_threshold(Data,surf);
-  elseif strcmpi(surf.method,'max')
-    new_surface = tracker_max(Data,surf);
-  elseif strcmpi(surf.method,'snake')
-    new_surface = tracker_snake_simple(Data,surf);
-  else
-    error('Not a supported surface tracking method.');
-  end
-  
-  %% Apply optional median filter
-  if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
-    new_surface = medfilt1(new_surface,surf.medfilt);
-  end
-  
-  %% Convert from range bins to two way travel time
-  Surface = interp1(1:length(Time), Time, new_surface);
-  
-  Surface = reshape(Surface, [1 length(Surface)]);
   if ~isempty(param.get_heights.ground_based)
     % Hack for ground based radar, surface time is zero
-    Surface = param.get_heights.ground_based * ones(size(Surface));
+    Surface = param.get_heights.ground_based * ones(1,size(Data,2));
+    
+  else
+    if surf.manual
+      [new_surface,pnt] = tracker_snake_simple(Data,surf);
+      fprintf('  Press F1 for help\n');
+      layer = tracker_snake_manual_gui(lp(Data),pnt);
+      
+    elseif strcmpi(surf.method,'threshold')
+      new_surface = tracker_threshold(Data,surf);
+    elseif strcmpi(surf.method,'max')
+      new_surface = tracker_max(Data,surf);
+    elseif strcmpi(surf.method,'snake')
+      new_surface = tracker_snake_simple(Data,surf);
+    else
+      error('Not a supported surface tracking method.');
+    end
+    
+    %% Apply optional median filter
+    if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
+      new_surface = medfilt1(new_surface,surf.medfilt);
+    end
+    
+    %% Convert from range bins to two way travel time
+    Surface = interp1(1:length(Time), Time, new_surface);
+    
+    Surface = reshape(Surface, [1 length(Surface)]);
   end
   
   % Reset the "Data" variable in case it was modified during surface
@@ -685,10 +680,10 @@ for frame_idx = 1:length(param.cmd.frms);
   for img = 1:num_imgs
     if length(param.get_heights.imgs) == 1
       out_fn = fullfile(qlook_out_path, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frame));
+        param.day_seg, frm));
     else
       out_fn = fullfile(qlook_out_path, sprintf('Data_img_%02d_%s_%03d.mat', ...
-        img, param.day_seg, frame));
+        img, param.day_seg, frm));
     end
     if img == 1
       load(out_fn);
@@ -763,14 +758,15 @@ for frame_idx = 1:length(param.cmd.frms);
   
   %% Save combined image output
   out_fn = fullfile(qlook_out_path, sprintf('Data_%s_%03d.mat', ...
-    param.day_seg, frame));
+    param.day_seg, frm));
   fprintf('  Writing output to %s\n', out_fn);
+  Data = single(Data);
   if isempty(custom)
-    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+    save(save_format,out_fn,'Time','Latitude','Longitude', ...
       'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
       'param_get_heights','param_records');
   else
-    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+    save(save_format,out_fn,'Time','Latitude','Longitude', ...
       'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
       'param_get_heights','param_records','custom');
   end
@@ -798,19 +794,18 @@ if param.get_heights.surf.en
     keyboard
   end
   
-  for frame = param.cmd.frms
-    % Check second digit of proc_mode (if == 2, then we processed it)
-    if mod(frames.proc_mode(frame)/10,10) == 2
+  for frm = param.cmd.frms
+    if ~ct_proc_frame(frames.proc_mode(frm),param.get_heights.frm_types)
       continue;
     end
     out_fn = fullfile(qlook_out_path, sprintf('Data_%s_%03d.mat', ...
-      param.day_seg, frame));
+      param.day_seg, frm));
     load(out_fn,'GPS_time','Surface');
     
-    if frame < length(frames.frame_idxs)
-      recs = frames.frame_idxs(frame):frames.frame_idxs(frame+1);
+    if frm < length(frames.frame_idxs)
+      recs = frames.frame_idxs(frm):frames.frame_idxs(frm+1);
     else
-      recs = frames.frame_idxs(frame):num_recs;
+      recs = frames.frame_idxs(frm):num_recs;
     end
     
     records.surface(recs) = interp1(GPS_time,Surface,records.gps_time(recs),'linear','extrap');

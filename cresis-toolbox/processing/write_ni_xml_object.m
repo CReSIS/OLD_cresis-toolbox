@@ -84,7 +84,7 @@ for name_idx = 1:length(names)
           fprintf(fid,'<Val>%d</Val>\n', settings.(names{name_idx}).Val);
         end
         fprintf(fid,'</EW>\n');
-      
+
     else
       %% Structure: Recurse
       if (~isempty(strmatch(names{name_idx},param.array_list,'exact')) && ~isempty(settings.(names{name_idx}))) ...
@@ -113,11 +113,14 @@ for name_idx = 1:length(names)
     end
     
   elseif ischar(settings.(names{name_idx}))
-    %% String
+    %% Property
     fprintf(fid,'<%s>%s</%s>\n', name_esc, settings.(names{name_idx}), name_esc);
     
-  elseif isnumeric(settings.(names{name_idx})) || islogical(settings.(names{name_idx}))
-    %% Numeric or Logical
+  elseif isnumeric(settings.(names{name_idx})) ...
+      || islogical(settings.(names{name_idx})) ...
+      || iscell(settings.(names{name_idx}))
+    %% Numeric or Logical or Cell (String,Path)
+    cell_type = false;
     int_type = true;
     if strcmpi(class(settings.(names{name_idx})), 'double')
       type_str = 'DBL';
@@ -139,10 +142,14 @@ for name_idx = 1:length(names)
       type_str = 'I32';
     elseif strcmpi(class(settings.(names{name_idx})), 'logical')
       type_str = 'Boolean';
+    elseif strcmpi(class(settings.(names{name_idx})), 'cell')
+      cell_type = true;
+      type_str = settings.(names{name_idx}){1}.type;
     else
       keyboard
     end
-    if length(settings.(names{name_idx})) > 1
+    if ~cell_type && length(settings.(names{name_idx})) > 1 ...
+        || cell_type && length(settings.(names{name_idx}){1}.values) > 1
       fprintf(fid,'<Array>\n');
       fprintf(fid,'<Name>%s</Name>\n', name_esc);
       fprintf(fid,'<Dimsize>%d</Dimsize>\n', length(settings.(names{name_idx})));
@@ -157,10 +164,14 @@ for name_idx = 1:length(names)
       else
         fprintf(fid,'<Name>%s</Name>\n', '');
       end
-      if int_type
-        fprintf(fid,'<Val>%.0f</Val>\n', settings.(names{name_idx})(array_idx));
+      if cell_type
+        fprintf(fid,'<Val>%s</Val>\n', settings.(names{name_idx}){1}.values{array_idx});
       else
-        fprintf(fid,'<Val>%.16g</Val>\n', settings.(names{name_idx})(array_idx));
+        if int_type
+          fprintf(fid,'<Val>%.0f</Val>\n', settings.(names{name_idx})(array_idx));
+        else
+          fprintf(fid,'<Val>%.16g</Val>\n', settings.(names{name_idx})(array_idx));
+        end
       end
       fprintf(fid,'</%s>\n',type_str);
     end

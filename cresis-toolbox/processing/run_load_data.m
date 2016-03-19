@@ -6,7 +6,7 @@
 %
 % See also load_data, pulse_compress
 
-run_example = 1;
+run_example = 5;
 clear data;
 
 if run_example == 1
@@ -417,36 +417,38 @@ elseif run_example == 5
   %  - Layer data for Joe MagGregor (pulsed compressed, no presums)
   % =======================================================================
   
-  base_dir = '/mnt/usb_drives/layer7/d0';
+  base_dir = '/cresis/snfs1/scratch/paden/winnie_chu/';
   % /cresis/scratch2/mdce/OIB_internal_layer_example/';
   
-  param_fn = '~/scripts/params/mcrds_param_2009_Greenland_TO.xls';
+  param_fn = ct_filename_param('rds_param_2011_Greenland_P3.xls');
   %   param = read_param_xls(param_fn,'20110502_01');
-  params = read_param_xls(param_fn); % USE GENERIC FIELD IN params(1).cmd worksheet
+  params = read_param_xls(param_fn,'20110416_02'); % USE GENERIC FIELD IN params(1).cmd worksheet
+  params(1).cmd.frms = 19;
+  params(1).cmd.generic = 1;
   %specify the total numer of segment
   
   for idx = 1:length(params)
-    
-    if params(idx).cmd.generic==1
+    param = params(idx);
+    if param.cmd.generic==1
       
-      fprintf('Processing segment %s (%i of %i)\n', params(idx).day_seg, idx, length(params));
+      fprintf('Processing segment %s (%i of %i)\n', param.day_seg, idx, length(params));
       
       % Determine which records you want to load:
       frames_fn = '';
-      frames_fn = ct_filename_support(params(idx),frames_fn,'frames');
+      frames_fn = ct_filename_support(param,frames_fn,'frames');
       load(frames_fn); % GET NUMBER OF FRAMES HERE (look at variable named "frames")
       
-      if isempty(params(idx).cmd.frms)
+      if isempty(param.cmd.frms)
         frms = 1:length(frames.frame_idxs);
       else
-        frms = params(idx).cmd.frms;
+        frms = param.cmd.frms;
       end
       for frm = frms
         fprintf('  Frame %d of %d\n', frm, length(frms));
         
         if frm == length(frames.frame_idxs)
           records_fn = '';
-          records_fn = ct_filename_support(params(idx),records_fn,'records');
+          records_fn = ct_filename_support(param,records_fn,'records');
           load(records_fn);
           all_recs = [frames.frame_idxs(frm) length(records.lat)];
           clear records;
@@ -457,32 +459,33 @@ elseif run_example == 5
         block_size = 8000;
         blocks = [0:block_size:diff(all_recs)+1];
         for block_idx = 1:length(blocks)
-          for wf = 1
-            for adc =3
-              params(idx).load_data.recs = all_recs(1) + blocks(block_idx) + [0 block_size-1];
-              params(idx).load_data.recs(2) = min(params(idx).load_data.recs(2),all_recs(2));
-              params(idx).load_data.records_fn = params(idx).records.records_fn;
-              params(idx).load_data.imgs = {[wf adc]};
-              params(idx).load_data.pulse_comp         = true;
-              params(idx).load_data.ft_dec             = true; % Fast-time decimation
-              params(idx).load_data.ft_wind            = @hanning;
-              params(idx).load_data.ft_wind_time       = false; % Apply window on time domain chirp
-              params(idx).load_data.presums            = 1; % Coherent averaging
-              params(idx).load_data.combine_rx         = true;
-              params(idx).load_data.pulse_rfi.en       = false;
-              params(idx).load_data.pulse_rfi.inc_ave  = 101;
-              params(idx).load_data.pulse_rfi.thresh_scale = 10^(13/10);
-              params(idx).load_data.trim_vals          = [0 0];
+          for wf = 1:length(param.radar.wfs)
+            for adc = 1:length(param.radar.wfs(wf).rx_paths)
+              param.load_data.recs = all_recs(1) + blocks(block_idx) + [0 block_size-1];
+              param.load_data.recs(2) = min(param.load_data.recs(2),all_recs(2));
+              param.load_data.records_fn = param.records.records_fn;
+              param.load_data.imgs = {[wf adc]};
+              param.load_data.pulse_comp         = false;
+              param.load_data.ft_dec             = false; % Fast-time decimation
+              param.load_data.ft_wind            = @boxcar;
+              param.load_data.ft_wind_time       = false; % Apply window on time domain chirp
+              param.load_data.presums            = 1; % Coherent averaging
+              param.load_data.combine_rx         = true;
+              param.load_data.pulse_rfi.en       = false;
+              param.load_data.pulse_rfi.inc_ave  = 101;
+              param.load_data.pulse_rfi.thresh_scale = 10^(13/10);
+              param.load_data.trim_vals          = [0 0];
+              param.load_data.raw_data          = true;
               
               % Load data
-              [data,hdr] = load_data(params(idx));
+              [data,hdr] = load_data(param);
               data = data{1};
               
-              out_dir = fullfile(base_dir,params(idx).season_name,params(idx).day_seg);
+              out_dir = fullfile(base_dir,param.season_name,param.day_seg);
               if ~exist(out_dir,'dir')
                 mkdir(out_dir);
               end
-              fn = fullfile(out_dir,sprintf('Data_%s_%03.0f_wf_%d_adc_%02d_block_%02d', params(idx).day_seg, frm, wf, adc, block_idx));
+              fn = fullfile(out_dir,sprintf('Data_%s_%03.0f_wf_%d_adc_%02d_block_%02d', param.day_seg, frm, wf, adc, block_idx));
               fprintf('  Saving data %s\n', fn);
               save(fn,'-v6','data','hdr');
               if 0

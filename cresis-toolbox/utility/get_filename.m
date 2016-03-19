@@ -17,7 +17,7 @@ if length(filenames) > 1
 elseif length(filenames) == 1
   filenames = filenames{1};
 else
-  error('No files found\n');
+  error('get_filename:no_file_found','No files found.');
 end
 
 return

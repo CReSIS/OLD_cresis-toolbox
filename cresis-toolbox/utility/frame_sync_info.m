@@ -26,6 +26,8 @@ function [finfo] = frame_sync_info(filename,param)
 %   finfo = frame_sync_info(filename,struct('first_byte',2^26))
 %   finfo = frame_sync_info(filename,struct('fast',0,'first_byte',2^26))
 %
+%   finfo = frame_sync_info(fn,struct('sync','1ACFFC1D'));
+%
 % Author: John Paden
 
 % ==================================================================

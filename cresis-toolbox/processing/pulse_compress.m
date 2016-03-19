@@ -124,16 +124,14 @@ df = fs/Nt_pc;
 if param.DDC_mode
   freq = param.DDC_freq + ifftshift( -floor(Nt_pc/2)*df : df : floor((Nt_pc-1)/2)*df ).';
   freq_inds = ifftshift(find(freq >= fc-BW/2 & freq <= fc+BW/2));
-  [~,sorted_freq_inds] = sort(freq(freq_inds));
-  sorted_freq_inds = freq_inds(sorted_freq_inds);
-  freq_inds = sorted_freq_inds;
   ref = ref .* exp(-j*2*pi*param.DDC_freq.*time);
 else
   freq = nyquist_zone*fs + (0:df:(Nt_pc-1)*df).';
   freq_inds = find(freq >= min(param.f0,param.f1) & freq <= max(param.f0,param.f1));
-  [~,sorted_freq_inds] = sort(freq(freq_inds));
-  freq_inds = sorted_freq_inds;
 end
+[~,sorted_freq_inds] = sort(freq(freq_inds));
+sorted_freq_inds = freq_inds(sorted_freq_inds);
+freq_inds = sorted_freq_inds;
 
 %% Convert reference to frequency domain, adding in an optional time delay
 ref = conj(fft(ref) .* exp(-1i*2*pi*freq*param.td));

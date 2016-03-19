@@ -1,5 +1,6 @@
 % NSIDC Delivery functions/scripts:
 % -------------------------------------------------------------------------
+% run_nsidc_delivery_script: runs master script
 % nsidc_delivery_script: master script that creates posting files for NSIDC
 % nsidc_netcdf_attributes: adds attributes to netcdf files
 % nsidc_create_premet_L1B: creates L1B premet files

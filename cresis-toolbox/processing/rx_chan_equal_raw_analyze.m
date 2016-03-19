@@ -5,20 +5,22 @@
 %
 % Author: John Paden
 
-params = read_param_xls(ct_filename_param('rds_param_2008_Greenland_TO.xls'),[],'equal');
+% params = read_param_xls(ct_filename_param('rds_param_2008_Greenland_TO.xls'),[],'equal');
 % params = read_param_xls(ct_filename_param('rds_param_2009_Greenland_TO.xls'),[],'equal');
+params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),[],'equal');
 
 
 % feedthru_expected = [168.58	    -21.75	   -170.71	      0.00	   -167.48	     14.56]; % 2008 old and without correction
 % feedthru_expected = [122.28	    -46.99	    167.64	      0.00	   -156.38	     58.29]; % 2009 old and without correction
 % feedthru_expected = [-38.13	    146.93	     -0.00	   -172.38	     27.32	   -109.47]; % 2009 post-adc-slip correction
-feedthru_expected = [-177.72	    -16.08	   -167.16	      0.00	   -166.31	      9.11]; % 2008 post-adc-slip correction
+% feedthru_expected = [-177.72	    -16.08	   -167.16	      0.00	   -166.31	      9.11]; % 2008 post-adc-slip correction
 % feedthru_expected = [-93.62	     35.22	     -0.00	    110.45	    176.14	    -20.50]; % 2009 antennas rotated
 
 load_equalization = true;
+load_feedthru = false;
 wf = 1;
 
-auto_mode = false;
+auto_mode = true;
 
 for param_idx = 1:length(params)
   param = params(param_idx);
@@ -54,20 +56,21 @@ for param_idx = 1:length(params)
 %     keyboard
   end
   
-  %% Load the CSARP_feedthru files (feed through tracked)
-  base_dir = ct_filename_out(param,'','CSARP_feedthru');
-  ft_peak_offset = [];
-  ft_peak_val = [];
-  for frm = 1:length(frames.frame_idxs)
-    tmp = load(sprintf(fullfile(base_dir,sprintf('Equal_%s_%03d_01.mat',param.day_seg,frm))));
-    
-    ft_peak_offset = cat(2,ft_peak_offset,tmp.peak_offset);
-    ft_peak_val = cat(2,ft_peak_val,tmp.peak_val);
+  if load_feedthru
+    %% Load the CSARP_feedthru files (feed through tracked)
+    base_dir = ct_filename_out(param,'','CSARP_feedthru');
+    ft_peak_offset = [];
+    ft_peak_val = [];
+    for frm = 1:length(frames.frame_idxs)
+      tmp = load(sprintf(fullfile(base_dir,sprintf('Equal_%s_%03d_01.mat',param.day_seg,frm))));
+      
+      ft_peak_offset = cat(2,ft_peak_offset,tmp.peak_offset);
+      ft_peak_val = cat(2,ft_peak_val,tmp.peak_val);
+    end
+    if any(abs(tmp.param_equal.radar.wfs(1).Tsys - 1e-6*[0.541700000000000   0.536200000000000   0.539570000000000   0.540000000000000   0.539230000000000 0.539210000000000]) > 1e-12)
+      %     keyboard
+    end
   end
-  if any(abs(tmp.param_equal.radar.wfs(1).Tsys - 1e-6*[0.541700000000000   0.536200000000000   0.539570000000000   0.540000000000000   0.539230000000000 0.539210000000000]) > 1e-12)
-%     keyboard
-  end
-  
   
   [B,A] = butter(4,0.01);
   ft_pv = filtfilt(B,A,(ft_peak_val .* conj(repmat(ft_peak_val(param_equal.equal.ref_wf_adc_idx,:),[size(ft_peak_val,1) 1]))).');

@@ -182,6 +182,7 @@ for frame_idx = 1:length(param.cmd.frms);
   rec = recs(1);
   if isempty(param.equal.block_size)
     REC_BLOCK_SIZE = 10000;
+    block_overlap = 0;
   else
     if numel(param.equal.block_size) == 2
       REC_BLOCK_SIZE = param.equal.block_size(1);

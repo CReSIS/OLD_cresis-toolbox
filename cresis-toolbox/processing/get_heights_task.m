@@ -47,7 +47,9 @@ function [success surfTimes] = get_heights_task(param)
 %    (if available) to avoid transients at the beginning and end
 %  .decimate_factor = positive integer, decimation rate
 %  .inc_ave = positive integer, number of incoherent averages to apply
-%    (also decimates by this number)
+%    (also decimates by this number). If set to < 1, complex data are
+%    returned.  Setting to 1 causes the data to be power detected (i.e.
+%    become incoherent), but no averaging is done.
 %
 %  .surf = get_heights structure controlling surface tracking
 %   .en = boolean, whether or not to apply surface tracking
@@ -91,7 +93,7 @@ end
 
 %% Set simple_firdec (boolean, true means decimate in loader for efficiency)
 if length(param.get_heights.B_filter) == param.get_heights.decimate_factor ...
-    && all(param.get_heights.B_filter == 1)
+    && all(param.get_heights.B_filter == param.get_heights.B_filter(1))
   if ~param.get_heights.elev_correction
     % Most radar headers do not support elevation correction so it must
     % be disabled to allow simple_firdec
@@ -125,6 +127,9 @@ end
 if ~isfield(param.get_heights,'deconv_enforce_wf_idx') 
   param.get_heights.deconv_enforce_wf_idx = [];
 end
+if ~isfield(param.get_heights,'deconv_same_twtt_bin') 
+  param.get_heights.deconv_same_twtt_bin = [];
+end
 
 if ~isfield(param.get_heights,'psd_smooth') || isempty(param.get_heights.psd_smooth)
   param.get_heights.psd_smooth = 0;
@@ -146,6 +151,11 @@ if ~isfield(param.records,'file_version')
   param.records.file_version = [];
 end
 
+if sum(param.get_heights.B_filter) ~= 1
+  warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
+end
+
 % =====================================================================
 % Determine which records to load with load_mcords_data
 %
@@ -165,10 +175,12 @@ else
   start_buffer = min(filter_order/2,param.load.recs(1)-1);
   load_param.load.recs(1) = param.load.recs(1)-start_buffer;
   load_param.load.recs(2) = param.load.recs(2)+filter_order/2;
+  param.load.recs_keep(1) = param.load.recs_keep(1)-start_buffer;
+  param.load.recs_keep(2) = param.load.recs_keep(2)+filter_order/2;
   records = read_records_aux_files(records_fn,load_param.load.recs);
+  load_param.load.recs(2) = load_param.load.recs(1) + length(records.gps_time) - 1;
+  param.load.recs_keep(2) = param.load.recs_keep(1) + length(records.gps_time) - 1;
   old_param_records = records.param_records;
-  stop_buffer = filter_order/2 - ((load_param.load.recs(2)-load_param.load.recs(1)+1) ...
-    - length(records.lat));
 end
 old_param_records.gps_source = records.gps_source;
 
@@ -224,7 +236,9 @@ else
   param.get_heights.presums = 1;
 end
 param.get_heights.pulse_comp = 1;
-if ~isfield(param.get_heights,'combine_rx') | isempty(param.get_heights.combine_rx)
+if param.get_heights.roll_correction
+  param.get_heights.combine_rx = false;
+else
   param.get_heights.combine_rx = true;
 end
 if strcmpi(param.radar_name,'mcrds')
@@ -237,6 +251,14 @@ elseif any(strcmpi(param.radar_name,{'acords','mcords','mcords2','mcords3','mcor
   load_param.load.rec_data_size = rec_data_size;
 elseif any(strcmpi(param.radar_name,{'accum'}))
   [wfs,rec_data_size] = load_steppedchirp_wfs(records.settings, param, ...
+    1:max(old_param_records.records.file.adcs), param.get_heights);
+  load_param.load.rec_data_size = rec_data_size;
+elseif strcmpi(param.radar_name,'icards')%add icards radar here--------------QISHI
+  param.get_heights.pulse_comp      =      false;
+  param.get_heights.ft_dec     =      false;
+  param.get_heights.presums    =      1;
+  param.get_heights.combine_rx =      false;
+  [wfs,rec_data_size] = load_icards_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.get_heights);
   load_param.load.rec_data_size = rec_data_size;
 elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
@@ -272,25 +294,32 @@ for idx = 1:length(param.load.imgs)
 end
 
 recs = load_param.load.recs - load_param.load.recs(1) + 1;
-if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','accum2'}))
-  % Determine which ADC boards are supported and which ones were actually loaded
+if any(strcmpi(param.radar_name,{'icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  % adc_headers: the actual adc headers that were loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
   end
-  boards = adc_to_board(param.radar_name,old_param_records.records.file.adcs);
-  boards_headers = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers);
+  
+  % boards_headers: the boards that the actual adc headers were loaded from
+  boards_headers = adc_to_board(param.radar_name,old_param_records.records.file.adcs);
   
   for idx = 1:length(param.load.adcs)
+    % adc: the specific ADC we would like to load
     adc = param.load.adcs(idx);
-    adc_idx = find(old_param_records.records.file.adcs == param.load.adcs(idx));
+    % adc_idx: the records file index for this adc
+    adc_idx = find(old_param_records.records.file.adcs == adc);
     if isempty(adc_idx)
-      error('ADC %d not present in records file\n', param.load.adcs(idx));
+      error('ADC %d not present in records file\n', adc);
     end
     
-    % Just get the file-information for the records we need
+    % board: the board associated with the ADC we would like to load
     board = adc_to_board(param.radar_name,adc);
-    actual_board_idx = find(board == boards);
-    board_idx = find(old_param_records.records.file.adc_headers(actual_board_idx) == boards_headers);
+    % board_header: the board headers that we will use with this ADC
+    board_header = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers(adc_idx));
+    % board_idx: the index into the records board list to use
+    board_idx = find(board_header == boards_headers);
+    
+    % Just get the file-information for the records we need
     load_param.load.file_idx{idx} = relative_rec_num_to_file_idx_vector( ...
       load_param.load.recs,records.relative_rec_num{board_idx});
     load_param.load.offset{idx} = records.offset(board_idx,:);
@@ -444,19 +473,23 @@ end
 for img_idx = 1:length(param.load.imgs)
   % Setup roll correction
   if param.get_heights.roll_correction
+    if isempty(param.get_heights.lever_arm_fh)
+      error('lever_arm_fh must be defined if roll_correction is enabled');
+    end
+    
     trajectory_param = struct('gps_source',records.gps_source, ...
       'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
       'tx_weights', [], 'lever_arm_fh', param.get_heights.lever_arm_fh);
     ref = trajectory_with_leverarm(records,trajectory_param);
 
-%     lever_arm_fh = param.get_heights.lever_arm_fh;
-%     % Setup motion compensation (roll removal)
-%     radar_lever_arm = zeros(3,size(param.load.imgs{img_idx},1));
-%     for wf_adc_idx = 1:size(param.load.imgs{img_idx},1)
-%       wf = abs(param.load.imgs{img_idx}(wf_adc_idx,1));
-%       adc = abs(param.load.imgs{img_idx}(wf_adc_idx,2));
-%       radar_lever_arm(:,wf_adc_idx) = lever_arm_fh(param,wfs(wf).tx_weights,wfs(wf).rx_paths(adc));
-%     end
+    lever_arm_fh = param.get_heights.lever_arm_fh;
+    % Setup motion compensation (roll removal)
+    radar_lever_arm = zeros(3,size(param.load.imgs{img_idx},1));
+    for wf_adc_idx = 1:size(param.load.imgs{img_idx},1)
+      wf = abs(param.load.imgs{img_idx}(wf_adc_idx,1));
+      adc = abs(param.load.imgs{img_idx}(wf_adc_idx,2));
+      radar_lever_arm(:,wf_adc_idx) = lever_arm_fh(trajectory_param,wfs(wf).tx_weights,wfs(wf).rx_paths(adc));
+    end
   end
   
   % Default values to use
@@ -518,6 +551,13 @@ for img_idx = 1:length(param.load.imgs)
     end
     load_mcrds_data(load_param);
     g_data = g_data{1};
+  elseif strcmpi(param.radar_name,'acords')
+    load_param.load.file_version = param.records.file_version;
+    load_acords_data(load_param);
+    g_data = g_data{1};
+  elseif strcmpi(param.radar_name,'icards')%add icards----qishi
+    load_icards_data(load_param);
+    g_data = g_data{1};
   elseif strcmpi(param.radar_name,'accum')
     %load_param.proc.elev_correction = param.get_heights.elev_correction;
     load_param.proc.elev_correction = 0;
@@ -535,37 +575,36 @@ for img_idx = 1:length(param.load.imgs)
   elseif strcmpi(param.radar_name,'accum2')
     load_accum2_data(load_param);
     g_data = g_data{1};
-  elseif strcmpi(param.radar_name,'acords')
-    load_param.load.file_version = param.records.file_version;
-    load_acords_data(load_param);
-    g_data = g_data{1};
   elseif any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','snow3','kaband3','snow5'}))
     load_param.proc.elev_correction = param.get_heights.elev_correction;
     load_param.proc.deconvolution = param.get_heights.deconvolution;
     load_param.proc.deconv_enforce_wf_idx = param.get_heights.deconv_enforce_wf_idx;
+    load_param.proc.deconv_same_twtt_bin = param.get_heights.deconv_same_twtt_bin;
     load_param.proc.psd_smooth = param.get_heights.psd_smooth;
     load_param.radar_name = param.radar_name;
     load_param.season_name = param.season_name;
+    load_param.support_path = param.support_path;
     load_param.day_seg = param.day_seg;
     load_param.load.tmp_path = param.tmp_path;
     load_param.out_path = param.out_path;
-    [img_time,img_valid_rng,img_deconv_filter_idx] = load_fmcw_data(load_param,out_records);
+    [img_time,img_valid_rng,img_deconv_filter_idx,img_Mt] = load_fmcw_data(load_param,out_records);
+    g_data = g_data{1};
     valid_rng = img_valid_rng{1};
     deconv_filter_idx = img_deconv_filter_idx{1};
+    % Currently assuming all waveforms have the same time axis
     for wf = 1:length(wfs)
       wfs(wf).time = img_time{1};
-      if param.get_heights.ft_oversample ~= 1
-        dt = (wfs(wf).time(2)-wfs(wf).time(1))/param.get_heights.ft_oversample;
-        Nt = size(g_data,1)*param.get_heights.ft_oversample;
-        g_data = ifft(fft(g_data),Nt);
-        wfs(wf).time = wfs(wf).time(1) + dt*(0:Nt-1).';
-        valid_rng = valid_rng*param.get_heights.ft_oversample;
-        for rline=1:size(g_data,2)
-          g_data([1:valid_rng(1,rline)-1,valid_rng(2,rline)+1:end],rline) = 0;
-        end
+    end
+    if param.get_heights.ft_oversample ~= 1
+      dt = (wfs(wf).time(2)-wfs(wf).time(1))/param.get_heights.ft_oversample;
+      Nt = size(g_data,1)*param.get_heights.ft_oversample;
+      g_data = ifft(fft(g_data),Nt);
+      wfs(wf).time = wfs(wf).time(1) + dt*(0:Nt-1).';
+      valid_rng = valid_rng*param.get_heights.ft_oversample;
+      for rline=1:size(g_data,2)
+        g_data([1:valid_rng(1,rline)-1,valid_rng(2,rline)+1:end],rline) = 0;
       end
     end
-    g_data = g_data{1};
   end
   if ~exist('deconv_filter_idx','var')
     deconv_filter_idx = NaN(1,size(g_data,2));
@@ -622,14 +661,6 @@ for img_idx = 1:length(param.load.imgs)
   end
 
   %% Roll compensation
-  if simple_firdec
-    % Data are already decimated by the loader when simple_firdec is true,
-    % so we need to decimate roll to match the data
-    if img_idx == 1
-      roll_decimated = fir_dec(out_records.roll, param.get_heights.decimate_factor);
-    end
-  end
-  
   if param.get_heights.roll_correction
     % Apply roll-only motion compensation
     for wf_adc_idx = 1:size(g_data,3)
@@ -637,15 +668,11 @@ for img_idx = 1:length(param.load.imgs)
       adc = abs(param.load.imgs{img_idx}(wf_adc_idx,2));
       rx = wfs(wf).rx_paths(adc);
       for rline = 1:size(g_data,2)
-        drange = radar_lever_arm(2,wf_adc_idx) * -tan(roll_decimated(rline));
+        drange = radar_lever_arm(2,wf_adc_idx) * -tan(out_records.roll(rline));
         dphase = drange * 2 * 2*pi/lambda_fc;
         g_data(:,rline,wf_adc_idx) = g_data(:,rline,wf_adc_idx) * exp(1j*dphase);
       end
     end
-  end
-
-  %% Combine receivers
-  if param.get_heights.combine_rx
     g_data = mean(g_data,3);
   end
   
@@ -657,7 +684,7 @@ for img_idx = 1:length(param.load.imgs)
     drange = out_records.elev-mean(out_records.elev);
     dphase = drange * 2 * 2*pi/lambda_fc;
     for rline = 1:size(g_data,2)
-      g_data(:,rline,:) = g_data(:,rline,:) .* repmat(exp(1j*dphase(rline)),[1 1 size(g_data,3)]);
+      g_data(:,rline) = g_data(:,rline) .* exp(1j*dphase(rline));
     end
   end
 
@@ -678,12 +705,10 @@ for img_idx = 1:length(param.load.imgs)
     % in the case where a segment starts and stops.
     % If not enough data was loaded, modify the filter coefficient
     % normalization so that it handles this
-    Nidxs = floor((load_param.load.recs(2)-load_param.load.recs(1)+1) / param.get_heights.decimate_factor);
+    Nidxs = floor((param.load.recs(2)-param.load.recs(1)+1) / param.get_heights.decimate_factor);
     rline0 = 1 + start_buffer;
-    for adc_idx = 1:size(g_data,3)
-      g_data(:,:,adc_idx) = fir_dec(g_data(:,:,adc_idx), param.get_heights.B_filter, ...
+    g_data = fir_dec(g_data, param.get_heights.B_filter, ...
         param.get_heights.decimate_factor, rline0, Nidxs);
-    end
 
 %     if img_idx == 1
       out_records.gps_time = fir_dec(out_records.gps_time, param.get_heights.B_filter, ...
@@ -712,7 +737,7 @@ for img_idx = 1:length(param.load.imgs)
   end
   
   %% Apply incoherent averaging with decimation
-  if param.get_heights.inc_ave > 1
+  if param.get_heights.inc_ave >= 1
     data_incoh = [];
     for adc_idx = 1:size(g_data,3)
       data_incoh(:,:,adc_idx) = fir_dec(abs(g_data(:,:,adc_idx)).^2,param.get_heights.inc_ave);
@@ -753,9 +778,9 @@ for img_idx = 1:length(param.load.imgs)
   
   % Save quick look results
   
-  if param.get_heights.inc_ave > 1
+  if param.get_heights.inc_ave >= 1
     Data = data_incoh;
-  elseif param.get_heights.inc_ave == 1
+  else
     Data = g_data;
   end
   

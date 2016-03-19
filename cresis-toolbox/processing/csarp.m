@@ -13,41 +13,24 @@ function csarp(param,param_override)
 %
 % Authors: William Blake, John Paden
 %
-% See also: master_mcords.m, csarp_task.m
+% Example:
+%  See run_csarp.m for how to run this function directly.
+%  Normally this function is called from master.m using the param spreadsheet.
 %
+% See also: run_master.m, master.m, run_csarp.m, csarp.m,
+%   csarp_task.m
 
 % =====================================================================
 % General Setup
 % =====================================================================
 
-dbstack_info = dbstack;
-if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
-  % =====================================================================
-  % Debug Setup
-  % =====================================================================
-  param = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150818_01');
-  
-  clear('param_override');
-%   param_override.sched.type = 'no scheduler';
-  param_override.sched.rerun_only = false;
-
-  % Input checking
-  if ~exist('param','var')
-    error('A struct array of parameters must be passed in\n');
-  end
-  global gRadar;
-  if exist('param_override','var')
-    param_override = merge_structs(gRadar,param_override);
-  else
-    param_override = gRadar;
-  end
-  
-elseif ~isstruct(param)
+if ~isstruct(param)
   % Functional form
   param();
 end
 param = merge_structs(param, param_override);
 
+dbstack_info = dbstack;
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
 fprintf('=====================================================================\n');
@@ -55,6 +38,13 @@ fprintf('=====================================================================\n
 % =====================================================================
 % Setup processing
 % =====================================================================
+
+if ~isfield(param.csarp,'frm_overlap') || isempty(param.csarp.frm_overlap) ...
+    || param.csarp.frm_overlap == 0
+  param.csarp.frm_overlap = 0;
+else
+  error('A nonzero frame overlap is no longer allowed. Either remove the field or set to zero.');
+end
 
 % Get WGS84 ellipsoid parameters
 physical_constants;
@@ -94,6 +84,8 @@ if ~param.sched.rerun_only
           del_paths = get_filenames(csarp_out_path,sprintf('tdpb_data_%03d',frm),'','',struct('type','d'));            
         elseif strcmpi(param.csarp.sar_type,'mltdp')
           del_paths = get_filenames(csarp_out_path,sprintf('mltdp_data_%03d',frm),'','',struct('type','d'));
+        else
+          error('Invalid SAR processing type (%s)\n', param.csarp.sar_type);
         end
       for idx = 1:length(del_paths)
         fprintf('Removing path: %s\n', del_paths{idx});
@@ -115,6 +107,9 @@ if strcmpi(param.radar_name,'mcrds')
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(param.radar_name,{'acords','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   wfs = load_mcords_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+elseif any(strcmpi(param.radar_name,{'icards'}))% add icards---qishi
+  wfs = load_icards_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   wfs = load_fmcw_wfs(records.settings, param, ...
@@ -318,12 +313,12 @@ end
 retry_fields = {};
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
-  if mod(floor(frames.proc_mode(frm)/10),10) == 2
-    fprintf('Skipping frame %d (no process frame)\n', frm);
+  if ct_proc_frame(frames.proc_mode(frm),param.csarp.frm_types)
+    fprintf('csarp %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+  else
+    fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
   end
-  
-  fprintf('csarp frame %s_%03d %s\n', param.day_seg, frm, datestr(now));
   
   task_param.proc.frm = frm;
   

@@ -51,7 +51,7 @@ else
 end
 
 % Function that actually does the work
-struct_to_matlab_cmds_recurse(in_struct,out,inputname(1));
+out = struct_to_matlab_cmds_recurse(in_struct,out,inputname(1));
 
 if out.type(1) == 1
   fclose(out.fid);
@@ -64,7 +64,7 @@ end
 end
 
 
-function struct_to_matlab_cmds_recurse(in_struct,out,parent)
+function out = struct_to_matlab_cmds_recurse(in_struct,out,parent)
 % struct_to_matlab_cmds_recurse(in_struct,out,parent)
 %
 % Hidden function that actually does the work for struct_to_matlab_cmds
@@ -86,13 +86,13 @@ for struct_idx = 1:numel(in_struct)
       field_class = class(in_struct(struct_idx).(field));
     else
       field_class = class(in_struct{struct_idx});
-  end
+    end
     if any(strcmpi(field_class,{'struct','object','cell'}))
       if ~iscell(in_struct)
         struct_to_matlab_cmds_recurse(in_struct(struct_idx).(field),out,sprintf('%s(%d).(''%s'')', parent, struct_idx, field));
       else
         struct_to_matlab_cmds_recurse(in_struct{struct_idx},out,sprintf('%s{%d}', parent, struct_idx));
-  end
+      end
     elseif any(strcmpi(field_class,{'logical','char','uint8','int8','uint16','int16','uint32','int32','uint64','int64','single','double'}))
       % Eventually should break these commands into multiple lines for
       % large arrays.
@@ -140,7 +140,7 @@ end
 if out.type(2) == 1
   fprintf('%s',str);
 elseif out.type(2) == 2
-  cmd_strs = [cmd_strs fprintf('%s',str)];
+  out.cmd_strs = [out.cmd_strs sprintf('%s',str)];
 end
 
 end

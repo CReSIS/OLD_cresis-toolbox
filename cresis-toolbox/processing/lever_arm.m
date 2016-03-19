@@ -358,7 +358,7 @@ if (strcmpi(param.season_name,'2003_Greenland_P3') && strcmpi(gps_source,'NMEA')
   gps.z = -104.3*2.54/100;
 end
 
-if (strcmpi(param.season_name,'2015_Greenland_Polar6') && strcmpi(gps_source,'AWI'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6'})) && strcmpi(gps_source,'AWI'))
   % Measurements are from Richard Hale Aug 12, 2015 for RDS and Aug 15,
   % 2015 for Snow Radar. Measurements are made relative to the AWI Aft
   % Science GPS antenna known as ST5.
@@ -724,7 +724,7 @@ end
 %% Radar Depth Sounder
 % =========================================================================
 
-if (strcmpi(param.season_name,'2015_Greenland_Polar6') && strcmpi(radar_name,'rds'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6'})) && strcmpi(radar_name,'rds'))
   % See notes in GPS section
   
   % Center elements left to right
@@ -1105,18 +1105,23 @@ if (strcmpi(param.season_name,'2009_Antarctica_TO_Gambit') && strcmpi(radar_name
   end
 end
 
-if (strcmpi(param.season_name,'2008_Greenland_Ground_NEEM') && strcmpi(radar_name,'rds'))
+if (strcmpi(param.season_name,'2008_Greenland_Ground') && strcmpi(radar_name,'rds'))
+  % NEEM Field Season. See metadata directory for information and pictures.
+  % First 8 receive are regular HH antenna positions 
+  % Last 4 receive are antennas 5-8 in polarimetric V configuration
+  % First 2 transmits are regular HH antenna positions
+  % Third transmit is V antenna position for antenna 2
   gps.x = 0*0.0254;
   gps.y = 0*0.0254;
   gps.z = 0*0.0254;
 
-  LArx(1,:)   = -[ 4.365 4.365 4.365 4.365 4.365 4.365 4.365 4.365]/2 - gps.x;  % m
-  LArx(2,:)   = [ -3.5 -2.5 -1.5 -0.5 0.5 1.5 2.5 3.5]*0.857 - gps.y; % m
-  LArx(3,:)   = [ 0 0 0 0 0 0 0 0 ] - gps.z; % m
+  LArx(1,:)   = -[ 4.365 4.365 4.365 4.365 4.365 4.365 4.365 4.365 4.365-0.857 4.365+0.857 4.365-0.857 4.365+0.857]/2 - gps.x;  % m
+  LArx(2,:)   = [[ -3.5 -2.5 -1.5 -0.5 0.5 1.5 2.5 3.5]*0.857 0.8975 0.8975 1.9995 1.9995]  - gps.y; % m
+  LArx(3,:)   = [ 0 0 0 0 0 0 0 0 0 0 0 0 ] - gps.z; % m
   
-  LAtx(1,:)   =  [ 4.365 4.365 ]/2 - gps.x; % m
-  LAtx(2,:)   =  [ -3.658 3.658 ]/2 - gps.y; % m
-  LAtx(3,:)   =  [ 0 0] - gps.z; % m
+  LAtx(1,:)   =  [ 4.365 4.365 4.365 ]/2 - gps.x; % m
+  LAtx(2,:)   =  [ -3.658/2 3.658/2 1.737 ] - gps.y; % m
+  LAtx(3,:)   =  [ 0 0 0] - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1:8;

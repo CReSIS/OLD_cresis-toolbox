@@ -134,12 +134,16 @@ if ~ctrl.sched.test_mode
                     end
                   end
                   if torque_attempts < 5
-                    fprintf('  Failed\n');
+                    fprintf('  Output file not generated yet, trying again...\n');
                     torque_attempts = torque_attempts + 1;
                     delay_period = 3*2^(torque_attempts-1);
+                    if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
+                      % Hold keyboard file exists
+                      keyboard
+                    end
                     pause(delay_period);
                   else
-                    fprintf('  Give up\n');
+                    fprintf('    Gave up looking for output file\n');
                     try_loading_again = false; % Give up!
                   end
                 end
@@ -290,12 +294,16 @@ if torque_broken && isfield(ctrl.sched,'conforming') && ctrl.sched.conforming
           end
         end
         if torque_attempts < 5
-          fprintf('  Failed\n');
+          fprintf('  Output file not generated yet, trying again...\n');
           torque_attempts = torque_attempts + 1;
           delay_period = 3*2^(torque_attempts-1);
+          if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
+            % Hold keyboard file exists
+            keyboard
+          end
           pause(delay_period);
         else
-          fprintf('  Give up\n');
+          fprintf('    Gave up looking for output file\n');
           try_loading_again = false; % Give up!
         end
       end
