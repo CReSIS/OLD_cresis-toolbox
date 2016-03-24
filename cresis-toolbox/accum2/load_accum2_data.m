@@ -327,6 +327,36 @@ for board_idx = 1:length(boards)
           elseif abs(iq_mode) >= 2
             accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx-1} + 1i*sign(iq_mode)*accum(board+1).data{accum_idx};
           end
+          
+          if 0
+            warning('HACK FOR GROUND BASED ENABLED');
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx} - mean(accum(board+1).data{accum_idx}(1250:end));
+            
+            %accum(board+1).data{accum_idx}(1:2500) = accum(board+1).data{accum_idx}(1:2500)*30;
+            data_l = accum(board+1).data{accum_idx};
+            
+            DELAY = -0.43e-9;
+            GAIN = -29.5424;
+            SWITCH = 2.595e-6;
+            
+            fc = 750e6;
+            time = wfs(wf).time_raw;
+            time = time(1:size(data_l,1));
+            Nt = length(time);
+            dt = time(2)-time(1);
+            Mt = 100;
+            [B,A] = butter(4,200e6/500e6);
+            data_l_Mt = interpft(filtfilt(B,A,double(data_l).*exp(-1i*2*pi*fc*time)),Mt*length(data_l));
+            time_Mt = time(1) + dt/Mt*(0:Nt*Mt-1).';
+            stc_tdelay = DELAY*(time<SWITCH);
+            stc_gain = 10.^((-GAIN*(time<SWITCH))/20);
+            data_l_comp = interp1(time_Mt,data_l_Mt,time + stc_tdelay,'linear',0);
+            data_l_comp = 2*real(exp(1i*2*pi*fc*time).*data_l_comp.*exp(-j*2*pi*fc*stc_tdelay).*stc_gain);
+            accum(board+1).data{accum_idx} = data_l_comp;
+            
+            warning('HACK FOR GROUND BASED ENABLED');
+          end
+          
           if param.proc.pulse_comp
             % ===========================================================
             % Do pulse compression

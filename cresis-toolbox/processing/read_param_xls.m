@@ -40,6 +40,10 @@ warning('off','MATLAB:xlsread:Mode');
 %% Load standard worksheets
 [params] = read_param_xls_radar(param_fn);
 
+if isempty(params) || isempty(params(1).day_seg)
+  warning('Parameter spreadsheet file is empty');
+end
+
 %% Load the generic worksheets if specified
 if exist('generic_ws','var')
   if ischar(generic_ws)

@@ -76,7 +76,7 @@ if nargout > 2
   if ~silent_mode
     fprintf('Getting files for %s (%s)\n', base_dir, datestr(now));
   end
-  get_fns_param.regexp = file_regexp;
+  get_fns_param = struct('regexp',file_regexp);
   fns = get_filenames(base_dir,param.vectors.file.file_prefix,param.vectors.file.file_midfix,ext,get_fns_param);
   
   % Sort ACORDS filenames because the extenions are not a standard length

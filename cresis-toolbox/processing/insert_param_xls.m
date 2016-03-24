@@ -57,6 +57,11 @@
 
 function insert_param_xls(param_fn,param,worksheets,special_fields)
   
+  [status,sheets,xlFormat] = xlsfinfo(param_fn);
+  if isempty(xlFormat)
+    error('Excel must be installed to use this command');
+  end
+
   if ~ischar(param_fn)
     error('insert_param_xls:param_fn','''param_fn'' input must be a string'); 
   end
@@ -108,7 +113,7 @@ function insert_param_xls(param_fn,param,worksheets,special_fields)
   % loops through worksheets of spreadsheet
   for wks_idx = 1:length(worksheets)
 
-    % This is only necissary due to the diffence in 'cmd'/'command'
+    % This is only necessary due to the difference in 'cmd'/'command'
     worksheet = worksheets{wks_idx};    % acquires worksheet string from vector
 
     fprintf('Editing %s worksheet.\n',worksheet);
@@ -439,7 +444,7 @@ function worksheet_data = populate_worksheet_data(param,field,worksheet_data,spe
 
                 % Reformats cell data need special formatting
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                % Empty COMMAND worksheet cell (not nessicary but looks better)
+                % Empty COMMAND worksheet cell (not necessary but looks better)
                 if strcmp(field,'cmd') && ~isempty(original_data) && islogical(original_data)
                   if original_data == 0
                     formatted_data = [];
@@ -449,12 +454,11 @@ function worksheet_data = populate_worksheet_data(param,field,worksheet_data,spe
                   end
 
                 % binary
-                elseif strcmpi(types{column},'b');
-                  if original_data == 0
-                    formatted_data = 0;
-                  % fixes xls 1->'true'
-                  elseif original_data == 1;
+                elseif strcmpi(types{column},'b')
+                  if original_data == 1;
                     formatted_data = 1;
+                  else
+                    formatted_data = 0;
                   end
 
                 %adc_gains

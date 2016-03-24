@@ -43,6 +43,11 @@ if ~exist('force_compile','var')
   force_compile = 1;
 end
 
+matlab_ver = ver('matlab');
+% 8.3 was first version of builtin, but it has bugs. So using 8.6 as
+% threshold especially since fdep no longer works in that version
+use_builtin_fdep = str2double(matlab_ver.Version) >= 8.6;
+
 worker_fn = fullfile(getenv('MATLAB_TORQUE_PATH'),'worker_task.m');
 if ~force_compile
   % If any of the functions in depend_fun are newer, then recompile
@@ -60,9 +65,14 @@ if ~force_compile
     
     if ~isempty(fun)
       try
-        p = fdep(fun,'-q');
-        for fun_idx = 1:length(p.fun)
-          fun_info = dir(p.fun{fun_idx});
+        if use_builtin_fdep
+          flist = matlab.codetools.requiredFilesAndProducts(fun);
+        else
+          flist = fdep(fun,'-q');
+          flist = flist.fun;
+        end
+        for fun_idx = 1:length(flist)
+          fun_info = dir(flist{fun_idx});
           if fun_info.datenum > test_date.datenum
             force_compile = true;
             break;
@@ -79,9 +89,14 @@ if ~force_compile
         level = hidden_depend_funs{fun_idx}{2};
         if level == 1 || level == 2 && isempty(fun)
           try
-            p = fdep(fn,'-q');
-            for fun_idx = 1:length(p.fun)
-              fun_info = dir(p.fun{fun_idx});
+            if use_builtin_fdep
+              flist = matlab.codetools.requiredFilesAndProducts(fn);
+            else
+              flist = fdep(fn,'-q');
+              flist = flist.fun;
+            end
+            for fun_idx = 1:length(flist)
+              fun_info = dir(flist{fun_idx});
               if fun_info.datenum > test_date.datenum
                 force_compile = true;
                 break;
