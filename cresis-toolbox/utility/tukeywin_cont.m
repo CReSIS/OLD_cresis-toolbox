@@ -1,12 +1,14 @@
-function H = eecs826_tukeywin(L,r)
+function H = tukeywin_cont(L,r)
+% H = tukeywin_cont(L,r)
+%
 % Continuous form of Matlab's tukey window
 %
 % H is window
-% L is -0.5 to 0.5
+% L is -0.5 to 0.5 returns nonzero H (zero outside this range)
 % r is 0 to 1 (0 = boxcar, 1 = hann)
 %
 % Example:
-% eecs826_tukeywin(linspace(-0.5,0.5,101),0.5)
+% tukeywin_cont(linspace(-0.5,0.5,101),0.5)
 % tukeywin(101,0.5).'
 
 if nargin < 2

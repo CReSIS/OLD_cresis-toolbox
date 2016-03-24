@@ -6,23 +6,23 @@ function [data,time,freq] = pulse_compress(data,param)
 % data = data to be pulse compressed
 %   first dimension is fast-time and is pulse compressed
 % param = structure describing pulse compression
-%   param.f0 = start frequency, Hz
-%   param.f1 = stop frequency, Hz
-%   param.Tpd = pulse duration, sec
-%   param.time = column vector for time axis of data, sec
-%   param.tukey = time domain Tukey window parameter: tukeywin(N,?),
+%   .f0: start frequency, Hz
+%   .f1: stop frequency, Hz
+%   .Tpd: pulse duration, sec
+%   .time: column vector for time axis of data, sec
+%   .tukey: time domain Tukey window parameter: tukeywin(N,?),
 %     default is 0
-%   param.td_window_func = function handle to time domain window function
+%   .td_window_func: function handle to time domain window function
 %     default is to use tukeywin with param.tukey (setting param.tukey to
 %     zero or leaving it undefined has the same effect as doing no
 %     windowing). This window is applied to the reference.
-%   param.window_func = function handle to frequency domain window function
+%   .window_func: function handle to frequency domain window function
 %     default is not to window. This window is applied to the reference.
-%   param.Tsys = time delay to add into pulse compression operation
+%   .Tsys: time delay to add into pulse compression operation
 %     A positive value of Tsys will have the affect of moving the pulse
 %     compressed output to earlier time. i.e. This much delay will be
 %     removed from the input signal.
-%   param.zero_pad = scalar double
+%   .zero_pad: scalar double
 %     Negative value: sets zero padding to this length (zeros added to
 %       start of waveform). This is useful when the decimation filter
 %       creates artifacts in the data which is usually only a problem when
@@ -32,22 +32,35 @@ function [data,time,freq] = pulse_compress(data,param)
 %     Zero: no zero padding
 %     Positive: zero padding set to -param.Tpd (i.e. zero padding equal to
 %       pulse duration)
-%   param.BW = 1x2 vectors specifying the bandwidth to use for
+%   .BW: 1x2 vectors specifying the bandwidth to use for
 %     windowing and decimation/interpolation respectively. For small time
 %     bandwidth products it is helpful to increase the windowing bandwidth
 %     beyond abs(param.f1-param.f0). Decimation/interpolation allows the
 %     pulse compression to build in under/over sampling. The default for
 %     both bandwidths is abs(param.f1-param.f0).
-%   param.decimate = Same as param.baseband. Parameter is misnamed and
+%   .decimate: Same as param.baseband. Parameter is misnamed and
 %     should use param.baseband.
-%   param.baseband = logical scalar to complex baseband the signal or not.
-%   param.Mt = scalar time-domain over-sampling factor, default it 1
-%   param.DDC_mode = logical scalar to treat data as DDC (assumes the data
+%   .baseband: logical scalar to complex baseband the signal or not.
+%   .Mt = scalar time-domain over-sampling factor, default it 1
+%   .DDC_mode: logical scalar to treat data as DDC (assumes the data
 %     has been complex basebanded already)
-%   param.DDC_freq = required if DDC_mode is true, double scalar
+%   .DDC_freq: required if DDC_mode is true, double scalar
 %     representing the center frequency which has been shifted to zero
 %     frequency
-%
+%   .pulse_compress: true to apply the reference function filter to the
+%     data or not (all other steps will be run including baseband of data)
+%   .stc: sensitivity timing control fields. Is optional. If it is
+%     specified then both of the following fields must be specified:
+%     .tdelay: apply fast-time delay correction to data
+%     .gain: apply fast-time gain correction to data
+%   .deconv = deconvolution parameter struct [NOT DONE YET]
+%     .freq_rng = [low high] frequencies to use
+%     .time_rng = [low high] time range to use
+%     .time_delay = remove this amount of time delay from deconvolution
+%       waveform
+%     .mode = 0 for apply deconvolution supplied by .ref
+%        1: return reference waveform
+%     .ref
 %
 % data = pulse compressed data
 % time = new time axis, sec
@@ -82,6 +95,9 @@ if ~isfield(param,'Mt') || isempty(param.Mt)
 end
 if ~isfield(param,'DDC_mode') || isempty(param.DDC_mode)
   param.DDC_mode = 0;
+end
+if ~isfield(param,'pulse_compress') || isempty(param.pulse_compress)
+  param.pulse_compress = 1;
 end
 if isreal(data)
   real_data = true;
@@ -176,12 +192,53 @@ else
     ./ dot(time_domain_ref2,time_domain_ref);
 end
 
-for rline = 1:prod(size(data,2)*size(data,3))
-  data(:,rline) = ifft(data(:,rline) .* ref);
-end
-
 % Adjust time axis for start time of data
 time = param.time(1) + time;
+
+if param.pulse_compress
+  if isfield(param,'stc')
+    % Apply sensitivity timing control (STC) corrections
+    tmp_data = data;
+    
+    stc_tdelay = interp1(param.time, param.stc.tdelay, time);
+    stc_tdelay = interp_finite(stc_tdelay);
+    stc_gain = interp1(param.time, param.stc.gain, time);
+    stc_gain = interp_finite(stc_gain);
+    data = tmp_data;
+    Mt = 100;
+    data = ifft(data);
+    Nt = length(time);
+    data = interpft(data,Nt*Mt);
+    time_Mt = time(1) + (time(2)-time(1))/Mt * (0:Nt*Mt-1).';
+    data = interp1(time_Mt, data, time+stc_tdelay, 'linear', 0).*stc_gain;
+    
+    global data_h;
+    figure(1); clf;
+    plot(param.time,lp(data_h));
+    hold on
+    plot(time,lp(data));
+    plot(time,lp(ifft(tmp_data)));
+    hold off;
+    
+    figure(1); clf;
+    plot(param.time,real(data_h));
+    hold on
+    plot(time,real(data));
+    plot(time,real(ifft(tmp_data)));
+    plot(time+4.5e-6,10000000*real(ifft(conj(ref))));
+    hold off;
+    keyboard
+    
+    data = fft(data);
+  end
+  for rline = 1:prod(size(data,2)*size(data,3))
+    data(:,rline) = ifft(data(:,rline) .* ref);
+  end
+else
+  for rline = 1:prod(size(data,2)*size(data,3))
+    data(:,rline) = ifft(data(:,rline));
+  end
+end
 
 % Adjust time axis for over-sampling
 if param.Mt ~= 1
