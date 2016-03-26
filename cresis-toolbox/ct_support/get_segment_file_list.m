@@ -27,7 +27,9 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband'}))
 elseif any(strcmpi(param.radar_name,{'acords'}))
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '';
-  file_regexp = '\.[0-9]*$';
+  if ~isfield(param.vectors.file,'file_regexp')
+    param.vectors.file.file_regexp = '\.[0-9]*$';
+  end
 elseif strcmpi(param.radar_name,'mcrds')
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.raw';
@@ -66,8 +68,8 @@ else
   error('Unsupported radar %s', param.radar_name);
 end
 
-if ~exist('file_regexp','var')
-  file_regexp = '';
+if ~isfield(param.vectors.file,'file_regexp')
+  param.vectors.file.file_regexp = '';
 end
 
 base_dir = fullfile(ct_filename_data(param,param.vectors.file.base_dir),adc_folder_name);
@@ -76,7 +78,7 @@ if nargout > 2
   if ~silent_mode
     fprintf('Getting files for %s (%s)\n', base_dir, datestr(now));
   end
-  get_fns_param = struct('regexp',file_regexp);
+  get_fns_param = struct('regexp',param.vectors.file.file_regexp);
   fns = get_filenames(base_dir,param.vectors.file.file_prefix,param.vectors.file.file_midfix,ext,get_fns_param);
   
   % Sort ACORDS filenames because the extenions are not a standard length
@@ -107,7 +109,7 @@ if nargout > 2
     % A stop index of infinity says to include all files
     stop_idx = length(fns);
   elseif param.vectors.file.stop_idx > length(fns)
-    warning('Stop index is larger than number of files available. This can be caused by an error in the stop index or missing files. dbcont to continue.');
+    warning('Stop index (%d) is larger than number of files available (%d). This can be caused by an error in the stop index or missing files. dbcont to continue.',param.vectors.file.stop_idx,length(fns));
     keyboard
     stop_idx = length(fns);
   elseif param.vectors.file.stop_idx < 0;

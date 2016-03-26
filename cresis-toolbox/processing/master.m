@@ -52,7 +52,7 @@ for param_idx = 1:length(params)
   param = params(param_idx);
   cmd = param.cmd;
   
-  if cmd.create_vectors
+  if isfield(cmd,'create_vectors') && cmd.create_vectors
     if strcmpi(param.radar_name,'mcords')
       create_vectors_mcords(param,param_override);
     elseif any(strcmpi(param.radar_name,{'mcords4','mcords3','mcords2','seaice'}))

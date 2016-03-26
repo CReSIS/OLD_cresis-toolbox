@@ -38,17 +38,138 @@ sync_fns = {}; sync_params = {};
 gps_source_to_use = 'accum';
 
 if strcmpi(gps_source_to_use,'accum')
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 11; day = 20;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 11; day = 21;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 11; day = 24;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
   file_idx = file_idx + 1;
-  year = 2015; month = 4; day = 30;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,''),sprintf('accum2_%04d%02d%02d',year,month,day),'','.gps');
+  year = 2015; month = 12; day = 2;
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
   file_type{file_idx} = 'NMEA';
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
   gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,''),sprintf('accum2_%04d%02d%02d',year,month,day),'','.gps');
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
-
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 12; day = 3;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 12; day = 4;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 12; day = 9;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 12; day = 10;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 12; day = 16;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 12; day = 18;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+%   file_idx = file_idx + 1;
+%   year = 2015; month = 12; day = 20;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+% 
+  file_idx = file_idx + 1;
+  year = 2015; month = 12; day = 21;
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+  file_type{file_idx} = 'NMEA';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+  gps_source{file_idx} = 'nmea-field';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','.gps');
+  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc','format',3);
+  
 end
 
 % ======================================================================
@@ -69,11 +190,23 @@ make_gps;
 
 %% Conversion from GPS to UTC time since system was not allowed enough
 % time to warm up before operation.
-% match_idx = strmatch('gps_20150503.mat',out_fns,'exact');
-% if ~isempty(match_idx)
-%   gps_fn = fullfile(gps_path,out_fns{match_idx});
-%   fprintf('Fixing GPS to UTC time conversion for %s\n', gps_fn);
-%   gps = load(gps_fn);
-%   gps.gps_time(1:63) = gps.gps_time(1:63) - 16;
-%   save(gps_fn,'-append','-struct','gps','gps_time');
-% end
+match_idx = strmatch('gps_20151202.mat',out_fns,'exact');
+if ~isempty(match_idx)
+  gps_fn = fullfile(gps_path,out_fns{match_idx});
+  fprintf('Fixing GPS to UTC time conversion for %s\n', gps_fn);
+  gps = load(gps_fn);
+  gps.gps_time(1:340) = gps.gps_time(1:340) - utc_leap_seconds(gps.gps_time(1));
+  gps.gps_time(5956:6036) = gps.gps_time(5956:6036) - utc_leap_seconds(gps.gps_time(1));
+  gps.sync_gps_time(1:340) = gps.sync_gps_time(1:340) - utc_leap_seconds(gps.sync_gps_time(1));
+  gps.sync_gps_time(5956:6036) = gps.sync_gps_time(5956:6036) - utc_leap_seconds(gps.gps_time(1));
+  save(gps_fn,'-append','-struct','gps','gps_time','sync_gps_time');
+end
+match_idx = strmatch('gps_20151221.mat',out_fns,'exact');
+if ~isempty(match_idx)
+  gps_fn = fullfile(gps_path,out_fns{match_idx});
+  fprintf('Fixing GPS to UTC time conversion for %s\n', gps_fn);
+  gps = load(gps_fn);
+  gps.gps_time(1:107) = gps.gps_time(1:107) - utc_leap_seconds(gps.gps_time(1));
+  gps.sync_gps_time(1:107) = gps.sync_gps_time(1:107) - utc_leap_seconds(gps.sync_gps_time(1));
+  save(gps_fn,'-append','-struct','gps','gps_time','sync_gps_time');
+end

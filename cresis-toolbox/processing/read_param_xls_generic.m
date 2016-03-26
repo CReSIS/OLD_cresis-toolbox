@@ -73,15 +73,13 @@ for col = 3:length(field_names)
         = struct_add_field(params(1).(generic_ws), field_names{col}, {[]});
     else
       paren_idx = find(field_types{col}(4:end) == '(');
-      if isempty(paren_idx)
-        % Size of the struct array field (the size field should go first)
-        array_field_name = field_types{col}(4:end);
-        params(1).(generic_ws) ...
-          = struct_add_field(params(1).(generic_ws), array_field_name, {[]});
-      else
+      if ~isempty(paren_idx)
         % Fields of the struct array
         array_field_name = field_types{col}(4+(0:paren_idx-2));
         
+        if ~isfield(params(1).(generic_ws),array_field_name)
+          params(1).(generic_ws).(array_field_name) = [];
+        end
         params(1).(generic_ws).(array_field_name) ...
           = struct_add_field(params(1).(generic_ws).(array_field_name), field_names{col}, {[]});
       end

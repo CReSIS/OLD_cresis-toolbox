@@ -170,7 +170,18 @@ if param.analysis.surf.motion_comp.en
   dtime = dtime + drange/(c/2);
 end
 if param.analysis.surf.chan_eq.en
-  Tsys = param.radar.wfs(wf).Tsys - data.param_analysis.radar.wfs(wf).Tsys;
+  if isfield(param.radar.wfs(wf),'Tadc_adjust')
+    new_Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
+  else
+    new_Tadc_adjust = 0;
+  end
+  if isfield(data.param_analysis.radar.wfs(wf),'Tadc_adjust')
+    old_Tadc_adjust = data.param_analysis.radar.wfs(wf).Tadc_adjust;
+  else
+    old_Tadc_adjust = 0;
+  end
+  Tsys = param.radar.wfs(wf).Tsys - data.param_analysis.radar.wfs(wf).Tsys ...
+    - (new_Tadc_adjust - old_Tadc_adjust);
   dtime = bsxfun(@plus, dtime, Tsys.');
   
   Tsys = param.radar.wfs(wf).Tsys;
@@ -268,8 +279,10 @@ end
 
 if delay_method == 2
   peak_offset = bsxfun(@minus,peak_offset,peak_offset(ref_wf_adc,:));
+  peak_val = bsxfun(@times,peak_val,1./abs(peak_val(ref_wf_adc,:)));
 end
 
+%% Create outputs
 equal.peak_offset = peak_offset;
 equal.peak_val = peak_val;
 
@@ -293,49 +306,41 @@ equal.Tsys = Tsys + equal.Tsys_offset;
 equal.chan_equal_deg = chan_equal_deg + equal.chan_equal_deg_offset;
 equal.chan_equal_dB = chan_equal_dB + equal.chan_equal_dB_offset;
 
-equal.Tsys_str = sprintf('[');
-equal.Tsys_str = [equal.Tsys_str sprintf('%.1f ',1e9*equal.Tsys(1:end-1))];
-equal.Tsys_str = [equal.Tsys_str ...
-  sprintf('%.1f]/1e9',1e9*equal.Tsys(end))];
+equal.old_Tsys_str = [mat2str(round(Tsys*1e9*10)/10), '/1e9'];
+equal.Tsys_str = [mat2str(round(equal.Tsys*1e9*10)/10), '/1e9'];
 
-equal.chan_equal_dB_str = sprintf('[');
-equal.chan_equal_dB_str = [equal.chan_equal_dB_str sprintf('%.1f ',equal.chan_equal_dB(1:end-1))];
-equal.chan_equal_dB_str = [equal.chan_equal_dB_str ...
-  sprintf('%.1f]',equal.chan_equal_dB(end))];
+equal.chan_equal_dB_str = mat2str(round(equal.chan_equal_dB*10)/10);
 
-equal.chan_equal_deg_str = sprintf('[');
-equal.chan_equal_deg_str = [equal.chan_equal_deg_str sprintf('%.1f ',equal.chan_equal_deg(1:end-1))];
-equal.chan_equal_deg_str = [equal.chan_equal_deg_str ...
-  sprintf('%.1f]',equal.chan_equal_deg(end))];
+equal.chan_equal_deg_str = mat2str(round(angle(exp(j*equal.chan_equal_deg*pi/180))*180/pi*10)/10);
 
 % If Tsys were inserted, this accounts for the phase shift expected by
 % doing this.
-equal.chan_equal_deg_with_Tsys = chan_equal_deg + equal.chan_equal_deg_offset + 180*data.wfs(wf).fc*equal.Tsys_offset;
+equal.chan_equal_deg_with_Tsys = chan_equal_deg + equal.chan_equal_deg_offset + 360*data.wfs(wf).fc*round(equal.Tsys_offset*1e10)/1e10;
 
-equal.chan_equal_deg_with_Tsys_str = sprintf('[');
-equal.chan_equal_deg_with_Tsys_str = [equal.chan_equal_deg_with_Tsys_str sprintf('%.1f ',equal.chan_equal_deg_with_Tsys(1:end-1))];
-equal.chan_equal_deg_with_Tsys_str = [equal.chan_equal_deg_with_Tsys_str ...
-  sprintf('%.1f]',equal.chan_equal_deg_with_Tsys(end))];
+equal.chan_equal_deg_with_Tsys_str = mat2str(round(angle(exp(j*equal.chan_equal_deg_with_Tsys*pi/180))*180/pi*10)/10);
 
 if debug_level >= 1
-  fprintf('Offsets from Old Coefficients\n');
-  fprintf('%.1f\t', 1e9*equal.Tsys_offset); fprintf('\n');
-  fprintf('%.1f\t', equal.chan_equal_deg_offset); fprintf('\n');
+  %% Print Results to stdout
+  fprintf('%s %d:%d\n', param.day_seg, rlines(1), rlines(end));
+  fprintf('Offsets from Old Coefficients (rows: equal_dB, equal_deg, Tsys_ns)\n');
   fprintf('%.1f\t', equal.chan_equal_dB_offset); fprintf('\n');
+  fprintf('%.1f\t', equal.chan_equal_deg_offset); fprintf('\n');
+  fprintf('%.1f\t', 1e9*equal.Tsys_offset); fprintf('\n');
   fprintf('New Coefficients\n');
-  fprintf('%.1f\t', 1e9*equal.Tsys); fprintf('\n');
-  fprintf('%.1f\t', equal.chan_equal_deg); fprintf('\n');
   fprintf('%.1f\t', equal.chan_equal_dB); fprintf('\n');
+  fprintf('%.1f\t', equal.chan_equal_deg); fprintf('\n');
+  fprintf('%.1f\t', 1e9*equal.Tsys); fprintf('\n');
   fprintf('New Coefficients if using the old Tsys (in spreadsheet format)\n');
   fprintf('%s\n',equal.chan_equal_dB_str);
   fprintf('%s\n',equal.chan_equal_deg_str);
-  fprintf('%s\n',equal.Tsys_str);
-  fprintf('New Coefficients if updating this Tsys (in spreadsheet format)\n');
+  fprintf('%s\n',equal.old_Tsys_str);
+  fprintf('New Coefficients if updating with this Tsys (in spreadsheet format)\n');
   fprintf('%s\n',equal.chan_equal_dB_str);
-  fprintf('%s\n',equal.chan_equal_deg_with_Tsys);
+  fprintf('%s\n',equal.chan_equal_deg_with_Tsys_str);
   fprintf('%s\n',equal.Tsys_str);
 end
 
+%% Save Results
 equal_fn_dir = ct_filename_out(param,'equal','',1);
 if ~exist(equal_fn_dir)
   mkdir(equal_fn_dir);

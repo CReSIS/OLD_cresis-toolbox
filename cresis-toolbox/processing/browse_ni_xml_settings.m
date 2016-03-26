@@ -21,6 +21,9 @@
 
 %% Prepare inputs
 cresis_xml_mapping;
+if ~isempty(gps_fn)
+  gps = load(gps_fn);
+end
 
 %% Prepare GPS plots if enabled
 if ~isempty(gps_fn)
@@ -50,7 +53,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
   fprintf('Processing "%s" (%d of %d)\n', settings_fn_dir, adc_folder_name_idx, length(adc_folder_names));
   
   %% Read XML files in this directory
-  settings = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
+  [settings,settings_enc] = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
   
   %% Get raw data files associated with this directory
   data_fns = get_filenames(fullfile(base_dir,adc_folder_name,board_sub_directory),data_file_prefix,'','.bin');
@@ -87,7 +90,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       max_wfs = length(settings(set_idx).(config_var).Waveforms);
     end
     fprintf('  PRF:'); fprintf(' %g', settings(set_idx).(config_var).(prf_var)); fprintf('\n');
-    fprintf('  Amp:'); fprintf(' %g', settings(set_idx).(config_var).Ram_Amplitude); fprintf('\n');
+    fprintf('  Amp:'); fprintf(' %g', settings(set_idx).(config_var).(ram_amp_var)); fprintf('\n');
     fprintf('  Tukey:'); fprintf(' %g', settings(set_idx).(config_var).RAM_Taper); fprintf('\n');
     fprintf('  Stop:'); fprintf(' %g', settings(set_idx).(config_var).Waveforms(1).Stop_Freq); fprintf('\n');
     fprintf('  Tx Mask:'); fprintf(' %g', settings(set_idx).(config_var).Waveforms(1).TX_Mask); fprintf('\n');

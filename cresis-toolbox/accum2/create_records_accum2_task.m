@@ -74,9 +74,7 @@ for file_idxs_idx = 1:length(file_idxs)
     hdrs.file_idx{1} = cat(2,hdrs.file_idx{1},file_idxs_idx*ones(size(hdr.radar_time)));
     % Offset is the byte offset in the file for each record (zero-indexed)
     if isfield(hdr.finfo,'bad_mask')
-      % File was corrupted and frame_sync_info had to be used to find
-      % the start of each record, we will use that... Notify user since
-      % this should never happen (should just be able to type "dbcont")
+      warning('File was corrupted and frame_sync_info had to be used to find the start of each record, we will use that... Notifying user since this should never happen unless there was a write failure (should just be able to type "dbcont" to continue)');
       keyboard
       hdrs.offset{1} = cat(2,hdrs.offset{1},hdr.finfo.syncs);
     else

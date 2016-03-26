@@ -9,7 +9,7 @@
 %% User Settings
 % =====================================================================
 
-% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
 % params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),'','post');
@@ -17,7 +17,7 @@
 % params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'),'','post');
-params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),'','post');
+% params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'','post');
 
@@ -30,10 +30,11 @@ if 1
   copy_param.layer_source.name = 'surface';
   copy_param.layer_source.existence_check = false;
   
+  copy_param.layer_source.source = 'ops';
 %   copy_param.layer_source.source = 'echogram';
 %   copy_param.layer_source.echogram_source = 'qlook';
-  copy_param.layer_source.source = 'echogram';
-  copy_param.layer_source.echogram_source = 'deconv';
+%   copy_param.layer_source.source = 'echogram';
+%   copy_param.layer_source.echogram_source = 'deconv';
 %   copy_param.layer_source.source = 'GIMP';
 %   copy_param.layer_source.source = 'layerdata';
 %   copy_param.layer_source.layerdata_source = 'layerData';
@@ -46,9 +47,9 @@ if 1
   copy_param.copy_method = 'overwrite';
   copy_param.gaps_fill.method = 'interp_finite';
   
-  copy_param.layer_dest.source = 'records';
-%   copy_param.layer_dest.source = 'layerdata';
-%   copy_param.layer_dest.layerdata_source = 'layerData';
+%   copy_param.layer_dest.source = 'records';
+  copy_param.layer_dest.source = 'layerdata';
+  copy_param.layer_dest.layerdata_source = 'layerData';
 %   copy_param.layer_dest.source = 'echogram';
 %   copy_param.layer_dest.echogram_source = 'qlook';
 %   copy_param.layer_dest.source = 'echogram';
