@@ -18,7 +18,7 @@ prf = 10000;
 % presums: Ensure lambda/4 sampling (fudge factor allows difference) and an
 %   that presums are an even number.
 velocity = 110; % m/s
-fudge_factor = [2 1]; % Set to 1 for lambda/4, more than 1 to relax the requirement
+fudge_factor = [1.5 1]; % Set to 1 for lambda/4, more than 1 to relax the requirement
 presums = round(fudge_factor .* c./abs(f1_list+f0_list)/2 / velocity * prf / 2)*2
 
 final_DDS_phase = [];
@@ -70,9 +70,12 @@ for tx_chan = 1:8
   % Just enable the current antenna to determine its phase center
   tx_weights = zeros(1,8);
   tx_weights(tx_chan) = 1;
+  rxchan = 12; % Fix the receiver (it should not matter which one you choose)
   % Determine phase center for the antenna
-  phase_centers(:,tx_chan) = lever_arm(param, tx_weights, tx_chan);
+  phase_centers(:,tx_chan) = lever_arm(param, tx_weights, rxchan);
 end
+% Adjust phase centers to the mean phase center position
+phase_centers = bsxfun(@minus,phase_centers,mean(phase_centers,2));
 
 % Create waveforms directory if it does not exist
 if ~exist(base_dir,'dir')
@@ -190,8 +193,17 @@ param.wfs(1).Tpd = 10e-6;
 param.wfs(2).Tpd = 10e-6;
 param.wfs(1).phase = final_DDS_phase{1};
 param.wfs(2).phase = final_DDS_phase{1};
-param.wfs(1).delay = final_DDS_time{1} - (0.468 / (c/2) * sind(20)*(0:7))*1e9;
-param.wfs(2).delay = final_DDS_time{1} + (0.468 / (c/2) * sind(20)*(0:7))*1e9;
+beam_angle_deg = 20; % Positive to the left
+% Add in time delays to each position, subtract out the nadir time delays since tx_equalization already took care of those
+param.wfs(1).delay = final_DDS_time{1} ...
+  - (phase_centers(2,:) / (c/2) * sind(beam_angle_deg))*1e9 ...
+  - (phase_centers(3,:) / (c/2) * cosd(beam_angle_deg))*1e9 ...
+  + (phase_centers(3,:) / (c/2) * cosd(0))*1e9;
+beam_angle_deg = -20; % Negative to the right
+param.wfs(2).delay = final_DDS_time{1} ...
+  - (phase_centers(2,:) / (c/2) * sind(beam_angle_deg))*1e9 ...
+  - (phase_centers(3,:) / (c/2) * cosd(beam_angle_deg))*1e9 ...
+  + (phase_centers(3,:) / (c/2) * cosd(0))*1e9;
 param.f0 = f0_list(1);
 param.f1 = f1_list(1);
 param.DDC_freq = (param.f0+param.f1)/2;
@@ -200,6 +212,8 @@ param.fn = fullfile(base_dir,sprintf('image_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthic
 write_cresis_xml(param);
 
 % Pattern measurements
+param.wfs(1).Tpd = 3e-6;
+param.wfs(2).Tpd = 3e-6;
 param.tg.altitude_guard = 500*12*2.54/100;
 param.tg.Haltitude = 3000*12*2.54/100;
 param.tg.Hice_thick = 0;
@@ -208,6 +222,8 @@ param.fn = fullfile(base_dir,sprintf('image_%.0f-%.0fMHz_%.0fft_%.0fus_PATTERN.x
 write_cresis_xml(param);
 
 % Narrow band
+param.wfs(1).Tpd = 10e-6;
+param.wfs(2).Tpd = 10e-6;
 altitude_agl_feet = 6000;
 swath_beamwidth_deg = 45;
 ice_thickness = 1800;
@@ -229,9 +245,28 @@ DDS_amp = round(DDS_amp .* param.max_tx(relative_max_idx) / DDS_amp(relative_max
 param.tx_weights = DDS_amp;
 param.wfs(1).phase = final_DDS_phase{2};
 param.wfs(2).phase = final_DDS_phase{2};
-param.wfs(1).delay = final_DDS_time{2} - (0.468 / (c/2) * sind(20)*(0:7))*1e9;
-param.wfs(2).delay = final_DDS_time{2} + (0.468 / (c/2) * sind(20)*(0:7))*1e9;
+beam_angle_deg = 20; % Positive to the left
+% Add in time delays to each position, subtract out the nadir time delays since tx_equalization already took care of those
+param.wfs(1).delay = final_DDS_time{2} ...
+  - (phase_centers(2,:) / (c/2) * sind(beam_angle_deg))*1e9 ...
+  - (phase_centers(3,:) / (c/2) * cosd(beam_angle_deg))*1e9 ...
+  + (phase_centers(3,:) / (c/2) * cosd(0))*1e9;
+beam_angle_deg = -20; % Negative to the right
+param.wfs(2).delay = final_DDS_time{2} ...
+  - (phase_centers(2,:) / (c/2) * sind(beam_angle_deg))*1e9 ...
+  - (phase_centers(3,:) / (c/2) * cosd(beam_angle_deg))*1e9 ...
+  + (phase_centers(3,:) / (c/2) * cosd(0))*1e9;
 param.fn = fullfile(base_dir,sprintf('image_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthick.xml',param.f0/1e6,param.f1/1e6,altitude_agl_feet,param.wfs(end).Tpd*1e6,ice_thickness));
+write_cresis_xml(param);
+
+% Pattern measurements
+param.wfs(1).Tpd = 3e-6;
+param.wfs(2).Tpd = 3e-6;
+param.tg.altitude_guard = 500*12*2.54/100;
+param.tg.Haltitude = 3000*12*2.54/100;
+param.tg.Hice_thick = 0;
+[param.wfs(1:2).atten] = deal(43);
+param.fn = fullfile(base_dir,sprintf('image_%.0f-%.0fMHz_%.0fft_%.0fus_PATTERN.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/2.54/12,param.wfs(end).Tpd*1e6));
 write_cresis_xml(param);
 
 %% Equalization (Using Ocean)

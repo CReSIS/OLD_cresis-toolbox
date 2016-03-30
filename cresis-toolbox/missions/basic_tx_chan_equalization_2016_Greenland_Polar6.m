@@ -68,16 +68,16 @@ param.rlines = [1 inf];
 %   post pulse compression which complex basebands and decimates the data.
 %   (THIS OFTEN NEEDS TO BE SET)
 param.rbins = [1 inf];
-% param.rbins = [1000 1300]; % 150-520 MHz 3 us
+param.rbins = [1000 1300]; % 150-520 MHz 3 us
 % param.rbins = [50 150]; % 180-210 MHz 3 us
 % param.rbins = [300 500]; % 150-520 MHz 1 us
-param.rbins = [20 60]; % 180-210 MHz 1 us
+% param.rbins = [20 60]; % 180-210 MHz 1 us
 % .noise_rbins = 1xN vector specifying range bins to use for noise power
 %   estimate on each range line (THIS OFTEN NEEDS TO BE SET)
-% param.noise_rbins = 400:600; % 165-510 MHz 3 us
+param.noise_rbins = 400:600; % 150-520 MHz 3 us
 % param.noise_rbins = 1:40; % 180-210 MHz 3 us
-% param.noise_rbins = 100:200; % 165-510 MHz 1 us
-param.noise_rbins = 80:100; % 180-210 MHz 1 us
+% param.noise_rbins = 100:200; % 150-520 MHz 1 us
+% param.noise_rbins = 80:100; % 180-210 MHz 1 us
 
 % .snr_threshold = SNR threshold in dB (range lines exceeding this
 %   SNR for every transmit waveform are included in the estimate,
