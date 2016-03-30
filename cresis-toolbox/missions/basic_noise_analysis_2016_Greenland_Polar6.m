@@ -28,88 +28,31 @@ param.rlines = [];
 param.noise_rbins = [4501 5500];
 
 radar_name = 'mcords5';
-if strcmpi(radar_name,'mcords3')
-  % Sampling frequency of radar (required to read data in)
-  fs = 150e6;
-  BW = 55e6; % Filters 165-215 MHz (160 to 215)
-  freq_DDC = 0e6;
-  
-  % .ref_wf_adc_idx = Reference receive channel, index into param.adcs,
-  %   (surface location determined from this channel and all phase
-  %   measurements made relative to it)
-  param.ref_wf_adc_idx = 4;
-  
-  % .img = which waveform/adc pairs to load
-  %param.img = cat(2,-j*9*ones(8,1),[1 2 3 4 5 6 7 8].');
-  param.img = cat(2,3*ones(8,1),[1 2 3 4 5 6 7 8].');
-  
-  % base_path = Base path of data (does not include seg directory)
-  % set = Which segment directory to load from, leave empty for no segment directory
-  % utc_time_correction
-  param.base_path = '\\172.18.1.100\e';
-  seg = '';
-  
-  % Optionally restrict search to a particular acquisition number/time
-  % (part of the data files' filenames)
+
+% Sampling frequency of radar (required to read data in)
+fs = 1600e6;
+BW = 520e6-150e6;
+freq_DDC = 335e6;
+
+% .img = which waveform/adc pairs to load
+%param.img = cat(2,-j*9*ones(8,1),[1 2 3 4 5 6 7 8].');
+param.img = cat(2,3*ones(24,1),[1:24].');
+
+% base_path = Base path of data (does not include seg directory)
+% set = Which segment directory to load from, leave empty for no segment directory
+% utc_time_correction
+base_path = '/cresis/snfs1/scratch/paden/awi/';
+seg = '';
+
+% Optionally restrict search to a particular acquisition number/time
+% (part of the data files' filenames)
 %   acquisition_num = '20130916_190026_00';
-  acquisition_num = '_03';
-    
-  % File index in filename
-  file_num = 3;
-  
-elseif strcmpi(radar_name,'mcords4')
-  % Sampling frequency of radar (required to read data in)
-  fs = 1e9/2;
-  BW = 300e6;
-  freq_DDC = 0e6;
-  
-  % .ref_wf_adc_idx = Reference receive channel, index into param.adcs,
-  %   (surface location determined from this channel and all phase
-  %   measurements made relative to it)
-  param.ref_wf_adc_idx = 4;
-  
-  % .img = which waveform/adc pairs to load
-  %param.img = cat(2,-j*9*ones(8,1),[1 2 3 4 5 6 7 8].');
-  param.img = cat(2,-j*5*ones(8,1),[1 2 3 4 5 6 7 8].');
-  
-  % base_path = Base path of data (does not include seg directory)
-  % set = Which segment directory to load from, leave empty for no segment directory
-  % utc_time_correction
-  base_path = 'T:\';
-  seg = '20140307';
-  
-  % Optionally restrict search to a particular acquisition number/time
-  % (part of the data files' filenames)
-%   acquisition_num = '20130916_190026_00';
-  acquisition_num = '_00';
-    
-  % File index in filename
-  file_num = 0;
-    
-elseif strcmpi(radar_name,'mcords5')
-  % Sampling frequency of radar (required to read data in)
-  fs = 1600e6;
-  BW = 520e6-150e6;
-  freq_DDC = 335e6;
-  
-  % .img = which waveform/adc pairs to load
-  %param.img = cat(2,-j*9*ones(8,1),[1 2 3 4 5 6 7 8].');
-  param.img = cat(2,3*ones(24,1),[1:24].');
-  
-  % base_path = Base path of data (does not include seg directory)
-  % set = Which segment directory to load from, leave empty for no segment directory
-  % utc_time_correction
-  base_path = 'D:\awi\';
-  seg = '';
-  
-  % Optionally restrict search to a particular acquisition number/time
-  % (part of the data files' filenames)
-%   acquisition_num = '20130916_190026_00';
-  acquisition_num = '*20160311_*_01*';
-  
-  % File index in filename
-  file_num = 3;
-end
+acquisition_num = '*20160311_*_01*';
+% 0,2,5,6 (2,6 no DDC)
+% 0,1,1,1
+
+% File index in filename
+file_num = 1;
 
 % .presums = Number of presums (coherent averaging) to do
 param.presums = 1;
@@ -363,9 +306,14 @@ if 1
 end
 
 % =====================================================================
-% Power Spectrum
+%% Power Spectrum
 % =====================================================================
 if 1
+  plot_combined_psd = true;
+  if plot_combined_psd
+    h_psd_fig = figure(500); clf; h_psd_axes = axes('parent',h_psd_fig); hold(h_psd_axes,'on'); grid(h_psd_axes,'on'); xlabel('Frequency (MHz)','parent',h_psd_axes); ylabel('Relative noise power (dB)','parent',h_psd_axes);
+  end
+  
   for adc_idx = 1:size(data,3)
     adc = param.img(adc_idx,2);
     
@@ -387,6 +335,10 @@ if 1
       ylabel('Frequency (MHz)');
       h = colorbar;
       set(get(h,'YLabel'),'String','Relative power (dB)');
+      
+      if plot_combined_psd
+        plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data))).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes)
+      end
       
       figure(400+adc); clf;
       set(400+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('M%d',adc_idx));
@@ -425,11 +377,5 @@ if 1
   end
 end
 
-
-
-
-
-
-
-
-
+%% Done
+return;

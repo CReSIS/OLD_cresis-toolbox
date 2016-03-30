@@ -162,6 +162,8 @@ elseif param.elev_comp == 2
     TWtime = genPropProfileFromPerm(param.er_depth,param.er_ice,1);
     profile_idxs = depth > 0 & depth < param.er_depth(end);
     depth_time(profile_idxs) = interp1(param.er_depth, [0; TWtime], depth(profile_idxs));
+  else
+    TWtime = 0;
   end
   % Below surface and below dielectric profile defined depth
   const_idxs = depth >= param.er_depth(end);
