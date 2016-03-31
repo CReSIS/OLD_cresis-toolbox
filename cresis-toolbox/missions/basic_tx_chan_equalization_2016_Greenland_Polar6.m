@@ -93,23 +93,19 @@ param.base_dir = '\\172.18.1.103\d\';
 param.base_dir = '\\172.18.1.32\mcords\';
 param.base_dir = '\\172.18.1.33\mcords\';
 % param.base_dir = 'D:\';
-param.base_dir = 'D:\awi\';
+param.base_dir = 'E:\awi\awi\';
 
 % xml_fn = optional string containing xml file to load (normally
 %   leave this empty and select during run time)
 xml_fn = '';
 
-% xml_version = There are three versions of XML files
-%   mcords3: pre-2014 Greenland P3 is 1
-%   mcords3: post-2014 Greenland P3 is 3
-%   mcords4: 2
-%   mcords5: 5 (new DDS is 5, DDS is 4, but DAQ is 2)
-%   (THIS OFTEN NEEDS TO BE SET)
-xml_version = 2;
+% xml_version = See cresis_xml_mapping and wiki page on National
+%   Instruments XML files to determine which version to use
+xml_version = 2.0;
 
 % out_xml_fn_dir = String containg the directory where the new XML file
 %   will be placed (THIS OFTEN NEEDS TO BE SET)
-out_xml_fn_dir = 'D:\waveforms\';
+out_xml_fn_dir = 'E:\waveforms\';
 
 % param.adc = The ADC channel to load. Generally not critical which one is used.
 param.adc = 8;
@@ -184,87 +180,7 @@ param.Mt = 100;
 % =======================================================================
 % =======================================================================
 
-if strcmpi(param.radar_name,'mcords3')
-  if xml_version == 1
-    config_var = 'Configuration';
-    config_var_enc = 'Configuration';
-    prf_var = 'PRF_Hz';
-    ram_var = 'RAM Taper';
-    ram_var_enc = 'RAMZ20Taper';
-    xml_file_prefix = 'DDS';
-    phase_var = 'Phase_Offset_deg';
-    phase_var_enc = 'PhaseZ20OffsetZ20Z28degZ29';
-    wave_var_enc = 'Z23Waveforms';
-    ttl_start_var_enc = 'TTLZ20StartZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
-    ttl_length_var_enc = 'TTLZ20LengthZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
-    TTL_prog_delay = 650;
-  elseif xml_version == 3
-    config_var = 'DDS_Setup';
-    config_var_enc = 'DDSZ20Setup';
-    prf_var = 'PRF';
-    ram_var = 'Ram_Amplitude';
-    ram_var_enc = 'RamZ20Amplitude';
-    xml_file_prefix = 'radar';
-    phase_var = 'Phase_Offset';
-    phase_var_enc = 'PhaseZ20Offset';
-    wave_var_enc = 'Z23Wave';
-    ttl_start_var_enc = 'TTLZ20Start';
-    ttl_length_var_enc = 'TTLZ20Length';
-    TTL_prog_delay = 650;
-  else
-    error('Unsupported version');
-  end
-elseif strcmpi(param.radar_name,'mcords4')
-  if xml_version == 2
-    config_var = 'DDS_Setup';
-    config_var_enc = 'DDSZ20Setup';
-    prf_var = 'PRF';
-    ram_var = 'Ram_Amplitude';
-    ram_var_enc = 'RamZ20Amplitude';
-    xml_file_prefix = 'mcords4';
-    phase_var = 'Phase_Offset';
-    phase_var_enc = 'PhaseZ20Offset';
-    wave_var_enc = 'Z23Wave';
-    ttl_start_var_enc = 'TTLZ20Start';
-    ttl_length_var_enc = 'TTLZ20Length';
-    TTL_prog_delay = 650;
-  else
-    error('Unsupported version');
-  end
-elseif strcmpi(param.radar_name,'mcords5')
-  if xml_version == 2
-    config_var = 'DDS_Setup';
-    config_var_enc = 'DDSZ20Setup';
-    config_var_enc = 'DDSZ5FSetup';
-    prf_var = 'PRF';
-    ram_var = 'Ram_Amplitude';
-    ram_var_enc = 'RamZ20Amplitude';
-    xml_file_prefix = 'mcords5';
-    phase_var = 'Phase_Offset';
-    phase_var_enc = 'PhaseZ20Offset';
-    wave_var_enc = 'Z23Wave';
-    ttl_start_var_enc = 'TTLZ20Start';
-    ttl_length_var_enc = 'TTLZ20Length';
-    TTL_prog_delay = 650;
-  elseif xml_version == 4
-    config_var = 'Configuration';
-    config_var_enc = 'Configuration';
-    prf_var = 'PRF';
-    ram_var = 'RAM';
-    ram_var_enc = 'RAM';
-    xml_file_prefix = 'mcords5';
-    phase_var = 'Phase_Offset_deg';
-    phase_var_enc = 'PhaseZ20OffsetZ20Z28degZ29';
-    wave_var_enc = 'Z23Wave';
-    ttl_start_var_enc = 'TTLZ20StartZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
-    ttl_length_var_enc = 'TTLZ20LengthZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
-    TTL_prog_delay = 650;
-  else
-    error('Unsupported version');
-  end
-else
-  error('Unsupported radar');
-end
+cresis_xml_mapping;
 
 % =======================================================================
 % Load data
@@ -970,26 +886,16 @@ settings_enc = rmfield(settings_enc,'fn');
 settings_enc = rmfield(settings_enc,'datenum');
 settings_enc = rmfield(settings_enc,'FPGAZ20Configuration');
 
-if isfield(settings_enc,'DDSZ5FSetup')
-  settings_enc.DDSZ20Setup = settings_enc.DDSZ5FSetup;
-  settings_enc = rmfield(settings_enc,'DDSZ5FSetup');
-end
-
-if isfield(settings_enc,'xmlversion') && str2double(settings_enc.xmlversion{1}.values) >= 2
+if isfield(settings_enc,'xmlversion') && str2double(settings_enc.xmlversion{1}.values) >= 2.0
   settings_enc.sys.DDCZ20Ctrl = settings_enc.DDCZ20Ctrl;
-  settings_enc.sys.DDSZ20Setup = settings_enc.DDSZ20Setup;
+  settings_enc.sys.DDSZ5FSetup = settings_enc.DDSZ5FSetup;
   settings_enc.sys.XMLZ20FileZ20Path = settings_enc.XMLZ20FileZ20Path;
   settings_enc.sys.xmlversion = settings_enc.xmlversion;
   settings_enc = rmfield(settings_enc,'DDCZ20Ctrl');
-  settings_enc = rmfield(settings_enc,'DDSZ20Setup');
+  settings_enc = rmfield(settings_enc,'DDSZ5FSetup');
   settings_enc = rmfield(settings_enc,'XMLZ20FileZ20Path');
   settings_enc = rmfield(settings_enc,'xmlversion');
 end
-
-% settings_enc.DDCZ20Ctrl.NCOZ20freq = reshape(uint32(375e6/1e6),[1 1]);
-% settings_enc.DDCZ20Ctrl.DDCZ20sel.Val = reshape(uint32(0),[1 1]);
-% settings_enc.DDCZ20Ctrl.DDCZ20sel.Choice = {'Non DDC','DDC4 En','DDC8 En'};
-% settings_enc.DDCZ20Ctrl.samplingZ20freq = reshape(double(1600e6/1e6),[1 1]);
 
 fprintf('Writing %s\n', out_xml_fn);
 fid = fopen(out_xml_fn,'w');

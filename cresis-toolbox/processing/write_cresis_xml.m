@@ -78,101 +78,33 @@ physical_constants;
 % Define waveforms
 Tpd_base_duration = 1e-6;
 
-if strcmpi(param.radar_name,'mcords3')
-  old_version = false;
-  if old_version
-    config_var = 'Configuration'; % --> Changed from DDS Setup in NI software
-    config_var_enc = 'Configuration';
-    prf_var = 'PRF_Hz'; % --> Changed from PRF in NI software
-%     ram_var = 'RAM'; % --> Changed from RAM Taper in NI software
-%     ram_var_enc = 'RAM';
-    ram_var = 'DDS1'; % --> Changed from RAM Taper in NI software
-    ram_var_enc = 'DDSZ31';
-    xml_file_prefix = 'DDS'; % --> Changed to "radar_" in this file
-    phase_var = 'Phase_Offset_deg';
-    phase_var_enc = 'PhaseZ20OffsetZ20Z28degZ29';
-%     wave_var_enc = 'Z23Waveforms';
-    wave_var_enc = 'Z23Wave';
-    ttl_start_var_enc = 'TTLZ20StartZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
-    ttl_length_var_enc = 'TTLZ20LengthZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
-    TTL_prog_delay = 650;
-  else
-    config_var = 'DDS_Setup';
-    config_var_enc = 'DDSZ20Setup';
-    prf_var = 'PRF';
-    ram_var = 'Ram_Amplitude';
-    ram_var_enc = 'RamZ20Amplitude';
-    xml_file_prefix = 'radar'; % --> Changed to "radar_" in this file
-    phase_var = 'Phase_Offset';
-    phase_var_enc = 'PhaseZ20Offset';
-    wave_var_enc = 'Z23Wave';
-    ttl_start_var_enc = 'TTLZ20Start';
-    ttl_length_var_enc = 'TTLZ20Length';
-    TTL_prog_delay = 650;
-  end
-  fs_dds = 1e9;
-  fs = 1e9/9;
-  fs_sync = 1e9/18;
-elseif strcmpi(param.radar_name,'mcords4')
-  config_var = 'DDS_Setup';
-  config_var_enc = 'DDSZ20Setup';
-  prf_var = 'PRF';
-  ram_var = 'Ram_Amplitude';
-  ram_var_enc = 'RamZ20Amplitude';
-  xml_file_prefix = 'mcords4';
-  phase_var = 'Phase_Offset';
-  phase_var_enc = 'PhaseZ20Offset';
-  wave_var_enc = 'Z23Wave';
-  ttl_start_var_enc = 'TTLZ20Start';
-  ttl_length_var_enc = 'TTLZ20Length';
-  TTL_prog_delay = 650;
-  fs_dds = 1e9;
-  fs = 1e9/2;
-  fs_sync = 1e9/8;
-elseif strcmpi(param.radar_name,'mcords5')
-  config_var = 'Configuration';
-  config_var_enc = 'Configuration';
-  prf_var = 'PRF';
-  ram_var = 'RAM';
-  ram_var_enc = 'RAM';
-  xml_file_prefix = 'mcords5';
-  phase_var = 'Phase_Offset_deg';
-  phase_var_enc = 'PhaseZ20OffsetZ20Z28degZ29';
-  wave_var_enc = 'Z23Wave';
-  ttl_start_var_enc = 'TTLZ20StartZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
-  ttl_length_var_enc = 'TTLZ20LengthZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
-  TTL_prog_delay = 650;
-  fs_dds = 1e9;
-  fs = 1600e6;
-  fs_sync = 50e6;
-end
-
-if isfield(param,'use_mcords4_names') && param.use_mcords4_names
-  config_var = 'DDS_Setup';
-  config_var_enc = 'DDSZ20Setup';
-  ram_var = 'Ram_Amplitude';
-  ram_var_enc = 'RamZ20Amplitude';
-  phase_var = 'Phase_Offset';
-  phase_var_enc = 'PhaseZ20Offset';
-  ttl_start_var_enc = 'TTLZ20Start';
-  ttl_length_var_enc = 'TTLZ20Length';
-end
+xml_version = param.xml_version;
+cresis_xml_mapping;
 
 if isfield(param,'TTL_prog_delay') && ~isempty(param.TTL_prog_delay)
   TTL_prog_delay = param.TTL_prog_delay;
+else
+  error('param.TTL_prog_delay field missing');
 end
 
 if isfield(param,'fs_dds') && ~isempty(param.fs_dds)
   fs_dds = param.fs_dds;
+else
+  error('param.fs_dds field missing');
 end
 
 if isfield(param,'fs') && ~isempty(param.fs)
   fs = param.fs;
+else
+  error('param.fs field missing');
 end
 
 if isfield(param,'fs_sync') && ~isempty(param.fs_sync)
   fs_sync = param.fs_sync;
+else
+  error('param.fs_sync field missing');
 end
+
 if isfield(param,'TTL_mode') && ~isempty(param.TTL_mode)
   % Duration before start of pulse, duration after pulse, offset of pulse
   % from TTL_prog_delay * fs/2
@@ -537,15 +469,15 @@ if data_rate / 2^20 > param.max_data_rate
   error('Data rate %f MB/sec is too high', data_rate/2^20);
 end
 
-if isfield(param,'DDC_freq')
+if xml_version >= 2.0
   settings_enc.sys.DDCZ20Ctrl = settings_enc.DDCZ20Ctrl;
-  settings_enc.sys.DDSZ20Setup = settings_enc.DDSZ20Setup;
+  settings_enc.sys.DDSZ5FSetup = settings_enc.DDSZ5FSetup;
   settings_enc.sys.XMLZ20FileZ20Path = {struct('type','Path','values',[])};
   settings_enc.sys.XMLZ20FileZ20Path{1}.values = {out_xml_fn};
   settings_enc.sys.xmlversion = {struct('type','String','values',[])};
   settings_enc.sys.xmlversion{1}.values = {'2.0'};
   settings_enc = rmfield(settings_enc,'DDCZ20Ctrl');
-  settings_enc = rmfield(settings_enc,'DDSZ20Setup');
+  settings_enc = rmfield(settings_enc,'DDSZ5FSetup');
 end
 
 fid = fopen(out_xml_fn,'w');
