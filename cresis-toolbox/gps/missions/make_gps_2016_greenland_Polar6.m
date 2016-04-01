@@ -109,7 +109,7 @@ if 1 || ~isempty(match_idx)
   gps_fn = fullfile(gps_path,out_fns{match_idx});
   fprintf('Creating fake gps data for %s\n', gps_fn);
   gps = load(gps_fn);
-  gps.gps_time = datenum_to_epoch(datenum(2016,3,31) + (50000:55000)/86400);
+  gps.gps_time = datenum_to_epoch(datenum(2016,3,31) + (50000:65000)/86400);
   gps.lon = -45 * ones(size(gps.gps_time));
   gps.lat = 70 + (1:length(gps.gps_time)) * 6e-4;
   gps.elev = 500 * ones(size(gps.gps_time));

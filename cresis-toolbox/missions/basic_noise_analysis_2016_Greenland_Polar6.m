@@ -22,7 +22,7 @@ tstart = tic;
 
 % .rlines = Start and stop range line to process
 %   These are range lines post presumming
-param.rlines = [];
+param.rlines = [1:1000];
 % .noise_rbins = Start and stop range bin to use for noise power
 %   calculation (THIS OFTEN NEEDS TO BE SET)
 param.noise_rbins = [4501 5500];
@@ -33,6 +33,8 @@ radar_name = 'mcords5';
 fs = 1600e6;
 BW = 520e6-150e6;
 freq_DDC = 335e6;
+% BW = 210e6-180e6;
+% freq_DDC = 195e6;
 
 % .img = which waveform/adc pairs to load
 %param.img = cat(2,-j*9*ones(8,1),[1 2 3 4 5 6 7 8].');
@@ -46,10 +48,7 @@ seg = '';
 
 % Optionally restrict search to a particular acquisition number/time
 % (part of the data files' filenames)
-%   acquisition_num = '20130916_190026_00';
 acquisition_num = '*20160311_*_01*';
-% 0,2,5,6 (2,6 no DDC)
-% 0,1,1,1
 
 % File index in filename
 file_num = 1;
@@ -60,7 +59,7 @@ param.presums = 1;
 adc_bits = 12;
 Vpp_scale = 2;
 adc_SNR_dB = 57;
-rx_gain = 10^((45)/20);
+rx_gain = 10^((48)/20);
 noise_figure = 10^(2/10); % Do not include receiver losses
 
 rline = 1;
@@ -174,6 +173,14 @@ elseif any(strcmpi(radar_name,{'mcords4','mcords5'}))
       [hdr,data_tmp] = basic_load_mcords4(fn,struct('clk',fs/4));
     else
       [hdr,data_tmp] = basic_load_mcords5(fn,struct('clk',fs));
+    end
+    % Remove extra records to help reduce total memory usage
+    if isfield(param,'rlines') && ~isempty(param.rlines)
+      for wf = 1:length(data_tmp)
+        data_tmp{wf} = data_tmp{wf}(:,param.rlines,:);
+      end
+      hdr.utc_time_sod = hdr.utc_time_sod(param.rlines);
+      hdr.epri = hdr.epri(param.rlines);
     end
     % Map each of the read waveforms needed into the correct output
     for wf_adc_idx = 1:size(param.img,1)

@@ -25,7 +25,7 @@ final_DDS_phase = [];
 final_DDS_phase_no_time = [];
 final_DDS_amp = [];
 final_DDS_time = [];
-if 1
+if 0
   % Initial conditions (usually all zeros phase/time with max amplitude)
   for idx = 1:length(f0_list)
     final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
@@ -34,19 +34,23 @@ if 1
     final_DDS_time{idx} =  [0 0 0 0 0 0 0 0];
   end
 else
-  % After transmit calibration during ??? test flight
+  % After transmit calibration during 20160401 test flight
   %   From basic_tx_chan_equalization_SEASON_NAME.m
-  % 150-520
-  final_DDS_phase{end+1} = [78.3	45.9	0.7	0.0	20.0	1.1	46.4	94.9];
-  final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [931	2069	2173	2698	3000	2041	1870	1023];
-  final_DDS_time{end+1} =  [-2.49	-2.70	0.05	0.00	0.19	0.02	-2.83	-2.52];
   
-  % 180-210
-  final_DDS_phase{end+1} = [83.5	126.2	128.8	0.0	-55.1	-173.7	148.4	71.3];
+  % NOTE: These values are valid for when DDS channels 5-8 come up one 1440
+  % MHz clock cycle after channels 1-4.
+  
+  % 150-520 MHz
+  final_DDS_phase{end+1} = [63.3	86.1	-16.5	0.0	8.9	-17.4	68.8	51.1];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [743	1901	2480	3000	2853	2493	1900	876];
-  final_DDS_time{end+1} =  [-2.50	-1.88	1.77	0.00	-1.41	1.77	-2.16	-3.30];
+  final_DDS_amp{end+1} = [1312	2849	2657	3572	4000	2618	2574	1386];
+  final_DDS_time{end+1} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50];
+    
+  % 180-210 MHz
+  final_DDS_phase{end+1} = [61.4	85.2	-15.1	0.0	8.7	-1.0	76.8	56.1];
+  final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
+  final_DDS_amp{end+1} = [1172	2550	3026	3650	4000	3106	2361	1223];
+  final_DDS_time{end+1} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50];
   
 end
 
@@ -333,7 +337,7 @@ if 0
     param.wfs(1).atten = 43;
     DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
     param.tx_weights = DDS_amp;
-    param.tukey = 0.08;
+    param.tukey = 0;
     param.wfs(1).Tpd = 10e-6;
     param.wfs(1).phase = final_DDS_phase{cal_settings(freq_idx)};
     param.delay = final_DDS_time{cal_settings(freq_idx)};
