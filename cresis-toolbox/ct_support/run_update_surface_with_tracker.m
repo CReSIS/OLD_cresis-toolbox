@@ -6,22 +6,18 @@
 
 %% User Settings
 % ----------------------------------------------------------------------
-% params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),'20090421_04','post');
-% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),'20100326_01','post');
-% params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),'20110325_02','post');
-% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'','post');
-% params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150413_01','post');
-params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_C130.xls'),'20150413_01','post');
+params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'','post');
+% params = read_param_xls(ct_filename_param('snow_param_2016_Greenland_Polar6.xls'),'','post');
 
-params.cmd.generic = 1;
-params.cmd.frms = [1]; % Specify specific frames (or leave empty/undefined to do all frames)
+% params.cmd.generic = 1;
+% params.cmd.frms = [1]; % Specify specific frames (or leave empty/undefined to do all frames)
 debug_level = 1;
 
+echogram_img = 0; % To choose an image besides the base (0) image
 echogram_source = 'qlook'; % location of echogram data used for tracking (and for saving)
 % save_sources: cell array of strings indicating which layer sources
 %   should be updated (options are ops, layerData, and echogram)
-save_sources = {'ops'};
+save_sources = {'layerData'};
 save_ops_layer = 'surface'; % OPS save_source only (layer name)
 layerdata_source = 'layerData'; % layerData save_source only (ct_filename_location parameter)
 
@@ -44,8 +40,8 @@ if 1
   surf_override.search_rng	= 0:2;
 %   surf_override.init.method	= 'snake';
 %   surf_override.init.search_rng	= [-10:10];
-  surf_override.feedthru.time = 1e-9*[-75390765878 1115131099362];
-  surf_override.feedthru.power_dB = [-74 -139];
+%   surf_override.feedthru.time = 1e-9*[-75390765878 1115131099362];
+%   surf_override.feedthru.power_dB = [-74 -139];
 elseif 0
   % RDS max method
   surf_override.method = 'max';
@@ -68,7 +64,7 @@ elseif 0
   surf_override.filter_len	= 5;
   surf_override.search_rng	= 0:1;
   
-elseif 0
+elseif 1
   % FMCW Land Ice
   surf_override.method = 'threshold';
   surf_override.noise_rng = [100 -700 -400];
@@ -82,10 +78,10 @@ elseif 0
   surf_override.detrend = 0;
   surf_override.init.method	= 'medfilt';
   surf_override.init.medfilt	= 11;
-  surf_override.init.method	= 'dem';
-  surf_override.init.dem_offset = 0e-9;
-  surf_override.init.method	= 'snake';
-  surf_override.init.search_rng	= [-240:240];
+%   surf_override.init.method	= 'dem';
+%   surf_override.init.dem_offset = 0e-9;
+%   surf_override.init.method	= 'snake';
+%   surf_override.init.search_rng	= [-240:240];
   surf_override.method = 'snake';
   surf_override.search_rng	= -90:90;
   

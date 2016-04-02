@@ -4,13 +4,19 @@ function create_posting(param, param_override)
 % Generalized function for posting data. Should be called from
 % run_create_posting.
 %
-% Author: Shashanka Jagarlapudi, Logan Smith, John Paden, Theresa Stumpf
+% Author: Shashanka Jagarlapudi, John Paden, Logan Smith, Theresa Stumpf
 %
 % See also make_layer_files, run_make_layer_files, run_picker, picker
 
 if ~exist('param','var')
   error('Call function from run_create_posting');
 end
+
+fprintf('============================================================\n');
+fprintf('============================================================\n');
+
+%% Input arguments check and setup
+% =========================================================================
 
 param = merge_structs(param,param_override);
 
@@ -23,15 +29,17 @@ if ~isfield(param.post,'frm_types') || isempty(param.post.frm_types)
   param.post.frm_types = {-1,0,-1,-1,-1};
 end
 
-% =========================================================================
-% Automated Section
-% =========================================================================
+if ~isfield(param.post,'img') || isempty(param.post.img)
+  % Data_YYYYMMDD_SS_FFF is image 0
+  % Data_img_II_YYYYMMDD_SS_FFF is image II (where II is 1 or more)
+  param.post.img = 0;
+end
 
-fprintf('============================================================\n');
-fprintf('============================================================\n');
-
+% Hard code which figures will be used for maps and echogram
 fh_maps = 1;
 fh_echo = 2;
+
+% Matlab bug fix
 if param.post.pdf_en
   fprintf('Closing windows because of bug in Matlab pdf writer\n');
   % Current version of Matlab has a bug in saveas when saving to a
@@ -45,16 +53,20 @@ if param.post.pdf_en
   end
 end
 
-physical_constants
+% er_ice, c = speed of light
+physical_constants;
 
+% layer_path_in: where the layer information will come from
 if ~isempty(param.post.layer_dir) && param.post.ops.en == 0
   layer_path_in = ct_filename_out(param, ...
     fullfile(param.post.in_path,param.post.layer_dir), param.day_seg);
+  use_data_files_for_layer = false;
 else
   % An empty layer directory makes the program assume that there are no
   % layer files and it uses the data files instead
   layer_path_in = ct_filename_out(param, ...
     fullfile(param.post.in_path,param.post.data_dirs{1}), param.day_seg);
+  use_data_files_for_layer = true;
 
   % We also need to authenticate the OPS user
   if param.post.ops.en
@@ -62,6 +74,7 @@ else
   end
 end
 
+% post_path: the directory where outputs will be created
 post_path = ct_filename_out(param,param.post.out_path,'CSARP_post',1);
 
 % Do some conversions on the boolean post fields: if the field is empty,
@@ -100,8 +113,7 @@ else
 end
 print_dpi = sprintf('-r%d', param.post.img_dpi);
 
-% =========================================================================
-% Catalog layer and data files
+%% Catalog layer and data files
 % =========================================================================
 fprintf('Catalog layer and data files %s (%s)\n', param.day_seg, datestr(now));
 
@@ -188,8 +200,13 @@ for frm = param.cmd.frms
   
   % frm_id = string containing frame ID YYYYMMDD_SS_FFF
   frm_id = sprintf('%s_%03d', param.day_seg, frm);
-  % layer_name = data filename string Data_YYYYMMDD_SS_FFF.mat
-  layer_name = sprintf('Data_%s', frm_id);
+  % layer_name: data filename string Data_YYYYMMDD_SS_FFF.mat or 
+  %             Data_img_II_YYYYMMDD_SS_FFF.mat
+  if ~use_data_files_for_layer || param.post.img == 0
+    layer_name = sprintf('Data_%s', frm_id);
+  else
+    layer_name = sprintf('Data_img_%02d_%s', param.post.img, frm_id);
+  end
   % layer_fn = full path to the layer filename
   layer_fn = fullfile(layer_path_in,[layer_name '.mat']);
   
@@ -212,9 +229,8 @@ if isempty(frms)
   error('No layer files match criteria in %s', layer_path_in);
 end
 
+%%  Associate data files with layer files
 % =========================================================================
-% Go through each data directory and find the data files in that directory
-% associated with each layer file
 
 for data_dir_idx = 1:length(param.post.data_dirs)
   % Get a data directory
@@ -259,10 +275,19 @@ for data_dir_idx = 1:length(param.post.data_dirs)
     end
     % Get the master data file
     if data_dir_idx == 1
-      match_idx = strmatch(frms{frm_idx}.layer_name,data_files_name);
-      if isempty(match_idx)
-        img_01_name = [frms{frm_idx}.layer_name(1:5) 'img_01_' frms{frm_idx}.layer_name(6:end)];
-        match_idx = strmatch(img_01_name,data_files_name);
+      if ~use_data_files_for_layer
+        % Using layerData for layers: need to explicitly specify data file names
+        img_name = [frms{frm_idx}.layer_name(1:5) sprintf('img_%02d_',param.post.img) frms{frm_idx}.layer_name(6:end)];
+        match_idx = strmatch(img_name,data_files_name);
+        if isempty(match_idx) && param.post.img == 0
+          % Legacy Support: This only happens when img==0 data file does not exist, so we
+          % use img==1 in this case.
+          img_name = [frms{frm_idx}.layer_name(1:5) sprintf('img_%02d_',1) frms{frm_idx}.layer_name(6:end)];
+          match_idx = strmatch(img_name,data_files_name);
+        end
+      else
+        % Using echogram data for layers: file must already be in the list
+        match_idx = strmatch(frms{frm_idx}.layer_name,data_files_name);
       end
       if isempty(match_idx)
         error('Layer file without data file %s\n', frms{frm_idx}.layer_fn);
@@ -272,11 +297,8 @@ for data_dir_idx = 1:length(param.post.data_dirs)
   end
 end
 
+%% Create map template
 if param.post.maps_en
-  % =========================================================================
-  % Create map template which will be used for plotting the map of
-  % each segment
-  % =========================================================================
   fprintf(' Creating map template (%s)\n', datestr(now));
 
   map_param.type = param.post.map.type;
@@ -322,17 +344,7 @@ if param.post.maps_en
   end
 end
 
-% =========================================================================
-% =========================================================================
-% For each frame, do the following:
-%  1. produce the map
-%  2. produce the echogram
-%  3. produce the echogram w/ layer
-%  4. copy the data files
-%  5. make the csv files
-% =========================================================================
-% =========================================================================
-
+%% OPS Setup
 if param.post.ops.en
   %% HACK
   if length(param.post.ops.layers) == 2
@@ -357,6 +369,16 @@ if param.post.ops.en
     ops_layer{layer_idx} = ops_layer{layer_idx}.properties;
   end
 end
+
+%% Main post loop
+% =========================================================================
+
+% For each frame, do the following:
+%  1. produce the map
+%  2. produce the echogram
+%  3. produce the echogram w/ layer
+%  4. copy the data files
+%  5. make the csv files
 
 for frm_idx = 1:length(frms)
   fprintf('  Posting frame %s, %d of %d (%s)\n', ...
@@ -426,6 +448,7 @@ for frm_idx = 1:length(frms)
     % Save file
     map_fn = sprintf('%s_0maps.%s',frms{frm_idx}.frm_id,param.post.img_type);
     map_fn = fullfile(image_dir,map_fn);
+    set(fh_maps,'PaperUnits','inches');
     set(fh_maps,'PaperPosition',[0.5 0.5 10 7.5]);
     set(fh_maps,'PaperOrientation','Portrait');
     print(map_param.fig_hand,print_device,print_dpi,map_fn);
@@ -440,6 +463,7 @@ for frm_idx = 1:length(frms)
       map_fn = fullfile(pdf_dir,map_fn);
       set(fh_maps,'PaperOrientation','Landscape');
       
+      set(map_param.fig_hand,'PaperUnits','inches');
       set(map_param.fig_hand,'PaperPosition',[0.5 0.5 10 7.5]);
       saveas(map_param.fig_hand,map_fn);
     end
@@ -543,6 +567,7 @@ for frm_idx = 1:length(frms)
       echo_fn = sprintf('%s_%s_1echo.pdf',frms{frm_idx}.frm_id,time_stamp_str);
       echo_fn = fullfile(pdf_dir,echo_fn);
       set(fh_echo,'PaperOrientation','Landscape');
+      set(fh_echo,'PaperUnits','inches');
       set(fh_echo,'PaperPosition',[0.5 0.5 10 7.5]);
       %print(fh_echo,'-depsc','-r72',echo_fn);
       saveas(fh_echo,echo_fn);
@@ -573,6 +598,7 @@ for frm_idx = 1:length(frms)
         echo_fn = sprintf('%s_%s_2echo_picks.pdf',frms{frm_idx}.frm_id,time_stamp_str);
         echo_fn = fullfile(pdf_dir,echo_fn);
         set(fh_echo,'PaperOrientation','Landscape');
+        set(fh_echo,'PaperUnits','inches');
         set(fh_echo,'PaperPosition',[0.5 0.5 10 7.5]);
         %print(fh_echo,'-depsc','-r72',echo_fn);
         saveas(fh_echo,echo_fn);
@@ -800,8 +826,9 @@ end
 % =======================================================================
 if param.post.pdf_en
   fprintf(' Creating combined pdf files (%s)\n', datestr(now));
-  if ispc
-    warning('  Can not do this final step on a PC since it uses ghostscript (gs version 9.02) commands. Rerun posting with just pdf enabled on the post worksheet on a linux machine and it will skip to this combine step so you don''t have to recreate all the temporary frame pdf files again.');
+  gs_path = 'C:\Progra~1\gs\gs9.16\bin\gswin64.exe';
+  if ispc && ~exist(gs_path,'file')
+    warning('  Can not do this final step on a PC without ghostscript (gs version 9.02) commands. Rerun posting with just pdf enabled on the post worksheet on a linux machine and it will skip to this combine step so you don''t have to recreate all the temporary frame pdf files again.');
   else
     pdf_base_dir = fullfile(post_path,'pdf');
     % The PDF creation used to do all available directories:
@@ -814,8 +841,15 @@ if param.post.pdf_en
       [pdf_dir_path pdf_dir_name] = fileparts(pdf_dirs{dir_idx});
       out_fn = fullfile(pdf_dir_path,sprintf('%s.pdf',pdf_dir_name));
       fprintf('  Creating pdf %s\n', out_fn);
-      sys_cmd = sprintf('gs -dNOPAUSE -dBATCH -dSAFER -sOutputFile=%s -sDEVICE=pdfwrite -f %s', ...
-        out_fn, in_search_str);
+      if ispc
+        pdf_fns = get_filenames(pdf_dirs{dir_idx},'','','.pdf');
+        pdf_fns = sprintf('%s ', pdf_fns{:});
+        sys_cmd = sprintf('%s -dNOPAUSE -dBATCH -dSAFER -sOutputFile=%s -sDEVICE=pdfwrite -f %s', ...
+          gs_path, out_fn, pdf_fns);
+      else
+        sys_cmd = sprintf('gs -dNOPAUSE -dBATCH -dSAFER -sOutputFile=%s -sDEVICE=pdfwrite -f %s', ...
+          out_fn, in_search_str);
+      end
       [status,result] = system(sys_cmd);
       if status > 1
         warning('pdf creation may have failed');

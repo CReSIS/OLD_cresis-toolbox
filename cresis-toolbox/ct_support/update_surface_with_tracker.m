@@ -89,8 +89,16 @@ for param_idx = 1:length(params)
   for frm_idx = 1:length(param.cmd.frms)
     frm = param.cmd.frms(frm_idx);
     
-    data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
-      sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+    if ~exist('echogram_img','var')
+      echogram_img = 0;
+    end
+    if echogram_img == 0
+      data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
+        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+    else
+      data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
+        sprintf('Data_img_%02d_%s_%03d.mat', echogram_img, param.day_seg, frm));
+    end
     fprintf('  Updating %s (%s)\n', data_fn, datestr(now,'HH:MM:SS'));
     
     if ~exist(data_fn)

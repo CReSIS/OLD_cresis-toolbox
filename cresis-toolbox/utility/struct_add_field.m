@@ -54,7 +54,8 @@ if ~isempty(period_idx)
   if force_overwrite  || isempty(added) || ~isfield(added,new_field(1:period_idx-1))
     added(1).(new_field(1:period_idx-1)) = struct([]);
   end
-  added(1).(new_field(1:period_idx-1)) = struct_add_field(added(1).(new_field(1:period_idx-1)),new_field(period_idx+1:end),value,force_overwrite,no_size_change);
+  added(1).(new_field(1:period_idx-1)) = struct_add_field(added(1).(new_field(1:period_idx-1)), ...
+    new_field(period_idx+1:end),value,force_overwrite,no_size_change);
 else
   if no_size_change
     % Trick to add a new field to the struct and keep the struct empty

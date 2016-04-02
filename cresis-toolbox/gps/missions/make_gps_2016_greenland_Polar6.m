@@ -48,6 +48,15 @@ if strcmpi(gps_source_to_use,'NMEA')
   gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 0;
 
+  file_idx = file_idx + 1;
+  year = 2016; month = 4; day = 1;
+  in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_%04d%02d%02d',year,month,day),'','.txt');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+  file_type{file_idx} = 'NMEA';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+  gps_source{file_idx} = 'nmea-field';
+  sync_flag{file_idx} = 0;
+  
 elseif strcmpi(gps_source_to_use,'AWI')
   % =======================================================================
   % AWI
@@ -105,7 +114,7 @@ make_gps;
 
 %% No GPS Data Available: Fakes GPS position information
 match_idx = strmatch('gps_20160331.mat',out_fns,'exact');
-if 1 || ~isempty(match_idx)
+if ~isempty(match_idx)
   gps_fn = fullfile(gps_path,out_fns{match_idx});
   fprintf('Creating fake gps data for %s\n', gps_fn);
   gps = load(gps_fn);

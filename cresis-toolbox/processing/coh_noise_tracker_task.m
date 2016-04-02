@@ -89,10 +89,20 @@ if ~isfield(param.get_heights,'elev_correction') || isempty(param.get_heights.el
   param.get_heights.elev_correction = false;
 end
 
-if ~param.get_heights.elev_correction ...
-    && length(param.get_heights.B_filter) == param.get_heights.decimate_factor ...
-    && all(param.get_heights.B_filter == 1)
-  simple_firdec = true;
+%% Set simple_firdec (boolean, true means decimate in loader for efficiency)
+if length(param.get_heights.B_filter) == param.get_heights.decimate_factor ...
+    && all(param.get_heights.B_filter == param.get_heights.B_filter(1))
+  if ~param.get_heights.elev_correction
+    % Most radar headers do not support elevation correction so it must
+    % be disabled to allow simple_firdec
+    simple_firdec = true;
+  elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+    % FMCW radars have elevation compensation in data loader so they
+    % can still have simple_firdec with elevation correction.
+    simple_firdec = true;
+  else
+    simple_firdec = false;
+  end
 else
   simple_firdec = false;
 end
@@ -117,16 +127,39 @@ if ~isfield(param.records,'file_version')
   param.records.file_version = [];
 end
 
+if sum(param.get_heights.B_filter) ~= 1
+  warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
+end
+
+param.load.recs_keep = param.load.recs; % Overlapping blocks not currently supported by coh_noise_tracker
+
 % =====================================================================
 % Determine which records to load with load_mcords_data
 %
 % Load records on either side of the current block, note if at the
 % beginning or end of the segment.  Load with minimal presumming.
 
-load_param.load.recs(1) = param.load.recs(1);
-load_param.load.recs(2) = param.load.recs(2);
-records = read_records_aux_files(records_fn,load_param.load.recs);
-old_param_records = records.param_records;
+if simple_firdec
+  load_param.load.recs(1) = param.load.recs(1);
+  load_param.load.recs(2) = param.load.recs(2);
+  records = read_records_aux_files(records_fn,load_param.load.recs);
+  old_param_records = records.param_records;
+else
+  if mod(length(param.get_heights.B_filter)-1,2)
+    error('Filter order must be even (e.g. fir1(EVEN_NUMBER,cutoff))');
+  end
+  filter_order = length(param.get_heights.B_filter) - 1;
+  start_buffer = min(filter_order/2,param.load.recs(1)-1);
+  load_param.load.recs(1) = param.load.recs(1)-start_buffer;
+  load_param.load.recs(2) = param.load.recs(2)+filter_order/2;
+  param.load.recs_keep(1) = param.load.recs_keep(1)-start_buffer;
+  param.load.recs_keep(2) = param.load.recs_keep(2)+filter_order/2;
+  records = read_records_aux_files(records_fn,load_param.load.recs);
+  load_param.load.recs(2) = load_param.load.recs(1) + length(records.gps_time) - 1;
+  param.load.recs_keep(2) = param.load.recs_keep(1) + length(records.gps_time) - 1;
+  old_param_records = records.param_records;
+end
 param_records = records.param_records;
 param_records.gps_source = records.gps_source;
 

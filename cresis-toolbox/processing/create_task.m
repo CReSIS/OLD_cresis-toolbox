@@ -340,7 +340,12 @@ for job_idx = 1:length(ctrl.jobs)
   
   % -----------------------------------------------------------------
   % Get output arguments
-  ctrl.jobs{job_idx}.args_out = getAllOutputArguments(ctrl.jobs{job_idx}.job);
+  try
+    ctrl.jobs{job_idx}.args_out = getAllOutputArguments(ctrl.jobs{job_idx}.job);
+  catch ME
+    warning(ME.getReport);
+    keyboard
+  end
   
   % -----------------------------------------------------------------
   % Check success flag and add to error queue any tasks that did

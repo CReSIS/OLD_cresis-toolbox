@@ -66,17 +66,17 @@ param.rlines = [1 inf];
 % .rbins = 1x2 vector specifying range bins to search for surface in (to
 %   select range bins to the end, set second element to inf).These are
 %   post pulse compression which complex basebands and decimates the data.
-%   (THIS OFTEN NEEDS TO BE SET)
+%   (THIS SOMETIMES NEEDS TO BE SET DUE TO STRONG FEEDTHROUGH SIGNAL)
 param.rbins = [1 inf];
-param.rbins = [1000 1300]; % 150-520 MHz 3 us
-% param.rbins = [50 150]; % 180-210 MHz 3 us
-% param.rbins = [300 500]; % 150-520 MHz 1 us
-% param.rbins = [20 60]; % 180-210 MHz 1 us
 % .noise_rbins = 1xN vector specifying range bins to use for noise power
 %   estimate on each range line (THIS OFTEN NEEDS TO BE SET)
-param.noise_rbins = 400:600; % 150-520 MHz 3 us
+% param.noise_rbins = 400:600; % 165-510 MHz 3 us
 % param.noise_rbins = 1:40; % 180-210 MHz 3 us
-% param.noise_rbins = 100:200; % 150-520 MHz 1 us
+% param.noise_rbins = 100:200; % 165-510 MHz 1 us
+% param.noise_rbins = 80:100; % 180-210 MHz 1 us
+param.noise_rbins = 2700:3000; % 165-510 MHz 3 us
+% param.noise_rbins = 200:230; % 180-210 MHz 3 us
+% param.noise_rbins = 100:200; % 165-510 MHz 1 us
 % param.noise_rbins = 80:100; % 180-210 MHz 1 us
 
 % .snr_threshold = SNR threshold in dB (range lines exceeding this
@@ -93,7 +93,7 @@ param.base_dir = '\\172.18.1.103\d\';
 param.base_dir = '\\172.18.1.32\mcords\';
 param.base_dir = '\\172.18.1.33\mcords\';
 % param.base_dir = 'D:\';
-param.base_dir = 'E:\awi\awi\';
+param.base_dir = 'E:\201604010201\UWB\';
 
 % xml_fn = optional string containing xml file to load (normally
 %   leave this empty and select during run time)
@@ -105,10 +105,10 @@ xml_version = 2.0;
 
 % out_xml_fn_dir = String containg the directory where the new XML file
 %   will be placed (THIS OFTEN NEEDS TO BE SET)
-out_xml_fn_dir = 'E:\waveforms\';
+out_xml_fn_dir = 'F:\mdce_tmp\waveforms\';
 
 % param.adc = The ADC channel to load. Generally not critical which one is used.
-param.adc = 8;
+param.adc = 12;
 
 % param.wf_mapping: each entry indicates the waveform that should be used
 %   for that DDS. An entry set to zero indicates that that DDS will not
@@ -638,7 +638,7 @@ for file_idx = 1:length(fns)
     fprintf('\n');
   end
   fprintf('========================================================\n');
-  results.DDS_amp_error(file_idx,:) = delta_power;
+  results.DDS_amp_error(file_idx,:) = delta_power - 20*log10(Hwindow_desired);
   results.DDS_amp(file_idx,:) = new_DDS_amp;
 
   % =======================================================================
@@ -898,6 +898,10 @@ if isfield(settings_enc,'xmlversion') && str2double(settings_enc.xmlversion{1}.v
 end
 
 fprintf('Writing %s\n', out_xml_fn);
+out_xml_fn_dir = fileparts(out_xml_fn);
+if ~exist(out_xml_fn_dir,'dir')
+  mkdir(out_xml_fn_dir);
+end
 fid = fopen(out_xml_fn,'w');
 fprintf(fid,'<?xml version=''1.0'' standalone=''yes'' ?>\n');
 fprintf(fid,'<LVData xmlns="http://www.ni.com/LVData">\n');

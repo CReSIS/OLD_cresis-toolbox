@@ -14,15 +14,15 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   % =======================================================================
   % =======================================================================
 
-  base_dir = '/cresis/snfs1/scratch/paden/awi/';
-  base_dir_in_param = '/cresis/snfs1/scratch/paden/awi/';
+  base_dir = 'E:\201604010201\UWB\';
+  base_dir_in_param = 'E:\201604010201\UWB\';
   
   adc_folder_names = {''};
   
   param.radar_name = 'mcords5';
   param.season_name = '2016_Greenland_Polar6';
   
-  header_load_date = datenum(2016,3,11);
+  header_load_date = datenum(2016,4,1);
   default.cmd.mission_name = 'Lab Test';
   
   param_file.write_en = false;
@@ -30,7 +30,7 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   
   %% MCORDS 5: 2016 Greenland Polar6
   param.radar_name = 'mcords5';
-  xml_file_prefix = 'mcords5_20160311';
+  xml_file_prefix = 'mcords5_20160401';
   data_file_prefix = 'mcords5';
   board_sub_directory = 'chan1';
   
@@ -61,7 +61,7 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   default.get_heights.B_filter = ones(1,20)/20;
   default.get_heights.decimate_factor = 20;
   default.get_heights.inc_ave = 10;
-  default.get_heights.surf.en = 0;
+  default.get_heights.surf.en = 1;
   default.get_heights.surf.method = 'threshold';
   default.get_heights.surf.noise_rng = [0 -50 10];
   default.get_heights.surf.min_bin = 2e-6;

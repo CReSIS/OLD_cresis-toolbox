@@ -6,9 +6,25 @@
 physical_constants
 ref_wf_adc = param.analysis.surf.ref_wf_adc;
 
+% Only supports a single image right now
+img = 1;
+
 %% Load data
 fn = fullfile(ct_filename_out(param,input_fn_dir,'',1),sprintf('surf_%s_img_01.mat',param.day_seg));
 data = load(fn);
+
+if ~isfield(param.analysis.surf,'wf_adc_list')
+  param.analysis.surf.wf_adc_list = 1:size(param.analysis.imgs{img},1);
+end
+data.gps_time = data.gps_time(param.analysis.surf.wf_adc_list,:);
+data.lat = data.lat(param.analysis.surf.wf_adc_list,:);
+data.lon = data.lon(param.analysis.surf.wf_adc_list,:);
+data.elev = data.elev(param.analysis.surf.wf_adc_list,:);
+data.roll = data.roll(param.analysis.surf.wf_adc_list,:);
+data.pitch = data.pitch(param.analysis.surf.wf_adc_list,:);
+data.heading = data.heading(param.analysis.surf.wf_adc_list,:);
+data.surf_vals = data.surf_vals(:,:,param.analysis.surf.wf_adc_list);
+
 wrap_around_window = hanning(10);
 wrap_around_window = [wrap_around_window(6:10); 0];
 data.surf_vals(end-5:end,:,:) = bsxfun(@times,data.surf_vals(end-5:end,:,:), ...
@@ -22,9 +38,6 @@ rlines = param.analysis.surf.rlines;
 if isempty(rlines)
   rlines = 1:size(data.surf_vals,2);
 end
-
-% Only supports a single image right now
-img = 1;
 
 if debug_level >= 3
   %% DEBUG
@@ -157,8 +170,8 @@ zero_padding_offset = length(search_bins) - length(ref_bins);
 
 % Update create settings and wiki to include discussion of rx equal
 % settings which capture the same interface in all waveforms
-wf = data.param_analysis.analysis.imgs{img}(1,1);
-adc = data.param_analysis.analysis.imgs{img}(1,1);
+wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(1),1);
+adc = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(1),2);
 
 %% 1. Determine time delay and phase correction for position and channel equalization
 dtime = zeros(size(data.elev));
@@ -228,6 +241,10 @@ for rline_idx = 1:length(rlines)
       [peak_val(wf_adc,rline) peak_offset(wf_adc,rline)] = max(corr_int);
       peak_offset(wf_adc,rline) = (peak_offset(wf_adc,rline)-1)/Mt+1 ...
         + ref_bins(1) + search_bins(1) - 1 - zero_padding_offset;
+      peak_val(wf_adc,rline) = abs( ...
+        max(data.surf_vals(zero_surf_bin+search_bins,rline,wf_adc)) ...
+         ./ max(data.surf_vals(zero_surf_bin+search_bins,rline,ref_wf_adc))) ...
+         .* exp(j*angle(peak_val(wf_adc,rline)));
     elseif delay_method == 3
       %% Cross correlation method with magnitude data
       error('Not finished');
@@ -288,11 +305,11 @@ equal.peak_val = peak_val;
 
 equal.Tsys_offset = nanmean(peak_offset(:,param.analysis.surf.rlines),2)*data.wfs(wf).dt;
 equal.chan_equal_deg_offset = angle(nanmean(peak_val(:,param.analysis.surf.rlines),2)) * 180/pi;
-equal.chan_equal_dB_offset = lp(nanmean(peak_val(:,param.analysis.surf.rlines),2),2);
+equal.chan_equal_dB_offset = lp(nanmean(abs(peak_val(:,param.analysis.surf.rlines)).^2,2),1);
 
 equal.Tsys_offset_std = nanstd(peak_offset(:,param.analysis.surf.rlines),[],2)*data.wfs(wf).dt;
 equal.chan_equal_deg_offset_std = angle(nanstd(peak_val(:,param.analysis.surf.rlines),[],2)) * 180/pi;
-equal.chan_equal_dB_offset_std = lp(nanstd(peak_val(:,param.analysis.surf.rlines),[],2),2);
+equal.chan_equal_dB_offset_std = lp(nanstd(abs(peak_val(:,param.analysis.surf.rlines)).^2,[],2),1);
 
 equal.Tsys_offset = reshape(equal.Tsys_offset,[1 Nc]);
 equal.chan_equal_deg_offset = reshape(equal.chan_equal_deg_offset,[1 Nc]);

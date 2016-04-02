@@ -218,6 +218,69 @@ if ~(~ismcc && isdeployed)
   profile(pidx).sched.force_compile       = false;
   profile(pidx).sched.rerun_only          = false;
   
+  %% AWI Profile Windows (PROFILE 7)
+  % ----------------------------------------------------------------------
+  pidx = 7; % profile index
+  profile(pidx).debug_level               = 1;
+  profile(pidx).personal_path             = 'C:\tmp\scripts\matlab\';
+  profile(pidx).ct_path                   = 'C:\tmp\scripts\cresis-toolbox\cresis-toolbox\';
+  profile(pidx).param_path                = 'C:\tmp\scripts\params\';
+  
+  profile(pidx).code_path                 = profile(pidx).ct_path;
+  profile(pidx).code_path_override        = profile(pidx).personal_path;
+  profile(pidx).tmp_file_path             = 'F:\mdce_tmp\';
+  profile(pidx).ct_tmp_file_path          = 'F:\ct_tmp\';
+  
+  profile(pidx).data_path                 = 'D:\';
+  profile(pidx).data_support_path         = 'F:\metadata\';
+  profile(pidx).support_path              = 'F:\csarp_support\';
+  profile(pidx).out_path                  = 'F:\';
+  profile(pidx).gis_path                  = 'C:\tmp\GIS_data\';
+  
+  profile(pidx).sched.type                = 'local';
+  profile(pidx).sched.ver                 = 2; % local and jobmanager only
+  profile(pidx).sched.data_location       = '';
+  profile(pidx).sched.submit_arguments    = '';
+  profile(pidx).sched.max_in_queue        = 256;
+  profile(pidx).sched.max_tasks_per_jobs  = 256;
+  profile(pidx).sched.cluster_size        = inf;
+  profile(pidx).sched.stop_on_fail        = true;
+  profile(pidx).sched.max_retries         = 4;
+  profile(pidx).sched.worker_fn           = '';
+  profile(pidx).sched.force_compile       = false;
+  profile(pidx).sched.rerun_only          = false;
+  
+  %% AWI Profile Linux (PROFILE 8)
+  % ----------------------------------------------------------------------
+  pidx = 8; % profile index
+  profile(pidx).debug_level               = 1;
+  profile(pidx).personal_path             = '/home/administrator/scripts/matlab/';
+  profile(pidx).ct_path                   = '/home/administrator/scripts/cresis-toolbox/';
+  profile(pidx).param_path                = '/home/administrator/scripts/params/';
+  
+  profile(pidx).code_path                 = profile(pidx).ct_path;
+  profile(pidx).code_path_override        = profile(pidx).personal_path;
+  profile(pidx).tmp_file_path             = '/home/administrator/Scratch/mdce_tmp/';
+  profile(pidx).ct_tmp_file_path          = '/home/administrator/Scratch/ct_tmp/';
+  
+  profile(pidx).data_path                 = '/mnt/AWI_SSD0/';
+  profile(pidx).data_support_path         = '/home/administrator/Scratch/metadata/';
+  profile(pidx).support_path              = '/home/administrator/Scratch/csarp_support/';
+  profile(pidx).out_path                  = '/home/administrator/Scratch/';
+  profile(pidx).gis_path                  = '/home/administrator/GIS_data/';
+  
+  profile(pidx).sched.type                = 'custom_torque';
+  profile(pidx).sched.ver                 = 2; % local and jobmanager only
+  profile(pidx).sched.data_location       = '/home/administrator/Scratch/torque-temp';
+  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=2,walltime=15:00';
+  profile(pidx).sched.max_in_queue        = 64;
+  profile(pidx).sched.cluster_size        = inf;
+  profile(pidx).sched.stop_on_fail        = true;
+  profile(pidx).sched.max_retries         = 4;
+  profile(pidx).sched.worker_fn           = '/home/administrator/scripts/cresis-toolbox-torque/worker';
+  profile(pidx).sched.force_compile       = false;
+  profile(pidx).sched.rerun_only          = false;
+    
   %% Startup code (Automated Section)
   % =====================================================================
   
