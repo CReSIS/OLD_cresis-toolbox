@@ -1,5 +1,5 @@
-function gpr_remove_bad_records(records_fn,good_mask)
-% gpr_remove_bad_records(records_fn,good_mask)
+function gpr_remove_bad_records(param,good_mask)
+% gpr_remove_bad_records(param,good_mask)
 %
 % Removes records based on good_mask. good_mask should be a logical mask
 % equal in size to records.gps_time and other fields.
@@ -10,13 +10,22 @@ function gpr_remove_bad_records(records_fn,good_mask)
 % Example to remove a set of bad records manually:
 % 
 % records = load(records_fn);
+% param = struct('season_name',records.param_records.season_name);
+% param.radar_name = records.param_records.radar_name;
+% param.day_seg = records.param_records.day_seg;
 % good_mask = logical(ones(size(records.gps_time)));
 % good_mask(1:63370) = false;
-% gpr_remove_bad_records(records_fn,good_mask);
+% gpr_remove_bad_records(param,good_mask);
 %
 % Author: John Paden
 
+%% Load frames and records files
+frames_fn = ct_filename_support(param,'','frames');
+load(frames_fn);
+records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+
+%% Remove bad records from GPS/INS
 
 records.gps_time = records.gps_time(good_mask);
 records.lat = records.lat(good_mask);
@@ -59,6 +68,7 @@ end
 
 records.offset = records.offset(:,good_mask);
 
+%% Update remaining standard fields
 if isfield(records,'time')
   records.time = records.time(good_mask);
 end
@@ -66,6 +76,8 @@ end
 records.surface = records.surface(good_mask);
 
 records.notes = cat(2,records.notes,sprintf('Applied a good_mask on %s (which may remove records from default create records run).',datestr(now)));
+
+%% Update radar specific fields
 
 if strcmp(records.radar_name,'accum2')
   records.raw.comp_time = records.raw.comp_time(good_mask);
@@ -83,8 +95,18 @@ else
   error('Radar not supported');
 end
 
+%% Adjust frames file to account for removed records
+for frm = 1:length(frames.frame_idxs)
+  num_bad_records = sum(~good_mask(1:frames.frame_idxs(frm)-1));
+  frames.frame_idxs(frm) = frames.frame_idxs(frm) - num_bad_records;
+end
+
+%% Save Results
 fprintf('  Saving records %s\n', records_fn);
 save(records_fn,'-struct','records');
 create_records_aux_files(records_fn);
+
+fprintf('  Saving frames %s\n', frames_fn);
+save(frames_fn,'frames');
 
 end

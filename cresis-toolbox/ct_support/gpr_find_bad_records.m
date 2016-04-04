@@ -83,6 +83,9 @@ plot(records.lon(good_mask),records.lat(good_mask));
 fprintf('Check to make sure you are happy with the results. Once done, type dbcont.\n');
 keyboard
 
-gpr_remove_bad_records(records_fn,good_mask);
+param.season_name = records.param_records.season_name;
+param.radar_name = records.param_records.radar_name;
+param.day_seg = records.param_records.day_seg;
+gpr_remove_bad_records(param,good_mask);
 
 return
