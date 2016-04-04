@@ -4,7 +4,17 @@ function gpr_remove_bad_records(records_fn,good_mask)
 % Removes records based on good_mask. good_mask should be a logical mask
 % equal in size to records.gps_time and other fields.
 %
-% Called from gpr_find_bad_records.m
+% Called from gpr_find_bad_records.m which provides a GUI for identifying
+% bad records.
+%
+% Example to remove a set of bad records manually:
+% 
+% records = load(records_fn);
+% good_mask = logical(ones(size(records.gps_time)));
+% good_mask(1:63370) = false;
+% gpr_remove_bad_records(records_fn,good_mask);
+%
+% Author: John Paden
 
 records = load(records_fn);
 
@@ -65,7 +75,7 @@ if strcmp(records.radar_name,'accum2')
   records.settings.range_gate_duration = records.settings.range_gate_duration(good_mask);
   records.settings.trigger_delay = records.settings.trigger_delay(good_mask);
   records.settings.num_coh_ave = records.settings.num_coh_ave(good_mask);
-elseif strcmp(records.radar_name,'snow5')
+elseif strcmp(records.radar_name,'mcords3','snow5')
   records.raw.epri = records.raw.epri(good_mask);
   records.raw.seconds = records.raw.seconds(good_mask);
   records.raw.fraction = records.raw.fraction(good_mask);

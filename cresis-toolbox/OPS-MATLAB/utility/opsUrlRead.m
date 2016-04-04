@@ -25,7 +25,12 @@ import com.mathworks.mlwidgets.io.InterruptibleStreamCopier;
 com.mathworks.mlwidgets.html.HTMLPrefs.setProxySettings
 
 % Check number of inputs and outputs.
-error(nargchk(3,5,nargin))
+matlab_ver = ver('matlab');
+if str2double(matlab_ver.Version) >= 9.0
+  narginchk(3,5);
+else
+  error(nargchk(3,5,nargin));
+end
 error(nargoutchk(0,2,nargout))
 if ~ischar(urlChar)
     error('MATLAB:urlread:InvalidInput','The first input, the URL, must be a character array.');
