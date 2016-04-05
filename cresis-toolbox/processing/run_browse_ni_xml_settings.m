@@ -121,9 +121,10 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   adc_bits = 12;
   adc_full_scale = 2;
   rx_paths = [1:24];
-  chan_equal_dB = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
-  chan_equal_deg = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]';
-  chan_equal_Tsys = '[0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]/1e9';
+
+  chan_equal_dB = '[-0.7 -0.7 -0.7 -0.2 -0.1 -2.3 0.2 -0.1 -4.2 -4.5 -3.1 -4.6 -1.1 -1.5 -0.9 -1.7 0 -0.6 0.2 3.4 0.7 -2.1 0.9 0.2]';
+  chan_equal_deg = '[-168.6 -114.1 -5.7 9 30 24.1 -144.3 -137.7 113.1 64.8 124.3 133.7 108 138.1 71.6 102.9 -95.8 -127.2 -143.1 -139.6 -128.4 -172.3 -173.8 -141.1]';
+  chan_equal_Tsys = '[0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9';
   Tadc = []; % normally leave empty to use value in file header
   Tadc_adjust = 0.000010179163; % leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
   max_DDS_RAM = 4000;
