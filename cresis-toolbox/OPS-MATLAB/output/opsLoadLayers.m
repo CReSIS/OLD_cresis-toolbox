@@ -20,10 +20,10 @@ function layers = opsLoadLayers(param, layer_params)
 %    'layerdata': Loads layer data from layer data files
 %    'lidar': Loads (ATM or AWI) lidar data
 %    'ops': Loads layer data from Open Polar Server
-%  .echogram_source = string containing ct_filename_out argument if using 
+%  .echogram_source = string containing ct_filename_out argument if using
 %    'echogram' source
 %    (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
-%  .layerdata_source = string containing ct_filename_out argument if using 
+%  .layerdata_source = string containing ct_filename_out argument if using
 %    'echogram' source
 %    (e.g. 'layerData', 'CSARP_post/layerData')
 %  .lidar_source = string containing 'awi' or 'atm' if using lidar source
@@ -31,6 +31,22 @@ function layers = opsLoadLayers(param, layer_params)
 %    thrown if the layer does not exist. If false, no data points are
 %    returned when the layer does not exist and only a warning is given.
 %  .debug = default is false
+%  .eval: Optional structure for performing operations on the layer
+%    .cmd: Command string that will be passed to eval
+%    .$(custom): Custom fields
+%     Variables available are:
+%       physical_constants
+%       "gps_time" (sec)
+%       "along_track" (m)
+%       "lat" (deg)
+%       "lon" (deg)
+%       "elev" (m)
+%       "source" (twtt in sec)
+%       "eval_struct" (the eval structure passed in by the user)
+%     The cmd string should generally update "source" variable. For example:
+%        '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
+%        'source = source + 0.1;' % Apply a twtt shift
+%        'source = source*2;' % Surface multiple
 %
 % layers: N element struct array with layer information
 %  .gps_time
@@ -211,7 +227,7 @@ for frm_idx = 1:length(param.cmd.frms)
     if strcmpi(layer_param.source,'echogram')
       data_fn = fullfile(ct_filename_out(param,layer_param.echogram_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-
+      
       if ~exist(data_fn,'file')
         if layer_param.existence_check
           error('Echogram file %s does not exist', data_fn);
@@ -219,7 +235,7 @@ for frm_idx = 1:length(param.cmd.frms)
           warning('Echogram file %s does not exist', data_fn);
           continue;
         end
-      end      
+      end
       
       %% Convert layer name to echogram name
       if strcmpi(layer_params(layer_idx).name,'surface')
@@ -229,10 +245,10 @@ for frm_idx = 1:length(param.cmd.frms)
       else
         echogram_layer_name = layer_params(layer_idx).name;
       end
-
+      
       %% Load data
       mdata = load(data_fn,echogram_layer_name,'GPS_time','Elevation','Latitude','Longitude');
-       
+      
       layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time, ...
         mdata.GPS_time);
       layers(layer_idx).elev = cat(2,layers(layer_idx).elev, ...
@@ -267,6 +283,9 @@ for frm_idx = 1:length(param.cmd.frms)
     
     if strcmpi(layer_param.source,'layerdata')
       %% 1. Open the specific layer data file
+      if ~isfield(layer_param,'layerdata_source') || isempty(layer_param.layerdata_source)
+        layer_param.layerdata_source = 'layerData';
+      end
       layer_fn = fullfile(ct_filename_out(param,layer_param.layerdata_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
       if ~exist(layer_fn,'file')
@@ -334,7 +353,7 @@ for frm_idx = 1:length(param.cmd.frms)
     if strcmpi(layer_param.source,'ops')
       start_gps = ops_seg_data.properties.start_gps_time(frm);
       stop_gps = ops_seg_data.properties.stop_gps_time(frm);
-
+      
       found = true;
       if ~layer_param.existence_check
         % If the layer does not exist, we need to determine this before
@@ -386,6 +405,21 @@ for frm_idx = 1:length(param.cmd.frms)
       end
     end
     
+  end
+end
+
+for layer_idx = 1:length(layer_params)
+  layer_param = layer_params(layer_idx);
+  if isfield(layer_param,'eval') && ~isempty(layer_param.eval)
+    source = layers(layer_idx).twtt;
+    gps_time = layers(layer_idx).gps_time;
+    lat = layers(layer_idx).lat;
+    lon = layers(layer_idx).lon;
+    elev = layers(layer_idx).elev;
+    along_track = geodetic_to_along_track(lat,lon,elev);
+    eval_struct = layer_param.eval;
+    eval(layer_param.eval.cmd);
+    layers(layer_idx).twtt = source;
   end
 end
 

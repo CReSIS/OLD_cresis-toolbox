@@ -377,69 +377,201 @@ elseif ~strcmpi(param.sched.type,'no scheduler')
   end
 end
 
+%% Loop through all the surface tracker files and combine
+% =====================================================================
 if param.analysis.surf.en
-   %% Loop through all the surface tracker files and combine
-  % =====================================================================
   for img = 1:length(param.analysis.imgs)
-  gps_time = [];
-  lat = [];
-  lon = [];
-  elev = [];
-  roll = [];
-  pitch = [];
-  heading = [];
-  surf_vals = [];
-  surf_bins = [];
-  for break_idx = 1:length(breaks)
-    rec_load_start = breaks(break_idx);
-    
-    if break_idx == length(breaks)
-      rec_load_stop = length(records.gps_time);
-    else
-      rec_load_stop = rec_load_start+param.analysis.block_size-1;
+    gps_time = [];
+    lat = [];
+    lon = [];
+    elev = [];
+    roll = [];
+    pitch = [];
+    heading = [];
+    surf_vals = {};
+    surf_bins = {};
+    for break_idx = 1:length(breaks)
+      rec_load_start = breaks(break_idx);
+      
+      if break_idx == length(breaks)
+        rec_load_stop = length(records.gps_time);
+      else
+        rec_load_stop = rec_load_start+param.analysis.block_size-1;
+      end
+      
+      % =====================================================================
+      % Prepare task inputs
+      % =====================================================================
+      cur_recs = [rec_load_start rec_load_stop];
+      
+      out_fn = fullfile(ct_filename_out(param, ...
+        param.analysis.out_path, 'CSARP_noise'), ...
+        sprintf('surf_img_%02d_%d_%d.mat', img, cur_recs(1),cur_recs(end)));
+      
+      surf = load(out_fn);
+      
+      gps_time = cat(2,gps_time,surf.gps_time);
+      lat = cat(2,lat,surf.lat);
+      lon = cat(2,lon,surf.lon);
+      elev = cat(2,elev,surf.elev);
+      roll = cat(2,roll,surf.roll);
+      pitch = cat(2,pitch,surf.pitch);
+      heading = cat(2,heading,surf.heading);
+      surf_vals = cat(2,surf_vals,surf.surf_vals);
+      surf_bins = cat(2,surf_bins,surf.surf_bins);
     end
     
-    % =====================================================================
-    % Prepare task inputs
-    % =====================================================================
-    cur_recs = [rec_load_start rec_load_stop];
+    surf.gps_time = gps_time;
+    surf.lat = lat;
+    surf.lon = lon;
+    surf.elev = elev;
+    surf.roll = roll;
+    surf.pitch = pitch;
+    surf.heading = heading;
+    surf.surf_vals = surf_vals;
+    surf.surf_bins = surf_bins;
     
-    out_fn = fullfile(ct_filename_out(param, ...
-      param.analysis.out_path, 'CSARP_noise'), ...
-        sprintf('surf_img_%02d_%d_%d.mat', img, cur_recs(1),cur_recs(end)));
-    
-    surf = load(out_fn);
-    
-    gps_time = cat(2,gps_time,surf.gps_time);
-    lat = cat(2,lat,surf.lat);
-    lon = cat(2,lon,surf.lon);
-    elev = cat(2,elev,surf.elev);
-    roll = cat(2,roll,surf.roll);
-    pitch = cat(2,pitch,surf.pitch);
-    heading = cat(2,heading,surf.heading);
-    surf_vals = cat(2,surf_vals,surf.surf_vals);
-    surf_bins = cat(2,surf_bins,surf.surf_bins);
-  end
-  
-  surf.gps_time = gps_time;
-  surf.lat = lat;
-  surf.lon = lon;
-  surf.elev = elev;
-  surf.roll = roll;
-  surf.pitch = pitch;
-  surf.heading = heading;
-  surf.surf_vals = surf_vals;
-  surf.surf_bins = surf_bins;
-  
-  out_fn_dir = fileparts(out_fn);
-  out_segment_fn_dir = fileparts(out_fn_dir);
+    out_fn_dir = fileparts(out_fn);
+    out_segment_fn_dir = fileparts(out_fn_dir);
     out_segment_fn = fullfile(out_segment_fn_dir,sprintf('surf_%s_img_%02d.mat', param.day_seg, img));
-  fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-  save(out_segment_fn,'-struct','surf');
+    fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+    save(out_segment_fn,'-struct','surf');
   end
   
 end
 
+%% Loop through all the power files and combine
+% =====================================================================
+if param.analysis.power.en
+  for img = 1:length(param.analysis.imgs)
+    gps_time = [];
+    lat = [];
+    lon = [];
+    elev = [];
+    roll = [];
+    pitch = [];
+    heading = [];
+    power_vals = [];
+    power_bins = [];
+    for break_idx = 1:length(breaks)
+      rec_load_start = breaks(break_idx);
+      
+      if break_idx == length(breaks)
+        rec_load_stop = length(records.gps_time);
+      else
+        rec_load_stop = rec_load_start+param.analysis.block_size-1;
+      end
+      
+      % =====================================================================
+      % Prepare task inputs
+      % =====================================================================
+      cur_recs = [rec_load_start rec_load_stop];
+      
+      out_fn = fullfile(ct_filename_out(param, ...
+        param.analysis.out_path, 'CSARP_noise'), ...
+        sprintf('power_img_%02d_%d_%d.mat', img, cur_recs(1),cur_recs(end)));
+      
+      power = load(out_fn);
+      
+      gps_time = cat(2,gps_time,power.gps_time);
+      lat = cat(2,lat,power.lat);
+      lon = cat(2,lon,power.lon);
+      elev = cat(2,elev,power.elev);
+      roll = cat(2,roll,power.roll);
+      pitch = cat(2,pitch,power.pitch);
+      heading = cat(2,heading,power.heading);
+      power_vals = cat(2,power_vals,power.power_vals);
+      power_bins = cat(2,power_bins,power.power_bins);
+    end
+    
+    power.gps_time = gps_time;
+    power.lat = lat;
+    power.lon = lon;
+    power.elev = elev;
+    power.roll = roll;
+    power.pitch = pitch;
+    power.heading = heading;
+    power.power_vals = power_vals;
+    power.power_bins = power_bins;
+    
+    out_fn_dir = fileparts(out_fn);
+    out_segment_fn_dir = fileparts(out_fn_dir);
+    out_segment_fn = fullfile(out_segment_fn_dir,sprintf('power_%s_img_%02d.mat', param.day_seg, img));
+    fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+    save(out_segment_fn,'-struct','power');
+  end
+end
+
+%% Loop through all the psd (power spectral density) files and combine
+% =====================================================================
+if param.analysis.psd.en
+  for img = 1:length(param.analysis.imgs)
+    gps_time = [];
+    lat = [];
+    lon = [];
+    elev = [];
+    roll = [];
+    pitch = [];
+    heading = [];
+    psd_vals = [];
+    psd_bins = [];
+    psd_mean = [];
+    psd_Rnn = [];
+    for break_idx = 1:length(breaks)
+      rec_load_start = breaks(break_idx);
+      
+      if break_idx == length(breaks)
+        rec_load_stop = length(records.gps_time);
+      else
+        rec_load_stop = rec_load_start+param.analysis.block_size-1;
+      end
+      
+      % =====================================================================
+      % Prepare task inputs
+      % =====================================================================
+      cur_recs = [rec_load_start rec_load_stop];
+      
+      out_fn = fullfile(ct_filename_out(param, ...
+        param.analysis.out_path, 'CSARP_noise'), ...
+        sprintf('psd_img_%02d_%d_%d.mat', img, cur_recs(1),cur_recs(end)));
+      
+      psd = load(out_fn);
+      
+      gps_time = cat(2,gps_time,psd.gps_time);
+      lat = cat(2,lat,psd.lat);
+      lon = cat(2,lon,psd.lon);
+      elev = cat(2,elev,psd.elev);
+      roll = cat(2,roll,psd.roll);
+      pitch = cat(2,pitch,psd.pitch);
+      heading = cat(2,heading,psd.heading);
+      psd_vals = cat(2,psd_vals,psd.psd_vals);
+      psd_bins = cat(2,psd_bins,psd.psd_bins);
+      psd_mean = cat(2,psd_mean,psd.psd_mean);
+      psd_Rnn = cat(2,psd_Rnn,psd.psd_Rnn);
+    end
+    
+    psd.gps_time = gps_time;
+    psd.lat = lat;
+    psd.lon = lon;
+    psd.elev = elev;
+    psd.roll = roll;
+    psd.pitch = pitch;
+    psd.heading = heading;
+    psd.psd_vals = psd_vals;
+    psd.psd_bins = psd_bins;
+    psd.psd_mean = psd_mean;
+    psd.psd_Rnn = psd_Rnn;
+    
+    out_fn_dir = fileparts(out_fn);
+    out_segment_fn_dir = fileparts(out_fn_dir);
+    out_segment_fn = fullfile(out_segment_fn_dir,sprintf('psd_%s_img_%02d.mat', param.day_seg, img));
+    fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+    save(out_segment_fn,'-struct','psd');
+  end
+end
+
+%% Loop through all the coherenge noise files and combine
+% =====================================================================
 if param.analysis.coh_ave.en
   % determine the most freqent number of samples in all coherent noise
   % files, and use this number for concatenation 
@@ -528,21 +660,21 @@ if param.analysis.coh_ave.en
   
 end
 
+%% Loop through all the specular tracking (for deconvolution) files and combine
+% Returns results about each block of data processed.
+% For blocks with good peakiness (assumed to be specular leads), we
+%   also return the return. To achieve better SNR and understanding
+%   of the waveform we group analysis.specular.ave range lines. After
+%   amplitude, delay, and phase alignment, we store the mean and std
+%   of these range lines. We also store a single range line from the
+%   center of the group for estimating the properties of the deconvolution.
+% =====================================================================
 if param.analysis.specular.en
   % determine the most freqent number of samples in all coherent noise
   % files, and use this number for concatenation 
   specular_fns = get_filenames(ct_filename_out(param,param.analysis.out_path, 'CSARP_noise'),...
     'specular','','.mat');
 
-  %% Loop through all the specular files and combine
-  % Returns results about each block of data processed.
-  % For blocks with good peakiness (assumed to be specular leads), we
-  %   also return the return. To achieve better SNR and understanding
-  %   of the waveform we group analysis.specular.ave range lines. After
-  %   amplitude, delay, and phase alignment, we store the mean and std
-  %   of these range lines. We also store a single range line from the
-  %   center of the group for estimating the properties of the deconvolution.
-  % =====================================================================
   gps_time = [];
   lat = [];
   lon = [];

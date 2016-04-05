@@ -433,13 +433,7 @@ for img_idx = 1:length(param.load.imgs)
     wfs.time = img_time;
   end
   
-  if param.analysis.surf.en
-    %% 1. Load layer
-    layer_params = [];
-    idx = 1;
-    layer_params(idx).name = 'surface';
-    layer_params(idx).source = 'records';
-    layers = opsLoadLayers(param,layer_params);
+  if param.analysis.surf.en || param.analysis.power.en || power.analysis.psd.en
     
     %% Apply lever arm correction to trajectory data, but preserve each
     %% channel separately.
@@ -509,19 +503,26 @@ for img_idx = 1:length(param.load.imgs)
     pitch = out_records.pitch;
     heading = out_records.heading;
     
+  end
+    
+  if param.analysis.surf.en
+    %% 1. Load layer
+    layers = opsLoadLayers(param,param.analysis.surf.layer_params);
+    
     %% 2. Extract surface values according to bin_rng
     layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
+    layers(1).twtt = interp_finite(layers(1).twtt);
     zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
-    start_bin = param.analysis.surf.bin_rng(1) + zero_bin;
-    stop_bin = param.analysis.surf.bin_rng(end) + zero_bin;
-    surf_vals = zeros(1+diff(param.analysis.surf.bin_rng([1 end])), size(g_data,2), size(g_data,3));
-    surf_bins = start_bin;
+    start_bin = zero_bin;
+    stop_bin = param.analysis.surf.Nt-1 + zero_bin;
+    surf_vals = zeros(param.analysis.surf.Nt, size(g_data,2), size(g_data,3));
     for rline = 1:size(g_data,2)
       start_bin0 = max(1,start_bin(rline));
       stop_bin0 = min(size(g_data,1),stop_bin(rline));
       out_bin0 = 1 + start_bin0-start_bin(rline);
       out_bin1 = size(surf_vals,1) - (stop_bin(rline)-stop_bin0);
       surf_vals(out_bin0:out_bin1,rline,:) = g_data(start_bin0:stop_bin0,rline,:);
+      surf_bins(1:2,rline) = [start_bin0, stop_bin0];
     end
 
     %% 3. Save
@@ -536,6 +537,81 @@ for img_idx = 1:length(param.load.imgs)
     param_analysis.gps_source = records.gps_source;
     fprintf('  Saving outputs %s\n', out_fn);
     save(out_fn, 'surf_vals','surf_bins', 'wfs', 'gps_time', 'lat', ...
+      'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+  end
+    
+  if param.analysis.power.en
+    %% 1. Load layers (there should be two)
+    layers = opsLoadLayers(param,param.analysis.power.layer_params);
+    
+    %% 2. Run function handles on the layers
+    layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
+    layers(1).twtt = interp_finite(layers(1).twtt);
+    start_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
+    layers(2).twtt = interp1(layers(2).gps_time, layers(2).twtt, gps_time(1,:));
+    layers(2).twtt = interp_finite(layers(2).twtt);
+    stop_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(2).twtt,'linear','extrap'));
+    for rline = 1:size(g_data,2)
+      vals = g_data(start_bin(rline):stop_bin(rline),rline,:);
+      power_bins(1:2,rline) = [start_bin(rline); stop_bin(rline)];
+      for fh_idx = 1:length(param.analysis.power.fh)
+        power_vals(fh_idx,rline,:) = param.analysis.power.fh{fh_idx}(vals);
+      end
+    end
+
+    %% 3. Save
+    out_fn = fullfile(ct_filename_out(param, ...
+      param.analysis.out_path, 'CSARP_noise'), ...
+      sprintf('power_img_%02d_%d_%d.mat',img_idx,param.load.recs(1),param.load.recs(end)));
+    [out_fn_dir] = fileparts(out_fn);
+    if ~exist(out_fn_dir,'dir')
+      mkdir(out_fn_dir);
+    end
+    param_analysis = param;
+    param_analysis.gps_source = records.gps_source;
+    fprintf('  Saving outputs %s\n', out_fn);
+    save(out_fn, 'power_vals','power_bins', 'wfs', 'gps_time', 'lat', ...
+      'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+  end
+    
+  if param.analysis.psd.en
+    %% 1. Load layer
+    layers = opsLoadLayers(param,param.analysis.psd.layer_params);
+    
+    %% 2. Extract psd values according to bin_rng
+    layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
+    layers(1).twtt = interp_finite(layers(1).twtt);
+    zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
+    start_bin = zero_bin;
+    stop_bin = param.analysis.psd.Nt-1 + zero_bin;
+    psd_vals = zeros(param.analysis.psd.Nt, size(g_data,2), size(g_data,3));
+    psd_mean = zeros(1, size(g_data,2), size(g_data,3));
+    psd_Rnn = zeros(size(g_data,3), size(g_data,2), size(g_data,3));
+    for rline = 1:size(g_data,2)
+      start_bin0 = max(1,start_bin(rline));
+      stop_bin0 = min(size(g_data,1),stop_bin(rline));
+      out_bin0 = 1 + start_bin0-start_bin(rline);
+      out_bin1 = size(psd_vals,1) - (stop_bin(rline)-stop_bin0);
+      psd_vals(out_bin0:out_bin1,rline,:) = g_data(start_bin0:stop_bin0,rline,:);
+      psd_bins(1:2,rline) = [start_bin0, stop_bin0];
+      psd_mean(1,rline,:) = mean(abs(g_data(start_bin0:stop_bin0,rline,:)).^2);
+      snapshots = squeeze(g_data(start_bin0:stop_bin0,rline,:)).';
+      psd_Rnn(:,rline,:) = 1/(stop_bin0-start_bin0+1) * snapshots * snapshots';
+    end
+    psd_vals = mean(abs(fft(psd_vals)).^2,2);
+
+    %% 3. Save
+    out_fn = fullfile(ct_filename_out(param, ...
+      param.analysis.out_path, 'CSARP_noise'), ...
+      sprintf('psd_img_%02d_%d_%d.mat',img_idx,param.load.recs(1),param.load.recs(end)));
+    [out_fn_dir] = fileparts(out_fn);
+    if ~exist(out_fn_dir,'dir')
+      mkdir(out_fn_dir);
+    end
+    param_analysis = param;
+    param_analysis.gps_source = records.gps_source;
+    fprintf('  Saving outputs %s\n', out_fn);
+    save(out_fn, 'psd_vals','psd_bins', 'psd_mean', 'psd_Rnn', 'wfs', 'gps_time', 'lat', ...
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
   
