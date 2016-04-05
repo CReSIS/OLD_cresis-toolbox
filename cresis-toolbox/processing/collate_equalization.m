@@ -29,7 +29,10 @@ wrap_around_window = hanning(10);
 wrap_around_window = [wrap_around_window(6:10); 0];
 data.surf_vals(end-5:end,:,:) = bsxfun(@times,data.surf_vals(end-5:end,:,:), ...
   wrap_around_window);
-zero_surf_bin = 1-data.param_analysis.analysis.surf.bin_rng(1);
+source = 0; eval(data.param_analysis.analysis.surf.layer_params.eval.cmd);
+wf = data.param_analysis.analysis.imgs{1}(param.analysis.surf.wf_adc_list(1),1);
+dt = data.wfs(wf).time(2)-data.wfs(wf).time(1);
+zero_surf_bin = round(1-source/dt);
 Nt = size(data.surf_vals,1);
 Nx = size(data.surf_vals,2);
 Nc = size(data.surf_vals,3);

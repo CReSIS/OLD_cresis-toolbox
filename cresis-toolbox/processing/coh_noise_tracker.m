@@ -388,8 +388,8 @@ if param.analysis.surf.en
     roll = [];
     pitch = [];
     heading = [];
-    surf_vals = {};
-    surf_bins = {};
+    surf_vals = [];
+    surf_bins = [];
     for break_idx = 1:length(breaks)
       rec_load_start = breaks(break_idx);
       
