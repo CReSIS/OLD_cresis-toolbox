@@ -2,6 +2,8 @@
 %
 % Function for estimating equalization coefficients. Can be used for
 % transmit and receive equalization.
+%
+% Use debug_level 3 and 4 to create plots for status reports.
 
 physical_constants
 ref_wf_adc = param.analysis.surf.ref_wf_adc;
@@ -42,7 +44,7 @@ if isempty(rlines)
   rlines = 1:size(data.surf_vals,2);
 end
 
-if debug_level >= 3
+if debug_level == 3
   %% DEBUG
   plot_bins = zero_surf_bin;
   test_wf_adc = min(9,Nc); % <== SET DESIRED CHANNEL TO COMPARE
@@ -103,7 +105,7 @@ if debug_level >= 3
   
   linkaxes(h_axis,'x');
   xlim([1 size(data.surf_vals,2)]);
-  keyboard;
+  return;
 end
 
 %% Retrack surface
@@ -121,7 +123,7 @@ if param.analysis.surf.retrack.en
     end
   end
   
-  if debug_level >= 2
+  if debug_level == 2
     figure(1); clf;
     imagesc(ml_data);
     hold on;
@@ -141,7 +143,7 @@ if param.analysis.surf.retrack.en
   
   ml_data = lp(fir_dec(abs(data.surf_vals(:,:,ref_wf_adc)).^2,ones(1,5)/5,1));
   % Check to make sure surface is flat
-  if debug_level >= 2
+  if debug_level == 2
     figure(2); clf;
     imagesc(ml_data);
     keyboard
@@ -176,6 +178,13 @@ zero_padding_offset = length(search_bins) - length(ref_bins);
 wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(1),1);
 adc = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(1),2);
 
+rx_paths = zeros(size(param.analysis.surf.wf_adc_list));
+for wf_adc_idx = 1:length(param.analysis.surf.wf_adc_list)
+  wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),1);
+  adc = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),2);
+  rx_paths(wf_adc_idx) = param.radar.wfs(wf).rx_paths(adc);
+end
+
 %% 1. Determine time delay and phase correction for position and channel equalization
 dtime = zeros(size(data.elev));
 if param.analysis.surf.motion_comp.en
@@ -196,13 +205,13 @@ if param.analysis.surf.chan_eq.en
   else
     old_Tadc_adjust = 0;
   end
-  Tsys = param.radar.wfs(wf).Tsys - data.param_analysis.radar.wfs(wf).Tsys ...
+  Tsys = param.radar.wfs(wf).Tsys(rx_paths) - data.param_analysis.radar.wfs(wf).Tsys(rx_paths) ...
     - (new_Tadc_adjust - old_Tadc_adjust);
   dtime = bsxfun(@plus, dtime, Tsys.');
   
-  Tsys = param.radar.wfs(wf).Tsys;
+  Tsys = param.radar.wfs(wf).Tsys(rx_paths);
 else
-  Tsys = data.param_analysis.radar.wfs(wf).Tsys;
+  Tsys = data.param_analysis.radar.wfs(wf).Tsys(rx_paths);
 end
 dtime = permute(dtime,[3 2 1]);
 
@@ -214,16 +223,61 @@ data.surf_vals = ifft(fft(data.surf_vals) .* exp(1i*2*pi*bsxfun(@times,freq,dtim
 if param.analysis.surf.chan_eq.en
   % Only apply the relative offset between what has already been applied
   % during analysis surf and the new coefficients
-  chan_equal_deg = param.radar.wfs(wf).chan_equal_deg - data.param_analysis.radar.wfs(wf).chan_equal_deg;
-  chan_equal_dB = param.radar.wfs(wf).chan_equal_dB - data.param_analysis.radar.wfs(wf).chan_equal_dB;
+  chan_equal_deg = param.radar.wfs(wf).chan_equal_deg(rx_paths) ...
+    - data.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths);
+  chan_equal_dB = param.radar.wfs(wf).chan_equal_dB(rx_paths) ...
+    - data.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
   data.surf_vals = bsxfun(@times, data.surf_vals, ...
     permute(exp(-1i*chan_equal_deg/180*pi) ./ 10.^(chan_equal_dB/20),[1 3 2]));
   
-  chan_equal_deg = param.radar.wfs(wf).chan_equal_deg;
-  chan_equal_dB = param.radar.wfs(wf).chan_equal_dB;
+  chan_equal_deg = param.radar.wfs(wf).chan_equal_deg(rx_paths);
+  chan_equal_dB = param.radar.wfs(wf).chan_equal_dB(rx_paths);
 else
-  chan_equal_deg = data.param_analysis.radar.wfs(wf).chan_equal_deg;
-  chan_equal_dB = data.param_analysis.radar.wfs(wf).chan_equal_dB;
+  chan_equal_deg = data.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths);
+  chan_equal_dB = data.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
+end
+
+if debug_level == 4
+  %% DEBUG
+  h_axis = [];
+  figure(1); clf;
+  subplot(3,1,1:2);
+  h_plot = zeros(1,Nc);
+  legend_str = cell(1,Nc);
+  plot_mode = [0 0 0; hsv(7)];
+  plot_bins = zero_surf_bin + (-1:1); % <== SET DESIRED RANGE BIN MULTILOOKING
+  Nfir_dec = 5; % <== SET DESIRED ALONG TRACK MULTILOOKING
+  ref_rline = min(4320,Nx); % <== SET DESIRED REFERENCE RANGE LINE
+  for wf_adc = 1:Nc
+    unwrapped_angle = angle(mean(fir_dec(data.surf_vals(plot_bins,:,wf_adc) ...
+      .* conj(data.surf_vals(plot_bins,:,ref_wf_adc)),ones(1,Nfir_dec)/Nfir_dec,1)));
+    unwrapped_angle = unwrap(unwrapped_angle);
+    unwrapped_angle = unwrapped_angle - unwrapped_angle(ref_rline);
+    h_plot(wf_adc) = ...
+      plot(180/pi* unwrapped_angle, ...
+      'Color', plot_mode(mod(wf_adc-1,length(plot_mode))+1,:), ...
+      'LineStyle','none','Marker', '.');
+    hold on;
+    legend_str{wf_adc} = sprintf('wf-adc %d', wf_adc);
+  end
+  grid on;
+  legend(h_plot,legend_str);
+  xlabel('Range line');
+  ylabel('Relative angle (deg)');
+  h_axis(end+1) = gca;
+  xlim([4000 5000]);
+  
+  subplot(3,1,3);
+  plot(180/pi*data.roll.');
+  grid on;
+  h_axis(end+1) = gca;
+  ylabel('Roll angle (deg)');
+  xlabel('Range line');
+    
+  linkaxes(h_axis,'x');
+  xlim([min(param.analysis.surf.rlines) max(param.analysis.surf.rlines)]);
+  
+  return;
 end
 
 %% 3. Estimate time delay and amplitude and phase
