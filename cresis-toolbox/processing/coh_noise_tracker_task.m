@@ -446,6 +446,7 @@ for img_idx = 1:length(param.load.imgs)
       tmp_wf = abs(param.load.imgs{1}(tmp_wf_adc_idx,1));
       tmp_adc = abs(param.load.imgs{1}(tmp_wf_adc_idx,2));
       trajectory_param.rx_path = wfs(tmp_wf).rx_paths(tmp_adc);
+      trajectory_param.tx_weights = wfs(tmp_wf).tx_weights;
       tmp_records = trajectory_with_leverarm(records,trajectory_param);
       % Add the positions to the existing out_records
       out_records.gps_time = cat(1,out_records.gps_time,tmp_records.gps_time);
