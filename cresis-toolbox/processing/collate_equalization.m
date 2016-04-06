@@ -16,7 +16,7 @@ fn = fullfile(ct_filename_out(param,input_fn_dir,'',1),sprintf('surf_%s_img_01.m
 data = load(fn);
 
 if ~isfield(param.analysis.surf,'wf_adc_list')
-  param.analysis.surf.wf_adc_list = 1:size(param.analysis.imgs{img},1);
+  param.analysis.surf.wf_adc_list = 1:size(data.param_analysis.analysis.imgs{img},1);
 end
 data.gps_time = data.gps_time(param.analysis.surf.wf_adc_list,:);
 data.lat = data.lat(param.analysis.surf.wf_adc_list,:);
@@ -173,11 +173,10 @@ else
 end
 zero_padding_offset = length(search_bins) - length(ref_bins);
 
-% Update create settings and wiki to include discussion of rx equal
-% settings which capture the same interface in all waveforms
-wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(1),1);
-adc = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(1),2);
+% =========================================================================
+%% Apply motion compensation and channel equalization
 
+%% 1. Create the wf-adc to receiver path mapping
 rx_paths = zeros(size(param.analysis.surf.wf_adc_list));
 for wf_adc_idx = 1:length(param.analysis.surf.wf_adc_list)
   wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),1);
@@ -185,7 +184,7 @@ for wf_adc_idx = 1:length(param.analysis.surf.wf_adc_list)
   rx_paths(wf_adc_idx) = param.radar.wfs(wf).rx_paths(adc);
 end
 
-%% 1. Determine time delay and phase correction for position and channel equalization
+%% 2. Determine time delay and phase correction for position and channel equalization
 dtime = zeros(size(data.elev));
 if param.analysis.surf.motion_comp.en
   if isempty(data.param_analysis.get_heights.lever_arm_fh)
@@ -215,7 +214,7 @@ else
 end
 dtime = permute(dtime,[3 2 1]);
 
-%% 2. Apply time delay, phase, and amplitude correction
+%% 3. Apply time delay, phase, and amplitude correction
 df = 1/(Nt*data.wfs(wf).dt);
 freq = data.wfs(wf).fc + df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
 data.surf_vals = ifft(fft(data.surf_vals) .* exp(1i*2*pi*bsxfun(@times,freq,dtime)));
@@ -389,7 +388,7 @@ equal.chan_equal_deg_str = mat2str(round(angle(exp(j*equal.chan_equal_deg*pi/180
 
 % If Tsys were inserted, this accounts for the phase shift expected by
 % doing this.
-equal.chan_equal_deg_with_Tsys = chan_equal_deg + equal.chan_equal_deg_offset + 360*data.wfs(wf).fc*round(equal.Tsys_offset*1e10)/1e10;
+equal.chan_equal_deg_with_Tsys = chan_equal_deg + equal.chan_equal_deg_offset + 360*data.wfs(wf).fc*round((equal.Tsys-Tsys)*1e10)/1e10;
 
 equal.chan_equal_deg_with_Tsys_str = mat2str(round(angle(exp(j*equal.chan_equal_deg_with_Tsys*pi/180))*180/pi*10)/10);
 
