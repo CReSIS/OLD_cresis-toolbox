@@ -2,108 +2,10 @@
 %
 % First generate the individual element patterns using
 % generate_complex_svLUT.m
-
-if 0
-  %% 2014_Antarctica_DC8
-  
-elseif 0
-  %% 2015_Greenland_C130
-  % fns = list of filenames to load and concatenate data from
-  fn = 'D:\rds\2015_Greenland_C130\CSARP_noise\surf_20150313_14.mat';
-  elements_fn = 'D:\rds\2015_Greenland_C130\CSARP_noise\sv_table_2015_Greenland_C130.mat';
-  output_fn = 'D:\rds\2015_Greenland_C130\CSARP_noise\combined_pattern_2015_Greenland_C130.mat';
-  
-  % roll_to_ant_mapping(ANTENNA) = index into surf_vals containing the
-  % combined antenna transmit data
-  roll_to_ant_mapping = [5];
-  
-  % rlines = restrict which range lines are used (or use all)
-  rlines = [];
-  
-  ref_idx = 1;     % Receive channel index into surf_vals from fn
-  ref_ant = 1;     % Receive channel index into sv_deviation_approx from elements_fn
-  surf_bins = 6;     % The relative range bin into surf_vals that we will use for extracting values from
-  fc = (180e6 + 450e6)/2; % Center frequency
-  
-  good_mask_min_samples = 100;
-  good_mask_min_angle = -50;
-  good_mask_max_angle = 40;
-  
-  extra_degrees_of_freedom = 6; % spatial filter fitting (# of antennas + this many)
-  
-elseif 0
-  %% 2015_Greenland_Polar6
-  % fns = list of filenames to load and concatenate data from
-  fn = 'J:\rds\2015_Greenland_Polar6\CSARP_noise\surf_20150911_17.mat';
-  elements_fn = 'J:\rds\2015_Greenland_Polar6\CSARP_noise\sv_table_2015_Greenland_Polar6.mat';
-  output_fn = 'J:\rds\2015_Greenland_Polar6\CSARP_noise\combined_pattern_2015_Greenland_Polar6.mat';
-  
-  % roll_to_ant_mapping(ANTENNA) = index into surf_vals containing the
-  % combined antenna transmit data
-  roll_to_ant_mapping = [4];
-  
-  % rlines = restrict which range lines are used (or use all)
-  rlines = [];
-  
-  ref_idx = 1;     % Receive channel index into surf_vals from fn (used only for generating complex rad patterns)
-  ref_ant = 1;     % Receive channel index into sv_deviation_approx from elements_fn (should correspond to the receiver that is used in fn)
-  surf_bins = 11;     % The relative range bin into surf_vals that we will use for extracting values from
-  fc = (165e6 + 520e6)/2; % Center frequency  
-  
-  good_mask_min_samples = 10;
-  good_mask_min_angle = -35;
-  good_mask_max_angle = 35; 
-  
-  degrees_of_freedom = 4; % spatial filter fitting (usually around the # of antennas)  
-  
-elseif 1
-  %% 2016_Greenland_Polar6
-  % fns = list of filenames to load and concatenate data from
-  fn = 'F:\rds\2016_Greenland_Polar6\CSARP_noise\surf_20160401_13_img_01.mat';
-  elements_fn = 'F:/rds/2016_Greenland_Polar6/CSARP_noise/sv_table_2016_Greenland_Polar6.mat';  
-
-  % Combined Pattern
-%   rad_patterns = [33]; % wf-adc indexes for patterns you want to generate
-%   ref_pattern = [1];
-%   sv_ant_ref = [4];
-%   output_fn = 'F:\rds\2016_Greenland_Polar6\CSARP_noise\combined_pattern_2016_Greenland_Polar6.mat';
-%   degrees_of_freedom = [10]; % spatial filter fitting (usually around the # of antennas)    
-
-  % Individual Elements (Center Elements Only)
-%   rad_patterns = [17:24]; % wf-adc indexes for patterns you want to generate
-%   %ref_pattern = [repmat(5,[1 8]) repmat(13,[1 8]) repmat(21,[1 8])];
-%   ref_pattern = repmat(4,[1 8]);
-%   sv_LUT_ref = repmat(4,[1 8]);
-%   output_fn = 'F:\rds\2016_Greenland_Polar6\CSARP_noise\sv_table_all_2016_Greenland_Polar6.mat';
-%   degrees_of_freedom = repmat(3,[1 8]); % spatial filter fitting (usually around the # of antennas)    
-
-  % Individual Elements
-  rad_patterns = [9:30, 32, 31]; % wf-adc indexes for patterns you want to generate
-  %ref_pattern = [repmat(5,[1 8]) repmat(13,[1 8]) repmat(21,[1 8])];
-  ref_pattern = repmat(12,[1 24]);
-  sv_LUT_ref = repmat(4,[1 24]);
-  output_fn = 'F:\rds\2016_Greenland_Polar6\CSARP_noise\sv_table_all_2016_Greenland_Polar6.mat';
-  degrees_of_freedom = repmat(3,[1 24]); % spatial filter fitting (usually around the # of antennas)    
-  
-  analysis.surf.motion_comp.en = true;
-  analysis.surf.chan_eq.en = true;
-  analysis.surf.rlines = [1500:6500];
-  
-  good_mask_min_samples = 10;
-  good_mask_min_angle = -30;
-  good_mask_max_angle = 30; 
-  
-  plot_min_angle = -25;
-  plot_max_angle = 25;
-  
-  fit_method = 'filter'; % 'filter' or 'sgolay'
-  
-  debug_level = 1;
-end
-
-% =========================================================================
-% =========================================================================
-% =========================================================================
+%
+% Example: Use run_plot_rad_patterns.m
+%
+% Author: John Paden
 
 physical_constants;
 
@@ -150,6 +52,21 @@ if isempty(rlines)
 else
   rlines = intersect(rlines,all_rlines);
 end
+
+% Frequency subband
+f0 = f0(end);
+f1 = f1(end);
+wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),1);
+df = 1/(Nt*data.wfs(wf).dt);
+freq = data.wfs(wf).fc + df*(floor(-Nt/2) : floor((Nt-1)/2)).';
+H = zeros(size(freq));
+good_mask = freq >= f0 & freq <= f1;
+H(good_mask) = tukeywin(sum(good_mask),0.5);
+freq = ifftshift(freq);
+H = ifftshift(H);
+surf_vals_fft = fft(bsxfun(@times, data.surf_vals, tukeywin(Nt,0.08)));
+surf_vals_fft = bsxfun(@times,surf_vals_fft,H);
+data.surf_vals = ifft(surf_vals_fft);
 
 if 0
   %% DEBUG
@@ -501,6 +418,6 @@ output_fn_dir = fileparts(output_fn);
 if ~exist(output_fn_dir,'dir')
   mkdir(output_fn_dir);
 end
-save(output_fn,'surf_bin','rad_patterns','ref_pattern','sv_LUT_ref','roll_binned','sv_deviation_fit','sv_ideal','param');
+save(output_fn,'surf_bin','rad_patterns','ref_pattern','sv_LUT_ref','roll_binned','sv_deviation_fit','sv_deviation','sv_ideal','param');
 
 return;
