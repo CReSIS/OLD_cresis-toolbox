@@ -359,6 +359,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Rename', 'Callback', @obj.flinesLB_menu_callback);
       obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Reverse Flines', 'Callback', @obj.flinesLB_menu_callback);
       obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Reverse Wpnts', 'Callback', @obj.flinesLB_menu_callback);
+      obj.h_gui.flines.listCM_item1 = uimenu(obj.h_gui.flines.listCM, 'Label', 'Rotate', 'Callback', @obj.flinesLB_menu_callback);
       set(obj.h_gui.flines.listLB,'uicontextmenu',obj.h_gui.flines.listCM)
       
       obj.h_gui.wpnts.listLB = uicontrol('Parent',obj.h_gui.h_lpanel);
@@ -383,6 +384,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Rename', 'Callback', @obj.wpntsLB_menu_callback);
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Rename Auto', 'Callback', @obj.wpntsLB_menu_callback);
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Reverse Order', 'Callback', @obj.wpntsLB_menu_callback);
+      obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Rotate', 'Callback', @obj.wpntsLB_menu_callback);
       set(obj.h_gui.wpnts.listLB,'uicontextmenu',obj.h_gui.wpnts.listCM)
       
       %% Setup left panel
@@ -1570,13 +1572,13 @@ classdef (HandleCompatible = true) vector_editor < handle
         
         if strcmpi(command,{'Edit Geographic'})
           prompt = {'Latitude:','Longitude:','Name:'};
-          def = {sprintf('%g',obj.flines(cur_fline_selected).lat(cur_wpnt_selected)), ...
-            sprintf('%g',obj.flines(cur_fline_selected).lon(cur_wpnt_selected)), ...
+          def = {sprintf('%.12g',obj.flines(cur_fline_selected).lat(cur_wpnt_selected)), ...
+            sprintf('%.12g',obj.flines(cur_fline_selected).lon(cur_wpnt_selected)), ...
             obj.flines(cur_fline_selected).wpnt_names{cur_wpnt_selected}};
         else
           prompt = {'X:','Y:','Name:'};
-          def = {sprintf('%g',obj.flines(cur_fline_selected).x(cur_wpnt_selected)), ...
-            sprintf('%g',obj.flines(cur_fline_selected).y(cur_wpnt_selected)), ...
+          def = {sprintf('%.12g',obj.flines(cur_fline_selected).x(cur_wpnt_selected)), ...
+            sprintf('%.12g',obj.flines(cur_fline_selected).y(cur_wpnt_selected)), ...
             obj.flines(cur_fline_selected).wpnt_names{cur_wpnt_selected}};
         end
         dlg_title = 'Edit waypoint';
@@ -1797,6 +1799,10 @@ classdef (HandleCompatible = true) vector_editor < handle
         set(obj.h_gui.wpnts.listLB,'String',cur_wpnt_names);
         
         obj.update_flineGraphics();
+        
+      elseif strcmpi(command,'Rotate')
+        cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
+        obj.rotate_waypoints(cur_fline_selected, false);
       end
     end
     
@@ -2111,7 +2117,64 @@ classdef (HandleCompatible = true) vector_editor < handle
       elseif strcmpi(command,'Reverse Wpnts')
         cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
         obj.reverse_waypoints(cur_fline_selected);
+        
+      elseif strcmpi(command,'Rotate')
+        cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
+        obj.rotate_waypoints(cur_fline_selected, true);
       end
+    end
+    
+    function rotate_waypoints(obj,cur_fline_selected,all_wpnts_en)
+      cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
+      if iscell(cur_fline_selected)
+        cur_fline_selected = cell2mat(cur_fline_selected);
+      end
+      if isempty(cur_fline_selected)
+        warning('No flight line selected');
+        return;
+      end
+      cur_fline_selected = cur_fline_selected(1);
+      
+      if all_wpnts_en
+        cur_wpnt_selected = 1:length(obj.flines(cur_fline_selected).x);
+      else
+        cur_wpnt_selected = get(obj.h_gui.wpnts.listLB,'Value');
+        if iscell(cur_wpnt_selected)
+          cur_wpnt_selected = cell2mat(cur_wpnt_selected);
+        end
+        if isempty(cur_wpnt_selected)
+          warning('No waypoint selected');
+          return;
+        end
+      end
+      
+      prompt = {'Rotation Angle (deg):'};
+      def = {'90'};
+      dlg_title = 'Rotate Waypoints';
+      num_lines = 1;
+      answer = inputdlg(prompt,dlg_title,num_lines,def);
+      
+      if length(answer) == 1 && ~isempty(answer{1})
+        rot = eval(answer{1});
+      end
+      % Rotate around the first waypoint in the line
+      x0 = obj.flines(cur_fline_selected).x(1);
+      y0 = obj.flines(cur_fline_selected).y(1);
+      for wpnt = cur_wpnt_selected(2:end)
+        x = obj.flines(cur_fline_selected).x(wpnt) - x0;
+        y = obj.flines(cur_fline_selected).y(wpnt) - y0;
+        obj.flines(cur_fline_selected).x(wpnt) = x0 + cosd(rot)*x - sind(rot)*y;
+        obj.flines(cur_fline_selected).y(wpnt) = y0 + sind(rot)*x + cosd(rot)*y;
+      end
+     [obj.flines(cur_fline_selected).lat obj.flines(cur_fline_selected).lon] ...
+        = projinv(obj.proj,obj.flines(cur_fline_selected).x,obj.flines(cur_fline_selected).y);
+      obj.flines(cur_fline_selected).along_track ...
+        = geodetic_to_along_track(obj.flines(cur_fline_selected).lat, ...
+        obj.flines(cur_fline_selected).lon);
+      set(obj.flines(cur_fline_selected).handle,'XData',obj.flines(cur_fline_selected).x/1e3,'YData',obj.flines(cur_fline_selected).y/1e3);
+      
+      obj.wpntsLB_callback();
+      obj.update_statusText();
     end
     
     function reverse_waypoints(obj,cur_fline_selected)
