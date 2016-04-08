@@ -1,5 +1,5 @@
-function along_track = geodetic_to_along_track(lat,lon,elev,spacing)
-% along_track = geodetic_to_along_track(lat,lon,elev,spacing)
+function [along_track,lat_filt,lon_filt,elev_filt] = geodetic_to_along_track(lat,lon,elev,spacing)
+% [along_track,lat_filt,lon_filt,elev_filt] = geodetic_to_along_track(lat,lon,elev,spacing)
 %
 % Converts geodetic (lat,lon,elev) in WGS-84 into along-track. The distance
 % between each point is cumulated to create the along_track vector.
@@ -40,6 +40,9 @@ if ~exist('spacing','var') || isempty(spacing)
   else
     along_track = [0 cumsum(sqrt(diff(x).^2 + diff(y).^2 + diff(z).^2))];
   end
+  lat_filt = lat;
+  lon_filt = lon;
+  elev_filt = elev;
 else
   % Find the decimation indices
   %   Even indices are the center of the sections that we will use
@@ -49,7 +52,6 @@ else
     struct('lat',lat,'lon',lon,'elev',elev),spacing/2);
   physical_constants;
   [ecef(1,:),ecef(2,:),ecef(3,:)] = geodetic2ecef(lat/180*pi,lon/180*pi,elev,WGS84.ellipsoid);
-  along_track = zeros(size(lat));
   if length(decim_idxs) < 2
     decim_idxs = [1 length(lat)];
   end
@@ -57,6 +59,10 @@ else
   if mod(length(decim_idxs),2)
     decim_idxs = decim_idxs(1:end-1);
   end
+  
+  %% Preallocate outputs
+  along_track = zeros(size(lat));
+  filt_ecef = zeros(3,numel(lat));
   
   %% Find averaged positions for each section
   pnt_ecef = zeros(3,length(decim_idxs));
@@ -133,12 +139,17 @@ else
     idxs = start_idx:stop_idx;
     offset_from_origin = dot([ecef(1,idxs)-ref_orig(1); ecef(2,idxs)-ref_orig(2); ecef(3,idxs)-ref_orig(3)], ...
       repmat(ref_vector,[1 length(idxs)]));
+    filt_ecef(:,idxs) = bsxfun(@plus,ref_orig,bsxfun(@times,offset_from_origin,ref_vector));
     if start_idx == 1
       along_track(idxs) = offset_from_origin - offset_from_origin(1);
     else
       along_track(idxs) = along_track(start_idx) + offset_from_origin - offset_from_origin(1);
     end
   end
+  [lat_filt,lon_filt,elev_filt] = ecef2geodetic(filt_ecef(1,:),filt_ecef(2,:),filt_ecef(3,:),WGS84.ellipsoid);
+  lat_filt = lat_filt*180/pi;
+  lon_filt = lon_filt*180/pi;
+
 end
 
 return;

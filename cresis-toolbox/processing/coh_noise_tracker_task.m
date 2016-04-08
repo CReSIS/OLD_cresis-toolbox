@@ -512,7 +512,7 @@ for img_idx = 1:length(param.load.imgs)
     
     %% 2. Extract surface values according to bin_rng
     layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
-    layers(1).twtt = interp_finite(layers(1).twtt);
+    layers(1).twtt = interp_finite(layers(1).twtt,0);
     zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
     start_bin = zero_bin;
     stop_bin = param.analysis.surf.Nt-1 + zero_bin;
@@ -547,11 +547,13 @@ for img_idx = 1:length(param.load.imgs)
     
     %% 2. Run function handles on the layers
     layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
-    layers(1).twtt = interp_finite(layers(1).twtt);
+    layers(1).twtt = interp_finite(layers(1).twtt,0);
     start_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
+    start_bin = min(max(1,start_bin),size(g_data,1));
     layers(2).twtt = interp1(layers(2).gps_time, layers(2).twtt, gps_time(1,:));
-    layers(2).twtt = interp_finite(layers(2).twtt);
+    layers(2).twtt = interp_finite(layers(2).twtt,0);
     stop_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(2).twtt,'linear','extrap'));
+    stop_bin = min(max(1,stop_bin),size(g_data,1));
     for rline = 1:size(g_data,2)
       vals = g_data(start_bin(rline):stop_bin(rline),rline,:);
       power_bins(1:2,rline) = [start_bin(rline); stop_bin(rline)];
@@ -581,7 +583,7 @@ for img_idx = 1:length(param.load.imgs)
     
     %% 2. Extract psd values according to bin_rng
     layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
-    layers(1).twtt = interp_finite(layers(1).twtt);
+    layers(1).twtt = interp_finite(layers(1).twtt,0);
     zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
     start_bin = zero_bin;
     stop_bin = param.analysis.psd.Nt-1 + zero_bin;

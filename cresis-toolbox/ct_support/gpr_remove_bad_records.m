@@ -87,10 +87,14 @@ if strcmp(records.radar_name,'accum2')
   records.settings.range_gate_duration = records.settings.range_gate_duration(good_mask);
   records.settings.trigger_delay = records.settings.trigger_delay(good_mask);
   records.settings.num_coh_ave = records.settings.num_coh_ave(good_mask);
-elseif strcmp(records.radar_name,'mcords3','snow5')
+elseif any(strcmp(records.radar_name,{'snow5'}))
   records.raw.epri = records.raw.epri(good_mask);
   records.raw.seconds = records.raw.seconds(good_mask);
   records.raw.fraction = records.raw.fraction(good_mask);
+elseif any(strcmp(records.radar_name,{'mcords3'}))
+  records.raw.epri = records.raw.epri(good_mask);
+  records.raw.seconds = records.raw.seconds(good_mask);
+  records.raw.fractions = records.raw.fractions(good_mask);
 else
   error('Radar not supported');
 end

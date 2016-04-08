@@ -16,6 +16,7 @@ if 1
   params.cmd.generic = 1;
   
   input_fn_dir = 'noise';
+  % zero_surf_bin_override = 11; % Normally not used except for internal layers
   
   debug_level = 1; % <-- TYPICAL SETTINGS ARE 1, 3, and 4
 end
@@ -33,7 +34,7 @@ for param_idx = 1:length(params)
   % param.analysis.surf.motion_comp.en = true; % <-- MAY WANT TO HAND MODIFY
   % param.analysis.surf.wf_adc_list = [9:16]; % <-- MAY WANT TO HAND MODIFY
   % param.analysis.surf.ref_wf_adc = 12; % <-- MAY WANT TO HAND MODIFY
-  
+  % param.analysis.surf.retrack.en = false; % <-- MAY WANT TO HAND MODIFY
   collate_equalization;
 
   fprintf('  Done (%s)\n', datestr(now));

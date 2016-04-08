@@ -35,6 +35,9 @@ source = 0; eval(data.param_analysis.analysis.surf.layer_params.eval.cmd);
 wf = data.param_analysis.analysis.imgs{1}(param.analysis.surf.wf_adc_list(1),1);
 dt = data.wfs(wf).time(2)-data.wfs(wf).time(1);
 zero_surf_bin = round(1-source/dt);
+if exist('zero_surf_bin_override','var') && ~isempty(zero_surf_bin_override)
+  zero_surf_bin = zero_surf_bin_override;
+end
 Nt = size(data.surf_vals,1);
 Nx = size(data.surf_vals,2);
 Nc = size(data.surf_vals,3);
@@ -115,7 +118,7 @@ if param.analysis.surf.retrack.en
   for rline = 1:size(data.surf_vals,2)
     % Threshold is hard coded to max of 7 dB of noise or 13 below peak
     cur_threshold = max([ml_data(1,rline)+7; ml_data(:,rline)-13]);
-    tmp = find(ml_data(:,rline) > cur_threshold,1);
+    tmp = find(ml_data(1:end-2,rline) > cur_threshold,1);
     if ~isempty(tmp)
       [~,max_offset] = max(ml_data(tmp+(0:2),rline));
       tmp = tmp-1 + max_offset;

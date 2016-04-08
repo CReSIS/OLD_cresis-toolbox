@@ -7,10 +7,10 @@
 %% User Settings
 % records_fn = '/cresis/snfs1/dataproducts/csarp_support/records/accum/2013_Antarctica_Ground/records_20140103_06.mat';
 % geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
-records_fn = '/cresis/snfs1/dataproducts/csarp_support/records/accum/2015_Greenland_Ground/records_20150501_02.mat';
-geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/greenland/Landsat-7/mzl7geo_90m_lzw.tif';
+records_fn = '/cresis/snfs1/dataproducts/csarp_support/records/accum/2015_Antarctica_Ground/records_20151221_01.mat';
+geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
 
-bad_vel_threshold = 0.5;
+bad_vel_threshold = 0.25;
 bad_heading_diff_threshold = 1;
 
 %% Automated Section
@@ -65,7 +65,11 @@ hold on;
 fprintf('\nRed is slow velocity records\n');
 h_plots(end+1) = plot(x(vel_mask),y(vel_mask),'r.');
 fprintf('\nGreen is fast heading change records\n');
-h_plots(end+1) = plot(x(heading_mask),y(heading_mask),'g.');
+if ~any(heading_mask)
+  h_plots(end+1) = plot(NaN,NaN,'g.');
+else
+  h_plots(end+1) = plot(x(heading_mask),y(heading_mask),'g.');
+end
 
 % Manual tool for removing records
 clip_vectors(h_plots);

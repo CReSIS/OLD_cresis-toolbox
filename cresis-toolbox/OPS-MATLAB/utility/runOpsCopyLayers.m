@@ -9,8 +9,10 @@
 %% User Settings
 % =====================================================================
 
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
+params = read_param_xls(ct_filename_param('rds_param_2013_Antarctica_P3.xls'),'','post');
+% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
 % params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'','post');
+% params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),'','post');
 % params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),'','post');
@@ -81,16 +83,19 @@ elseif 0
   copy_param.gaps_fill.method = 'interp_finite';
   
 elseif 0
-  %% Copy surface from ops to echogram qlook
-  copy_param.layer_source.name = 'surface';
+  %% Copy layer from ops to layerdata
+%   layer_name = 'surface';
+  layer_name = 'bottom';
+  
+  copy_param.layer_source.name = layer_name;
   copy_param.layer_source.source = 'ops';
   
-  copy_param.layer_dest.name = 'surface';
-  copy_param.layer_dest.source = 'echogram';
-  copy_param.layer_dest.echogram_source = 'qlook';
+  copy_param.layer_dest.name = layer_name;
+  copy_param.layer_dest.source = 'layerdata';
+  copy_param.layer_dest.layerdata_source = 'layerData';
 
-  copy_param.copy_method = 'merge';
-  copy_param.gaps_fill.method = 'interp_finite';
+  copy_param.copy_method = 'overwrite';
+  copy_param.gaps_fill.method = 'preserve_gaps';
   
 elseif 0
   %% Copy bottom from ops to echogram CSARP_post/mvdr
@@ -131,7 +136,7 @@ elseif 0
   copy_param.copy_method = 'merge';
   copy_param.gaps_fill.method = 'interp_finite';
   
-elseif 1
+elseif 0
   %% Copy surface from mcords records to snow layerdata  
   
   % Load mcords records data

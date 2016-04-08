@@ -39,12 +39,15 @@ if strcmpi(param.method,'sinc')
     % Determine sinc kernel and normalize
     x_off = reshape(x(idxs)-out_x(rline),[length(idxs) 1]);
     Hwin = (0.50 + 0.50*cos(2*pi*x_off/param.filt_len)) .* sinc( x_off / param.dx );
-    Hwin = Hwin / param.dx * param.filt_len/length(idxs);
-    
     if isempty(Hwin)
       % No sample support for out_x(rline)
       data(:,rline) = 0;
+    elseif length(Hwin) == 1
+      data(:,rline) = data_in(:,idxs);
     else
+      Hwin = Hwin / param.dx * param.filt_len/length(idxs);
+      Hwin = Hwin .* [x_off(2)-x_off(1); (x_off(3:end)-x_off(1:end-2))/2; x_off(end)-x_off(1)];
+      Hwin = Hwin / sum(Hwin);
       data(:,rline) = data_in(:,idxs)*Hwin;
     end
   end
