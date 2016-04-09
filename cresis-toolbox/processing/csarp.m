@@ -193,7 +193,11 @@ out_recs = {};
 times    = {wfs.time};
 times    = cell2mat(times.');
 max_time = min(max(times),param.csarp.time_of_full_support);
-chunk_overlap = (max_time*3e8/2)/(2*param.csarp.sigma_x); % m (maximum SAR aperture)
+if param.csarp.ground_based
+  chunk_overlap = (max_time*3e8/2/sqrt(param.csarp.start_eps)*c/wfs.fc)/(2*param.csarp.sigma_x); % m (maximum SAR aperture)
+else
+  chunk_overlap = (max_time*3e8/2)/(2*param.csarp.sigma_x); % m (maximum SAR aperture)
+end
 
 % Check to make sure the beam is not desired to steer too far
 %   forward/backward
