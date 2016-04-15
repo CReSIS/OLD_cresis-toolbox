@@ -780,45 +780,36 @@ end
 if param.post.concat_en
   fprintf(' Creating csv and kml files (%s)\n', datestr(now));
   
-  if ispc
-    %% Windows PC does not usually have "cat" command
-    warning('  Can not do this final concatenate step on a PC since it uses Linux command line program "cat". Rerun posting with just concat enabled on the post worksheet on a linux machine.');
-    
-  else
-    %% Linux box should have "cat" command
-    csv_dir = fullfile(post_path,'csv',param.day_seg);
-    kml_base_dir = fullfile(post_path,'kml');
-    
-    in_search_str = fullfile(csv_dir,'*.csv');
-    [csv_dir_path csv_dir_name] = fileparts(csv_dir);
-    out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
-    concatenate_thickness_files(in_search_str,out_fn,',');
-    
-    % Create KML browse files for each segment
-    % Extract day_seg from filename
-    in_fn = out_fn;
-    [in_fn_dir in_fn_name] = fileparts(in_fn);
-    kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
-    day_seg = in_fn_name(6:end);
-    kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
-    
-    % Repeat for csv_good and kml_good
-    csv_dir = fullfile(post_path,'csv_good',param.day_seg);
-    kml_base_dir = fullfile(post_path,'kml_good');
-    
-    in_search_str = fullfile(csv_dir,'*.csv');
-    [csv_dir_path csv_dir_name] = fileparts(csv_dir);
-    out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
-    concatenate_thickness_files(in_search_str,out_fn,',');
-    
-    % Create KML browse files for each segment
-    % Extract day_seg from filename
-    in_fn = out_fn;
-    [in_fn_dir in_fn_name] = fileparts(in_fn);
-    kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
-    day_seg = in_fn_name(6:end);
-    kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
-  end
+  csv_dir = fullfile(post_path,'csv',param.day_seg);
+  kml_base_dir = fullfile(post_path,'kml');
+  
+  [csv_dir_path csv_dir_name] = fileparts(csv_dir);
+  out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
+  concatenate_thickness_files(csv_dir,'*.csv',out_fn,',');
+  
+  % Create KML browse files for each segment
+  % Extract day_seg from filename
+  in_fn = out_fn;
+  [in_fn_dir in_fn_name] = fileparts(in_fn);
+  kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
+  day_seg = in_fn_name(6:end);
+  kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
+  
+  % Repeat for csv_good and kml_good
+  csv_dir = fullfile(post_path,'csv_good',param.day_seg);
+  kml_base_dir = fullfile(post_path,'kml_good');
+  
+  [csv_dir_path csv_dir_name] = fileparts(csv_dir);
+  out_fn = fullfile(csv_dir_path,sprintf('Data_%s.csv',csv_dir_name));
+  concatenate_thickness_files(csv_dir,'*.csv',out_fn,',');
+  
+  % Create KML browse files for each segment
+  % Extract day_seg from filename
+  in_fn = out_fn;
+  [in_fn_dir in_fn_name] = fileparts(in_fn);
+  kml_out_fn = fullfile(kml_base_dir, ['Browse_' in_fn_name '.kml']);
+  day_seg = in_fn_name(6:end);
+  kml_write_cresis(in_fn, kml_out_fn, day_seg,'segment',[inf 40]);
 end
 
 % =======================================================================
