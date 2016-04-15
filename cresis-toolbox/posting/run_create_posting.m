@@ -13,7 +13,7 @@ fprintf('========================================================\n');
 
 %% User Settings
 
-params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),[],'post');
+params = read_param_xls(ct_filename_param('rds_param_2009_Greenland_TO.xls'),[],'post');
 
 %% Automated Section
 % =====================================================================
@@ -61,30 +61,26 @@ for param_idx = 1:length(params)
 end
 if concatenate_csv_kml
   fprintf('Creating season concatenated and browse files (%s)\n', datestr(now));
-  if ispc
-    fprintf('  Can not do this on a PC since it uses Linux commands\n');
+  if ~isempty(param.post.out_path)
+    post_path = ct_filename_out(param,param.post.out_path,'',1);
   else
-    if ~isempty(param.post.out_path)
-      post_path = ct_filename_out(param,param.post.out_path,'',1);
-    else
-      post_path = ct_filename_out(param,param.post.out_path,'CSARP_post',1);
-    end
-    % Create concatenated and browse files for all data
-    csv_base_dir = fullfile(post_path,'csv');
-    kml_base_dir = fullfile(post_path,'kml');
-    if ~exist(kml_base_dir,'dir')
-      mkdir(kml_base_dir)
-    end
-    run_concatenate_thickness_files(csv_base_dir,kml_base_dir,param);
-    
-    % Create concatenated and browse files for all data with thickness
-    csv_base_dir = fullfile(post_path,'csv_good');
-    kml_base_dir = fullfile(post_path,'kml_good');
-    if ~exist(kml_base_dir,'dir')
-      mkdir(kml_base_dir)
-    end
-    run_concatenate_thickness_files(csv_base_dir,kml_base_dir,param);
+    post_path = ct_filename_out(param,param.post.out_path,'CSARP_post',1);
   end
+  % Create concatenated and browse files for all data
+  csv_base_dir = fullfile(post_path,'csv');
+  kml_base_dir = fullfile(post_path,'kml');
+  if ~exist(kml_base_dir,'dir')
+    mkdir(kml_base_dir)
+  end
+  run_concatenate_thickness_files(csv_base_dir,kml_base_dir,param);
+  
+  % Create concatenated and browse files for all data with thickness
+  csv_base_dir = fullfile(post_path,'csv_good');
+  kml_base_dir = fullfile(post_path,'kml_good');
+  if ~exist(kml_base_dir,'dir')
+    mkdir(kml_base_dir)
+  end
+  run_concatenate_thickness_files(csv_base_dir,kml_base_dir,param);
 end
 
 return;

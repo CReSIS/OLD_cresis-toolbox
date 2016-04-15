@@ -39,7 +39,7 @@ end
 %% Check for any duplicates that don't have matching lat/lon
 for wpnt_idx = 1:length(fline.lat)
   match_idxs = find(strcmp(fline.wpnt_names{wpnt_idx}, fline.wpnt_names));
-  for match_idx = match_idxs
+  for match_idx = match_idxs(:).'
     if fline.lat(match_idx) ~= fline.lat(wpnt_idx) ...
         || fline.lon(match_idx) ~= fline.lon(wpnt_idx)
       warning('No Garmin flight plan written because duplicate way points exist with nonmatching coordinates: %s', fline.wpnt_names{wpnt_idx});
