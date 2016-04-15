@@ -248,7 +248,7 @@ if debug_level == 4
   legend_str = cell(1,Nc);
   plot_mode = [0 0 0; hsv(7)];
   plot_bins = zero_surf_bin + (-1:1); % <== SET DESIRED RANGE BIN MULTILOOKING
-  Nfir_dec = 5; % <== SET DESIRED ALONG TRACK MULTILOOKING
+  Nfir_dec = 11; % <== SET DESIRED ALONG TRACK MULTILOOKING
   ref_rline = min(4320,Nx); % <== SET DESIRED REFERENCE RANGE LINE
   for wf_adc = 1:Nc
     unwrapped_angle = angle(mean(fir_dec(data.surf_vals(plot_bins,:,wf_adc) ...
@@ -267,7 +267,6 @@ if debug_level == 4
   xlabel('Range line');
   ylabel('Relative angle (deg)');
   h_axis(end+1) = gca;
-  xlim([4000 5000]);
   
   subplot(3,1,3);
   plot(180/pi*data.roll.');
@@ -277,7 +276,9 @@ if debug_level == 4
   xlabel('Range line');
     
   linkaxes(h_axis,'x');
-  xlim([min(param.analysis.surf.rlines) max(param.analysis.surf.rlines)]);
+  if ~isempty(param.analysis.surf.rlines)
+    xlim([min(param.analysis.surf.rlines) max(param.analysis.surf.rlines)]);
+  end
   
   return;
 end

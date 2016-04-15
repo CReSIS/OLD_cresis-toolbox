@@ -25,7 +25,7 @@ tstart = tic;
 param.rlines = [1:1000];
 % .noise_rbins = Start and stop range bin to use for noise power
 %   calculation (THIS OFTEN NEEDS TO BE SET)
-param.noise_rbins = [4501 5500];
+param.noise_rbins = [15500 16000];
 
 radar_name = 'mcords5';
 
@@ -43,15 +43,15 @@ param.img = cat(2,3*ones(24,1),[1:24].');
 % base_path = Base path of data (does not include seg directory)
 % set = Which segment directory to load from, leave empty for no segment directory
 % utc_time_correction
-base_path = '/cresis/snfs1/scratch/paden/awi/';
+base_path = '/mnt/HDD6/1604130401/UWB/';
 seg = '';
 
 % Optionally restrict search to a particular acquisition number/time
 % (part of the data files' filenames)
-acquisition_num = '*20160311_*_01*';
+acquisition_num = '*20160413_*_03*';
 
 % File index in filename
-file_num = 1;
+file_num = 103;
 
 % .presums = Number of presums (coherent averaging) to do
 param.presums = 1;
@@ -251,7 +251,7 @@ for chan_idx = 1:size(data,3)
 end
 
 % =====================================================================
-% Noise power
+%% Noise power
 % =====================================================================
 
 % Calculate noise power as Vrms (assuming param.presums = 1)
@@ -275,7 +275,7 @@ end
 fprintf('\n');
 
 % =====================================================================
-% Quantization analysis
+%% Quantization analysis
 % =====================================================================
 if 1
   for adc_idx = 1:size(data,3)
@@ -333,19 +333,6 @@ if 1
       Nt = length(pc_param.time);
       df = 1/(Nt*dt);
       freq = freq_DDC + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df);
-
-      figure(300+adc); clf;
-      set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',adc_idx));
-      imagesc([], freq/1e6, lp(fftshift(fft(fir_data))) + 30 + 10*log10(2^2/50/size(fir_data,1)) )
-      title(sprintf('Freq-space adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
-      xlabel('Range line');
-      ylabel('Frequency (MHz)');
-      h = colorbar;
-      set(get(h,'YLabel'),'String','Relative power (dB)');
-      
-      if plot_combined_psd
-        plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data))).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes)
-      end
       
       figure(400+adc); clf;
       set(400+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('M%d',adc_idx));
@@ -354,6 +341,22 @@ if 1
       ylabel('Relative power (dB)');
       xlabel('Frequency (MHz)');
       grid on;
+      ylims = ylim;
+      
+      figure(300+adc); clf;
+      set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',adc_idx));
+      imagesc([], freq/1e6, lp(fftshift(fft(fir_data))) + 30 + 10*log10(2^2/50/size(fir_data,1)) )
+      title(sprintf('Freq-space adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
+      xlabel('Range line');
+      ylabel('Frequency (MHz)');
+      h = colorbar;
+      set(get(h,'YLabel'),'String','Relative power (dB)');
+      caxis_lims = caxis;
+      caxis([ylims(1) caxis_lims(2)]);
+      
+      if plot_combined_psd
+        plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data))).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes)
+      end
       
     else
       pc_param.time = hdr.wfs(abs(param.img(1,1))).t0 + (0:size(fir_data,1)-1)/fs;

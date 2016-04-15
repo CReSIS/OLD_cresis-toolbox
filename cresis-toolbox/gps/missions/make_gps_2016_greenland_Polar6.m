@@ -39,18 +39,38 @@ if strcmpi(gps_source_to_use,'NMEA')
   % NMEA
   % =======================================================================
 
-  file_idx = file_idx + 1;
-  year = 2016; month = 3; day = 31;
-  in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_%04d%02d%02d',year,month,day),'','.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
-  file_type{file_idx} = 'NMEA';
-  params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
-  gps_source{file_idx} = 'nmea-field';
-  sync_flag{file_idx} = 0;
+%   file_idx = file_idx + 1;
+%   year = 2016; month = 3; day = 31;
+%   in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_%04d%02d%02d',year,month,day),'','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+% 
+%   file_idx = file_idx + 1;
+%   year = 2016; month = 4; day = 1;
+%   in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_%04d%02d%02d',year,month,day),'','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
 
+%   file_idx = file_idx + 1;
+%   year = 2016; month = 4; day = 13;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path, 'nmea', ...
+%     sprintf('%04d%02d%02d',year,month,day)),'GPS_','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+ 
   file_idx = file_idx + 1;
-  year = 2016; month = 4; day = 1;
-  in_fns{file_idx} = get_filenames(in_base_path,sprintf('GPS_%04d%02d%02d',year,month,day),'','.txt');
+  year = 2016; month = 4; day = 14;
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path, 'nmea', ...
+    sprintf('%04d%02d%02d',year,month,day)),'GPS_','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
   file_type{file_idx} = 'NMEA';
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
@@ -63,27 +83,65 @@ elseif strcmpi(gps_source_to_use,'AWI')
   % =======================================================================
   field_gps_in_base_path = fullfile(in_base_path,'');
   
+%   file_idx = file_idx + 1;
+%   year = 2016; month = 3; day = 31;
+%   in_fns{file_idx} = get_filenames(field_gps_in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
+%   in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'awi_netcdf+awi_netcdf';
+%   gps_source{file_idx} = 'awi-field';
+%   sync_flag{file_idx} = 0;
+%   params{file_idx} = struct('time_reference','utc');
+%   params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
+%   params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+%   params{file_idx}.types = {'sec','lat_deg','lon_deg','elev_m','year','month','day'};
+%   params{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+%   params_ins{file_idx} = struct('time_reference','utc');
+%   params_ins{file_idx}.nc_field = {'TIME','ROLL','PITCH','THDG','YEAR','MONTH','DAY'};
+%   params_ins{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+%   params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
+%   params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+%   
+%   file_idx = file_idx + 1;
+%   year = 2016; month = 4; day = 1;
+%   in_fns{file_idx} = get_filenames(field_gps_in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
+%   in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'awi_netcdf+awi_netcdf';
+%   gps_source{file_idx} = 'awi-field';
+%   sync_flag{file_idx} = 0;
+%   params{file_idx} = struct('time_reference','utc');
+%   params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
+%   params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+%   params{file_idx}.types = {'sec','lat_deg','lon_deg','elev_m','year','month','day'};
+%   params{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+%   params_ins{file_idx} = struct('time_reference','utc');
+%   params_ins{file_idx}.nc_field = {'TIME','ROLL','PITCH','THDG','YEAR','MONTH','DAY'};
+%   params_ins{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+%   params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
+%   params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+   
+%   file_idx = file_idx + 1;
+%   year = 2016; month = 4; day = 13;
+%   in_fns{file_idx} = get_filenames(field_gps_in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
+%   in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
+%   file_type{file_idx} = 'awi_netcdf+awi_netcdf';
+%   gps_source{file_idx} = 'awi-field';
+%   sync_flag{file_idx} = 0;
+%   params{file_idx} = struct('time_reference','utc');
+%   params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
+%   params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+%   params{file_idx}.types = {'sec','lat_deg','lon_deg','elev_m','year','month','day'};
+%   params{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+%   params_ins{file_idx} = struct('time_reference','utc');
+%   params_ins{file_idx}.nc_field = {'TIME','ROLL','PITCH','THDG','YEAR','MONTH','DAY'};
+%   params_ins{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
+%   params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
+%   params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
+    
   file_idx = file_idx + 1;
-  year = 2016; month = 3; day = 31;
-  in_fns{file_idx} = get_filenames(field_gps_in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
-  in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
-  file_type{file_idx} = 'awi_netcdf+awi_netcdf';
-  gps_source{file_idx} = 'awi-field';
-  sync_flag{file_idx} = 0;
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.nc_field = {'TIME','LATITUDE','LONGITUDE','ALTITUDE','YEAR','MONTH','DAY'};
-  params{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
-  params{file_idx}.types = {'sec','lat_deg','lon_deg','elev_m','year','month','day'};
-  params{file_idx}.scale = [1e-3 1 1 1 1 1 1];
-  params_ins{file_idx} = struct('time_reference','utc');
-  params_ins{file_idx}.nc_field = {'TIME','ROLL','PITCH','THDG','YEAR','MONTH','DAY'};
-  params_ins{file_idx}.nc_type = {'v','v','v','v','a','a','a'};
-  params_ins{file_idx}.types = {'sec','roll_deg','pitch_deg','heading_deg','year','month','day'};
-  params_ins{file_idx}.scale = [1e-3 1 1 1 1 1 1];
-  
-  file_idx = file_idx + 1;
-  year = 2016; month = 4; day = 1;
+  year = 2016; month = 4; day = 14;
   in_fns{file_idx} = get_filenames(field_gps_in_base_path,sprintf('GPS_R_L1_%04d%02d%02d',year,month,day),'','.nc');
   in_fns_ins{file_idx} = get_filenames(in_base_path,sprintf('INS_L1_%04d%02d%02d',year,month,day),'','.nc');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat',year,month,day);
