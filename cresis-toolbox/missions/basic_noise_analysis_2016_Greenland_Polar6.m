@@ -25,7 +25,8 @@ tstart = tic;
 param.rlines = [1:1000];
 % .noise_rbins = Start and stop range bin to use for noise power
 %   calculation (THIS OFTEN NEEDS TO BE SET)
-param.noise_rbins = [15500 16000];
+% param.noise_rbins = [4501 5500]; % Survey mode with no delay
+param.noise_rbins = [15000 16000]; % Survey mode
 
 radar_name = 'mcords5';
 
@@ -37,21 +38,23 @@ freq_DDC = 335e6;
 % freq_DDC = 195e6;
 
 % .img = which waveform/adc pairs to load
-%param.img = cat(2,-j*9*ones(8,1),[1 2 3 4 5 6 7 8].');
-param.img = cat(2,3*ones(24,1),[1:24].');
+% param.img = cat(2,3*ones(24,1),[1:24].');
+% param.img = cat(2,3*ones(8,1),[9:16].'); % Center subarray
+param.img = cat(2,3*ones(8,1),[1:8].'); % Left subarray
+% param.img = cat(2,3*ones(8,1),[17:24].'); % Right subarray
 
 % base_path = Base path of data (does not include seg directory)
 % set = Which segment directory to load from, leave empty for no segment directory
 % utc_time_correction
-base_path = '/mnt/HDD6/1604130401/UWB/';
+base_path = 'D:\awi';
 seg = '';
 
 % Optionally restrict search to a particular acquisition number/time
 % (part of the data files' filenames)
-acquisition_num = '*20160413_*_03*';
+acquisition_num = '*09*';
 
 % File index in filename
-file_num = 103;
+file_num = 54;
 
 % .presums = Number of presums (coherent averaging) to do
 param.presums = 1;
