@@ -1245,7 +1245,7 @@ classdef (HandleCompatible = true) vector_editor < handle
               load_geotiff_field = true;
             end
             try
-              load_plotonly_field = eval(default_geotiff_field);
+              load_plotonly_field = eval(default_plotonly_field);
               if (load_plotonly_field)
                 load_plotonly_field = true;
               else
@@ -1255,7 +1255,7 @@ classdef (HandleCompatible = true) vector_editor < handle
               load_plotonly_field = true;
             end
             try
-              load_flightlines_field = eval(default_geotiff_field);
+              load_flightlines_field = eval(default_flightlines_field);
               if (load_flightlines_field)
                 load_flightlines_field = true;
               else
@@ -1354,10 +1354,11 @@ classdef (HandleCompatible = true) vector_editor < handle
       cur_fline_selected = sort([cur_fline_selected pos]);
       set(obj.h_gui.flines.listLB,'Value',cur_fline_selected);
       
+      % Map fields and make sure lat,lon,wpnt_names are 1xN
       obj.flines(pos+1:end+1) = obj.flines(pos:end);
-      obj.flines(pos).lat = fline.lat;
-      obj.flines(pos).lon = fline.lon;
-      obj.flines(pos).wpnt_names = fline.wpnt_names;
+      obj.flines(pos).lat = fline.lat(:).';
+      obj.flines(pos).lon = fline.lon(:).';
+      obj.flines(pos).wpnt_names = fline.wpnt_names(:).';
       obj.flines(pos).name = fline.name;
       
       hold(obj.h_axes,'on')
@@ -1410,7 +1411,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       end
       obj.flines(cur_fline_selected).x = [obj.flines(cur_fline_selected).x(1:pos-1) 0 obj.flines(cur_fline_selected).x(pos:end)];
       obj.flines(cur_fline_selected).y = [obj.flines(cur_fline_selected).y(1:pos-1) 0 obj.flines(cur_fline_selected).y(pos:end)];
-      obj.flines(cur_fline_selected).wpnt_names = [obj.flines(cur_fline_selected).wpnt_names(1:pos-1) {''} obj.flines(cur_fline_selected).wpnt_names(pos:end)];
+      obj.flines(cur_fline_selected).wpnt_names = [obj.flines(cur_fline_selected).wpnt_names(1:pos-1), {''}, obj.flines(cur_fline_selected).wpnt_names(pos:end)];
       obj.flines(cur_fline_selected).x(pos) = x*1e3;
       obj.flines(cur_fline_selected).y(pos) = y*1e3;
       done = false;
@@ -2158,8 +2159,8 @@ classdef (HandleCompatible = true) vector_editor < handle
         rot = eval(answer{1});
       end
       % Rotate around the first waypoint in the line
-      x0 = obj.flines(cur_fline_selected).x(1);
-      y0 = obj.flines(cur_fline_selected).y(1);
+      x0 = obj.flines(cur_fline_selected).x(cur_wpnt_selected(1));
+      y0 = obj.flines(cur_fline_selected).y(cur_wpnt_selected(1));
       for wpnt = cur_wpnt_selected(2:end)
         x = obj.flines(cur_fline_selected).x(wpnt) - x0;
         y = obj.flines(cur_fline_selected).y(wpnt) - y0;
@@ -2447,8 +2448,8 @@ classdef (HandleCompatible = true) vector_editor < handle
         end
         for wpnt_idx = 1:length(obj.flines(pos).x)
           text(obj.flines(pos).x(wpnt_idx)/1e3,obj.flines(pos).y(wpnt_idx)/1e3, ...
-            obj.flines(pos).wpnt_names{wpnt_idx}, 'Color','magenta', ...
-            'Parent',h_export_axes,'Interpreter','none');
+            obj.flines(pos).wpnt_names{wpnt_idx}, 'Color','black', ...
+            'Parent',h_export_axes,'Interpreter','none','FontSize',10,'BackgroundColor','white','margin',0.5);
         end
       end
       hold(h_export_axes,'off')

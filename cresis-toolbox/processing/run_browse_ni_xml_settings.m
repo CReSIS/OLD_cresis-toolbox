@@ -14,15 +14,15 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   % =======================================================================
   % =======================================================================
 
-  base_dir = 'F:\201604010201\UWB\';
-  base_dir_in_param = 'E:\201604010201\UWB\';
+  base_dir = '/mnt/AWI_SSD0/1604140501/UWB';
+  base_dir_in_param = '/mnt/AWI_SSD0/1604140501/UWB';
   
   adc_folder_names = {''};
   
   param.radar_name = 'mcords5';
   param.season_name = '2016_Greenland_Polar6';
   
-  header_load_date = datenum(2016,4,1);
+  header_load_date = datenum(2016,4,14);
   default.cmd.mission_name = 'Lab Test';
   
   param_file.write_en = false;
@@ -30,7 +30,7 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   
   %% MCORDS 5: 2016 Greenland Polar6
   param.radar_name = 'mcords5';
-  xml_file_prefix = 'mcords5_20160401';
+  xml_file_prefix = 'mcords5_20160414';
   data_file_prefix = 'mcords5';
   board_sub_directory = 'chan1';
   
@@ -129,7 +129,7 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   Tadc_adjust = 0.000010179163; % leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
   max_DDS_RAM = 4000;
   tx_voltage = sqrt(1000*50)*10^(-2/20);
-  max_adc_gain_dB = 52;
+  max_adc_gain_dB = 48;
   iq_mode = 0;
   fs = 1600e6;
   fs_sync = 1.6e9/8;
@@ -145,7 +145,7 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   gps_fn = ct_filename_support(setfield(param,'day_seg',datestr(header_load_date,'YYYYmmDD')),'','gps',true);
   gps_fn = '';
     
-  MIN_FILES_IN_SEGMENT = 2; % Since the first file is usually corrupted and short segments are often not useful for processing/data-interpretation
+  MIN_FILES_IN_SEGMENT = 1; % Since the first file is usually corrupted and short segments are often not useful for processing/data-interpretation
   SKIP_FILES_START = 1; % Often the first file is corrupt, so we leave it out
   SKIP_FILES_END = 0;
   

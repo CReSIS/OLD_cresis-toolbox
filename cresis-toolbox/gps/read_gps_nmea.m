@@ -7,7 +7,7 @@ function gps = read_gps_nmea(in_fn, param)
 %   grep GPGGA OLD_FILENAME >NEW_FILENAME
 %
 % $GPGGA,120448.00,6952.4649165,N,03256.5105286,W,1,10,0.80,3135.1254,M,55.3383,M,,*7B
-% $GPGGA,221343.00,7928.1873712,S,11203.3163302,W,0,10,,1769.932,M,,,,*5e
+% $GPGGA,221343.00,7928.1873712,S,11203.3163302,W,0,10,   ,1769.932,M,     , , ,*5e
 %
 % Input Args:
 %   in_fn = string containing input NMEA filename
@@ -130,21 +130,33 @@ if fid < 0
 end
 finfo = dir(in_fn);
 C_final = {};
+num_lines = 0;
 while ftell(fid) < finfo.bytes
   % This reader uses textscan to read in the file. If textscan finds a bad
   % line, it stops reading before the end of the file
   C = textscan(fid,format_str,'delimiter',', ','emptyvalue',NaN);
+  good_lines = length(C{end});
+  num_lines = num_lines + good_lines+1;
   if ftell(fid) < finfo.bytes
-    good_lines = length(C{end});
-    fprintf('Bad line %d: %s\n', good_lines+1, fgets(fid));
-  else
-    good_lines = length(C{end});
+    readchar = fread(fid,1,'char');
+    while readchar ~= 10
+      fseek(fid,-2,0);
+      readchar = fread(fid,1,'char');
+    end
+    readline = fgets(fid);
+    if readline(end) ~= 10
+      readline(end+1) = 10;
+    end
+    fprintf('Bad line %d: %s', num_lines, readline);
   end
-  for field_idx = 1:length(C)
-    if length(C_final) < field_idx
-      C_final{field_idx} = C{field_idx}(1:good_lines,1);
-    else
-      C_final{field_idx} = cat(1,C_final{field_idx}, C{field_idx}(1:good_lines));
+  Clength = cellfun(@length,C);
+  if good_lines > 0
+    for field_idx = 1:length(C)
+      if length(C_final) < field_idx
+        C_final{field_idx} = C{field_idx}(1:good_lines,1);
+      else
+        C_final{field_idx} = cat(1,C_final{field_idx}, C{field_idx}(1:good_lines));
+      end
     end
   end
 end

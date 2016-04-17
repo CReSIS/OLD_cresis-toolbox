@@ -4,7 +4,7 @@
 % cresis functions and Matlab features that are relevant to processing
 % cresis data.
 %
-% Author: John Paden
+% Author: John Paden 
 
 lesson =1;
 

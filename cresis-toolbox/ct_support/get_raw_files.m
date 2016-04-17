@@ -84,8 +84,8 @@ elseif any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mco
     % Get the raw file numbers associated with the frm
     %   start_filenum = records.relative_rec_num{filenames_idx}(start_rec);
     %   stop_filenum = records.relative_rec_num{filenames_idx}(stop_rec);
-    start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
-    stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
+    start_filenum = find(records.relative_rec_num{filenames_idx} <= start_rec,1,'last');
+    stop_filenum = find(records.relative_rec_num{filenames_idx} <= stop_rec,1,'last');
     fns{fns_idx} = records.relative_filename{filenames_idx}(start_filenum:stop_filenum);
   end
 else
