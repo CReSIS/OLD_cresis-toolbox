@@ -7,11 +7,11 @@
 physical_constants; % c = speed of light
 
 % Define waveforms
-base_dir = 'E:\waveforms\';
+base_dir = 'c:\waveforms\';
 
 f0_list = [150e6 180e6];
 f1_list = [520e6 210e6];
-DDC_select_list = [1 2]; % Which DDC mode to use
+DDC_select_list = [1 1]; % Which DDC mode to use
 cal_settings = [1 2];
 prf = 10000;
 
@@ -101,7 +101,7 @@ for freq_idx = 1:length(f0_list)
   param.tg.Hice_thick = ice_thickness(freq_idx);
   param.prf = prf;
   param.presums = [2 2 presums(freq_idx)-4];
-  param.wfs(1).atten = 43;
+  param.wfs(1).atten = 37;
   param.wfs(2).atten = 0;
   param.wfs(3).atten = 0;
   DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
@@ -175,26 +175,29 @@ for freq_idx = 1:length(f0_list)
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
-  param.tg.staged_recording = [1 2];
-  param.tg.altitude_guard = 500*12*2.54/100;
+  param.tg.staged_recording = [1 3];
+  param.tg.altitude_guard = 1000*12*2.54/100;
   param.tg.Haltitude = 1400*12*2.54/100;
   param.tg.Hice_thick = ice_thickness(freq_idx);
   param.prf = prf;
-  param.presums = [2 presums(freq_idx)-2];
-  param.wfs(1).atten = 43;
+  param.presums = [8 2 presums(freq_idx)-10];
+  param.wfs(1).atten = 31;
   param.wfs(2).atten = 0;
+  param.wfs(3).atten = 0;
   DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
   param.tx_weights = DDS_amp;
   param.tukey = 0.08;
   param.wfs(1).Tpd = 1e-6;
   param.wfs(2).Tpd = 3e-6;
+  param.wfs(3).Tpd = 3e-6;
   param.wfs(1).phase = final_DDS_phase{cal_settings(freq_idx)};
   param.wfs(2).phase = final_DDS_phase{cal_settings(freq_idx)};
+  param.wfs(3).phase = final_DDS_phase{cal_settings(freq_idx)};
   param.delay = final_DDS_time{cal_settings(freq_idx)};
   param.f0 = f0_list(freq_idx);
   param.f1 = f1_list(freq_idx);
   param.DDC_freq = (param.f0+param.f1)/2;
-  [param.wfs(1:2).tx_mask] = deal([0 0 0 0 0 0 0 0]);
+  [param.wfs(1:3).tx_mask] = deal([0 0 0 0 0 0 0 0]);
   param.fn = fullfile(base_dir,sprintf('thinice_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthick.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.wfs(end).Tpd*1e6,param.tg.Hice_thick));
   write_cresis_xml(param);
 end
@@ -378,7 +381,7 @@ if 0
     param.f0 = f0_list(freq_idx);
     param.f1 = f1_list(freq_idx);
     param.DDC_freq = (param.f0+param.f1)/2;
-    [param.wfs(1).tx_mask] = deal([0 0 0 0 0 0 0 0]);
+    [param.wfs(1).tx_mask] = deal([1 1 1 1 1 1 1 1]);
     % RFI 0, 25, 50, 75, 100 % Power Modes
     param.tx_weights = final_DDS_amp{cal_settings(freq_idx)} * sqrt(0);
     param.fn = fullfile(base_dir,sprintf('RFI_%.0f-%.0fMHz_%.0fus_000p.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
