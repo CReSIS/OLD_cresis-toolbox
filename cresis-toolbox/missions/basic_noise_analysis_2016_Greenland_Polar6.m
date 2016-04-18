@@ -25,7 +25,8 @@ tstart = tic;
 param.rlines = [1:1000];
 % .noise_rbins = Start and stop range bin to use for noise power
 %   calculation (THIS OFTEN NEEDS TO BE SET)
-param.noise_rbins = [15500 16000];
+% param.noise_rbins = [4501 5500]; % Survey mode with no delay
+param.noise_rbins = [15000 16000]; % Survey mode
 
 radar_name = 'mcords5';
 
@@ -33,25 +34,27 @@ radar_name = 'mcords5';
 fs = 1600e6;
 BW = 520e6-150e6;
 freq_DDC = 335e6;
-% BW = 210e6-180e6;
-% freq_DDC = 195e6;
+BW = 210e6-180e6;
+freq_DDC = 195e6;
 
 % .img = which waveform/adc pairs to load
-%param.img = cat(2,-j*9*ones(8,1),[1 2 3 4 5 6 7 8].');
-param.img = cat(2,3*ones(24,1),[1:24].');
+% param.img = cat(2,3*ones(24,1),[1:24].');
+% param.img = cat(2,3*ones(8,1),[9:16].'); % Center subarray
+param.img = cat(2,3*ones(8,1),[1:8].'); % Left subarray
+% param.img = cat(2,3*ones(8,1),[17:24].'); % Right subarray
 
 % base_path = Base path of data (does not include seg directory)
 % set = Which segment directory to load from, leave empty for no segment directory
 % utc_time_correction
-base_path = '/mnt/HDD6/1604130401/UWB/';
+base_path = 'D:\awi';
 seg = '';
 
 % Optionally restrict search to a particular acquisition number/time
 % (part of the data files' filenames)
-acquisition_num = '*20160413_*_03*';
+acquisition_num = '*1744*04*';
 
 % File index in filename
-file_num = 103;
+file_num = 15;
 
 % .presums = Number of presums (coherent averaging) to do
 param.presums = 1;
@@ -317,6 +320,8 @@ end
 % =====================================================================
 if 1
   plot_combined_psd = true;
+  combined_psd_cmap = hsv(size(data,3));
+  combined_psd_legend = {};
   if plot_combined_psd
     h_psd_fig = figure(500); clf; h_psd_axes = axes('parent',h_psd_fig); hold(h_psd_axes,'on'); grid(h_psd_axes,'on'); xlabel('Frequency (MHz)','parent',h_psd_axes); ylabel('Relative noise power (dB)','parent',h_psd_axes);
   end
@@ -355,7 +360,8 @@ if 1
       caxis([ylims(1) caxis_lims(2)]);
       
       if plot_combined_psd
-        plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data))).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes)
+        plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data))).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes,'color',combined_psd_cmap(adc_idx,:))
+        combined_psd_legend{adc_idx} = sprintf('chan %d', adc);
       end
       
     else
@@ -386,6 +392,8 @@ if 1
     end
   end
 end
+figure(500);
+legend(combined_psd_legend,'location','best')
 
 %% Done
 return;

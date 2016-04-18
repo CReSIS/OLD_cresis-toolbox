@@ -70,13 +70,13 @@ param.rlines = [1 inf];
 param.rbins = [1 inf];
 % .noise_rbins = 1xN vector specifying range bins to use for noise power
 %   estimate on each range line (THIS OFTEN NEEDS TO BE SET)
-% param.noise_rbins = 400:600; % 165-510 MHz 3 us
-% param.noise_rbins = 1:40; % 180-210 MHz 3 us
-% param.noise_rbins = 100:200; % 165-510 MHz 1 us
-% param.noise_rbins = 80:100; % 180-210 MHz 1 us
-param.noise_rbins = 2700:3000; % 165-510 MHz 3 us
+% param.noise_rbins = 400:600; % 150-520 MHz 3 us no delay
+% param.noise_rbins = 1:40; % 180-210 MHz 3 us no delay
+% param.noise_rbins = 100:200; % 150-520 MHz 1 us no delay
+% param.noise_rbins = 80:100; % 180-210 MHz 1 us no delay
+param.noise_rbins = 2700:3000; % 150-520 MHz 3 us
 % param.noise_rbins = 200:230; % 180-210 MHz 3 us
-% param.noise_rbins = 100:200; % 165-510 MHz 1 us
+% param.noise_rbins = 100:200; % 150-520 MHz 1 us
 % param.noise_rbins = 80:100; % 180-210 MHz 1 us
 
 % .snr_threshold = SNR threshold in dB (range lines exceeding this
@@ -93,7 +93,7 @@ param.base_dir = '\\172.18.1.103\d\';
 param.base_dir = '\\172.18.1.32\mcords\';
 param.base_dir = '\\172.18.1.33\mcords\';
 % param.base_dir = 'D:\';
-param.base_dir = 'E:\201604010201\UWB\';
+param.base_dir = 'D:\awi\';
 
 % xml_fn = optional string containing xml file to load (normally
 %   leave this empty and select during run time)
@@ -105,7 +105,7 @@ xml_version = 2.0;
 
 % out_xml_fn_dir = String containg the directory where the new XML file
 %   will be placed (THIS OFTEN NEEDS TO BE SET)
-out_xml_fn_dir = 'F:\mdce_tmp\waveforms\';
+out_xml_fn_dir = 'C:\waveforms\';
 
 % param.adc = The ADC channel to load. Generally not critical which one is used.
 param.adc = 12;
