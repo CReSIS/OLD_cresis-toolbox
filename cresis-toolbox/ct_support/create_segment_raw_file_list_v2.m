@@ -855,11 +855,11 @@ end
 segments = segments(sort_idxs);
 
 %% Vector worksheet of param spreadsheet print out
-fprintf('Copy and paste the following into the parameter spreadsheet.\n');
+fprintf('Copy and paste the following into the parameter spreadsheet:\n');
 fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', 'Date', ...
   'Segment', 'file.start_idx', 'file.stop_idx', 'file.basedir', 'file.adc_folder_name', 'file.prefix', 'file.midfix','file.regexp');
 for seg_idx = 1:length(segments)
-  fprintf('%s\t%02d\t%d\t%d\t%s\t%s\t%s\t%s\n', day_string, ...
+  fprintf('%s\t%02d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n', day_string, ...
     seg_idx, segments(seg_idx).start_idx, segments(seg_idx).stop_idx, base_dir, param.adc_folder_name, file_prefix, file_midfix, file_regexp);
 end
 

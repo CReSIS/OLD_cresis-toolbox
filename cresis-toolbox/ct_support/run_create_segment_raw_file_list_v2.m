@@ -18,9 +18,10 @@ param = [];
 counter_correction_en = false;
 
 % Enable Just One Radar Setup
+radar_setup = 'SNOW5';
 
 %% Accum 1
-if 0
+if strcmpi(radar_setup,'ACCUM')
   param.radar_name = 'accum';
   adcs = 1;
   param.file_version = 5;
@@ -39,7 +40,7 @@ if 0
 end
 
 %% Ka-band 3
-if 0
+if strcmpi(radar_setup,'KABAND3')
   param.radar_name = 'kaband3';
   param.clk = 125e6;
   adcs = 1;
@@ -58,7 +59,7 @@ if 0
 end
 
 %% Kuband 1
-if 0
+if strcmpi(radar_setup,'KUBAND1')
   param.radar_name = 'kuband';
   adcs = 1;
   param.file_version = 1; % 2 for 2012
@@ -77,7 +78,7 @@ if 0
 end
 
 %% Kuband 2
-if 0  
+if strcmpi(radar_setup,'KUBAND2')
   param.radar_name = 'kuband2';
   param.clk = 125e6;
   adcs = 1;
@@ -96,7 +97,7 @@ if 0
 end
 
 %% Ku-band 3
-if 0
+if strcmpi(radar_setup,'KUBAND3')
   param.radar_name = 'kuband3';
   param.clk = 125e6;
   adcs = 1;
@@ -114,8 +115,8 @@ if 0
   day_string = '20150328'; % Only used for stdout print of the vectors worksheet
 end
 
-%% RDS: ACoRDS
-if 0
+%% RDS: ACORDS
+if strcmpi(radar_setup,'ACORDS')
   param.radar_name = 'acords';
   adcs = 1;
   param.file_version = 406;
@@ -135,7 +136,7 @@ if 0
 end
 
 %% RDS: MCoRDS 4
-if 0
+if strcmpi(radar_setup,'MCORDS4')
   base_dir = '/N/dc2/projects/cresis/2013_Antarctica_DC3/20131216/mcords4/';
   param.radar_name = 'mcords4';
   adc_folder_names = {'chan1'};
@@ -152,7 +153,7 @@ if 0
 end
 
 %% RDS: MCORDS5
-if 0
+if strcmpi(radar_setup,'MCORDS5')
   param.radar_name = 'mcords5';
   param.clk = 1.6e9/8;
   adcs = 1:24;
@@ -171,7 +172,7 @@ if 0
 end
 
 %% Snow 1
-if 1
+if strcmpi(radar_setup,'SNOW1')
   param.radar_name = 'snow';
   adcs = 1;
   param.file_version = 1; % 2 for 2012
@@ -190,7 +191,7 @@ if 1
 end
 
 %% Snow 2
-if 0  
+if strcmpi(radar_setup,'SNOW2')
   param.radar_name = 'snow2';
   param.clk = 125e6;
   adcs = 1;
@@ -209,7 +210,7 @@ if 0
 end
 
 %% Snow 3 (OIB)
-if 0
+if strcmpi(radar_setup,'SNOW3')
   param.radar_name = 'snow3';
   param.clk = 125e6;
   adcs = 1;
@@ -228,7 +229,7 @@ if 0
 end
 
 %% Snow 3 (NRL)
-if 0
+if strcmpi(radar_setup,'SNOW3_NRL')
   param.radar_name = 'snow3';
   param.clk = 125e6;
   adcs = 1:10;
@@ -247,7 +248,7 @@ if 0
 end
 
 %% SNOW5
-if 1
+if strcmpi(radar_setup,'SNOW5')
   param.radar_name = 'snow5';
   param.clk = 125e6;
   adcs = 1:2;

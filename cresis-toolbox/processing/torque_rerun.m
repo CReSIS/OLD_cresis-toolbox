@@ -64,8 +64,11 @@ while ~all(ctrl.job_status == 'C' | ctrl.job_status == 'E')
   ctrl = torque_job_status(ctrl);
 end
 if any(ctrl.job_status == 'E' & ctrl.error_mask == 0)
-  warning(sprintf('Some jobs are still in the "Exiting" state. Consider waiting a few moments and then running:\nctrl = torque_job_status(ctrl);\nany(ctrl.job_status == ''E'' & ctrl.error_mask == 0) %% Should return zero when all jobs are done exiting\ndbcont\n'));
-  keyboard
+  pause(30);
+  if any(ctrl.job_status == 'E' & ctrl.error_mask == 0)
+    warning(sprintf('Some jobs are still in the "Exiting" state. Consider waiting a few moments and then running:\nctrl = torque_job_status(ctrl);\nany(ctrl.job_status == ''E'' & ctrl.error_mask == 0) %% Should return zero when all jobs are done exiting\ndbcont\n'));
+    keyboard
+  end
 end
 
 retry = 0;
