@@ -2490,6 +2490,33 @@ classdef (HandleCompatible = true) vector_editor < handle
         end
         fclose(fid);
       end
+        
+      %% Create a separate TXT file for each flight line (AWI Format)
+      for pos = 1:length(obj.flines)
+        export_txt_fn = fullfile(export_fn_dir,sprintf('%s_%s.txt', ...
+          export_fn_name, obj.flines(pos).name));
+        fprintf('  %s\n', export_txt_fn);
+        
+        [fid,msg] = fopen(export_txt_fn,'w');
+        if fid < 0
+          error('Could not open %s for writing: %s', export_txt_fn, msg);
+        end
+        
+        %% Create elevation profile
+        elev = latlon2elevation_profile(obj.flines(pos).lat,obj.flines(pos).lon,true,1/100,1) + 500;
+        
+        fprintf(fid,'[Settings]\r\nRadiusEarthKm=6371.0\r\n[Track]\r\n;TrackPoints[Label]	Longitude[°]Latitude[°]	Altitude[m]\r\n');
+        along_track = geodetic_to_along_track(obj.flines(pos).lat,obj.flines(pos).lon,zeros(size(obj.flines(pos).lat)));
+        for wpnt_idx = 1:length(obj.flines(pos).x)
+          fprintf(fid,'%s\t%.5f\t%.5f\t%.0f', obj.flines(pos).wpnt_names{wpnt_idx}, ...
+            obj.flines(pos).lon(wpnt_idx),obj.flines(pos).lat(wpnt_idx),  ...
+            elev(wpnt_idx));
+          if wpnt_idx < length(obj.flines(pos).x)
+            fprintf(fid,'\r\n');
+          end
+        end
+        fclose(fid);
+      end
       
       %% Create a separate CSV file for each flight line (Kenn Borek Air Format)
       for pos = 1:length(obj.flines)
