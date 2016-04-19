@@ -11,8 +11,7 @@
 %
 % Author: John Paden
 
-% =========================================================================
-%% User Settings
+% User Settings
 % =========================================================================
 
 param = [];
@@ -20,6 +19,122 @@ counter_correction_en = false;
 
 % Enable Just One Radar Setup
 
+%% Accum 1
+if 0
+  param.radar_name = 'accum';
+  adcs = 1;
+  param.file_version = 5;
+  raw_file_suffix = '.dat';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2010_Greenland_P3';
+  base_dir = '/cresis/snfs1/data/Accum_Data/2010_Greenland_P3/';
+  param.adc_folder_name = '20100513B';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20100513'; % Only used for stdout print of the vectors worksheet
+  % file_prefix_override = ''; % most of the time (most of 2011)
+  file_prefix_override = 'data'; % (pre 2011, and beginning of 2011)
+end
+
+%% Ka-band 3
+if 0
+  param.radar_name = 'kaband3';
+  param.clk = 125e6;
+  adcs = 1;
+  param.file_version = 5;
+  raw_file_suffix = '.bin';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  file_prefix_override = '';
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2015_Greenland_C130';
+  base_dir = '/cresis/snfs1/data/kaband/';
+  param.adc_folder_name = '20150328';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20150328'; % Only used for stdout print of the vectors worksheet
+end
+
+%% Kuband 1
+if 0
+  param.radar_name = 'kuband';
+  adcs = 1;
+  param.file_version = 1; % 2 for 2012
+  raw_file_suffix = '.dat'; % kuband3, snow3
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2011_Greenland_P3';
+  base_dir = '/cresis/snfs1/data/Ku-Band/2011_Greenland_P3/';
+  param.adc_folder_name = '20110316';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20110316'; % Only used for stdout print of the vectors worksheet  
+  % file_prefix_override = ''; % most of the time (most of 2011)
+  file_prefix_override = 'data'; % (pre 2011, and beginning of 2011)
+end
+
+%% Kuband 2
+if 0  
+  param.radar_name = 'kuband2';
+  param.clk = 125e6;
+  adcs = 1;
+  param.file_version = 2; % 2 for 2012
+  raw_file_suffix = '.bin';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  file_prefix_override = 'kuband';
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2012_Greenland_P3';
+  base_dir = '/cresis/snfs1/data/Ku-Band/';
+  param.adc_folder_name = '20120316';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20120316'; % Only used for stdout print of the vectors worksheet
+end
+
+%% Ku-band 3
+if 0
+  param.radar_name = 'kuband3';
+  param.clk = 125e6;
+  adcs = 1;
+  param.file_version = 5; % 3 for 2013 Gr, 5 for after that
+  raw_file_suffix = '.bin';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  file_prefix_override = '';
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2015_Greenland_C130';
+  base_dir = '/cresis/snfs1/data/Ku-Band/';
+  param.adc_folder_name = '20150328';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20150328'; % Only used for stdout print of the vectors worksheet
+end
+
+%% RDS: ACoRDS
+if 0
+  param.radar_name = 'acords';
+  adcs = 1;
+  param.file_version = 406;
+  raw_file_suffix = '';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2004_Antarctica_P3chile';
+  % base_dir = '/cresis/snfs1/data/ACORDS/airborne2005/';
+  base_dir = '/cresis/snfs1/data/ACORDS/Chile_2004/';
+  param.adc_folder_name = 'nov21_04';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20041121'; % Only used for stdout print of the vectors worksheet
+  file_prefix_override = 'nov21_04'; % most of the time
+  file_regexp = '\.[0-9]*$';
+end
+
+%% RDS: MCoRDS 4
 if 0
   base_dir = '/N/dc2/projects/cresis/2013_Antarctica_DC3/20131216/mcords4/';
   param.radar_name = 'mcords4';
@@ -36,182 +151,117 @@ if 0
   file_prefix_override = 'mcords4'; 
 end
 
-
-if 0
-  param.radar_name = 'accum';
-  base_dir = '/cresis/snfs1/data/Accum_Data/2010_Greenland_P3/';
-  adc_folder_names = {'20100513B'}; %27 28 29 31
-  param.file_version = 5;
-
-  file_midfix = ''; % Can often be left empty
-  day_string = '20110316'; % Only used during printing of the segments
-  param.season_name = '2011_Greenland_P3';
-  raw_file_suffix = '.dat'; % accum
-  reuse_tmp_files = false; % Set to false if you want to overwrite current results
-  % file_prefix_override = ''; % most of the time (most of 2011)
-  file_prefix_override = 'data'; % (pre 2011, and beginning of 2011)
-end
-
-if 1
-  param.radar_name = 'snow';
-  base_dir = '/cresis/snfs1/data/SnowRadar/2010_Greenland_P3/';
-  adc_folder_names = {'20100508A'};
-  param.file_version = 1;
-
-  file_midfix = ''; % Can often be left empty
-  day_string = '20100508'; % Only used during printing of the segments
-  param.season_name = '2010_Greenland_P3';
-  raw_file_suffix = '.dat'; % kuband3, snow3
-  reuse_tmp_files = false; % Set to false if you want to overwrite current results
-  %file_prefix_override = ''; % most of the time (most of 2011)
-  file_prefix_override = 'data'; % (pre 2011, and beginning of 2011)
-end
-
-if 0
-  param.radar_name = 'kuband';
-  base_dir = '/cresis/snfs1/data/Ku-Band/2011_Greenland_P3/';
-  adc_folder_names = {'20110316'};
-  param.file_version = 1;
-
-  file_midfix = ''; % Can often be left empty
-  day_string = '20110316'; % Only used during printing of the segments
-  param.season_name = '2011_Greenland_P3';
-  raw_file_suffix = '.dat'; % kuband3, snow3
-  reuse_tmp_files = false; % Set to false if you want to overwrite current results
-  % file_prefix_override = ''; % most of the time (most of 2011)
-  file_prefix_override = 'data'; % (pre 2011, and beginning of 2011)
-end
-
-if 0
-  data_day = '21';
-  param.radar_name = 'acords';
-%   base_dir = '/cresis/snfs1/data/ACORDS/airborne2005/';
-  base_dir = '/cresis/snfs1/data/ACORDS/Chile_2004/';
-  adc_folder_names = {sprintf('nov%s_04',data_day)}; %27 28 29 31
-  param.file_version = 406;
-  
-  
-  file_midfix = ''; % Can often be left empty
-  day_string = sprintf('200411%s',data_day(1:2)); % Only used during printing of the segmen1
-  param.season_name = '2004_Antarctica_P3chile';
-  % file_prefix_override = ''; % most of the time
-  file_prefix_override = sprintf('nov%s_04',data_day); % for a few older datasets where file prefix was not radar name
-  % day_string = '20110328'; % Only used during printing of the segments
-  % param.season_name = '2011_Greenland_P3';
-  % file_prefix_override = 'data'; % for a few older datasets where file prefix was not radar name
-  % raw_file_suffix = '.bin'; % kuband3, snow3
-  file_regexp = '\.[0-9]*$';
-  raw_file_suffix = ''; % accum
-  reuse_tmp_files = false;
-end
-
-if 0
-  param.radar_name = 'snow2';
-  base_dir = '/cresis/snfs1/data/SnowRadar/2012_Greenland_P3/';
-  adc_folder_names = {'20120316'};
-  param.file_version = 2; % 2 for 2012
-
-  file_midfix = ''; % Can often be left empty
-  day_string = '20120316'; % Only used during printing of the segments
-  param.season_name = '2012_Greenland_P3';
-  raw_file_suffix = '.bin'; % kuband3, snow3
-  reuse_tmp_files = false; % Set to false if you want to overwrite current results
-  file_prefix_override = 'snow'; % most of the time
-end
-
-if 0
-  param.radar_name = 'kaband3';
-  base_dir = '/process4_SSD/20150324/fmcw/kaband/';
-  adc_folder_names = {''};
-  param.file_version = 5; % 3 for 2013 Gr, 5 for after that
-
-  file_midfix = ''; % Can often be left empty
-  day_string = '20150324'; % Only used during printing of the segments
-  param.season_name = '2015_Greenland_LC130';
-  raw_file_suffix = '.bin';
-  reuse_tmp_files = true; % Set to false if you want to overwrite current results
-  file_prefix_override = ''; % most of the time
-  counter_correction_en = true;
-end
-
-if 0
-  param.radar_name = 'kuband3';
-  base_dir = '/process4_SSD/20150324/fmcw/kuband/';
-  adc_folder_names = {''};
-  param.file_version = 5; % 3 for 2013 Gr, 5 for after that
-
-  file_midfix = ''; % Can often be left empty
-  day_string = '20150324'; % Only used during printing of the segments
-  param.season_name = '2015_Greenland_LC130';
-  raw_file_suffix = '.bin'; % kuband3, snow3
-  reuse_tmp_files = true; % Set to false if you want to overwrite current results
-  file_prefix_override = ''; % most of the time
-  counter_correction_en = true;
-end
-
-if 0
-  param.radar_name = 'snow3';
-  param.clk = 125e6;
-  base_dir = '/cresis/snfs1/data/SnowRadar/20150328/';
-  if 0
-    % Single channel
-    adc_folder_names = {''};
-  else
-    % Multichannel
-    adc_folder_names_chans = [1:10];
-    adc_folder_names = {};
-    for adc_folder_names_chan_idx = 1:length(adc_folder_names_chans)
-      adc_folder_names{adc_folder_names_chan_idx} = sprintf('chan%02d',adc_folder_names_chans(adc_folder_names_chan_idx));
-    end
-  end
-  param.file_version = 5; % 3 for 2013 Gr, 5 for after that
-
-  file_midfix = '20150328'; % Can often be left empty
-  day_string = '20150328'; % Only used during printing of the segments
-  param.season_name = '2015_Alaska_TOnrl';
-  raw_file_suffix = '.bin';
-  reuse_tmp_files = true; % Set to false if you want to overwrite current results
-  file_prefix_override = ''; % most of the time
-  counter_correction_en = true;
-end
-
+%% RDS: MCORDS5
 if 0
   param.radar_name = 'mcords5';
   param.clk = 1.6e9/8;
-  base_dir = '/cresis/snfs1/data/MCoRDS/2015_Greenland_Polar6/';
-  adc_folder_names_chans = [1:24];
-  adc_folder_names = {};
-  for adc_folder_names_chan_idx = 1:length(adc_folder_names_chans)
-    adc_folder_names{adc_folder_names_chan_idx} = sprintf('20150916/chan%d',adc_folder_names_chans(adc_folder_names_chan_idx));
-  end
-
-  file_midfix = '20150916'; % Can often be left empty
-  day_string = '20150916'; % Only used during printing of the segments
-  param.season_name = '2015_Greenland_Polar6';
+  adcs = 1:24;
   raw_file_suffix = '.bin';
   reuse_tmp_files = true; % Set to false if you want to overwrite current results
   file_prefix_override = ''; % most of the time
   counter_correction_en = true;
   presum_bug_fixed = true; % Seasons from 2015 Greenland Polar6 onward should be set to true
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2016_Greenland_Polar6';
+  base_dir = '/mnt/HDD6/';
+  param.adc_folder_name = '1604180601/UWB/chan%d';
+  file_midfix = '20160418'; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20160418'; % Only used for stdout print of the vectors worksheet
 end
 
+%% Snow 1
+if 1
+  param.radar_name = 'snow';
+  adcs = 1;
+  param.file_version = 1; % 2 for 2012
+  raw_file_suffix = '.dat'; % kuband3, snow3
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2011_Greenland_P3';
+  base_dir = '/cresis/snfs1/data/SnowRadar/2011_Greenland_P3/';
+  param.adc_folder_name = '20110316';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20110316'; % Only used for stdout print of the vectors worksheet  end
+  % file_prefix_override = ''; % most of the time (most of 2011)
+  file_prefix_override = 'data'; % (pre 2011, and beginning of 2011)
+end
+
+%% Snow 2
+if 0  
+  param.radar_name = 'snow2';
+  param.clk = 125e6;
+  adcs = 1;
+  param.file_version = 2; % 2 for 2012
+  raw_file_suffix = '.bin';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  file_prefix_override = 'snow';
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2012_Greenland_P3';
+  base_dir = '/cresis/snfs1/data/SnowRadar/';
+  param.adc_folder_name = '20120316';
+  file_midfix = '20120316'; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20120316'; % Only used for stdout print of the vectors worksheet
+end
+
+%% Snow 3 (OIB)
 if 0
+  param.radar_name = 'snow3';
+  param.clk = 125e6;
+  adcs = 1;
+  param.file_version = 5; % 3 for 2013 Gr, 5 for after that
+  raw_file_suffix = '.bin';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  file_prefix_override = '';
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2015_Greenland_C130';
+  base_dir = '/cresis/snfs1/data/SnowRadar/';
+  param.adc_folder_name = '20150328';
+  file_midfix = '20150328'; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20150328'; % Only used for stdout print of the vectors worksheet
+end
+
+%% Snow 3 (NRL)
+if 0
+  param.radar_name = 'snow3';
+  param.clk = 125e6;
+  adcs = 1:10;
+  param.file_version = 5; % 3 for 2013 Gr, 5 for after that
+  raw_file_suffix = '.bin';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  file_prefix_override = '';
+  counter_correction_en = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2015_Alaska_TOnrl';
+  base_dir = '/cresis/snfs1/data/SnowRadar/';
+  param.adc_folder_name = '20150328/chan%02d';
+  file_midfix = '20150328'; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20150328'; % Only used for stdout print of the vectors worksheet
+end
+
+%% SNOW5
+if 1
   param.radar_name = 'snow5';
   param.clk = 125e6;
-  base_dir = '/cresis/snfs1/data/SnowRadar/2015_Greenland_Polar6/20150917';
-  adc_folder_names_chans = [1:2];
-  adc_folder_names = {};
-  for adc_folder_names_chan_idx = 1:length(adc_folder_names_chans)
-    adc_folder_names{adc_folder_names_chan_idx} = sprintf('chan%d',adc_folder_names_chans(adc_folder_names_chan_idx));
-  end
-
-  file_midfix = '20150917'; % Can often be left empty
-  day_string = '20150917'; % Only used during printing of the segments
-  param.season_name = '2015_Greenland_Polar6';
+  adcs = 1:2;
   raw_file_suffix = '.bin';
-  reuse_tmp_files = false; % Set to false if you want to overwrite current results
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
   file_prefix_override = ''; % most of the time
   counter_correction_en = false;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2016_Greenland_Polar6';
+  base_dir = '/mnt/HDD6/';
+  param.adc_folder_name = '1604180601/UWBM/chan%d';
+  file_midfix = '20160418'; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20160418'; % Only used for stdout print of the vectors worksheet
 end
 
 %% User Settings that should not generally be changed
@@ -222,7 +272,6 @@ MIN_SEG_SIZE = 2;
 MAX_TIME_GAP = 1000/75;
 MIN_PRF = 100;
 
-% =========================================================================
 %% Automated Section
 % =========================================================================
 

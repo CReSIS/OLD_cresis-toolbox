@@ -30,8 +30,20 @@ if ~exist('file_regexp','var')
 end
 get_fns_param.regexp = file_regexp;
 
-for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
-  adc_folder_name = adc_folder_name{1}
+if ~exist('adcs','var')
+  warning('adcs not set, assuming that adcs should be "1"');
+  adcs = 1;
+end
+
+failed_load = {};
+for adc_idx = 1:length(adcs)
+  adc = adcs(adc_idx);
+  board = adc_to_board(param.radar_name,adc);
+  adc_folder_name = param.adc_folder_name;
+  adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
+  adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
+  adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
+  
   fns = get_filenames(fullfile(base_dir,adc_folder_name), file_prefix, file_midfix, raw_file_suffix, get_fns_param);
 
   if isempty(fns)
@@ -116,9 +128,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
   end
   
   %% Search for all the file prefixes
-  if strcmpi(adc_folder_name,adc_folder_names{1})
-    failed_load = zeros(size(fns));
-  end
+  failed_load{adc_idx} = zeros(size(fns));
   for fn_idx = 1:length(fns)
     fn = fns{fn_idx};
     if strcmp(param.radar_name,'acords')
@@ -229,7 +239,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
       end
     catch
       warning('  Failed to load... skipping.\n');
-      failed_load(fn_idx) = 1;
+      failed_load{adc_idx}(fn_idx) = 1;
       continue;
     end
     
@@ -441,15 +451,23 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
   end
 end
 
-if any(failed_load)
-  warning('Some files failed to load, consider deleting these to avoid problems.');
-  for fn_idx = find(failed_load)
-    fprintf('  %s\n', fns{fn_idx});
+for adc_idx = 1:length(adcs)
+  if any(failed_load{adc_idx})
+    warning('Some files failed to load, consider deleting these to avoid problems.');
+    for fn_idx = find(failed_load{adc_idx})
+      fprintf('  %s\n', fns{fn_idx});
+    end
   end
 end
 
-% Load the parsed header data from temporary files
-adc_folder_name = adc_folder_names{1};
+% Load the parsed header data from temporary files (only do this for the
+% first channel)
+adc = adcs(1);
+board = adc_to_board(param.radar_name,adc);
+adc_folder_name = param.adc_folder_name;
+adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
+adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
+
 fns = get_filenames(fullfile(base_dir,adc_folder_name), file_prefix, file_midfix, raw_file_suffix, get_fns_param);
 
 % Sort ACORDS filenames because the extenions are not a standard length
@@ -479,7 +497,7 @@ hdr_raw = [];
 hoffset = 0;
 offset = 0;
 for fn_idx = 1:length(fns)
-  if failed_load(fn_idx)
+  if failed_load{1}(fn_idx)
     continue;
   end
   fn = fns{fn_idx};
@@ -836,17 +854,20 @@ end
 [~,sort_idxs] = sort(cell2mat({segments.start_time}));
 segments = segments(sort_idxs);
 
-%% Print out some results that can be copied and pasted easily
+%% Vector worksheet of param spreadsheet print out
+fprintf('Copy and paste the following into the parameter spreadsheet.\n');
+fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', 'Date', ...
+  'Segment', 'file.start_idx', 'file.stop_idx', 'file.basedir', 'file.adc_folder_name', 'file.prefix', 'file.midfix','file.regexp');
 for seg_idx = 1:length(segments)
   fprintf('%s\t%02d\t%d\t%d\t%s\t%s\t%s\t%s\n', day_string, ...
-    seg_idx, segments(seg_idx).start_idx, segments(seg_idx).stop_idx, base_dir, adc_folder_name, file_prefix, file_midfix);
+    seg_idx, segments(seg_idx).start_idx, segments(seg_idx).stop_idx, base_dir, param.adc_folder_name, file_prefix, file_midfix, file_regexp);
 end
 
 if any(strcmpi(param.radar_name,{'acords'}))
   %% Print out some results that can be copied and pasted easily
   fprintf('\n')
   for seg_idx = 1:length(segments)
-    [hdr htime hoffset] = basic_load_acords(sprintf('%s/%s/%s.%d',base_dir,adc_folder_name,file_prefix_override,segments(seg_idx).start_idx-1),struct('datatype',0,'file_version',param.file_version,'verbose',0));
+    [hdr htime hoffset] = basic_load_acords(sprintf('%s/%s/%s.%d',base_dir,param.adc_folder_name,file_prefix_override,segments(seg_idx).start_idx-1),struct('datatype',0,'file_version',param.file_version,'verbose',0));
     fprintf('%s\t%02d\t%e\t%d\t12\t1\t2\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1 1 1 1]\t[%d %d %d %d]\t10.^((44-%d*ones(1,4))/20)\t[0 0 0 0]\t[0 0 0 0]\t[0 0 0 0]/1e9\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1 1 1 1]\t[%d %d %d %d]\t10.^((80-%d*ones(1,4))/20)\t[0 0 0 0]\t[0 0 0 0]\t[0 0 0 0]/1e9\n',...
       day_string,seg_idx,hdr(1).daq_clk,hdr(1).prf,hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).elem_1+1,hdr(1).elem_2+1,hdr(1).elem_3+1,hdr(1).elem_4+1,hdr(1).low_gain_atten,...
       hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).elem_1+1,hdr(1).elem_2+1,hdr(1).elem_3+1,hdr(1).elem_4+1,hdr(1).high_gain_atten);

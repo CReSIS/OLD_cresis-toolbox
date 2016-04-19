@@ -33,37 +33,20 @@ elseif any(strcmpi(param.radar_name,{'acords'}))
 elseif strcmpi(param.radar_name,'mcrds')
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.raw';
-elseif any(strcmpi(param.radar_name,{'accum2','snow2','kuband2','snow3','kuband3','icards','mcords','mcords4','mcords5','snow5'}))
+elseif any(strcmpi(param.radar_name,{'accum2','snow2','kuband2','snow3','kuband3','icards','mcords','mcords2','mcords3','mcords4','mcords5','snow5'}))
   % Create sub-folder name for the particular receiver
   adc_folder_name = param.vectors.file.adc_folder_name;
-  board_idx_insert_idxs = strfind(adc_folder_name,'%d');
-  mat_cmd = 'adc_folder_name = sprintf(adc_folder_name';
-  for board_idx_insert_idx = board_idx_insert_idxs
-    mat_cmd = [mat_cmd sprintf(', %d',adc)];
-    adc_folder_name(board_idx_insert_idxs+1) = 'd';
-  end
-  mat_cmd = [mat_cmd ');'];
-  eval(mat_cmd);
+  
+  board = adc_to_board(param.radar_name,adc);
+  
+  adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
+  adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
   
   if param.records.file_version == 401 || param.records.file_version == 409
     ext = '.dat';
   else
     ext = '.bin';
   end
-elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
-  % Create sub-folder name for the particular receiver
-  adc_folder_name = param.vectors.file.adc_folder_name;
-  board_idx_insert_idxs = strfind(adc_folder_name,'%b');
-  mat_cmd = 'adc_folder_name = sprintf(adc_folder_name';
-  board = adc_to_board(param.radar_name,adc);
-  for board_idx_insert_idx = board_idx_insert_idxs
-    mat_cmd = [mat_cmd sprintf(', %d',board)];
-    adc_folder_name(board_idx_insert_idxs+1) = 'd';
-  end
-  mat_cmd = [mat_cmd ');'];
-  eval(mat_cmd);
-  
-  ext = '.bin';
 else
   error('Unsupported radar %s', param.radar_name);
 end
