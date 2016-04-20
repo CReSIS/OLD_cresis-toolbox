@@ -106,13 +106,15 @@ elevm(isnan(elevm)) = sea_dem(isnan(elevm)); % Fill in NaN with mean sea level
 %% Debug Plots
 if plot_en
   figure; clf;
-  scatter(lon, lat, repmat(10,size(lat)), elev, 'Marker', 'x');
+  scatter(lon, lat, repmat(10,size(lat)), elev*100/2.54/12, 'Marker', 'x');
   hold on;
   grid on;
-  scatter(lonm, latm, repmat(3,size(latm)), elevm(:), 'Marker', '.');
+  scatter(lonm, latm, repmat(3,size(latm)), elevm(:)*100/2.54/12, 'Marker', '.');
   colormap(jet(256));
   h = colorbar;
-  set(get(h,'YLabel'), 'String', 'Elevation (m)');
+  set(get(h,'YLabel'), 'String', 'Elevation (ft)');
+  xlabel('Longitude (deg)');
+  ylabel('Latitude (deg)');
   
   figure; clf;
   along_trackm = geodetic_to_along_track(latm,lonm);

@@ -493,16 +493,21 @@ classdef (HandleCompatible = true) vector_editor < handle
       end
       R = R/1e3;
       
-      if strcmpi(class(RGB),'int16')
+      if isa(RGB,'int16')
         RGB = double(RGB);
-        RGB(RGB == 32767) = NaN;
+        RGB(RGB == 32767 | RGB == -32767 | RGB == -32768) = NaN;
         RGB = (RGB - min(RGB(:))) / (max(RGB(:)) - min(RGB(:)));
+      elseif isa(RGB,'single')
+        RGB = double(RGB);
       end
       
       % Store all the existing plotonly objects
       plotonly = handle2struct(obj.plotonly.handles);
       obj.plotonly.delete_handle(1:length(obj.plotonly.handles));
       
+      if isobject(obj.h_image)
+        delete(obj.h_image);
+      end
       obj.h_image = mapshow(RGB,R,'Parent',obj.h_axes);
       xlabel('X (km)');
       ylabel('Y (km)');
@@ -574,8 +579,8 @@ classdef (HandleCompatible = true) vector_editor < handle
           elseif fline_select
             % Find the closest flight line
             % interpm, reducem
-            xlims = xlim;
-            ylims = ylim;
+            xlims = xlim(obj.h_axes);
+            ylims = ylim(obj.h_axes);
             if x<xlims(1) || x>xlims(2) || y<ylims(1) || y>ylims(2)
               return
             end
@@ -650,6 +655,11 @@ classdef (HandleCompatible = true) vector_editor < handle
             
           end
         elseif strcmpi(tool,'insert')
+            xlims = xlim(obj.h_axes);
+            ylims = ylim(obj.h_axes);
+            if x<xlims(1) || x>xlims(2) || y<ylims(1) || y>ylims(2)
+              return
+            end
           obj.insert_wpnt(x,y);
           obj.update_statusText();
           obj.wpntsLB_callback();
@@ -933,6 +943,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         '*.csv',  'CSV Files (*.csv)'; ...
         '*.txt',  'TXT Files (*.txt)'; ...
         '*.kml',  'KML Files (*.kml)'; ...
+        '*.tif',  'Geotiff Files (*.tif)'; ...
         '*.*',  'All Files (*.*)'}, ...
         'Pick a file', ...
         obj.open_fn_dir, 'MultiSelect', 'on');
@@ -1268,6 +1279,10 @@ classdef (HandleCompatible = true) vector_editor < handle
             obj.openMatFile(fn,unload_field,load_geotiff_field,load_plotonly_field,load_flightlines_field);
           end
           
+        elseif strcmpi(ext,'.tif')
+          % Update geotiff
+          obj.geotiff_fn = fn;
+          obj.update_geotiff(true);
         end
       end
     end
@@ -2411,7 +2426,6 @@ classdef (HandleCompatible = true) vector_editor < handle
       % Ask the user for the file path to use
       [filename, pathname] = uiputfile( ...
         {'*.jpg', 'All JPG Images (*.jpg)'; ...
-        '*.fig', 'All MATLAB Figures (*.fig)'; ...
         '*.*', 'All Files (*.*)'}, ...
         'Save as', obj.export_fn);
       
@@ -2493,7 +2507,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         
       %% Create a separate TXT file for each flight line (AWI Format)
       for pos = 1:length(obj.flines)
-        export_txt_fn = fullfile(export_fn_dir,sprintf('%s_%s.txt', ...
+        export_txt_fn = fullfile(export_fn_dir,sprintf('%s_AWI_%s.txt', ...
           export_fn_name, obj.flines(pos).name));
         fprintf('  %s\n', export_txt_fn);
         
@@ -2529,18 +2543,17 @@ classdef (HandleCompatible = true) vector_editor < handle
           error('Could not open %s for writing: %s', export_csv_fn, msg);
         end
         fprintf(fid,'%s,%s,%s,%s,%s,%s\n', ...
-          'Lat_North_deg','Lat_North_min', ...
-          'Lon_East_deg','Lon_East_min','Name','Distance_km');
+          'Name','Lat_North_deg','Lat_North_min', ...
+          'Lon_East_deg','Lon_East_min','Distance_km');
         along_track = geodetic_to_along_track(obj.flines(pos).lat,obj.flines(pos).lon,zeros(size(obj.flines(pos).lat)));
         for wpnt_idx = 1:length(obj.flines(pos).x)
           lat_deg = fix(obj.flines(pos).lat(wpnt_idx));
           lat_min = abs((obj.flines(pos).lat(wpnt_idx) - lat_deg)*60);
           lon_deg = fix(obj.flines(pos).lon(wpnt_idx));
           lon_min = abs((obj.flines(pos).lon(wpnt_idx) - lon_deg)*60);
-          fprintf(fid,'%15.0f,%15.2f,%15.0f,%15.2f,%s,%15.0f\n', ...
-            lat_deg, lat_min, ...
-            lon_deg, lon_min, obj.flines(pos).wpnt_names{wpnt_idx}, ...
-            along_track(wpnt_idx)/1e3);
+          fprintf(fid,'%s,%15.0f,%15.2f,%15.0f,%15.2f,%15.0f\n', ...
+            obj.flines(pos).wpnt_names{wpnt_idx}, lat_deg, lat_min, ...
+            lon_deg, lon_min, along_track(wpnt_idx)/1e3);
         end
         fclose(fid);
       end
