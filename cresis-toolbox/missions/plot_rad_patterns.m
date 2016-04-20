@@ -12,6 +12,10 @@ physical_constants;
 % Only supports a single image right now
 img = 1;
 
+if ~exist('retrack_en','var')
+  retrack_en = false;
+end
+
 %% Load and prepare data
 
 % Load data
@@ -56,7 +60,7 @@ end
 % Frequency subband
 f0 = f0(end);
 f1 = f1(end);
-wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),1);
+wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(ref_pattern),1);
 df = 1/(Nt*data.wfs(wf).dt);
 freq = data.wfs(wf).fc + df*(floor(-Nt/2) : floor((Nt-1)/2)).';
 H = zeros(size(freq));
@@ -153,10 +157,27 @@ end
 %% Retrack surface and circshift data so that surface lies in range bin 6
 % =========================================================================
 ref_bin = 6;
+
+if ~retrack_en
+  % Use results from complex steering vector data (this requires that the
+  % complex steering vector data was taken at the same time as these data)
+  for rline = 1:Nx
+    if ~isnan(surf_bin(rline))
+      data.surf_vals(:,rline,:) = circshift(data.surf_vals(:,rline,:),[ref_bin-surf_bin(rline) 0 0]);
+    end
+  end
   
-for rline = 1:Nx
-  if ~isnan(surf_bin(rline))
-    data.surf_vals(:,rline,:) = circshift(data.surf_vals(:,rline,:),[ref_bin-surf_bin(rline) 0 0]);
+else
+  surf_bin = NaN*zeros(1,Nx);
+  ml_data = lp(fir_dec(mean(abs(data.surf_vals).^2,3),ones(1,5)/5,1));
+  for rline = 1:Nx
+    cur_threshold = max([ml_data(1,rline)+7; ml_data(:,rline)-13]);
+    tmp = find(ml_data(:,rline) > cur_threshold,1);
+    if ~isempty(tmp)
+      [~,max_offset] = max(ml_data(tmp+(0:2),rline));
+      tmp = tmp-1 + max_offset;
+      surf_bin(rline) = tmp;
+    end
   end
 end
 
@@ -233,7 +254,7 @@ power_table = power_table(:,good_mask);
 
 %% Receiver equalization (force sv to be all ones at nadir)
 % =========================================================================
-nadir_idx = find(roll_binned==0);
+nadir_idx = find(roll_binned==equalize_angle);
 rx_equalization = sv_table(:,nadir_idx);
 fprintf('Equalization (deg):\n');
 fprintf('%5.1f ', angle(rx_equalization)*180/pi);
@@ -344,12 +365,12 @@ sv_ideal = bsxfun(@(x,y) x./y, sv_ideal, rx_equalization);
 % pattern was the received. Either way we divide out the SV pattern.
 
 for ant = 1:Nc
-  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_LUT_ref(ant),:), roll_binned);
+  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_ant_ref(ant),:), roll_binned);
   sv_deviation_fit(ant,:) = sv_deviation_fit(ant,:) ./ SV_ref_pattern;
 end
 
 for ant = 1:Nc
-  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_LUT_ref(ant),:), roll_binned);
+  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_ant_ref(ant),:), roll_binned);
   sv_deviation(ant,:) = sv_deviation(ant,:) ./ SV_ref_pattern;
 end
 
@@ -383,7 +404,6 @@ if debug_level == 1
   fprintf('Figure %d: Steering vector amplitude\n  Black: ideal, Colored: fit to measurements, Dots: measurements\n', number_h_fig);
   
   number_h_fig = 7; figure(number_h_fig); clf;
-  nadir_idx = find(roll_binned==0);
   final_fit = unwrap(angle(sv_deviation_fit .* sv_ideal).').';
   final_fit = final_fit - repmat(final_fit(:,nadir_idx),[1 size(final_fit,2)]);
   final_meas = unwrap(angle(sv_deviation .* sv_ideal).').';
@@ -418,6 +438,6 @@ output_fn_dir = fileparts(output_fn);
 if ~exist(output_fn_dir,'dir')
   mkdir(output_fn_dir);
 end
-save(output_fn,'surf_bin','rad_patterns','ref_pattern','sv_LUT_ref','roll_binned','sv_deviation_fit','sv_deviation','sv_ideal','param');
+save(output_fn,'surf_bin','rad_patterns','ref_pattern','sv_ant_ref','roll_binned','sv_deviation_fit','sv_deviation','sv_ideal','param');
 
 return;

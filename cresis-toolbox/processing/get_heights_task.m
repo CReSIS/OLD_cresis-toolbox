@@ -591,7 +591,7 @@ for img_idx = 1:length(param.load.imgs)
     g_data = g_data{1};
     valid_rng = img_valid_rng{1};
     deconv_filter_idx = img_deconv_filter_idx{1};
-    % Currently assuming all waveforms have the same time axis
+    % Get heights only loads one image at a time, so img_time{1}
     for wf = 1:length(wfs)
       wfs(wf).time = img_time{1};
     end
@@ -654,10 +654,7 @@ for img_idx = 1:length(param.load.imgs)
   
   %% Remove coherent noise
   if param.get_heights.coh_noise_method == 1 && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
-    for wf_adc_idx = 1:size(g_data,3)
-      g_data(:,:,wf_adc_idx) = g_data(:,:,wf_adc_idx) - repmat( mean(g_data(:,:,wf_adc_idx),2) , ...
-        [1 size(g_data,2)]);
-    end
+    g_data = bsxfun(@minus, g_data, mean(g_data,2));
   end
 
   %% Roll compensation

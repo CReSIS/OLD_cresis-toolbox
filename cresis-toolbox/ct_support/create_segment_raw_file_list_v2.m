@@ -30,6 +30,10 @@ if ~exist('file_regexp','var')
 end
 get_fns_param.regexp = file_regexp;
 
+if ~exist('union_time_epri_gaps','var')
+  union_time_epri_gaps = false;
+end
+
 if ~exist('adcs','var')
   warning('adcs not set, assuming that adcs should be "1"');
   adcs = 1;
@@ -634,6 +638,12 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
   end
   
   time_gaps = find(abs(diff(utc_time_sod)) > MAX_TIME_GAP);
+  
+  if union_time_epri_gaps
+    MAX_EPRI_GAP = 2000;
+    epri_gaps = find(abs(diff(medfilt1(epri,11))) > MAX_EPRI_GAP);
+    time_gaps = sort(union(time_gaps,epri_gaps));
+  end
   
   figure(1); clf;
   plot(utc_time_sod);

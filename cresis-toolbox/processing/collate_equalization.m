@@ -8,11 +8,8 @@
 physical_constants
 ref_wf_adc = param.analysis.surf.ref_wf_adc;
 
-% Only supports a single image right now
-img = 1;
-
 %% Load data
-fn = fullfile(ct_filename_out(param,input_fn_dir,'',1),sprintf('surf_%s_img_01.mat',param.day_seg));
+fn = fullfile(ct_filename_out(param,input_fn_dir,'',1),sprintf('surf_%s_img_%02d.mat',param.day_seg,img));
 data = load(fn);
 
 if ~isfield(param.analysis.surf,'wf_adc_list')
@@ -45,6 +42,8 @@ Nc = size(data.surf_vals,3);
 rlines = param.analysis.surf.rlines;
 if isempty(rlines)
   rlines = 1:size(data.surf_vals,2);
+else
+  rlines = intersect(rlines,1:size(data.surf_vals,2));
 end
 
 if debug_level == 3
@@ -363,13 +362,13 @@ end
 equal.peak_offset = peak_offset;
 equal.peak_val = peak_val;
 
-equal.Tsys_offset = nanmean(peak_offset(:,param.analysis.surf.rlines),2)*data.wfs(wf).dt;
-equal.chan_equal_deg_offset = angle(nanmean(peak_val(:,param.analysis.surf.rlines),2)) * 180/pi;
-equal.chan_equal_dB_offset = lp(nanmean(abs(peak_val(:,param.analysis.surf.rlines)).^2,2),1);
+equal.Tsys_offset = nanmean(peak_offset(:,rlines),2)*data.wfs(wf).dt;
+equal.chan_equal_deg_offset = angle(nanmean(peak_val(:,rlines),2)) * 180/pi;
+equal.chan_equal_dB_offset = lp(nanmean(abs(peak_val(:,rlines)).^2,2),1);
 
-equal.Tsys_offset_std = nanstd(peak_offset(:,param.analysis.surf.rlines),[],2)*data.wfs(wf).dt;
-equal.chan_equal_deg_offset_std = angle(nanstd(peak_val(:,param.analysis.surf.rlines),[],2)) * 180/pi;
-equal.chan_equal_dB_offset_std = lp(nanstd(abs(peak_val(:,param.analysis.surf.rlines)).^2,[],2),1);
+equal.Tsys_offset_std = nanstd(peak_offset(:,rlines),[],2)*data.wfs(wf).dt;
+equal.chan_equal_deg_offset_std = angle(nanstd(peak_val(:,rlines),[],2)) * 180/pi;
+equal.chan_equal_dB_offset_std = lp(nanstd(abs(peak_val(:,rlines)).^2,[],2),1);
 
 equal.Tsys_offset = reshape(equal.Tsys_offset,[1 Nc]);
 equal.chan_equal_deg_offset = reshape(equal.chan_equal_deg_offset,[1 Nc]);
@@ -398,7 +397,7 @@ equal.chan_equal_deg_with_Tsys_str = mat2str(round(angle(exp(j*equal.chan_equal_
 
 if debug_level >= 1
   %% Print Results to stdout
-  fprintf('%s %d:%d\n', param.day_seg, rlines(1), rlines(end));
+  fprintf('%s %d:%d wf %d\n', param.day_seg, rlines(1), rlines(end), wf);
   fprintf('Offsets from Old Coefficients (rows: equal_dB, equal_deg, Tsys_ns)\n');
   fprintf('%.1f\t', equal.chan_equal_dB_offset); fprintf('\n');
   fprintf('%.1f\t', equal.chan_equal_deg_offset); fprintf('\n');
