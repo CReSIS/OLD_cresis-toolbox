@@ -58,18 +58,19 @@ elseif 0
 elseif 1
   %% 2016_Greenland_Polar6
   fn = 'F:\rds\2016_Greenland_Polar6\CSARP_noise\surf_20160401_13_img_01.mat';
-  elements_fn = 'F:/rds/2016_Greenland_Polar6/CSARP_noise/sv_table_2016_Greenland_Polar6.mat';  
+  fn = '/home/administrator/Scratch/rds/2016_Greenland_Polar6/CSARP_noise/surf_20160414_13_img_01.mat';
+  elements_fn = '/home/administrator/Scratch/rds/2016_Greenland_Polar6/CSARP_noise/sv_table_2016_Greenland_Polar6.mat';
   
   analysis.surf.motion_comp.en = true;
   analysis.surf.chan_eq.en = true;
-  analysis.surf.rlines = [1500:6500];
+  analysis.surf.rlines = [];
   
   good_mask_min_samples = 10;
-  good_mask_min_angle = -30;
-  good_mask_max_angle = 30; 
+  good_mask_min_angle = -49;
+  good_mask_max_angle = 49; 
   
-  plot_min_angle = -25;
-  plot_max_angle = 25;
+  plot_min_angle = -45;
+  plot_max_angle = 45;
   
   fit_method = 'filter'; % 'filter' or 'sgolay'
   
@@ -79,25 +80,63 @@ elseif 1
     f1 = f0 + 50e6;
     
     % Combined Pattern
-    rad_patterns = [33]; % wf-adc indexes for patterns you want to generate
+    % rad_patterns = [33]; % wf-adc indexes for patterns you want to generate
+    % ref_pattern = [1];
+    % sv_ant_ref = [4];
+    % retrack_en = false;
+    % equalize_angle = 0;
+    % output_fn = fullfile('F:\rds\2016_Greenland_Polar6\CSARP_noise\', ...
+    %   sprintf('combined_pattern_2016_Greenland_Polar6_%3.0f_%3.0fMHz.mat',f0/1e6,f1/1e6));
+    % degrees_of_freedom = round(16*(f0+f1)/450e6/2) % spatial filter fitting (usually around the # of antennas)
+    % 
+    % plot_rad_patterns;
+    % figure(6);
+    % title(sprintf('%3.0f - %3.0f MHz',f0/1e6,f1/1e6));
+    % legend off;
+    % saveas(6,fullfile('F:\rds\2016_Greenland_Polar6\CSARP_noise\', ...
+    %   sprintf('combined_pattern_2016_Greenland_Polar6_%3.0f_%3.0fMHz.fig',f0/1e6,f1/1e6)));
+    
+    % Left Pattern
+    rad_patterns = [1]; % wf-adc indexes for patterns you want to generate
     ref_pattern = [1];
     sv_ant_ref = [4];
-    output_fn = fullfile('F:\rds\2016_Greenland_Polar6\CSARP_noise\', ...
-      sprintf('combined_pattern_2016_Greenland_Polar6_%3.0f_%3.0fMHz.mat',f0/1e6,f1/1e6));
+    retrack_en = true;
+    equalize_angle = -20;
+    output_fn = fullfile('/home/administrator/Scratch/rds/2016_Greenland_Polar6/CSARP_noise/', ...
+      sprintf('left_pattern_2016_Greenland_Polar6_%3.0f_%3.0fMHz.mat',f0/1e6,f1/1e6));
     degrees_of_freedom = round(16*(f0+f1)/450e6/2) % spatial filter fitting (usually around the # of antennas)
-    
+
     plot_rad_patterns;
     figure(6);
     title(sprintf('%3.0f - %3.0f MHz',f0/1e6,f1/1e6));
     legend off;
-    saveas(6,fullfile('F:\rds\2016_Greenland_Polar6\CSARP_noise\', ...
-      sprintf('combined_pattern_2016_Greenland_Polar6_%3.0f_%3.0fMHz.fig',f0/1e6,f1/1e6)));
+    saveas(6,fullfile('/home/administrator/Scratch/rds/2016_Greenland_Polar6/CSARP_noise/', ...
+      sprintf('left_pattern_2016_Greenland_Polar6_%3.0f_%3.0fMHz.fig',f0/1e6,f1/1e6)));
+    
+    % Right Pattern
+%     rad_patterns = [3]; % wf-adc indexes for patterns you want to generate
+%     ref_pattern = [1];
+%     sv_ant_ref = [4];
+%     equalize_angle = 20;
+%     retrack_en = true;
+%     output_fn = fullfile('/home/administrator/Scratch/rds/2016_Greenland_Polar6/CSARP_noise/', ...
+%       sprintf('right_pattern_2016_Greenland_Polar6_%3.0f_%3.0fMHz.mat',f0/1e6,f1/1e6));
+%     degrees_of_freedom = round(16*(f0+f1)/450e6/2) % spatial filter fitting (usually around the # of antennas)
+%     
+%     plot_rad_patterns;
+%     figure(6);
+%     title(sprintf('%3.0f - %3.0f MHz',f0/1e6,f1/1e6));
+%     legend off;
+%     saveas(6,fullfile('/home/administrator/Scratch/rds/2016_Greenland_Polar6/CSARP_noise/', ...
+%       sprintf('right_pattern_2016_Greenland_Polar6_%3.0f_%3.0fMHz.fig',f0/1e6,f1/1e6)));
     
     % Individual Elements (Center Elements Only)
     %   rad_patterns = [17:24]; % wf-adc indexes for patterns you want to generate
     %   %ref_pattern = [repmat(5,[1 8]) repmat(13,[1 8]) repmat(21,[1 8])];
     %   ref_pattern = repmat(4,[1 8]);
     %   sv_LUT_ref = repmat(4,[1 8]);
+    % retrack_en = false;
+    % equalize_angle = 0;
     %   output_fn = 'F:\rds\2016_Greenland_Polar6\CSARP_noise\sv_table_all_2016_Greenland_Polar6.mat';
     %   degrees_of_freedom = repmat(3,[1 8]); % spatial filter fitting (usually around the # of antennas)
     
@@ -106,6 +145,8 @@ elseif 1
     %   %ref_pattern = [repmat(5,[1 8]) repmat(13,[1 8]) repmat(21,[1 8])];
     %   ref_pattern = repmat(12,[1 24]);
     %   sv_LUT_ref = repmat(4,[1 24]);
+    % retrack_en = false;
+    % equalize_angle = 0;
     %   output_fn = 'F:\rds\2016_Greenland_Polar6\CSARP_noise\sv_table_all_2016_Greenland_Polar6.mat';
     %   degrees_of_freedom = repmat(3,[1 24]); % spatial filter fitting (usually around the # of antennas)
     

@@ -3,7 +3,9 @@ function mdata = check_img_combine(data_fn, rlines)
 %
 % Function for checking the combining of images.
 %
-% mdata = check_img_combine('~/Scratch/rds/2016_Greenland_Polar6/CSARP_qlook/20160413_17/Data_20160413_17_005');
+% mdata =
+% check_img_combine('~/Scratch/rds/2016_Greenland_Polar6/CSARP_qlook/20160413_17/Data_20160413_17_005');
+% mdata = check_img_combine('~/Scratch/rds/2016_Greenland_Polar6/CSARP_individual/20160413_17/Data_img_01_20160413_17_005.mat');
 %
 % Author: John Paden
 
@@ -25,7 +27,13 @@ grid on;
 
 done = false; img = 1;
 while ~done
-  data_img_fn = fullfile(data_fn_dir,[data_fn_name(1:5) sprintf('img_%02d_', img) data_fn_name(6:end) '.mat']);
+  if data_fn_name(6) == 'i'
+    data_img_fn = data_fn_name;
+    data_img_fn(10:11) = sprintf('%02d', img);
+    data_img_fn = fullfile(data_fn_dir,[data_img_fn '.mat']);
+  else
+    data_img_fn = fullfile(data_fn_dir,[data_fn_name(1:5) sprintf('img_%02d_', img) data_fn_name(6:end) '.mat']);
+  end
   if exist(data_img_fn,'file')
     mdata{img+1} = load(data_img_fn);
     img = img + 1;

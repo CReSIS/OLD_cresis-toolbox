@@ -95,6 +95,10 @@ if ~param.sched.rerun_only
   end
 end
 
+if ~isfield(param.csarp,'ground_based') || isempty(param.csarp.ground_based)
+  param.csarp.ground_based = false;
+end
+
 global g_data;
 g_data = [];
 
