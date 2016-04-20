@@ -24,8 +24,12 @@ end
 param.base_dir_search = param.base_dir_search(good_mask);
 
 global g_basic_noise_analysis_base_dir;
-if length(param.base_dir_search) > 1
+base_dir = [];
+if length(param.base_dir_search) >= 1
   default_base_dir_idx = [];
+  if isempty(g_basic_noise_analysis_base_dir)
+    g_basic_noise_analysis_base_dir = param.base_dir_search{1};
+  end
   for base_dir_idx = 1:length(param.base_dir_search)
     fprintf('(%d): %s', base_dir_idx, param.base_dir_search{base_dir_idx});
     if strcmp(param.base_dir_search{base_dir_idx},g_basic_noise_analysis_base_dir)
@@ -34,35 +38,45 @@ if length(param.base_dir_search) > 1
     end
     fprintf('\n');
   end
-  fprintf('(%d): Custom\n', base_dir_idx+1);
-  try
-    base_dir_idx = input('More than one base directory exists, choose one: ');
-    if isempty(base_dir_idx)
-      base_dir_idx = default_base_dir_idx;
-    end
+  fprintf('(%d): Custom', base_dir_idx+1);
+  if isempty(default_base_dir_idx)
+      fprintf(' *');
+  end
+  fprintf('\n');
+  base_dir_idx = input('More than one base directory exists, choose one: ');
+  if isempty(base_dir_idx) && ~isempty(default_base_dir_idx)
+    base_dir_idx = default_base_dir_idx;
+  end
+  if base_dir_idx <= length(param.base_dir_search)
     base_dir = param.base_dir_search{base_dir_idx};
-  catch
-    base_dir = '';
-    while ~exist(base_dir,'dir')
-      base_dir = input('Enter custom directory path: ','s');
-      if ~exist(base_dir,'dir')
-        warning('Does not exist: %s', base_dir);
-      end
+  end
+end
+
+if isempty(base_dir)
+  while ~exist(base_dir,'dir')
+    base_dir = input('Enter custom directory path: ','s');
+    if ~exist(base_dir,'dir')
+      warning('Does not exist: %s', base_dir);
     end
   end
 end
 g_basic_noise_analysis_base_dir = base_dir;
 
+global g_file_select;
 global g_basic_noise_analysis_fn;
 if strcmpi(param.file_search_mode,'last_file')
   fns = get_filenames(base_dir,'','','.bin',struct('recursive',true));
+  if isempty(fns)
+    error('No data files: %s\n', base_dir);
+  end
   fns_idxs = max(1,length(fns)-9) : length(fns);
-  default_fn_idx = [];
+  if isempty(g_file_select)
+    g_file_select = max(1,length(fns_idxs)-1);
+  end
   for fn_idx = 1:length(fns_idxs)
     fprintf('(%d): %s', fn_idx, fns{fns_idxs(fn_idx)});
-    if strcmp(fns{fns_idxs(fn_idx)},g_basic_noise_analysis_fn)
+    if g_file_select == fn_idx
       fprintf(' *');
-      default_fn_idx = fn_idx;
     end
     fprintf('\n');
   end
@@ -71,22 +85,24 @@ if strcmpi(param.file_search_mode,'last_file')
     try
       user_fn_idx = input('Choose one: ');
       if isempty(user_fn_idx)
-        user_fn_idx =default_fn_idx;
+        user_fn_idx = g_file_select;
       end
       fn = fns{fns_idxs(user_fn_idx)};
       done = true;
     catch
-      if ~isempty(g_basic_noise_analysis_fn) && exist(g_basic_noise_analysis_fn,'file')
-        fn = g_basic_noise_analysis_fn;
-        done = true;
-      end
+      user_fn_idx = g_file_select;
+      fn = fns{fns_idxs(user_fn_idx)};
+      done = true;
     end
   end
 else
   fn = '';
   while ~exist(fn,'file')
     fn = input(sprintf('Filename [%s]: ', g_basic_noise_analysis_fn),'s');
-    fn = get_filename(base_dir,'',fn,param.raw_file_suffix,struct('recursive',true));
+    if isempty(fn)
+      fn = g_basic_noise_analysis_fn;
+    end
+    fn = get_filename(base_dir,'',fn,'.bin',struct('recursive',true));
   end
 end
 g_basic_noise_analysis_fn = fn;
@@ -291,7 +307,7 @@ for adc_idx = 1:size(data,3)
     fprintf('\t');
   end
   fprintf('%.1f', ...
-    lp(mean(mean(abs(data(noise_rbins,rlines,adc_idx)).^2/50)) * hdr.wfs(abs(param.img(1,1))).presums, 1) +30 );
+    lp(mean(mean(abs(data(noise_rbins,:,adc_idx)).^2/50)) * hdr.wfs(abs(param.img(1,1))).presums, 1) +30 );
 end
 fprintf('\n');
 
@@ -300,7 +316,7 @@ fprintf('\n');
 if param.pdf_en
   for adc_idx = 1:size(data,3)
     figure(adc_idx); clf;
-    plot(real(data(:,rlines(1),adc_idx)),'.');
+    plot(real(data(:,1,adc_idx)),'.');
     grid on;
     xlabel('Range bin');
     ylabel('Quantization level');
@@ -311,7 +327,7 @@ if param.pdf_en
     
     % Plot estimated pdf and approximate a gaussian to it
     figure(200+adc_idx);
-    ROI = data(noise_rbins,rlines,adc_idx);
+    ROI = data(noise_rbins,:,adc_idx);
     ROI = real(ROI(:));
     [n,x] = hist(ROI,64);    
     bar(x,n);
@@ -332,7 +348,6 @@ if param.pdf_en
   end  
 end
 
-% =====================================================================
 %% Power Spectrum
 % =====================================================================
 if param.psd_en
