@@ -7,13 +7,15 @@
 %% USER SETTINGS
 % =========================================================================
 
+param_fn = ct_filename_param('rds_param_2016_Greenland_Polar6.xls');
+
 % param_fn = ct_filename_param('snow_param_2009_Greenland_P3.xls');
 % param_fn = ct_filename_param('snow_param_2009_Antarctica_DC8.xls');
 % param_fn = ct_filename_param('snow_param_2010_Greenland_DC8.xls');
 % param_fn = ct_filename_param('snow_param_2010_Greenland_P3.xls');
 % param_fn = ct_filename_param('snow_param_2010_Antarctica_DC8.xls');
 % param_fn = ct_filename_param('snow_param_2011_Greenland_P3.xls');
-param_fn = ct_filename_param('snow_param_2011_Antarctica_DC8.xls');
+% param_fn = ct_filename_param('snow_param_2011_Antarctica_DC8.xls');
 % param_fn = ct_filename_param('snow_param_2012_Greenland_P3.xls');
 % param_fn = ct_filename_param('snow_param_2012_Antarctica_DC8.xls');
 % param_fn = ct_filename_param('snow_param_2014_Greenland_P3.xls');
@@ -50,9 +52,16 @@ debug_level = 1; % Set to zero to run with no plots/outputs/stops
 
 preserve_old = true; % Set to true to not overwrite old deconv file
 
+imgs = 3;
+wf_adcs = 1;
+
 %% AUTOMATED SECTION
 % =========================================================================
 
-collate_deconv;
+for img = imgs
+  for wf_adc = wf_adcs
+    collate_deconv;
+  end
+end
 
 return;

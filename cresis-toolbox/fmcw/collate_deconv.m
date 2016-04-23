@@ -34,8 +34,6 @@
 %
 % Author: Jilu Li, John Paden
 
-%% AUTOMATED SECTION
-% =========================================================================
 params = read_param_xls(param_fn,'',{analysis_sheet 'analysis'});
 % For debugging, leave empty otherwise
 day_seg_debug = ''; % Set to 'YYYYMMDD_SS' to debug one segment
@@ -79,16 +77,24 @@ if stage_one_en
       continue;
     end
     
+    if iscell(params.analysis.specular.rbins)
+      param.analysis.specular.rbins = param.analysis.specular.rbins{img};
+    end
+    
+    if iscell(params.analysis.specular.Nt_shorten)
+      param.analysis.specular.Nt_shorten = param.analysis.specular.Nt_shorten{img};
+    end
+
     %% Load the specular surface file
-    fprintf('Loading %s\n', param.day_seg);
+    fprintf('Loading %s img %d wf %d\n', param.day_seg, img, wf_adc);
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
-    fn = fullfile(fn_dir,sprintf('specular_%s.mat', param.day_seg));
+    fn = fullfile(fn_dir,sprintf('specular_img_%02d_wfadc_%d_%s.mat', img, wf_adc, param.day_seg));
     spec = load(fn);
     
     %% Create the frequency spectrum axis
-    wf = spec.param_analysis.analysis.imgs{1}(1);
+    wf = spec.param_analysis.analysis.imgs{img}(1);
     if isempty(spec.deconv_mean)
-      Nt = length(spec.wfs(wf).time{1});
+      Nt = length(spec.wfs(wf).time);
     else
       Nt = mode(cellfun(@length,spec.deconv_mean)); % HACK: Force Nt to be constant... need to handle differently for multiple NZ in same processing block and DDC
     end
@@ -106,8 +112,10 @@ if stage_one_en
       final.param_analysis = spec.param_analysis;
       final.metric = [];
       final.num_response = [];
-      final.match_freq = (spec.wfs(wf).fc + 2*spec.wfs(wf).chirp_rate / spec.wfs(wf).fs_raw * ((0:Nt-1) - floor(Nt/2))).';
-      final.Tpd = spec.Tpd;
+      if any(strcmpi(ct_output_dir(param.radar_name),{'kuband','snow'}))
+        final.match_freq = (spec.wfs(wf).fc + 2*spec.wfs(wf).chirp_rate / spec.wfs(wf).fs_raw * ((0:Nt-1) - floor(Nt/2))).';
+        final.Tpd = spec.Tpd;
+      end
       final.freq = {};
       final.deconv_DDC_Mt = [];
       final.deconv_H = {};
@@ -164,7 +172,7 @@ if stage_one_en
         spec.freq{rline} = fftshift(spec.freq{rline});
       else
         %% Perform FFT shift to bring time zero back to start
-        sig_tg = ifftshift(sig_tg,1);
+        sig_tg = ifft(fftshift(fft(ifftshift(sig_tg,1)),1));
       end
       
       %% Extract the deconvolution information
@@ -172,59 +180,45 @@ if stage_one_en
       spec.deconv_H{rline} = zeros(size(sig_tg_fft));
       Nt_new = Nt-sum(param.analysis.specular.Nt_shorten);
       
-      if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
-        spec.deconv_H{rline}(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1)) ...
-          = param.get_heights.ft_wind(Nt_new) ./ sig_tg_fft(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1));
-        if debug_level > 4 || debug_level >= 0 && rline == 1
-          %% DEBUG CODE: For setting Nt_shorten
-          figure(1); clf;
-          plot(lp(sig_tg_fft));
-          title(sprintf('%s: Without Nt_shorten %.0f meters',param.day_seg,interp1(spec.gps_time,spec.elev,spec.deconv_gps_time(rline))),'interpreter','none');
-          grid on;
-          figure(2); clf;
-          plot(lp(param.get_heights.ft_wind(Nt_new)));
-          hold on
-          plot(lp(sig_tg_fft(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1))), 'r');
-          plot(lp(spec.deconv_H{rline}(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1))), 'g');
-          hold off;
-          title(sprintf('%s: With Nt_shorten',param.day_seg),'interpreter','none');
-          legend('window','raw','correction','location','best');
-          fig1_fn = [ct_filename_tmp(param,'','deconv','Nt_shorten') '_without.fig'];
-          fig1_fn_dir = fileparts(fig1_fn);
-          if ~exist(fig1_fn_dir)
-            mkdir(fig1_fn_dir);
-          end
-          saveas(1,fig1_fn);
-          fig2_fn = [ct_filename_tmp(param,'','deconv','Nt_shorten') '_with.fig'];
-          saveas(2,fig2_fn);
-          
-          grid on;
-          axis tight;
-          debug_Nt_shorten_threshold = 35;
-          max_val = max(lp(sig_tg_fft));
-          Nt_shorten = find(lp(sig_tg_fft)>max_val-debug_Nt_shorten_threshold,1) - 1;
-          Nt_shorten(2) = length(lp(sig_tg_fft)) - find(lp(sig_tg_fft)>max_val-debug_Nt_shorten_threshold,1,'last');
-          
-          fprintf('%s Nt_shorten\n\t%.0f\t%.0f\n', param.day_seg, Nt_shorten);
-          
-          if debug_level > 3
-            fprintf('Usually set so deconv_H (green) does not have large values relative to zero where the signal is weak. Regions of the FFT waveform that are not stable from one deconv waveform to the next should be clipped if possible too. specular.interp_rbins can be used to interpolate across bad FFT bins in the middle of the waveform.\n');
-            keyboard;
-          end
+      spec.deconv_H{rline}(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1)) ...
+        = param.get_heights.ft_wind(Nt_new) ./ sig_tg_fft(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1));
+      
+      if debug_level == 5 || debug_level >= 0 && rline == 1
+        %% DEBUG CODE: For setting Nt_shorten
+        figure(1); clf;
+        plot(lp(sig_tg_fft));
+        title(sprintf('%s: Without Nt_shorten %.0f meters',param.day_seg,interp1(spec.gps_time,spec.elev,spec.deconv_gps_time(rline))),'interpreter','none');
+        grid on;
+        figure(2); clf;
+        plot(lp(param.get_heights.ft_wind(Nt_new)));
+        hold on
+        plot(lp(sig_tg_fft(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1))), 'r');
+        plot(lp(spec.deconv_H{rline}(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1))), 'g');
+        hold off;
+        title(sprintf('%s: With Nt_shorten',param.day_seg),'interpreter','none');
+        legend('window','raw','correction','location','best');
+        fig1_fn = [ct_filename_tmp(param,'','deconv','Nt_shorten') '_without.fig'];
+        fig1_fn_dir = fileparts(fig1_fn);
+        if ~exist(fig1_fn_dir)
+          mkdir(fig1_fn_dir);
         end
-      else
-        H_window_shortened = hanning(Nt_new);
+        saveas(1,fig1_fn);
+        fig2_fn = [ct_filename_tmp(param,'','deconv','Nt_shorten') '_with.fig'];
+        saveas(2,fig2_fn);
         
-        H_window = zeros(Nt,1);
-        H_window(1:floor(Nt+1)/2 - param.analysis.specular.Nt_shorten(1)) ...
-          = H_window_shortened(floor(Nt+1)/2 - param.analysis.specular.Nt_shorten(1):-1:1);
-        H_window(end:-1:floor(Nt+1)/2+1 + sum(param.analysis.specular.Nt_shorten)) ...
-          = H_window_shortened(floor(Nt+1)/2+1 : end);
+        grid on;
+        axis tight;
+        debug_Nt_shorten_threshold = 35;
+        max_val = max(lp(sig_tg_fft));
+        Nt_shorten = find(lp(sig_tg_fft)>max_val-debug_Nt_shorten_threshold,1) - 1;
+        Nt_shorten(2) = length(lp(sig_tg_fft)) - find(lp(sig_tg_fft)>max_val-debug_Nt_shorten_threshold,1,'last');
         
-        deconv_H(:,end) = H_window ./ final2_fft;
-        deconv_H(:,end) = deconv_H(:,end) ...
-          / max(abs(fft(g_data(:,center_rline) .* deconv_H(:,end), size(g_data,1)*10))) ...
-          * max(abs(fft(g_data(:,center_rline), size(g_data,1)*10)));
+        fprintf('%s Nt_shorten\n\t%.0f\t%.0f\n', param.day_seg, Nt_shorten);
+        
+        if debug_level == 5
+          fprintf('Usually set so deconv_H (green) does not have large values relative to zero where the signal is weak. Regions of the FFT waveform that are not stable from one deconv waveform to the next should be clipped if possible too. specular.interp_rbins can be used to interpolate across bad FFT bins in the middle of the waveform.\n');
+          keyboard;
+        end
       end
       
       %% Interpolating deconvolution spectrum where specified
@@ -243,9 +237,9 @@ if stage_one_en
       sig_deconv = ifft(fftshift(fft(sig_sample),1) .* spec.deconv_H{rline});
       
       %% Normalize
-      sample_Mt = lp(ifft(fft(sig_sample),Mt*length(sig_deconv)));
+      sample_Mt = lp(interpft(ifft(ifftshift(fft(sig_sample))),Mt*length(sig_deconv)));
       sample_peak = max(sample_Mt);
-      sig_deconv_Mt = lp(ifft(fft(sig_deconv),Mt*length(sig_deconv)));
+      sig_deconv_Mt = lp(interpft(ifft(ifftshift(fft(sig_deconv))),Mt*length(sig_deconv)));
       [sig_deconv_peak,peak_idx] = max(sig_deconv_Mt);
       rising_edge_bins = param.analysis.specular.rbins(1)*Mt : -param.analysis.specular.SL_guard_bins*Mt;
       falling_edge_bins = param.analysis.specular.SL_guard_bins*Mt : param.analysis.specular.rbins(end)*Mt;
@@ -276,17 +270,17 @@ if stage_one_en
       spec.falling_edge_SL(rline) = max(sig_deconv_Mt(peak_idx+falling_edge_bins)) - sig_deconv_peak;
       
       peak_idx = round(peak_idx/Mt);
-      rising_idx = round(rising_idx/Mt);
-      falling_idx = round(falling_idx/Mt);
+      rising_idx = floor(rising_idx/Mt);
+      falling_idx = ceil(falling_idx/Mt);
       if rising_idx + param.analysis.specular.rbins(1) < 1 ...
           || falling_idx + param.analysis.specular.rbins(end) >= length(sig_deconv)
         warning('waveform %d may not be a good one, skipped',rline);
         continue
       end
-      spec.rising_edge_ISL(rline) = sum(abs(sig_deconv(rising_idx + param.analysis.specular.rbins(1):rising_idx)).^2);
-      spec.rising_edge_ISL(rline) = lp(spec.rising_edge_ISL (rline))-sig_deconv_peak;
-      spec.falling_edge_ISL(rline) = sum(abs(sig_deconv(falling_idx:falling_idx + param.analysis.specular.rbins(end))).^2);
-      spec.falling_edge_ISL(rline) = lp(spec.falling_edge_ISL (rline))-sig_deconv_peak;
+      spec.rising_edge_ISL(rline) = sum(abs(sig_deconv(rising_idx + param.analysis.specular.rbins(1):rising_idx-1)).^2);
+      spec.rising_edge_ISL(rline) = lp(spec.rising_edge_ISL(rline))-sig_deconv_peak;
+      spec.falling_edge_ISL(rline) = sum(abs(sig_deconv(falling_idx+1:falling_idx + param.analysis.specular.rbins(end))).^2);
+      spec.falling_edge_ISL(rline) = lp(spec.falling_edge_ISL(rline))-sig_deconv_peak;
       normal_factor = sample_peak - sig_deconv_peak;
       deconv_H = deconv_H * 10^(normal_factor/20);
       spec.deconv_H{rline} = spec.deconv_H{rline} * 10^(normal_factor/20);
@@ -376,10 +370,12 @@ if stage_one_en
       hold on;
       plot(spec.metric(2,mask),'r');
       plot(spec.metric(3,mask),'g');
-      plot(spec.metric(4,mask),'b');
+      plot(spec.metric(4,mask),'c');
+      plot(spec.metric(5,mask),'b');
+      plot(spec.metric(6,mask),'m');
       hold off;
       grid on;
-      legend('P','ML','FSL','RSL')
+      legend('P','ML','FSL','RSL','IFSL','IRSL')
       aa = gca;
       title(param.day_seg,'Interpreter','none')
       xlabel('Deconv waveform index');
@@ -430,10 +426,12 @@ if stage_one_en
         hold on;
         plot(spec.metric(2,:),'r');
         plot(spec.metric(3,:),'g');
-        plot(spec.metric(4,:),'b');
+        plot(spec.metric(4,:),'c');
+        plot(spec.metric(5,:),'b');
+        plot(spec.metric(6,:),'m');
         hold off;
         grid on;
-        legend('P','ML','FSL','RSL')
+        legend('P','ML','FSL','RSL','IFSL','IRSL')
         aa = gca;
         title(param.day_seg,'Interpreter','none')
         xlabel('Deconv waveform index');
@@ -471,6 +469,77 @@ if stage_one_en
     
     metric = spec.metric;
     
+    %% Final RDS Deconvolution Waveform Generation
+    if strcmpi(ct_output_dir(param.radar_name),'rds')
+      % Choose a reference function
+      best_score = sum(spec.metric);
+      [~,best_idx] = min(best_score);
+      best_idx
+      
+      wf = spec.param_analysis.analysis.imgs{img}(wf_adc,1);
+      adc = spec.param_analysis.analysis.imgs{img}(wf_adc,2);
+
+      ref = spec.wfs(wf).ref{adc};
+      ref(spec.wfs(wf).freq_inds) = ref(spec.wfs(wf).freq_inds) .* ifftshift(spec.deconv_H{best_idx});
+
+      if 1
+        % Estimate delay and phase shift caused by deconvolution process
+        % relative to reference waveform
+        
+        deconv_test = ifft(spec.wfs(wf).ref{adc} .* conj(ref));
+        ideal_test = ifft(spec.wfs(wf).ref{adc} .* conj(spec.wfs(wf).ref{adc}));
+        figure(1); clf;
+        plot(lp(deconv_test));
+        hold on;
+        plot(lp(ideal_test));
+        
+        [~,max_idx] = max(deconv_test) % Should be one
+        
+        angle(deconv_test(1))*180/pi % Should be ~zero
+      end
+      
+      % Remove receiver delays that were applied to the reference function
+      Nt = length(ref);
+      fc = spec.wfs(wf).fc;
+      if spec.wfs(wf).DDC_mode == 0
+        fs = param.radar.fs;
+        dt = 1/fs;
+        df = 1/(Nt*dt);
+        freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
+      else
+        fs = param.radar.fs / 2^(1+spec.wfs(wf).DDC_mode);
+        dt = 1/fs;
+        df = 1/(Nt*dt);
+        freq = spec.wfs(wf).DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+      end
+      
+      ref = ifft(conj(ref) .* exp(1i*2*pi*freq*spec.param_analysis.radar.wfs(wf).Tsys(spec.param_analysis.radar.wfs(wf).rx_paths(adc))));
+      
+      if debug_level == 6
+        figure(1); clf;
+        plot(lp(ref));
+        keyboard
+      end
+      param_collate = param;
+      ref_windowed = true;
+      ref_window = param.get_heights.ft_wind;
+      ref_nonnegative = ref(params.analysis.specular.ref_nonnegative{img});
+      ref_negative = ref(params.analysis.specular.ref_negative{img} + end);
+
+      records_fn = ct_filename_support(param,'','records');
+      records = load(records_fn);
+      rec = find(records.gps_time > spec.deconv_gps_time(best_idx),1);
+      file_idx = find(records.relative_rec_num{adc} <= rec,1,'last');
+      raw_fn = records.relative_filename{adc}{file_idx};
+      fprintf('File: %s\n', raw_fn);
+      fprintf('UTC time: %s\n', datestr(epoch_to_datenum(gps_to_utc(spec.deconv_gps_time(best_idx)))))
+      
+      fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
+      fn = fullfile(fn_dir,sprintf('deconv_wf_%d_adc_%d_%s.mat', wf, adc, param.day_seg));
+      fprintf('Saving %s img %d wf %d: %s\n', param.day_seg, img, wf_adc, fn);
+      save(fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window','param_collate','best_idx');
+      continue;
+    end
     
     %% Determine which deconv waveforms are good
     % Nyquist zone twtt barriers
@@ -772,6 +841,10 @@ if stage_two_en
   % collected at an altitude or with a DDC filter where no good deconvolution
   % waveform was collected and this code looks in other segments for these missing waveforms.
   % =========================================================================
+
+  if strcmpi(ct_output_dir(param.radar_name),'rds')
+    error('Stage two does not support rds (not needed).\n');
+  end
   
   deconv_H = [];
   deconv_elev = [];
