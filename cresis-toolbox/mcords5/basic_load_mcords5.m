@@ -247,7 +247,8 @@ end
 fseek(fid, param.recs(1) * hdr.rec_size*2 + hdr.sync_offsets(1), -1);
 
 % Read in all records
-raw_file_data = fread(fid, [hdr.rec_size param.recs(2)], 'int16=>int16');
+[raw_file_data,count] = fread(fid, [hdr.rec_size param.recs(2)], 'int16=>int16');
+raw_file_data = raw_file_data(:,1:floor(count/hdr.rec_size));
 
 % Close file
 fclose(fid);
