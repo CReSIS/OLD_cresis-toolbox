@@ -27,6 +27,8 @@ function ctrl = torque_new_batch(param)
 %  .job_id_list = Nx1 vector of torque job IDs
 %  .job_status = Nx1 vector of job status
 %  .error_mask = Nx1 vector of error status
+%  .complete_codes = string containing job states that are considered
+%    complete. Default is 'C'.
 %
 % Author: John Paden
 %
@@ -40,6 +42,13 @@ if ~exist('param','var') || isempty(param)
 end
 
 ctrl.sched = param.sched;
+
+if ~isfield(ctrl.sched,'complete_codes') || isempty(ctrl.sched.complete_codes)
+  ctrl.sched.complete_codes = 'C';
+end
+if ~isfield(ctrl.sched,'check_running_jobs_for_complete') || isempty(ctrl.sched.check_running_jobs_for_complete)
+  ctrl.sched.check_running_jobs_for_complete = false;
+end
 
 %% Create directory to store temporary files
 % Find the first unique and unused batch_id

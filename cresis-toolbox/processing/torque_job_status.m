@@ -38,8 +38,11 @@ end
 
 job_status_found = zeros(size(ctrl.job_status));
 
+%% Update job status for each job in list
 if ~ctrl.sched.test_mode
-  %% Runs qstat command
+  
+  % Runs qstat command
+  % -----------------------------------------------------------------------
   cmd = 'qstat';
   status = -1;
   torque_attempts = 0;
@@ -66,7 +69,8 @@ if ~ctrl.sched.test_mode
     end
   end
   
-  %% Parse qstat command results
+  % Parse qstat command results
+  % -----------------------------------------------------------------------
   if ~isempty(result)
     qstat_res = textscan(result,'%s %s %s %s %s %s','HeaderLines',2,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
     for idx = 1:size(qstat_res{1},1)
@@ -85,90 +89,24 @@ if ~ctrl.sched.test_mode
             new_job_status = qstat_res{5}{idx};
             if new_job_status ~= 'R' && ctrl.job_status(job_id) ~= 'C'
               % Print a message for all changes besides running and exiting
-              fprintf(' QJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, job_id, qstat_res{7}(idx), new_job_status, datestr(now))
+              fprintf(' QJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, job_id, ctrl.job_id_list(job_id), new_job_status, datestr(now))
             end
             ctrl.job_status(job_id) = new_job_status;
-            if ctrl.job_status(job_id) == 'C' || ctrl.job_status(job_id) == 'E'
-              %% Get the output information
+            if any(ctrl.job_status(job_id) == ctrl.sched.complete_codes)
+              % Get the output information
               % There is a bug that sometimes jobs will go into exitting state
               % and never complete in a timely fashion but do have good outputs
-              % so we check for these jobs too.
+              % so we check for these jobs too if complete_codes has 'E' in its
+              % list of complete states.
+              
               in_path = fullfile(ctrl.in_path_dir,sprintf('in_%d.mat',job_id));
               clear param; load(in_path,'param');
               if param.conforming
-                % Good output implies: output file exists and contains a first
-                % output argument containing the number "1"
+                ctrl = torque_check_conforming(ctrl,job_id);
+                
+              else
                 out_path = fullfile(ctrl.out_path_dir,sprintf('out_%d.mat',job_id));
-                
-                torque_attempts = 0;
-                try_loading_again = true;
-                while try_loading_again
-                  if ~exist(out_path,'file')
-                    % Output file does not exist
-                    ctrl.error_mask(job_id) = 1;
-                  else
-                    try
-                      ctrl.out{job_id} = load(out_path,'argsout');
-                    catch
-                      ctrl.out{job_id} = [];
-                    end
-                    if isempty(ctrl.out{job_id})
-                      % Corrupt output file, missing argsout, or empty argsout
-                      ctrl.error_mask(job_id) = 2;
-                    else
-                      try
-                        if ctrl.out{job_id}.argsout{1} ~= 1
-                          % Failure in job's Matlab code (i.e. probably exitted
-                          % due to an "error" exception in users code)
-                          ctrl.error_mask(job_id) = 3;
-                        else
-                          % Success!
-                          ctrl.error_mask(job_id) = 0;
-                          try_loading_again = false;
-                          break;
-                        end
-                      catch
-                        % Non-conforming output (e.g. argsout{1} is not double scalar)
-                        ctrl.error_mask(job_id) = 4;
-                      end
-                    end
-                  end
-                  if torque_attempts < 5
-                    fprintf('  Output file not generated yet, trying again...\n');
-                    torque_attempts = torque_attempts + 1;
-                    delay_period = 3*2^(torque_attempts-1);
-                    if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
-                      % Hold keyboard file exists
-                      keyboard
-                    end
-                    pause(delay_period);
-                  else
-                    fprintf('    Gave up looking for output file\n');
-                    try_loading_again = false; % Give up!
-                  end
-                end
-                
-                if ctrl.error_mask(job_id)
-                  if exist(out_path,'file')
-                    out = load(out_path);
-                    error_string = '';
-                    if isfield(out,'errorstruct')
-                      error_string = sprintf('%s: %s\n', out.errorstruct.identifier, out.errorstruct.message);
-                      for stack_idx = 1:length(out.errorstruct.stack)
-                        error_string = cat(2,error_string,...
-                          sprintf('  %s: %d\n', out.errorstruct.stack(stack_idx).name, out.errorstruct.stack(stack_idx).line));
-                      end
-                    end
-                    warning('Job %d:%d/%d Error:\n%s', ctrl.batch_id, job_id, qstat_res{7}(idx), error_string);
-                  else
-                    warning('Job %d:%d/%d Error, no output file\n', ctrl.batch_id, job_id, qstat_res{7}(idx));
-                    out = [];
-                  end
-                end
-              
-            else
-              out_path = fullfile(ctrl.out_path_dir,sprintf('out_%d.mat',job_id));
-              if ~exist(out_path,'file')
+                if ~exist(out_path,'file')
                   % Output file does not exist
                   ctrl.error_mask(job_id) = 1;
                 else
@@ -183,6 +121,7 @@ if ~ctrl.sched.test_mode
                   end
                 end
               end
+              
             end
           end
         end
@@ -202,37 +141,8 @@ if any(job_status_found==0)
       in_path = fullfile(ctrl.in_path_dir,sprintf('in_%d.mat',job_id));
       clear param; load(in_path,'param');
       if param.conforming
-        % Good output implies: output file exists and contains a first
-        % output argument containing the number "1"
-        out_path = fullfile(ctrl.out_path_dir,sprintf('out_%d.mat',job_id));
-        if ~exist(out_path,'file')
-          % Output file does not exist
-          ctrl.error_mask(job_id) = 1;
-        else
-          try
-            ctrl.out{job_id} = load(out_path,'argsout');
-          catch
-            ctrl.out{job_id} = [];
-          end
-          if isempty(ctrl.out{job_id})
-            % Corrupt output file, missing argsout, or empty argsout
-            ctrl.error_mask(job_id) = 2;
-          else
-            try
-              if ctrl.out{job_id}.argsout{1} ~= 1
-                % Failure in job's Matlab code (i.e. probably exitted
-                % due to an "error" exception in users code)
-                ctrl.error_mask(job_id) = 3;
-              else
-                % Success!
-                ctrl.error_mask(job_id) = 0;
-              end
-            catch
-              % Non-conforming output (e.g. argsout{1} is not double scalar)
-              ctrl.error_mask(job_id) = 4;
-            end
-          end
-        end
+        ctrl = torque_check_conforming(ctrl,job_id);
+
       else
         out_path = fullfile(ctrl.out_path_dir,sprintf('out_%d.mat',job_id));
         if ~exist(out_path,'file')
@@ -248,64 +158,24 @@ if any(job_status_found==0)
           end
         end
       end
+      
     end
   end
 end
 
-torque_broken = true;
-if torque_broken && isfield(ctrl.sched,'conforming') && ctrl.sched.conforming
-  %% Handle case where torque loses track of a running job that completes
+%% Handle case where torque loses track of a running job that completes
+if ctrl.sched.check_running_jobs_for_complete && isfield(ctrl.sched,'conforming') && ctrl.sched.conforming
   for job_id = find(ctrl.job_status == 'R')
     out_path = fullfile(ctrl.out_path_dir,sprintf('out_%d.mat',job_id));
+    
     if ~exist(out_path,'file')
       % Output file does not exist
       continue;
     else
-      % Output file exists... try a few times to open it and interpret the
-      % contents
-      fprintf(' RJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, job_id, ctrl.job_id_list(job_id), 'C', datestr(now))
-      ctrl.job_status(job_id) = 'C';
-      torque_attempts = 0;
-      try_loading_again = true;
-      while try_loading_again
-        try
-          ctrl.out{job_id} = load(out_path,'argsout');
-        catch
-          ctrl.out{job_id} = [];
-        end
-        if isempty(ctrl.out{job_id})
-          % Corrupt output file, missing argsout, or empty argsout
-          ctrl.error_mask(job_id) = 2;
-        else
-          try
-            if ctrl.out{job_id}.argsout{1} ~= 1
-              % Failure in job's Matlab code (i.e. probably exitted
-              % due to an "error" exception in users code)
-              ctrl.error_mask(job_id) = 3;
-            else
-              % Success!
-              ctrl.error_mask(job_id) = 0;
-              try_loading_again = false;
-              break;
-            end
-          catch
-            % Non-conforming output (e.g. argsout{1} is not double scalar)
-            ctrl.error_mask(job_id) = 4;
-          end
-        end
-        if torque_attempts < 5
-          fprintf('  Output file not generated yet, trying again...\n');
-          torque_attempts = torque_attempts + 1;
-          delay_period = 3*2^(torque_attempts-1);
-          if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
-            % Hold keyboard file exists
-            keyboard
-          end
-          pause(delay_period);
-        else
-          fprintf('    Gave up looking for output file\n');
-          try_loading_again = false; % Give up!
-        end
+      % Output file exists... try to open it
+      ctrl = torque_check_conforming(ctrl,job_id);
+      if ctrl.job_status == 'C'
+        fprintf(' RJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, job_id, ctrl.job_id_list(job_id), 'C', datestr(now));
       end
     end
   end

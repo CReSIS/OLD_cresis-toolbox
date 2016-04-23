@@ -63,12 +63,15 @@ while ~all(ctrl.job_status == 'C' | ctrl.job_status == 'E')
   end
   ctrl = torque_job_status(ctrl);
 end
-if any(ctrl.job_status == 'E' & ctrl.error_mask == 0)
+% Wait for jobs to complete phase 2 (no errors, but still exitting jobs)
+while any(ctrl.job_status == 'E' & ctrl.error_mask == 0)
+  warning(sprintf('Some jobs are still in the "Exiting" state. Consider waiting a few moments and then running:\nctrl = torque_job_status(ctrl);\nany(ctrl.job_status == ''E'' & ctrl.error_mask == 0) %% Should return zero when all jobs are done exiting\ndbcont\n'));
   pause(30);
-  if any(ctrl.job_status == 'E' & ctrl.error_mask == 0)
-    warning(sprintf('Some jobs are still in the "Exiting" state. Consider waiting a few moments and then running:\nctrl = torque_job_status(ctrl);\nany(ctrl.job_status == ''E'' & ctrl.error_mask == 0) %% Should return zero when all jobs are done exiting\ndbcont\n'));
+  if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
+    % Hold keyboard file exists
     keyboard
   end
+  ctrl = torque_job_status(ctrl);
 end
 
 retry = 0;
