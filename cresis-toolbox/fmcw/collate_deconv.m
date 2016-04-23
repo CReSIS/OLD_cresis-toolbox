@@ -77,11 +77,11 @@ if stage_one_en
       continue;
     end
     
-    if iscell(params.analysis.specular.rbins)
+    if iscell(param.analysis.specular.rbins)
       param.analysis.specular.rbins = param.analysis.specular.rbins{img};
     end
     
-    if iscell(params.analysis.specular.Nt_shorten)
+    if iscell(param.analysis.specular.Nt_shorten)
       param.analysis.specular.Nt_shorten = param.analysis.specular.Nt_shorten{img};
     end
 
@@ -183,7 +183,7 @@ if stage_one_en
       spec.deconv_H{rline}(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1)) ...
         = param.get_heights.ft_wind(Nt_new) ./ sig_tg_fft(param.analysis.specular.Nt_shorten(1)+(0:Nt_new-1));
       
-      if debug_level == 5 || debug_level >= 0 && rline == 1
+      if debug_level == 3 || debug_level >= 0 && rline == 1
         %% DEBUG CODE: For setting Nt_shorten
         figure(1); clf;
         plot(lp(sig_tg_fft));
@@ -215,7 +215,7 @@ if stage_one_en
         
         fprintf('%s Nt_shorten\n\t%.0f\t%.0f\n', param.day_seg, Nt_shorten);
         
-        if debug_level == 5
+        if debug_level == 3
           fprintf('Usually set so deconv_H (green) does not have large values relative to zero where the signal is weak. Regions of the FFT waveform that are not stable from one deconv waveform to the next should be clipped if possible too. specular.interp_rbins can be used to interpolate across bad FFT bins in the middle of the waveform.\n');
           keyboard;
         end
@@ -474,7 +474,6 @@ if stage_one_en
       % Choose a reference function
       best_score = sum(spec.metric);
       [~,best_idx] = min(best_score);
-      best_idx
       
       wf = spec.param_analysis.analysis.imgs{img}(wf_adc,1);
       adc = spec.param_analysis.analysis.imgs{img}(wf_adc,2);
@@ -482,7 +481,8 @@ if stage_one_en
       ref = spec.wfs(wf).ref{adc};
       ref(spec.wfs(wf).freq_inds) = ref(spec.wfs(wf).freq_inds) .* ifftshift(spec.deconv_H{best_idx});
 
-      if 1
+      if 0
+        % Debug Code
         % Estimate delay and phase shift caused by deconvolution process
         % relative to reference waveform
         
@@ -523,15 +523,15 @@ if stage_one_en
       param_collate = param;
       ref_windowed = true;
       ref_window = param.get_heights.ft_wind;
-      ref_nonnegative = ref(params.analysis.specular.ref_nonnegative{img});
-      ref_negative = ref(params.analysis.specular.ref_negative{img} + end);
+      ref_nonnegative = ref(param.analysis.specular.ref_nonnegative{img});
+      ref_negative = ref(param.analysis.specular.ref_negative{img} + end);
 
       records_fn = ct_filename_support(param,'','records');
       records = load(records_fn);
       rec = find(records.gps_time > spec.deconv_gps_time(best_idx),1);
       file_idx = find(records.relative_rec_num{adc} <= rec,1,'last');
       raw_fn = records.relative_filename{adc}{file_idx};
-      fprintf('File: %s\n', raw_fn);
+      fprintf('Best Raw File: %s\n', raw_fn);
       fprintf('UTC time: %s\n', datestr(epoch_to_datenum(gps_to_utc(spec.deconv_gps_time(best_idx)))))
       
       fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
