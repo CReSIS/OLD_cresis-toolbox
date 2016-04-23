@@ -102,7 +102,7 @@ rlines = param.rlines(1):param.rlines(end);
 rbins = param.rbins(1):param.rbins(end);
 
 % ref_idx: index into data that will be the reference
-ref_idx = param.ref_wf_adc_idx;
+ref_idx = param.ref_wf_adc;
 
 % colors: used for plotting
 colors = {'k.','r.','y.','g.','c.','b.','m.','kx','rx','yx','gx','cx','bx','mx'};
@@ -111,8 +111,8 @@ colors = {'k.','r.','y.','g.','c.','b.','m.','kx','rx','yx','gx','cx','bx','mx'}
 ave_fh = param.averaging_fh;
 
 % freq,time: extract frequency and time axes
-freq = hdr.wfs(abs(param.img(1,1))).freq;
-time = hdr.wfs(abs(param.img(1,1))).time;
+freq = param.freq;
+time = param.time;
 
 if ~isfield(param,'ref_bins') || isempty(param.ref_bins)
   param.ref_bins = [-12 12];
@@ -121,7 +121,7 @@ if ~isfield(param,'search_bins') || isempty(param.search_bins)
   param.search_bins = [-7 7];
 end
 if ~isfield(param,'Mt') || isempty(param.Mt)
-  param.Mt = 100;
+  param.Mt = 10;
 end
 
 if ~isfield(param,'td') || isempty(param.td)
@@ -146,6 +146,10 @@ end
 
 if ~isfield(param,'multilook') || isempty(param.multilook)
   param.multilook = [1 10];
+end
+
+if ~isfield(param,'plot_en') || isempty(param.plot_en)
+  param.plot_en = false;
 end
 
 clear full_out;
@@ -346,7 +350,7 @@ for wf_adc_idx = 1:size(data,3)
   z_offset(wf_adc_idx) = -phase_center(3);
 end
 
-[theta,sv] = array_proc_sv(256,hdr.wfs(wf).freq(1), y_offset, z_offset);
+[theta,sv] = array_proc_sv(256,param.freq(1), y_offset, z_offset);
 theta = fftshift(theta);
 sv = fftshift(sv,2);
 
