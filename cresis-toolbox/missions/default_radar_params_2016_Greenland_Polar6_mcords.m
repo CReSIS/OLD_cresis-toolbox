@@ -1,5 +1,8 @@
 % script default_radar_params_2016_Greenland_Polar6_mcords
 
+param.season_name = '2016_Greenland_Polar6';
+param.radar_name = 'mcords5';
+
 default.radar.fs = 1600e6;
 default.radar.adc_bits = 12;
 default.radar.adc_full_scale = 2;
@@ -10,3 +13,14 @@ default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.
 default.radar.noise_figure = 2;
 default.radar.rx_gain = 10^(48/20);
 default.radar.adc_SNR_dB = 59;
+default.radar.Tadc_adjust = 0.000010179163;
+
+default.noise_50ohm = [-41.6	-42.2	-42.4	-41.9	-42.5	-42.9	-41.7	-43.0	-44.1	-44.7	-43.1	-44.1	-41.8	-42.6	-41.4	-42.6	-41.8	-43.1	-42.0	-42.7	-41.1	-43.4	-42.1	-41.9];
+
+default.Pt = (4*1000 + 4*500) * sum(chebwin(8,30).^2)/8;
+
+default.Gt = 8*4;
+default.Ae = 2*0.468 * 0.468;
+
+default.system_loss_dB = 10.^(-5.88/10);
+
