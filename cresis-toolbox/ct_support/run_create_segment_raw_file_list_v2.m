@@ -263,6 +263,7 @@ if strcmpi(radar_setup,'SNOW5')
   param.adc_folder_name = '1604180601/UWBM/chan%d';
   file_midfix = '20160418'; % Data files must contain this string in the middle of their name (usually should be empty)
   day_string = '20160418'; % Only used for stdout print of the vectors worksheet
+  expected_rec_sizes = [60480      120864      181296];
 end
 
 %% User Settings that should not generally be changed

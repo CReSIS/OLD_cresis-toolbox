@@ -317,12 +317,26 @@ for adc_idx = 1:length(adcs)
         + 60*(10*mod(floor(seconds/2^16),2^4) + mod(floor(seconds/2^20),2^4)) ...
         + (10*mod(floor(seconds/2^24),2^4) + mod(floor(seconds/2^28),2^4));
       
-      % Find bad records by checking their size (i.e. the distance between
-      % frame syncs which should be constant).
-      expected_rec_size = median(diff(offset));
-      meas_rec_size = diff(offset);
-      bad_mask = meas_rec_size ~= expected_rec_size;
-      bad_mask(end+1) = file_size < offset(end) + expected_rec_size;
+      % Find bad records by checking their size
+      if hdr.file_version == 407 || hdr.file_version == 408
+        % The distance between frame syncs should be constant
+        expected_rec_size = median(diff(offset));
+        meas_rec_size = diff(offset);
+        bad_mask = all(bsxfun(@(x,y) x ~= y, meas_rec_size, expected_rec_size(:)),1);
+        bad_mask(end+1) = file_size < offset(end) + meas_rec_size(end);
+      elseif hdr.file_version == 7
+        % User must supply the valid record sizes
+        if ~exist('expected_rec_sizes','var')
+          fprintf('Record sizes found in this file:\n');
+          fprintf('  %d', unique(diff(offset)));
+          fprintf('\n');
+          error('For file version 7 expected record sizes must be supplied.');
+        end
+        expected_rec_size = expected_rec_sizes;
+        meas_rec_size = diff(offset);
+        bad_mask = all(bsxfun(@(x,y) x ~= y, meas_rec_size, expected_rec_size(:)),1);
+        bad_mask(end+1) = 1;
+      end
       
       % Remove bad records (i.e. ones with sizes that are not expected
       offset = double(offset(~bad_mask));
