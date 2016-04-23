@@ -320,7 +320,7 @@ for board_idx = 1:length(boards)
           % Convert to volts, remove DC-bias, and apply trim
           mean_tmp = mean(tmp(1+param.proc.trim_vals(1):end-param.proc.trim_vals(2)));
           if param.load.file_version == 407
-              mean_tmp = 0;
+              mean_tmp = wfs(wf).DC_adjust(adc);
           end
           tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
           tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V;
@@ -376,31 +376,29 @@ for board_idx = 1:length(boards)
           end
           
           if param.proc.pulse_comp
-            % ===========================================================
-            % Do pulse compression
+            %% Do pulse compression
             % Apply blank (only should enable if sidelobe problems present)
             if ~isempty(wfs(wf).blank)
               %accum(board+1).data{accum_idx}(wfs(wf).time_raw>wfs(wf).blank(1) & wfs(wf).time_raw<wfs(wf).blank(2)) = 0;
               accum(board+1).data{accum_idx}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= param.surface(rec) + wfs(wf).blank) = 0;
             end
-            % Apply matched filter
+            
             % Zero pad front: (the standard)
             accum(board+1).data{accum_idx} = fft([zeros(wfs(wf).pad_length,1); accum(board+1).data{accum_idx}]);
             % Zero pad end: (debug only)
             %accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx}, wfs(wf).Nt_pc);
             
-%             if ~param.load.wf_adc_comb.en
-              accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds) ...
-                .* wfs(wf).ref{adc}(wfs(wf).freq_inds));
-              if wfs(wf).dc_shift ~= 0
-                % Correct for small frequency offset caused by selecting bins from
-                % frequency domain as the method for down conversion
-                accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
-              end
-%             else
-%               accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx} ...
-%                 .* wfs(wf).ref{adc});
-%             end
+            % Decimate in frequency domain and transform back to time
+            % domain
+            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds) ...
+              .* wfs(wf).ref{adc}(wfs(wf).freq_inds));
+            
+            % Correct for small frequency offset caused by selecting bins from
+            % frequency domain as the method for down conversion
+            if wfs(wf).dc_shift ~= 0
+              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
+            end
+            
           elseif param.proc.ft_dec
             accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx},wfs(wf).Nt_raw);
             accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds));
@@ -411,43 +409,24 @@ for board_idx = 1:length(boards)
             end
           end
           if ~param.load.wf_adc_comb.en
+            %% Regular loader (wf-adc pairs are only summed)
             if param.proc.combine_rx
               g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(board+1).data{accum_idx} / param.proc.presums / size(param.load.imgs{img_idx},1);
             else
               g_data{img_idx}(:,out_idx,wf_adc_idx) = accum(board+1).data{accum_idx} / param.proc.presums;
-              
-              if 0
-                % Deconvolution Test Code
-                keyboard
-                dd = load('/mnt/products/ref_Tpd_3us_adc_1.mat');
-%                 ee = fft(dd.ref(1:20:end),length(g_data{img_idx}(:,out_idx,wf_adc_idx)));
-                dd.ref = ifft(dd.fref);
-                ee = interpft(fft(dd.ref(1:20:end)),length(g_data{img_idx}(:,out_idx,wf_adc_idx)));
-                plot(lp(ee))
-                ff = g_data{img_idx}(:,out_idx,wf_adc_idx);
-                
-                
-                figure(1); clf;
-                plot(lp(ff));
-                hold on
-                plot(lp(ifft(fft(ff) .* ee)),'r')
-                hold off;
-            end
             end
           else
+            %% Splice in fast-time multiple wf-adc pairs into a single wf-adc pair
+            % (IN DEVELOPMENT), used to combine low gain/high gain wf-adc pairs for example
             param.load.time_rng = [2e-6 40e-6];
             if accum(1+board).img_comb_idx(accum_idx) == 1
               tmp2{wf_adc_idx} = zeros(param.load.wf_adc_comb.Nt_orig,1);
               tmp2{wf_adc_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) ...
                 = accum(board+1).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
-%               g_data{img_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx),out_idx,wf_adc_idx) ...
-%                 = accum(board+1).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
             elseif accum(1+board).img_comb_idx(accum_idx) == 2
               tmp2{wf_adc_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end) ...
                 = accum(board+1).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
               g_data{img_idx}(:,out_idx,wf_adc_idx) = tmp2{wf_adc_idx}(param.load.wf_adc_comb.keep_bins);
-%               g_data{img_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end,out_idx,wf_adc_idx) ...
-%                 = accum(board+1).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
             end
           end
         end

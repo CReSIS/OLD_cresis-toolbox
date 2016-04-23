@@ -239,6 +239,16 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).DDC_freq   = 0;
   end
+  if isfield(param.radar.wfs(wf),'DC_adjust') && ~isempty(param.radar.wfs(wf).DC_adjust)
+    tmp = load(fullfile(ct_filename_out(param,'noise','',1), ...
+      param.radar.wfs(wf).DC_adjust),'DC_adjust');
+    for adc_idx = 1:length(adcs)
+      adc = adcs(adc_idx);
+      wfs(wf).DC_adjust(adc_idx) = tmp.DC_adjust(adc);
+    end
+  else
+    wfs(wf).DC_adjust   = zeros(size(adcs));
+  end
   wfs(wf).presums = settings.wfs(wf).presums;
   wfs(wf).Nt_ref  = floor(wfs(wf).Tpd * fs) + 1;
   wfs(wf).Nt_raw  = settings.wfs(wf).num_sam;
@@ -282,25 +292,12 @@ for wf = 1:length(param.radar.wfs)
   alpha = BW / Tpd;
   fc = (f0 + f1)/2;
   
-  if isempty(param.radar.wfs(wf).ref_fn)
-    if wfs(wf).DDC_mode == 0
-      %% DDC Disabled or No DDC
-      ref_function = exp(1i*2*pi*f0*time + 1i*pi*alpha*time.^2);
-    else
-      %% DDC Enabled
-      ref_function = exp(1i*2*pi*(f0 - wfs(wf).DDC_freq)*time + 1i*pi*alpha*time.^2);
-    end
-    
+  if wfs(wf).DDC_mode == 0
+    %% DDC Disabled or No DDC
+    ref_function = exp(1i*2*pi*f0*time + 1i*pi*alpha*time.^2);
   else
-    param.day_seg = '';
-    ref_fn = fullfile(ct_filename_out(param,'','ref_function',1), ...
-      param.radar.wfs(wf).ref_fn);
-    load(ref_fn);
-    if length(ref_function) > length(time)
-      ref_function = ref_function(1:length(time));
-    else
-      ref_function = [ref_function; zeros(length(time)-length(ref_function),1)];
-    end
+    %% DDC Enabled
+    ref_function = exp(1i*2*pi*(f0 - wfs(wf).DDC_freq)*time + 1i*pi*alpha*time.^2);
   end
   if any(strcmpi(param.radar_name,{'acords'}))
     Htukeywin = hamming(Nt);
@@ -323,14 +320,34 @@ for wf = 1:length(param.radar.wfs)
     freq = wfs(wf).DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
   end
   for adc = adcs
-    wfs(wf).ref{adc} = conj(fft(ref,Nt) ...
-      .* exp(-1i*2*pi*freq*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
+    ref_fn_name = char(param.radar.wfs(wf).ref_fn);
+    ref_fn_name = regexprep(ref_fn_name,'%w',sprintf('%.0f',wf));
+    ref_fn_name = regexprep(ref_fn_name,'%a',sprintf('%.0f',adc));
+    ref_fn = fullfile(ct_filename_out(param,'noise','',1), [ref_fn_name '.mat']);
     
-    % Normalize reference function so that it is an estimator
-    %  -- Accounts for pulse duration differences
-    time_domain_ref = ifft(wfs(wf).ref{adc});
-    wfs(wf).ref{adc} = wfs(wf).ref{adc} ...
-      ./ dot(time_domain_ref,time_domain_ref);
+    if isempty(ref_fn_name) || ~exist(ref_fn,'file')
+      wfs(wf).ref{adc} = conj(fft(ref,Nt) ...
+        .* exp(-1i*2*pi*freq*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
+      wfs(wf).ref_windowed(adc) = false;
+      
+    else
+      load(ref_fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window');
+      ref_Nt = length(ref_nonnegative)+length(ref_negative);
+      if ref_Nt > Nt
+        error('Reference is longer than time axis, increase zero padding to use this reference function or shorten the reference function');
+      end
+      ref_from_file = [ref_nonnegative; zeros(Nt-ref_Nt,1); ref_negative];
+      wfs(wf).ref_windowed(adc) = ref_windowed;
+      
+      if ref_windowed && ~isequal(ref_window,proc_param.ft_wind)
+        error('Window in reference %s does not match get heights window %s', func2str(ref_window), func2str(proc_param.ft_wind));
+      end
+      
+      ref_from_file = ref_from_file ./ abs(max(ref_from_file));
+      wfs(wf).ref{adc} = conj(fft(ref_from_file,Nt) ...
+        .* exp(-1i*2*pi*freq*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
+    end
+    
   end
   
   % ===================================================================
@@ -377,8 +394,18 @@ for wf = 1:length(param.radar.wfs)
     ft_wind(sorted_freq_inds) = proc_param.ft_wind(length(freq_inds));
     
     for adc = adcs
-      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* ft_wind;
+      if ~wfs(wf).ref_windowed(adc)
+        wfs(wf).ref{adc} = wfs(wf).ref{adc} .* ft_wind;
+      end
     end
+  end
+  
+  for adc = adcs
+    % Normalize reference function so that it is an estimator
+    %  -- Accounts for pulse duration differences
+    time_domain_ref = ifft(wfs(wf).ref{adc});
+    wfs(wf).ref{adc} = wfs(wf).ref{adc} ...
+      ./ dot(time_domain_ref,time_domain_ref);
   end
   
   % ===================================================================
