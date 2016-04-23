@@ -171,7 +171,7 @@ for break_idx = 1:length(breaks)
       % board: the board associated with the ADC we would like to load
       board = adc_to_board(param.radar_name,adc);
       % board_header: the board headers that we will use with this ADC
-      board_header = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers(adc_idx))
+      board_header = adc_to_board(param.radar_name,old_param_records.records.file.adc_headers(adc_idx));
       % board_idx: the index into the records board list to use
       board_idx = find(board_header == boards_headers);
       
