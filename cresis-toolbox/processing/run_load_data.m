@@ -6,7 +6,7 @@
 %
 % See also load_data, pulse_compress
 
-run_example = 5;
+run_example = 2;
 clear data;
 
 if run_example == 1
@@ -79,39 +79,68 @@ if run_example == 1
   colorbar
   
 elseif run_example == 2
-  % =======================================================================
-  % Setup loading parameters for example 2
+  %% Setup loading parameters for example 2
   %  - Plot raw data in time-space, pulse compress externally with
   %    pulse_compress and plot this
   % =======================================================================
   
-  param_fn = '/cresis/projects/dev/csarp_support/documents/mcords_param_2010_Greenland_P3.xls';
-  param = read_param_xls(param_fn,'20100510_07');
+  param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'20160413_04');
   
   % Determine which records you want to load:
   frames_fn = '';
   frames_fn = ct_filename_support(param,frames_fn,'frames');
   load(frames_fn);
   frm = 1;
-  param.load_data.recs = frames.frame_idxs(frm) - 1 + [1 12000];
+  param.load_data.recs = frames.frame_idxs(frm) - 1 + [10000 10250];
   
   param.load_data.records_fn = param.records.records_fn;
-  param.load_data.imgs = {[1 1; 1 2; 1 3; 1 4]};
+  param.load_data.imgs = {[ones(24,1) (1:24).'],[2*ones(24,1) (1:24).'],[3*ones(24,1) (1:24).']};
   param.load_data.pulse_comp         = false;
   param.load_data.ft_dec             = false; % Fast-time decimation
   param.load_data.ft_wind            = @hanning;
   param.load_data.ft_wind_time       = false; % Apply window on time domain chirp
-  param.load_data.presums            = 50; % Coherent averaging
-  param.load_data.combine_rx         = true;
-  param.load_data.pulse_rfi.en       = true;
+  param.load_data.presums            = 1; % Coherent averaging
+  param.load_data.combine_rx         = false;
+  param.load_data.pulse_rfi.en       = false;
   param.load_data.pulse_rfi.inc_ave  = 101;
   param.load_data.pulse_rfi.thresh_scale = 10^(13/10);
   param.load_data.trim_vals          = [1 1];
+  param.load_data.raw_data           = true;
   
-  % Load data
+  %% Load data
   [data,hdr] = load_data(param);
-  
-  % Plot data
+
+  %% Print out DC values and create DC adjust files
+  if 0
+    adc_mean = [];
+    for img = 1:length(param.load_data.imgs)
+      wf = param.load_data.imgs{img}(1,1);
+      adc_mean = [];
+      for wf_adc = 1:length(param.load_data.imgs{img})
+        adc = param.load_data.imgs{img}(wf_adc,2);
+        dd=data{img}(end-499:end,:,adc); % Assumes bottom 500 range bins contain only noise (this should always be verified by looking at the echogram)
+        adc_mean{img}(wf_adc) = mean(dd(:));
+      end
+      fprintf('%s wf %d\n', param.day_seg, wf);
+      fprintf('%.3f\t', real(adc_mean{img}(1:end-1)));
+      fprintf('\n');
+      fprintf('%.3f\t', imag(adc_mean{img}(1:end-1)));
+      fprintf('\n');
+      fprintf('[');
+      fprintf('%.3f%+.3fj ', real(adc_mean{img}(1:end-1)), imag(adc_mean{img}(1:end-1)));
+      fprintf('%.3f%+.3fj', real(adc_mean{img}(end)), imag(adc_mean{img}(end)));
+      fprintf(']\n');
+      DC_adjust = adc_mean{img};
+      DC_adjust_file_en = false;
+      if DC_adjust_file_en
+        %% Create the DC adjust files
+        fn = fullfile(ct_filename_out(param,'noise','',1),sprintf('DC_%s_wf%d.mat',param.day_seg,wf));
+        save(fn, '-v6', 'DC_adjust');
+      end
+    end
+  end
+
+  %% Plot data
   img = 1;
   wf_adc_idx = 1;
   wf = abs(param.load_data.imgs{img}(wf_adc_idx,1));
