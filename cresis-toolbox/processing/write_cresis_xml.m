@@ -40,6 +40,10 @@ function write_cresis_xml(param)
 %     be overridden by waveform specific fields.
 %   .Hice_thick = meters of ice thickness. May
 %     be overridden by waveform specific fields.
+%   .rg_start_offset = adjust the range gate start by this amount in meters.
+%     Positive values make the start later (i.e. shorter range gate).
+%   .rg_stop_offset: adjust the range gate stop by this amount in meters.
+%     Positive values make the stop later (i.e. lengthen the range gate).
 %  .fn = output filename
 %  .prf = pulse repetition frequency (Hz)
 %  .presums = row vector of presums for each waveform
@@ -197,7 +201,7 @@ end
 %   waveform 3, 4, and 5 to be the third stage
 if ~isempty(param.tg.staged_recording)
   if param.tg.staged_recording(1) == 0
-    param.tg.staged_recording = [];
+    param.tg.staged_recording = zeros(size(param.wfs));
   elseif length(param.tg.staged_recording) ~= length(param.wfs)
     param.tg.staged_recording = 1:length(param.wfs);
   end
@@ -343,38 +347,96 @@ for wf = 1:length(param.wfs)
     Hice_thick = param.tg.Hice_thick;
   end
   
-  if isfield(param.tg,'look_angle')
-    look_angle = param.tg.look_angle(wf);
+  if isfield(param.tg,'look_angle_deg')
+    look_angle_deg = param.tg.look_angle_deg(wf);
   else
-    look_angle = 0;
+    look_angle_deg = 0;
   end
-  if ~isempty(param.tg.staged_recording)
-    current_stage = param.tg.staged_recording(wf);
-    next_stage_wf = find(param.tg.staged_recording == current_stage+1,1);
-    if current_stage == 1
-      % First Stage
-      Tstart = Haltitude / (3e8/2);
-      Tend = Haltitude / (3e8/2) + param.wfs(next_stage_wf).Tpd;
-    elseif isempty(next_stage_wf)
-      % Last Stage
-      Tstart = Haltitude / (3e8/2) + param.wfs(wf).Tpd;
-      Tend = Haltitude / (3e8/2)  + Hice_thick / (3e8/2/sqrt(3.15));
+  
+  if isfield(param.tg,'start_ref')
+    start_ref = param.tg.start_ref{wf};
+  else
+    start_ref = 'surface';
+  end
+  if isfield(param.tg,'stop_ref')
+    stop_ref = param.tg.stop_ref{wf};
+  else
+    stop_ref = '';
+  end
+  
+  if isfield(param.tg,'rg_start_offset')
+    Trg_start_offset = param.tg.rg_start_offset(wf) / (3e8/2);
+  else
+    Trg_start_offset = 0;
+  end  
+  if isfield(param.tg,'rg_stop_offset')
+    Trg_stop_offset = param.tg.rg_stop_offset(wf) / (3e8/2);
+  else
+    Trg_stop_offset = 0;
+  end
+  if isfield(param.tg,'Hice_thick_min')
+    Hice_thick_min = param.tg.Hice_thick_min;
+  else
+    Hice_thick_min = 0;
+  end
+  
+  look_angle_ice_deg = asind(sind(look_angle_deg)/sqrt(er_ice));
+  current_stage = param.tg.staged_recording(wf);
+  next_stage_wf = find(param.tg.staged_recording == current_stage+1,1);
+  if strcmpi(start_ref,'surface')
+    Tstart_ref = Haltitude / (3e8/2);
+  elseif strcmpi(start_ref,'bottom')
+    Tstart_ref = Haltitude / (3e8/2) + Hice_thick_min / (3e8/2/sqrt(er_ice));
+  else
+    error('Invalid start ref %s', start_ref);
+  end
+  if strcmpi(stop_ref,'surface')
+    Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2);
+  elseif strcmpi(stop_ref,'bottom')
+    Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2) + Hice_thick/cosd(look_angle_ice_deg) / (3e8/2/sqrt(er_ice));
+  elseif isempty(stop_ref)
+    if current_stage > 0 && ~isempty(next_stage_wf)
+      % First and in between stages default references surface
+      Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2);
     else
-      % In between first and last stage
-      Tstart = Haltitude / (3e8/2) + param.wfs(wf).Tpd;
-      Tend = Haltitude / (3e8/2) + param.wfs(next_stage_wf).Tpd;
+      % Last stage default reference is bottom
+      Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2) + Hice_thick/cosd(look_angle_ice_deg) / (3e8/2/sqrt(er_ice));
     end
   else
-    look_angle_ice = asind(sind(look_angle)/sqrt(er_ice));
-    Tstart = Haltitude / (3e8/2);
-    Tend = Haltitude/cosd(look_angle) / (3e8/2)  + Hice_thick/cosd(look_angle_ice) / (3e8/2/sqrt(3.15));
+    error('Invalid start ref %s', start_ref);
   end
+  
+  if current_stage == 0
+    % Record the whole range gate
+    Tstart = Tstart_ref;
+    Tend = Tstop_ref;
+  elseif current_stage == 1
+    % First Stage
+    Tstart = Tstart_ref;
+    if ~isempty(next_stage_wf)
+      % Cover the pulse duration of the next waveform after the surface
+      % return + any off nadir scattering that is to be caught.
+      Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd, Tstop_ref);
+    else
+      % Also the last stage
+      Tend = Tstart_ref + Hice_thick / (3e8/2/sqrt(er_ice));
+    end
+  elseif isempty(next_stage_wf)
+    % Last Stage
+    Tstart = Tstart_ref + param.wfs(wf).Tpd;
+    Tend = Tstop_ref;
+  else
+    % In between first and last stage
+    Tstart = Tstart_ref + param.wfs(wf).Tpd;
+    Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd, Tstop_ref);
+  end
+  
   if strcmpi(param.radar_name,'mcords3')
-    bin_start = round((Tstart + Tsystem_delay - Tguard)  * fs);
-    bin_stop = round((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay)  * fs);
+    bin_start = round((Tstart + Tsystem_delay - Tguard + Trg_start_offset)  * fs);
+    bin_stop = round((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay + Trg_stop_offset)  * fs);
   elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
-    bin_start = round((Tstart + Tsystem_delay - Tguard)  * fs/8);
-    bin_stop = round((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay)  * fs/8);
+    bin_start = round((Tstart + Tsystem_delay - Tguard + Trg_start_offset)  * fs/8);
+    bin_stop = round((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay + Trg_stop_offset)  * fs/8);
   else
     error('Unsupported radar')
   end
