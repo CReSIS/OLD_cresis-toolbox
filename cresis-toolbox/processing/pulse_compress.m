@@ -140,7 +140,7 @@ df = fs/Nt_pc;
 if param.DDC_mode
   freq = param.DDC_freq + ifftshift( -floor(Nt_pc/2)*df : df : floor((Nt_pc-1)/2)*df ).';
   freq_inds = ifftshift(find(freq >= fc-BW/2 & freq <= fc+BW/2));
-  ref = ref .* exp(-j*2*pi*param.DDC_freq.*time);
+  ref = ref .* exp(-1i*2*pi*param.DDC_freq.*time);
 else
   freq = nyquist_zone*fs + (0:df:(Nt_pc-1)*df).';
   freq_inds = find(freq >= min(param.f0,param.f1) & freq <= max(param.f0,param.f1));
