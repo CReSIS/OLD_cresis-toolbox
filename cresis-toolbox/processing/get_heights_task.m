@@ -139,12 +139,30 @@ if ~isfield(param.get_heights,'ft_oversample') || isempty(param.get_heights.ft_o
   param.get_heights.ft_oversample = 1;
 end
 
-if ~isfield(param.get_heights,'pulse_rfi')
+if ~isfield(param.get_heights,'pulse_rfi') || isempty(param.get_heights.pulse_rfi)
   param.get_heights.pulse_rfi.en = 0;
 end
 
-if ~isfield(param.get_heights,'ft_dec')
+if ~isfield(param.get_heights,'ft_dec') || isempty(param.get_heights.ft_dec)
   param.get_heights.ft_dec = 1;
+end
+
+if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
+  param.get_heights.pulse_comp = 1;
+end
+
+if ~isfield(param.get_heights,'raw_data') || isempty(param.get_heights.raw_data)
+  param.get_heights.raw_data = 0;
+end
+
+if ~isfield(param.get_heights,'roll_correction') || isempty(param.get_heights.roll_correction)
+  param.get_heights.roll_correction = 0;
+end
+
+if param.get_heights.roll_correction
+  param.get_heights.combine_rx = false;
+else
+  param.get_heights.combine_rx = true;
 end
 
 if ~isfield(param.records,'file_version')
@@ -234,12 +252,6 @@ if simple_firdec
   param.get_heights.presums = param.get_heights.decimate_factor;
 else
   param.get_heights.presums = 1;
-end
-param.get_heights.pulse_comp = 1;
-if param.get_heights.roll_correction
-  param.get_heights.combine_rx = false;
-else
-  param.get_heights.combine_rx = true;
 end
 if strcmpi(param.radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(records.settings, param, ...
