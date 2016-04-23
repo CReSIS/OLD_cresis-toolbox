@@ -219,6 +219,14 @@ for accum_idx = 1:length(accum(board).wf)
         % Frame 13 has aliasing w/ cross over and split view and DC is clear
         %   at the the alias midpoint
         fseek(fid,offset + 34,-1);
+        
+        % Currently we use only the first waveform header
+        presums(rline) = fread(fid,1,'uint8') + 1;
+        bit_shifts(rline) = -fread(fid,1,'int8');
+        start_idx(rline) = fread(fid,1,'uint16');
+        stop_idx = fread(fid,1,'uint16');
+        fseek(fid,-6,0);
+        
         % Skip to the correct waveform
         skip_wf = wf-1;
         while skip_wf > 0
@@ -240,11 +248,8 @@ for accum_idx = 1:length(accum(board).wf)
           end
           skip_wf = skip_wf - 1;
         end
+        fseek(fid,6,0);
         
-        presums(rline) = fread(fid,1,'uint8') + 1;
-        bit_shifts(rline) = -fread(fid,1,'int8');
-        start_idx(rline) = fread(fid,1,'uint16');
-        stop_idx = fread(fid,1,'uint16');
         fseek(fid,2,0);
         NCO_freq_step(rline) = fread(fid,1,'uint16');
         if param.load.file_version == 3
