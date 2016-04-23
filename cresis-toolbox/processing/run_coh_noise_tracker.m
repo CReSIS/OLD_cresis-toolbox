@@ -7,8 +7,6 @@
 % See also: master.m, run_coh_noise_tracker.m coh_noise_tracker.m,
 %   coh_noise_tracker_task.m
 
-dbstop if error
-
 % =====================================================================
 % Debug Setup
 % =====================================================================
@@ -17,6 +15,7 @@ dbstop if error
 param = read_param_xls(ct_filename_param('snow_param_2010_Greenland_P3.xls'),'20100507_01',{'analysis_coh_noise','analysis'});
 
 clear('param_override');
+dbstop if error;
 param_override.sched.type = 'no scheduler';
 param_override.sched.rerun_only = false;
 
