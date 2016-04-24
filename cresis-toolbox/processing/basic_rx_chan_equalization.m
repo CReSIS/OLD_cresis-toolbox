@@ -1,4 +1,5 @@
-% script basic_rx_chan_equalization
+function basic_rx_chan_equalization(param,defaults)
+% basic_rx_chan_equalization(param,defaults)
 %
 % RUN THIS FUNCTION FROM "run_basic_rx_chan_equalization"
 %
@@ -27,45 +28,55 @@
 %% basic_rx_chan_equalization preparation
 
 physical_constants;
-basic_rx_chan_equalization_tstart = tic;
 
-clear td_out phase_out amp_out;
-
-num_files = input('How many files [1]: ');
+global g_num_files;
+if isempty(g_num_files)
+  g_num_files = 1;
+end
+num_files = input(sprintf('How many files [%d]: ',g_num_files));
 if isempty(num_files)
-  num_files = 1;
+  num_files = g_num_files;
+else
+  g_num_files = num_files;
 end
 
 %% Process the files
+file_name_list = {};
 for file_idx = 1:num_files
+  
   %% Load the files
-  basic_file_loader;
+  if file_idx == 1
+    [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults);
+    file_name_list = {fn};
+  else
+    param.file_search_mode = 'default+1';
+    global g_basic_noise_analysis_fn;
+    g_basic_noise_analysis_fn = file_name_list{end};
+    [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults);
+    file_name_list{end+1} = fn;
+    g_basic_noise_analysis_fn = file_name_list{1};
+  end
   
   %% Convert from quantization to voltage @ ADC
+  wf = abs(param.img(1,1));
   data = data ...
     * default.radar.adc_full_scale/2^default.radar.adc_bits ...
     * 2^hdr.wfs(abs(wf)).bit_shifts / hdr.wfs(wf).presums;
   
   %% Additional software presums
   for wf_adc = 1:size(data,3)
-    data(:,:,wf_adc) = fir_dec(data(:,:,wf_adc),param.presums);
+    data(:,1:floor(size(data,2)/param.presums),wf_adc) = fir_dec(data(:,:,wf_adc),param.presums);
   end
+  data = data(:,1:floor(size(data,2)/param.presums),:);
+  hdr.radar_time = fir_dec(hdr.radar_time,param.presums);
+  hdr.lat = fir_dec(hdr.lat,param.presums);
+  hdr.lon = fir_dec(hdr.lon,param.presums);
+  hdr.elev = fir_dec(hdr.elev,param.presums);
+  hdr.roll = fir_dec(hdr.roll,param.presums);
+  hdr.pitch = fir_dec(hdr.pitch,param.presums);
+  hdr.heading = fir_dec(hdr.heading,param.presums);
   
   %% Pulse compression
-  dt = 1/fs;
-  Nt = size(data,1);
-  time = dt*(0:Nt-1);
-  clear pc_param;
-  pc_param.DDC_mode = DDC_mode;
-  pc_param.DDC_freq = DDC_freq;
-  pc_param.f0 = f0;
-  pc_param.f1 = f1;
-  pc_param.Tpd = Tpd;
-  pc_param.zero_pad = 1;
-  pc_param.decimate = true;
-  pc_param.window_func = @hanning;
-  pc_param.time = t0 + (0:dt:(Nt-1)*dt).';
-  pc_param.tukey = tukey;
   [pc_signal,pc_time] = pulse_compress(data,pc_param);
 
   %% Track surface
@@ -94,7 +105,7 @@ for file_idx = 1:num_files
   dt = pc_time(2) - pc_time(1);
   Nt = length(pc_time);
   df = 1/(Nt*dt);
-  param.freq = DDC_freq + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df).';
+  param.freq = pc_param.DDC_freq + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df).';
   
   param.mocomp_type = 4;
   param.tx_weights = double(settings.DDS_Setup.Ram_Amplitude);
@@ -106,15 +117,6 @@ for file_idx = 1:num_files
   param.phase = default.radar.wfs(1).chan_equal_dB;
   param.amp = default.radar.wfs(1).chan_equal_deg;
   param.td = default.radar.wfs(1).chan_equal_Tsys;
-
-  hdr.gps_time = radar_time;
-  hdr.lat = lat;
-  hdr.lon = lon;
-  hdr.elev = elev;
-  hdr.roll = roll;
-  hdr.pitch = pitch;
-  hdr.heading = heading;
-  hdr.gps_source = gps.gps_source;
 
   [td_out(:,file_idx),amp_out(:,file_idx),phase_out(:,file_idx), full_out] = rx_chan_equal(pc_signal,param,hdr);
   
@@ -144,24 +146,24 @@ fprintf('========================================================\n');
 fprintf('Recommended equalization coefficients (averaged results)\n');
 
 fprintf('  Date of processing: %s, mocomp %d, wf/adc %d/%d bins %d-%d\n', ...
-  datestr(now), param.mocomp_type, param.img(param.ref_wf_adc_idx,1), ...
-  param.img(param.ref_wf_adc_idx,2), param.rbins(1), param.rbins(end));
+  datestr(now), param.mocomp_type, param.img(param.ref_wf_adc,1), ...
+  param.img(param.ref_wf_adc,2), param.rbins(1), param.rbins(end));
 fprintf('td settings\n');
-for file_idx = 1:length(file_nums)
+for file_idx = 1:num_files
   [~,fn] = fileparts(file_name_list{file_idx});
   fprintf('%s', fn);
   fprintf('\t%.2f', td_out(:,file_idx)*1e9);
   fprintf('\n');
 end
 fprintf('amp settings\n');
-for file_idx = 1:length(file_nums)
+for file_idx = 1:num_files
   [~,fn] = fileparts(file_name_list{file_idx});
   fprintf('%s', fn);
   fprintf('\t%.1f', amp_out(:,file_idx));
   fprintf('\n');
 end
 fprintf('phase settings\n');
-for file_idx = 1:length(file_nums)
+for file_idx = 1:num_files
   [~,fn] = fileparts(file_name_list{file_idx});
   fprintf('%s', fn);
   fprintf('\t%.1f', phase_out(:,file_idx));
@@ -173,10 +175,10 @@ amp_ave = mean(amp_out,2);
 phase_ave = angle(mean(exp(j*phase_out/180*pi),2))*180/pi;
 
 fprintf('Rx Path\n');
-for wf_adc_idx = 1:size(param.img,1)
-  wf = abs(param.img(wf_adc_idx,1));
-  adc = param.img(wf_adc_idx,2);
-  if wf_adc_idx < size(param.img,1)
+for wf_adc = 1:size(param.img,1)
+  wf = abs(param.img(wf_adc,1));
+  adc = param.img(wf_adc,2);
+  if wf_adc < size(param.img,1)
     fprintf('%d\t', param.rx_paths{wf}(adc));
   else
     fprintf('%d', param.rx_paths{wf}(adc));
@@ -191,8 +193,7 @@ fprintf('\n');
 fprintf('%.2f\t', td_ave(1:end-1)*1e9);
 fprintf('%.2f', td_ave(end)*1e9);
 fprintf('\n');
-fprintf('%.2f\t', (td_ave(1:end-1) - param.td(1:end-1))*1e9);
-fprintf('%.2f', (td_ave(end) - param.td(end))*1e9);
+fprintf('%.2f\t', (td_ave(:).' - param.td(:).')*1e9);
 fprintf('\n');
 
 fprintf('Original/Recommended/Difference amp settings (dB):\n');
@@ -202,8 +203,7 @@ fprintf('\n');
 fprintf('%.1f\t', amp_ave(1:end-1));
 fprintf('%.1f', amp_ave(end));
 fprintf('\n');
-fprintf('%.1f\t', amp_ave(1:end-1) - param.amp(1:end-1));
-fprintf('%.1f', amp_ave(end) - param.amp(end));
+fprintf('%.1f\t', amp_ave(:).' - param.amp(:).');
 fprintf('\n');
 
 % Rewrap each phase so that the output does not print +355 deg and -5 deg
@@ -216,7 +216,7 @@ phase_rewrapped = angle(exp(j*phase_ave/180*pi)) * 180/pi;
 fprintf('%.1f\t', phase_rewrapped(1:end-1));
 fprintf('%.1f', phase_rewrapped(end));
 fprintf('\n');
-phase_rewrapped = angle(exp(j*(phase_ave - param.phase)/180*pi)) * 180/pi;
+phase_rewrapped = angle(exp(j*(phase_ave(:).' - param.phase)/180*pi)) * 180/pi;
 fprintf('%.1f\t', phase_rewrapped(1:end-1));
 fprintf('%.1f', phase_rewrapped(end));
 fprintf('\n');

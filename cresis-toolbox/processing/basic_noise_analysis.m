@@ -1,4 +1,5 @@
-% script basic_noise_analysis
+function basic_noise_analysis(param,defaults)
+% basic_noise_analysis(param,defaults)
 %
 % Use run_basic_noise_analysis to run.
 %
@@ -15,8 +16,10 @@
 %
 % Author: John Paden
 
+physical_constants;
+
 %% Load the files
-basic_file_loader;
+[data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults);
 
 %% basic_noise_analysis preparation
 [fn_dir fn_name] = fileparts(fn);
@@ -56,10 +59,10 @@ end
 if strcmp(param.radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
   % Add 3 dB for IQ combination
   fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50)+30 - default.radar.adc_SNR_dB + 3 );
-  fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*BW_noise*default.radar.noise_figure*rx_gain^2) + 3 +30);
+  fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*hdr.BW_noise*default.radar.noise_figure*hdr.rx_gain^2) + 3 +30);
 else
   fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50)+30 - default.radar.adc_SNR_dB );
-  fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*BW_noise*default.radar.noise_figure*rx_gain^2)+30);
+  fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*hdr.BW_noise*default.radar.noise_figure*hdr.rx_gain^2)+30);
 end
 fprintf('Expected levels only valid for param.presums = 1\n');
 fprintf('Noise power (dBm) at each ADC rx input and relative to 50 ohm (dB):\n')
@@ -121,13 +124,11 @@ if param.psd_en
     
     fir_data = fir_dec(data(noise_rbins(1):noise_rbins(end),:,adc_idx),param.presums);
     
-    clear pc_param;
     if strcmp(param.radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
-      pc_param.time = hdr.wfs(wf).t0 + (0:size(fir_data,1)-1)/default.radar.fs*2^hdr.DDC(1);
       dt = pc_param.time(2) - pc_param.time(1);
-      Nt = length(pc_param.time);
+      Nt = size(fir_data,1);
       df = 1/(Nt*dt);
-      freq = DDC_freq + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df);
+      freq = pc_param.DDC_freq + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df);
       
       figure(400+adc); clf;
       set(400+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('M%d',adc_idx));

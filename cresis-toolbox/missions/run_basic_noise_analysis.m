@@ -13,7 +13,7 @@ radar_setup = 'MCORDS5';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
-  default_radar_params_2016_Greenland_Polar6_mcords;
+  [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
   
   % .file_search_mode: Specify how to search for a file: 'last_file', 'specific'
   param.file_search_mode = 'specific';
@@ -22,14 +22,13 @@ if strcmpi(radar_setup,'MCORDS5')
   param.base_dir_search = {'D:\awi\chan1','/mnt/HDD6/1604130301/UWB/','/mnt/AWI_SSD0/1604180702/UWB'};
   
   % .pdf_en: Enable pdf plot
-  param.pdf_en = true;
+  param.pdf_en = false;
   % .psd_en: Enable PSD plot
   param.psd_en = true;
   
   % .noise_rbins: Specify which bins to use for noise analysis (nonpositive
   %   numbers cause basic_noise_analysis to reference from the end of the range line)
   param.noise_rbins = [-999 0];
-  param.noise_rbins = [1000 1500];
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
@@ -48,6 +47,6 @@ end
 
 %% Automated Section
 
-basic_noise_analysis;
+basic_noise_analysis(param,defaults);
 
 return;

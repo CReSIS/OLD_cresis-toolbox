@@ -357,6 +357,8 @@ sv = fftshift(sv,2);
 Nt = size(data,1);
 Nx = size(data,2);
 Nc = size(data,3);
+roll_est_val = [];
+roll_est_theta = [];
 for rline = 1:length(rlines)
   bin = surf_bins(rline);
   

@@ -1,4 +1,5 @@
-% script basic_file_loader
+function [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults)
+% [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults)
 %
 % Support script for loading raw data files for the in flight scripts. Used by
 % basic_noise_analysis.m, basic_rx_equalization.m, and
@@ -6,8 +7,13 @@
 %
 % Author: John Paden
 
+global g_basic_noise_analysis_fn;
+  
+% Assume the first default parameters until we know which is the correct
+default = defaults{1};
+
 %% Determine which file to load
-if ~strcmpi(param.file_search_mode,'default')
+if ~strncmpi(param.file_search_mode,'default',length('default'))
   good_mask = logical(zeros(size(param.base_dir_search)));
   for base_dir_idx = 1:length(param.base_dir_search)
     base_dir = param.base_dir_search{base_dir_idx};
@@ -57,7 +63,6 @@ if ~strcmpi(param.file_search_mode,'default')
   g_basic_noise_analysis_base_dir = base_dir;
   
   global g_file_select;
-  global g_basic_noise_analysis_fn;
   if strcmpi(param.file_search_mode,'last_file')
     fns = get_filenames(base_dir,'','','.bin',struct('recursive',true));
     if isempty(fns)
@@ -100,6 +105,17 @@ if ~strcmpi(param.file_search_mode,'default')
     end
   end
   g_basic_noise_analysis_fn = fn;
+else
+  if strcmp(param.file_search_mode,'default+1')
+    % Get the next file index after the current file
+    if strcmpi(param.radar_name,'mcords5')
+      [fn_dir,fn_name,fn_ext] = fileparts(g_basic_noise_analysis_fn);
+      cur_file_idx = str2double(fn_name(end-3:end));
+      fn_name(end-3:end) = sprintf('%04d',cur_file_idx + 1);
+      fn_name = [fn_name(1:end-14) '*' fn_name(end-7:end)]
+      g_basic_noise_analysis_fn = get_filename(fn_dir,'',fn_name,fn_ext);
+    end
+  end
 end
 
 %% Load the chosen file(s)
@@ -192,7 +208,6 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
     fn_name(9:10) = sprintf('%02d',adc);
     fn = fullfile(fn_dir,sprintf('chan%d',adc),[fn_name,'.bin']);
     
-    file_name_list{file_idx} = fn;
     fprintf('  Loading file %s\n', fn);
     % Load the data file
     if strcmp(param.radar_name,'mcords4')
@@ -252,40 +267,66 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
   xml_version = 2.0;
   cresis_xml_mapping;
   
-    %% Read XML files in this directory
+  %% Read XML files in this directory
   settings = read_ni_xml_directory(fn_dir,'',false);
   finfo = fname_info_mcords2(fn);
   
   settings_idx = find(cell2mat({settings.datenum}) < finfo.datenum,1,'last');
   settings = settings(settings_idx);
 
+  found = false;
+  for default_idx = 1:length(defaults)
+    if ~isempty(regexp(settings.XML_File_Path{1}.values{1}, defaults{default_idx}.xml_regexp))
+      default = defaults{default_idx};
+      found = true;
+    end
+  end
+  if ~found
+    warning('Did not find a matching set of default parameters for:\n%s', settings.XML_File_Path{1}.values{1});
+  end
+  
+  %% Format settings into pc_param
   DDC_freq = double(settings.DDC_Ctrl.NCO_freq)*1e6;
   DDC_mode = double(settings.DDC_Ctrl.DDC_sel.Val);
   if DDC_mode == 0
-    fs = default.radar.fs;
+    hdr.fs = default.radar.fs;
   else
-    fs = default.radar.fs / 2^(1+DDC_mode);
+    hdr.fs = default.radar.fs / 2^(1+DDC_mode);
   end
   f0 = settings.DDS_Setup.Waveforms(wf).Start_Freq(1);
   f1 = settings.DDS_Setup.Waveforms(wf).Stop_Freq(1);
   fc = (f0+f1)/2;
   Tpd = settings.DDS_Setup.Base_Len * double(settings.DDS_Setup.Waveforms(wf).Len_Mult);
-  BW = f1-f0;
+  hdr.BW = f1-f0;
   if DDC_mode == 0
-    BW_noise = 450e6;
+    hdr.BW_noise = 450e6;
   elseif DDC_mode == 1
-    BW_noise = 350e6;
+    hdr.BW_noise = 350e6;
   elseif DDC_mode == 2
-    BW_noise = 175e6;
+    hdr.BW_noise = 175e6;
   end
   atten = double(settings.DDS_Setup.Waveforms(wf).Attenuator_1(1) + settings.DDS_Setup.Waveforms(wf).Attenuator_2(1));
-  rx_gain = default.radar.rx_gain .* 10.^(-atten/20);
+  hdr.rx_gain = default.radar.rx_gain .* 10.^(-atten/20);
   t0 = hdr.wfs(wf).t0 + default.radar.Tadc_adjust;
   tukey = settings.DDS_Setup.RAM_Taper;
   
+  dt = 1/hdr.fs;
+  Nt = size(data,1);
+  clear pc_param;
+  pc_param.DDC_mode = DDC_mode;
+  pc_param.DDC_freq = DDC_freq;
+  pc_param.f0 = f0;
+  pc_param.f1 = f1;
+  pc_param.Tpd = Tpd;
+  pc_param.zero_pad = 1;
+  pc_param.decimate = true;
+  pc_param.window_func = @hanning;
+  pc_param.time = t0 + (0:dt:(Nt-1)*dt).';
+  pc_param.tukey = tukey;
+  
   finfo = fname_info_mcords2(fn);
   [year,month,day] = datevec(finfo.datenum);
-  radar_time = utc_to_gps(datenum_to_epoch(datenum(year,month,day,0,0,hdr.utc_time_sod)));
+  hdr.radar_time = utc_to_gps(datenum_to_epoch(datenum(year,month,day,0,0,hdr.utc_time_sod)));
   
   %% Read GPS files in this directory
   param.day_seg = sprintf('%04d%02d%02d_01',year,month,day);
@@ -320,19 +361,22 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
     end
   end
   try
-    lat = interp1(gps.gps_time,gps.lat,radar_time);
-    lon = interp1(gps.gps_time,gps.lon,radar_time);
-    elev = interp1(gps.gps_time,gps.elev,radar_time);
-    roll = interp1(gps.gps_time,gps.roll,radar_time);
-    pitch = interp1(gps.gps_time,gps.pitch,radar_time);
-    heading = interp1(gps.gps_time,gps.heading,radar_time);
+    hdr.gps_time = hdr.radar_time;
+    hdr.lat = interp1(gps.gps_time,gps.lat,hdr.radar_time);
+    hdr.lon = interp1(gps.gps_time,gps.lon,hdr.radar_time);
+    hdr.elev = interp1(gps.gps_time,gps.elev,hdr.radar_time);
+    hdr.roll = interp1(gps.gps_time,gps.roll,hdr.radar_time);
+    hdr.pitch = interp1(gps.gps_time,gps.pitch,hdr.radar_time);
+    hdr.heading = interp1(gps.gps_time,gps.heading,hdr.radar_time);
+    hdr.gps_source = gps.gps_source;
   catch
-    lat = zeros(size(radar_time));
-    lon = zeros(size(radar_time));
-    elev = zeros(size(radar_time));
-    roll = zeros(size(radar_time));
-    pitch = zeros(size(radar_time));
-    heading = zeros(size(radar_time));
+    hdr.lat = zeros(size(hdr.radar_time));
+    hdr.lon = zeros(size(hdr.radar_time));
+    hdr.elev = zeros(size(hdr.radar_time));
+    hdr.roll = zeros(size(hdr.radar_time));
+    hdr.pitch = zeros(size(hdr.radar_time));
+    hdr.heading = zeros(size(hdr.radar_time));
+    hdr.gps_source = '';
   end
   
 end

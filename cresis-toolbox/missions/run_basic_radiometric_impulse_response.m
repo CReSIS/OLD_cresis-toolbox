@@ -13,7 +13,7 @@ radar_setup = 'MCORDS5';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
-  default_radar_params_2016_Greenland_Polar6_mcords;
+  [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
   
   % .file_search_mode: Specify how to search for a file: 'last_file',
   %   'specific', 'default'
@@ -38,6 +38,6 @@ end
 
 %% Automated Section
 
-basic_radiometric_impulse_response;
+basic_radiometric_impulse_response(param,defaults);
 
 return;
