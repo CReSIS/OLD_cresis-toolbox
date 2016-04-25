@@ -94,6 +94,7 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
         done = true;
       end
     end
+    g_file_select = user_fn_idx;
   else
     fn = '';
     while ~exist(fn,'file')

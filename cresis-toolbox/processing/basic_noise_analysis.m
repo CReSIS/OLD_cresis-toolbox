@@ -132,7 +132,7 @@ if param.psd_en
       
       figure(400+adc); clf;
       set(400+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('M%d',adc_idx));
-      plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data))).^2*2^2 / 50,2)/size(fir_data,1)) + 30)
+      plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data),1)).^2*2^2 / 50,2)/size(fir_data,1)) + 30)
       title(sprintf('MeanFFT adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       ylabel('Relative power (dB)');
       xlabel('Frequency (MHz)');
@@ -141,7 +141,7 @@ if param.psd_en
       
       figure(300+adc); clf;
       set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',adc_idx));
-      imagesc([], freq/1e6, lp(fftshift(fft(fir_data))) + 30 + 10*log10(2^2/50/size(fir_data,1)) )
+      imagesc([], freq/1e6, lp(fftshift(fft(fir_data),1)) + 30 + 10*log10(2^2/50/size(fir_data,1)) )
       title(sprintf('Freq-space adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       xlabel('Range line');
       ylabel('Frequency (MHz)');

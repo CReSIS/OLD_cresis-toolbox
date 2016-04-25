@@ -74,9 +74,9 @@ param.rbins = [1 inf];
 % param.noise_rbins = 1:40; % 180-210 MHz 3 us no delay
 % param.noise_rbins = 100:200; % 150-520 MHz 1 us no delay
 % param.noise_rbins = 80:100; % 180-210 MHz 1 us no delay
-param.noise_rbins = 2700:3000; % 150-520 MHz 3 us
+% param.noise_rbins = 2700:3000; % 150-520 MHz 3 us
 % param.noise_rbins = 200:230; % 180-210 MHz 3 us
-% param.noise_rbins = 100:200; % 150-520 MHz 1 us
+param.noise_rbins = 400:600; % 150-520 MHz 1 us
 % param.noise_rbins = 80:100; % 180-210 MHz 1 us
 
 % .snr_threshold = SNR threshold in dB (range lines exceeding this

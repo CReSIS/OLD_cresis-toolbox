@@ -60,6 +60,16 @@ else
   
 end
 
+% Base settings are with DDC channels 1-4 perfectly aligned and 5-8 all 
+% offset behind 1-4 by 1/1440 MHz = 6.944 ns.
+
+% If all DDS channels (1-8) are all perfectly aligned, then a single DDC
+% clock cycle needs to be added to channels 5-8:
+for freq_idx = 1:length(f0_list)
+  final_DDS_time{freq_idx} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50] ...
+    + [0 0 0 0 6.9444e-1 6.9444e-1 6.9444e-1 6.9444e-1];
+end
+
 % Hwindow_orig: Desired window created during transmit calibration
 %  This is used any time a window that is different from that used
 %  during calibration is to be used.
@@ -159,7 +169,7 @@ for freq_idx = 1:length(f0_list)
   if freq_idx == 1
     % Noise Mode
     param.tx_weights = [0 0 0 0 0 0 0 0];
-    [param.wfs(1:1).tx_mask] = deal([1 1 1 1 1 1 1 1]);
+    [param.wfs(1:3).tx_mask] = deal([1 1 1 1 1 1 1 1]);
     param.wfs(1).atten = 43;
     param.wfs(2).atten = 0;
     param.wfs(3).atten = 0;
@@ -391,7 +401,7 @@ write_cresis_xml(param);
 % waveform with all transmitters going.
 Haltitude = [1500 1500 0 3000 6000];
 Tpd_list = [1e-6 1e-6 3e-6 3e-6 3e-6];
-attenuation = [43 34 43 43 43];
+attenuation = [43 39 43 43 43];
 fn_hint = {'WATER','ICE','NO_DELAY','WATER','WATER'};
 for Tpd_idx = 1:length(Tpd_list)
   Tpd = Tpd_list(Tpd_idx);
