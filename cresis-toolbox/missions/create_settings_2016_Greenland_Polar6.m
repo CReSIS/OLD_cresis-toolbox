@@ -62,12 +62,13 @@ end
 
 % Base settings are with DDC channels 1-4 perfectly aligned and 5-8 all 
 % offset behind 1-4 by 1/1440 MHz = 6.944 ns.
-
-% If all DDS channels (1-8) are all perfectly aligned, then a single DDC
-% clock cycle needs to be added to channels 5-8:
-for freq_idx = 1:length(f0_list)
-  final_DDS_time{freq_idx} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50] ...
-    + [0 0 0 0 6.9444e-1 6.9444e-1 6.9444e-1 6.9444e-1];
+if 0
+  % If all DDS channels (1-8) are all perfectly aligned, then a single DDC
+  % clock cycle needs to be added to channels 5-8:
+  for freq_idx = 1:length(f0_list)
+    final_DDS_time{freq_idx} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50] ...
+      + [0 0 0 0 6.9444e-1 6.9444e-1 6.9444e-1 6.9444e-1];
+  end
 end
 
 % Hwindow_orig: Desired window created during transmit calibration
@@ -232,8 +233,8 @@ param.create_IQ = false;
 param.tg.staged_recording = [0 0];
 param.tg.start_ref = {'bottom','bottom'};
 param.tg.altitude_guard = 250*12*2.54/100;
-param.tg.Haltitude = 1091*12*2.54/100;
-param.tg.Hice_thick_min = 1000;
+param.tg.Haltitude = 5000*12*2.54/100;
+param.tg.Hice_thick_min = 800;
 param.tg.Hice_thick = 2000;
 param.tg.look_angle_deg = [40 40];
 param.prf = prf;

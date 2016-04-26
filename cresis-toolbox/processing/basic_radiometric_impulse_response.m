@@ -22,8 +22,28 @@ param.img = original_img;
 %% basic_radiometric_impulse_response preparation
 [pc_signal,pc_time] = pulse_compress(data,pc_param);
 
-%% Plot the echogram
-imagesc(lp(pc_signal));
+%% Plot the echogram and track surface
+good_time_bins = find(pc_time > pc_param.Tpd*1.1);
+[max_value,surf_bin] = max(pc_signal(good_time_bins,:));
+surf_bin = surf_bin + good_time_bins(1)-1;
+
+done = false;
+while ~done
+  figure(1000); clf;
+  imagesc(lp(pc_signal));
+  hold on
+  plot(good_time_bins([1 1 end end 1]), [1 size(pc_signal,2) size(pc_signal,2) 1 1]);
+  hold off
+  try
+    min_range_bin = input(sprintf('Enter min range bin for surface [%d]:', good_time_bins(1)));
+    if isempty(min_range_bin)
+      done = true;
+    else
+      good_time_bins = min_range_bin(1):size(pc_signal,1);
+      done = true;
+    end
+  end
+end
 
 %% Elevation compensation
 wf_adc = 1;
@@ -46,8 +66,6 @@ for rline = 1:size(pc_signal,2)
   elev_dt = (hdr.elev(rline) - hdr.elev(1)) / (c/2);
   pc_signal(:,rline,wf_adc) = ifft(fft(pc_signal(:,rline,wf_adc)) .* exp(1i*2*pi*freq*elev_dt));
 end
-
-[max_value,surf_bin] = max(pc_signal);
 
 % Perform STFT (short time Fourier transform) (i.e. overlapping short FFTs in slow-time)
 param.analysis.specular.ave = 128;

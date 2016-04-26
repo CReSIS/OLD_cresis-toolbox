@@ -16,11 +16,11 @@ if strcmpi(radar_setup,'MCORDS5')
   [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
   
   % .file_search_mode: Specify how to search for a file: 'last_file',
-  %   'specific', 'default'
-  param.file_search_mode = 'specific';
+  %   'specific', 'default', or empty to be asked
+  param.file_search_mode = '';
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'D:\awi\chan1','/mnt/HDD6/1604130301/UWB/','/mnt/AWI_SSD0/1604180702/UWB'};
+  param.base_dir_search = {'D:\awi\chan1','d:\1604261101\uwB\chan1\','/mnt/HDD6/1604130301/UWB/','/mnt/AWI_SSD0/1604180702/UWB'};
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze

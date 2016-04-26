@@ -15,8 +15,9 @@ radar_setup = 'MCORDS5';
 if strcmpi(radar_setup,'MCORDS5')
   [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
   
-  % .file_search_mode: Specify how to search for a file: 'last_file', 'specific'
-  param.file_search_mode = 'specific';
+  % .file_search_mode: Specify how to search for a file: 'last_file',
+  %   'specific', 'default', or empty to be asked
+  param.file_search_mode = '';
 
   % .base_dir_search: cell vector of paths to search for data files
   param.base_dir_search = {'D:\awi\chan1','/mnt/HDD6/1604200901/UWB/','/mnt/AWI_SSD0/1604180702/UWB'};
