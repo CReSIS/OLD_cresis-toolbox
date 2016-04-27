@@ -78,7 +78,7 @@ hdr = [];
 % ===============================================================
 %% Get first record position
 % ===============================================================
-hdr.sync_offsets = get_first10_sync_mfile(fn,0,struct('sync','1ACFFC1D','first_byte',param.first_byte,'num_sync',20));
+hdr.sync_offsets = get_first10_sync_mfile(fn,param.first_byte,struct('sync','1ACFFC1D','num_sync',20));
 
 % ===============================================================
 %% Open file big-endian for reading
