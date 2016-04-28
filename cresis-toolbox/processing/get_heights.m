@@ -548,48 +548,50 @@ for frm_idx = 1:length(param.cmd.frms);
       % Data, Time => new data to append
       % New_Time, New_Data => Combined result
       
-      % Interpolate image N onto already loaded data (assumption is that image
-      % N-1 always comes before image N)
-      dt = Time_Surface(2)-Time_Surface(1);
-      New_Time = (Time_Surface(1) : dt : Time(end)).';
-      Data = interp1(Time,Data,New_Time,'linear',0);
-      
-      % Surface tracking image combine
-      %  param.get_heights.qlook.img_comb(1): Not used at this step
-      %  param.get_heights.qlook.img_comb(2): Not used at this step
-      %  param.get_heights.qlook.img_comb(3): guard time which specifies how
-      %    many seconds at the end of img1 will not be used... this is
-      %    important because the last samples of img1 will have low signal
-      %    power and blurred because they will only have captured a portion
-      %    of the chirp energy (typically this will be set to something
-      %    close to the pulse duration for img1)
-      %  param.get_heights.qlook.img_comb(4-6, 7-9, etc.): same fields as above
-      %    except between images 2 and 3, 3 and 4, etc.
-      
-      % Determine guard at end of image 1 that will not be used
-      max_good_time = length(Time_Surface)*ones(1,size(Data_Surface,2));
-      guard_bins = 1 + round(param.get_heights.qlook.img_comb((img-2)*3+3)/dt);
-      
-      % First row of img_bins indicates the start of the blend-region
-      img_bins = max_good_time-guard_bins;
-      
-      % Second row of img_bins indicates the end of the blend-region
-      img_bins(2,:) = img_bins(1,:) + 1;
-      
-      difference = 10^(-0/10);
-      
-      % Combine waveforms
-      New_Data = zeros(size(Data),'single');
-      for rline = 1:size(New_Data,2)
-        trans_bins = img_bins(1,rline)+1:img_bins(2,rline);
-        weights = 0.5+0.5*cos(pi*linspace(0,1,length(trans_bins)).');
-        New_Data(:,rline) = [Data_Surface(1:img_bins(1,rline),rline); ...
-          weights.*Data_Surface(trans_bins,rline) ...
-          + difference*(1-weights).*Data(trans_bins,rline); ...
-          difference*Data(img_bins(2,rline)+1:end,rline)];
+      if Time(end) > Time_Surface(end)
+        % Interpolate image N onto already loaded data (assumption is that image
+        % N-1 always comes before image N)
+        dt = Time_Surface(2)-Time_Surface(1);
+        New_Time = (Time_Surface(1) : dt : Time(end)).';
+        Data = interp1(Time,Data,New_Time,'linear',0);
+        
+        % Surface tracking image combine
+        %  param.get_heights.qlook.img_comb(1): Not used at this step
+        %  param.get_heights.qlook.img_comb(2): Not used at this step
+        %  param.get_heights.qlook.img_comb(3): guard time which specifies how
+        %    many seconds at the end of img1 will not be used... this is
+        %    important because the last samples of img1 will have low signal
+        %    power and blurred because they will only have captured a portion
+        %    of the chirp energy (typically this will be set to something
+        %    close to the pulse duration for img1)
+        %  param.get_heights.qlook.img_comb(4-6, 7-9, etc.): same fields as above
+        %    except between images 2 and 3, 3 and 4, etc.
+        
+        % Determine guard at end of image 1 that will not be used
+        max_good_time = length(Time_Surface)*ones(1,size(Data_Surface,2));
+        guard_bins = 1 + round(param.get_heights.qlook.img_comb((img-2)*3+3)/dt);
+        
+        % First row of img_bins indicates the start of the blend-region
+        img_bins = max_good_time-guard_bins;
+        
+        % Second row of img_bins indicates the end of the blend-region
+        img_bins(2,:) = img_bins(1,:) + 1;
+        
+        difference = 10^(-0/10);
+        
+        % Combine waveforms
+        New_Data = zeros(size(Data),'single');
+        for rline = 1:size(New_Data,2)
+          trans_bins = img_bins(1,rline)+1:img_bins(2,rline);
+          weights = 0.5+0.5*cos(pi*linspace(0,1,length(trans_bins)).');
+          New_Data(:,rline) = [Data_Surface(1:img_bins(1,rline),rline); ...
+            weights.*Data_Surface(trans_bins,rline) ...
+            + difference*(1-weights).*Data(trans_bins,rline); ...
+            difference*Data(img_bins(2,rline)+1:end,rline)];
+        end
+        Time_Surface = New_Time;
+        Data_Surface = New_Data;
       end
-      Time_Surface = New_Time;
-      Data_Surface = New_Data;
       
     end
   end
@@ -746,10 +748,14 @@ for frm_idx = 1:length(param.cmd.frms);
       for rline = 1:size(New_Data,2)
         trans_bins = img_bins(1,rline)+1:img_bins(2,rline);
         weights = 0.5+0.5*cos(pi*linspace(0,1,length(trans_bins)).');
-        New_Data(:,rline) = [Data(1:img_bins(1,rline),rline); ...
-          weights.*Data(trans_bins,rline) ...
-          + difference*(1-weights).*append.Data(trans_bins,rline); ...
-          difference*append.Data(img_bins(2,rline)+1:end,rline)];
+        if trans_bins <= size(append.Data,1)
+          New_Data(:,rline) = [Data(1:img_bins(1,rline),rline); ...
+            weights.*Data(trans_bins,rline) ...
+            + difference*(1-weights).*append.Data(trans_bins,rline); ...
+            difference*append.Data(img_bins(2,rline)+1:end,rline)];
+        else
+          New_Data(:,rline) = Data(1:size(New_Data,1),rline);
+        end
       end
       Time = New_Time;
       Data = New_Data;
