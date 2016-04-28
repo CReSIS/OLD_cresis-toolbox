@@ -466,7 +466,7 @@ for board_idx = 1:length(board_hdrs)
   fprintf(cur_board_clock_notes);
   figure(1); clf;
   plot(utc_time_sod_corrected, utc_time_sod_corrected-double(hdr.utc_time_sod));
-  title('UTC time correction error (should be < few ms)');
+  title('UTC time correction error (should be < few ms)','fontsize',10);
   pause(0.1);
   drawnow;
   if ~isfield(param.records,'debug_level') || isempty(param.records.debug_level) || param.records.debug_level > 1
