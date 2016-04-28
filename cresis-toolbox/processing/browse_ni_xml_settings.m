@@ -295,9 +295,9 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         end
         if any(strcmpi('ref_fn',radar_worksheet_headers))
           if param_file.write_en
-            params(param_idx).radar.wfs(wf).ref_fn = '';
+            params(param_idx).radar.wfs(wf).ref_fn = default.radar.ref_fn;
           end
-          row_str = cat(2,row_str, sprintf('\t'));
+          row_str = cat(2,row_str, sprintf('\t''%s''',default.radar.ref_fn));
         end
         if any(strcmpi('tukey',radar_worksheet_headers))
           if param_file.write_en
@@ -362,6 +362,22 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
           params(param_idx).radar.wfs(wf).Tsys = chan_equal_Tsys;
         end
         row_str = cat(2,row_str, sprintf('\t%s',chan_equal_Tsys));
+        
+        % DC Adjust
+        if param_file.write_en
+          if wf <= length(default.radar.DC_adjust)
+            params(param_idx).radar.wfs(wf).DC_adjust = '';
+          else
+            params(param_idx).radar.wfs(wf).DC_adjust = default.radar.DC_adjust{wf};
+          end
+        end
+        if wf <= length(default.radar.DC_adjust)
+          row_str = cat(2,row_str, sprintf('\t''%s''',default.radar.DC_adjust{wf}));
+        else
+          row_str = cat(2,row_str, sprintf('\t%s',''));
+        end
+        
+        % DDC mode and frequency
         if any(strcmpi('DDC_mode',radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).DDC_mode = settings(set_idx).DDC_Ctrl.DDC_sel.Val;
