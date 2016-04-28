@@ -40,6 +40,37 @@ else
 end
 noise_rbins = intersect(noise_rbins,default_noise_rbins);
 
+figure(1000); clf;
+imagesc(lp( mean( abs(data).^2, 3 ) ))
+hold on
+plot(param.noise_rbins([1 1 2 2 1]), [1 size(data,2) size(data,2) 1 1]);
+hold off
+fprintf('Check to ensure that selected range bins are noise. Enter a new\n');
+fprintf('range bin range if not (e.g. [-499 0] for last 500 range bins or\n');
+fprintf('[3400 3800] for range bins 3400-3800). Leave empty for current.\n');
+done = false;
+while ~done
+  user_noise_rbins = input(sprintf('%s: ', mat2str(param.noise_rbins)));
+  if isempty(user_noise_rbins)
+    done = true;
+  elseif length(user_noise_rbins) == 2
+    done = true;
+    param.noise_rbins = user_noise_rbins;
+  end
+end
+
+default_noise_rbins = 1:size(data,1);
+if ~isfield(param,'noise_rbins') || isempty(param.noise_rbins)
+  noise_rbins = default_noise_rbins;
+elseif param.noise_rbins(end) > size(data,1)
+  noise_rbins = param.noise_rbins(1):size(data,1);
+elseif param.noise_rbins(1) <= 0
+  noise_rbins = size(data,1)+param.noise_rbins;
+else
+  noise_rbins = param.noise_rbins(1):param.noise_rbins(end);
+end
+noise_rbins = intersect(noise_rbins,default_noise_rbins);
+
 wf = abs(param.img(1,1));
 
 %% Convert from quantization to voltage @ ADC

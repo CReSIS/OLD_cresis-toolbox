@@ -12,6 +12,47 @@ global g_basic_noise_analysis_fn;
 % Assume the first default parameters until we know which is the correct
 default = defaults{1};
 
+global g_file_search_mode;
+if isempty(param.file_search_mode) ...
+    || all(~strcmpi(param.file_search_mode,{'default','specific','last_file'}))
+  fprintf('Select file search mode:\n');
+  fprintf(' 1) default (loads whatever was last loaded)');
+  if g_file_search_mode == 1
+    fprintf(' *');
+  end
+  fprintf('\n');
+  fprintf(' 2) specific (lets you specify a specific file)');
+  if g_file_search_mode == 2
+    fprintf(' *');
+  end
+  fprintf('\n');
+  fprintf(' 3) last_file (lists the last 10 recorded files)');
+  if g_file_search_mode == 3
+    fprintf(' *');
+  end
+  fprintf('\n');
+  done = false;
+  while ~done
+    file_search_mode = input('Selection (1, 2, or 3): ');
+    try
+      if isempty(file_search_mode) && ~isempty(g_file_search_mode)
+        param.file_search_mode = g_file_search_mode;
+        done = true;
+      elseif file_search_mode==1
+        param.file_search_mode = 'default';
+        done = true;
+      elseif file_search_mode==2
+        param.file_search_mode = 'specific';
+        done = true;
+      elseif file_search_mode==3
+        param.file_search_mode = 'last_file';
+        done = true;
+      end
+    end
+  end
+end
+g_file_search_mode = param.file_search_mode;
+
 %% Determine which file to load
 if ~strncmpi(param.file_search_mode,'default',length('default'))
   good_mask = logical(zeros(size(param.base_dir_search)));

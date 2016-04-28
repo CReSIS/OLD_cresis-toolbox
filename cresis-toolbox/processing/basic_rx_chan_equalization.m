@@ -106,8 +106,12 @@ for file_idx = 1:num_files
   Nt = length(pc_time);
   df = 1/(Nt*dt);
   param.freq = pc_param.DDC_freq + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df).';
-  
-  param.mocomp_type = 4;
+
+  if all(gps.roll==0)
+    param.mocomp_type = 2;
+  else
+    param.mocomp_type = 4;
+  end
   param.tx_weights = double(settings.DDS_Setup.Ram_Amplitude);
   param.rx_paths = {}; param.rx_paths{wf} = default.radar.rx_paths;
   param.lever_arm_fh = @lever_arm;
