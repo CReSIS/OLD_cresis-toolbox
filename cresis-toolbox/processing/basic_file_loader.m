@@ -8,7 +8,8 @@ function [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,d
 % Author: John Paden
 
 global g_basic_noise_analysis_fn;
-  
+g_basic_noise_analysis_fn = char(g_basic_noise_analysis_fn); % Force type to be string
+
 % Assume the first default parameters until we know which is the correct
 default = defaults{1};
 
@@ -314,18 +315,12 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
   finfo = fname_info_mcords2(fn);
   
   settings_idx = find(cell2mat({settings.datenum}) < finfo.datenum,1,'last');
+  if isempty(settings_idx)
+    settings_idx = 1;
+  end
   settings = settings(settings_idx);
 
-  found = false;
-  for default_idx = 1:length(defaults)
-    if ~isempty(regexp(settings.XML_File_Path{1}.values{1}, defaults{default_idx}.xml_regexp))
-      default = defaults{default_idx};
-      found = true;
-    end
-  end
-  if ~found
-    warning('Did not find a matching set of default parameters for:\n%s', settings.XML_File_Path{1}.values{1});
-  end
+  default = default_radar_params_settings_match(defaults,settings.XML_File_Path{1}.values{1});
   
   %% Format settings into pc_param
   DDC_freq = double(settings.DDC_Ctrl.NCO_freq)*1e6;

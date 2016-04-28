@@ -20,6 +20,7 @@
 %   run_browse_ni_xml_settings.m
 
 %% Prepare inputs
+xml_version = defaults{1}.xml_version;
 cresis_xml_mapping;
 if ~isempty(gps_fn)
   gps = load(gps_fn);
@@ -56,7 +57,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
   [settings,settings_enc] = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
   
   %% Get raw data files associated with this directory
-  data_fns = get_filenames(fullfile(base_dir,adc_folder_name,board_sub_directory),data_file_prefix,'','.bin');
+  data_fns = get_filenames(fullfile(base_dir,adc_folder_name,defaults{1}.board_sub_directory),defaults{1}.data_file_prefix,'','.bin');
   fn_datenums = [];
   
   %% Prepare parameter spreadsheet for writing if enabled
@@ -86,17 +87,22 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
     [~,settings_fn_name] = fileparts(settings(set_idx).fn);
     fprintf('===================== Setting %d =================\n', set_idx);
     fprintf('%s: %d waveforms\n', settings_fn_name, length(settings(set_idx).(config_var).Waveforms));
+    if isfield(settings(set_idx),'XML_File_Path')
+      fprintf('  %s\n', settings(set_idx).XML_File_Path{1}.values{1});
+    end
     if max_wfs < length(settings(set_idx).(config_var).Waveforms)
       max_wfs = length(settings(set_idx).(config_var).Waveforms);
     end
-    fprintf('  PRF:'); fprintf(' %g', settings(set_idx).(config_var).(prf_var)); fprintf('\n');
-    fprintf('  Amp:'); fprintf(' %g', settings(set_idx).(config_var).(ram_amp_var)); fprintf('\n');
-    fprintf('  Tukey:'); fprintf(' %g', settings(set_idx).(config_var).RAM_Taper); fprintf('\n');
-    fprintf('  Stop:'); fprintf(' %g', settings(set_idx).(config_var).Waveforms(1).Stop_Freq); fprintf('\n');
-    fprintf('  Tx Mask:'); fprintf(' %g', settings(set_idx).(config_var).Waveforms(1).TX_Mask); fprintf('\n');
+    fprintf('   PRF:'); fprintf(' %g', settings(set_idx).(config_var).(prf_var)); fprintf('\n');
+    fprintf('   Amp:'); fprintf(' %g', settings(set_idx).(config_var).(ram_amp_var)); fprintf('\n');
+    fprintf('   Tukey:'); fprintf(' %g', settings(set_idx).(config_var).RAM_Taper); fprintf('\n');
+    Tpd = double(settings(set_idx).(config_var).Waveforms(1).Len_Mult)*settings(set_idx).(config_var).Base_Len;
+    fprintf('   f0-f1:'); fprintf(' %g-%g MHz %g us', settings(set_idx).(config_var).Waveforms(1).Start_Freq(1)/1e6, ...
+      settings(set_idx).(config_var).Waveforms(1).Stop_Freq(1)/1e6, Tpd*1e6); fprintf('\n');
+    fprintf('   Tx Mask:'); fprintf(' %g', settings(set_idx).(config_var).Waveforms(1).TX_Mask); fprintf('\n');
     for wf = 1:length(settings(set_idx).(config_var).Waveforms)
-      fprintf('  WF %d Atten:', wf); fprintf(' %g', settings(set_idx).(config_var).Waveforms(wf).Attenuator_2); fprintf('\n');
-      fprintf('  WF %d Len:', wf); fprintf(' %.1f us', 1e6*settings(set_idx).(config_var).Base_Len*settings(set_idx).(config_var).Waveforms(wf).Len_Mult); fprintf('\n');
+      fprintf('    WF %d Atten:', wf); fprintf(' %g', settings(set_idx).(config_var).Waveforms(wf).Attenuator_2); fprintf('\n');
+      fprintf('    WF %d Len:', wf); fprintf(' %.1f us', 1e6*settings(set_idx).(config_var).Base_Len*settings(set_idx).(config_var).Waveforms(wf).Len_Mult); fprintf('\n');
     end
     if set_idx < length(settings)
       settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
@@ -104,11 +110,11 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum);
     end
     if isempty(settings(set_idx).match_idxs)
-      fprintf('    No data files\n');
+      fprintf('  No data files\n');
       settings(set_idx).match_idxs = -1;
     else
-      fprintf('    %s\n', data_fns{settings(set_idx).match_idxs(1)});
-      fprintf('    %s\n', data_fns{settings(set_idx).match_idxs(end)});
+      fprintf('%5.0f files %s\n', length(settings(set_idx).match_idxs), data_fns{settings(set_idx).match_idxs(1)});
+      fprintf('%5s       %s\n', '', data_fns{settings(set_idx).match_idxs(end)});
     end
     
     %% Plot GPS information if enabled
@@ -136,38 +142,41 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       h_texts(dir_idx,set_idx) = text(x(1)/1e3,y(1)/1e3,sprintf('%d:%d',dir_idx,set_idx),'Parent',h_axes);
       h_roll_texts(dir_idx,set_idx) = text(hdr_gps_time(1),hdr_roll(1),sprintf('%d:%d',dir_idx,set_idx),'Parent',h_roll_axes);
     end
+    
+    %% Associate default parameters with each settings
+    settings(set_idx).default = default_radar_params_settings_match(defaults,settings(set_idx));
+    default = settings(set_idx).default;
+
+    %% Determine if using these settings
+    if settings(set_idx).match_idxs(end) - settings(set_idx).match_idxs(1) >= MIN_FILES_IN_SEGMENT-1 && isempty(regexpi(default.name,'other'))
+      settings(set_idx).enabled = true;
+    else
+      settings(set_idx).enabled = false;
+    end
+    if manual_enable
+      user_input = input(sprintf('Keep settings [%s]: ', mat2str(settings(set_idx).enabled)));
+      if ~isempty(user_input)
+        settings(set_idx).enabled = logical(user_input);
+      end
+    end
+
   end
   
   %% Vectors Worksheet
-  fprintf('Vectors and Records WorkSheet\n');
-  fprintf('%s\t%s\t%s\t%s\t%s\n', ...
-    'Date','1','file.start_idx','file.stop_idx','file_version');
-  fprintf('%s\t%s\t%s\t%s\t%s\n', ...
-    'YYYYMMDD','Segment','r','r','r');
+  fprintf('\nVectors WorkSheet\n');
+  fprintf('%s\t%s\t%s\t%s\n', ...
+    'Date','1','file.start_idx','file.stop_idx');
+  fprintf('%s\t%s\t%s\t%s\n', ...
+    'YYYYMMDD','Segment','r','r');
   for set_idx = 1:length(settings)
-    if settings(set_idx).match_idxs(end) - settings(set_idx).match_idxs(1) >= MIN_FILES_IN_SEGMENT-1
+    if settings(set_idx).enabled
+      default = settings(set_idx).default;
       
-      %% Determine file version
-      if strcmpi(param.radar_name,'mcords3')
-        file_version = 403;
-      elseif any(strcmpi(param.radar_name,{'mcords4'}))
-        file_version = 404;
-      elseif any(strcmpi(param.radar_name,{'mcords5'}))
-        if settings(set_idx).DDC_Ctrl.DDC_sel.Val == 0
-          file_version = 408;
-        elseif any(settings(set_idx).DDC_Ctrl.DDC_sel.Val == [1 2])
-          file_version = 407;
-        else
-          error('Invalid DDC setting.');
-        end
-      end
+      % Print out data row
+      fprintf('%s\t%02d\t%d\t%d\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
+        settings(set_idx).match_idxs(1)+SKIP_FILES_START, settings(set_idx).match_idxs(end)-SKIP_FILES_END);
       
-      %% Print out data row
-      fprintf('%s\t%02d\t%d\t%d\t%d\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
-        settings(set_idx).match_idxs(1)+SKIP_FILES_START, settings(set_idx).match_idxs(end)-SKIP_FILES_END, ...
-        file_version);
-      
-      %% Write to parameter file if enabled
+      % Write to parameter file if enabled
       if param_file.write_en
         day_seg = sprintf('%s_%02.0f', datestr(header_load_date,'YYYYmmDD'), set_idx);
         segment_found = false;
@@ -228,78 +237,180 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
     end
   end
   
+  %% Records Worksheet
+  fprintf('\nRecords WorkSheet\n');
+  fprintf('%s\t%s\t%s\n', ...
+    'Date','1','file_version');
+  fprintf('%s\t%s\t%s\n', ...
+    'YYYYMMDD','Segment','r');
+  for set_idx = 1:length(settings)
+    if settings(set_idx).enabled
+      default = settings(set_idx).default;
+            
+      % Determine file version
+      if strcmpi(param.radar_name,'mcords3')
+        file_version = 403;
+      elseif any(strcmpi(param.radar_name,{'mcords4'}))
+        file_version = 404;
+      elseif any(strcmpi(param.radar_name,{'mcords5'}))
+        if settings(set_idx).DDC_Ctrl.DDC_sel.Val == 0
+          file_version = 408;
+        elseif any(settings(set_idx).DDC_Ctrl.DDC_sel.Val == [1 2])
+          file_version = 407;
+        else
+          error('Invalid DDC setting.');
+        end
+      end
+      
+      % Print out data row
+      fprintf('%s\t%02d\t%d\n',datestr(header_load_date,'YYYYmmDD'),set_idx, file_version);
+
+    end
+  end
+    
+  %% Get Heights Worksheet
+  fprintf('\nGet Heights (Quick Look) WorkSheet\n');
+  fprintf('%s\t%s\t%s\t%s\t%s\n', ...
+    'Date','1','qlook.out_path','qlook.img_comb','imgs');
+  fprintf('%s\t%s\t%s\t%s\t%s\n', ...
+    'YYYYMMDD','Segment','t','r','r');
+  
+  for set_idx = 1:length(settings)
+    default = settings(set_idx).default;
+    if settings(set_idx).enabled
+      % Print out data row
+      fprintf('%s\t%02d\t%s\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
+        default.get_heights.qlook.out_path, mat2str(default.get_heights.qlook.img_comb), mat2str_generic(default.get_heights.imgs));
+      
+      % Write to parameter file if enabled
+      if param_file.write_en
+        param_idx = settings(set_idx).param_idx;
+        params(param_idx).get_heights = merge_structs(params(param_idx).get_heights,default.get_heights);
+      end
+    end
+  end
+  
+  %% CSARP Worksheet
+  fprintf('\nCSARP (SAR Processor) WorkSheet\n');
+  fprintf('%s\t%s\t%s\t%s\n', ...
+    'Date','1','out_path','imgs');
+  fprintf('%s\t%s\t%s\t%s\n', ...
+    'YYYYMMDD','Segment','t','r');
+  
+  for set_idx = 1:length(settings)
+    default = settings(set_idx).default;
+    if settings(set_idx).enabled
+      % Print out data row
+      fprintf('%s\t%02d\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
+        default.csarp.out_path, mat2str_generic(default.csarp.imgs));
+      
+      % Write to parameter file if enabled
+      if param_file.write_en
+        param_idx = settings(set_idx).param_idx;
+        
+        params(param_idx).csarp = merge_structs(params(param_idx).csarp,default.csarp);
+      end
+    end
+  end
+    
+  %% Combine Wf Chan Worksheet
+  fprintf('\nCombine (Combine Waveforms and Images) WorkSheet\n');
+  fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+    'Date','1','in_path','array_path','out_path','img_comb','imgs');
+  fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+    'YYYYMMDD','Segment','t','t','t','r','r');
+  
+  for set_idx = 1:length(settings)
+    default = settings(set_idx).default;
+    if settings(set_idx).enabled
+      % Print out data row
+      fprintf('%s\t%02d\t%s\t%s\t%s\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
+        default.combine.in_path, default.combine.array_path, default.combine.out_path, ...
+        mat2str(default.combine.img_comb), mat2str_generic(default.combine.imgs));
+      
+      % Write to parameter file if enabled
+      if param_file.write_en
+        param_idx = settings(set_idx).param_idx;
+        
+        params(param_idx).combine = merge_structs(params(param_idx).combine,default.combine);
+      end
+    end
+  end
+  
   %% Radar Worksheet
-  fprintf('Radar WorkSheet\n');
+  fprintf('\nRadar WorkSheet\n');
   fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s', ...
     'Date','1','fs','prf','adc_bits','Vpp_scale','size');
   for wf = 1:max_wfs
-    for wf_hdr_idx = 1:length(radar_worksheet_headers)
-      fprintf('\t%s', radar_worksheet_headers{wf_hdr_idx});
+    for wf_hdr_idx = 1:length(default.radar_worksheet_headers)
+      fprintf('\t%s', default.radar_worksheet_headers{wf_hdr_idx});
     end
   end
   fprintf('\n');
   fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s', ...
     'YYYYMMDD','Segment','r','r','r','r','ar:wfs');
   for wf = 1:max_wfs
-    for wf_hdr_idx = 1:length(radar_worksheet_headers)
-      fprintf('\ta%s:wfs(%d)', radar_worksheet_headers_type{wf_hdr_idx}, wf);
+    for wf_hdr_idx = 1:length(default.radar_worksheet_headers)
+      fprintf('\ta%s:wfs(%d)', default.radar_worksheet_headers_type{wf_hdr_idx}, wf);
     end
   end
   fprintf('\n');
   
   for set_idx = 1:length(settings)
-    if settings(set_idx).match_idxs(end) - settings(set_idx).match_idxs(1) >= MIN_FILES_IN_SEGMENT-1
+    default = settings(set_idx).default;
+      
+    if settings(set_idx).enabled
       
       if param_file.write_en
         param_idx = settings(set_idx).param_idx;
-        params(param_idx).radar.fs = fs;
+        params(param_idx).radar.fs = default.radar.fs;
         params(param_idx).radar.prf = settings(set_idx).(config_var).(prf_var);
-        params(param_idx).radar.adc_bits = adc_bits;
-        params(param_idx).radar.Vpp_scale = adc_full_scale;
+        params(param_idx).radar.adc_bits = default.radar.adc_bits;
+        params(param_idx).radar.Vpp_scale = default.radar.adc_full_scale;
       end
       
       row_str = sprintf('%s\t%02d\t%.16g\t%g\t%d\t%g\t%d',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
-        fs, settings(set_idx).(config_var).(prf_var), adc_bits, adc_full_scale, length(settings(set_idx).(config_var).Waveforms));
+        default.radar.fs, settings(set_idx).(config_var).(prf_var), default.radar.adc_bits, default.radar.adc_full_scale, length(settings(set_idx).(config_var).Waveforms));
       
       for wf = 1:length(settings(set_idx).(config_var).Waveforms)
         
-        if any(strcmpi('Tpd',radar_worksheet_headers))
+        if any(strcmpi('Tpd',default.radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).Tpd = double(settings(set_idx).(config_var).Waveforms(wf).Len_Mult)*settings(set_idx).(config_var).Base_Len;
           end
           row_str = cat(2,row_str, sprintf('\t%g',double(settings(set_idx).(config_var).Waveforms(wf).Len_Mult)*settings(set_idx).(config_var).Base_Len));
         end
-        if any(strcmpi('Tadc',radar_worksheet_headers))
+        if any(strcmpi('Tadc',default.radar_worksheet_headers))
           if param_file.write_en
-            params(param_idx).radar.wfs(wf).Tadc = Tadc;
+            params(param_idx).radar.wfs(wf).Tadc = default.radar.Tadc;
           end
-          row_str = cat(2,row_str, sprintf('\t%g',Tadc));
+          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc));
         end
-        if any(strcmpi('Tadc_adjust',radar_worksheet_headers))
+        if any(strcmpi('Tadc_adjust',default.radar_worksheet_headers))
           if param_file.write_en
-            params(param_idx).radar.wfs(wf).Tadc_adjust = Tadc_adjust;
+            params(param_idx).radar.wfs(wf).Tadc_adjust = default.radar.Tadc_adjust;
           end
-          row_str = cat(2,row_str, sprintf('\t%g',Tadc_adjust));
+          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc_adjust));
         end
-        if any(strcmpi('f0',radar_worksheet_headers))
+        if any(strcmpi('f0',default.radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).f0 = settings(set_idx).(config_var).Waveforms(wf).Start_Freq(1);
           end
           row_str = cat(2,row_str, sprintf('\t%.16g',settings(set_idx).(config_var).Waveforms(wf).Start_Freq(1)));
         end
-        if any(strcmpi('f1',radar_worksheet_headers))
+        if any(strcmpi('f1',default.radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).f1 = settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1);
           end
           row_str = cat(2,row_str, sprintf('\t%.16g',settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1)));
         end
-        if any(strcmpi('ref_fn',radar_worksheet_headers))
+        if any(strcmpi('ref_fn',default.radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).ref_fn = default.radar.ref_fn;
           end
           row_str = cat(2,row_str, sprintf('\t''%s''',default.radar.ref_fn));
         end
-        if any(strcmpi('tukey',radar_worksheet_headers))
+        if any(strcmpi('tukey',default.radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).tukey = settings(set_idx).(config_var).RAM_Taper;
           end
@@ -309,12 +420,12 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         % Transmit weights
         if any(strcmpi(param.radar_name,{'mcords3','mcords5'}))
           tx_mask_inv = fliplr(~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0'));
-          tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / max_DDS_RAM*tx_voltage;
+          tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / default.max_DDS_RAM*default.tx_voltage;
         else
           tx_mask_inv = ~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0');
-          tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / max_DDS_RAM*tx_voltage;
+          tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / default.max_DDS_RAM*default.tx_voltage;
         end
-        tx_weights = tx_weights(logical(tx_DDS_mask));
+        tx_weights = tx_weights(logical(default.tx_DDS_mask));
         if param_file.write_en
           params(param_idx).radar.wfs(wf).tx_weights = tx_weights;
         end
@@ -327,12 +438,12 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         
         % Rx paths
         if param_file.write_en
-          params(param_idx).radar.wfs(wf).rx_paths = rx_paths;
+          params(param_idx).radar.wfs(wf).rx_paths = default.radar.rx_paths;
         end
         row_str = cat(2,row_str, ...
-          sprintf('\t[%d', rx_paths(1)));
+          sprintf('\t[%d', default.radar.rx_paths(1)));
         row_str = cat(2,row_str, ...
-          sprintf(' %d', rx_paths(2:end)));
+          sprintf(' %d', default.radar.rx_paths(2:end)));
         row_str = cat(2,row_str, ...
           sprintf(']'));
         
@@ -340,28 +451,29 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         atten = double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_1(1)) ...
           + double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_2(1));
         if param_file.write_en
-          params(param_idx).radar.wfs(wf).adc_gains = 10.^((max_adc_gain_dB - atten(1)*ones(1,length(rx_paths)))/20);
+          params(param_idx).radar.wfs(wf).adc_gains = 10.^((default.radar.rx_gain - atten(1)*ones(1,length(default.radar.rx_paths)))/20);
         end
         row_str = cat(2,row_str, ...
-          sprintf('\t10.^((%g - %g*ones(1,%d))/20)', max_adc_gain_dB, atten(1), length(rx_paths)));
+          sprintf('\t10.^((%g - %g*ones(1,%d))/20)', default.radar.rx_gain, atten(1), length(default.radar.rx_paths)));
         
+        default_wf = min(wf,length(default.radar.wfs));
         % Chan Equal DB
         if param_file.write_en
-          params(param_idx).radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+          params(param_idx).radar.wfs(wf).chan_equal_dB = default.radar.wfs(default_wf).chan_equal_dB;
         end
-        row_str = cat(2,row_str, sprintf('\t%s',chan_equal_dB));
+        row_str = cat(2,row_str, sprintf('\t%s',default.radar.wfs(default_wf).chan_equal_dB));
         
         % Chan Equal deg
         if param_file.write_en
-          params(param_idx).radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+          params(param_idx).radar.wfs(wf).chan_equal_deg = default.radar.wfs(default_wf).chan_equal_deg;
         end
-        row_str = cat(2,row_str, sprintf('\t%s',chan_equal_deg));
+        row_str = cat(2,row_str, sprintf('\t%s',default.radar.wfs(default_wf).chan_equal_deg));
         
         % Tsys
         if param_file.write_en
-          params(param_idx).radar.wfs(wf).Tsys = chan_equal_Tsys;
+          params(param_idx).radar.wfs(wf).Tsys = default.radar.wfs(default_wf).chan_equal_Tsys;
         end
-        row_str = cat(2,row_str, sprintf('\t%s',chan_equal_Tsys));
+        row_str = cat(2,row_str, sprintf('\t%s',default.radar.wfs(default_wf).chan_equal_Tsys));
         
         % DC Adjust
         if param_file.write_en
@@ -378,13 +490,13 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         end
         
         % DDC mode and frequency
-        if any(strcmpi('DDC_mode',radar_worksheet_headers))
+        if any(strcmpi('DDC_mode',default.radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).DDC_mode = settings(set_idx).DDC_Ctrl.DDC_sel.Val;
           end
           row_str = cat(2,row_str, sprintf('\t%d',settings(set_idx).DDC_Ctrl.DDC_sel.Val));
         end
-        if any(strcmpi('DDC_freq',radar_worksheet_headers))
+        if any(strcmpi('DDC_freq',default.radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
           end
@@ -395,72 +507,8 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       fprintf('%s\n',row_str)
     end
   end
-  
-  %% Processing Worksheets: Get Heights, CSARP, and Combine Wf Chan
-  fprintf('Processing WorkSheets (Get Heights, CSARP, and Combine Wf Chan)\n');
-  for set_idx = 1:length(settings)
-    if settings(set_idx).match_idxs(end) - settings(set_idx).match_idxs(1) >= MIN_FILES_IN_SEGMENT-1
-      if abs(iq_mode)
-        wfs = 1:2:length(settings(set_idx).(config_var).Waveforms);
-      else
-        wfs = 1:length(settings(set_idx).(config_var).Waveforms);
-      end
-      Tpd= double(cell2mat({settings(set_idx).(config_var).Waveforms(wfs).Len_Mult}))*settings(set_idx).(config_var).Base_Len;
-      [~,sort_idx] = sort(Tpd);
-      
-      if length(settings(set_idx).(config_var).Waveforms) > 1+abs(iq_mode)
-        wf_idx = 2;
-        Tpd_prev = double(settings(set_idx).(config_var).Waveforms(wfs(wf_idx-1)).Len_Mult)*settings(set_idx).(config_var).Base_Len;
-        Tpd = double(settings(set_idx).(config_var).Waveforms(wfs(wf_idx)).Len_Mult)*settings(set_idx).(config_var).Base_Len;
-        row_str = sprintf('[%g -inf %g', Tpd, Tpd_prev);
-        for wf_idx = 3:length(wfs)
-          Tpd_prev = double(settings(set_idx).(config_var).Waveforms(wfs(wf_idx-1)).Len_Mult)*settings(set_idx).(config_var).Base_Len;
-          Tpd = double(settings(set_idx).(config_var).Waveforms(wfs(wf_idx)).Len_Mult)*settings(set_idx).(config_var).Base_Len;
-          row_str = cat(2,row_str,sprintf(' %g -inf %g', Tpd, Tpd_prev));
-        end
-        row_str = cat(2,row_str,sprintf(']\t'));
-      else
-        row_str = sprintf('\t');
-      end
-      
-      row_str = cat(2,row_str,sprintf('{'));
-      for wf_idx = 1:length(wfs)
-        wf = wfs(wf_idx);
-        if wf_idx == 1
-          row_str = cat(2,row_str,sprintf('['));
-        else
-          row_str = cat(2,row_str,sprintf(',['));
-        end
-        imgs_adcs_idx = 1;
-        if abs(iq_mode)
-          row_str = cat(2,row_str,sprintf('%d %d', iq_mode*wf, imgs_adcs(imgs_adcs_idx)));
-          for imgs_adcs_idx = 2:length(imgs_adcs)
-            row_str = cat(2,row_str,sprintf('; %d %d', iq_mode*wf, imgs_adcs(imgs_adcs_idx)));
-          end
-        else
-          row_str = cat(2,row_str,sprintf('%d %d', wf, imgs_adcs(imgs_adcs_idx)));
-          for imgs_adcs_idx = 2:length(imgs_adcs)
-            row_str = cat(2,row_str,sprintf('; %d %d', wf, imgs_adcs(imgs_adcs_idx)));
-          end
-        end
-        row_str = cat(2,row_str,sprintf(']'));
-      end
-      row_str = cat(2,row_str,sprintf('}'));
-      
-      fprintf('%s\n',row_str)
-      
-      %% Write to parameter file if enabled
-      if param_file.write_en
-        param_idx = settings(set_idx).param_idx;
-        
-        params(param_idx).get_heights = merge_structs(params(param_idx).get_heights,default.get_heights);
-        params(param_idx).csarp = merge_structs(params(param_idx).csarp,default.csarp);
-        params(param_idx).combine = merge_structs(params(param_idx).combine,default.combine);
-      end
-      
-    end
-  end
-  
+
+  %% Write to parameter spreadsheet
   if param_file.write_en
     insert_param_xls(param_fn,params,[],'wfs');
     try
@@ -469,6 +517,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       keyboard
     end
   end
+  
 end
 
 return;

@@ -14,132 +14,21 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   % =======================================================================
   % =======================================================================
 
-  base_dir = '/mnt/AWI_SSD0/1604140501/UWB';
-  base_dir_in_param = '/mnt/AWI_SSD0/1604140501/UWB';
+  base_dir = '/mnt/AWI_SSD0';
   
-  adc_folder_names = {''};
+  adc_folder_names = {'/1604261202/UWB'};
   
-  param.radar_name = 'mcords5';
-  param.season_name = '2016_Greenland_Polar6';
-  
-  header_load_date = datenum(2016,4,14);
-  default.cmd.mission_name = 'Lab Test';
-  
-  param_file.write_en = false;
-  param_file.path = ''; % Set to override the default path
-  
-  %% MCORDS 5: 2016 Greenland Polar6
-  param.radar_name = 'mcords5';
-  xml_file_prefix = 'mcords5_20160414';
-  data_file_prefix = 'mcords5';
-  board_sub_directory = 'chan1';
-  
-  default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m'
-  default.records.file.adcs = [1:24];
-  default.records.file.adc_headers = [1:24];
-  default.records.gps.en = 1;
-  default.records.frame_mode = 0;
-  default.records.presum_bug_fixed = 1;
-  default.records.tmp_fn_uses_adc_folder_name = 1;
-  
-  %default.get_heights.qlook.out_path = '';
-  default.get_heights.qlook.en = 1;
-  default.get_heights.block_size = 5000;
-  default.get_heights.frm_types = {0,[0 1],0,0,-1};
-  default.get_heights.coh_noise_method = [];
-  default.get_heights.coh_noise_arg = [];
-  default.get_heights.ft_wind = @hanning;
-  default.get_heights.ft_wind_time = false;
-  default.get_heights.ft_dec = true;
-  default.get_heights.pulse_comp = [];
-  default.get_heights.pulse_rfi.en = [];
-  default.get_heights.pulse_rfi.inc_ave= [];
-  default.get_heights.pulse_rfi.thresh_scale = [];
-  default.get_heights.roll_correction = 0;
-  default.get_heights.lever_arm_fh = @lever_arm;
-  default.get_heights.elev_correction = 0;
-  default.get_heights.B_filter = ones(1,20)/20;
-  default.get_heights.decimate_factor = 20;
-  default.get_heights.inc_ave = 10;
-  default.get_heights.surf.en = 1;
-  default.get_heights.surf.method = 'threshold';
-  default.get_heights.surf.noise_rng = [0 -50 10];
-  default.get_heights.surf.min_bin = 2e-6;
-  default.get_heights.surf.max_bin = [];
-  default.get_heights.surf.threshold = 9;
-  default.get_heights.surf.sidelobe = 15;
-  default.get_heights.surf.medfilt = 3;
-  default.get_heights.surf.search_rng = [0:2];
-  
-  default.csarp.out_path = '';
-  default.csarp.frm_types = {0,[0 1],0,0,-1};
-  default.csarp.chunk_len = 3500;
-  default.csarp.chunk_overlap = 10;
-  default.csarp.frm_overlap = 0;
-  default.csarp.coh_noise_removal = 0;
-  default.csarp.combine_rx = 0;
-  default.csarp.time_of_full_support = 3.5e-5;
-  default.csarp.pulse_rfi.en = [];
-  default.csarp.pulse_rfi.inc_ave= [];
-  default.csarp.pulse_rfi.thresh_scale = [];
-  default.csarp.trim_vals = [];
-  default.csarp.pulse_comp = 1;
-  default.csarp.ft_dec = 1;
-  default.csarp.ft_wind = @hanning;
-  default.csarp.ft_wind_time = 0;
-  default.csarp.lever_arm_fh = @lever_arm;
-  default.csarp.mocomp.en = 1;
-  default.csarp.mocomp.type = 2;
-  default.csarp.mocomp.filter = {@butter  [2]  [0.1000]};
-  default.csarp.mocomp.uniform_en = 1;
-  default.csarp.sar_type = 'f-k';
-  default.csarp.sigma_x = 2.5;
-  default.csarp.sub_aperture_steering = 0;
-  default.csarp.st_wind = @hanning;
-  default.csarp.start_eps = 3.15;
-  
-  default.combine.in_path = '';
-  default.combine.array_path = '';
-  default.combine.out_path = '';
-  default.combine.method = 'standard';
-  default.combine.window = @hanning;
-  default.combine.bin_rng = 0;
-  default.combine.rline_rng = -5:5;
-  default.combine.dbin = 1;
-  default.combine.dline = 6;
-  default.combine.DCM = [];
-  default.combine.three_dim.en = 0;
-  default.combine.three_dim.layer_fn = '';
-  default.combine.Nsv = 1;
-  default.combine.theta_rng = [0 0];
-  default.combine.sv_fh = @array_proc_sv;
-  default.combine.diag_load = 0;
-  default.combine.Nsig = 2;
-  
-  header_load_func = @basic_load_mcords5;
-  header_load_params.clk = 1600e6;
-  adc_bits = 12;
-  adc_full_scale = 2;
-  rx_paths = [1:22,24,23];
+  header_load_date = datenum(2016,4,26);
 
-  chan_equal_dB = '[-0.7 -0.7 -0.7 -0.2 -0.1 -2.3 0.2 -0.1 -4.2 -4.5 -3.1 -4.6 -1.1 -1.5 -0.9 -1.7 0 -0.6 0.2 3.4 0.7 -2.1 0.2 0.9]';
-  chan_equal_deg = '[-168.6 -114.1 -5.7 9 30 24.1 -144.3 -137.7 113.1 64.8 124.3 133.7 108 138.1 71.6 102.9 -95.8 -127.2 -143.1 -139.6 -128.4 -172.3 -158.5 -152.4]';
-  chan_equal_Tsys = '[0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9';
-  Tadc = []; % normally leave empty to use value in file header
-  Tadc_adjust = 0.000010179163; % leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
-  max_DDS_RAM = 4000;
-  tx_voltage = sqrt(1000*50)*10^(-2/20);
-  max_adc_gain_dB = 48;
-  iq_mode = 0;
-  fs = 1600e6;
-  fs_sync = 1.6e9/8;
-  tx_DDS_mask = [1 1 1 1 1 1 1 1];
-  imgs_adcs = 1:8;
-  radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DDC_mode','DDC_freq'};
-  radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
-  
-  xml_version = 2.0;
-  
+  default.cmd.mission_name = 'Uummannaq-Swiss Camp';
+
+  [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
+
+  base_dir_in_param = base_dir; % Only modify if you want params to have a different path than the current path
+    
+  param_file.write_en = false; % Windows only and experimental still (allows direct writes to param spreadsheets)
+  param_file.path = ''; % Set to override the default path to the parameter file
+    
   % gps_fn: Set to plot GPS locations on a map (leave empty to disable) and
   %   also to plot roll data
   gps_fn = ct_filename_support(setfield(param,'day_seg',datestr(header_load_date,'YYYYmmDD')),'','gps',true);
@@ -154,6 +43,8 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   geotiff_fn = ct_filename_gis(param,'antarctica/Landsat-7/Antarctica_LIMA_480m.tif');
   geotiff_fn = ct_filename_gis(param,'greenland/Landsat-7/mzl7geo_90m_lzw.tif');
   geotiff_fn = '';
+  
+  manual_enable = true;
   
   browse_ni_xml_settings;
   return;
