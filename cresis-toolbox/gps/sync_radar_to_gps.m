@@ -30,6 +30,10 @@ function my_struct = sync_radar_to_gps(param,my_struct,radar_time,comp_time)
 %
 % Called from create_vectors* or create_records*
 
+if ~isfield(param.vectors.gps,'fn')
+  param.vectors.gps.fn = '';
+end
+
 %% Load the GPS data
 gps = load(ct_filename_support(param,param.vectors.gps.fn,'gps',true));
 
