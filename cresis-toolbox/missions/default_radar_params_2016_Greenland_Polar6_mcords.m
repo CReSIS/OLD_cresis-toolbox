@@ -14,8 +14,8 @@ param.radar_name = 'mcords5';
 %% Control parameters (not used in the parameter spreadsheet directly)
 default.xml_file_prefix = 'mcords5';
 default.data_file_prefix = 'mcords5';
-default.board_sub_directory = 'chan1';
 default.header_load_func = @basic_load_mcords5;
+default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
 default.xml_version = 2.0;
 
 % default.noise_50ohm = [-41.6	-42.2	-42.4	-41.9	-42.5	-42.9	-41.7	-43.0	-44.1	-44.7	-43.1	-44.1	-41.8	-42.6	-41.4	-42.6	-41.8	-43.1	-42.0	-42.7	-41.1	-43.4	-42.1	-41.9];
@@ -34,6 +34,9 @@ default.tx_DDS_mask = [1 1 1 1 1 1 1 1];
 
 default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
 default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
+
+%% Vectors worksheet in parameter spreadsheet
+default.vectors.gps.time_offset = 1;
 
 %% Records worksheet in parameter spreadsheet
 default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
@@ -148,7 +151,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
 default.radar.ref_fn = '';
-default.xml_regexp = 'survey_150-520MHz_';
+default.xml_regexp = 'survey_150-520MHz_.*thick.xml';
 default.name = 'Survey Mode 150-520 MHz';
 defaults{end+1} = default;
 
@@ -159,7 +162,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat'};
 default.radar.ref_fn = '';
-default.xml_regexp = 'thinice_150-520MHz_';
+default.xml_regexp = 'thinice_150-520MHz_.*thick.xml';
 default.name = 'Thin Ice Mode 150-520 MHz';
 defaults{end+1} = default;
 
@@ -170,7 +173,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf3.mat','DC_20160413_04_wf3.mat'};
 default.radar.ref_fn = '';
-default.xml_regexp = 'image_150-520MHz_';
+default.xml_regexp = 'image_150-520MHz_.*thick.xml';
 default.name = '2 Beam Image Mode 150-520 MHz';
 defaults{end+1} = default;
 
@@ -181,7 +184,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
 default.radar.ref_fn = '';
-default.xml_regexp = 'image3_150-520MHz_';
+default.xml_regexp = 'image3_150-520MHz_.*thick.xml';
 default.name = '3 Beam Image Mode 150-520 MHz';
 defaults{end+1} = default;
 
@@ -197,7 +200,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
 default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06';
-default.xml_regexp = 'survey_180-210MHz_';
+default.xml_regexp = 'survey_180-210MHz_.*thick.xml';
 default.name = 'Survey Mode 180-210 MHz';
 defaults{end+1} = default;
 
@@ -208,7 +211,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat'};
 default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_thin';
-default.xml_regexp = 'thinice_180-210MHz_';
+default.xml_regexp = 'thinice_180-210MHz_.*thick.xml';
 default.name = 'Thin Ice Mode 180-210 MHz';
 defaults{end+1} = default;
 
@@ -219,7 +222,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf3.mat','DC_20160413_04_wf3.mat'};
 default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image';
-default.xml_regexp = 'image_180-210MHz_';
+default.xml_regexp = 'image_180-210MHz_.*thick.xml';
 default.name = '2 Beam Image Mode 180-210 MHz';
 defaults{end+1} = default;
 
@@ -230,7 +233,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
 default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image3';
-default.xml_regexp = 'image3_180-210MHz_';
+default.xml_regexp = 'image3_180-210MHz_.*thick.xml';
 default.name = '3 Beam Image Mode 180-210 MHz';
 defaults{end+1} = default;
 
