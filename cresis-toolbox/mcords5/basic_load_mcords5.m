@@ -23,6 +23,8 @@ function [hdr,data] = basic_load_mcords5(fn,param)
 %     sample collected is 10.665 us before the transmit event starts. This
 %     value can be very different for each radar system (e.g. AWI system
 %     is 0.6 us).
+%   .presum_bug_fixed: default is false. Set to true if presum number in
+%     file matches actual presums.
 %
 % hdr = file header for each record
 % data = cell vector of single matrices of radar data where each entry
