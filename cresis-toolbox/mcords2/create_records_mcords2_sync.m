@@ -13,7 +13,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % =====================================================================
   % Debug Setup
   % =====================================================================
-  new_param = read_param_xls(ct_filename_param('rds_param_2015_Greenland_LC130.xls'),'20150204_01');
+  new_param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'20160426_05');
   
   fn = ct_filename_tmp(new_param,new_param.records.records_fn,'records','workspace');
   fn = [fn '.mat'];
@@ -360,10 +360,10 @@ utc_time_sod_measured = utc_time_sod_measured(good_idxs);
 %% Check for day wrap
 day_wrap_idx = find(diff(utc_time_sod_measured) < -85400 & diff(utc_time_sod_measured) > -87400);
 if ~isempty(day_wrap_idx)
-  warning('Day wrap found, you may want to check this before continuing');
+  warning('A jump in time that looks like a day wrap has been found. Check plot. Run "dbcont" to fix the seconds of day wrap and continue.');
   figure(1); clf;
   plot(utc_time_sod_measured);
-  title('Do you see UTC time SOD wrap?')
+  ylabel('UTC time seconds of day');
   keyboard;
   utc_time_sod_measured(day_wrap_idx+1:end) = utc_time_sod_measured(day_wrap_idx+1:end) + 86400;
 end
@@ -415,12 +415,18 @@ else
     utc_time_sod_measured(one_second_jump_idxs) = utc_time_sod_measured(one_second_jump_idxs) - 1;
     figure(1); clf;
     plot(utc_time_sod_expected-utc_time_sod_measured);
+    ylabel('Mismatch (sec)');
+    title('Mismatch between expected and measured UTC time');
+    xlabel('Records');
     good_mask = abs(utc_time_sod_expected-utc_time_sod_measured) <= 0.1;
     good_idxs = good_idxs(good_mask);
     utc_time_sod_measured = utc_time_sod_measured(good_mask);
   elseif any(abs(utc_time_sod_expected-utc_time_sod_measured) > 0.1)
     figure(1); clf;
     plot(utc_time_sod_expected-utc_time_sod_measured);
+    ylabel('Mismatch (sec)');
+    title('Mismatch between expected and measured UTC time');
+    xlabel('Records');
     warning('The expected and measured times are off by > 0.1.');
     fprintf('Verify in the plot that all differences are less than 0.1 seconds\n');
     fprintf('except a few outliers. dbcont replaces these outliers. However, if\n');
@@ -453,6 +459,9 @@ else
     max(abs(utc_time_sod_corrected(good_idxs)-utc_time_sod_measured)) * 1000);
   fprintf(clock_notes);
   plot(utc_time_sod_corrected(good_idxs), utc_time_sod_corrected(good_idxs)-utc_time_sod_measured);
+  xlabel('UTC time seconds of day (sec)');
+  ylabel('Mismatch (sec)');
+  title('Mismatch between corrected and measured UTC time','FontSize',10,'FontWeight','normal');
   pause(0.1);
   drawnow;
   if isfield(param.records,'debug_level') && ~isempty(param.records.debug_level) ...
