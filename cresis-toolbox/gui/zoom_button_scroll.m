@@ -21,17 +21,21 @@ y_percent = (y-cur_axis(3))/y_extent;
 xlims = [x - x_extent*2^(zooms+1)*x_percent, x + x_extent*2^(zooms+1)*(1-x_percent)];
 ylims = [y - y_extent*2^(zooms+1)*y_percent, y + y_extent*2^(zooms+1)*(1-y_percent)];
 
-if xlims(1) < param.xlims(1)
-  xlims(1) = param.xlims(1);
+if ~isempty(param.xlims)
+  if xlims(1) < param.xlims(1)
+    xlims(1) = param.xlims(1);
+  end
+  if xlims(2) > param.xlims(2)
+    xlims(2) = param.xlims(2);
+  end
 end
-if xlims(2) > param.xlims(2)
-  xlims(2) = param.xlims(2);
-end
-if ylims(1) < param.ylims(1)
-  ylims(1) = param.ylims(1);
-end
-if ylims(2) > param.ylims(2)
-  ylims(2) = param.ylims(2);
+if ~isempty(param.ylims)
+  if ylims(1) < param.ylims(1)
+    ylims(1) = param.ylims(1);
+  end
+  if ylims(2) > param.ylims(2)
+    ylims(2) = param.ylims(2);
+  end
 end
 xlim(xlims);
 ylim(ylims);

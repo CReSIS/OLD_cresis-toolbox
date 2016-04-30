@@ -25,6 +25,14 @@ if isempty(param.x) || isempty(param.y)
   return;
 end
 
+if isempty(param.xlims)
+  param.xlims = [-inf inf];
+end
+
+if isempty(param.ylims)
+  param.ylims = [-inf inf];
+end
+
 xlims = sort([x param.x]);
 ylims = sort([y param.y]);
 xlims(1) = max(xlims(1),param.xlims(1));
@@ -34,8 +42,12 @@ ylims(2) = min(ylims(2),param.ylims(2));
 
 if but == 4
   %% Double click: Zoom reset
-  xlim(param.xlims);
-  ylim(param.ylims);
+  if all(isfinite(param.xlims))
+    xlim(param.xlims);
+  end
+  if all(isfinite(param.ylims))
+    ylim(param.ylims);
+  end
   
 elseif but == 1 && x~=param.x && y~=param.y
   %% Left click and drag: Zoom to region
