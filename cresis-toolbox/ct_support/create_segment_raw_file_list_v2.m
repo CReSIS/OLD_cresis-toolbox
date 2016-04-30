@@ -34,13 +34,19 @@ if ~exist('union_time_epri_gaps','var')
   union_time_epri_gaps = false;
 end
 
+if ~isfield('param','gps_time_offset') || isempty(param.gps_time_offset)
+  param.gps_time_offset = 1;
+end
+
 if ~exist('adcs','var')
   warning('adcs not set, assuming that adcs should be "1"');
   adcs = 1;
 end
 
+%% Load in the headers one ADC board at a time
 failed_load = {};
 for adc_idx = 1:length(adcs)
+  %% Get the files for this ADC
   adc = adcs(adc_idx);
   board = adc_to_board(param.radar_name,adc);
   adc_folder_name = param.adc_folder_name;
@@ -69,6 +75,7 @@ for adc_idx = 1:length(adcs)
     fns = fns(sorted_idxs);
   end
   
+  %% Setup the header information for this radar
   if any(strcmpi(param.radar_name,{'accum'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([4 8 12]); % epri seconds fractions
@@ -469,6 +476,7 @@ for adc_idx = 1:length(adcs)
   end
 end
 
+%% Warn about any bad files
 for adc_idx = 1:length(adcs)
   if any(failed_load{adc_idx})
     warning('Some files failed to load, consider deleting these to avoid problems.');
@@ -478,8 +486,8 @@ for adc_idx = 1:length(adcs)
   end
 end
 
-% Load the parsed header data from temporary files (only do this for the
-% first channel)
+%% Load the parsed header data from temporary files
+% (only do this for the first channel)
 adc = adcs(1);
 board = adc_to_board(param.radar_name,adc);
 adc_folder_name = param.adc_folder_name;
@@ -566,25 +574,27 @@ for fn_idx = 1:length(fns)
   file_idxs = cat(2,file_idxs,fn_idx*ones([1 length(hdr.offset)]));
 end
 
+%% Correct and process time variable
 if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','mcords5'}))
   utc_time_sod = double(seconds) + double(fraction) / param.clk;
   utc_time_sod = medfilt1(double(utc_time_sod));
   
   if counter_correction_en
     warning('You have enabled counter correction. Normally, this should not be necessary. Set correction parameters and then dbcont to continue');
-    % This is an index into hdr.utsecondsc_time_sod that is correct
+    % This is an index into hdr.utc_time_sod that is correct
     if any(strcmpi(param.radar_name,{'mcords5'}))
       counter_clk = 200e6;
-    else
+    elseif any(strcmpi(param.radar_name,{'snow5'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       counter_clk = 3906.250/2/8;
       counter = epri;
+    else
+      keyboard
     end
     counter_bad_threshold = 0.01;
     counter_min_freq = 100;
     counter_bin = 0.01;
     anchor_idx = 1;
-    keyboard
     
     % Test example
     % counter_clk = 1;
@@ -637,28 +647,38 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
      hold on;
      plot(utc_time_sod_new,'r');
      hold off;
+     xlabel('Record');
+     ylabel('UTC Time SOD (sec)');
+     legend('Original','Corrected','location','best');
      figure(2); clf;
      plot(utc_time_sod - utc_time_sod_new);
-     warning('Please check the corrected utc_time_sod (red) before dbcont');
+     xlabel('Record');
+     ylabel('Time correction (sec)');
+     warning('Please check the corrected utc_time_sod (red) in figure 1 and the correction in figure 2. If correct, run "dbcont" to continue.');
      keyboard
      
      utc_time_sod = utc_time_sod_new;
   end
 
-  
+  % Check for day wraps in the UTC time seconds of day
   day_wrap_idxs = find(diff(utc_time_sod) < -50000);
+  day_wrap_offset = zeros(size(utc_time_sod));
   for day_wrap_idx = day_wrap_idxs
-    utc_time_sod(day_wrap_idx+1:end) = utc_time_sod(day_wrap_idx+1:end) + 86400;
+    day_wrap_offset(day_wrap_idx+1:end) = day_wrap_offset(day_wrap_idx+1:end) + 86400;
   end
-  
+  utc_time_sod = utc_time_sod + day_wrap_offset;
+
+  % Look for time gaps (this is used later for segmentation)
   time_gaps = find(abs(diff(utc_time_sod)) > MAX_TIME_GAP);
-  
+
+  % Look for EPRI gaps (this may be used later for segmentation)
   if union_time_epri_gaps
     MAX_EPRI_GAP = 2000;
     epri_gaps = find(abs(diff(medfilt1(epri,11))) > MAX_EPRI_GAP);
     time_gaps = sort(union(time_gaps,epri_gaps));
   end
-  
+
+  % Plot results
   figure(1); clf;
   plot(utc_time_sod);
   ylabel('UTC time seconds of day');
@@ -672,9 +692,11 @@ elseif any(strcmpi(param.radar_name,{'acords'}))
   utc_time_sod = seconds;
 
   day_wrap_idxs = find(diff(utc_time_sod) < -50000);
+  day_wrap_offset = zeros(size(utc_time_sod));
   for day_wrap_idx = day_wrap_idxs
-    utc_time_sod(day_wrap_idx+1:end) = utc_time_sod(day_wrap_idx+1:end) + 86400;
+    day_wrap_offset(day_wrap_idx+1:end) = day_wrap_offset(day_wrap_idx+1:end) + 86400;
   end
+  utc_time_sod = utc_time_sod + day_wrap_offset;
   
   time_gaps = find(abs(diff(utc_time_sod)) > MAX_TIME_GAP);
 
@@ -771,54 +793,59 @@ end
 % end
 
 %% Break into segments
-bad_mask = logical(zeros(size(fns)));
-segments = [];
-segment_start = file_idxs(1);
-start_time = utc_time_sod(1);
-seg_idx = 0;
-for gap_idx = 1:length(time_gaps)
-  time_gap = time_gaps(gap_idx);
-  if file_idxs(time_gap) == file_idxs(time_gap + 1)
-    bad_mask(file_idxs(time_gap)) = 1;
+if 1
+  % Using time and optionally EPRI
+  bad_mask = logical(zeros(size(fns)));
+  segments = [];
+  segment_start = file_idxs(1);
+  start_time = utc_time_sod(1);
+  start_day_wrap_offset = day_wrap_offset(1);
+  seg_idx = 0;
+  for gap_idx = 1:length(time_gaps)
+    time_gap = time_gaps(gap_idx);
+    if file_idxs(time_gap) == file_idxs(time_gap + 1)
+      bad_mask(file_idxs(time_gap)) = 1;
+    end
+    
+    if bad_mask(file_idxs(time_gap))
+      segment_stop = file_idxs(time_gap)-1;
+    else
+      segment_stop = file_idxs(time_gap);
+    end
+    
+    if segment_stop - segment_start + 1 >= MIN_SEG_SIZE
+      seg_idx = seg_idx + 1;
+      segments(seg_idx).start_time = start_time;
+      segments(seg_idx).start_idx = segment_start;
+      segments(seg_idx).stop_idx = segment_stop;
+      segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
+      [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
+      [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
+      fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
+        datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
+        [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
+    end
+    
+    segment_start = file_idxs(time_gap)+1;
+    start_time = utc_time_sod(time_gap+1);
+    start_day_wrap_offset = day_wrap_offset(time_gap+1);
   end
-  
-  if bad_mask(file_idxs(time_gap))
-    segment_stop = file_idxs(time_gap)-1;
-  else
-    segment_stop = file_idxs(time_gap);
-  end
-
+  segment_stop = length(fns);
   if segment_stop - segment_start + 1 >= MIN_SEG_SIZE
     seg_idx = seg_idx + 1;
     segments(seg_idx).start_time = start_time;
     segments(seg_idx).start_idx = segment_start;
     segments(seg_idx).stop_idx = segment_stop;
+    segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
     [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
     [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
     fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
       datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
       [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
   end
-  
-  segment_start = file_idxs(time_gap)+1;
-  start_time = utc_time_sod(time_gap+1);
-end
-segment_stop = length(fns);
-if segment_stop - segment_start + 1 >= MIN_SEG_SIZE
-  seg_idx = seg_idx + 1;
-  segments(seg_idx).start_time = start_time;
-  segments(seg_idx).start_idx = segment_start;
-  segments(seg_idx).stop_idx = segment_stop;
-  [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
-  [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
-  fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
-    datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
-    [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
-end
 
-
-if 0
-  %% Break into segments with EPRI
+elseif 0
+  % Break into segments with EPRI
   % This code required for 2013 Antarctica P3 20131127 because time record is bad
   EPRI_JUMP_MIN = 0;
   EPRI_JUMP_MAX = 2e3;
@@ -829,6 +856,7 @@ if 0
   segment_start = file_idxs(1);
   finfo = fname_info_fmcw(fns{1});
   start_time = datenum_to_epoch(finfo.datenum);
+  start_day_wrap_offset = day_wrap_offset(1);
   seg_idx = 0;
   for gap_idx = 1:length(time_gaps)
     time_gap = time_gaps(gap_idx);
@@ -848,6 +876,7 @@ if 0
       segments(seg_idx).start_time = datenum_to_epoch(finfo.datenum);
       segments(seg_idx).start_idx = segment_start;
       segments(seg_idx).stop_idx = segment_stop;
+      segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
       [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
       [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
       fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
@@ -858,6 +887,7 @@ if 0
     segment_start = file_idxs(time_gap)+1;
     finfo = fname_info_fmcw(fns{segment_start});
     start_time = datenum_to_epoch(finfo.datenum);
+    start_day_wrap_offset = day_wrap_offset(time_gap+1);
   end
   segment_stop = length(fns);
   if segment_stop - segment_start + 1 >= MIN_SEG_SIZE
@@ -866,6 +896,7 @@ if 0
     segments(seg_idx).start_time = datenum_to_epoch(finfo.datenum);
     segments(seg_idx).start_idx = segment_start;
     segments(seg_idx).stop_idx = segment_stop;
+    segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
     [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
     [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
     fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
@@ -878,17 +909,19 @@ end
 [~,sort_idxs] = sort(cell2mat({segments.start_time}));
 segments = segments(sort_idxs);
 
+fprintf('Done %s\n', datestr(now));
+
 %% Vector worksheet of param spreadsheet print out
-fprintf('Copy and paste the following into the parameter spreadsheet:\n');
-fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', 'Date', ...
-  'Segment', 'file.start_idx', 'file.stop_idx', 'file.basedir', 'file.adc_folder_name', 'file.prefix', 'file.midfix','file.regexp');
+fprintf('Copy and paste the following into the vector worksheet of the parameter spreadsheet:\n');
+fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', 'Date', ...
+  'Segment', 'file.start_idx', 'file.stop_idx', 'file.basedir', 'file.adc_folder_name', 'file.prefix', 'file.midfix','file.regexp','gps.time_offset');
 for seg_idx = 1:length(segments)
-  fprintf('%s\t%02d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\n', day_string, ...
-    seg_idx, segments(seg_idx).start_idx, segments(seg_idx).stop_idx, base_dir, param.adc_folder_name, file_prefix, file_midfix, file_regexp);
+  fprintf('%s\t%02d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%g\n', day_string, ...
+    seg_idx, segments(seg_idx).start_idx, segments(seg_idx).stop_idx, base_dir, param.adc_folder_name, file_prefix, file_midfix, file_regexp, param.gps_time_offset+segments(seg_idx).day_wrap_offset);
 end
 
 if any(strcmpi(param.radar_name,{'acords'}))
-  %% Print out some results that can be copied and pasted easily
+  % Print out some results that can be copied and pasted easily
   fprintf('\n')
   for seg_idx = 1:length(segments)
     [hdr htime hoffset] = basic_load_acords(sprintf('%s/%s/%s.%d',base_dir,param.adc_folder_name,file_prefix_override,segments(seg_idx).start_idx-1),struct('datatype',0,'file_version',param.file_version,'verbose',0));
@@ -898,7 +931,18 @@ if any(strcmpi(param.radar_name,{'acords'}))
   end
 end
 
-fprintf('Done %s\n', datestr(now));
+%% Save segment results
+adc_idx = 1;
+adc = adcs(adc_idx);
+board = adc_to_board(param.radar_name,adc);
+adc_folder_name = param.adc_folder_name;
+adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
+adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
+adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
+tmp_hdr_fn = ct_filename_ct_tmp(param,'','headers', ...
+  fullfile(adc_folder_name, 'create_segment_raw_file_list_v2.mat'));
+fprintf('Saving %s\n', tmp_hdr_fn);
+save(tmp_hdr_fn,'day_string','base_dir','param','file_prefix','file_midfix','file_regexp','segments');
 
 return;
 
