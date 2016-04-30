@@ -79,7 +79,7 @@ classdef (HandleCompatible = true) geotiff < handle
         xlabel(obj.h_axes,'X (km)');
         ylabel(obj.h_axes,'Y (km)');
         obj.xlims = xlim(obj.h_axes);
-        obj.ylims = xlim(obj.h_axes);
+        obj.ylims = ylim(obj.h_axes);
       catch ME
         ME.getReport
         obj.proj = [];
@@ -150,7 +150,7 @@ classdef (HandleCompatible = true) geotiff < handle
                 if ischar(obj.segments(idx).value{pnt_idx,val_idx})
                   fprintf('  %s: %s\n', obj.segments(idx).value_name{val_idx}, obj.segments(idx).value{pnt_idx,val_idx});
                 else
-                  fprintf('  %s: %d\n', obj.segments(idx).value_name{val_idx}, obj.segments(idx).value{pnt_idx,val_idx});
+                  fprintf('  %s: %g\n', obj.segments(idx).value_name{val_idx}, obj.segments(idx).value{pnt_idx,val_idx});
                 end
               end
             end
@@ -279,10 +279,10 @@ classdef (HandleCompatible = true) geotiff < handle
       obj.segments(end).lon = segment.lon;
       obj.segments(end).x = x;
       obj.segments(end).y = y;
-      obj.xlims(1) = min([obj.xlims(1:end-2);x]);
-      obj.xlims(2) = max([obj.xlims(2:end-1);x]);
-      obj.ylims(1) = min([obj.ylims(1:end-2);y]);
-      obj.ylims(2) = max([obj.ylims(2:end-1);y]);
+      obj.xlims(1) = min([obj.xlims(1:end-1);x]);
+      obj.xlims(2) = max([obj.xlims(2:end);x]);
+      obj.ylims(1) = min([obj.ylims(1:end-1);y]);
+      obj.ylims(2) = max([obj.ylims(2:end);y]);
       
       obj.segments(end).value = segment.value;
       obj.segments(end).value_name= segment.value_name;
