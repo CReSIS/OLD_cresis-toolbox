@@ -15,7 +15,7 @@ default = defaults{1};
 
 global g_file_search_mode;
 if isempty(param.file_search_mode) ...
-    || all(~strcmpi(param.file_search_mode,{'default','specific','last_file'}))
+    || all(~strcmpi(param.file_search_mode,{'default','default+1','specific','last_file'}))
   fprintf('Select file search mode:\n');
   fprintf(' 1) default (loads whatever was last loaded)');
   if g_file_search_mode == 1
@@ -144,7 +144,7 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
       if isempty(fn)
         [~,fn] = fileparts(g_basic_noise_analysis_fn);
       end
-      fn = get_filename(base_dir,'',fn,'.bin',struct('recursive',true));
+      fn = get_filename(base_dir,'',fn,'',struct('recursive',true));
     end
   end
   g_basic_noise_analysis_fn = fn;
@@ -270,6 +270,9 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
     for wf_adc_idx = 1:size(param.img,1)
       % wf,adc: pair of values for this entry in param.img
       wf = param.img(wf_adc_idx,1);
+      if wf > length(data_tmp)
+        error('Requested waveform (%d) is larger than the number of waveforms in the file (%d in the file).', wf, length(data_tmp));
+      end
       if adc == abs(param.img(wf_adc_idx,2));
         % This pair needs to be loaded, insert into output array... handle
         % mismatched EPRIs using intersect function. Throw away any records
@@ -320,7 +323,7 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
   end
   settings = settings(settings_idx);
 
-  default = default_radar_params_settings_match(defaults,settings.XML_File_Path{1}.values{1});
+  default = default_radar_params_settings_match(defaults,settings);
   
   %% Format settings into pc_param
   DDC_freq = double(settings.DDC_Ctrl.NCO_freq)*1e6;
