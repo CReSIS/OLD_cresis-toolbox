@@ -16,11 +16,11 @@ if strcmpi(setup, 'mcords5_polar6_setup')
 
   base_dir = '/mnt/AWI_SSD0';
   
-  adc_folder_names = {'/1604261202/UWB'};
+  adc_folder_names = {'/1604261101/UWB/chan%d'};
   
   header_load_date = datenum(2016,4,26);
-
-  default.cmd.mission_name = 'Uummannaq-Swiss Camp';
+  
+  mission_name = 'Uummannaq-Swiss Camp';
 
   [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
 
@@ -32,17 +32,17 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   % gps_fn: Set to plot GPS locations on a map (leave empty to disable) and
   %   also to plot roll data
   gps_fn = ct_filename_support(setfield(param,'day_seg',datestr(header_load_date,'YYYYmmDD')),'','gps',true);
-  gps_fn = '';
+  %gps_fn = '';
     
-  MIN_FILES_IN_SEGMENT = 1; % Since the first file is usually corrupted and short segments are often not useful for processing/data-interpretation
-  SKIP_FILES_START = 1; % Often the first file is corrupt, so we leave it out
+  MIN_FILES_IN_SEGMENT = 2; % Since the first file is usually corrupted and short segments are often not useful for processing/data-interpretation
+  SKIP_FILES_START = 0; % Often the first file is corrupt, leave it out by setting this to 1
   SKIP_FILES_END = 0;
   
   % geotiff_fn: Set to a geotiff file to plot GPS location on (leave empty to
   %   disable)
   geotiff_fn = ct_filename_gis(param,'antarctica/Landsat-7/Antarctica_LIMA_480m.tif');
   geotiff_fn = ct_filename_gis(param,'greenland/Landsat-7/mzl7geo_90m_lzw.tif');
-  geotiff_fn = '';
+  %geotiff_fn = '';
   
   manual_enable = true;
   

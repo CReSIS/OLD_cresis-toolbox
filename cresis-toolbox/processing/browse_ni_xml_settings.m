@@ -23,44 +23,76 @@
 xml_version = defaults{1}.xml_version;
 cresis_xml_mapping;
 if ~isempty(gps_fn)
-  gps = load(gps_fn);
+  try
+    gps = load(gps_fn);
+  catch ME
+    ME.getReport
+    gps_fn = '';
+  end
 end
 
 %% Prepare GPS plots if enabled
 if ~isempty(gps_fn)
+  try; close([1 2]); end;
   h_roll_fig = figure(1); clf;
   h_roll_axes = axes('Parent',h_roll_fig);
-  h_fig = figure(2); clf;
-  if ~isempty(geotiff_fn)
-    [proj] = plot_geotiff(geotiff_fn,[],[],h_fig);
-    h_axes = get(h_fig,'Children');
-  else
-    h_axes = axes('Parent',h_fig);
-  end
-  hold(h_axes,'on')
   hold(h_roll_axes,'on')
-  h_plots = [];
-  h_texts = [];
+  xlabel('UTC time (seconds of day)','Parent',h_roll_axes);
+  ylabel('Roll (deg)','Parent',h_roll_axes);
+  grid(h_roll_axes,'on');
   h_roll_plots = [];
   h_roll_texts = [];
+    
+  h_geotiff = geotiff(geotiff_fn,2);
 end
 
 %% Process XML files for each directory in dirs
+% =========================================================================
 max_wfs = 0;
+segment_offset = 0;
 for adc_folder_name_idx = 1:length(adc_folder_names);
   
   adc_folder_name = adc_folder_names{adc_folder_name_idx};
-  settings_fn_dir = fullfile(base_dir, adc_folder_name);
+  if exist('settings_folder_name','var')
+    settings_fn_dir = fullfile(base_dir, settings_folder_name);
+  else
+    % Default is for the settings to be in the parent directory
+    settings_fn_dir = fullfile(base_dir, adc_folder_name);
+    settings_fn_dir = fileparts(settings_fn_dir);
+  end
   fprintf('Processing "%s" (%d of %d)\n', settings_fn_dir, adc_folder_name_idx, length(adc_folder_names));
   
-  %% Read XML files in this directory
+  % Read XML files in this directory
   [settings,settings_enc] = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
+  if adc_folder_name_idx < length(adc_folder_names)
+    if isempty(settings)
+      fprintf('No segments (settings files) were found in %s.\n', settings_fn_dir);
+      segment_offset = [];
+      while length(segment_offset) ~= 1
+        segment_offset = input('Input how many segments there were? ');
+      end
+    else
+      segment_offset = segment_offset + length(settings);
+    end
+    proc_settings = [];
+    while length(proc_settings) ~= 1
+      proc_settings = input('Processing these settings now? [false]: ');
+      if isempty(proc_settings)
+        proc_settings = false;
+      end
+    end
+  end
   
-  %% Get raw data files associated with this directory
-  data_fns = get_filenames(fullfile(base_dir,adc_folder_name,defaults{1}.board_sub_directory),defaults{1}.data_file_prefix,'','.bin');
+  % Get raw data files associated with this directory
+  adc = defaults{1}.records.file.adcs(1);
+  board = adc_to_board(param.radar_name,adc);
+  adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
+  adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
+  adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
+  data_fns = get_filenames(fullfile(base_dir,adc_folder_name),defaults{1}.data_file_prefix,'','.bin');
   fn_datenums = [];
   
-  %% Prepare parameter spreadsheet for writing if enabled
+  % Prepare parameter spreadsheet for writing if enabled
   if param_file.write_en
     new_date_flag = 0;
     param_fn = ct_filename_param(sprintf('%s_param_%s.xls', ct_output_dir(param.radar_name), param.season_name));
@@ -75,7 +107,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
     
   end
   
-  %% Get the date information out of the filename
+  % Get the date information out of the filename
   for data_fn_idx = 1:length(data_fns)
     fname = fname_info_mcords2(data_fns{data_fn_idx});
     fn_datenums(end+1) = fname.datenum;
@@ -83,7 +115,9 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
   
   %% Print out settings from each XML file (and plot if enabled)
   for set_idx = 1:length(settings)
-    %% Print out settings
+    settings(set_idx).enabled = true;
+
+    % Print out settings
     [~,settings_fn_name] = fileparts(settings(set_idx).fn);
     fprintf('===================== Setting %d =================\n', set_idx);
     fprintf('%s: %d waveforms\n', settings_fn_name, length(settings(set_idx).(config_var).Waveforms));
@@ -109,6 +143,30 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
     else
       settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum);
     end
+    
+    % Load create_segment results and remove bad files
+    settings(set_idx).day_wrap_offset = 0;
+    try
+      tmp_hdr_fn = ct_filename_ct_tmp(param,'','headers', ...
+        fullfile(adc_folder_name, 'create_segment_raw_file_list_v2.mat'));
+      create_segment = load(tmp_hdr_fn,'day_string','base_dir','param','file_prefix','file_midfix','file_regexp','segments');
+
+      num_files = [];
+      for seg_idx = 1:length(create_segment.segments)
+        num_files(seg_idx) = min(create_segment.segments(seg_idx).stop_idx,settings(set_idx).match_idxs(end)) ... 
+          - max(create_segment.segments(seg_idx).start_idx,settings(set_idx).match_idxs(1)) + 1;
+      end
+      [num_files,seg_idx] = max(num_files);
+      if num_files < 1
+        warning('Did not find matching segment in create_segments.');
+        settings(set_idx).enabled = false;
+      else
+        settings(set_idx).match_idxs = max(create_segment.segments(seg_idx).start_idx,settings(set_idx).match_idxs(1)) ...
+          : min(create_segment.segments(seg_idx).stop_idx,settings(set_idx).match_idxs(end));
+        settings(set_idx).day_wrap_offset = create_segment.segments(seg_idx).day_wrap_offset;
+      end
+    end
+    
     if isempty(settings(set_idx).match_idxs)
       fprintf('  No data files\n');
       settings(set_idx).match_idxs = -1;
@@ -117,44 +175,48 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       fprintf('%5s       %s\n', '', data_fns{settings(set_idx).match_idxs(end)});
     end
     
-    %% Plot GPS information if enabled
+    % Plot GPS information if enabled
     if ~isempty(gps_fn)
       % Load in first header from each file, get UTC time SOD, plot
       % position on a map
+      hdr_gps_time = [];
       for match_idx = settings(set_idx).match_idxs(1:end-1)
         try
-          hdr = header_load_func(data_fns{match_idx},header_load_params);
+          hdr = defaults{1}.header_load_func(data_fns{match_idx},defaults{1}.header_load_params);
         end
-        hdr_gps_time = datenum_to_epoch(header_load_date + hdr.utc_time_sod/86400);
-        hdr_gps_time = hdr_gps_time + utc_leap_seconds(hdr_gps_time);
-        lat = interp1(gps.gps_time,gps.lat,hdr_gps_time);
-        lon = interp1(gps.gps_time,gps.lon,hdr_gps_time);
-        if ~isempty(geotiff_fn)
-          [x,y] = projfwd(proj,lat,lon);
-        else
-          x = lon;
-          y = lat;
-        end
-        h_plots(dir_idx,set_idx) = plot(x/1e3,y/1e3,'.','Parent',h_axes);
-        hdr_roll = interp1(gps.gps_time,gps.roll,hdr_gps_time);
-        h_roll_plots(dir_idx,set_idx) = plot(hdr_gps_time,hdr_roll,'Parent',h_roll_axes);
+        hdr_gps_time(end+1) = datenum_to_epoch(header_load_date + hdr.utc_time_sod/86400);
       end
-      h_texts(dir_idx,set_idx) = text(x(1)/1e3,y(1)/1e3,sprintf('%d:%d',dir_idx,set_idx),'Parent',h_axes);
-      h_roll_texts(dir_idx,set_idx) = text(hdr_gps_time(1),hdr_roll(1),sprintf('%d:%d',dir_idx,set_idx),'Parent',h_roll_axes);
+      hdr_gps_time = utc_to_gps(hdr_gps_time);
+      hdr_roll = interp1(gps.gps_time,gps.roll,hdr_gps_time);
+      
+      segment = [];
+      segment.name = sprintf('%d:%d',adc_folder_name_idx,set_idx);
+      segment.lat = interp1(gps.gps_time,gps.lat,hdr_gps_time);
+      segment.lat = segment.lat(:);
+      segment.lon = interp1(gps.gps_time,gps.lon,hdr_gps_time);
+      segment.lon = segment.lon(:);
+      segment.value_name = {'Filename','Roll'};
+      segment.value = data_fns(settings(set_idx).match_idxs(1:end-1));
+      segment.value = segment.value(:);
+      segment.value = cat(2,segment.value,mat2cell(hdr_roll(:)*180/pi,ones(size(hdr_roll(:))),1));
+      color = h_geotiff.insert_segment(segment);
+      
+      hdr_utc_time_sod = epoch_to_sod(gps_to_utc(hdr_gps_time),datenum_to_epoch(header_load_date));
+      h_roll_plots(adc_folder_name_idx,set_idx) = plot(hdr_utc_time_sod,hdr_roll*180/pi,'.-','Parent',h_roll_axes,'Color',color);
+      h_roll_texts(adc_folder_name_idx,set_idx) = text(hdr_utc_time_sod(1),hdr_roll(1),sprintf('%d:%d',adc_folder_name_idx,set_idx),'Color',color,'Parent',h_roll_axes);
     end
     
-    %% Associate default parameters with each settings
+    % Associate default parameters with each settings
     settings(set_idx).default = default_radar_params_settings_match(defaults,settings(set_idx));
     default = settings(set_idx).default;
 
-    %% Determine if using these settings
-    if settings(set_idx).match_idxs(end) - settings(set_idx).match_idxs(1) >= MIN_FILES_IN_SEGMENT-1 && isempty(regexpi(default.name,'other'))
-      settings(set_idx).enabled = true;
-    else
+    % Determine if using these settings
+    if settings(set_idx).match_idxs(end) - settings(set_idx).match_idxs(1) ...
+        < MIN_FILES_IN_SEGMENT-1+SKIP_FILES_START+SKIP_FILES_END || ~isempty(regexpi(default.name,'other'))
       settings(set_idx).enabled = false;
     end
     if manual_enable
-      user_input = input(sprintf('Keep settings [%s]: ', mat2str(settings(set_idx).enabled)));
+      user_input = input(sprintf('Keep segment? [%s]: ', mat2str(settings(set_idx).enabled)));
       if ~isempty(user_input)
         settings(set_idx).enabled = logical(user_input);
       end
@@ -164,17 +226,19 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
   
   %% Vectors Worksheet
   fprintf('\nVectors WorkSheet\n');
-  fprintf('%s\t%s\t%s\t%s\n', ...
-    'Date','1','file.start_idx','file.stop_idx');
-  fprintf('%s\t%s\t%s\t%s\n', ...
-    'YYYYMMDD','Segment','r','r');
+  fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', 'Date', ...
+    '1', 'file.start_idx', 'file.stop_idx', 'file.basedir', 'file.adc_folder_name', 'file.prefix', 'file.midfix','file.regexp','gps.time_offset');
+  fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+    'YYYYMMDD','Segment','r','r','t','t','t','t','r','r');
   for set_idx = 1:length(settings)
     if settings(set_idx).enabled
       default = settings(set_idx).default;
       
-      % Print out data row
-      fprintf('%s\t%02d\t%d\t%d\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
-        settings(set_idx).match_idxs(1)+SKIP_FILES_START, settings(set_idx).match_idxs(end)-SKIP_FILES_END);
+      fprintf('%s\t%02d\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%g\n', datestr(header_load_date,'YYYYmmDD'), ...
+        segment_offset+set_idx, settings(set_idx).match_idxs(1)+SKIP_FILES_START, ...
+        settings(set_idx).match_idxs(end)-SKIP_FILES_END, base_dir,  ...
+        adc_folder_names{adc_folder_name_idx}, defaults{1}.data_file_prefix, '', ...
+        '', default.vectors.gps.time_offset+settings(set_idx).day_wrap_offset);
       
       % Write to parameter file if enabled
       if param_file.write_en
@@ -218,7 +282,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         params(param_idx).vectors.file.start_idx = start_idx;
         params(param_idx).vectors.file.stop_idx = stop_idx;
         params(param_idx).vectors.file.base_dir = base_dir_in_param;
-        params(param_idx).vectors.file.adc_folder_name = sprintf('/%s/chan%%d/',adc_folder_name);
+        params(param_idx).vectors.file.adc_folder_name = adc_folder_names{adc_folder_name_idx};
         params(param_idx).vectors.file.file_prefix = data_file_prefix;
         params(param_idx).vectors.out_fn = '';
         params(param_idx).vectors.gps.fn = '';
@@ -233,6 +297,28 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         end
         params(param_idx).records = merge_structs(params(param_idx).records,default.records);
       end
+
+    end
+  end
+  
+  %% Command Worksheet
+  fprintf('\nCommand (cmd) WorkSheet\n');
+  fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+    'Date','1','frms','create_records','create_frames','get_heights','csarp','combine_wf_chan','generic','mission_names','notes');
+  fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+    'YYYYMMDD','Segment','r','b','b','b','b','b','r','t','t');
+  for set_idx = 1:length(settings)
+    if settings(set_idx).enabled
+      default = settings(set_idx).default;
+
+      % Print out data row
+      if isfield(settings(set_idx),'XML_File_Path')
+        settings_fn = settings(set_idx).XML_File_Path{1}.values{1};
+      else
+        settings_fn = '';
+      end
+      fprintf('%s\t%02d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+        datestr(header_load_date,'YYYYmmDD'),segment_offset+set_idx,'','','','','','','',mission_name,settings_fn);
 
     end
   end
@@ -263,7 +349,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       end
       
       % Print out data row
-      fprintf('%s\t%02d\t%d\n',datestr(header_load_date,'YYYYmmDD'),set_idx, file_version);
+      fprintf('%s\t%02d\t%d\n',datestr(header_load_date,'YYYYmmDD'),segment_offset+set_idx, file_version);
 
     end
   end
@@ -279,7 +365,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
     default = settings(set_idx).default;
     if settings(set_idx).enabled
       % Print out data row
-      fprintf('%s\t%02d\t%s\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
+      fprintf('%s\t%02d\t%s\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),segment_offset+set_idx, ...
         default.get_heights.qlook.out_path, mat2str(default.get_heights.qlook.img_comb), mat2str_generic(default.get_heights.imgs));
       
       % Write to parameter file if enabled
@@ -301,7 +387,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
     default = settings(set_idx).default;
     if settings(set_idx).enabled
       % Print out data row
-      fprintf('%s\t%02d\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
+      fprintf('%s\t%02d\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),segment_offset+set_idx, ...
         default.csarp.out_path, mat2str_generic(default.csarp.imgs));
       
       % Write to parameter file if enabled
@@ -324,7 +410,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
     default = settings(set_idx).default;
     if settings(set_idx).enabled
       % Print out data row
-      fprintf('%s\t%02d\t%s\t%s\t%s\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
+      fprintf('%s\t%02d\t%s\t%s\t%s\t%s\t%s\n',datestr(header_load_date,'YYYYmmDD'),segment_offset+set_idx, ...
         default.combine.in_path, default.combine.array_path, default.combine.out_path, ...
         mat2str(default.combine.img_comb), mat2str_generic(default.combine.imgs));
       
@@ -369,7 +455,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         params(param_idx).radar.Vpp_scale = default.radar.adc_full_scale;
       end
       
-      row_str = sprintf('%s\t%02d\t%.16g\t%g\t%d\t%g\t%d',datestr(header_load_date,'YYYYmmDD'),set_idx, ...
+      row_str = sprintf('%s\t%02d\t%.16g\t%g\t%d\t%g\t%d',datestr(header_load_date,'YYYYmmDD'),segment_offset+set_idx, ...
         default.radar.fs, settings(set_idx).(config_var).(prf_var), default.radar.adc_bits, default.radar.adc_full_scale, length(settings(set_idx).(config_var).Waveforms));
       
       for wf = 1:length(settings(set_idx).(config_var).Waveforms)
