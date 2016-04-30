@@ -37,7 +37,6 @@ if 1
 %   copy_param.layer_source.echogram_source = 'qlook';
 %   copy_param.layer_source.source = 'echogram';
 %   copy_param.layer_source.echogram_source = 'deconv';
-%   copy_param.layer_source.source = 'GIMP';
 %   copy_param.layer_source.source = 'layerdata';
 %   copy_param.layer_source.layerdata_source = 'layerData';
 %   copy_param.layer_source.source = 'lidar';
