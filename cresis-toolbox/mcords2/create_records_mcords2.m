@@ -121,7 +121,7 @@ for board_idx = 1:length(boards)
     hdr_master.wfs(3).presums = -1;
     param.radar.prf = 12137.55;
   else
-    [init_EPRI_estimate,hdr_master] = create_records_epri_estimate(param,file_idxs,board_fns{board_idx});
+    [init_EPRI_estimate,hdr_master] = create_records_epri_estimate(param,file_idxs,board_fns{board_idx},adc_folder_name);
   end
 
   

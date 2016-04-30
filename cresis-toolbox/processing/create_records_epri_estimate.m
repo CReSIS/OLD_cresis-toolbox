@@ -1,5 +1,5 @@
-function [init_EPRI_estimate,first_file] = create_records_epri_estimate(param,file_idxs,fns)
-% [init_EPRI_estimate,first_file] = create_records_epri_estimate(param,file_idxs,fns)
+function [init_EPRI_estimate,first_file] = create_records_epri_estimate(param,file_idxs,fns,adc_folder_name)
+% [init_EPRI_estimate,first_file] = create_records_epri_estimate(param,file_idxs,fns,adc_folder_name)
 %
 % Provides an EPRI estimate based on time stamps in the header records of
 % the first file which provides a consistent result based on comparing
@@ -14,6 +14,7 @@ function [init_EPRI_estimate,first_file] = create_records_epri_estimate(param,fi
 %   .records.presum_bug_fixed
 %  file_idxs: indexes into fns filename list corresponding to this segment
 %  fns: cell vector of filenames
+%  adc_folder_name: only required for using temporary files
 %
 % Out:
 %  init_EPRI_estimate: EPRI estimate
@@ -67,7 +68,7 @@ while first_run || abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_e
       struct('clk',param.radar.fs,'utc_time_halved', ...
       param.vectors.gps.utc_time_halved,'first_byte',first_byte, ...
       'file_version', param.records.file_version));
-  elseif any(strcmp(param.radar_name,{'snow3','kuband3','kaband3'}))
+  elseif any(strcmp(param.radar_name,{'snow3','ku,adc_folder_nameband3','kaband3'}))
     if param.records.file_version == 4
       [first_file tmp] = basic_load_fmcw2(fns{file_idxs(init_EPRI_file_idx)}, ...
         struct('clk',param.radar.fs,'utc_time_halved', ...
@@ -100,6 +101,27 @@ while first_run || abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_e
   elseif strcmp(param.radar_name,'mcords5')
     [first_file,tmp] = basic_load_mcords5(fns{file_idxs(init_EPRI_file_idx)}, ...
       struct('clk',param.radar.fs,'first_byte',first_byte,'presum_bug_fixed',param.records.presum_bug_fixed));
+    
+    % Check for the temporary file
+    [~,fn_name] = fileparts(fns{file_idxs(init_EPRI_file_idx)});
+    if isfield(param.records,'tmp_fn_uses_adc_folder_name') && param.records.tmp_fn_uses_adc_folder_name
+      tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
+        fullfile(adc_folder_name, [fn_name '.mat']));
+    else
+      tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers',[fn_name '.mat']);
+    end
+    if exist(tmp_hdr_fn,'file')
+      % There is a temporary file, load this
+      fprintf('Using temporary file for epri estimate: %s\n', tmp_hdr_fn);
+      hdr_tmp = load(tmp_hdr_fn);
+      % Overwrite
+      clear first_file;
+      first_file = hdr_tmp;
+      first_file.utc_time_sod = double(first_file.seconds) + double(first_file.fraction) / param.radar.fs*8;
+      first_file.rec_size = median(diff(first_file.offset))/2;
+      first_file.sync_offsets = first_file.offset;
+      first_file = rmfield(first_file,'offset');
+    end
   end
   clear tmp;
   
