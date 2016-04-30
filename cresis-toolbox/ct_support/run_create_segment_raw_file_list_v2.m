@@ -147,7 +147,7 @@ if strcmpi(radar_setup,'MCORDS4')
   day_string = '20131216'; % Only used during printing of the segments
   param.season_name = '2013_Antarctia_Basler';
   raw_file_suffix = '.bin';
-  reuse_tmp_files = false; % Set to false if you want to overwrite current results
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
   % file_prefix_override = ''; % most of the time (most of 2011)
   file_prefix_override = 'mcords4'; 
 end
@@ -162,12 +162,13 @@ if strcmpi(radar_setup,'MCORDS5')
   file_prefix_override = ''; % most of the time
   counter_correction_en = true;
   presum_bug_fixed = true; % Seasons from 2015 Greenland Polar6 onward should be set to true
+  union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
   param.season_name = '2016_Greenland_Polar6';
   base_dir = '/mnt/HDD6/';
   param.adc_folder_name = '1604180601/UWB/chan%d';
-  file_midfix = '20160418'; % Data files must contain this string in the middle of their name (usually should be empty)
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
   day_string = '20160418'; % Only used for stdout print of the vectors worksheet
 end
 
@@ -261,7 +262,7 @@ if strcmpi(radar_setup,'SNOW5')
   param.season_name = '2016_Greenland_Polar6';
   base_dir = '/mnt/HDD6/';
   param.adc_folder_name = '1604180601/UWBM/chan%d';
-  file_midfix = '20160418'; % Data files must contain this string in the middle of their name (usually should be empty)
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
   day_string = '20160418'; % Only used for stdout print of the vectors worksheet
   expected_rec_sizes = [60480      120864      181296];
 end
