@@ -28,9 +28,15 @@ if ~(~ismcc && isdeployed)
   
   %% ===> SELECT CURRENT PROFILE HERE <===
   % cur_profile: Set the current profile to load (match to pidx below)
+  % KU Profile Linux (PROFILE 1)
+  % IU Profile Linux (PROFILE 2)
+  % Field Profile Linux (PROFILE 3)
+  % KU Mobile Profile Windows (PROFILE 5)
+  % KU Desktop Profile Windows (PROFILE 6)
+  % AWI Profile Windows (PROFILE 7)
+  % AWI Profile Linux (PROFILE 8)
   cur_profile = 1;
   
-  %% =====================================================================
   fprintf('Startup Script Running\n');
   
   format short; format compact;
