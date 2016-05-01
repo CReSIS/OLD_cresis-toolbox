@@ -18,17 +18,17 @@ if isempty(param.file_search_mode) ...
     || all(~strcmpi(param.file_search_mode,{'default','default+1','specific','last_file'}))
   fprintf('Select file search mode:\n');
   fprintf(' 1) default (loads whatever was last loaded)');
-  if g_file_search_mode == 1
+  if strcmpi(g_file_search_mode,'default')
     fprintf(' *');
   end
   fprintf('\n');
   fprintf(' 2) specific (lets you specify a specific file)');
-  if g_file_search_mode == 2
+  if strcmpi(g_file_search_mode,'specific')
     fprintf(' *');
   end
   fprintf('\n');
-  fprintf(' 3) last_file (lists the last 10 recorded files)');
-  if g_file_search_mode == 3
+  fprintf(' 3) last_file (lists the last 10 recorded files to select from)');
+  if strcmpi(g_file_search_mode,'last_file')
     fprintf(' *');
   end
   fprintf('\n');
@@ -251,6 +251,11 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
     fn_name(9:10) = sprintf('%02d',adc);
     fn = fullfile(fn_dir,sprintf('chan%d',adc),[fn_name,'.bin']);
     
+    if ~exist(fn,'file')
+      warning('File %s not found. Filename may have a slightly different time stamp, so trying a wild character search for the file.',fn);
+      [fn_dir,fn_name] = fileparts(fn);
+      fn = get_filename(fn_dir,fn_name(1:7),fn_name(end-6:end),'');
+    end
     fprintf('  Loading file %s\n', fn);
     % Load the data file
     if strcmp(param.radar_name,'mcords4')
@@ -366,7 +371,7 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
   
   finfo = fname_info_mcords2(fn);
   [year,month,day] = datevec(finfo.datenum);
-  hdr.radar_time = utc_to_gps(datenum_to_epoch(datenum(year,month,day,0,0,hdr.utc_time_sod)));
+  hdr.radar_time = utc_to_gps(datenum_to_epoch(datenum(year,month,day,0,0,hdr.utc_time_sod))) + default.vectors.gps.time_offset;
   
   %% Read GPS files in this directory
   param.day_seg = sprintf('%04d%02d%02d_01',year,month,day);
@@ -400,8 +405,8 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
       end
     end
   end
+  hdr.gps_time = hdr.radar_time;
   try
-    hdr.gps_time = hdr.radar_time;
     hdr.lat = interp1(gps.gps_time,gps.lat,hdr.radar_time);
     hdr.lon = interp1(gps.gps_time,gps.lon,hdr.radar_time);
     hdr.elev = interp1(gps.gps_time,gps.elev,hdr.radar_time);
@@ -409,7 +414,8 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
     hdr.pitch = interp1(gps.gps_time,gps.pitch,hdr.radar_time);
     hdr.heading = interp1(gps.gps_time,gps.heading,hdr.radar_time);
     hdr.gps_source = gps.gps_source;
-  catch
+  catch ME
+    ME.getReport
     hdr.lat = zeros(size(hdr.radar_time));
     hdr.lon = zeros(size(hdr.radar_time));
     hdr.elev = zeros(size(hdr.radar_time));
