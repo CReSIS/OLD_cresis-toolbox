@@ -288,10 +288,18 @@ classdef (HandleCompatible = true) geotiff < handle
       obj.segments(end).value_name= segment.value_name;
 
       % Plot
-      obj.segments(end).h_plot = plot(obj.segments(end).x,obj.segments(end).y,'x-','Linewidth',2,'Parent',obj.h_axes);
+      if ~isempty(x)
+        obj.segments(end).h_plot = plot(x,y,'x-','Linewidth',2,'Parent',obj.h_axes);
+      else
+        obj.segments(end).h_plot = plot(NaN,NaN,'x-','Linewidth',2,'Parent',obj.h_axes);
+      end
       color = get(obj.segments(end).h_plot,'Color');
       
-      obj.segments(end).h_text = text(x(1),y(1),obj.segments(end).name,'Color',color,'Parent',obj.h_axes);
+      if ~isempty(x)
+        obj.segments(end).h_text = text(x(1),y(1),obj.segments(end).name,'Color',color,'Parent',obj.h_axes);
+      else
+        obj.segments(end).h_text = text(NaN,NaN,obj.segments(end).name,'Color',color,'Parent',obj.h_axes);
+      end
 
     end
     
