@@ -202,8 +202,13 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       color = h_geotiff.insert_segment(segment);
       
       hdr_utc_time_sod = epoch_to_sod(gps_to_utc(hdr_gps_time),datenum_to_epoch(header_load_date));
-      h_roll_plots(adc_folder_name_idx,set_idx) = plot(hdr_utc_time_sod,hdr_roll*180/pi,'.-','Parent',h_roll_axes,'Color',color);
-      h_roll_texts(adc_folder_name_idx,set_idx) = text(hdr_utc_time_sod(1),hdr_roll(1),sprintf('%d:%d',adc_folder_name_idx,set_idx),'Color',color,'Parent',h_roll_axes);
+      if isempty(hdr_utc_time_sod)
+        h_roll_plots(adc_folder_name_idx,set_idx) = plot(NaN,NaN,'.-','Parent',h_roll_axes,'Color',color);
+        h_roll_texts(adc_folder_name_idx,set_idx) = text(NaN,NaN,sprintf('%d:%d',adc_folder_name_idx,set_idx),'Color',color,'Parent',h_roll_axes);
+      else
+        h_roll_plots(adc_folder_name_idx,set_idx) = plot(hdr_utc_time_sod,hdr_roll*180/pi,'.-','Parent',h_roll_axes,'Color',color);
+        h_roll_texts(adc_folder_name_idx,set_idx) = text(hdr_utc_time_sod(1),hdr_roll(1)*180/pi,sprintf('%d:%d',adc_folder_name_idx,set_idx),'Color',color,'Parent',h_roll_axes);
+      end
     end
     
     % Associate default parameters with each settings
