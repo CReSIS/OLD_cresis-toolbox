@@ -44,6 +44,12 @@ function write_cresis_xml(param)
 %     Positive values make the start later (i.e. shorter range gate).
 %   .rg_stop_offset: adjust the range gate stop by this amount in meters.
 %     Positive values make the stop later (i.e. lengthen the range gate).
+%   .start_ref: cell array containing 'surface' or 'bottom' for each
+%     waveform. The start time is relative to the specified reference. The
+%     default is the surface.
+%   .stop_ref: cell array containing 'surface' or 'bottom' for each
+%     waveform. The stop time is relative to the specified reference. The
+%     default is the bottom.
 %  .fn = output filename
 %  .prf = pulse repetition frequency (Hz)
 %  .presums = row vector of presums for each waveform
