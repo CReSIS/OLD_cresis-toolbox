@@ -12,6 +12,10 @@ function gps_time = utc_to_gps(utc_time)
 % See also: gps_to_utc.m, utc_to_gps.m, utc_leap_seconds.m, epoch_to_datenum.m,
 % datenum_to_epoch.m
 
-gps_time = utc_time + utc_leap_seconds(utc_time(1));
+if isempty(utc_time)
+  gps_time = [];
+else
+  gps_time = utc_time + utc_leap_seconds(utc_time(1));
+end
 
 return;
