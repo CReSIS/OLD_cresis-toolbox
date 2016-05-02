@@ -58,8 +58,7 @@ function [td_out,amp_out,phase_out,full_out] = rx_chan_equal(data,param,hdr)
 fprintf('========================================================\n');
 fprintf('Rx chan equalization\n');
 
-% ======================================================================
-% Input arguments and general setup
+%% Input arguments and general setup
 % ======================================================================
 
 % rlines,rbins: Format inputs to select region to find max signal
@@ -105,7 +104,7 @@ rbins = param.rbins(1):param.rbins(end);
 ref_idx = param.ref_wf_adc;
 
 % colors: used for plotting
-colors = {'k.','r.','y.','g.','c.','b.','m.','kx','rx','yx','gx','cx','bx','mx'};
+colors = {'k.','r.','y.','g.','c.','b.','m.','kx','rx','yx','gx','cx','bx','mx','ko','ro','yo','go','co','bo','mo','k+','r+','y+'};
 
 % ave_fh: averaging function handle
 ave_fh = param.averaging_fh;
@@ -145,7 +144,7 @@ if ~isfield(param,'coherent_noise_removal') || isempty(param.coherent_noise_remo
 end
 
 if ~isfield(param,'multilook') || isempty(param.multilook)
-  param.multilook = [1 10];
+  param.multilook = ones(1,7)/7;
 end
 
 if ~isfield(param,'plot_en') || isempty(param.plot_en)
@@ -154,15 +153,13 @@ end
 
 clear full_out;
 
-% ======================================================================
-% Prepare surface data
+%% Prepare surface data
 % ======================================================================
 if param.coherent_noise_removal
   data = data - repmat(mean(data,2), [1 size(data,2) 1]);
 end
 
-% ======================================================================
-% Motion compensation
+%% Motion compensation
 % ======================================================================
 mocomp_param.type = param.mocomp_type;
 mocomp_param.tx_weights = param.tx_weights;
@@ -196,15 +193,41 @@ end
 
 num_chan = size(data,3);
 
+%% Apply time correction
+%   Time delay is removed (positive moves targets closer in range)
 % =======================================================================
-% Surface tracker
+w = 2*pi*freq;
+for wf_adc_idx = 1:size(data,3)
+  wf = abs(param.img(wf_adc_idx,1));
+  adc = param.img(wf_adc_idx,2);
+  data(:,:,wf_adc_idx) = ifft(fft(data(:,:,wf_adc_idx)).*exp(1i*repmat(w,1,size(data,2))*param.td(param.rx_paths{wf}(adc))));
+end
+
+%% Apply amplitude and phase correction
+%   Amp/phase are DIVIDED out as opposed to being multiplied
+% =======================================================================
+
+for wf_adc_idx = 1:size(data,3)
+  wf = abs(param.img(wf_adc_idx,1));
+  adc = param.img(wf_adc_idx,2);
+  data(:,:,wf_adc_idx) = data(:,:,wf_adc_idx) ./ (10^(param.amp(param.rx_paths{wf}(adc))/20).*exp(1i*param.phase(param.rx_paths{wf}(adc))/180*pi));
+end
+ascope_check_flag = 0;  % compare average ascopes before and after equalization
+if ascope_check_flag
+  data_combine = sum(data,3);
+  figure(4);plot(mean(lp(data_combine),2),'r');grid;legend('no eq','with eq');hold off;
+  disp('press any key to continue')
+  pause
+end
+
+%% Surface tracker
 % =======================================================================
 if param.combine_channels
   surf_data = mean(data,3);
 else
   surf_data = data(:,:,ref_idx);
 end
-surf_data = filter2(param.multilook,abs(surf_data).^2);
+surf_data = fir_dec(abs(surf_data).^2,param.multilook,1);
 
 [surf_vals surf_bins] = max(surf_data(rbins,rlines));
 surf_bins = rbins(1)-1 + surf_bins;
@@ -212,19 +235,32 @@ surf_bins = rbins(1)-1 + surf_bins;
 surface_tracker_check_flag = 1;
 if surface_tracker_check_flag
   % Debug code for checking surface tracker
-  figure(101); clf;
+  figure(1000); clf;
   %imagesc([],rbins,lp(data(rbins,:,ref_idx)));
   imagesc([],rbins,lp(surf_data(rbins,:)));
   colormap(1-gray(256));
   hold on;
   plot(rlines, surf_bins,'r-.');
   hold off;
+  xlabel('Record');
+  ylabel('Range bin');
+  title('Echogram with surface track result');
 end
 
-sig_power = zeros(size(data,3),length(rlines));
-for rline_idx = 1:length(rlines)
-  rline = rlines(rline_idx);
-  sig_power(:,rline_idx) = data(surf_bins(rline_idx),rline,:);
+if 0
+  % Check that all channels are good
+  sig_power = zeros(size(data,3),length(rlines));
+  for rline_idx = 1:length(rlines)
+    rline = rlines(rline_idx);
+    sig_power(:,rline_idx) = data(surf_bins(rline_idx),rline,:);
+  end
+else
+  % Check only that the reference channel is good
+  sig_power = zeros(1,length(rlines));
+  for rline_idx = 1:length(rlines)
+    rline = rlines(rline_idx);
+    sig_power(:,rline_idx) = data(surf_bins(rline_idx),rline,ref_idx);
+  end
 end
 
 noise_power = mean(mean(abs(data(noise_rbins,noise_rlines)).^2));
@@ -236,53 +272,32 @@ rlines = 1:length(good_rlines);
 data_check_flag = 0;
 if data_check_flag
   lp(noise_power)
-  for hfig = 1:size(data,3)
-    figure(hfig+10); clf;
-    imagesc(lp(data(:,:,hfig)));
+  h_axes = [];
+  for h_fig = 1:size(data,3)
+    figure(h_fig+100); clf;
+    set(h_fig+100,'WindowStyle','docked');
+    imagesc(lp(data(:,:,h_fig)));
     colorbar;
     hold on;
     plot(surf_bins);
     hold off;
+    h_axes(end+1) = gca;
+    xlabel('Record');
+    ylabel('Range bin');
+    h = colorbar;
+    set(get(h,'YLabel'),'String','Relative power (dB)');
+    title(sprintf('wf_adc pair %d',h_fig),'interpreter','none')
     ylim([max(1,rbins(1)-10) min(size(data,1),rbins(end)+10)]);
   end
+  linkaxes(h_axes,'xy');
 end
 
-ascope_check_flag = 0;  % compare average ascopes before and after equalization, added by Jilu Li
-if ascope_check_flag
+if param.ascope_check_flag
   data_combine = sum(data,3);
   figure(4);plot(mean(lp(data_combine),2));hold on;
 end
 
-% =======================================================================
-% Apply time correction
-%   Time delay is removed (positive moves targets closer in range)
-% =======================================================================
-w = 2*pi*freq;
-for wf_adc_idx = 1:size(data,3)
-  wf = abs(param.img(wf_adc_idx,1));
-  adc = param.img(wf_adc_idx,2);
-  data(:,:,wf_adc_idx) = ifft(fft(data(:,:,wf_adc_idx)).*exp(1i*repmat(w,1,size(data,2))*param.td(param.rx_paths{wf}(adc))));
-end
-
-% =======================================================================
-% Apply amplitude and phase correction
-%   Amp/phase are DIVIDED out as opposed to being multiplied
-% =======================================================================
-
-for wf_adc_idx = 1:size(data,3)
-  wf = abs(param.img(wf_adc_idx,1));
-  adc = param.img(wf_adc_idx,2);
-  data(:,:,wf_adc_idx) = data(:,:,wf_adc_idx) ./ (10^(param.amp(param.rx_paths{wf}(adc))/20).*exp(1i*param.phase(param.rx_paths{wf}(adc))/180*pi));
-end
-if ascope_check_flag
-  data_combine = sum(data,3);
-  figure(4);plot(mean(lp(data_combine),2),'r');grid;legend('no eq','with eq');hold off;
-  disp('press any key to continue')
-  pause
-end
-
-% =======================================================================
-% Cross correlation to determine recommended time, phase, and amplitude offsets
+%% Cross correlation to determine recommended time, phase, and amplitude offsets
 % =======================================================================
 ref_bins = param.ref_bins(1):param.ref_bins(2);
 search_bins = param.search_bins(1)+param.ref_bins(1) : param.search_bins(2)+param.ref_bins(2);
@@ -300,6 +315,8 @@ if param.cross_correlation_flag
         data(surf_bins(rline_idx)+ref_bins,rline,ref_idx) .* Hcorr_wind);
       corr_int = interpft(corr_out,param.Mt*length(corr_out));
       [peak_val(adc_idx,rline_idx) peak_offset(adc_idx,rline_idx)] = max(corr_int);
+      peak_val(adc_idx,rline_idx) = abs(max(data(surf_bins(rline_idx)+search_bins,rline,adc_idx))) ...
+        .*exp(1i*angle(peak_val(adc_idx,rline_idx)));
       peak_offset(adc_idx,rline_idx) = (peak_offset(adc_idx,rline_idx)-1)/param.Mt+1 ...
         + ref_bins(1) + search_bins(1) - 1 - zero_padding_offset;
     end
@@ -308,12 +325,11 @@ if param.cross_correlation_flag
   peak_offset = peak_offset - repmat(peak_offset(ref_idx,:),[size(peak_offset,1),1]);
   dt = (time(2)-time(1));
   
-else   % find ref channel peaks and use the range bin idxs for other channel, added by Jilu Li
+else
   for rline_idx = 1:length(rlines)
     rline = rlines(rline_idx);
     data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,ref_idx),param.Mt*length(search_bins));
-    [peak_val(ref_idx,rline_idx),peak_offset(ref_idx,rline_idx)] = max(data_int.*conj(data_int));
-    peak_val(ref_idx,rline_idx) = data_int(peak_offset(ref_idx,rline_idx));
+    [peak_val(ref_idx,rline_idx),peak_offset(ref_idx,rline_idx)] = max(data_int);
   end
   
   adc_idxs = 1:size(data,3);
@@ -322,9 +338,9 @@ else   % find ref channel peaks and use the range bin idxs for other channel, ad
     for rline_idx = 1:length(rlines)
       rline = rlines(rline_idx);
       data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,adc_idx),param.Mt*length(search_bins));
-      [peak_val(adc_idx,rline_idx),peak_offset(adc_idx,rline_idx)] = max(data_int.*conj(data_int));
+      [peak_val(adc_idx,rline_idx),peak_offset(adc_idx,rline_idx)] = max(data_int);
       peak_offset(adc_idx,rline_idx) = peak_offset(adc_idx,rline_idx) - peak_offset(ref_idx,rline_idx);
-      peak_val(adc_idx,rline_idx) = data_int(peak_offset(ref_idx,rline_idx));
+      peak_val(adc_idx,rline_idx) = abs(peak_val(adc_idx,rline_idx)).*exp(1i*angle(data_int(peak_offset(ref_idx,rline_idx))));
     end
   end
   peak_offset = peak_offset / param.Mt;
@@ -332,7 +348,7 @@ else   % find ref channel peaks and use the range bin idxs for other channel, ad
   dt = (time(2)-time(1));
 end
 
-% Roll Estimation
+%% Roll Estimation
 param.roll_est.bin_rng = 0;
 param.roll_est.rline_rng = -5:5;
 param.roll_est.Nsig = 1;
@@ -394,8 +410,7 @@ full_out.roll_est_theta = roll_est_theta;
 full_out.roll_est_val = roll_est_val;
 full_out.gps_time = hdr.gps_time(rlines);
 
-% =======================================================================
-% Calculate time correction
+%% Calculate corrections
 % =======================================================================
 
 ref_val = zeros(size(data,3),1);
@@ -419,8 +434,7 @@ for wf_adc_idx = 1:size(data,3)
   phase_out(param.rx_paths{wf}(adc)) = param.phase(param.rx_paths{wf}(adc)) + angle(ref_val(wf_adc_idx))*180/pi;
 end
 
-% =======================================================================
-% Optional printing and plotting
+%% Optional printing and plotting
 % =======================================================================
 
 if param.plot_en

@@ -20,12 +20,14 @@ if strcmpi(radar_setup,'MCORDS5')
   param.file_search_mode = '';
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'D:\awi\chan1','/mnt/HDD6/1604200901/UWB/','/mnt/AWI_SSD0/1604180702/UWB'};
+  param.base_dir_search = {'D:\awi\chan1','/mnt/AWI_SSD0/1604261101/UWB/','/mnt/AWI_SSD0/1604261202/UWB'};
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
-%   param.img = cat(2,1*ones(24,1),[1:24].'); param.ref_wf_adc = 12;
-  param.img = cat(2,1*ones(8,1),[9:16].'); param.ref_wf_adc = 4; % Center subarray
+  param.img = cat(2,1*ones(24,1),[1:24].'); param.ref_wf_adc = 12;
+%   param.img = cat(2,2*ones(24,1),[1:24].'); param.ref_wf_adc = 12;
+%   param.img = cat(2,3*ones(24,1),[1:24].'); param.ref_wf_adc = 12;
+%   param.img = cat(2,1*ones(8,1),[9:16].'); param.ref_wf_adc = 4; % Center subarray
 %   param.img = cat(2,1*ones(8,1),[1:8].'); param.ref_wf_adc = 4; % Left subarray
 %   param.img = cat(2,1*ones(8,1),[17:24].'); param.ref_wf_adc = 4; % Right subarray
   

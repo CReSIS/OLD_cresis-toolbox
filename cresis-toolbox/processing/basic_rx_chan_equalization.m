@@ -42,6 +42,9 @@ end
 
 %% Process the files
 file_name_list = {};
+td_out = [];
+amp_out = [];
+phase_out = [];
 for file_idx = 1:num_files
   
   %% Load the files
@@ -50,11 +53,14 @@ for file_idx = 1:num_files
     file_name_list = {fn};
   else
     param.file_search_mode = 'default+1';
+    global g_file_search_mode;
+    old_file_search_mode = g_file_search_mode;
     global g_basic_noise_analysis_fn;
     g_basic_noise_analysis_fn = file_name_list{end};
     [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults);
     file_name_list{end+1} = fn;
     g_basic_noise_analysis_fn = file_name_list{1};
+    g_file_search_mode = old_file_search_mode;
   end
   
   %% Convert from quantization to voltage @ ADC
@@ -69,6 +75,7 @@ for file_idx = 1:num_files
   end
   data = data(:,1:floor(size(data,2)/param.presums),:);
   hdr.radar_time = fir_dec(hdr.radar_time,param.presums);
+  hdr.gps_time = fir_dec(hdr.gps_time,param.presums);
   hdr.lat = fir_dec(hdr.lat,param.presums);
   hdr.lon = fir_dec(hdr.lon,param.presums);
   hdr.elev = fir_dec(hdr.elev,param.presums);
@@ -80,24 +87,25 @@ for file_idx = 1:num_files
   [pc_signal,pc_time] = pulse_compress(data,pc_param);
 
   %% Track surface
-  surf_bin = NaN*zeros(1,size(pc_signal,2));
   ml_data = lp(fir_dec(abs(pc_signal(:,:,param.ref_wf_adc)).^2,ones(1,5)/5,1));
-  for rline = 1:size(ml_data,2)
-    % Threshold is hard coded to max of 7 dB of noise or 13 below peak
-    cur_threshold = max([ml_data(1,rline)+7; ml_data(:,rline)-13]);
-    tmp = find(ml_data(1:end-2,rline) > cur_threshold,1);
-    if ~isempty(tmp)
-      [~,max_offset] = max(ml_data(tmp+(0:2),rline));
-      tmp = tmp-1 + max_offset;
-      surf_bin(rline) = tmp;
-    end
-  end
+  good_time_bins = find(pc_time > pc_param.Tpd*1.1 & pc_time > default.basic_surf_track_min_time);
+  [max_value,surf_bin] = max(ml_data(good_time_bins,:));
+  surf_bin = surf_bin + good_time_bins(1)-1;
   
   param.noise_rlines = 1:size(ml_data,2);
-  param.noise_rbins = min(surf_bin)-100 : min(surf_bin)-40;
+  param.noise_rbins = min(surf_bin)-40 : min(surf_bin)-30;
+  param.noise_rbins = param.noise_rbins(param.noise_rbins >= 1);
   
   param.rlines = 1:size(ml_data,2);
-  param.rbins= min(surf_bin)-10 : max(surf_bin)+10;
+  param.rbins= min(surf_bin)-30 : max(surf_bin)+30;
+  
+  if all(surf_bin==surf_bin(1)) || isempty(param.noise_rbins)
+    warning('DEBUG: Check surface tracker. May need to adjust param.rbins and param.rlines to ensure maximum signal in the window is the nadir surface return. Ensure param.noise_bins and param.noise_rlines enclose a region with appropriate values for the background noise. Run dbcont after setting these parameters correctly.');
+    imagesc(ml_data);
+    hold on
+    plot(surf_bin);
+    keyboard
+  end
 
   %% Perform receiver channel equalization
   param.averaging_fh = @mean;
@@ -105,7 +113,7 @@ for file_idx = 1:num_files
   dt = pc_time(2) - pc_time(1);
   Nt = length(pc_time);
   df = 1/(Nt*dt);
-  param.freq = pc_param.DDC_freq + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df).';
+  param.freq = pc_param.DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
 
   if all(gps.roll==0)
     param.mocomp_type = 2;
@@ -118,25 +126,23 @@ for file_idx = 1:num_files
   
   param.combine_channels = false;
   param.snr_threshold = 10;
-  param.phase = default.radar.wfs(1).chan_equal_dB;
-  param.amp = default.radar.wfs(1).chan_equal_deg;
+  param.phase = default.radar.wfs(1).chan_equal_deg;
+  param.amp = default.radar.wfs(1).chan_equal_dB;
   param.td = default.radar.wfs(1).chan_equal_Tsys;
 
   [td_out(:,file_idx),amp_out(:,file_idx),phase_out(:,file_idx), full_out] = rx_chan_equal(pc_signal,param,hdr);
   
   %% Collate results
   if file_idx == 1
+    gps_time = full_out.gps_time;
     peak_ref = full_out.peak_ref;
-    roll = gps.roll;
-    gps_time = gps.gps_time;
     peak_offset = full_out.peak_offset;
     roll_est_theta = full_out.roll_est_theta;
     roll_est_val = full_out.roll_est_val;
     roll_est_gps_time = full_out.gps_time;
   else
+    gps_time = cat(2,gps_time,full_out.gps_time);
     peak_ref = cat(2,peak_ref,full_out.peak_ref);
-    roll = cat(2,roll,gps.roll);
-    gps_time = cat(2,gps_time,gps.gps_time);
     peak_offset = cat(2,peak_offset,full_out.peak_offset);
     roll_est_theta = cat(2,roll_est_theta,full_out.roll_est_theta);
     roll_est_val = cat(2,roll_est_val,full_out.roll_est_val);
@@ -146,6 +152,13 @@ for file_idx = 1:num_files
 end
 
 %% Print Results
+for wf_adc = 1:size(param.img,1)
+  wf = abs(param.img(wf_adc,1));
+  adc = param.img(wf_adc,2);
+  rx_path(wf_adc) = param.rx_paths{wf}(adc);
+end
+[~,rx_path_sort] = sort(rx_path);
+
 fprintf('========================================================\n');
 fprintf('Recommended equalization coefficients (averaged results)\n');
 
@@ -156,21 +169,21 @@ fprintf('td settings\n');
 for file_idx = 1:num_files
   [~,fn] = fileparts(file_name_list{file_idx});
   fprintf('%s', fn);
-  fprintf('\t%.2f', td_out(:,file_idx)*1e9);
+  fprintf('\t%.2f', td_out(rx_path_sort,file_idx)*1e9);
   fprintf('\n');
 end
 fprintf('amp settings\n');
 for file_idx = 1:num_files
   [~,fn] = fileparts(file_name_list{file_idx});
   fprintf('%s', fn);
-  fprintf('\t%.1f', amp_out(:,file_idx));
+  fprintf('\t%.1f', amp_out(rx_path_sort,file_idx));
   fprintf('\n');
 end
 fprintf('phase settings\n');
 for file_idx = 1:num_files
   [~,fn] = fileparts(file_name_list{file_idx});
   fprintf('%s', fn);
-  fprintf('\t%.1f', phase_out(:,file_idx));
+  fprintf('\t%.1f', phase_out(rx_path_sort,file_idx));
   fprintf('\n');
 end
 
@@ -179,51 +192,50 @@ amp_ave = mean(amp_out,2);
 phase_ave = angle(mean(exp(j*phase_out/180*pi),2))*180/pi;
 
 fprintf('Rx Path\n');
-for wf_adc = 1:size(param.img,1)
+for wf_adc = rx_path_sort
   wf = abs(param.img(wf_adc,1));
   adc = param.img(wf_adc,2);
-  if wf_adc < size(param.img,1)
-    fprintf('%d\t', param.rx_paths{wf}(adc));
-  else
-    fprintf('%d', param.rx_paths{wf}(adc));
-  end
+  fprintf('%d\t', param.rx_paths{wf}(adc));
 end
 fprintf('\n');
 
 fprintf('Original/Recommended/Difference td settings (ns):\n');
-fprintf('%.2f\t', param.td(1:end-1)*1e9);
-fprintf('%.2f', param.td(end)*1e9);
+fprintf('%.2f\t', param.td(rx_path_sort)*1e9);
 fprintf('\n');
-fprintf('%.2f\t', td_ave(1:end-1)*1e9);
-fprintf('%.2f', td_ave(end)*1e9);
+fprintf('%.2f\t', td_ave(rx_path_sort)*1e9);
 fprintf('\n');
-fprintf('%.2f\t', (td_ave(:).' - param.td(:).')*1e9);
+fprintf('%.2f\t', (td_ave(rx_path_sort).' - param.td(rx_path_sort))*1e9);
 fprintf('\n');
 
 fprintf('Original/Recommended/Difference amp settings (dB):\n');
-fprintf('%.1f\t', param.amp(1:end-1));
-fprintf('%.1f', param.amp(end));
+fprintf('%.1f\t', param.amp(rx_path_sort));
 fprintf('\n');
-fprintf('%.1f\t', amp_ave(1:end-1));
-fprintf('%.1f', amp_ave(end));
+fprintf('%.1f\t', amp_ave(rx_path_sort));
 fprintf('\n');
-fprintf('%.1f\t', amp_ave(:).' - param.amp(:).');
+fprintf('%.1f\t', amp_ave(rx_path_sort).' - param.amp(rx_path_sort));
 fprintf('\n');
 
 % Rewrap each phase so that the output does not print +355 deg and -5 deg
 fprintf('Original/Recommended/Difference phase settings (deg):\n');
 phase_rewrapped = angle(exp(j*param.phase/180*pi)) * 180/pi;
-fprintf('%.1f\t', phase_rewrapped(1:end-1));
-fprintf('%.1f', phase_rewrapped(end));
+fprintf('%.1f\t', phase_rewrapped(rx_path_sort));
 fprintf('\n');
 phase_rewrapped = angle(exp(j*phase_ave/180*pi)) * 180/pi;
-fprintf('%.1f\t', phase_rewrapped(1:end-1));
-fprintf('%.1f', phase_rewrapped(end));
+fprintf('%.1f\t', phase_rewrapped(rx_path_sort));
 fprintf('\n');
 phase_rewrapped = angle(exp(j*(phase_ave(:).' - param.phase)/180*pi)) * 180/pi;
-fprintf('%.1f\t', phase_rewrapped(1:end-1));
-fprintf('%.1f', phase_rewrapped(end));
+fprintf('%.1f\t', phase_rewrapped(rx_path_sort));
 fprintf('\n');
+
+%% Plot Results
+figure(1); clf;
+plot(peak_offset(rx_path_sort,:).');
+figure(2); clf;
+plot(lp(peak_ref(rx_path_sort,:)).');
+figure(3); clf;
+plot(angle(peak_ref(rx_path_sort,:)).' * 180/pi);
+hold on
+plot(interp1(gps.gps_time,gps.roll,gps_time)*180/pi,'k-','LineWidth',2);
 
 return;
 
