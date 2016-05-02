@@ -45,6 +45,10 @@ imagesc(lp( mean( abs(data).^2, 3 ) ))
 hold on
 plot(param.noise_rbins([1 1 2 2 1]), [1 size(data,2) size(data,2) 1 1]);
 hold off
+xlabel('Range lines');
+ylabel('Range bins');
+h = colorbar;
+set(get(h,'YLabel'),'String','Relative power (dB)');
 fprintf('Check to ensure that selected range bins are noise. Enter a new\n');
 fprintf('range bin range if not (e.g. [-499 0] for last 500 range bins or\n');
 fprintf('[3400 3800] for range bins 3400-3800). Leave empty for current.\n');
