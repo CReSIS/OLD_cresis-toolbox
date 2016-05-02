@@ -29,7 +29,7 @@ if strcmpi(radar_setup,'MCORDS5')
   
   % .noise_rbins: Specify which bins to use for noise analysis (nonpositive
   %   numbers cause basic_noise_analysis to reference from the end of the range line)
-  param.noise_rbins = [-999 0];
+  param.noise_rbins = [-499 0];
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
