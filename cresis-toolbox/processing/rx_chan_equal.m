@@ -55,9 +55,6 @@ function [td_out,amp_out,phase_out,full_out] = rx_chan_equal(data,param,hdr)
 %
 % Authors: Logan Smith, John Paden, Jilu Li
 
-fprintf('========================================================\n');
-fprintf('Rx chan equalization\n');
-
 %% Input arguments and general setup
 % ======================================================================
 
@@ -379,12 +376,16 @@ for rline = 1:length(rlines)
   bin = surf_bins(rline);
   
   if rline+param.roll_est.rline_rng(1) < 1
-    rline_rng = 1-rline : param.roll_est.rline_rng(end);
-  elseif  rline+param.roll_est.rline_rng(end) > Nx
-    rline_rng = param.roll_est.rline_rng(1) : Nx-rline;
+    start_rline_rng = 1-rline;
   else
-    rline_rng = param.roll_est.rline_rng;
+    start_rline_rng = param.roll_est.rline_rng(1);
   end
+  if rline+param.roll_est.rline_rng(end) > Nx
+    stop_rline_rng = Nx-rline;
+  else
+    stop_rline_rng = param.roll_est.rline_rng(end);
+  end
+  rline_rng = start_rline_rng : stop_rline_rng;
   
   if bin+param.roll_est.bin_rng(1) < 1
     bin_rng = 1-bin : param.roll_est.bin_rng(end);

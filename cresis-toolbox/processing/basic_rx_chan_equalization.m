@@ -29,38 +29,26 @@ function basic_rx_chan_equalization(param,defaults)
 
 physical_constants;
 
-global g_num_files;
-if isempty(g_num_files)
-  g_num_files = 1;
-end
-num_files = input(sprintf('How many files [%d]: ',g_num_files));
-if isempty(num_files)
-  num_files = g_num_files;
-else
-  g_num_files = num_files;
-end
-
+param.multiselect = true;
+[data,fn,settings,default,gps,hdr,pc_param,settings_enc] = basic_file_loader(param,defaults);
+global g_basic_file_loader_fns;
+fns = g_basic_file_loader_fns;
+num_files = length(g_basic_file_loader_fns);
+ 
 %% Process the files
-file_name_list = {};
 td_out = [];
 amp_out = [];
 phase_out = [];
 for file_idx = 1:num_files
-  
   %% Load the files
   if file_idx == 1
-    [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults);
-    file_name_list = {fn};
+    fn = fns{1};
   else
-    param.file_search_mode = 'default+1';
-    global g_file_search_mode;
-    old_file_search_mode = g_file_search_mode;
-    global g_basic_noise_analysis_fn;
-    g_basic_noise_analysis_fn = file_name_list{end};
-    [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults);
-    file_name_list{end+1} = fn;
-    g_basic_noise_analysis_fn = file_name_list{1};
-    g_file_search_mode = old_file_search_mode;
+    param.file_search_mode = 'default+s';
+    [data,fn,settings,default,gps,hdr,pc_param,settings_enc] = basic_file_loader(param,defaults);
+  end
+  if size(data,2) < param.presums
+    error('Not enough data in file to process. Choose a different file.');
   end
   
   %% Convert from quantization to voltage @ ADC
@@ -157,7 +145,7 @@ for wf_adc = 1:size(param.img,1)
   adc = param.img(wf_adc,2);
   rx_path(wf_adc) = param.rx_paths{wf}(adc);
 end
-[~,rx_path_sort] = sort(rx_path);
+[rx_path_sort,rx_path_sort_idxs] = sort(rx_path);
 
 fprintf('========================================================\n');
 fprintf('Recommended equalization coefficients (averaged results)\n');
@@ -167,21 +155,21 @@ fprintf('  Date of processing: %s, mocomp %d, wf/adc %d/%d bins %d-%d\n', ...
   param.img(param.ref_wf_adc,2), param.rbins(1), param.rbins(end));
 fprintf('td settings\n');
 for file_idx = 1:num_files
-  [~,fn_name] = fileparts(file_name_list{file_idx});
+  [~,fn_name] = fileparts(fns{file_idx});
   fprintf('%s', fn_name);
   fprintf('\t%.2f', td_out(rx_path_sort,file_idx)*1e9);
   fprintf('\n');
 end
 fprintf('amp settings\n');
 for file_idx = 1:num_files
-  [~,fn_name] = fileparts(file_name_list{file_idx});
+  [~,fn_name] = fileparts(fns{file_idx});
   fprintf('%s', fn_name);
   fprintf('\t%.1f', amp_out(rx_path_sort,file_idx));
   fprintf('\n');
 end
 fprintf('phase settings\n');
 for file_idx = 1:num_files
-  [~,fn_name] = fileparts(file_name_list{file_idx});
+  [~,fn_name] = fileparts(fns{file_idx});
   fprintf('%s', fn_name);
   fprintf('\t%.1f', phase_out(rx_path_sort,file_idx));
   fprintf('\n');
@@ -192,7 +180,7 @@ amp_ave = mean(amp_out,2);
 phase_ave = angle(mean(exp(j*phase_out/180*pi),2))*180/pi;
 
 fprintf('Rx Path\n');
-for wf_adc = rx_path_sort
+for wf_adc = rx_path_sort_idxs
   wf = abs(param.img(wf_adc,1));
   adc = param.img(wf_adc,2);
   fprintf('%d\t', param.rx_paths{wf}(adc));
@@ -228,32 +216,28 @@ fprintf('%.1f\t', phase_rewrapped(rx_path_sort));
 fprintf('\n');
 
 %% Plot Results
-[~,fn_name] = fileparts(file_name_list{1});
+[~,fn_name] = fileparts(fns{1});
 
 figure(1); clf;
-plot(peak_offset(rx_path_sort,:).');
+plot(peak_offset(rx_path_sort_idxs,:).');
 xlabel('Range line');
 ylabel('Delay (samples)');
 grid on;
 title(fn_name,'interpreter','none');
 
 figure(2); clf;
-plot(lp(peak_ref(rx_path_sort,:)).');
+plot(lp(peak_ref(rx_path_sort_idxs,:)).');
 xlabel('Range line');
 ylabel('Relative power (dB)');
 grid on;
 title(fn_name,'interpreter','none');
 
 figure(3); clf;
-plot(angle(peak_ref(rx_path_sort,:)).' * 180/pi);
+plot(angle(peak_ref(rx_path_sort_idxs,:)).' * 180/pi);
 hold on
 plot(interp1(gps.gps_time,gps.roll,gps_time)*180/pi,'k-','LineWidth',2);
 xlabel('Range line');
 ylabel('Phase (deg)');
 grid on;
 title(fn_name,'interpreter','none');
-
-return;
-
-
 
