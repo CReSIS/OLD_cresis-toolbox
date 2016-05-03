@@ -167,22 +167,22 @@ fprintf('  Date of processing: %s, mocomp %d, wf/adc %d/%d bins %d-%d\n', ...
   param.img(param.ref_wf_adc,2), param.rbins(1), param.rbins(end));
 fprintf('td settings\n');
 for file_idx = 1:num_files
-  [~,fn] = fileparts(file_name_list{file_idx});
-  fprintf('%s', fn);
+  [~,fn_name] = fileparts(file_name_list{file_idx});
+  fprintf('%s', fn_name);
   fprintf('\t%.2f', td_out(rx_path_sort,file_idx)*1e9);
   fprintf('\n');
 end
 fprintf('amp settings\n');
 for file_idx = 1:num_files
-  [~,fn] = fileparts(file_name_list{file_idx});
-  fprintf('%s', fn);
+  [~,fn_name] = fileparts(file_name_list{file_idx});
+  fprintf('%s', fn_name);
   fprintf('\t%.1f', amp_out(rx_path_sort,file_idx));
   fprintf('\n');
 end
 fprintf('phase settings\n');
 for file_idx = 1:num_files
-  [~,fn] = fileparts(file_name_list{file_idx});
-  fprintf('%s', fn);
+  [~,fn_name] = fileparts(file_name_list{file_idx});
+  fprintf('%s', fn_name);
   fprintf('\t%.1f', phase_out(rx_path_sort,file_idx));
   fprintf('\n');
 end
@@ -228,14 +228,30 @@ fprintf('%.1f\t', phase_rewrapped(rx_path_sort));
 fprintf('\n');
 
 %% Plot Results
+[~,fn_name] = fileparts(file_name_list{1});
+
 figure(1); clf;
 plot(peak_offset(rx_path_sort,:).');
+xlabel('Range line');
+ylabel('Delay (samples)');
+grid on;
+title(fn_name,'interpreter','none');
+
 figure(2); clf;
 plot(lp(peak_ref(rx_path_sort,:)).');
+xlabel('Range line');
+ylabel('Relative power (dB)');
+grid on;
+title(fn_name,'interpreter','none');
+
 figure(3); clf;
 plot(angle(peak_ref(rx_path_sort,:)).' * 180/pi);
 hold on
 plot(interp1(gps.gps_time,gps.roll,gps_time)*180/pi,'k-','LineWidth',2);
+xlabel('Range line');
+ylabel('Phase (deg)');
+grid on;
+title(fn_name,'interpreter','none');
 
 return;
 
