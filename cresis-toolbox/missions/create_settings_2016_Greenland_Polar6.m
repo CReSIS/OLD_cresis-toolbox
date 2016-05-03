@@ -22,7 +22,7 @@ prf = 10000;
 % presums: Ensure lambda/4 sampling (fudge factor allows difference) and an
 %   that presums are an even number.
 velocity = [60 90]; % m/s
-presums = round(fudge_factor .* c./abs(f1_list+f0_list)/2 ./ velocity * prf / 2)*2
+presums = round(c./abs(f1_list+f0_list)/2 ./ velocity * prf / 2)*2
 
 final_DDS_phase = [];
 final_DDS_phase_no_time = [];
