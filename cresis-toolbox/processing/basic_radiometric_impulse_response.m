@@ -135,35 +135,80 @@ for wf_adc = 1:size(param.img,1)
   wf = abs(param.img(wf_adc,1));
   adc = abs(param.img(wf_adc,2));
   dt = 1/hdr.fs;
-  good_idxs = find(pc_param.time<pc_time(surf_bin(best_idx)),1,'last') + (0:ceil(pc_param.Tpd/dt));
+  Nt = size(data,1);
   h_fig = figure(wf_adc); clf;
   set(h_fig,'WindowStyle','Docked');
   set(h_fig,'NumberTitle','off');
   set(h_fig,'Name',sprintf('WF %d ADC %d',wf,adc));
-  rel_time = pc_param.time(good_idxs);
-  rel_time = rel_time - rel_time(1);
+
+  if 1
+    % Determine the phase and delay offset of each range line
+    [pc_signal,pc_time] = pulse_compress(data(:,:,wf_adc),pc_param);
+    
+    max_value = zeros(1,size(pc_signal,2));
+    max_idx_unfilt = zeros(1,size(pc_signal,2));
+    Mt = 100;
+    for idx = 1:size(pc_signal,2)
+      oversampled_rline = interpft(pc_signal(:,idx),size(pc_signal,1)*Mt);
+      start_bin = surf_bin(best_idx)*Mt-1000;
+      [max_value(idx),max_idx_unfilt(idx)] ...
+        = max(oversampled_rline(start_bin:end));
+      max_idx_unfilt(idx) = max_idx_unfilt(idx) + start_bin - 1;
+    end
+    
+    % Filter the delay (max_idx) and phase (max_value) vectors
+    max_idx = sgolayfilt(max_idx_unfilt/Mt,3,17);
+    max_idx = max_idx - mean(max_idx);
+    phase_corr = sgolayfilt(double(unwrap(angle(max_value))),3,17);
+    
+    % Compensate range lines for phase and delay variance
+    % in the peak value
+    T = Nt*dt;
+    df = 1/T;
+    fc = (pc_param.f0+pc_param.f1)/2;
+    freq = pc_param.DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+    
+    % Apply true time delay shift to flatten surface
+    comp_data = ifft(fft(data(:,:,wf_adc)) .* exp(1i*2*pi*freq*max_idx/Mt*dt) );
+    % Apply phase correction (compensating for phase from time delay shift)
+    comp_data = comp_data .* repmat(exp(-1i*(phase_corr + 2*pi*fc*max_idx/Mt*dt)), [Nt 1]);
   
-  plot(rel_time*1e6, real(mean(data(good_idxs,:,wf_adc), 2)) )
-  
-  if 0
-    hold on
-    plot(rel_time*1e6, imag(data(good_idxs,1,wf_adc)))
-  elseif 0
-    hold on
-    plot(rel_time*1e6, real(data(good_idxs,end,wf_adc)))
+  else
+    % Do not do phase and delay corrections
+    comp_data = data(:,:,wf_adc);
   end
   
+  % Plot over-interpolated results
+  Mt = 10;
+  time_Mt = pc_param.time(1) + dt/Mt * (0:Nt*Mt-1).';
+  data_Mt = interpft(comp_data, Nt*Mt);
+
+  good_idxs_Mt = find(time_Mt<pc_time(surf_bin(best_idx)),1,'last') + (0:ceil(pc_param.Tpd/dt*Mt));
+  rel_time = time_Mt(good_idxs_Mt);
+  rel_time = rel_time - rel_time(1);
+
+  plot(rel_time*1e6, real(mean(data_Mt(good_idxs_Mt,:), 2)) )
+  
+  if 1
+    hold on
+    plot(rel_time*1e6, real(data_Mt(good_idxs_Mt,1)))
+  elseif 0
+    hold on
+    plot(rel_time*1e6, imag(data_Mt(good_idxs,1)))
+  end
+    
+  good_idxs = find(pc_param.time<pc_time(surf_bin(best_idx)),1,'last') + (0:ceil(pc_param.Tpd/dt));
   title(sprintf('WF %d ADC %d',wf,adc));
   xlabel('Time (us)');
   ylabel('Voltage (V)');
   grid on;
   xlim(rel_time([1 end])*1e6)
-  ylim([ min(min(real(data(good_idxs,1,:))))  max(max(real(data(good_idxs,1,:)))) ]);
-  if 1
+  ylim([ 1.1*min(min(real(data(good_idxs,1,:))))  1.1*max(max(real(data(good_idxs,1,:)))) ]);
+  if 0
     saveas(h_fig,sprintf('radiometric_wf_%d_adc_%d.fig',wf,adc));
   end
   
-  signal_power_dBm(wf_adc) = 10*log10((max(abs(data(good_idxs,1,wf_adc)))/sqrt(2))^2/50)+30;
+  signal_power_dBm(wf_adc) = 10*log10((max(abs(data_Mt(good_idxs_Mt,1)))/sqrt(2))^2/50)+30;
   range = pc_time(surf_bin(best_idx))*c/2;
   power_reflectance = 1;
   expected_power_received_dBm(wf_adc) = 10*log10(default.Pt * default.Gt * default.Ae / (4*pi*(2*range).^2) * default.system_loss_dB * power_reflectance) + 30;
@@ -207,7 +252,7 @@ for wf_adc = 1:size(param.img,1)
   grid on;
   xlim((pc_param.DDC_freq + 1.2*[-hdr.BW/2 hdr.BW/2])/1e6);
   ylim(ylims);
-  if 1
+  if 0
     saveas(h_fig,sprintf('signal_psd_wf_%d_adc_%d.fig',wf,adc));
   end
 end
