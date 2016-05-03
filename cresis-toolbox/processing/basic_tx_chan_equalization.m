@@ -1,43 +1,24 @@
-% script basic_tx_chan_equalization
+% function basic_tx_chan_equalization(param,defaults)
+% basic_tx_chan_equalization(param,defaults)
 %
-% This script is for helping with setting the DDS start phase values
-% and amplitude values while on the plane.  It requires loading
-% a single receive channel file and then analyzing it with this
-% program.
+% RUN THIS FUNCTION FROM "run_basic_tx_chan_equalization"
 %
-% Useful Tip: Search for "NEEDS" and that will help you set all the fields
-% that you will need to change.
+% This function has two purposes:
+% 1. Determine the delay, phase, and amplitude values to equalize the
+%    transmit channels during calibration and validation
+% 2. Once each flight to ensure waveform generators are functioning
+%    properly
 %
-% Steps for N-element antenna array
-% 1. Collect data with N+1 waveforms, waveform 1 should transmit from
-%    antenna 1, waveform 2 should transmit from antenna 2, etc. with
-%    the last waveform being all transmitters together.
-%    All other properties should be the same for each waveform
-% 2. Only one receiver is required by this routine
-% 3. Characterization should be done for each pulse duration since
-%    there appears to be some variation with pulse duration
-% 4. Time gate should be large enough to include noise-only data which
-%    will be used to determine the SNR of the surface return (SNR
-%    threshold is used to exclude low SNR data points from the measurement)
-% 5. Set ref_wf to correspond to an element in the center of the array
-%    because correlation statistics are better for shorter baselines
-%
-% Sometimes two runs are required:
-% 1. One run with xlim,ylim,caxis at their defaults
-% 2. A second run with rlines, rbins (and xlim, ylim, caxis) set to
-%    a specific region
+% For either purpose, the txequal settings need to programmed into the
+% waveform generator. With most systems, at least two complete files should
+% be collected since the first and last files are often corrupted.
 %
 % Author: John Paden
 
+%% basic_tx_chan_equalization preparation
+
 physical_constants;
-close all;
 tstart = tic;
-
-% =======================================================================
-% User Settings
-% =======================================================================
-
-fs = 1e9/9;
 
 % .plot_en = flag to enable plots
 param.plot_en = true;
@@ -56,16 +37,10 @@ param.ylim = [];
 param.xlim = [];
 %param.xlim = [200 450];
 
-% .ref_wf = Reference transmit channel (surface location determined from this
-%   channel and all phase measurements made relative to it)
-param.ref_wf = 3;
-% .rlines = Range lines to process
-%   These are range lines post presumming
+% .rlines = 1x2 vector specifying range lines to process (to select all
+%   range lines to the end, set second element to inf). These are range
+%   lines post presumming
 param.rlines = [1 inf];
-% .rbins = Range bins to search for surface in
-param.rbins = [1 inf];
-% .noise_rbins = Range bins to use for noise power calculation (THIS OFTEN NEEDS TO BE SET)
-param.noise_rbins = 6700:7000;
 
 % .snr_threshold = SNR threshold in dB (range lines exceeding this
 %   SNR for every transmit waveform are included in the estimate,
@@ -73,366 +48,737 @@ param.noise_rbins = 6700:7000;
 %   range line is not used)
 param.snr_threshold = 10;
 
-% .DDS_start_mag = current DDS waveform attenuation in dB or DDS counts
-%   (0 to 65535 DDS counts correspond to 0 to 2 Volts, linear map)
-%   (THIS NEEDS TO BE SET EVERYTIME)
-% param.DDS_start_mag = [65000  65000 65000 65000 65000 65000 65000];
-% param.DDS_start_mag = [11.7 5.82 3 9.605 17.72];
-param.DDS_start_mag = [7.36 5.82 3 9.605 11.40];
-% param.DDS_start_mag = [15498	22618	24982	49356	42870	65535	19478];
-
-
-% param.DDS_start_mag_units: Options are "dB" (NI/ledford) and "DDS"
-%   THIS OFTEN NEEDS TO BE SET
-param.DDS_start_mag_units = 'dB';
-
-% .DDS_start_phase = current DDS start phase in deg or DDS counts
-%   (0 to 65535 DDS counts correspond to 0 to 2*pi, linear map)
-%   (THIS NEEDS TO BE SET EVERYTIME)
-%param.DDS_start_phase = [873	56726	0	58615	64121];
-param.DDS_start_phase = [646 56090	0	59105	65146];
-% param.DDS_start_phase = [30.7	3.2	0	171.8	174	311.4	7.1];
-
-
-% param.DDS_start_phase_units: Options are "deg" (NI) and "DDS" (ledford)
-%   THIS OFTEN NEEDS TO BE SET
-param.DDS_start_phase_units = 'DDS';
-
-param.radar_name = 'mcords'; % param.radar_name: THIS OFTEN NEEDS TO BE SET
-if strcmpi(param.radar_name,'mcords')
-  param.radar_num = 1;
-  param.adc = 3;
-  
-  % Parameters to locate specific file of interest
-  %   (THIS NEEDS TO BE SET EVERYTIME)
-  param.data_file_num = 0;
-  param.base_path = '/N/dcwan/projects/cresis/2011_Chile_DC8/20111014/ch3/seg01';
-  
-elseif strcmpi(param.radar_name,'mcords2')
-  % .board = board number from 0 to 3
-  param.board = 0;
-  % .adc = the receive channel to use (relative to the board # so that it
-  %    is always contained in [1,4] since there are 4 channels per board)
-  param.adc = 4;
-  param.acquisition_num = 8;
-  
-  % Parameters to locate specific file of interest
-  %  (THIS NEEDS TO BE SET EVERYTIME)
-  param.seg = '';
-  param.file_num = 3;
-  param.base_path = 'W:\';
-end
-
-% .gps_fn = Optional GPS file name (leave empty to disable)
-param.gps_fn = '/home/polargrid/csarp_support/gps/2010_Antarctica_DC8_GPS/20101026_ALL_pos.mat';
-param.gps_fn = '';
-
-% .presums = Number of presums (coherent averaging) to do
+% param.presums = Integer containing number of presums (coherent
+%   averaging or stacking) to do
 param.presums = 10;
 
-% .noise_removal_en = mcords noise removal (i.e. should be false for
-%    mcrds, mcords2, etc)
-param.noise_removal_en = false;
+% param.ref_bins = 1x2 vector specifying bins relative to peak to use in
+%   correlation
+param.ref_bins = [-12 12];
+% param.search_bins = 1x2 vector specifying max search range to use when
+%   looking for the best correlation (this is to ensure that each output
+%   correlation value has full support... i.e. no roll off effect)
+param.search_bins = [-15 15];
+% param.Mt = amount to oversample the correlation
+param.Mt = 100;
 
-% param.pc_param: pulse compression parameters
-%   THIS OFTEN NEEDS TO BE SET
-param.pc_param.f0 = 180e6;
-param.pc_param.f1 = 210e6;
-param.pc_param.f0 = 189.15e6;
-param.pc_param.f1 = 198.65e6;
-param.pc_param.Tpd = 10e-6;
-param.pc_param.tukey = 0.2;
+param.img = default.txequal.img;
 
-% Hwindow_desired = The desired window function for the transmit amplitude
-%   THIS OFTEN NEEDS TO BE SET
-window_func = @boxcar;
-Hwindow_desired = window_func(param.DDS_start_mag).';
-Hwindow_desired = [0.5 1 1 1 0.5];
-
-% =======================================================================
-% =======================================================================
-% Automated Section
-% =======================================================================
-% =======================================================================
-num_wf = length(param.DDS_start_phase);
-
-% =======================================================================
-% Load data
-% =======================================================================
-fprintf('========================================================\n');
-fprintf('Loading data (%.1f sec)\n', toc(tstart));
-
-if strcmpi(param.radar_name,'mcords')
-  file_midfix = sprintf('r%d-%d.',param.radar_num,param.adc);
-  file_suffix = sprintf('.%04d.dat',param.data_file_num);
-  fprintf('  Path: %s\n', param.base_path);
-  fprintf('  Match: mcords*%s*%s\n', file_midfix, file_suffix);
-  fn = get_filename(param.base_path,'mcords',file_midfix,file_suffix);
-  if isempty(fn)
-    fprintf('  Could not find any files which match\n');
-    return;
-  end
-  fprintf('  Loading file %s\n', fn);
-  [hdr,data] = basic_load_mcords(fn, struct('clk',fs,'first_byte',2^26));
-  for wf = 1:length(data)
-    data{wf} = data{wf}(1:end-1,:);
-    data{wf} = data{wf} - median(data{wf}(:,1));
-  end
-
-%   basic_remove_mcords_digital_errors;
-
-elseif strcmpi(param.radar_name,'mcords2')
-  if isempty(param.seg)
-    fn_dir = fullfile(param.base_path, sprintf('board%d',param.board));
-  else
-    fn_dir = fullfile(param.base_path, sprintf('board%d',param.board), ...
-      param.seg);
-  end
-  file_prefix = sprintf('mcords2_%d_',param.board);
-  if isempty(param.acquisition_num)
-    file_suffix = sprintf('%04d.bin',param.file_num);
-  else
-    file_suffix = sprintf('%02d_%04d.bin',param.acquisition_num,param.file_num);
-  end
-  fprintf('  Path: %s\n', fn_dir);
-  fprintf('  Match: %s*%s\n', file_prefix, file_suffix);
-  fn = get_filename(fn_dir, file_prefix, '', file_suffix);
-  if isempty(fn)
-    fprintf('  Could not find any files which match\n');
-    return;
-  end
-  fprintf('  Loading file %s\n', fn);
-  [hdr,data] = basic_load_mcords2(fn,struct('clk',fs));
-  for wf = 1:length(data)
-    data{wf} = data{wf}(:,:,param.adc);
+%% Get the mode to run
+global g_basic_tx_chan_equalization_mode;
+fprintf('Enter the mode:\n');
+fprintf(' 1: Validation\n');
+fprintf(' 2: Create new settings file (STEP ONE: updates delay)\n')
+fprintf(' 3: Create new settings file (STEP TWO: updates amplitude and phase)\n')
+if isempty(g_basic_tx_chan_equalization_mode)
+  default_mode = 1;
+else
+  default_mode = g_basic_tx_chan_equalization_mode;
+end
+update_mode = [];
+while length(update_mode) ~= 1
+  try
+    update_mode = input(sprintf('Mode [%d]: ', default_mode));
+    if isempty(update_mode)
+      update_mode = default_mode;
+    end
   end
 end
 
-[fn_dir fn_name] = fileparts(fn);
-
-if length(data) < num_wf
-  fprintf('Number of waveforms required %d does not match data %d\n', num_wf, length(data));
-  return;
+if update_mode == 2
+  % STEP ONE: updates delay
+  update_delay = true;
+  % update_amplitude: logical which causes the DDS RAM (amplitude) values to be updated
+  update_amplitude = false;
+  % update_phase: logical which causes the DDS phase values to be updated
+  update_phase = false;
+elseif update_mode == 3
+  % STEP TWO: updates amplitude and phase
+  update_delay = false;
+  % update_amplitude: logical which causes the DDS RAM (amplitude) values to be updated
+  update_amplitude = true;
+  % update_phase: logical which causes the DDS phase values to be updated
+  update_phase = true;
+else
+  % VALIDATION (no files generated)
+  update_mode = 1;
+  update_delay = false; % START WITH THIS ONE
+  % update_amplitude: logical which causes the DDS RAM (amplitude) values to be updated
+  update_amplitude = false; % AFTER UPDATING DELAY, ENABLE AMP/PHASE UPDATE and DISABLE DELAY
+  % update_phase: logical which causes the DDS phase values to be updated
+  update_phase = false; % AFTER UPDATING DELAY, ENABLE AMP/PHASE UPDATE and DISABLE DELAY
 end
-wf = 1;
 
-% =======================================================================
-% Load GPS
-% =======================================================================
-if ~isempty(param.gps_fn)
-  fprintf('Loading GPS (%.1f sec)\n', toc(tstart));
-  gps = load(param.gps_fn);
-  [year month day hour minute sec] = datevec(epoch_to_datenum(gps.gps_time(1)));
-  gps_sod = gps.gps_time - datenum_to_epoch(datenum(year,month,day,0,0,0));
+param.recs = [0 inf];
+[data,fn,settings,default,gps,hdr,pc_param,settings_enc] = basic_file_loader(param,defaults);
+global g_basic_file_loader_fns;
+fns = g_basic_file_loader_fns;
+
+%% Process the files
+results = [];
+for file_idx = 1:length(fns)
   
-  roll = interp1(gps_sod, gps.roll, hdr.time_500sod);
-  roll = fir_dec(roll,param.presums);
+  %% Load the files
+  if file_idx == 1
+    fn = fns{1};
+  else
+    param.file_search_mode = 'default+s';
+    [data,fn,settings,default,gps,hdr,pc_param,settings_enc] = basic_file_loader(param,defaults);
+  end
   
-  figure(100); clf;
-  plot(roll*180/pi);
-  grid on;
-  ylabel('Roll (deg)');
-  if ~isempty(param.xlim)
-    xlim(param.xlim);
+  param.ref_wf_adc = default.txequal.ref_wf_adc;
+  [fn_dir fn_name] = fileparts(fn);
+  
+    %% Convert from quantization to voltage @ ADC
+  wf = abs(param.img(1,1));
+  data = data ...
+    * default.radar.adc_full_scale/2^default.radar.adc_bits ...
+    * 2^hdr.wfs(abs(wf)).bit_shifts / hdr.wfs(wf).presums;
+  
+  %% Additional software presums
+  for wf_adc = 1:size(data,3)
+    data(:,1:floor(size(data,2)/param.presums),wf_adc) = fir_dec(data(:,:,wf_adc),param.presums);
   end
-end
+  data = data(:,1:floor(size(data,2)/param.presums),:);
+  hdr.radar_time = fir_dec(hdr.radar_time,param.presums);
+  hdr.gps_time = fir_dec(hdr.gps_time,param.presums);
+  hdr.lat = fir_dec(hdr.lat,param.presums);
+  hdr.lon = fir_dec(hdr.lon,param.presums);
+  hdr.elev = fir_dec(hdr.elev,param.presums);
+  hdr.roll = fir_dec(hdr.roll,param.presums);
+  hdr.pitch = fir_dec(hdr.pitch,param.presums);
+  hdr.heading = fir_dec(hdr.heading,param.presums);
+  
+  %% Pulse compression
+  [pc_signal,pc_time] = pulse_compress(data,pc_param);
 
-% =======================================================================
-% Time domain burst noise (digital errors) removal
-% =======================================================================
-if param.noise_removal_en
-  fprintf('Noise/digital error removal (%.1f sec)\n', toc(tstart));
-  for wf = 1:num_wf
-    % Noise Removal
-    data{wf} = data{wf} - median(data{wf}(:,1));
-    data_pow = abs(data{wf}).^2;
-    cfar_threshold = medfilt2(data_pow,[5 3]);
-    cfar_threshold(:,1:3) = repmat(cfar_threshold(:,5),[1 3]);
-    cfar_threshold(:,end-2:end) = repmat(cfar_threshold(:,end-4),[1 3]);
-    cfar_threshold(1:5,:) = repmat(cfar_threshold(7,:),[5 1]);
-    cfar_threshold(end-4:end,:) = repmat(cfar_threshold(end-6,:),[5 1]);
-
-    data{wf}(data_pow > cfar_threshold*1000) = 0;
-
-    % For debugging:
-    %imagesc(lp(filter2(ones(5,21),data{wf})))
+  %% Track surface
+  ml_data = lp(fir_dec(abs(pc_signal(:,:,param.ref_wf_adc)).^2,ones(1,5)/5,1));
+  good_time_bins = find(pc_time > pc_param.Tpd*1.1 & pc_time > default.basic_surf_track_min_time);
+  [max_value,surf_bin] = max(ml_data(good_time_bins,:));
+  surf_bin = surf_bin + good_time_bins(1)-1;
+  
+  param.noise_rlines = 1:size(ml_data,2);
+  param.noise_rbins = min(surf_bin)-40 : min(surf_bin)-30;
+  param.noise_rbins = param.noise_rbins(param.noise_rbins >= 1);
+  
+  param.rlines = 1:size(ml_data,2);
+  param.rbins= min(surf_bin)-30 : max(surf_bin)+30;
+  
+  if all(surf_bin==surf_bin(1)) || isempty(param.noise_rbins)
+    warning('DEBUG: Check surface tracker. May need to adjust param.rbins and param.rlines to ensure maximum signal in the window is the nadir surface return. Ensure param.noise_bins and param.noise_rlines enclose a region with appropriate values for the background noise. Run dbcont after setting these parameters correctly.');
+    imagesc(ml_data);
+    hold on
+    plot(surf_bin);
+    keyboard
   end
-end
-
-% =======================================================================
-% Presumming/coherent averaging
-% =======================================================================
-if param.presums > 1
-  fprintf('Coherent averaging (%.1f sec)\n', toc(tstart));
-  for wf = 1:num_wf
-    for adc_idx = 1:size(data{wf},3)
-      data_out{wf}(:,:,adc_idx) = fir_dec(data{wf}(:,:,adc_idx),param.presums);
+  
+  %% Convert to old format for this function
+  tmp = pc_signal;
+  clear data;
+  for chan = 1:size(tmp,3)
+    data{chan} = tmp(:,:,chan);
+  end
+  param.wf_mapping = default.txequal.wf_mapping;
+  param.bad_chan_mask = param.wf_mapping == 0;
+  param.ref_chan = param.ref_wf_adc;
+  Hwindow_desired = default.txequal.Hwindow_desired;
+  max_DDS_amp = default.txequal.max_DDS_amp;
+  time_delay_desired = default.txequal.time_delay_desired;
+  phase_desired = default.txequal.phase_desired;
+  time{1} = pc_time;
+  rbins = param.rbins;
+  rlines = param.rlines;
+  
+  % .DDS_start_mag = current DDS waveform attenuation in dB or DDS counts
+  %   (0 to 65535 DDS counts correspond to 0 to 2 Volts, linear map)
+  param.DDS_start_mag = double(settings.(config_var).(ram_var));
+  
+  % param.DDS_start_mag_units: Options are "dB" (NI/ledford) and "DDS"
+  param.DDS_start_mag_units = 'DDS';
+  
+  % .DDS_start_time = current DDS start time in nanoseconds
+  param.DDS_start_time = settings.(config_var).Waveforms(1).Delay/1e9;
+  
+  % .DDS_start_phase = current DDS start phase in deg or DDS counts
+  %   (0 to 65535 DDS counts correspond to 0 to 2*pi, linear map)
+  param.DDS_start_phase = 180/pi*angle(exp(j*settings.(config_var).Waveforms(1).(phase_var)/180*pi));
+  
+  % param.DDS_start_phase_units: Options are "deg" (NI) and "DDS" (ledford)
+  %   THIS OFTEN NEEDS TO BE SET
+  param.DDS_start_phase_units = 'deg';
+  
+  out_xml_fn_dir = param.out_xml_fn_dir;
+  
+  % =======================================================================
+  %% Echogram plots
+  % =======================================================================
+  if param.plot_en
+    for chan = 1:length(data)
+      if param.wf_mapping(chan) ~= 0
+        figure(chan); clf; set(gcf,'WindowStyle','docked','NumberTitle','off','Name',sprintf('E %d',chan));
+        imagesc(lp(data{chan}));
+        xlabel('Range line');
+        ylabel('Ramge bin');
+        h_echogram_axes(chan) = gca;
+        title(sprintf('Chan %d File %s\nTime-Space Relative Power', chan, fn_name),'Interpreter','none');
+        grid on;
+        h = colorbar;
+        set(get(h,'YLabel'),'String','Relative power (dB)');
+        if ~isempty(param.caxis)
+          caxis(param.caxis);
+        end
+        if ~isempty(param.ylim)
+          ylim(param.ylim);
+        end
+        if ~isempty(param.xlim)
+          xlim(param.xlim);
+        end
+      end
+    end
+    linkaxes(h_echogram_axes,'xy');
+  end
+  
+  %% Surface tracker
+  % =======================================================================
+  % Incoherent along-track filtering
+  surf_data = filter2(ones(1,6),abs(data{param.ref_chan}.^2));
+  % Simple max search to find surface
+  [surf_vals surf_bins] = max(surf_data(rbins,rlines));
+  surf_bins = rbins(1)-1 + surf_bins;
+  
+  if param.plot_en
+    for chan = 1:length(data)
+      if param.wf_mapping(chan) ~= 0
+        figure(chan);
+        hold on;
+        plot(rlines, surf_bins,'k');
+        hold off;
+      end
     end
   end
-  data = data_out;
-  clear data_out;
-end
+    
+  %% Noise power estimate and SNR threshold
+  % =======================================================================
+  noise_power = mean(mean(abs(data{abs(param.wf_mapping(param.ref_chan))}(param.noise_rbins,rlines)).^2));
 
-% =======================================================================
-% Pulse compression
-% =======================================================================
-fprintf('Pulse compression (%.1f sec)\n', toc(tstart));
-clear pc_param time;
-for wf = 1:num_wf
-  pc_param(wf).f0 = param.pc_param.f0;
-  pc_param(wf).f1 = param.pc_param.f1;
-  pc_param(wf).Tpd = param.pc_param.Tpd;
-  pc_param(wf).tukey = param.pc_param.tukey;
-  pc_param(wf).time = hdr.wfs(wf).t0 + (0:size(data{wf},1)-1)/fs;
-  [data{wf},time{wf}] = pulse_compress(data{wf},pc_param(wf));
-end
+  %% Extract delay (using oversampled cross correlation), phase and amplitude
+  % differences between channels
+  % =======================================================================
+  ref_bins = param.ref_bins(1):param.ref_bins(2);
+  search_bins = param.search_bins(1)+param.ref_bins(1) : param.search_bins(2)+param.ref_bins(2);
+  zero_padding_offset = length(search_bins) - length(ref_bins);
+  Hcorr_wind = hanning(length(ref_bins));
+  clear tx_phases tx_powers peak_val peak_offset;
+  
+  tx_powers = zeros(length(data),length(rlines));
+  for chan = 1:length(param.wf_mapping)
+    if param.wf_mapping(chan) ~= 0
+      wf = abs(param.wf_mapping(chan));
+      for rline_idx = 1:length(rlines)
+        rline = rlines(rline_idx);
+        % Get the phases and powers right at the peak of the reference channel
+        % surface
+        tx_phases(chan,rline_idx) = data{chan}(surf_bins(rline_idx),rline);
+        tx_powers(chan,rline_idx) = abs(data{chan}(surf_bins(rline_idx),rline)).^2;
 
-if param.rbins(2) > size(data{wf},1)
-  param.rbins(2) = size(data{wf},1);
-end
-if param.rlines(2) > size(data{wf},2)
-  param.rlines(2) = size(data{wf},2);
-end
-param.rbins = param.rbins(1):param.rbins(2);
-param.rlines = param.rlines(1):param.rlines(2);
-
-% =======================================================================
-% Echogram plots
-% =======================================================================
-if param.plot_en
-  for wf = 1:num_wf
-    figure(wf); clf; set(gcf,'WindowStyle','docked','NumberTitle','off','Name',sprintf('E %d',wf));
-    imagesc(lp(data{wf}));
-    title(sprintf('Wf %d File %s\nTime-Space Relative Power', wf, fn_name),'Interpreter','none');
-    grid on;
-    colorbar
-    if ~isempty(param.caxis)
-      caxis(param.caxis);
-    end
-    if ~isempty(param.ylim)
-      ylim(param.ylim);
-    end
-    if ~isempty(param.xlim)
-      xlim(param.xlim);
+        % Gets the time offset relative to the reference channel (a postive
+        % offset means that the channel leads the reference channel)
+        [corr_out,lags] = xcorr(data{chan}(surf_bins(rline_idx)+search_bins,rline), ...
+          data{param.ref_chan}(surf_bins(rline_idx)+ref_bins,rline) .* Hcorr_wind);
+        corr_int = interpft(corr_out,param.Mt*length(corr_out));
+        [peak_val(chan,rline_idx) peak_offset(chan,rline_idx)] = max(corr_int);
+        peak_offset(chan,rline_idx) = (peak_offset(chan,rline_idx)-1)/param.Mt+1 ...
+          + ref_bins(1) + search_bins(1) - 1 - zero_padding_offset;
+      end
     end
   end
-end
-
-% =======================================================================
-% Surface tracker
-% =======================================================================
-surf_data = filter2(ones(1,10),abs(data{param.ref_wf}.^2));
-[surf_vals surf_bins] = max(surf_data(param.rbins,param.rlines));
-surf_bins = param.rbins(1)-1 + surf_bins;
-
-if param.plot_en
-  for wf = 1:num_wf
-    figure(wf);
-    hold on;
-    plot(param.rlines, surf_bins,'k');
-    hold off;
+  tx_snr = tx_powers ./ noise_power;
+  good_meas = lp(tx_snr) > param.snr_threshold;
+  good_rlines = zeros(size(rlines));
+  good_rlines(sum(good_meas(~param.bad_chan_mask,:)) == sum(~param.bad_chan_mask)) = 1;
+  good_rlines = logical(good_rlines);
+  
+  num_good_rlines = sum(good_rlines);
+  fprintf('Number of good range lines: %d out of %d\n', num_good_rlines, length(good_rlines));
+  fprintf('========================================================\n');
+  if num_good_rlines == 0
+    error('Cannot continue: no range lines exceeded the snr_threshold');
   end
-end
-
-% =======================================================================
-% Noise power estimate and SNR threshold
-% =======================================================================
-noise_power = mean(mean(abs(data{param.ref_wf}(param.noise_rbins,param.rlines)).^2));
-clear tx_phases tx_powers;
-for wf = 1:num_wf
-  for rline_idx = 1:length(param.rlines)
-    rline = param.rlines(rline_idx);
-    tx_phases(wf,rline_idx) = data{wf}(surf_bins(rline_idx),rline);
-    tx_powers(wf,rline_idx) = abs(data{wf}(surf_bins(rline_idx),rline)).^2;
+    
+  %% Time Offset Settings
+  % =======================================================================
+  ref_time_mean = zeros(size(param.DDS_start_time));
+  peak_offset_time = peak_offset * (time{1}(2)-time{1}(1));
+  for chan = 1:length(param.wf_mapping)
+    if param.wf_mapping(chan) ~= 0
+      wf = abs(param.wf_mapping(chan));
+      ref_time = peak_offset_time(chan,:);
+      
+      if chan == param.ref_chan
+        median_mask = ones(size(good_rlines));
+        ref_time_mean(chan) = 0;
+      else
+        % Remove outliers and take mean
+        std_val = std(ref_time(good_rlines));
+        median_val = median(ref_time(good_rlines));
+        median_mask = ref_time >= median_val - std_val ...
+          & ref_time <= median_val + std_val;
+        ref_time_mean(chan) = mean(ref_time(good_rlines & median_mask));
+      end
+      
+      fprintf('TX %d: %4.2f ns (%4.2f ns)\n', chan, 1e9*ref_time_mean(chan), ...
+        1e9*std(ref_time(good_rlines & median_mask)));
+      if param.plot_en
+        figure(120+chan); clf; set(gcf,'WindowStyle','docked','NumberTitle','off','Name',sprintf('Time %d',chan));
+        plot(ref_time);
+        xlabel('Range line');
+        ylabel('Relative time (sec)');
+      end
+      ref_time(~(good_rlines & median_mask)) = NaN;
+      if param.plot_en
+        hold on;
+        plot(ref_time,'ro');
+        hold off;
+        title(sprintf('Relative Time (%d to ref %d)', chan, param.ref_chan));
+        ylim([min(min(ref_time),-1e-11) max(1e-11,max(ref_time))]);
+      end
+    end
   end
-end
-tx_snr = tx_powers ./ noise_power;
-good_meas = lp(tx_snr) > param.snr_threshold;
-good_rlines = zeros(size(param.rlines));
-good_rlines(sum(good_meas) == size(tx_snr,1)) = 1;
-good_rlines = logical(good_rlines);
-
-num_good_rlines = sum(good_rlines);
-fprintf('Number of good range lines: %d out of %d\n', num_good_rlines, length(good_rlines));
-fprintf('========================================================\n');
-
-% =======================================================================
-% Amplitude Settings
-% =======================================================================
-fprintf('Relative power for each waveform (dB)\n');
-clear delta_power;
-for wf = 1:num_wf
-  ref_power = tx_powers(wf,:)./tx_powers(param.ref_wf,:);
-  if param.plot_en
-    figure(10+wf); clf; set(gcf,'WindowStyle','docked','NumberTitle','off','Name',sprintf('Pow %d',wf));
-    plot(lp(ref_power),1);
+  if 0
+    % Limit time delay precision to 1/20th of a range bin
+    ref_time_mean = round(ref_time_mean / (time{1}(2)-time{1}(1)) * 20) ...
+      * (time{1}(2)-time{1}(1)) / 20;
   end
-  delta_power(wf) = lp(median(ref_power(good_rlines)),1);
-  fprintf('%10.2f\n', delta_power(wf));
-  %   fprintf('WF %d: relative power: %10.2f dB\n', wf, lp(median(ref_power(good_rlines))));
-  %   fprintf('    Std. dev. power: %.2f dB\n', lp(std(ref_power(good_rlines))));
-  ref_power(~good_rlines) = NaN;
-  if param.plot_en
-    hold on;
-    plot(lp(ref_power),'ro');
-    hold off;
-    title(sprintf('Relative Power (%d to ref %d)', wf, param.ref_wf));
-  end
-end
-if strcmpi(param.DDS_start_mag_units,'DDS')
-  fprintf('%s WINDOW: Recommended new DDS amplitude settings (DDS counts):\n', ...
-    upper(func2str(window_func)));
-  new_DDS_amp = param.DDS_start_mag./(10.^(delta_power/20) .* Hwindow_desired);
-  fprintf('%.0f\t', new_DDS_amp(1:end-1));
-  fprintf('%.0f', new_DDS_amp(end));
+  fprintf('Recommended new DDS time offset (ns):\n');
+  new_DDS_time = param.DDS_start_time - ref_time_mean;
+  fprintf('%.4f\t', new_DDS_time(1:end-1)*1e9);
+  fprintf('%.4f', new_DDS_time(end)*1e9);
   fprintf('\n');
-elseif strcmpi(param.DDS_start_mag_units,'dB')
-  fprintf('%s WINDOW: Recommended new DDS amplitude settings (dB):\n', ...
-    upper(func2str(window_func)));
-  new_DDS_amp = param.DDS_start_mag + 20*log10(10.^(delta_power/20) ./ Hwindow_desired);
-  fprintf('%.2f\t', new_DDS_amp(1:end-1));
-  fprintf('%.2f', new_DDS_amp(end));
-  fprintf('\n');
-end
-fprintf('========================================================\n');
-
-% =======================================================================
-% Phase Settings
-% =======================================================================
-clear ref_phase_median;
-for wf = 1:num_wf
-  ref_phase = angle(tx_phases(wf,:)./tx_phases(param.ref_wf,:));
-  if param.plot_en
-    figure(20+wf); clf; set(gcf,'WindowStyle','docked','NumberTitle','off','Name',sprintf('Ang %d',wf));
-    plot(ref_phase);
-    ylim([-pi pi]);
+  fprintf('========================================================\n');
+  results.DDS_time_error(file_idx,:) = ref_time_mean;
+  results.DDS_time(file_idx,:) = new_DDS_time;
+  
+  %% Amplitude Settings
+  % =======================================================================
+  fprintf('Relative power for each waveform (dB)\n');
+  delta_power = zeros(size(param.DDS_start_mag));
+  for chan = 1:length(param.wf_mapping)
+    if param.wf_mapping(chan) ~= 0
+      wf = abs(param.wf_mapping(chan));
+      ref_power = tx_powers(chan,:)./tx_powers(param.ref_chan,:);
+      
+      if chan == param.ref_chan
+        median_mask = ones(size(good_rlines));
+        delta_power(chan) = 0;
+      else
+        % Remove outliers and take mean
+        std_val = std(ref_power(good_rlines));
+        mean_val = mean(ref_power(good_rlines));
+        median_mask = ref_power >= mean_val - std_val ...
+          & ref_power <= mean_val + std_val;
+        delta_power(chan) = lp(mean(ref_power(good_rlines & median_mask)));
+      end
+      
+      fprintf('TX %d: %4.2f dB (%4.2f dB), desired %4.2f\n', chan, delta_power(chan), ...
+        lp(std(ref_power(good_rlines & median_mask))), 20*log10(Hwindow_desired(chan)));
+      if param.plot_en
+        figure(10+chan); clf; set(gcf,'WindowStyle','docked','NumberTitle','off','Name',sprintf('Pow %d',chan));
+        plot(lp(ref_power,1));
+        xlabel('Range line');
+        ylabel('Relative power (dB)');
+      end
+      ref_power(~(good_rlines & median_mask)) = NaN;
+      if param.plot_en
+        hold on;
+        plot(lp(ref_power,1),'ro');
+        hold off;
+        title(sprintf('Relative Power (%d to ref %d)', chan, param.ref_chan));
+      end
+    end
   end
-  ref_phase_median(wf) = median(ref_phase(good_rlines));
-  fprintf('WF %d: relative phase: %10.4f rad, %10.1f deg\n', wf, ...
-    median(ref_phase(good_rlines)), median(ref_phase(good_rlines))*180/pi);
-  fprintf('    Std. dev. phase: %.4f rad, %.1f deg\n', ...
-    std(ref_phase(good_rlines)), std(ref_phase(good_rlines))*180/pi);
-  ref_phase(~good_rlines) = NaN;
-  if param.plot_en
-    hold on;
-    plot(ref_phase,'ro');
-    hold off;
-    title(sprintf('Relative Phase (%d to ref %d)', wf, param.ref_wf));
+  if strcmpi(param.DDS_start_mag_units,'DDS')
+    fprintf('Recommended new DDS amplitude settings (DDS counts):\n');
+    new_DDS_amp = param.DDS_start_mag .* (Hwindow_desired ./ (10.^(delta_power/20)));
+    fprintf('%.0f\t', new_DDS_amp(1:end-1));
+    fprintf('%.0f', new_DDS_amp(end));
+    fprintf('\n');
+  elseif strcmpi(param.DDS_start_mag_units,'dB')
+    fprintf('Recommended new DDS amplitude settings (dB):\n');
+    new_DDS_amp = param.DDS_start_mag + 20*log10(  Hwindow_desired ./ (10.^(delta_power/20))  ) ;
+    fprintf('%.2f\t', new_DDS_amp(1:end-1));
+    fprintf('%.2f', new_DDS_amp(end));
+    fprintf('\n');
+  end
+  fprintf('========================================================\n');
+  results.DDS_amp_error(file_idx,:) = delta_power - 20*log10(Hwindow_desired);
+  results.DDS_amp(file_idx,:) = new_DDS_amp;
+
+  % =======================================================================
+  % Phase Settings
+  % =======================================================================
+  ref_phase_mean = zeros(size(param.DDS_start_phase));
+  for chan = 1:length(param.wf_mapping)
+    if param.wf_mapping(chan) ~= 0
+      wf = abs(param.wf_mapping(chan));
+      ref_phase = tx_phases(chan,:).*conj(tx_phases(param.ref_chan,:));
+      ref_values_real = real(ref_phase);
+      ref_values_imag = imag(ref_phase);
+      
+      median_mask = ones(size(good_rlines));
+      ref_phase_mean(chan) = mean(ref_phase);
+%       if chan == param.ref_chan
+%         median_mask = ones(size(good_rlines));
+%         ref_phase_mean(chan) = 1;
+%       else
+%         % Remove outliers and take mean (real and imaginary done separately)
+%         std_val = std(ref_values_real(good_rlines));
+%         mean_val = mean(ref_values_real(good_rlines));
+%         median_mask = ref_values_real > mean_val - std_val ...
+%           & ref_values_real < mean_val + std_val;
+%         
+%         std_val = std(ref_values_imag(good_rlines));
+%         mean_val = mean(ref_values_imag(good_rlines));
+%         median_mask = median_mask & ref_values_imag > mean_val - std_val ...
+%           & ref_values_imag < mean_val + std_val;
+%         
+%         ref_values_real_mean = mean(ref_values_real(good_rlines & median_mask));
+%         ref_values_imag_mean = mean(ref_values_imag(good_rlines & median_mask));
+%         
+%         ref_phase_mean(chan) = ref_values_real_mean + j*ref_values_imag_mean;
+%       end
+      fprintf('WF %d: relative phase: %1.3f radians, %3.1f deg\n', chan, ...
+        angle(ref_phase_mean(chan)), angle(ref_phase_mean(chan))*180/pi);
+      
+      if param.plot_en
+        figure(20+chan); clf; set(gcf,'WindowStyle','docked','NumberTitle','off','Name',sprintf('Ang %d',chan));
+        plot(angle(ref_phase)*180/pi);
+        xlabel('Range line');
+        ylabel('Relative phase (deg)');
+        ylim([-180 180]);
+      end
+      ref_phase(~(good_rlines & median_mask)) = NaN;
+      if param.plot_en
+        hold on;
+        plot(angle(ref_phase)*180/pi,'ro');
+        hold off;
+        title(sprintf('Relative Phase (%d to ref %d)', chan, param.ref_chan));
+      end
+    else
+      ref_phase_mean(chan) = 1;
+    end
+  end
+  DDS_error = angle(ref_phase_mean) * 65536/(2*pi);
+  if strcmpi(param.DDS_start_phase_units,'DDS')
+    fprintf('Recommended new DDS phase settings (DDS counts):\n');
+    new_DDS_phase = exp(j*param.DDS_start_phase/65536*2*pi - ref_phase_mean);
+  elseif strcmpi(param.DDS_start_phase_units,'deg')
+    fprintf('Recommended new DDS phase settings (deg):\n');
+    new_DDS_phase = param.DDS_start_phase/360*2*pi - angle(ref_phase_mean);
+  end
+  fprintf('%.1f\t', new_DDS_phase(1:end-1)*180/pi);
+  fprintf('%.1f', new_DDS_phase(end)*180/pi);
+  fprintf('\n');
+  fprintf('========================================================\n');
+  results.DDS_phase_error(file_idx,:) = ref_phase_mean;
+  results.DDS_phase(file_idx,:) = new_DDS_phase;
+    
+end
+
+%% Print DDS Time
+fprintf('\nDDS_time_error (ns)\n');
+for file_idx = 1:length(fns)
+  fn_length = fprintf('%s', fns{file_idx});
+  for wf = 1:size(results.DDS_time_error,2)
+    fprintf('\t%.2f', results.DDS_time_error(file_idx,wf)*1e9);
+  end
+  fprintf('\n');
+end
+if update_mode == 1
+  mean_error = mean(results.DDS_time_error,1);
+  if default.txequal.remove_linear_phase_en
+    mean_error = detrend(mean_error);
+    mean_error = mean_error - mean_error(param.ref_chan);
+    fprintf('%*s',fn_length,'Mean Error (slope removed)');
+  else
+    fprintf('%*s',fn_length,'Mean Error');
+  end
+  for wf = 1:size(mean_error,2)
+    fprintf('\t%.1f', mean_error(wf)*1e9);
+  end
+  fprintf('\n');
+  fprintf('%s',' '*ones(1,fn_length));
+  for wf = 1:size(mean_error,2)
+    if abs(mean_error(wf)) <= default.txequal.time_validation(wf)
+      fprintf('\tPASS');
+    else
+      fprintf('\tFAIL');
+    end
+  end
+  fprintf('\n');
+  fprintf('%s',' '*ones(1,fn_length));
+  for wf = 1:size(mean_error,2)
+    if abs(mean_error(wf)) <= default.txequal.time_validation(wf)
+      fprintf('\t');
+    else
+      fprintf('\t%.1f>%.1f', abs(mean_error(wf))*1e9, default.txequal.time_validation(wf)*1e9);
+    end
+  end
+  fprintf('\n');
+else
+  fprintf('DDS_time (ns)\n');
+  for file_idx = 1:length(fns)
+    fprintf('%s', fns{file_idx});
+    for wf = 1:size(results.DDS_time,2)
+      fprintf('\t%.2f', results.DDS_time(file_idx,wf)*1e9);
+    end
+    fprintf('\n');
+  end
+  fprintf('Original');
+  for chan = 1:length(param.DDS_start_time)
+    fprintf('\t%.2f', param.DDS_start_time(chan)*1e9);
+  end
+  fprintf('\n');
+  fprintf('Mean');
+  final_DDS_time = mean(results.DDS_time,1)*1e9;
+  for wf = 1:size(results.DDS_time,2)
+    fprintf('\t%.2f', final_DDS_time(wf));
+  end
+  fprintf('\n');
+  fprintf('Median');
+  for wf = 1:size(results.DDS_time,2)
+    fprintf('\t%.2f', median(results.DDS_time(:,wf))*1e9);
+  end
+  fprintf('\n');
+  fprintf('Stdev');
+  for wf = 1:size(results.DDS_time,2)
+    fprintf('\t%.2f', std(results.DDS_time(:,wf))*1e9);
+  end
+  fprintf('\n');
+end
+
+%% Print DDS Amplitude
+fprintf('\nDDS_amp_error (dB)\n');
+for file_idx = 1:length(fns)
+  fn_length = fprintf('%s', fns{file_idx});
+  for wf = 1:size(results.DDS_amp_error,2)
+    fprintf('\t%.1f', results.DDS_amp_error(file_idx,wf));
+  end
+  fprintf('\n');
+end
+if update_mode == 1
+  mean_error = mean(results.DDS_amp_error,1);
+  fprintf('%*s',fn_length,'Mean Error');
+  for wf = 1:size(mean_error,2)
+    fprintf('\t%.1f', mean_error(wf));
+  end
+  fprintf('\n');
+  fprintf('%s',' '*ones(1,fn_length));
+  for wf = 1:size(mean_error,2)
+    if abs(mean_error(wf)) <= default.txequal.amp_validation(wf);
+      fprintf('\tPASS');
+    else
+      fprintf('\tFAIL');
+    end
+  end
+  fprintf('\n');
+  fprintf('%s',' '*ones(1,fn_length));
+  for wf = 1:size(mean_error,2)
+    if abs(mean_error(wf)) <= default.txequal.amp_validation(wf);
+      fprintf('\t');
+    else
+      fprintf('\t%.0f>%.0f', abs(mean_error(wf)), default.txequal.amp_validation(wf));
+    end
+  end
+  fprintf('\n');
+else
+  fprintf('DDS_amp (DDS Counts, linear)\n');
+  for file_idx = 1:length(fns)
+    fprintf('%s', fns{file_idx});
+    for wf = 1:size(results.DDS_amp,2)
+      fprintf('\t%.0f', results.DDS_amp(file_idx,wf));
+    end
+    fprintf('\n');
+  end
+  fprintf('Original');
+  for chan = 1:length(param.DDS_start_mag)
+    fprintf('\t%.0f', param.DDS_start_mag(chan));
+  end
+  fprintf('\n');
+  fprintf('Mean');
+  final_DDS_amp = mean(results.DDS_amp,1);
+  % Normalize DDS amplitude to the maximum relative to the max_DDS_amp vector
+  if length(max_DDS_amp) == 1
+    % All DDS's have the same maximum
+    final_DDS_amp = final_DDS_amp / max(final_DDS_amp(~param.bad_chan_mask)) * max_DDS_amp;
+  else
+    % Each DDS has a separate maximum
+    [~,max_DDS_idx] = max(final_DDS_amp(~param.bad_chan_mask) ./ max_DDS_amp(~param.bad_chan_mask));
+    good_chan_idxs = find(~param.bad_chan_mask);
+    max_DDS_idx = good_chan_idxs(max_DDS_idx);
+    final_DDS_amp = final_DDS_amp / final_DDS_amp(max_DDS_idx) * max_DDS_amp(max_DDS_idx);
+  end
+  for wf = 1:size(results.DDS_amp,2)
+    fprintf('\t%.0f', final_DDS_amp(wf));
+  end
+  fprintf('\n');
+  fprintf('Median');
+  for wf = 1:size(results.DDS_amp,2)
+    fprintf('\t%.0f', median(results.DDS_amp(:,wf)));
+  end
+  fprintf('\n');
+  fprintf('Stdev');
+  for wf = 1:size(results.DDS_amp,2)
+    fprintf('\t%.0f', std(results.DDS_amp(:,wf)));
+  end
+  fprintf('\n');
+end
+
+%% Print DDS Phase
+fprintf('\nDDS_phase_error (deg)\n');
+for file_idx = 1:length(fns)
+  fn_length = fprintf('%s', fns{file_idx});
+  for wf = 1:size(results.DDS_phase_error,2)
+    fprintf('\t%.1f', 180/pi*angle(results.DDS_phase_error(file_idx,wf)));
+  end
+  fprintf('\n');
+end
+if update_mode == 1
+  mean_error = mean(results.DDS_phase_error,1);
+  if default.txequal.remove_linear_phase_en
+    [~,tmp] = max(fft(mean_error,100*length(mean_error))); tmp = tmp - 1;
+    mean_error = mean_error .* exp(-1i*2*pi*tmp/100*(0:length(mean_error)-1)/length(mean_error));
+    fprintf('%*s',fn_length,'Mean Error (slope removed)');
+  else
+    fprintf('%*s',fn_length,'Mean Error');
+  end
+  mean_error = 180/pi*angle(mean_error);
+  mean_error = mean_error - mean_error(param.ref_chan);
+  for wf = 1:size(mean_error,2)
+    fprintf('\t%.1f', mean_error(wf));
+  end
+  fprintf('\n');
+  fprintf('%s',' '*ones(1,fn_length));
+  for wf = 1:size(mean_error,2)
+    if abs(mean_error(wf)) <= default.txequal.phase_validation(wf);
+      fprintf('\tPASS');
+    else
+      fprintf('\tFAIL');
+    end
+  end
+  fprintf('\n');
+  fprintf('%s',' '*ones(1,fn_length));
+  for wf = 1:size(mean_error,2)
+    if abs(mean_error(wf)) <= default.txequal.phase_validation(wf);
+      fprintf('\t');
+    else
+      fprintf('\t%.0f>%.0f', abs(mean_error(wf)), default.txequal.phase_validation(wf));
+    end
+  end
+  fprintf('\n');
+else
+  fprintf('DDS_phase (deg)\n');
+  for file_idx = 1:length(fns)
+    fprintf('%s', fns{file_idx});
+    for wf = 1:size(results.DDS_phase,2)
+      fprintf('\t%.0f', 180/pi*results.DDS_phase(file_idx,wf));
+    end
+    fprintf('\n');
+  end
+  fprintf('Original');
+  for chan = 1:length(param.DDS_start_phase)
+    fprintf('\t%.1f', param.DDS_start_phase(chan));
+  end
+  fprintf('\n');
+  fprintf('Mean');
+  final_DDS_phase = angle(mean(exp(j*results.DDS_phase),1))*180/pi;
+  for wf = 1:size(results.DDS_time,2)
+    fprintf('\t%.1f', final_DDS_phase(:,wf));
+  end
+  fprintf('\n');
+  fprintf('Median');
+  for wf = 1:size(results.DDS_time,2)
+    fprintf('\t%.1f', final_DDS_phase(wf) + angle(mean(exp(j*results.DDS_phase(:,wf)) .* exp(-j*final_DDS_phase(wf)/180*pi),1))*180/pi);
+  end
+  fprintf('\n');
+  fprintf('Stdev');
+  for wf = 1:size(results.DDS_time,2)
+    fprintf('\t%.1f', 180/pi*std(angle(exp(j*(results.DDS_phase(:,wf) - mean(results.DDS_phase(:,wf)))) )));
+  end
+  fprintf('\n');
+  
+  if update_delay
+    fprintf('Delay Compensated Mean');
+    final_DDS_phase_comp = final_DDS_phase + 360*(final_DDS_time/1e9 ...
+      - param.DDS_start_time)*(param.pc_param.f0+param.pc_param.f1)/2;
+    final_DDS_phase_comp = 180/pi*angle(exp(j*(final_DDS_phase_comp - final_DDS_phase_comp(param.ref_chan))/180*pi));
+    final_DDS_phase_comp(logical(param.bad_chan_mask)) = 0;
+    for wf = 1:size(results.DDS_time,2)
+      fprintf('\t%.1f', final_DDS_phase_comp(:,wf));
+    end
+    fprintf('\n');
+    final_DDS_phase = final_DDS_phase_comp;
   end
 end
-DDS_error = ref_phase_median * 65536/(2*pi);
-if strcmpi(param.DDS_start_phase_units,'DDS')
-  fprintf('Recommended new DDS phase settings (DDS counts):\n');
-  new_DDS_phase = mod(param.DDS_start_phase - DDS_error, 65536);
-  fprintf('%.0f\t', new_DDS_phase(1:end-1));
-  fprintf('%.0f', new_DDS_phase(end));
-  fprintf('\n');
-elseif strcmpi(param.DDS_start_phase_units,'deg')
-  fprintf('Recommended new DDS phase settings (deg):\n');
-  new_DDS_phase = mod(param.DDS_start_phase - DDS_error/65536*360, 360);
-  fprintf('%.1f\t', new_DDS_phase(1:end-1));
-  fprintf('%.1f', new_DDS_phase(end));
-  fprintf('\n');
-end
-fprintf('========================================================\n');
 
+%% Update XML settings structure
+if update_mode ~= 1
+  if update_amplitude
+    settings_enc.(config_var_enc).(ram_var_enc)(~param.bad_chan_mask) = uint16(final_DDS_amp(~param.bad_chan_mask));
+  end
+  for wf = 1:length(settings_enc.(config_var_enc).Waveforms)
+    if update_phase
+      if all(isreal(param.wf_mapping))
+        settings_enc.(config_var_enc).Waveforms(wf).(phase_var_enc)(~param.bad_chan_mask) ...
+          = mod(double(final_DDS_phase(~param.bad_chan_mask) + phase_desired(~param.bad_chan_mask)), 360);
+      else
+        if mod(wf,2)
+          settings_enc.(config_var_enc).Waveforms(wf).(phase_var_enc)(~param.bad_chan_mask) ...
+            = double(final_DDS_phase(~param.bad_chan_mask) + phase_desired(~param.bad_chan_mask));
+        else
+          settings_enc.(config_var_enc).Waveforms(wf).(phase_var_enc)(~param.bad_chan_mask) = ...
+            angle(exp(j*(double(final_DDS_phase(~param.bad_chan_mask) + phase_desired(~param.bad_chan_mask))/180*pi+pi/2)))*180/pi;
+        end
+      end
+    end
+    if update_delay
+      settings_enc.(config_var_enc).Waveforms(wf).Delay(~param.bad_chan_mask) ...
+        = double(final_DDS_time(~param.bad_chan_mask) + time_delay_desired(~param.bad_chan_mask));
+    end
+  end
+end
+
+%% Write XML file
+if update_mode ~= 1
+  [xml_fn_dir xml_fn_name xml_fn_ext] = fileparts(settings.fn);
+  out_xml_fn = fullfile(out_xml_fn_dir, sprintf('txequal_%s%s', xml_fn_name, xml_fn_ext));
+  
+  settings_enc = rmfield(settings_enc,'fn');
+  settings_enc = rmfield(settings_enc,'datenum');
+  settings_enc = rmfield(settings_enc,'FPGAZ20Configuration');
+  
+  if isfield(settings_enc,'xmlversion') && str2double(settings_enc.xmlversion{1}.values) >= 2.0
+    settings_enc.sys.DDCZ20Ctrl = settings_enc.DDCZ20Ctrl;
+    settings_enc.sys.DDSZ5FSetup = settings_enc.DDSZ5FSetup;
+    settings_enc.sys.XMLZ20FileZ20Path = settings_enc.XMLZ20FileZ20Path;
+    settings_enc.sys.xmlversion = settings_enc.xmlversion;
+    settings_enc = rmfield(settings_enc,'DDCZ20Ctrl');
+    settings_enc = rmfield(settings_enc,'DDSZ5FSetup');
+    settings_enc = rmfield(settings_enc,'XMLZ20FileZ20Path');
+    settings_enc = rmfield(settings_enc,'xmlversion');
+  end
+  
+  fprintf('Writing %s\n', out_xml_fn);
+  out_xml_fn_dir = fileparts(out_xml_fn);
+  if ~exist(out_xml_fn_dir,'dir')
+    mkdir(out_xml_fn_dir);
+  end
+  fid = fopen(out_xml_fn,'w');
+  fprintf(fid,'<?xml version=''1.0'' standalone=''yes'' ?>\n');
+  fprintf(fid,'<LVData xmlns="http://www.ni.com/LVData">\n');
+  write_ni_xml_object(settings_enc,fid,true,struct('array_list','Waveforms','enum_list','DDCZ20sel'));
+  fprintf(fid,'</LVData>');
+  fclose(fid);
+end
+
+return;
