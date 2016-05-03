@@ -292,7 +292,7 @@ if data_check_flag
   linkaxes(h_axes,'xy');
 end
 
-if param.ascope_check_flag
+if ascope_check_flag
   data_combine = sum(data,3);
   figure(4);plot(mean(lp(data_combine),2));hold on;
 end
