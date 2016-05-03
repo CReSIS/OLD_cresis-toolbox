@@ -20,7 +20,7 @@ if strcmpi(radar_setup,'MCORDS5')
   param.file_search_mode = '';
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'D:\awi\chan1','/mnt/AWI_SSD0/1604261101/UWB/chan1/','/mnt/AWI_SSD0/1604261202/UWB/chan1/'};
+  param.base_dir_search = {'D:\awi\','/mnt/AWI_SSD0/1604261101/UWB/','/mnt/AWI_SSD0/1604261202/UWB/'};
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze

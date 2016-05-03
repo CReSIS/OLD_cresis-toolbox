@@ -35,7 +35,7 @@ while ~done
   plot(good_time_bins([1 1 end end 1]), [1 size(pc_signal,2) size(pc_signal,2) 1 1]);
   hold off
   try
-    min_range_bin = input(sprintf('Enter min range bin for surface [%d]:', good_time_bins(1)));
+    min_range_bin = input(sprintf('\nEnter min range bin for surface [%d]:', good_time_bins(1)));
     if isempty(min_range_bin)
       done = true;
     else
@@ -82,7 +82,7 @@ peakiness = lp(max(abs(H(param.analysis.specular.signal_doppler_bins,:)).^2) ./ 
 
 [best_val,best_idx] = max(peakiness);
 best_idx = round((best_idx-1) * param.analysis.specular.ave/2);
-fprintf('Best rangeline: %d with peakiness: %.1f dB\n', best_idx, best_val);
+fprintf('\nBest rangeline: %d with peakiness: %.1f dB\n', best_idx, best_val);
 try
   user_best_idx = input(sprintf('Enter range line [%d]: ',best_idx));
   if ~isempty(user_best_idx)
