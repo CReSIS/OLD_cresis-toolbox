@@ -81,6 +81,11 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         proc_settings = false;
       end
     end
+  else
+    proc_settings = true;
+  end
+  if ~proc_settings
+    continue
   end
   
   % Get raw data files associated with this directory
