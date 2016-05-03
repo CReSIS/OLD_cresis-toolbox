@@ -36,6 +36,70 @@ default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn'
 default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 default.basic_surf_track_min_time = 2e-6;
+default.adc_folder_name = 'chan%d';
+
+if 1
+  % Example 1: Normal configuration:
+  %   Connect antenna N to WFG N for all N = 1 to 8
+  ref_adc = 12;
+  default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
+  default.txequal.ref_wf_adc = 4;
+  default.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
+  default.txequal.Hwindow_desired = chebwin(8,30).';
+  default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];
+  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
+  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  default.txequal.remove_linear_phase_en = true;
+elseif 0
+  % Channel 12 ADC is bad:
+  ref_adc = 13;
+  default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
+  default.txequal.ref_wf_adc = 4;
+  default.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
+  default.txequal.Hwindow_desired = chebwin(8,30).';
+  default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];
+  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
+  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  default.txequal.remove_linear_phase_en = true;
+elseif 0
+  % DDS 3 is not used, but create settings not changed:
+  %   Connect antenna 1 to a 50 ohm load
+  %   Connect antenna 2 to WFG 1
+  %   Connect antenna 3 to WFG 2
+  ref_adc = 12;
+  default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
+  default.txequal.wf_mapping = [1 2 0 4 5 6 7 8];
+  default.txequal.ref_wf_adc = 4;
+  default.txequal.Hwindow_desired = chebwin(7,30).';
+  default.txequal.max_DDS_amp = [4000 4000 0 4000 4000 4000 4000 4000];
+  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
+  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  default.txequal.remove_linear_phase_en = true;
+elseif 0
+  % DDS 3 to 8 are not used and ADC's 3 to 24 are not used, create settings
+  % also only uses first two DDS
+  ref_adc = 1;
+  default.txequal.img = [(1:2).', ref_adc*ones(2,1)];
+  default.wf_mapping = [1 2 0 0 0 0 0 0];
+  default.txequal.ref_wf_adc = 1;
+  default.txequal.Hwindow_desired = [1 1];
+  default.txequal.max_DDS_amp = [4000 4000 0 0 0 0 0 0];
+  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
+  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  default.txequal.remove_linear_phase_en = false;
+end
 
 %% Vectors worksheet in parameter spreadsheet
 default.vectors.gps.time_offset = 1;
