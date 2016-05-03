@@ -30,6 +30,10 @@ if ~isfield(param,'base_dir_search')
   param.base_dir_search = {''};
 end
 
+if ~isfield(param,'multiselect')
+  param.multiselect = false;
+end
+
 global g_basic_file_loader_fn;
 global g_basic_file_loader_fns;
 g_basic_file_loader_fn = char(g_basic_file_loader_fn); % Force type to be string
@@ -92,7 +96,9 @@ if isempty(param.file_search_mode) ...
     end
   end
 end
-g_basic_file_loader_search = param.file_search_mode;
+if any(strcmpi(param.file_search_mode,{'specific','last_file','segment','map'}))
+  g_basic_file_loader_search = param.file_search_mode;
+end
 
 %% Determine which file to load
 if ~strncmpi(param.file_search_mode,'default',length('default'))
@@ -152,7 +158,13 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
   
   if strcmpi(param.file_search_mode,'last_file')
     global g_basic_file_loader_selection;
-    fns = get_filenames(base_dir,'','','.bin',struct('recursive',true));
+    adc_folder_name = defaults{1}.adc_folder_name;
+    adc = defaults{1}.records.file.adcs(1);
+    board = adc_to_board(param.radar_name,adc);
+    adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
+    adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
+    adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
+    fns = get_filenames(fullfile(base_dir,adc_folder_name),'','','.bin',struct('recursive',true));
     if isempty(fns)
       error('No data files in: %s\n', base_dir);
     end
@@ -176,20 +188,34 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
           fn_idx = g_basic_file_loader_selection;
         end
         fn = fns{fns_idxs(fn_idx)};
+        g_basic_file_loader_fns = {fn};
         done = true;
       end
     end
     g_basic_file_loader_selection = fn_idx;
     
   elseif strcmpi(param.file_search_mode,'specific')
+    adc_folder_name = defaults{1}.adc_folder_name;
+    adc = defaults{1}.records.file.adcs(1);
+    board = adc_to_board(param.radar_name,adc);
+    adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
+    adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
+    adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
+    adc_dir = fullfile(base_dir,adc_folder_name);
+    
     fn = '';
     fprintf('\n');
     while ~exist(fn,'file')
-      fn = input(sprintf('Filename [%s]: ', g_basic_file_loader_fn),'s');
-      if isempty(fn)
-        [~,fn] = fileparts(g_basic_file_loader_fn);
+      try
+        fprintf('Enter a file name pattern to search for (e.g. "*", "01_0002", etc). Do not include base directory.\n');
+        fn = input(sprintf('[%s]: ', g_basic_file_loader_fn),'s');
+        if isempty(fn)
+          [~,fn] = fileparts(g_basic_file_loader_fn);
+        end
+        
+        fn = get_filename(adc_dir,'',fn,'',struct('recursive',true));
+        g_basic_file_loader_fns = {fn};
       end
-      fn = get_filename(base_dir,'',fn,'',struct('recursive',true));
     end
     
   elseif strcmpi(param.file_search_mode,'segment')
@@ -219,8 +245,6 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
     % Print out settings for each segment (XML file)
     fprintf('\nData segments:\n');
     for set_idx = 1:length(settings)
-      settings(set_idx).enabled = true;
-      
       if set_idx < length(settings)
         num_files = sum(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
       else
@@ -246,6 +270,7 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
         if isempty(set_idx)
           set_idx = length(settings);
         end
+        settings(set_idx);
       catch
         set_idx = [];
       end
@@ -284,11 +309,35 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
     end
     
   elseif strcmpi(param.file_search_mode,'map')
-    error('Not supported yet');
+    basic_file_loader_map;
   end
   g_basic_file_loader_fn = fn;
+
+  % Load sequential files if multiselect is turned on
+  if param.multiselect && any(strcmpi(param.file_search_mode,{'last_file','specific'}))
+    global g_num_files;
+    if isempty(g_num_files)
+      g_num_files = 1;
+    end
+    num_files = input(sprintf('How many files [%d]: ',g_num_files));
+    if isempty(num_files)
+      num_files = g_num_files;
+    else
+      g_num_files = num_files;
+    end
+    for idx=2:g_num_files
+      [fn_dir,fn_name,fn_ext] = fileparts(g_basic_file_loader_fn);
+      cur_file_idx = str2double(fn_name(end-3:end));
+      fn_name(end-3:end) = sprintf('%04d',cur_file_idx + idx-1);
+      fn_name = [fn_name(1:end-14) '*' fn_name(end-7:end)];
+      g_basic_file_loader_fns{idx} = get_filename(fn_dir,'',fn_name,fn_ext);
+    end
+  end
+  
 else
-  if strcmp(param.file_search_mode,'default+s')
+  if strcmp(param.file_search_mode,'default')
+    fn = g_basic_file_loader_fn;
+  elseif strcmp(param.file_search_mode,'default+s')
     % Get the next file in g_basic_file_loader_fns
     if strcmpi(param.radar_name,'mcords5')
       file_idx = find(strcmp(g_basic_file_loader_fn, g_basic_file_loader_fns));
@@ -296,7 +345,10 @@ else
       if isempty(file_idx) || file_idx > length(g_basic_file_loader_fns)
         error('Next file index not found in file list.');
       end
-      g_basic_file_loader_fn = g_basic_file_loader_fns{file_idx};
+      fn = g_basic_file_loader_fns{file_idx};
+      g_basic_file_loader_fn = fn;
+    else
+      error('Not supported for %s',param.radar_name);
     end
     
   elseif strcmp(param.file_search_mode,'default+1')
@@ -305,13 +357,12 @@ else
     cur_file_idx = str2double(fn_name(end-3:end));
     fn_name(end-3:end) = sprintf('%04d',cur_file_idx + 1);
     fn_name = [fn_name(1:end-14) '*' fn_name(end-7:end)]
-    g_basic_file_loader_fn = get_filename(fn_dir,'',fn_name,fn_ext);
+    fn = get_filename(fn_dir,'',fn_name,fn_ext);
   end
 end
 
 %% Load the chosen file(s)
 tstart = tic;
-fprintf('Loading data (%.1f sec)\n', toc(tstart));
 % Load the data (disable if you have already loaded)
 clear data;
 clear num_rec;
@@ -331,7 +382,7 @@ if strcmpi(param.radar_name,'mcords')
       fprintf('  Could not find any files which match\n');
       return;
     end
-    fprintf('  Loading file %s\n', fn);
+    fprintf('Loading file %s\n', fn);
     [hdr,data_tmp] = basic_load_mcords(fn, struct('clk',1e9/9,'first_byte',2^26));
     data(:,:,adc_idx) = data_tmp{param.wf}(1:end-1,1:min(size(data_tmp{param.wf},2),param.rlines(2)));
   end
@@ -363,7 +414,7 @@ elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
         return;
       end
       fn = fn{end};
-      fprintf('  Loading file %s\n', fn);
+      fprintf('Loading file %s\n', fn);
       % Fix get_filenames     'The filename, directory name, or volume label syntax is incorrect.'
       if strcmpi(param.radar_name,'mcords2')
         [hdr,data_tmp] = basic_load_mcords2(fn,struct('clk',fs));
@@ -428,9 +479,10 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
   % adcs: a list of the adcs that we are loading
   adcs = unique(param.img(:,2));
   
+  fn_start = fn; % Store this first file away since fn gets overwritten below
   for adc = reshape(adcs,[1 length(adcs)])
     
-    [fn_dir,fn_name] = fileparts(g_basic_file_loader_fn);
+    [fn_dir,fn_name] = fileparts(fn_start);
     fn_dir = fileparts(fn_dir);
     fn_name(9:10) = sprintf('%02d',adc);
     fn = fullfile(fn_dir,sprintf('chan%d',adc),[fn_name,'.bin']);
@@ -440,7 +492,7 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
       [fn_dir,fn_name] = fileparts(fn);
       fn = get_filename(fn_dir,fn_name(1:7),fn_name(end-6:end),'');
     end
-    fprintf('  Loading file %s\n', fn);
+    fprintf('Loading file %s\n', fn);
     % Load the data file
     if strcmp(param.radar_name,'mcords4')
       [hdr,data_tmp] = basic_load_mcords4(fn,struct('clk',default.radar.fs/4,'recs',param.recs));
