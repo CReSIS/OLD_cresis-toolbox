@@ -1,4 +1,4 @@
-% function basic_tx_chan_equalization(param,defaults)
+function basic_tx_chan_equalization(param,defaults)
 % basic_tx_chan_equalization(param,defaults)
 %
 % RUN THIS FUNCTION FROM "run_basic_tx_chan_equalization"
@@ -62,7 +62,7 @@ param.search_bins = [-15 15];
 % param.Mt = amount to oversample the correlation
 param.Mt = 100;
 
-param.img = default.txequal.img;
+param.img = defaults{1}.txequal.img;
 
 %% Get the mode to run
 global g_basic_tx_chan_equalization_mode;
@@ -125,11 +125,14 @@ for file_idx = 1:length(fns)
     param.file_search_mode = 'default+s';
     [data,fn,settings,default,gps,hdr,pc_param,settings_enc] = basic_file_loader(param,defaults);
   end
+  if size(data,2) < param.presums
+    error('Not enough data in file to process. Choose a different file.');
+  end
   
   param.ref_wf_adc = default.txequal.ref_wf_adc;
   [fn_dir fn_name] = fileparts(fn);
   
-    %% Convert from quantization to voltage @ ADC
+  %% Convert from quantization to voltage @ ADC
   wf = abs(param.img(1,1));
   data = data ...
     * default.radar.adc_full_scale/2^default.radar.adc_bits ...
@@ -190,6 +193,9 @@ for file_idx = 1:length(fns)
   rbins = param.rbins;
   rlines = param.rlines;
   
+  xml_version = default.xml_version;
+  cresis_xml_mapping;
+  
   % .DDS_start_mag = current DDS waveform attenuation in dB or DDS counts
   %   (0 to 65535 DDS counts correspond to 0 to 2 Volts, linear map)
   param.DDS_start_mag = double(settings.(config_var).(ram_var));
@@ -210,7 +216,6 @@ for file_idx = 1:length(fns)
   
   out_xml_fn_dir = param.out_xml_fn_dir;
   
-  % =======================================================================
   %% Echogram plots
   % =======================================================================
   if param.plot_en
@@ -301,7 +306,7 @@ for file_idx = 1:length(fns)
   
   num_good_rlines = sum(good_rlines);
   fprintf('Number of good range lines: %d out of %d\n', num_good_rlines, length(good_rlines));
-  fprintf('========================================================\n');
+  fprintf('%s\n','-'*ones(1,80));
   if num_good_rlines == 0
     error('Cannot continue: no range lines exceeded the snr_threshold');
   end
@@ -355,7 +360,7 @@ for file_idx = 1:length(fns)
   fprintf('%.4f\t', new_DDS_time(1:end-1)*1e9);
   fprintf('%.4f', new_DDS_time(end)*1e9);
   fprintf('\n');
-  fprintf('========================================================\n');
+  fprintf('%s\n','-'*ones(1,80));
   results.DDS_time_error(file_idx,:) = ref_time_mean;
   results.DDS_time(file_idx,:) = new_DDS_time;
   
@@ -410,12 +415,11 @@ for file_idx = 1:length(fns)
     fprintf('%.2f', new_DDS_amp(end));
     fprintf('\n');
   end
-  fprintf('========================================================\n');
+  fprintf('%s\n','-'*ones(1,80));
   results.DDS_amp_error(file_idx,:) = delta_power - 20*log10(Hwindow_desired);
   results.DDS_amp(file_idx,:) = new_DDS_amp;
 
-  % =======================================================================
-  % Phase Settings
+  %% Phase Settings
   % =======================================================================
   ref_phase_mean = zeros(size(param.DDS_start_phase));
   for chan = 1:length(param.wf_mapping)
@@ -479,7 +483,7 @@ for file_idx = 1:length(fns)
   fprintf('%.1f\t', new_DDS_phase(1:end-1)*180/pi);
   fprintf('%.1f', new_DDS_phase(end)*180/pi);
   fprintf('\n');
-  fprintf('========================================================\n');
+  fprintf('%s\n','='*ones(1,80));
   results.DDS_phase_error(file_idx,:) = ref_phase_mean;
   results.DDS_phase(file_idx,:) = new_DDS_phase;
     
@@ -710,7 +714,7 @@ else
   if update_delay
     fprintf('Delay Compensated Mean');
     final_DDS_phase_comp = final_DDS_phase + 360*(final_DDS_time/1e9 ...
-      - param.DDS_start_time)*(param.pc_param.f0+param.pc_param.f1)/2;
+      - param.DDS_start_time)*(pc_param.f0+pc_param.f1)/2;
     final_DDS_phase_comp = 180/pi*angle(exp(j*(final_DDS_phase_comp - final_DDS_phase_comp(param.ref_chan))/180*pi));
     final_DDS_phase_comp(logical(param.bad_chan_mask)) = 0;
     for wf = 1:size(results.DDS_time,2)
@@ -768,7 +772,7 @@ if update_mode ~= 1
     settings_enc = rmfield(settings_enc,'xmlversion');
   end
   
-  fprintf('Writing %s\n', out_xml_fn);
+  fprintf('\nWriting %s\n', out_xml_fn);
   out_xml_fn_dir = fileparts(out_xml_fn);
   if ~exist(out_xml_fn_dir,'dir')
     mkdir(out_xml_fn_dir);
@@ -780,5 +784,3 @@ if update_mode ~= 1
   fprintf(fid,'</LVData>');
   fclose(fid);
 end
-
-return;

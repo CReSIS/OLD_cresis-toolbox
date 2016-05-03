@@ -31,5 +31,4 @@ end
 
 %% Automated Section
 
-basic_tx_chan_equalization
-%basic_tx_chan_equalization(param,defaults);
+basic_tx_chan_equalization(param,defaults);
