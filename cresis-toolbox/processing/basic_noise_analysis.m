@@ -155,7 +155,8 @@ if param.psd_en
   end
   
   for adc_idx = 1:size(data,3)
-    adc = param.img(adc_idx,2);
+    wf = abs(param.img(adc_idx,1));
+    adc = abs(param.img(adc_idx,2));
     
     fir_data = fir_dec(data(noise_rbins(1):noise_rbins(end),:,adc_idx),param.presums);
     
@@ -173,6 +174,9 @@ if param.psd_en
       xlabel('Frequency (MHz)');
       grid on;
       ylims = ylim;
+      if 0
+        saveas(400+adc,sprintf('noisePSD_wf_%d_adc_%d.fig',wf,adc));
+      end
       
       figure(300+adc); clf;
       set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',adc_idx));
