@@ -353,14 +353,13 @@ classdef (HandleCompatible = true) geotiff < handle
         obj.segments = obj.segments([1:idx-1 idx+1:end]);
       end
     end
-    
             
     %% Get selected segments and points for each segment
-    function get_segment(obj,idx)
-      try
-        delete(obj.segments(idx).h_plot);
-        delete(obj.segments(idx).h_plot_selected);
-        obj.segments = obj.segments([1:idx-1 idx+1:end]);
+    function value = get_selection(obj,idx)
+      value = {};
+      for idx = 1:length(obj.segments)
+        match_mask = ~isnan(obj.segments(idx).selected);
+        value = cat(1, value, obj.segments(idx).value(match_mask,:));
       end
     end
 
