@@ -20,23 +20,17 @@ if strcmpi(radar_setup,'MCORDS5')
   param.file_search_mode = 'last_file';
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'D:\awi\chan1','/mnt/HDD6/1604130301/UWB/chan1/','/mnt/AWI_SSD0/1604180702/UWB/chan1/'};
+  param.base_dir_search = {'D:\awi\','/mnt/AWI_SSD0/1604261101/UWB/','/mnt/AWI_SSD0/1604261202/UWB/'};
   
   % .pdf_en: Enable time domain, probability density function, and quantization plots
   param.pdf_en = false;
   % .psd_en: Enable PSD plot
   param.psd_en = true;
   
-  % .noise_rbins: Specify which bins to use for noise analysis (nonpositive
-  %   numbers cause basic_noise_analysis to reference from the end of the range line)
-  param.noise_rbins = [-499 0];
-  
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
-  param.img = cat(2,3*ones(24,1),[1:24].');
-  % param.img = cat(2,3*ones(8,1),[9:16].'); % Center subarray
-%   param.img = cat(2,3*ones(8,1),[1:8].'); % Left subarray
-  % param.img = cat(2,3*ones(8,1),[17:24].'); % Right subarray
+  wf = 2; adcs = 1:24;
+  param.img = cat(2, wf*ones(24,1), adcs.');
 
   % .recs: two element vector specifying which records/range-lines to load
   %   [start_record num_records]

@@ -40,26 +40,58 @@ else
 end
 noise_rbins = intersect(noise_rbins,default_noise_rbins);
 
+dt = pc_param.time(2)-pc_param.time(1);
+Nt_noise = round(1e-6/dt);
+box_high = [];
+box_highalt(1) = find(pc_param.time > pc_param.Tpd+1e-6,1);
+box_highalt(2) = box_highalt(1) + Nt_noise;
+box_lowalt = [];
+box_lowalt(1) = size(data,1)-Nt_noise+1;
+box_lowalt(2) = size(data,1);
+
 figure(1000); clf;
 imagesc(lp( mean( abs(data).^2, 3 ) ))
 hold on
-plot(param.noise_rbins([1 1 2 2 1]), [1 size(data,2) size(data,2) 1 1]);
+plot([1 size(data,2) size(data,2) 1 1], box_highalt([1 1 2 2 1]),'k','LineWidth',2);
+plot([1 size(data,2) size(data,2) 1 1], box_lowalt([1 1 2 2 1]),'r','LineWidth',2);
 hold off
 xlabel('Range lines');
 ylabel('Range bins');
 h = colorbar;
 set(get(h,'YLabel'),'String','Relative power (dB)');
-fprintf('Check to ensure that selected range bins are noise. Enter a new\n');
-fprintf('range bin range if not (e.g. [-499 0] for last 500 range bins or\n');
-fprintf('[3400 3800] for range bins 3400-3800). Leave empty for current.\n');
-done = false;
-while ~done
-  user_noise_rbins = input(sprintf('%s: ', mat2str(param.noise_rbins)));
-  if isempty(user_noise_rbins)
-    done = true;
-  elseif length(user_noise_rbins) == 2
-    done = true;
-    param.noise_rbins = user_noise_rbins;
+
+noise_power_highalt = lp(mean(mean( abs(data(box_highalt(1):box_highalt(2),:)).^2 ,1),2));
+noise_power_lowalt = lp(mean(mean( abs(data(box_lowalt(1):box_lowalt(2),:)).^2 ,1),2));
+if noise_power_highalt > noise_power_lowalt
+  default_box = 2;
+else
+  default_box = 1;
+end
+
+fprintf('Choose the range bins to use for the noise analysis. The range bins\n');
+fprintf('should contain no signal energy.\n');
+fprintf('1: Choose the black box (high altitude)\n');
+fprintf('2: Choose the red box (low altitude)\n');
+fprintf('Custom: Enter with square brackets two numbers to choose the start\n');
+fprintf('   and stop bin for the noise region. For example "[3400 %d]".\n', 3400+Nt_noise);
+param.noise_rbins = [];
+while any(size(param.noise_rbins) ~= [1 2])
+  try
+    param.noise_rbins = input(sprintf('[%d]: ', default_box));
+    if isempty(param.noise_rbins)
+      if noise_power_highalt > noise_power_lowalt
+        param.noise_rbins = box_lowalt;
+      else
+        param.noise_rbins = box_highalt;
+      end
+    elseif length(param.noise_rbins) == 1
+      if param.noise_rbins == 2
+        param.noise_rbins = box_lowalt;
+      else
+        param.noise_rbins = box_highalt;
+      end
+    end
+    param.noise_rbins = sort(param.noise_rbins);
   end
 end
 
