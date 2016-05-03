@@ -48,6 +48,8 @@ classdef (HandleCompatible = true) geotiff < handle
     % x,y: the location of the mouse at button_down
     x
     y
+    ctrl_pressed
+    shift_pressed
   end
   
   methods
@@ -96,6 +98,7 @@ classdef (HandleCompatible = true) geotiff < handle
       set(obj.h_fig,'WindowButtonDownFcn',@obj.button_down);
       set(obj.h_fig,'WindowScrollWheelFcn',@obj.button_scroll);
       set(obj.h_fig,'WindowKeyPressFcn',@obj.key_press);
+      set(obj.h_fig,'WindowKeyReleaseFcn',@obj.key_release);
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
 
       % Set up zoom
@@ -103,6 +106,10 @@ classdef (HandleCompatible = true) geotiff < handle
       obj.zoom_mode = true;
       set(obj.h_fig,'pointer','custom');
       
+      obj.x = NaN;
+      obj.y = NaN;
+      obj.ctrl_pressed = false;
+      obj.shift_pressed = false;
     end
     
     %% Destructor
@@ -135,7 +142,16 @@ classdef (HandleCompatible = true) geotiff < handle
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
           'h_axes',obj.h_axes,'xlims',obj.xlims,'ylims',obj.ylims));
       else
-        % Find selected points and plot
+        if ~obj.ctrl_pressed
+          % Release all current selections
+          for idx = 1:length(obj.segments)
+            obj.segments(idx).selected = NaN*zeros(size(obj.segments(idx).y));
+            set(obj.segments(idx).h_plot_selected,'YData',obj.segments(idx).selected);
+          end
+        end
+        % Find selected points and print there values out
+        fprintf('Selection:\n');
+        
         for idx = 1:length(obj.segments)
           min_x = min(x,obj.x);
           max_x = max(x,obj.x);
@@ -143,14 +159,18 @@ classdef (HandleCompatible = true) geotiff < handle
           max_y = max(y,obj.y);
           match_mask = obj.segments(idx).x >= min_x & obj.segments(idx).x <= max_x ...
             & obj.segments(idx).y >= min_y & obj.segments(idx).y <= max_y;
+          match_mask = xor(match_mask,~isnan(obj.segments(idx).selected));
+          obj.segments(idx).selected = NaN*zeros(size(obj.segments(idx).y));
+          obj.segments(idx).selected(match_mask) = obj.segments(idx).y(match_mask);
+          set(obj.segments(idx).h_plot_selected,'YData',obj.segments(idx).selected,'Marker','o','LineWidth',2);
           if any(match_mask)
-            fprintf('Segment: %s\n', obj.segments(idx).name);
+            fprintf('  Segment: %s\n', obj.segments(idx).name);
             for pnt_idx = find(match_mask(:).')
               for val_idx = 1:length(obj.segments(idx).value_name)
                 if ischar(obj.segments(idx).value{pnt_idx,val_idx})
-                  fprintf('  %s: %s\n', obj.segments(idx).value_name{val_idx}, obj.segments(idx).value{pnt_idx,val_idx});
+                  fprintf('    %s: %s\n', obj.segments(idx).value_name{val_idx}, obj.segments(idx).value{pnt_idx,val_idx});
                 else
-                  fprintf('  %s: %g\n', obj.segments(idx).value_name{val_idx}, obj.segments(idx).value{pnt_idx,val_idx});
+                  fprintf('    %s: %g\n', obj.segments(idx).value_name{val_idx}, obj.segments(idx).value{pnt_idx,val_idx});
                 end
               end
             end
@@ -169,15 +189,15 @@ classdef (HandleCompatible = true) geotiff < handle
     function key_press(obj,src,event)
       
       if any(strcmp('shift',event.Modifier))
-        shift_pressed = true;
+        obj.shift_pressed = true;
       else
-        shift_pressed = false;
+        obj.shift_pressed = false;
       end
       
       if any(strcmp('control',event.Modifier))
-        ctrl_pressed = true;
+        obj.ctrl_pressed = true;
       else
-        ctrl_pressed = false;
+        obj.ctrl_pressed = false;
       end
       
       % Check to make sure that a key was pressed and not
@@ -204,7 +224,7 @@ classdef (HandleCompatible = true) geotiff < handle
             fprintf('scroll: zoom in/out at point\n');
             
           case 'z'
-            if ctrl_pressed
+            if obj.ctrl_pressed
               % zoom reset
               axis tight;
             else
@@ -238,6 +258,23 @@ classdef (HandleCompatible = true) geotiff < handle
         end
         
       end
+    end
+    
+    %% Key release handler
+    function key_release(obj,src,event)
+      
+      if any(strcmp('shift',event.Modifier))
+        obj.shift_pressed = true;
+      else
+        obj.shift_pressed = false;
+      end
+      
+      if any(strcmp('control',event.Modifier))
+        obj.ctrl_pressed = true;
+      else
+        obj.ctrl_pressed = false;
+      end
+      
     end
     
     %% Insert segment method
@@ -288,10 +325,15 @@ classdef (HandleCompatible = true) geotiff < handle
       obj.segments(end).value_name= segment.value_name;
 
       % Plot
+      obj.segments(end).selected = NaN*zeros(size(y));
       if ~isempty(x)
         obj.segments(end).h_plot = plot(x,y,'x-','Linewidth',2,'Parent',obj.h_axes);
+        obj.segments(end).h_plot_selected = plot(x,obj.segments(end).selected,'x-','Linewidth',2,'Parent',obj.h_axes,'MarkerSize',10);
       else
         obj.segments(end).h_plot = plot(NaN,NaN,'x-','Linewidth',2,'Parent',obj.h_axes);
+        set(obj.segments(end).h_plot,'XData',[],'YData',[]);
+        obj.segments(end).h_plot_selected = plot(NaN,NaN,'x-','Linewidth',2,'Parent',obj.h_axes,'MarkerSize',10);
+        set(obj.segments(end).h_plot_selected,'XData',[],'YData',[]);
       end
       color = get(obj.segments(end).h_plot,'Color');
       
@@ -301,8 +343,27 @@ classdef (HandleCompatible = true) geotiff < handle
         obj.segments(end).h_text = text(NaN,NaN,obj.segments(end).name,'Color',color,'Parent',obj.h_axes);
       end
 
+    end    
+        
+    %% Delete segment method
+    function delete_segment(obj,idx)
+      try
+        delete(obj.segments(idx).h_plot);
+        delete(obj.segments(idx).h_plot_selected);
+        obj.segments = obj.segments([1:idx-1 idx+1:end]);
+      end
     end
     
+            
+    %% Get selected segments and points for each segment
+    function get_segment(obj,idx)
+      try
+        delete(obj.segments(idx).h_plot);
+        delete(obj.segments(idx).h_plot_selected);
+        obj.segments = obj.segments([1:idx-1 idx+1:end]);
+      end
+    end
+
   end
 end
 
