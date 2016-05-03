@@ -1,4 +1,4 @@
-% script create_settings_2015_Greenland_Polar6
+% script create_settings_2016_Greenland_Polar6
 %
 % Creates NI radar depth sounder settings
 %
@@ -37,9 +37,10 @@ if 0
     final_DDS_time{idx} =  [0 0 0 0 0 0 0 0];
   end
 else
-  % After transmit calibration during 20160401 test flight
-  %   From basic_tx_chan_equalization_SEASON_NAME.m
+  % COPY AND PASTE RESULTS FROM basic_tx_chan_equalization_SEASON_NAME.m
+  % HERE:
   
+  % These are from transmit calibration during 20160401 test flight  
   % NOTE: These values are valid for when DDS channels 5-8 come up one 1440
   % MHz clock cycle after channels 1-4.
   
@@ -63,8 +64,8 @@ if 1
   fprintf(' [0 0 0 0 0 0 0 0]: Use this correction when 1-4 are aligned and 5-8 are lagging by 0.69 ns *\n');
   fprintf(' [0 0 0 0 1 1 1 1]: Use this correction when 1-8 are aligned\n');
   fprintf('Example of some other cases for understanding:\n');
-  fprintf(' [0 0 0 0 0 1 0 0]: Use this correction when 1-5 & 7-8 are aligned and 6 is lagging by 0.69 ns\n');
-  fprintf(' [0 0 0 0 0 1 1 1]: Use this correction when 1-5 are aligned and 6-8 are lagging by 0.69 ns\n');
+  fprintf(' [0 0 0 0 1 0 1 1]: Use this correction when 1-5 & 7-8 are aligned and 6 is lagging by 0.69 ns\n');
+  fprintf(' [0 0 0 0 1 0 0 0]: Use this correction when 1-5 are aligned and 6-8 are lagging by 0.69 ns\n');
   fprintf('Recalibrate DDS if correction requires <0 or >0.69 ns correction.\n');
   user_clock_correction = [];
   while length(user_clock_correction) ~= 8
