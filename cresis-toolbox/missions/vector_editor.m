@@ -381,6 +381,7 @@ classdef (HandleCompatible = true) vector_editor < handle
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Copy', 'Callback', @obj.wpntsLB_menu_callback);
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Delete', 'Callback', @obj.wpntsLB_menu_callback);
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Paste', 'Callback', @obj.wpntsLB_menu_callback);
+      obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'New Flightline', 'Callback', @obj.wpntsLB_menu_callback);
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Rename', 'Callback', @obj.wpntsLB_menu_callback);
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Rename Auto', 'Callback', @obj.wpntsLB_menu_callback);
       obj.h_gui.wpnts.listCM_item1 = uimenu(obj.h_gui.wpnts.listCM, 'Label', 'Reverse Order', 'Callback', @obj.wpntsLB_menu_callback);
@@ -980,6 +981,8 @@ classdef (HandleCompatible = true) vector_editor < handle
           header_line = fgets(fid);
           if any(header_line == ',')
             default_delim = ',';
+          elseif any(header_line == ';')
+            default_delim = ';';
           end
           fprintf('%s', header_line);
           line_str = fgets(fid);
@@ -987,7 +990,6 @@ classdef (HandleCompatible = true) vector_editor < handle
           
           id_field = [];
           if strcmpi(ext,'.csv')
-            default_delim = ',';
             default_num_header_lines = '1';
             
             fields = regexpi(header_line,default_delim,'split');
@@ -1367,7 +1369,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         cur_fline_selected = cell2mat(cur_fline_selected);
       end
       cur_fline_selected = sort([cur_fline_selected pos]);
-      set(obj.h_gui.flines.listLB,'Value',cur_fline_selected);
+      %set(obj.h_gui.flines.listLB,'Value',cur_fline_selected);
       
       % Map fields and make sure lat,lon,wpnt_names are 1xN
       obj.flines(pos+1:end+1) = obj.flines(pos:end);
@@ -1399,7 +1401,7 @@ classdef (HandleCompatible = true) vector_editor < handle
         = geodetic_to_along_track(obj.flines(pos).lat, ...
         obj.flines(pos).lon);
       
-      obj.flinesLB_callback();
+      %obj.flinesLB_callback();
     end
     
     function insert_wpnt(obj,x,y,name)
@@ -1701,6 +1703,74 @@ classdef (HandleCompatible = true) vector_editor < handle
       elseif strcmpi(command,'Delete')
         obj.reset_copy()
         delete_pointPB_callback(obj,h_obj,event)
+
+      elseif strcmpi(command,'New Flightline')
+        cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
+        if iscell(cur_fline_selected)
+          cur_fline_selected = cell2mat(cur_fline_selected);
+        end
+        if isempty(cur_fline_selected)
+          warning('No flight line selected');
+          return;
+        end
+        cur_fline_selected = cur_fline_selected(1);
+        
+        cur_wpnt_selected = get(obj.h_gui.wpnts.listLB,'Value');
+        if iscell(cur_wpnt_selected)
+          cur_wpnt_selected = cell2mat(cur_wpnt_selected);
+        end
+        if isempty(cur_wpnt_selected)
+          warning('No waypoint selected');
+          return;
+        end
+                
+        flines = obj.flines(cur_fline_selected);
+        for idx = 1:length(cur_fline_selected)
+          fline = flines(idx);
+          if ~isempty(cur_wpnt_selected)
+            fline.lat = fline.lat(cur_wpnt_selected);
+            fline.lon = fline.lon(cur_wpnt_selected);
+            fline.wpnt_names = fline.wpnt_names(cur_wpnt_selected);
+          end
+          
+          fline.name = fline.wpnt_names{1};
+          for wpnt_idx = 2:length(fline.wpnt_names)
+            str1 = fline.name;
+            str2 = fline.wpnt_names{wpnt_idx};
+            
+            char_idx = 1;
+            
+            if char_idx > length(str1)
+              char_same = false;
+            elseif char_idx > length(str2)
+              char_same = false;
+            elseif str1(char_idx)~=str2(char_idx)
+              char_same = false;
+            else
+              char_same = true;
+            end
+            
+            while char_same
+              char_idx = char_idx + 1;
+              
+              if char_idx > length(str1)
+                char_same = false;
+              elseif char_idx > length(str2)
+                char_same = false;
+              elseif str1(char_idx)~=str2(char_idx)
+                char_same = false;
+              else
+                char_same = true;
+              end
+              
+            end
+            if char_idx > 1
+              fline.name = fline.wpnt_names{1}(1:char_idx-1);
+            end
+          end
+          
+          obj.insert_fline(fline,cur_fline_selected+idx);
+        end
         
       elseif strcmpi(command,'Rename') || strcmpi(command,'Rename Auto')
         cur_fline_selected = get(obj.h_gui.flines.listLB,'Value');
@@ -2639,12 +2709,19 @@ classdef (HandleCompatible = true) vector_editor < handle
         
         if cur_wpnt_selected > 1
           % Update our "database" of flight lines
-          obj.flines(cur_fline_selected).x(cur_wpnt_selected-1:cur_wpnt_selected) = obj.flines(cur_fline_selected).x(cur_wpnt_selected:-1:cur_wpnt_selected-1);
-          obj.flines(cur_fline_selected).y(cur_wpnt_selected-1:cur_wpnt_selected) = obj.flines(cur_fline_selected).y(cur_wpnt_selected:-1:cur_wpnt_selected-1);
-          obj.flines(cur_fline_selected).wpnt_names(cur_wpnt_selected-1:cur_wpnt_selected) = obj.flines(cur_fline_selected).wpnt_names(cur_wpnt_selected:-1:cur_wpnt_selected-1);
+          obj.flines(cur_fline_selected).x(cur_wpnt_selected-1:cur_wpnt_selected) ...
+            = obj.flines(cur_fline_selected).x(cur_wpnt_selected:-1:cur_wpnt_selected-1);
+          obj.flines(cur_fline_selected).y(cur_wpnt_selected-1:cur_wpnt_selected) ...
+            = obj.flines(cur_fline_selected).y(cur_wpnt_selected:-1:cur_wpnt_selected-1);
+          obj.flines(cur_fline_selected).wpnt_names(cur_wpnt_selected-1:cur_wpnt_selected) ...
+            = obj.flines(cur_fline_selected).wpnt_names(cur_wpnt_selected:-1:cur_wpnt_selected-1);
           
           [obj.flines(cur_fline_selected).lat obj.flines(cur_fline_selected).lon] ...
             = projinv(obj.proj,obj.flines(cur_fline_selected).x,obj.flines(cur_fline_selected).y);
+          
+          obj.flines(cur_fline_selected).along_track ...
+            = geodetic_to_along_track(obj.flines(cur_fline_selected).lat, ...
+            obj.flines(cur_fline_selected).lon);
           
           % Update the listbox
           wpnts(cur_wpnt_selected-1:cur_wpnt_selected) = wpnts(cur_wpnt_selected:-1:cur_wpnt_selected-1);
@@ -2653,6 +2730,9 @@ classdef (HandleCompatible = true) vector_editor < handle
           
           % Update the map
           set(obj.flines(cur_fline_selected).handle,'XData',obj.flines(cur_fline_selected).x/1e3,'YData',obj.flines(cur_fline_selected).y/1e3);
+          
+          % Update status
+          update_statusText(obj);
         end
       end
     end
@@ -2710,6 +2790,10 @@ classdef (HandleCompatible = true) vector_editor < handle
           obj.flines(cur_fline_selected).wpnt_names(cur_wpnt_selected:cur_wpnt_selected+1) ...
             = obj.flines(cur_fline_selected).wpnt_names(cur_wpnt_selected+1:-1:cur_wpnt_selected);
           
+          obj.flines(cur_fline_selected).along_track ...
+            = geodetic_to_along_track(obj.flines(cur_fline_selected).lat, ...
+            obj.flines(cur_fline_selected).lon);
+          
           [obj.flines(cur_fline_selected).lat obj.flines(cur_fline_selected).lon] ...
             = projinv(obj.proj,obj.flines(cur_fline_selected).x,obj.flines(cur_fline_selected).y);
           
@@ -2720,6 +2804,9 @@ classdef (HandleCompatible = true) vector_editor < handle
           
           % Update the map
           set(obj.flines(cur_fline_selected).handle,'XData',obj.flines(cur_fline_selected).x/1e3,'YData',obj.flines(cur_fline_selected).y/1e3);
+          
+          % Update status
+          update_statusText(obj);
         end
       end
     end
