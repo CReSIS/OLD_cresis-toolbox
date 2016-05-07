@@ -68,11 +68,10 @@ if stage_one_en
   deconv_gps_time = [];
   
   for param_idx = 1:length(params)
-    param = params(param_idx);
-    
     %% Is this segment selected in the param spreadsheet
-    if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) ...
-        || ischar(param.cmd.generic) || ~param.cmd.generic ...
+    param = params(param_idx);
+    if (~isfield(param.cmd,'generic') || iscell(param.cmd.generic) ...
+        || ischar(param.cmd.generic) || ~param.cmd.generic) ...
         || (~isempty(day_seg_debug) && ~strcmp(day_seg_debug,param.day_seg))
       continue;
     end
@@ -160,7 +159,9 @@ if stage_one_en
       SNR = abs(sig).^2 ./ sig_std.^2;
       
       %% Apply windowing or time-gating to the specular target
-      [~,max_bin] = max(sig);
+      max_bin_search_bins = round(length(sig)/2) + (-50:50);
+      [~,max_bin] = max(sig(max_bin_search_bins));
+      max_bin = max_bin + max_bin_search_bins(1)-1;
       good_bins = max_bin + param.analysis.specular.rbins;
       sig_tg = zeros(size(sig));
       sig_tg(good_bins) = sig(good_bins) ...
@@ -197,13 +198,15 @@ if stage_one_en
         hold off;
         title(sprintf('%s: With Nt_shorten',param.day_seg),'interpreter','none');
         legend('window','raw','correction','location','best');
-        fig1_fn = [ct_filename_tmp(param,'','deconv','Nt_shorten') '_without.fig'];
+        wf = spec.param_analysis.analysis.imgs{img}(wf_adc,1);
+        adc = spec.param_analysis.analysis.imgs{img}(wf_adc,2);
+        fig1_fn = [ct_filename_tmp(param,'','deconv','Nt_shorten') sprintf('_wf%d_adc%d_without.fig',wf,adc)];
         fig1_fn_dir = fileparts(fig1_fn);
         if ~exist(fig1_fn_dir)
           mkdir(fig1_fn_dir);
         end
         saveas(1,fig1_fn);
-        fig2_fn = [ct_filename_tmp(param,'','deconv','Nt_shorten') '_with.fig'];
+        fig2_fn = [ct_filename_tmp(param,'','deconv','Nt_shorten') sprintf('_wf%d_adc%d_with.fig',wf,adc)];
         saveas(2,fig2_fn);
         
         grid on;
@@ -237,7 +240,7 @@ if stage_one_en
       sig_deconv = ifft(fftshift(fft(sig_sample),1) .* spec.deconv_H{rline});
       
       %% Normalize
-      sample_Mt = lp(interpft(ifft(ifftshift(fft(sig_sample))),Mt*length(sig_deconv)));
+      sample_Mt = lp(interpft(sig_sample,Mt*length(sig_deconv)));
       sample_peak = max(sample_Mt);
       sig_deconv_Mt = lp(interpft(ifft(ifftshift(fft(sig_deconv))),Mt*length(sig_deconv)));
       [sig_deconv_peak,peak_idx] = max(sig_deconv_Mt);
@@ -478,27 +481,13 @@ if stage_one_en
       wf = spec.param_analysis.analysis.imgs{img}(wf_adc,1);
       adc = spec.param_analysis.analysis.imgs{img}(wf_adc,2);
 
+      % Start with the original reference function that was used to
+      % compress the specular lead data
       ref = spec.wfs(wf).ref{adc};
+      % Then add in the correction
       ref(spec.wfs(wf).freq_inds) = ref(spec.wfs(wf).freq_inds) .* ifftshift(spec.deconv_H{best_idx});
-
-      if 0
-        % Debug Code
-        % Estimate delay and phase shift caused by deconvolution process
-        % relative to reference waveform
-        
-        deconv_test = ifft(spec.wfs(wf).ref{adc} .* conj(ref));
-        ideal_test = ifft(spec.wfs(wf).ref{adc} .* conj(spec.wfs(wf).ref{adc}));
-        figure(1); clf;
-        plot(lp(deconv_test));
-        hold on;
-        plot(lp(ideal_test));
-        
-        [~,max_idx] = max(deconv_test) % Should be one
-        
-        angle(deconv_test(1))*180/pi % Should be ~zero
-      end
       
-      % Remove receiver delays that were applied to the reference function
+      % Prepare frequency axis
       Nt = length(ref);
       fc = spec.wfs(wf).fc;
       if spec.wfs(wf).DDC_mode == 0
@@ -510,10 +499,67 @@ if stage_one_en
         fs = param.radar.fs / 2^(1+spec.wfs(wf).DDC_mode);
         dt = 1/fs;
         df = 1/(Nt*dt);
-        freq = spec.wfs(wf).DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+        freq = spec.wfs(wf).DDC_freq + df*ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
       end
       
-      ref = ifft(conj(ref) .* exp(1i*2*pi*freq*spec.param_analysis.radar.wfs(wf).Tsys(spec.param_analysis.radar.wfs(wf).rx_paths(adc))));
+      % Estimate delay and phase shift caused by deconvolution process
+      % relative to reference waveform
+      
+      deconv_test = ifft(spec.wfs(wf).ref{adc} .* conj(ref));
+      ideal_test = ifft(spec.wfs(wf).ref{adc} .* conj(spec.wfs(wf).ref{adc}));
+      Mt = 20;
+      deconv_test = interpft(deconv_test,Mt*length(deconv_test));
+      ideal_test = interpft(ideal_test,Mt*length(ideal_test));
+      figure(1); clf;
+      plot(lp(deconv_test));
+      hold on;
+      plot(lp(ideal_test));
+      
+      [~,idx_error] = max(deconv_test);
+      idx_error = (idx_error-1)/Mt
+      
+      phase_error = angle(deconv_test(1))*180/pi
+      
+      freq_norm = ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
+      ref = ref .* exp(-1i*2*pi*idx_error*freq_norm/Nt);
+      
+      deconv_test = ifft(spec.wfs(wf).ref{adc} .* conj(ref));
+      ideal_test = ifft(spec.wfs(wf).ref{adc} .* conj(spec.wfs(wf).ref{adc}));
+      Mt = 20;
+      deconv_test = interpft(deconv_test,Mt*length(deconv_test));
+      ideal_test = interpft(ideal_test,Mt*length(ideal_test));
+      figure(1); clf;
+      plot(lp(deconv_test));
+      hold on;
+      plot(lp(ideal_test));
+      
+      [~,idx_error] = max(deconv_test);
+      idx_error = (idx_error-1)/Mt
+      
+      phase_error = angle(deconv_test(1))*180/pi
+      
+      ref = ref .* exp(1i*phase_error/180*pi);
+      
+      deconv_test = ifft(spec.wfs(wf).ref{adc} .* conj(ref));
+      ideal_test = ifft(spec.wfs(wf).ref{adc} .* conj(spec.wfs(wf).ref{adc}));
+      Mt = 20;
+      deconv_test = interpft(deconv_test,Mt*length(deconv_test));
+      ideal_test = interpft(ideal_test,Mt*length(ideal_test));
+      figure(1); clf;
+      plot(lp(deconv_test));
+      hold on;
+      plot(lp(ideal_test));
+      
+      [~,idx_error] = max(deconv_test);
+      idx_error = (idx_error-1)/Mt % Should be zero
+      
+      phase_error = angle(deconv_test(1))*180/pi % Should be ~zero
+      
+      % Remove time delay corrections that were applied to the original
+      % reference function (these will be reapplied at processing time).
+      ref = ref .* exp(-1i*2*pi*freq*spec.param_analysis.radar.wfs(wf).Tsys(spec.param_analysis.radar.wfs(wf).rx_paths(adc)));
+      ref = ref .* exp(-1i*2*pi*freq*spec.wfs(wf).time_correction);
+      ref = ifft(conj(ref));
       
       if debug_level == 6
         figure(1); clf;
@@ -526,6 +572,9 @@ if stage_one_en
       ref_nonnegative = ref(param.analysis.specular.ref_nonnegative{img});
       ref_negative = ref(param.analysis.specular.ref_negative{img} + end);
 
+      param_collate = param;
+      param_analysis = spec.param_analysis;
+
       records_fn = ct_filename_support(param,'','records');
       records = load(records_fn);
       rec = find(records.gps_time > spec.deconv_gps_time(best_idx),1);
@@ -537,7 +586,7 @@ if stage_one_en
       fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
       fn = fullfile(fn_dir,sprintf('deconv_wf_%d_adc_%d_%s.mat', wf, adc, param.day_seg));
       fprintf('Saving %s img %d wf %d: %s\n', param.day_seg, img, wf_adc, fn);
-      save(fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window','param_collate','best_idx');
+      save(fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window','param_collate','best_idx','param_collate','param_analysis');
       continue;
     end
     
