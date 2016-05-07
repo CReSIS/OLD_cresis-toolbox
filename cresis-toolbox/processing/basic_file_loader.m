@@ -137,7 +137,12 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
     fprintf('\n');
     % Get input from user
     try
-      base_dir_idx = input(sprintf('More than one base directory exists, choose one [%d]: ',default_base_dir_idx));
+      if ~isempty(param.base_dir_search)
+        base_dir_idx = input(sprintf('Choose base directory [%d]: ',default_base_dir_idx));
+      else
+        % Automatically choose custom if no base directories exist
+        base_dir_idx = 1;
+      end
       if isempty(base_dir_idx)
         base_dir_idx = default_base_dir_idx;
       end
@@ -591,10 +596,15 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
   hdr.rx_gain = default.radar.rx_gain .* 10.^(-atten/20);
   t0 = hdr.wfs(wf).t0 + default.radar.Tadc_adjust;
   tukey = settings.DDS_Setup.RAM_Taper;
+
+  for wf = 1:length(settings.DDS_Setup.Waveforms)
+    default.radar.wfs(wf).DC_adjust = default.radar.DC_adjust{wf};
+  end
   
   dt = 1/hdr.fs;
   Nt = size(data,1);
   clear pc_param;
+  pc_param.img = param.img;
   pc_param.DDC_mode = DDC_mode;
   pc_param.DDC_freq = DDC_freq;
   pc_param.f0 = f0;
