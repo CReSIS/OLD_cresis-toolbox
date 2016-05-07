@@ -715,7 +715,7 @@ for img_idx = 1:length(load_param.load.imgs)
         param_records = old_param_records;
         param_csarp = param;
         fk_data = fk_data_ml(:,:,subap);
-        save('-v6',out_full_fn,'fk_data','fcs','wfs','param_csarp','param_records');
+        save('-v7.3',out_full_fn,'fk_data','fcs','wfs','param_csarp','param_records');
       end
       
     elseif strcmpi(param.csarp.sar_type,'tdbp')
@@ -844,7 +844,7 @@ for img_idx = 1:length(load_param.load.imgs)
         param_csarp = param;
         param_csarp.tdbp = tdbp_param;
         tdbp_data = tdbp_data0(:,:,subap);
-        save('-v6',out_full_fn,'tdbp_data','fcs','wfs','param_csarp','param_records','tdbp_param');
+        save('-v7.3',out_full_fn,'tdbp_data','fcs','wfs','param_csarp','param_records','tdbp_param');
       end
     elseif strcmpi(param.csarp.sar_type,'mltdp')
       fcs.squint = [0 0 -1].';
@@ -910,7 +910,7 @@ for img_idx = 1:length(load_param.load.imgs)
         param_records = old_param_records;
         param_csarp = param;
         mltdp_data = mltdp_data0(:,:,subap);
-        save('-v6',out_full_fn,'mltdp_data','fcs','wfs','param_csarp','param_records');
+        save('-v7.3',out_full_fn,'mltdp_data','fcs','wfs','param_csarp','param_records');
       end
     end
   end

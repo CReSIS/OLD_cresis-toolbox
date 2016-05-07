@@ -77,7 +77,7 @@ if ~isfield(param.get_heights,'ground_based')
 end
 
 if ~isfield(param.get_heights.qlook,'save_format') || isempty(param.get_heights.qlook.save_format)
-  param.get_heights.qlook.save_format = '6';
+  param.get_heights.qlook.save_format = '7.3';
 end
 save_format = sprintf('-v%s',param.get_heights.qlook.save_format);
 

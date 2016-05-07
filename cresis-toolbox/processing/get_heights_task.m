@@ -828,7 +828,7 @@ for img_idx = 1:length(param.load.imgs)
     custom.deconv_filter_idx = deconv_filter_idx;
   end
   clear deconv_filter_idx;
-  save(fn, 'Data', 'Time', 'GPS_time', 'Latitude', ...
+  save(fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
     'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'param_get_heights', 'param_records','custom');
   
 end

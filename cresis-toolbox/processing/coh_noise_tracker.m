@@ -443,7 +443,7 @@ if param.analysis.surf.en
     out_segment_fn_dir = fileparts(out_fn_dir);
     out_segment_fn = fullfile(out_segment_fn_dir,sprintf('surf_%s_img_%02d.mat', param.day_seg, img));
     fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-    save(out_segment_fn,'-struct','surf');
+    save(out_segment_fn,'-v7.3','-struct','surf');
   end
   
 end
@@ -506,7 +506,7 @@ if param.analysis.power.en
     out_segment_fn_dir = fileparts(out_fn_dir);
     out_segment_fn = fullfile(out_segment_fn_dir,sprintf('power_%s_img_%02d.mat', param.day_seg, img));
     fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-    save(out_segment_fn,'-struct','power');
+    save(out_segment_fn,'-v7.3','-struct','power');
   end
 end
 
@@ -574,7 +574,7 @@ if param.analysis.psd.en
     out_segment_fn_dir = fileparts(out_fn_dir);
     out_segment_fn = fullfile(out_segment_fn_dir,sprintf('psd_%s_img_%02d.mat', param.day_seg, img));
     fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-    save(out_segment_fn,'-struct','psd');
+    save(out_segment_fn,'-v7.3','-struct','psd');
   end
 end
 
@@ -772,7 +772,7 @@ if param.analysis.specular.en
       out_segment_fn_dir = fileparts(out_fn_dir);
       out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_img_%02d_wfadc_%d_%s.mat', img, wf_adc, param.day_seg));
       fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-      save(out_segment_fn,'-struct','spec');
+      save(out_segment_fn,'-v7.3','-struct','spec');
     end
   end
 end

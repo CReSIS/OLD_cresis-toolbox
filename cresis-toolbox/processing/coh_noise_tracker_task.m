@@ -562,7 +562,7 @@ for img = 1:length(param.load.imgs)
     param_analysis = param;
     param_analysis.gps_source = records.gps_source;
     fprintf('  Saving outputs %s\n', out_fn);
-    save(out_fn, 'surf_vals','surf_bins', 'wfs', 'gps_time', 'lat', ...
+    save(out_fn,'-v7.3', 'surf_vals','surf_bins', 'wfs', 'gps_time', 'lat', ...
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
     
@@ -598,7 +598,7 @@ for img = 1:length(param.load.imgs)
     param_analysis = param;
     param_analysis.gps_source = records.gps_source;
     fprintf('  Saving outputs %s\n', out_fn);
-    save(out_fn, 'power_vals','power_bins', 'wfs', 'gps_time', 'lat', ...
+    save(out_fn,'-v7.3', 'power_vals','power_bins', 'wfs', 'gps_time', 'lat', ...
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
     
@@ -639,7 +639,7 @@ for img = 1:length(param.load.imgs)
     param_analysis = param;
     param_analysis.gps_source = records.gps_source;
     fprintf('  Saving outputs %s\n', out_fn);
-    save(out_fn, 'psd_vals','psd_bins', 'psd_mean', 'psd_Rnn', 'wfs', 'gps_time', 'lat', ...
+    save(out_fn,'-v7.3', 'psd_vals','psd_bins', 'psd_mean', 'psd_Rnn', 'wfs', 'gps_time', 'lat', ...
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
   
@@ -684,7 +684,7 @@ for img = 1:length(param.load.imgs)
       
       % Grab the peak values
       if ~isfield(param.analysis.specular,'min_bin') || isempty(param.analysis.specular.min_bin)
-        param.analysis.specular.min_bin = 0e-6;
+        param.analysis.specular.min_bin = wfs(wf).Tpd;
       end
       min_bin_idxs = find(wfs(wf).time >= param.analysis.specular.min_bin,1);
       [max_value,max_idx_unfilt] = max(g_data(min_bin_idxs:end,:,wf_adc));
@@ -834,7 +834,7 @@ for img = 1:length(param.load.imgs)
       end
       param_analysis = param;
       fprintf('  Saving outputs %s\n', out_fn);
-      save(out_fn, 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
+      save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
         'deconv_DDC_Mt','deconv_forced','peakiness', 'wfs', 'gps_time', 'lat', ...
         'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','img','wf_adc');
     end
@@ -892,7 +892,7 @@ for img = 1:length(param.load.imgs)
           data_mean_removed = g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)]);
           noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 1001);
           plot(noise_power);
-          save(sprintf('~/%s_kuband_noise_power.mat', param.season_name), 'noise_power','freq');
+          save(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
         elseif 0
           % 2011_Greenland_P3, 20110316_01
           data_mean_removed = g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)]);
@@ -901,7 +901,7 @@ for img = 1:length(param.load.imgs)
           plot(noise_power);
           save(sprintf('~/%s_kuband_noise_power.mat', param.season_name), 'noise_power','freq');
         end
-        coh = load(sprintf('~/%s_kuband_noise_power.mat', param.season_name), 'noise_power','freq');
+        coh = load(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
         coh.noise_power = interp1(coh.freq(~isnan(coh.noise_power)), ...
           coh.noise_power(~isnan(coh.noise_power)),freq,'nearest','extrap');
         good_samples = lp(g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)])) ...
@@ -949,7 +949,7 @@ for img = 1:length(param.load.imgs)
     end
     param_analysis = param;
     fprintf('  Saving outputs %s\n', out_fn);
-    save(out_fn, 'coh_ave', 'coh_ave_samples', 'doppler', 'time', 'gps_time', 'lat', ...
+    save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'time', 'gps_time', 'lat', ...
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
   
