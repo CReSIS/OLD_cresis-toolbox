@@ -5,7 +5,7 @@ function mdata = check_img_combine(data_fn, rlines)
 %
 % mdata =
 % check_img_combine('~/Scratch/rds/2016_Greenland_Polar6/CSARP_qlook/20160413_17/Data_20160413_17_005');
-% mdata = check_img_combine('~/Scratch/rds/2016_Greenland_Polar6/CSARP_individual/20160413_17/Data_img_01_20160413_17_005.mat');
+% mdata = check_img_combine('~/Scratch/rds/2016_Greenland_Polar6/CSARP_standard/20160426_03/Data_20160426_03_001.mat');
 %
 % Author: John Paden
 
@@ -20,7 +20,7 @@ clear mdata;
 mdata{1} = load(data_fn);
 
 figure(1); clf;
-imagesc([], mdata{1}.Time, lp(mdata{1}.Data));
+imagesc([], mdata{1}.Time*1e6, lp(mdata{1}.Data));
 xlabel('Range line');
 ylabel('Time (us)');
 grid on;
