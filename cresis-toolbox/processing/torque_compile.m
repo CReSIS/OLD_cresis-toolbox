@@ -68,7 +68,9 @@ if ~force_compile
         if use_builtin_fdep
           flist = matlab.codetools.requiredFilesAndProducts(fun);
         else
+          warning off
           flist = fdep(fun,'-q');
+          warning on
           flist = flist.fun;
         end
         for fun_idx = 1:length(flist)
@@ -92,7 +94,9 @@ if ~force_compile
             if use_builtin_fdep
               flist = matlab.codetools.requiredFilesAndProducts(fn);
             else
+              warning off
               flist = fdep(fn,'-q');
+              warning on
               flist = flist.fun;
             end
             for fun_idx = 1:length(flist)
