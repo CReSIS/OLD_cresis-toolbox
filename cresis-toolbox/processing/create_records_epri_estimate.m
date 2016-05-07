@@ -115,7 +115,7 @@ while first_run || abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_e
       fprintf('Using temporary file for epri estimate: %s\n', tmp_hdr_fn);
       hdr_tmp = load(tmp_hdr_fn);
       % Overwrite
-      clear first_file;
+      hdr_tmp.wfs = first_file.wfs;
       first_file = hdr_tmp;
       first_file.utc_time_sod = double(first_file.seconds) + double(first_file.fraction) / param.radar.fs*8;
       first_file.rec_size = median(diff(first_file.offset))/2;
