@@ -53,14 +53,7 @@ function [data,time,freq] = pulse_compress(data,param)
 %     specified then both of the following fields must be specified:
 %     .tdelay: apply fast-time delay correction to data
 %     .gain: apply fast-time gain correction to data
-%   .deconv = deconvolution parameter struct [NOT DONE YET]
-%     .freq_rng = [low high] frequencies to use
-%     .time_rng = [low high] time range to use
-%     .time_delay = remove this amount of time delay from deconvolution
-%       waveform
-%     .mode = 0 for apply deconvolution supplied by .ref
-%        1: return reference waveform
-%     .ref
+%   .ref_fn = reference function from collate_deconv.m (e.g. for deconvolution)
 %
 % data = pulse compressed data
 % time = new time axis, sec
@@ -104,6 +97,12 @@ if isreal(data)
 else
   real_data = false;
 end
+if ~isfield(param,'ref_fn')
+  param.ref_fn = '';
+end
+if ~isfield(param,'window_func') 
+  param.window_func = [];
+end
 
 dt = param.time(2) - param.time(1);
 
@@ -118,7 +117,7 @@ BW = param.f1 - param.f0;
 alpha = BW / param.Tpd;
 Nt_ref = floor(param.Tpd/dt) + 1;
 
-% Reference always starts at time = 0
+% Reference always starts at the first time bin
 ref = exp(1i*2*pi*param.f0*(time-time(1)) ...
   + 1i*pi*alpha*(time-time(1)).^2);
 % Reference time domain window
@@ -140,7 +139,7 @@ df = fs/Nt_pc;
 if param.DDC_mode
   freq = param.DDC_freq + ifftshift( -floor(Nt_pc/2)*df : df : floor((Nt_pc-1)/2)*df ).';
   freq_inds = ifftshift(find(freq >= fc-BW/2 & freq <= fc+BW/2));
-  ref = ref .* exp(-1i*2*pi*param.DDC_freq.*time);
+  ref = ref .* exp(-1i*2*pi*param.DDC_freq.*(time-time(1)));
 else
   freq = nyquist_zone*fs + (0:df:(Nt_pc-1)*df).';
   freq_inds = find(freq >= min(param.f0,param.f1) & freq <= max(param.f0,param.f1));
@@ -150,10 +149,34 @@ sorted_freq_inds = freq_inds(sorted_freq_inds);
 freq_inds = sorted_freq_inds;
 
 %% Convert reference to frequency domain, adding in an optional time delay
-ref = conj(fft(ref) .* exp(-1i*2*pi*freq*param.td));
+if isempty(param.ref_fn) || ~exist(param.ref_fn,'file')
+  ref = conj(fft(ref) .* exp(-1i*2*pi*freq*param.td));
+  ref_windowed = false;
+  
+else
+  % Load reference function from collate_deconv.m (e.g. for deconvolution)
+  load(param.ref_fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window');
+  ref_Nt = length(ref_nonnegative)+length(ref_negative);
+  if ref_Nt > Nt_pc
+    error('Reference is longer than time axis, increase zero padding to use this reference function or shorten the reference function');
+  end
+  ref_from_file = [ref_nonnegative; zeros(Nt_pc-ref_Nt,1); ref_negative];
+  
+  if ref_windowed && ~isequal(ref_window,param.window_func)
+    if isempty(param.window_func)
+      warning('Reference has window %s, but window_func not specified.', func2str(ref_window));
+    else
+      warning('Window in reference %s does not match window_func %s.', func2str(ref_window), func2str(param.window_func));
+    end
+  end
+  
+  ref_from_file = ref_from_file ./ abs(max(ref_from_file));
+  ref = conj(fft(ref_from_file,Nt_pc) .* exp(-1i*2*pi*freq*param.td));
+end
 ref2 = ref;
 
-if isfield(param,'window_func') && ~isempty(param.window_func)
+%% Apply window
+if ~ref_windowed && ~isempty(param.window_func)
   if fc-param.BW(1)/2 < min(freq) || fc+param.BW(1)/2 > max(freq)
     warning('Windowing bandwidth is larger than original data');
   end
@@ -162,7 +185,7 @@ if isfield(param,'window_func') && ~isempty(param.window_func)
   ref = ref.*ft_wind;
 end
 
-% Apply match filter/pulse compression in Fourier domain
+%% Frequency domain decimation prep
 if param.baseband
   if fc-param.BW(1)/2 < min(freq) || fc+param.BW(1)/2 > max(freq)
     warning('Decimation bandwidth is larger than original data');
@@ -195,6 +218,11 @@ end
 % Adjust time axis for start time of data
 time = param.time(1) + time;
 
+time_correction = dt - mod(time(1),dt);
+time = time + time_correction;
+ref = ref .* exp(1i*2*pi*freq*time_correction);
+
+%% Pulse compress
 if param.pulse_compress
   if isfield(param,'stc')
     % Apply sensitivity timing control (STC) corrections
@@ -234,13 +262,14 @@ if param.pulse_compress
   for rline = 1:prod(size(data,2)*size(data,3))
     data(:,rline) = ifft(data(:,rline) .* ref);
   end
+  
 else
   for rline = 1:prod(size(data,2)*size(data,3))
     data(:,rline) = ifft(data(:,rline));
   end
 end
 
-% Adjust time axis for over-sampling
+%% Adjust time axis for over-sampling
 if param.Mt ~= 1
   Nt_oversample = round(Nt*param.Mt);
   if param.baseband
