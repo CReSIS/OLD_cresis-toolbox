@@ -50,7 +50,9 @@ end
 % =========================================================================
 max_wfs = 0;
 segment_offset = 0;
+segment_increment = 0;
 for adc_folder_name_idx = 1:length(adc_folder_names);
+  segment_offset = segment_offset + segment_increment;
   
   adc_folder_name = adc_folder_names{adc_folder_name_idx};
   if exist('settings_folder_name','var')
@@ -67,12 +69,12 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
   if adc_folder_name_idx < length(adc_folder_names)
     if isempty(settings)
       fprintf('No segments (settings files) were found in %s.\n', settings_fn_dir);
-      segment_offset = [];
-      while length(segment_offset) ~= 1
-        segment_offset = input('Input how many segments there were? ');
+      segment_increment = [];
+      while length(segment_increment) ~= 1
+        segment_increment = input('Input how many segments there were? ');
       end
     else
-      segment_offset = segment_offset + length(settings);
+      segment_increment = segment_increment + length(settings);
     end
     proc_settings = [];
     while length(proc_settings) ~= 1
@@ -557,19 +559,19 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         if param_file.write_en
           params(param_idx).radar.wfs(wf).chan_equal_dB = default.radar.wfs(default_wf).chan_equal_dB;
         end
-        row_str = cat(2,row_str, sprintf('\t%s',default.radar.wfs(default_wf).chan_equal_dB));
+        row_str = cat(2,row_str, sprintf('\t%s',mat2str(default.radar.wfs(default_wf).chan_equal_dB)));
         
         % Chan Equal deg
         if param_file.write_en
           params(param_idx).radar.wfs(wf).chan_equal_deg = default.radar.wfs(default_wf).chan_equal_deg;
         end
-        row_str = cat(2,row_str, sprintf('\t%s',default.radar.wfs(default_wf).chan_equal_deg));
+        row_str = cat(2,row_str, sprintf('\t%s',mat2str(default.radar.wfs(default_wf).chan_equal_deg)));
         
         % Tsys
         if param_file.write_en
           params(param_idx).radar.wfs(wf).Tsys = default.radar.wfs(default_wf).chan_equal_Tsys;
         end
-        row_str = cat(2,row_str, sprintf('\t%s',default.radar.wfs(default_wf).chan_equal_Tsys));
+        row_str = cat(2,row_str, sprintf('\t%s',mat2str(default.radar.wfs(default_wf).chan_equal_Tsys)));
         
         % DC Adjust
         if param_file.write_en
