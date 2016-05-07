@@ -255,9 +255,9 @@ default.name = '3 Beam Image Mode 150-520 MHz';
 defaults{end+1} = default;
 
 %% Narrowband settings
-default.radar.wfs(1).chan_equal_dB = [4.7	3.0	4.2	5.1	4.7	-1.4	-0.5	4.3	0.6	1.4	0.3	0.0	3.6	2.0	4.1	3.3	4.1	4.6	4.5	5.1	4.8	3.5	6.2	4.4];
-default.radar.wfs(1).chan_equal_deg = [109.9	75.8	33.8	20.7	-132.6	-51.2	-161.7	34.3	-34.1	-22.2	-97.0	-0.0	-4.6	-113.3	-121.6	-68.6	84.6	-61.0	157.8	96.5	169.9	149.0	125.4	167.5];
-default.radar.wfs(1).chan_equal_Tsys = [32.06	31.36	33.17	33.21	30.79	32.06	33.07	30.83	-0.56	0.11	-1.45	0.00	0.62	-0.86	-0.84	-0.09	27.01	30.09	28.13	27.50	28.33	28.40	28.72	28.16]/1e9;
+default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9;
+default.radar.wfs(1).chan_equal_dB = [4.7 3 4.2 5.1 4.7 -1.4 -0.5 4.3 0.6 1.4 0.3 0 3.6 2 4.1 3.3 4.1 4.6 4.5 5.1 4.8 3.5 6.2 4.4];
+default.radar.wfs(1).chan_equal_deg = [109.9 75.8 33.8 20.7 -132.6 -51.2 -161.7 34.3 -34.1 -22.2 -97 0 -4.6 -113.3 -121.6 -68.6 84.6 -61 157.8 96.5 169.9 149 125.4 167.5];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
@@ -318,6 +318,11 @@ defaults{end+1} = default;
 default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9;
 default.radar.wfs(1).chan_equal_dB = [-2.5 -2.2 -2.2 -1.7 -0.9 -4.5 -6.8 -1.1 -4 -4.3 -2.9 -4.6 -1.2 -1.5 -0.9 -2.2 -1.2 -2.4 -1.8 1.9 -1.3 -4.1 -2 -1.6];
 default.radar.wfs(1).chan_equal_deg = [-168.6 -114.1 -5.7 9 30 24.1 -144.3 -137.7 113.1 64.8 124.3 133.7 108 138.1 71.6 102.9 -95.8 -127.2 -143.1 -139.6 -128.4 -172.3 -158.5 -152.4];
+
+default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
+default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160426_05';
+default.xml_regexp = 'survey_150-520MHz_.*DECONV.xml';
+
 default.xml_regexp = '.*150-520MHz.*';
 default.name = 'Other Settings 150-520 MHz';
 defaults{end+1} = default;
