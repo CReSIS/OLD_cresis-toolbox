@@ -1,3 +1,4 @@
+
 % script run_basic_rx_chan_equalization
 %
 % Runs basic_rx_chan_equalization
@@ -20,12 +21,11 @@ if strcmpi(radar_setup,'MCORDS5')
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
-  param.img = cat(2,1*ones(24,1),[1:24].'); param.ref_wf_adc = 12;
-%   param.img = cat(2,2*ones(24,1),[1:24].'); param.ref_wf_adc = 12;
-%   param.img = cat(2,3*ones(24,1),[1:24].'); param.ref_wf_adc = 12;
-%   param.img = cat(2,1*ones(8,1),[9:16].'); param.ref_wf_adc = 4; % Center subarray
-%   param.img = cat(2,1*ones(8,1),[1:8].'); param.ref_wf_adc = 4; % Left subarray
-%   param.img = cat(2,1*ones(8,1),[17:24].'); param.ref_wf_adc = 4; % Right subarray
+  wf = 1; adcs = 1:24; ref = 12; % Waveform 1, All ADCs
+  %wf = 1; adcs = 1:8; ref = 4; % Waveform 1, Left subarray
+  %wf = 1; adcs = 9:16; ref = 4; % Waveform 1, Center subarray
+  %wf = 1; adcs = 17:24; ref = 4; % Waveform 1, Right subarray
+  param.img = cat(2,wf*ones(length(adcs),1),adcs.'); param.ref_wf_adc = ref;
   
   % .recs: two element vector specifying which records/range-lines to load
   %   [start_record num_records]
