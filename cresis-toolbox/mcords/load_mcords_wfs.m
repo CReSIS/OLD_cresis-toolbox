@@ -331,16 +331,17 @@ for wf = 1:length(param.radar.wfs)
       wfs(wf).ref_windowed(adc) = false;
       
     else
+      % Load reference function from collate_deconv.m (e.g. for deconvolution)
       load(ref_fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window');
       ref_Nt = length(ref_nonnegative)+length(ref_negative);
       if ref_Nt > Nt
-        error('Reference is longer than time axis, increase zero padding to use this reference function or shorten the reference function');
+        error('Window in ref_fn %s is longer than time axis, increase zero padding to use this reference function or shorten the reference function', ref_fn);
       end
       ref_from_file = [ref_nonnegative; zeros(Nt-ref_Nt,1); ref_negative];
       wfs(wf).ref_windowed(adc) = ref_windowed;
       
       if ref_windowed && ~isequal(ref_window,proc_param.ft_wind)
-        error('Window in reference %s does not match get heights window %s', func2str(ref_window), func2str(proc_param.ft_wind));
+        error('Window in ref_fn %s does not match ft_wind parameter', ref_fn);
       end
       
       ref_from_file = ref_from_file ./ abs(max(ref_from_file));
@@ -437,11 +438,11 @@ for wf = 1:length(param.radar.wfs)
     
     % Modify reference function so that time vector elements are multiples
     % of dt.
-    time_correction = dt - mod(wfs(wf).time(1),dt);
-    wfs(wf).time = wfs(wf).time + time_correction;
+    wfs(wf).time_correction = dt - mod(wfs(wf).time(1),dt);
+    wfs(wf).time = wfs(wf).time + wfs(wf).time_correction;
     
     for adc = adcs
-      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*freq*time_correction);
+      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*freq*wfs(wf).time_correction);
     end
   end
   
