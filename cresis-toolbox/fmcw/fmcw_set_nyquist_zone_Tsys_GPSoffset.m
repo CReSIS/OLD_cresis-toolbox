@@ -51,10 +51,12 @@ if load_surface_land_dems
   land_surface.dem(land_surface.dem == 32767) = NaN;
   land_surface.proj = geotiffinfo(land_surface.fn);
 
-  land_surface.geoid_fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/gl04c_geiod_to_WGS84.tif');
-  land_surface.geoid_dem = geotiffread(land_surface.geoid_fn);
-  land_surface.dem = land_surface.dem + land_surface.geoid_dem;
-
+  if strcmpi(params(end).post.ops.location,'antarctic')
+    land_surface.geoid_fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/gl04c_geiod_to_WGS84.tif');
+    land_surface.geoid_dem = geotiffread(land_surface.geoid_fn);
+    land_surface.dem = land_surface.dem + land_surface.geoid_dem;
+  end
+  
   load_surface_land_dems_finished = true;
   
   if 0
