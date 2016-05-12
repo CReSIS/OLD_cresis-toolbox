@@ -527,8 +527,8 @@ for frm_idx = 1:length(param.cmd.frms)
       
       if strcmp(param.sched.type,'custom_torque')
         create_task_param.conforming = true;
-        create_task_param.notes = sprintf('%d (%d of %d)/%d of %d %s combine_rx %d', ...
-          frm, frm_idx, length(param.cmd.frms), chunk_idx, length(output_chunk_idxs), wf_adc_str, param.csarp.combine_rx);
+        create_task_param.notes = sprintf('%s %d (%d of %d)/%d of %d %s combine_rx %d', ...
+          param.day_seg, frm, frm_idx, length(param.cmd.frms), chunk_idx, length(output_chunk_idxs), wf_adc_str, param.csarp.combine_rx);
         ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
         
       elseif ~strcmp(param.sched.type,'no scheduler')
@@ -547,7 +547,7 @@ for frm_idx = 1:length(param.cmd.frms)
           return;
         end
       else
-        fprintf('  %d (%d of %d)/%d of %d %s combine_rx %d (%s)\n', frm, frm_idx, ...
+        fprintf('  %s, %d (%d of %d)/%d of %d %s combine_rx %d (%s)\n', param.day_seg, frm, frm_idx, ...
           length(param.cmd.frms), chunk_idx, length(output_chunk_idxs), ...
           wf_adc_str, param.csarp.combine_rx, datestr(now));
         success = fh(arg{1});
