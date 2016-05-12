@@ -309,6 +309,13 @@ default.get_heights.qlook.img_comb = [];
 default.get_heights.imgs = [];
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
+
+default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
+default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06';
+default.xml_regexp = 'survey_180-210MHz_.*DECONV.xml';
+default.name = 'Deconv 180-210 MHz';
+defaults{end+1} = default;
+
 default.radar.DC_adjust = [];
 default.radar.ref_fn = '';
 default.xml_regexp = '.*180-210MHz.*';
@@ -322,7 +329,11 @@ default.radar.wfs(1).chan_equal_deg = [-168.6 -114.1 -5.7 9 30 24.1 -144.3 -137.
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
 default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160426_05';
 default.xml_regexp = 'survey_150-520MHz_.*DECONV.xml';
+default.name = 'Deconv 150-520 MHz';
+defaults{end+1} = default;
 
+default.radar.DC_adjust = [];
+default.radar.ref_fn = '';
 default.xml_regexp = '.*150-520MHz.*';
 default.name = 'Other Settings 150-520 MHz';
 defaults{end+1} = default;
