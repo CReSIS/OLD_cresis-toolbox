@@ -49,7 +49,7 @@ end
 if debug_level == 3
   %% DEBUG
   plot_bins = zero_surf_bin;
-  test_wf_adc = min(9,Nc); % <== SET DESIRED CHANNEL TO COMPARE
+  test_wf_adc = min(12,Nc); % <== SET DESIRED CHANNEL TO COMPARE
   figure(1); clf;
   subplot(3,1,1);
   plot(lp(data.surf_vals(plot_bins,:,test_wf_adc) ./ data.surf_vals(plot_bins,:,ref_wf_adc)).','.')
@@ -238,6 +238,18 @@ else
   chan_equal_dB = data.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
 end
 
+if 0
+  %% DEBUG
+  h_axes = [];
+  for wfadc = 1:size(data.surf_vals,3);
+    h_fig = figure(100+wfadc); clf;
+    h_axes(end+1) = axes;
+    imagesc(lp(data.surf_vals(:,:,wfadc)),'Parent',h_axes(end));
+    set(h_fig,'WindowStyle','docked')
+  end
+  linkaxes(h_axes,'xy');
+end
+
 if debug_level == 4
   %% DEBUG
   h_axis = [];
@@ -248,7 +260,7 @@ if debug_level == 4
   plot_mode = [0 0 0; hsv(7)];
   plot_bins = zero_surf_bin + (-1:1); % <== SET DESIRED RANGE BIN MULTILOOKING
   Nfir_dec = 11; % <== SET DESIRED ALONG TRACK MULTILOOKING
-  ref_rline = min(4320,Nx); % <== SET DESIRED REFERENCE RANGE LINE
+  ref_rline = min(2000,Nx); % <== SET DESIRED REFERENCE RANGE LINE
   for wf_adc = 1:Nc
     unwrapped_angle = angle(mean(fir_dec(data.surf_vals(plot_bins,:,wf_adc) ...
       .* conj(data.surf_vals(plot_bins,:,ref_wf_adc)),ones(1,Nfir_dec)/Nfir_dec,1)));
@@ -355,7 +367,8 @@ end
 
 if delay_method == 2
   peak_offset = bsxfun(@minus,peak_offset,peak_offset(ref_wf_adc,:));
-  peak_val = bsxfun(@times,peak_val,1./abs(peak_val(ref_wf_adc,:)));
+%   peak_val = bsxfun(@times,peak_val,1./abs(peak_val(ref_wf_adc,:)));
+  peak_val = bsxfun(@times,peak_val,1./peak_val(ref_wf_adc,:));
 end
 
 %% Create outputs
@@ -381,6 +394,10 @@ equal.chan_equal_dB_offset_std = reshape(equal.chan_equal_dB_offset_std,[1 Nc]);
 equal.Tsys = Tsys + equal.Tsys_offset;
 equal.chan_equal_deg = chan_equal_deg + equal.chan_equal_deg_offset;
 equal.chan_equal_dB = chan_equal_dB + equal.chan_equal_dB_offset;
+
+equal.chan_equal_deg = equal.chan_equal_deg - equal.chan_equal_deg(ref_wf_adc);
+equal.chan_equal_deg = angle(exp(1i*equal.chan_equal_deg/180*pi))*180/pi;
+equal.chan_equal_dB = equal.chan_equal_dB - equal.chan_equal_dB(ref_wf_adc);
 
 equal.old_Tsys_str = [mat2str(round(Tsys*1e9*10)/10), '/1e9'];
 equal.Tsys_str = [mat2str(round(equal.Tsys*1e9*10)/10), '/1e9'];
