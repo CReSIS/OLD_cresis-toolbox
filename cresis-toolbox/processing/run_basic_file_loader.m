@@ -12,11 +12,31 @@ if 1
   param.img = pc_param.img;
 end
 
+%% Check Saturation
+if 1
+  wf = abs(param.img(1,1));
+  adc = abs(param.img(1,2));
+  figure(1); clf;
+  Nt = size(data,1);
+  dt = pc_param.time(2)-pc_param.time(1);
+  time = pc_param.time;
+  SATURATION_CORRECTION_FACTOR = 1722.5/4096;
+  h_plot = plot([1 size(data,2)],+SATURATION_CORRECTION_FACTOR*(2^12/2)*hdr.wfs(wf).presums/2^hdr.wfs(wf).bit_shifts*[1 1],'LineWidth',4,'LineStyle','--');
+  color = get(h_plot,'color');
+  hold on;
+  plot([1 size(data,2)],-SATURATION_CORRECTION_FACTOR*(2^12/2-1)*hdr.wfs(wf).presums/2^hdr.wfs(wf).bit_shifts*[1 1],'color',color,'LineWidth',4,'LineStyle','--');
+  h_plot = plot(max(real(data)),'color',color);
+  plot(max(imag(data)),'color',color);
+  plot(min(real(data)),'color',color);
+  plot(min(imag(data)),'color',color);
+  title(sprintf('wf: %d, adc: %d', wf, adc));
+end
+
 %% Remove DC
 if 1
-  if isfield(default.radar.wfs(wf),'DC_adjust') && ~isempty(default.radar.wfs(wf).DC_adjust)
-    for wf_adc = 1:size(param.img,1)
-      wf = abs(param.img(wf_adc,1));
+  for wf_adc = 1:size(param.img,1)
+    wf = abs(param.img(wf_adc,1));
+    if isfield(default.radar.wfs(wf),'DC_adjust') && ~isempty(default.radar.wfs(wf).DC_adjust)
       adc = abs(param.img(wf_adc,2));
       tmp = load(fullfile(ct_filename_out(param,'noise','',1), ...
         default.radar.wfs(wf).DC_adjust),'DC_adjust');
@@ -59,7 +79,6 @@ end
 if 1
   wf = param.img(1,1);
   adc = param.img(1,2);
-  default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160426_05';
   ref_fn_name = char(default.radar.ref_fn);
   ref_fn_name = regexprep(ref_fn_name,'%w',sprintf('%.0f',wf));
   ref_fn_name = regexprep(ref_fn_name,'%a',sprintf('%.0f',adc));
