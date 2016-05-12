@@ -652,6 +652,7 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
           gps.heading = [gps.heading, gps_tmp.heading];
         end
       end
+      gps.gps_source = 'NMEA-field';
     end
   end
   hdr.gps_time = hdr.radar_time;
