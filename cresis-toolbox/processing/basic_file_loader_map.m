@@ -7,6 +7,9 @@ adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
 adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
 adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
 data_fns = get_filenames(fullfile(base_dir,adc_folder_name),defaults{1}.data_file_prefix,'','.bin');
+if isempty(data_fns)
+  error('No data files exist in %s\n', fullfile(base_dir,adc_folder_name));
+end
 finfo = fname_info_mcords2(data_fns{1});
   
 [year,month,day] = datevec(finfo.datenum);
