@@ -149,11 +149,10 @@ sorted_freq_inds = freq_inds(sorted_freq_inds);
 freq_inds = sorted_freq_inds;
 
 %% Convert reference to frequency domain, adding in an optional time delay
-if isempty(param.ref_fn) || ~exist(param.ref_fn,'file')
-  ref = conj(fft(ref) .* exp(-1i*2*pi*freq*param.td));
-  ref_windowed = false;
-  
-else
+ref = conj(fft(ref) .* exp(-1i*2*pi*freq*param.td));
+ref_windowed = false;
+ref2 = ref;
+if ~isempty(param.ref_fn) && exist(param.ref_fn,'file')
   % Load reference function from collate_deconv.m (e.g. for deconvolution)
   load(param.ref_fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window');
   ref_Nt = length(ref_nonnegative)+length(ref_negative);
@@ -173,7 +172,6 @@ else
   ref_from_file = ref_from_file ./ abs(max(ref_from_file));
   ref = conj(fft(ref_from_file,Nt_pc) .* exp(-1i*2*pi*freq*param.td));
 end
-ref2 = ref;
 
 %% Apply window
 if ~ref_windowed && ~isempty(param.window_func)
@@ -205,8 +203,8 @@ if param.baseband
 end
 
 %% Normalize reference function
-time_domain_ref = ifft(ref); % Reference with freq+time domain windowing
-time_domain_ref2 = ifft(ref2); % Represents data with time domain windowing
+time_domain_ref = ifft(ref); % Reference with freq+time domain windowing or deconvolution waveform (reference)
+time_domain_ref2 = ifft(ref2); % Represents data with time domain windowing (transmit pulse)
 if real_data
   ref = 2*ref ...
     ./ dot(time_domain_ref2,time_domain_ref);
