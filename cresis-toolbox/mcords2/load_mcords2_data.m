@@ -253,13 +253,7 @@ for board_idx = 1:length(boards)
       
       offset = param.load.offset{adc_idx}(rec+start_rec-1) + 2*length(last_record);
       fseek(fid, offset, 'bof');
-      if all_hdr_size+num_boards*param.load.rec_data_size - length(last_record) > 0
-        %Case where last_record is null or incomplete
-        block_data = [last_record; fread(fid, (actual_block_size)/2, 'int16')];
-      else
-        %Case where last_record is a full record
-        block_data = last_record;
-      end
+      block_data = [last_record; fread(fid, (actual_block_size)/2, 'int16')];
       first_rec = rec+start_rec-1;
     end
     
