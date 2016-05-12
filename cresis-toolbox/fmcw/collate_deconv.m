@@ -70,7 +70,7 @@ if stage_one_en
   for param_idx = 1:length(params)
     %% Is this segment selected in the param spreadsheet
     param = params(param_idx);
-    if (~isfield(param.cmd,'generic') || iscell(param.cmd.generic) ...
+    if isempty(day_seg_debug) && (~isfield(param.cmd,'generic') || iscell(param.cmd.generic) ...
         || ischar(param.cmd.generic) || ~param.cmd.generic) ...
         || (~isempty(day_seg_debug) && ~strcmp(day_seg_debug,param.day_seg))
       continue;
@@ -561,9 +561,43 @@ if stage_one_en
       ref = ref .* exp(-1i*2*pi*freq*spec.wfs(wf).time_correction);
       ref = ifft(conj(ref));
       
+      [max_val,max_bin] = max(spec.deconv_sample{best_idx});
+      good_bins = max_bin + param.analysis.specular.rbins;
+      figure(2); clf;
+      tmp = lp( ifft( fft(spec.deconv_sample{best_idx}) .* ifftshift(spec.deconv_H{best_idx}) ) );
+      plot(tmp-max(tmp));
+      hold on
+      tmp = lp(spec.deconv_sample{best_idx});
+      plot(tmp-max(tmp),'r');
+      tmp = lp(+max_val)+circshift(lp(spec.deconv_mean{best_idx}),[max_bin-1 0]);
+      plot(tmp-max(tmp),'g')
+      hold off;
+      grid on;
+      xlim(good_bins([1 end]))
+      xlabel('range bin')
+      ylabel('power(dB)')
+      legend('deconvolved ice lead signal','ice lead signal','averaged ice lead signal','location','best')
+      title(sprintf('Impulse Response %d to %d range bins',param.analysis.specular.rbins([1 end])));
+      
+      figure(1); clf;
+      plot(lp(ref));
+      grid on;
+      xlabel('range bin')
+      ylabel('power(dB)')
+      title(sprintf('Inverse Filter Impulse Response %d to %d range bins', ...
+        param.analysis.specular.ref_negative{wf}(1), ...
+        param.analysis.specular.ref_nonnegative{wf}(end)));
+      
+      fig1_fn = [ct_filename_tmp(param,'','deconv','inverse_filter') sprintf('_wf%d_adc%d.fig',wf,adc)];
+      fig1_fn_dir = fileparts(fig1_fn);
+      if ~exist(fig1_fn_dir)
+        mkdir(fig1_fn_dir);
+      end
+      saveas(1,fig1_fn);
+      fig2_fn = [ct_filename_tmp(param,'','deconv','impulse_response') sprintf('_wf%d_adc%d.fig',wf,adc)];
+      saveas(2,fig2_fn);
+      
       if debug_level == 6
-        figure(1); clf;
-        plot(lp(ref));
         keyboard
       end
       param_collate = param;
