@@ -184,11 +184,68 @@ mexFunction( int nlhs,
   // Get frame_sync
   unsigned int frame_sync = ((unsigned int*)mxGetPr(prhs[1]))[0];
 
-  /*
-   * open data file
-   */
-  //filename
+  // ======================================================================
+  // Try to keep the last record in the file unless it is too short to include
+  // all the header information needed by this function. To do this, we simply
+  // avoid using these last "min_complete_record_size" bytes.  A "complete"
+  // record for this function is one that contains all the dynamic output
+  // variables that are requested (i.e. not all the data in the record...
+  // just the outputs we need right now).
+  ptrdiff_t min_complete_record_size = 4; // 4 for the frame sync
+  
+  // Get dynamic output variable offsets and sizes, update 
+  // min_complete_record_size if needed
+  for (ptrdiff_t out_idx = 0; out_idx < num_outputs; out_idx++)
+  {
+    mxArray *class_type = mxGetCell(prhs[3], out_idx);
+    mxClassID class_type_ID = mxGetClassID(class_type);
+    ptrdiff_t field_offset = ((unsigned int *)mxGetPr(prhs[2]))[out_idx];
 
+    ptrdiff_t field_offset_and_size;
+
+    switch (class_type_ID)  {
+      case mxINT8_CLASS:
+        field_offset_and_size = field_offset + sizeof(char);
+        break; 
+      case mxUINT8_CLASS:
+        field_offset_and_size = field_offset + sizeof(unsigned char);
+        break;
+      case mxINT16_CLASS:
+        field_offset_and_size = field_offset + sizeof(short);
+        break;
+      case mxUINT16_CLASS:
+        field_offset_and_size = field_offset + sizeof(unsigned short);
+        break;
+      case mxINT32_CLASS:
+        field_offset_and_size = field_offset + sizeof(int);
+        break;
+      case mxUINT32_CLASS:
+        field_offset_and_size = field_offset + sizeof(unsigned int);
+        break;
+      case mxINT64_CLASS:
+        field_offset_and_size = field_offset + sizeof(long long);
+        break;
+      case mxUINT64_CLASS:
+        field_offset_and_size = field_offset + sizeof(unsigned long long);
+        break;
+      case mxSINGLE_CLASS:
+        field_offset_and_size = field_offset + sizeof(float);
+        break; 
+      case mxDOUBLE_CLASS:
+        field_offset_and_size = field_offset + sizeof(double);
+        break;
+    }
+    
+    if (4+field_offset_and_size > min_complete_record_size)
+    {
+      // Dynamic variable requires bigger minimum complete record size
+      min_complete_record_size = 4+field_offset_and_size;
+    }
+  }
+  // mexPrintf("min_complete_record_size = %d\n", min_complete_record_size); // DEBUG
+  
+  // ======================================================================
+  // Open the data file and read all the contents
   FILE *fptr;
   fptr = fopen(filename,"r");
   if (fptr == 0)
@@ -204,36 +261,41 @@ mexFunction( int nlhs,
   unsigned char *data;
   data = (unsigned char *)mxMalloc(file_size);
 
-  int *offset;
-  ptrdiff_t offset_size = 20000;
-  offset = (int *)mxRealloc(NULL,offset_size * sizeof(int));
-
   fread(data, 1, file_size, fptr);
 
   fclose(fptr);
+
+  // ======================================================================
+  // Search for all the frame syncs in the file and record their byte offset
+  int *offset;
+  ptrdiff_t offset_size = 20000;
+  offset = (int *)mxRealloc(NULL,offset_size * sizeof(int));
 
   unsigned char fs1 = frame_sync >> 24;
   unsigned char fs2 = (frame_sync >> 16) % 256;
   unsigned char fs3 = (frame_sync >> 8) % 256;
   unsigned char fs4 = frame_sync % 256;
-  //printf("%u\n", frame_sync);
-  //printf("%x %x %x %x\n", fs1, fs2, fs3, fs4);
+  //mexPrintf("%u\n", frame_sync); // DEBUG
+  //mexPrintf("%x %x %x %x\n", fs1, fs2, fs3, fs4); // DEBUG
   mwSize offset_idx = 0;
-  for (ptrdiff_t idx = 0; idx < file_size; idx++)
+  for (ptrdiff_t idx = 0; idx < file_size-min_complete_record_size; idx++)
   {
     if (data[idx] == fs1 && data[idx+1] == fs2 && data[idx+2] == fs3 && data[idx+3] == fs4)
     {
-    if (offset_idx >= offset_size)
-    {
-      offset_size = 2*offset_size;
-      offset = (int *)mxRealloc(offset,offset_size*sizeof(int));
-    }
-    offset[offset_idx] = idx;
-    offset_idx++;
+      if (offset_idx >= offset_size)
+      {
+        offset_size = 2*offset_size;
+        offset = (int *)mxRealloc(offset,offset_size*sizeof(int));
+      }
+      offset[offset_idx] = idx;
+      offset_idx++;
     }
   }
+  
+  const mwSize num_records = offset_idx;
 
-  // Get output variables
+  // ======================================================================
+  // Get dynamic output variables in each of the records that was found
   for (ptrdiff_t out_idx = 0; out_idx < num_outputs; out_idx++)
   {
     mxArray *class_type = mxGetCell(prhs[3], out_idx);
@@ -243,39 +305,39 @@ mexFunction( int nlhs,
 
     switch (class_type_ID)  {
       case mxINT8_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(char));
+        outvar = mxMalloc(num_records*sizeof(char));
         break; 
       case mxUINT8_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(unsigned char));
+        outvar = mxMalloc(num_records*sizeof(unsigned char));
         break;
       case mxINT16_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(short));
+        outvar = mxMalloc(num_records*sizeof(short));
         break;
       case mxUINT16_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(unsigned short));
+        outvar = mxMalloc(num_records*sizeof(unsigned short));
         break;
       case mxINT32_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(int));
+        outvar = mxMalloc(num_records*sizeof(int));
         break;
       case mxUINT32_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(unsigned int));
+        outvar = mxMalloc(num_records*sizeof(unsigned int));
         break;
       case mxINT64_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(long long));
+        outvar = mxMalloc(num_records*sizeof(long long));
         break;
       case mxUINT64_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(unsigned long long));
+        outvar = mxMalloc(num_records*sizeof(unsigned long long));
         break;
       case mxSINGLE_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(float));
+        outvar = mxMalloc(num_records*sizeof(float));
         break; 
       case mxDOUBLE_CLASS:
-        outvar = mxMalloc(offset_idx*sizeof(double));
+        outvar = mxMalloc(num_records*sizeof(double));
         break;
     }
     ptrdiff_t field_offset = ((unsigned int *)mxGetPr(prhs[2]))[out_idx];
 
-    for (ptrdiff_t idx = 0; idx < offset_idx; idx++)
+    for (ptrdiff_t idx = 0; idx < num_records; idx++)
     {
       switch (class_type_ID)  {
         case mxINT8_CLASS:
@@ -310,25 +372,25 @@ mexFunction( int nlhs,
           break;
       }
     }
+    // Assign this dynamic output variable
     mxSetData(plhs[2+out_idx], outvar);
     mxSetM(plhs[2+out_idx], 1);
-    mxSetN(plhs[2+out_idx], offset_idx);
+    mxSetN(plhs[2+out_idx], num_records);
   }
 
-  /*
-   * cleanup
-   */
+  // ======================================================================
+  // cleanup
   mxFree(filename);
   mxFree(data);
 
-  /*
-   * change return status to success
-   */
-  mxGetPr(plhs[0])[0]=file_size;
-
-  /* Point mxArray to dynamicData */
+  // ======================================================================
+  // Assign offset output variable
   mxSetData(plhs[1], offset);
   mxSetM(plhs[1], 1);
-  mxSetN(plhs[1], offset_idx);
+  mxSetN(plhs[1], num_records);
+
+  // ======================================================================
+  // change return status to success
+  mxGetPr(plhs[0])[0]=file_size;
 }
 

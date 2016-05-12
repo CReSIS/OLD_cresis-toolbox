@@ -330,7 +330,10 @@ for adc_idx = 1:length(adcs)
         expected_rec_size = median(diff(offset));
         meas_rec_size = diff(offset);
         bad_mask = all(bsxfun(@(x,y) x ~= y, meas_rec_size, expected_rec_size(:)),1);
-        bad_mask(end+1) = file_size < offset(end) + meas_rec_size(end);
+        % Note that we always assume that the last record in the file is
+        % good (since it is a partial record and we would have to look at
+        % the next file to see if the complete record is there)
+        bad_mask(end+1) = false;
       elseif hdr.file_version == 7
         % User must supply the valid record sizes
         if ~exist('expected_rec_sizes','var')

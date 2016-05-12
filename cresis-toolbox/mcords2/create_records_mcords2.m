@@ -138,7 +138,27 @@ for board_idx = 1:length(boards)
       board_hdrs{board_idx}.fractions = cat(2,board_hdrs{board_idx}.fractions,hdr_tmp.fraction);
       board_hdrs{board_idx}.file_idx = cat(2,board_hdrs{board_idx}.file_idx,file_idx*ones(1,length(hdr_tmp.offset)));
       board_hdrs{board_idx}.offset = cat(2,board_hdrs{board_idx}.offset,hdr_tmp.offset);
-
+      
+      if file_idx ~= file_idxs(end)
+        % The last record in a file is generally incomplete and continues
+        % in the next file. This incomplete record is marked as being
+        % in the next file (so we increment file_idx) and we use a negative
+        % index to indicate that it actually started in this file where the
+        % negative index is relative to the end of this file.
+        board_hdrs{board_idx}.file_idx(end) = board_hdrs{board_idx}.file_idx(end) + 1;
+        file_size = dir(fn);
+        board_hdrs{board_idx}.offset(end) = board_hdrs{board_idx}.offset(end) - file_size.bytes;
+      else
+        % Drop the last record of the last file since it is generally not a
+        % complete record and there is no additional file to load which
+        % contains the remainder of the record.
+        board_hdrs{board_idx}.epri = board_hdrs{board_idx}.epri(1:end-1);
+        board_hdrs{board_idx}.seconds = board_hdrs{board_idx}.seconds(1:end-1);
+        board_hdrs{board_idx}.fractions = board_hdrs{board_idx}.fractions(1:end-1);
+        board_hdrs{board_idx}.file_idx = board_hdrs{board_idx}.file_idx(1:end-1);
+        board_hdrs{board_idx}.offset = board_hdrs{board_idx}.offset(1:end-1);
+      end
+      
       continue;
     end
     
