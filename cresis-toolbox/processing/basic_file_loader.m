@@ -598,7 +598,9 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
   tukey = settings.DDS_Setup.RAM_Taper;
 
   for wf = 1:length(settings.DDS_Setup.Waveforms)
-    default.radar.wfs(wf).DC_adjust = default.radar.DC_adjust{wf};
+    if isfield(default.radar,'DC_adjust') && ~isempty(default.radar.DC_adjust)
+      default.radar.wfs(wf).DC_adjust = default.radar.DC_adjust{wf};
+    end
   end
   
   dt = 1/hdr.fs;
