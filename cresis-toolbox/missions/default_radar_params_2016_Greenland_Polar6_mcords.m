@@ -254,6 +254,28 @@ default.xml_regexp = 'image3_150-520MHz_.*thick.xml';
 default.name = '3 Beam Image Mode 150-520 MHz';
 defaults{end+1} = default;
 
+ % sea ice mode
+default.get_heights.qlook.img_comb = [];
+default.get_heights.imgs = {[1*ones(8,1),(9:16).']};
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf1.mat'};
+default.radar.ref_fn = '';
+default.xml_regexp = 'seaice_150-520MHz_.*.xml';
+default.name = 'Sea Ice 150-520 MHz';
+defaults{end+1} = default;
+
+ % image high thin with narrowband
+default.get_heights.qlook.img_comb = [];
+default.get_heights.imgs = {[2*ones(8,1),(9:16).']};
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'DC_20160413_04_wf2.mat','DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat'};
+default.radar.ref_fn = '';
+default.xml_regexp = 'imagehighthin_150-520MHz_.*.xml';
+default.name = 'High Alt Thin Ice Image Mode 150-520 MHz';
+defaults{end+1} = default;
+
 %% Narrowband settings
 default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9;
 default.radar.wfs(1).chan_equal_dB = [4.7 3 4.2 5.1 4.7 -1.4 -0.5 4.3 0.6 1.4 0.3 0 3.6 2 4.1 3.3 4.1 4.6 4.5 5.1 4.8 3.5 6.2 4.4];
