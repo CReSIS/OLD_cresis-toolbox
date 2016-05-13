@@ -58,7 +58,7 @@ else
 end
 
 %% Get filenames associated with the records in the frame
-if any(strcmpi(param.radar_name,{'kuband','kuband2','kuband3','snow','snow2','snow3'}))
+if any(strcmpi(param.radar_name,{'kuband','kuband2','kuband3','snow','snow2','snow3','snow5'}))
   % Get the raw file numbers associated with the frm
   start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
   stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
