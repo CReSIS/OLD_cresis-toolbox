@@ -342,6 +342,9 @@ classdef (HandleCompatible = true) geotiff < handle
       else
         obj.segments(end).h_text = text(NaN,NaN,obj.segments(end).name,'Color',color,'Parent',obj.h_axes);
       end
+      for idx=1:length(obj.segments)
+        uistack(obj.segments(idx).h_text,'top');
+      end
 
     end    
         
