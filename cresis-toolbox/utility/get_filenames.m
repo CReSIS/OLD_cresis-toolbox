@@ -20,7 +20,7 @@ function [filenames,status] = get_filenames(filepath,filename_start,filename_mid
 % Example:
 %    filenames = GetFilenames('\\emperor\d5\wblake','InSAR','','wf_01_tx_01_rx_01.mat');
 %    filenames = GetFilenames('/d5/wblake','InSAR','','wf_01_tx_01_rx_01.mat');
-%    
+%
 %    Get all files (including in subdirectories):
 %    filenames = GetFilenames('/d5/wblake','','','','recursive');
 %
@@ -40,7 +40,7 @@ elseif nargin == 4
   param.regexp = [];
 else
   if ~ischar(param) && ~isstruct(param)
-      error('Args:IncorrectFormat','Fifth argument must be a string or struct');
+    error('Args:IncorrectFormat','Fifth argument must be a string or struct');
   end
   if ischar(param)
     if strcmpi(param,'recursive')
@@ -71,7 +71,7 @@ else
 end
 if ~ischar(filepath) || ~ischar(filename_start) || ~ischar(filename_middle) || ...
     ~ischar(filename_end)
-    error('Args:IncorrectFormat','First four arguments must be strings');
+  error('Args:IncorrectFormat','First four arguments must be strings');
 end
 
 if param.exact
@@ -83,64 +83,74 @@ else
 end
 
 if ispc
-    % Create system command to get filenames
-    file_match_str = fullfile(filepath, filename_exp);
-    if param.recursive
-      if param.type == 'f'
-        sysCmd = sprintf('dir /a:-d /B /ON /s "%s"', ...
-            file_match_str);
-      else
-        sysCmd = sprintf('dir /a:d /B /ON /s "%s"', ...
-            file_match_str);
+  % Remove double slash for paths beginning with letters
+  if ~isempty(filepath) && filepath(1) ~= '/'&& filepath(1) ~= '\'
+    colon_idx = regexp(filepath,':[/\\]+');
+    if ~isempty(colon_idx)
+      end_idx = find(filepath(colon_idx(1)+1:end)~= '/'& filepath(colon_idx(1)+1:end)~= '\',1);
+      if ~isempty(end_idx) && end_idx > 2
+        filepath = [filepath(1:colon_idx) filepath(colon_idx+end_idx-1:end)];
       end
+    end
+  end
+  % Create system command to get filenames
+  file_match_str = fullfile(filepath, filename_exp);
+  if param.recursive
+    if param.type == 'f'
+      sysCmd = sprintf('dir /a:-d /B /ON /s "%s"', ...
+        file_match_str);
     else
-      if param.type == 'f'
-        sysCmd = sprintf('dir /a:-d /B /ON "%s"', ...
-            file_match_str);
-      else
-        sysCmd = sprintf('dir /a:d /B /ON "%s"', ...
-            file_match_str);
-      end
+      sysCmd = sprintf('dir /a:d /B /ON /s "%s"', ...
+        file_match_str);
     end
-    % Execute system command to get filenames
-    [status,tmp_filenames] = system(sysCmd);
-    filenames = {};
-    % Parse returned filenames
-    if isempty(tmp_filenames) || status ~= 0
-        return;
+  else
+    if param.type == 'f'
+      sysCmd = sprintf('dir /a:-d /B /ON "%s"', ...
+        file_match_str);
+    else
+      sysCmd = sprintf('dir /a:d /B /ON "%s"', ...
+        file_match_str);
     end
-    files = textscan(tmp_filenames,'%s','Delimiter','\n');
-    files = files{1};
-    for idx = 1:size(files,1)
-      if ~param.recursive
-          filenames{end+1,1} = fullfile(filepath,files{idx});
-      else
-          filenames{end+1,1} = files{idx};
-      end
+  end
+  % Execute system command to get filenames
+  [status,tmp_filenames] = system(sysCmd);
+  filenames = {};
+  % Parse returned filenames
+  if isempty(tmp_filenames) || status ~= 0
+    return;
+  end
+  files = textscan(tmp_filenames,'%s','Delimiter','\n');
+  files = files{1};
+  for idx = 1:size(files,1)
+    if ~param.recursive
+      filenames{end+1,1} = fullfile(filepath,files{idx});
+    else
+      filenames{end+1,1} = files{idx};
     end
+  end
 else
-    % Create system command to get filenames
-    if param.recursive
-        sysCmd = sprintf('find "%s" \\( ! -regex ''.*/\\..*'' \\) -type %s -name ''%s'' </dev/null', ... 
-            filepath, param.type,filename_exp);
-    else
-        sysCmd = sprintf('find "%s" -maxdepth 1 \\( ! -regex ''.*/\\..*'' \\) -type %s -name ''%s'' </dev/null', ... 
-            filepath, param.type,filename_exp);
-    end
-    % Execute system command to get filenames
-    [status,tmp_filenames] = system(sysCmd);
-    
-    filenames = {};
-    % Parse returned filenames
-    if isempty(tmp_filenames) || status ~= 0
-      return;
-    end
-    files = textscan(tmp_filenames,'%s','Delimiter','\n');
-    files = sort(files{1});
-    for idx = 1:size(files,1)
-        filenames{end+1,1} = files{idx};
-    end
-    filenames = sort(filenames);
+  % Create system command to get filenames
+  if param.recursive
+    sysCmd = sprintf('find "%s" \\( ! -regex ''.*/\\..*'' \\) -type %s -name ''%s'' </dev/null', ...
+      filepath, param.type,filename_exp);
+  else
+    sysCmd = sprintf('find "%s" -maxdepth 1 \\( ! -regex ''.*/\\..*'' \\) -type %s -name ''%s'' </dev/null', ...
+      filepath, param.type,filename_exp);
+  end
+  % Execute system command to get filenames
+  [status,tmp_filenames] = system(sysCmd);
+  
+  filenames = {};
+  % Parse returned filenames
+  if isempty(tmp_filenames) || status ~= 0
+    return;
+  end
+  files = textscan(tmp_filenames,'%s','Delimiter','\n');
+  files = sort(files{1});
+  for idx = 1:size(files,1)
+    filenames{end+1,1} = files{idx};
+  end
+  filenames = sort(filenames);
 end
 
 if ~isempty(param.regexp)
