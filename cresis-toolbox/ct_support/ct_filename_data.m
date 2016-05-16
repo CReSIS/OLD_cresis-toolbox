@@ -43,7 +43,7 @@ for file_idx = 1:length(fns)
     % Generate the default path
     fns{file_idx} = fullfile(param.data_path, output_dir, param.season_name, ...
       param.day_seg(1:8), fns{file_idx});
-  elseif base_fn(1) == filesep || (ispc && (~isempty(strfind(base_fn,':\')) || ~isempty(strfind(base_fn,':/'))))
+  elseif base_fn(1) == filesep || (ispc && ~isempty(strfind(base_fn,':')))
     % This is already an absolute path
     fns{file_idx} = fullfile(base_fn, fns{file_idx});
     continue;
