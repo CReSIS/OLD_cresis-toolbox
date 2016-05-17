@@ -28,7 +28,7 @@ function gps = read_gps_general_ascii(fn,param)
 % param.types = {'sow','lat_dsm','lon_dsm','elev_m'};
 % param.textscan = {'delimiter',',','emptyvalue',NaN};
 % param.headerlines = 1;
-% param.time_reference = 'utc';
+% param.time_reference = 'gps';
 % param.year = 2016;
 % param.month = 4;
 % param.day = 13;
@@ -151,7 +151,7 @@ if isfield(tmp_gps,'lat_dsm')
   gps.lat = zeros(1,num_rows);
   for idx = 1:num_rows
     tmp = sscanf(tmp_gps.lat_dsm{idx},'%f');
-    gps.lat(idx) = tmp(1) + tmp(2)/60 + tmp(3)/3600;
+    gps.lat(idx) = tmp(1) + sign(tmp(1))*(tmp(2)/60 + tmp(3)/3600);
   end
 end
 if isfield(tmp_gps,'lon_deg')
@@ -175,7 +175,7 @@ if isfield(tmp_gps,'lon_dsm')
   gps.lon = zeros(1,num_rows);
   for idx = 1:num_rows
     tmp = sscanf(tmp_gps.lon_dsm{idx},'%f');
-    gps.lon(idx) = tmp(1) + tmp(2)/60 + tmp(3)/3600;
+    gps.lon(idx) = tmp(1) + sign(tmp(1))*(tmp(2)/60 + tmp(3)/3600);
   end
 end
 if isfield(tmp_gps,'elev_m')
@@ -224,8 +224,8 @@ end
 % Final clean up to make sure all fields are present
 if isfield(gps,'gps_time')
   if strcmpi(param.time_reference,'utc')
-  % UTC time stored in file, so need to add leap seconds back in
-  gps.gps_time = gps.gps_time + utc_leap_seconds(gps.gps_time(1));
+    % UTC time stored in file, so need to add leap seconds back in
+    gps.gps_time = gps.gps_time + utc_leap_seconds(gps.gps_time(1));
   end
 else
   gps.gps_time = NaN*zeros(1,num_rows);
