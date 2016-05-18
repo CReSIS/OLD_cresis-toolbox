@@ -106,7 +106,7 @@ for board_idx = 1:length(board_hdrs)
     plot(hdr.utc_time_sod);
     no_1PPS_signal = false;
     no_NMEA_signal = false;
-    fprintf('Set "no_1PPS_signal = true" or "no_NMEA_signal = true" and "dbcont" to do correction\n');
+    fprintf('Set "no_1PPS_signal = true" or "no_NMEA_signal = true" and then run "dbcont" to do correction\n');
     keyboard
     
     TIME_JUMP_THRESHOLD = 1.25; % In units of EPRI (1 = EPRI, 2 = 2*EPRI, etc)
@@ -182,7 +182,7 @@ for board_idx = 1:length(board_hdrs)
   epri_diff = diff(double(hdr.epri));
   drop_last_files = 0;
   if any(epri_diff > 1000)
-    warning('Large positive jump. Sometimes these are single header errors (one record has an EPRI header error that can be fixed with "random_large_epri_offset=true" and "dbcont", possibly adjusting random_large_epri_offset_tresholds = [1 3] (largest and smallest allowable epri jumps, usually adjust to [-M N] so that M/N exclude all EPRI jumps that are real jumps rather than just header errors), and a note in cmd.notes) and sometimes it means the segment needs to be broken into two at the file idx listed because there is a data gap > 1km (typically the file with the epri jump in it is left out so that segment from 1 to N is broken into 1 to L-1 and L+1 to N). If the EPRI jump is real and is small enough to be ignored, just run dbcont.');
+    warning('Large positive jump. Sometimes these are single header errors (one record has an EPRI header error that can be fixed with "random_large_epri_offset=true" and then run "dbcont", possibly adjusting random_large_epri_offset_tresholds = [1 3] (largest and smallest allowable epri jumps, usually adjust to [-M N] so that M/N exclude all EPRI jumps that are real jumps rather than just header errors), and a note in cmd.notes) and sometimes it means the segment needs to be broken into two at the file idx listed because there is a data gap > 1km (typically the file with the epri jump in it is left out so that segment from 1 to N is broken into 1 to L-1 and L+1 to N). If the EPRI jump is real and is small enough to be ignored, just run dbcont.');
     figure(1); clf;
     plot(epri_diff);
     title('diff of EPRI');
@@ -245,7 +245,7 @@ for board_idx = 1:length(board_hdrs)
       figure(3); clf;
       plot(diff(epri_new));
       title('Are the differences all 1,2,3?');
-      warning('Please look at plots to make sure correction worked before doing dbcont');
+      warning('Please look at plots to make sure correction worked before running "dbcont"');
       keyboard
       hdr.epri = int32(epri_new);
     end
@@ -287,14 +287,14 @@ for board_idx = 1:length(board_hdrs)
     legend('Old','New','Location','Northwest')
     figure(2); clf;
     plot(diff(hdr.utc_time_sod))
-    fprintf('If hdr.epri and hdr.utc_time_sod look correct, just type dbcont\n');
+    fprintf('If hdr.epri and hdr.utc_time_sod look correct, just run "dbcont"\n');
     epri_diff = diff(double(hdr.epri));
     keyboard
   end
   if any(epri_diff < 1)
     warning('Nonpositive EPRI jumps');
     epri_diff_neg_jumps = find(epri_diff < 1);
-    fprintf('Printing %d of %d nonpositive jumps. dbcont throws out all repeated epri associated with jumps.\n', ...
+    fprintf('Printing %d of %d nonpositive jumps. Run "dbcont" to throw out all repeated epri associated with these jumps.\n', ...
       min(10,length(epri_diff_neg_jumps)), length(epri_diff_neg_jumps));
     for idx = 1:min(10,length(epri_diff_neg_jumps))
       file_idx = find(records.relative_rec_num{board_idx} < epri_diff_neg_jumps(idx),1,'last');
