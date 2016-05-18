@@ -17,6 +17,23 @@ function gps = read_gps_general_ascii(fn,param)
 % param.time_reference = 'utc';
 % gps = read_gps_general_ascii(fn,param);
 %
+% Example 2: CSV File with the following content
+%
+% NAME          , -- LATITUDE --, -- LONGITUDE --,   HEIGHT,Q,StDev,-- VE --,-- VN --,-- VZ -- (velocity m/s)
+% 000327074.000 , 67 05 35.91995, -50 17 04.50389,  245.120,5,0.506,  -0.038,  -0.022,   0.059,
+
+% fn = 'P:\HF_Sounder\Greenland2016\ProcessedGPS\04132016_UAV.csv';
+% param = [];
+% param.format_str = '%f%s%s%f%f%f%f%f%f';
+% param.types = {'sow','lat_dsm','lon_dsm','elev_m'};
+% param.textscan = {'delimiter',',','emptyvalue',NaN};
+% param.headerlines = 1;
+% param.time_reference = 'gps';
+% param.year = 2016;
+% param.month = 4;
+% param.day = 13;
+% gps = read_gps_general_ascii(fn,param);
+%
 % Author: John Paden
 
 [fid,msg] = fopen(fn,'r');
@@ -101,6 +118,17 @@ else
 end
 gps.gps_time = datenum_to_epoch(datenum(year,month,day,hour,minute,sec));
 
+if isfield(tmp_gps,'sow')
+  if num_rows == -1
+    num_rows = length(tmp_gps.sow);
+  elseif length(tmp_gps.sow) < num_rows
+    tmp_gps.sow(end+1:num_rows) = NaN;
+  elseif length(tmp_gps.sow) < num_rows
+    tmp_gps.sow = tmp_gps.sow(1:num_rows);
+  end
+  gps.gps_time = gps_sow_to_epoch(tmp_gps.sow,param);
+end
+
 % Look for trajectory fields
 if isfield(tmp_gps,'lat_deg')
   if num_rows == -1
@@ -112,6 +140,20 @@ if isfield(tmp_gps,'lat_deg')
   end
   gps.lat = tmp_gps.lat_deg;
 end
+if isfield(tmp_gps,'lat_dsm')
+  if num_rows == -1
+    num_rows = length(tmp_gps.lat_dsm);
+  elseif length(tmp_gps.lat_dsm) < num_rows
+    tmp_gps.lat_dsm(end+1:num_rows) = deal(NaN);
+  elseif length(tmp_gps.lat_dsm) < num_rows
+    tmp_gps.lat_dsm = tmp_gps.lat_dsm(1:num_rows);
+  end
+  gps.lat = zeros(1,num_rows);
+  for idx = 1:num_rows
+    tmp = sscanf(tmp_gps.lat_dsm{idx},'%f');
+    gps.lat(idx) = tmp(1) + sign(tmp(1))*(tmp(2)/60 + tmp(3)/3600);
+  end
+end
 if isfield(tmp_gps,'lon_deg')
   if num_rows == -1
     num_rows = length(tmp_gps.lon_deg);
@@ -121,6 +163,20 @@ if isfield(tmp_gps,'lon_deg')
     tmp_gps.lon_deg = tmp_gps.lon_deg(1:num_rows);
   end
   gps.lon = tmp_gps.lon_deg;
+end
+if isfield(tmp_gps,'lon_dsm')
+  if num_rows == -1
+    num_rows = length(tmp_gps.lon_dsm);
+  elseif length(tmp_gps.lon_dsm) < num_rows
+    tmp_gps.lon_dsm(end+1:num_rows) = deal(NaN);
+  elseif length(tmp_gps.lon_dsm) < num_rows
+    tmp_gps.lon_dsm = tmp_gps.lon_dsm(1:num_rows);
+  end
+  gps.lon = zeros(1,num_rows);
+  for idx = 1:num_rows
+    tmp = sscanf(tmp_gps.lon_dsm{idx},'%f');
+    gps.lon(idx) = tmp(1) + sign(tmp(1))*(tmp(2)/60 + tmp(3)/3600);
+  end
 end
 if isfield(tmp_gps,'elev_m')
   if num_rows == -1
@@ -168,8 +224,8 @@ end
 % Final clean up to make sure all fields are present
 if isfield(gps,'gps_time')
   if strcmpi(param.time_reference,'utc')
-  % UTC time stored in file, so need to add leap seconds back in
-  gps.gps_time = gps.gps_time + utc_leap_seconds(gps.gps_time(1));
+    % UTC time stored in file, so need to add leap seconds back in
+    gps.gps_time = gps.gps_time + utc_leap_seconds(gps.gps_time(1));
   end
 else
   gps.gps_time = NaN*zeros(1,num_rows);
