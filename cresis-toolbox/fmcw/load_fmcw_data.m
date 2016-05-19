@@ -1105,7 +1105,7 @@ for accum_idx = 1:length(accum(board).wf)
           if param.proc.deconv_same_twtt_bin
             valid_idxs = find(twtt_bin == (spec.deconv_twtt_min+spec.deconv_twtt_max)/2 & ~isnan(spec.deconv_frame));
           else
-            valid_idx = [];
+            valid_idxs = [];
           end
           if isempty(valid_idxs)
             valid_idxs = find(twtt_bin >= spec.deconv_twtt_min & twtt_bin <= spec.deconv_twtt_max);
