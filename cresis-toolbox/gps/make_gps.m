@@ -381,14 +381,14 @@ for file_idx = 1:length(in_fns)
       else
         rline_end = length(along_track);
       end
-      [origin(1),origin(2),origin(3)] = geodetic2ecef(gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
-      [heading(1),heading(2),heading(3)] = geodetic2ecef(gps.sync_lat(rline_end)/180*pi,gps.sync_lon(rline_end)/180*pi,gps.elev(rline_end),WGS84.ellipsoid);
+      [origin(1),origin(2),origin(3)] = geodetic2ecef(gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
+      [heading(1),heading(2),heading(3)] = geodetic2ecef(gps.sync_lat(rline_end)/180*pi,gps.sync_lon(rline_end)/180*pi,gps.sync_elev(rline_end),WGS84.ellipsoid);
       heading = heading - origin;
       % Determine east vector
-      [east(1) east(2) east(3)] = lv2ecef(1,0,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
+      [east(1) east(2) east(3)] = lv2ecef(1,0,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
       east = east - origin;
       % Determine north vector
-      [north(1) north(2) north(3)] = lv2ecef(0,1,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
+      [north(1) north(2) north(3)] = lv2ecef(0,1,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
       north = north - origin;
       % Determine heading
       est_heading(rline:rline_end) = atan2(dot(east,heading),dot(north,heading));
