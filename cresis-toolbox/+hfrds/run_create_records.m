@@ -1,16 +1,15 @@
-% script run_create_records_mcords2
+% script hfrds.run_create_records
 %
-% Script for running create_records_mcords2 (usually just used for debugging).
+% Script for running hfrds.create_records (usually just used for debugging).
 %
 % Authors: John Paden
 %
-% See also: run_master.m, master.m, run_create_records_mcords2.m, create_records_mcords2.m,
-%   create_records_mcords2_sync.m
+% See also: run_master.m, master.m, hfrds.run_create_records.m, hfrds.create_records.m
 
 % =====================================================================
 % Debug Setup
 % =====================================================================
-param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'20160426_11');
+param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),'20160413_01');
 
 clear('param_override');
 dbstop if error
@@ -25,6 +24,4 @@ else
   param_override = gRadar;
 end
 
-create_records_mcords2(param,param_override);
-
-return;
+hfrds.create_records(param,param_override);

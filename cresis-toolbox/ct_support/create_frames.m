@@ -39,45 +39,29 @@ function create_frames(param, param_override)
 %
 % create_frames(param);
 
-% =====================================================================
-% General Setup
+%% General Setup
 % =====================================================================
 
-dbstack_info = dbstack;
-if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
-  % =====================================================================
-  % Debug Setup
-  % =====================================================================
-  param = read_param_xls(ct_filename_param('rds_param_2009_Greenland_TO.xls'),'20090402_02');
-  
-  clear('param_override');
-  param_override.sched.type = 'no scheduler';
-  param_override.sched.rerun_only = true;
-
-  % Input checking
-  if ~exist('param','var')
-    error('A struct array of parameters must be passed in\n');
-  end
-  global gRadar;
-  if exist('param_override','var')
-    param_override = merge_structs(gRadar,param_override);
-  else
-    param_override = gRadar;
-  end
-  
-elseif ~isstruct(param)
+if ~isstruct(param)
   % Functional form
   param();
 end
 param = merge_structs(param, param_override);
 
+dbstack_info = dbstack;
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
 fprintf('=====================================================================\n');
 
+%% Setup creation of frames
 % =====================================================================
-% Setup creation of frames
-% =====================================================================
+
+if ~isfield(param.records,'records_fn')
+  param.records.records_fn = '';
+end
+if ~isfield(param.records,'frames_fn')
+  param.records.frames_fn = '';
+end
 
 records_fn = ct_filename_support(param,param.records.records_fn,'records');
 records_ver = load(records_fn,'ver');
@@ -110,9 +94,7 @@ GB = [];
 hui.fig.handle = figure;
 set(hui.fig.handle,'Name',param.day_seg);
 
-% =====================================================================
-% =====================================================================
-% Set up GUI
+%% Set up GUI
 % =====================================================================
 % =====================================================================
 figure(hui.fig.handle); clf;
@@ -372,9 +354,7 @@ hui.fig.ctrl_panel.table.false_width(row,col) = 5;
 clear row col
 table_draw(hui.fig.ctrl_panel.table);
 
-% =====================================================================
-% =====================================================================
-% Read in records and frames files and populate GUI
+%% Read in records and frames files and populate GUI
 % =====================================================================
 % =====================================================================
 
@@ -384,7 +364,7 @@ GB.records = records_file.records;
 GB.records.along_track = geodetic_to_along_track(GB.records.lat, ...
   GB.records.lon, GB.records.elev);
 
-if any(strcmpi(param.radar_name,{'icards','mcords','mcrds','mcords2','mcords3','mcords4','mcords5','acords'}))
+if any(strcmpi(param.radar_name,{'hfrds','icards','mcords','mcrds','mcords2','mcords3','mcords4','mcords5','acords'}))
   GB.default_frame_len = 50000;
 elseif any(strcmpi(param.radar_name,{'accum','accum2'}))
   GB.default_frame_len = 20000;
@@ -444,9 +424,9 @@ set(hui.fig.handle,'WindowButtonUpFcn',@gui_windowbuttonupfcn)
 set(hui.fig.handle,'WindowButtonMotionFcn',[])
 set(hui.fig.handle,'WindowKeyPressFcn',@gui_windowkeypressfcn);
 
-return;
+end
 
-
+%% framesLB_callback
 function framesLB_callback(hObj,event)
 
 global hui;
@@ -455,9 +435,9 @@ global GB;
 GB.cur_frame = get(hui.fig.ctrl_panel.framesLB,'Value');
 update_frame_gui;
 
-return
+end
 
-
+%% procTB_callback
 function procTB_callback(hObj,event)
 
 global hui;
@@ -465,17 +445,16 @@ global GB;
 
 GB.frames.proc_mode(GB.cur_frame) = str2double(get(hObj,'String'));
     
-return
+end
 
-
+%% createPB_callback
 function createPB_callback(hObj,event)
 
 global hui;
 
-    
-return
+end
 
-
+%% deletePB_callback
 function deletePB_callback(hObj,event)
 
 global hui;
@@ -493,9 +472,9 @@ else
 end
 update_frame_gui;
 
-return
+end
 
-% =====================================================================
+%% autoGenPB_callback
 % Autogenerate
 % =====================================================================
 function autoGenPB_callback(hObj,event)
@@ -528,9 +507,9 @@ for idx = GB.frames.frame_idxs(GB.cur_frame):next_idx-1
 end
 update_frame_gui;
 
-return
+end
 
-% =====================================================================
+%% savePB_callback
 % Save Frames
 % =====================================================================
 function savePB_callback(hObj,event)
@@ -542,16 +521,14 @@ fn = ct_filename_support(GB.param,GB.param.records.frames_fn,'frames');
 [out_path] = fileparts(fn);
 if ~exist(out_path,'dir')
   fprintf('Making directory %s\n', out_path);
-  fprintf('  Press a key to proceed\n');
-  pause;
   mkdir(out_path);
 end
 save(fn,'-STRUCT','GB','frames');
 fprintf('Frames saved in %s\n', fn);
 
-return
+end
 
-% =====================================================================
+%% find_closest_point
 % Support function for finding closest point
 % =====================================================================
 function [min_dist min_ind] = find_closest_point(x,y)
@@ -565,10 +542,9 @@ else
   [min_dist min_ind] = min(sqrt((x - GB.records.lon).^2 + (y - GB.records.lat).^2));
 end
 
-return;
+end
 
-
-% =====================================================================
+%% update_frame_gui
 % Support function for updating frame listbox, map, and frame
 % controls
 % =====================================================================
@@ -665,9 +641,9 @@ grid on;
 
 set(hui.fig.ctrl_panel.framesLB,'Value',GB.cur_frame);
 
-return
+end
 
-% =====================================================================
+%% gui_windowbuttonupfcn
 % WindowButtonUpFcn call back function
 % =====================================================================
 function gui_windowbuttonupfcn(src,event)
@@ -719,10 +695,9 @@ else
   update_frame_gui;
 end
 
-return;
+end
 
-% =====================================================================
-% WindowKeyPressFcn call back function
+%% WindowKeyPressFcn call back function
 % =====================================================================
 function gui_windowkeypressfcn(src,event)
 
@@ -804,8 +779,4 @@ switch event.Key
     fprintf('Z: Reset the zoom/map axis\n');
 end
 
-return;
-
-
-
-
+end

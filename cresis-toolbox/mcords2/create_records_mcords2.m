@@ -1,12 +1,9 @@
 function create_records_mcords2(param, param_override)
 % create_records_mcords2(param, param_override)
 %
-% Function for creating records file for MCORDS2 data. This function can
-% be called as a script by:
-%  1. Commenting out the function line
-%  2. Setting the default param structure
-%  3. Uncommenting param = [] line
-% This is useful for debugging.
+% Function for creating records file for MCORDS2 data. The function is
+% usually called from master.m but can also be called from
+% run_create_records_mcords2.m.
 %
 % This function should be run after the GPS file has been created.
 % For example, cresis-toobox/gps/missions/make_gps_2009_antarctica_DC8.m
@@ -14,15 +11,17 @@ function create_records_mcords2(param, param_override)
 % This function's output file is used by all other parts of the processing.
 %
 % param = struct with processing parameters
-%         -- OR --
-%         function handle to script with processing parameters
+%           -- OR --
+%         function handle to script which creates a structure with the
+%           processing parameters
 % param_override = parameters in this struct will override parameters
 %         in param.  This struct must also contain the gRadar fields.
-%         Typically global gRadar; param_override = gRadar;%
+%         Typically global gRadar; param_override = gRadar;
+%
 % Author: John Paden
 %
-% See also: check_records_mcords, create_records_mcords_task,
-%   create_records_mcords_sync, create_records_mcords_post_sync
+% See also: check_records, run_create_records_mcords2,
+%   create_records_mcords2_sync
 
 % =====================================================================
 % General Setup
