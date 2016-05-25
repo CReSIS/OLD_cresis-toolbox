@@ -1022,7 +1022,8 @@ for accum_idx = 1:length(accum(board).wf)
     % a more positive phase and this is the opposite. Not sure why??? May have
     % something to do with how we do complex baseband with FFT... maybe this
     % is causing a conjugation of the phase.
-    if isfield(param.radar.wfs,'fc_sign') && param.radar.wfs.fc_sign < 0
+    if isfield(param.radar.wfs,'fc_sign') && ~isempty(param.radar.wfs.fc_sign) ...
+        && param.radar.wfs.fc_sign < 0
       freq_hack = -param.wfs(wf).fc + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
     else
       freq_hack = param.wfs(wf).fc + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
