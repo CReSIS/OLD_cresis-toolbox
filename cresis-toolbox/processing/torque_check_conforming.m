@@ -90,9 +90,11 @@ else
             sprintf('  %s: %d\n', out.errorstruct.stack(stack_idx).name, out.errorstruct.stack(stack_idx).line));
         end
       end
-      warning('Job %d:%d/%d Error:\n%s', ctrl.batch_id, job_id, ctrl.job_id_list(job_id), error_string);
+      warning('Job %d:%d/%d Error %d:\n%s', ctrl.batch_id, job_id, ...
+        ctrl.job_id_list(job_id), ctrl.error_mask(job_id), error_string);
     else
-      warning('Job %d:%d/%d Error, but no output file error message\n', ctrl.batch_id, job_id, ctrl.job_id_list(job_id));
+      warning('Job %d:%d/%d Error %d, but no output file error message\n', ...
+        ctrl.batch_id, job_id, ctrl.job_id_list(job_id), ctrl.error_mask(job_id));
       out = [];
     end
   end
