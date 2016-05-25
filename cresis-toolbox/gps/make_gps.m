@@ -88,6 +88,8 @@ for file_idx = 1:length(in_fns)
   for in_fn_idx = 1:length(in_fn)
     if strcmpi(file_type{file_idx},'Applanix')
       gps_tmp = read_gps_applanix(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
+    elseif strcmpi(file_type{file_idx},'awi_netcdf')
+      gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(file_type{file_idx},'awi_netcdf+awi_netcdf')
       gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(file_type{file_idx},'cresis')
@@ -115,7 +117,7 @@ for file_idx = 1:length(in_fns)
     elseif strcmpi(file_type{file_idx},'csv')
       gps_tmp = read_gps_csv(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     else
-      error('Unrecongized GPS file type %s', file_type{file_idx});
+      error('Unrecognized GPS file type %s', file_type{file_idx});
     end
     
     if in_fn_idx == 1
