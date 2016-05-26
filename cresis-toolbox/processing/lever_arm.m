@@ -416,6 +416,12 @@ if strcmpi(param.season_name,'mcords_simulator')
   end
 end
 
+if (any(strcmpi(param.season_name,{'2016_Greenland_G1XB'})) && strcmpi(gps_source,'postprocessed'))
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 % =========================================================================
 %% Accumulation Radar
 % =========================================================================
@@ -1130,6 +1136,27 @@ if (strcmpi(param.season_name,'2008_Greenland_Ground') && strcmpi(radar_name,'rd
   % Amplitude (not power) weightings for transmit side.
   if rxchannel == 0
     rxchannel = 4;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (strcmpi(param.season_name,'2016_Greenland_G1XB') && strcmpi(radar_name,'rds'))
+  % X,Y,Z are in aircraft coordinates, not IMU
+  LArx(1,:) = [0]*2.54/100;
+  LArx(2,:) = [0]*2.54/100;
+  LArx(3,:) = [0]*2.54/100;
+  
+  LAtx(1,:) = [0]*2.54/100;
+  LAtx(2,:) = [0]*2.54/100;
+  LAtx(3,:) = [0]*2.54/100;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
     tx_weights = ones(1,size(LAtx,2));
   end
 end

@@ -35,41 +35,20 @@ function combine_wf_chan(param,param_override)
 %
 % Authors: John Paden
 %
-% See also: get_heights, csarp, master_mcords_2009_antarctic_dc8,
-%   combine_task, array_proc
+% See also: run_master.m, master.m, run_combine_wf_chan.m, combine_wf_chan.m,
+%   combine_wf_chan_task.m
 
 % =====================================================================
 % General Setup
 % =====================================================================
 
-dbstack_info = dbstack;
-if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
-  % =====================================================================
-  % Debug Setup
-  % =====================================================================
-  param = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'20150730_01');
-  
-  clear('param_override');
-  param_override.sched.type = 'no scheduler';
-  param_override.sched.rerun_only = false;
-
-  % Input checking
-  if ~exist('param','var')
-    error('A struct array of parameters must be passed in\n');
-  end
-  global gRadar;
-  if exist('param_override','var')
-    param_override = merge_structs(gRadar,param_override);
-  else
-    param_override = gRadar;
-  end
-  
-elseif ~isstruct(param)
+if ~isstruct(param)
   % Functional form
   param();
 end
 param = merge_structs(param, param_override);
 
+dbstack_info = dbstack;
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
 fprintf('=====================================================================\n');
@@ -111,6 +90,9 @@ if ~exist(out_path,'dir')
 end
 
 % Load frames file
+if ~isfield(param.records,'frames_fn')
+  param.records.frames_fn = '';
+end
 load(ct_filename_support(param,param.records.frames_fn,'frames'));
 
 % Check frames to process variable

@@ -129,6 +129,9 @@ for param_idx = 1:length(params)
   fprintf('opsInsertLayer %s\n', param.day_seg);
   
   % Load frames file
+  if ~isfield(param.records,'frames_fn')
+    param.records.frames_fn = '';
+  end
   load(ct_filename_support(param,param.records.frames_fn,'frames'));
   
   %% Load existing destination layer data for this segment

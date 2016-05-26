@@ -88,6 +88,8 @@ for file_idx = 1:length(in_fns)
   for in_fn_idx = 1:length(in_fn)
     if strcmpi(file_type{file_idx},'Applanix')
       gps_tmp = read_gps_applanix(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
+    elseif strcmpi(file_type{file_idx},'awi_netcdf')
+      gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(file_type{file_idx},'awi_netcdf+awi_netcdf')
       gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(file_type{file_idx},'cresis')
@@ -115,7 +117,7 @@ for file_idx = 1:length(in_fns)
     elseif strcmpi(file_type{file_idx},'csv')
       gps_tmp = read_gps_csv(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     else
-      error('Unrecongized GPS file type %s', file_type{file_idx});
+      error('Unrecognized GPS file type %s', file_type{file_idx});
     end
     
     if in_fn_idx == 1
@@ -379,14 +381,14 @@ for file_idx = 1:length(in_fns)
       else
         rline_end = length(along_track);
       end
-      [origin(1),origin(2),origin(3)] = geodetic2ecef(gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
-      [heading(1),heading(2),heading(3)] = geodetic2ecef(gps.sync_lat(rline_end)/180*pi,gps.sync_lon(rline_end)/180*pi,gps.elev(rline_end),WGS84.ellipsoid);
+      [origin(1),origin(2),origin(3)] = geodetic2ecef(gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
+      [heading(1),heading(2),heading(3)] = geodetic2ecef(gps.sync_lat(rline_end)/180*pi,gps.sync_lon(rline_end)/180*pi,gps.sync_elev(rline_end),WGS84.ellipsoid);
       heading = heading - origin;
       % Determine east vector
-      [east(1) east(2) east(3)] = lv2ecef(1,0,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
+      [east(1) east(2) east(3)] = lv2ecef(1,0,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
       east = east - origin;
       % Determine north vector
-      [north(1) north(2) north(3)] = lv2ecef(0,1,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.elev(rline),WGS84.ellipsoid);
+      [north(1) north(2) north(3)] = lv2ecef(0,1,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
       north = north - origin;
       % Determine heading
       est_heading(rline:rline_end) = atan2(dot(east,heading),dot(north,heading));

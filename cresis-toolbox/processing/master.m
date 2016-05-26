@@ -75,6 +75,8 @@ for param_idx = 1:length(params)
       param.sched.type = 'no scheduler';
       create_records_mcords(param,param_override);
       param.sched.type = original_sched;
+    elseif any(strcmpi(param.radar_name,{'hfrds'}))
+      hfrds.create_records(param,param_override);
     elseif any(strcmpi(param.radar_name,{'mcords5','mcords4','mcords3','mcords2','seaice'}))
       create_records_mcords2(param,param_override);
     elseif strcmpi(param.radar_name,'mcrds')

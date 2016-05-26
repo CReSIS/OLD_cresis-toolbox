@@ -30,6 +30,9 @@ elseif any(strcmpi(param.radar_name,{'acords'}))
   if ~isfield(param.vectors.file,'file_regexp')
     param.vectors.file.file_regexp = '\.[0-9]*$';
   end
+elseif any(strcmpi(param.radar_name,{'hfrds'}))
+  adc_folder_name = param.vectors.file.adc_folder_name;
+  ext = '.bin';
 elseif strcmpi(param.radar_name,'mcrds')
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.raw';

@@ -110,7 +110,7 @@ elseif param.load.file_version == 404
   WF_HEADER_SIZE = 8;
   boards = param.load.adcs;
   num_boards = 1;
-elseif param.load.file_version >= 407
+elseif param.load.file_version == 407 || param.load.file_version == 408
   if wfs(1).DDC_mode == 0
     % DDS Enabled
     HEADER_SIZE = 80;
@@ -124,6 +124,11 @@ elseif param.load.file_version >= 407
     boards = param.load.adcs;
     num_boards = 1;
   end
+elseif param.load.file_version == 411
+  HEADER_SIZE = 128;
+  WF_HEADER_SIZE = 0;
+  boards = param.load.adcs;
+  num_boards = 1;
 end
 REC_BLOCK_SIZE = 20e6;
 
@@ -172,7 +177,11 @@ for board_idx = 1:length(boards)
     % Get the last incomplete record from the previous file
     fn_idx = param.load.file_idx{adc_idx}(1) - 1;
     fn = param.load.filenames{adc_idx}{fn_idx};
-    [fid,msg] = fopen(fn,'r','ieee-be');
+    if param.load.file_version == 411
+      [fid,msg] = fopen(fn,'r','ieee-le');
+    else
+      [fid,msg] = fopen(fn,'r','ieee-be');
+    end
     if fid<0
       error('File open failed (%s)\n%s',fn, msg);
     end
@@ -231,7 +240,11 @@ for board_idx = 1:length(boards)
       fprintf('Load %s %s\n', datestr(now,'HH:MM:SS'), fn);
       old_fn = fn;
     end
-    [fid,msg] = fopen(fn, 'r','ieee-be');
+    if param.load.file_version == 411
+      [fid,msg] = fopen(fn, 'r','ieee-le');
+    else
+      [fid,msg] = fopen(fn, 'r','ieee-be');
+    end
     if fid <= 0
       error('File open failed (%s)\n%s',fn, msg);
     end
@@ -309,6 +322,8 @@ for board_idx = 1:length(boards)
           tmp(6:8:end) = single(rec_data(cur_hdr_size/2 - 4 + wfs(wf).offset/2 + (7:8:wfs(wf).Nt_raw)));
           tmp(7:8:end) = single(rec_data(cur_hdr_size/2 - 4 + wfs(wf).offset/2 + (4:8:wfs(wf).Nt_raw)));
           tmp(8:8:end) = single(rec_data(cur_hdr_size/2 - 4 + wfs(wf).offset/2 + (8:8:wfs(wf).Nt_raw)));
+        elseif param.load.file_version == 411
+          tmp = single(rec_data(1+mod(rel_adc-1,num_boards) + num_boards*(0:wfs(wf).Nt_raw-1) + cur_hdr_size/2 + num_boards*wfs(wf).offset/2));
         end
         if ~param.proc.raw_data
           % Convert to volts, remove DC-bias, and apply trim

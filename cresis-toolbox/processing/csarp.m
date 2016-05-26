@@ -54,6 +54,12 @@ if ~exist(csarp_out_path,'dir')
   mkdir(csarp_out_path);
 end
 
+if ~isfield(param.records,'records_fn')
+  param.records.records_fn = '';
+end
+if ~isfield(param.records,'frames_fn')
+  param.records.frames_fn = '';
+end
 load(ct_filename_support(param,param.records.frames_fn,'frames'));
 records = load(ct_filename_support(param,param.records.records_fn,'records'));
 
@@ -109,7 +115,7 @@ g_data = [];
 if strcmpi(param.radar_name,'mcrds')
   wfs = load_mcrds_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(param.radar_name,{'acords','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   wfs = load_mcords_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(param.radar_name,{'icards'}))% add icards---qishi

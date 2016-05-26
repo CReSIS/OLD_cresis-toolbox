@@ -1,0 +1,20 @@
+function bytes = write_hdr(fid,hdr)
+
+bytes=0;
+bytes=bytes+fwrite(fid,hdr.data_valid,'uint8');
+bytes=bytes+2*fwrite(fid,hdr.fifo,'uint16');
+bytes=bytes+4*fwrite(fid,hdr.epri,'uint32');
+bytes=bytes+2*fwrite(fid,hdr.delay,'uint16');
+bytes=bytes+fwrite(fid,hdr.gps,'uint8');
+bytes=bytes+4*fwrite(fid,hdr.frac,'uint32');
+bytes=bytes+2*fwrite(fid,hdr.pri,'uint16');
+bytes=bytes+2*fwrite(fid,hdr.start,'uint16');
+bytes=bytes+2*fwrite(fid,hdr.stop,'uint16');
+bytes=bytes+2*fwrite(fid,hdr.words,'uint16');
+bytes=bytes+fwrite(fid,hdr.bshft,'uint8');
+bytes=bytes+fwrite(fid,hdr.dec,'uint8');
+bytes=bytes+2*fwrite(fid,hdr.pre,'uint16');
+bytes=bytes+4*fwrite(fid,hdr.nmea_frac,'uint32');
+bytes=bytes+fwrite(fid,hdr.nmea,'uint8');
+bytes=bytes+4*fwrite(fid,hdr.loc,'uint32');
+bytes=bytes+4*fwrite(fid,hdr.next_loc,'uint32');
