@@ -109,6 +109,12 @@ if strcmpi(copy_param.gaps_fill.method,'preserve_gaps') ...
 end
 
 %% Load "frames" file
+if ~isfield(param.records,'records_fn')
+  param.records.records_fn = '';
+end
+if ~isfield(param.records,'frames_fn')
+  param.records.frames_fn = '';
+end
 load(ct_filename_support(param,param.records.frames_fn,'frames'));
 
 %% Determine which frames to be processed

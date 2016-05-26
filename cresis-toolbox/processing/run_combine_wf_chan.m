@@ -1,20 +1,20 @@
-% script run_get_heights
+% script run_combine_wf_chan
 %
-% Script for running get_heights (usually just used for debugging).
+% Script for running combine_wf_chan (usually just used for debugging).
 %
 % Authors: John Paden
 %
-% See also: run_master.m, master.m, run_get_heights.m, get_heights.m,
-%   get_heights_task.m
+% See also: run_master.m, master.m, run_combine_wf_chan.m, combine_wf_chan.m,
+%   combine_wf_chan_task.m
 
 % =====================================================================
 % Debug Setup
 % =====================================================================
 param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),'20160413_01');
 
-dbstop if error;
+dbstop if error
 param.cmd.frms = [];
-param.cmd.get_heights = true;
+param.cmd.combine = true;
 
 clear('param_override');
 param_override.sched.type = 'no scheduler';
@@ -28,4 +28,4 @@ else
   param_override = gRadar;
 end
 
-get_heights(param,param_override);
+combine_wf_chan(param,param_override);

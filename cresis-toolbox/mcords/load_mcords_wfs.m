@@ -114,11 +114,11 @@ end
 % rec_data_size = number of bytes of data (not including any header
 %   bytes).
 if any(strcmpi(param.radar_name,{'acords'}))
-wf_num_sam = cell2mat({settings.wfs(1).wfs.num_sam}).';
+  wf_num_sam = cell2mat({settings.wfs(1).wfs.num_sam}).';
 else
-wf_num_sam = cell2mat({settings.wfs.num_sam}).';
+  wf_num_sam = cell2mat({settings.wfs.num_sam}).';
 end
-if any(strcmpi(param.radar_name,{'acords','mcords','mcords2','mcords3','mcords4','mcords5','seaice'}))
+if any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice'}))
   wf = 1;
   wf_offsets(wf) = 0;
   if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
@@ -187,7 +187,6 @@ end
 
 for wf = 1:length(param.radar.wfs)
   adc_idx = 1;
-  
   
   if any(strcmpi(param.radar_name,{'acords'}))
     settings.wfs(wf).bit_shifts = settings.wfs(1).wfs(wf).bit_shifts(1);

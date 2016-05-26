@@ -48,7 +48,7 @@ physical_constants
 [base_dir,adc_folder_name,fns,file_idxs] = get_segment_file_list(param);
 
 fn = fns{1};
-[~,fn_name] = fileparts(fn);
+[~,fn_name,fn_ext] = fileparts(fn);
 fprintf('  Parsing file %s (%s)\n', fn_name, datestr(now));
 
 %% Load and parse the file
@@ -82,15 +82,17 @@ else
 end
 
 records = [];
-records.raw.epri = hdr.epri;
-records.raw.seconds = utc_time_sod;
-records.raw.fraction = hdr.frac;
+records.raw.epri = hdr.epri(:).';
+records.raw.seconds = utc_time_sod(:).';
+records.raw.fraction = hdr.frac(:).';
 
 records.settings = [];
 
 records.settings.wfs_records = 1;
 records.settings.wfs.presums = hdr.pre(1) + 1;
 records.settings.wfs.bit_shifts = hdr.bshft(1);
+records.settings.wfs.num_sam = hdr.stop(1)-hdr.start(1)-1;
+
 records.settings.wfs.t0 = (hdr.start(1) - hdr.delay(1)) / param.radar.fs;
 if records.settings.wfs.t0 ~= -2.108e-5
   % Not the expected setting... need to actually look into getting t0 set
@@ -105,8 +107,11 @@ radar_time = hdr.epri * PRI;
 
 utc_time_sod_epri = radar_time - radar_time(1) ...
   + utc_time_sod(1) + hdr.frac(1)/param.radar.fs;
+
+utc_time_sod_corrected = utc_time_sod_epri(:).';
+
+%% Debug check
 if 1
-  %% Debug check
   figure(1); clf;
   plot(utc_time_sod+hdr.frac/param.radar.fs)
   hold on;
@@ -120,9 +125,15 @@ if 1
   xlabel('Record');
   ylabel('Time Error (sec)');
   title('Header Time Minus Corrected Time');
+  tmp_fn = ct_filename_ct_tmp(param,'','records','UTC_time.fig');
+  tmp_fn_dir = fileparts(tmp_fn);
+  if ~exist(tmp_fn_dir,'dir')
+    mkdir(tmp_fn_dir);
+  end
+  saveas(1,tmp_fn);
+  tmp_fn = ct_filename_ct_tmp(param,'','records','UTC_time_correction.fig');
+  saveas(2,tmp_fn);
 end
-
-utc_time_sod_corrected = utc_time_sod_epri;
 
 %% Correlate GPS with radar data
 % ===================================================================
@@ -164,9 +175,9 @@ end
 %  .gps_time
 %  .gps_source
 records.surface = NaN*zeros(size(records.lat));
-records.relative_filename = fn_name;
-records.relative_rec_num = 1;
-records.offset = hdr.loc;
+records.relative_filename = {{[fn_name fn_ext]}};
+records.relative_rec_num = {1};
+records.offset = hdr.loc(:).';
 
 records.radar_name = param.radar_name;
 records.ver = 3;

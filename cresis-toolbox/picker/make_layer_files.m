@@ -35,6 +35,13 @@ for param_idx = 1:length(params)
   fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
   fprintf('=====================================================================\n');
   
+  if ~isfield(param.records,'records_fn')
+    param.records.records_fn = '';
+  end
+  if ~isfield(param.records,'frames_fn')
+    param.records.frames_fn = '';
+  end
+
   % Load frames file
   load(ct_filename_support(param,param.records.frames_fn,'frames'));
   
