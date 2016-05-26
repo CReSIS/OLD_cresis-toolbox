@@ -81,7 +81,11 @@ else
   
   if ctrl.error_mask(job_id) && ctrl.job_status(job_id) == 'C'
     if exist(out_path,'file')
-      out = load(out_path);
+      try
+        out = load(out_path);
+      catch
+        out = [];
+      end
       error_string = '';
       if isfield(out,'errorstruct')
         error_string = sprintf('%s: %s\n', out.errorstruct.identifier, out.errorstruct.message);
