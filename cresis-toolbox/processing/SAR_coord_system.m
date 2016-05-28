@@ -82,7 +82,8 @@ good_rline = ones(1,length(output_along_track));
 
 for out_rline = 1:length(output_along_track)
   % For this output range line determine the input range lines
-  rlines_in = find(along_track >= output_along_track(out_rline)-param.Lsar/2 & along_track <= output_along_track(out_rline)+param.Lsar/2);
+  rlines_in = find(along_track >= output_along_track(out_rline)-param.Lsar/2 ...
+    & along_track <= output_along_track(out_rline)+param.Lsar/2);
   
   if length(rlines_in) < 2
     % Sometimes there are gaps in the data, we will use neighboring points
