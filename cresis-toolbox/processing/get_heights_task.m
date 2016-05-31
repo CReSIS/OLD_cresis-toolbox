@@ -46,10 +46,7 @@ function [success surfTimes] = get_heights_task(param)
 %    decimating, this function loads data before and after this frame
 %    (if available) to avoid transients at the beginning and end
 %  .decimate_factor = positive integer, decimation rate
-%  .inc_B_filter: double vector, FIR filter coefficients to apply before
-%    incoherent average decimation. If not defined or empty, then
-%    inc_B_filter is set to ones(1,inc_ave)/inc_ave.
-%  .inc_ave = integer scalar, number of incoherent averages to apply
+%  .inc_ave = positive integer, number of incoherent averages to apply
 %    (also decimates by this number). If set to < 1, complex data are
 %    returned.  Setting to 1 causes the data to be power detected (i.e.
 %    become incoherent), but no averaging is done.
@@ -142,47 +139,21 @@ if ~isfield(param.get_heights,'ft_oversample') || isempty(param.get_heights.ft_o
   param.get_heights.ft_oversample = 1;
 end
 
-if ~isfield(param.get_heights,'pulse_rfi') || isempty(param.get_heights.pulse_rfi)
+if ~isfield(param.get_heights,'pulse_rfi')
   param.get_heights.pulse_rfi.en = 0;
 end
 
-if ~isfield(param.get_heights,'ft_dec') || isempty(param.get_heights.ft_dec)
+if ~isfield(param.get_heights,'ft_dec')
   param.get_heights.ft_dec = 1;
-end
-
-if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
-  param.get_heights.pulse_comp = 1;
-end
-
-if ~isfield(param.get_heights,'raw_data') || isempty(param.get_heights.raw_data)
-  param.get_heights.raw_data = 0;
-end
-
-if ~isfield(param.get_heights,'roll_correction') || isempty(param.get_heights.roll_correction)
-  param.get_heights.roll_correction = 0;
-end
-
-if param.get_heights.roll_correction
-  param.get_heights.combine_rx = false;
-else
-  param.get_heights.combine_rx = true;
 end
 
 if ~isfield(param.records,'file_version')
   param.records.file_version = [];
 end
 
-if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
+if sum(param.get_heights.B_filter) ~= 1
   warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
   param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
-end
-
-if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B_filter)
-  param.get_heights.inc_B_filter = ones(1,param.get_heights.inc_ave) / param.get_heights.inc_ave;
-end
-if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
-  warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
-  param.get_heights.inc_B_filter = param.get_heights.inc_B_filter / sum(param.get_heights.inc_B_filter);
 end
 
 % =====================================================================
@@ -264,11 +235,17 @@ if simple_firdec
 else
   param.get_heights.presums = 1;
 end
+param.get_heights.pulse_comp = 1;
+if param.get_heights.roll_correction
+  param.get_heights.combine_rx = false;
+else
+  param.get_heights.combine_rx = true;
+end
 if strcmpi(param.radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.get_heights);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(param.radar_name,{'acords','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,rec_data_size] = load_mcords_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.get_heights);
   load_param.load.rec_data_size = rec_data_size;
@@ -317,7 +294,7 @@ for idx = 1:length(param.load.imgs)
 end
 
 recs = load_param.load.recs - load_param.load.recs(1) + 1;
-if any(strcmpi(param.radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(param.radar_name,{'icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   % adc_headers: the actual adc headers that were loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -563,7 +540,7 @@ for img_idx = 1:length(param.load.imgs)
   if strcmpi(param.radar_name,'mcords')
     load_mcords_data(load_param);
     g_data = g_data{1};
-  elseif any(strcmpi(param.radar_name,{'hfrds','mcords2','mcords3','mcords4','mcords5'}))
+  elseif any(strcmpi(param.radar_name,{'mcords2','mcords3','mcords4','mcords5'}))
     load_mcords2_data(load_param);
     g_data = g_data{1};
   elseif strcmpi(param.radar_name,'mcrds')
@@ -579,7 +556,7 @@ for img_idx = 1:length(param.load.imgs)
     load_acords_data(load_param);
     g_data = g_data{1};
   elseif strcmpi(param.radar_name,'icards')%add icards----qishi
-    load_icards_data(load_param);
+    load_icards_data(load_param,param);
     g_data = g_data{1};
   elseif strcmpi(param.radar_name,'accum')
     %load_param.proc.elev_correction = param.get_heights.elev_correction;
@@ -614,7 +591,7 @@ for img_idx = 1:length(param.load.imgs)
     g_data = g_data{1};
     valid_rng = img_valid_rng{1};
     deconv_filter_idx = img_deconv_filter_idx{1};
-    % Get heights only loads one image at a time, so img_time{1}
+    % Currently assuming all waveforms have the same time axis
     for wf = 1:length(wfs)
       wfs(wf).time = img_time{1};
     end
@@ -677,7 +654,10 @@ for img_idx = 1:length(param.load.imgs)
   
   %% Remove coherent noise
   if param.get_heights.coh_noise_method == 1 && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
-    g_data = bsxfun(@minus, g_data, mean(g_data,2));
+    for wf_adc_idx = 1:size(g_data,3)
+      g_data(:,:,wf_adc_idx) = g_data(:,:,wf_adc_idx) - repmat( mean(g_data(:,:,wf_adc_idx),2) , ...
+        [1 size(g_data,2)]);
+    end
   end
 
   %% Roll compensation
@@ -757,10 +737,10 @@ for img_idx = 1:length(param.load.imgs)
   end
   
   %% Apply incoherent averaging with decimation
-  if size(param.get_heights.inc_B_filter,2) >= 1
+  if param.get_heights.inc_ave >= 1
     data_incoh = [];
     for adc_idx = 1:size(g_data,3)
-      data_incoh(:,:,adc_idx) = fir_dec(fir_dec(abs(g_data(:,:,adc_idx)).^2,param.get_heights.inc_B_filter,1), param.get_heights.inc_ave);
+      data_incoh(:,:,adc_idx) = fir_dec(abs(g_data(:,:,adc_idx)).^2,param.get_heights.inc_ave);
     end
   end
   
@@ -839,7 +819,7 @@ for img_idx = 1:length(param.load.imgs)
     custom.deconv_filter_idx = deconv_filter_idx;
   end
   clear deconv_filter_idx;
-  save(fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
+  save(fn, 'Data', 'Time', 'GPS_time', 'Latitude', ...
     'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'param_get_heights', 'param_records','custom');
   
 end

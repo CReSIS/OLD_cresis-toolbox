@@ -282,8 +282,8 @@ for wf = 1:length(param.radar.wfs)
   % Apply receiver delays to reference function
   Nt = wfs(wf).Nt_pc;
   df = 1/(Nt*dt);
-  %freq = round(fc/fs)*fs + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-  freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
+  freq = round(fc/fs)*fs + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+  %freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
   for adc = adcs
     wfs(wf).ref{adc} = conj(fft(ref,Nt) ...
       .* exp(-1i*2*pi*freq*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
@@ -302,8 +302,8 @@ for wf = 1:length(param.radar.wfs)
   end
   
   df = 1/(Nt*dt);
-  %freq = round(fc/fs)*fs + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-  freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
+  freq = round(fc/fs)*fs + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+  %freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
   wfs(wf).time_raw = t0 + (0:dt:(Nt-1)*dt).';
   
   if proc_param.ft_dec
@@ -359,9 +359,9 @@ for wf = 1:length(param.radar.wfs)
   else
     % Let ftnz = fast time nyquist zone
     % Starts at ftnz*fs goes to ftnz*fs+fs/2, ftnz*fs-fs/2 to ftnz*fs
-    %     wfs(wf).freq = round(fc/fs)*fs ...
-    %       + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    wfs(wf).freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
+    wfs(wf).freq = round(fc/fs)*fs ...
+      + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+    %wfs(wf).freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
     wfs(wf).time = t0 + (0:dt:(Nt-1)*dt).';
   end
   if proc_param.pulse_comp

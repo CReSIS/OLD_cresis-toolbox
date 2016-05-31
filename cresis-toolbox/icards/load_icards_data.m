@@ -1,4 +1,4 @@
-function [param] = load_icards_data(param)
+function [param] = load_icards_data(param,whole_param)
 
 if ~isfield(param.load,'wf_adc_comb')
   param.load.wf_adc_comb.en = 0;
@@ -41,131 +41,286 @@ end
 % ===================================================================
 % Load data
 % ===================================================================
-  adc = 1;%only 1 for icards
-  adc_idx=1;
-  out_idx = 0;
-  rec = 1;
-  while rec < total_rec;
-    % Get the filename
-    fn_idx = param.load.file_idx{adc_idx}(rec);
-    fn = param.load.filenames{adc_idx}{fn_idx};
+adc = 1;%only 1 for icards
+adc_idx=1;
+num_accum = 0;
+out_idx = 0;
+rec = 1;
+year_mark = str2num(whole_param.day_seg(1:4));
+if year_mark>1997 %coherent data stored
+  data_stored_type='coherent';
+elseif size(icards_get_data(param.load.filenames{1}(1),2),1)~=0%some coherent data in 1997's segments
+  data_stored_type='coherent';
+else
+  data_stored_type='incoherent';
+end
+ 
+if strcmpi(data_stored_type,'coherent') %read coherent data
+    while rec < total_rec;
+      % Get the filename
+      fn_idx = param.load.file_idx{adc_idx}(rec);
+      fn = param.load.filenames{adc_idx}{fn_idx};
 
-    % Get number of records to load
-    num_rec = find(param.load.file_idx{adc_idx}(rec:total_rec ) > fn_idx, 1) - 1;
+      % Get number of records to load
+      num_rec = find(param.load.file_idx{adc_idx}(rec:total_rec ) > fn_idx, 1) - 1;
 
-    % Check to see if we crossed a file boundary
-    if isempty(num_rec)
-      % Not crossing a file boundary
-      num_rec = length(rec:total_rec);
-      boundary_crossing = false;
-    else
-      % Crossing a file boundary
-      boundary_crossing = true;
-    end
+      % Check to see if we crossed a file boundary
+      if isempty(num_rec)
+        % Not crossing a file boundary
+        num_rec = length(rec:total_rec);
+        boundary_crossing = false;
+      else
+        % Crossing a file boundary
+        boundary_crossing = true;
+      end
 
-    % ===============================================================
-    % Load the records
-    % ===============================================================
-    
-    fprintf('Loading data from %s\n', fn);
-    [fid,msg] = fopen(fn, 'r');
-    if fid<0
-      error('File open failed (%s)\n%s',fn, msg);
-    end
-    file_record_length=size(icards_get_data(fn,2),2);
-    
-    for rec = rec:rec+num_rec-1
-          fseek(fid, param.load.offset{1}(rec), 'bof');
-          rec_data_I = [fread(fid, param.load.rec_data_size/sample_size, 'int16')];%read I channel
-          fseek(fid, param.load.offset{1}(rec)+param.load.rec_data_size*file_record_length+12, 'bof');
-          rec_data_Q = [fread(fid, param.load.rec_data_size/sample_size, 'int16')];%read Q Channel 
-          any(size(rec_data_I)~=size(rec_data_Q));
-          rec_data=rec_data_I+1i*rec_data_Q;%a full sample I+jQ
       % ===============================================================
-      % Process record
+      % Load the records
       % ===============================================================
-        accum_idx=1;%icards just has one waveform
-        accum.data{accum_idx}=rec_data; 
-          out_idx = out_idx + 1;    
-       
-        wf = accum(adc).wf(accum_idx);
-        img_idx = accum(adc).img_idx(accum_idx);
-        wf_adc_idx = accum(adc).wf_adc_idx(accum_idx);
-                    
-        % Apply channel compensation
-        chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-          .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-        accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/chan_equal;
+
+      fprintf('Loading data from %s\n', fn);
+      [fid,msg] = fopen(fn, 'r');
+      if fid<0
+        error('File open failed (%s)\n%s',fn, msg);
+      end
+      file_record_length=size(icards_get_data(fn,2),2);
+
+      for rec = rec:rec+num_rec-1
+
+        % Load data record from file
+        fseek(fid, param.load.offset{1}(rec), 'bof');
+        rec_data_I = [fread(fid, param.load.rec_data_size/sample_size, 'int16')];%read I channel
+        fseek(fid, param.load.offset{1}(rec)+param.load.rec_data_size*file_record_length+12, 'bof');
+        rec_data_Q = [fread(fid, param.load.rec_data_size/sample_size, 'int16')];%read Q Channel
+        rec_data = double(rec_data_I+1i*rec_data_Q);%a full sample I+jQ
+
+        % ===============================================================
+        % Process record
+        % ===============================================================
+        accum_idx = 1; %icards just has one waveform
+        if num_accum == 0
+          accum.data{accum_idx} = rec_data;
+        else
+          accum.data{accum_idx} = accum.data{accum_idx} + rec_data;
+        end
+
+        num_accum = num_accum + 1;
+        if num_accum >= param.proc.presums
+          num_accum = 0;
+          out_idx = out_idx + 1;
+
+          wf = accum(adc).wf(accum_idx);
+          img_idx = accum(adc).img_idx(accum_idx);
+          wf_adc_idx = accum(adc).wf_adc_idx(accum_idx);
+
+          % Apply channel compensation
+          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+            .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+          accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/chan_equal;
           accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/wfs(wf).adc_gains(adc);
-        if param.proc.pulse_comp
+          if param.proc.pulse_comp
             % ===========================================================
             % Do pulse compression
             % Apply blank (only should enable if sidelobe problems present)
-          if ~isempty(wfs(wf).blank)
+            if ~isempty(wfs(wf).blank)
               % accum(adc).data{accum_idx}(wfs(wf).time_raw>wfs(wf).blank(1) & wfs(wf).time_raw<wfs(wf).blank(2)) = 0;
-            accum(adc).data{accum_idx}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= param.surface(rec) + wfs(wf).blank) = 0;
-          end
+              accum(adc).data{accum_idx}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= param.surface(rec) + wfs(wf).blank) = 0;
+            end
             % Apply matched filter
             % Zero pad front: (the standard)
-          accum(adc).data{accum_idx} = fft([zeros(wfs(wf).pad_length,1); accum(adc).data{accum_idx}], wfs(wf).Nt_pc);
+            accum(adc).data{accum_idx} = fft([zeros(wfs(wf).pad_length,1); accum(adc).data{accum_idx}], wfs(wf).Nt_pc);
             % Zero pad end: (debug only)
             %accum(adc).data{accum_idx} = fft(accum(adc).data{accum_idx}, wfs(wf).Nt_pc);
-          accum(adc).data{accum_idx} = ifft(accum(adc).data{accum_idx}(wfs(wf).freq_inds) ...
+            accum(adc).data{accum_idx} = ifft(accum(adc).data{accum_idx}(wfs(wf).freq_inds) ...
               .* wfs(wf).ref{adc}(wfs(wf).freq_inds));
-          if wfs(wf).dc_shift ~= 0
+            if wfs(wf).dc_shift ~= 0
               % Correct for small frequency offset caused by selecting bins from
               % frequency domain as the method for down conversion
-            accum(adc).data{accum_idx} = accum(adc).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
-          end
-        elseif param.proc.ft_dec
-          accum(adc).data{accum_idx} = fft(accum(adc).data{accum_idx},wfs(wf).Nt_raw);
-          accum(adc).data{accum_idx} = ifft(accum(adc).data{accum_idx}(wfs(wf).freq_inds));
-          if wfs(wf).dc_shift ~= 0
+              accum(adc).data{accum_idx} = accum(adc).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
+            end
+          elseif param.proc.ft_dec
+            accum(adc).data{accum_idx} = fft(accum(adc).data{accum_idx},wfs(wf).Nt_raw);
+            accum(adc).data{accum_idx} = ifft(accum(adc).data{accum_idx}(wfs(wf).freq_inds));
+            if wfs(wf).dc_shift ~= 0
               % Correct for small frequency offset caused by selecting bins from
               % frequency domain as the method for down conversion
-            accum(adc).data{accum_idx} = accum(adc).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
-          end
-        end
-        if ~param.load.wf_adc_comb.en
-            % Regular wf-adc pair loading: no combining wf-adc pairs in fast-time
-          if param.proc.combine_rx
-            g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(adc).data{accum_idx} / param.proc.presums / size(param.load.imgs{img_idx},1);
+              accum(adc).data{accum_idx} = accum(adc).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
+            end
           else
-            g_data{img_idx}(:,out_idx,wf_adc_idx) = accum(adc).data{accum_idx} / param.proc.presums;
+            accum(adc).data{accum_idx} = ifft(fft(accum(adc).data{accum_idx}) .* ifftshift(param.proc.ft_wind(length(accum(adc).data{accum_idx}))));
           end
-            
-        else
+          if ~param.load.wf_adc_comb.en
+            % Regular wf-adc pair loading: no combining wf-adc pairs in fast-time
+            if param.proc.combine_rx
+              g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(adc).data{accum_idx} / param.proc.presums / size(param.load.imgs{img_idx},1);
+            else
+              g_data{img_idx}(:,out_idx,wf_adc_idx) = accum(adc).data{accum_idx} / param.proc.presums;
+            end
+
+          else
             % Combine wf-adc pairs in fast-time
-          if accum(adc).img_comb_idx(accum_idx) == 1
-            tmp2{wf_adc_idx} = zeros(param.load.wf_adc_comb.Nt_orig,1);
-            tmp2{wf_adc_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) ...
-              = accum(adc).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
+            if accum(adc).img_comb_idx(accum_idx) == 1
+              tmp2{wf_adc_idx} = zeros(param.load.wf_adc_comb.Nt_orig,1);
+              tmp2{wf_adc_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) ...
+                = accum(adc).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
               %               g_data{img_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx),out_idx,wf_adc_idx) ...
               %                 = accum(board+1).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
-          elseif accum(adc).img_comb_idx(accum_idx) == 2
-            tmp2{wf_adc_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end) ...
-              = accum(adc).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
-            g_data{img_idx}(:,out_idx,wf_adc_idx) = tmp2{wf_adc_idx}(param.load.wf_adc_comb.keep_bins);
+            elseif accum(adc).img_comb_idx(accum_idx) == 2
+              tmp2{wf_adc_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end) ...
+                = accum(adc).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
+              g_data{img_idx}(:,out_idx,wf_adc_idx) = tmp2{wf_adc_idx}(param.load.wf_adc_comb.keep_bins);
               %               g_data{img_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end,out_idx,wf_adc_idx) ...
               %                 = accum(board+1).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
             end
+          end
         end
-          g_data{1}(:,out_idx)=rec_data;
       end
-        if boundary_crossing
-            rec=rec+1;
-            boundary_crossing=false;
-        end
-        
+      if boundary_crossing
+        rec=rec+1;
+        boundary_crossing=false;
       end
-  
 
+    end
+else %read incoherent data
+    while rec < total_rec;
+      % Get the filename
+      fn_idx = param.load.file_idx{adc_idx}(rec);
+      fn = param.load.filenames{adc_idx}{fn_idx};
+
+      % Get number of records to load
+      num_rec = find(param.load.file_idx{adc_idx}(rec:total_rec ) > fn_idx, 1) - 1;
+
+      % Check to see if we crossed a file boundary
+      if isempty(num_rec)
+        % Not crossing a file boundary
+        num_rec = length(rec:total_rec);
+        boundary_crossing = false;
+      else
+        % Crossing a file boundary
+        boundary_crossing = true;
+      end
+
+      % ===============================================================
+      % Load the records
+      % ===============================================================
+
+      fprintf('Loading data from %s\n', fn);
+      [fid,msg] = fopen(fn, 'r');
+      if fid<0
+        error('File open failed (%s)\n%s',fn, msg);
+      end
+      file_record_length=size(icards_get_data(fn,1),2);
+
+      for rec = rec:rec+num_rec-1
+
+        % Load data record from file
+        fseek(fid, param.load.offset{1}(rec), 'bof');
+        rec_data = [fread(fid, param.load.rec_data_size/sample_size, 'uint16')];%read coherent data      
+        rec_data = double(rec_data);
+
+        % ===============================================================
+        % Process record
+        % ===============================================================
+        accum_idx = 1; %icards just has one waveform
+        if num_accum == 0
+          accum.data{accum_idx} = rec_data;
+        else
+          accum.data{accum_idx} = accum.data{accum_idx} + rec_data;
+        end
+
+        num_accum = num_accum + 1;
+        if num_accum >= param.proc.presums
+          num_accum = 0;
+          out_idx = out_idx + 1;
+
+          wf = accum(adc).wf(accum_idx);
+          img_idx = accum(adc).img_idx(accum_idx);
+          wf_adc_idx = accum(adc).wf_adc_idx(accum_idx);
+
+          % Apply channel compensation
+          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+            .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+          accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/chan_equal;
+          accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/wfs(wf).adc_gains(adc);
+          if param.proc.pulse_comp
+            % ===========================================================
+            % Do pulse compression
+            % Apply blank (only should enable if sidelobe problems present)
+            if ~isempty(wfs(wf).blank)
+              % accum(adc).data{accum_idx}(wfs(wf).time_raw>wfs(wf).blank(1) & wfs(wf).time_raw<wfs(wf).blank(2)) = 0;
+              accum(adc).data{accum_idx}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= param.surface(rec) + wfs(wf).blank) = 0;
+            end
+            % Apply matched filter
+            % Zero pad front: (the standard)
+            accum(adc).data{accum_idx} = fft([zeros(wfs(wf).pad_length,1); accum(adc).data{accum_idx}], wfs(wf).Nt_pc);
+            % Zero pad end: (debug only)
+            %accum(adc).data{accum_idx} = fft(accum(adc).data{accum_idx}, wfs(wf).Nt_pc);
+            accum(adc).data{accum_idx} = ifft(accum(adc).data{accum_idx}(wfs(wf).freq_inds) ...
+              .* wfs(wf).ref{adc}(wfs(wf).freq_inds));
+            if wfs(wf).dc_shift ~= 0
+              % Correct for small frequency offset caused by selecting bins from
+              % frequency domain as the method for down conversion
+              accum(adc).data{accum_idx} = accum(adc).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
+            end
+          elseif param.proc.ft_dec
+            accum(adc).data{accum_idx} = fft(accum(adc).data{accum_idx},wfs(wf).Nt_raw);
+            accum(adc).data{accum_idx} = ifft(accum(adc).data{accum_idx}(wfs(wf).freq_inds));
+            if wfs(wf).dc_shift ~= 0
+              % Correct for small frequency offset caused by selecting bins from
+              % frequency domain as the method for down conversion
+              accum(adc).data{accum_idx} = accum(adc).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
+            end
+          end
+          if ~param.load.wf_adc_comb.en
+            % Regular wf-adc pair loading: no combining wf-adc pairs in fast-time
+            if param.proc.combine_rx
+              g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(adc).data{accum_idx} / param.proc.presums / size(param.load.imgs{img_idx},1);
+            else
+              g_data{img_idx}(:,out_idx,wf_adc_idx) = accum(adc).data{accum_idx} / param.proc.presums;
+            end
+
+          else
+            % Combine wf-adc pairs in fast-time
+            if accum(adc).img_comb_idx(accum_idx) == 1
+              tmp2{wf_adc_idx} = zeros(param.load.wf_adc_comb.Nt_orig,1);
+              tmp2{wf_adc_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) ...
+                = accum(adc).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
+              %               g_data{img_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx),out_idx,wf_adc_idx) ...
+              %                 = accum(board+1).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
+            elseif accum(adc).img_comb_idx(accum_idx) == 2
+              tmp2{wf_adc_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end) ...
+                = accum(adc).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
+              g_data{img_idx}(:,out_idx,wf_adc_idx) = tmp2{wf_adc_idx}(param.load.wf_adc_comb.keep_bins);
+              %               g_data{img_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end,out_idx,wf_adc_idx) ...
+              %                 = accum(board+1).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
+            end
+          end
+        end
+      end
+      if boundary_crossing
+        rec=rec+1;
+        boundary_crossing=false;
+      end
+
+    end
     
+end
+fclose(fid);
+% one-sided tukey window
+[ window_matrix ] = onesided_window( whole_param.csarp.td_window,whole_param.csarp.td_window_side,size(g_data{1}) );%using one-sided window to avoid too big value at the start or end of a record
+g_data{img_idx}=g_data{img_idx}.*window_matrix;
 
-    fclose(fid);
-    % ==============================================================
+%  burst noise detection
+[g_data{img_idx}]=icards_burst_noise_detection(g_data{img_idx});
+% Constant with slow time noise removal:
+% g_data{img_idx} = g_data{img_idx} - mean(mean(g_data{img_idx}(800:end,:)));
+% Slowly varying in slow time noise removal:
+g_data{img_idx} = g_data{img_idx} - repmat(fir_dec(mean(g_data{img_idx}(800:1024,:)), ones(1,15)/15), [size(g_data{img_idx},1) 1]);
 return;
 
+% ==============================================================
+% accum = build_img_load_struct(imgs, adcs)
+% ==============================================================
 function accum = build_img_load_struct(imgs, adcs)
 
 for img_idx = 1:length(imgs)

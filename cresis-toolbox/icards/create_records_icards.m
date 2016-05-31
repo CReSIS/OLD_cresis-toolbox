@@ -28,7 +28,7 @@ function create_records_icards(param,param_override)
 % Authors: Aric Beaver, John Paden
 %
 % See also: master
-
+ 
 % =====================================================================
 % General Setup
 % =====================================================================
@@ -50,7 +50,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
     error('A struct array of parameters must be passed in\n');
   end
   
-  global gRadar;
+  global gRadar; 
   if exist('param_override','var')
     param_override = merge_structs(gRadar,param_override);
   else
@@ -97,20 +97,27 @@ param.sched.type = 'no scheduler';
 param.file_regexp = '\S+\.[0-9][0-9][0-9]$';
 full_dir = fullfile(param.vectors.file.base_dir,param.vectors.file.adc_folder_name);
 fns = get_filenames(full_dir,'','','',struct('regexp',param.file_regexp));
-% fns = fns(2:205);  %to ignore "fiberdly" of 20020524!!!!!!!!!!!!!!!!!!!!!
-% fns = fns(1:43); %to ignore "fiberely" of 20020520!!!!!!!!!!!!!!!!!!!!!!!!
+valid_data_file=icards_data_ignore_list(fns,full_dir);
+fns=fns(valid_data_file);
 file_idxs=param.vectors.file.start_idx:param.vectors.file.stop_idx;
 param_1=param;
 param_1.day_seg=[];
-
 hdrs.offset=[];
 
+if file_idxs(1)==1
+  first_seg=1;
+else
+  first_seg=0;
+  file_idx_previous=file_idxs(1)-1;
+end
+
+
 num_rec_sample=0;%initial number of samples per record
+hdrs.nmea_time=[];
 for file_idxs_idx = 1:length(file_idxs)
   file_idx = file_idxs(file_idxs_idx);
   fn=fns{file_idx};
   [~,fn_name,fn_ext] = fileparts(fn);
-
   fprintf('  File %s %d of %d (%s)\n', fn_name, file_idxs_idx, length(file_idxs), datestr(now));
   tmp_hdr_fn = ct_filename_tmp(param_1,'','headers',[fn_name fn_ext '.mat']);
   tmp_hdr_fn_dir = fileparts(tmp_hdr_fn);
@@ -118,8 +125,45 @@ for file_idxs_idx = 1:length(file_idxs)
     mkdir(tmp_hdr_fn_dir);
   end
   hdr = load(tmp_hdr_fn); 
-   
-  if file_idxs_idx == 1
+  
+  if (all(isnan(hdr.nmea_time)))||(all(isnan(hdr.nmea_lat)))||(all(isnan(hdr.nmea_lon)))||(all(isnan(hdr.nmea_elev)))%to ingnore this temporary file which contains only NaN---qishi
+    warning('no valid data in %s except NaN,to load next file if there are any\n',fn);
+    continue;
+  end
+  
+  if ~first_seg%if this is not the first segment,we need load the last time point of previous segment for interpolation to avoid "out of records" warning----qishi
+    fn_previous=fns{file_idx_previous};
+    [~,fn_name_previous,fn_ext_previous] = fileparts(fn_previous);
+    tmp_hdr_fn_previous = ct_filename_tmp(param_1,'','headers',[fn_name_previous fn_ext_previous '.mat']);
+    hdr_previous=load(tmp_hdr_fn_previous);
+    while (all(isnan(hdr_previous.nmea_time)))%we need to find the last time point previous file when the file does not contain NaN only---qishi
+      file_idx_previous=file_idx_previous-1;
+      [~,fn_name_previous,fn_ext_previous] = fileparts(fn_previous);
+      tmp_hdr_fn_previous = ct_filename_tmp(param_1,'','headers',[fn_name_previous fn_ext_previous '.mat']);
+      hdr_previous=load(tmp_hdr_fn_previous);
+    end
+  
+    if hdr.nmea_time(1)<hdr_previous.nmea_time(end)
+      warning('the first nmea time of this file is smaller than the last time point of prvious file, correct this in interpolation step\n');
+      previous_mark=1;
+      previous_time=hdr_previous.nmea_time(end);
+    else
+      previous_mark=0;
+      previous_time=[];
+    end
+  else
+    previous_mark=0;
+    previous_time=[];
+  end
+  
+  
+  if isempty(hdrs.nmea_time)
+    fisrt_valid_mark=0;
+  else
+    fisrt_valid_mark=1;
+  end
+  
+  if (file_idxs_idx == 1)||(fisrt_valid_mark==0)
     hdrs.filenames{1}=[fn_name fn_ext];
     hdrs.file_rec_offset = 1;
     hdrs.nmea_time = hdr.nmea_time;
@@ -138,24 +182,31 @@ for file_idxs_idx = 1:length(file_idxs)
   header_size=64;
   secondary_header_size=12;
   if num_rec_sample==0
-    num_rec_sample=size(icards_get_data(fn,2),1);
+     num_rec_sample=size(icards_get_data(fn,2),1);  %if>0,coherent data in this segment
+     if num_rec_sample==0
+       num_rec_sample=size(icards_get_data(fn,1),1);%incoherent data in this segment
+       fprintf('Incoherent data stored in this file \n');
+     else
+       fprintf('Coherent data stored in this file \n');
+     end
   else
-      num_rec_sample=num_rec_sample;
+     num_rec_sample=num_rec_sample;
   end
   sample_size=2;
   rec_data_size=num_rec_sample*sample_size;
   hdrs.offset=[hdrs.offset header_size+secondary_header_size+rec_data_size*(0:num_records-1)];%this offset is the location of each I sample
 %==========================================================================  
 end
+hdrs.filenames=hdrs.filenames(logical(hdrs.file_rec_offset));% arrange filenames
+hdrs.file_rec_offset=hdrs.file_rec_offset(logical(hdrs.file_rec_offset));% arrange rec offset
 % =====================================================================
 %% interpolation to make time monotonically increasing 
 % =====================================================================
-tmp = hdrs.nmea_time;
-hdrs.nmea_time=create_records_icards_interpolation(hdrs.nmea_time);
-plot(hdrs.nmea_time);
-hold on
-plot(tmp,'r')
-hold off;
+if any(isnan(hdrs.nmea_time))%deal with possible NaNs in time sequence
+  warning('NaN found in this file while creating records of this segment,correcting now\n');
+  hdrs.nmea_time=create_records_icards_dealwithNaN(hdrs.nmea_time);
+end
+hdrs.nmea_time=create_records_icards_interpolation(hdrs.nmea_time,previous_mark,previous_time);% fix time sequence---qishi
 hdr.nmea_time=hdrs.nmea_time;
 hdr.filenames=hdrs.filenames;
 hdr.file_rec_offset = hdrs.file_rec_offset;

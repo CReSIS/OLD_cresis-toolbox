@@ -132,8 +132,8 @@ records.ver = 3;
 records.settings = [];
 records.settings.wfs_records = 1;
 records.settings.wfs_file=1;
-wf=1;%icards has only 1 waveform? the spread sheet says there are 2
-records.settings.wfs(wf).num_sam = num_rec_sample; %derive from icards_get_data when datatype==2 ??QISHI
+wf=1;
+records.settings.wfs(wf).num_sam = num_rec_sample; 
 records.settings.wfs(wf).t0 = 0;
 records.settings.wfs(wf).presums = 1;
 records.settings.wfs(wf).bit_shifts = 0;

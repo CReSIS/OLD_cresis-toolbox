@@ -9,13 +9,13 @@
 %find date which non chronological data 
 %% User Settings
 param=[];
-base_dir = 'Z:\ICARDS\1993\';
-adc_folder_name='jul09\';                                    %change needed
-param.year = 1993;                                           %change needed
-param.month = 7;                                             %change needed
-param.day = 09;                                              %change needed   
+base_dir = 'Z:\ICARDS\1995\';                                %change needed
+adc_folder_name='may19\';                                    %change needed
+param.year = 1995;                                           %change needed
+param.month = 5;                                             %change needed
+param.day = 19;                                              %change needed   
 param.radar_name = 'icards';
-param.season_name = '1993_Greenland_P3';                     %change needed   
+param.season_name = '1995_Greenland_P3';                     %change needed   
 param.file_regexp = '\S+\.[0-9][0-9][0-9]$';
 plot_en = 0; % Set to 1 for gps plots.
 
@@ -39,8 +39,8 @@ MIN_PRF = 100;
 full_dir = fullfile(base_dir,adc_folder_name);
 
 fns = get_filenames(full_dir,'','','',struct('regexp',param.file_regexp));
-% fns = fns(2:205);  %to ignore "fiberdly" of 20020524!!!!!!!!!!!!!!!!!!!!!
-% fns = fns(1:43);   %to ignore "seaice"   of 20020520!!!!!!!!!!!!!!!!!!!!!
+valid_data_file=icards_data_ignore_list(fns,full_dir);%ignore unreasonable raw data files---qishi
+fns=fns(valid_data_file);
 
 %If segment goes from 1 to 10 the files for that segment are .000 to .009
 for fn_idx = 1:size(fns,1)
@@ -148,13 +148,20 @@ for fn_idx = 1:size(fns,1)
         hdr.nmea_lat(rline) = -hdr.nmea_lat(rline);
       end
       hdr.nmea_lon(rline) = str2double(C{1}{5}(1:3)) + str2double(C{1}{5}(4:end))/60;
-      if C{1}{6} ~= 'E'
+% % % % %       if C{1}{6} ~= 'E'
+% % % % %         hdr.nmea_lon(rline) = -hdr.nmea_lon(rline);
+% % % % %       end
+      if C{1}{6} ~= 'E' || hdr.nmea_lon(rline)>0%longitude of Greenland cannot be a positive value(-73.4572<--->-11.0605)
         hdr.nmea_lon(rline) = -hdr.nmea_lon(rline);
       end
       hdr.nmea_elev(rline) = str2double(C{1}{10});
       
       hdr.offset(rline)=size(gps_data,2)*rline*2;
    
+    end
+    
+    if all(isnan(hdr.nmea_time))
+      warning('only NaN in the file %s,pay attention\n',fn);
     end
     
     save(tmp_hdr_fn,'-struct','hdr');
