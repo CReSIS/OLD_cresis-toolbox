@@ -7,7 +7,7 @@
 % 2. Run this tutorial by pressing F5 (choose "Change Folder" if asked)
 %    Follow along in the terminal (command window) and editor
 
-clc;
+clc; clear; close all;
 format compact;
 fprintf('Available tutorials:\n');
 fprintf('1: Variables\n');
@@ -34,7 +34,7 @@ end
 if any(section_number == [4 5 6])
   global gdata_folder_path;
   if isempty(gdata_folder_path)
-    gdata_folder_path = 'C:\tmp\Tutorial\Data\';
+    gdata_folder_path = 'C:\tmp\MATLAB_tutorial_files\';
   end
   fprintf('Default Data Path: %s\n', gdata_folder_path);
   fprintf('Where did you place the data? Press enter to accept the default.\n');
@@ -55,7 +55,7 @@ if any(section_number == [4 5 6])
   end
 end
 
-clc
+clc; clear done;
 edit MATLAB_Tutorial.m
 fprintf('Entering debug mode. Use the Matlab editor to view the code as it runs.\n');
 fprintf('The green arrow in the editor indicates the line that will be run next.\n')
@@ -359,7 +359,7 @@ if section_number == 3
   keyboard
 
   % IF
-  % ---------------------------------------------------------
+  % =======================================================================
   % If statements test a condition and only run the commands inside if it
   % is true.
   number = 12;
@@ -411,7 +411,7 @@ if section_number == 3
 
   
   % SWITCH
-  % ---------------------------------------------------------
+  % =======================================================================
   % Switch statements are just like if...elseif...else statements. They are
   % more limited in how they can be used, but are more organized.
   
@@ -433,7 +433,7 @@ if section_number == 3
   
   
   % FOR LOOPS
-  % ---------------------------------------------------------
+  % =======================================================================
   % For loops are used to execute the same piece of code many times for
   % different variable values.  The statements of code in a for loop
   % execute for each column of the for loop variable. Each time it executes
@@ -486,7 +486,7 @@ if section_number == 3
 
   
   % WHILE LOOPS
-  % ---------------------------------------------------------
+  % =======================================================================
   % The statements in a while loop run until the while-loop condition
   % fails.
   
@@ -500,7 +500,7 @@ if section_number == 3
 
   
   % BREAK AND CONTINUE
-  % ---------------------------------------------------------
+  % =======================================================================
   % break: Stop executing in the middle of a loop
   % continue: Skip to the next iteration
   for idx = 1:10
@@ -527,13 +527,13 @@ if section_number == 4
   
   fprintf(' Watch this video for an introduction to file I/O\n')
   fprintf(' http://www.mathworks.com/videos/importing-data-from-files-68988.html\n')
-  
+  fprintf('\n');
   fprintf(' Below we will give 3 file reading examples.\n')
   fprintf(' 1) Read a standard CReSIS CSV\n')
   fprintf(' 2) Read a CReSIS MAT file\n')
-  fprintf(' 3) Read a binary lidar file (LVIS Lidar)\n')
+  fprintf(' 3) Write and read a binary file\n')
   fprintf('\n')
-  fprintf(' When you donwloaded the tutorials ZIP there was a "Data" folder\n')
+  fprintf(' When you downloaded the tutorials ZIP there was a "Data" folder\n')
   fprintf(' included. You will now be using that data.\n')
   fprintf('\n')
   fprintf(' IMPORTANT !!!!\n')
@@ -541,14 +541,17 @@ if section_number == 4
   
   keyboard
   
+  % READ CRESIS CSV FILE (CONTAINS ICE SURFACE AND ICE BOTTOM)
+  % =======================================================================
   
-  fprintf('READ A STANDARD CReSIS CSV Using TEXTSCAN:');
-  
-  % Set the file path
-  file_path = fullfile(data_folder_path,'CRESIS_CSV_DATA.csv');
+  % file_path: string containing the path to the file
+  % fullfile: Matlab's operating system independent file path creation.
+  %   This function is the best way to build paths in Matlab.
+  file_path = fullfile(data_folder_path,'CRESIS_CSV_DATA.csv')
   
   % Open the file in the editor to view the contents
   %  - This file is a "comma separated variable" or csv file
+  %  - The field are: LAT,LON,UTCTIMESOD,THICK,ELEVATION,FRAME,SURFACE,BOTTOM,QUALITY
   edit(file_path)
   
   % Open a file identifier to the file
@@ -564,73 +567,106 @@ if section_number == 4
   % - The other arguments tell textscan other file format information
   %   that it needs to read in the file.
   %   o delimiter: there are commas between each field
-  %   o headerlines: there is 1 line that it is header
+  %   o headerlines: there is 1 line that it is header and should be
+  %     ignored
   csv_data = textscan(fid,'%f%f%f%f%f%f%f%f%s','delimiter',',','headerlines',1);
   
   % Close the data pointer (DONT FORGET THIS)
   fclose(fid);
   
   % Note that csv_data is a cell array
-  % csv_data{1} is the first column of data from the file
+  % csv_data{1} is the first column of data from the file, csv_data{2} is
+  % the second column of data, and so on.
   csv_data
   
+  % Using multiple output arguments with a cell array:
+  % When multiple cell contents are accessed at once, each represents a
+  % different output. These outputs are assigned by placing a list of
+  % output variable names in square brackets separated by commas like this:
+  [LAT,LON,UTCTIMESOD,THICK,ELEVATION,FRAME,SURFACE,BOTTOM,QUALITY] = csv_data{:};
+  
   % This file contains ice thickness data from a flight track
-  figure; % Create a new figure
-  plot(csv_data{2}, csv_data{1}); % plot the longitude (2nd column) and latitude (1st column)
+  h_fig = figure; % Create a new figure for plotting
+  plot(LON, LAT); % plot the longitude and latitude
   xlabel('Longitude (deg)'); % add an xlabel to the plot
   ylabel('Latitude (deg)'); % add a ylabel to the plot
   
-  keyboard;
+  clf(h_fig);
+  scatter(LON, LAT, [], THICK); % same plot as before, but color is ice thickness
+  xlabel('Longitude (deg)'); % add an xlabel to the plot
+  ylabel('Latitude (deg)'); % add a ylabel to the plot
+  h_colorbar = colorbar;
+  set(get(h_colorbar,'YLabel'),'String','Ice thickness (m)');
   
-  fprintf('READ A CReSIS MAT file:');
+  clear fid csv_data h_colorbar h_fig LAT LON UTCTIMESOD THICK ELEVATION FRAME SURFACE BOTTOM QUALITY;
+  
+  
+  % READ CRESIS LAYER DATA FILE (CONTAINS ICE SURFACE AND ICE BOTTOM)
+  % =======================================================================
+  % The format is explained here:
+  % https://wiki.cresis.ku.edu/cresis/Layer_File_Guide
   
   % Set the file path
-  file_path = fullfile(data_folder_path,'CRESIS_MAT_DATA.mat');
-  mat_data = load(file_path);
+  file_path = fullfile(data_folder_path,'CRESIS_MAT_DATA.mat')
   
-  % Note this loads a standard CReSIS file called Layer Data. The format is
-  % explained here:
-  % https://wiki.cresis.ku.edu/cresis/CReSIS_Data_Format/s
+  % To demonstrate the file loading, we will print out our current variables
+  whos
   
-  keyboard;
+  % Load the Matlab .mat file (Matlab's proprietary format) directly into
+  % your current workspace. This method of loading will load all the
+  % variables stored in the file and create variables with those same names
+  % (potentially overwriting variables you already have defined).
+  load(file_path)
+  whos
   
-%   fprintf('READ A binary Lidar File (LVIS Lidar):');
-%   
-%   % WARNING: THE LOAD ON THIS PART MAY TAKE A SECOND. IT IS A LARGE BINARY
-%   % FILE.
-%   
-%   % Set the file path
-%   file_path = fullfile(data_folder_path,'LVIS_LIDAR_DATA.lge');
-%   
-%   % Specify the binary format information (This would be given in a README)
-%   recordType = {'ulong','ulong','double','double','double','float','float','float','float','float'};
-%   recordLen = [4 4 8 8 8 4 4 4 4 4];
-%   
-%   % Create a holder for the data to read in (see help numel())
-%   bin_data = cell(1,numel(recordType));
-%   
-%   % Open a binary file pointer. Noter the 'rb' (See help fopen)
-%   fid = fopen(file_path,'rb');
-%   
-%   % Loop through and use fseek and fread (See help on both) to read the
-%   % data.
-%   for b_idx = 1:numel(recordType);
-%     fseek(fid, sum(recordLen(1:b_idx-1)),'bof');
-%     bin_data{b_idx} = fread(fid, Inf, [recordType{b_idx}], sum(recordLen)-recordLen(b_idx),'ieee-be');
-%   end
-%   
-%   % Close the data pointer (DONT FORGET THIS)
-%   fclose(fid);
-%   
-%   % Now explore bin_data which is a cell of the binary data.
+  clear Elevation GPS_time Latitude Longitude layerData;
   
-  keyboard;
-  fprintf('Lets go through a simple example....');
+  % The previous method tends to clutter the workspace, so we generally use
+  % the following to load the variables into a structure
+  mat_data = load(file_path)
+
+  % To load a few specific variables
+  mat_data = load(file_path,'Latitude','Longitude')
+
+  % "whos" can be use in function form:
+  mat_data_info = whos('mat_data')
   
-  % Lets load some example data from a TXT file.
+  % This file contains ice thickness data from a flight track
+  h_fig = figure; % Create a new figure for plotting
+  plot(mat_data.Longitude, mat_data.Latitude); % plot the longitude and latitude
+  xlabel('Longitude (deg)'); % add an xlabel to the plot
+  ylabel('Latitude (deg)'); % add a ylabel to the plot  
   
+  
+  % SAVE
+  % =======================================================================
+  % Save is a very simple command that saves variables and
+  % workspaces in mat or ascii format. See "help save" for more information.
+  file_path = fullfile(data_folder_path,'CRESIS_MAT_DATA_OUT.mat')
+  
+  % Saves the struct variable into a file
+  save(file_path,'mat_data')
+  
+  % Saves the fields of the struct variable into a file
+  save(file_path,'-struct','mat_data')
+  
+  % Saves on the specified fields of the struct variable into a file
+  save(file_path,'-struct','mat_data','Latitude','Longitude')
+  
+  % Matlab's new HDF5 format is version 7.3. This has the best format for
+  % sharing binary data since HDF5 is a standard format read by many
+  % libraries.
+  save(file_path,'-v7.3','-struct','mat_data')
+
+  % Saves the entire workspace with all of the variables... sometimes
+  % useful for debugging.
+  save(file_path)
+
+  
+  % ANOTHER CSV EXAMPLE
+  % =======================================================================
   % The file looks like this:
-  
+  %
   % NAME,USERID,GRADE
   % Joe,9551,F
   % Bob,9552,A
@@ -639,7 +675,6 @@ if section_number == 4
   % Sally,9555,C
   % Craig,9556,B
   
-  
   % Set the file path
   file_path = fullfile(data_folder_path,'GRADES_TXT_DATA.txt');
   
@@ -647,156 +682,160 @@ if section_number == 4
   grade_data = textscan(fid,'%s%d%s','Headerlines',1,'Delimiter',',');
   fclose(fid);
   
-  % What if we want to know all the different grades the class has recieved?
-  % Did everyone get A's or some B's and C's?
+  [NAME,USERID,GRADE] = grade_data{:};
   
-  fprintf('Lets use the unique function ....');
-  unique_grades = unique(grade_data{3});   % NOTE THE 3rd cell {3} is the list of grades from the file. Make sense?
+  % Get a list of just the unique grades:
+  unique_grades = unique(GRADE)
+
+  % Remove identical names in a second list
+  names_only_in_first_list = setdiff(NAME(1:4),NAME(2:5))
+
+  % Find names in both lists
+  names_in_both_lists = intersect(NAME(1:4),NAME(2:5))
   
-  % If we look at "unique_grades" we can see that the grades of "A,B,C,and F"
-  % were recieved, but not D's
+  % Next lets get the names of the students that recieved "A" using logical
+  % indexing. There are several steps here:
+  % - Inline function: @(grade) strcmpi(grade,'A')
+  %   An "inline" function is one that is defined in the middle of the
+  %   source code. This function takes one argument and compares that to
+  %   the string 'A'.
+  % - strcmpi: compares two strings and ignores case. True is returned
+  %   when they are equal and false when not equal.
+  % - cellfun: Applies our inline function to every cell entry in GRADE and
+  %   returns a matrix containing the outputs of each of these comparisons.
+  %   grade_mask will be the same size as GRADE.
+  % - NOTE: "grade" and "GRADE" are different variables
+  grade_mask = cellfun(@(grade) strcmpi(grade,'A'),GRADE)
   
-  % Next lets get the names of the students that recieved "F" using logical
-  % indexing.
-  
-  f_indexes = logical(strcmpi(grade_data{3},'F'));    % STRCMPI compares a string and ignores case
+  % Some functions will handle cell array inputs automatically. strcmpi
+  % allows a cell array to be passed into the first argument and it will
+  % then do the same operation as the above cellfun. Note: not all
+  % functions support this interface and cellfun is required.
+  grade_mask = strcmpi(GRADE,'A')
   
   % A "logical" array is 1's and 0's. A "1" represents a true condition a "0"
   % a false condition. The above will give us an array of 1's and 0's the
-  % length of the grades array with 1's at the indexes of the f's. We can use
-  % this index to get the name/s of the students with "f" for a grade.
+  % length of the grades array with 1's at the indexes of the A's. We can use
+  % this index to get the name/s of the students with "A" for a grade.
+  students = NAME(grade_mask)      % Keep only names that have "1" in the "grade_mask"
   
-  f_students = grade_data{1}{f_indexes};      % Keep only names from grade_data{1} that have "1" in the "f_indexes"
+  % Create a new CSV file with just these students
+  file_path = fullfile(data_folder_path,'GRADES_TXT_DATA_A.txt');
   
-  % Looks like only "Joe" got an F!
+  fid = fopen(file_path,'w+');   % The 'w+' means fopen will create a new file or discard existing contents of a file.
   
-  % Say some professor wants a list of all of the "A" students in a new TXT
-  % file. We now know how to do this!
-  
-  a_indexes = logical(strcmpi(grade_data{3},'a'));    % Find all the "A" or "a" indexes.
-  
-  % Now lets use the indexes to get the names and I'ds of all "A" students.
-  % We can use a loop to do this for every column in the cell "grade_data"
-  
-  for data_idx = 1:length(grade_data)
-    grade_data{data_idx} = grade_data{data_idx}(a_indexes);
-  end
-  
-  % "grade_data" now only contains the information for the A students.
-  
-  keyboard;
-  fprintf('  Lets write this to a new file ....');
-  
-  new_grade_file = fullfile(data_folder_path,'A_GRADES_TXT_DATA.txt');
-  
-  fid = fopen(new_grade_file,'w+');   % The 'w+' means fopen will create a new file or discard existing contents of a file.
-  
-  % First lets print the header.
+  % Print header
   fprintf(fid,'%s,%s,%s\n','NAME','USERID','GRADE');
   
+  % Ensuring a vector is a row vector and not a column vector:
+  grade_mask
+  grade_mask(:) % Always a column vector
+  grade_mask(:).' % Transpose of a column vector is always a row vector
+  
   % Now we can use a loop to print the data one line at a time.
-  for data_idx = 1:length(grade_data{1})
-    fprintf(fid,'%s,%d,%s\n',grade_data{1}{data_idx},grade_data{2}(data_idx),grade_data{3}{data_idx});
+  for student_idx = find(grade_mask(:).')
+    fprintf(fid,'%s,%d,%s\n',NAME{student_idx},USERID(student_idx),GRADE{student_idx});
   end
   
+  % Close the file
   fclose(fid);
-  
-  % SAVE
-  % ------------------------------------
-  
-  % Save is a very simple command that saves various variables and
-  % workspaces in mat or ascii format. See help save for more information.
-  
-  % That's it for section 4, you should now understand how to read and
-  % write various file formats. Dont forget you can always use the help for
-  % other file types!
-  
-  
-  % That's it! Write some statements, make some loops and get comfortable!
-  % Conditionals and loops are the gateway to programming!
   
   fprintf('Section 4 Complete.\n');
   return
 end
 
-%% Section 5: visualization
+%% Section 5: Visualization
 if section_number == 5
   
   fprintf('\n=========================================================\n');
-  fprintf(' Section 5: visaulization\n');
+  fprintf(' Section 5: Visualization\n');
   fprintf('========================================================\n')
   
   fprintf(' Here are a few videos to watch before this section:\n')
   fprintf(' http://www.mathworks.com/videos/using-basic-plotting-functions-69018.?s_tihtmld=srchtitle\n')
   fprintf(' http://www.mathworks.com/videos/visualizing-data-with-matlab-68917.html\n')
-  
+  fprintf('\n');
   fprintf(' Figures and Handles\n')
   fprintf(' ---------------------------------------------------------\n')
-  
+  fprintf('\n');
   fprintf(' Note the figure and handle are the basic manipulators for plots and\n')
   fprintf(' figures. Read through the documentation below for detailed\n')
   fprintf(' information...\n')
-  
+  fprintf('\n');
   fprintf(' http://www.mathworks.com/help/techdoc/learn_matlab/f3-15974.html\n')
-  
-  fprintf(' Lets create a few figures...\n')
-  close all
+  fprintf('\n');
+  fprintf(' Let''s create a few figures...\n')
   keyboard
+
+  % CREATING A FIGURE
+  % =======================================================================
+  figure(1) % Creates a new figure with the figure number 1
+  close(1) % Close the figure
   
-  figure(1)
-  % Creates a new figure with the handle 1
-  
-  h = figure('Name','MyPlot','NumberTitle','off');
   % Creates a figure with a custom title and stores the figure in handle h.
+  h = figure('Name','MyPlot','NumberTitle','off');
+  delete(h); % Closes the figure without calling the close function handle
   
-  clear h; close all;
   
-  % Plot and Stem
-  fprintf('\n') % ---------------------------------------------------------
+  % PLOT AND STEM
+  % =======================================================================
+  time = 0:.01:2;
+  f = cos(2*pi*2*time);
   
-  x = 1:.01:1.5;
-  y = cos(2*pi*x);
-  
-  figure(1);      % creates a new figure
-  plot(x,y);      % plot a cosine curve on figure 1
-  
+  figure(1);      % creates a new figure with figure number 1
+  plot(time,f);   % plot a cosine curve on figure 1
   
   figure(2);      % make another figure
-  stem(x,y);      % stem a cosine curve on figure 1
+  stem(time,f);   % stem a cosine curve on figure 1
+
+  figure(1);      % since figure number 1 exists already, this just selects the figure
+  % Add another plot to the figure. Make this plot red.
+  % - See help plot for all the variations of color and symbol.
+  hold on;
+  plot(time,-f,'r');   % plot a cosine curve on figure 1
+  hold off;
   
+  close([1 2]);
+  
+  % ACCESSING HANDLES
+  % =======================================================================
+  time = 0:.01:2;
+  f = cos(2*pi*2*time);
+  
+  h_fig = figure; % Create a new figure
+  h_axes = axes; % Create a new axes
+  h_plot = plot(time,f,'Parent',h_axes); % plot a cosine curve in the new axes
+  get(h_plot) % List all the plot handle fields
+  set(h_plot) % List all the plot handle fields and the options allowed
+  set(h_plot,'YData',-f) % Overwrite the previous plot data
+  set(h_plot,'LineWidth',2,'Marker','o','MarkerSize',12) % Overwrite the previous plot data
+  hold(h_axes,'on');
+  h_plot = plot(time,f,'Parent',h_axes,'Color','red');
+  h_plot = plot(time,1.3*f,'Parent',h_axes,'Color',[0 1 0]);
+  delete(h_fig);
+  
+
+  % PLOT CRESIS LAYER DATA ONTO AN ECHOGRAM
+  % =======================================================================
   % Plot a CReSIS elevation on a time axis
   file_path = fullfile(data_folder_path,'CRESIS_MAT_DATA.mat');
-  mat_data = load(file_path);
-  
-  figure(3);
-  plot(mat_data.GPS_time,mat_data.Elevation,'r.');
-  grid on;
-  
-  % Note the 'r.' This means plot point with dots colored red.
-  % What if we change it to 'g-' ???
-  
-  figure(4)
-  plot(mat_data.GPS_time,mat_data.Elevation,'g-');
-  
-  % See help plot for all the variations of color and symbol.
-  
-  clear x y mat_data; close all;
-  
-  
-  % Images
-  % ---------------------------------------------------------
-  
-  % We can plot CReSIS data as an image to view the "echogram"
+  layer_data = load(file_path);
   file_path = fullfile(data_folder_path,'CRESIS_MAT_ECHODATA.mat');
   echo_data = load(file_path);
   
   % Plot the image using a base 10 log plot db()
-  figure(1)
-  imagesc(db(echo_data.Data,'power'))
+  figure;
+  imagesc(db(echo_data.Data,'power'));
+  xlabel('Range lines');
+  ylabel('Range bin');
+  
+  % Remove bad data at the bottom of the image
+  echo_data.Data = echo_data.Data(1:1200,:);
+  echo_data.Time = echo_data.Time(1:1200);
   
   % Plot using default x-axis (column number) and two way travel time for
   % the y-axis
-  figure(2)
+  clf;
   imagesc([],echo_data.Time*1e6,db(echo_data.Data,'power'))
   hcolor = colorbar;
   set(get(hcolor,'YLabel'),'String','Relative power (dB)');
@@ -804,19 +843,47 @@ if section_number == 5
   ylabel('Two way travel time (us)');
   
   % Change the colormap
+  colormap(gray); % 64 color gray scale (64 is the default)
   colormap(gray(256)); % 256 color gray scale
   colormap(1-gray(256)); % invert gray scale
   colormap(hsv(256)); % hue only colormap (used to plot phase/angle)
   colormap(jet(256)); % "jet" colormap (red is big, blue is small)
   
-  clear file_path echo_data; close all;
+  % Add the layer data
+  hold on;
+  plot(layer_data.layerData{1}.value{1}.data*1e6,'k')
+  plot(layer_data.layerData{1}.value{2}.data*1e6,'k')
+  plot(layer_data.layerData{2}.value{1}.data*1e6,'k')
+  plot(layer_data.layerData{2}.value{2}.data*1e6,'k')
+  
+  % Get the current axes
+  h_axes = gca;
+  
+  % Create an identical figure without layers
+  figure;
+  imagesc([],echo_data.Time*1e6,db(echo_data.Data,'power'))
+  hcolor = colorbar;
+  set(get(hcolor,'YLabel'),'String','Relative power (dB)');
+  xlabel('Range lines');
+  ylabel('Two way travel time (us)');
+  colormap(1-gray(256)); % invert gray scale
+  
+  % Get the new axes
+  h_axes(end+1) = gca;
+  
+  % Link the zoom for the two axes
+  linkaxes(h_axes,'xy');
+  
+  % Before closing: try zooming in one or the other figure and see how they
+  % are linked together.
+  close all;
   
   
-  % Sub-Plots
-  % ---------------------------------------------------------
+  % SUBPLOTS
+  % =======================================================================
   
   % Sub plots allow us to use a single figure window to plot multiple
-  % objects on different axis.
+  % objects on different axes.
   
   file_path = fullfile(data_folder_path,'CRESIS_MAT_ECHODATA.mat');
   echo_data = load(file_path);
@@ -854,10 +921,11 @@ if section_number == 5
   plot(echo_data.GPS_time,echo_data.Bottom,'k-')
   title('Bottom')
   
-  clear file_path echo_data; close all;
+  close all;
   
-  % Advanced Plots (More than one feature)
-  % ---------------------------------------------------------
+  
+  % PLOTTING CRESIS LAYER DATA
+  % =======================================================================
   
   % Say we want to plot the surface, and bottom on a single
   % figure with a common axes.
@@ -878,8 +946,10 @@ if section_number == 5
   surface = csv_data{7};
   bottom = csv_data{8};
   quality = csv_data{9};
-  % This is a faster way to do the same thing.
+  % This is a faster way to do the same thing:
   [lat,lon,utc_time,thickness,elev,frame,surface,bottom,quality] = deal(csv_data);
+  % Another way to do it:
+  [lat,lon,utc_time,thickness,elev,frame,surface,bottom,quality] = csv_data{:};
   
   % Now we can plot surface and bottom. It's important to note in CReSIS data
   % variables surface and bottom are the distance from elevation to each
@@ -888,12 +958,8 @@ if section_number == 5
   a_bed = csv_data{5}-csv_data{8};
 
   figure(1);
-  
-  % We now want to "hold" the figure
-  hold on;
-  
-  
   plot(csv_data{3},a_surf,'r-')
+  hold on;
   plot(csv_data{3},a_bed,'g-')
   
   % Lets put a legend,title,and labels on the plot.
@@ -901,12 +967,15 @@ if section_number == 5
   xlabel('UTC Time (SOD)');
   ylabel('Elevation WGS84 (m)');
   legend('Surface','Bottom');   % Go in the order of the plots.
+  grid on;
+  xlim(csv_data{3}([1 end])); % Set the x-limits to fit the data
+  ylim([min(min(a_surf,a_bed))-100 max(max(a_surf,a_bed))+100]); % Set the y-limits with the 100 m buffer
   
-  clear file_path fid csv_data a_surf a_bed; close all;
+  close all;
   
-  % Statistical Plots
-  % ---------------------------------------------------------
   
+  % STATISTICAL PLOTS
+  % =======================================================================
   load seamount; % This file contains topographical data for a seamount
   fprintf('\n')  % and it ships with the MATLAB package.
   scatter(x,y,5,z)              % Creates a scatter plot. The third dimension is
@@ -921,94 +990,17 @@ if section_number == 5
   % values inside of the bar() call rather than
   % before the call as we have done previously.
   
-  
+  % Plot histogram of discrete uniform distribution from 1 to 6
   figure(3);
   x = 1:6;
   y = ceil(rand(1,10000)*6);
   hist(y,x);
   
-  clear x y; close all;
-  
-  % Figure managment and manipulation
-  % ---------------------------------------------------------
-  
-  % There are a set of commands that are used to acess and manipulate
-  % figures through figure handles. They are:
-  % get, set, gcf, gca, clf, cla, close.
-  
-  fprintf('Lets re-create the CReSIS sub-plot figure');
-  file_path = fullfile(data_folder_path,'CRESIS_MAT_ECHODATA.mat');
-  echo_data = load(file_path);
-  figure(1)
-  sp1 = subplot(2,2,1); imagesc(echo_data.GPS_time,echo_data.Depth,db(echo_data.Data,'power')); title('Echogram');
-  sp2 = subplot(2,2,2); plot(echo_data.GPS_time); title('GPS Time')
-  sp3 = subplot(2,2,3); plot(echo_data.GPS_time,echo_data.Surface,'k-'); title('Surface')
-  sp4 = subplot(2,2,4); plot(echo_data.GPS_time,echo_data.Bottom,'k-'); title('Bottom')
-  
-  fprintf('Lets "get" the properties of the current axes');
-  
-  get(gca)  % This displays all of the properties of the current axes.
-  
-  % Not the current axes is that of the last plotted object, in this case
-  % sp4 (The "Bottom" plot)
-  
-  fprintf('Lets turn the X and Y grid on using set');
-  
-  set(gca,'YGrid','on','XGrid','on')  % You could do this for all of the properties you saw in "get"
-  
-  fprintf('Lets set the y-limits of the echogram to [0 4000]');
-  
-  set(sp1,'YLim',[0 4000])    % Notice we pass the exact figure handle (sp1) intead of gca.
-  
-  fprintf('Lets turn the X and Y grid on for the surface plot');
-  
-  set(sp3,'YGrid','on','XGrid','on')
-  
-  fprintf('Lets clear only the GPS time axis');
-  
-  cla(sp2)
-  
-  fprintf('Finally, lets clear the entire figure, pause and then close the figure.');
-  
-  clf;
-  pause(3); % Pause for 3 sec (So you can see the figure was cleared)
-  close;
-  
-  
-  fprintf('Color Manipulation\n')
-  fprintf('---------------------------------------------------------\n')
-  
-  fprintf('We will now load the echogram plot and do some color manipulation...');
-  
-  figure(1)
-  echo_f = imagesc(echo_data.GPS_time,echo_data.Depth,db(echo_data.Data,'power')); title('Echogram');
-  echo_axis = axis; % Get the current axis properties
-  axis([echo_axis(1) echo_axis(2) 0 4000]); % Set the new y-axis
-  
-  fprintf('Lets add a colorbar');
-  
-  colorbar;
-  
-  % Note the rest of the echogram is still part of the plot (the bottom
-  % part) we just have limited our axes so you can see it.
+  close all;
 
-  % To see the axis limits of the colorbar, we run caxis:
-  caxis
   
-  fprintf('Lets modify the color axes.');
-  caxis([-120 -20]);
-  caxis
-  
-  fprintf('Experiment with colormap now....')
-  
-  doc colormap;
-  %   colormap (gray);
-  %   colormap (1-gray)
-  
-  
-  close;
-  % Interactive Plots
-  % ---------------------------------------------------------
+  % SIMPLE INTERACTIVE PLOT
+  % =======================================================================
   
   % The ginput() function allows a user to draw input to a figure which
   % matlab will store in a variable.
@@ -1016,38 +1008,47 @@ if section_number == 5
   % The following is a simple example that will allow a user to draw 5
   % points on a new figure.
   
-  fprintf('Draw 5 points by clicking on the figure.');
-  
   figure(1);                % Create a new figure
   [X Y] = ginput(5);        % Get input 5 times, store in X,Y
+  fprintf('Input 5 points by clicking on the figure.');
   plot(X,Y,'r+')            % Plot the input with a red +
   
-  % Saving Plots
+  help impoly
+  % Another common input tool is the polygon tool. Read the help for
+  % details. Left click to places vertices. Double click to add the last
+  % vertex.
+  H = impoly
+  
+  close all;
+  
+  
+  % SAVE FIGURES
   % ---------------------------------------------------------
   
   % See the following for specifics on saving images in MATLAB
   % doc print
   % doc saveas
   
-  
-  close;
-  fprintf('Lets load a built-in MATLAB image...');
-  
   C = load('clown');    % Loads the MATLAB file
   Cl = image(C.X);
   
-  fprintf('Lets save the clown to your DATA folder:');
+  % Save as JPEG
+  out_fn = fullfile(data_folder_path,'clown_image')
+  saveas(Cl,out_fn,'jpeg');
   
-  out_file = fullfile(data_folder_path,'clown_image')
-  saveas(Cl,out_file,'jpeg');
+  % Save as Matlab .fig file (contains all the information to recreate, but
+  % requires Matlab to load)
+  out_fn = fullfile(data_folder_path,'clown_image')
+  saveas(Cl,out_fn,'fig');
+  
+  close all;
   
   
-  % 3D Plotting
+  % 3D PLOTS
   % ---------------------------------------------------------
   % See doc plot3 for more information.
   
-  fprintf('Plot a 3D Helix');
-  
+  fprintf('Plot a 3D Helix.\n');
   
   figure(1);              % Plot a helix. With 3D plots, the MATLAB figure
   t = 0:pi/50:10*pi;      % window tools are very useful: use the Hand tool
@@ -1057,11 +1058,11 @@ if section_number == 5
   % toolbar.
   
   
-  % Surface Plots
+  % SURFACE PLOTS
   % ---------------------------------------------------------
   % See doc mesh; doc surf; doc contour;
   
-  fprintf('Plot a 3D Mesh and 2D contours');
+  fprintf('Plot a 3D Mesh and 2D contours.\n');
   
   figure(1);
   [X,Y] = meshgrid(-3:.125:3);    % Create evenly-spaced X and Y grids
@@ -1069,7 +1070,7 @@ if section_number == 5
   meshc(X,Y,Z)                    % Create a mesh plot with a contour map below
   axis([-3 3 -3 3 -10 5])
   
-  fprintf('Plot a 3D Mesh and 2D curtain');
+  fprintf('Plot a 3D Mesh and 2D curtain.\n');
   
   [X,Y] = meshgrid(-3:.125:3);
   Z = peaks(X,Y);
@@ -1078,7 +1079,7 @@ if section_number == 5
   colormap hsv                    % Set hsv colormap
   axis([-3 3 -3 3 -10 5])
   
-  fprintf('Plot a 2D peaks contour with labels');
+  fprintf('Plot a 2D peaks contour with labels.\n');
   
   Z = peaks;                      % Get default size (49x49) Z grid from peaks function
   [C,h] = contour(interp2(Z,4));  % Generate a contour plot for these Z values... the interp2
@@ -1091,14 +1092,9 @@ if section_number == 5
   % function so that our contour map is
   % more precise
   
-  text_handle = clabel(C,h);      % Turn on contour labels so that the levels
+  clabel(C,h);      % Turn on contour labels so that the levels
   % of each contour are described
   % quantitatively
-  
-  set(text_handle,'BackgroundColor',[1 1 .6],'Edgecolor', [.7 .7 .7])
-  
-  
-  % That's it! Plot away!
   
   fprintf('Section 5 Complete.\n');
   return
@@ -1108,13 +1104,13 @@ end
 if section_number == 6
   close all
   
-   fprintf('\n=========================================================\n');
+  fprintf('\n=========================================================\n');
   fprintf(' Section 6: mapping toolbox\n');
   fprintf('========================================================\n')
   
   keyboard
   
-  fprintf('Load and Plot World Coastline Data');
+  fprintf('Load and Plot World Coastline Data.\n');
   
   load coast;         % Loads built in coastline vector data
   
@@ -1128,7 +1124,7 @@ if section_number == 6
   
   
   
-  fprintf('Load the Mapping GUI (See code comments)');
+  fprintf('Load the Mapping GUI (See code comments).\n');
   
   load coast;         % Loads build in coastline vector data
   axesm;              % axesm by itself loads the Mapping GUI
@@ -1143,14 +1139,14 @@ if section_number == 6
   %     - 60 deg meridians and 30 deg parallels.
   % 4) Has labels.
   %     - 60 deg meridians and 30 deg parallels.
-  % 5) Shows the coasline vector data
+  % 5) Shows the coastline vector data
   
   % If you cannot get your map to work correctly, or you are not sure what it
   % should look like use the code below to generate the map, then close and
   % re-try creation with the GUI.
   
   
-  fprintf('Load the correct map w/o the GUI');
+  fprintf('Load the correct map w/o the GUI.\n');
   
   load coast;
   axesm('MapProjection','mercator','Frame','on','Grid','on',...
@@ -1162,7 +1158,7 @@ if section_number == 6
   clear lat long; close all;
   
   
-  fprintf('Load the korea grid and plot a texture map');
+  fprintf('Load the korea grid and plot a texture map.\n');
   
   load korea;             % Load the korea topographic grid
   figure;                 % Create a new figure window
@@ -1184,7 +1180,7 @@ if section_number == 6
   clear description map maplegend refvec source; close all;
   
   
-  fprintf('Load and plot a map with composite data types');
+  fprintf('Load and plot a map with composite data types.\n');
   
   % First we will re-load and plot the Korea Map.
   
@@ -1216,7 +1212,7 @@ if section_number == 6
   clear landareas description map maplegend refvec source ans; close all;
   
   
-  fprintf('Load and plot a 3D map');
+  fprintf('Load and plot a 3D map.\n');
   
   % The DEM data is provided with MATLAB in ZIP file format. We first need to
   % unzip and store the data.
@@ -1267,7 +1263,7 @@ if section_number == 6
   clear demFilename elev filenames lat latlim lon lonlim; close all;
   
   
-  fprintf('Read and explore and ESRI Shapefile');
+  fprintf('Read and explore and ESRI Shapefile.\n');
   
   % There are two main shapefile loading functions.
   % (1) shapeinfo.m
@@ -1333,7 +1329,7 @@ if section_number == 6
   clear info roads10 roads world_cities; close all;
   
   
-  fprintf('Read and explore a GeoTIFF');
+  fprintf('Read and explore a GeoTIFF.\n');
   
   % There are two main GeoTIFF loading functions.
   % (1) geotiffinfo.m
@@ -1357,7 +1353,7 @@ if section_number == 6
   clear R bbox boston info; close all;
   
   
-  fprintf('Load a GeoTIFF and Shapefile, plot the composite.');
+  fprintf('Load a GeoTIFF and Shapefile, plot the composite.\n');
   
   % Lets load the boston roads shapefile.
   boston_roads = shaperead('boston_roads');
@@ -1382,7 +1378,7 @@ if section_number == 6
   
   
   
-  fprintf('Lets write some XY data to an ESRI shapefile...');
+  fprintf('Lets write some XY data to an ESRI shapefile...\n');
   
   % Run the following commands to set up a dataset to save.
   st = shaperead('usastatehi');
@@ -1481,13 +1477,12 @@ if section_number == 6
   % converted in a shapefile, then clean up! Make sure to delete the
   % shapefile from whatever directory you created it in "out_shp"
   
-  keyboard;
   % Clean Up
   clear ans ax k_bbox ksmo_bound m_bbox mapstruct out_shp xk xm yk ym; close all;
   
   
   
-  fprintf('Lets do some coordinate conversion ...');
+  fprintf('Lets do some coordinate conversion ...\n');
   
   % CReSIS has a few conversion functions in the CReSIS-Toolbox.
   % These functions are:
@@ -1552,7 +1547,7 @@ if section_number == 6
   % distances between coordinates "along a track".
   
   
-  fprintf('Lets use the geodetic_to_along_track function ...');
+  fprintf('Lets use the geodetic_to_along_track function ...\n');
   
   % Say we have the following two coordinate strings and want to find the
   % distance between each pair of coordinates.
@@ -1593,13 +1588,12 @@ if section_number == 6
   % projecting coordinates and converting coordinates to cummulative and
   % between point distances using CReSIS functions.
   
-  keyboard;
   % Clean Up
   clear along_track_dist coastline dist_between_coords elev_ft elev_m inspect_lat inspect_lon lat lon mstruct x y; close all;
   
   
   
-  fprintf('Lets do a coordinate projection ...');
+  fprintf('Lets do a coordinate projection ...\n');
   
   % MATLAB has a few important built in coordinate conversion and projection
   % functions that are important to note. Thos are:
@@ -1637,13 +1631,12 @@ if section_number == 6
   % So projinv is simply the inverse of projfwd. You can confirm that lat2 =
   % lat and lon2 = lon if you dont believe it!
   
-  keyboard;
   % Clean Up
   clear lat lon x y lat2 lon2 proj;
   
   
   
-  fprintf('Lets do a coordinate transformation ...');
+  fprintf('Lets do a coordinate transformation ...\n');
   
   
   % Coordinate Transformation (mfwdtran,minvtran)
@@ -1672,83 +1665,79 @@ if section_number == 6
   % Just like before minvtran is the inverse of mfwdtran. Compare lat2/lat
   % and lon2/lon to confirm!
   
-  keyboard;
   % Clean Up
   clear lat lon x y lat2 lon2 mstruct;
   
   
-  fprintf('Lets apply all of the above to CReSIS data ...');
+  fprintf('Lets apply all of the above to CReSIS data ...\n');
   
-  % NOTE THIS EXAMPLE REQUIRES YOU TO BE ON A WINDOW MACHINE OR CHANGE TO
-  % UNIX PATHS. ASK IF YOU DONT UNDERSTAND THIS.
+  if ispc
+    csv_path = 'X:/public/data/rds/2011_Antarctica_DC8/csv/Browse_2011_Antarctica_DC8.csv';
+  else
+    csv_path = '/cresis/snfs1/public/data/rds/2011_Antarctica_DC8/csv/Browse_2011_Antarctica_DC8.csv';
+  end
+  gtiff_path = ct_filename_gis([],fullfile('antarctica','Landsat-7','Antarctica_LIMA_peninsula.tif'));
   
-  % DATA PATHS (MODIFY IF NECCESARY)
-  
-  csv_path = 'Z:\mdce\mcords\2009_Antarctica_DC8\CSARP_post\csv\Browse_2009_Antarctica_DC8.csv';
-  gtiff_path = 'P:\GIS_data\antarctica\Landsat-7\Antarctica_LIMA_peninsula.tif';
-  
-  % Assign a file identifier and open a CSV file of flight lines as read-only
-  fid = fopen(csv_path,'r');
-  
-  % Create variable csv_file that reads the csv in based upon data type (%f
-  % is floating point and %s is a string), that the file has a headerline at
-  % the top, and that the values are delimited (i.e. separated) by commas.
-  csv_file = textscan(fid,'%f%f%f%f%f%s%f%f%f','headerlines',1,'delimiter',',');
-  
-  lat = (csv_file{1}(1:5:end)); % Assign all values from column 1 as "lat" & only take every 5th point (speeds up load time)
-  lon = (csv_file{2}(1:5:end)); % Assign all values from column 2 as "lon" & only take every 5th point (speeds up load time)
-  
-  fclose(fid); % Close CSV file
-  
-  % Grab the GeoTIFF's info and store in in structure proj
-  proj = geotiffinfo(gtiff_path);
-  
-  figure(1);  % All plots will appear in this figure window
-  hold on;    % Forces all other plot commands to stay on same figure window
-  RGB = {};
-  R = {};
-  [RGB, R, tmp] = geotiffread(proj.Filename); % Reads the projection information into a variable that can be plotted
-  R = R/1e3;  % Convert projection data from meters to kilometers
-  
-  mapshow(RGB,R); % Plots the GeoTIFF
-  
-  % Adjust the axis so it reads in kilometers
-  axis([R(3,1)+[0 R(2,1)*(size(RGB,2)-1)] sort(R(3,2)+[0 R(1,2)*(size(RGB,1)-1)])]);
-  
-  % Apply projection data 'proj' and name the new variable set x and y
-  [x,y] = projfwd(proj,lat,lon);
-  
-  % Adjust the x/y values so they can be plotted on a grid set for
-  % kilometers
-  x = x/1e3;
-  y = y/1e3;
-  
-  flight_lines = plot(x,y,'r-'); % Plot projected coordinate pair on to the figure
-  
-  % Add a title, x and y-axis labels to the figure
-  map_title = title('2009 Antarctica TO Browse File');
-  
-  % Add axis labels
-  map_x = xlabel('X (km)');
-  map_y = ylabel('Y (km)');
-  
-  % Add a legend for the flight lines, and place it in the most ideal
-  % location ('Location','Best')
-  flight_legend = legend([flight_lines],'Flight Lines','Location','Best');
-  
-  % Change figure position and size to show up correctly in plot window
-  fig_position = [0.5 2.5 6 8];
-  fig_size = [50,50,600,800];
-  set(figure(1),'PaperPosition',fig_position);
-  set(figure(1),'Position',fig_size);
-  
-  % Output figure(1) as a jpeg with a resolution of 450 DPI
-  output_path_and_file = fullfile(data_folder_path,'newfile.jpg');
-  print(figure(1),'-djpeg','-r450',output_path_and_file);
-  
-  keyboard;
-  
-  % That's it! Map away!
+  if exist(csv_path,'file') && exist(gtiff_path,'file')
+    % Assign a file identifier and open a CSV file of flight lines as read-only
+    fid = fopen(csv_path,'r');
+    
+    % Create variable csv_file that reads the csv in based upon data type (%f
+    % is floating point and %s is a string), that the file has a headerline at
+    % the top, and that the values are delimited (i.e. separated) by commas.
+    csv_file = textscan(fid,'%f%f%f%f%f%s%f%f%f','headerlines',1,'delimiter',',');
+    
+    lat = (csv_file{1}(1:5:end)); % Assign all values from column 1 as "lat" & only take every 5th point (speeds up load time)
+    lon = (csv_file{2}(1:5:end)); % Assign all values from column 2 as "lon" & only take every 5th point (speeds up load time)
+    
+    fclose(fid); % Close CSV file
+    
+    % Grab the GeoTIFF's info and store in in structure proj
+    proj = geotiffinfo(gtiff_path);
+    
+    figure(1);  % All plots will appear in this figure window
+    hold on;    % Forces all other plot commands to stay on same figure window
+    RGB = {};
+    R = {};
+    [RGB, R, tmp] = geotiffread(proj.Filename); % Reads the projection information into a variable that can be plotted
+    R = R/1e3;  % Convert projection data from meters to kilometers
+    
+    mapshow(RGB,R); % Plots the GeoTIFF
+    
+    % Adjust the axis so it reads in kilometers
+    axis([R(3,1)+[0 R(2,1)*(size(RGB,2)-1)] sort(R(3,2)+[0 R(1,2)*(size(RGB,1)-1)])]);
+    
+    % Apply projection data 'proj' and name the new variable set x and y
+    [x,y] = projfwd(proj,lat,lon);
+    
+    % Adjust the x/y values so they can be plotted on a grid set for
+    % kilometers
+    x = x/1e3;
+    y = y/1e3;
+    
+    flight_lines = plot(x,y,'r-'); % Plot projected coordinate pair on to the figure
+    
+    % Add a title, x and y-axis labels to the figure
+    map_title = title('2009 Antarctica TO Browse File');
+    
+    % Add axis labels
+    map_x = xlabel('X (km)');
+    map_y = ylabel('Y (km)');
+    
+    % Add a legend for the flight lines, and place it in the most ideal
+    % location ('Location','Best')
+    flight_legend = legend([flight_lines],'Flight Lines','Location','Best');
+    
+    % Change figure position and size to show up correctly in plot window
+    fig_position = [0.5 2.5 6 8];
+    fig_size = [50,50,600,800];
+    set(figure(1),'PaperPosition',fig_position);
+    set(figure(1),'Position',fig_size);
+    
+    % Output figure(1) as a jpeg with a resolution of 450 DPI
+    output_path_and_file = fullfile(data_folder_path,'newfile.jpg');
+    print(figure(1),'-djpeg','-r450',output_path_and_file);
+  end
   
   fprintf('Section 6 Complete.\n');
   return
@@ -1768,12 +1757,10 @@ if section_number == 7
   fprintf('Read this\n')
   fprintf('http://www.mathworks.com/company/newsletters/articles/programming-patterns-maximizing-code-performance-by-optimizing-memory-access.html\n')
 
-
-  
   fprintf('This section will explain some methods of optimization using MATLAB.\n')
-keyboard
-
-fprintf('Now run dbcont to exit debug mode.');
+  keyboard
+  
+  fprintf('Now run dbcont to exit debug mode.');
   
   fprintf('Lets run a for loop with no preallocation:');
   
@@ -1981,6 +1968,33 @@ if section_number == 9
   
   fprintf('look at the source code for more information\n')
   keyboard
+
+  %matrix indexing and linear indexing
+  %bsxfun
+  %interp1
+  %interp2
+  %delaunay
+  %fft
+  %filtfilt
+  %windowing
+  %sgolayfilt
+  %medfilt1
+  %medfilt2
+  %wiener2
+  %time versus function plot
+  %rand
+  %randn
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   % NOTE THERE IS A SECOND POWERPOINT THAT GOES ALONG WITH THIS TUTORIAL,
   % REVIEW THE Data_Processing_Tutorial.pptx now.
