@@ -1004,8 +1004,8 @@ if section_number == 5
   % points on a new figure.
   
   figure(1);                % Create a new figure
+  fprintf('Input 5 points by clicking on the figure.\n');
   [X Y] = ginput(5);        % Get input 5 times, store in X,Y
-  fprintf('Input 5 points by clicking on the figure.');
   plot(X,Y,'r+')            % Plot the input with a red +
   
   help impoly
@@ -1766,6 +1766,13 @@ if section_number == 7
   
   % PREALLOCATION AND VECTORIZATION 1
   % =======================================================================
+  % This example shows the value of preallocating a matrix before filling
+  % it in one element at a time. It also shows the importance of
+  % vectorization.
+  %
+  % Each of the three sets of operations creates an identical sine wave.
+  % Look at how this is done and compare the computation time for each.
+  
   fprintf('\nRun "dbcont" to run the following for loops.\n');
   
   fprintf('\nFor loop with no preallocation:\n');
@@ -1799,13 +1806,21 @@ if section_number == 7
   
   % PREALLOCATION AND VECTORIZATION 2
   % =======================================================================
+  % This example shows the value of preallocating a matrix before filling
+  % it in one element at a time. It also shows the importance of
+  % vectorization.
+  %
+  % Each of the three sets of operations computes an element wise matrix
+  % multiply. Look at how this is done and compare the computation time for
+  % each.
+  
   fprintf('\nRun "dbcont" to run the following for loops.\n');
   
   len = 100;
   
   clear x1 x2 x3;
-  r1 = randn(len);
-  r2 = randn(len);
+  r1 = randn(len,len); % Create len x len matrix of Gaussian random variables
+  r2 = randn(len,len); % Create len x len matrix of Gaussian random variables
   
   fprintf('\nFor loop without preallocation.\n')
   tic
@@ -2248,8 +2263,8 @@ if section_number == 9
   
   % FITTING AND OUTLIERS
   % =======================================================================
-
-
+  %polyfit, polyval, medfilt1, sgolayfilt
+  
   
   % 2D INTERPOLATION
   % =======================================================================
