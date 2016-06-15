@@ -19,7 +19,7 @@ fprintf('6: mapping toolbox\n');
 fprintf('7: vectorization\n');
 fprintf('8: debugging\n');
 fprintf('9: signal processing\n');
-fprintf('10: signal processing with more details\n');
+fprintf('10: signal processing 2\n');
 
 done = false;
 while ~done
@@ -2269,11 +2269,11 @@ if section_number == 9
   
 end
 
-%% section 10: Signal processing with more details
+%% section 10: Signal processing 2
 if section_number == 10
   
   fprintf('\n=========================================================\n');
-  fprintf(' Section 10: Signal processing\n');
+  fprintf(' Section 10: Signal processing 2\n');
   fprintf('========================================================\n')
   
   keyboard
@@ -2295,6 +2295,15 @@ if section_number == 10
   % The fft function runs more efficiently when the signal it is operating on
   % has a length that is a power of 2 (2^#).  The nextpow2 function returns
   % the next power of 2 length higher than the input length.
+  Fs = 1000;                    % Sampling frequency
+  T = 1/Fs;                     % Sampling interval
+  % Create a time vector
+  L = 100000;                     % Length of signal (number of samples)
+  start_val = 0;                % Start at time 0
+  stop_val = (L-1)*T;           % End after 1 second has elapsed
+  t = linspace(start_val,stop_val,L); % Time vector
+  f1 = 10; % Hz
+  x3 = sin(2*pi*f1*t);
   NFFT = 2^nextpow2(L); % Input: 100000, Output: 17 --> 2^17 = 131072
   X = fft(x3,NFFT)/L;    % Fourier Transform of x with NFFT number of points
   freq = Fs*linspace(0,1,NFFT); % Frequency axis for X
@@ -2607,7 +2616,7 @@ if section_number == 10
   
   figure(8); hold on; plot(t,polyval(p4,t),'m')
   
-  fprintf('Section 9 Complete.\n');
+  fprintf('Section 10 Complete.\n');
   return
   
 end
