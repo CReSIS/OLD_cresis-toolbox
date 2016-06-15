@@ -18,14 +18,15 @@ fprintf('5: visualization\n');
 fprintf('6: mapping toolbox\n');
 fprintf('7: vectorization\n');
 fprintf('8: debugging\n');
-fprintf('9: data processing\n');
+fprintf('9: signal processing\n');
+fprintf('10: signal processing with more details\n');
 
 done = false;
 while ~done
   try
-    section_number = input('Enter tutorial to run [1-9]: ');
+    section_number = input('Enter tutorial to run [1-10]: ');
     section_number = round(section_number(1));
-    if section_number >= 1 && section_number <= 9
+    if section_number >= 1 && section_number <= 10
       done = true;
     end
   end
@@ -36,7 +37,7 @@ if any(section_number == [4 5 6])
   if isempty(gdata_folder_path)
     gdata_folder_path = 'C:\tmp\MATLAB_tutorial_files\';
   end
-  fprintf('Default Data Path: %s\n', gdata_folder_path);
+  fprintf('\nDefault Data Path: %s\n', gdata_folder_path);
   fprintf('Where did you place the data? Press enter to accept the default.\n');
   done = false;
   while ~done
@@ -528,15 +529,9 @@ if section_number == 4
   fprintf(' Watch this video for an introduction to file I/O\n')
   fprintf(' http://www.mathworks.com/videos/importing-data-from-files-68988.html\n')
   fprintf('\n');
-  fprintf(' Below we will give 3 file reading examples.\n')
+  fprintf(' Below we will give 2 file reading examples.\n')
   fprintf(' 1) Read a standard CReSIS CSV\n')
   fprintf(' 2) Read a CReSIS MAT file\n')
-  fprintf(' 3) Write and read a binary file\n')
-  fprintf('\n')
-  fprintf(' When you downloaded the tutorials ZIP there was a "Data" folder\n')
-  fprintf(' included. You will now be using that data.\n')
-  fprintf('\n')
-  fprintf(' IMPORTANT !!!!\n')
   fprintf('\n')
   
   keyboard
@@ -1100,16 +1095,17 @@ if section_number == 5
   return
 end
 
-%% Section 6: mapping toolbox
+%% Section 6: Mapping toolbox
 if section_number == 6
   close all
   
   fprintf('\n=========================================================\n');
-  fprintf(' Section 6: mapping toolbox\n');
+  fprintf(' Section 6: Mapping toolbox\n');
   fprintf('========================================================\n')
   
   keyboard
-  
+
+  % =======================================================================
   fprintf('Load and Plot World Coastline Data.\n');
   
   load coast;         % Loads built in coastline vector data
@@ -1146,6 +1142,7 @@ if section_number == 6
   % re-try creation with the GUI.
   
   
+  % =======================================================================
   fprintf('Load the correct map w/o the GUI.\n');
   
   load coast;
@@ -1158,6 +1155,7 @@ if section_number == 6
   clear lat long; close all;
   
   
+  % =======================================================================
   fprintf('Load the korea grid and plot a texture map.\n');
   
   load korea;             % Load the korea topographic grid
@@ -1180,6 +1178,7 @@ if section_number == 6
   clear description map maplegend refvec source; close all;
   
   
+  % =======================================================================
   fprintf('Load and plot a map with composite data types.\n');
   
   % First we will re-load and plot the Korea Map.
@@ -1212,6 +1211,7 @@ if section_number == 6
   clear landareas description map maplegend refvec source ans; close all;
   
   
+  % =======================================================================
   fprintf('Load and plot a 3D map.\n');
   
   % The DEM data is provided with MATLAB in ZIP file format. We first need to
@@ -1263,6 +1263,7 @@ if section_number == 6
   clear demFilename elev filenames lat latlim lon lonlim; close all;
   
   
+  % =======================================================================
   fprintf('Read and explore and ESRI Shapefile.\n');
   
   % There are two main shapefile loading functions.
@@ -1329,6 +1330,7 @@ if section_number == 6
   clear info roads10 roads world_cities; close all;
   
   
+  % =======================================================================
   fprintf('Read and explore a GeoTIFF.\n');
   
   % There are two main GeoTIFF loading functions.
@@ -1353,6 +1355,7 @@ if section_number == 6
   clear R bbox boston info; close all;
   
   
+  % =======================================================================
   fprintf('Load a GeoTIFF and Shapefile, plot the composite.\n');
   
   % Lets load the boston roads shapefile.
@@ -1377,7 +1380,7 @@ if section_number == 6
   clear Ft_to_M boston_roads x y; close all;
   
   
-  
+  % =======================================================================
   fprintf('Lets write some XY data to an ESRI shapefile...\n');
   
   % Run the following commands to set up a dataset to save.
@@ -1481,7 +1484,7 @@ if section_number == 6
   clear ans ax k_bbox ksmo_bound m_bbox mapstruct out_shp xk xm yk ym; close all;
   
   
-  
+  % =======================================================================
   fprintf('Lets do some coordinate conversion ...\n');
   
   % CReSIS has a few conversion functions in the CReSIS-Toolbox.
@@ -1547,6 +1550,7 @@ if section_number == 6
   % distances between coordinates "along a track".
   
   
+  % =======================================================================
   fprintf('Lets use the geodetic_to_along_track function ...\n');
   
   % Say we have the following two coordinate strings and want to find the
@@ -1592,7 +1596,7 @@ if section_number == 6
   clear along_track_dist coastline dist_between_coords elev_ft elev_m inspect_lat inspect_lon lat lon mstruct x y; close all;
   
   
-  
+  % =======================================================================
   fprintf('Lets do a coordinate projection ...\n');
   
   % MATLAB has a few important built in coordinate conversion and projection
@@ -1616,7 +1620,7 @@ if section_number == 6
   % To view a complete list of the possible projections:
   projlist;
   
-  % Lets project into the Transverse Mercator projection.
+  % Project into the Transverse Mercator projection.
   proj = defaultm('tranmerc');
   [x,y] = projfwd(proj,lat,lon);
   
@@ -1635,18 +1639,17 @@ if section_number == 6
   clear lat lon x y lat2 lon2 proj;
   
   
-  
   fprintf('Lets do a coordinate transformation ...\n');
   
   
   % Coordinate Transformation (mfwdtran,minvtran)
-  % -------------------------------------------------------------------------
-  % Say we have th following WGS84 Coordinate pair.
+  % =======================================================================
+  % Say we have the following WGS84 Coordinate pair.
   
   lat = 38.9521;
   lon = -95.2640;
   
-  % Lets transform these cordinates into UTM map coordinates. First we need
+  % Transform these cordinates into UTM map coordinates. First we need
   % to set up our map projection structure.
   
   mstruct = defaultm('utm');          % Load the default UTM mstruct.
@@ -1743,37 +1746,39 @@ if section_number == 6
   return
 end
 
-%% Section 7: vectorization
+%% Section 7: Vectorization
 if section_number == 7
   close all
   
-   fprintf('\n=========================================================\n');
-  fprintf(' Section 7: vectorization \n');
+  fprintf('\n=========================================================\n');
+  fprintf(' Section 7: Vectorization \n');
   fprintf('========================================================\n')
   
   fprintf(' See the following video and page for detailed information about improving\n')
   fprintf(' performance in MATLAB. This is important as you begin to work with\n')
   fprintf(' large datasets.\n')
-  fprintf('Read this\n')
+  fprintf('\n');
   fprintf('http://www.mathworks.com/company/newsletters/articles/programming-patterns-maximizing-code-performance-by-optimizing-memory-access.html\n')
-
+  fprintf('\n');
   fprintf('This section will explain some methods of optimization using MATLAB.\n')
+  
   keyboard
   
-  fprintf('Now run dbcont to exit debug mode.');
+  % PREALLOCATION AND VECTORIZATION 1
+  % =======================================================================
+  fprintf('\nRun "dbcont" to run the following for loops.\n');
   
-  fprintf('Lets run a for loop with no preallocation:');
+  fprintf('\nFor loop with no preallocation:\n');
   
-  clear x1 x2;
-  len  = 10e6;
+  clear x1 x2 x3;
+  len  = 1e6;
   tic
   for idx0 = 1:len
     x1(idx0) = cos(2*pi*100*idx0); % Data is created and stored on the fly.
   end
   toc
   
-  
-  fprintf('Lets run a for loop with preallocation:');
+  fprintf('For loop with preallocation:\n');
   
   tic
   x2 = zeros(1,len);    % We have pre-allocated a set of zeros to hold the data.
@@ -1782,28 +1787,27 @@ if section_number == 7
   end
   toc
   
-  
-  
-  
-  fprintf('Lets get rid of the loop and use a vectorized function:');
+  fprintf('Vectorized function:\n');
   
   tic
   t = 1:len;
   x3 = cos(2*pi*100*t);   % Here we use the cos() function. This function is vectorized.
   toc
+  
   keyboard
   
-  fprintf('Lets do the same thing, but with a MATRIX:');
+  
+  % PREALLOCATION AND VECTORIZATION 2
+  % =======================================================================
+  fprintf('\nRun "dbcont" to run the following for loops.\n');
   
   len = 100;
   
+  clear x1 x2 x3;
   r1 = randn(len);
   r2 = randn(len);
-  fprintf('Now run dbcont again.');
   
-  
-  
-  fprintf('For loop without preallocation')
+  fprintf('\nFor loop without preallocation.\n')
   tic
   for idx0 = 1:len
     for idx1 = 1:len
@@ -1812,7 +1816,7 @@ if section_number == 7
   end
   toc
   
-  fprintf('For loop with preallocation')
+  fprintf('For loop with preallocation.\n')
   tic
   x2 = zeros(len);
   for idx0 = 1:len
@@ -1822,30 +1826,115 @@ if section_number == 7
   end
   toc
   
-  keyboard
-  
-  % Matrix multiply example
+  fprintf('Vectorized.\n')
   tic
   x3 = r1.*r2;
   toc
+  
+  keyboard
+  
+  
+  % PERMUTE
+  % =======================================================================
+  
+  % The physical memory on the computer is best thought of as a single long
+  % vector starting at address zero and going up to an address that is as
+  % big as the memory you have.  Matrices are stored in memory by mapping
+  % each dimension out into one long vector. For example:
+  A = [1 2 3; 4 5 6; 7 8 9]
+  % is stored in memory like this:
+  A(:)
+  % Rows are traversed first, then columns, then each upper dimension in
+  % turn.
+  
+  % Indexing a matrix can either use the more intuitive (row,column) form
+  % or the vectorized form. The vectorized form is used any time the
+  % dimensions of the indexing are less than the dimensions of the matrix.
+  % Here are two ways to access the same element:
+  A(1,2)
+  A(4)
+  % Can you determine a general code for converting between the two
+  % indexing methods?
+  
+  % Computers use a tiered memory system:
+  %   L1 Cache: very fast, no delay to use variables here
+  %   L2 Cache: fast, small delay to use variables here
+  %   RAM: fast, big delay to use variables here
+  %   Hard Drive: slow, big delay to use variables here
+  % The fast the tier, the less memory that is available. Computers use
+  % algorithms based on locality in space and time (i.e. variables that
+  % are close in memory are more likely to be used close in time) to decide
+  % which variables should be placed in the faster caches at any given
+  % time.
+  %
+  % Since matrices are vectorized along rows first (i.e. row-major), when
+  % a single element of a row is accessed it will likely grab the entire
+  % row into memory. This is really helpful if you are doing operations
+  % along rows, but not helpful if you are doing operations along columns.
+  
+  fprintf('\nRun "dbcont" to run the following operations.\n');
+  
+  % Row-wise FFT is faster
+  clear A B;
+  A = randn(1e4,1e4);
+  tic;
+  B = fft(A,[],1); % FFT along first-dimension
+  toc;
+  
+  % Column-wise FFT is slower
+  clear A B;
+  A = randn(1e4,1e4);
+  tic;
+  B = fft(A,[],2); % FFT along second-dimension
+  toc;
+  
+  keyboard
+  
+  % REPMAT, BSXFUN to vectorize commands
+  % =======================================================================
+  % Commonly one variable of an operation is a vector and another variable
+  % is a matrix. For example: Let A be a matrix that we want to remove
+  % the mean of each row from.
+  A = randn(10000,1000);
+  row_mean = mean(A,2);
+  size(A)
+  size(row_mean)
+  
+  % We cannot do A - row_mean because the dimensions to not match. There
+  % are a couple of common ways to do this in a vectorized way:
+  fprintf('\nRun "dbcont" to run the following operations.\n');
+  
+  clear A1 A2 A3;
+  % 1. Use replicate matrix to replicate row_mean
+  tic
+  A1 = A - repmat(row_mean,[1 size(A,2)]);
+  toc
+  % 2. Use bsxfun
+  tic
+  A2 = bsxfun(@minus,A,row_mean);
+  toc
+  % 3. For loop
+  tic;
+  A3 = zeros(size(A)); % Preallocate
+  for row = 1:size(A,1)
+    % Subtract the mean one row at a time (this works because now we are
+    % subtracting a scalar)
+    A3(row,:) = A(row,:) - row_mean(row);
+  end
+  toc;
   
   fprintf('Section 7 Complete.\n');
   return
 end
 
-%% Section 8: debugging
+%% Section 8: Debugging
 if section_number == 8
   
    fprintf('\n=========================================================\n');
-  fprintf(' Section 8: debugging\n');
+  fprintf(' Section 8: Debugging\n');
   fprintf('========================================================\n')
   
-  fprintf('\n')
-  fprintf('\n')
-  fprintf(' There is no code here, rather a series of videos will introduce you to\n')
-  fprintf(' debugging code in MATALB.\n')
-  fprintf('\n')
-  fprintf(' Here is another way of looking at "Debugging"\n')
+  fprintf(' Debugging tutorial:\n')
   fprintf(' http://www.youtube.com/watch?v=Z4vFymKhNno\n')
   fprintf('\n')
   fprintf(' There are a few other useful things to note here:\n')
@@ -1857,9 +1946,17 @@ if section_number == 8
   fprintf(' In the command window type: help help\n')
   fprintf(' In the command window type: help doc\n')
   fprintf(' In the command window type: help lookfor\n')
+  fprintf('\n');
+  fprintf('NOTE: Pressing Ctrl-C when Matlab is busy will throw an error\n');
+  fprintf('and Matlab will stop after executing the current compiled binary\n');
+  fprintf('operation. A compiled binary operation cannot be interrupted.\n');
+  fprintf('Ctrl-C can be tricky because it is also the short cut for "Edit->Copy"');
+  fprintf('and its functionality changes depending on whether or not Matlab');
+  fprintf('is busy executing (and no text is selected in the command window).\n');
   keyboard
   
-  % BREAKPOINTS
+  % BREAKPOINTS FROM COMMAND LINE
+  % =======================================================================
   % Breakpoints are useful when you want to debug a specific section of
   % code, but do not want to have to step through everything before that
   % section. This is especially important when there are many lines of code
@@ -1882,15 +1979,20 @@ if section_number == 8
   
   x = 0;
   
+  % BREAKPOINTS USING EDITOR
+  % =======================================================================
   % Practice setting a breakpoint to skip a for loop
   stack_info = dbstack;
   dbstop('MATLAB_Tutorial',sprintf('%d',stack_info.line+6));
-  % Instead of stepping through this for loop, run dbcont
+  % Instead of stepping through this for loop, run dbcont after placing the
+  % breakpoint at "x = 0;"
   for x = 1:100000
     y = x^2;
   end
   x = 0;
   
+  % CONDITIONAL BREAKPOINT
+  % =======================================================================
   % Set a conditional breakpoint (can also be done by adding a breakpoint
   % and then right clicking on it and choosing "Set/Modify Condition...")
   stack_info = dbstack;
@@ -1905,6 +2007,7 @@ if section_number == 8
   x = 0;
   
   % TRY/CATCH
+  % =======================================================================
   % try/catch lets you catch an error and deal with it instead of the
   % program execution stopping that occur and handle the error
   
@@ -1932,6 +2035,7 @@ if section_number == 8
   end
 
   % DBSTOP IF ERROR
+  % =======================================================================
   % A useful debugging tool is to have Matlab stop anytime an error happens
   % which is not caught by a try/catch block. Matlab does not allow the
   % program to continue executing, but it does put you into debug mode at
@@ -1962,138 +2066,221 @@ end
 %% section 9: Signal processing
 if section_number == 9
   
-   fprintf('\n=========================================================\n');
-  fprintf(' Section 9: signal processing\n');
+  fprintf('\n=========================================================\n');
+  fprintf(' Section 9: Signal processing\n');
   fprintf('========================================================\n')
   
-  fprintf('look at the source code for more information\n')
+  fprintf('Please review MATLAB_Tutorial_DataProcessing.ppt\n')
   keyboard
+  
+  % SINE WAVE IN NOISE
+  % =======================================================================
+  % fs: sampling frequency (Hz)
+  fs = 200;
+  % dt: sample interval (sec)
+  dt = 1/fs;
+  % Nt: number of time samples
+  Nt = round(10/dt);
+  % time: time axis (sec)
+  time = dt * (0:Nt-1).';
+  
+  f0 = 13;
+  phi = 20;
+  x = 1.5 * cos(2*pi*f0*time + phi);
+  
+  figure(1); clf;
+  plot(time, x);
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  xlim([0 0.6]);
+  title('Sine wave without noise');
+  
+  % Add in noise (randn is Gaussian distributed noise with unity variance)
+  x = x + 3*randn(Nt,1);
+  
+  figure(2); clf;
+  plot(time, x);
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  xlim([0 0.6]);
+  title('Sine wave with noise');
+   
+  
+  % DISCRETE FOURIER TRANSFORM (DFT)
+  % =======================================================================
+  % xf: DFT of x
+  xf = fft(x);
 
-  %matrix indexing and linear indexing
-  %bsxfun
-  %interp1
-  %interp2
+  % df: DFT frequency interval
+  df = 1/(Nt*dt);
+  % freq: DFT frequency axis
+  freq = df*ifftshift(-floor(Nt/2):floor((Nt-1)/2));
+  
+  % fftshift, iffshift: shift zero frequency component to and from center
+  % of vector.
+  figure(3); clf;
+  plot(fftshift(freq), fftshift(abs(xf)));
+  grid on;
+  xlabel('Frequency (Hz)');
+  ylabel('DFT magnitude');
+  title('Sine wave with noise');
+
+  % Note the peak is at -13 and +13 Hz and is easily seen despite the noise
+  
+     
+  % INTERPOLATION
+  % =======================================================================
+  % fs: sampling frequency (Hz)
+  fs = 20;
+  % dt: sample interval (sec)
+  dt = 1/fs;
+  % Nt: number of time samples
+  Nt = round(1/dt);
+  % time: time axis (sec)
+  time = dt * (0:Nt-1).';
+  
+  f0 = 3;
+  x = cos(2*pi*f0*time);
+
+  % Without interpolation, the cosine is hard to see
+  figure(1); clf;
+  plot(time, x,'o');
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  title('Sine wave without noise');
+  
+  % interp1: linear interpolation
+  % Mt: oversampling factor
+  Mt = 10;
+  dt_Mt = dt/Mt;
+  Nt_Mt = Nt*Mt;
+  time_Mt = dt_Mt * (0:Nt_Mt-1).';
+  
+  x_Mt = interp1(time,x,time_Mt,'linear','extrap');
+  
+  figure(1);
+  hold on;
+  plot(time_Mt, x_Mt,'r-');
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  title('Sine wave without noise');
+  
+  % interp1: spline interpolation
+  % Mt: oversampling factor
+  Mt = 20;
+  dt_Mt = dt/Mt;
+  Nt_Mt = Nt*Mt;
+  time_Mt = dt_Mt * (0:Nt_Mt-1).';
+  
+  x_Mt = interp1(time,x,time_Mt,'spline','extrap');
+  
+  figure(1);
+  hold on;
+  plot(time_Mt, x_Mt,'g-');
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  title('Sine wave without noise');
+  
+  % interpft: Fourier domain interpolation (works only with Nyquist sampled
+  % signals)
+  x_Mt = interpft(x,Nt_Mt);
+  
+  figure(1);
+  hold on;
+  plot(time_Mt, x_Mt,'k-');
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  title('Sine wave without noise');
+  
+  ylim([-1.1 1.75]);
+  legend('Sampled','Linear','Spline','Fourier','location','best');
+  
+  
+  % FILTERING
+  % =======================================================================
+  % fs: sampling frequency (Hz)
+  fs = 200;
+  % dt: sample interval (sec)
+  dt = 1/fs;
+  % Nt: number of time samples
+  Nt = round(10/dt);
+  % time: time axis (sec)
+  time = dt * (0:Nt-1).';
+  
+  f0 = 13;
+  x = cos(2*pi*f0*time);
+  
+  figure(1); clf;
+  plot(time, x);
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  xlim([2 2.6]);
+
+  % Add in noise
+  x = x + 3*randn(Nt,1);
+  
+  figure(1);
+  hold on;
+  plot(time, x,'r');
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  
+  % Filter signal
+  [B,A] = butter(2,(f0+[-1 1])/(fs/2));
+  x = filtfilt(B,A,x);
+  
+  figure(1);
+  plot(time, x,'g');
+  grid on;
+  xlabel('Time (sec)');
+  ylabel('Voltage (V)');
+  
+  legend('cos','cos+noise','cos+noise+filt');
+
+  
+  % FITTING AND OUTLIERS
+  % =======================================================================
+
+
+  
+  % 2D INTERPOLATION
+  % =======================================================================
   %delaunay
-  %fft
-  %filtfilt
-  %windowing
-  %sgolayfilt
-  %medfilt1
+
+  
+  % SMOOTHING IMAGES
+  % =======================================================================
   %medfilt2
   %wiener2
-  %time versus function plot
-  %rand
-  %randn
   
   
+  % WORKING WITH S-PARAMETER DATA (TRANSFER FUNCTIONS AND IMPULSE
+  % RESPONSES)
+  % =======================================================================
+  % SXPParse, emquest_txt_reader, sparameters
   
+end
+
+%% section 10: Signal processing with more details
+if section_number == 10
   
+  fprintf('\n=========================================================\n');
+  fprintf(' Section 10: Signal processing\n');
+  fprintf('========================================================\n')
   
+  keyboard
   
-  
-  
-  
-  
-  
-  
-  % NOTE THERE IS A SECOND POWERPOINT THAT GOES ALONG WITH THIS TUTORIAL,
-  % REVIEW THE Data_Processing_Tutorial.pptx now.
-  
-  % This section is designed to introduce you to the some of the concepts
-  % and frequently used functions associated with data processing at CReSIS.
-  % We will not be delving into the theory or math behind these function,
-  % just common practices and examples.
-  
-  %This is some boiler plate code to prepare the MatLab environment for
-  %efficient use.
-  format compact; format short
-  
-  % Topic 1: For Loops vs Vectorization (and preallocation of memory
-  % There are mutliple ways to solve most coding problems but they are not
-  % all created equal.  One of the most common issues you will face when
-  % using MatLab is when to use For Loops and when to use vectorization.  The
-  % main considerations with this question are speed, memory usage, and
-  % computational complexity.
-  % FOR LOOPS
-  %   Advantages:
-  %      -Requires less memory because only one element/row is being operated
-  %       on at a time.
-  %      -Only operates on one element/row at a time, which sometimes can
-  %       is required based on the type of calulations you are performing.
-  %   Disadvantages:
-  %      -Significantly slower because it is only operating on one
-  %       element/row at a time.
-  %
-  % VECTORIZATION
-  %   Advantages:
-  %      -Much faster because multiple elements/rows are being operated on
-  %       simultaneously.
-  %   Disadvantages:
-  %      -Uses more memory because multiple elements/rows are being operated
-  %       on simultaneously.
-  %
-  % Your choice will likely come down to your speed requirements or your
-  % memory constrains.
-  %
-  % MEMORY PREALLOCATION
-  % for and while loops that incrementally increase, or grow, the size of a
-  % data structure each time through the loop can adversely affect
-  % performance and memory use. Repeatedly resizing arrays often requires
-  % that MATLAB spend extra time looking for larger contiguous blocks of
-  % memory and then moving the array into those blocks. You can often improve
-  % on code execution time by preallocating the maximum amount of space that
-  % would be required for the array ahead of time.
-  
-  % Exercise 1
-  % Goal: Create a sine wave using a for loop and vectorization and compare
-  %       the amount of time need to create it using each method.
-  % Functions used:
-  %    linspace(start_val, stop_val, L)
-  %       Creates a linearly spaced vector of length L which goes from
-  %       start_val to stop_val.
-  %    tic/toc: tic starts a counter and toc ends the counter and outputs the
-  %             amount of time that has elapsed between tic & toc.
-  Fs = 1000;                    % Sampling frequency
-  T = 1/Fs;                     % Sampling interval
-  % Create a time vector
-  L = 100000;                     % Length of signal (number of samples)
-  start_val = 0;                % Start at time 0
-  stop_val = (L-1)*T;           % End after 1 second has elapsed
-  t = linspace(start_val,stop_val,L); % Time vector
-  
-  % Create a 50 Hz sine wave
-  f1 = 10; % Hz
-  
-  % Using a For loop w/o preallocation
-  tic
-  for idx = 1:L
-    x1(idx) = sin(2*pi*f1*t(idx));
-  end
-  toc
-  
-  % Using a For loop with preallocation
-  tic
-  x2 = zeros(1,L);
-  for idx = 1:L
-    x2(idx) = sin(2*pi*f1*t(idx));
-  end
-  toc
-  
-  % Using vectorization
-  tic
-  x3 = sin(2*pi*f1*t);
-  toc
-  
-  % Notice that the process is over twice as fast using preallocation with a
-  % for loop and almost seven times faster using vectorization!
-  
-  figure(1); clf; subplot(3,1,1); plot(t(1:1000)*1e3,x3(1:1000))
-  title('10 Hz Sine Wave')
-  xlabel('time (microseconds)')
-  
-  
-  
-  % Topic 2: Frequency Domain/Frequency Spectrum
+  % =======================================================================
+  % Topic 1: Frequency Domain/Frequency Spectrum
+  % =======================================================================
   % ALL signals can be represented as some combination of sine waves just
   % like the one you have created.  This means you can work in the frequency
   % domain to make some data processing easier.  In the frequency domain the
@@ -2103,7 +2290,8 @@ if section_number == 9
   % frequency domain in MatLab you can use the Fast Fourier Transform (fft)
   % function.
   
-  % Exercise 2: fft
+  % FFT
+  % =======================================================================
   % The fft function runs more efficiently when the signal it is operating on
   % has a length that is a power of 2 (2^#).  The nextpow2 function returns
   % the next power of 2 length higher than the input length.
@@ -2161,7 +2349,9 @@ if section_number == 9
   % ylabel('|Y(f)|')
   % xlim([-200 200])
   
+  % =======================================================================
   % Topic 3: Windowing/Filtering
+  % =======================================================================
   % There are many instances when it is useful to apply a window (also called
   % a filter or taper) to data in order to remove some undesirable component.
   % Windows are particularly useful for reducing sidelobes or removing
@@ -2175,7 +2365,8 @@ if section_number == 9
   % In the frequency domain a filter can be applied by simply multiplying the
   % frequency spectrum of the signal by the frequency spectrum of the filter.
   
-  % Exercise 3: Filtering
+  % FILTERING
+  % =======================================================================
   Fs2 = 120e6;                        % Sampling frequency
   t2 = 0:1/Fs2:10e-6;                 % Time vector
   NFFT2 = 2^nextpow2(length(t2));     % Number of points
@@ -2212,8 +2403,8 @@ if section_number == 9
   hold off
   
   
-  % Exercise 4:
-  %
+  % WINDOWING
+  % =======================================================================
   % Rectangular Window
   L = 1000;
   win_len = 201;
@@ -2236,7 +2427,6 @@ if section_number == 9
   title('Time Domain')
   xlabel('Time (s)')
   axis([482 542 -30 5])
-  
   
   % Triangular Window
   tri_win = zeros(1,L);
@@ -2265,8 +2455,7 @@ if section_number == 9
   figure(3); subplot(2,1,2); hold on; plot(lp(fftshift(X5/max(X5))),'g')
   axis([482 542 -70 5])
   
-  
-  % Blackman WindowWindow
+  % Blackman Window
   blackman_win = zeros(1,L);
   blackman_win(L/2-half_win:L/2+half_win) = blackman(win_len);
   figure(3); subplot(2,1,1); hold on; plot(blackman_win,'c')
@@ -2279,64 +2468,66 @@ if section_number == 9
   figure(3); subplot(2,1,2); hold on; plot(lp(fftshift(X5/max(X5))),'c')
   axis([482 542 -90 5])
   
-  
   other_sig = 10^(-20/20)*blackman(20).^2;
   figure(3); subplot(2,1,2); hold on; plot([512:531],lp(other_sig),'k')
   
   
-  
   % filter/filtfilt/fir1
-  % Fs2 = 120e6;                        % Sampling frequency
-  % t2 = 0:1/Fs2:10e-6;                 % Time vector
-  % NFFT2 = 2^nextpow2(length(t2));     % Number of points
-  % ch = chirp(t2,140e6,10e-6,160e6);   % Chirped signal
-  % CH = fft(ch,NFFT2);                 % Transform to frequency domain
-  % CH = CH(1:NFFT2/2);
-  % len = NFFT2/2;                      % Length of the data
-  % uniform_win = ones(1,len);          % Remove extraneous data
-  % f3 = linspace(120,180,NFFT2/2);     % Create frequency axis
-  %   % Uniform window
-  % tri_win     = triang(len).';        % Triangular window
-  % hann_win    = hann(len).';          % Hanning window
-  %
-  % % Apply uniform window to frequency-domain data and normalize
-  % chf_uni = uniform_win.*CH;
-  % chf_uni = chf_uni./max(chf_uni);
-  %
-  % figure(4);
-  % subplot(3,1,1); plot(f3,20*log10(abs(CH./max(CH)))); grid; axis tight
-  % xlabel('Frequency (MHz)')
-  % ylabel('Power (dB)')
-  % subplot(3,1,2); plot(uniform_win,'b'); grid;
-  % axis([0 len 0 1.5])
-  % subplot(3,1,3); plot(f3,20*log10(abs(chf_uni))); grid; axis tight
-  % xlabel('Frequency (MHz)')
-  % ylabel('Power (dB)')
-  %
-  %
-  % % Apply triangular window to frequency-domain data and normalize
-  % chf_tri = tri_win.*CH;
-  % chf_tri = chf_tri./max(chf_tri);
-  %
-  % subplot(3,1,2); hold on; plot(tri_win,'r')
-  % subplot(3,1,3); hold on; plot(f3,20*log10(abs(chf_tri)),'r'); grid; axis tight
-  %
-  %
-  % % Apply hanning window to frequency-domain data and normalize
-  % chf_hann = hann_win.*CH;
-  % chf_hann = chf_hann./max(chf_hann);
-  %
-  % subplot(3,1,2); hold on; plot(hann_win,'g')
-  % hold off
-  % subplot(3,1,3); hold on; plot(f3,20*log10(abs(chf_hann)),'g'); grid; axis tight
-  % hold off
-  %
-  % legend('Uniform','Triangle','Hanning')
+  % =======================================================================
+  Fs2 = 120e6;                        % Sampling frequency
+  t2 = 0:1/Fs2:10e-6;                 % Time vector
+  NFFT2 = 2^nextpow2(length(t2));     % Number of points
+  ch = chirp(t2,140e6,10e-6,160e6);   % Chirped signal
+  CH = fft(ch,NFFT2);                 % Transform to frequency domain
+  CH = CH(1:NFFT2/2);
+  len = NFFT2/2;                      % Length of the data
+  uniform_win = ones(1,len);          % Remove extraneous data
+  f3 = linspace(120,180,NFFT2/2);     % Create frequency axis
+  % Uniform window
+  tri_win     = triang(len).';        % Triangular window
+  hann_win    = hann(len).';          % Hanning window
+  
+  % Apply uniform window to frequency-domain data and normalize
+  chf_uni = uniform_win.*CH;
+  chf_uni = chf_uni./max(chf_uni);
+  
+  figure(4);
+  subplot(3,1,1); plot(f3,20*log10(abs(CH./max(CH)))); grid; axis tight
+  xlabel('Frequency (MHz)')
+  ylabel('Power (dB)')
+  subplot(3,1,2); plot(uniform_win,'b'); grid;
+  axis([0 len 0 1.5])
+  subplot(3,1,3); plot(f3,20*log10(abs(chf_uni))); grid; axis tight
+  xlabel('Frequency (MHz)')
+  ylabel('Power (dB)')
   
   
+  % Apply triangular window to frequency-domain data and normalize
+  chf_tri = tri_win.*CH;
+  chf_tri = chf_tri./max(chf_tri);
+  
+  subplot(3,1,2); hold on; plot(tri_win,'r')
+  subplot(3,1,3); hold on; plot(f3,20*log10(abs(chf_tri)),'r'); grid; axis tight
+  
+  
+  % Apply hanning window to frequency-domain data and normalize
+  chf_hann = hann_win.*CH;
+  chf_hann = chf_hann./max(chf_hann);
+  
+  subplot(3,1,2); hold on; plot(hann_win,'g')
+  hold off
+  subplot(3,1,3); hold on; plot(f3,20*log10(abs(chf_hann)),'g'); grid; axis tight
+  hold off
+  
+  legend('Uniform','Triangle','Hanning')
+  
+  
+  % =======================================================================
   % Topic 4: Other Useful Functions
+  % =======================================================================
   
   % Interpolation
+  % =======================================================================
   % Interpolation is method of constructing new data points within a set of
   % known data points.  For example, if you are paid at $10 per hour you know
   % that after one hour you have $10, two hours you have $20,... eight hours
@@ -2387,8 +2578,8 @@ if section_number == 9
   figure(7); hold on; plot(higherres_time,higherres_sig,'-og')
   
   
-  
   % Polyfit/Polyval
+  % =======================================================================
   % Sometimes you will have a random signal that does not strcitly adhere to
   % any closed-form function.  In this case you may have to approximate the
   % closest polynomial.  You can use the polyfit function to determine the
@@ -2420,6 +2611,3 @@ if section_number == 9
   return
   
 end
-
-
-
