@@ -83,9 +83,9 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 2; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/N/u/paden/Quarry/scripts/matlab/';
-  profile(pidx).ct_path                   = '/N/u/paden/Quarry/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/N/u/paden/Quarry/scripts/params/';
+  profile(pidx).personal_path             = '/N/u/jpaden/Karst/scripts/matlab/';
+  profile(pidx).ct_path                   = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/';
+  profile(pidx).param_path                = '/N/u/jpaden/Karst/scripts/params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -104,17 +104,17 @@ if ~(~ismcc && isdeployed)
   profile(pidx).sched.ver                 = 2; % local and jobmanager only
   profile(pidx).sched.name                = '';
   profile(pidx).sched.url                 = 'qm2.quarry.teragrid.iu.edu';
-  profile(pidx).sched.data_location       = '/N/dc2/scratch/paden/matlab_torque/';
+  profile(pidx).sched.data_location       = '/N/dc2/scratch/jpaden/matlab_torque/';
   profile(pidx).sched.submit_arguments    = '-q cresis -l nodes=1:ppn=1:dc2,pmem=2gb,walltime=40:00';
   profile(pidx).sched.max_in_queue        = 64;
   profile(pidx).sched.max_tasks_per_jobs  = 64;
   profile(pidx).sched.cluster_size        = inf;
   profile(pidx).sched.stop_on_fail        = true;
   profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/N/u/paden/Quarry/scripts/cresis-toolbox-torque/worker';
+  profile(pidx).sched.worker_fn           = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox-torque/worker';
   profile(pidx).sched.force_compile       = false;
   profile(pidx).sched.rerun_only          = false;
-  
+ 
   %% Field Profile Linux (PROFILE 3)
   % ----------------------------------------------------------------------
   pidx = 3; % profile index
