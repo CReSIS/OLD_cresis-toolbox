@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "mat.h"
 #include "mex.h"
 
@@ -16,7 +17,7 @@
 void
 printUsage()
 {
-  mexPrintf("[file_size offset field1 ... fieldN] = %s(fn, frame_sync, field_offsets, field_type);\n", mexFunctionName());
+  mexPrintf("[file_size offset field1 ... fieldN] = %s(fn, frame_sync, field_offsets, field_type, file_mode);\n", mexFunctionName());
   mexPrintf("\n");
   mexPrintf(" Loads header fields from radar data files that use frame sync. Function\n");
   mexPrintf(" used by create_segment_raw_file_list_v2.m. Assumes ieee-be file byte order and ieee-le host byte order\n");
@@ -29,6 +30,7 @@ printUsage()
   mexPrintf("    this vector.  For example, [1 2 3], would return the 3 32 bit values\n");
   mexPrintf("    preceding each frame sync.\n");
   mexPrintf(" file_type is cell array of types equal in length to field_offsets\n");
+  mexPrintf(" file_mode is string with either ieee-be or ieee-le to reflect raw file format\n");
   mexPrintf("\n");
   mexPrintf("file_size is in bytes, offset is vector containing byte offset to each frame sync\n");
   mexPrintf("field1 through fieldN are from the file\n");
@@ -69,31 +71,33 @@ mexFunction( int nlhs,
   }
 
   /*
-   * the value returned by the left-hand side is the status. return 1 if
-   * there is a failure. return 0 if there is success (variable was
-   * removed from MAT-file.
+   * The first argument is the file size. Allocating and setting to -1 for
+   * now.
    */
   plhs[0]=mxCreateDoubleMatrix(1,1,mxREAL);
-  mxGetPr(plhs[0])[0] = 0;
+  mxGetPr(plhs[0])[0] = -1;
 
   /*
    * error checking for input arguments
    */
-  if (nrhs!=4) {
+  if (nrhs!=5) {
     printUsage();
     return;
   }
 
+  // Type Check
   if ( (!mxIsChar(prhs[0])) ||
        (!mxIsClass(prhs[1], "uint32")) ||
        mxGetM(prhs[1]) != 1 || mxGetN(prhs[1]) != 1 ||
        (!mxIsClass(prhs[2], "uint32")) ||
-       (!mxIsClass(prhs[3], "cell")) ) {
+       (!mxIsClass(prhs[3], "cell")) ||
+       (!mxIsClass(prhs[4], "char")) ) {
     // Usage of function incorrect
     printUsage();
     return;
   }
 
+  // Size Checks
   ptrdiff_t num_rows = mxGetM(prhs[2]);
   ptrdiff_t num_cols = mxGetN(prhs[2]);
   ptrdiff_t num_outputs;
@@ -116,7 +120,15 @@ mexFunction( int nlhs,
     return;
   }
 
-  // Allocate later
+  // file_mode must be 'ieee-be' or 'ieee-le'
+  ptrdiff_t num_chars = mxGetN(prhs[4]);
+  if (num_chars != 7) {
+    // Usage of function incorrect
+    printUsage();
+    return;
+  }
+
+  // Create variable outputs (allocating the memory later)
   plhs[1]=mxCreateNumericMatrix(0,0,mxUINT32_CLASS,mxREAL);
   for (int idx=2; idx <= num_outputs+1; idx++)
   {
@@ -174,6 +186,43 @@ mexFunction( int nlhs,
     plhs[idx]=mxCreateNumericMatrix(0,0,class_type_ID,mxREAL);
   }
 
+  // Check to see if we need to swap bytes or not
+  bool swap_bytes;
+  char *file_mode;
+  const int i = 1;
+  bool is_bigendian = (*(char*)&i) == 0;
+  //mexPrintf("System big endian status is %d\n", is_bigendian); // DEBUG
+  
+  file_mode = mxArrayToString(prhs[4]);
+  if (file_mode == NULL)
+  {
+    printUsage();
+    return;
+  }
+  if (!strncasecmp(file_mode,"ieee-be",7)) {
+    if (is_bigendian)
+    {
+      swap_bytes = false;
+    }
+    else
+    {
+      swap_bytes = true;
+    }
+  }
+  else
+  {
+    if (is_bigendian)
+    {
+      swap_bytes = true;
+    }
+    else
+    {
+      swap_bytes = false;
+    }
+  }
+  mxFree(file_mode);
+  //mexPrintf("Swapping bytes flag %d\n", swap_bytes); // DEBUG
+  
   /*
    * get filename to open
    */
@@ -212,10 +261,24 @@ mexFunction( int nlhs,
 
   fclose(fptr);
 
-  unsigned char fs1 = frame_sync >> 24;
-  unsigned char fs2 = (frame_sync >> 16) % 256;
-  unsigned char fs3 = (frame_sync >> 8) % 256;
-  unsigned char fs4 = frame_sync % 256;
+  unsigned char fs1;
+  unsigned char fs2;
+  unsigned char fs3;
+  unsigned char fs4;
+  if (swap_bytes)
+  {
+    fs1 = frame_sync >> 24;
+    fs2 = (frame_sync >> 16) % 256;
+    fs3 = (frame_sync >> 8) % 256;
+    fs4 = frame_sync % 256;
+  }
+  else
+  {
+    fs4 = frame_sync >> 24;
+    fs3 = (frame_sync >> 16) % 256;
+    fs2 = (frame_sync >> 8) % 256;
+    fs1 = frame_sync % 256;
+  }
   //printf("%u\n", frame_sync);
   //printf("%x %x %x %x\n", fs1, fs2, fs3, fs4);
   mwSize offset_idx = 0;
@@ -275,39 +338,80 @@ mexFunction( int nlhs,
     }
     ptrdiff_t field_offset = ((unsigned int *)mxGetPr(prhs[2]))[out_idx];
 
-    for (ptrdiff_t idx = 0; idx < offset_idx; idx++)
+    if (swap_bytes)
     {
-      switch (class_type_ID)  {
-        case mxINT8_CLASS:
-          ((char*)outvar)[idx] = ((char*)(data + offset[idx] + field_offset))[0];
-          break; 
-        case mxUINT8_CLASS:
-          ((unsigned char*)outvar)[idx] = ((unsigned char*)(data + offset[idx] + field_offset))[0];
-          break;
-        case mxINT16_CLASS:
-          ((short*)outvar)[idx] = swap_bytes_16bit(((short*)(data + offset[idx] + field_offset))[0]);
-          break;
-        case mxUINT16_CLASS:
-          ((unsigned short*)outvar)[idx] = swap_bytes_16bit(((unsigned short*)(data + offset[idx] + field_offset))[0]);
-          break;
-        case mxINT32_CLASS:
-          ((int*)outvar)[idx] = swap_bytes_32bit(((int*)(data + offset[idx] + field_offset))[0]);
-          break;
-        case mxUINT32_CLASS:
-          ((unsigned int*)outvar)[idx] = swap_bytes_32bit(((unsigned int*)(data + offset[idx] + field_offset))[0]);
-          break;
-        case mxINT64_CLASS:
-          ((long long*)outvar)[idx] = swap_bytes_64bit(((long long*)(data + offset[idx] + field_offset))[0]);
-          break;
-        case mxUINT64_CLASS:
-          ((unsigned long long*)outvar)[idx] = swap_bytes_64bit(((unsigned long long*)(data + offset[idx] + field_offset))[0]);
-          break;
-        case mxSINGLE_CLASS:
-          ((float*)outvar)[idx] = (float)swap_bytes_32bit((int)((float*)(data + offset[idx] + field_offset))[0]);
-          break; 
-        case mxDOUBLE_CLASS:
-          ((double*)outvar)[idx] = (double)swap_bytes_64bit((long long)((double*)(data + offset[idx] + field_offset))[0]);
-          break;
+      for (ptrdiff_t idx = 0; idx < offset_idx; idx++)
+      {
+        switch (class_type_ID)  {
+          case mxINT8_CLASS:
+            ((char*)outvar)[idx] = ((char*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxUINT8_CLASS:
+            ((unsigned char*)outvar)[idx] = ((unsigned char*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxINT16_CLASS:
+            ((short*)outvar)[idx] = swap_bytes_16bit(((short*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxUINT16_CLASS:
+            ((unsigned short*)outvar)[idx] = swap_bytes_16bit(((unsigned short*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxINT32_CLASS:
+            ((int*)outvar)[idx] = swap_bytes_32bit(((int*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxUINT32_CLASS:
+            ((unsigned int*)outvar)[idx] = swap_bytes_32bit(((unsigned int*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxINT64_CLASS:
+            ((long long*)outvar)[idx] = swap_bytes_64bit(((long long*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxUINT64_CLASS:
+            ((unsigned long long*)outvar)[idx] = swap_bytes_64bit(((unsigned long long*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxSINGLE_CLASS:
+            ((float*)outvar)[idx] = (float)swap_bytes_32bit((int)((float*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxDOUBLE_CLASS:
+            ((double*)outvar)[idx] = (double)swap_bytes_64bit((long long)((double*)(data + offset[idx] + field_offset))[0]);
+            break;
+        }
+      }
+    }
+    else
+    {
+      for (ptrdiff_t idx = 0; idx < offset_idx; idx++)
+      {
+        switch (class_type_ID)  {
+          case mxINT8_CLASS:
+            ((char*)outvar)[idx] = ((char*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxUINT8_CLASS:
+            ((unsigned char*)outvar)[idx] = ((unsigned char*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxINT16_CLASS:
+            ((short*)outvar)[idx] = ((short*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxUINT16_CLASS:
+            ((unsigned short*)outvar)[idx] = ((unsigned short*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxINT32_CLASS:
+            ((int*)outvar)[idx] = ((int*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxUINT32_CLASS:
+            ((unsigned int*)outvar)[idx] = ((unsigned int*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxINT64_CLASS:
+            ((long long*)outvar)[idx] = ((long long*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxUINT64_CLASS:
+            ((unsigned long long*)outvar)[idx] = ((unsigned long long*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxSINGLE_CLASS:
+            ((float*)outvar)[idx] = (float)(int)((float*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxDOUBLE_CLASS:
+            ((double*)outvar)[idx] = (double)(long long)((double*)(data + offset[idx] + field_offset))[0];
+            break;
+        }
       }
     }
     mxSetData(plhs[2+out_idx], outvar);
@@ -322,7 +426,7 @@ mexFunction( int nlhs,
   mxFree(data);
 
   /*
-   * change return status to success
+   * Set the first argument to be the file_size
    */
   mxGetPr(plhs[0])[0]=file_size;
 

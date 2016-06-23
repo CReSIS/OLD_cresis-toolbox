@@ -261,6 +261,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
     fns = fns(sorted_idxs);
   end
   
+  hdr_param = struct('file_mode','ieee-be')
   if any(strcmpi(param.radar_name,{'accum'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([4 8 12]); % epri seconds fractions
@@ -442,7 +443,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
     end
     
     if any(strcmpi(param.radar_name,{'accum'}))
-      [file_size offset unknown seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types);
+      [file_size offset unknown seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       % Find bad records by checking their size (i.e. the distance between
       % frame syncs which should be constant).
@@ -461,7 +462,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
       
     elseif any(strcmpi(param.radar_name,{'accum2'}))
       [file_size offset radar_time_ms radar_time_ls radar_time_1pps_ms radar_time_1pps_ls] ...
-        = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types);
+        = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       radar_time = (hdr_data(3,:)*2^32 + hdr_data(4,:)) / (param.clk/100);
       radar_time_1pps = (hdr_data(5,:)*2^32 + hdr_data(6,:)) / (param.clk/100);
       
@@ -501,7 +502,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
         hdr_param.field_offsets = uint32([4 8 12 16]); % epri seconds fractions counter
       end
       hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
-      [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types);
+      [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       seconds = double(seconds);
       
       % Convert seconds from BCD
@@ -528,7 +529,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
       
     elseif any(strcmp(param.radar_name,{'snow','kuband'}))
-      [file_size offset epri seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types);
+      [file_size offset epri seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       % Find bad records by checking their size (i.e. the distance between
       % frame syncs which should be constant).
@@ -547,7 +548,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
       
     elseif any(strcmp(param.radar_name,{'snow2','kuband2'}))
       if param.file_version == 2
-        [file_size offset epri seconds fraction tmp] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types);
+        [file_size offset epri seconds fraction tmp] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
         loopback = mod(floor(tmp/2^16),2^2) - 1;
         nyquist_zone = mod(tmp,2^3) - 1;
         
@@ -569,7 +570,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
         save(tmp_hdr_fn,'offset','epri','seconds','fraction','loopback','nyquist_zone','wfs');
         
       else
-        [file_size offset epri sec1 sec2 fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types);
+        [file_size offset epri sec1 sec2 fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
         
         % Convert seconds from NMEA ASCII string
         %   64 bits: 00 HH MM SS
@@ -595,7 +596,7 @@ for adc_folder_name = reshape(adc_folder_names,[1 numel(adc_folder_names)])
       end
       
     elseif any(strcmp(param.radar_name,{'snow3','kuband3','kaband3'}))
-      [file_size offset epri seconds fraction hdr9 hdr10 hdr11] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types);
+      [file_size offset epri seconds fraction hdr9 hdr10 hdr11] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       start_idx = floor(hdr9/2^16);
       stop_idx = mod(hdr9,2^16);

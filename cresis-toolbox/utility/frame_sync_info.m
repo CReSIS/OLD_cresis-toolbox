@@ -68,10 +68,17 @@ fseek(fid,param.first_byte,'bof');
 % =====================================================================
 % Find frame sync (aka magic) 0xDEADBEEF
 % =====================================================================
-frame_sync(1) = hex2dec(param.sync(1:2));
-frame_sync(2) = hex2dec(param.sync(3:4));
-frame_sync(3) = hex2dec(param.sync(5:6));
-frame_sync(4) = hex2dec(param.sync(7:8));
+if strcmpi(param.open_mode,'ieee-be')
+  frame_sync(1) = hex2dec(param.sync(1:2));
+  frame_sync(2) = hex2dec(param.sync(3:4));
+  frame_sync(3) = hex2dec(param.sync(5:6));
+  frame_sync(4) = hex2dec(param.sync(7:8));
+else
+  frame_sync(1) = hex2dec(param.sync(7:8));
+  frame_sync(2) = hex2dec(param.sync(5:6));
+  frame_sync(3) = hex2dec(param.sync(3:4));
+  frame_sync(4) = hex2dec(param.sync(1:2));
+end
 
 done = false;
 finfo.syncs = [];
