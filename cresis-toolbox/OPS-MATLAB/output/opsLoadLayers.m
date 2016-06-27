@@ -66,6 +66,20 @@ if ~isfield(param,'debug') || isempty(param.debug)
   param.debug = false;
 end
 
+if ~isfield(param,'records')
+  param.records = [];
+end
+
+if ~isfield(param.records,'frames_fn')
+  param.records.frames_fn = '';
+end
+
+if ~isfield(param.records,'records_fn')
+  param.records.records_fn = '';
+end
+
+opsAuthenticate(param,false);
+
 physical_constants;
 
 % Load frames file
