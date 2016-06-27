@@ -60,6 +60,10 @@ end
 % DECODE THE SERVER RESPONSE
 [status,message] = jsonResponseDecode(jsonResponse);
 
+if ~exist(gRadar.tmp_path,'dir')
+  mkdir(gRadar.tmp_path);
+end
+
 % WRITE OPS AUTH FILE
 if status == 1
   opsAuth.userName = param.properties.userName;
