@@ -20,19 +20,20 @@ fprintf('7: vectorization\n');
 fprintf('8: debugging\n');
 fprintf('9: signal processing\n');
 fprintf('10: signal processing 2\n');
+fprintf('11: signal processing 3: s-parameters\n');
 
 done = false;
 while ~done
   try
-    section_number = input('Enter tutorial to run [1-10]: ');
+    section_number = input('Enter tutorial to run [1-11]: ');
     section_number = round(section_number(1));
-    if section_number >= 1 && section_number <= 10
+    if section_number >= 1 && section_number <= 11
       done = true;
     end
   end
 end
 
-if any(section_number == [4 5 6])
+if any(section_number == [4 5 6 11])
   global gdata_folder_path;
   if isempty(gdata_folder_path)
     gdata_folder_path = 'C:\tmp\MATLAB_tutorial_files\';
@@ -2634,4 +2635,262 @@ if section_number == 10
   fprintf('Section 10 Complete.\n');
   return
   
+end
+
+
+%% Section 11: Signal processing 3: s-parameters
+if section_number == 11
+    % author: Audrey Evans
+    
+    
+  fprintf('\n=========================================================\n');
+  fprintf(' Section 11: Signal processing 3: s-parameters\n');
+  fprintf('========================================================\n')
+  
+  keyboard
+  
+    % =======================================================================
+    % S-Parameters
+    % =======================================================================
+    % Scattering parameters (s-parameters) are used to described electrical 
+    % behavior of linear networks that are undergoing steady state stimuli.
+    % These parameters are useful in electrical engineering, especially when
+    % working with antenna, radio, and microwave engineering.
+
+    close all; % close all existing figures
+
+    % You can load s parameters two different ways; either using the matlab
+    % toolbox or using SXPParse:
+
+    % *** NOTE! Make sure that Accum_bpf.s2p is in your tmp folder.***
+
+    % EXAMPLE 1: not using the matlab toolbox
+    % load s parameters using SXPParse
+
+    [freq,data]=SXPParse('C:\tmp\Accum_bpf.s2p');
+
+    % EXAMPLE 2: using matlab toolbox
+    % load s parameters using matlab toolbox
+
+    s_obj = sparameters('C:\tmp\Accum_bpf.s2p');
+
+
+    % MAGNITUDE VS. FREQUENCY OF S-PARAMETERS
+    % =======================================================================
+
+    figure(1);
+    % First, you can plot the S11,S12,S21,and S22 parameters:
+    subplot(2,2,1);
+    plot(freq*1e-9,squeeze(db(data(1,1,:),'voltage'))); 
+    xlabel('Frequency (GHz)');
+    ylabel('Magnitude (dB)');
+    title('S_1_1 parameters');
+    hold on;
+
+    subplot(2,2,2);
+    plot(freq*1e-9,squeeze(db(data(1,2,:),'voltage')));
+    xlabel('Frequency (GHz)');
+    ylabel('Magnitude (dB)');
+    title('S_1_2 parameters');
+    hold on;
+
+    subplot(2,2,3); 
+    plot(freq*1e-9,squeeze(db(data(2,1,:),'voltage')));
+    xlabel('Frequency (GHz)');
+    ylabel('Magnitude (dB)');
+    title('S_2_1 parameters');
+    hold on;
+
+    subplot(2,2,4);
+    plot(freq*1e-9,squeeze(db(data(2,2,:),'voltage')));
+    xlabel('Frequency (GHz)');
+    ylabel('Magnitude (dB)');
+    title('S_2_2 parameters');
+    hold off;
+
+    figure(2)
+    % It can be useful to plot S11 and S22 together, as well as S12 with S21:
+    plot(freq*1e-9,squeeze(db(data(1,1,:),'voltage')));   hold on;
+    plot(freq*1e-9,squeeze(db(data(2,2,:),'voltage'))); 
+    xlabel('Frequency (GHz)');
+    ylabel('Magnitude (dB)');
+    legend('S_1_1','S_2_2');
+    title('S_1_1/S_2_2 parameters');
+
+    figure(3)
+    % S12 and S21 together:
+    plot(freq*1e-9,squeeze(db(data(1,2,:),'voltage')));   hold on;
+    plot(freq*1e-9,squeeze(db(data(2,1,:),'voltage'))); 
+    xlabel('Frequency (GHz)');
+    ylabel('Magnitude (dB)');
+    legend('S_1_2','S_2_1');
+    title('S_1_2/S_2_1 parameters');
+
+
+    % PHASE ANGLE VS. FREQUENCY OF S-PARAMETERS
+    % =======================================================================
+
+    S11 = squeeze(data(1,1,:));
+    S12 = squeeze(data(2,1,:));
+    S21 = squeeze(data(1,2,:));
+    S22 = squeeze(data(2,2,:));
+
+
+    figure(4)
+    phaseangle = angle(S11); % This returns the phase angles in radians of the matrix.
+    plot(freq*1e-9,phaseangle);  
+    xlabel('Frequency (GHz)');
+    ylabel('Phase (rad)');
+    title('Phase angle plot for S_1_1');
+
+    figure(5)
+    phaseangle = angle(S21); % This returns the phase angles in radians of the matrix.
+    plot(freq*1e-9,phaseangle);  
+    xlabel('Frequency (GHz)');
+    ylabel('Phase (rad)');
+    title('Phase angle plot for S_2_1');
+
+
+    % IMPULSE RESPONSE
+    % =======================================================================
+    % Next, we want to plot the impulse response of the s parameters.  An
+    % impulse response is the plot of the behavior of the system when it is fed
+    % a very brief input signal.  For this plot, we will need to convert the
+    % frequency domain to the time domain.  In order to do this, we will use
+    % ifft.
+
+    figure(6)
+    plot(db(S21,'voltage'))
+
+    % Windowing for S21 in frequency domain
+    H_idx = find(freq > 600e6 & freq < 900e6);
+    H = hanning(length(H_idx));
+    S21_window = zeros(size(S21));
+    S21_window(H_idx) = S21(H_idx) .* H;
+
+    df = freq(2)-freq(1);
+    Nt = length(S21);
+    BW = df*Nt;
+    dt = 1/BW;
+    time = dt*(0:Nt-1);
+
+    % Convert from frequency domain to time domain:
+    S21_td = ifft(S21_window);
+    clf; % clear current figure
+    plot(time*1e9, db(S21_td,'voltage'),'r'); hold on
+
+    % TIME GATED S21 FREQUENCY PLOT
+    % =======================================================================
+    % source: http://incompliancemag.com/article/s-parameter-data-correction-using-time-domain-gating-for-pcb-and-cable-applications/
+    % Time gating is a method used on impulse response functions that removes
+    % reflections that are caused by end connectors or other discontinuities. 
+    % We will plot the time gated S21 plot along with the impulse response that
+    % we have already created.
+
+    % Apply time domain window to S21_td
+    H_idx = find(time > 0 & time < 20e-9);
+    % We are using a hanning window.  See section 10 topic 3 of the matlab
+    % tutorial.
+    H = hanning(length(H_idx));  
+    S21_td_window = zeros(size(S21_td));
+    S21_td_window(H_idx) = S21_td(H_idx) .* H;
+    plot(time*1e9, db(S21_td_window,'voltage'),'g');
+
+    hold on
+    S21_td = ifft(S21);
+    plot(time*1e9, db(S21_td,'voltage'));
+    xlabel('Time (ns)');
+    ylabel('Magnitude (dB)');
+    legend('S_2_1 = frequency domain window','S_2_1 = freq and time windowed','S_2_1 = time domain, not windowed');
+    title('Impulse Response and Time Gating');
+    % We will use axis() to zoom in so that we can see the impulse response
+    % better.
+    axis([-10,500,-160,-10]); 
+    axis([-10,200,-160,-10]); 
+    axis([-10,100,-130,-10]); 
+    axis([-10,50,-110,-10]); 
+
+    figure (7)
+    % Now we want to compare the time gated plot, the windowed plot, and the
+    % original plot
+    S21_timegated = fft(S21_td_window);
+    plot(time*1e9,db(S21_timegated,'voltage')); hold on
+    plot(time*1e9,db(S21_window,'voltage')); hold on
+    plot(time*1e9,db(S21,'voltage')); 
+    xlabel('Time (ns)');
+    ylabel('Magnitude (dB)');
+    legend('S_2_1 time gated','S_2_1 frequency windowed','S_2_1');
+    title('Impulse Response and Time Gating');
+
+
+
+    % GROUP DELAY FOR S21
+    % =======================================================================
+    % source: http://www.microwaves101.com/encyclopedias/group-delay-measurements
+    %   Group delay is the change in phase angle over the change in frequency.
+    % In other words, it is the derivative of the phase angle with respect to
+    % the frequency divided by 2pi.
+    %   We are interested in the group delay for S21 because S21 is the
+    % measurement of the complex output/input transfer function.  This means
+    % that S21 represents both amplitude and phase between input and output
+    % signals.
+    %   First, we need to unwrap the phase angle using unwrap().  This changes
+    % absolute jumps >= pi to their 2*pi compliment
+    % We will then take the diff(unwrap(phaseangle))/diff(freq) vs freq.
+
+    figure(8)
+
+    x=unwrap(angle(data));
+
+    % We have to take the transpose of the matrix here in order to be able to divide diff(phaseangle) by diff(freq)
+    y=diff(freq).'; 
+    plot(freq(1,1:20000)*1e-9, squeeze(diff(x(1,2,:))) ./ y .*1e4);
+
+    % We will use axis() to zoom in on the figure because the function outside of this domain is just noise due to the unwrapping function not working.
+    axis([0.3,1.1,-0.8,0.8]); 
+    xlabel('Frequency (GHz)');
+    ylabel('\partial\phi/\partialf x 1000/2\pi'); %Side note: using a '\pi' makes an actual pi symbol
+    title('Group delay of S_2_1');
+
+
+
+
+    % S-PARAMETER PLOTS USING THE MATLAB TOOLBOX
+    % =======================================================================
+    % source: http://www.mathworks.com/help/rf/ug/rfplot.html
+    % rfplot will plot the magnitude in dB vs. frequency of all S-parameters,
+    % while rfplot(s_obj,i,j) will plot Sij.
+
+    figure(9)
+
+    subplot(2,2,1)
+    rfplot(s_obj,1,1); %plot S11
+    xlabel('frequency');
+    ylabel('mag. in dB'); hold on;
+
+    subplot(2,2,2)
+    rfplot(s_obj,1,2); %plot S12
+    xlabel('frequency');
+    ylabel('mag. in dB'); hold on;
+
+    subplot(2,2,3)
+    rfplot(s_obj,2,1); %plot S21
+    xlabel('frequency');
+    ylabel('mag. in dB'); hold on;
+
+    subplot(2,2,4)
+    rfplot(s_obj,2,2); %plot S22
+    xlabel('frequency');
+    ylabel('mag. in dB'); hold off;
+
+    % You can also plot all four together by using rfplot(s_obj).
+
+    figure(10)
+    % S11 and S22 plotted together
+    rfplot(s_obj,1,1,'r'); hold on;
+    rfplot(s_obj,2,2,'b');
+
+
+      fprintf('Section 11 Complete.\n');
+  return
 end
