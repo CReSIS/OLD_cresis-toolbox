@@ -69,10 +69,6 @@ for idx = 1:length(eps_r)
   
   % Spatially shift plane waves
   data    = data.*z_shift;
-  figure(1); clf;
-  imagesc(lp(ifft2(data))); caxis([-85 40]);
-  figure(2); clf;
-  imagesc(lp(ifft(data,[],2)));
 end
 
 % figure; imagesc(lp(ifft2(g_data)))

@@ -384,7 +384,7 @@ elseif strcmpi(param.radar_name,'mcrds')
   end
   load_mcrds_data(load_param);
 elseif strcmpi(param.radar_name,'icards')
-   load_icards_data(load_param,param);
+  load_icards_data(load_param,param);
 elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   load_param.proc.elev_correction = 0;%param.csarp.elev_correction;
   load_param.proc.deconvolution = param.csarp.deconvolution;
