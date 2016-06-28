@@ -1,6 +1,6 @@
-function [status,data] = opsGetInitialData(sys,param)
+function [status,data_url] = opsGetInitialData(sys,param)
 %
-% [status,data] = opsGetInitialData(sys,param)
+% [status,data_url] = opsGetInitialData(sys,param)
 %
 % Creates an initial datapack for field depolyments of the OPS system
 % containing all database information associated with a given set of
@@ -18,7 +18,7 @@ function [status,data] = opsGetInitialData(sys,param)
 %
 % Output:
 %   status: integer (0:Error,1:Success,2:Warning)
-%   data: string contianing url to download datapack from.
+%   data_url: string contianing url to download datapack from.
 %
 % Author: Trey Stafford, Kyle W. Purdon
 
@@ -47,6 +47,6 @@ end
 [status,decodedJson] = jsonResponseDecode(jsonResponse);
 
 if status==1
-    data = strcat(sysUrl,decodedJson);
-    fprintf('Initial Datapack Created.\n Download from %s \n', data);
+    data_url = strcat(gOps.sysUrl,decodedJson);
+    fprintf('Initial Datapack Created.\n Download from %s \n', data_url);
 end
