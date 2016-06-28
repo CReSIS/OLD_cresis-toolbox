@@ -49,7 +49,7 @@ rec = 1;
 year_mark = str2num(whole_param.day_seg(1:4));
 if year_mark>1997 %coherent data stored
   data_stored_type='coherent';
-elseif size(icards_get_data(param.load.filenames{1}(1),2),1)~=0%some coherent data in 1997's segments
+elseif size(icards_get_data(param.load.filenames{1}{end},2),1)~=0%some coherent data in 1997's segments
   data_stored_type='coherent';
 else
   data_stored_type='incoherent';
@@ -315,7 +315,7 @@ g_data{img_idx}=g_data{img_idx}.*window_matrix;
 % Constant with slow time noise removal:
 % g_data{img_idx} = g_data{img_idx} - mean(mean(g_data{img_idx}(800:end,:)));
 % Slowly varying in slow time noise removal:
-g_data{img_idx} = g_data{img_idx} - repmat(fir_dec(mean(g_data{img_idx}(800:1024,:)), ones(1,15)/15), [size(g_data{img_idx},1) 1]);
+g_data{img_idx} = g_data{img_idx} - repmat(fir_dec(mean(g_data{img_idx}(round(size(g_data{1},1)*0.78):end,:)), ones(1,15)/15), [size(g_data{img_idx},1) 1]);
 return;
 
 % ==============================================================

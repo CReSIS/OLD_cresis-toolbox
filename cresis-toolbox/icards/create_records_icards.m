@@ -142,9 +142,9 @@ for file_idxs_idx = 1:length(file_idxs)
       tmp_hdr_fn_previous = ct_filename_tmp(param_1,'','headers',[fn_name_previous fn_ext_previous '.mat']);
       hdr_previous=load(tmp_hdr_fn_previous);
     end
-  
+    hdr_previous.nmea_time=create_records_icards_interpolation(hdr_previous.nmea_time,0,[]);%time interpolation of last temp header file of last segment to get the last time point for comparison
     if hdr.nmea_time(1)<hdr_previous.nmea_time(end)
-      warning('the first nmea time of this file is smaller than the last time point of prvious file, correct this in interpolation step\n');
+      warning('the first nmea time of this file is %d s smaller than the last time point of prvious file, correct this in interpolation step\n', -hdr.nmea_time(1)+hdr_previous.nmea_time(end));
       previous_mark=1;
       previous_time=hdr_previous.nmea_time(end);
     else

@@ -142,8 +142,8 @@
   nmea_elev = nmea_elev(~bad_mask);
   nmea_lat = nmea_lat(~bad_mask);
   nmea_lon = nmea_lon(~bad_mask);
-
-  NMEA.time=nmea_time;
+%   NMEA.time=nmea_time;
+  NMEA.time=nmea_time+utc_leap_seconds(nmea_time(1));%add leap seconds here to get "gps time"---qishi
   NMEA.elev=nmea_elev;
   NMEA.lat=nmea_lat;
   NMEA.lon=nmea_lon;
@@ -171,7 +171,8 @@
     traj_mark_in=1;
   end
   [traj_mark_out,season_name,traj_folder,traj_filename,gps_source]=icards_data_traj_list(strcat(today_string,'_01'),traj_mark_in);% for the convenience to load traj files quickly---qishi
-  if traj_mark_out % not all days of a certain seanson has trajactory file---qishi                              
+  if traj_mark_out % not all days of a certain seanson has trajactory file---qishi      
+%   if 0 %temp-qishi
     %% Load TRAJ FILES 
 % % % % %     global gRadar;
 % % % % %     data_support_path = '';

@@ -5,17 +5,21 @@
 %the final .csv file. As I didn't find any multiple TRAJ files of one cetain
 %day, this function does not take the situation of merging multiple TRAJ files 
 %into consideration.---qishi
+%TIME RELATIONS:nmea_format_time=gps_format_time-leap_seconds,traj_format_time=gps_format_time+leap_seconds
+%covert nmea_format_time and traj_format_time(if available) to gps_format_time before merging,
+%then covert it back to nmea_format_time. It will be converted to
+%gps_format_time in read_gps_csv.m.
 clear;
 clc;
-which_season='rds_param_2002_Greenland_P3.xls';%we could generate a season's GPS file by running this script---qishi
+which_season='rds_param_1999_Greenland_P3.xls';%we could generate a season's GPS file by running this script---qishi
 param_whole = read_param_xls(ct_filename_param(which_season));
-days=[];
 seg_cell={param_whole.day_seg}';
+days=[];%initialization
 for ii=1:length(seg_cell)
   days=[days str2num(seg_cell{ii}(1:8))];
   days=unique(days);
 end
-days=[20020522];%could select some day(s) to merge---qishi
+% days=[20020518];%could select some day(s) to merge---qishi
 for jj=1:length(days)%creating GPS file day by day---qishi
   today=days(jj);
   fprintf('===============Merging GPS Data of %d===============\n',today);
@@ -24,7 +28,7 @@ for jj=1:length(days)%creating GPS file day by day---qishi
   TRAJ_MAX_TIMEGAP=1;%set up traj file time gap value 
 
   if ~isempty(TRAJ)%we have both of traj and nmea files of a certain day
-
+   TRAJ.gps_time=TRAJ.gps_time-utc_leap_seconds(TRAJ.gps_time(1));%convert to gps_format_time---qishi
    if NMEA.time(1)<TRAJ.gps_time(1)%add NMEA data points to the left of TRAJ data
      [~,start_idx]=find(NMEA.time<TRAJ.gps_time(1));
      TRAJ.gps_time=[NMEA.time(start_idx),TRAJ.gps_time];
@@ -154,6 +158,7 @@ for jj=1:length(days)%creating GPS file day by day---qishi
     FINAL.pitch=NMEA.pitch;
     FINAL.heading=NMEA.heading;
   end
+  FINAL.time=FINAL.time-utc_leap_seconds(FINAL.time(1));%covert back to UTC time,leap seconds will be re-add when making GPS---qishi
   fix_minor_idx=find(diff(FINAL.time)<=1e-6);%it seems that csv file cannot distinguish two time points with too small difference---qishi 
   FINAL.time(fix_minor_idx+1)=FINAL.time(fix_minor_idx+1)+1e-6;
   FINAL.time=create_records_icards_interpolation(FINAL.time,[],[]);%call this function to fix gps time---qishi

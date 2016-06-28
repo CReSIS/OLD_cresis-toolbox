@@ -4,7 +4,7 @@ function time_after=interpolation(time_before,previous_mark,previous_time)
 time=time_before;
 if previous_mark
   second_valid_idx=find(time>time(1),1,'first');
-  time(1:second_valid_idx)=interp1([0 second_valid_idx],[previous_time time(second_valid_idx),[1:1:second_valid_idx]]);
+  time(1:second_valid_idx)=interp1([0  second_valid_idx],[previous_time time(second_valid_idx)],[1:1:second_valid_idx]);
 end
 
 while ~isempty(find(diff(time)<0))% deal with decrease time points
@@ -12,7 +12,7 @@ while ~isempty(find(diff(time)<0))% deal with decrease time points
   time(idx)=time(idx+1);
 end
 
-if any(diff(time)==0)% deal with those "flat" time points
+if (any(diff(time)==0))&&( ~all( (time-time(1))==0))% deal with those "flat" time points,and there is a rare situation that all time points are equal
     jump_idx=find(diff(time)>0);
     jump_idx=jump_idx+1;
     if jump_idx(end)~=length(time)%we need extrapolation to interp last flat time sequence
