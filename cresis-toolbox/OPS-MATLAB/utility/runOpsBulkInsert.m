@@ -69,8 +69,8 @@ settings.layerFilter = inline('~isempty(regexp(x,''(^surface$|^bottom$)''))');
 
 % ----------------------------------------------------------------
 % pathSpacing: DISTANCE IN METERS TO SPACE THE PATH/LAYER POINTS (DEFAULT = 15m)
-% 5 m for snow and KuBand
-settings.pathSpacing = 15;
+% settings.pathSpacing = 5; % 5 m for snow and kuband
+settings.pathSpacing = 15; % 5 m for accum and rds
 
 % ----------------------------------------------------------------
 % seasonGroup: STRING name of the group for the season (DEFAULT = 'cresis_private')

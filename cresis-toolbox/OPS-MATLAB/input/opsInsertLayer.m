@@ -101,7 +101,7 @@ end
 %% Create destination layer if it does not exist
 if strcmpi(insert_param.layer_dest.source,'ops')
   % Check to see if layer exists
-  sys = ct_output_dir(param.radar_name);
+  sys = ct_output_dir(params(1).radar_name);
   [status,data] = opsGetLayers(sys);
   if ~any(strcmpi(data.properties.lyr_name,insert_param.layer_dest.name))
     % Create the layer if it does not exist
@@ -128,6 +128,14 @@ for param_idx = 1:length(params)
   
   fprintf('opsInsertLayer %s\n', param.day_seg);
   
+  %% Load framing information (to determine start/stop gps times of each frame)
+  if strcmpi(insert_param.layer_dest.source,'ops')
+    sys = ct_output_dir(param.radar_name);
+    ops_param = struct('properties',[]);
+    ops_param.properties.season = param.season_name;
+    ops_param.properties.segment = param.day_seg;
+    [~,ops_frames] = opsGetSegmentInfo(sys,ops_param);
+  end
   % Load frames file
   if ~isfield(param.records,'frames_fn')
     param.records.frames_fn = '';
