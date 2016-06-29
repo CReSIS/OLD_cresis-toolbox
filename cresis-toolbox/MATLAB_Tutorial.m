@@ -7,7 +7,7 @@
 % 2. Run this tutorial by pressing F5 (choose "Change Folder" if asked)
 %    Follow along in the terminal (command window) and editor
 %
-% Authors: Audrey Evans, Megan Metz, John Paden, Kyle Purdon, Levi Sedlow,
+% Authors: Audrey Evans, Megan Metz, John Paden, Kyle Purdon, Levi Sedlock,
 %  Jordan Sprick
 
 clc; clear; close all;
