@@ -1,11 +1,14 @@
 % =========================================================================
 %                      CReSIS MATLAB TUTORIAL
 % =========================================================================
-
+%
 % 1. Follow steps here:
 %    https://wiki.cresis.ku.edu/cresis/MATLAB_Tutorial
 % 2. Run this tutorial by pressing F5 (choose "Change Folder" if asked)
 %    Follow along in the terminal (command window) and editor
+%
+% Authors: Audrey Evans, Megan Metz, John Paden, Kyle Purdon, Levi Sedlow,
+%  Jordan Sprick
 
 clc; clear; close all;
 format compact;
@@ -21,19 +24,20 @@ fprintf('8: debugging\n');
 fprintf('9: signal processing\n');
 fprintf('10: signal processing 2\n');
 fprintf('11: signal processing 3: s-parameters\n');
+fprintf('12: Layer Plots\n');
 
 done = false;
 while ~done
   try
-    section_number = input('Enter tutorial to run [1-11]: ');
+    section_number = input('Enter tutorial to run [1-12]: ');
     section_number = round(section_number(1));
-    if section_number >= 1 && section_number <= 11
+    if section_number >= 1 && section_number <= 12
       done = true;
     end
   end
 end
 
-if any(section_number == [4 5 6 11])
+if any(section_number == [4 5 6 11 12])
   global gdata_folder_path;
   if isempty(gdata_folder_path)
     gdata_folder_path = 'C:\tmp\MATLAB_tutorial_files\';
@@ -2894,3 +2898,174 @@ if section_number == 11
       fprintf('Section 11 Complete.\n');
   return
 end
+
+
+%% Section 12: Layer Plots
+if section_number == 12
+  fprintf('\n=========================================================\n');
+  fprintf(' Section 12: Layer Plots \n');
+  fprintf('========================================================\n')
+  
+  keyboard
+  
+  % SCATTER PLOT FOR OPS POLYGON
+  % =======================================================================
+  % This example shows how to query two layers from the Open Polar Server (ops)
+  % database for a given region
+  % See opsScatterPlotExample.m and opsGetPointswithinPolygon.m
+  
+  %These imputs are necessary for the opsGetPointsWithinPolygon function.
+  %'rds' refers to the type of system used and 'artic' refers to the
+  %location of the polygon region
+  sys = 'rds';
+  param = [];
+  param.properties.location = 'arctic';
+  
+  % Polygons can be made at ops3.cresis.ku.edu (Select Artic and then
+  % Draw Polygon. Close the polygon by double clicking then copy and
+  % paste the WKT Polygon information into the form
+  % param.properties='Polygon((...))'
+  param.properties.bound='POLYGON((-32.92164206498864 68.61008511349851,-32.93658231364552 68.6167888873584,-32.95116092292497 68.61181999966429,-32.9254919803559 68.6078299519973,-32.92164206498864 68.61008511349851))';
+  
+  % The function opsGetPointsWithinPolygon will use WKT Polygon information to
+  % obtain the points within the polygon. Note: the larger the polygon the
+  % more time the function will use to obtain the information.
+  fprintf('Getting points. This may take a minute (%s)\n', datestr(now));
+  [status,data] = opsGetPointsWithinPolygon(sys,param);
+  fprintf('  Done (%s)\n', datestr(now));
+  
+  % We need information about the area. By loading geotiff information, we
+  % can use the 'geotiffinfo' command and 'projfwd' function to get more
+  % information for the axes.
+  geotiff_fn = ct_filename_gis(fullfile('greenland','Landsat-7','Greenland_natural_150m.tif'));
+  proj = geotiffinfo(geotiff_fn);
+  [data.properties.X,data.properties.Y] = projfwd(proj,data.properties.Lat,data.properties.Lon);
+  
+  % Now we can make a scatterplot of the bed elevations
+  figure (1); clf;
+  hold on;
+  scatter(data.properties.X/1e3, data.properties.Y/1e3, [], data.properties.Elevation - data.properties.Bottom);
+  axes_elev = gca;
+  h_colorbar=colorbar;
+  set(get(h_colorbar,'YLabel'),'String','WGS-84 elevation(m)')
+  axis normal;
+  xlabel('X (km)')
+  ylabel('Y (km)')
+  
+  % Alternately, we can plot the quality levels of the data
+  proj = plot_geotiff(geotiff_fn,[],[], 2);
+  hold on;
+  
+  % The for loop uses the quality levels (1, 2, or 3) for the bottum layer and
+  % plots a data point associated with the level (green, yellow, or red).
+  quality_color = {'g.' 'y.' 'r.'};
+  for quality_level = [1 2 3]
+    X = data.properties.X/1e3;
+    Y = data.properties.Y/1e3;
+    Q = data.properties.Bottom_Quality;
+    quality_mask = Q == quality_level;
+    if any(quality_mask)
+      h(quality_level) = plot(X(quality_mask), Y(quality_mask), quality_color{quality_level});
+    end
+  end
+  hold off;
+  
+  axes_quality = gca;
+  axis normal;
+  xlabel('X (km)');
+  ylabel('Y (km)');
+  legend('Good','Medium','Bad');
+  linkaxes([axes_elev axes_quality],'xy');
+
+  
+  % LOADING LAYERS
+  % =======================================================================
+  % This example shows how to query layer data from ops for specific data
+  % frames.
+  % See opsLoadLayers.m and runOpsLoadlayers.m
+  
+  % We clear the structure param and specify relevant information (i.e.
+  % season, radar name, date, etc.)
+  param = [];
+  param.season_name = '2011_Greenland_P3';
+  param.radar_name = 'mcords2';
+  param.day_seg = '20110414_04';
+  param.cmd.frms = 1;
+  param.post.ops.location = 'arctic';
+  % global gRadar;
+  % param = merge_structs(param,gRadar);
+  
+  % Before we load the data, we must the layers themselves (in this case
+  % top and bottum) and their source (ops).
+  layer_params = [];
+  layer_params(1).name = 'surface';
+  layer_params(1).source = 'ops';
+  layer_params(2).name = 'bottom';
+  layer_params(2).source = 'ops';
+  
+  % Now we can load the data from ops
+  layers = opsLoadLayers(param,layer_params);
+  
+  % First, we plot the surface layer
+  figure(1); clf;
+  along_track = geodetic_to_along_track(layers(1).lat,layers(1).lon);
+  h_plot = plot(along_track/10^3, layers(1).twtt*10^6);
+  ylabel('Two Way Travel Time (microseconds)')
+  xlabel('Along Track Distance (km)')
+  title('Layers vs Time')
+  
+  % Now we plot the bottum layer
+  hold on;
+  along_track = geodetic_to_along_track(layers(2).lat,layers(2).lon);
+  h_plot = plot(along_track/10^3, layers(2).twtt*10^6);
+  hold off
+  
+  
+  % ECHOGRAM WITH DEPTH AXIS
+  % =======================================================================
+  % This example shows how to load and plot an echogram with a depth axis
+  % (rather than two way travel time) using a dielectric profile
+  % See plot_L1B.m and elevation_compensation.m
+  
+  fn=fullfile(data_folder_path,'CRESIS_MAT_ECHODATA.mat');
+  mdata=load_L1B(fn);
+  
+  % To correctly use the elevation_compensation function, we must clear
+  % param and then specify certain inputs.
+  param=[];
+  
+  % By specifying param.update is false (the default), we avoid making
+  % changes to the mdata.Surface
+  param.update_surf=false;
+  
+  % By specifying param.filter is true, we apply an along-track median
+  % filter to the surface
+  param.filter_surf=true;
+  
+  % This is the vector of dielectrics
+  param.er_ice = linspace(1.5,3.5,101);
+  
+  % Next, we create a depth vector that will align with er_ice
+  param.er_depth=linspace(0,100,101);
+  
+  % By specifying mode 2, we set the function to work towards a depth
+  % axis rather than indices specified by param.depth
+  param.elev_comp = 2;
+  
+  %Next, we specify the depth range
+  param.depth = '[-200 1000]';
+  
+  % We call the function elevation_compensation which will give a depth
+  % axis output
+  [mdata_WGS84,depth_axis] = elevation_compensation(mdata,param);
+  
+  figure(2);
+  clf;
+  imagesc([],depth_axis,10*log10(mdata_WGS84.Data));
+  xlabel('Range line');
+  ylabel('Depth (m)')
+  colormap(1-gray(256))
+  
+end
+    
+    
