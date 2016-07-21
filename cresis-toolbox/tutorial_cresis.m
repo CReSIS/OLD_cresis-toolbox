@@ -1,4 +1,4 @@
-% script tutorial_cresis
+%% script tutorial_cresis
 %
 % The purpose of this script is to demonstrate the use of several
 % cresis functions and Matlab features that are relevant to processing
@@ -9,7 +9,7 @@
 lesson =1;
 
 fprintf('\n\n########################## Lesson %d ##################\n\n', lesson);
-
+%%
 if lesson == 1
   % Cell arrays and get_filenames
 
@@ -17,19 +17,20 @@ if lesson == 1
   filepath = '';
   
   % Create a file path string (Matlab data type char for character):
-  filepath ='w:\MCRDS\2009_Greenland\20090409\dataGISMO';
-  
-  % /cresis/data1/MCRDS/2009_Greenland/20090409/dataGISMO';
+  if ispc
+    % On Windows platform:
+    filepath = 'X:\public\data\rds\2009_Greenland_TO\CSARP_standard\20090409_01\';
+  else
+    % On other platforms:
+    filepath = '/cresis/snfs1/dataproducts/public/data/rds/2009_Greenland_TO/CSARP_standard/20090409_01/';
+  end
 
-  % Store the current path
-  current_path = cd;
+  % Get the current working directory (pwd = print working directory)
+  current_path = pwd;
   
   % Since filepath is a variable, we have to use the function form
   % for change directory (cd)
   cd(filepath);
-  % Otherwise we could have done:
-  cd w:\MCRDS\2009_Greenland\20090409\dataGISMO;
-%   /cresis/data1/MCRDS/2009_Greenland/20090409/dataGISMO
 
   % Now list the contents of the directory for reference
   ls
@@ -40,18 +41,14 @@ if lesson == 1
   % Now use get_filenames to return all the properly matching files
   % in a cell array
   
-  % Returns filenames satisfying "data**.raw"
-  filenames_all = get_filenames(filepath,'data','','.raw');
+  % Returns filenames matching "Data**.mat"
+  filenames_all = get_filenames(filepath,'Data','','.mat');
   
-  % Returns filenames satisfying "data*2009040908*.raw"
+  % Returns filenames satisfying "Data_20090409*.mat"
   %   In other words, the computer time on the radar system was:
   %    Year: 2009
   %    Month: 04
   %    Day: 09
-  %    Hour: 08
-  %    Minute: 01
-  %   Computer time is NOT UTC time... it depends on the time zone
-  % and how accurately the user has set the time.
   % UTC time: Universal Time Coordinate
   %   This is THE standard for time across the world. It is equivalent
   % to GMT or Greenwich Mean Time which is the time at the prime
@@ -64,7 +61,7 @@ if lesson == 1
   % is well documented and leap seconds (an extra second) in the UTC clock
   % so that it lags GPS time are always added at the end of the year.
   % For example, in 2009, GPS time is 15 seconds ahead of UTC.
-  filenames_short = get_filenames(filepath,'data','200904090801','.raw');
+  filenames_all = get_filenames(filepath,'Data_20090409','','.mat');
 
   % Get the first entry in filenames_all
   %   By indexing the cell array with {} I am extracting the contents
@@ -73,7 +70,7 @@ if lesson == 1
   
   % Create a 1 element cell array which has the first entry
   %   By indexing the cell array with () I am using the ordinary
-  %   Matrix indexing method which 
+  %   matrix indexing method. 
   first_entry_cell = filenames_all(1);
   
   % Useful short cuts:
@@ -88,45 +85,28 @@ if lesson == 1
   % Another trick which extracts the first three elements in the cell array
   [entry1 entry2 entry3] = filenames_all{1:3};
   
- 
-  
-  
-  % Search through each file name and pull out indices 200-205
+  % Search through each file name and pull out the frame indices in
+  % the data filename. This is the last 3 digits of the filename.
   %   idx is short for index
-  keep_idxs = [];
+  frms = [];
   for idx = 1:numel(filenames_all)
     % Useful Matlab command for getting just the file name without the
     % path to the file
     [path name ext] = fileparts(filenames_all{idx});
-    % file_idx = extract last 4 characters from name and convert to double
-    file_idx = str2double(name(end-3:end));
-    time_stamp = str2double(name(end-18:end-5));
-    if 1
-      if time_stamp >= start_time && time_stamp <= stop_time
-        % Add the current idx to the list since the filename's index
-        % is in the 200-205 range
-        keep_idxs(end+1) = idx;
-        % synonymous with: "keep_idxs = [keep_idxs idx];
-      end
-    else
-      if file_idx >= 200 && file_idx <= 205
-        % Add the current idx to the list since the filename's index
-        % is in the 200-205 range
-        keep_idxs(end+1) = idx;
-        % synonymous with: "keep_idxs = [keep_idxs idx];
-      end
-    end
+    % file_idx = extract last 3 characters from name and convert to double
+    frms = [frms str2double(name(end-2:end))];
   end
-  % Now create a new cell array with just these filenames
+  % Now create a new cell array with just the filenames associated with
+  % frames 5 to frame 7
   %   Note: I have used () and not {}
-  filenames_range = filenames_all(keep_idxs);
+  filenames_range = filenames_all(frms >= 5 & frms <= 7);
   
   % Just print out some examples by removing the semi-colon at the end of the line:
   filenames_range{1}
   filenames_range{end}
   
 end
-
+%%
 if lesson == 2
   % Strings and printing
   
@@ -153,7 +133,7 @@ if lesson == 2
   % which puts in the correct slashes depending on the file system:
   filename = fullfile('tmp',ymd_str,'my_file')
 end
-  
+ %% 
 if lesson == 3
   %1). Write content into a specific file which is defined as the
   % 'filename' string variable
@@ -195,7 +175,7 @@ if lesson == 3
     fprintf('%s string read: %s\n',index{idx}, S1{idx});
   end
 end
-
+%%
 if lesson == 4
   % Matrix commands
 
@@ -231,7 +211,7 @@ if lesson == 4
   idxs_small = find(abs(A) < 0.3);
   A(idxs_small)
 end
-
+%%
 if lesson == 5
   % Structures and checking
   
@@ -272,7 +252,7 @@ if lesson == 5
   end
   
 end
-
+%%
 if lesson == 6
   % Create a 3x3 matrix of complex normal gaussian variables
   % where variance is 1
@@ -385,6 +365,7 @@ if lesson == 6
 end
 
 % imagesc() function basic understanding
+%%
 if lesson==7
   % suppose we load data from the
   % \cresis\scratch2\mdce\accum\2011_Greenland_P3
@@ -419,7 +400,7 @@ if lesson==7
 end
   
   
-  
+ %% 
 % Plot handle manipulation 
  if lesson == 8
    x = -pi:.1:pi;
@@ -489,3 +470,4 @@ end
  end
  
 return;
+%%
