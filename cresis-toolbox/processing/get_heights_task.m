@@ -172,13 +172,13 @@ if ~isfield(param.records,'file_version')
   param.records.file_version = [];
 end
 
-if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
+if abs(sum(param.get_heights.B_filter)-1) > 1e4*eps
   warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
   param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
 end
 
 if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B_filter)
-  param.get_heights.inc_B_filter = ones(1,param.get_heights.inc_ave) / param.get_heights.inc_ave;
+  param.get_heights.inc_B_filter = 1;
 end
 if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
   warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
