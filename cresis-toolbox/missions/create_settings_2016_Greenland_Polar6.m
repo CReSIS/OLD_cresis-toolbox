@@ -122,11 +122,11 @@ if ~exist(calval_dir,'dir')
 end
 
 %% Survey Mode + loopback, noise, and deconv modes
-% <3250 m thick ice, 1200 +/- 700 ft AGL
-ice_thickness = [3250 3250];
+% <4000 m thick ice, 1200 +/- 700 ft AGL
+ice_thickness = [4000 4000];
 for freq_idx = [1 2]
   param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
-  param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 750; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
+  param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 755; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -525,3 +525,7 @@ write_cresis_xml(param);
 param.tx_weights = [4000 4000 4000 4000 4000 4000 4000 4000] * sqrt(1.00);
 param.fn = fullfile(base_dir,sprintf('singlewf_%.0f-%.0fMHz_%.0fus_DDS_CHECK.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
 write_cresis_xml(param);
+param.delay = 6.9444e-1 * user_clock_correction;
+param.fn = fullfile(base_dir,sprintf('singlewf_%.0f-%.0fMHz_%.0fus_DDS_CHECK_CORRECTED.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
+write_cresis_xml(param);
+
