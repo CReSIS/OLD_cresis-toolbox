@@ -1,13 +1,30 @@
+% script imb.slice_browser
+%
+% Class for browsing 3D imagery one 2D slice at a time and for editing
+% layers in that imagery.
+%
+% Contructor: slice_browser(data,h_control_image,param)
+% data: 3D imagery
+% h_control_image: optional handle to a Matlab "image" which has an x-axis
+%   aligned with the third dimension of the data. Clicks in this figure
+%   will then choose difference slices out of data based on the third axis.
+% param: structure controlling the operation of slice_browser
+%  .layer_fn: filename of .mat file containing layer structure array
+%
+% Layer file should contain:
+%  layer: structure array of layer information
+%   .x: x-values of the layer
+%   .y: y-values of the layer
+%   .plot_name_values: name-value pairs to be passed to this layer's plot
+%     function
+%   .name: name of this layer
+% 
+% Example:
+%  See run_slice_browser.m
+%
+% Author: Elijah Paden, John Paden
+
 classdef slice_browser < handle
-  %slice_browser: Browse slices of a 3D image
-  %
-  % Example:
-  % mdata = load('C:\tmp\Canada_Tomography\Data_img_01_20140401_03_044.mat');
-  % h_control_fig = figure;
-  % h_control_axes = axes('Parent',h_control_fig);
-  % h_control_image = imagesc(lp(squeeze(mdata.Topography.img(:,33,:))),'Parent',h_control_axes);
-  % try; delete(obj); end;
-  % obj = slice_browser(mdata.Topography.img,h_control_image);
   
   properties
     select_mask
@@ -123,22 +140,22 @@ classdef slice_browser < handle
       obj.gui.nextPB = uicontrol('parent',obj.h_fig);
       set(obj.gui.nextPB,'style','pushbutton')
       set(obj.gui.nextPB,'string','>(p)')
-      set(obj.gui.nextPB,'Callback',@obj.Next_button_callback)
+      set(obj.gui.nextPB,'Callback',@obj.next_button_callback)
       
       obj.gui.prevPB = uicontrol('parent',obj.h_fig);
       set(obj.gui.prevPB,'style','pushbutton')
       set(obj.gui.prevPB,'string','<(n)')
-      set(obj.gui.prevPB,'Callback',@obj.Prev_button_callback)
+      set(obj.gui.prevPB,'Callback',@obj.prev_button_callback)
       
       obj.gui.savePB = uicontrol('parent',obj.h_fig);
       set(obj.gui.savePB,'style','pushbutton')
-      set(obj.gui.savePB,'string','save')
+      set(obj.gui.savePB,'string','Save')
       set(obj.gui.savePB,'Callback',@obj.save_button_callback)
       
       obj.gui.helpPB = uicontrol('parent',obj.h_fig);
       set(obj.gui.helpPB,'style','pushbutton')
-      set(obj.gui.helpPB,'string','?')
-      set(obj.gui.helpPB,'Callback',@obj.Help_button_callback)
+      set(obj.gui.helpPB,'string','Help (F1)')
+      set(obj.gui.helpPB,'Callback',@obj.help_button_callback)
       
       obj.gui.layerPM = uicontrol('parent',obj.h_fig);
       set(obj.gui.layerPM,'style','popup')
@@ -251,36 +268,43 @@ classdef slice_browser < handle
       
       clear row col
       table_draw(obj.gui.table);
-      
-      % Connect listeners to events
-      
     end
+    
     %% destructor/delete
     function delete(obj)
       delete(obj.h_fig)
     end
+    
     %% close_win
     function close_win(obj,h_obj,event)
       try
         delete(obj);
       end
     end
-    %% Buttonstuff
-    function Next_button_callback(obj,source,callbackdata)
+    
+    %% next_button_callback
+    function next_button_callback(obj,source,callbackdata)
       obj.slice = obj.slice + 1;
       obj.update_slice();
     end
-    function Prev_button_callback(obj,source,callbackdata)
+    
+    %% prev_button_callback
+    function prev_button_callback(obj,source,callbackdata)
       obj.slice = obj.slice -1;
       obj.update_slice();
     end
-    function Help_button_callback(obj,source,callbackdata)
+    
+    %% help_button_callback
+    function help_button_callback(obj,source,callbackdata)
       obj.help_menu()
-    end  
+    end
+    
+    %% save_button_callback
     function save_button_callback(obj,source,callbackdata)
       layer = obj.layer;
       save(param.layer_fn,'layer')  
     end
+    
     %% control_button_up
     function control_button_up(obj,h_obj,event)
       [x,y,but] = get_mouse_info(obj.h_control_fig,obj.h_control_axes);
@@ -289,12 +313,14 @@ classdef slice_browser < handle
       obj.update_slice();
       
     end
+    
     %% button_down
     function button_down(obj,h_obj,event)
       [obj.x,obj.y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
       fprintf('Button Down: x = %.3f, y = %.3f, but = %d\n', obj.x, obj.y, but); % DEBUG ONLY
       rbbox;
     end
+    
     %% button_up
     function button_up(obj,h_obj,event)
       % Run user defined button up callback
@@ -309,7 +335,7 @@ classdef slice_browser < handle
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
       fprintf('Button Up: x = %.3f, y = %.3f, but = %d\n', x, y, but); % DEBUG ONLY
       
-      layer_idx = get(obj.gui.layerTXT,'value');
+      layer_idx = get(obj.gui.layerPM,'value');
                   
       if obj.zoom_mode
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
@@ -325,42 +351,18 @@ classdef slice_browser < handle
               obj.update_slice;
             end
 
-            obj.select_mask = obj.select_mask | (obj.layer(layer_idx).x(:,obj.slice) >= min(x,obj.x) ...
+           obj.select_mask = obj.select_mask | (obj.layer(layer_idx).x(:,obj.slice) >= min(x,obj.x) ...
               & obj.layer(layer_idx).x(:,obj.slice) <= max(x,obj.x) ...
               & obj.layer(layer_idx).y(:,obj.slice) >= min(y,obj.y) ...
               & obj.layer(layer_idx).y(:,obj.slice) <= max(y,obj.y));
-%             if x > obj.x;
-%               for k = 1:size(obj.data,2);
-%                 if k > obj.x && k < x;
-%                   obj.select_mask(k,1) = true;
-%                 end
-%               end
-%             
-%             else
-%               for k = 1:size(obj.data,2);
-%                 if k < obj.x && k > x;
-%                   obj.select_mask(k,1) = true;
-%                 end
-%               end
-%             end
-%             if y > obj.y;
-%               for k = 1:size(obj.data,2);
-%                 layer_idx = 1;
-%                 if obj.layer(layer_idx).y(k,obj.slice) < obj.y && obj.layer(layer_idx).y(k,obj.slice) > y;
-%                   obj.select_mask(k,1) = false;
-%                 end
-%               end
-%             else
-%               for k = 1:size(obj.data,2);
-%                 if obj.layer(layer_idx).y(k,obj.slice) > obj.y && obj.layer(layer_idx).y(k,obj.slice) < y;
-%                   obj.mask_select(k,1) = false;
-%                 end
-%               end
-%             end
           end
         else
-           layer_idx = get(obj.gui.layerPM,'value');
-          obj.layer(layer_idx).y(round(x),obj.slice) = y;
+          xlims = xlim(obj.h_axes);
+          ylims = ylim(obj.h_axes);
+          if x >= xlims(1) && x <= xlims(2) && y >= ylims(1) && y <= ylims(2)
+            layer_idx = get(obj.gui.layerPM,'value');
+            obj.layer(layer_idx).y(round(x),obj.slice) = y;
+          end
         end
         obj.update_slice();
        end
@@ -377,7 +379,7 @@ classdef slice_browser < handle
       end
       
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
-      set(obj.h_control_plot,'x',obj.slice,'y',y);
+      set(obj.h_control_plot,'XData',obj.slice,'YData',y);
     end
    
     %% button_scroll
@@ -457,14 +459,62 @@ classdef slice_browser < handle
             obj.update_slice();
             
           case 'delete'
-            layer_idx = 1;
+            layer_idx = get(obj.gui.layerPM,'Value');
             for k = 1:64;
               if obj.select_mask(k,1) == 1;
                 obj.layer(layer_idx).y(k,obj.slice) = NaN;
               end
             end
-            obj.update_slice()
+            obj.update_slice();
             obj.select_mask = logical(zeros(size(obj.data,2),1));
+            
+          case 'e'
+            % Run extract
+            control_idx = 3;
+            update_idx = 2;
+            surf_idx = 1;
+            mu = [23.3566   23.3004   23.0986   22.7475   22.2689   21.7341   21.2639   20.9154   20.6187   20.3407   20.0386];
+            sigma = [18.5769   18.8040   19.0831   19.5406   20.2242   21.2779   22.3287   23.0656   23.3937   23.5286   24.2478];
+            extract_range = -5:5;
+            rlines = obj.slice+extract_range;
+            rlines = intersect(rlines,1:size(obj.data,3));
+            
+            % Create ground truth input
+            % 1. Each column is one ground truth input
+            % 2. Row 1: relative slice/range-line, Row 2: x, Row 3: y
+            gt = [];
+            for idx = 1:length(rlines)
+              rline = rlines(idx);
+              mask = isfinite(obj.layer(control_idx).x(:,rline)) ...
+                & isfinite(obj.layer(control_idx).y(:,rline));
+              gt = cat(2,gt,[idx*ones(1,sum(mask)); ...
+                obj.layer(control_idx).x(mask,rline).'; ...
+                obj.layer(control_idx).y(mask,rline).']);
+            end
+            
+            correct_surface = extract(double(obj.data(:,:,rlines)), ...
+              double(obj.layer(surf_idx).y(:,rlines)), double(obj.layer(update_idx).y(33,rlines)), ...
+              double(gt), double(mu), double(sigma));
+            correct_surface = reshape(correct_surface, [size(obj.data,2) length(rlines)]);
+            % Update with extract's output
+            obj.layer(update_idx).y(:,rlines) = correct_surface;
+            
+            obj.update_slice();
+            
+          case 'd'
+            % Run detect
+            update_idx = 2;
+            surf_idx = 1;
+            mu = [23.3566   23.3004   23.0986   22.7475   22.2689   21.7341   21.2639   20.9154   20.6187   20.3407   20.0386];
+            sigma = [18.5769   18.8040   19.0831   19.5406   20.2242   21.2779   22.3287   23.0656   23.3937   23.5286   24.2478];
+            
+            rline = obj.slice;
+            labels = detect(obj.data(:,:,rline), double(obj.layer(surf_idx).y(:,rline)), ...
+              double(obj.layer(update_idx).y(33,rline)), [], double(mu), double(sigma));
+            % Update with detect's output
+            obj.layer(update_idx).y(:,rline) = labels;
+            
+            obj.update_slice();
             
           otherwise
             
@@ -518,7 +568,7 @@ classdef slice_browser < handle
         'YData',y_select(obj.select_mask));
       
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
-      set(obj.h_control_plot,'x',obj.slice,'y',y);
+      set(obj.h_control_plot,'XData',obj.slice,'YData',y);
     end
     
     %% Help
