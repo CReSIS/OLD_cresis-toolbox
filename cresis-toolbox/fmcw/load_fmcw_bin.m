@@ -78,9 +78,9 @@ for rline = 1:size(data,2)
   data(:,rline) = circshift(data(:,rline),-hdr.cshift(rline));
 end
 
+%% Plot results
 time = hdr.dt(1)*(0:size(data,1)-1);
 
-%% Plot results
 figure(1); clf;
 imagesc([],time*1e6,db(data));
 xlabel('Range line');
