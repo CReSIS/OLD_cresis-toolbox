@@ -56,6 +56,7 @@ classdef slice_browser < handle
     y
     shift_pressed
     ctrl_pressed
+    plot_visibility
   end
   
   methods
@@ -76,6 +77,7 @@ classdef slice_browser < handle
       
       obj.data = data;
       obj.slice = 1;
+      obj.plot_visibility = false;
       
       % Load layer data
       if isfield(param,'layer_fn') && ~isempty(param.layer_fn)
@@ -98,8 +100,9 @@ classdef slice_browser < handle
       obj.fh_button_motion = param.fh_button_motion;
       
       obj.h_fig = figure;
-      obj.gui.panel = uipanel('parent',obj.h_fig);
-      obj.h_axes = axes('Parent',obj.gui.panel,'YDir','reverse');
+      obj.gui.left_panel = uipanel('parent',obj.h_fig);
+      obj.gui.right_panel = uipanel('parent',obj.h_fig);
+      obj.h_axes = axes('Parent',obj.gui.right_panel,'YDir','reverse');
       hold(obj.h_axes,'on');
       
       obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
@@ -133,141 +136,250 @@ classdef slice_browser < handle
       
       obj.select_mask = logical(zeros(size(obj.data,2),1));
       
-      % Set limits to size of data
-      xlim([1 size(obj.data(:,:,obj.slice),2)]);
-      ylim([1 size(obj.data(:,:,obj.slice),1)]);
-      
-      obj.gui.nextPB = uicontrol('parent',obj.h_fig);
-      set(obj.gui.nextPB,'style','pushbutton')
-      set(obj.gui.nextPB,'string','>(p)')
-      set(obj.gui.nextPB,'Callback',@obj.next_button_callback)
-      
-      obj.gui.prevPB = uicontrol('parent',obj.h_fig);
-      set(obj.gui.prevPB,'style','pushbutton')
-      set(obj.gui.prevPB,'string','<(n)')
-      set(obj.gui.prevPB,'Callback',@obj.prev_button_callback)
-      
-      obj.gui.savePB = uicontrol('parent',obj.h_fig);
-      set(obj.gui.savePB,'style','pushbutton')
-      set(obj.gui.savePB,'string','Save')
-      set(obj.gui.savePB,'Callback',@obj.save_button_callback)
-      
-      obj.gui.helpPB = uicontrol('parent',obj.h_fig);
-      set(obj.gui.helpPB,'style','pushbutton')
-      set(obj.gui.helpPB,'string','Help (F1)')
-      set(obj.gui.helpPB,'Callback',@obj.help_button_callback)
-      
-      obj.gui.layerPM = uicontrol('parent',obj.h_fig);
-      set(obj.gui.layerPM,'style','popup')
-      set(obj.gui.layerPM,'string',{obj.layer.name})
-      %set(obj.gui.layerPM,'Callback',@obj.layerPM_callback)
-      
-      obj.gui.plotPM = uicontrol('parent',obj.h_fig);
-      set(obj.gui.plotPM,'style','popup')
-      set(obj.gui.plotPM,'string',{'image','plot','scatter'})
-      %set(obj.gui.plotPM,'Callback',@plotPM_callback)
-      
-      obj.gui.variablePM = uicontrol('parent',obj.h_fig);
-      set(obj.gui.variablePM,'style','popup')
-      set(obj.gui.variablePM,'string',{'data'})
-      %set(obj.gui.variablePM,'Callback',@variablePM_callback)
-      
-      obj.gui.layerTXT = uicontrol('Style','text','string','layer');
-      obj.gui.plotTXT = uicontrol('Style','text','string','plot');
-      obj.gui.variableTXT = uicontrol('Style','text','string','variable');
-      
-      
-      %% Create GUI Table
       obj.gui.table.ui = obj.h_fig;
       obj.gui.table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
       obj.gui.table.height_margin = NaN*zeros(30,30);
       obj.gui.table.false_width = NaN*zeros(30,30);
       obj.gui.table.false_height = NaN*zeros(30,30);
       obj.gui.table.offset = [0 0];
+      row = 1;
+      col = 1;
+      obj.gui.table.handles{row,col}   = obj.gui.left_panel;
+      obj.gui.table.width(row,col)     = 130;
+      obj.gui.table.height(row,col)    = inf;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      
+      row = 1;
+      col = 2;
+       obj.gui.table.handles{row,col}   = obj.gui.right_panel;
+      obj.gui.table.width(row,col)     = inf;
+      obj.gui.table.height(row,col)    = inf;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      
+      clear row col
+      table_draw(obj.gui.table);
+      
+      % Set limits to size of data
+      xlim([1 size(obj.data(:,:,obj.slice),2)]);
+      ylim([1 size(obj.data(:,:,obj.slice),1)]);
+      
+      obj.gui.nextPB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.nextPB,'style','pushbutton')
+      set(obj.gui.nextPB,'string','>')
+      set(obj.gui.nextPB,'Callback',@obj.next_button_callback)
+      
+      obj.gui.prevPB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.prevPB,'style','pushbutton')
+      set(obj.gui.prevPB,'string','<')
+      set(obj.gui.prevPB,'Callback',@obj.prev_button_callback)
+      
+       obj.gui.prev10PB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.prev10PB,'style','pushbutton')
+      set(obj.gui.prev10PB,'string','<<')
+      set(obj.gui.prev10PB,'Callback',@obj.prev10_button_callback)
+      
+      obj.gui.next10PB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.next10PB,'style','pushbutton')
+      set(obj.gui.next10PB,'string','>>')
+      set(obj.gui.next10PB,'Callback',@obj.next10_button_callback)
+      
+      obj.gui.savePB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.savePB,'style','pushbutton')
+      set(obj.gui.savePB,'string','Save')
+      set(obj.gui.savePB,'Callback',@obj.save_button_callback)
+      
+      obj.gui.helpPB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.helpPB,'style','pushbutton')
+      set(obj.gui.helpPB,'string','Help (F1)')
+      set(obj.gui.helpPB,'Callback',@obj.help_button_callback)
+      
+       obj.gui.layerLB = uicontrol('parent',obj.gui.left_panel);
+       set(obj.gui.layerLB,'style','listbox')
+       set(obj.gui.layerLB,'string',{obj.layer.name})
+%       set(obj.gui.layerLB,'Callback',@obj.layerLB_callback)
+
+       obj.gui.applyPB= uicontrol('parent',obj.gui.left_panel);
+       set(obj.gui.applyPB,'style','pushbutton')
+       set(obj.gui.applyPB,'string','Apply')
+       //set(obj.gui.applyPB,'Callback',@obj.next10_button_callback)
+       
+      obj.gui.optionsPB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.optionsPB,'style','pushbutton')
+      set(obj.gui.optionsPB,'string','Options')
+      //set(obj.gui.optionsPB,'Callback',@obj.next10_button_callback)
+      
+      obj.gui.toolPM = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.toolPM,'style','popup')
+      set(obj.gui.toolPM,'string',{'dsf'})
+      set(obj.gui.toolPM,'Callback',@toolPM_callback)
+%       
+%       obj.gui.variablePM = uicontrol('parent',obj.gui.left_panel);
+%       set(obj.gui.variablePM,'style','popup')
+%       set(obj.gui.variablePM,'string',{'data'})
+%       %set(obj.gui.variablePM,'Callback',@variablePM_callback)
+      
+        obj.gui.layerTXT = uicontrol('Style','text','string','layer');
+%       obj.gui.plotTXT = uicontrol('Style','text','string','plot');
+%       obj.gui.variableTXT = uicontrol('Style','text','string','variable');
+      
+      
+      %% Create GUI Table
+      obj.gui.left_table.ui =  obj.gui.left_panel;
+      obj.gui.left_table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
+      obj.gui.left_table.height_margin = NaN*zeros(30,30);
+      obj.gui.left_table.false_width = NaN*zeros(30,30);
+      obj.gui.left_table.false_height = NaN*zeros(30,30);
+      obj.gui.left_table.offset = [0 0];
       
       row = 0;
       col = 0;
       
       row = row + 1;
       col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.nextPB;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
-      col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.prevPB;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
-      col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.layerTXT;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
-      col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.plotTXT;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.prev10PB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
       
       col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.variableTXT;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.prevPB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
       
-      col = 0
+      col = col + 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.nextPB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+      col = col + 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.next10PB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+      col = 0;
       row = row + 1;
       col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.savePB;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.savePB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
       
       col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.helpPB;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.helpPB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
       
-      col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.layerPM;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
-      
-      col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.plotPM;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
-      
-      col = col + 1;
-      obj.gui.table.handles{row,col}   = obj.gui.variablePM;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
-      
+      col = 0;
       row = row + 1;
-      col = 1;
-      obj.gui.table.handles{row,col}   = obj.gui.panel;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = inf;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 5;
+      col = col + 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.layerTXT;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+      col = 0;
+      row = row + 1;
+      col = col + 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.layerLB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = inf;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+      col = 0;
+      row = row + 1;
+      col = col + 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.toolPM;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+       col = 0;
+      row = row + 1;
+      col = col + 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.applyPB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+       col = col + 1;
+      obj.gui.left_table.handles{row,col}   = obj.gui.optionsPB;
+      obj.gui.left_table.width(row,col)     = inf;
+      obj.gui.left_table.height(row,col)    = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+
+      
+      %       col = col + 1;
+%       obj.gui.left_table.handles{row,col}   = obj.gui.layerTXT;
+%       obj.gui.left_table.width(row,col)     = inf;
+%       obj.gui.left_table.height(row,col)    = 20;
+%       obj.gui.left_table.width_margin(row,col) = 1;
+%       obj.gui.left_table.height_margin(row,col) = 1;
+      
+%       col = col + 1;
+%       obj.gui.left_table.handles{row,col}   = obj.gui.LB;
+%       obj.gui.left_table.width(row,col)     = inf;
+%       obj.gui.left_table.height(row,col)    = 20;
+%       obj.gui.left_table.width_margin(row,col) = 1;
+%       obj.gui.left_table.height_margin(row,col) = 1;
+ %     col = col + 1;
+%       obj.gui.left_table.handles{row,col}   = obj.gui.plotTXT;
+%       obj.gui.left_table.width(row,col)     = inf;
+%       obj.gui.left_table.height(row,col)    = 20;
+%       obj.gui.left_table.width_margin(row,col) = 1;
+%       obj.gui.left_table.height_margin(row,col) = 1;
+%       
+%       col = col + 1;
+%       obj.gui.left_table.handles{row,col}   = obj.gui.variableTXT;
+%       obj.gui.left_table.width(row,col)     = inf;
+%       obj.gui.left_table.height(row,col)    = 20;
+%       obj.gui.left_table.width_margin(row,col) = 1;
+%       obj.gui.left_table.height_margin(row,col) = 1;
+
+     
+      
+%       col = col + 1;
+%       obj.gui.left_table.handles{row,col}   = obj.gui.layerLB;
+%       obj.gui.left_table.width(row,col)     = inf;
+%       obj.gui.left_table.height(row,col)    = 20;
+%       obj.gui.left_table.width_margin(row,col) = 1;
+%       obj.gui.left_table.height_margin(row,col) = 1;
+%       
+%       col = col + 1;
+%       obj.gui.left_table.handles{row,col}   = obj.gui.plotPM;
+%       obj.gui.left_table.width(row,col)     = inf;
+%       obj.gui.left_table.height(row,col)    = 20;
+%       obj.gui.left_table.width_margin(row,col) = 1;
+%       obj.gui.left_table.height_margin(row,col) = 1;
+%       
+%       col = col + 1;
+%       obj.gui.left_table.handles{row,col}   = obj.gui.variablePM;
+%       obj.gui.left_table.width(row,col)     = inf;
+%       obj.gui.left_table.height(row,col)    = 20;
+%       obj.gui.left_table.width_margin(row,col) = 1;
+%       obj.gui.left_table.height_margin(row,col) = 1;
+%       
       
       clear row col
-      table_draw(obj.gui.table);
+      table_draw(obj.gui.left_table);
+      
+      obj.update_slice();
     end
     
     %% destructor/delete
@@ -305,6 +417,15 @@ classdef slice_browser < handle
       save(param.layer_fn,'layer')  
     end
     
+    function next10_button_callback(obj,source,callbackdata)
+        obj.slice = obj.slice + 10;
+      obj.update_slice();
+    end
+    
+    function prev10_button_callback(obj,source,callbackdata)
+      obj.slice = obj.slice -10;
+      obj.update_slice();
+    end
     %% control_button_up
     function control_button_up(obj,h_obj,event)
       [x,y,but] = get_mouse_info(obj.h_control_fig,obj.h_control_axes);
@@ -335,7 +456,7 @@ classdef slice_browser < handle
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
       fprintf('Button Up: x = %.3f, y = %.3f, but = %d\n', x, y, but); % DEBUG ONLY
       
-      layer_idx = get(obj.gui.layerPM,'value');
+      layer_idx = get(obj.gui.layerLB,'value');
                   
       if obj.zoom_mode
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
@@ -360,7 +481,7 @@ classdef slice_browser < handle
           xlims = xlim(obj.h_axes);
           ylims = ylim(obj.h_axes);
           if x >= xlims(1) && x <= xlims(2) && y >= ylims(1) && y <= ylims(2)
-            layer_idx = get(obj.gui.layerPM,'value');
+            layer_idx = get(obj.gui.layerLB,'value');
             obj.layer(layer_idx).y(round(x),obj.slice) = y;
           end
         end
@@ -413,7 +534,10 @@ classdef slice_browser < handle
       % Check to make sure that a key was pressed and not
       % just a modifier (e.g. shift, ctrl, alt)
       if ~isempty(event.Key)
-        
+                 
+          if length(event.Key) == 1 && event.Key >= '0' && event.Key <= '9'
+            set(obj.gui.layerLB,'value',event.Key-48)
+          end
         % see event.Modifier for modifiers
         switch event.Key
           
@@ -450,16 +574,25 @@ classdef slice_browser < handle
             zoom_arrow(event,struct('h_axes',obj.h_axes, ...
               'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
             
-          case 'n'
-            obj.slice = obj.slice + 1;
-            obj.update_slice();
-            
-          case 'p'
-            obj.slice = obj.slice - 1;
-            obj.update_slice();
+          case 'period'
+            if ~obj.shift_pressed
+              obj.slice = obj.slice + 1;
+              obj.update_slice();
+            else
+              obj.slice = obj.slice + 10;
+              obj.update_slice();
+            end
+          case 'comma'
+            if ~obj.shift_pressed
+              obj.slice = obj.slice - 1;
+              obj.update_slice();
+            else
+              obj.slice = obj.slice - 10;
+              obj.update_slice();
+            end
             
           case 'delete'
-            layer_idx = get(obj.gui.layerPM,'Value');
+            layer_idx = get(obj.gui.layerLB,'Value');
             for k = 1:64;
               if obj.select_mask(k,1) == 1;
                 obj.layer(layer_idx).y(k,obj.slice) = NaN;
@@ -516,6 +649,14 @@ classdef slice_browser < handle
             
             obj.update_slice();
             
+          case 'space'
+            if obj.plot_visibility == true;
+              obj.plot_visibility = false;
+            else
+              obj.plot_visibility = true;
+            end
+            obj.update_slice();
+    
           otherwise
             
         end
@@ -554,14 +695,15 @@ classdef slice_browser < handle
       
       set(obj.h_image,'CData',obj.data(:,:,obj.slice));
       
+      title(sprintf('Slice:%d',obj.slice),'parent',obj.h_axes)
+
       for layer_idx = 1:numel(obj.layer)
         set(obj.layer(layer_idx).h_plot, ...
           'XData', obj.layer(layer_idx).x(:,obj.slice), ...
           'YData', obj.layer(layer_idx).y(:,obj.slice));
-        title(sprintf('Slice:%d',obj.slice),'parent',obj.h_axes)
         
       end
-      layer_idx = get(obj.gui.layerPM,'value');
+      layer_idx = get(obj.gui.layerLB,'value');
       x_select = obj.layer(layer_idx).x(:,obj.slice);
       y_select = obj.layer(layer_idx).y(:,obj.slice);
       set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
@@ -569,6 +711,15 @@ classdef slice_browser < handle
       
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
       set(obj.h_control_plot,'XData',obj.slice,'YData',y);
+      
+      for layer_idx = 1:numel(obj.layer)
+        if obj.plot_visibility == true
+          set (obj.layer(layer_idx).h_plot,'visible','on')
+        else
+          set (obj.layer(layer_idx).h_plot,'visible','off')
+        end
+      end
+      
     end
     
     %% Help
