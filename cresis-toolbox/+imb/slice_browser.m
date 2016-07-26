@@ -580,7 +580,7 @@ classdef slice_browser < handle
           case 'z'
             if obj.ctrl_pressed
               %% zoom reset
-              axis tight;
+              axis(obj.h_axes,'tight');
             else
               % toggle zoom mode
               obj.zoom_mode = ~obj.zoom_mode;
