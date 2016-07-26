@@ -18,7 +18,7 @@
 %   .plot_name_values: name-value pairs to be passed to this layer's plot
 %     function
 %   .name: name of this layer
-% 
+%
 % Example:
 %  See run_slice_browser.m
 %
@@ -38,7 +38,7 @@ classdef slice_browser < handle
     h_control_axes
     h_control_image
     h_control_plot
-
+    
     h_fig
     h_axes
     h_image
@@ -57,6 +57,7 @@ classdef slice_browser < handle
     shift_pressed
     ctrl_pressed
     plot_visibility
+    undo_stack
   end
   
   methods
@@ -74,10 +75,11 @@ classdef slice_browser < handle
       if ~isfield(param,'fh_button_motion')
         param.fh_button_motion = [];
       end
-      
+      undo_param.id = [];
+      obj.undo_stack = imb.undo_stack(undo_param);
       obj.data = data;
       obj.slice = 1;
-      obj.plot_visibility = false;
+      obj.plot_visibility = true;
       
       % Load layer data
       if isfield(param,'layer_fn') && ~isempty(param.layer_fn)
@@ -106,6 +108,7 @@ classdef slice_browser < handle
       hold(obj.h_axes,'on');
       
       obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
+      colormap(jet(256))
       for layer_idx = 1:numel(obj.layer)
         obj.layer(layer_idx).h_plot ...
           = plot(obj.layer(layer_idx).x(:,obj.slice), ...
@@ -113,6 +116,9 @@ classdef slice_browser < handle
           'parent',obj.h_axes,'color','black', ...
           obj.layer(layer_idx).plot_name_values{:});
       end
+      
+      addlistener(obj.undo_stack,'synchronize_event',@obj.undo_sync);
+      
       obj.gui.h_select_plot = plot(NaN,NaN,'m.');
       
       set(obj.h_control_fig, 'WindowButtonUpFcn', @obj.control_button_up);
@@ -152,7 +158,7 @@ classdef slice_browser < handle
       
       row = 1;
       col = 2;
-       obj.gui.table.handles{row,col}   = obj.gui.right_panel;
+      obj.gui.table.handles{row,col}   = obj.gui.right_panel;
       obj.gui.table.width(row,col)     = inf;
       obj.gui.table.height(row,col)    = inf;
       obj.gui.table.width_margin(row,col) = 1;
@@ -175,7 +181,7 @@ classdef slice_browser < handle
       set(obj.gui.prevPB,'string','<')
       set(obj.gui.prevPB,'Callback',@obj.prev_button_callback)
       
-       obj.gui.prev10PB = uicontrol('parent',obj.gui.left_panel);
+      obj.gui.prev10PB = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.prev10PB,'style','pushbutton')
       set(obj.gui.prev10PB,'string','<<')
       set(obj.gui.prev10PB,'Callback',@obj.prev10_button_callback)
@@ -195,34 +201,34 @@ classdef slice_browser < handle
       set(obj.gui.helpPB,'string','Help (F1)')
       set(obj.gui.helpPB,'Callback',@obj.help_button_callback)
       
-       obj.gui.layerLB = uicontrol('parent',obj.gui.left_panel);
-       set(obj.gui.layerLB,'style','listbox')
-       set(obj.gui.layerLB,'string',{obj.layer.name})
-%       set(obj.gui.layerLB,'Callback',@obj.layerLB_callback)
-
-       obj.gui.applyPB= uicontrol('parent',obj.gui.left_panel);
-       set(obj.gui.applyPB,'style','pushbutton')
-       set(obj.gui.applyPB,'string','Apply')
-       //set(obj.gui.applyPB,'Callback',@obj.next10_button_callback)
-       
+      obj.gui.layerLB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.layerLB,'style','listbox')
+      set(obj.gui.layerLB,'string',{obj.layer.name})
+      %       set(obj.gui.layerLB,'Callback',@obj.layerLB_callback)
+      
+      obj.gui.applyPB= uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.applyPB,'style','pushbutton')
+      set(obj.gui.applyPB,'string','Apply')
+      %set(obj.gui.applyPB,'Callback',@obj.next10_button_callback)
+      
       obj.gui.optionsPB = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.optionsPB,'style','pushbutton')
       set(obj.gui.optionsPB,'string','Options')
-      //set(obj.gui.optionsPB,'Callback',@obj.next10_button_callback)
+      %set(obj.gui.optionsPB,'Callback',@obj.next10_button_callback)
       
       obj.gui.toolPM = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.toolPM,'style','popup')
       set(obj.gui.toolPM,'string',{'dsf'})
       set(obj.gui.toolPM,'Callback',@toolPM_callback)
-%       
-%       obj.gui.variablePM = uicontrol('parent',obj.gui.left_panel);
-%       set(obj.gui.variablePM,'style','popup')
-%       set(obj.gui.variablePM,'string',{'data'})
-%       %set(obj.gui.variablePM,'Callback',@variablePM_callback)
+      %
+      %       obj.gui.variablePM = uicontrol('parent',obj.gui.left_panel);
+      %       set(obj.gui.variablePM,'style','popup')
+      %       set(obj.gui.variablePM,'string',{'data'})
+      %       %set(obj.gui.variablePM,'Callback',@variablePM_callback)
       
-        obj.gui.layerTXT = uicontrol('Style','text','string','layer');
-%       obj.gui.plotTXT = uicontrol('Style','text','string','plot');
-%       obj.gui.variableTXT = uicontrol('Style','text','string','variable');
+      obj.gui.layerTXT = uicontrol('Style','text','string','layer');
+      %       obj.gui.plotTXT = uicontrol('Style','text','string','plot');
+      %       obj.gui.variableTXT = uicontrol('Style','text','string','variable');
       
       
       %% Create GUI Table
@@ -308,7 +314,7 @@ classdef slice_browser < handle
       obj.gui.left_table.width_margin(row,col) = 1;
       obj.gui.left_table.height_margin(row,col) = 1;
       
-       col = 0;
+      col = 0;
       row = row + 1;
       col = col + 1;
       obj.gui.left_table.handles{row,col}   = obj.gui.applyPB;
@@ -317,65 +323,64 @@ classdef slice_browser < handle
       obj.gui.left_table.width_margin(row,col) = 1;
       obj.gui.left_table.height_margin(row,col) = 1;
       
-       col = col + 1;
+      col = col + 1;
       obj.gui.left_table.handles{row,col}   = obj.gui.optionsPB;
       obj.gui.left_table.width(row,col)     = inf;
       obj.gui.left_table.height(row,col)    = 20;
       obj.gui.left_table.width_margin(row,col) = 1;
       obj.gui.left_table.height_margin(row,col) = 1;
-
+      
       
       %       col = col + 1;
-%       obj.gui.left_table.handles{row,col}   = obj.gui.layerTXT;
-%       obj.gui.left_table.width(row,col)     = inf;
-%       obj.gui.left_table.height(row,col)    = 20;
-%       obj.gui.left_table.width_margin(row,col) = 1;
-%       obj.gui.left_table.height_margin(row,col) = 1;
+      %       obj.gui.left_table.handles{row,col}   = obj.gui.layerTXT;
+      %       obj.gui.left_table.width(row,col)     = inf;
+      %       obj.gui.left_table.height(row,col)    = 20;
+      %       obj.gui.left_table.width_margin(row,col) = 1;
+      %       obj.gui.left_table.height_margin(row,col) = 1;
       
-%       col = col + 1;
-%       obj.gui.left_table.handles{row,col}   = obj.gui.LB;
-%       obj.gui.left_table.width(row,col)     = inf;
-%       obj.gui.left_table.height(row,col)    = 20;
-%       obj.gui.left_table.width_margin(row,col) = 1;
-%       obj.gui.left_table.height_margin(row,col) = 1;
- %     col = col + 1;
-%       obj.gui.left_table.handles{row,col}   = obj.gui.plotTXT;
-%       obj.gui.left_table.width(row,col)     = inf;
-%       obj.gui.left_table.height(row,col)    = 20;
-%       obj.gui.left_table.width_margin(row,col) = 1;
-%       obj.gui.left_table.height_margin(row,col) = 1;
-%       
-%       col = col + 1;
-%       obj.gui.left_table.handles{row,col}   = obj.gui.variableTXT;
-%       obj.gui.left_table.width(row,col)     = inf;
-%       obj.gui.left_table.height(row,col)    = 20;
-%       obj.gui.left_table.width_margin(row,col) = 1;
-%       obj.gui.left_table.height_margin(row,col) = 1;
-
-     
+      %       col = col + 1;
+      %       obj.gui.left_table.handles{row,col}   = obj.gui.LB;
+      %       obj.gui.left_table.width(row,col)     = inf;
+      %       obj.gui.left_table.height(row,col)    = 20;
+      %       obj.gui.left_table.width_margin(row,col) = 1;
+      %       obj.gui.left_table.height_margin(row,col) = 1;
+      %     col = col + 1;
+      %       obj.gui.left_table.handles{row,col}   = obj.gui.plotTXT;
+      %       obj.gui.left_table.width(row,col)     = inf;
+      %       obj.gui.left_table.height(row,col)    = 20;
+      %       obj.gui.left_table.width_margin(row,col) = 1;
+      %       obj.gui.left_table.height_margin(row,col) = 1;
+      %
+      %       col = col + 1;
+      %       obj.gui.left_table.handles{row,col}   = obj.gui.variableTXT;
+      %       obj.gui.left_table.width(row,col)     = inf;
+      %       obj.gui.left_table.height(row,col)    = 20;
+      %       obj.gui.left_table.width_margin(row,col) = 1;
+      %       obj.gui.left_table.height_margin(row,col) = 1;
       
-%       col = col + 1;
-%       obj.gui.left_table.handles{row,col}   = obj.gui.layerLB;
-%       obj.gui.left_table.width(row,col)     = inf;
-%       obj.gui.left_table.height(row,col)    = 20;
-%       obj.gui.left_table.width_margin(row,col) = 1;
-%       obj.gui.left_table.height_margin(row,col) = 1;
-%       
-%       col = col + 1;
-%       obj.gui.left_table.handles{row,col}   = obj.gui.plotPM;
-%       obj.gui.left_table.width(row,col)     = inf;
-%       obj.gui.left_table.height(row,col)    = 20;
-%       obj.gui.left_table.width_margin(row,col) = 1;
-%       obj.gui.left_table.height_margin(row,col) = 1;
-%       
-%       col = col + 1;
-%       obj.gui.left_table.handles{row,col}   = obj.gui.variablePM;
-%       obj.gui.left_table.width(row,col)     = inf;
-%       obj.gui.left_table.height(row,col)    = 20;
-%       obj.gui.left_table.width_margin(row,col) = 1;
-%       obj.gui.left_table.height_margin(row,col) = 1;
-%       
       
+      
+      %       col = col + 1;
+      %       obj.gui.left_table.handles{row,col}   = obj.gui.layerLB;
+      %       obj.gui.left_table.width(row,col)     = inf;
+      %       obj.gui.left_table.height(row,col)    = 20;
+      %       obj.gui.left_table.width_margin(row,col) = 1;
+      %       obj.gui.left_table.height_margin(row,col) = 1;
+      %
+      %       col = col + 1;
+      %       obj.gui.left_table.handles{row,col}   = obj.gui.plotPM;
+      %       obj.gui.left_table.width(row,col)     = inf;
+      %       obj.gui.left_table.height(row,col)    = 20;
+      %       obj.gui.left_table.width_margin(row,col) = 1;
+      %       obj.gui.left_table.height_margin(row,col) = 1;
+      %
+      %       col = col + 1;
+      %       obj.gui.left_table.handles{row,col}   = obj.gui.variablePM;
+      %       obj.gui.left_table.width(row,col)     = inf;
+      %       obj.gui.left_table.height(row,col)    = 20;
+      %       obj.gui.left_table.width_margin(row,col) = 1;
+      %       obj.gui.left_table.height_margin(row,col) = 1;
+      %
       clear row col
       table_draw(obj.gui.left_table);
       
@@ -414,11 +419,12 @@ classdef slice_browser < handle
     %% save_button_callback
     function save_button_callback(obj,source,callbackdata)
       layer = obj.layer;
-      save(param.layer_fn,'layer')  
+      save(obj.layer_fn,'layer')
+      obj.undo_stack.save();
     end
     
     function next10_button_callback(obj,source,callbackdata)
-        obj.slice = obj.slice + 10;
+      obj.slice = obj.slice + 10;
       obj.update_slice();
     end
     
@@ -426,6 +432,25 @@ classdef slice_browser < handle
       obj.slice = obj.slice -10;
       obj.update_slice();
     end
+    
+    function undo_sync(obj,source,callbackdata)
+      [cmds_list,cmds_direction] =  obj.undo_stack.get_synchronize_cmds();
+      if strcmp(cmds_direction,'redo')
+        layer_idx = cmds_list{1}.redo.layer;
+        obj.layer(layer_idx).y(round(cmds_list{1}.redo.x),cmds_list{1}.redo.slice) ...
+          = cmds_list{1}.redo.y;
+        obj.slice = cmds_list{1}.undo.slice;
+        obj.update_slice();
+      else
+        layer_idx = cmds_list{1}.undo.layer;
+        obj.layer(layer_idx).y(round(cmds_list{1}.undo.x),cmds_list{1}.undo.slice) ...
+          = cmds_list{1}.undo.y;
+        obj.slice = cmds_list{1}.undo.slice;
+        obj.update_slice();
+      end 
+
+    end  
+    
     %% control_button_up
     function control_button_up(obj,h_obj,event)
       [x,y,but] = get_mouse_info(obj.h_control_fig,obj.h_control_axes);
@@ -457,7 +482,7 @@ classdef slice_browser < handle
       fprintf('Button Up: x = %.3f, y = %.3f, but = %d\n', x, y, but); % DEBUG ONLY
       
       layer_idx = get(obj.gui.layerLB,'value');
-                  
+      
       if obj.zoom_mode
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
           'h_axes',obj.h_axes,'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
@@ -471,8 +496,8 @@ classdef slice_browser < handle
               obj.select_mask(:) = false;
               obj.update_slice;
             end
-
-           obj.select_mask = obj.select_mask | (obj.layer(layer_idx).x(:,obj.slice) >= min(x,obj.x) ...
+            
+            obj.select_mask = obj.select_mask | (obj.layer(layer_idx).x(:,obj.slice) >= min(x,obj.x) ...
               & obj.layer(layer_idx).x(:,obj.slice) <= max(x,obj.x) ...
               & obj.layer(layer_idx).y(:,obj.slice) >= min(y,obj.y) ...
               & obj.layer(layer_idx).y(:,obj.slice) <= max(y,obj.y));
@@ -482,12 +507,20 @@ classdef slice_browser < handle
           ylims = ylim(obj.h_axes);
           if x >= xlims(1) && x <= xlims(2) && y >= ylims(1) && y <= ylims(2)
             layer_idx = get(obj.gui.layerLB,'value');
-            obj.layer(layer_idx).y(round(x),obj.slice) = y;
+            cmd.undo.slice = obj.slice;
+            cmd.redo.slice = obj.slice;
+            cmd.undo.layer = layer_idx;
+            cmd.redo.layer = layer_idx;
+            cmd.undo.x = round(x);
+            cmd.undo.y = obj.layer(layer_idx).y(round(x),obj.slice);
+            cmd.redo.x = round(x);
+            cmd.redo.y = y;
+            obj.undo_stack.push(cmd);
           end
         end
         obj.update_slice();
-       end
       end
+    end
     
     %% button_motion
     function button_motion(obj,hObj,event)
@@ -502,7 +535,7 @@ classdef slice_browser < handle
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
       set(obj.h_control_plot,'XData',obj.slice,'YData',y);
     end
-   
+    
     %% button_scroll
     function button_scroll(obj,h_obj,event)
       zoom_button_scroll(event,struct('h_fig',obj.h_fig, ...
@@ -534,10 +567,10 @@ classdef slice_browser < handle
       % Check to make sure that a key was pressed and not
       % just a modifier (e.g. shift, ctrl, alt)
       if ~isempty(event.Key)
-                 
-          if length(event.Key) == 1 && event.Key >= '0' && event.Key <= '9'
-            set(obj.gui.layerLB,'value',event.Key-48)
-          end
+        
+        if length(event.Key) == 1 && event.Key >= '0' && event.Key <= '9'
+          set(obj.gui.layerLB,'value',event.Key-48)
+        end
         % see event.Modifier for modifiers
         switch event.Key
           
@@ -593,17 +626,31 @@ classdef slice_browser < handle
             
           case 'delete'
             layer_idx = get(obj.gui.layerLB,'Value');
+            cmd.undo.slice = obj.slice;
+            cmd.redo.slice = obj.slice;
+            cmd.undo.layer = layer_idx;
+            cmd.redo.layer = layer_idx;
+            cmd.undo.y = [];
+            cmd.undo.x = [];
+            cmd.redo.x = [];
+            cmd.redo.y = [];
             for k = 1:64;
               if obj.select_mask(k,1) == 1;
-                obj.layer(layer_idx).y(k,obj.slice) = NaN;
+                cmd.undo.y(end+1) = obj.layer(layer_idx).y(k,obj.slice);
+                cmd.undo.x(end+1) = k;
+                cmd.redo.x(end+1) = k;
+                cmd.redo.y(end+1) = NaN;
               end
             end
+            obj.undo_stack.push(cmd);
+            
             obj.update_slice();
             obj.select_mask = logical(zeros(size(obj.data,2),1));
             
           case 'e'
             % Run extract
             control_idx = 3;
+
             update_idx = 2;
             surf_idx = 1;
             mu = [23.3566   23.3004   23.0986   22.7475   22.2689   21.7341   21.2639   20.9154   20.6187   20.3407   20.0386];
@@ -656,7 +703,24 @@ classdef slice_browser < handle
               obj.plot_visibility = true;
             end
             obj.update_slice();
-    
+            
+          case 'g'
+            prompt = {'Enter slice number:'};
+            dlg_title = 'Go to slice';
+            num_lines = 1;
+            def = {sprintf('%d',obj.slice)};
+            answer = inputdlg(prompt,dlg_title,num_lines,def);
+            try
+              obj.slice = str2double(answer);
+              obj.update_slice()
+            end
+            
+          case 'r'
+            obj.undo_stack.redo();
+            
+          case 'u'
+            obj.undo_stack.pop();
+            
           otherwise
             
         end
@@ -683,7 +747,7 @@ classdef slice_browser < handle
         obj.ctrl_pressed = false;
       end
     end
-  
+    
     %% Update slice
     function update_slice(obj)
       if obj.slice <= 0
@@ -696,7 +760,7 @@ classdef slice_browser < handle
       set(obj.h_image,'CData',obj.data(:,:,obj.slice));
       
       title(sprintf('Slice:%d',obj.slice),'parent',obj.h_axes)
-
+      
       for layer_idx = 1:numel(obj.layer)
         set(obj.layer(layer_idx).h_plot, ...
           'XData', obj.layer(layer_idx).x(:,obj.slice), ...
