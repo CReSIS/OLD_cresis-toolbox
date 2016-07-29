@@ -1,4 +1,4 @@
-% script: CSA_surface_extractor_prep
+% script surface_extractor.m
 % By John Paden and Mingze Xu, July 2016
 
 % fn_dir: Directory where files are at

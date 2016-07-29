@@ -52,6 +52,7 @@ classdef slice_browser < handle
     gui
     
     slice_tool_list
+    slice_tool_timer
     
     % Function handle hooks for customizing clip_matrix
     fh_button_up
@@ -89,6 +90,13 @@ classdef slice_browser < handle
       obj.slice = 1;
       obj.plot_visibility = true;
       obj.slice_tool_list = [];
+      obj.slice_tool_timer = timer('TimerFcn',@obj.timer_callback,'StartDelay',2,'ExecutionMode','fixedSpacing','Period',2);
+      obj.slice_tool_timer = timer;
+      obj.slice_tool_timer.StartDelay = 2;
+      obj.slice_tool_timer.Period = 2;
+      obj.slice_tool_timer.TimerFcn = @obj.timer_callback;
+      obj.slice_tool_timer.ExecutionMode = 'fixedSpacing';
+      start(obj.slice_tool_timer)
       
       % Load layer data
       if isfield(param,'layer_fn') && ~isempty(param.layer_fn)
@@ -203,8 +211,8 @@ classdef slice_browser < handle
       table_draw(obj.gui.table);
       
       % Set limits to size of data
-      xlim([1 size(obj.data(:,:,obj.slice),2)]);
-      ylim([1 size(obj.data(:,:,obj.slice),1)]);
+      xlim(obj.h_axes, [1 size(obj.data(:,:,obj.slice),2)]);
+      ylim(obj.h_axes, [1 size(obj.data(:,:,obj.slice),1)]);
       
       obj.gui.nextPB = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.nextPB,'style','pushbutton')
@@ -440,6 +448,7 @@ classdef slice_browser < handle
       for tool_idx = 1:length(obj.slice_tool_list)
         try; delete(obj.slice_tool_list{tool_idx}); end;
       end
+      try; delete(obj.slice_tool_timer); end;
     end
     
     %% close_win
@@ -518,7 +527,7 @@ classdef slice_browser < handle
         [x,y,but] = get_mouse_info(obj.h_fig_layer,obj.h_axes_layer);
       end
       
-      obj.slice = ceil(x);
+      obj.slice = round(x);
       obj.update_slice();
       
     end
@@ -837,6 +846,12 @@ classdef slice_browser < handle
     function optionsPB_callback(obj,src,event)
       tool_idx = get(obj.gui.toolPM,'Value');
       obj.slice_tool_list{tool_idx}.open_win();
+    end
+    
+    %% timer_callback
+    function timer_callback(obj,src,event)
+%      fprintf('Timer\n');
+%       obj.slice_tool_timer.start();
     end
     
     %% applyPB_callback Tool

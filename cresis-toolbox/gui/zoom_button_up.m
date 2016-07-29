@@ -43,16 +43,16 @@ ylims(2) = min(ylims(2),param.ylims(2));
 if but == 4
   %% Double click: Zoom reset
   if all(isfinite(param.xlims))
-    xlim(param.xlims);
+    xlim(param.h_axes,param.xlims);
   end
   if all(isfinite(param.ylims))
-    ylim(param.ylims);
+    ylim(param.h_axes,param.ylims);
   end
   
 elseif but == 1 && x~=param.x && y~=param.y
   %% Left click and drag: Zoom to region
-  xlim(xlims);
-  ylim(ylims);
+  xlim(param.h_axes,xlims);
+  ylim(param.h_axes,ylims);
   
 elseif but == 1
   %% Left click: Zoom at point
@@ -81,8 +81,8 @@ elseif but == 1
   if ylims(2) > param.ylims(2)
     ylims(2) = param.ylims(2);
   end
-  xlim(sort(xlims));
-  ylim(sort(ylims));
+  xlim(param.h_axes,sort(xlims));
+  ylim(param.h_axes,sort(ylims));
   
 elseif but == 3
   %% Right click: Zoom out at point
@@ -111,8 +111,8 @@ elseif but == 3
   if ylims(2) > param.ylims(2)
     ylims(2) = param.ylims(2);
   end
-  xlim(xlims);
-  ylim(ylims);
+  xlim(param.h_axes,xlims);
+  ylim(param.h_axes,ylims);
 end
 
 end
