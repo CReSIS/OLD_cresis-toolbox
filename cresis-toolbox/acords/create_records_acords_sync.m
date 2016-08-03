@@ -53,11 +53,11 @@ end
 
 radar_time_notes = '';
 
-%% Create hdr.utc_time_sod vector
+%% Create hdr.comp_time vector
 if param.records.file_version == 101
-  hdr.utc_time_sod = double(hdr.seconds) + 2*double(hdr.fraction)/param.radar.fs;
+  hdr.comp_time = double(hdr.seconds) + 2*double(hdr.fraction)/param.radar.fs;
 else
-  hdr.utc_time_sod = double(hdr.seconds) + double(hdr.fraction)/param.radar.fs;
+  hdr.comp_time = double(hdr.seconds) + double(hdr.fraction)/param.radar.fs;
 end
 
 % ===================================================================
@@ -66,16 +66,16 @@ end
 fprintf('Loading GPS data (%s)\n', datestr(now));
 
 if param.records.gps.en
-  records = sync_radar_to_gps(param,records,hdr.utc_time_sod);
+  records = sync_radar_to_gps(param,records,hdr.comp_time);
   
 else
-  records.lat = NaN*zeros(size(hdr.utc_time_sod));
-  records.lon = NaN*zeros(size(hdr.utc_time_sod));
-  records.elev = NaN*zeros(size(hdr.utc_time_sod));
-  records.gps_time = NaN*zeros(size(hdr.utc_time_sod));
-  records.roll = NaN*zeros(size(hdr.utc_time_sod));
-  records.pitch = NaN*zeros(size(hdr.utc_time_sod));
-  records.heading = NaN*zeros(size(hdr.utc_time_sod));
+  records.lat = NaN*zeros(size(hdr.comp_time));
+  records.lon = NaN*zeros(size(hdr.comp_time));
+  records.elev = NaN*zeros(size(hdr.comp_time));
+  records.gps_time = NaN*zeros(size(hdr.comp_time));
+  records.roll = NaN*zeros(size(hdr.comp_time));
+  records.pitch = NaN*zeros(size(hdr.comp_time));
+  records.heading = NaN*zeros(size(hdr.comp_time));
   records.gps_source = 'NA';
 end
 
@@ -123,7 +123,7 @@ records.raw.wfs_file = hdr.wfs;
 
 if param.records.file_version == 406
   check_fields = [1 4 5 6 7 8 9 10 11 12];
-elseif param.records.file_version == 406
+elseif param.records.file_version == 405
   check_fields = [1 4 5 6 7 8 9 10 11];
 end
 
@@ -154,9 +154,10 @@ for fidx=1:size(hdr.wfs,1)
       records.settings.wfs(hcount).wfs(2).Tpd = hdr.wfs{fidx,2}.tpd(hidx);
       records.settings.wfs(hcount).wfs(1).tx_win = hdr.wfs{fidx,1}.tx_win(hidx);
       records.settings.wfs(hcount).wfs(2).tx_win = hdr.wfs{fidx,2}.tx_win(hidx);
-      records.settings.wfs(hcount).wfs(1).elem_slots = hdr.wfs{fidx,1}.elem_slots(hidx);
-      records.settings.wfs(hcount).wfs(2).elem_slots = hdr.wfs{fidx,2}.elem_slots(hidx);
-      
+      if param.records.file_version == 406
+        records.settings.wfs(hcount).wfs(1).elem_slots = hdr.wfs{fidx,1}.elem_slots(hidx);
+        records.settings.wfs(hcount).wfs(2).elem_slots = hdr.wfs{fidx,2}.elem_slots(hidx);
+      end
       records.settings.wfs(hcount).wfs(1).blank = hdr.wfs{fidx,1}.blank(hidx);
       records.settings.wfs(hcount).wfs(1).adc_gains = hdr.wfs{fidx,1}.adc_gains(hidx,:);
       
