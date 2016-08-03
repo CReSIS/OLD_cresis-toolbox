@@ -37,7 +37,7 @@ if ~isempty(param.ylims)
     ylims(2) = param.ylims(2);
   end
 end
-xlim(xlims);
-ylim(ylims);
+xlim(param.h_axes,xlims);
+ylim(param.h_axes,ylims);
 
 end
