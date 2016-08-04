@@ -70,7 +70,7 @@ elseif any(strcmpi(param.radar_name,{'accum2'}))
   stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
   % Get the filenames associated with the frame
   fns = records.relative_filename{1}(start_filenum:stop_filenum).';
-elseif any(strcmpi(param.radar_name,{'mcrds'}))
+elseif any(strcmpi(param.radar_name,{'acords','mcrds'}))
   % Get the raw file numbers associated with the frm
   start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
   stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');

@@ -65,11 +65,7 @@ if strcmpi(param.radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(records.settings, param, ...
     1:max(old_param_records.file.adcs), param.load_data);
   load_param.load.rec_data_size = rec_data_size;
-elseif strcmpi(param.radar_name,'acords')
-  [wfs,rec_data_size] = load_acords_wfs(records.settings, param, ...
-    1:max(old_param_records.records.file.adcs), param.load_data);
-  load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(param.radar_name,{'acords','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,rec_data_size] = load_mcords_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.load_data);
   load_param.load.rec_data_size = rec_data_size;
@@ -224,7 +220,7 @@ for break_idx = 1:length(breaks)
     load_param.load.wfs = records.settings.wfs;
     load_param.load.file_version = param.records.file_version;
     load_param.load.offset = records.offset;
-%     load_param.load.wfs_records = records.settings.wfs_records;
+    load_param.load.wfs_records = records.settings.wfs_records;
 
 %   elseif strcmpi(param.radar_name,'icards')%try to add a situation of icards----------QISHI
 %       load_param.load.file_rec_offset = records.relative_rec_num;%file_rec_offset---->relative_rec_num

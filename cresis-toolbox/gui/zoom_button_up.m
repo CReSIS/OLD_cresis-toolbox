@@ -60,29 +60,35 @@ elseif but == 1
   
   cur_axis = [get(param.h_axes,'Xlim') ...
     get(param.h_axes,'YLim')];
-  y_extent = cur_axis(4) - cur_axis(3);
-  x_extent = cur_axis(2) - cur_axis(1);
   
-  % Zoom so that the mouse pointer's position in the echogram does not change
-  x_percent = (x-cur_axis(1))/x_extent;
-  y_percent = (y-cur_axis(3))/y_extent;
-  xlims = [x - x_extent*2^(zooms+1)*x_percent, x + x_extent*2^(zooms+1)*(1-x_percent)];
-  ylims = [y - y_extent*2^(zooms+1)*y_percent, y + y_extent*2^(zooms+1)*(1-y_percent)];
-  
-  if xlims(1) < param.xlims(1)
-    xlims(1) = param.xlims(1);
+  % Make sure the first click was within the axes
+  if param.x >= cur_axis(1) && param.x <= cur_axis(2) ...
+      && param.y >= cur_axis(3) && param.y <= cur_axis(4)
+    
+    y_extent = cur_axis(4) - cur_axis(3);
+    x_extent = cur_axis(2) - cur_axis(1);
+    
+    % Zoom so that the mouse pointer's position in the echogram does not change
+    x_percent = (x-cur_axis(1))/x_extent;
+    y_percent = (y-cur_axis(3))/y_extent;
+    xlims = [x - x_extent*2^(zooms+1)*x_percent, x + x_extent*2^(zooms+1)*(1-x_percent)];
+    ylims = [y - y_extent*2^(zooms+1)*y_percent, y + y_extent*2^(zooms+1)*(1-y_percent)];
+    
+    if xlims(1) < param.xlims(1)
+      xlims(1) = param.xlims(1);
+    end
+    if xlims(2) > param.xlims(2)
+      xlims(2) = param.xlims(2);
+    end
+    if ylims(1) < param.ylims(1)
+      ylims(1) = param.ylims(1);
+    end
+    if ylims(2) > param.ylims(2)
+      ylims(2) = param.ylims(2);
+    end
+    xlim(param.h_axes,sort(xlims));
+    ylim(param.h_axes,sort(ylims));
   end
-  if xlims(2) > param.xlims(2)
-    xlims(2) = param.xlims(2);
-  end
-  if ylims(1) < param.ylims(1)
-    ylims(1) = param.ylims(1);
-  end
-  if ylims(2) > param.ylims(2)
-    ylims(2) = param.ylims(2);
-  end
-  xlim(param.h_axes,sort(xlims));
-  ylim(param.h_axes,sort(ylims));
   
 elseif but == 3
   %% Right click: Zoom out at point
