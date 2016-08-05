@@ -1,5 +1,5 @@
-function success = combine_task(param)
-% success = combine_task(param)
+function success = combine_wf_chan_task(param)
+% success = combine_wf_chan_task(param)
 %
 % Task/job running on cluster that is called from combine. This
 % function is generally not called directly.
@@ -297,12 +297,9 @@ for chunk_idx = 1:length(param.combine.chunk_ids)
     array_fn = fullfile(param.combine.out_path, [sar_type_fn_name(end-6:end) sprintf('_img_%02d', img_idx) sar_type_fn_ext]);
     fprintf('  Saving combine_wf_chan data %s (%s)\n', array_fn, datestr(now));
     
-    [Latitude,Longitude,Elevation] ...
-      = ecef2geodetic(sar_type_file.fcs.origin(1,array_param.lines), ...
-      sar_type_file.fcs.origin(2,array_param.lines), ...
-      sar_type_file.fcs.origin(3,array_param.lines),WGS84.ellipsoid);
-    Latitude = Latitude*180/pi;
-    Longitude = Longitude*180/pi;
+    Latitude = sar_type_file.lat(1,array_param.lines);
+    Longitude = sar_type_file.lon(1,array_param.lines);
+    Elevation = sar_type_file.elev(1,array_param.lines);
     GPS_time = sar_type_file.fcs.gps_time(array_param.lines);
     Surface = sar_type_file.fcs.surface(array_param.lines);
     Bottom = sar_type_file.fcs.bottom(array_param.lines);
