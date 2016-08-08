@@ -153,6 +153,7 @@ max_angle = 100 / WGS84.semimajor;
 max_angle_deg = max_angle * 180/pi;
 [flowline.latM,flowline.lonM] = interpm(flowline.lat,flowline.lon,max_angle_deg);
 [flowline.XM,flowline.YM] = projfwd(proj,flowline.latM,flowline.lonM);
+flowline.along_trackM = geodetic_to_along_track(flowline.latM,flowline.lonM);
 
 % Interpolate the mass conservation grid onto the flowline
 [mc.xmesh,mc.ymesh] = meshgrid(mc.x,mc.y);
@@ -165,7 +166,7 @@ h_fig = figure;
 scatter(data.properties.along_track(mask)/1e3, ...
   data.properties.thickness(mask),[],d_min(mask), '.');
 hold on;
-plot(flowline.along_track/1e3, flowline.mc_thick,'k');
+plot(flowline.along_trackM/1e3, flowline.mc_thick,'k');
 h_colorbar = colorbar;
 set(get(h_colorbar,'YLabel'),'String','Distance from flowline (m)');
 xlabel('Along flowline (km)');
@@ -182,7 +183,7 @@ h_fig = figure;
 scatter(data.properties.along_track(mask)/1e3, ...
   data.properties.thickness(mask),[],data.properties.thickness(mask), '.');
 hold on;
-plot(flowline.along_track/1e3, flowline.mc_thick,'k');
+plot(flowline.along_trackM/1e3, flowline.mc_thick,'k');
 h_colorbar = colorbar;
 set(get(h_colorbar,'YLabel'),'String','Thickness (m)');
 xlabel('Along flowline (km)');
@@ -201,7 +202,6 @@ if fid<0
 end
 
 fprintf(fid,'Latitude,Longitude,X,Y,Surface_Elevation,Bottom_Elevation,Flowline_Alongtrack\n');
-flowline.along_trackM = geodetic_to_along_track(flowline.latM,flowline.lonM);
 for idx = 1:length(flowline.along_track)
   fprintf(fid,'%.7f,%.7f,%.1f,%.1f,%.1f,%.1f,%.1f\n', ...
     flowline.latM(idx),flowline.lonM(idx),flowline.XM(idx),flowline.YM(idx), ...
