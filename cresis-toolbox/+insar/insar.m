@@ -1,5 +1,13 @@
 
-fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
+if ispc
+  fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
+else
+  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
+end
+
+proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenland_natural_90m.tif')));
+
+physical_constants;
 
 load(fn);
 master_idx = 1;
@@ -7,8 +15,12 @@ rbins = 20:120;
 
 h_fig_map = figure(100); clf;
 hold on;
+axis('equal');
 h_fig_elev = figure(101); clf;
 hold on;
+xlabel('Range line');
+ylabel('WGS-84 elevation (m)');
+grid on;
 
 h_data_axes = [];
 for pass_idx = 1:length(pass)
@@ -31,10 +43,19 @@ for pass_idx = 1:length(pass)
   h_data_axes(end+1) = gca;
   
   figure(h_fig_map);
-  h_plot = plot(pass(pass_idx).lon, pass(pass_idx).lat,'.');
-  color = get(h_plot,'Color');
-  h_text = text(pass(pass_idx).lon(1), pass(pass_idx).lat(1), sprintf('%d', pass_idx), 'Color', color);
-%   plot(pass(pass_idx).lon(1), pass(pass_idx).lat(1), 'o');
+  if 0
+    h_plot = plot(pass(pass_idx).lon, pass(pass_idx).lat,'.');
+    color = get(h_plot,'Color');
+    h_text = text(pass(pass_idx).lon(1), pass(pass_idx).lat(1), sprintf('%d', pass_idx), 'Color', color);
+  else
+    [pass(pass_idx).proj_x,pass(pass_idx).proj_y] = projfwd(proj,pass(pass_idx).lat,pass(pass_idx).lon);
+    h_plot = plot(pass(pass_idx).proj_x/1e3, pass(pass_idx).proj_y/1e3,'.');
+    color = get(h_plot,'Color');
+    h_text = text(pass(pass_idx).proj_x(1)/1e3, pass(pass_idx).proj_y(1)/1e3, sprintf('%d', pass_idx), 'Color', color);
+    xlabel('X (km)');
+    ylabel('Y (km)');
+    grid on;
+  end
   
   figure(h_fig_elev);
   if master_idx == pass_idx
