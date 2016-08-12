@@ -913,7 +913,6 @@ classdef slice_browser < handle
       
       toolPM_str = {};
       for idx = 1:length(obj.slice_tool.list)
-      for idx = 1:length(obj.slice_tool.list)
         toolPM_str = [toolPM_str obj.slice_tool.list{idx}.tool_menu_name];
       end
       
