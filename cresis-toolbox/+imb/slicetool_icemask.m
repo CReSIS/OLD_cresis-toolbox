@@ -26,17 +26,6 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     function cmd = apply_PB_callback(obj,sb)
       obj.sb = sb;
       layer_name = {sb.layer.name};
-      ice_layer_idx = [];
-      for l = 1:length(layer_name)
-        if strcmp(layer_name(l),'ice mask')
-          ice_layer_idx = l;
-          break;
-        end
-      end
-      
-      if isempty(ice_layer_idx)
-        return;
-      end
       
       % Read and set sb.layer
       % Read sb.data
@@ -59,8 +48,11 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       param.ice_mask = custom_data.ice_mask;
       param.proj = custom_data.proj;
       obj.sb = custom_data.sb;
+      addlistener(obj.sb,'SliceChange',@obj.runChangeSlice);
+      addlistener(obj.sb.undo_stack,'synchronize_event',@obj.run_undo_sync);
+      obj.sb.save_callback = @obj.save;
       
-      obj.ice = ice_mask_edit(param);
+      obj.ice = imb.ice_mask_edit(param);
       addlistener(obj.ice,'IceChange',@obj.run_ice_change);
       addlistener(obj.ice,'SliceChange',@obj.run_slice_change);
       addlistener(obj.ice,'Undo',@obj.run_sb_undo);
@@ -74,11 +66,6 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     function add_listener(obj,src)
       addlistener(src,'SliceChange',@obj.runChangeSlice);
       addlistener(src.undo_stack,'synchronize_event',@obj.run_undo_sync);
-      for i = 1:length(src.layer)
-        if strcmp(src.layer(i).name,'ice mask');
-          obj.ice_layer = i;
-        end
-      end
     end
     
     function evnts = get_events(obj)
@@ -99,7 +86,8 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       cmd_op_idxs = [];
       % get theta and slice idxs for changes
       for cmd_idx = 1:length(cmd)
-        if strcmp(cmd{cmd_idx}.type,'standard') && cmd{cmd_idx}.redo.layer == obj.ice_layer
+        if strcmp(cmd{cmd_idx}.type,'standard') && ...
+            cmd{cmd_idx}.redo.layer == obj.sb.layer(cmd{cmd_idx}.redo.layer).mask_layer
           thetas = [thetas , cmd{cmd_idx}.redo.x];
           slices = [slices , cmd{cmd_idx}.redo.slice];
           vals = [vals , cmd{cmd_idx}.redo.y];
@@ -113,7 +101,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       end
 
       cmd_ice = obj.ice.edit_twtt(thetas,slices,vals,val_olds);
-      cmd_append = obj.form_sb_cmd(cmd_ice);
+      cmd_append = obj.form_sb_cmd(cmd_ice,cmd{1}.redo.layer);
       
       % check for same slices
       del_cmd_idx = [];
@@ -141,7 +129,8 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       if isempty(cmd_ice)
         for cmd_idx = 1:length(cmd)
           if strcmp(cmd{cmd_idx}.type,'standard') && ...
-              strcmp(obj.sb.layer(cmd{cmd_idx}.redo.layer).name,'ice mask')
+              cmd{cmd_idx}.redo.layer == obj.sb.layer(cmd{cmd_idx}.redo.layer).mask_layer            
+            
               cmd = obj.overlay_intersects(cmd);
               return
           end
@@ -156,7 +145,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     end
     
     
-    function cmd = form_sb_cmd(obj,cmd)
+    function cmd = form_sb_cmd(obj,cmd,layer)
       
       for i = 1:length(cmd)
         if strcmp(cmd{i}.type,'ice_mask')
@@ -180,8 +169,8 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
         theta = theta_idx(s_idx);
 %           ind = sub2ind([size(obj.intersections,2),size(obj.intersections,3)],theta,s_idx);
 
-        cmd{cmd_idx}.undo.layer = obj.ice_layer;
-        cmd{cmd_idx}.redo.layer = obj.ice_layer;
+        cmd{cmd_idx}.undo.layer = layer;
+        cmd{cmd_idx}.redo.layer = layer;
         cmd{cmd_idx}.undo.x = theta;
         cmd{cmd_idx}.redo.x = theta;
         cmd{cmd_idx}.undo.y = logical(obj.ice.mdata.ice_mask(theta,slice));
@@ -194,7 +183,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     
     
     function run_ice_change(obj,cmd,~)
-      cmd = obj.form_sb_cmd(obj.ice.cmd);
+      cmd = obj.form_sb_cmd(obj.ice.cmd,obj.sb.layer(1).mask_layer);
       obj.sb.push(cmd);
     end
     
@@ -212,6 +201,10 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     
     function run_sb_undo(obj,src,~)
       obj.sb.undo_stack.pop();
+    end
+    
+    function save(obj)
+      obj.ice.save();
     end
     
   end

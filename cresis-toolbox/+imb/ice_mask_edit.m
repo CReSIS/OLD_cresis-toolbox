@@ -727,6 +727,13 @@ classdef ice_mask_edit < handle
       
     end
     
+    
+    function save(obj)
+      [fp,fn,ext] = fileparts(obj.ice_mask_fn);
+      file = [fp,fn,'_2',ext];
+      save(file,obj.mask);
+    end
+    
   end
   
 end

@@ -81,7 +81,7 @@ colormap(parula(256))
 obj = imb.slice_browser(lp(mdata.Topography.img),h_control_image,param);
 
 try; delete(icemask_tool); end;
-icemask_tool = slicetool_icemask();
+icemask_tool = imb.slicetool_icemask();
 custom_data.DEM = DEM;
 custom_data.R = R;
 custom_data.ice_mask = ice_mask;

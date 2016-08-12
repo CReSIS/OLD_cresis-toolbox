@@ -67,6 +67,7 @@ classdef slice_browser < handle
     ctrl_pressed
     plot_visibility
     undo_stack
+    save_callback
   end
   
   events
@@ -492,9 +493,7 @@ classdef slice_browser < handle
     
     %% save_button_callback
     function save_button_callback(obj,source,callbackdata)
-      layer = obj.layer;
-      save(obj.layer_fn,'layer')
-      obj.undo_stack.save();
+      obj.save();
     end
     
     function next10_button_callback(obj,source,callbackdata)
@@ -952,10 +951,19 @@ classdef slice_browser < handle
      
     function push(obj,cmd)
       obj.layer_idx = get(obj.gui.layerLB,'Value');
-      for tool_idx = 1:length(obj.slice_tool_list)
-        cmd = obj.slice_tool_list{tool_idx}.push_request(cmd);
+      for tool_idx = 1:length(obj.slice_tool.list)
+        cmd = obj.slice_tool.list{tool_idx}.push_request(cmd);
       end
       obj.undo_stack.push(cmd);
+    end
+    
+    function save(obj)
+      layer = obj.layer;
+      save(obj.layer_fn,'layer')
+      if ~isempty(obj.save_callback)
+        obj.save_callback();
+      end
+      obj.undo_stack.save();
     end
     
   end
