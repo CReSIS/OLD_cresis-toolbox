@@ -77,6 +77,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         cmd{end}.undo.y = sb.layer(sb.layer_idx).y(:,slice);
         cmd{end}.redo.x = 1:size(sb.layer(sb.layer_idx).y,1);
         cmd{end}.redo.y = correct_surface(:,idx);
+        cmd{1}.type = 'standard';
       end
       
     end

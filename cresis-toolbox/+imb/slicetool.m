@@ -51,6 +51,16 @@ classdef (HandleCompatible = true) slicetool < handle
       set(obj.h_fig,'Visible','off');
       notify(obj,'hide_param');
     end
+    
+    function add_listener(obj,src)
+    end
+    
+    function evnts = get_events(obj)
+      evnts = [];
+    end
+    
+    function cmd = push_request(obj,cmd)
+    end
 
   end
   

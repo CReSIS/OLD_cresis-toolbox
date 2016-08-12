@@ -27,6 +27,11 @@
 classdef slice_browser < handle
   
   properties
+    
+    %JORDAN
+    ice
+    %JORDAN
+    
     select_mask
     data % N-dimensional matrix with last dimension equal to Nx
     slice % Integer from 1 to Nx
@@ -67,6 +72,10 @@ classdef slice_browser < handle
     ctrl_pressed
     plot_visibility
     undo_stack
+  end
+  
+  events
+    SliceChange
   end
   
   methods
@@ -149,11 +158,21 @@ classdef slice_browser < handle
       
       obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
       for layer_idx = 1:numel(obj.layer)
-        obj.layer(layer_idx).h_plot ...
+        if islogical(obj.layer(layer_idx).y)
+          tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+          tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
+          
+          obj.layer(layer_idx).h_plot ...
           = plot(obj.layer(layer_idx).x(:,obj.slice), ...
-          obj.layer(layer_idx).y(:,obj.slice), ...
-          'parent',obj.h_axes,'color','black', ...
+          tmp_y, 'parent',obj.h_axes,'color','black', ...
           obj.layer(layer_idx).plot_name_values{:});
+        else
+          obj.layer(layer_idx).h_plot ...
+            = plot(obj.layer(layer_idx).x(:,obj.slice), ...
+            obj.layer(layer_idx).y(:,obj.slice), ...
+            'parent',obj.h_axes,'color','black', ...
+            obj.layer(layer_idx).plot_name_values{:});
+        end
       end
       
       addlistener(obj.undo_stack,'synchronize_event',@obj.undo_sync);
@@ -497,21 +516,25 @@ classdef slice_browser < handle
       if strcmp(cmds_direction,'redo')
         for cmd_idx = 1:length(cmds_list)
           for subcmd_idx = 1:length(cmds_list{cmd_idx})
-            layer_idx = cmds_list{cmd_idx}{subcmd_idx}.redo.layer;
-            obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.redo.x), ...
-              cmds_list{cmd_idx}{subcmd_idx}.redo.slice) ...
-              = cmds_list{cmd_idx}{subcmd_idx}.redo.y;
-            obj.slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
+            if strcmp(cmds_list{cmd_idx}{subcmd_idx}.type,'standard')
+              layer_idx = cmds_list{cmd_idx}{subcmd_idx}.redo.layer;
+              obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.redo.x), ...
+                cmds_list{cmd_idx}{subcmd_idx}.redo.slice) ...
+                = cmds_list{cmd_idx}{subcmd_idx}.redo.y;
+              obj.slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
+            end
           end
         end
       else
         for cmd_idx = 1:length(cmds_list)
           for subcmd_idx = 1:length(cmds_list{cmd_idx})
-            layer_idx = cmds_list{cmd_idx}{subcmd_idx}.undo.layer;
-            obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.undo.x), ...
-              cmds_list{cmd_idx}{subcmd_idx}.undo.slice) ...
-              = cmds_list{cmd_idx}{subcmd_idx}.undo.y;
-            obj.slice = cmds_list{cmd_idx}{subcmd_idx}.undo.slice;
+            if strcmp(cmds_list{cmd_idx}{subcmd_idx}.type,'standard')
+              layer_idx = cmds_list{cmd_idx}{subcmd_idx}.undo.layer;
+              obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.undo.x), ...
+                cmds_list{cmd_idx}{subcmd_idx}.undo.slice) ...
+                = cmds_list{cmd_idx}{subcmd_idx}.undo.y;
+              obj.slice = cmds_list{cmd_idx}{subcmd_idx}.undo.slice;
+            end
           end
         end
       end 
@@ -587,8 +610,14 @@ classdef slice_browser < handle
             cmd{1}.undo.x = round(x);
             cmd{1}.undo.y = obj.layer(layer_idx).y(round(x),obj.slice);
             cmd{1}.redo.x = round(x);
-            cmd{1}.redo.y = y;
-            obj.undo_stack.push(cmd);
+            if islogical(obj.layer(layer_idx).y)
+              cmd{1}.redo.y = ~obj.layer(layer_idx).y(round(x),obj.slice);
+            else
+              cmd{1}.redo.y = y;
+            end
+            cmd{1}.type = 'standard';
+%             obj.undo_stack.push(cmd);
+            obj.push(cmd);
           end
         end
         obj.update_slice();
@@ -744,6 +773,7 @@ classdef slice_browser < handle
                 cmd{1}.redo.y(end+1) = NaN;
               end
             end
+            cmd{1}.type = 'standard';
             obj.undo_stack.push(cmd);
             
             obj.update_slice();
@@ -812,19 +842,34 @@ classdef slice_browser < handle
 
       % Update layer plots
       for layer_idx = 1:numel(obj.layer)
-        set(obj.layer(layer_idx).h_plot, ...
-          'XData', obj.layer(layer_idx).x(:,obj.slice), ...
-          'YData', obj.layer(layer_idx).y(:,obj.slice));
+        if islogical(obj.layer(layer_idx).y)
+          tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+          tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
+          set(obj.layer(layer_idx).h_plot, ...
+            'XData', obj.layer(layer_idx).x(:,obj.slice), ...
+            'YData', tmp_y);
+        else
+          set(obj.layer(layer_idx).h_plot, ...
+            'XData', obj.layer(layer_idx).x(:,obj.slice), ...
+            'YData', obj.layer(layer_idx).y(:,obj.slice));
+        end
       end
       
       % Update layer selection related plots
       layer_idx = get(obj.gui.layerLB,'value');
       x_select = obj.layer(layer_idx).x(:,obj.slice);
-      y_select = obj.layer(layer_idx).y(:,obj.slice);
+      if islogical(obj.layer(layer_idx).y)
+        y_select = tmp_y;
+      else
+        y_select = obj.layer(layer_idx).y(:,obj.slice);
+      end
       set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
         'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
       layer_idx = obj.layer(layer_idx).active_layer;
       set(obj.h_image_layer,'CData',obj.layer(layer_idx).y);
+      
+%       obj.ice.change_slice(obj.slice);
+      notify(obj,'SliceChange');
 
       % Update layer visibility
       for layer_idx = 1:numel(obj.layer)
@@ -869,6 +914,8 @@ classdef slice_browser < handle
     function insert_tool(obj, slice_browser_tool)
       % slice_browser_tool
       obj.slice_tool_list{end+1} = slice_browser_tool;
+      obj.slice_tool_list{end}.add_listener(obj);
+      obj.add_listener(obj.slice_tool_list{end});
       
       toolPM_str = {};
       for idx = 1:length(obj.slice_tool_list)
@@ -891,6 +938,32 @@ classdef slice_browser < handle
       fprintf('right-click: zoom out at point\n');
       fprintf('scroll: zoom in/out at point\n');
     end
+    
+    function getEventData(obj,src,~)
+      cmd = src.cmd;     
+      obj.undo_stack.push(cmd);
+    end
+    
+    function add_listener(obj,src)
+       evnts = src.get_events();
+       
+       if ~isempty(evnts)
+         for i = 1:numel(evnts);
+           addlistener(evnts.src,evnts.evnts{i},@obj.getEventData);
+         end
+       end
+       
+    end
+      
+     
+    function push(obj,cmd)
+      obj.layer_idx = get(obj.gui.layerLB,'Value');
+      for tool_idx = 1:length(obj.slice_tool_list)
+        cmd = obj.slice_tool_list{tool_idx}.push_request(cmd);
+      end
+      obj.undo_stack.push(cmd);
+    end
+    
   end
   
 end

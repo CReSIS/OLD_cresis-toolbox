@@ -35,7 +35,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       
       labels = tomo.detect(sb.data(:,:,sb.slice), ...
         double(surf_bins), double(bottom_bin), ...
-        [], double(obj.custom_data.ice_mask(:,sb.slice)), ...
+        [], double(sb.layer(sb.layer(sb.layer_idx).mask_layer).y(:,sb.slice)), ...
         double(obj.custom_data.mu), double(obj.custom_data.sigma));
       
       % Create cmd for layer change
@@ -48,6 +48,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       cmd{1}.undo.y = sb.layer(sb.layer_idx).y(:,sb.slice);
       cmd{1}.redo.x = 1:size(sb.layer(sb.layer_idx).y,1);
       cmd{1}.redo.y = labels;
+      cmd{1}.type = 'standard';
     end
     
     function set_custom_data(obj,custom_data)
