@@ -75,6 +75,28 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
+if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(gps_source,'ATM'))
+  % ===========================================================================
+  % All antenna positions measurements are relative to GPS antenna
+  % positions(which has no absolut measurements), so set GPS antenna
+  % positions to zeros 
+  
+  % From Linkswiler, Matthew A. <matthew.a.linkswiler@nasa.gov>,Wed 3/23/2016 7:09 AM
+  % The center of the outside surface of lidar window is 1.355m aft, 0.045m starboard,
+  % and 3.425m below GPS antenna. 
+  
+  % From Zach Burns,zachburns@ku.edu
+  % The reference of snow, kuband and mcords antenna positions is the floor of the cabin
+  % for (Z) and the front of the port of atm laser (X) which is accurately located to the gps.
+  % Mcords:  X = [535.575",535.575"],Y = [12",-12"];Z = [27.83",27.83"];
+  % Snow Tx: X = 297.75",Y = 0;Z = -26.81"; RX: X = 168.5",Y = 0;Z = -38.75" 
+  % Kuband Tx: X = 291.25",Y = -1.5";Z = -26.31"; RX: X = 180.5",Y = 0.75;Z = -39.75" 
+ 
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2015_Alaska_TOnrl') && strcmpi(gps_source,'NRL'))
   warning('NEEDS TO BE DETERMINED');
   gps.x = 0;
@@ -343,19 +365,29 @@ if (strcmpi(param.season_name,'2006_Greenland_TO') && strcmpi(gps_source,'ATM'))
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2005_Greenland_TO') && strcmpi(gps_source,'NMEA'))
+if (strcmpi(param.season_name,'2005_Greenland_TO') && strcmpi(gps_source,'ATM'))
+  % Notes from /cresis/snfs1/data/ACORDS/airborne2005/trajectory/antennaSpacing.txt
+  % GPS antenna was 5 ft aft of radar antennas
+  % GPS antenna was 5.75 in right of the center line
+  % GPS antennas were approximately 24" above the antennas
   gps.x = -5*12*2.54/100;
   gps.y = 5.75*2.54/100;
   gps.z = 2*12*2.54/100;
 end
 
-if (strcmpi(param.season_name,'2003_Greenland_P3') && strcmpi(gps_source,'NMEA')) ...
-    || (strcmpi(param.season_name,'2004_Greenland_P3') && strcmpi(gps_source,'NMEA'))
-  % Based on GISMO antenna positions.doc (assumes same antenna and gps
-  % setup as 2007 mission)
-  gps.x = -127*2.54/100;
-  gps.y = 0*2.54/100;
-  gps.z = -104.3*2.54/100;
+if (strcmpi(param.season_name,'2003_Greenland_P3')) ...
+    || (strcmpi(param.season_name,'2004_Antarctica_P3'))
+  if strcmpi(gps_source,'ATM')
+    % Based on GISMO antenna positions.doc (assumes same antenna and gps
+    % setup as 2007 mission). THIS SHOULD BE VERIFIED!!!
+    % GPS antenna was 127'' forward of radar antennas
+    % GPS antenna was on the center line
+    % GPS antennas were approximately 104'' above the antennas
+    gps.x = -127*2.54/100;
+    gps.y = 0*2.54/100;
+    gps.z = -104.3*2.54/100;
+  end
+  
 end
 
 if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6'})) && strcmpi(gps_source,'AWI'))
@@ -567,6 +599,26 @@ end
 % =========================================================================
 %% Ku-band
 % =========================================================================
+if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'kuband'))
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,1) = -180.5*2.54/100 -1.355;
+  LArx(2,1) = 0.75*2.54/100 + 0.045;
+  LArx(3,1) = -39.75*2.54/100 + 3.425;
+  
+  LAtx(1,1) = -291.25*2.54/100 -1.355;
+  LAtx(2,1) = -1.5*2.54/100 + 0.045;
+  LAtx(3,1) = -26.31*2.54/100+ 3.425;
+   
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if (strcmpi(param.season_name,'2015_Greenland_C130') && strcmpi(radar_name,'kuband'))
   % X,Y,Z are in aircraft coordinates, not IMU
@@ -729,6 +781,26 @@ end
 % =========================================================================
 %% Radar Depth Sounder
 % =========================================================================
+if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'rds'))
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,:) = [-535.575 -535.575]*2.54/100 - 1.355;
+  LArx(2,:) = [12 -12]*2.54/100 + 0.045; % need to determin
+  LArx(3,:) = [27.83 27.83]*2.54/100 + 3.425;
+  
+  LAtx(1,:) = [-535.575 -535.575]*2.54/100 - 1.355;
+  LAtx(2,:) = [12 -12]*2.54/100 + 0.045; % need to determin
+  LAtx(3,:) = [27.83 27.83]*2.54/100 + 3.425;
+ 
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6'})) && strcmpi(radar_name,'rds'))
   % See notes in GPS section
@@ -1017,14 +1089,7 @@ if (strcmpi(param.season_name,'2006_Greenland_TO') && strcmpi(radar_name,'rds'))
 end
 
 if (strcmpi(param.season_name,'2005_Greenland_TO') && strcmpi(radar_name,'rds'))
-  % Based on GISMO antenna positions.doc (assumes same antenna and gps
-  % setup as 2007 mission)
-  gps.x = -127*2.54/100;
-  gps.y = 0*2.54/100;
-  gps.z = -104.3*2.54/100;
-  % GPS antenna was 127'' forward of radar antennas
-  % GPS antenna was on the center line
-  % GPS antennas were approximately 104'' above the antennas
+  % Notes from /cresis/snfs1/data/ACORDS/airborne2005/trajectory/antennaSpacing.txt
   
   % Wing Flexure
   z = [0.4 0.9 1.5 2.2 2.9 3.7];
@@ -1053,23 +1118,14 @@ if (strcmpi(param.season_name,'2005_Greenland_TO') && strcmpi(radar_name,'rds'))
   end
 end
 
-if (strcmpi(param.season_name,'2003_Greenland_P3') && strcmpi(gps_source,'rds')) ...
-    || (strcmpi(param.season_name,'2004_Greenland_P3') && strcmpi(gps_source,'rds'))
-    % Notes from /cresis/snfs1/data/ACORDS/airborne2005/trajectory/antennaSpacing.txt
-  % GPS antenna was 5 ft aft of radar antennas
-  % GPS antenna was 5.75 in right of the center line
-  % GPS antennas were approximately 24" above the antennas
-  
-%   % Wing Flexure (see 2008_Greenland_TO wing flexure from Emily Arnold and Richard Hale)
-%   z = [0.4 0.9 1.5 2.2 2.9 3.7];
-%   y = [178.5 216.5 253.5 291 328 367];
-%   z_2005 = polyval(polyfit(y,z,3),[153.9 229.13 290.66 353.66])*0.0254;
-
-  LArx(1,:) = [630 630 630 630]*0.0254 - gps.x; % meters
-  LArx(2,:) = [448.6 481.6 515.1 549.1]*0.0254 - gps.y; % m
+if (strcmpi(param.season_name,'2004_Antarctica_P3') && strcmpi(radar_name,'rds'))
+  % Based on GISMO antenna positions.doc (assumes same antenna and gps
+  % setup as 2007 mission).  THIS NEEDS TO BE VERIFIED!!!
+    LArx(1,:) = [630 630 630 630 630]*0.0254 - gps.x; % meters
+  LArx(2,:) = [448.6 481.6 515.1 549.1 mean([448.6 481.6 515.1 549.1])]*0.0254 - gps.y; % m
   
   % Assumption of 3 deg dihedral wing, 24" below GPS antenna on inner element, and wing flexure from Richard Hale
-  LArx(3,:) = (([448.6 481.6 515.1 549.1]*tand(6)) - 448.6)*0.0254 - gps.z;% - z_2005;
+  LArx(3,:) = (([448.6 481.6 515.1 549.1 mean([448.6 481.6 515.1 549.1])]*tand(6)) - 448.6)*0.0254 - gps.z;
   
   LAtx(1,:) = LArx(3,:);
   LAtx(2,:) = -LArx(2,:);
@@ -1083,6 +1139,31 @@ if (strcmpi(param.season_name,'2003_Greenland_P3') && strcmpi(gps_source,'rds'))
   % Amplitude (not power) weightings for transmit side.
   if rxchannel == 0
     rxchannel = 3;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (strcmpi(param.season_name,'2003_Greenland_P3') && strcmpi(radar_name,'rds'))
+  % Based on GISMO antenna positions.doc (assumes same antenna and gps
+  % setup as 2007 mission).  THIS NEEDS TO BE VERIFIED!!!
+  LArx(1,:) = [630]*0.0254 - gps.x; % meters
+  LArx(2,:) = [mean([448.6 481.6 515.1 549.1])]*0.0254 - gps.y; % m
+  
+  % Assumption of 3 deg dihedral wing, 24" below GPS antenna on inner element, and wing flexure from Richard Hale
+  LArx(3,:) = (([mean([448.6 481.6 515.1 549.1])]*tand(6)) - 448.6)*0.0254 - gps.z;
+  
+  LAtx(1,:) = LArx(3,:);
+  LAtx(2,:) = -LArx(2,:);
+  %LAtx(3,:)   = [24 21.75 19.5 17.625 15.75]*0.0254 - gps.z; % Measured on the ground in 2006 in Calgary
+  LAtx(3,:) = LArx(3,:);
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
     tx_weights = ones(1,size(LAtx,2));
   end
 end

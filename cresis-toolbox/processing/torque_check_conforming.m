@@ -49,6 +49,7 @@ if ~exist(out_path,'file')
   end
   
 else
+  % Output file exists
   try
     ctrl.out{job_id} = load(out_path,'argsout');
   catch
@@ -81,16 +82,21 @@ else
   
   if ctrl.error_mask(job_id) && ctrl.job_status(job_id) == 'C'
     if exist(out_path,'file')
-      out = load(out_path);
-      error_string = '';
-      if isfield(out,'errorstruct')
-        error_string = sprintf('%s: %s\n', out.errorstruct.identifier, out.errorstruct.message);
-        for stack_idx = 1:length(out.errorstruct.stack)
-          error_string = cat(2,error_string,...
-            sprintf('  %s: %d\n', out.errorstruct.stack(stack_idx).name, out.errorstruct.stack(stack_idx).line));
+      % Output file exists, job status is 'C'
+      try
+        out = load(out_path);
+        error_string = '';
+        if isfield(out,'errorstruct')
+          error_string = sprintf('%s: %s\n', out.errorstruct.identifier, out.errorstruct.message);
+          for stack_idx = 1:length(out.errorstruct.stack)
+            error_string = cat(2,error_string,...
+              sprintf('  %s: %d\n', out.errorstruct.stack(stack_idx).name, out.errorstruct.stack(stack_idx).line));
+          end
         end
+        warning('Job %d:%d/%d Error:\n%s', ctrl.batch_id, job_id, ctrl.job_id_list(job_id), error_string);
+      catch
+        warning('Job %d:%d/%d Error unreadable\n', ctrl.batch_id, job_id, ctrl.job_id_list(job_id));
       end
-      warning('Job %d:%d/%d Error:\n%s', ctrl.batch_id, job_id, ctrl.job_id_list(job_id), error_string);
     else
       warning('Job %d:%d/%d Error, but no output file error message\n', ctrl.batch_id, job_id, ctrl.job_id_list(job_id));
       out = [];

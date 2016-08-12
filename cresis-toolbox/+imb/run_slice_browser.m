@@ -31,6 +31,7 @@ if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   
   layer(3).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
   layer(3).y = NaN * zeros(size(layer(1).y));
+  layer(3).y(33,:) = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
   layer(3).plot_name_values = {'color','magenta','marker','+'};
   layer(3).name = 'Bcontrol';
   layer(3).surf_layer = 1;

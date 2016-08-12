@@ -27,11 +27,6 @@
 classdef slice_browser < handle
   
   properties
-    
-    %JORDAN
-    ice
-    %JORDAN
-    
     select_mask
     data % N-dimensional matrix with last dimension equal to Nx
     slice % Integer from 1 to Nx
@@ -56,8 +51,8 @@ classdef slice_browser < handle
     
     gui
     
-    slice_tool_list
-    slice_tool_timer
+    % slice_tool: .list, .timer, .cluster, .cmds
+    slice_tool
     
     % Function handle hooks for customizing clip_matrix
     fh_button_up
@@ -98,14 +93,15 @@ classdef slice_browser < handle
       obj.data = data;
       obj.slice = 1;
       obj.plot_visibility = true;
-      obj.slice_tool_list = [];
-      obj.slice_tool_timer = timer('TimerFcn',@obj.timer_callback,'StartDelay',2,'ExecutionMode','fixedSpacing','Period',2);
-      obj.slice_tool_timer = timer;
-      obj.slice_tool_timer.StartDelay = 2;
-      obj.slice_tool_timer.Period = 2;
-      obj.slice_tool_timer.TimerFcn = @obj.timer_callback;
-      obj.slice_tool_timer.ExecutionMode = 'fixedSpacing';
-      start(obj.slice_tool_timer)
+      
+      obj.slice_tool.list = [];
+      
+      obj.slice_tool.timer = timer;
+      obj.slice_tool.timer.StartDelay = 2;
+      obj.slice_tool.timer.Period = 2;
+      obj.slice_tool.timer.TimerFcn = @obj.timer_callback;
+      obj.slice_tool.timer.ExecutionMode = 'fixedSpacing';
+      %start(obj.slice_tool.timer)
       
       % Load layer data
       if isfield(param,'layer_fn') && ~isempty(param.layer_fn)
@@ -464,10 +460,10 @@ classdef slice_browser < handle
       try; set(obj.h_control_fig, 'WindowButtonUpFcn', []); end;
       try; delete(obj.h_fig); end;
       try; delete(obj.h_fig_layer); end;
-      for tool_idx = 1:length(obj.slice_tool_list)
-        try; delete(obj.slice_tool_list{tool_idx}); end;
+      for tool_idx = 1:length(obj.slice_tool.list)
+        try; delete(obj.slice_tool.list{tool_idx}); end;
       end
-      try; delete(obj.slice_tool_timer); end;
+      try; delete(obj.slice_tool.timer); end;
     end
     
     %% close_win
@@ -616,7 +612,6 @@ classdef slice_browser < handle
               cmd{1}.redo.y = y;
             end
             cmd{1}.type = 'standard';
-%             obj.undo_stack.push(cmd);
             obj.push(cmd);
           end
         end
@@ -679,11 +674,11 @@ classdef slice_browser < handle
       end
       
       if obj.ctrl_pressed
-        for tool_idx = 1:length(obj.slice_tool_list)
-          if strcmpi(obj.slice_tool_list{tool_idx}.tool_shortcut, event.Key)
+        for tool_idx = 1:length(obj.slice_tool.list)
+          if strcmpi(obj.slice_tool.list{tool_idx}.tool_shortcut, event.Key)
             obj.layer_idx = get(obj.gui.layerLB,'Value');
             obj.layer_idx = obj.layer(obj.layer_idx).active_layer;
-            cmd = obj.slice_tool_list{tool_idx}.apply_PB_callback(obj);
+            cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
             if ~isempty(cmd)
               obj.undo_stack.push(cmd);
             end
@@ -890,13 +885,12 @@ classdef slice_browser < handle
     %% optionsPB_callback Tool
     function optionsPB_callback(obj,src,event)
       tool_idx = get(obj.gui.toolPM,'Value');
-      obj.slice_tool_list{tool_idx}.open_win();
+      obj.slice_tool.list{tool_idx}.open_win();
     end
     
     %% timer_callback
     function timer_callback(obj,src,event)
 %      fprintf('Timer\n');
-%       obj.slice_tool_timer.start();
     end
     
     %% applyPB_callback Tool
@@ -904,7 +898,7 @@ classdef slice_browser < handle
       tool_idx = get(obj.gui.toolPM,'Value');
       obj.layer_idx = get(obj.gui.layerLB,'Value');
       obj.layer_idx = obj.layer(obj.layer_idx).active_layer;
-      cmd = obj.slice_tool_list{tool_idx}.apply_PB_callback(obj);
+      cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
       if ~isempty(cmd)
         obj.undo_stack.push(cmd);
       end
@@ -913,13 +907,14 @@ classdef slice_browser < handle
     %% Insert Tool
     function insert_tool(obj, slice_browser_tool)
       % slice_browser_tool
-      obj.slice_tool_list{end+1} = slice_browser_tool;
-      obj.slice_tool_list{end}.add_listener(obj);
-      obj.add_listener(obj.slice_tool_list{end});
+      obj.slice_tool.list{end+1} = slice_browser_tool;
+      obj.slice_tool.list{end}.add_listener(obj);
+      obj.add_listener(obj.slice_tool.list{end});
       
       toolPM_str = {};
-      for idx = 1:length(obj.slice_tool_list)
-        toolPM_str = [toolPM_str obj.slice_tool_list{idx}.tool_menu_name];
+      for idx = 1:length(obj.slice_tool.list)
+      for idx = 1:length(obj.slice_tool.list)
+        toolPM_str = [toolPM_str obj.slice_tool.list{idx}.tool_menu_name];
       end
       
       set(obj.gui.toolPM,'String',toolPM_str);

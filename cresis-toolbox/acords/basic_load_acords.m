@@ -46,7 +46,7 @@ if ~isfield(param,'file_version')
   param.file_version = 406;
 end
 if ~isfield(param,'verbose')
-  param.verbose = 1;
+  param.verbose = 0;
 end
 datatype = param.datatype;
 offset = param.offset;

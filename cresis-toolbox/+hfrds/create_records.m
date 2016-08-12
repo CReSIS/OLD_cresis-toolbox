@@ -65,6 +65,18 @@ nrec = hfrds.strip_hdr(fdat,fhdr);
 fclose(fhdr);
 fhdr = fopen(tmp_hdr_fn,'r');
 [hdr,wave] = hfrds.fread_data(fhdr,fdat,0,nrec);
+% Discard the first record
+wave = wave(:,2:end);
+hdr.gps = hdr.gps(2:end,:);
+hdr.epri = hdr.epri(2:end);
+hdr.frac = hdr.frac(2:end);
+hdr.start = hdr.start(2:end);
+hdr.delay = hdr.delay(2:end);
+hdr.stop = hdr.stop(2:end);
+hdr.bshft = hdr.bshft(2:end);
+hdr.pre = hdr.pre(2:end);
+hdr.pri = hdr.pri(2:end);
+hdr.loc = hdr.loc(2:end);
 
 utc_time_sod = 3600*(10*(hdr.gps(:,1)-'0')+(hdr.gps(:,2)-'0')) ...
   + 60*(10*(hdr.gps(:,3)-'0')+(hdr.gps(:,4)-'0')) ...

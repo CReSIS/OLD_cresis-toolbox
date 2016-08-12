@@ -57,7 +57,8 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       surf_bins = sb.layer(surf_idx).y(:,slices);
       surf_bins(isnan(surf_bins)) = -1;
       
-      bottom_bin = obj.custom_data.bottom(sb.slice);
+      %bottom_bin = obj.custom_data.bottom(slices);
+      bottom_bin = sb.layer(control_idx).y(33,slices);
       bottom_bin(isnan(bottom_bin)) = -1;
 
       correct_surface = tomo.extract(double(sb.data(:,:,slices)), ...
@@ -77,7 +78,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         cmd{end}.undo.y = sb.layer(sb.layer_idx).y(:,slice);
         cmd{end}.redo.x = 1:size(sb.layer(sb.layer_idx).y,1);
         cmd{end}.redo.y = correct_surface(:,idx);
-        cmd{1}.type = 'standard';
+        cmd{end}.type = 'standard';
       end
       
     end
