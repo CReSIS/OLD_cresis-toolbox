@@ -152,6 +152,9 @@ classdef ice_mask_edit < handle
       set(obj.h_dem_fig,'ToolBar','none');
       set(obj.h_dem_fig,'MenuBar','none');
       set(obj.h_dem_fig,'Name','Satellite Image');
+      pos = get(obj.h_dem_fig,'Position');
+      pos(3) = pos(3)+70+60;
+      set(obj.h_dem_fig,'Position',pos);
       
       obj.gui.left_panel = uipanel('parent',obj.h_dem_fig);
       obj.gui.right_panel = uipanel('parent',obj.h_dem_fig);
@@ -359,21 +362,19 @@ classdef ice_mask_edit < handle
           case 'period'
             if ~obj.shift_pressed
               obj.slice = obj.slice + 1;
-              obj.change_slice(obj.slice);
             else
               obj.slice = obj.slice + 10;
-              obj.change_slice(obj.slice);
             end
+            obj.change_slice(obj.slice);
             notify(obj,'SliceChange')
           
           case 'comma'
             if ~obj.shift_pressed
               obj.slice = obj.slice - 1;
-              obj.change_slice(obj.slice);
             else
               obj.slice = obj.slice - 10;
-              obj.change_slice(obj.slice);
             end
+            obj.change_slice(obj.slice);
             notify(obj,'SliceChange')
             
           case 'p'
@@ -618,6 +619,33 @@ classdef ice_mask_edit < handle
       set(obj.h_false_dem_plot,'XData',intersection(1,~mask_tmp),'YData',intersection(2,~mask_tmp));
       set(obj.h_true_mask_plot,'XData',intersection(1,mask_tmp),'YData',intersection(2,mask_tmp));
       set(obj.h_false_mask_plot,'XData',intersection(1,~mask_tmp),'YData',intersection(2,~mask_tmp));
+      
+      % check axis limits
+      xlims = get(obj.h_dem_axes,'Xlim');
+      ylims = get(obj.h_dem_axes,'Ylim');
+      if any( intersection(1,:) < xlims(1) | intersection(1,:) > xlims(2) | ...
+          intersection(2,:) < ylims(1) | intersection(2,:) > ylims(2))
+        xrange = xlims(2)-xlims(1);
+        yrange = ylims(2)-ylims(1);
+        center = obj.flight_line(:,slice).';
+        xlims = [-xrange,xrange]/2 + center(1);
+        if any(xlims>max(obj.dem_x))
+          xlims = [-xrange,0] + max(obj.dem_x);
+        elseif any(xlims<min(obj.dem_x))
+          xlims = [0,xrange] + min(obj.dem_x);
+        end
+        ylims = [-yrange,yrange]/2 + center(2);
+        if any(ylims>max(obj.dem_y))
+          ylims = [-yrange,0] + max(obj.dem_y);
+        elseif any(ylims<min(obj.dem_y))
+          ylims = [0,yrange] + min(obj.dem_y);
+        end
+        
+        set(obj.h_dem_axes,'Xlim',xlims,'Ylim',ylims);
+        set(obj.h_mask_axes,'Xlim',xlims,'Ylim',ylims);
+        
+      end
+      
     end
     
     function getEventData(obj,src,~)
