@@ -92,7 +92,7 @@ custom_data.sb = obj;
 icemask_tool.set_custom_data(custom_data);
 obj.insert_tool(icemask_tool);
 
-try; delete(detect_tool); end;
+try; delete(delete_tool); end;
 detect_tool = imb.slicetool_detect();
 custom_data.mu = mdata.Topography.mu;
 custom_data.sigma = mdata.Topography.sigma;

@@ -20,19 +20,9 @@ function mdata = DEM_alignment(param,mdata)
   %% Load Geotiff and Ice Mask
 
   % Get the projection information
-  if ~isfield(param.surf_extract,'proj') || isempty(param.surf_extract.proj)
-    proj = geotiffinfo(param.surf_extract.geotiff_fn);
-  else
-    proj = param.surf_extract.proj;
-  end
-  
+  proj = geotiffinfo(param.surf_extract.geotiff_fn);
   % Get ice mask
-  if ~isfield(param.surf_extract,'ice_mask_all') || isempty(param.surf_extract.ice_mask_all)
-    ice_mask_all = load(param.surf_extract.ice_mask_fn);
-  else
-    ice_mask_all = param.surf_extract.ice_mask_all;
-  end
-  
+  ice_mask_all = load(param.surf_extract.ice_mask_fn);
   % sv_cal_fn: steering vector calibration filename
   sv_cal_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','sv_calibration','theta_cal.mat');
   
@@ -41,13 +31,7 @@ function mdata = DEM_alignment(param,mdata)
   %% Remove unused DEM data
 
   % Read the image
-  if (~isfield(param.surf_extract,'DEM') || isempty(param.surf_extract.DEM)) || ...
-      (~isfield(param.surf_extract,'R') || isempty(param.surf_extract.R))
-    [DEM, R, ~] = geotiffread(param.surf_extract.geotiff_fn);
-  else
-    DEM = param.surf_extract.DEM;
-    R = param.surf_extract.R;
-  end
+  [DEM, R, tmp] = geotiffread(param.surf_extract.geotiff_fn);
 
   DEM_x = R(3,1) + R(2,1)*(0:size(DEM,2)-1);
   DEM_y = R(3,2) + R(1,2)*(0:size(DEM,1)-1);
