@@ -322,7 +322,10 @@ mexFunction( int nlhs,
 
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> e403d46744850bbdf7f57da0357b78afff52c322
   unsigned char fs1;
   unsigned char fs2;
   unsigned char fs3;
@@ -341,9 +344,14 @@ mexFunction( int nlhs,
     fs2 = (frame_sync >> 8) % 256;
     fs1 = frame_sync % 256;
   }
+<<<<<<< HEAD
 
   //mexPrintf("%u\n", frame_sync); // DEBUG
   //mexPrintf("%x %x %x %x\n", fs1, fs2, fs3, fs4); // DEBUG
+=======
+  //printf("%u\n", frame_sync);
+  //printf("%x %x %x %x\n", fs1, fs2, fs3, fs4);
+>>>>>>> e403d46744850bbdf7f57da0357b78afff52c322
   mwSize offset_idx = 0;
 
   for (ptrdiff_t idx = 0; idx < file_size-min_complete_record_size; idx++)
@@ -407,6 +415,7 @@ mexFunction( int nlhs,
     ptrdiff_t field_offset = ((unsigned int *)mxGetPr(prhs[2]))[out_idx];
 
     if (swap_bytes)
+<<<<<<< HEAD
     {
       for (ptrdiff_t idx = 0; idx < num_records; idx++)
       {
@@ -447,6 +456,48 @@ mexFunction( int nlhs,
     else
     {
       for (ptrdiff_t idx = 0; idx < num_records; idx++)
+=======
+    {
+      for (ptrdiff_t idx = 0; idx < offset_idx; idx++)
+      {
+        switch (class_type_ID)  {
+          case mxINT8_CLASS:
+            ((char*)outvar)[idx] = ((char*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxUINT8_CLASS:
+            ((unsigned char*)outvar)[idx] = ((unsigned char*)(data + offset[idx] + field_offset))[0];
+            break;
+          case mxINT16_CLASS:
+            ((short*)outvar)[idx] = swap_bytes_16bit(((short*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxUINT16_CLASS:
+            ((unsigned short*)outvar)[idx] = swap_bytes_16bit(((unsigned short*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxINT32_CLASS:
+            ((int*)outvar)[idx] = swap_bytes_32bit(((int*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxUINT32_CLASS:
+            ((unsigned int*)outvar)[idx] = swap_bytes_32bit(((unsigned int*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxINT64_CLASS:
+            ((long long*)outvar)[idx] = swap_bytes_64bit(((long long*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxUINT64_CLASS:
+            ((unsigned long long*)outvar)[idx] = swap_bytes_64bit(((unsigned long long*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxSINGLE_CLASS:
+            ((float*)outvar)[idx] = (float)swap_bytes_32bit((int)((float*)(data + offset[idx] + field_offset))[0]);
+            break;
+          case mxDOUBLE_CLASS:
+            ((double*)outvar)[idx] = (double)swap_bytes_64bit((long long)((double*)(data + offset[idx] + field_offset))[0]);
+            break;
+        }
+      }
+    }
+    else
+    {
+      for (ptrdiff_t idx = 0; idx < offset_idx; idx++)
+>>>>>>> e403d46744850bbdf7f57da0357b78afff52c322
       {
         switch (class_type_ID)  {
           case mxINT8_CLASS:

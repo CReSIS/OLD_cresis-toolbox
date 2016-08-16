@@ -77,8 +77,12 @@ for adc_idx = 1:length(adcs)
     fns = fns(sorted_idxs);
   end
   
+<<<<<<< HEAD
   struct(hdr_param,'file_mode','ieee-be');
   %% Setup the header information for this radar
+=======
+  hdr_param = struct('file_mode','ieee-be')
+>>>>>>> e403d46744850bbdf7f57da0357b78afff52c322
   if any(strcmpi(param.radar_name,{'accum'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([4 8 12]); % epri seconds fractions
