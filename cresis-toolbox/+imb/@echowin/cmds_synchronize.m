@@ -13,9 +13,9 @@ obj.cmds_execute(cmds_list,cmds_direction);
 % Check to see if any modifications have been done relative to the last
 % save.
 if obj.undo_stack.ismodified()
-  set(obj.left_panel.savePB,'String','Save Layer*');
+  set(obj.left_panel.savePB,'String','(S)ave Layer*');
 else
-  set(obj.left_panel.savePB,'String','Save Layer');
+  set(obj.left_panel.savePB,'String','(S)ave Layer');
 end
 
 return;

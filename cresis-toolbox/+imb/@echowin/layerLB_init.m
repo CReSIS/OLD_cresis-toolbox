@@ -81,12 +81,14 @@ for idx = 1:obj.left_panel.layer_panel.MAX_ROW
   %----All enabled on initialization
   cbox = uicontrol('Parent',obj.left_panel.layer_panel.handle);
   set(cbox,'Style','checkbox');
+  set(cbox,'TooltipString','Set visibility');
   set(cbox,'Callback',@obj.layerLB_check_callback);
   
   %----EDITING radio button
   %----All disabled on initialization
   rbut = uicontrol('Parent',obj.left_panel.layer_panel.handle);
   set(rbut,'Style','radiobutton');
+  set(rbut,'TooltipString','Set active layer');
   set(rbut,'Callback',@obj.layerLB_radio_callback);
   
   % create table

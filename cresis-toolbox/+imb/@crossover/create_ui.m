@@ -93,9 +93,10 @@ set(obj.h_gui.qualityText,'Style','Text');
 set(obj.h_gui.qualityText,'String','Quality');
       
 obj.h_gui.qualityLE = uicontrol('Parent',obj.h_fig);
-set(obj.h_gui.qualityText,'Style','Edit');
-set(obj.h_gui.qualityText,'String','[1 2 3]');
-set(obj.h_gui.qualityText,'Callback',@obj.update_callback);
+set(obj.h_gui.qualityLE,'Style','Edit');
+set(obj.h_gui.qualityLE,'String','[1 2 3]');
+set(obj.h_gui.qualityLE,'Callback',@obj.update_callback);
+set(obj.h_gui.qualityLE,'TooltipString','List quality levels to show');
 
 %% Create GUI Table
 obj.h_gui.table.ui = obj.h_fig;
