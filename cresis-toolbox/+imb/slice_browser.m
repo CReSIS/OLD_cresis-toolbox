@@ -516,7 +516,7 @@ classdef slice_browser < handle
               obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.redo.x), ...
                 cmds_list{cmd_idx}{subcmd_idx}.redo.slice) ...
                 = cmds_list{cmd_idx}{subcmd_idx}.redo.y;
-              obj.slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
+%               obj.slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
             end
           end
         end
@@ -528,7 +528,7 @@ classdef slice_browser < handle
               obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.undo.x), ...
                 cmds_list{cmd_idx}{subcmd_idx}.undo.slice) ...
                 = cmds_list{cmd_idx}{subcmd_idx}.undo.y;
-              obj.slice = cmds_list{cmd_idx}{subcmd_idx}.undo.slice;
+%               obj.slice = cmds_list{cmd_idx}{subcmd_idx}.undo.slice;
             end
           end
         end
@@ -958,6 +958,7 @@ classdef slice_browser < handle
     end
     
     function save(obj)
+      fprintf('Saving surface data...\n');
       layer = obj.layer;
       save(obj.layer_fn,'layer')
       if ~isempty(obj.save_callback)
