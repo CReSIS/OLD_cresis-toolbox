@@ -1,7 +1,7 @@
 % script imb.run_slice_browser
 %
 % Author: Elijah Paden, John Paden
-close all
+
 % mdata = [];
 if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   
@@ -79,7 +79,7 @@ end
 
 %% Call slice_browser
 try; delete(obj); end;
-h_control_fig = figure(1); clf;
+h_control_fig = figure();
 h_control_axes = axes('Parent',h_control_fig);
 h_control_image = imagesc(lp(squeeze(mdata.Topography.img(:,33,:))),'Parent',h_control_axes);
 colormap(parula(256))
@@ -106,6 +106,14 @@ custom_data.ice_mask = mdata.ice_mask;
 custom_data.bottom = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
 detect_tool.set_custom_data(custom_data);
 obj.insert_tool(detect_tool);
+
+try; delete(threshold_tool); end;
+threshold_tool = imb.slicetool_threshold();
+custom_data.ice_mask = mdata.ice_mask;
+custom_data.mdata = mdata;
+custom_data.sb = obj;
+threshold_tool.set_custom_data(custom_data);
+obj.insert_tool(threshold_tool);
 
 try; delete(extract_tool); end;
 extract_tool = imb.slicetool_extract();
