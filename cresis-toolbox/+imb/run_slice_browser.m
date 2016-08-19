@@ -5,8 +5,8 @@
 % mdata = [];
 if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   
-  mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_039.mat');
-% mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_044_old.mat');
+% mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_039.mat');
+  mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_044_old.mat');
   mdata.ice_mask = logical(mdata.ice_mask);
   
   %% Save layer data into a file
@@ -104,7 +104,9 @@ obj.insert_tool(detect_tool);
 try; delete(threshold_tool); end;
 threshold_tool = imb.slicetool_threshold();
 custom_data.ice_mask = mdata.ice_mask;
-custom_data.mdata = mdata;
+custom_data.theta = mdata.param_combine.array_param.theta;
+custom_data.img = mdata.Topography.img;
+custom_data.Time = mdata.Time;
 custom_data.sb = obj;
 threshold_tool.set_custom_data(custom_data);
 obj.insert_tool(threshold_tool);
