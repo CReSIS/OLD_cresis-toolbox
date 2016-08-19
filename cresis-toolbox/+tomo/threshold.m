@@ -9,7 +9,7 @@ function twtt_sur_all = threshold(theta, img, Time ,slice)
 % slice: Integer from 1 to Nx (the currect working slice)
 %
 % twtt_sur_all: Two waytravel time (twtt) corresponding to each slice is
-% stored in the respective column. It contains twtt of all the slices. 
+% stored in the respective column. It contains twtt of all the slices.
 %
 % Author: Sravya Athinarapu
 % Example:
@@ -29,18 +29,19 @@ function twtt_sur_all = threshold(theta, img, Time ,slice)
 rline = slice;
 num_pixels_col = length(Time);
 pixel_search = floor(num_pixels_col./6);
- 
+
 % Request User Input
 
 % figure,imagesc([],Time,squeeze(lp(img(:,:,rline))));
 % prompt = 'enter the noise floor limit : \n ';
 % Nfloor_limit = input(prompt);
-% 
+%
 % prompt = 'separation between the surface return and the bottom return(for example 30 or 40 pixels separation) : \n ';
 % separation= input(prompt);
 
- Nfloor_limit =  0.85e-5;
- separation = 40;
+% Nfloor_limit = 0.85e-5;
+Nfloor_limit = 0.63e-5
+separation = 30;
 
 for idx = 1:length(theta)
     
@@ -66,14 +67,14 @@ for idx = 1:length(theta)
             corr = req_pixel.* data_DOA ;
             [req_pixel_both,id_req_pixel_both] = sort(corr,'descend');
             id_req_pixel = id_req_pixel_both(1);
-            if idx <= 4                
+            if idx <= 4
                 index_break =  id_req_pixel_both(min(find(abs(id_req_pixel_both - id_req_pixel)> separation)));
                 id_req_pixel_both_sort = [index_break  id_req_pixel];
                 [id_req_pixel_both_sorted,index] =  sort(id_req_pixel_both_sort,'ascend');
                 req_pixel_both_sorted =req_pixel_both(index);
                 twtt_s = time_DOA(id_req_pixel_both_sorted);
                 twtt_sur(idx) = min(twtt_s);
-            else                
+            else
                 twtt_sur(idx) = time_DOA(id_req_pixel);
             end
         else   % for idx >34
