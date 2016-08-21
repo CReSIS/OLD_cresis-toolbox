@@ -112,7 +112,7 @@ classdef listbox_mask < handle
       set(obj.h_LE,'Style','Edit');
       set(obj.h_LE,'String','.*');
       set(obj.h_LE,'Callback',@obj.list_callback);
-      set(obj.h_LE,'TooltipString','See "help regexpi". "0519" selects all with the string 0519 occuring anywhere, ".*" selects all, "^2012" selects all starting with 2012.');
+      set(obj.h_LE,'TooltipString',sprintf('See "help regexpi".\n  ".*" selects all\n  "0519" selects all with the string 0519 occuring anywhere\n  "^2012" selects all starting with 2012\n  "(?!^2016.*)^.*" selects all besides 2016'));
 
       obj.update_listbox();
     end
