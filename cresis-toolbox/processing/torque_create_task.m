@@ -92,7 +92,7 @@ attempts = 0;
 in_path = fullfile(ctrl.in_path_dir,sprintf('in_%d.mat',job_id));
 while attempts < 3
   try
-    save(in_path,'taskfunction','argsin','num_args_out','param');
+    save(in_path,'taskfunction','argsin','num_args_out','param','-v7.3');
     attempts = -1;
     break;
   catch ME
