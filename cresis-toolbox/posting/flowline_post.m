@@ -116,7 +116,6 @@ mc.thick = mc.thick.';
 mc.bottom = mc.bottom.';
 
 % Create projection structure for the mc_fn netcdf
-clear proj
 proj = [];
 proj.CornerCoords = [];
 proj.Ellipsoid = [];
