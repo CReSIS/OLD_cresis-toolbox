@@ -19,7 +19,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     function obj = slicetool_icemask()
       obj.create_option_ui();
       obj.tool_name = 'Ice Mask';
-      obj.tool_menu_name = '(I)ce Mask';
+      obj.tool_menu_name = {};
       obj.tool_shortcut = 'i';
     end
     
@@ -57,7 +57,14 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       addlistener(obj.ice,'SliceChange',@obj.run_slice_change);
       addlistener(obj.ice,'Undo',@obj.run_sb_undo);
       addlistener(obj.ice,'Redo',@obj.run_sb_redo);
+      
       obj.ice.local_undo_flag = 0;
+      
+      if custom_data.reduce_flag
+        obj.ice.reduce_flag = 1;
+        obj.ice.reduce_DEM();
+      end
+      
     end
     
     function create_option_ui(obj)

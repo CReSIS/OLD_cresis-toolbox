@@ -16,21 +16,12 @@ function collate(param, param_override)
 
 param = merge_structs(param,param_override);
 
-% fn_dir: Directory where 3D image files are at
-fn_dir = ct_filename_out(param,param.surf_extract.out_dir);
-
-if ~isfield(param.records,'records_fn')
-  param.records.records_fn = '';
-end
 if ~isfield(param.records,'frames_fn')
   param.records.frames_fn = '';
 end
 
 % Load frames file
 load(ct_filename_support(param,param.records.frames_fn,'frames'));
-% Load records file
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
-records = load(records_fn);
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
@@ -59,29 +50,54 @@ if 0
   mex -largeArrayDims extract_flag.cpp
 end
 
+%% set up torque
+  
+  task_param = param;
+  
+  if strcmpi(param.sched.type,'custom_torque')
+    global ctrl; % Make this global for convenience in debugging
+    ctrl = torque_new_batch(param);
+    fprintf('Torque batch: %s\n', ctrl.batch_dir);
+    torque_compile('tomo_collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
+  end
+
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
-
-  % Load Data
-  fprintf('Loading frame data...\n');
-  mdata = {};
-  for img=1:3
-    fn = fullfile(fn_dir,sprintf('Data_img_%02.0f_%s_%03.0f.mat',img, ...
-      param.day_seg,frm));
-    mdata{img} = load(fn);
-    mdata{img}.frm = frm;
+  
+  task_param.frm = frm;
+  
+  arg{1} = task_param;
+  
+  fh = @tomo_collate_task;
+  
+  if strcmp(param.sched.type,'custom_torque')
+    create_task_param.conforming = true;
+    create_task_param.notes = sprintf('%s_%03d (%d of %d)', ...
+        param.day_seg, frm, frm_idx, length(param.cmd.frms));
+    ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
+  else
+    tomo_collate_task(task_param);
   end
   
-  if param.surf_extract.add_layers_flag
-    mdata = tomo.data_loader_prep(param,mdata);
+end
+  
+if strcmpi(param.sched.type,'custom_torque')
+  % Wait until all submitted jobs to complete
+  ctrl = torque_rerun(ctrl);
+  if ~all(ctrl.error_mask == 0)
+    if ctrl.sched.stop_on_fail
+      torque_cleanup(ctrl);
+      error('Not all jobs completed, but out of retries (%s)', datestr(now));
+    else
+      warning('Not all jobs completed, but out of retries (%s)', datestr(now));
+      keyboard;
+    end
+  else
+    fprintf('Jobs completed (%s)\n\n', datestr(now));
   end
   
-  if param.surf_extract.ice_twtt_flag
-    mdata = tomo.DEM_alignment(param,mdata);
-  end
-    
-  if param.surf_extract.extract_flag
-    mdata_combined = tomo.surface_extractor(param,mdata);
-  end
+% Test files?
+  torque_cleanup(ctrl);
+end
   
 end
