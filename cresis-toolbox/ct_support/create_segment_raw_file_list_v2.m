@@ -67,8 +67,10 @@ for adc_idx = 1:length(adcs)
     basenames = {};
     file_idxs = [];
     new_fns = {};
+    finfo_param.hnum = 1;
+    finfo_param.file_version = param.file_version;
     for fidx = 1:length(fns)
-      fname = fname_info_acords(fns{fidx});
+      fname = fname_info_acords(fns{fidx},finfo_param);
       new_fns{fidx} = [fname.basename sprintf('.%03d',fname.file_idx)];
     end
     [new_fns,sorted_idxs] = sort(new_fns);
@@ -206,14 +208,13 @@ for adc_idx = 1:length(adcs)
             wfs{2}.elem_slots(hidx,:) = [hdr(hidx).elem_1 hdr(hidx).elem_2 hdr(hidx).elem_3 hdr(hidx).elem_4];
             wfs{1}.blank(hidx) = hdr(hidx).rx_blank_end;
             wfs{1}.adc_gains(hidx,:) = 10.^((44-hdr(hidx).low_gain_atten).*ones(1,hdr(hidx).num_elem+1)./20);
-            wfs{1}.adc_gains(hidx,:);
             wfs{2}.blank(hidx) = hdr(hidx).hg_blank_end;
             wfs{2}.adc_gains(hidx,:) = 10.^((80-hdr(hidx).high_gain_atten).*ones(1,hdr(hidx).num_elem+1)./20);
           elseif param.file_version == 405
             wfs{1}.blank(hidx) = hdr(hidx).rx_blank_end;
-            wfs{1}.adc_gains(hidx,:) = 10.^(hdr(hidx).low_gain_atten./20);
+            wfs{1}.adc_gains(hidx,:) = 10.^(44-hdr(hidx).low_gain_atten./20);
             wfs{2}.blank(hidx) = hdr(hidx).hg_blank_end;
-            wfs{2}.adc_gains(hidx,:) = 10.^(hdr(hidx).high_gain_atten./20);
+            wfs{2}.adc_gains(hidx,:) = 10.^(80-hdr(hidx).high_gain_atten./20);
           end
         end
       elseif strcmp(param.radar_name,'mcords')
@@ -290,11 +291,9 @@ for adc_idx = 1:length(adcs)
       seconds = [];
       % Get header timestamps and offsets
       [hdr htime hoffset] = basic_load_acords(fn,struct('datatype',0,'file_version',param.file_version,'verbose',0));
-      htime = htime - datenum_to_epoch(datenum(str2num(day_string(1:4)),str2num(day_string(5:6)),str2num(day_string(7:8)),0,0,0));
       raw_file_time = htime(1);
       % Get data records timestamps and offsets
-      [data ftime offset] = basic_load_acords(fn,struct('datatype',2,'file_version',param.file_version,'verbose',0));
-      seconds = ftime - datenum_to_epoch(datenum(str2num(day_string(1:4)),str2num(day_string(5:6)),str2num(day_string(7:8)),0,0,0)); % seconds + 1e-6 * useconds
+      [data seconds offset] = basic_load_acords(fn,struct('datatype',2,'file_version',param.file_version,'verbose',0));
       fractions = zeros(size(seconds));
       save(tmp_hdr_fn,'offset','seconds','hdr','hoffset','htime','wfs','raw_file_time');
       
@@ -505,8 +504,10 @@ if any(strcmpi(param.radar_name,{'acords'}))
   basenames = {};
   file_idxs = [];
   new_fns = {};
+  finfo_param.hnum = 1;
+  finfo_param.file_version = param.file_version;
   for fidx = 1:length(fns)
-    fname = fname_info_acords(fns{fidx});
+    fname = fname_info_acords(fns{fidx},finfo_param);
     new_fns{fidx} = [fname.basename sprintf('.%03d',fname.file_idx)];
   end
   [new_fns,sorted_idxs] = sort(new_fns);
@@ -692,8 +693,9 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
   plot(time_gaps, utc_time_sod(time_gaps),'ro');
   hold off;
 elseif any(strcmpi(param.radar_name,{'acords'}))
-%   utc_time_sod = seconds - datenum_to_epoch(datenum(str2num(day_string(1:4)),str2num(day_string(5:6)),str2num(day_string(7:8)),0,0,0));
-  utc_time_sod = seconds;
+  utc_time_sod = seconds; % this is actually comp_time but doesn't need to 
+  % be converted to actual utc_time_sod since it's only looking at gaps in 
+  % the data
 
   day_wrap_idxs = find(diff(utc_time_sod) < -50000);
   day_wrap_offset = zeros(size(utc_time_sod));
@@ -928,10 +930,23 @@ if any(strcmpi(param.radar_name,{'acords'}))
   % Print out some results that can be copied and pasted easily
   fprintf('\n')
   for seg_idx = 1:length(segments)
-    [hdr htime hoffset] = basic_load_acords(sprintf('%s/%s/%s.%d',base_dir,param.adc_folder_name,file_prefix_override,segments(seg_idx).start_idx-1),struct('datatype',0,'file_version',param.file_version,'verbose',0));
-    fprintf('%s\t%02d\t%e\t%d\t12\t1\t2\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1 1 1 1]\t[%d %d %d %d]\t10.^((44-%d*ones(1,4))/20)\t[0 0 0 0]\t[0 0 0 0]\t[0 0 0 0]/1e9\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1 1 1 1]\t[%d %d %d %d]\t10.^((80-%d*ones(1,4))/20)\t[0 0 0 0]\t[0 0 0 0]\t[0 0 0 0]/1e9\n',...
-      day_string,seg_idx,hdr(1).daq_clk,hdr(1).prf,hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).elem_1+1,hdr(1).elem_2+1,hdr(1).elem_3+1,hdr(1).elem_4+1,hdr(1).low_gain_atten,...
-      hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).elem_1+1,hdr(1).elem_2+1,hdr(1).elem_3+1,hdr(1).elem_4+1,hdr(1).high_gain_atten);
+%     [hdr htime hoffset] = basic_load_acords(sprintf('%s/%s/%s.%d',base_dir,adc_folder_name,file_prefix_override,segments(seg_idx).start_idx-1),struct('datatype',0,'file_version',param.file_version,'verbose',0));
+    [hdr htime hoffset] = basic_load_acords(fns{segments(seg_idx).start_idx},struct('datatype',0,'file_version',param.file_version,'verbose',0));
+    if param.file_version == 406
+      if hdr(1).num_elem == 0
+        fprintf('%s\t%02d\t%e\t%d\t12\t1\t2\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1]\t[%d %d %d %d]\t10.^((44-%d*ones(1,1))/20)\t[0]\t[0]\t[0]/1e9\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1]\t[%d %d %d %d]\t10.^((80-%d*ones(1,1))/20)\t[0]\t[0]\t[0]/1e9\n',...
+        day_string,seg_idx,hdr(1).daq_clk,hdr(1).prf,hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).elem_1+1,hdr(1).elem_2+1,hdr(1).elem_3+1,hdr(1).elem_4+1,hdr(1).low_gain_atten,...
+        hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).elem_1+1,hdr(1).elem_2+1,hdr(1).elem_3+1,hdr(1).elem_4+1,hdr(1).high_gain_atten);
+      else
+        fprintf('%s\t%02d\t%e\t%d\t12\t1\t2\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1 1 1 1]\t[%d %d %d %d]\t10.^((44-%d*ones(1,4))/20)\t[0 0 0 0]\t[0 0 0 0]\t[0 0 0 0]/1e9\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1 1 1 1]\t[%d %d %d %d]\t10.^((80-%d*ones(1,4))/20)\t[0 0 0 0]\t[0 0 0 0]\t[0 0 0 0]/1e9\n',...
+        day_string,seg_idx,hdr(1).daq_clk,hdr(1).prf,hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).elem_1+1,hdr(1).elem_2+1,hdr(1).elem_3+1,hdr(1).elem_4+1,hdr(1).low_gain_atten,...
+        hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).elem_1+1,hdr(1).elem_2+1,hdr(1).elem_3+1,hdr(1).elem_4+1,hdr(1).high_gain_atten);
+      end
+    elseif param.file_version == 405
+      fprintf('%s\t%02d\t%e\t%d\t12\t1\t2\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1]\t[1]\t10.^((44-%d*ones(1,1))/20)\t[0]\t[0]\t[0]/1e9\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1]\t[1]\t10.^((80-%d*ones(1,1))/20)\t[0]\t[0]\t[0]/1e9\n',...
+        day_string,seg_idx,hdr(1).daq_clk,hdr(1).prf,hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).low_gain_atten,...
+        hdr(1).tpd,hdr(1).f0,hdr(1).f1,hdr(1).high_gain_atten);
+    end
   end
 end
 

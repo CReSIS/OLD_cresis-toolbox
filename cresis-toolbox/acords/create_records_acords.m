@@ -140,6 +140,10 @@ for file_idx = 1:length(file_idxs)
   
   [~,fn_name,ext] = fileparts(fn);
   
+  if strcmp(fn_name,'nov18')
+    fn_name = 'nov18_04';
+  end
+  
   %     if isfield(param.records,'tmp_fn_uses_adc_folder_name') && param.records.tmp_fn_uses_adc_folder_name
   tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
     fullfile(adc_folder_name, [fn_name ext '.mat']));

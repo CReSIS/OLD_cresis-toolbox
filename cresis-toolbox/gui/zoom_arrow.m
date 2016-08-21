@@ -72,6 +72,6 @@ if ~isempty(event.Key)
   if ylims(2) > param.ylims(2)
     ylims = param.ylims(2) + [-y_extent 0];
   end
-  xlim(xlims);
-  ylim(ylims);
+  xlim(param.h_axes,xlims);
+  ylim(param.h_axes,ylims);
 end

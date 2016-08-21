@@ -1,5 +1,5 @@
 function create_posting(param, param_override)
-% create_posting(param)
+% create_posting(param, param_override)
 %
 % Generalized function for posting data. Should be called from
 % run_create_posting.

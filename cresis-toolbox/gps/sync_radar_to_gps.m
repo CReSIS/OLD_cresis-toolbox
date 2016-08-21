@@ -87,6 +87,15 @@ if any(strcmpi(param.radar_name,{'mcrds','accum2'}))
   
   %% DO NOT Apply GPS sync correction to radar time (this is done already
   % in create_records for these radars)
+elseif any(strcmpi(param.radar_name,{'acords'}))
+  comp_time = radar_time;
+  guard_time = 0;
+  good_idxs = find(gps.comp_time >= comp_time(1)-guard_time ...
+    & gps.comp_time <= comp_time(end)+guard_time);
+  good_comp_time = gps.comp_time(good_idxs);
+  good_sync_gps_time = gps.sync_gps_time(good_idxs);
+  radar_gps_time = interp1(good_comp_time, good_sync_gps_time, ...
+      comp_time,'linear','extrap');
   
 elseif any(strcmpi(param.radar_name,{'icards'}))% there's a minor inacurracy (1e-7)of first
   % when read the csv file. This may cause radar_gps_time start earlier than gps.gps_time(first file)
@@ -179,7 +188,7 @@ if any(isnan(my_struct.gps_time))
 end
 if nan_detected
   warning('NaN found in GPS data');
-  if any(strcmpi(param.radar_name,{'mcrds','accum2'}))
+  if any(strcmpi(param.radar_name,{'acords','mcrds','accum2'}))
     fprintf('GPS COMP TIME: %s to %s\n', datestr(epoch_to_datenum(gps.comp_time(1))), datestr(epoch_to_datenum(gps.comp_time(end))));
     fprintf('RADAR COMP TIME: %s to %s\n', datestr(epoch_to_datenum(comp_time(1))), datestr(epoch_to_datenum(comp_time(end))));
   else

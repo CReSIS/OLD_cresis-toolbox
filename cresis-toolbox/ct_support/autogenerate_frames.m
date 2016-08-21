@@ -44,7 +44,7 @@ param = merge_structs(param, param_override);
 fprintf('  autogenerate_frames %s\n', param.day_seg);
 fprintf('==============================================\n\n');
 
-if any(strcmpi(param.radar_name,{'icards','mcords','mcrds','mcords2','mcords3','mcords4','mcords5'}))
+if any(strcmpi(param.radar_name,{'icards','acords','mcords','mcrds','mcords2','mcords3','mcords4','mcords5'}))
   frame_length = 50000;
 elseif any(strcmpi(param.radar_name,{'accum','accum2'}))
   frame_length = 20000;

@@ -182,6 +182,15 @@ else
   if length(old_frame_idxs) == length(desire_frame_idxs) ...
       && all(old_frame_idxs == desire_frame_idxs)
     % No frames changed
+    % Update echogram surface if there are enough good points from OPS
+    % Find good surface points
+    good_mask = ~isnan(obj.eg.layer.y{obj.eg.layer_id==1});
+    if sum(good_mask) > 2
+      % There are surface layer points in the database, overwrite the surface
+      % with these
+      obj.eg.surface = interp1(obj.eg.map_gps_time(good_mask),obj.eg.layer.y{obj.eg.layer_id==1}(good_mask),obj.eg.gps_time);
+      obj.eg.surface = interp_finite(obj.eg.surface,0);
+    end
     obj.plot_echogram(x_min,x_max,y_min,y_max);
     obj.plot_layers();
     obj.plot_cursors();

@@ -1,5 +1,5 @@
 function clip_and_resample_image(h_img,h_axes,max_size_MB)
-% downsize_image(h_img,max_size_MB)
+% downsize_image(h_img,h_axes,max_size_MB)
 %
 % Pass in an image and axes handle and the maximum memory size for the
 % final product.

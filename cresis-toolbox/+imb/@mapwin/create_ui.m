@@ -109,29 +109,34 @@ else
   set(obj.top_panel.searchTB,'FontSize',8);
 end
 set(obj.top_panel.searchTB,'Callback',@obj.search_callback);
+set(obj.top_panel.searchTB,'TooltipString','Enter frame ID to search for here');
 
 %----search push buttion
 obj.top_panel.searchPB = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.searchPB,'Style','PushButton');
 set(obj.top_panel.searchPB,'String','Search');
 set(obj.top_panel.searchPB,'Callback',@obj.search_callback);
+set(obj.top_panel.searchPB,'TooltipString','Search database for frame ID');
 
 %----preference push button
 obj.top_panel.preferencePB = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.preferencePB,'Style','PushButton');
 set(obj.top_panel.preferencePB,'String','Prefs');
 set(obj.top_panel.preferencePB,'Callback',@obj.prefPB_callback);
+set(obj.top_panel.preferencePB,'TooltipString','Open preference window');
 
 %----Track checkbox
 obj.top_panel.trackCB = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.trackCB,'Style','CheckBox');
 set(obj.top_panel.trackCB,'String','Track Echogram');
 set(obj.top_panel.trackCB,'Value',true);
+set(obj.top_panel.trackCB,'TooltipString','Map tracks movement in echogram');
 
 %---- flight label 
 obj.top_panel.flightLabel = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.flightLabel,'Style','text');
 set(obj.top_panel.flightLabel,'String','');
+set(obj.top_panel.flightLabel,'TooltipString','Selected frame ID');
 obj.top_panel.flightCM = uicontextmenu('Parent',obj.h_fig);
 % Define the context menu items and install their callbacks
 uimenu(obj.top_panel.flightCM, 'Label', 'Copy', 'Callback', @obj.flightCM_callback);
@@ -144,12 +149,14 @@ set(obj.top_panel.picker_windowPM,'Value',1);
 set(obj.top_panel.picker_windowPM,'Style','popupmenu');
 set(obj.top_panel.picker_windowPM,'HorizontalAlignment','Center');
 set(obj.top_panel.picker_windowPM,'FontName','fixed');
+set(obj.top_panel.picker_windowPM,'TooltipString','Specify window to load echogram into');
 
 %----load push button
 obj.top_panel.loadPB = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.loadPB,'Style','PushButton');
-set(obj.top_panel.loadPB,'String','load'); 
+set(obj.top_panel.loadPB,'String','Load'); 
 set(obj.top_panel.loadPB,'Callback',@obj.loadPB_callback);
+set(obj.top_panel.loadPB,'TooltipString','Load selected echogram'); 
 
 
 %==========================================================================

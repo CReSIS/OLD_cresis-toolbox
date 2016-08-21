@@ -103,7 +103,7 @@ if ~isfield(proc_param,'wf_adc_comb')
   proc_param.wf_adc_comb.en = 0;
 end
 
-if any(strcmpi(param.radar_name,{'acords'}))
+if param.records.file_version == 406 % ACORDS ver 2
   sample_size = 4;
 else
   sample_size = 2;
@@ -128,7 +128,12 @@ if any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','
   end
   if ~wfs(wf).DDC_mode
     % Real data
-    rec_data_size = wf_num_sam(wf)*sample_size;
+    if any(strcmpi(param.radar_name,{'acords'}))
+      num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
+      rec_data_size = wf_num_sam(wf)*num_elem*sample_size;
+    else
+      rec_data_size = wf_num_sam(wf)*sample_size;
+    end
   else
     % Complex data
     rec_data_size = 2*wf_num_sam(wf)*sample_size;
@@ -143,8 +148,14 @@ if any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','
     
     if ~wfs(wf).DDC_mode
       % Real data
-      wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
-      rec_data_size = rec_data_size + wf_num_sam(wf)*sample_size;
+      if any(strcmpi(param.radar_name,{'acords'}))
+        num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
+        wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
+        rec_data_size = rec_data_size + wf_num_sam(wf)*num_elem*sample_size;
+      else
+        wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
+        rec_data_size = rec_data_size + wf_num_sam(wf)*sample_size;
+      end
     else
       % Complex data
       wf_offsets(wf) = wf_offsets(wf-1) + 2*wf_num_sam(wf-1)*sample_size;
@@ -200,9 +211,11 @@ for wf = 1:length(param.radar.wfs)
     settings.wfs(wf).daq_clk = settings.wfs(1).wfs(wf).daq_clk(1);
     settings.wfs(wf).Tpd = settings.wfs(1).wfs(wf).Tpd(1);
     settings.wfs(wf).tx_win = settings.wfs(1).wfs(wf).tx_win(1);
-    settings.wfs(wf).elem_slots = settings.wfs(1).wfs(wf).elem_slots(1,:);
     settings.wfs(wf).blank = settings.wfs(1).wfs(wf).blank(1);
     settings.wfs(wf).adc_gains = settings.wfs(1).wfs(wf).adc_gains(1,:);
+    if param.records.file_version == 406
+      settings.wfs(wf).elem_slots = settings.wfs(1).wfs(wf).elem_slots(1,:);
+    end
   end
   
   wfs(wf).Tpd     = param.radar.wfs(wf).Tpd;

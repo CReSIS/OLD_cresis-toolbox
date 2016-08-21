@@ -82,16 +82,18 @@ function [data, time] = load_acords_data(param)
 %
 % See also get_heights.m, csarp.m
 
-if param.load.file_version == 405
+if param.load.file_version == 406
   HEADER_SIZE = 124;
-elseif param.load.file_version == 406
+  sample_size = 4;
+elseif param.load.file_version == 405
   HEADER_SIZE = 104;
+  sample_size = 2;
 end
-% This is a hack to deal with data multiplexed in hardware.  Should be
-% improved, maybe with new file_version.
-if sum(param.radar.wfs(1).tx_weights) == 1
-  param.load.rec_data_size = param.load.rec_data_size/4;
-end
+% % This is a hack to deal with data multiplexed in hardware.  Should be
+% % improved, maybe with new file_version.
+% if length(param.radar.wfs(1).tx_weights) > 1 && param.radar.wfs(1).tx_weights(5) == 0
+%   param.load.rec_data_size = param.load.rec_data_size/4;
+% end
 
 global g_data;
 wfs = param.wfs;
@@ -181,9 +183,14 @@ while rec < total_rec;
   fseek(fid,param.load.offset(rec),-1);
   
   % Load in records
-  [rec_data num_items] = fread(fid,[param.load.rec_data_size num_rec], ...
-    sprintf('%d*uint32=>single',param.load.rec_data_size),12);
-  if num_items/param.load.rec_data_size ~= num_rec
+  if param.load.file_version == 406
+    [rec_data num_items] = fread(fid,[param.load.rec_data_size/sample_size num_rec], ...
+      sprintf('%d*uint32=>single',param.load.rec_data_size/sample_size),12);
+  elseif param.load.file_version == 405
+    [rec_data num_items] = fread(fid,[param.load.rec_data_size/sample_size num_rec], ...
+      sprintf('%d*uint16=>single',param.load.rec_data_size/sample_size),12);
+  end
+  if num_items/(param.load.rec_data_size/sample_size) ~= num_rec
     error('Read or calc error');
   end
   
@@ -201,7 +208,7 @@ while rec < total_rec;
 
 %       num_elem = length(wfs(wf).tx_weights);
       num_elem = length(find(wfs(wf).tx_weights) ~= 0);
-      num_samp = param.load.rec_data_size/num_elem;
+      num_samp = param.load.rec_data_size/sample_size/num_elem;
       tmp = rec_data(wf+num_samp*(adc-1):2:num_samp*adc,rec-init_rec+1);
       tmp(1) = 0;
       % Convert to volts

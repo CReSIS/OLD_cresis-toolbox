@@ -42,9 +42,13 @@ while first_run || abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_e
     init_EPRI_estimate = mean(EPRI_estimates(abs(EPRI_estimates-init_EPRI_estimate_median) < init_EPRI_estimate_median/2));
     
     if abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_estimate_median <= 2e-4
-      fprintf('Probably some 1 PPS errors??? If that is the case, then type "finish = 1" and "dbcont"\n');
+      warning('There could be 1 PPS error or jumps in UTC time that do not match jumps in EPRI that are causing the mean and median EPRI estimates to not match. If that is the case, then type "finish = 1" and "dbcont"\n');
       figure(1); clf;
       plot(first_file.utc_time_sod);
+      xlabel('Records');
+      ylabel('UTC time SOD (sec)');
+      grid on;
+      title('These time stamps should usually be a line with no discontinuities');
       finish = 0;
       keyboard
       if finish == 1

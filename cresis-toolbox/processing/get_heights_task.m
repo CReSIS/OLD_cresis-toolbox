@@ -178,7 +178,7 @@ if abs(sum(param.get_heights.B_filter)-1) > 1e4*eps
 end
 
 if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B_filter)
-  param.get_heights.inc_B_filter = ones(1,param.get_heights.inc_ave) / param.get_heights.inc_ave;
+  param.get_heights.inc_B_filter = 1;
 end
 if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
   warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
@@ -676,8 +676,25 @@ for img_idx = 1:length(param.load.imgs)
   deconv_filter_idx = deconv_filter_idx(:,recs_keep);
   
   %% Remove coherent noise
-  if param.get_heights.coh_noise_method == 1 && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
-    g_data = bsxfun(@minus, g_data, mean(g_data,2));
+  if param.get_heights.coh_noise_method && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
+    
+    if param.get_heights.coh_noise_method == 3 && isempty(param.get_heights.coh_noise_arg)
+      param.get_heights.coh_noise_arg = 255;
+    end
+    
+    % Remove only the DC Doppler component
+    for wf_adc_idx = 1:size(g_data,3)
+      if param.get_heights.coh_noise_method == 1
+        g_data(:,:,wf_adc_idx) = bsxfun(@minus, g_data(:,:,wf_adc_idx), ...
+          mean(g_data(:,:,wf_adc_idx),2));
+      elseif param.get_heights.coh_noise_method == 3
+        g_data(:,:,wf_adc_idx) = bsxfun(@minus, g_data(:,:,wf_adc_idx), ...
+          fir_dec(g_data(:,:,wf_adc_idx),hanning(param.get_heights.coh_noise_arg).'/(param.get_heights.coh_noise_arg/2+0.5),1));
+      else
+        error('param.get_heights.coh_noise_method %d not supported.',param.get_heights.coh_noise_method);
+      end
+    end
+    
   end
 
   %% Roll compensation

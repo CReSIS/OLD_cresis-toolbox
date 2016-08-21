@@ -6,6 +6,8 @@
 % Author: John Paden
 error('Copy and paste so that you do not accidently run the code again.')
 
+%% Load data
+% =========================================================================
 sys = 'rds';
 param = [];
 param.properties.location = 'arctic';
@@ -35,21 +37,50 @@ fprintf('Getting points (%s)\n', datestr(now));
 [status,data] = opsGetPointsWithinPolygon(sys,param);
 fprintf('  Done (%s)\n', datestr(now));
 
-tmp = data;% Example for plotting bottom elevationkeep_pnts = ~(strcmpi('2009_Greenland_TO_wise',data.properties.Season.') | isnan(data.properties.Bottom));data.properties.Lat = data.properties.Lat(keep_pnts);data.properties.Lon = data.properties.Lon(keep_pnts);data.properties.Bottom = data.properties.Bottom(keep_pnts);data.properties.Bottom_Quality = data.properties.Bottom_Quality(keep_pnts);data.properties.Elevation = data.properties.Elevation(keep_pnts);return
+%% Example to remove bad data
+if 0
+  keep_pnts = ~(strcmpi('2009_Greenland_TO_wise',data.properties.Season.') | isnan(data.properties.Bottom));
+  data.properties.Lat = data.properties.Lat(keep_pnts);
+  data.properties.Lon = data.properties.Lon(keep_pnts);
+  data.properties.Bottom = data.properties.Bottom(keep_pnts);
+  data.properties.Bottom_Quality = data.properties.Bottom_Quality(keep_pnts);
+  data.properties.Elevation = data.properties.Elevation(keep_pnts);
+end
 
-[data.properties.X,data.properties.Y] = projfwd(proj,data.properties.Lat,data.properties.Lon);figure(3);scatter(data.properties.X(1:10:end)/1e3, data.properties.Y(1:10:end)/1e3, [], data.properties.Elevation(1:10:end) - data.properties.Bottom(1:10:end));axes_elev_only = gca;colorbar;axis normal;figure(1); clf;
+%% Plot data
+% =========================================================================
+
 geotiff_fn = 'X:/GIS_data/greenland/Landsat-7/Greenland_natural_150m.tif';
-[proj,fig_h] = plot_geotiff(geotiff_fn,[],[], 1);
-hold on;
+proj = geotiffinfo(geotiff_fn);
+[data.properties.X,data.properties.Y] = projfwd(proj,data.properties.Lat,data.properties.Lon);
+
+% Scatter plot of bed elevations
+figure(1); clf;
 scatter(data.properties.X(1:10:end)/1e3, data.properties.Y(1:10:end)/1e3, [], data.properties.Elevation(1:10:end) - data.properties.Bottom(1:10:end));
-hold off;
-colorbar;
-axes_elev = gca;
+axes_elev_only = gca;
+h_colorbar = colorbar;
+set(get(h_colorbar,'YLabel'), 'String', 'WGS-84 elevation (m)');
 axis normal;
+xlabel('X (km)');
+ylabel('Y (km)');
+
+% Scatter plot of bed elevations
+h_fig = figure(2); clf;
+[proj,fig_h] = plot_geotiff(geotiff_fn,[],[], h_fig);
+hold on;
+bed_elevation = data.properties.Elevation(1:10:end) - data.properties.Bottom(1:10:end);
+scatter(data.properties.X(1:10:end)/1e3, data.properties.Y(1:10:end)/1e3, [], bed_elevation);
+axes_elev = gca;
+h_colorbar = colorbar;
+caxis([min(bed_elevation(:)) max(bed_elevation(:))]);
+set(get(h_colorbar,'YLabel'), 'String', 'WGS-84 elevation (m)');
+axis normal;
+xlabel('X (km)');
+ylabel('Y (km)');
+
 % Example for plotting quality levels
-figure(2); clf;
-geotiff_fn = 'X:/GIS_data/greenland/Landsat-7/Greenland_natural_150m.tif';
-[proj,fig_h] = plot_geotiff(geotiff_fn,[],[], 2);
+h_fig = figure(3); clf;
+[proj,fig_h] = plot_geotiff(geotiff_fn,[],[], h_fig);
 hold on;
 quality_color = {'g.' 'y.' 'r.'};
 for quality_level = [1 2 3]
@@ -61,14 +92,17 @@ for quality_level = [1 2 3]
     h(quality_level) = plot(X(quality_mask), Y(quality_mask), quality_color{quality_level});
   end
 end
-hold off;
 axes_quality = gca;
 axis normal;
+xlabel('X (km)');
+ylabel('Y (km)');
+legend('Good','Medium','Bad');
+
 linkaxes([axes_elev axes_quality axes_elev_only],'xy');
 
 return;
 
-% Example for getting a data point
+%% Example for getting a data point
 figure(1);
 [x,y] = ginput(1);
 sub_sample_idxs = 1:10:length(data.properties.X);
@@ -77,6 +111,7 @@ dist = sqrt(abs(x - data.properties.X(sub_sample_idxs)/1e3).^2 + abs(y - data.pr
 min_idx = sub_sample_idxs(min_idx);
 fprintf('%s %s\n', data.properties.Season{min_idx}, data.properties.Frame{min_idx})
 
-
-
-saveas(3,'H:\Kanger_bottom_colorbar.jpg')saveas(1,'H:\Kanger_bottom.jpg')saveas(2,'H:\Kanger_quality.jpg')
+%% Example for saving the figures to a file
+saveas(3,'H:\Kanger_bottom_colorbar.jpg');
+saveas(1,'H:\Kanger_bottom.jpg');
+saveas(2,'H:\Kanger_quality.jpg')
