@@ -47,7 +47,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/users/paden/scripts/matlab/';
   profile(pidx).ct_path                   = '/users/paden/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/users/paden/scripts/params/';
+  profile(pidx).param_path                = '/users/paden/scripts/ct_params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -85,7 +85,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/N/u/jpaden/Karst/scripts/matlab/';
   profile(pidx).ct_path                   = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/N/u/jpaden/Karst/scripts/params/';
+  profile(pidx).param_path                = '/N/u/jpaden/Karst/scripts/ct_params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -121,7 +121,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/scratch/scripts/matlab/';
   profile(pidx).ct_path                   = '/scratch/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/scratch/scripts/params/';
+  profile(pidx).param_path                = '/scratch/scripts/ct_params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -154,7 +154,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = 'C:\Users\paden\Documents\scripts\matlab\';
   profile(pidx).ct_path                   = 'C:\Users\paden\Documents\scripts\cresis-toolbox\cresis-toolbox\';
-  profile(pidx).param_path                = 'C:\Users\paden\Documents\scripts\params\';
+  profile(pidx).param_path                = 'C:\Users\paden\Documents\scripts\ct_params\';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -196,7 +196,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = 'C:\Users\paden\Documents\scripts\matlab\';
   profile(pidx).ct_path                   = 'C:\Users\paden\Documents\scripts\cresis-toolbox\cresis-toolbox\';
-  profile(pidx).param_path                = 'C:\Users\paden\Documents\scripts\params\';
+  profile(pidx).param_path                = 'C:\Users\paden\Documents\scripts\ct_params\';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -230,7 +230,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = 'C:\tmp\scripts\matlab\';
   profile(pidx).ct_path                   = 'C:\tmp\scripts\cresis-toolbox\cresis-toolbox\';
-  profile(pidx).param_path                = 'C:\tmp\scripts\params\';
+  profile(pidx).param_path                = 'C:\tmp\scripts\ct_params\';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -262,7 +262,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/home/administrator/scripts/matlab/';
   profile(pidx).ct_path                   = '/home/administrator/scripts/cresis-toolbox/';
-  profile(pidx).param_path                = '/home/administrator/scripts/params/';
+  profile(pidx).param_path                = '/home/administrator/scripts/ct_params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;

@@ -5,8 +5,8 @@ close all;
 % mdata = [];
 if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   
-%   mdata = load('X:/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_039.mat');
   mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_039.mat');
+%     mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_044_old.mat');
   mdata.ice_mask = logical(mdata.ice_mask);
   
   %% Save surf data into a file
@@ -22,7 +22,6 @@ if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   end
   
   theta_cal = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/sv_calibration/rds/2014_Greenland_P3/theta_cal.mat');
-%   theta_cal = load('X:\ct_data\ct_tmp\sv_calibration\rds\2014_Greenland_P3\theta_cal.mat');
   mdata.theta = theta_cal.theta;
   
   mdata.ice_mask = layer(find(strncmp({layer.name},'ice mask',8))).y;
@@ -30,8 +29,8 @@ if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
 %   geotiff_fn = 'X:\GIS_data\canada\Landsat-7\Canada_90m.tif';
   geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/Landsat-7/Canada_90m.tif';
 %   ice_mask_fn = 'X:\GIS_data\canada\ice_mask\03_rgi50_ArcticCanadaNorth\03_rgi50_ArcticCanadaNorth.mat';
-%   ice_mask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat';
-  ice_mask_fn = '~/03_rgi50_ArcticCanadaNorth_2.mat';
+   ice_mask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat';
+%  ice_mask_fn = '~/03_rgi50_ArcticCanadaNorth_2.mat';
   fprintf('Loading geotiff and ice mask\n');
   proj = geotiffinfo(geotiff_fn);
   ice_mask = load(ice_mask_fn);
@@ -39,7 +38,6 @@ if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   fprintf('Done Loading\n');
   
   run_slice_browser_init = true;
-  
 end
 
 %% Call slice_browser
@@ -75,7 +73,9 @@ obj.insert_tool(detect_tool);
 try; delete(threshold_tool); end;
 threshold_tool = imb.slicetool_threshold();
 custom_data.ice_mask = mdata.ice_mask;
-custom_data.mdata = mdata;
+custom_data.theta = mdata.param_combine.array_param.theta;
+custom_data.img = mdata.Topography.img;
+custom_data.Time = mdata.Time;
 custom_data.sb = obj;
 threshold_tool.set_custom_data(custom_data);
 obj.insert_tool(threshold_tool);

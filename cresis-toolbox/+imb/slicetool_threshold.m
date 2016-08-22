@@ -1,10 +1,11 @@
 classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
    
     properties
-        mdata
         sb
         slice
-                                               
+        theta
+        img
+        Time
     end
     
     properties (SetAccess = private, GetAccess = private)
@@ -12,7 +13,6 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
     
     events
     end
-    
     
     methods
         function obj = slicetool_threshold()
@@ -28,10 +28,8 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
             control_idx = sb.layer(sb.layer_idx).control_layer;
             surf_idx = sb.layer(sb.layer_idx).surf_layer;
             rline = sb.slice;
+            twtt_sur_all = tomo.threshold(obj.theta,obj.img, obj.Time,sb.slice);
             
-            
-            twtt_sur_all = tomo.threshold(obj.mdata,sb.slice);
-
             % Create cmd for layer change
             cmd = [];
             cmd{1}.undo.slice = sb.slice;
@@ -41,17 +39,17 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
             cmd{1}.undo.x = 1:size(sb.layer(sb.layer_idx).y,1);
             cmd{1}.undo.y = sb.layer(sb.layer_idx).y(:,sb.slice);
             cmd{1}.redo.x = 1:size(sb.layer(sb.layer_idx).y,1);
-            cmd{1}.redo.y =  interp1(obj.mdata.Time,1:length(obj.mdata.Time),twtt_sur_all(:,sb.slice));     
+            cmd{1}.redo.y =  interp1(obj.Time,1:length(obj.Time),twtt_sur_all(:,sb.slice));
             cmd{1}.type = 'standard';           
             fprintf('Applied Threshold\n');
             
         end
         
         function set_custom_data(obj,custom_data)
-            
             obj.custom_data.ice_mask = custom_data.ice_mask;
-            obj.mdata = custom_data.mdata;
-        
+            obj.theta = custom_data.theta ;
+            obj.img = custom_data.img ;
+            obj.Time = custom_data.Time;
         end
      
         function create_option_ui(obj)
