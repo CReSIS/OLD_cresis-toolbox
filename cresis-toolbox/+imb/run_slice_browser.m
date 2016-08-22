@@ -13,18 +13,18 @@ if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   
   surf_data = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_surfData/20140401_03/Data_20140401_03_039');
 %   surf_data = load('~/surf_data.mat');
-  layer = surf_data.surf;
+  surf = surf_data.surf;
   
   param = [];
   param.layer_fn = '~/surf_data.mat';
   if ~exist(param.layer_fn,'file')
-    save(param.layer_fn,'layer')
+    save(param.layer_fn,'surf')
   end
   
   theta_cal = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/sv_calibration/rds/2014_Greenland_P3/theta_cal.mat');
   mdata.theta = theta_cal.theta;
   
-  mdata.ice_mask = layer(find(strncmp({layer.name},'ice mask',8))).y;
+  mdata.ice_mask = surf(find(strncmp({surf.name},'ice mask',8))).y;
   
 %   geotiff_fn = 'X:\GIS_data\canada\Landsat-7\Canada_90m.tif';
   geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/Landsat-7/Canada_90m.tif';
