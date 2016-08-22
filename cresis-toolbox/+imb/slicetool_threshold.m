@@ -50,7 +50,7 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
         function set_custom_data(obj,custom_data)
             
             obj.custom_data.ice_mask = custom_data.ice_mask;
-            obj.mdata = custom_data.mdata
+            obj.mdata = custom_data.mdata;
         
         end
      

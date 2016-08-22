@@ -1,7 +1,7 @@
 % script imb.run_slice_browser
 %
 % Author: Elijah Paden, John Paden
-
+close all;
 % mdata = [];
 if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   
@@ -12,49 +12,11 @@ if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   %% Save surf data into a file
   
   surf_data = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_surfData/20140401_03/Data_20140401_03_039');
+%   surf_data = load('~/surf_data.mat');
   layer = surf_data.surf;
-  
-%   layer(1).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
-%   layer(1).y = interp1(mdata.Time,1:length(mdata.Time),mdata.twtt);
-  layer(1).plot_name_values = {'color','black','marker','x'};
-%   layer(1).name = 'surface';
-  layer(1).surf_layer = 1;
-  layer(1).active_layer = 1;
-  layer(1).control_layer = 1;
-  layer(1).mask_layer = 3;
-  
-%   layer(2).x =  repmat((1:64).',[1 size(mdata.twtt,2)]);
-%   layer(2).y = mdata.bottom_surface.';
-  layer(2).plot_name_values = {'color','blue','marker','^'};
-%   layer(2).name = 'bottom';
-  layer(2).surf_layer = 1;
-  layer(2).active_layer = 2;
-  layer(2).control_layer = 4;
-  layer(2).mask_layer = 3;
-  
-%   layer(3).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
-%   layer(3).y = mdata.ice_mask;
-  layer(3).plot_name_values = {'color','white','marker','x'};
-%   layer(3).name = 'ice mask';
-  layer(3).surf_layer = 1;
-  layer(3).active_layer = 2;
-  layer(3).control_layer = 4;
-  layer(3).mask_layer = 3;
-  mdata.ice_mask = layer(3).y;
-  
-  layer(4).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
-  layer(4).y = NaN * zeros(size(layer(1).y));
-  layer(4).y(33,:) = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
-  layer(4).plot_name_values = {'color','magenta','marker','+'};
-  layer(4).name = 'Bcontrol';
-  layer(4).surf_layer = 1;
-  layer(4).active_layer = 2;
-  layer(4).control_layer = 4;
-  layer(4).mask_layer = 3;
   
   param = [];
   param.layer_fn = '~/surf_data.mat';
-%   param.layer_fn = 'H:\surf_data.mat';
   if ~exist(param.layer_fn,'file')
     save(param.layer_fn,'layer')
   end
@@ -62,6 +24,9 @@ if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
   theta_cal = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/sv_calibration/rds/2014_Greenland_P3/theta_cal.mat');
 %   theta_cal = load('X:\ct_data\ct_tmp\sv_calibration\rds\2014_Greenland_P3\theta_cal.mat');
   mdata.theta = theta_cal.theta;
+  
+  mdata.ice_mask = layer(find(strncmp({layer.name},'ice mask',8))).y;
+  
 %   geotiff_fn = 'X:\GIS_data\canada\Landsat-7\Canada_90m.tif';
   geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/Landsat-7/Canada_90m.tif';
 %   ice_mask_fn = 'X:\GIS_data\canada\ice_mask\03_rgi50_ArcticCanadaNorth\03_rgi50_ArcticCanadaNorth.mat';
@@ -79,7 +44,7 @@ end
 
 %% Call slice_browser
 try; delete(obj); end;
-h_control_fig = figure();
+h_control_fig = figure(1); clf;
 h_control_axes = axes('Parent',h_control_fig);
 h_control_image = imagesc(lp(squeeze(mdata.Topography.img(:,33,:))),'Parent',h_control_axes);
 colormap(parula(256))

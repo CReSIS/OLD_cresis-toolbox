@@ -2,33 +2,49 @@ function create_surf(param,mdata)
 
   surf = [];
 
-  if isfield(mdata,'twtt')
-    surf = [];
-    surf(1).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
-    surf(1).y = interp1(mdata.Time,1:length(mdata.Time),mdata.twtt);
-    surf(1).name = 'surface';
+  if isfield(mdata,'twtt') && isfield(mdata,'Time')
+    surf(end+1).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
+    surf(end).y = interp1(mdata.Time,1:length(mdata.Time),mdata.twtt);
+    surf(end).plot_name_values = {'color','black','marker','x'};
+    surf(end).name = 'surface';
+    surf(end).surf_layer = 1;
+    surf(end).active_layer = 1;
+    surf(end).mask_layer = 3;
+    surf(end).control_layer = 1;
   end
   
-  if isfield(mdata,'bottom_surface')
-    surf(2).x =  repmat((1:64).',[1 size(mdata.twtt,2)]);
-    surf(2).y = mdata.bottom_surface.';
-    surf(2).name = 'bottom';
+  if isfield(mdata,'bottom_surface') && isfield(mdata,'twtt')
+    surf(end+1).x =  repmat((1:64).',[1 size(mdata.twtt,2)]);
+    surf(end).y = mdata.bottom_surface.';
+    surf(end).plot_name_values = {'color','blue','marker','^'};
+    surf(end).name = 'bottom';
+    surf(end).surf_layer = 1;
+    surf(end).active_layer = 2;
+    surf(end).mask_layer = 3;
+    surf(end).control_layer = 4;
   end
-  
-%   surf(3).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
-%   surf(3).y = NaN * zeros(size(surf(1).y));
-%   surf(3).y(33,:) = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
-%   surf(3).plot_name_values = {'color','magenta','marker','+'};
-%   surf(3).name = 'Bcontrol';
-%   surf(3).surf_surf = 1;
-%   surf(3).active_surf = 2;
-%   surf(3).control_surf = 3;
-%   surf(3).mask_surf = 4;
 
-  if isfield(mdata,'ice_mask')
-    surf(3).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
-    surf(3).y = mdata.ice_mask;
-    surf(3).name = 'ice mask';
+  if isfield(mdata,'ice_mask') && isfield(mdata,'twtt')
+    surf(end+1).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
+    surf(end).y = mdata.ice_mask;
+    surf(end).plot_name_values = {'color','white','marker','x'};
+    surf(end).name = 'ice mask';
+    surf(end).surf_layer = 1;
+    surf(end).active_layer = 2;
+    surf(end).mask_layer = 3;
+    surf(end).control_layer = 4;
+  end
+  
+  if isfield(mdata,'twtt') && isfield(mdata,'Bottom')
+    surf(end+1).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
+    surf(end).y = NaN * zeros(size(surf(1).y));
+    surf(end).y(33,:) = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
+    surf(end).plot_name_values = {'color','magenta','marker','+'};
+    surf(end).name = 'Bcontrol';
+    surf(end).surf_layer = 1;
+    surf(end).active_layer = 2;
+    surf(end).mask_layer = 3;
+    surf(end).control_layer = 4;
   end
     
   if ~isempty(surf)
