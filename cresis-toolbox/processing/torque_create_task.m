@@ -53,6 +53,12 @@ if ~isfield(ctrl.sched,'group_size')
   ctrl.sched.group_size = 1;
 end
 
+%% Check for hold on this batch
+if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
+  % Hold keyboard file exists
+  keyboard
+end
+
 %% Get the new job_id
 if ~isfield(ctrl,'job_id')
   [fid,msg] = fopen(ctrl.job_id_file,'r');
