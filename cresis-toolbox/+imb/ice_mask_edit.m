@@ -2,7 +2,6 @@ classdef ice_mask_edit < handle
   
   properties
     
-    %JORDAN
     slice
     ice_mask_fn
     mdata
@@ -18,7 +17,6 @@ classdef ice_mask_edit < handle
     flight_line
     mdata_loaded
     intersections
-    %JORDAN
     
     dem
     gray
@@ -58,6 +56,8 @@ classdef ice_mask_edit < handle
     ice_y_all
     
     reduce_flag
+    run_hold_flag
+    hold_flag
     
     gui
     tools
@@ -140,6 +140,7 @@ classdef ice_mask_edit < handle
       
       obj.reduce_flag = 0;
       obj.actions.getting_polygon = 0;
+      obj.run_hold_flag = 0;
       
       ice_mean = 242;
       ice_std = 14;
@@ -280,6 +281,11 @@ classdef ice_mask_edit < handle
       set(obj.gui.polyPB,'String','(P)oly');
       set(obj.gui.polyPB,'Callback',@obj.poly);
       
+      obj.gui.hold_CB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.hold_CB,'style','checkbox');
+      set(obj.gui.hold_CB,'String','Hold');
+      set(obj.gui.hold_CB,'Callback',@obj.hold_CB_callback);
+      
       
       obj.active_tool(1);
       
@@ -354,9 +360,24 @@ classdef ice_mask_edit < handle
       row = row + 1;
       obj.gui.left_table.handles{row,col} = {};
       obj.gui.left_table.width(row,col) = inf;
+      obj.gui.left_table.height(row,col) = 40;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+      row = row + 1;
+      obj.gui.left_table.handles{row,col} = obj.gui.hold_CB;
+      obj.gui.left_table.width(row,col) = inf;
+      obj.gui.left_table.height(row,col) = 20;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+      row = row + 1;
+      obj.gui.left_table.handles{row,col} = {};
+      obj.gui.left_table.width(row,col) = inf;
       obj.gui.left_table.height(row,col) = inf;
       obj.gui.left_table.width_margin(row,col) = 1;
       obj.gui.left_table.height_margin(row,col) = 1;
+      
       
       clear row col
       table_draw(obj.gui.left_table);
@@ -521,6 +542,9 @@ classdef ice_mask_edit < handle
             obj.local_undo_stack.pop();
             notify(obj,'Undo')
             
+          case 'f'
+            obj.force_mask();
+            
           otherwise
             
         end
@@ -583,6 +607,10 @@ classdef ice_mask_edit < handle
       gray_tmp = griddata(x_tmp,y_tmp,double(gray_tmp),ice_x_mesh,ice_y_mesh);
       [ice_in] = inpolygon(ice_x_mesh,ice_y_mesh,xv,yv);
       gray_tmp_in = gray_tmp(ice_in);
+      
+      if obj.run_hold_flag
+        obj.hold_estimate(gray_tmp_in,ice_block_idx(ice_in));
+      end
       mask_tmp = gray_tmp_in>=obj.intensity_thresh;
       
       if all(obj.mask(ice_block_idx(ice_in))==mask_tmp)
@@ -628,12 +656,6 @@ classdef ice_mask_edit < handle
       std_intensity = std(double(gray_tmp(ice_in)));
       
       intensity = mean_intensity + std_intensity;
-      
-      if intensity < get(obj.gui.threshSlider,'Min')
-        intensity = get(obj.gui.threshSlider,'Min');
-      elseif intensity > get(obj.gui.threshSlider,'Max')
-        intensity = get(obj.gui.threshSlider,'Max');
-      end
       
       obj.update_threshold(intensity);
     end
@@ -817,8 +839,17 @@ classdef ice_mask_edit < handle
     end
     
     function update_threshold(obj,val)
-      obj.intensity_thresh = val;
-      set(obj.gui.threshDisp,'String',sprintf('%0.0f',val));
+      
+      if val < get(obj.gui.threshSlider,'Min')
+        intensity = get(obj.gui.threshSlider,'Min');
+      elseif val > get(obj.gui.threshSlider,'Max')
+        intensity = get(obj.gui.threshSlider,'Max');
+      else
+        intensity = val;
+      end
+      
+      obj.intensity_thresh = intensity;
+      set(obj.gui.threshDisp,'String',sprintf('%0.0f',intensity));
     end
     
     function PB_default(obj,source,~)
@@ -1023,6 +1054,104 @@ classdef ice_mask_edit < handle
         obj.tools(obj.active_tool_idx).fh(obj,xPoly,yPoly);
       end
 
+    end
+    
+    function force_mask(obj)
+      if obj.mdata_loaded && ~isempty(obj.intersections)
+        x = reshape(obj.intersections(1,:,:),size(obj.intersections,2),size(obj.intersections,3));
+        y = reshape(obj.intersections(2,:,:),size(obj.intersections,2),size(obj.intersections,3));
+
+        ice_x = interp1(obj.ice_x,1:length(obj.ice_x),x,'nearest');
+        ice_y = interp1(obj.ice_y,1:length(obj.ice_y),y,'nearest');
+        ice_idx = sub2ind(size(obj.ice_x_mesh),ice_y,ice_x);
+
+        data_mask_tmp = obj.mask(ice_idx);
+        data_mask_curr = obj.mdata.ice_mask;
+
+        inter_diff_idx = find(data_mask_curr~=data_mask_tmp);
+
+        cmd{1}.redo.data_mask = data_mask_tmp(inter_diff_idx);
+        cmd{1}.undo.data_mask = data_mask_curr(inter_diff_idx);
+        cmd{1}.undo.data_mask_idx = inter_diff_idx;
+        cmd{1}.redo.data_mask_idx = inter_diff_idx;
+        cmd{1}.type = 'ice_mask';
+      
+        if obj.local_undo_flag
+          obj.local_undo_stack.push(cmd);
+        else
+          obj.cmd = cmd;
+          notify(obj,'IceChange');
+        end
+        obj.cmd = [];
+      end
+    end
+    
+    function hold_estimate(obj,gray_int,mask_idx)
+      
+      obj.hold_flag = 1;
+      
+      set(obj.h_dem_fig,'WindowKeyPressFcn',@obj.hold_keypress)
+      set(obj.h_mask_fig,'WindowKeyPressFcn',@obj.hold_keypress)
+      
+      f_names = fieldnames(obj.gui);
+      
+      for i = 1:length(f_names)
+        if isa(obj.gui.(f_names{i}),'matlab.ui.control.UIControl') && ...
+          ~strcmp(f_names{i},'threshSlider') && ~strcmp(f_names{i},'hold_CB')
+          set(obj.gui.(f_names{i}),'Enable','off');
+        end
+      end
+      
+      mask = obj.mask;
+      
+      fprintf('\nPress Enter/Return to escape\n');
+      
+      thresh_prev = obj.intensity_thresh;
+      while obj.hold_flag
+        if thresh_prev ~= obj.intensity_thresh
+          mask(mask_idx) = gray_int >= obj.intensity_thresh;
+          set(obj.h_mask_plot,'CData',mask,'XData',obj.ice_x,'YData',obj.ice_y);
+          
+          thres_prev = obj.intensity_thresh;
+        end
+        pause(0.1);
+      end
+
+      set(obj.h_dem_fig,'WindowKeyPressFcn',@obj.key_press)
+      set(obj.h_mask_fig,'WindowKeyPressFcn',@obj.key_press)
+      
+      for i = 1:length(f_names)
+        if isa(obj.gui.(f_names{i}),'matlab.ui.control.UIControl') && ...
+          ~strcmp(f_names{i},'threshSlider')
+          set(obj.gui.(f_names{i}),'Enable','on');
+        end
+      end
+      
+    end
+    
+    
+    function hold_keypress(obj,src,event)
+      switch event.Key
+        case 'return'
+          obj.hold_flag = 0;
+          
+        case 'rightarrow'
+          obj.update_threshold(obj.intensity_thresh+1);
+
+        case 'leftarrow'
+          obj.update_threshold(obj.intensity_thresh-1);
+      end
+    end
+    
+    
+    function hold_CB_callback(obj,src,event)
+      val = get(src,'Value');
+      if val
+        obj.run_hold_flag = 1;
+      else
+        obj.run_hold_flag = 0;
+        obj.hold_flag = 0;
+      end
     end
     
   end

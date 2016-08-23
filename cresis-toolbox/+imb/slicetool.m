@@ -7,6 +7,7 @@ classdef (HandleCompatible = true) slicetool < handle
     tool_shortcut
     help_string
     custom_data
+    save_callback
     
     h_fig
     gui
