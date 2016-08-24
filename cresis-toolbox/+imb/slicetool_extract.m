@@ -80,6 +80,9 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         cmd{end}.redo.y = correct_surface(:,idx);
         cmd{end}.type = 'standard';
       end
+        cmd{end+1}.redo.slice = sb.slice;
+        cmd{end}.undo.slice = sb.slice;
+        cmd{end}.type = 'slice_dummy';
       
     end
     

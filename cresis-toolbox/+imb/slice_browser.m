@@ -108,7 +108,7 @@ classdef slice_browser < handle
       if isfield(param,'layer_fn') && ~isempty(param.layer_fn)
         tmp = load(param.layer_fn);
         obj.layer_fn = param.layer_fn;
-        obj.layer = tmp.layer;
+        obj.layer = tmp.surf;
       else
         obj.layer = [];
         obj.layer.x = [];
@@ -516,7 +516,9 @@ classdef slice_browser < handle
               obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.redo.x), ...
                 cmds_list{cmd_idx}{subcmd_idx}.redo.slice) ...
                 = cmds_list{cmd_idx}{subcmd_idx}.redo.y;
-%               obj.slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
+              obj.slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
+            elseif strcmp(cmds_list{cmd_idx}{subcmd_idx}.type,'slice_dummy')
+              obj.slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
             end
           end
         end
@@ -528,7 +530,9 @@ classdef slice_browser < handle
               obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.undo.x), ...
                 cmds_list{cmd_idx}{subcmd_idx}.undo.slice) ...
                 = cmds_list{cmd_idx}{subcmd_idx}.undo.y;
-%               obj.slice = cmds_list{cmd_idx}{subcmd_idx}.undo.slice;
+              obj.slice = cmds_list{cmd_idx}{subcmd_idx}.undo.slice;
+            elseif strcmp(cmds_list{cmd_idx}{subcmd_idx}.type,'slice_dummy')
+              obj.slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
             end
           end
         end
@@ -959,10 +963,13 @@ classdef slice_browser < handle
     
     function save(obj)
       fprintf('Saving surface data...\n');
-      layer = obj.layer;
-      save(obj.layer_fn,'layer')
-      if ~isempty(obj.save_callback)
-        obj.save_callback();
+      surf = obj.layer;
+      save(obj.layer_fn,'surf')
+      for tool_idx = 1:length(obj.slice_tool.list)
+        if ~isempty(obj.slice_tool.list{tool_idx}.save_callback) && ...
+          isa(obj.slice_tool.list{tool_idx}.save_callback,'function_handle')
+          obj.slice_tool.list{tool_idx}.save_callback();
+        end
       end
       obj.undo_stack.save();
     end
