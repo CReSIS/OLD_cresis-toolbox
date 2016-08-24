@@ -6,6 +6,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       cmd
       ice_layer
       sb
+      detect_flag
   end
   
   properties (SetAccess = private, GetAccess = private)
@@ -19,22 +20,11 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     function obj = slicetool_icemask()
       obj.create_option_ui();
       obj.tool_name = 'Ice Mask';
-      obj.tool_menu_name = {};
-      obj.tool_shortcut = 'i';
+      obj.tool_menu_name = '(M)ask Editor';
+      obj.tool_shortcut = 'm';
+      obj.detect_flag = 0;
     end
     
-    function cmd = apply_PB_callback(obj,sb)
-      obj.sb = sb;
-      layer_name = {sb.layer.name};
-      
-      % Read and set sb.layer
-      % Read sb.data
-      % Read sb.slice
-      % Read sb.layer_idx
-      fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, sb.layer_idx, sb.slice);
-      
-%       
-    end
     
     function set_custom_data(obj,custom_data)
       param.mdata.twtt = custom_data.mdata.twtt;
@@ -50,7 +40,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       obj.sb = custom_data.sb;
       addlistener(obj.sb,'SliceChange',@obj.runChangeSlice);
       addlistener(obj.sb.undo_stack,'synchronize_event',@obj.run_undo_sync);
-      obj.sb.save_callback = @obj.save;
+      obj.save_callback = @obj.save;
       
       obj.ice = imb.ice_mask_edit(param);
       addlistener(obj.ice,'IceChange',@obj.run_ice_change);
@@ -65,6 +55,20 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
         obj.ice.reduce_DEM();
       end
       
+      % Additional ice_mask_edit UI
+      obj.ice.gui.force_check= uicontrol('parent',obj.ice.gui.left_panel);
+      set(obj.ice.gui.force_check,'style','checkbox')
+      set(obj.ice.gui.force_check,'string','Force Detect')
+      set(obj.ice.gui.force_check,'Callback',@obj.toggle_detect_flag)
+      set(obj.ice.gui.force_check,'Units','Points');
+      set(obj.ice.gui.force_check,'Position', [1,1,66,88]);
+      
+    end
+    
+    function cmd = apply_PB_callback(obj,~)
+      figure(obj.ice.h_mask_fig);
+      figure(obj.ice.h_dem_fig);
+      cmd = [];
     end
     
     function create_option_ui(obj)
@@ -186,6 +190,25 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
         cmd{cmd_idx}.redo.slice = slice;
         cmd{cmd_idx}.type = 'standard';
       end
+      
+      if obj.detect_flag
+        for tool_idx = 1:length(obj.sb.slice_tool.list)
+          if isa(obj.sb.slice_tool.list{tool_idx},'imb.slicetool_detect')
+            for slice_idx = 1:length(unique_slices)
+              slice = unique_slices(slice_idx);
+              obj.sb.slice = slice;
+              obj.sb.layer_idx = find(strncmp({obj.sb.layer.name},'bottom',6));
+              cmd(end+1) = obj.sb.slice_tool.list{tool_idx}.apply_PB_callback(obj.sb);
+            end
+            break
+          end
+        end
+      end
+      
+      cmd{end+1}.redo.slice = min(unique_slices);
+      cmd{end}.undo.slice = min(unique_slices);
+      cmd{end}.type = 'slice_dummy';
+        
     end
     
     
@@ -212,6 +235,14 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     
     function save(obj)
       obj.ice.save();
+    end
+    
+    function toggle_detect_flag(obj,~,~)
+      if obj.detect_flag
+        obj.detect_flag = 0;
+      else
+        obj.detect_flag = 1;
+      end
     end
     
   end
