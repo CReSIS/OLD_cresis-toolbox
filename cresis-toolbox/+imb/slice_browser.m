@@ -983,9 +983,10 @@ classdef slice_browser < handle
     
     %% save
     function save(obj)
-      fprintf('Saving surface data...\n');
+      fprintf('Saving surfData...\n');
       surf = obj.layer;
       save(obj.layer_fn,'-v7','surf');,
+      fprintf('  Done\n');
       for tool_idx = 1:length(obj.slice_tool.list)
         if ~isempty(obj.slice_tool.list{tool_idx}.save_callback) && ...
           isa(obj.slice_tool.list{tool_idx}.save_callback,'function_handle')
