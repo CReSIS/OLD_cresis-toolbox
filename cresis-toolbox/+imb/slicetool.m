@@ -29,10 +29,13 @@ classdef (HandleCompatible = true) slicetool < handle
     end
   
     function cmd = apply_PB_callback(obj,sb)
-      % Read and set sb.layer
-      % Read sb.data
-      % Read sb.slice
-      % Read sb.layer_idx
+      % sb: slice browser object. Use the following fields to create
+      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     should not modify any fields of sb.
+      %  .layer: struct array containing layer information
+      %  .data: 3D image
+      %  .slice: current slice in 3D image (third index of .data)
+      %  .layer_idx: active layer
     end
     
     function create_option_ui(obj)

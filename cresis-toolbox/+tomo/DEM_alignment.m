@@ -96,6 +96,7 @@ function mdata = DEM_alignment(param,mdata)
   if param.surf_extract.theta_calibrated
     theta_cal = load(sv_cal_fn);
     theta = theta_cal.theta;
+    theta_cal = theta;
   end
 
   Nsv = length(theta);
@@ -225,8 +226,13 @@ function mdata = DEM_alignment(param,mdata)
     fn_dir = ct_filename_out(param,param.surf_extract.out_dir);
     fn = fullfile(fn_dir,sprintf('Data_img_%02.0f_%s_%03.0f.mat',img, ...
       param.day_seg,mdata{img}.frm));
-
-    save(fn,'-append','twtt','ice_mask');
+    save(fn,'-append','twtt','ice_mask','theta');
+    if exist('theta_cal','var')
+      save(fn,'-append','theta_cal');
+    else
+      theta_cal = theta;
+      save(fn,'-append','theta_cal');
+    end
     mdata{img}.twtt = twtt;
     mdata{img}.ice_mask = logical(ice_mask);
   end

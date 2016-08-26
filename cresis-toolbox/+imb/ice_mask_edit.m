@@ -13,6 +13,8 @@ classdef ice_mask_edit < handle
     h_false_dem_plot
     h_true_mask_plot
     h_false_mask_plot
+    h_intersect_dem_fig
+    h_intersect_mask_fig
     
     flight_line
     mdata_loaded
@@ -86,16 +88,14 @@ classdef ice_mask_edit < handle
 %     function obj = ice_mask_edit(dem_x_mesh,dem_y_mesh,dem,ice_x_mesh,ice_y_mesh,ice_mask)
       function obj = ice_mask_edit(param)
       
-      fprintf('In ice_mask_edit\n');  
-      
       if isfield(param,'DEM')
         obj.dem = param.DEM;
       end
       
       if isfield(param,'R')
         obj.R = param.R;
-        obj.dem_x = param.R(3,1) + param.R(2,1)*(0:size(param.DEM,2)-1);
-        obj.dem_y = param.R(3,2) + param.R(1,2)*(0:size(param.DEM,1)-1);
+        obj.dem_x = (param.R(3,1) + param.R(2,1)*(0:size(param.DEM,2)-1));
+        obj.dem_y = (param.R(3,2) + param.R(1,2)*(0:size(param.DEM,1)-1));
       end
       
       if isfield(param,'ice_mask')
@@ -140,7 +140,7 @@ classdef ice_mask_edit < handle
       
       obj.reduce_flag = 0;
       obj.actions.getting_polygon = 0;
-      obj.run_hold_flag = 0;
+      obj.run_hold_flag = 1;
       
       ice_mean = 242;
       ice_std = 14;
@@ -164,7 +164,7 @@ classdef ice_mask_edit < handle
       obj.gui.left_panel = uipanel('parent',obj.h_dem_fig);
       obj.gui.right_panel = uipanel('parent',obj.h_dem_fig);
       obj.h_dem_axes = axes('Parent',obj.gui.right_panel,'YDir','normal');
-      obj.h_dem_plot = imagesc(obj.dem_x,obj.dem_y,obj.dem,'Parent',obj.h_dem_axes);
+      obj.h_dem_plot = imagesc(obj.dem_x/1e3,obj.dem_y/1e3,obj.dem,'Parent',obj.h_dem_axes);
       hold(obj.h_dem_axes,'on')
       
       obj.h_mask_fig = figure;
@@ -175,7 +175,7 @@ classdef ice_mask_edit < handle
       set(obj.h_mask_fig,'Name','Ice Mask');
       
       obj.h_mask_axes = axes('Parent',obj.h_mask_fig,'YDir','normal');
-      obj.h_mask_plot = imagesc(obj.ice_x,obj.ice_y,obj.mask);
+      obj.h_mask_plot = imagesc(obj.ice_x/1e3,obj.ice_y/1e3,obj.mask,'Parent',obj.h_mask_axes);
       hold(obj.h_mask_axes,'on')
       
      
@@ -183,6 +183,8 @@ classdef ice_mask_edit < handle
       set(obj.h_mask_fig,'WindowButtonUpFcn',@obj.button_up);
       set(obj.h_dem_fig,'WindowButtonDownFcn',@obj.button_down);
       set(obj.h_mask_fig,'WindowButtonDownFcn',@obj.button_down);
+      set(obj.h_dem_fig,'WindowScrollWheelFcn',@obj.button_scroll);
+      set(obj.h_mask_fig,'WindowScrollWheelFcn',@obj.button_scroll);
       set(obj.h_dem_fig,'WindowKeyPressFcn',@obj.key_press);
       set(obj.h_mask_fig,'WindowKeyPressFcn',@obj.key_press);
       set(obj.h_dem_fig,'WindowKeyReleaseFcn',@obj.key_release);
@@ -202,16 +204,11 @@ classdef ice_mask_edit < handle
       obj.tools(1).init_fh = @estimate_init;
       obj.tools(1).fh = @update_mask;
       obj.tools(1).figh = obj.h_dem_fig;
-      obj.tools(2).str = 'Get (I)ntensity';
-      obj.tools(2).sc = 'g';
-      obj.tools(2).init_fh = @get_intensity_init;
-      obj.tools(2).fh = @get_intensity;
-      obj.tools(2).figh = obj.h_dem_fig;
-      obj.tools(3).str = '(S)et Mask';
-      obj.tools(3).sc = 's';
-      obj.tools(3).init_fh = @set_mask_init;
-      obj.tools(3).fh = @set_mask;
-      obj.tools(3).figh = [obj.h_dem_fig,obj.h_mask_fig];
+      obj.tools(2).str = '(S)et Mask';
+      obj.tools(2).sc = 's';
+      obj.tools(2).init_fh = @set_mask_init;
+      obj.tools(2).fh = @set_mask;
+      obj.tools(2).figh = [obj.h_dem_fig,obj.h_mask_fig];
             
       obj.gui.table.ui = obj.h_dem_fig;
       obj.gui.table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
@@ -284,8 +281,14 @@ classdef ice_mask_edit < handle
       obj.gui.hold_CB = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.hold_CB,'style','checkbox');
       set(obj.gui.hold_CB,'String','Hold');
+      set(obj.gui.hold_CB,'Value',obj.run_hold_flag);
       set(obj.gui.hold_CB,'Callback',@obj.hold_CB_callback);
       
+      obj.gui.help_PB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.help_PB,'style','pushbutton');
+      set(obj.gui.help_PB,'TooltipString','Select active tool');
+      set(obj.gui.help_PB,'String','Help (F1)');
+      set(obj.gui.help_PB,'Callback',@obj.help_PB_callback);
       
       obj.active_tool(1);
       
@@ -358,13 +361,6 @@ classdef ice_mask_edit < handle
       obj.gui.left_table.height_margin(row,col) = 1;
       
       row = row + 1;
-      obj.gui.left_table.handles{row,col} = {};
-      obj.gui.left_table.width(row,col) = inf;
-      obj.gui.left_table.height(row,col) = 40;
-      obj.gui.left_table.width_margin(row,col) = 1;
-      obj.gui.left_table.height_margin(row,col) = 1;
-      
-      row = row + 1;
       obj.gui.left_table.handles{row,col} = obj.gui.hold_CB;
       obj.gui.left_table.width(row,col) = inf;
       obj.gui.left_table.height(row,col) = 20;
@@ -375,6 +371,13 @@ classdef ice_mask_edit < handle
       obj.gui.left_table.handles{row,col} = {};
       obj.gui.left_table.width(row,col) = inf;
       obj.gui.left_table.height(row,col) = inf;
+      obj.gui.left_table.width_margin(row,col) = 1;
+      obj.gui.left_table.height_margin(row,col) = 1;
+      
+      row = row + 1;
+      obj.gui.left_table.handles{row,col} = obj.gui.help_PB;
+      obj.gui.left_table.width(row,col) = inf;
+      obj.gui.left_table.height(row,col) = 20;
       obj.gui.left_table.width_margin(row,col) = 1;
       obj.gui.left_table.height_margin(row,col) = 1;
       
@@ -424,7 +427,7 @@ classdef ice_mask_edit < handle
         
       if obj.zoom_mode && ~obj.actions.getting_polygon
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
-        'h_axes',h_axes,'xlims',[min(obj.dem_x),max(obj.dem_x)],'ylims',[min(obj.dem_y),max(obj.dem_y)]));
+        'h_axes',h_axes,'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
         
         set(h_axes_alt,'xlim',get(h_axes,'xlim'));
         set(h_axes_alt,'ylim',get(h_axes,'ylim'));
@@ -488,25 +491,25 @@ classdef ice_mask_edit < handle
             
           case 'downarrow' % Down-arrow: Pan down
             zoom_arrow(event,struct('h_axes',obj.h_dem_axes, ...
-              'xlims',[min(obj.dem_x),max(obj.dem_x)],'ylims',[min(obj.dem_y),max(obj.dem_y)]));
+              'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
             set(obj.h_mask_axes,'xlim',get(obj.h_dem_axes,'xlim'));
             set(obj.h_mask_axes,'ylim',get(obj.h_dem_axes,'ylim'));
             
           case 'uparrow' % Up-arrow: Pan up
             zoom_arrow(event,struct('h_axes',obj.h_dem_axes, ...
-              'xlims',[min(obj.dem_x),max(obj.dem_x)],'ylims',[min(obj.dem_y),max(obj.dem_y)]));
+              'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
             set(obj.h_mask_axes,'xlim',get(obj.h_dem_axes,'xlim'));
             set(obj.h_mask_axes,'ylim',get(obj.h_dem_axes,'ylim'));
             
           case 'rightarrow' % Right arrow: Pan right
             zoom_arrow(event,struct('h_axes',obj.h_dem_axes, ...
-              'xlims',[min(obj.dem_x),max(obj.dem_x)],'ylims',[min(obj.dem_y),max(obj.dem_y)]));
+              'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
             set(obj.h_mask_axes,'xlim',get(obj.h_dem_axes,'xlim'));
             set(obj.h_mask_axes,'ylim',get(obj.h_dem_axes,'ylim'));
             
           case 'leftarrow' % Left arrow: Pan left
             zoom_arrow(event,struct('h_axes',obj.h_dem_axes, ...
-              'xlims',[min(obj.dem_x),max(obj.dem_x)],'ylims',[min(obj.dem_y),max(obj.dem_y)]));
+              'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
             set(obj.h_mask_axes,'xlim',get(obj.h_dem_axes,'xlim'));
             set(obj.h_mask_axes,'ylim',get(obj.h_dem_axes,'ylim'));
           
@@ -545,6 +548,9 @@ classdef ice_mask_edit < handle
           case 'f'
             obj.force_mask();
             
+          case 'f1'
+            obj.help_PB_callback([],[]);
+            
           otherwise
             
         end
@@ -570,6 +576,9 @@ classdef ice_mask_edit < handle
     
     
     function update_mask(obj,xv,yv)
+      
+      xv = xv*1e3;
+      yv = yv*1e3;
       
       x_p_lim = [min(xv),max(xv)];
       y_p_lim = [min(yv),max(yv)];
@@ -635,33 +644,13 @@ classdef ice_mask_edit < handle
       obj.cmd = [];
       
     end
-    
-    
-    function get_intensity(obj,xv,yv)
-      x_p_lim = [min(xv),max(xv)];
-      y_p_lim = [min(yv),max(yv)];
-      
-      gray_idx = find(obj.dem_y_mesh>=y_p_lim(1) & obj.dem_y_mesh<=y_p_lim(2) &...
-        obj.dem_x_mesh>=x_p_lim(1) & obj.dem_x_mesh<=x_p_lim(2));
-      
-      gray_tmp = obj.gray(gray_idx);
-      x_tmp = obj.dem_x_mesh(gray_idx);
-      y_tmp = obj.dem_y_mesh(gray_idx);
-      
-      [x_mesh,y_mesh] = meshgrid(sort(unique(x_tmp)),sort(unique(y_tmp),'descend'));
-      
-      [ice_in] = inpolygon(x_mesh,y_mesh,xv,yv);
-      
-      mean_intensity = mean(gray_tmp(ice_in));
-      std_intensity = std(double(gray_tmp(ice_in)));
-      
-      intensity = mean_intensity + std_intensity;
-      
-      obj.update_threshold(intensity);
-    end
-    
+        
     
     function set_mask(obj,xv,yv)
+      
+      xv = xv*1e3;
+      yv = yv*1e3;
+      
       x_p_lim = [min(xv),max(xv)];
       y_p_lim = [min(yv),max(yv)];
       
@@ -714,8 +703,8 @@ classdef ice_mask_edit < handle
         obj.flight_line = zeros(2,size(obj.mdata.twtt,2));
         [obj.flight_line(1,:),obj.flight_line(2,:)] = projfwd(obj.proj,origin_lat,origin_lon);
         
-        obj.h_flight_dem_plot = plot(obj.flight_line(1,:),obj.flight_line(2,:),'b','Parent',obj.h_dem_axes);
-        obj.h_flight_mask_plot = plot(obj.flight_line(1,:),obj.flight_line(2,:),'b','Parent',obj.h_mask_axes);
+        obj.h_flight_dem_plot = plot(obj.flight_line(1,:)/1e3,obj.flight_line(2,:)/1e3,'b','Parent',obj.h_dem_axes);
+        obj.h_flight_mask_plot = plot(obj.flight_line(1,:)/1e3,obj.flight_line(2,:)/1e3,'b','Parent',obj.h_mask_axes);
         obj.h_true_dem_plot = plot(NaN,NaN,'b.','Parent',obj.h_dem_axes);
         obj.h_false_dem_plot = plot(NaN,NaN,'r.','Parent',obj.h_dem_axes);
         obj.h_true_mask_plot = plot(NaN,NaN,'b.','Parent',obj.h_mask_axes);
@@ -756,14 +745,14 @@ classdef ice_mask_edit < handle
         
         obj.mdata_loaded = 1;
         
-        set(obj.h_dem_axes,'xlim',[min(min(obj.intersections(1,:,:))) - 5000, ...
-          max(max(obj.intersections(1,:,:))) + 5000]);
-        set(obj.h_dem_axes,'ylim',[min(min(obj.intersections(2,:,:))) - 5000, ...
-          max(max(obj.intersections(2,:,:))) + 5000]);
-        set(obj.h_mask_axes,'xlim',[min(min(obj.intersections(1,:,:))) - 5000, ...
-          max(max(obj.intersections(1,:,:))) + 5000]);
-        set(obj.h_mask_axes,'ylim',[min(min(obj.intersections(2,:,:))) - 5000, ...
-          max(max(obj.intersections(2,:,:))) + 5000]);
+        set(obj.h_dem_axes,'xlim',[min(min(obj.intersections(1,:,:)))/1e3 - 5, ...
+          max(max(obj.intersections(1,:,:)))/1e3 + 5]);
+        set(obj.h_dem_axes,'ylim',[min(min(obj.intersections(2,:,:)))/1e3 - 5, ...
+          max(max(obj.intersections(2,:,:)))/1e3 + 5]);
+        set(obj.h_mask_axes,'xlim',[min(min(obj.intersections(1,:,:)))/1e3 - 5, ...
+          max(max(obj.intersections(1,:,:)))/1e3 + 5]);
+        set(obj.h_mask_axes,'ylim',[min(min(obj.intersections(2,:,:)))/1e3 - 5, ...
+          max(max(obj.intersections(2,:,:)))/1e3 + 5]);
         
       end
       
@@ -777,10 +766,10 @@ classdef ice_mask_edit < handle
       intersection = obj.intersections(:,:,slice);
       mask_tmp = logical(obj.mdata.ice_mask(:,slice));
 %       obj.h_slice_plot = plot(intersection(1,:),intersection(2,:),'m.','Parent',obj.h_dem_axes);
-      set(obj.h_true_dem_plot,'XData',intersection(1,mask_tmp),'YData',intersection(2,mask_tmp));
-      set(obj.h_false_dem_plot,'XData',intersection(1,~mask_tmp),'YData',intersection(2,~mask_tmp));
-      set(obj.h_true_mask_plot,'XData',intersection(1,mask_tmp),'YData',intersection(2,mask_tmp));
-      set(obj.h_false_mask_plot,'XData',intersection(1,~mask_tmp),'YData',intersection(2,~mask_tmp));
+      set(obj.h_true_dem_plot,'XData',intersection(1,mask_tmp)/1e3,'YData',intersection(2,mask_tmp)/1e3);
+      set(obj.h_false_dem_plot,'XData',intersection(1,~mask_tmp)/1e3,'YData',intersection(2,~mask_tmp)/1e3);
+      set(obj.h_true_mask_plot,'XData',intersection(1,mask_tmp)/1e3,'YData',intersection(2,mask_tmp)/1e3);
+      set(obj.h_false_mask_plot,'XData',intersection(1,~mask_tmp)/1e3,'YData',intersection(2,~mask_tmp)/1e3);
       
     end
     
@@ -822,14 +811,14 @@ classdef ice_mask_edit < handle
         end
       end
       
-      set(obj.h_mask_plot,'CData',obj.mask,'XData',obj.ice_x,'YData',obj.ice_y);
+      set(obj.h_mask_plot,'CData',obj.mask,'XData',obj.ice_x/1e3,'YData',obj.ice_y/1e3);
       if ~isempty(obj.mdata_loaded) && obj.mdata_loaded
         intersection = obj.intersections(:,:,obj.slice);
         twtt_mask_tmp = logical(obj.mdata.ice_mask(:,obj.slice));
-        set(obj.h_true_dem_plot,'XData',intersection(1,twtt_mask_tmp),'YData',intersection(2,twtt_mask_tmp));
-        set(obj.h_false_dem_plot,'XData',intersection(1,~twtt_mask_tmp),'YData',intersection(2,~twtt_mask_tmp));
-        set(obj.h_true_mask_plot,'XData',intersection(1,twtt_mask_tmp),'YData',intersection(2,twtt_mask_tmp));
-        set(obj.h_false_mask_plot,'XData',intersection(1,~twtt_mask_tmp),'YData',intersection(2,~twtt_mask_tmp));
+        set(obj.h_true_dem_plot,'XData',intersection(1,twtt_mask_tmp)/1e3,'YData',intersection(2,twtt_mask_tmp)/1e3);
+        set(obj.h_false_dem_plot,'XData',intersection(1,~twtt_mask_tmp)/1e3,'YData',intersection(2,~twtt_mask_tmp)/1e3);
+        set(obj.h_true_mask_plot,'XData',intersection(1,twtt_mask_tmp)/1e3,'YData',intersection(2,twtt_mask_tmp)/1e3);
+        set(obj.h_false_mask_plot,'XData',intersection(1,~twtt_mask_tmp)/1e3,'YData',intersection(2,~twtt_mask_tmp)/1e3);
       end
     end    
     
@@ -850,6 +839,7 @@ classdef ice_mask_edit < handle
       
       obj.intensity_thresh = intensity;
       set(obj.gui.threshDisp,'String',sprintf('%0.0f',intensity));
+      set(obj.gui.threshSlider,'Value',intensity);
     end
     
     function PB_default(obj,source,~)
@@ -870,7 +860,7 @@ classdef ice_mask_edit < handle
       ice_x_idx = [ice_x-1,ice_x,ice_x+1];
       ice_x_idx = ice_x_idx(ice_x_idx>0 & ice_x_idx<=length(obj.ice_x));
       ice_y_idx = [ice_y-1,ice_y,ice_y+1];
-      ice_y_idx = ice_y_idx(ice_y_idx>0 & ice_y_idx<=length(obj.ice_x));
+      ice_y_idx = ice_y_idx(ice_y_idx>0 & ice_y_idx<=length(obj.ice_y));
       [ice_x_idx,ice_y_idx] = meshgrid(ice_x_idx,ice_y_idx);
       ice_idx_exp = sub2ind(size(obj.ice_x_mesh),ice_y_idx,ice_x_idx);
 
@@ -996,10 +986,6 @@ classdef ice_mask_edit < handle
       set(obj.gui.toggleVal,'Visible','on');
     end
     
-    function get_intensity_init(obj)
-      set(obj.gui.toggleVal,'Visible','off');
-    end
-    
     function estimate_init(obj)
       set(obj.gui.toggleVal,'Visible','off');
     end
@@ -1042,16 +1028,22 @@ classdef ice_mask_edit < handle
       if obj.active_tool_idx ~= 0
         obj.actions.getting_polygon = 1;
         set(obj.gui.polyPB,'BackgroundColor',[0.8,0.8,0.8]);
-        poly_handle = impoly;
-        position = wait(poly_handle);
-        obj.actions.getting_polygon = 2;
-        [polyPts] = getPosition(poly_handle);
-        xPoly = polyPts(:,1);
-        yPoly = polyPts(:,2);
-        delete(poly_handle);
-        obj.actions.getting_polygon = 0;
-        set(obj.gui.polyPB,'BackgroundColor',[0.94,0.94,0.94]);
-        obj.tools(obj.active_tool_idx).fh(obj,xPoly,yPoly);
+        try
+          poly_handle = impoly;
+          position = wait(poly_handle);
+          obj.actions.getting_polygon = 2;
+          [polyPts] = getPosition(poly_handle);
+          xPoly = polyPts(:,1);
+          yPoly = polyPts(:,2);
+          delete(poly_handle);
+          obj.actions.getting_polygon = 0;
+        catch
+          set(obj.gui.polyPB,'BackgroundColor',[0.94,0.94,0.94]);
+          obj.actions.getting_polygon = 0;
+          return
+        end
+          obj.tools(obj.active_tool_idx).fh(obj,xPoly,yPoly);
+          set(obj.gui.polyPB,'BackgroundColor',[0.94,0.94,0.94]);
       end
 
     end
@@ -1097,7 +1089,8 @@ classdef ice_mask_edit < handle
       
       for i = 1:length(f_names)
         if isa(obj.gui.(f_names{i}),'matlab.ui.control.UIControl') && ...
-          ~strcmp(f_names{i},'threshSlider') && ~strcmp(f_names{i},'hold_CB')
+          ~strcmp(f_names{i},'threshSlider') && ~strcmp(f_names{i},'hold_CB') ...
+          && ~strcmp(f_names{i},'threshDisp')
           set(obj.gui.(f_names{i}),'Enable','off');
         end
       end
@@ -1110,7 +1103,7 @@ classdef ice_mask_edit < handle
       while obj.hold_flag
         if thresh_prev ~= obj.intensity_thresh
           mask(mask_idx) = gray_int >= obj.intensity_thresh;
-          set(obj.h_mask_plot,'CData',mask,'XData',obj.ice_x,'YData',obj.ice_y);
+          set(obj.h_mask_plot,'CData',mask,'XData',obj.ice_x/1e3,'YData',obj.ice_y/1e3);
           
           thres_prev = obj.intensity_thresh;
         end
@@ -1121,8 +1114,7 @@ classdef ice_mask_edit < handle
       set(obj.h_mask_fig,'WindowKeyPressFcn',@obj.key_press)
       
       for i = 1:length(f_names)
-        if isa(obj.gui.(f_names{i}),'matlab.ui.control.UIControl') && ...
-          ~strcmp(f_names{i},'threshSlider')
+        if isa(obj.gui.(f_names{i}),'matlab.ui.control.UIControl')
           set(obj.gui.(f_names{i}),'Enable','on');
         end
       end
@@ -1137,9 +1129,16 @@ classdef ice_mask_edit < handle
           
         case 'rightarrow'
           obj.update_threshold(obj.intensity_thresh+1);
-
+        
+        case 'period'
+          obj.update_threshold(obj.intensity_thresh+1);
+          
         case 'leftarrow'
           obj.update_threshold(obj.intensity_thresh-1);
+          
+        case 'comma'
+          obj.update_threshold(obj.intensity_thresh-1);
+          
       end
     end
     
@@ -1152,6 +1151,48 @@ classdef ice_mask_edit < handle
         obj.run_hold_flag = 0;
         obj.hold_flag = 0;
       end
+    end
+    
+        %% button_scroll
+    function button_scroll(obj,h_obj,event)
+        if h_obj == obj.h_dem_fig
+          h_axes = obj.h_dem_axes;
+          h_axes_alt = obj.h_mask_axes;
+        else
+          h_axes = obj.h_mask_axes;
+          h_axes_alt = obj.h_dem_axes;
+        end
+
+        zoom_button_scroll(event,struct('h_fig',h_obj, ...
+          'h_axes',h_axes,'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
+
+        set(h_axes_alt,'xlim',get(h_axes,'xlim'));
+        set(h_axes_alt,'ylim',get(h_axes,'ylim'));
+    end
+    
+    function help_PB_callback(obj,src,event)
+      fprintf('(E)stimate:\n');
+      fprintf('\tUses color intensity thresholding to estimate ice mask values in selected area.\n');
+      fprintf('(S)et:\n');
+      fprintf('\tDirectly sets ice mask values in selected area.\n');
+      fprintf('Default Button:\n');
+      fprintf('\tReturns color intensity threshold to the default value.\n');
+      fprintf('(P)oly Button:\n');
+      fprintf('\tEnables finer selection of area for tool operation.\n')
+      fprintf('\tPress Esc to cancel Poly.\n');
+      fprintf('Hold Checkbox:\n');
+      fprintf('\tHolds execution of (E)stimate tool so that effects of intensity thresholds on the mask can be viewed.\n');
+      fprintf('\tUse Left Arrow/Right Arrow, '',''/''.'', or slider to change intensity threshold during hold.\n');
+      fprintf('\tPress Enter/Return to end hold.\n');
+      if isfield(obj.gui,'force_check')
+        fprintf('Force Detect Checkbox:\n');
+        fprintf('\tSlice Browser''s (D)etect tool is run on any changes made to ice mask from ice mask tool.\n');
+      end
+      fprintf('''t'' keyboard shortcut:\n');
+      fprintf('\tWhen using (S)et tool toggle set value.\n');
+      fprintf('''f'' keyboard shortcut:\n');
+      fprintf('\tForces ice mask in ice mask tool on the slice data.\n');
+      fprintf('\tUseful if slice data ice mask is not current with ice tool ice mask.\n');
     end
     
   end

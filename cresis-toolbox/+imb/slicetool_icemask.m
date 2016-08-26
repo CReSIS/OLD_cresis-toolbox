@@ -1,5 +1,4 @@
 classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
-  % Slice_browser tool which calls detect.cpp (HMM)
   
   properties
       ice
@@ -22,13 +21,13 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       obj.tool_name = 'Ice Mask';
       obj.tool_menu_name = 'Mask Editor';
       obj.tool_shortcut = '';
-      obj.detect_flag = 0;
+      obj.detect_flag = 1;
     end
     
     
     function set_custom_data(obj,custom_data)
       param.mdata.twtt = custom_data.mdata.twtt;
-      param.mdata.theta = custom_data.mdata.theta;
+      param.mdata.theta = custom_data.mdata.theta_cal;
       param.mdata.ice_mask = custom_data.mdata.ice_mask;
       param.mdata.param_combine = custom_data.mdata.param_combine;
 %       rmfield(param,'mdata');
@@ -39,6 +38,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       param.proj = custom_data.proj;
       obj.sb = custom_data.sb;
       addlistener(obj.sb,'SliceChange',@obj.runChangeSlice);
+      addlistener(obj.sb,'SliceChange',@obj.sb_button_motion_cb);
       addlistener(obj.sb.undo_stack,'synchronize_event',@obj.run_undo_sync);
       obj.save_callback = @obj.save;
       
@@ -49,6 +49,9 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       addlistener(obj.ice,'Redo',@obj.run_sb_redo);
       
       obj.ice.local_undo_flag = 0;
+      obj.sb.fh_button_motion = @obj.sb_button_motion_cb;
+      obj.ice.h_intersect_dem_fig = plot(NaN,NaN,'kx','Parent',obj.ice.h_dem_axes,'LineWidth',2,'MarkerSize',10);
+      obj.ice.h_intersect_mask_fig = plot(NaN,NaN,'kx','Parent',obj.ice.h_mask_axes,'LineWidth',2,'MarkerSize',10);
       
       if custom_data.reduce_flag
         obj.ice.reduce_flag = 1;
@@ -61,7 +64,10 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       set(obj.ice.gui.force_check,'string','Force Detect')
       set(obj.ice.gui.force_check,'Callback',@obj.toggle_detect_flag)
       set(obj.ice.gui.force_check,'Units','Points');
-      set(obj.ice.gui.force_check,'Position', [1,1,66,88]);
+      pos = get(obj.ice.gui.hold_CB,'Position');
+      pos(2) = pos(2) - pos(4);
+      set(obj.ice.gui.force_check,'Position',pos);
+      set(obj.ice.gui.force_check,'Value',obj.detect_flag);
       
     end
     
@@ -191,6 +197,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
         cmd{cmd_idx}.type = 'standard';
       end
       
+      slice_prev = obj.sb.slice;
       if obj.detect_flag
         for tool_idx = 1:length(obj.sb.slice_tool.list)
           if isa(obj.sb.slice_tool.list{tool_idx},'imb.slicetool_detect')
@@ -198,15 +205,24 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
               slice = unique_slices(slice_idx);
               obj.sb.slice = slice;
               obj.sb.layer_idx = find(strncmp({obj.sb.layer.name},'bottom',6));
+              mask_prev = obj.sb.layer(obj.sb.layer(obj.sb.layer_idx).mask_layer).y(:,slice);
+              for cmd_idx = 1:length(cmd)
+                if isfield(cmd{cmd_idx}.redo,'slice') && cmd{cmd_idx}.redo.slice == slice
+                  break;
+                end
+              end
+              obj.sb.layer(obj.sb.layer(obj.sb.layer_idx).mask_layer).y( ...
+                cmd{cmd_idx}.redo.x,slice) = cmd{cmd_idx}.redo.y;
               cmd(end+1) = obj.sb.slice_tool.list{tool_idx}.apply_PB_callback(obj.sb);
+              obj.sb.layer(obj.sb.layer(obj.sb.layer_idx).mask_layer).y(:,slice) = mask_prev;
             end
             break
           end
         end
       end
       
-      cmd{end+1}.redo.slice = min(unique_slices);
-      cmd{end}.undo.slice = min(unique_slices);
+      cmd{end+1}.redo.slice = slice_prev;
+      cmd{end}.undo.slice = slice_prev;
       cmd{end}.type = 'slice_dummy';
         
     end
@@ -237,12 +253,32 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       obj.ice.save();
     end
     
-    function toggle_detect_flag(obj,~,~)
-      if obj.detect_flag
+    function toggle_detect_flag(obj,src,~)
+      val = get(src,'Value');
+      if val
         obj.detect_flag = 0;
       else
         obj.detect_flag = 1;
       end
+    end
+    
+    function status = sb_button_motion_cb(obj,sb,~,~)
+      if ~isempty(obj.ice.intersections)
+        [x,y,~] = get_mouse_info(sb.h_fig,sb.h_axes);
+        theta = round(x);
+        slice = sb.slice;
+        if theta > 0 && theta <= size(obj.ice.intersections,2) ...
+            && y <= size(obj.sb.data,1) && y > 0 
+          set(obj.ice.h_intersect_dem_fig,'XData',obj.ice.intersections(1,theta,slice)/1e3, ...
+            'YData',obj.ice.intersections(2,theta,slice)/1e3);
+          set(obj.ice.h_intersect_mask_fig,'XData',obj.ice.intersections(1,theta,slice)/1e3, ...
+            'YData',obj.ice.intersections(2,theta,slice)/1e3);
+        else
+          set(obj.ice.h_intersect_dem_fig,'XData',NaN,'YData',NaN);
+          set(obj.ice.h_intersect_mask_fig,'XData',NaN,'YData',NaN);
+        end
+      end
+      status = 1;
     end
     
   end

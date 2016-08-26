@@ -636,7 +636,7 @@ classdef slice_browser < handle
     end
     
     %% button_motion
-    function button_motion(obj,hObj,event)
+    function button_motion(obj,h_obj,event)
       % Run user defined button up callback
       if ~isempty(obj.fh_button_motion)
         status = obj.fh_button_motion(obj,h_obj,event);
