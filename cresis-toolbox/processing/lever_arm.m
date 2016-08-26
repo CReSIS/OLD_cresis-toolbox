@@ -1246,6 +1246,27 @@ end
 %% Snow Radar
 % =========================================================================
 
+if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'snow'))
+    % Snow Tx: X = 297.75",Y = 0;Z = -26.81"; RX: X = 168.5",Y = 0;Z = -38.75" 
+    % X,Y,Z are in aircraft coordinates relatively to GPS antenna
+  LArx(1,1) = -168.5*2.54/100  - 1.355;
+  LArx(2,1) = 0.045;
+  LArx(3,1) = -38.75*2.54/100 + 3.425;
+  
+  LAtx(1,1) = -297.75*2.54/100  - 1.355;
+  LAtx(2,1) = 0.045;
+  LAtx(3,1) = -26.81*2.54/100 + 3.425;
+
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2015_Greenland_Polar6') && strcmpi(radar_name,'snow'))
   % See notes in GPS section
   
