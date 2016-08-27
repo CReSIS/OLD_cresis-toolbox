@@ -496,16 +496,19 @@ classdef slice_browser < handle
       obj.save();
     end
     
+    %% next10_button_callback
     function next10_button_callback(obj,source,callbackdata)
       obj.slice = obj.slice + 10;
       obj.update_slice();
     end
     
+    %% prev10_button_callback
     function prev10_button_callback(obj,source,callbackdata)
       obj.slice = obj.slice -10;
       obj.update_slice();
     end
     
+    %% undo_sync
     function undo_sync(obj,source,callbackdata)
       [cmds_list,cmds_direction] =  obj.undo_stack.get_synchronize_cmds();
       if strcmp(cmds_direction,'redo')
@@ -583,7 +586,11 @@ classdef slice_browser < handle
       else
         if but == 2 || but == 3
           if obj.x == x
-            obj.select_mask(round(x)) = true;
+            if x > 1 && x < size(obj.data,2)
+              obj.select_mask(round(x)) = true;
+            else
+              obj.select_mask(:) = false;
+            end
           else
             obj.shift_pressed
             if ~obj.shift_pressed
@@ -591,10 +598,16 @@ classdef slice_browser < handle
               obj.update_slice;
             end
             
+            if islogical(obj.layer(layer_idx).y)
+              layer_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+            else
+              layer_y = obj.layer(layer_idx).y(:,obj.slice);
+            end
+
             obj.select_mask = obj.select_mask | (obj.layer(layer_idx).x(:,obj.slice) >= min(x,obj.x) ...
               & obj.layer(layer_idx).x(:,obj.slice) <= max(x,obj.x) ...
-              & obj.layer(layer_idx).y(:,obj.slice) >= min(y,obj.y) ...
-              & obj.layer(layer_idx).y(:,obj.slice) <= max(y,obj.y));
+              & layer_y >= min(y,obj.y) ...
+              & layer_y <= max(y,obj.y));
           end
         else
           xlims = xlim(obj.h_axes);
@@ -623,7 +636,7 @@ classdef slice_browser < handle
     end
     
     %% button_motion
-    function button_motion(obj,hObj,event)
+    function button_motion(obj,h_obj,event)
       % Run user defined button up callback
       if ~isempty(obj.fh_button_motion)
         status = obj.fh_button_motion(obj,h_obj,event);
@@ -763,19 +776,24 @@ classdef slice_browser < handle
             cmd{1}.undo.x = [];
             cmd{1}.redo.x = [];
             cmd{1}.redo.y = [];
-            for k = 1:64;
-              if obj.select_mask(k,1) == 1;
-                cmd{1}.undo.y(end+1) = obj.layer(layer_idx).y(k,obj.slice);
-                cmd{1}.undo.x(end+1) = k;
-                cmd{1}.redo.x(end+1) = k;
-                cmd{1}.redo.y(end+1) = NaN;
+            
+            cmd{1}.undo.x = find(obj.select_mask);
+            cmd{1}.undo.y = obj.layer(layer_idx).y(obj.select_mask,obj.slice);
+            cmd{1}.redo.x = find(obj.select_mask);
+            if islogical(obj.layer(layer_idx).y)
+              if any(obj.layer(layer_idx).y(obj.select_mask,obj.slice))
+                cmd{1}.redo.y = false * ones(size(cmd{1}.redo.x));
+              else
+                cmd{1}.redo.y = true * ones(size(cmd{1}.redo.x));
               end
+            else
+              cmd{1}.redo.y = NaN * ones(size(cmd{1}.redo.x));
             end
+
             cmd{1}.type = 'standard';
             obj.undo_stack.push(cmd);
             
             obj.update_slice();
-            obj.select_mask = logical(zeros(size(obj.data,2),1));
             
           case 'space'
             if obj.plot_visibility == true;
@@ -857,7 +875,7 @@ classdef slice_browser < handle
       layer_idx = get(obj.gui.layerLB,'value');
       x_select = obj.layer(layer_idx).x(:,obj.slice);
       if islogical(obj.layer(layer_idx).y)
-        y_select = tmp_y;
+        y_select = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
       else
         y_select = obj.layer(layer_idx).y(:,obj.slice);
       end
@@ -936,11 +954,13 @@ classdef slice_browser < handle
       fprintf('scroll: zoom in/out at point\n');
     end
     
+    %% getEventData
     function getEventData(obj,src,~)
       cmd = src.cmd;     
       obj.undo_stack.push(cmd);
     end
     
+    %% add_listener
     function add_listener(obj,src)
        evnts = src.get_events();
        
@@ -951,8 +971,8 @@ classdef slice_browser < handle
        end
        
     end
-      
      
+    %% push
     function push(obj,cmd)
       obj.layer_idx = get(obj.gui.layerLB,'Value');
       for tool_idx = 1:length(obj.slice_tool.list)
@@ -961,10 +981,12 @@ classdef slice_browser < handle
       obj.undo_stack.push(cmd);
     end
     
+    %% save
     function save(obj)
-      fprintf('Saving surface data...\n');
+      fprintf('Saving surfData...\n');
       surf = obj.layer;
-      save(obj.layer_fn,'surf')
+      save(obj.layer_fn,'-v7','surf');,
+      fprintf('  Done\n');
       for tool_idx = 1:length(obj.slice_tool.list)
         if ~isempty(obj.slice_tool.list{tool_idx}.save_callback) && ...
           isa(obj.slice_tool.list{tool_idx}.save_callback,'function_handle')

@@ -27,6 +27,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       control_idx = sb.layer(sb.layer_idx).control_layer;
       surf_idx = sb.layer(sb.layer_idx).surf_layer;
+      mask_idx = sb.layer(sb.layer_idx).mask_layer;
       try
         extract_range = eval(get(obj.gui.extentLE,'String'));
       catch ME
@@ -62,8 +63,8 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       bottom_bin(isnan(bottom_bin)) = -1;
 
       correct_surface = tomo.extract(double(sb.data(:,:,slices)), ...
-        double(surf_bins), double(bottom_bin), ...
-        double(gt), double(obj.custom_data.ice_mask(:,slices)), ...
+        double(surf_bins), double(bottom_bin), ....
+        double(gt), double(sb.layer(mask_idx).y(:,slices)), ...
         double(obj.custom_data.mu), double(obj.custom_data.sigma));
       correct_surface = reshape(correct_surface, [size(sb.data,2) length(slices)]);
       % Create cmd for layer change

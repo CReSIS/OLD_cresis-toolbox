@@ -45,9 +45,10 @@ if 0
   % Replace -std=c++11 with -std=c++0x (should occur in two places)
   % Reference: http://stackoverflow.com/questions/14674597/cc1plus-error-unrecognized-command-line-option-std-c11-with-g
   mex -largeArrayDims fuse.cpp
-  mex -largeArrayDims train_params.cpp
+  mex -largeArrayDims train_model.cpp
   mex -largeArrayDims detect.cpp
-  mex -largeArrayDims extract_flag.cpp
+  mex -largeArrayDims extract.cpp
+  mex -largeArrayDims refine.cpp
 end
 
 %% set up torque
