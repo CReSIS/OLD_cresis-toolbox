@@ -21,19 +21,19 @@ if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
     save(param.layer_fn,'surf')
   end
   
-  theta_cal = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/sv_calibration/rds/2014_Greenland_P3/theta_cal.mat');
-  mdata.theta = theta_cal.theta;
-  
   mdata.ice_mask = surf(find(strncmp({surf.name},'ice mask',8))).y;
   
 %   geotiff_fn = 'X:\GIS_data\canada\Landsat-7\Canada_90m.tif';
   geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/Landsat-7/Canada_90m.tif';
 %   ice_mask_fn = 'X:\GIS_data\canada\ice_mask\03_rgi50_ArcticCanadaNorth\03_rgi50_ArcticCanadaNorth.mat';
-   ice_mask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat';
+   ice_mask_meta_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat';
+   ice_mask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth';
 %  ice_mask_fn = '~/03_rgi50_ArcticCanadaNorth_2.mat';
   fprintf('Loading geotiff and ice mask\n');
   proj = geotiffinfo(geotiff_fn);
-  ice_mask = load(ice_mask_fn);
+  ice_mask = load(ice_mask_meta_fn,'R','X','Y','proj');
+  fid = fopen(ice_mask_fn,'r');
+  ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
   [DEM, R, tmp] = geotiffread(geotiff_fn);
   fprintf('Done Loading\n');
   

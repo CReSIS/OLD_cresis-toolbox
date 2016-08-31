@@ -256,9 +256,9 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     function toggle_detect_flag(obj,src,~)
       val = get(src,'Value');
       if val
-        obj.detect_flag = 0;
-      else
         obj.detect_flag = 1;
+      else
+        obj.detect_flag = 0;
       end
     end
     
