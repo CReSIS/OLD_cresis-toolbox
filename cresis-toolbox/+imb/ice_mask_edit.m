@@ -436,6 +436,26 @@ classdef ice_mask_edit < handle
         set(h_axes_alt,'xlim',get(h_axes,'xlim'));
         set(h_axes_alt,'ylim',get(h_axes,'ylim'));
         
+      elseif but == 3 && x==obj.x && y==obj.y && ~isempty(obj.intersections)
+        inter_x = reshape(obj.intersections(1,:,:),...
+          size(obj.intersections,2),size(obj.intersections,3));
+        inter_y = reshape(obj.intersections(2,:,:),...
+          size(obj.intersections,2),size(obj.intersections,3));
+        slices = repmat(1:size(inter_x,2),size(inter_x,1),1);
+        
+        near_mask = inter_x >= x*1e3-1e3 & inter_x <= x*1e3+1e3 &...
+          inter_y >= y*1e3-1e3 & inter_y <= y*1e3+1e3;
+        inter_x = inter_x(near_mask);
+        inter_y = inter_y(near_mask);
+        slices = slices(near_mask);
+        
+        slice = griddata(inter_x,inter_y,slices,x*1e3,y*1e3,'nearest');
+        if ~isnan(slice)
+          obj.slice = slice;
+          obj.change_slice(obj.slice);
+          notify(obj,'SliceChange')
+        end
+        
       elseif but == 1 && x~=obj.x && y~=obj.y && obj.active_tool_idx > 0 ...
           && any(obj.tools(obj.active_tool_idx).figh == h_obj)
         xlims = xlim(h_axes);
@@ -960,24 +980,38 @@ classdef ice_mask_edit < handle
     
     function save(obj)
       fprintf('Saving ice mask data (%s)...\n', datestr(now));
-      proj = obj.proj;
-      R = obj.R;
-      [fp,fn,ext] = fileparts(obj.ice_mask_fn);
-      %       file = [fp,fn,'_2',ext];
-      file = sprintf('~/%s_2%s',fn,ext);
+      fid = fopen(obj.ice_mask_fn,'r+');
+      if fid==-1
+        error('Could not save ice_mask.');
+        return
+      end
+        
       if isempty(obj.mask_all)
-        mask = obj.mask;
-        X = obj.ice_x;
-        Y = obj.ice_y;
-        save(file,'R','X','Y','mask','proj');
+        mask_old = logical(fread(fid,size(obj.mask),'uint8=>uint8'));
+        diff_idx = find(mask_old ~= obj.mask);
+        for i = 1:numel(diff_idx)
+          fseek(fid,diff_idx(i),'bof');
+          fwrite(fid,obj.mask(i),'uint8');
+        end
+        
       else
-        obj.mask_all(obj.ice_y_idx,obj.ice_x_idx) = obj.mask;
-        mask = obj.mask_all;
-        X = obj.ice_x_all;
-        Y = obj.ice_y_all;
-        save(file,'R','X','Y','mask','proj');
+        mask_old = logical(fread(fid,size(obj.mask_all),'uint8=>uint8'));
+        idx_reduced = find(mask_old(obj.ice_y_idx,obj.ice_x_idx) ~= obj.mask);
+        idx_block_y = find(obj.ice_y_idx);
+        idx_block_x = find(obj.ice_x_idx);
+        [idx_y,idx_x] = ind2sub(size(obj.mask),idx_reduced);
+        idx_y_all = idx_block_y(idx_y);
+        idx_x_all = idx_block_x(idx_x);
+        idx = sub2ind(size(obj.mask_all),idx_y_all,idx_x_all);
+        
+        for i = 1:length(idx)
+          fseek(fid,idx(i),'bof');
+          fwrite(fid,obj.mask(idx_reduced(i)),'uint8');
+        end
       end
       fprintf('  Done\n');
+    
+      fclose(fid);
     end
     
     function active_tool(obj,tool_idx)

@@ -33,7 +33,10 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
   ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
   
   proj = geotiffinfo(geotiff_fn);
-  ice_mask = load(ice_mask_fn);
+  ice_mask = load(ice_mask_meta_fn,'R','X','Y','proj');
+  fid = fopen(ice_mask_fn,'r');
+  ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
+  fclose(fid);
   [DEM, R, tmp] = geotiffread(geotiff_fn);
   
   run_slice_browser_fn = fn;
