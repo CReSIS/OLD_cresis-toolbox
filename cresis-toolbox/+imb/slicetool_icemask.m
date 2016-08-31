@@ -19,8 +19,8 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     function obj = slicetool_icemask()
       obj.create_option_ui();
       obj.tool_name = 'Ice Mask';
-      obj.tool_menu_name = '(M)ask Editor';
-      obj.tool_shortcut = 'm';
+      obj.tool_menu_name = 'Mask Editor';
+      obj.tool_shortcut = '';
       obj.detect_flag = 1;
     end
     

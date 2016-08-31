@@ -1,52 +1,59 @@
 % script imb.run_slice_browser
 %
-% Author: Elijah Paden, John Paden
-close all;
-% mdata = [];
-if ~exist('run_slice_browser_init','var') || ~run_slice_browser_init
+% Author: Sravya Athinarapu, Elijah Paden, John Paden, Jordan Sprick
+
+%% User Settings
+% =========================================================================
+
+param.radar_name = 'mcords3';
+param.season_name = '2014_Greenland_P3';
+out_type = 'CSA_music';
+param.day_seg = '20140401_03';
+frm = 37;
+% frm = 39;
+% frm = 43;
+% frm = 44;
+% frm = 45;
+% frm = 46;
+% frm = 47;
+% frm = 48;
+
+%% Automated Section
+% =========================================================================
+
+fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
+  fprintf('Loading data (%s)\n', datestr(now));
+  mdata = load(fn);
+  mdata.ice_mask = logical(mdata.ice_mask); % JORDAN: MOVE TO COLLATE
+  theta_cal = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/sv_calibration/rds/2014_Greenland_P3/theta_cal.mat'); % JORDAN: MOVE TO COLLATE
+  mdata.theta = theta_cal.theta; % JORDAN: MOVE TO COLLATE
+  %mdata.ice_mask = surf(find(strncmp({surf.name},'ice mask',8))).y; % JORDAN: MOVE TO COLLATE
   
-  mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_039.mat');
-%     mdata = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_CSA_music/20140401_03/Data_20140401_03_044_old.mat');
-  mdata.ice_mask = logical(mdata.ice_mask);
+  geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
+  ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
   
-  %% Save surf data into a file
-  
-  surf_data = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_surfData/20140401_03/Data_20140401_03_039');
-%   surf_data = load('~/surf_data.mat');
-  surf = surf_data.surf;
-  
-  param = [];
-  param.layer_fn = '~/surf_data.mat';
-  if ~exist(param.layer_fn,'file')
-    save(param.layer_fn,'surf')
-  end
-  
-  mdata.ice_mask = surf(find(strncmp({surf.name},'ice mask',8))).y;
-  
-%   geotiff_fn = 'X:\GIS_data\canada\Landsat-7\Canada_90m.tif';
-  geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/Landsat-7/Canada_90m.tif';
-%   ice_mask_fn = 'X:\GIS_data\canada\ice_mask\03_rgi50_ArcticCanadaNorth\03_rgi50_ArcticCanadaNorth.mat';
-   ice_mask_meta_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat';
-   ice_mask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth';
-%  ice_mask_fn = '~/03_rgi50_ArcticCanadaNorth_2.mat';
-  fprintf('Loading geotiff and ice mask\n');
   proj = geotiffinfo(geotiff_fn);
   ice_mask = load(ice_mask_meta_fn,'R','X','Y','proj');
   fid = fopen(ice_mask_fn,'r');
   ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
   [DEM, R, tmp] = geotiffread(geotiff_fn);
-  fprintf('Done Loading\n');
   
-  run_slice_browser_init = true;
+  run_slice_browser_fn = fn;
+  fprintf('  Done loading data (%s)\n', datestr(now));
 end
+
+sb_param = [];
+sb_param.layer_fn = fullfile(ct_filename_out(param,'surfData',''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
 
 %% Call slice_browser
 try; delete(obj); end;
+close all;
 h_control_fig = figure(1); clf;
 h_control_axes = axes('Parent',h_control_fig);
 h_control_image = imagesc(lp(squeeze(mdata.Topography.img(:,33,:))),'Parent',h_control_axes);
 colormap(parula(256))
-obj = imb.slice_browser(lp(mdata.Topography.img),h_control_image,param);
+obj = imb.slice_browser(lp(mdata.Topography.img),h_control_image,sb_param);
 
 try; delete(icemask_tool); end;
 icemask_tool = imb.slicetool_icemask();
