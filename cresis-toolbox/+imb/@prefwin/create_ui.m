@@ -96,7 +96,7 @@ set(obj.h_gui.sourceLB,'HorizontalAlignment','Center');
 set(obj.h_gui.sourceLB,'FontName','fixed');
 set(obj.h_gui.sourceLB,'Callback',@obj.sourceLB_callback);
 set(obj.h_gui.sourceLB,'TooltipString',...
-  sprintf('List of echogram sources to load\n Left to select\n Right to add or remove'));
+  sprintf('List of echogram sources to load\n Left click to select\n Right click to add or remove'));
 set(obj.h_gui.sourceLB,'Min',1); % One must always be selected
 set(obj.h_gui.sourceLB,'Max',1e9); % Allow multiple selections
 
