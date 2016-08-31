@@ -83,7 +83,6 @@ double HMM::unary_cost(size_t x, size_t y) {
     }
 
     // Using extra ground truth (uncomment these codes if use extra ground truth)
-    /*
     for (size_t i = 0; i < egt.size(); i++) {
         if (x == egt[i].first) {
             if (y+t == egt[i].second) {
@@ -93,7 +92,6 @@ double HMM::unary_cost(size_t x, size_t y) {
             }
         }
     }
-    */
 
     // Penalty if too close to surface layer
     if (abs((int)y - (int)sgt[x]) < 20) {

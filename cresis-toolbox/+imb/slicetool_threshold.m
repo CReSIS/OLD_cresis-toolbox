@@ -20,6 +20,8 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
             obj.tool_name = 'Threshold';
             obj.tool_menu_name = '(T)hreshold';
             obj.tool_shortcut = 't';
+            obj.ctrl_pressed = 0;
+            obj.shift_pressed = 0;
         end
         
         function cmd = apply_PB_callback(obj,sb)

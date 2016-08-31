@@ -7,7 +7,10 @@
 
 param.radar_name = 'mcords3';
 param.season_name = '2014_Greenland_P3';
-out_type = 'CSA_music';
+out_type = 'paden';
+surfdata_source = 'surfData2';
+% out_type = 'CSA_music';
+% surfdata_source = 'surfData';
 param.day_seg = '20140401_03';
 frm = 37;
 % frm = 39;
@@ -25,10 +28,6 @@ fn = fullfile(ct_filename_out(param,out_type,''),sprintf('Data_%s_%03d.mat',para
 if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
   fprintf('Loading data (%s)\n', datestr(now));
   mdata = load(fn);
-  mdata.ice_mask = logical(mdata.ice_mask); % JORDAN: MOVE TO COLLATE
-  theta_cal = load('/cresis/snfs1/dataproducts/ct_data/ct_tmp/sv_calibration/rds/2014_Greenland_P3/theta_cal.mat'); % JORDAN: MOVE TO COLLATE
-  mdata.theta = theta_cal.theta; % JORDAN: MOVE TO COLLATE
-  %mdata.ice_mask = surf(find(strncmp({surf.name},'ice mask',8))).y; % JORDAN: MOVE TO COLLATE
   
   geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
   ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
@@ -42,16 +41,11 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
 end
 
 sb_param = [];
-sb_param.layer_fn = fullfile(ct_filename_out(param,'surfData',''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+sb_param.layer_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
 
 %% Call slice_browser
 try; delete(obj); end;
-close all;
-h_control_fig = figure(1); clf;
-h_control_axes = axes('Parent',h_control_fig);
-h_control_image = imagesc(lp(squeeze(mdata.Topography.img(:,33,:))),'Parent',h_control_axes);
-colormap(parula(256))
-obj = imb.slice_browser(lp(mdata.Topography.img),h_control_image,sb_param);
+obj = imb.slice_browser(10*log10(mdata.Topography.img),[],sb_param);
 
 try; delete(icemask_tool); end;
 icemask_tool = imb.slicetool_icemask();
@@ -63,6 +57,7 @@ custom_data.ice_mask_fn = ice_mask_fn;
 custom_data.mdata = mdata;
 custom_data.sb = obj;
 custom_data.reduce_flag = 1;
+custom_data.ice_mask_layer = 3;
 icemask_tool.set_custom_data(custom_data);
 obj.insert_tool(icemask_tool);
 
@@ -70,8 +65,6 @@ try; delete(detect_tool); end;
 detect_tool = imb.slicetool_detect();
 custom_data.mu = mdata.Topography.mu;
 custom_data.sigma = mdata.Topography.sigma;
-custom_data.ice_mask = mdata.ice_mask;
-custom_data.bottom = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
 detect_tool.set_custom_data(custom_data);
 obj.insert_tool(detect_tool);
 
@@ -89,7 +82,9 @@ try; delete(extract_tool); end;
 extract_tool = imb.slicetool_extract();
 custom_data.mu = mdata.Topography.mu;
 custom_data.sigma = mdata.Topography.sigma;
-custom_data.ice_mask = mdata.ice_mask;
-custom_data.bottom = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
 extract_tool.set_custom_data(custom_data);
 obj.insert_tool(extract_tool);
+
+try; delete(max_tool); end;
+max_tool = imb.slicetool_max();
+obj.insert_tool(max_tool);

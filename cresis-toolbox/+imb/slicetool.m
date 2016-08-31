@@ -5,6 +5,8 @@ classdef (HandleCompatible = true) slicetool < handle
     tool_name
     tool_menu_name
     tool_shortcut
+    ctrl_pressed
+    shift_pressed
     help_string
     custom_data
     save_callback
@@ -22,6 +24,12 @@ classdef (HandleCompatible = true) slicetool < handle
   
   methods
     function obj = slicetool()
+      % obj.create_option_ui();
+      % obj.tool_name = 'TOOL NAME';
+      % obj.tool_menu_name = 'TOOL NAME IN MENU';
+      % obj.tool_shortcut = 'm';
+      % obj.ctrl_pressed = 0;
+      % obj.shift_pressed = 0;
     end
     
     function delete(obj)
