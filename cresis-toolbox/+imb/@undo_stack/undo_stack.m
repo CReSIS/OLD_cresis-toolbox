@@ -10,6 +10,38 @@ classdef (HandleCompatible = true) undo_stack < handle
 % param.id = unique id of this stack stored in "unique_id" property
 %   (not used by undo_stack, helpful to uniquely identifying your stack)
 %   Can be of any type.
+%
+% Basic Setup
+% 1. Create a custom command object (this should include information to
+%    undo and redo each operation). For example, you could use a structure
+%    like this:
+%   cmd: structure containing undo/redo information
+%    .undo: substructure containing undo information
+%     .FIELDS: fields required to undo the command
+%    .redo: substructure containing redo information
+%     .FIELDS: fields required to redo the command
+% 2. Create the undo_stack class. The ID field is only used by the user of
+%    the class so can be left empty if you do not need it.
+% 3. Connect functions:
+%   a. When the command should be applied, call "push"
+%      (Pass in the custom command object associated with this command.)
+%   b. When the undo command is run, call "pop"
+%   c. When the redo command is run, call "redo"
+%   d. When the save command is run, call "save"
+% 4. Create listener functions for the synchronize command
+%   This command should call "get_sync_cmds" and then apply those 
+%   commands (IMPORTANT: the commands are not applied until this point).
+%   The commands are packed in a cell array of your custom command objects.
+%   The callback function must have 2 arguments (source and event).
+%   Then add your callback function as a listener:
+%   add_listener(undo object, 'synchronize_event', @callback function handle).
+% 5. Create listener functions for the save command
+%   This command should call "get_save_cmds" and then apply those
+%   commands in a permanent way. These commands cannot be undone.
+%   The commands are packed in a cell array of your custom command objects.
+%   The callback function must have 2 arguments (source and event).
+%   Then add your callback function as a listener:
+%   add_listener(undo object, 'save_event', @callback function handle).
   
   properties
     % unique_id: unique identifier for this stack, can be any type, set
@@ -36,6 +68,9 @@ classdef (HandleCompatible = true) undo_stack < handle
   end
   
   methods
+    % param: structure that controls operation of undo_stack
+    %  .id: custom field that is only used by the user of the class and can
+    %       be left empty if it is not needed
     function obj = undo_stack(param)
       %%% Pre Initialization %%%
       % Any code not using output argument (obj)

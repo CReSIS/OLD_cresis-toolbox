@@ -73,7 +73,7 @@ if nargout > 2
     file_idxs = [];
     new_fns = {};
     for fidx = 1:length(fns)
-      fname = fname_info_acords(fns{fidx});
+      fname = fname_info_acords(fns{fidx},struct('hnum',1,'file_version',param.records.file_version));
       new_fns{fidx} = [fname.basename sprintf('.%03d',fname.file_idx)];
     end
     [new_fns,sorted_idxs] = sort(new_fns);

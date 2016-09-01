@@ -1,10 +1,15 @@
 function zoom_arrow(event,param)
-% event = event passed into figure's WindowScrollWheelFcn callback function
+% zoom_arrow(event,param)
+%
+% event = event passed into figure's WindowKeyPressFcn callback function
 % param
 %  .xlims = max x-limits
 %  .ylims = max y-limits
 %  .h_axes = axes handle that we are zooming with
 %  .h_fig = figure handle that we are zooming in
+%
+% See also: zoom_arrow.m, zoom_button_up.m zoom_button_scroll.m,
+%   zoom_setup.m, zoom_figure_setup.m
 
 if any(strcmp('ctrl',event.Modifier))
   ctrl_pressed = true;
@@ -72,6 +77,6 @@ if ~isempty(event.Key)
   if ylims(2) > param.ylims(2)
     ylims = param.ylims(2) + [-y_extent 0];
   end
-  xlim(xlims);
-  ylim(ylims);
+  xlim(param.h_axes,xlims);
+  ylim(param.h_axes,ylims);
 end

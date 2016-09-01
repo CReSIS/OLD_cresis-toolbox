@@ -72,7 +72,9 @@ for file_idx = 1:length(in_fns)
         sync_gps.lon = [sync_gps.lon, sync_gps_tmp.lon];
         sync_gps.elev = [sync_gps.elev, sync_gps_tmp.elev];
         sync_gps.comp_time = [sync_gps.comp_time, sync_gps_tmp.comp_time];
-        sync_gps.radar_time = [sync_gps.radar_time, sync_gps_tmp.radar_time];
+        if isfield(sync_gps,'radar_time')
+          sync_gps.radar_time = [sync_gps.radar_time, sync_gps_tmp.radar_time];
+        end
       end
     end
   end
@@ -358,7 +360,7 @@ for file_idx = 1:length(in_fns)
   %% Add software revision information
   gps.sw_version = current_software_version;
 
-  %% Add the Radar Synchronization variables for mcrds, accum2
+  %% Add the Radar Synchronization variables for mcrds, accum2, acords
   if exist('sync_flag','var') && sync_flag{file_idx}
     % Synchronize computer time and radar time from NMEA file to gps time
     gps.sync_gps_time = sync_gps.gps_time;
@@ -366,7 +368,9 @@ for file_idx = 1:length(in_fns)
     gps.sync_lon = sync_gps.lon;
     gps.sync_elev = sync_gps.elev;
     gps.comp_time = sync_gps.comp_time;
-    gps.radar_time = sync_gps.radar_time;
+    if isfield(sync_gps,'radar_time')
+      gps.radar_time = sync_gps.radar_time;
+    end
 
     %% Fabricating a heading for sync GPS data
     along_track = geodetic_to_along_track(gps.sync_lat,gps.sync_lon,gps.sync_elev);
@@ -395,7 +399,19 @@ for file_idx = 1:length(in_fns)
     end
     gps.sync_heading = est_heading;
     
-    save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','radar_time','sw_version');
+    
+     % If sync gps data vectors are longer than gps vectors or sync_gps_time
+    % extends beyond gps_time, merge the two data sets. Check for longitude
+    % 360 deg offset and elevation differences.
+    if gps.gps_time(end) < gps.sync_gps_time(end) || gps.gps_time(1) > gps.sync_gps_time(1)
+      gps = merge_sync_gps(gps,2);
+    end
+
+    if isfield(gps,'radar_time')
+      save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','radar_time','sw_version');
+    else
+      save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','sw_version');
+    end
   else
     save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');
   end

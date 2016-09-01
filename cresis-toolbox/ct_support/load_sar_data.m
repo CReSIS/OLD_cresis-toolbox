@@ -60,17 +60,8 @@ end
 physical_constants;
 
 %% Initialize memory for outputs
-data            = cell(length(param.load_sar_data.imgs),1);
-pos.lat         = [];
-pos.lon         = [];
-pos.elev        = [];
-pos.surface     = [];
-pos.bottom      = [];
-pos.roll        = [];
-pos.pitch       = [];
-pos.heading     = [];
-pos.gps_time    = [];
-pos.time        = [];
+data     = cell(length(param.load_sar_data.imgs),1);
+metadata = [];
 
 for subap_idx = 1:length(param.load_sar_data.subap)
   subap = param.load_sar_data.subap(subap_idx);
@@ -99,7 +90,7 @@ for subap_idx = 1:length(param.load_sar_data.subap)
   param.load_sar_data.chunk(param.load_sar_data.chunk==inf) = max(valid_chks);
   chks_to_load = param.load_sar_data.chunk(1):param.load_sar_data.chunk(end);
   
-  %% Remove frames that do not exist from chunks_to_load list
+  %% Remove chunks that do not exist from chunks_to_load list
   [valid_chks,keep_idxs] = intersect(chks_to_load, valid_chks);
   if length(valid_chks) ~= length(chks_to_load)
     bad_mask = ones(size(chks_to_load));
@@ -134,33 +125,58 @@ for subap_idx = 1:length(param.load_sar_data.subap)
           fprintf(' %s (%s)\n', sar_fn, datestr(now,'HH:MM:SS'));
         end
         sar_data = load(sar_fn);
+
+        % Only add in non-overlapping part of SAR image
+        if img == 1 && wf_adc_idx == 1
+          if chunk == param.load_sar_data.chunk(1)
+            new_idxs = 1:length(sar_data.fcs.gps_time);
+          else
+            % 1e-3 added to avoid rounding errors... this is a hack
+            new_idxs = find(sar_data.fcs.gps_time > fcs{img}{wf_adc_idx}.gps_time(end)+1e-3);
+          end
+        end
+        
+        % Get output image positions (not phase centers)
+        if img == 1 && wf_adc_idx == 1 && subap_idx == 1
+          if chunk == param.load_sar_data.chunk(1)
+            metadata.lat = sar_data.lat;
+            metadata.lon = sar_data.lon;
+            metadata.elev = sar_data.elev;
+          else
+            metadata.lat = [metadata.lat sar_data.lat(new_idxs)];
+            metadata.lon = [metadata.lon sar_data.lon(new_idxs)];
+            metadata.elev = [metadata.elev sar_data.elev(new_idxs)];
+          end
+        end
         
         if subap_idx == 1
           if chunk == param.load_sar_data.chunk(1)
             fcs{img}{wf_adc_idx} = sar_data.fcs;
+            
           else
-            fcs{img}{wf_adc_idx}.x = cat(2,fcs{img}{wf_adc_idx}.x, ...
-              sar_data.fcs.x);
-            fcs{img}{wf_adc_idx}.y = cat(2,fcs{img}{wf_adc_idx}.y, ...
-              sar_data.fcs.y);
-            fcs{img}{wf_adc_idx}.z = cat(2,fcs{img}{wf_adc_idx}.z, ...
-              sar_data.fcs.z);
-            fcs{img}{wf_adc_idx}.origin = cat(2,fcs{img}{wf_adc_idx}.origin, ...
-              sar_data.fcs.origin);
-            fcs{img}{wf_adc_idx}.pos = cat(2,fcs{img}{wf_adc_idx}.pos, ...
-              sar_data.fcs.pos);
-            fcs{img}{wf_adc_idx}.roll = cat(2,fcs{img}{wf_adc_idx}.roll, ...
-              sar_data.fcs.roll);
-            fcs{img}{wf_adc_idx}.pitch = cat(2,fcs{img}{wf_adc_idx}.pitch, ...
-              sar_data.fcs.pitch);
-            fcs{img}{wf_adc_idx}.heading = cat(2,fcs{img}{wf_adc_idx}.heading, ...
-              sar_data.fcs.heading);
-            fcs{img}{wf_adc_idx}.surface = cat(2,fcs{img}{wf_adc_idx}.surface, ...
-              sar_data.fcs.surface);
-            fcs{img}{wf_adc_idx}.bottom = cat(2,fcs{img}{wf_adc_idx}.bottom, ...
-              sar_data.fcs.bottom);
+            
             fcs{img}{wf_adc_idx}.gps_time = cat(2,fcs{img}{wf_adc_idx}.gps_time, ...
-              sar_data.fcs.gps_time);
+              sar_data.fcs.gps_time(new_idxs));
+            fcs{img}{wf_adc_idx}.x = cat(2,fcs{img}{wf_adc_idx}.x, ...
+              sar_data.fcs.x(:,new_idxs));
+            fcs{img}{wf_adc_idx}.y = cat(2,fcs{img}{wf_adc_idx}.y, ...
+              sar_data.fcs.y(:,new_idxs));
+            fcs{img}{wf_adc_idx}.z = cat(2,fcs{img}{wf_adc_idx}.z, ...
+              sar_data.fcs.z(:,new_idxs));
+            fcs{img}{wf_adc_idx}.origin = cat(2,fcs{img}{wf_adc_idx}.origin, ...
+              sar_data.fcs.origin(:,new_idxs));
+            fcs{img}{wf_adc_idx}.pos = cat(2,fcs{img}{wf_adc_idx}.pos, ...
+              sar_data.fcs.pos(:,new_idxs));
+            fcs{img}{wf_adc_idx}.roll = cat(2,fcs{img}{wf_adc_idx}.roll, ...
+              sar_data.fcs.roll(new_idxs));
+            fcs{img}{wf_adc_idx}.pitch = cat(2,fcs{img}{wf_adc_idx}.pitch, ...
+              sar_data.fcs.pitch(new_idxs));
+            fcs{img}{wf_adc_idx}.heading = cat(2,fcs{img}{wf_adc_idx}.heading, ...
+              sar_data.fcs.heading(new_idxs));
+            fcs{img}{wf_adc_idx}.surface = cat(2,fcs{img}{wf_adc_idx}.surface, ...
+              sar_data.fcs.surface(new_idxs));
+            fcs{img}{wf_adc_idx}.bottom = cat(2,fcs{img}{wf_adc_idx}.bottom, ...
+              sar_data.fcs.bottom(new_idxs));
           end
         end
         
@@ -169,16 +185,16 @@ for subap_idx = 1:length(param.load_sar_data.subap)
           if subap_idx == 1 && wf_adc_idx == 1
             % Allocate memory in a special way when loading 3D data
             data{img}(size(sar_data.fk_data,1), ...
-              size(data{img},2)+size(sar_data.fk_data,2),size(wf_adc_list,1),length(param.load_sar_data.subap)) = single(0);
+              size(data{img},2)+length(new_idxs),size(wf_adc_list,1),length(param.load_sar_data.subap)) = single(0);
           end
-          data{img}(:,cur_rline + (1:size(sar_data.fk_data,2)),wf_adc_idx,subap_idx) = sar_data.fk_data;
+          data{img}(:,cur_rline + (1:length(new_idxs)),wf_adc_idx,subap_idx) = sar_data.fk_data(:,new_idxs);
         else
           % When combining channels, take the mean of the data as it
           % is loaded in to reduce peak memory consumption.
           if wf_adc_idx == 1
-            sar_data_data = sar_data.fk_data / size(wf_adc_list,1);
+            sar_data_data = sar_data.fk_data(:,new_idxs) / size(wf_adc_list,1);
           else
-            sar_data_data = sar_data_data + sar_data.fk_data / size(wf_adc_list,1);
+            sar_data_data = sar_data_data + sar_data.fk_data(:,new_idxs) / size(wf_adc_list,1);
           end
         end
         
@@ -193,7 +209,7 @@ for subap_idx = 1:length(param.load_sar_data.subap)
       end
     end
     
-    cur_rline = cur_rline + size(sar_data.fk_data,2);
+    cur_rline = cur_rline + length(new_idxs);
   end
 end
 

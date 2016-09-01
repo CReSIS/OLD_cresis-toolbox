@@ -1,10 +1,10 @@
 function [ra,bw,L] = sigma_beamwidth_sar_length(data_in,input_methods,param)
-% function [ra,bw,L] = sigma_to_beamwidth(data_in,input_methods)
+% function [ra,bw,L] = sigma_beamwidth_sar_length(data_in,input_methods)
 %
 % Input either desired along-track resolution, full-beamwidth in air, or
 % SAR aperture length and this will calculate the other two values.
 %
-% INPUTS: 
+% INPUTS:
 %   data_in: Desired value of along-track resolution, beamwidth, or SAR
 %            aperture length
 %   input_methods: Type of data_in (resolution, beamwidth, or length)
@@ -15,7 +15,7 @@ function [ra,bw,L] = sigma_beamwidth_sar_length(data_in,input_methods,param)
 %   param.n1 = Permittivity of second medium
 %
 % Example:
-%   [ra,bw,L] = sigma_to_beamwidth([100],{'sar_length'});
+%   [ra,bw,L] = sigma_beamwidth_sar_length([100],{'sar_length'});
 %   ra =
 %       6.0143
 %   bw =
@@ -87,8 +87,10 @@ for method_idx=1:length(input_methods)
     %     full_beamwidth = [42.192	21.436	10.761	5.386	2.694]; % deg
     if isvector(data_in)
       full_beamwidth = data_in;
+      bw = data_in;
     else
       full_beamwidth = data_in(:,method_idx);
+      bw = data_in(:,method_idx);
     end
     theta0 = full_beamwidth/2*pi/180; % rad
     
