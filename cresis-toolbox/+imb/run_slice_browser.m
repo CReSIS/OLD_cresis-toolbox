@@ -7,10 +7,8 @@
 
 param.radar_name = 'mcords3';
 param.season_name = '2014_Greenland_P3';
-out_type = 'paden';
-surfdata_source = 'surfData2';
-% out_type = 'CSA_music';
-% surfdata_source = 'surfData';
+out_type = 'CSA_music';
+surfdata_source = 'surfData';
 param.day_seg = '20140401_03';
 frm = 37;
 % frm = 39;
@@ -30,24 +28,26 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
   mdata = load(fn);
   
   geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
-  ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
+  ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
+  
+  [ice_mask_fn_dir ice_mask_fn_name] = fileparts(ice_mask_fn);
+  ice_mask_mat_fn = fullfile(ice_mask_fn_dir,[ice_mask_fn_name '.mat']);
+  ice_mask = load(ice_mask_mat_fn,'R','X','Y','proj');
   
   proj = geotiffinfo(geotiff_fn);
-  ice_mask = load(ice_mask_fn,'R','X','Y','proj');
-  [ice_mask_fn_dir ice_mask_fn_name] = fileparts(ice_mask_fn);
-  ice_mask_bin_fn = fullfile(ice_mask_fn_dir,[ice_mask_fn_name '.bin']);
-  [fid,msg] = fopen(ice_mask_bin_fn,'r');
-  if fid < 1
-    fprintf('Could not open file %s\n', ice_mask_bin_fn);
-    error(msg);
-  end
-  ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
-  fclose(fid);
   [DEM, R, tmp] = geotiffread(geotiff_fn);
   
   run_slice_browser_fn = fn;
   fprintf('  Done loading data (%s)\n', datestr(now));
 end
+
+[fid,msg] = fopen(ice_mask_fn,'r');
+if fid < 1
+  fprintf('Could not open file %s\n', ice_mask_bin_fn);
+  error(msg);
+end
+ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
+fclose(fid);
 
 sb_param = [];
 sb_param.layer_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));

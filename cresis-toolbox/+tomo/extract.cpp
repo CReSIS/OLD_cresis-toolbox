@@ -176,7 +176,7 @@ double TRWS::unary_cost(size_t d, size_t h, size_t w) {
     // Extra ground truth (uncomment these if use extra ground truth)
     for (size_t i = 0; i < egt.size(); i++) {
         if (w == get<0>(egt[i]) && h == get<1>(egt[i])) {
-            cost += 2*pow(abs((int)get<2>(egt[i]) - (int)(d+t))/10.0,2);
+            cost += 2*pow(abs((int)get<2>(egt[i]) - (int)(d+t))/2.0,2);
 //             if (d+t == get<2>(egt[i])) {
 //                 return 0.0;
 //             } else {
@@ -185,8 +185,8 @@ double TRWS::unary_cost(size_t d, size_t h, size_t w) {
         }
     }
 
-    if (abs((int)(d+t) - (int)sgt[w][h]) < 40) {
-        cost += 400 - 10*abs((int)(d+t) - (int)sgt[w][h]);
+    if (abs((int)(d+t) - (int)sgt[w][h]) < 10) {
+        cost += 100 - 10*abs((int)(d+t) - (int)sgt[w][h]);
     }
 //     if (abs((int)d - (int)sgt[w][h]) < 20) {
 //         cost += 200;

@@ -101,8 +101,8 @@ double HMM::unary_cost(size_t x, size_t y) {
 //     if (abs((int)y - (int)sgt[x]) < 20) {
 //         cost += 200;
 //     }
-    if (abs((int)(y+t) - (int)sgt[x]) < 40) {
-        cost += 400 - 10*abs((int)(y+t) - (int)sgt[x]);
+    if (abs((int)(y+t) - (int)sgt[x]) < 10) {
+        cost += 100 - 10*abs((int)(y+t) - (int)sgt[x]);
     }
     
     // Template quadratic distance

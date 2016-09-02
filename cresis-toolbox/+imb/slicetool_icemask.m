@@ -222,7 +222,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       end
       
       slice_prev = obj.sb.slice;
-      if obj.detect_flag
+      if 0 && obj.detect_flag
         for tool_idx = 1:length(obj.sb.slice_tool.list)
           if isa(obj.sb.slice_tool.list{tool_idx},'imb.slicetool_detect')
             for slice_idx = 1:length(unique_slices)
