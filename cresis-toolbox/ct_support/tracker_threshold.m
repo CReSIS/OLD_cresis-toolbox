@@ -16,9 +16,10 @@ function surface = tracker_threshold(data,surf)
 %  .noise_override: double scalar, use this value for the noise estimate
 %     rather than the value estimated from noise_rng
 %  .threshold = double scalar, relative threshold above noise estimate
-%    in log10 scale
+%    in log10 scale. Default is 17.
 %  .sidelobe	= double scalar, sidelobe value that specifies the minimum
-%    threshold value as max_value - surf.sidelobe. In log10 scale.
+%    threshold value as max_value - surf.sidelobe. In log10 scale. Default
+%    is 13.
 %  .max_diff = maximum deviation of the surface from the inital surface (in
 %    range bins), set to inf to not have a limit
 %  .filter_len = an along track boxcar filter is applied, must be a
@@ -30,6 +31,10 @@ function surface = tracker_threshold(data,surf)
 %  .dem = surface dem used by .init.method == 'dem'
 %  .detrend = polynomial order of detrend function (polyfit to power data)
 %     zero or lower or leaving empty/undefined does no detrending
+%  .search_rng: search range around threshold bin to find a max value
+%  .threshold_rng: threshold for a given range line uses this range of
+%     range values around the current range line to estimate the threshold.
+%     Set to inf to include all range lines in estimate. Default is inf.
 %
 % surface = 1 by size(data,2) vector of range bins where the surface
 %   was tracked at
@@ -53,6 +58,9 @@ if ~isfield(surf,'search_rng')
 end
 if ~isfield(surf,'threshold')
   surf.threshold = 17;
+end
+if ~isfield(surf,'threshold_rng')
+  surf.threshold_rng = inf;
 end
 if ~isfield(surf,'sidelobe')
   surf.sidelobe = 13;
@@ -142,13 +150,17 @@ if isfield(surf,'init')
   end
 end
 
-if all(median_mdata==0)
+if ~isempty(surf.noise_override) && all(median_mdata==0)
   warning('Insufficient information to generate threshold since all values are zero.');
   surface = new_surface_max;
   return
 end
 if isempty(surf.noise_override)
-  THRESHOLD = surf.threshold + median(median_mdata(median_mdata ~= 0));
+  if isfinite(surf.threshold_rng)
+    THRESHOLD = NaN;
+  else
+    THRESHOLD = surf.threshold + median(median_mdata(median_mdata ~= 0));
+  end
 else
   THRESHOLD = surf.threshold + surf.noise_override;
 end
@@ -157,7 +169,14 @@ end
 surface = NaN*zeros(1,size(surf_data,2));
 for rline=1:size(surf_data,2)
   rbins = max(1,round(new_surface_max(rline) - surf.max_diff)) : min(size(surf_data,1),round(new_surface_max(rline) + surf.max_diff));
-  threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,THRESHOLD);
+  
+  if isnan(THRESHOLD)
+    mask = median_mdata ~= 0 & (1:size(surf_data,2)) - rline <= surf.threshold_rng;
+    RLINE_THRESHOLD = surf.threshold + median(median_mdata(mask));
+    threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,RLINE_THRESHOLD);
+  else
+    threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,THRESHOLD);
+  end
   thresh_bin = find(surf_data(rbins,rline) > threshold_rline,1);
   if ~isempty(thresh_bin)
     surface(rline) = rbins(1) - 1 + thresh_bin;

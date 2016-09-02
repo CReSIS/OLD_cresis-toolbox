@@ -12,11 +12,11 @@
 
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
 
-layers = [3 4];
-args{1} = 'control_layer';
-args{2} = 4;
-args{3} = 'mask_layer';
-args{4} = 3;
+surfdata_source = 'surfData2';
+
+layers = [1];
+args{1} = 'surf_layer';
+args{2} = [];
 
 % =====================================================================
 %% Automated Section
@@ -35,5 +35,5 @@ for param_idx = 1:length(params)
   param = merge_structs(param,gRadar);
   
   fprintf('surfData_modify %s\n', param.day_seg);
-  tomo.surfData_modify(param,'',layers,args{:});
+  tomo.surfData_modify(param,surfdata_source,layers,args{:});
 end

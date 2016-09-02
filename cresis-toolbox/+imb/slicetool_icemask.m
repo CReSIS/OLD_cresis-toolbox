@@ -1,14 +1,14 @@
 classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
   
   properties
-      ice
-      cmd
-      sb
-      ice_mask_layer
-      detect_flag
+    ice
+    cmd
+    sb
+    ice_mask_layer
+    detect_flag
   end
   
-  properties (SetAccess = private, GetAccess = private)
+  properties (SetAccess = protected, GetAccess = protected)
   end
   
   events
@@ -23,6 +23,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       obj.tool_shortcut = '';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
+      obj.help_string = '';
       
       obj.detect_flag = 1;
     end
@@ -78,7 +79,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       
     end
     
-    function cmd = apply_PB_callback(obj,~)
+    function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
       %     commands, cmd, that use sb.data to operate on sb.layer. You 
       %     should not modify any fields of sb.
@@ -86,6 +87,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
       %  .layer_idx: active layer
+      % slices: array of slices to operate on (overrides sb.slice)
       figure(obj.ice.h_mask_fig);
       figure(obj.ice.h_dem_fig);
       cmd = [];

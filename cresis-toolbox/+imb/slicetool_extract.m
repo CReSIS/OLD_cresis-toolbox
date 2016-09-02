@@ -1,10 +1,10 @@
 classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
   % Slice_browser tool which calls detect.cpp (HMM)
   
-  properties
+  properties (SetAccess = protected, GetAccess = public)
   end
   
-  properties (SetAccess = private, GetAccess = private)
+  properties (SetAccess = protected, GetAccess = protected)
   end
   
   events
@@ -18,9 +18,10 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       obj.tool_shortcut = 'e';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
+      obj.help_string = 'e: Extract/refine tools which run TRWS solution to HMM inference model to find best layer. Neighboring slices effect cost function to improve solution.';
     end
     
-    function cmd = apply_PB_callback(obj,sb)
+    function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
       %     commands, cmd, that use sb.data to operate on sb.layer. You 
       %     should not modify any fields of sb.
@@ -28,11 +29,12 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
       %  .layer_idx: active layer
-      fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, sb.layer_idx, sb.slice);
-      
+      % slices: array of slices to operate on (overrides sb.slice)
       control_idx = sb.layer(sb.layer_idx).control_layer;
+      active_idx = sb.layer(sb.layer_idx).active_layer;
       surf_idx = sb.layer(sb.layer_idx).surf_layer;
       mask_idx = sb.layer(sb.layer_idx).mask_layer;
+      
       try
         slice_range = eval(get(obj.gui.slice_rangeLE,'String'));
       catch ME
@@ -44,13 +46,26 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         error('Error in number of loops: %s', ME.getReport);
       end
       try
-        extract_threshold = eval(get(obj.gui.thresholdLE,'String'));
+        threshold = eval(get(obj.gui.thresholdLE,'String'));
       catch ME
         error('Error in threshold: %s', ME.getReport);
       end
+      if get(obj.gui.select_maskCB,'Value')
+        cols = find(sb.select_mask);
+      else
+        cols = 1:size(sb.data,2);
+      end
       
-      slices = sb.slice+slice_range;
+      if ~exist('slices','var') || isempty(slices)
+        slice_range = min(slice_range):max(slice_range);
+        slices = sb.slice+slice_range;
+      end
       slices = intersect(slices,1:size(sb.data,3));
+      if numel(slices)==1
+        fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice);
+      else
+        fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
+      end
       
       gt = [];
       if ~isempty(control_idx)
@@ -62,15 +77,20 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
           mask = isfinite(sb.layer(control_idx).x(:,slice)) ...
             & isfinite(sb.layer(control_idx).y(:,slice));
           gt = cat(2,gt,[(idx-1)*ones(1,sum(mask)); ...
-            sb.layer(control_idx).x(mask,slice).'; ...
-            sb.layer(control_idx).y(mask,slice).']);
+            sb.layer(control_idx).x(mask,slice).'-1; ...
+            sb.layer(control_idx).y(mask,slice).'+0.5]);
           bottom_bin = sb.layer(control_idx).y(33,slices);
         end
       else
         bottom_bin = NaN*zeros(1,length(slices));
       end
       
-      surf_bins = sb.layer(surf_idx).y(:,slices);
+      if isempty(surf_idx)
+        error('extract cannot be run without a surface layer');
+        surf_bins = NaN*sb.layer(active_idx).y(:,slices);
+      else
+        surf_bins = sb.layer(surf_idx).y(:,slices);
+      end
       surf_bins(isnan(surf_bins)) = -1;
       
       bottom_bin(isnan(bottom_bin)) = -1;
@@ -83,10 +103,10 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       begin_slice = max(1, min(slices)-1);
       end_slice = min(size(sb.data,3), max(slices)+1);
-      edge = [sb.layer(sb.layer_idx).y(:,begin_slice), sb.layer(sb.layer_idx).y(:,end_slice)];
+      edge = [sb.layer(active_idx).y(:,begin_slice), sb.layer(active_idx).y(:,end_slice)];
       
       extract_data = sb.data(:,:,slices);
-      extract_data(extract_data>extract_threshold) = extract_threshold;
+      extract_data(extract_data>threshold) = threshold;
       refine_en = get(obj.gui.refineCB,'Value');
       if refine_en
         correct_surface = tomo.refine(double(extract_data), ...
@@ -101,18 +121,18 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
           double(obj.custom_data.mu), double(obj.custom_data.sigma));
       end
       correct_surface = reshape(correct_surface, [size(sb.data,2) length(slices)]);
-      % Create cmd for layer change
+     % Create cmd for layer change
       cmd = [];
       for idx = 2:length(slices)-1
         slice = slices(idx);
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
-        cmd{end}.undo.layer = sb.layer_idx;
-        cmd{end}.redo.layer = sb.layer_idx;
-        cmd{end}.undo.x = 1:size(sb.layer(sb.layer_idx).y,1);
-        cmd{end}.undo.y = sb.layer(sb.layer_idx).y(:,slice);
-        cmd{end}.redo.x = 1:size(sb.layer(sb.layer_idx).y,1);
-        cmd{end}.redo.y = correct_surface(:,idx);
+        cmd{end}.undo.layer = active_idx;
+        cmd{end}.redo.layer = active_idx;
+        cmd{end}.undo.x = cols;
+        cmd{end}.undo.y = sb.layer(active_idx).y(cols,slice);
+        cmd{end}.redo.x = cols;
+        cmd{end}.redo.y = correct_surface(cols,idx);
         cmd{end}.type = 'standard';
       end
       cmd{end+1}.redo.slice = sb.slice;
@@ -148,7 +168,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       set(obj.gui.numloopsLE,'string','50')
       set(obj.gui.numloopsLE,'TooltipString','Number of iterations. IGNORED.');
       
-      % Extent
+      % Slice range
       obj.gui.slice_rangeTXT = uicontrol('Style','text','string','Slice range');
       set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
       
@@ -166,19 +186,19 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       set(obj.gui.thresholdLE,'string','13.5')
       set(obj.gui.thresholdLE,'TooltipString','Specify an image threshold.');
       
+      % Select mask
+      obj.gui.select_maskCB = uicontrol('parent',obj.h_fig);
+      set(obj.gui.select_maskCB,'style','checkbox')
+      set(obj.gui.select_maskCB,'string','Select')
+      set(obj.gui.select_maskCB,'value',1)
+      set(obj.gui.select_maskCB,'TooltipString','Check to operate only on the selected region.');
+      
       % Refine
       obj.gui.refineCB = uicontrol('parent',obj.h_fig);
       set(obj.gui.refineCB,'style','checkbox')
       set(obj.gui.refineCB,'string','Refine')
       set(obj.gui.refineCB,'value',0)
       set(obj.gui.refineCB,'TooltipString','Check to use refine which satisfies current layer edge conditions.');
-      
-      % Select mask
-      obj.gui.select_maskCB = uicontrol('parent',obj.h_fig);
-      set(obj.gui.select_maskCB,'style','checkbox')
-      set(obj.gui.select_maskCB,'string','Select')
-      set(obj.gui.select_maskCB,'value',0)
-      set(obj.gui.select_maskCB,'TooltipString','Check to operate only on the selected region.');
       
       % GUI container table
       obj.gui.table.ui = obj.h_fig;
@@ -231,13 +251,13 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       row = row + 1;
       col = 1;
-      obj.gui.table.handles{row,col}   = obj.gui.refineCB;
+      obj.gui.table.handles{row,col}   = obj.gui.select_maskCB;
       obj.gui.table.width(row,col)     = inf;
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;
       obj.gui.table.height_margin(row,col) = 1;
       col = 2;
-      obj.gui.table.handles{row,col}   = obj.gui.select_maskCB;
+      obj.gui.table.handles{row,col}   = obj.gui.refineCB;
       obj.gui.table.width(row,col)     = inf;
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;

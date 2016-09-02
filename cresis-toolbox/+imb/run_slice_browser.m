@@ -33,8 +33,14 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
   ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.mat'));
   
   proj = geotiffinfo(geotiff_fn);
-  ice_mask = load(ice_mask_meta_fn,'R','X','Y','proj');
-  fid = fopen(ice_mask_fn,'r');
+  ice_mask = load(ice_mask_fn,'R','X','Y','proj');
+  [ice_mask_fn_dir ice_mask_fn_name] = fileparts(ice_mask_fn);
+  ice_mask_bin_fn = fullfile(ice_mask_fn_dir,[ice_mask_fn_name '.bin']);
+  [fid,msg] = fopen(ice_mask_bin_fn,'r');
+  if fid < 1
+    fprintf('Could not open file %s\n', ice_mask_bin_fn);
+    error(msg);
+  end
   ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
   fclose(fid);
   [DEM, R, tmp] = geotiffread(geotiff_fn);
@@ -50,6 +56,34 @@ sb_param.layer_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfDa
 try; delete(obj); end;
 obj = imb.slice_browser(10*log10(mdata.Topography.img),[],sb_param);
 
+try; delete(detect_tool); end;
+detect_tool = imb.slicetool_detect();
+custom_data.mu = mdata.Topography.mu;
+custom_data.sigma = mdata.Topography.sigma;
+detect_tool.set_custom_data(custom_data);
+obj.insert_tool(detect_tool);
+
+try; delete(extract_tool); end;
+extract_tool = imb.slicetool_extract();
+custom_data.mu = mdata.Topography.mu;
+custom_data.sigma = mdata.Topography.sigma;
+extract_tool.set_custom_data(custom_data);
+obj.insert_tool(extract_tool);
+
+try; delete(max_tool); end;
+max_tool = imb.slicetool_max();
+obj.insert_tool(max_tool);
+
+try; delete(threshold_tool); end;
+threshold_tool = imb.slicetool_threshold();
+custom_data.ice_mask = mdata.ice_mask;
+custom_data.theta = mdata.param_combine.array_param.theta;
+custom_data.img = mdata.Topography.img;
+custom_data.Time = mdata.Time;
+custom_data.sb = obj;
+threshold_tool.set_custom_data(custom_data);
+obj.insert_tool(threshold_tool);
+
 try; delete(icemask_tool); end;
 icemask_tool = imb.slicetool_icemask();
 custom_data.DEM = DEM;
@@ -63,31 +97,3 @@ custom_data.reduce_flag = 1;
 custom_data.ice_mask_layer = 3;
 icemask_tool.set_custom_data(custom_data);
 obj.insert_tool(icemask_tool);
-
-try; delete(detect_tool); end;
-detect_tool = imb.slicetool_detect();
-custom_data.mu = mdata.Topography.mu;
-custom_data.sigma = mdata.Topography.sigma;
-detect_tool.set_custom_data(custom_data);
-obj.insert_tool(detect_tool);
-
-try; delete(threshold_tool); end;
-threshold_tool = imb.slicetool_threshold();
-custom_data.ice_mask = mdata.ice_mask;
-custom_data.theta = mdata.param_combine.array_param.theta;
-custom_data.img = mdata.Topography.img;
-custom_data.Time = mdata.Time;
-custom_data.sb = obj;
-threshold_tool.set_custom_data(custom_data);
-obj.insert_tool(threshold_tool);
-
-try; delete(extract_tool); end;
-extract_tool = imb.slicetool_extract();
-custom_data.mu = mdata.Topography.mu;
-custom_data.sigma = mdata.Topography.sigma;
-extract_tool.set_custom_data(custom_data);
-obj.insert_tool(extract_tool);
-
-try; delete(max_tool); end;
-max_tool = imb.slicetool_max();
-obj.insert_tool(max_tool);

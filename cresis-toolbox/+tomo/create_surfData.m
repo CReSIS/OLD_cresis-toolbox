@@ -57,9 +57,9 @@ save(combined_fn,'-append','Topography');
 
 %% Surface tracking prep: Convert img to double and log-scale and threshold
 data = 10*log10(double(mdata.Topography.img));
-data(data>data_threshold) = data_threshold;
 % data_threshold: log scale data will be clipped to this threshold
 data_threshold = param.tomo_collate.data_threshold;
+data(data>data_threshold) = data_threshold;
 
 %% Run detect
 detect_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
@@ -80,18 +80,19 @@ extract_surface = reshape(extract_surface,size(mdata.Topography.img,2),size(mdat
 
 %% Create surfData
 surf = [];
+Ndoa = size(mdata.Topography.img,2);
 
-surf(end+1).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
+surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
 surf(end).y = interp1(mdata.Time,1:length(mdata.Time),mdata.twtt);
 surf(end).plot_name_values = {'color','black','marker','x'};
 surf(end).name = 'ice surface';
-surf(end).surf_layer = 1;
+surf(end).surf_layer = [];
 surf(end).active_layer = 1;
 surf(end).mask_layer = [];
 surf(end).control_layer = [];
 surf(end).visible = true;
 
-surf(end+1).x =  repmat((1:64).',[1 size(mdata.twtt,2)]);
+surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
 surf(end).y = extract_surface;
 surf(end).plot_name_values = {'color','blue','marker','^'};
 surf(end).name = 'bottom';
@@ -101,7 +102,7 @@ surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
 surf(end).visible = true;
 
-surf(end+1).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
+surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
 surf(end).y = mdata.ice_mask;
 surf(end).plot_name_values = {'color','white','marker','x'};
 surf(end).name = 'ice mask';
@@ -111,9 +112,9 @@ surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
 surf(end).visible = true;
 
-surf(end+1).x = repmat((1:64).',[1 size(mdata.twtt,2)]);
+surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
 surf(end).y = NaN * zeros(size(surf(1).y));
-surf(end).y(33,:) = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
+surf(end).y(ceil(Ndoa/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
 surf(end).plot_name_values = {'color','magenta','marker','+'};
 surf(end).name = 'bottom gt';
 surf(end).surf_layer = 1;
@@ -122,7 +123,7 @@ surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
 surf(end).visible = true;
 
-surf(end+1).x =  repmat((1:64).',[1 size(mdata.twtt,2)]);
+surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
 surf(end).y = extract_surface;
 surf(end).plot_name_values = {'color','yellow','marker','^'};
 surf(end).name = 'bottom extract';
@@ -132,7 +133,7 @@ surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
 surf(end).visible = false;
 
-surf(end+1).x =  repmat((1:64).',[1 size(mdata.twtt,2)]);
+surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
 surf(end).y = detect_surface;
 surf(end).plot_name_values = {'color','green','marker','^'};
 surf(end).name = 'bottom detect';
