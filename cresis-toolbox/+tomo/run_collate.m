@@ -19,8 +19,8 @@ param_override.sched.type = 'no scheduler';
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
 
 tomo_collate = [];
-tomo_collate.in_dir = 'paden';
-tomo_collate.out_dir = 'surfData2';
+tomo_collate.in_dir = 'CSA_music';
+tomo_collate.out_dir = 'surfData';
 tomo_collate.ice_mask_fn = ct_filename_gis([],fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat'));
 tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('canada','DEM','SPI_All.tif'));
 tomo_collate.sv_cal_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','sv_calibration','theta_cal.mat');
