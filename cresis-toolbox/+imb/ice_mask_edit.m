@@ -980,10 +980,10 @@ classdef ice_mask_edit < handle
     
     function save(obj)
       fprintf('Saving ice mask data (%s)...\n', datestr(now));
-      fid = fopen(obj.ice_mask_fn,'r+');
+      [fid,msg] = fopen(obj.ice_mask_fn,'r+');
       if fid < 1
-        fprintf('Could not open file %s\n', fn);
-        error('Could not save ice_mask.');
+        fprintf('Could not open file %s\n', obj.ice_mask_fn);
+        error('Could not save ice_mask: %s.', msg);
       end
         
       if isempty(obj.mask_all)
