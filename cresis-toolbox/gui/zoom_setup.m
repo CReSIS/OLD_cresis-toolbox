@@ -1,7 +1,10 @@
 function zoom_setup(h_fig)
 % zoom_setup(h_fig)
 %
-% Initialization for zoom pointer (for zoom_button_up.m)
+% Initialization for zoom pointer
+%
+% See also: zoom_arrow.m, zoom_button_up.m zoom_button_scroll.m,
+%   zoom_setup.m, zoom_figure_setup.m
 
 set(h_fig,'Pointer','custom');
 zoom_pointer = [NaN   NaN   NaN   NaN     1     1     1     1   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN

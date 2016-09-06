@@ -1,6 +1,3 @@
-// extract.cpp: Extract 3D surface of ice-bed layers.
-// By Mingze Xu, July 2016
-//
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -45,7 +42,7 @@ class TRWSNode {
         }
 };
 
-class TRWS {
+class Refine {
     public:
         // Model size
         size_t ms;
@@ -68,6 +65,8 @@ class TRWS {
         vector<size_t> bgt;
         // Extra ground truth
         PointType egt;
+        // Edge ground truth
+        vector<size_t> edge[2];
         // Ice mask
         vector<int> ice_mask;
         // Model
@@ -78,8 +77,8 @@ class TRWS {
         // Result
         vector<double> result;
 
-        TRWS(const double *input, const size_t *dim, const LayerType &slayer, const vector<size_t> &blayer, 
-                const PointType &elayer, const double *_ice_mask, const double *_mu, const double *_sigma, size_t _ms=11) : ms(_ms) {
+        Refine(const double *input, const size_t *dim, const LayerType &slayer, const vector<size_t> &blayer, const PointType &elayer, 
+                const double *_edge, const double *_ice_mask, const double *_mu, const double *_sigma, size_t _ms=11) : ms(_ms) {
             // Set dimensions
             depth = dim[0];
             height = dim[1];
@@ -118,9 +117,15 @@ class TRWS {
 
             // Set result
             result = vector<double>(height*width, 0.0);
+            for (size_t i = 0; i < height; i++) {
+                edge[0].push_back(floor(_edge[i]));
+                edge[1].push_back(floor(_edge[i+height]));
+                result[i] = _edge[i];
+                result[i+(width-1)*height] = _edge[i+height];
+            }
         }
 
-        ~TRWS() {
+        ~Refine() {
             for(size_t i = 0; i < matrix.size(); i++) {
                 delete matrix[i];
             }
@@ -142,16 +147,15 @@ class TRWS {
         void surface_extracting();
 };
 
-size_t TRWS::encode(size_t h, size_t w) {
+size_t Refine::encode(size_t h, size_t w) {
     return h + w*height;
 }
 
-size_t TRWS::encode(size_t d, size_t h, size_t w) {
+size_t Refine::encode(size_t d, size_t h, size_t w) {
     return d + h*depth + w*depth*height;
 }
 
-double TRWS::unary_cost(size_t d, size_t h, size_t w) {
-    double cost = 0.0;
+double Refine::unary_cost(size_t d, size_t h, size_t w) {
     size_t t = (ms-1)/2;
 
     // Ice mask
@@ -176,21 +180,18 @@ double TRWS::unary_cost(size_t d, size_t h, size_t w) {
     // Extra ground truth (uncomment these if use extra ground truth)
     for (size_t i = 0; i < egt.size(); i++) {
         if (w == get<0>(egt[i]) && h == get<1>(egt[i])) {
-            cost += 2*pow(abs((int)get<2>(egt[i]) - (int)(d+t))/2.0,2);
-//             if (d+t == get<2>(egt[i])) {
-//                 return 0.0;
-//             } else {
-//                 return LARGE;
-//             }
+            if (d+t == get<2>(egt[i])) {
+                return 0.0;
+            } else {
+                return LARGE;
+            }
         }
     }
 
-    if (abs((int)(d+t) - (int)sgt[w][h]) < 10) {
-        cost += 100 - 10*abs((int)(d+t) - (int)sgt[w][h]);
+    double cost = 0.0;
+    if (abs((int)d - (int)sgt[w][h]) < 20) {
+        cost += 200;
     }
-//     if (abs((int)d - (int)sgt[w][h]) < 20) {
-//         cost += 200;
-//     }
 
     // Model quadratic distance
     for (size_t i = 0; i < ms; i++) {
@@ -200,11 +201,21 @@ double TRWS::unary_cost(size_t d, size_t h, size_t w) {
     return cost;
 }
 
-void TRWS::set_prior() {
+void Refine::set_prior() {
+    size_t t = (ms-1)/2;
     for (size_t i = 0, cp = 0; i < width; i++) {
         for (size_t j = 0; j < height; j++, cp++) {
             for (size_t d = 0; d < max_disp; d++) {
-                matrix[cp]->prior[d] = unary_cost(d, j, i);
+                if (i == 0 || i == width-1) {
+                    if (d+t == edge[i%width][j]) {
+                        matrix[cp]->prior[d] = 0.0;
+                    } else {
+                        matrix[cp]->prior[d] = LARGE;
+                    }
+                } else {
+                    matrix[cp]->prior[d] = unary_cost(d, j, i);
+                }
+                // matrix[cp]->prior[d] = unary_cost(d, j, i);
                 for (size_t dir = 0; dir < 4; dir++) {
                     matrix[cp]->set_msg(dir, d, matrix[cp]->prior[d]);
                 }
@@ -213,7 +224,7 @@ void TRWS::set_prior() {
     }
 }
 
-double TRWS::set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t beg2, double beta) {
+double Refine::set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t beg2, double beta) {
     double message_in[max_disp];
     double message_out[max_disp];
     double path[max_disp];
@@ -241,14 +252,14 @@ double TRWS::set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t beg
     return min_val;
 }
 
-void TRWS::set_result() {
+void Refine::set_result() {
     size_t t = (ms-1)/2;
     double temp = 0.0;
     double min_val = INFINITY;
     size_t flag = max_disp+1;
 
     for (size_t h = 0; h < height; h++) {
-        for (size_t w = 0; w < width; w++) {
+        for (size_t w = 1; w < width-1; w++) {
             size_t center = encode(h, w);
             min_val = INFINITY;
             flag = max_disp+1;
@@ -290,16 +301,13 @@ void TRWS::set_result() {
     }
 }
 
-void TRWS::surface_extracting() {
+void Refine::surface_extracting() {
     int loop = 0;
     int max_loop = 50;
     size_t t = (ms-1)/2;
 
     while (loop < max_loop) {
-      if (loop > 0) {
-        mexPrintf("\b\b\b\b\b\b\b\b\b\b\b", loop);
-      }
-        mexPrintf("loop: %04d\n", loop+1);
+        mexPrintf("loop: %d\n", loop);
         mexEvalString("drawnow;");
         // Forward
         for (size_t h = 1; h < height-1; h++) {
@@ -391,9 +399,9 @@ mxArray * getMexArray(const vector<double> &v) {
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    if (nrhs != 7) {
+    if (nrhs != 8) {
         cerr << "nrhs: " << nrhs << endl;
-        mexErrMsgTxt("usage: extract(dataset, surface_gt, bottom_gt, extra_gt, ice_mask, mean, variance)");
+        mexErrMsgTxt("usage: refine(dataset, surface_gt, bottom_gt, extra_gt, ice_mask, mean, variance, edge)");
     }
 
     double *input = mxGetPr(prhs[0]);
@@ -408,6 +416,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double *mask = mxGetPr(prhs[4]);
     double *mean = mxGetPr(prhs[5]);
     double *var = mxGetPr(prhs[6]);
+    double *_edge = mxGetPr(prhs[7]);
 
     // mexPrintf("rows of one slice (dim[0]): %d\n", dim[0]);
     // mexPrintf("cols of one slice (dim[1]): %d\n", dim[1]);
@@ -438,16 +447,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         elayer.push_back(tuple<size_t, size_t, size_t>(floor(extra[i*3]), floor(extra[i*3+1]), floor(extra[i*3+2])));
     }
 
-    //mexPrintf("Initing TRWS ...\n");
-    //mexEvalString("drawnow;");
-    TRWS trws(input, dim, slayer, blayer, elayer, mask, mean, var);
-    //mexPrintf("Setting prior ...\n");
-    //mexEvalString("drawnow;");
-    trws.set_prior();
-    //mexPrintf("Extracting surface ...\n");
-    //mexEvalString("drawnow;");
-    trws.surface_extracting();
+    Refine refine(input, dim, slayer, blayer, elayer, _edge, mask, mean, var);
+    refine.set_prior();
+    refine.surface_extracting();
 
-    plhs[0] = getMexArray(trws.result);
+    plhs[0] = getMexArray(refine.result);
 }
 // END
+

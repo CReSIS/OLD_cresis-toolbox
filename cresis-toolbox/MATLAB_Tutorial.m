@@ -2937,7 +2937,7 @@ if section_number == 12
   % We need information about the area. By loading geotiff information, we
   % can use the 'geotiffinfo' command and 'projfwd' function to get more
   % information for the axes.
-  geotiff_fn = ct_filename_gis(fullfile('greenland','Landsat-7','Greenland_natural_150m.tif'));
+  geotiff_fn = ct_filename_gis([],fullfile('greenland','Landsat-7','Greenland_natural_150m.tif'));
   proj = geotiffinfo(geotiff_fn);
   [data.properties.X,data.properties.Y] = projfwd(proj,data.properties.Lat,data.properties.Lon);
   

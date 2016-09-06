@@ -85,8 +85,8 @@ classdef ice_mask_edit < handle
   end
   
   methods
-%     function obj = ice_mask_edit(dem_x_mesh,dem_y_mesh,dem,ice_x_mesh,ice_y_mesh,ice_mask)
-      function obj = ice_mask_edit(param)
+    %     function obj = ice_mask_edit(dem_x_mesh,dem_y_mesh,dem,ice_x_mesh,ice_y_mesh,ice_mask)
+    function obj = ice_mask_edit(param)
       
       if isfield(param,'DEM')
         obj.dem = param.DEM;
@@ -103,17 +103,17 @@ classdef ice_mask_edit < handle
         obj.ice_x = param.ice_mask.X;
         obj.ice_y = param.ice_mask.Y;
       end
-            
+      
       if isfield(param,'ice_mask_fn');
         obj.ice_mask_fn = param.ice_mask_fn;
       end
       
       if isfield(param,'mdata')
-%         obj.mdata.twtt = param.mdata.twtt;
-%         obj.mdata.theta = param.mdata.theta;
-%         obj.mdata.ice_mask = param.mdata.ice_mask;
-%         obj.mdata.param_combine = param.mdata.param_combine;
-%         rmfield(param,'mdata');
+        %         obj.mdata.twtt = param.mdata.twtt;
+        %         obj.mdata.theta = param.mdata.theta;
+        %         obj.mdata.ice_mask = param.mdata.ice_mask;
+        %         obj.mdata.param_combine = param.mdata.param_combine;
+        %         rmfield(param,'mdata');
         obj.mdata = param.mdata;
       end
       
@@ -135,7 +135,7 @@ classdef ice_mask_edit < handle
       obj.dem_y_mesh = repmat(obj.dem_y',1,length(obj.dem_x));
       obj.ice_x_mesh = repmat(obj.ice_x,length(obj.ice_y),1);
       obj.ice_y_mesh = repmat(obj.ice_y',1,length(obj.ice_x));
-        
+      
       obj.gray = rgb2gray(obj.dem);
       
       obj.reduce_flag = 0;
@@ -178,7 +178,7 @@ classdef ice_mask_edit < handle
       obj.h_mask_plot = imagesc(obj.ice_x/1e3,obj.ice_y/1e3,obj.mask,'Parent',obj.h_mask_axes);
       hold(obj.h_mask_axes,'on')
       
-     
+      
       set(obj.h_dem_fig,'WindowButtonUpFcn',@obj.button_up);
       set(obj.h_mask_fig,'WindowButtonUpFcn',@obj.button_up);
       set(obj.h_dem_fig,'WindowButtonDownFcn',@obj.button_down);
@@ -209,7 +209,7 @@ classdef ice_mask_edit < handle
       obj.tools(2).init_fh = @set_mask_init;
       obj.tools(2).fh = @set_mask;
       obj.tools(2).figh = [obj.h_dem_fig,obj.h_mask_fig];
-            
+      
       obj.gui.table.ui = obj.h_dem_fig;
       obj.gui.table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
       obj.gui.table.height_margin = NaN*zeros(30,30);
@@ -393,6 +393,10 @@ classdef ice_mask_edit < handle
       
     end
     
+    function delete(obj)
+      try; delete(obj.h_dem_fig); end;
+      try; delete(obj.h_mask_fig); end;
+    end
     
     function button_down(obj,h_obj,event)
       
@@ -407,14 +411,14 @@ classdef ice_mask_edit < handle
     end
     
     
-%     function button_down_mask(obj,h_obj,event)
-%       [obj.x_mask,obj.y_mask,but] = get_mouse_info(obj.h_mask_fig,obj.h_mask_axes);
-%       rbbox;
-%     end
+    %     function button_down_mask(obj,h_obj,event)
+    %       [obj.x_mask,obj.y_mask,but] = get_mouse_info(obj.h_mask_fig,obj.h_mask_axes);
+    %       rbbox;
+    %     end
     
     
     function button_up(obj,h_obj,event)
-%       h_axes = get(h_obj,'Children');
+      %       h_axes = get(h_obj,'Children');
       
       if h_obj == obj.h_dem_fig
         h_axes = obj.h_dem_axes;
@@ -424,13 +428,33 @@ classdef ice_mask_edit < handle
         h_axes_alt = obj.h_dem_axes;
       end
       [x,y,but] = get_mouse_info(h_obj,h_axes);
-        
+      
       if obj.zoom_mode && ~obj.actions.getting_polygon
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
-        'h_axes',h_axes,'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
+          'h_axes',h_axes,'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3,'axis_equal',1));
         
         set(h_axes_alt,'xlim',get(h_axes,'xlim'));
         set(h_axes_alt,'ylim',get(h_axes,'ylim'));
+        
+      elseif but == 3 && x==obj.x && y==obj.y && ~isempty(obj.intersections)
+        inter_x = reshape(obj.intersections(1,:,:),...
+          size(obj.intersections,2),size(obj.intersections,3));
+        inter_y = reshape(obj.intersections(2,:,:),...
+          size(obj.intersections,2),size(obj.intersections,3));
+        slices = repmat(1:size(inter_x,2),size(inter_x,1),1);
+        
+        near_mask = inter_x >= x*1e3-1e3 & inter_x <= x*1e3+1e3 &...
+          inter_y >= y*1e3-1e3 & inter_y <= y*1e3+1e3;
+        inter_x = inter_x(near_mask);
+        inter_y = inter_y(near_mask);
+        slices = slices(near_mask);
+        
+        slice = griddata(inter_x,inter_y,slices,x*1e3,y*1e3,'nearest');
+        if ~isnan(slice)
+          obj.slice = slice;
+          obj.change_slice(obj.slice);
+          notify(obj,'SliceChange')
+        end
         
       elseif but == 1 && x~=obj.x && y~=obj.y && obj.active_tool_idx > 0 ...
           && any(obj.tools(obj.active_tool_idx).figh == h_obj)
@@ -477,7 +501,7 @@ classdef ice_mask_edit < handle
         end
         
         switch event.Key
-            
+          
           case 'z'
             % toggle zoom mode
             obj.zoom_mode = ~obj.zoom_mode;
@@ -512,7 +536,7 @@ classdef ice_mask_edit < handle
               'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
             set(obj.h_mask_axes,'xlim',get(obj.h_dem_axes,'xlim'));
             set(obj.h_mask_axes,'ylim',get(obj.h_dem_axes,'ylim'));
-          
+            
           case 'period'
             if ~obj.shift_pressed
               obj.slice = obj.slice + 1;
@@ -521,7 +545,7 @@ classdef ice_mask_edit < handle
             end
             obj.change_slice(obj.slice);
             notify(obj,'SliceChange')
-          
+            
           case 'comma'
             if ~obj.shift_pressed
               obj.slice = obj.slice - 1;
@@ -536,7 +560,7 @@ classdef ice_mask_edit < handle
             
           case 't'
             obj.toggleVal_callback(obj.gui.toggleVal,[]);
-
+            
           case 'r'
             obj.local_undo_stack.redo();
             notify(obj,'Redo');
@@ -590,29 +614,29 @@ classdef ice_mask_edit < handle
       x_tmp = obj.dem_x_mesh(gray_idx);
       y_tmp = obj.dem_y_mesh(gray_idx);
       
-%       ice_block_idx = find(obj.ice_y_mesh>=y_p_lim(1) & obj.ice_y_mesh<=y_p_lim(2) &...
-%         obj.ice_x_mesh>=x_p_lim(1) & obj.ice_x_mesh<=x_p_lim(2));
+      %       ice_block_idx = find(obj.ice_y_mesh>=y_p_lim(1) & obj.ice_y_mesh<=y_p_lim(2) &...
+      %         obj.ice_x_mesh>=x_p_lim(1) & obj.ice_x_mesh<=x_p_lim(2));
       ice_block_idx = find(obj.ice_y_mesh>=min(y_tmp) & obj.ice_y_mesh<=max(y_tmp) &...
         obj.ice_x_mesh>=min(x_tmp) & obj.ice_x_mesh<=max(x_tmp));
       
       if isempty(ice_block_idx)
         return
       end
-%       ice_block_idx = find(obj.ice_y_mesh>=min(y_tmp)-diff_y/2 & obj.ice_y_mesh<=max(y_tmp)+diff_y/2 &...
-%         obj.ice_x_mesh>=min(x_tmp)-diff_x/2 & obj.ice_x_mesh<=max(x_tmp)+diff_x/2);
-
-
+      %       ice_block_idx = find(obj.ice_y_mesh>=min(y_tmp)-diff_y/2 & obj.ice_y_mesh<=max(y_tmp)+diff_y/2 &...
+      %         obj.ice_x_mesh>=min(x_tmp)-diff_x/2 & obj.ice_x_mesh<=max(x_tmp)+diff_x/2);
+      
+      
       ice_x_tmp = obj.ice_x_mesh(ice_block_idx);
       ice_y_tmp = obj.ice_y_mesh(ice_block_idx);
       [ice_x_mesh,ice_y_mesh] = meshgrid(sort(unique(ice_x_tmp)),sort(unique(ice_y_tmp),'descend'));
-
+      
       diff_x = abs(mean(diff(obj.ice_x)));
       diff_y = abs(mean(diff(obj.ice_y)));
-            
+      
       if length(ice_x_tmp)~=numel(ice_x_mesh)
         keyboard;
       end
-
+      
       gray_tmp = griddata(x_tmp,y_tmp,double(gray_tmp),ice_x_mesh,ice_y_mesh);
       [ice_in] = inpolygon(ice_x_mesh,ice_y_mesh,xv,yv);
       gray_tmp_in = gray_tmp(ice_in);
@@ -632,7 +656,7 @@ classdef ice_mask_edit < handle
       cmd{1}.redo.mask = mask_tmp;
       cmd{1}.undo.mask_idx = ice_block_idx(ice_in);
       cmd{1}.redo.mask_idx = ice_block_idx(ice_in);
-
+      
       cmd{1}.type = 'ice_mask';
       
       if obj.local_undo_flag
@@ -644,7 +668,7 @@ classdef ice_mask_edit < handle
       obj.cmd = [];
       
     end
-        
+    
     
     function set_mask(obj,xv,yv)
       
@@ -676,7 +700,7 @@ classdef ice_mask_edit < handle
       cmd{1}.redo.mask = mask_tmp;
       cmd{1}.undo.mask_idx = mask_idx(ice_in);
       cmd{1}.redo.mask_idx = mask_idx(ice_in);
-
+      
       cmd{1}.type = 'ice_mask';
       
       if obj.local_undo_flag
@@ -731,14 +755,14 @@ classdef ice_mask_edit < handle
           intersect_ecef_all(1,:,rline) = intersect_ecef(1,:) + origin_ecef(1,rline);
           intersect_ecef_all(2,:,rline) = intersect_ecef(2,:) + origin_ecef(2,rline);
           intersect_ecef_all(3,:,rline) = intersect_ecef(3,:) + origin_ecef(3,rline);
-                    
+          
         end
         
         [intersect_lat,intersect_lon] = ecef2geodetic(intersect_ecef_all(1,:,:),intersect_ecef_all(2,:,:),intersect_ecef_all(3,:,:),WGS84.ellipsoid);
         intersect_lat = intersect_lat*180/pi;
         intersect_lon = intersect_lon*180/pi;
         [intersect_x,intersect_y] = projfwd(obj.proj,intersect_lat,intersect_lon);
-
+        
         obj.intersections = [intersect_x;intersect_y];
         
         obj.reduce_DEM();
@@ -765,7 +789,7 @@ classdef ice_mask_edit < handle
       obj.slice = slice;
       intersection = obj.intersections(:,:,slice);
       mask_tmp = logical(obj.mdata.ice_mask(:,slice));
-%       obj.h_slice_plot = plot(intersection(1,:),intersection(2,:),'m.','Parent',obj.h_dem_axes);
+      %       obj.h_slice_plot = plot(intersection(1,:),intersection(2,:),'m.','Parent',obj.h_dem_axes);
       set(obj.h_true_dem_plot,'XData',intersection(1,mask_tmp)/1e3,'YData',intersection(2,mask_tmp)/1e3);
       set(obj.h_false_dem_plot,'XData',intersection(1,~mask_tmp)/1e3,'YData',intersection(2,~mask_tmp)/1e3);
       set(obj.h_true_mask_plot,'XData',intersection(1,mask_tmp)/1e3,'YData',intersection(2,mask_tmp)/1e3);
@@ -820,7 +844,7 @@ classdef ice_mask_edit < handle
         set(obj.h_true_mask_plot,'XData',intersection(1,twtt_mask_tmp)/1e3,'YData',intersection(2,twtt_mask_tmp)/1e3);
         set(obj.h_false_mask_plot,'XData',intersection(1,~twtt_mask_tmp)/1e3,'YData',intersection(2,~twtt_mask_tmp)/1e3);
       end
-    end    
+    end
     
     function update_threshold_callback(obj,source,~)
       val = source.Value;
@@ -852,40 +876,40 @@ classdef ice_mask_edit < handle
     function cmd = edit_twtt(obj,theta,slice,val,val_curr)
       x = obj.intersections(1,theta,slice);
       y = obj.intersections(2,theta,slice);
-
+      
       ice_x = interp1(obj.ice_x,1:length(obj.ice_x),x,'nearest');
       ice_y = interp1(obj.ice_y,1:length(obj.ice_y),y,'nearest');
       ice_idx = sub2ind(size(obj.ice_x_mesh),ice_y,ice_x);
-
+      
       ice_x_idx = [ice_x-1,ice_x,ice_x+1];
       ice_x_idx = ice_x_idx(ice_x_idx>0 & ice_x_idx<=length(obj.ice_x));
       ice_y_idx = [ice_y-1,ice_y,ice_y+1];
       ice_y_idx = ice_y_idx(ice_y_idx>0 & ice_y_idx<=length(obj.ice_y));
       [ice_x_idx,ice_y_idx] = meshgrid(ice_x_idx,ice_y_idx);
       ice_idx_exp = sub2ind(size(obj.ice_x_mesh),ice_y_idx,ice_x_idx);
-
+      
       ice_x_mesh = obj.ice_x_mesh(ice_idx_exp);
       ice_y_mesh = obj.ice_y_mesh(ice_idx_exp);
       idx_mesh = reshape(1:numel(ice_x_mesh),size(ice_x_mesh));
       idx_match = griddata(ice_x_mesh,ice_y_mesh,idx_mesh,x,y,'nearest');
-
+      
       inter_near_idx = find(obj.intersections(1,:,:) >= min(min(ice_x_mesh)) & ...
         obj.intersections(1,:,:) <= max(max(ice_x_mesh)) & ...
         obj.intersections(2,:,:) >= min(min(ice_y_mesh)) & ...
         obj.intersections(2,:,:) <= max(max(ice_y_mesh)));
-
+      
       inter_tmp = obj.intersections(:,inter_near_idx);
-
+      
       g = griddata(ice_x_mesh,ice_y_mesh,idx_mesh,inter_tmp(1,:),inter_tmp(2,:),'nearest');
-%           g = interp2(ice_x_mesh,ice_y_mesh,idx_mesh,inter_tmp(1,:),inter_tmp(2,:),'nearest');
-
+      %           g = interp2(ice_x_mesh,ice_y_mesh,idx_mesh,inter_tmp(1,:),inter_tmp(2,:),'nearest');
+      
       inter_eff_idx = inter_near_idx(ismember(g,idx_match));
       
-      cmd{1}.redo.data_mask = val*ones(1,length(inter_eff_idx));
-      cmd{1}.undo.data_mask = val_curr*ones(1,length(inter_eff_idx));
+      cmd{1}.redo.data_mask = val(1)*ones(1,length(inter_eff_idx));
+      cmd{1}.undo.data_mask = obj.mdata.ice_mask(ones(1,length(inter_eff_idx)));
       cmd{1}.undo.data_mask_idx = inter_eff_idx;
       cmd{1}.redo.data_mask_idx = inter_eff_idx;
-
+      
       cmd{1}.undo.mask = val_curr;
       cmd{1}.redo.mask = val;
       cmd{1}.undo.mask_idx = ice_idx;
@@ -906,7 +930,7 @@ classdef ice_mask_edit < handle
       if ~isempty(obj.intersections)
         xq = obj.ice_x_mesh(mask_idx);
         yq = obj.ice_y_mesh(mask_idx);
-
+        
         diff_x = abs(mean(diff(obj.ice_x)));
         diff_y = abs(mean(diff(obj.ice_y)));
         
@@ -915,14 +939,14 @@ classdef ice_mask_edit < handle
         inter_idx = inter_idx(inpolygon(obj.intersections(1,inter_idx),obj.intersections(2,inter_idx),xv,yv));
       end
       if ~isempty(inter_idx)
-%         ice_in_buff = logical(conv2(double(ice_in),ones(3),'same'));
-%         inter_ice_val = griddata(ice_x_tmp(ice_in_buff),ice_y_tmp(ice_in_buff),double(mask_tmp),obj.intersections(1,inter_idx),obj.intersections(2,inter_idx),'nearest');
+        %         ice_in_buff = logical(conv2(double(ice_in),ones(3),'same'));
+        %         inter_ice_val = griddata(ice_x_tmp(ice_in_buff),ice_y_tmp(ice_in_buff),double(mask_tmp),obj.intersections(1,inter_idx),obj.intersections(2,inter_idx),'nearest');
         inter_ice_val = griddata(xq,yq,double(val),obj.intersections(1,inter_idx),obj.intersections(2,inter_idx),'nearest');
-
+        
         inter_tmp_idx = ~isnan(inter_ice_val);
         inter_diff_idx = inter_idx(inter_tmp_idx);
         inter_val = inter_ice_val(inter_tmp_idx);
-
+        
         data_mask_tmp = obj.mdata.ice_mask;
         data_mask_tmp(inter_diff_idx) = inter_val;
         cmd{1}.redo.data_mask = data_mask_tmp(inter_diff_idx);
@@ -930,7 +954,7 @@ classdef ice_mask_edit < handle
         cmd{1}.undo.data_mask_idx = inter_diff_idx;
         cmd{1}.redo.data_mask_idx = inter_diff_idx;
       end
-
+      
     end
     
     
@@ -955,24 +979,39 @@ classdef ice_mask_edit < handle
     
     
     function save(obj)
-      fprintf('Saving ice mask data...\n');
-      proj = obj.proj;
-      R = obj.R;
-      [fp,fn,ext] = fileparts(obj.ice_mask_fn);
-%       file = [fp,fn,'_2',ext];
-      file = sprintf('~/%s_2%s',fn,ext);
-      if isempty(obj.mask_all)
-        mask = obj.mask;
-        X = obj.ice_x;
-        Y = obj.ice_y;
-        save(file,'R','X','Y','mask','proj');
-      else
-        obj.mask_all(obj.ice_y_idx,obj.ice_x_idx) = obj.mask;
-        mask = obj.mask_all;
-        X = obj.ice_x_all;
-        Y = obj.ice_y_all;
-        save(file,'R','X','Y','mask','proj');
+      fprintf('Saving ice mask data (%s)...\n', datestr(now));
+      [fid,msg] = fopen(obj.ice_mask_fn,'r+');
+      if fid < 1
+        fprintf('Could not open file %s\n', obj.ice_mask_fn);
+        error('Could not save ice_mask: %s.', msg);
       end
+        
+      if isempty(obj.mask_all)
+        mask_old = logical(fread(fid,size(obj.mask),'uint8=>uint8'));
+        diff_idx = find(mask_old ~= obj.mask);
+        for i = 1:numel(diff_idx)
+          fseek(fid,diff_idx(i),'bof');
+          fwrite(fid,obj.mask(i),'uint8');
+        end
+        
+      else
+        mask_old = logical(fread(fid,size(obj.mask_all),'uint8=>uint8'));
+        idx_reduced = find(mask_old(obj.ice_y_idx,obj.ice_x_idx) ~= obj.mask);
+        idx_block_y = find(obj.ice_y_idx);
+        idx_block_x = find(obj.ice_x_idx);
+        [idx_y,idx_x] = ind2sub(size(obj.mask),idx_reduced);
+        idx_y_all = idx_block_y(idx_y);
+        idx_x_all = idx_block_x(idx_x);
+        idx = sub2ind(size(obj.mask_all),idx_y_all,idx_x_all);
+        
+        for i = 1:length(idx)
+          fseek(fid,idx(i),'bof');
+          fwrite(fid,obj.mask(idx_reduced(i)),'uint8');
+        end
+      end
+      fprintf('  Done\n');
+    
+      fclose(fid);
     end
     
     function active_tool(obj,tool_idx)
@@ -997,23 +1036,23 @@ classdef ice_mask_edit < handle
           obj.dem_x <= max(max(obj.intersections(1,:,:))) + 10000;
         dem_y_idx = obj.dem_y >= min(min(obj.intersections(2,:,:))) - 10000 & ...
           obj.dem_y <= max(max(obj.intersections(2,:,:))) + 10000;
-
+        
         obj.ice_x_idx = obj.ice_x >= min(min(obj.intersections(1,:,:))) - 10000 & ...
           obj.ice_x <= max(max(obj.intersections(1,:,:))) + 10000;
         obj.ice_y_idx = obj.ice_y >= min(min(obj.intersections(2,:,:))) - 10000 & ...
           obj.ice_y <= max(max(obj.intersections(2,:,:))) + 10000;
-
+        
         obj.dem = obj.dem(dem_y_idx,dem_x_idx);
         obj.gray = obj.gray(dem_y_idx,dem_x_idx);
         obj.dem_x = obj.dem_x(dem_x_idx);
         obj.dem_y = obj.dem_y(dem_y_idx);
         obj.dem_x_mesh = repmat(obj.dem_x,length(obj.dem_y),1);
         obj.dem_y_mesh = repmat(obj.dem_y',1,length(obj.dem_x));
-
+        
         obj.mask_all = obj.mask;
         obj.ice_x_all = obj.ice_x;
         obj.ice_y_all = obj.ice_y;
-
+        
         obj.mask = obj.mask(obj.ice_y_idx,obj.ice_x_idx);
         obj.ice_x = obj.ice_x(obj.ice_x_idx);
         obj.ice_y = obj.ice_y(obj.ice_y_idx);
@@ -1042,32 +1081,32 @@ classdef ice_mask_edit < handle
           obj.actions.getting_polygon = 0;
           return
         end
-          obj.tools(obj.active_tool_idx).fh(obj,xPoly,yPoly);
-          set(obj.gui.polyPB,'BackgroundColor',[0.94,0.94,0.94]);
+        obj.tools(obj.active_tool_idx).fh(obj,xPoly,yPoly);
+        set(obj.gui.polyPB,'BackgroundColor',[0.94,0.94,0.94]);
       end
-
+      
     end
     
     function force_mask(obj)
       if obj.mdata_loaded && ~isempty(obj.intersections)
         x = reshape(obj.intersections(1,:,:),size(obj.intersections,2),size(obj.intersections,3));
         y = reshape(obj.intersections(2,:,:),size(obj.intersections,2),size(obj.intersections,3));
-
+        
         ice_x = interp1(obj.ice_x,1:length(obj.ice_x),x,'nearest');
         ice_y = interp1(obj.ice_y,1:length(obj.ice_y),y,'nearest');
         ice_idx = sub2ind(size(obj.ice_x_mesh),ice_y,ice_x);
-
+        
         data_mask_tmp = obj.mask(ice_idx);
         data_mask_curr = obj.mdata.ice_mask;
-
+        
         inter_diff_idx = find(data_mask_curr~=data_mask_tmp);
-
+        
         cmd{1}.redo.data_mask = data_mask_tmp(inter_diff_idx);
         cmd{1}.undo.data_mask = data_mask_curr(inter_diff_idx);
         cmd{1}.undo.data_mask_idx = inter_diff_idx;
         cmd{1}.redo.data_mask_idx = inter_diff_idx;
         cmd{1}.type = 'ice_mask';
-      
+        
         if obj.local_undo_flag
           obj.local_undo_stack.push(cmd);
         else
@@ -1089,8 +1128,8 @@ classdef ice_mask_edit < handle
       
       for i = 1:length(f_names)
         if isa(obj.gui.(f_names{i}),'matlab.ui.control.UIControl') && ...
-          ~strcmp(f_names{i},'threshSlider') && ~strcmp(f_names{i},'hold_CB') ...
-          && ~strcmp(f_names{i},'threshDisp')
+            ~strcmp(f_names{i},'threshSlider') && ~strcmp(f_names{i},'hold_CB') ...
+            && ~strcmp(f_names{i},'threshDisp')
           set(obj.gui.(f_names{i}),'Enable','off');
         end
       end
@@ -1109,7 +1148,7 @@ classdef ice_mask_edit < handle
         end
         pause(0.1);
       end
-
+      
       set(obj.h_dem_fig,'WindowKeyPressFcn',@obj.key_press)
       set(obj.h_mask_fig,'WindowKeyPressFcn',@obj.key_press)
       
@@ -1129,7 +1168,7 @@ classdef ice_mask_edit < handle
           
         case 'rightarrow'
           obj.update_threshold(obj.intensity_thresh+1);
-        
+          
         case 'period'
           obj.update_threshold(obj.intensity_thresh+1);
           
@@ -1153,21 +1192,21 @@ classdef ice_mask_edit < handle
       end
     end
     
-        %% button_scroll
+    %% button_scroll
     function button_scroll(obj,h_obj,event)
-        if h_obj == obj.h_dem_fig
-          h_axes = obj.h_dem_axes;
-          h_axes_alt = obj.h_mask_axes;
-        else
-          h_axes = obj.h_mask_axes;
-          h_axes_alt = obj.h_dem_axes;
-        end
-
-        zoom_button_scroll(event,struct('h_fig',h_obj, ...
-          'h_axes',h_axes,'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
-
-        set(h_axes_alt,'xlim',get(h_axes,'xlim'));
-        set(h_axes_alt,'ylim',get(h_axes,'ylim'));
+      if h_obj == obj.h_dem_fig
+        h_axes = obj.h_dem_axes;
+        h_axes_alt = obj.h_mask_axes;
+      else
+        h_axes = obj.h_mask_axes;
+        h_axes_alt = obj.h_dem_axes;
+      end
+      
+      zoom_button_scroll(event,struct('h_fig',h_obj, ...
+        'h_axes',h_axes,'xlims',[min(obj.dem_x),max(obj.dem_x)]/1e3,'ylims',[min(obj.dem_y),max(obj.dem_y)]/1e3));
+      
+      set(h_axes_alt,'xlim',get(h_axes,'xlim'));
+      set(h_axes_alt,'ylim',get(h_axes,'ylim'));
     end
     
     function help_PB_callback(obj,src,event)
