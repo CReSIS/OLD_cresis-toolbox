@@ -165,6 +165,8 @@ classdef ice_mask_edit < handle
       obj.gui.right_panel = uipanel('parent',obj.h_dem_fig);
       obj.h_dem_axes = axes('Parent',obj.gui.right_panel,'YDir','normal');
       obj.h_dem_plot = imagesc(obj.dem_x/1e3,obj.dem_y/1e3,obj.dem,'Parent',obj.h_dem_axes);
+      xlabel(obj.h_dem_axes,'X (km)');
+      ylabel(obj.h_dem_axes,'Y (km)');
       hold(obj.h_dem_axes,'on')
       
       obj.h_mask_fig = figure;
@@ -176,6 +178,8 @@ classdef ice_mask_edit < handle
       
       obj.h_mask_axes = axes('Parent',obj.h_mask_fig,'YDir','normal');
       obj.h_mask_plot = imagesc(obj.ice_x/1e3,obj.ice_y/1e3,obj.mask,'Parent',obj.h_mask_axes);
+      xlabel(obj.h_mask_axes,'X (km)');
+      ylabel(obj.h_mask_axes,'Y (km)');
       hold(obj.h_mask_axes,'on')
       
       

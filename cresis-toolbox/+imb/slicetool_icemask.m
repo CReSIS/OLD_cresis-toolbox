@@ -259,8 +259,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     
     
     function run_slice_change(obj,src,~)
-      obj.sb.slice = src.slice;
-      obj.sb.update_slice();
+      obj.sb.change_slice(src.slice, false)
     end
     
     

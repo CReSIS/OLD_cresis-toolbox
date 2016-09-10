@@ -133,6 +133,8 @@ classdef slice_browser < handle
         obj.h_control_axes = axes('Parent',obj.h_control_fig);
         obj.h_control_image = imagesc(10*log10(squeeze(obj.data(:,floor(size(data,2)/2)+1,:))),'Parent',obj.h_control_axes);
         colormap(obj.h_control_axes,parula(256));
+        xlabel(obj.h_control_axes,'Along-track range line');
+        ylabel(obj.h_control_axes,'Range bin');
       end
       obj.fh_button_up = param.fh_button_up;
       obj.fh_key_press = param.fh_key_press;
@@ -147,6 +149,8 @@ classdef slice_browser < handle
       obj.h_layer_axes = axes('Parent',obj.h_layer_fig,'YDir','reverse');
       obj.h_layer_image = imagesc(NaN*zeros(size(obj.data,2),size(obj.data,3)),'parent',obj.h_layer_axes);
       colormap(obj.h_layer_axes, parula(256));
+      xlabel(obj.h_layer_axes,'Along-track range line');
+      ylabel(obj.h_layer_axes,'Cross-track');
       hold(obj.h_layer_axes,'on');
       obj.h_layer_plot = plot(NaN,NaN,'parent',obj.h_layer_axes,'Marker','x','Color','black','LineWidth',2,'MarkerSize',10);
       
@@ -162,6 +166,8 @@ classdef slice_browser < handle
       obj.h_axes = axes('Parent',obj.gui.right_panel,'YDir','reverse');
       hold(obj.h_axes,'on');
       colormap(obj.h_axes, parula(256));
+      xlabel(obj.h_axes,'Cross-track');
+      ylabel(obj.h_axes,'Range bin');
       
       obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
       for layer_idx = 1:numel(obj.layer)
@@ -904,6 +910,35 @@ classdef slice_browser < handle
         notify(obj,'SliceChange');
         set(obj.h_control_plot,'XData',obj.slice);
         set(obj.h_layer_plot,'XData',obj.slice);
+        
+        xlims = xlim(obj.h_control_axes);
+        ylims = ylim(obj.h_control_axes);
+        if xlims(2) < obj.slice
+          new_xlims = xlims + (obj.slice - 0.8*diff(xlims) - xlims(1));
+        elseif xlims(1) > obj.slice
+          new_xlims = xlims - (xlims(1) - (obj.slice - 0.2*diff(xlims)));
+        else
+          new_xlims = [];
+        end
+        if ~isempty(new_xlims)
+          zoom_button_up(new_xlims(1),ylims(1),1,struct('x',new_xlims(2),'y',ylims(2), ...
+            'h_axes',obj.h_control_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,1)]));
+        end
+        
+        xlims = xlim(obj.h_layer_axes);
+        ylims = ylim(obj.h_layer_axes);
+        if xlims(2) < obj.slice
+          new_xlims = xlims + (obj.slice - 0.8*diff(xlims) - xlims(1));
+        elseif xlims(1) > obj.slice
+          new_xlims = xlims - (xlims(1) - (obj.slice - 0.2*diff(xlims)));
+        else
+          new_xlims = [];
+        end
+        if ~isempty(new_xlims)
+          zoom_button_up(new_xlims(1),ylims(1),1,struct('x',new_xlims(2),'y',ylims(2), ...
+            'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+        end
+        
       elseif force_update
         obj.update_slice();
       end
