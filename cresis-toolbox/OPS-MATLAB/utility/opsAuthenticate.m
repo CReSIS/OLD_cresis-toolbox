@@ -10,6 +10,8 @@ function [opsParam,opsAuth,opsProfile] = opsAuthenticate(param,forceLogin)
 opsParam = param;
 
 global gRadar;
+param = merge_structs(gRadar,param);
+
 opsCmd;
 
 if nargin < 2
@@ -20,8 +22,8 @@ if forceLogin
   % FORCE USER TO LOGIN
   [status,loginNotice] = opsLoginUser();
   if status == 1
-    opsAuth = load(fullfile(gRadar.tmp_path,'ops.mat'));
-    opsProfile = load(fullfile(gRadar.tmp_path,'ops.profile.mat'));
+    opsAuth = load(fullfile(param.tmp_path,'ops.mat'));
+    opsProfile = load(fullfile(param.tmp_path,'ops.profile.mat'));
     opsParam.properties.userName = opsAuth.userName;
     opsParam.properties.isAuthenticated = opsAuth.isAuthenticated;
     opsParam.properties.mat = true;
@@ -29,12 +31,12 @@ if forceLogin
     warning(loginNotice);
   end
 else
-  if exist(fullfile(gRadar.tmp_path,'ops.mat'),'file') && exist(fullfile(gRadar.tmp_path,'ops.profile.mat'),'file')
+  if exist(fullfile(param.tmp_path,'ops.mat'),'file') && exist(fullfile(param.tmp_path,'ops.profile.mat'),'file')
     % A USER HAS ALREADY LOGGED IN
-    opsAuth = load(fullfile(gRadar.tmp_path,'ops.mat'));
+    opsAuth = load(fullfile(param.tmp_path,'ops.mat'));
     if opsAuth.isAuthenticated
       % THE USER IS ALREADY AUTHENTICATED
-      opsProfile = load(fullfile(gRadar.tmp_path,'ops.profile.mat'));
+      opsProfile = load(fullfile(param.tmp_path,'ops.profile.mat'));
       opsParam.properties.userName = opsAuth.userName;
       opsParam.properties.isAuthenticated = opsAuth.isAuthenticated;
       opsParam.properties.mat = true;
@@ -42,8 +44,8 @@ else
       % THE USER IS NOT AUTHENTICATED
       [status,loginNotice] = opsLoginUser();
       if status == 1
-        opsAuth = load(fullfile(gRadar.tmp_path,'ops.mat'));
-        opsProfile = load(fullfile(gRadar.tmp_path,'ops.profile.mat'));
+        opsAuth = load(fullfile(param.tmp_path,'ops.mat'));
+        opsProfile = load(fullfile(param.tmp_path,'ops.profile.mat'));
         opsParam.properties.userName = opsAuth.userName;
         opsParam.properties.isAuthenticated = opsAuth.isAuthenticated;
         opsParam.properties.mat = true;
@@ -55,8 +57,8 @@ else
     % NO USER IS LOGGED IN, LOG A USER IN
     [status,loginNotice] = opsLoginUser();
     if status == 1
-      opsAuth = load(fullfile(gRadar.tmp_path,'ops.mat'));
-      opsProfile = load(fullfile(gRadar.tmp_path,'ops.profile.mat'));
+      opsAuth = load(fullfile(param.tmp_path,'ops.mat'));
+      opsProfile = load(fullfile(param.tmp_path,'ops.profile.mat'));
       opsParam.properties.userName = opsAuth.userName;
       opsParam.properties.isAuthenticated = opsAuth.isAuthenticated;
       opsParam.properties.mat = true;
