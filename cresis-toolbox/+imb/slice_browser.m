@@ -642,7 +642,9 @@ classdef slice_browser < handle
         else
           ylims = sort([y obj.layer_y]);
           obj.select_mask(:) = false;
-          obj.select_mask(round(ylims(1)):round(ylims(2))) = true;
+          y_idxs = round(ylims(1)):round(ylims(2));
+          y_idxs = y_idxs(y_idxs>=1 & y_idxs<=size(obj.data,2));
+          obj.select_mask(y_idxs) = true;
           if but ~= 1
             for tool_idx = 1:length(obj.slice_tool.list)
               tool_name_list{tool_idx} = obj.slice_tool.list{tool_idx}.tool_name;
@@ -654,6 +656,7 @@ classdef slice_browser < handle
               xlims = sort([x obj.layer_x]);
               
               slices = round(xlims(1)):round(xlims(2));
+              slices = slices(slices>=1 & slices<=size(obj.data,3));
               
               obj.layer_idx = get(obj.gui.layerLB,'Value');
               cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj,slices);
