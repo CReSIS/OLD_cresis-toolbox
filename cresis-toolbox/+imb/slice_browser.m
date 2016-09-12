@@ -649,15 +649,14 @@ classdef slice_browser < handle
             for tool_idx = 1:length(obj.slice_tool.list)
               tool_name_list{tool_idx} = obj.slice_tool.list{tool_idx}.tool_name;
             end
+            xlims = sort([x obj.layer_x]);
+            slices = round(xlims(1)):round(xlims(2));
+            slices = slices(slices>=1 & slices<=size(obj.data,3));
+            title(obj.h_layer_axes,sprintf('Slices %d-%d, DOAs %d-%d\n', slices(1), slices(end), y_idxs(1), y_idxs(end)));
             [tool_idx,ok] = listdlg('PromptString','Choose slicetool:',...
               'SelectionMode','single',...
               'ListString',tool_name_list);
             if ok == 1
-              xlims = sort([x obj.layer_x]);
-              
-              slices = round(xlims(1)):round(xlims(2));
-              slices = slices(slices>=1 & slices<=size(obj.data,3));
-              
               obj.layer_idx = get(obj.gui.layerLB,'Value');
               cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj,slices);
               if ~isempty(cmd)
