@@ -299,9 +299,9 @@ end
 
 if ~isfield(array_param,'doa_constraints') || isempty(array_param.doa_constraints)
   for src_idx = 1:array_param.Nsig
-    array_param.doa_contraints(src_idx).method = 'fixed';
-    array_param.doa_contraints(src_idx).init_src_limits = [-90 90];
-    array_param.doa_contraints(src_idx).src_limits = [-90 90];
+    array_param.doa_constraints(src_idx).method = 'fixed';
+    array_param.doa_constraints(src_idx).init_src_limits = [-90 90];
+    array_param.doa_constraints(src_idx).src_limits = [-90 90];
   end
 end
 
