@@ -76,7 +76,14 @@ if but == 4
     ylim(param.h_axes,param.ylims);
   end
   
-elseif but == 1 && x~=param.x && y~=param.y
+  return;
+end
+
+if xlims(2) <= xlims(1) || ylims(2) <= ylims(1)
+  return;
+end
+
+if but == 1 && x~=param.x && y~=param.y
   %% Left click and drag: Zoom to region
   xlim(param.h_axes,xlims);
   ylim(param.h_axes,ylims);
