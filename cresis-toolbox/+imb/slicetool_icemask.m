@@ -106,6 +106,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       evnts.evnts{1} = 'IceChange';
     end
     
+    % Impose Slice Change from SliceBrowser --> IceEditor
     function runChangeSlice(obj,src,~)
       obj.ice.change_slice(src.slice);
     end
@@ -258,9 +259,9 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     end
     
     
+    % Impose Slice Change from IceEditor --> SliceBrowser
     function run_slice_change(obj,src,~)
-      obj.sb.slice = src.slice;
-      obj.sb.update_slice();
+      obj.sb.change_slice(src.slice, false)
     end
     
     

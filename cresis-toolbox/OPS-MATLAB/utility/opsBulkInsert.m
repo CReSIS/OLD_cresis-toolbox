@@ -142,7 +142,8 @@ if insertPathCmd
       % INTERPOLATE RECORDS GPS TIME ONTO THE GIVEN SPACING (DEFAULT = 15m)
       alongTrack = geodetic_to_along_track(records.lat,records.lon,records.elev);
       newAlongTrack = 0:settings.pathSpacing:alongTrack(end);
-      outGpsTime = interp1(alongTrack,records.gps_time,newAlongTrack,'pchip');
+      positive_idxs = [1, 1+find(diff(alongTrack) > 0)];
+      outGpsTime = interp1(alongTrack(positive_idxs),records.gps_time(positive_idxs),newAlongTrack,'pchip');
       
       % INTERPOLATE RECORDS VALUES ONTO NEW GPS TIME
       outLon = interp1(records.gps_time,records.lon,outGpsTime,'pchip');

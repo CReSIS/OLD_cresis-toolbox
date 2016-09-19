@@ -165,6 +165,8 @@ classdef ice_mask_edit < handle
       obj.gui.right_panel = uipanel('parent',obj.h_dem_fig);
       obj.h_dem_axes = axes('Parent',obj.gui.right_panel,'YDir','normal');
       obj.h_dem_plot = imagesc(obj.dem_x/1e3,obj.dem_y/1e3,obj.dem,'Parent',obj.h_dem_axes);
+      xlabel(obj.h_dem_axes,'X (km)');
+      ylabel(obj.h_dem_axes,'Y (km)');
       hold(obj.h_dem_axes,'on')
       
       obj.h_mask_fig = figure;
@@ -176,6 +178,8 @@ classdef ice_mask_edit < handle
       
       obj.h_mask_axes = axes('Parent',obj.h_mask_fig,'YDir','normal');
       obj.h_mask_plot = imagesc(obj.ice_x/1e3,obj.ice_y/1e3,obj.mask,'Parent',obj.h_mask_axes);
+      xlabel(obj.h_mask_axes,'X (km)');
+      ylabel(obj.h_mask_axes,'Y (km)');
       hold(obj.h_mask_axes,'on')
       
       
@@ -789,6 +793,22 @@ classdef ice_mask_edit < handle
       obj.slice = slice;
       intersection = obj.intersections(:,:,slice);
       mask_tmp = logical(obj.mdata.ice_mask(:,slice));
+      
+      xlim = get(obj.h_dem_axes,'Xlim');
+      ylim = get(obj.h_dem_axes,'Ylim');
+      
+      if xlim(1)>min(intersection(1,:))/1e3 || xlim(2)<max(intersection(1,:))/1e3 || ...
+          ylim(1)>min(intersection(2,:))/1e3 || ylim(2)<max(intersection(2,:))/1e3
+        x_len = abs(xlim(2)-xlim(1));
+        y_len = abs(ylim(2)-ylim(1));
+        x_center = intersection(1,floor((size(intersection,2))/2)+1)/1e3;
+        y_center = intersection(2,floor((size(intersection,2))/2)+1)/1e3;
+        set(obj.h_dem_axes,'XLim',x_center+[-x_len,x_len]/2);
+        set(obj.h_mask_axes,'XLim',x_center+[-x_len,x_len]/2);
+        set(obj.h_dem_axes,'YLim',y_center+[-y_len,y_len]/2);
+        set(obj.h_mask_axes,'YLim',y_center+[-y_len,y_len]/2);
+      end
+      
       %       obj.h_slice_plot = plot(intersection(1,:),intersection(2,:),'m.','Parent',obj.h_dem_axes);
       set(obj.h_true_dem_plot,'XData',intersection(1,mask_tmp)/1e3,'YData',intersection(2,mask_tmp)/1e3);
       set(obj.h_false_dem_plot,'XData',intersection(1,~mask_tmp)/1e3,'YData',intersection(2,~mask_tmp)/1e3);
@@ -980,10 +1000,10 @@ classdef ice_mask_edit < handle
     
     function save(obj)
       fprintf('Saving ice mask data (%s)...\n', datestr(now));
-      fid = fopen(obj.ice_mask_fn,'r+');
+      [fid,msg] = fopen(obj.ice_mask_fn,'r+');
       if fid < 1
-        fprintf('Could not open file %s\n', fn);
-        error('Could not save ice_mask.');
+        fprintf('Could not open file %s\n', obj.ice_mask_fn);
+        error('Could not save ice_mask: %s.', msg);
       end
         
       if isempty(obj.mask_all)
@@ -1167,17 +1187,32 @@ classdef ice_mask_edit < handle
           obj.hold_flag = 0;
           
         case 'rightarrow'
-          obj.update_threshold(obj.intensity_thresh+1);
+          if obj.shift_pressed
+            obj.update_threshold(obj.intensity_thresh+10);
+          else
+            obj.update_threshold(obj.intensity_thresh+1);
+          end
           
         case 'period'
-          obj.update_threshold(obj.intensity_thresh+1);
+          if obj.shift_pressed
+            obj.update_threshold(obj.intensity_thresh+10);
+          else
+            obj.update_threshold(obj.intensity_thresh+1);
+          end
           
         case 'leftarrow'
-          obj.update_threshold(obj.intensity_thresh-1);
+          if obj.shift_pressed
+            obj.update_threshold(obj.intensity_thresh-10);
+          else
+            obj.update_threshold(obj.intensity_thresh-1);
+          end
           
         case 'comma'
-          obj.update_threshold(obj.intensity_thresh-1);
-          
+          if obj.shift_pressed
+            obj.update_threshold(obj.intensity_thresh-10);
+          else
+            obj.update_threshold(obj.intensity_thresh-1);
+          end
       end
     end
     
