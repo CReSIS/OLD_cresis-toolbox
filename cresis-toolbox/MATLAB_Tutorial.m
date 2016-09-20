@@ -192,8 +192,7 @@ if section_number == 1
   [e e]
   % Combine two matrices: concatenate in row dimension
   [e; e]
-  % Concatenate a subset of the matrix
-  [e(:,1) e(:,1)]
+  % Concatenate a subset of the matrix [e(:,1) e(:,1)]
   
   
   % INDEXING ELEMENTS 3
@@ -1907,6 +1906,46 @@ if section_number == 7
   tic;
   B = fft(A,[],2); % FFT along second-dimension
   toc;
+  
+  keyboard
+  % BSXFUN (Binary Singleton Function)
+  % =======================================================================
+  % This is commonly used to apply element wise operations on every
+  % possibly combination of the elements from two vectors.
+  
+  % Syntax: A=bsxfun(fun, x, y). where A, x, and y are vectors or matrixes.
+  R = [10 11 12].'
+  T = [1 2 3]
+  C = bsxfun(@minus, R, T) % Performs R minus T for every combination of R and T
+  
+  % This is the same as replicating the vectors first to match in size
+  % and then applying the operation:
+  repmat(R,[1 3])
+  repmat(T,[3 1])
+  C_equivalent = repmat(R,[1 3]) - repmat(T,[3 1])
+  
+  % Another way of using Bsxfun is to specify an "anonymous funtion". This
+  % lets you create your own custom function.
+  R = [0 1 2].';
+  T = [1 2 3];
+  C = bsxfun(@(R,T) 2*R+T, R,T)
+  
+  repmat(R,[1 3])
+  repmat(T,[3 1])
+  C_equivalent = 2*repmat(R,[1 3]) + repmat(T,[3 1])
+  
+  % Example which calculates the surface clutter angle for altitude above
+  % groud level H and ice thickness T assuming a flat surface.
+  Height = [200:1000];
+  Thickness = [500:2000];
+  physical_constants;
+  speed_in_ice=c/sqrt(er_ice);
+  ca = bsxfun(@(Height,Thickness) acos(Height ./ ((Height/c+Thickness/speed_in_ice)*c)), Height, Thickness.');
+  imagesc(Height, Thickness, ca*180/pi)
+  xlabel('Height (m)');
+  ylabel('Thickness (m)');
+  hcolor = colorbar;
+  set( get(hcolor,'YLabel') , 'String', 'Clutter angle (deg)');
   
   keyboard
   
