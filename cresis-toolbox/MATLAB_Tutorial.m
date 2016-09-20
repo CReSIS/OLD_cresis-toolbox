@@ -192,7 +192,8 @@ if section_number == 1
   [e e]
   % Combine two matrices: concatenate in row dimension
   [e; e]
-  % Concatenate a subset of the matrix [e(:,1) e(:,1)]
+  % Concatenate a subset of the matrix
+  [e(:,1) e(:,1)]
   
   
   % INDEXING ELEMENTS 3

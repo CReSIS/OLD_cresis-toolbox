@@ -30,9 +30,10 @@ class HMM {
         // Model
         vector<double> mu;
         vector<double> sigma;
+        double egt_weight;
 
         HMM(const double *input, const vector<size_t> &slayer, size_t blayer, const CoordType &elayer, const double *mask, const double *mean, 
-                const double *var, size_t _width, size_t _height, size_t _ms=11) : bgt(blayer), width(_width), height(_height), ms(_ms) {
+                const double *var, const double *egt_weight_in, size_t _width, size_t _height, size_t _ms=11) : bgt(blayer), width(_width), height(_height), ms(_ms) {
             // Init data
             matrix = vector<double>(width*height, 0.0);
             for (size_t i = 0; i < width*height; i++) {
@@ -58,6 +59,8 @@ class HMM {
                 mu[i] = mean[i];
                 sigma[i] = var[i];
             }
+            
+            egt_weight = *egt_weight_in;
         }
 
         // Index of data
@@ -85,19 +88,23 @@ double HMM::unary_cost(size_t x, size_t y) {
     // Using extra ground truth (uncomment these codes if use extra ground truth)
     for (size_t i = 0; i < egt.size(); i++) {
         if (x == egt[i].first) {
-            if (y+t == egt[i].second) {
-                return cost;
-            } else {
-                return LARGE;
-            }
+            cost += 2*pow(abs((int)egt[i].second - (int)(y+t))/egt_weight,2);
+//             if (y+t == egt[i].second) {
+//                 return cost;
+//             } else {
+//                 return LARGE;
+//             }
         }
     }
 
     // Penalty if too close to surface layer
-    if (abs((int)y - (int)sgt[x]) < 20) {
-        cost += 200;
+//     if (abs((int)y - (int)sgt[x]) < 20) {
+//         cost += 200;
+//     }
+    if (abs((int)(y+t) - (int)sgt[x]) < 10) {
+        cost += 100 - 10*abs((int)(y+t) - (int)sgt[x]);
     }
-
+    
     // Template quadratic distance
     for (size_t i = 0; i < ms; i++) {
         cost += sqr(matrix[encode(x, y+i)] - mu[i]) / sigma[i];
@@ -199,9 +206,9 @@ mxArray * getMexArray(const vector<double> &v) {
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    if (nrhs != 7) {
+    if (nrhs != 8) {
         cerr << "nrhs: " << nrhs << endl;
-        mexErrMsgTxt("usage: detect(input_image, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var)");
+        mexErrMsgTxt("usage: detect(input_image, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight)");
     }
 
     double *input = mxGetPr(prhs[0]);
@@ -211,6 +218,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double *mask = mxGetPr(prhs[4]);
     double *mean = mxGetPr(prhs[5]);
     double *var = mxGetPr(prhs[6]);
+    double *egt_weight = mxGetPr(prhs[7]);
     size_t rows = mxGetM(prhs[0]);
     size_t cols = mxGetN(prhs[0]);
     size_t m = mxGetN(prhs[3]);
@@ -236,7 +244,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
 
     // Doing labeling ...
-    HMM viterbi(input, slayer, blayer, elayer, mask, mean, var, cols, rows);
+    HMM viterbi(input, slayer, blayer, elayer, mask, mean, var, egt_weight, cols, rows);
     vector<double> labels = viterbi.layer_labeling();
 
     plhs[0] = getMexArray(labels);
