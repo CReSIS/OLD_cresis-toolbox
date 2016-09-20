@@ -133,6 +133,8 @@ classdef slice_browser < handle
         obj.h_control_axes = axes('Parent',obj.h_control_fig);
         obj.h_control_image = imagesc(10*log10(squeeze(obj.data(:,floor(size(data,2)/2)+1,:))),'Parent',obj.h_control_axes);
         colormap(obj.h_control_axes,parula(256));
+        xlabel(obj.h_control_axes,'Along-track range line');
+        ylabel(obj.h_control_axes,'Range bin');
       end
       obj.fh_button_up = param.fh_button_up;
       obj.fh_key_press = param.fh_key_press;
@@ -147,6 +149,8 @@ classdef slice_browser < handle
       obj.h_layer_axes = axes('Parent',obj.h_layer_fig,'YDir','reverse');
       obj.h_layer_image = imagesc(NaN*zeros(size(obj.data,2),size(obj.data,3)),'parent',obj.h_layer_axes);
       colormap(obj.h_layer_axes, parula(256));
+      xlabel(obj.h_layer_axes,'Along-track range line');
+      ylabel(obj.h_layer_axes,'Cross-track');
       hold(obj.h_layer_axes,'on');
       obj.h_layer_plot = plot(NaN,NaN,'parent',obj.h_layer_axes,'Marker','x','Color','black','LineWidth',2,'MarkerSize',10);
       
@@ -162,6 +166,8 @@ classdef slice_browser < handle
       obj.h_axes = axes('Parent',obj.gui.right_panel,'YDir','reverse');
       hold(obj.h_axes,'on');
       colormap(obj.h_axes, parula(256));
+      xlabel(obj.h_axes,'Cross-track');
+      ylabel(obj.h_axes,'Range bin');
       
       obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
       for layer_idx = 1:numel(obj.layer)
@@ -566,7 +572,7 @@ classdef slice_browser < handle
         if but == 2 || but == 3
           if obj.x == x
             if x > 1 && x < size(obj.data,2)
-              obj.select_mask(round(x)) = true;
+              obj.select_mask(round(x)) = ~obj.select_mask(round(x));
             else
               obj.select_mask(:) = false;
             end
@@ -631,7 +637,37 @@ classdef slice_browser < handle
         zoom_button_up(x,y,but,struct('x',obj.layer_x,'y',obj.layer_y, ...
           'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
       else
-        obj.change_slice(round(x),false);
+        if obj.layer_x == x
+          obj.change_slice(round(x),false);
+        else
+          ylims = sort([y obj.layer_y]);
+          obj.select_mask(:) = false;
+          y_idxs = round(ylims(1)):round(ylims(2));
+          y_idxs = y_idxs(y_idxs>=1 & y_idxs<=size(obj.data,2));
+          obj.select_mask(y_idxs) = true;
+          if but ~= 1
+            for tool_idx = 1:length(obj.slice_tool.list)
+              tool_name_list{tool_idx} = obj.slice_tool.list{tool_idx}.tool_name;
+            end
+            xlims = sort([x obj.layer_x]);
+            slices = round(xlims(1)):round(xlims(2));
+            slices = slices(slices>=1 & slices<=size(obj.data,3));
+            title(obj.h_layer_axes,sprintf('Slices %d-%d, DOAs %d-%d\n', slices(1), slices(end), y_idxs(1), y_idxs(end)));
+            [tool_idx,ok] = listdlg('PromptString','Choose slicetool:',...
+              'SelectionMode','single',...
+              'ListString',tool_name_list);
+            if ok == 1
+              obj.layer_idx = get(obj.gui.layerLB,'Value');
+              cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj,slices);
+              if ~isempty(cmd)
+                obj.undo_stack.push(cmd);
+              end
+            else
+              
+            end
+          end
+          obj.update_slice();
+        end
       end
     end
 
@@ -706,7 +742,6 @@ classdef slice_browser < handle
             && obj.slice_tool.list{tool_idx}.ctrl_pressed == obj.ctrl_pressed ...
             && obj.slice_tool.list{tool_idx}.shift_pressed == obj.shift_pressed
           obj.layer_idx = get(obj.gui.layerLB,'Value');
-          obj.layer_idx = obj.layer(obj.layer_idx).active_layer;
           cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
           if ~isempty(cmd)
             obj.undo_stack.push(cmd);
@@ -734,7 +769,14 @@ classdef slice_browser < handle
           case 'z'
             if obj.ctrl_pressed
               %% zoom reset
-              axis(obj.h_axes,'tight');
+              if src==obj.h_fig
+                axis(obj.h_axes,'tight');
+              elseif src==obj.h_control_fig
+                axis(obj.h_control_axes,'tight');
+              elseif src==obj.h_layer_fig
+                axis(obj.h_layer_axes,'tight');
+              end
+              
             else
               % toggle zoom mode
               obj.zoom_mode = ~obj.zoom_mode;
@@ -869,6 +911,36 @@ classdef slice_browser < handle
         obj.update_slice();
         notify(obj,'SliceChange');
         set(obj.h_control_plot,'XData',obj.slice);
+        set(obj.h_layer_plot,'XData',obj.slice);
+        
+        xlims = xlim(obj.h_control_axes);
+        ylims = ylim(obj.h_control_axes);
+        if xlims(2) < obj.slice
+          new_xlims = xlims + (obj.slice - 0.8*diff(xlims) - xlims(1));
+        elseif xlims(1) > obj.slice
+          new_xlims = xlims - (xlims(1) - (obj.slice - 0.2*diff(xlims)));
+        else
+          new_xlims = [];
+        end
+        if ~isempty(new_xlims)
+          zoom_button_up(new_xlims(1),ylims(1),1,struct('x',new_xlims(2),'y',ylims(2), ...
+            'h_axes',obj.h_control_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,1)]));
+        end
+        
+        xlims = xlim(obj.h_layer_axes);
+        ylims = ylim(obj.h_layer_axes);
+        if xlims(2) < obj.slice
+          new_xlims = xlims + (obj.slice - 0.8*diff(xlims) - xlims(1));
+        elseif xlims(1) > obj.slice
+          new_xlims = xlims - (xlims(1) - (obj.slice - 0.2*diff(xlims)));
+        else
+          new_xlims = [];
+        end
+        if ~isempty(new_xlims)
+          zoom_button_up(new_xlims(1),ylims(1),1,struct('x',new_xlims(2),'y',ylims(2), ...
+            'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+        end
+        
       elseif force_update
         obj.update_slice();
       end
@@ -905,7 +977,6 @@ classdef slice_browser < handle
       end
       set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
         'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
-      layer_idx = obj.layer(layer_idx).active_layer;
       set(obj.h_layer_image,'CData',obj.layer(layer_idx).y);
 
       % Update layer visibility
@@ -964,7 +1035,6 @@ classdef slice_browser < handle
     function applyPB_callback(obj,src,event)
       tool_idx = get(obj.gui.toolPM,'Value');
       obj.layer_idx = get(obj.gui.layerLB,'Value');
-      obj.layer_idx = obj.layer(obj.layer_idx).active_layer;
       cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
       if ~isempty(cmd)
         obj.undo_stack.push(cmd);
@@ -990,14 +1060,30 @@ classdef slice_browser < handle
     function help_menu(obj)
       fprintf('Key Short Cuts\n');
       
-      fprintf('? Mode\n');
-      fprintf('scroll: zoom in/out at point\n');
-      
-      fprintf('Zoom Mode\n');
+      fprintf('\nZoom Mode\n');
       fprintf('left-click and drag: zoom to selection\n');
       fprintf('left-click: zoom in at point\n');
       fprintf('right-click: zoom out at point\n');
+      
+      fprintf('\nPointer Mode In "slice" window\n');
+      fprintf('left-click: set layer point (or toggle logical value)\n');
+      fprintf('right-click and drag: select points (shift-key holds selection)\n');
+      
+      fprintf('\nPointer Mode In "layer" and "echogram" window\n');
+      fprintf('left-click: sets current slice\n');
+      
+      fprintf('\nAll Modes\n');
       fprintf('scroll: zoom in/out at point\n');
+      fprintf('delete: deletes selected points (or toggles logical values)\n');
+
+      if ~isempty(obj.slice_tool.list)
+        fprintf('\nInstalled tools:\n');
+        for tool_idx = 1:length(obj.slice_tool.list)
+          if ~isempty(obj.slice_tool.list{tool_idx}.help_string)
+            fprintf('%s\n',obj.slice_tool.list{tool_idx}.help_string);
+          end
+        end
+      end
     end
     
     %% getEventData

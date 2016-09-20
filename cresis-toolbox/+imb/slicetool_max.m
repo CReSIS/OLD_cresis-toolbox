@@ -2,10 +2,10 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
   % Slice_browser tool which find the max value in a neighborhood around
   % the current values
   
-  properties
+  properties (SetAccess = protected, GetAccess = public)
   end
   
-  properties (SetAccess = private, GetAccess = private)
+  properties (SetAccess = protected, GetAccess = protected)
   end
   
   events
@@ -19,9 +19,10 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
       obj.tool_shortcut = 'm';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
+      obj.help_string = 'm: Finds local (relative to current position) maximum.';
     end
     
-    function cmd = apply_PB_callback(obj,sb)
+    function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
       %     commands, cmd, that use sb.data to operate on sb.layer. You 
       %     should not modify any fields of sb.
@@ -29,9 +30,11 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
       %  .layer_idx: active layer
-      fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, sb.layer_idx, sb.slice);
-      
+      % slices: array of slices to operate on (overrides sb.slice)
       control_idx = sb.layer(sb.layer_idx).control_layer;
+      active_idx = sb.layer(sb.layer_idx).active_layer;
+      surf_idx = sb.layer(sb.layer_idx).surf_layer;
+      mask_idx = sb.layer(sb.layer_idx).mask_layer;
       
       try
         row_range = eval(get(obj.gui.row_rangeLE,'String'));
@@ -43,13 +46,25 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
       catch ME
         error('Error in slice range: %s', ME.getReport);
       end
+      if get(obj.gui.select_maskCB,'Value')
+        cols = find(sb.select_mask);
+      else
+        cols = 1:size(sb.data,2);
+      end
       
-      slices = sb.slice+slice_range;
+      if ~exist('slices','var') || isempty(slices)
+        slice_range = min(slice_range):max(slice_range);
+        slices = sb.slice+slice_range;
+      end
       slices = intersect(slices,1:size(sb.data,3));
+      if numel(slices)==1
+        fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice);
+      else
+        fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
+      end
 
       cmd = [];
       for slice = slices(:).'
-        cols = find(sb.select_mask);
         new_y = [];
         for col = cols(:).'
           if ~isempty(control_idx) && ~isnan(sb.layer(control_idx).y(col,slice))
@@ -75,15 +90,9 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
       end
       
       % Add dummy command at end to make view go to the current slice
-      cmd{end+1}.undo.slice = sb.slice;
-      cmd{end}.redo.slice = sb.slice;
-      cmd{end}.undo.layer = sb.layer_idx;
-      cmd{end}.redo.layer = sb.layer_idx;
-      cmd{end}.undo.x = [];
-      cmd{end}.undo.y = [];
-      cmd{end}.redo.x = [];
-      cmd{end}.redo.y = [];
-      cmd{end}.type = 'standard';
+      cmd{end+1}.redo.slice = sb.slice;
+      cmd{end}.undo.slice = sb.slice;
+      cmd{end}.type = 'slice_dummy';
     end
     
     function set_custom_data(obj,custom_data)
@@ -100,7 +109,7 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');
       pos(3) = 200;
-      pos(4) = 50;
+      pos(4) = 75;
       set(obj.h_fig,'Position',pos);
       
       % Row range
@@ -112,14 +121,21 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
       set(obj.gui.row_rangeLE,'string','-30:30')
       set(obj.gui.row_rangeLE,'TooltipString','Enter a vector specifying relative row range to search in. E.g. "-30:30".');
       
-      % Extent
+      % Slice range
       obj.gui.slice_rangeTXT = uicontrol('Style','text','string','Slice range');
       set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
       
       obj.gui.slice_rangeLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.slice_rangeLE,'style','edit')
-      set(obj.gui.slice_rangeLE,'string','-5:5')
+      set(obj.gui.slice_rangeLE,'string','0')
       set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
+      
+      % Select mask
+      obj.gui.select_maskCB = uicontrol('parent',obj.h_fig);
+      set(obj.gui.select_maskCB,'style','checkbox')
+      set(obj.gui.select_maskCB,'string','Select')
+      set(obj.gui.select_maskCB,'value',1)
+      set(obj.gui.select_maskCB,'TooltipString','Check to operate only on the selected region.');
       
       % GUI container table
       obj.gui.table.ui = obj.h_fig;
@@ -151,6 +167,14 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
       obj.gui.table.height_margin(row,col) = 1;
       col = 2;
       obj.gui.table.handles{row,col}   = obj.gui.slice_rangeLE;
+      obj.gui.table.width(row,col)     = inf;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      
+      row = row + 1;
+      col = 1;
+      obj.gui.table.handles{row,col}   = obj.gui.select_maskCB;
       obj.gui.table.width(row,col)     = inf;
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;
