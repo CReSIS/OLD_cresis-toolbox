@@ -86,8 +86,8 @@ if ~isfield(param.csarp,'trim_vals') || isempty(param.csarp.trim_vals)
   param.csarp.trim_vals = [0 0];
 end
 
-if ~isfield(param.csarp,'coh_noise_removal') || isempty(param.csarp.coh_noise_removal) ||...
-    ~param.csarp.coh_noise_removal
+if ~isfield(param.csarp,'coh_noise_removal') || isempty(param.csarp.coh_noise_removal) ...
+    || ~param.csarp.coh_noise_removal
   default_coh_noise_method = 0;
 elseif param.csarp.coh_noise_removal
   default_coh_noise_method = 1;

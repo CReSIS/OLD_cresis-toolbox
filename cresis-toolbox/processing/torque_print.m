@@ -1,10 +1,12 @@
-function [in,out] = torque_print(batch_id,job_id,print_flag)
-% [in,out] = torque_print(batch_id,job_id,print_flag)
+function [in,out] = torque_print(batch,job_id,print_flag)
+% [in,out] = torque_print(batch,job_id,print_flag)
 %
 % Prints out status information for a particular job ID.
 %
 % Inputs:
-% batch_id: integer for which batch to get jobs info for
+% batch: integer for which batch to get jobs info for
+%   OR
+%   control structure for the batch (e.g. returned from torque_job_list)
 % job_id: OPTIONS:
 %   integer for which job to print information about
 %   string containing torque ID to print information about
@@ -20,6 +22,12 @@ function [in,out] = torque_print(batch_id,job_id,print_flag)
 
 if ~exist('print_flag','var') || isempty(print_flag)
   print_flag = 1;
+end
+
+if isstruct(batch)
+  batch_id = batch.batch_id;
+else
+  batch_id = batch;
 end
 
 global gRadar;
@@ -120,7 +128,8 @@ end
 
 % Print stdout file
 fprintf('\n\nSTDOUT ======================================================\n');
-fn = fullfile(ctrl.stdout_path_dir,sprintf('stdout_%d.txt',job_id));
+actual_job_id = find(ctrl.job_id_list==ctrl.job_id_list(job_id),1,'last');
+fn = fullfile(ctrl.stdout_path_dir,sprintf('stdout_%d.txt',actual_job_id));
 fprintf('%s\n', fn);
 if exist(fn,'file')
   type(fn);
@@ -128,7 +137,7 @@ else
   fprintf('  Does not exist\n');
 end
 fprintf('\n\nERROR ======================================================\n');
-fn = fullfile(ctrl.error_path_dir,sprintf('error_%d.txt',job_id));
+fn = fullfile(ctrl.error_path_dir,sprintf('error_%d.txt',actual_job_id));
 fprintf('%s\n', fn);
 if exist(fn,'file')
   type(fn);
