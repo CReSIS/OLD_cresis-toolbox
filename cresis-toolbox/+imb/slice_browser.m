@@ -115,11 +115,7 @@ classdef slice_browser < handle
         obj.layer_fn = param.layer_fn;
         obj.layer = tmp.surf;
       else
-        obj.layer = [];
-        obj.layer.x = [];
-        obj.layer.y  = [];
-        obj.layer.name = '';
-        obj.layer.plot_name_values = [];
+        obj.layer = struct('x',{},'y',{},'name',{},'plot_name_values',{});
       end
       
       if ~isempty(h_control_image)
@@ -967,44 +963,46 @@ classdef slice_browser < handle
         end
       end
       
-      % Update layer selection related plots
-      layer_idx = get(obj.gui.layerLB,'value');
-      x_select = obj.layer(layer_idx).x(:,obj.slice);
-      if islogical(obj.layer(layer_idx).y)
-        y_select = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
-      else
-        y_select = obj.layer(layer_idx).y(:,obj.slice);
-      end
-      set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
-        'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
-      set(obj.h_layer_image,'CData',obj.layer(layer_idx).y);
-
-      % Update layer visibility
-      if obj.plot_visibility == true
-        for layer_idx = 1:numel(obj.layer)
-          if obj.layer(layer_idx).visible
-            set(obj.layer(layer_idx).h_plot,'visible','on')
-          else
+      if ~isempty(get(obj.gui.layerLB,'String'))
+        % Update layer selection related plots
+        layer_idx = get(obj.gui.layerLB,'value');
+        x_select = obj.layer(layer_idx).x(:,obj.slice);
+        if islogical(obj.layer(layer_idx).y)
+          y_select = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+        else
+          y_select = obj.layer(layer_idx).y(:,obj.slice);
+        end
+        set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
+          'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
+        set(obj.h_layer_image,'CData',obj.layer(layer_idx).y);
+        
+        % Update layer visibility
+        if obj.plot_visibility == true
+          for layer_idx = 1:numel(obj.layer)
+            if obj.layer(layer_idx).visible
+              set(obj.layer(layer_idx).h_plot,'visible','on')
+            else
+              set(obj.layer(layer_idx).h_plot,'visible','off')
+            end
+          end
+          set(obj.gui.h_select_plot,'visible','on')
+        else
+          for layer_idx = 1:numel(obj.layer)
             set(obj.layer(layer_idx).h_plot,'visible','off')
           end
+          set(obj.gui.h_select_plot,'visible','off')
         end
-        set(obj.gui.h_select_plot,'visible','on')
-      else
-        for layer_idx = 1:numel(obj.layer)
-          set(obj.layer(layer_idx).h_plot,'visible','off')
+        
+        % Update control figure plots
+        layer_idx = get(obj.gui.layerLB,'value');
+        if ~islogical(obj.layer(layer_idx).y)
+          set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:));
+        else
+          surf_idx = obj.layer(layer_idx).surf_layer;
+          new_y = obj.layer(surf_idx).y(ceil(size(obj.data,2)/2)+1,:);
+          new_y(obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
+          set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',new_y);
         end
-        set(obj.gui.h_select_plot,'visible','off')
-      end
-
-      % Update control figure plots
-      layer_idx = get(obj.gui.layerLB,'value');
-      if ~islogical(obj.layer(layer_idx).y)
-        set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:));
-      else
-        surf_idx = obj.layer(layer_idx).surf_layer;
-        new_y = obj.layer(surf_idx).y(ceil(size(obj.data,2)/2)+1,:);
-        new_y(obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
-        set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',new_y);
       end
     end
     
