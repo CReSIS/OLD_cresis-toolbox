@@ -1,26 +1,26 @@
 function collate(param, param_override)
-% tomo.collate.m
+% tomo.collate(param, param_override)
 %
-% Description. Usually this function is called from tomo.run_collate.
-%   Calls data_loader_prep, DEM_alignment, and surface_extractor.
+% Usually this function is called from tomo.run_collate.
+% Calls tomo.collate_task.
 %
 % Inputs:
 %   param = struct with processing parameters
 %   param_override = parameters in this struct will override parameters
 %     in param.
 %
-% See also: tomo.run_collate, tomo.data_loader_prep, tomo.DEM_alignment,
-%   tomo.surface_extractor
+% See also: tomo.run_collate, tomo.collate, tomo_collate_task,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData,
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
 param = merge_structs(param,param_override);
 
+%% Determine which frames we will operate on
+% Load frames file
 if ~isfield(param.records,'frames_fn')
   param.records.frames_fn = '';
 end
-
-% Load frames file
 load(ct_filename_support(param,param.records.frames_fn,'frames'));
 
 if isempty(param.cmd.frms)
@@ -36,8 +36,8 @@ if length(valid_frms) ~= length(param.cmd.frms)
   param.cmd.frms = valid_frms;
 end
 
+%% Compile C++ functions
 if 0
-  % Compile C++ functions
   % If you get a C++11 option error, you may be using pre-G++ 4.7. You can
   % check the g++ version with system('g++ --version');
   % To fix this, add -v option to mex function and look for a line like this:
@@ -51,37 +51,35 @@ if 0
   mex -largeArrayDims refine.cpp
 end
 
-%% set up torque
-  
-  task_param = param;
-  
-  if strcmpi(param.sched.type,'custom_torque')
-    global ctrl; % Make this global for convenience in debugging
-    ctrl = torque_new_batch(param);
-    fprintf('Torque batch: %s\n', ctrl.batch_dir);
-    torque_compile('tomo_collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
-  end
+%% Initialize Torque setup
+if strcmpi(param.sched.type,'custom_torque')
+  global ctrl; % Make this global for convenience in debugging
+  ctrl = torque_new_batch(param);
+  fprintf('Torque batch: %s\n', ctrl.batch_dir);
+  torque_compile('tomo.collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
+end
 
+%% Create Tasks
+task_param = param;
+fh = @tomo.collate_task;
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
-  
-  task_param.frm = frm;
-  
-  arg{1} = task_param;
-  
-  fh = @tomo_collate_task;
+  task_param.proc.frm = frm;
+  arg = {task_param};
   
   if strcmp(param.sched.type,'custom_torque')
     create_task_param.conforming = true;
     create_task_param.notes = sprintf('%s_%03d (%d of %d)', ...
-        param.day_seg, frm, frm_idx, length(param.cmd.frms));
+      param.day_seg, frm, frm_idx, length(param.cmd.frms));
     ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
   else
-    tomo_collate_task(task_param);
+    fprintf('%s_%03d (%d of %d)\n', ...
+      param.day_seg, frm, frm_idx, length(param.cmd.frms));
+    fh(arg{:});
   end
-  
 end
-  
+
+%% Wait for tasks to finish
 if strcmpi(param.sched.type,'custom_torque')
   % Wait until all submitted jobs to complete
   ctrl = torque_rerun(ctrl);
@@ -97,8 +95,8 @@ if strcmpi(param.sched.type,'custom_torque')
     fprintf('Jobs completed (%s)\n\n', datestr(now));
   end
   
-% Test files?
+  % Test files?
   torque_cleanup(ctrl);
 end
-  
+
 end

@@ -1,14 +1,14 @@
 classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
   
   properties
-      ice
-      cmd
-      ice_layer
-      sb
-      detect_flag
+    ice
+    cmd
+    sb
+    ice_mask_layer
+    detect_flag
   end
   
-  properties (SetAccess = private, GetAccess = private)
+  properties (SetAccess = protected, GetAccess = protected)
   end
   
   events
@@ -19,12 +19,19 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     function obj = slicetool_icemask()
       obj.create_option_ui();
       obj.tool_name = 'Ice Mask';
-      obj.tool_menu_name = '(M)ask Editor';
-      obj.tool_shortcut = 'm';
+      obj.tool_menu_name = 'Mask Editor';
+      obj.tool_shortcut = '';
+      obj.ctrl_pressed = 0;
+      obj.shift_pressed = 0;
+      obj.help_string = '';
+      
       obj.detect_flag = 1;
     end
     
-    
+    function delete(obj)
+      try; delete(obj.ice); end;
+    end
+
     function set_custom_data(obj,custom_data)
       param.mdata.twtt = custom_data.mdata.twtt;
       param.mdata.theta = custom_data.mdata.theta_cal;
@@ -37,6 +44,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       param.ice_mask = custom_data.ice_mask;
       param.proj = custom_data.proj;
       obj.sb = custom_data.sb;
+      obj.ice_mask_layer = custom_data.ice_mask_layer;
       addlistener(obj.sb,'SliceChange',@obj.runChangeSlice);
       addlistener(obj.sb,'SliceChange',@obj.sb_button_motion_cb);
       addlistener(obj.sb.undo_stack,'synchronize_event',@obj.run_undo_sync);
@@ -71,7 +79,15 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       
     end
     
-    function cmd = apply_PB_callback(obj,~)
+    function cmd = apply_PB_callback(obj,sb,slices)
+      % sb: slice browser object. Use the following fields to create
+      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     should not modify any fields of sb.
+      %  .layer: struct array containing layer information
+      %  .data: 3D image
+      %  .slice: current slice in 3D image (third index of .data)
+      %  .layer_idx: active layer
+      % slices: array of slices to operate on (overrides sb.slice)
       figure(obj.ice.h_mask_fig);
       figure(obj.ice.h_dem_fig);
       cmd = [];
@@ -90,6 +106,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       evnts.evnts{1} = 'IceChange';
     end
     
+    % Impose Slice Change from SliceBrowser --> IceEditor
     function runChangeSlice(obj,src,~)
       obj.ice.change_slice(src.slice);
     end
@@ -120,16 +137,23 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       cmd_ice = obj.ice.edit_twtt(thetas,slices,vals,val_olds);
       cmd_append = obj.form_sb_cmd(cmd_ice,cmd{1}.redo.layer);
       
-      % check for same slices
-      del_cmd_idx = [];
-      for i = 1:length(cmd_append)
-        if strcmp(cmd_append{i}.type,'standard') && ...
-            ismember(cmd_append{i}.redo.slice,slices)
-          cmd{cmd_append{i}.redo.slice==slices} = cmd_append{i};
-          del_cmd_idx = [del_cmd_idx,i];
+      if 0
+        % When an ice mask command from the slice browser is run, it can
+        % cause a pixel to change in the ice mask editor which will cause a
+        % another command in the slice browser to happen that is at least
+        % partially redundant. This is okay and has no effect. This code
+        % was originally written to remove these partially redundant
+        % commands.
+        del_cmd_idx = [];
+        for i = 1:length(cmd_append)
+          if strcmp(cmd_append{i}.type,'standard') ...
+              && ismember(cmd_append{i}.redo.slice,slices)
+            cmd{cmd_append{i}.redo.slice==slices} = cmd_append{i};
+            del_cmd_idx = [del_cmd_idx,i];
+          end
         end
+        cmd_append(del_cmd_idx) = [];
       end
-      cmd_append(del_cmd_idx) = [];
       
       cmd = [cmd,cmd_append];
     end 
@@ -145,8 +169,9 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       
       if isempty(cmd_ice)
         for cmd_idx = 1:length(cmd)
-          if strcmp(cmd{cmd_idx}.type,'standard') && ...
-              cmd{cmd_idx}.redo.layer == obj.sb.layer(cmd{cmd_idx}.redo.layer).mask_layer            
+          if strcmp(cmd{cmd_idx}.type,'standard') ...
+              && ~isempty(obj.sb.layer(cmd{cmd_idx}.redo.layer).mask_layer) ...
+              && cmd{cmd_idx}.redo.layer == obj.sb.layer(cmd{cmd_idx}.redo.layer).mask_layer            
             
               cmd = obj.overlay_intersects(cmd);
               return
@@ -190,7 +215,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
         cmd{cmd_idx}.redo.layer = layer;
         cmd{cmd_idx}.undo.x = theta;
         cmd{cmd_idx}.redo.x = theta;
-        cmd{cmd_idx}.undo.y = logical(obj.ice.mdata.ice_mask(theta,slice));
+        cmd{cmd_idx}.undo.y = obj.sb.layer(layer).y(theta,slice);
         cmd{cmd_idx}.redo.y = logical(cmd{1}.redo.data_mask(s_idx));
         cmd{cmd_idx}.undo.slice = slice;
         cmd{cmd_idx}.redo.slice = slice;
@@ -198,13 +223,13 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       end
       
       slice_prev = obj.sb.slice;
-      if obj.detect_flag
+      if 0 && obj.detect_flag
         for tool_idx = 1:length(obj.sb.slice_tool.list)
           if isa(obj.sb.slice_tool.list{tool_idx},'imb.slicetool_detect')
             for slice_idx = 1:length(unique_slices)
               slice = unique_slices(slice_idx);
               obj.sb.slice = slice;
-              obj.sb.layer_idx = find(strncmp({obj.sb.layer.name},'bottom',6));
+              obj.sb.layer_idx = obj.sb.layer(layer).active_layer;
               mask_prev = obj.sb.layer(obj.sb.layer(obj.sb.layer_idx).mask_layer).y(:,slice);
               for cmd_idx = 1:length(cmd)
                 if isfield(cmd{cmd_idx}.redo,'slice') && cmd{cmd_idx}.redo.slice == slice
@@ -229,14 +254,14 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     
     
     function run_ice_change(obj,cmd,~)
-      cmd = obj.form_sb_cmd(obj.ice.cmd,obj.sb.layer(1).mask_layer);
+      cmd = obj.form_sb_cmd(obj.ice.cmd,obj.ice_mask_layer);
       obj.sb.push(cmd);
     end
     
     
+    % Impose Slice Change from IceEditor --> SliceBrowser
     function run_slice_change(obj,src,~)
-      obj.sb.slice = src.slice;
-      obj.sb.update_slice();
+      obj.sb.change_slice(src.slice, false)
     end
     
     
@@ -256,9 +281,9 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     function toggle_detect_flag(obj,src,~)
       val = get(src,'Value');
       if val
-        obj.detect_flag = 0;
-      else
         obj.detect_flag = 1;
+      else
+        obj.detect_flag = 0;
       end
     end
     
