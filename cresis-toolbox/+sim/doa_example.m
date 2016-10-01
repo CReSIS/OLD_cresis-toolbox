@@ -9,10 +9,9 @@
 
 physical_constants;
 
+%% Wax and Ziskind 1988 Fig 2
+% =======================================================================
 if 0
-  % =======================================================================
-  % Wax and Ziskind 1988 Fig 2
-  % =======================================================================
   %% Setup simulation parameters
   param = [];
   
@@ -51,7 +50,7 @@ if 0
   results = sim.doa(param);
   
   %% Process and save the outputs
-  out_fn_dir = 'D:\tmp\TSP_DOA';
+  out_fn_dir = 'E:\tmp\TSP_DOA';
   out_fn_name = 'wax_ziskind_fig2';
   
   RMSE = sim.doa_rmse(param,results);
@@ -84,10 +83,9 @@ if 0
   return;
 end
   
+%% Wax and Ziskind 1988 Fig 3
+% =======================================================================
 if 0
-  % =======================================================================
-  % Wax and Ziskind 1988 Fig 3
-  % =======================================================================
   %% Setup simulation parameters
   param = [];
   
@@ -126,7 +124,7 @@ if 0
   results = sim.doa(param);
   
   %% Process and save the outputs
-  out_fn_dir = 'D:\tmp\TSP_DOA';
+  out_fn_dir = 'E:\tmp\TSP_DOA';
   out_fn_name = 'wax_ziskind_fig3';
   
   RMSE = sim.doa_rmse(param,results);
@@ -159,10 +157,9 @@ if 0
   return;
 end
   
+%% Wax and Ziskind 1988 Fig 4
+% =======================================================================
 if 0
-  % =======================================================================
-  % Wax and Ziskind 1988 Fig 4
-  % =======================================================================
   %% Setup simulation parameters
   param = [];
   
@@ -201,7 +198,7 @@ if 0
   results = sim.doa(param);
   
   %% Process and save the outputs
-  out_fn_dir = 'D:\tmp\TSP_DOA';
+  out_fn_dir = 'E:\tmp\TSP_DOA';
   out_fn_name = 'wax_ziskind_fig4';
   
   RMSE = sim.doa_rmse(param,results);
@@ -212,7 +209,7 @@ if 0
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
   legend({'MUSIC','MLE','WB','WBMLE'})
-  title('Figure 3 from Wax and Ziskind 1988')
+  title('Figure 4 from Wax and Ziskind 1988')
   
   figure(2); clf
   plot(param.monte.Nsnap,RMSE(:,:,2).','.','LineWidth',2);
@@ -220,7 +217,7 @@ if 0
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
   legend({'MUSIC','MLE','WB','WBMLE'})
-  title('Complement to figure 3 from Wax and Ziskind (source 2)')
+  title('Complement to figure 4 from Wax and Ziskind (source 2)')
   
   % Save Outputs
   if ~exist(out_fn_dir,'dir')
@@ -234,10 +231,9 @@ if 0
   return;
 end
   
+%% Wax and Ziskind 1988 Fig 6
+% =======================================================================
 if 1
-  % =======================================================================
-  % Wax and Ziskind 1988 Fig 6
-  % =======================================================================
   %% Setup simulation parameters
   param = [];
   
@@ -251,7 +247,7 @@ if 1
   param.src.lever_arm.args          = {[],1,[1:7],[0; c/fc/2; 0]};
   % DOA method parameters
   param.method.list                   = [2 7 8 9];
-  param.method.Nsv                    = 21;
+  param.method.Nsv                    = 64;
   param.method.OneD_Nsv               = 128;
   param.method.src_limits             = {[-20 20]/180*pi,[-20 20]/180*pi,[-20 20]/180*pi,[-20 20]/180*pi};
   param.method.theta_guard            = 1.5/180*pi;
@@ -269,14 +265,14 @@ if 1
   num_tests = size(param.monte.Nsnap,1);
   param.monte.SNR   = repmat([20 20 20 20],[num_tests 1]);
   param.monte.DOA   = repmat([-8 -1 5 15],[num_tests 1]);
-  param.monte.runs  = 100;
+  param.monte.runs  = 500;
   param.monte.random_seed_offset = 0;
 
   %% Run the simulation
   results = sim.doa(param);
   
   %% Process and save the outputs
-  out_fn_dir = 'D:\tmp\TSP_DOA';
+  out_fn_dir = 'E:\tmp\TSP_DOA';
   out_fn_name = 'wax_ziskind_fig6';
   
   RMSE = sim.doa_rmse(param,results);
@@ -367,7 +363,7 @@ if 0
   results = sim.doa(param);
   
   %% Process and save the outputs
-  out_fn_dir = 'D:\tmp\TSP_DOA';
+  out_fn_dir = 'E:\tmp\TSP_DOA';
   out_fn_name = 'tsp_doa_fig1';
   
   RMSE = sim.doa_rmse(param,results);
@@ -449,7 +445,7 @@ if 0
   results = sim.doa(param);
   
   %% Process and save the outputs
-  out_fn_dir = 'D:\tmp\TSP_DOA';
+  out_fn_dir = 'E:\tmp\TSP_DOA';
   out_fn_name = 'tsp_doa_fig2';
   
   RMSE = sim.doa_rmse(param,results);
@@ -523,7 +519,7 @@ if 0
   results = sim.doa(param);
   
   %% Process and save the outputs
-  out_fn_dir = 'D:\tmp\TSP_DOA';
+  out_fn_dir = 'E:\tmp\TSP_DOA';
   out_fn_name = 'tsp_doa_fig3';
   
   RMSE = sim.doa_rmse(param,results);
@@ -597,7 +593,7 @@ if 1
   results = sim.doa(param);
   
   %% Process and save the outputs
-  out_fn_dir = 'D:\tmp\TSP_DOA';
+  out_fn_dir = 'E:\tmp\TSP_DOA';
   out_fn_name = 'tsp_doa_fig4';
   
   RMSE = sim.doa_rmse(param,results);
