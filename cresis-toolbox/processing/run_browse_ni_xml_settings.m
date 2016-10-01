@@ -5,7 +5,7 @@
 % Author: John Paden
 
 clear;
-setup = 'mcords5_polar6_setup';
+setup = 'mcords2';
 
 if strcmpi(setup, 'mcords5_polar6_setup')
   % =======================================================================
