@@ -4,18 +4,25 @@
 
 % Define waveforms
 base_dir = 'E:\waveforms';
-if 1
+if 0
   % Initial conditions
   final_DDS_phase = [0 0 0 0 0 0  0 0];
   final_DDS_phase_no_time = [0 0 0 0 0 0  0 0];
   final_DDS_amp = [57750 57750 65450 61292 61600 54478 0 0];
   final_DDS_time =  [0 0 0 0 0 0  0 0];
 else
-  % After transmit calibration during Oct 1 test flight
-  final_DDS_phase = [0.0	0.0];
-  final_DDS_amp = [0	0];
-  final_DDS_time =  [0.00	0.00];
-  final_DDS_phase_no_time = [0.0	0.0];
+  % After transmit calibration during Oct 1 test flight (3 us)
+  final_DDS_phase = [17.9	0.0	98.8	-57.9	-92.9	63.2	0.0	0.0];
+  final_DDS_amp = [37573	44712	43831	37682	61600	36778	0	0];
+  final_DDS_time =  [-4.78	0.00	-3.71	-4.80	-3.78	-8.57	0.00	0.00];
+  final_DDS_phase_no_time = [0 0 0 0 0 0  0 0];
+  
+  % After transmit calibration during Oct 1 test flight (10 us) <-- Use 10 us!
+  final_DDS_phase = [-10.8	0.0	94.7	-53.1	-85.5	65.7	0.0	0.0];
+  final_DDS_amp = [41142	44690	44087	43212	61600	38806	0	0];
+  final_DDS_time =  [-4.78	0.00	-3.71	-4.80	-3.78	-8.57	0.00	0.00];
+  final_DDS_phase_no_time = [0 0 0 0 0 0  0 0];
+  
 end
 
 f0 = 165e6;
@@ -269,6 +276,39 @@ for Tpd = [1e-6 3e-6 10e-6]
     param.wfs(wf).tx_mask(9-wf) = 0;
   end
   param.wfs(7).tx_mask = zeros(1,8);
+  write_cresis_xml(param);
+end
+
+%% Equalization High Altitude (Using Ocean)
+% 10000-45000 ft
+% For lower altitude, increase attenuation
+% Use these settings over ocean or sea ice for fast-time equalization,
+% transmit equalization, and receiver equalization.
+% Creates one waveform for each of N DDS-transmitters plus a combined
+% waveform with all transmitters going.
+for Tpd = [1e-6 3e-6 10e-6]
+  param = struct('radar_name','mcords3','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',150e6,'fs_sync',900e6/16,'fs_dds',900e6,'TTL_clock',150e6/2,'TTL_mode',[3e-6 0.35e-6 -880e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);  
+  param.max_tx = [57750 57750 65450 61292 61600 54478 0 0]; param.max_data_rate = 135; param.flight_hours = 7; param.sys_delay = 8.9e-6;
+  param.max_duty_cycle = 0.12;
+  param.create_IQ = false;
+  param.tg.altitude_guard = 17500*12*2.54/100;
+  param.tg.staged_recording = false;
+  param.tg.Haltitude = 27500*12*2.54/100;
+  param.tg.Hice_thick = 0;
+  param.fn = fullfile(base_dir,sprintf('equalization_pairedtx_%.0fus.xml', Tpd*1e6));
+  param.prf = 8500;
+  param.presums = [15 15 15];
+  [param.wfs(1:3).atten] = deal(21);
+  param.tx_weights = final_DDS_amp;
+  param.tukey = 0.1;
+  param.Tpd = Tpd;
+  param.phase = final_DDS_phase;
+  param.delay = final_DDS_time;
+  param.f0 = f0;
+  param.f1 = f1;
+  param.wfs(1).tx_mask = [1 1 1 1 0 1 1 0];
+  param.wfs(2).tx_mask = [1 1 1 0 1 1 0 1];
+  param.wfs(3).tx_mask = [1 1 0 1 1 0 1 1];
   write_cresis_xml(param);
 end
 
