@@ -77,7 +77,7 @@ for adc_idx = 1:length(adcs)
     fns = fns(sorted_idxs);
   end
   
-  struct(hdr_param,'file_mode','ieee-be');
+  hdr_param = struct('file_mode','ieee-be');
   %% Setup the header information for this radar
   if any(strcmpi(param.radar_name,{'accum'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
@@ -105,7 +105,6 @@ for adc_idx = 1:length(adcs)
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
     hdr_param.field_offsets = uint32([4 8 12]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/9;
   elseif any(strcmpi(param.radar_name,{'mcords4'}))
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     hdr_param.field_offsets = uint32([4 16 20]); % epri seconds fractions
@@ -302,6 +301,38 @@ for adc_idx = 1:length(adcs)
     elseif strcmp(param.radar_name,'mcords2')
       
     elseif strcmp(param.radar_name,'mcords3')
+      hdr_param.field_offsets = uint32([4 8 12 16]); % epri seconds fraction counter
+      hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
+      [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
+      seconds = double(seconds);
+      
+      % Convert seconds from BCD
+      %   32 bits: HH MM SS 00 (e.g. first byte is two binary coded decimal digits representing the hour)
+      seconds = ...
+        3600*(10*mod(floor(seconds/2^8),2^4) + mod(floor(seconds/2^12),2^4)) ...
+        + 60*(10*mod(floor(seconds/2^16),2^4) + mod(floor(seconds/2^20),2^4)) ...
+        + (10*mod(floor(seconds/2^24),2^4) + mod(floor(seconds/2^28),2^4));
+      
+      plot(epri)
+      keyboard
+      % Find bad records by checking their size
+      % The distance between frame syncs should be constant
+      expected_rec_size = median(diff(offset));
+      meas_rec_size = diff(offset);
+      bad_mask = all(bsxfun(@(x,y) x ~= y, meas_rec_size, expected_rec_size(:)),1);
+      % Note that we always assume that the last record in the file is
+      % good (since it is a partial record and we would have to look at
+      % the next file to see if the complete record is there)
+      bad_mask(end+1) = false;
+      
+      % Remove bad records (i.e. ones with sizes that are not expected
+      offset = double(offset(~bad_mask));
+      epri = double(epri(~bad_mask));
+      seconds = double(seconds(~bad_mask));
+      fraction = double(fraction(~bad_mask));
+      counter = double(counter(~bad_mask));
+      
+      save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
       
     elseif strcmp(param.radar_name,'mcords4')
       
@@ -572,7 +603,7 @@ for fn_idx = 1:length(fns)
     epri = cat(2,epri,reshape(hdr.epri,[1 length(hdr.epri)]));
     seconds = cat(2,seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
     fraction = cat(2,fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-    if any(strcmpi(param.radar_name,{'mcords5'}))
+    if any(strcmpi(param.radar_name,{'mcords3','mcords5'}))
       counter = cat(2,counter,reshape(hdr.counter,[1 length(hdr.counter)]));
     end
   end
@@ -580,26 +611,34 @@ for fn_idx = 1:length(fns)
 end
 
 %% Correct and process time variable
-if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','mcords5'}))
+if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','mcords3','mcords5'}))
   utc_time_sod = double(seconds) + double(fraction) / param.clk;
   utc_time_sod = medfilt1(double(utc_time_sod));
   
   if counter_correction_en
     warning('You have enabled counter correction. Normally, this should not be necessary. Set correction parameters and then dbcont to continue');
     % This is an index into hdr.utc_time_sod that is correct
-    if any(strcmpi(param.radar_name,{'mcords5'}))
-      counter_clk = 200e6;
-    elseif any(strcmpi(param.radar_name,{'snow5'}))
-      % counter_clk should be the EPRF (effective PRF after hardware presumming)
-      counter_clk = 3906.250/2/8;
-      counter = epri;
-    else
-      keyboard
-    end
     counter_bad_threshold = 0.01;
     counter_min_freq = 100;
     counter_bin = 0.01;
     anchor_idx = 1;
+    if any(strcmpi(param.radar_name,{'mcords5'}))
+      counter_clk = 200e6;
+      keyboard
+    elseif any(strcmpi(param.radar_name,{'snow5'}))
+      % counter_clk should be the EPRF (effective PRF after hardware presumming)
+      % set anchor_idx to a record that you believe has the correct time
+      counter_clk = 3906.250/2/8;
+      counter = epri;
+    elseif any(strcmpi(param.radar_name,{'kuband3','snow3'}))
+      % counter_clk should be the EPRF (effective PRF after hardware presumming)
+      % set anchor_idx to a record that you believe has the correct time
+      counter_clk = 3906.250/8;
+      counter = epri;
+      keyboard
+    else
+      keyboard
+    end
     
     % Test example
     % counter_clk = 1;
