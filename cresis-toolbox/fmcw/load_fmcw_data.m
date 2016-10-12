@@ -492,11 +492,11 @@ for accum_idx = 1:length(accum(board).wf)
   end
   
   if ~param.proc.pulse_comp
-    img_time = [];
+    img_time{1} = [];
     img_valid_rng = [];
     img_deconv_filter_idx = [];
     img_freq = [];
-    img_Mt = [];
+    img_Mt{1} = [];
     g_data{img_idx} = a_data;
     return;
   end

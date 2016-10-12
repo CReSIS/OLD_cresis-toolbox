@@ -77,7 +77,8 @@ for adc_idx = 1:length(adcs)
     fns = fns(sorted_idxs);
   end
   
-  struct(hdr_param,'file_mode','ieee-be');
+%   struct(hdr_param,'file_mode','ieee-be');
+  hdr_param = struct('file_mode','ieee-be');
   %% Setup the header information for this radar
   if any(strcmpi(param.radar_name,{'accum'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
@@ -589,7 +590,7 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
     % This is an index into hdr.utc_time_sod that is correct
     if any(strcmpi(param.radar_name,{'mcords5'}))
       counter_clk = 200e6;
-    elseif any(strcmpi(param.radar_name,{'snow5'}))
+    elseif any(strcmpi(param.radar_name,{'snow3','snow5','kuband3','accum'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       counter_clk = 3906.250/2/8;
       counter = epri;

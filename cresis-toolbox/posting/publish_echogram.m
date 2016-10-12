@@ -168,7 +168,10 @@ elseif param.elev_comp == 2
   % Below surface and below dielectric profile defined depth
   const_idxs = depth >= param.er_depth(end);
   depth_time(const_idxs) = TWtime(end) + (depth(const_idxs) - param.er_depth(end)) / (c/2/sqrt(param.er_ice(end)));
-  
+  if length(depth_time) > length(mdata.Time);
+      mdata.Data = cat(1,mdata.Data,ones(length(depth_time) -length(mdata.Time),size(mdata.Data,2))*mean(mdata.Data(end,:)));
+      mdata.Time = cat(1,mdata.Time,mdata.Time(end) + (depth_time(end)-depth_time(end-1))*(1:(length(depth_time) -length(mdata.Time)))');
+  end
   % Re-interpolate data to a constant depth axis
   newData = zeros(length(depth),size(mdata.Data,2));
   warning off;
