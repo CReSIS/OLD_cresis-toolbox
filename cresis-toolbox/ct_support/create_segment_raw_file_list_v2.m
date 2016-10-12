@@ -313,8 +313,6 @@ for adc_idx = 1:length(adcs)
         + 60*(10*mod(floor(seconds/2^16),2^4) + mod(floor(seconds/2^20),2^4)) ...
         + (10*mod(floor(seconds/2^24),2^4) + mod(floor(seconds/2^28),2^4));
       
-      plot(epri)
-      keyboard
       % Find bad records by checking their size
       % The distance between frame syncs should be constant
       expected_rec_size = median(diff(offset));
@@ -623,13 +621,16 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
     counter_bin = 0.01;
     anchor_idx = 1;
     if any(strcmpi(param.radar_name,{'mcords5'}))
-      counter_clk = 200e6;
+      counter_clk = param.clk;
       keyboard
     elseif any(strcmpi(param.radar_name,{'snow5'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       % set anchor_idx to a record that you believe has the correct time
       counter_clk = 3906.250/2/8;
       counter = epri;
+    elseif any(strcmpi(param.radar_name,{'mcords3'}))
+      counter_clk = param.clk;
+      keyboard
     elseif any(strcmpi(param.radar_name,{'kuband3','snow3'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       % set anchor_idx to a record that you believe has the correct time

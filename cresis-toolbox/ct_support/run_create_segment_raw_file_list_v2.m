@@ -138,21 +138,21 @@ end
 %% RDS: MCoRDS 3
 if strcmpi(radar_setup,'MCORDS3')
   param.radar_name = 'mcords3';
-  param.clk = 150e6;
+  param.clk = 150.025e6;
   adcs = [1 5];
   raw_file_suffix = '.bin';
-  reuse_tmp_files = false; % Set to false if you want to overwrite current results
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
   file_prefix_override = ''; % most of the time
   counter_correction_en = true;
   presum_bug_fixed = false;
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2016_Antarctia_DC8';
-  base_dir = '/process3/20161004/mcords/';
+  param.season_name = '2016_Antarctica_DC8';
+  base_dir = 'U:\';
   param.adc_folder_name = 'board%b';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20161004'; % Only used for stdout print of the vectors worksheet
+  day_string = '20161012'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: MCoRDS 4
