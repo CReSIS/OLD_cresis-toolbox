@@ -55,6 +55,7 @@ for adc_idx = 1:length(adcs)
   adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
   
   fns = get_filenames(fullfile(base_dir,adc_folder_name), file_prefix, file_midfix, raw_file_suffix, get_fns_param);
+  fns_list{adc_idx} = fns;
 
   if isempty(fns)
     error('No files found matching %s*%s*%s', ...
@@ -556,11 +557,11 @@ htime = [];
 hdr_raw = [];
 hoffset = 0;
 offset = 0;
-for fn_idx = 1:length(fns)
+for fn_idx = 1:length(fns_list{1})
   if failed_load{1}(fn_idx)
     continue;
   end
-  fn = fns{fn_idx};
+  fn = fns_list{1}{fn_idx};
   if strcmp(param.radar_name,'acords')
     [~,fn_name,ext] = fileparts(fn);
     fn_name = [fn_name,ext];
@@ -841,7 +842,7 @@ end
 %% Break into segments
 if 1
   % Using time and optionally EPRI
-  bad_mask = logical(zeros(size(fns)));
+  bad_mask = logical(zeros(size(fns_list{1})));
   segments = [];
   segment_start = file_idxs(1);
   start_time = utc_time_sod(1);
@@ -865,8 +866,8 @@ if 1
       segments(seg_idx).start_idx = segment_start;
       segments(seg_idx).stop_idx = segment_stop;
       segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
-      [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
-      [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
+      [~,fn_start_name,fn_start_name_ext] = fileparts(fns_list{1}{segment_start});
+      [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns_list{1}{segment_stop});
       fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
         datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
         [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
@@ -876,15 +877,15 @@ if 1
     start_time = utc_time_sod(time_gap+1);
     start_day_wrap_offset = day_wrap_offset(time_gap+1);
   end
-  segment_stop = length(fns);
+  segment_stop = length(fns_list{1});
   if segment_stop - segment_start + 1 >= MIN_SEG_SIZE
     seg_idx = seg_idx + 1;
     segments(seg_idx).start_time = start_time;
     segments(seg_idx).start_idx = segment_start;
     segments(seg_idx).stop_idx = segment_stop;
     segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
-    [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
-    [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
+    [~,fn_start_name,fn_start_name_ext] = fileparts(fns_list{1}{segment_start});
+    [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns_list{1}{segment_stop});
     fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
       datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
       [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
@@ -897,10 +898,10 @@ elseif 0
   EPRI_JUMP_MAX = 2e3;
   time_gaps = find(diff(epri) < EPRI_JUMP_MIN | diff(epri) > EPRI_JUMP_MAX);
   
-  bad_mask = logical(zeros(size(fns)));
+  bad_mask = logical(zeros(size(fns_list{1})));
   segments = [];
   segment_start = file_idxs(1);
-  finfo = fname_info_fmcw(fns{1});
+  finfo = fname_info_fmcw(fns_list{1});
   start_time = datenum_to_epoch(finfo.datenum);
   start_day_wrap_offset = day_wrap_offset(1);
   seg_idx = 0;
@@ -918,33 +919,33 @@ elseif 0
     
     if segment_stop - segment_start + 1 >= MIN_SEG_SIZE
       seg_idx = seg_idx + 1;
-      finfo = fname_info_fmcw(fns{segment_start});
+      finfo = fname_info_fmcw(fns_list{1}{segment_start});
       segments(seg_idx).start_time = datenum_to_epoch(finfo.datenum);
       segments(seg_idx).start_idx = segment_start;
       segments(seg_idx).stop_idx = segment_stop;
       segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
-      [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
-      [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
+      [~,fn_start_name,fn_start_name_ext] = fileparts(fns_list{1}{segment_start});
+      [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns_list{1}{segment_stop});
       fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
         datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
         [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
     end
     
     segment_start = file_idxs(time_gap)+1;
-    finfo = fname_info_fmcw(fns{segment_start});
+    finfo = fname_info_fmcw(fns_list{1}{segment_start});
     start_time = datenum_to_epoch(finfo.datenum);
     start_day_wrap_offset = day_wrap_offset(time_gap+1);
   end
-  segment_stop = length(fns);
+  segment_stop = length(fns_list{1});
   if segment_stop - segment_start + 1 >= MIN_SEG_SIZE
     seg_idx = seg_idx + 1;
-    finfo = fname_info_fmcw(fns{segment_start});
+    finfo = fname_info_fmcw(fns_list{1}{segment_start});
     segments(seg_idx).start_time = datenum_to_epoch(finfo.datenum);
     segments(seg_idx).start_idx = segment_start;
     segments(seg_idx).stop_idx = segment_stop;
     segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
-    [~,fn_start_name,fn_start_name_ext] = fileparts(fns{segment_start});
-    [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns{segment_stop});
+    [~,fn_start_name,fn_start_name_ext] = fileparts(fns_list{1}{segment_start});
+    [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns_list{1}{segment_stop});
     fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
       datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
       [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
@@ -971,7 +972,7 @@ if any(strcmpi(param.radar_name,{'acords'}))
   fprintf('\n')
   for seg_idx = 1:length(segments)
 %     [hdr htime hoffset] = basic_load_acords(sprintf('%s/%s/%s.%d',base_dir,adc_folder_name,file_prefix_override,segments(seg_idx).start_idx-1),struct('datatype',0,'file_version',param.file_version,'verbose',0));
-    [hdr htime hoffset] = basic_load_acords(fns{segments(seg_idx).start_idx},struct('datatype',0,'file_version',param.file_version,'verbose',0));
+    [hdr htime hoffset] = basic_load_acords(fns_list{1}{segments(seg_idx).start_idx},struct('datatype',0,'file_version',param.file_version,'verbose',0));
     if param.file_version == 406
       if hdr(1).num_elem == 0
         fprintf('%s\t%02d\t%e\t%d\t12\t1\t2\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1]\t[%d %d %d %d]\t10.^((44-%d*ones(1,1))/20)\t[0]\t[0]\t[0]/1e9\t%4.4e\t\t\t%3.2e\t%3.2e\t\t0\t[1]\t[%d %d %d %d]\t10.^((80-%d*ones(1,1))/20)\t[0]\t[0]\t[0]/1e9\n',...
