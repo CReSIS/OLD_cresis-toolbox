@@ -143,10 +143,7 @@ if nargout < 2 && ~param.records.en
   hdr.frame_sync = fread(fid,1,'uint32');
   hdr.epri = fread(fid,1,'uint32');
   hdr.seconds = fread(fid,1,'uint32').'; % From NMEA string converted to DCB
-  hdr.seconds = ...
-    3600*(10*mod(floor(hdr.seconds/2^8),2^4) + mod(floor(hdr.seconds/2^12),2^4)) ...
-    + 60*(10*mod(floor(hdr.seconds/2^16),2^4) + mod(floor(hdr.seconds/2^20),2^4)) ...
-    + (10*mod(floor(hdr.seconds/2^24),2^4) + mod(floor(hdr.seconds/2^28),2^4));
+  hdr.seconds = BCD_to_seconds(hdr.seconds);
   hdr.fraction = fread(fid,1,'uint32');
   hdr.utc_time_sod = hdr.seconds + hdr.fraction / param.clk;
   hdr.counter = fread(fid,1,'uint64');
@@ -206,10 +203,7 @@ elseif param.records.en
       && all(mod(floor(hdr_data(12,:)/2^16),2^8) == mod(floor(hdr_data(12,1)/2^16),2^8)) ...
       && all(mod(hdr_data(12,:),2^8) == mod(hdr_data(12,1),2^8))
     data.epri = hdr_data(2,:);
-    data.seconds = ...
-      3600*(10*mod(floor(hdr_data(3,:)/2^8),2^4) + mod(floor(hdr_data(3,:)/2^12),2^4)) ...
-      + 60*(10*mod(floor(hdr_data(3,:)/2^16),2^4) + mod(floor(hdr_data(3,:)/2^20),2^4)) ...
-      + (10*mod(floor(hdr_data(3,:)/2^24),2^4) + mod(floor(hdr_data(3,:)/2^28),2^4));
+    data.seconds = BCD_to_seconds(hdr_data(3,:));
     data.fraction = hdr_data(4,:);
     data.offset = hdr.finfo.syncs(1) + rec_size*(0:num_rec-1);
     fseek(fid, hdr.finfo.syncs(1) + 34, -1);
@@ -279,13 +273,7 @@ if 0
     seconds = seconds(~bad_mask);
     fraction = fraction(~bad_mask);
     
-    seconds = ...
-      3600*(10*mod(floor(seconds/2^8),2^4) + mod(floor(seconds/2^12),2^4)) ...
-      + 60*(10*mod(floor(seconds/2^16),2^4) + mod(floor(seconds/2^20),2^4)) ...
-      + (10*mod(floor(seconds/2^24),2^4) + mod(floor(seconds/2^28),2^4));
-  
-  
-  
+    seconds = BCD_to_seconds(seconds);
 end
 
 
@@ -398,10 +386,7 @@ hdr.DDC_filter_select = hdr.DDC_filter_select(1:rline);
 hdr.input_selection = hdr.input_selection(1:rline);
 hdr.DDC_or_raw_select = hdr.DDC_or_raw_select(1:rline);
 
-hdr.seconds = ...
-  3600*(10*mod(floor(hdr.seconds/2^8),2^4) + mod(floor(hdr.seconds/2^12),2^4)) ...
-  + 60*(10*mod(floor(hdr.seconds/2^16),2^4) + mod(floor(hdr.seconds/2^20),2^4)) ...
-  + (10*mod(floor(hdr.seconds/2^24),2^4) + mod(floor(hdr.seconds/2^28),2^4));
+hdr.seconds = BCD_to_seconds(hdr.seconds);
 hdr.utc_time_sod = hdr.seconds + hdr.fraction / param.clk;
 hdr.Tadc = hdr.start_idx / param.clk - 10.8e-6;
 
