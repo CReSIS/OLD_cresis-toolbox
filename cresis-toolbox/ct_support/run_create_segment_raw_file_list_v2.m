@@ -4,7 +4,7 @@
 %
 % Instructions:
 % 1. Find your radar in the "user settings" section below
-% 2. Enable it ("if 1") and disable all others ("if 0")
+% 2. Set radar_setup variable to correct radar
 % 3. Change settings in the radar section as required (usually
 %    just path changes to match the current date).
 % 4. Run the script
@@ -18,7 +18,7 @@ param = [];
 counter_correction_en = false;
 
 % Enable Just One Radar Setup
-radar_setup = 'mcords3';
+radar_setup = 'snow3';
 
 %% Accum 1
 if strcmpi(radar_setup,'ACCUM')
@@ -109,10 +109,10 @@ if strcmpi(radar_setup,'KUBAND3')
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
   param.season_name = '2016_Antarctica_DC8';
-  base_dir = '/process3/20161004/fmcw/kuband/';
+  base_dir = '/process/fmcw/kuband/';
   param.adc_folder_name = '';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20161004'; % Only used for stdout print of the vectors worksheet
+  day_string = '20161014'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: ACORDS
@@ -138,7 +138,7 @@ end
 %% RDS: MCoRDS 3
 if strcmpi(radar_setup,'MCORDS3')
   param.radar_name = 'mcords3';
-  param.clk = 150.025e6;
+  param.clk = 150e6;
   adcs = [1 5];
   raw_file_suffix = '.bin';
   reuse_tmp_files = true; % Set to false if you want to overwrite current results
@@ -149,10 +149,11 @@ if strcmpi(radar_setup,'MCORDS3')
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
   param.season_name = '2016_Antarctica_DC8';
-  base_dir = 'U:\';
+  base_dir = '/process/mcords/';
+%   base_dir = '/net/field1/landing/mcords/';
   param.adc_folder_name = 'board%b';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20161012'; % Only used for stdout print of the vectors worksheet
+  day_string = '20161014'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: MCoRDS 4
@@ -243,10 +244,10 @@ if strcmpi(radar_setup,'SNOW3')
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
   param.season_name = '2016_Antarctica_DC8';
-  base_dir = '/process3/20161004/fmcw/snow/';
+  base_dir = '/process/fmcw/snow/';
   param.adc_folder_name = '';
-  file_midfix = '20161004'; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20161004'; % Only used for stdout print of the vectors worksheet
+  file_midfix = '20161014'; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20161014'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 3 (NRL)
@@ -290,6 +291,7 @@ end
 %% User Settings that should not generally be changed
 % You may have to set to false to read some of the results from this function when it was first written (should always be true)
 tmp_fn_uses_adc_folder_name = true;
+
 
 MIN_SEG_SIZE = 2;
 MAX_TIME_GAP = 1000/75;
