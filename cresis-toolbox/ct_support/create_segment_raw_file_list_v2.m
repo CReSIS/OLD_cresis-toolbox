@@ -34,6 +34,10 @@ if ~exist('union_time_epri_gaps','var')
   union_time_epri_gaps = false;
 end
 
+if ~exist('online_mode','var')
+  online_mode = false;
+end
+
 if ~isfield('param','gps_time_offset') || isempty(param.gps_time_offset)
   param.gps_time_offset = 1;
 end
@@ -151,7 +155,6 @@ for adc_idx = 1:length(adcs)
     else
       [~,fn_name] = fileparts(fn);
     end
-    fprintf('%d of %d: %s (%s)\n', fn_idx, length(fns), fn, datestr(now,'HH:MM:SS'));
     
     if tmp_fn_uses_adc_folder_name
       tmp_hdr_fn = ct_filename_ct_tmp(param,'','headers', ...
@@ -164,8 +167,17 @@ for adc_idx = 1:length(adcs)
       mkdir(tmp_hdr_fn_dir);
     end
     
-    if reuse_tmp_files && exist(tmp_hdr_fn,'file')
-      continue;
+    if ~online_mode
+      fprintf('%d of %d: %s (%s)\n', fn_idx, length(fns), fn, datestr(now,'HH:MM:SS'));
+      if reuse_tmp_files && exist(tmp_hdr_fn,'file')
+        continue;
+      end
+    else
+      if reuse_tmp_files && exist(tmp_hdr_fn,'file')
+        continue;
+      else
+        fprintf('%d of %d: %s (%s)\n', fn_idx, length(fns), fn, datestr(now,'HH:MM:SS'));
+      end
     end
     
     try
@@ -607,6 +619,18 @@ for fn_idx = 1:length(fns_list{1})
     end
   end
   file_idxs = cat(2,file_idxs,fn_idx*ones([1 length(hdr.offset)]));
+end
+
+if online_mode
+  epri_jumps = diff(double(epri));
+  fprintf('List of EPRI jumps:\n');
+  epri_jumps(abs(epri_jumps > 100))
+  
+  fprintf('List of UTC time SOD jumps:\n');
+  utc_time_sod_jumps = diff(utc_time_sod);
+  utc_time_sod_jumps(abs(utc_time_sod_jumps) > 0.5)
+  
+  return;
 end
 
 %% Correct and process time variable

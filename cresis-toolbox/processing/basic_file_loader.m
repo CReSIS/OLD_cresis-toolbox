@@ -394,6 +394,20 @@ if strcmpi(param.radar_name,'mcords')
   data = data - median(data(:,1));
 %   basic_remove_mcords_digital_errors;
 elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
+  
+  if ~isfield(param,'img')
+    fprintf('Enter wf-adc pair matrix. The wf-adc pair matrix is an Nx2 matrix\n');
+    fprintf('where the first column is the waveform, the second column is the adc,\n');
+    fprintf('and each row represents a channel to be loaded.\n');
+    fprintf('Valid ADCs: '); fprintf('%d ', default.records.file.adcs); fprintf('\n');
+    param.img = [];
+    while size(param.img,1) < 1 || size(param.img,2) ~= 2
+      try
+        param.img = input('Wf-adc pairs: ');
+      end
+    end
+  end
+  
   % test1_1.dat0
   %   testA_N.datB
   %   A = acquisition number
