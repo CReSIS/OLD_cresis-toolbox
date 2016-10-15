@@ -40,7 +40,7 @@ while 1
     base_dir = '/process/fmcw/kuband/';
     param.adc_folder_name = '';
     file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-    day_string = '20161014'; % Only used for stdout print of the vectors worksheet
+    day_string = '20161015'; % Only used for stdout print of the vectors worksheet
     
     create_segment_raw_file_list_v2;
   end
@@ -62,9 +62,10 @@ while 1
     param.season_name = '2016_Antarctica_DC8';
     base_dir = '/process/mcords/';
     %   base_dir = '/net/field1/landing/mcords/';
+    
     param.adc_folder_name = 'board%b';
     file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-    day_string = '20161014'; % Only used for stdout print of the vectors worksheet
+    day_string = '20161015'; % Only used for stdout print of the vectors worksheet
     
     create_segment_raw_file_list_v2;
   end
@@ -85,8 +86,8 @@ while 1
     param.season_name = '2016_Antarctica_DC8';
     base_dir = '/process/fmcw/snow/';
     param.adc_folder_name = '';
-    file_midfix = '20161014'; % Data files must contain this string in the middle of their name (usually should be empty)
-    day_string = '20161014'; % Only used for stdout print of the vectors worksheet
+    file_midfix = '20161015'; % Data files must contain this string in the middle of their name (usually should be empty)
+    day_string = '20161015'; % Only used for stdout print of the vectors worksheet
     
     create_segment_raw_file_list_v2;
   end
@@ -102,7 +103,8 @@ while 1
     make_gps_2016_antarctica_DC8;
   end
   
-  %pause(240);
+  fprintf('Pausing for 30 seconds...\n');
+  pause(30);
 end
 
 return;

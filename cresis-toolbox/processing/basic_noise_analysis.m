@@ -227,7 +227,7 @@ if param.psd_en
       end
       
     else
-      pc_param.time = hdr.wfs(wf).t0 + (0:size(fir_data,1)-1)/fs;
+      pc_param.time = hdr.wfs(wf).t0 + (0:size(fir_data,1)-1)/default.radar.fs;
       dt = pc_param.time(2) - pc_param.time(1);
       Nt = length(pc_param.time);
       df = 1/(Nt*dt);
@@ -239,7 +239,7 @@ if param.psd_en
       title(sprintf('Freq-space adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       xlabel('Range line');
       ylabel('Frequency (MHz)');
-      ylim(fs/1e6*[0 1]);
+      ylim(default.radar.fs/1e6*[0 1]);
       h = colorbar;
       set(get(h,'YLabel'),'String','Relative power (dB)');
       
@@ -249,8 +249,13 @@ if param.psd_en
       title(sprintf('MeanFFT adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       ylabel('Relative power (dB)');
       xlabel('Frequency (MHz)');
-      xlim(fs/1e6*[0 1]);
+      xlim(default.radar.fs/1e6*[0 1]);
       grid on;
+      
+      if plot_combined_psd
+        plot(freq/1e6, lp(mean(abs(fft(fir_data)).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes,'color',combined_psd_cmap(adc_idx,:))
+        combined_psd_legend{adc_idx} = sprintf('chan %d', adc);
+      end
     end
   end
 end

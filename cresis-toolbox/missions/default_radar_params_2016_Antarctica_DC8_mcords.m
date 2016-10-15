@@ -1,7 +1,7 @@
 function [param,defaults] = default_radar_params_2016_Antarctica_DC8_mcords
 % [param,defaults] = default_radar_params_2016_Antarctica_DC8_mcords
 %
-% MCORDS 5: 2016 Antarctica DC8
+% MCORDS 3: 2016 Antarctica DC8
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -153,16 +153,16 @@ default.radar.adc_bits = 14;
 default.radar.adc_full_scale = 2;
 default.radar.rx_paths = [1:6];
 default.radar.noise_figure = 2;
-default.radar.rx_gain = 10^(50/20);
+default.radar.rx_gain = 10^(51.5/20);
 default.radar.adc_SNR_dB = 70;
 default.radar.Tadc_adjust = 1.60E-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 defaults = {};
 
 %% Settings
-default.radar.wfs(1).chan_equal_Tsys = [0 0 0 0 0 0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0];
+default.radar.wfs(1).chan_equal_Tsys = [6.96 1.50 5.55 6.41 0.00 3.04]/1e9;
+default.radar.wfs(1).chan_equal_dB = [2.9 0.6 1.1 3.1 0.0 2.9];
+default.radar.wfs(1).chan_equal_deg = [-37.3 -53.4 -44.2 -13.2 0.0 -43.1];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
@@ -177,12 +177,12 @@ defaults{end+1} = default;
 
 % ping pong mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).']};
+default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(5,1),[1 3 4 5 6].'; 4*ones(5,1),[1 3 4 5 6].']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
-default.radar.DC_adjust = {'','',''};
+default.radar.DC_adjust = {'','','',''};
 default.radar.ref_fn = '';
-default.xml_regexp = 'pingpong.*.xml';
+default.xml_regexp = 'pingpong*.xml';
 default.name = 'Pingpong';
 defaults{end+1} = default;
 

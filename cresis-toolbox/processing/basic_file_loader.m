@@ -446,6 +446,10 @@ elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
             num_rec = size(data_tmp{wf},2) - 1;
           end
           data(:,:,wf_adc_idx) = data_tmp{wf}(:,1:num_rec,get_adc_idx);
+          hdr.epri = hdr.epri(1:num_rec);
+          hdr.seconds = hdr.seconds(1:num_rec);
+          hdr.fractions = hdr.fractions(1:num_rec);
+          hdr.utc_time_sod = hdr.utc_time_sod(1:num_rec);
         end
       end
     end

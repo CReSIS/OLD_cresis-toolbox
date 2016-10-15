@@ -18,7 +18,7 @@ if strcmpi(radar_setup,'MCORDS5')
   % .base_dir_search: cell vector of paths to search for data files
   param.base_dir_search = {'D:\awi\','/mnt/AWI_SSD0/1604261101/UWB/','/mnt/AWI_SSD0/1604261202/UWB/'};
   
-  % out_xml_fn_dir = String containg the directory where the new XML file
+  % out_xml_fn_dir = String containing the directory where the new XML file
   %   will be placed
   if ispc
     param.out_xml_fn_dir = 'C:\waveforms\';
@@ -34,9 +34,9 @@ elseif strcmpi(radar_setup,'MCORDS3')
   param.file_search_mode = 'segment';
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'W:\','/mnt/AWI_SSD0/1604261101/UWB/','/mnt/AWI_SSD0/1604261202/UWB/'};
+  param.base_dir_search = {'W:\','/process/mcords/','/mnt/AWI_SSD0/1604261202/UWB/'};
   
-  % out_xml_fn_dir = String containg the directory where the new XML file
+  % out_xml_fn_dir = String containing the directory where the new XML file
   %   will be placed
   if ispc
     param.out_xml_fn_dir = 'Z:\waveforms\';
