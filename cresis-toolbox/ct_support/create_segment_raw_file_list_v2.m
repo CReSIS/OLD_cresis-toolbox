@@ -624,8 +624,9 @@ end
 if online_mode
   epri_jumps = diff(double(epri));
   fprintf('List of EPRI jumps:\n');
-  epri_jumps(abs(epri_jumps > 100))
+  epri_jumps(abs(epri_jumps) > 100)
   
+  utc_time_sod = double(seconds) + double(fraction) / param.clk;
   fprintf('List of UTC time SOD jumps:\n');
   utc_time_sod_jumps = diff(utc_time_sod);
   utc_time_sod_jumps(abs(utc_time_sod_jumps) > 0.5)
