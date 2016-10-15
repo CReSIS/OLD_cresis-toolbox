@@ -44,10 +44,10 @@ if 1
   %   Connect antenna N to WFG N for all N = 1 to 6
   ref_adc = 2;
   default.txequal.img = [(1:6).', ref_adc*ones(6,1)];
-  default.txequal.ref_wf_adc = 2;
-  default.txequal.wf_mapping = [1 2 3 4 5 6 0 0];
+  default.txequal.ref_wf_adc = 5;
+  default.txequal.wf_mapping = [1 0 3 4 5 6 0 0];
   default.txequal.Hwindow_desired = [1 1 1 1 1 1 0 0];
-  default.txequal.max_DDS_amp = [57750 57750 65450 61292 61600 54478 0 0];
+  default.txequal.max_DDS_amp = [57750 0 65450 61292 61600 54478 0 0]/sqrt(2);
   default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
   default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
   default.txequal.time_validation = [3 3 3 3 3 3 3 3]*1e-9;
@@ -173,6 +173,17 @@ default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
 default.xml_regexp = 'survey_180-210MHz_.*thick.xml';
 default.name = 'Survey Mode 180-210 MHz';
+defaults{end+1} = default;
+
+% ping pong mode
+default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
+default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).']};
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'pingpong.*.xml';
+default.name = 'Pingpong';
 defaults{end+1} = default;
 
 %% Other settings

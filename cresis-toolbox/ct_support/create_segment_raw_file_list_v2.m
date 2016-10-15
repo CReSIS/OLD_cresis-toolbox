@@ -305,14 +305,7 @@ for adc_idx = 1:length(adcs)
       hdr_param.field_offsets = uint32([4 8 12 16]); % epri seconds fraction counter
       hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
-      seconds = double(seconds);
-      
-      % Convert seconds from BCD
-      %   32 bits: HH MM SS 00 (e.g. first byte is two binary coded decimal digits representing the hour)
-      seconds = ...
-        3600*(10*mod(floor(seconds/2^8),2^4) + mod(floor(seconds/2^12),2^4)) ...
-        + 60*(10*mod(floor(seconds/2^16),2^4) + mod(floor(seconds/2^20),2^4)) ...
-        + (10*mod(floor(seconds/2^24),2^4) + mod(floor(seconds/2^28),2^4));
+      seconds = BCD_to_seconds(seconds);
       
       % Find bad records by checking their size
       % The distance between frame syncs should be constant
@@ -345,14 +338,7 @@ for adc_idx = 1:length(adcs)
       end
       hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
-      seconds = double(seconds);
-      
-      % Convert seconds from BCD
-      %   32 bits: HH MM SS 00 (e.g. first byte is two binary coded decimal digits representing the hour)
-      seconds = ...
-        3600*(10*mod(floor(seconds/2^8),2^4) + mod(floor(seconds/2^12),2^4)) ...
-        + 60*(10*mod(floor(seconds/2^16),2^4) + mod(floor(seconds/2^20),2^4)) ...
-        + (10*mod(floor(seconds/2^24),2^4) + mod(floor(seconds/2^28),2^4));
+      seconds = BCD_to_seconds(seconds);
       
       % Find bad records by checking their size
       if hdr.file_version == 407 || hdr.file_version == 408
@@ -498,10 +484,7 @@ for adc_idx = 1:length(adcs)
       seconds = seconds(~bad_mask);
       fraction = fraction(~bad_mask);
       
-      seconds = ...
-        3600*(10*mod(floor(seconds/2^8),2^4) + mod(floor(seconds/2^12),2^4)) ...
-        + 60*(10*mod(floor(seconds/2^16),2^4) + mod(floor(seconds/2^20),2^4)) ...
-        + (10*mod(floor(seconds/2^24),2^4) + mod(floor(seconds/2^28),2^4));
+      seconds = BCD_to_seconds(seconds);
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs', ...
         'start_idx','stop_idx','DDC_filter_select','DDC_or_raw_select', ...
         'num_sam','nyquist_zone','NCO_freq_step');
@@ -700,6 +683,16 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
      plot(utc_time_sod - utc_time_sod_new);
      xlabel('Record');
      ylabel('Time correction (sec)');
+     title('Ideally abs() is less than a few milliseconds');
+     figure(3); clf;
+     subplot(2,1,1);
+     plot(diff(epri),'.');
+     subplot(2,1,2);
+     plot(diff(epri),'.');
+     ylim([-3 5]);
+     xlabel('Record');
+     ylabel('Diff EPRI');
+     title('Should be 1 except at segment boundaries');
      warning('Please check the corrected utc_time_sod (red) in figure 1 and the correction in figure 2. If correct, run "dbcont" to continue.');
      keyboard
      
@@ -720,7 +713,7 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
   % Look for EPRI gaps (this may be used later for segmentation)
   if union_time_epri_gaps
     MAX_EPRI_GAP = 2000;
-    epri_gaps = find(abs(diff(medfilt1(epri,11))) > MAX_EPRI_GAP);
+    epri_gaps = find(abs(diff(medfilt1(double(epri),11))) > MAX_EPRI_GAP);
     time_gaps = sort(union(time_gaps,epri_gaps));
   end
 
