@@ -18,7 +18,7 @@ param = [];
 counter_correction_en = false;
 
 % Enable Just One Radar Setup
-radar_setup = 'snow3';
+radar_setup = 'KUBAND3';
 
 %% Accum 1
 if strcmpi(radar_setup,'ACCUM')
@@ -112,7 +112,7 @@ if strcmpi(radar_setup,'KUBAND3')
   base_dir = '/process/fmcw/kuband/';
   param.adc_folder_name = '';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20161014'; % Only used for stdout print of the vectors worksheet
+  day_string = '20161017'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: ACORDS
@@ -246,8 +246,8 @@ if strcmpi(radar_setup,'SNOW3')
   param.season_name = '2016_Antarctica_DC8';
   base_dir = '/process/fmcw/snow/';
   param.adc_folder_name = '';
-  file_midfix = '20161014'; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20161014'; % Only used for stdout print of the vectors worksheet
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20161017'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 3 (NRL)
@@ -291,7 +291,7 @@ end
 %% User Settings that should not generally be changed
 % You may have to set to false to read some of the results from this function when it was first written (should always be true)
 tmp_fn_uses_adc_folder_name = true;
-
+online_mode = false;
 
 MIN_SEG_SIZE = 2;
 MAX_TIME_GAP = 1000/75;

@@ -30,7 +30,7 @@ for input_idx = 1:length(input_dirs)
 
   for in_fn_idx = 1:length(in_fns)
     in_fn = in_fns{in_fn_idx};
-    out_fn = fullfile(out_dir,in_fn(length(input_dir{1})+1:end));
+    out_fn = fullfile(backup_dir,in_fn(length(input_dir{1})+1:end));
     out_fn_dir = fileparts(out_fn);
     if ~exist(out_fn_dir,'dir'); mkdir(out_fn_dir); end;
     copy_file = false;

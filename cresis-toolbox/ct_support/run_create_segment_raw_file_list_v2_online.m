@@ -4,8 +4,10 @@
 %
 % Instructions:
 % 1. Add in sections from run_create_segment_raw_file_list_v2
-% 2. Enable GPS copying if needed and update GPS paths if necessary
-% 3. Enable make GPS if needed, update script name and update make GPS script if necessary
+%    If already done, just ensure enables are setup correctly.
+% 2. Enable GPS copying and make GPS if needed
+%    Update GPS paths if necessary
+%    Update make_gps_* script name and update the script if necessary
 % 4. Run the script
 %
 % Author: John Paden
@@ -14,6 +16,12 @@ while 1
   
   counter_correction_en = false;
   online_mode = true;
+  day_string = '20161017';
+  kuband_en = 1;
+  rds_en = 0;
+  snow_en = 1;
+  gps_en = 1; % Remember to add a new entry into make_gps_*.m file that you are using
+  
   
   %% User Settings that should not generally be changed
   % You may have to set to false to read some of the results from this function when it was first written (should always be true)
@@ -24,7 +32,7 @@ while 1
   MIN_PRF = 100;
   
   %% Ku-band 3
-  if 1
+  if kuband_en
     param = [];
     param.radar_name = 'kuband3';
     param.clk = 125e6;
@@ -40,13 +48,12 @@ while 1
     base_dir = '/process/fmcw/kuband/';
     param.adc_folder_name = '';
     file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-    day_string = '20161015'; % Only used for stdout print of the vectors worksheet
     
     create_segment_raw_file_list_v2;
   end
   
   %% RDS: MCoRDS 3
-  if 1
+  if rds_en
     param = [];
     param.radar_name = 'mcords3';
     param.clk = 150e6;
@@ -65,13 +72,12 @@ while 1
     
     param.adc_folder_name = 'board%b';
     file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-    day_string = '20161015'; % Only used for stdout print of the vectors worksheet
     
     create_segment_raw_file_list_v2;
   end
   
   %% Snow 3 (OIB)
-  if 1
+  if snow_en
     param = [];
     param.radar_name = 'snow3';
     param.clk = 125e6;
@@ -86,19 +92,18 @@ while 1
     param.season_name = '2016_Antarctica_DC8';
     base_dir = '/process/fmcw/snow/';
     param.adc_folder_name = '';
-    file_midfix = '20161015'; % Data files must contain this string in the middle of their name (usually should be empty)
-    day_string = '20161015'; % Only used for stdout print of the vectors worksheet
+    file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
     
     create_segment_raw_file_list_v2;
   end
   
   %% Copy GPS data
-  if 1
-    mkdir('/scratch/metadata/2016_Antarctica_DC8/20161015/');
-    copyfile('/net/field1/landing/mcords/GPS*','/scratch/metadata/2016_Antarctica_DC8/20161015/')
+  if gps_en
+    mkdir(sprintf('/scratch/metadata/2016_Antarctica_DC8/%s/',day_string));
+    copyfile('/net/field1/landing/mcords/GPS*',sprintf('/scratch/metadata/2016_Antarctica_DC8/%s/',day_string))
   end
   
-  if 1
+  if gps_en
     %% Make GPS
     make_gps_2016_antarctica_DC8;
   end
