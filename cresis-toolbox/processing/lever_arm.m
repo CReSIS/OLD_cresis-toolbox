@@ -972,11 +972,11 @@ if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8'})
   % NOTE: These come from Ali Mahmood's http://svn.cresis.ku.edu/cresis-toolbox/documents/Antenna Lever Arm GPS Report Support Files/2014_Antarctica_DC8_array_Schematic.pptx
   
   LArx(1,:)   = [-30.71368  -30.71368  -30.71368 -30.24632  -30.24632  -30.24632] - gps.x; % m
-  LArx(2,:)   = [27.9 2 -27.9 27.9 2 -27.9]*0.0254 - gps.y; % m
+  LArx(2,:)   = [-27.9 2 27.9 -27.9 2 27.9]*0.0254 - gps.y; % m
   LArx(3,:)   = [  1.7653   1.7653   1.7653   1.7653   1.7653 1.7653] - gps.z; % m
 
   LAtx(1,:)   = [-30.71368  -30.71368  -30.71368 -30.24632  -30.24632  -30.24632] - gps.x; % m
-  LAtx(2,:)   = [27.9 2 -27.9 27.9 2 -27.9]*0.0254 - gps.y; % m
+  LAtx(2,:)   = [-27.9 2 27.9 -27.9 2 27.9]*0.0254 - gps.y; % m
   LAtx(3,:)   = [  1.7653   1.7653   1.7653   1.7653   1.7653 1.7653] - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)

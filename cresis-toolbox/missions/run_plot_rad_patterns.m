@@ -4,8 +4,55 @@
 %
 % Author: John Paden
 
-if 0
-  %% 2014_Antarctica_DC8
+if 1
+  %% 2016_Antarctica_DC8
+  
+  fn = '/scratch/rds/2016_Antarctica_DC8/CSARP_noise/surf_20161004_08_img_01.mat';
+  elements_fn = '/scratch/rds/2016_Antarctica_DC8/CSARP_noise/sv_table_2016_Antarctica_DC8.mat';
+  
+  analysis.surf.motion_comp.en = true;
+  analysis.surf.chan_eq.en = true;
+  analysis.surf.rlines = [];
+  
+  good_mask_min_samples = 10;
+  good_mask_min_angle = -49;
+  good_mask_max_angle = 49; 
+  
+  plot_min_angle = -45;
+  plot_max_angle = 45;
+  
+  fit_method = 'filter'; % 'filter' or 'sgolay'
+  
+  debug_level = 1;
+  f0 = 175e6;
+  f1 = 205e6;
+    
+  % Combined Pattern
+%   rad_patterns = [13]; % wf-adc indexes for patterns you want to generate
+%   ref_pattern = [1];
+%   sv_ant_ref = [5];
+%   retrack_en = false;
+%   equalize_angle = 0;
+%   output_fn = fullfile('/scratch/rds/2016_Antarctica_DC8/CSARP_noise/', ...
+%     sprintf('combined_pattern_2016_Antarctica_DC8.mat'));
+%   degrees_of_freedom = 3; % spatial filter fitting (usually around the # of antennas)
+%   
+%   plot_rad_patterns;
+%   figure(6);
+%   title(sprintf('%3.0f - %3.0f MHz',f0/1e6,f1/1e6));
+%   legend off;
+%   saveas(6,fullfile('/scratch/rds/2016_Antarctica_DC8/CSARP_noise/', ...
+%     sprintf('combined_pattern_2016_Antarctica_DC8.fig')));
+  
+  % Individual Elements
+  rad_patterns = [7:12]; % wf-adc indexes for patterns you want to generate
+  ref_pattern = 5;
+  sv_LUT_ref = 5*ones(1,6);
+  retrack_en = false;
+  equalize_angle = 0;
+  output_fn = '/scratch/rds/2016_Antarctica_DC8/CSARP_noise/sv_table_all_2016_Antarctica_DC8.mat';
+  degrees_of_freedom = 3*ones(1,6); % spatial filter fitting (usually around the # of antennas)
+  plot_rad_patterns;
   
 elseif 0
   %% 2015_Greenland_C130
@@ -55,7 +102,7 @@ elseif 0
   
   plot_rad_patterns;
 
-elseif 1
+elseif 0
   %% 2016_Greenland_Polar6
   fn = 'F:\rds\2016_Greenland_Polar6\CSARP_noise\surf_20160401_13_img_01.mat';
   fn = '/home/administrator/Scratch/rds/2016_Greenland_Polar6/CSARP_noise/surf_20160414_13_img_01.mat';
