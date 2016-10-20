@@ -65,14 +65,37 @@ for board_idx = 1:length(board_hdrs)
   epri_notes = cat(2,epri_notes, sprintf('Board Index %d\n', board_idx));
   clock_notes = cat(2,clock_notes, sprintf('Board Index %d\n', board_idx));
     
+    %% Check to see if there are big soconds jumps?
+  big_sec_jump_idxs = find(abs(diff(double(hdr.seconds)))>1);
+  if ~isempty(big_sec_jump_idxs)
+    warning('Header seconds jump more than 1 sec, correcting jumps');
+    fraction_wrap_idxs = find(diff(double(hdr.fraction))<0);
+    if 0
+      figure(101);plot(hdr.fraction);
+      max_fraction = max(hdr.fraction);
+      for idx = 1:length(big_sec_jump_idxs)
+        figure(101);hold on;plot([big_sec_jump_idxs(idx),big_sec_jump_idxs(idx)]+1,[0,1.2*max_fraction],'r--');
+      end
+    end
+    for idx = 1:2:length(big_sec_jump_idxs)
+      jump_start = big_sec_jump_idxs(idx)+1;
+      wrap_idxs = [find(fraction_wrap_idxs == big_sec_jump_idxs(idx)):find(fraction_wrap_idxs == big_sec_jump_idxs(idx+1))];
+      wrap_idxs(1) = [];
+      for wrap_idx = wrap_idxs
+        hdr.seconds(jump_start:fraction_wrap_idxs(wrap_idx)) = hdr.seconds(jump_start-1)+1;
+        jump_start = fraction_wrap_idxs(wrap_idx) + 1;
+      end
+    end
+  end
+  
   %% Create hdr.utc_time_sod vector
   if param.records.file_version == 101
     hdr.utc_time_sod = double(hdr.seconds) + 2*double(hdr.fraction)/param.radar.fs;
   else
     hdr.utc_time_sod = double(hdr.seconds) + double(hdr.fraction)/param.radar.fs;
   end
-  if strcmpi(param.season_name,'2014_Greenland_P3') & (strcmpi(param.day_seg,'20140421_02') |...
-      strcmpi(param.day_seg,'20140423_01') | strcmpi(param.day_seg,'20140502_00') |...
+  if strcmpi(param.season_name,'2014_Greenland_P3') && (strcmpi(param.day_seg,'20140421_02') ||...
+      strcmpi(param.day_seg,'20140423_01') || strcmpi(param.day_seg,'20140502_00') ||...
       strcmpi(param.day_seg,'20140508_02'))
     first_file = board_fns{board_idx}{file_idxs(1)};
     hdr.utc_time_sod = hdr.utc_time_sod - hdr.utc_time_sod(1);
@@ -144,7 +167,7 @@ for board_idx = 1:length(board_hdrs)
     end
   end
   
-  
+
   % =====================================================================
   %% Find bad UTC time SOD and EPRI entries
   % =====================================================================
