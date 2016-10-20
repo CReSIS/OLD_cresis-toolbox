@@ -233,7 +233,7 @@ end
   
 %% Wax and Ziskind 1988 Fig 6
 % =======================================================================
-if 1
+if 0
   %% Setup simulation parameters
   param = [];
   
@@ -323,10 +323,9 @@ if 1
   return;
 end
   
+%% TSP_DOA Figure 1
+% =======================================================================
 if 0
-  % =======================================================================
-  % TSP_DOA Figure 1
-  % =======================================================================
   %% Setup simulation parameters
   param = [];
   
@@ -346,7 +345,7 @@ if 0
   param.method.wb_td.init             = 'ap';
   param.method.wb_td.widening_factor  = 3;
   param.method.wb_fd.init             = 'ap';
-  param.method.wb_fd.filter_banks     = 5;
+  param.method.wb_fd.filter_banks     = 11;
   
   % DOA monte carlo setup
   % Three equal power sources, SNR swept from 0 to 20 dB
@@ -405,10 +404,9 @@ if 0
   return;
 end
   
-if 0
-  % =======================================================================
-  % TSP_DOA Figure 2
-  % =======================================================================
+%% TSP_DOA Figure 2
+% =======================================================================
+if 1
   %% Setup simulation parameters
   param = [];
   
@@ -422,13 +420,13 @@ if 0
   param.method.list                   = [2 7 8 9];
   param.method.Nsv                    = 24;
   param.method.OneD_Nsv               = 128;
-  param.method.src_limits             = {[30 40]/180*pi,[50 60]/180*pi};
+  param.method.src_limits             = {[10 40]/180*pi,[45 75]/180*pi};
   param.method.theta_guard            = 1.5/180*pi;
   param.method.nb_nd.init             = 'ap';
   param.method.wb_td.init             = 'ap';
-  param.method.wb_td.widening_factor  = 3;
+  param.method.wb_td.widening_factor  = 5;
   param.method.wb_fd.init             = 'ap';
-  param.method.wb_fd.filter_banks     = 9;
+  param.method.wb_fd.filter_banks     = 20;
   
   % DOA monte carlo setup
   % Two sources, SNR swept from 0 to 20 dB, second source is 10 dB
@@ -436,8 +434,8 @@ if 0
   % Snapshots fixed at 9 fast-time and 11 slow-time samples (i.e. 99)
   param.monte.SNR   = [linspace(0,20,11).', 10*ones(11,1)];
   num_tests = size(param.monte.SNR,1);
-  param.monte.DOA   = repmat([35 55],[num_tests 1]);
-  param.monte.Nsnap = repmat(9*11,[num_tests 1]);
+  param.monte.DOA   = repmat([25 60],[num_tests 1]);
+  param.monte.Nsnap = repmat(100,[num_tests 1]);
   param.monte.runs  = 100;
   param.monte.random_seed_offset = 0;
 
@@ -451,21 +449,22 @@ if 0
   RMSE = sim.doa_rmse(param,results);
 
   figure(1); clf
-  plot(param.monte.SNR(:,1),RMSE(:,:,1).','.','LineWidth',2);
+  plot(param.monte.SNR(:,1),RMSE(:,:,1).','+','LineWidth',2);
   grid on
   xlabel('Source SNR (dB)')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  %legend({'MUSIC','MLE','WDOA','WBMLE'})
+  legend({'WDOA','WBMLE'})
   title('RMSE Source 1')
   
   figure(2); clf
-  plot(param.monte.SNR(:,1),RMSE(:,:,2).','.','LineWidth',2);
+  plot(param.monte.SNR(:,1),RMSE(:,:,2).','+','LineWidth',2);
   grid on
   xlabel('Source SNR (dB)')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  %legend({'MUSIC','MLE','WDOA','WBMLE'})
+  legend({'WDOA','WBMLE'})
   title('RMSE Source 2')
-
   
   % Save Outputs
   if ~exist(out_fn_dir,'dir')
@@ -478,11 +477,10 @@ if 0
   
   return;
 end
-  
+    
+%% TSP_DOA Figure 3
+% =======================================================================
 if 0
-  % =======================================================================
-  % TSP_DOA Figure 3
-  % =======================================================================
   %% Setup simulation parameters
   param = [];
   
@@ -553,10 +551,9 @@ if 0
   return;
 end
   
-if 1
-  % =======================================================================
-  % TSP_DOA Figure 4
-  % =======================================================================
+%% TSP_DOA Figure 4
+% =======================================================================
+if 0
   %% Setup simulation parameters
   param = [];
   
