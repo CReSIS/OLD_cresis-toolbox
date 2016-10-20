@@ -486,7 +486,7 @@ elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
   hdr.BW = f1-f0;
   hdr.BW_noise = hdr.BW;
   atten = double(settings.DDS_Setup.Waveforms(wf).Attenuator_1(1) + settings.DDS_Setup.Waveforms(wf).Attenuator_2(1));
-  hdr.rx_gain = default.radar.rx_gain .* 10.^(-atten/20);
+  hdr.rx_gain = default.radar.rx_gain - atten;
   t0 = hdr.wfs(wf).t0 + default.radar.Tadc_adjust;
   tukey = settings.DDS_Setup.RAM_Taper;
 
@@ -721,7 +721,7 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
     hdr.BW_noise = 175e6;
   end
   atten = double(settings.DDS_Setup.Waveforms(wf).Attenuator_1(1) + settings.DDS_Setup.Waveforms(wf).Attenuator_2(1));
-  hdr.rx_gain = default.radar.rx_gain .* 10.^(-atten/20);
+  hdr.rx_gain = default.radar.rx_gain - atten;
   t0 = hdr.wfs(wf).t0 + default.radar.Tadc_adjust;
   tukey = settings.DDS_Setup.RAM_Taper;
 

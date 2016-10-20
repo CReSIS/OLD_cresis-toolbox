@@ -73,7 +73,7 @@ if strcmpi(radar_setup,'MCORDS3_DC8')
   param.multiple_files = true;
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'/process/20161014/mcords/'};
+  param.base_dir_search = {'/process/mcords/'};
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze

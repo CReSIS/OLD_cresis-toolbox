@@ -16,9 +16,9 @@ while 1
   
   counter_correction_en = false;
   online_mode = true;
-  day_string = '20161017';
+  day_string = '20161020';
   kuband_en = 1;
-  rds_en = 0;
+  rds_en = 1;
   snow_en = 1;
   gps_en = 1; % Remember to add a new entry into make_gps_*.m file that you are using
   
