@@ -108,7 +108,7 @@ if param.analysis.surf.motion_comp.en
   if isempty(data.param_analysis.get_heights.lever_arm_fh)
     error('No leverarm was used during analysis surf, cannot enable motion_comp');
   end
-  drange = bsxfun(@minus,data.elev,data.elev(ref_pattern(1),:));
+  drange = bsxfun(@minus,data.elev,data.elev(ref_pattern,:));
   dtime = dtime + drange/(c/2);
 end
 if param.analysis.surf.chan_eq.en
@@ -215,7 +215,7 @@ for ant = 1:Nc
   %[epri rlines] = intersect(data.epri{ant_idx}, epri);
   
   powers = max(abs(double(data.surf_vals(ref_bin+(-1:3),rlines,ant))).^2,[],1);
-  complex_vals = mean(data.surf_vals(ref_bin,rlines,ant) .* exp(-1i*angle(data.surf_vals(ref_bin,rlines,ref_pattern(ant)))),1);
+  complex_vals = mean(data.surf_vals(ref_bin,rlines,ant) .* exp(-1i*angle(data.surf_vals(ref_bin,rlines,ref_pattern))),1);
   
   % Average all the data falling within each angle/roll bin
   for roll_idx = 1:length(roll_binned)
@@ -365,12 +365,12 @@ sv_ideal = bsxfun(@(x,y) x./y, sv_ideal, rx_equalization);
 % pattern was the received. Either way we divide out the SV pattern.
 
 for ant = 1:Nc
-  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_ant_ref(ant),:), roll_binned);
+  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_LUT_ref(ant),:), roll_binned);
   sv_deviation_fit(ant,:) = sv_deviation_fit(ant,:) ./ SV_ref_pattern;
 end
 
 for ant = 1:Nc
-  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_ant_ref(ant),:), roll_binned);
+  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_LUT_ref(ant),:), roll_binned);
   sv_deviation(ant,:) = sv_deviation(ant,:) ./ SV_ref_pattern;
 end
 
@@ -438,6 +438,6 @@ output_fn_dir = fileparts(output_fn);
 if ~exist(output_fn_dir,'dir')
   mkdir(output_fn_dir);
 end
-save(output_fn,'surf_bin','rad_patterns','ref_pattern','sv_ant_ref','roll_binned','sv_deviation_fit','sv_deviation','sv_ideal','param');
+save(output_fn,'surf_bin','rad_patterns','ref_pattern','sv_LUT_ref','roll_binned','sv_deviation_fit','sv_deviation','sv_ideal','param');
 
 return;

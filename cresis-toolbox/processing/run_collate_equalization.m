@@ -21,6 +21,19 @@ if 1
   debug_level = 1; % <-- TYPICAL SETTINGS ARE 1, 3, and 4
 end
 
+if 1
+  %% 2016_Antarctica_DC8 Setup
+  
+  param_fn = ct_filename_param('rds_param_2016_Antarctica_DC8.xls');
+  params = read_param_xls(param_fn,'20161004_08',{'analysis_surf' 'analysis'});
+  params.cmd.generic = 1;
+  
+  input_fn_dir = 'noise';
+  % zero_surf_bin_override = 11; % Normally not used except for internal layers
+  
+  debug_level = 1; % <-- TYPICAL SETTINGS ARE 1, 3, and 4
+end
+
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
