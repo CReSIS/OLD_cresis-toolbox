@@ -287,7 +287,7 @@ for Tpd = [1e-6 3e-6 10e-6]
       param.wfs(wf).tx_mask = ones(1,8);
     end
   end
-  param.wfs(7).tx_mask = zeros(1,8);
+  param.wfs(7).tx_mask = final_tx_mask;
   write_cresis_xml(param);
 end
 
@@ -398,6 +398,6 @@ for Tpd = 10e-6
       param.wfs(wf).tx_mask = ones(1,8);
     end
   end
-  param.wfs(7).tx_mask = zeros(1,8);
+  param.wfs(7).tx_mask = final_tx_mask;
   write_cresis_xml(param);
 end
