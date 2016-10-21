@@ -65,11 +65,13 @@ for board_idx = 1:length(board_hdrs)
   epri_notes = cat(2,epri_notes, sprintf('Board Index %d\n', board_idx));
   clock_notes = cat(2,clock_notes, sprintf('Board Index %d\n', board_idx));
     
-    %% Check to see if there are big soconds jumps?
-  big_sec_jump_idxs = find(abs(diff(double(hdr.seconds)))>1);
+    %% Check to see if there are big seconds jumps (those encountered in 2016_Greenland_P3,
+    %% jump to a large number and then drop back to correct values)?
+  big_sec_jump_idxs = find(abs(diff(double(hdr.seconds)))>1e5);
+  fraction_wrap_idxs = find(diff(double(hdr.fraction))<0);
+  big_sec_jump_idxs = big_sec_jump_idxs(ismember(big_sec_jump_idxs,fraction_wrap_idxs));
   if ~isempty(big_sec_jump_idxs)
-    warning('Header seconds jump more than 1 sec, correcting jumps');
-    fraction_wrap_idxs = find(diff(double(hdr.fraction))<0);
+    warning('Header seconds jump more than 1e5 sec, correcting jumps');
     if 0
       figure(101);plot(hdr.fraction);
       max_fraction = max(hdr.fraction);
