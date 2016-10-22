@@ -11,7 +11,7 @@ proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenlan
 physical_constants;
 
 load(fn);
-master_idx = 1;
+master_idx = 6;
 rbins = 20:120;
 
 %% Plot Results
@@ -137,7 +137,7 @@ for pass_idx = 1:length(pass)
     drawnow;
   end
   
-  % Resample images onto a common along-track axes
+  % Resample images and position vectors onto a common along-track axes
   % 1. Oversample slave data by 10x in along track
   Mx = 10;
   Nx = size(pass(pass_idx).data,2);
@@ -149,18 +149,22 @@ for pass_idx = 1:length(pass)
   pass(pass_idx).ref_data = interp1(along_track_oversample, ...
     data_oversample, along_track,'linear','extrap').';
   
-  % Package data to call array_proc.m
-  % 1. Data
-  % 2. Trajectory and attitude
-  % 3. Array processing parameters
-  
-  % Motion compensation of FCS z-motion
-  for rline = 1:size(pass(pass_idx).ecef,2)
-    % Convert z-offset into time-offset assuming nadir DOA
-    dt = pass(pass_idx).ref_z(rline)/(c/2);
-    pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
-      .*exp(1i*2*pi*pass(end).wfs.freq*dt) );
+  pass(pass_idx).ref_y = interp1(pass(pass_idx).along_track, ...
+    pass(pass_idx).ref_y, along_track,'linear','extrap').';
+  pass(pass_idx).ref_z = interp1(pass(pass_idx).along_track, ...
+    pass(pass_idx).ref_z, along_track,'linear','extrap').';
+
+  if 0
+    % Motion compensation of FCS z-motion
+    for rline = 1:size(pass(pass_idx).ecef,2)
+      % Convert z-offset into time-offset assuming nadir DOA
+      dt = pass(pass_idx).ref_z(rline)/(c/2);
+      pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
+        .*exp(1i*2*pi*pass(end).wfs.freq*dt) );
+    end
   end
+  
+  % Concatenate data into a single matrix
   data = cat(3,data,pass(pass_idx).ref_data);
   
   % Plot interferograms
@@ -187,6 +191,88 @@ for pass_idx = 1:length(pass)
   
 end
 linkaxes(h_data_axes,'xy');
+
+%% Array Processing
+
+% Package data to call array_proc.m
+% 1. Data
+% 2. Trajectory and attitude
+% 3. Array processing parameters
+data = {permute(data,[1 2 4 5 3])};
+
+array_param.method = 1;
+array_param.Nsv = 64;
+array_param.Nsig = 2;
+array_param.bin_rng = [-1:1];
+array_param.rline_rng = [-21:21];
+array_param.dbin = 1;
+array_param.dline = 1;
+array_param.freq_rng = 1;
+figure(200); clf;
+for pass_idx = 1:length(pass)
+  array_param.fcs{1}{pass_idx}.pos(2,:) = pass(pass_idx).ref_y;
+  array_param.fcs{1}{pass_idx}.pos(3,:) = pass(pass_idx).ref_z;
+  array_param.fcs{1}{pass_idx}.base_line ...
+    = sqrt( (pass(pass_idx).ref_z - pass(master_idx).ref_z).^2 ...
+      + (pass(pass_idx).ref_y - pass(master_idx).ref_y).^2 );
+    
+  plot(array_param.fcs{1}{pass_idx}.base_line);
+  hold on;
+
+  array_param.fcs{1}{pass_idx}.surface(:) = ref.surface;
+end
+xlabel('Range line');
+ylabel('Baseline (m)');
+grid on;
+
+array_param.wfs.time = ref.wfs.time;
+array_param.sv_fh = @array_proc_sv;
+array_param.wfs.fc = pass(1).wfs.fc;
+array_param.imgs = {[ones(6,1), (1:6).']};
+array_param.three_dim.en = true;
+
+
+%%
+array_param.method = 0;
+[array_param2,result0] = array_proc(array_param,data);
+array_param.method = 1;
+[array_param2,result1] = array_proc(array_param,data);
+array_param.method = 2;
+[array_param2,result2] = array_proc(array_param,data);
+
+figure(1); clf;
+imagesc(lp(result0.val))
+colormap(1-gray(256))
+h_axes = gca;
+
+figure(2); clf;
+imagesc(lp(result1.val))
+colormap(1-gray(256))
+h_axes(end+1) = gca;
+
+figure(3); clf;
+imagesc(lp(result2.val))
+colormap(1-gray(256))
+h_axes(end+1) = gca;
+
+figure(4); clf;
+imagesc(lp(data{1}(:,:,master_idx)))
+colormap(1-gray(256))
+h_axes = gca;
+
+linkaxes(h_axes,'xy');
+
+return
+%%
+
+figure(5); clf;
+for idx = 400:600%1:50:size(result1.img,3)
+  imagesc(lp(result1.img(:,:,idx)))
+  colormap(jet(256));
+  idx
+  pause
+end
+
 
 %% Other plots and plot setup
 figure(h_fig_ref_idx); h_axes = gca;
