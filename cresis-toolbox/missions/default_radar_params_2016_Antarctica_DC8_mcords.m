@@ -177,8 +177,9 @@ defaults{end+1} = default;
 
 % ping pong mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).'; 4*ones(6,1),(1:6).']};
-default.get_heights.imgs = {[1*ones(5,1),[1 3 4 5 6].'],[2*ones(5,1),[1 3 4 5 6].'],[3*ones(5,1),[1 3 4 5 6].'; 4*ones(5,1),[1 3 4 5 6].']};
+%default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).'; 4*ones(6,1),(1:6).']};
+%default.get_heights.imgs = {[1*ones(5,1),[1 3 4 5 6].'],[2*ones(5,1),[1 3 4 5 6].'],[3*ones(5,1),[1 3 4 5 6].'; 4*ones(5,1),[1 3 4 5 6].']};
+default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'; 3*ones(6,1),(1:6).'],[4*ones(6,1),(1:6).'; 5*ones(6,1),(1:6).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'','','',''};

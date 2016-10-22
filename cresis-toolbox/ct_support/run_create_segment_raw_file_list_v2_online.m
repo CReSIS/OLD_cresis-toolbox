@@ -16,7 +16,7 @@ while 1
   
   counter_correction_en = false;
   online_mode = true;
-  day_string = '20161020';
+  day_string = '20161022';
   kuband_en = 1;
   rds_en = 1;
   snow_en = 1;
@@ -49,7 +49,11 @@ while 1
     param.adc_folder_name = '';
     file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
     
-    create_segment_raw_file_list_v2;
+    try
+      create_segment_raw_file_list_v2;
+    catch ME
+      warning(ME.getReport())
+    end
   end
   
   %% RDS: MCoRDS 3
@@ -73,7 +77,11 @@ while 1
     param.adc_folder_name = 'board%b';
     file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
     
-    create_segment_raw_file_list_v2;
+    try
+      create_segment_raw_file_list_v2;
+    catch ME
+      warning(ME.getReport())
+    end
   end
   
   %% Snow 3 (OIB)
@@ -94,18 +102,30 @@ while 1
     param.adc_folder_name = '';
     file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
     
-    create_segment_raw_file_list_v2;
+    try
+      create_segment_raw_file_list_v2;
+    catch ME
+      warning(ME.getReport())
+    end
   end
   
   %% Copy GPS data
   if gps_en
     mkdir(sprintf('/scratch/metadata/2016_Antarctica_DC8/%s/',day_string));
-    copyfile('/net/field1/landing/mcords/GPS*',sprintf('/scratch/metadata/2016_Antarctica_DC8/%s/',day_string))
+    try
+      copyfile('/net/field1/landing/mcords/GPS*',sprintf('/scratch/metadata/2016_Antarctica_DC8/%s/',day_string))
+    catch ME
+      warning(ME.getReport);
+    end
   end
   
   if gps_en
     %% Make GPS
-    make_gps_2016_antarctica_DC8;
+    try
+      make_gps_2016_antarctica_DC8;
+    catch ME
+      warning(ME.getReport);
+    end
   end
   
   fprintf('Pausing for 30 seconds...\n');

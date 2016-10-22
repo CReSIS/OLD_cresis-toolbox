@@ -8,7 +8,7 @@ physical_constants; % c = speed of light
 if ispc
   base_dir = 'e:\waveforms\';
 else
-  base_dir = '~/waveforms/';
+  base_dir = '/scratch/waveforms/';
 end
 
 f0_list = [165e6];
@@ -215,25 +215,27 @@ param.max_tx = [57750 57750 65450 61292 61600 54478 0 0]; param.max_data_rate = 
 param.max_duty_cycle = 0.12;
 param.create_IQ = false;
 
-param.tg.staged_recording = [1 2 3 3];
+param.tg.staged_recording = [1 2 2 3 3];
 param.tg.altitude_guard = 1250*12*2.54/100;
 param.tg.Haltitude = 1250*12*2.54/100;
 param.tg.Hice_thick = 3500;
 
 param.fn = fullfile(base_dir,'pingpong_mode_10us_3500mthick_3wf.xml');
 param.prf = 12000;
-param.presums = [3 3 13 13];
-param.wfs(1).atten = 33;
+param.presums = [3 3 3 13 13];
+param.wfs(1).atten = 23;
 param.wfs(2).atten = 0;
 param.wfs(3).atten = 0;
 param.wfs(4).atten = 0;
+param.wfs(5).atten = 0;
 DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
 param.tx_weights = DDS_amp;
 param.tukey = 0.2;
 param.wfs(1).Tpd = 1e-6;
 param.wfs(2).Tpd = 3e-6;
-param.wfs(3).Tpd = 10e-6;
+param.wfs(3).Tpd = 3e-6;
 param.wfs(4).Tpd = 10e-6;
+param.wfs(5).Tpd = 10e-6;
 param.phase = final_DDS_phase{cal_settings(freq_idx)};
 param.delay = final_DDS_time{cal_settings(freq_idx)};
 param.wfs(1).f0 = f0_list(freq_idx);
@@ -244,10 +246,13 @@ param.wfs(3).f0 = f0_list(freq_idx);
 param.wfs(3).f1 = f1_list(freq_idx);
 param.wfs(4).f0 = f0_list(freq_idx);
 param.wfs(4).f1 = f1_list(freq_idx);
+param.wfs(5).f0 = f0_list(freq_idx);
+param.wfs(5).f1 = f1_list(freq_idx);
 [param.wfs(1).tx_mask] = [1 1 0 1 1 0 1 1];
 [param.wfs(2).tx_mask] = [1 1 0 1 1 0 1 1];
-[param.wfs(3).tx_mask] = [1 1 0 1 1 0 1 1];
-[param.wfs(4).tx_mask] = [1 1 1 1 0 1 1 0];
+[param.wfs(3).tx_mask] = [1 1 1 1 0 1 1 0];
+[param.wfs(4).tx_mask] = [1 1 0 1 1 0 1 1];
+[param.wfs(5).tx_mask] = [1 1 1 1 0 1 1 0];
 write_cresis_xml(param);
 
 %% Equalization High Altitude (Using Ocean)

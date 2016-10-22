@@ -243,7 +243,11 @@ if param.psd_en
       title(sprintf('Freq-space adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       xlabel('Range line');
       ylabel('Frequency (MHz)');
-      ylim(default.radar.fs/1e6*[0 1]);
+      if fc<(freq(1)+freq(end))/2
+        ylim(freq([1 round(end/2)])/1e6);
+      else
+        ylim(freq([round(end/2) end])/1e6);
+      end
       h = colorbar;
       set(get(h,'YLabel'),'String','Relative power (dB)');
       
@@ -253,7 +257,11 @@ if param.psd_en
       title(sprintf('MeanFFT adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       ylabel('Relative power (dB)');
       xlabel('Frequency (MHz)');
-      xlim(default.radar.fs/1e6*[0 1]);
+      if fc<(freq(1)+freq(end))/2
+        xlim(freq([1 round(end/2)])/1e6);
+      else
+        xlim(freq([round(end/2) end])/1e6);
+      end
       grid on;
       
       if plot_combined_psd
