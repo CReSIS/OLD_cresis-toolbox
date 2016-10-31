@@ -18,7 +18,7 @@ param = [];
 counter_correction_en = false;
 
 % Enable Just One Radar Setup
-radar_setup = 'SNOW5';
+radar_setup = 'MCORDS5';
 
 %% Accum 1
 if strcmpi(radar_setup,'ACCUM')
@@ -165,11 +165,11 @@ if strcmpi(radar_setup,'MCORDS5')
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2016_Greenland_Polar6';
-  base_dir = '/mnt/HDD6/';
-  param.adc_folder_name = '1604180601/UWB/chan%d';
+  param.season_name = '2017_Antarctica_Polar6';
+  base_dir = '/cresis/snfs1/scratch/2016_Germany_AWI_tests/AWI_ICE_bak/test_flight/';
+  param.adc_folder_name = 'chan%d';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20160418'; % Only used for stdout print of the vectors worksheet
+  day_string = '20160830'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 1

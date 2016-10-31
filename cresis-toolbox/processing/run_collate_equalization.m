@@ -11,11 +11,12 @@
 if 1
   %% 2015_Greenland_Polar6 Setup
   
-  param_fn = ct_filename_param('rds_param_2016_Greenland_Polar6.xls');
-  params = read_param_xls(param_fn,'20160401_13',{'analysis_surf' 'analysis'});
+  param_fn = ct_filename_param('rds_param_2017_Antarctica_Polar6.xls');
+  params = read_param_xls(param_fn,'20160830_03',{'analysis_surf' 'analysis'});
   params.cmd.generic = 1;
   
   input_fn_dir = 'noise';
+  img = 1;
   % zero_surf_bin_override = 11; % Normally not used except for internal layers
   
   debug_level = 1; % <-- TYPICAL SETTINGS ARE 1, 3, and 4

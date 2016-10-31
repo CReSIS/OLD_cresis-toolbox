@@ -77,7 +77,7 @@ for adc_idx = 1:length(adcs)
     fns = fns(sorted_idxs);
   end
   
-  struct(hdr_param,'file_mode','ieee-be');
+  hdr_param = struct('file_mode','ieee-be');
   %% Setup the header information for this radar
   if any(strcmpi(param.radar_name,{'accum'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
