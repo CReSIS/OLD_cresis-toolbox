@@ -131,6 +131,23 @@ elseif xml_version == 1.6
   if ~exist('xml_file_prefix','var')
     xml_file_prefix = 'mcords5';
   end
+elseif xml_version == 1.7
+  config_var = 'Configuration';
+  config_var_enc = 'Configuration';
+  prf_var = 'PRF_Hz';
+  prf_var_enc = 'PRFZ20Z28HzZ29';
+  ram_var = 'RAM_Taper';
+  ram_var_enc = 'RAMZ20Taper';
+  ram_amp_var = 'DDS1';
+  ram_amp_var_enc = 'DDSZ31';
+  phase_var = 'Phase_Offset_deg';
+  phase_var_enc = 'PhaseZ20OffsetZ20Z28degZ29';
+  wave_var_enc = 'Z23Wave';
+  ttl_start_var_enc = 'TTLZ20StartZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
+  ttl_length_var_enc = 'TTLZ20LengthZ20Z28TTLZ30Z2DZ3ETTLZ37Z29';
+  if ~exist('xml_file_prefix','var')
+    xml_file_prefix = 'radar';
+  end
 elseif xml_version == 2.0
   config_var = 'DDS_Setup';
   config_var_enc = 'DDSZ5FSetup';
@@ -146,7 +163,7 @@ elseif xml_version == 2.0
   ttl_length_var_enc = 'TTLZ20Length';
   NCO_freq = 'NCO_freq';
   if ~exist('xml_file_prefix','var')
-    xml_file_prefix = 'mcords5';
+    xml_file_prefix = 'mcords3';
   end
 else
   error('Unsupported version');

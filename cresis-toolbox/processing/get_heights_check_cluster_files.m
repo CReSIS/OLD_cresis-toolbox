@@ -60,7 +60,7 @@ for fn_idx = 1:length(test_fns)
     fprintf('  %d %d\n', frm, block_idx);
     
     if move_files
-      movefile(test_fn,'/cresis/snfs1/scratch/paden/bad_processed_files/');
+      movefile(test_fn,fullfile(gRadar.tmp_path,'bad_get_heights_files'));
     end
   end
 end
