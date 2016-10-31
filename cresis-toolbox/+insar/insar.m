@@ -1,6 +1,7 @@
 
 if ispc
   fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
+  fn = 'E:\rds\2016_Greenland_G1XB\CSARP_insar\good_line.mat';
 else
   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
 end
@@ -10,9 +11,11 @@ proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenlan
 physical_constants;
 
 load(fn);
-master_idx = 1;
+master_idx = 6;
 rbins = 20:120;
 
+%% Plot Results
+% =========================================================================
 h_fig_map = figure(100); clf;
 hold on;
 axis('equal');
@@ -70,6 +73,9 @@ for pass_idx = 1:length(pass)
 end
 linkaxes(h_data_axes,'xy');
 
+%% Co-Register Results
+% =========================================================================
+
 if 1
   % Option 1: Use a single pass as the reference.
   ref = pass(master_idx);
@@ -88,7 +94,6 @@ end
 along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev);
 ref.surface_bin = interp1(ref.wfs.time, 1:length(ref.wfs.time), ref.surface);
 
-%%
 h_fig_ref_idx = figure(102); clf;
 hold on;
 
@@ -99,8 +104,13 @@ for pass_idx = 1:length(pass)
   pass(pass_idx).ref_idx = zeros(1,size(pass(pass_idx).origin,2));
   last_idx = 0;
   for rline = 1:size(pass(pass_idx).ecef,2)
+    % offset: offset from position rline of pass pass_idx from every point
+    %         on the ref line
     offset = bsxfun(@minus, pass(pass_idx).ecef(:,rline), ref.ecef);
+    % dist: converts offset into along-track distance of the slave line
     dist = offset.'*pass(pass_idx).x(:,rline);
+    % min_idx: finds the point on the reference line that is closest to
+    %          this point
     [min_dist,min_idx] = min(abs(dist));
     %       if min_idx == last_idx
     %         keyboard
@@ -108,7 +118,10 @@ for pass_idx = 1:length(pass)
     last_idx = min_idx;
     pass(pass_idx).ref_idx(rline) = min_idx;
     
+    % x_offset: along-track offset on master line of the closest point
     x_offset = offset(:,min_idx).'*ref.x(:,min_idx);
+    % Compute FCS of slave point in master line coordinate system
+    %   FCS: flight (aka SAR) coordinate system
     pass(pass_idx).along_track(rline) = along_track(min_idx) + x_offset;
     pass(pass_idx).ref_y(rline) = offset(:,min_idx).'*ref.y(:,min_idx);
     pass(pass_idx).ref_z(rline) = offset(:,min_idx).'*ref.z(:,min_idx);
@@ -117,27 +130,45 @@ for pass_idx = 1:length(pass)
   
   pass(pass_idx).along_track_slave = geodetic_to_along_track(pass(pass_idx).lat,pass(pass_idx).lon,pass(pass_idx).elev);;
   
-  figure(h_fig_ref_idx);
-  plot(pass(pass_idx).ref_idx)
-  drawnow;
-
-  % Resample images onto a common along-track axes
+  if 0
+    %% Debug plot showing indexes for alignment of passes
+    figure(h_fig_ref_idx);
+    plot(pass(pass_idx).ref_idx)
+    drawnow;
+  end
+  
+  % Resample images and position vectors onto a common along-track axes
+  % 1. Oversample slave data by 10x in along track
   Mx = 10;
   Nx = size(pass(pass_idx).data,2);
   data_oversample = interpft(pass(pass_idx).data.',Mx*Nx);
+  % 2. Interpolate to find the oversampled slave axes
   along_track_oversample = interp1(0:Nx-1, ...
     pass(pass_idx).along_track, (0:Nx*Mx-1)/Mx,'linear','extrap');
+  % 3. Interpolate oversampled slave data onto master along track axes
   pass(pass_idx).ref_data = interp1(along_track_oversample, ...
     data_oversample, along_track,'linear','extrap').';
   
-  % Motion compensation
-  for rline = 1:size(pass(pass_idx).ecef,2)
-    dt = pass(pass_idx).ref_z(rline)/(c/2);
-    pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
-      .*exp(1i*2*pi*pass(end).wfs.freq*dt) );
+  pass(pass_idx).ref_y = interp1(pass(pass_idx).along_track, ...
+    pass(pass_idx).ref_y, along_track,'linear','extrap').';
+  pass(pass_idx).ref_z = interp1(pass(pass_idx).along_track, ...
+    pass(pass_idx).ref_z, along_track,'linear','extrap').';
+
+  if 0
+    % Motion compensation of FCS z-motion
+    for rline = 1:size(pass(pass_idx).ecef,2)
+      % Convert z-offset into time-offset assuming nadir DOA
+      dt = pass(pass_idx).ref_z(rline)/(c/2);
+      pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
+        .*exp(1i*2*pi*pass(end).wfs.freq*dt) );
+    end
   end
+  
+  % Concatenate data into a single matrix
   data = cat(3,data,pass(pass_idx).ref_data);
   
+  % Plot interferograms
+  % -----------------------
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
   if 0
@@ -161,6 +192,89 @@ for pass_idx = 1:length(pass)
 end
 linkaxes(h_data_axes,'xy');
 
+%% Array Processing
+
+% Package data to call array_proc.m
+% 1. Data
+% 2. Trajectory and attitude
+% 3. Array processing parameters
+data = {permute(data,[1 2 4 5 3])};
+
+array_param.method = 1;
+array_param.Nsv = 64;
+array_param.Nsig = 2;
+array_param.bin_rng = [-1:1];
+array_param.rline_rng = [-21:21];
+array_param.dbin = 1;
+array_param.dline = 1;
+array_param.freq_rng = 1;
+figure(200); clf;
+for pass_idx = 1:length(pass)
+  array_param.fcs{1}{pass_idx}.pos(2,:) = pass(pass_idx).ref_y;
+  array_param.fcs{1}{pass_idx}.pos(3,:) = pass(pass_idx).ref_z;
+  array_param.fcs{1}{pass_idx}.base_line ...
+    = sqrt( (pass(pass_idx).ref_z - pass(master_idx).ref_z).^2 ...
+      + (pass(pass_idx).ref_y - pass(master_idx).ref_y).^2 );
+    
+  plot(array_param.fcs{1}{pass_idx}.base_line);
+  hold on;
+
+  array_param.fcs{1}{pass_idx}.surface(:) = ref.surface;
+end
+xlabel('Range line');
+ylabel('Baseline (m)');
+grid on;
+
+array_param.wfs.time = ref.wfs.time;
+array_param.sv_fh = @array_proc_sv;
+array_param.wfs.fc = pass(1).wfs.fc;
+array_param.imgs = {[ones(6,1), (1:6).']};
+array_param.three_dim.en = true;
+
+
+%%
+array_param.method = 0;
+[array_param2,result0] = array_proc(array_param,data);
+array_param.method = 1;
+[array_param2,result1] = array_proc(array_param,data);
+array_param.method = 2;
+[array_param2,result2] = array_proc(array_param,data);
+
+figure(1); clf;
+imagesc(lp(result0.val))
+colormap(1-gray(256))
+h_axes = gca;
+
+figure(2); clf;
+imagesc(lp(result1.val))
+colormap(1-gray(256))
+h_axes(end+1) = gca;
+
+figure(3); clf;
+imagesc(lp(result2.val))
+colormap(1-gray(256))
+h_axes(end+1) = gca;
+
+figure(4); clf;
+imagesc(lp(data{1}(:,:,master_idx)))
+colormap(1-gray(256))
+h_axes = gca;
+
+linkaxes(h_axes,'xy');
+
+return
+%%
+
+figure(5); clf;
+for idx = 400:600%1:50:size(result1.img,3)
+  imagesc(lp(result1.img(:,:,idx)))
+  colormap(jet(256));
+  idx
+  pause
+end
+
+
+%% Other plots and plot setup
 figure(h_fig_ref_idx); h_axes = gca;
 %figure(h_fig_map); h_axes(end+1) = gca;
 figure(h_fig_elev); h_axes(end+1) = gca;
@@ -180,7 +294,6 @@ for pass_idx = 1:length(pass)
   end
 end
 
-%%
 h_fig_angle = figure(104); clf;
 complex_data = surf_data(6,:) .* conj(surf_data(1,:));
 complex_data(lp(complex_data) < -96) = NaN;

@@ -14,6 +14,10 @@ function gps = read_gps_applanix(applanix_fn, param)
 %  .month
 %  .day
 %  .time_reference = 'gps' or 'utc'
+%  .roll_byte_offset: offset in bytes to the roll field (default 56)
+%    Some 2016 Antarctica DC8 data requires 64
+%  .pitch_byte_offset: offset in bytes to the pitch field (default 64)
+%    Some 2016 Antarctica DC8 data requires 56
 %
 % gps = struct of position and attitude data, each N x 1 vectors
 %   where N is the number of records in the file. The fields are:
@@ -74,6 +78,14 @@ function gps = read_gps_applanix(applanix_fn, param)
 %   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
 %   read_gps_txt, plot_gps
 
+if ~isfield(param,'roll_byte_offset') || isempty(param.roll_byte_offset)
+  param.roll_byte_offset = 56;
+end
+
+if ~isfield(param,'pitch_byte_offset') || isempty(param.pitch_byte_offset)
+  param.pitch_byte_offset = 64;
+end
+
 [fid,msg] = fopen(applanix_fn,'r');
 if fid < 1
   fprintf('Could not open file %s\n', applanix_fn);
@@ -97,11 +109,11 @@ gps.lon = fread(fid,inf,'float64',16*8) * 180/pi;
 fseek(fid,24,'bof');
 gps.elev = fread(fid,inf,'float64',16*8);
 
-fseek(fid,56,'bof');
-gps.roll = fread(fid,inf,'float64',16*8);
-
-fseek(fid,64,'bof');
+fseek(fid,param.pitch_byte_offset,'bof');
 gps.pitch = fread(fid,inf,'float64',16*8);
+
+fseek(fid,param.roll_byte_offset,'bof');
+gps.roll = fread(fid,inf,'float64',16*8);
 
 fseek(fid,72,'bof');
 heading_data = fread(fid,[2 inf],'2*float64',15*8);

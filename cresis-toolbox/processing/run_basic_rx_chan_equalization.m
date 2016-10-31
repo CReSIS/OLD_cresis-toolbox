@@ -6,7 +6,7 @@
 % Author: John Paden, Logan Smith
 
 % Enable Just One Radar Setup
-radar_setup = 'MCORDS5';
+radar_setup = 'MCORDS3_DC8';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
@@ -17,7 +17,7 @@ if strcmpi(radar_setup,'MCORDS5')
   param.file_search_mode = '';
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'D:\awi\','/mnt/AWI_SSD0/1604261101/UWB/','/mnt/AWI_SSD0/1604261202/UWB/'};
+  param.base_dir_search = {'D:\awi\','/cresis/snfs1/scratch/2016_Germany_AWI_tests/AWI_ICE_bak/test_flight','/mnt/AWI_SSD0/1604261202/UWB/'};
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
@@ -38,8 +38,8 @@ if strcmpi(radar_setup,'MCORDS5')
   param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10);
 end
 
-%% RDS: MCORDS3
-if strcmpi(radar_setup,'MCORDS3')
+%% RDS: MCORDS3_P3
+if strcmpi(radar_setup,'MCORDS3_P3')
   [param,defaults] = default_radar_params_2016_Greenland_P3_mcords;
   
   % .file_search_mode: Specify how to search for a file: 'last_file', 'specific'
@@ -52,6 +52,32 @@ if strcmpi(radar_setup,'MCORDS3')
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
   param.img = cat(2,3*ones(15,1),[1:15].'); param.ref_wf_adc = 3;
+  
+  % .recs: two element vector specifying which records/range-lines to load
+  %   [start_record num_records]
+  param.recs = [0 inf];
+  
+  % .presums: Number of additional software presums (coherent averaging) to do
+  param.presums = 1;
+  
+  % .delay: the method used to calculate delay between the channels
+  param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10)
+end
+
+%% RDS: MCORDS3_DC8
+if strcmpi(radar_setup,'MCORDS3_DC8')
+  [param,defaults] = default_radar_params_2016_Antarctica_DC8_mcords;
+  
+  % .file_search_mode: Specify how to search for a file: 'last_file', 'specific'
+  param.file_search_mode = 'segment';
+  param.multiple_files = true;
+
+  % .base_dir_search: cell vector of paths to search for data files
+  param.base_dir_search = {'/process/mcords/'};
+  
+  % .img: wf-adc pair list which specifies which waveform-adc pairs to
+  %   analyze
+  param.img = cat(2,5*ones(6,1),[1:6].'); param.ref_wf_adc = 5;
   
   % .recs: two element vector specifying which records/range-lines to load
   %   [start_record num_records]
