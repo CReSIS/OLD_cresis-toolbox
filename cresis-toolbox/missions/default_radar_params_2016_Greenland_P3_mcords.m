@@ -17,7 +17,7 @@ default.radar.wfs(1).chan_equal_dB = zeros(1,15);
 default.radar.wfs(1).chan_equal_deg = zeros(1,15);
 default.radar.wfs(1).chan_equal_Tsys = zeros(1,15);
 default.radar.noise_figure = 2;
-default.radar.rx_gain = 10^(50/20);
+default.radar.rx_gain = 51.5;
 default.radar.adc_SNR_dB = 70;
 default.radar.Tadc_adjust = 0;
 

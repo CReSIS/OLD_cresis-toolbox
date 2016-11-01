@@ -78,8 +78,6 @@ if ~isfield(param.records,'records_fn')
   param.records.records_fn = '';
 end
 
-opsAuthenticate(param,false);
-
 physical_constants;
 
 % Load frames file
@@ -101,6 +99,7 @@ end
 
 if any(strcmpi('ops',{layer_params.source}))
   %% Get all the frames for this segment
+  opsAuthenticate(param,false);
   sys = ct_output_dir(param.radar_name);
   ops_param = struct('properties',[]);
   ops_param.properties.season = param.season_name;

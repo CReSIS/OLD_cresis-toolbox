@@ -344,7 +344,7 @@ else
     fn = g_basic_file_loader_fn;
   elseif strcmp(param.file_search_mode,'default+s')
     % Get the next file in g_basic_file_loader_fns
-    if strcmpi(param.radar_name,'mcords5')
+    if any(strcmpi(param.radar_name,{'mcords3','mcords5'}))
       file_idx = find(strcmp(g_basic_file_loader_fn, g_basic_file_loader_fns));
       file_idx = file_idx+1;
       if isempty(file_idx) || file_idx > length(g_basic_file_loader_fns)
@@ -394,41 +394,50 @@ if strcmpi(param.radar_name,'mcords')
   data = data - median(data(:,1));
 %   basic_remove_mcords_digital_errors;
 elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
+  
+  if ~isfield(param,'img')
+    fprintf('Enter wf-adc pair matrix. The wf-adc pair matrix is an Nx2 matrix\n');
+    fprintf('where the first column is the waveform, the second column is the adc,\n');
+    fprintf('and each row represents a channel to be loaded.\n');
+    fprintf('Valid ADCs: '); fprintf('%d ', default.records.file.adcs); fprintf('\n');
+    param.img = [];
+    while size(param.img,1) < 1 || size(param.img,2) ~= 2
+      try
+        param.img = input('Wf-adc pairs: ');
+      end
+    end
+  end
+  
   % test1_1.dat0
   %   testA_N.datB
   %   A = acquisition number
   %   N = file number
   %   B = board number
   % Map ADCs to board numbers
+  fn_start = fn; % Store this first file away since fn gets overwritten below
   for board = 0:3
     if any(board == floor((param.img(:,2)-1)/4))
       get_adcs = board*4 + (1:4);
-      file_prefix = sprintf('%s_%d_',param.radar_name,board);
-      if isempty(acquisition_num)
-        file_suffix = sprintf('%04d.bin',file_num);
-      else
-        file_suffix = sprintf('%s_%04d.bin',acquisition_num,file_num);
-      end
-      base_path = fullfile(param.base_path, sprintf('board%d',board), ...
-        seg);
-      fprintf('  Path: %s\n', base_path);
-      fprintf('  Match: %s*%s\n', file_prefix, file_suffix);
-      fn = get_filenames(base_path, file_prefix, '', file_suffix);
-      if isempty(fn)
-        fprintf('  Could not find any files which match\n');
-        return;
-      end
-      fn = fn{end};
+      
+      [fn_dir,fn_name] = fileparts(fn_start);
+      fn_dir = fileparts(fn_dir);
+      fn_name(9) = sprintf('%01d',board);
+      fn = fullfile(fn_dir,sprintf('board%d',board),[fn_name,'.bin']);
+      
       fprintf('Loading file %s\n', fn);
       % Fix get_filenames     'The filename, directory name, or volume label syntax is incorrect.'
       if strcmpi(param.radar_name,'mcords2')
-        [hdr,data_tmp] = basic_load_mcords2(fn,struct('clk',fs));
+        [hdr,data_tmp] = basic_load_mcords2(fn,struct('clk',default.radar.fs));
       else
-        [hdr,data_tmp] = basic_load_mcords3(fn,struct('clk',fs));
+        [hdr,data_tmp] = basic_load_mcords3(fn,struct('clk',default.radar.fs));
       end
       for get_adc_idx = 1:length(get_adcs)
         adc = get_adcs(get_adc_idx);
-        for wf_adc_idx = find(param.img(:,2) == adc)
+        wf_adc_idx_matches = find(param.img(:,2) == adc);
+        if isempty(wf_adc_idx_matches)
+          continue;
+        end
+        for wf_adc_idx = wf_adc_idx_matches(:).'
           wf = param.img(wf_adc_idx,1);
           fprintf('  Loading wf %d, adc %d\n', wf, adc);
           if ~exist('num_rec','var')
@@ -437,10 +446,129 @@ elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
             num_rec = size(data_tmp{wf},2) - 1;
           end
           data(:,:,wf_adc_idx) = data_tmp{wf}(:,1:num_rec,get_adc_idx);
+          hdr.epri = hdr.epri(1:num_rec);
+          hdr.seconds = hdr.seconds(1:num_rec);
+          hdr.fractions = hdr.fractions(1:num_rec);
+          hdr.utc_time_sod = hdr.utc_time_sod(1:num_rec);
         end
       end
     end
   end
+  
+  xml_version = 2.0;
+  cresis_xml_mapping;
+  
+  %% Read XML files in this directory
+  [settings,settings_enc] = read_ni_xml_directory(fn_dir,'',false);
+  finfo = fname_info_mcords2(fn);
+  
+  settings_idx = find(cell2mat({settings.datenum}) < finfo.datenum,1,'last');
+  if isempty(settings_idx)
+    settings_idx = 1;
+  end
+  settings = settings(settings_idx);
+  settings_enc = settings_enc(settings_idx);
+
+  default = default_radar_params_settings_match(defaults,settings);
+  
+  %% Format settings into pc_param
+  DDC_freq = double(settings.DDC_Ctrl.NCO_freq)*1e6;
+  DDC_mode = double(settings.DDC_Ctrl.DDC_sel.Val);
+  if DDC_mode == 0
+    hdr.fs = default.radar.fs;
+  else
+    hdr.fs = default.radar.fs / 2^(1+DDC_mode);
+  end
+  f0 = settings.DDS_Setup.Waveforms(wf).Start_Freq(1);
+  f1 = settings.DDS_Setup.Waveforms(wf).Stop_Freq(1);
+  fc = (f0+f1)/2;
+  Tpd = settings.DDS_Setup.Base_Len * double(settings.DDS_Setup.Waveforms(wf).Len_Mult);
+  hdr.BW = f1-f0;
+  hdr.BW_noise = hdr.BW;
+  atten = double(settings.DDS_Setup.Waveforms(wf).Attenuator_1(1) + settings.DDS_Setup.Waveforms(wf).Attenuator_2(1));
+  hdr.rx_gain = default.radar.rx_gain - atten;
+  t0 = hdr.wfs(wf).t0 + default.radar.Tadc_adjust;
+  tukey = settings.DDS_Setup.RAM_Taper;
+
+  for wf = 1:length(settings.DDS_Setup.Waveforms)
+    if isfield(default.radar,'DC_adjust') && ~isempty(default.radar.DC_adjust)
+      default.radar.wfs(wf).DC_adjust = default.radar.DC_adjust{wf};
+    end
+  end
+  
+  dt = 1/hdr.fs;
+  Nt = size(data,1);
+  clear pc_param;
+  pc_param.img = param.img;
+  pc_param.DDC_mode = DDC_mode;
+  pc_param.DDC_freq = DDC_freq;
+  pc_param.f0 = f0;
+  pc_param.f1 = f1;
+  pc_param.Tpd = Tpd;
+  pc_param.zero_pad = 1;
+  pc_param.decimate = true;
+  pc_param.window_func = @hanning;
+  pc_param.time = t0 + (0:dt:(Nt-1)*dt).';
+  pc_param.tukey = tukey;
+  
+  finfo = fname_info_mcords2(fn);
+  [year,month,day] = datevec(finfo.datenum);
+  hdr.radar_time = utc_to_gps(datenum_to_epoch(datenum(year,month,day,0,0,hdr.utc_time_sod))) + default.vectors.gps.time_offset;
+  
+  %% Read GPS files in this directory
+  param.day_seg = sprintf('%04d%02d%02d_01',year,month,day);
+  gps_fn = ct_filename_support(param,'','gps',1);
+  if exist(gps_fn,'file')
+    gps = load(gps_fn);
+  else
+    try
+      gps_fns = get_filenames(fn_dir,'GPS_','','.txt');
+      
+      for gps_fn_idx = 1:length(gps_fns)
+        gps_fn = gps_fns{gps_fn_idx};
+        fprintf('  GPS file: %s\n', gps_fn);
+        [~,gps_fn_name] = fileparts(gps_fn);
+        gps_params.year = str2double(gps_fn_name(5:8));
+        gps_params.month = str2double(gps_fn_name(9:10));
+        gps_params.day = str2double(gps_fn_name(11:12));
+        gps_params.time_reference = 'utc';
+        if gps_fn_idx == 1
+          gps = read_gps_nmea(gps_fns{gps_fn_idx},gps_params);
+        else
+          gps_tmp = read_gps_nmea(gps_fns{gps_fn_idx},gps_params);
+          gps.gps_time = [gps.gps_time, gps_tmp.gps_time];
+          gps.lat = [gps.lat, gps_tmp.lat];
+          gps.lon = [gps.lon, gps_tmp.lon];
+          gps.elev = [gps.elev, gps_tmp.elev];
+          gps.roll = [gps.roll, gps_tmp.roll];
+          gps.pitch = [gps.pitch, gps_tmp.pitch];
+          gps.heading = [gps.heading, gps_tmp.heading];
+        end
+      end
+      gps.gps_source = 'NMEA-field';
+    end
+  end
+  hdr.gps_time = hdr.radar_time;
+  try
+    hdr.lat = interp1(gps.gps_time,gps.lat,hdr.radar_time);
+    hdr.lon = interp1(gps.gps_time,gps.lon,hdr.radar_time);
+    hdr.elev = interp1(gps.gps_time,gps.elev,hdr.radar_time);
+    hdr.roll = interp1(gps.gps_time,gps.roll,hdr.radar_time);
+    hdr.pitch = interp1(gps.gps_time,gps.pitch,hdr.radar_time);
+    hdr.heading = interp1(gps.gps_time,gps.heading,hdr.radar_time);
+    hdr.gps_source = gps.gps_source;
+  catch ME
+    warning('GPS loading error, setting GPS fields to zero.\nGPS error message was:\n%s', ME.getReport);
+    fprintf('\n');
+    hdr.lat = zeros(size(hdr.radar_time));
+    hdr.lon = zeros(size(hdr.radar_time));
+    hdr.elev = zeros(size(hdr.radar_time));
+    hdr.roll = zeros(size(hdr.radar_time));
+    hdr.pitch = zeros(size(hdr.radar_time));
+    hdr.heading = zeros(size(hdr.radar_time));
+    hdr.gps_source = '';
+  end
+  
   
 elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
   file_idx = 1;
@@ -593,7 +721,7 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
     hdr.BW_noise = 175e6;
   end
   atten = double(settings.DDS_Setup.Waveforms(wf).Attenuator_1(1) + settings.DDS_Setup.Waveforms(wf).Attenuator_2(1));
-  hdr.rx_gain = default.radar.rx_gain .* 10.^(-atten/20);
+  hdr.rx_gain = default.radar.rx_gain - atten;
   t0 = hdr.wfs(wf).t0 + default.radar.Tadc_adjust;
   tukey = settings.DDS_Setup.RAM_Taper;
 
