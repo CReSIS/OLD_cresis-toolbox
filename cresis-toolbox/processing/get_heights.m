@@ -206,7 +206,7 @@ for frm_idx = 1:length(param.cmd.frms)
   end
   
   if frm < length(frames.frame_idxs)
-    recs = frames.frame_idxs(frm):frames.frame_idxs(frm+1);
+    recs = frames.frame_idxs(frm):frames.frame_idxs(frm+1)-1;
   else
     recs = frames.frame_idxs(frm):length(records.lat);
   end

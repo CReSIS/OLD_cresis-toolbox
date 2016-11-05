@@ -362,6 +362,17 @@ for wf = 1:length(param.radar.wfs)
     end
     
   end
+
+  if isfield(param.radar.wfs(wf),'gain_fn') && ~isempty(param.radar.wfs(wf).gain_fn)
+    for adc = adcs
+      gain_fn_name = char(param.radar.wfs(wf).gain_fn);
+      gain_fn_name = regexprep(gain_fn_name,'%w',sprintf('%.0f',wf));
+      gain_fn_name = regexprep(gain_fn_name,'%a',sprintf('%.0f',adc));
+      gain_fn = fullfile(ct_filename_out(param,'noise','',1), [gain_fn_name '.mat']);
+      
+      wfs(wf).gain(adc) = load(gain_fn);
+    end
+  end
   
   % ===================================================================
   % Create raw data with zero padding freq axes variables

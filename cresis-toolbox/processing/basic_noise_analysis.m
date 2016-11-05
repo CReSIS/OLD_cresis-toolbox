@@ -125,11 +125,11 @@ end
 % Calculate noise power as Vrms (assuming param.presums = 1)
 if strcmp(param.radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
   % Add 3 dB for IQ combination
-  fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50)+30 - default.radar.adc_SNR_dB + 3 );
-  fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*hdr.BW_noise*default.radar.noise_figure*hdr.rx_gain^2) + 3 +30);
+  fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50,1)+30 - default.radar.adc_SNR_dB + 3 );
+  fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*hdr.BW_noise*default.radar.noise_figure*10^(hdr.rx_gain/10),1) + 3 +30);
 else
-  fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50)+30 - default.radar.adc_SNR_dB );
-  fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*hdr.BW_noise*default.radar.noise_figure*hdr.rx_gain^2)+30);
+  fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50,1)+30 - default.radar.adc_SNR_dB );
+  fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*hdr.BW_noise*default.radar.noise_figure*10^(hdr.rx_gain/10),1)+30);
 end
 fprintf('Expected levels only valid for param.presums = 1\n');
 fprintf('Noise power (dBm) at each ADC rx input and relative to 50 ohm (dB):\n')
@@ -227,11 +227,15 @@ if param.psd_en
       end
       
     else
-      pc_param.time = hdr.wfs(wf).t0 + (0:size(fir_data,1)-1)/fs;
+      pc_param.time = hdr.wfs(wf).t0 + (0:size(fir_data,1)-1)/default.radar.fs;
       dt = pc_param.time(2) - pc_param.time(1);
       Nt = length(pc_param.time);
       df = 1/(Nt*dt);
       freq = (0:df:(Nt-1)*df).';
+      f0 = settings.DDS_Setup.Waveforms(wf).Start_Freq(1);
+      f1 = settings.DDS_Setup.Waveforms(wf).Stop_Freq(1);
+      fc = (f0+f1)/2;
+      freq = freq + default.radar.fs*floor(fc/default.radar.fs);
       
       figure(300+adc); clf;
       set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',adc_idx));
@@ -239,7 +243,11 @@ if param.psd_en
       title(sprintf('Freq-space adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       xlabel('Range line');
       ylabel('Frequency (MHz)');
-      ylim(fs/1e6*[0 1]);
+      if fc<(freq(1)+freq(end))/2
+        ylim(freq([1 round(end/2)])/1e6);
+      else
+        ylim(freq([round(end/2) end])/1e6);
+      end
       h = colorbar;
       set(get(h,'YLabel'),'String','Relative power (dB)');
       
@@ -249,8 +257,17 @@ if param.psd_en
       title(sprintf('MeanFFT adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       ylabel('Relative power (dB)');
       xlabel('Frequency (MHz)');
-      xlim(fs/1e6*[0 1]);
+      if fc<(freq(1)+freq(end))/2
+        xlim(freq([1 round(end/2)])/1e6);
+      else
+        xlim(freq([round(end/2) end])/1e6);
+      end
       grid on;
+      
+      if plot_combined_psd
+        plot(freq/1e6, lp(mean(abs(fft(fir_data)).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes,'color',combined_psd_cmap(adc_idx,:))
+        combined_psd_legend{adc_idx} = sprintf('chan %d', adc);
+      end
     end
   end
 end

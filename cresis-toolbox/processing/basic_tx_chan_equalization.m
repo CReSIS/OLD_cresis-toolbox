@@ -157,7 +157,7 @@ for file_idx = 1:length(fns)
 
   %% Track surface
   ml_data = lp(fir_dec(abs(pc_signal(:,:,param.ref_wf_adc)).^2,ones(1,5)/5,1));
-  good_time_bins = find(pc_time > pc_param.Tpd*1.1 & pc_time > default.basic_surf_track_min_time);
+  good_time_bins = find(pc_time > pc_param.Tpd*default.basic_surf_track_Tpd_factor & pc_time > default.basic_surf_track_min_time);
   [max_value,surf_bin] = max(ml_data(good_time_bins,:));
   surf_bin = surf_bin + good_time_bins(1)-1;
   
@@ -168,11 +168,15 @@ for file_idx = 1:length(fns)
   param.rlines = 1:size(ml_data,2);
   param.rbins= min(surf_bin)-30 : max(surf_bin)+30;
   
-  if all(surf_bin==surf_bin(1)) || isempty(param.noise_rbins)
-    warning('DEBUG: Check surface tracker. May need to adjust param.rbins and param.rlines to ensure maximum signal in the window is the nadir surface return. Ensure param.noise_bins and param.noise_rlines enclose a region with appropriate values for the background noise. Run dbcont after setting these parameters correctly.');
+  if (all(surf_bin==surf_bin(1)) || isempty(param.noise_rbins)) ...
+      && default.basic_surf_track_Tpd_factor > -inf
+    warning('DEBUG: Check surface tracker since surface is at the same range bin for every range line (this is normal for lab tests but not flight test). May need to adjust param.rbins and param.rlines to ensure maximum signal in the window is the nadir surface return. Ensure param.noise_bins and param.noise_rlines enclose a region with appropriate values for the background noise. Run dbcont after setting these parameters correctly.');
+    fprintf('\n');
+    figure;
     imagesc(ml_data);
     hold on
-    plot(surf_bin);
+    plot(surf_bin,'k.');
+    title('Black dots should track surface in echogram.');
     keyboard
   end
   
@@ -759,7 +763,9 @@ if update_mode ~= 1
   
   settings_enc = rmfield(settings_enc,'fn');
   settings_enc = rmfield(settings_enc,'datenum');
-  settings_enc = rmfield(settings_enc,'FPGAZ20Configuration');
+  if isfield(settings_enc,'FPGAZ20Configuration')
+    settings_enc = rmfield(settings_enc,'FPGAZ20Configuration');
+  end
   
   if isfield(settings_enc,'xmlversion') && str2double(settings_enc.xmlversion{1}.values) >= 2.0
     settings_enc.sys.DDCZ20Ctrl = settings_enc.DDCZ20Ctrl;
