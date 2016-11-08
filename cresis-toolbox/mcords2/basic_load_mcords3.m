@@ -136,11 +136,8 @@ if nargout < 2
   hdr.frame_sync = fread(fid,1,'uint32');
   hdr.epri = fread(fid,1,'uint32');
   if 1
-    hdr.seconds = fread(fid,1,'uint32').'; % From NMEA string converted to DCB
-    hdr.seconds = ...
-      3600*(10*mod(floor(hdr.seconds/2^8),2^4) + mod(floor(hdr.seconds/2^12),2^4)) ...
-      + 60*(10*mod(floor(hdr.seconds/2^16),2^4) + mod(floor(hdr.seconds/2^20),2^4)) ...
-      + (10*mod(floor(hdr.seconds/2^24),2^4) + mod(floor(hdr.seconds/2^28),2^4));
+    hdr.seconds = fread(fid,1,'uint32').'; % From NMEA string converted to BCD
+    hdr.seconds = BCD_to_seconds(hdr.seconds);
     hdr.fractions = fread(fid,1,'uint32');
     hdr.counter = fread(fid,1,'uint64');
   else
@@ -213,10 +210,7 @@ if 1
   % Convert seconds from NMEA ASCII string converted to Decimal Encoded
   % Binary
   %   32 bits: 0 0 H H M M S S
-  hdr.seconds = ...
-    3600*(10*mod(floor(hdr_data(6,:)/2^8),2^4) + mod(floor(hdr_data(6,:)/2^12),2^4)) ...
-    + 60*(10*mod(hdr_data(5,:),2^4) + mod(floor(hdr_data(5,:)/2^4),2^4)) ...
-    + (10*mod(floor(hdr_data(5,:)/2^8),2^4) + mod(floor(hdr_data(5,:)/2^12),2^4));
+  hdr.seconds = BCD_to_seconds(double(hdr_data(5,:))*2^16 + double(hdr_data(6,:)));
   
   hdr.fractions = 2^16*hdr_data(7,:) ...
     + hdr_data(8,:);
