@@ -68,10 +68,27 @@ if ~isfield(param.sched,'rerun_only') || isempty(param.sched.rerun_only)
   param.sched.rerun_only = false;
 end
 
+% Handles multilooking syntax:
+%  {{[1 1],[1 2],[1 3],[1 4],[1 5]},{[2 1],[2 2],[2 3],[2 4],[2 5]}}
+%  If the image is a cell array it describes multilooking across apertures
+if ~iscell(param.combine.imgs{1})
+  % No special multilooking, reformat old syntax to new syntax
+  for img = 1:length(param.combine.imgs)
+    img_list{img} = {param.combine.imgs{img}};
+  end
+else
+  % Special multilooking, look at first multilooking source to extract
+  % list of chunks to get (these should be the same for all echograms and
+  % sources so we just look at the first one)
+  img_list = param.combine.imgs;
+end
+
 for img = 1:length(param.combine.imgs)
-  % Imaginary image indices is for IQ combining during raw data load
-  % which we do not need here.
-  param.combine.imgs{img} = abs(param.combine.imgs{img});
+  for ml_idx = 1:length(param.combine.imgs{img})
+    % Imaginary image indices is for IQ combining during raw data load
+    % which we do not need here.
+    param.combine.imgs{img}{ml_idx} = abs(param.combine.imgs{img}{ml_idx});
+  end
 end
 
 in_path = ct_filename_out(param, ...
@@ -136,23 +153,6 @@ elseif ~strcmpi(param.sched.type,'no scheduler')
   
   % Prepare submission ctrl structure for queing jobs
   ctrl.cmd = 'task';
-end
-
-% =====================================================================
-% Handles multilooking syntax:
-%  {{[1 1],[1 2],[1 3],[1 4],[1 5]},{[2 1],[2 2],[2 3],[2 4],[2 5]}}
-%  If the image is a cell array it describes multilooking across apertures
-% =====================================================================
-if ~iscell(param.combine.imgs{1})
-  % No special multilooking, reformat old syntax to new syntax
-  for img = 1:length(param.combine.imgs)
-    img_list{img} = {param.combine.imgs{img}};
-  end
-else
-  % Special multilooking, look at first multilooking source to extract
-  % list of chunks to get (these should be the same for all echograms and
-  % sources so we just look at the first one)
-  img_list = param.combine.imgs;
 end
 
 %% Loop through all the frame directories and process the fk

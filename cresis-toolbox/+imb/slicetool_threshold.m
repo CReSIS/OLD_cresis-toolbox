@@ -1,11 +1,7 @@
 classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
   
-  properties
-    sb
-    slice
-    theta
+  properties    
     img
-    Time
   end
   
   properties (SetAccess = protected, GetAccess = protected)
@@ -34,31 +30,39 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
       %  .slice: current slice in 3D image (third index of .data)
       %  .layer_idx: active layer
       % slices: array of slices to operate on (overrides sb.slice)
-      control_idx = sb.layer(sb.layer_idx).control_layer;
       active_idx = sb.layer(sb.layer_idx).active_layer;
-      surf_idx = sb.layer(sb.layer_idx).surf_layer;
-      mask_idx = sb.layer(sb.layer_idx).mask_layer;
       
-      try
-        row_range = eval(get(obj.gui.row_rangeLE,'String'));
-      catch ME
-        error('Error in slice range: %s', ME.getReport);
-      end
       try
         slice_range = eval(get(obj.gui.slice_rangeLE,'String'));
       catch ME
         error('Error in slice range: %s', ME.getReport);
       end
       try
-        threshold = eval(get(obj.gui.thresholdLE,'String'));
+        Noise_Range_bin = eval(get(obj.gui.Noise_Range_binLE,'String'));
       catch ME
-        error('Error in threshold: %s', ME.getReport);
+        error('Error in Noise_Range_bin: %s', ME.getReport);
+      end 
+      try
+          row_range = eval(get(obj.gui.row_rangeLE,'String'));
+      catch ME
+          error('Error in row range: %s', ME.getReport);
       end
+      try
+          threshold = eval(get(obj.gui.thresholdLE,'String'));
+      catch ME
+          error('Error in threshold: %s', ME.getReport);
+      end
+      
       if get(obj.gui.select_maskCB,'Value')
         cols = find(sb.select_mask);
       else
         cols = 1:size(sb.data,2);
       end
+      
+      cmd = [];
+      params.Noise_Range_bin = Noise_Range_bin; 
+      params.row_range = row_range;
+      params.threshold = threshold;
       
       if ~exist('slices','var') || isempty(slices)
         slice_range = min(slice_range):max(slice_range);
@@ -70,12 +74,10 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
       else
         fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
       end
-
-      cmd = [];
-      for slice = slices(:).'
-        
-        twtt_sur_all = tomo.threshold(obj.theta,obj.img, obj.Time,sb.slice);
-        new_y = interp1(obj.Time,1:length(obj.Time),twtt_sur_all(:,sb.slice));
+      
+      for slice = slices(:).'     
+        img_slice = obj.img(:,:,slice);
+        layer = tomo.threshold(img_slice,params);
         
         if 0
           data = sb.data(:,:,slice);
@@ -94,18 +96,18 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
           param.search_rng = [0:75];
           %param.noise_override = 4;
           
-          new_y = tracker_threshold(data,param);
+          layer = tracker_threshold(data,param);
         end
         
         % Create cmd for layer change
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
-        cmd{end}.undo.layer = sb.layer_idx;
-        cmd{end}.redo.layer = sb.layer_idx;
+        cmd{end}.undo.layer = active_idx;
+        cmd{end}.redo.layer = active_idx;
         cmd{end}.undo.x = cols;
-        cmd{end}.undo.y = sb.layer(sb.layer_idx).y(cols,slice);
+        cmd{end}.undo.y = sb.layer(active_idx).y(cols,slice);
         cmd{end}.redo.x = cols;
-        cmd{end}.redo.y = new_y(cols);
+        cmd{end}.redo.y = layer(cols);
         cmd{end}.type = 'standard';
       end
       
@@ -116,10 +118,6 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
     end
     
     function set_custom_data(obj,custom_data)
-      obj.custom_data.ice_mask = custom_data.ice_mask;
-      obj.theta = custom_data.theta ;
-      obj.img = custom_data.img ;
-      obj.Time = custom_data.Time;
     end
     
     function create_option_ui(obj)
@@ -133,17 +131,8 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');
       pos(3) = 200;
-      pos(4) = 100;
+      pos(4) = 130; % Height of Threshold tool options window 
       set(obj.h_fig,'Position',pos);
-      
-      % Row range
-      obj.gui.row_rangeTXT = uicontrol('Style','text','string','Row range');
-      set(obj.gui.row_rangeTXT,'TooltipString','Enter a vector specifying relative row range to search in. E.g. "-30:30".');
-      
-      obj.gui.row_rangeLE = uicontrol('parent',obj.h_fig);
-      set(obj.gui.row_rangeLE,'style','edit')
-      set(obj.gui.row_rangeLE,'string','-30:30')
-      set(obj.gui.row_rangeLE,'TooltipString','Enter a vector specifying relative row range to search in. E.g. "-30:30".');
       
       % Slice range
       obj.gui.slice_rangeTXT = uicontrol('Style','text','string','Slice range');
@@ -154,15 +143,33 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
       set(obj.gui.slice_rangeLE,'string','0')
       set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
       
+      % Noise_Range_bin
+      obj.gui.Noise_Range_binTXT = uicontrol('Style','text','string','Noise Range bin');
+      set(obj.gui.Noise_Range_binTXT,'TooltipString','Specify Noise floor Range bin.');
+      
+      obj.gui.Noise_Range_binLE = uicontrol('parent',obj.h_fig);
+      set(obj.gui.Noise_Range_binLE,'style','edit')
+      set(obj.gui.Noise_Range_binLE,'string','1')
+      set(obj.gui.Noise_Range_binLE,'TooltipString','Specify Noise Range bin.');    
+      
+      % Row range
+      obj.gui.row_rangeTXT = uicontrol('Style','text','string','Row range');
+      set(obj.gui.row_rangeTXT,'TooltipString','Enter a vector specifying relative row range to search in. E.g. "-30:30".');
+      
+      obj.gui.row_rangeLE = uicontrol('parent',obj.h_fig);
+      set(obj.gui.row_rangeLE,'style','edit')
+      set(obj.gui.row_rangeLE,'string','-30:30')
+      set(obj.gui.row_rangeLE,'TooltipString','Enter a vector specifying relative row range to search in. E.g. "-30:30".');
+      
       % Threshold
       obj.gui.thresholdTXT = uicontrol('Style','text','string','Threshold');
       set(obj.gui.thresholdTXT,'TooltipString','Specify an image threshold.');
       
       obj.gui.thresholdLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.thresholdLE,'style','edit')
-      set(obj.gui.thresholdLE,'string','13.5')
+      set(obj.gui.thresholdLE,'string','10')
       set(obj.gui.thresholdLE,'TooltipString','Specify an image threshold.');
-      
+           
       % Select mask
       obj.gui.select_maskCB = uicontrol('parent',obj.h_fig);
       set(obj.gui.select_maskCB,'style','checkbox')
@@ -177,24 +184,11 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
       obj.gui.table.false_width = NaN*zeros(30,30);
       obj.gui.table.false_height = NaN*zeros(30,30);
       obj.gui.table.offset = [0 0];
+      
       row = 1;
       col = 1;
-      obj.gui.table.handles{row,col}   = obj.gui.row_rangeTXT;
-      obj.gui.table.width(row,col)     = 70;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
-      col = 2;
-      obj.gui.table.handles{row,col}   = obj.gui.row_rangeLE;
-      obj.gui.table.width(row,col)     = inf;
-      obj.gui.table.height(row,col)    = 20;
-      obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;
-      
-      row = row + 1;
-      col = 1;
       obj.gui.table.handles{row,col}   = obj.gui.slice_rangeTXT;
-      obj.gui.table.width(row,col)     = 70;
+      obj.gui.table.width(row,col)     = 90;
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;
       obj.gui.table.height_margin(row,col) = 1;
@@ -207,8 +201,36 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
       
       row = row + 1;
       col = 1;
+      obj.gui.table.handles{row,col}   = obj.gui.Noise_Range_binTXT;
+      obj.gui.table.width(row,col)     = 90;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      col = 2;
+      obj.gui.table.handles{row,col}   = obj.gui.Noise_Range_binLE;
+      obj.gui.table.width(row,col)     = inf;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      
+      row = row + 1;
+      col = 1;    
+      obj.gui.table.handles{row,col}   = obj.gui.row_rangeTXT;
+      obj.gui.table.width(row,col)     = 90;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      col = 2;
+      obj.gui.table.handles{row,col}   = obj.gui.row_rangeLE;
+      obj.gui.table.width(row,col)     = inf;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+           
+      row = row + 1;
+      col = 1;
       obj.gui.table.handles{row,col}   = obj.gui.thresholdTXT;
-      obj.gui.table.width(row,col)     = 70;
+      obj.gui.table.width(row,col)     = 90;
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;
       obj.gui.table.height_margin(row,col) = 1;
@@ -226,7 +248,7 @@ classdef (HandleCompatible = true) slicetool_threshold < imb.slicetool
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;
       obj.gui.table.height_margin(row,col) = 1;
-      
+          
       clear row col
       table_draw(obj.gui.table);
     end

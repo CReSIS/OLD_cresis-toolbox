@@ -1,97 +1,65 @@
-function twtt_sur_all = threshold(theta, img, Time ,slice)
-% twtt_sur_all = threshold(theta, img, Time ,slice)
+function layer = threshold(img_slice,params)
+% layer = threshold(img_slice,params)
 %
-% Tract the ice-surface layer in the MUSIC slice.
+% Track the ice-surface layer in a 3D image slice.
 %
-% theta: theta contains 64 direction of arivals
-% img: 3D imagery
-% Time: two way travel time axis (twtt are points on the Time)
-% slice: Integer from 1 to Nx (the currect working slice)
+% Inputs:
+% img_slice: single slice from 3D imagery (i.e. img_slice is a 2D image)
+% params: struct array controlling how threshold works
+%  .Noise_range_bin : "Noise range bin" specified by user to elimate the 
+%                     clutter part above the surface and threshold function
+%                     only allow surface detection to occur at a later bin
+%                     than the noise range bin.
+%  FOLLOWING FIELDS ARE NOT CURRENTLY SUPPORTED:
+%  .row_range   :  a vector specifying relative row range to search in.
+%                  E.g. "-30:30".
+%  .threshold   :  surface choosen is above the noise floor by "threshold dB"
+%                  and if surface contains no values above threshold, then
+%                  the value is set to NaN.
 %
-% twtt_sur_all: Two waytravel time (twtt) corresponding to each slice is
-% stored in the respective column. It contains twtt of all the slices.
+% Outputs:
+% layer: row corresponding to the surface for each column in the slice
 %
 % Author: Sravya Athinarapu
-% Example:
-% See slicetool_threshold.m
-
-
-
-% index_nfloor limit choose properly
-% for the datasets tested... for 039 Nfloor_limit = 0.63e-5;
-% for 044 Nfloor_limit = 0.85e-5));
-%similarly change it for other data sets
-
-%  index_break limit choose properly --- this is used to separate the
-%  surface return and the bottom return.
-
-
-rline = slice;
-num_pixels_col = length(Time);
-pixel_search = floor(num_pixels_col./6);
-
-% Request User Input
-
-% figure,imagesc([],Time,squeeze(lp(img(:,:,rline))));
-% prompt = 'enter the noise floor limit : \n ';
-% Nfloor_limit = input(prompt);
 %
-% prompt = 'separation between the surface return and the bottom return(for example 30 or 40 pixels separation) : \n ';
-% separation= input(prompt);
+% See also: slicetool_threshold.m
 
-% Nfloor_limit = 0.85e-5;
-Nfloor_limit = 0.63e-5
-separation = 30;
+Range_bins = 1 : size(img_slice,1);
+slice_columns = size(img_slice,2);
+layer = zeros(1,slice_columns);
+% To remove the clutter above the surface
+index_noise = params.Noise_Range_bin; 
+Range_bins_noise_free = Range_bins(index_noise + 1:end);
 
-for idx = 1:length(theta)
+for col = 1 : slice_columns
+    rline_data_noise_free = img_slice(index_noise+1:end,col);
     
-    % IMAGE FILTER
-    h1 = hann(20);
-    h2 = hann(3);
-    h = h1*h2.';
-    img_filtered = filter2(h,squeeze(lp(img(:,:,rline))));
-    rline_data = filter2(h,squeeze(lp(img(:,idx,rline))));
-    index_nfloor = max (find(Time<= Nfloor_limit));
-    time_thresholded = Time(index_nfloor:end);
-    rline_data_thresholded = rline_data(index_nfloor:end);
-    
-    if idx == 1
-        [req_pixel,id_req_pixel] = max(rline_data_thresholded);
-        twtt_sur(idx) = time_thresholded(id_req_pixel);
-    end
-    
-    if idx >= 2
-        if idx <= 33
-            data_DOA = rline_data_thresholded (1 :id_req_pixel);
-            time_DOA = time_thresholded (1: id_req_pixel );
-            corr = req_pixel.* data_DOA ;
-            [req_pixel_both,id_req_pixel_both] = sort(corr,'descend');
-            id_req_pixel = id_req_pixel_both(1);
-            if idx <= 4
-                index_break =  id_req_pixel_both(min(find(abs(id_req_pixel_both - id_req_pixel)> separation)));
-                id_req_pixel_both_sort = [index_break  id_req_pixel];
-                [id_req_pixel_both_sorted,index] =  sort(id_req_pixel_both_sort,'ascend');
-                req_pixel_both_sorted =req_pixel_both(index);
-                twtt_s = time_DOA(id_req_pixel_both_sorted);
-                twtt_sur(idx) = min(twtt_s);
-            else
-                twtt_sur(idx) = time_DOA(id_req_pixel);
-            end
-        else   % for idx >34
-            data_DOA = rline_data_thresholded;
-            time_DOA = time_thresholded ;
-            corr = req_pixel.* data_DOA ;
-            [req_pixel_both,id_req_pixel_both] = sort(corr,'descend');
-            id_req_pixel = id_req_pixel_both(1);
-            index_break =  id_req_pixel_both(min(find(abs(id_req_pixel_both - id_req_pixel) > separation)));
-            id_req_pixel_both_sort = [index_break  id_req_pixel];
-            [id_req_pixel_both_sorted,index] =  sort(id_req_pixel_both_sort,'ascend');
-            req_pixel_both_sorted =req_pixel_both(index);
-            twtt_s = time_DOA(id_req_pixel_both_sorted);
-            twtt_sur(idx) = min(twtt_s);
+    if col == 1
+        [~,id_req_pixel] = max(rline_data_noise_free);
+        layer(col) = Range_bins_noise_free(id_req_pixel);
+        prev_layer = layer(col) - index_noise;
+    else
+        
+        if col <= slice_columns/2 + 3  % for left part and center part of the slice
+            data_col = rline_data_noise_free (1 : prev_layer);
+            Range_bins_col = Range_bins_noise_free (1 : prev_layer );
+            [~,id_req_pixel_both] = max(data_col);
+            layer(col) = Range_bins_col(id_req_pixel_both);
+            prev_layer = layer(col) - index_noise;
+            
+        else    % for right part of slice
+            layer_allow_range_bins = 30;
+            data_col = rline_data_noise_free(prev_layer : prev_layer + layer_allow_range_bins);
+            Range_bins_col = Range_bins_noise_free(prev_layer : prev_layer + layer_allow_range_bins);
+            [~,id_req_pixel_both] = max(data_col);
+            layer(col)  = Range_bins_col(id_req_pixel_both);
+            prev_layer = layer(col) - index_noise;
+            
         end
+        
     end
+    clear data_col Range_bins_col id_req_pixel_both
 end
 
-twtt_sur_all(:,rline) = twtt_sur';
+layer = layer';
 return

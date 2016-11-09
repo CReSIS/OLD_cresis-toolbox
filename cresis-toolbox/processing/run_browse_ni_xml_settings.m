@@ -11,15 +11,15 @@ setup = 'mcords3_dc8_setup';
 % =======================================================================
 if strcmpi(setup, 'mcords5_polar6_setup')
 
-  base_dir = '/mnt/AWI_SSD0';
+  base_dir = '/cresis/snfs1/scratch/2016_Germany_AWI_tests/AWI_ICE_bak/test_flight/';
   
-  adc_folder_names = {'/1604261101/UWB/chan%d'};
+  adc_folder_names = {'chan%d'};
   
-  header_load_date = datenum(2016,4,26);
+  header_load_date = datenum(2016,8,30);
   
-  mission_name = 'Uummannaq-Swiss Camp';
+  mission_name = 'Testflight';
 
-  [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
+  [param,defaults] = default_radar_params_2017_Antarctica_Polar6_mcords;
 
   base_dir_in_param = base_dir; % Only modify if you want params to have a different path than the current path
     

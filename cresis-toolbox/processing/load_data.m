@@ -65,7 +65,7 @@ if strcmpi(param.radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(records.settings, param, ...
     1:max(old_param_records.file.adcs), param.load_data);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'acords','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,rec_data_size] = load_mcords_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.load_data);
   load_param.load.rec_data_size = rec_data_size;
@@ -146,7 +146,7 @@ for break_idx = 1:length(breaks)
   
   load_param.load.recs = cur_recs(1):cur_recs(end);
   
-  if any(strcmpi(param.radar_name,{'icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  if any(strcmpi(param.radar_name,{'icards','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
     % adc_headers: the actual adc headers that were loaded
     if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
       old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -270,7 +270,7 @@ for break_idx = 1:length(breaks)
   % Load data into g_data
   if strcmpi(param.radar_name,'mcords')
     load_mcords_data(load_param);
-  elseif any(strcmpi(param.radar_name,{'mcords2','mcords3','mcords4','mcords5'}))
+  elseif any(strcmpi(param.radar_name,{'hfrds','mcords2','mcords3','mcords4','mcords5'}))
     load_mcords2_data(load_param);
   elseif strcmpi(param.radar_name,'mcrds')
     load_mcrds_data(load_param);

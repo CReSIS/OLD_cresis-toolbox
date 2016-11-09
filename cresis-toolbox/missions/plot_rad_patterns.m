@@ -61,6 +61,7 @@ end
 f0 = f0(end);
 f1 = f1(end);
 wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(ref_pattern),1);
+wf = wf(1);
 df = 1/(Nt*data.wfs(wf).dt);
 freq = data.wfs(wf).fc + df*(floor(-Nt/2) : floor((Nt-1)/2)).';
 H = zeros(size(freq));
@@ -74,6 +75,7 @@ data.surf_vals = ifft(surf_vals_fft);
 
 if 0
   %% DEBUG
+  surf_bins = 42;
   close all
   figure(1); clf;
   subplot(3,1,1);
@@ -83,7 +85,7 @@ if 0
   plot(angle(data.surf_vals(surf_bins,:,4) .* conj(data.surf_vals(surf_bins,:,1)) ),'.')
   a2 = gca;
   subplot(3,1,3);
-  plot(data.roll);
+  plot(data.roll(1,:));
   a3 = gca;
   linkaxes([a1 a2 a3],'x');
   figure(2); clf;
@@ -177,6 +179,11 @@ else
       [~,max_offset] = max(ml_data(tmp+(0:2),rline));
       tmp = tmp-1 + max_offset;
       surf_bin(rline) = tmp;
+    end
+  end
+  for rline = 1:Nx
+    if ~isnan(surf_bin(rline))
+      data.surf_vals(:,rline,:) = circshift(data.surf_vals(:,rline,:),[ref_bin-surf_bin(rline) 0 0]);
     end
   end
 end
