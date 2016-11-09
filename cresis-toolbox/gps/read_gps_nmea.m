@@ -139,7 +139,7 @@ while ftell(fid) < finfo.bytes
   num_lines = num_lines + good_lines+1;
   if ftell(fid) < finfo.bytes
     readchar = fread(fid,1,'char');
-    while readchar ~= 10
+    while readchar ~= 10 && ftell(fid) > 1
       fseek(fid,-2,0);
       readchar = fread(fid,1,'char');
     end
