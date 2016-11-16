@@ -4,7 +4,7 @@
 %
 % Instructions:
 % 1. Find your radar in the "user settings" section below
-% 2. Enable it ("if 1") and disable all others ("if 0")
+% 2. Set radar_setup variable to correct radar
 % 3. Change settings in the radar section as required (usually
 %    just path changes to match the current date).
 % 4. Run the script
@@ -18,7 +18,7 @@ param = [];
 counter_correction_en = false;
 
 % Enable Just One Radar Setup
-radar_setup = 'SNOW5';
+radar_setup = 'KUBAND3';
 
 %% Accum 1
 if strcmpi(radar_setup,'ACCUM')
@@ -108,11 +108,11 @@ if strcmpi(radar_setup,'KUBAND3')
   counter_correction_en = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2015_Greenland_C130';
-  base_dir = '/cresis/snfs1/data/Ku-Band/';
-  param.adc_folder_name = '20150328';
+  param.season_name = '2016_Antarctica_DC8';
+  base_dir = '/process/fmcw/kuband/';
+  param.adc_folder_name = '';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20150328'; % Only used for stdout print of the vectors worksheet
+  day_string = '20161017'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: ACORDS
@@ -133,6 +133,27 @@ if strcmpi(radar_setup,'ACORDS')
   day_string = '20041121'; % Only used for stdout print of the vectors worksheet
   file_prefix_override = 'nov21_04'; % most of the time
   file_regexp = '\.[0-9]*$';
+end
+
+%% RDS: MCoRDS 3
+if strcmpi(radar_setup,'MCORDS3')
+  param.radar_name = 'mcords3';
+  param.clk = 150e6;
+  adcs = [1 5];
+  raw_file_suffix = '.bin';
+  reuse_tmp_files = true; % Set to false if you want to overwrite current results
+  file_prefix_override = ''; % most of the time
+  counter_correction_en = true;
+  presum_bug_fixed = false;
+  union_time_epri_gaps = true;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2016_Antarctica_DC8';
+  base_dir = '/process/mcords/';
+%   base_dir = '/net/field1/landing/mcords/';
+  param.adc_folder_name = 'board%b';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20161014'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: MCoRDS 4
@@ -165,11 +186,11 @@ if strcmpi(radar_setup,'MCORDS5')
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2016_Greenland_Polar6';
-  base_dir = '/mnt/HDD6/';
-  param.adc_folder_name = '1604180601/UWB/chan%d';
+  param.season_name = '2017_Antarctica_Polar6';
+  base_dir = '/cresis/snfs1/scratch/2016_Germany_AWI_tests/AWI_ICE_bak/test_flight/';
+  param.adc_folder_name = 'chan%d';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20160418'; % Only used for stdout print of the vectors worksheet
+  day_string = '20160830'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 1
@@ -222,11 +243,11 @@ if strcmpi(radar_setup,'SNOW3')
   counter_correction_en = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2015_Greenland_C130';
-  base_dir = '/cresis/snfs1/data/SnowRadar/';
-  param.adc_folder_name = '20150328';
-  file_midfix = '20150328'; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20150328'; % Only used for stdout print of the vectors worksheet
+  param.season_name = '2016_Antarctica_DC8';
+  base_dir = '/process/fmcw/snow/';
+  param.adc_folder_name = '';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20161017'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 3 (NRL)
@@ -270,6 +291,7 @@ end
 %% User Settings that should not generally be changed
 % You may have to set to false to read some of the results from this function when it was first written (should always be true)
 tmp_fn_uses_adc_folder_name = true;
+online_mode = false;
 
 MIN_SEG_SIZE = 2;
 MAX_TIME_GAP = 1000/75;

@@ -11,24 +11,25 @@ typedef vector< pair<size_t, size_t> > CoordType;
 typedef vector< tuple<size_t, size_t, size_t> > PointType;
 typedef vector< vector<size_t> > LayerType;
 
-// Middle coordinate of one slice
+// Middle coordinate
 #define MID 33
+
 // Directions
 #define dir_up 0
 #define dir_down 1
 #define dir_left 2
 #define dir_right 3
 #define dir_all 4
-// Gamma
+
+// TRWS gamma
 #define gamma 0.5
-// A very large value
+
+// TRWS large cost
 #define LARGE 1000000000
 
-// Compute square of number
+// Compute square value
 template <class T>
-T sqr(T x) {
-    return x*x;
-}
+T sqr(T x) { return x*x; }
 
 // Convert integer to string
 string itos(int i) {
@@ -37,8 +38,13 @@ string itos(int i) {
     return s.str();
 }
 
-// THE CODE BELOW THIS POINT WAS TAKEN FROM DAVID CRANDALL
+// Dynamic smoothness
+double norm_pdf(double x, double scale=5.0, double mu=MID, double s=12.0) {
+    return scale * (1.0/(s*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/s));
+}
+
 // Distance transform
+// THE CODE BELOW THIS POINT WAS TAKEN FROM DAVID CRANDALL
 void dt(const double *src, double *dst, double *dst_ind, int s1, int s2, int d1, int d2, double scale, int off=0) {
     int d = (d1+d2) >> 1;
     int s = s1;

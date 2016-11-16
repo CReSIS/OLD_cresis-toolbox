@@ -2,7 +2,6 @@
 // By Mingze Xu, July 2016
 //
 #include <iostream>
-#include <assert.h>
 #include <cmath>
 #include <string>
 #include <vector>
@@ -11,11 +10,6 @@ using namespace std;
 
 #include "mex.h"
 #include "Instances.h"
-
-// Dynamic smoothness
-double norm_pdf(double x, double mu=MID, double sigma=12.0) {
-    return 5*((1.0/(sigma*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/sigma)));
-}
 
 class HMM {
     public:
@@ -33,11 +27,13 @@ class HMM {
         CoordType egt;
         // Ice mask
         vector<int> ice_mask;
+        // Model
         vector<double> mu;
         vector<double> sigma;
+        double egt_weight;
 
-        HMM(double *input, vector<size_t> slayer, size_t blayer, CoordType &elayer, double *mask, double *mean, double *var, 
-                size_t _width, size_t _height, size_t _ms=11) : bgt(blayer), width(_width), height(_height), ms(_ms) {
+        HMM(const double *input, const vector<size_t> &slayer, size_t blayer, const CoordType &elayer, const double *mask, const double *mean, 
+                const double *var, const double *egt_weight_in, size_t _width, size_t _height, size_t _ms=11) : bgt(blayer), width(_width), height(_height), ms(_ms) {
             // Init data
             matrix = vector<double>(width*height, 0.0);
             for (size_t i = 0; i < width*height; i++) {
@@ -53,7 +49,7 @@ class HMM {
             // Init ice mask
             ice_mask = vector<int>(width, 0);
             for (size_t i = 0; i < width; i++) {
-                ice_mask[i] = mask[i];
+                ice_mask[i] = (int)mask[i];
             }
 
             // Init mu and sigma
@@ -63,6 +59,8 @@ class HMM {
                 mu[i] = mean[i];
                 sigma[i] = var[i];
             }
+            
+            egt_weight = *egt_weight_in;
         }
 
         // Index of data
@@ -78,7 +76,7 @@ double HMM::unary_cost(size_t x, size_t y) {
     size_t t = (ms-1)/2;
 
     // Bottom layer should be below the surface layer
-    if (sgt[x] > 0 && sgt[x] < height-t && y+t+1 < sgt[x]) {
+    if (sgt[x] > t && sgt[x] < height-t && y+t+1 < sgt[x]) {
         return LARGE;
     }
 
@@ -87,22 +85,26 @@ double HMM::unary_cost(size_t x, size_t y) {
         return LARGE;
     }
 
-    // Using extra ground truth
+    // Using extra ground truth (uncomment these codes if use extra ground truth)
     for (size_t i = 0; i < egt.size(); i++) {
         if (x == egt[i].first) {
-            if (y == egt[i].second) {
-                return cost;
-            } else {
-                return LARGE;
-            }
+            cost += 2*pow(abs((int)egt[i].second - (int)(y+t))/egt_weight,2);
+//             if (y+t == egt[i].second) {
+//                 return cost;
+//             } else {
+//                 return LARGE;
+//             }
         }
     }
 
     // Penalty if too close to surface layer
-    if (abs((int)y - (int)sgt[x]) < 20) {
-        cost += 200;
+//     if (abs((int)y - (int)sgt[x]) < 20) {
+//         cost += 200;
+//     }
+    if (abs((int)(y+t) - (int)sgt[x]) < 10) {
+        cost += 100 - 10*abs((int)(y+t) - (int)sgt[x]);
     }
-
+    
     // Template quadratic distance
     for (size_t i = 0; i < ms; i++) {
         cost += sqr(matrix[encode(x, y+i)] - mu[i]) / sigma[i];
@@ -113,8 +115,9 @@ double HMM::unary_cost(size_t x, size_t y) {
 
 vector<double> HMM::layer_labeling() {
     size_t loop = 0;
-    size_t next = loop + 1;
-    size_t depth = height - ms;
+    size_t next = loop+1;
+    size_t depth = height-ms;
+    size_t t = (ms-1)/2;
     vector<string> path[2];
     double path_prob[2][depth];
     double index[depth];
@@ -128,9 +131,12 @@ vector<double> HMM::layer_labeling() {
     }
 
     // First column
-    if (ice_mask[0] == 0) {
+    if (ice_mask[0] == 0 && sgt[0] > t) {
         for (size_t i = 0; i < depth; i++) {
             path[loop%2][i] = itos((int)i);
+            if (i+t != sgt[0]) {
+                path_prob[loop%2][i] = LARGE;
+            }
         }
     } else {
         for (size_t i = 0; i < depth; i++) {
@@ -146,10 +152,10 @@ vector<double> HMM::layer_labeling() {
         // Distance transform
         dt_1d(path_prob[loop%2], beta, path_prob[next%2], index, 0, depth);
 
-        if (ice_mask[i] == 0) {
+        if (ice_mask[i] == 0 && sgt[i] > t) {
             for (size_t j = 0; j < depth; j++) {
                 path[next%2][j] = path[loop%2][(size_t)index[j]] + " " + itos((int)j);
-                if (j != sgt[i]) {
+                if (j+t != sgt[i]) {
                     path_prob[next%2][j] += LARGE;
                 }
             }
@@ -167,7 +173,6 @@ vector<double> HMM::layer_labeling() {
     // Set solution
     double min_val = INFINITY;
     int flag = -1;
-    size_t t = (ms-1)/2;
     for (size_t i = 0; i < depth; i++) {
         if (path_prob[loop%2][i] < min_val || flag == -1) {
             min_val = path_prob[loop%2][i];
@@ -201,9 +206,9 @@ mxArray * getMexArray(const vector<double> &v) {
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    if (nrhs != 7) {
+    if (nrhs != 8) {
         cerr << "nrhs: " << nrhs << endl;
-        mexErrMsgTxt("usage: detect(input_image, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var)");
+        mexErrMsgTxt("usage: detect(input_image, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight)");
     }
 
     double *input = mxGetPr(prhs[0]);
@@ -213,6 +218,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double *mask = mxGetPr(prhs[4]);
     double *mean = mxGetPr(prhs[5]);
     double *var = mxGetPr(prhs[6]);
+    double *egt_weight = mxGetPr(prhs[7]);
     size_t rows = mxGetM(prhs[0]);
     size_t cols = mxGetN(prhs[0]);
     size_t m = mxGetN(prhs[3]);
@@ -238,7 +244,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }
 
     // Doing labeling ...
-    HMM viterbi(input, slayer, blayer, elayer, mask, mean, var, cols, rows);
+    HMM viterbi(input, slayer, blayer, elayer, mask, mean, var, egt_weight, cols, rows);
     vector<double> labels = viterbi.layer_labeling();
 
     plhs[0] = getMexArray(labels);

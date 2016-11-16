@@ -51,6 +51,9 @@ end
 
 %% Update echogram surface if there are enough good points from OPS
 % Find good surface points
+if ~any(obj.eg.layer_id==1)
+  error('standard:surface must be added in the "Layers" preference window before loading echograms.');
+end
 good_mask = ~isnan(obj.eg.layer.y{obj.eg.layer_id==1});
 if sum(good_mask) > 2
   % There are surface layer points in the database, overwrite the surface

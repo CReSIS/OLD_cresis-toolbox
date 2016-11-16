@@ -18,9 +18,9 @@ elseif isfield(h_status,'Label') && strcmp(get(status,'Label'),'Add')
   num_lines = 1;
   def = {'CSARP_'};
   answer = inputdlg(prompt,dlg_title,num_lines,def);
-  answer = answer{1};
   
-  if ~isempty(answer) && ischar(answer)
+  if ~isempty(answer) && ~isempty(answer{1}) && ischar(answer{1})
+    answer = answer{1};
     selected_items = get(obj.h_gui.sourceLB,'Value');
     items = get(obj.h_gui.sourceLB,'String');
     items{end+1} = answer;

@@ -91,6 +91,12 @@ Tpd_base_duration = 1e-6;
 xml_version = param.xml_version;
 cresis_xml_mapping;
 
+if isfield(param,'TTL_clock') && ~isempty(param.TTL_clock)
+  TTL_clock = param.TTL_clock;
+else
+  error('param.TTL_clock field missing');
+end
+
 if isfield(param,'TTL_prog_delay') && ~isempty(param.TTL_prog_delay)
   TTL_prog_delay = param.TTL_prog_delay;
 else
@@ -148,7 +154,7 @@ settings_enc(1).(config_var_enc)(1).('AUXZ20DACZ20Z28HEXZ29') = reshape(uint8(pa
 if any(param.tx_weights > param.max_tx)
   error('Tx weights too high');
 end
-settings_enc(1).(config_var_enc)(1).(ram_var_enc) = reshape(uint16(param.tx_weights),[1 8]);
+settings_enc(1).(config_var_enc)(1).(ram_amp_var_enc) = reshape(uint16(param.tx_weights),[1 8]);
 
 if length(param.wfs)*(1+param.create_IQ) > 16
   error('Too many waveforms');
@@ -235,8 +241,8 @@ for wf = 1:length(param.wfs)
       % Duration before start of pulse, duration after pulse, offset of pulse
       % from TTL_prog_delay * fs/2
       % For example 2015 Gr LC130: [2.5e-6 260e-9 -1100e-9]
-      TTL_start = round((TTL_prog_delay/fs_sync + TTL_mode(3) - TTL_mode(1))*fs_sync);
-      TTL_duration(1:8) = round((TTL_mode(1) + TTL_mode(2) + Tpd) * fs_sync);
+      TTL_start = round((TTL_prog_delay/TTL_clock + TTL_mode(3) - TTL_mode(1))*TTL_clock);
+      TTL_duration(1:8) = round((TTL_mode(1) + TTL_mode(2) + Tpd) * TTL_clock);
     else
       error('Not supported');
     end
@@ -548,6 +554,10 @@ if xml_version >= 2.0
   settings_enc = rmfield(settings_enc,'DDSZ5FSetup');
 end
 
+out_xml_fn_dir = fileparts(out_xml_fn);
+if ~exist(out_xml_fn_dir,'dir')
+  mkdir(out_xml_fn_dir);
+end
 fid = fopen(out_xml_fn,'w');
 fprintf(fid,'<?xml version=''1.0'' standalone=''yes'' ?>\n');
 fprintf(fid,'<LVData xmlns="http://www.ni.com/LVData">\n');

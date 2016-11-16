@@ -53,7 +53,7 @@ else
 
   clims = [finitemin(finitemin(C(ybins(1):ybins(end),xbins(1):xbins(end)))) finitemax(finitemax(C(ybins(1):ybins(end),xbins(1):xbins(end))))];
   
-  if all(isfinite(clims)) && numel(clims) == 2
+  if numel(clims) == 2 && all(isfinite(clims))
     caxis(get(obj.img,'parent'),clims);
     colormap(get(obj.img,'parent'),cmap);
     

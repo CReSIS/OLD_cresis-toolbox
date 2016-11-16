@@ -15,8 +15,9 @@
  * usage of MEX-file
  */
 void
-printUsage()
+printUsage(int line_number)
 {
+  mexPrintf("Failed %s on line %d\n", __FILE__, line_number);
   mexPrintf("[file_size offset field1 ... fieldN] = %s(fn, frame_sync, field_offsets, field_type, file_mode);\n", mexFunctionName());
   mexPrintf("\n");
   mexPrintf(" Loads header fields from radar data files that use frame sync. Function\n");
@@ -66,7 +67,7 @@ mexFunction( int nlhs,
   ptrdiff_t buffersize;
 
   if (nlhs<1) {
-    printUsage();
+    printUsage(__LINE__);
     return;
   }
 
@@ -81,7 +82,7 @@ mexFunction( int nlhs,
    * error checking for input arguments
    */
   if (nrhs!=5) {
-    printUsage();
+    printUsage(__LINE__);
     return;
   }
 
@@ -93,7 +94,7 @@ mexFunction( int nlhs,
        (!mxIsClass(prhs[3], "cell")) ||
        (!mxIsClass(prhs[4], "char")) ) {
     // Usage of function incorrect
-    printUsage();
+    printUsage(__LINE__);
     return;
   }
 
@@ -107,7 +108,7 @@ mexFunction( int nlhs,
     num_outputs = num_cols;
   } else {
     // Usage of function incorrect
-    printUsage();
+    printUsage(__LINE__);
     return;
   }
 
@@ -116,7 +117,7 @@ mexFunction( int nlhs,
     mxGetN(prhs[2]) !=  mxGetN(prhs[3]) )
   {
     // Usage of function incorrect
-    printUsage();
+    printUsage(__LINE__);
     return;
   }
 
@@ -124,7 +125,7 @@ mexFunction( int nlhs,
   ptrdiff_t num_chars = mxGetN(prhs[4]);
   if (num_chars != 7) {
     // Usage of function incorrect
-    printUsage();
+    printUsage(__LINE__);
     return;
   }
 
@@ -136,7 +137,7 @@ mexFunction( int nlhs,
 
     if (class_type == NULL)
     {
-      printUsage();
+      printUsage(__LINE__);
       return;
     }
 
@@ -179,7 +180,7 @@ mexFunction( int nlhs,
     }
     if (!good_type)
     {
-      printUsage();
+      printUsage(__LINE__);
       return;
     }
 
@@ -196,10 +197,11 @@ mexFunction( int nlhs,
   file_mode = mxArrayToString(prhs[4]);
   if (file_mode == NULL)
   {
-    printUsage();
+    printUsage(__LINE__);
     return;
   }
-  if (!strncasecmp(file_mode,"ieee-be",7)) {
+  // strncasecmp under Linux? strnicmp under Visual Studio?
+  if (!_strnicmp(file_mode,"ieee-be",7)) {
     if (is_bigendian)
     {
       swap_bytes = false;
@@ -355,7 +357,7 @@ mexFunction( int nlhs,
         offset_size = 2*offset_size;
         offset = (int *)mxRealloc(offset,offset_size*sizeof(int));
       }
-      offset[offset_idx] = idx;
+      offset[offset_idx] = (int)idx;
       offset_idx++;
     }
   }

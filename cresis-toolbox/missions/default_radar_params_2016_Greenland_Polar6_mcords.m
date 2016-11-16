@@ -199,7 +199,7 @@ default.radar.adc_bits = 12;
 default.radar.adc_full_scale = 2;
 default.radar.rx_paths = [1:22,24,23];
 default.radar.noise_figure = 2;
-default.radar.rx_gain = 10^(48/20);
+default.radar.rx_gain_dB = 48;
 default.radar.adc_SNR_dB = 59;
 default.radar.Tadc_adjust = 0.000010179163; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 

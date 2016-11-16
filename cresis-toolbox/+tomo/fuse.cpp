@@ -1,4 +1,4 @@
-// fuse.cpp: Fuse MUSIC slices from three different views into one.
+// fuse.cpp: Fuse MUSIC slices from different beams into one.
 // By Mingze Xu, July 2016
 //
 #include <iostream>
@@ -8,19 +8,18 @@
 
 using namespace std;
 
-// Return x*x
+// Compute square value
 template <class T>
 T sqr(T x) { return x*x; }
 
-// Calculate pdf of normal distribution
+// Compute pdf of normal distribution
 double norm_pdf(double x, double mu=0.0, double s=10.0) {
-    return ((1.0/(s*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/s)));
+    return (1.0/(s*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/s));
 }
 
-// Fuse three images from different views
 vector<double> fuse(double *right, double *center, double *left, size_t width, size_t height) {
     vector<double> result(width*height, 0.0);
-    // Mu value of each image
+
     int l_mu = (int) (width/6);
     int c_mu = 3*l_mu;
     int r_mu = 5*l_mu;
@@ -31,7 +30,6 @@ vector<double> fuse(double *right, double *center, double *left, size_t width, s
             double l_pdf = norm_pdf(i-l_mu);
             double c_pdf = norm_pdf(i-c_mu);
             double r_pdf = norm_pdf(i-r_mu);
-            // Each image contribute with different percentage
             result[cp] = (l_pdf*left[cp] + c_pdf*center[cp] + r_pdf*right[cp]) / (l_pdf+c_pdf+r_pdf);
         }
     }

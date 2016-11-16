@@ -45,7 +45,7 @@ if length(surf.search_rng) > 1 || surf.search_rng ~= 0
   for rline = 1:size(data,2)
     search_bins = surface(rline) + surf.search_rng;
     search_bins = search_bins(search_bins >= surf.min_bin & search_bins <= size(data,1));
-    threshold_idx = find(data(search_bins,rline) > max(data(search_bins,rline)) .* 10.^(-surf.threshold/10),1);
+    threshold_idx = find(data(search_bins,rline) >= max(data(search_bins,rline)) .* 10.^(-surf.threshold/10),1);
     surface(rline) = search_bins(threshold_idx);
   end
 end

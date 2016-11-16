@@ -330,6 +330,8 @@ for file_idx = 1:length(in_fns)
     gps.gps_source = gps_source{file_idx};
   end
 
+  %% Check that GPS time is monotonically increasing
+  make_gps_monotonic(gps);
   
   %% Fabricate a heading from the trajectory if it is all zeros
   if all(gps.heading == 0)

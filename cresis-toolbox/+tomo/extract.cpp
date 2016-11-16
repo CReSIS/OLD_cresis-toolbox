@@ -10,60 +10,53 @@ using namespace std;
 #include "mex.h"
 #include "Instances.h"
 
-// Dynamic smoothness
-double norm_pdf(double x, double mu=MID, double s=12.0) {
-    return ((20.0/(s*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/s)));
-}
-
-// ----------------------------------------------------------------------------------------------------
-//                                              TRWS
-// ----------------------------------------------------------------------------------------------------
 class TRWSNode {
     public:
-        size_t max_disp;
         double *prior;
-        double *message[4];
+        double *messages[4];
 
-        TRWSNode(size_t md) : max_disp(md) {
+        TRWSNode(size_t max_disp) {
             prior = new double[max_disp];
 
-            message[dir_up] = new double[max_disp];
-            message[dir_down] = new double[max_disp];
-            message[dir_left] = new double[max_disp];
-            message[dir_right] = new double[max_disp];
+            messages[dir_up] = new double[max_disp];
+            messages[dir_down] = new double[max_disp];
+            messages[dir_left] = new double[max_disp];
+            messages[dir_right] = new double[max_disp];
 
-            for (size_t i = 0; i < max_disp; i++) {
-                message[dir_up][i] = message[dir_down][i] = message[dir_left][i] = message[dir_right][i] = 0.0;
+            for (size_t d = 0; d < max_disp; d++) {
+                messages[dir_up][d] = messages[dir_down][d] = messages[dir_left][d] = messages[dir_right][d] = 0.0;
             }
         }
-
+        
         ~TRWSNode() {
             delete [] prior;
-            delete [] message[dir_up];
-            delete [] message[dir_down];
-            delete [] message[dir_left];
-            delete [] message[dir_right];
+            delete [] messages[dir_up];
+            delete [] messages[dir_down];
+            delete [] messages[dir_left];
+            delete [] messages[dir_right];
         }
 
         double get_msg(size_t dir, size_t disp) {
-            return message[dir][disp];
+            return messages[dir][disp];
         }
 
         void set_msg(size_t dir, size_t disp, double val) {
-            message[dir][disp] = val;
+            messages[dir][disp] = val;
         }
 };
 
 class TRWS {
     public:
-        // size of template
+        // Model size
         size_t ms;
-        // rows of one slice
+        // Rows of one slice
         size_t depth;
-        // cols of one slice
+        // Cols of one slice
         size_t height;
-        // number of slices
+        // Number of slices
         size_t width;
+        // Number of states
+        size_t max_disp;
 
         // Dataset
         vector<double> dataset;
@@ -77,19 +70,21 @@ class TRWS {
         PointType egt;
         // Ice mask
         vector<int> ice_mask;
+        // Model
         vector<double> mu;
         vector<double> sigma;
-        // Temporary income messages
+        // Temporary messages
         vector<double> incomes[5];
-        // Final labels
-        vector<double> results;
+        // Result
+        vector<double> result;
 
-        TRWS(const double *input, const size_t *dim, LayerType slayer, vector<size_t> blayer, 
-                PointType elayer, double *mask, double *mean, double *var, size_t _ms=11) : ms(_ms) {
+        TRWS(const double *input, const size_t *dim, const LayerType &slayer, const vector<size_t> &blayer, 
+                const PointType &elayer, const double *_ice_mask, const double *_mu, const double *_sigma, size_t _ms=11) : ms(_ms) {
             // Set dimensions
             depth = dim[0];
             height = dim[1];
             width = dim[2];
+            max_disp = depth-ms;
 
             // Set dataset
             dataset = vector<double>(depth*height*width, 0.0);
@@ -99,8 +94,8 @@ class TRWS {
 
             // Set matrix and ice mask
             for (size_t i = 0; i < height*width; i++) {
-                matrix.push_back(new TRWSNode(depth-ms));
-                ice_mask.push_back((int)mask[i]);
+                matrix.push_back(new TRWSNode(max_disp));
+                ice_mask.push_back((int)_ice_mask[i]);
             }
 
             // Set ground truth
@@ -108,21 +103,21 @@ class TRWS {
             bgt.assign(blayer.begin(), blayer.end());
             egt.assign(elayer.begin(), elayer.end());
 
-            // Init parameters Mu and Sigma
+            // Set model
             for (size_t i = 0; i < ms; i++) {
-                mu.push_back(mean[i]);
-                sigma.push_back(var[i]);
+                mu.push_back(_mu[i]);
+                sigma.push_back(_sigma[i]);
             }
 
-            // Init income messages
-            incomes[dir_up] = vector<double>(depth-ms, 0.0);
-            incomes[dir_down] = vector<double>(depth-ms, 0.0);
-            incomes[dir_left] = vector<double>(depth-ms, 0.0);
-            incomes[dir_right] = vector<double>(depth-ms, 0.0);
-            incomes[dir_all] = vector<double>(depth-ms, 0.0);
+            // Set incomes
+            incomes[dir_up] = vector<double>(max_disp, 0.0);
+            incomes[dir_down] = vector<double>(max_disp, 0.0);
+            incomes[dir_left] = vector<double>(max_disp, 0.0);
+            incomes[dir_right] = vector<double>(max_disp, 0.0);
+            incomes[dir_all] = vector<double>(max_disp, 0.0);
 
-            // Init results
-            results = vector<double>(height*width, 0.0);
+            // Set result
+            result = vector<double>(height*width, 0.0);
         }
 
         ~TRWS() {
@@ -130,7 +125,7 @@ class TRWS {
                 delete matrix[i];
             }
         }
-
+        
         // The same to get element at 2D matrix (height, width)
         size_t encode(size_t h, size_t w);
         // The same to get element at 3D matrix in MATLAB (depth, height, width)
@@ -140,8 +135,10 @@ class TRWS {
         // Set prior
         void set_prior();
         // Set message
-        void set_message(TRWSNode *nd_me, size_t dir_me, size_t h, size_t w);
-        // Extract surface (MAIN)
+        double set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t beg2, double beta);
+        // Set result
+        void set_result();
+        // Extract surface
         void surface_extracting();
 };
 
@@ -158,43 +155,46 @@ double TRWS::unary_cost(size_t d, size_t h, size_t w) {
     size_t t = (ms-1)/2;
 
     // Ice mask
-    if (ice_mask[encode(h, w)] == 0) {
-        if (d == sgt[w][h]) {
-            return cost;
+    if (ice_mask[encode(h, w)] == 0 && sgt[w][h] > t) {
+        if (d+t == sgt[w][h]) {
+            return 0.0;
         } else {
             return LARGE;
         }
     }
 
-    // Bottom layer should be below the surface layer
-    if (sgt[w][h] > 0 && sgt[w][h]+t < depth && d+t+1 < sgt[w][h]) {
+    // Bottom layer should be below surface layer
+    if (sgt[w][h] > t && sgt[w][h]+t < depth && d+t+1 < sgt[w][h]) {
         return LARGE;
     }
 
-    // Using bottom ground truth
+    // Bottom ground truth
     if (h == MID && (d+t < bgt[w] || d+t > bgt[w]+500)) {
         return LARGE;
     }
 
-    // Using extra ground truth
+    // Extra ground truth (uncomment these if use extra ground truth)
     for (size_t i = 0; i < egt.size(); i++) {
         if (w == get<0>(egt[i]) && h == get<1>(egt[i])) {
-            if (d == get<2>(egt[i])) {
-                return cost;
-            } else {
-                return LARGE;
-            }
+            cost += 2*pow(abs((int)get<2>(egt[i]) - (int)(d+t))/2.0,2);
+//             if (d+t == get<2>(egt[i])) {
+//                 return 0.0;
+//             } else {
+//                 return LARGE;
+//             }
         }
     }
 
-    // Penalty if too close to surface layer
-    if (abs((int)d - (int)sgt[w][h]) < 20) {
-        cost += 200;
+    if (abs((int)(d+t) - (int)sgt[w][h]) < 10) {
+        cost += 100 - 10*abs((int)(d+t) - (int)sgt[w][h]);
     }
+//     if (abs((int)d - (int)sgt[w][h]) < 20) {
+//         cost += 200;
+//     }
 
-    // Template quadratic distance
+    // Model quadratic distance
     for (size_t i = 0; i < ms; i++) {
-        cost += sqr(dataset[encode(d+i, h, w)] - mu[i]) / sigma[i];
+        cost += sqr(dataset[encode(d+i,h,w)] - mu[i]) / sigma[i];
     }
 
     return cost;
@@ -203,9 +203,8 @@ double TRWS::unary_cost(size_t d, size_t h, size_t w) {
 void TRWS::set_prior() {
     for (size_t i = 0, cp = 0; i < width; i++) {
         for (size_t j = 0; j < height; j++, cp++) {
-            for (size_t d = 0; d < depth-ms; d++) {
+            for (size_t d = 0; d < max_disp; d++) {
                 matrix[cp]->prior[d] = unary_cost(d, j, i);
-                // Init first loop messages according to prior
                 for (size_t dir = 0; dir < 4; dir++) {
                     matrix[cp]->set_msg(dir, d, matrix[cp]->prior[d]);
                 }
@@ -214,47 +213,94 @@ void TRWS::set_prior() {
     }
 }
 
-void TRWS::set_message(TRWSNode *nd_me, size_t dir_me, size_t h, size_t w) {
-    double message[depth-ms];
-    double path[depth-ms];
-    double temp_incomes[depth-ms];
-    double beta = 1.0;
-    // Different directions have different beta
-    if (dir_me == dir_up || dir_me == dir_down) {
-        beta = norm_pdf(h);
-    } else {
-        beta = norm_pdf(MID);
-    }
+double TRWS::set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t beg2, double beta) {
+    double message_in[max_disp];
+    double message_out[max_disp];
+    double path[max_disp];
 
     // First, delete message from dir_me
-    for (size_t d = 0; d < depth-ms; d++) {
-        message[d] = incomes[dir_all][d] - incomes[dir_me][d];
+    for (size_t d = beg1; d < max_disp; d++) {
+        message_in[d] = incomes[dir_all][d] - incomes[dir_me][d];
     }
 
-    // Second, distance transform
-    dt_1d(message, beta, temp_incomes, path, 0, depth-ms);
+    // Second, prepare message
+    dt(message_in, message_out, path, beg1, max_disp-1, beg2, max_disp-1, beta);
 
+    // Finally, normalize message
     double min_val = INFINITY;
-    for (size_t d = 0; d < depth-ms; d++) {
-        if (temp_incomes[d] < min_val)
-            min_val = temp_incomes[d];
+    for (size_t d = beg2; d < max_disp; d++) {
+        if (message_out[d] < min_val) {
+            min_val = message_out[d];
+        }
     }
 
-    // Normalize messages
-    for (size_t d = 0; d < depth-ms; d++) {
-        nd_me->set_msg(dir_me, d, temp_incomes[d] - min_val);
+    for (size_t d = beg2; d < max_disp; d++) {
+        nd_me->set_msg(dir_me, d, message_out[d]-min_val);
+    }
+
+    return min_val;
+}
+
+void TRWS::set_result() {
+    size_t t = (ms-1)/2;
+    double temp = 0.0;
+    double min_val = INFINITY;
+    size_t flag = max_disp+1;
+
+    for (size_t h = 0; h < height; h++) {
+        for (size_t w = 0; w < width; w++) {
+            size_t center = encode(h, w);
+            min_val = INFINITY;
+            flag = max_disp+1;
+
+            // assert(sgt[w][MID] >= t);
+            for (size_t d = sgt[w][MID]-t; d < max_disp; d++) {
+                temp = matrix[center]->prior[d];
+
+                if (h > 0) {
+                    size_t up = encode(h-1, w);
+                    temp += matrix[up]->get_msg(dir_down, d);
+                    temp += abs(result[up] - (int)(d+t));
+                }
+
+                if (h+1 < height) {
+                    size_t down = encode(h+1, w);
+                    temp += matrix[down]->get_msg(dir_up, d);
+                }
+
+                if (w > 0) {
+                    size_t left = encode(h, w-1);
+                    temp += matrix[left]->get_msg(dir_right, d);
+                    temp += abs(result[left] - (int)(d+t));
+                }
+
+                if (w+1 < width) {
+                    size_t right = encode(h, w+1);
+                    temp += matrix[right]->get_msg(dir_left, d);
+                }
+
+                if (temp < min_val || flag > max_disp) {
+                    min_val = temp;
+                    flag = d;
+                }
+            }
+
+            result[center] = (int)(flag+t);
+        }
     }
 }
 
 void TRWS::surface_extracting() {
-    size_t loop = 0;
-    size_t max_loop = 100;
+    int loop = 0;
+    int max_loop = 50;
+    size_t t = (ms-1)/2;
 
-    // Begin loop
-    while (loop <= max_loop) {
-        mexPrintf("Loop: %d\n", loop);
+    while (loop < max_loop) {
+      if (loop > 0) {
+        mexPrintf("\b\b\b\b\b\b\b\b\b\b\b", loop);
+      }
+        mexPrintf("loop: %04d\n", loop+1);
         mexEvalString("drawnow;");
-
         // Forward
         for (size_t h = 1; h < height-1; h++) {
             for (size_t w = 1; w < width-1; w++) {
@@ -264,8 +310,8 @@ void TRWS::surface_extracting() {
                 size_t left = encode(h, w-1);
                 size_t right = encode(h, w+1);
 
-                // For each possible state, get messages from 4 directions
-                for (size_t d = 0; d < depth-ms; d++) {
+                // assert(sgt[w][MID] >= t);
+                for (size_t d = sgt[w][MID]-t; d < max_disp; d++) {
                     incomes[dir_up][d] = matrix[up]->get_msg(dir_down, d);
                     incomes[dir_down][d] = matrix[down]->get_msg(dir_up, d);
                     incomes[dir_left][d] = matrix[left]->get_msg(dir_right, d);
@@ -274,9 +320,17 @@ void TRWS::surface_extracting() {
                     incomes[dir_all][d] *= gamma;
                 }
 
-                // Send messages to right and down
-                set_message(matrix[center], dir_down, h, w);
-                set_message(matrix[center], dir_right, h, w);
+                double beta = 1.0;
+                size_t beg1 = sgt[w][MID]-t;
+                size_t beg2 = 0;
+                // Right
+                beta = norm_pdf(MID, 6.0);
+                beg2 = sgt[w+1][MID]-t;
+                set_message(matrix[center], dir_right, beg1, beg2, beta);
+                // Down
+                beta = norm_pdf(h, 6.0);
+                beg2 = sgt[w][MID]-t;
+                set_message(matrix[center], dir_down, beg1, beg2, beta);
             }
         }
 
@@ -288,10 +342,10 @@ void TRWS::surface_extracting() {
                 size_t down = encode(h+1, w);
                 size_t left = encode(h, w-1);
                 size_t right = encode(h, w+1);
-                double min_val = INFINITY;
 
-                // For each possible state, get messages from 4 directions
-                for (size_t d = 0; d < depth-ms; d++) {
+                double min_val = INFINITY;
+                // assert(sgt[w][MID] >= t);
+                for (size_t d = sgt[w][MID]-t; d < max_disp; d++) {
                     incomes[dir_up][d] = matrix[up]->get_msg(dir_down, d);
                     incomes[dir_down][d] = matrix[down]->get_msg(dir_up, d);
                     incomes[dir_left][d] = matrix[left]->get_msg(dir_right, d);
@@ -302,72 +356,31 @@ void TRWS::surface_extracting() {
                     }
                 }
 
-                // Normalize messages
-                for (size_t d = 0; d < depth-ms; d++) {
+                // Normalize message
+                for (size_t d = sgt[w][MID]-t; d < max_disp; d++) {
                     incomes[dir_all][d] -= min_val;
                     incomes[dir_all][d] *= gamma;
                 }
 
-                // Send messages to left and up
-                set_message(matrix[center], dir_left, h, w);
-                set_message(matrix[center], dir_up, h, w);
+                double beta = 1.0;
+                size_t beg1 = sgt[w][MID]-t;
+                size_t beg2 = 0;
+                // Left
+                beta = norm_pdf(MID, 6.0);
+                beg2 = sgt[w-1][MID]-t;
+                set_message(matrix[center], dir_left, beg1, beg2, beta);
+                // Up
+                beta = norm_pdf(h, 6.0);
+                beg2 = sgt[w][MID]-t;
+                set_message(matrix[center], dir_up, beg1, beg2, beta);
             }
         }
 
         loop++;
     }
 
-    // Compute results
-    mexPrintf("Computing the solution ...\n");
-    mexEvalString("drawnow;");
-    double temp = 0.0;
-    double min_val = INFINITY;
-    int flag = -1;
-    int t = (ms-1)/2;
-
-    for (size_t h = 0; h < height; h++) {
-        for (size_t w = 0; w < width; w++) {
-            min_val = INFINITY;
-            flag = -1;
-            size_t center = encode(h, w);
-
-            for (size_t d = sgt[w][MID]; d < depth-ms; d++) {
-                temp = matrix[center]->prior[d];
-                if (h > 0) {
-                    size_t up = encode(h-1, w);
-                    temp += matrix[up]->get_msg(dir_down, d) + abs(results[up] - (int)d);
-                }
-
-                if (h+1 < height) {
-                    size_t down = encode(h+1, w);
-                    temp += matrix[down]->get_msg(dir_up, d);
-                }
-
-                if (w > 0) {
-                    size_t left = encode(h, w-1);
-                    temp += matrix[left]->get_msg(dir_right, d) + abs(results[left] - (int)d);
-                }
-
-                if (w+1 < width) {
-                    size_t right = encode(h, w+1);
-                    temp += matrix[right]->get_msg(dir_left, d);
-                }
-
-                if (temp < min_val || flag == -1) {
-                    min_val = temp;
-                    flag = d;
-                }
-            }
-
-            results[center] = flag + t;
-
-        }
-    }
+    set_result();
 }
-
-// ----------------------------------------------------------------------------------------------------
-//                                              TRWS-END
-// ----------------------------------------------------------------------------------------------------
 
 // MATLAB FUNCTION START
 // Convert vector to mex array
@@ -425,16 +438,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         elayer.push_back(tuple<size_t, size_t, size_t>(floor(extra[i*3]), floor(extra[i*3+1]), floor(extra[i*3+2])));
     }
 
-    mexPrintf("Initing TRWS ...\n");
-    mexEvalString("drawnow;");
+    //mexPrintf("Initing TRWS ...\n");
+    //mexEvalString("drawnow;");
     TRWS trws(input, dim, slayer, blayer, elayer, mask, mean, var);
-    mexPrintf("Setting prior ...\n");
-    mexEvalString("drawnow;");
+    //mexPrintf("Setting prior ...\n");
+    //mexEvalString("drawnow;");
     trws.set_prior();
-    mexPrintf("Extracting surface ...\n");
-    mexEvalString("drawnow;");
+    //mexPrintf("Extracting surface ...\n");
+    //mexEvalString("drawnow;");
     trws.surface_extracting();
 
-    plhs[0] = getMexArray(trws.results);
+    plhs[0] = getMexArray(trws.result);
 }
 // END

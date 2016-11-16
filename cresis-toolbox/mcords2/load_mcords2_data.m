@@ -237,7 +237,7 @@ for board_idx = 1:length(boards)
     % ===============================================================
     
     if ~strcmpi(old_fn,fn)
-      fprintf('Load %s %s\n', datestr(now,'HH:MM:SS'), fn);
+      fprintf('Load %s %s\n', datestr(now), fn);
       old_fn = fn;
     end
     if param.load.file_version == 411
@@ -333,6 +333,10 @@ for board_idx = 1:length(boards)
           end
           tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
           tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V;
+          
+          if isfield(wfs(wf),'gain')
+            tmp = tmp .* interp1(wfs(wf).gain.Time, wfs(wf).gain.Gain, wfs(wf).time_raw(1:wfs(wf).Nt_raw));
+          end
         end
         % Accumulate (presum)
         if num_accum == 0
