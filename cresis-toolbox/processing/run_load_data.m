@@ -6,7 +6,7 @@
 %
 % See also load_data, pulse_compress
 
-run_example = 2;
+run_example = 1;
 clear data;
 
 if run_example == 1
@@ -16,7 +16,7 @@ if run_example == 1
   %    freq-wavenumber domains
   % =======================================================================
   
-  param = read_param_xls(ct_filename_param('rds_param_2015_Greenland_LC130.xls'),'20150205_05');
+  param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),'20160413_01');
   
   % Determine which records you want to load:
   frames_fn = '';
@@ -25,10 +25,13 @@ if run_example == 1
   frm = 1;
   param.load_data.recs = frames.frame_idxs(frm) + [0 99];
   
+  if ~isfield(param.records,'records_fn')
+    param.records.records_fn = '';
+  end
   param.load_data.records_fn = param.records.records_fn;
   %   param.load_data.imgs = {[-1j 5]};
   %   param.load_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 8; 2 9; 2 10; 2 11; 2 12; 2 13; 2 14; 2 15; 2 16]};
-  param.load_data.imgs = {[3 1; 3 2]};
+  param.load_data.imgs = {[1 1]};
   param.load_data.pulse_comp         = true;
   param.load_data.ft_dec             = true; % Fast-time decimation
   param.load_data.ft_wind            = @hanning;
@@ -55,7 +58,7 @@ if run_example == 1
   grid on;
   colorbar
   
-  noise_bins = 600:700;
+  noise_bins = 190:230;
   
   figure(2); clf;
   imagesc([],fftshift(hdr.wfs(wf).freq), ...
