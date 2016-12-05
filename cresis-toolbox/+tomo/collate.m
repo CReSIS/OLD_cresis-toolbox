@@ -21,13 +21,14 @@ param = merge_structs(param,param_override);
 if ~isfield(param.records,'frames_fn')
   param.records.frames_fn = '';
 end
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+% load(ct_filename_support(param,param.records.frames_fn,'frames'));
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end
 % Remove frames that do not exist from param.cmd.frms list
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+% [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+valid_frms = ones(1,length(param.cmd.frms));
 if length(valid_frms) ~= length(param.cmd.frms)
   bad_mask = ones(size(param.cmd.frms));
   bad_mask(keep_idxs) = 0;
@@ -56,12 +57,12 @@ if strcmpi(param.sched.type,'custom_torque')
   global ctrl; % Make this global for convenience in debugging
   ctrl = torque_new_batch(param);
   fprintf('Torque batch: %s\n', ctrl.batch_dir);
-  torque_compile('tomo.collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
+  torque_compile('collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
 end
 
 %% Create Tasks
 task_param = param;
-fh = @tomo.collate_task;
+fh = @collate_task;
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
   task_param.proc.frm = frm;
