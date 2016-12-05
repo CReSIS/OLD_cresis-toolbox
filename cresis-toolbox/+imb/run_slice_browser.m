@@ -76,12 +76,6 @@ obj.insert_tool(max_tool);
 
 try; delete(threshold_tool); end;
 threshold_tool = imb.slicetool_threshold();
-custom_data.ice_mask = mdata.ice_mask;
-custom_data.theta = mdata.param_combine.array_param.theta;
-custom_data.img = mdata.Topography.img;
-custom_data.Time = mdata.Time;
-custom_data.sb = obj;
-threshold_tool.set_custom_data(custom_data);
 obj.insert_tool(threshold_tool);
 
 try; delete(icemask_tool); end;

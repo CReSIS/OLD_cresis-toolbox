@@ -129,6 +129,10 @@ if ispc
     end
   end
 else
+  % Add trailing slash (required for symbolic links to work)
+  if length(filepath)>1 && filepath(end) ~= '/'
+    filepath = [filepath '/'];
+  end
   % Create system command to get filenames
   if param.recursive
     sysCmd = sprintf('find "%s" \\( ! -regex ''.*/\\..*'' \\) -type %s -name ''%s'' </dev/null', ...

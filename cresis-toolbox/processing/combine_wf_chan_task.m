@@ -41,13 +41,6 @@ physical_constants;
 % =====================================================================
 % Process data
 % =====================================================================
-if ~isfield(param.combine,'subaps') || isempty(param.combine.subaps)
-  param.combine.subaps = {[1]};
-end
-if ~isfield(param.combine,'subbnds') || isempty(param.combine.subbnds)
-  param.combine.subbnds = {[1]};
-end
-
 for chunk_idx = 1:length(param.combine.chunk_ids)
   
   tx = 1;
@@ -73,6 +66,20 @@ for chunk_idx = 1:length(param.combine.chunk_ids)
       % image list, so we only grab the first image.  Multilooking across
       % SLCs IS NOT supported for this method!
       ml_list = {ml_list{1}(1,:)};
+    end
+    if ~isfield(param.combine,'subaps') || isempty(param.combine.subaps)
+      % If SAR sub-apertures not set, we assume that there is just one
+      % subaperture to be passed in for each multilook input
+      for ml_idx = 1:length(ml_list)
+        param.combine.subaps{ml_idx} = [1];
+      end
+    end
+    if ~isfield(param.combine,'subbnds') || isempty(param.combine.subbnds)
+      % If subbands not set, we assume that there is just one
+      % subaperture to be passed in for each multilook input
+      for ml_idx = 1:length(ml_list)
+        param.combine.subbnds{ml_idx} = [1];
+      end
     end
     clear fcs chan_equal data;
     for ml_idx = 1:length(ml_list)

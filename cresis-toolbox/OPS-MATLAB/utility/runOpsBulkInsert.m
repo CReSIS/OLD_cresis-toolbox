@@ -62,8 +62,18 @@ settings.layerDataPath = 'layerData';
 %   inline('~isempty(regexp(x,''(^surface$|^bottom$)''))');: only surface and bottom layers
 %   inline('~isempty(regexp(x,''^lm.*''))');: only layers starting with 'lm'
 settings.layerFilter = inline('~isempty(regexp(x,''(^surface$|^bottom$)''))');
+% settings.layerFilter = inline('~isempty(regexp(x,''(^bottom$)''))');
 % settings.layerFilter = inline('~isempty(regexp(x,''^lm.*''))');
 
+% ----------------------------------------------------------------
+% layerRelativeSurface: LOGICAL THAT IF TRUE ADDS ALL NEW LAYERS RELATIVE
+% TO THE EXISTING SURFACE
+settings.layerRelativeSurface = false;
+
+% ----------------------------------------------------------------
+% gaps_dist: TWO ELEMENTS THAT CONTROL HOW DATA IS INTERPOLATED ACROSS GAPS
+%  [300 60] is typical, arguments passed to data_gaps_check_mex.cpp
+settings.gaps_dist = [300 60];
 
 %% OPTIONAL USER INPUT (COMMON DEFAULT PROPERTIES)
 
