@@ -16,7 +16,7 @@ function surfdata_to_geotiff(param)
     frm = frms(frm_idx);
     
     surfdata_fn = fullfile(ct_filename_out(param,'surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-    data_fn = fullfile(ct_filename_out(param,'CSA_music'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    data_fn = fullfile(ct_filename_out(param,param.out_type),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
     
     %% Load surface and bottom data
     load(surfdata_fn)
@@ -64,6 +64,11 @@ function surfdata_to_geotiff(param)
       global gRadar
       theta = load(fullfile(gRadar.out_path,'rds','2014_Greenland_P3','CSARP_CSA_music','20140401_03','Data_20140401_03_037'),'theta');
       mdata.theta = theta.theta;
+    end
+    
+    if(isfield(param,'theta_cal_fn') && ~isempty(param.theta_cal_fn))
+      theta_cal = load(param.theta_cal_fn);
+      mdata.theta = theta_cal.theta;
     end
 
     % Convert surface from range bins to twtt
@@ -154,7 +159,7 @@ function surfdata_to_geotiff(param)
 
       if 1
         [DEM, R, tmp] = geotiffread(geotiff_fn);
-        figure(1); clf;
+        f1 = figure(1); clf;
         h_img = imagesc( (R(3,1) + R(2,1)*(0:size(DEM,2)-1))/1e3, (R(3,2) + R(1,2)*(0:size(DEM,1)-1))/1e3, DEM);
         set(gca,'YDir','normal');
         hold on;
@@ -181,8 +186,8 @@ function surfdata_to_geotiff(param)
           surf_str = ['ice_',surf_str];
         end
         out_fn_name = sprintf('%s_%03d_%s',param.day_seg,frm,surf_str);
-        saveas(1,[fullfile(out_dir,out_fn_name),'.fig']);
-        saveas(1,[fullfile(out_dir,out_fn_name),'.jpg']);
+        saveas(f1,[fullfile(out_dir,out_fn_name),'.fig']);
+        saveas(f1,[fullfile(out_dir,out_fn_name),'.jpg']);
       end
 
       % Griddata the result
@@ -244,7 +249,7 @@ function surfdata_to_geotiff(param)
       %F = TriScatteredInterp(dt,pnts(3,:).','natural');
       DEM = F(xmesh,ymesh);
 
-      fprintf('  Creating boundary and removing outside points (%.1f sec)\n', toc);
+%       fprintf('  Creating boundary and removing outside points (%.1f sec)\n', toc);
       if 0
         % Slow method using inpolygon
         boundary = [pnts(1:2,:,1) squeeze(pnts(1:2,end,:)) squeeze(pnts(1:2,end:-1:1,end)) squeeze(pnts(1:2,1,end:-1:1))];
@@ -364,7 +369,7 @@ function surfdata_to_geotiff(param)
         zlims = [min(DEM(:)) max(DEM(:))];
         DEM_contour = DEM;
         DEM_contour(isnan(DEM_contour)) = zlims(1)-100;
-        figure(2); clf
+        f2 = figure(2); clf
         contourf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,DEM_contour,linspace(zlims(1),zlims(end),10));
         % axis([22 32 1.5 9]);
         hx = xlabel('X (km)');
@@ -383,8 +388,8 @@ function surfdata_to_geotiff(param)
           surf_str = ['ice_',surf_str];
         end
         out_fn_name = sprintf('%s_%03d_%s_contour',param.day_seg,frm,surf_str);
-        saveas(2,[fullfile(out_dir,out_fn_name),'.fig']);
-        saveas(2,[fullfile(out_dir,out_fn_name),'.jpg']);
+        saveas(f2,[fullfile(out_dir,out_fn_name),'.fig']);
+        saveas(f2,[fullfile(out_dir,out_fn_name),'.jpg']);
       end
 
 
