@@ -287,7 +287,7 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
     alpha = arena.wfs(wf).tukey;
     equal.delay = arena.wfs(wf).delay;
     equal.phase = arena.wfs(wf).phase;
-    equal.scale = floor(arena.wfs(wf).scale*1e4)/1e4;
+    equal.scale = arena.wfs(wf).scale;
     Nt = round((arena.wfs(wf).Tpd+equal.delay) * fs);
     
     %[0.63 ]
