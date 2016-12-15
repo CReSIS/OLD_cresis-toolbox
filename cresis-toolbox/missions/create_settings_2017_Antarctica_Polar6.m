@@ -30,14 +30,13 @@ final_DDS_phase = [];
 final_DDS_phase_no_time = [];
 final_DDS_amp = [];
 final_DDS_time = [];
-if 1
+if 0
   % Initial conditions (usually all zeros phase/time with max amplitude)
   for idx = 1:length(f0_list)
     final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
     final_DDS_phase_no_time = [0 0 0 0 0 0 0 0]; % not used usually
     final_DDS_amp{idx} = [4000 4000 4000 4000 4000 4000 4000 4000];
-    final_DDS_amp{idx} = [4000 4000 4000 4000 4000 4000 4000 4000] .* chebwin(8,30).';
-    final_DDS_time{idx} =  [0 0 0.0025 0.0025 0.003125 0.003125 0 0]*1e-6;
+    final_DDS_time{idx} =  [0 0 2.5 2.5 3.125 3.125 0 0];
   end
 else
   % COPY AND PASTE RESULTS FROM basic_tx_chan_equalization_SEASON_NAME.m
@@ -48,22 +47,22 @@ else
   % MHz clock cycle after channels 1-4.
   
   % 150-520 MHz
-  final_DDS_phase{end+1} = [63.3	86.1	-16.5	0.0	8.9	-17.4	68.8	51.1];
+  final_DDS_phase{end+1} = [105.2	120.8	-15.3	0.0	83.2	57.0	114.9	102.0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
   final_DDS_amp{end+1} = [1312	2849	2657	3572	4000	2618	2574	1386];
-  final_DDS_time{end+1} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50];
+  final_DDS_time{end+1} =  [0 0 2.5 2.5 3.125 3.125 0 0];
     
   % 180-210 MHz
-  final_DDS_phase{end+1} = [61.4	85.2	-15.1	0.0	8.7	-1.0	76.8	56.1];
+  final_DDS_phase{end+1} = [105.2	120.8	-15.3	0.0	83.2	57.0	114.9	102.0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
   final_DDS_amp{end+1} = [1172	2550	3026	3650	4000	3106	2361	1223];
-  final_DDS_time{end+1} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50];  
+  final_DDS_time{end+1} =  [0 0 2.5 2.5 3.125 3.125 0 0];
   
   % 320-350 MHz
-  final_DDS_phase{end+1} = [63.3	86.1	-16.5	0.0	8.9	-17.4	68.8	51.1];
-  final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [1312	2849	2657	3572	4000	2618	2574	1386];
-  final_DDS_time{end+1} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50];
+  final_DDS_phase{end+1} = final_DDS_phase{1};
+  final_DDS_phase_no_time{end+1} = final_DDS_phase_no_time{1};
+  final_DDS_amp{end+1} = final_DDS_amp{1};
+  final_DDS_time{end+1} =  final_DDS_time{1};
 end
 
 % Hwindow_orig: Desired window created during transmit calibration

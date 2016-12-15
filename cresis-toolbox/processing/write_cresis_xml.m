@@ -598,6 +598,9 @@ if strcmpi(param.radar_name,'mcords5')
   out_str = ['<!DOCTYPE systemXML>' out_str(find(out_str==10,1):end)];
   [~,rss_fn_name] = fileparts(param.fn);
   rss_fn = fullfile(param.rss_base_dir,[rss_fn_name '.xml']);
+  if ~exist(param.rss_base_dir,'dir')
+    mkdir(param.rss_base_dir);
+  end
   fid = fopen(rss_fn,'w');
   fwrite(fid,out_str,'char');
   fclose(fid);

@@ -163,7 +163,7 @@ elseif xml_version == 2.0
   ttl_length_var_enc = 'TTLZ20Length';
   NCO_freq = 'NCO_freq';
   if ~exist('xml_file_prefix','var')
-    xml_file_prefix = 'mcords3';
+    xml_file_prefix = 'mcords';
   end
 else
   error('Unsupported version');

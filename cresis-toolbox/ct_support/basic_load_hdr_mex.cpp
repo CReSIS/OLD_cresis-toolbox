@@ -201,7 +201,11 @@ mexFunction( int nlhs,
     return;
   }
   // strncasecmp under Linux? strnicmp under Visual Studio?
+  #ifdef _WIN32
   if (!_strnicmp(file_mode,"ieee-be",7)) {
+  #else
+  if (!strncasecmp(file_mode,"ieee-be",7)) {
+  #endif
     if (is_bigendian)
     {
       swap_bytes = false;

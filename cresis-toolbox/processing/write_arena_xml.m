@@ -240,7 +240,7 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
   equal.delay = arena.wfs(wf).delay;
   equal.phase = arena.wfs(wf).phase;
   equal.scale = arena.wfs(wf).scale;
-  Nt = round((arena.wfs(wf).Tpd+equal.delay) * fs);
+  Nt = round((arena.wfs(wf).Tpd+equal.delay/1e9) * fs);
   
   config = doc.createElement('config'); configs.appendChild(config);
   config.setAttribute('type','dac-ad9129_0014_waveform');
@@ -262,7 +262,7 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
   grandchild = doc.createElement('bandwidth'); child.appendChild(grandchild);
   grandchild.appendChild(doc.createTextNode(sprintf('%f',BW(dac+1)/1e6)));
   grandchild = doc.createElement('initialDelay'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac+1)*1e6)));
+  grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac+1)*1e-3)));
   grandchild = doc.createElement('initialPhase'); child.appendChild(grandchild);
   grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac+1)+zeropimod)));
   grandchild = doc.createElement('afterPulseDelay'); child.appendChild(grandchild);
@@ -288,7 +288,7 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
     equal.delay = arena.wfs(wf).delay;
     equal.phase = arena.wfs(wf).phase;
     equal.scale = arena.wfs(wf).scale;
-    Nt = round((arena.wfs(wf).Tpd+equal.delay) * fs);
+    Nt = round((arena.wfs(wf).Tpd+equal.delay/1e9) * fs);
     
     %[0.63 ]
     %  0.1652 0.326800 0.511500 0.63 0.6300 0.511500 0.3268 0.1652
@@ -326,7 +326,7 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
         grandchild = doc.createElement('bandwidth'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode(sprintf('%f',BW(dac+1)/1e6)));
         grandchild = doc.createElement('initialDelay'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac+1)*1e6)));
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac+1)*1e-3)));
         grandchild = doc.createElement('initialPhase'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac+1)+zeropimod)));
         grandchild = doc.createElement('afterPulseDelay'); child.appendChild(grandchild);

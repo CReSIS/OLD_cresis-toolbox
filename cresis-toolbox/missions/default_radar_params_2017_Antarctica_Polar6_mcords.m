@@ -36,6 +36,7 @@ default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn'
 default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 default.basic_surf_track_min_time = 2e-6;
+default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
 default.adc_folder_name = 'chan%d';
 
 if 1
