@@ -62,27 +62,12 @@ if ~param.tomo_collate.vertical_fuse;
   end
 else
   
-  N_t_bins = zeros(1,length(mdata));
-  for i=1:length(mdata)
-    N_t_bins(i) = length(mdata{i}.Time);
-  end
-  [~,sort_idx] = sort(N_t_bins);
-  dummy = mdata;
-  for i=1:length(mdata)
-    mdata(i) = dummy(sort_idx(i));
-  end
-  clear dummy;
-  
-  % mean adjustment
-%   mean_intensity = zeros(1,length(mdata));
+  % normalized intensity of images
   min_intensity = zeros(1,length(mdata));
   for i = 1:length(mdata)
-%     mean_intensity(i) = mean2(lp(mdata{i}.Topography.img));
-      min_intensity(i) = mean(min(min(mdata{i}.Topography.img)));
+    min_intensity(i) = mean(min(min(mdata{i}.Topography.img)));
   end
   for i = 1:length(mdata)
-%     mdata{i}.Topography.img = mdata{i}.Topography.img*10^((max(mean_intensity)-mean_intensity(i))/10);
-%     mdata{i}.Topography.img = mdata{i}.Topography.img*10^((max(min_intensity)-min_intensity(i))/10);
     mdata{i}.Topography.img(mdata{i}.Topography.img<max(min_intensity)) = max(min_intensity);
   end
   
@@ -96,93 +81,135 @@ else
   
   slave_imgs = imgs(imgs~=master_img_idx);
   
-  time_min = inf;
+  % gets min and max twtts of imgs for sorting
+  time_min = mdata{1}.Time(1);
   time_max = -inf;
   for img_idx = 1:length(mdata)
-    time_min = min([time_min;mdata{img_idx}.Time]);
-    time_max = max([time_max;mdata{img_idx}.Time]);
+    time_max = max([time_max,mdata{img_idx}.Time(end)]);
   end
   
+  % images universal time increment
   dt = mode(diff(mdata{master_img_idx}.Time));
+  % time axis of combined image product
   Time_fused = [flipud(-(-mdata{master_img_idx}.Time(1):dt:-time_min).') ...
     ; mdata{master_img_idx}.Time(2:end-1) ; (mdata{master_img_idx}.Time(end):dt:time_max).'];
   
-  for img_idx = slave_imgs
-    if mdata{img_idx}.Time(1) > Time_fused(1)
-      start_time_idx = interp1(Time_fused,1:length(Time_fused),mdata{img_idx}.Time(1),'nearest');
+  % interpolates images time axis to combined image time axis
+  for slave_img_idx = slave_imgs
+    start_time_idx = interp1(Time_fused,1:length(Time_fused),mdata{slave_img_idx}.Time,'nearest');
+    if isnan(start_time_idx(1))
+      start_time_idx = find(~isnan(start_time_idx),1);
+      range = 1:(length(mdata{slave_img_idx}.Time)-start_time_idx);
+      mdata{slave_img_idx}.Time = Time_fused(range);
+      mdata{slave_img_idx}.Topography.val = mdata{slave_img_idx}.Topography.val(range,:,:);
+      mdata{slave_img_idx}.Topography.freq = mdata{slave_img_idx}.Topography.freq(range,:,:);
+      mdata{slave_img_idx}.Topography.img = mdata{slave_img_idx}.Topography.img(range,:,:);
     else
-      start_time_idx = 1;
+      start_time_idx = start_time_idx(1);
+      mdata{slave_img_idx}.Time = Time_fused(start_time_idx + 0:(length(mdata{slave_img_idx}.Time)-1));
     end
-    if start_time_idx+length(mdata{img_idx}.Time)-1 > length(Time_fused)
-      start_time_idx = start_time_idx-1;
-    end
-    mdata{img_idx}.Time = Time_fused(start_time_idx+(0:(length(mdata{img_idx}.Time)-1)));
   end
   
+  % combined image product
   img_combined = nan(length(Time_fused),size(mdata{master_img_idx}.Topography.img,2) ...
     ,size(mdata{master_img_idx}.Topography.img,3));
   
+    % beginning index of fuse in images
     first_img_bins = zeros(rlines,length(img_comb));
-    first_comb_bins = zeros(rlines,length(img_comb)/2);
+    % last index of fuse in images
     last_img_bins = zeros(rlines,length(img_comb));
+    % beginning index of fuse in combined image
+    first_comb_bins = zeros(rlines,length(img_comb)/2);
+    
+    % loops thorough img_comb to determine fuse range of each fuse
     for comb = 1:length(img_comb)
+      % target image of current img_comb components
       img = floor(comb/2)+1;
+      % img_comb component of fuse start
       f = comb + mod(comb,2) - 1;
+      % img_comb component of fuse end
       l = comb + mod(comb,2);
+      
+      % twtt associated with fuse start img_comb component for each slice
       first_twtt = Surface+img_comb(f);
+      % twtt associated with fuse start img_comb component for each slice
+      last_twtt = Surface+img_comb(l);
+      
+      % ???
       if ~mod(comb,2)
         first_twtt(first_twtt>max(mdata{img-1}.Time)) = max(mdata{img-1}.Time);
+        if any(first_twtt>max(mdata{img-1}.Time))
+          keyboard;
+        end
       end
+      
+      % gets image index of fuse start
       first_img_bins(:,comb) = interp1(mdata{img}.Time,1:length(mdata{img}.Time),first_twtt,'nearest');
+      
+      % Gets fused image index of fuse start (if statement ensure it only
+      % runs once for each combination (on first loop of each combo)
       if mod(comb,2)
-        first_comb_bins(:,ceil(comb/2)) = interp1(Time_fused,1:length(Time_fused),Surface+img_comb(f),'nearest');
-      elseif ~all(first_comb_bins(:,comb/2) == interp1(Time_fused,1:length(Time_fused),Surface+img_comb(f),'nearest').')
-        error('');
+        first_comb_bins(:,ceil(comb/2)) = interp1(Time_fused,1:length(Time_fused),first_twtt,'nearest');
       end
+      
+      % gets image index of fuse end
       if isfinite(img_comb(l));
-        last_img_bins(:,comb) = interp1(mdata{img}.Time,1:length(mdata{img}.Time),Surface+img_comb(l),'nearest');
-        last_img_bins((Surface+img_comb(l))>max(mdata{img}.Time),comb)=max(mdata{img}.Time);
+        last_img_bins(:,comb) = interp1(mdata{img}.Time,1:length(mdata{img}.Time),last_twtt,'nearest');
+        % ensures last index does not exceed length of image
+        last_img_bins(last_twtt>max(mdata{img}.Time),comb) = max(mdata{img}.Time);
       else
-        last_img_bins(:,comb) = interp1(mdata{img}.Time,1:length(mdata{img}.Time),mdata{img+mod(comb,2)-1}.Time(end),'nearest');
+        % uses last twtt of first image in combo
+        last_img_bins(:,comb) = interp1(mdata{img}.Time,1:length(mdata{img}.Time),min(mdata{ceil(comb/2)}.Time(end),mdata{img}.Time(end)),'nearest');
       end
     end
   
   for rline = 1:rlines
-      
+    
+    % inserts section of first image not in any fuse
     img_combined(1:first_comb_bins(rline,1),:,rline) = ...
       mdata{1}.Topography.img(1:first_img_bins(rline,1),:,rline);
-%     for theta_idx = 1:size(mdata{1}.Topography.img,2);
       
+      % loops through fuse combinations
       for comb = 1:length(img_comb)/2;
 
-        N_bin = last_img_bins(rline,comb*2+[-1,0])-first_img_bins(rline,comb*2+[-1,0])+1;
-        if diff(N_bin)
-          error('');
-        end
-        N_bin = N_bin(1);
+        N_bins = last_img_bins(rline,comb*2+[-1,0])-first_img_bins(rline,comb*2+[-1,0])+1;
+        % Number of time bins included in the current image combination
+        N_bin = min(N_bins);
         
+        % weight used in image combination
         weight = (.5*cos((0:N_bin-1)/N_bin*pi)+.5).';
         
+        % images included in the current image combination
         curr_imgs = comb+[0,1];
         
+        % combines weighted images inside the fuse area
         img_combined(first_comb_bins(rline,comb)+(0:N_bin-1),:,rline) = ...
           bsxfun(@times,weight,mdata{curr_imgs(1)}.Topography.img( ...
           first_img_bins(rline,2*comb-1)+(0:N_bin-1),:,rline)) ...
           + bsxfun(@times,flipud(weight),mdata{curr_imgs(2)}.Topography.img( ...
           first_img_bins(rline,2*comb)+(0:N_bin-1),:,rline));
         
-        img_combined(round(first_comb_bins(rline,comb)+N_bin-1)+(1:length(mdata{curr_imgs(2)}.Time)-last_img_bins(rline,2*comb)),:,rline) = ...
-          mdata{curr_imgs(2)}.Topography.img((last_img_bins(rline,2*comb)+1):end,:,rline);
+        % appends portion of image 2 in combination after the fuse area
+        img_combined(first_comb_bins(rline,comb)+(N_bin:(length(mdata{curr_imgs(2)}.Time)-first_img_bins(rline,2*comb))),:,rline) = ...
+          mdata{curr_imgs(2)}.Topography.img((first_img_bins(rline,2*comb)+N_bins):end,:,rline);
+        
+        % appends portion of image 1 that might be extend beyond above
+        % portion of image 2
+        if max(mdata{curr_imgs(2)}.Time)<max(mdata{curr_imgs(1)}.Time)
+          img_combined(round(first_comb_bins(rline,comb))+((length(mdata{curr_imgs(2)}.Time)-first_img_bins(rline,2*comb)+1):(length(mdata{curr_imgs(1)}.Time)-first_img_bins(rline,2*comb-1))),:,rline) = ...
+            mdata{curr_imgs(1)}.Topography.img((length(mdata{curr_imgs(2)}.Time)+1):end,:,rline);
+        end
 
       end
-%     end
+      if any(any(isnan(img_combined(:,:,rline))))
+        error('Image pixels were excluded from fuse.');
+      end
   end
   Topography.img = img_combined;
   Time = Time_fused;
 end
 
 % Copy master image file to combined image filename
-% combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
 combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
 copyfile(fns{master_img_idx}, combined_fn);
 
