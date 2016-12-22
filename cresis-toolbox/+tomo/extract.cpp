@@ -193,27 +193,10 @@ double TRWS::unary_cost(size_t d, size_t h, size_t w) {
 //     }
 
     // Model quadratic distance
-//     for (size_t i = 0; i < ms; i++) {
-//         cost += sqr(dataset[encode(d+i,h,w)] - mu[i]) / sigma[i];
-//     }
-    
-    // Template quadratic distance
-    double new_cost = 0;
     for (size_t i = 0; i < ms; i++) {
-//         cost += sqr(matrix[encode(x, y+i)] - mu[i]) / sigma[i];
-        new_cost += (matrix[encode(x,y+i)]-noise_floor)*mu[i];
+        cost += sqr(dataset[encode(d+i,h,w)] - mu[i]) / sigma[i];
     }
-    if (new_cost < 0) {
-      new_cost = 0;
-      }
-    //new_cost = sqrt(new_cost);
-    new_cost = 0 - new_cost;
-//     if (new_cost < 0) {
-//       new_cost = 0;
-//       }
-    cost += new_cost;
-    
-    
+
     return cost;
 }
 
