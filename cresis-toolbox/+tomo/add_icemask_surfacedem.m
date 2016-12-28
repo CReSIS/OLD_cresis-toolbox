@@ -32,10 +32,15 @@ proj = geotiffinfo(param.tomo_collate.geotiff_fn);
 [DEM, R, ~] = geotiffread(param.tomo_collate.geotiff_fn);
 
 % Load ice mask
-ice_mask_all = load(param.tomo_collate.ice_mask_fn);
+if isfield(param.tomo_collate,'ice_mask_fn') && ~isempty(param.tomo_collate.ice_mask_fn)
+  ice_mask_all = load(param.tomo_collate.ice_mask_fn);
+end
 
 % sv_cal_fn: steering vector calibration filename
-sv_cal_fn = param.tomo_collate.sv_cal_fn;
+sv_cal_fn = [];
+if isfield(param.tomo_collate,'sv_cal_fn')
+  sv_cal_fn = param.tomo_collate.sv_cal_fn;
+end
 
 %% Remove unused DEM data
 DEM_x = R(3,1) + R(2,1)*(0:size(DEM,2)-1);
@@ -67,7 +72,7 @@ z_out = single(griddata(x_vals,y_vals,double(z_vals),x_out,y_out));
 DEM(bad_idxs) = z_out;
 
 %% Create a point cloud from the DEM
-if 0
+if 1
   figure(1); clf;
   h_img = imagesc(DEM_x,DEM_y, DEM);
   set(gca,'YDir','normal');
@@ -89,7 +94,7 @@ end
 
 Nsv = length(theta);
 twtt = zeros(Nsv,Nx);
-ice_mask = zeros(Nsv,Nx);
+ice_mask = ones(Nsv,Nx);
 
 for rline = 1:Nx
   if ~mod(rline-1,500)
@@ -113,7 +118,7 @@ for rline = 1:Nx
   
   % Convert from geodetic (lat,lon,elev) to ECEF (x,y,z)
   physical_constants;
-  [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(DEM_lat/180*pi,DEM_lon/180*pi,DEM_elev,WGS84.ellipsoid);
+  [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
   
   origin = mdata.param_combine.array_param.fcs{1}{1}.origin(:,rline);
   
@@ -170,31 +175,33 @@ for rline = 1:Nx
       intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
     end
   end
-  
-  % Convert from FCS/SAR to ECEF
-  intersection_ecef = Tfcs_ecef * intersection;
-  intersection_ecef_x = intersection_ecef(1,:).' + origin(1);
-  intersection_ecef_y = intersection_ecef(2,:).' + origin(2);
-  intersection_ecef_z = intersection_ecef(3,:).' + origin(3);
-  % Convert from ECEF to geodetic
-  [intersection_lat,intersection_lon,tri_h] = ecef2geodetic(intersection_ecef_x,intersection_ecef_y,intersection_ecef_z,WGS84.ellipsoid);
-  intersection_lat = intersection_lat*180/pi;
-  intersection_lon = intersection_lon*180/pi;
-  % Convert from geodetic to projection
-  [intersection_x,intersection_y] = projfwd(ice_mask_all.proj,intersection_lat,intersection_lon);
-  % Get mask coordinates nearest triangle center coordinates
-  intersection_x_idx = interp1(ice_mask_all.X,1:length(ice_mask_all.X),intersection_x,'nearest');
-  intersection_y_idx = interp1(ice_mask_all.Y,1:length(ice_mask_all.Y),intersection_y,'nearest');
-  % Find nan values and set to integer value
-  nidx = find(isnan(intersection_x_idx));
-  intersection_x_idx(nidx) = 1;
-  intersection_y_idx(nidx) = 1;
-  % Convert triangle mask coordinates to matrix indices
-  mask_idx = (intersection_x_idx-1)*length(ice_mask_all.Y) + intersection_y_idx;
-  % Find ice mask for triangle coordinates
-  ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
-  % Set previously nan valued coordinates to 0 mask
-  ice_mask(nidx,rline) = 0;
+
+  if exist('ice_mask_all','var')
+    % Convert from FCS/SAR to ECEF
+    intersection_ecef = Tfcs_ecef * intersection;
+    intersection_ecef_x = intersection_ecef(1,:).' + origin(1);
+    intersection_ecef_y = intersection_ecef(2,:).' + origin(2);
+    intersection_ecef_z = intersection_ecef(3,:).' + origin(3);
+    % Convert from ECEF to geodetic
+    [intersection_lat,intersection_lon,tri_h] = ecef2geodetic(intersection_ecef_x,intersection_ecef_y,intersection_ecef_z,WGS84.ellipsoid);
+    intersection_lat = intersection_lat*180/pi;
+    intersection_lon = intersection_lon*180/pi;
+    % Convert from geodetic to projection
+    [intersection_x,intersection_y] = projfwd(ice_mask_all.proj,intersection_lat,intersection_lon);
+    % Get mask coordinates nearest triangle center coordinates
+    intersection_x_idx = interp1(ice_mask_all.X,1:length(ice_mask_all.X),intersection_x,'nearest');
+    intersection_y_idx = interp1(ice_mask_all.Y,1:length(ice_mask_all.Y),intersection_y,'nearest');
+    % Find nan values and set to integer value
+    nidx = find(isnan(intersection_x_idx));
+    intersection_x_idx(nidx) = 1;
+    intersection_y_idx(nidx) = 1;
+    % Convert triangle mask coordinates to matrix indices
+    mask_idx = (intersection_x_idx-1)*length(ice_mask_all.Y) + intersection_y_idx;
+    % Find ice mask for triangle coordinates
+    ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
+    % Set previously nan valued coordinates to 0 mask
+    ice_mask(nidx,rline) = 0;
+  end
   
   if 0
     imagesc([],mdata.Time,lp(mdata.Topography.img(:,:,rline)))
@@ -221,7 +228,7 @@ in_dir = ct_filename_out(param,param.tomo_collate.in_dir);
 combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
 
 ice_mask = logical(ice_mask);
-save(combined_fn,'-append','twtt','ice_mask','theta','theta_cal');
+save(combined_fn,'-append','twtt','ice_mask','theta');
 
 if exist('theta_cal','var')
   save(combined_fn,'-append','theta_cal');

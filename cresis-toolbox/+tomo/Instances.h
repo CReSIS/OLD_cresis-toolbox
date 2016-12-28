@@ -1,5 +1,5 @@
-// Instances.h: Some very helpful variables and functions.
-// By Mingze Xu, July 2016
+// instances.h: Some very helpful variables and functions.
+// By Mingze Xu, November 2016
 //
 #ifndef __INSTANCES_H__
 #define __INSTANCES_H__
@@ -7,25 +7,26 @@
 #include <sstream>
 #include <tuple>
 
-typedef vector< pair<size_t, size_t> > CoordType;
-typedef vector< tuple<size_t, size_t, size_t> > PointType;
-typedef vector< vector<size_t> > LayerType;
-
-// Middle coordinate
-#define MID 33
-
 // Directions
 #define dir_up 0
 #define dir_down 1
 #define dir_left 2
 #define dir_right 3
 #define dir_all 4
-
-// TRWS gamma
+// Default mu of smooth
+#define MID 33
+// Default sigma of smooth
+#define SIGMA 12
+// Default scale of smooth
+#define SCALE 5
+// TRWS: large cost
+#define LARGE 1000000000
+// TRWS: gamma
 #define gamma 0.5
 
-// TRWS large cost
-#define LARGE 1000000000
+typedef vector< pair<size_t, size_t> > CoordType;
+typedef vector< tuple<size_t, size_t, size_t> > PointType;
+typedef vector< vector<size_t> > LayerType;
 
 // Compute square value
 template <class T>
@@ -39,8 +40,8 @@ string itos(int i) {
 }
 
 // Dynamic smoothness
-double norm_pdf(double x, double scale=5.0, double mu=MID, double s=12.0) {
-    return scale * (1.0/(s*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/s));
+double norm_pdf(double x, double mu=MID, double sigma=SIGMA, double scale=SCALE) {
+    return scale * (1.0/(sigma*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/sigma));
 }
 
 // Distance transform

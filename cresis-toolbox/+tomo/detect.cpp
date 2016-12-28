@@ -1,4 +1,4 @@
-// detect.cpp: Detect the ice-bed layer in the MUSIC slice.
+// detect.cpp: Detect the ice-bed layer in each MUSIC slice.
 // By Mingze Xu, July 2016
 //
 #include <iostream>
@@ -13,27 +13,27 @@ using namespace std;
 
 class HMM {
     public:
+        // Data
         size_t width;
         size_t height;
-        // Size of template
-        size_t ms;
-        // Data
+        size_t mid;
         vector<double> matrix;
-        // Surface ground truth
+        // Ground truth
         vector<size_t> sgt;
-        // Bottom ground truth
         size_t bgt;
-        // Extra ground truth
         CoordType egt;
-        // Ice mask
         vector<int> ice_mask;
         // Model
+        size_t ms;
         vector<double> mu;
         vector<double> sigma;
+        // Shape
         double egt_weight;
+        double smooth_weight;
+        double smooth_var;
+        vector<double> smooth_slope;
 
-        HMM(const double *input, const vector<size_t> &slayer, size_t blayer, const CoordType &elayer, const double *mask, const double *mean, 
-                const double *var, const double *egt_weight_in, size_t _width, size_t _height, size_t _ms=11) : bgt(blayer), width(_width), height(_height), ms(_ms) {
+        HMM(const double *input, const vector<size_t> &slayer, size_t blayer, const CoordType &elayer, const double *_ice_mask, const double *mean, const double *var, size_t _width, size_t _height, size_t _mid, double _egt_weight, double _smooth_weight, double _smooth_var, double *_smooth_slope, size_t _ms=11) : bgt(blayer), width(_width), height(_height), mid(_mid), egt_weight(_egt_weight), smooth_weight(_smooth_weight), smooth_var(_smooth_var), ms(_ms) {
             // Init data
             matrix = vector<double>(width*height, 0.0);
             for (size_t i = 0; i < width*height; i++) {
@@ -49,7 +49,7 @@ class HMM {
             // Init ice mask
             ice_mask = vector<int>(width, 0);
             for (size_t i = 0; i < width; i++) {
-                ice_mask[i] = (int)mask[i];
+                ice_mask[i] = (int)_ice_mask[i];
             }
 
             // Init mu and sigma
@@ -59,8 +59,10 @@ class HMM {
                 mu[i] = mean[i];
                 sigma[i] = var[i];
             }
-            
-            egt_weight = *egt_weight_in;
+
+            for (size_t i = 0; i < width-1; i++) {
+                smooth_slope.push_back(_smooth_slope[i]);
+            }
         }
 
         // Index of data
@@ -81,30 +83,29 @@ double HMM::unary_cost(size_t x, size_t y) {
     }
 
     // Using bottom ground truth
-    if (x == MID && (y+t < bgt || y+t > bgt+500)) {
+    if (x == mid && (y+t < bgt || y+t > bgt+500)) {
         return LARGE;
     }
 
     // Using extra ground truth (uncomment these codes if use extra ground truth)
     for (size_t i = 0; i < egt.size(); i++) {
         if (x == egt[i].first) {
-            cost += 2*pow(abs((int)egt[i].second - (int)(y+t))/egt_weight,2);
-//             if (y+t == egt[i].second) {
-//                 return cost;
-//             } else {
-//                 return LARGE;
-//             }
+            cost += 2*sqr(abs((int)egt[i].second - (int)(y+t))/egt_weight);
+            /*
+               if (y+t == egt[i].second) {
+               return cost;
+               } else {
+               return LARGE;
+               }
+               */
         }
     }
 
     // Penalty if too close to surface layer
-//     if (abs((int)y - (int)sgt[x]) < 20) {
-//         cost += 200;
-//     }
     if (abs((int)(y+t) - (int)sgt[x]) < 10) {
         cost += 100 - 10*abs((int)(y+t) - (int)sgt[x]);
     }
-    
+
     // Template quadratic distance
     for (size_t i = 0; i < ms; i++) {
         cost += sqr(matrix[encode(x, y+i)] - mu[i]) / sigma[i];
@@ -147,10 +148,10 @@ vector<double> HMM::layer_labeling() {
 
     // Continued columns
     for (size_t i = 1; i < width; i++) {
-        double beta = norm_pdf((double)i);
+        double beta = norm_pdf((double)i, (double)mid, smooth_var, smooth_weight);
 
         // Distance transform
-        dt_1d(path_prob[loop%2], beta, path_prob[next%2], index, 0, depth);
+        dt_1d(path_prob[loop%2], beta, path_prob[next%2], index, 0, depth, smooth_slope[i-1]);
 
         if (ice_mask[i] == 0 && sgt[i] > t) {
             for (size_t j = 0; j < depth; j++) {
@@ -206,9 +207,9 @@ mxArray * getMexArray(const vector<double> &v) {
 }
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    if (nrhs != 8) {
+    if (nrhs != 12) {
         cerr << "nrhs: " << nrhs << endl;
-        mexErrMsgTxt("usage: detect(input_image, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight)");
+        mexErrMsgTxt("usage: detect(input_image, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, mid, egt_weight, smooth_weight, smooth_var, smooth_slope)");
     }
 
     double *input = mxGetPr(prhs[0]);
@@ -218,10 +219,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double *mask = mxGetPr(prhs[4]);
     double *mean = mxGetPr(prhs[5]);
     double *var = mxGetPr(prhs[6]);
-    double *egt_weight = mxGetPr(prhs[7]);
+    double *mid = mxGetPr(prhs[7]);
+    double *egt_weight = mxGetPr(prhs[8]);
+    double *smooth_weight = mxGetPr(prhs[9]);
+    double *smooth_var = mxGetPr(prhs[10]);
+    double *smooth_slope = mxGetPr(prhs[11]);
     size_t rows = mxGetM(prhs[0]);
     size_t cols = mxGetN(prhs[0]);
     size_t m = mxGetN(prhs[3]);
+
+    if (mid[0] < 0)
+        mid[0] = MID;
+    if (smooth_weight[0] < 0)
+        smooth_weight[0] = SCALE;
+    if (smooth_var[0] < 0)
+        smooth_var[0] = SIGMA;
 
     // Convert surface coordinate to integer
     vector<size_t> slayer;
@@ -234,17 +246,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     if (bottom[0] > 0) {
         blayer = bottom[0];
     } else {
-        blayer = slayer[MID]+50;
+        blayer = slayer[(size_t)mid[0]]+50;
     }
 
     // Convert extra coordinate to integer
     CoordType elayer;
     for (size_t i = 0; i < m; i++) {
         elayer.push_back(pair<size_t, size_t>(floor(extra[i*2]), floor(extra[i*2+1])));
-    }
+    } 
 
     // Doing labeling ...
-    HMM viterbi(input, slayer, blayer, elayer, mask, mean, var, egt_weight, cols, rows);
+    HMM viterbi(input, slayer, blayer, elayer, mask, mean, var, cols, rows, (size_t)mid[0], egt_weight[0], smooth_weight[0], smooth_var[0], smooth_slope);
     vector<double> labels = viterbi.layer_labeling();
 
     plhs[0] = getMexArray(labels);

@@ -27,56 +27,81 @@ function create_surfData(param,mdata)
 param_load_layers = param;
 param_load_layers.cmd.frms = round([-1,0,1] + param.proc.frm);
 
-layer_params = [];
-idx = 0;
-idx = idx + 1;
-layer_params(idx).name = 'surface';
-layer_params(idx).source = 'ops';
-idx = idx + 1;
-layer_params(idx).name = 'bottom';
-layer_params(idx).source = 'ops';
-layers = opsLoadLayers(param_load_layers,layer_params);
+if ~isfield(param.tomo_collate,'layer_source') || isempty(param.tomo_collate.layer_source)
+  layer_params = [];
+  idx = 0;
+  idx = idx + 1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'ops';
+  idx = idx + 1;
+  layer_params(idx).name = 'bottom';
+  layer_params(idx).source = 'ops';
+  layers = opsLoadLayers(param_load_layers,layer_params);
 
-%% Interpolate surface and bottom information to mdata
-master = [];
-master.GPS_time = mdata.GPS_time;
-master.Latitude = mdata.Latitude;
-master.Longitude = mdata.Longitude;
-master.Elevation = mdata.Elevation;
-for lay_idx = 1:length(layer_params)
-  ops_layer = [];
-  ops_layer{1}.gps_time = layers(lay_idx).gps_time;
+  %% Interpolate surface and bottom information to mdata
+  master = [];
+  master.GPS_time = mdata.GPS_time;
+  master.Latitude = mdata.Latitude;
+  master.Longitude = mdata.Longitude;
+  master.Elevation = mdata.Elevation;
+  for lay_idx = 1:length(layer_params)
+    ops_layer = [];
+    ops_layer{1}.gps_time = layers(lay_idx).gps_time;
 
-  ops_layer{1}.type = layers(lay_idx).type;
-  ops_layer{1}.quality = layers(lay_idx).quality;
-  ops_layer{1}.twtt = layers(lay_idx).twtt;
-  ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
-  ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
-  lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
-  layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
+    ops_layer{1}.type = layers(lay_idx).type;
+    ops_layer{1}.quality = layers(lay_idx).quality;
+    ops_layer{1}.twtt = layers(lay_idx).twtt;
+    ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
+    ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
+    lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
+    layers(lay_idx).twtt_ref = lay.layerData{1}.value{2}.data;
+  end
+  Surface = layers(1).twtt_ref;
+  Bottom = layers(2).twtt_ref;
+elseif strcmp(param.tomo_collate.layer_source,'layerData')
+  layer_source_dir = ct_filename_out(param,'','CSARP_layerData');
+  layer_source_fn = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm);
+	layerData = load(fullfile(layer_source_dir,layer_source_fn));
+  Surface = layerData.layerData{1}.value{2}.data;
+  Bottom = layerData.layerData{2}.value{2}.data;
+else
+  error('Layer Source string is not recognized');
 end
-Surface = layers(1).twtt_ref;
-Bottom = layers(2).twtt_ref;
+
+if length(Bottom)~=size(mdata.Topography.img,3)
+  Bottom = mdata.Bottom;
+end
+if length(Surface)~=size(mdata.Topography.img,3)
+  Surface = mdata.Surface;
+end
 
 %% Interpolate Bottom, mdata.twtt from twtt to bins
 Bottom_bin = interp1(mdata.Time, 1:length(mdata.Time), Bottom);
-twtt_bin = interp1(mdata.Time, 1:length(mdata.Time), mdata.twtt);
-ice_mask = mdata.ice_mask;
+if isfield('mdata','ice_mask')
+  ice_mask = mdata.ice_mask;
+else
+  ice_mask = ones(size(mdata.twtt));
+end
 Bottom_bin(isnan(Bottom_bin)) = -1;
-twtt_bin(isnan(twtt_bin)) = -1;
 
 %% Training parameters mu and sigma
 mu = [];
 sigma = [];
+
+twtt_bin = interp1(mdata.Time, 1:length(mdata.Time), mdata.twtt);
+twtt_bin(isnan(twtt_bin)) = -1;
 for rline = 1:size(mdata.Topography.img,3)
-%   if ~mod(rline-1,100)
-%     fprintf('  Training %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
-%   end
+  if ~mod(rline-1,100)
+    fprintf('  Training %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
+  end
   [m, s] = tomo.train_params(10*log10(double(mdata.Topography.img(:,:,rline))), ...
     double(twtt_bin(:,rline)));
   mu = [mu; m];
   sigma = [sigma; s];
 end
+
+%   mu = repmat([11.6734184113247 11.8357634315107 11.7477015213467 11.5642270542054 11.3655718245298 11.2178010788707 11.11172116154 11.0442549382899 10.9800832668574 10.9047999009164 10.8000063888223],size(mdata.Topography.img,3),1);
+%   sigma = repmat([17.9297614680615 18.5178215941504 17.1485050463076 15.8106528912151 14.7936777080171 14.146975962117 13.9673485950864 13.9574519525412 13.5837122364561 13.0310380580007 12.2855990897649],size(mdata.Topography.img,3),1);
 
 mdata.Topography.mu = mu;
 mdata.Topography.sigma = sigma;
@@ -104,15 +129,21 @@ for rline = 1:size(mdata.Topography.img,3)
   end
   detect_surface(:,rline) = tomo.detect(data(:,:,rline), ...
     double(twtt_bin(:,rline)), ...
-    double(Bottom_bin(rline)), [], double(ice_mask(:,rline)), double(mean(mdata.Topography.mu)), double(mean(mdata.Topography.sigma)));
+    double(Bottom_bin(rline)), [], double(ice_mask(:,rline)), ...
+    double(mean(mdata.Topography.mu)), double(mean(mdata.Topography.sigma)), ...
+    param.tomo_collate.mid,10,param.tomo_collate.smooth_weight,param.tomo_collate.smooth_var,param.tomo_collate.smooth_slope);
 end
 
 %% Run extract
-fprintf('  Extract (%s)\n', datestr(now));
-extract_surface = tomo.extract(data, double(twtt_bin), double(Bottom_bin), ...
-  double([]), double(ice_mask), double(mean(mdata.Topography.mu)), double(mean(mdata.Topography.sigma)));
-extract_surface = reshape(extract_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));
-
+if 1
+  fprintf('  Extract (%s)\n', datestr(now));
+  extract_surface = tomo.extract(data, double(twtt_bin), double(Bottom_bin), ...
+    double([]), double(ice_mask), double(mean(mdata.Topography.mu)), double(mean(mdata.Topography.sigma)));
+  extract_surface = reshape(extract_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));
+else
+  extract_surface = detect_surface;
+end
+  
 %% Create surfData
 surf = [];
 Ndoa = size(mdata.Topography.img,2);
@@ -132,6 +163,7 @@ surf(end).y = extract_surface;
 surf(end).plot_name_values = {'color','blue','marker','^'};
 surf(end).name = 'bottom';
 surf(end).surf_layer = 1;
+
 surf(end).active_layer = 2;
 surf(end).mask_layer = 3;
 surf(end).control_layer = 4;

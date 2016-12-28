@@ -50,11 +50,19 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       catch ME
         error('Error in ground truth weight: %s', ME.getReport);
       end
+      try
+        slope = eval(get(obj.gui.slopeLE,'String'));
+      catch ME
+        error('Error in slope: %s', ME.getReport);
+      end
       if get(obj.gui.select_maskCB,'Value')
         cols = find(sb.select_mask);
       else
         cols = 1:size(sb.data,2);
       end
+      
+      smooth_weight = -1;
+      smooth_var = -1;
       
       if ~exist('slices','var') || isempty(slices)
         slice_range = min(slice_range):max(slice_range);
@@ -72,6 +80,9 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         % Create ground truth input
         % 1. Each column is one ground truth input
         % 2. Row 1: x, Row 2: y
+        if numel(slices)>1
+          fprintf('Slice %d\n',slice);
+        end
         if get(obj.gui.previousCB,'Value') && slice > 1
           gt = [sb.layer(active_idx).x(cols(1:end),slice-1).'-1; ...
             sb.layer(active_idx).y(cols(1:end),slice-1).'+0.5];
@@ -111,13 +122,15 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         detect_data(detect_data>threshold) = threshold;
         detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
         % detect_data(182+(-5:5),35).'
-        obj.custom_data.mu = [8.4745    8.3321    9.7678   11.7998   13.1260   13.0728   11.6279   10.1136    9.2768    8.3387    7.3149];
+%         obj.custom_data.mu = [8.4745    8.3321    9.7678   11.7998   13.1260   13.0728   11.6279   10.1136    9.2768    8.3387    7.3149];
         
+
         labels = tomo.detect(double(detect_data), ...
           double(surf_bins), double(bottom_bin), ...
           double(gt), double(mask), ...
-          double(obj.custom_data.mu), double(obj.custom_data.sigma), double(egt_weight));
-        
+          double(obj.custom_data.mu), double(obj.custom_data.sigma),-1,double(egt_weight), ...
+          double(smooth_weight), double(smooth_var), double(slope));
+
         % Create cmd for layer change
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
@@ -150,7 +163,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');
       pos(3) = 200;
-      pos(4) = 100;
+      pos(4) = 130;
       set(obj.h_fig,'Position',pos);
       
       % Slice range
@@ -179,6 +192,11 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       set(obj.gui.gt_weightLE,'style','edit')
       set(obj.gui.gt_weightLE,'string','10')
       set(obj.gui.gt_weightLE,'TooltipString','Specify weighting of ground truth.');
+      
+      obj.gui.slopeTXT = uicontrol('Style','text','string','Slope');
+      obj.gui.slopeLE = uicontrol('parent',obj.h_fig);
+      set(obj.gui.slopeLE,'style','edit')
+      set(obj.gui.slopeLE,'string','zeros(1,63)')
       
       % Select mask
       obj.gui.select_maskCB = uicontrol('parent',obj.h_fig);
@@ -229,6 +247,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       obj.gui.table.width_margin(row,col) = 1;
       obj.gui.table.height_margin(row,col) = 1;
       
+      
       row = row + 1;
       col = 1;
       obj.gui.table.handles{row,col}   = obj.gui.gt_weightTXT;
@@ -238,6 +257,20 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       obj.gui.table.height_margin(row,col) = 1;
       col = 2;
       obj.gui.table.handles{row,col}   = obj.gui.gt_weightLE;
+      obj.gui.table.width(row,col)     = inf;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      
+      row = row + 1;
+      col = 1;
+      obj.gui.table.handles{row,col}   = obj.gui.slopeTXT;
+      obj.gui.table.width(row,col)     = 70;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      col = 2;
+      obj.gui.table.handles{row,col}   = obj.gui.slopeLE;
       obj.gui.table.width(row,col)     = inf;
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;

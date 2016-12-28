@@ -10,7 +10,8 @@ if obj.eg.frame_idxs(1) == 1
   % First frame in segment so adjust beginning to make sure all layer points
   % will be displayed.
   min_gps_time = obj.eg.start_gps_time(1)-dx;
-elseif obj.eg.frame_idxs(end) == length(obj.eg.stop_gps_time)
+end
+if obj.eg.frame_idxs(end) == length(obj.eg.stop_gps_time)
   % Last frame of segment so adjust end to make sure all layer points will 
   % be displayed.
   max_gps_time = obj.eg.stop_gps_time(end)+dx;

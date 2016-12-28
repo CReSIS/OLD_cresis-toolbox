@@ -1,4 +1,4 @@
-% script create_settings_2016_Greenland_Polar6
+% script create_settings_2017_Antarctica_Polar6
 %
 % Creates NI radar depth sounder settings
 %
@@ -9,8 +9,10 @@ physical_constants; % c = speed of light
 % Define waveforms
 if ispc
   base_dir = 'c:\waveforms\';
+  rss_base_dir = 'c:\Temp\configs\';
 else
   base_dir = '~/waveforms/';
+  rss_base_dir = '~/rss_waveforms/';
 end
 
 f0_list = [150e6 180e6 320e6];
@@ -34,7 +36,7 @@ if 0
     final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
     final_DDS_phase_no_time = [0 0 0 0 0 0 0 0]; % not used usually
     final_DDS_amp{idx} = [4000 4000 4000 4000 4000 4000 4000 4000];
-    final_DDS_time{idx} =  [0 0 0 0 0 0 0 0];
+    final_DDS_time{idx} =  [0 0 2.5 2.5 3.125 3.125 0 0];
   end
 else
   % COPY AND PASTE RESULTS FROM basic_tx_chan_equalization_SEASON_NAME.m
@@ -45,47 +47,22 @@ else
   % MHz clock cycle after channels 1-4.
   
   % 150-520 MHz
-  final_DDS_phase{end+1} = [63.3	86.1	-16.5	0.0	8.9	-17.4	68.8	51.1];
+  final_DDS_phase{end+1} = [105.2	120.8	-15.3	0.0	83.2	57.0	114.9	102.0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
   final_DDS_amp{end+1} = [1312	2849	2657	3572	4000	2618	2574	1386];
-  final_DDS_time{end+1} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50];
+  final_DDS_time{end+1} =  [0 0 2.5 2.5 3.125 3.125 0 0];
     
   % 180-210 MHz
-  final_DDS_phase{end+1} = [61.4	85.2	-15.1	0.0	8.7	-1.0	76.8	56.1];
+  final_DDS_phase{end+1} = [105.2	120.8	-15.3	0.0	83.2	57.0	114.9	102.0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
   final_DDS_amp{end+1} = [1172	2550	3026	3650	4000	3106	2361	1223];
-  final_DDS_time{end+1} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50];  
+  final_DDS_time{end+1} =  [0 0 2.5 2.5 3.125 3.125 0 0];
   
   % 320-350 MHz
-  final_DDS_phase{end+1} = [63.3	86.1	-16.5	0.0	8.9	-17.4	68.8	51.1];
-  final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [1312	2849	2657	3572	4000	2618	2574	1386];
-  final_DDS_time{end+1} =  [-2.62	-2.35	-0.13	0.00	-0.56	-0.82	-3.30	-3.50];
-end
-
-% Base settings are with DDS channels 1-4 perfectly aligned and 5-8 all 
-% offset behind 1-4 by 1/1440 MHz = 0.6944 ns.
-if 1
-  fprintf('Typical clock corrections:\n');
-  fprintf(' [0 0 0 0 0 0 0 0]: Use this correction when 1-4 are aligned and 5-8 are lagging by 0.69 ns *\n');
-  fprintf(' [0 0 0 0 1 1 1 1]: Use this correction when 1-8 are aligned\n');
-  fprintf('Example of some other cases for understanding:\n');
-  fprintf(' [0 0 0 0 1 0 1 1]: Use this correction when 1-5 & 7-8 are aligned and 6 is lagging by 0.69 ns\n');
-  fprintf(' [0 0 0 0 1 0 0 0]: Use this correction when 1-5 are aligned and 6-8 are lagging by 0.69 ns\n');
-  fprintf('Recalibrate DDS if correction requires <0 or >0.69 ns correction.\n');
-  user_clock_correction = [];
-  while length(user_clock_correction) ~= 8
-    user_clock_correction = input('Please enter the clock cycle correction for each DDS [0 0 0 0 0 0 0 0]: ');
-    if isempty(user_clock_correction)
-      user_clock_correction = zeros(1,8);
-    end
-  end
-  % If all DDS channels (1-8) are all perfectly aligned, then a single DDC
-  % clock cycle needs to be added to channels 5-8:
-  for freq_idx = 1:length(f0_list)
-    final_DDS_time{freq_idx} =  final_DDS_time{freq_idx} ...
-      + 6.9444e-1 * user_clock_correction;
-  end
+  final_DDS_phase{end+1} = final_DDS_phase{1};
+  final_DDS_phase_no_time{end+1} = final_DDS_phase_no_time{1};
+  final_DDS_amp{end+1} = final_DDS_amp{1};
+  final_DDS_time{end+1} =  final_DDS_time{1};
 end
 
 % Hwindow_orig: Desired window created during transmit calibration
@@ -125,7 +102,7 @@ end
 % <4000 m thick ice, 1200 +/- 700 ft AGL
 ice_thickness = [4000 4000];
 for freq_idx = [1 2]
-  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
+  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 755; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
@@ -205,7 +182,7 @@ end
 % <2500 m thick ice, 1200 +/- 700 ft AGL
 ice_thickness = [2500 2500];
 for freq_idx = [1 2]
-  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
+  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 750; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
@@ -242,7 +219,7 @@ end
 %% Sea Ice
 % 1200 +/- 1200 ft AGL
 for freq_idx = [1]
-  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
+  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 750; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
@@ -253,7 +230,7 @@ for freq_idx = [1]
   param.tg.Haltitude = 1200*12*2.54/100;
   param.tg.Hice_thick = 0;
   param.prf = prf;
-  param.presums = [presums(freq_idx)/2 presums(freq_idx)/2];
+  param.presums = [round(presums(freq_idx)/2/2)*2 round(presums(freq_idx)/2/2)*2];
   param.wfs(1).atten = 13;
   param.wfs(2).atten = 13;
   DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
@@ -276,7 +253,7 @@ end
 %% Image Mode (Low Altitude, Thick Ice)
 % Ice thickness "param.tg.Hice_thick_min" m to "param.tg.Hice_thick" m, "param.tg.Haltitude" +/- "param.tg.altitude_guard" ft AGL
 for freq_idx = [1 2]
-  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
+  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
   param.max_data_rate = 755;
   param.DDC_select = DDC_select_list(freq_idx);
@@ -336,7 +313,7 @@ end
 %% Image Mode Pattern Measurements
 % 3500 ft +/- 1000 ft AGL
 for freq_idx = [1 2]
-  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
+  param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
   param.max_data_rate = 755;
   param.DDC_select = DDC_select_list(freq_idx);
@@ -387,7 +364,7 @@ end
 % Ice thickness "param.tg.Hice_thick_min" m to "param.tg.Hice_thick" m, "param.tg.Haltitude" +/- "param.tg.altitude_guard" ft AGL
 freq_idx_WB = 1;
 freq_idx_NB = 3;
-param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
+param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
 param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
 param.max_data_rate = 755;
 param.DDC_select = DDC_select_list(freq_idx_WB);
@@ -461,7 +438,7 @@ fn_hint = {'WATER','ICE','NO_DELAY','WATER','WATER'};
 for Tpd_idx = 1:length(Tpd_list)
   Tpd = Tpd_list(Tpd_idx);
   for freq_idx = [1 2]
-    param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
+    param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
     param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
     param.DDC_select = DDC_select_list(freq_idx);
     param.max_duty_cycle = 0.12;
@@ -495,37 +472,3 @@ for Tpd_idx = 1:length(Tpd_list)
     write_cresis_xml(param);
   end
 end
-
-%% Max power mode with max frequency range (only for EMI survey)
-freq_idx = 1;
-param = struct('radar_name','mcords5','num_chan',24,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',1440e6,'TTL_clock',1440e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9]);
-param.max_tx = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 750; param.flight_hours = 3.5; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
-param.DDC_select = DDC_select_list(freq_idx);
-param.max_duty_cycle = 0.12;
-param.create_IQ = false;
-param.tg.staged_recording = false;
-param.tg.altitude_guard = 1000*12*2.54/100;
-param.tg.Haltitude = 1400*12*2.54/100;
-param.tg.Hice_thick = 0;
-param.prf = prf;
-param.presums = presums(freq_idx);
-param.wfs(1).atten = 43;
-param.tukey = 0;
-param.wfs(1).Tpd = 10e-6;
-param.wfs(1).phase = [0 0 0 0 0 0 0 0];
-param.delay = [0 0 0 0 0 0 0 0];
-param.f0 = f0_list(freq_idx);
-param.f1 = f1_list(freq_idx);
-param.DDC_freq = (param.f0+param.f1)/2;
-[param.wfs(1:1).tx_mask] = deal([1 1 1 1 1 1 1 1]);
-param.tx_weights = [4000 4000 4000 4000 4000 4000 4000 4000] * sqrt(0);
-param.fn = fullfile(calval_dir,sprintf('singlewf_%.0f-%.0fMHz_%.0fus_TX_OFF.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
-write_cresis_xml(param);
-[param.wfs(1:1).tx_mask] = deal([0 0 0 0 0 0 0 0]);
-param.tx_weights = [4000 4000 4000 4000 4000 4000 4000 4000] * sqrt(1.00);
-param.fn = fullfile(base_dir,sprintf('singlewf_%.0f-%.0fMHz_%.0fus_DDS_CHECK.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
-write_cresis_xml(param);
-param.delay = 6.9444e-1 * user_clock_correction;
-param.fn = fullfile(base_dir,sprintf('singlewf_%.0f-%.0fMHz_%.0fus_DDS_CHECK_CORRECTED.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
-write_cresis_xml(param);
-
