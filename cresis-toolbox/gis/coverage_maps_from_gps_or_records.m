@@ -23,12 +23,13 @@ fig_h = 1;
 dt = 1;
 
 % data_source: string 'gps' or 'records' (which files in csarp_support to use)
-data_source = 'records'; 
+data_source = 'records';
 
 % Greenland
 % geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif'));
 % geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','Landsat-7','arctic_natural_90m.tif'));
-geotiff_fn = ct_filename_gis(gRadar,fullfile('canada','Landsat-7','Canada_90m.tif'));
+geotiff_fn = ct_filename_gis(gRadar,fullfile('greenland','Landsat-7','Greenland_natural.tif'));
+% geotiff_fn = ct_filename_gis(gRadar,fullfile('canada','Landsat-7','Canada_90m.tif'));
 axis_limits = [-1024        -207       -1363        -560];
 
 % Antarctica
@@ -67,7 +68,11 @@ for param_fn_idx = 1:length(param_fns)
       continue;
     end
     
-    if param.cmd.generic && isempty(regexpi(param.cmd.notes,'do not process'))
+    if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+      continue;
+    end
+    
+    if isempty(regexpi(param.cmd.notes,'do not process'))
       yyyymmdd_list{end+1} = param.yyyymmdd;
       if strcmp(data_source,'gps')
         gps_fn = ct_filename_support(param,[],'gps',1);
@@ -75,6 +80,7 @@ for param_fn_idx = 1:length(param_fns)
         gps = load(gps_fn,'gps_time','lat','lon');
       elseif strcmp(data_source,'records')
         records_fn = ct_filename_support(param,[],'records');
+        
         fprintf('  Processing %s: %s (%s)\n', param.day_seg, records_fn, datestr(now,'HH:MM:SS'));
         gps = load(records_fn,'gps_time','lat','lon');
       end
