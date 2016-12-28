@@ -1,4 +1,4 @@
-function [in,out] = torque_print(batch,job_id,print_flag)
+function [in,out] = torque_print_test_Dec18(batch,job_id,print_flag)
 % [in,out] = torque_print(batch,job_id,print_flag)
 %
 % Prints out status information for a particular job ID.
@@ -53,6 +53,7 @@ end
 if fid < 1
   error('Could not open job id list file %s\n', ctrl.job_id_file);
   ctrl.job_id_list = [];
+  
   ctrl.error_mask = [];
   ctrl.job_status = [];
   return;
@@ -124,7 +125,6 @@ if print_flag == 1
       pause(2);
     end
   end
-  
   % Print job status
   fprintf('Matlab Job ID %d\n', job_id);
   fprintf('Torque Job ID %d\n', torque_id);
@@ -195,12 +195,11 @@ end
 
 %% brief status of any set of jobes
 if print_flag == 2
-  
-  if isempty(job_id)
-    job_ids =ctrl.job_id_list;
-    job_id = find(job_ids);
+  if max(job_id)>numel(ctrl.job_id_list)
+    Num_jobs = numel(ctrl.job_id_list);
+    fprintf('\n%s: %d\n','Job ID not found',job_id(find(job_id>Num_jobs,1)))
+    return;
   end
-  
   if isnumeric(job_id)
     % Matlab side job ID
     torque_id = ctrl.job_id_list(job_id);
@@ -210,72 +209,103 @@ if print_flag == 2
     job_id = ctrl.job_id_list(ctrl.job_id_list == torque_id);
   end
   
-  cmd = sprintf('qstat -f');
-  
-  status = -1;
-  while status ~= 0
-    try
-      [status,result] = system(cmd);
-    catch
-      cmd
-      warning('system call failedresources');
-      keyboard;
-    end
-  end
-  
-  if status == 0
-    qstat_res = textscan(result,'%s %s %s %s %s %s','HeaderLines',2,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
-    [property, value] = qstat_res{1:2:3};
-  end
-  
-  host_property_idx = find(strcmp(property,'exec_host'));
-  mem_property_idx = find(strcmp(property,'resources_used.mem'));
-  used_walltime_property_idx = find(strcmp(property,'resources_used.walltime'));
-  pmem_property_idx = find(strcmp(property,'Resource_List.pmem'));
-  list_walltime_property_idx = find(strcmp(property,'Resource_List.walltime'));
-  
-  num_jobes = numel(job_id);
-  for i = 1 : num_jobes
-    % Print job status
-    fprintf('\nMatlab Job ID %d\n', job_id(i));
-    fprintf('Torque Job ID %d\n', torque_id(i));
+  for idx = 1 : numel(torque_id)
     
+    fprintf('\nMatlab Job ID %d\n', job_id(idx));
+    fprintf('Torque Job ID %d\n', torque_id(idx));
     
-    host_property_value = value(host_property_idx(i));
-    mem_property_value = value(mem_property_idx(i));
-    used_walltime_property_value = value(used_walltime_property_idx(i));
-    pmem_property_value = value(pmem_property_idx(i));
-    list_walltime_property_value = value(list_walltime_property_idx(i));
+    cmd = sprintf('qstat -f %d', torque_id(idx));
     
-    fprintf('\n%s: %s\n','exec_host',host_property_value{1});
-    fprintf('%s: %s\n','resources_used.mem',mem_property_value{1});
-    fprintf('%s: %s\n','resources_used.walltime',used_walltime_property_value{1});
-    fprintf('%s: %s\n','Resource_List.pmem',pmem_property_value{1});
-    fprintf('%s: %s\n','Resource_List.walltime',list_walltime_property_value{1});
-    
-    % Check for existence of input file
-    fn = fullfile(ctrl.in_path_dir,sprintf('in_%d.mat',job_id(i)));
-    if exist(fn,'file')
-      fprintf('\nINPUT: Exists\n');
-    else
-      fprintf('\nINPUT: Does not exist\n');
+    status = -1;
+    torque_attempts = 0;
+    while status ~= 0
+      try
+        [status,result] = system(cmd);
+      catch
+        cmd
+        warning('system call failedresources');
+        keyboard;
+      end
+      if status ~= 0
+        
+        warning('qstat failed %d %s', status, result);
+        torque_attempts = torque_attempts + 1;
+        if torque_attempts >= 1
+          break;
+        end
+        pause(2);
+      end
     end
     
-    % Check for existence of output file
-    fn = fullfile(ctrl.out_path_dir,sprintf('out_%d.mat',job_id(i)));
-    if exist(fn,'file')
-      fprintf('OUTPUT: Exists\n');
-    else
-      fprintf('OUTPUT: Does not exist\n');
+    if status==0
+      qstat_res = textscan(result,'%s %s %s %s %s %s','HeaderLines',2,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
+      [property, value] = qstat_res{[1 3]};
+      
+      % DEBUG: TORQUE ID
+      host_property_idx = find(strcmp(property,'exec_host'));
+      mem_property_idx = find(strcmp(property,'resources_used.mem'));
+      used_walltime_property_idx = find(strcmp(property,'resources_used.walltime'));
+      pmem_property_idx = find(strcmp(property,'Resource_List.pmem'));
+      list_walltime_property_idx = find(strcmp(property,'Resource_List.walltime'));
+      
+      % Print job status
+      
+      % DEBUG: Find matching index in qstat -f result based on matching torque_id(i)
+      host_property_value = value(host_property_idx);
+      mem_property_value = value(mem_property_idx);
+      used_walltime_property_value = value(used_walltime_property_idx);
+      pmem_property_value = value(pmem_property_idx);
+      list_walltime_property_value = value(list_walltime_property_idx);
+      
+      if isempty(host_property_value)
+        fprintf('\n%s: %s\n','exec_host','Not found');
+      else
+        fprintf('\n%s: %s\n','exec_host',host_property_value{1});
+      end
+      if isempty(mem_property_value)
+        fprintf('%s: %s\n','resources_used.mem','Not found');
+      else
+        fprintf('%s: %s\n','resources_used.mem',mem_property_value{1});
+      end
+      if isempty(used_walltime_property_value)
+        fprintf('%s: %s\n','resources_used.walltime','Not found');
+      else
+        fprintf('%s: %s\n','resources_used.walltime',used_walltime_property_value{1});
+      end
+      if isempty(pmem_property_value)
+        fprintf('%s: %s\n','Resource_List.pmem','Not found');
+      else
+        fprintf('%s: %s\n','Resource_List.pmem',pmem_property_value{1});
+      end
+      if isempty(list_walltime_property_value)
+        fprintf('%s: %s\n','Resource_List.walltime','Not found');
+      else
+        fprintf('%s: %s\n','Resource_List.walltime',list_walltime_property_value{1});
+      end
+      
+      % Check for existence of input file
+      fn = fullfile(ctrl.in_path_dir,sprintf('in_%d.mat',job_id(idx)));
+      if exist(fn,'file')
+        fprintf('\nINPUT: Exists\n');
+      else
+        fprintf('\nINPUT: Does not exist\n');
+      end
+      
+      % Check for existence of output file
+      fn = fullfile(ctrl.out_path_dir,sprintf('out_%d.mat',job_id(idx)));
+      if exist(fn,'file')
+        fprintf('OUTPUT: Exists\n');
+      else
+        fprintf('OUTPUT: Does not exist\n');
+      end
+      
     end
-    if i<num_jobes
-      fprintf('==================================\n');
-    end
+    fprintf('==================================\n');
   end
 end
 return
 
-%% this is for a brief status of a single job 
+%% this is for a brief status of a single job
 % Print job statusjob_ids =numel(job_ids)
 %   fprintf('Matlab Job ID %d\n', job_id);
 %   fprintf('Torque Job ID %d\n', torque_id);
@@ -286,7 +316,8 @@ return
 %
 %       host_property_idx = find(strcmp(property,'exec_host'),1,'last');
 %       mem_property_idx = find(strcmp(property,'resources_used.mem'),1,'last');
-%       used_walltime_property_idx = find(strcmp(property,'resources_used.walltime'),1,'last');
+%       used_walltime_property_idx = ,print_flag)
+%find(strcmp(property,'resources_used.walltime'),1,'last');
 %       pmem_property_idx = find(strcmp(property,'Resource_List.pmem'),1,'last');
 %       list_walltime_property_idx = find(strcmp(property,'Resource_List.walltime'),1,'last');
 %
