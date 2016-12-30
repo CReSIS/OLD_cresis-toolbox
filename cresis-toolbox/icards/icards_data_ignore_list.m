@@ -11,6 +11,8 @@ switch full_dir
     valid_data_file=[1:212];
   case 'Z:\ICARDS\1997\may17\'%there is a "may17_98.011" in this folder
     valid_data_file=[1:103];
+  case 'Z:\ICARDS\2001\may19\'%to ignore ice file of 19990519
+    valid_data_file=[1:21];
     
   case '/cresis/snfs1/data/ICARDS/2002/may24/'%to ignore "fiberdly" of 20020524(Linux)
     valid_data_file=[2:205]; 
@@ -20,6 +22,8 @@ switch full_dir
     valid_data_file=[1:212];
   case '/cresis/snfs1/data/ICARDS/1997/may17/'%there is a "may17_98.011" in this folder(Linux)
     valid_data_file=[1:103];
+  case '/cresis/snfs1/data/ICARDS/2001/may19/'%there is a "may17_98.011" in this folder(Linux)
+    valid_data_file=[1:21];
     
   otherwise
     valid_data_file=[1:length(fns)];

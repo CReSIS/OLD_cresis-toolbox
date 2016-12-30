@@ -10,13 +10,21 @@
 %find date which non chronological data 
 %% User Settings
 param=[];
-base_dir = 'Z:\ICARDS\2002\';                                %change needed
-adc_folder_name='may18\';                                    %change needed
-param.year = 2002;                                           %change needed
-param.month = 5;                                             %change needed
-param.day = 18;                                              %change needed   
+date=19970521;% 8 digits date                                %change needed 
+date_string=num2str(date);
+[month1,month2,day1,day2]=icards_monthANDday(date);
+if ispc
+    base_dir = strcat('Z:\ICARDS\',data_string(1:4),'\');
+    adc_folder_name=strcat(month2,day2,'\');
+else
+    base_dir = strcat('/cresis/snfs1/data/ICARDS/',date_string(1:4),'/');
+    adc_folder_name=strcat(month2,day2,'/');
+end
+param.year = str2num(date_string(1:4));                                           
+param.month = month1;                                      
+param.day = day1;                                           
 param.radar_name = 'icards';
-param.season_name = '2002_Greenland_P3';                     %change needed   
+param.season_name = strcat(date_string(1:4),'_Greenland_P3');                
 param.file_regexp = '\S+\.[0-9][0-9][0-9]$';
 plot_en = 0; % Set to 1 for gps plots.
 
