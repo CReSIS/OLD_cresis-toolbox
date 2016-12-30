@@ -1,42 +1,32 @@
-%NOTES:This function load NMEA and TRAJ data of one certain day !
-%% Preparations
-%   param1 = read_param_xls(ct_filename_param(which_season),strcat(num2str(today),'_01'));%change needed (segment does not matter)
-% % % % % %   param1.date=param1.day_seg(1:8);
-% % % % % %   param1.year=param1.day_seg(3:4);
-% % % % % %   out_fn='X:\metadata\';
-% % % % % %   out_dir=fullfile(out_fn,param1.season_name,'\');
-% % % % % %   full_file_out=strcat(out_dir,param1.date,'_nmea','.csv');
-% % % % % %   D= datevec(param1.date,'yyyymmdd');
-% % % % % %   day= daysact(strcat('1-1-',num2str(param1.year)),sprintf('%4d-%0.2d-%2d',D(1),D(2),D(3)));
-% % % % % %   param.year = str2num(param1.day_seg(1:4)); 
-% % % % % %   [month1,month2,day1]=icards_month(today);
-% % % % % %   base_dir=strcat('Z:\ICARDS\',num2str(param.year),'\');
-% % % % % %   adc_folder_name=strcat(month2,param1.day_seg(7:8)); 
-% % % % % %   param.month = month1;
-% % % % % %   param.day = day1;                                   
-% % % % % %   param.radar_name = 'icards';                    
-% % % % % %   param.season_name=strcat(num2str(param.year),'_Greenland_P3');
-% % % % % %   param.file_regexp = '\S+\.[0-9][0-9][0-9]$';
-  
-  today_string=num2str(today);
-  param1.date=num2str(today_string(1:8));
-  param1.year=num2str(today_string(3:4));
+%NOTES:This function load NMEA and TRAJ data of one certain day !  
+today_string=num2str(today);
+param1.date=num2str(today_string(1:8));
+param1.year=num2str(today_string(3:4));
+param.year = str2num(today_string(1:4)); 
+if ispc
   out_fn='X:\metadata\';
   out_dir=fullfile(out_fn,which_season(11:27),'\');
+  base_dir=strcat('Z:\ICARDS\',num2str(param.year),'\');
+  in_base_path = 'Z:\NASA\';
+else
+  out_fn='/cresis/snfs1/dataproducts/metadata/';
+  out_dir=fullfile(out_fn,which_season(11:27),'/');
+  base_dir=strcat('/cresis/snfs1/data/ICARDS/',num2str(param.year),'/');
+  in_base_path = '/cresis/snfs1/data/NASA';
+end
+  
   full_file_out=strcat(out_dir,param1.date,'_nmea','.csv');
   D= datevec(param1.date,'yyyymmdd');
   day= daysact(strcat('1-1-',num2str(param1.year)),sprintf('%4d-%0.2d-%2d',D(1),D(2),D(3)));
-  param.year = str2num(today_string(1:4)); 
-  [month1,month2,day1]=icards_monthANDday(today);
-  base_dir=strcat('Z:\ICARDS\',num2str(param.year),'\');
+  
+  [month1,month2,day1,~]=icards_monthANDday(today);
+  
   adc_folder_name=strcat(month2,today_string(7:8)); 
   param.month = month1;
   param.day = day1;                                   
   param.radar_name = 'icards';                    
   param.season_name=strcat(num2str(param.year),'_Greenland_P3');
   param.file_regexp = '\S+\.[0-9][0-9][0-9]$';
-  
-  
 
   plot_en = 0; % Set to 1 for gps plots.
 
@@ -142,7 +132,7 @@
   nmea_elev = nmea_elev(~bad_mask);
   nmea_lat = nmea_lat(~bad_mask);
   nmea_lon = nmea_lon(~bad_mask);
-%   NMEA.time=nmea_time;
+
   NMEA.time=nmea_time+utc_leap_seconds(nmea_time(1));%add leap seconds here to get "gps time"---qishi
   NMEA.elev=nmea_elev;
   NMEA.lat=nmea_lat;
@@ -163,7 +153,6 @@
   NMEA.pitch=NMEA.pitch(~nan_mask);
   NMEA.heading=NMEA.heading(~nan_mask);
 
-%   year=str2num(param1.day_seg(1:4));
   year=str2num(today_string(1:4));
   if year<1999
     traj_mark_in=0;
@@ -172,20 +161,6 @@
   end
   [traj_mark_out,season_name,traj_folder,traj_filename,gps_source]=icards_data_traj_list(strcat(today_string,'_01'),traj_mark_in);% for the convenience to load traj files quickly---qishi
   if traj_mark_out % not all days of a certain seanson has trajactory file---qishi      
-%   if 0 %temp-qishi
-    %% Load TRAJ FILES 
-% % % % %     global gRadar;
-% % % % %     data_support_path = '';
-% % % % % 
-% % % % %     if isempty(data_support_path)
-% % % % %       data_support_path = gRadar.data_support_path;
-% % % % %     end
-% % % % % 
-% % % % %     debug_level = 1;
-% % % % % 
-% % % % %     in_base_path = fullfile(data_support_path,season_name);
-    in_base_path = 'Z:\NASA\';
-    
     in_fn = fullfile(in_base_path,traj_folder,traj_filename);
     file_type = 'Traj';
     params = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc');

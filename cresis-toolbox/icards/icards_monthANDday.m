@@ -1,4 +1,12 @@
-function [ month1,month2,day1 ] = icards_monthANDday( today )
+%extract the day and month value from a 8 digits date
+%today:8 digits data e.g.20160712
+%month1:interger value of month
+%month2: English expression of month (char)
+%day1:interger value of day with no "0" take the place of second digit if
+%     month value is only 1 digit number e.g. 5 instead of 05
+%day2:character value of day with "0" take the place of second digit if
+%     month value is only 1 digit number e.g. 05 instead of 5
+function [ month1,month2,day1,day2 ] = icards_monthANDday( today )
 today=num2str(today);
 month_temp=today(5:6);
 
@@ -31,10 +39,11 @@ end
 
 if str2num(today(7))==0
   day1=str2num(today(8));
+  day2=strcat('0',today(8));
 else
   day1=str2num(today(7:8));
+  day2=today(7:8); 
 end
-
 
 end
 
