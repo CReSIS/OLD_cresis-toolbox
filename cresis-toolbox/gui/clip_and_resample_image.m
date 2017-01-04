@@ -1,5 +1,5 @@
 function clip_and_resample_image(h_img,h_axes,max_size_MB)
-% downsize_image(h_img,h_axes,max_size_MB)
+% clip_and_resample_image(h_img,h_axes,max_size_MB)
 %
 % Pass in an image and axes handle and the maximum memory size for the
 % final product.
@@ -15,6 +15,12 @@ function clip_and_resample_image(h_img,h_axes,max_size_MB)
 %
 % imresize would have also worked, but requires the image processing
 % toolbox
+%
+% Example of running function when you do not already have the handles of
+% interest for the active figure:
+%   h_children = get(gca,'Children');
+%   h_img = h_children(end);
+%   clip_and_resample_image(h_img,gca,10);
 %
 % Author: John Paden
 
