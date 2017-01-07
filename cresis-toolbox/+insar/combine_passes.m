@@ -1,18 +1,48 @@
 %% User Settings
 frms = {};
-frms{end+1} = '20160413_01_001';
-frms{end+1} = '20160413_01_002';
-frms{end+1} = '20160413_02_001';
-frms{end+1} = '20160413_02_002';
-frms{end+1} = '20160413_02_003';
-frms{end+1} = '20160413_02_004';
-
-pass_name = 'good_line';
-
-start.lat = 67.092559;
-start.lon = -50.213384;
-stop.lat = 67.097116;
-stop.lon = -50.048177;
+if 1
+  frms{end+1} = '20160413_01_001';
+  frms{end+1} = '20160413_01_002';
+  frms{end+1} = '20160413_02_001';
+  frms{end+1} = '20160413_02_002';
+  frms{end+1} = '20160413_02_003';
+  frms{end+1} = '20160413_02_004';
+  pass_name = 'good_line';
+  start.lat = 67.092809;
+  start.lon = -50.204091;
+  stop.lat = 67.096958;
+  stop.lon = -50.054023;
+elseif 0
+  frms{end+1} = '20160416_01_002';
+  frms{end+1} = '20160416_01_003';
+  frms{end+1} = '20160416_01_004';
+  frms{end+1} = '20160416_01_005';
+  % frms{end+1} = '20160417_04_002'; % LARGE BASELINE
+  % frms{end+1} = '20160417_04_003'; % LARGE BASELINE
+  frms{end+1} = '20160417_04_004';
+  frms{end+1} = '20160417_04_005';
+  pass_name = 'medium_line';
+  start.lat = 67.097188;
+  start.lon = -50.219048;
+  stop.lat = 67.101868;
+  stop.lon = -50.047311;
+else
+  frms{end+1} = '20160417_01_001';
+  % frms{end+1} = '20160417_01_002'; GPS BAD
+  frms{end+1} = '20160417_02_002';
+  frms{end+1} = '20160417_02_003';
+  frms{end+1} = '20160417_02_004';
+  frms{end+1} = '20160417_02_005';
+  frms{end+1} = '20160417_03_002';
+  frms{end+1} = '20160417_03_003';
+  frms{end+1} = '20160417_03_004';
+  frms{end+1} = '20160417_03_005';
+  pass_name = 'bad_line';
+  start.lat = 67.102454;
+  start.lon = -50.192878;
+  stop.lat = 67.108618;
+  stop.lon = -49.968087;
+end
 
 dist_min = 100;
 

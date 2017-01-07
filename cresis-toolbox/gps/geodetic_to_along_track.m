@@ -16,6 +16,8 @@ function [along_track,lat_filt,lon_filt,elev_filt] = geodetic_to_along_track(lat
 %   slow moving trajectory).
 %
 % Author: John Paden
+%
+% See also: geodetic_to_along_track.m, get_equal_alongtrack_spacing_idxs.m
 
 % Load WGS84 ellipsoid
 physical_constants;
