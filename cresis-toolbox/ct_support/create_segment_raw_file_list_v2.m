@@ -92,6 +92,7 @@ for adc_idx = 1:length(adcs)
     hdr_param.frame_sync = hex2dec('1ACFFC1D');
     param.clk = 1e9;
   elseif any(strcmpi(param.radar_name,{'acords'}))
+    hdr_param.file_mode = 'ieee-le';
     hdr_param.frame_sync = uint32(0);
     hdr_param.field_offsets = uint32([0 4]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1)};
@@ -564,7 +565,6 @@ for fn_idx = 1:length(fns)
     hdr_log = [hdr_log,hdr.hdr];
     hdr_raw = [hdr_raw fn_idx*ones(1,length(hdr.hdr))];
     htime = [htime hdr.htime];
-    raw_file_time = [raw_file_time hdr.raw_file_time];
     seconds = cat(2,seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
     fraction = cat(2,0,reshape(fraction,[1 length(fraction)]));
   else
