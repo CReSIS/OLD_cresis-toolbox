@@ -1,3 +1,4 @@
+
 function push(obj,cmds)
 % Pushes a set of commands onto the stack
 

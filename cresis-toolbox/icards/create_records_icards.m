@@ -111,8 +111,6 @@ else
   file_idx_previous=file_idxs(1)-1;
 end
 
-
-num_rec_sample=0;%initial number of samples per record
 hdrs.nmea_time=[];
 for file_idxs_idx = 1:length(file_idxs)
   file_idx = file_idxs(file_idxs_idx);
@@ -138,10 +136,16 @@ for file_idxs_idx = 1:length(file_idxs)
     hdr_previous=load(tmp_hdr_fn_previous);
     while (all(isnan(hdr_previous.nmea_time)))%we need to find the last time point previous file when the file does not contain NaN only---qishi
       file_idx_previous=file_idx_previous-1;
+      fn_previous=fns{file_idx_previous};
       [~,fn_name_previous,fn_ext_previous] = fileparts(fn_previous);
       tmp_hdr_fn_previous = ct_filename_tmp(param_1,'','headers',[fn_name_previous fn_ext_previous '.mat']);
       hdr_previous=load(tmp_hdr_fn_previous);
     end
+    
+    if any(isnan(hdr_previous.nmea_time))%deal with NaN of last temp header file here to avoid interpolation failure of next step---qishi
+      hdr_previous.nmea_time=create_records_icards_dealwithNaN(hdr_previous.nmea_time);
+    end
+    
     hdr_previous.nmea_time=create_records_icards_interpolation(hdr_previous.nmea_time,0,[]);%time interpolation of last temp header file of last segment to get the last time point for comparison
     if hdr.nmea_time(1)<hdr_previous.nmea_time(end)
       warning('the first nmea time of this file is %d s smaller than the last time point of prvious file, correct this in interpolation step\n', -hdr.nmea_time(1)+hdr_previous.nmea_time(end));
@@ -181,17 +185,44 @@ for file_idxs_idx = 1:length(file_idxs)
   num_records=length(hdr.nmea_time);
   header_size=64;
   secondary_header_size=12;
+ 
+  num_rec_sample=size(icards_get_data(fn,2),1);  %if>0,coherent data in this segment
   if num_rec_sample==0
-     num_rec_sample=size(icards_get_data(fn,2),1);  %if>0,coherent data in this segment
-     if num_rec_sample==0
-       num_rec_sample=size(icards_get_data(fn,1),1);%incoherent data in this segment
-       fprintf('Incoherent data stored in this file \n');
-     else
-       fprintf('Coherent data stored in this file \n');
-     end
+    data_type = 'Incoherent';
+    num_rec_sample=size(icards_get_data(fn,1),1);%incoherent data in this segment
+    if ( file_idxs_idx==1 )||(fisrt_valid_mark==0)
+      num_rec_sample_default=num_rec_sample;
+      data_type_default = data_type;
+      fprintf('%s data stored in this segment, a record has %d samples\n',data_type_default,num_rec_sample_default);
+    elseif (num_rec_sample~=num_rec_sample_default) || ~strcmp(data_type,data_type_default)
+        if (num_rec_sample~=num_rec_sample_default)
+          warning('A record has %d samples in %s, pay attention !!!\n',num_rec_sample,fn);
+        end
+        if ~strcmp(data_type,data_type_default)
+          warning('%s has %s data , pay attention\n',fn,data_type);
+        end
+    else
+        ;
+    end
+      
   else
-     num_rec_sample=num_rec_sample;
+    data_type = 'Coherent';
+    if ( file_idxs_idx==1 )||(fisrt_valid_mark==0)
+      num_rec_sample_default=num_rec_sample;
+      data_type_default = data_type;
+      fprintf('%s data stored in this segment, a record has %d samples\n',data_type_default,num_rec_sample_default);
+    elseif (num_rec_sample~=num_rec_sample_default) || ~strcmp(data_type,data_type_default)
+        if (num_rec_sample~=num_rec_sample_default)
+          warning('A record has %d samples in %s, pay attention !!!\n',num_rec_sample,fn);
+        end
+        if ~strcmp(data_type,data_type_default)
+          warning('%s has %s data, pay attention\n',fn,data_type);
+        end
+    else
+        ;
+    end
   end
+  
   sample_size=2;
   rec_data_size=num_rec_sample*sample_size;
   hdrs.offset=[hdrs.offset header_size+secondary_header_size+rec_data_size*(0:num_records-1)];%this offset is the location of each I sample

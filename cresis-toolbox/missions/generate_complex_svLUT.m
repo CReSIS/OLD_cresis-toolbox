@@ -63,15 +63,16 @@ end
 if 0
   close all
   %% DEBUG
+  surf_bins = 50;
   figure(1); clf;
   subplot(3,1,1);
   plot(lp(data.surf_vals(surf_bins,:,1)),'.')
   a1 = gca;
   subplot(3,1,2);
-  plot(angle(data.surf_vals(surf_bins,:,4) .* conj(data.surf_vals(surf_bins,:,1)) ),'.')
+  plot(angle(data.surf_vals(surf_bins,:,1) .* conj(data.surf_vals(surf_bins,:,5)) ),'.')
   a2 = gca;
   subplot(3,1,3);
-  plot(data.roll);
+  plot(data.roll.'*180/pi);
   a3 = gca;
   linkaxes([a1 a2 a3],'x');
   figure(2); clf;
@@ -91,6 +92,8 @@ for wf_adc_idx = 1:Nc
 end
 
 %% 2. Determine time delay and phase correction for position and channel equalization
+% drange: increased range is positive
+% dtime: increased range is positive
 dtime = zeros(size(data.elev));
 if param.analysis.surf.motion_comp.en
   if isempty(data.param_analysis.get_heights.lever_arm_fh)
@@ -120,10 +123,48 @@ else
 end
 dtime = permute(dtime,[3 2 1]);
 
+if 0
+  fig_offset = 10;
+  rbin = 51; % Surface bin (look at imagesc(lp(data.surf_vals(:,:,1))))
+  figure(1); clf;
+  imagesc(squeeze(angle(exp(1i*2*pi*bsxfun(@times,data.wfs(wf).fc,dtime)))).');
+  title('Correction');
+  
+  figure(fig_offset+2); clf;
+  myref = data.surf_vals(rbin,:,5);
+  dd=(fir_dec(squeeze(bsxfun(@times,data.surf_vals(rbin,:,:),conj(myref))).',hanning(5).',1) );
+  dd = bsxfun(@times,dd, exp(-j*angle(mean(dd,2))));
+  var(angle(dd).')
+  imagesc(angle(dd));
+  title('Angle Estimate');
+  
+  figure(4); clf;
+  plot(data.roll(1,:).'*180/pi);
+  hold on;
+  plot(data.pitch(1,:).'*180/pi);
+  legend('Roll','Pitch');
+
+  % Re-arrange correction terms
+  %dtime = dtime(:,:,[4 5 6 1 2 3]);
+end
+
 %% 3. Apply time delay, phase, and amplitude correction
 df = 1/(Nt*data.wfs(wf).dt);
 freq = data.wfs(wf).fc + df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
 data.surf_vals = ifft(fft(data.surf_vals) .* exp(1i*2*pi*bsxfun(@times,freq,dtime)));
+
+if 0
+  %% DEBUG CODE
+  figure(fig_offset+3); clf;
+  myref = data.surf_vals(rbin,:,5);
+  dd=(fir_dec(squeeze(bsxfun(@times,data.surf_vals(rbin,:,:),conj(myref))).',hanning(5).',1) );
+  dd = bsxfun(@times,dd, exp(-j*angle(mean(dd,2))));
+  var(angle(dd(:,1:340)).')
+  imagesc(angle(dd));
+  title('Angle Estimate After Correction');
+  
+  return;
+end
 
 if param.analysis.surf.chan_eq.en
   % Only apply the relative offset between what has already been applied
@@ -165,6 +206,10 @@ if debug_level == 2
   xlabel('Range line');
   ylabel('Range bin');
   title('Multilooked data with surface tracker');
+  h_axes = gca;
+  figure(3); clf;
+  plot(data.roll(1,:)*180/pi)
+  linkaxes([h_axes gca],'x');
 end
 
 for rline = 1:Nx

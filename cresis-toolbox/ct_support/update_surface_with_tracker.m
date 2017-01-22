@@ -27,6 +27,10 @@ for param_idx = 1:length(params)
     continue;
   end
   
+  if ~isfield(orig_surf,'max_diff')
+    orig_surf.max_diff = inf;
+  end
+  
   fprintf('Updating surface %s (%s)\n', param.day_seg, datestr(now,'HH:MM:SS'));
   
   %% Load in GIMP and Geoid
@@ -194,7 +198,7 @@ for param_idx = 1:length(params)
       imagesc([],mdata.Time,lp(mdata.Data));
       colormap(1-gray(256));
       hold on;
-      plot(Surface);
+      plot(Surface,'r');
       if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem),'g')
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem-surf.max_diff),'r')

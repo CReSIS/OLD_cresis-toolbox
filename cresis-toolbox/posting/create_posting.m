@@ -1,5 +1,5 @@
 function create_posting(param, param_override)
-% create_posting(param)
+% create_posting(param, param_override)
 %
 % Generalized function for posting data. Should be called from
 % run_create_posting.
@@ -405,7 +405,10 @@ for frm_idx = 1:length(frms)
     else
       % An empty layer directory makes the program assume that there are no
       % layer files and it uses the data files instead
+      fprintf('    %s\n', frms{frm_idx}.layer_fn);
+      warning off;
       lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom');
+      warning on;
     end
   end
   

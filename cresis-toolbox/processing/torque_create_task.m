@@ -53,6 +53,12 @@ if ~isfield(ctrl.sched,'group_size')
   ctrl.sched.group_size = 1;
 end
 
+%% Check for hold on this batch
+if exist(fullfile(ctrl.batch_dir,'keyboard'), 'file')
+  % Hold keyboard file exists
+  keyboard
+end
+
 %% Get the new job_id
 if ~isfield(ctrl,'job_id')
   [fid,msg] = fopen(ctrl.job_id_file,'r');
@@ -92,7 +98,7 @@ attempts = 0;
 in_path = fullfile(ctrl.in_path_dir,sprintf('in_%d.mat',job_id));
 while attempts < 3
   try
-    save(in_path,'taskfunction','argsin','num_args_out','param');
+    save(in_path,'taskfunction','argsin','num_args_out','param','-v7.3');
     attempts = -1;
     break;
   catch ME

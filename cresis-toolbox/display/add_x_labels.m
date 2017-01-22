@@ -20,7 +20,12 @@ function add_x_labels(ha, xtl, titles, param)
 %
 % See also: create_standard_x_labels.m
 
-error(nargchk(3, 4, nargin, 'struct'))
+matlab_ver = ver('matlab');
+if str2double(matlab_ver.Version) >= 9.0
+  narginchk(3,4);
+else
+  error(nargchk(3, 4, nargin, 'struct'))
+end
 if size(xtl{1},1) ~= length(titles)
   error('Must have the same number of labels and titles!')
 end

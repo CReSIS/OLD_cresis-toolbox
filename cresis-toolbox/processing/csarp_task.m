@@ -66,6 +66,7 @@ function [success] = csarp_task(param)
 % See also: csarp.m
 %
 
+%% Initialization and checking arguments
 physical_constants;
 
 global g_data;
@@ -85,14 +86,25 @@ if ~isfield(param.csarp,'trim_vals') || isempty(param.csarp.trim_vals)
   param.csarp.trim_vals = [0 0];
 end
 
+if ~isfield(param.csarp,'coh_noise_removal') || isempty(param.csarp.coh_noise_removal) ...
+    || ~param.csarp.coh_noise_removal
+  default_coh_noise_method = 0;
+elseif param.csarp.coh_noise_removal
+  default_coh_noise_method = 1;
+end
+
 if ~isfield(param.csarp,'coh_noise_method') || isempty(param.csarp.coh_noise_method)
-  param.csarp.coh_noise_method = 0;
+  param.csarp.coh_noise_method = default_coh_noise_method;
 end
 
 if ~isfield(param.csarp,'coh_noise_arg')
   param.csarp.coh_noise_arg = [];
 end
 
+if ~isfield(param.csarp,'pulse_rfi') || isempty(param.csarp.pulse_rfi)
+  param.csarp.pulse_rfi.en = 0;
+end
+ 
 if ~isfield(param.records,'file_version')
   param.records.file_version = [];
 end
@@ -117,8 +129,7 @@ if ~isfield(param.csarp,'psd_smooth') || isempty(param.csarp.psd_smooth)
   param.csarp.psd_smooth = 0;
 end
 
-% =====================================================================
-% Load record and waveform information
+%% Load record information
 % =====================================================================
 load_param.load.recs = param.load.recs;
 orig_records = read_records_aux_files(param.load.records_fn,param.load.recs);
@@ -127,17 +138,18 @@ old_param_records.gps_source = orig_records.gps_source;
 start_time_for_fn = orig_records.gps_time(1);
 
 %% Get the new surface
+% =====================================================================
 if isfield(param.csarp,'surface_src') && ~isempty(param.csarp.surface_src)
   
-  %% Get the generic layer data path
+  % Get the generic layer data path
   layer_path = fullfile(ct_filename_out(param,param.csarp.surface_src,'',0));
   
-  %% Load the current frame
+  % Load the current frame
   layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm));
   layer = load(layer_fn);
   new_surface_gps_time = layer.GPS_time;
   new_surface = layer.layerData{1}.value{2}.data;
-  %% Get the previous frame if necessary
+  % Get the previous frame if necessary
   if orig_records.gps_time(1) < new_surface_gps_time(1)-1
     layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm-1));
     if exist(layer_fn,'file')
@@ -146,7 +158,7 @@ if isfield(param.csarp,'surface_src') && ~isempty(param.csarp.surface_src)
       new_surface = [layer.layerData{1}.value{2}.data new_surface];
     end
   end
-  %% Get the next frame if necessary
+  % Get the next frame if necessary
   if orig_records.gps_time(end) > new_surface_gps_time(end)+1
     layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm+1));
     if exist(layer_fn,'file')
@@ -155,15 +167,17 @@ if isfield(param.csarp,'surface_src') && ~isempty(param.csarp.surface_src)
       new_surface = [new_surface layer.layerData{1}.value{2}.data];
     end
   end
-  %% Since layer files may have overlapping data, sort it
+  % Since layer files may have overlapping data, sort it
   [new_surface_gps_time new_surface_idxs] = sort(new_surface_gps_time);
   new_surface = new_surface(new_surface_idxs);
   
-  %% Do the interpolation and overwrite the orig_records.surface variable
+  % Do the interpolation and overwrite the orig_records.surface variable
   new_surface = interp1(new_surface_gps_time,new_surface,orig_records.gps_time,'linear','extrap');
   orig_records.surface = new_surface;
 end
 
+%% Load waveforms
+% =========================================================================
 if strcmpi(param.radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
@@ -182,11 +196,11 @@ elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','
 end
 load_param.wfs                = wfs;
 
-% =====================================================================
-% Collect record file information required for using load_mcords_data
+%% Collect record file information required for using load_mcords_data
 %  - Performs mapping between param.adcs and the records file contents
 %  - Translates filenames from relative to absolute
 %  - Makes filenames have the correct filesep
+% =====================================================================
 
 % Create a list of unique receivers required by the imgs list
 param.load.adcs = [];
@@ -335,8 +349,8 @@ else
   error('Radar name %s not supported', param.radar_name);
 end
 
+%% Setup control parameters for loading data
 % =====================================================================
-% Setup control parameters for load_mcords_data
 
 load_param.load.adcs = param.load.adcs;
 
@@ -348,8 +362,8 @@ load_param.proc.presums            = param.csarp.presums;
 load_param.proc.combine_rx         = param.csarp.combine_rx;
 load_param.proc.pulse_rfi          = param.csarp.pulse_rfi;
 load_param.proc.trim_vals          = param.csarp.trim_vals;
-load_param.proc.coh_noise_method    = param.get_heights.coh_noise_method;
-load_param.proc.coh_noise_arg       = param.get_heights.coh_noise_arg;
+load_param.proc.coh_noise_method   = param.csarp.coh_noise_method;
+load_param.proc.coh_noise_arg      = param.csarp.coh_noise_arg;
 
 load_param.radar = param.radar;
 load_param.surface = orig_records.surface;
@@ -357,8 +371,7 @@ if strcmpi(param.radar_name,'acords')
   load_param.load.file_version = param.records.file_version;
 end
 
-% =====================================================================
-% Load and Pulse Compress Data
+%% Load and Pulse Compress Data
 % =====================================================================
 % Load data into g_data using load_mcords_data
 load_param.load.imgs = param.load.imgs;
@@ -403,7 +416,10 @@ elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','
   end
 end
 
-%% Decimate orig_records and ref according to presums
+%% Prepare trajectory information
+% =========================================================================
+
+%Decimate orig_records and ref according to presums
 if param.csarp.presums > 1
   orig_records.lat = fir_dec(orig_records.lat,param.csarp.presums);
   orig_records.lon = fir_dec(orig_records.lon,param.csarp.presums);
@@ -421,27 +437,39 @@ trajectory_param = struct('gps_source',orig_records.gps_source, ...
   'tx_weights', [], 'lever_arm_fh', param.csarp.lever_arm_fh);
 ref = trajectory_with_leverarm(orig_records,trajectory_param);
 
-Lsar = c/wfs(1).fc*(500+1000/sqrt(er_ice))/(2*param.csarp.sigma_x);
+% Lsar = use approximate SAR aperture length
+if isfield(param.csarp,'Lsar')
+  Lsar = c/wfs(1).fc*(param.csarp.Lsar.agl+param.csarp.Lsar.thick/sqrt(er_ice))/(2*param.csarp.sigma_x);
+else
+  Lsar = c/wfs(1).fc*(500+1000/sqrt(er_ice))/(2*param.csarp.sigma_x);
+end
+
 along_track = param.proc.along_track - param.proc.along_track(1);
 
 output_along_track = along_track(1) + param.proc.output_along_track_offset ...
   + param.csarp.sigma_x*(0:param.proc.output_along_track_Nx-1);
 
+% Resample reference trajectory at output positions
+% 1. Convert ref trajectory to ecef
+ecef = zeros(3,size(ref.lat,2));
+[ecef(1,:) ecef(2,:) ecef(3,:)] = geodetic2ecef(ref.lat/180*pi, ref.lon/180*pi, ref.elev, WGS84.ellipsoid);
+% 2. Resample based on input and output along track
+ecef = interp1(along_track,ecef.',output_along_track,'linear','extrap').';
+% 3. Convert ecef to geodetic
+[lat,lon,elev] = ecef2geodetic(ecef(1,:), ecef(2,:), ecef(3,:), WGS84.ellipsoid);
+lat = lat*180/pi;
+lon = lon*180/pi;
+
 %% Remove coherent noise
-if param.csarp.coh_noise_removal
+% =========================================================================
+if param.csarp.coh_noise_method && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
   
-  if 0
-    %  - Taper the edges around the DC doppler component using a hanning
-    %    window. The DC component is set to zero.
-    g_data = fft(g_data,[],2);
-    wind_hann = hanning(9);
-    g_data(:,1) = 0;
-    for idx = 1:length(wind_hann-1)/2
-      g_data(:,1+idx) = wind_hann(idx)*g_data(:,1+idx);
-      g_data(:,end-idx) = wind_hann(idx)*g_data(:,end-idx);
-    end
-    g_data = ifft(g_data,[],2);
-  elseif param.csarp.ground_based
+  if param.csarp.coh_noise_method == 3 && isempty(param.csarp.coh_noise_arg)
+    param.csarp.coh_noise_arg = 255;
+  end
+  
+  % DC and near-DC REMOVAL
+  if param.csarp.ground_based
     % Only remove coherent noise from sections which are moving
     vel = diff(along_track) ./ diff(orig_records.gps_time);
     good_mask = vel > median(vel)/5;
@@ -456,37 +484,36 @@ if param.csarp.coh_noise_removal
       g_data{idx} = permute(g_data{idx},[2 1 3]);
       for rbin = 1:size(g_data{idx},2)
         for wf_adc_idx = 1:size(g_data{idx},3)
-          g_data{idx}(:,rbin,wf_adc_idx) = g_data{idx}(:,rbin,wf_adc_idx) - mean(g_data{idx}(good_mask,rbin,wf_adc_idx));
+          if param.csarp.coh_noise_method == 1
+            g_data{idx}(:,rbin,wf_adc_idx) = g_data{idx}(:,rbin,wf_adc_idx) - mean(g_data{idx}(good_mask,rbin,wf_adc_idx));
+          else
+            error('param.csarp.coh_noise_method %d not supported.',param.csarp.coh_noise_method);
+          end
         end
       end
       % Undo transpose
       g_data{idx} = permute(g_data{idx},[2 1 3]);
-      % Old way without transpose
-      % for rbin = 1:size(g_data{idx},1)
-      %   g_data{idx}(rbin,:,:) = g_data{idx}(rbin,:,:) - repmat(mean(g_data{idx}(rbin,:,:)),[1 size(g_data{idx},2) 1]);
-      % end
     end
   else
     % Remove only the DC Doppler component
     for idx=1:length(g_data)
-      % Transpose for faster memory access
-      g_data{idx} = permute(g_data{idx},[2 1 3]);
-      for rbin = 1:size(g_data{idx},2)
-        for wf_adc_idx = 1:size(g_data{idx},3)
-          g_data{idx}(:,rbin,wf_adc_idx) = g_data{idx}(:,rbin,wf_adc_idx) - mean(g_data{idx}(:,rbin,wf_adc_idx));
+      for wf_adc_idx = 1:size(g_data{idx},3)
+        if param.csarp.coh_noise_method == 1
+          g_data{idx}(:,:,wf_adc_idx) = bsxfun(@minus, g_data{idx}(:,:,wf_adc_idx), ...
+            mean(g_data{idx}(:,:,wf_adc_idx),2));
+        elseif param.csarp.coh_noise_method == 3
+          g_data{idx}(:,:,wf_adc_idx) = bsxfun(@minus, g_data{idx}(:,:,wf_adc_idx), ...
+            fir_dec(g_data{idx}(:,:,wf_adc_idx),hanning(param.csarp.coh_noise_arg).'/(param.csarp.coh_noise_arg/2+0.5),1));
+        else
+          error('param.csarp.coh_noise_method %d not supported.',param.csarp.coh_noise_method);
         end
       end
-      % Undo transpose
-      g_data{idx} = permute(g_data{idx},[2 1 3]);
-
-      % Old way without transpose
-      % for rbin = 1:size(g_data{idx},1)
-      %   g_data{idx}(rbin,:,:) = g_data{idx}(rbin,:,:) - repmat(mean(g_data{idx}(rbin,:,:)),[1 size(g_data{idx},2) 1]);
-      % end
     end
   end
 end
 
+%% Main loop to process each image
+% =========================================================================
 for img_idx = 1:length(load_param.load.imgs)
   if param.csarp.combine_rx
     % Receivers combined, so just get the first wf/adc pair info to name the outfile
@@ -504,7 +531,7 @@ for img_idx = 1:length(load_param.load.imgs)
     wf = abs(imgs_list(wf_adc_idx,1));
     adc = abs(imgs_list(wf_adc_idx,2));
     
-    %% Compute trajectory using GPS/INS data and the lever arm
+    %% Compute trajectory, SAR phase center and coordinate system
     if isempty(param.csarp.lever_arm_fh)
       records = orig_records;
     else
@@ -715,7 +742,7 @@ for img_idx = 1:length(load_param.load.imgs)
         param_records = old_param_records;
         param_csarp = param;
         fk_data = fk_data_ml(:,:,subap);
-        save('-v7.3',out_full_fn,'fk_data','fcs','wfs','param_csarp','param_records');
+        save('-v7.3',out_full_fn,'fk_data','fcs','lat','lon','elev','wfs','param_csarp','param_records');
       end
       
     elseif strcmpi(param.csarp.sar_type,'tdbp')
@@ -844,7 +871,7 @@ for img_idx = 1:length(load_param.load.imgs)
         param_csarp = param;
         param_csarp.tdbp = tdbp_param;
         tdbp_data = tdbp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'tdbp_data','fcs','wfs','param_csarp','param_records','tdbp_param');
+        save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_csarp','param_records','tdbp_param');
       end
     elseif strcmpi(param.csarp.sar_type,'mltdp')
       fcs.squint = [0 0 -1].';
@@ -910,7 +937,7 @@ for img_idx = 1:length(load_param.load.imgs)
         param_records = old_param_records;
         param_csarp = param;
         mltdp_data = mltdp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'mltdp_data','fcs','wfs','param_csarp','param_records');
+        save('-v7.3',out_full_fn,'mltdp_data','fcs','lat','lon','elev','wfs','param_csarp','param_records');
       end
     end
   end

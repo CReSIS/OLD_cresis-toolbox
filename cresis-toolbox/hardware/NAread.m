@@ -306,7 +306,7 @@ if isfield(param,'fn')
   if ~exist(fn_dir,'dir')
     mkdir(fn_dir);
   end
-  fn_name = [fn_name sprintf('_%s.mat',datestr(now,'YYYYMMDD_HHmmSS'))];
+  fn_name = [fn_name sprintf('_%s.mat',datestr(now,'YYYYmmDD_HHMMSS'))];
   fn = fullfile(fn_dir,fn_name);
   save(fn,'hdr','data');
 end

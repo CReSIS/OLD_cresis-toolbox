@@ -23,7 +23,7 @@ function decim_idxs = get_equal_alongtrack_spacing_idxs(along_track,spacing)
 %
 % Author: John Paden
 %
-% See also: geodetic_to_along_track.m
+% See also: geodetic_to_along_track.m, get_equal_alongtrack_spacing_idxs.m
 
 if isstruct(along_track)
   % Mode 1

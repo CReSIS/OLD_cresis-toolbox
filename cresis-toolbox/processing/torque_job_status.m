@@ -36,6 +36,15 @@ if ~isfield(ctrl.sched,'test_mode')
   ctrl.sched.test_mode = 0;
 end
 
+if ~isfield(ctrl.sched,'complete_codes') || isempty(ctrl.sched.complete_codes)
+  ctrl.sched.complete_codes = 'C';
+end
+
+if ~isfield(ctrl.sched,'check_running_jobs_for_complete') || isempty(ctrl.sched.check_running_jobs_for_complete)
+  ctrl.sched.check_running_jobs_for_complete = false;
+end
+
+
 job_status_found = zeros(size(ctrl.job_status));
 
 %% Update job status for each job in list

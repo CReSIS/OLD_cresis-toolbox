@@ -31,9 +31,9 @@ end
 debug_level = 1;
 
 in_base_path = fullfile(data_support_path,'1997_Greenland_P3');
-gps_path = fullfile(support_path,'gps','1997_Greenland_P3');
 
-file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {};
+file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
+sync_fns = {}; sync_params = {};
 
 
 file_idx = file_idx + 1;
@@ -41,78 +41,88 @@ in_fns{file_idx} = fullfile(in_base_path,'19970511_nmea.csv');
 out_fns{file_idx} = 'gps_19970511.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970511'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970513_nmea.csv');
 out_fns{file_idx} = 'gps_19970513.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970513'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970514_nmea.csv');
 out_fns{file_idx} = 'gps_19970514.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970514'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970515_nmea.csv');
 out_fns{file_idx} = 'gps_19970515.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970515'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970517_nmea.csv');
 out_fns{file_idx} = 'gps_19970517.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970517'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970519_nmea.csv');
 out_fns{file_idx} = 'gps_19970519.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970519'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970521_nmea.csv');
 out_fns{file_idx} = 'gps_19970521.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970521'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970523_nmea.csv');
 out_fns{file_idx} = 'gps_19970523.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970523'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970524_nmea.csv');
 out_fns{file_idx} = 'gps_19970524.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970524'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970527_nmea.csv');
 out_fns{file_idx} = 'gps_19970527.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970527'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 file_idx = file_idx + 1;
 in_fns{file_idx} = fullfile(in_base_path,'19970528_nmea.csv');
 out_fns{file_idx} = 'gps_19970528.mat';
 file_type{file_idx} = 'csv';
 params{file_idx} = struct('input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f','time_reference','utc','type',[3]);%add a new type valued 3 for "read_gps_csv" to process
-gps_source{file_idx} = 'atm-final_19970528'; 
+gps_source{file_idx} = 'nmea-field'; 
 
 
 make_gps;
+match_idx = strmatch('gps_19950518.mat',out_fns,'exact');
+if ~isempty(match_idx)
+  gps_fn = fullfile(gps_path,out_fns{match_idx});
+  fprintf('Fixing GPS data for %s\n', gps_fn);
+  gps = load(gps_fn);
+  % FIX CODE HERE
+  gps.elev(gps.elev > 10000) = NaN;
+  gps.elev = interp_finite(gps.elev);
+  save(gps_fn,'-append','-struct','gps','elev');
+end
 

@@ -122,7 +122,7 @@ elseif param.elev_comp == 2
   
   % Filter out high frequencies from surface layer
   lay.Surface_Filled = interp_finite(lay.Surface,0); % Need surface points everywhere for filtering operation
-  if ~isfield(param,'surf_filt_en') || param.surf_filt_en
+  if ~isfield(param,'surf_filt_en') || isempty(param.surf_filt_en) || param.surf_filt_en
     if length(lay.Surface_Filled) >= 100
       [Bfilt,Afilt] = butter(2,0.02);
       surf_filt = filtfilt(Bfilt,Afilt,lay.Surface_Filled);
@@ -175,7 +175,7 @@ elseif param.elev_comp == 2
   mdata.Data(mdata.Data == 0) = NaN;
   for rline = 1:size(mdata.Data,2)
     newData(:,rline) = interp1(mdata.Time, mdata.Data(:,rline), ...
-      mdata.Surface(rline) + depth_time);
+      lay.Surface(rline) + depth_time);
     lay.Bottom(:) = lay.Bottom(rline) - lay.Surface(rline);
   end
   mdata.Data = newData;

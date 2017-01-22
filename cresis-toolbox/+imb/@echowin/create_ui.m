@@ -174,12 +174,14 @@ set(obj.left_panel.toolPM,'Style','popupmenu');
 set(obj.left_panel.toolPM,'HorizontalAlignment','Center');
 set(obj.left_panel.toolPM,'FontName','fixed');
 set(obj.left_panel.toolPM,'Callback',@obj.toolPM_callback);
+set(obj.left_panel.toolPM,'TooltipString','Select the active tool');
 
 %--Tool Params Window Pushbutton
 obj.left_panel.paramPB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.paramPB,'Style','PushButton');
 set(obj.left_panel.paramPB,'String','Tool Params');
 set(obj.left_panel.paramPB,'Callback',@obj.paramPB_callback);
+set(obj.left_panel.paramPB,'TooltipString','Open the tool parameters window');
 
 %--Quality Popup Menu
 obj.left_panel.qualityPM = uicontrol('Parent',obj.left_panel.handle);
@@ -194,6 +196,7 @@ set(obj.left_panel.qualityPM,'Style','popupmenu');
 set(obj.left_panel.qualityPM,'HorizontalAlignment','Center');
 set(obj.left_panel.qualityPM,'FontName','fixed');
 set(obj.left_panel.qualityPM,'callback',@obj.quality_menu_callback);
+set(obj.left_panel.qualityPM,'TooltipString','Set the active quality level');
 
 %--Image Processing Window Pushbutton
 if strcmpi(class(obj.h_fig),'double')
@@ -209,6 +212,7 @@ obj.left_panel.imagePB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.imagePB,'Style','PushButton');
 set(obj.left_panel.imagePB,'String','Image Params');
 set(obj.left_panel.imagePB,'Callback',@obj.toggle_imagewin_visibility);
+set(obj.left_panel.imagePB,'TooltipString','Open image processing window');
 
 %--Y axis choice
 obj.left_panel.yaxisPM = uicontrol('Parent',obj.left_panel.handle);
@@ -216,6 +220,7 @@ set(obj.left_panel.yaxisPM,'Style','PopupMenu');
 set(obj.left_panel.yaxisPM,'String',{'TWTT','WGS84','Range','Range Bin'});
 set(obj.left_panel.yaxisPM,'Value',1);
 set(obj.left_panel.yaxisPM,'Callback',@obj.yaxisPM_callback);
+set(obj.left_panel.yaxisPM,'TooltipString','Set the y-axis units');
 
 %--X axis choice
 obj.left_panel.xaxisPM = uicontrol('Parent',obj.left_panel.handle);
@@ -223,6 +228,7 @@ set(obj.left_panel.xaxisPM,'Style','PopupMenu');
 set(obj.left_panel.xaxisPM,'String',{'Range Line','Along Track','GPS Time'});
 set(obj.left_panel.xaxisPM,'Value',1);
 set(obj.left_panel.xaxisPM,'Callback',@obj.xaxisPM_callback);
+set(obj.left_panel.xaxisPM,'TooltipString','Set the x-axis units');
 
 %--Max frames selection
 obj.left_panel.framesPM = uicontrol('Parent',obj.left_panel.handle);
@@ -232,6 +238,7 @@ set(obj.left_panel.framesPM,'FontName','fixed');
 set(obj.left_panel.framesPM,'String',{'1 Frame','2 Frames','3 Frames','4 Frames','5 Frames','6 Frames','7 Frames','8 Frames','9 Frames','10 Frames'});
 set(obj.left_panel.framesPM,'Value',obj.default_params.max_frames);
 set(obj.left_panel.framesPM,'Callback',@obj.framesPM_callback);
+set(obj.left_panel.framesPM,'TooltipString','Set the number of frames to load/buffer');
 
 %--Crossovers
 if strcmpi(class(obj.h_fig),'double')
@@ -247,12 +254,14 @@ obj.left_panel.crossoverPB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.crossoverPB,'Style','PushButton');
 set(obj.left_panel.crossoverPB,'String','Crossovers');
 set(obj.left_panel.crossoverPB,'Callback',@obj.crossoverPB_callback);
+set(obj.left_panel.crossoverPB,'TooltipString','Open flightline crossover browse window');
 
 %--save
 obj.left_panel.savePB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.savePB,'Style','PushButton');
-set(obj.left_panel.savePB,'String','Save Layer');
+set(obj.left_panel.savePB,'String','(S)ave Layer');
 set(obj.left_panel.savePB,'Callback',@obj.savePB_callback);
+set(obj.left_panel.savePB,'TooltipString','Save layers to database');
 
 % top part table
 obj.left_panel.topTable.ui = []; % Parent is a table container
@@ -324,6 +333,7 @@ obj.left_panel.frameCM = uicontextmenu('Parent',obj.h_fig);
 % Define the context menu items and install their callbacks
 uimenu(obj.left_panel.frameCM, 'Label', 'Copy', 'Callback', @obj.frameCM_callback);
 set(obj.left_panel.frameLB,'UIContextMenu',obj.left_panel.frameCM);
+set(obj.left_panel.frameLB,'TooltipString','Load frame');
 
 %---- Source data Listbox
 obj.left_panel.sourceLB = uicontrol('Parent',obj.left_panel.handle);
@@ -331,6 +341,7 @@ set(obj.left_panel.sourceLB,'Style','listbox');
 set(obj.left_panel.sourceLB,'HorizontalAlignment','Center');
 set(obj.left_panel.sourceLB,'FontName','fixed');
 set(obj.left_panel.sourceLB,'Callback',@obj.sourceLB_callback);
+set(obj.left_panel.sourceLB,'TooltipString','Echogram data source to load');
 obj.left_panel.sourceCM = uicontextmenu('Parent',obj.h_fig);
 % Define the context menu items and install their callbacks
 uimenu(obj.left_panel.sourceCM, 'Label', 'Add', 'Callback', @obj.sourceCM_callback);

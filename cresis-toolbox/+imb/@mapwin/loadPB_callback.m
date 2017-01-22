@@ -13,6 +13,19 @@ if isempty(obj.cur_sel.frame_name)
   return;
 end
 
+% Check to make sure the standard:surface layer is selected before we load
+found_surface = false;
+for idx=1:length(obj.cur_map_pref_settings.layers.lyr_name)
+  if strcmp(obj.cur_map_pref_settings.layers.lyr_name{idx},'surface') ...
+      && strcmp(obj.cur_map_pref_settings.layers.lyr_group_name{idx},'standard')
+    found_surface = true;
+  end
+end
+if ~found_surface
+  uiwait(msgbox('standard:surface layer must be selected in mapwin prefs','Error loading','modal'));
+  return;
+end
+
 % Change the pointer to a watch
 set(obj.h_fig,'Pointer','watch');
 drawnow;

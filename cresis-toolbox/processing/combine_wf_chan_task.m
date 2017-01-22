@@ -1,5 +1,5 @@
-function success = combine_task(param)
-% success = combine_task(param)
+function success = combine_wf_chan_task(param)
+% success = combine_wf_chan_task(param)
 %
 % Task/job running on cluster that is called from combine. This
 % function is generally not called directly.
@@ -41,13 +41,6 @@ physical_constants;
 % =====================================================================
 % Process data
 % =====================================================================
-if ~isfield(param.combine,'subaps') || isempty(param.combine.subaps)
-  param.combine.subaps = {[1]};
-end
-if ~isfield(param.combine,'subbnds') || isempty(param.combine.subbnds)
-  param.combine.subbnds = {[1]};
-end
-
 for chunk_idx = 1:length(param.combine.chunk_ids)
   
   tx = 1;
@@ -73,6 +66,20 @@ for chunk_idx = 1:length(param.combine.chunk_ids)
       % image list, so we only grab the first image.  Multilooking across
       % SLCs IS NOT supported for this method!
       ml_list = {ml_list{1}(1,:)};
+    end
+    if ~isfield(param.combine,'subaps') || isempty(param.combine.subaps)
+      % If SAR sub-apertures not set, we assume that there is just one
+      % subaperture to be passed in for each multilook input
+      for ml_idx = 1:length(ml_list)
+        param.combine.subaps{ml_idx} = [1];
+      end
+    end
+    if ~isfield(param.combine,'subbnds') || isempty(param.combine.subbnds)
+      % If subbands not set, we assume that there is just one
+      % subaperture to be passed in for each multilook input
+      for ml_idx = 1:length(ml_list)
+        param.combine.subbnds{ml_idx} = [1];
+      end
     end
     clear fcs chan_equal data;
     for ml_idx = 1:length(ml_list)
@@ -297,12 +304,9 @@ for chunk_idx = 1:length(param.combine.chunk_ids)
     array_fn = fullfile(param.combine.out_path, [sar_type_fn_name(end-6:end) sprintf('_img_%02d', img_idx) sar_type_fn_ext]);
     fprintf('  Saving combine_wf_chan data %s (%s)\n', array_fn, datestr(now));
     
-    [Latitude,Longitude,Elevation] ...
-      = ecef2geodetic(sar_type_file.fcs.origin(1,array_param.lines), ...
-      sar_type_file.fcs.origin(2,array_param.lines), ...
-      sar_type_file.fcs.origin(3,array_param.lines),WGS84.ellipsoid);
-    Latitude = Latitude*180/pi;
-    Longitude = Longitude*180/pi;
+    Latitude = sar_type_file.lat(1,array_param.lines);
+    Longitude = sar_type_file.lon(1,array_param.lines);
+    Elevation = sar_type_file.elev(1,array_param.lines);
     GPS_time = sar_type_file.fcs.gps_time(array_param.lines);
     Surface = sar_type_file.fcs.surface(array_param.lines);
     Bottom = sar_type_file.fcs.bottom(array_param.lines);

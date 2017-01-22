@@ -13,6 +13,8 @@
 %% User Settings
 
 shp_fn = ct_filename_gis([],'greenland/glacier_flowlines/helheim/helheim_main.shp');
+radar_csv_fn = ct_filename_gis([],'greenland/glacier_flowlines/helheim/helheim_main_radar.csv');
+mc_csv_fn = ct_filename_gis([],'greenland/glacier_flowlines/helheim/helheim_main_mc.csv');
 
 geotiff_fn = ct_filename_gis([],'greenland\Landsat-7\Greenland_natural_90.tif');
 
@@ -87,8 +89,10 @@ saveas(h_fig,sprintf('~/flowline_%s_map.fig',data_name));
 saveas(h_fig,sprintf('~/flowline_%s_map.png',data_name));
 
 %% Find the closest point on the flowline for each radar position
-[d_min, x_d_min, y_d_min, is_vertex, idx_c, xc, yc, Cer, Ppr] ...
+[d_min, x_d_min, y_d_min, is_vertex, idx_c, xc, yc, is_in_seg, Cer, Ppr] ...
   = p_poly_dist(data.properties.X, data.properties.Y, flowline.X, flowline.Y);
+np = length(d_min);
+d_min = Ppr(2,(1:np) + np*(idx_c(1:np).'-1));
 
 % For each radar point, n, find its along track position on the flowline
 data.properties.along_track = zeros(1,length(data.properties.X));
@@ -112,7 +116,6 @@ mc.thick = mc.thick.';
 mc.bottom = mc.bottom.';
 
 % Create projection structure for the mc_fn netcdf
-clear proj
 proj = [];
 proj.CornerCoords = [];
 proj.Ellipsoid = [];
@@ -149,17 +152,20 @@ max_angle = 100 / WGS84.semimajor;
 max_angle_deg = max_angle * 180/pi;
 [flowline.latM,flowline.lonM] = interpm(flowline.lat,flowline.lon,max_angle_deg);
 [flowline.XM,flowline.YM] = projfwd(proj,flowline.latM,flowline.lonM);
+flowline.along_trackM = geodetic_to_along_track(flowline.latM,flowline.lonM);
 
 % Interpolate the mass conservation grid onto the flowline
 [mc.xmesh,mc.ymesh] = meshgrid(mc.x,mc.y);
-flowline.mc_thick = interp2(single(mc.xmesh),single(mc.ymesh),single(mc.thick),flowline.X,flowline.Y);
+flowline.mc_thick = interp2(single(mc.xmesh),single(mc.ymesh),single(mc.thick),flowline.XM,flowline.YM);
+flowline.mc_surf = interp2(single(mc.xmesh),single(mc.ymesh),single(mc.surf),flowline.XM,flowline.YM);
+flowline.mc_bottom = interp2(single(mc.xmesh),single(mc.ymesh),single(mc.bottom),flowline.XM,flowline.YM);
 
 %% Create along track versus thickness figures
 h_fig = figure;
 scatter(data.properties.along_track(mask)/1e3, ...
   data.properties.thickness(mask),[],d_min(mask), '.');
 hold on;
-plot(flowline.along_track/1e3, flowline.mc_thick,'k');
+plot(flowline.along_trackM/1e3, flowline.mc_thick,'k');
 h_colorbar = colorbar;
 set(get(h_colorbar,'YLabel'),'String','Distance from flowline (m)');
 xlabel('Along flowline (km)');
@@ -176,7 +182,7 @@ h_fig = figure;
 scatter(data.properties.along_track(mask)/1e3, ...
   data.properties.thickness(mask),[],data.properties.thickness(mask), '.');
 hold on;
-plot(flowline.along_track/1e3, flowline.mc_thick,'k');
+plot(flowline.along_trackM/1e3, flowline.mc_thick,'k');
 h_colorbar = colorbar;
 set(get(h_colorbar,'YLabel'),'String','Thickness (m)');
 xlabel('Along flowline (km)');
@@ -189,6 +195,82 @@ legend('Radar','Mass conservation','location','best')
 saveas(h_fig,sprintf('~/flowline_%s_thickness.fig',data_name));
 saveas(h_fig,sprintf('~/flowline_%s_thickness.png',data_name));
 
+[fid,msg] = fopen(mc_csv_fn,'w');
+if fid<0
+  error('Could not open %s: %s\n', mc_csv_fn, msg);
+end
+
+fprintf(fid,'Latitude,Longitude,X,Y,Surface_Elevation,Bottom_Elevation,Flowline_Alongtrack\n');
+for idx = 1:length(flowline.along_track)
+  fprintf(fid,'%.7f,%.7f,%.1f,%.1f,%.1f,%.1f,%.1f\n', ...
+    flowline.latM(idx),flowline.lonM(idx),flowline.XM(idx),flowline.YM(idx), ...
+    flowline.mc_surf(idx),flowline.mc_bottom(idx),flowline.along_trackM(idx));
+end
+
+fclose(fid);
+
 %% Create CSV files for radar points and for mass conservation points
 % Geodetic coordinates
 
+%                 Lat: [1x32819 double]
+%                 Lon: [1x32819 double]
+%           Elevation: [1x32819 double]
+%            Gps_Time: [1x32819 double]
+%             Surface: [1x32819 double]
+%              Bottom: [1x32819 double]
+%           Thickness: [1x32819 double]
+%     Surface_Quality: [1x32819 int32]
+%      Bottom_Quality: [1x32819 int32]
+%              Season: {32819x1 cell}
+%               Frame: {32819x1 cell}
+%                   X: [1x32819 double]
+%                   Y: [1x32819 double]
+%           thickness: [1x32819 double]
+%         along_track: [1x32819 double]
+
+% HACK:
+mask = mask & ~strcmp(data.properties.Season,'2005_Greenland_TO').';
+
+lat = data.properties.Lat(mask);
+lon = data.properties.Lon(mask);
+elev = data.properties.Elevation(mask);
+gps_time = data.properties.Gps_Time(mask);
+surf = data.properties.Elevation(mask) - data.properties.Surface(mask);
+bottom = data.properties.Elevation(mask) - data.properties.Bottom(mask);
+quality = data.properties.Bottom_Quality(mask);
+season = data.properties.Season(mask);
+frm_id = data.properties.Frame(mask);
+x = data.properties.X(mask);
+y = data.properties.Y(mask);
+along_track = data.properties.along_track(mask);
+d_min_masked = d_min(mask);
+
+[along_track,sort_idxs] = sort(along_track);
+lat = lat(sort_idxs);
+lon = lon(sort_idxs);
+elev = elev(sort_idxs);
+gps_time = gps_time(sort_idxs);
+surf = surf(sort_idxs);
+bottom = bottom(sort_idxs);
+quality = quality(sort_idxs);
+season = season(sort_idxs);
+frm_id = frm_id(sort_idxs);
+x = x(sort_idxs);
+y = y(sort_idxs);
+d_min_masked = d_min_masked(sort_idxs);
+
+[fid,msg] = fopen(radar_csv_fn,'w');
+if fid<0
+  error('Could not open %s: %s\n', radar_csv_fn, msg);
+end
+
+fprintf(fid,'Latitude,Longitude,X,Y,Elevation,Date,Time_SOD,Surface_Elevation,Bottom_Elevation,Quality,Season,Frame,Flowline_Alongtrack,Flowline_Distance\n');
+sod = epoch_to_sod(gps_time);
+for idx = 1:length(lat)
+  fprintf(fid,'%.7f,%.7f,%.1f,%.1f,%.1f,%s,%.3f,%.1f,%.1f,%.0f,%s,%s,%.1f,%.1f\n', ...
+    lat(idx),lon(idx),x(idx),y(idx),elev(idx),datestr(epoch_to_datenum(gps_time(idx)),'YYYYmmDD'), ...
+    sod(idx),surf(idx),bottom(idx),quality(idx),season{idx},frm_id{idx}, ...
+    along_track(idx),d_min_masked(idx));
+end
+
+fclose(fid);

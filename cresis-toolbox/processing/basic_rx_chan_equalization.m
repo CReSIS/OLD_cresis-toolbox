@@ -108,7 +108,7 @@ for file_idx = 1:num_files
   else
     param.mocomp_type = 4;
   end
-  param.tx_weights = double(settings.DDS_Setup.Ram_Amplitude);
+  param.tx_weights = double(settings.DDS_Setup.Ram_Amplitude(logical(default.tx_DDS_mask)));
   param.rx_paths = {}; param.rx_paths{wf} = default.radar.rx_paths;
   param.lever_arm_fh = @lever_arm;
   
