@@ -492,7 +492,7 @@ if strcmpi(param.axis_type,'bars')
   end
 else
   xtl = create_standard_x_labels(mdata.Latitude,mdata.Longitude,mdata.Elevation,param.num_x_tics);
-  add_x_labels(ah_echo,xtl,{'distance','latitude','longitude'});
+  add_x_labels(ah_echo,xtl,{'dist','lat','lon'});
   set(ah_echo_time,'Units','normalized');
   set(ah_echo,'Units','normalized');
   set(ah_echo_time,'Position',get(ah_echo,'Position'));
