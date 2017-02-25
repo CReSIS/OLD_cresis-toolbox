@@ -105,14 +105,14 @@ end
 
 % Plot figures
 figure(1); clf;
-imagesc([],time*1e6,10*log10(data));
+imagesc([],time*1e6,10*log10(abs(data)));
 xlabel('Range line');
 ylabel('Relative fast time (us)');
 cc = caxis; caxis(cc(2)+[-45 0]);
 colormap(1-gray(256));
 
 figure(2); clf;
-imagesc([],time*3e8/2,10*log10(data));
+imagesc([],time*3e8/2,10*log10(abs(data)));
 xlabel('Range line');
 ylabel('Relative range (m)');
 cc = caxis; caxis(cc(2)+[-45 0]);

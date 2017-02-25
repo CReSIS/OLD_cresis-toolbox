@@ -5,18 +5,21 @@ if 1
   else
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
   end
-elseif 0
+  master_idx = 1;
+elseif 1
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/medium_line.mat';
   else
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/medium_line.mat';
   end
+  master_idx = 2;
 else
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/bad_line.mat';
   else
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/bad_line.mat';
   end
+  master_idx = 2;
 end
 
 proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenland_natural_90m.tif')));
@@ -24,7 +27,6 @@ proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenlan
 physical_constants;
 
 load(fn);
-master_idx = 2;
 rbins = 20:120;
 
 %% Plot Results
@@ -176,7 +178,7 @@ for pass_idx = 1:length(pass)
   pass(pass_idx).ref_z = interp1(pass(pass_idx).along_track, ...
     pass(pass_idx).ref_z, along_track,'linear','extrap').';
 
-  if 0
+  if 1
     % Motion compensation of FCS z-motion
     for rline = 1:size(pass(pass_idx).ref_data,2)
       % Convert z-offset into time-offset assuming nadir DOA
@@ -331,10 +333,6 @@ xlim([-90 90])
 xlabel('Direction of arrival (deg)');
 ylabel('Relative power (dB)');
 title('Bad line, MVDR passes [2 4 6], rline 1291');
-
->> array_param.fcs{1}{6}.pos(2:3,1291)
-ans =
-
 
 figure(h_fig_ref_idx); h_axes = gca;
 %figure(h_fig_map); h_axes(end+1) = gca;
