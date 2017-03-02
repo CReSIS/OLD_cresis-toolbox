@@ -46,16 +46,15 @@ adc_idx=1;
 num_accum = 0;
 out_idx = 0;
 rec = 1;
-year_mark = str2num(whole_param.day_seg(1:4));
-if year_mark>1997 %coherent data stored
-  data_stored_type='coherent';
-elseif size(icards_get_data(param.load.filenames{1}{end},2),1)~=0%some coherent data in 1997's segments
-  data_stored_type='coherent';
-else
-  data_stored_type='incoherent';
+
+if strcmpi(whole_param.radar.icards.data_type,'incoherent') %read coherent data
+  if size(icards_get_data(param.load.filenames{1}{end},2),1)~=0%some coherent data in 1997's segments
+    whole_param.radar.icards.data_type='coherent';
+    warning('%s has coherent data, pay attention !\n',whole_param.day_seg);
+  end
 end
  
-if strcmpi(data_stored_type,'coherent') %read coherent data
+if strcmpi(whole_param.radar.icards.data_type,'coherent') %read coherent data
     while rec < total_rec;
       % Get the filename
       fn_idx = param.load.file_idx{adc_idx}(rec);
@@ -92,7 +91,11 @@ if strcmpi(data_stored_type,'coherent') %read coherent data
         rec_data_I = [fread(fid, param.load.rec_data_size/sample_size, 'int16')];%read I channel
         fseek(fid, param.load.offset{1}(rec)+param.load.rec_data_size*file_record_length+12, 'bof');
         rec_data_Q = [fread(fid, param.load.rec_data_size/sample_size, 'int16')];%read Q Channel
-        rec_data = double(rec_data_I+1i*rec_data_Q);%a full sample I+jQ
+        if whole_param.radar.icards.IQ_flip
+          rec_data = double(rec_data_Q+1i*rec_data_I);%a full sample I+jQ
+        else
+          rec_data = double(rec_data_I+1i*rec_data_Q);%a full sample I+jQ
+        end
 
         % ===============================================================
         % Process record
@@ -307,15 +310,14 @@ else %read incoherent data
 end
 fclose(fid);
 % one-sided tukey window
-[ window_matrix ] = onesided_window( whole_param.csarp.td_window,whole_param.csarp.td_window_side,size(g_data{1}) );%using one-sided window to avoid too big value at the start or end of a record
+[ window_matrix ] = onesided_window( whole_param.radar.icards.td_window,whole_param.radar.icards.td_window_side,size(g_data{1}) );%using one-sided window to avoid too big value at the start or end of a record
 g_data{img_idx}=g_data{img_idx}.*window_matrix;
-
-%  burst noise detection
-[g_data{img_idx}]=icards_burst_noise_detection(g_data{img_idx});
-% Constant with slow time noise removal:
-% g_data{img_idx} = g_data{img_idx} - mean(mean(g_data{img_idx}(800:end,:)));
-% Slowly varying in slow time noise removal:
-g_data{img_idx} = g_data{img_idx} - repmat(fir_dec(mean(g_data{img_idx}(round(size(g_data{1},1)*0.78):end,:)), ones(1,15)/15), [size(g_data{img_idx},1) 1]);
+% if strcmpi(whole_param.radar.icards.data_type,'coherent') %incoherent data does not need burst noise detection or slow time noise removal
+    % burst noise detection
+%     [g_data{img_idx}]=icards_burst_noise_detection(g_data{img_idx});
+    % DC offset removals
+    g_data{img_idx} = g_data{img_idx} - repmat(fir_dec(mean(g_data{img_idx}(round(size(g_data{1},1)*whole_param.radar.icards.noise_cal_rng):end,:),1), whole_param.radar.icards.DC_filter), [size(g_data{img_idx},1) 1]);
+% end
 return;
 
 % ==============================================================

@@ -5,7 +5,7 @@ function gps = read_gps_netcdf(in_fn, param)
 % possible with the param structure. Includes AWI netcdf.
 %
 % Input Args:
-%   in_fn (string) input .txt filename
+%   in_fn (string) input .nc filename
 %   param = control parameter structure
 %     .time_reference = 'gps' or 'utc' (should always be 'utc' if from AWI)
 %     .nc_fields: Nf element cell array of strings which contain the

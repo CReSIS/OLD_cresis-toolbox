@@ -1,5 +1,5 @@
-function opsLayerData = layerDataToOps(lyr,settings)
-% opsLayerData = layerDataToOps(layerDataFn,settings)
+function [opsLayerData,opsLayerDataGpsTime] = layerDataToOps(lyr,settings)
+% [opsLayerData,opsLayerDataGpsTime] = layerDataToOps(layerDataFn,settings)
 %
 % 1. Converts CReSIS layerData to the OPS format.
 % 2. Interpolates layerData onto a fixed scale based on point paths in the OPS database.
@@ -70,6 +70,7 @@ pathParam.properties.nativeGeom = true;
 % BUILD UP A STRUCTURE COMBINE AUTO/MANUAL AND REMOVE DUPLICATES
 lyrCombined = [];
 opsLayerData = [];
+opsLayerDataGpsTime = [];
 for layerIdx = 1:length(lyr.layerData)
   
   % SET DEFAULT LAYER NAMES (FOR SURFACE AND BOTTOM)
@@ -153,7 +154,7 @@ for layerIdx = 1:length(lyr.layerData)
   % FIND GAPS IN DATA
   pathAlongTrack = geodetic_to_along_track(pathData.properties.Y(keepPathIdxs),pathData.properties.X(keepPathIdxs),pathData.properties.elev(keepPathIdxs));
   master_along_track_at_slave_times = interp1(pathData.properties.gps_time(keepPathIdxs), pathAlongTrack, lyrCombined.gps_time);
-  dataGapIdxs = data_gaps_check_mex(pathAlongTrack,master_along_track_at_slave_times,50,20);
+  dataGapIdxs = data_gaps_check_mex(pathAlongTrack,master_along_track_at_slave_times,settings.gaps_dist(1),settings.gaps_dist(2));
   
   % INTERPOLATE COMBINED LAYERDATA ONTO OPS PATH, STORE IN THE OUTPUT
   opsLayerData(end+1).properties.point_path_id = pathData.properties.id(keepPathIdxs);
@@ -161,12 +162,14 @@ for layerIdx = 1:length(lyr.layerData)
   opsLayerData(end).properties.type = ones(size(pathData.properties.gps_time(keepPathIdxs)))*2;
   opsLayerData(end).properties.quality = interp1(lyrCombined.gps_time,lyrCombined.quality,pathData.properties.gps_time(keepPathIdxs),'nearest');
   opsLayerData(end).properties.lyr_name = lyrCombined.lyr_name;
+  opsLayerDataGpsTime{end+1} = pathData.properties.gps_time(keepPathIdxs);
   
   % REMOVE GAPS IN DATA
   opsLayerData(end).properties.point_path_id = double(opsLayerData(end).properties.point_path_id(~dataGapIdxs));
   opsLayerData(end).properties.twtt = opsLayerData(end).properties.twtt(~dataGapIdxs);
   opsLayerData(end).properties.type = double(opsLayerData(end).properties.type(~dataGapIdxs));
   opsLayerData(end).properties.quality = double(opsLayerData(end).properties.quality(~dataGapIdxs));
+  opsLayerDataGpsTime{end} = opsLayerDataGpsTime{end}(~dataGapIdxs);
   
 %   % REMOVE NANs IN DATA AND KEEP ONLY VALUES THAT HAVE A SURFACE
 %   noSurfIdxs = setdiff(opsLayerData(end).properties.point_path_id,opsLayerData(1).properties.point_path_id);

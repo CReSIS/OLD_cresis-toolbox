@@ -1,3 +1,4 @@
+
 %NOTES:This function merges TRAJ and NMEA data and generate a .csv file for
 %a certain day as the output. TRAJ file is the main data resources and NMEA
 %is used as complemtary. But actually, TRAJ file is not available for most
@@ -11,7 +12,7 @@
 %gps_format_time in read_gps_csv.m.
 clear;
 clc;
-which_season='rds_param_1999_Greenland_P3.xls';%we could generate a season's GPS file by running this script---qishi
+which_season='rds_param_2001_Greenland_P3.xls';%we could generate a season's GPS file by running this script---qishi
 param_whole = read_param_xls(ct_filename_param(which_season));
 seg_cell={param_whole.day_seg}';
 days=[];%initialization
@@ -19,7 +20,7 @@ for ii=1:length(seg_cell)
   days=[days str2num(seg_cell{ii}(1:8))];
   days=unique(days);
 end
-% days=[20020518];%could select some day(s) to merge---qishi
+days=[20010523];%could select some day(s) to merge---qishi
 for jj=1:length(days)%creating GPS file day by day---qishi
   today=days(jj);
   fprintf('===============Merging GPS Data of %d===============\n',today);
@@ -160,7 +161,7 @@ for jj=1:length(days)%creating GPS file day by day---qishi
   end
   FINAL.time=FINAL.time-utc_leap_seconds(FINAL.time(1));%covert back to UTC time,leap seconds will be re-add when making GPS---qishi
   fix_minor_idx=find(diff(FINAL.time)<=1e-6);%it seems that csv file cannot distinguish two time points with too small difference---qishi 
-  FINAL.time(fix_minor_idx+1)=FINAL.time(fix_minor_idx+1)+1e-6;
+  FINAL.time(fix_minor_idx+1)=FINAL.time(fix_minor_idx+1)+1e-5;%manully add a small but "large" enought value for csv file to recognize as different value---qishi
   FINAL.time=create_records_icards_interpolation(FINAL.time,[],[]);%call this function to fix gps time---qishi
   if any(diff(FINAL.time) <= 0)% check again---qishi
     error('Times are not monotonically increasing');

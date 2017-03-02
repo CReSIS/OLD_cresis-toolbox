@@ -130,10 +130,7 @@ if nargout == 1
   fseek(fid, hdr.finfo.syncs(1)+4, -1);
   hdr.epri = fread(fid,1,'uint32');
   hdr.seconds = fread(fid,1,'uint32').'; % From NMEA string converted to DCB
-  hdr.seconds = ...
-    3600*(10*mod(floor(hdr.seconds/2^8),2^4) + mod(floor(hdr.seconds/2^12),2^4)) ...
-    + 60*(10*mod(floor(hdr.seconds/2^16),2^4) + mod(floor(hdr.seconds/2^20),2^4)) ...
-    + (10*mod(floor(hdr.seconds/2^24),2^4) + mod(floor(hdr.seconds/2^28),2^4));
+  hdr.seconds = BCD_to_seconds(hdr.seconds);
   hdr.fraction = fread(fid,1,'uint32');
   hdr.utc_time_sod = hdr.seconds + hdr.fraction / param.clk;
   hdr.counter = fread(fid,1,'uint64');
@@ -299,10 +296,7 @@ elseif nargout == 2
   hdr.finfo.syncs = hdr.finfo.syncs(1:rline_out);
   hdr.epri = hdr.epri(1:rline_out);
   hdr.seconds = double(hdr.seconds(1:rline_out));
-  hdr.seconds = ...
-    3600*(10*mod(floor(hdr.seconds/2^8),2^4) + mod(floor(hdr.seconds/2^12),2^4)) ...
-    + 60*(10*mod(floor(hdr.seconds/2^16),2^4) + mod(floor(hdr.seconds/2^20),2^4)) ...
-    + (10*mod(floor(hdr.seconds/2^24),2^4) + mod(floor(hdr.seconds/2^28),2^4));
+  hdr.seconds = BCD_to_seconds(hdr.seconds);
   hdr.fraction = hdr.fraction(1:rline_out);
   hdr.utc_time_sod = hdr.seconds + double(hdr.fraction) / param.clk;
   hdr.counter = hdr.counter(1:rline_out);

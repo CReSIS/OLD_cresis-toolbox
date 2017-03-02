@@ -138,10 +138,10 @@ while ftell(fid) < finfo.bytes
   good_lines = length(C{end});
   num_lines = num_lines + good_lines+1;
   if ftell(fid) < finfo.bytes
-    readchar = fread(fid,1,'char');
-    while readchar ~= 10
+    readchar = fread(fid,1,'uint8');
+    while readchar ~= 10 && ftell(fid) > 1
       fseek(fid,-2,0);
-      readchar = fread(fid,1,'char');
+      readchar = fread(fid,1,'uint8');
     end
     readline = fgets(fid);
     if readline(end) ~= 10

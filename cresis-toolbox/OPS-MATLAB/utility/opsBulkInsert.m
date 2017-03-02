@@ -142,7 +142,8 @@ if insertPathCmd
       % INTERPOLATE RECORDS GPS TIME ONTO THE GIVEN SPACING (DEFAULT = 15m)
       alongTrack = geodetic_to_along_track(records.lat,records.lon,records.elev);
       newAlongTrack = 0:settings.pathSpacing:alongTrack(end);
-      outGpsTime = interp1(alongTrack,records.gps_time,newAlongTrack,'pchip');
+      positive_idxs = [1, 1+find(diff(alongTrack) > 0)];
+      outGpsTime = interp1(alongTrack(positive_idxs),records.gps_time(positive_idxs),newAlongTrack,'pchip');
       
       % INTERPOLATE RECORDS VALUES ONTO NEW GPS TIME
       outLon = interp1(records.gps_time,records.lon,outGpsTime,'pchip');
@@ -302,7 +303,10 @@ if insertLayerCmd
     % LOAD ALL THE LAYERDATA FOR THE CURRENT DAY
     layerBaseDir = ct_filename_out(param,settings.layerDataPath,'',true);
     dayLayerData = opsMergeLayerData(layerBaseDir,curDay);
-    opsLayerData = layerDataToOps(dayLayerData,settings);
+    if isempty(dayLayerData.GPS_time)
+      error('WARNING: NO LAYER DATA EXIST');
+    end
+    [opsLayerData,opsLayerDataGpsTime] = layerDataToOps(dayLayerData,settings);
     
     % CHECK FOR EMPTY LAYERS
     emptyLayerIdxs = [];
@@ -333,6 +337,14 @@ if insertLayerCmd
       [~,segData] = opsGetSegmentInfo(settings.sysName,segInfoParam);
       
       mstop = toc(mstart); % RECORD MATLAB COMPUTATION TIME
+
+      if settings.layerRelativeSurface
+        param_idx = strmatch(curSeg,{params.day_seg});
+        layer_params = [];
+        layer_params.name = 'surface';
+        layer_params.source = 'layerdata';
+        layers = opsLoadLayers(params(param_idx),layer_params);
+      end
       
       % PROCESS EACH FRAME
       for frmIdx = 1:length(segData.properties.frame)
@@ -370,7 +382,31 @@ if insertLayerCmd
               opsLayerDataSub.properties.type = opsLayerData(layerIdx).properties.type(keepIdxs); 
               opsLayerDataSub.properties.quality = opsLayerData(layerIdx).properties.quality(keepIdxs); 
               opsLayerDataSub.properties.lyr_name = opsLayerData(layerIdx).properties.lyr_name; 
-
+              
+              if settings.layerRelativeSurface
+                if 0
+                  % DEBUG CODE
+                  figure(101); clf;
+                  plot(layers.gps_time,layers.twtt);
+                  hold on;
+                  plot(opsLayerDataGpsTime{layerIdx}(keepIdxs),opsLayerDataSub.properties.twtt)
+                end
+                
+                new_surf = interp1(layers.gps_time,layers.twtt, ...
+                  opsLayerDataGpsTime{layerIdx}(keepIdxs),'linear');
+                new_surf = interp_finite(new_surf,NaN);
+                old_surf = interp1(dayLayerData.GPS_time,dayLayerData.layerData{1}.value{2}.data, ...
+                  opsLayerDataGpsTime{layerIdx}(keepIdxs),'linear');
+                old_surf = interp_finite(old_surf,NaN);
+                twtt_correction = new_surf-old_surf;
+                opsLayerDataSub.properties.twtt = opsLayerDataSub.properties.twtt + twtt_correction;
+                
+                if 0
+                  % DEBUG CODE
+                  plot(opsLayerDataGpsTime{layerIdx}(keepIdxs),opsLayerDataSub.properties.twtt)
+                end
+              end
+              
               % PUSH DATA TO THE SERVER
               [status,message] = opsCreateLayerPoints(settings.sysName,opsLayerDataSub);
               pstop = toc(ptic);

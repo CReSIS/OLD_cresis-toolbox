@@ -1,47 +1,61 @@
-% script tomo.run_surface_extractor.m
+% script tomo.run_collate
 %
-% Description: Tracks surfaces of data slices. Calls tomo.collate.
+% Description: Run script for tomo.collate
 %
-% See also: tomo.collate
+% See also: tomo.run_collate, tomo.collate, tomo_collate_task,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData,
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
+clear('param_override');
+param_override = [];  
+param_override.sched.type = 'no scheduler';
 
-% fn_dir: Directory where files are at
+%% 2014_Greenland_P3 20140401_03 User Settings
 
-% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
-% params.cmd.generic = 1;
-% params.cmd.frms = 44;
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
+params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161014_05','post');
+params.cmd.generic = 1;
+params.cmd.frms = 21;
 
-surf_extract = [];
-surf_extract.out_dir = 'CSA_music';
-surf_extract.ice_mask_fn = ct_filename_gis([],fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat'));
-surf_extract.geotiff_fn = ct_filename_gis([],fullfile('canada','DEM','SPI_All.tif'));
-surf_extract.sv_cal_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','sv_calibration','theta_cal.mat');
+
+tomo_collate = [];
+% tomo_collate.in_dir = 'music_sravya';
+tomo_collate.in_dir = 'music3D_jordan';
+tomo_collate.out_dir = 'surfData';
+% tomo_collate.ice_mask_fn = ct_filename_gis([],fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat'));
+% tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('canada','DEM','SPI_All.tif'));
+tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('antarctica','DEM','BEDMAP2','original_data','bedmap2_tiff','bedmap2_surface.tif'));
+tomo_collate.sv_cal_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','sv_calibration','theta_cal.mat');
 
 % img_01: right looking (positive theta)
 % img_02: nadir looking (theta == 0)
 % img_03: left looking (negative theta)
-surf_extract.nadir_img = 2;
+tomo_collate.imgs = [1 2 3];
+tomo_collate.master_img_idx = 2;
 
-surf_extract.add_layers_flag = 1;
-surf_extract.ice_twtt_flag = 1;
-surf_extract.extract_flag = 1;
-surf_extract.theta_calibrated = 1;
-surf_extract.surf_flag = 1;
+tomo_collate.fuse_images_flag = false;
+  tomo_collate.vertical_fuse = false;
+  % tomo_collate.vertical_fuse = true;
+  tomo_collate.img_comb = [0 -inf 4e-6 -inf]; % only for vertical_fuse
+tomo_collate.add_icemask_surfacedem_flag = false;
+tomo_collate.create_surfData_flag = true;
+tomo_collate.data_threshold = 13.5;
 
+% middle of DOA axis
+tomo_collate.mid = -1;   % default
+% weight of smoothness enforcement
+tomo_collate.smooth_weight = -1;    % default
+% variance of smoothness enforcement
+tomo_collate.smooth_var = -1;   % default
+% expected twtt offset between DOA bins
+tomo_collate.smooth_slope = zeros(1,63);
+
+tomo_collate.layer_source = 'layerData';
 
 %% Automated loading section 
 % =========================================================================
 
-surf_extract.ice_mask_all = load(surf_extract.ice_mask_fn);
-surf_extract.param = geotiffinfo(surf_extract.geotiff_fn);
-[surf_extract.DEM, surf_extract.R, ~] = geotiffread(surf_extract.geotiff_fn);
-
 global gRadar;
-
-clear('param_override');
 
 % Input checking
 if exist('param_override','var')
@@ -58,7 +72,7 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  param.surf_extract = surf_extract;
+  param.tomo_collate = tomo_collate;
   tomo.collate(param,param_override);
 end
 

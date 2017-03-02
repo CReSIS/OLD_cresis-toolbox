@@ -78,9 +78,9 @@ function [array_param,dout] = array_proc(array_param,din,dout)
 %    Should be a positive integer, defaults to length of rline_rng
 %  .rlines
 %    2 element vector which specifies the first and last output range line.
-%    This is an optional that overrules the "support" parameter.
+%    This is an optional parameter that overrules the "support" parameter.
 %    It is used by combine_wf_chan_task.m to make sure all of the
-%    chunks of SAR data run through array_proc can be seamlessly stiched
+%    chunks of SAR data run through array_proc can be seamlessly stitched
 %    in combine_wf_chan.
 %  .freq_rng
 %    Vector containing each spatial frequency to be used when computing
@@ -114,11 +114,11 @@ function [array_param,dout] = array_proc(array_param,din,dout)
 %      roll
 %    array_param.fcs{1...Ns}{1}.roll
 %      Roll angle in degrees
-%  .surface: Vector of time delays to the surface for each range line. This
-%    is used:
-%    1. in the construction of DOA constraints for methods 7-9
-%    2. for plotting debug results
-%    Default is NaN.
+%    .surface: Vector of time delays to the surface for each range line. This
+%      is used:
+%      1. in the construction of DOA constraints for methods 7-9
+%      2. for plotting debug results
+%      Default is NaN.
 %  .three_dim: Structure describing the 3D processing (default is to not
 %    assign)
 %    .en: boolean to indicate the 3D outputs will be generated (default is disabled)
@@ -299,9 +299,9 @@ end
 
 if ~isfield(array_param,'doa_constraints') || isempty(array_param.doa_constraints)
   for src_idx = 1:array_param.Nsig
-    array_param.doa_contraints(src_idx).method = 'fixed';
-    array_param.doa_contraints(src_idx).init_src_limits = [-90 90];
-    array_param.doa_contraints(src_idx).src_limits = [-90 90];
+    array_param.doa_constraints(src_idx).method = 'fixed';
+    array_param.doa_constraints(src_idx).init_src_limits = [-90 90];
+    array_param.doa_constraints(src_idx).src_limits = [-90 90];
   end
 end
 
@@ -536,6 +536,56 @@ for lineIdx = 1:1:length(array_param.lines)
     % Make column vectors of y and z-positions
     [~,array_param.sv{ml_idx}] = array_param.sv_fh(array_param.Nsv,array_param.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
   end
+  
+if 0
+  %% Debug: Check results against surface
+  surface_bin = round(interp1(array_param.wfs.time,1:length(array_param.wfs.time),array_param.fcs{1}{1}.surface(line)));
+  
+%   Hdata = exp(1i*angle(squeeze(din{1}(surface_bin,line,1,1,:))));
+%   array_param.sv{ml_idx} = bsxfun(@(x,y) x.*y, array_param.sv{ml_idx}, Hdata./exp(1i*angle(array_param.sv{ml_idx}(:,1))) );
+
+  dataSample = din{1}(surface_bin+array_param.bin_rng,line+rline_rng,:,:,:);
+  dataSample = reshape(dataSample,[length(array_param.bin_rng)*length(rline_rng)*Na*Nb, Nc]);
+  dataSample = dataSample.';
+  Rxx = 1/size(dataSample,1) * (dataSample * dataSample');
+  
+  Rxx_expected = array_param.sv{ml_idx}(:,1) * array_param.sv{ml_idx}(:,1)';
+
+  angle(Rxx .* conj(Rxx_expected))
+  exp(1i*angle(Rxx .* conj(Rxx_expected)));
+  
+  keyboard;
+end
+if 0
+  %% Debug: Plot steering vector correlation matrix
+  ml_idx = 1;
+  [theta,array_param.sv{ml_idx}] = array_param.sv_fh(array_param.Nsv,array_param.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+  
+  sv_table = fftshift(array_param.sv{ml_idx}.',1);
+  theta = fftshift(theta);
+  
+  Rsv = sv_table * sv_table';
+  h_fig = figure; clf;
+  imagesc(lp(Rsv,2));
+
+  ticks = [-90 -60 -40 -20 0 20 40 60];
+  tick_labels = {};
+  for idx=1:length(ticks)
+    tick_labels{idx} = sprintf('%.0f',ticks(idx));
+  end
+  set(gca, 'XTick', interp1(theta*180/pi,1:size(Rsv,1),ticks) );
+  set(gca, 'XTickLabel',tick_labels);
+  set(gca, 'YTick', interp1(theta*180/pi,1:size(Rsv,1),ticks) );
+  set(gca, 'YTickLabel',tick_labels);
+  xlabel('Direction of arrival (deg)');
+  ylabel('Direction of arrival (deg)');
+  caxis([-6 0]);
+  colormap(jet(256));
+  h_colorbar = colorbar;
+  set(get(h_colorbar,'YLabel'),'String','Correlation (dB)');
+  
+  keyboard
+end
   
   %% Setup line-varying parameters for MLE
   if array_param.method == 7

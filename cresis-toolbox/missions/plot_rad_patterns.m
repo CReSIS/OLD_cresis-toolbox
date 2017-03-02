@@ -61,6 +61,7 @@ end
 f0 = f0(end);
 f1 = f1(end);
 wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(ref_pattern),1);
+wf = wf(1);
 df = 1/(Nt*data.wfs(wf).dt);
 freq = data.wfs(wf).fc + df*(floor(-Nt/2) : floor((Nt-1)/2)).';
 H = zeros(size(freq));
@@ -74,6 +75,7 @@ data.surf_vals = ifft(surf_vals_fft);
 
 if 0
   %% DEBUG
+  surf_bins = 42;
   close all
   figure(1); clf;
   subplot(3,1,1);
@@ -83,7 +85,7 @@ if 0
   plot(angle(data.surf_vals(surf_bins,:,4) .* conj(data.surf_vals(surf_bins,:,1)) ),'.')
   a2 = gca;
   subplot(3,1,3);
-  plot(data.roll);
+  plot(data.roll(1,:));
   a3 = gca;
   linkaxes([a1 a2 a3],'x');
   figure(2); clf;
@@ -108,7 +110,7 @@ if param.analysis.surf.motion_comp.en
   if isempty(data.param_analysis.get_heights.lever_arm_fh)
     error('No leverarm was used during analysis surf, cannot enable motion_comp');
   end
-  drange = bsxfun(@minus,data.elev,data.elev(ref_pattern(1),:));
+  drange = bsxfun(@minus,data.elev,data.elev(ref_pattern,:));
   dtime = dtime + drange/(c/2);
 end
 if param.analysis.surf.chan_eq.en
@@ -179,6 +181,11 @@ else
       surf_bin(rline) = tmp;
     end
   end
+  for rline = 1:Nx
+    if ~isnan(surf_bin(rline))
+      data.surf_vals(:,rline,:) = circshift(data.surf_vals(:,rline,:),[ref_bin-surf_bin(rline) 0 0]);
+    end
+  end
 end
 
 if debug_level >= 1
@@ -215,7 +222,7 @@ for ant = 1:Nc
   %[epri rlines] = intersect(data.epri{ant_idx}, epri);
   
   powers = max(abs(double(data.surf_vals(ref_bin+(-1:3),rlines,ant))).^2,[],1);
-  complex_vals = mean(data.surf_vals(ref_bin,rlines,ant) .* exp(-1i*angle(data.surf_vals(ref_bin,rlines,ref_pattern(ant)))),1);
+  complex_vals = mean(data.surf_vals(ref_bin,rlines,ant) .* exp(-1i*angle(data.surf_vals(ref_bin,rlines,ref_pattern))),1);
   
   % Average all the data falling within each angle/roll bin
   for roll_idx = 1:length(roll_binned)
@@ -365,12 +372,12 @@ sv_ideal = bsxfun(@(x,y) x./y, sv_ideal, rx_equalization);
 % pattern was the received. Either way we divide out the SV pattern.
 
 for ant = 1:Nc
-  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_ant_ref(ant),:), roll_binned);
+  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_LUT_ref(ant),:), roll_binned);
   sv_deviation_fit(ant,:) = sv_deviation_fit(ant,:) ./ SV_ref_pattern;
 end
 
 for ant = 1:Nc
-  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_ant_ref(ant),:), roll_binned);
+  SV_ref_pattern = interp1(sv_LUT.roll_binned, sv_LUT.sv_deviation_fit(sv_LUT_ref(ant),:), roll_binned);
   sv_deviation(ant,:) = sv_deviation(ant,:) ./ SV_ref_pattern;
 end
 
@@ -438,6 +445,6 @@ output_fn_dir = fileparts(output_fn);
 if ~exist(output_fn_dir,'dir')
   mkdir(output_fn_dir);
 end
-save(output_fn,'surf_bin','rad_patterns','ref_pattern','sv_ant_ref','roll_binned','sv_deviation_fit','sv_deviation','sv_ideal','param');
+save(output_fn,'surf_bin','rad_patterns','ref_pattern','sv_LUT_ref','roll_binned','sv_deviation_fit','sv_deviation','sv_ideal','param');
 
 return;
