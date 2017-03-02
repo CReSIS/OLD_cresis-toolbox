@@ -69,6 +69,11 @@ for board_idx = 1:length(board_hdrs)
     %% jump to a large number and then drop back to correct values)?
   big_sec_jump_idxs = find(abs(diff(double(hdr.seconds)))>1e5);
   fraction_wrap_idxs = find(diff(double(hdr.fraction))<0);
+  mid_jumps = find(~ismember(big_sec_jump_idxs,fraction_wrap_idxs));
+  if ~isempty(mid_jumps)
+      [tmp,tmp_idxs] = min(abs(fraction_wrap_idxs - big_sec_jump_idxs(mid_jumps)));
+      big_sec_jump_idxs(mid_jumps) = fraction_wrap_idxs(tmp_idxs);
+  end
   big_sec_jump_idxs = big_sec_jump_idxs(ismember(big_sec_jump_idxs,fraction_wrap_idxs));
   if ~isempty(big_sec_jump_idxs)
     warning('Header seconds jump more than 1e5 sec, correcting jumps');
@@ -79,7 +84,7 @@ for board_idx = 1:length(board_hdrs)
         figure(101);hold on;plot([big_sec_jump_idxs(idx),big_sec_jump_idxs(idx)]+1,[0,1.2*max_fraction],'r--');
       end
     end
-    for idx = 1:2:length(big_sec_jump_idxs)
+    for idx = 1:2:length(big_sec_jump_idxs) - mod(length(big_sec_jump_idxs),2)
       jump_start = big_sec_jump_idxs(idx)+1;
       wrap_idxs = [find(fraction_wrap_idxs == big_sec_jump_idxs(idx)):find(fraction_wrap_idxs == big_sec_jump_idxs(idx+1))];
       wrap_idxs(1) = [];
@@ -87,6 +92,10 @@ for board_idx = 1:length(board_hdrs)
         hdr.seconds(jump_start:fraction_wrap_idxs(wrap_idx)) = hdr.seconds(jump_start-1)+1;
         jump_start = fraction_wrap_idxs(wrap_idx) + 1;
       end
+    end
+    if mod(length(big_sec_jump_idxs),2)
+      jump_start = big_sec_jump_idxs(length(big_sec_jump_idxs))+1;
+      hdr.seconds(jump_start:length(hdr.seconds)) = hdr.seconds(jump_start-1)+1; 
     end
   end
   

@@ -676,7 +676,7 @@ for img_idx = 1:length(param.load.imgs)
   deconv_filter_idx = deconv_filter_idx(:,recs_keep);
   
   %% Remove coherent noise
-  if param.get_heights.coh_noise_method && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
+  if param.get_heights.coh_noise_method && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5','mcords5'}))
     
     if param.get_heights.coh_noise_method == 3 && isempty(param.get_heights.coh_noise_arg)
       param.get_heights.coh_noise_arg = 255;

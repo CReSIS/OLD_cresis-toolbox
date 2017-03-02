@@ -34,6 +34,7 @@ for param_idx = 1:length(params)
     doppler_window = hanning(61); doppler_window = doppler_window(1:30); % experimental
     param.analysis.coh_ave.doppler_window = doppler_window;
   else
+    param.analysis.coh_ave.doppler_window = param.analysis.coh_ave.doppler_window(1:floor(length(param.analysis.coh_ave.doppler_window)/2));  
     doppler_window = param.analysis.coh_ave.doppler_window;
   end
   
@@ -42,7 +43,7 @@ for param_idx = 1:length(params)
   
   %% Load the coherent noise file
   fn_dir = fileparts(ct_filename_out(param,coh_ave_file_input_type, ''));
-  fn = fullfile(fn_dir,sprintf('coh_noise_%s.mat', param.day_seg));
+  fn = fullfile(fn_dir,sprintf('coh_noise_img_%02d_%s.mat', img,param.day_seg));
   fprintf('collate_coh_noise %s: %s\n', param.day_seg, fn);
   noise = load(fn);
   

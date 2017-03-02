@@ -91,7 +91,7 @@ end
 fs = records_wfs.wfs(1).wfs(1).fs;
 
 num_sam = cell2mat({records_wfs.wfs(1).wfs.num_sam}).';
-adc_en = cell2mat({records_wfs(1).wfs.wfs.adc_en});
+adc_en = cell2mat({records_wfs.wfs(1).wfs.adc_en});
 
 rec_data_size = sum(adc_en * num_sam);
 wf_sizes = cell2mat({records_wfs.wfs(1).wfs.num_sam});
