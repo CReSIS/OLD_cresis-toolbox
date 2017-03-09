@@ -30,7 +30,7 @@ default.max_DDS_RAM = 40000;
 default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 
 default.iq_mode = 0;
-default.tx_DDS_mask = [1 1 1 1 1 1 0 0];
+default.tx_DDS_mask = [1 1 1 1 1 1 1 0];
 
 default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
 default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
@@ -160,32 +160,19 @@ default.radar.Tadc_adjust = 1.60E-06; % System time delay: leave this empty or s
 defaults = {};
 
 %% Settings
-default.radar.wfs(1).chan_equal_Tsys = [0 0 0 0 0 0 0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0];
+default.radar.wfs(1).chan_equal_Tsys = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).']};
+default.get_heights.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
 default.xml_regexp = 'survey_.*thick.xml';
 default.name = 'Survey Mode';
-defaults{end+1} = default;
-
-% ping pong mode
-default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-%default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).'; 4*ones(6,1),(1:6).']};
-%default.get_heights.imgs = {[1*ones(5,1),[1 3 4 5 6].'],[2*ones(5,1),[1 3 4 5 6].'],[3*ones(5,1),[1 3 4 5 6].'; 4*ones(5,1),[1 3 4 5 6].']};
-default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'; 3*ones(6,1),(1:6).'],[4*ones(6,1),(1:6).'; 5*ones(6,1),(1:6).']};
-default.combine.imgs = default.get_heights.imgs;
-default.combine.img_comb = default.get_heights.qlook.img_comb;
-default.radar.DC_adjust = {'','','',''};
-default.radar.ref_fn = '';
-default.xml_regexp = 'pingpong.*.xml';
-default.name = 'Pingpong';
 defaults{end+1} = default;
 
 %% Other settings

@@ -87,7 +87,7 @@ for param_idx = 1:length(params)
       create_records_fmcw_accum(param,param_override);
     elseif strcmpi(param.radar_name,'accum2')
       create_records_accum2(param,param_override);
-    elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+    elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
       create_records_fmcw_accum(param,param_override);
     elseif strcmpi(param.radar_name,'acords')
       create_records_acords(param,param_override);

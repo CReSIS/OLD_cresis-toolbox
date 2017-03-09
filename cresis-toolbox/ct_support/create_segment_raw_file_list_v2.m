@@ -140,9 +140,17 @@ for adc_idx = 1:length(adcs)
     
   elseif any(strcmpi(param.radar_name,{'snow3','kuband3','kaband3'}))
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
-    hdr_param.field_offsets = uint32(4*[1 2 3 9 10 11]); % epri seconds fractions
+    hdr_param.field_offsets = uint32(4*[1 2 3 9 10 11]); % epri seconds fractions start/stop-index DDCfield1 DDCfield2
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint32(1) uint32(1) uint32(1)};
     param.clk = 1e9/8;
+    
+  elseif any(strcmpi(param.radar_name,{'snow8'}))
+    hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
+    hdr_param.field_offsets = uint32([4 8 12 16 33 36 38 40]);
+    % epri seconds fractions counter nyquist-zone waveform-ID
+    hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1) uint8(1) uint16(1) uint16(1) uint64(1)};
+    param.clk = 1e9/8;
+    
   else
     error('Unsupported radar %s', param.radar_name);
   end
@@ -263,8 +271,11 @@ for adc_idx = 1:length(adcs)
       elseif any(strcmp(param.radar_name,{'snow5'}))
         hdr = basic_load(fn);
         wfs = hdr.wfs;
+      elseif any(strcmp(param.radar_name,{'snow8'}))
+        hdr = basic_load_fmcw8(fn, struct('file_version',param.file_version));
+        wfs = struct('presums',hdr.presums);
       end
-    catch
+    catch ME
       warning('  Failed to load... skipping.\n');
       failed_load{adc_idx}(fn_idx) = 1;
       continue;
@@ -502,6 +513,33 @@ for adc_idx = 1:length(adcs)
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs', ...
         'start_idx','stop_idx','DDC_filter_select','DDC_or_raw_select', ...
         'num_sam','nyquist_zone','NCO_freq_step');
+
+      
+    elseif any(strcmp(param.radar_name,{'snow8'}))
+      [file_size offset epri seconds fraction counter nyquist_zone start_idx stop_idx waveform_ID] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
+      
+      HEADER_SIZE = 48;
+      SAMPLE_SIZE = 2;
+      num_sam = 2*(stop_idx - start_idx);
+      expected_rec_size = HEADER_SIZE + SAMPLE_SIZE*double(num_sam);
+      meas_rec_size = diff(offset);
+      bad_mask = meas_rec_size ~= expected_rec_size(1:end-1);
+      bad_mask(end+1) = file_size < offset(end) + expected_rec_size(end);
+      if sum(bad_mask) > 1
+        warning('Found %d of %d record size errors', sum(bad_mask), length(bad_mask));
+      end
+      offset = offset(~bad_mask);
+      epri = epri(~bad_mask);
+      seconds = seconds(~bad_mask);
+      fraction = fraction(~bad_mask);
+      counter = counter(~bad_mask);
+      nyquist_zone = nyquist_zone(~bad_mask);
+      start_idx = start_idx(~bad_mask);
+      stop_idx = stop_idx(~bad_mask);
+      
+      seconds = BCD_to_seconds(seconds);
+      save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs', ...
+        'counter','nyquist_zone','start_idx','stop_idx');      
     end
   end
 end
@@ -648,7 +686,7 @@ if ~isempty(big_sec_jump_idxs)
     end
   end
 end
-if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','mcords5'}))
+if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','mcords3','mcords5','snow8'}))
   utc_time_sod = double(seconds) + double(fraction) / param.clk;
   utc_time_sod = medfilt1(double(utc_time_sod));
   
@@ -674,6 +712,12 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       % set anchor_idx to a record that you believe has the correct time
       counter_clk = 3906.250/8;
+      counter = epri;
+      keyboard
+    elseif any(strcmpi(param.radar_name,{'snow8'}))
+      % counter_clk should be the EPRF (effective PRF after hardware presumming)
+      % set anchor_idx to a record that you believe has the correct time
+      counter_clk = 4000/8;
       counter = epri;
       keyboard
     else
