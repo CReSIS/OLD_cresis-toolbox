@@ -13,8 +13,8 @@ function write_cresis_xml(param)
 %  .fs_sync = sync clock used to determine TTL control settings
 %  .fs_dds = used to determine start/stop frequency for down-chirp
 %  .TTL_mode = 3 length vector [pre_guard post_guard TTL_delay_from_tx]
-%    pre_guard: time before transmit starts to go high (normally ~1 us)
-%    post_guard: time after transmit ends to stay high (normally ~100 ns)
+%    pre_guard: time before transmit starts to go high (normally ~3 us)
+%    post_guard: time after transmit ends to stay high (normally ~350 ns)
 %    TTL_delay: offset of transmit start from TTL prog delay (a negative
 %      value means that the TTL prog delay is after the transmit starts)
 %  .version = NI XML file version
@@ -242,7 +242,8 @@ for wf = 1:length(param.wfs)
       % from TTL_prog_delay * fs/2
       % For example 2015 Gr LC130: [2.5e-6 260e-9 -1100e-9]
       TTL_start = round((TTL_prog_delay/TTL_clock + TTL_mode(3) - TTL_mode(1))*TTL_clock);
-      TTL_duration(1:8) = round((TTL_mode(1) + TTL_mode(2) + Tpd) * TTL_clock);
+      TTL_start_desired = (TTL_prog_delay/TTL_clock + TTL_mode(3) - TTL_mode(1))*TTL_clock;
+      TTL_duration(1:8) = round((TTL_mode(1) + TTL_mode(2) + Tpd + (TTL_start_desired-TTL_start)/TTL_clock) * TTL_clock);
     else
       error('Not supported');
     end

@@ -26,7 +26,7 @@ final_DDS_phase = [];
 final_DDS_phase_no_time = [];
 final_DDS_amp = [];
 final_DDS_time = [];
-if 1
+if 0
   % Initial conditions (usually all zeros phase/time with max amplitude)
   for idx = 1:length(f0_list)
     final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
@@ -39,7 +39,11 @@ else
   % COPY AND PASTE RESULTS FROM basic_tx_chan_equalization_SEASON_NAME.m
   % HERE:
   
-  % After transmit calibration during ? test flight (10 us)
+  % Tx chan equalization txequal_mcords3_20170307_163925_00.xml
+  final_DDS_phase{idx} = [31.0	-5.7	0.0	98.7	-69.2	13.2	61.8	0.0];
+  final_DDS_phase_no_time{idx} = [0 0 0 0 0 0 0 0]; % not used usually
+  final_DDS_amp{idx} = [16517	20202	29729	40000	25018	23616	18560	0];
+  final_DDS_time{idx} =  [0 0 0 0 0 0 0 0];
 end
 
 Hwindow_orig = [1 1 1 1 1 1 1 0]; % Desired window created during transmit calibration
@@ -56,11 +60,20 @@ for tx_chan = 1:7
   phase_centers(:,tx_chan) = lever_arm(param, tx_weights, tx_chan);
 end
 
+% Create waveforms directories if they do not exist
+if ~exist(base_dir,'dir')
+  mkdir(base_dir);
+end
+calval_dir = fullfile(base_dir, 'calval');
+if ~exist(calval_dir,'dir')
+  mkdir(calval_dir);
+end
+
 %% Survey Mode + loopback, noise, and deconv modes
 % <4000 m thick ice, 1250 +/- 1250 ft AGL
 ice_thickness = [3500];
 freq_idx = 1;
-param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[7.324e-6 3.3720e-06 -880e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
+param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
 param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 8.9e-6;
 param.max_duty_cycle = 0.12;
 param.create_IQ = false;
@@ -89,8 +102,14 @@ write_cresis_xml(param);
 % Default Mode
 param.fn = fullfile(base_dir,'default.xml');
 write_cresis_xml(param);
+% TTL Settings Check
+param.tx_weights(2:end) = 0;
+param.tukey = 0.01;
+param.fn = fullfile(calval_dir,'survey_mode_10us_3wf_3500mthick_TTL_CHECK.xml');
+write_cresis_xml(param);
 % Noise Mode
-param.fn = fullfile(base_dir,'survey_mode_10us_3wf_3500mthick_NOISE.xml');
+param.fn = fullfile(calval_dir,'survey_mode_10us_3wf_3500mthick_NOISE.xml');
+param.tx_weights = DDS_amp;
 [param.wfs(:).tx_mask] = deal([1 1 1 1 1 1 1 1]);
 write_cresis_xml(param);
 % Loopback Mode
@@ -99,7 +118,7 @@ param.tg.staged_recording = false;
 param.tg.altitude_guard = 0*12*2.54/100;
 param.tg.Haltitude = 0*12*2.54/100;
 param.tg.Hice_thick = 20e-6 * 3e8/2/sqrt(3.15); % Long enough for delay line
-param.fn = fullfile(base_dir,'survey_mode_10us_3wf_3500mthick_LOOPBACK.xml');
+param.fn = fullfile(calval_dir,'survey_mode_10us_3wf_3500mthick_LOOPBACK.xml');
 write_cresis_xml(param);
 % Deconvolution Mode (for Sea Ice)
 param.prf = 8500;
@@ -116,7 +135,7 @@ write_cresis_xml(param);
 %% Survey Mode High Altitude
 % <3200 m thick ice, 10000-25000 ft AGL
 freq_idx = 1;
-param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[7.324e-6 3.3720e-06 -880e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
+param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
 param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 8.9e-6;
 param.max_duty_cycle = 0.12;
 param.create_IQ = false;
@@ -146,7 +165,7 @@ write_cresis_xml(param);
 % Attenuators should be connected to each power amp output
 % MAX_DATA_RATE DOES NOT MATTER IN THIS MODE, NOT USED TO CAPTURE
 % freq_idx = 1;
-% param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[7.324e-6 3.3720e-06 -880e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
+% param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
 % param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 500; param.flight_hours = 7; param.sys_delay = 8.9e-6;
 % param.max_duty_cycle = 0.12;
 % param.create_IQ = false;
@@ -203,8 +222,8 @@ write_cresis_xml(param);
 % Creates one waveform for each of N DDS-transmitters plus a combined
 % waveform with all transmitters going.
 freq_idx = 1;
-for Tpd = [1e-6 3e-6 10e-6]
-  param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[7.324e-6 3.3720e-06 -880e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);  
+for Tpd = [10e-6]
+  param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);  
   param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 8.9e-6;
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -238,7 +257,7 @@ end
 % waveform with all transmitters going.
 freq_idx = 1;
 for Tpd = 10e-6
-  param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[7.324e-6 3.3720e-06 -880e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);  
+  param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);  
   param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 8.9e-6;
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -246,7 +265,7 @@ for Tpd = 10e-6
   param.tg.staged_recording = false;
   param.tg.Haltitude = 5000*12*2.54/100;
   param.tg.Hice_thick = 0;
-  param.fn = fullfile(base_dir,sprintf('equalization_%.0fus_LOOPBACK.xml', Tpd*1e6));
+  param.fn = fullfile(calval_dir,sprintf('equalization_%.0fus_LOOPBACK.xml', Tpd*1e6));
   param.prf = 8500;
   param.presums = [15 15 15 15 15 15 15 15];
   [param.wfs(1:8).atten] = deal(5);
