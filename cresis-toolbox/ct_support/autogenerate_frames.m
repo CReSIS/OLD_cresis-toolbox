@@ -48,8 +48,10 @@ if any(strcmpi(param.radar_name,{'icards','acords','mcords','mcrds','mcords2','m
   frame_length = 50000;
 elseif any(strcmpi(param.radar_name,{'accum','accum2'}))
   frame_length = 20000;
-elseif any(strcmpi(param.radar_name,{'kaband3','kuband','kuband2','kuband3','snow','snow2','snow3','snow5'}))
+elseif any(strcmpi(param.radar_name,{'kaband3','kuband','kuband2','kuband3','snow','snow2','snow3','snow5','snow8'}))
   frame_length = 5000;
+else
+  error('%s is not a supported radar', param.radar_name);
 end
 if isfield(param.records,'frame_length') && ~isempty(param.records.frame_length)
   frame_length = param.records.frame_length;

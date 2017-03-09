@@ -100,7 +100,7 @@ for board_idx = 1:length(board_hdrs)
   end
   
   %% Create hdr.utc_time_sod vector
-  if param.records.file_version == 101
+  if any(param.records.file_version == [8 101])
     hdr.utc_time_sod = double(hdr.seconds) + 2*double(hdr.fraction)/param.radar.fs;
   else
     hdr.utc_time_sod = double(hdr.seconds) + double(hdr.fraction)/param.radar.fs;
@@ -119,7 +119,7 @@ for board_idx = 1:length(board_hdrs)
   if strcmp(param.radar_name,'accum')
     num_bands = 16;
     hdr.wfs{1}.presums = 8;
-  elseif any(strcmp(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+  elseif any(strcmp(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
     num_bands = 1;
   end
   

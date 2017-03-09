@@ -36,7 +36,7 @@ elseif any(strcmpi(param.radar_name,{'hfrds'}))
 elseif strcmpi(param.radar_name,'mcrds')
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.raw';
-elseif any(strcmpi(param.radar_name,{'accum2','snow2','kuband2','snow3','kuband3','icards','mcords','mcords2','mcords3','mcords4','mcords5','snow5'}))
+elseif any(strcmpi(param.radar_name,{'accum2','kuband2','kuband3','icards','mcords','mcords2','mcords3','mcords4','mcords5','snow2','snow3','snow5','snow8'}))
   % Create sub-folder name for the particular receiver
   adc_folder_name = param.vectors.file.adc_folder_name;
   

@@ -6,7 +6,7 @@ if any(strcmpi(radar_name,{'kuband','kuband2','kuband3'}))
 elseif any(strcmpi(radar_name,{'kaband3'}))
   radar_type = 'fmcw';
   output_dir = 'kaband';
-elseif any(strcmpi(radar_name,{'snow','snow2','snow3','snow5'}))
+elseif any(strcmpi(radar_name,{'snow','snow2','snow3','snow5','snow8'}))
   radar_type = 'fmcw';
   output_dir = 'snow';
 elseif any(strcmpi(radar_name,{'accum0'}))

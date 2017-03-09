@@ -88,6 +88,11 @@ while first_run || abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_e
     [first_file tmp] = basic_load(fns{file_idxs(init_EPRI_file_idx)}, ...
       struct('clk',param.radar.fs,'utc_time_halved', ...
       param.vectors.gps.utc_time_halved,'first_byte',first_byte));
+  elseif any(strcmp(param.radar_name,{'snow8'}))
+    [first_file tmp] = basic_load_fmcw8(fns{file_idxs(init_EPRI_file_idx)}, ...
+      struct('clk',param.radar.fs,'utc_time_halved', ...
+      param.vectors.gps.utc_time_halved,'first_byte',first_byte, ...
+      'file_version', param.records.file_version));
   elseif strcmp(param.radar_name,'accum')
     [first_file tmp] = basic_load_accum(fns{file_idxs(init_EPRI_file_idx)}, ...
       struct('clk',param.radar.fs,'utc_time_halved', ...
@@ -129,7 +134,7 @@ while first_run || abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_e
   end
   clear tmp;
   
-  if any(strcmp(param.radar_name,{'snow','snow2','snow3','kuband','kuband2','kuband3','kaband3','snow5'}))
+  if any(strcmp(param.radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5'}))
     if abs(param.radar.fs - max(first_file.fraction)) > 1e6
       if strcmpi(param.season_name,'2014_Greenland_P3') & (strcmpi(param.day_seg,'20140421_02') |...
           strcmpi(param.day_seg,'20140423_01') | strcmpi(param.day_seg,'20140502_00') | strcmpi(param.day_seg,'20140508_02'))
@@ -139,7 +144,7 @@ while first_run || abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_e
         keyboard
       end
     end
-  elseif any(strcmp(param.radar_name,{'accum'}))
+  elseif any(strcmp(param.radar_name,{'accum','snow8'}))
     if abs(param.radar.fs/2 - max(first_file.fraction)) > 1e6
       warning('Radar sampling frequency is probably wrong (unless 1 PPS missing)\n');
       keyboard

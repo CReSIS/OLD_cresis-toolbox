@@ -101,7 +101,7 @@ if length(param.get_heights.B_filter) == param.get_heights.decimate_factor ...
     % Most radar headers do not support elevation correction so it must
     % be disabled to allow simple_firdec
     simple_firdec = true;
-  elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+  elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
     % FMCW radars have elevation compensation in data loader so they
     % can still have simple_firdec with elevation correction.
     simple_firdec = true;
@@ -284,7 +284,7 @@ elseif strcmpi(param.radar_name,'icards')%add icards radar here--------------QIS
   [wfs,rec_data_size] = load_icards_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.get_heights);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   [path name] = fileparts(records_fn);
   cdf_fn = fullfile(path, sprintf('%s.nc', name));
   try
@@ -405,7 +405,7 @@ elseif strcmpi(param.radar_name,'acords')
   load_param.load.filepath = fullfile(base_dir, adc_folder_name);
   load_param.load.wfs = records.settings.wfs;
   load_param.load.wfs_records = records.settings.wfs_records;
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   % Determine which ADC boards are supported and which ones were actually loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -598,7 +598,7 @@ for img_idx = 1:length(param.load.imgs)
   elseif strcmpi(param.radar_name,'accum2')
     load_accum2_data(load_param);
     g_data = g_data{1};
-  elseif any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','snow3','kaband3','snow5'}))
+  elseif any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','snow3','kaband3','snow5','snow8'}))
     load_param.proc.elev_correction = param.get_heights.elev_correction;
     load_param.proc.deconvolution = param.get_heights.deconvolution;
     load_param.proc.deconv_enforce_wf_idx = param.get_heights.deconv_enforce_wf_idx;
@@ -676,7 +676,7 @@ for img_idx = 1:length(param.load.imgs)
   deconv_filter_idx = deconv_filter_idx(:,recs_keep);
   
   %% Remove coherent noise
-  if param.get_heights.coh_noise_method && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5','mcords5'}))
+  if param.get_heights.coh_noise_method && ~any(strcmpi(param.radar_name,{'kuband','kuband2','kuband3','kaband3','mcords5','snow','snow2','snow3','snow5','snow8'}))
     
     if param.get_heights.coh_noise_method == 3 && isempty(param.get_heights.coh_noise_arg)
       param.get_heights.coh_noise_arg = 255;
