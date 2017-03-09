@@ -135,9 +135,9 @@ fprintf('Expected levels only valid for param.presums = 1\n');
 fprintf('Noise power (dBm) at each ADC rx input and relative to 50 ohm (dB):\n')
 noise_power_dBm = permute(lp(mean(mean(abs(data(noise_rbins,:,:)).^2/50, 1), 2) ...
   / 2^hdr.wfs(abs(wf)).bit_shifts * hdr.wfs(wf).presums * param.presums, 1) + 30, [1 3 2]);
-fprintf('ADC\t'); fprintf('%.0f\t', 1:24); fprintf('\n');
-fprintf('Noise\t'); fprintf('%+.1f\t', noise_power_dBm); fprintf('\n');
-fprintf('Rel\t'); fprintf('%+.1f\t', noise_power_dBm - default.noise_50ohm); fprintf('\n');
+fprintf('wf-adc\t'); fprintf('%2.0f-%2.0f\t', param.img.'); fprintf('\n');
+fprintf('Noise \t'); fprintf('%+5.1f\t', noise_power_dBm); fprintf('\n');
+fprintf('Rel   \t'); fprintf('%+5.1f\t', noise_power_dBm - default.noise_50ohm); fprintf('\n');
 
 %% Quantization analysis
 % =====================================================================
