@@ -361,8 +361,7 @@ table_draw(hui.fig.ctrl_panel.table);
 GB = struct('param',param);
 
 GB.records = records_file.records;
-GB.records.along_track = geodetic_to_along_track(GB.records.lat, ...
-  GB.records.lon, GB.records.elev);
+GB.records.along_track = geodetic_to_along_track(GB.records.lat,GB.records.lon);
 
 if any(strcmpi(param.radar_name,{'hfrds','icards','mcords','mcrds','mcords2','mcords3','mcords4','mcords5','acords'}))
   GB.default_frame_len = 50000;
