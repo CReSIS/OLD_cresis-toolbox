@@ -81,7 +81,7 @@ if ~exist(records_fn,'file')
 end
 
 records = load(records_fn);
-along_track = geodetic_to_along_track(records.lat,records.lon,records.elev);
+along_track = geodetic_to_along_track(records.lat,records.lon);
 
 frame_breaks = 0:frame_length:along_track(end);
 if along_track(end)-frame_breaks(end) < frame_length/2
