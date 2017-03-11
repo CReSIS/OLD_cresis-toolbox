@@ -8,6 +8,8 @@
 %
 % Author: John Paden
 
+global gRadar;
+
 if 1
   if isempty(param.get_heights.qlook.out_path)
     test_qlook_out_path = 'qlook';
