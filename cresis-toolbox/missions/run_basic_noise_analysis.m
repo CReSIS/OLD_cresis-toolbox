@@ -49,7 +49,7 @@ if strcmpi(radar_setup,'MCORDS3_P3')
   param.file_search_mode = 'segment';
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'E:\'};
+  param.base_dir_search = {'Z:\'};
   
   % .pdf_en: Enable time domain, probability density function, and quantization plots
   param.pdf_en = false;
@@ -67,6 +67,9 @@ if strcmpi(radar_setup,'MCORDS3_P3')
   
   % .presums: Number of additional software presums (coherent averaging) to do
   param.presums = 1;
+  
+  % .noise_burst_removal: remove bursty noise
+  param.noise_burst_removal = false;
 end
 
 %% RDS: MCORDS3_DC8

@@ -26,6 +26,9 @@ physical_constants;
 if ~isfield(param,'seg') || isempty(param.seg)
   param.seg = '';
 end
+if ~isfield(param,'noise_burst_removal') || isempty(param.noise_burst_removal)
+  param.noise_burst_removal = 0;
+end
 clear data_tmp;
 
 default_noise_rbins = 1:size(data,1);
@@ -120,6 +123,11 @@ for wf_adc = 1:size(data,3)
   data(:,1:floor(size(data,2)/param.presums),wf_adc) = fir_dec(data(:,:,wf_adc),param.presums);
 end
 data = data(:,1:floor(size(data,2)/param.presums),:);
+
+%% Noise Burst Removal
+if param.noise_burst_removal
+  noise_burst_removal;
+end
 
 %% Noise power
 % =====================================================================
