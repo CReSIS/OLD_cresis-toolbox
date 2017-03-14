@@ -18,8 +18,7 @@ default.header_load_func = @basic_load_mcords3;
 default.header_load_params = struct('clk',1e9/9,'presum_bug_fixed',false);
 default.xml_version = 2.0;
 
-% default.noise_50ohm = [-41.6	-42.2	-42.4	-41.9	-42.5	-42.9	-41.7	-43.0	-44.1	-44.7	-43.1	-44.1	-41.8	-42.6	-41.4	-42.6	-41.8	-43.1	-42.0	-42.7	-41.1	-43.4	-42.1	-41.9];
-default.noise_50ohm = [0 0 0 0 0 0 0];
+default.noise_50ohm = [-45.5	-44.3	-44.8	-44.9	-40.9	-37.2	-39.4	-36.2	-30.1	-25.1	-37.1	-43.6	-43.0	-44.1	-44.6];
 
 default.Pt = 1000 * [1 1 1 1 1 1 1];
 default.Gt = 7*4;

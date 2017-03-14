@@ -804,7 +804,7 @@ for accum_idx = 1:length(accum(board).wf)
       % 1-D FILTER
       a_data = fft(a_data,[],2);
       noise_bins = 1:round(size(a_data,1)*0.4);
-      bad_mask = lp(mean(abs(a_data(noise_bins,:,1)).^2)) > lp(median(mean(abs(a_data(noise_bins,:,1)).^2)))+param.proc.coh_noise_arg{2};
+      bad_mask = lp(nanmean(abs(a_data(noise_bins,:,1)).^2)) > lp(nanmedian(nanmean(abs(a_data(noise_bins,:,1)).^2)))+param.proc.coh_noise_arg{2};
       bad_mask = grow(bad_mask,param.proc.coh_noise_arg{3});
       bad_mask2 = filter2(Hwin/sum(Hwin),[ones(1,length(Hwin)/2-1/2) bad_mask ones(1,length(Hwin)/2-1/2)],'valid');
       for rbin = 1:size(a_data,1);

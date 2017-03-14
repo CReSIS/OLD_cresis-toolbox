@@ -144,7 +144,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).sched.cluster_size        = inf;
   profile(pidx).sched.stop_on_fail        = true;
   profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/scratch/cresis-toolbox-torque/worker';
+  profile(pidx).sched.worker_fn           = '/scratch/scripts/cresis-toolbox/cresis-toolbox-torque/worker';
   profile(pidx).sched.force_compile       = false;
   profile(pidx).sched.rerun_only          = false;
   

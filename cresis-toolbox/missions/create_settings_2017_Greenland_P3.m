@@ -6,7 +6,7 @@ physical_constants; % c = speed of light
 
 % Define waveforms
 if ispc
-  base_dir = 'I:\waveforms\';
+  base_dir = 'C:\waveforms\';
 else
   base_dir = '/scratch/waveforms/';
 end
@@ -40,10 +40,13 @@ else
   % HERE:
   
   % Tx chan equalization txequal_mcords3_20170307_163925_00.xml
-  final_DDS_phase{idx} = [31.0	-5.7	0.0	98.7	-69.2	13.2	61.8	0.0];
-  final_DDS_phase_no_time{idx} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{idx} = [16517	20202	29729	40000	25018	23616	18560	0];
-  final_DDS_time{idx} =  [0 0 0 0 0 0 0 0];
+  idx = 1;
+  final_DDS_phase{idx} = [94.5	-9.5	0.0	101.1	-70.1	13.0	57.6	0.0];
+  final_DDS_phase_no_time{idx} = [18.6	-8.6	0.0	97.1	-70.1	13.7	56.8	0.0]; % not used usually
+  final_DDS_amp{idx} = [20500	25080	32500	40000	29500	30250	25000	0];
+  final_DDS_time{idx} =  [-4 0 0 0 0 0 0 0];
+  
+  final_tx_mask = [1 0 0 0 0 0 0 0];
 end
 
 Hwindow_orig = [1 1 1 1 1 1 1 0]; % Desired window created during transmit calibration

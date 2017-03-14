@@ -276,6 +276,7 @@ for adc_idx = 1:length(adcs)
         wfs = struct('presums',hdr.presums);
       end
     catch ME
+      ME
       warning('  Failed to load... skipping.\n');
       failed_load{adc_idx}(fn_idx) = 1;
       continue;
