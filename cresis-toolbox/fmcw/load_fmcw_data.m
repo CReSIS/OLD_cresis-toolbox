@@ -1,4 +1,4 @@
-function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt] = load_fmcw_data(param,records)
+function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt,img_nyquist_zone] = load_fmcw_data(param,records)
 % [img_time,img_valid_rng,img_deconv_filter_idx,img_freq] = load_fmcw_data(param,records)
 %
 % Loads and pulse compresses the FMCW data for functions like
@@ -107,6 +107,7 @@ for accum_idx = 1:length(accum(board).wf)
   waveform_ID = zeros(1,total_recs);
   presums = zeros(1,total_recs);
   bit_shifts = zeros(1,total_recs);
+  NCO_freq = zeros(1,total_recs);
   rline = 0;
   a_data = zeros(1,Nx,'single');
   
@@ -528,10 +529,11 @@ for accum_idx = 1:length(accum(board).wf)
   
   if ~param.proc.pulse_comp
     img_time{1} = [];
-    img_valid_rng = [];
-    img_deconv_filter_idx = [];
-    img_freq = [];
+    img_valid_rng{1} = [];
+    img_deconv_filter_idx{1} = [];
+    img_freq{1} = [];
     img_Mt{1} = [];
+    img_nyquist_zone{1} = nyquist_zone;
     g_data{img_idx} = a_data;
     return;
   end
@@ -1277,6 +1279,7 @@ for accum_idx = 1:length(accum(board).wf)
   img_deconv_filter_idx{img_idx} = deconv_filter_idx;
   img_freq{img_idx} = freq;
   img_Mt{img_idx} = Mt;
+  img_nyquist_zone{img_idx} = nyquist_zone;
 end
 end
 

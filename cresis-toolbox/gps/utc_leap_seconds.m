@@ -48,7 +48,8 @@ function leap_sec = utc_leap_seconds(time)
 %  2009 JAN  1 =JD 2454832.5  TAI-UTC=  34.0       S + (MJD - 41317.) X 0.0      S
 %  2012 JUL  1 =JD 2456109.5  TAI-UTC=  35.0       S + (MJD - 41317.) X 0.0      S
 %  2015 JUL  1 =JD 2457204.5  TAI-UTC=  36.0       S + (MJD - 41317.) X 0.0      S
-% GPS is 19 seconds behind TAI (so TAI-UTC = 35 is GPS+19-UTC = 35 or
+%  2017 JAN  1 =JD 2457754.5  TAI-UTC=  37.0       S + (MJD - 41317.) X 0.0      S
+% E.g. If GPS is 19 seconds behind TAI (so TAI-UTC = 35 is GPS+19-UTC = 35 or
 % GPS-UTC = 16)
 %
 % Author: John Paden
@@ -60,7 +61,9 @@ time = epoch_to_datenum(time);
 
 [y,m,d,h,mi,s] = datevec(time);
 
-if y >= 2016 || (y == 2015 && m >= 7)
+if y >= 2017
+  leap_sec = 18;
+elseif y >= 2016 || (y == 2015 && m >= 7)
   leap_sec = 17;
 elseif y >= 2013 || (y == 2012 && m >= 7)
   leap_sec = 16;

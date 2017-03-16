@@ -309,8 +309,13 @@ for board_idx = 1:length(boards)
           tmp = single(rec_data(1+mod(rel_adc-1,num_boards) + num_boards*(0:wfs(wf).Nt_raw-1) + cur_hdr_size/2 + num_boards*wfs(wf).offset/2));
         elseif param.load.file_version == 407
           % DDC
-          tmp = single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (1:2:2*wfs(wf).Nt_raw))) ...
-            + 1i*single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (2:2:2*wfs(wf).Nt_raw)));
+          if ~wfs(wf).conjugate
+            tmp = single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (1:2:2*wfs(wf).Nt_raw))) ...
+              + 1i*single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (2:2:2*wfs(wf).Nt_raw)));
+          else
+            tmp = single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (1:2:2*wfs(wf).Nt_raw))) ...
+              - 1i*single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (2:2:2*wfs(wf).Nt_raw)));
+          end
         elseif param.load.file_version == 408
           % New offset video sampling
           tmp = zeros(wfs(wf).Nt_raw,1,'single');

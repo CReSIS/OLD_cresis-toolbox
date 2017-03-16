@@ -109,16 +109,24 @@ else
   sample_size = 2;
 end
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 % wf_offsets = bytes of data  before each waveform in a record. This does
 %   not include any header bytes.
 % rec_data_size = number of bytes of data (not including any header
 %   bytes).
-if any(strcmpi(param.radar_name,{'acords'}))
+if any(strcmpi(radar_name,{'acords'}))
   wf_num_sam = cell2mat({settings.wfs(1).wfs.num_sam}).';
 else
   wf_num_sam = cell2mat({settings.wfs.num_sam}).';
 end
-if any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice'}))
+wf = 1;
+if isfield(param.radar.wfs(wf),'conjugate') && ~isempty(param.radar.wfs(wf).conjugate)
+  wfs(wf).conjugate   = param.radar.wfs(wf).conjugate;
+else
+  wfs(wf).conjugate   = 0;
+end
+if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice'}))
   wf = 1;
   wf_offsets(wf) = 0;
   if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
@@ -128,7 +136,7 @@ if any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','
   end
   if ~wfs(wf).DDC_mode
     % Real data
-    if any(strcmpi(param.radar_name,{'acords'}))
+    if any(strcmpi(radar_name,{'acords'}))
       num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
       rec_data_size = wf_num_sam(wf)*num_elem*sample_size;
     else
@@ -148,7 +156,7 @@ if any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','
     
     if ~wfs(wf).DDC_mode
       % Real data
-      if any(strcmpi(param.radar_name,{'acords'}))
+      if any(strcmpi(radar_name,{'acords'}))
         num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
         wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
         rec_data_size = rec_data_size + wf_num_sam(wf)*num_elem*sample_size;
@@ -163,7 +171,7 @@ if any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','
     end
   end
   
-elseif strcmpi(param.radar_name,'accum2')
+elseif strcmpi(radar_name,'accum2')
   wf_offsets = cumsum([0; wf_num_sam(1:end-1)]) ...
     * sample_size;
   rec_data_size = sum(wf_num_sam) * sample_size;
@@ -199,7 +207,7 @@ end
 for wf = 1:length(param.radar.wfs)
   adc_idx = 1;
   
-  if any(strcmpi(param.radar_name,{'acords'}))
+  if any(strcmpi(radar_name,{'acords'}))
     settings.wfs(wf).bit_shifts = settings.wfs(1).wfs(wf).bit_shifts(1);
     settings.wfs(wf).presums = settings.wfs(1).wfs(wf).presums(1);
     settings.wfs(wf).num_sam = settings.wfs(1).wfs(wf).num_sam(1);
@@ -311,7 +319,7 @@ for wf = 1:length(param.radar.wfs)
     %% DDC Enabled
     ref_function = exp(1i*2*pi*(f0 - wfs(wf).DDC_freq)*time + 1i*pi*alpha*time.^2);
   end
-  if any(strcmpi(param.radar_name,{'acords'}))
+  if any(strcmpi(radar_name,{'acords'}))
     Htukeywin = hamming(Nt);
   else
     Htukeywin = tukeywin(Nt+2,param.radar.wfs(wf).tukey);

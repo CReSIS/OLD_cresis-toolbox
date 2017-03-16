@@ -89,6 +89,8 @@ if ~isfield(param.get_heights,'elev_correction') || isempty(param.get_heights.el
   param.get_heights.elev_correction = false;
 end
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 %% Set simple_firdec (boolean, true means decimate in loader for efficiency)
 if length(param.get_heights.B_filter) == param.get_heights.decimate_factor ...
     && all(param.get_heights.B_filter == param.get_heights.B_filter(1))
@@ -96,7 +98,7 @@ if length(param.get_heights.B_filter) == param.get_heights.decimate_factor ...
     % Most radar headers do not support elevation correction so it must
     % be disabled to allow simple_firdec
     simple_firdec = true;
-  elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+  elseif any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
     % FMCW radars have elevation compensation in data loader so they
     % can still have simple_firdec with elevation correction.
     simple_firdec = true;
@@ -201,15 +203,15 @@ if simple_firdec
 else
   param.get_heights.presums = 1;
 end
-if strcmpi(param.radar_name,'mcrds')
+if strcmpi(radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(records.settings, param, ...
     1:max(param_records.records.file.adcs), param.get_heights);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,rec_data_size] = load_mcords_wfs(records.settings, param, ...
     1:max(param_records.records.file.adcs), param.get_heights);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+elseif any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
   [path name] = fileparts(records_fn);
   cdf_fn = fullfile(path, sprintf('%s.nc', name));
   try
@@ -242,7 +244,7 @@ for idx = 1:length(param.load.imgs)
 end
 
 recs = load_param.load.recs - load_param.load.recs(1) + 1;
-if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   % adc_headers: the actual adc headers that were loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -284,7 +286,7 @@ if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5
 
     % Modify filename according to channel
     for file_idx = 1:length(load_param.load.filenames{idx})
-      if any(strcmpi(param.radar_name,{'mcords5'}))
+      if any(strcmpi(radar_name,{'mcords5'}))
         load_param.load.filenames{idx}{file_idx}(9:10) = sprintf('%02d',board);
       end
     end
@@ -299,7 +301,7 @@ if any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5
     end
   end
   load_param.load.file_version = param.records.file_version;
-elseif strcmpi(param.radar_name,'mcrds')
+elseif strcmpi(radar_name,'mcrds')
   load_param.load.offset = records.offset;
   load_param.load.file_rec_offset = records.relative_rec_num;
   load_param.load.filenames = records.relative_filename;
@@ -308,7 +310,7 @@ elseif strcmpi(param.radar_name,'mcrds')
   load_param.load.filepath = fullfile(base_dir, adc_folder_name);
   load_param.load.wfs = records.settings.wfs;
   load_param.load.wfs_records = records.settings.wfs_records;
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+elseif any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
   load_param.load.offset{1} = records.offset;
   load_param.load.file_rec_offset = records.relative_rec_num;
   load_param.load.filenames = records.relative_filename;
@@ -332,11 +334,11 @@ elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','
     load_param.load.filenames{idx}{file_idx} ...
       = fullfile(filepath,load_param.load.filenames{idx}{file_idx});
   end
-%   if any(strcmpi(param.radar_name,{'snow','kuband'}))
+%   if any(strcmpi(radar_name,{'snow','kuband'}))
 %     load_param.load.header_size = 4*40;
-%   elseif any(strcmpi(param.radar_name,{'snow2','kuband2'}))
+%   elseif any(strcmpi(radar_name,{'snow2','kuband2'}))
 %     load_param.load.header_size = 32;
-%   elseif any(strcmpi(param.radar_name,{'snow3','kuband3'}))
+%   elseif any(strcmpi(radar_name,{'snow3','kuband3'}))
 %     if param.records.file_version == 4
 %       load_param.load.header_size = 32;
 %     else
@@ -423,13 +425,13 @@ for img = 1:length(param.load.imgs)
     % 1:load_param.load.img_comb{1}(1,rline) <- 1:load_param.load.img_comb{1}(1,rline)
     % load_param.load.img_comb{1}(1,rline)+1:end <- load_param.load.img_comb{1}(2,rline):end
   end
-  if strcmpi(param.radar_name,'mcords')
+  if strcmpi(radar_name,'mcords')
     load_mcords_data(load_param);
     g_data = g_data{1};
-  elseif any(strcmpi(param.radar_name,{'mcords2','mcords3','mcords4','mcords5'}))
+  elseif any(strcmpi(radar_name,{'mcords2','mcords3','mcords4','mcords5'}))
     load_mcords2_data(load_param);
     g_data = g_data{1};
-  elseif strcmpi(param.radar_name,'mcrds')
+  elseif strcmpi(radar_name,'mcrds')
     if isfield(records,'adc_phase_corr_deg') && isfield(param.radar,'adc_phase_corr_en') && param.radar.adc_phase_corr_en
       load_param.adc_phase_corr_deg = records.adc_phase_corr_deg;
     else
@@ -437,10 +439,10 @@ for img = 1:length(param.load.imgs)
     end
     load_mcrds_data(load_param);
     g_data = g_data{1};
-  elseif strcmpi(param.radar_name,'accum2')
+  elseif strcmpi(radar_name,'accum2')
     load_accum2_data(load_param);
     g_data = g_data{1};
-  elseif any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','snow3'}))
+  elseif any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
     load_param.proc.deconvolution = 0;
     load_param.proc.elev_correction = 0;
     load_param.proc.psd_smooth = 0;
@@ -449,13 +451,14 @@ for img = 1:length(param.load.imgs)
     load_param.season_name = param.season_name;
     load_param.day_seg = param.day_seg;
     load_param.out_path = param.out_path;
-    [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt] = load_fmcw_data(load_param,out_records);
+    [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt,img_nyquist_zone] = load_fmcw_data(load_param,out_records);
     % Coherent noise tracker only loads one image at a time, so img_time{1}
     for wf = 1:length(wfs)
       wfs(wf).time = img_time{1};
     end
     g_data = g_data{1};
     img_Mt = img_Mt{1};
+    img_nyquist_zone = img_nyquist_zone{1};
   end
   
   if param.analysis.surf.en || param.analysis.power.en || param.analysis.psd.en || param.analysis.specular.en
@@ -660,7 +663,7 @@ for img = 1:length(param.load.imgs)
       T = Nt*dt;
       df = 1/T;
       freq = wfs(wf).fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-      if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+      if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
         % HACK: Sign error in pulse compression causes fc to be negative
         if isfield(param.radar.wfs,'fc_sign') && param.radar.wfs.fc_sign < 0
           freq_hack = -wfs(wf).fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
@@ -673,7 +676,7 @@ for img = 1:length(param.load.imgs)
       % applied so wrap around could be an issue for DDC data)
       for rline = 1:size(g_data,2)
         elev_dt = (out_records.elev(wf_adc,rline) - out_records.elev(wf_adc,1)) / (c/2);
-        if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+        if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
           g_data(:,rline,wf_adc) = ifft(ifftshift(fft(g_data(:,rline,wf_adc)),1) .* exp(1i*2*pi*freq_hack*elev_dt));
         else
           g_data(:,rline,wf_adc) = ifft(fft(g_data(:,rline,wf_adc)) .* exp(1i*2*pi*freq*elev_dt));
@@ -780,7 +783,7 @@ for img = 1:length(param.load.imgs)
         % requirements may be prohibitive, we do this in a loop
         % Enforce the same DDC filter in this group. Skip groups that have DDC filter swiches.
         STFT_rlines = -param.analysis.specular.ave/4 : param.analysis.specular.ave/4-1;
-        if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+        if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
           if any(diff(img_Mt{1}(center_rline + STFT_rlines)))
             fprintf('    Including different DDC filters, skipped.\n');
             continue
@@ -816,7 +819,7 @@ for img = 1:length(param.load.imgs)
         deconv_std{end+1} = std(comp_data,[],2);
         deconv_sample{end+1} = g_data(:,center_rline+1+param.analysis.specular.ave/4,wf_adc);
         deconv_twtt(:,end+1) = wfs(wf).time(round(mean(max_idx)));
-        if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+        if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
           deconv_DDC_Mt(end+1) = img_Mt(center_rline);
         else
           deconv_DDC_Mt(end+1) = wfs(wf).DDC_mode;
@@ -850,108 +853,134 @@ for img = 1:length(param.load.imgs)
     roll = [];
     pitch = [];
     heading = [];
+
+    % Store a start and delta frequency reference for each column of data
+    %   - This is IF frequency
+    %   - When summing, the different bins are filled in accordingly
+    % Create version field?
+    % Doppler domain data is not used if nyquist zone changes... set to
+    % NaN?
     
-    % Implement memory efficient fft operations
-    doppler = zeros(1,size(g_data,2),size(g_data,3));
-    for rbin=1:size(g_data,1)
-      if any(strcmpi(ct_output_dir(param.radar_name),{'snow','kuband'}))
-        % Why is the conjugation done??? This will cause Doppler domain to
-        % be reversed.
-        % Why is the mod() used??? No effect as written
-        doppler = doppler + abs(fft(conj(g_data(mod(rbin-1,size(g_data,1))+1,:,:)))).^2;
-      else
-        doppler = doppler + abs(fft(g_data(rbin,:,:))).^2;
+    if ~all(img_nyquist_zone == img_nyquist_zone(1))
+      doppler = NaN*zeros(1,size(g_data,2),size(g_data,3));
+    else
+      % Implement memory efficient fft operations
+      doppler = zeros(1,size(g_data,2),size(g_data,3));
+      for rbin=1:size(g_data,1)
+        if any(strcmpi(ct_output_dir(param.radar_name),{'snow','kuband'}))
+          % Why is the conjugation done??? This will cause Doppler domain to
+          % be reversed.
+          % Why is the mod() used??? No effect as written
+          doppler = doppler + abs(fft(conj(g_data(mod(rbin-1,size(g_data,1))+1,:,:)))).^2;
+        else
+          doppler = doppler + abs(fft(g_data(rbin,:,:))).^2;
+        end
       end
+      doppler = doppler/size(g_data,1);
     end
-    doppler = doppler/size(g_data,1);
     
-    if any(strcmpi(ct_output_dir(param.radar_name),{'snow','kuband'}))
+    if strcmpi(radar_type,'fmcw')
       for rline=1:size(g_data,2)
         g_data(:,rline,:) = fft(g_data(:,rline,:));
       end
+      nyquist_zones = unique(img_nyquist_zone);
+    else
+      nyquist_zones = 1;
     end
     
-    % Do averaging
-    rline0_list = 1:param.analysis.coh_ave.block_ave:size(g_data,2);
-    for rline0_idx = 1:length(rline0_list)
-      rline0 = rline0_list(rline0_idx);
-      rlines = rline0 + (0:min(param.analysis.coh_ave.block_ave-1,size(g_data,2)-rline0));
-      
-      if strcmp(param.radar_name,'kuband') ...
-          && (strcmp(param.season_name,'2009_Antarctica_DC8') ...
-          || strcmp(param.season_name,'2011_Greenland_P3'))
-        %% HACK for time variant noise floor
-        % Create frequency axis
-        dt = wfs.time(2) - wfs.time(1);
-        Nt = length(wfs.time);
-        T = Nt*dt;
-        df = 1/T;
-        freq = fftshift(wfs.fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).');
-        if 0
-          % 2009_Antarctica_DC8
-          data_mean_removed = g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)]);
-          noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 1001);
-          plot(noise_power);
-          save(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
-        elseif 0
-          % 2011_Greenland_P3, 20110316_01
-          data_mean_removed = g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)]);
-          noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 501);
-          noise_power(3200:4400) = NaN;
-          plot(noise_power);
-          save(sprintf('~/%s_kuband_noise_power.mat', param.season_name), 'noise_power','freq');
-        end
-        coh = load(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
-        coh.noise_power = interp1(coh.freq(~isnan(coh.noise_power)), ...
-          coh.noise_power(~isnan(coh.noise_power)),freq,'nearest','extrap');
-        good_samples = lp(g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)])) ...
-          < repmat(coh.noise_power+param.analysis.coh_ave.power_threshold,[1 numel(rlines)]);
-      else
-        good_samples = lp(bsxfun(@minus,g_data(:,rlines),mean(g_data,2))) < param.analysis.coh_ave.power_threshold;
+    % Do separate averaging for each nyquist zone
+    for nyquist_zone_current = nyquist_zones(:).'
+      % Do averaging
+      rline0_list = 1:param.analysis.coh_ave.block_ave:size(g_data,2);
+      for rline0_idx = 1:length(rline0_list)
+        rline0 = rline0_list(rline0_idx);
+        rlines = rline0 + (0:min(param.analysis.coh_ave.block_ave-1,size(g_data,2)-rline0));
         
+        if strcmpi(radar_type,'fmcw')
+          % Separate out rlines for the specific nyquist zone
+          rlines_nz = rlines(img_nyquist_zone(rlines) == nyquist_zone_current);
+        else
+          rlines_nz = rlines;
+        end
+        
+        if strcmp(radar_name,'kuband') ...
+            && (strcmp(param.season_name,'2009_Antarctica_DC8') ...
+            || strcmp(param.season_name,'2011_Greenland_P3'))
+          %% HACK for time variant noise floor
+          % Create frequency axis
+          dt = wfs.time(2) - wfs.time(1);
+          Nt = length(wfs.time);
+          T = Nt*dt;
+          df = 1/T;
+          freq = fftshift(wfs.fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).');
+          if 0
+            % 2009_Antarctica_DC8
+            data_mean_removed = g_data(:,rlines_nz) - repmat(mean(g_data,2),[1 numel(rlines_nz)]);
+            noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 1001);
+            plot(noise_power);
+            save(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
+          elseif 0
+            % 2011_Greenland_P3, 20110316_01
+            data_mean_removed = g_data(:,rlines_nz) - repmat(mean(g_data,2),[1 numel(rlines_nz)]);
+            noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 501);
+            noise_power(3200:4400) = NaN;
+            plot(noise_power);
+            save(sprintf('~/%s_kuband_noise_power.mat', param.season_name), 'noise_power','freq');
+          end
+          coh = load(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
+          coh.noise_power = interp1(coh.freq(~isnan(coh.noise_power)), ...
+            coh.noise_power(~isnan(coh.noise_power)),freq,'nearest','extrap');
+          good_samples = lp(g_data(:,rlines_nz) - repmat(mean(g_data,2),[1 numel(rlines_nz)])) ...
+            < repmat(coh.noise_power+param.analysis.coh_ave.power_threshold,[1 numel(rlines_nz)]);
+        else
+          good_samples = lp(bsxfun(@minus,g_data(:,rlines_nz),mean(g_data,2))) < param.analysis.coh_ave.power_threshold;
+          
+        end
+        
+        if 0
+          % Debug Plots for determining coh_ave.power_threshold
+          figure(1); clf;
+          imagesc(lp(g_data(:,rlines_nz)));
+          a1 = gca;
+          figure(2); clf;
+          imagesc(good_samples);
+          colormap(gray);
+          title('Good sample mask (black is thresholded)');
+          a2 = gca;
+          figure(3); clf;
+          imagesc( lp(bsxfun(@minus,g_data,mean(g_data,2))) );
+          a3 = gca;
+          linkaxes([a1 a2 a3], 'xy');
+        end
+        
+        coh_ave_samples{1+nyquist_zone_current}(:,rline0_idx,:) = sum(good_samples,2);
+        coh_ave{1+nyquist_zone_current}(:,rline0_idx,:) = sum(g_data(:,rlines_nz,:) .* good_samples,2) ./ coh_ave_samples{1+nyquist_zone_current}(:,rline0_idx,:);
+        if nyquist_zone_current == nyquist_zones(1)
+          gps_time(rline0_idx) = mean(records.gps_time(rlines));
+          lat(rline0_idx) = mean(records.lat(rlines));
+          lon(rline0_idx) = mean(records.lon(rlines));
+          elev(rline0_idx) = mean(records.elev(rlines));
+          roll(rline0_idx) = mean(records.roll(rlines));
+          pitch(rline0_idx) = mean(records.pitch(rlines));
+          heading(rline0_idx) = mean(records.heading(rlines));
+        end
       end
-      
-      if 0
-        % Debug Plots for determining coh_ave.power_threshold
-        figure(1); clf;
-        imagesc(lp(g_data(:,rlines)));
-        a1 = gca;
-        figure(2); clf;
-        imagesc(good_samples);
-        colormap(gray);
-        title('Good sample mask (black is thresholded)');
-        a2 = gca;
-        figure(3); clf;
-        imagesc( lp(bsxfun(@minus,g_data,mean(g_data,2))) );
-        a3 = gca;
-        linkaxes([a1 a2 a3], 'xy');
-      end
-      
-      coh_ave_samples(:,rline0_idx,:) = sum(good_samples,2);
-      coh_ave(:,rline0_idx,:) = sum(g_data(:,rlines,:) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx,:);
-      gps_time(rline0_idx) = mean(records.gps_time(rlines));
-      lat(rline0_idx) = mean(records.lat(rlines));
-      lon(rline0_idx) = mean(records.lon(rlines));
-      elev(rline0_idx) = mean(records.elev(rlines));
-      roll(rline0_idx) = mean(records.roll(rlines));
-      pitch(rline0_idx) = mean(records.pitch(rlines));
-      heading(rline0_idx) = mean(records.heading(rlines));
     end
-    
-    time = wfs(wf).time;
-    
-    out_fn = fullfile(ct_filename_out(param, ...
-      param.analysis.out_path, 'CSARP_noise'), ...
-      sprintf('coh_noise_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
-    [out_fn_dir] = fileparts(out_fn);
-    if ~exist(out_fn_dir,'dir')
-      mkdir(out_fn_dir);
-    end
-    param_analysis = param;
-    fprintf('  Saving outputs %s\n', out_fn);
-    save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'time', 'gps_time', 'lat', ...
-      'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
+  
+  time = wfs(wf).time;
+  
+  out_fn = fullfile(ct_filename_out(param, ...
+    param.analysis.out_path, 'CSARP_noise'), ...
+    sprintf('coh_noise_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
+  [out_fn_dir] = fileparts(out_fn);
+  if ~exist(out_fn_dir,'dir')
+    mkdir(out_fn_dir);
+  end
+  param_analysis = param;
+  fprintf('  Saving outputs %s\n', out_fn);
+  save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'time', 'gps_time', 'lat', ...
+    'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   
 end
 

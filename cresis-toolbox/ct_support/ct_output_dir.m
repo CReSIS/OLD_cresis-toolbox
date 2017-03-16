@@ -1,4 +1,11 @@
-function [output_dir,radar_type] = ct_output_dir(radar_name)
+function [output_dir,radar_type,radar_name] = ct_output_dir(radar_name)
+
+if find(radar_name,'-')
+  [radar_name,output_dir_override] = strtok(radar_name,'-');
+  output_dir_override = output_dir_override(2:end);
+else
+  output_dir_override = '';
+end
 
 if any(strcmpi(radar_name,{'kuband','kuband2','kuband3'}))
   radar_type = 'fmcw';
@@ -23,6 +30,10 @@ elseif any(strcmpi(radar_name,{'rds','cords','acords','hfrds','icards','mcrds','
   output_dir = 'rds';
 else
   error('Invalid radar type %s\n', radar_name);
+end
+
+if ~isempty(output_dir_override)
+  output_dir = output_dir_override;
 end
 
 return;

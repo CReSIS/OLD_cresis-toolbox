@@ -514,9 +514,6 @@ if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'accum'
   LAtx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
   LAtx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
   
-  % Combined:
-  LAtx = mean(LAtx,2);
-  
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1:4;
   end

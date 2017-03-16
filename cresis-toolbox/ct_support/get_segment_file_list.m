@@ -21,22 +21,24 @@ if ~isfield(param.vectors.file,'file_midfix')
   param.vectors.file.file_midfix = '';
 end
 
-if any(strcmpi(param.radar_name,{'accum','snow','kuband'}))
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
+if any(strcmpi(radar_name,{'accum','snow','kuband'}))
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.dat';
-elseif any(strcmpi(param.radar_name,{'acords'}))
+elseif any(strcmpi(radar_name,{'acords'}))
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '';
   if ~isfield(param.vectors.file,'file_regexp')
     param.vectors.file.file_regexp = '\.[0-9]*$';
   end
-elseif any(strcmpi(param.radar_name,{'hfrds'}))
+elseif any(strcmpi(radar_name,{'hfrds'}))
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.bin';
-elseif strcmpi(param.radar_name,'mcrds')
+elseif strcmpi(radar_name,'mcrds')
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.raw';
-elseif any(strcmpi(param.radar_name,{'accum2','kuband2','kuband3','icards','mcords','mcords2','mcords3','mcords4','mcords5','snow2','snow3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'accum2','kuband2','kuband3','icards','mcords','mcords2','mcords3','mcords4','mcords5','snow2','snow3','snow5','snow8'}))
   % Create sub-folder name for the particular receiver
   adc_folder_name = param.vectors.file.adc_folder_name;
   
@@ -68,7 +70,7 @@ if nargout > 2
   fns = get_filenames(base_dir,param.vectors.file.file_prefix,param.vectors.file.file_midfix,ext,get_fns_param);
   
   % Sort ACORDS filenames because the extenions are not a standard length
-  if any(strcmpi(param.radar_name,{'acords'}))
+  if any(strcmpi(radar_name,{'acords'}))
     basenames = {};
     file_idxs = [];
     new_fns = {};
