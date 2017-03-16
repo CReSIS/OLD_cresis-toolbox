@@ -24,7 +24,10 @@ physical_constants;
 %% basic_noise_analysis preparation
 [fn_dir fn_name] = fileparts(fn);
 if ~isfield(param,'seg') || isempty(param.seg)
-  param.seg = -1;
+  param.seg = '';
+end
+if ~isfield(param,'noise_burst_removal') || isempty(param.noise_burst_removal)
+  param.noise_burst_removal = 0;
 end
 clear data_tmp;
 
@@ -107,22 +110,29 @@ else
 end
 noise_rbins = intersect(noise_rbins,default_noise_rbins);
 
-wf = abs(param.img(1,1));
-
-%% Convert from quantization to voltage @ ADC
-data = data ...
-  * default.radar.adc_full_scale/2^default.radar.adc_bits ...
-  * 2^hdr.wfs(abs(wf)).bit_shifts / hdr.wfs(wf).presums;
-
-%% Additional software presums
+%% Convert from quantization to voltage @ ADC and Additional software presums
 for wf_adc = 1:size(data,3)
-  data(:,:,wf_adc) = fir_dec(data(:,:,wf_adc),param.presums);
+  wf = abs(param.img(wf_adc,1));
+
+  % Quantization to voltage
+  data(:,:,wf_adc) = data(:,:,wf_adc) ...
+    * default.radar.adc_full_scale/2^default.radar.adc_bits ...
+    * 2^hdr.wfs(abs(wf)).bit_shifts / hdr.wfs(wf).presums;
+
+  % Software presums
+  data(:,1:floor(size(data,2)/param.presums),wf_adc) = fir_dec(data(:,:,wf_adc),param.presums);
+end
+data = data(:,1:floor(size(data,2)/param.presums),:);
+
+%% Noise Burst Removal
+if param.noise_burst_removal
+  noise_burst_removal;
 end
 
 %% Noise power
 % =====================================================================
 
-% Calculate noise power as Vrms (assuming param.presums = 1)
+% Calculate noise power as Vrms
 if strcmp(param.radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
   % Add 3 dB for IQ combination
   fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50,1)+30 - default.radar.adc_SNR_dB + 3 );
@@ -131,10 +141,14 @@ else
   fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50,1)+30 - default.radar.adc_SNR_dB );
   fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*hdr.BW_noise*default.radar.noise_figure*10^(hdr.rx_gain/10),1)+30);
 end
-fprintf('Expected levels only valid for param.presums = 1\n');
+fprintf('All powers are compensated to mimic no presums.\n');
 fprintf('Noise power (dBm) at each ADC rx input and relative to 50 ohm (dB):\n')
-noise_power_dBm = permute(lp(mean(mean(abs(data(noise_rbins,:,:)).^2/50, 1), 2) ...
-  / 2^hdr.wfs(abs(wf)).bit_shifts * hdr.wfs(wf).presums * param.presums, 1) + 30, [1 3 2]);
+noise_power_dBm = zeros(1,size(data,3));
+for wf_adc = 1:size(data,3)
+  wf = abs(param.img(wf_adc,1));
+  noise_power_dBm(wf_adc) = lp(mean(mean(abs(data(noise_rbins,:,wf_adc)).^2/50, 1), 2) ...
+    * hdr.wfs(wf).presums * param.presums, 1) + 30;
+end
 fprintf('wf-adc\t'); fprintf('%2.0f-%2.0f\t', param.img.'); fprintf('\n');
 fprintf('Noise \t'); fprintf('%+5.1f\t', noise_power_dBm); fprintf('\n');
 fprintf('Rel   \t'); fprintf('%+5.1f\t', noise_power_dBm - default.noise_50ohm); fprintf('\n');
@@ -142,20 +156,20 @@ fprintf('Rel   \t'); fprintf('%+5.1f\t', noise_power_dBm - default.noise_50ohm);
 %% Quantization analysis
 % =====================================================================
 if param.pdf_en
-  for adc_idx = 1:size(data,3)
-    figure(adc_idx); clf;
-    plot(real(data(:,1,adc_idx)),'.');
+  for wf_adc = 1:size(data,3)
+    figure(wf_adc); clf;
+    plot(real(data(:,1,wf_adc)),'.');
     grid on;
     xlabel('Range bin');
     ylabel('Quantization level');
     
-    figure(100+adc_idx);
-    imagesc(lp(data(:,:,adc_idx),2));
+    figure(100+wf_adc);
+    imagesc(lp(data(:,:,wf_adc),2));
     colorbar;
     
     % Plot estimated pdf and approximate a gaussian to it
-    figure(200+adc_idx);
-    ROI = data(noise_rbins,:,adc_idx);
+    figure(200+wf_adc);
+    ROI = data(noise_rbins,:,wf_adc);
     ROI = real(ROI(:));
     [n,x] = hist(ROI,64);    
     bar(x,n);
@@ -165,15 +179,15 @@ if param.pdf_en
     plot(x, numel(ROI)*(x(2)-x(1)) * 1/sqrt(2*pi*var_x) * exp(-(x - mean_x).^2 / (2*var_x)),'r');
     hold off;
   end
-  for adc_idx = 1:size(data,3)
-    set(adc_idx,'WindowStyle','docked','NumberTitle','off','Name',sprintf('Q%d',adc_idx));
-  end  
-  for adc_idx = 1:size(data,3)
-    set(100+adc_idx,'WindowStyle','docked','NumberTitle','off','Name',sprintf('E%d',adc_idx));
-  end  
-  for adc_idx = 1:size(data,3)
-    set(200+adc_idx,'WindowStyle','docked','NumberTitle','off','Name',sprintf('P%d',adc_idx));
-  end  
+  for wf_adc = 1:size(data,3)
+    set(wf_adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('Q%d',wf_adc));
+  end
+  for wf_adc = 1:size(data,3)
+    set(100+wf_adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('E%d',wf_adc));
+  end
+  for wf_adc = 1:size(data,3)
+    set(200+wf_adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('P%d',wf_adc));
+  end
 end
 
 %% Power Spectrum
@@ -186,11 +200,11 @@ if param.psd_en
     h_psd_fig = figure(500); clf; h_psd_axes = axes('parent',h_psd_fig); hold(h_psd_axes,'on'); grid(h_psd_axes,'on'); xlabel('Frequency (MHz)','parent',h_psd_axes); ylabel('Relative noise power (dB)','parent',h_psd_axes);
   end
   
-  for adc_idx = 1:size(data,3)
-    wf = abs(param.img(adc_idx,1));
-    adc = abs(param.img(adc_idx,2));
+  for wf_adc = 1:size(data,3)
+    wf = abs(param.img(wf_adc,1));
+    adc = abs(param.img(wf_adc,2));
     
-    fir_data = fir_dec(data(noise_rbins(1):noise_rbins(end),:,adc_idx),param.presums);
+    fir_data = fir_dec(data(noise_rbins(1):noise_rbins(end),:,wf_adc),param.presums);
     
     if strcmp(param.radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
       dt = pc_param.time(2) - pc_param.time(1);
@@ -199,7 +213,7 @@ if param.psd_en
       freq = pc_param.DDC_freq + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df);
       
       figure(400+adc); clf;
-      set(400+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('M%d',adc_idx));
+      set(400+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('M%d',wf_adc));
       plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data),1)).^2*2^2 / 50,2)/size(fir_data,1)) + 30)
       title(sprintf('MeanFFT adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       ylabel('Relative power (dB)');
@@ -211,7 +225,7 @@ if param.psd_en
       end
       
       figure(300+adc); clf;
-      set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',adc_idx));
+      set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',wf_adc));
       imagesc([], freq/1e6, lp(fftshift(fft(fir_data),1)) + 30 + 10*log10(2^2/50/size(fir_data,1)) )
       title(sprintf('Freq-space adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       xlabel('Range line');
@@ -222,8 +236,8 @@ if param.psd_en
       caxis([ylims(1) caxis_lims(2)]);
       
       if plot_combined_psd
-        plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data))).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes,'color',combined_psd_cmap(adc_idx,:))
-        combined_psd_legend{adc_idx} = sprintf('chan %d', adc);
+        plot(freq/1e6, lp(mean(abs(fftshift(fft(fir_data))).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes,'color',combined_psd_cmap(wf_adc,:))
+        combined_psd_legend{wf_adc} = sprintf('w%d-a%d', wf, adc);
       end
       
     else
@@ -238,7 +252,7 @@ if param.psd_en
       freq = freq + default.radar.fs*floor(fc/default.radar.fs);
       
       figure(300+adc); clf;
-      set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',adc_idx));
+      set(300+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('FFT%d',wf_adc));
       imagesc([], freq/1e6, lp(fft(fir_data)) + 30 + 10*log10(2^2/50/size(fir_data,1)) )
       title(sprintf('Freq-space adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       xlabel('Range line');
@@ -252,7 +266,7 @@ if param.psd_en
       set(get(h,'YLabel'),'String','Relative power (dB)');
       
       figure(400+adc); clf;
-      set(400+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('M%d',adc_idx));
+      set(400+adc,'WindowStyle','docked','NumberTitle','off','Name',sprintf('M%d',wf_adc));
       plot(freq/1e6, lp(mean(abs(fft(fir_data)).^2*2^2 / 50,2)/size(fir_data,1)) + 30)
       title(sprintf('MeanFFT adc%d ave%d %s/%s', adc, param.presums, param.seg, fn_name),'Interpreter','none');
       ylabel('Relative power (dB)');
@@ -265,14 +279,16 @@ if param.psd_en
       grid on;
       
       if plot_combined_psd
-        plot(freq/1e6, lp(mean(abs(fft(fir_data)).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes,'color',combined_psd_cmap(adc_idx,:))
-        combined_psd_legend{adc_idx} = sprintf('chan %d', adc);
+        plot(freq/1e6, lp(mean(abs(fft(fir_data)).^2*2^2 / 50,2)/size(fir_data,1)) + 30, 'parent',h_psd_axes,'color',combined_psd_cmap(wf_adc,:))
+        combined_psd_legend{wf_adc} = sprintf('w%d-a%d', wf, adc);
       end
     end
   end
 end
-figure(500);
-legend(combined_psd_legend,'location','best')
+if plot_combined_psd
+  legend(h_psd_axes,combined_psd_legend,'location','best')
+  title(sprintf('PSD All ave%d %s/%s', param.presums, param.seg, fn_name),'Interpreter','none','parent',h_psd_axes);
+end
 
 %% Done
 return;
