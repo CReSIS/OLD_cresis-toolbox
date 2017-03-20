@@ -1,6 +1,6 @@
 function [output_dir,radar_type,radar_name] = ct_output_dir(radar_name)
 
-if find(radar_name,'-')
+if ~isempty(find(radar_name=='-'))
   [radar_name,output_dir_override] = strtok(radar_name,'-');
   output_dir_override = output_dir_override(2:end);
 else
