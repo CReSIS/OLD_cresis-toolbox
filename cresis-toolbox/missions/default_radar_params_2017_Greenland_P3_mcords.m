@@ -99,7 +99,7 @@ default.get_heights.surf.search_rng = [0:2];
 
 %% CSARP worksheet in parameter spreadsheet
 default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).']};
+default.csarp.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
 default.csarp.frm_types = {0,[0 1],0,0,-1};
 default.csarp.chunk_len = 5000;
 default.csarp.chunk_overlap = 10;
@@ -165,13 +165,25 @@ default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).']};
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
 default.xml_regexp = 'survey_.*thick.xml';
 default.name = 'Survey Mode';
+defaults{end+1} = default;
+
+% high altitude mode
+default.get_heights.qlook.img_comb = [1e-05 -inf 3e-06];
+default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).']};
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'survey_.*high_altitude.xml';
+default.name = 'High Altitude Mode';
 defaults{end+1} = default;
 
 %% Other settings
