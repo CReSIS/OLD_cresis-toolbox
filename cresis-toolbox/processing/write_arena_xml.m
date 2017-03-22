@@ -227,11 +227,11 @@ if strcmpi(node,'dac-ad9129_0014')
 end
 
 %% DAC ACCUM:
-if strcmpi(node,'dac-ad9129_0014_accum')
+if strcmpi(node,'dac-ad9129_0014')
   system = doc.getFirstChild;
   configs = system.getFirstChild;
   
-  for dac = 4:7
+  for dac = arena.dacs
     config = doc.createElement('config'); configs.appendChild(config);
     config.setAttribute('type','dac-ad9129_0014');
     
@@ -240,7 +240,6 @@ if strcmpi(node,'dac-ad9129_0014_accum')
     
     child = doc.createElement('description'); config.appendChild(child);
     child.appendChild(doc.createTextNode(''));
-    
     
     num_modes = 0;
     for wf = 1:length(arena.wfs)

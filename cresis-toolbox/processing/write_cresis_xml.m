@@ -1,5 +1,5 @@
-function write_cresis_xml(param)
-% write_cresis_xml(param)
+function settings_enc = write_cresis_xml(param)
+% settings_enc = write_cresis_xml(param)
 %
 % Creates NI digital system XML files (configuration files).
 %
@@ -567,15 +567,82 @@ fprintf(fid,'</LVData>');
 fclose(fid);
 
 %% Write RSS Arena XML config file
-if strcmpi(param.radar_name,'mcords5')
+param.arena.awg = [2 2 3 3];
+param.arena.dacs = [4 5 6 7];
+param.arena.zeropimods = [0 180 90 270];
+param.arena.TTL = [];
+for PA = 1:8
+  param.arena.TTL(end+1) = struct('name',sprintf('PA ENA %d',PA));
+end
+param.arena.TTL(end+1) = struct('name','T/R');
+param.arena.TTL(end+1) = struct('name','ISO');
+param.arena.TTL(end+1) = struct('name','EPRI');
+param.arena.TTL(end+1) = struct('name','PRI');
+param.arena.TTL(end+1) = struct('name','EPRI');
+param.arena.TTL(end+1) = struct('name','PRI');
+param.arena.TTL(end+1) = struct('name','EPRI');
+param.arena.TTL(end+1) = struct('name','PRI');
+
+segment_states{1} = [
+  0 1 1 0 % PA ENA 1
+  0 1 1 0 % PA ENA 2
+  0 1 1 0 % PA ENA 3
+  0 1 1 0 % PA ENA 4
+  0 1 1 0 % PA ENA 5
+  0 1 1 0 % PA ENA 6
+  0 1 1 0 % PA ENA 7
+  0 1 1 0 % PA ENA 8
+  0 1 1 0 % T/R
+  0 1 1 0 % ISO
+  1 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  1 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  1 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  ];
+segment_states{2} = [
+  0 1 1 0 % PA ENA 1
+  0 1 1 0 % PA ENA 2
+  0 1 1 0 % PA ENA 3
+  0 1 1 0 % PA ENA 4
+  0 1 1 0 % PA ENA 5
+  0 1 1 0 % PA ENA 6
+  0 1 1 0 % PA ENA 7
+  0 1 1 0 % PA ENA 8
+  0 1 1 0 % T/R
+  0 1 1 0 % ISO
+  0 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  0 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  0 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  ];
+
+      if arena.wfs(wf).Tpd > 0e-6
+      segment_times = [0.1 0.2 arena.wfs(wf).Tpd*1e6+2.2 arena.PRI*1e6];
+    else
+      segment_times = [0.1 0.2 arena.wfs(wf).Tpd*1e6+1 arena.PRI*1e6];
+    end
+    if wf == 1
+      wf_modes = 3;
+      segment_states_idx = [1 2 2];
+    else
+      wf_modes = 2;
+      segment_states_idx = [2 2 2];
+    end
+  
+  
+]if isfield(param,'arena')
   % Create arena parameter structure
   arena = struct('version','1');
-  arena.awg = [2 2 3 3];
-  arena.dacs = [4 5 6 7];
+  arena.awg = param.arena.awg;
+  arena.dacs = param.arena.dacs;
   for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
     arena.fs = settings_enc.sys.DDCZ20Ctrl.samplingZ20freq;
     arena.PRI = 1 / settings_enc.sys.DDSZ5FSetup.PRF;
-    arena.wfs(wf).zeropimods = [0 180 90 270];
+    arena.wfs(wf).zeropimods = param.arena.zeropimods;
     arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
     arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
     arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) * 0.63/4000;
@@ -593,8 +660,8 @@ if strcmpi(param.radar_name,'mcords5')
   % Create XML document
   doc = write_arena_xml([],'init',arena);
   doc = write_arena_xml(doc,'ctu_0013',arena);
-  doc = write_arena_xml(doc,'dac-ad9129_0014_accum',arena);
-  doc = write_arena_xml(doc,'dac-ad9129_0014_waveform',arena);
+  doc = write_arena_xml(doc,'dac-ad9129_0014',arena);
+  doc = write_arena_xml(doc,'dac-ad9129_0014',arena);
   doc = write_arena_xml(doc,'psc_0001',arena);
   doc = write_arena_xml(doc,'subsystems_accum',arena);
   
