@@ -18,7 +18,7 @@ param = [];
 counter_correction_en = false;
 
 % Enable Just One Radar Setup
-radar_setup = 'snow8';
+radar_setup = 'mcords5';
 
 %% Accum 1
 if strcmpi(radar_setup,'ACCUM')
@@ -149,11 +149,11 @@ if strcmpi(radar_setup,'MCORDS3')
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
   param.season_name = '2017_Greenland_P3';
-  base_dir = '/process-archive/20170226/mcords/';
+  base_dir = '/process3/';
 %   base_dir = '/net/field1/landing/mcords/';
-  param.adc_folder_name = 'board%b';
+  param.adc_folder_name = '20170320/mcords/board%b';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20170226'; % Only used for stdout print of the vectors worksheet
+  day_string = '20170320'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: MCoRDS 4
@@ -175,9 +175,9 @@ end
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
-  param.radar_name = 'mcords5';
+  param.radar_name = 'mcords5-accum';
   param.clk = 1.6e9/8;
-  adcs = 1:24;
+  adcs = 1:4;
   raw_file_suffix = '.bin';
   reuse_tmp_files = true; % Set to false if you want to overwrite current results
   file_prefix_override = ''; % most of the time
@@ -186,11 +186,11 @@ if strcmpi(radar_setup,'MCORDS5')
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2017_Antarctica_Polar6';
-  base_dir = '/cresis/snfs1/scratch/2016_Germany_AWI_tests/AWI_ICE_bak/test_flight/';
-  param.adc_folder_name = 'chan%d';
+  param.season_name = '2017_Greenland_P3';
+  base_dir = '/process3/';
+  param.adc_folder_name = '20170320/accum/chan%d';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20160830'; % Only used for stdout print of the vectors worksheet
+  day_string = '20170320'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 1
@@ -295,16 +295,16 @@ if strcmpi(radar_setup,'SNOW8')
   adcs = 1;
   param.file_version = 8;
   raw_file_suffix = '.bin';
-  reuse_tmp_files = true; % Set to false if you want to overwrite current results
-  file_prefix_override = 'snow4'; % most of the time
+  reuse_tmp_files = false; % Set to false if you want to overwrite current results
+  file_prefix_override = 'snow8'; % most of the time
   counter_correction_en = false;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
   param.season_name = '2017_Greenland_P3';
-  base_dir = '/process-archive/20170226/fmcw/snow/';
-  param.adc_folder_name = '';
+  base_dir = '/process3/';
+  param.adc_folder_name = '20170320/fmcw/snow/';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20170226'; % Only used for stdout print of the vectors worksheet
+  day_string = '20170320'; % Only used for stdout print of the vectors worksheet
 end
 
 %% User Settings that should not generally be changed
