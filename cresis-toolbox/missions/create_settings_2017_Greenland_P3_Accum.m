@@ -9,7 +9,7 @@ physical_constants; % c = speed of light
 % Define waveforms
 if ispc
   base_dir = 'c:\waveforms_accum\';
-  rss_base_dir = 'c:\waveforms_accum_rss\';
+  rss_base_dir = 'c:\temp\';
 else
   base_dir = '~/waveforms/';
   rss_base_dir = '~/rss_waveforms/';
@@ -42,7 +42,7 @@ else
   % COPY AND PASTE RESULTS FROM basic_tx_chan_equalization_SEASON_NAME.m
   % HERE:
   
-  % These are from transmit calibration during 20160401 test flight  
+  % These are from transmit calibration during 20160401 test flight
   % NOTE: These values are valid for when DDS channels 5-8 come up one 1440
   % MHz clock cycle after channels 1-4.
   
@@ -51,7 +51,7 @@ else
   final_DDS_phase_no_time = [0 0 0 0 0 0 0 0]; % not used usually
   final_DDS_amp{1} = [4095 4095 4095 4095 4095 4095 4095 4095];
   final_DDS_time{1} =  [0 0 0 0 0 0 0 0];
-
+  
 end
 
 % Hwindow_orig: Desired window created during transmit calibration
@@ -86,12 +86,49 @@ if ~exist(calval_dir,'dir')
   mkdir(calval_dir);
 end
 
+%% Accumulation Radar Arena Parameters
+arena = [];
+arena.awg = [];
+arena.awg(end+1).awg = 2;
+arena.awg(end).dacs = [4 5];
+arena.awg(end).dacClk = [2400e6 2400e6];
+arena.awg(end).desiredAlignMin = [10 10];
+arena.awg(end).desiredAlignMax = [30 40];
+arena.awg(end+1).awg = 3;
+arena.awg(end).dacs = [6 7];
+arena.awg(end).dacClk = [2400e6 2400e6];
+arena.awg(end).desiredAlignMin = [10 -10];
+arena.awg(end).desiredAlignMax = [30 10];
+arena.dacs = [4 5 6 7];
+arena.dacs_sampFreq = [2400e6 2400e6 2400e6 2400e6];
+arena.max_tx = [1 1 1 1 1 1 1 1];
+arena.zeropimods = [0 180 90 270];
+arena.TTL_time = [0.1 0.2 2.2];
+
+arena.TTL_names = {};
+arena.TTL_names{end+1} = 'test';
+arena.TTL_names{end+1} = 'EPRI';
+arena.TTL_names{end+1} = 'PRI';
+arena.TTL_names{end+1} = 'PA_ENA';
+arena.TTL_states{1} = [
+  0 1 0 0 % test
+  1 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  0 0 1 0 % PA ENA
+  ];
+arena.TTL_states{2} = [
+  0 1 0 0 % test
+  0 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  0 0 1 0 % PA ENA
+  ];
+
 %% Survey Mode + loopback, noise, and deconv modes
 % <2000 m thick ice, 1200 +/- 700 ft AGL
 ice_thickness = [2000];
 for freq_idx = [1]
   param = struct('radar_name','mcords5','num_chan',4,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',0,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',2400e6,'TTL_clock',2400e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
-  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
+  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 0.75e-6; param.use_mcords4_names = true; param.arena = arena;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -165,7 +202,7 @@ end
 ice_thickness = [100];
 for freq_idx = [1]
   param = struct('radar_name','mcords5','num_chan',4,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',0,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',2400e6,'TTL_clock',2400e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
-  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 0.75e-6; param.use_mcords4_names = true;
+  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 0.75e-6; param.use_mcords4_names = true; param.arena = arena;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;

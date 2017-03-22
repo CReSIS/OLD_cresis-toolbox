@@ -64,7 +64,7 @@ function settings_enc = write_cresis_xml(param)
 %    .Haltitude = nominal meters above ground level
 %    .Hice_thick = meters of ice thickness
 %   .tx_weights = 1x8 row vector of DDS amplitudes (will be scaled to max_tx)
-%   .tukey = Tukey weighting to use on transmit pulse 
+%   .tukey = Tukey weighting to use on transmit pulse
 %   .Tpd = pulse duration in seconds
 %   .phase = 1x8 row vector of optimal transmit phase weights (deg)
 %   .f0 = start frequency (Hz) if not specified in .wfs field
@@ -253,22 +253,22 @@ for wf = 1:length(param.wfs)
     
   else
     if strcmpi(param.radar_name,'mcords3')
-        % TTL start time (317 for 1e9/9 fs clock and 650 TTL delay)
-        TTL_start = TTL_prog_delay + round((317-650) / (1e9/9/2) * fs/2);
-        
-        % TTL1 length (original durations were for 1e9/9 fs clock)
-        x = [1 3 10]*1e-6;
-        y = [354 472 845] / (1e9/9/2) * fs/2;
-        %plot(x,y);
-        p = polyfit(x,y,1);
-        TTL_duration = round(polyval(p,Tpd));
-        
-        % TTL2 length (original durations were for 1e9/9 fs clock)
-        x = [1 3 10]*1e-6;
-        y = [390 495 888] / (1e9/9/2) * fs/2;
-        %plot(x,y);
-        p = polyfit(x,y,1);
-        TTL_duration(2:8) = round(polyval(p,Tpd));
+      % TTL start time (317 for 1e9/9 fs clock and 650 TTL delay)
+      TTL_start = TTL_prog_delay + round((317-650) / (1e9/9/2) * fs/2);
+      
+      % TTL1 length (original durations were for 1e9/9 fs clock)
+      x = [1 3 10]*1e-6;
+      y = [354 472 845] / (1e9/9/2) * fs/2;
+      %plot(x,y);
+      p = polyfit(x,y,1);
+      TTL_duration = round(polyval(p,Tpd));
+      
+      % TTL2 length (original durations were for 1e9/9 fs clock)
+      x = [1 3 10]*1e-6;
+      y = [390 495 888] / (1e9/9/2) * fs/2;
+      %plot(x,y);
+      p = polyfit(x,y,1);
+      TTL_duration(2:8) = round(polyval(p,Tpd));
       
       settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).(ttl_start_var_enc) = reshape(uint16(TTL_start*ones([1 8],'uint16')),[1 8]);
       settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).(ttl_length_var_enc) = reshape(uint16(TTL_duration),[1 8]);
@@ -289,7 +289,7 @@ for wf = 1:length(param.wfs)
     end
     
   end
-
+  
   atten = param.wfs(wf).atten;
   atten = round(atten*2)/2;
   atten1 = uint8(atten - 31.5);
@@ -297,15 +297,15 @@ for wf = 1:length(param.wfs)
   
   if length(atten1) == 1
     if strcmpi(param.radar_name,'mcords3')
-%       settings_enc(1).Atten.('AttenZ20Z30') = reshape(uint8(atten1*ones([1 8],'uint8')),[1 8]);
-%       settings_enc(1).Atten.('AttenZ31') = reshape(uint8(atten2*ones([1 8],'uint8')),[1 8]);
+      %       settings_enc(1).Atten.('AttenZ20Z30') = reshape(uint8(atten1*ones([1 8],'uint8')),[1 8]);
+      %       settings_enc(1).Atten.('AttenZ31') = reshape(uint8(atten2*ones([1 8],'uint8')),[1 8]);
     end
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('AttenuatorZ20Z31') = reshape(uint8(atten1*ones([1 8],'uint8')),[1 8]);
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('AttenuatorZ20Z32') = reshape(uint8(atten2*ones([1 8],'uint8')),[1 8]);
   else
     if strcmpi(param.radar_name,'mcords3')
-%       settings_enc(1).Atten.('AttenZ20Z30') = reshape(uint8(atten1),[1 8]);
-%       settings_enc(1).Atten.('AttenZ31') = reshape(uint8(atten2),[1 8]);
+      %       settings_enc(1).Atten.('AttenZ20Z30') = reshape(uint8(atten1),[1 8]);
+      %       settings_enc(1).Atten.('AttenZ31') = reshape(uint8(atten2),[1 8]);
     end
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('AttenuatorZ20Z31') = reshape(uint8(atten1),[1 8]);
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('AttenuatorZ20Z32') = reshape(uint8(atten2),[1 8]);
@@ -381,7 +381,7 @@ for wf = 1:length(param.wfs)
     Trg_start_offset = param.tg.rg_start_offset(wf) / (3e8/2);
   else
     Trg_start_offset = 0;
-  end  
+  end
   if isfield(param.tg,'rg_stop_offset')
     Trg_stop_offset = param.tg.rg_stop_offset(wf) / (3e8/2);
   else
@@ -456,10 +456,10 @@ for wf = 1:length(param.wfs)
   
   settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Stop') = reshape(uint16(bin_stop),[1 1]);
   if uint16(bin_start) < 32
-      % Force record start to be at least 32
-      settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(32),[1 1]);
+    % Force record start to be at least 32
+    settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(32),[1 1]);
   else
-      settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(bin_start),[1 1]);
+    settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(bin_start),[1 1]);
   end
   
   if isfield(param,'f0')
@@ -567,85 +567,22 @@ fprintf(fid,'</LVData>');
 fclose(fid);
 
 %% Write RSS Arena XML config file
-param.arena.awg = [2 2 3 3];
-param.arena.dacs = [4 5 6 7];
-param.arena.zeropimods = [0 180 90 270];
-param.arena.TTL = [];
-for PA = 1:8
-  param.arena.TTL(end+1) = struct('name',sprintf('PA ENA %d',PA));
-end
-param.arena.TTL(end+1) = struct('name','T/R');
-param.arena.TTL(end+1) = struct('name','ISO');
-param.arena.TTL(end+1) = struct('name','EPRI');
-param.arena.TTL(end+1) = struct('name','PRI');
-param.arena.TTL(end+1) = struct('name','EPRI');
-param.arena.TTL(end+1) = struct('name','PRI');
-param.arena.TTL(end+1) = struct('name','EPRI');
-param.arena.TTL(end+1) = struct('name','PRI');
-
-segment_states{1} = [
-  0 1 1 0 % PA ENA 1
-  0 1 1 0 % PA ENA 2
-  0 1 1 0 % PA ENA 3
-  0 1 1 0 % PA ENA 4
-  0 1 1 0 % PA ENA 5
-  0 1 1 0 % PA ENA 6
-  0 1 1 0 % PA ENA 7
-  0 1 1 0 % PA ENA 8
-  0 1 1 0 % T/R
-  0 1 1 0 % ISO
-  1 0 0 0 % EPRI
-  0 1 0 0 % PRI
-  1 0 0 0 % EPRI
-  0 1 0 0 % PRI
-  1 0 0 0 % EPRI
-  0 1 0 0 % PRI
-  ];
-segment_states{2} = [
-  0 1 1 0 % PA ENA 1
-  0 1 1 0 % PA ENA 2
-  0 1 1 0 % PA ENA 3
-  0 1 1 0 % PA ENA 4
-  0 1 1 0 % PA ENA 5
-  0 1 1 0 % PA ENA 6
-  0 1 1 0 % PA ENA 7
-  0 1 1 0 % PA ENA 8
-  0 1 1 0 % T/R
-  0 1 1 0 % ISO
-  0 0 0 0 % EPRI
-  0 1 0 0 % PRI
-  0 0 0 0 % EPRI
-  0 1 0 0 % PRI
-  0 0 0 0 % EPRI
-  0 1 0 0 % PRI
-  ];
-
-      if arena.wfs(wf).Tpd > 0e-6
-      segment_times = [0.1 0.2 arena.wfs(wf).Tpd*1e6+2.2 arena.PRI*1e6];
-    else
-      segment_times = [0.1 0.2 arena.wfs(wf).Tpd*1e6+1 arena.PRI*1e6];
-    end
-    if wf == 1
-      wf_modes = 3;
-      segment_states_idx = [1 2 2];
-    else
-      wf_modes = 2;
-      segment_states_idx = [2 2 2];
-    end
-  
-  
-]if isfield(param,'arena')
+if isfield(param,'arena')
   % Create arena parameter structure
   arena = struct('version','1');
   arena.awg = param.arena.awg;
   arena.dacs = param.arena.dacs;
+  arena.dacs_sampFreq = param.arena.dacs_sampFreq;
+  arena.zeropimods = param.arena.zeropimods;
+  arena.TTL_time = param.arena.TTL_time;
+  arena.TTL_names = param.arena.TTL_names;
+  arena.TTL_states = param.arena.TTL_states;
   for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
-    arena.fs = settings_enc.sys.DDCZ20Ctrl.samplingZ20freq;
     arena.PRI = 1 / settings_enc.sys.DDSZ5FSetup.PRF;
     arena.wfs(wf).zeropimods = param.arena.zeropimods;
     arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
     arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
-    arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) * 0.63/4000;
+    arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* param.arena.max_tx ./ param.max_tx;
     arena.wfs(wf).fc = (settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq ...
       + settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq)/2;
     arena.wfs(wf).BW = abs(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq ...
@@ -656,14 +593,14 @@ segment_states{2} = [
       * settings_enc.sys.DDSZ5FSetup.BaseZ20Len;
     arena.wfs(wf).presums = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).Presums;
   end
-
+  
   % Create XML document
   doc = write_arena_xml([],'init',arena);
   doc = write_arena_xml(doc,'ctu_0013',arena);
   doc = write_arena_xml(doc,'dac-ad9129_0014',arena);
-  doc = write_arena_xml(doc,'dac-ad9129_0014',arena);
+  doc = write_arena_xml(doc,'dac-ad9129_0014_waveform',arena);
   doc = write_arena_xml(doc,'psc_0001',arena);
-  doc = write_arena_xml(doc,'subsystems_accum',arena);
+  doc = write_arena_xml(doc,'subsystems',arena);
   
   out_str = xmlwrite(doc);
   out_str = ['<!DOCTYPE systemXML>' out_str(find(out_str==10,1):end)];
@@ -672,6 +609,7 @@ segment_states{2} = [
   if ~exist(param.rss_base_dir,'dir')
     mkdir(param.rss_base_dir);
   end
+  fprintf('  Writing RSS: %s\n', rss_fn);
   fid = fopen(rss_fn,'w');
   fwrite(fid,out_str,'char');
   fclose(fid);
