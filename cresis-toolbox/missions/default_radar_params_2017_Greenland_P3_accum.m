@@ -9,7 +9,7 @@ function [param,defaults] = default_radar_params_2017_Greenland_P3_accum
 % Author: John Paden
 
 param.season_name = '2017_Greenland_P3';
-param.radar_name = 'mcords5';
+param.radar_name = 'mcords5-accum';
 
 %% Control parameters (not used in the parameter spreadsheet directly)
 default.xml_file_prefix = 'mcords5';

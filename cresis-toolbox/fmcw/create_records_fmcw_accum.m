@@ -68,6 +68,8 @@ fprintf('=====================================================================\n
 %% Check input parameters
 % =====================================================================
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 if ~isfield(param.records,'force_all') || isempty(param.records.force_all)
   param.records.force_all = false;
 end
@@ -83,13 +85,13 @@ end
 % =====================================================================
 %% Setup the scheduler
 % =====================================================================
-if strcmp(param.radar_name,'accum')
+if strcmp(radar_name,'accum')
   fh = @basic_load_accum;
-elseif any(strcmp(param.radar_name,{'snow','kuband'}))
+elseif any(strcmp(radar_name,{'snow','kuband'}))
   fh = @basic_load_fmcw;
-elseif any(strcmp(param.radar_name,{'snow2','kuband2'}))
+elseif any(strcmp(radar_name,{'snow2','kuband2'}))
   fh = @basic_load_fmcw2;
-elseif any(strcmp(param.radar_name,{'snow3','kuband3','kaband3'}))
+elseif any(strcmp(radar_name,{'snow3','kuband3','kaband3'}))
   if param.records.file_version == 4
     fh = @basic_load_fmcw2;
   elseif param.records.file_version == 6
@@ -97,11 +99,13 @@ elseif any(strcmp(param.radar_name,{'snow3','kuband3','kaband3'}))
   else
     fh = @basic_load_fmcw3;
   end
-elseif any(strcmp(param.radar_name,{'snow5'}))
+elseif any(strcmp(radar_name,{'snow5'}))
   fh = @basic_load;
+elseif any(strcmp(radar_name,{'snow8'}))
+  fh = @basic_load_fmcw8;
 end
 
-param.sched.type = 'no scheduler';
+param.sched.type = 'no scheduler'; % Scheduler no longer used, force to no scheduler
 if strcmpi(param.sched.type,'custom_torque')
   global ctrl; % Make this global for convenience in debugging
   ctrl = torque_new_batch(param);
@@ -175,16 +179,16 @@ for board_idx = 1:length(boards)
     arg{2} = struct('clk',param.radar.fs,'utc_time_halved',param.vectors.gps.utc_time_halved, ...
       'first_byte',first_byte, 'file_version', param.records.file_version, ...
       'records',struct('en',1,'epri',init_EPRI_estimate,'force_all',param.records.force_all));
-    if strcmp(param.radar_name,'accum')
+    if strcmp(radar_name,'accum')
       fh = @basic_load_accum;
       finfo = fname_info_accum(fn);
-    elseif any(strcmp(param.radar_name,{'snow','kuband'}))
+    elseif any(strcmp(radar_name,{'snow','kuband'}))
       fh = @basic_load_fmcw;
       finfo = fname_info_fmcw(fn);
-    elseif any(strcmp(param.radar_name,{'snow2','kuband2'}))
+    elseif any(strcmp(radar_name,{'snow2','kuband2'}))
       fh = @basic_load_fmcw2;
       finfo = fname_info_fmcw(fn);
-    elseif any(strcmp(param.radar_name,{'snow3','kuband3','kaband3'}))
+    elseif any(strcmp(radar_name,{'snow3','kuband3','kaband3'}))
       finfo = fname_info_fmcw(fn);
       if file_idx < length(file_idxs)
         next_finfo = fname_info_fmcw(board_fns{board_idx}{file_idxs(file_idx+1)});
@@ -209,7 +213,10 @@ for board_idx = 1:length(boards)
           arg{2}.records.force_all = true;
         end
       end
-    elseif any(strcmp(param.radar_name,{'snow5'}))
+    elseif any(strcmp(radar_name,{'snow5'}))
+      fh = @basic_load;
+      finfo = fname_info_fmcw(fn);
+    elseif any(strcmp(radar_name,{'snow8'}))
       fh = @basic_load;
       finfo = fname_info_fmcw(fn);
     end

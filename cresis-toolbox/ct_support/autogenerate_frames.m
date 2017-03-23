@@ -44,11 +44,13 @@ param = merge_structs(param, param_override);
 fprintf('  autogenerate_frames %s\n', param.day_seg);
 fprintf('==============================================\n\n');
 
-if any(strcmpi(param.radar_name,{'icards','acords','mcords','mcrds','mcords2','mcords3','mcords4','mcords5'}))
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
+if any(strcmpi(output_dir,'rds'))
   frame_length = 50000;
-elseif any(strcmpi(param.radar_name,{'accum','accum2'}))
+elseif any(strcmpi(output_dir,'accum'))
   frame_length = 20000;
-elseif any(strcmpi(param.radar_name,{'kaband3','kuband','kuband2','kuband3','snow','snow2','snow3','snow5','snow8'}))
+elseif any(strcmpi(output_dir,{'kaband','kuband','snow'}))
   frame_length = 5000;
 else
   error('%s is not a supported radar', param.radar_name);
