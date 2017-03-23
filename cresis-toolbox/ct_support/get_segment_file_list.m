@@ -67,7 +67,11 @@ if nargout > 2
     fprintf('Getting files for %s (%s)\n', base_dir, datestr(now));
   end
   get_fns_param = struct('regexp',param.vectors.file.file_regexp);
-  fns = get_filenames(base_dir,param.vectors.file.file_prefix,param.vectors.file.file_midfix,ext,get_fns_param);
+  if ~isfield(param.vectors.file,'file_suffix')
+    fns = get_filenames(base_dir,param.vectors.file.file_prefix,param.vectors.file.file_midfix,ext,get_fns_param);
+  else
+    fns = get_filenames(base_dir,param.vectors.file.file_prefix,param.vectors.file.file_midfix,param.vectors.file.file_suffix,get_fns_param);
+  end
   
   % Sort ACORDS filenames because the extenions are not a standard length
   if any(strcmpi(radar_name,{'acords'}))
