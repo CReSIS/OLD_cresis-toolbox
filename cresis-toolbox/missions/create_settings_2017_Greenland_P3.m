@@ -105,6 +105,15 @@ write_cresis_xml(param);
 % Default Mode
 param.fn = fullfile(base_dir,'default.xml');
 write_cresis_xml(param);
+
+% Accumulation Radar Noise Measurement
+param.prf = 399.5;
+param.presums = [3 3 3];
+param.fn = fullfile(base_dir,'MCORDS_NOISE_10us_3wf_3500mthick.xml');
+write_cresis_xml(param);
+param.prf = 12000;
+param.presums = [3 3 29];
+
 % TTL Settings Check
 param.tx_weights(2:end) = 0;
 param.tukey = 0.01;
