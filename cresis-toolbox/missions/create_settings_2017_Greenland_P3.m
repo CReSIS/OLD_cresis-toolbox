@@ -73,14 +73,14 @@ if ~exist(calval_dir,'dir')
 end
 
 %% Survey Mode + loopback, noise, and deconv modes
-% <4000 m thick ice, 1250 +/- 1250 ft AGL
+% <4000 m thick ice, 1250 +/- 750 ft AGL
 ice_thickness = [3500];
 freq_idx = 1;
 param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
-param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 8.9e-6;
+param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 12.18e-6;
 param.max_duty_cycle = 0.12;
 param.create_IQ = false;
-param.tg.altitude_guard = 1250*12*2.54/100;
+param.tg.altitude_guard = 750*12*2.54/100;
 param.tg.staged_recording = true;
 param.tg.Haltitude = 1250*12*2.54/100;
 param.tg.Hice_thick = ice_thickness(freq_idx);
@@ -136,15 +136,15 @@ param.fn = fullfile(base_dir,'survey_mode_10us_3wf_3500mthick_DECONVOLUTION.xml'
 write_cresis_xml(param);
 
 %% Survey Mode High Altitude
-% <3200 m thick ice, 10000-25000 ft AGL
+% <3200 m thick ice, 5000-20000 ft AGL
 freq_idx = 1;
 param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
-param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 8.9e-6;
+param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 12.18e-6;
 param.max_duty_cycle = 0.12;
 param.create_IQ = false;
 param.tg.altitude_guard = 7500*12*2.54/100;
 param.tg.staged_recording = true;
-param.tg.Haltitude = 17500*12*2.54/100;
+param.tg.Haltitude = 12500*12*2.54/100;
 param.tg.Hice_thick = 3200;
 param.fn = fullfile(base_dir,'survey_mode_10us_2wf_3200mthick_high_altitude.xml');
 param.prf = 9000;
@@ -169,7 +169,7 @@ write_cresis_xml(param);
 % MAX_DATA_RATE DOES NOT MATTER IN THIS MODE, NOT USED TO CAPTURE
 % freq_idx = 1;
 % param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
-% param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 500; param.flight_hours = 7; param.sys_delay = 8.9e-6;
+% param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 500; param.flight_hours = 7; param.sys_delay = 12.18e-6;
 % param.max_duty_cycle = 0.12;
 % param.create_IQ = false;
 % param.tg.staged_recording = false;
@@ -227,7 +227,7 @@ write_cresis_xml(param);
 freq_idx = 1;
 for Tpd = [10e-6]
   param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);  
-  param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 8.9e-6;
+  param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 12.18e-6;
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
   param.tg.altitude_guard = 7500*12*2.54/100;
@@ -261,7 +261,7 @@ end
 freq_idx = 1;
 for Tpd = 10e-6
   param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);  
-  param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 8.9e-6;
+  param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 12.18e-6;
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
   param.tg.altitude_guard = 5000*12*2.54/100;

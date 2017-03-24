@@ -133,7 +133,10 @@ end
 % =====================================================================
 task_param = param;
 task_param.load.imgs = param.get_heights.imgs;
-
+if isempty(param.get_heights.imgs)
+  error('No images specified in param.get_heights.imgs.');
+end
+  
 % =====================================================================
 % Setup the scheduler
 % =====================================================================
