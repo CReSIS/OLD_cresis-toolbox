@@ -34,7 +34,7 @@ for param_idx = 1:length(params)
     doppler_window = hanning(61); doppler_window = doppler_window(1:30); % experimental
     param.analysis.coh_ave.doppler_window = doppler_window;
   else
-    param.analysis.coh_ave.doppler_window = param.analysis.coh_ave.doppler_window(1:floor(length(param.analysis.coh_ave.doppler_window)/2));  
+    param.analysis.coh_ave.doppler_window = param.analysis.coh_ave.doppler_window(1:floor(length(param.analysis.coh_ave.doppler_window)/2));
     doppler_window = param.analysis.coh_ave.doppler_window;
   end
   
@@ -59,7 +59,7 @@ for param_idx = 1:length(params)
     figure(1); clf;
     plot(doppler_psd)
     hold on;
-    plot(lp(max(noise.doppler,[],2)),'c')
+    plot(lp(nanmax(noise.doppler,[],2)),'c')
     plot(doppler_noise_floor + param.analysis.coh_ave.doppler_threshold,'r')
     plot(find(doppler_mask), doppler_psd(doppler_mask),'k.');
     fprintf('Adjust Doppler mask by running commands like "doppler_mask(1:120) = 0;"\n');
@@ -98,136 +98,138 @@ for param_idx = 1:length(params)
     keyboard
   end
   
-  if ~iscell(noise.coh_ave)
-    noise.coh_ave = {noise.coh_ave};
-  end
+  noise.regime = ones(size(noise.gps_time));
   
-  for nz = 1:length(noise.coh_ave)
+  %% Segment specific hacks
+  if strcmpi(noise.param_analysis.radar_name,'snow2') && strcmpi(noise.param_analysis.day_seg,'20120316_03')
+    bad_mask = noise.gps_time > 1.331923763327688e+09 & noise.gps_time < 1.331923803347247e+09;
+    noise.coh_ave_samples(:,bad_mask) = param.analysis.coh_ave.min_samples;
+    noise.regime(find(bad_mask,1):end) = 2;
     
-    noise.regime = ones(size(noise.gps_time));
-    
-    %% Segment specific hacks
-    if strcmpi(noise.param_analysis.radar_name,'snow2') && strcmpi(noise.param_analysis.day_seg,'20120316_03')
-      bad_mask = noise.gps_time > 1.331923763327688e+09 & noise.gps_time < 1.331923803347247e+09;
-      noise.coh_ave_samples(:,bad_mask) = param.analysis.coh_ave.min_samples;
-      noise.regime(find(bad_mask,1):end) = 2;
-      
-    elseif isfield(param.analysis.coh_ave,'regimes') ...
-        && ~isempty(param.analysis.coh_ave.regimes) ...
-        && param.analysis.coh_ave.regimes.en
-      %% Cross correlate neighboring range lines to test for changes in statistics
-      dline = 2;
-      dcorr = zeros(1,size(noise.coh_ave{nz},2));
-      tmp = interp_finite(noise.coh_ave{nz});
-      for rline = 1:size(noise.coh_ave{nz},2)-dline
-        dcorr(rline+1) = norm(tmp(:,rline)-tmp(:,rline+2)) ./ norm(tmp(:,rline));
-      end
-      % Deal with edges
-      dcorr(1) = dcorr(2);
-      dcorr(end) = dcorr(end-1);
-      
-      if debug_level > 0
-        figure(1); clf;
-        imagesc(lp(noise.coh_ave{nz}));
-        h_axis = gca;
-        
-        figure(2); clf;
-        plot(dcorr)
-        h_axis(end+1) = gca;
-        
-        linkaxes(h_axis,'x')
-      end
-      
-      % Statistic changes vector
-      stat_change = lp(dcorr) > param.analysis.coh_ave.regimes.threshold;
-      %noise.coh_ave{nz}(:,stat_change == 1) = NaN;
-      
-      % Create different noise regimes for each statistics change
-      cur_regime = 1;
-      for rline = 2:length(stat_change)
-        if stat_change(rline) && ~stat_change(rline-1)
-          cur_regime = cur_regime + 1;
-        end
-        noise.regime(rline) = cur_regime;
-      end
+  elseif isfield(param.analysis.coh_ave,'regimes') ...
+      && ~isempty(param.analysis.coh_ave.regimes) ...
+      && param.analysis.coh_ave.regimes.en
+    %% Cross correlate neighboring range lines to test for changes in statistics
+    dline = 2;
+    dcorr = zeros(1,size(noise.coh_ave,2));
+    tmp = interp_finite(noise.coh_ave);
+    for rline = 1:size(noise.coh_ave,2)-dline
+      dcorr(rline+1) = norm(tmp(:,rline)-tmp(:,rline+2)) ./ norm(tmp(:,rline));
     end
-    regimes = unique(noise.regime);
-    if length(regimes) > 1
-      warning('There are %d noise regimes\n', length(regimes));
-    end
+    % Deal with edges
+    dcorr(1) = dcorr(2);
+    dcorr(end) = dcorr(end-1);
     
-    %% Apply the filtering from coh_noise_arg across each regime
-    old_noise = noise;
     if debug_level > 0
       figure(1); clf;
-      imagesc(lp(noise.coh_ave{nz}));
-      aa = gca;
-    end
-    
-    noise.coh_ave{nz}(noise.coh_ave_samples <= param.analysis.coh_ave.min_samples) = NaN;
-    
-    if debug_level > 0
+      imagesc(lp(noise.coh_ave));
+      h_axis = gca;
+      
       figure(2); clf;
-      imagesc(lp(noise.coh_ave{nz}))
-      aa(2) = gca;
+      plot(dcorr)
+      h_axis(end+1) = gca;
+      
+      linkaxes(h_axis,'x')
     end
     
-    mask = isnan(noise.coh_ave{nz});
-    mask = filter2(param.analysis.coh_ave.power_grow,double(mask));
-    noise.coh_ave{nz}(mask > 0) = NaN;
+    % Statistic changes vector
+    stat_change = lp(dcorr) > param.analysis.coh_ave.regimes.threshold;
+    %noise.coh_ave(:,stat_change == 1) = NaN;
     
-    if debug_level > 0
-      figure(3); clf;
-      imagesc(lp(noise.coh_ave{nz}))
-      aa(3) = gca;
-      linkaxes(aa,'xy')
-      keyboard
+    % Create different noise regimes for each statistics change
+    cur_regime = 1;
+    for rline = 2:length(stat_change)
+      if stat_change(rline) && ~stat_change(rline-1)
+        cur_regime = cur_regime + 1;
+      end
+      noise.regime(rline) = cur_regime;
     end
-    
-    noise.coh_ave{nz} = noise.coh_ave{nz}.';
-    for regime = regimes
-      regime_mask = find(noise.regime == regime);
-      if any(all(isnan(noise.coh_ave{nz}(regime_mask,:))))
-        regime_fill = find(all(isnan(noise.coh_ave{nz}(regime_mask,:)),1));
-        noise.coh_ave{nz}(regime_mask,regime_fill) = old_noise.coh_ave(regime_fill,regime_mask).';
-      end
-      for rbin = 1:size(noise.coh_ave{nz},2)
-        noise.coh_ave{nz}(regime_mask,rbin) = interp_finite(noise.coh_ave{nz}(regime_mask,rbin),0);
-      end
-      if size(noise.coh_ave{nz}(regime_mask,:),1) < param.proc.coh_noise_arg{2}+2
-        %       sgolayfilt_F = size(noise.coh_ave{nz}(regime_mask,:),1);
-        %       if mod(sgolayfilt_F,2)==0
-        %         sgolayfilt_F = sgolayfilt_F - 1;
-        %       end
-        %       sgolayfilt_degree = min(param.proc.coh_noise_arg{1}, sgolayfilt_F-1);
-        %       noise.coh_ave{nz}(regime_mask,:) = single(sgolayfilt(double(noise.coh_ave{nz}(regime_mask,:)),sgolayfilt_degree,sgolayfilt_F));
-      else
-        %    noise.coh_ave{nz}(regime_mask,:) = single(sgolayfilt(double(noise.coh_ave{nz}(regime_mask,:)),param.proc.coh_noise_arg{1},param.proc.coh_noise_arg{2},param.proc.coh_noise_arg{3}));
-        regime_mask_tmp = regime_mask(2:end-1);
-        noise.coh_ave{nz}(regime_mask_tmp,:) = single(sgolayfilt(double(noise.coh_ave{nz}(regime_mask_tmp,:)),param.proc.coh_noise_arg{1},param.proc.coh_noise_arg{2},param.proc.coh_noise_arg{3}));
-      end
-      if length(regime_mask) >= 3
-        noise.coh_ave{nz}(regime_mask(1),:) = noise.coh_ave{nz}(regime_mask(2),:);
-        noise.coh_ave{nz}(regime_mask(end),:) = noise.coh_ave{nz}(regime_mask(end-1),:);
-      end
-    end
-    
-    %% Create the simplified output
-    noise_simp = struct('gps_time',noise.gps_time);
-    noise_simp.coh_aveI = real(noise.coh_ave{nz});
-    noise_simp.coh_aveQ = imag(noise.coh_ave{nz});
-    noise_simp.doppler_weights = doppler_weights;
-    noise_simp.sw_version = param.sw_version;
-    noise_simp.param_collate = param.analysis.coh_ave;
-    noise_simp.datestr = datestr(now);
-    noise_simp.param_collate.coh_noise_arg = param.proc.coh_noise_arg;
-    
-    %% Store the simplified output in netcdf file
-    out_fn_dir = fileparts(ct_filename_out(param,coh_ave_file_output_type, ''));
-    out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s_nz_%d.nc', param.day_seg, nz));
-    fprintf('  Saving %s\n', out_fn);
-    netcdf_from_mat(out_fn,noise_simp);
+  else
+    %% Segment data based on waveform or nyquist zone
+    noise.regime = noise.nyquist_zone;
+    mixed_nz_blocks = mod(log2(noise.nyquist_zone),1)~=0;
+    noise.coh_ave_samples(:,mixed_nz_blocks) = 0;
   end
+  regimes = unique(noise.regime);
+  if length(regimes) > 1
+    warning('There are %d noise regimes\n', length(regimes));
+  end
+  
+  %% Apply the filtering from coh_noise_arg across each regime
+  noise.coh_ave_samples = uint32(noise.coh_ave_samples);
+  noise.coh_ave = single(noise.coh_ave);
+  old_noise_coh_ave = noise.coh_ave;
+  if debug_level > 0
+    figure(1); clf;
+    imagesc(lp(noise.coh_ave));
+    aa = gca;
+  end
+  
+  noise.coh_ave(noise.coh_ave_samples <= param.analysis.coh_ave.min_samples) = NaN;
+  
+  if debug_level > 0
+    figure(2); clf;
+    imagesc(lp(noise.coh_ave))
+    aa(2) = gca;
+  end
+  
+  for rline = 1:size(noise.coh_ave,2)
+    noise.coh_ave(filter2(param.analysis.coh_ave.power_grow,double(isnan(noise.coh_ave(:,rline)))) > 0) = NaN;
+  end
+  
+  if debug_level > 0
+    figure(3); clf;
+    imagesc(lp(noise.coh_ave))
+    aa(3) = gca;
+    linkaxes(aa,'xy')
+    keyboard
+  end
+  
+  noise.coh_ave = noise.coh_ave.';
+  for regime = regimes
+    regime_mask = find(noise.regime == regime);
+    if any(all(isnan(noise.coh_ave(regime_mask,:))))
+      regime_fill = find(all(isnan(noise.coh_ave(regime_mask,:)),1));
+      noise.coh_ave(regime_mask,regime_fill) = old_noise_coh_ave(regime_fill,regime_mask).';
+    end
+    for rbin = 1:size(noise.coh_ave,2)
+      noise.coh_ave(regime_mask,rbin) = interp_finite(noise.coh_ave(regime_mask,rbin),0);
+    end
+    if size(noise.coh_ave(regime_mask,:),1) < param.proc.coh_noise_arg{2}+2
+      sgolayfilt_F = size(noise.coh_ave(regime_mask,:),1);
+      if mod(sgolayfilt_F,2)==0
+        sgolayfilt_F = sgolayfilt_F - 1;
+      end
+      sgolayfilt_degree = min(param.proc.coh_noise_arg{1}, sgolayfilt_F-1);
+      noise.coh_ave(regime_mask,:) = single(sgolayfilt(double(noise.coh_ave(regime_mask,:)),sgolayfilt_degree,sgolayfilt_F));
+    else
+      %    noise.coh_ave(regime_mask,:) = single(sgolayfilt(double(noise.coh_ave(regime_mask,:)),param.proc.coh_noise_arg{1},param.proc.coh_noise_arg{2},param.proc.coh_noise_arg{3}));
+      regime_mask_tmp = regime_mask(2:end-1);
+      noise.coh_ave(regime_mask_tmp,:) = single(sgolayfilt(double(noise.coh_ave(regime_mask_tmp,:)),param.proc.coh_noise_arg{1},param.proc.coh_noise_arg{2},param.proc.coh_noise_arg{3}));
+    end
+    if length(regime_mask) >= 3
+      noise.coh_ave(regime_mask(1),:) = noise.coh_ave(regime_mask(2),:);
+      noise.coh_ave(regime_mask(end),:) = noise.coh_ave(regime_mask(end-1),:);
+    end
+  end
+  clear old_noise_coh_ave;
+  noise = rmfield(noise,'coh_ave_samples');
+  
+  %% Create the simplified output
+  noise_simp = struct('gps_time',noise.gps_time);
+  noise_simp.coh_aveI = real(noise.coh_ave);
+  noise_simp.coh_aveQ = imag(noise.coh_ave);
+  noise_simp.doppler_weights = doppler_weights;
+  noise_simp.sw_version = param.sw_version;
+  noise_simp.param_collate = param.analysis.coh_ave;
+  noise_simp.datestr = datestr(now);
+  noise_simp.param_collate.coh_noise_arg = param.proc.coh_noise_arg;
+  
+  %% Store the simplified output in netcdf file
+  out_fn_dir = fileparts(ct_filename_out(param,coh_ave_file_output_type, ''));
+  out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s.nc', param.day_seg));
+  fprintf('  Saving %s\n', out_fn);
+  netcdf_from_mat(out_fn,noise_simp);
 end
 
 return
@@ -246,6 +248,6 @@ noise.gps_time = ncread(cdf_fn,'gps_time');
 recs = find(noise.gps_time > records.gps_time(1) - 100 & noise.gps_time < records.gps_time(end) + 100);
 noise.gps_time = noise.gps_time(recs);
 
-noise.coh_ave{nz} = ncread(cdf_fn,'coh_aveI',[recs(1) 1],[recs(end)-recs(1)+1 Nt]) ...
+noise.coh_ave = ncread(cdf_fn,'coh_aveI',[recs(1) 1],[recs(end)-recs(1)+1 Nt]) ...
   + j*ncread(cdf_fn,'coh_aveQ',[recs(1) 1],[recs(end)-recs(1)+1 Nt]);
 

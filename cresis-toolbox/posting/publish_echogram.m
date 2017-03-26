@@ -416,11 +416,11 @@ elseif param.elev_comp == 2
   if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'tonemap')
     echo_info.image = imagesc([],Depth(depth_good_idxs)+param.depth_offset, ...
       detrend_tonemap,'Parent',ah_echo);
-    axis(ah_echo_time,[0.5 size(detrend_tonemap,2)+0.5 reshape((mdata.Time(depth_good_idxs([1 end]))-mean_surface_time)*1e6 + param.time_offset*1e6,[1 2])])
+    axis(ah_echo_time,[0.5 size(detrend_tonemap,2)+0.5 reshape((mdata.Time(depth_good_idxs([1 end]))+mean_surface_time)*1e6 + param.time_offset*1e6,[1 2])])
   else
     echo_info.image = imagesc([],Depth(depth_good_idxs)+param.depth_offset, ...
       echogram_vals,'Parent',ah_echo);
-    axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 reshape((mdata.Time(depth_good_idxs([1 end]))-mean_surface_time)*1e6 + param.time_offset*1e6,[1 2])])
+    axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 reshape((mdata.Time(depth_good_idxs([1 end]))+mean_surface_time)*1e6 + param.time_offset*1e6,[1 2])])
   end
   if length(param.er_ice) == 1;
     ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));

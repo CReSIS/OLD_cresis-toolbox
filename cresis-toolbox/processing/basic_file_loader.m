@@ -34,6 +34,8 @@ if ~isfield(param,'multiselect')
   param.multiselect = false;
 end
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 global g_basic_file_loader_fn;
 global g_basic_file_loader_fns;
 g_basic_file_loader_fn = char(g_basic_file_loader_fn); % Force type to be string
@@ -344,7 +346,7 @@ else
     fn = g_basic_file_loader_fn;
   elseif strcmp(param.file_search_mode,'default+s')
     % Get the next file in g_basic_file_loader_fns
-    if any(strcmpi(param.radar_name,{'mcords3','mcords5'}))
+    if any(strcmpi(radar_name,{'mcords3','mcords5'}))
       file_idx = find(strcmp(g_basic_file_loader_fn, g_basic_file_loader_fns));
       file_idx = file_idx+1;
       if isempty(file_idx) || file_idx > length(g_basic_file_loader_fns)
@@ -371,7 +373,7 @@ tstart = tic;
 % Load the data (disable if you have already loaded)
 clear data;
 clear num_rec;
-if strcmpi(param.radar_name,'mcords')
+if strcmpi(radar_name,'mcords')
   for adc_idx = 1:length(param.adcs)
     adc = param.adcs(adc_idx);
 
@@ -393,7 +395,7 @@ if strcmpi(param.radar_name,'mcords')
   end
   data = data - median(data(:,1));
 %   basic_remove_mcords_digital_errors;
-elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
+elseif any(strcmpi(radar_name,{'mcords2','mcords3'}))
   
   if ~isfield(param,'img')
     fprintf('Enter wf-adc pair matrix. The wf-adc pair matrix is an Nx2 matrix\n');
@@ -426,7 +428,7 @@ elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
       
       fprintf('Loading file %s\n', fn);
       % Fix get_filenames     'The filename, directory name, or volume label syntax is incorrect.'
-      if strcmpi(param.radar_name,'mcords2')
+      if strcmpi(radar_name,'mcords2')
         [hdr,data_tmp] = basic_load_mcords2(fn,struct('clk',default.radar.fs));
       else
         [hdr,data_tmp] = basic_load_mcords3(fn,struct('clk',default.radar.fs));
@@ -570,7 +572,7 @@ elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
   end
   
   
-elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
+elseif any(strcmpi(radar_name,{'mcords4','mcords5'}))
   file_idx = 1;
   epri_intersect = [];
   
@@ -627,7 +629,7 @@ elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
     end
     fprintf('Loading file %s\n', fn);
     % Load the data file
-    if strcmp(param.radar_name,'mcords4')
+    if strcmp(radar_name,'mcords4')
       [hdr,data_tmp] = basic_load_mcords4(fn,struct('clk',default.radar.fs/4,'recs',param.recs));
     else
       [hdr,data_tmp] = basic_load_mcords5(fn,struct('clk',default.radar.fs,'recs',param.recs,'presum_bug_fixed',1));

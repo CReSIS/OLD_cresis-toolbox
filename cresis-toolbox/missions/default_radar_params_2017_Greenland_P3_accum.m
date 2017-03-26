@@ -152,16 +152,16 @@ default.radar.adc_bits = 12;
 default.radar.adc_full_scale = 2;
 default.radar.rx_paths = [1:4];
 default.radar.noise_figure = 2;
-default.radar.rx_gain = 10^(45/20);
+default.radar.rx_gain = 45;
 default.radar.adc_SNR_dB = 59;
-default.radar.Tadc_adjust = 0.000010179163; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.Tadc_adjust = 8.8042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 defaults = {};
 
 %% Wideband settings
-default.radar.wfs(1).chan_equal_Tsys = [0 0 0 0]/1e9;
+default.radar.wfs(1).chan_equal_Tsys = [0.15	0.00	0.10	0.68]/1e9;
 default.radar.wfs(1).chan_equal_dB = [0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0 0 0];
+default.radar.wfs(1).chan_equal_deg = [-105.5	-0.0	55.2	128.8];
 
  % survey mode
 default.get_heights.qlook.img_comb = [1e-05 -inf 2e-06];

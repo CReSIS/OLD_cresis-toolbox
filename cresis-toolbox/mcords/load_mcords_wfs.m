@@ -121,11 +121,6 @@ else
   wf_num_sam = cell2mat({settings.wfs.num_sam}).';
 end
 wf = 1;
-if isfield(param.radar.wfs(wf),'conjugate') && ~isempty(param.radar.wfs(wf).conjugate)
-  wfs(wf).conjugate   = param.radar.wfs(wf).conjugate;
-else
-  wfs(wf).conjugate   = 0;
-end
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice'}))
   wf = 1;
   wf_offsets(wf) = 0;
@@ -277,6 +272,12 @@ for wf = 1:length(param.radar.wfs)
   wfs(wf).offset  = wf_offsets(wf);
   if proc_param.wf_adc_comb.en
     wfs(wf).Nt_pc = Nt_pc_max;
+  end
+  
+  if isfield(param.radar.wfs(wf),'conjugate') && ~isempty(param.radar.wfs(wf).conjugate)
+    wfs(wf).conjugate   = param.radar.wfs(wf).conjugate;
+  else
+    wfs(wf).conjugate   = 0;
   end
 
   if isfield(param.radar.wfs(wf),'BW') && ~isempty(param.radar.wfs(wf).BW)
