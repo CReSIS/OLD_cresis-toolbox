@@ -35,8 +35,8 @@ in_base_path = fullfile(data_support_path,'2017_Greenland_P3');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_fns = {}; sync_params = {};
 
-% gps_source_to_use = 'NMEA';
-gps_source_to_use = 'ATM-field';
+gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM-field_traj';
 % gps_source_to_use = 'ATM';
 
@@ -105,7 +105,16 @@ if strcmpi(gps_source_to_use,'NMEA')
 %     gps_source{file_idx} = 'nmea-field';
 %     sync_flag{file_idx} = 0;
  
-    year = 2017; month = 3; day = 23;
+%     year = 2017; month = 3; day = 23;
+%     file_idx = file_idx + 1;
+%     in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%     file_type{file_idx} = 'NMEA';
+%     params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%     gps_source{file_idx} = 'nmea-field';
+%     sync_flag{file_idx} = 0;
+ 
+    year = 2017; month = 3; day = 24;
     file_idx = file_idx + 1;
     in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -207,18 +216,6 @@ elseif strcmpi(gps_source_to_use,'ATM-field_traj')
   file_type{file_idx} = 'traj';
   params{file_idx} = struct('year',year,'time_reference','gps','input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
   gps_source{file_idx} = 'atm-field_traj';
-  sync_flag{file_idx} = 0;
-  
-  
-elseif strcmpi(gps_source_to_use,'ATM-field')
-  
-  year = 2017; month = 2; day = 26;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'applanix';
-  params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  gps_source{file_idx} = 'atm-field';
   sync_flag{file_idx} = 0;
   
 elseif strcmpi(gps_source_to_use,'ATM')
