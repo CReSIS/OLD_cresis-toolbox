@@ -1,11 +1,3 @@
-% script read_ins_applanix.m
-%
-% Reads in Applanix POSPAC software display plot export file.
-% Specifically designed for X,Y,Z,Total acceleration being selected in tabular form
-% and then exported.
-%
-% Author: John Paden
-
 fn = 'C:\tmp\Forward Processed Trajectory, Reference Frame.txt';
 save_dir = 'C:\tmp';
 
