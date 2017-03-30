@@ -114,7 +114,25 @@ if strcmpi(gps_source_to_use,'NMEA')
 %     gps_source{file_idx} = 'nmea-field';
 %     sync_flag{file_idx} = 0;
  
-    year = 2017; month = 3; day = 24;
+%     year = 2017; month = 3; day = 24;
+%     file_idx = file_idx + 1;
+%     in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%     file_type{file_idx} = 'NMEA';
+%     params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%     gps_source{file_idx} = 'nmea-field';
+%     sync_flag{file_idx} = 0;pl
+%      
+%     year = 2017; month = 3; day = 28;
+%     file_idx = file_idx + 1;
+%     in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%     file_type{file_idx} = 'NMEA';
+%     params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%     gps_source{file_idx} = 'nmea-field';
+%     sync_flag{file_idx} = 0;
+     
+    year = 2017; month = 3; day = 29;
     file_idx = file_idx + 1;
     in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -200,23 +218,32 @@ elseif strcmpi(gps_source_to_use,'ATM-field')
     
 elseif strcmpi(gps_source_to_use,'ATM-field_traj')
   
-  year = 2017; month = 3; day = 9;
+%   year = 2017; month = 3; day = 9;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yymmdd'),'itrf','noamb');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'traj';
+%   params{file_idx} = struct('year',year,'time_reference','gps','input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
+%   gps_source{file_idx} = 'atm-field_traj';
+%   sync_flag{file_idx} = 0;
+%   
+%   year = 2017; month = 3; day = 10;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yymmdd'),'itrf','noamb');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'traj';
+%   params{file_idx} = struct('year',year,'time_reference','gps','input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
+%   gps_source{file_idx} = 'atm-field_traj';
+%   sync_flag{file_idx} = 0;
+   
+  year = 2017; month = 3; day = 27;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yymmdd'),'itrf','noamb');
+  in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yyyymmdd'),'','.gps.thin');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'traj';
-  params{file_idx} = struct('year',year,'time_reference','gps','input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
+  params{file_idx} = struct('year',year,'time_reference','gps','input_format','%f%f%f%f%f%f%f%f');
   gps_source{file_idx} = 'atm-field_traj';
-  sync_flag{file_idx} = 0;
-  
-  year = 2017; month = 3; day = 10;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yymmdd'),'itrf','noamb');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'traj';
-  params{file_idx} = struct('year',year,'time_reference','gps','input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
-  gps_source{file_idx} = 'atm-field_traj';
-  sync_flag{file_idx} = 0;
+  sync_flag{file_idx} = 0; 
   
 elseif strcmpi(gps_source_to_use,'ATM')
   % Just some simple code to automate creation of the code in this section:
@@ -256,3 +283,15 @@ end
 % Read and translate files according to user settings
 % ======================================================================
 make_gps;
+
+% Debug code that sets up special processing
+hack_idx = cell2mat(strfind(out_fns,'gps_20170329.mat'));
+if ~isempty(hack_idx)
+  out_fn = fullfile(gps_path,out_fns{hack_idx});
+  
+  warning('Making monotonic gps time: %s', out_fn);
+  
+  gps = load(out_fn);
+  [gps,error_flag] = make_gps_monotonic(gps);
+  save(out_fn,'-append','-struct','gps');
+end

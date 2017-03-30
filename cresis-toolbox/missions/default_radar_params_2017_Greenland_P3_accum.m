@@ -164,7 +164,7 @@ default.radar.wfs(1).chan_equal_dB = [0 0 0 0];
 default.radar.wfs(1).chan_equal_deg = [-105.5	-0.0	55.2	128.8];
 
  % survey mode
-default.get_heights.qlook.img_comb = [1e-05 -inf 2e-06];
+default.get_heights.qlook.img_comb = [1e-06 -inf 2e-06];
 default.get_heights.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
