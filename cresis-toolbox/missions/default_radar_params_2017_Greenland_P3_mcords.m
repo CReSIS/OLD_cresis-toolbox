@@ -187,6 +187,18 @@ default.xml_regexp = 'survey_.*high_altitude.xml';
 default.name = 'High Altitude Mode';
 defaults{end+1} = default;
 
+% deconvolution mode
+default.get_heights.qlook.img_comb = [];
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.csarp.imgs = default.get_heights.imgs;
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'survey_.*DECONVOLUTION.xml';
+default.name = 'Deconvolution Mode';
+defaults{end+1} = default;
+
 %% Other settings
 
 default.get_heights.qlook.img_comb = [];
