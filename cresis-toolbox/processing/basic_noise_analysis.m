@@ -144,14 +144,17 @@ end
 fprintf('All powers are compensated to mimic no presums.\n');
 fprintf('Noise power (dBm) at each ADC rx input and relative to 50 ohm (dB):\n')
 noise_power_dBm = zeros(1,size(data,3));
+default_noise_50ohm = zeros(1,size(data,3));
 for wf_adc = 1:size(data,3)
   wf = abs(param.img(wf_adc,1));
+  adc = abs(param.img(wf_adc,2));
   noise_power_dBm(wf_adc) = lp(mean(mean(abs(data(noise_rbins,:,wf_adc)).^2/50, 1), 2) ...
     * hdr.wfs(wf).presums * param.presums, 1) + 30;
+  default_noise_50ohm(wf_adc) = default.noise_50ohm(default.radar.rx_paths(adc));
 end
 fprintf('wf-adc\t'); fprintf('%2.0f-%2.0f\t', param.img.'); fprintf('\n');
 fprintf('Noise \t'); fprintf('%+5.1f\t', noise_power_dBm); fprintf('\n');
-fprintf('Rel   \t'); fprintf('%+5.1f\t', noise_power_dBm - default.noise_50ohm); fprintf('\n');
+fprintf('Rel   \t'); fprintf('%+5.1f\t', noise_power_dBm - default_noise_50ohm); fprintf('\n');
 
 %% Quantization analysis
 % =====================================================================
