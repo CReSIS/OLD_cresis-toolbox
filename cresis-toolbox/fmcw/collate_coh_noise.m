@@ -144,7 +144,7 @@ for param_idx = 1:length(params)
       end
       noise.regime(rline) = cur_regime;
     end
-  else
+  elseif isfield(noise,'nyquist_zone')
     %% Segment data based on waveform or nyquist zone
     noise.regime = noise.nyquist_zone;
     mixed_nz_blocks = mod(log2(noise.nyquist_zone),1)~=0;
