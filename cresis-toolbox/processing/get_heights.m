@@ -442,6 +442,17 @@ if ~param.get_heights.combine_only
   
 end
 
+%% Check img_comb
+if length(param.get_heights.imgs) == 1 || isempty(param.get_heights.qlook.img_comb)
+  num_imgs = 1;
+else
+  num_imgs = length(param.get_heights.imgs);
+  if length(param.get_heights.qlook.img_comb) ~= 3*(num_imgs-1)
+    warning('param.get_heights.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
+    keyboard
+  end
+end
+
 % =====================================================================
 %% Loop through all the frames: combine and surface track
 [output_dir,radar_type] = ct_output_dir(param.radar_name);
@@ -688,16 +699,6 @@ for frm_idx = 1:length(param.cmd.frms);
   % Reset the "Data" variable in case it was modified during surface
   % tracking
   Data = Data_Surface;
-  
-  if length(param.get_heights.imgs) == 1 || isempty(param.get_heights.qlook.img_comb)
-    num_imgs = 1;
-  else
-    num_imgs = length(param.get_heights.imgs);
-    if length(param.get_heights.qlook.img_comb) ~= 3*(num_imgs-1)
-      warning('param.get_heights.qlook.img_comb not the right length. There should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
-      keyboard
-    end
-  end
   
   %% Combine images into a single image (also trim time<0 values)
   % Load each image and then combine with previous image
