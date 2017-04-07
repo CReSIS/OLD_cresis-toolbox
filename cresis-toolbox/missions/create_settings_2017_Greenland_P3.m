@@ -172,6 +172,34 @@ param.f1 = f1_list(freq_idx);
 [param.wfs(:).tx_mask] = deal(final_tx_mask);
 write_cresis_xml(param);
 
+%% Survey Mode Thin Ice
+% <2500 m thick ice, 1250 +/- 750 ft AGL
+freq_idx = 1;
+param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
+param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 12.18e-6;
+param.max_duty_cycle = 0.12;
+param.create_IQ = false;
+param.tg.altitude_guard = 750*12*2.54/100;
+param.tg.staged_recording = true;
+param.tg.Haltitude = 1250*12*2.54/100;
+param.tg.Hice_thick = 2500;
+param.fn = fullfile(base_dir,sprintf('survey_mode_3us_2wf_%.0fmthick_thin_ice.xml',param.tg.Hice_thick));
+param.prf = 12000;
+param.presums = [5 29];
+param.wfs(1).atten = 33;
+param.wfs(2).atten = 0;
+DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
+param.tx_weights = DDS_amp;
+param.tukey = 0.2;
+param.wfs(1).Tpd = 1e-6;
+param.wfs(2).Tpd = 3e-6;
+param.phase = final_DDS_phase{cal_settings(freq_idx)};
+param.delay = final_DDS_time{cal_settings(freq_idx)};
+param.f0 = f0_list(freq_idx);
+param.f1 = f1_list(freq_idx);
+[param.wfs(:).tx_mask] = deal(final_tx_mask);
+write_cresis_xml(param);
+
 %% Transmit waveform test mode
 % These files are for measuring the transmit waveforms with a DSO
 % Attenuators should be connected to each power amp output
