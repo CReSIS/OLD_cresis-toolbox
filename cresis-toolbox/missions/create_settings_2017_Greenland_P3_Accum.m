@@ -125,10 +125,10 @@ arena.TTL_states{2} = [
 
 %% Survey Mode + loopback, noise, and deconv modes
 % <1500 m thick ice, 1200 +/- 700 ft AGL
-ice_thickness = [1500];
+ice_thickness = [1200];
 for freq_idx = [1]
   param = struct('radar_name','mcords5','num_chan',4,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',0,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',2400e6,'TTL_clock',2400e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
-  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 9.5e-6;
+  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 2.3e-6;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -136,9 +136,9 @@ for freq_idx = [1]
   param.tg.altitude_guard = 500*12*2.54/100;
   param.tg.Haltitude = 1500*12*2.54/100;
   param.tg.Hice_thick = ice_thickness(freq_idx);
-  param.prf = 25000;
-  param.presums = [16 128-16];
-  param.wfs(1).atten = 24;
+  param.prf = 40000;
+  param.presums = [16 96-16];
+  param.wfs(1).atten = 23;
   param.wfs(2).atten = 0;
   DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
   param.tx_weights = DDS_amp;
@@ -202,7 +202,7 @@ end
 ice_thickness = [0];
 for freq_idx = [1]
   param = struct('radar_name','mcords5','num_chan',4,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',0,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',2400e6,'TTL_clock',2400e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
-  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 9.5e-6;
+  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 2.3e-6;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -232,7 +232,7 @@ end
 ice_thickness = [600];
 for freq_idx = [1]
   param = struct('radar_name','mcords5','num_chan',4,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',0,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',2400e6,'TTL_clock',2400e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
-  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 4e-6;
+  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 2.3e-6;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -242,7 +242,7 @@ for freq_idx = [1]
   param.tg.Hice_thick = ice_thickness(freq_idx);
   param.prf = 50000;
   param.presums = [128];
-  param.wfs(1).atten = 24;
+  param.wfs(1).atten = 23;
   DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
   param.tx_weights = DDS_amp;
   param.tukey = 0.05;
@@ -262,7 +262,7 @@ end
 ice_thickness = [1200];
 for freq_idx = [1]
   param = struct('radar_name','mcords5','num_chan',4,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',0,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',2400e6,'TTL_clock',2400e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
-  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 4e-6;
+  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 2.3e-6;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -292,7 +292,7 @@ end
 ice_thickness = [100];
 for freq_idx = [1]
   param = struct('radar_name','mcords5','num_chan',4,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',0,'xml_version',2.0,'fs',1600e6,'fs_sync',90.0e6,'fs_dds',2400e6,'TTL_clock',2400e6/16,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
-  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 9.5e-6;
+  param.max_tx = [4095 4095 4095 4095 4095 4095 4095 4095]; param.max_data_rate = 68; param.flight_hours = 7; param.sys_delay = 2.15e-6; param.use_mcords4_names = true; param.arena = arena; param.PRI_guard = 2.3e-6;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
   param.create_IQ = false;
@@ -301,7 +301,7 @@ for freq_idx = [1]
   param.tg.Haltitude = 1700*12*2.54/100;
   param.tg.Hice_thick = ice_thickness(freq_idx);
   param.prf = 50000;
-  param.presums = [64];
+  param.presums = [128];
   param.wfs(1).atten = 30;
   DDS_amp = final_DDS_amp{cal_settings(freq_idx)};
   param.tx_weights = DDS_amp;

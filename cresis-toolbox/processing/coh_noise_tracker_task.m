@@ -846,6 +846,7 @@ for img = 1:length(param.load.imgs)
   if param.analysis.coh_ave.en
     coh_ave_samples = [];
     coh_ave = [];
+    nyquist_zone = [];
     gps_time = [];
     lat = [];
     lon = [];
@@ -861,7 +862,7 @@ for img = 1:length(param.load.imgs)
     % Doppler domain data is not used if nyquist zone changes... set to
     % NaN?
     
-    if ~all(img_nyquist_zone == img_nyquist_zone(1))
+    if strcmpi(radar_type,'fmcw') && ~all(img_nyquist_zone == img_nyquist_zone(1))
       doppler = NaN*zeros(1,size(g_data,2),size(g_data,3));
     else
       % Implement memory efficient fft operations
@@ -883,88 +884,83 @@ for img = 1:length(param.load.imgs)
       for rline=1:size(g_data,2)
         g_data(:,rline,:) = fft(g_data(:,rline,:));
       end
-      nyquist_zones = unique(img_nyquist_zone);
-    else
-      nyquist_zones = 1;
     end
     
-    % Do separate averaging for each nyquist zone
-    for nyquist_zone_current = nyquist_zones(:).'
-      % Do averaging
-      rline0_list = 1:param.analysis.coh_ave.block_ave:size(g_data,2);
-      for rline0_idx = 1:length(rline0_list)
-        rline0 = rline0_list(rline0_idx);
-        rlines = rline0 + (0:min(param.analysis.coh_ave.block_ave-1,size(g_data,2)-rline0));
-        
-        if strcmpi(radar_type,'fmcw')
-          % Separate out rlines for the specific nyquist zone
-          rlines_nz = rlines(img_nyquist_zone(rlines) == nyquist_zone_current);
-        else
-          rlines_nz = rlines;
-        end
-        
-        if strcmp(radar_name,'kuband') ...
-            && (strcmp(param.season_name,'2009_Antarctica_DC8') ...
-            || strcmp(param.season_name,'2011_Greenland_P3'))
-          %% HACK for time variant noise floor
-          % Create frequency axis
-          dt = wfs.time(2) - wfs.time(1);
-          Nt = length(wfs.time);
-          T = Nt*dt;
-          df = 1/T;
-          freq = fftshift(wfs.fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).');
-          if 0
-            % 2009_Antarctica_DC8
-            data_mean_removed = g_data(:,rlines_nz) - repmat(mean(g_data,2),[1 numel(rlines_nz)]);
-            noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 1001);
-            plot(noise_power);
-            save(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
-          elseif 0
-            % 2011_Greenland_P3, 20110316_01
-            data_mean_removed = g_data(:,rlines_nz) - repmat(mean(g_data,2),[1 numel(rlines_nz)]);
-            noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 501);
-            noise_power(3200:4400) = NaN;
-            plot(noise_power);
-            save(sprintf('~/%s_kuband_noise_power.mat', param.season_name), 'noise_power','freq');
-          end
-          coh = load(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
-          coh.noise_power = interp1(coh.freq(~isnan(coh.noise_power)), ...
-            coh.noise_power(~isnan(coh.noise_power)),freq,'nearest','extrap');
-          good_samples = lp(g_data(:,rlines_nz) - repmat(mean(g_data,2),[1 numel(rlines_nz)])) ...
-            < repmat(coh.noise_power+param.analysis.coh_ave.power_threshold,[1 numel(rlines_nz)]);
-        else
-          good_samples = lp(bsxfun(@minus,g_data(:,rlines_nz),mean(g_data,2))) < param.analysis.coh_ave.power_threshold;
-          
-        end
-        
+    % Do averaging
+    rline0_list = 1:param.analysis.coh_ave.block_ave:size(g_data,2);
+    for rline0_idx = 1:length(rline0_list)
+      rline0 = rline0_list(rline0_idx);
+      rlines = rline0 + (0:min(param.analysis.coh_ave.block_ave-1,size(g_data,2)-rline0));
+      
+      if strcmp(radar_name,'kuband') ...
+          && (strcmp(param.season_name,'2009_Antarctica_DC8') ...
+          || strcmp(param.season_name,'2011_Greenland_P3'))
+        %% HACK for time variant noise floor
+        % Create frequency axis
+        dt = wfs.time(2) - wfs.time(1);
+        Nt = length(wfs.time);
+        T = Nt*dt;
+        df = 1/T;
+        freq = fftshift(wfs.fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).');
         if 0
-          % Debug Plots for determining coh_ave.power_threshold
-          figure(1); clf;
-          imagesc(lp(g_data(:,rlines_nz)));
-          a1 = gca;
-          figure(2); clf;
-          imagesc(good_samples);
-          colormap(gray);
-          title('Good sample mask (black is thresholded)');
-          a2 = gca;
-          figure(3); clf;
-          imagesc( lp(bsxfun(@minus,g_data,mean(g_data,2))) );
-          a3 = gca;
-          linkaxes([a1 a2 a3], 'xy');
+          % 2009_Antarctica_DC8
+          data_mean_removed = g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)]);
+          noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 1001);
+          plot(noise_power);
+          save(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
+        elseif 0
+          % 2011_Greenland_P3, 20110316_01
+          data_mean_removed = g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)]);
+          noise_power = sgolayfilt(double(lp(mean(abs(data_mean_removed).^2,2))), 2, 501);
+          noise_power(3200:4400) = NaN;
+          plot(noise_power);
+          save(sprintf('~/%s_kuband_noise_power.mat', param.season_name), 'noise_power','freq');
         end
+        coh = load(sprintf('~/%s_kuband_noise_power.mat', param.season_name),'-v7.3', 'noise_power','freq');
+        coh.noise_power = interp1(coh.freq(~isnan(coh.noise_power)), ...
+          coh.noise_power(~isnan(coh.noise_power)),freq,'nearest','extrap');
+        good_samples = lp(g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)])) ...
+          < repmat(coh.noise_power+param.analysis.coh_ave.power_threshold,[1 numel(rlines)]);
+      else
+        good_samples = lp(bsxfun(@minus,g_data(:,rlines),mean(g_data,2))) < param.analysis.coh_ave.power_threshold;
         
-        coh_ave_samples{1+nyquist_zone_current}(:,rline0_idx,:) = sum(good_samples,2);
-        coh_ave{1+nyquist_zone_current}(:,rline0_idx,:) = sum(g_data(:,rlines_nz,:) .* good_samples,2) ./ coh_ave_samples{1+nyquist_zone_current}(:,rline0_idx,:);
-        if nyquist_zone_current == nyquist_zones(1)
-          gps_time(rline0_idx) = mean(records.gps_time(rlines));
-          lat(rline0_idx) = mean(records.lat(rlines));
-          lon(rline0_idx) = mean(records.lon(rlines));
-          elev(rline0_idx) = mean(records.elev(rlines));
-          roll(rline0_idx) = mean(records.roll(rlines));
-          pitch(rline0_idx) = mean(records.pitch(rlines));
-          heading(rline0_idx) = mean(records.heading(rlines));
-        end
       end
+      
+      if 0
+        % Debug Plots for determining coh_ave.power_threshold
+        figure(1); clf;
+        imagesc(lp(g_data(:,rlines)));
+        a1 = gca;
+        figure(2); clf;
+        imagesc(good_samples);
+        colormap(gray);
+        title('Good sample mask (black is thresholded)');
+        a2 = gca;
+        figure(3); clf;
+        imagesc( lp(bsxfun(@minus,g_data,mean(g_data,2))) );
+        a3 = gca;
+        linkaxes([a1 a2 a3], 'xy');
+      end
+
+      
+      coh_ave_samples(:,rline0_idx,:) = sum(good_samples,2);
+      coh_ave(:,rline0_idx,:) = sum(g_data(:,rlines,:) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx,:);
+      
+      if strcmpi(radar_type,'fmcw')
+        nz_mask = char('0'*ones(1,32));
+        nz_mask(32-unique(img_nyquist_zone(rlines))) = '1';
+        nyquist_zone(1,rline0_idx) = bin2dec(nz_mask);
+      else
+        nyquist_zone(1,rline0_idx) = 1;
+      end
+      
+      gps_time(rline0_idx) = mean(records.gps_time(rlines));
+      lat(rline0_idx) = mean(records.lat(rlines));
+      lon(rline0_idx) = mean(records.lon(rlines));
+      elev(rline0_idx) = mean(records.elev(rlines));
+      roll(rline0_idx) = mean(records.roll(rlines));
+      pitch(rline0_idx) = mean(records.pitch(rlines));
+      heading(rline0_idx) = mean(records.heading(rlines));
     end
   end
   
@@ -980,7 +976,7 @@ for img = 1:length(param.load.imgs)
   param_analysis = param;
   fprintf('  Saving outputs %s\n', out_fn);
   save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'time', 'gps_time', 'lat', ...
-    'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+    'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone');
   
 end
 

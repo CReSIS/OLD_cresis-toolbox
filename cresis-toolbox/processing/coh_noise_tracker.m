@@ -63,6 +63,10 @@ if ~isfield(param.analysis,'coh_ave') || isempty(param.analysis.coh_ave.en)
   param.analysis.coh_ave.en = 0;
 end
 
+if ~isfield(param.analysis.coh_ave,'nz_list') || isempty(param.analysis.coh_ave.nz_list)
+  param.analysis.coh_ave.nz_list = [1];
+end
+
 if ~isfield(param.analysis,'surf') || isempty(param.analysis.surf.en)
   param.analysis.surf.en = 0;
 end
@@ -225,22 +229,24 @@ for break_idx = 1:length(breaks)
     % already exists, then we do not run the task
     file_exists = true;
     
-    if param.analysis.coh_ave.en
-      out_fn = fullfile(ct_filename_out(param, ...
-        param.analysis.out_path, 'CSARP_noise'), ...
-        sprintf('coh_noise_%d_%d.mat',cur_recs(1),cur_recs(end)));
-    elseif param.analysis.specular.en
-      out_fn = fullfile(ct_filename_out(param, ...
-        param.analysis.out_path, 'CSARP_noise'), ...
-        sprintf('specular_%d_%d.mat',cur_recs(1),cur_recs(end)));
-    elseif param.analysis.surf.en
-      out_fn = fullfile(ct_filename_out(param, ...
-        param.analysis.out_path, 'CSARP_noise'), ...
-        sprintf('surf_img_01_%d_%d.mat',cur_recs(1),cur_recs(end)));
-    end
-    
-    if ~exist(out_fn,'file')
-      file_exists = false;
+    for img = 1:length(param.analysis.imgs)
+      if param.analysis.coh_ave.en
+        out_fn = fullfile(ct_filename_out(param, ...
+          param.analysis.out_path, 'CSARP_noise'), ...
+          sprintf('coh_noise_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
+      elseif param.analysis.specular.en
+        out_fn = fullfile(ct_filename_out(param, ...
+          param.analysis.out_path, 'CSARP_noise'), ...
+          sprintf('specular_%d_%d.mat',cur_recs(1),cur_recs(end)));
+      elseif param.analysis.surf.en
+        out_fn = fullfile(ct_filename_out(param, ...
+          param.analysis.out_path, 'CSARP_noise'), ...
+          sprintf('surf_img_01_%d_%d.mat',cur_recs(1),cur_recs(end)));
+      end
+      
+      if ~exist(out_fn,'file')
+        file_exists = false;
+      end
     end
 
     if file_exists
@@ -610,6 +616,7 @@ if param.analysis.coh_ave.en
     roll = [];
     pitch = [];
     heading = [];
+    nyquist_zone = [];
     coh_ave = [];
     coh_ave_samples = [];
     doppler_concat = [];
@@ -647,6 +654,7 @@ if param.analysis.coh_ave.en
       roll = cat(2,roll,noise.roll);
       pitch = cat(2,pitch,noise.pitch);
       heading = cat(2,heading,noise.heading);
+      nyquist_zone = cat(2,nyquist_zone,noise.nyquist_zone);
       coh_ave = cat(2,coh_ave,noise.coh_ave);
       coh_ave_samples = cat(2,coh_ave_samples,noise.coh_ave_samples);
       noise.doppler = reshape(noise.doppler,[numel(noise.doppler) 1]);
@@ -666,6 +674,7 @@ if param.analysis.coh_ave.en
     noise.roll = roll;
     noise.pitch = pitch;
     noise.heading = heading;
+    noise.nyquist_zone = nyquist_zone;
     noise.coh_ave = coh_ave;
     noise.coh_ave_samples = coh_ave_samples;
     noise.doppler = doppler_concat;

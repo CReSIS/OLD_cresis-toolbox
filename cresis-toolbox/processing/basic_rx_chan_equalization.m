@@ -89,6 +89,7 @@ for file_idx = 1:num_files
   
   if all(surf_bin==surf_bin(1)) || isempty(param.noise_rbins)
     warning('DEBUG: Check surface tracker. May need to adjust param.rbins and param.rlines to ensure maximum signal in the window is the nadir surface return. Ensure param.noise_bins and param.noise_rlines enclose a region with appropriate values for the background noise. Run dbcont after setting these parameters correctly.');
+    figure(1000); clf;
     imagesc(ml_data);
     hold on
     plot(surf_bin);

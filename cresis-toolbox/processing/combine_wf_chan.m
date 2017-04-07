@@ -160,7 +160,7 @@ for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
   if ct_proc_frame(frames.proc_mode(frm),param.csarp.frm_types)
-    fprintf('combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    fprintf('%s combine %s_%03i (%i of %i) %s\n', param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;

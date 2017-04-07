@@ -241,6 +241,8 @@ for board_idx = 1:length(boards)
       end
       if exist(tmp_hdr_fn,'file')
         hdr_tmp = load(tmp_hdr_fn);
+      elseif any(strcmp(radar_name,{'snow5','snow8'}))
+        error('Temporary header file (%s) not found. Have you run run_create_segment_raw_file_list_v2.m?', tmp_hdr_fn);
       else
         [success,hdr_tmp] = fh(arg{1},arg{2});
       end
