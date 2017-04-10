@@ -34,8 +34,8 @@ default.tx_DDS_mask = [1 1 1 1 1 1 1 0];
 default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
 default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
-default.basic_surf_track_min_time = -inf; % Normally -inf for lab test, 2e-6 for flight test
-default.basic_surf_track_Tpd_factor = -inf; % Normally -inf for lab test, 1.1 for flight test
+default.basic_surf_track_min_time = 2e-6; % Normally -inf for lab test, 2e-6 for flight test
+default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
 default.adc_folder_name = 'board%b';
 
 if 1
