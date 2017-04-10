@@ -34,8 +34,8 @@ default.tx_DDS_mask = [1 1 1 1 1 1 1 0];
 default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
 default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
-default.basic_surf_track_min_time = -inf; % Normally -inf for lab test, 2e-6 for flight test
-default.basic_surf_track_Tpd_factor = -inf; % Normally -inf for lab test, 1.1 for flight test
+default.basic_surf_track_min_time = 2e-6; % Normally -inf for lab test, 2e-6 for flight test
+default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
 default.adc_folder_name = 'board%b';
 
 if 1
@@ -154,14 +154,14 @@ default.radar.rx_paths = [1,1:15];
 default.radar.noise_figure = 2;
 default.radar.rx_gain = 51.5;
 default.radar.adc_SNR_dB = 70;
-default.radar.Tadc_adjust = 1.60E-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.Tadc_adjust = -1.4455e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 defaults = {};
 
 %% Settings
-default.radar.wfs(1).chan_equal_Tsys = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+default.radar.wfs(1).chan_equal_Tsys = [16.51	11.76	8.57	5.91	1.60	-0.13	0.00	-2.44	-4.83	-3.16	-2.76	-10.60	-6.05	-1.68	5.19]/1e9;
+default.radar.wfs(1).chan_equal_dB = [1.1	1.0	1.0	3.0	3.9	1.0	0.0	-2.6	-0.7	0.9	1.3	3.7	2.0	0.2	3.3];
+default.radar.wfs(1).chan_equal_deg = [97.1	25.2	-60.1	-126.1	-38.7	6.4	-0.0	-131.0	0.6	-25.1	-47.5	-86.3	-33.5	165.4	-106.6];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
@@ -185,6 +185,18 @@ default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
 default.xml_regexp = 'survey_.*high_altitude.xml';
 default.name = 'High Altitude Mode';
+defaults{end+1} = default;
+
+% deconvolution mode
+default.get_heights.qlook.img_comb = [];
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.csarp.imgs = default.get_heights.imgs;
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'survey_.*DECONVOLUTION.xml';
+default.name = 'Deconvolution Mode';
 defaults{end+1} = default;
 
 %% Other settings

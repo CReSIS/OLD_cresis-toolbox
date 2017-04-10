@@ -229,22 +229,24 @@ for break_idx = 1:length(breaks)
     % already exists, then we do not run the task
     file_exists = true;
     
-    if param.analysis.coh_ave.en
-      out_fn = fullfile(ct_filename_out(param, ...
-        param.analysis.out_path, 'CSARP_noise'), ...
-        sprintf('coh_noise_%d_%d.mat',cur_recs(1),cur_recs(end)));
-    elseif param.analysis.specular.en
-      out_fn = fullfile(ct_filename_out(param, ...
-        param.analysis.out_path, 'CSARP_noise'), ...
-        sprintf('specular_%d_%d.mat',cur_recs(1),cur_recs(end)));
-    elseif param.analysis.surf.en
-      out_fn = fullfile(ct_filename_out(param, ...
-        param.analysis.out_path, 'CSARP_noise'), ...
-        sprintf('surf_img_01_%d_%d.mat',cur_recs(1),cur_recs(end)));
-    end
-    
-    if ~exist(out_fn,'file')
-      file_exists = false;
+    for img = 1:length(param.analysis.imgs)
+      if param.analysis.coh_ave.en
+        out_fn = fullfile(ct_filename_out(param, ...
+          param.analysis.out_path, 'CSARP_noise'), ...
+          sprintf('coh_noise_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
+      elseif param.analysis.specular.en
+        out_fn = fullfile(ct_filename_out(param, ...
+          param.analysis.out_path, 'CSARP_noise'), ...
+          sprintf('specular_%d_%d.mat',cur_recs(1),cur_recs(end)));
+      elseif param.analysis.surf.en
+        out_fn = fullfile(ct_filename_out(param, ...
+          param.analysis.out_path, 'CSARP_noise'), ...
+          sprintf('surf_img_01_%d_%d.mat',cur_recs(1),cur_recs(end)));
+      end
+      
+      if ~exist(out_fn,'file')
+        file_exists = false;
+      end
     end
 
     if file_exists
