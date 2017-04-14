@@ -1,4 +1,22 @@
 function [output_dir,radar_type,radar_name] = ct_output_dir(radar_name)
+% [output_dir,radar_type,radar_name] = ct_output_dir(radar_name)
+%
+% Returns output directory, general radar type and name for each radar
+% when given the specific radar_name. Used with the parameter spreadsheets
+% param.radar_name field.
+%
+% radar_name: Specific radar string (e.g. accum2, snow8, mcords5, mcords5-accum)
+%
+% output_dir: Standard output directory (e.g. accum, snow, rds, accum)
+% radar_type: 'fmcw', 'stepped', or 'pulsed'
+% radar_name: Digital format radar name (e.g. (accum, snow, mcords5,
+%   mcords5)
+%
+% Example:
+%   param.radar_name = 'mcords5-accum';
+%   [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name)
+%
+% Author: John Paden
 
 if ~isempty(find(radar_name=='-'))
   [radar_name,output_dir_override] = strtok(radar_name,'-');
