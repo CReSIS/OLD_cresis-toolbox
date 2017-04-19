@@ -784,7 +784,7 @@ for img = 1:length(param.load.imgs)
         % Enforce the same DDC filter in this group. Skip groups that have DDC filter swiches.
         STFT_rlines = -param.analysis.specular.ave/4 : param.analysis.specular.ave/4-1;
         if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
-          if any(diff(img_Mt(center_rline + STFT_rlines)))
+          if any(diff(img_Mt{1}(center_rline + STFT_rlines)))
             fprintf('    Including different DDC filters, skipped.\n');
             continue
           end

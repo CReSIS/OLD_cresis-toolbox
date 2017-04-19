@@ -925,44 +925,8 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(radar_name,'r
   end
 end
 
-if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'rds'))
-  % Center elements left to right
-  LArx(:,1) = [-587.7	-88.6	-72.8];
-  LArx(:,2) = [-587.7	-58.7	-71];
-  LArx(:,3) = [-587.7	-30.4	-69.2];
-  LArx(:,4) = [-587.7	0	-68.1];
-  LArx(:,5) = [-587.7	30.4	-69.2];
-  LArx(:,6) = [-587.7	58.7	-71];
-  LArx(:,7) = [-587.7	88.6	-72.8];
-  % Left outer elements, left to right
-  LArx(:,8) = [-586.3	-549.2	-128.7];
-  LArx(:,9) = [-586.3	-520.6	-125.2];
-  LArx(:,10) = [-586.3	-491.2	-121.6];
-  LArx(:,11) = [-586.3	-462.2	-118.1];
-  % Right outer elements, left to right
-  LArx(:,12) = [-586.3	462.2	-118.1];
-  LArx(:,13) = [-586.3	491.2	-121.6];
-  LArx(:,14) = [-586.3	520.6	-125.2];
-  LArx(:,15) = [-586.3	549.2	-128.7];
-  
-  LArx(1,:)   = LArx(1,:)*0.0254 - gps.x;
-  LArx(2,:)   = LArx(2,:)*0.0254 - gps.y;
-  LArx(3,:)   = LArx(3,:)*0.0254 - gps.z;
-  
-  LAtx = LArx(:,1:7);
-  
-  if ~exist('rxchannel','var') || isempty(rxchannel)
-    rxchannel = 1:15;
-  end
-  
-  % Amplitude (not power) weightings for transmit side.
-  if rxchannel == 0
-    rxchannel = 4;
-    tx_weights = ones(1,size(LAtx,2));
-  end
-end
-
-if (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'rds')) ...
+if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'rds')) ...
+    || (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2013_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2012_Greenland_P3') && strcmpi(radar_name,'rds')) ...
