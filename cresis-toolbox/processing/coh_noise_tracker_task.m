@@ -784,7 +784,7 @@ for img = 1:length(param.load.imgs)
         % Enforce the same DDC filter in this group. Skip groups that have DDC filter swiches.
         STFT_rlines = -param.analysis.specular.ave/4 : param.analysis.specular.ave/4-1;
         if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
-          if any(diff(img_Mt{1}(center_rline + STFT_rlines)))
+          if any(diff(img_Mt(center_rline + STFT_rlines)))
             fprintf('    Including different DDC filters, skipped.\n');
             continue
           end
@@ -962,21 +962,21 @@ for img = 1:length(param.load.imgs)
       pitch(rline0_idx) = mean(records.pitch(rlines));
       heading(rline0_idx) = mean(records.heading(rlines));
     end
+    
+    time = wfs(wf).time;
+    
+    out_fn = fullfile(ct_filename_out(param, ...
+      param.analysis.out_path, 'CSARP_noise'), ...
+      sprintf('coh_noise_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
+    [out_fn_dir] = fileparts(out_fn);
+    if ~exist(out_fn_dir,'dir')
+      mkdir(out_fn_dir);
+    end
+    param_analysis = param;
+    fprintf('  Saving outputs %s\n', out_fn);
+    save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'time', 'gps_time', 'lat', ...
+      'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone');
   end
-  
-  time = wfs(wf).time;
-  
-  out_fn = fullfile(ct_filename_out(param, ...
-    param.analysis.out_path, 'CSARP_noise'), ...
-    sprintf('coh_noise_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
-  [out_fn_dir] = fileparts(out_fn);
-  if ~exist(out_fn_dir,'dir')
-    mkdir(out_fn_dir);
-  end
-  param_analysis = param;
-  fprintf('  Saving outputs %s\n', out_fn);
-  save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'time', 'gps_time', 'lat', ...
-    'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone');
   
 end
 

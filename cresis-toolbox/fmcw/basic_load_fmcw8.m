@@ -138,7 +138,7 @@ if nargout < 2 && ~param.records.en
   hdr.start_idx = fread(fid, 1, 'uint16');
   hdr.Tadc = hdr.start_idx / param.clk*2 - 10.8e-6;
   hdr.stop_idx = fread(fid, 1, 'uint16');
-  hdr.waveform_ID = fread(fid,1,'uint64');
+  hdr.waveform_ID = char(fread(fid,8,'uint8')).';
   
   fclose(fid);
   return;
@@ -212,7 +212,7 @@ while ftell(fid) <= eof_pos-HEADER_SIZE
   hdr.bit_shifts(rline) = -fread(fid, 1, 'int8');
   hdr.start_idx(rline) = fread(fid, 1, 'uint16');
   hdr.stop_idx(rline) = fread(fid, 1, 'uint16');
-  hdr.waveform_ID = fread(fid,1,'uint64');
+  hdr.waveform_ID = char(fread(fid,8,'uint8')).';
   
   % Raw data
   hdr.num_sam(rline) = 2*(hdr.stop_idx(rline) - hdr.start_idx(rline));

@@ -234,19 +234,27 @@ for break_idx = 1:length(breaks)
         out_fn = fullfile(ct_filename_out(param, ...
           param.analysis.out_path, 'CSARP_noise'), ...
           sprintf('coh_noise_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
+        if ~exist(out_fn,'file')
+          file_exists = false;
+        end
       elseif param.analysis.specular.en
-        out_fn = fullfile(ct_filename_out(param, ...
-          param.analysis.out_path, 'CSARP_noise'), ...
-          sprintf('specular_%d_%d.mat',cur_recs(1),cur_recs(end)));
+        for wf_adc = size(param.analysis.imgs{1},1)
+          out_fn = fullfile(ct_filename_out(param, ...
+            param.analysis.out_path, 'CSARP_noise'), ...
+            sprintf('specular_img_%02d_wfadc_%d_%d_%d.mat',img,wf_adc,cur_recs(1),cur_recs(end)));
+          if ~exist(out_fn,'file')
+            file_exists = false;
+          end
+        end
       elseif param.analysis.surf.en
         out_fn = fullfile(ct_filename_out(param, ...
           param.analysis.out_path, 'CSARP_noise'), ...
           sprintf('surf_img_01_%d_%d.mat',cur_recs(1),cur_recs(end)));
+        if ~exist(out_fn,'file')
+          file_exists = false;
+        end
       end
       
-      if ~exist(out_fn,'file')
-        file_exists = false;
-      end
     end
 
     if file_exists

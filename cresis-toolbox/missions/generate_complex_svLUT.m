@@ -46,6 +46,12 @@ Nt = size(data.surf_vals,1);
 Nx = size(data.surf_vals,2);
 Nc = size(data.surf_vals,3);
 
+wf = data.param_analysis.analysis.imgs{1}(param.analysis.surf.wf_adc_list(1),1);
+zero_surf_bin = round(1-source/data.wfs(wf).dt);
+if exist('zero_surf_bin_override','var') && ~isempty(zero_surf_bin_override)
+  zero_surf_bin = zero_surf_bin_override;
+end
+
 % Determine which range lines will be used
 rlines = param.analysis.surf.rlines;
 all_rlines = 1:Nx;
@@ -56,8 +62,8 @@ else
 end
 
 % Undo any transmit windowing that was applied
-for chan = param.analysis.surf.wf_adc_list
-  data.surf_vals(:,:,chan) = data.surf_vals(:,:,chan) ./ Hchan(chan);
+for wf_adc_idx = 1:Nc
+  data.surf_vals(:,:,wf_adc_idx) = data.surf_vals(:,:,wf_adc_idx) ./ Hchan(wf_adc_idx);
 end
 
 if 0
@@ -125,18 +131,22 @@ dtime = permute(dtime,[3 2 1]);
 
 if 0
   fig_offset = 10;
-  rbin = 51; % Surface bin (look at imagesc(lp(data.surf_vals(:,:,1))))
+  chan_mapping = [1:Nc];
+  rbin = zero_surf_bin; % Surface bin (look at imagesc(lp(data.surf_vals(:,:,1))))
   figure(1); clf;
-  imagesc(squeeze(angle(exp(1i*2*pi*bsxfun(@times,data.wfs(wf).fc,dtime)))).');
+  imagesc(squeeze(angle(exp(-1i*2*pi*bsxfun(@times,data.wfs(wf).fc,dtime)))).');
+  h_axes = gca;
   title('Correction');
   
   figure(fig_offset+2); clf;
-  myref = data.surf_vals(rbin,:,5);
-  dd=(fir_dec(squeeze(bsxfun(@times,data.surf_vals(rbin,:,:),conj(myref))).',hanning(5).',1) );
+  myref = data.surf_vals(rbin,:,chan_mapping(ref_ant));
+  dd=(fir_dec(squeeze(bsxfun(@times,data.surf_vals(rbin,:,chan_mapping),conj(myref))).',hanning(5).',1) );
   dd = bsxfun(@times,dd, exp(-j*angle(mean(dd,2))));
   var(angle(dd).')
   imagesc(angle(dd));
+  h_axes(end+1) = gca;
   title('Angle Estimate');
+  linkaxes(h_axes,'xy');
   
   figure(4); clf;
   plot(data.roll(1,:).'*180/pi);
@@ -274,7 +284,7 @@ if 0
   imagesc(roll_binned,[],angle(sv_table));
   colorbar;
   figure(30); clf;
-  imagesc(lp(data.surf_vals(:,:,8) ))
+  imagesc(lp(data.surf_vals(:,:,1) ))
   return;
 end
 sv_table = sqrt(power_table) .* exp(1i*angle(sv_table));
