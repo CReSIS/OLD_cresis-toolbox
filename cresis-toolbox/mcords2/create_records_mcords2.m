@@ -86,37 +86,38 @@ for board_idx = 1:length(boards)
     [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,(board+1)*4);
   end
   
-  if strcmp(param.season_name,'2012_Greenland_P3') ...
-    && strcmp(param.day_seg,'20120416_02')
-    % ERROR CAUSED BY DIGITAL SYSTEM: DDS loaded with 2 waveforms,
-    % but NI system set to 3
-    hdr_master = basic_load_mcords2(board_fns{board_idx}{file_idxs(1)}, ...
-      struct('clk',param.radar.fs,'first_byte',2^26));
-    init_EPRI_estimate = 40/12137.55; % 12000 Hz PRF with 7+33=40 presums
-    rec_size = median(diff(hdr_master.sync_offsets));
-    hdr_master.wfs(1).presums = 6;
-    hdr_master.wfs(2).presums = 32;
-    hdr_master.wfs(3).presums = -1;
-    param.radar.prf = 12137.55;
-  else
-    [init_EPRI_estimate,hdr_master] = create_records_epri_estimate(param,file_idxs,board_fns{board_idx},adc_folder_name);
-    if isfield(param.records,'use_ideal_epri') && ~isempty(param.records.use_ideal_epri) && param.records.use_ideal_epri
-      % Count the presums
-      num_presum = 0;
-      for wf = 1:length(hdr_master.wfs)
-        if param.records.presum_bug_fixed
-          num_presum = num_presum + hdr_master.wfs(wf).presums;
-        else
-          num_presum = num_presum + hdr_master.wfs(wf).presums + 1;
+  if board_idx == 1
+    if strcmp(param.season_name,'2012_Greenland_P3') ...
+        && strcmp(param.day_seg,'20120416_02')
+      % ERROR CAUSED BY DIGITAL SYSTEM: DDS loaded with 2 waveforms,
+      % but NI system set to 3
+      hdr_master = basic_load_mcords2(board_fns{board_idx}{file_idxs(1)}, ...
+        struct('clk',param.radar.fs,'first_byte',2^26));
+      init_EPRI_estimate = 40/12137.55; % 12000 Hz PRF with 7+33=40 presums
+      rec_size = median(diff(hdr_master.sync_offsets));
+      hdr_master.wfs(1).presums = 6;
+      hdr_master.wfs(2).presums = 32;
+      hdr_master.wfs(3).presums = -1;
+      param.radar.prf = 12137.55;
+    else
+      [init_EPRI_estimate,hdr_master] = create_records_epri_estimate(param,file_idxs,board_fns{board_idx},adc_folder_name);
+      if isfield(param.records,'use_ideal_epri') && ~isempty(param.records.use_ideal_epri) && param.records.use_ideal_epri
+        % Count the presums
+        num_presum = 0;
+        for wf = 1:length(hdr_master.wfs)
+          if param.records.presum_bug_fixed
+            num_presum = num_presum + hdr_master.wfs(wf).presums;
+          else
+            num_presum = num_presum + hdr_master.wfs(wf).presums + 1;
+          end
         end
+        init_EPRI_estimate = num_presum/param.radar.prf;
       end
-      init_EPRI_estimate = num_presum/param.radar.prf;
     end
-  end
-
   
-  expected_sync_offset = hdr_master.sync_offsets(1);
-  epri_est = hdr_master.epri(1);
+    expected_sync_offset = hdr_master.sync_offsets(1);
+    epri_est = hdr_master.epri(1);
+  end
   
   board_hdrs{board_idx}.epri = [];
   board_hdrs{board_idx}.seconds = [];
