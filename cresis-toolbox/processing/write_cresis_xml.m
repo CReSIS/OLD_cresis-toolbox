@@ -149,6 +149,13 @@ else
   PRI_guard = 1e-6;
 end
 
+if isfield(param,'sample_size') && ~isempty(param.sample_size)
+  % Manually set the PRI time guard
+  sample_size = param.sample_size;
+else
+  sample_size = 2;
+end
+
 settings_enc(1).('Version') = reshape(char(param.version),[1 length(param.version)]);
 if isfield(param,'DDC_freq')
   %% DDC Settings
@@ -531,8 +538,6 @@ for wf = 1:length(settings_enc.(config_var_enc).Waveforms)
   presums = presums + double(settings_enc.(config_var_enc).Waveforms(wf).Presums);
 end
 EPRF = double(settings_enc.(config_var_enc).PRF) / presums;
-
-sample_size = 2;
 
 data_rate = EPRF * num_sam * samples_per_record_bin * sample_size * param.num_chan / 2^DDC_select;
 

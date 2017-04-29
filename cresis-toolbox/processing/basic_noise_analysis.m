@@ -133,7 +133,8 @@ end
 % =====================================================================
 
 % Calculate noise power as Vrms
-if strcmp(param.radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+if strcmp(radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
   % Add 3 dB for IQ combination
   fprintf('Expected ADC noise floor @ ADC %.1f dBm\n', lp((default.radar.adc_full_scale/2/sqrt(2))^2/50,1)+30 - default.radar.adc_SNR_dB + 3 );
   fprintf('Expected Rx noise floor @ ADC %.1f dBm\n', lp(BoltzmannConst*290*hdr.BW_noise*default.radar.noise_figure*10^(hdr.rx_gain/10),1) + 3 +30);
@@ -209,7 +210,7 @@ if param.psd_en
     
     fir_data = fir_dec(data(noise_rbins(1):noise_rbins(end),:,wf_adc),param.presums);
     
-    if strcmp(param.radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
+    if strcmp(radar_name,'mcords5') && isfield(hdr,'DDC') && hdr.DDC(1) >= 2
       dt = pc_param.time(2) - pc_param.time(1);
       Nt = size(fir_data,1);
       df = 1/(Nt*dt);
