@@ -40,6 +40,10 @@ if ~exist('online_mode','var')
   online_mode = false;
 end
 
+if ~exist('no_stop_on_count','var')
+  no_stop_on_count = false;
+end
+
 if ~isfield('param','gps_time_offset') || isempty(param.gps_time_offset)
   param.gps_time_offset = 1;
 end
@@ -702,7 +706,9 @@ if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','ku
     anchor_idx = 1;
     if any(strcmpi(radar_name,{'mcords5'}))
       counter_clk = param.clk;
-      keyboard
+      if ~no_stop_on_count
+        keyboard
+      end
     elseif any(strcmpi(radar_name,{'snow3','snow5','kuband3','accum'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       % set anchor_idx to a record that you believe has the correct time
@@ -710,19 +716,25 @@ if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','ku
       counter = epri;
     elseif any(strcmpi(radar_name,{'mcords3'}))
       counter_clk = param.clk;
-      keyboard
+      if ~no_stop_on_count
+        keyboard
+      end
     elseif any(strcmpi(radar_name,{'kuband3','snow3'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       % set anchor_idx to a record that you believe has the correct time
       counter_clk = 3906.250/8;
       counter = epri;
-      keyboard
+      if ~no_stop_on_count
+        keyboard
+      end
     elseif any(strcmpi(radar_name,{'snow8'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       % set anchor_idx to a record that you believe has the correct time
       counter_clk = 4000/8;
       counter = epri;
-      keyboard
+      if ~no_stop_on_count
+        keyboard
+      end
     else
       keyboard
     end
@@ -744,61 +756,73 @@ if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','ku
     % Find the valid counter differences based on frequency of occurance
     % Assumption is that invalid differences happen infrequently
     % (counter_min_freq)
-     modes = unique(diff_counter);
-     correctable_records = zeros(size(diff_counter));
-     for idx=1:length(modes)
-       if sum(diff_counter == modes(idx)) > counter_min_freq
-         % Allow for a little slop in the differences (counter_bin)
-         correctable_records = correctable_records ...
-           | abs(diff_counter - modes(idx))/modes(idx) < counter_bin; 
-       end
-     end
-     
-     % Detect bad records when differences of counter and utc do not align
-     % with the expected relationship (counter is running at counter_clk
-     % frequency). Allow for some slop (counter_bad_threshold).
-     bad_records = abs(diff_counter ./ diff_utc - counter_clk) > counter_clk*counter_bad_threshold;
-     % Only correct records that had valid counter differences
-     bad_records = bad_records & correctable_records;
-     % Correct diff UTC using counter
-     diff_utc(bad_records) = diff_counter(bad_records) / counter_clk;
-     
-     % Recreate UTC by integrating diff UTC around the anchor_idx
-     % Integrate from the anchor_idx to 1
-     first = cumsum(-diff_utc(anchor_idx-1:-1:1));
-     first = first(end:-1:1);
-     % Integrate from the anchor_idx to the end
-     last = cumsum(diff_utc(anchor_idx:end));
+    modes = unique(diff_counter);
+    correctable_records = zeros(size(diff_counter));
+    for idx=1:length(modes)
+      if sum(diff_counter == modes(idx)) > counter_min_freq
+        % Allow for a little slop in the differences (counter_bin)
+        correctable_records = correctable_records ...
+          | abs(diff_counter - modes(idx))/modes(idx) < counter_bin;
+      end
+    end
     
-     % Create the corrected utc_time_sod
-     utc_time_sod_new = utc_time_sod(anchor_idx) + [first 0 last];
-     
-     figure(1); clf;
-     plot(utc_time_sod);
-     hold on;
-     plot(utc_time_sod_new,'r');
-     hold off;
-     xlabel('Record');
-     ylabel('UTC Time SOD (sec)');
-     legend('Original','Corrected','location','best');
-     figure(2); clf;
-     plot(utc_time_sod - utc_time_sod_new);
-     xlabel('Record');
-     ylabel('Time correction (sec)');
-     title('Ideally abs() is less than a few milliseconds');
-     figure(3); clf;
-     subplot(2,1,1);
-     plot(diff(epri),'.');
-     subplot(2,1,2);
-     plot(diff(epri),'.');
-     ylim([-3 5]);
-     xlabel('Record');
-     ylabel('Diff EPRI');
-     title('Should be 1 except at segment boundaries');
-     warning('Please check the corrected utc_time_sod (red) in figure 1 and the correction in figure 2. If correct, run "dbcont" to continue.');
-     keyboard
-     
-     utc_time_sod = utc_time_sod_new;
+    % Detect bad records when differences of counter and utc do not align
+    % with the expected relationship (counter is running at counter_clk
+    % frequency). Allow for some slop (counter_bad_threshold).
+    bad_records = abs(diff_counter ./ diff_utc - counter_clk) > counter_clk*counter_bad_threshold;
+    % Only correct records that had valid counter differences
+    bad_records = bad_records & correctable_records;
+    % Correct diff UTC using counter
+    diff_utc(bad_records) = diff_counter(bad_records) / counter_clk;
+    
+    % Recreate UTC by integrating diff UTC around the anchor_idx
+    % Integrate from the anchor_idx to 1
+    first = cumsum(-diff_utc(anchor_idx-1:-1:1));
+    first = first(end:-1:1);
+    % Integrate from the anchor_idx to the end
+    last = cumsum(diff_utc(anchor_idx:end));
+    
+    % Create the corrected utc_time_sod
+    utc_time_sod_new = utc_time_sod(anchor_idx) + [first 0 last];
+    
+    figure(1); clf;
+    plot(utc_time_sod);
+    hold on;
+    plot(utc_time_sod_new,'r');
+    hold off;
+    xlabel('Record');
+    ylabel('UTC Time SOD (sec)');
+    legend('Original','Corrected','location','best');
+    figure(2); clf;
+    plot(utc_time_sod - utc_time_sod_new);
+    xlabel('Record');
+    ylabel('Time correction (sec)');
+    title('Ideally abs() is less than a few milliseconds');
+    figure(3); clf;
+    subplot(2,1,1);
+    plot(diff(epri),'.');
+    subplot(2,1,2);
+    plot(diff(epri),'.');
+    ylim([-3 5]);
+    xlabel('Record');
+    ylabel('Diff EPRI');
+    title('Should be 1 except at segment boundaries');
+    warning('Please check the corrected utc_time_sod (red) in figure 1 and the correction in figure 2. If correct, run "dbcont" to continue.');
+    if no_stop_on_count
+      fn_fig = ct_filename_ct_tmp(param,'','headers', ['create_segments_utc_time_sod.fig']);
+      fprintf('Saving %s\n', fn_fig);
+      saveas(1,fn_fig);
+      fn_fig = ct_filename_ct_tmp(param,'','headers', ['create_segments_utc_time_sod_error.fig']);
+      fprintf('Saving %s\n', fn_fig);
+      saveas(2,fn_fig);
+      fn_fig = ct_filename_ct_tmp(param,'','headers', ['create_segments_epri.fig']);
+      fprintf('Saving %s\n', fn_fig);
+      saveas(3,fn_fig);
+    else
+      keyboard
+    end
+    
+    utc_time_sod = utc_time_sod_new;
   end
 
   % Check for day wraps in the UTC time seconds of day

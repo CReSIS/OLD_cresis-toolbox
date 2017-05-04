@@ -16,7 +16,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   
   new_param = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150911_02');
 
-  fn = ct_filename_tmp(new_param,new_param.records.records_fn,'records','workspace');
+  fn = ct_filename_ct_tmp(new_param,new_param.records.records_fn,'records','workspace');
   fn = [fn '.mat'];
   fprintf('Loading workspace %s (%s)\n', fn, datestr(now));
   if exist(fn,'file')

@@ -60,20 +60,22 @@ old_param_records = records.param_records;
 recs(1) = param.load_data.recs(1);
 recs(2) = param.load_data.recs(2);
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 % Create waveform parameters
-if strcmpi(param.radar_name,'mcrds')
+if strcmpi(radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(records.settings, param, ...
     1:max(old_param_records.file.adcs), param.load_data);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,rec_data_size] = load_mcords_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.load_data);
   load_param.load.rec_data_size = rec_data_size;
-elseif strcmpi(param.radar_name,'icards')%try to add icards radar here--------------QISHI
+elseif strcmpi(radar_name,'icards')%try to add icards radar here--------------QISHI
   [wfs,rec_data_size] = load_icards_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.load_data);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
   [path name] = fileparts(records_fn);
   cdf_fn = fullfile(path, sprintf('%s.nc', name));
   try
@@ -146,7 +148,7 @@ for break_idx = 1:length(breaks)
   
   load_param.load.recs = cur_recs(1):cur_recs(end);
   
-  if any(strcmpi(param.radar_name,{'icards','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  if any(strcmpi(radar_name,{'icards','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
     % adc_headers: the actual adc headers that were loaded
     if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
       old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -188,7 +190,7 @@ for break_idx = 1:length(breaks)
 
       % Modify filename according to channel
       for file_idx = 1:length(load_param.load.filenames{idx})
-        if any(strcmpi(param.radar_name,{'mcords5'}))
+        if any(strcmpi(radar_name,{'mcords5'}))
           load_param.load.filenames{idx}{file_idx}(9:10) = sprintf('%02d',board);
         end
       end
@@ -203,7 +205,7 @@ for break_idx = 1:length(breaks)
       end
     end
     load_param.load.file_version = param.records.file_version;
-  elseif strcmpi(param.radar_name,'mcrds')
+  elseif strcmpi(radar_name,'mcrds')
     load_param.load.file_rec_offset = records.file_rec_offset;
     load_param.load.filenames = records.filenames;
     base_dir = ct_filename_data(ct_filename_param,param.get_heights.file.base_dir);
@@ -211,7 +213,7 @@ for break_idx = 1:length(breaks)
     load_param.load.filepath = fullfile(base_dir, adc_folder_name);
     load_param.load.wfs = records.wfs;
     load_param.load.wfs_file = records.wfs_file;
-  elseif strcmpi(param.radar_name,'acords')
+  elseif strcmpi(radar_name,'acords')
     load_param.load.file_rec_offset = records.relative_rec_num;
     load_param.load.filenames = records.relative_filename;
     base_dir = ct_filename_data(param,param.vectors.file.base_dir);
@@ -222,7 +224,7 @@ for break_idx = 1:length(breaks)
     load_param.load.offset = records.offset;
     load_param.load.wfs_records = records.settings.wfs_records;
 
-%   elseif strcmpi(param.radar_name,'icards')%try to add a situation of icards----------QISHI
+%   elseif strcmpi(radar_name,'icards')%try to add a situation of icards----------QISHI
 %       load_param.load.file_rec_offset = records.relative_rec_num;%file_rec_offset---->relative_rec_num
 %       load_param.load.filenames = records.relative_filename;     %filenames------>relative_filename
 %       % %     base_dir = ct_filename_data(ct_filename_param,param.vectors.file.base_dir);%get_heights---->vectors
@@ -232,7 +234,7 @@ for break_idx = 1:length(breaks)
 %       load_param.load.wfs = records.settings.wfs;          %records.wfs---->records.settings.wfs
 %       load_param.load.wfs_file = records.settings.wfs_file;%records.wfs_file---->records.settings.wfs_file(wfs_file is always assumed to be 1 for icards)
 
-  elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+  elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
     load_param.load.offset = records.offset;
     load_param.load.file_rec_offset = records.relative_rec_num;
     load_param.load.filenames = records.relative_filename;
@@ -244,11 +246,11 @@ for break_idx = 1:length(breaks)
     load_param.load.season_name = param.season_name;
     load_param.load.tmp_path = param.tmp_path;
     load_param.load.file_version = param.records.file_version;
-    %   if any(strcmpi(param.radar_name,{'snow','kuband'}))
+    %   if any(strcmpi(radar_name,{'snow','kuband'}))
     %     load_param.load.header_size = 4*40;
-    %   elseif any(strcmpi(param.radar_name,{'snow2','kuband2'}))
+    %   elseif any(strcmpi(radar_name,{'snow2','kuband2'}))
     %     load_param.load.header_size = 32;
-    %   elseif any(strcmpi(param.radar_name,{'snow3','kuband3'}))
+    %   elseif any(strcmpi(radar_name,{'snow3','kuband3'}))
     %     if param.records.file_version == 4
     %       load_param.load.header_size = 32;
     %     else
@@ -268,19 +270,19 @@ for break_idx = 1:length(breaks)
   % =====================================================================
   
   % Load data into g_data
-  if strcmpi(param.radar_name,'mcords')
+  if strcmpi(radar_name,'mcords')
     load_mcords_data(load_param);
-  elseif any(strcmpi(param.radar_name,{'hfrds','mcords2','mcords3','mcords4','mcords5'}))
+  elseif any(strcmpi(radar_name,{'hfrds','mcords2','mcords3','mcords4','mcords5'}))
     load_mcords2_data(load_param);
-  elseif strcmpi(param.radar_name,'mcrds')
+  elseif strcmpi(radar_name,'mcrds')
     load_mcrds_data(load_param);
-  elseif strcmpi(param.radar_name,'acords')
+  elseif strcmpi(radar_name,'acords')
     load_acords_data(load_param);
-  elseif any(strcmpi(param.radar_name,{'icards'}))
+  elseif any(strcmpi(radar_name,{'icards'}))
     load_icards_data(load_param);%try to add a loader of icards----------QISHI
-  elseif strcmpi(param.radar_name,'accum2')
+  elseif strcmpi(radar_name,'accum2')
     load_accum2_data(load_param);
-  elseif any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','snow3'}))
+  elseif any(strcmpi(radar_name,{'kuband','snow','kuband2','snow2','kuband3','snow3'}))
     wfs.time = load_fmcw_data(load_param);
   end
   
