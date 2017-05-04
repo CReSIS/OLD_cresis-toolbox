@@ -139,7 +139,7 @@ param.tg.altitude_guard = 7500*12*2.54/100;
 param.wfs(1).atten = 20;
 param.wfs(2).atten = 20;
 param.wfs(3).atten = 20;
-param.tg.Haltitude = 17500*12*2.54/100;
+param.tg.Haltitude = 12500*12*2.54/100;
 param.tg.Hice_thick = 0;
 param.fn = fullfile(base_dir,'survey_mode_10us_3wf_3500mthick_DECONVOLUTION.xml');
 write_cresis_xml(param);
@@ -255,7 +255,7 @@ write_cresis_xml(param);
 % write_cresis_xml(param);
 
 %% Equalization High Altitude (Using Ocean)
-% 10000-45000 ft
+% 5000-20000 ft
 % For lower altitude, increase attenuation
 % Use these settings over ocean or sea ice for fast-time equalization,
 % transmit equalization, and receiver equalization.
@@ -269,7 +269,7 @@ for Tpd = [10e-6]
   param.create_IQ = false;
   param.tg.altitude_guard = 7500*12*2.54/100;
   param.tg.staged_recording = false;
-  param.tg.Haltitude = 17500*12*2.54/100;
+  param.tg.Haltitude = 12500*12*2.54/100;
   param.tg.Hice_thick = 0;
   param.fn = fullfile(base_dir,sprintf('equalization_%.0fus.xml', Tpd*1e6));
   param.prf = 8500;
