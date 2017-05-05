@@ -1,6 +1,15 @@
+% script read_ins_applanix
+%
+% Very basic script for loading and plotting the display plot exported 
+% results of acceleration from POSPac.
+%
+% Author: John Paden
+
+% fn: Exported file from Applanix POSPac software
 fn = 'C:\tmp\Forward Processed Trajectory, Reference Frame.txt';
 save_dir = 'C:\tmp';
 
+%% Read in Acceleration file
 fid = fopen(fn);
 
 A = textscan(fid, '%f %f %f %f %f','HeaderLines',1);
@@ -14,6 +23,65 @@ x = A{2};
 y = A{3};
 z = A{4};
 total = A{5};
+dt = time(2)-time(1);
+Nt = length(time);
+df = 1/(Nt*dt);
+freq = df*(0:Nt-1);
+
+if 0
+  [B_filt,A_filt] = butter(2,0.13);
+  [B_filt_lat,A_filt_lat] = butter(2,0.09);
+  freqz(B_filt,A_filt);
+  z_filt = filter(B_filt,A_filt,z);
+  x_filt = filter(B_filt_lat,A_filt_lat,x);
+  y_filt = filter(B_filt_lat,A_filt_lat,y);
+  
+  figure(1); clf;
+  clf
+  plot(freq, lp(fft(z)))
+  hold on
+  plot(freq, lp(fft(z_filt)))
+  xlabel('Frequency (Hz)');
+  ylabel('Relative acceleration (dB)');
+  legend('z','z isolated');
+  
+  figure(4); clf;
+  clf
+  plot(freq, lp(fft(x)))
+  hold on
+  plot(freq, lp(fft(y)))
+  xlabel('Frequency (Hz)');
+  ylabel('Relative acceleration (dB)');
+  legend('x','y');
+  
+  figure(5); clf;
+  total_filt = sqrt(x_filt.^2 + y_filt.^2 + z_filt.^2);
+  clf
+  plot(time, total)
+  hold on
+  plot(time, total_filt)
+  xlabel('Time (sec)');
+  ylabel('Acceleration (g)');
+  legend('total','total isolated');
+  
+  figure(2); clf;
+  plot(time,z);
+  hold on
+  plot(time,z_filt);
+  xlabel('Time (sec)');
+  ylabel('Acceleration (g)');
+  legend('z','z isolated');
+  
+  figure(3); clf;
+  plot(time,x);
+  hold on;
+  plot(time,y);
+  xlabel('Time (sec)');
+  ylabel('Acceleration (g)');
+  legend('x','y');
+  
+  return
+end
 
 figure(1); clf;
 plot(time,A{5},'b')

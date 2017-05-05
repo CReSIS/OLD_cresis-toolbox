@@ -18,7 +18,7 @@ default.header_load_func = @basic_load_mcords3;
 default.header_load_params = struct('clk',1e9/9,'presum_bug_fixed',false);
 default.xml_version = 2.0;
 
-default.noise_50ohm = [-45.5	-44.3	-44.8	-44.9	-40.9	-37.2	-39.4	-36.2	-30.1	-25.1	-37.1	-43.6	-43.0	-44.1	-44.6];
+default.noise_50ohm = [-45.5	-44.3	-44.8	-44.9	-40.2	-40.8	-40.5	-41.4	-39.9	-40.2	-42.0	-43.6	-43.0	-44.1	-44.6];
 
 default.Pt = 1000 * [1 1 1 1 1 1 1];
 default.Gt = 7*4;
@@ -34,8 +34,8 @@ default.tx_DDS_mask = [1 1 1 1 1 1 1 0];
 default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
 default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
-default.basic_surf_track_min_time = -inf; % Normally -inf for lab test, 2e-6 for flight test
-default.basic_surf_track_Tpd_factor = -inf; % Normally -inf for lab test, 1.1 for flight test
+default.basic_surf_track_min_time = 2e-6; % Normally -inf for lab test, 2e-6 for flight test
+default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
 default.adc_folder_name = 'board%b';
 
 if 1
@@ -151,6 +151,7 @@ default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 14;
 default.radar.adc_full_scale = 2;
 default.radar.rx_paths = [1,1:15];
+default.radar.rx_paths = [1 8 9 10 11 1 2 3 4 5 6 7 12 13 14 15];
 default.radar.noise_figure = 2;
 default.radar.rx_gain = 51.5;
 default.radar.adc_SNR_dB = 70;
@@ -173,6 +174,18 @@ default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
 default.xml_regexp = 'survey_.*thick.xml';
 default.name = 'Survey Mode';
+defaults{end+1} = default;
+
+% survey mode
+default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06];
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).']};
+default.csarp.imgs = default.get_heights.imgs;
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'survey_.*thin_ice.xml';
+default.name = 'Thin Ice Mode';
 defaults{end+1} = default;
 
 % high altitude mode

@@ -25,7 +25,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   new_param = read_param_xls('/users/paden/scripts/branch/params-cr1/rds_param_2009_Antarctica_DC8.xls','20091028_02');
   %   new_param = read_param_xls('/users/paden/scripts/branch/params-cr1/rds_param_2011_Greenland_TO.xls','20110419_01');
   
-  fn = ct_filename_tmp(new_param,new_param.records.records_fn,'records','workspace');
+  fn = ct_filename_ct_tmp(new_param,new_param.records.records_fn,'records','workspace');
   fn = [fn '.mat'];
   fprintf('Loading workspace %s (%s)\n', fn, datestr(now));
   if exist(fn,'file')

@@ -80,12 +80,16 @@ for param_idx = 1:length(params)
         % Should be only one of these types of fields:
         if isfield(mdata,'param_get_heights')
           delta_offset_Tsys = [];
+          delta_offset_Tsys_mask = logical([]);
+          delta_offset_Tadc_adjust = [];
+          delta_offset_Tadc_adjust_mask = logical([]);
           for img = 1:length(mdata.param_get_heights.get_heights.imgs)
             for wf_adc_pair = 1:size(mdata.param_get_heights.get_heights.imgs{img},1)
               wf = mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,1);
               adc = mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,2);
               
               delta_offset_Tsys(img,wf_adc_pair) = param.radar.wfs(wf).Tsys(adc) - mdata.param_get_heights.radar.wfs(wf).Tsys(adc);
+              delta_offset_Tsys_mask(img,wf_adc_pair) = true;
               
               if ~isfield(param.radar.wfs(wf),'Tadc_adjust') || isempty(param.radar.wfs(wf).Tadc_adjust)
                 param.radar.wfs(wf).Tadc_adjust = 0;
@@ -95,20 +99,25 @@ for param_idx = 1:length(params)
                 mdata.param_get_heights.radar.wfs(wf).Tadc_adjust = 0;
               end
               delta_offset_Tadc_adjust(wf) = param.radar.wfs(wf).Tadc_adjust - mdata.param_get_heights.radar.wfs(wf).Tadc_adjust;
+              delta_offset_Tadc_adjust_mask(wf) = true;
             end
           end
           
-          if ~all(delta_offset_Tsys(:) == delta_offset_Tsys(1))
+          first_idx = find(delta_offset_Tsys_mask,1);
+          delta_offset_Tsys(~delta_offset_Tsys_mask) = NaN;
+          if ~all(delta_offset_Tsys(delta_offset_Tsys_mask) == delta_offset_Tsys(first_idx))
             delta_offset_Tsys
             error('Different Tsys delta offsets for each waveform-adc-pair, cannot proceed: reprocess data.');
           end
-          delta_offset_Tsys = delta_offset_Tsys(1);
+          delta_offset_Tsys = delta_offset_Tsys(first_idx);
           
-          if ~all(delta_offset_Tadc_adjust(:) == delta_offset_Tadc_adjust(1))
+          first_idx = find(delta_offset_Tadc_adjust_mask,1);
+          delta_offset_Tadc_adjust(~delta_offset_Tadc_adjust_mask) = NaN;
+          if ~all(delta_offset_Tadc_adjust(delta_offset_Tadc_adjust_mask) == delta_offset_Tadc_adjust(first_idx))
             delta_offset_Tadc_adjust
             error('Different Tadc_adjust delta offsets for each waveform, cannot proceed: reprocess data.');
           end
-          delta_offset_Tadc_adjust = delta_offset_Tadc_adjust(1);
+          delta_offset_Tadc_adjust = delta_offset_Tadc_adjust(first_idx);
           
           for img = 1:length(mdata.param_get_heights.get_heights.imgs)
             for wf_adc_pair = 1:size(mdata.param_get_heights.get_heights.imgs{img},1)
@@ -124,12 +133,16 @@ for param_idx = 1:length(params)
           
         elseif isfield(mdata,'param_csarp')
           delta_offset_Tsys = [];
+          delta_offset_Tsys_mask = logical([]);
+          delta_offset_Tadc_adjust = [];
+          delta_offset_Tadc_adjust_mask = logical([]);
           for img = 1:length(mdata.param_csarp.csarp.imgs)
             for wf_adc_pair = 1:size(mdata.param_csarp.csarp.imgs{img},1)
               wf = mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,1);
               adc = mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,2);
               
               delta_offset_Tsys(img,wf_adc_pair) = param.radar.wfs(wf).Tsys(adc) - mdata.param_csarp.radar.wfs(wf).Tsys(adc);
+              delta_offset_Tsys_mask(img,wf_adc_pair) = true;
               
               if ~isfield(param.radar.wfs(wf),'Tadc_adjust') || isempty(param.radar.wfs(wf).Tadc_adjust)
                 param.radar.wfs(wf).Tadc_adjust = 0;
@@ -139,20 +152,25 @@ for param_idx = 1:length(params)
                 mdata.param_csarp.radar.wfs(wf).Tadc_adjust = 0;
               end
               delta_offset_Tadc_adjust(wf) = param.radar.wfs(wf).Tadc_adjust - mdata.param_csarp.radar.wfs(wf).Tadc_adjust;
+              delta_offset_Tadc_adjust_mask(wf) = true;
             end
           end
           
-          if ~all(delta_offset_Tsys(:) == delta_offset_Tsys(1))
+          first_idx = find(delta_offset_Tsys_mask,1);
+          delta_offset_Tsys(~delta_offset_Tsys_mask) = NaN;
+          if ~all(delta_offset_Tsys(delta_offset_Tsys_mask) == delta_offset_Tsys(first_idx))
             delta_offset_Tsys
             error('Different Tsys delta offsets for each waveform-adc-pair, cannot proceed: reprocess data.');
           end
-          delta_offset_Tsys = delta_offset_Tsys(1);
+          delta_offset_Tsys = delta_offset_Tsys(first_idx);
           
-          if ~all(delta_offset_Tadc_adjust(:) == delta_offset_Tadc_adjust(1))
+          first_idx = find(delta_offset_Tadc_adjust_mask,1);
+          delta_offset_Tadc_adjust(~delta_offset_Tadc_adjust_mask) = NaN;
+          if ~all(delta_offset_Tadc_adjust(delta_offset_Tadc_adjust_mask) == delta_offset_Tadc_adjust(first_idx))
             delta_offset_Tadc_adjust
             error('Different Tadc_adjust delta offsets for each waveform, cannot proceed: reprocess data.');
           end
-          delta_offset_Tadc_adjust = delta_offset_Tadc_adjust(1);
+          delta_offset_Tadc_adjust = delta_offset_Tadc_adjust(first_idx);
           
           for img = 1:length(mdata.param_csarp.csarp.imgs)
             for wf_adc_pair = 1:size(mdata.param_csarp.csarp.imgs{img},1)

@@ -126,9 +126,11 @@ if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
         while ~feof(fid)
           line_input = fgets(fid);
           A = textscan(line_input,'%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s%f%f%f%f','delimiter',', ','emptyvalue',NaN);
-          if all(~cellfun(@isempty,A([1 4 5 6]))) && strcmp(A{1},'$GPGGA') && ~isnan(A{3}) && any(strcmpi(A{4},{'N','S'})) && ~isnan(A{5}) && any(strcmpi(A{6},{'W','E'}))
-            gps.lat(1,end+1) = ((A{4}=='N')*2-1) .* A{3};
-            gps.lon(1,end+1) = ((A{6}=='E')*2-1) .* A{5};
+          try
+            if all(~cellfun(@isempty,A([1 4 5 6]))) && strcmp(A{1},'$GPGGA') && ~isnan(A{3}) && any(strcmpi(A{4},{'N','S'})) && ~isnan(A{5}) && any(strcmpi(A{6},{'W','E'}))
+              gps.lat(1,end+1) = ((A{4}=='N')*2-1) .* A{3};
+              gps.lon(1,end+1) = ((A{6}=='E')*2-1) .* A{5};
+            end
           end
         end
         fclose(fid);

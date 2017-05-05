@@ -30,8 +30,7 @@ data.surf_vals(end-5:end,:,:) = bsxfun(@times,data.surf_vals(end-5:end,:,:), ...
   wrap_around_window);
 source = 0; eval(data.param_analysis.analysis.surf.layer_params.eval.cmd);
 wf = data.param_analysis.analysis.imgs{1}(param.analysis.surf.wf_adc_list(1),1);
-dt = data.wfs(wf).time(2)-data.wfs(wf).time(1);
-zero_surf_bin = round(1-source/dt);
+zero_surf_bin = round(1-source/data.wfs(wf).dt);
 if exist('zero_surf_bin_override','var') && ~isempty(zero_surf_bin_override)
   zero_surf_bin = zero_surf_bin_override;
 end
