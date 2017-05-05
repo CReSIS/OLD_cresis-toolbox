@@ -219,7 +219,7 @@ if ~isempty(obj.map_pref.profile)
   % convert season_group_ids to a string for concatenation
   for sidx = 1:size(season_group_ids,2)
     if sidx < size(season_group_ids,2) && size(season_group_ids,2) ~= 1
-      season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) '\,'];
+     season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) '%5C,'];
     else
       season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) ''];
     end
