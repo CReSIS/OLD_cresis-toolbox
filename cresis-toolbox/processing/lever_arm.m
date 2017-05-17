@@ -75,6 +75,24 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
+if (strcmpi(param.season_name,'2016_Greenland_TO') && strcmpi(gps_source,'ATM'))
+  % ===========================================================================
+  % All antenna positions measurements are relative to GPS antenna
+  % positions.
+  
+  % From Emily Arnold, Wed 5/17/2017 5:14 PM:
+  % Below are my best guesses with regards to the lever arm. All dimensions are in inches. The one dimension I am least confident in is the z-location, but it?s my best guess.
+  % 
+  %  	       GPS	 HF	   Lever-Arm
+  % FS (x) 357.8	468	  -110.2
+  % BL (y)	 9.84	  0      9.84
+  % WL (z)	42.1   -3.5	  45.6
+
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(gps_source,'ATM'))
   % ===========================================================================
   % All antenna positions measurements are relative to GPS antenna
@@ -805,6 +823,28 @@ end
 % =========================================================================
 %% Radar Depth Sounder
 % =========================================================================
+
+if (strcmpi(param.season_name,'2016_Greenland_TO') && strcmpi(radar_name,'rds'))
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,:) = [-110.2]*2.54/100;
+  LArx(2,:) = [9.84]*2.54/100;
+  LArx(3,:) = [45.6]*2.54/100;
+  
+  LAtx(1,:) = [-110.2]*2.54/100;
+  LAtx(2,:) = [9.84]*2.54/100;
+  LAtx(3,:) = [45.6]*2.54/100;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'rds'))
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   LArx(1,:) = [-535.575 -535.575]*2.54/100 - 1.355;
