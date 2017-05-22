@@ -272,14 +272,14 @@ for adc_idx = 1:length(param.load.adcs)
             if param.proc.ft_dec
               % Digital down conversion and decimation
               accum(adc).data{accum_idx} = accum(adc).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
-              accum(adc).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
+              accum(adc).data{accum_idx} = resample(double(accum(adc).data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
             end
             
           elseif param.proc.ft_dec
             accum(adc).data{accum_idx} = fft(accum(adc).data{accum_idx},wfs(wf).Nt_raw);
             accum(adc).data{accum_idx} = ifft(accum(adc).data{accum_idx}(wfs(wf).freq_inds));
             accum(adc).data{accum_idx} = accum(adc).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
-            accum(adc).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
+            accum(adc).data{accum_idx} = resample(double(accum(adc).data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
           end
           if ~param.load.wf_adc_comb.en
             % Regular wf-adc pair loading: no combining wf-adc pairs in fast-time
