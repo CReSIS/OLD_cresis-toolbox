@@ -109,6 +109,7 @@ for wf = 1:length(records_wfs.wfs(1).wfs)
   wfs(wf).Tpd     = records_wfs.wfs(1).wfs(wf).Tpd;
   wfs(wf).f0      = records_wfs.wfs(1).wfs(wf).f0;
   wfs(wf).f1      = records_wfs.wfs(1).wfs(wf).f1;
+  wfs(wf).ft_dec  = param.radar.wfs(wf).ft_dec;
   if isfield(param.radar.wfs(wf),'Tadc_adjust') && ~isempty(param.radar.wfs(wf).Tadc_adjust)
     Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
   else
