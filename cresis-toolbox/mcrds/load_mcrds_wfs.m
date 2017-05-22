@@ -142,10 +142,8 @@ for wf = 1:length(records_wfs.wfs(1).wfs)
 
   if isfield(param.radar.wfs(wf),'BW') && ~isempty(param.radar.wfs(wf).BW)
     BW_window = param.radar.wfs(wf).BW(1);
-    BW_decimation = param.radar.wfs(wf).BW(2);
   else
     BW_window = abs(wfs(wf).f1 - wfs(wf).f0);
-    BW_decimation = abs(wfs(wf).f1 - wfs(wf).f0);
   end
   
   % ===================================================================
@@ -218,38 +216,51 @@ for wf = 1:length(records_wfs.wfs(1).wfs)
   freq = round(fc/fs)*fs + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
   wfs(wf).time_raw = t0 + (0:dt:(Nt-1)*dt).';
   
+  %% Create Decimation Information
   if proc_param.ft_dec
-    wfs(wf).freq_inds = ifftshift(find(freq >= fc-BW_decimation/2 & freq <= fc+BW_decimation/2));
-    wfs(wf).dc_shift = freq(wfs(wf).freq_inds(1))-fc;
+    if wfs(wf).DDC_mode ~= 0
+      % DDC Enabled
+      freq = wfs(wf).DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+    end
     wfs(wf).fc = fc;
   else
-    wfs(wf).freq_inds = 1:length(freq);
-    wfs(wf).dc_shift = 0;
     wfs(wf).fc = fs*floor(max(f0,f1)/fs);
   end
+  
+  %% Create Windowing Information
   if ~proc_param.ft_wind_time && ~isempty(proc_param.ft_wind) ...
       && proc_param.pulse_comp
     ft_wind = zeros(size(freq));
-    freq_inds = ifftshift(find(freq >= fc-BW_window/2 & freq <= fc+BW_window/2));
-    ft_wind(freq_inds) = ifftshift(proc_param.ft_wind(length(freq_inds)));
-    double_window_flag = 0;
-    if double_window_flag 
-        ft_wind = ft_wind.*ft_wind;
+    
+    if wfs(wf).DDC_mode == 0
+      % DDC Disabled or no DDC
+      freq_inds = ifftshift(find(freq >= fc-BW_window/2 & freq <= fc+BW_window/2));
+    else
+      % DDC Enabled
+      freq_inds = find(freq >= min(f0,f1) & freq <= max(f0,f1));
     end
-    for adc_idx = 1:length(adcs)
-      wfs(wf).ref{adc_idx} = wfs(wf).ref{adc_idx} .* ft_wind;
+    [~,sorted_freq_inds] = sort(freq(freq_inds));
+    sorted_freq_inds = freq_inds(sorted_freq_inds);
+    ft_wind(sorted_freq_inds) = proc_param.ft_wind(length(freq_inds));
+    
+    for adc = adcs
+      if ~wfs(wf).ref_windowed(adc)
+        wfs(wf).ref{adc} = wfs(wf).ref{adc} .* ft_wind;
+      end
     end
   end
   
+  %% Normalize reference function so that it is an estimator
+  %  -- Accounts for pulse duration differences
+  for adc = adcs
+    time_domain_ref = ifft(wfs(wf).ref{adc});
+    wfs(wf).ref{adc} = wfs(wf).ref{adc} ...
+      ./ dot(time_domain_ref,time_domain_ref);
+  end
+
   % ===================================================================
   % Create output data time/freq axes variables
-  
-  if proc_param.pulse_comp
-    Nt = wfs(wf).Nt_pc;
-  else
-    Nt = wfs(wf).Nt_raw;
-  end
-  Nt = length(wfs(wf).freq_inds);
+  Nt = ceil(wfs(wf).Nt_pc*proc_param.ft_dec_p/proc_param.ft_dec_q);
   wfs(wf).dt = 1/((Nt-1)*df);
   wfs(wf).df = df;
   wfs(wf).Nt = Nt;

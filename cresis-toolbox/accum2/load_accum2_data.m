@@ -369,21 +369,21 @@ for board_idx = 1:length(boards)
             accum(board+1).data{accum_idx} = fft([zeros(wfs(wf).pad_length,1); accum(board+1).data{accum_idx}]);
             % Zero pad end: (debug only)
             %accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx}, wfs(wf).Nt_pc);
-            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds) ...
-              .* wfs(wf).ref{adc}(wfs(wf).freq_inds));
-            if wfs(wf).dc_shift ~= 0
-              % Correct for small frequency offset caused by selecting bins from
-              % frequency domain as the method for down conversion
-              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
+            
+            % Apply matched filter and transform back to time domain
+            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx} .* wfs(wf).ref{adc});
+            
+            if param.proc.ft_dec
+              % Digital down conversion and decimation
+              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
+              accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.proc.ft_dec_p, param.proc.ft_dec_q);
             end
+
           elseif param.proc.ft_dec
             accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx},wfs(wf).Nt_raw);
             accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds));
-            if wfs(wf).dc_shift ~= 0
-              % Correct for small frequency offset caused by selecting bins from
-              % frequency domain as the method for down conversion
-              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
-            end
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
+            accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.proc.ft_dec_p, param.proc.ft_dec_q);
           end
           if param.proc.combine_rx
             g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(board+1).data{accum_idx} / param.proc.presums / size(param.load.imgs{img_idx},1);
