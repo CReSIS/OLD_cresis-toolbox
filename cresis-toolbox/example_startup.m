@@ -480,7 +480,7 @@ if ~(~ismcc && isdeployed)
   % .GIS_path = where GIS files are stored (e.g. Landsat-7 imagery)
   gRadar.gis_path = profile(cur_profile).gis_path;
   
-  clear profile cur_profile;
+  clear profile cur_profile fn_dir fn_idx fn_name fns pidx;
 
 else
   % fprintf('Compiling code: not running addpath in the compiled code\n');
