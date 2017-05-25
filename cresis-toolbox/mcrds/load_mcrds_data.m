@@ -82,6 +82,10 @@ function [param] = load_mcrds_data(param)
 %
 % See also get_heights.m, csarp.m
 
+if ~isfield(param.proc,'raw_data')
+  param.proc.raw_data = false;
+end
+
 HEADER_SIZE = 160;
 
 global g_data;
@@ -207,6 +211,16 @@ while rec < total_rec;
             end
           end
         end
+        % Apply channel compensation
+        if ~param.proc.raw_data
+          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+            .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
+              + param.adc_phase_corr_deg(rec,adc))/180*pi);
+          accum.data{accum_idx} = accum.data{accum_idx}/chan_equal;
+          adc_gain = param.load.wfs(find(param.load.recs(1) + rec -1 >= param.load.wfs_records,1)).wfs(wf).adc_gains;
+          accum.data{accum_idx} = accum.data{accum_idx}/adc_gain;
+        end
+        
         if param.proc.pulse_comp
           % ===========================================================
           % Do pulse compression
@@ -235,13 +249,6 @@ while rec < total_rec;
             accum.data{accum_idx} = resample(double(accum.data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
           end
           
-          % Apply channel compensation
-          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-            .* exp(j*(param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
-              + param.adc_phase_corr_deg(rec,adc))/180*pi);
-          accum.data{accum_idx} = accum.data{accum_idx}/chan_equal;
-          adc_gain = param.load.wfs(find(param.load.recs(1) + rec -1 >= param.load.wfs_records,1)).wfs(wf).adc_gains;
-          accum.data{accum_idx} = accum.data{accum_idx}/adc_gain;
         elseif param.proc.ft_dec
           accum.data{accum_idx} = fft(accum.data{accum_idx},wfs(wf).Nt_raw);
           accum.data{accum_idx} = ifft(accum.data{accum_idx}(wfs(wf).freq_inds));

@@ -66,6 +66,9 @@ function [param] = load_mcords_data(param)
 %
 % See also get_heights.m, csarp.m, load_mcords.m, load_mcords_wfs.m
 
+if ~isfield(param.proc,'raw_data')
+  param.proc.raw_data = false;
+end
 if ~isfield(param.load,'wf_adc_comb')
   param.load.wf_adc_comb.en = 0;
 end
@@ -199,10 +202,12 @@ for adc_idx = 1:length(param.load.adcs)
         % Convert little endian load into big endian values
         tmp = single(rec_data(1 + 2*(0:wfs(wf).Nt_raw-1) + HEADER_SIZE + wfs(wf).offset)) * 256 ...
           + single(rec_data(2 + 2*(0:wfs(wf).Nt_raw-1) + HEADER_SIZE + wfs(wf).offset));
-        % Convert to volts, remove DC-bias, and apply trim
-        mean_tmp = mean(tmp(1+param.proc.trim_vals(1):end-param.proc.trim_vals(2)));
-        tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
-        tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V;
+        if ~param.proc.raw_data
+          % Convert to volts, remove DC-bias, and apply trim
+          mean_tmp = mean(tmp(1+param.proc.trim_vals(1):end-param.proc.trim_vals(2)));
+          tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
+          tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V;
+        end
         % Accumulate (presum)
         if num_accum == 0
           accum(adc).data{accum_idx} = tmp;
@@ -248,10 +253,13 @@ for adc_idx = 1:length(param.load.adcs)
             end
           end
           % Apply channel compensation
-          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-            .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-          accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/chan_equal;
+          if ~param.proc.raw_data
+            chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+              .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+            accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/chan_equal;
             accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/wfs(wf).adc_gains(adc);
+          end
+          
           if param.proc.pulse_comp
             % ===========================================================
             % Do pulse compression
@@ -295,14 +303,10 @@ for adc_idx = 1:length(param.load.adcs)
               tmp2{wf_adc_idx} = zeros(param.load.wf_adc_comb.Nt_orig,1);
               tmp2{wf_adc_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) ...
                 = accum(adc).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
-              %               g_data{img_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx),out_idx,wf_adc_idx) ...
-              %                 = accum(board+1).data{accum_idx}(1:param.load.wf_adc_comb.rbins(1,out_idx)) / param.proc.presums;
             elseif accum(adc).img_comb_idx(accum_idx) == 2
               tmp2{wf_adc_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end) ...
                 = accum(adc).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
               g_data{img_idx}(:,out_idx,wf_adc_idx) = tmp2{wf_adc_idx}(param.load.wf_adc_comb.keep_bins);
-              %               g_data{img_idx}(param.load.wf_adc_comb.rbins(1,out_idx)+1:end,out_idx,wf_adc_idx) ...
-              %                 = accum(board+1).data{accum_idx}(param.load.wf_adc_comb.rbins(2,out_idx):end) / param.proc.presums;
             end
           end
         end

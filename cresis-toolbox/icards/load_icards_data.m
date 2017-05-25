@@ -1,5 +1,8 @@
 function [param] = load_icards_data(param,whole_param)
 
+if ~isfield(param.proc,'raw_data')
+  param.proc.raw_data = false;
+end
 if ~isfield(param.load,'wf_adc_comb')
   param.load.wf_adc_comb.en = 0;
 end
@@ -241,10 +244,13 @@ else %read incoherent data
           wf_adc_idx = accum(adc).wf_adc_idx(accum_idx);
 
           % Apply channel compensation
-          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-            .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-          accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/chan_equal;
-          accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/wfs(wf).adc_gains(adc);
+          if ~param.proc.raw_data
+            chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+              .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+            accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/chan_equal;
+            accum(adc).data{accum_idx} = accum(adc).data{accum_idx}/wfs(wf).adc_gains(adc);
+          end
+          
           if param.proc.pulse_comp
             % ===========================================================
             % Do pulse compression

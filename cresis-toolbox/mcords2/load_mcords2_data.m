@@ -388,7 +388,7 @@ for board_idx = 1:length(boards)
           % Apply channel compensation
           if ~param.proc.raw_data
             chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-              .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+              .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
             accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}/chan_equal;
             accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}/wfs(wf).adc_gains(adc);
           end

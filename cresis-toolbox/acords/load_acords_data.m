@@ -82,6 +82,10 @@ function [data, time] = load_acords_data(param)
 %
 % See also get_heights.m, csarp.m
 
+if ~isfield(param.proc,'raw_data')
+  param.proc.raw_data = false;
+end
+
 if param.load.file_version == 406
   HEADER_SIZE = 124;
   sample_size = 4;
@@ -210,10 +214,11 @@ while rec < total_rec;
       num_elem = length(find(wfs(wf).tx_weights) ~= 0);
       num_samp = param.load.rec_data_size/sample_size/num_elem;
       tmp = rec_data(wf+num_samp*(adc-1):2:num_samp*adc,rec-init_rec+1);
-      tmp(1) = 0;
-      % Convert to volts
-      tmp = (tmp-mean(tmp)) * wfs(wf).quantization_to_V;
-%       tmp = tmp .* exp(-1i*135e6*2*pi*wfs(wf).time_raw(wfs(wf).Nt_ref:end));
+      if ~param.proc.raw_data
+        tmp(1) = 0;
+        % Convert to volts
+        tmp = (tmp-mean(tmp)) * wfs(wf).quantization_to_V;
+      end
       % Accumulate (presum)
       if num_accum == 0
         accum.data{accum_idx} = tmp;
@@ -257,6 +262,15 @@ while rec < total_rec;
             end
           end
         end
+        % Apply channel compensation
+        if ~param.proc.raw_data
+          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+            .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+          accum.data{accum_idx} = accum.data{accum_idx}/chan_equal;
+          adc_gain = param.load.wfs(find(param.load.wfs_records <= param.load.recs(1) + rec -1,1,'last')).wfs(wf).adc_gains(adc);
+          accum.data{accum_idx} = accum.data{accum_idx}/adc_gain;
+        end
+        
         if param.proc.pulse_comp
           % ===========================================================
           % Do pulse compression
@@ -285,12 +299,6 @@ while rec < total_rec;
             accum.data{accum_idx} = resample(double(accum.data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
           end
 
-          % Apply channel compensation
-          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-            .* exp(j*(param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)))/180*pi);
-          accum.data{accum_idx} = accum.data{accum_idx}/chan_equal;
-          adc_gain = param.load.wfs(find(param.load.wfs_records <= param.load.recs(1) + rec -1,1,'last')).wfs(wf).adc_gains(adc);
-          accum.data{accum_idx} = accum.data{accum_idx}/adc_gain;
         elseif param.proc.ft_dec
           accum.data{accum_idx} = fft(accum.data{accum_idx},wfs(wf).Nt_raw);
           accum.data{accum_idx} = ifft(accum.data{accum_idx}(wfs(wf).freq_inds));

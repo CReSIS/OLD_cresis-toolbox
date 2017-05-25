@@ -438,23 +438,26 @@ for wf = 1:length(param.radar.wfs)
   % ===================================================================
   %% Create output data time/freq axes variables
   Nt = ceil(wfs(wf).Nt_pc*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2));
-  wfs(wf).dt = 1/(Nt*df);
-  wfs(wf).df = df;
   wfs(wf).Nt = Nt;
-  wfs(wf).fs = Nt*df;
-  dt = 1/wfs(wf).fs;
   if proc_param.ft_dec
+    wfs(wf).fs = fs * wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2);
+    wfs(wf).dt = 1/wfs(wf).fs;
+    wfs(wf).df = wfs(wf).fs/wfs(wf).Nt;
+    dt = wfs(wf).dt;
     % Starts at fc goes to fc+BW/2, fc-BW/2 to fc
     wfs(wf).freq = fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    wfs(wf).time = t0 + (0:dt:(Nt-1)*dt).';
   else
+    wfs(wf).df = df;
+    wfs(wf).dt = 1/(Nt*df);
+    wfs(wf).fs = Nt*df;
+    dt = wfs(wf).dt;
     % Let ftnz = fast time nyquist zone
     % Starts at ftnz*fs goes to ftnz*fs+fs/2, ftnz*fs-fs/2 to ftnz*fs
     %     wfs(wf).freq = round(fc/fs)*fs ...
     %       + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
     wfs(wf).freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
-    wfs(wf).time = t0 + (0:dt:(Nt-1)*dt).';
   end
+  wfs(wf).time = t0 + dt*(0:Nt-1).';
   if proc_param.pulse_comp
     % Assuming pulse compression zero pads the front of the waveform, the
     % output will start earlier by an ammount proportional to the zero
