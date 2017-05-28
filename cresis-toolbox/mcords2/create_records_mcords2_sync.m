@@ -44,6 +44,10 @@ end
 
 fprintf('Running %s correction and gps sync (%s)\n', param.day_seg, datestr(now));
 
+if ~isfield(param.records,'presum_bug_fixed') || isempty(param.records.presum_bug_fixed)
+  param.records.presum_bug_fixed = false;
+end
+
 % =====================================================================
 %% Synchronize Between Boards
 % =====================================================================
@@ -471,7 +475,7 @@ else
   clock_notes = cat(2,clock_notes,sprintf('  Clock error %.12f\n  fs %.2f Hz\n  PRF %.6f Hz\n  max_error %.2f ms\n', ...
     p(1)/EPRI, param.radar.fs / (p(1)/EPRI), param.radar.prf / (p(1)/EPRI), ...
     max(abs(utc_time_sod_corrected(good_idxs)-utc_time_sod_measured)) * 1000));
-  fprintf(clock_notes);
+  fprintf('%s',clock_notes);
   plot(utc_time_sod_corrected(good_idxs), utc_time_sod_corrected(good_idxs)-utc_time_sod_measured);
   xlabel('UTC time seconds of day (sec)');
   ylabel('Mismatch (sec)');
