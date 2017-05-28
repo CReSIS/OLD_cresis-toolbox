@@ -195,7 +195,7 @@ if ~isempty(obj.cur_map_pref_settings.seasons)
   % convert season_names to a string for concatenation
   for sidx = 1:size(season_names,2)
     if sidx < size(season_names,2) && size(season_names,2) ~= 1
-      season_names{sidx}=['''' season_names{sidx} '''\,'];
+      season_names{sidx}=['''' season_names{sidx} '''%5C,'];
     else
       season_names{sidx}=['''' season_names{sidx} ''''];
     end
