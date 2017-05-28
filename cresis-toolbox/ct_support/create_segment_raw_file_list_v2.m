@@ -94,42 +94,42 @@ for adc_idx = 1:length(adcs)
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([4 8 12]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/16;
+  
   elseif any(strcmpi(radar_name,{'accum2'}))
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     hdr_param.field_offsets = uint32(4*[1 3 4 5 6]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint32(1) uint32(1)};
     hdr_param.field_offsets = [1 3 4 5 6];
     hdr_param.frame_sync = hex2dec('1ACFFC1D');
-    param.clk = 1e9;
+   
   elseif any(strcmpi(radar_name,{'acords'}))
     hdr_param.file_mode = 'ieee-le';
     hdr_param.frame_sync = uint32(0);
     hdr_param.field_offsets = uint32([0 4]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1)};
-    param.clk = 55e6;
+   
   elseif any(strcmpi(radar_name,{'mcords'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([16 8 12]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/9;
+ 
   elseif any(strcmpi(radar_name,{'mcords2','mcords3'}))
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
-    hdr_param.field_offsets = uint32([4 8 12]); % epri seconds fractions
-    hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/9;
+    hdr_param.field_offsets = uint32([4 8 12 16]); % epri seconds fraction counter
+      hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
+   
   elseif any(strcmpi(radar_name,{'mcords4'}))
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     hdr_param.field_offsets = uint32([4 16 20]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/2;
+   
   elseif any(strcmpi(radar_name,{'mcords5','snow5'}))
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
   elseif any(strcmpi(radar_name,{'snow','kuband'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([4 16 20]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/16;
+  
   elseif any(strcmpi(radar_name,{'snow2','kuband2'}))
     if param.file_version == 2
       hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
@@ -142,20 +142,19 @@ for adc_idx = 1:length(adcs)
     else
       error('File version %d not supported for this radar %s.', param.file_version, param.radar_name);
     end
-    param.clk = 1e9/8;
+  
     
   elseif any(strcmpi(radar_name,{'snow3','kuband3','kaband3'}))
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
     hdr_param.field_offsets = uint32(4*[1 2 3 9 10 11]); % epri seconds fractions start/stop-index DDCfield1 DDCfield2
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/8;
-    
+  
   elseif any(strcmpi(radar_name,{'snow8'}))
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
     hdr_param.field_offsets = uint32([4 8 12 16 33 36 38 40]);
     % epri seconds fractions counter nyquist-zone waveform-ID
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1) uint8(1) uint16(1) uint16(1) uint64(1)};
-    param.clk = 1e9/8;
+  
     
   else
     error('Unsupported radar %s', param.radar_name);
