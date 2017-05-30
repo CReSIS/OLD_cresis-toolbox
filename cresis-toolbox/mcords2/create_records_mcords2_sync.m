@@ -432,6 +432,14 @@ else
     ylabel('Mismatch (sec)');
     title('Mismatch between expected and measured UTC time');
     xlabel('Records');
+    figure(2); clf;
+    plot(diff(utc_time_sod_measured) ./ diff(double(records.raw.epri(good_idxs))),'.');
+    ylabel('Estimated EPRI (sec)');
+    xlabel('Records');
+    epri_double = double(records.raw.epri(good_idxs));
+    final_EPRI_estimate = (utc_time_sod_measured(end)-utc_time_sod_measured(1)) / (epri_double(end)-epri_double(1));
+    title(sprintf('param.radar EPRI %.8f ms\ninit_EPRI_estimate %.8f ms\nfinal_EPRI_estimate %.8f ms', ...
+      EPRI*1e3, init_EPRI_estimate*1e3, final_EPRI_estimate*1e3),'interpreter','none');
     warning('The expected and measured times are off by > 0.1.');
     fprintf('Verify in the plot that all differences are less than 0.1 seconds\n');
     fprintf('except a few outliers. dbcont replaces these outliers. However, if\n');
