@@ -108,6 +108,9 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         case 5 % convert layers
           fprintf('Left click: No function\n');
           fprintf('Left click and drag: Convert layers within selected region to the layers specified in the param window (p)\n\n');
+         case 6 % HMM detection
+          fprintf('Left click: Enter point.\n');
+          fprintf('Left click and drag: Perform HMM detection on selected region.\n\n');
       end
       
       fprintf('Keyboard controls:\n\n');
@@ -268,6 +271,15 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         %% Save current layers
         obj.savePB_callback();
+      end
+      
+    case 'd'
+      if isempty(event.Modifier)
+        set(obj.left_panel.toolPM,'Value',6);
+        tmp = obj.tool_list{3}; obj.left_click = @tmp.left_click;
+        tmp = obj.tool_list{3}; obj.left_click_and_drag = @tmp.left_click_and_drag;
+        tmp = obj.tool_list{3}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+        obj.toolPM_callback();
       end
       
     case 'u'

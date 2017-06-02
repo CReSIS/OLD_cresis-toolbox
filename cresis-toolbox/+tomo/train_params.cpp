@@ -1,6 +1,9 @@
 // train_params.cpp: Train parameters using ground truth of surface layers.
 // By Mingze Xu, July 2016
 //
+// Usage: train_params(input_image, surface_layer)
+//
+
 #include <iostream>
 #include <cmath>
 #include <vector>
@@ -17,7 +20,7 @@ size_t encode(size_t x, size_t y, size_t height) {
     return x*height + y;
 }
 
-vector< vector<double> > train(double *input, size_t width, size_t height, double *sgt, size_t ms=11) {
+vector< vector<double> > train(double *input, size_t width, size_t height, double *sgt, size_t ms = 11) {
     vector< vector<double> > result;
     vector<double> mu = vector<double>(ms, 0.0);
     vector<double> sigma = vector<double>(ms, 0.0);
