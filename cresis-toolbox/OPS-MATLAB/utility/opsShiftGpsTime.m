@@ -40,9 +40,9 @@ out_twtt = interp1(shifted_gps_time,data.properties.twtt,data.properties.gps_tim
  
  % delete original layer points
  try
-  [~,message] = opsDeleteLayerPoints(sys,deleteParam);
+  [status,msg] = opsDeleteLayerPoints(sys,deleteParam);
  catch ME
-   error('Something wrong with point delete!');
+   error('Something wrong with point delete: %d:%s',status, msg);
  end
 
 % construct the param for point creation
@@ -56,9 +56,9 @@ createParam.properties.lyr_name = param.properties.lyr_name;
 
 % create the layer points
 try
-  [status,message] = opsCreateLayerPoints(sys,createParam);
+  [status,msg] = opsCreateLayerPoints(sys,createParam);
 catch ME
-   error('Something wrong with layer point creation!');
+   error('Something wrong with layer point creation: %d:%s', status, msg);
 end
  
 if status == 1
