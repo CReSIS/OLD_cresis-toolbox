@@ -32,18 +32,20 @@ shifted_gps_time = data.properties.gps_time + param.properties.offset;
 out_twtt = interp1(shifted_gps_time,data.properties.twtt,data.properties.gps_time);
 
 % construct the param for point delete
- deleteParam.properties.start_point_path_id = min (data.properties.point_path_id);
- deleteParam.properties.stop_point_path_id = max (data.properties.point_path_id);
- deleteParam.properties.max_twtt = max (data.properties.twtt);
- deleteParam.properties.min_twtt = min (data.properties.twtt);
- deleteParam.properties.lyr_name = param.properties.lyr_name;
- 
- % delete original layer points
- try
+deleteParam = [];
+deleteParam.properties.start_point_path_id = min (data.properties.point_path_id);
+deleteParam.properties.stop_point_path_id = max (data.properties.point_path_id);
+deleteParam.properties.max_twtt = max (data.properties.twtt);
+deleteParam.properties.min_twtt = min (data.properties.twtt);
+deleteParam.properties.lyr_name = param.properties.lyr_name;
+
+% delete original layer points
+try
   [status,msg] = opsDeleteLayerPoints(sys,deleteParam);
- catch ME
-   error('Something wrong with point delete: %d:%s',status, msg);
- end
+catch ME
+  for idx=1:length(ME.stack); disp(ME.stack(idx)); end;
+  error('opsDeleteLayerPoints failed: %s %s', ME.message);
+end
 
 % construct the param for point creation
 idx = ~isnan(out_twtt);
@@ -58,7 +60,8 @@ createParam.properties.lyr_name = param.properties.lyr_name;
 try
   [status,msg] = opsCreateLayerPoints(sys,createParam);
 catch ME
-   error('Something wrong with layer point creation: %d:%s', status, msg);
+   for idx=1:length(ME.stack); disp(ME.stack(idx)); end;
+   error('opsCreateLayerPoints failed: %s %s', ME.message);
 end
  
 if status == 1
