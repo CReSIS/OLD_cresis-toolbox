@@ -73,6 +73,12 @@ function layers = opsCopyLayers(param,copy_param)
 %           '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
 %           'source = source + 0.1;' % Apply a twtt shift
 %           'source = source*2;' % Surface multiple
+%           'source = interp1(gps_time+15,source,gps_time);' % Apply a GPS time shift
+%     .quality: struct controlling the quality level 
+%       .mode: string specifying one of these methods:
+%         'overwrite': Overwrites the quality level with ".quality"
+%         'preserve': Quality level preserved from source
+%       .quality: scalar containing 1, 2, or 3
 %     .copy_method = string specifying one of these methods
 %       'fillgaps': only gaps in destination data will be written to
 %       'overwrite': none of the previous data are kept
@@ -106,6 +112,19 @@ end
 if strcmpi(copy_param.gaps_fill.method,'preserve_gaps') ...
     && (~isfield(copy_param.gaps_fill,'method_args') || isempty(copy_param.gaps_fill.method_args))
   copy_param.gaps_fill.method_args = [300 60];
+end
+
+if ~isfield(copy_param,'quality')
+  copy_param.quality.mode = 'preserve';
+  copy_param.quality.value = 1;
+end
+
+if ~any(strcmpi(copy_param.quality.mode,{'preserve','overwrite'}))
+  error('Invalid quality mode %s', copy_param.quality.mode);
+end
+
+if ~any(copy_param.quality.quality == [1 2 3])
+  error('Invalid quality value %s', copy_param.quality.quality);
 end
 
 %% Load "frames" file
@@ -257,8 +276,10 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     match_idx = find(all_points.ids(point_idx) == layer_dest.point_path_id);
     if isempty(match_idx)
      all_points.twtt(point_idx) = NaN;
+     all_points.quality(point_idx) = 1;
     else
      all_points.twtt(point_idx) = layer_dest.twtt(match_idx);
+     all_points.quality(point_idx) = layer_dest.quality(match_idx);
     end
   end
 
@@ -271,12 +292,13 @@ else
   all_points.elev = layer_dest.elev;
   all_points.ids = layer_dest.point_path_id;
   all_points.twtt = layer_dest.twtt;
+  all_points.quality = layer_dest.quality;
 end
 
 % Set invalid types to "auto" or 2
-layer_source.type(isnan(layer_source.type)) = 2;
+layer_source.type(~isfinite(layer_source.type)) = 2;
 % Set invalid quality levels to "good" or 1
-layer_source.quality(isnan(layer_source.quality)) = 1;
+layer_source.quality(~isfinite(layer_source.quality)) = 1;
 layer_source.quality(layer_source.quality ~= 1 & layer_source.quality ~= 2 & layer_source.quality ~= 3) = 1;
 
 %% Apply evaluation operation to source
@@ -342,7 +364,6 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   
 else
   for frm = param.cmd.frms
-    records.gps_time(frames.frame_idxs(frm));
     if frm < length(frames.frame_idxs)
       frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))...
         & all_points.gps_time < records.gps_time(frames.frame_idxs(frm+1))) = 1;
@@ -355,9 +376,17 @@ end
 
 update_mask = frms_mask & update_mask;
 
+%% Overwrite quality level
+all_points.quality_interp = interp1(layer_source.gps_time,layer_source.quality,all_points.gps_time,'nearest');
+if strcmpi(copy_param.quality.mode,'overwrite')
+  all_points.quality_interp(:) = copy_param.quality.quality;
+end
+
 %% Write the new layer data to the destination
 surface = all_points.twtt;
 surface(update_mask) = all_points.twtt_interp(update_mask);
+quality = all_points.quality;
+quality(update_mask) = all_points.quality_interp(update_mask);
 
 if 0
   % Debug code
@@ -390,7 +419,7 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   ops_param.properties.point_path_id = all_points.ids(update_mask);
   ops_param.properties.twtt = surface(update_mask);
   ops_param.properties.type = 2*ones(size(ops_param.properties.twtt));
-  ops_param.properties.quality = 1*ones(size(ops_param.properties.twtt));
+  ops_param.properties.quality = quality(update_mask);
   ops_param.properties.lyr_name = copy_param.layer_dest.name;
   
   %% Update these points
@@ -441,6 +470,8 @@ elseif strcmpi(copy_param.layer_dest.source,'layerdata')
     
     % Automated points
     lay.layerData{lay_idx}.value{2}.data = interp1(all_points.gps_time,surface,lay.GPS_time);
+    
+    lay.layerData{lay_idx}.quality = interp1(all_points.gps_time,quality,lay.GPS_time,'nearest');
     
     % Append the new results back to the layerData file
     save(layer_fn,'-append','-struct','lay','layerData');

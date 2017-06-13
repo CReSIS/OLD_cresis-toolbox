@@ -9,134 +9,120 @@
 %% User Settings
 % =====================================================================
 
-params = read_param_xls(ct_filename_param('rds_param_2013_Antarctica_P3.xls'),'','post');
-% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
-% params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'','post');
-% params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'','post');
-
-copy_param = [];
-
-%% Example Operations (just choose one)
-
+% Set the parameter spreadsheet 
 if 1
-  %% Copy surface from echogram qlook to records (and lots of other example sources/destinations)
-  copy_param.layer_source.name = 'surface';
+  % Use param spreadsheet:
+  params = read_param_xls(ct_filename_param('rds_param_2010_Greenland_DC8.xls'),'','post');
+else
+  % Use param spreadsheet, but override settings for specific segments
+  params = read_param_xls(ct_filename_param('rds_param_2010_Greenland_DC8.xls'),'20100414_02','post');
+  for param_idx = 1:length(params)
+    params(param_idx).cmd.generic = 1;
+    params(param_idx).cmd.frms = [];
+  end
+end
+
+% Set the operation to run (just choose one operation)
+if 0
+  runOpsCopyLayers_operation = 'copy_layer_nonmatch_sys';
+else
+  runOpsCopyLayers_operation = 'copy_layer';
+end
+
+%% copy_layer: Copy layer from one location to another and optionally apply operation during copy
+if strcmp(runOpsCopyLayers_operation,'copy_layer')
+  copy_param = [];
   copy_param.layer_source.existence_check = false;
-  
-  copy_param.layer_source.source = 'ops';
-%   copy_param.layer_source.source = 'echogram';
-%   copy_param.layer_source.echogram_source = 'qlook';
-%   copy_param.layer_source.source = 'echogram';
-%   copy_param.layer_source.echogram_source = 'deconv';
-%   copy_param.layer_source.source = 'layerdata';
-%   copy_param.layer_source.layerdata_source = 'layerData';
-%   copy_param.layer_source.source = 'lidar';
-%   copy_param.layer_source.lidar_source = 'awi';
-  
-
-  copy_param.layer_dest.name = 'surface';
   copy_param.layer_dest.existence_check = false;
-  copy_param.copy_method = 'overwrite';
-  copy_param.gaps_fill.method = 'interp_finite';
-  
-%   copy_param.layer_dest.source = 'records';
-  copy_param.layer_dest.source = 'layerdata';
-  copy_param.layer_dest.layerdata_source = 'layerData';
-%   copy_param.layer_dest.source = 'echogram';
-%   copy_param.layer_dest.echogram_source = 'qlook';
-%   copy_param.layer_dest.source = 'echogram';
-%   copy_param.layer_dest.echogram_source = 'deconv';
-%   copy_param.layer_dest.source = 'echogram';
-%   copy_param.layer_dest.echogram_source = 'standard';
 
-elseif 0
-  %% Copy surface from layerdata to records
+  % Set the layer name for the source (e.g. 'surface', 'bottom')
   copy_param.layer_source.name = 'surface';
-  copy_param.layer_source.source = 'layerdata';
-  copy_param.layer_source.layerdata_source = 'layerData';
   
+  % Set the layer name for the destination (e.g. 'surface', 'bottom')
   copy_param.layer_dest.name = 'surface';
-  copy_param.layer_dest.source = 'records';
 
-  copy_param.copy_method = 'merge';
-  copy_param.gaps_fill.method = 'interp_finite';
-  
-elseif 0
-  %% Copy surface from ops to records
-  copy_param.layer_source.name = 'surface';
-  copy_param.layer_source.source = 'ops';
-  
-  copy_param.layer_dest.name = 'surface';
-  copy_param.layer_dest.source = 'records';
+  % Set the source (choose one)
+  if 1
+    copy_param.layer_source.source = 'ops';
+  elseif 0
+    copy_param.layer_source.source = 'records';
+  elseif 0
+    copy_param.layer_source.source = 'echogram';
+    % Set the echogram source if using echogram
+    if 1
+      copy_param.layer_source.echogram_source = 'qlook';
+    elseif 0
+      copy_param.layer_source.echogram_source = 'deconv';
+    else
+      copy_param.layer_source.echogram_source = 'standard';
+    end
+  elseif 0
+    copy_param.layer_source.source = 'layerdata';
+    copy_param.layer_source.layerdata_source = 'layerData';
+  else
+    copy_param.layer_source.source = 'lidar';
+    copy_param.layer_source.lidar_source = 'awi';
+  end
 
-  copy_param.copy_method = 'merge';
-  copy_param.gaps_fill.method = 'interp_finite';
+  if 1
+    copy_param.copy_method = 'overwrite';
+  elseif 0
+    copy_param.copy_method = 'fillgaps';
+  else
+    copy_param.copy_method = 'merge';
+  end
   
-elseif 0
-  %% Copy layer from ops to layerdata
-%   layer_name = 'surface';
-  layer_name = 'bottom';
+  if strcmpi(copy_param.layer_dest.name,'surface')
+    copy_param.gaps_fill.method = 'interp_finite';
+  else
+    copy_param.gaps_fill.method = 'preserve_gaps';
+    copy_param.gaps_fill.method_args = [40 20];
+  end
   
-  copy_param.layer_source.name = layer_name;
-  copy_param.layer_source.source = 'ops';
+  % Set the twtt offset (for positive offset layer shifts down)
+  twtt_offset = 0;
   
-  copy_param.layer_dest.name = layer_name;
-  copy_param.layer_dest.source = 'layerdata';
-  copy_param.layer_dest.layerdata_source = 'layerData';
-
-  copy_param.copy_method = 'overwrite';
-  copy_param.gaps_fill.method = 'preserve_gaps';
+  % Set the GPS time offset (for positive offset layer shifts right)
+  gps_time_offset = 0;
   
-elseif 0
-  %% Copy bottom from ops to echogram CSARP_post/mvdr
-  copy_param.layer_source.name = 'bottom';
-  copy_param.layer_source.source = 'ops';
+  if twtt_offset ~= 0 || gps_time_offset ~= 0
+    warning('You have set a nonzero twtt_offset(%.12g) or gps_time_offset(%.3g). Normally these are both zero. Please verify that this is what you want to do before running "dbcont" to continue.\n', twtt_offset, gps_time_offset);
+    keyboard
+    copy_param.eval.cmd = sprintf('source = interp1(gps_time+%.3g,source + %.12g,gps_time);',gps_time_offset,twtt_offset);
+  end
   
-  copy_param.layer_dest.name = 'bottom';
-  copy_param.layer_dest.source = 'echogram';
-  copy_param.layer_dest.echogram_source = 'standard';
-
-  copy_param.copy_method = 'merge';
-  copy_param.gaps_fill.method = 'preserve_gaps';
-  copy_param.gaps_fill.method_args = [300 60];
-    
-elseif 0
-  %% Copy "tomo_bottom2" layer from ops to echogram CSARP_post/mvdr
-  copy_param.layer_source.name = 'tomo_bottom2';
-  copy_param.layer_source.source = 'ops';
+  % Set overwrite quality level (e.g. []: do not overwrite, 1: good, 2: medium, 3: bad)
+  quality = [];
+  if ~isempty(quality) && any(quality == [1 2 3])
+    warning('You have set quality to %d. Normally it should be []. Please verify that you want to overwrite the quality level before running "dbcont" to continue.\n', quality);
+    keyboard
+    copy_param.quality.mode = 'overwrite';
+    copy_param.quality.quality = quality;
+  end
   
-  copy_param.layer_dest.name = 'tomo_bottom2';
-  copy_param.layer_dest.source = 'echogram';
-  copy_param.layer_dest.existence_check = false;
-
-  copy_param.copy_method = 'merge';
-  copy_param.gaps_fill.method = 'preserve_gaps';
-  copy_param.gaps_fill.method_args = [300 60];
+  % Set the destination (choose one): it can be the same as the source
+  if 1
+    copy_param.layer_dest.source = 'ops';
+  elseif 0
+    copy_param.layer_dest.source = 'records';
+  elseif 0
+    copy_param.layer_dest.source = 'echogram';
+    % Set the echogram source if using echogram
+    if 1
+      copy_param.layer_dest.echogram_source = 'qlook';
+    elseif 0
+      copy_param.layer_dest.echogram_source = 'deconv';
+    else
+      copy_param.layer_dest.echogram_source = 'standard';
+    end
+  elseif 0
+    copy_param.layer_dest.source = 'layerdata';
+    copy_param.layer_dest.layerdata_source = 'layerData';
+  end
   
-elseif 0
-  %% Copy "custom" layer from layerdata to "new" layer in ops
-  copy_param.layer_source.name = 'custom';
-  copy_param.layer_source.source = 'layerdata';
-  copy_param.layer_source.layerdata_source = 'layerData';
-  
-  copy_param.layer_dest.name = 'new';
-  copy_param.layer_dest.source = 'ops';
-  copy_param.layer_dest.existence_check = false;
-
-  copy_param.copy_method = 'merge';
-  copy_param.gaps_fill.method = 'interp_finite';
-  
-elseif 0
-  %% Copy surface from mcords records to snow layerdata  
+end
+%% Copy surface from mcords records to snow layerdata  
+if strcmp(runOpsCopyLayers_operation,'copy_layer_nonmatch_sys')
   
   % Load mcords records data
   load_params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'20150913.*','post');  
@@ -164,33 +150,6 @@ elseif 0
 
   copy_param.copy_method = 'overwrite';
   copy_param.gaps_fill.method = 'interp_finite';
-  
-elseif 0
-  %% Copy surface from echogram deconv to echogram qlook
-  copy_param.layer_source.name = 'surface';
-  copy_param.layer_source.source = 'echogram';
-  copy_param.layer_source.echogram_source = 'deconv';
-  
-  copy_param.layer_dest.name = 'surface';
-  copy_param.layer_dest.source = 'echogram';
-  copy_param.layer_dest.echogram_source = 'qlook';
-
-  copy_param.copy_method = 'merge';
-  copy_param.gaps_fill.method = 'interp_finite';
-  
-elseif 0
-  %% Shift records surface
-  copy_param.layer_source.name = 'surface';
-  copy_param.layer_source.source = 'records';
-  
-  copy_param.layer_dest.name = 'surface';
-  copy_param.layer_dest.source = 'records';
-  
-  twtt_offset = -2.424000000000000e-07;
-  copy_param.eval.cmd = sprintf('source = source + %.12g;',twtt_offset);
-
-  copy_param.copy_method = 'overwrite';
-  copy_param.gaps_fill.method = 'interp_finite';
 
 end
 
@@ -206,6 +165,7 @@ for param_idx = 1:length(params)
     continue;
   end
   param = merge_structs(param,gRadar);
-  fprintf('opsCopyLayers %s\n', param.day_seg);
+  fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
   opsCopyLayers(param,copy_param);
+  fprintf('  Complete (%s)\n', datestr(now));
 end
