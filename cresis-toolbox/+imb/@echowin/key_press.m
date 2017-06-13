@@ -16,15 +16,10 @@ function key_press(obj,src,event)
 %   Control: none
 % -----------------------------------------------------------------------
 
-if any(strcmp('alt',event.Modifier))
-  obj.alt_pressed = true;
-end
-if any(strcmp('control',event.Modifier))
-  obj.control_pressed = true;
-end
-if any(strcmp('shift',event.Modifier))
-  obj.shift_pressed = true;
-end
+modifiers = get(event.Source,'CurrentModifier');
+obj.shift_pressed = ismember('shift',   modifiers);  % true/false
+obj.control_pressed  = ismember('control', modifiers);  % true/false
+obj.alt_pressed   = ismember('alt',     modifiers);  % true/false
 
 % Check to make sure that a key was pressed and not
 % just a modifier (e.g. shift, ctrl, alt)
@@ -423,4 +418,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false));
       
   end
+  obj.shift_pressed = false;
+  obj.control_pressed = false;
+  obj.alt_pressed = false;
 end
