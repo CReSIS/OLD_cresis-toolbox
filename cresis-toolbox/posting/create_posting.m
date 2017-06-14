@@ -510,6 +510,7 @@ for frm_idx = 1:length(frms)
   % =======================================================================
   if param.post.echo_en
     % Load master file (mdata)
+    fprintf('    Loading %s\n', frms{frm_idx}.master_fn);
     mdata = load(frms{frm_idx}.master_fn);
     mdata = uncompress_echogram(mdata); % Uncompress if necessary
     
