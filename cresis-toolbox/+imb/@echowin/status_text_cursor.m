@@ -7,7 +7,7 @@ function [status_str] = status_text_cursor(obj)
 lat = interp1(obj.eg.gps_time,obj.eg.latitude,obj.cursor.gps_time,'linear','extrap');
 lon = interp1(obj.eg.gps_time,obj.eg.longitude,obj.cursor.gps_time,'linear','extrap');
 
-date_str = [datestr(epoch_to_datenum(obj.cursor.gps_time),'yyyy-mm-dd HH:MM:SS') sprintf('.%.0f',mod(obj.cursor.gps_time,1)*100)];
+date_str = [datestr(epoch_to_datenum(obj.cursor.gps_time),'yyyy-mm-dd HH:MM:SS') sprintf('.%02.0f',mod(obj.cursor.gps_time,1)*100)];
 
 % Current layers
 cur_layers = find(obj.left_panel.layer_panel.selected_layers).';
