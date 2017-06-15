@@ -89,14 +89,14 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/N/dc2/scratch/paden/mdce_tmp/';
-  profile(pidx).ct_tmp_file_path          = '/N/dc2/projects/cresis/ct_tmp/';
+  profile(pidx).tmp_file_path             = '/N/dcwan/scratch/paden/mdce_tmp/';
+  profile(pidx).ct_tmp_file_path          = '/N/dcwan/projects/cresis/ct_tmp/';
   
-  profile(pidx).data_path                 = '/N/dc2/projects/cresis/';
-  profile(pidx).data_support_path         = '/N/dc2/projects/cresis/metadata/';
-  profile(pidx).support_path              = '/N/dc2/projects/cresis/csarp_support/';
-  profile(pidx).out_path                  = '/N/dc2/projects/cresis/output/';
-  profile(pidx).gis_path                  = '/N/dc2/projects/cresis/GIS_data';
+  profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
+  profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
+  profile(pidx).support_path              = '/N/dcwan/projects/cresis/csarp_support/';
+  profile(pidx).out_path                  = '/N/dcwan/projects/cresis/output/';
+  profile(pidx).gis_path                  = '/N/dcwan/projects/cresis/GIS_data';
   
   profile(pidx).sched.type                = 'custom_torque';
   %profile(pidx).sched.type                = 'local'; % local parallel processing
@@ -104,8 +104,8 @@ if ~(~ismcc && isdeployed)
   profile(pidx).sched.ver                 = 2; % local and jobmanager only
   profile(pidx).sched.name                = '';
   profile(pidx).sched.url                 = 'qm2.quarry.teragrid.iu.edu';
-  profile(pidx).sched.data_location       = '/N/dc2/scratch/jpaden/matlab_torque/';
-  profile(pidx).sched.submit_arguments    = '-q cresis -l nodes=1:ppn=1:dc2,pmem=2gb,walltime=40:00';
+  profile(pidx).sched.data_location       = '/N/dcwan/scratch/jpaden/matlab_torque/';
+  profile(pidx).sched.submit_arguments    = '-q cresis -l nodes=1:ppn=1:dcwan,pmem=2gb,walltime=40:00';
   profile(pidx).sched.max_in_queue        = 64;
   profile(pidx).sched.max_tasks_per_jobs  = 64;
   profile(pidx).sched.cluster_size        = inf;
