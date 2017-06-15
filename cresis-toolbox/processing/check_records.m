@@ -146,9 +146,9 @@ along_track = geodetic_to_along_track(records.lat,records.lon,records.elev);
 vel = diff(along_track) ./ diff(records.gps_time);
 if any(vel < 25 | vel > 300)
   if all(vel < 6)
-    warning('Small or large velocity. All below 6 m/s.');
+    warning('Small (%g) or large velocity (%g). All below 6 m/s.', min(vel), max(vel));
   else
-    warning('Small or large velocity. Some above 6 m/s.');
+    warning('Small (%g) or large velocity (%g). Some above 6 m/s.', min(vel), max(vel));
   end
 end
 

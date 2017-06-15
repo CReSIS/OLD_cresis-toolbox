@@ -62,7 +62,7 @@ elseif isstruct(param)
     %  continue;
     %end
 
-    fprintf('%d of %d: Checking frames %s\n', param_idx, length(params), records_fn);
+    fprintf('%s\tChecking\t%s\n', param.day_seg, records_fn);
     
     check_frames_support_func(records_fn,param);
   end
@@ -79,28 +79,34 @@ function check_frames_support_func(records_fn,param)
 % Support function which does the actual checking of the frames
 
 if ~exist(records_fn,'file')
-  warning('Missing records file %s\n', records_fn);
+  fprintf(2,'%s\tno_records_file\t%s\n', param.day_seg, records_fn);
   return;
 end
 
 frames_fn = ct_filename_support(param,'','frames');
-records = load(records_fn,'gps_time');
+if ~exist(frames_fn,'file')
+  fprintf(2,'%s\tno_frames_file\t%s\n', param.day_seg, records_fn);
+  return;
+end
+
+records = load(records_fn,'lat','lon');
+along_track = geodetic_to_along_track(records.lat,records.lon);
 load(frames_fn);
 
 if frames.frame_idxs(1) ~= 1
-  warning('Frames starts with %d instead of 1', frames.frame_idxs(1));
+  fprintf(2,'%s\tframe_idxs_1_not_1\t%d instead of 1\n', param.day_seg, frames.frame_idxs(1));
 end
 
-if any(frames.frame_idxs > length(records.gps_time))
-  warning('frame_idxs has entries (e.g. %d) extending beyond records %d', ...
-    max(frames.frame_idxs), length(records.gps_time));
+if any(frames.frame_idxs > length(records.lat))
+  fprintf(2,'%s\tframe_idxs_too_large\tindex %d > number of records %d\n', ...
+    param.day_seg, max(frames.frame_idxs), length(records.lat));
 end
 
 fixable_error = false;
 
 if length(frames.frame_idxs) ~= length(frames.nyquist_zone)
-  warning('nyquist_zone field length %d does not match frame_idxs length %d', ...
-    length(frames.nyquist_zone), length(frames.frame_idxs));
+  fprintf(2,'%s\tnyquist_zone_length_mismatch\tlength %d does not match frame_idxs length %d\n', ...
+    param.day_seg, length(frames.nyquist_zone), length(frames.frame_idxs));
   fixable_error = true;
   if length(frames.frame_idxs) > length(frames.nyquist_zone)
     frames.nyquist_zone(end+1 : length(frames.frame_idxs)) = NaN;
@@ -110,13 +116,38 @@ if length(frames.frame_idxs) ~= length(frames.nyquist_zone)
 end
 
 if length(frames.frame_idxs) ~= length(frames.proc_mode)
-  warning('proc_mode field length %d does not match frame_idxs length %d', ...
-    length(frames.proc_mode), length(frames.frame_idxs));
+  fprintf(2,'%s\tproc_mode_length_mismatch\tlength %d does not match frame_idxs length %d\n', ...
+    param.day_seg, length(frames.proc_mode), length(frames.frame_idxs));
   fixable_error = true;
   if length(frames.frame_idxs) > length(frames.proc_mode)
     frames.proc_mode(end+1 : length(frames.frame_idxs)) = NaN;
   else
     frames.proc_mode = frames.proc_mode(1:length(frames.frame_idxs));
+  end
+end
+
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+if any(strcmpi(output_dir,'rds'))
+  default_frame_len = 50000;
+elseif any(strcmpi(output_dir,'accum'))
+  default_frame_len = 20000;
+elseif any(strcmpi(output_dir,{'kaband','kuband','snow'}))
+  default_frame_len = 5000;
+end
+
+for frm = 1:length(frames.frame_idxs)
+  if frm < length(frames.frame_idxs)
+    frame_len = along_track(frames.frame_idxs(frm+1)) - along_track(frames.frame_idxs(frm));
+  else
+    frame_len = along_track(end) - along_track(frames.frame_idxs(frm));
+  end
+  if length(frames.frame_idxs) == 1 && frame_len < default_frame_len/10
+    fprintf(2,'%s\tsingle_frame_too_short\t%g km < %g km for frame \t%d\n', param.day_seg, frame_len/1e3, 1/5*default_frame_len/1e3, frm);
+  elseif length(frames.frame_idxs) > 1 && frame_len < default_frame_len/5
+    fprintf(2,'%s\ttoo_short\t%g km < %g km for frame \t%d\n', param.day_seg, frame_len/1e3, 1/5*default_frame_len/1e3, frm);
+  end
+  if frame_len > 2*default_frame_len
+    fprintf(2,'%s\ttoo_long\t%g km > %g km for frame \t%d\n', param.day_seg, frame_len/1e3, 2*default_frame_len/1e3, frm);
   end
 end
 
@@ -126,3 +157,4 @@ if 1 && fixable_error
 end
 
 end
+
