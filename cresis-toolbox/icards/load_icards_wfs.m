@@ -349,7 +349,11 @@ for wf = 1:length(param.radar.wfs)
   
   % ===================================================================
   % Create output data time/freq axes variables
-  Nt = ceil(wfs(wf).Nt_pc*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2));
+  if ~proc_param.pulse_comp
+    Nt = ceil(wfs(wf).Nt_raw*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2));
+  else
+    Nt = ceil(wfs(wf).Nt_pc*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2));
+  end
   wfs(wf).Nt = Nt;
   if proc_param.ft_dec
     wfs(wf).fs = fs * wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2);
