@@ -23,7 +23,7 @@ obj.alt_pressed   = ismember('alt',     modifiers);  % true/false
 
 % Check to make sure that a key was pressed and not
 % just a modifier (e.g. shift, ctrl, alt)
-if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt') && ~strcmpi(event.Key,'ctrl')
+if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt') && ~strcmpi(event.Key,'control')
   
   % Switch layer number function (allows large numbers to be entered
   % as long as each number is entered within 0.5 seconds of the last
