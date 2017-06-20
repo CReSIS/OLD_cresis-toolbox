@@ -248,7 +248,7 @@ if ~param.get_heights.combine_only
           recs(breaks(break_idx+1)-1)+block_overlap];
       else
         cur_recs_keep = [recs(breaks(break_idx)) recs(end)];
-        cur_recs = [max(1,recs(breaks(break_idx))-block_overlap) recs(end)];
+        cur_recs = [max(1,recs(breaks(break_idx))-block_overlap) min(length(records.lat),recs(end)+block_overlap)];
       end
       
       % =====================================================================

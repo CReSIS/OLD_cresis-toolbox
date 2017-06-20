@@ -1064,7 +1064,7 @@ for accum_idx = 1:length(accum(board).wf)
     else
       freq_hack = param.wfs(wf).fc + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
     end
-    a_data = ifft(fft(a_data) .* exp(j*2*pi*freq_hack*drange/(c/2)));
+    a_data = ifft(fft(a_data) .* exp(1i*2*pi*freq_hack*drange/(c/2)));
   
     % Set invalid bins to NaN, so that averaging with invalid bins results
     % in an invalid bin (NaN).
