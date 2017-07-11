@@ -82,6 +82,10 @@ function [param] = load_mcrds_data(param)
 %
 % See also get_heights.m, csarp.m
 
+if ~isfield(param.proc,'raw_data')
+  param.proc.raw_data = false;
+end
+
 HEADER_SIZE = 160;
 
 global g_data;
@@ -207,6 +211,16 @@ while rec < total_rec;
             end
           end
         end
+        % Apply channel compensation
+        if ~param.proc.raw_data
+          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+            .* exp(1i*(param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
+              + param.adc_phase_corr_deg(rec,adc))/180*pi);
+          accum.data{accum_idx} = accum.data{accum_idx}/chan_equal;
+          adc_gain = param.load.wfs(find(param.load.recs(1) + rec -1 >= param.load.wfs_records,1)).wfs(wf).adc_gains;
+          accum.data{accum_idx} = accum.data{accum_idx}/adc_gain;
+        end
+        
         if param.proc.pulse_comp
           % ===========================================================
           % Do pulse compression
@@ -225,32 +239,21 @@ while rec < total_rec;
           accum.data{accum_idx} = fft([zeros(wfs(wf).pad_length,1); accum.data{accum_idx}]);
           % Zero pad end: (debug only)
           %accum.data{accum_idx} = fft(accum.data{accum_idx}, wfs(wf).Nt_pc);
-          try
-            accum.data{accum_idx} = ifft(accum.data{accum_idx}(wfs(wf).freq_inds) ...
-              .* wfs(wf).ref{adc}(wfs(wf).freq_inds));
-          catch
-            keyboard
+          
+          % Apply matched filter and transform back to time domain
+          accum.data{accum_idx} = ifft(accum.data{accum_idx} .* wfs(wf).ref{adc});
+          
+          if param.proc.ft_dec
+            % Digital down conversion and decimation
+            accum.data{accum_idx} = accum.data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
+            accum.data{accum_idx} = resample(double(accum.data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
           end
-          if wfs(wf).dc_shift ~= 0
-            % Correct for small frequency offset caused by selecting bins from
-            % frequency domain as the method for down conversion
-            accum.data{accum_idx} = accum.data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
-          end
-          % Apply channel compensation
-          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-            .* exp(j*(param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
-              + param.adc_phase_corr_deg(rec,adc))/180*pi);
-          accum.data{accum_idx} = accum.data{accum_idx}/chan_equal;
-          adc_gain = param.load.wfs(find(param.load.recs(1) + rec -1 >= param.load.wfs_records,1)).wfs(wf).adc_gains;
-          accum.data{accum_idx} = accum.data{accum_idx}/adc_gain;
+          
         elseif param.proc.ft_dec
           accum.data{accum_idx} = fft(accum.data{accum_idx},wfs(wf).Nt_raw);
           accum.data{accum_idx} = ifft(accum.data{accum_idx}(wfs(wf).freq_inds));
-          if wfs(wf).dc_shift ~= 0
-            % Correct for small frequency offset caused by selecting bins from
-            % frequency domain as the method for down conversion
-            accum.data{accum_idx} = accum.data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
-          end
+          accum.data{accum_idx} = accum.data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
+          accum.data{accum_idx} = resample(double(accum.data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
         end
         if param.proc.combine_rx
           if wf_adc_idx == 1

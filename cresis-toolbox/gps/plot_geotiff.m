@@ -48,7 +48,7 @@ end
 if 0
   % DEBUG
   RGB(RGB<0) = NaN;
-  imagesc( R(3,1) + R(2,1)*(0:size(RGB,2)-1), R(3,2) + R(1,2)*(0:size(RGB,1)-1), RGB);
+  imagesc( R(3,1) + R(2,1)*(1:size(RGB,2)), R(3,2) + R(1,2)*(1:size(RGB,1)), RGB);
   set(gca,'YDir','normal');
 end
 mapshow(RGB, R);

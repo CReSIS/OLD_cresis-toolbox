@@ -15,10 +15,12 @@
 % param_fn = ct_filename_param('snow_param_2011_Greenland_P3.xls');
 % param_fn = ct_filename_param('snow_param_2011_Antarctica_DC8.xls');
 % param_fn = ct_filename_param('snow_param_2012_Greenland_P3.xls');
-% param_fn = ct_filename_param('snow_param_2012_Antarctica_DC8.xls');
+% param_fn = ct_filename_param('snow_param_2012_Antarctica_DC8.xls')4423079122;
 % param_fn = ct_filename_param('snow_param_2014_Greenland_P3.xls');
 % param_fn = ct_filename_param('snow_param_2015_Greenland_C130.xls');
-param_fn = ct_filename_param('snow_param_2016_Greenland_P3.xls');
+% param_fn = ct_filename_param('snow_param_2016_Greenland_P3.xls');
+% param_fn = ct_filename_param('snow_param_2016_Antarctica_DC8.xls');
+param_fn = ct_filename_param('snow_param_2017_Greenland_P3.xls');
 
 % param_fn = ct_filename_param('kuband_param_2009_Greenland_P3.xls');
 % param_fn = ct_filename_param('kuband_param_2009_Antarctica_DC8.xls');

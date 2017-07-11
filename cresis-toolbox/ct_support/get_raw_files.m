@@ -34,6 +34,8 @@ global gRadar;
 param = merge_structs(gRadar,param);
 param.day_seg = frm_id(1:11);
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 % Load the records file
 records_fn = ct_filename_support(param,'','records');
 % load(records_fn);
@@ -58,25 +60,25 @@ else
 end
 
 %% Get filenames associated with the records in the frame
-if any(strcmpi(param.radar_name,{'kuband','kuband2','kuband3','snow','snow2','snow3','snow5'}))
+if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','snow','snow2','snow3','snow5','snow8'}))
   % Get the raw file numbers associated with the frm
   start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
   stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
   % Get the filenames associated with the frame
   fns = records.relative_filename{1}(start_filenum:stop_filenum).';
-elseif any(strcmpi(param.radar_name,{'accum2'}))
+elseif any(strcmpi(radar_name,{'accum2'}))
   % Get the raw file numbers associated with the frm
   start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
   stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
   % Get the filenames associated with the frame
   fns = records.relative_filename{1}(start_filenum:stop_filenum).';
-elseif any(strcmpi(param.radar_name,{'acords','mcrds'}))
+elseif any(strcmpi(radar_name,{'acords','mcrds'}))
   % Get the raw file numbers associated with the frm
   start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
   stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
   % Get the filenames associated with the frame
   fns = records.relative_filename{1}(start_filenum:stop_filenum).';
-elseif any(strcmpi(param.radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5'}))
+elseif any(strcmpi(radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5'}))
   % Get the filenames associated with the frame (channel 0, 1, 2, etc)
   filenames_idxs = 1:length(records.relative_filename);
   for fns_idx = 1:length(filenames_idxs)
@@ -99,7 +101,7 @@ fprintf('GPS time from %s to %s\n', ...
 gps_time = records.gps_time(start_rec:stop_rec);
 
 if exist('out_dir','var')
-  if any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
+  if any(strcmpi(radar_name,{'mcords2','mcords3'}))
     board = [];
     for adc_idx = 1:length(param.records.file.adcs)
       adc = param.records.file.adcs(adc_idx);

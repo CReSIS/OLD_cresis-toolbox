@@ -146,6 +146,19 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
+obj.tool_list{end+1} = imb.picktool_detect;
+addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
+% Left click: Enters a manual point based on parameters
+%   Find max in range (specify range line/bin extent to search)
+% Left click and drag: Runs tomo.detect algorithm on selected data.
+% Right click: Set cursor point
+% Right click and drag: Delete all points in range
+% Scroll: Zooms in/out
+% Ctrl + any click: Select layer
+% Ctrl + any click and drag: Zoom
+% Any double click: Nothing
+% Ctrl + double click: Zoom reset
+
 % obj.tool_list{end+1} = imb.picktool_landmark;
 % Left click: Create landmark point
 % Left click and drag: Create landmark region

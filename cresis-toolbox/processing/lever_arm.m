@@ -75,6 +75,24 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
+if (strcmpi(param.season_name,'2016_Greenland_TO') && strcmpi(gps_source,'ATM'))
+  % ===========================================================================
+  % All antenna positions measurements are relative to GPS antenna
+  % positions.
+  
+  % From Emily Arnold, Wed 5/17/2017 5:14 PM:
+  % Below are my best guesses with regards to the lever arm. All dimensions are in inches. The one dimension I am least confident in is the z-location, but it?s my best guess.
+  % 
+  %  	       GPS	 HF	   Lever-Arm
+  % FS (x) 357.8	468	  -110.2
+  % BL (y)	 9.84	  0      9.84
+  % WL (z)	42.1   -3.5	  45.6
+
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(gps_source,'ATM'))
   % ===========================================================================
   % All antenna positions measurements are relative to GPS antenna
@@ -514,9 +532,6 @@ if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'accum'
   LAtx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
   LAtx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
   
-  % Combined:
-  LAtx = mean(LAtx,2);
-  
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1:4;
   end
@@ -808,6 +823,28 @@ end
 % =========================================================================
 %% Radar Depth Sounder
 % =========================================================================
+
+if (strcmpi(param.season_name,'2016_Greenland_TO') && strcmpi(radar_name,'rds'))
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,:) = [-110.2]*2.54/100;
+  LArx(2,:) = [9.84]*2.54/100;
+  LArx(3,:) = [45.6]*2.54/100;
+  
+  LAtx(1,:) = [-110.2]*2.54/100;
+  LAtx(2,:) = [9.84]*2.54/100;
+  LAtx(3,:) = [45.6]*2.54/100;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'rds'))
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   LArx(1,:) = [-535.575 -535.575]*2.54/100 - 1.355;
@@ -928,44 +965,8 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(radar_name,'r
   end
 end
 
-if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'rds'))
-  % Center elements left to right
-  LArx(:,1) = [-587.7	-88.6	-72.8];
-  LArx(:,2) = [-587.7	-58.7	-71];
-  LArx(:,3) = [-587.7	-30.4	-69.2];
-  LArx(:,4) = [-587.7	0	-68.1];
-  LArx(:,5) = [-587.7	30.4	-69.2];
-  LArx(:,6) = [-587.7	58.7	-71];
-  LArx(:,7) = [-587.7	88.6	-72.8];
-  % Left outer elements, left to right
-  LArx(:,8) = [-586.3	-549.2	-128.7];
-  LArx(:,9) = [-586.3	-520.6	-125.2];
-  LArx(:,10) = [-586.3	-491.2	-121.6];
-  LArx(:,11) = [-586.3	-462.2	-118.1];
-  % Right outer elements, left to right
-  LArx(:,12) = [-586.3	462.2	-118.1];
-  LArx(:,13) = [-586.3	491.2	-121.6];
-  LArx(:,14) = [-586.3	520.6	-125.2];
-  LArx(:,15) = [-586.3	549.2	-128.7];
-  
-  LArx(1,:)   = LArx(1,:)*0.0254 - gps.x;
-  LArx(2,:)   = LArx(2,:)*0.0254 - gps.y;
-  LArx(3,:)   = LArx(3,:)*0.0254 - gps.z;
-  
-  LAtx = LArx(:,1:7);
-  
-  if ~exist('rxchannel','var') || isempty(rxchannel)
-    rxchannel = 1:15;
-  end
-  
-  % Amplitude (not power) weightings for transmit side.
-  if rxchannel == 0
-    rxchannel = 4;
-    tx_weights = ones(1,size(LAtx,2));
-  end
-end
-
-if (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'rds')) ...
+if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'rds')) ...
+    || (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2013_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2012_Greenland_P3') && strcmpi(radar_name,'rds')) ...

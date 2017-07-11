@@ -1,13 +1,18 @@
-function create_picking_spreadsheet(param_fn,xls_fn_dir)
-% create_picking_spreadsheet(param_fn,xls_fn_dir)
+function create_picking_spreadsheet(param_fn,xls_fn_dir,pick_param)
+% create_picking_spreadsheet(param_fn,xls_fn_dir,pick_param)
 %
 % Creates picking assignment table using param spreadsheet.
 % Must be run on a Windows machine with Excel.
 %
 % INPUT:
-%   system: String ex ('rds','accum','snow','kuband')
-%   param_fn: String, absolute filepath + filename to MS Excel params spreadsheet(.xls).
-%   xls_fn_dir: String, absolute output directory
+%  param_fn: String, absolute filepath + filename to MS Excel params spreadsheet(.xls).
+%  xls_fn_dir: String, absolute output directory
+%  pick_param: Structure controlling operation of this function
+%   .mode: String containing either "ascii" or "excel". If ascii, the
+%     function creates a list of all frames that are selected in the
+%     spreadsheet.
+%
+% GLOBAL VARIABLES USED:
 %   gRadar: struct from CReSIS startup.m
 %
 % OUTPUT:
@@ -22,33 +27,40 @@ function create_picking_spreadsheet(param_fn,xls_fn_dir)
 %
 % See also: read_param_xls.m
 
+%% Input argument checking
 global gRadar;
+
+if ~exist('pick_param','var')
+  pick_param = [];
+end
+
+if ~isfield(pick_param,'mode') || isempty(pick_param.mode)
+  pick_param.mode = 'ascii';
+end
 
 %% Read in the param spreadsheet
 params = read_param_xls(param_fn);
 
-%% Create picking filename
-% e.g. rds_picking_2013_Antarctica_P3.xls
-
-[radar_name_short,radar_type] = ct_output_dir(params(1).radar_name);
-
-xls_fn = fullfile(xls_fn_dir, sprintf('%s_picking_%s.xls', radar_name_short, params(1).season_name));
-
 %% Create Excel spreadsheet
+if strcmpi(pick_param.mode,'excel')
+  [radar_name_short,radar_type] = ct_output_dir(params(1).radar_name);
+  
+  xls_fn = fullfile(xls_fn_dir, sprintf('%s_picking_%s.xls', radar_name_short, params(1).season_name));
+  
+  if exist(xls_fn,'file')
+    warning('File %s already exists, overwriting', xls_fn);
+    delete(xls_fn);
+  end
 
-if exist(xls_fn,'file')
-  warning('File %s already exists, overwriting', xls_fn);
-  delete(xls_fn);
+  fprintf('Creating %s \n\n', xls_fn);
+  
+  % Create column header line.
+  col_header      = {'Segment','NumFrames','Surface','Bottom',...
+    'Owner','Notes','QC','QC_Owner'};
+  xlswrite(xls_fn, col_header,  'sheet1', 'A1')
 end
 
-fprintf('Creating %s \n\n', xls_fn);
-
-%% Create data and write into .xls file
-
-% Create column header line.
-col_header      = {'Segment','NumFrames','Surface','Bottom',...
-  'Owner','Notes','QC','QC_Owner'};
-xlswrite(xls_fn, col_header,  'sheet1', 'A1')
+%% Read in segment and frame data
 
 % Create data rows
 data_row_idx = 0;
@@ -56,82 +68,92 @@ for params_idx = 1:length(params)
   param = params(params_idx);
   
   % Ignore segments with 'do no process' note.
-  if ~isempty(strfind(lower(param.cmd.notes), 'do not process'))
+  if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
   end
   
   frames_fn = ct_filename_support(param,'','frames');
   load(frames_fn); % Load frames into variable "frames"
   
-  data_row{1} = param.day_seg;
-  data_row{2} = length(frames.frame_idxs);
-  data_row{3} = 0;
-  data_row{4} = 0;
-  data_row{5} = '';
-  data_row{6} = '';
-  data_row{7} = 0;
-  data_row{8} = '';
-  data_row_idx = data_row_idx + 1;
-  xlswrite(xls_fn, data_row, 'sheet1', sprintf('A%d',data_row_idx + 1));
+  if strcmpi(pick_param.mode,'ascii')
+    for frm = 1:length(frames.frame_idxs)
+      fprintf('%s_%03d\t\t0\n', param.day_seg, frm);
+    end
+  elseif strcmpi(pick_param.mode,'excel')
+    data_row{1} = param.day_seg;
+    data_row{2} = length(frames.frame_idxs);
+    data_row{3} = 0;
+    data_row{4} = 0;
+    data_row{5} = '';
+    data_row{6} = '';
+    data_row{7} = 0;
+    data_row{8} = '';
+    data_row_idx = data_row_idx + 1;
+    xlswrite(xls_fn, data_row, 'sheet1', sprintf('A%d',data_row_idx + 1));
+  end
 end
 
-% Create Excel_Application COM.
-Excel       = actxserver('Excel.Application');
-
-try
-  % Make Excel Invisible.
-  Excel.Visible = 0;
+%% Write data to excel file
+if strcmpi(pick_param.mode,'excel')
+  % Create Excel_Application COM.
+  Excel       = actxserver('Excel.Application');
   
-  % Define the workbook & sheet to operate on
-  Workbook    = Excel.Workbooks.Open(xls_fn);
-  sheet       = Workbook.Worksheets.Item('sheet1');
-  sheet.Name = sprintf('%s_picked', param.season_name);
-
-  Workbook.Worksheets.Item('Sheet2').Delete
-  Workbook.Worksheets.Item('Sheet3').Delete
-  
-  % Activate Sheet1
-  sheet.Activate();
-  
-  columns = {'C','D','G'};
-  
-  for column = columns
-    range = sprintf('%s2:%s%d',column{1},column{1},data_row_idx+1);
+  try
+    % Make Excel Invisible.
+    Excel.Visible = 0;
     
-    % Green when the value is 1.
-    sheet.Range(range).FormatConditions.Add(1,3,'1');
-    sheet.Range(range).FormatConditions.Item(1).interior.ColorIndex = 4;
+    % Define the workbook & sheet to operate on
+    Workbook    = Excel.Workbooks.Open(xls_fn);
+    sheet       = Workbook.Worksheets.Item('sheet1');
+    sheet.Name = sprintf('%s_picked', param.season_name);
     
-    % Red when the value is 0.
-    sheet.Range(range).FormatConditions.Add(1, 3, '0');
-    sheet.Range(range).FormatConditions.Item(2).interior.ColorIndex = 3;
+    Workbook.Worksheets.Item('Sheet2').Delete
+    Workbook.Worksheets.Item('Sheet3').Delete
     
-    % Yellow when the value is between .1 & .9.
-    sheet.Range(range).FormatConditions.Add(1, 1, '0.001', '0.999');
-    sheet.Range(range).FormatConditions.Item(3).interior.ColorIndex = 6;
+    % Activate Sheet1
+    sheet.Activate();
+    
+    columns = {'C','D','G'};
+    
+    for column = columns
+      range = sprintf('%s2:%s%d',column{1},column{1},data_row_idx+1);
+      
+      % Green when the value is 1.
+      sheet.Range(range).FormatConditions.Add(1,3,'1');
+      sheet.Range(range).FormatConditions.Item(1).interior.ColorIndex = 4;
+      
+      % Red when the value is 0.
+      sheet.Range(range).FormatConditions.Add(1, 3, '0');
+      sheet.Range(range).FormatConditions.Item(2).interior.ColorIndex = 3;
+      
+      % Yellow when the value is between .1 & .9.
+      sheet.Range(range).FormatConditions.Add(1, 1, '0.001', '0.999');
+      sheet.Range(range).FormatConditions.Item(3).interior.ColorIndex = 6;
+    end
+    
+    % Auto-Fit All Columns
+    Excel.ActiveSheet.Columns.AutoFit;
+    
+    % Make header columns bold
+    sheet.Range('A1:H1').Font.Bold = 1;
+    
+    %% Save & Close Connection
+    invoke(Workbook, 'Save');
+    invoke(Excel, 'Quit');
+    
+    delete(Excel);
+    
+  catch ME
+    warning(ME.getReport());
+    invoke(Excel, 'Quit');
+    delete(Excel);
   end
-  
-  % Auto-Fit All Columns
-  Excel.ActiveSheet.Columns.AutoFit;
-  
-  % Make header columns bold
-  sheet.Range('A1:H1').Font.Bold = 1;
-  
-  %% Save & Close Connection
-  invoke(Workbook, 'Save');
-  invoke(Excel, 'Quit');
-  
-  delete(Excel);
-  
-catch ME
-  warning(ME.getReport());
-  invoke(Excel, 'Quit');
-  delete(Excel);
 end
 
 return;
 
 
+%%
 fprintf('Setting Conditional Formatting for %s \n\n', xls_fn);
 
 % Set Range of values to manipulate.

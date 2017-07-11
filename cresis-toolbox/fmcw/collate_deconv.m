@@ -97,7 +97,7 @@ if stage_one_en
     else
       Nt = mode(cellfun(@length,spec.deconv_mean)); % HACK: Force Nt to be constant... need to handle differently for multiple NZ in same processing block and DDC
     end
-    [output_dir,radar_type] = ct_output_dir(param.radar_name);
+    [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
     if strcmpi(radar_type,'fmcw')
       spec.freq = spec.wf_freq;
       spec.Tpd = spec.wfs(wf).Tpd;
@@ -111,7 +111,7 @@ if stage_one_en
       final.param_analysis = spec.param_analysis;
       final.metric = [];
       final.num_response = [];
-      if any(strcmpi(ct_output_dir(param.radar_name),{'kuband','snow'}))
+      if any(strcmpi(ct_output_dir(radar_name),{'kuband','snow'}))
         final.match_freq = (spec.wfs(wf).fc + 2*spec.wfs(wf).chirp_rate / spec.wfs(wf).fs_raw * ((0:Nt-1) - floor(Nt/2))).';
         final.Tpd = spec.Tpd;
       end
@@ -167,7 +167,7 @@ if stage_one_en
       sig_tg(good_bins) = sig(good_bins) ...
         .* repmat(tukeywin_trim(length(good_bins),0.1), [1 size(sig,2)]);
       
-      if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3'}))
+      if any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','snow8'}))
         %% Perform required FFT shifts to bring fc into center and time zero back to start
         sig_tg = ifft(fftshift(fft(ifftshift(sig_tg,1)),1));
         spec.freq{rline} = fftshift(spec.freq{rline});
@@ -473,7 +473,7 @@ if stage_one_en
     metric = spec.metric;
     
     %% Final RDS Deconvolution Waveform Generation
-    if strcmpi(ct_output_dir(param.radar_name),'rds')
+    if any(strcmpi(output_dir,{'accum','rds'}))
       % Choose a reference function
       best_score = sum(spec.metric);
       [~,best_idx] = min(best_score);
@@ -925,8 +925,8 @@ if stage_two_en
   % waveform was collected and this code looks in other segments for these missing waveforms.
   % =========================================================================
 
-  if strcmpi(ct_output_dir(param.radar_name),'rds')
-    error('Stage two does not support rds (not needed).\n');
+  if any(strcmpi(output_dir,{'accum','rds'}))
+    error('Stage two does not support accum or rds (not needed).\n');
   end
   
   deconv_H = [];

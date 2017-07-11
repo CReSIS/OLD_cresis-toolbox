@@ -309,8 +309,13 @@ for board_idx = 1:length(boards)
           tmp = single(rec_data(1+mod(rel_adc-1,num_boards) + num_boards*(0:wfs(wf).Nt_raw-1) + cur_hdr_size/2 + num_boards*wfs(wf).offset/2));
         elseif param.load.file_version == 407
           % DDC
-          tmp = single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (1:2:2*wfs(wf).Nt_raw))) ...
-            + 1i*single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (2:2:2*wfs(wf).Nt_raw)));
+          if ~wfs(wf).conjugate
+            tmp = single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (1:2:2*wfs(wf).Nt_raw))) ...
+              + 1i*single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (2:2:2*wfs(wf).Nt_raw)));
+          else
+            tmp = single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (1:2:2*wfs(wf).Nt_raw))) ...
+              - 1i*single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (2:2:2*wfs(wf).Nt_raw)));
+          end
         elseif param.load.file_version == 408
           % New offset video sampling
           tmp = zeros(wfs(wf).Nt_raw,1,'single');
@@ -383,7 +388,7 @@ for board_idx = 1:length(boards)
           % Apply channel compensation
           if ~param.proc.raw_data
             chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-              .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+              .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
             accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}/chan_equal;
             accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}/wfs(wf).adc_gains(adc);
           end
@@ -401,25 +406,21 @@ for board_idx = 1:length(boards)
             % Zero pad end: (debug only)
             %accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx}, wfs(wf).Nt_pc);
             
-            % Decimate in frequency domain and transform back to time
-            % domain
-            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds) ...
-              .* wfs(wf).ref{adc}(wfs(wf).freq_inds));
+            % Apply matched filter and transform back to time domain
+            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx} .* wfs(wf).ref{adc});
             
-            % Correct for small frequency offset caused by selecting bins from
-            % frequency domain as the method for down conversion
-            if wfs(wf).dc_shift ~= 0
-              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
+            if param.proc.ft_dec
+              % Digital down conversion and decimation
+              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
+              accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
             end
             
           elseif param.proc.ft_dec
             accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx},wfs(wf).Nt_raw);
-            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds));
-            if wfs(wf).dc_shift ~= 0
-              % Correct for small frequency offset caused by selecting bins from
-              % frequency domain as the method for down conversion
-              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
-            end
+            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx});
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
+            accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
+            
           end
           if ~param.load.wf_adc_comb.en
             %% Regular loader (wf-adc pairs are only summed)

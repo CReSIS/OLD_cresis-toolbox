@@ -2,7 +2,7 @@ function doc = write_arena_xml(doc,node,arena)
 % doc = write_arena_xml(doc,node,arena)
 %
 % obj = xmlread(xml_fn);
-
+%
 % Author: John Paden
 
 if ~strcmpi(arena.version,'1')
@@ -34,16 +34,7 @@ if strcmpi(node,'ctu_0013')
   child.appendChild(doc.createTextNode(''));
   
   output = 0;
-  for PA = 1:8
-    child = doc.createElement('signalAlias'); config.appendChild(child);
-    child.appendChild(doc.createTextNode(''));
-    grandchild = doc.createElement('signal'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('output %d',output))); output = output + 1;
-    grandchild = doc.createElement('name'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('PA ENA %d',PA)));
-  end
-  
-  for signal_name = {'T/R','ISO','EPRI','PRI','EPRI','PRI','EPRI','PRI'}
+  for signal_name = arena.TTL_names
     child = doc.createElement('signalAlias'); config.appendChild(child);
     child.appendChild(doc.createTextNode(''));
     grandchild = doc.createElement('signal'); child.appendChild(grandchild);
@@ -53,58 +44,17 @@ if strcmpi(node,'ctu_0013')
   end
   
   child = doc.createElement('numSegments'); config.appendChild(child);
-  child.appendChild(doc.createTextNode('4'));
-  
-  segment_states{1} = [
-    0 1 1 0 % PA ENA 1
-    0 1 1 0 % PA ENA 2
-    0 1 1 0 % PA ENA 3
-    0 1 1 0 % PA ENA 4
-    0 1 1 0 % PA ENA 5
-    0 1 1 0 % PA ENA 6
-    0 1 1 0 % PA ENA 7
-    0 1 1 0 % PA ENA 8
-    0 1 1 0 % T/R
-    0 1 1 0 % ISO
-    1 0 0 0 % EPRI
-    0 1 0 0 % PRI
-    1 0 0 0 % EPRI
-    0 1 0 0 % PRI
-    1 0 0 0 % EPRI
-    0 1 0 0 % PRI
-    ];
-  segment_states{2} = [
-    0 1 1 0 % PA ENA 1
-    0 1 1 0 % PA ENA 2
-    0 1 1 0 % PA ENA 3
-    0 1 1 0 % PA ENA 4
-    0 1 1 0 % PA ENA 5
-    0 1 1 0 % PA ENA 6
-    0 1 1 0 % PA ENA 7
-    0 1 1 0 % PA ENA 8
-    0 1 1 0 % T/R
-    0 1 1 0 % ISO
-    0 0 0 0 % EPRI
-    0 1 0 0 % PRI
-    0 0 0 0 % EPRI
-    0 1 0 0 % PRI
-    0 0 0 0 % EPRI
-    0 1 0 0 % PRI
-    ];
+  child.appendChild(doc.createTextNode(sprintf('%d',size(arena.TTL_states{1},2))));
   
   num_modes = 0;
   for wf = 1:length(arena.wfs)
-    if arena.wfs(wf).Tpd > 0e-6
-      segment_times = [0.1 0.2 arena.wfs(wf).Tpd*1e6+2.2 arena.PRI*1e6];
-    else
-      segment_times = [0.1 0.2 arena.wfs(wf).Tpd*1e6+1 arena.PRI*1e6];
-    end
+    segment_times = [arena.TTL_time(1:2) arena.wfs(wf).Tpd*1e6+arena.TTL_time(3) arena.PRI*1e6];
     if wf == 1
-      wf_modes = 3;
-      segment_states_idx = [1 2 2];
+      wf_modes = length(arena.zeropimods)+1;
+      segment_states_idx = [1 2*ones(size(arena.zeropimods))];
     else
-      wf_modes = 2;
-      segment_states_idx = [2 2 2];
+      wf_modes = length(arena.zeropimods);
+      segment_states_idx = [2*ones(size(arena.zeropimods))];
     end
     
     for mode = 0:wf_modes-1
@@ -117,10 +67,10 @@ if strcmpi(node,'ctu_0013')
       grandchild.appendChild(doc.createTextNode(segment_time_str));
       grandchild = doc.createElement('segmentStates'); child.appendChild(grandchild);
       idx = segment_states_idx(mode+1);
-      segment_state_str = lower(dec2hex(bin2dec(char(segment_states{idx}(end:-1:1,1).'+48)),8));
-      for state_idx = 2:size(segment_states{idx},2)
+      segment_state_str = lower(dec2hex(bin2dec(char(arena.TTL_states{idx}(end:-1:1,1).'+48)),8));
+      for state_idx = 2:size(arena.TTL_states{idx},2)
         segment_state_str = cat(2,segment_state_str, ' ', ...
-          lower(dec2hex(bin2dec(char(segment_states{idx}(end:-1:1,state_idx).'+48)),8)));
+          lower(dec2hex(bin2dec(char(arena.TTL_states{idx}(end:-1:1,state_idx).'+48)),8)));
       end
       grandchild.appendChild(doc.createTextNode(segment_state_str));
     end
@@ -171,12 +121,12 @@ if strcmpi(node,'ctu_0013')
   
 end
 
-%% DAC:
+%% DAC ACCUM:
 if strcmpi(node,'dac-ad9129_0014')
   system = doc.getFirstChild;
   configs = system.getFirstChild;
   
-  for dac = 0:7
+  for dac = arena.dacs
     config = doc.createElement('config'); configs.appendChild(config);
     config.setAttribute('type','dac-ad9129_0014');
     
@@ -186,14 +136,14 @@ if strcmpi(node,'dac-ad9129_0014')
     child = doc.createElement('description'); config.appendChild(child);
     child.appendChild(doc.createTextNode(''));
     
-    
     num_modes = 0;
     for wf = 1:length(arena.wfs)
+      zeropimods = arena.wfs(wf).zeropimods(:).';
       Tpd = round(arena.wfs(wf).Tpd*1e6);
       if wf == 1
-        wf_modes = 3;
+        wf_modes = 1+length(zeropimods);
       else
-        wf_modes = 2;
+        wf_modes = length(zeropimods);
       end
       
       for mode = 0:wf_modes-1
@@ -211,11 +161,7 @@ if strcmpi(node,'dac-ad9129_0014')
         grandchild.appendChild(doc.createTextNode('0.000000'));
         grandchild = doc.createElement('config'); child.appendChild(grandchild);
         if arena.wfs(wf).enabled(dac+1)
-          if mod(mode,2)
-            grandchild.appendChild(doc.createTextNode(sprintf('waveformCh%d_%dus_180',dac,Tpd)));
-          else
-            grandchild.appendChild(doc.createTextNode(sprintf('waveformCh%d_%dus',dac,Tpd)));
-          end
+          grandchild.appendChild(doc.createTextNode(sprintf('waveformCh%d_%dus_%.0f',dac,Tpd,zeropimods(1+mod(mode,length(zeropimods))) )));
         else
           grandchild.appendChild(doc.createTextNode('No_Tx'));
         end
@@ -231,8 +177,8 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
   system = doc.getFirstChild;
   configs = system.getFirstChild;
 
-  wf = 1; dac = 1; zeropimod = 0;
-  fs = arena.fs*1e6;
+  wf = 1; dac_idx = 1; dac = arena.dacs(dac_idx); zeropimod = 0;
+  fs = arena.dacs_sampFreq(dac_idx);
   fc = arena.wfs(wf).fc;
   BW = arena.wfs(wf).BW;
   Tpd = arena.wfs(wf).Tpd;
@@ -258,13 +204,13 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
   grandchild = doc.createElement('name'); child.appendChild(grandchild);
   grandchild.appendChild(doc.createTextNode('Pulse'));
   grandchild = doc.createElement('centerFreq'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode(sprintf('%f',fc(dac+1)/1e6)));
+  grandchild.appendChild(doc.createTextNode(sprintf('%f',fc(dac_idx)/1e6)));
   grandchild = doc.createElement('bandwidth'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode(sprintf('%f',BW(dac+1)/1e6)));
+  grandchild.appendChild(doc.createTextNode(sprintf('%f',BW(dac_idx)/1e6)));
   grandchild = doc.createElement('initialDelay'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac+1)*1e-3)));
+  grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac_idx)*1e-3)));
   grandchild = doc.createElement('initialPhase'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac+1)+zeropimod)));
+  grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac_idx)+zeropimod)));
   grandchild = doc.createElement('afterPulseDelay'); child.appendChild(grandchild);
   grandchild.appendChild(doc.createTextNode('1.000000'));
   grandchild = doc.createElement('taper'); child.appendChild(grandchild);
@@ -274,13 +220,12 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
   grandchild = doc.createElement('scale'); child.appendChild(grandchild);
   grandchild.appendChild(doc.createTextNode('0.000000'));
   grandchild = doc.createElement('numPoints'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode(sprintf('%d',Nt(dac+1))));
+  grandchild.appendChild(doc.createTextNode(sprintf('%d',Nt(dac_idx))));
   grandchild = doc.createElement('Filename'); child.appendChild(grandchild);
   grandchild.appendChild(doc.createTextNode(''));  
 
   waveform_names = {};
   for wf = 1:length(arena.wfs)
-    fs = arena.fs*1e6;
     fc = arena.wfs(wf).fc;
     BW = arena.wfs(wf).BW;
     Tpd = arena.wfs(wf).Tpd;
@@ -294,13 +239,11 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
     %  0.1652 0.326800 0.511500 0.63 0.6300 0.511500 0.3268 0.1652
     %    chebwin(8,30)
     
-    for dac=0:7
-      for zeropimod = [0 180]
-        if zeropimod == 0
-          new_waveform_name = sprintf('waveformCh%d_%.0fus',dac,Tpd*1e6);
-        else
-          new_waveform_name = sprintf('waveformCh%d_%.0fus_180',dac,Tpd*1e6);
-        end
+    for dac_idx=1:length(arena.dacs)
+      dac = arena.dacs(dac_idx);
+      fs = arena.dacs_sampFreq(dac_idx);
+      for zeropimod = arena.wfs(wf).zeropimods(:).'
+        new_waveform_name = sprintf('waveformCh%d_%.0fus_%.0f',dac,Tpd*1e6,zeropimod);
         if any(strcmpi(new_waveform_name,waveform_names))
           continue;
         end
@@ -322,13 +265,13 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
         grandchild = doc.createElement('name'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode('Pulse'));
         grandchild = doc.createElement('centerFreq'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode(sprintf('%f',fc(dac+1)/1e6)));
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',fc(dac_idx)/1e6)));
         grandchild = doc.createElement('bandwidth'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode(sprintf('%f',BW(dac+1)/1e6)));
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',BW(dac_idx)/1e6)));
         grandchild = doc.createElement('initialDelay'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac+1)*1e-3)));
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.delay(dac_idx)*1e-3)));
         grandchild = doc.createElement('initialPhase'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac+1)+zeropimod)));
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.phase(dac_idx)+zeropimod)));
         grandchild = doc.createElement('afterPulseDelay'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode('1.000000'));
         grandchild = doc.createElement('taper'); child.appendChild(grandchild);
@@ -336,9 +279,9 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
         grandchild = doc.createElement('alpha'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode(sprintf('%f',alpha)));
         grandchild = doc.createElement('scale'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.scale(dac+1))));
+        grandchild.appendChild(doc.createTextNode(sprintf('%f',equal.scale(dac_idx))));
         grandchild = doc.createElement('numPoints'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode(sprintf('%d',Nt(dac+1))));
+        grandchild.appendChild(doc.createTextNode(sprintf('%d',Nt(dac_idx))));
         grandchild = doc.createElement('Filename'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode(''));
       end
@@ -362,38 +305,48 @@ if strcmpi(node,'psc_0001')
   child.appendChild(doc.createTextNode(''));
   
   num_psc = 0;
+  num_wf = 0;
   for wf = 1:length(arena.wfs)
+    zeropimods = arena.wfs(wf).zeropimods(:).';
     if wf == 1
       if arena.wfs(wf).presums == 1
         psc_repeat = [0 0 0];
-        psc_name = {sprintf('%.0fus, EPRI, Zero',arena.wfs(wf).Tpd*1e6)};
-      elseif arena.wfs(wf).presums == 2
-        psc_repeat = [0 0 0;
-          1 0 0];
-        psc_name = {sprintf('%.0fus, EPRI, Zero',arena.wfs(wf).Tpd*1e6)
-          sprintf('%.0fus, PRI, PI',arena.wfs(wf).Tpd*1e6)};
-      elseif ~mod(arena.wfs(wf).presums,2)
-        psc_repeat = [0 0 0;
-          1 0 0;
-          2 1 (arena.wfs(wf).presums-4)/2;
-          1 0 0];
-        psc_name = {sprintf('%.0fus, EPRI, Zero',arena.wfs(wf).Tpd*1e6)
-          sprintf('%.0fus, PRI, PI',arena.wfs(wf).Tpd*1e6)
-          sprintf('%.0fus, PRI, Zero',arena.wfs(wf).Tpd*1e6)
-          sprintf('%.0fus, PRI, PI',arena.wfs(wf).Tpd*1e6)};
+        zeropimod = zeropimods(1);
+        psc_name = {sprintf('%.0fus, EPRI, %d',arena.wfs(wf).Tpd*1e6, zeropimod)};
+        num_pulse_states = num_pulse_states + 1;
+      elseif arena.wfs(wf).presums == length(zeropimods)
+        psc_repeat = zeros(length(zeropimods),3);
+        psc_repeat(:,1) = 0:length(zeropimods)-1;
+        psc_name{1} = sprintf('%.0fus, EPRI, %d',arena.wfs(wf).Tpd*1e6, zeropimods(1));
+        for zeropimod = zeropimods(2:end)
+          psc_name{end+1} = sprintf('%.0fus, PRI, %d',arena.wfs(wf).Tpd*1e6, zeropimod);
+        end
+      elseif mod(arena.wfs(wf).presums,length(zeropimods)) == 0
+        psc_repeat = zeros(2*length(zeropimods),3);
+        psc_repeat(:,1) = [0:length(zeropimods), 1:length(zeropimods)-1];
+        psc_repeat(end,2:3) = [length(zeropimods), (arena.wfs(wf).presums-2*length(zeropimods))/length(zeropimods)];
+        psc_name{1} = sprintf('%.0fus, EPRI, %d',arena.wfs(wf).Tpd*1e6, zeropimods(1));
+        for zeropimod = zeropimods(2:end)
+          psc_name{end+1} = sprintf('%.0fus, PRI, %d',arena.wfs(wf).Tpd*1e6, zeropimod);
+        end
+        for zeropimod = zeropimods
+          psc_name{end+1} = sprintf('%.0fus, PRI, %d',arena.wfs(wf).Tpd*1e6, zeropimod);
+        end
       else
-        error('Odd number of presums, %d, greater than 1 not supported.', ...
-          arena.wfs(wf).presums);
+        error('Presums %d>1 so presums must be a multiple of zeropimods length=%d.', ...
+          arena.wfs(wf).presums, length(zeropimods));
       end
     else
       if arena.wfs(wf).presums == 1
-        psc_repeat = [2*wf-1 0 0];
+        psc_repeat = [length(zeropimods)*(wf-1)+1 0 0];
         psc_name = {sprintf('%.0fus, PRI, Zero',arena.wfs(wf).Tpd*1e6)};
       elseif ~mod(arena.wfs(wf).presums,2)
-        psc_repeat = [2*wf-1 0 0;
-          2*wf num_psc (arena.wfs(wf).presums-2)/2];
-        psc_name = {sprintf('%.0fus, PRI, Zero',arena.wfs(wf).Tpd*1e6)
-          sprintf('%.0fus, PRI, PI',arena.wfs(wf).Tpd*1e6)};
+        psc_repeat = zeros(length(zeropimods),3);
+        psc_repeat(:,1) = length(zeropimods)*(wf-1) + (1:length(zeropimods));
+        psc_repeat(end,2:3) = [num_psc, (arena.wfs(wf).presums-length(zeropimods))/length(zeropimods)];
+        for zeropimod = zeropimods
+          psc_name{end+1} = sprintf('%.0fus, PRI, %d',arena.wfs(wf).Tpd*1e6, zeropimod);
+        end
       else
         error('Odd number of presums, %d, greater than 1 not supported.', ...
           arena.wfs(wf).presums);
@@ -430,9 +383,9 @@ if strcmpi(node,'subsystems')
   configs = system.getFirstChild;
   
   % AWG
-  desiredAlignMin = [0 10 -5 10 0 10 0 10];
-  desiredAlignMax = desiredAlignMin+20;
-  for awg = 0:3
+  for awg_idx = 1:length(arena.awg)
+    awg = arena.awg(awg_idx).awg;
+    
     config = doc.createElement('subSystem'); system.appendChild(config);
     
     child = doc.createElement('name'); config.appendChild(child);
@@ -448,40 +401,26 @@ if strcmpi(node,'subsystems')
     child = doc.createElement('config'); config.appendChild(child);
     child.appendChild(doc.createTextNode(''));
     child.setAttribute('type','psc_0001');
-    
-    child = doc.createElement('subSystem'); config.appendChild(child);
-    grandchild = doc.createElement('name'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('awg%d',awg*2)));
-    grandchild = doc.createElement('disableSync'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode('0'));
-    grandchild = doc.createElement('dacClk'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode('1600.000000'));
-    grandchild = doc.createElement('mixMode'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode('0'));
-    grandchild = doc.createElement('desiredAlignMin'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('%d',desiredAlignMin(awg*2+1))));
-    grandchild = doc.createElement('desiredAlignMax'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('%d',desiredAlignMax(awg*2+1))));
-    grandchild = doc.createElement('config'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('dacConfig%d',awg*2)));
-    grandchild.setAttribute('type','dac-ad9129_0014');
-    
-    child = doc.createElement('subSystem'); config.appendChild(child);
-    grandchild = doc.createElement('name'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('awg%d',awg*2+1)));
-    grandchild = doc.createElement('disableSync'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode('0'));
-    grandchild = doc.createElement('dacClk'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode('1600.000000'));
-    grandchild = doc.createElement('mixMode'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode('0'));
-    grandchild = doc.createElement('desiredAlignMin'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('%d',desiredAlignMin(awg*2+2))));
-    grandchild = doc.createElement('desiredAlignMax'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('%d',desiredAlignMax(awg*2+2))));
-    grandchild = doc.createElement('config'); child.appendChild(grandchild);
-    grandchild.appendChild(doc.createTextNode(sprintf('dacConfig%d',awg*2+1)));
-    grandchild.setAttribute('type','dac-ad9129_0014');
+
+    for dac_idx = 1:length(arena.awg(awg_idx).dacs)
+      dac = arena.awg(awg_idx).dacs(dac_idx);
+      child = doc.createElement('subSystem'); config.appendChild(child);
+      grandchild = doc.createElement('name'); child.appendChild(grandchild);
+      grandchild.appendChild(doc.createTextNode(sprintf('awg%d',dac)));
+      grandchild = doc.createElement('disableSync'); child.appendChild(grandchild);
+      grandchild.appendChild(doc.createTextNode('0'));
+      grandchild = doc.createElement('dacClk'); child.appendChild(grandchild);
+      grandchild.appendChild(doc.createTextNode(sprintf('%g',arena.awg(awg_idx).dacClk(dac_idx)/1e6)));
+      grandchild = doc.createElement('mixMode'); child.appendChild(grandchild);
+      grandchild.appendChild(doc.createTextNode('0'));
+      grandchild = doc.createElement('desiredAlignMin'); child.appendChild(grandchild);
+      grandchild.appendChild(doc.createTextNode(sprintf('%d',arena.awg(awg_idx).desiredAlignMin(dac_idx))));
+      grandchild = doc.createElement('desiredAlignMax'); child.appendChild(grandchild);
+      grandchild.appendChild(doc.createTextNode(sprintf('%d',arena.awg(awg_idx).desiredAlignMax(dac_idx))));
+      grandchild = doc.createElement('config'); child.appendChild(grandchild);
+      grandchild.appendChild(doc.createTextNode(sprintf('dacConfig%d',dac)));
+      grandchild.setAttribute('type','dac-ad9129_0014');
+    end
   end
   
   % CTU

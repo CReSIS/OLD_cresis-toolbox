@@ -114,6 +114,7 @@ classdef slice_browser < handle
         tmp = load(param.layer_fn);
         obj.layer_fn = param.layer_fn;
         obj.layer = tmp.surf;
+        obj.layer_populate_defaults;
       else
         obj.layer = struct('x',{},'y',{},'name',{},'plot_name_values',{});
       end
@@ -127,7 +128,7 @@ classdef slice_browser < handle
         obj.h_control_is_child = true;
         obj.h_control_fig = figure;
         obj.h_control_axes = axes('Parent',obj.h_control_fig);
-        obj.h_control_image = imagesc(10*log10(squeeze(obj.data(:,floor(size(data,2)/2)+1,:))),'Parent',obj.h_control_axes);
+        obj.h_control_image = imagesc(squeeze(obj.data(:,floor(size(data,2)/2)+1,:)),'Parent',obj.h_control_axes);
         colormap(obj.h_control_axes,parula(256));
         xlabel(obj.h_control_axes,'Along-track range line');
         ylabel(obj.h_control_axes,'Range bin');
@@ -1016,6 +1017,16 @@ classdef slice_browser < handle
       layer_idx = get(obj.gui.layerLB,'value');
       obj.layer(layer_idx).visible = ~obj.layer(layer_idx).visible;
       obj.update_slice();
+    end
+    
+    %% layer_populate_defaults
+    function layer_populate_defaults(obj)
+      % Populates the default fields required for the layer object
+      for layer_idx = 1:length(obj.layer)
+        if ~isfield(obj.layer,'visible') || isempty(obj.layer(layer_idx).visible)
+          obj.layer(layer_idx).visible = true;
+        end
+      end
     end
     
     %% optionsPB_callback Tool

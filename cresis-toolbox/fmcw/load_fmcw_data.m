@@ -1,4 +1,4 @@
-function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt] = load_fmcw_data(param,records)
+function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt,img_nyquist_zone] = load_fmcw_data(param,records)
 % [img_time,img_valid_rng,img_deconv_filter_idx,img_freq] = load_fmcw_data(param,records)
 %
 % Loads and pulse compresses the FMCW data for functions like
@@ -104,8 +104,10 @@ for accum_idx = 1:length(accum(board).wf)
   num_sam = zeros(1,total_recs);
   time_offset = zeros(1,total_recs);
   nyquist_zone = zeros(1,total_recs);
+  waveform_ID = zeros(1,total_recs);
   presums = zeros(1,total_recs);
   bit_shifts = zeros(1,total_recs);
+  NCO_freq = zeros(1,total_recs);
   rline = 0;
   a_data = zeros(1,Nx,'single');
   
@@ -323,6 +325,40 @@ for accum_idx = 1:length(accum(board).wf)
            interp_flag = 0;
         end
       end
+      
+    elseif any(param.load.file_version == [8])
+      %% File Version 8: Carl Leuschen's Keysight + NI system
+      % Open file
+      [fid,msg] = fopen(fn,'r','ieee-be');
+      if fid < 1
+        fprintf('Could not open file %s\n', fn);
+        error(msg);
+      end
+      
+      % Read in records
+      for offset = param.load.offset{adc}(param.load.file_idx{adc} == file_idx)
+        rline = rline + 1;
+        % To determine size of data record we need and the time offset:
+        % 33: nyquist zone (external filter select)
+        % 34: presums
+        % 35: bit shifts
+        % 36: start index
+        % 38: stop index
+        % 40: waveform ID
+        fseek(fid,offset + 33,-1);
+        
+        % Currently we use only the first waveform header
+        nyquist_zone(rline) = fread(fid,1,'uint8');
+        presums(rline) = fread(fid,1,'uint8') + 1;
+        bit_shifts(rline) = -fread(fid,1,'int8');
+        start_idx(rline) = fread(fid,1,'uint16');
+        stop_idx = fread(fid,1,'uint16');
+        waveform_ID(rline) = fread(fid,1,'uint64');
+        num_sam(rline) = 2*(stop_idx - start_idx(rline));
+        
+        % Raw/real data
+        a_data(1:num_sam(rline),rline) = fread(fid,num_sam(rline),'int16=>single');
+      end
       % Close file
       fclose(fid);
       % Frame 13:
@@ -493,10 +529,11 @@ for accum_idx = 1:length(accum(board).wf)
   
   if ~param.proc.pulse_comp
     img_time{1} = [];
-    img_valid_rng = [];
-    img_deconv_filter_idx = [];
-    img_freq = [];
+    img_valid_rng{1} = [];
+    img_deconv_filter_idx{1} = [];
+    img_freq{1} = [];
     img_Mt{1} = [];
+    img_nyquist_zone{1} = nyquist_zone;
     g_data{img_idx} = a_data;
     return;
   end
@@ -769,7 +806,7 @@ for accum_idx = 1:length(accum(board).wf)
       % 1-D FILTER
       a_data = fft(a_data,[],2);
       noise_bins = 1:round(size(a_data,1)*0.4);
-      bad_mask = lp(mean(abs(a_data(noise_bins,:,1)).^2)) > lp(median(mean(abs(a_data(noise_bins,:,1)).^2)))+param.proc.coh_noise_arg{2};
+      bad_mask = lp(nanmean(abs(a_data(noise_bins,:,1)).^2)) > lp(nanmedian(nanmean(abs(a_data(noise_bins,:,1)).^2)))+param.proc.coh_noise_arg{2};
       bad_mask = grow(bad_mask,param.proc.coh_noise_arg{3});
       bad_mask2 = filter2(Hwin/sum(Hwin),[ones(1,length(Hwin)/2-1/2) bad_mask ones(1,length(Hwin)/2-1/2)],'valid');
       for rbin = 1:size(a_data,1);
@@ -1027,7 +1064,7 @@ for accum_idx = 1:length(accum(board).wf)
     else
       freq_hack = param.wfs(wf).fc + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
     end
-    a_data = ifft(fft(a_data) .* exp(j*2*pi*freq_hack*drange/(c/2)));
+    a_data = ifft(fft(a_data) .* exp(1i*2*pi*freq_hack*drange/(c/2)));
   
     % Set invalid bins to NaN, so that averaging with invalid bins results
     % in an invalid bin (NaN).
@@ -1242,6 +1279,7 @@ for accum_idx = 1:length(accum(board).wf)
   img_deconv_filter_idx{img_idx} = deconv_filter_idx;
   img_freq{img_idx} = freq;
   img_Mt{img_idx} = Mt;
+  img_nyquist_zone{img_idx} = nyquist_zone;
 end
 end
 

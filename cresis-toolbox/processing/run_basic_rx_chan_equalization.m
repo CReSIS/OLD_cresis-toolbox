@@ -6,7 +6,7 @@
 % Author: John Paden, Logan Smith
 
 % Enable Just One Radar Setup
-radar_setup = 'MCORDS3_DC8';
+radar_setup = 'MCORDS5_P3';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
@@ -25,6 +25,33 @@ if strcmpi(radar_setup,'MCORDS5')
   %wf = 1; adcs = 1:8; ref = 4; % Waveform 1, Left subarray
   %wf = 1; adcs = 9:16; ref = 4; % Waveform 1, Center subarray
   %wf = 1; adcs = 17:24; ref = 4; % Waveform 1, Right subarray
+  param.img = cat(2,wf*ones(length(adcs),1),adcs.'); param.ref_wf_adc = ref;
+  
+  % .recs: two element vector specifying which records/range-lines to load
+  %   [start_record num_records]
+  param.recs = [0 inf];
+  
+  % .presums: Number of additional software presums (coherent averaging) to do
+  param.presums = 20;
+  
+  % .delay: the method used to calculate delay between the channels
+  param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10);
+end
+
+%% RDS: MCORDS5_P3 (Accumulation Radar)
+if strcmpi(radar_setup,'MCORDS5_P3')
+  [param,defaults] = default_radar_params_2017_Greenland_P3_accum;
+  
+  % .file_search_mode: Specify how to search for a file: 'last_file',
+  %   'specific', 'default', or empty to be asked
+  param.file_search_mode = '';
+
+  % .base_dir_search: cell vector of paths to search for data files
+  param.base_dir_search = {'/process-archive/20170322/accum/'};
+  
+  % .img: wf-adc pair list which specifies which waveform-adc pairs to
+  %   analyze
+  wf = 1; adcs = 1:4; ref = 2; % Waveform 1, All ADCs
   param.img = cat(2,wf*ones(length(adcs),1),adcs.'); param.ref_wf_adc = ref;
   
   % .recs: two element vector specifying which records/range-lines to load

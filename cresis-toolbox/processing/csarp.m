@@ -49,6 +49,8 @@ end
 % Get WGS84 ellipsoid parameters
 physical_constants;
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 csarp_out_path = ct_filename_out(param,param.csarp.out_path,'CSARP_out');
 if ~exist(csarp_out_path,'dir')
   mkdir(csarp_out_path);
@@ -112,16 +114,16 @@ g_data = [];
 % Collect waveform information into one structure
 %  - This is used to break the frame up into chunks
 % =====================================================================
-if strcmpi(param.radar_name,'mcrds')
+if strcmpi(radar_name,'mcrds')
   wfs = load_mcrds_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   wfs = load_mcords_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(param.radar_name,{'icards'}))% add icards---qishi
+elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
   wfs = load_icards_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   wfs = load_fmcw_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
   for wf=1:length(wfs)
@@ -235,12 +237,12 @@ max_des_ang = (max(abs(param.csarp.sub_aperture_steering))+0.5)*sar_bw;
 %     Do not combine receivers (groups wf/adc pairs by board number).
 % =====================================================================
 force_one_wf_adc_pair_per_job = true;
-if ~param.csarp.combine_rx && any(strcmpi(param.radar_name,{'mcrds','mcords2','mcords3'}))
+if ~param.csarp.combine_rx && any(strcmpi(radar_name,{'mcrds','mcords2','mcords3'}))
   % Define adc to board mapping
-  if strcmpi(param.radar_name,'mcrds')
+  if strcmpi(radar_name,'mcrds')
     num_adcs_per_board = 8;
     num_boards = 1;
-  elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
+  elseif any(strcmpi(radar_name,{'mcords2','mcords3'}))
     num_adcs_per_board = 4;
     num_boards = 4;
   end
@@ -533,8 +535,8 @@ for frm_idx = 1:length(param.cmd.frms)
       
       if strcmp(param.sched.type,'custom_torque')
         create_task_param.conforming = true;
-        create_task_param.notes = sprintf('%s %d (%d of %d)/%d of %d %s combine_rx %d', ...
-          param.day_seg, frm, frm_idx, length(param.cmd.frms), chunk_idx, length(output_chunk_idxs), wf_adc_str, param.csarp.combine_rx);
+        create_task_param.notes = sprintf('%s %s %d (%d of %d)/%d of %d %s combine_rx %d', ...
+          param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), chunk_idx, length(output_chunk_idxs), wf_adc_str, param.csarp.combine_rx);
         ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
         
       elseif ~strcmp(param.sched.type,'no scheduler')

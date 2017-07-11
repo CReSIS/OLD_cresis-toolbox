@@ -176,6 +176,7 @@ for wf = 1:length(param.radar.wfs)
   wfs(wf).Tpd     = param.radar.wfs(wf).Tpd;
   wfs(wf).f0      = param.radar.wfs(wf).f0;
   wfs(wf).f1      = param.radar.wfs(wf).f1;
+  wfs(wf).ft_dec  = param.radar.wfs(wf).ft_dec;
   if isfield(param.radar.wfs(wf),'Tadc_adjust') && ~isempty(param.radar.wfs(wf).Tadc_adjust)
     Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
   else
@@ -218,10 +219,8 @@ for wf = 1:length(param.radar.wfs)
 
   if isfield(param.radar.wfs(wf),'BW') && ~isempty(param.radar.wfs(wf).BW)
     BW_window = param.radar.wfs(wf).BW(1);
-    BW_decimation = param.radar.wfs(wf).BW(2);
   else
     BW_window = abs(wfs(wf).f1 - wfs(wf).f0);
-    BW_decimation = abs(wfs(wf).f1 - wfs(wf).f0);
   end
   
   % ===================================================================
@@ -306,32 +305,27 @@ for wf = 1:length(param.radar.wfs)
   %freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
   wfs(wf).time_raw = t0 + (0:dt:(Nt-1)*dt).';
   
+  %% Create Decimation Information
   if proc_param.ft_dec
-    if wfs(wf).DDC_mode == 0
-      %% DDC Disabled or no DDC
-      wfs(wf).freq_inds = ifftshift(find(freq >= fc-BW_decimation/2 & freq <= fc+BW_decimation/2));
-      wfs(wf).dc_shift = freq(wfs(wf).freq_inds(1))-fc;
-    else
-      %% DDC Enabled
+    if wfs(wf).DDC_mode ~= 0
+      % DDC Enabled
       freq = wfs(wf).DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-      wfs(wf).freq_inds = find(freq >= min(f0,f1) & freq <= max(f0,f1));
-      wfs(wf).dc_shift = fc-freq(wfs(wf).freq_inds(1));
     end
     wfs(wf).fc = fc;
   else
-    wfs(wf).freq_inds = 1:length(freq);
-    wfs(wf).dc_shift = 0;
     wfs(wf).fc = fs*floor(max(f0,f1)/fs);
   end
+
+  %% Create Windowing Information
   if ~proc_param.ft_wind_time && ~isempty(proc_param.ft_wind) ...
       && proc_param.pulse_comp
     ft_wind = zeros(size(freq));
     
     if wfs(wf).DDC_mode == 0
-      %% DDC Disabled or no DDC
+      % DDC Disabled or no DDC
       freq_inds = ifftshift(find(freq >= fc-BW_window/2 & freq <= fc+BW_window/2));
     else
-      %% DDC Enabled
+      % DDC Enabled
       freq_inds = find(freq >= min(f0,f1) & freq <= max(f0,f1));
     end
     [~,sorted_freq_inds] = sort(freq(freq_inds));
@@ -339,31 +333,47 @@ for wf = 1:length(param.radar.wfs)
     ft_wind(sorted_freq_inds) = proc_param.ft_wind(length(freq_inds));
     
     for adc = adcs
-      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* ft_wind;
+      if ~wfs(wf).ref_windowed(adc)
+        wfs(wf).ref{adc} = wfs(wf).ref{adc} .* ft_wind;
+      end
     end
+  end
+  
+  %% Normalize reference function so that it is an estimator
+  %  -- Accounts for pulse duration differences
+  for adc = adcs
+    time_domain_ref = ifft(wfs(wf).ref{adc});
+    wfs(wf).ref{adc} = wfs(wf).ref{adc} ...
+      ./ dot(time_domain_ref,time_domain_ref);
   end
   
   % ===================================================================
   % Create output data time/freq axes variables
-  
-  Nt = length(wfs(wf).freq_inds);
-  wfs(wf).dt = 1/(Nt*df);
-  wfs(wf).df = df;
+  if ~proc_param.pulse_comp
+    Nt = ceil(wfs(wf).Nt_raw*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2));
+  else
+    Nt = ceil(wfs(wf).Nt_pc*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2));
+  end
   wfs(wf).Nt = Nt;
-  wfs(wf).fs = Nt*df;
-  dt = 1/wfs(wf).fs;
   if proc_param.ft_dec
+    wfs(wf).fs = fs * wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2);
+    wfs(wf).dt = 1/wfs(wf).fs;
+    wfs(wf).df = wfs(wf).fs/wfs(wf).Nt;
+    dt = wfs(wf).dt;
     % Starts at fc goes to fc+BW/2, fc-BW/2 to fc
     wfs(wf).freq = fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    wfs(wf).time = t0 + (0:dt:(Nt-1)*dt).';
   else
+    wfs(wf).df = df;
+    wfs(wf).dt = 1/(Nt*df);
+    wfs(wf).fs = Nt*df;
+    dt = wfs(wf).dt;
     % Let ftnz = fast time nyquist zone
     % Starts at ftnz*fs goes to ftnz*fs+fs/2, ftnz*fs-fs/2 to ftnz*fs
-    wfs(wf).freq = round(fc/fs)*fs ...
-      + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    %wfs(wf).freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
-    wfs(wf).time = t0 + (0:dt:(Nt-1)*dt).';
+    %     wfs(wf).freq = round(fc/fs)*fs ...
+    %       + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+    wfs(wf).freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
   end
+  wfs(wf).time = t0 + dt*(0:Nt-1).';
   if proc_param.pulse_comp
     % Assuming pulse compression zero pads the front of the waveform, the
     % output will start earlier by an ammount proportional to the zero
@@ -372,11 +382,11 @@ for wf = 1:length(param.radar.wfs)
     
     % Modify reference function so that time vector elements are multiples
     % of dt.
-    time_correction = dt - mod(wfs(wf).time(1),dt);
-    wfs(wf).time = wfs(wf).time + time_correction;
+    wfs(wf).time_correction = dt - mod(wfs(wf).time(1),dt);
+    wfs(wf).time = wfs(wf).time + wfs(wf).time_correction;
     
     for adc = adcs
-      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*freq*time_correction);
+      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*freq*wfs(wf).time_correction);
     end
   end
   

@@ -10,6 +10,8 @@ function board = adc_to_board(radar_name,adc)
 %
 % Author: John Paden
 
+[output_dir,radar_type,radar_name] = ct_output_dir(radar_name);
+
 if any(strcmpi(radar_name,{'mcords2','mcords3'}))
   board = unique(floor((adc-1)/4));
 else

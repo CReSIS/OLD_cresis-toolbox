@@ -20,6 +20,8 @@ fprintf('============================================================\n');
 
 param = merge_structs(param,param_override);
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 if ~isfield(param.post,'ops')|| isempty(param.post.ops) ...
     || isempty(param.post.ops.en)
   param.post.ops.en = 0;
@@ -261,11 +263,13 @@ for data_dir_idx = 1:length(param.post.data_dirs)
   % Data files are named:
   %   Data_YYYYMMDD_SS_FFF.mat
   %   Data_img_II_YYYYMMDD_SS_FFF.mat
-  % The master data file (mdata) is the one which images will be made of. It is
-  % assumed the first data directory contains the master and it is named:
+  % The master data file (mdata) is the one which images will be made of.
+  % If param.post.img == 0, then the file should be called:
   %   Data_YYYYMMDD_SS_FFF.mat
-  % unless no such file exists and then it will be named:
-  %   Data_img_01_YYYYMMDD_SS_FFF.mat
+  % If no such file exists, it will look for param.post.img == 1. If 
+  % param.post.img ~= 0, then the echogram name should be:
+  %   Data_img_II_YYYYMMDD_SS_FFF.mat
+  % where II == param.post.img.
   % If no master file exists, an exception is thrown.
   for frm_idx = 1:length(frms)
     match_idxs = strmatch(frms{frm_idx}.frm_id,data_file_frm_id);
@@ -277,7 +281,11 @@ for data_dir_idx = 1:length(param.post.data_dirs)
     if data_dir_idx == 1
       if ~use_data_files_for_layer
         % Using layerData for layers: need to explicitly specify data file names
-        img_name = [frms{frm_idx}.layer_name(1:5) sprintf('img_%02d_',param.post.img) frms{frm_idx}.layer_name(6:end)];
+        if param.post.img == 0
+          img_name = [frms{frm_idx}.layer_name(1:5) frms{frm_idx}.layer_name(6:end)];
+        else
+          img_name = [frms{frm_idx}.layer_name(1:5) sprintf('img_%02d_',param.post.img) frms{frm_idx}.layer_name(6:end)];
+        end
         match_idx = strmatch(img_name,data_files_name);
         if isempty(match_idx) && param.post.img == 0
           % Legacy Support: This only happens when img==0 data file does not exist, so we
@@ -356,7 +364,7 @@ if param.post.ops.en
   end
   
   %% Get the layer data for this segment
-  ops_sys = ct_output_dir(param.radar_name);
+  ops_sys = output_dir;
   ops_param = [];
   ops_param.properties.location = param.post.ops.location;
   ops_param.properties.season = param.season_name;
@@ -502,6 +510,7 @@ for frm_idx = 1:length(frms)
   % =======================================================================
   if param.post.echo_en
     % Load master file (mdata)
+    fprintf('    Loading %s\n', frms{frm_idx}.master_fn);
     mdata = load(frms{frm_idx}.master_fn);
     mdata = uncompress_echogram(mdata); % Uncompress if necessary
     
@@ -544,7 +553,7 @@ for frm_idx = 1:length(frms)
     hour = hour + 24*days_offset;
     stop_time_str = sprintf('%02d:%02d:%04.1f', hour, minute, sec);
     
-    echo_info.h_title = title(sprintf('%s %s: "%s"  %s: %s to %s GPS', param.radar_name, param.season_name, ...
+    echo_info.h_title = title(sprintf('%s %s: "%s"  %s: %s to %s GPS', output_dir, param.season_name, ...
       param.cmd.mission_names, frms{frm_idx}.frm_id, start_time_str, ...
       stop_time_str),'Interpreter','none','FontWeight','normal','FontSize',9);
     

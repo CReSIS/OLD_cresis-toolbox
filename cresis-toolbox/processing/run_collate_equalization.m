@@ -8,7 +8,7 @@
 %
 % See also: collate_equalization
 
-if 1
+if 0
   %% 2015_Greenland_Polar6 Setup
   
   param_fn = ct_filename_param('rds_param_2017_Antarctica_Polar6.xls');
@@ -20,9 +20,19 @@ if 1
   % zero_surf_bin_override = 11; % Normally not used except for internal layers
   
   debug_level = 1; % <-- TYPICAL SETTINGS ARE 1, 3, and 4
-end
+elseif 1
+  %% 2017_Greenland_P3 Setup
+  
+  param_fn = ct_filename_param('rds_param_2017_Greenland_P3.xls');
+  params = read_param_xls(param_fn,'20170226_01',{'analysis_surf' 'analysis'});
+  params.cmd.generic = 1;
+  
+  input_fn_dir = 'noise';
+  % zero_surf_bin_override = 11; % Normally not used except for internal layers
+  
+  debug_level = 1; % <-- TYPICAL SETTINGS ARE 1, 3, and 4
 
-if 1
+elseif 0
   %% 2016_Antarctica_DC8 Setup
   
   param_fn = ct_filename_param('rds_param_2016_Antarctica_DC8.xls');

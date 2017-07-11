@@ -254,6 +254,10 @@ elseif param.elev_comp == 3
 end
 
 % Create depth axis
+if all(isnan(lay.Surface))
+  warning('No surface points defined. Setting to zero.');
+  lay.Surface(:) = 0;
+end
 good_surface_vals = lay.Surface + fast_time_correction;
 good_surface_vals = good_surface_vals(isfinite(good_surface_vals));
 mean_surface_time = mean(good_surface_vals);
@@ -408,6 +412,25 @@ if param.elev_comp == 3
   end
   set(ah_echo,'YDir','Normal');
   ylabel(ah_echo,sprintf('WGS-84 Elevation, e_r = %.2f (m)', param.er_ice));
+  
+elseif param.elev_comp == 2
+  %% Depth plot with surface variation compensation
+  echogram_vals = lp(mdata.Data(depth_good_idxs,:));
+  
+  if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'tonemap')
+    echo_info.image = imagesc([],Depth(depth_good_idxs)+param.depth_offset, ...
+      detrend_tonemap,'Parent',ah_echo);
+    axis(ah_echo_time,[0.5 size(detrend_tonemap,2)+0.5 (mean(lay.Surface) + depth_time([1 end]) + param.time_offset)*1e6]);
+  else
+    echo_info.image = imagesc([],Depth(depth_good_idxs)+param.depth_offset, ...
+      echogram_vals,'Parent',ah_echo);
+    axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 (mean(lay.Surface) + depth_time([1 end]) + param.time_offset)*1e6]);
+  end
+  if length(param.er_ice) == 1;
+    ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
+  else
+    ylabel(ah_echo,sprintf('depth, e_r from profile (m)', param.er_ice));
+  end
   
 else
   %% Everything except WGS-84 Elevation elevation comp plotting

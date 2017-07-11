@@ -1,5 +1,5 @@
-function write_cresis_xml(param)
-% write_cresis_xml(param)
+function settings_enc = write_cresis_xml(param)
+% settings_enc = write_cresis_xml(param)
 %
 % Creates NI digital system XML files (configuration files).
 %
@@ -13,8 +13,8 @@ function write_cresis_xml(param)
 %  .fs_sync = sync clock used to determine TTL control settings
 %  .fs_dds = used to determine start/stop frequency for down-chirp
 %  .TTL_mode = 3 length vector [pre_guard post_guard TTL_delay_from_tx]
-%    pre_guard: time before transmit starts to go high (normally ~1 us)
-%    post_guard: time after transmit ends to stay high (normally ~100 ns)
+%    pre_guard: time before transmit starts to go high (normally ~3 us)
+%    post_guard: time after transmit ends to stay high (normally ~350 ns)
 %    TTL_delay: offset of transmit start from TTL prog delay (a negative
 %      value means that the TTL prog delay is after the transmit starts)
 %  .version = NI XML file version
@@ -64,7 +64,7 @@ function write_cresis_xml(param)
 %    .Haltitude = nominal meters above ground level
 %    .Hice_thick = meters of ice thickness
 %   .tx_weights = 1x8 row vector of DDS amplitudes (will be scaled to max_tx)
-%   .tukey = Tukey weighting to use on transmit pulse 
+%   .tukey = Tukey weighting to use on transmit pulse
 %   .Tpd = pulse duration in seconds
 %   .phase = 1x8 row vector of optimal transmit phase weights (deg)
 %   .f0 = start frequency (Hz) if not specified in .wfs field
@@ -85,8 +85,7 @@ function write_cresis_xml(param)
 
 physical_constants;
 
-% Define waveforms
-Tpd_base_duration = 1e-6;
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 xml_version = param.xml_version;
 cresis_xml_mapping;
@@ -130,6 +129,12 @@ else
   TTL_mode = {};
 end
 
+if isfield(param,'DDC_select') && ~isempty(param.DDC_select)
+  DDC_select = param.DDC_select;
+else
+  DDC_select = 0;
+end
+
 if isfield(param,'Tpd_base_duration') && ~isempty(param.Tpd_base_duration)
   % Manually set the base pulse duration
   Tpd_base_duration = param.Tpd_base_duration;
@@ -137,11 +142,25 @@ else
   Tpd_base_duration = 1e-6;
 end
 
+if isfield(param,'PRI_guard') && ~isempty(param.PRI_guard)
+  % Manually set the PRI time guard
+  PRI_guard = param.PRI_guard;
+else
+  PRI_guard = 1e-6;
+end
+
+if isfield(param,'sample_size') && ~isempty(param.sample_size)
+  % Manually set the PRI time guard
+  sample_size = param.sample_size;
+else
+  sample_size = 2;
+end
+
 settings_enc(1).('Version') = reshape(char(param.version),[1 length(param.version)]);
 if isfield(param,'DDC_freq')
   %% DDC Settings
   settings_enc(1).DDCZ20Ctrl.NCOZ20freq = reshape(uint32(param.DDC_freq/1e6),[1 1]);
-  settings_enc(1).DDCZ20Ctrl.DDCZ20sel.Val = reshape(uint32(param.DDC_select),[1 1]);
+  settings_enc(1).DDCZ20Ctrl.DDCZ20sel.Val = reshape(uint32(DDC_select),[1 1]);
   settings_enc(1).DDCZ20Ctrl.DDCZ20sel.Choice = {'Non DDC','DDC4 En','DDC8 En'};
   settings_enc(1).DDCZ20Ctrl.samplingZ20freq = reshape(double(fs/1e6),[1 1]);
 end
@@ -237,12 +256,13 @@ for wf = 1:length(param.wfs)
       % Receive only mode (TTL transmit mode is never asserted)
       TTL_start = 0;
       TTL_duration(1:8) = 0;
-    elseif any(strcmpi(param.radar_name,{'mcords3','mcords4','mcords5'}))
+    elseif any(strcmpi(radar_name,{'mcords3','mcords4','mcords5'}))
       % Duration before start of pulse, duration after pulse, offset of pulse
       % from TTL_prog_delay * fs/2
       % For example 2015 Gr LC130: [2.5e-6 260e-9 -1100e-9]
       TTL_start = round((TTL_prog_delay/TTL_clock + TTL_mode(3) - TTL_mode(1))*TTL_clock);
-      TTL_duration(1:8) = round((TTL_mode(1) + TTL_mode(2) + Tpd) * TTL_clock);
+      TTL_start_desired = (TTL_prog_delay/TTL_clock + TTL_mode(3) - TTL_mode(1))*TTL_clock;
+      TTL_duration(1:8) = round((TTL_mode(1) + TTL_mode(2) + Tpd + (TTL_start_desired-TTL_start)/TTL_clock) * TTL_clock);
     else
       error('Not supported');
     end
@@ -251,28 +271,28 @@ for wf = 1:length(param.wfs)
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).(ttl_length_var_enc) = reshape(uint16(TTL_duration),[1 8]);
     
   else
-    if strcmpi(param.radar_name,'mcords3')
-        % TTL start time (317 for 1e9/9 fs clock and 650 TTL delay)
-        TTL_start = TTL_prog_delay + round((317-650) / (1e9/9/2) * fs/2);
-        
-        % TTL1 length (original durations were for 1e9/9 fs clock)
-        x = [1 3 10]*1e-6;
-        y = [354 472 845] / (1e9/9/2) * fs/2;
-        %plot(x,y);
-        p = polyfit(x,y,1);
-        TTL_duration = round(polyval(p,Tpd));
-        
-        % TTL2 length (original durations were for 1e9/9 fs clock)
-        x = [1 3 10]*1e-6;
-        y = [390 495 888] / (1e9/9/2) * fs/2;
-        %plot(x,y);
-        p = polyfit(x,y,1);
-        TTL_duration(2:8) = round(polyval(p,Tpd));
+    if strcmpi(radar_name,'mcords3')
+      % TTL start time (317 for 1e9/9 fs clock and 650 TTL delay)
+      TTL_start = TTL_prog_delay + round((317-650) / (1e9/9/2) * fs/2);
+      
+      % TTL1 length (original durations were for 1e9/9 fs clock)
+      x = [1 3 10]*1e-6;
+      y = [354 472 845] / (1e9/9/2) * fs/2;
+      %plot(x,y);
+      p = polyfit(x,y,1);
+      TTL_duration = round(polyval(p,Tpd));
+      
+      % TTL2 length (original durations were for 1e9/9 fs clock)
+      x = [1 3 10]*1e-6;
+      y = [390 495 888] / (1e9/9/2) * fs/2;
+      %plot(x,y);
+      p = polyfit(x,y,1);
+      TTL_duration(2:8) = round(polyval(p,Tpd));
       
       settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).(ttl_start_var_enc) = reshape(uint16(TTL_start*ones([1 8],'uint16')),[1 8]);
       settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).(ttl_length_var_enc) = reshape(uint16(TTL_duration),[1 8]);
       
-    elseif strcmpi(param.radar_name,'mcords4')
+    elseif strcmpi(radar_name,'mcords4')
       settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).(ttl_start_var_enc) = reshape(uint16(542*ones([1 8],'uint16')),[1 8]);
       
       x = [1 3 10]*1e-6;
@@ -283,28 +303,28 @@ for wf = 1:length(param.wfs)
       
       settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).(ttl_length_var_enc) = reshape(uint16(TTL_duration*ones([1 8],'uint16')),[1 8]);
       
-    elseif strcmpi(param.radar_name,'mcords5')
+    elseif strcmpi(radar_name,'mcords5')
       error('Not supported');
     end
     
   end
-
+  
   atten = param.wfs(wf).atten;
   atten = round(atten*2)/2;
   atten1 = uint8(atten - 31.5);
   atten2 = uint8(atten - double(atten1));
   
   if length(atten1) == 1
-    if strcmpi(param.radar_name,'mcords3')
-%       settings_enc(1).Atten.('AttenZ20Z30') = reshape(uint8(atten1*ones([1 8],'uint8')),[1 8]);
-%       settings_enc(1).Atten.('AttenZ31') = reshape(uint8(atten2*ones([1 8],'uint8')),[1 8]);
+    if strcmpi(radar_name,'mcords3')
+      %       settings_enc(1).Atten.('AttenZ20Z30') = reshape(uint8(atten1*ones([1 8],'uint8')),[1 8]);
+      %       settings_enc(1).Atten.('AttenZ31') = reshape(uint8(atten2*ones([1 8],'uint8')),[1 8]);
     end
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('AttenuatorZ20Z31') = reshape(uint8(atten1*ones([1 8],'uint8')),[1 8]);
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('AttenuatorZ20Z32') = reshape(uint8(atten2*ones([1 8],'uint8')),[1 8]);
   else
-    if strcmpi(param.radar_name,'mcords3')
-%       settings_enc(1).Atten.('AttenZ20Z30') = reshape(uint8(atten1),[1 8]);
-%       settings_enc(1).Atten.('AttenZ31') = reshape(uint8(atten2),[1 8]);
+    if strcmpi(radar_name,'mcords3')
+      %       settings_enc(1).Atten.('AttenZ20Z30') = reshape(uint8(atten1),[1 8]);
+      %       settings_enc(1).Atten.('AttenZ31') = reshape(uint8(atten2),[1 8]);
     end
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('AttenuatorZ20Z31') = reshape(uint8(atten1),[1 8]);
     settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('AttenuatorZ20Z32') = reshape(uint8(atten2),[1 8]);
@@ -380,7 +400,7 @@ for wf = 1:length(param.wfs)
     Trg_start_offset = param.tg.rg_start_offset(wf) / (3e8/2);
   else
     Trg_start_offset = 0;
-  end  
+  end
   if isfield(param.tg,'rg_stop_offset')
     Trg_stop_offset = param.tg.rg_stop_offset(wf) / (3e8/2);
   else
@@ -443,22 +463,22 @@ for wf = 1:length(param.wfs)
     Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd, Tstop_ref);
   end
   
-  if strcmpi(param.radar_name,'mcords3')
-    bin_start = round((Tstart + Tsystem_delay - Tguard + Trg_start_offset)  * fs);
-    bin_stop = round((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay + Trg_stop_offset)  * fs);
-  elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
-    bin_start = round((Tstart + Tsystem_delay - Tguard + Trg_start_offset)  * fs/8);
-    bin_stop = round((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay + Trg_stop_offset)  * fs/8);
+  if strcmpi(radar_name,'mcords3')
+    samples_per_record_bin = 1;
+  elseif any(strcmpi(radar_name,{'mcords4','mcords5'}))
+    samples_per_record_bin = 8;
   else
     error('Unsupported radar')
   end
+  bin_start = round((Tstart + Tsystem_delay - Tguard + Trg_start_offset)  * fs/samples_per_record_bin);
+  bin_stop = round((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay + Trg_stop_offset)  * fs/samples_per_record_bin);
   
   settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Stop') = reshape(uint16(bin_stop),[1 1]);
   if uint16(bin_start) < 32
-      % Force record start to be at least 32
-      settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(32),[1 1]);
+    % Force record start to be at least 32
+    settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(32),[1 1]);
   else
-      settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(bin_start),[1 1]);
+    settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Start') = reshape(uint16(bin_start),[1 1]);
   end
   
   if isfield(param,'f0')
@@ -498,7 +518,7 @@ if param.create_IQ
   end
 end
 
-if strcmpi(param.radar_name,'mcords4')
+if strcmpi(radar_name,'mcords4')
   settings_enc(1).('FPGAZ20Configuration')(1).('HIZ20Presums') = reshape(uint8([50 ]),[1 1]);
   settings_enc(1).('FPGAZ20Configuration')(1).('HIZ20UpdateZ23') = reshape(uint8([0 ]),[1 1]);
   settings_enc(1).('FPGAZ20Configuration')(1).('HIZ20Z20WaveformZ23') = reshape(uint8([0 ]),[1 1]);
@@ -519,24 +539,16 @@ for wf = 1:length(settings_enc.(config_var_enc).Waveforms)
 end
 EPRF = double(settings_enc.(config_var_enc).PRF) / presums;
 
-sample_size = 2;
+data_rate = EPRF * num_sam * samples_per_record_bin * sample_size * param.num_chan / 2^DDC_select;
 
-if strcmpi(param.radar_name,'mcords3')
-  data_rate = EPRF * num_sam * sample_size * param.num_chan;
-elseif any(strcmpi(param.radar_name,{'mcords4','mcords5'}))
-  data_rate = EPRF * num_sam * 8 * sample_size * param.num_chan / 2^param.DDC_select;
-else
-  error('Unsupported radar')
-end
 fprintf('  EPRF: %.1f Hz\n', EPRF);
 lambda_fc = 3e8/ (0.5*(settings_enc.(config_var_enc).Waveforms(1).StopZ20Freq(1) + settings_enc.(config_var_enc).Waveforms(1).StartZ20Freq(1)));
 fprintf('  fc Nyquist sampling rate velocity: %.1f m/s (%.1f knots)\n', lambda_fc/4 * EPRF, lambda_fc/4 * EPRF / 0.5515)
 fprintf('  Data rate: %.1f MB/sec (%.1f hours: %.1f TB)\n', data_rate / 2^20, param.flight_hours, param.flight_hours*3600*data_rate/2^40);
 
-Tguard = 1e-6;
-if 1/settings_enc.(config_var_enc).PRF - Tguard - double(settings_enc.(config_var_enc).Waveforms(wf).RecordZ20Stop)/fs <= 0
+if 1/settings_enc.(config_var_enc).PRF - PRI_guard - double(settings_enc.(config_var_enc).Waveforms(wf).RecordZ20Stop)/(fs/samples_per_record_bin) <= 0
   error('Data recording window, %.2f us, is too long for this PRI, %.2f us, including %.2f us time guard', ...
-    double(settings_enc.(config_var_enc).Waveforms(wf).RecordZ20Stop)/fs*1e6, 1/settings_enc.(config_var_enc).PRF*1e6, Tguard*1e6);
+    double(settings_enc.(config_var_enc).Waveforms(wf).RecordZ20Stop)/(fs/samples_per_record_bin)*1e6, 1/settings_enc.(config_var_enc).PRF*1e6, PRI_guard*1e6);
 end
 
 if data_rate / 2^20 > param.max_data_rate
@@ -566,15 +578,22 @@ fprintf(fid,'</LVData>');
 fclose(fid);
 
 %% Write RSS Arena XML config file
-if strcmpi(param.radar_name,'mcords5')
+if isfield(param,'arena')
   % Create arena parameter structure
   arena = struct('version','1');
+  arena.awg = param.arena.awg;
+  arena.dacs = param.arena.dacs;
+  arena.dacs_sampFreq = param.arena.dacs_sampFreq;
+  arena.zeropimods = param.arena.zeropimods;
+  arena.TTL_time = param.arena.TTL_time;
+  arena.TTL_names = param.arena.TTL_names;
+  arena.TTL_states = param.arena.TTL_states;
   for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
-    arena.fs = settings_enc.sys.DDCZ20Ctrl.samplingZ20freq;
     arena.PRI = 1 / settings_enc.sys.DDSZ5FSetup.PRF;
+    arena.wfs(wf).zeropimods = param.arena.zeropimods;
     arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
     arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
-    arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) * 0.63/4000;
+    arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* param.arena.max_tx ./ param.max_tx;
     arena.wfs(wf).fc = (settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq ...
       + settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq)/2;
     arena.wfs(wf).BW = abs(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq ...
@@ -585,7 +604,7 @@ if strcmpi(param.radar_name,'mcords5')
       * settings_enc.sys.DDSZ5FSetup.BaseZ20Len;
     arena.wfs(wf).presums = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).Presums;
   end
-
+  
   % Create XML document
   doc = write_arena_xml([],'init',arena);
   doc = write_arena_xml(doc,'ctu_0013',arena);
@@ -601,6 +620,7 @@ if strcmpi(param.radar_name,'mcords5')
   if ~exist(param.rss_base_dir,'dir')
     mkdir(param.rss_base_dir);
   end
+  fprintf('  Writing RSS: %s\n', rss_fn);
   fid = fopen(rss_fn,'w');
   fwrite(fid,out_str,'char');
   fclose(fid);

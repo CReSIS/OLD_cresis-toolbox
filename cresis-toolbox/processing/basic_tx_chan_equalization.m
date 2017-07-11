@@ -54,7 +54,7 @@ param.presums = 10;
 
 % param.ref_bins = 1x2 vector specifying bins relative to peak to use in
 %   correlation
-param.ref_bins = [-12 12];
+param.ref_bins = [-2 2];
 % param.search_bins = 1x2 vector specifying max search range to use when
 %   looking for the best correlation (this is to ensure that each output
 %   correlation value has full support... i.e. no roll off effect)

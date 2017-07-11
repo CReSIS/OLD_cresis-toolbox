@@ -42,6 +42,7 @@ end
 
 % CONSTRUCT THE JSON STRUCTURE
 [param,~,~] = opsAuthenticate(param);
+param.properties.twtt(~isfinite(param.properties.twtt)) = NaN;
 jsonStruct = struct('properties',param.properties);
 
 % CONVERT THE JSON STRUCTURE TO A JSON STRING

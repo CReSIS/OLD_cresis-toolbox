@@ -22,24 +22,25 @@
 % =================================================================
 % User Settings
 % =================================================================
-geotiff_fn = 'C:\GIS_data\greenland\Landsat-7\mzl7geo_90m_lzw.tif';
-geotiff_fn = '/scratch/GIS_data/greenland/Landsat-7/mzl7geo_90m_lzw.tif'; % For Land Ice
-geotiff_fn = '/scratch/GIS_data/arctic/NaturalEarth_Data/Arctic_NaturalEarth.tif'; % For Sea Ice
+% geotiff_fn = 'C:\GIS_data\greenland\Landsat-7\mzl7geo_90m_lzw.tif';
+geotiff_fn = 'C:\GIS_data\arctic\NaturalEarth_Data\Arctic_NaturalEarth.tif';
+% geotiff_fn = '/scratch/GIS_data/greenland/Landsat-7/mzl7geo_90m_lzw.tif'; % For Land Ice
+% geotiff_fn = '/scratch/GIS_data/arctic/NaturalEarth_Data/Arctic_NaturalEarth.tif'; % For Sea Ice
 
 gps_input_type = 'file_mcords'; % file_accum, or serial
 %serial_dev = '/dev/ttyUSB0';
 %serial_dev = '/dev/ttyUSB1';
 % You may have to run from bash shell: "chmod a+rwx /dev/ttyS0" as root
 serial_dev = '/dev/ttyS0';
-gps_input_fn_dir = '\\172.18.1.33\accum\';
-gps_input_fn_dir = '/net/field1/landing/mcords/mcords5/';
+gps_input_fn_dir = 'E:\';
+% gps_input_fn_dir = '\\172.18.1.33\accum\';
+% gps_input_fn_dir = '/net/field1/landing/mcords/mcords5/';
 gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
                            % need to do this if files contain errors that
                            % cause program to crash
 
-kml_fn = 'C:\Users\dangermo\Documents\Travel\Greenland13\kml\sicryosat_labels.kml';
-kml_fn = '/scratch/metadata/2015_Greenland_LC130/oib_2015_spring_v20150223/sinptransect_labels.kml';
-% kml_fn = '';
+kml_fn = 'C:\Users\administrator\Desktop\doc.kml';
+kml_mission_name = 'sinptransect.sequence';
 
 enable_gps_record = false;
 gps_fn_dir = '/scratch/metadata/2015_Greenland_LC130/';
@@ -55,12 +56,22 @@ if isempty(kml_fn)
   kml_lon = [];
   kml_lat = [];
 else
-  xDoc = xmlread(kml_fn);
-  document = read_xml(xDoc);
-  pos = textscan(document.kml{1}.Document{1}.Placemark{1}.LineString{1}.coordinates{1}.text{1}.node_val, ...
-    '%f%f%f','Delimiter',',');
-  kml_lon = pos{1};
-  kml_lat = pos{2};
+  if 0
+    xDoc = xmlread(kml_fn);
+    document = read_xml(xDoc);
+    pos = textscan(document.kml{1}.Document{1}.Placemark{1}.LineString{1}.coordinates{1}.text{1}.node_val, ...
+      '%f%f%f','Delimiter',',');
+    kml_lon = pos{1};
+    kml_lat = pos{2};
+  else
+    kml_pos = kml_read_shapefile(kml_fn);
+    kml_mission_idx = find(strcmpi(kml_mission_name,{kml_pos.name}),1);
+    if isempty(kml_mission_idx)
+      error('Could not find mission %s in kml_pos.name.',kml_mission_name);
+    end
+    kml_lon = kml_pos(kml_mission_idx).X;
+    kml_lat = kml_pos(kml_mission_idx).Y;
+  end
 end
 
 if strcmpi(gps_input_type,'serial')
@@ -87,7 +98,7 @@ end
 
 fprintf('Plotting geotiff\n');
 [proj,fig_h] = plot_geotiff(geotiff_fn, kml_lat, kml_lon, 1,'r');
-axis normal; axis equal;
+haxes = get(fig_h,'Children');
 
 if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
   % Look for, load, and plot all GPS files
@@ -115,9 +126,11 @@ if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
         while ~feof(fid)
           line_input = fgets(fid);
           A = textscan(line_input,'%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s%f%f%f%f','delimiter',', ','emptyvalue',NaN);
-          if all(~cellfun(@isempty,A([1 4 5 6]))) && strcmp(A{1},'$GPGGA') && ~isnan(A{3}) && any(strcmpi(A{4},{'N','S'})) && ~isnan(A{5}) && any(strcmpi(A{6},{'W','E'}))
-            gps.lat(1,end+1) = ((A{4}=='N')*2-1) .* A{3};
-            gps.lon(1,end+1) = ((A{6}=='E')*2-1) .* A{5};
+          try
+            if all(~cellfun(@isempty,A([1 4 5 6]))) && strcmp(A{1},'$GPGGA') && ~isnan(A{3}) && any(strcmpi(A{4},{'N','S'})) && ~isnan(A{5}) && any(strcmpi(A{6},{'W','E'}))
+              gps.lat(1,end+1) = ((A{4}=='N')*2-1) .* A{3};
+              gps.lon(1,end+1) = ((A{6}=='E')*2-1) .* A{5};
+            end
           end
         end
         fclose(fid);
@@ -147,8 +160,8 @@ if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
 end
 
 hold on;
-hline = plot(pos_buf(:,1),pos_buf(:,2),'b-');
-hpos = plot(pos_buf(1,1),pos_buf(1,2),'rx','MarkerSize',10,'LineWidth',3);
+hline = plot(pos_buf(:,1),pos_buf(:,2),'b-','Parent',haxes);
+hpos = plot(pos_buf(1,1),pos_buf(1,2),'rx','MarkerSize',10,'LineWidth',3,'Parent',haxes);
 hold off;
 
 if enable_gps_record
@@ -192,25 +205,34 @@ update_geotif_tstart = uint64(0);
 try
   done = false;
   while ~done
+    %% Update Map Axes
+    xlim_orig = xlim(haxes);
+    ylim_orig = ylim(haxes);
+    axis normal;
+    % Force axis to be equal
+    xlim_new = xlim();
+    ylim_new = ylim();
+    axes_pos = get(haxes,'position'); aspect_ratio = axes_pos(3)/axes_pos(4);
+    xlim_bigger = diff(xlim_new)/diff(ylim_new)/aspect_ratio > 1;
+    if xlim_bigger
+      ylim_new(1) = mean(ylim_new) - diff(xlim_new)/2*aspect_ratio;
+      ylim_new(2) = mean(ylim_new) + diff(xlim_new)/2*aspect_ratio;
+    else
+      xlim_new(1) = mean(xlim_new) - diff(ylim_new)/2/aspect_ratio;
+      xlim_new(2) = mean(xlim_new) + diff(ylim_new)/2/aspect_ratio;
+    end
     if toc(update_geotif_tstart) > 30
       update_geotif_tstart = tic;
-      xlim_orig = xlim;
-      ylim_orig = ylim;
-      axis normal; axis equal;
-      xlim_new = xlim();
-      ylim_new = ylim();
-      if 0
-        % Update every 5 minutes to current map position
-        xlim_new = xlim_new + mean(xlim_orig) - mean(xlim_new);
-        ylim_new = ylim_new + mean(ylim_orig) - mean(ylim_new);
-      elseif isfinite(pos_buf(1,1)) && isfinite(pos_buf(1,2))
-        % Update every 5 minutes to current platform position
+      if isfinite(pos_buf(1,1)) && isfinite(pos_buf(1,2))
+        % Update to current platform position
         xlim_new = xlim_new + pos_buf(1,1) - mean(xlim_new);
         ylim_new = ylim_new + pos_buf(1,2) - mean(ylim_new);
       end
-      xlim(xlim_new);
-      ylim(ylim_new);
     end
+    xlim(haxes,xlim_new);
+    ylim(haxes,ylim_new);
+    
+    %% Load GPS data from serial
     if strcmpi(gps_input_type,'serial')
       try
         nmea_str = fscanf(flight_tracker_serial_dev);
@@ -226,6 +248,7 @@ try
       A = textscan(nmea_str,'%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s','delimiter',',','emptyvalue',NaN);
     end
     
+    %% Load GPS data from file
     if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
       % Look for, load, and plot all GPS files
       if strcmpi(gps_input_type,'file_accum')

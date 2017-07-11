@@ -44,12 +44,16 @@ param = merge_structs(param, param_override);
 fprintf('  autogenerate_frames %s\n', param.day_seg);
 fprintf('==============================================\n\n');
 
-if any(strcmpi(param.radar_name,{'icards','acords','mcords','mcrds','mcords2','mcords3','mcords4','mcords5'}))
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
+if any(strcmpi(output_dir,'rds'))
   frame_length = 50000;
-elseif any(strcmpi(param.radar_name,{'accum','accum2'}))
+elseif any(strcmpi(output_dir,'accum'))
   frame_length = 20000;
-elseif any(strcmpi(param.radar_name,{'kaband3','kuband','kuband2','kuband3','snow','snow2','snow3','snow5'}))
+elseif any(strcmpi(output_dir,{'kaband','kuband','snow'}))
   frame_length = 5000;
+else
+  error('%s is not a supported radar', param.radar_name);
 end
 if isfield(param.records,'frame_length') && ~isempty(param.records.frame_length)
   frame_length = param.records.frame_length;
@@ -79,7 +83,7 @@ if ~exist(records_fn,'file')
 end
 
 records = load(records_fn);
-along_track = geodetic_to_along_track(records.lat,records.lon,records.elev);
+along_track = geodetic_to_along_track(records.lat,records.lon);
 
 frame_breaks = 0:frame_length:along_track(end);
 if along_track(end)-frame_breaks(end) < frame_length/2

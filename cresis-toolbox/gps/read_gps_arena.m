@@ -14,7 +14,7 @@ finfo = frame_sync_info(fn,struct('sync','1DFCCF1A','file_mode','ieee-le'));
 
 hdr_param = [];
 hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
-hdr_param.field_offsets = uint32([8:8:48]); % epri sec1 sec2 fractions
+hdr_param.field_offsets = uint32([8:8:48]); % byte offsets for: rel_time_cntr rel_time_cntr_pps utctime lat lon elev
 hdr_param.field_types = {uint64(1) uint64(1) uint64(1) uint64(1) uint64(1) uint64(1)};
 hdr_param.file_mode = 'ieee-le';
 
