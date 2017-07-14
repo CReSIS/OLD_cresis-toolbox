@@ -1,5 +1,5 @@
-function [success surfTimes] = get_heights_task_ollie2(steady_param_file_name)
-% [success surfTimes] = get_heights_task_ollie2(steady_param_file_name)
+function [success] = get_heights_task_ollie2(steady_param_file_name)
+% [success] = get_heights_task_ollie2(steady_param_file_name)
 %
 % This function generates quick look outputs (default location: CSARP_qlook)
 %
@@ -135,6 +135,10 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Output directory
   in_path = fullfile(qlook_out_path, sprintf('ql_data_%03d_01_01',frm));
+
+  if ~exist(in_path,'dir')
+    error('Quick look results not found.');
+  end
   
   %% Concatenate blocks for each of the images
   for img = 1:length(param.get_heights.imgs)
