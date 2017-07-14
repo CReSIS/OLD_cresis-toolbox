@@ -1,21 +1,7 @@
-function get_heights(param,param_override)
-% get_heights(param,param_override)
+function [success surfTimes] = get_heights_task_ollie2(steady_param_file_name)
+% [success surfTimes] = get_heights_task_ollie2(steady_param_file_name)
 %
-% This function has two capabilities (enabled separately)
-% 1. Automated or manual pick: Gets the air/ice surface height using the
-%    data like an altimeter (manual mode is optional)
-% 2. Generate quick look outputs (default location: CSARP_qlook)
-%
-% param = struct with processing parameters
-%         -- OR --
-%         function handle to script with processing parameters
-% param_override = parameters in this struct will override parameters
-%         in param.  This struct must also contain the gRadar fields.
-%         Typically global gRadar; param_override = gRadar;
-%
-% Example:
-%  See run_get_heights.m for how to run this function directly.
-%  Normally this function is called from master.m using the param spreadsheet.
+% This function generates quick look outputs (default location: CSARP_qlook)
 %
 % Authors: John Paden
 %
@@ -26,11 +12,8 @@ function get_heights(param,param_override)
 % General Setup
 % =====================================================================
 
-if ~isstruct(param)
-  % Functional form
-  param();
-end
-param = merge_structs(param, param_override);
+load(steady_param_file_name,'steady_param');
+param=steady_param;
 
 dbstack_info = dbstack;
 fprintf('=====================================================================\n');
@@ -44,9 +27,6 @@ fprintf('=====================================================================\n
 % Get WGS84 ellipsoid parameters
 physical_constants;
 
-if ~isfield(param.get_heights,'combine_only') || isempty(param.get_heights.combine_only)
-  param.get_heights.combine_only = false;
-end
 if ~isfield(param.records,'records_fn')
   param.records.records_fn = '';
 end
@@ -118,19 +98,6 @@ if isfield(param.get_heights,'coh_noise_method') ...
   param.get_heights.coh_noise_params = tmp.param_collate;
 end
 
-% Cleanup folders
-if ~param.sched.rerun_only
-  if exist(qlook_out_path,'dir')
-    for frm = param.cmd.frms
-      del_paths = get_filenames(qlook_out_path,sprintf('ql_data_%03d',frm),'','',struct('type','d'));
-      for idx = 1:length(del_paths)
-        fprintf('If required, manually remove path: %s\n', del_paths{idx});
-        %rmdir(del_paths{idx},'s');
-      end
-    end
-  end
-end
-
 % =====================================================================
 % Setup static inputs for get_heights_task
 % =====================================================================
@@ -138,326 +105,6 @@ task_param = param;
 task_param.load.imgs = param.get_heights.imgs;
 if isempty(param.get_heights.imgs)
   error('No images specified in param.get_heights.imgs.');
-end
-
-if ~param.get_heights.combine_only
-  % =====================================================================
-  % Setup the scheduler
-  % =====================================================================
-  
-  if strcmpi(param.sched.type,'custom_torque')
-    global ctrl; % Make this global for convenience in debugging
-    ctrl = torque_new_batch(param);
-    fprintf('Torque batch: %s\n', ctrl.batch_dir);
-    torque_compile('get_heights_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
-    
-  elseif ~strcmpi(param.sched.type,'no scheduler')
-    fd = [get_filenames(param.path,'','','.m',struct('recursive',1)); ...
-      get_filenames(param.path,'','','.mexa64',struct('recursive',1))];
-    fd_override = [get_filenames(param.path_override,'','','.m',struct('recursive',1)); ...
-      get_filenames(param.path_override,'','','.mexa64',struct('recursive',1))];
-    
-    fd = merge_filelists(fd, fd_override);
-    
-    % Remove SVN files from path
-    non_svn_path = zeros(size(fd));
-    for fn_idx = 1:length(fd)
-      if isempty(strfind(fd{fn_idx},'.svn'))
-        non_svn_path(fn_idx) = 1;
-      end
-    end
-    fd = fd(non_svn_path);
-    
-    % Initialize submission ctrl structure
-    global ctrl; % Make this global for convenience in debugging
-    ctrl = [];
-    ctrl.cmd = 'init';
-    ctrl.sched = param.sched;
-    ctrl.fd = fd;
-    ctrl = create_task(ctrl);
-    
-    % Prepare submission ctrl structure for queing jobs
-    ctrl.cmd = 'task';
-  end
-  
-  if ~strcmpi(param.sched.type,'no scheduler')
-    param.get_heights.surf.manual = 0; % Turn manual pick off
-  end
-  
-  % =====================================================================
-  % Load data and run get_heights tasks
-  %
-  % For each frame load REC_BLOCK_SIZE records at a time (code groups
-  % by file index, but has to watch negative offset values which imply
-  % the record starts in a previous file and carries over into the next)
-  %    --> The last block can be up to 2*REC_BLOCK_SIZE
-  % =====================================================================
-  out_recs = {};
-  retry_fields = {};
-  for frm_idx = 1:length(param.cmd.frms)
-    frm = param.cmd.frms(frm_idx);
-    
-    % Check digits of proc_mode from frames file and make sure the user has
-    % specified to process this frame type
-    if ct_proc_frame(frames.proc_mode(frm),param.get_heights.frm_types)
-      fprintf('get_heights %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
-    else
-      fprintf('Skipping %s_%03i (no process frame)\n', param.day_seg, frm);
-      continue;
-    end
-    
-    ql_path = fullfile(qlook_out_path, sprintf('ql_data_%03d_01_01',frm));
-    % Create the array_proc output directories
-    if ~exist(ql_path,'dir')
-      mkdir(ql_path);
-    end
-    
-    if frm < length(frames.frame_idxs)
-      recs = frames.frame_idxs(frm):frames.frame_idxs(frm+1)-1;
-    else
-      recs = frames.frame_idxs(frm):length(records.lat);
-    end
-    
-    % Determine where breaks in processing are going to occur
-    rec = recs(1);
-    if isempty(param.get_heights.block_size)
-      REC_BLOCK_SIZE = 10000;
-    else
-      if numel(param.get_heights.block_size) == 2
-        REC_BLOCK_SIZE = param.get_heights.block_size(1);
-        block_overlap = param.get_heights.block_size(2);
-      else
-        REC_BLOCK_SIZE = param.get_heights.block_size;
-        block_overlap = 0;
-      end
-    end
-    if length(recs) < 2*REC_BLOCK_SIZE
-      breaks = 1;
-    else
-      breaks = 1:REC_BLOCK_SIZE:length(recs)-REC_BLOCK_SIZE;
-    end
-    
-    task_param.proc.frm = frm;
-    
-    % Begin loading data
-    for break_idx = 1:length(breaks)
-      % Determine the current records being processed
-      if break_idx < length(breaks)
-        cur_recs_keep = [recs(breaks(break_idx)) recs(breaks(break_idx+1)-1)];
-        cur_recs = [max(1,recs(breaks(break_idx))-block_overlap) ...
-          recs(breaks(break_idx+1)-1)+block_overlap];
-      else
-        cur_recs_keep = [recs(breaks(break_idx)) recs(end)];
-        cur_recs = [max(1,recs(breaks(break_idx))-block_overlap) min(length(records.lat),recs(end)+block_overlap)];
-      end
-      
-      % =====================================================================
-      % Prepare task inputs
-      % =====================================================================
-      task_param.load.recs = cur_recs;
-      task_param.load.recs_keep = cur_recs_keep;
-      
-      % =================================================================
-      % Rerun only mode: Test to see if we need to run this task
-      if param.sched.rerun_only
-        % If we are in rerun only mode AND all the get heights task output files
-        % already exists, then we do not run the task
-        file_exists = true;
-        sub_apt_shift_idx = 1;
-        sub_band_idx = 1;
-        out_path = fullfile(ct_filename_out(param, ...
-          param.get_heights.qlook.out_path, 'CSARP_qlook'), ...
-          sprintf('ql_data_%03d_%02d_%02d',frm, ...
-          sub_apt_shift_idx, sub_band_idx));
-        start_time_for_fn = records.gps_time(cur_recs(1));
-        for imgs_list_idx = 1:length(param.get_heights.imgs)
-          out_fn = sprintf('%s_img_%02d', ...
-            datestr(epoch_to_datenum(start_time_for_fn),'yyyymmdd_HHMMSS'), ...
-            imgs_list_idx);
-          out_full_fn = fullfile(out_path,[out_fn '.mat']);
-          lower_out_fn = sprintf('%s_img_%02d', ...
-            datestr(epoch_to_datenum(start_time_for_fn-1),'yyyymmdd_HHMMSS'), ...
-            imgs_list_idx);
-          lower_out_full_fn = fullfile(out_path,[lower_out_fn '.mat']);
-          upper_out_fn = sprintf('%s_img_%02d', ...
-            datestr(epoch_to_datenum(start_time_for_fn+1),'yyyymmdd_HHMMSS'), ...
-            imgs_list_idx);
-          upper_out_full_fn = fullfile(out_path,[upper_out_fn '.mat']);
-          if ~exist(out_full_fn,'file') && ~exist(lower_out_full_fn,'file') && ~exist(upper_out_full_fn,'file')
-            file_exists = false;
-          end
-        end
-        if file_exists
-          fprintf('  %d: Already exists records %d to %d [rerun_only skipping] (%s)\n', ...
-            break_idx, cur_recs(1), cur_recs(end), datestr(now));
-          continue;
-        end
-      end
-      
-      % =================================================================
-      % Execute tasks/jobs
-      fh = @get_heights_task;
-      if isfield(frames,'nyquist_zone') && ~isnan(frames.nyquist_zone(frm))
-        task_param.radar.wfs(1).nyquist_zone = frames.nyquist_zone(frm);
-      elseif isfield(param.radar.wfs(1),'nyquist_zone') ...
-          && ~isempty(param.radar.wfs(1).nyquist_zone) ...
-          && ~isnan(param.radar.wfs(1).nyquist_zone)
-        task_param.radar.wfs(1).nyquist_zone = param.radar.wfs(1).nyquist_zone;
-      end
-      arg{1} = task_param;
-      
-      if strcmp(param.sched.type,'custom_torque')
-        create_task_param.conforming = true;
-        create_task_param.notes = sprintf('%s %s_%03d (%d of %d)/%d of %d records %d-%d', ...
-          param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end));
-        ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
-
-      elseif strcmp(param.sched.type,'ollie')
-        dynamic_param.frms.(['frm',num2str(frm)]).frm_id = frm;
-        dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).break_id = break_idx;
-        dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).recs = task_param.load.recs;
-        dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).recs_keep = task_param.load.recs_keep;
-        
-      elseif ~strcmp(param.sched.type,'no scheduler')
-        [ctrl,job_id,task_id] = create_task(ctrl,fh,1,arg);
-        fprintf('  %d/%d: records %d to %d in job,task %d,%d (%s)\n', ...
-          frm, break_idx, cur_recs(1), cur_recs(end), job_id, task_id, datestr(now));
-        retry_fields{job_id,task_id}.frm = frm;
-        retry_fields{job_id,task_id}.break_idx = break_idx;
-        retry_fields{job_id,task_id}.arg = arg;
-        out_recs{end + 1} = cur_recs;
-        retry_fields{job_id,task_id}.out_idx = length(out_recs);
-      else
-        fprintf('  %s_%03d (%d of %d)/%d of %d: records %d-%d (%s)\n', ...
-          param.day_seg, frm, frm_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end), datestr(now));
-        [success] = fh(arg{1});
-      end
-    end
-  end
-  
-  % Export parameter structs in case of Schedule Type Ollie
-  if strcmp(param.sched.type,'ollie')
-    dynamic_param.day_seg = param.day_seg;
-    steady_param = task_param;
-    dynamic_param_file_name = sprintf('/home/ollie/tbinder/jobs/qlook_%s_dynamic_param.mat', param.day_seg);
-    save(dynamic_param_file_name,'dynamic_param');
-    steady_param_file_name = sprintf('/home/ollie/tbinder/jobs/qlook_%s_steady_param.mat', param.day_seg);
-    save(steady_param_file_name,'steady_param');
-  end
-
-  % =======================================================================
-  % Wait for jobs to complete if a scheduler was used
-  % =======================================================================
-  if strcmpi(param.sched.type,'custom_torque')
-    % Wait until all submitted jobs to complete
-    ctrl = torque_rerun(ctrl);
-    if ~all(ctrl.error_mask == 0)
-      if ctrl.sched.stop_on_fail
-        torque_cleanup(ctrl);
-        error('Not all jobs completed, but out of retries (%s)', datestr(now));
-      else
-        warning('Not all jobs completed, but out of retries (%s)', datestr(now));
-        keyboard;
-      end
-    else
-      fprintf('Jobs completed (%s)\n\n', datestr(now));
-    end
-    get_heights_check_cluster_files; % Function call temporarily added to track down compute system problem
-    torque_cleanup(ctrl);
-
-  elseif strcmp(param.sched.type,'ollie')
-    return
-
-  elseif ~strcmpi(param.sched.type,'no scheduler')
-    % ======================================================================
-    % Wait for jobs to finish and clean up
-    ctrl.cmd = 'done';
-    ctrl = create_task(ctrl);
-    if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-      % Quit if a bad error occurred
-      fprintf('Bad errors occurred, quitting (%s)\n\n', datestr(now));
-      if strcmp(ctrl.sched.type,'torque')
-        fprintf('Often on the Torque scheduler, these are not bad errors\n');
-        fprintf('because of system instabilities (e.g. file IO failure)\n');
-        fprintf('and the task simply needs to be resubmitted. If this is the case,\n');
-        fprintf('run "ctrl.error_mask = 2" and then run "dbcont".\n');
-        keyboard
-        if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-          return;
-        end
-      else
-        return
-      end
-    end
-    
-    % ======================================================================
-    % Retry jobs that failed
-    retry = 1;
-    while ctrl.error_mask == 2 && retry <= param.sched.max_retries
-      fprintf('Tasks failed, retry %d of max %d\n', retry, param.sched.max_retries);
-      
-      % Bookkeeping (move previous run information to "old_" variables)
-      old_ctrl = ctrl;
-      old_retry_fields = retry_fields;
-      retry_fields = {};
-      old_out_recs = out_recs;
-      out_recs = {};
-      
-      % Initialize submission ctrl structure
-      ctrl = [];
-      ctrl.cmd = 'init';
-      ctrl.sched = param.sched;
-      ctrl.fd = fd;
-      ctrl = create_task(ctrl);
-      
-      % Prepare submission ctrl structure for queing jobs
-      ctrl.cmd = 'task';
-      
-      % Submit failed tasks, but keep track of these in case they fail again
-      for job_idx = 1:length(old_ctrl.jobs)
-        for task_idx = old_ctrl.jobs{job_idx}.error_idxs
-          [ctrl,job_id,task_id] = create_task(ctrl,fh,2,old_retry_fields{job_idx,task_idx}.arg);
-          out_idx = old_retry_fields{job_idx,task_idx}.out_idx;
-          fprintf('  %d/%d: Processing records %d to %d in job,task %d,%d (%s)\n', ...
-            old_retry_fields{job_idx,task_idx}.frm, old_retry_fields{job_idx,task_idx}.break_idx, ...
-            old_out_recs{out_idx}(1), old_out_recs{out_idx}(end), ...
-            job_id, task_id, datestr(now));
-          retry_fields{job_id,task_id} = old_retry_fields{job_idx,task_idx};
-          out_recs{end + 1} = old_out_recs{out_idx};
-          retry_fields{job_id,task_id}.out_idx = length(out_recs);
-        end
-      end
-      
-      % Wait for tasks to complete and then cleanup
-      ctrl.cmd = 'done';
-      ctrl = create_task(ctrl);
-      retry = retry + 1;
-      
-      if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-        % Quit if a bad error occurred
-        fprintf('Bad errors occurred, quitting (%s)\n\n', datestr(now));
-        if strcmp(ctrl.sched.type,'torque')
-          fprintf('Often on the Torque scheduler, these are not bad errors\n');
-          fprintf('because of system instabilities (e.g. file IO failure)\n');
-          fprintf('and the task simply needs to be resubmitted. If this is the case,\n');
-          fprintf('run "ctrl.error_mask = 2" and then run "dbcont".\n');
-          keyboard
-          if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-            return;
-          end
-        else
-          return
-        end
-      end
-    end
-    if ctrl.error_mask ~= 0
-      fprintf('Not all jobs completed, but out of retries (%s)\n', datestr(now));
-      return;
-    else
-      fprintf('Jobs completed (%s)\n\n', datestr(now));
-    end
-  end
-  
 end
 
 %% Check img_comb
@@ -865,5 +512,6 @@ end
 
 fprintf('Done %s\n', datestr(now));
 
-return;
+success = true;
 
+return;
