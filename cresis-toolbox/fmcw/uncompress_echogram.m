@@ -22,9 +22,15 @@ function mdata = uncompress_echogram(mdata)
 if isfield(mdata,'Truncate_Bins')
   %% This is a compressed echogram, "uncompress" it
   
-  physical_constants;
+  c = 2.997924580003452e+08;
   
   Nz = max(mdata.Elevation_Correction);
+  if ~isfield(mdata,'Time') && isfield(mdata,'fasttime') 
+      mdata.Time = mdata.fasttime;
+  end
+  if ~isfield(mdata,'Data') && isfield(mdata,'amplitude') 
+      mdata.Data = mdata.amplitude;
+  end
   dt = mdata.Time(2)-mdata.Time(1);
   dr = dt * c/2;
   Nt = Nz + length(mdata.Truncate_Bins);
@@ -50,13 +56,20 @@ if isfield(mdata,'Truncate_Bins')
       mdata.Data(:,rline) = circshift(mdata.Data(:,rline),-mdata.Elevation_Correction(rline));
     end
   end
-  dt = mdata.Time(2) - mdata.Time(1);
   if length(mdata.Time) == length(mdata.Truncate_Bins)
     t0 = mdata.Time(1) - Nz*dt;
   else
     t0 = mdata.Time(mdata.Truncate_Bins(1)) - Nz*dt;
   end
   mdata.Time = t0 + dt*(0:Nt-1).';
+  if isfield(mdata,'fasttime') 
+      mdata.fasttime = mdata.Time;
+      mdata = rmfield(mdata,'Time');
+  end
+  if isfield(mdata,'amplitude') 
+      mdata.amplitude = mdata.Data;
+      mdata = rmfield(mdata,'Data');
+  end
 end
 
 return;

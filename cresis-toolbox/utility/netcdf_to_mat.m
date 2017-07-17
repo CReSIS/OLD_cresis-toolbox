@@ -49,11 +49,9 @@ for var_idx = 0:nvars-1
       %% Read out string (it is zero-padded in netcdf file, so we have
       % to get its actual length)
       matlab_size = netcdf.getAtt(ncid,var_idx,'matlab_size');
-      eval(sprintf('mat.%s = reshape(char(netcdf.getVar(ncid,var_idx,[0 0],matlab_size)),matlab_size);',varname));
+      eval(sprintf('mat.%s = char(netcdf.getVar(ncid,var_idx,[0 0],matlab_size));',varname));
     elseif strcmp(matlab_class,'function_handle')
       eval(sprintf('mat.%s = str2func(''%s'');',varname,netcdf.getVar(ncid,var_idx)));
-    elseif strcmp(matlab_class,'inline')
-      eval(sprintf('mat.%s = inline(''%s'');',varname,netcdf.getVar(ncid,var_idx)));
     elseif strcmp(matlab_class,'cell_string')
       %% Read out cell array of strings:
       % 1. These are stored as a 2-D char array
@@ -66,7 +64,12 @@ for var_idx = 0:nvars-1
       end
     else
       matlab_size = netcdf.getAtt(ncid,var_idx,'matlab_size');
-      eval(sprintf('mat.%s = reshape(%s(netcdf.getVar(ncid,var_idx)),matlab_size);',varname,matlab_class));
+      eval(sprintf('mat.%s = %s(netcdf.getVar(ncid,var_idx));',varname,matlab_class));
+      if strcmp(varname,'fasttime')
+          mat.fasttime = mat.fasttime*1e-6;
+      elseif strcmp(varname,'amplitude')
+          mat.amplitude = 10.^(mat.amplitude/10);
+      end
     end
   end
 end
