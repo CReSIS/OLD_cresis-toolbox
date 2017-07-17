@@ -239,7 +239,7 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(gps_source,'c
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2017_Greenland_P3') && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'NMEA'))) ...
+if (strcmpi(param.season_name,'2017_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
     || (strcmpi(param.season_name,'2014_Greenland_P3') && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'NMEA'))) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(gps_source,'ATM')) ...
     || (strcmpi(param.season_name,'2013_Greenland_P3') && strcmpi(gps_source,'ATM')) ...
@@ -471,6 +471,10 @@ if (any(strcmpi(param.season_name,{'2016_Greenland_G1XB'})) && strcmpi(gps_sourc
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
+end
+
+if isempty(gps)
+  error('param.season_name(%s) and gps.gps_source(%s) had no matching lever arm. If correct, an entry needs to be added to this function.',param.season_name,gps_source);
 end
 
 % =========================================================================
@@ -1560,6 +1564,12 @@ end
 % =========================================================================
 %% Compute Phase Centers
 % =========================================================================
+
+if isempty(LAtx)
+  error('param.season_name(%s) and param.radar_name(%s) had no matching lever arm. If correct, an entry needs to be added to this function.',param.season_name,param.radar_name);
+end
+
+
 
 % Amplitude (not power) weightings for transmit side.
 A = tx_weights;
