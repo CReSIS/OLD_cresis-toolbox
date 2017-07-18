@@ -9,7 +9,7 @@ physical_constants; % c = speed of light
 % Define waveforms
 if ispc
   base_dir = 'c:\waveforms\';
-  rss_base_dir = 'c:\Temp\configs\';
+  rss_base_dir = 'C:\Users\Administrator\Desktop\Arena_Shared\configs\';
 else
   base_dir = '~/waveforms/';
   rss_base_dir = '~/rss_waveforms/';
@@ -47,10 +47,10 @@ else
   % MHz clock cycle after channels 1-4.
   
   % 150-520 MHz
-  final_DDS_phase{end+1} = [105.2	120.8	-15.3	0.0	83.2	57.0	114.9	102.0];
+  final_DDS_phase{end+1} = [115.5	149.4	-2.4	0.0	13.3	-30.3	-211.8	114.0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
   final_DDS_amp{end+1} = [1312	2849	2657	3572	4000	2618	2574	1386];
-  final_DDS_time{end+1} =  [0 0 2.5 2.5 3.125 3.125 0 0];
+  final_DDS_time{end+1} =  [0.5085	0.9072	2.4694	2.5000	2.6926	2.3058	0.8595	0.5211];
     
   % 180-210 MHz
   final_DDS_phase{end+1} = [105.2	120.8	-15.3	0.0	83.2	57.0	114.9	102.0];
