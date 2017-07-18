@@ -22,7 +22,7 @@
 %% Part 1: User Inputs
 
 % Desired Output File
-filename = '/cresis/scratch1/cbranecky/GIS/Hq_11_calc.tif');
+filename = '/cresis/scratch1/cbranecky/GIS/Hq_11_calc.tif';
 % filename = 'Z:\sfoga\Hq_11_calc.tif');
 
 % Read in GeoTIFF
