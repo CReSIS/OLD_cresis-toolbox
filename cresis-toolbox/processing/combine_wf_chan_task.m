@@ -304,9 +304,19 @@ for chunk_idx = 1:length(param.combine.chunk_ids)
     array_fn = fullfile(param.combine.out_path, [sar_type_fn_name(end-6:end) sprintf('_img_%02d', img_idx) sar_type_fn_ext]);
     fprintf('  Saving combine_wf_chan data %s (%s)\n', array_fn, datestr(now));
     
-    Latitude = sar_type_file.lat(1,array_param.lines);
-    Longitude = sar_type_file.lon(1,array_param.lines);
-    Elevation = sar_type_file.elev(1,array_param.lines);
+    if ~isfield(sar_type_file,'lat')
+      warning('DEPRECATED CODE: You are using an old SAR file version without lat field. Computing position from the origin of the SAR coordinate system. Support for old SAR files will eventually be removed.');
+      [Latitude,Longitude,Elevation] ...
+        = ecef2geodetic(sar_type_file.fcs.origin(1,array_param.lines), ...
+        sar_type_file.fcs.origin(2,array_param.lines), ...
+        sar_type_file.fcs.origin(3,array_param.lines),WGS84.ellipsoid);
+      Latitude = Latitude*180/pi;
+      Longitude = Longitude*180/pi;
+    else
+      Latitude = sar_type_file.lat(1,array_param.lines);
+      Longitude = sar_type_file.lon(1,array_param.lines);
+      Elevation = sar_type_file.elev(1,array_param.lines);
+    end
     GPS_time = sar_type_file.fcs.gps_time(array_param.lines);
     Surface = sar_type_file.fcs.surface(array_param.lines);
     Bottom = sar_type_file.fcs.bottom(array_param.lines);
