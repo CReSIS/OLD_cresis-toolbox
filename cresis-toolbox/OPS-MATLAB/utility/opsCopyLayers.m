@@ -123,8 +123,8 @@ if ~any(strcmpi(copy_param.quality.mode,{'preserve','overwrite'}))
   error('Invalid quality mode %s', copy_param.quality.mode);
 end
 
-if ~any(copy_param.quality.quality == [1 2 3])
-  error('Invalid quality value %s', copy_param.quality.quality);
+if ~any(copy_param.quality.value == [1 2 3])
+  error('Invalid quality value %d', copy_param.quality.value);
 end
 
 %% Load "frames" file
