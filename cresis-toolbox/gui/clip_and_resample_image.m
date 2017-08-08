@@ -44,7 +44,7 @@ size_x_clip = diff(xlims);
 size_y_clip = diff(ylims);
 
 Nx = size_x_clip / dx;
-Ny = size_y_clip / dy;
+Ny = size_y_clip / abs(dy);
 
 if strcmp(class(CData),'double')
   sample_size = 16;
