@@ -239,7 +239,7 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(gps_source,'c
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2017_Greenland_P3') && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'NMEA'))) ...
+if (strcmpi(param.season_name,'2017_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
     || (strcmpi(param.season_name,'2014_Greenland_P3') && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'NMEA'))) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(gps_source,'ATM')) ...
     || (strcmpi(param.season_name,'2013_Greenland_P3') && strcmpi(gps_source,'ATM')) ...
@@ -356,9 +356,19 @@ if (strcmpi(param.season_name,'2009_Antarctica_DC8') && strcmpi(gps_source,'ATM'
   gps.z = -100.5*0.0254;
 end
 
-if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8'})) && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'NMEA'))) 
+if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8'})) && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'NMEA'))) 
   % Absolute position of ATM antenna
   %  Matt L. 20141005: The measured new antenna position is 8.75" (0.222m) forward of the GPS antenna used in 2012.
+  gps.x = (-334.625+8.75)*0.0254;
+  gps.y = -0*0.0254;
+  gps.z = -100.5*0.0254;
+end
+
+if (any(strcmpi(param.season_name,{'2016_Antarctica_DC8'})) && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'DMS') || strcmpi(gps_source,'NMEA'))) 
+  % Absolute position of ATM antenna
+  %  Matt L. 20141005: The measured new antenna position is 8.75" (0.222m) forward of the GPS antenna used in 2012.
+  %
+  %  Matt L and Dennis G: For 2016, DMS antenna was the same as ATM.
   gps.x = (-334.625+8.75)*0.0254;
   gps.y = -0*0.0254;
   gps.z = -100.5*0.0254;
@@ -471,6 +481,10 @@ if (any(strcmpi(param.season_name,{'2016_Greenland_G1XB'})) && strcmpi(gps_sourc
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
+end
+
+if isempty(gps)
+  error('param.season_name(%s) and gps.gps_source(%s) had no matching lever arm. If correct, an entry needs to be added to this function.',param.season_name,gps_source);
 end
 
 % =========================================================================
@@ -1560,6 +1574,12 @@ end
 % =========================================================================
 %% Compute Phase Centers
 % =========================================================================
+
+if isempty(LAtx)
+  error('param.season_name(%s) and param.radar_name(%s) had no matching lever arm. If correct, an entry needs to be added to this function.',param.season_name,param.radar_name);
+end
+
+
 
 % Amplitude (not power) weightings for transmit side.
 A = tx_weights;
