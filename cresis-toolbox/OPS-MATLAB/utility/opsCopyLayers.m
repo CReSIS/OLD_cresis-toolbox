@@ -314,8 +314,9 @@ if isfield(copy_param,'eval') && ~isempty(copy_param.eval)
   layer_source.twtt = source;
 end
 
+%% Interpolate two way travel time (twtt) from layer_source to all_points
 if strcmpi(copy_param.gaps_fill.method,'preserve_gaps')
-  %% interpolation preserves_gaps
+  % interpolation preserves_gaps which preserves gaps in the data
   
   master = [];
   master.GPS_time = all_points.gps_time;
@@ -329,14 +330,32 @@ if strcmpi(copy_param.gaps_fill.method,'preserve_gaps')
   ops_layer{1}.twtt = layer_source.twtt;
   lay = opsInterpLayersToMasterGPSTime(master,ops_layer,copy_param.gaps_fill.method_args);
   all_points.twtt_interp = lay.layerData{1}.value{2}.data;
+  % All points automated (type 2) by default
+  all_points.type_interp = 2*ones(size(all_points.twtt_interp));
+  % Overwrite manual points (type 1)
+  all_points.type_interp(~isnan(lay.layerData{1}.value{1}.data)) = 1;
+  manual_mask = ~isnan(lay.layerData{1}.value{1}.data);
+  all_points.twtt_interp(manual_mask) = lay.layerData{1}.value{1}.data(manual_mask);
   
 elseif strcmpi(copy_param.gaps_fill.method,'interp_finite')
-  %% interpolation follows interp_finite
+  % interpolation interp_finite which interpolates through gaps
   
   % Interpolate source onto destination points using linear interpolation
   all_points.twtt_interp = interp1(layer_source.gps_time, layer_source.twtt, all_points.gps_time);
-  % Fill in NaN gaps using interp_finite
+  % Fill in NaN gaps using interp_finite (default is 0 twtt if no good data
+  % exists)
   all_points.twtt_interp = interp_finite(all_points.twtt_interp,0);
+  
+  % All points automated (type 2) by default
+  all_points.type_interp = 2*ones(size(all_points.twtt_interp));
+  % Overwrite manual points (type 1)
+  manual_idxs = find(layer_source.type == 1);
+  manual_idxs_map = interp1(all_points.GPS_time, 1:length(all_points.GPS_time), ...
+    layer_source.gps_time(manual_idxs),'nearest');
+  manual_idxs = manual_idxs(~isnan(manual_idxs_map));
+  manual_idxs_map = manual_idxs_map(~isnan(manual_idxs_map));
+  all_points.twtt_interp(manual_idxs_map) ...
+    = layer_source.twtt(manual_idxs);
 end
 
 %% Combine the newly interpolated result with the current values
