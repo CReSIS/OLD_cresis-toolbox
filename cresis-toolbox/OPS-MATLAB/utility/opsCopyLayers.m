@@ -277,9 +277,11 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     if isempty(match_idx)
      all_points.twtt(point_idx) = NaN;
      all_points.quality(point_idx) = 1;
+     all_points.type(point_idx) = 2;
     else
      all_points.twtt(point_idx) = layer_dest.twtt(match_idx);
      all_points.quality(point_idx) = layer_dest.quality(match_idx);
+     all_points.type(point_idx) = layer_dest.type(match_idx);
     end
   end
 
@@ -291,6 +293,7 @@ else
   all_points.lon = layer_dest.lon;
   all_points.elev = layer_dest.elev;
   all_points.ids = layer_dest.point_path_id;
+  all_points.type = layer_dest.type;
   all_points.twtt = layer_dest.twtt;
   all_points.quality = layer_dest.quality;
 end
@@ -333,8 +336,8 @@ if strcmpi(copy_param.gaps_fill.method,'preserve_gaps')
   % All points automated (type 2) by default
   all_points.type_interp = 2*ones(size(all_points.twtt_interp));
   % Overwrite manual points (type 1)
-  all_points.type_interp(~isnan(lay.layerData{1}.value{1}.data)) = 1;
-  manual_mask = ~isnan(lay.layerData{1}.value{1}.data);
+  manual_mask = isfinite(lay.layerData{1}.value{1}.data);
+  all_points.type_interp(manual_mask) = 1;
   all_points.twtt_interp(manual_mask) = lay.layerData{1}.value{1}.data(manual_mask);
   
 elseif strcmpi(copy_param.gaps_fill.method,'interp_finite')
@@ -356,6 +359,7 @@ elseif strcmpi(copy_param.gaps_fill.method,'interp_finite')
   manual_idxs_map = manual_idxs_map(~isnan(manual_idxs_map));
   all_points.twtt_interp(manual_idxs_map) ...
     = layer_source.twtt(manual_idxs);
+  all_points.type_interp(manual_idxs_map) = 1;
 end
 
 %% Combine the newly interpolated result with the current values
@@ -406,6 +410,8 @@ surface = all_points.twtt;
 surface(update_mask) = all_points.twtt_interp(update_mask);
 quality = all_points.quality;
 quality(update_mask) = all_points.quality_interp(update_mask);
+layer_type = all_points.type;
+layer_type(update_mask) = all_points.type_interp(update_mask);
 
 if 0
   % Debug code
@@ -437,7 +443,7 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   % Use update_mask to exclude all points that are not getting updated
   ops_param.properties.point_path_id = all_points.ids(update_mask);
   ops_param.properties.twtt = surface(update_mask);
-  ops_param.properties.type = 2*ones(size(ops_param.properties.twtt));
+  ops_param.properties.type = layer_type(update_mask);
   ops_param.properties.quality = quality(update_mask);
   ops_param.properties.lyr_name = copy_param.layer_dest.name;
   
@@ -485,7 +491,8 @@ elseif strcmpi(copy_param.layer_dest.source,'layerdata')
     end
     
     % Manual points
-    % Not supported
+    layer_type_mask = interp1(all_points.gps_time,layer_type,lay.GPS_time,'nearest') == 1;
+    lay.layerData{lay_idx}.value{1}.data(layer_type_mask) = interp1(all_points.gps_time,surface,lay.GPS_time(layer_type_mask));
     
     % Automated points
     lay.layerData{lay_idx}.value{2}.data = interp1(all_points.gps_time,surface,lay.GPS_time);
