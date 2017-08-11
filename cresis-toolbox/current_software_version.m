@@ -21,10 +21,16 @@ try
     global gRadar;
     % Ensure gRadar.path has no file separators at the end so that fileparts
     % returns the parent directory which should be the repository
-    % directory. The extra "cat" at the end was done to fix an odd bug in
-    % the matlab/git interface that manifested itself once.
-    [status,result]=system(sprintf('export TERM=linux; git --git-dir="%s" log -1 | cat', ...
-      fullfile(fileparts(gRadar.path(1:find(gRadar.path~='/' & gRadar.path~='\',1,'last'))),'.git')));
+    % directory.
+    if ispc
+      [status,result]=system(sprintf('git --git-dir="%s" log -1', ...
+        fullfile(fileparts(gRadar.path(1:find(gRadar.path~='/' & gRadar.path~='\',1,'last'))),'.git')));
+    else
+      % The export TERM=linux and extra "cat" at the end was done to fix an odd bug in
+      % the matlab/git interface that manifested itself once.
+      [status,result]=system(sprintf('export TERM=linux; git --git-dir="%s" log -1 | cat', ...
+        fullfile(fileparts(gRadar.path(1:find(gRadar.path~='/' & gRadar.path~='\',1,'last'))),'.git')));
+    end
     sw_version.rev = strtok(result(regexp(result,'commit ')+7:end));
     sw_version.URL = '';
   end

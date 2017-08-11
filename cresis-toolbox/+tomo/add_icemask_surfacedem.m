@@ -42,6 +42,12 @@ if isfield(param.tomo_collate,'sv_cal_fn')
   sv_cal_fn = param.tomo_collate.sv_cal_fn;
 end
 
+% if 0
+%   [OM, R_OM, ~] = geotiffread(param.tomo_collate.ocean_mask_fn);
+%   OM_x = R_OM(3,1) + R_OM(2,1)*(0:size(OM,2)-1);
+%   OM_y = R_OM(3,2) + R_OM(1,2)*(0:size(OM,1)-1);
+% end
+
 %% Remove unused DEM data
 DEM_x = R(3,1) + R(2,1)*(0:size(DEM,2)-1);
 DEM_y = R(3,2) + R(1,2)*(0:size(DEM,1)-1);
@@ -69,16 +75,19 @@ z_vals = DEM(good_idxs);
 x_out = x_idxs(bad_idxs);
 y_out = y_idxs(bad_idxs);
 z_out = single(griddata(x_vals,y_vals,double(z_vals),x_out,y_out));
-DEM(bad_idxs) = z_out;
+if ~isempty(z_out)
+  DEM(bad_idxs) = z_out;
+end
 
 %% Create a point cloud from the DEM
-if 1
+if 0
   figure(1); clf;
   h_img = imagesc(DEM_x,DEM_y, DEM);
   set(gca,'YDir','normal');
   hold on;
   plot(mdata.x,mdata.y,'k.','LineWidth',2);
   plot(mdata.x(1),mdata.y(1),'ro','LineWidth',2);
+  imagesc(OM_x,OM_y,max(max(DEM))*ones(length(OM_y),length(OM_x)));
   hold off;
 end
 
@@ -96,6 +105,12 @@ Nsv = length(theta);
 twtt = zeros(Nsv,Nx);
 ice_mask = ones(Nsv,Nx);
 
+if all(all(isnan(DEM)))
+  warning('Input DEM contains all NaN data for Frame %d.',param.proc.frm);
+  twtt(:,:) = NaN;
+  Nx = 0;
+end
+
 for rline = 1:Nx
   if ~mod(rline-1,500)
     fprintf('  Ice-DEM-Mask %d of %d (%s)\n', rline, Nx, datestr(now));
@@ -105,8 +120,13 @@ for rline = 1:Nx
   DEM_y_mesh= repmat(DEM_y',[1 size(DEM,2)]);
   
   DEM_mask = DEM_x_mesh > mdata.x(rline)-4e3 & DEM_x_mesh < mdata.x(rline)+4e3 ...
-    & DEM_y_mesh > mdata.y(rline)-4e3 & DEM_y_mesh < mdata.y(rline)+4e3;
+    & DEM_y_mesh > mdata.y(rline)-4e3 & DEM_y_mesh < mdata.y(rline)+4e3 ...
+    & ~isnan(DEM);
   DEM_idxs = find(DEM_mask);
+  
+  if numel(DEM_idxs)==0
+    warning('Range Line %d of Frame %d is not spanned by DEM.',rline,param.proc.frm);
+  end
   
   if 0
     set(h_img,'AlphaData',DEM_mask);
@@ -150,30 +170,34 @@ for rline = 1:Nx
   y = DEM_fcs_y(slice_mask);
   z = DEM_fcs_z(slice_mask);
   
-  faces = delaunay(double(x),double(y));
-  vertices = [double(x).' double(y).' double(z).'];  % vertices stored as Nx3 matrix
-  vert1 = vertices(faces(:,1),:);
-  vert2 = vertices(faces(:,2),:);
-  vert3 = vertices(faces(:,3),:);
+  if(numel(x)>=3)
+    faces = delaunay(double(x),double(y));
+    vertices = [double(x).' double(y).' double(z).'];  % vertices stored as Nx3 matrix
+    vert1 = vertices(faces(:,1),:);
+    vert2 = vertices(faces(:,2),:);
+    vert3 = vertices(faces(:,3),:);
   
-  orig = [0 0 0];
-  
-  intersection = zeros(3,Nsv);
-  
-  for theta_idx = 1:length(theta)
-    dir = [0 sin(theta(theta_idx)) -cos(theta(theta_idx))];
-    [intersect, t] = TriangleRayIntersection(orig, dir, vert1, vert2, vert3);
-    
-    intersect_idx = find(intersect);
-    
-    if isempty(intersect_idx)
-      twtt(theta_idx,rline) = NaN;
-      intersection(:,theta_idx) = NaN;
-    else
-      twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
-      % finds coordinates in approximate center of triangles
-      intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
+    orig = [0 0 0];
+
+    intersection = zeros(3,Nsv);
+
+    for theta_idx = 1:length(theta)
+      dir = [0 sin(theta(theta_idx)) -cos(theta(theta_idx))];
+      [intersect, t] = TriangleRayIntersection(orig, dir, vert1, vert2, vert3);
+
+      intersect_idx = find(intersect);
+
+      if isempty(intersect_idx)
+        twtt(theta_idx,rline) = NaN;
+        intersection(:,theta_idx) = NaN;
+      else
+        twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
+        % finds coordinates in approximate center of triangles
+        intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
+      end
     end
+  else
+    twtt(:,rline) = NaN;
   end
 
   if exist('ice_mask_all','var')
