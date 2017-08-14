@@ -947,6 +947,12 @@ for img = 1:length(param.load.imgs)
       coh_ave(:,rline0_idx,:) = sum(g_data(:,rlines,:) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx,:);
       
       if strcmpi(radar_type,'fmcw')
+        % Nyquist_zone: bit mask for which nyquist zones are used in this
+        % segment. For example, if nyquist zones 0 and 2 are used, then
+        % nyquist zone will be 5 which is 0101 in binary and positions 0
+        % and 2 are set to 1. If nyquist zones 0 and 1 are used, then
+        % nyquist zone will be 3 which is 0011 in binary and positions 0
+        % and 1 are set to 1.
         nz_mask = char('0'*ones(1,32));
         nz_mask(32-unique(img_nyquist_zone(rlines))) = '1';
         nyquist_zone(1,rline0_idx) = bin2dec(nz_mask);
