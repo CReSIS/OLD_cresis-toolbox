@@ -43,7 +43,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % =====================================================================
   % Debug Setup
   % =====================================================================
-  param = read_param_xls(ct_filename_param('rds_param_2008_Greenland_TO.xls'),'20080627_05');
+  param = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'20170403_01');
   
   clear('param_override');
   param_override.sched.type = 'no scheduler';
@@ -77,7 +77,12 @@ fprintf('=====================================================================\n
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 
-adc_idx = find(param.vectors.file.adc == records.param_records.records.file.adcs);
+if ~isfield(param.vectors.file,'adc') || isempty(param.vectors.file.adc)
+  adc_idx = 1;
+  param.vectors.file.adc = records.param_records.records.file.adcs(adc_idx);
+else
+  adc_idx = find(param.vectors.file.adc == records.param_records.records.file.adcs);
+end
 
 vectors_idx = 0;
 for fn_idx = 1:length(records.relative_filename{adc_idx})
