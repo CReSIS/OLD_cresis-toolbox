@@ -47,6 +47,10 @@ try
 end
 param = merge_structs(param, param_override);
 
+if isempty(param.properties.location)
+  error('param.properties.location must be set (e.g. arctic, antarctic).');
+end
+
 % CONSTRUCT THE JSON STRUCTURE
 param.properties.mat = true;
 opsAuth = load(fullfile(param.tmp_path,'ops.mat'));

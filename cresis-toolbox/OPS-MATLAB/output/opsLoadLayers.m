@@ -84,7 +84,8 @@ physical_constants;
 load(ct_filename_support(param,param.records.frames_fn,'frames'));
 
 %% Load additional framing information for layerdata and echogram sources
-if any(strcmpi(layer_params.source,{'layerdata','echogram'}))
+if any(strcmpi('layerdata',{layer_params.source})) ...
+  || any(strcmpi('echogram',{layer_params.source}))
   % layerdata and echogram sources use records file for
   % framing gps time info
   records_fn = ct_filename_support(param,param.records.records_fn,'records');
@@ -403,7 +404,7 @@ for frm_idx = 1:length(param.cmd.frms)
         [status,data] = opsGetLayers(sys);
         if ~any(strcmpi(data.properties.lyr_name,layer_param.name))
           found = false;
-          warning('Unsupported layer %s for records source.', layer_param.name);
+          warning('Layer %s does not exist in OPS.', layer_param.name);
         end
       end
       
