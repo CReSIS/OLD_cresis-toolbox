@@ -73,6 +73,12 @@ function layers = opsCopyLayers(param,copy_param)
 %           '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
 %           'source = source + 0.1;' % Apply a twtt shift
 %           'source = source*2;' % Surface multiple
+%           'source = interp1(gps_time+15,source,gps_time);' % Apply a GPS time shift
+%     .quality: struct controlling the quality level 
+%       .mode: string specifying one of these methods:
+%         'overwrite': Overwrites the quality level with ".quality"
+%         'preserve': Quality level preserved from source
+%       .quality: scalar containing 1, 2, or 3
 %     .copy_method = string specifying one of these methods
 %       'fillgaps': only gaps in destination data will be written to
 %       'overwrite': none of the previous data are kept
@@ -106,6 +112,19 @@ end
 if strcmpi(copy_param.gaps_fill.method,'preserve_gaps') ...
     && (~isfield(copy_param.gaps_fill,'method_args') || isempty(copy_param.gaps_fill.method_args))
   copy_param.gaps_fill.method_args = [300 60];
+end
+
+if ~isfield(copy_param,'quality')
+  copy_param.quality.mode = 'preserve';
+  copy_param.quality.value = 1;
+end
+
+if ~any(strcmpi(copy_param.quality.mode,{'preserve','overwrite'}))
+  error('Invalid quality mode %s', copy_param.quality.mode);
+end
+
+if ~any(copy_param.quality.value == [1 2 3])
+  error('Invalid quality value %d', copy_param.quality.value);
 end
 
 %% Load "frames" file
@@ -257,8 +276,12 @@ if strcmpi(copy_param.layer_dest.source,'ops')
     match_idx = find(all_points.ids(point_idx) == layer_dest.point_path_id);
     if isempty(match_idx)
      all_points.twtt(point_idx) = NaN;
+     all_points.quality(point_idx) = 1;
+     all_points.type(point_idx) = 2;
     else
      all_points.twtt(point_idx) = layer_dest.twtt(match_idx);
+     all_points.quality(point_idx) = layer_dest.quality(match_idx);
+     all_points.type(point_idx) = layer_dest.type(match_idx);
     end
   end
 
@@ -270,13 +293,15 @@ else
   all_points.lon = layer_dest.lon;
   all_points.elev = layer_dest.elev;
   all_points.ids = layer_dest.point_path_id;
+  all_points.type = layer_dest.type;
   all_points.twtt = layer_dest.twtt;
+  all_points.quality = layer_dest.quality;
 end
 
 % Set invalid types to "auto" or 2
-layer_source.type(isnan(layer_source.type)) = 2;
+layer_source.type(~isfinite(layer_source.type)) = 2;
 % Set invalid quality levels to "good" or 1
-layer_source.quality(isnan(layer_source.quality)) = 1;
+layer_source.quality(~isfinite(layer_source.quality)) = 1;
 layer_source.quality(layer_source.quality ~= 1 & layer_source.quality ~= 2 & layer_source.quality ~= 3) = 1;
 
 %% Apply evaluation operation to source
@@ -292,8 +317,9 @@ if isfield(copy_param,'eval') && ~isempty(copy_param.eval)
   layer_source.twtt = source;
 end
 
+%% Interpolate two way travel time (twtt) from layer_source to all_points
 if strcmpi(copy_param.gaps_fill.method,'preserve_gaps')
-  %% interpolation preserves_gaps
+  % interpolation preserves_gaps which preserves gaps in the data
   
   master = [];
   master.GPS_time = all_points.gps_time;
@@ -307,14 +333,33 @@ if strcmpi(copy_param.gaps_fill.method,'preserve_gaps')
   ops_layer{1}.twtt = layer_source.twtt;
   lay = opsInterpLayersToMasterGPSTime(master,ops_layer,copy_param.gaps_fill.method_args);
   all_points.twtt_interp = lay.layerData{1}.value{2}.data;
+  % All points automated (type 2) by default
+  all_points.type_interp = 2*ones(size(all_points.twtt_interp));
+  % Overwrite manual points (type 1)
+  manual_mask = isfinite(lay.layerData{1}.value{1}.data);
+  all_points.type_interp(manual_mask) = 1;
+  all_points.twtt_interp(manual_mask) = lay.layerData{1}.value{1}.data(manual_mask);
   
 elseif strcmpi(copy_param.gaps_fill.method,'interp_finite')
-  %% interpolation follows interp_finite
+  % interpolation interp_finite which interpolates through gaps
   
   % Interpolate source onto destination points using linear interpolation
   all_points.twtt_interp = interp1(layer_source.gps_time, layer_source.twtt, all_points.gps_time);
-  % Fill in NaN gaps using interp_finite
+  % Fill in NaN gaps using interp_finite (default is 0 twtt if no good data
+  % exists)
   all_points.twtt_interp = interp_finite(all_points.twtt_interp,0);
+  
+  % All points automated (type 2) by default
+  all_points.type_interp = 2*ones(size(all_points.twtt_interp));
+  % Overwrite manual points (type 1)
+  manual_idxs = find(layer_source.type == 1);
+  manual_idxs_map = interp1(all_points.gps_time, 1:length(all_points.gps_time), ...
+    layer_source.gps_time(manual_idxs),'nearest');
+  manual_idxs = manual_idxs(~isnan(manual_idxs_map));
+  manual_idxs_map = manual_idxs_map(~isnan(manual_idxs_map));
+  all_points.twtt_interp(manual_idxs_map) ...
+    = layer_source.twtt(manual_idxs);
+  all_points.type_interp(manual_idxs_map) = 1;
 end
 
 %% Combine the newly interpolated result with the current values
@@ -342,7 +387,6 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   
 else
   for frm = param.cmd.frms
-    records.gps_time(frames.frame_idxs(frm));
     if frm < length(frames.frame_idxs)
       frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))...
         & all_points.gps_time < records.gps_time(frames.frame_idxs(frm+1))) = 1;
@@ -355,9 +399,19 @@ end
 
 update_mask = frms_mask & update_mask;
 
+%% Overwrite quality level
+all_points.quality_interp = interp1(layer_source.gps_time,layer_source.quality,all_points.gps_time,'nearest');
+if strcmpi(copy_param.quality.mode,'overwrite')
+  all_points.quality_interp(:) = copy_param.quality.quality;
+end
+
 %% Write the new layer data to the destination
 surface = all_points.twtt;
 surface(update_mask) = all_points.twtt_interp(update_mask);
+quality = all_points.quality;
+quality(update_mask) = all_points.quality_interp(update_mask);
+layer_type = all_points.type;
+layer_type(update_mask) = all_points.type_interp(update_mask);
 
 if 0
   % Debug code
@@ -389,8 +443,8 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   % Use update_mask to exclude all points that are not getting updated
   ops_param.properties.point_path_id = all_points.ids(update_mask);
   ops_param.properties.twtt = surface(update_mask);
-  ops_param.properties.type = 2*ones(size(ops_param.properties.twtt));
-  ops_param.properties.quality = 1*ones(size(ops_param.properties.twtt));
+  ops_param.properties.type = layer_type(update_mask);
+  ops_param.properties.quality = quality(update_mask);
   ops_param.properties.lyr_name = copy_param.layer_dest.name;
   
   %% Update these points
@@ -437,10 +491,13 @@ elseif strcmpi(copy_param.layer_dest.source,'layerdata')
     end
     
     % Manual points
-    % Not supported
+    layer_type_mask = interp1(all_points.gps_time,layer_type,lay.GPS_time,'nearest') == 1;
+    lay.layerData{lay_idx}.value{1}.data(layer_type_mask) = interp1(all_points.gps_time,surface,lay.GPS_time(layer_type_mask));
     
     % Automated points
     lay.layerData{lay_idx}.value{2}.data = interp1(all_points.gps_time,surface,lay.GPS_time);
+    
+    lay.layerData{lay_idx}.quality = interp1(all_points.gps_time,quality,lay.GPS_time,'nearest');
     
     % Append the new results back to the layerData file
     save(layer_fn,'-append','-struct','lay','layerData');

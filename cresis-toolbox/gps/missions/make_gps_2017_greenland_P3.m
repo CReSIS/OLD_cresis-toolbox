@@ -35,10 +35,11 @@ in_base_path = fullfile(data_support_path,'2017_Greenland_P3');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_fns = {}; sync_params = {};
 
-gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM-field_traj';
 % gps_source_to_use = 'ATM';
+gps_source_to_use = 'DMS';
 
 if strcmpi(gps_source_to_use,'NMEA')
     
@@ -338,8 +339,53 @@ if strcmpi(gps_source_to_use,'NMEA')
 % params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
 % gps_source{file_idx} = 'nmea-field';
 % sync_flag{file_idx} = 0;
+% 
+% year = 2017; month = 5; day = 3;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
 
-year = 2017; month = 5; day = 3;
+% year = 2017; month = 5; day = 5;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% 
+% year = 2017; month = 5; day = 6;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% 
+% year = 2017; month = 5; day = 8;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+% 
+% year = 2017; month = 5; day = 10;
+% file_idx = file_idx + 1;
+% in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+% out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+% file_type{file_idx} = 'NMEA';
+% params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+% gps_source{file_idx} = 'nmea-field';
+% sync_flag{file_idx} = 0;
+
+year = 2017; month = 5; day = 11;
 file_idx = file_idx + 1;
 in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
 out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -515,16 +561,41 @@ elseif strcmpi(gps_source_to_use,'ATM')
   %     [year,month,day] = datevec(fn_dates(idx));
   %     fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
   %   end
-  % !!!   ALL data, including test flights, from Oct 7th to OCT29th are in
-  % GPS time. From Nov2nd to Nov 22nd the data is in UTC time.
   
-  year = 2017; month = 2; day = 26;
+ ATM_fns = get_filenames(in_base_path,'','','.out');
+  fn_dates = [];
+  for idx = 1:length(ATM_fns)
+    fn = ATM_fns{idx};
+    [~,fn_name] = fileparts(fn);
+    fn_dates(end+1) = datenum(sprintf('%s %s, 20%s', fn_name(9:11), fn_name(7:8), fn_name(12:13)));
+  end
+  fn_dates = sort(fn_dates);
+  
+
+  for idx = 1:length(fn_dates)
+    [year,month,day] = datevec(fn_dates(idx));
+    fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
+    file_idx = file_idx + 1;
+      if idx==1 
+           in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+      else  
+           in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'PPPK*.out');
+      end
+    out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+    file_type{file_idx} = 'applanix';
+    params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+    gps_source{file_idx} = 'atm-final_20170620';
+    sync_flag{file_idx} = 0;
+  end
+  
+elseif strcmpi(gps_source_to_use,'DMS')
+  year = 2017; month = 4; day = 20;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'PPPK*.out');
+  in_fns{file_idx} = get_filename(fullfile(in_base_path,'Wing_Flexure'),'Paden_',datestr(datenum(year,month,day),'yyyymmdd'),'.out');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'applanix';
-  params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  gps_source{file_idx} = 'atm-final_X';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','gps');
+  gps_source{file_idx} = 'dms-final_20170530';
   sync_flag{file_idx} = 0;
   
 end

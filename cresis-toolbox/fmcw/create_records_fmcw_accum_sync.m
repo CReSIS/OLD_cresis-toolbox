@@ -216,20 +216,32 @@ for board_idx = 1:length(board_hdrs)
   epri_diff = diff(double(hdr.epri));
   drop_last_files = 0;
   if any(epri_diff > 1000)
-    warning('Large positive jump. Sometimes these are single header errors (one record has an EPRI header error that can be fixed with "random_large_epri_offset=true" and then run "dbcont", possibly adjusting random_large_epri_offset_tresholds = [1 3] (largest and smallest allowable epri jumps, usually adjust to [-M N] so that M/N exclude all EPRI jumps that are real jumps rather than just header errors), and a note in cmd.notes) and sometimes it means the segment needs to be broken into two at the file idx listed because there is a data gap > 1km (typically the file with the epri jump in it is left out so that segment from 1 to N is broken into 1 to L-1 and L+1 to N). If the EPRI jump is real and is small enough to be ignored, just run dbcont.');
+    warning('Large positive jump. Sometimes these are single header errors (one record has an EPRI header error that can be fixed with "random_large_epri_offset=true" and then run "dbcont", possibly adjusting random_large_epri_offset_tresholds = [1 3] (largest and smallest allowable epri jumps, usually adjust to [-M N] so that M/N exclude all EPRI jumps that are real jumps rather than just header errors), and a note in cmd.notes) and sometimes it means the segment needs to be broken into two at the file idx listed because there is a data gap > 1km (typically the file with the epri jump in it is left out so that segment from 1 to N is broken into 1 to L-1 and L+1 to N). If the EPRI jump is real (i.e. diff of EPRI and diff of UTC time match) and is a small enough data gap to be ignored, just run dbcont.');
     figure(1); clf;
     plot(epri_diff);
+    xlabel('Range line');
+    ylabel('diff of EPRI');
     title('diff of EPRI');
     a1 = gca;
     figure(2); clf;
-    plot(hdr.epri);
-    title('EPRI');
+    plot(diff(hdr.utc_time_sod));
+    title('diff of UTC time (sec)');
+    xlabel('Range line');
+    ylabel('diff of UTC time (sec)');
     a2 = gca;
     figure(3); clf;
-    plot(hdr.utc_time_sod);
-    title('UTC time');
+    plot(hdr.epri);
+    xlabel('Range line');
+    ylabel('EPRI');
+    title('EPRI');
     a3 = gca;
-    linkaxes([a1 a2 a3],'x');
+    figure(4); clf;
+    plot(hdr.utc_time_sod);
+    xlabel('Range line');
+    title('UTC time SOD (sec)');
+    ylabel('UTC time SOD (sec)');
+    a4 = gca;
+    linkaxes([a1 a2 a3 a4],'x');
     
     random_large_epri_offset_tresholds = [1 3];
     epri_diff_big_jumps = find(~(epri_diff >= random_large_epri_offset_tresholds(1) & epri_diff <= random_large_epri_offset_tresholds(2)));

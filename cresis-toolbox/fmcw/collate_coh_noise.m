@@ -98,10 +98,10 @@ for param_idx = 1:length(params)
     keyboard
   end
   
+  %% Set the noise regimes
   noise.regime = ones(size(noise.gps_time));
-  
-  %% Segment specific hacks
   if strcmpi(noise.param_analysis.radar_name,'snow2') && strcmpi(noise.param_analysis.day_seg,'20120316_03')
+    %% Segment specific regimes
     bad_mask = noise.gps_time > 1.331923763327688e+09 & noise.gps_time < 1.331923803347247e+09;
     noise.coh_ave_samples(:,bad_mask) = param.analysis.coh_ave.min_samples;
     noise.regime(find(bad_mask,1):end) = 2;
@@ -109,7 +109,7 @@ for param_idx = 1:length(params)
   elseif isfield(param.analysis.coh_ave,'regimes') ...
       && ~isempty(param.analysis.coh_ave.regimes) ...
       && param.analysis.coh_ave.regimes.en
-    %% Cross correlate neighboring range lines to test for changes in statistics
+    %% Cross correlate neighboring range lines to test for changes in statistics which indciate a regime change
     dline = 2;
     dcorr = zeros(1,size(noise.coh_ave,2));
     tmp = interp_finite(noise.coh_ave);
@@ -145,10 +145,20 @@ for param_idx = 1:length(params)
       noise.regime(rline) = cur_regime;
     end
   elseif isfield(noise,'nyquist_zone')
-    %% Segment data based on waveform or nyquist zone
+    %% Segment into regimes based on nyquist zone
     noise.regime = noise.nyquist_zone;
+    
+    % Nyquist_zone: bit mask indicating which nyquist zones are used in each
+    % block. If only one nyquist zone is used, then only one bit will be
+    % one. This means the values will be 1, 2, 4, or 8.  In other words it
+    % will be a power of 2 and log2() will produce an integer. If two or
+    % more nyquist zones are used then log2() will not produce an integer.
+    % If two or more nyquist zones are used, then the mean/average will be
+    % contaminated and should not be used and we mark that column with 1 in
+    % mixed_nz_blocks and set these columns to zero valid samples.
     mixed_nz_blocks = mod(log2(noise.nyquist_zone),1)~=0;
     noise.coh_ave_samples(:,mixed_nz_blocks) = 0;
+    
   end
   regimes = unique(noise.regime);
   if length(regimes) > 1

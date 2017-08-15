@@ -56,8 +56,13 @@ premet_param = [];
 
 % Construct the necessary element: AircraftID and platform_short_name
 if strcmpi(platform,'P3')
-  premet_param.nsidc_platform_short_name = 'P-3B';        % change to meet the valids file
-  premet_param.nsidc_aircraft_id = 'N426NA';
+    if strcmpi(season_name_year,'2016')
+        premet_param.nsidc_platform_short_name = 'WP-3D ORION';        
+        premet_param.nsidc_aircraft_id = 'N43RF';
+    else
+        premet_param.nsidc_platform_short_name = 'P-3B';        % change to meet the valids file
+        premet_param.nsidc_aircraft_id = 'N426NA';
+    end
 elseif strcmpi(platform,'DC8')
   premet_param.nsidc_platform_short_name = 'DC-8';
   premet_param.nsidc_aircraft_id = 'N817NA';

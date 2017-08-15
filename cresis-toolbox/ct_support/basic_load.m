@@ -14,18 +14,18 @@ function [hdr,data] = basic_load(fn,param)
 %
 % If data is not specified as an output argument, only the first header is returned
 %
-% fn = filename of file containing cresis data
-% param = struct controlling loading of data
-%   .clk = clock (Hz), default one, used to interpret
-%     counts in the header fields
-%     e.g. snow5 during 2015 Greenland Polar6 used sampling frequency 1e9/8
-%   .recs = 2 element vector for records to load [start_rec num_rec]
-%     start_rec uses zero-indexing (negative start_recs read from the
-%     end of the file and only work with single header loading)
+% fn: filename of file containing cresis data
+% param: struct controlling loading of data
+%  .clk: clock (Hz), default one, used to interpret
+%    counts in the header fields
+%    e.g. snow5 during 2015 Greenland Polar6 used sampling frequency 1e9/8
+%  .recs: 2 element vector for records to load [start_rec num_rec]
+%    start_rec uses zero-indexing (negative start_recs read from the
+%    end of the file and only work with single header loading)
 %
-% hdr = file header for each record (unless "data" output is not used
+% hdr: file header for each record (unless "data" output is not used
 %   in which case only the first hdr is returned)
-% data = Depends on param.records.en. When false, it is an optional output
+% data: Depends on param.records.en. When false, it is an optional output
 %   array of radar data where dimensions are
 %   1: fast-time/range-bin
 %   2: slow-time/range-line/records

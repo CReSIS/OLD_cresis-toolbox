@@ -182,7 +182,10 @@ while ~quit_cmd
           set(h_image(img),'XData',1:size(echo.Data,2));
           set(h_image(img),'YData',echo.Time);
           set(h_image(img),'CData',lp(echo.Data));
-          caxis(h_axes(img),[min(lp(echo.Data(:))) max(lp(echo.Data(:)))]);
+          clims = [min(lp(echo.Data(isfinite(lp(echo.Data(:)))))) max(lp(echo.Data(isfinite(lp(echo.Data(:))))))];
+          if length(clims) == 2
+            caxis(h_axes(img),clims);
+          end
           xlim(h_axes(img),[1 size(echo.Data,2)]);
           ylim(h_axes(img),[echo.Time([1 end])]);
           set(h_plot(img),'XData',1:size(echo.Data,2));
@@ -241,7 +244,7 @@ while ~quit_cmd
         zoom(h_axes(img),'reset');
       end
     catch ME
-      warning('Failed to load %s.', echo_fn{img});
+      warning('Failed to load %s:\n%s', echo_fn{img}, ME.getReport());
       echo_fn{img} = '';
     end
   end

@@ -254,6 +254,10 @@ elseif param.elev_comp == 3
 end
 
 % Create depth axis
+if all(isnan(lay.Surface))
+  warning('No surface points defined. Setting to zero.');
+  lay.Surface(:) = 0;
+end
 good_surface_vals = lay.Surface + fast_time_correction;
 good_surface_vals = good_surface_vals(isfinite(good_surface_vals));
 mean_surface_time = mean(good_surface_vals);

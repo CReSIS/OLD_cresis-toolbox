@@ -124,8 +124,8 @@ if ~param.sched.rerun_only
     for frm = param.cmd.frms
       del_paths = get_filenames(qlook_out_path,sprintf('ql_data_%03d',frm),'','',struct('type','d'));
       for idx = 1:length(del_paths)
-        fprintf('Removing path: %s\n', del_paths{idx});
-        rmdir(del_paths{idx},'s');
+        fprintf('If required, manually remove path: %s\n', del_paths{idx});
+        %rmdir(del_paths{idx},'s');
       end
     end
   end
@@ -248,7 +248,7 @@ if ~param.get_heights.combine_only
           recs(breaks(break_idx+1)-1)+block_overlap];
       else
         cur_recs_keep = [recs(breaks(break_idx)) recs(end)];
-        cur_recs = [max(1,recs(breaks(break_idx))-block_overlap) recs(end)];
+        cur_recs = [max(1,recs(breaks(break_idx))-block_overlap) min(length(records.lat),recs(end)+block_overlap)];
       end
       
       % =====================================================================
@@ -311,6 +311,12 @@ if ~param.get_heights.combine_only
         create_task_param.notes = sprintf('%s %s_%03d (%d of %d)/%d of %d records %d-%d', ...
           param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end));
         ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
+
+      elseif strcmp(param.sched.type,'ollie')
+        dynamic_param.frms.(['frm',num2str(frm)]).frm_id = frm;
+        dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).break_id = break_idx;
+        dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).recs = task_param.load.recs;
+        dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).recs_keep = task_param.load.recs_keep;
         
       elseif ~strcmp(param.sched.type,'no scheduler')
         [ctrl,job_id,task_id] = create_task(ctrl,fh,1,arg);
@@ -326,10 +332,19 @@ if ~param.get_heights.combine_only
           param.day_seg, frm, frm_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end), datestr(now));
         [success] = fh(arg{1});
       end
-      
     end
   end
   
+  % Export parameter structs in case of Schedule Type Ollie
+  if strcmp(param.sched.type,'ollie')
+    dynamic_param.day_seg = param.day_seg;
+    steady_param = task_param;
+    dynamic_param_file_name = sprintf('/home/ollie/tbinder/jobs/qlook_%s_dynamic_param.mat', param.day_seg);
+    save(dynamic_param_file_name,'dynamic_param');
+    steady_param_file_name = sprintf('/home/ollie/tbinder/jobs/qlook_%s_steady_param.mat', param.day_seg);
+    save(steady_param_file_name,'steady_param');
+  end
+
   % =======================================================================
   % Wait for jobs to complete if a scheduler was used
   % =======================================================================
@@ -349,7 +364,10 @@ if ~param.get_heights.combine_only
     end
     get_heights_check_cluster_files; % Function call temporarily added to track down compute system problem
     torque_cleanup(ctrl);
-    
+
+  elseif strcmp(param.sched.type,'ollie')
+    return
+
   elseif ~strcmpi(param.sched.type,'no scheduler')
     % ======================================================================
     % Wait for jobs to finish and clean up

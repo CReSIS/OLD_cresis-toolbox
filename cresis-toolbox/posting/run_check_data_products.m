@@ -11,6 +11,14 @@ global gRadar
 % params = read_param_xls(ct_filename_param('kuband_param_2010_Greenland_DC8.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('kuband_param_2011_Greenland_P3.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('kuband_param_2012_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('rds_param_1993_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('rds_param_1995_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('rds_param_1996_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('rds_param_1997_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('rds_param_1998_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('rds_param_1999_Greenland_P3.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('rds_param_2001_Greenland_P3.xls'),[],'post');
+params = read_param_xls(ct_filename_param('rds_param_2002_Greenland_P3.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_P3.xls'),[],'post');
@@ -18,7 +26,7 @@ global gRadar
 % params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'),[],'post');
-params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),[],'post');
 
 source_dir = '/cresis/snfs1/dataproducts/ct_data/';
@@ -28,8 +36,8 @@ support_dir = gRadar.support_path;
 support_backup_dirs = {'',''};
 support_dirs_list = [support_dir support_backup_dirs];
 
-if any(strcmp(params(1).radar_name,{'mcrds','mcords','mcords2','mcords3','mcords4','mcords5'}))
-  supports = {'gps','vectors','frames','records'};
+if any(strcmp(params(1).radar_name,{'icards','mcrds','mcords','mcords2','mcords3','mcords4','mcords5'}))
+  supports = {'gps','frames','records'};
   outputs = {'CSARP_qlook','CSARP_standard','CSARP_mvdr','CSARP_layerData','CSARP_out'};
 %   outputs = {'CSARP_qlook','CSARP_csarp-combined'};
   outputs_post_dir = '';
@@ -38,7 +46,7 @@ if any(strcmp(params(1).radar_name,{'mcrds','mcords','mcords2','mcords3','mcords
   csv_outputs = {'csv','csv_good','kml','kml_good'};
   csv_en = 1;
 elseif strcmp(params(1).radar_name,'accum2')
-  supports = {'gps', 'vectors','frames','records'};
+  supports = {'gps','frames','records'};
   outputs = {'CSARP_qlook','CSARP_layerData'};
   outputs_post_dir = 'CSARP_post';
   images = {'maps','echo'};
@@ -59,6 +67,8 @@ gps_sources = {}; % Leave empty/undefined to not check gps_sources
 processing_date_check = []; % Leave empty/undefined to not check processing date
 frm_types = {-1,0,-1,-1,-1};
 delete_bad_files = true;
+check_for_bad_files = true;
+enable_all_without_do_not_process = true;
 
 %% Automated Section
 

@@ -63,7 +63,7 @@ end
 %% Create Tasks
 task_param = param;
 fh = @collate_task;
-for frm_idx = 1:length(param.cmd.frms)
+for frm_idx = 1:length(param.cmd.frms) 
   frm = param.cmd.frms(frm_idx);
   task_param.proc.frm = frm;
   arg = {task_param};

@@ -2,8 +2,8 @@
 %
 %
 N = 11*3;
-Q = 1; % Number of sources
-SNR = 15;
+Q = 3; % Number of sources
+SNR = 10;
 p = 8;
 
 
@@ -39,28 +39,28 @@ eigen_values = sort(eig(DCM).','descend');
 % D: eigenvalues
 
   
-AIC = [];
-MDL = [];
+AIC_cost = [];
+MDL_cost = [];
 k_vals = 0:p-1;
 for k = k_vals
-%   AIC(k+1) = -log( (prod(eigen_values(k+1:p).^(1/(p-k))) ...
+%   AIC_cost(k+1) = -log( (prod(eigen_values(k+1:p).^(1/(p-k))) ...
 %     ./ mean(eigen_values(k+1:p))).^((p-k)*N) ) + k*(2*p-k);
-  AIC(k+1) = -log( (prod(eigen_values(k+1:p).^(1/(p-k))) ...
+  AIC_cost(k+1) = -log( (prod(eigen_values(k+1:p).^(1/(p-k))) ...
     ./ mean(eigen_values(k+1:p))) ) * ((p-k)*N) + k*(2*p-k);
   
-%   MDL(k+1) = -log( (prod(eigen_values(k+1:p).^(1/(p-k))) ...
+%   MDL_cost(k+1) = -log( (prod(eigen_values(k+1:p).^(1/(p-k))) ...
 %     ./ mean(eigen_values(k+1:p))).^((p-k)*N) ) + 0.5*k*(2*p-k)*log(N);
-  MDL(k+1) = -log( (prod(eigen_values(k+1:p).^(1/(p-k))) ...
+  MDL_cost(k+1) = -log( (prod(eigen_values(k+1:p).^(1/(p-k))) ...
     ./ mean(eigen_values(k+1:p))) ) * ((p-k)*N) + k*(2*p-k)*(0.5*log(N));
 end
 
-abs(AIC);
-[~,q_est] = min(AIC);
+abs(AIC_cost);
+[~,q_est] = min(AIC_cost);
 q_est = k_vals(q_est);
 q_est_aic(run) = q_est;
 
-abs(MDL);
-[~,q_est] = min(MDL);
+abs(MDL_cost);
+[~,q_est] = min(MDL_cost);
 q_est = k_vals(q_est);
 
 q_est_dml(run) = q_est;
@@ -73,7 +73,7 @@ res = hist(q_est_dml,[0:p])
 bar(0:p,res/num_runs*100);
 grid on;
 xlim([-0.5 p+0.5]);
-title('DML');
+title('MDL');
 ylabel('Percentage');
 subplot(2,1,2);
 res = hist(q_est_aic,[0:p])

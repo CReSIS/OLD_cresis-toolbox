@@ -27,33 +27,44 @@ function clip_and_resample_image(h_img,h_axes,max_size_MB)
 CData = get(h_img,'CData');
 XData = get(h_img,'XData');
 YData = get(h_img,'YData');
-xlims = xlim(h_axes);
-ylims = ylim(h_axes);
 
-x_extent = max(xlims) - min(xlims);
-y_extent = max(ylims) - min(ylims);
+size_x = size(CData,2);
+size_y = size(CData,1);
+
+dx = (XData(end)-XData(1)) / (size_x-1);
+dy = (YData(end)-YData(1)) / (size_y-1);
+
+xlims_all = dx * size(CData,2);
+ylims_all = dy * size(CData,1);
+
+xlims = xlim;
+ylims = ylim;
+
+size_x_clip = diff(xlims);
+size_y_clip = diff(ylims);
+
+Nx = size_x_clip / dx;
+Ny = size_y_clip / abs(dy);
 
 if strcmp(class(CData),'double')
   sample_size = 16;
 else
   sample_size = 8;
 end
-resolution = sqrt(x_extent*y_extent / (max_size_MB*2^20/sample_size/size(CData,3)));
+scale_factor = sqrt(Nx*Ny/ (max_size_MB*2^20/sample_size/size(CData,3)));
 
-new_x_axis = min(xlims) : resolution : max(xlims)+resolution;
-new_y_axis = (min(ylims) : resolution : max(ylims)+resolution);
-XData = linspace(min(XData),max(XData),size(CData,2));
-YData = linspace(min(YData),max(YData),size(CData,1)).';
-if strcmpi(get(h_axes,'YDir'),'normal')
-  YData = flipud(YData);
+if scale_factor > 1
+  Nx = Nx / scale_factor;
+  Ny = Ny / scale_factor;
 end
 
-x_mask = XData > min(xlims)-x_extent*0.1 & XData < max(xlims)+x_extent*0.1;
-y_mask = YData > min(ylims)-y_extent*0.1 & YData < max(ylims)+y_extent*0.1;
-XData = XData(x_mask);
-YData = YData(y_mask);
-CData = CData(y_mask,x_mask,:);
+dx_new = diff(xlims)/Nx;
+dy_new = diff(ylims)/Ny;
+new_x_axis = linspace(xlims(1)+0.5*dx_new,xlims(end)-0.5*dx_new,Nx);
+new_y_axis = linspace(ylims(1)+0.5*dy_new,ylims(end)-0.5*dy_new,Ny);
 
+XData = XData(1):dx:XData(end);
+YData = YData(1):dy:YData(end);
 class_fh = eval(sprintf('@%s',class(CData)));
 CData_new = zeros(length(new_y_axis),length(new_x_axis),size(CData,3),class(CData));
 for idx=1:size(CData_new,3)

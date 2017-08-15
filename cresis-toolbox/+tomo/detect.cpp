@@ -1,4 +1,9 @@
+// Compile with mex -v -largeArrayDims detect.cpp
+//   -v: verbose
+//   -largeArrayDims: required for 64 bit
+//
 // detect.cpp: Detect the ice-bed layer in each MUSIC slice.
+//
 // By Mingze Xu, July 2016
 //
 #include <iostream>
@@ -87,7 +92,7 @@ double HMM::unary_cost(size_t x, size_t y) {
         return LARGE;
     }
 
-    // Using extra ground truth (uncomment these codes if use extra ground truth)
+    // Using extra ground truth (uncomment these lines if using extra ground truth)
     for (size_t i = 0; i < egt.size(); i++) {
         if (x == egt[i].first) {
             cost += 2*sqr(abs((int)egt[i].second - (int)(y+t))/egt_weight);
@@ -208,10 +213,35 @@ mxArray * getMexArray(const vector<double> &v) {
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     if (nrhs != 12) {
-        cerr << "nrhs: " << nrhs << endl;
-        mexErrMsgTxt("usage: detect(input_image, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, mid, egt_weight, smooth_weight, smooth_var, smooth_slope)");
+        mexPrintf("[labels] = detect(input_img, surface_gt, bottom_gt, extra_gt, ice_mask\n");
+        mexPrintf("  mean, var, mid, egt_weight, smooth_weight, smooth_var, smooth_slope)\n");
+        mexPrintf("\n");
+        mexPrintf("HMM Viterbi detection function for ice-bed layer in MUSIC slices\n");
+        mexPrintf("Compile with mex -v -largeArrayDims detect.cpp\n");
+        mexPrintf("  -v: verbose   -largeArrayDims: required for 64 bit\n");
+        mexPrintf("\n");
+        mexPrintf("Inputs\n");
+        mexPrintf(" input_img: radar echogram to be analyzed (double matrix Nt by N)\n");
+        mexPrintf(" surface_gt: surface bins matrix (double matrix 1 by N)\n");
+        mexPrintf(" bottom_gt: bottom bin (scalar for bottom at column 32)\n");
+        mexPrintf(" extra_gt: manual bottom points (double matrix 2 by Ngt)\n");
+        mexPrintf("   extra_gt(1,:): indicates the column in input_img of the ground truth point\n");
+        mexPrintf("   extra_gt(2,:): indicates the row in input_img  of the ground truth point\n");
+        mexPrintf(" ice_mask: ice(true) or rock(false) mask (double matrix 1 by N)\n");
+        mexPrintf(" mean: mean of image peak template (double matrix 1 by Ntemplate)\n");
+        mexPrintf(" var: variance of image peak template (double matrix 1 by Ntemplate)\n");
+        mexPrintf(" mid: -1\n");
+        mexPrintf(" egt_weight: weight attributed to manual ground truth points (e.g. 10).\n");
+        mexPrintf(" smooth_weight: -1\n");
+        mexPrintf(" smooth_var: -1\n");
+        mexPrintf(" smooth_slope: to assume topography is flat (no slope): zeros(1, N - 1)\n");
+        mexPrintf("\n");
+        mexPrintf("Outputs\n");
+        mexPrintf(" labels: location of bottom layer for each column (double 1 by N)\n");
+        mexPrintf("\n");
+        mexErrMsgTxt("ERROR WITH NUMBER OF INPUT ARGUMENTS - EXITING.");
     }
-
+    
     double *input = mxGetPr(prhs[0]);
     double *surface = mxGetPr(prhs[1]);
     double *bottom = mxGetPr(prhs[2]);

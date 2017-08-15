@@ -96,8 +96,8 @@ if ~param.sched.rerun_only
           error('Invalid SAR processing type (%s)\n', param.csarp.sar_type);
         end
       for idx = 1:length(del_paths)
-        fprintf('Removing path: %s\n', del_paths{idx});
-        rmdir(del_paths{idx},'s');
+        fprintf('If required, manually remove path: %s\n', del_paths{idx});
+        %rmdir(del_paths{idx},'s');
       end
     end
   end
@@ -538,7 +538,13 @@ for frm_idx = 1:length(param.cmd.frms)
         create_task_param.notes = sprintf('%s %s %d (%d of %d)/%d of %d %s combine_rx %d', ...
           param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), chunk_idx, length(output_chunk_idxs), wf_adc_str, param.csarp.combine_rx);
         ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
-        
+
+      elseif strcmp(param.sched.type,'ollie')
+        dynamic_param.frms.(['frm',num2str(frm)]).frm_id = frm;
+        dynamic_param.frms.(['frm',num2str(frm)]).chunks.(['chunk',num2str(chunk_idx)]).chunk_id = chunk_idx;
+        dynamic_param.frms.(['frm',num2str(frm)]).chunks.(['chunk',num2str(chunk_idx)]).recs = task_param.load.recs;
+        dynamic_param.frms.(['frm',num2str(frm)]).chunks.(['chunk',num2str(chunk_idx)]).proc = task_param.proc;
+         
       elseif ~strcmp(param.sched.type,'no scheduler')
         [ctrl,job_id,task_id] = create_task(ctrl,fh,1,arg);
         fprintf('  %d/%d: %s in job,task %d,%d, combine_rx %d (%s)\n', ...
@@ -564,6 +570,22 @@ for frm_idx = 1:length(param.cmd.frms)
   end
 end
 
+% Export parameter structs in case of Schedule Type Ollie
+if strcmp(param.sched.type,'ollie')
+  for n_wf = 1:length(task_param.csarp.imgs)
+      dynamic_param.wf.(['wf',num2str(task_param.csarp.imgs{n_wf}(1))]).wf_id = task_param.csarp.imgs{n_wf}(1);
+      dynamic_param.wf.(['wf',num2str(task_param.csarp.imgs{n_wf}(1))]).channels = task_param.csarp.imgs{n_wf}(:,2);
+  end
+  dynamic_param.day_seg = param.day_seg;
+  steady_param = rmfield(task_param,'proc');
+  steady_param = rmfield(steady_param,'load');
+  steady_param.csarp = rmfield(steady_param.csarp,'chunk_id');
+  dynamic_param_file_name = sprintf('/home/ollie/tbinder/jobs/csarp_%s_dynamic_param.mat', param.day_seg);
+  save(dynamic_param_file_name,'dynamic_param');
+  steady_param_file_name = sprintf('/home/ollie/tbinder/jobs/csarp_%s_steady_param.mat', param.day_seg);
+  save(steady_param_file_name,'steady_param');
+end
+
 % =======================================================================
 % Wait for jobs to complete if a scheduler was used
 % =======================================================================
@@ -582,7 +604,9 @@ if strcmpi(param.sched.type,'custom_torque')
     fprintf('Jobs completed (%s)\n\n', datestr(now));
   end
   torque_cleanup(ctrl);
-  
+
+elseif strcmp(param.sched.type,'ollie')
+
 elseif ~strcmpi(param.sched.type,'no scheduler')
   ctrl.cmd = 'done';
   ctrl = create_task(ctrl);

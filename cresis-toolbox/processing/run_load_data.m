@@ -16,13 +16,13 @@ if run_example == 1
   %    freq-wavenumber domains
   % =======================================================================
   
-  param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),'20160413_01');
+  param = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03');
   
   % Determine which records you want to load:
   frames_fn = '';
   frames_fn = ct_filename_support(param,frames_fn,'frames');
   load(frames_fn);
-  frm = 1;
+  frm = 37;
   param.load_data.recs = frames.frame_idxs(frm) + [0 99];
   
   if ~isfield(param.records,'records_fn')
@@ -31,7 +31,7 @@ if run_example == 1
   param.load_data.records_fn = param.records.records_fn;
   %   param.load_data.imgs = {[-1j 5]};
   %   param.load_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 8; 2 9; 2 10; 2 11; 2 12; 2 13; 2 14; 2 15; 2 16]};
-  param.load_data.imgs = {[1 1]};
+  param.load_data.imgs = {[1 2]};
   param.load_data.pulse_comp         = true;
   param.load_data.ft_dec             = true; % Fast-time decimation
   param.load_data.ft_wind            = @hanning;
