@@ -114,7 +114,7 @@ if strcmpi(radar_setup,'MCORDS3_DC8')
   param.presums = 10;
   
   % .delay: the method used to calculate delay between the channels
-  % .delay.method = 'xcorre_complex' for Tsys
+  % .delay.method = 'xcorr_complex' for Tsys
   % .delay.method = 'max_pixel' for amplitude and phase
   param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10)
 end
