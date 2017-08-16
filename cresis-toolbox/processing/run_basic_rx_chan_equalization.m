@@ -6,7 +6,7 @@
 % Author: John Paden, Logan Smith
 
 % Enable Just One Radar Setup
-radar_setup = 'MCORDS5_P3';
+radar_setup = 'MCORDS3_DC8';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
@@ -100,20 +100,22 @@ if strcmpi(radar_setup,'MCORDS3_DC8')
   param.multiple_files = true;
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'/process/mcords/'};
+  param.base_dir_search = {'/cresis/snfs1/data/MCoRDS/2016_Antarctica_DC8/20161024/'};
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
-  param.img = cat(2,5*ones(6,1),[1:6].'); param.ref_wf_adc = 5;
+  param.img = cat(2,1*ones(6,1),[1:6].'); param.ref_wf_adc = 5;
   
   % .recs: two element vector specifying which records/range-lines to load
   %   [start_record num_records]
   param.recs = [0 inf];
   
   % .presums: Number of additional software presums (coherent averaging) to do
-  param.presums = 1;
+  param.presums = 10;
   
   % .delay: the method used to calculate delay between the channels
+  % .delay.method = 'xcorre_complex' for Tsys
+  % .delay.method = 'max_pixel' for amplitude and phase
   param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10)
 end
 

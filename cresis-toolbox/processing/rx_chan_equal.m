@@ -304,7 +304,7 @@ clear peak_val peak_offset;
 
 peak_val = zeros(size(data,3),length(rlines));
 peak_offset = zeros(size(data,3),length(rlines));
-if param.cross_correlation_flag
+if strcmp(param.delay.method,'xcorr_complex')
   for adc_idx = 1:size(data,3)
     for rline_idx = 1:length(rlines)
       rline = rlines(rline_idx);
@@ -322,7 +322,7 @@ if param.cross_correlation_flag
   peak_offset = peak_offset - repmat(peak_offset(ref_idx,:),[size(peak_offset,1),1]);
   dt = (time(2)-time(1));
   
-else
+elseif strcmp(param.delay.method,'max_pixel')
   for rline_idx = 1:length(rlines)
     rline = rlines(rline_idx);
     data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,ref_idx),param.Mt*length(search_bins));
@@ -343,6 +343,8 @@ else
   peak_offset = peak_offset / param.Mt;
   peak_offset(ref_idx,:) = 0;
   dt = (time(2)-time(1));
+else
+    error('method not supported');
 end
 
 %% Roll Estimation
