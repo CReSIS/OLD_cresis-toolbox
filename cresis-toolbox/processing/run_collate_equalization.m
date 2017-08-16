@@ -28,6 +28,7 @@ elseif 1
   params.cmd.generic = 1;
   
   input_fn_dir = 'noise';
+  img = 1;
   % zero_surf_bin_override = 11; % Normally not used except for internal layers
   
   debug_level = 1; % <-- TYPICAL SETTINGS ARE 1, 3, and 4
@@ -40,6 +41,7 @@ elseif 0
   params.cmd.generic = 1;
   
   input_fn_dir = 'noise';
+  img = 1;
   % zero_surf_bin_override = 11; % Normally not used except for internal layers
   
   debug_level = 1; % <-- TYPICAL SETTINGS ARE 1, 3, and 4

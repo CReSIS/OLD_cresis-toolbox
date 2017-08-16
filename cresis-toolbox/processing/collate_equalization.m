@@ -48,7 +48,7 @@ end
 if debug_level == 3
   %% DEBUG
   plot_bins = zero_surf_bin;
-  test_wf_adc = min(12,Nc); % <== SET DESIRED CHANNEL TO COMPARE
+  test_wf_adc = min(12,Nc); % <== SET DESIRED CHANNEL TO COMPARE REFERENCE TO
   figure(1); clf;
   subplot(3,1,1);
   plot(lp(data.surf_vals(plot_bins,:,test_wf_adc) ./ data.surf_vals(plot_bins,:,ref_wf_adc)).','.')
@@ -259,7 +259,7 @@ if debug_level == 4
   plot_mode = [0 0 0; hsv(7)];
   plot_bins = zero_surf_bin + (-1:1); % <== SET DESIRED RANGE BIN MULTILOOKING
   Nfir_dec = 11; % <== SET DESIRED ALONG TRACK MULTILOOKING
-  ref_rline = min(2000,Nx); % <== SET DESIRED REFERENCE RANGE LINE
+  ref_rline = min(round(mean(param.analysis.surf.rlines)),Nx);
   for wf_adc = 1:Nc
     unwrapped_angle = angle(mean(fir_dec(data.surf_vals(plot_bins,:,wf_adc) ...
       .* conj(data.surf_vals(plot_bins,:,ref_wf_adc)),ones(1,Nfir_dec)/Nfir_dec,1)));
