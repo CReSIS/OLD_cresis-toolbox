@@ -26,19 +26,27 @@ function [td_out,amp_out,phase_out,full_out] = rx_chan_equal(data,param,hdr)
 %    e.g. 2 dB implies channel is 2 dB larger so -2 dB amplitude adjustment
 %    will be applied (targets will be 2 dB smaller)
 %    default is all zeros, units of log power (20*log(voltage))
-%  .ref_bins = bin range around the target to use in cross correlation
-%    [-12 12] searches 12 bins before and after
-%    default is [-12 12]
-%  .search_bins = bin range to search for corresponding target in other
-%    channels, [-7 7] searches 7 bins forward and backward allowing the
-%    channels to have time delay offsets up to 7 range bins
-%    default is [-7 7]
-%  .Mt = over-sampling factor to apply in time domain
-%    default is 100
 %  .plot_en = enable plotting of outputs
 %    default is false
-%  .cross_correlation_flag = enable use of cross correlation instead of
-%    just peak finding (required for obtaining td values)
+%  .delay: struct describing how the time delay between channels is found
+%   .method: string containing the system time delay method. The options
+%     are:
+%       'xcorr_complex': Finds time delay between channels by finding the
+%         lag of the peak of the cross correlation. This is the default.
+%       'peak': Finds time delay between channels by finding the offset
+%         between the peak values.
+%   .ref_bins: Only required for the xcorr_complex delay method. Sets the
+%     bins to use from the reference wf-adc channel.
+%       [-20 20] uses 20 bins before and after the surface
+%     Default is [-20 20].
+%   .search_bins: Depends on the delay method used. The options
+%     are:
+%       'xcorr_complex': For the channel being compared to the reference,
+%         [-7 7] uses 7 bins before and after the surface.
+%       'peak': [-7 7] searches 7 bins backward and forward from the
+%         surface bin for the peak.
+%     Default is [-7 7].
+%   .Mt: over-sampling factor to use in determining delay. Default is 64.
 % hdr = structure describing data
 %  .{lat,lon,elev,roll,pitch,heading}
 %    1 by Nx vectors
@@ -110,14 +118,38 @@ ave_fh = param.averaging_fh;
 freq = param.freq;
 time = param.time;
 
-if ~isfield(param,'ref_bins') || isempty(param.ref_bins)
-  param.ref_bins = [-12 12];
+if ~isfield(param,'delay')
+  param.delay = [];
 end
-if ~isfield(param,'search_bins') || isempty(param.search_bins)
-  param.search_bins = [-7 7];
+
+if ~isfield(param.delay,'method') || isempty(param.delay.method)
+  param.delay.method = 'xcorr_complex';
 end
-if ~isfield(param,'Mt') || isempty(param.Mt)
-  param.Mt = 10;
+  
+%% Setup code for estimation equalization coefficients
+switch(param.delay.method)
+  case 'threshold'
+    delay_method = 1;
+  case 'xcorr_complex'
+    delay_method = 2;
+  case 'xcorr_magnitude'
+    delay_method = 3;
+  case 'peak'
+    delay_method = 4;
+  otherwise
+    error('delay.method %d is not supported', param.analysis.surf.delay.method);
+end
+
+if ~isfield(param.delay,'ref_bins') || isempty(param.delay.ref_bins)
+  param.delay.ref_bins = -20:20;
+end
+
+if ~isfield(param.delay,'search_bins') || isempty(param.delay.search_bins)
+  param.delay.search_bins = -7:7;
+end
+
+if ~isfield(param.delay,'Mt') || isempty(param.delay.Mt)
+  param.delay.Mt = 64;
 end
 
 if ~isfield(param,'td') || isempty(param.td)
@@ -130,10 +162,6 @@ end
 
 if ~isfield(param,'phase') || isempty(param.phase)
   param.phase = zeros(size(data,3),1);
-end
-
-if ~isfield(param,'cross_correlation_flag') || isempty(param.cross_correlation_flag)
-  param.cross_correlation_flag = false;
 end
 
 if ~isfield(param,'coherent_noise_removal') || isempty(param.coherent_noise_removal)
@@ -296,25 +324,27 @@ end
 
 %% Cross correlation to determine recommended time, phase, and amplitude offsets
 % =======================================================================
-ref_bins = param.ref_bins(1):param.ref_bins(2);
-search_bins = param.search_bins(1)+param.ref_bins(1) : param.search_bins(2)+param.ref_bins(2);
+ref_bins = param.delay.ref_bins(1) : param.delay.ref_bins(end);
+search_bins = param.delay.search_bins(1) : param.delay.search_bins(end);
 zero_padding_offset = length(search_bins) - length(ref_bins);
 Hcorr_wind = hanning(length(ref_bins));
 clear peak_val peak_offset;
 
 peak_val = zeros(size(data,3),length(rlines));
 peak_offset = zeros(size(data,3),length(rlines));
-if strcmp(param.delay.method,'xcorr_complex')
+
+if delay_method == 2
+  %% Cross correlation method with complex data
   for adc_idx = 1:size(data,3)
     for rline_idx = 1:length(rlines)
       rline = rlines(rline_idx);
       [corr_out,lags] = xcorr(data(surf_bins(rline_idx)+search_bins,rline,adc_idx), ...
         data(surf_bins(rline_idx)+ref_bins,rline,ref_idx) .* Hcorr_wind);
-      corr_int = interpft(corr_out,param.Mt*length(corr_out));
+      corr_int = interpft(corr_out,param.delay.Mt*length(corr_out));
       [peak_val(adc_idx,rline_idx) peak_offset(adc_idx,rline_idx)] = max(corr_int);
       peak_val(adc_idx,rline_idx) = abs(max(data(surf_bins(rline_idx)+search_bins,rline,adc_idx))) ...
         .*exp(1i*angle(peak_val(adc_idx,rline_idx)));
-      peak_offset(adc_idx,rline_idx) = (peak_offset(adc_idx,rline_idx)-1)/param.Mt+1 ...
+      peak_offset(adc_idx,rline_idx) = (peak_offset(adc_idx,rline_idx)-1)/param.delay.Mt+1 ...
         + ref_bins(1) + search_bins(1) - 1 - zero_padding_offset;
     end
   end
@@ -322,10 +352,19 @@ if strcmp(param.delay.method,'xcorr_complex')
   peak_offset = peak_offset - repmat(peak_offset(ref_idx,:),[size(peak_offset,1),1]);
   dt = (time(2)-time(1));
   
-elseif strcmp(param.delay.method,'max_pixel')
+elseif delay_method == 3
+  %% Cross correlation method with magnitude data
+  error('Not finished');
+  
+elseif delay_method == 3
+  %% Threshold method
+  error('Not finished');
+  
+elseif delay_method == 4
+  %% Peak method
   for rline_idx = 1:length(rlines)
     rline = rlines(rline_idx);
-    data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,ref_idx),param.Mt*length(search_bins));
+    data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,ref_idx),param.delay.Mt*length(search_bins));
     [peak_val(ref_idx,rline_idx),peak_offset(ref_idx,rline_idx)] = max(data_int);
   end
   
@@ -334,13 +373,13 @@ elseif strcmp(param.delay.method,'max_pixel')
   for adc_idx = adc_idxs
     for rline_idx = 1:length(rlines)
       rline = rlines(rline_idx);
-      data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,adc_idx),param.Mt*length(search_bins));
+      data_int = interpft(data(surf_bins(rline_idx)+search_bins,rline,adc_idx),param.delay.Mt*length(search_bins));
       [peak_val(adc_idx,rline_idx),peak_offset(adc_idx,rline_idx)] = max(data_int);
       peak_offset(adc_idx,rline_idx) = peak_offset(adc_idx,rline_idx) - peak_offset(ref_idx,rline_idx);
       peak_val(adc_idx,rline_idx) = abs(peak_val(adc_idx,rline_idx)).*exp(1i*angle(data_int(peak_offset(ref_idx,rline_idx))));
     end
   end
-  peak_offset = peak_offset / param.Mt;
+  peak_offset = peak_offset / param.delay.Mt;
   peak_offset(ref_idx,:) = 0;
   dt = (time(2)-time(1));
 else

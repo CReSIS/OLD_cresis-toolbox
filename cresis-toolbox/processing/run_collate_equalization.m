@@ -4,6 +4,8 @@
 % surf and finds the time delay, phase, and amplitude differences between
 % different wf_adc pairs.
 %
+% See "Receiver equalization" wiki page for details.
+%
 % Author: John Paden
 %
 % See also: collate_equalization
@@ -23,8 +25,8 @@ if 0
 elseif 1
   %% 2017_Greenland_P3 Setup
   
-  param_fn = ct_filename_param('rds_param_2017_Greenland_P3.xls');
-  params = read_param_xls(param_fn,'20170226_01',{'analysis_surf' 'analysis'});
+  param_fn = ct_filename_param('rds_param_2014_Greenland_P3.xls');
+  params = read_param_xls(param_fn,'20140401_03',{'analysis_surf' 'analysis'});
   params.cmd.generic = 1;
   
   input_fn_dir = 'noise';
@@ -56,10 +58,10 @@ for param_idx = 1:length(params)
   fprintf('%s: %s (%s)\n', 'collate_equalization', param.day_seg, datestr(now,'HH:MM:SS'));
   fprintf('=====================================================================\n');
   
-  % param.analysis.surf.rlines = [1:800]; % <-- MAY WANT TO HAND MODIFY
+  %param.analysis.surf.rlines = [1000:2000]; % <-- MAY WANT TO HAND MODIFY
   % param.analysis.surf.motion_comp.en = true; % <-- MAY WANT TO HAND MODIFY
   % param.analysis.surf.wf_adc_list = [9:16]; % <-- MAY WANT TO HAND MODIFY
-  % param.analysis.surf.ref_wf_adc = 12; % <-- MAY WANT TO HAND MODIFY
+  % param.analysis.surf.ref_wf_adc = 9; % <-- MAY WANT TO HAND MODIFY
   % param.analysis.surf.retrack.en = false; % <-- MAY WANT TO HAND MODIFY
   collate_equalization;
 
