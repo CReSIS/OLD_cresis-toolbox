@@ -3,6 +3,8 @@
 % Function for estimating equalization coefficients. Can be used for
 % transmit and receive equalization.
 %
+% See "Receiver equalization" wiki page for details.
+%
 % Use debug_level 3 and 4 to create plots for status reports.
 
 physical_constants
@@ -106,6 +108,16 @@ if debug_level == 3
   
   linkaxes(h_axis,'x');
   xlim([1 size(data.surf_vals,2)]);
+  
+  if 0 % <== ENABLE THIS TO PLOT MAP
+    geotiff_fn = ct_filename_gis([],'canada/Landsat-7/Canada_90m.tif'); % <== SET THIS TO THE DESIRED GEOTIFF FILENAME
+    figure(4); clf;
+    proj = plot_geotiff(geotiff_fn,data.lat(1,:),data.lon(1,:),4);
+    hold on
+    [data.x,data.y] = projfwd(proj,data.lat(1,rlines),data.lon(1,rlines));
+    plot(data.x/1e3,data.y/1e3,'r');
+  end
+  
   return;
 end
 
@@ -164,8 +176,13 @@ switch(param.analysis.surf.delay.method)
 end
 
 Mt = param.analysis.surf.delay.Mt;
-search_bins = param.analysis.surf.delay.bin_rng;
-ref_bins = param.analysis.surf.delay.bin_rng;
+if isfield(param.analysis.surf.delay,'bin_rng')
+  warning('Deprecated settings bin_rng used. Use search_bins and ref_bins instead. Support will be removed at some point.');
+  param.analysis.surf.delay.search_bins = param.analysis.surf.delay.bin_rng;
+  param.analysis.surf.delay.ref_bins = param.analysis.surf.delay.bin_rng;
+end
+search_bins = param.analysis.surf.delay.search_bins(1) : param.analysis.surf.delay.search_bins(end);
+ref_bins = param.analysis.surf.delay.ref_bins(1) : param.analysis.surf.delay.ref_bins(end);
 
 if delay_method == 2
   Hcorr_wind = boxcar(length(ref_bins));
@@ -305,7 +322,7 @@ for rline_idx = 1:length(rlines)
     if delay_method == 2
       %% Cross correlation method with complex data
       in = data.surf_vals(zero_surf_bin+search_bins,rline,wf_adc);
-      ref_in = data.surf_vals(zero_surf_bin+search_bins,rline,ref_wf_adc);
+      ref_in = data.surf_vals(zero_surf_bin+ref_bins,rline,ref_wf_adc);
       [corr_out,lags] = xcorr(in, ref_in .* Hcorr_wind);
       corr_int = interpft(corr_out,Mt*length(corr_out));
       [peak_val(wf_adc,rline) peak_offset(wf_adc,rline)] = max(corr_int);
@@ -314,12 +331,12 @@ for rline_idx = 1:length(rlines)
       peak_val(wf_adc,rline) = abs( ...
         max(data.surf_vals(zero_surf_bin+search_bins,rline,wf_adc)) ...
          ./ max(data.surf_vals(zero_surf_bin+search_bins,rline,ref_wf_adc))) ...
-         .* exp(j*angle(peak_val(wf_adc,rline)));
+         .* exp(1i*angle(peak_val(wf_adc,rline)));
     elseif delay_method == 3
       %% Cross correlation method with magnitude data
       error('Not finished');
       in = interpft(data.surf_vals(zero_surf_bin+search_bins,rline,wf_adc), Mt*length(search_bins));
-      ref_in = interpft(data.surf_vals(zero_surf_bin+search_bins,rline,ref_wf_adc), Mt*length(search_bins));
+      ref_in = interpft(data.surf_vals(zero_surf_bin+ref_bins,rline,ref_wf_adc), Mt*length(search_bins));
       [corr_int,lags] = xcorr(abs(in), abs(ref_in) .* Hcorr_wind);
     elseif delay_method == 1
       %% Threshold method
@@ -366,7 +383,8 @@ end
 
 if delay_method == 2
   peak_offset = bsxfun(@minus,peak_offset,peak_offset(ref_wf_adc,:));
-%   peak_val = bsxfun(@times,peak_val,1./abs(peak_val(ref_wf_adc,:)));
+  % peak_val for the reference channel should be 1, so this line of code
+  % should have no affect.
   peak_val = bsxfun(@times,peak_val,1./peak_val(ref_wf_adc,:));
 end
 
@@ -398,8 +416,8 @@ equal.chan_equal_deg = equal.chan_equal_deg - equal.chan_equal_deg(ref_wf_adc);
 equal.chan_equal_deg = angle(exp(1i*equal.chan_equal_deg/180*pi))*180/pi;
 equal.chan_equal_dB = equal.chan_equal_dB - equal.chan_equal_dB(ref_wf_adc);
 
-equal.old_Tsys_str = [mat2str(round(Tsys*1e9*10)/10), '/1e9'];
-equal.Tsys_str = [mat2str(round(equal.Tsys*1e9*10)/10), '/1e9'];
+equal.old_Tsys_str = [mat2str(round(Tsys*1e9*100)/100), '/1e9'];
+equal.Tsys_str = [mat2str(round(equal.Tsys*1e9*100)/100), '/1e9'];
 
 equal.chan_equal_dB_str = mat2str(round(equal.chan_equal_dB*10)/10);
 
@@ -413,15 +431,30 @@ equal.chan_equal_deg_with_Tsys_str = mat2str(round(angle(exp(j*equal.chan_equal_
 
 if debug_level >= 1
   %% Print Results to stdout
-  fprintf('%s %d:%d wf %d\n', param.day_seg, rlines(1), rlines(end), wf);
+  sw_version = current_software_version;
+  fprintf('%s rec:%d-%d ref_wf_adc:%d git-hash:%s (%s)\n', param.day_seg, ...
+    rlines(1), rlines(end), ref_wf_adc, sw_version.rev, sw_version.cur_date_time);
+  
+  for wf_adc_idx = 1:length(param.analysis.surf.wf_adc_list)
+    wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),1);
+    adc = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),2);
+    fprintf('wf-adc\t', wf, adc);
+  end
+  fprintf('\n');
+  for wf_adc_idx = 1:length(param.analysis.surf.wf_adc_list)
+    wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),1);
+    adc = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),2);
+    fprintf('%2.0f-%3.0f\t', wf, adc);
+  end
+  fprintf('\n');
   fprintf('Offsets from Old Coefficients (rows: equal_dB, equal_deg, Tsys_ns)\n');
   fprintf('%.1f\t', equal.chan_equal_dB_offset); fprintf('\n');
   fprintf('%.1f\t', equal.chan_equal_deg_offset); fprintf('\n');
-  fprintf('%.1f\t', 1e9*equal.Tsys_offset); fprintf('\n');
+  fprintf('%.2f\t', 1e9*equal.Tsys_offset); fprintf('\n');
   fprintf('New Coefficients\n');
   fprintf('%.1f\t', equal.chan_equal_dB); fprintf('\n');
   fprintf('%.1f\t', equal.chan_equal_deg); fprintf('\n');
-  fprintf('%.1f\t', 1e9*equal.Tsys); fprintf('\n');
+  fprintf('%.2f\t', 1e9*equal.Tsys); fprintf('\n');
   fprintf('New Coefficients if using the old Tsys (in spreadsheet format)\n');
   fprintf('%s\n',equal.chan_equal_dB_str);
   fprintf('%s\n',equal.chan_equal_deg_str);
