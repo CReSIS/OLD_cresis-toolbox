@@ -196,8 +196,16 @@ while ~quit_cmd
               echo.Data(lp(echo.Data(:,rline))<max(lp(echo.Data(:,rline)))+img_sidelobe,rline) = 0;
             end
             set(h_image(img),'CData',lp(echo.Data));
-            noise_bins = find(echo.Time-echo.Time(1) > noise_time,1)-1;
-            max_noise = lp(max(echo.Data(1:noise_bins,:)));
+            Nx = size(echo.Data,2);
+            max_noise = zeros(1,Nx);
+            dt = echo.Time(2)-echo.Time(1);
+            for idx = 1:Nx
+              surf_t = echo.Surface(1,idx);
+              surf_bin = (surf_t - echo.Time(1))/dt + 1;
+              noise_surf = max(1, round(surf_bin - noise_time_buffer/dt)+1);
+              noise_end = round(noise_surf + noise_time_duration/dt) + 1;
+              max_noise(idx) = max(echo.Data(noise_surf:noise_end,idx));
+            end
             max_val = lp(max(echo.Data));
             noise_threshold = median(max_noise)+noise_threshold_offset_dB;
             threshold = max(max_val+img_sidelobe,...

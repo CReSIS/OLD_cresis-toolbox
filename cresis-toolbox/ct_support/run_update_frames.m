@@ -59,7 +59,8 @@ update_field_match = [];
 
 % FMCW image debugging mode (for snow,kuband radar) 
 fmcw_img_debug_mode = true;
-noise_time = 45e-9;
+noise_time_duration = 45e-9;
+noise_time_buffer = 250e-9;
 img_sidelobe = -35;
 noise_threshold_offset_dB = 3.2;
 
