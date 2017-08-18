@@ -72,7 +72,7 @@ for file_idx = 1:num_files
   hdr.heading = fir_dec(hdr.heading,param.presums);
   
   %% Pulse compression
-  [pc_signal,pc_time] = pulse_compress(data,pc_param);
+  [pc_signal,pc_time,pc_freq] = pulse_compress(data,pc_param);
 
   %% Track surface
   ml_data = lp(fir_dec(abs(pc_signal(:,:,param.ref_wf_adc)).^2,ones(1,5)/5,1));
@@ -93,6 +93,8 @@ for file_idx = 1:num_files
     imagesc(ml_data);
     hold on
     plot(surf_bin);
+
+
     keyboard
   end
 
@@ -102,8 +104,8 @@ for file_idx = 1:num_files
   dt = pc_time(2) - pc_time(1);
   Nt = length(pc_time);
   df = 1/(Nt*dt);
-  param.freq = pc_param.DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-
+  param.freq = pc_freq;
+  
   if all(gps.roll==0)
     param.mocomp_type = 2;
   else
@@ -115,9 +117,9 @@ for file_idx = 1:num_files
   
   param.combine_channels = false;
   param.snr_threshold = 10;
-  param.phase = default.radar.wfs(1).chan_equal_deg;
-  param.amp = default.radar.wfs(1).chan_equal_dB;
-  param.td = default.radar.wfs(1).chan_equal_Tsys;
+   param.phase = default.radar.wfs(1).chan_equal_deg;
+   param.amp = default.radar.wfs(1).chan_equal_dB;
+   param.td = default.radar.wfs(1).chan_equal_Tsys;
 
   [td_out(:,file_idx),amp_out(:,file_idx),phase_out(:,file_idx), full_out] = rx_chan_equal(pc_signal,param,hdr);
   
@@ -151,9 +153,11 @@ end
 fprintf('========================================================\n');
 fprintf('Recommended equalization coefficients (averaged results)\n');
 
-fprintf('  Date of processing: %s, mocomp %d, wf/adc %d/%d bins %d-%d\n', ...
-  datestr(now), param.mocomp_type, param.img(param.ref_wf_adc,1), ...
-  param.img(param.ref_wf_adc,2), param.rbins(1), param.rbins(end));
+sw_version = current_software_version;
+fprintf('  mocomp:%d, wf/adc:%d/%d method:"%s" bins:%d-%d git-hash:%s (%s)\n', ...
+  param.mocomp_type, param.img(param.ref_wf_adc,1), ...
+  param.img(param.ref_wf_adc,2), param.delay.method, param.rbins(1), param.rbins(end), ...
+  sw_version.rev, sw_version.cur_date_time);
 fprintf('td settings\n');
 for file_idx = 1:num_files
   [~,fn_name] = fileparts(fns{file_idx});
