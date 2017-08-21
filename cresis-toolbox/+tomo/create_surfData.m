@@ -77,7 +77,7 @@ end
 
 %% Interpolate Bottom, mdata.twtt from twtt to bins
 Bottom_bin = interp1(mdata.Time, 1:length(mdata.Time), Bottom);
-if isfield('mdata','ice_mask')
+if isfield(mdata,'ice_mask')
   ice_mask = mdata.ice_mask;
 else
   ice_mask = ones(size(mdata.twtt));

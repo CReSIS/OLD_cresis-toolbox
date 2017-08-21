@@ -29,11 +29,15 @@ tomo_collate.in_dir = 'CSA_music';
 tomo_collate.out_dir = 'surfData';
 % DEM used to extract surface layer information
 tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('arctic','ArcticDEM','2014_Greenland_P3_20140506_01.tif'));
+tomo_collate.geotiff_bad_value = -32767;
 % Ocean mask used to help fill DEM
 % tomo_collate.ocean_mask_fn = ct_filename_tmp([],fullfile('ocean_mask','2014_Greenland_P3_20140506_01.tif'));
 
 % calibrated steering vector
 tomo_collate.sv_cal_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','sv_calibration','theta_cal.mat');
+
+% ice mask fn
+tomo_collate.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
 
 % img_01: right looking (positive theta)
 % img_02: nadir looking (theta == 0)
@@ -90,6 +94,7 @@ else
   param_override = gRadar;
 end
 
+param_override.sched.type = 'no scheduler';
 param_override.sched.submit_arguments = '-l nodes=1:ppn=1,pmem=8000mb,walltime=120:00';
 
 for param_idx = 1:length(params)

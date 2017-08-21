@@ -61,7 +61,6 @@ DEM_x = DEM_x(DEM_x > min(mdata.x)-DEM_threshold & DEM_x < max(mdata.x)+DEM_thre
 DEM_y = DEM_y(DEM_y > min(mdata.y)-DEM_threshold & DEM_y < max(mdata.y)+DEM_threshold);
 
 %% Identify all bad values in the DEM
-param.tomo_collate.geotiff_bad_value = -32767;
 DEM(DEM == param.tomo_collate.geotiff_bad_value) = NaN;
 
 %% Interpolate at all the bad value locations using the good data
