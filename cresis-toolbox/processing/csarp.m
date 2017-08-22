@@ -580,9 +580,9 @@ if strcmp(param.sched.type,'ollie')
   steady_param = rmfield(task_param,'proc');
   steady_param = rmfield(steady_param,'load');
   steady_param.csarp = rmfield(steady_param.csarp,'chunk_id');
-  dynamic_param_file_name = sprintf('/home/ollie/tbinder/jobs/csarp_%s_dynamic_param.mat', param.day_seg);
+  dynamic_param_file_name = sprintf('%s/csarp_%s_dynamic_param.mat', param.slurm_jobs_path, param.day_seg);
   save(dynamic_param_file_name,'dynamic_param');
-  steady_param_file_name = sprintf('/home/ollie/tbinder/jobs/csarp_%s_steady_param.mat', param.day_seg);
+  steady_param_file_name = sprintf('%s/csarp_%s_steady_param.mat', param.slurm_jobs_path, param.day_seg);
   save(steady_param_file_name,'steady_param');
 end
 

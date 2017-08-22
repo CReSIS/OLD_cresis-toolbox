@@ -408,7 +408,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     // dim[0]: rows of one slice
     // dim[1]: cols of one slice
     // dim[2]: number of slices
-    const int *dimInt = mxGetDimensions(prhs[0]);
+    const size_t *dimInt = mxGetDimensions(prhs[0]);
     double *surface = mxGetPr(prhs[1]);
     double *bottom = mxGetPr(prhs[2]);
     double *extra = mxGetPr(prhs[3]);

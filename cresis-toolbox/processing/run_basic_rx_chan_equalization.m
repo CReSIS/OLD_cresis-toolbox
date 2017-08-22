@@ -6,7 +6,7 @@
 % Author: John Paden, Logan Smith
 
 % Enable Just One Radar Setup
-radar_setup = 'MCORDS5_P3';
+radar_setup = 'MCORDS3_DC8';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
@@ -35,7 +35,7 @@ if strcmpi(radar_setup,'MCORDS5')
   param.presums = 20;
   
   % .delay: the method used to calculate delay between the channels
-  param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10);
+  param.delay = struct('method','xcorr_complex','ref_bins',-20:20,'search_bins',-7:7,'Mt',64)
 end
 
 %% RDS: MCORDS5_P3 (Accumulation Radar)
@@ -62,33 +62,33 @@ if strcmpi(radar_setup,'MCORDS5_P3')
   param.presums = 20;
   
   % .delay: the method used to calculate delay between the channels
-  param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10);
+  param.delay = struct('method','xcorr_complex','ref_bins',-20:20,'search_bins',-7:7,'Mt',64)
 end
 
 %% RDS: MCORDS3_P3
 if strcmpi(radar_setup,'MCORDS3_P3')
-  [param,defaults] = default_radar_params_2016_Greenland_P3_mcords;
+  [param,defaults] = default_radar_params_2014_Greenland_P3_mcords;
   
   % .file_search_mode: Specify how to search for a file: 'last_file', 'specific'
-  param.file_search_mode = 'specific';
+  param.file_search_mode = '';
   param.multiple_files = true;
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'/cresis/snfs1/data/MCoRDS/20140426/'};
+  param.base_dir_search = {'/cresis/snfs1/data/MCoRDS/2014_Greenland_P3/20140401/'};
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
-  param.img = cat(2,3*ones(15,1),[1:15].'); param.ref_wf_adc = 3;
+  param.img = cat(2,2*ones(15,1),[2:16].'); param.ref_wf_adc = 3;
   
   % .recs: two element vector specifying which records/range-lines to load
   %   [start_record num_records]
   param.recs = [0 inf];
   
   % .presums: Number of additional software presums (coherent averaging) to do
-  param.presums = 1;
+  param.presums = 10;
   
   % .delay: the method used to calculate delay between the channels
-  param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10)
+  param.delay = struct('method','xcorr_complex','ref_bins',-20:20,'search_bins',-7:7,'Mt',64)
 end
 
 %% RDS: MCORDS3_DC8
@@ -100,21 +100,21 @@ if strcmpi(radar_setup,'MCORDS3_DC8')
   param.multiple_files = true;
 
   % .base_dir_search: cell vector of paths to search for data files
-  param.base_dir_search = {'/process/mcords/'};
+  param.base_dir_search = {'/cresis/snfs1/data/MCoRDS/2016_Antarctica_DC8/20161024/'};
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
-  param.img = cat(2,5*ones(6,1),[1:6].'); param.ref_wf_adc = 5;
+  param.img = cat(2,1*ones(6,1),[1:6].'); param.ref_wf_adc = 5;
   
   % .recs: two element vector specifying which records/range-lines to load
   %   [start_record num_records]
   param.recs = [0 inf];
   
   % .presums: Number of additional software presums (coherent averaging) to do
-  param.presums = 1;
+  param.presums = 10;
   
   % .delay: the method used to calculate delay between the channels
-  param.delay = struct('method','xcorr_complex','bin_rng',-20:20,'Mt',10)
+  param.delay = struct('method','xcorr_complex','ref_bins',-20:20,'search_bins',-7:7,'Mt',64)
 end
 
 %% Automated Section

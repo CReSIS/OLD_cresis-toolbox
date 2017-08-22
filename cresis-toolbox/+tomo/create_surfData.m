@@ -1,7 +1,7 @@
 function create_surfData(param,mdata)
 % tomo.create_surfData(param,mdata)
 %
-% Description: Usually this function is called from tomo.collate_task.
+% Description: Usually this function is called from tomo_collate_task.
 %   Using a surface DEM and an ice mask, this function adds an aligned
 %   surface dem and ice mask to a file.
 %
@@ -77,7 +77,7 @@ end
 
 %% Interpolate Bottom, mdata.twtt from twtt to bins
 Bottom_bin = interp1(mdata.Time, 1:length(mdata.Time), Bottom);
-if isfield('mdata','ice_mask')
+if isfield(mdata,'ice_mask')
   ice_mask = mdata.ice_mask;
 else
   ice_mask = ones(size(mdata.twtt));
@@ -94,7 +94,7 @@ for rline = 1:size(mdata.Topography.img,3)
   if ~mod(rline-1,100)
     fprintf('  Training %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
   end
-  [m, s] = tomo.train_params(10*log10(double(mdata.Topography.img(:,:,rline))), ...
+  [m, s] = tomo.train_model(10*log10(double(mdata.Topography.img(:,:,rline))), ...
     double(twtt_bin(:,rline)));
   mu = [mu; m];
   sigma = [sigma; s];

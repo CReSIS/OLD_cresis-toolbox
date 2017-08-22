@@ -105,7 +105,7 @@ for file_idx = 1:num_files
   Nt = length(pc_time);
   df = 1/(Nt*dt);
   param.freq = pc_freq;
-
+  
   if all(gps.roll==0)
     param.mocomp_type = 2;
   else
@@ -153,9 +153,11 @@ end
 fprintf('========================================================\n');
 fprintf('Recommended equalization coefficients (averaged results)\n');
 
-fprintf('  Date of processing: %s, mocomp %d, wf/adc %d/%d bins %d-%d\n', ...
-  datestr(now), param.mocomp_type, param.img(param.ref_wf_adc,1), ...
-  param.img(param.ref_wf_adc,2), param.rbins(1), param.rbins(end));
+sw_version = current_software_version;
+fprintf('  mocomp:%d, wf/adc:%d/%d method:"%s" bins:%d-%d git-hash:%s (%s)\n', ...
+  param.mocomp_type, param.img(param.ref_wf_adc,1), ...
+  param.img(param.ref_wf_adc,2), param.delay.method, param.rbins(1), param.rbins(end), ...
+  sw_version.rev, sw_version.cur_date_time);
 fprintf('td settings\n');
 for file_idx = 1:num_files
   [~,fn_name] = fileparts(fns{file_idx});
