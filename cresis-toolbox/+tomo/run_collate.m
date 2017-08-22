@@ -10,12 +10,13 @@
 clear('param_override');
 param_override = [];  
 % param_override.sched.type = 'no scheduler';
+param_override.sched.submit_arguments = '-l nodes=1:ppn=1,pmem=8000mb,walltime=120:00';
 
 %% 2014_Greenland_P3 20140401_03 User Settings
 
 % parameter spreadsheet of day or day_seg to be run
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140506_01','post');
-params.cmd.frms = 1;
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
+params.cmd.frms = 37;
 params.cmd.generic = 60;
 
 
@@ -23,12 +24,12 @@ tomo_collate = [];
 
 % directory from which radar slices are acquired
 % fused images will also be saved in this location
-tomo_collate.in_dir = 'CSA_music';
+tomo_collate.in_dir = 'paden_music';
 
 % directory to which output layer data will be exported
-tomo_collate.out_dir = 'surfData';
+tomo_collate.out_dir = 'paden_surfData';
 % DEM used to extract surface layer information
-tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('arctic','ArcticDEM','2014_Greenland_P3_20140506_01.tif'));
+tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('arctic','ArcticDEM','2014_Greenland_P3_20140401_03.tif'));
 tomo_collate.geotiff_bad_value = -32767;
 % Ocean mask used to help fill DEM
 % tomo_collate.ocean_mask_fn = ct_filename_tmp([],fullfile('ocean_mask','2014_Greenland_P3_20140506_01.tif'));
@@ -63,7 +64,7 @@ tomo_collate.layer_source = 'layerData';
 %% Collate Script Configuration
 
 % when set to true, runs fuse_images.m
-tomo_collate.fuse_images_flag = false;
+tomo_collate.fuse_images_flag = true;
 
   % when set to true, images will be fused vertically in fuse_images.m
   % rather than horizontally
@@ -77,7 +78,7 @@ tomo_collate.fuse_images_flag = false;
   tomo_collate.img_comb = [0 3.5e-5]; % only for vertical_fuse
 
 % when set to true, runs add_icemask_surfacedem.m
-tomo_collate.add_icemask_surfacedem_flag = false;
+tomo_collate.add_icemask_surfacedem_flag = true;
 
 % when set to true, runs create_surfData.m
 tomo_collate.create_surfData_flag = true;
@@ -93,9 +94,6 @@ if exist('param_override','var')
 else
   param_override = gRadar;
 end
-
-param_override.sched.type = 'no scheduler';
-param_override.sched.submit_arguments = '-l nodes=1:ppn=1,pmem=8000mb,walltime=120:00';
 
 for param_idx = 1:length(params)
   param = params(param_idx);

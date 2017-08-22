@@ -1,7 +1,7 @@
 function mdata = add_icemask_surfacedem(param, mdata)
 % mdata = tomo.add_icemask_surfacedem(param, mdata)
 %
-% Description: Usually this function is called from tomo.collate_task.
+% Description: Usually this function is called from tomo_collate_task.
 %   Using a surface DEM and an ice mask, this function adds an aligned
 %   surface dem and ice mask to a file.
 %

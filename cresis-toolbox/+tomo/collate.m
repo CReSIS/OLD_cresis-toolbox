@@ -2,7 +2,7 @@ function collate(param, param_override)
 % tomo.collate(param, param_override)
 %
 % Usually this function is called from tomo.run_collate.
-% Calls tomo.collate_task.
+% Calls tomo_collate_task.
 %
 % Inputs:
 %   param = struct with processing parameters
@@ -57,12 +57,12 @@ if strcmpi(param.sched.type,'custom_torque')
   global ctrl; % Make this global for convenience in debugging
   ctrl = torque_new_batch(param);
   fprintf('Torque batch: %s\n', ctrl.batch_dir);
-  torque_compile('collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
+  torque_compile('tomo_collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
 end
 
 %% Create Tasks
 task_param = param;
-fh = @tomo.collate_task;
+fh = @tomo_collate_task;
 for frm_idx = 1:length(param.cmd.frms) 
   frm = param.cmd.frms(frm_idx);
   task_param.proc.frm = frm;
