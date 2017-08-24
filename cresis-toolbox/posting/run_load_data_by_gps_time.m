@@ -7,6 +7,10 @@
 % To use this function, go through and set the parameters highlighted by:
 %   "<== CHANGE HERE"
 %
+% Note that the text and axes are scaled to the size of the figure when
+% the command is run. Therefore, it is best to size the figure window to
+% the size you want and then run this command.
+%
 % Author: John Paden
 
 %% User Settings
