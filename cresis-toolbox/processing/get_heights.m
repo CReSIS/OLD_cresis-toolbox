@@ -339,9 +339,9 @@ if ~param.get_heights.combine_only
   if strcmp(param.sched.type,'ollie')
     dynamic_param.day_seg = param.day_seg;
     steady_param = task_param;
-    dynamic_param_file_name = sprintf('/home/ollie/tbinder/jobs/qlook_%s_dynamic_param.mat', param.day_seg);
+    dynamic_param_file_name = sprintf('%s/qlook_%s_dynamic_param.mat', param.slurm_jobs_path, param.day_seg);
     save(dynamic_param_file_name,'dynamic_param');
-    steady_param_file_name = sprintf('/home/ollie/tbinder/jobs/qlook_%s_steady_param.mat', param.day_seg);
+    steady_param_file_name = sprintf('%s/qlook_%s_steady_param.mat', param.slurm_jobs_path, param.day_seg);
     save(steady_param_file_name,'steady_param');
   end
 

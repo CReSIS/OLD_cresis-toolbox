@@ -85,7 +85,7 @@ if strcmpi(radar_setup,'MCORDS3_P3')
   param.recs = [0 inf];
   
   % .presums: Number of additional software presums (coherent averaging) to do
-  param.presums = 1;
+  param.presums = 10;
   
   % .delay: the method used to calculate delay between the channels
   param.delay = struct('method','xcorr_complex','ref_bins',-20:20,'search_bins',-7:7,'Mt',64)

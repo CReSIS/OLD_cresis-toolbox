@@ -125,6 +125,16 @@ if force_compile
     cmd = [cmd ' ' hidden_depend_funs{dep_idx}{1}];
   end
   
+  % Check to make sure the working directory is not a package or class
+  % directory. This messes up the compiler if it uses functions from those
+  % packages or classes.
+  working_dir = pwd;
+  [~,working_dir_name] = fileparts(working_dir);
+  if working_dir_name(1) == '+' || working_dir_name(1) == '@'
+    warning('Before dbcont, change directory out of any package or class directories, because this can cause mcc to fail. (E.g. "cd ..")');
+    keyboard
+  end
+  
   fprintf('Start Compiling %s\n\n', datestr(now));
   fprintf('  %s\n', cmd);
   system(cmd);

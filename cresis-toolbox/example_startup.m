@@ -414,6 +414,7 @@ if ~(~ismcc && isdeployed)
   %        specified in call to torque_compile.m (all functions called
   %        by torque_compile)
   gRadar.sched.hidden_depend_funs = {};
+  gRadar.sched.hidden_depend_funs{end+1} = {'tomo_collate_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_accum2_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_acords_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_mcords_task.m' 2};
