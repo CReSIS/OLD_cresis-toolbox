@@ -54,7 +54,7 @@ worker = ctrl.sched.worker_fn;
 job_list_str = sprintf('%dd',submission_queue); job_list_str = job_list_str(1:end-1);
 submit_arguments = sprintf(ctrl.sched.group_submit_arguments,length(submission_queue) * ctrl.sched.group_walltime);
 % Add "qsub -m abe -M your@email.edu" to debug:
-cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s'' %s', ...
+cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s'' %s  </dev/null', ...
   submit_arguments, error_path, stdout_path, in_path, out_path, job_list_str, worker);
 
 %% Run the qsub command
