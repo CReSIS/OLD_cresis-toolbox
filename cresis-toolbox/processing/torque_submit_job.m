@@ -37,6 +37,9 @@ end
 if ~isfield(ctrl.sched,'submit_pause')
   ctrl.sched.submit_pause = 2;
 end
+if ~isfield(ctrl.sched,'interactive')
+  ctrl.sched.interactive = 0;
+end
 
 %% Create the temporary file names
 in_path = ctrl.in_path_dir;
@@ -69,6 +72,15 @@ if ctrl.sched.test_mode
     save(out_fn,'argsout');
   end
   
+elseif ctrl.sched.interactive
+  cmd = sprintf('qsub -I %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s''', ...
+    submit_arguments, error_path, stdout_path, in_path, out_path, job_list_str);
+  fprintf('1. Run the command from the bash shell:\n  %s\n', cmd);
+  fprintf('2. Once the interactive mode starts, run the command in the interactive shell:  %s\n', worker);
+  fprintf('3. Once the job completes, exit the interactive shell which causes torque to realize the job is complete.\n');
+  fprintf('4. In Matlab, set new_job_id to the torque job ID that you get from qsub. For example "2466505.m2" would need to have "new_job_id = 2466505" run.\n');
+  fprintf('5. Once the job finishes, run "dbcont" in Matlab.\n');
+  keyboard
 else
   status = -1;
   torque_attempts = 0;
