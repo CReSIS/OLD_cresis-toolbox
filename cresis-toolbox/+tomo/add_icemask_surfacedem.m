@@ -1,7 +1,7 @@
 function mdata = add_icemask_surfacedem(param, mdata)
 % mdata = tomo.add_icemask_surfacedem(param, mdata)
 %
-% Description: Usually this function is called from tomo.collate_task.
+% Description: Usually this function is called from tomo_collate_task.
 %   Using a surface DEM and an ice mask, this function adds an aligned
 %   surface dem and ice mask to a file.
 %
@@ -61,7 +61,6 @@ DEM_x = DEM_x(DEM_x > min(mdata.x)-DEM_threshold & DEM_x < max(mdata.x)+DEM_thre
 DEM_y = DEM_y(DEM_y > min(mdata.y)-DEM_threshold & DEM_y < max(mdata.y)+DEM_threshold);
 
 %% Identify all bad values in the DEM
-param.tomo_collate.geotiff_bad_value = -32767;
 DEM(DEM == param.tomo_collate.geotiff_bad_value) = NaN;
 
 %% Interpolate at all the bad value locations using the good data

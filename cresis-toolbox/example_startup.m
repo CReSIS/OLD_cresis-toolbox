@@ -103,9 +103,9 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).sched.type                = 'no scheduler'; % no parallel processing (DEBUG MODE)
   profile(pidx).sched.ver                 = 2; % local and jobmanager only
   profile(pidx).sched.name                = '';
-  profile(pidx).sched.url                 = 'qm2.quarry.teragrid.iu.edu';
+  profile(pidx).sched.url                 = '';
   profile(pidx).sched.data_location       = '/N/dcwan/scratch/jpaden/matlab_torque/';
-  profile(pidx).sched.submit_arguments    = '-q cresis -l nodes=1:ppn=1:dcwan,pmem=2gb,walltime=40:00';
+  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1:dcwan,pmem=2gb,walltime=40:00';
   profile(pidx).sched.max_in_queue        = 64;
   profile(pidx).sched.max_tasks_per_jobs  = 64;
   profile(pidx).sched.cluster_size        = inf;
@@ -414,6 +414,7 @@ if ~(~ismcc && isdeployed)
   %        specified in call to torque_compile.m (all functions called
   %        by torque_compile)
   gRadar.sched.hidden_depend_funs = {};
+  gRadar.sched.hidden_depend_funs{end+1} = {'tomo_collate_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_accum2_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_acords_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_mcords_task.m' 2};

@@ -353,7 +353,7 @@ elseif strcmpi(copy_param.gaps_fill.method,'interp_finite')
   all_points.type_interp = 2*ones(size(all_points.twtt_interp));
   % Overwrite manual points (type 1)
   manual_idxs = find(layer_source.type == 1);
-  manual_idxs_map = interp1(all_points.GPS_time, 1:length(all_points.GPS_time), ...
+  manual_idxs_map = interp1(all_points.gps_time, 1:length(all_points.gps_time), ...
     layer_source.gps_time(manual_idxs),'nearest');
   manual_idxs = manual_idxs(~isnan(manual_idxs_map));
   manual_idxs_map = manual_idxs_map(~isnan(manual_idxs_map));

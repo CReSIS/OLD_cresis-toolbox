@@ -28,7 +28,7 @@ try
     else
       % The export TERM=linux and extra "cat" at the end was done to fix an odd bug in
       % the matlab/git interface that manifested itself once.
-      [status,result]=system(sprintf('export TERM=linux; git --git-dir="%s" log -1 | cat', ...
+      [status,result]=system(sprintf('export TERM=linux </dev/null; git --git-dir="%s" log -1  </dev/null | cat', ...
         fullfile(fileparts(gRadar.path(1:find(gRadar.path~='/' & gRadar.path~='\',1,'last'))),'.git')));
     end
     sw_version.rev = strtok(result(regexp(result,'commit ')+7:end));

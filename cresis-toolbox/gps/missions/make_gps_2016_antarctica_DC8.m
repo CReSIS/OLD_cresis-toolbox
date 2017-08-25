@@ -408,3 +408,22 @@ for idx = 1:length(file_type)
     end
   end
 end
+
+% ATM files are known to have a small high frequency INS error which is
+% corrected here.
+for idx = 1:length(file_type)
+  out_fn = fullfile(gps_path,out_fns{idx});
+  
+  gps = load(out_fn);
+  if regexpi(gps.gps_source,'atm')
+    
+    warning('Smoothing INS data: %s', out_fn);
+    
+    gps.roll = sgolayfilt(gps.roll,2,101);
+    gps.pitch = sgolayfilt(gps.pitch,2,101);
+    gps.heading  = sgolayfilt(gps.heading,2,101);
+    
+    save(out_fn,'-append','-struct','gps','roll','pitch','heading');
+  end
+end
+

@@ -52,7 +52,7 @@ if ~ctrl.sched.test_mode
   
   % Runs qstat command
   % -----------------------------------------------------------------------
-  cmd = 'qstat';
+  cmd = 'qstat </dev/null';
   status = -1;
   torque_attempts = 0;
   while status ~= 0

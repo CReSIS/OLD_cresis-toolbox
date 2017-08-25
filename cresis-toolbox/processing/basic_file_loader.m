@@ -263,11 +263,15 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
         [~,settings_fn_name] = fileparts(settings(set_idx).fn);
         fprintf(' %d: %s (%d wfs, %d files)\n', set_idx, ...
           settings(set_idx).XML_File_Path{1}.values{1}, settings(set_idx).DDS_Setup.Wave, num_files);
-        if set_idx < length(settings)
-          settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
-        else
-          settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum);
-        end
+      else
+        [~,settings_fn_name] = fileparts(settings(set_idx).fn);
+        fprintf(' %d: (%d wfs, %d files)\n', set_idx, ...
+          settings(set_idx).DDS_Setup.Wave, num_files);
+      end
+      if set_idx < length(settings)
+        settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
+      else
+        settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum);
       end
     end
     set_idx = [];
@@ -474,8 +478,13 @@ elseif any(strcmpi(radar_name,{'mcords2','mcords3'}))
   default = default_radar_params_settings_match(defaults,settings);
   
   %% Format settings into pc_param
-  DDC_freq = double(settings.DDC_Ctrl.NCO_freq)*1e6;
-  DDC_mode = double(settings.DDC_Ctrl.DDC_sel.Val);
+  if isfield(settings,'DDC_Ctrl')
+    DDC_freq = double(settings.DDC_Ctrl.NCO_freq)*1e6;
+    DDC_mode = double(settings.DDC_Ctrl.DDC_sel.Val);
+  else
+    DDC_freq = 0;
+    DDC_mode = 0;
+  end
   if DDC_mode == 0
     hdr.fs = default.radar.fs;
   else

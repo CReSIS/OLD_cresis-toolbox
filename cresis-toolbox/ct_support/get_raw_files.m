@@ -1,19 +1,24 @@
-function [fns,gps_time] = get_raw_files(param,frm_id,out_dir)
-% [fns,gps_time]= get_raw_files(param,frm_id,out_dir)
+function [fns,gps_time] = get_raw_files(param,frm_id,out_dir,record)
+% [fns,gps_time]= get_raw_files(param,frm_id,out_dir,record)
 %
-% param = struct containing radar and season information
-%  .radar_name = string containing radar name (e.g. 'kuband2')
-%  .season_name = string containing season name (e.g. '2012_Greenland_P3')
-% frm_id = string containing frame id (e.g. '20120514_01_317')
+% param: struct containing radar and season information
+%  .radar_name: string containing radar name (e.g. 'kuband2')
+%  .season_name: string containing season name (e.g. '2012_Greenland_P3')
+% frm_id: string containing frame id (e.g. '20120514_01_317')
+% out_dir: Optional. May be left empty or not definied. Specifies an
+%   output directory to copy files to.
+% record: Optional. May be left empty or not defined. Specifies a
+%   record rather than a frame. The file containing this record is
+%   returned.
 %
-% fns = cell structure with strings containing the raw filenames
+% fns: cell structure with strings containing the raw filenames
 %       associated with this frame
 %   For mcords2:
 %     fns is a 1xB cell vector of Nx1 cell vectors of strings where B is
 %     the number of boards and N is the number of files from each board
 %   For everything else:
 %     fns is an Nx1 cell vector of strings
-% gps_time = prints out the start and stop GPS times and puts them here
+% gps_time: prints out the start and stop GPS times and puts them here
 %
 % Example:
 %   [fns,gps_time] = get_raw_files(struct('radar_name','kuband2','season_name','2012_Greenland_P3'),'20120514_01_317');
@@ -21,6 +26,7 @@ function [fns,gps_time] = get_raw_files(param,frm_id,out_dir)
 %   fns = get_raw_files(struct('radar_name','mcords2','season_name','2012_Greenland_P3'),'20120514_02_018')
 %   fns = get_raw_files(struct('radar_name','mcords','season_name','2011_Antarctica_DC8'),'20111030_02_002')
 %   fns = get_raw_files(struct('radar_name','mcrds','season_name','2008_Greenland_TO'),'20080627_03_001')
+%   fns = get_raw_files(struct('radar_name','mcords3','season_name','2014_Greenland_P3'),'20140401_03',[],10250)
 %
 %   fns = get_raw_files('C:\Users\dangermo\Documents\scripts\branch\params-cr1\rds_param_2011_Greenland_P3.xls','20110506_01_018','K:\paden')
 %
@@ -45,34 +51,32 @@ records = load(records_fn);
 frames_fn = ct_filename_support(param,'','frames');
 load(frames_fn);
 
-frm = str2double(frm_id(end-2:end));
+%% Get the records associated with the frm_id or record
+if exist('record','var') && ~isempty(record)
+  % Use the provided record to determine the records to get
+  start_rec = record;
+  stop_rec = record;
 
-%% Get the records associated with frm
-if frm > length(frames.frame_idxs)
-  error('Frame does not exist\n');
-elseif frm == length(frames.frame_idxs)
-  % Special case that handles last frame in segment
-  start_rec = frames.frame_idxs(frm);
-  stop_rec = length(records.lat);
 else
-  start_rec = frames.frame_idxs(frm);
-  stop_rec = frames.frame_idxs(frm+1)-1;
+  % Use the provided frame ID to determine the records to get
+  frm = str2double(frm_id(end-2:end));
+  
+  if frm > length(frames.frame_idxs)
+    error('Frame does not exist\n');
+  elseif frm == length(frames.frame_idxs)
+    % Special case that handles last frame in segment
+    start_rec = frames.frame_idxs(frm);
+    stop_rec = length(records.lat);
+  else
+    start_rec = frames.frame_idxs(frm);
+    stop_rec = frames.frame_idxs(frm+1)-1;
+  end
 end
 
 %% Get filenames associated with the records in the frame
-if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','snow','snow2','snow3','snow5','snow8'}))
-  % Get the raw file numbers associated with the frm
-  start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
-  stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
-  % Get the filenames associated with the frame
-  fns = records.relative_filename{1}(start_filenum:stop_filenum).';
-elseif any(strcmpi(radar_name,{'accum2'}))
-  % Get the raw file numbers associated with the frm
-  start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
-  stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
-  % Get the filenames associated with the frame
-  fns = records.relative_filename{1}(start_filenum:stop_filenum).';
-elseif any(strcmpi(radar_name,{'acords','mcrds'}))
+if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','snow','snow2','snow3','snow5','snow8'})) ...
+    || any(strcmpi(radar_name,{'accum2'})) ...
+    || any(strcmpi(radar_name,{'acords','mcrds'}))
   % Get the raw file numbers associated with the frm
   start_filenum = find(records.relative_rec_num{1} <= start_rec,1,'last');
   stop_filenum = find(records.relative_rec_num{1} <= stop_rec,1,'last');
@@ -100,7 +104,7 @@ fprintf('GPS time from %s to %s\n', ...
   datestr(epoch_to_datenum(records.gps_time(stop_rec))))
 gps_time = records.gps_time(start_rec:stop_rec);
 
-if exist('out_dir','var')
+if exist('out_dir','var') && ~isempty(out_dir)
   if any(strcmpi(radar_name,{'mcords2','mcords3'}))
     board = [];
     for adc_idx = 1:length(param.records.file.adcs)

@@ -1,67 +1,100 @@
 % script run_load_data_by_gps_time
 %
-% Script for setting up parameters and calling load_data_by_gps_time
+% This script prepares data for publication. It is an example script for
+% setting up parameters and calling load_data_by_gps_time which does the
+% real work.
+%
+% To use this function, go through and set the parameters highlighted by:
+%   "<== CHANGE HERE"
+%
+% Note that the text and axes are scaled to the size of the figure when
+% the command is run. Therefore, it is best to size the figure window to
+% the size you want and then run this command.
 %
 % Author: John Paden
 
-% ====================================================================
 %% User Settings
 % ====================================================================
-clear param;
+clear param echo_param;
 
-if 1
-  % Load data for an arbitrary time period
+% data_load_method: string containing "file" or "arbitrary"
+%   file: Loads a data frame and plots the whole data frame
+%   arbitrary: Allows a specific GPS date range to be specified
+data_load_method = 'file'; % <== CHANGE HERE
 
-  param.start.hour = 15;
-  param.start.minute = 53;
-  param.start.sec = 16;
-  param.stop.hour = param.start.hour;
-  param.stop.minute = 59;
-  param.stop.sec = 10;
+if strcmpi(data_load_method,'arbitrary')
+  %% Load data for an arbitrary time period
   
-  param.start.year = 2014;
-  param.start.month = 4;
-  param.start.day = 21;
+  param.start.hour = 13; % <== CHANGE HERE
+  param.start.minute = 17; % <== CHANGE HERE
+  param.start.sec = 27; % <== CHANGE HERE
   
-  param.start.gps_time = datenum_to_epoch(datenum(param.start.year,param.start.month,param.start.day,param.start.hour,param.start.minute,param.start.sec));
+  param.stop.hour = 13; % <== CHANGE HERE
+  param.stop.minute = 26; % <== CHANGE HERE
+  param.stop.sec = 46; % <== CHANGE HERE
   
+  param.start.year = 2009; % <== CHANGE HERE
+  param.start.month = 4; % <== CHANGE HERE
+  param.start.day = 9; % <== CHANGE HERE
   param.stop.year = param.start.year;
   param.stop.month = param.start.month;
   param.stop.day = param.start.day;
+  
+  param.start.gps_time = datenum_to_epoch(datenum(param.start.year,param.start.month,param.start.day,param.start.hour,param.start.minute,param.start.sec));
   param.stop.gps_time = datenum_to_epoch(datenum(param.stop.year,param.stop.month,param.stop.day,param.stop.hour,param.stop.minute,param.stop.sec));
   
+elseif strcmpi(data_load_method,'file')
+  %% Load data associated with a frame
+  load('X:\ct_data\rds\2009_Greenland_TO\CSARP_post\CSARP_mvdr\20090409_01\Data_20090409_01_008.mat','GPS_time') % <== CHANGE HERE
+  param.start.gps_time = GPS_time(1);
+  param.stop.gps_time = GPS_time(end);
+  
 else
-  % Load data associated with a frame
-%   load('/home/products/output/snow2/2012_Antarctica_DC8/CSARP_qlook/20121013_02/Data_20121013_02_010.mat','GPS_time')
-  load('Z:\mdce\cr1\snow\2013_Antarctica_Basler\CSARP_qlook\20140109_01\Data_20140109_01_131.mat','GPS_time')
-%   load('Z:\mdce\cr1\rds\2013_Antarctica_Basler\CSARP_csarp-combined\20140103_02\Data_20140103_02_004.mat','GPS_time')
-  param.start.gps_time = GPS_time(1)+200;
-  param.stop.gps_time = GPS_time(end)+200;
-%   param.start.gps_time = 1.388443206342800e+09;
-%   param.stop.gps_time = 1.388443379317630e+09;
+  error('Unsupported data_load_method.\n');
 end
 
-param.radar_name = 'accum2';
+% param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
+param.radar_name = 'rds'; % <== CHANGE HERE
 
-param.season_name = '2014_Greenland_P3';
+param.season_name = '2009_Greenland_TO'; % <== CHANGE HERE
 
-% Supported types: combined, singles, contour, contour-singles, ASCAT
+% echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
+echo_param.elev_comp = 3; % <== CHANGE HERE
+
+% param.out: output data product to use. For example:
+%   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
+param.out = 'CSARP_post/mvdr'; % <== CHANGE HERE
+
+% param.img_name: output data product image. For example:
+%   '': combined product, 'img_01_', , 'img_02_'
+param.img_name = '';
+  
+if echo_param.elev_comp == 3
+  echo_param.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+20]'; % <== CHANGE HERE
+  %echo_param.depth = '[1594.9 1635.1]';
+else
+  echo_param.depth = '[min(Surface_Depth)-20 max(Surface_Depth)+200]'; % <== CHANGE HERE
+  %echo_param.depth = '[-5 120]';
+end
+echo_param.depth_offset = 0;
+echo_param.time_offset = 0;
+echo_param.caxis = [];
+echo_param.er_ice = 3.15;
+
+% echo_param.axis_type: Units representation 'bars' or 'standard'
+echo_param.axis_type = 'standard';
+
+% param.create_map_en: set to true to produce a map
+param.create_map_en = false;
+
+% param.post.map.type: 'combined', 'singles', 'contour', 'contour-singles', or 'ASCAT'
 param.post.map.type = 'combined';
 
-%===========================
-param.create_map_en = false;
-param.post.map.location = 'Greenland'; % Greenland, Antarctica, Arctic, Norway, or Canada
+% param.post.map.location: map choice 'Greenland', 'Antarctica', 'Arctic', 'Norway', or 'Canada'
+param.post.map.location = 'Greenland';
 
-% Set to empty if not in the post directory, otherwise set to 'CSARP_post'
-param.post_dir = '';
-
-echo_param = [];
-echo_param.elev_comp = 3; % 0=none, 1=relative, 2=surface flattened, 3=WGS-84
-param.use_master_surf = 0;
-echo_param.axis_type = 'standard'; % bars or standard
-
+% Enable for detrending
 if 0
-  % Enable for detrending
   echo_param.detrend.mode = 'polynomial';
   echo_param.detrend.poly_order = 4;
   echo_param.detrend.depth = '[min(Surface_Depth)+1 max(Surface_Depth)+20.1]';
@@ -69,90 +102,39 @@ if 0
 end
 % echo_param.filter = inline('fir_dec(N,ones([1 11])/11,1)');
 
-param.save_files = false;
+% param.use_master_surf: set to true if you want to use the previous
+% surface loaded by this function (this is useful when comparing to
+% different systems and you want the second system loaded to use the
+% surface from the first system loaded)
+param.use_master_surf = 0;
 
+%% Automated Section
+% ====================================================================
+% ====================================================================
+
+param.save_files = false;
 out_fn_dir = fullfile('~/',datestr(epoch_to_datenum(param.start.gps_time),'yyyymmdd'));
 
+%% Determine the output figure handle
 % ====================================================================
-% Semi-automated Section (some user settings here)
-% ====================================================================
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-if strcmp(param.radar_name,'accum') ...
-    || strcmp(param.radar_name,'accum2')
-  % User settings
-  param.out = 'qlook';
-  param.img_name = '';
-  if echo_param.elev_comp == 3
-    echo_param.depth = '[min(Surface_Elev)-600 max(Surface_Elev)+20]';
-    %echo_param.depth = '[1594.9 1635.1]';
-  else
-    echo_param.depth = '[min(Surface_Depth)-20 max(Surface_Depth)+200]';
-    %echo_param.depth = '[-5 120]';
-  end
-  echo_param.depth_offset = 0;
-  echo_param.time_offset = 0;
-  echo_param.caxis = [];
-  echo_param.er_ice = 3.15;
+if strcmp(output_dir,'accum')
+  echo_param.fig_hand = 2;
+elseif strcmp(param.radar_name,'kaband')
+  echo_param.fig_hand = 2;
+elseif strcmp(param.radar_name,'kuband')
   echo_param.fig_hand = 4;
-elseif strcmp(param.radar_name,'snow') ...
-    || strcmp(param.radar_name,'kuband') ...
-    || strcmp(param.radar_name,'snow2') ...
-    || strcmp(param.radar_name,'kuband2') ...
-    % User settings
-  param.out = 'qlook';
-  param.img_name = '';
-  if echo_param.elev_comp == 3
-    echo_param.depth = '[min(Surface_Elev)-20 max(Surface_Elev)+3]';
-    %echo_param.depth = '[1595 1635]';
-  else
-    echo_param.depth = '[min(Surface_Depth)-3 max(Surface_Depth)+20]';
-    %echo_param.depth = '[-5 120]';
-  end
-  echo_param.depth_offset = 0;
-  echo_param.time_offset = 0;
-  echo_param.caxis = [];
-  echo_param.er_ice = 1.53;
-  if ~isempty(regexp(param.radar_name,'kuband'))
-    echo_param.fig_hand = 2;
-  else
-    echo_param.fig_hand = 3;
-  end
-elseif strcmp(param.radar_name,'mcords') ...
-    || strcmp(param.radar_name,'mcords2') ...
-    || strcmp(param.radar_name,'mcords3') ...
-    || strcmp(param.radar_name,'mcords4') ...
-    || strcmp(param.radar_name,'mcords5') ...
-    || strcmp(param.radar_name,'mcrds') ...
-    || strcmp(param.radar_name,'wise')
-  % User settings
-  param.out = 'standard';
-  param.img_name = '';
-  if echo_param.elev_comp == 3
-    echo_param.depth = '[min(Surface_Elev)-3000 max(Surface_Elev)+90]';
-    %echo_param.depth = '[-500 2000]';
-  else
-    echo_param.depth = '[min(Surface_Depth)+90 max(Surface_Depth)+3000]';
-    %echo_param.depth = '[-5 120]';
-  end
-  echo_param.depth_offset = 0;
-  echo_param.time_offset = 0;
-  echo_param.caxis = [];
-  echo_param.er_ice = 3.15;
+elseif strcmp(param.radar_name,'rds')
+  echo_param.fig_hand = 5;
+elseif strcmp(param.radar_name,'snow')
   echo_param.fig_hand = 6;
 else
   error('Unsupported radar type %s', param.radar_name);
 end
 
-% ====================================================================
-% ====================================================================
-% Automated Section
-% ====================================================================
-% ====================================================================
-
-% ====================================================================
 %% Prepare variables and call load_data_by_gps_time.m
 % ====================================================================
-tstart_run_load_data_by_gps_time = tic;
 
 physical_constants;
 
@@ -176,12 +158,10 @@ end
 start_time_stamp_str = datestr(epoch_to_datenum(param.start.gps_time),'yyyymmdd_HHMMSS');
 stop_time_stamp_str = datestr(epoch_to_datenum(param.stop.gps_time),'yyyymmdd_HHMMSS');
 
-% =========================================================================
-%% Create map template using publish_map.m which will be used for plotting the map of
-% each segment
+%% Create map template using publish_map.m
 % =========================================================================
 if ~strcmpi(param.post.map.type,'none') && param.create_map_en
-  fprintf('Creating map template (%.1f sec)\n', toc(tstart_run_load_data_by_gps_time));
+  fprintf('Creating map template (%s)\n', datestr(now));
   
   % --------------------------------------------------
   % Create base map to publish in with publish_map
@@ -231,7 +211,6 @@ if ~strcmpi(param.post.map.type,'none') && param.create_map_en
   end
 end
 
-% ===================================================================
 %% Uniform sampling in along-track of echogram
 % ===================================================================
 along_track = geodetic_to_along_track(Latitude,Longitude,0*Elevation);
@@ -248,7 +227,6 @@ Elevation = interp1(along_track,Elevation,new_along_track,'linear','extrap').';
 GPS_time = interp1(along_track,GPS_time,new_along_track,'linear','extrap').';
 Surface = interp1(along_track,Surface,new_along_track,'linear','extrap').';
 
-% ===================================================================
 %% Create echogram plot
 % ===================================================================
 
@@ -295,16 +273,12 @@ title(sprintf('%s %s %s to %s', param.radar_name, season_name, ...
 set(echo_info.h_surf,'Visible','off');
 set(echo_info.h_bot,'Visible','off');
 
-% ----------------------------------
-% Save echogram file
-out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s.jpg',start_time_stamp_str, ...
-  stop_time_stamp_str, param.radar_name));
+%% Save echogram file
 if param.save_files
+  out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s.jpg',start_time_stamp_str, ...
+    stop_time_stamp_str, param.radar_name));
   fprintf('Saving to %s\n', out_fn);
   saveas(echo_param.fig_hand,out_fn);
 end
 
 return;
-
-
-
