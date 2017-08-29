@@ -246,14 +246,14 @@ while rec < total_rec;
           if param.proc.ft_dec
             % Digital down conversion and decimation
             accum.data{accum_idx} = accum.data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
-            accum.data{accum_idx} = resample(double(accum.data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
+            accum.data{accum_idx} = resample(double(accum.data{accum_idx}), param.wfs(wf).ft_dec(1), param.wfs(wf).ft_dec(2));
           end
           
         elseif param.proc.ft_dec
           accum.data{accum_idx} = fft(accum.data{accum_idx},wfs(wf).Nt_raw);
           accum.data{accum_idx} = ifft(accum.data{accum_idx}(wfs(wf).freq_inds));
           accum.data{accum_idx} = accum.data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
-          accum.data{accum_idx} = resample(double(accum.data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
+          accum.data{accum_idx} = resample(double(accum.data{accum_idx}), param.wfs(wf).ft_dec(1), param.wfs(wf).ft_dec(2));
         end
         if param.proc.combine_rx
           if wf_adc_idx == 1
