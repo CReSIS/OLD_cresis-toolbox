@@ -8,9 +8,9 @@
 param.radar_name = 'mcords3';
 param.season_name = '2014_Greenland_P3';
 out_type = 'CSA_music';
-surfdata_source = 'surfData';
+surfdata_source = 'CSA_music_surfData';
 param.day_seg = '20140401_03';
-frm = 37;
+frm = 25;
 % frm = 39;
 % frm = 43;
 % frm = 44;
@@ -73,6 +73,10 @@ obj.insert_tool(extract_tool);
 try; delete(max_tool); end;
 max_tool = imb.slicetool_max();
 obj.insert_tool(max_tool);
+
+try; delete(quality_tool); end;
+quality_tool = imb.slicetool_quality();
+obj.insert_tool(quality_tool);
 
 try; delete(threshold_tool); end;
 threshold_tool = imb.slicetool_threshold();
