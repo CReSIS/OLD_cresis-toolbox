@@ -563,10 +563,12 @@ classdef slice_browser < handle
       layer_idx = get(obj.gui.layerLB,'value');
       
       if obj.zoom_mode
+        %% Zoom
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
           'h_axes',obj.h_axes,'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
       else
         if but == 2 || but == 3
+          %% Selection
           if obj.x == x
             if x > 1 && x < size(obj.data,2)
               obj.select_mask(round(x)) = ~obj.select_mask(round(x));
@@ -592,6 +594,7 @@ classdef slice_browser < handle
               & layer_y <= max(y,obj.y));
           end
         else
+          %% Change point
           xlims = xlim(obj.h_axes);
           ylims = ylim(obj.h_axes);
           if x >= xlims(1) && x <= xlims(2) && y >= ylims(1) && y <= ylims(2)
@@ -599,13 +602,13 @@ classdef slice_browser < handle
             cmd = [];
             cmd{1}.undo.slice = obj.slice;
             cmd{1}.redo.slice = obj.slice;
-            cmd{1}.undo.layer = layer_idx;
-            cmd{1}.redo.layer = layer_idx;
+            cmd{1}.undo.layer = obj.layer(layer_idx).control_layer;
+            cmd{1}.redo.layer = obj.layer(layer_idx).control_layer;
             cmd{1}.undo.x = round(x);
-            cmd{1}.undo.y = obj.layer(layer_idx).y(round(x),obj.slice);
+            cmd{1}.undo.y = obj.layer(obj.layer(layer_idx).control_layer).y(round(x),obj.slice);
             cmd{1}.redo.x = round(x);
-            if islogical(obj.layer(layer_idx).y)
-              cmd{1}.redo.y = ~obj.layer(layer_idx).y(round(x),obj.slice);
+            if islogical(obj.layer(obj.layer(layer_idx).control_layer).y)
+              cmd{1}.redo.y = ~obj.layer(obj.layer(layer_idx).control_layer).y(round(x),obj.slice);
             else
               cmd{1}.redo.y = y;
             end

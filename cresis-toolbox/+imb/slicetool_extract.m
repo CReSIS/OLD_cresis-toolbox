@@ -61,10 +61,13 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         slices = sb.slice+slice_range;
       end
       slices = intersect(slices,1:size(sb.data,3));
-      if numel(slices)==1
-        fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice);
+      if numel(slices)<3
+        fprintf('Apply %s to layer %d requires 3 or more slices to run\n', obj.tool_name, active_idx);
+        return
+      elseif numel(slices)==3
+        fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice(2));
       else
-        fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
+        fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1)+1, slices(end)-1);
       end
       
       gt = [];
@@ -115,10 +118,29 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
           double(obj.custom_data.mu), double(obj.custom_data.sigma), ...
           double(edge));
       else
+        smooth_slope = round(20*diff((linspace(-1,1,64)).^4));
+        smooth_weight = -1;
+        smooth_var = -1;
+        mu = [-3 -1 3 3 3 4 4 4 4 4 3 3 3 -1 -3];
+        sigma = 10*ones(1,15);
+        % mu = obj.custom_data.mu;
+        % sigma = obj.custom_data.sigma;
+        if 0
+          %% DEBUG: For running mex function in debug mode
+          save('/tmp/mex_inputs.mat','extract_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_var','smooth_weight','smooth_scale');
+        end
         correct_surface = tomo.extract(double(extract_data), ...
           double(surf_bins), double(bottom_bin), ....
           double(gt), double(mask), ...
-          double(obj.custom_data.mu), double(obj.custom_data.sigma));
+          double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope));
+        if 0
+          %% DEBUG: For running mex function in debug mode
+          load('/tmp/mex_inputs.mat');
+          correct_surface = tomo.extract(double(extract_data), ...
+            double(surf_bins), double(bottom_bin), ....
+            double(gt), double(mask), ...
+            double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope));
+        end
       end
       correct_surface = reshape(correct_surface, [size(sb.data,2) length(slices)]);
      % Create cmd for layer change

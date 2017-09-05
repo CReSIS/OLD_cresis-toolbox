@@ -38,7 +38,12 @@ class HMM {
         double smooth_var;
         vector<double> smooth_slope;
 
-        HMM(const double *input, const vector<size_t> &slayer, size_t blayer, const CoordType &elayer, const double *_ice_mask, const double *mean, const double *var, size_t _width, size_t _height, size_t _mid, double _egt_weight, double _smooth_weight, double _smooth_var, double *_smooth_slope, size_t _ms=11) : bgt(blayer), width(_width), height(_height), mid(_mid), egt_weight(_egt_weight), smooth_weight(_smooth_weight), smooth_var(_smooth_var), ms(_ms) {
+        HMM(const double *input, const vector<size_t> &slayer, size_t blayer, const CoordType &elayer, 
+                const double *_ice_mask, const double *mean, const double *var, size_t _width, size_t _height,
+                size_t _mid, double _egt_weight, double _smooth_weight, double _smooth_var,
+                double *_smooth_slope, size_t _ms=11)
+                : bgt(blayer), width(_width), height(_height), mid(_mid), egt_weight(_egt_weight),
+                        smooth_weight(_smooth_weight), smooth_var(_smooth_var), ms(_ms) {
             // Init data
             matrix = vector<double>(width*height, 0.0);
             for (size_t i = 0; i < width*height; i++) {
