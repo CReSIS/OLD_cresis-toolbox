@@ -13,11 +13,11 @@
 #define dir_left 2
 #define dir_right 3
 #define dir_all 4
-// Default mu of smooth
+// Default mu (mean) of smooth
 #define MID 33
-// Default sigma of smooth
+// Default sigma (variance) of smooth (input argument: smooth_var)
 #define SIGMA 12
-// Default scale of smooth
+// Default scale of smooth (input argument: smooth_weight)
 #define SCALE 5
 // TRWS: large cost
 #define LARGE 1000000000

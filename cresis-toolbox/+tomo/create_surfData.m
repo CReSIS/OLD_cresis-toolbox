@@ -84,17 +84,28 @@ else
 end
 Bottom_bin(isnan(Bottom_bin)) = -1;
 
-%% Training parameters mu and sigma
+%% Surface tracking prep: Convert img to double and log-scale and threshold
+data = 10*log10(double(mdata.Topography.img));
+% data_threshold: log scale data will be clipped to this threshold
+data_threshold = param.tomo_collate.data_threshold;
+data(data>data_threshold) = data_threshold;
+
+%% Surface tracking prep: Find surface bins, truncate to end of record with guard for image template mu
+mu_length = 15;
+max_time = mdata.Time(end-mu_length);
+
+twtt_bin = round(interp1(mdata.Time, 1:length(mdata.Time), mdata.twtt));
+twtt_bin(isnan(twtt_bin) | twtt_bin > max_time) = length(mdata.Time)-mu_length;
+
+%% Training parameters for image template's mu and sigma
 mu = [];
 sigma = [];
 
-twtt_bin = interp1(mdata.Time, 1:length(mdata.Time), mdata.twtt);
-twtt_bin(isnan(twtt_bin)) = -1;
 for rline = 1:size(mdata.Topography.img,3)
   if ~mod(rline-1,100)
     fprintf('  Training %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
   end
-  [m, s] = tomo.train_model(10*log10(double(mdata.Topography.img(:,:,rline))), ...
+  [m, s] = tomo.train_model(data(:,:,rline), ...
     double(twtt_bin(:,rline)));
   mu = [mu; m];
   sigma = [sigma; s];
@@ -115,12 +126,6 @@ combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.p
 Topography = mdata.Topography;
 save(combined_fn,'-append','Topography');
 
-%% Surface tracking prep: Convert img to double and log-scale and threshold
-data = 10*log10(double(mdata.Topography.img));
-% data_threshold: log scale data will be clipped to this threshold
-data_threshold = param.tomo_collate.data_threshold;
-data(data>data_threshold) = data_threshold;
-
 %% Run detect
 detect_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
 for rline = 1:size(mdata.Topography.img,3)
@@ -137,8 +142,17 @@ end
 %% Run extract
 if 1
   fprintf('  Extract (%s)\n', datestr(now));
-  extract_surface = tomo.extract(data, double(twtt_bin), double(Bottom_bin), ...
-    double([]), double(ice_mask), double(mean(mdata.Topography.mu)), double(mean(mdata.Topography.sigma)));
+  mu = [-3 -1 3 3 3 4 4 4 4 4 3 3 3 -1 -3];
+  sigma = 10*ones(1,15);
+  %mu = mean(mdata.Topography.mu);
+  %sigma = mean(mdata.Topography.sigma);
+  smooth_weight = -1;
+  smooth_var = -1;
+  smooth_slope = round(20*diff((linspace(-1,1,size(data,2))).^4));
+  extract_surface = tomo.refine(data, double(twtt_bin), double(Bottom_bin), ...
+    double([]), double(ice_mask), double(mu), double(sigma), ...
+    smooth_weight, smooth_var, double(smooth_slope));
+  
   extract_surface = reshape(extract_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));
 else
   extract_surface = detect_surface;
@@ -149,7 +163,7 @@ surf = [];
 Ndoa = size(mdata.Topography.img,2);
 
 surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = interp1(mdata.Time,1:length(mdata.Time),mdata.twtt);
+surf(end).y = twtt_bin;
 surf(end).plot_name_values = {'color','black','marker','x'};
 surf(end).name = 'ice surface';
 surf(end).surf_layer = [];

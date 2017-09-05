@@ -111,36 +111,34 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       extract_data = sb.data(:,:,slices);
       extract_data(extract_data>threshold) = threshold;
       refine_en = get(obj.gui.refineCB,'Value');
-      if refine_en
-        correct_surface = tomo.refine(double(extract_data), ...
-          double(surf_bins), double(bottom_bin), ....
-          double(gt), double(mask), ...
-          double(obj.custom_data.mu), double(obj.custom_data.sigma), ...
-          double(edge));
-      else
-        smooth_slope = round(20*diff((linspace(-1,1,64)).^4));
-        smooth_weight = -1;
-        smooth_var = -1;
-        mu = [-3 -1 3 3 3 4 4 4 4 4 3 3 3 -1 -3];
-        sigma = 10*ones(1,15);
-        % mu = obj.custom_data.mu;
-        % sigma = obj.custom_data.sigma;
-        if 0
-          %% DEBUG: For running mex function in debug mode
-          save('/tmp/mex_inputs.mat','extract_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_var','smooth_weight','smooth_scale');
-        end
+      smooth_slope = round(20*diff((linspace(-1,1,size(sb.data,2))).^4));
+      smooth_weight = -1;
+      smooth_var = -1;
+      mu = [-3 -1 3 3 3 4 4 4 4 4 3 3 3 -1 -3];
+      sigma = 10*ones(1,15);
+      % mu = obj.custom_data.mu;
+      % sigma = obj.custom_data.sigma;
+      if 0
+        %% DEBUG: For running mex function in debug mode
+        save('/tmp/mex_inputs.mat','extract_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_slope','smooth_weight','smooth_scale');
+        load('/tmp/mex_inputs.mat');
         correct_surface = tomo.extract(double(extract_data), ...
           double(surf_bins), double(bottom_bin), ....
           double(gt), double(mask), ...
           double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope));
-        if 0
-          %% DEBUG: For running mex function in debug mode
-          load('/tmp/mex_inputs.mat');
-          correct_surface = tomo.extract(double(extract_data), ...
-            double(surf_bins), double(bottom_bin), ....
-            double(gt), double(mask), ...
-            double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope));
-        end
+      end
+      
+      if refine_en
+        correct_surface = tomo.refine(double(extract_data), ...
+          double(surf_bins), double(bottom_bin), ....
+          double(gt), double(mask), ...
+          double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope),...
+          double(edge));
+      else
+        correct_surface = tomo.refine(double(extract_data), ...
+          double(surf_bins), double(bottom_bin), ....
+          double(gt), double(mask), ...
+          double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope));
       end
       correct_surface = reshape(correct_surface, [size(sb.data,2) length(slices)]);
      % Create cmd for layer change
@@ -179,7 +177,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');
       pos(3) = 200;
-      pos(4) = 100;
+      pos(4) = 110;
       set(obj.h_fig,'Position',pos);
       
       % Number of loops
@@ -219,7 +217,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       obj.gui.refineCB = uicontrol('parent',obj.h_fig);
       set(obj.gui.refineCB,'style','checkbox')
       set(obj.gui.refineCB,'string','Refine')
-      set(obj.gui.refineCB,'value',0)
+      set(obj.gui.refineCB,'value',1)
       set(obj.gui.refineCB,'TooltipString','Check to use refine which satisfies current layer edge conditions.');
       
       % GUI container table

@@ -8,6 +8,9 @@
 %
 % No input or output arguments may be missing.
 %
+% All ground truth (surface, bottom, and extra) must have values which are
+% less than Nt-length(mu) or they will have no effect.
+%
 % input: double, 3D image (Nt by Ndoa by Nx)
 % surface: double, 2D surface, Ndoa by Nx matrix, contains surface ground
 %   truth
@@ -18,6 +21,8 @@
 %   row 2: Ndoa dimension index
 %   row 3: Ny dimension index
 % mask: double, 2D surface mask, Ndoa by Nx matrix, contains surface mask
+%   A value of zero means no ice and the surface and bottom are forced to
+%   be the same.
 % mean: double, Nmean size vector, image magnitude template in Nt dimension
 % variance: double, Nmean size vector, image magnitude weights
 %   corresponding to mean

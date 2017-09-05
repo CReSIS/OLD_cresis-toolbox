@@ -163,7 +163,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');
       pos(3) = 200;
-      pos(4) = 130;
+      pos(4) = 140;
       set(obj.h_fig,'Position',pos);
       
       % Slice range
