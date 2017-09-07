@@ -95,7 +95,7 @@ mu_length = 15;
 max_time = mdata.Time(end-mu_length);
 
 twtt_bin = round(interp1(mdata.Time, 1:length(mdata.Time), mdata.twtt));
-twtt_bin(isnan(twtt_bin) | twtt_bin > max_time) = length(mdata.Time)-mu_length;
+twtt_bin(isnan(twtt_bin) | twtt_bin > length(mdata.Time)-mu_length) = length(mdata.Time)-mu_length;
 
 %% Training parameters for image template's mu and sigma
 mu = [];

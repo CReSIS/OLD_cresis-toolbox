@@ -107,20 +107,22 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       begin_slice = max(1, min(slices)-1);
       end_slice = min(size(sb.data,3), max(slices)+1);
       edge = [sb.layer(active_idx).y(:,begin_slice), sb.layer(active_idx).y(:,end_slice)];
+      edge(mask(:,1) == 0,1) = surf_bins(mask(:,1) == 0,1);
+      edge(mask(:,end) == 0,2) = surf_bins(mask(:,end) == 0,end);
       
       extract_data = sb.data(:,:,slices);
       extract_data(extract_data>threshold) = threshold;
       refine_en = get(obj.gui.refineCB,'Value');
-      smooth_slope = round(20*diff((linspace(-1,1,size(sb.data,2))).^4));
+      smooth_slope = [];
       smooth_weight = -1;
       smooth_var = -1;
-      mu = [-3 -1 3 3 3 4 4 4 4 4 3 3 3 -1 -3];
-      sigma = 10*ones(1,15);
+      mu = [-3 -1 3 3 3 4 12 20 12 4 3 3 3 -1 -3];
+      sigma = 2*ones(1,15);
       % mu = obj.custom_data.mu;
       % sigma = obj.custom_data.sigma;
       if 0
         %% DEBUG: For running mex function in debug mode
-        save('/tmp/mex_inputs.mat','extract_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_slope','smooth_weight','smooth_scale');
+        save('/tmp/mex_inputs.mat','extract_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_slope','smooth_weight','smooth_var','edge');
         load('/tmp/mex_inputs.mat');
         correct_surface = tomo.extract(double(extract_data), ...
           double(surf_bins), double(bottom_bin), ....
@@ -140,7 +142,6 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
           double(gt), double(mask), ...
           double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope));
       end
-      correct_surface = reshape(correct_surface, [size(sb.data,2) length(slices)]);
      % Create cmd for layer change
       cmd = [];
       for idx = 2:length(slices)-1
