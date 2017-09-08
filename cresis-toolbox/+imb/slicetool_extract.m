@@ -50,25 +50,35 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       catch ME
         error('Error in threshold: %s', ME.getReport);
       end
+      try
+        smooth = eval(get(obj.gui.smoothLE,'String'));
+      catch ME
+        error('Error in smooth: %s', ME.getReport);
+      end
       if get(obj.gui.select_maskCB,'Value')
         cols = find(sb.select_mask);
       else
         cols = 1:size(sb.data,2);
       end
+      left_edge_en = get(obj.gui.leftEdgeCB,'Value');
+      right_edge_en = get(obj.gui.rightEdgeCB,'Value');
       
       if ~exist('slices','var') || isempty(slices)
         slice_range = min(slice_range):max(slice_range);
         slices = sb.slice+slice_range;
       end
       slices = intersect(slices,1:size(sb.data,3));
-      if numel(slices)<3
-        fprintf('Apply %s to layer %d requires 3 or more slices to run\n', obj.tool_name, active_idx);
-        return
-      elseif numel(slices)==3
-        fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice(2));
+      if ~left_edge_en
+        start_slice_idx = 1;
       else
-        fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1)+1, slices(end)-1);
+        start_slice_idx = 2;
       end
+      if ~right_edge_en
+        end_slice_idx = length(slices);
+      else
+        end_slice_idx = length(slices)-1;
+      end
+      fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
       
       gt = [];
       if ~isempty(control_idx)
@@ -89,7 +99,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       end
       
       if isempty(surf_idx)
-        error('extract cannot be run without a surface layer');
+        %error('extract cannot be run without a surface layer');
         surf_bins = NaN*sb.layer(active_idx).y(:,slices);
       else
         surf_bins = sb.layer(surf_idx).y(:,slices);
@@ -112,14 +122,21 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       extract_data = sb.data(:,:,slices);
       extract_data(extract_data>threshold) = threshold;
-      refine_en = get(obj.gui.refineCB,'Value');
+      if ~left_edge_en
+        edge(:,1) = -1;
+      end
+      if ~right_edge_en
+        edge(:,end) = -1;
+      end
       smooth_slope = [];
-      smooth_weight = -1;
-      smooth_var = -1;
+      smooth_weight = smooth(1:2);
+      smooth_var = smooth(3);
       mu = [-3 -1 3 3 3 4 12 20 12 4 3 3 3 -1 -3];
-      sigma = 2*ones(1,15);
+      sigma = 3*ones(1,15);
       % mu = obj.custom_data.mu;
       % sigma = obj.custom_data.sigma;
+      mask = 90*fir_dec(fir_dec(double(shrink(mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
+      mask(mask>=90) = inf;
       if 0
         %% DEBUG: For running mex function in debug mode
         save('/tmp/mex_inputs.mat','extract_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_slope','smooth_weight','smooth_var','edge');
@@ -130,21 +147,15 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
           double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope));
       end
       
-      if refine_en
-        correct_surface = tomo.refine(double(extract_data), ...
-          double(surf_bins), double(bottom_bin), ....
-          double(gt), double(mask), ...
-          double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope),...
-          double(edge));
-      else
-        correct_surface = tomo.refine(double(extract_data), ...
-          double(surf_bins), double(bottom_bin), ....
-          double(gt), double(mask), ...
-          double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope));
-      end
+      correct_surface = tomo.refine(double(extract_data), ...
+        double(surf_bins), double(bottom_bin), ....
+        double(gt), double(mask), ...
+        double(mu), double(sigma), smooth_weight, smooth_var, double(smooth_slope),...
+        double(edge));
+        
      % Create cmd for layer change
       cmd = [];
-      for idx = 2:length(slices)-1
+      for idx = start_slice_idx:end_slice_idx
         slice = slices(idx);
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
@@ -178,7 +189,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');
       pos(3) = 200;
-      pos(4) = 110;
+      pos(4) = 140;
       set(obj.h_fig,'Position',pos);
       
       % Number of loops
@@ -191,12 +202,12 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       % Slice range
       obj.gui.slice_rangeTXT = uicontrol('Style','text','string','Slice range');
-      set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
+      set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:7".');
       
       obj.gui.slice_rangeLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.slice_rangeLE,'style','edit')
-      set(obj.gui.slice_rangeLE,'string','-5:5')
-      set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
+      set(obj.gui.slice_rangeLE,'string','-5:7')
+      set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:7".');
       
       % Threshold
       obj.gui.thresholdTXT = uicontrol('Style','text','string','Threshold');
@@ -207,6 +218,15 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       set(obj.gui.thresholdLE,'string','13.5')
       set(obj.gui.thresholdLE,'TooltipString','Specify an image threshold.');
       
+      % Smooth
+      obj.gui.smoothTXT = uicontrol('Style','text','string','Smoothness');
+      set(obj.gui.smoothTXT,'TooltipString','Specify layer smoothness ["slice weight" "DOA weight" "edge weight"].');
+      
+      obj.gui.smoothLE = uicontrol('parent',obj.h_fig);
+      set(obj.gui.smoothLE,'style','edit')
+      set(obj.gui.smoothLE,'string','[32 16 12]')
+      set(obj.gui.smoothLE,'TooltipString','Specify layer smoothness ["slice weight" "DOA weight" "edge weight"].');
+      
       % Select mask
       obj.gui.select_maskCB = uicontrol('parent',obj.h_fig);
       set(obj.gui.select_maskCB,'style','checkbox')
@@ -214,12 +234,19 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       set(obj.gui.select_maskCB,'value',1)
       set(obj.gui.select_maskCB,'TooltipString','Check to operate only on the selected region.');
       
-      % Refine
-      obj.gui.refineCB = uicontrol('parent',obj.h_fig);
-      set(obj.gui.refineCB,'style','checkbox')
-      set(obj.gui.refineCB,'string','Refine')
-      set(obj.gui.refineCB,'value',1)
-      set(obj.gui.refineCB,'TooltipString','Check to use refine which satisfies current layer edge conditions.');
+      % Left edge
+      obj.gui.leftEdgeCB = uicontrol('parent',obj.h_fig);
+      set(obj.gui.leftEdgeCB,'style','checkbox')
+      set(obj.gui.leftEdgeCB,'string','Left')
+      set(obj.gui.leftEdgeCB,'value',1)
+      set(obj.gui.leftEdgeCB,'TooltipString','Check to use a left edge boundary condition.');
+      
+      % Right edge
+      obj.gui.rightEdgeCB = uicontrol('parent',obj.h_fig);
+      set(obj.gui.rightEdgeCB,'style','checkbox')
+      set(obj.gui.rightEdgeCB,'string','Right')
+      set(obj.gui.rightEdgeCB,'value',0)
+      set(obj.gui.rightEdgeCB,'TooltipString','Check to use a right edge boundary condition.');
       
       % GUI container table
       obj.gui.table.ui = obj.h_fig;
@@ -269,6 +296,20 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;
       obj.gui.table.height_margin(row,col) = 1;
+
+      row = row + 1;
+      col = 1;
+      obj.gui.table.handles{row,col}   = obj.gui.smoothTXT;
+      obj.gui.table.width(row,col)     = 70;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      col = 2;
+      obj.gui.table.handles{row,col}   = obj.gui.smoothLE;
+      obj.gui.table.width(row,col)     = inf;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
       
       row = row + 1;
       col = 1;
@@ -278,7 +319,13 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       obj.gui.table.width_margin(row,col) = 1;
       obj.gui.table.height_margin(row,col) = 1;
       col = 2;
-      obj.gui.table.handles{row,col}   = obj.gui.refineCB;
+      obj.gui.table.handles{row,col}   = obj.gui.leftEdgeCB;
+      obj.gui.table.width(row,col)     = inf;
+      obj.gui.table.height(row,col)    = 20;
+      obj.gui.table.width_margin(row,col) = 1;
+      obj.gui.table.height_margin(row,col) = 1;
+      col = 3;
+      obj.gui.table.handles{row,col}   = obj.gui.rightEdgeCB;
       obj.gui.table.width(row,col)     = inf;
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;

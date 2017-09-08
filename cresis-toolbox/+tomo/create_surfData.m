@@ -142,15 +142,18 @@ end
 %% Run extract
 if 1
   fprintf('  Extract (%s)\n', datestr(now));
-  mu = [-3 -1 3 3 3 4 4 4 4 4 3 3 3 -1 -3];
-  sigma = 10*ones(1,15);
-  %mu = mean(mdata.Topography.mu);
-  %sigma = mean(mdata.Topography.sigma);
-  smooth_weight = -1;
-  smooth_var = -1;
-  smooth_slope = round(20*diff((linspace(-1,1,size(data,2))).^4));
+  smooth_slope = [];
+  smooth_weight = [16 16];
+  smooth_var = 12;
+  mu = [-3 -1 3 3 3 4 12 20 12 4 3 3 3 -1 -3];
+  sigma = 3*ones(1,15);
+  % mu = obj.custom_data.mu;
+  % sigma = obj.custom_data.sigma;
+  ice_mask_transition = 90*fir_dec(fir_dec(double(shrink(ice_mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
+  ice_mask_transition(ice_mask_transition>=90) = inf;
+  
   extract_surface = tomo.refine(data, double(twtt_bin), double(Bottom_bin), ...
-    double([]), double(ice_mask), double(mu), double(sigma), ...
+    double([]), double(ice_mask_transition), double(mu), double(sigma), ...
     smooth_weight, smooth_var, double(smooth_slope));
   
   extract_surface = reshape(extract_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));

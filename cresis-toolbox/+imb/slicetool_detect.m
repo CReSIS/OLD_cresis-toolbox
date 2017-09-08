@@ -65,27 +65,34 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       smooth_var = -1;
       
       if ~exist('slices','var') || isempty(slices)
-        slice_range = min(slice_range):max(slice_range);
         slices = sb.slice+slice_range;
       end
-      slices = intersect(slices,1:size(sb.data,3));
+      [~,slices_idxs] = intersect(slices,1:size(sb.data,3));
+      slices = slices(sort(slices_idxs));
       if numel(slices)==1
         fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice);
       else
         fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
       end
+      if get(obj.gui.previousCB,'Value')
+        start_slice_idx = 2;
+      else
+        start_slice_idx = 1;
+      end
       
       cmd = [];
-      for slice = slices(:).'
+      for slice_idx = start_slice_idx:length(slices)
+        slice = slices(slice_idx);
+        slice_prev = slices(slice_idx-1);
         % Create ground truth input
         % 1. Each column is one ground truth input
         % 2. Row 1: x, Row 2: y
         if numel(slices)>1
           fprintf('Slice %d\n',slice);
         end
-        if get(obj.gui.previousCB,'Value') && slice > 1
-          gt = [sb.layer(active_idx).x(cols(1:end),slice-1).'-1; ...
-            sb.layer(active_idx).y(cols(1:end),slice-1).'+0.5];
+        if get(obj.gui.previousCB,'Value')
+          gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
+            sb.layer(active_idx).y(cols(1:end),slice_prev).'+0.5];
         else
           gt = [];
         end
@@ -168,12 +175,12 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       
       % Slice range
       obj.gui.slice_rangeTXT = uicontrol('Style','text','string','Slice range');
-      set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
+      set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
       
       obj.gui.slice_rangeLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.slice_rangeLE,'style','edit')
-      set(obj.gui.slice_rangeLE,'string','0')
-      set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
+      set(obj.gui.slice_rangeLE,'string','-1:0')
+      set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
       
       % Threshold
       obj.gui.thresholdTXT = uicontrol('Style','text','string','Threshold');

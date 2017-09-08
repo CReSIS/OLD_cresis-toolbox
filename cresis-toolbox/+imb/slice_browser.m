@@ -635,7 +635,7 @@ classdef slice_browser < handle
       
       if obj.zoom_mode
         zoom_button_up(x,y,but,struct('x',obj.layer_x,'y',obj.layer_y, ...
-          'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+          'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
       else
         if obj.layer_x == x
           obj.change_slice(round(x),false);
@@ -711,7 +711,7 @@ classdef slice_browser < handle
     
     function layer_button_scroll(obj,h_obj,event)
       zoom_button_scroll(event,struct('h_fig',obj.h_layer_fig, ...
-        'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+        'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
     end
     
     %% key_press
