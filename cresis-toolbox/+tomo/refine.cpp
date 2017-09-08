@@ -55,6 +55,8 @@ public:
   // Number of states
   size_t max_disp;
   
+  // Number of loops to run
+  const int max_loop;
   // Dataset
   const double *image;
   // Matrix
@@ -86,16 +88,16 @@ public:
   Refine(const double *_image, const size_t *dim_image, const double *_sgt, const double *_bgt,
           const double *_egt, const int _egt_size, const double *_ice_mask, const double *_mu, const double *_sigma,
           const int _ms, const double *_smooth_weight, const double _smooth_var, const double *_smooth_slope,
-          const double *_edge, double *_result)
+          const double *_edge, const int _max_loop, double *_result)
           : image(_image), sgt(_sgt), bgt(_bgt), egt(_egt), egt_size(_egt_size), ice_mask(_ice_mask),
                   mu(_mu), sigma(_sigma), ms(_ms), smooth_weight(_smooth_weight), smooth_var(_smooth_var),
-                  smooth_slope(_smooth_slope), edge(_edge), result(_result) {
+                  smooth_slope(_smooth_slope), edge(_edge), max_loop(_max_loop), result(_result) {
             // Set dimensions
             depth = dim_image[0];
             height = dim_image[1];
             width = dim_image[2];
             
-            mid_height = height/2+1;
+            mid_height = height/2;
             max_disp = depth-ms;
             
             // Set matrix
@@ -109,14 +111,6 @@ public:
             incomes[dir_left] = vector<double>(max_disp);
             incomes[dir_right] = vector<double>(max_disp);
             incomes[dir_all] = vector<double>(max_disp);
-            
-            // Assign results for edge conditions if applied
-//             if (edge != NULL) {
-//               for (size_t h = 0; h < height; h++) {
-//                 result[h] = edge[h];
-//                 result[h+(width-1)*height] = edge[h+height];
-//               }
-//             }
           }
           
           ~Refine() {
@@ -294,6 +288,7 @@ void Refine::set_result() {
           temp += matrix[right]->get_msg(dir_left, d);
         }
         
+        // Check to see if this d is the minimum
         if (temp < min_val || best_result > max_disp) {
           min_val = temp;
           best_result = d;
@@ -307,18 +302,59 @@ void Refine::set_result() {
 
 void Refine::surface_extracting() {
   int loop = 0;
-  int max_loop = 50;
   size_t t = (ms-1)/2;
   
+  // Propagate h/height from the midpoint out (mid_height) and let it be
+  // biased by the current loop's results. This means the starting point
+  // can have a large affect on the result because propagation away from
+  // the starting point is much more effective and far reaching. In our
+  // case, the midpoint always has ground truth so it is a good.
+  double heights_array[height];
+  for (int i=0; i<=mid_height; i++) {
+    heights_array[i] = mid_height-i; // From center to left
+  }
+  for (int i=mid_height+1; i<height; i++) {
+    heights_array[i] = i; // From center to right
+  }
+  double forward_incomes[depth];
+          
+  // Propagate w/width depending on whether or not edge conditions exist
+  int edge_mode = 0;
+  if (edge != NULL) {
+    if (edge[0] > 0) {
+      edge_mode = edge_mode + 1;
+    }
+    if (edge[height] > 0) {
+      edge_mode = edge_mode + 2;
+    }
+  }
+  // Propagates left to right
+  double width_array_left[width];
+  for (int i=0; i<width; i++) {
+    width_array_left[i] = i;
+  }
+  // Propagates right to left
+  double width_array_right[width];
+  for (int i=0; i<width; i++) {
+    width_array_right[i] = width-1-i;
+  }
+          
   while (loop < max_loop) {
     if (loop > 0) {
       mexPrintf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b", loop);
     }
     mexPrintf("  loop: %2d of %2d\n", loop+1, max_loop);
     // Forward
-    for (size_t h = 1; h < height-1; h++) {
+    for (size_t h_idx = 0; h_idx < height; h_idx++) {
+      size_t h = heights_array[h_idx];
       mexEvalString("drawnow;");
-      for (size_t w = 1; w < width-1; w++) {
+      for (size_t w_idx = 0; w_idx < width; w_idx++) {
+        size_t w;
+        if (edge_mode == 2 || edge_mode == 3 && loop%2) {
+          w = width_array_right[w_idx];
+        } else {
+          w = width_array_left[w_idx];
+        }
         size_t center = encode(h, w);
         size_t up = encode(h-1, w);
         size_t down = encode(h+1, w);
@@ -326,60 +362,76 @@ void Refine::surface_extracting() {
         size_t right = encode(h, w+1);
         
         for (size_t d = max(1.0,sgt[center]-t); d < max_disp; d++) {
-          incomes[dir_up][d] = matrix[up]->get_msg(dir_down, d);
-          incomes[dir_down][d] = matrix[down]->get_msg(dir_up, d);
-          incomes[dir_left][d] = matrix[left]->get_msg(dir_right, d);
-          incomes[dir_right][d] = matrix[right]->get_msg(dir_left, d);
+          
+          if (h > 1)
+            incomes[dir_up][d] = matrix[up]->get_msg(dir_down, d);
+          else
+            incomes[dir_up][d] = 0;
+          
+          if (h < height-1)
+            incomes[dir_down][d] = matrix[down]->get_msg(dir_up, d);
+          else
+            incomes[dir_down][d] = 0;
+
+          // In the case where we want unbiased propagation (no edge
+          // conditions or edge_mode = 0), we use the result in
+          // forward_incomes which is the result from the previous loop.
+          // Since the loop is starting from the left, we only need to do
+          // this for the left income since the right income is already
+          // unbiased (from the last-loop).
+          if (w > 1) {
+            if (edge_mode == 0) {
+              incomes[dir_left][d] = forward_incomes[d];
+            } else {
+              incomes[dir_left][d] = matrix[left]->get_msg(dir_right, d);
+            }
+          } else {
+            incomes[dir_left][d] = 0;
+          }
+          
+          if (w < width-1)
+            incomes[dir_right][d] = matrix[right]->get_msg(dir_left, d);
+          else
+            incomes[dir_right][d] = 0;
+          
           incomes[dir_all][d] = matrix[center]->prior[d] + incomes[dir_up][d]
                   + incomes[dir_down][d] + incomes[dir_left][d] + incomes[dir_right][d];
+        }
+        if (edge_mode == 0) {
+          for (size_t d = max(1.0,sgt[right]-t); d < max_disp; d++) {
+            forward_incomes[d] = matrix[center]->get_msg(dir_right, d);
+          }
         }
         
         double beta;
         size_t beg1 = max(1.0,sgt[center]-t);
         size_t beg2;
-        // Right
-        beta = norm_pdf((double)h, (double)mid_height, smooth_weight[0], smooth_var);
-        beg2 = max(1.0,sgt[encode(h,w+1)]-t);
-        set_message(matrix[center], dir_right, beg1, beg2, beta, h);
-        // Down
-        beta = norm_pdf((double)h, (double)mid_height, smooth_weight[1], smooth_var);
-        beg2 = max(1.0,sgt[encode(h+1,w)]-t);
-        set_message(matrix[center], dir_down, beg1, beg2, beta, h);
-      }
-    }
-    
-    // Backward
-    for (size_t h = height-2; h > 0; h--) {
-      mexEvalString("drawnow;");
-      for (size_t w = width-2; w > 0; w--) {
-        size_t center = encode(h, w);
-        size_t center_mid = encode(mid_height, w);
-        size_t up = encode(h-1, w);
-        size_t down = encode(h+1, w);
-        size_t left = encode(h, w-1);
-        size_t right = encode(h, w+1);
         
-        double min_val = INFINITY;
-        for (size_t d = max(1.0,sgt[center]-t); d < max_disp; d++) {
-          incomes[dir_up][d] = matrix[up]->get_msg(dir_down, d);
-          incomes[dir_down][d] = matrix[down]->get_msg(dir_up, d);
-          incomes[dir_left][d] = matrix[left]->get_msg(dir_right, d);
-          incomes[dir_right][d] = matrix[right]->get_msg(dir_left, d);
-          incomes[dir_all][d] = matrix[center]->prior[d] + incomes[dir_up][d]
-                  + incomes[dir_down][d] + incomes[dir_left][d] + incomes[dir_right][d];
+        beta = norm_pdf((double)h, (double)mid_height, smooth_var, smooth_weight[0]);
+        if (w < width-1) {
+          // Right
+          beg2 = max(1.0,sgt[encode(h,w+1)]-t);
+          set_message(matrix[center], dir_right, beg1, beg2, beta, h);
         }
         
-        double beta;
-        size_t beg1 = max(1.0,sgt[center]-t);
-        size_t beg2;
-        // Left
-        beta = norm_pdf((double)h, (double)mid_height, smooth_weight[0], smooth_var);
-        beg2 = max(1.0,sgt[encode(h,w-1)]-t);
-        set_message(matrix[center], dir_left, beg1, beg2, beta, h);
-        // Up
-        beta = norm_pdf((double)h, (double)mid_height, smooth_weight[1], smooth_var);
-        beg2 = max(1.0,sgt[encode(h-1,w)]-t);
-        set_message(matrix[center], dir_up, beg1, beg2, beta, h);
+        if (w > 1) {
+          // Left
+          beg2 = max(1.0,sgt[encode(h,w-1)]-t);
+          set_message(matrix[center], dir_left, beg1, beg2, beta, h);
+        }
+        
+        beta = norm_pdf((double)h, (double)mid_height, smooth_var, smooth_weight[1]);
+        if (h < height-1) {
+          // Down
+          beg2 = max(1.0,sgt[encode(h+1,w)]-t);
+          set_message(matrix[center], dir_down, beg1, beg2, beta, h);
+        }
+        
+        if (h > 1) {
+          // Up
+          beg2 = max(1.0,sgt[encode(h-1,w)]-t);
+          set_message(matrix[center], dir_up, beg1, beg2, beta, h);
+        }
       }
     }
     
@@ -391,8 +443,8 @@ void Refine::surface_extracting() {
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  if ((nrhs < 9 && nrhs > 11) || nlhs != 1) {
-    mexErrMsgTxt("Usage: surf = extract(image, sgt, bgt, egt, mask, mean, variance, smooth_weight, smooth_var, [smooth_slope], [edge])");
+  if ((nrhs < 9 && nrhs > 12) || nlhs != 1) {
+    mexErrMsgTxt("Usage: surf = extract(image, sgt, bgt, egt, mask, mean, variance, smooth_weight, smooth_var, [smooth_slope], [edge], [max_loop])");
   }
   
   // image ==============================================================
@@ -525,6 +577,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     edge = NULL;
   }
   
+  // max_loop =============================================================
+  double max_loop;
+  if (nrhs >= 12 && mxGetNumberOfElements(prhs[11])) {
+    if (!mxIsDouble(prhs[11])) {
+      mexErrMsgTxt("usage: max_loop must be type double");
+    }
+    if (1 != mxGetNumberOfElements(prhs[11])) {
+      mexErrMsgTxt("usage: max_loop must be a scalar");
+    }
+    max_loop = floor(mxGetPr(prhs[11])[0]);
+  } else {
+    max_loop = MAX_LOOP;
+  }
+  
   //mexPrintf("rows of one slice (dim_image[0]): %lld\n", dim_image[0]);
   //mexPrintf("cols of one slice (dim_image[1]): %lld\n", dim_image[1]);
   //mexPrintf("number of slices (dim_image[2]): %lld\n", dim_image[2]);
@@ -535,7 +601,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   }
   
   // Convert bgt coordinate to integer
-  size_t mid_height = dim_image[1]/2+1;
+  size_t mid_height = dim_image[1]/2;
   for (size_t w = 0; w < dim_image[2]; w++) {
     if (bgt[w] > 0) {
       bgt[w] = floor(bgt[w]);
@@ -555,7 +621,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   double *result = mxGetPr(plhs[0]);
   
   // Run refine/extract algorithm
-  Refine refine(image, dim_image, sgt, bgt, egt, egt_size, mask, mean, var, ms, smooth_weight, smooth_var[0], smooth_slope, edge, result);
+  Refine refine(image, dim_image, sgt, bgt, egt, egt_size, mask, mean, var, ms, smooth_weight, smooth_var[0], smooth_slope, edge, max_loop, result);
   refine.set_prior();
   refine.surface_extracting();
   

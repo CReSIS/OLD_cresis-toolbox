@@ -143,10 +143,11 @@ end
 if 1
   fprintf('  Extract (%s)\n', datestr(now));
   smooth_slope = [];
-  smooth_weight = [16 16];
-  smooth_var = 12;
-  mu = [-3 -1 3 3 3 4 12 20 12 4 3 3 3 -1 -3];
-  sigma = 3*ones(1,15);
+  smooth_weight = [22 22];
+  smooth_var = 32;
+  mu_size = 11;
+  mu = sinc(linspace(-1.5,1.5,mu_size));
+  sigma = sum(mu)/20*ones(1,mu_size);
   % mu = obj.custom_data.mu;
   % sigma = obj.custom_data.sigma;
   ice_mask_transition = 90*fir_dec(fir_dec(double(shrink(ice_mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';

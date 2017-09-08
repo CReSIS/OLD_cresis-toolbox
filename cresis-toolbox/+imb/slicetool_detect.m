@@ -83,7 +83,6 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       cmd = [];
       for slice_idx = start_slice_idx:length(slices)
         slice = slices(slice_idx);
-        slice_prev = slices(slice_idx-1);
         % Create ground truth input
         % 1. Each column is one ground truth input
         % 2. Row 1: x, Row 2: y
@@ -91,6 +90,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
           fprintf('Slice %d\n',slice);
         end
         if get(obj.gui.previousCB,'Value')
+          slice_prev = slices(slice_idx-1);
           gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
             sb.layer(active_idx).y(cols(1:end),slice_prev).'+0.5];
         else

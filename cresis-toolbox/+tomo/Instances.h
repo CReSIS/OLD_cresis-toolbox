@@ -14,7 +14,7 @@
 #define dir_right 3
 #define dir_all 4
 // Default mu (mean) of smooth
-#define MID 33
+#define MID 32
 // Default sigma (variance) of smooth (input argument: smooth_var)
 #define SIGMA 24
 // Default scale of smooth (input argument: smooth_weight)
@@ -23,6 +23,8 @@
 #define LARGE 1000000000
 // TRWS: gamma
 #define gamma 0.5
+// TRWS: max_loops
+#define MAX_LOOP 50
 
 typedef vector< pair<size_t, size_t> > CoordType;
 typedef vector< tuple<size_t, size_t, size_t> > PointType;

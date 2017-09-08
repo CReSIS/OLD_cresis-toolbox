@@ -626,7 +626,11 @@ classdef slice_browser < handle
         zoom_button_up(x,y,but,struct('x',obj.control_x,'y',obj.control_y, ...
           'h_axes',obj.h_control_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,1)]));
       else
-        obj.change_slice(round(x),false);
+        xlims = xlim(obj.h_layer_axes);
+        ylims = ylim(obj.h_layer_axes);
+        if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end)
+          obj.change_slice(round(x),false);
+        end
       end
     end
     
@@ -638,7 +642,11 @@ classdef slice_browser < handle
           'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
       else
         if obj.layer_x == x
-          obj.change_slice(round(x),false);
+          xlims = xlim(obj.h_layer_axes);
+          ylims = ylim(obj.h_layer_axes);
+          if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end) 
+            obj.change_slice(round(x),false);
+          end
         else
           ylims = sort([y obj.layer_y]);
           obj.select_mask(:) = false;
