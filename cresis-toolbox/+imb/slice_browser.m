@@ -1017,6 +1017,10 @@ classdef slice_browser < handle
         x_select = obj.layer(layer_idx).x(:,obj.slice);
         if islogical(obj.layer(layer_idx).y)
           y_select = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+        elseif layer_idx == find(strcmp({obj.layer.name},'surf_quality'))  
+           y_select = obj.layer(1).y(:,obj.slice);
+         elseif layer_idx == find(strcmp({obj.layer.name},'bottom_quality'))  
+           y_select = obj.layer(2).y(:,obj.slice);  
         else
           y_select = obj.layer(layer_idx).y(:,obj.slice);
         end
@@ -1074,6 +1078,7 @@ function layer_populate_defaults(obj)
           obj.layer(layer_idx).visible = true;
         end
                 
+        if ~any(strcmp('surf_quality', {obj.layer.name}))
           obj.layer(8).name = 'surf_quality';
           obj.layer(8).x = obj.layer(1).x;
           obj.layer(8).y = ones(size(obj.layer(1).x));
@@ -1082,8 +1087,22 @@ function layer_populate_defaults(obj)
           obj.layer(8).mask_layer = 3;
           obj.layer(8).control_layer = 7;
           obj.layer(8).visible = true;
-          obj.layer(8).plot_name_values = obj.layer(1).plot_name_values;      
+          obj.layer(8).plot_name_values = obj.layer(1).plot_name_values;
+          obj.layer(8).h_plot.Color = [1 0 0];
+          obj.layer(8).h_plot.Marker = 'x';
+%           obj.layer(8).h_plot.Visible = 'off';
+%           obj.layer(8).h_plot.Selected = 'off';
+%           obj.layer(8).h_plot.SelectionHighlight = 'off';
+%           obj.layer(8).h_plot.PickableParts = 'none';
+%           obj.gui.h_select_plot.Visible = 'off';
+%            obj.gui.h_select_plot.SelectionHighlight = 'off';
+%            obj.h_layer_fig.Visible = 'off';
+%            obj.h_layer_fig.SelectionHighlight = 'off';
+          %obj.gui
+        end
         
+        
+         if ~any(strcmp('bottom_quality', {obj.layer.name}))
           obj.layer(9).name = 'bottom_quality';
           obj.layer(9).x = obj.layer(2).x;
           obj.layer(9).y = ones(size(obj.layer(2).x));
@@ -1092,7 +1111,12 @@ function layer_populate_defaults(obj)
           obj.layer(9).mask_layer = 3;
           obj.layer(9).control_layer = 7;
           obj.layer(9).visible = true;
-          obj.layer(9).plot_name_values = obj.layer(2).plot_name_values;        
+          obj.layer(9).plot_name_values = obj.layer(2).plot_name_values;
+          obj.layer(9).h_plot.Color = [1 0 0];
+          obj.layer(9).h_plot.Marker = '^';
+%           obj.layer(9).h_plot.Visible = 'off';
+         end
+        
       end
     end
     
