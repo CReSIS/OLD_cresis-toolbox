@@ -174,6 +174,7 @@ surf(end).surf_layer = [];
 surf(end).active_layer = 1;
 surf(end).mask_layer = [];
 surf(end).control_layer = 7;
+surf(end).quality_layer = 8;
 surf(end).visible = true;
 
 surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
@@ -181,10 +182,10 @@ surf(end).y = extract_surface;
 surf(end).plot_name_values = {'color','blue','marker','^'};
 surf(end).name = 'bottom';
 surf(end).surf_layer = 1;
-
 surf(end).active_layer = 2;
 surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
+surf(end).quality_layer = 9;
 surf(end).visible = true;
 
 surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
@@ -195,6 +196,7 @@ surf(end).surf_layer = 1;
 surf(end).active_layer = 2;
 surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
+surf(end).quality_layer = 9;
 surf(end).visible = true;
 
 surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
@@ -206,6 +208,7 @@ surf(end).surf_layer = 1;
 surf(end).active_layer = 2;
 surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
+surf(end).quality_layer = 9;
 surf(end).visible = true;
 
 surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
@@ -216,6 +219,7 @@ surf(end).surf_layer = 1;
 surf(end).active_layer = 2;
 surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
+surf(end).quality_layer = 9;
 surf(end).visible = false;
 
 surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
@@ -226,6 +230,7 @@ surf(end).surf_layer = 1;
 surf(end).active_layer = 2;
 surf(end).mask_layer = 3;
 surf(end).control_layer = 4;
+surf(end).quality_layer = 9;
 surf(end).visible = false;
 
 surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
@@ -237,6 +242,29 @@ surf(end).surf_layer = [];
 surf(end).active_layer = 1;
 surf(end).mask_layer = [];
 surf(end).control_layer = 7;
+surf(end).quality_layer = 8;
+surf(end).visible = true;
+
+surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
+surf(end).y = ones(size(surf(1).y));
+surf(end).plot_name_values = {'color','red','marker','x'};
+surf(end).name = 'surface quality';
+surf(end).surf_layer = [];
+surf(end).active_layer = 1;
+surf(end).mask_layer = [];
+surf(end).control_layer = 7;
+surf(end).quality_layer = 8;
+surf(end).visible = true;
+
+surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
+surf(end).y = ones(size(surf(1).y));
+surf(end).plot_name_values = {'color','red','marker','^'};
+surf(end).name = 'bottom quality';
+surf(end).surf_layer = 1;
+surf(end).active_layer = 2;
+surf(end).mask_layer = 3;
+surf(end).control_layer = 4;
+surf(end).quality_layer = 9;
 surf(end).visible = true;
 
 out_dir = ct_filename_out(param,param.tomo_collate.out_dir,'CSARP_surfData');

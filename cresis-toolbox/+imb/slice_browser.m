@@ -582,8 +582,10 @@ classdef slice_browser < handle
               obj.update_slice;
             end
             
-            if islogical(obj.layer(layer_idx).y)
+            if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
               layer_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+            elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
+              layer_y = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
             else
               layer_y = obj.layer(layer_idx).y(:,obj.slice);
             end
@@ -747,8 +749,8 @@ classdef slice_browser < handle
       % Check to see if this is a slicetool shortcut
       for tool_idx = 1:length(obj.slice_tool.list)
         if strcmpi(obj.slice_tool.list{tool_idx}.tool_shortcut, event.Key) ...
-            && obj.slice_tool.list{tool_idx}.ctrl_pressed == obj.ctrl_pressed ...
-            && obj.slice_tool.list{tool_idx}.shift_pressed == obj.shift_pressed
+            && any(obj.slice_tool.list{tool_idx}.ctrl_pressed == obj.ctrl_pressed) ...
+            && any(obj.slice_tool.list{tool_idx}.shift_pressed == obj.shift_pressed)
           obj.layer_idx = get(obj.gui.layerLB,'Value');
           cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
           if ~isempty(cmd)
@@ -962,9 +964,14 @@ classdef slice_browser < handle
 
       % Update layer plots
       for layer_idx = 1:numel(obj.layer)
-        if islogical(obj.layer(layer_idx).y)
-          tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
-          tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
+        if ~isempty(regexp(obj.layer(layer_idx).name, 'quality|mask'))
+          if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
+            tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+            tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
+          else
+            tmp_y = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
+            tmp_y(obj.layer(layer_idx).y(:,obj.slice) == 1) = NaN;
+          end
           set(obj.layer(layer_idx).h_plot, ...
             'XData', obj.layer(layer_idx).x(:,obj.slice), ...
             'YData', tmp_y);
@@ -979,8 +986,10 @@ classdef slice_browser < handle
         % Update layer selection related plots
         layer_idx = get(obj.gui.layerLB,'value');
         x_select = obj.layer(layer_idx).x(:,obj.slice);
-        if islogical(obj.layer(layer_idx).y)
+        if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
           y_select = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+        elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
+          y_select = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
         else
           y_select = obj.layer(layer_idx).y(:,obj.slice);
         end

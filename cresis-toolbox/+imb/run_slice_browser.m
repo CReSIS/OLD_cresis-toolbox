@@ -74,6 +74,10 @@ try; delete(max_tool); end;
 max_tool = imb.slicetool_max();
 obj.insert_tool(max_tool);
 
+try; delete(quality_tool); end;
+quality_tool = imb.slicetool_quality();
+obj.insert_tool(quality_tool);
+
 try; delete(threshold_tool); end;
 threshold_tool = imb.slicetool_threshold();
 obj.insert_tool(threshold_tool);
