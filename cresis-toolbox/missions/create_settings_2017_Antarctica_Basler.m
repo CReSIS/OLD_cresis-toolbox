@@ -171,7 +171,7 @@ arena.TTL_states{2} = [
 % <4000 m thick ice, 1200 +/- 700 ft AGL
 ice_thickness = [4000 4000];
 for freq_idx = [1 2]
-  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',1000e6/10,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
+  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',50e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 755; param.flight_hours = 3.5; param.sys_delay = 13.25e-6; param.use_mcords4_names = true;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
@@ -251,7 +251,7 @@ end
 % <2500 m thick ice, 1200 +/- 700 ft AGL
 ice_thickness = [2500 2500];
 for freq_idx = [1 2]
-  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',1000e6/10,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
+  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',50e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 750; param.flight_hours = 3.5; param.sys_delay = 13.25e-6; param.use_mcords4_names = true;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
@@ -288,7 +288,7 @@ end
 %% Sea Ice
 % 1200 +/- 1200 ft AGL
 for freq_idx = [1]
-  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',1000e6/10,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
+  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',50e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 750; param.flight_hours = 3.5; param.sys_delay = 13.25e-6; param.use_mcords4_names = true;
   param.DDC_select = DDC_select_list(freq_idx);
   param.max_duty_cycle = 0.12;
@@ -322,7 +322,7 @@ end
 %% Image Mode (Low Altitude, Thick Ice)
 % Ice thickness "param.tg.Hice_thick_min" m to "param.tg.Hice_thick" m, "param.tg.Haltitude" +/- "param.tg.altitude_guard" ft AGL
 for freq_idx = [1 2]
-  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',1000e6/10,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
+  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',50e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 13.25e-6; param.use_mcords4_names = true;
   param.max_data_rate = 755;
   param.DDC_select = DDC_select_list(freq_idx);
@@ -382,7 +382,7 @@ end
 %% Image Mode Pattern Measurements
 % 3500 ft +/- 1000 ft AGL
 for freq_idx = [1 2]
-  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',1000e6/10,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
+  param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',50e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
   param.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 13.25e-6; param.use_mcords4_names = true;
   param.max_data_rate = 755;
   param.DDC_select = DDC_select_list(freq_idx);
@@ -433,7 +433,7 @@ end
 % Ice thickness "param.tg.Hice_thick_min" m to "param.tg.Hice_thick" m, "param.tg.Haltitude" +/- "param.tg.altitude_guard" ft AGL
 freq_idx_WB = 1;
 freq_idx_NB = 2;
-param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',1000e6/10,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
+param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',50e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
 param.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 13.25e-6; param.use_mcords4_names = true;
 param.max_data_rate = 755;
 param.DDC_select = DDC_select_list(freq_idx_WB);
@@ -507,7 +507,7 @@ fn_hint = {'WATER','ICE','NO_DELAY','WATER','WATER'};
 for Tpd_idx = 1:length(Tpd_list)
   Tpd = Tpd_list(Tpd_idx);
   for freq_idx = [1 2]
-    param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',1000e6/10,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
+    param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',50e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
     param.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 700; param.flight_hours = 3.5; param.sys_delay = 13.25e-6; param.use_mcords4_names = true;
     param.DDC_select = DDC_select_list(freq_idx);
     param.max_duty_cycle = 0.12;
@@ -544,7 +544,7 @@ end
 
 %% Max power mode with max frequency range (only for EMI survey)
 freq_idx = 1;
-param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',1000e6/10,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
+param = struct('radar_name','mcords5','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','14.0f1','TTL_prog_delay',650,'xml_version',2.0,'fs',1600e6,'fs_sync',50.0e6,'fs_dds',1000e6,'TTL_clock',50e6,'TTL_mode',[2.5e-6 260e-9 -1100e-9],'rss_base_dir',rss_base_dir);
 param.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000]; param.max_data_rate = 750; param.flight_hours = 3.5; param.sys_delay = 13.25e-6; param.use_mcords4_names = true;
 param.DDC_select = DDC_select_list(freq_idx);
 param.max_duty_cycle = 0.12;
