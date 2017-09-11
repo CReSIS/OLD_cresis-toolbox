@@ -22,7 +22,7 @@ sizeA = size(A);
 
 for n = 1:prod(sizeA(2:end))
   vals = A(:,n);
-  Amed(1,n) = median(vals(~isnan(vals)));
+  Amed(n) = median(vals(~isnan(vals)));
 end
 
 Amed = permute(Amed,[2:dim 1 dim+1:ndims(A)]);

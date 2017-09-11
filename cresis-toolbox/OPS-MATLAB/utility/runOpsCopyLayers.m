@@ -23,10 +23,13 @@ else
 end
 
 % Set the operation to run (just choose one operation)
-if 0
-  runOpsCopyLayers_operation = 'copy_layer_nonmatch_sys';
-else
+if 1
+  % Use this option if copying to and from the same instrument (typical case)
   runOpsCopyLayers_operation = 'copy_layer';
+else
+  % Use this option if copying a layer from one instrument (e.g. rds) to another
+  % instrument (e.g. snow).
+  runOpsCopyLayers_operation = 'copy_layer_nonmatch_sys';
 end
 
 %% copy_layer: Copy layer from one location to another and optionally apply operation during copy
@@ -97,7 +100,7 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
     warning('You have set quality to %d. Normally it should be []. Please verify that you want to overwrite the quality level before running "dbcont" to continue.\n', quality);
     keyboard
     copy_param.quality.mode = 'overwrite';
-    copy_param.quality.quality = quality;
+    copy_param.quality.value = quality;
   end
   
   % Set the destination (choose one): it can be the same as the source
@@ -123,6 +126,7 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
 end
 %% Copy surface from mcords records to snow layerdata  
 if strcmp(runOpsCopyLayers_operation,'copy_layer_nonmatch_sys')
+  % Modify the code below to load the source layer information
   
   % Load mcords records data
   load_params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'20150913.*','post');  

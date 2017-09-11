@@ -4,9 +4,9 @@ function surfdata_to_geotiff(param)
 
   frms = param.cmd.frms;
   
-  active_surfs = param.active_surfs;
+  active_surfs = param.dem.active_surfs;
   
-  out_dir = ct_filename_out(param,'DEM');
+  out_dir = ct_filename_out(param,param.dem.output_dir_name);
   if ~isdir(out_dir)
     mkdir(out_dir);
   end
@@ -15,40 +15,22 @@ function surfdata_to_geotiff(param)
     
     frm = frms(frm_idx);
     
-    surfdata_fn = fullfile(ct_filename_out(param,'surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-    data_fn = fullfile(ct_filename_out(param,param.out_type),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    surfdata_fn = fullfile(ct_filename_out(param,param.dem.surfdata_source),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    data_fn = fullfile(ct_filename_out(param,param.dem.input_dir_name),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
     
-    %% Load surface and bottom data
+    % Load surface and bottom data
     load(surfdata_fn)
     surf_names = {surf.name};
     
-    if ischar(active_surfs)
-      active_surfs = find(strcmp(surf_names,active_surfs),1);
-      if isempty(active_surfs)
-        warning('param.active_surf does not contain a valid string for frame %s_%03d',param.day_seg,frm);
-        continue;
-      end
-    elseif isnumeric(active_surfs) && length(active_surfs)==1
-      if round(active_surfs)<=length(surf_names) && round(active_surfs)>=1
-        active_surfs = round(active_surfs);
-      else
-        warning('param.active_surf does not contain a valid value for frame %s_%03d',param.day_seg,frm);
-        continue;
-      end
-    elseif isnumeric(active_surfs)
-      mask = round(active_surfs)<=length(surf_names) & round(active_surfs)>=1;
-      active_surfs = active_surfs(mask);
-    elseif iscell(active_surfs)
-      act = [];
-      for i = 1:numel(active_surfs)
-        if ischar(active_surfs{i})
-          a = find(strcmp(surf_names,active_surfs{i}),1);
-          if ~isempty(a)
-            act(end+1) = a;
-          end
+    % Find the index to each surface
+    active_surfs_idxs = [];
+    for i = 1:numel(active_surfs)
+      if ischar(active_surfs{i})
+        a = find(strcmp(surf_names,active_surfs{i}),1);
+        if ~isempty(a)
+          active_surfs_idxs(end+1) = a;
         end
       end
-      active_surfs = act;
     end
     
     ice_surf_idx = find(strcmp(surf_names,'ice surface'),1);
@@ -66,8 +48,8 @@ function surfdata_to_geotiff(param)
       mdata.theta = theta.theta;
     end
     
-    if(isfield(param,'theta_cal_fn') && ~isempty(param.theta_cal_fn))
-      theta_cal = load(param.theta_cal_fn);
+    if(isfield(param,'theta_cal_fn') && ~isempty(param.dem.theta_cal_fn))
+      theta_cal = load(param.dem.theta_cal_fn);
       mdata.theta = theta_cal.theta;
     end
 
@@ -82,7 +64,7 @@ function surfdata_to_geotiff(param)
     theta = reshape(mdata.theta,[length(mdata.theta) 1]);
     DOA_trim = 0;
     if isfield(param,'DOA_trim')
-      DOA_trim = param.DOA_trim;
+      DOA_trim = param.dem.DOA_trim;
     end
     if all(all(isnan(ice_surface)))
       ice_surface = zeros(size(ice_surface));
@@ -90,14 +72,14 @@ function surfdata_to_geotiff(param)
     [y_bot,z_bot] = tomo.twtt_doa_to_yz(repmat(theta,[1 Nx]),theta(DOA_trim+1:end-DOA_trim,:),ice_surface(DOA_trim+1:end-DOA_trim,:),3.15,ice_bottom);
     [y_surf,z_surf] = tomo.twtt_doa_to_yz(repmat(theta,[1 Nx]),theta(DOA_trim+1:end-DOA_trim,:),ice_surface(DOA_trim+1:end-DOA_trim,:),3.15,ice_surface);
     
-    for act_idx = 1:numel(active_surfs)
+    for active_surfs_idxs_idx = 1:numel(active_surfs_idxs)
       
-      active_surf = active_surfs(act_idx);
+      layer_idx = active_surfs_idxs(active_surfs_idxs_idx);
     
-      if active_surf == ice_surf_idx
+      if layer_idx == ice_surf_idx
         y_active = y_surf;
         z_active = z_surf;
-      elseif active_surf == bot_idx
+      elseif layer_idx == bot_idx
         y_active = y_bot;
         z_active = z_bot;
       end
@@ -130,7 +112,7 @@ function surfdata_to_geotiff(param)
       %% Convert from geodetic to projection
 
       % Load geotiff projection
-      geotiff_fn = param.geotiff_fn;
+      geotiff_fn = param.dem.geotiff_fn;
 
       proj = geotiffinfo(geotiff_fn);
 
@@ -167,7 +149,7 @@ function surfdata_to_geotiff(param)
         scatter(points.x(good_mask)/1e3,points.y(good_mask)/1e3,[],points.elev(good_mask),'Marker','.')
         hcolor = colorbar;
 
-        surf_str = lower(surf(active_surf).name);
+        surf_str = lower(surf(layer_idx).name);
         idx = regexp([' ' surf_str],'(?<=\s+)\S','start')-1;
         surf_str(idx) = upper(surf_str(idx));
         if ~strncmp(surf_str,'Ice',3)
@@ -181,7 +163,7 @@ function surfdata_to_geotiff(param)
         legend(hplot,'Flight line');
         axis([min_x max_x min_y max_y]/1e3);
         clip_and_resample_image(h_img,gca,10);
-        surf_str = strrep(surf(active_surf).name,' ','_');
+        surf_str = strrep(surf(layer_idx).name,' ','_');
         if ~strncmp(surf_str,'ice',3)
           surf_str = ['ice_',surf_str];
         end
@@ -222,7 +204,7 @@ function surfdata_to_geotiff(param)
       px = pnts(1,concave_hull(:,1));
       py = pnts(2,concave_hull(:,1));
       c1 = concave_hull(:,1);
-      [xi,~,segs] = selfintersect(px,py);
+      [xi,~,segs] = tomo.selfintersect(px,py);
       while ~isempty(xi)
         fprintf('Removing intersections from constraint polygon...\n');
         px(segs(:,1):segs(:,2)) = NaN;
@@ -376,14 +358,14 @@ function surfdata_to_geotiff(param)
         hy = ylabel('Y (km)');
         colormap(jet(256));
         hcolor = colorbar;
-        surf_str = lower(surf(active_surf).name);
+        surf_str = lower(surf(layer_idx).name);
         idx = regexp([' ' surf_str],'(?<=\s+)\S','start')-1;
         surf_str(idx) = upper(surf_str(idx));
         if ~strncmp(surf_str,'Ice',3)
           surf_str = ['Ice ',surf_str];
         end
         set(get(hcolor,'YLabel'),'String',sprintf('%s Elevation (WGS-84,m)',surf_str))
-        surf_str = strrep(surf(active_surf).name,' ','_');
+        surf_str = strrep(surf(layer_idx).name,' ','_');
         if ~strncmp(surf_str,'ice',3)
           surf_str = ['ice_',surf_str];
         end
@@ -431,8 +413,8 @@ function surfdata_to_geotiff(param)
       key.ProjectedCSTypeGeoKey = ProjectedCSTypeGeoKey;
       DEM(isnan(DEM)) = -9999;
 
-      DEM_geotiff_dir = ct_filename_out(param,'DEM');
-      surf_str = strrep(surf(active_surf).name,' ','_');
+      DEM_geotiff_dir = ct_filename_out(param,param.dem.output_dir_name);
+      surf_str = strrep(surf(layer_idx).name,' ','_');
       if ~strncmp(surf_str,'ice',3)
         surf_str = ['ice_',surf_str];
       end
@@ -447,8 +429,8 @@ function surfdata_to_geotiff(param)
       [pnts(4,:),pnts(5,:)] = projinv(proj,pnts(1,:),pnts(2,:));
       pnts(6,:) = gps_time;
 
-      csv_dir = ct_filename_out(param,'DEM');
-      surf_str = strrep(surf(active_surf).name,' ','_');
+      csv_dir = ct_filename_out(param,param.dem.output_dir_name);
+      surf_str = strrep(surf(layer_idx).name,' ','_');
       if ~strncmp(surf_str,'ice',3)
         surf_str = ['ice_',surf_str];
       end
@@ -459,8 +441,8 @@ function surfdata_to_geotiff(param)
       fprintf(fid,'%f,%f,%f,%f,%f,%f\n',pnts);
       fclose(fid);
 
-      mat_dir = ct_filename_out(param,'DEM');
-      surf_str = strrep(surf(active_surf).name,' ','_');
+      mat_dir = ct_filename_out(param,param.dem.output_dir_name);
+      surf_str = strrep(surf(layer_idx).name,' ','_');
       if ~strncmp(surf_str,'ice',3)
         surf_str = ['ice_',surf_str];
       end
@@ -477,15 +459,15 @@ function surfdata_to_geotiff(param)
       end
       ice_mask_ref = [];
       if isfield(param,'ice_mask_ref')
-        ice_mask_ref = param.ice_mask_ref;
+        ice_mask_ref = param.dem.ice_mask_ref;
       end
       geotiff_ref = [];
       if isfield(param,'geotiff_ref')
-        geotiff_ref = param.geotiff_ref;
+        geotiff_ref = param.dem.geotiff_ref;
       end
       DEM_ref = [];
       if isfield(param,'DEM_ref')
-        DEM_ref = param.DEM_ref;
+        DEM_ref = param.dem.DEM_ref;
       end
 
       save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref');

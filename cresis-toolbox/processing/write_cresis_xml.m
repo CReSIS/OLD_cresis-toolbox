@@ -18,9 +18,9 @@ function settings_enc = write_cresis_xml(param)
 %    TTL_delay: offset of transmit start from TTL prog delay (a negative
 %      value means that the TTL prog delay is after the transmit starts)
 %  .version = NI XML file version
-%  .max_tx = maximum DDS amplitude (0 to 2^16-1). If given as a scalar,
+%  .max_DDS_amp = maximum DDS amplitude (0 to 2^16-1). If given as a scalar,
 %    then a constant max is used for all DDS. If it is a vector is should
-%    be the same length as param.tx_weights.
+%    be the same length as param.tx_weights. Alternate field name is max_tx.
 %  .max_data_rate = in MB/sec
 %  .flight_hours = used to determine data volume
 %  .sys_delay = system delay before transmit starts (used to determine
@@ -156,6 +156,14 @@ else
   sample_size = 2;
 end
 
+if isfield(param,'max_tx') && ~isempty(param.max_tx)
+  % Maximum DDS output setting
+  max_DDS_amp = param.max_tx;
+elseif isfield(param,'max_DDS_amp') && ~isempty(param.max_DDS_amp)
+  % Maximum DDS output setting
+  max_DDS_amp = param.max_DDS_amp;
+end
+
 settings_enc(1).('Version') = reshape(char(param.version),[1 length(param.version)]);
 if isfield(param,'DDC_freq')
   %% DDC Settings
@@ -170,7 +178,7 @@ settings_enc(1).(config_var_enc)(1).('Delay') = reshape(uint16(TTL_prog_delay),[
 settings_enc(1).(config_var_enc)(1).('BaseZ20Len') = reshape(double(Tpd_base_duration),[1 1]);
 settings_enc(1).(config_var_enc)(1).('RAMZ20Taper') = reshape(double(param.tukey),[1 1]);
 settings_enc(1).(config_var_enc)(1).('AUXZ20DACZ20Z28HEXZ29') = reshape(uint8(param.aux_dac),[1 8]);
-if any(param.tx_weights > param.max_tx)
+if any(param.tx_weights > max_DDS_amp)
   error('Tx weights too high');
 end
 settings_enc(1).(config_var_enc)(1).(ram_amp_var_enc) = reshape(uint16(param.tx_weights),[1 8]);
@@ -593,7 +601,7 @@ if isfield(param,'arena')
     arena.wfs(wf).zeropimods = param.arena.zeropimods;
     arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
     arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
-    arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* param.arena.max_tx ./ param.max_tx;
+    arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* param.arena.max_tx ./ max_DDS_amp;
     arena.wfs(wf).fc = (settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq ...
       + settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq)/2;
     arena.wfs(wf).BW = abs(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq ...

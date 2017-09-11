@@ -35,6 +35,7 @@ if ~(~ismcc && isdeployed)
   % KU Desktop Profile Windows (PROFILE 6)
   % AWI Profile Windows (PROFILE 7)
   % AWI Profile Linux (PROFILE 8)
+  % AWI Profile Ollie (PROFILE 9)
   cur_profile = 1;
   
   fprintf('Startup Script Running\n');
@@ -261,7 +262,7 @@ if ~(~ismcc && isdeployed)
   pidx = 8; % profile index
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/home/administrator/scripts/matlab/';
-  profile(pidx).ct_path                   = '/home/administrator/scripts/cresis-toolbox/';
+  profile(pidx).ct_path                   = '/home/administrator/scripts/cresis-toolbox/cresis-toolbox/';
   profile(pidx).param_path                = '/home/administrator/scripts/ct_params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
@@ -283,7 +284,40 @@ if ~(~ismcc && isdeployed)
   profile(pidx).sched.cluster_size        = inf;
   profile(pidx).sched.stop_on_fail        = true;
   profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/home/administrator/scripts/cresis-toolbox-torque/worker';
+  profile(pidx).sched.worker_fn           = '/home/administrator/scripts/cresis-toolbox/cresis-toolbox-torque/worker';
+  profile(pidx).sched.force_compile       = false;
+  profile(pidx).sched.rerun_only          = false;
+
+  %% AWI Profile Ollie (PROFILE 9)
+  % ----------------------------------------------------------------------
+  pidx = 9; % profile index
+  profile(pidx).debug_level               = 1;
+  profile(pidx).personal_path             = '/home/ollie/tbinder/scripts/matlab/';
+  profile(pidx).ct_path                   = '/home/ollie/tbinder/scripts/cresis-toolbox/cresis-toolbox/';
+  profile(pidx).param_path                = '/home/ollie/tbinder/scripts/ct_params/';
+  profile(pidx).slurm_jobs_path           = '/home/ollie/tbinder/jobs/';
+
+  profile(pidx).code_path                 = profile(pidx).ct_path;
+  profile(pidx).code_path_override        = profile(pidx).personal_path;
+  profile(pidx).tmp_file_path             = '/work/ollie/tbinder/Scratch/mdce_tmp/';
+  profile(pidx).ct_tmp_file_path          = '/work/ollie/tbinder/Scratch/ct_tmp/';
+
+  profile(pidx).data_path                 = '/work/ollie/tbinder/Data/';
+  profile(pidx).data_support_path         = '/work/ollie/tbinder/Scratch/metadata/';
+  profile(pidx).support_path              = '/work/ollie/tbinder/Scratch/csarp_support/';
+  profile(pidx).out_path                  = '/work/ollie/tbinder/Scratch/';
+  profile(pidx).gis_path                  = '/work/ollie/tbinder/GIS_data/';
+
+  profile(pidx).sched.type                = 'local';
+  %profile(pidx).sched.type                = 'ollie'; % creates param structures used by executables/slurm scripts
+  profile(pidx).sched.ver                 = 2; % local and jobmanager only
+  profile(pidx).sched.data_location       = '/work/ollie/tbinder/Scratch/torque-temp';
+  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=2,walltime=15:00';
+  profile(pidx).sched.max_in_queue        = 64;
+  profile(pidx).sched.cluster_size        = inf;
+  profile(pidx).sched.stop_on_fail        = true;
+  profile(pidx).sched.max_retries         = 4;
+  profile(pidx).sched.worker_fn           = '/home/ollie/tbinder/scripts/cresis-toolbox-torque/worker';
   profile(pidx).sched.force_compile       = false;
   profile(pidx).sched.rerun_only          = false;
     
@@ -414,6 +448,7 @@ if ~(~ismcc && isdeployed)
   %        specified in call to torque_compile.m (all functions called
   %        by torque_compile)
   gRadar.sched.hidden_depend_funs = {};
+  gRadar.sched.hidden_depend_funs{end+1} = {'tomo_collate_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_accum2_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_acords_task.m' 2};
   gRadar.sched.hidden_depend_funs{end+1} = {'create_records_mcords_task.m' 2};
@@ -479,6 +514,11 @@ if ~(~ismcc && isdeployed)
   gRadar.out_path = profile(cur_profile).out_path;
   % .GIS_path = where GIS files are stored (e.g. Landsat-7 imagery)
   gRadar.gis_path = profile(cur_profile).gis_path;
+  % .slurm_jobs_path = where param structures are stored for slurm scripts
+  if ~isfield(profile(cur_profile),'slurm_jobs_path')
+    profile(cur_profile).slurm_jobs_path = '';
+  end  
+  gRadar.slurm_jobs_path = profile(cur_profile).slurm_jobs_path;  
   
   clear profile cur_profile fn_dir fn_idx fn_name fns pidx;
 

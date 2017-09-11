@@ -1,7 +1,7 @@
 function mdata = fuse_images(param)
 % mdata = tomo.fuse_images(param)
 %
-% Description: Usually this function is called from tomo.collate_task.
+% Description: Usually this function is called from tomo_collate_task.
 %   Combines img_II data files into a single combined data file.
 %
 % Inputs:

@@ -1,5 +1,5 @@
-function success = collate_task(param)
-% success = tomo.collate_task(param)
+function success = tomo_collate_task(param)
+% success = tomo_collate_task(param)
 %
 % Description. Usually this function is called from tomo.collate.
 %   Calls data_loader_prep, DEM_alignment, and surface_extractor.

@@ -68,12 +68,6 @@ classdef slice_browser < handle
     
     % zoom_mode: boolean, x,y: used by zoom mode
     zoom_mode
-    polygon_mode
-    num_of_polygons
-    rect_draw
-    bott_mask
-    undoLayerBackup
-    undoLayerMaskBackup
     shift_pressed
     ctrl_pressed
     plot_visibility
@@ -107,7 +101,6 @@ classdef slice_browser < handle
       obj.plot_visibility = true;
       
       obj.slice_tool.list = [];
-      obj.num_of_polygons = 0;
       
       obj.slice_tool.timer = timer;
       obj.slice_tool.timer.StartDelay = 2;
@@ -173,24 +166,20 @@ classdef slice_browser < handle
       xlabel(obj.h_axes,'Cross-track');
       ylabel(obj.h_axes,'Range bin');
       
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      
-      obj.bott_mask = true(size(obj.layer(2).y(:,obj.slice)));      
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      
       obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
       for layer_idx = 1:numel(obj.layer)
         if islogical(obj.layer(layer_idx).y)
-          tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(obj.bott_mask,obj.slice);
+          tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
           tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
           
           obj.layer(layer_idx).h_plot ...
-            = plot(obj.layer(layer_idx).x(:,obj.slice), ...
-            tmp_y, 'parent',obj.h_axes,'color','black', ...
-            obj.layer(layer_idx).plot_name_values{:});
+          = plot(obj.layer(layer_idx).x(:,obj.slice), ...
+          tmp_y, 'parent',obj.h_axes,'color','black', ...
+          obj.layer(layer_idx).plot_name_values{:});
         else
           obj.layer(layer_idx).h_plot ...
             = plot(obj.layer(layer_idx).x(:,obj.slice), ...
-            obj.layer(layer_idx).y(obj.bott_mask,obj.slice), ...
+            obj.layer(layer_idx).y(:,obj.slice), ...
             'parent',obj.h_axes,'color','black', ...
             obj.layer(layer_idx).plot_name_values{:});
         end
@@ -328,42 +317,6 @@ classdef slice_browser < handle
       set(obj.gui.optionsPB,'Callback',@obj.optionsPB_callback);
       set(obj.gui.optionsPB,'TooltipString','Open tool options window');
       
-      
-      %% VICTOR AND MOHANAD
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      % Rectangle
-      obj.gui.polygonPB = uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.polygonPB,'style','pushbutton');
-      set(obj.gui.polygonPB,'string','Rectangle');
-      set(obj.gui.polygonPB,'Callback',@obj.polygonPB_callback);
-      set(obj.gui.polygonPB,'TooltipString','Draw rectangle on slice');   
-      set(obj.gui.polygonPB,'Position', [40 155 75 50]);
-      
-      % Clear rectangle
-      obj.gui.clear_polygonPB = uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.clear_polygonPB,'style','pushbutton');
-      set(obj.gui.clear_polygonPB,'string','Clear rectangle(s)');
-      set(obj.gui.clear_polygonPB,'Callback',@obj.deletePolygon);
-      set(obj.gui.clear_polygonPB,'TooltipString','Clear rectangle(s) from slice');   
-      set(obj.gui.clear_polygonPB,'Position', [27 105 100 50]);   
-      
-      % Apply mask
-      obj.gui.mask_selectionPB= uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.mask_selectionPB,'style','pushbutton');
-      set(obj.gui.mask_selectionPB,'string','Mask selection');
-      set(obj.gui.mask_selectionPB,'Callback',@obj.maskSelection);
-      set(obj.gui.mask_selectionPB,'TooltipString','Mask selection on slice');   
-      set(obj.gui.mask_selectionPB,'Position', [27 55 100 50]); 
-      
-      % Merge bottom/surface
-      obj.gui.mask_selectionPB= uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.mask_selectionPB,'style','pushbutton');
-      set(obj.gui.mask_selectionPB,'string','Merge BOT/SURF');
-      set(obj.gui.mask_selectionPB,'Callback',@obj.mergeLayers);
-      set(obj.gui.mask_selectionPB,'TooltipString','Merge bottom and surface layers');   
-      set(obj.gui.mask_selectionPB,'Position', [27 205 100 50]);
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-         
       obj.gui.toolPM = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.toolPM,'style','popup');
       set(obj.gui.toolPM,'string',{''});
@@ -610,16 +563,12 @@ classdef slice_browser < handle
       layer_idx = get(obj.gui.layerLB,'value');
       
       if obj.zoom_mode
+        %% Zoom
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
           'h_axes',obj.h_axes,'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
-        
-      elseif obj.polygon_mode
-        obj.zoom_mode = 0;
-        set(obj.h_fig,'Pointer','Crosshair');
-        
-        
       else
         if but == 2 || but == 3
+          %% Selection
           if obj.x == x
             if x > 1 && x < size(obj.data,2)
               obj.select_mask(round(x)) = ~obj.select_mask(round(x));
@@ -633,8 +582,10 @@ classdef slice_browser < handle
               obj.update_slice;
             end
             
-            if islogical(obj.layer(layer_idx).y)
+            if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
               layer_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+            elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
+              layer_y = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
             else
               layer_y = obj.layer(layer_idx).y(:,obj.slice);
             end
@@ -645,6 +596,7 @@ classdef slice_browser < handle
               & layer_y <= max(y,obj.y));
           end
         else
+          %% Change point
           xlims = xlim(obj.h_axes);
           ylims = ylim(obj.h_axes);
           if x >= xlims(1) && x <= xlims(2) && y >= ylims(1) && y <= ylims(2)
@@ -652,13 +604,13 @@ classdef slice_browser < handle
             cmd = [];
             cmd{1}.undo.slice = obj.slice;
             cmd{1}.redo.slice = obj.slice;
-            cmd{1}.undo.layer = layer_idx;
-            cmd{1}.redo.layer = layer_idx;
+            cmd{1}.undo.layer = obj.layer(layer_idx).control_layer;
+            cmd{1}.redo.layer = obj.layer(layer_idx).control_layer;
             cmd{1}.undo.x = round(x);
-            cmd{1}.undo.y = obj.layer(layer_idx).y(round(x),obj.slice);
+            cmd{1}.undo.y = obj.layer(obj.layer(layer_idx).control_layer).y(round(x),obj.slice);
             cmd{1}.redo.x = round(x);
-            if islogical(obj.layer(layer_idx).y)
-              cmd{1}.redo.y = ~obj.layer(layer_idx).y(round(x),obj.slice);
+            if islogical(obj.layer(obj.layer(layer_idx).control_layer).y)
+              cmd{1}.redo.y = ~obj.layer(obj.layer(layer_idx).control_layer).y(round(x),obj.slice);
             else
               cmd{1}.redo.y = y;
             end
@@ -676,7 +628,11 @@ classdef slice_browser < handle
         zoom_button_up(x,y,but,struct('x',obj.control_x,'y',obj.control_y, ...
           'h_axes',obj.h_control_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,1)]));
       else
-        obj.change_slice(round(x),false);
+        xlims = xlim(obj.h_layer_axes);
+        ylims = ylim(obj.h_layer_axes);
+        if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end)
+          obj.change_slice(round(x),false);
+        end
       end
     end
     
@@ -685,10 +641,14 @@ classdef slice_browser < handle
       
       if obj.zoom_mode
         zoom_button_up(x,y,but,struct('x',obj.layer_x,'y',obj.layer_y, ...
-          'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+          'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
       else
         if obj.layer_x == x
-          obj.change_slice(round(x),false);
+          xlims = xlim(obj.h_layer_axes);
+          ylims = ylim(obj.h_layer_axes);
+          if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end) 
+            obj.change_slice(round(x),false);
+          end
         else
           ylims = sort([y obj.layer_y]);
           obj.select_mask(:) = false;
@@ -741,8 +701,6 @@ classdef slice_browser < handle
         return;
       elseif obj.zoom_mode
         set(obj.h_fig,'Pointer','custom');
-      elseif obj.polygon_mode
-        set(obj.h_fig,'Pointer','Crosshair');
       end
 
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
@@ -763,7 +721,7 @@ classdef slice_browser < handle
     
     function layer_button_scroll(obj,h_obj,event)
       zoom_button_scroll(event,struct('h_fig',obj.h_layer_fig, ...
-        'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+        'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
     end
     
     %% key_press
@@ -791,8 +749,8 @@ classdef slice_browser < handle
       % Check to see if this is a slicetool shortcut
       for tool_idx = 1:length(obj.slice_tool.list)
         if strcmpi(obj.slice_tool.list{tool_idx}.tool_shortcut, event.Key) ...
-            && obj.slice_tool.list{tool_idx}.ctrl_pressed == obj.ctrl_pressed ...
-            && obj.slice_tool.list{tool_idx}.shift_pressed == obj.shift_pressed
+            && any(obj.slice_tool.list{tool_idx}.ctrl_pressed == obj.ctrl_pressed) ...
+            && any(obj.slice_tool.list{tool_idx}.shift_pressed == obj.shift_pressed)
           obj.layer_idx = get(obj.gui.layerLB,'Value');
           cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
           if ~isempty(cmd)
@@ -814,15 +772,9 @@ classdef slice_browser < handle
         
         % see event.Modifier for modifiers
         switch event.Key
-         
-          case 'p' %% Toggle polygon mode
-            obj.polygonPB_callback
           
           case 'f1'
             obj.help_menu()
-            
-          case 'f5'
-            obj.mergeLayers();
             
           case 'z'
             if obj.ctrl_pressed
@@ -932,17 +884,11 @@ classdef slice_browser < handle
             
           case 'u'
             obj.undo_stack.pop();
-            obj.undoMergeLayers();
-            
-          case 'k'
-            obj.deletePolygon;
-            
-          case 'm'
-            obj.maskSelection;
             
           otherwise
             
-        end        
+        end
+        
       end
     end
     
@@ -1018,9 +964,14 @@ classdef slice_browser < handle
 
       % Update layer plots
       for layer_idx = 1:numel(obj.layer)
-        if islogical(obj.layer(layer_idx).y)
-          tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
-          tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
+        if ~isempty(regexp(obj.layer(layer_idx).name, 'quality|mask'))
+          if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
+            tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+            tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
+          else
+            tmp_y = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
+            tmp_y(obj.layer(layer_idx).y(:,obj.slice) == 1) = NaN;
+          end
           set(obj.layer(layer_idx).h_plot, ...
             'XData', obj.layer(layer_idx).x(:,obj.slice), ...
             'YData', tmp_y);
@@ -1035,8 +986,10 @@ classdef slice_browser < handle
         % Update layer selection related plots
         layer_idx = get(obj.gui.layerLB,'value');
         x_select = obj.layer(layer_idx).x(:,obj.slice);
-        if islogical(obj.layer(layer_idx).y)
+        if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
           y_select = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+        elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
+          y_select = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
         else
           y_select = obj.layer(layer_idx).y(:,obj.slice);
         end
@@ -1101,56 +1054,6 @@ classdef slice_browser < handle
       tool_idx = get(obj.gui.toolPM,'Value');
       obj.slice_tool.list{tool_idx}.open_win();
     end
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    function polygonPB_callback(obj,src,event)
-      obj.num_of_polygons = obj.num_of_polygons + 1;
-      obj.zoom_mode = 0;
-      obj.polygon_mode = 1;
-      set(obj.h_fig,'Pointer','Crosshair');
-      position = getrect;
-      obj.rect_draw{end+1} = rectangle('Position', position);
-      disp(position);
-      obj.polygon_mode = 0;
-      obj.zoom_mode = 1;
-    end
-    
-    function deletePolygon(obj,src,event)
-      for dltPlgn = 1:obj.num_of_polygons
-        delete(obj.rect_draw{dltPlgn});
-      end
-      obj.rect_draw = {};
-      obj.num_of_polygons = 0;
-    end
-    
-    function maskSelection(obj,src,event)
-      if obj.num_of_polygons < 1
-        return
-      end
-      
-      for mskSlctn = 1:obj.num_of_polygons
-        x1 = round(obj.rect_draw{mskSlctn}.Position(1));
-        x2 = x1 + round(obj.rect_draw{mskSlctn}.Position(3));
-        obj.bott_mask(x1:x2) = 0;
-      end
-      obj.update_slice;
-      
-    end
-    
-    function mergeLayers(obj,src,event)
-      obj.undoLayerBackup = obj.layer(2).y(:, obj.slice);
-      obj.undoLayerMaskBackup = obj.layer(3).y(:, obj.slice);
-      obj.layer(2).y(:, obj.slice) = obj.layer(1).y(:, obj.slice);
-      obj.layer(3).y(:, obj.slice) = 0;
-      obj.update_slice;     
-    end
-    
-    function undoMergeLayers(obj,src,event)
-      obj.layer(2).y(:, obj.slice) = obj.undoLayerBackup;
-      obj.layer(3).y(:, obj.slice) = obj.undoLayerMaskBackup;
-      obj.update_slice;
-    end
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     %% timer_callback
     function timer_callback(obj,src,event)

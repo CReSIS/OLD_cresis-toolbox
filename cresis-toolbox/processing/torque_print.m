@@ -104,7 +104,7 @@ if print_flag == 1
   end
   
   
-  cmd = sprintf('qstat -f %d', torque_id);
+  cmd = sprintf('qstat -f %d  </dev/null', torque_id);
   status = -1;
   torque_attempts = 0;
   while status ~= 0
@@ -214,7 +214,7 @@ if print_flag == 2
     fprintf('\nMatlab Job ID %d\n', job_id(idx));
     fprintf('Torque Job ID %d\n', torque_id(idx));
     
-    cmd = sprintf('qstat -f %d', torque_id(idx));
+    cmd = sprintf('qstat -f %d </dev/null', torque_id(idx));
     
     status = -1;
     torque_attempts = 0;

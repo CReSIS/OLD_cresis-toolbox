@@ -63,7 +63,7 @@ ctrl.job_id_list = ctrl.job_id_list{1};
 ctrl.job_id = length(ctrl.job_id_list);
 ctrl.submission_queue = [];
 
-cmd = 'qstat';
+cmd = 'qstat </dev/null';
 try
   [status,result] = system(cmd);
 catch

@@ -95,15 +95,18 @@ for set_idx = 1:length(settings)
   end
   
   % Print out settings
+  [~,settings_fn_name] = fileparts(settings(set_idx).fn);
   if isfield(settings(set_idx),'XML_File_Path')
-    [~,settings_fn_name] = fileparts(settings(set_idx).fn);
     fprintf(' %d: %s (%d wfs, %d files)\n', set_idx, ...
       settings(set_idx).XML_File_Path{1}.values{1}, settings(set_idx).DDS_Setup.Wave, num_files);
-    if set_idx < length(settings)
-      settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
-    else
-      settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum);
-    end
+  else
+    fprintf(' %d: (%d wfs, %d files)\n', set_idx, ...
+      settings(set_idx).DDS_Setup.Wave, num_files);
+  end
+  if set_idx < length(settings)
+    settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
+  else
+    settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum);
   end
   
   %% Plot GPS information
