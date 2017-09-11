@@ -91,8 +91,13 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         end
         if get(obj.gui.previousCB,'Value')
           slice_prev = slices(slice_idx-1);
-          gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
-            sb.layer(active_idx).y(cols(1:end),slice_prev).'+0.5];
+          if slice_idx == 2
+            gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
+              sb.layer(active_idx).y(cols(1:end),slice_prev).'+0.5];
+          else
+            gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
+              labels+0.5];
+          end
         else
           gt = [];
         end
