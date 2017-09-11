@@ -30,7 +30,7 @@ final_DDS_phase = [];
 final_DDS_phase_no_time = [];
 final_DDS_amp = [];
 final_DDS_time = [];
-if 0
+if 1
   % Initial conditions (usually all zeros phase/time with max amplitude)
   for idx = 1:length(f0_list)
     final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
@@ -45,11 +45,11 @@ else
   % These are from transmit calibration during 2017? test flight  
   
   % 150-520 MHz
-  final_DDS_phase{end+1} = [54.3	54.2	51.4	0.0	52.2	51.9	51.9	0.0];
+  final_DDS_phase{end+1} = [0 0 0 0 0 0 0 0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{end+1} = [1004	2155	3322	4000	3346	2177	1037	0];
-  final_DDS_time{end+1} =  [4.37	4.40	0.40	0.00	0.40	0.37	-0.97	0.00];
-    
+  final_DDS_amp{end+1} = [0 0 0 0 0 0 0 0];
+  final_DDS_time{end+1} =  [0 0 0 0 0 0 0 0];
+  
   % 180-210 MHz
   final_DDS_phase{end+1} = [0 0 0 0 0 0 0 0];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0 0 0]; % not used usually
