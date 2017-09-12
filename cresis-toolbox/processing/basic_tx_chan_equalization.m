@@ -776,6 +776,20 @@ if update_mode ~= 1
     settings_enc = rmfield(settings_enc,'DDSZ5FSetup');
     settings_enc = rmfield(settings_enc,'XMLZ20FileZ20Path');
     settings_enc = rmfield(settings_enc,'xmlversion');
+    
+    [old_fn_dir,old_fn_name,old_fn_ext] = fileparts(settings_enc.sys.XMLZ20FileZ20Path{1}.values{1});
+    out_xml_fn = fullfile(old_fn_dir, sprintf('%s_%s%s', old_fn_name, xml_fn_name, old_fn_ext));
+  end
+  
+  if strcmpi(param.season_name,'2017_Antarctica_Basler')
+    %% HACK CODE to deal with presum error in DDS
+    % Remove dummy waveforms (every second waveform)
+    settings_enc.sys.DDSZ5FSetup.Waveforms = settings_enc.sys.DDSZ5FSetup.Waveforms(1:2:end);
+    settings_enc.sys.DDSZ5FSetup.Z23Wave = settings_enc.sys.DDSZ5FSetup.Z23Wave/2;
+    for wave_idx = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
+      settings_enc.sys.DDSZ5FSetup.Waveforms(wave_idx).Presums ...
+        = settings_enc.sys.DDSZ5FSetup.Waveforms(wave_idx).Presums + 1;
+    end
   end
   
   fprintf('\nWriting %s\n', out_xml_fn);
@@ -791,15 +805,22 @@ if update_mode ~= 1
   fclose(fid);
   
   %% Write RSS Arena XML config file
-  if strcmpi(param.radar_name,'mcords5')
+  if isfield(default,'arena') && ~strcmpi(param.season_name,'2017_Antarctica_Basler')
     % Create arena parameter structure
     arena = struct('version','1');
+    arena.awg = default.arena.awg;
+    arena.dacs = default.arena.dacs;
+    arena.dacs_sampFreq = default.arena.dacs_sampFreq;
+    arena.zeropimods = default.arena.zeropimods;
+    arena.TTL_time = default.arena.TTL_time;
+    arena.TTL_names = default.arena.TTL_names;
+    arena.TTL_states = default.arena.TTL_states;
     for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
-      arena.fs = settings_enc.sys.DDCZ20Ctrl.samplingZ20freq;
       arena.PRI = 1 / settings_enc.sys.DDSZ5FSetup.PRF;
+      arena.wfs(wf).zeropimods = default.arena.zeropimods;
       arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
       arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
-      arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) * 0.63/4000;
+      arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* default.arena.max_tx ./ default.txequal.max_DDS_amp;
       arena.wfs(wf).fc = (settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq ...
         + settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq)/2;
       arena.wfs(wf).BW = abs(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq ...
@@ -830,6 +851,6 @@ if update_mode ~= 1
     fid = fopen(rss_fn,'w');
     fwrite(fid,out_str,'char');
     fclose(fid);
-    
   end
+  
 end
