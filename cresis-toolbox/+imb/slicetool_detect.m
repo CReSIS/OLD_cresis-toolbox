@@ -65,27 +65,39 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       smooth_var = -1;
       
       if ~exist('slices','var') || isempty(slices)
-        slice_range = min(slice_range):max(slice_range);
         slices = sb.slice+slice_range;
       end
-      slices = intersect(slices,1:size(sb.data,3));
+      [~,slices_idxs] = intersect(slices,1:size(sb.data,3));
+      slices = slices(sort(slices_idxs));
       if numel(slices)==1
         fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice);
       else
         fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
       end
+      if get(obj.gui.previousCB,'Value')
+        start_slice_idx = 2;
+      else
+        start_slice_idx = 1;
+      end
       
       cmd = [];
-      for slice = slices(:).'
+      for slice_idx = start_slice_idx:length(slices)
+        slice = slices(slice_idx);
         % Create ground truth input
         % 1. Each column is one ground truth input
         % 2. Row 1: x, Row 2: y
         if numel(slices)>1
           fprintf('Slice %d\n',slice);
         end
-        if get(obj.gui.previousCB,'Value') && slice > 1
-          gt = [sb.layer(active_idx).x(cols(1:end),slice-1).'-1; ...
-            sb.layer(active_idx).y(cols(1:end),slice-1).'+0.5];
+        if get(obj.gui.previousCB,'Value')
+          slice_prev = slices(slice_idx-1);
+          if slice_idx == 2
+            gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
+              sb.layer(active_idx).y(cols(1:end),slice_prev).'+0.5];
+          else
+            gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
+              labels+0.5];
+          end
         else
           gt = [];
         end
@@ -121,15 +133,13 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         detect_data = sb.data(:,:,slice);
         detect_data(detect_data>threshold) = threshold;
         detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
-        % detect_data(182+(-5:5),35).'
-%         obj.custom_data.mu = [8.4745    8.3321    9.7678   11.7998   13.1260   13.0728   11.6279   10.1136    9.2768    8.3387    7.3149];
-        
+        bounds = [sb.bounds_relative(1) size(detect_data,2)-sb.bounds_relative(2)-1];
 
         labels = tomo.detect(double(detect_data), ...
           double(surf_bins), double(bottom_bin), ...
           double(gt), double(mask), ...
           double(obj.custom_data.mu), double(obj.custom_data.sigma),-1,double(egt_weight), ...
-          double(smooth_weight), double(smooth_var), double(slope));
+          double(smooth_weight), double(smooth_var), double(slope), int64(bounds));
 
         % Create cmd for layer change
         cmd{end+1}.undo.slice = slice;
@@ -163,17 +173,17 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');
       pos(3) = 200;
-      pos(4) = 130;
+      pos(4) = 140;
       set(obj.h_fig,'Position',pos);
       
       % Slice range
       obj.gui.slice_rangeTXT = uicontrol('Style','text','string','Slice range');
-      set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
+      set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
       
       obj.gui.slice_rangeLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.slice_rangeLE,'style','edit')
-      set(obj.gui.slice_rangeLE,'string','0')
-      set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
+      set(obj.gui.slice_rangeLE,'string','-1:0')
+      set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
       
       % Threshold
       obj.gui.thresholdTXT = uicontrol('Style','text','string','Threshold');

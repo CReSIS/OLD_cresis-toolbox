@@ -22,6 +22,13 @@
 % smooth_weight: -1
 % smooth_var: -1
 % smooth_slope: to assume topography is flat (no slope): zeros(1, N - 1)
+% bounds: OPTIONAL: [0 Ndoa-1 0 Nx-1] is the default. If passed in and
+%  not empty, it must be a 4 element double vector. It should contain
+%  the start and stop DOA indexes followed by the start and stop X
+%  dimension indexes. All indexes are zero-indexed. This allows a subset of
+%  the data to be surface tracked by this program. Setting any element to
+%  a negative value will cause the default to be used for that particular
+%  element.
 %
 %Outputs
 % labels: location of bottom layer for each column (double 1 by N)
@@ -30,4 +37,4 @@
 %  /+imb/slicetool_detect.m 
 %  /+imb/@picktool_detect/left_click_and_drag.m
 %
-% Authors:  Mingze Xu
+% Authors:  Mingze Xu, John Paden

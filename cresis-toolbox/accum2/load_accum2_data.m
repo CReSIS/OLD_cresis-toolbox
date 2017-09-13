@@ -385,14 +385,14 @@ for board_idx = 1:length(boards)
             if param.proc.ft_dec
               % Digital down conversion and decimation
               accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
-              accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
+              accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(wf).ft_dec(1), param.wfs(wf).ft_dec(2));
             end
 
           elseif param.proc.ft_dec
             accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx},wfs(wf).Nt_raw);
             accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds));
             accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
-            accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(1).ft_dec(1), param.wfs(1).ft_dec(2));
+            accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(wf).ft_dec(1), param.wfs(wf).ft_dec(2));
           end
           if param.proc.combine_rx
             g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(board+1).data{accum_idx} / param.proc.presums / size(param.load.imgs{img_idx},1);

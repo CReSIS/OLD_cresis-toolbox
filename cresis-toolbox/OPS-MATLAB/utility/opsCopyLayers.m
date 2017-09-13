@@ -78,7 +78,7 @@ function layers = opsCopyLayers(param,copy_param)
 %       .mode: string specifying one of these methods:
 %         'overwrite': Overwrites the quality level with ".quality"
 %         'preserve': Quality level preserved from source
-%       .quality: scalar containing 1, 2, or 3
+%       .value: scalar containing 1, 2, or 3
 %     .copy_method = string specifying one of these methods
 %       'fillgaps': only gaps in destination data will be written to
 %       'overwrite': none of the previous data are kept
@@ -402,7 +402,7 @@ update_mask = frms_mask & update_mask;
 %% Overwrite quality level
 all_points.quality_interp = interp1(layer_source.gps_time,layer_source.quality,all_points.gps_time,'nearest');
 if strcmpi(copy_param.quality.mode,'overwrite')
-  all_points.quality_interp(:) = copy_param.quality.quality;
+  all_points.quality_interp(:) = copy_param.quality.value;
 end
 
 %% Write the new layer data to the destination

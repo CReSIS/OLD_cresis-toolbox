@@ -20,7 +20,7 @@ default.xml_version = 1.4;
 
 default.noise_50ohm = [-45.5	-44.3	-44.8	-44.9	-40.2	-40.8	-40.5	-41.4	-39.9	-40.2	-42.0	-43.6	-43.0	-44.1	-44.6];
 
-default.Pt = 1000 * [1 1 1 1 1 1 1];
+default.Pt = 175 * sum([1 1 1 1 1 1 1]);
 default.Gt = 7*4;
 default.Ae = 2*0.468 * 0.468;
 

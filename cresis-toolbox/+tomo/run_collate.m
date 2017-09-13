@@ -9,16 +9,15 @@
 
 clear('param_override');
 param_override = [];  
-% param_override.sched.type = 'no scheduler';
+param_override.sched.type = 'no scheduler';
 param_override.sched.submit_arguments = '-l nodes=1:ppn=1,pmem=8000mb,walltime=120:00';
 
-%% 2014_Greenland_P3 20140401_03 User Settings
+%% 2014_Greenland_P3 User Settings
 
 % parameter spreadsheet of day or day_seg to be run
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
-params.cmd.frms = 37;
-params.cmd.generic = 60;
-
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140325_07','post');
+params.cmd.frms = [1 2];
+params.cmd.generic = 1;
 
 tomo_collate = [];
 
@@ -29,7 +28,7 @@ tomo_collate.in_dir = 'paden_music';
 % directory to which output layer data will be exported
 tomo_collate.out_dir = 'paden_surfData';
 % DEM used to extract surface layer information
-tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('arctic','ArcticDEM','2014_Greenland_P3_20140401_03.tif'));
+tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('arctic','ArcticDEM','2014_Greenland_P3_20140325.tif'));
 tomo_collate.geotiff_bad_value = -32767;
 % Ocean mask used to help fill DEM
 % tomo_collate.ocean_mask_fn = ct_filename_tmp([],fullfile('ocean_mask','2014_Greenland_P3_20140506_01.tif'));
@@ -58,13 +57,17 @@ tomo_collate.smooth_weight = -1;    % default
 tomo_collate.smooth_var = -1;   % default
 % expected twtt offset between DOA bins
 tomo_collate.smooth_slope = zeros(1,63);
+% DOA bins and along-track slices to trim off from each edge [top bottom left right]
+tomo_collate.bounds_relative = [3 2 0 0];
+% Number of refine/extract loops to run
+tomo_collate.max_loops = 50;
 
 tomo_collate.layer_source = 'layerData';
 
 %% Collate Script Configuration
 
 % when set to true, runs fuse_images.m
-tomo_collate.fuse_images_flag = true;
+tomo_collate.fuse_images_flag = false;
 
   % when set to true, images will be fused vertically in fuse_images.m
   % rather than horizontally
@@ -78,7 +81,7 @@ tomo_collate.fuse_images_flag = true;
   tomo_collate.img_comb = [0 3.5e-5]; % only for vertical_fuse
 
 % when set to true, runs add_icemask_surfacedem.m
-tomo_collate.add_icemask_surfacedem_flag = true;
+tomo_collate.add_icemask_surfacedem_flag = false;
 
 % when set to true, runs create_surfData.m
 tomo_collate.create_surfData_flag = true;
