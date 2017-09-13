@@ -92,11 +92,11 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         if get(obj.gui.previousCB,'Value')
           slice_prev = slices(slice_idx-1);
           if slice_idx == 2
-            gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
-              sb.layer(active_idx).y(cols(1:end),slice_prev).'+0.5];
+            gt = [sb.layer(active_idx).x(:,slice_prev).'-1; ...
+              sb.layer(active_idx).y(:,slice_prev).'+0.5];
           else
-            gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
-              labels+0.5];
+            gt = [sb.layer(active_idx).x(:,slice_prev).'-1; ...
+              labels(:).'+0.5];
           end
         else
           gt = [];
@@ -106,7 +106,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
             & isfinite(sb.layer(control_idx).y(:,slice));
           gt = cat(2,gt,[sb.layer(control_idx).x(mask,slice).'-1; ...
             sb.layer(control_idx).y(mask,slice).'+0.5]);
-          [~,unique_idxs] = unique(gt(1,:),'last');
+          [~,unique_idxs] = unique(gt(1,:),'last','legacy');
           gt = gt(:,unique_idxs);
           [~,sort_idxs] = sort(gt(1,:));
           gt = gt(:,sort_idxs);
