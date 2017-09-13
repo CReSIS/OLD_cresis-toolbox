@@ -133,15 +133,13 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         detect_data = sb.data(:,:,slice);
         detect_data(detect_data>threshold) = threshold;
         detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
-        % detect_data(182+(-5:5),35).'
-%         obj.custom_data.mu = [8.4745    8.3321    9.7678   11.7998   13.1260   13.0728   11.6279   10.1136    9.2768    8.3387    7.3149];
-        
+        bounds = [sb.bounds_relative(1) size(detect_data,2)-sb.bounds_relative(2)-1];
 
         labels = tomo.detect(double(detect_data), ...
           double(surf_bins), double(bottom_bin), ...
           double(gt), double(mask), ...
           double(obj.custom_data.mu), double(obj.custom_data.sigma),-1,double(egt_weight), ...
-          double(smooth_weight), double(smooth_var), double(slope));
+          double(smooth_weight), double(smooth_var), double(slope), int64(bounds));
 
         % Create cmd for layer change
         cmd{end+1}.undo.slice = slice;

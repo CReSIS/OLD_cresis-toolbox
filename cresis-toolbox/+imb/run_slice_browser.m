@@ -7,10 +7,12 @@
 
 param.radar_name = 'mcords3';
 param.season_name = '2014_Greenland_P3';
-out_type = 'CSA_music';
-surfdata_source = 'surfData';
-param.day_seg = '20140401_03';
-frm = 37;
+% out_type = 'CSA_music';
+% surfdata_source = 'CSA_music_surfData';
+out_type = 'paden_music';
+surfdata_source = 'paden_surfData';
+param.day_seg = '20140325_07';
+frm = 1;
 % frm = 39;
 % frm = 43;
 % frm = 44;
@@ -51,6 +53,7 @@ fclose(fid);
 
 sb_param = [];
 sb_param.layer_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+sb_param.bounds_relative = [3 2 0 0];
 
 %% Call slice_browser
 try; delete(obj); end;
@@ -77,6 +80,10 @@ obj.insert_tool(max_tool);
 try; delete(quality_tool); end;
 quality_tool = imb.slicetool_quality();
 obj.insert_tool(quality_tool);
+
+try; delete(delete_tool); end;
+delete_tool = imb.slicetool_delete();
+obj.insert_tool(delete_tool);
 
 try; delete(threshold_tool); end;
 threshold_tool = imb.slicetool_threshold();
