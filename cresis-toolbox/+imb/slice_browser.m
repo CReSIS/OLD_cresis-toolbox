@@ -985,10 +985,15 @@ classdef slice_browser < handle
         set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
           'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
         tmp_y = double(obj.layer(layer_idx).y);
+        % Hide data outside bounds
         tmp_y(1:obj.bounds_relative(1),:) = NaN;
         tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
+        % Hide bad quality data when active layer shown and quality layer
+        % visible
         if ~isempty(obj.layer(layer_idx).quality_layer) ...
-            && obj.layer(layer_idx).quality_layer ~= layer_idx
+            && ~isempty(obj.layer(layer_idx).active_layer) ...
+            && obj.layer(layer_idx).active_layer == layer_idx ...
+            && obj.layer(obj.layer(layer_idx).quality_layer).visible
           tmp_y(obj.layer(obj.layer(layer_idx).quality_layer).y ~= 1) = NaN;
         end
         set(obj.h_layer_image,'CData',tmp_y);
