@@ -191,7 +191,7 @@ end
 diff_time = diff(records.gps_time);
 if any(diff_time > 1000 / median(vel))
   jump_idxs = find(diff_time > 1000 / median(vel));
-  warning('Time gap greater than 1 km in record (assuming %f m/s)', median(vel));
+  warning('Time gap, %.1f sec, greater than 1 km in record (assuming %f m/s)', max(diff_time), median(vel));
   fprintf('Time gaps in seconds: '); fprintf('%f\t', diff_time(jump_idxs)); fprintf('\n');
   for jump_idx = jump_idxs
     fprintf('  Gap is at file index %d to %d\n', find(records.relative_rec_num{1} > jump_idx,1), ...

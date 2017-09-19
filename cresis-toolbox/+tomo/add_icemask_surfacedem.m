@@ -54,7 +54,7 @@ DEM_y = R(3,2) + R(1,2)*(0:size(DEM,1)-1);
 
 [mdata.x,mdata.y] = projfwd(proj,mdata.Latitude,mdata.Longitude);
 
-DEM_threshold = 8e3;
+DEM_threshold = param.tomo_collate.dem_guard;
 DEM = DEM(DEM_y > min(mdata.y)-DEM_threshold & DEM_y < max(mdata.y)+DEM_threshold , ...
   (DEM_x > min(mdata.x)-DEM_threshold & DEM_x < max(mdata.x)+DEM_threshold));
 DEM_x = DEM_x(DEM_x > min(mdata.x)-DEM_threshold & DEM_x < max(mdata.x)+DEM_threshold);
@@ -118,8 +118,9 @@ for rline = 1:Nx
   DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
   DEM_y_mesh= repmat(DEM_y',[1 size(DEM,2)]);
   
-  DEM_mask = DEM_x_mesh > mdata.x(rline)-4e3 & DEM_x_mesh < mdata.x(rline)+4e3 ...
-    & DEM_y_mesh > mdata.y(rline)-4e3 & DEM_y_mesh < mdata.y(rline)+4e3 ...
+  dem_guard = param.tomo_collate.dem_guard;
+  DEM_mask = DEM_x_mesh > mdata.x(rline)-dem_guard & DEM_x_mesh < mdata.x(rline)+dem_guard ...
+    & DEM_y_mesh > mdata.y(rline)-dem_guard & DEM_y_mesh < mdata.y(rline)+dem_guard ...
     & ~isnan(DEM);
   DEM_idxs = find(DEM_mask);
   
@@ -163,7 +164,7 @@ for rline = 1:Nx
     colorbar;
   end
   
-  slice_mask = DEM_fcs_x > -120 & DEM_fcs_x < 120;
+  slice_mask = DEM_fcs_x > -param.tomo_collate.dem_per_slice_guard & DEM_fcs_x < param.tomo_collate.dem_per_slice_guard;
   
   x = DEM_fcs_x(slice_mask);
   y = DEM_fcs_y(slice_mask);
