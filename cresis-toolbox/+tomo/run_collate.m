@@ -119,6 +119,9 @@ elseif strcmpi(example_setup,'horizontal')
   
   % .ice_mask_fn: filename of ice mask, leave empty to not use
   tomo_collate.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
+  
+  % .ocean_mask_fn: filename of ocean mask
+  tomo_collate.ocean_mask_fn = ct_filename_gis([],fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
 
   % .imgs: list of images II to use from .in_dir (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam when
