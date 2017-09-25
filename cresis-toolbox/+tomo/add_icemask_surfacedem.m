@@ -252,13 +252,13 @@ in_dir = ct_filename_out(param,param.tomo_collate.in_dir);
 combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
 
 ice_mask = logical(ice_mask);
-save(combined_fn,'-append','twtt','ice_mask','theta');
+save(combined_fn,'-v7.3','-append','twtt','ice_mask','theta');
 
 if exist('theta_cal','var')
-  save(combined_fn,'-append','theta_cal');
+  save(combined_fn,'-v7.3','-append','theta_cal');
 else
   theta_cal = theta;
-  save(combined_fn,'-append','theta_cal');
+  save(combined_fn,'-v7.3','-append','theta_cal');
 end
 
 mdata.twtt = twtt;

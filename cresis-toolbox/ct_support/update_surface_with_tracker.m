@@ -1,7 +1,9 @@
 % script update_surface_with_tracker
 %
 % Updates the Surface variable in an echogram using one of three surface
-% detections methods.
+% detections methods. For more details about parameters:
+% tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
+% tracker_max, tracker_snake_simple
 %
 % Example:
 %   See run_update_surface_with_tracker.m to run.

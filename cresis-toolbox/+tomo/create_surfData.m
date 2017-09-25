@@ -124,7 +124,7 @@ in_dir = ct_filename_out(param,param.tomo_collate.in_dir);
 combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
 
 Topography = mdata.Topography;
-save(combined_fn,'-append','Topography');
+save(combined_fn,'-v7.3','-append','Topography');
 
 %% Run detect
 detect_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
