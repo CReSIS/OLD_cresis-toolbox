@@ -83,37 +83,31 @@ end
 DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
 DEM_y_mesh= repmat(DEM_y',[1 size(DEM,2)]);
 
-%% Check if Ocean
+%% Update ocean values with mean sea surface if ocean mask shapefile provided
 if any(any(isnan(DEM))) && ~isempty(param.tomo_collate.ocean_mask_fn)
 
-  DEM_lat = cell(4);
-  DEM_lon = cell(4);
-  % convert border points to geodetic coordinates
+  % Convert border points of DEM to geodetic coordinates
+  DEM_lat = cell(4,1);
+  DEM_lon = cell(4,1);
   [DEM_lat{1},DEM_lon{1}] = projinv(proj,DEM_x,DEM_y(1)*ones(1,length(DEM_x)));
   [DEM_lat{2},DEM_lon{2}] = projinv(proj,DEM_x,DEM_y(end)*ones(1,length(DEM_x)));
   [DEM_lat{3},DEM_lon{3}] = projinv(proj,DEM_x(1)*ones(1,length(DEM_y)),DEM_y);
   [DEM_lat{4},DEM_lon{4}] = projinv(proj,DEM_x(end)*ones(1,length(DEM_y)),DEM_y);
-  % find geodetic bounding box of DEM from border points
+  % Find geodetic bounding box of DEM from border points
   DEM_lims = [min([DEM_lat{:}]),min([DEM_lon{:}]);max([DEM_lat{:}]),max([DEM_lon{:}])];
   
-  % load ocean mask shape file
+  % Load ocean mask shape file
   ocean_shp = shaperead(param.tomo_collate.ocean_mask_fn);
-  OC_bb_geo = [ocean_shp(:).BoundingBox];
   
-  % mask of polygons within DEM geodetic bounding box
+  % Mask of polygons within DEM geodetic bounding box
+  OC_bb_geo = [ocean_shp(:).BoundingBox];
   bb_mask = ~(OC_bb_geo(1,2:2:end)>DEM_lims(2,1) | OC_bb_geo(2,2:2:end)<DEM_lims(1,1) ...
     | OC_bb_geo(1,1:2:end)>DEM_lims(2,2) | OC_bb_geo(2,1:2:end)<DEM_lims(1,2));
   
-  % load global sea surface
-  sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
-  sea_surface.lat = ncread(sea_surface.fn,'lat');
-  sea_surface.lon = ncread(sea_surface.fn,'lon');
-  sea_surface.elev = ncread(sea_surface.fn,'mss').';
-  
-  ocean_mask = true(size(DEM));
-  ocean_mask(~isnan(DEM)) = false;
-  % current form of DEM is within a shape bounding box
+  % If any polygons are in the DEM limits
   if any(bb_mask)    
+    % Further restrict the polygons by checking for bounding box overlap in
+    % projected coordinates
     ocean_shp = ocean_shp(bb_mask);
     poly_x = cell(0);
     poly_y = cell(0);
@@ -129,37 +123,61 @@ if any(any(isnan(DEM))) && ~isempty(param.tomo_collate.ocean_mask_fn)
       end
     end
     
-    if 0
-      figure(2);clf;
-      for i = 1:length(poly_x)
-        plot(poly_x{i},poly_y{i},'r');
-        hold on;
-      end
-      h = imagesc(DEM_x,DEM_y,DEM);
-      uistack(h,'bottom');
-      plot(mdata.x,mdata.y,'k');
+    % Create ocean mask to determine which points like in the ocean
+    if 1
+      ocean_mask = true(size(DEM));
+    else
+      % Only update NaN points
+      ocean_mask = isnan(DEM);
     end
-    
     for poly_idx = 1:length(poly_x)
       % find bounding box of polygon
       poly_bb = [min([poly_x{poly_idx}]),min([poly_y{poly_idx}]);max([poly_x{poly_idx}]),max([poly_y{poly_idx}])];
-      % mask showing which DEM points are within polygon bounding box and
-      % NaN
-      DEM_bb_mask = find((~(DEM_x_mesh<poly_bb(1,1) | DEM_x_mesh>poly_bb(2,1) ...
-        | DEM_y_mesh<poly_bb(1,2) | DEM_y_mesh>poly_bb(2,2))) & isnan(DEM));
-      % mask showing which DEM points are in polygon (on land)
+      
+      % Mask showing which DEM points are within the polygon bounding box
+      if 1
+        DEM_bb_mask = find((~(DEM_x_mesh<poly_bb(1,1) | DEM_x_mesh>poly_bb(2,1) ...
+          | DEM_y_mesh<poly_bb(1,2) | DEM_y_mesh>poly_bb(2,2))));
+      else
+        % Only update NaN points
+        DEM_bb_mask = find((~(DEM_x_mesh<poly_bb(1,1) | DEM_x_mesh>poly_bb(2,1) ...
+          | DEM_y_mesh<poly_bb(1,2) | DEM_y_mesh>poly_bb(2,2))) & isnan(DEM));
+      end
+      
+      % Mask showing which DEM points are in polygon (on land)
       land_mask_tmp = inpolygon(DEM_x_mesh(DEM_bb_mask),DEM_y_mesh(DEM_bb_mask),[poly_x{poly_idx}],[poly_y{poly_idx}]);
       ocean_mask(DEM_bb_mask(land_mask_tmp)) = false;
     end
-  end
-  
-  if any(ocean_mask)
-    % convert DEM coordinates to geodetic coordinates
-    [DEM_lat_mesh,DEM_lon_mesh] = projinv(proj,DEM_x_mesh,DEM_y_mesh);
-    % interpolate sea elevation to ocean NaN points
-    sea_elev = interp2(sea_surface.lat,sea_surface.lon-180,sea_surface.elev.',DEM_lat_mesh(ocean_mask),DEM_lon_mesh(ocean_mask));
-    % replace values
-    DEM(ocean_mask) = sea_elev;
+    
+    % If any points lie in the ocean, update these points with mean sea
+    % level.
+    if any(ocean_mask(:))
+      % Load global sea surface
+      sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
+      sea_surface.lat = ncread(sea_surface.fn,'lat');
+      sea_surface.lon = ncread(sea_surface.fn,'lon');
+      sea_surface.elev = ncread(sea_surface.fn,'mss').';
+      
+      % Convert DEM coordinates to geodetic coordinates
+      [DEM_lat_mesh,DEM_lon_mesh] = projinv(proj,DEM_x_mesh,DEM_y_mesh);
+      % Interpolate sea elevation to ocean NaN points
+      sea_elev = interp2(sea_surface.lat,sea_surface.lon-180,sea_surface.elev.',DEM_lat_mesh(ocean_mask),DEM_lon_mesh(ocean_mask));
+      % Replace NaN values in DEM with mean sea surface values
+      DEM(ocean_mask) = sea_elev;
+    end
+    
+    % Debug plots
+    if 0
+      figure; clf;
+      imagesc(DEM_x,DEM_y,DEM);
+      hold on;
+      for idx = 1:length(poly_x)
+        plot(poly_x{idx},poly_y{idx},'r');
+      end
+      plot(mdata.x,mdata.y,'k');
+      set(gca,'YDir','normal');
+      keyboard
+    end
   end
   
 end
@@ -335,7 +353,7 @@ in_dir = ct_filename_out(param,param.tomo_collate.in_dir);
 combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
 
 ice_mask = logical(ice_mask);
-save(combined_fn,'-v7.3','-append','twtt','ice_mask','theta');
+save(combined_fn,'-append','twtt','ice_mask','theta');
 
 if exist('theta_cal','var')
   save(combined_fn,'-v7.3','-append','theta_cal');

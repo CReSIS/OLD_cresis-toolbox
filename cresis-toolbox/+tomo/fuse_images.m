@@ -80,7 +80,7 @@ if strcmpi(param.tomo_collate.fuse_method,'horizontal')
   Topography.img = bsxfun(@times,1./sum(fuse_weights),Topography.img);
   
   % Append new fused image to the combined file
-  save(combined_fn,'-v7.3','-append','Time','Data','Topography');
+  save(combined_fn,'-append','Time','Data','Topography');
   
   mdata = mdata{1};
   mdata.Time = Time;
@@ -178,7 +178,7 @@ elseif strcmpi(param.tomo_collate.fuse_method,'vertical')
   end
   
   % Append new fused image to the combined file
-  save(combined_fn,'-v7.3','-append','Time','Data','Topography');
+  save(combined_fn,'-append','Time','Data','Topography');
   
   mdata = mdata{1};
   mdata.Time = Time;
