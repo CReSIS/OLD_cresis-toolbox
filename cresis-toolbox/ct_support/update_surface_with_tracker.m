@@ -90,6 +90,16 @@ for param_idx = 1:length(params)
       param.cmd.frms(find(bad_mask,1)));
     param.cmd.frms = valid_frms;
   end
+  
+  %% Get all the frames for this segment
+  if any(strcmpi(save_sources,'ops'))
+    opsAuthenticate(param,false);
+    sys = ct_output_dir(param.radar_name);
+    ops_param = struct('properties',[]);
+    ops_param.properties.season = param.season_name;
+    ops_param.properties.segment = param.day_seg;
+    [status,ops_seg_data] = opsGetSegmentInfo(sys,ops_param);
+  end
 
   %% Track each of the frames
   for frm_idx = 1:length(param.cmd.frms)
@@ -235,8 +245,8 @@ for param_idx = 1:length(params)
       ops_param = struct('properties',[]);
       ops_param.properties.location = param.post.ops.location;
       ops_param.properties.season = param.season_name;
-      ops_param.properties.start_gps_time = mdata.GPS_time(1);
-      ops_param.properties.stop_gps_time = mdata.GPS_time(end);
+      ops_param.properties.start_gps_time = ops_seg_data.properties.start_gps_time(frm);
+      ops_param.properties.stop_gps_time = ops_seg_data.properties.stop_gps_time(frm);
       
       sys = ct_output_dir(param.radar_name);
       [status,data] = opsGetPath(sys,ops_param);
@@ -244,7 +254,7 @@ for param_idx = 1:length(params)
       % Write the new layer information to these point path ID's
       ops_param = struct('properties',[]);
       ops_param.properties.point_path_id = data.properties.id;
-      ops_param.properties.twtt = interp1(mdata.GPS_time,Surface,data.properties.gps_time);
+      ops_param.properties.twtt = interp_finite(interp1(mdata.GPS_time,Surface,data.properties.gps_time));
       ops_param.properties.type = 2*ones(size(ops_param.properties.twtt));
       ops_param.properties.quality = 1*ones(size(ops_param.properties.twtt));
       ops_param.properties.lyr_name = save_ops_layer;

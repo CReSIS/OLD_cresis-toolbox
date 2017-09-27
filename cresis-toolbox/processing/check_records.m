@@ -152,27 +152,27 @@ if any(vel < 25 | vel > 300)
   end
 end
 
-if records.lat >= 90 | records.lat <= -90
+if any(records.lat >= 90 | records.lat <= -90)
   warning('lat out of bounds');
 end
 
-if records.lon >= 360 | records.lon <= -360
+if any(records.lon >= 360 | records.lon <= -360)
   warning('lon out of bounds');
 end
 
-if records.elev >= 40000 | records.elev <= -10000
+if any(records.elev >= 40000 | records.elev <= -10000)
   warning('elev out of bounds');
 end
 
-if records.roll >= 100/180*pi | records.roll <= -100/180*pi
-  warning('roll out of bounds');
+if any(records.roll >= 50/180*pi | records.roll <= -50/180*pi)
+  warning('roll > 50 deg: max %.1f min %.1f', max(records.roll)*180/pi, min(records.roll)*180/pi);
 end
 
-if records.pitch >= pi/2 | records.pitch <= -pi/2
-  warning('pitch out of bounds');
+if any(records.pitch >= 25/180*pi | records.pitch <= -25/180*pi)
+  warning('pitch > 25 deg: max %.1f min %.1f', max(records.pitch)*180/pi, min(records.pitch)*180/pi);
 end
 
-if records.heading >= 2*pi | records.heading <= -2*pi
+if any(records.heading >= 2*pi | records.heading <= -2*pi)
   warning('heading out of bounds');
 end
 
