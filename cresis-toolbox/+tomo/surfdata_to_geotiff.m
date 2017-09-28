@@ -63,7 +63,7 @@ function surfdata_to_geotiff(param)
     Nx = length(mdata.GPS_time);
     theta = reshape(mdata.theta,[length(mdata.theta) 1]);
     DOA_trim = 0;
-    if isfield(param,'DOA_trim')
+    if isfield(param.dem,'DOA_trim')
       DOA_trim = param.dem.DOA_trim;
     end
     if all(all(isnan(ice_surface)))
@@ -213,7 +213,7 @@ function surfdata_to_geotiff(param)
         px = px(mask);
         py = py(mask);
         c1 = c1(mask);
-        [xi,~,segs] = selfintersect(px,py);
+        [xi,~,segs] = tomo.selfintersect(px,py);
       end
       fprintf('Intersections removed.\n');
       concave_hull = zeros(length(c1),2);
