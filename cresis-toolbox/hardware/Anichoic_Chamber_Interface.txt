@@ -1,0 +1,22 @@
+From: Cordill, Brian D [mailto:brian.d.cordill@boeing.com] 
+Sent: Saturday, August 19, 2017 1:03 PM
+To: Paden, John D. <paden@ku.edu>; sdblunt@ittc.ku.edu
+Subject: RE: Contact info for Brian Cordill
+
+Hey John,
+
+Ok, it looks like I  still have the code.  Yea for good archive files.
+
+A few notes for you on its usage / development:
+•	You need both the Anichoic_Chamber_Interface “.m” file and “.fig” file.  The figure files has all the GUI layout while the m-file has all the callback functions to make the gui do things.
+•	This was my first really attempt at a Matlab GUI so I don’t imagine the code is particularly well architected.
+•	If/When you run into problems the key functions are:
+o	Inst_Connect_Callback() – This gets run when you pick at GPIB address and hit connect.  It attempts to connect that address and read the instrument ID string.  Looks like I have it hard coded for an Agilent 5230C PNA, Agilent E4446A SA, and Tektronix Oscope.  If the instrument ID string matches one of those three it displays either “PNA”, “SA” or “Oscope”.  If you have a new instrument it should just display the full instrument ID string, but those can get pretty long so it might not fit.
+o	Test_Data_Capture_Button_Callback() – This gets run when you push the “Test Capture” button.  It attempts to connect to the instrument, read off whatever is on the screen and then display it on the plot in the GUI.  It’s mostly a debug thing.  The crux of the function is a big switch statement that ID’s the instrument then sends appropriate GPIB commands to do a data read.  This part will probably need to be modified for whatever test your running.  I tried to keep generic and just capture what is being displayed on the instrument screen but that wasn’t always possible.  For example, it appears that I had to hardcode it to pull channel 1 from the o-scope.  It looks like I only have code to read from the O-scope and the PNA.
+o	Start_Test_Button_Callback() – This gets run when you push the “Start Test” button.  It essentially looks at the Theta/Phi ranges you specified and takes a single measurement at each location.  If memory serves “Theta” is the floor turn table, and Phi is the tower mounted cog.  The primary axis option  lets you pick which axis gets stepped over first.  So you pick theta as the primary axis it will go to your first theta value, take measurements at all the phi values then step to  the second theta value (but I could have that backwards, you’ll have to play with it).  Again it looks like I only have code to read from the O-scope and the PNA.
+	These test can take a while to run so I added a few lines of code to send me an email once things are done.  That code segment is around line 1150.  I had to create a dummy gmail account “rsl.emc.lab@gmail.com” to make it work, but feel free to reuse it.
+•	It retrospect it probably would have been better to separate the instrument read/write code from the GUI/turn table code.  Digging through  ~1200 lines of code each time you have a new test setup is not ideal. 
+
+I’d be happy to try and help debug.  Just let me know.
+
+-Brian

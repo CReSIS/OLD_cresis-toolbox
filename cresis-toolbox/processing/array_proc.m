@@ -65,8 +65,7 @@ function [array_param,dout] = array_proc(array_param,din,dout)
 %    Defaults to [-5:5] which causes 11 range lines to be used in the
 %    generation of the array processing output of each pixel.
 %  .debug_level
-%    A debug level of 1 or greater produces stdout output and requires
-%    tic to have been run before the command.
+%    A debug level of 1 or greater produces stdout output. 
 %    Should be a scalar, defaults to zero (no stdout)
 %  .dbin
 %    Specify spacing of range bins, setting to one causes every bin to be

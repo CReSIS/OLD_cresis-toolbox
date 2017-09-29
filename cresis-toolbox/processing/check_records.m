@@ -152,27 +152,27 @@ if any(vel < 25 | vel > 300)
   end
 end
 
-if records.lat >= 90 | records.lat <= -90
+if any(records.lat >= 90 | records.lat <= -90)
   warning('lat out of bounds');
 end
 
-if records.lon >= 360 | records.lon <= -360
+if any(records.lon >= 360 | records.lon <= -360)
   warning('lon out of bounds');
 end
 
-if records.elev >= 40000 | records.elev <= -10000
+if any(records.elev >= 40000 | records.elev <= -10000)
   warning('elev out of bounds');
 end
 
-if records.roll >= 100/180*pi | records.roll <= -100/180*pi
-  warning('roll out of bounds');
+if any(records.roll >= 50/180*pi | records.roll <= -50/180*pi)
+  warning('roll > 50 deg: max %.1f min %.1f', max(records.roll)*180/pi, min(records.roll)*180/pi);
 end
 
-if records.pitch >= pi/2 | records.pitch <= -pi/2
-  warning('pitch out of bounds');
+if any(records.pitch >= 25/180*pi | records.pitch <= -25/180*pi)
+  warning('pitch > 25 deg: max %.1f min %.1f', max(records.pitch)*180/pi, min(records.pitch)*180/pi);
 end
 
-if records.heading >= 2*pi | records.heading <= -2*pi
+if any(records.heading >= 2*pi | records.heading <= -2*pi)
   warning('heading out of bounds');
 end
 
@@ -191,7 +191,7 @@ end
 diff_time = diff(records.gps_time);
 if any(diff_time > 1000 / median(vel))
   jump_idxs = find(diff_time > 1000 / median(vel));
-  warning('Time gap greater than 1 km in record (assuming %f m/s)', median(vel));
+  warning('Time gap, %.1f sec, greater than 1 km in record (assuming %f m/s)', max(diff_time), median(vel));
   fprintf('Time gaps in seconds: '); fprintf('%f\t', diff_time(jump_idxs)); fprintf('\n');
   for jump_idx = jump_idxs
     fprintf('  Gap is at file index %d to %d\n', find(records.relative_rec_num{1} > jump_idx,1), ...

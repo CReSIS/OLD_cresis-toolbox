@@ -15,7 +15,6 @@
 % files can be loaded efficiently.
 % =========================================================================
 
-params = read_param_xls(param_fn,day_seg,analysis_sheet_name);
 for param_idx = 1:length(params)
   param = params(param_idx);
   

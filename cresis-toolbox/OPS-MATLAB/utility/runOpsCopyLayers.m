@@ -100,7 +100,7 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
     warning('You have set quality to %d. Normally it should be []. Please verify that you want to overwrite the quality level before running "dbcont" to continue.\n', quality);
     keyboard
     copy_param.quality.mode = 'overwrite';
-    copy_param.quality.quality = quality;
+    copy_param.quality.value = quality;
   end
   
   % Set the destination (choose one): it can be the same as the source

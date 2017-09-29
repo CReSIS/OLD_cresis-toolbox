@@ -36,6 +36,8 @@ function [wfs,rec_data_size] = load_mcords_wfs(settings, param, adcs, proc_param
 %    .Tpd = pulse duration of linear FM chirp (sec)
 %    .f0 = start frequency of linear FM chirp (Hz)
 %    .f1 = stop frequency of linear FM chirp (Hz)
+%    .ft_dec = 2 element vector which contains the resampling ratio that
+%       will be passed to resample.m. The format is [p q] for p/q ratio.
 %    .ref_fn = filename of reference function file (passed to ct_filename_out)
 %       empty uses ideal chirp
 %    .tukey = time domain tukey window parameter, tukeywin(Nt,?), to apply

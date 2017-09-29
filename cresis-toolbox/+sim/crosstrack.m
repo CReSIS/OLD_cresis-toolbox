@@ -91,7 +91,6 @@ for run_idx = 1:param.monte.runs
       hold on;
     end
   end
-  
   %% Create simulated data
   sim_data = sim.crosstrack_data(param, surf_model);
   
@@ -153,8 +152,6 @@ for run_idx = 1:param.monte.runs
         end
         hold off;
         ylabel('Elevation (m)');
-        xlim([-40 40]);
-        ylim([-1 2.25]);
         h_axis = gca;
         grid on;
         
@@ -163,8 +160,6 @@ for run_idx = 1:param.monte.runs
         set(gca,'YDir','normal');
         xlabel('Cross-track (m)');
         ylabel('Elevation (m)');
-        xlim([-40 40]);
-        ylim([-1 2.25]);
         h_axis(2) = gca;
         
         linkaxes(h_axis,'xy');
@@ -184,8 +179,6 @@ for run_idx = 1:param.monte.runs
         end
         hold off;
         ylabel('Elevation (m)');
-        xlim([-40 40]);
-        ylim([-1 2.25]);
         h_axis = gca;
         grid on;
         
@@ -194,8 +187,6 @@ for run_idx = 1:param.monte.runs
         set(gca,'YDir','normal');
         xlabel('Cross-track (m)');
         ylabel('Elevation (m)');
-        xlim([-40 40]);
-        ylim([-1 2.25]);
         h_axis(2) = gca;
         grid on;
         linkaxes(h_axis,'xy');
@@ -220,8 +211,8 @@ for run_idx = 1:param.monte.runs
         
         z_grid = griddata(double(x(good_mask)),double(y(good_mask)),double(z(good_mask)), ...
           surf_model.x,surf_model.y);
-        
         figure(3); clf;
+        
         imagesc(surf_model.x, surf_model.y, z_grid-param.monte.target_param{1}.z.mean);
         h_axis(2) = gca;
         title('Array processing with basic surface extraction');
@@ -232,7 +223,7 @@ for run_idx = 1:param.monte.runs
         set(get(h_cb,'YLabel'),'String','WGS-84 elevation (m)');
         
         linkaxes(h_axis,'xy');
-        
+       
       end
     end
     
@@ -242,10 +233,13 @@ for run_idx = 1:param.monte.runs
       results.tomo = tomo;
       results.array_param = array_param;
       results.sim_data = sim_data;
-      results.surf_model = surf_model;
+      results.surf_model = surf_model;      
+      
+      % required for slice plots in crossstrack_example.m
+       results.z_grid = z_grid ;            
+      
       return
-    end
-    
+    end    
     %% Determine number of sources errors and source DOA errors
     
     % To do...

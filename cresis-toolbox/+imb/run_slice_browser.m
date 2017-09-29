@@ -1,23 +1,36 @@
 % script imb.run_slice_browser
 %
+% Script for running imb.slice_browser.m
+%
+% Run "clear run_slice_browser_fn;" whenever you change frames or geotiff
+%
 % Author: Sravya Athinarapu, Elijah Paden, John Paden, Jordan Sprick
 
 %% User Settings
 % =========================================================================
 
-param.radar_name = 'mcords3';
-param.season_name = '2014_Greenland_P3';
-out_type = 'CSA_music';
-surfdata_source = 'surfData';
-param.day_seg = '20140401_03';
-frm = 37;
-% frm = 39;
-% frm = 43;
-% frm = 44;
-% frm = 45;
-% frm = 46;
-% frm = 47;
-% frm = 48;
+if 0
+  param.radar_name = 'rds';
+  param.season_name = '2014_Greenland_P3';
+  out_type = 'paden_music';
+  surfdata_source = 'paden_surfData';
+  param.day_seg = '20140401_03';
+  frm = 37;
+  geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
+  ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
+  bounds_relative = [3 2 0 0];
+  
+else
+  param.radar_name = 'rds';
+  param.season_name = '2009_Antarctica_TO';
+  out_type = 'nick_music';
+  surfdata_source = 'paden_surfData';
+  param.day_seg = '20091224_01';
+  frm = 18;
+  geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
+  ice_mask_fn = '';
+  bounds_relative = [8 8 0 0];
+end
 
 %% Automated Section
 % =========================================================================
@@ -27,13 +40,6 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
   fprintf('Loading data (%s)\n', datestr(now));
   mdata = load(fn);
   
-  geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
-  ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
-  
-  [ice_mask_fn_dir ice_mask_fn_name] = fileparts(ice_mask_fn);
-  ice_mask_mat_fn = fullfile(ice_mask_fn_dir,[ice_mask_fn_name '.mat']);
-  ice_mask = load(ice_mask_mat_fn,'R','X','Y','proj');
-  
   proj = geotiffinfo(geotiff_fn);
   [DEM, R, tmp] = geotiffread(geotiff_fn);
   
@@ -41,16 +47,12 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
   fprintf('  Done loading data (%s)\n', datestr(now));
 end
 
-[fid,msg] = fopen(ice_mask_fn,'r');
-if fid < 1
-  fprintf('Could not open file %s\n', ice_mask_bin_fn);
-  error(msg);
-end
-ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
-fclose(fid);
-
 sb_param = [];
 sb_param.layer_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+if ~exist(sb_param.layer_fn)
+  sb_param.layer_fn = '';
+end
+sb_param.bounds_relative = bounds_relative;
 
 %% Call slice_browser
 try; delete(obj); end;
@@ -74,20 +76,42 @@ try; delete(max_tool); end;
 max_tool = imb.slicetool_max();
 obj.insert_tool(max_tool);
 
+try; delete(quality_tool); end;
+quality_tool = imb.slicetool_quality();
+obj.insert_tool(quality_tool);
+
+try; delete(delete_tool); end;
+delete_tool = imb.slicetool_delete();
+obj.insert_tool(delete_tool);
+
 try; delete(threshold_tool); end;
 threshold_tool = imb.slicetool_threshold();
 obj.insert_tool(threshold_tool);
 
-try; delete(icemask_tool); end;
-icemask_tool = imb.slicetool_icemask();
-custom_data.DEM = DEM;
-custom_data.R = R;
-custom_data.ice_mask = ice_mask;
-custom_data.proj = proj;
-custom_data.ice_mask_fn = ice_mask_fn;
-custom_data.mdata = mdata;
-custom_data.sb = obj;
-custom_data.reduce_flag = 1;
-custom_data.ice_mask_layer = 3;
-icemask_tool.set_custom_data(custom_data);
-obj.insert_tool(icemask_tool);
+if ~isempty(ice_mask_fn)
+  [ice_mask_fn_dir ice_mask_fn_name] = fileparts(ice_mask_fn);
+  ice_mask_mat_fn = fullfile(ice_mask_fn_dir,[ice_mask_fn_name '.mat']);
+  ice_mask = load(ice_mask_mat_fn,'R','X','Y','proj');
+  
+  [fid,msg] = fopen(ice_mask_fn,'r');
+  if fid < 1
+    fprintf('Could not open file %s\n', ice_mask_bin_fn);
+    error(msg);
+  end
+  ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
+  fclose(fid);
+  
+  try; delete(icemask_tool); end;
+  icemask_tool = imb.slicetool_icemask();
+  custom_data.DEM = DEM;
+  custom_data.R = R;
+  custom_data.ice_mask = ice_mask;
+  custom_data.proj = proj;
+  custom_data.ice_mask_fn = ice_mask_fn;
+  custom_data.mdata = mdata;
+  custom_data.sb = obj;
+  custom_data.reduce_flag = 1;
+  custom_data.ice_mask_layer = 3;
+  icemask_tool.set_custom_data(custom_data);
+  obj.insert_tool(icemask_tool);
+end

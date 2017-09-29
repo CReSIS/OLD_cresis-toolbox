@@ -41,8 +41,6 @@ function update_records(param)
 %
 % See also: run_update_records.m
 
-update_data_files_tstart = tic;
-
 
 %% Get Parameter Sheet information (uses generic flag on command worksheet)
 params = read_param_xls(param.param_fn,[],'post');
@@ -60,8 +58,8 @@ if any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kaband3','ku
       continue;
     end
     
-    fprintf('Updating record file for %s (%.1f sec)\n',...
-      param.day_seg, toc(update_data_files_tstart));
+    fprintf('Updating record file for %s (%s)\n',...
+      param.day_seg, datestr(now));
     
     records_fn = ct_filename_support(param,'','records');
     records = load(records_fn);
@@ -114,7 +112,7 @@ if param.layers.update_en
     layer_path = ct_filename_out(param,param.layers.path,'CSARP_layerData',1);
     layer_fns = get_filenames(layer_path,'Data','','.mat',struct('recursive',1));
     
-    fprintf('Loading layer files (%.1f sec)\n', toc(update_data_files_tstart));
+    fprintf('Loading layer files (%s)\n', datestr(now));
     surface = [];
     bottom = [];
     elev = [];
@@ -151,8 +149,8 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  fprintf('Updating record file for %s (%.1f sec)\n',...
-    param.day_seg, toc(update_data_files_tstart));
+  fprintf('Updating record file for %s (%s)\n',...
+    param.day_seg, datestr(now));
   
   records_fn = ct_filename_support(param,'','records');
   records = load(records_fn);
@@ -162,7 +160,7 @@ for param_idx = 1:length(params)
     if strcmpi(param.layers.source_type, 'ops')
       %% Load the layer data from OPS
       
-      fprintf('  OPS query to get layer data (%.1f sec)\n', toc(update_data_files_tstart))
+      fprintf('  OPS query to get layer data (%s)\n', datestr(now))
       ops_sys = ct_output_dir(params(param_idx).radar_name);
       ops_param = [];
       ops_param.properties.location = params(param_idx).post.ops.location;
@@ -176,7 +174,7 @@ for param_idx = 1:length(params)
         ops_layer{layer_idx} = ops_layer{layer_idx}.properties;
       end
       
-      fprintf('  Interpolating on to records, can take ~20 minutes (%.1f sec)\n', toc(update_data_files_tstart))
+      fprintf('  Interpolating on to records, can take ~20 minutes (%s)\n', datestr(now))
       master.GPS_time = records.gps_time;
       master.Latitude = records.lat;
       master.Longitude = records.lon;
@@ -190,7 +188,7 @@ for param_idx = 1:length(params)
       elev = lay.Elevation;
     end
 
-    fprintf('  Writing new data to records fields (%.1f sec)\n', toc(update_data_files_tstart))
+    fprintf('  Writing new data to records fields (%s)\n', datestr(now))
     % Update surface and bottom variables from layer files
     % 1. Interpolate layer file variables onto record timestamps
     new_elev = interp1(GPS_time,elev,records.gps_time);

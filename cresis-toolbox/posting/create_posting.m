@@ -728,12 +728,7 @@ for frm_idx = 1:length(frms)
         mkdir(layer_out_dir)
       end
       layer_out_fn = fullfile(layer_out_dir,[layer_name '.mat']);
-      if ispc
-        copyfile(layer_fn, layer_out_fn);
-      else
-        cmd = sprintf('cp %s %s', layer_fn, layer_out_fn);
-        system(cmd);
-      end
+      copyfile(layer_fn, layer_out_fn);
     end
   end
     
@@ -750,12 +745,7 @@ for frm_idx = 1:length(frms)
       end
       data_out_fn = fullfile(data_out_dir,[data_name '.mat']);
       
-      if ispc
-        copyfile(data_fn, data_out_fn);
-      else
-        cmd = sprintf('cp %s %s', data_fn, data_out_fn);
-        system(cmd);
-      end
+      copyfile(data_fn, data_out_fn);
       
       if 0
         % DATA FILES SHOULD NOT BE UPDATED! They represent the surface
@@ -850,7 +840,7 @@ if param.post.pdf_en
         sys_cmd = sprintf('%s -dNOPAUSE -dBATCH -dSAFER -sOutputFile=%s -sDEVICE=pdfwrite -f %s', ...
           gs_path, out_fn, pdf_fns);
       else
-        sys_cmd = sprintf('gs -dNOPAUSE -dBATCH -dSAFER -sOutputFile=%s -sDEVICE=pdfwrite -f %s', ...
+        sys_cmd = sprintf('gs -dNOPAUSE -dBATCH -dSAFER -sOutputFile=%s -sDEVICE=pdfwrite -f %s </dev/null', ...
           out_fn, in_search_str);
       end
       [status,result] = system(sys_cmd);
@@ -863,8 +853,7 @@ if param.post.pdf_en
       else
         % Remove temporary files
         delete(in_search_str);
-        sys_cmd = sprintf('rmdir %s', pdf_dirs{dir_idx});
-        system(sys_cmd);
+        rmdir(pdf_dirs{dir_idx});
       end
     end
   end

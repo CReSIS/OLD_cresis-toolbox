@@ -10,6 +10,7 @@ frames = get(obj.echowin_list(echowin_idx).left_panel.frameLB,'String');
 frame_name = frames{get(obj.echowin_list(echowin_idx).left_panel.frameLB,'Value')};
 
 ops_param.properties.search_str = frame_name;
+ops_param.properties.season = obj.echowin_list(echowin_idx).eg.cur_sel.season_name;
 ops_param.properties.location = obj.cur_map_pref_settings.mapzone;
 
 [status,data] = opsGetFrameSearch(obj.cur_map_pref_settings.system,ops_param);
