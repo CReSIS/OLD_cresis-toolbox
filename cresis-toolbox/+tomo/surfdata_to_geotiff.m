@@ -22,19 +22,10 @@ function surfdata_to_geotiff(param)
     load(surfdata_fn)
     surf_names = {surf.name};
     
-    % Find the index to each surface
-    active_surfs_idxs = [];
-    for i = 1:numel(active_surfs)
-      if ischar(active_surfs{i})
-        a = find(strcmp(surf_names,active_surfs{i}),1);
-        if ~isempty(a)
-          active_surfs_idxs(end+1) = a;
-        end
-      end
-    end
-    
-    ice_surf_idx = find(strcmp(surf_names,'ice surface'),1);
-    bot_idx = find(strcmp(surf_names,'bottom'),1);
+    % Find the index to the ice surface and the ice bottom
+    ice_surf_idx = strmatch('ice surface',{surf.name},'exact');
+    bot_idx = strmatch('bottom',{surf.name},'exact');
+    active_surfs_idxs = [ice_surf_idx bot_idx];
     
     % Ensure non-negative ice thickness
     surf(bot_idx).y(surf(bot_idx).y<surf(ice_surf_idx).y) = surf(ice_surf_idx).y(surf(bot_idx).y<surf(ice_surf_idx).y);
@@ -56,7 +47,6 @@ function surfdata_to_geotiff(param)
     % Convert surface from range bins to twtt
     ice_surface = interp1(1:length(mdata.Time), mdata.Time, surf(ice_surf_idx).y);
     ice_bottom = interp1(1:length(mdata.Time), mdata.Time, surf(bot_idx).y);
-    ice_bottom(ice_bottom<ice_surface) = ice_surface(ice_bottom<ice_surface);
 
     %% Convert doa,twtt to radar FCS
     % FCS: flight coordinate system (aka SAR coordinate system)
@@ -69,8 +59,8 @@ function surfdata_to_geotiff(param)
     if all(all(isnan(ice_surface)))
       ice_surface = zeros(size(ice_surface));
     end
-    [y_bot,z_bot] = tomo.twtt_doa_to_yz(repmat(theta,[1 Nx]),theta(DOA_trim+1:end-DOA_trim,:),ice_surface(DOA_trim+1:end-DOA_trim,:),3.15,ice_bottom);
-    [y_surf,z_surf] = tomo.twtt_doa_to_yz(repmat(theta,[1 Nx]),theta(DOA_trim+1:end-DOA_trim,:),ice_surface(DOA_trim+1:end-DOA_trim,:),3.15,ice_surface);
+    [y_bot,z_bot] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]),theta,ice_surface,3.15,ice_bottom(DOA_trim+1:end-DOA_trim,:));
+    [y_surf,z_surf] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]),theta,ice_surface,3.15,ice_surface(DOA_trim+1:end-DOA_trim,:));
     
     for active_surfs_idxs_idx = 1:numel(active_surfs_idxs)
       
@@ -104,10 +94,6 @@ function surfdata_to_geotiff(param)
       [points.lat,points.lon,points.elev] = ecef2geodetic(x_plane,y_plane,z_plane,WGS84.ellipsoid);
       points.lat = points.lat * 180/pi;
       points.lon = points.lon * 180/pi;
-
-      points.lat = points.lat(DOA_trim+1:end-DOA_trim,:);
-      points.lon = points.lon(DOA_trim+1:end-DOA_trim,:);
-      points.elev = points.elev(DOA_trim+1:end-DOA_trim,:);
 
       %% Convert from geodetic to projection
 

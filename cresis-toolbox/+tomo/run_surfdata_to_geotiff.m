@@ -40,7 +40,7 @@ else
   
   % geotiff_fn: the projection information is taken from this file and this
   %   file is used for creating the maps
-  geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
+  geotiff_fn = ct_filename_gis(params(1),fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
 
   % DOA_trim: remove this many direction of arrival bins on each side of the
   %   image
