@@ -400,7 +400,7 @@ ah_echo = axes; % Depth axis with data
 if param.elev_comp == 3
   %% WGS-84 Elevation elevation comp plotting
   echogram_vals = lp(mdata.Data(depth_good_idxs,:));
-  
+
   if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'tonemap')
     echo_info.image = imagesc([],elev_axis(depth_good_idxs)+param.depth_offset, ...
       detrend_tonemap,'Parent',ah_echo);
@@ -524,11 +524,52 @@ else
   set(ah_echo_time,'Position',get(ah_echo,'Position'));
 end
 
-if isfield(param,'colormap') && ~isempty(param.colormap)
-  colormap(param.colormap);
+%% Set Colormap
+if isfield(param,'colormap') && isfield(param.colormap,'mode') && ~isempty(param.colormap.mode)
+  if strcmpi(param.colormap.mode,'QC')
+    if ~isfield(param.colormap,'img_sidelobe')
+      param.colormap.img_sidelobe = -45;
+    end
+    if ~isfield(param.colormap,'noise_buffer')
+      param.colormap.noise_buffer = -0.5;
+    end
+    if ~isfield(param.colormap,'noise_threshold_offset_dB')
+      param.colormap.noise_threshold_offset_dB = 8.2;
+    end
+    
+    % Sets sidelobes to zero in CData: finds the max of each range line and all range
+    % bins that are img_sidelobe less than this max are set to zero (-inf on dB scale).
+    echogram_vals = get(echo_info.image,'CData');
+    for rline=1:size(echogram_vals,2)
+      echogram_vals(echogram_vals(:,rline) < max(echogram_vals(:,rline))+param.colormap.img_sidelobe,rline) = nan;
+    end
+    set(echo_info.image,'CData',echogram_vals);
+    
+    % noise_rows: contains the rows that will be used to estimate noise power
+    yaxis_elev = elev_axis(depth_good_idxs)+param.depth_offset;
+    noise_rows = find((param.colormap.noise_buffer + yaxis_elev(1))>yaxis_elev,1);
+    
+    % noise_threshold: threshold value for color axis (set to be the median of
+    % the maximum noise power)
+    max_noise = nanmax(echogram_vals(1:noise_rows,:));
+    noise_threshold = nanmedian(max_noise)+param.colormap.noise_threshold_offset_dB;
+    
+    % Set the colormap
+    if isfinite(noise_threshold)
+      img_caxis = noise_threshold + [-6 +12];
+      caxis(ah_echo,img_caxis);
+      img_cmap = [gray(64); flipud(hsv(128))];
+      colormap(ah_echo,img_cmap)
+    else
+      error('Failed to find valid noise threshold.');
+    end
+  else
+    colormap(ah_echo,param.colormap.mode);
+  end
 else
-  colormap(1-gray);
+  colormap(ah_echo,1-gray);
 end
+
 if ~isempty(param.caxis)
   if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'polynomial')
     check_vals = lp(mdata.Data(detrend_depth_good_idxs,:));
@@ -536,14 +577,14 @@ if ~isempty(param.caxis)
     check_vals = sort(check_vals(:));
     if length(check_vals) >= 2
       new_caxis = check_vals(1+round(param.caxis*(length(check_vals)-1)));
-      caxis(new_caxis);
+      caxis(ah_echo,new_caxis);
     end
   else
     echogram_vals = sort(echogram_vals(:));
     echogram_vals = echogram_vals(isfinite(echogram_vals));
     if length(echogram_vals) >= 2
       new_caxis = echogram_vals(1+round(param.caxis*(length(echogram_vals)-1)));
-      caxis(new_caxis);
+      caxis(ah_echo,new_caxis);
     end
   end
 end
