@@ -12,7 +12,7 @@ clear('param_override');
 %% User Settings
 param_override = [];  
 param_override.sched.type = 'no scheduler';
-param_override.sched.submit_arguments = '-l nodes=1:ppn=1,pmem=8000mb,walltime=120:00';
+param_override.sched.submit_arguments = '-q mem -l nodes=1:ppn=1,pmem=16000mb,walltime=300:00';
 
 % example_setup = 'horizontal';
 example_setup = 'vertical';
