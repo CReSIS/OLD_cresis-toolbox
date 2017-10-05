@@ -34,7 +34,6 @@
 %
 % Author: Jilu Li, John Paden
 
-params = read_param_xls(param_fn,'',{analysis_sheet 'analysis'});
 % For debugging, leave empty otherwise
 day_seg_debug = ''; % Set to 'YYYYMMDD_SS' to debug one segment
 
@@ -85,7 +84,7 @@ if stage_one_en
     end
 
     %% Load the specular surface file
-    fprintf('Loading %s img %d wf %d\n', param.day_seg, img, wf_adc);
+    fprintf('Loading %s img %d wf_adc %d\n', param.day_seg, img, wf_adc);
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
     fn = fullfile(fn_dir,sprintf('specular_img_%02d_wfadc_%d_%s.mat', img, wf_adc, param.day_seg));
     spec = load(fn);
@@ -360,13 +359,15 @@ if stage_one_en
       fprintf('Table 1. Minimum metric of all waveforms.\n');
       fprintf('%12s\t%12s\t%12s\t%12s\t%12s\t%12s\n', '-peak', 'ML_width', ...
         'Falling SL','Rising SL','Falling ISL','Rising ISL');
+      spec.metric(1,:) = -spec.metric(1,:);
       fprintf('%12.1f\t%12.3f\t%12.1f\t%12.1f\t%12.1f\t%12.1f\n', ...
         min(spec.metric,[],2));
+      spec.metric(1,:) = -spec.metric(1,:);
       fprintf('Table 2. Median metric of all waveforms.\n');
       fprintf('%12s\t%12s\t%12s\t%12s\t%12s\t%12s\n', '-peak', 'ML_width', ...
         'Falling SL','Rising SL','Falling ISL','Rising ISL');
       fprintf('%12.1f\t%12.3f\t%12.1f\t%12.1f\t%12.1f\t%12.1f\n', ...
-        median(spec.metric,2));
+        nanmedian(spec.metric,2));
       
       figure(1); clf;
       plot(spec.metric(1,mask),'k');
@@ -475,20 +476,15 @@ if stage_one_en
     %% Final RDS Deconvolution Waveform Generation
     if any(strcmpi(output_dir,{'accum','rds'}))
       % Choose a reference function
-      best_score = sum(spec.metric);
+      best_score = sum(spec.metric(2:4,:));
       [~,best_idx] = min(best_score);
+      spec.metric(:,best_idx)
       
       wf = spec.param_analysis.analysis.imgs{img}(wf_adc,1);
       adc = spec.param_analysis.analysis.imgs{img}(wf_adc,2);
-
-      % Start with the original reference function that was used to
-      % compress the specular lead data
-      ref = spec.wfs(wf).ref{adc};
-      % Then add in the correction
-      ref(spec.wfs(wf).freq_inds) = ref(spec.wfs(wf).freq_inds) .* ifftshift(spec.deconv_H{best_idx});
       
       % Prepare frequency axis
-      Nt = length(ref);
+      Nt = spec.wfs(wf).Nt_pc;
       fc = spec.wfs(wf).fc;
       if spec.wfs(wf).DDC_mode == 0
         fs = param.radar.fs;
@@ -501,6 +497,12 @@ if stage_one_en
         df = 1/(Nt*dt);
         freq = spec.wfs(wf).DDC_freq + df*ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
       end
+
+      % Start with the original reference function that was used to
+      % compress the specular lead data
+      ref = spec.wfs(wf).ref{adc};
+      % Then add in the correction
+      ref = ref .* interp1(fftshift(spec.wfs(wf).freq), spec.deconv_H{best_idx}, freq, 'linear', 0);
       
       % Estimate delay and phase shift caused by deconvolution process
       % relative to reference waveform
@@ -585,8 +587,8 @@ if stage_one_en
       xlabel('range bin')
       ylabel('power(dB)')
       title(sprintf('Inverse Filter Impulse Response %d to %d range bins', ...
-        param.analysis.specular.ref_negative{wf}(1), ...
-        param.analysis.specular.ref_nonnegative{wf}(end)));
+        param.analysis.specular.ref_negative{img}(1), ...
+        param.analysis.specular.ref_nonnegative{img}(end)));
       
       fig1_fn = [ct_filename_tmp(param,'','deconv','inverse_filter') sprintf('_wf%d_adc%d.fig',wf,adc)];
       fig1_fn_dir = fileparts(fig1_fn);
@@ -612,14 +614,15 @@ if stage_one_en
       records_fn = ct_filename_support(param,'','records');
       records = load(records_fn);
       rec = find(records.gps_time > spec.deconv_gps_time(best_idx),1);
-      file_idx = find(records.relative_rec_num{adc} <= rec,1,'last');
-      raw_fn = records.relative_filename{adc}{file_idx};
+      [~,board_idx] = adc_to_board(param.radar_name,adc);
+      file_idx = find(records.relative_rec_num{board_idx} <= rec,1,'last');
+      raw_fn = records.relative_filename{board_idx}{file_idx};
       fprintf('Best Raw File: %s\n', raw_fn);
       fprintf('UTC time: %s\n', datestr(epoch_to_datenum(gps_to_utc(spec.deconv_gps_time(best_idx)))))
       
       fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
       fn = fullfile(fn_dir,sprintf('deconv_wf_%d_adc_%d_%s.mat', wf, adc, param.day_seg));
-      fprintf('Saving %s img %d wf %d: %s\n', param.day_seg, img, wf_adc, fn);
+      fprintf('Saving %s img %d wf_adc %d: %s\n', param.day_seg, img, wf_adc, fn);
       save(fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window','param_collate','best_idx','param_collate','param_analysis');
       continue;
     end
@@ -925,6 +928,7 @@ if stage_two_en
   % waveform was collected and this code looks in other segments for these missing waveforms.
   % =========================================================================
 
+  [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
   if any(strcmpi(output_dir,{'accum','rds'}))
     error('Stage two does not support accum or rds (not needed).\n');
   end

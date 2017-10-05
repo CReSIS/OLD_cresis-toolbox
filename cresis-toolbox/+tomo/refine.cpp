@@ -1,6 +1,7 @@
 // refine.cpp: Extract 3D surface of ice-bed layers.
 // By Mingze Xu, July 2016
-// Correlation based mu/sigma, addition of smoothness, surface repulsion increased, input arg checks, merge with extract.cpp: John Paden
+// Correlation based mu/sigma, addition of smoothness, surface repulsion increased, input arg checks,
+//   merge with extract.cpp, bounds, init and edge conditions updated: John Paden 2017
 //
 #include <iostream>
 #include <cmath>
@@ -80,6 +81,9 @@ public:
   const double *smooth_weight;
   const double smooth_var;
   const double *smooth_slope;
+  // 4-element vector containing start/stop index limits of the rows and
+  // columns to run the algorithm on
+  const ptrdiff_t *bounds;
   // Temporary messages
   vector<double> incomes[5];
   // Result
@@ -88,10 +92,10 @@ public:
   Refine(const double *_image, const size_t *dim_image, const double *_sgt, const double *_bgt,
           const double *_egt, const int _egt_size, const double *_ice_mask, const double *_mu, const double *_sigma,
           const int _ms, const double *_smooth_weight, const double _smooth_var, const double *_smooth_slope,
-          const double *_edge, const int _max_loop, double *_result)
+          const double *_edge, const int _max_loop, const ptrdiff_t *_bounds, double *_result)
           : image(_image), sgt(_sgt), bgt(_bgt), egt(_egt), egt_size(_egt_size), ice_mask(_ice_mask),
                   mu(_mu), sigma(_sigma), ms(_ms), smooth_weight(_smooth_weight), smooth_var(_smooth_var),
-                  smooth_slope(_smooth_slope), edge(_edge), max_loop(_max_loop), result(_result) {
+                  smooth_slope(_smooth_slope), edge(_edge), max_loop(_max_loop), bounds(_bounds), result(_result) {
             // Set dimensions
             depth = dim_image[0];
             height = dim_image[1];
@@ -178,13 +182,13 @@ double Refine::unary_cost(size_t d, size_t h, size_t w) {
   
   // Extra ground truth
   for (size_t i = 0; i < egt_size; i++) {
-    if (w == egt[3*i] && h == egt[3*i+1]) {
-      cost += 10*pow(abs((int)(egt[3*i+2]) - (int)(d+t))/1.0,2);
+    if (h == egt[3*i+1] && abs(w - egt[3*i]) < 4) {
+      cost += 10*pow(abs((int)(egt[3*i+2]) - (int)(d+t))/(1.0 + 0.5*abs(w - egt[3*i])),2);
     }
   }
   
   // Image magnitude correlation
-  double tmp_cost = 100;
+  double tmp_cost = 0;
   for (size_t i = 0; i < ms; i++) {
     tmp_cost -= image[encode(d+i,h,w)]*mu[i] / sigma[i];
   }
@@ -198,7 +202,9 @@ void Refine::set_prior() {
   for (size_t w = 0, cp = 0; w < width; w++) {
     for (size_t h = 0; h < height; h++, cp++) {
       for (size_t d = 0; d < max_disp; d++) {
-        if (edge != NULL && w == 0 && edge[h] > 0) {
+        if (h < bounds[0] || h > bounds[1] || w < bounds[2] || w > bounds[3]) {
+            matrix[cp]->prior[d] = 0.0;
+        } else if (edge != NULL && w == 0 && edge[h] > 0) {
           if (d+t == edge[h]) {
             matrix[cp]->prior[d] = 0.0;
           } else {
@@ -211,7 +217,7 @@ void Refine::set_prior() {
             matrix[cp]->prior[d] = LARGE;
           }
         } else {
-          // Running extract OR not on an edge slice
+          // No edge boundary conditions OR not on an edge slice
           matrix[cp]->prior[d] = unary_cost(d, h, w);
         }
         for (size_t dir = 0; dir < 4; dir++) {
@@ -259,8 +265,8 @@ void Refine::set_result() {
   double min_val = INFINITY;
   size_t best_result;
   
-  for (size_t h = 0; h < height; h++) {
-    for (size_t w = 0; w < width; w++) {
+  for (size_t h = bounds[0]; h <= bounds[1]; h++) {
+    for (size_t w = bounds[2]; w <= bounds[3]; w++) {
       size_t center = encode(h, w);
       min_val = INFINITY;
       best_result = max_disp+1;
@@ -355,6 +361,10 @@ void Refine::surface_extracting() {
         } else {
           w = width_array_left[w_idx];
         }
+        
+        if (h<bounds[0] || h>bounds[1] || w<bounds[2] || w>bounds[3])
+          continue;
+        
         size_t center = encode(h, w);
         size_t up = encode(h-1, w);
         size_t down = encode(h+1, w);
@@ -443,8 +453,8 @@ void Refine::surface_extracting() {
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-  if ((nrhs < 9 && nrhs > 12) || nlhs != 1) {
-    mexErrMsgTxt("Usage: surf = extract(image, sgt, bgt, egt, mask, mean, variance, smooth_weight, smooth_var, [smooth_slope], [edge], [max_loop])");
+  if ((nrhs < 9 && nrhs > 13) || nlhs != 1) {
+    mexErrMsgTxt("Usage: surf = extract(image, sgt, bgt, egt, mask, mean, variance, smooth_weight, smooth_var, [smooth_slope], [edge], [max_loop], [bounds])");
   }
   
   // image ==============================================================
@@ -591,6 +601,49 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     max_loop = MAX_LOOP;
   }
   
+  // bounds ===============================================================
+  ptrdiff_t bounds[4];
+  if (nrhs >= 13 && mxGetNumberOfElements(prhs[12])) {
+    if (!mxIsInt64(prhs[12])) {
+      mexErrMsgTxt("usage: bounds must be type int64");
+    }
+    if (mxGetNumberOfElements(prhs[12]) != 4) {
+      mexErrMsgTxt("usage: bounds must be a 4 element vector");
+    }
+    ptrdiff_t *tmp = (ptrdiff_t*)mxGetPr(prhs[12]);
+    bounds[0] = tmp[0];
+    bounds[1] = tmp[1];
+    bounds[2] = tmp[2];
+    bounds[3] = tmp[3];
+    if (bounds[0] < 0)
+      bounds[0] = 0;
+    if (bounds[1] < 0)
+      bounds[1] = dim_image[1]-1;
+    if (bounds[2] < 0)
+      bounds[2] = 0;
+    if (bounds[3] < 0)
+      bounds[3] = dim_image[2]-1;
+    if (bounds[0] >= dim_image[1])
+      mexErrMsgTxt("usage: bounds[0] < size(input,2)");
+    if (bounds[1] >= dim_image[1])
+      mexErrMsgTxt("usage: bounds[1] < size(input,2)");
+    if (bounds[1] < bounds[0])
+      mexErrMsgTxt("usage: bounds[1] must be greater than bounds[0]");
+    if (bounds[2] >= dim_image[2])
+      mexErrMsgTxt("usage: bounds[2] < size(input,3)");
+    if (bounds[3] >= dim_image[2])
+      mexErrMsgTxt("usage: bounds[3] < size(input,3)");
+    if (bounds[3] < bounds[2])
+      mexErrMsgTxt("usage: bounds[3] must be greater than bounds[2]");
+  } else {
+    // Default settings is to process all rows and all columns
+    bounds[0] = 0;
+    bounds[1] = dim_image[1]-1;
+    bounds[2] = 0;
+    bounds[3] = dim_image[2]-1;
+  }
+  //mexPrintf("%lld %lld %lld %lld\n", bounds[0], bounds[1], bounds[2], bounds[3]);
+  
   //mexPrintf("rows of one slice (dim_image[0]): %lld\n", dim_image[0]);
   //mexPrintf("cols of one slice (dim_image[1]): %lld\n", dim_image[1]);
   //mexPrintf("number of slices (dim_image[2]): %lld\n", dim_image[2]);
@@ -621,7 +674,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
   double *result = mxGetPr(plhs[0]);
   
   // Run refine/extract algorithm
-  Refine refine(image, dim_image, sgt, bgt, egt, egt_size, mask, mean, var, ms, smooth_weight, smooth_var[0], smooth_slope, edge, max_loop, result);
+  Refine refine(image, dim_image, sgt, bgt, egt, egt_size, mask, mean, var, ms, smooth_weight, smooth_var[0], smooth_slope, edge, max_loop, bounds, result);
   refine.set_prior();
   refine.surface_extracting();
   

@@ -27,7 +27,7 @@ function create_surfData(param,mdata)
 param_load_layers = param;
 param_load_layers.cmd.frms = round([-1,0,1] + param.proc.frm);
 
-if ~isfield(param.tomo_collate,'layer_source') || isempty(param.tomo_collate.layer_source)
+if strcmp(param.tomo_collate.layer_source,'ops')
   layer_params = [];
   idx = 0;
   idx = idx + 1;
@@ -128,15 +128,17 @@ save(combined_fn,'-append','Topography');
 
 %% Run detect
 detect_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
+bounds = [param.tomo_collate.bounds_relative(1) size(data,2)-1-param.tomo_collate.bounds_relative(2)];
 for rline = 1:size(mdata.Topography.img,3)
   if ~mod(rline-1,500)
     fprintf('  Detect %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
   end
+  
   detect_surface(:,rline) = tomo.detect(data(:,:,rline), ...
     double(twtt_bin(:,rline)), ...
     double(Bottom_bin(rline)), [], double(ice_mask(:,rline)), ...
     double(mean(mdata.Topography.mu)), double(mean(mdata.Topography.sigma)), ...
-    param.tomo_collate.mid,10,param.tomo_collate.smooth_weight,param.tomo_collate.smooth_var,param.tomo_collate.smooth_slope);
+    param.tomo_collate.mid,10,param.tomo_collate.smooth_weight,param.tomo_collate.smooth_var,param.tomo_collate.smooth_slope, int64(bounds));
 end
 
 %% Run extract
@@ -152,10 +154,12 @@ if 1
   % sigma = obj.custom_data.sigma;
   ice_mask_transition = 90*fir_dec(fir_dec(double(shrink(ice_mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
   ice_mask_transition(ice_mask_transition>=90) = inf;
+  bounds = [param.tomo_collate.bounds_relative(1) size(data,2)-1-param.tomo_collate.bounds_relative(2) -1 -1];
   
   extract_surface = tomo.refine(data, double(twtt_bin), double(Bottom_bin), ...
     double([]), double(ice_mask_transition), double(mu), double(sigma), ...
-    smooth_weight, smooth_var, double(smooth_slope));
+    smooth_weight, smooth_var, double(smooth_slope), [], ...
+    double(param.tomo_collate.max_loops), int64(bounds));
   
   extract_surface = reshape(extract_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));
 else

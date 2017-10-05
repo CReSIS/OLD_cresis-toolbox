@@ -91,8 +91,13 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         end
         if get(obj.gui.previousCB,'Value')
           slice_prev = slices(slice_idx-1);
-          gt = [sb.layer(active_idx).x(cols(1:end),slice_prev).'-1; ...
-            sb.layer(active_idx).y(cols(1:end),slice_prev).'+0.5];
+          if slice_idx == 2
+            gt = [sb.layer(active_idx).x(:,slice_prev).'-1; ...
+              sb.layer(active_idx).y(:,slice_prev).'+0.5];
+          else
+            gt = [sb.layer(active_idx).x(:,slice_prev).'-1; ...
+              labels(:).'+0.5];
+          end
         else
           gt = [];
         end
@@ -101,7 +106,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
             & isfinite(sb.layer(control_idx).y(:,slice));
           gt = cat(2,gt,[sb.layer(control_idx).x(mask,slice).'-1; ...
             sb.layer(control_idx).y(mask,slice).'+0.5]);
-          [~,unique_idxs] = unique(gt(1,:),'last');
+          [~,unique_idxs] = unique(gt(1,:),'last','legacy');
           gt = gt(:,unique_idxs);
           [~,sort_idxs] = sort(gt(1,:));
           gt = gt(:,sort_idxs);
@@ -128,15 +133,13 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         detect_data = sb.data(:,:,slice);
         detect_data(detect_data>threshold) = threshold;
         detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
-        % detect_data(182+(-5:5),35).'
-%         obj.custom_data.mu = [8.4745    8.3321    9.7678   11.7998   13.1260   13.0728   11.6279   10.1136    9.2768    8.3387    7.3149];
-        
+        bounds = [sb.bounds_relative(1) size(detect_data,2)-sb.bounds_relative(2)-1];
 
         labels = tomo.detect(double(detect_data), ...
           double(surf_bins), double(bottom_bin), ...
           double(gt), double(mask), ...
           double(obj.custom_data.mu), double(obj.custom_data.sigma),-1,double(egt_weight), ...
-          double(smooth_weight), double(smooth_var), double(slope));
+          double(smooth_weight), double(smooth_var), double(slope), int64(bounds));
 
         % Create cmd for layer change
         cmd{end+1}.undo.slice = slice;

@@ -215,7 +215,7 @@ while ~quit_cmd
               set(1,'Name',sprintf('%s_%03d: caxis threshold %.1f',param.day_seg,frm,noise_threshold));
               caxis(h_axes(img),img_caxis);
               img_cmap = [gray(64); flipud(hsv(128))];
-              colormap(img_cmap)
+              colormap(h_axes(img),img_cmap)
             end
             if 0 && any(medfilt1(double(max_noise > threshold),5))
               figure(2); clf;

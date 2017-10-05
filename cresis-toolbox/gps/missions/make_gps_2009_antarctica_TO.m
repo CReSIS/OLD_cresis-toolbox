@@ -47,7 +47,7 @@ sync_fns = {}; sync_params = {};
 % gps_source{file_idx} = 'Novatel-Final';
 % sync_flag{file_idx} = 0;
 % 
-% %% 20091222_01
+% %% 20091222_01: THIS FILE HAS LARGE INS JUMPS
 % file_idx = file_idx + 1;
 % in_fns{file_idx} = fullfile(in_base_path,'rover_diff_antarctica_12212009.txt');
 % out_fns{file_idx} = 'gps_20091222_01.mat';
@@ -388,6 +388,7 @@ for gps_idx = 1:length(partial_gps_fns)
   end
   if done
     gps_fn = fullfile(gps_path, [gps_fn_name(1:12) gps_fn_ext]);
+    fprintf('Combined file: %s\n', gps_fn);
     save(gps_fn,'-struct','gps');
     % Clean up (delete) the partial files
     for delete_idx = 1:length(queued_gps_fns)
