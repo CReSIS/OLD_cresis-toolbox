@@ -252,6 +252,7 @@ if stage_one_en
         continue;
       end
       
+      % Determine the width of the main lobe
       rising_idx = peak_idx-1;
       while rising_idx >= 1 ...
           && sig_deconv_Mt(rising_idx) > sig_deconv_peak-param.analysis.specular.ML_threshold
@@ -262,15 +263,27 @@ if stage_one_en
           && sig_deconv_Mt(falling_idx) > sig_deconv_peak-param.analysis.specular.ML_threshold
         falling_idx = falling_idx + 1;
       end
-      
-      % We don't care so much about the falling edge...
+      % We don't care so much about the falling edge... so we'll ignore it
       %spec.width_ML(rline) = (falling_idx - rising_idx) / Mt;
       spec.width_ML(rline) = 2*(peak_idx - rising_idx) / Mt;
       
+      % Determine the rising and falling edge side lobes
       spec.rising_edge_SL(rline) = max(sig_deconv_Mt(peak_idx+rising_edge_bins)) - sig_deconv_peak;
-      
       spec.falling_edge_SL(rline) = max(sig_deconv_Mt(peak_idx+falling_edge_bins)) - sig_deconv_peak;
+      if 0
+        figure(1); clf;
+        plot(sig_deconv_Mt - sig_deconv_peak)
+        hold on;
+        plot(peak_idx+rising_edge_bins,sig_deconv_Mt(peak_idx+rising_edge_bins)-sig_deconv_peak,'r');
+        xlims = peak_idx+rising_edge_bins;
+        xlim(xlims([1 end]) + [-20 40]);
+        grid on
+        ylim([-60 0]);
+        keyboard
+      end
       
+      % Skip bad waveforms if the rising/falling edge are at the edge of
+      % the A-scope
       peak_idx = round(peak_idx/Mt);
       rising_idx = floor(rising_idx/Mt);
       falling_idx = ceil(falling_idx/Mt);
@@ -279,9 +292,11 @@ if stage_one_en
         warning('waveform %d may not be a good one, skipped',rline);
         continue
       end
-      spec.rising_edge_ISL(rline) = sum(abs(sig_deconv(rising_idx + param.analysis.specular.rbins(1):rising_idx-1)).^2);
+
+      % Calculate the integrated sidelobe level
+      spec.rising_edge_ISL(rline) = sum(abs(sig_deconv(rising_idx + param.analysis.specular.rbins(1):rising_idx-1)).^2)/Mt;
       spec.rising_edge_ISL(rline) = lp(spec.rising_edge_ISL(rline))-sig_deconv_peak;
-      spec.falling_edge_ISL(rline) = sum(abs(sig_deconv(falling_idx+1:falling_idx + param.analysis.specular.rbins(end))).^2);
+      spec.falling_edge_ISL(rline) = sum(abs(sig_deconv(falling_idx+1:falling_idx + param.analysis.specular.rbins(end))).^2)/Mt;
       spec.falling_edge_ISL(rline) = lp(spec.falling_edge_ISL(rline))-sig_deconv_peak;
       normal_factor = sample_peak - sig_deconv_peak;
       deconv_H = deconv_H * 10^(normal_factor/20);
@@ -303,7 +318,7 @@ if stage_one_en
       %% DEBUG CODE
       if all(spec.metric(:,rline) <= abs_metric.')
         mask(rline) = 1;
-        if debug_level > 1
+        if debug_level > 2
           
           rline
           
@@ -337,16 +352,17 @@ if stage_one_en
           [max_val,max_bin] = max(sig_sample);
           good_bins = max_bin + param.analysis.specular.rbins;
           figure(2); clf;
-          plot(lp(sig_deconv));
+          plot(lp(sig_deconv)-lp(max_val));
           hold on
-          plot(lp(sig_sample),'r');
-          plot(lp(+max_val)+circshift(lp(sig_tg),[max_bin-1 0]),'g')
+          plot(lp(sig_sample)-lp(max_val),'r');
+          plot(lp(+max_val)+circshift(lp(sig_tg),[max_bin-1 0])-lp(max_val),'g')
           hold off;
           grid on;
           xlim(good_bins([1 end]))
           xlabel('range bin')
           ylabel('power(dB)')
           legend('deconvolved ice lead signal','ice lead signal','averaged ice lead signal','location','best')
+          ylim([-80 0]);
           keyboard
         end
       end
@@ -424,7 +440,7 @@ if stage_one_en
       title(param.day_seg,'Interpreter','none')
       
       mask_idxs = find(mask);
-      if ~any(mask)
+      if ~any(mask) || debug_level == 2
         figure(1); clf;
         plot(spec.metric(1,:),'k');
         hold on;
@@ -459,13 +475,24 @@ if stage_one_en
         title(param.day_seg,'Interpreter','none')
         
         [day_seg,frm_id,recs] = get_frame_id(param,spec.deconv_gps_time);
+
+        % Nyquist zone twtt barriers
+        % - For each group of twtt execute the relative metric
+        % - For all groups force the absolute metric
+        wfs = spec.param_analysis.radar.wfs;
+        BW = (wfs.f1-wfs.f0)*wfs.fmult;
+        chirp_rate = BW/wfs.Tpd;
+        nz_twtt = abs(spec.param_analysis.radar.fs / chirp_rate / 2 / TWTT_GROUPS_PER_NZ);
+        twtt_bin_spacing = nz_twtt;
+        
+        twtt_zone = 1 + floor(spec.deconv_twtt / nz_twtt);
         
         % Useful debug fprintf
         fprintf('Table 3. Metrics for each waveform where lower is better.\n');
-        fprintf('%5s\t%5s\t%12s\t%12s\t%12s\t%12s\t%12s\t%12s\t%20s\t%12s\n', 'Index','Frame', ...
-          '-peak','ML_width','Falling SL','Rising SL','Falling ISL','Rising ISL','GPS time','Record');
-        fprintf('%5.0f\t%5.0f\t%12.1f\t%12.3f\t%12.1f\t%12.1f\t%12.1f\t%12.1f%20.3f\t%12.0f\n', ...
-          [1:length(spec.deconv_frame); spec.deconv_frame; spec.metric; spec.deconv_gps_time; recs]);
+        fprintf('%5s\t%5s\t%12s\t%12s\t%12s\t%12s\t%12s\t%12s\t%20s\t%12s\t%6s\n', 'Index','Frame', ...
+          '-peak','ML_width','Falling SL','Rising SL','Falling ISL','Rising ISL','GPS time','Record','twtt');
+        fprintf('%5.0f\t%5.0f\t%12.1f\t%12.3f\t%12.1f\t%12.1f\t%12.1f\t%12.1f%20.3f\t%12.0f\t%6.0f\n', ...
+          [1:length(spec.deconv_frame); spec.deconv_frame; spec.metric; spec.deconv_gps_time; recs; twtt_zone]);
       end
       
       keyboard
@@ -751,6 +778,7 @@ if stage_one_en
     %% Group similar deconvolution waveforms, average them together
     % First group waveforms by number of samples(the DDC filter should be the same in this case,
     % then for those with the same number of samples filter, uses correlation statistics to group
+    tmp = [];
     final = [];
     final.metric = [];
     final.num_response = [];

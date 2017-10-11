@@ -2,6 +2,9 @@
 %
 % This is a script which helps find the vectors.gps.time_offset field.
 % It is primarily useful over ocean where the surface is known to be flat.
+%
+
+error('USE run_fmcw_set_nyquist_zone_Tsys_GPSoffset.m IN PLACE OF THIS SCRIPT UNLESS YOU DO NOT HAVE THE REQUIRED INPUTS TO RUN THAT SCRIPT.\n');
 
 if 1
   % Only need to load things once

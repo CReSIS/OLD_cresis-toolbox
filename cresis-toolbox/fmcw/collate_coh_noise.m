@@ -46,6 +46,25 @@ for param_idx = 1:length(params)
   fprintf('collate_coh_noise %s: %s\n', param.day_seg, fn);
   noise = load(fn);
   
+  %% Debug
+  if 0
+    records = load(ct_filename_support(param,'','records'));
+    load(ct_filename_support(param,'','frames'));
+    
+    aa=noise.coh_ave;
+    aa=fftshift(aa,1);
+    aa(:,any(lp(aa(100:end-100,:))>40)) = NaN;
+    aa=fftshift(aa,1);
+    aa(:,sum(isnan(noise.coh_ave))>10) = NaN;
+    aa(noise.coh_ave_samples<500)=NaN;
+    figure(1); clf;
+    imagesc(lp(aa))
+    figure(2); clf;
+    imagesc(lp(noise.coh_ave))
+    figure(1); h_axes=gca; figure(2); h_axes(end+1) = gca; linkaxes(h_axes,'xy');
+    return;
+  end
+  
   %% Create the Doppler mask
   doppler_psd = lp(nanmean(noise.doppler,2));
   doppler_psd = interp_finite(doppler_psd);

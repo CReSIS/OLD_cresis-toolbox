@@ -362,6 +362,8 @@ else
   save(combined_fn,'-v7.3','-append','theta_cal');
 end
 
+mdata.theta = theta;
+mdata.theta_cal = theta_cal;
 mdata.twtt = twtt;
 mdata.ice_mask = ice_mask;
 

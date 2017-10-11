@@ -512,7 +512,23 @@ for accum_idx = 1:length(accum(board).wf)
     start_bin = start_bin + find(good_mask,1)-1;
     stop_bin = stop_bin - (length(good_mask)-find(good_mask,1,'last'));
   end
-  
+
+  %% Remove unused/bad range bins
+  for rline = 1:size(a_data,2)
+    % Determine time gate for this range line
+    if isempty(param.radar.wfs(wf).good_rbins)
+      good_rbins(1) = 1 + start_bin/Mt(rline);
+      good_rbins(2) = stop_bin/Mt(rline);
+    else
+      good_rbins(1) = 1 + max(start_bin,param.radar.wfs(wf).good_rbins(1))/Mt(rline);
+      good_rbins(2) = min(stop_bin,param.radar.wfs(wf).good_rbins(2))/Mt(rline);
+    end
+    
+    num_sam(rline) = diff(good_rbins)+1;
+    a_data(1:num_sam(rline),rline,:) = a_data(good_rbins(1):good_rbins(2),rline,:);
+    a_data(num_sam(rline)+1:end,rline) = 0;
+  end  
+
   %% Convert from quantization to voltage @ ADC
   for rline = 1:size(a_data,2)
     quantization_to_V ...
@@ -588,23 +604,12 @@ for accum_idx = 1:length(accum(board).wf)
   dt_raw = 1./fs_raw;
   start_time = zeros(1,size(a_data,2));
   for rline = 1:size(a_data,2)
-    %% Determine time gate for this range line
-    if isempty(param.radar.wfs(wf).good_rbins)
-      good_rbins(1) = 1 + start_bin/Mt(rline);
-      good_rbins(2) = stop_bin/Mt(rline);
-    else
-      good_rbins(1) = 1 + param.radar.wfs(wf).good_rbins(1)/Mt(rline);
-      good_rbins(2) = param.radar.wfs(wf).good_rbins(2)/Mt(rline);
-    end
-    
-    num_sam(rline) = good_rbins(2) - good_rbins(1) + 1; % Number of good samples in raw data
-    
     %% Clip off bad IF frequencies
     if ~DDC_or_raw_select(rline)
       %% DDC enabled
       %% Window and matched filter (FFT)
       a_data(1:standard_Nt(rline),rline,:) ...
-        = fftshift(fft(a_data(good_rbins(1):good_rbins(2),rline,:) ...
+        = fftshift(fft(a_data(1:num_sam(rline),rline,:) ...
         .* repmat(param.proc.ft_wind(num_sam(rline)),[1,1,size(a_data,3)]), standard_Nt(rline)));
       
       % Using standard Nt so that time bins always line up regardless of operation mode
@@ -653,7 +658,7 @@ for accum_idx = 1:length(accum(board).wf)
       %% No DDC (Raw)
       %% Window and matched filter (FFT)
       a_data(1:standard_Nt(rline),rline,:) ...
-        = fft(a_data(good_rbins(1):good_rbins(2),rline,:) ...
+        = fft(a_data(1:num_sam(rline),rline,:) ...
         .* repmat(param.proc.ft_wind(num_sam(rline)),[1,1,size(a_data,3)]), standard_Nt(rline));
       
       num_sam(rline) = standard_Nt(rline);
