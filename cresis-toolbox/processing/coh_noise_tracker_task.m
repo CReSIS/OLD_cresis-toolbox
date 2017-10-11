@@ -948,8 +948,11 @@ for img = 1:length(param.load.imgs)
           < repmat(coh.noise_power+param.analysis.coh_ave.power_threshold,[1 numel(rlines)]);
       else
         %% Regular method for collecting good_samples
-        good_samples = lp(bsxfun(@minus,g_data(:,rlines),mean(g_data,2))) < param.analysis.coh_ave.power_threshold;
-        
+        mu = mean(g_data,2);
+        sigma = std(g_data,[],2);
+        mu(abs(mu)*10<sigma) = 0;
+        good_samples = lp(bsxfun(@minus,g_data(:,rlines),mu)) < param.analysis.coh_ave.power_threshold;
+        good_samples(:,max(lp(g_data(:,rlines)))>66) = 0; % PADEN HACK for snow 2016
       end
       
       %% Debug Plots for determining coh_ave.power_threshold
@@ -963,7 +966,7 @@ for img = 1:length(param.load.imgs)
         title('Good sample mask (black is thresholded)');
         a2 = gca;
         figure(3); clf;
-        imagesc( lp(bsxfun(@minus,g_data,mean(g_data,2))) );
+        imagesc( lp(bsxfun(@minus,g_data(:,rlines),mu)) );
         a3 = gca;
         linkaxes([a1 a2 a3], 'xy');
       end

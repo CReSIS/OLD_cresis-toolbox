@@ -537,14 +537,6 @@ if isfield(param,'colormap') && isfield(param.colormap,'mode') && ~isempty(param
       param.colormap.noise_threshold_offset_dB = 8.2;
     end
     
-    % Sets sidelobes to zero in CData: finds the max of each range line and all range
-    % bins that are img_sidelobe less than this max are set to zero (-inf on dB scale).
-    echogram_vals = get(echo_info.image,'CData');
-    for rline=1:size(echogram_vals,2)
-      echogram_vals(echogram_vals(:,rline) < max(echogram_vals(:,rline))+param.colormap.img_sidelobe,rline) = nan;
-    end
-    set(echo_info.image,'CData',echogram_vals);
-    
     % noise_rows: contains the rows that will be used to estimate noise power
     yaxis_elev = elev_axis(depth_good_idxs)+param.depth_offset;
     noise_rows = find((param.colormap.noise_buffer + yaxis_elev(1))>yaxis_elev,1);
@@ -554,6 +546,23 @@ if isfield(param,'colormap') && isfield(param.colormap,'mode') && ~isempty(param
     max_noise = nanmax(echogram_vals(1:noise_rows,:));
     noise_threshold = nanmedian(max_noise)+param.colormap.noise_threshold_offset_dB;
     
+    % Sets sidelobes to zero in CData: finds the max of each range line and all range
+    % bins that are img_sidelobe less than this max are set to zero (-inf on dB scale).
+    echogram_vals = get(echo_info.image,'CData');
+    for rline=1:size(echogram_vals,2)
+      echogram_vals(echogram_vals(:,rline) < max(echogram_vals(:,rline))+param.colormap.img_sidelobe,rline) = nan;
+    end
+    set(echo_info.image,'CData',echogram_vals);
+    
+    % noise_threshold: update this now that sidelobe threshold has been
+    % applied
+    max_noise = nanmax(echogram_vals(1:noise_rows,:));
+    noise_threshold_updated = nanmedian(max_noise)+param.colormap.noise_threshold_offset_dB;
+    if isfinite(noise_threshold_updated)
+      % Use the pre-sidelobe-thresholding noise threshold
+      noise_threshold = noise_threshold_updated;
+    end
+    
     % Set the colormap
     if isfinite(noise_threshold)
       img_caxis = noise_threshold + [-6 +12];
@@ -561,6 +570,7 @@ if isfield(param,'colormap') && isfield(param.colormap,'mode') && ~isempty(param
       img_cmap = [gray(64); flipud(hsv(128))];
       colormap(ah_echo,img_cmap)
     else
+      keyboard
       error('Failed to find valid noise threshold.');
     end
   else

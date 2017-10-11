@@ -257,33 +257,35 @@ for file_idx = 1:length(atm_fns)
     if ~isempty(A) && ~isempty(A{1})
       % Only grab the nadir data (track 0)
       nadir_idxs = A{:,11} == 0;
-      for cell_idx = 1:length(A)
-        A{:,cell_idx} = A{:,cell_idx}(nadir_idxs);
+      if any(nadir_idxs)
+        for cell_idx = 1:length(A)
+          A{:,cell_idx} = A{:,cell_idx}(nadir_idxs);
+        end
+        % Read only one year/month/day or multiple.
+        gps_time = datenum(year,month,day,0,0,A{:,1});
+        gps_time = datenum_to_epoch(gps_time);
+        
+        if strcmpi(time_reference,'utc')
+          % UTC time stored in file, so need to add leap seconds back in
+          gps_time = gps_time + utc_leap_seconds(gps_time(1));
+        elseif strcmpi(time_reference,'gps')
+          warning('GPS time reference specified, but files are usually UTC time reference');
+        else
+          error('Invalid time reference');
+        end
+        
+        lidar.gps_time = [lidar.gps_time gps_time.'];
+        lidar.lat = [lidar.lat A{:,2}.'];
+        lidar.lon = [lidar.lon A{:,3}.'];
+        lidar.surface = [lidar.surface A{:,4}.'];
+        lidar.slope_sn = [lidar.slope_sn A{:,5}.'];
+        lidar.slope_we = [lidar.slope_we A{:,6}.'];
+        lidar.rms = [lidar.rms A{:,7}.'];
+        lidar.num_pnts_used = [lidar.num_pnts_used A{:,8}.'];
+        lidar.num_pnts_edited = [lidar.num_pnts_edited A{:,9}.'];
+        lidar.cross_track = [lidar.cross_track A{:,10}.'];
+        lidar.track = [lidar.track A{:,11}.'];
       end
-      % Read only one year/month/day or multiple.
-      gps_time = datenum(year,month,day,0,0,A{:,1});
-      gps_time = datenum_to_epoch(gps_time);
-      
-      if strcmpi(time_reference,'utc')
-        % UTC time stored in file, so need to add leap seconds back in
-        gps_time = gps_time + utc_leap_seconds(gps_time(1));
-      elseif strcmpi(time_reference,'gps')
-        warning('GPS time reference specified, but files are usually UTC time reference');
-      else
-        error('Invalid time reference');
-      end
-      
-      lidar.gps_time = [lidar.gps_time gps_time.'];
-      lidar.lat = [lidar.lat A{:,2}.'];
-      lidar.lon = [lidar.lon A{:,3}.'];
-      lidar.surface = [lidar.surface A{:,4}.'];
-      lidar.slope_sn = [lidar.slope_sn A{:,5}.'];
-      lidar.slope_we = [lidar.slope_we A{:,6}.'];
-      lidar.rms = [lidar.rms A{:,7}.'];
-      lidar.num_pnts_used = [lidar.num_pnts_used A{:,8}.'];
-      lidar.num_pnts_edited = [lidar.num_pnts_edited A{:,9}.'];
-      lidar.cross_track = [lidar.cross_track A{:,10}.'];
-      lidar.track = [lidar.track A{:,11}.'];
     end
   end
 end
