@@ -250,7 +250,7 @@ for param_idx = 1:length(params)
     origin = layers(ref_idx).gps_time(1);
     %debug_gps_offset = -107.5; figure(2); hold on; plot(layers(ref_idx).gps_time + debug_gps_offset,layers(ref_idx).twtt + debug_Tsys_offset, '.')
     plot(layers(ref_idx).gps_time + debug_gps_offset - origin, ...
-      layers(ref_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset, '.')
+      layers(ref_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset, 'b')
     hold on;
     plot(layers(ref_idx).gps_time - origin,combined_twtt, 'g')
     for lay_idx = lay_idxs

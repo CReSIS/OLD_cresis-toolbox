@@ -67,7 +67,7 @@ for param_idx = 1:length(params)
   
   %% Create the Doppler mask
   doppler_psd = lp(nanmean(noise.doppler,2));
-  doppler_psd = interp_finite(doppler_psd);
+  doppler_psd = interp_finite(doppler_psd,NaN);
   doppler_noise_floor = medfilt1(double(doppler_psd),201);
   doppler_mask = doppler_psd > doppler_noise_floor + param.analysis.coh_ave.doppler_threshold;
   doppler_mask(1) = 0; % Regular coherent noise removal removes the DC component
