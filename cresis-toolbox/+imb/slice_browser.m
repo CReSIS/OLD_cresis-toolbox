@@ -567,12 +567,11 @@ classdef slice_browser < handle
           if obj.x == x
             if x > 1 && x < size(obj.data,2)
               obj.select_mask(round(x)) = ~obj.select_mask(round(x));
-              obj.select_mask([1:obj.bounds_relative(1),end-obj.bounds_relative(2)+1:end]) = NaN;
+              obj.select_mask([1:obj.bounds_relative(1),end-obj.bounds_relative(2)+1:end]) = false;
             else
               obj.select_mask(:) = false;
             end
           else
-            obj.shift_pressed
             if ~obj.shift_pressed
               obj.select_mask(:) = false;
               obj.update_slice;
@@ -648,6 +647,7 @@ classdef slice_browser < handle
           y_idxs = round(ylims(1)):round(ylims(2));
           y_idxs = y_idxs(y_idxs>=1 & y_idxs<=size(obj.data,2));
           obj.select_mask(y_idxs) = true;
+          obj.select_mask([1:obj.bounds_relative(1),end-obj.bounds_relative(2)+1:end]) = false;
           if but ~= 1
             for tool_idx = 1:length(obj.slice_tool.list)
               tool_name_list{tool_idx} = obj.slice_tool.list{tool_idx}.tool_name;
@@ -984,9 +984,18 @@ classdef slice_browser < handle
         end
         set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
           'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
-        tmp_y = obj.layer(layer_idx).y;
+        tmp_y = double(obj.layer(layer_idx).y);
+        % Hide data outside bounds
         tmp_y(1:obj.bounds_relative(1),:) = NaN;
         tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
+        % Hide bad quality data when active layer shown and quality layer
+        % visible
+        if ~isempty(obj.layer(layer_idx).quality_layer) ...
+            && ~isempty(obj.layer(layer_idx).active_layer) ...
+            && obj.layer(layer_idx).active_layer == layer_idx ...
+            && obj.layer(obj.layer(layer_idx).quality_layer).visible
+          tmp_y(obj.layer(obj.layer(layer_idx).quality_layer).y ~= 1) = NaN;
+        end
         set(obj.h_layer_image,'CData',tmp_y);
         
         % Update layer visibility

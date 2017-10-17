@@ -182,13 +182,13 @@ double Refine::unary_cost(size_t d, size_t h, size_t w) {
   
   // Extra ground truth
   for (size_t i = 0; i < egt_size; i++) {
-    if (w == egt[3*i] && h == egt[3*i+1]) {
-      cost += 10*pow(abs((int)(egt[3*i+2]) - (int)(d+t))/1.0,2);
+    if (h == egt[3*i+1] && abs(w - egt[3*i]) < 4) {
+      cost += 10*pow(abs((int)(egt[3*i+2]) - (int)(d+t))/(1.0 + 0.5*abs(w - egt[3*i])),2);
     }
   }
   
   // Image magnitude correlation
-  double tmp_cost = 100;
+  double tmp_cost = 0;
   for (size_t i = 0; i < ms; i++) {
     tmp_cost -= image[encode(d+i,h,w)]*mu[i] / sigma[i];
   }
@@ -217,7 +217,7 @@ void Refine::set_prior() {
             matrix[cp]->prior[d] = LARGE;
           }
         } else {
-          // Running extract OR not on an edge slice
+          // No edge boundary conditions OR not on an edge slice
           matrix[cp]->prior[d] = unary_cost(d, h, w);
         }
         for (size_t dir = 0; dir < 4; dir++) {

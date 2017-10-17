@@ -16,6 +16,7 @@ if strcmpi(get(obj.map_panel.h_axes,'Visible'),'off')
 end
 
 ops_param.properties.search_str = get(obj.top_panel.searchTB,'String');
+ops_param.properties.season = obj.map_pref.settings.seasons;
 ops_param.properties.location = obj.cur_map_pref_settings.mapzone;
 
 [status,data] = opsGetFrameSearch(obj.cur_map_pref_settings.system,ops_param);

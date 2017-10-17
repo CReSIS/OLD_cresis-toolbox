@@ -1,7 +1,9 @@
 % script update_surface_with_tracker
 %
 % Updates the Surface variable in an echogram using one of three surface
-% detections methods.
+% detections methods. For more details about parameters:
+% tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
+% tracker_max, tracker_snake_simple
 %
 % Example:
 %   See run_update_surface_with_tracker.m to run.
@@ -87,6 +89,16 @@ for param_idx = 1:length(params)
     warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
       param.cmd.frms(find(bad_mask,1)));
     param.cmd.frms = valid_frms;
+  end
+  
+  %% Get all the frames for this segment
+  if any(strcmpi(save_sources,'ops'))
+    opsAuthenticate(param,false);
+    sys = ct_output_dir(param.radar_name);
+    ops_param = struct('properties',[]);
+    ops_param.properties.season = param.season_name;
+    ops_param.properties.segment = param.day_seg;
+    [status,ops_seg_data] = opsGetSegmentInfo(sys,ops_param);
   end
 
   %% Track each of the frames
@@ -233,8 +245,8 @@ for param_idx = 1:length(params)
       ops_param = struct('properties',[]);
       ops_param.properties.location = param.post.ops.location;
       ops_param.properties.season = param.season_name;
-      ops_param.properties.start_gps_time = mdata.GPS_time(1);
-      ops_param.properties.stop_gps_time = mdata.GPS_time(end);
+      ops_param.properties.start_gps_time = ops_seg_data.properties.start_gps_time(frm);
+      ops_param.properties.stop_gps_time = ops_seg_data.properties.stop_gps_time(frm);
       
       sys = ct_output_dir(param.radar_name);
       [status,data] = opsGetPath(sys,ops_param);
@@ -242,7 +254,7 @@ for param_idx = 1:length(params)
       % Write the new layer information to these point path ID's
       ops_param = struct('properties',[]);
       ops_param.properties.point_path_id = data.properties.id;
-      ops_param.properties.twtt = interp1(mdata.GPS_time,Surface,data.properties.gps_time);
+      ops_param.properties.twtt = interp_finite(interp1(mdata.GPS_time,Surface,data.properties.gps_time));
       ops_param.properties.type = 2*ones(size(ops_param.properties.twtt));
       ops_param.properties.quality = 1*ones(size(ops_param.properties.twtt));
       ops_param.properties.lyr_name = save_ops_layer;

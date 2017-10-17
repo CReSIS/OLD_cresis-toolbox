@@ -20,8 +20,8 @@ function create_records_mcords2(param, param_override)
 %
 % Author: John Paden
 %
-% See also: check_records, run_create_records_mcords2,
-%   create_records_mcords2_sync
+% See also: run_master.m, master.m, run_create_records_mcords2.m, create_records_mcords2.m,
+%   create_records_mcords2_sync.m, check_records.m
 
 % =====================================================================
 % General Setup
