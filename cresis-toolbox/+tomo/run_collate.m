@@ -8,83 +8,181 @@
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
 clear('param_override');
+
+%% User Settings
 param_override = [];  
 param_override.sched.type = 'no scheduler';
-param_override.sched.submit_arguments = '-l nodes=1:ppn=1,pmem=8000mb,walltime=120:00';
+param_override.sched.submit_arguments = '-q mem -l nodes=1:ppn=1,pmem=16000mb,walltime=300:00';
 
-%% 2014_Greenland_P3 User Settings
-
-% parameter spreadsheet of day or day_seg to be run
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140325_07','post');
-params.cmd.frms = [1 2];
-params.cmd.generic = 1;
+% example_setup = 'horizontal';
+example_setup = 'vertical';
 
 tomo_collate = [];
-
-% directory from which radar slices are acquired
-% fused images will also be saved in this location
-tomo_collate.in_dir = 'paden_music';
-
-% directory to which output layer data will be exported
-tomo_collate.out_dir = 'paden_surfData';
-% DEM used to extract surface layer information
-tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('arctic','ArcticDEM','2014_Greenland_P3_20140325.tif'));
-tomo_collate.geotiff_bad_value = -32767;
-% Ocean mask used to help fill DEM
-% tomo_collate.ocean_mask_fn = ct_filename_tmp([],fullfile('ocean_mask','2014_Greenland_P3_20140506_01.tif'));
-
-% calibrated steering vector
-tomo_collate.sv_cal_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','sv_calibration','theta_cal.mat');
-
-% ice mask fn
-tomo_collate.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
-
-% img_01: right looking (positive theta)
-% img_02: nadir looking (theta == 0)
-% img_03: left looking (negative theta)
-tomo_collate.imgs = [1 2 3];
-tomo_collate.master_img_idx = 2;
-
-% pixel intensity threshold, pixels above the data_threshold will be set to
-% the value of data_threshold
-tomo_collate.data_threshold = 13.5;
-
-% middle of DOA axis
-tomo_collate.mid = -1;   % default
-% weight of smoothness enforcement
-tomo_collate.smooth_weight = -1;    % default
-% variance of smoothness enforcement
-tomo_collate.smooth_var = -1;   % default
-% expected twtt offset between DOA bins
-tomo_collate.smooth_slope = zeros(1,63);
-% DOA bins and along-track slices to trim off from each edge [top bottom left right]
-tomo_collate.bounds_relative = [3 2 0 0];
-% Number of refine/extract loops to run
-tomo_collate.max_loops = 50;
-
-tomo_collate.layer_source = 'layerData';
-
-%% Collate Script Configuration
-
-% when set to true, runs fuse_images.m
-tomo_collate.fuse_images_flag = false;
-
-  % when set to true, images will be fused vertically in fuse_images.m
-  % rather than horizontally
-  tomo_collate.vertical_fuse = false;
+if strcmpi(example_setup,'vertical')
+  %% Vertical multiwaveform fuse example
+  params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091224_01','post');
+  params.cmd.frms = 16;
+  params.cmd.generic = 1;
   
-  % Holds pair parameters of image pair fusings
-  % for each pair:
-  %   1st element: Time after surface to begin fuse
-  %   2nd element: Time after surface to end fuse
-  %  tomo_collate.img_comb = [0 -inf 4e-6 -inf]; % only for vertical_fuse
-  tomo_collate.img_comb = [0 3.5e-5]; % only for vertical_fuse
+  % .in_dir: ct_filename_out directory to use at input, fused image will be stored here.
+  tomo_collate.in_dir = 'nick_music';
+  
+  % .out_dir: ct_filename_out directory to which output surfData will be exported
+  tomo_collate.out_dir = 'paden_surfData';
+  
+  % .geotiff_fn: DEM used to extract surface layer information
+  tomo_collate.geotiff_fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
+  tomo_collate.geotiff_bad_value = 32767;
+  
+  % .sv_cal_fn: filename containing steering vector calibration, leave empty to not use
+  tomo_collate.sv_cal_fn = '';
+  
+  % .ice_mask_fn: filename of ice mask, leave empty to not use
+  tomo_collate.ice_mask_fn = '';
 
-% when set to true, runs add_icemask_surfacedem.m
-tomo_collate.add_icemask_surfacedem_flag = false;
+  % .imgs: list of images II to use from .in_dir (Data_img_II*.mat). These
+  %   should be listed from left most beam to right most beam when
+  %   horizontal fuse is used. They should be listed from top to bottom
+  %   when vertical fuse is used.
+  tomo_collate.imgs = [1 2];
+  tomo_collate.master_img_idx = 1;
 
-% when set to true, runs create_surfData.m
-tomo_collate.create_surfData_flag = true;
+  % .dem_guard: additional region around flight line to search for DEM points
+  %   Setting too high slows the process down, setting too low will miss
+  %   DEM points needed to properly represent the surface.
+  tomo_collate.dem_guard = 16e3;
+  
+  % .dem_per_slice_guard: additional region around each slice to search for DEM points
+  %   Setting too high slows the process down, setting too low will miss
+  %   DEM points needed to properly represent the surface.
+  tomo_collate.dem_per_slice_guard = 2500;
+  
+  % .data_threshold: pixel values above this will be clipped (set to this value)
+  tomo_collate.data_threshold = 13.5;
+  
+  % middle of DOA axis
+  tomo_collate.mid = -1;   % default
+  % weight of smoothness enforcement
+  tomo_collate.smooth_weight = -1;    % default
+  % weight for 
+  tomo_collate.smooth_var = -1;
+  % expected twtt offset between DOA bins
+  tomo_collate.smooth_slope = zeros(1,63);
+  
+  % .bounds_relative: DOA bins and along-track slices to trim off from each edge [top bottom left right]
+  tomo_collate.bounds_relative = [3 2 0 0];
+  % Number of refine/extract loops to run
+  tomo_collate.max_loops = 50;
+  
+  tomo_collate.layer_source = 'ops';
+  
+  % .img_comb: Same as get_heights and combine worksheets. This is
+  %   used for vertical using only. For N images,
+  %   there will be (N-1) combines performed. Each combine is described by
+  %   three numbers so that there should be (N-1)*3 elements in this
+  %   vector. Each set of three numbers indicates the following:
+  %     1st element: Minimum time to begin combine
+  %     2nd element: Minimum time after ice surface to begin combine
+  %     3rd element: Time at end of the preceeding waveform to not use
+  tomo_collate.img_comb = [0 3.5e-5 1e-6];
+  
+  % .fuse: 'vertical' or 'horizontal' fuse
+  tomo_collate.fuse_method = 'vertical';
+  
+  % .fuse_images_flag: runs fuse_images.m when true
+  tomo_collate.fuse_images_flag = true;
+  
+  % .add_icemask_surfacedem_flag: runs add_icemask_surfacedem.m when true
+  tomo_collate.add_icemask_surfacedem_flag = true;
+  
+  % create_surfData_flag: runs create_surfData.m when true
+  tomo_collate.create_surfData_flag = true;
+
+elseif strcmpi(example_setup,'horizontal')
+  %% Horizontal multibeam fuse example
+  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
+  params.cmd.frms = 37;
+  params.cmd.generic = 1;
+  
+  % .in_dir: ct_filename_out directory to use at input, fused image will be stored here.
+  tomo_collate.in_dir = 'paden_music';
+  
+  % .out_dir: ct_filename_out directory to which output surfData will be exported
+  tomo_collate.out_dir = 'paden_surfData';
+  
+  % .geotiff_fn: DEM used to extract surface layer information
+  tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('arctic','ArcticDEM','2014_Greenland_P3_20140401_03.tif'));
+  tomo_collate.geotiff_bad_value = -32767;
+  
+  % .sv_cal_fn: filename containing steering vector calibration, leave empty to not use
+  tomo_collate.sv_cal_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','sv_calibration','theta_cal.mat');
+  
+  % .ice_mask_fn: filename of ice mask, leave empty to not use
+  tomo_collate.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
+  
+  % .ocean_mask_fn: filename of ocean mask
+  tomo_collate.ocean_mask_fn = ct_filename_gis([],fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
+
+  % .imgs: list of images II to use from .in_dir (Data_img_II*.mat). These
+  %   should be listed from left most beam to right most beam when
+  %   horizontal fuse is used. They should be listed from top to bottom
+  %   when vertical fuse is used.
+  tomo_collate.imgs = [1 2 3];
+
+  % .dem_guard: additional region in meters around flight line to search for DEM points
+  %   Setting too high slows the process down, setting too low will miss
+  %   DEM points needed to properly represent the surface.
+  tomo_collate.dem_guard = 8e3;
+  
+  % .dem_per_slice_guard: additional region in meters around each slice to search for DEM points
+  %   Setting too high slows the process down, setting too low will miss
+  %   DEM points needed to properly represent the surface.
+  tomo_collate.dem_per_slice_guard = 120;
+  
+  % .data_threshold: pixel values above this will be clipped (set to this value)
+  tomo_collate.data_threshold = 13.5;
+  
+  % middle of DOA axis
+  tomo_collate.mid = -1;   % default
+  % weight of smoothness enforcement
+  tomo_collate.smooth_weight = -1;    % default
+  % weight for 
+  tomo_collate.smooth_var = -1;
+  % expected twtt offset between DOA bins
+  tomo_collate.smooth_slope = zeros(1,63);
+  
+  % .bounds_relative: DOA bins and along-track slices to trim off from each edge [top bottom left right]
+  tomo_collate.bounds_relative = [3 2 0 0];
+  % Number of refine/extract loops to run
+  tomo_collate.max_loops = 50;
+  
+  tomo_collate.layer_source = 'ops';
+  
+  % .img_comb: Same as get_heights and combine worksheets. This is
+  %   used for vertical using only. For N images,
+  %   there will be (N-1) combines performed. Each combine is described by
+  %   three numbers so that there should be (N-1)*3 elements in this
+  %   vector. Each set of three numbers indicates the following:
+  %     1st element: Minimum time to begin combine
+  %     2nd element: Minimum time after ice surface to begin combine
+  %     3rd element: Time at end of the preceeding waveform to not use
+  tomo_collate.img_comb = [0 3.5e-5 1e-6];
+  
+  % .fuse: 'vertical' or 'horizontal' fuse
+  tomo_collate.fuse_method = 'horizontal';
+  
+  % .fuse_images_flag: runs fuse_images.m when true
+  tomo_collate.fuse_images_flag = true;
+  
+  % .add_icemask_surfacedem_flag: runs add_icemask_surfacedem.m when true
+  tomo_collate.add_icemask_surfacedem_flag = true;
+  
+  % create_surfData_flag: runs create_surfData.m when true
+  tomo_collate.create_surfData_flag = true;
+  
+else
+  error('%s is not a valid example_setup.', example_setup);
+end
 
 %% Automated loading section
 % =========================================================================

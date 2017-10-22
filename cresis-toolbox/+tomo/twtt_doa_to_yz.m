@@ -87,9 +87,9 @@ for rline = 1:Nx
       theta_tx = asin(sin(theta_inc)/sqrt(er_ice));
       
       y(doa_idx,rline) = inc_y + sin(theta_tx) ...
-        * (twtt(doa_idx,rline)-twtt_to_surf(doa_idx)) * c/2;
+        * (twtt(doa_idx,rline)-twtt_to_surf(doa_idx)) * c/2/sqrt(er_ice);
       z(doa_idx,rline) = inc_z - cos(theta_tx) ...
-        * (twtt(doa_idx,rline)-twtt_to_surf(doa_idx)) * c/2;
+        * (twtt(doa_idx,rline)-twtt_to_surf(doa_idx)) * c/2/sqrt(er_ice);
     else
       % Surface does not exist for this angle of arrival
     end

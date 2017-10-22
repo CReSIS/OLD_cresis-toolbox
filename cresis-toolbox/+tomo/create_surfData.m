@@ -27,7 +27,7 @@ function create_surfData(param,mdata)
 param_load_layers = param;
 param_load_layers.cmd.frms = round([-1,0,1] + param.proc.frm);
 
-if ~isfield(param.tomo_collate,'layer_source') || isempty(param.tomo_collate.layer_source)
+if strcmp(param.tomo_collate.layer_source,'ops')
   layer_params = [];
   idx = 0;
   idx = idx + 1;

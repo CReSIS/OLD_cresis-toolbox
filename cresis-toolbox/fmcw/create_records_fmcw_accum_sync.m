@@ -14,7 +14,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % Debug Setup
   % =====================================================================
   
-  new_param = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150911_02');
+  new_param = read_param_xls(ct_filename_param('snow_param_2016_Antarctica_DC8.xls'),'20161112_03');
 
   fn = ct_filename_ct_tmp(new_param,new_param.records.records_fn,'records','workspace');
   fn = [fn '.mat'];
@@ -216,12 +216,15 @@ for board_idx = 1:length(board_hdrs)
   epri_diff = diff(double(hdr.epri));
   drop_last_files = 0;
   if any(epri_diff > 1000)
-    warning('Large positive jump. Sometimes these are single header errors (one record has an EPRI header error that can be fixed with "random_large_epri_offset=true" and then run "dbcont", possibly adjusting random_large_epri_offset_tresholds = [1 3] (largest and smallest allowable epri jumps, usually adjust to [-M N] so that M/N exclude all EPRI jumps that are real jumps rather than just header errors), and a note in cmd.notes) and sometimes it means the segment needs to be broken into two at the file idx listed because there is a data gap > 1km (typically the file with the epri jump in it is left out so that segment from 1 to N is broken into 1 to L-1 and L+1 to N). If the EPRI jump is real (i.e. diff of EPRI and diff of UTC time match) and is a small enough data gap to be ignored, just run dbcont.');
+    warning('Large positive jump. Sometimes these are single header errors (one record has an EPRI header error that can be fixed with "random_large_epri_offset=true" and then run "dbcont", possibly adjusting random_large_epri_offset_tresholds = [1 3] (largest and smallest allowable epri jumps, usually adjust to [-M N] so that M/N exclude all EPRI jumps that are real jumps rather than just header errors), and a note in cmd.notes) and sometimes it means the segment needs to be broken into two at the file idx listed because there is a data gap > 1km (typically the file with the epri jump in it is left out so that segment from 1 to N is broken into 1 to L-1 and L+1 to N). If the EPRI jump is real (i.e. diff of EPRI and estimated diff of EPRI from UTC time match which can be determined from figure 1) and is a small enough data gap to be ignored, just run dbcont.');
     figure(1); clf;
-    plot(epri_diff);
+    plot(epri_diff,'LineWidth',4);
+    hold on;
+    plot(diff(hdr.utc_time_sod)/EPRI);
     xlabel('Range line');
     ylabel('diff of EPRI');
     title('diff of EPRI');
+    legend('EPRI','Estimated');
     a1 = gca;
     figure(2); clf;
     plot(diff(hdr.utc_time_sod));
@@ -276,12 +279,12 @@ for board_idx = 1:length(board_hdrs)
           num_jumped, epri_diff_big_jumps(idx));
       end
       
-      epri_diff(epri_diff_big_jumps) = 1;
+      diff_utc_time_sod = diff(hdr.utc_time_sod);
+      epri_diff(epri_diff_big_jumps) = diff_utc_time_sod(epri_diff_big_jumps)/EPRI;
       epri_new = cumsum([double(hdr.epri(1)) epri_diff]);
       correction = double(hdr.epri) - epri_new;
       epri_new(abs(correction)<10) = hdr.epri(abs(correction)<10);
       figure(1); clf;
-      set(1,'Renderer','painters');
       plot(double(hdr.epri) - epri_new,'x');
       ylim([-20 20]);
       title('Is it all zeros for the good records?');
@@ -289,8 +292,11 @@ for board_idx = 1:length(board_hdrs)
       plot(epri_new);
       title('Is it reasonable for EPRI?');
       figure(3); clf;
-      plot(diff(epri_new));
-      title('Are the differences all 1,2,3?');
+      plot(diff(epri_new),'LineWidth',4);
+      hold on;
+      plot(diff_utc_time_sod/EPRI)
+      legend('EPRI','Estimated');
+      title('Are the diff EPRI and estimated diff EPRI the same?');
       warning('Please look at plots to make sure correction worked before running "dbcont"');
       keyboard
       hdr.epri = int32(epri_new);

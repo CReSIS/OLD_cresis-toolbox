@@ -417,6 +417,7 @@ for frm_idx = 1:length(param.cmd.frms)
       
       if found
         ops_param = struct('properties',[]);
+        ops_param.tmp_path = param.tmp_path;
         ops_param.properties.location = param.post.ops.location;
         ops_param.properties.season = param.season_name;
         ops_param.properties.segment = param.day_seg;

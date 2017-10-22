@@ -130,7 +130,7 @@ if force_compile
   % packages or classes.
   working_dir = pwd;
   [~,working_dir_name] = fileparts(working_dir);
-  if working_dir_name(1) == '+' || working_dir_name(1) == '@'
+  if ~isempty(working_dir_name) && (working_dir_name(1) == '+' || working_dir_name(1) == '@')
     warning('Before dbcont, change directory out of any package or class directories, because this can cause mcc to fail. (E.g. "cd ..")');
     keyboard
   end
