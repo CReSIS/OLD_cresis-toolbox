@@ -25,7 +25,7 @@ default.Gt = 8*4;
 default.Ae = 2*0.468 * 0.468;
 
 default.system_loss_dB = 10.^(-5.88/10);
-default.max_DDS_RAM = 4000;
+default.max_DDS_RAM = 40000;
 default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 
 default.iq_mode = 0;
@@ -41,12 +41,12 @@ default.adc_folder_name = 'chan%d';
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 8
-  ref_adc = 6;
+  ref_adc = 4;
   default.txequal.img = [(1:2:16).', ref_adc*ones(8,1)];
   default.txequal.ref_wf_adc = 4;
   default.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
   default.txequal.Hwindow_desired = chebwin(8,30).';
-  default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];
+  default.txequal.max_DDS_amp = [40000 40000 40000 40000 40000 40000 40000 40000];
   default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
   default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
   default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
@@ -55,12 +55,13 @@ if 1
   default.txequal.remove_linear_phase_en = true;
   
   %   Connect antenna N to WFG N for all N = 1 to 8, DDS 8 is bad
-%   ref_adc = 6;
+%   ref_adc = 4;
 %   default.txequal.img = [(1:2:16).', ref_adc*ones(8,1)];
-%   default.txequal.wf_mapping = [1 2 3 4 5 6 7 0];
+%   default.txequal.wf_mapping = [1 2 3 4 5 0 7 8];
 %   default.txequal.ref_wf_adc = 4;
-%   default.txequal.Hwindow_desired = [chebwin(7,30).' 0];
-%   default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 0];
+% %   default.txequal.Hwindow_desired = [chebwin(7,30).' 0];
+%   default.txequal.Hwindow_desired = [1 1 1 1 1 0 1 1];
+%   default.txequal.max_DDS_amp = [40000 40000 40000 40000 40000 0 40000 40000];
 %   default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
 %   default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
 %   default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
