@@ -39,7 +39,7 @@ sync_fns = {}; sync_params = {};
 % gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM-field_traj';
 % gps_source_to_use = 'ATM';
-gps_source_to_use = 'ATM';
+gps_source_to_use = 'DMS';
 
 if strcmpi(gps_source_to_use,'NMEA')
     
