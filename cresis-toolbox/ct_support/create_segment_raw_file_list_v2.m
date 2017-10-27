@@ -662,36 +662,39 @@ if online_mode
   return;
 end
 
-%% Correct and process time variable
-%% Check to see if there are big soconds jumps (those encountered in 2016_Greenland_P3,
-%% jump to a large number and then drop back to correct values)?
-big_sec_jump_idxs = find(abs(diff(double(seconds)))>1e5);
-fraction_wrap_idxs = find(diff(double(fraction))<0);
-mid_jumps = find(~ismember(big_sec_jump_idxs,fraction_wrap_idxs));
-if ~isempty(mid_jumps)
+if 0
+  %% Check to see if there are big soconds jumps (those encountered in 2016_Greenland_P3,
+  %% jump to a large number and then drop back to correct values)?
+  big_sec_jump_idxs = find(abs(diff(double(seconds)))>1e5);
+  fraction_wrap_idxs = find(diff(double(fraction))<0);
+  mid_jumps = find(~ismember(big_sec_jump_idxs,fraction_wrap_idxs));
+  if ~isempty(mid_jumps)
     [tmp,tmp_idxs] = min(abs(fraction_wrap_idxs - big_sec_jump_idxs(mid_jumps)));
     big_sec_jump_idxs(mid_jumps) = fraction_wrap_idxs(tmp_idxs);
-end
-big_sec_jump_idxs = big_sec_jump_idxs(ismember(big_sec_jump_idxs,fraction_wrap_idxs));
-if ~isempty(big_sec_jump_idxs)
-  warning('Header seconds jump more than 1e5 sec, correcting jumps');
-  if 0
-    figure(101);plot(fraction);
-    max_fraction = max(fraction);
-    for idx = 1:length(big_sec_jump_idxs)
-      figure(101);hold on;plot([big_sec_jump_idxs(idx),big_sec_jump_idxs(idx)]+1,[0,1.2*max_fraction],'r--');
+  end
+  big_sec_jump_idxs = big_sec_jump_idxs(ismember(big_sec_jump_idxs,fraction_wrap_idxs));
+  if ~isempty(big_sec_jump_idxs)
+    warning('Header seconds jump more than 1e5 sec, correcting jumps');
+    if 0
+      figure(101);plot(fraction);
+      max_fraction = max(fraction);
+      for idx = 1:length(big_sec_jump_idxs)
+        figure(101);hold on;plot([big_sec_jump_idxs(idx),big_sec_jump_idxs(idx)]+1,[0,1.2*max_fraction],'r--');
+      end
+    end
+    for idx = 1:2:length(big_sec_jump_idxs)
+      jump_start = big_sec_jump_idxs(idx)+1;
+      wrap_idxs = [find(fraction_wrap_idxs == big_sec_jump_idxs(idx)):find(fraction_wrap_idxs == big_sec_jump_idxs(idx+1))];
+      wrap_idxs(1) = [];
+      for wrap_idx = wrap_idxs
+        seconds(jump_start:fraction_wrap_idxs(wrap_idx)) = seconds(jump_start-1)+1;
+        jump_start = fraction_wrap_idxs(wrap_idx) + 1;
+      end
     end
   end
-  for idx = 1:2:length(big_sec_jump_idxs) 
-    jump_start = big_sec_jump_idxs(idx)+1;
-    wrap_idxs = [find(fraction_wrap_idxs == big_sec_jump_idxs(idx)):find(fraction_wrap_idxs == big_sec_jump_idxs(idx+1))];
-    wrap_idxs(1) = [];
-    for wrap_idx = wrap_idxs
-      seconds(jump_start:fraction_wrap_idxs(wrap_idx)) = seconds(jump_start-1)+1;
-      jump_start = fraction_wrap_idxs(wrap_idx) + 1;
-    end
-  end
 end
+
+%% Correct and process time variable
 if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','mcords3','mcords5','snow8'}))
   utc_time_sod = double(seconds) + double(fraction) / param.clk;
   utc_time_sod = medfilt1(double(utc_time_sod));
