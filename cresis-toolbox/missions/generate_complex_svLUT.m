@@ -48,7 +48,7 @@ Nc = size(data.surf_vals,3);
 
 wf = data.param_analysis.analysis.imgs{1}(param.analysis.surf.wf_adc_list(1),1);
 source = 0;
-eval(data.param_analysis.surf.layer_params.eval.cmd);
+eval(data.param_analysis.analysis.surf.layer_params.eval.cmd);
 zero_surf_bin = round(1-source/data.wfs(wf).dt);
 if exist('zero_surf_bin_override','var') && ~isempty(zero_surf_bin_override)
   zero_surf_bin = zero_surf_bin_override;

@@ -556,7 +556,8 @@ for accum_idx = 1:length(accum(board).wf)
       % to the NCO_freq and is removed by the clip off bad IF freq code)
       a_data(:,rline,:) = a_data(:,rline,:) * quantization_to_V;
     else
-      a_data(:,rline,:) = (a_data(:,rline,:) - repmat(mean(a_data(:,rline,:)),[size(a_data,1),1,1])) * quantization_to_V;
+      a_data(1:num_sam(rline),rline,:) = bsxfun(@minus,a_data(1:num_sam(rline),rline,:), ...
+        mean(a_data(1:num_sam(rline),rline,:),1)) * quantization_to_V;
     end
   end
   

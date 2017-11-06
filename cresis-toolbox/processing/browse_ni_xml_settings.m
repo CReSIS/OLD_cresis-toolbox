@@ -504,6 +504,17 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
           end
           row_str = cat(2,row_str, sprintf('\t%.16g',settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1)));
         end
+        if any(strcmpi('ft_dec',default.radar_worksheet_headers))
+          if param_file.write_en
+            params(param_idx).radar.wfs(wf).ft_dec = default.radar.ft_dec;
+          end
+          row_str = cat(2,row_str, ...
+              sprintf('\t[%d',default.radar.ft_dec(1)));
+          row_str = cat(2,row_str, ...
+              sprintf(' %d',default.radar.ft_dec(2)));
+         row_str = cat(2,row_str, ...
+              sprintf(']'));         
+        end
         if any(strcmpi('ref_fn',default.radar_worksheet_headers))
           if param_file.write_en
             params(param_idx).radar.wfs(wf).ref_fn = default.radar.ref_fn;
