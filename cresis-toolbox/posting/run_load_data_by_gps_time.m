@@ -6,6 +6,8 @@
 %
 % To use this function, go through and set the parameters highlighted by:
 %   "<== CHANGE HERE"
+% In the section "User Settings for Comparison Image", you only need to set
+% these parameters if you are loading additional images to compare.
 %
 % Note that the text and axes are scaled to the size of the figure when
 % the command is run. Therefore, it is best to size the figure window to
@@ -23,7 +25,7 @@ clear param echo_param;
 data_load_method = 'file'; % <== CHANGE HERE
 
 if strcmpi(data_load_method,'arbitrary')
-  %% Load data for an arbitrary time period
+  % Load data for an arbitrary time period
   
   param.start.hour = 13; % <== CHANGE HERE
   param.start.minute = 17; % <== CHANGE HERE
@@ -44,7 +46,7 @@ if strcmpi(data_load_method,'arbitrary')
   param.stop.gps_time = datenum_to_epoch(datenum(param.stop.year,param.stop.month,param.stop.day,param.stop.hour,param.stop.minute,param.stop.sec));
   
 elseif strcmpi(data_load_method,'file')
-  %% Load data associated with a frame
+  % Load data associated with a frame
   %load('X:\ct_data\rds\2013_Greenland_P3\CSARP_post\CSARP_standard\20130419_01\Data_20130419_01_003.mat','GPS_time') % <== CHANGE HERE
   %load('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_post/CSARP_standard/20130419_01/Data_20130419_01_003.mat','GPS_time') % <== CHANGE HERE
   load('/cresis/snfs1/dataproducts/ct_data/snow/2017_Greenland_P3/CSARP_post/CSARP_qlook/20170309_01/Data_20170309_01_150.mat','GPS_time') % <== CHANGE HERE
@@ -113,18 +115,20 @@ param.use_master_surf = 0;
 params = param;
 echo_params = echo_param;
 
-if 1
-  %% User Settings for Comparison Images
-  % ====================================================================
-  % ====================================================================
-  
+%% User Settings for Comparison Image
+% ====================================================================
+% ====================================================================
+% Enable by changing to "1". Copy and paste this section to compare many
+% images. These images will all be interpolated onto the first image.
+
+if 0
   % data_load_method: string containing "file" or "arbitrary"
   %   file: Loads a data frame and plots the whole data frame
   %   arbitrary: Allows a specific GPS date range to be specified
   data_load_method = 'file'; % <== CHANGE HERE
   
   if strcmpi(data_load_method,'arbitrary')
-    %% Load data for an arbitrary time period
+    % Load data for an arbitrary time period
     
     param.start.hour = 13; % <== CHANGE HERE
     param.start.minute = 17; % <== CHANGE HERE
@@ -145,11 +149,11 @@ if 1
     param.stop.gps_time = datenum_to_epoch(datenum(param.stop.year,param.stop.month,param.stop.day,param.stop.hour,param.stop.minute,param.stop.sec));
     
   elseif strcmpi(data_load_method,'file')
-    %% Load data associated with a frame
+    % Load data associated with a frame
     %load('X:\ct_data\rds\2015_Greenland_C130\CSARP_post\CSARP_standard\20150506_03\Data_20150506_03_016.mat','GPS_time') % <== CHANGE HERE
     %load('/cresis/snfs1/dataproducts/ct_data/rds/2015_Greenland_C130/CSARP_post/CSARP_standard/20150506_03/Data_20150506_03_016.mat','GPS_time') % <== CHANGE HERE
     load('/cresis/snfs1/dataproducts/ct_data/snow/2016_Greenland_P3/CSARP_post/CSARP_qlook/20160503_02/Data_20160503_02_191.mat','GPS_time') % <== CHANGE HERE
-    param.start.gps_time = GPS_time(1)-15;
+    param.start.gps_time = GPS_time(1);
     param.stop.gps_time = GPS_time(end);
     
   else
