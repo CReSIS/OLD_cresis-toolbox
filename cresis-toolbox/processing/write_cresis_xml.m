@@ -478,8 +478,8 @@ for wf = 1:length(param.wfs)
   else
     error('Unsupported radar')
   end
-  bin_start = round(((Tstart + Tsystem_delay - Tguard + Trg_start_offset)  * fs/samples_per_record_bin)/4)*4;
-  bin_stop = round(((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay + Trg_stop_offset)  * fs/samples_per_record_bin)/4)*4;
+  bin_start = round(((Tstart + Tsystem_delay - Tguard + Trg_start_offset)  * fs/samples_per_record_bin)/8)*8;
+  bin_stop = round(((Tend + param.wfs(wf).Tpd + Tguard + Tsystem_delay + Trg_stop_offset)  * fs/samples_per_record_bin)/8)*8;
   
   settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('RecordZ20Stop') = reshape(uint16(bin_stop),[1 1]);
   if uint16(bin_start) < 32

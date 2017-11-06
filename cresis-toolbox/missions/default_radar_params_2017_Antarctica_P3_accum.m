@@ -31,8 +31,8 @@ default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 default.iq_mode = 0;
 default.tx_DDS_mask = [1 1 1 1];
 
-default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
-default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
+default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ft_dec','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
+default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 default.basic_surf_track_min_time = 2e-6;
 default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
@@ -154,7 +154,7 @@ default.radar.rx_paths = [1:4];
 default.radar.noise_figure = 2;
 default.radar.rx_gain = 45;
 default.radar.adc_SNR_dB = 59;
-default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.Tadc_adjust = 8.44e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 defaults = {};
 
@@ -169,6 +169,7 @@ default.get_heights.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'',''};
+default.radar.ft_dec = [27 100];
 default.radar.ref_fn = '';
 default.xml_regexp = 'survey_600-900MHz_.*.xml';
 default.name = 'Survey Mode 600-900 MHz';
