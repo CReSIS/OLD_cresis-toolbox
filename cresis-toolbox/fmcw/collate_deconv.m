@@ -989,6 +989,9 @@ if stage_two_en
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
     fn = fullfile(fn_dir,sprintf('deconv_tmp_%s.mat', param.day_seg));
     fns{end+1} = fn;
+    if ~exist(fn)
+      continue
+    end
     final = load(fn);
     
     min_twtt = min(final.deconv_twtt_min);
@@ -1039,7 +1042,21 @@ if stage_two_en
     fprintf('Loading %s\n', param.day_seg);
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
     fn = fullfile(fn_dir,sprintf('deconv_tmp_%s.mat', param.day_seg));
-    final = load(fn);
+    if ~exist(fn)
+        final.metric = [];
+        final.num_response = [];
+        final.deconv_H = {};
+        final.deconv_gps_time = [];
+        final.deconv_twtt_min = [];
+        final.deconv_twtt_max = [];
+        final.deconv_impulse_response = {};
+        final.freq = {};
+        final.deconv_DDC_Mt = [];
+        final.deconv_frame = [];
+        final.param_collate = param;
+    else
+      final = load(fn);
+    end
     
     % Create "twtts" the vector of all missing two way travel times
     if isempty(final.deconv_twtt_min)

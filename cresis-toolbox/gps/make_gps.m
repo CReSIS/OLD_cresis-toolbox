@@ -410,12 +410,12 @@ for file_idx = 1:length(in_fns)
     end
 
     if isfield(gps,'radar_time')
-      save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','radar_time','sw_version');
+      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','radar_time','sw_version');
     else
-      save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','sw_version');
+      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','sw_version');
     end
   else
-    save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');
+    save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');
   end
   
   if debug_level >= 2

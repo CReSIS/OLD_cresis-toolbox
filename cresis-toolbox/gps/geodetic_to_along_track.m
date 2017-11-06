@@ -22,6 +22,17 @@ function [along_track,lat_filt,lon_filt,elev_filt] = geodetic_to_along_track(lat
 % Load WGS84 ellipsoid
 physical_constants;
 
+if isstruct(lat) && isfield(lat,'Latitude')
+  elev = lat.Elevation;
+  lon = lat.Longitude;
+  lat = lat.Latitude;
+end
+if isstruct(lat) && isfield(lat,'lat')
+  elev = lat.elev;
+  lon = lat.lon;
+  lat = lat.lat;
+end
+
 if ~exist('elev','var') || isempty(elev)
   elev = zeros(size(lat));
 end

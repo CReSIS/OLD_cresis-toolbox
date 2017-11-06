@@ -68,10 +68,10 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).sched.name                = 'kjm';
   %profile(pidx).sched.url                 = 'kraken.cluster.cresis.ku.edu';
   profile(pidx).sched.data_location       = '/cresis/snfs1/scratch/paden/mdce_tmp/torque-temp';
-  %profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1,pmem=1725mb,walltime=120:00'; % 4 processes per node
-  %profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1,pmem=2300mb,walltime=120:00'; % 3 processes per node
-  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1,pmem=3450mb,walltime=120:00'; % 2 processes per node
-  %profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1,pmem=6500mb,walltime=120:00'; % 1 process per node
+  %profile(pidx).sched.submit_arguments    = '-m p -l nodes=1:ppn=1,pmem=1725mb,walltime=120:00'; % 4 processes per node
+  %profile(pidx).sched.submit_arguments    = '-m p -l nodes=1:ppn=1,pmem=2300mb,walltime=120:00'; % 3 processes per node
+  profile(pidx).sched.submit_arguments    = '-m p -l nodes=1:ppn=1,pmem=3450mb,walltime=120:00'; % 2 processes per node
+  %profile(pidx).sched.submit_arguments    = '-m p -l nodes=1:ppn=1,pmem=6500mb,walltime=120:00'; % 1 process per node
   profile(pidx).sched.max_in_queue        = 64;
   profile(pidx).sched.cluster_size        = inf;
   profile(pidx).sched.stop_on_fail        = true;
@@ -106,7 +106,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).sched.name                = '';
   profile(pidx).sched.url                 = '';
   profile(pidx).sched.data_location       = '/N/dcwan/scratch/jpaden/matlab_torque/';
-  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1:dcwan,pmem=2gb,walltime=40:00';
+  profile(pidx).sched.submit_arguments    = '-m p -l nodes=1:ppn=1:dcwan,pmem=2gb,walltime=40:00';
   profile(pidx).sched.max_in_queue        = 64;
   profile(pidx).sched.max_tasks_per_jobs  = 64;
   profile(pidx).sched.cluster_size        = inf;
