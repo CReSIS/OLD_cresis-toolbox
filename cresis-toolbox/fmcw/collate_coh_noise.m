@@ -24,7 +24,8 @@ for param_idx = 1:length(params)
   end
   
   %% Segment must have selected this type of coherent noise removal
-  if ~any(param.get_heights.coh_noise_method == [7 9 17 19])
+  if ~isfield(param.get_heights,'coh_noise_method') || isempty(param.get_heights.coh_noise_method) || ~any(param.get_heights.coh_noise_method == [7 9 17 19])
+    warning('param.get_heights.coh_noise_method is not set to a valid choice (e.g. 17).');
     continue;
   end
   

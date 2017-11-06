@@ -256,10 +256,12 @@ for param_idx = 1:length(params)
     for lay_idx = lay_idxs
       hold on;
       plot(layers(ref_idx).gps_time - origin, layers(lay_idx).twtt_ref, 'r')
-      plot(layers(ref_idx).gps_time(recs) - origin, layers(lay_idx).twtt_ref(recs), 'r.')
+      plot(layers(ref_idx).gps_time(recs) - origin, layers(lay_idx).twtt_ref(recs), 'r','LineWidth',4)
       grid on
     end
-    title('TWTT');
+    title('Are the Radar and LIDAR synchronized?');
+    xlabel('TWTT (sec)');
+    ylabel('Relative GPS time (sec)');
     legend('RADAR','LIDAR+ELEV','LIDAR','location','best');
   end
   

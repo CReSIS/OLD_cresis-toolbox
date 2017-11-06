@@ -29,7 +29,7 @@ params = read_param_xls(ct_filename_param('rds_param_2002_Greenland_P3.xls'),[],
 % params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),[],'post');
 
-source_dir = '/cresis/snfs1/dataproducts/ct_data/';
+source_dir = gRadar.out_path;
 backup_dirs = {};
 dirs_list = [source_dir backup_dirs];
 support_dir = gRadar.support_path;

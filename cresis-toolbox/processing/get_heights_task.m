@@ -776,7 +776,7 @@ for img_idx = 1:length(param.load.imgs)
   end
   
   %% Apply incoherent averaging with decimation
-  if size(param.get_heights.inc_B_filter,2) >= 1
+  if param.get_heights.inc_ave >= 1
     data_incoh = [];
     for adc_idx = 1:size(g_data,3)
       data_incoh(:,:,adc_idx) = fir_dec(fir_dec(abs(g_data(:,:,adc_idx)).^2,param.get_heights.inc_B_filter,1), param.get_heights.inc_ave);

@@ -446,6 +446,16 @@ for accum_idx = 1:length(accum(board).wf)
   elseif ~isempty(param.radar.wfs(wf).nyquist_zone)
     nyquist_zone(:) = param.radar.wfs(wf).nyquist_zone;
   end
+  if ~isfield(param.radar.wfs(wf),'IF_trim') || isempty(param.radar.wfs(wf).IF_trim)
+    IF_trim = 0.5e6;
+  else
+    IF_trim = param.radar.wfs(wf).IF_trim;
+  end
+  if ~isfield(param.radar.wfs(wf),'max_nz') || isempty(param.radar.wfs(wf).max_nz)
+    max_nz = 3;
+  else
+    max_nz = param.radar.wfs(wf).max_nz;
+  end
   
   t_origin = 0;
   fs_raw = param.wfs(wf).fs_raw ./ Mt;
@@ -465,10 +475,17 @@ for accum_idx = 1:length(accum(board).wf)
   %  t_origin: start of transmit, should not change
   %  Tpd: pulse duration, should not change
   
-  if any(nyquist_zone > 3)
-    warning('Invalid Nyquist zone (greater than 3), resetting to NZ 2 or 3')
-    nyquist_zone(nyquist_zone > 3 & ~mod(nyquist_zone,2)) = 2;
-    nyquist_zone(nyquist_zone > 3 & mod(nyquist_zone,2)) = 3;
+  if any(nyquist_zone > max_nz)
+    warning('Invalid Nyquist zone (greater than %d), resetting to NZ %d or %d', max_nz, max_nz-1, max_nz);
+    if mod(max_nz,2)
+      % Max NZ is odd
+      nyquist_zone(nyquist_zone > max_nz & ~mod(nyquist_zone,2)) = max_nz-1; % Desired NZ is even
+      nyquist_zone(nyquist_zone > max_nz & mod(nyquist_zone,2)) = max_nz; % Desired NZ is odd
+    else
+      % Max NZ is even
+      nyquist_zone(nyquist_zone > max_nz & ~mod(nyquist_zone,2)) = max_nz; % Desired NZ is even
+      nyquist_zone(nyquist_zone > max_nz & mod(nyquist_zone,2)) = max_nz-1; % Desired NZ is odd
+    end
   end
   
   if ~isempty(param.radar.wfs(wf).record_start_idx)
@@ -648,10 +665,9 @@ for accum_idx = 1:length(accum(board).wf)
         time_offset(rline) = NCO_freq(rline) / abs(param.wfs(wf).chirp_rate);
       end
       %% Trim off aliased IF frequencies
-      freq_guard = 0.5e6;
       bad_if_freq_mask = logical(zeros(size(a_data,1),1));
-      bad_if_freq_mask(1:num_sam(rline)) = logical(freq_raw < nyquist_zone(rline)*param.wfs(wf).fs_raw/2+freq_guard ...
-        | freq_raw > (nyquist_zone(rline)+1)*param.wfs(wf).fs_raw/2-freq_guard);
+      bad_if_freq_mask(1:num_sam(rline)) = logical(freq_raw < nyquist_zone(rline)*param.wfs(wf).fs_raw/2+IF_trim ...
+        | freq_raw > (nyquist_zone(rline)+1)*param.wfs(wf).fs_raw/2-IF_trim);
       
       a_data(bad_if_freq_mask,rline) = 0;
     else
