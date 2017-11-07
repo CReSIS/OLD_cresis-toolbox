@@ -20,13 +20,23 @@
 clear param echo_param;
 
 % data_load_method: string containing "file" or "arbitrary"
-%   file: Loads a data frame and plots the whole data frame
+%   picker: Loads a GPS date range from cursor information from imb.picker
 %   arbitrary: Allows a specific GPS date range to be specified
-data_load_method = 'file'; % <== CHANGE HERE
+%   file: Loads a data frame and plots the whole data frame
+data_load_method = 'picker'; % <== CHANGE HERE
 
-if strcmpi(data_load_method,'arbitrary')
-  % Load data for an arbitrary time period
+if strcmpi(data_load_method,'picker')
   
+  param.start.picker = '19930702_11_010: 71.001638 N, -39.078796 E, X:214.197 km, Y:-2065.268 km, 1993-07-02 13:50:58.60'; % <== CHANGE HERE
+  param.stop.picker = '19930702_11_011: 70.869065 N, -40.912414 E, X:149.056 km, Y:-2085.777 km, 1993-07-02 13:58:20.47'; % <== CHANGE HERE
+  
+  param.start.picker = param.start.picker(max([1 find(param.start.picker==',',1,'last')+2]):end);
+  param.start.gps_time = datenum_to_epoch(datenum(param.start.picker));
+  param.stop.picker = param.stop.picker(max([1 find(param.stop.picker==',',1,'last')+2]):end);
+  param.stop.gps_time = datenum_to_epoch(datenum(param.stop.picker));
+
+elseif strcmpi(data_load_method,'arbitrary')
+  % Load data for an arbitrary time period
   param.start.hour = 13; % <== CHANGE HERE
   param.start.minute = 17; % <== CHANGE HERE
   param.start.sec = 27; % <== CHANGE HERE
@@ -47,8 +57,6 @@ if strcmpi(data_load_method,'arbitrary')
   
 elseif strcmpi(data_load_method,'file')
   % Load data associated with a frame
-  %load('X:\ct_data\rds\2013_Greenland_P3\CSARP_post\CSARP_standard\20130419_01\Data_20130419_01_003.mat','GPS_time') % <== CHANGE HERE
-  %load('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_post/CSARP_standard/20130419_01/Data_20130419_01_003.mat','GPS_time') % <== CHANGE HERE
   load('/cresis/snfs1/dataproducts/ct_data/snow/2017_Greenland_P3/CSARP_post/CSARP_qlook/20170309_01/Data_20170309_01_150.mat','GPS_time') % <== CHANGE HERE
   param.start.gps_time = GPS_time(1);
   param.stop.gps_time = GPS_time(end);
@@ -58,23 +66,23 @@ else
 end
 
 % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
-param.radar_name = 'snow'; % <== CHANGE HERE
+param.radar_name = 'rds'; % <== CHANGE HERE
 
-param.season_name = '2017_Greenland_P3'; % <== CHANGE HERE
+param.season_name = '1993_Greenland_P3'; % <== CHANGE HERE
 
 % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
 echo_param.elev_comp = 3; % <== CHANGE HERE
 
 % param.out: output data product to use. For example:
 %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
+param.out = 'qlook'; % <== CHANGE HERE
 
 % param.img_name: output data product image. For example:
 %   '': combined product, 'img_01_', , 'img_02_'
 param.img_name = '';
 
 if echo_param.elev_comp == 3
-  echo_param.depth = '[min(Surface_Elev)-1 max(Surface_Elev)+1]'; % <== CHANGE HERE
+  echo_param.depth = '[min(Surface_Elev)-3500 max(Surface_Elev)+200]'; % <== CHANGE HERE
   %echo_param.depth = '[1594.9 1635.1]';
 else
   echo_param.depth = '[min(Surface_Depth)-20 max(Surface_Depth)+200]'; % <== CHANGE HERE
@@ -123,11 +131,22 @@ echo_params = echo_param;
 
 if 0
   % data_load_method: string containing "file" or "arbitrary"
-  %   file: Loads a data frame and plots the whole data frame
+  %   picker: Loads a GPS date range from cursor information from imb.picker
   %   arbitrary: Allows a specific GPS date range to be specified
-  data_load_method = 'file'; % <== CHANGE HERE
+  %   file: Loads a data frame and plots the whole data frame
+  data_load_method = 'picker'; % <== CHANGE HERE
   
-  if strcmpi(data_load_method,'arbitrary')
+  if strcmpi(data_load_method,'picker')
+    
+    param.start.picker = '19930709_08_012: 70.996954 N, -39.076055 E, X:214.350 km, Y:-2065.776 km, 1993-07-09 15:37:11.26'; % <== CHANGE HERE
+    param.stop.picker = '19930709_08_013: 70.860179 N, -40.899761 E, X:149.587 km, Y:-2086.730 km, 1993-07-09 15:44:31.31'; % <== CHANGE HERE
+    
+    param.start.picker = param.start.picker(max([1 find(param.start.picker==',',1,'last')+2]):end);
+    param.start.gps_time = datenum_to_epoch(datenum(param.start.picker));
+    param.stop.picker = param.stop.picker(max([1 find(param.stop.picker==',',1,'last')+2]):end);
+    param.stop.gps_time = datenum_to_epoch(datenum(param.stop.picker));
+    
+  elseif strcmpi(data_load_method,'arbitrary')
     % Load data for an arbitrary time period
     
     param.start.hour = 13; % <== CHANGE HERE
@@ -150,8 +169,6 @@ if 0
     
   elseif strcmpi(data_load_method,'file')
     % Load data associated with a frame
-    %load('X:\ct_data\rds\2015_Greenland_C130\CSARP_post\CSARP_standard\20150506_03\Data_20150506_03_016.mat','GPS_time') % <== CHANGE HERE
-    %load('/cresis/snfs1/dataproducts/ct_data/rds/2015_Greenland_C130/CSARP_post/CSARP_standard/20150506_03/Data_20150506_03_016.mat','GPS_time') % <== CHANGE HERE
     load('/cresis/snfs1/dataproducts/ct_data/snow/2016_Greenland_P3/CSARP_post/CSARP_qlook/20160503_02/Data_20160503_02_191.mat','GPS_time') % <== CHANGE HERE
     param.start.gps_time = GPS_time(1);
     param.stop.gps_time = GPS_time(end);
@@ -161,23 +178,23 @@ if 0
   end
   
   % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
-  param.radar_name = 'snow'; % <== CHANGE HERE
+  param.radar_name = 'rds'; % <== CHANGE HERE
   
-  param.season_name = '2016_Greenland_P3'; % <== CHANGE HERE
+  param.season_name = '1993_Greenland_P3'; % <== CHANGE HERE
   
   % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
   echo_param.elev_comp = 3; % <== CHANGE HERE
   
   % param.out: output data product to use. For example:
   %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-  param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
+  param.out = 'qlook'; % <== CHANGE HERE
   
   % param.img_name: output data product image. For example:
   %   '': combined product, 'img_01_', , 'img_02_'
   param.img_name = '';
   
   if echo_param.elev_comp == 3
-    echo_param.depth = '[min(Surface_Elev)-1 max(Surface_Elev)+1]'; % <== CHANGE HERE
+    echo_param.depth = '[min(Surface_Elev)-3500 max(Surface_Elev)+200]'; % <== CHANGE HERE
     %echo_param.depth = '[1594.9 1635.1]';
   else
     echo_param.depth = '[min(Surface_Depth)-20 max(Surface_Depth)+200]'; % <== CHANGE HERE
@@ -330,7 +347,7 @@ for param_idx = 1:length(params)
     ref = gps;
     SAR_coord_param.type = 2;
     SAR_coord_param.squint = [0 0 -1].';
-    SAR_coord_param.Lsar = 500;
+    SAR_coord_param.Lsar = 500; % Increase this to create more smoothing in along-track
     along_track = geodetic_to_along_track(master.Latitude,master.Longitude);
     output_along_track = along_track;
     
