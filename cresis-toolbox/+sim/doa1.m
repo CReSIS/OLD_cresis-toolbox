@@ -1,11 +1,6 @@
-% SRAVYA
-% This section used in doa1
-% function [results, DCM_runs] = doa(param,doa_prev_optimum)
 
+function [results, DCM_runs] = doa1(param,doa_prev_optimum)
 
-function [results, DCM_runs] = doa(param)
-
-% results = doa(param)
 %
 % Function for simulating direction of arrival algorithms
 %
@@ -210,19 +205,16 @@ for test_idx = 1:size(param.monte.SNR,1)
         case 7
           % MLE method: init and minimization
           
-          % This section used in doa1
-          %           if Nsig_tmp == 1
-          %               doa0 = sort(mle_initialization1(DCM_nb,doa_nb_nd_param,[]));
-          %
-          %           elseif Nsig_tmp > 1
-          %            doa0 = sort(mle_initialization1(DCM_nb,doa_nb_nd_param,doa_prev_optimum(run_idx,:)));
-          %
-          %           end
+% SRAVYA
+
+          if Nsig_tmp == 1
+              doa0 = sort(mle_initialization1(DCM_nb,doa_nb_nd_param,[]));
           
-          
-          doa0 = sort(mle_initialization(DCM_nb,doa_nb_nd_param));
-          
-          
+          elseif Nsig_tmp > 1
+           doa0 = sort(mle_initialization1(DCM_nb,doa_nb_nd_param,doa_prev_optimum(run_idx,:)));
+             
+          end
+                    
           [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
             fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_nb_nd_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_nb_nd_param.options);
           

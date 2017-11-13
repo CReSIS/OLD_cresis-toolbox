@@ -5,7 +5,7 @@
 %
 % Author: John Paden, Theresa Stumpf , Sravya Athinarapu
 %
-% See also: doa.m
+% See also: doa1.m
 
 tic
 
@@ -18,7 +18,7 @@ if 1
   % =======================================================================
   %% Setup simulation parameters
   
- 
+  
   param = [];
   Nc = 7;
   % Source parameters
@@ -41,11 +41,11 @@ if 1
   %param.method.src_limits             =  repmat({[-20 40]/180*pi} , [1,Nc-1])
   param.method.src_limits             =  repmat({[-60 60]/180*pi} , [1,Nc-1])
   
-
+  
   % since it Avoid evaluating cost function around previous sources and
   % hence search range decreases and can't be able to evaluate doa of more
   % sources case.
-
+  
   param.method.theta_guard            = 0.5/180*pi; %1.5/180*pi;
   param.method.nb_nd.init             = 'ap';
   param.method.wb_td.init             = 'ap';
@@ -56,16 +56,15 @@ if 1
   %param.monte.SNR   = repmat(linspace(10,25,16).' - 10*log10(3), [1 2]);
   
   
-  DOA_true = [0];   
+  %   DOA_true = [-34.8499045790465,-16.6015495990202,0,16.6015495990202];
   
-  if length(DOA_true) == 0   %% SRAVYA
-    
+  DOA_true =[0];  % SRAVYA
+  
+  if length(DOA_true) == 0
     param.monte.SNR   = -inf ;
     num_tests = 1;
     param.monte.DOA   = [];
-    
   else
-    
     param.monte.SNR   = repmat(10,1, length(DOA_true));  %% SNR 10dB used in the CHEN paper
     num_tests = size(param.monte.SNR,1);
     param.monte.DOA   = repmat(DOA_true,[num_tests 1]);
@@ -81,26 +80,26 @@ if 1
   % M : Maximum number of signals
   
   for Nsig_tmp = 1:M  %% possible range of k (number of signals)
-    
-    
     param.Nsig_tmp = Nsig_tmp;
     
     
     %% Run the simulation
     
-    
-    % This section used in doa_example1
-    
-    %   if Nsig_tmp == 1
-    %   [results{Nsig_tmp}, DCM_runs] = sim.doa(param,[]);
-    %   elseif Nsig_tmp > 1
-    %   doa_prev = squeeze(results{1,Nsig_tmp-1}.theta_est{1,param.method.list});
-    %   [results{Nsig_tmp}, DCM_runs] = sim.doa(param, doa_prev(:,1:Nsig_tmp-1));
-    %   end
-    %
-    
-    
-    [results{Nsig_tmp}, DCM_runs] = sim.doa(param);
+    % SRAVYA
+    if Nsig_tmp == 1
+      [results{Nsig_tmp}, DCM_runs] = sim.doa1(param,[]);
+    elseif Nsig_tmp > 1
+      doa_prev = squeeze(results{1,Nsig_tmp-1}.theta_est{1,param.method.list});
+      
+      if param.monte.runs == 1
+        [results{Nsig_tmp}, DCM_runs] = sim.doa1(param, doa_prev(1:Nsig_tmp-1));
+        
+      else
+        [results{Nsig_tmp}, DCM_runs] = sim.doa1(param, doa_prev(1:param.monte.runs,1:Nsig_tmp-1));
+      end
+      
+      
+    end
     
     %% Process and save the outputs {method}(run_idx,test_idx,1:Nsig_tmp)
     out_fn_dir = 'D:\tmp\TSP_DOA';
@@ -139,7 +138,6 @@ if 1
     
     
   end
-  
   
   
   bin = param.monte.runs;  % for now
@@ -361,13 +359,13 @@ if 1
   
   ylim([0 100])
   grid on
-    
+  
   
   % COMPARISION TABLE
   comparision = strcat( ['# q   =';'MDL   ='; 'AIC   ='; 'BIC   ='; 'HQ    ='; 'AICc  ='; 'KICvc ='; 'WIC   =';'MDLs  =';'MDL   ='; 'AIC   ='; 'BIC   ='; 'HQ    ='; 'AICc  ='; 'KICvc ='; 'WIC   =';'MDLs  ='] ,num2str(Nest_results.')) ;
   
   
-   
+  
   toc
   
   return;
