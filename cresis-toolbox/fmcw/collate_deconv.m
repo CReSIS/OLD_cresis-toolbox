@@ -34,7 +34,6 @@
 %
 % Author: Jilu Li, John Paden
 
-params = read_param_xls(param_fn,'',{analysis_sheet 'analysis'});
 % For debugging, leave empty otherwise
 day_seg_debug = ''; % Set to 'YYYYMMDD_SS' to debug one segment
 
@@ -85,7 +84,7 @@ if stage_one_en
     end
 
     %% Load the specular surface file
-    fprintf('Loading %s img %d wf %d\n', param.day_seg, img, wf_adc);
+    fprintf('Loading %s img %d wf_adc %d\n', param.day_seg, img, wf_adc);
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
     fn = fullfile(fn_dir,sprintf('specular_img_%02d_wfadc_%d_%s.mat', img, wf_adc, param.day_seg));
     spec = load(fn);
@@ -253,6 +252,7 @@ if stage_one_en
         continue;
       end
       
+      % Determine the width of the main lobe
       rising_idx = peak_idx-1;
       while rising_idx >= 1 ...
           && sig_deconv_Mt(rising_idx) > sig_deconv_peak-param.analysis.specular.ML_threshold
@@ -263,15 +263,27 @@ if stage_one_en
           && sig_deconv_Mt(falling_idx) > sig_deconv_peak-param.analysis.specular.ML_threshold
         falling_idx = falling_idx + 1;
       end
-      
-      % We don't care so much about the falling edge...
+      % We don't care so much about the falling edge... so we'll ignore it
       %spec.width_ML(rline) = (falling_idx - rising_idx) / Mt;
       spec.width_ML(rline) = 2*(peak_idx - rising_idx) / Mt;
       
+      % Determine the rising and falling edge side lobes
       spec.rising_edge_SL(rline) = max(sig_deconv_Mt(peak_idx+rising_edge_bins)) - sig_deconv_peak;
-      
       spec.falling_edge_SL(rline) = max(sig_deconv_Mt(peak_idx+falling_edge_bins)) - sig_deconv_peak;
+      if 0
+        figure(1); clf;
+        plot(sig_deconv_Mt - sig_deconv_peak)
+        hold on;
+        plot(peak_idx+rising_edge_bins,sig_deconv_Mt(peak_idx+rising_edge_bins)-sig_deconv_peak,'r');
+        xlims = peak_idx+rising_edge_bins;
+        xlim(xlims([1 end]) + [-20 40]);
+        grid on
+        ylim([-60 0]);
+        keyboard
+      end
       
+      % Skip bad waveforms if the rising/falling edge are at the edge of
+      % the A-scope
       peak_idx = round(peak_idx/Mt);
       rising_idx = floor(rising_idx/Mt);
       falling_idx = ceil(falling_idx/Mt);
@@ -280,9 +292,11 @@ if stage_one_en
         warning('waveform %d may not be a good one, skipped',rline);
         continue
       end
-      spec.rising_edge_ISL(rline) = sum(abs(sig_deconv(rising_idx + param.analysis.specular.rbins(1):rising_idx-1)).^2);
+
+      % Calculate the integrated sidelobe level
+      spec.rising_edge_ISL(rline) = sum(abs(sig_deconv(rising_idx + param.analysis.specular.rbins(1):rising_idx-1)).^2)/Mt;
       spec.rising_edge_ISL(rline) = lp(spec.rising_edge_ISL(rline))-sig_deconv_peak;
-      spec.falling_edge_ISL(rline) = sum(abs(sig_deconv(falling_idx+1:falling_idx + param.analysis.specular.rbins(end))).^2);
+      spec.falling_edge_ISL(rline) = sum(abs(sig_deconv(falling_idx+1:falling_idx + param.analysis.specular.rbins(end))).^2)/Mt;
       spec.falling_edge_ISL(rline) = lp(spec.falling_edge_ISL(rline))-sig_deconv_peak;
       normal_factor = sample_peak - sig_deconv_peak;
       deconv_H = deconv_H * 10^(normal_factor/20);
@@ -304,7 +318,7 @@ if stage_one_en
       %% DEBUG CODE
       if all(spec.metric(:,rline) <= abs_metric.')
         mask(rline) = 1;
-        if debug_level > 1
+        if debug_level > 2
           
           rline
           
@@ -338,16 +352,17 @@ if stage_one_en
           [max_val,max_bin] = max(sig_sample);
           good_bins = max_bin + param.analysis.specular.rbins;
           figure(2); clf;
-          plot(lp(sig_deconv));
+          plot(lp(sig_deconv)-lp(max_val));
           hold on
-          plot(lp(sig_sample),'r');
-          plot(lp(+max_val)+circshift(lp(sig_tg),[max_bin-1 0]),'g')
+          plot(lp(sig_sample)-lp(max_val),'r');
+          plot(lp(+max_val)+circshift(lp(sig_tg),[max_bin-1 0])-lp(max_val),'g')
           hold off;
           grid on;
           xlim(good_bins([1 end]))
           xlabel('range bin')
           ylabel('power(dB)')
           legend('deconvolved ice lead signal','ice lead signal','averaged ice lead signal','location','best')
+          ylim([-80 0]);
           keyboard
         end
       end
@@ -360,13 +375,15 @@ if stage_one_en
       fprintf('Table 1. Minimum metric of all waveforms.\n');
       fprintf('%12s\t%12s\t%12s\t%12s\t%12s\t%12s\n', '-peak', 'ML_width', ...
         'Falling SL','Rising SL','Falling ISL','Rising ISL');
+      spec.metric(1,:) = -spec.metric(1,:);
       fprintf('%12.1f\t%12.3f\t%12.1f\t%12.1f\t%12.1f\t%12.1f\n', ...
         min(spec.metric,[],2));
+      spec.metric(1,:) = -spec.metric(1,:);
       fprintf('Table 2. Median metric of all waveforms.\n');
       fprintf('%12s\t%12s\t%12s\t%12s\t%12s\t%12s\n', '-peak', 'ML_width', ...
         'Falling SL','Rising SL','Falling ISL','Rising ISL');
       fprintf('%12.1f\t%12.3f\t%12.1f\t%12.1f\t%12.1f\t%12.1f\n', ...
-        median(spec.metric,2));
+        nanmedian(spec.metric,2));
       
       figure(1); clf;
       plot(spec.metric(1,mask),'k');
@@ -423,7 +440,7 @@ if stage_one_en
       title(param.day_seg,'Interpreter','none')
       
       mask_idxs = find(mask);
-      if ~any(mask)
+      if ~any(mask) || debug_level == 2
         figure(1); clf;
         plot(spec.metric(1,:),'k');
         hold on;
@@ -458,13 +475,24 @@ if stage_one_en
         title(param.day_seg,'Interpreter','none')
         
         [day_seg,frm_id,recs] = get_frame_id(param,spec.deconv_gps_time);
+
+        % Nyquist zone twtt barriers
+        % - For each group of twtt execute the relative metric
+        % - For all groups force the absolute metric
+        wfs = spec.param_analysis.radar.wfs;
+        BW = (wfs.f1-wfs.f0)*wfs.fmult;
+        chirp_rate = BW/wfs.Tpd;
+        nz_twtt = abs(spec.param_analysis.radar.fs / chirp_rate / 2 / TWTT_GROUPS_PER_NZ);
+        twtt_bin_spacing = nz_twtt;
+        
+        twtt_zone = 1 + floor(spec.deconv_twtt / nz_twtt);
         
         % Useful debug fprintf
         fprintf('Table 3. Metrics for each waveform where lower is better.\n');
-        fprintf('%5s\t%5s\t%12s\t%12s\t%12s\t%12s\t%12s\t%12s\t%20s\t%12s\n', 'Index','Frame', ...
-          '-peak','ML_width','Falling SL','Rising SL','Falling ISL','Rising ISL','GPS time','Record');
-        fprintf('%5.0f\t%5.0f\t%12.1f\t%12.3f\t%12.1f\t%12.1f\t%12.1f\t%12.1f%20.3f\t%12.0f\n', ...
-          [1:length(spec.deconv_frame); spec.deconv_frame; spec.metric; spec.deconv_gps_time; recs]);
+        fprintf('%5s\t%5s\t%12s\t%12s\t%12s\t%12s\t%12s\t%12s\t%20s\t%12s\t%6s\n', 'Index','Frame', ...
+          '-peak','ML_width','Falling SL','Rising SL','Falling ISL','Rising ISL','GPS time','Record','twtt');
+        fprintf('%5.0f\t%5.0f\t%12.1f\t%12.3f\t%12.1f\t%12.1f\t%12.1f\t%12.1f%20.3f\t%12.0f\t%6.0f\n', ...
+          [1:length(spec.deconv_frame); spec.deconv_frame; spec.metric; spec.deconv_gps_time; recs; twtt_zone]);
       end
       
       keyboard
@@ -475,20 +503,15 @@ if stage_one_en
     %% Final RDS Deconvolution Waveform Generation
     if any(strcmpi(output_dir,{'accum','rds'}))
       % Choose a reference function
-      best_score = sum(spec.metric);
+      best_score = sum(spec.metric(2:4,:));
       [~,best_idx] = min(best_score);
+      spec.metric(:,best_idx)
       
       wf = spec.param_analysis.analysis.imgs{img}(wf_adc,1);
       adc = spec.param_analysis.analysis.imgs{img}(wf_adc,2);
-
-      % Start with the original reference function that was used to
-      % compress the specular lead data
-      ref = spec.wfs(wf).ref{adc};
-      % Then add in the correction
-      ref(spec.wfs(wf).freq_inds) = ref(spec.wfs(wf).freq_inds) .* ifftshift(spec.deconv_H{best_idx});
       
       % Prepare frequency axis
-      Nt = length(ref);
+      Nt = spec.wfs(wf).Nt_pc;
       fc = spec.wfs(wf).fc;
       if spec.wfs(wf).DDC_mode == 0
         fs = param.radar.fs;
@@ -501,6 +524,12 @@ if stage_one_en
         df = 1/(Nt*dt);
         freq = spec.wfs(wf).DDC_freq + df*ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
       end
+
+      % Start with the original reference function that was used to
+      % compress the specular lead data
+      ref = spec.wfs(wf).ref{adc};
+      % Then add in the correction
+      ref = ref .* interp1(fftshift(spec.wfs(wf).freq), spec.deconv_H{best_idx}, freq, 'linear', 0);
       
       % Estimate delay and phase shift caused by deconvolution process
       % relative to reference waveform
@@ -585,8 +614,8 @@ if stage_one_en
       xlabel('range bin')
       ylabel('power(dB)')
       title(sprintf('Inverse Filter Impulse Response %d to %d range bins', ...
-        param.analysis.specular.ref_negative{wf}(1), ...
-        param.analysis.specular.ref_nonnegative{wf}(end)));
+        param.analysis.specular.ref_negative{img}(1), ...
+        param.analysis.specular.ref_nonnegative{img}(end)));
       
       fig1_fn = [ct_filename_tmp(param,'','deconv','inverse_filter') sprintf('_wf%d_adc%d.fig',wf,adc)];
       fig1_fn_dir = fileparts(fig1_fn);
@@ -612,14 +641,15 @@ if stage_one_en
       records_fn = ct_filename_support(param,'','records');
       records = load(records_fn);
       rec = find(records.gps_time > spec.deconv_gps_time(best_idx),1);
-      file_idx = find(records.relative_rec_num{adc} <= rec,1,'last');
-      raw_fn = records.relative_filename{adc}{file_idx};
+      [~,board_idx] = adc_to_board(param.radar_name,adc);
+      file_idx = find(records.relative_rec_num{board_idx} <= rec,1,'last');
+      raw_fn = records.relative_filename{board_idx}{file_idx};
       fprintf('Best Raw File: %s\n', raw_fn);
       fprintf('UTC time: %s\n', datestr(epoch_to_datenum(gps_to_utc(spec.deconv_gps_time(best_idx)))))
       
       fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
       fn = fullfile(fn_dir,sprintf('deconv_wf_%d_adc_%d_%s.mat', wf, adc, param.day_seg));
-      fprintf('Saving %s img %d wf %d: %s\n', param.day_seg, img, wf_adc, fn);
+      fprintf('Saving %s img %d wf_adc %d: %s\n', param.day_seg, img, wf_adc, fn);
       save(fn,'ref_nonnegative','ref_negative','ref_windowed','ref_window','param_collate','best_idx','param_collate','param_analysis');
       continue;
     end
@@ -748,6 +778,7 @@ if stage_one_en
     %% Group similar deconvolution waveforms, average them together
     % First group waveforms by number of samples(the DDC filter should be the same in this case,
     % then for those with the same number of samples filter, uses correlation statistics to group
+    tmp = [];
     final = [];
     final.metric = [];
     final.num_response = [];
@@ -925,6 +956,7 @@ if stage_two_en
   % waveform was collected and this code looks in other segments for these missing waveforms.
   % =========================================================================
 
+  [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
   if any(strcmpi(output_dir,{'accum','rds'}))
     error('Stage two does not support accum or rds (not needed).\n');
   end
@@ -957,6 +989,9 @@ if stage_two_en
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
     fn = fullfile(fn_dir,sprintf('deconv_tmp_%s.mat', param.day_seg));
     fns{end+1} = fn;
+    if ~exist(fn)
+      continue
+    end
     final = load(fn);
     
     min_twtt = min(final.deconv_twtt_min);
@@ -1007,7 +1042,21 @@ if stage_two_en
     fprintf('Loading %s\n', param.day_seg);
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
     fn = fullfile(fn_dir,sprintf('deconv_tmp_%s.mat', param.day_seg));
-    final = load(fn);
+    if ~exist(fn)
+        final.metric = [];
+        final.num_response = [];
+        final.deconv_H = {};
+        final.deconv_gps_time = [];
+        final.deconv_twtt_min = [];
+        final.deconv_twtt_max = [];
+        final.deconv_impulse_response = {};
+        final.freq = {};
+        final.deconv_DDC_Mt = [];
+        final.deconv_frame = [];
+        final.param_collate = param;
+    else
+      final = load(fn);
+    end
     
     % Create "twtts" the vector of all missing two way travel times
     if isempty(final.deconv_twtt_min)

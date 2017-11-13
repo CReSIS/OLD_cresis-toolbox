@@ -1,14 +1,15 @@
 function create_records_fmcw_accum(param,param_override)
 % create_records_fmcw_accum(param,param_override)
 %
+% Function for creating records file for some versions of the accumulation
+% radar, kuband, and snow radars. The function is usually called from
+% master.m but can also be called from run_create_records_mcords2.m.
+%
 % Corrects jumps in utc time, typically one second jumps. This script
 % obtains fmcw headers from data indicated in the vectors param
 % spreadsheets. After loading the files using basic_load*.m, the records files
 % are saved in the support directories for the specific radar in .mat form
 % for quicker access.
-%
-% Can be run as a function by passing in the param argument
-% or a script (by setting the Debug Setup section properly).
 %
 % Output file contains:
 % hdr: structure with the following fields
@@ -26,40 +27,20 @@ function create_records_fmcw_accum(param,param_override)
 %
 % Authors: Aric Beaver, John Paden
 %
-% See also: master
+% See also: run_master.m, master.m, run_create_records_fmcw_accum.m, create_records_fmcw_accum.m,
+%   create_records_fmcw_accum_sync.m, check_records.m
 
 % =====================================================================
 % General Setup
 % =====================================================================
 
-dbstack_info = dbstack;
-if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
-  % =====================================================================
-  % Debug Setup
-  % =====================================================================
-  param = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150818_01');
-  
-  clear('param_override');
-  param_override.sched.type = 'no scheduler';
-  param_override.sched.rerun_only = true;
-
-  % Input checking
-  if ~exist('param','var')
-    error('A struct array of parameters must be passed in\n');
-  end
-  global gRadar;
-  if exist('param_override','var')
-    param_override = merge_structs(gRadar,param_override);
-  else
-    param_override = gRadar;
-  end
-  
-elseif ~isstruct(param)
+if ~isstruct(param)
   % Functional form
   param();
 end
 param = merge_structs(param, param_override);
 
+dbstack_info = dbstack;
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
 fprintf('=====================================================================\n');

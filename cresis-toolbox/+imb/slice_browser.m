@@ -33,6 +33,7 @@ classdef slice_browser < handle
     layer % Layer structures
     layer_fn
     layer_idx % Active layer
+    bounds_relative
 
     % Slice GUI handles
     h_fig
@@ -94,11 +95,15 @@ classdef slice_browser < handle
       if ~isfield(param,'fh_button_motion')
         param.fh_button_motion = [];
       end
+      if ~isfield(param,'bounds_relative')
+        param.bounds_relative = [0 0 0 0];
+      end
       undo_param.id = [];
       obj.undo_stack = imb.undo_stack(undo_param);
       obj.data = data;
       obj.slice = 1;
       obj.plot_visibility = true;
+      obj.bounds_relative = param.bounds_relative;
       
       obj.slice_tool.list = [];
       
@@ -168,21 +173,11 @@ classdef slice_browser < handle
       
       obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
       for layer_idx = 1:numel(obj.layer)
-        if islogical(obj.layer(layer_idx).y)
-          tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
-          tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
-          
-          obj.layer(layer_idx).h_plot ...
-          = plot(obj.layer(layer_idx).x(:,obj.slice), ...
-          tmp_y, 'parent',obj.h_axes,'color','black', ...
-          obj.layer(layer_idx).plot_name_values{:});
-        else
           obj.layer(layer_idx).h_plot ...
             = plot(obj.layer(layer_idx).x(:,obj.slice), ...
             obj.layer(layer_idx).y(:,obj.slice), ...
             'parent',obj.h_axes,'color','black', ...
             obj.layer(layer_idx).plot_name_values{:});
-        end
       end
       
       addlistener(obj.undo_stack,'synchronize_event',@obj.undo_sync);
@@ -563,25 +558,29 @@ classdef slice_browser < handle
       layer_idx = get(obj.gui.layerLB,'value');
       
       if obj.zoom_mode
+        %% Zoom
         zoom_button_up(x,y,but,struct('x',obj.x,'y',obj.y, ...
           'h_axes',obj.h_axes,'xlims',[1 size(obj.data,2)],'ylims',[1 size(obj.data,1)]));
       else
         if but == 2 || but == 3
+          %% Selection
           if obj.x == x
             if x > 1 && x < size(obj.data,2)
               obj.select_mask(round(x)) = ~obj.select_mask(round(x));
+              obj.select_mask([1:obj.bounds_relative(1),end-obj.bounds_relative(2)+1:end]) = false;
             else
               obj.select_mask(:) = false;
             end
           else
-            obj.shift_pressed
             if ~obj.shift_pressed
               obj.select_mask(:) = false;
               obj.update_slice;
             end
             
-            if islogical(obj.layer(layer_idx).y)
+            if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
               layer_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+            elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
+              layer_y = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
             else
               layer_y = obj.layer(layer_idx).y(:,obj.slice);
             end
@@ -590,8 +589,10 @@ classdef slice_browser < handle
               & obj.layer(layer_idx).x(:,obj.slice) <= max(x,obj.x) ...
               & layer_y >= min(y,obj.y) ...
               & layer_y <= max(y,obj.y));
+            obj.select_mask([1:obj.bounds_relative(1),end-obj.bounds_relative(2)+1:end]) = false;
           end
         else
+          %% Change point
           xlims = xlim(obj.h_axes);
           ylims = ylim(obj.h_axes);
           if x >= xlims(1) && x <= xlims(2) && y >= ylims(1) && y <= ylims(2)
@@ -599,16 +600,12 @@ classdef slice_browser < handle
             cmd = [];
             cmd{1}.undo.slice = obj.slice;
             cmd{1}.redo.slice = obj.slice;
-            cmd{1}.undo.layer = layer_idx;
-            cmd{1}.redo.layer = layer_idx;
+            cmd{1}.undo.layer = obj.layer(layer_idx).control_layer;
+            cmd{1}.redo.layer = obj.layer(layer_idx).control_layer;
             cmd{1}.undo.x = round(x);
-            cmd{1}.undo.y = obj.layer(layer_idx).y(round(x),obj.slice);
+            cmd{1}.undo.y = obj.layer(obj.layer(layer_idx).control_layer).y(round(x),obj.slice);
             cmd{1}.redo.x = round(x);
-            if islogical(obj.layer(layer_idx).y)
-              cmd{1}.redo.y = ~obj.layer(layer_idx).y(round(x),obj.slice);
-            else
-              cmd{1}.redo.y = y;
-            end
+            cmd{1}.redo.y = y;
             cmd{1}.type = 'standard';
             obj.push(cmd);
           end
@@ -623,7 +620,11 @@ classdef slice_browser < handle
         zoom_button_up(x,y,but,struct('x',obj.control_x,'y',obj.control_y, ...
           'h_axes',obj.h_control_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,1)]));
       else
-        obj.change_slice(round(x),false);
+        xlims = xlim(obj.h_control_axes);
+        ylims = ylim(obj.h_control_axes);
+        if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end)
+          obj.change_slice(round(x),false);
+        end
       end
     end
     
@@ -632,16 +633,21 @@ classdef slice_browser < handle
       
       if obj.zoom_mode
         zoom_button_up(x,y,but,struct('x',obj.layer_x,'y',obj.layer_y, ...
-          'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+          'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
       else
         if obj.layer_x == x
-          obj.change_slice(round(x),false);
+          xlims = xlim(obj.h_layer_axes);
+          ylims = ylim(obj.h_layer_axes);
+          if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end) 
+            obj.change_slice(round(x),false);
+          end
         else
           ylims = sort([y obj.layer_y]);
           obj.select_mask(:) = false;
           y_idxs = round(ylims(1)):round(ylims(2));
           y_idxs = y_idxs(y_idxs>=1 & y_idxs<=size(obj.data,2));
           obj.select_mask(y_idxs) = true;
+          obj.select_mask([1:obj.bounds_relative(1),end-obj.bounds_relative(2)+1:end]) = false;
           if but ~= 1
             for tool_idx = 1:length(obj.slice_tool.list)
               tool_name_list{tool_idx} = obj.slice_tool.list{tool_idx}.tool_name;
@@ -708,7 +714,7 @@ classdef slice_browser < handle
     
     function layer_button_scroll(obj,h_obj,event)
       zoom_button_scroll(event,struct('h_fig',obj.h_layer_fig, ...
-        'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+        'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
     end
     
     %% key_press
@@ -735,9 +741,10 @@ classdef slice_browser < handle
       
       % Check to see if this is a slicetool shortcut
       for tool_idx = 1:length(obj.slice_tool.list)
-        if strcmpi(obj.slice_tool.list{tool_idx}.tool_shortcut, event.Key) ...
-            && obj.slice_tool.list{tool_idx}.ctrl_pressed == obj.ctrl_pressed ...
-            && obj.slice_tool.list{tool_idx}.shift_pressed == obj.shift_pressed
+        if ~isempty(obj.slice_tool.list{tool_idx}.tool_shortcut) ...
+            && strcmpi(obj.slice_tool.list{tool_idx}.tool_shortcut, event.Key) ...
+            && any(obj.slice_tool.list{tool_idx}.ctrl_pressed == obj.ctrl_pressed) ...
+            && any(obj.slice_tool.list{tool_idx}.shift_pressed == obj.shift_pressed)
           obj.layer_idx = get(obj.gui.layerLB,'Value');
           cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
           if ~isempty(cmd)
@@ -821,27 +828,24 @@ classdef slice_browser < handle
           case 'delete'
             layer_idx = get(obj.gui.layerLB,'Value');
             cmd = [];
-            cmd{1}.undo.slice = obj.slice;
-            cmd{1}.redo.slice = obj.slice;
-            cmd{1}.undo.layer = layer_idx;
-            cmd{1}.redo.layer = layer_idx;
-            cmd{1}.undo.y = [];
-            cmd{1}.undo.x = [];
-            cmd{1}.redo.x = [];
-            cmd{1}.redo.y = [];
-            
-            cmd{1}.undo.x = find(obj.select_mask);
-            cmd{1}.undo.y = obj.layer(layer_idx).y(obj.select_mask,obj.slice);
             cmd{1}.redo.x = find(obj.select_mask);
-            if islogical(obj.layer(layer_idx).y)
+            if ~isempty(regexp(obj.layer(layer_idx).name, 'mask|quality'))
               if any(obj.layer(layer_idx).y(obj.select_mask,obj.slice))
                 cmd{1}.redo.y = false * ones(size(cmd{1}.redo.x));
               else
                 cmd{1}.redo.y = true * ones(size(cmd{1}.redo.x));
               end
             else
+              layer_idx = obj.layer(layer_idx).control_layer;
               cmd{1}.redo.y = NaN * ones(size(cmd{1}.redo.x));
             end
+            cmd{1}.undo.slice = obj.slice;
+            cmd{1}.redo.slice = obj.slice;
+            cmd{1}.undo.layer = layer_idx;
+            cmd{1}.redo.layer = layer_idx;
+            
+            cmd{1}.undo.x = find(obj.select_mask);
+            cmd{1}.undo.y = obj.layer(layer_idx).y(obj.select_mask,obj.slice);
 
             cmd{1}.type = 'standard';
             obj.push(cmd);
@@ -951,31 +955,48 @@ classdef slice_browser < handle
 
       % Update layer plots
       for layer_idx = 1:numel(obj.layer)
-        if islogical(obj.layer(layer_idx).y)
+        if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
           tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
           tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
-          set(obj.layer(layer_idx).h_plot, ...
-            'XData', obj.layer(layer_idx).x(:,obj.slice), ...
-            'YData', tmp_y);
+        elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
+          tmp_y = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
+          tmp_y(obj.layer(layer_idx).y(:,obj.slice) == 1) = NaN;
         else
-          set(obj.layer(layer_idx).h_plot, ...
-            'XData', obj.layer(layer_idx).x(:,obj.slice), ...
-            'YData', obj.layer(layer_idx).y(:,obj.slice));
+          tmp_y = obj.layer(layer_idx).y(:,obj.slice);
         end
+        tmp_y(1:obj.bounds_relative(1),:) = NaN;
+        tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
+        set(obj.layer(layer_idx).h_plot, ...
+          'XData', obj.layer(layer_idx).x(:,obj.slice), ...
+          'YData', tmp_y);
       end
       
       if ~isempty(get(obj.gui.layerLB,'String'))
         % Update layer selection related plots
         layer_idx = get(obj.gui.layerLB,'value');
         x_select = obj.layer(layer_idx).x(:,obj.slice);
-        if islogical(obj.layer(layer_idx).y)
+        if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
           y_select = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
+        elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
+          y_select = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
         else
           y_select = obj.layer(layer_idx).y(:,obj.slice);
         end
         set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
           'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
-        set(obj.h_layer_image,'CData',obj.layer(layer_idx).y);
+        tmp_y = double(obj.layer(layer_idx).y);
+        % Hide data outside bounds
+        tmp_y(1:obj.bounds_relative(1),:) = NaN;
+        tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
+        % Hide bad quality data when active layer shown and quality layer
+        % visible
+        if ~isempty(obj.layer(layer_idx).quality_layer) ...
+            && ~isempty(obj.layer(layer_idx).active_layer) ...
+            && obj.layer(layer_idx).active_layer == layer_idx ...
+            && obj.layer(obj.layer(layer_idx).quality_layer).visible
+          tmp_y(obj.layer(obj.layer(layer_idx).quality_layer).y ~= 1) = NaN;
+        end
+        set(obj.h_layer_image,'CData',tmp_y);
         
         % Update layer visibility
         if obj.plot_visibility == true
@@ -996,13 +1017,22 @@ classdef slice_browser < handle
         
         % Update control figure plots
         layer_idx = get(obj.gui.layerLB,'value');
-        if ~islogical(obj.layer(layer_idx).y)
-          set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:));
-        else
+        if ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
+          active_idx = obj.layer(layer_idx).active_layer;
+          if ~isempty(active_idx)
+            new_y = obj.layer(active_idx).y(ceil(size(obj.data,2)/2)+1,:);
+            new_y(2 == obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
+            set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',new_y);
+          end
+        elseif ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
           surf_idx = obj.layer(layer_idx).surf_layer;
-          new_y = obj.layer(surf_idx).y(ceil(size(obj.data,2)/2)+1,:);
-          new_y(obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
-          set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',new_y);
+          if ~isempty(surf_idx)
+            new_y = obj.layer(surf_idx).y(ceil(size(obj.data,2)/2)+1,:);
+            new_y(~obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
+            set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',new_y);
+          end
+        else
+          set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:));
         end
       end
     end

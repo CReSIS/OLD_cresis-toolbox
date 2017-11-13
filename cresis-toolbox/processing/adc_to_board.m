@@ -1,12 +1,16 @@
-function board = adc_to_board(radar_name,adc)
-% board = adc_to_board(radar_name,adc)
+function [board,board_idx] = adc_to_board(radar_name,adc)
+% [board,board_idx] = adc_to_board(radar_name,adc)
 %
 % Support function for determining which file grouping or "board"
 % a particular ADC is associated with.  E.g. used with mcords2.
 %
-% radar_name is string containing radar name
-% adc is one indexed
-% board is zero indexed
+% Inputs:
+% radar_name: is string containing radar name
+% adc: adc is one indexed
+%
+% Outputs:
+% board: can be one or zero indexed
+% board_idx: is one indexed
 %
 % Author: John Paden
 
@@ -14,8 +18,10 @@ function board = adc_to_board(radar_name,adc)
 
 if any(strcmpi(radar_name,{'mcords2','mcords3'}))
   board = unique(floor((adc-1)/4));
+  board_idx = board+1;
 else
   board = unique(adc);
+  board_idx = board;
 end
 
 return;

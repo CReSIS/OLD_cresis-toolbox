@@ -6,12 +6,14 @@ function zoom_button_up(x,y,but,param)
 % but,x,y = values returned from:
 %   [x,y,but] = get_mouse_info(h_fig,h_axes);
 % param
-% .x = x-pos of last click from button_down
-% .y = y-pos of last click from button_down
-% .xlims = max x-limits
-% .ylims = max y-limits
-% .h_axes = axes handle that we are zooming with
-% .axis_equal: logical that forces equal aspect ratio when true
+%  .x = x-pos of last click from button_down
+%  .y = y-pos of last click from button_down
+%  .xlims = max x-limits
+%  .ylims = max y-limits
+%  .h_axes = axes handle that we are zooming with
+%  .axis_equal: logical that forces equal aspect ratio when true
+%  .axes = optional, string which specifies which axes can zoom ('xy' is
+%   default, 'x' is x only, 'y' is y only)
 %
 % During figure's WindowButtonDownFcn callback function, one should
 % generally run:
@@ -39,6 +41,10 @@ end
 
 if isempty(param.ylims)
   param.ylims = [-inf inf];
+end
+
+if ~isfield(param,'axes') || isempty(param.axes)
+  param.axes = 'xy';
 end
 
 xlims = sort([x param.x]);
@@ -85,9 +91,13 @@ end
 
 if but == 1 && x~=param.x && y~=param.y
   %% Left click and drag: Zoom to region
-  xlim(param.h_axes,xlims);
-  ylim(param.h_axes,ylims);
-  
+  if any(param.axes=='x')
+    xlim(param.h_axes,xlims);
+  end
+  if any(param.axes=='y')
+    ylim(param.h_axes,ylims);
+  end
+
 elseif but == 1
   %% Left click: Zoom at point
   zooms = -1.5;
@@ -120,8 +130,12 @@ elseif but == 1
     if ylims(2) > param.ylims(2)
       ylims(2) = param.ylims(2);
     end
-    xlim(param.h_axes,sort(xlims));
-    ylim(param.h_axes,sort(ylims));
+    if any(param.axes=='x')
+      xlim(param.h_axes,sort(xlims));
+    end
+    if any(param.axes=='y')
+      ylim(param.h_axes,sort(ylims));
+    end
   end
   
 elseif but == 3
@@ -151,8 +165,12 @@ elseif but == 3
   if ylims(2) > param.ylims(2)
     ylims(2) = param.ylims(2);
   end
-  xlim(param.h_axes,xlims);
-  ylim(param.h_axes,ylims);
+  if any(param.axes=='x')
+    xlim(param.h_axes,xlims);
+  end
+  if any(param.axes=='y')
+    ylim(param.h_axes,ylims);
+  end
 end
 
 end

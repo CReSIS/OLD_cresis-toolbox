@@ -386,6 +386,9 @@ load_param.surface = records.surface;
 
 for img = 1:length(param.load.imgs)
   
+  %% Load Data
+  % =======================================================================
+  % =======================================================================
   % Default values to use
   wf = abs(param.load.imgs{img}(1,1));
   adc = abs(param.load.imgs{img}(1,2));
@@ -403,7 +406,7 @@ for img = 1:length(param.load.imgs)
   end
   out_records = trajectory_with_leverarm(records,trajectory_param);
 
-  %% Load data into g_data using load_mcords_data
+  % Load data into g_data using load_mcords_data
   load_param.load.imgs = param.load.imgs(img);
   % Determine combination times when multiple wf-adc pairs are being loaded
   % to form a single range line
@@ -461,10 +464,13 @@ for img = 1:length(param.load.imgs)
     img_nyquist_zone = img_nyquist_zone{1};
   end
   
+  %% Process Data
+  % =======================================================================
+  % =======================================================================
   if param.analysis.surf.en || param.analysis.power.en || param.analysis.psd.en || param.analysis.specular.en
     
     %% Apply lever arm correction to trajectory data, but preserve each
-    %% channel separately.
+    % channel separately.
     trajectory_param = struct('gps_source',param_records.gps_source, ...
       'season_name',param.season_name,'radar_name',param.radar_name, ...
       'rx_path', wfs(wf).rx_paths(adc), ...
@@ -534,6 +540,9 @@ for img = 1:length(param.load.imgs)
     
   end
     
+  %% Analyze Surface
+  % =======================================================================
+  % =======================================================================
   if param.analysis.surf.en
     %% 1. Load layer
     layers = opsLoadLayers(param,param.analysis.surf.layer_params);
@@ -568,7 +577,10 @@ for img = 1:length(param.load.imgs)
     save(out_fn,'-v7.3', 'surf_vals','surf_bins', 'wfs', 'gps_time', 'lat', ...
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
-    
+
+  %% Power Analysis
+  % =======================================================================
+  % =======================================================================
   if param.analysis.power.en
     %% 1. Load layers (there should be two)
     layers = opsLoadLayers(param,param.analysis.power.layer_params);
@@ -605,6 +617,9 @@ for img = 1:length(param.load.imgs)
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
     
+  %% PSD Analysis
+  % =======================================================================
+  % =======================================================================
   if param.analysis.psd.en
     %% 1. Load layer
     layers = opsLoadLayers(param,param.analysis.psd.layer_params);
@@ -646,6 +661,9 @@ for img = 1:length(param.load.imgs)
       'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
   end
   
+  %% Specular Analysis for Deconvolution
+  % =======================================================================
+  % =======================================================================
   if param.analysis.specular.en
     for wf_adc = 1:size(param.load.imgs{1},1)
       
@@ -842,7 +860,10 @@ for img = 1:length(param.load.imgs)
         'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','img','wf_adc');
     end
   end
-  
+
+  %% Coherent Noise Analysis
+  % =======================================================================
+  % =======================================================================
   if param.analysis.coh_ave.en
     coh_ave_samples = [];
     coh_ave = [];
@@ -855,6 +876,7 @@ for img = 1:length(param.load.imgs)
     pitch = [];
     heading = [];
 
+    %% Collect Doppler Information
     % Store a start and delta frequency reference for each column of data
     %   - This is IF frequency
     %   - When summing, the different bins are filled in accordingly
@@ -879,7 +901,8 @@ for img = 1:length(param.load.imgs)
       end
       doppler = doppler/size(g_data,1);
     end
-    
+
+    %% Analyze each block of range lines
     if strcmpi(radar_type,'fmcw')
       for rline=1:size(g_data,2)
         g_data(:,rline,:) = fft(g_data(:,rline,:));
@@ -895,7 +918,9 @@ for img = 1:length(param.load.imgs)
       if strcmp(radar_name,'kuband') ...
           && (strcmp(param.season_name,'2009_Antarctica_DC8') ...
           || strcmp(param.season_name,'2011_Greenland_P3'))
-        %% HACK for time variant noise floor
+        %% Hack method for collecting good_samples
+        %  - Accounts for time variant noise floor
+        
         % Create frequency axis
         dt = wfs.time(2) - wfs.time(1);
         Nt = length(wfs.time);
@@ -922,12 +947,16 @@ for img = 1:length(param.load.imgs)
         good_samples = lp(g_data(:,rlines) - repmat(mean(g_data,2),[1 numel(rlines)])) ...
           < repmat(coh.noise_power+param.analysis.coh_ave.power_threshold,[1 numel(rlines)]);
       else
-        good_samples = lp(bsxfun(@minus,g_data(:,rlines),mean(g_data,2))) < param.analysis.coh_ave.power_threshold;
-        
+        %% Regular method for collecting good_samples
+        mu = mean(g_data,2);
+        sigma = std(g_data,[],2);
+        mu(abs(mu)*10<sigma) = 0;
+        good_samples = lp(bsxfun(@minus,g_data(:,rlines),mu)) < param.analysis.coh_ave.power_threshold;
+        good_samples(:,max(lp(g_data(:,rlines)))>66) = 0; % PADEN HACK for snow 2016
       end
       
+      %% Debug Plots for determining coh_ave.power_threshold
       if 0
-        % Debug Plots for determining coh_ave.power_threshold
         figure(1); clf;
         imagesc(lp(g_data(:,rlines)));
         a1 = gca;
@@ -937,12 +966,12 @@ for img = 1:length(param.load.imgs)
         title('Good sample mask (black is thresholded)');
         a2 = gca;
         figure(3); clf;
-        imagesc( lp(bsxfun(@minus,g_data,mean(g_data,2))) );
+        imagesc( lp(bsxfun(@minus,g_data(:,rlines),mu)) );
         a3 = gca;
         linkaxes([a1 a2 a3], 'xy');
       end
 
-      
+      %% Collect information for this block
       coh_ave_samples(:,rline0_idx,:) = sum(good_samples,2);
       coh_ave(:,rline0_idx,:) = sum(g_data(:,rlines,:) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx,:);
       
@@ -969,6 +998,7 @@ for img = 1:length(param.load.imgs)
       heading(rline0_idx) = mean(records.heading(rlines));
     end
     
+    %% Save results
     time = wfs(wf).time;
     
     out_fn = fullfile(ct_filename_out(param, ...

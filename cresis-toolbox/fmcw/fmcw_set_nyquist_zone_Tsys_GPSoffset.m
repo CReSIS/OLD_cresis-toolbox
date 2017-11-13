@@ -43,12 +43,14 @@ if load_surface_land_dems
   
   if strcmpi(params(end).post.ops.location,'arctic')
     land_surface.fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
+    land_surface.bad_value = 32767;
   elseif strcmpi(params(end).post.ops.location,'antarctic')
     land_surface.fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
+    land_surface.bad_value = 32767;
   end
   [land_surface.dem, land_surface.R, tmp] = geotiffread(land_surface.fn);
   land_surface.dem = double(land_surface.dem);
-  land_surface.dem(land_surface.dem == 32767) = NaN;
+  land_surface.dem(land_surface.dem == land_surface.bad_value) = NaN;
   land_surface.proj = geotiffinfo(land_surface.fn);
 
   if strcmpi(params(end).post.ops.location,'antarctic')
@@ -84,6 +86,7 @@ idx = idx + 1;
 layer_params(idx).name = 'surface';
 layer_params(idx).source = 'records';
 
+global gRadar;
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
@@ -95,7 +98,18 @@ for param_idx = 1:length(params)
   %fprintf('\nSet nyquist zone %s (%s)\n', param.day_seg, datestr(now));
   
   layers = opsLoadLayers(param,layer_params);
-  
+
+  % Ensure that layer gps times are monotonically increasing
+  for lay_idx = 1:length(layers)
+    layers_fieldnames = fieldnames(layers(lay_idx));
+    [~,unique_idxs] = unique(layers(lay_idx).gps_time);
+    for field_idx = 1:length(layers_fieldnames)-1
+      if ~isempty(layers(lay_idx).(layers_fieldnames{field_idx}))
+        layers(lay_idx).(layers_fieldnames{field_idx}) = layers(lay_idx).(layers_fieldnames{field_idx})(unique_idxs);
+      end
+    end
+  end
+
   % Interpolate LIDAR onto RADAR time
   
   % Interpolate onto reference
@@ -236,16 +250,18 @@ for param_idx = 1:length(params)
     origin = layers(ref_idx).gps_time(1);
     %debug_gps_offset = -107.5; figure(2); hold on; plot(layers(ref_idx).gps_time + debug_gps_offset,layers(ref_idx).twtt + debug_Tsys_offset, '.')
     plot(layers(ref_idx).gps_time + debug_gps_offset - origin, ...
-      layers(ref_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset, '.')
+      layers(ref_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset, 'b')
     hold on;
     plot(layers(ref_idx).gps_time - origin,combined_twtt, 'g')
     for lay_idx = lay_idxs
       hold on;
       plot(layers(ref_idx).gps_time - origin, layers(lay_idx).twtt_ref, 'r')
-      plot(layers(ref_idx).gps_time(recs) - origin, layers(lay_idx).twtt_ref(recs), 'r.')
+      plot(layers(ref_idx).gps_time(recs) - origin, layers(lay_idx).twtt_ref(recs), 'r','LineWidth',4)
       grid on
     end
-    title('TWTT');
+    title('Are the Radar and LIDAR synchronized?');
+    xlabel('TWTT (sec)');
+    ylabel('Relative GPS time (sec)');
     legend('RADAR','LIDAR+ELEV','LIDAR','location','best');
   end
   

@@ -64,6 +64,7 @@ for img = 1:num_img
   h_plot(img) = plot(NaN,'k','Parent',h_axes(img));
   hold off;
 end
+linkaxes(h_axes,'xy');
 
 fprintf('Loading records file %s\n',records_fn);
 records = load(records_fn,'relative_filename','relative_rec_num');
@@ -153,6 +154,8 @@ while ~quit_cmd
   end
   frm_id = sprintf('%s_%03i',param.day_seg,frm);
   
+  % all_files_mat: will stay true if all the loaded files are .mat files
+  all_files_mat = true;
   for img = 1:num_img
     try
       if strcmpi(img_type,'mat')
@@ -174,8 +177,11 @@ while ~quit_cmd
     end
     
     try
-      set(1,'Name',sprintf('%s_%03d',param.day_seg,frm));
-      if ~isempty(echo_fn{img})
+      if isempty(echo_fn{img})
+        set(img,'Name',sprintf('%d: File not found', img),'NumberTitle','off');
+      else
+        [tmp1,tmp2,tmp3] = fileparts(echo_fn{img}); [~,tmp1] = fileparts(tmp1);
+        set(img,'Name',sprintf('%d: %s', img, fullfile(tmp1,[tmp2 tmp3])),'NumberTitle','off');
         fprintf('  Loading output %s\n', echo_fn{img});
         if strcmpi(img_type,'mat')
           echo = load(echo_fn{img});
@@ -215,7 +221,7 @@ while ~quit_cmd
               set(1,'Name',sprintf('%s_%03d: caxis threshold %.1f',param.day_seg,frm,noise_threshold));
               caxis(h_axes(img),img_caxis);
               img_cmap = [gray(64); flipud(hsv(128))];
-              colormap(img_cmap)
+              colormap(h_axes(img),img_cmap)
             end
             if 0 && any(medfilt1(double(max_noise > threshold),5))
               figure(2); clf;
@@ -235,7 +241,10 @@ while ~quit_cmd
               hold off;
             end
           end
+          
         else
+          % This section for loading jpg, png, etc format
+          all_files_mat = false;
           A = imread(echo_fn{img});
           set(h_image(img),'CData',A);
           set(h_image(img),'XData',1:size(A,2));
@@ -255,6 +264,10 @@ while ~quit_cmd
       warning('Failed to load %s:\n%s', echo_fn{img}, ME.getReport());
       echo_fn{img} = '';
     end
+  end
+  if all_files_mat
+    ylim([min(echo.Surface)-10e-9 max(echo.Surface)+10e-9]);
+    zoom('reset');
   end
   
   if strcmpi(update_field_type,'double')
@@ -392,6 +405,7 @@ while ~quit_cmd
         for idx=2:update_field_mask_len+1
           fprintf('   %d: %s\n',idx-1,update_field_mask{idx});
         end
+        fprintf('   For example, entering the number 13 sets the first and third mask bits.\n   Entering 0 clears all mask bits.\n');
       end
     end
   end

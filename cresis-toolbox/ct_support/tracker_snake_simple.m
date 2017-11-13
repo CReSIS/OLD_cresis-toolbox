@@ -63,7 +63,7 @@ Ninit_pnts = surf.Ninit_pnts;
 sort_ind = surf.sort_ind;
 start_idxs = unique(round(size(data,2) * linspace(0.2,0.8,Ninit_pnts)));
 surface = zeros(1,size(data,2));
-if isfield(surf,'dem') & ~isempty(surf.dem)
+if isfield(surf,'dem') && any(isfinite(surf.dem))
   dem_low = round(surf.dem - surf.max_diff);
   dem_low(dem_low < 1) = 1;
   dem_low(dem_low > size(data,1)) = 1;

@@ -367,7 +367,7 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   
-elseif 1
+elseif 0
   %% Example 8: GIMP grid
   % =====================================================================
   % =====================================================================
@@ -378,7 +378,7 @@ elseif 1
   insert_param = [];
   
   %params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'));
-  params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'');
+  params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),'','post');
   
   grid_fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
   
@@ -398,10 +398,50 @@ elseif 1
   
   insert_param.type = 'raster'; % Raster data
   insert_param.layer_dest.name = 'GIMP';
-  insert_param.layer_dest.source = 'layerData';
+  insert_param.layer_dest.source = 'ops';
   insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
   insert_param.layer_dest.group = 'standard'; % For OPS layer_dest source
   insert_param.layer_dest.description = 'GIMP Grid'; % For OPS layer_dest source
+  insert_param.layer_dest.layerdata_source = 'layerData'; % For layerData layer_dest source
+  insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
+  insert_param.copy_method = 'overwrite';
+  insert_param.gaps_fill.method = 'interp_finite';
+  opsInsertLayer(params, insert_param);
+  
+elseif 1
+  %% Example 9: BEDMAP2 grid
+  % =====================================================================
+  % =====================================================================
+  % Use parameters spreadsheet to select segment and frame list for creating layers
+  % Set the generic to 1 for the selected segments and frames
+  
+  physical_constants;
+  insert_param = [];
+  
+  params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO_ndh_targetframes.xls'),'','post');
+  
+  grid_fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
+  
+  % Load the grid
+  points = [];
+  [points.elev,R] = geotiffread(grid_fn);
+  points.elev = double(points.elev);
+  x_axis = R.XLimWorld(1) + [R.XLimIntrinsic(1):R.XLimIntrinsic(2)-1]'*R.DeltaX;
+  y_axis = R.YLimWorld(2) + [R.YLimIntrinsic(1):R.YLimIntrinsic(2)-1]'*R.DeltaY;
+  
+  insert_param.proj = geotiffinfo(grid_fn);
+  
+  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
+  insert_param.x = x_axis;
+  insert_param.y = y_axis;
+  insert_param.data = points.elev;
+  
+  insert_param.type = 'raster'; % Raster data
+  insert_param.layer_dest.name = 'BEDMAP_surface';
+  insert_param.layer_dest.source = 'ops';
+  insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
+  insert_param.layer_dest.group = 'standard'; % For OPS layer_dest source
+  insert_param.layer_dest.description = 'BEDMAP 2 Surface'; % For OPS layer_dest source
   insert_param.layer_dest.layerdata_source = 'layerData'; % For layerData layer_dest source
   insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
   insert_param.copy_method = 'overwrite';
