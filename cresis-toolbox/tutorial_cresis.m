@@ -210,7 +210,17 @@ if lesson == 4
   % Get indices of all absolute values less than 0.1
   idxs_small = find(abs(A) < 0.3);
   A(idxs_small)
+  
+  % Find the max value and the index of the max value for each column
+  [max_val, max_idx] = max(A)
+  % Do the same for each row
+  [max_val, max_idx] = max(A,[],2)
+  % Subtract away the max value of each column from each column
+  A_normalized = bsxfun(@minus,A,max(A))
+  
 end
+
+
 %%
 if lesson == 5
   % Structures and checking
