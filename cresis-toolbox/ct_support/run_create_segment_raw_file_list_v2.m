@@ -175,22 +175,22 @@ end
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
-  param.radar_name = 'mcords5-accum';
+  param.radar_name = 'mcords5';
   param.clk = 1.6e9/8;
-  adcs = 1:4;
+  adcs = 1:8;
   raw_file_suffix = '.bin';
   reuse_tmp_files = true; % Set to false if you want to overwrite current results
   file_prefix_override = ''; % most of the time
   counter_correction_en = true;
-  presum_bug_fixed = true; % Seasons from 2015 Greenland Polar6 onward should be set to true
+  presum_bug_fixed = false; % Seasons from 2015 Greenland Polar6 onward should be set to true, except for 2017 Antarctica Basler which uses the cresis DDS with this bug
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2017_Greenland_P3';
-  base_dir = '/process3/';
-  param.adc_folder_name = '20170320/accum/chan%d';
+  param.season_name = '2017_Antarctica_Basler';
+  base_dir = '/cresis/snfs1/data/MCoRDS/2017_Antarctica_Basler/';
+  param.adc_folder_name = '20171021/chan%d';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20170320'; % Only used for stdout print of the vectors worksheet
+  day_string = '20171021'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 1

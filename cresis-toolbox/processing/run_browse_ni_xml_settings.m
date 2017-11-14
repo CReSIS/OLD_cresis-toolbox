@@ -5,7 +5,7 @@
 % Author: John Paden
 
 clear;
-setup = 'mcords5_p3_setup';
+setup = 'mcords5_basler_setup';
 
 %% MCoRDS5 Polar 6 Setup
 % =======================================================================
@@ -20,6 +20,46 @@ if strcmpi(setup, 'mcords5_polar6_setup')
   mission_name = 'Testflight';
 
   [param,defaults] = default_radar_params_2017_Antarctica_Polar6_mcords;
+
+  base_dir_in_param = base_dir; % Only modify if you want params to have a different path than the current path
+    
+  param_file.write_en = false; % Windows only and experimental still (allows direct writes to param spreadsheets)
+  param_file.path = ''; % Set to override the default path to the parameter file
+    
+  % gps_fn: Set to plot GPS locations on a map (leave empty to disable) and
+  %   also to plot roll data
+  gps_fn = ct_filename_support(setfield(param,'day_seg',datestr(header_load_date,'YYYYmmDD')),'','gps',true);
+  %gps_fn = '';
+    
+  MIN_FILES_IN_SEGMENT = 2; % Since the first file is usually corrupted and short segments are often not useful for processing/data-interpretation
+  SKIP_FILES_START = 0; % Often the first file is corrupt, leave it out by setting this to 1
+  SKIP_FILES_END = 0;
+  
+  % geotiff_fn: Set to a geotiff file to plot GPS location on (leave empty to
+  %   disable)
+  geotiff_fn = ct_filename_gis(param,'antarctica/Landsat-7/Antarctica_LIMA_480m.tif');
+  geotiff_fn = ct_filename_gis(param,'greenland/Landsat-7/mzl7geo_90m_lzw.tif');
+  %geotiff_fn = '';
+  
+  manual_enable = true;
+  
+  browse_ni_xml_settings;
+  return;
+end
+
+%% MCoRDS5 Basler Setup
+% =======================================================================
+if strcmpi(setup, 'mcords5_basler_setup')
+
+  base_dir = '/cresis/snfs1/data/MCoRDS/2017_Antarctica_Basler/';
+  
+  adc_folder_names = {'20171021/chan%d'};
+  
+  header_load_date = datenum(2017,10,21);
+  
+  mission_name = 'Test flight';
+
+  [param,defaults] = default_radar_params_2017_Antarctica_Basler;
 
   base_dir_in_param = base_dir; % Only modify if you want params to have a different path than the current path
     
