@@ -400,7 +400,13 @@ end
 update_mask = frms_mask & update_mask;
 
 %% Overwrite quality level
-all_points.quality_interp = interp1(layer_source.gps_time,layer_source.quality,all_points.gps_time,'nearest');
+if isempty(layer_source.gps_time)
+  all_points.quality_interp = NaN*zeros(size(all_points.gps_time));
+elseif length(layer_source.gps_time) == 1
+  all_points.quality_interp = layer_source.quality;
+else
+  all_points.quality_interp = interp1(layer_source.gps_time,layer_source.quality,all_points.gps_time,'nearest');
+end
 if strcmpi(copy_param.quality.mode,'overwrite')
   all_points.quality_interp(:) = copy_param.quality.value;
 end
