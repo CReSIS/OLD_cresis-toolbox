@@ -1,4 +1,4 @@
-function [results, sources_true_all] = crosstrack(param)
+function results = crosstrack(param)
 % results = sim.crosstrack(param)
 %
 % Function for simulating test data and testing direction of arrival
@@ -92,9 +92,7 @@ for run_idx = 1:param.monte.runs
     end
   end
   %% Create simulated data
-  [sim_data, sources_true_all] = sim.crosstrack_data(param, surf_model);
-  
-
+  sim_data = sim.crosstrack_data(param, surf_model);
   
   if 0
     imagesc(squeeze(lp(sim_data(:,1,:))))
@@ -116,7 +114,7 @@ for run_idx = 1:param.monte.runs
   array_param.wfs.time = (param.src.t0:1/param.src.fs:param.src.t1).';
   array_param.wfs.fs = param.src.f1 - param.src.f0;
   array_param.wfs.fc = (param.src.f1 + param.src.f0)/2;
-   array_param.imgs = {1};
+  array_param.imgs = {1};
   
   %% Loop through and run each array processing method
   for method_idx = 1:length(param.method.list)
@@ -127,107 +125,107 @@ for run_idx = 1:param.monte.runs
     % Some notes about the outputs
     %  array_param.theta: radians, zero points toward -z_pc, increases toward positive y_pc
     array_param.method = param.method.list(method_idx);
-    [array_param,tomo] = array_proc(array_param, sim_data, sources_true_all); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    [array_param,tomo] = array_proc(array_param, sim_data);
     
-%     %% Debug Plots
-%     if param.debug_level >= 2
-%       range = array_param.wfs.time(array_param.bins)*c/2;
-%       
-%       if array_param.method < 7
-%         theta = array_param.theta;
-%         
-%         z = bsxfun(@times,-range,cos(theta));
-%         y = bsxfun(@times,range,sin(theta));
-%         y_axis = (min(y(:)):max(y(:))).';
-%         z_axis = min(z(:)):0.05:max(z(:));
-%         
-%         tomo.img_rect = griddata(y,z,double(tomo.img(:,:,1)),y_axis,z_axis);
-%         
-%         figure(1); clf;
-%         subplot(2,1,1);
-%         plot_style = {'b-','r:'};
-%         for layer = unique(surf_model.layer)
-%           plot(surf_model.y(surf_model.layer == layer), ...
-%             surf_model.z(surf_model.layer == layer,1)-param.monte.target_param{1}.z.mean, ...
-%             plot_style{1+mod(layer-1,length(plot_style))});
-%           hold on;
-%         end
-%         hold off;
-%         ylabel('Elevation (m)');
-%         h_axis = gca;
-%         grid on;
-%         
-%         subplot(2,1,2);
-%         imagesc(y_axis,z_axis-param.monte.target_param{1}.z.mean,lp(tomo.img_rect));
-%         set(gca,'YDir','normal');
-%         xlabel('Cross-track (m)');
-%         ylabel('Elevation (m)');
-%         h_axis(2) = gca;
-%         
-%         linkaxes(h_axis,'xy');
-%         
-%       else
-%         z = bsxfun(@times,-range,cos(tomo.doa(:,:,1)));
-%         y = bsxfun(@times,range,sin(tomo.doa(:,:,1)));
-%         
-%         figure(1); clf;
-%         subplot(2,1,1);
-%         plot_style = {'b-','r:'};
-%         for layer = unique(surf_model.layer).'
-%           plot(surf_model.y(surf_model.layer == layer), ...
-%             surf_model.z(surf_model.layer == layer,1)-param.monte.target_param{1}.z.mean, ...
-%             plot_style{1+mod(layer-1,length(plot_style))});
-%           hold on;
-%         end
-%         hold off;
-%         ylabel('Elevation (m)');
-%         h_axis = gca;
-%         grid on;
-%         
-%         subplot(2,1,2);
-%         plot(y,z-param.monte.target_param{1}.z.mean,'.');
-%         set(gca,'YDir','normal');
-%         xlabel('Cross-track (m)');
-%         ylabel('Elevation (m)');
-%         h_axis(2) = gca;
-%         grid on;
-%         linkaxes(h_axis,'xy');
-%         
-%         figure(2); clf;
-%         imagesc(surf_model.x, surf_model.y, surf_model.z-param.monte.target_param{1}.z.mean);
-%         title('Ground truth');
-%         h_axis = gca;
-%         xlabel('Along-track (m)');
-%         ylabel('Cross-track (m)');
-%         cc = caxis;
-%         h_cb = colorbar;
-%         set(get(h_cb,'YLabel'),'String','WGS-84 elevation (m)');
-%         
-%         z = bsxfun(@times,-range,cos(tomo.doa));
-%         y = bsxfun(@times,range,sin(tomo.doa));
-%         x = repmat(permute(surf_model.x(array_param.lines),[1 3 2]),[size(y,1) size(y,2) 1]);
-%         
-%         good_mask = zeros(size(tomo.doa));
-%         good_mask = good_mask | db(tomo.power) > 10;
-%         good_mask = good_mask | repmat(permute(tomo.cost,[1 3 2]),[1 size(good_mask,2) 1]) < -25;
-%         
-%         z_grid = griddata(double(x(good_mask)),double(y(good_mask)),double(z(good_mask)), ...
-%           surf_model.x,surf_model.y);
-%         figure(3); clf;
-%         
-%         imagesc(surf_model.x, surf_model.y, z_grid-param.monte.target_param{1}.z.mean);
-%         h_axis(2) = gca;
-%         title('Array processing with basic surface extraction');
-%         xlabel('Along-track (m)');
-%         ylabel('Cross-track (m)');
-%         caxis(cc);
-%         h_cb = colorbar;
-%         set(get(h_cb,'YLabel'),'String','WGS-84 elevation (m)');
-%         
-%         linkaxes(h_axis,'xy');
-%        
-%       end
-%     end
+    %% Debug Plots
+    if param.debug_level >= 2
+      range = array_param.wfs.time(array_param.bins)*c/2;
+      
+      if array_param.method < 7
+        theta = array_param.theta;
+        
+        z = bsxfun(@times,-range,cos(theta));
+        y = bsxfun(@times,range,sin(theta));
+        y_axis = (min(y(:)):max(y(:))).';
+        z_axis = min(z(:)):0.05:max(z(:));
+        
+        tomo.img_rect = griddata(y,z,double(tomo.img(:,:,1)),y_axis,z_axis);
+        
+        figure(1); clf;
+        subplot(2,1,1);
+        plot_style = {'b-','r:'};
+        for layer = unique(surf_model.layer)
+          plot(surf_model.y(surf_model.layer == layer), ...
+            surf_model.z(surf_model.layer == layer,1)-param.monte.target_param{1}.z.mean, ...
+            plot_style{1+mod(layer-1,length(plot_style))});
+          hold on;
+        end
+        hold off;
+        ylabel('Elevation (m)');
+        h_axis = gca;
+        grid on;
+        
+        subplot(2,1,2);
+        imagesc(y_axis,z_axis-param.monte.target_param{1}.z.mean,lp(tomo.img_rect));
+        set(gca,'YDir','normal');
+        xlabel('Cross-track (m)');
+        ylabel('Elevation (m)');
+        h_axis(2) = gca;
+        
+        linkaxes(h_axis,'xy');
+        
+      else
+        z = bsxfun(@times,-range,cos(tomo.doa(:,:,1)));
+        y = bsxfun(@times,range,sin(tomo.doa(:,:,1)));
+        
+        figure(1); clf;
+        subplot(2,1,1);
+        plot_style = {'b-','r:'};
+        for layer = unique(surf_model.layer).'
+          plot(surf_model.y(surf_model.layer == layer), ...
+            surf_model.z(surf_model.layer == layer,1)-param.monte.target_param{1}.z.mean, ...
+            plot_style{1+mod(layer-1,length(plot_style))});
+          hold on;
+        end
+        hold off;
+        ylabel('Elevation (m)');
+        h_axis = gca;
+        grid on;
+        
+        subplot(2,1,2);
+        plot(y,z-param.monte.target_param{1}.z.mean,'.');
+        set(gca,'YDir','normal');
+        xlabel('Cross-track (m)');
+        ylabel('Elevation (m)');
+        h_axis(2) = gca;
+        grid on;
+        linkaxes(h_axis,'xy');
+        
+        figure(2); clf;
+        imagesc(surf_model.x, surf_model.y, surf_model.z-param.monte.target_param{1}.z.mean);
+        title('Ground truth');
+        h_axis = gca;
+        xlabel('Along-track (m)');
+        ylabel('Cross-track (m)');
+        cc = caxis;
+        h_cb = colorbar;
+        set(get(h_cb,'YLabel'),'String','WGS-84 elevation (m)');
+        
+        z = bsxfun(@times,-range,cos(tomo.doa));
+        y = bsxfun(@times,range,sin(tomo.doa));
+        x = repmat(permute(surf_model.x(array_param.lines),[1 3 2]),[size(y,1) size(y,2) 1]);
+        
+        good_mask = zeros(size(tomo.doa));
+        good_mask = good_mask | db(tomo.power) > 10;
+        good_mask = good_mask | repmat(permute(tomo.cost,[1 3 2]),[1 size(good_mask,2) 1]) < -25;
+        
+        z_grid = griddata(double(x(good_mask)),double(y(good_mask)),double(z(good_mask)), ...
+          surf_model.x,surf_model.y);
+        figure(3); clf;
+        
+        imagesc(surf_model.x, surf_model.y, z_grid-param.monte.target_param{1}.z.mean);
+        h_axis(2) = gca;
+        title('Array processing with basic surface extraction');
+        xlabel('Along-track (m)');
+        ylabel('Cross-track (m)');
+        caxis(cc);
+        h_cb = colorbar;
+        set(get(h_cb,'YLabel'),'String','WGS-84 elevation (m)');
+        
+        linkaxes(h_axis,'xy');
+       
+      end
+    end
     
     if param.debug_level >= 3
       % End early for debug testing of outputs
@@ -238,7 +236,7 @@ for run_idx = 1:param.monte.runs
       results.surf_model = surf_model;      
       
       % required for slice plots in crossstrack_example.m
-%      results.z_grid = z_grid ;            
+       results.z_grid = z_grid ;            
       
       return
     end    

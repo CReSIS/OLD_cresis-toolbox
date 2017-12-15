@@ -208,11 +208,6 @@ else
       % Maximize cost function
       [~,max_idx] = max(L);
       
-      
- % theta guard in doa_example made small so that L will not be [] and hence max_idx can't be [] (to remove error 'Operands to the || and && operators must be convertible to logical scalar values.
-% ')
-     
-      
       % Polynomial fit
       if max_idx == 1 || max_idx == length(search_theta)
         out(src_idx,1) = search_theta(max_idx);

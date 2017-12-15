@@ -1,15 +1,9 @@
-% SRAVYA
-% This section used in doa1
-% function [results, DCM_runs] = doa(param,doa_prev_optimum)
-
-
-function [results, DCM_runs] = doa(param)
-
+function results = doa(param)
 % results = doa(param)
 %
 % Function for simulating direction of arrival algorithms
 %
-% Author: John Paden, Theresa Stumpf, Sravya Athinarapu
+% Author: John Paden, Theresa Stumpf
 
 param.src.fc = (param.src.f0 + param.src.f1)/2;
 param.src.fs = param.src.f1 - param.src.f0;
@@ -90,23 +84,12 @@ doa_wb_fd_param.nb_filter_banks = param.method.wb_fd.filter_banks;
 %==========================================================================
 
 theta_est = [];
-
-% SRAVYA
 for method = param.method.list
-  theta_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),param.Nc-1);
-  hessian_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),param.Nc-1);
-  amp_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),param.Nc-1);
+  theta_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
+  hessian_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
+  amp_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
   cost_func{method} = zeros(param.monte.runs,size(param.monte.SNR,1));
 end
-
-% for method = param.method.list
-%   theta_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
-%   hessian_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
-%   amp_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
-%   cost_func{method} = zeros(param.monte.runs,size(param.monte.SNR,1));
-% end
-
-
 rng_args = zeros(param.monte.runs);
 
 doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', param.method.theta_guard));
@@ -114,59 +97,29 @@ doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', param.method.theta_guar
 start_time = tic;
 for test_idx = 1:size(param.monte.SNR,1)
   
-  
-  
-  if isempty(param.monte.DOA)   %SRAVYA (for k = 0 )
-    
-    param.src.DOAs   = [];
-    
-  else
-    param.src.DOAs   = param.monte.DOA(test_idx,:);
-    
-  end
-  
   param.src.SNR    = param.monte.SNR(test_idx,:);
   param.src.Nsnap  = param.monte.Nsnap(test_idx);
+  param.src.DOAs   = param.monte.DOA(test_idx,:);
   
-  %SRAVYA
-  % Set number of signals (k)
-  Nsig_tmp = param.Nsig_tmp;
-  
-  doa_nb_1d_param.Nsig = Nsig_tmp;
-  doa_nb_nd_param.Nsig = Nsig_tmp;
-  doa_wb_td_param.Nsig = Nsig_tmp;
-  doa_wb_fd_param.Nsig = Nsig_tmp;
-  
-  %   doa_nb_1d_param.Nsig = size(param.src.SNR,2);
-  %   doa_nb_nd_param.Nsig = size(param.src.SNR,2);
-  %   doa_wb_td_param.Nsig = size(param.src.SNR,2);
-  %   doa_wb_fd_param.Nsig = size(param.src.SNR,2);
+  % Set number of signals, Nsig, field
+  doa_nb_1d_param.Nsig = size(param.src.SNR,2);
+  doa_nb_nd_param.Nsig = size(param.src.SNR,2);
+  doa_wb_td_param.Nsig = size(param.src.SNR,2);
+  doa_wb_fd_param.Nsig = size(param.src.SNR,2);
   
   % Set source limits for N-dimensional constrained optimization
-  LB = zeros(Nsig_tmp,1);
-  UB = zeros(Nsig_tmp,1);
-  for src_idx = 1:Nsig_tmp
+  LB = zeros(length(param.src.DOAs),1);
+  UB = zeros(length(param.src.DOAs),1);
+  for src_idx = 1:length(param.src.DOAs)
     LB(src_idx) = param.method.src_limits{src_idx}(1);
     UB(src_idx) = param.method.src_limits{src_idx}(2);
   end
   
-  
-  
-  
   for run_idx = 1:param.monte.runs
-    %     if ~mod(run_idx-1,50)
-    %       fprintf('test: %2d of %d / run %4d of %d (%.1f sec)\n', ...
-    %         test_idx, size(param.monte.SNR,1), run_idx, param.monte.runs, toc(start_time));
-    %
-    %
-    %     end
-    
-    
-    %SRAVYA
-    
-    fprintf('k: %2d of %d / run %4d of %d (%.1f sec)\n', ...
-      param.Nsig_tmp, param.M, run_idx, param.monte.runs, toc(start_time));
-    
+    if ~mod(run_idx-1,50)
+      fprintf('test: %2d of %d / run %4d of %d (%.1f sec)\n', ...
+        test_idx, size(param.monte.SNR,1), run_idx, param.monte.runs, toc(start_time));
+    end
     
     % Setup random number generator
     rng_args(run_idx) = param.monte.random_seed_offset + run_idx;
@@ -175,7 +128,6 @@ for test_idx = 1:size(param.monte.SNR,1)
     % Simulate array data
     [Data,DCM,imp_response,DCM_fd] = sim.doa_wideband_data(param);
     
-    DCM_runs{run_idx} = DCM;
     % Set up estimation parameters for each method
     doa_wb_td_param.h    = conv(imp_response.vals,imp_response.vals,'same');
     doa_wb_td_param.h    = doa_wb_td_param.h ./ max(abs(doa_wb_td_param.h));
@@ -195,7 +147,7 @@ for test_idx = 1:size(param.monte.SNR,1)
       hold on
       plot(imp_response.time_vec,doa_param.h,'r')
       keyboard
-    end
+    end 
     
     for method = param.method.list
       %fprintf('test: %2d / run: %2d / method: %2d \n', test_idx, run_idx, method);
@@ -209,19 +161,7 @@ for test_idx = 1:size(param.monte.SNR,1)
           
         case 7
           % MLE method: init and minimization
-          
-          % This section used in doa1
-          %           if Nsig_tmp == 1
-          %               doa0 = sort(mle_initialization1(DCM_nb,doa_nb_nd_param,[]));
-          %
-          %           elseif Nsig_tmp > 1
-          %            doa0 = sort(mle_initialization1(DCM_nb,doa_nb_nd_param,doa_prev_optimum(run_idx,:)));
-          %
-          %           end
-          
-          
           doa0 = sort(mle_initialization(DCM_nb,doa_nb_nd_param));
-          
           
           [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
             fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_nb_nd_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_nb_nd_param.options);
@@ -242,9 +182,9 @@ for test_idx = 1:size(param.monte.SNR,1)
       end
       
       % Store outputs into variables
-      [theta_est{method}(run_idx,test_idx,1:Nsig_tmp),sort_idxs] = sort(doa);
+      [theta_est{method}(run_idx,test_idx,:),sort_idxs] = sort(doa);
       HESSIAN = diag(HESSIAN);
-      hessian_est{method}(run_idx,test_idx,1:Nsig_tmp) = HESSIAN(sort_idxs);
+      hessian_est{method}(run_idx,test_idx,:) = HESSIAN(sort_idxs);
       cost_func{method}(run_idx,test_idx) = Jval;
       
     end
@@ -256,5 +196,5 @@ results.theta_est = theta_est;
 results.rng_args = rng_args;
 results.hessian_est = hessian_est;
 results.cost_func = cost_func;
-results.DCM = DCM_runs;
+
 return;
