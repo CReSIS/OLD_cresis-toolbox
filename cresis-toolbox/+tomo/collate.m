@@ -14,18 +14,12 @@ function collate(param, param_override)
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
-% Input checking
-global gRadar;
-if ~exist('param','var')
-  error('Use tomo.run_collate: A struct array of parameters must be passed in\n');
-end
-if exist('param_override','var')
-  param_override = merge_structs(gRadar,param_override);
-else
-  param_override = gRadar;
-end
-
 param = merge_structs(param,param_override);
+
+dbstack_info = dbstack;
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
+fprintf('=====================================================================\n');
 
 %% Determine which frames we will operate on
 % Load frames file

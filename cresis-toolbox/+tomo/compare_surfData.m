@@ -17,6 +17,7 @@ param.season_name  = '2014_Greenland_P3';
 segs               = {'20140401_03','20140506_01','20140325_05','20140325_06','20140325_07'};
 param.slices       = []; % Leave empty to run all slices
 cutoffs            = [0 5 10 15 20 25]; % Cutoff interval for statistics
+DOA_trim           = 3;
 
 % Output directory of CDF image (cumulative distribution function)
 out_dir = '';
@@ -85,7 +86,7 @@ for seg_idx = 1:length(segs)
       slices = param.slices;
     end
     
-    layer_diff  = abs(data_B.surf(idx_B).y(:,slices) - data_A.surf(idx_A).y(:,slices));
+    layer_diff  = abs(data_B.surf(idx_B).y(1+DOA_trim:end-DOA_trim+1,slices) - data_A.surf(idx_A).y(1+DOA_trim:end-DOA_trim+1,slices));
     rmse        = sqrt(mean(abs(layer_diff(:)).^2));
     mean_diff   = nanmean(layer_diff(:));
     median_diff = nanmedian(layer_diff(:));
@@ -112,6 +113,7 @@ for seg_idx = 1:length(segs)
       fprintf('\n Median difference: %.4f', median_diff);
       fprintf('\n Minimum difference: %.4f', min_diff);
       fprintf('\n Maximum difference: %.4f\n', max_diff);
+      imagesc(layer_diff); colorbar;
     end
   end
 end
