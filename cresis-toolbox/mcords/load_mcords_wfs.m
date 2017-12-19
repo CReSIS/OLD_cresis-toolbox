@@ -335,6 +335,10 @@ for wf = 1:length(param.radar.wfs)
   
   % Apply receiver delays to reference function
   Nt = wfs(wf).Nt_pc;
+  if isempty(Nt)
+    warning('Undefined waveform %d: skipping waveform.', wf);
+    continue;
+  end
   df = 1/(Nt*dt);
   if wfs(wf).DDC_mode == 0
     freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';

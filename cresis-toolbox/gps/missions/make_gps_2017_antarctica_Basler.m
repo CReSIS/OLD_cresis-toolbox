@@ -38,11 +38,12 @@ sync_fns = {}; sync_params = {};
 gps_source_to_use = 'cresis';
 if strcmpi(gps_source_to_use,'NMEA')
   
+  year = 2017; month = 10; day = 21;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = fullfile(in_base_path,'GPS_131218_215139.txt');
-  out_fns{file_idx} = 'gps_20171219.mat';
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('nmea_%04d%02d%02d',year,month,day)),'GPS','','.txt');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'NMEA';
-  params{file_idx} = struct('year',2017,'month',12,'day',19,'format',1,'time_reference','utc');
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
   gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 0;
   

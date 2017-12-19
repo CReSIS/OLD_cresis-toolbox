@@ -97,6 +97,8 @@ if strcmpi(example_setup,'vertical')
   
   % create_surfData_flag: runs create_surfData.m when true
   tomo_collate.create_surfData_flag = true;
+  
+  param_override = struct('tomo_collate',tomo_collate);
 
 elseif strcmpi(example_setup,'horizontal')
   %% Horizontal multibeam fuse example
@@ -180,11 +182,13 @@ elseif strcmpi(example_setup,'horizontal')
   % create_surfData_flag: runs create_surfData.m when true
   tomo_collate.create_surfData_flag = true;
   
+  param_override = struct('tomo_collate',tomo_collate);
+  
 else
   error('%s is not a valid example_setup.', example_setup);
 end
 
-%% Automated loading section
+%% Automated collate section
 % =========================================================================
 
 global gRadar;
@@ -202,7 +206,6 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  param.tomo_collate = tomo_collate;
   tomo.collate(param,param_override);
 end
 

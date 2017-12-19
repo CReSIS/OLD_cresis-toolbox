@@ -304,6 +304,7 @@ for board_idx = 1:length(boards)
         wf = accum(board+1).wf(accum_idx);
         % Convert little endian load into big endian values
         cur_hdr_size = HEADER_SIZE + wf*WF_HEADER_SIZE;
+        quantization_to_V_adjustment = 1;
         if param.load.file_version < 407
           % Old offset video sampling
           tmp = single(rec_data(1+mod(rel_adc-1,num_boards) + num_boards*(0:wfs(wf).Nt_raw-1) + cur_hdr_size/2 + num_boards*wfs(wf).offset/2));
@@ -316,6 +317,14 @@ for board_idx = 1:length(boards)
             tmp = single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (1:2:2*wfs(wf).Nt_raw))) ...
               - 1i*single(rec_data(cur_hdr_size/2 + wfs(wf).offset/2 + (2:2:2*wfs(wf).Nt_raw)));
           end
+          
+          % Read bit shifts field
+          bit_shifts = double(rec_data(cur_hdr_size/2 - WF_HEADER_SIZE/2 + wfs(wf).offset/2 + 2));
+          bit_shifts(bit_shifts<0) = 2^16+bit_shifts(bit_shifts<0); % Convert from int16 to uint16
+          bit_shifts = mod(bit_shifts,2^8); % Isolate the lower 8-bits
+          bit_shifts(bit_shifts>128) = 2^8-bit_shifts(bit_shifts>128); % Convert from uint8 to int8 and then negate
+          quantization_to_V_adjustment = 2^(bit_shifts - param.load.wfs(wf).bit_shifts);
+          
         elseif param.load.file_version == 408
           % New offset video sampling
           tmp = zeros(wfs(wf).Nt_raw,1,'single');
@@ -337,7 +346,7 @@ for board_idx = 1:length(boards)
               mean_tmp = wfs(wf).DC_adjust(adc);
           end
           tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
-          tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V;
+          tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V * quantization_to_V_adjustment;
           
           if isfield(wfs(wf),'gain')
             tmp = tmp .* interp1(wfs(wf).gain.Time, wfs(wf).gain.Gain, wfs(wf).time_raw(1:wfs(wf).Nt_raw));

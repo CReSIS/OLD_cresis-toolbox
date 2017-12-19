@@ -7,6 +7,8 @@ function link_axes(fig_list,option)
 % option: options to linkaxes, default is 'xy'
 %
 % Author: John Paden
+%
+% See also: 
 
 h_axes = [];
 
