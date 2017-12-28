@@ -1,5 +1,8 @@
 classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
   % Slice_browser tool which calls detect.cpp (HMM)
+  %
+  % Compile C++ program with:
+  %   mex -largeArrayDims viterbi.cpp
   
   properties (SetAccess = protected, GetAccess = public)
   end
@@ -61,9 +64,6 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         cols = 1:size(sb.data,2);
       end
       
-      smooth_weight = -1;
-      smooth_var = -1;
-      
       if ~exist('slices','var') || isempty(slices)
         slices = sb.slice+slice_range;
       end
@@ -105,23 +105,25 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
           mask = isfinite(sb.layer(control_idx).x(:,slice)) ...
             & isfinite(sb.layer(control_idx).y(:,slice));
           gt = cat(2,gt,[sb.layer(control_idx).x(mask,slice).'-1; ...
-            sb.layer(control_idx).y(mask,slice).'+0.5]);
+            sb.layer(control_idx).y(mask,slice).'+0.5]);        
           [~,unique_idxs] = unique(gt(1,:),'last','legacy');
           gt = gt(:,unique_idxs);
+          viterbi_weight = ones([1 (size(sb.data,2))]);
+          viterbi_weight(gt(1,:)) = 2;
           [~,sort_idxs] = sort(gt(1,:));
           gt = gt(:,sort_idxs);
           bottom_bin = sb.layer(control_idx).y(ceil(size(sb.data,2)/2)+1,slice);
         else
           bottom_bin = NaN;
+          viterbi_weight = ones([1 length(gt)]);
         end
-        
+
         if isempty(surf_idx)
           surf_bins = NaN*sb.layer(active_idx).y(:,slice);
         else
           surf_bins = sb.layer(surf_idx).y(:,slice);
         end
         surf_bins(isnan(surf_bins)) = -1;
-        
         bottom_bin(isnan(bottom_bin)) = -1;
         
         if isempty(mask_idx)
@@ -133,13 +135,35 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         detect_data = sb.data(:,:,slice);
         detect_data(detect_data>threshold) = threshold;
         detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
-        bounds = [sb.bounds_relative(1) size(detect_data,2)-sb.bounds_relative(2)-1];
+        bounds = [sb.bounds_relative(1) size(detect_data,2)-sb.bounds_relative(2)];
 
-        labels = tomo.detect(double(detect_data), ...
-          double(surf_bins), double(bottom_bin), ...
-          double(gt), double(mask), ...
-          double(obj.custom_data.mu), double(obj.custom_data.sigma),-1,double(egt_weight), ...
-          double(smooth_weight), double(smooth_var), double(slope), int64(bounds));
+        mu_size       = 11;
+        mu            = sinc(linspace(-1.5, 1.5, mu_size));
+        sigma         = sum(mu)/20*ones(1,mu_size);
+        smooth_var    = -1;      
+        smooth_weight = 45;
+        repulsion     = 250;
+        ice_bin_thr   = 3;
+
+        %%%% TO COMPILE
+        if 0
+            tmp = pwd;
+            cd ~/scripts/cresis-toolbox/cresis-toolbox/+tomo/
+            mex -largeArrayDims viterbi.cpp
+            cd(tmp);
+        end
+        %%%%
+        
+        % Call viterbi.cpp
+        tic
+        labels = tomo.viterbi(double(detect_data), ...
+        double(surf_bins), double(bottom_bin), ...
+        double(gt), double(mask), ...
+        double(mu), double(sigma), double(egt_weight), ...
+        double(smooth_weight), double(smooth_var), double(slope), ...
+        int64(bounds), double(viterbi_weight), ...
+        double(repulsion), double(ice_bin_thr));
+        toc
 
         % Create cmd for layer change
         cmd{end+1}.undo.slice = slice;
@@ -181,6 +205,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
       
       obj.gui.slice_rangeLE = uicontrol('parent',obj.h_fig);
+  
       set(obj.gui.slice_rangeLE,'style','edit')
       set(obj.gui.slice_rangeLE,'string','-1:0')
       set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
