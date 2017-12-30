@@ -24,17 +24,17 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd. You 
       %     should not modify any fields of sb.
-      %  .layer: struct array containing layer information
+      %  .sd: surfdata .surf struct array containing surface information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
-      %  .layer_idx: active layer
+      %  .surf_idx: active surface
       % slices: array of slices to operate on (overrides sb.slice)
-      control_idx = sb.layer(sb.layer_idx).control_layer;
-      active_idx = sb.layer(sb.layer_idx).active_layer;
-      surf_idx = sb.layer(sb.layer_idx).surf_layer;
-      mask_idx = sb.layer(sb.layer_idx).mask_layer;
+      control_idx = sb.sd.surf(sb.surf_idx).gt;
+      active_idx = sb.sd.surf(sb.surf_idx).active;
+      surf_idx = sb.sd.surf(sb.surf_idx).top;
+      mask_idx = sb.sd.surf(sb.surf_idx).mask;
       
       try
         row_range = eval(get(obj.gui.row_rangeLE,'String'));
@@ -67,10 +67,10 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
       for slice = slices(:).'
         new_y = [];
         for col = cols(:).'
-          if ~isempty(control_idx) && ~isnan(sb.layer(control_idx).y(col,slice))
-            new_y(end+1) = sb.layer(control_idx).y(col,slice);
+          if ~isempty(control_idx) && ~isnan(sb.sd.surf(control_idx).y(col,slice))
+            new_y(end+1) = sb.sd.surf(control_idx).y(col,slice);
           else
-            rows = round(sb.layer(sb.layer_idx).y(col,slice)) + row_range;
+            rows = round(sb.sd.surf(sb.surf_idx).y(col,slice)) + row_range;
             rows = intersect(rows,1:size(sb.data,1));
             [max_val,max_row] = max(sb.data(rows,col,slice));
             new_y(end+1) = rows(max_row);
@@ -80,10 +80,10 @@ classdef (HandleCompatible = true) slicetool_max < imb.slicetool
         % Create cmd for layer change
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
-        cmd{end}.undo.layer = sb.layer_idx;
-        cmd{end}.redo.layer = sb.layer_idx;
+        cmd{end}.undo.surf = sb.surf_idx;
+        cmd{end}.redo.surf = sb.surf_idx;
         cmd{end}.undo.x = cols;
-        cmd{end}.undo.y = sb.layer(sb.layer_idx).y(cols,slice);
+        cmd{end}.undo.y = sb.sd.surf(sb.surf_idx).y(cols,slice);
         cmd{end}.redo.x = cols;
         cmd{end}.redo.y = new_y;
         cmd{end}.type = 'standard';

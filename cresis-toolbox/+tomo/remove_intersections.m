@@ -37,13 +37,19 @@ function [px_out,py_out,idxs] = remove_intersections(px,py,buffer,single_polygon
 % debug_state_check: Set to true to enable state check debugging
 debug_state_check = 0;
 % debug_plots: Set to true to enable plots for debugging
-debug_plots = 0;
+debug_plots = 1;
 % debug_poly: Set to true to enable polygon debugging
 debug_poly = 0;
 
 % Find all the segments that intersect
 %   (each row of segs contains a pair of indexes to crossing segments)
-[x0,y0,segs] = tomo.selfintersect(px,py);
+if length(px) >= 4
+  [x0,y0,segs] = tomo.selfintersect(px,py);
+else
+  x0 = [];
+  y0 = [];
+  segs = [];
+end
 
 % Remove segments that include overlapping points (i.e. if either end of
 % the segment has the same position as either end of the intersecting
@@ -393,6 +399,20 @@ if single_polygon_flag
     
     % Is p2 inside p1?
     in_poly = inpolygon(px_out{p2_idx}(1),py_out{p2_idx}(1),px_out{p1_idx},py_out{p1_idx});
+    if ~in_poly
+      % Is p1 inside p2?
+      in_poly = inpolygon(px_out{p1_idx}(1),py_out{p1_idx}(1),px_out{p2_idx},py_out{p2_idx});
+      if in_poly
+        % Switch polygon 1 and 2 since the joining assumes 2 is inside 1
+        % when in_poly = true
+        tmp = p1_idx;
+        p1_idx = p2_idx;
+        p2_idx = tmp;
+        tmp = min_p1_idx;
+        min_p1_idx = min_p2_idx;
+        min_p2_idx = tmp;
+      end
+    end
     
     % If p2 is inside of p1, then it needs to be opposite cw/ccw direction as p1
     % If p2 is outside of p1, then is needs to have the same cw/ccw direction as p1
@@ -423,9 +443,15 @@ if single_polygon_flag
     idxs(p2_idx) = [];
   end
   
-  px_out = px_out{1};
-  py_out = py_out{1};
-  idxs = idxs{1};
+  if isempty(px_out)
+    px_out = [];
+    py_out = [];
+    idxs = [];
+  else
+    px_out = px_out{1};
+    py_out = py_out{1};
+    idxs = idxs{1};
+  end
   
 else
   [px_out,py_out] = polyjoin(px_out,py_out);

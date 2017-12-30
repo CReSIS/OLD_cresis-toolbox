@@ -42,13 +42,35 @@ classdef (HandleCompatible = true) slicetool < handle
   
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd. You 
       %     should not modify any fields of sb.
-      %  .layer: struct array containing layer information
+      %  .sd: surfdata .surf struct array containing surface information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
-      %  .layer_idx: active layer
+      %  .surf_idx: active surface
       % slices: array of slices to operate on (overrides sb.slice)
+      
+      % control_idx = sb.sd.surf(sb.surf_idx).gt;
+      % active_idx = sb.sd.surf(sb.surf_idx).active;
+      % surf_idx = sb.sd.surf(sb.surf_idx).top;
+      % mask_idx = sb.sd.surf(sb.surf_idx).mask;
+      % quality_idx = sb.sd.surf(sb.surf_idx).quality;
+      
+      % Create cmd for layer change
+      cmd = [];
+      
+      % cmd{end+1}.undo.slice = slice;
+      % cmd{end}.redo.slice = slice;
+      % cmd{end}.undo.surf = surf_idx;
+      % cmd{end}.redo.surf = surf_idx;
+      % cmd{end}.undo.x = cols;
+      % cmd{end}.undo.y = sb.sd.surf(surf_idx).y(cols,slice);
+      % cmd{end}.redo.x = cols;
+      % cmd{end}.redo.y = new_vals;
+      % cmd{end}.type = 'standard';
+      % cmd{end+1}.redo.slice = sb.slice;
+      % cmd{end}.undo.slice = sb.slice;
+      % cmd{end}.type = 'slice_dummy';
     end
     
     function create_option_ui(obj)

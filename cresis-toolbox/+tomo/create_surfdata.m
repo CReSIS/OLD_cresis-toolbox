@@ -1,5 +1,5 @@
-function create_surfData(param,mdata)
-% tomo.create_surfData(param,mdata)
+function create_surf_data(param,mdata)
+% tomo.create_surf_data(param,mdata)
 %
 % Description: Usually this function is called from tomo_collate_task.
 %   Using a surface DEM and an ice mask, this function adds an aligned

@@ -9,24 +9,24 @@
 %% User Settings
 % =========================================================================
 
-if 0
+if 1
   param.radar_name = 'rds';
   param.season_name = '2014_Greenland_P3';
-  out_type = 'paden_music';
-  surfdata_source = 'paden_surfData';
+  out_type = 'CSA_music';
+  surfdata_source = 'surfData_v2';
   param.day_seg = '20140401_03';
   frm = 37;
   geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
   ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
   bounds_relative = [3 2 0 0];
   
-elseif 0
+elseif 1
   param.radar_name = 'rds';
   param.season_name = '2009_Antarctica_TO';
-  out_type = 'nick_music';
-  surfdata_source = 'paden_surfData';
+  out_type = 'music3D';
+  surfdata_source = 'surfData_v2';
   param.day_seg = '20091224_01';
-  frm = 18;
+  frm = 26;
   geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
@@ -59,9 +59,9 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
 end
 
 sb_param = [];
-sb_param.layer_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-if ~exist(sb_param.layer_fn)
-  sb_param.layer_fn = '';
+sb_param.surfdata_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+if ~exist(sb_param.surfdata_fn)
+  sb_param.surfdata_fn = '';
 end
 sb_param.bounds_relative = bounds_relative;
 

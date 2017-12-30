@@ -156,7 +156,7 @@ classdef ice_mask_edit < handle
       set(obj.h_dem_fig,'NumberTitle','off');
       set(obj.h_dem_fig,'ToolBar','none');
       set(obj.h_dem_fig,'MenuBar','none');
-      set(obj.h_dem_fig,'Name','Satellite Image');
+      set(obj.h_dem_fig,'Name','Satellite');
       pos = get(obj.h_dem_fig,'Position');
       pos(3) = pos(3)+70+60;
       set(obj.h_dem_fig,'Position',pos);
@@ -615,6 +615,10 @@ classdef ice_mask_edit < handle
       
       gray_idx = find(obj.dem_y_mesh>=y_p_lim(1) & obj.dem_y_mesh<=y_p_lim(2) &...
         obj.dem_x_mesh>=x_p_lim(1) & obj.dem_x_mesh<=x_p_lim(2));
+      
+      if isempty(gray_idx)
+        return
+      end
       
       gray_tmp = obj.gray(gray_idx);
       x_tmp = obj.dem_x_mesh(gray_idx);

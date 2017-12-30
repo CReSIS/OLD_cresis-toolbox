@@ -44,12 +44,18 @@ if 1
   
   % ice_top: string containing surface name for the top of the ice (used for
   % refraction)
-  dem.ice_top = 'ice surface';
+  dem.ice_top = 'top';
   
   % surface_names: cell array of strings containing surface names that output
   % data products will be generated for
-  %dem.surface_names = {'ice surface','bottom'};
-  dem.surface_names = {'bottom'};
+  dem.surface_names = {'top','bottom'};
+%   dem.surface_names = {'bottom'};
+  
+  % quality_surface_names: cell array of strings containing surface names
+  % for the quality surface that corresponds to each entry in
+  % surface_names.
+  dem.quality_surface_names = {'top quality','bottom quality'};
+%   dem.quality_surface_names = {'bottom quality'};
   
   dem.grid_spacing = 25;
   dem.bad_geotiff_value = -32767;
@@ -59,13 +65,13 @@ if 1
 else
   params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091224_01','post');
   params.cmd.generic = 1;
-  params.cmd.frms = [16:18];
+  params.cmd.frms = [];
   
   % surfdata_source: input surfData directory (ct_filename_out)
-  dem.surfdata_source = 'paden_surfData';
+  dem.surfdata_source = 'surfData';
   
   % input_dir_name: input radar 3D image directory (ct_filename_out)
-  dem.input_dir_name = 'nick_music';
+  dem.input_dir_name = 'music3D';
   
   % output_dir_name: string containing output directory (ct_filename_out)
   dem.output_dir_name = 'paden_DEM';
@@ -79,7 +85,7 @@ else
   dem.DOA_trim = 15;
   
   % med_filt: medfilt2 arguments for spatial filtering (leave blank for no filtering)
-  dem.med_filt = [5 9];
+  dem.med_filt = [13 9];
   
   % figure_dots_per_km: scalar representing the number of pixels per km in
   %   the figures
@@ -100,11 +106,18 @@ else
   
   % ice_top: string containing surface name for the top of the ice (used for
   % refraction)
-  dem.ice_top = 'ice surface';
+  dem.ice_top = 'top';
   
   % surface_names: cell array of strings containing surface names that output
   % data products will be generated for
-  dem.surface_names = {'ice surface','bottom'};
+  dem.surface_names = {'top','bottom'};
+  %dem.surface_names = {'bottom'};
+  
+  % quality_surface_names: cell array of strings containing surface names
+  % for the quality surface that corresponds to each entry in
+  % surface_names.
+  dem.quality_surface_names = {'top quality','bottom quality'};
+  %dem.quality_surface_names = {'bottom quality'};
   
   dem.grid_spacing = 25;
   dem.bad_geotiff_value = -32767;

@@ -82,9 +82,9 @@ for frm_idx = 1:length(param.cmd.frms)
   
   frm = param.cmd.frms(frm_idx);
   notes = sprintf('%s %s_%03d (%d of %d)', ...
-            param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms));
-  fprintf('%s\n', notes);
-    
+    param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms));
+  fprintf('%s (%s)\n', notes, datestr(now));
+  
   surfdata_fn = fullfile(ct_filename_out(param,param.dem.surfdata_source),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   data_fn = fullfile(ct_filename_out(param,param.dem.input_dir_name),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   
@@ -97,9 +97,9 @@ for frm_idx = 1:length(param.cmd.frms)
   % Find the index to the ice top
   ice_top_idx = find(strcmp(param.dem.ice_top,{surf.name}));
   if length(ice_top_idx) ~= 1
-      error('Search for ice top "%s" returned %d matches in surfdata file.', param.dem.ice_top, length(ice_top_idx));
+    error('Search for ice top "%s" returned %d matches in surfdata file.', param.dem.ice_top, length(ice_top_idx));
   end
-
+  
   % Load the echogram
   fprintf('  %s\n', data_fn);
   mdata = load(data_fn);
@@ -143,7 +143,7 @@ for frm_idx = 1:length(param.cmd.frms)
   
   %% Convert doa,twtt to radar FCS for each surface
   for surface_names_idx = 1:numel(surface_names)
-
+    
     % Determine which surface index in surfData file we are working with
     surface_idx = strmatch(surface_names{surface_names_idx},{surf.name},'exact');
     if length(surface_idx) ~= 1
@@ -161,7 +161,7 @@ for frm_idx = 1:length(param.cmd.frms)
       surface_twtt(:,1:floor(param.dem.med_filt(2)/2)) = NaN;
       surface_twtt(:,end-floor(param.dem.med_filt(2)/2)+1:end) = NaN;
     end
-
+    
     % Convert from doa,twtt to radar FCS
     [y_active,z_active] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]), ...
       theta(DOA_trim+1:end-DOA_trim),ice_top(DOA_trim+1:end-DOA_trim,:), ...
@@ -218,7 +218,7 @@ for frm_idx = 1:length(param.cmd.frms)
   end
   % Clean up
   clear surface_twtt y_active z_active x_plane y_plane z_plane;
-
+  
   % Setup Bounds of data products
   min_x = param.dem.grid_spacing * round(min_x/param.dem.grid_spacing);
   max_x = param.dem.grid_spacing * round(max_x/param.dem.grid_spacing);
@@ -231,14 +231,14 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Find the index of this surface in the surfData file
     surface_idx = strmatch(surface_names{surface_names_idx},{surf.name},'exact');
-
+    
     % Create the file output surface name
     surf_str = surf(surface_idx).name;
     surf_str(~isstrprop(surf_str,'alphanum')) = '_';
     
     %  Grab DEM points from stash
     points = points_stash{surface_idx};
-  
+    
     % Find the index for the quality layer
     quality_idx = find(strcmp(param.dem.quality_surface_names{surface_names_idx},{surf.name}));
     if length(quality_idx) ~= 1
@@ -255,77 +255,252 @@ for frm_idx = 1:length(param.cmd.frms)
     % Create a constrained delaunay triangulization that forces edges
     % along the boundary (concave_hull) of our swath
     good_mask = isfinite(points.x) & isfinite(points.y) & isfinite(points.elev) & surf(quality_idx).y(DOA_trim+1:end-DOA_trim,:);
-    row = find(good_mask,1);
-    col = floor(row/size(good_mask,1)) + 1;
-    row = row - (col-1)*size(good_mask,1);
-    B = bwtraceboundary(good_mask,[row col],'S',8,inf,'counterclockwise');
-    B = B(:,1) + (B(:,2)-1)*size(good_mask,1);
-    concave_hull = [B(1:end-1) B(2:end); B(end) B(1)];
-    good_idxs = find(good_mask);
-    new_good_idxs = 1:length(good_idxs);
-    idx_translate = zeros(size(good_mask));
-    idx_translate(good_idxs) = new_good_idxs;
-    concave_hull = idx_translate(concave_hull);
-    
-    pnts = zeros(3,length(good_idxs));
-    pnts(1,:) = points.x(good_idxs);
-    pnts(2,:) = points.y(good_idxs);
-    pnts(3,:) = points.elev(good_idxs);
-    gps_time = repmat(mdata.GPS_time,size(good_mask,1),1);
-    gps_time = gps_time(good_idxs);
-    
-    px = pnts(1,concave_hull(:,1));
-    py = pnts(2,concave_hull(:,1));
-    
-    [px,py,idxs] = tomo.remove_intersections(px,py,0.1,true);
-    c1 = concave_hull(idxs(~isnan(idxs)),1);
-    
-    concave_hull = zeros(length(c1),2);
-    concave_hull(:,1) = c1;
-    concave_hull(:,2) = [c1(2:end);c1(1)];
-    
-    %dt = DelaunayTri(pnts(1,:).',pnts(2,:).');
-    dt = DelaunayTri(pnts(1,:).',pnts(2,:).',concave_hull);
-    
-    warning off;
-    F = TriScatteredInterp(dt,pnts(3,:).');
-    warning on;
-    DEM = F(xmesh,ymesh);
-
-    warning off;
-    img_3D = mdata.Topography.img(round(surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(surf(surface_idx).y)-1).');
-    img_3D = double(reshape(img_3D, size(surf(surface_idx).y)));
-    img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
-    F = TriScatteredInterp(dt,img_3D(good_idxs));
-    warning on;
-    IMG_3D = F(xmesh,ymesh);
-    
     if 0
-      % Slow method using inpolygon
-      boundary = [pnts(1:2,:,1) squeeze(pnts(1:2,end,:)) squeeze(pnts(1:2,end:-1:1,end)) squeeze(pnts(1:2,1,end:-1:1))];
-      good_mask = ~isnan(meas{measInd}.DEM);
-      good_mask_idx = find(good_mask);
-      in = inpolygon(eastMesh(good_mask),northMesh(good_mask),boundary(1,:),boundary(2,:));
-      good_mask(good_mask_idx(~in)) = 0;
-      meas{measInd}.DEM(~good_mask) = NaN;
+      % This method only handles a single object/region
+      row = find(good_mask,1);
+      col = floor(row/size(good_mask,1)) + 1;
+      row = row - (col-1)*size(good_mask,1);
+      B = bwtraceboundary(good_mask,[row col],'S',8,inf,'counterclockwise');
+      B = B(:,1) + (B(:,2)-1)*size(good_mask,1);
+      concave_hull = [B(1:end-1) B(2:end); B(end) B(1)];
+      
+    elseif 0
+      % This method finds all regions, but still has problems when
+      % constraints get dropped in Delaunay triangulization
+      B = bwboundaries(good_mask,8);
+      polyB_x = cell(size(B));
+      polyB_y = cell(size(B));
+      for idx=1:length(polyB_x)
+        polyB_x{idx} = B{idx}(:,1).';
+        polyB_y{idx} = B{idx}(:,2).';
+      end
+      B = [];
+      [B(:,1),B(:,2)] = polygon_join(polyB_x,polyB_y);
+      
+      B = B(:,1) + (B(:,2)-1)*size(good_mask,1);
+      concave_hull = [B(1:end-1) B(2:end)];
+      
+    elseif 0
+      % This method is not exhausitively tested and does not handle cutouts
+      % in the good_mask (these cutouts are interpolated)
+      
+      % bwboundaries: Returns a polygon for every distinct (nonoverlapping) object
+      % This is necessary because the swath could be broken into multiple sections if there is bad quality or missing data
+      [Bs,Bs_L,Bs_N,Bs_A] = bwboundaries(good_mask,8);
+      DEM_final = [];
+      IMG_3D_final = [];
+      % Create the DEM and 3D image for each distinct object and then combine them all into one DEM/IMG_3D
+      for B_idx = 1:length(Bs)
+        
+        if any(Bs_A(B_idx,:))
+          % This polygon is a child of another polygon (i.e. it is within another polygon and we ignore it)
+          continue
+        end
+        % Get the boundary polygon that we are working on
+        B = Bs{B_idx};
+        % Convert row,col indexing to single index
+        B = B(:,1) + (B(:,2)-1)*size(good_mask,1);
+        % Close the polygon and convert to concave hull format:
+        % First column: Start index of edge
+        % Second column: End index of edge
+        concave_hull = [B(1:end-1) B(2:end); B(end) B(1)];
+        
+        % Get just the indices for the object that is surrounded by the polygon Bs(B_idx)
+        good_idxs = find(Bs_L == B_idx);
+        % Translate these absolute (to the good_mask matrix) indices into a relative indexing
+        % on this object only.
+        new_good_idxs = 1:length(good_idxs);
+        idx_translate = zeros(size(good_mask));
+        idx_translate(good_idxs) = new_good_idxs;
+        concave_hull = idx_translate(concave_hull);
+        
+        % Get the 3D points/gps_time corresponding to this object, note that the ordering
+        % of these "pnts" and "gps_time" is in the relative indexing
+        pnts = zeros(3,length(good_idxs));
+        pnts(1,:) = points.x(good_idxs);
+        pnts(2,:) = points.y(good_idxs);
+        pnts(3,:) = points.elev(good_idxs);
+        gps_time = repmat(mdata.GPS_time,size(good_mask,1),1);
+        gps_time = gps_time(good_idxs);
+        
+        % The concave hull has to be one polygon with no intersections
+        % The boundary polygon meets this requirement, but the "pnts" associated with
+        % this object may not. Since the triangulization is based on "pnts", we need
+        % to adjust concave_hull in the pnts domain.
+        px = pnts(1,concave_hull(:,1));
+        py = pnts(2,concave_hull(:,1));
+        
+        [px,py,idxs] = tomo.remove_intersections(px,py,0.1,true);
+        if isempty(idxs)
+          % No valid points in this region
+          continue;
+        end
+        c1 = concave_hull(idxs(~isnan(idxs)),1);
+        
+        concave_hull = zeros(length(c1),2);
+        concave_hull(:,1) = c1;
+        concave_hull(:,2) = [c1(2:end);c1(1)];
+        
+        % Perform constrained triangulization
+        dt = DelaunayTri(pnts(1,:).',pnts(2,:).',concave_hull);
+        
+        % Interpolate to find gridded DEM
+        warning off;
+        F = TriScatteredInterp(dt,pnts(3,:).');
+        warning on;
+        DEM = F(xmesh,ymesh);
+        
+        % Interpolate to find gridded 3D image
+        img_3D_idxs = round(surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(surf(surface_idx).y)-1).';
+        img_3D = NaN*zeros(size(img_3D_idxs));
+        img_3D(~isnan(img_3D_idxs)) = mdata.Topography.img(img_3D_idxs(~isnan(img_3D_idxs)));
+        img_3D = double(reshape(img_3D, size(surf(surface_idx).y)));
+        img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
+        warning off;
+        F = TriScatteredInterp(dt,img_3D(good_idxs));
+        warning on;
+        IMG_3D = F(xmesh,ymesh);
+        
+        % Use the to remove interpolation outside the boundary
+        if 1
+          % Slow method using inpolygon
+          idxs_to_check = find(~isnan(DEM));
+          bad_mask = ~inpolygon(xmesh(idxs_to_check),ymesh(idxs_to_check),px,py);
+          DEM(idxs_to_check(bad_mask)) = NaN;
+          IMG_3D(idxs_to_check(bad_mask)) = NaN;
+        else
+          % Faster method using inOutStatus/pointLocation with edge constraints
+          % Finds the triangles outside the concave hull (the bad ones). The
+          % technique, although faster, is not reliable for complicated
+          % polygons because the Delaunay triangulation removes duplicate
+          % edges which means the concave hull can be distorted and no longer
+          % work properly for in/out calculations.
+          
+          bad_tri_mask = ~inOutStatus(dt);
+          % Selects just the points that were in the convex hull
+          constraint_mask = ~isnan(DEM);
+          constraint_mask_idx = find(constraint_mask);
+          % For each point in the convex hull, find the triangle enclosing it
+          tri_list = pointLocation(dt,xmesh(constraint_mask),ymesh(constraint_mask));
+          % Use the bad triangle list to find the bad points
+          bad_mask = bad_tri_mask(tri_list);
+          % Set all the points in bad triangles to NaN
+          constraint_mask(constraint_mask_idx(bad_mask)) = 0;
+          DEM(~constraint_mask) = NaN;
+          IMG_3D(~constraint_mask) = NaN;
+        end
+        
+        % Combine DEM and IMG_3D from each polygon into a final DEM/IMG_3D
+        if isempty(DEM_final)
+          DEM_final = DEM;
+        else
+          DEM_final(~isnan(DEM)) = DEM(~isnan(DEM));
+        end
+        if isempty(IMG_3D_final)
+          IMG_3D_final = IMG_3D;
+        else
+          IMG_3D_final(~isnan(IMG_3D)) = IMG_3D(~isnan(IMG_3D));
+        end
+      end
+      DEM = DEM_final;
+      IMG_3D = IMG_3D_final;
+      
     else
-      % Faster method using inOutStatus/pointLocation with edge constraints
-      % Finds the triangles outside the concave hull (the bad ones)
-      bad_tri_mask = ~inOutStatus(dt);
-      % Selects just the points that were in the convex hull
-      good_mask = ~isnan(DEM);
-      good_mask_idx = find(good_mask);
-      % For each point in the convex hull, find the triangle enclosing it
-      tri_list = pointLocation(dt,xmesh(good_mask),ymesh(good_mask));
-      % Use the bad triangle list to find the bad points
-      bad_mask = bad_tri_mask(tri_list);
-      % Set all the points in bad triangles to NaN
-      good_mask(good_mask_idx(bad_mask)) = 0;
-      DEM(~good_mask) = NaN;
-      IMG_3D(~good_mask) = NaN;
+      % bwboundaries: Returns a polygon for every distinct (nonoverlapping) object
+      % This is necessary because the swath could be broken into multiple sections if there is bad quality or missing data
+      [B_all,B_L,~,B_A] = bwboundaries(good_mask,8,'holes');
+      
+      % Convert cell format of B_all to vector polygon format
+      B_x = cell(size(B_all));
+      B_y = cell(size(B_all));
+      for B_idx=1:length(B_all)
+        if any(B_A(B_idx,:))
+          % This polygon is inside of another.
+          
+          % Background:
+          % The outermost polygons trace objects. For us objects are
+          % the good regions where good_mask = 1. For bwboundaries.m, the
+          % polygon boundaries of objects lie completely within the object
+          % so that all the boundary pixels have good_mask = 1.
+          % Polygon boundaries inside another polygon trace the boundary
+          % of holes in the object. These holes are defined as regions
+          % where good_mask = 0 that are completely inside the object.
+          % The polygon boundary of holes lies completely in the good_mask
+          % = 0 region.
+          
+          % Solution:
+          % We retrace the hole after growing the hole region. The
+          % polygon boundary for the hole region, after growing the hole by
+          % one, will lie completely in the good_mask = 1 region.
+          B_hole = bwboundaries(grow(B_L==B_idx,1,8),8,'noholes');
+          B_x{B_idx} = B_hole{1}(:,1);
+          B_y{B_idx} = B_hole{1}(:,2);
+        else
+          B_x{B_idx} = B_all{B_idx}(:,1);
+          B_y{B_idx} = B_all{B_idx}(:,2);
+        end
+      end
+      [B_x,B_y] = polyjoin(B_x,B_y);
+      
+      % Convert row,col indexing to single index (both still absolute
+      % indexing in good_mask)
+      B = B_x + (B_y-1)*size(good_mask,1);
+      % Close the polygon:
+      B = [B(1:end); B(1)];
+      
+      % Get just the indices for the object that is surrounded by the polygon Bs(B_idx)
+      good_idxs = find(good_mask);
+      % Translate these absolute (to the good_mask matrix) indices into a relative indexing
+      % on this object only.
+      new_good_idxs = 1:length(good_idxs);
+      idx_translate = zeros(size(good_mask));
+      idx_translate(good_idxs) = new_good_idxs;
+      B(~isnan(B)) = idx_translate(B(~isnan(B)));
+      
+      % Get the 3D points/gps_time corresponding to this object, note that the ordering
+      % of these "pnts" and "gps_time" is in the relative indexing
+      pnts = zeros(3,length(good_idxs));
+      pnts(1,:) = points.x(good_idxs);
+      pnts(2,:) = points.y(good_idxs);
+      pnts(3,:) = points.elev(good_idxs);
+      gps_time = repmat(mdata.GPS_time,size(good_mask,1),1);
+      gps_time = gps_time(good_idxs);
+      
+      % Convert boundary B (which is now in relative indexing into
+      % good_idxs) into a polygon in XY projection space.
+      px = B;
+      py = B;
+      px(~isnan(B)) = pnts(1,B(~isnan(B)));
+      py(~isnan(B)) = pnts(2,B(~isnan(B)));
+      
+      % Perform constrained triangulization
+      dt = DelaunayTri(pnts(1,:).',pnts(2,:).');
+      
+      % Interpolate to find gridded DEM
+      warning off;
+      F = TriScatteredInterp(dt,pnts(3,:).');
+      warning on;
+      DEM = F(xmesh,ymesh);
+      
+      % Interpolate to find gridded 3D image
+      img_3D_idxs = round(surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(surf(surface_idx).y)-1).';
+      img_3D = NaN*zeros(size(img_3D_idxs));
+      img_3D(~isnan(img_3D_idxs)) = mdata.Topography.img(img_3D_idxs(~isnan(img_3D_idxs)));
+      img_3D = double(reshape(img_3D, size(surf(surface_idx).y)));
+      img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
+      warning off;
+      F = TriScatteredInterp(dt,img_3D(good_idxs));
+      warning on;
+      IMG_3D = F(xmesh,ymesh);
+      
+      % Use inpolygon to find bad interpolation points and set to NaN
+      idxs_to_check = find(~isnan(DEM));
+      bad_mask = ~inpolygon(xmesh(idxs_to_check),ymesh(idxs_to_check),px,py);
+      DEM(idxs_to_check(bad_mask)) = NaN;
+      IMG_3D(idxs_to_check(bad_mask)) = NaN;
+      
     end
     
-        
     %% Create DEM scatter plot over geotiff
     try; delete(h_fig_dem); end; h_fig_dem = figure; clf;
     
@@ -346,7 +521,7 @@ for frm_idx = 1:length(param.cmd.frms)
     else
       imagesc(xaxis/1e3,yaxis/1e3,DEM,'parent',h_axes,'alphadata',~isnan(DEM));
     end
-
+    
     % Plot flightline
     [fline.lat,fline.lon,fline.elev] = ecef2geodetic( ...
       mdata.param_combine.array_param.fcs{1}{1}.origin(1,:), ...
@@ -356,14 +531,14 @@ for frm_idx = 1:length(param.cmd.frms)
     fline.lon = fline.lon*180/pi;
     [fline.x,fline.y] = projfwd(proj,fline.lat,fline.lon);
     hplot = plot(fline.x/1e3,fline.y/1e3,'k');
-
+    
     % Colorbar, labels, and legends
     hcolor = colorbar;
     set(get(hcolor,'YLabel'),'String','Elevation (WGS-84,m)');
     xlabel('X (km)');
     ylabel('Y (km)');
     legend(hplot,'Flight line');
-   
+    
     % Set figure/axes to 1 km:1 km scaling with a buffer around product
     map_buffer = 2e3;
     map_min_x = min_x-map_buffer;
@@ -385,10 +560,10 @@ for frm_idx = 1:length(param.cmd.frms)
     set(h_fig_dem,'Position',map_pos);
     set(h_axes,'Position',map_new_axes);
     set(h_fig_dem,'PaperPositionMode','auto');
-
+    
     % Clip and decimate the geotiff because it is usually very large
     clip_and_resample_image(h_img,gca,10);
-
+    
     title(sprintf('DEM %s_%03d %s',param.day_seg,frm,surface_names{surface_names_idx}),'interpreter','none');
     
     % Save output
@@ -399,7 +574,7 @@ for frm_idx = 1:length(param.cmd.frms)
     out_fn = [fullfile(out_dir,out_fn_name),'.jpg'];
     fprintf('  %s\n', out_fn);
     saveas(h_fig_dem,out_fn);
-
+    
     
     %% 3D rendering of DEM surface (disabled)
     if 0
@@ -486,7 +661,7 @@ for frm_idx = 1:length(param.cmd.frms)
       set(hy,'Position',[38 3.5 0]);
       set(hy,'Rotation',68);
     end
-        
+    
     %% Save Geotiff of Surface
     
     % ProjectedCSTypeGeoKey: The projection type key to use with geotiff_en.
@@ -568,12 +743,12 @@ for frm_idx = 1:length(param.cmd.frms)
       DEM_ref = param.dem.DEM_ref;
     end
     
-    boundary = []; boundary.x = pnts(1,concave_hull); boundary.y = pnts(2,concave_hull);
+    boundary = []; boundary.x = px; boundary.y = py;
     param_surfdata = param;
     
     mat_fn_name = sprintf('%s_%03d_%s.mat',param.day_seg,frm,surf_str);
     mat_fn = fullfile(out_dir,mat_fn_name);
-        
+    
     fprintf('  %s\n', mat_fn);
     save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','DEM','points','boundary','param_surfdata');
   end

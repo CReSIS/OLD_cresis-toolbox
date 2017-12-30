@@ -23,17 +23,17 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd. You 
       %     should not modify any fields of sb.
-      %  .layer: struct array containing layer information
+      %  .sd: surfdata .surf struct array containing surface information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
-      %  .layer_idx: active layer
+      %  .surf_idx: active surface
       % slices: array of slices to operate on (overrides sb.slice)
-      control_idx = sb.layer(sb.layer_idx).control_layer;
-      active_idx = sb.layer(sb.layer_idx).active_layer;
-      surf_idx = sb.layer(sb.layer_idx).surf_layer;
-      mask_idx = sb.layer(sb.layer_idx).mask_layer;
+      control_idx = sb.sd.surf(sb.surf_idx).gt;
+      active_idx = sb.sd.surf(sb.surf_idx).active;
+      surf_idx = sb.sd.surf(sb.surf_idx).top;
+      mask_idx = sb.sd.surf(sb.surf_idx).mask;
       
       try
         eval_cmd = get(obj.gui.slice_rangeLE,'String');
@@ -106,14 +106,14 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         % 2. Row 1: relative slice/range-line, Row 2: x, Row 3: y
         for idx = 1:length(slices)
           slice = slices(idx);
-          mask = isfinite(sb.layer(control_idx).x(:,slice)) ...
-            & isfinite(sb.layer(control_idx).y(:,slice));
+          mask = isfinite(sb.sd.surf(control_idx).x(:,slice)) ...
+            & isfinite(sb.sd.surf(control_idx).y(:,slice));
           mask(1:sb.bounds_relative(1)) = 0;
           mask(end-sb.bounds_relative(2)+1:end) = 0;
           gt = cat(2,gt,[(idx-1)*ones(1,sum(mask)); ...
-            sb.layer(control_idx).x(mask,slice).'-1; ...
-            sb.layer(control_idx).y(mask,slice).'+0.5]);
-          bottom_bin = sb.layer(control_idx).y(33,slices);
+            sb.sd.surf(control_idx).x(mask,slice).'-1; ...
+            sb.sd.surf(control_idx).y(mask,slice).'+0.5]);
+          bottom_bin = sb.sd.surf(control_idx).y(33,slices);
         end
       else
         bottom_bin = NaN*zeros(1,length(slices));
@@ -121,9 +121,9 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       if isempty(surf_idx)
         %error('extract cannot be run without a surface layer');
-        surf_bins = NaN*sb.layer(active_idx).y(:,slices);
+        surf_bins = NaN*sb.sd.surf(active_idx).y(:,slices);
       else
-        surf_bins = sb.layer(surf_idx).y(:,slices);
+        surf_bins = sb.sd.surf(surf_idx).y(:,slices);
       end
       surf_bins(isnan(surf_bins)) = -1;
       
@@ -132,12 +132,12 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       if isempty(mask_idx)
         mask = ones(size(sb.data,2),length(slices));
       else
-        mask = sb.layer(mask_idx).y(:,slices);
+        mask = sb.sd.surf(mask_idx).y(:,slices);
       end
       
       begin_slice = max(1, min(slices)-1);
       end_slice = min(size(sb.data,3), max(slices)+1);
-      edge = [sb.layer(active_idx).y(:,begin_slice), sb.layer(active_idx).y(:,end_slice)];
+      edge = [sb.sd.surf(active_idx).y(:,begin_slice), sb.sd.surf(active_idx).y(:,end_slice)];
       edge(mask(:,1) == 0,1) = surf_bins(mask(:,1) == 0,1);
       edge(mask(:,end) == 0,2) = surf_bins(mask(:,end) == 0,end);
       
@@ -174,15 +174,15 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       if top_edge_en && ~isempty(cols) && cols(1) > bounds(1)+1
         % Add ground truth from top edge as long as top edge is bounded
         gt = cat(2,gt,[slices-slices(1); ...
-          sb.layer(active_idx).x(cols(1)-1,slices)-1; ...
-          sb.layer(active_idx).y(cols(1)-1,slices)+0.5]);
+          sb.sd.surf(active_idx).x(cols(1)-1,slices)-1; ...
+          sb.sd.surf(active_idx).y(cols(1)-1,slices)+0.5]);
       end
       
       if bottom_edge_en && ~isempty(cols) && cols(end) < bounds(2)
         % Add ground truth from top edge as long as top edge is bounded
         gt = cat(2,gt,[slices-slices(1); ...
-          sb.layer(active_idx).x(cols(end)+1,slices)-1; ...
-          sb.layer(active_idx).y(cols(end)+1,slices)+0.5]);
+          sb.sd.surf(active_idx).x(cols(end)+1,slices)-1; ...
+          sb.sd.surf(active_idx).y(cols(end)+1,slices)+0.5]);
       end
       
       rows = [];
@@ -225,10 +225,10 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         slice = slices(idx);
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
-        cmd{end}.undo.layer = active_idx;
-        cmd{end}.redo.layer = active_idx;
+        cmd{end}.undo.surf = active_idx;
+        cmd{end}.redo.surf = active_idx;
         cmd{end}.undo.x = cols;
-        cmd{end}.undo.y = sb.layer(active_idx).y(cols,slice);
+        cmd{end}.undo.y = sb.sd.surf(active_idx).y(cols,slice);
         cmd{end}.redo.x = cols;
         cmd{end}.redo.y = correct_surface(cols,idx);
         cmd{end}.type = 'standard';

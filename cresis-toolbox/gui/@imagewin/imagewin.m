@@ -112,6 +112,7 @@ classdef imagewin < handle
         set(obj.h_fig,'Visible','off');
       else
         set(obj.h_fig,'Visible','on');
+        figure(obj.h_fig);
       end
     end
     
