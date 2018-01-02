@@ -161,8 +161,11 @@ for frm_idx = 1:length(param.cmd.frms)
       surface_twtt(:,1:floor(param.dem.med_filt(2)/2)) = NaN;
       surface_twtt(:,end-floor(param.dem.med_filt(2)/2)+1:end) = NaN;
     end
+
     % Convert from doa,twtt to radar FCS
-    [y_active,z_active] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]),theta,ice_top,3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
+    [y_active,z_active] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]), ...
+      theta(DOA_trim+1:end-DOA_trim),ice_top(DOA_trim+1:end-DOA_trim,:), ...
+      3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
     
     % Convert from radar FCS to ECEF
     x_plane = zeros(size(y_active));
@@ -235,6 +238,13 @@ for frm_idx = 1:length(param.cmd.frms)
     
     %  Grab DEM points from stash
     points = points_stash{surface_idx};
+  
+    % Find the index for the quality layer
+    quality_idx = find(strcmp(param.dem.quality_surface_names{surface_names_idx},{surf.name}));
+    if length(quality_idx) ~= 1
+      error('Search for quality "%s" returned %d matches in surfdata file.', ...
+        param.dem.quality_surface_names{surface_names_idx}, length(quality_idx));
+    end
     
     %% Grid data
     grid_spacing = 25;
@@ -244,13 +254,13 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Create a constrained delaunay triangulization that forces edges
     % along the boundary (concave_hull) of our swath
-    good_mask = isfinite(points.x) & isfinite(points.y);
+    good_mask = isfinite(points.x) & isfinite(points.y) & isfinite(points.elev) & surf(quality_idx).y(DOA_trim+1:end-DOA_trim,:);
     row = find(good_mask,1);
     col = floor(row/size(good_mask,1)) + 1;
     row = row - (col-1)*size(good_mask,1);
     B = bwtraceboundary(good_mask,[row col],'S',8,inf,'counterclockwise');
     B = B(:,1) + (B(:,2)-1)*size(good_mask,1);
-    concave_hull = [B(1:end-1) B(2:end)];
+    concave_hull = [B(1:end-1) B(2:end); B(end) B(1)];
     good_idxs = find(good_mask);
     new_good_idxs = 1:length(good_idxs);
     idx_translate = zeros(size(good_mask));
@@ -267,14 +277,14 @@ for frm_idx = 1:length(param.cmd.frms)
     px = pnts(1,concave_hull(:,1));
     py = pnts(2,concave_hull(:,1));
     
-    [px,py,idxs] = tomo.remove_intersections(px,py,0.1);
+    [px,py,idxs] = tomo.remove_intersections(px,py,0.1,true);
     c1 = concave_hull(idxs(~isnan(idxs)),1);
     
     concave_hull = zeros(length(c1),2);
     concave_hull(:,1) = c1;
     concave_hull(:,2) = [c1(2:end);c1(1)];
     
-    dt = DelaunayTri(pnts(1,:).',pnts(2,:).');
+    %dt = DelaunayTri(pnts(1,:).',pnts(2,:).');
     dt = DelaunayTri(pnts(1,:).',pnts(2,:).',concave_hull);
     
     warning off;
@@ -338,7 +348,14 @@ for frm_idx = 1:length(param.cmd.frms)
     end
 
     % Plot flightline
-    hplot = plot(points.x(33,:)/1e3,points.y(33,:)/1e3,'k');
+    [fline.lat,fline.lon,fline.elev] = ecef2geodetic( ...
+      mdata.param_combine.array_param.fcs{1}{1}.origin(1,:), ...
+      mdata.param_combine.array_param.fcs{1}{1}.origin(2,:), ...
+      mdata.param_combine.array_param.fcs{1}{1}.origin(3,:),WGS84.ellipsoid);
+    fline.lat = fline.lat*180/pi;
+    fline.lon = fline.lon*180/pi;
+    [fline.x,fline.y] = projfwd(proj,fline.lat,fline.lon);
+    hplot = plot(fline.x/1e3,fline.y/1e3,'k');
 
     % Colorbar, labels, and legends
     hcolor = colorbar;
@@ -372,6 +389,8 @@ for frm_idx = 1:length(param.cmd.frms)
     % Clip and decimate the geotiff because it is usually very large
     clip_and_resample_image(h_img,gca,10);
 
+    title(sprintf('DEM %s_%03d %s',param.day_seg,frm,surface_names{surface_names_idx}),'interpreter','none');
+    
     % Save output
     out_fn_name = sprintf('%s_%03d_%s',param.day_seg,frm,surf_str);
     out_fn = [fullfile(out_dir,out_fn_name),'.fig'];
@@ -558,6 +577,6 @@ for frm_idx = 1:length(param.cmd.frms)
     fprintf('  %s\n', mat_fn);
     save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','DEM','points','boundary','param_surfdata');
   end
+  try; delete(h_fig_dem); end;
 end
-try; delete(h_fig_dem); end;
 
