@@ -13,7 +13,6 @@ function frame_str_latex = ct_frame_latex(frame_str)
 %
 % Author: John Paden
 
-frame_str = '20141210_02_003';
 frame_str_latex = '';
 
 for idx = 1:length(frame_str)
