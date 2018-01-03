@@ -111,8 +111,10 @@ classdef slice_browser < handle
       % Load surface data
       if isfield(param,'surfdata_fn') && ~isempty(param.surfdata_fn)
         obj.sd = tomo.surfdata(param.surfdata_fn);
+        obj.surfdata_fn = param.surfdata_fn;
       else
         obj.sd = tomo.surfdata();
+        obj.surfdata_fn = '';
       end
       
       if ~isempty(h_control_image)
@@ -1136,8 +1138,7 @@ classdef slice_browser < handle
     %% save
     function save(obj)
       fprintf('Saving surfData (%s)...\n', datestr(now));
-      surf = obj.sd.surf;
-      save(obj.surfdata_fn,'-v7.3','surf');
+      obj.sd.save_surfdata(obj.surfdata_fn);
       fprintf('  Done\n');
       for tool_idx = 1:length(obj.slice_tool.list)
         if ~isempty(obj.slice_tool.list{tool_idx}.save_callback) && ...

@@ -10,7 +10,7 @@ function collate(param, param_override)
 %     in param.
 %
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
-%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfdata,
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 

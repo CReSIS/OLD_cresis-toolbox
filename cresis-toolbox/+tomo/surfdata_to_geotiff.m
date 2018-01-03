@@ -92,13 +92,10 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Load surface data (usually top and bottom)
   fprintf('  %s\n', surfdata_fn);
-  tmp = load(surfdata_fn); surf = tmp.surf; clear tmp;
+  sd = tomo.surfdata(surfdata_fn);
   
   % Find the index to the ice top
-  ice_top_idx = find(strcmp(param.dem.ice_top,{surf.name}));
-  if length(ice_top_idx) ~= 1
-    error('Search for ice top "%s" returned %d matches in surfdata file.', param.dem.ice_top, length(ice_top_idx));
-  end
+  ice_top_idx = sd.get_index(param.dem.ice_top);
   
   % Load the echogram
   fprintf('  %s\n', data_fn);
@@ -128,7 +125,7 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Convert top from range bins to twtt (the top is needed with each
   % surface to handle refraction)
-  ice_top = interp1(1:length(mdata.Time), mdata.Time, surf(ice_top_idx).y);
+  ice_top = interp1(1:length(mdata.Time), mdata.Time, sd.surf(ice_top_idx).y);
   % If no top defined, then assume top is a zero time (i.e.
   %   ground based radar operation with antenna at surface)
   if all(all(isnan(ice_top)))
@@ -145,16 +142,13 @@ for frm_idx = 1:length(param.cmd.frms)
   for surface_names_idx = 1:numel(surface_names)
     
     % Determine which surface index in surfData file we are working with
-    surface_idx = strmatch(surface_names{surface_names_idx},{surf.name},'exact');
-    if length(surface_idx) ~= 1
-      error('Search for surface "%s" returned %d matches in surfdata file.', surface_names{surface_names_idx}, length(surface_idx));
-    end
+    surface_idx = sd.get_index(surface_names{surface_names_idx});
     
     % Ensure non-negative ice thickness
-    surf(surface_idx).y(surf(surface_idx).y<surf(ice_top_idx).y) = surf(ice_top_idx).y(surf(surface_idx).y<surf(ice_top_idx).y);
+    sd.surf(surface_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y) = sd.surf(ice_top_idx).y(sd.surf(surface_idx).y<sd.surf(ice_top_idx).y);
     
     % Convert surface from range bins to twtt
-    surface_twtt = interp1(1:length(mdata.Time), mdata.Time, surf(surface_idx).y);
+    surface_twtt = interp1(1:length(mdata.Time), mdata.Time, sd.surf(surface_idx).y);
     % Apply spatial filtering
     if isfield(param.dem,'med_filt') && ~isempty(param.dem.med_filt)
       surface_twtt = medfilt2(surface_twtt,param.dem.med_filt);
@@ -230,21 +224,17 @@ for frm_idx = 1:length(param.cmd.frms)
   for surface_names_idx = 1:numel(surface_names)
     
     % Find the index of this surface in the surfData file
-    surface_idx = strmatch(surface_names{surface_names_idx},{surf.name},'exact');
+    surface_idx = sd.get_index(surface_names{surface_names_idx});
     
     % Create the file output surface name
-    surf_str = surf(surface_idx).name;
+    surf_str = surface_names{surface_names_idx};
     surf_str(~isstrprop(surf_str,'alphanum')) = '_';
     
     %  Grab DEM points from stash
     points = points_stash{surface_idx};
     
     % Find the index for the quality layer
-    quality_idx = find(strcmp(param.dem.quality_surface_names{surface_names_idx},{surf.name}));
-    if length(quality_idx) ~= 1
-      error('Search for quality "%s" returned %d matches in surfdata file.', ...
-        param.dem.quality_surface_names{surface_names_idx}, length(quality_idx));
-    end
+    quality_idx = sd.get_index(param.dem.quality_surface_names{surface_names_idx});
     
     %% Grid data
     grid_spacing = 25;
@@ -254,7 +244,7 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Create a constrained delaunay triangulization that forces edges
     % along the boundary (concave_hull) of our swath
-    good_mask = isfinite(points.x) & isfinite(points.y) & isfinite(points.elev) & surf(quality_idx).y(DOA_trim+1:end-DOA_trim,:);
+    good_mask = isfinite(points.x) & isfinite(points.y) & isfinite(points.elev) & sd.surf(quality_idx).y(DOA_trim+1:end-DOA_trim,:);
     if 0
       % This method only handles a single object/region
       row = find(good_mask,1);
@@ -351,10 +341,10 @@ for frm_idx = 1:length(param.cmd.frms)
         DEM = F(xmesh,ymesh);
         
         % Interpolate to find gridded 3D image
-        img_3D_idxs = round(surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(surf(surface_idx).y)-1).';
+        img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
         img_3D = NaN*zeros(size(img_3D_idxs));
         img_3D(~isnan(img_3D_idxs)) = mdata.Topography.img(img_3D_idxs(~isnan(img_3D_idxs)));
-        img_3D = double(reshape(img_3D, size(surf(surface_idx).y)));
+        img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
         img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
         warning off;
         F = TriScatteredInterp(dt,img_3D(good_idxs));
@@ -483,10 +473,10 @@ for frm_idx = 1:length(param.cmd.frms)
       DEM = F(xmesh,ymesh);
       
       % Interpolate to find gridded 3D image
-      img_3D_idxs = round(surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(surf(surface_idx).y)-1).';
+      img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
       img_3D = NaN*zeros(size(img_3D_idxs));
       img_3D(~isnan(img_3D_idxs)) = mdata.Topography.img(img_3D_idxs(~isnan(img_3D_idxs)));
-      img_3D = double(reshape(img_3D, size(surf(surface_idx).y)));
+      img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
       img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
       warning off;
       F = TriScatteredInterp(dt,img_3D(good_idxs));
@@ -583,8 +573,7 @@ for frm_idx = 1:length(param.cmd.frms)
       
       hA2 = axes;
       %hC = contourf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),12);
-      clear surf;
-      hC = surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM)*0+25,double(DEM));
+      hC = sd.surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM)*0+25,double(DEM));
       set(hC(1),'EdgeAlpha',0); grid off;
       %axis([2 38 0 10 zlims]);
       set(hA2,'Box','off');
@@ -600,7 +589,7 @@ for frm_idx = 1:length(param.cmd.frms)
       set(get(hc,'YLabel'),'String','Bed height (m)');
       
       hA = axes;
-      hS = surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),double(1*DEM));
+      hS = sd.surf((xaxis-xaxis(1))/1e3,(yaxis-yaxis(1))/1e3,double(DEM),double(1*DEM));
       hA = gca; grid off;
       %axis([2 38 0 10 zlims]);
       set(hA,'Box','off');
@@ -636,7 +625,7 @@ for frm_idx = 1:length(param.cmd.frms)
       set(3,'Position',[50 50 500 500]);
       set(3,'Color',[1 1 1]);
       
-      hS = surf((xaxis-xaxis(1))/1e3-2,(yaxis-yaxis(1))/1e3-1,double(DEM),double(DEM));
+      hS = sd.surf((xaxis-xaxis(1))/1e3-2,(yaxis-yaxis(1))/1e3-1,double(DEM),double(DEM));
       hA = gca; grid off;
       %axis([0 36 0 10 zlims]);
       set(hA,'Box','off');

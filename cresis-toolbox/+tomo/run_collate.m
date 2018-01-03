@@ -21,14 +21,14 @@ tomo_collate = [];
 if strcmpi(example_setup,'vertical')
   %% Vertical multiwaveform fuse example
   params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091224_01','post');
-  params.cmd.frms = 16;
+  params.cmd.frms = [];
   params.cmd.generic = 1;
   
   % .in_dir: ct_filename_out directory to use at input, fused image will be stored here.
-  tomo_collate.in_dir = 'nick_music';
+  tomo_collate.in_dir = 'music3D';
   
   % .out_dir: ct_filename_out directory to which output surfData will be exported
-  tomo_collate.out_dir = 'paden_surfData';
+  tomo_collate.out_dir = 'surfData';
   
   % .geotiff_fn: DEM used to extract surface layer information
   tomo_collate.geotiff_fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
@@ -98,7 +98,7 @@ if strcmpi(example_setup,'vertical')
   % create_surfData_flag: runs create_surfData.m when true
   tomo_collate.create_surfData_flag = true;
   
-  param_override = struct('tomo_collate',tomo_collate);
+  param_override.tomo_collate = tomo_collate;
 
 elseif strcmpi(example_setup,'horizontal')
   %% Horizontal multibeam fuse example
@@ -107,10 +107,10 @@ elseif strcmpi(example_setup,'horizontal')
   params.cmd.generic = 1;
   
   % .in_dir: ct_filename_out directory to use at input, fused image will be stored here.
-  tomo_collate.in_dir = 'paden_music';
+  tomo_collate.in_dir = 'music3D';
   
   % .out_dir: ct_filename_out directory to which output surfData will be exported
-  tomo_collate.out_dir = 'paden_surfData';
+  tomo_collate.out_dir = 'surfData';
   
   % .geotiff_fn: DEM used to extract surface layer information
   tomo_collate.geotiff_fn = ct_filename_gis([],fullfile('arctic','ArcticDEM','2014_Greenland_P3_20140401_03.tif'));
@@ -182,7 +182,7 @@ elseif strcmpi(example_setup,'horizontal')
   % create_surfData_flag: runs create_surfData.m when true
   tomo_collate.create_surfData_flag = true;
   
-  param_override = struct('tomo_collate',tomo_collate);
+  param_override.tomo_collate = tomo_collate;
   
 else
   error('%s is not a valid example_setup.', example_setup);

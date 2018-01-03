@@ -458,6 +458,9 @@ classdef surfdata < handle
       %   Saves the surf struct array in the object 
       %   as a .mat file. Creates directories as needed.
       
+      for surf_idx = 1:length(obj.surf)
+        obj.valid_surf(obj.surf(surf_idx));
+      end
       surf = obj.surf;
       version = obj.current_version;
       try
@@ -635,6 +638,42 @@ classdef surfdata < handle
       end
     end
     
+    function [rmse,mean_diff,median_diff,min_diff,max_diff,surf_diff] ...
+        = compare(obj, ref, sd_other, other, DOA_trim)
+      % [rmse,mean_diff,median_diff,min_diff,max_diff,surf_diff] ...
+      %   = tomo.compare(ref, sd_other, other)
+      %
+      % Compares one of the surfaces in this object to a surface in another
+      % surfdata object.
+      %
+      % ref: reference layer (get_surf's surf_name argument)
+      % sd_other: another surfdata object to compare to (can also be this
+      %   surfdata object)
+      % other: layer to compare (get_surf's surf_name argument)
+      % DOA_trim: 
+      %
+      % rmse: root mean squared error of difference
+      % mean_diff: mean of the absolute value of the difference
+      % median_diff: median of the absolute value of the difference
+      % min_diff: minimum of the absolute value of the difference
+      % max_diff: maximum of the absolute value of the difference
+      % surf_diff: ansolute vlaue difference matrix
+      %
+      % See also: tomo.run_compare_surfdata, tomo.compare_surfdata,
+      %   tomo.surfdata
+      
+      ref = obj.get_surf(ref);
+      other = sd_other.get_surf(other);
+      
+      surf_diff = abs(other.y(1+DOA_trim(1):end-DOA_trim+1,:) ...
+        - ref.y(1+DOA_trim(1):end-DOA_trim(end)+1,:));
+      rmse        = sqrt(mean(abs(surf_diff(:)).^2));
+      mean_diff   = nanmean(surf_diff(:));
+      median_diff = nanmedian(surf_diff(:));
+      min_diff    = nanmin(surf_diff(:));
+      max_diff    = nanmax(surf_diff(:));
+    end
+  
   end
   
   methods(Static)
@@ -646,6 +685,24 @@ classdef surfdata < handle
         surf(idx).gt = [];
         surf(idx).quality = [];
       end
+    end
+        
+    function surf = empty_surf(fn)
+      % tomo.surfdata.empty_surf(fn)
+      %
+      % Returns an empty surf structure
+      
+      surf.x = [];
+      surf.y = [];
+      surf.plot_name_values = {'color','blue','marker','^'};
+      surf.name = '';
+      surf.top = [];
+      surf.active = [];
+      surf.mask = [];
+      surf.gt= [];
+      surf.quality = [];
+      surf.visible = true;
+      
     end
     
     function surfdata_ver = version(fn)

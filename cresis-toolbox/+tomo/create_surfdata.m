@@ -1,5 +1,5 @@
-function create_surf_data(param,mdata)
-% tomo.create_surf_data(param,mdata)
+function create_surfdata(param,mdata)
+% tomo.create_surfdata(param,mdata)
 %
 % Description: Usually this function is called from tomo_collate_task.
 %   Using a surface DEM and an ice mask, this function adds an aligned
@@ -19,7 +19,7 @@ function create_surf_data(param,mdata)
 %   NONE
 %
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
-%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfdata,
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
@@ -165,118 +165,103 @@ if 1
 else
   extract_surface = detect_surface;
 end
-  
+
 %% Create surfData
-surf = [];
-Ndoa = size(mdata.Topography.img,2);
 
-surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = twtt_bin;
-surf(end).plot_name_values = {'color','black','marker','x'};
-surf(end).name = 'ice surface';
-surf(end).surf_layer = [];
-surf(end).active_layer = 1;
-surf(end).mask_layer = [];
-surf(end).control_layer = 7;
-surf(end).quality_layer = 8;
-surf(end).visible = true;
+sd = tomo.surfdata();
+sd.radar_name = mdata.param_combine.radar_name;
+sd.season_name = mdata.param_combine.season_name;
+sd.day_seg = mdata.param_combine.day_seg;
+sd.frm = mdata.param_combine.combine.frm;
+sd.gps_time = mdata.GPS_time;
+sd.theta = mdata.theta(:); % Make a column vector
+sd.time = mdata.Time(:); % Make a column vector
+sd.FCS.origin = mdata.param_combine.array_param.fcs{1}{1}.origin;
+sd.FCS.x = mdata.param_combine.array_param.fcs{1}{1}.x;
+sd.FCS.y = mdata.param_combine.array_param.fcs{1}{1}.y;
+sd.FCS.z = mdata.param_combine.array_param.fcs{1}{1}.z;
 
-surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = extract_surface;
-surf(end).plot_name_values = {'color','blue','marker','^'};
-surf(end).name = 'bottom';
-surf(end).surf_layer = 1;
-surf(end).active_layer = 2;
-surf(end).mask_layer = 3;
-surf(end).control_layer = 4;
-surf(end).quality_layer = 9;
-surf(end).visible = true;
+Nsv = size(mdata.Topography.img,2);
 
-surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = mdata.ice_mask;
-surf(end).plot_name_values = {'color','white','marker','x'};
-surf(end).name = 'ice mask';
-surf(end).surf_layer = 1;
-surf(end).active_layer = 2;
-surf(end).mask_layer = 3;
-surf(end).control_layer = 4;
-surf(end).quality_layer = 9;
-surf(end).visible = true;
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = twtt_bin;
+surf.plot_name_values = {'color','black','marker','x'};
+surf.name = 'top';
+sd.insert_surf(surf);
 
-surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = NaN * zeros(size(surf(1).y));
-surf(end).y(ceil(Ndoa/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),Bottom);
-surf(end).plot_name_values = {'color','magenta','marker','+'};
-surf(end).name = 'bottom gt';
-surf(end).surf_layer = 1;
-surf(end).active_layer = 2;
-surf(end).mask_layer = 3;
-surf(end).control_layer = 4;
-surf(end).quality_layer = 9;
-surf(end).visible = true;
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = extract_surface;
+surf.plot_name_values = {'color','blue','marker','^'};
+surf.name = 'bottom';
+sd.insert_surf(surf);
 
-surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = extract_surface;
-surf(end).plot_name_values = {'color','yellow','marker','^'};
-surf(end).name = 'bottom extract';
-surf(end).surf_layer = 1;
-surf(end).active_layer = 2;
-surf(end).mask_layer = 3;
-surf(end).control_layer = 4;
-surf(end).quality_layer = 9;
-surf(end).visible = false;
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = mdata.ice_mask;
+surf.plot_name_values = {'color','white','marker','x'};
+surf.name = 'ice mask';
+sd.insert_surf(surf);
 
-surf(end+1).x =  repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = detect_surface;
-surf(end).plot_name_values = {'color','green','marker','^'};
-surf(end).name = 'bottom detect';
-surf(end).surf_layer = 1;
-surf(end).active_layer = 2;
-surf(end).mask_layer = 3;
-surf(end).control_layer = 4;
-surf(end).quality_layer = 9;
-surf(end).visible = false;
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = NaN * zeros(size(twtt_bin));
+surf.y(ceil(Nsv/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),Bottom);
+surf.plot_name_values = {'color','magenta','marker','+'};
+surf.name = 'bottom gt';
+sd.insert_surf(surf);
 
-surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = NaN * zeros(size(surf(1).y));
-surf(end).y(ceil(Ndoa/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),Surface);
-surf(end).plot_name_values = {'color','magenta','marker','^'};
-surf(end).name = 'surface gt';
-surf(end).surf_layer = [];
-surf(end).active_layer = 1;
-surf(end).mask_layer = [];
-surf(end).control_layer = 7;
-surf(end).quality_layer = 8;
-surf(end).visible = true;
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = extract_surface;
+surf.plot_name_values = {'color','yellow','marker','^'};
+surf.name = 'bottom extract';
+surf.visible = false;
+sd.insert_surf(surf);
 
-surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = ones(size(surf(1).y));
-surf(end).plot_name_values = {'color','red','marker','x'};
-surf(end).name = 'surface quality';
-surf(end).surf_layer = [];
-surf(end).active_layer = 1;
-surf(end).mask_layer = [];
-surf(end).control_layer = 7;
-surf(end).quality_layer = 8;
-surf(end).visible = true;
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = detect_surface;
+surf.plot_name_values = {'color','green','marker','^'};
+surf.name = 'bottom detect';
+surf.visible = false;
+sd.insert_surf(surf);
 
-surf(end+1).x = repmat((1:Ndoa).',[1 size(mdata.twtt,2)]);
-surf(end).y = ones(size(surf(1).y));
-surf(end).plot_name_values = {'color','red','marker','^'};
-surf(end).name = 'bottom quality';
-surf(end).surf_layer = 1;
-surf(end).active_layer = 2;
-surf(end).mask_layer = 3;
-surf(end).control_layer = 4;
-surf(end).quality_layer = 9;
-surf(end).visible = true;
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = NaN * zeros(size(twtt_bin));
+surf.y(ceil(Nsv/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),Surface);
+surf.plot_name_values = {'color','magenta','marker','^'};
+surf.name = 'top gt';
+sd.insert_surf(surf);
 
-out_dir = ct_filename_out(param,param.tomo_collate.out_dir,'CSARP_surfData');
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = ones(size(twtt_bin));
+surf.plot_name_values = {'color','red','marker','x'};
+surf.name = 'top quality';
+sd.insert_surf(surf);
+
+surf = tomo.surfdata.empty_surf();
+surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+surf.y = ones(size(twtt_bin));
+surf.plot_name_values = {'color','red','marker','^'};
+surf.name = 'bottom quality';
+sd.insert_surf(surf);
+
+sd.set({'bottom','ice mask','bottom gt','bottom quality','bottom extract','bottom detect'}, ...
+  'top','top','active','bottom','mask','ice mask','gt','bottom gt','quality','bottom quality');
+
+sd.set({'top','top gt','top quality'}, ...
+  'active','top','gt','top gt','quality','top quality');
+
+out_dir = ct_filename_out(param,param.tomo_collate.out_dir,'');
 if ~isdir(out_dir)
   mkdir(out_dir);
 end
 out_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm);
 out_fn = fullfile(out_dir,out_fn_name);
-save(out_fn,'surf','-v7.3');
+sd.save_surfdata(out_fn);
 
 end
