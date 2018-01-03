@@ -1,18 +1,18 @@
 %% User Settings
 
-if 1
+if 0
   params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
   params.cmd.generic = 1;
   params.cmd.frms = [28];
   
   % surfdata_source: input surfData directory (ct_filename_out)
-  dem.surfdata_source = 'CSA_music_surfData';
+  dem.surfdata_source = 'surfData';
   
   % input_dir_name: input radar 3D image directory (ct_filename_out)
-  dem.input_dir_name = 'CSA_music';
+  dem.input_dir_name = 'music3D';
   
   % output_dir_name: string containing output directory (ct_filename_out)
-  dem.output_dir_name = 'paden_DEM_filter';
+  dem.output_dir_name = 'DEM';
   
   % geotiff_fn: the projection information is taken from this file and this
   %   file is used for creating the maps
@@ -74,7 +74,7 @@ else
   dem.input_dir_name = 'music3D';
   
   % output_dir_name: string containing output directory (ct_filename_out)
-  dem.output_dir_name = 'paden_DEM';
+  dem.output_dir_name = 'DEM';
   
   % geotiff_fn: the projection information is taken from this file and this
   %   file is used for creating the maps

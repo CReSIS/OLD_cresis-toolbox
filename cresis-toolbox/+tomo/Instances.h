@@ -4,6 +4,10 @@
 #ifndef __INSTANCES_H__
 #define __INSTANCES_H__
 
+#define _USE_MATH_DEFINES
+#include <cmath>
+#include <stddef.h>
+
 #include <sstream>
 #include <tuple>
 

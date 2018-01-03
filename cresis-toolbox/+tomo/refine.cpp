@@ -3,13 +3,16 @@
 // Correlation based mu/sigma, addition of smoothness, surface repulsion increased, input arg checks,
 //   merge with extract.cpp, bounds, init and edge conditions updated: John Paden 2017
 //
+// mex -v -largeArrayDims refine.cpp
+
 #include <iostream>
 #include <cmath>
+#include <stddef.h>
 #include <vector>
 
 using namespace std;
 
-#include "mex.h"
+#include "mex.h"e
 #include "Instances.h"
 
 class TRWSNode {
