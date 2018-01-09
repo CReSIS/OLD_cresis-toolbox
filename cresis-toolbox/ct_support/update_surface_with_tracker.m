@@ -22,16 +22,22 @@
 %     [surf.feedthru.time,surf.feedthru.power_dB] = ginput; % Press enter to end the input
 %   .time: N length vector of two way travel times
 %   .power_dB: N length vector of power in dB
+% .method: string containing the method to use for tracking as long as
+%   manual mode is not enabled. Options:
+%    'threshold': runs tracker_threshold (generally the best for surface altimetry)
+%    'snake': runs tracker_snake_simple
+%    'max': tracker_max
+% .manual: Optional, default is false. If true, the manual version of
+%   tracker_snake_simple is run with tracker_snake_manual_gui.
 % .max_diff: used by tracker routines (optional, default is inf)
 % .min_bin: used by tracker routines
 % .max_bin: used by tracker routines (optional, default is not used)
-% .manual: used by tracker routines (optional, default is false)
 % .init.method: used by tracker routines (optional, default is not used)
 % .init.lidar_source: used by tracker routines (optional, default is not used)
 %
 % For more details about tracker specific parameters:
 % tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
-% tracker_max, tracker_snake_simple
+% tracker_max
 %
 % Example:
 %   See run_update_surface_with_tracker.m to run.
