@@ -1,5 +1,5 @@
-function params = ct_set_params(params,field,value,day_seg)
-% params = ct_set_params(params,field,value,day_seg)
+function params = ct_set_params(params,field,value,filter_field,filter_regexp)
+% params = ct_set_params(params,field,value,filter_field,filter_regexp)
 %
 % CReSIS toolbox utility function for setting parameter spreadsheet
 % parameters in bulk. It allows a single field to be set for a range of
@@ -9,28 +9,46 @@ function params = ct_set_params(params,field,value,day_seg)
 %   spreadsheet.
 % field: a string containing the field to be set (e.g. 'cmd.generic')
 % value: the value to assign to the field
-% day_seg: Optional. A regular expression that specifies which segments to
-%   effect. The default is '.*' which is all segments.
+% filter_field: Optional. Specifies a field to filter on (only struct
+%   elements with a matching field will then have there field updated)
+% filter_regexp: A regular expression that specifies the filtering to do
+%   on filter_field.
 %
 % params: the updated struct array
 %
 % Example:
 %  params = ct_set_params(params,'cmd.generic',0);
-%  params = ct_set_params(params,'cmd.generic',1,'20140401_03|20140307_11');
+%  params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03|20140307_11');
+%  params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 %
 % Authors: John Paden
 %
 % See also: read_param_xls, ct_set_params, ct_filename_param
 
-if ~exist('day_seg','var') || isempty(day_seg)
-  day_seg = '.*';
+if exist('filter_field','var') && ~isempty(filter_field)
+  use_filter = true;
+else
+  use_filter = false;
 end
 
 for param_idx = 1:length(params)
   
   param = params(param_idx);
+
+  if use_filter
+    str = filter_field;
+    [token,str] = strtok(str,'.');
+    field_names = '';
+    while ~isempty(token)
+      field_names = sprintf('%s.(''%s'')',field_names,token);
+      [token,str] = strtok(str,'.');
+    end
+    
+    cmd = sprintf('filter_value = params(param_idx)%s;', field_names);
+    eval(cmd);
+  end
   
-  if ~isempty(regexpi(param.day_seg,day_seg))
+  if ~use_filter || ~isempty(regexpi(filter_value,filter_regexp))
     
     str = field;
     [token,str] = strtok(str,'.');
