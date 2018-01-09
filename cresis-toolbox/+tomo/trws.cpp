@@ -12,8 +12,8 @@
 
 using namespace std;
 
-#include "mex.h"e
-#include "Instances.h"
+#include "mex.h"
+#include "trws.h"
 
 class TRWSNode {
 public:

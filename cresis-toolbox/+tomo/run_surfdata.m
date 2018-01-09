@@ -3,7 +3,7 @@
 % Create filename which will be used to demonstrate surfdata class
 param = struct('radar_name','mcords','season_name','2009_Antarctica_TO','day_seg','20091224_01');
 frm = 16;
-fn_original = fullfile(ct_filename_out(param,'surfData_v2',''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+fn_original = fullfile(ct_filename_out(param,'surfData',''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
 
 fn = [tempname '.mat'];
 copyfile(fn_original,fn);

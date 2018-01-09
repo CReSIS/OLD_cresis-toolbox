@@ -1,4 +1,4 @@
-function [rmse_f,diff_f,med_f,min_f,max_f,total_diff] ...
+function [frm_id,rmse_f,diff_f,med_f,min_f,max_f,total_diff] ...
   = compare_surfData(param,param_override)
 % function [rmse_f,diff_f,med_f,min_f,max_f,total_diff] ...
 %   = compare_surfData(param,param_override)
@@ -73,10 +73,13 @@ diff_f = zeros(size(param.cmd.frms));
 med_f  = zeros(size(param.cmd.frms));
 max_df = zeros(size(param.cmd.frms));
 min_df = zeros(size(param.cmd.frms));
+frm_id = cell(size(param.cmd.frms));
 total_diff = [];
 h_figure = figure;
 for frame_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frame_idx);
+  
+  frm_id{frame_idx} = sprintf('%s_%03d', param.day_seg, frm);
   
   fn_A = fullfile(ct_filename_out(param,surfdata_ref,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   fn_B = fullfile(ct_filename_out(param,surfdata_other,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
@@ -92,7 +95,7 @@ for frame_idx = 1:length(param.cmd.frms)
   med_f(frame_idx)  = median_diff;
   min_f(frame_idx) = min_diff;
   max_f(frame_idx) = max_diff;
-  total_diff  = cat(2, total_diff, surf_diff(:)');
+  total_diff  = cat(2, total_diff, surf_diff);
   
   if display_status_flag
     fprintf('\n%s_%03d:', param.day_seg, frm);

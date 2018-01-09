@@ -102,10 +102,11 @@ if strcmpi(example_setup,'vertical')
 
 elseif strcmpi(example_setup,'horizontal')
   %% Horizontal multibeam fuse example
-  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
-  params.cmd.frms = 37;
-  params.cmd.generic = 1;
-  
+  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
+  params = ct_set_params(params,'cmd.generic',0);
+  params = ct_set_params(params,'cmd.generic',1,'20140325_05|20140325_06|20140325_07|20140401_03|20140506_01');
+  params = ct_set_params(params,'cmd.frms',[]);
+
   % .in_dir: ct_filename_out directory to use at input, fused image will be stored here.
   tomo_collate.in_dir = 'music3D';
   
@@ -158,7 +159,9 @@ elseif strcmpi(example_setup,'horizontal')
   % Number of refine/extract loops to run
   tomo_collate.max_loops = 50;
   
-  tomo_collate.layer_source = 'ops';
+  tomo_collate.layer_params = struct('name','surface','source','layerdata');
+  tomo_collate.layer_params(2).name = 'bottom';
+  tomo_collate.layer_params(2).source = 'layerdata';
   
   % .img_comb: Same as get_heights and combine worksheets. This is
   %   used for vertical using only. For N images,
@@ -181,6 +184,25 @@ elseif strcmpi(example_setup,'horizontal')
   
   % create_surfData_flag: runs create_surfData.m when true
   tomo_collate.create_surfData_flag = true;
+  
+  % surfData_mode: surfData mode ('overwrite' or 'append', note that append with the
+  %   same surface name as an existing surface will overwrite that surface)
+  tomo_collate.surfData_mode = 'append';
+  
+  % surfdata_cmds: surfdata commands to run
+  tomo_collate.surfdata_cmds = [];
+  tomo_collate.surfdata_cmds(end+1).cmd = 'detect';
+  tomo_collate.surfdata_cmds(end).surf_name = 'bottom detect';
+  tomo_collate.surfdata_cmds(end).visible = false;
+  tomo_collate.surfdata_cmds(end+1).cmd = 'extract';
+  tomo_collate.surfdata_cmds(end).surf_name = 'bottom extract';
+  tomo_collate.surfdata_cmds(end).visible = false;
+  tomo_collate.surfdata_cmds(end+1).cmd = 'viterbi';
+  tomo_collate.surfdata_cmds(end).surf_name = 'bottom viterbi';
+  tomo_collate.surfdata_cmds(end).visible = false;
+  tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
+  tomo_collate.surfdata_cmds(end).surf_name = 'bottom trws';
+  tomo_collate.surfdata_cmds(end).visible = true;
   
   param_override.tomo_collate = tomo_collate;
   

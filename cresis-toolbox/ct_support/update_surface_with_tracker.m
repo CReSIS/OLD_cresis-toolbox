@@ -1,7 +1,35 @@
 % script update_surface_with_tracker
 %
 % Updates the Surface variable in an echogram using one of three surface
-% detections methods. For more details about parameters:
+% detections methods.
+%
+% surf: Parameters used to control the tracker. Only general parameters
+%   used within update_surface_with_tracker are included here. For more
+%   details about tracker specific parameters, look at the help for:
+%   tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
+%   tracker_max, tracker_snake_simple
+% .en: must be true for update_surface_with_tracker to run on a segment
+% .medfilt: scalar which specifies the length of a median filter to apply
+%   to the tracked data. Similar to medfilt1, but it handles edge
+%   conditions and allows for a threshold parameter to be set.
+% .medfilt_threshold: scalar used with medfilt. Median filter will only
+%   update in the difference of the median filter is more than this
+%   threshold. Default is 0 which means every pixel is updated.
+% .feedthru: all values in the radar image which exceed the power mask set
+%   by the time and power_dB vectors will be set to zero power. To get
+%   these values a typical procedure is: 
+%     plot(mdata.Time, lp(mean(mdata.Data,2)))
+%     [surf.feedthru.time,surf.feedthru.power_dB] = ginput; % Press enter to end the input
+%   .time: N length vector of two way travel times
+%   .power_dB: N length vector of power in dB
+% .max_diff: used by tracker routines (optional, default is inf)
+% .min_bin: used by tracker routines
+% .max_bin: used by tracker routines (optional, default is not used)
+% .manual: used by tracker routines (optional, default is false)
+% .init.method: used by tracker routines (optional, default is not used)
+% .init.lidar_source: used by tracker routines (optional, default is not used)
+%
+% For more details about tracker specific parameters:
 % tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
 % tracker_max, tracker_snake_simple
 %
@@ -14,6 +42,10 @@
 % ----------------------------------------------------------------------
 physical_constants;
 global gRadar;
+
+if ~exist('debug_time_guard','var') || isempty(debug_time_guard)
+  debug_time_guard = 50e-9;
+end
 
 % gimp_geoid_loaded = false;
 
@@ -33,6 +65,10 @@ for param_idx = 1:length(params)
   
   if ~isfield(orig_surf,'max_diff')
     orig_surf.max_diff = inf;
+  end
+  
+  if ~isfield(orig_surf,'medfilt_threshold')
+    orig_surf.medfilt_threshold = 0;
   end
   
   fprintf('Updating surface %s (%s)\n', param.day_seg, datestr(now,'HH:MM:SS'));
@@ -160,15 +196,15 @@ for param_idx = 1:length(params)
     end
     dt = mdata.Time(2) - mdata.Time(1);
 
-    if ~isfield(surf,'manual')
-      surf.manual = false;
+    if ~isfield(orig_surf,'manual')
+      orig_surf.manual = false;
     end
     
-    if isfield(surf,'feedthru')
+    if isfield(orig_surf,'feedthru')
       %% Optional feed through removal
       
       % Interpolate feed through power levels on to data time axis
-      feedthru_threshold = interp1(surf.feedthru.time,surf.feedthru.power_dB,mdata.Time);
+      feedthru_threshold = interp1(orig_surf.feedthru.time,orig_surf.feedthru.power_dB,mdata.Time);
       feedthru_threshold = interp_finite(feedthru_threshold,-inf);
       
       % Set all data to zero that does not exceed the feed through
@@ -234,7 +270,6 @@ for param_idx = 1:length(params)
     %% Run median filtering on tracked surface
     if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
       % OLD METHOD: new_surface = medfilt1(new_surface,surf.medfilt);
-      surf.medfilt_threshold = 10;
       for rline=1:length(new_surface)
         rlines = rline + (-surf.medfilt:surf.medfilt);
         rlines = rlines(rlines>=1 & rlines<=length(new_surface));
@@ -250,7 +285,7 @@ for param_idx = 1:length(params)
     if debug_level > 0
       % Debug result
       figure(1); clf;
-      imagesc([],mdata.Time,lp(mdata.Data(1+100:end-100,:)));
+      imagesc([],mdata.Time,lp(mdata.Data));
       colormap(1-gray(256));
       hold on;
       plot(Surface,'m');
@@ -260,7 +295,7 @@ for param_idx = 1:length(params)
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem+surf.max_diff),'b')
       end
       hold off;
-      ylim([min(Surface)-50e-9 max(Surface)+50e-9])
+      ylim([min(Surface)-debug_time_guard max(Surface)+debug_time_guard])
       keyboard
     end
     

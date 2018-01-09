@@ -297,7 +297,7 @@ classdef surfdata < handle
         if index
           surf = obj.surf(index);
         else
-          error('Surface %s does not exist.', surf_name);
+          error('Surface "%s" does not exist.', surf_name);
         end
         
       elseif isa(surf_name, 'cell')
@@ -306,7 +306,7 @@ classdef surfdata < handle
         for idx = 1:length(surf_name)
           new_match_idx = find(strcmpi(surf_name{idx}, {obj.surf.name}));
           if isempty(new_match_idx)
-            error('Surface %s does not exist.', surf_name{idx});
+            error('Surface "%s" does not exist.', surf_name{idx});
           end
           match_idxs(idx) = new_match_idx;
         end
@@ -665,7 +665,7 @@ classdef surfdata < handle
       ref = obj.get_surf(ref);
       other = sd_other.get_surf(other);
       
-      surf_diff = abs(other.y(1+DOA_trim(1):end-DOA_trim+1,:) ...
+      surf_diff = abs(other.y(1+DOA_trim(1):end-DOA_trim(end)+1,:) ...
         - ref.y(1+DOA_trim(1):end-DOA_trim(end)+1,:));
       rmse        = sqrt(mean(abs(surf_diff(:)).^2));
       mean_diff   = nanmean(surf_diff(:));
