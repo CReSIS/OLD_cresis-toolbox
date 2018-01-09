@@ -1,5 +1,5 @@
 classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
-  % Slice_browser tool which calls viterbi.cpp (HMM)
+  % Slice_browser tool which calls detect.cpp (HMM)
   %
   % Compile C++ program with:
   %   mex -largeArrayDims viterbi.cpp
@@ -26,17 +26,17 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.sd.surf. You 
+      %     commands, cmd, that use sb.data to operate on sb.layer. You 
       %     should not modify any fields of sb.
       %  .layer: struct array containing layer information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
       %  .layer_idx: active layer
       % slices: array of slices to operate on (overrides sb.slice)
-      control_idx = sb.sd.surf(sb.surf_idx).gt;
-      active_idx = sb.sd.surf(sb.surf_idx).active;
-      surf_idx = sb.sd.surf(sb.surf_idx).top;
-      mask_idx = sb.sd.surf(sb.surf_idx).mask;
+      control_idx = sb.layer(sb.layer_idx).control_layer;
+      active_idx = sb.layer(sb.layer_idx).active_layer;
+      surf_idx = sb.layer(sb.layer_idx).surf_layer;
+      mask_idx = sb.layer(sb.layer_idx).mask_layer;
       
       try
         slice_range = eval(get(obj.gui.slice_rangeLE,'String'));
@@ -92,36 +92,36 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         if get(obj.gui.previousCB,'Value')
           slice_prev = slices(slice_idx-1);
           if slice_idx == 2
-            gt = [sb.sd.surf(active_idx).x(:,slice_prev).'-1; ...
-              sb.sd.surf(active_idx).y(:,slice_prev).'+0.5];
+            gt = [sb.layer(active_idx).x(:,slice_prev).'-1; ...
+              sb.layer(active_idx).y(:,slice_prev).'+0.5];
           else
-            gt = [sb.sd.surf(active_idx).x(:,slice_prev).'-1; ...
+            gt = [sb.layer(active_idx).x(:,slice_prev).'-1; ...
               labels(:).'+0.5];
           end
         else
           gt = [];
         end
         if ~isempty(control_idx)
-          mask = isfinite(sb.sd.surf(control_idx).x(:,slice)) ...
-            & isfinite(sb.sd.surf(control_idx).y(:,slice));
-          gt = cat(2,gt,[sb.sd.surf(control_idx).x(mask,slice).'-1; ...
-            sb.sd.surf(control_idx).y(mask,slice).'+0.5]);        
+          mask = isfinite(sb.layer(control_idx).x(:,slice)) ...
+            & isfinite(sb.layer(control_idx).y(:,slice));
+          gt = cat(2,gt,[sb.layer(control_idx).x(mask,slice).'-1; ...
+            sb.layer(control_idx).y(mask,slice).'+0.5]);        
           [~,unique_idxs] = unique(gt(1,:),'last','legacy');
           gt = gt(:,unique_idxs);
           viterbi_weight = ones([1 (size(sb.data,2))]);
-          viterbi_weight(gt(1,:)+1) = 2;
+          viterbi_weight(1 + gt(1,:)) = 2;
           [~,sort_idxs] = sort(gt(1,:));
           gt = gt(:,sort_idxs);
-          bottom_bin = sb.sd.surf(control_idx).y(ceil(size(sb.data,2)/2)+1,slice);
+          bottom_bin = sb.layer(control_idx).y(ceil(size(sb.data,2)/2)+1,slice);
         else
           bottom_bin = NaN;
           viterbi_weight = ones([1 length(gt)]);
         end
 
         if isempty(surf_idx)
-          surf_bins = NaN*sb.sd.surf(active_idx).y(:,slice);
+          surf_bins = NaN*sb.layer(active_idx).y(:,slice);
         else
-          surf_bins = sb.sd.surf(surf_idx).y(:,slice);
+          surf_bins = sb.layer(surf_idx).y(:,slice);
         end
         surf_bins(isnan(surf_bins)) = -1;
         bottom_bin(isnan(bottom_bin)) = -1;
@@ -129,20 +129,21 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         if isempty(mask_idx)
           mask = ones(size(sb.data,2),1);
         else
-          mask = sb.sd.surf(mask_idx).y(:,slice);
+          mask = sb.layer(mask_idx).y(:,slice);
         end
         
         detect_data = sb.data(:,:,slice);
         detect_data(detect_data>threshold) = threshold;
         detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
-        bounds = [sb.bounds_relative(1) size(detect_data,2)-sb.bounds_relative(2)];
+
+        bounds = [1 (size(sb.data,2))];
 
         mu_size       = 11;
         mu            = sinc(linspace(-1.5, 1.5, mu_size));
         sigma         = sum(mu)/20*ones(1,mu_size);
         smooth_var    = -1;      
-        smooth_weight = 45; % 55
-        repulsion     = 250; % 150
+        smooth_weight = 45;
+        repulsion     = 250;
         ice_bin_thr   = 3;
 
         %%%% TO COMPILE
@@ -155,7 +156,6 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         %%%%
         
         % Call viterbi.cpp
-        keyboard
         tic
         labels = tomo.viterbi(double(detect_data), ...
         double(surf_bins), double(bottom_bin), ...
@@ -172,7 +172,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         cmd{end}.undo.layer = active_idx;
         cmd{end}.redo.layer = active_idx;
         cmd{end}.undo.x = cols;
-        cmd{end}.undo.y = sb.sd.surf(active_idx).y(cols,slice);
+        cmd{end}.undo.y = sb.layer(active_idx).y(cols,slice);
         cmd{end}.redo.x = cols;
         cmd{end}.redo.y = labels(cols);
         cmd{end}.type = 'standard';
