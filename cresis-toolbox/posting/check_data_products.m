@@ -26,7 +26,7 @@ if check_for_bad_files
     for param_idx = 1:length(params)
       param = params(param_idx);
       if strcmpi(file_type,'gps')
-        support_fn = ct_filename_support(param,param.vectors.gps.fn,'gps',true);
+        support_fn = ct_filename_support(param,'','gps',true);
       else
         support_fn = ct_filename_support(param,'',file_type{1});
       end
@@ -41,7 +41,11 @@ if check_for_bad_files
       if ~isempty(bad_idx)
         fprintf('BAD FILE !!!!!!!! %s\n', support_fns{bad_idx});
         if delete_bad_files
-          delete(support_fns{bad_idx});
+          if strcmpi(file_type,'gps')
+            warning('GPS files are shared with all radars, if this file is really not supposed to be here run "delete(%s);".',support_fns{bad_idx});
+          else
+            delete(support_fns{bad_idx});
+          end
         end
       end
     end
@@ -131,7 +135,7 @@ for param_idx = 1:length(params)
       
       % Check for existance of gps file
       if strmatch('gps',supports)
-        gps_fn = ct_filename_support(param,param.vectors.gps.fn,'gps',true);
+        gps_fn = ct_filename_support(param,'','gps',true);
         fprintf('  GPS %s\n', gps_fn);
         if exist(gps_fn,'file')
           try
@@ -245,7 +249,7 @@ for param_idx = 1:length(params)
                 end
                 load(fn,'param_records');
                 if isempty(strmatch(param_records.gps_source,gps_sources))
-                  fprintf('    %s BAD GPS SOURCE %s\n', fn, param_records.gps_source);
+                  fprintf('    %s BAD GPS SOURCE %s!!!!!!!!!!!!!!!\n', fn, param_records.gps_source);
                   no_bad_gps_so_far_flag = false;
                 end
               end
