@@ -35,6 +35,7 @@ if param.tomo_collate.add_icemask_surfacedem_flag
     
     % combined_fn: Filename with 3D data
     combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
+    fprintf('Loading %s (%s)\n', combined_fn, datestr(now));
     mdata = load(combined_fn);
   end
   
@@ -53,7 +54,7 @@ if param.tomo_collate.create_surfData_flag
     
     % combined_fn: Filename with 3D data
     combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
-    fprintf('Loading Data (%s)\n', datestr(now));
+    fprintf('Loading %s (%s)\n', combined_fn, datestr(now));
     mdata = load(combined_fn);
   end
   
