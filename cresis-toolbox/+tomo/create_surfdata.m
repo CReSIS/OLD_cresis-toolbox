@@ -55,7 +55,7 @@ end
 param_load_layers = param;
 param_load_layers.cmd.frms = round([-1,0,1] + param.proc.frm);
 
-layers = opsLoadLayers(param,param.tomo_collate.layer_params);
+layers = opsLoadLayers(param_load_layers,param.tomo_collate.layer_params);
 
 %% Interpolate surface and bottom information to mdata
 master = [];

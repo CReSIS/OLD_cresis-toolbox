@@ -42,8 +42,11 @@ params = ct_set_params(params,'get_heights.img_comb_weights',[0 15],'day_seg','2
 combine = [];
 combine.img_comb_mult = 1.15; % <== OFTEN CHANGED (-inf default)
 combine.img_comb_bins = 10; % <== OFTEN CHANGED (1 default)
-out_path = 'standard'; % <== OFTEN CHANGED
+out_path = 'CSARP_post/standard'; % <== OFTEN CHANGED
 update_img_combine_param.mode = 'combine'; % <== OFTEN CHANGED (get_heights or combine)
+update_img_combine_param.update_surf = true; % <== Usually false for RDS and true for non-RDS
+
+combine.img_comb_layer_params = struct('name','surface','source','layerdata','layerdata_source','CSARP_post/layerData'); % <== OFTEN CHANGED
 
 %% Automated Section
 % =====================================================================

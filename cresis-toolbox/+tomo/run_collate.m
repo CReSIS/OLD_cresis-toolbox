@@ -29,7 +29,7 @@ if strcmpi(example_setup,'vertical')
   tomo_collate.in_dir = 'music3D';
   
   % .out_dir: ct_filename_out directory to which output surfData will be exported
-  tomo_collate.out_dir = 'surfData';
+  tomo_collate.out_dir = 'surfData_no_MC';
 
   % .imgs: list of images II to use from .in_dir (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam when
@@ -83,7 +83,7 @@ if strcmpi(example_setup,'vertical')
   % surfData_mode: surfData mode ('overwrite','fillgaps', or 'append', note that append with the
   %   same surface name as an existing surface will overwrite that surface whereas fillgaps
   %   will leave the surface untouched if it already exists)
-  tomo_collate.surfData_mode = 'fillgaps';
+  tomo_collate.surfData_mode = 'append';
   
   % surfdata_cmds: surfdata commands to run
   tomo_collate.surfdata_cmds = [];

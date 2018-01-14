@@ -70,6 +70,9 @@ end
 if ~isfield(param.get_heights,'img_comb_bins') || isempty(param.get_heights.img_comb_bins)
   param.get_heights.img_comb_bins = 1;
 end
+if ~isfield(param.update_img_combine,'update_surf') || isempty(param.update_img_combine.update_surf)
+  param.update_img_combine.update_surf = false;
+end
 
 % Load frames file
 load(ct_filename_support(param,param.records.frames_fn,'frames'));
@@ -85,6 +88,14 @@ if length(valid_frms) ~= length(param.cmd.frms)
   warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
     param.cmd.frms(find(bad_mask,1)));
   param.cmd.frms = valid_frms;
+end
+
+%% Load surface information
+if isfield(param.combine,'img_comb_layer_params') && ~isempty(param.combine.img_comb_layer_params)
+  param_load_layers = param;
+  param_load_layers.cmd.frms = 1:length(frames.frame_idxs);
+  
+  layers = opsLoadLayers(param_load_layers,param.combine.img_comb_layer_params);
 end
 
 if strcmpi(param.update_img_combine.mode,'get_heights')
@@ -147,6 +158,15 @@ for frm = param.cmd.frms
           Data = Data*10.^(combine.img_comb_weights(img)/10);
         end
       end
+      
+      if isfield(param.combine,'img_comb_layer_params') && ~isempty(param.combine.img_comb_layer_params)
+        imb_comb_surf = interp1(layers.gps_time,layers.twtt,GPS_time);
+      end
+      if strcmpi(param.update_img_combine.mode,'get_heights')
+        Surface = imb_comb_surf;
+      elseif param.update_img_combine.update_surf
+        Surface = imb_comb_surf;
+      end
     else
       append = load(img_fn,'Time','Data');
       %% Combine images
@@ -177,11 +197,11 @@ for frm = param.cmd.frms
       %  combine.img_comb(4-6, 7-9, etc.): same fields as above
       %    except between images 2 and 3, 3 and 4, etc.
       
-      Surface = interp_finite(Surface,0);
+      imb_comb_surf = interp_finite(imb_comb_surf,0);
       % First row of img_bins indicates the start of the blend-region
       img_bins = round(interp1(New_Time, 1:length(New_Time), ...
-        min(Surface*combine.img_comb_mult, ...
-        max(Surface+combine.img_comb((img-2)*3+1),combine.img_comb((img-2)*3+2))), 'linear','extrap'));
+        min(imb_comb_surf*combine.img_comb_mult, ...
+        max(imb_comb_surf+combine.img_comb((img-2)*3+1),combine.img_comb((img-2)*3+2))), 'linear','extrap'));
       
       % Determine guard at end of image 1 that will not be used
       guard_bins = 1 + round(combine.img_comb((img-2)*3+3)/dt);

@@ -74,6 +74,7 @@ gps_sources = {'atm-final_20170620'}; % Leave empty/undefined to not check gps_s
 processing_date_check = []; % Leave empty/undefined to not check processing date
 frm_types = {-1,0,-1,-1,-1};
 delete_bad_files = false;
+check_echogram_type = false; % Should be checked at least once before data posting
 check_for_bad_files = true;
 enable_all_without_do_not_process = true;
 
