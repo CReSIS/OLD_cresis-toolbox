@@ -75,7 +75,7 @@ if ~isfield(param.update_img_combine,'update_surf') || isempty(param.update_img_
 end
 
 % Load frames file
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);

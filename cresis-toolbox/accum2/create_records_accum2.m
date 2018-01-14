@@ -95,7 +95,7 @@ num_presum = records.num_coh_ave(1) * length(records.wfs);
 % ===================================================================
 % ===================================================================
 if isfield(param,'tmp_path') && ~isempty(param.tmp_path)
-  fn = ct_filename_tmp(param,param.records.records_fn,'records','workspace');
+  fn = ct_filename_tmp(param,'','records','workspace');
   fprintf('Saving workspace %s\n', fn);
   try
     fn_dir = fileparts(fn);

@@ -128,13 +128,7 @@ if ~any(copy_param.quality.value == [1 2 3])
 end
 
 %% Load "frames" file
-if ~isfield(param.records,'records_fn')
-  param.records.records_fn = '';
-end
-if ~isfield(param.records,'frames_fn')
-  param.records.frames_fn = '';
-end
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 
 %% Determine which frames to be processed
 if isempty(param.cmd.frms)
@@ -184,7 +178,7 @@ if strcmpi(copy_param.layer_dest.source,'ops')
 else
   % records, lidar, layerdata, and echogram sources use records file for
   % framing gps time info
-  records_fn = ct_filename_support(param,param.records.records_fn,'records');
+  records_fn = ct_filename_support(param,'','records');
   records = load(records_fn,'gps_time','surface','elev','lat','lon');
 end
 

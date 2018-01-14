@@ -106,7 +106,7 @@ for param_fn_idx = 1:length(param_fns)
           warning('No records file: %s\n', records_fn);
           continue;
         end
-        frames_fn = ct_filename_support(param,param.records.frames_fn,'frames');
+        frames_fn = ct_filename_support(param,'','frames');
         if ~exist(frames_fn,'file')
           warning('No frames file: %s\n', frames_fn);
           continue;
@@ -114,10 +114,6 @@ for param_fn_idx = 1:length(param_fns)
         
         fprintf('  Processing %s: %s (%s)\n', param.day_seg, records_fn, datestr(now,'HH:MM:SS'));
         gps = load(records_fn,'gps_time','lat','lon');
-        
-        if ~isfield(param.records,'frames_fn')
-          param.records.frames_fn = '';
-        end
         
         % Load frames file
         load(frames_fn);

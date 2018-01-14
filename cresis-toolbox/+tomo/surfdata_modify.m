@@ -19,7 +19,7 @@ function surfData_modify(param,fn,layers,varargin)
 % Author: John Paden
 
 % Determine which frames to process
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);

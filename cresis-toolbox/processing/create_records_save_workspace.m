@@ -4,7 +4,7 @@
 
 %% Save workspace in case there is a failure
 if isfield(param,'tmp_path') && ~isempty(param.tmp_path)
-  fn = ct_filename_ct_tmp(param,param.records.records_fn,'records','workspace');
+  fn = ct_filename_ct_tmp(param,'','records','workspace');
   fn = [fn '.mat'];
   fprintf('Saving workspace %s (%s)\n', fn, datestr(now));
   try
