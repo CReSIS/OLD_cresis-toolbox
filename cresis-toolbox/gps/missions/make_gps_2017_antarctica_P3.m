@@ -35,10 +35,10 @@ in_base_path = fullfile(data_support_path,'2017_Antarctica_P3');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_fns = {}; sync_params = {};
 
-gps_source_to_use = 'NMEA';
-gps_source_to_use = 'ATM-field';
+% gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM-field_traj';
-% gps_source_to_use = 'ATM';
+gps_source_to_use = 'ATM';
 % gps_source_to_use = 'DMS';
 
 if strcmpi(gps_source_to_use,'NMEA')
@@ -143,7 +143,7 @@ elseif strcmpi(gps_source_to_use,'ATM')
   
  ATM_fns = get_filenames(in_base_path,'','','.out');
   fn_dates = [];
-  for idx = 1:length(ATM_fns)
+  for idx = 11:11%1:length(ATM_fns)
     fn = ATM_fns{idx};
     [~,fn_name] = fileparts(fn);
     fn_dates(end+1) = datenum(sprintf('%s %s, 20%s', fn_name(9:11), fn_name(7:8), fn_name(12:13)));
@@ -151,19 +151,15 @@ elseif strcmpi(gps_source_to_use,'ATM')
   fn_dates = sort(fn_dates);
   
 
-  for idx = 1:length(fn_dates)
+  for idx = 1:1%1:length(fn_dates)
     [year,month,day] = datevec(fn_dates(idx));
     fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
     file_idx = file_idx + 1;
-      if idx==1 
-           in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
-      else  
-           in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'PPPK*.out');
-      end
+    in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'PPPK*.out');
     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
     file_type{file_idx} = 'applanix';
     params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
-    gps_source{file_idx} = 'atm-final_20170620';
+    gps_source{file_idx} = 'atm-final_20171223';
     sync_flag{file_idx} = 0;
   end
   
@@ -199,14 +195,15 @@ if ~isempty(hack_idx)
   save(out_fn,'-append','-struct','gps','lat','lon')
 end
 
-% Reveal files are known to have GPS time errors which are corrected here.
-for idx = 1:length(file_type)
-  out_fn = fullfile(gps_path,out_fns{idx});
+% Applanix files are known to have GPS time errors which are corrected here.
+fn_gps_time_error = {'gps_20171103.mat'}
+for idx = 1:length(fn_gps_time_error)
+  out_fn = fullfile(gps_path,fn_gps_time_error{idx});
   
   gps = load(out_fn);
-  if regexp(gps.gps_source,'reveal')
+  if regexp(gps.gps_source,'atm-final')
     
-    warning('Fixing non-monotonic GPS data in reveal file: %s', out_fn);
+    warning('Fixing non-monotonic GPS data in applanix file: %s', out_fn);
     
     [gps,error_flag] = make_gps_monotonic(gps);
     
