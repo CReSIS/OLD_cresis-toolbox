@@ -97,7 +97,7 @@ global g_data;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-param.load.records_fn = ct_filename_support(param,param.records.records_fn,'records');
+param.load.records_fn = ct_filename_support(param,'','records');
 
 if param.csarp.combine_rx && param.csarp.mocomp.en
   warning('CSARP motion compensation mode must be 0 for combine_rx (setting to 0)');

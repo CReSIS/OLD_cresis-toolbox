@@ -37,7 +37,7 @@ for param_idx = 1:length(params)
 
   
   % Load frames file
-  load(ct_filename_support(param,param.records.frames_fn,'frames'));
+  load(ct_filename_support(param,'','frames'));
   
   if isempty(param.cmd.frms)
     param.cmd.frms = 1:length(frames.frame_idxs);

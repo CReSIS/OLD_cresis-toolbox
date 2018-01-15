@@ -6,14 +6,38 @@ function create_surfdata(param,mdata)
 %   surface dem and ice mask to a file.
 %
 % Inputs:
-%   param: struct from parameter spreadsheet
-%    .tomo_collate
-%     .geotiff_fn
-%     .ice_mask_fn
-%   mdata: 3D data file struct
-%     .Latitude
-%     .Longitude
-%     .Topography
+% param: struct from parameter spreadsheet
+%  .tomo_collate: struct which control create_surfdata
+%   .out_dir: ct_filename_out directory to which output
+%     surfData will be exported. Default is surfData.
+%   .layer_params: opsLoadLayers parameter struct array. The first element
+%     should load the ice top (surface) layer and the second element
+%     should load the ice bottom.
+%   .surfData_mode: surfData mode string, can be one of:
+%     'overwrite': will overwrite the whole file
+%     'append': will only update the specified layers
+%     'fillgaps': will only update the specified layers if they did not
+%       already exist
+%   .surfdata_cmds: struct of surfdata commands to run
+%     .cmd: String with command: 'detect', 'extract', 'viterbi', or 'trws'
+%     .surf_names: String or cell array of strings with surface names to be
+%       updated by the results of the command
+%     .visible: The visibility setting for this layer
+%     DETECT parameters
+%     .data_threshold: pixel values above this will be clipped (default is 13.5)
+%     EXTRACT parameters
+%     .data_threshold: pixel values above this will be clipped (default is 13.5)
+%     TRWS parameters
+%     .smooth_weight: smoothness weight [] (default is [22 22])
+%     .smooth_var: Gaussian weighting in the elevation angle bin dimension (default is 32)
+%     .max_loops: number of loops to run for (default is 50)
+%   .bounds_relative: DOA bins and along-track slices to trim off from each edge [top bottom left right]
+%     E.g. [0 0 0 0] would use all pixels, [1 0 0 0] would ignore the first row.
+%     Usually trimming a few rows off the top/bottom is a good idea if
+%     these represent angles out to +/- 90 deg.
+%
+% mdata: 3D data file struct (Data_YYYYMMDD_SS_FFF.mat with Topography
+%   field)
 %
 % Outputs:
 %   NONE
@@ -23,11 +47,15 @@ function create_surfdata(param,mdata)
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
+if ~isfield(param.tomo_collate,'out_dir') || isempty(param.tomo_collate.out_dir)
+  param.tomo_collate.out_dir = 'surfData';
+end
+
 %% Load surface and bottom information
 param_load_layers = param;
 param_load_layers.cmd.frms = round([-1,0,1] + param.proc.frm);
 
-layers = opsLoadLayers(param,param.tomo_collate.layer_params);
+layers = opsLoadLayers(param_load_layers,param.tomo_collate.layer_params);
 
 %% Interpolate surface and bottom information to mdata
 master = [];
@@ -87,9 +115,9 @@ if ~isdir(out_dir)
 end
 out_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm);
 out_fn = fullfile(out_dir,out_fn_name);
-if strcmpi(param.tomo_collate.surfData_mode,'append')
+if any(strcmpi(param.tomo_collate.surfData_mode,{'append','fillgaps'}))
   if ~exist(out_fn,'file')
-    warning('Append mode selected, but output file does not exist. Switching to "overwrite" mode.');
+    warning('%s mode selected, but output file does not exist. Switching to "overwrite" mode.',param.tomo_collate.surfData_mode);
     param.tomo_collate.surfData_mode = 'overwrite';
   else
     try
@@ -125,8 +153,10 @@ Nsv = size(mdata.Topography.img,2);
 
 try
   surf = sd.get_surf('top');
-  surf.y = twtt_bin;
-  sd.set_surf(surf);
+  if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
+    surf.y = twtt_bin;
+    sd.set_surf(surf);
+  end
 catch ME
   surf = tomo.surfdata.empty_surf();
   surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
@@ -135,11 +165,13 @@ catch ME
   surf.name = 'top';
   sd.insert_surf(surf);
 end
-  
+
 try
   surf = sd.get_surf('bottom');
-  surf.y = NaN * zeros(size(twtt_bin));
-  sd.set_surf(surf);
+  if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
+    surf.y = NaN * zeros(size(twtt_bin));
+    sd.set_surf(surf);
+  end
 catch ME
   surf = tomo.surfdata.empty_surf();
   surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
@@ -148,11 +180,13 @@ catch ME
   surf.name = 'bottom';
   sd.insert_surf(surf);
 end
-  
+
 try
   surf = sd.get_surf('ice mask');
-  surf.y = mdata.ice_mask;
-  sd.set_surf(surf);
+  if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
+    surf.y = mdata.ice_mask;
+    sd.set_surf(surf);
+  end
 catch ME
   surf = tomo.surfdata.empty_surf();
   surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
@@ -161,12 +195,14 @@ catch ME
   surf.name = 'ice mask';
   sd.insert_surf(surf);
 end
-  
+
 try
   surf = sd.get_surf('bottom gt');
-  surf.y = NaN * zeros(size(twtt_bin));
-  surf.y(ceil(Nsv/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),Bottom);
-  sd.set_surf(surf);
+  if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
+    surf.y = NaN * zeros(size(twtt_bin));
+    surf.y(ceil(Nsv/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),Bottom);
+    sd.set_surf(surf);
+  end
 catch ME
   surf = tomo.surfdata.empty_surf();
   surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
@@ -176,12 +212,14 @@ catch ME
   surf.name = 'bottom gt';
   sd.insert_surf(surf);
 end
-  
+
 try
   surf = sd.get_surf('top gt');
-  surf.y = NaN * zeros(size(twtt_bin));
-  surf.y(ceil(Nsv/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),Surface);
-  sd.set_surf(surf);
+  if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
+    surf.y = NaN * zeros(size(twtt_bin));
+    surf.y(ceil(Nsv/2)+1,:) = interp1(mdata.Time,1:length(mdata.Time),Surface);
+    sd.set_surf(surf);
+  end
 catch ME
   surf = tomo.surfdata.empty_surf();
   surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
@@ -191,11 +229,13 @@ catch ME
   surf.name = 'top gt';
   sd.insert_surf(surf);
 end
-  
+
 try
   surf = sd.get_surf('top quality');
-  surf.y = ones(size(twtt_bin));
-  sd.set_surf(surf);
+  if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
+    surf.y = ones(size(twtt_bin));
+    sd.set_surf(surf);
+  end
 catch ME
   surf = tomo.surfdata.empty_surf();
   surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
@@ -204,11 +244,13 @@ catch ME
   surf.name = 'top quality';
   sd.insert_surf(surf);
 end
-  
+
 try
   surf = sd.get_surf('bottom quality');
-  surf.y = ones(size(twtt_bin));
-  sd.set_surf(surf);
+  if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
+    surf.y = ones(size(twtt_bin));
+    sd.set_surf(surf);
+  end
 catch ME
   surf = tomo.surfdata.empty_surf();
   surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
@@ -225,24 +267,34 @@ sd.set({'top','top gt','top quality'}, ...
   'active','top','gt','top gt','quality','top quality');
 
 sd.save_surfdata(out_fn);
-  
+
 mu = [];
 sigma = [];
 
 for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
   cmd = param.tomo_collate.surfdata_cmds(cmd_idx).cmd;
-  surf_name = param.tomo_collate.surfdata_cmds(cmd_idx).surf_name;
+  surf_names = param.tomo_collate.surfdata_cmds(cmd_idx).surf_names;
+  if ischar(surf_names)
+    surf_names = {surf_names};
+  end
   visible = param.tomo_collate.surfdata_cmds(cmd_idx).visible;
-
+  
   if any(strcmpi(cmd,{'detect','extract'})) && isempty(mu)
     %% Training parameters for image template's mu and sigma
+    
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'data_threshold') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).data_threshold)
+      data_threshold = param.tomo_collate.surfdata_cmds(cmd_idx).data_threshold;
+    else
+      data_threshold = 13.5;
+    end
     
     for rline = 1:size(mdata.Topography.img,3)
       if ~mod(rline-1,100)
         fprintf('  Training %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
       end
       thresh_data = data(:,:,rline);
-      thresh_data(thresh_data>param.tomo_collate.data_threshold) = param.tomo_collate.data_threshold;
+      thresh_data(thresh_data>data_threshold) = data_threshold;
       [m, s] = tomo.train_model(thresh_data, ...
         double(twtt_bin(:,rline)));
       mu(:,rline) = m;
@@ -262,20 +314,29 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     Topography = mdata.Topography;
     save(combined_fn,'-append','Topography');
   end
-
+  
   if strcmpi(cmd,'detect')
     %% Run detect
+    
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'data_threshold') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).data_threshold)
+      data_threshold = param.tomo_collate.surfdata_cmds(cmd_idx).data_threshold;
+    else
+      data_threshold = 13.5;
+    end
+    
     detect_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
     mu            = mdata.Topography.mu;
     sigma         = mdata.Topography.sigma;
+    
     for rline = 1:size(mdata.Topography.img,3)
       if ~mod(rline-1,500)
         fprintf('  Detect %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
       end
-
+      
       % data_threshold: log scale data will be clipped to this threshold
       thresh_data = data(:,:,rline);
-      thresh_data(thresh_data>param.tomo_collate.data_threshold) = param.tomo_collate.data_threshold;
+      thresh_data(thresh_data>data_threshold) = data_threshold;
       
       labels = tomo.detect(thresh_data, double(twtt_bin(:,rline)), double(Bottom_bin(rline)), ...
         [], double(ice_mask(:,rline)), double(mu(:,rline)), double(sigma(:,rline)));
@@ -283,31 +344,44 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       detect_surface(:,rline) = labels;
     end
     
-    try
-      surf = sd.get_surf(surf_name);
-      surf.y = detect_surface;
-      sd.set_surf(surf);
-    catch ME
-      surf = tomo.surfdata.empty_surf();
-      surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
-      surf.y = detect_surface;
-      surf.plot_name_values = {'color','green','marker','^'};
-      surf.name = surf_name;
-      surf.visible = visible;
-      sd.insert_surf(surf);
+    for surf_name_idx = 1:length(surf_names)
+      surf_name = surf_names{surf_name_idx};
+      try
+        surf = sd.get_surf(surf_name);
+        if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
+          surf.y = detect_surface;
+          sd.set_surf(surf);
+        end
+      catch ME
+        surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+        surf.y = detect_surface;
+        surf.plot_name_values = {'color','green','marker','^'};
+        surf.name = surf_name;
+        surf.visible = visible;
+        sd.insert_surf(surf);
+      end
+      sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
+        'gt','bottom gt','quality','bottom quality');
     end
-    sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
-      'gt','bottom gt','quality','bottom quality');
     
   elseif strcmpi(cmd,'extract')
     %% Run extract
     fprintf('  Extract (%s)\n', datestr(now));
+    
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'data_threshold') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).data_threshold)
+      data_threshold = param.tomo_collate.surfdata_cmds(cmd_idx).data_threshold;
+    else
+      data_threshold = 13.5;
+    end
+    
     mu            = mdata.Topography.mu;
     sigma         = mdata.Topography.sigma;
     
     % data_threshold: log scale data will be clipped to this threshold
     thresh_data = data;
-    thresh_data(thresh_data>param.tomo_collate.data_threshold) = param.tomo_collate.data_threshold;
+    thresh_data(thresh_data>data_threshold) = data_threshold;
     
     Extra_bin = [];
     
@@ -316,21 +390,26 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     extract_surface = reshape(extract_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));
     
-    try
-      surf = sd.get_surf(surf_name);
-      surf.y = extract_surface;
-      sd.set_surf(surf);
-    catch ME
-      surf = tomo.surfdata.empty_surf();
-      surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
-      surf.y = extract_surface;
-      surf.plot_name_values = {'color','yellow','marker','^'};
-      surf.name = surf_name;
-      surf.visible = visible;
-      sd.insert_surf(surf);
+    for surf_name_idx = 1:length(surf_names)
+      surf_name = surf_names{surf_name_idx};
+      try
+        surf = sd.get_surf(surf_name);
+        if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
+          surf.y = extract_surface;
+          sd.set_surf(surf);
+        end
+      catch ME
+        surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+        surf.y = extract_surface;
+        surf.plot_name_values = {'color','yellow','marker','^'};
+        surf.name = surf_name;
+        surf.visible = visible;
+        sd.insert_surf(surf);
+      end
+      sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
+        'gt','bottom gt','quality','bottom quality');
     end
-    sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
-      'gt','bottom gt','quality','bottom quality');
     
   elseif strcmpi(cmd,'viterbi')
     %% Run Viterbi
@@ -372,28 +451,50 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       viterbi_surface(:,rline) = labels;
     end
     
-    try
-      surf = sd.get_surf(surf_name);
-      surf.y = viterbi_surface;
-      sd.set_surf(surf);
-    catch ME
-      surf = tomo.surfdata.empty_surf();
-      surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
-      surf.y = viterbi_surface;
-      surf.plot_name_values = {'color','yellow','marker','^'};
-      surf.name = surf_name;
-      surf.visible = visible;
-      sd.insert_surf(surf);
+    for surf_name_idx = 1:length(surf_names)
+      surf_name = surf_names{surf_name_idx};
+      try
+        surf = sd.get_surf(surf_name);
+        if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
+          surf.y = viterbi_surface;
+          sd.set_surf(surf);
+        end
+      catch ME
+        surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+        surf.y = viterbi_surface;
+        surf.plot_name_values = {'color','yellow','marker','^'};
+        surf.name = surf_name;
+        surf.visible = visible;
+        sd.insert_surf(surf);
+      end
+      sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
+        'gt','bottom gt','quality','bottom quality');
     end
-    sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
-      'gt','bottom gt','quality','bottom quality');
     
   elseif strcmpi(cmd,'trws')
     %% Run TRW-S
     fprintf('  TRW-S (%s)\n', datestr(now));
+    
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight)
+      smooth_weight = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight;
+    else
+      smooth_weight = [22 22];
+    end
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_var') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var)
+      smooth_var = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var;
+    else
+      smooth_var = 32;
+    end
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'max_loops') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).max_loops)
+      max_loops = param.tomo_collate.surfdata_cmds(cmd_idx).max_loops;
+    else
+      max_loops = 50;
+    end
     smooth_slope = [];
-    smooth_weight = [22 22];
-    smooth_var = 32;
     mu_size = 11;
     mu = sinc(linspace(-1.5,1.5,mu_size));
     sigma = sum(mu)/20*ones(1,mu_size);
@@ -404,25 +505,30 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     trws_surface = tomo.trws(data, double(twtt_bin), double(Bottom_bin), ...
       double([]), double(ice_mask_transition), double(mu), double(sigma), ...
       smooth_weight, smooth_var, double(smooth_slope), [], ...
-      double(param.tomo_collate.max_loops), int64(bounds));
+      double(max_loops), int64(bounds));
     
     trws_surface = reshape(trws_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));
     
-    try
-      surf = sd.get_surf(surf_name);
-      surf.y = trws_surface;
-      sd.set_surf(surf);
-    catch ME
-      surf = tomo.surfdata.empty_surf();
-      surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
-      surf.y = trws_surface;
-      surf.plot_name_values = {'color','green','marker','^'};
-      surf.name = surf_name;
-      surf.visible = visible;
-      sd.insert_surf(surf);
+    for surf_name_idx = 1:length(surf_names)
+      surf_name = surf_names{surf_name_idx};
+      try
+        surf = sd.get_surf(surf_name);
+        if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
+          surf.y = trws_surface;
+          sd.set_surf(surf);
+        end
+      catch ME
+        surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+        surf.y = trws_surface;
+        surf.plot_name_values = {'color','green','marker','^'};
+        surf.name = surf_name;
+        surf.visible = visible;
+        sd.insert_surf(surf);
+      end
+      sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
+        'gt','bottom gt','quality','bottom quality');
     end
-    sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
-      'gt','bottom gt','quality','bottom quality');
   end
 end
 

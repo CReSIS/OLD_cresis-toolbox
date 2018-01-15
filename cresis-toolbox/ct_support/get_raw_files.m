@@ -1,5 +1,5 @@
-function [load_info,gps_time,recs] = get_raw_files(param,frm_id,out_dir,recs)
-% [load_info,gps_time,recs]= get_raw_files(param,frm_id,out_dir,recs)
+function [load_info,gps_time,recs] = get_raw_files(param,frm_id,out_dir,rec_range,rec_range_type)
+% [load_info,gps_time,recs]= get_raw_files(param,frm_id,out_dir,rec_range,rec_range_type)
 %
 % param: Can be either a string with the parameter spreadsheet filename OR
 %  a struct containing radar, season, and optionally day_seg information.
@@ -11,12 +11,14 @@ function [load_info,gps_time,recs] = get_raw_files(param,frm_id,out_dir,recs)
 %   1. string containing frame id (e.g. '20120514_01_317')
 %   2. an integer containing the frame number (param.day_seg must be passed
 %   in)
-% recs: Specifies a range of records to load in, only the first and last
-%   element of recs are used. If this meethod is used, either the
-%   param.day_seg field must be defined or the frm_id must be a string with
-%   the day_seg in it.
 % out_dir: Optional. May be left empty or not defined. Specifies an
 %   output directory to copy files to.
+% rec_range: Specifies a range of records to load in the used specified by
+%   rec_range_type. Only the first and last element of rec_range are used.
+%   If this method is used, either the param.day_seg field must be defined
+%   or the frm_id must be a string with the day_seg in it.
+% rec_range_type: String containing 'gps_time' or 'records'. Default is
+%   'records'.
 %
 % load_info: struct with file information for the range of data specified
 %  .filenames: cell array of cells which contain the raw data filenames
@@ -35,7 +37,7 @@ function [load_info,gps_time,recs] = get_raw_files(param,frm_id,out_dir,recs)
 %   [load_info,gps_time,recs] = get_raw_files('kuband_param_2012_Greenland_P3.xls','20120514_01_317');
 %   [load_info,gps_time,recs] = get_raw_files(struct('radar_name','mcords2','season_name','2012_Greenland_P3'),'20120514_02_018');
 %   load_info = get_raw_files(struct('radar_name','mcords','season_name','2011_Antarctica_DC8'),'20111030_02_002')
-%   [load_info,gps_time,recs] = get_raw_files('accum_param_2017_Greenland_P3.xls','20170412_01_023');
+%   [load_info,gps_time,recs] = get_raw_files('accum_param_2017_Greenland_P3.xls','20170412_01_023',[],1.4920018728e9,'gps_time');
 %
 %   % Example copying files
 %   load_info = get_raw_files(struct('radar_name','mcrds','season_name','2008_Greenland_TO'),'20080627_06_001','/tmp/)
@@ -82,15 +84,28 @@ frames_fn = ct_filename_support(param,'','frames');
 load(frames_fn);
 
 %% Get the records associated with the frm or record
-if exist('recs','var') && ~isempty(recs)
-  % Use the provided record(s) to determine the records to get
-  start_rec = recs(1);
-  stop_rec = recs(end);
-  good_recs = intersect(1:length(records.gps_time),start_rec:stop_rec);
-  if numel(good_recs) < stop_rec-start_rec+1
-    warning('Record range requests records that do not exist, truncating to valid records.');
-    start_rec = good_recs(1);
-    stop_rec = good_recs(end);
+if exist('rec_range','var') && ~isempty(rec_range)
+  if exist('rec_range_type','var') && strcmp(rec_range_type,'gps_time')
+    % Use the provided gps_time range to determine the records to get
+    start_rec = find(records.gps_time>=rec_range(1),1,'first');
+    if isempty(start_rec)
+      error('rec_range start time is after end of segment.');
+    end
+    stop_rec = find(records.gps_time>=rec_range(end),1,'first');
+    if isempty(stop_rec)
+      warning('rec_range stop time is after end of segment, setting to end of segment.');
+      stop_rec = length(records.gps_time);
+    end
+  else
+    % Use the provided record rnage to determine the records to get
+    start_rec = rec_range(1);
+    stop_rec = rec_range(end);
+    good_recs = intersect(1:length(records.gps_time),start_rec:stop_rec);
+    if numel(good_recs) < stop_rec-start_rec+1
+      warning('Record range requests records that do not exist, truncating to valid records.');
+      start_rec = good_recs(1);
+      stop_rec = good_recs(end);
+    end
   end
 
 else

@@ -21,22 +21,22 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       obj.tool_shortcut = 'd';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
-      obj.help_string = 'd: Detect tool which runs viterbi solution to HMM inference model to find best layer. Neighboring slices have no influence on solution.';
+      obj.help_string = 'd: Detect tool which runs viterbi solution to HMM inference model to find best surface. Neighboring slices have no influence on solution.';
     end
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd. You 
       %     should not modify any fields of sb.
-      %  .layer: struct array containing layer information
+      %  .sd: surfdata .surf struct array containing surface information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
-      %  .layer_idx: active layer
+      %  .surf_idx: active surface
       % slices: array of slices to operate on (overrides sb.slice)
-      control_idx = sb.layer(sb.layer_idx).control_layer;
-      active_idx = sb.layer(sb.layer_idx).active_layer;
-      surf_idx = sb.layer(sb.layer_idx).surf_layer;
-      mask_idx = sb.layer(sb.layer_idx).mask_layer;
+      control_idx = sb.sd.surf(sb.surf_idx).gt;
+      active_idx = sb.sd.surf(sb.surf_idx).active;
+      surf_idx = sb.sd.surf(sb.surf_idx).top;
+      mask_idx = sb.sd.surf(sb.surf_idx).mask;
       
       try
         slice_range = eval(get(obj.gui.slice_rangeLE,'String'));
@@ -70,9 +70,9 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       [~,slices_idxs] = intersect(slices,1:size(sb.data,3));
       slices = slices(sort(slices_idxs));
       if numel(slices)==1
-        fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice);
+        fprintf('Apply %s to surface %d slice %d\n', obj.tool_name, active_idx, sb.slice);
       else
-        fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
+        fprintf('Apply %s to surface %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
       end
       if get(obj.gui.previousCB,'Value')
         start_slice_idx = 2;
@@ -92,36 +92,36 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         if get(obj.gui.previousCB,'Value')
           slice_prev = slices(slice_idx-1);
           if slice_idx == 2
-            gt = [sb.layer(active_idx).x(:,slice_prev).'-1; ...
-              sb.layer(active_idx).y(:,slice_prev).'+0.5];
+            gt = [sb.sd.surf(active_idx).x(:,slice_prev).'-1; ...
+              sb.sd.surf(active_idx).y(:,slice_prev).'+0.5];
           else
-            gt = [sb.layer(active_idx).x(:,slice_prev).'-1; ...
+            gt = [sb.sd.surf(active_idx).x(:,slice_prev).'-1; ...
               labels(:).'+0.5];
           end
         else
           gt = [];
         end
         if ~isempty(control_idx)
-          mask = isfinite(sb.layer(control_idx).x(:,slice)) ...
-            & isfinite(sb.layer(control_idx).y(:,slice));
-          gt = cat(2,gt,[sb.layer(control_idx).x(mask,slice).'-1; ...
-            sb.layer(control_idx).y(mask,slice).'+0.5]);        
+          mask = isfinite(sb.sd.surf(control_idx).x(:,slice)) ...
+            & isfinite(sb.sd.surf(control_idx).y(:,slice));
+          gt = cat(2,gt,[sb.sd.surf(control_idx).x(mask,slice).'-1; ...
+            sb.sd.surf(control_idx).y(mask,slice).'+0.5]);        
           [~,unique_idxs] = unique(gt(1,:),'last','legacy');
           gt = gt(:,unique_idxs);
           viterbi_weight = ones([1 (size(sb.data,2))]);
           viterbi_weight(1 + gt(1,:)) = 2;
           [~,sort_idxs] = sort(gt(1,:));
           gt = gt(:,sort_idxs);
-          bottom_bin = sb.layer(control_idx).y(ceil(size(sb.data,2)/2)+1,slice);
+          bottom_bin = sb.sd.surf(control_idx).y(ceil(size(sb.data,2)/2)+1,slice);
         else
           bottom_bin = NaN;
           viterbi_weight = ones([1 length(gt)]);
         end
 
         if isempty(surf_idx)
-          surf_bins = NaN*sb.layer(active_idx).y(:,slice);
+          surf_bins = NaN*sb.sd.surf(active_idx).y(:,slice);
         else
-          surf_bins = sb.layer(surf_idx).y(:,slice);
+          surf_bins = sb.sd.surf(surf_idx).y(:,slice);
         end
         surf_bins(isnan(surf_bins)) = -1;
         bottom_bin(isnan(bottom_bin)) = -1;
@@ -129,7 +129,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         if isempty(mask_idx)
           mask = ones(size(sb.data,2),1);
         else
-          mask = sb.layer(mask_idx).y(:,slice);
+          mask = sb.sd.surf(mask_idx).y(:,slice);
         end
         
         detect_data = sb.data(:,:,slice);
@@ -166,13 +166,13 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         double(repulsion), double(ice_bin_thr));
         toc
 
-        % Create cmd for layer change
+        % Create cmd for surface change
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
-        cmd{end}.undo.layer = active_idx;
-        cmd{end}.redo.layer = active_idx;
+        cmd{end}.undo.surf = active_idx;
+        cmd{end}.redo.surf = active_idx;
         cmd{end}.undo.x = cols;
-        cmd{end}.undo.y = sb.layer(active_idx).y(cols,slice);
+        cmd{end}.undo.y = sb.sd.surf(active_idx).y(cols,slice);
         cmd{end}.redo.x = cols;
         cmd{end}.redo.y = labels(cols);
         cmd{end}.type = 'standard';
