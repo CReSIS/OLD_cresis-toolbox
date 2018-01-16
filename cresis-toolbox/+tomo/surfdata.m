@@ -485,6 +485,23 @@ classdef surfdata < handle
         'radar_name', 'season_name', 'day_seg', 'frm', '-v7.3');
     end
 
+    %% get_names
+    function surf_names = get_names(obj)
+      % surf_names = get_names(obj)
+      %
+      % Returns all the surface names in a cell array
+      %
+      % No inputs
+      %
+      % surf_names: cell array of surface names
+      
+      if ~isempty(obj.surf)
+        surf_names = {obj.surf.names};
+      else
+        surf_names = {};
+      end
+    end
+    
     %% get_index
     function surf_idx = get_index(obj, surf_name, error_on_fail)
       % obj.get_index(surf_name, error_on_fail)

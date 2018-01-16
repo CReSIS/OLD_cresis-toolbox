@@ -285,7 +285,7 @@ classdef slice_browser < handle
       obj.gui.surfaceTXT = uicontrol('Style','text','string','Surface');
       obj.gui.surfaceLB = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.surfaceLB,'style','listbox')
-      set(obj.gui.surfaceLB,'string',{obj.sd.surf.name})
+      set(obj.gui.surfaceLB,'string',obj.sd.get_names());
       set(obj.gui.surfaceLB,'Callback',@obj.surfaceLB_callback)
       set(obj.gui.surfaceLB,'TooltipString','Select active surface (#)');
       obj.gui.surfaceCM = uicontextmenu('Parent',obj.h_fig);

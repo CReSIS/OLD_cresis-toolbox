@@ -9,7 +9,7 @@
 %% User Settings
 % =========================================================================
 
-if 1
+if 0
   param.radar_name = 'rds';
   param.season_name = '2014_Greenland_P3';
   out_type = 'music3D';
@@ -31,7 +31,7 @@ elseif 0
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
   
-else
+elseif 0
   param.radar_name = 'rds';
   param.season_name = '2016_Antarctica_DC8';
   out_type = 'music3D';
@@ -41,6 +41,18 @@ else
   geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
+  
+else
+  param.radar_name = 'rds';
+  param.season_name = '2013_Antarctica_Basler';
+  out_type = 'NDH_music';
+  surfdata_source = '';
+  param.day_seg = '20140104_03';
+  frm = 2;
+  geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
+  ice_mask_fn = '';
+  bounds_relative = [8 8 0 0];
+
 end
 
 %% Automated Section

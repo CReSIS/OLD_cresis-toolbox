@@ -40,12 +40,12 @@ compare_params.cdf_title{end+1} = 'Viterbi';
 compare_params.surfdata_other{end+1} = 'surfData_no_MC';
 compare_params.surf_name_other{end+1} = 'bottom extract';
 compare_params.cdf_title{end+1} = 'TRW-S';
-% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
-% compare_params.surf_name_other{end+1} = 'bottom viterbi';
-% compare_params.cdf_title{end+1} = 'Viterbi Mod';
-% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
-% compare_params.surf_name_other{end+1} = 'bottom trws';
-% compare_params.cdf_title{end+1} = 'TRW-S Mod';
+compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+compare_params.surf_name_other{end+1} = 'bottom viterbi';
+compare_params.cdf_title{end+1} = 'Viterbi Mod';
+compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+compare_params.surf_name_other{end+1} = 'bottom trws';
+compare_params.cdf_title{end+1} = 'TRW-S Mod';
 
 % compare.cutoffs: Cutoff interval in % for statistics;
 compare_params.cutoffs = [1 5 10 15 20 25];
