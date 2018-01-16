@@ -22,6 +22,8 @@ const int 	 DEF_ICE_BIN_THR = 3;  // icemask proximity scan threshold
 const int    DEF_REPULSION   = 150000; // repulsion from surface
 const double LARGE           = 1000000000;
 
+const double PI = 3.14159265358979323846;
+
 class detect
 {
 public:
@@ -85,7 +87,7 @@ public:
 		double sigma = DEF_SIGMA, double scale = DEF_SCALE)
 		{
 			if(sigma != std::numeric_limits<double>::infinity())
-				return scale * (1.0/(sigma*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/sigma));
+				return scale * (1.0/(sigma*sqrt(2*PI))) * exp(-0.5*sqr((x-mu)/sigma));
 			return scale;
 		}
 

@@ -3,7 +3,7 @@
 // Correlation based mu/sigma, addition of smoothness, surface repulsion increased, input arg checks,
 //   merge with extract.cpp, bounds, init and edge conditions updated: John Paden 2017
 //
-// mex -v -largeArrayDims refine.cpp
+// mex -v -largeArrayDims trws.cpp
 
 #include <iostream>
 #include <cmath>

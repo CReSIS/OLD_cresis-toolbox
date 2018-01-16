@@ -7,6 +7,8 @@
 //
 // Author: Victor Berger
 // See also: viterbi_lib.h
+//
+// mex -v -largeArrayDims viterbi.cpp
 
 #include "viterbi_lib.h"
 const bool debug = 0;

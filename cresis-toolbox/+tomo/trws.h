@@ -30,6 +30,8 @@
 // TRWS: max_loops
 #define MAX_LOOP 50
 
+const double PI = 3.14159265358979323846;
+
 typedef vector< pair<size_t, size_t> > CoordType;
 typedef vector< tuple<size_t, size_t, size_t> > PointType;
 typedef vector< vector<size_t> > LayerType;
@@ -47,7 +49,7 @@ string itos(int i) {
 
 // Dynamic smoothness
 double norm_pdf(double x, double mu=MID, double sigma=SIGMA, double scale=SCALE) {
-    return scale * (1.0/(sigma*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/sigma));
+    return scale * (1.0/(sigma*sqrt(2*PI))) * exp(-0.5*sqr((x-mu)/sigma));
 }
 
 // THE CODE BELOW THIS POINT WAS TAKEN FROM DAVID CRANDALL
