@@ -18,7 +18,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       obj.tool_shortcut = 'e';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
-      obj.help_string = 'e: Extract/refine tools which run TRWS solution to HMM inference model to find best layer. Neighboring slices effect cost function to improve solution.';
+      obj.help_string = 'e: Extract/refine tools which run TRWS solution to HMM inference model to find best surface. Neighboring slices effect cost function to improve solution.';
     end
     
     function cmd = apply_PB_callback(obj,sb,slices)
@@ -97,7 +97,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       else
         end_slice_idx = length(slices)-1;
       end
-      fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
+      fprintf('Apply %s to surface %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
       
       gt = [];
       if ~isempty(control_idx)
@@ -120,7 +120,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       end
       
       if isempty(surf_idx)
-        %error('extract cannot be run without a surface layer');
+        %error('extract cannot be run without a surface surface');
         surf_bins = NaN*sb.sd.surf(active_idx).y(:,slices);
       else
         surf_bins = sb.sd.surf(surf_idx).y(:,slices);
@@ -145,9 +145,9 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       extract_data(extract_data>threshold(2)) = threshold(2);
       for idx = 1:length(slices)
         for col = 1:size(sb.data,2)
-          tmp = extract_data(1:min(end,surf_bins(col,idx)+70),col,idx);
+          tmp = extract_data(1:min(end,round(surf_bins(col,idx))+70),col,idx);
           tmp(tmp>threshold(1)) = threshold(1);
-          extract_data(1:min(end,surf_bins(col,idx)+70),col,idx) = tmp;
+          extract_data(1:min(end,round(surf_bins(col,idx))+70),col,idx) = tmp;
         end
       end
       if ~left_edge_en
@@ -209,7 +209,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       end
       
       tic;
-      correct_surface = tomo.refine(double(extract_data), ...
+      correct_surface = tomo.trws(double(extract_data), ...
         double(surf_bins), double(bottom_bin), double(gt), double(mask), ...
         double(mu), double(sigma), smooth_weight, smooth_var, ...
         double(smooth_slope), double(edge), double(num_loops), int64(bounds));
@@ -219,7 +219,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         correct_surface = correct_surface + rows(1) - 1;
       end
       
-     % Create cmd for layer change
+     % Create cmd for surface change
       cmd = [];
       for idx = start_slice_idx:end_slice_idx
         slice = slices(idx);
@@ -304,21 +304,21 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       % Correlation length
       obj.gui.correlationTXT = uicontrol('Style','text','string','Correlation');
-      set(obj.gui.correlationTXT,'TooltipString','Specify a correlation length for layer impulse template.');
+      set(obj.gui.correlationTXT,'TooltipString','Specify a correlation length for surface impulse template.');
       
       obj.gui.correlationLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.correlationLE,'style','edit')
       set(obj.gui.correlationLE,'string','11')
-      set(obj.gui.correlationLE,'TooltipString','Specify a correlation length for layer impulse template.');
+      set(obj.gui.correlationLE,'TooltipString','Specify a correlation length for surface impulse template.');
       
       % Smooth
       obj.gui.smoothTXT = uicontrol('Style','text','string','Smoothness');
-      set(obj.gui.smoothTXT,'TooltipString','Specify layer smoothness ["slice weight" "column weight" "edges weight"].');
+      set(obj.gui.smoothTXT,'TooltipString','Specify surface smoothness ["slice weight" "column weight" "edges weight"].');
       
       obj.gui.smoothLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.smoothLE,'style','edit')
       set(obj.gui.smoothLE,'string','[22 22 32]')
-      set(obj.gui.smoothLE,'TooltipString','Specify layer smoothness ["slice weight" "column weight" "edges weight"].');
+      set(obj.gui.smoothLE,'TooltipString','Specify surface smoothness ["slice weight" "column weight" "edges weight"].');
       
       % Select mask
       obj.gui.select_maskCB = uicontrol('parent',obj.h_fig);

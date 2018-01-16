@@ -9,38 +9,50 @@
 %% User Settings
 % =========================================================================
 
-if 1
+if 0
   param.radar_name = 'rds';
   param.season_name = '2014_Greenland_P3';
-  out_type = 'CSA_music';
-  surfdata_source = 'surfData_v2';
-  param.day_seg = '20140401_03';
-  frm = 37;
+  out_type = 'music3D';
+  surfdata_source = 'surfData';
+  param.day_seg = '20140325_05';
+  frm = 2;
   geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
   ice_mask_fn = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
   bounds_relative = [3 2 0 0];
   
-elseif 1
+elseif 0
   param.radar_name = 'rds';
   param.season_name = '2009_Antarctica_TO';
   out_type = 'music3D';
-  surfdata_source = 'surfData_v2';
+  surfdata_source = 'surfData';
   param.day_seg = '20091224_01';
   frm = 26;
   geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
   
-else
+elseif 0
   param.radar_name = 'rds';
   param.season_name = '2016_Antarctica_DC8';
-  out_type = 'music3';
-  surfdata_source = 'paden_surfData';
+  out_type = 'music3D';
+  surfdata_source = 'surfData';
   param.day_seg = '20161117_06';
   frm = 1;
   geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
+  
+else
+  param.radar_name = 'rds';
+  param.season_name = '2013_Antarctica_Basler';
+  out_type = 'NDH_music';
+  surfdata_source = '';
+  param.day_seg = '20140104_03';
+  frm = 2;
+  geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
+  ice_mask_fn = '';
+  bounds_relative = [8 8 0 0];
+
 end
 
 %% Automated Section

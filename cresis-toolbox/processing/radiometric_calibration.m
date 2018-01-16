@@ -32,9 +32,9 @@ radiometric_tstart = tic;
 physical_constants;
 
 % Load frames file
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 % Load records file
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 records_ver = load(records_fn,'ver');
 if isfield(records_ver,'ver')
   records = load(records_fn);
@@ -159,7 +159,7 @@ for data_dir_idx = 1:length(param.radiometric.data_dirs)
     task_param.debug_level = param.debug_level;
   end
   
-  task_param.load.records_fn = ct_filename_support(param,param.records.records_fn,'records');
+  task_param.load.records_fn = ct_filename_support(param,'','records');
   
   task_param.radiometric = param.radiometric;
   

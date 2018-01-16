@@ -5,7 +5,7 @@ function [param,defaults] = default_radar_params_2017_Antarctica_P3_mcords
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
-%
+%1
 % Author: John Paden
 
 param.season_name = '2017_Antarctica_P3';
@@ -99,7 +99,7 @@ default.get_heights.surf.search_rng = [0:2];
 
 %% CSARP worksheet in parameter spreadsheet
 default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.csarp.imgs = {[1*ones(7,1),(6:12).'],[2*ones(7,1),(6:12).'],[3*ones(7,1),(6:12).']};
 default.csarp.frm_types = {0,[0 1],0,0,-1};
 default.csarp.chunk_len = 5000;
 default.csarp.chunk_overlap = 10;
@@ -161,13 +161,28 @@ default.radar.ref_fn = '';
 defaults = {};
 
 %% Settings
-default.radar.wfs(1).chan_equal_Tsys = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+fprintf('Enter set_number = 1 for dates on and before 20171104, set_number = 2 for dates after 20171104:\n');
+set_number = [];
+while length(set_number) ~= 1
+  try
+    set_number = input('set_number = ');
+    if (set_number~=1 && set_number~=2)
+      set_number = [];
+    end
+  end
+end
+default.radar.wfs(1).chan_equal_Tsys = [2.62 -2.11 0.22 0 1.20 -1.42 -0.24 -67.30 -69.95 -68.15 -63.77 -78.86 -75.19 -74.19 -70.62]/1e9;
+if set_number == 1
+    default.radar.wfs(1).chan_equal_dB = [4.5 2.73 1.23	0.0	0.45 2.1 3.18 7.3 3.75 6.23	-50.18 -33.90 -38.13 3.8 6.18];
+    default.radar.wfs(1).chan_equal_deg = [-23.75 24.28	154.48	0.00 -152.88 -129.43 96.43 10.28 32.53 12.18 41.98 92.83 -80.25	-64.18 25.48];
+elseif set_number == 2
+    default.radar.wfs(1).chan_equal_dB = [4.88 2.45	1.88 0.00 0.70 2.30	3.25 6.90 3.57 4.53	-3.33 5.87 3.88	3.40 5.77];
+    default.radar.wfs(1).chan_equal_deg = [-14.57 32.48	160.23 0.00	-151.13	32.33 95.52	-12.82 -31.78 9.65 -13.65 -25.65 42.55 51.67 -13.98];
+end
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.get_heights.imgs = {[1*ones(7,1),(6:12).'],[2*ones(7,1),(6:12).'],[3*ones(7,1),(6:12).']};
 default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
@@ -179,7 +194,7 @@ defaults{end+1} = default;
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06];
-default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).']};
+default.get_heights.imgs = {[1*ones(7,1),(6:12).'],[2*ones(7,1),(6:12).']};
 default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
@@ -191,7 +206,7 @@ defaults{end+1} = default;
 
 % high altitude mode
 default.get_heights.qlook.img_comb = [1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).']};
+default.get_heights.imgs = {[1*ones(7,1),(6:12).'],[2*ones(7,1),(6:12).']};
 default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
@@ -203,7 +218,7 @@ defaults{end+1} = default;
 
 % deconvolution mode
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.get_heights.imgs = {[1*ones(7,1),(6:12).'],[2*ones(7,1),(6:12).'],[3*ones(7,1),(6:12).']};
 default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;

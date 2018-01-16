@@ -23,10 +23,7 @@ fprintf('=====================================================================\n
 
 %% Determine which frames we will operate on
 % Load frames file
-if ~isfield(param.records,'frames_fn')
-  param.records.frames_fn = '';
-end
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
@@ -50,11 +47,11 @@ if 0
   %   Options file: ~/.matlab/R2015b/mex_C++_glnxa64.xml
   % Replace -std=c++11 with -std=c++0x (should occur in two places)
   % Reference: http://stackoverflow.com/questions/14674597/cc1plus-error-unrecognized-command-line-option-std-c11-with-g
-  mex -largeArrayDims fuse.cpp
   mex -largeArrayDims train_model.cpp
   mex -largeArrayDims detect.cpp
   mex -largeArrayDims extract.cpp
-  mex -largeArrayDims refine.cpp
+  mex -largeArrayDims viterbi.cpp
+  mex -largeArrayDims trws.cpp
 end
 
 %% Initialize Torque setup

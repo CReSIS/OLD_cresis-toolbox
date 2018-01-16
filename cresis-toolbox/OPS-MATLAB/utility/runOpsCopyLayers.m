@@ -9,18 +9,11 @@
 %% User Settings
 % =====================================================================
 
-% Set the parameter spreadsheet 
-if 1
-  % Use param spreadsheet:
-  params = read_param_xls(ct_filename_param('rds_param_2010_Greenland_DC8.xls'),'','post');
-else
-  % Use param spreadsheet, but override settings for specific segments
-  params = read_param_xls(ct_filename_param('rds_param_2010_Greenland_DC8.xls'),'20100414_02','post');
-  for param_idx = 1:length(params)
-    params(param_idx).cmd.generic = 1;
-    params(param_idx).cmd.frms = [];
-  end
-end
+% Load the parameter spreadsheet 
+params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'','post');
+params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20091224_01');
+params = ct_set_params(params,'cmd.frms',[16]);
 
 % Set the operation to run (just choose one operation)
 if 1

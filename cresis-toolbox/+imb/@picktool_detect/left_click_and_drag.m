@@ -2,6 +2,9 @@ function cmds = left_click_and_drag(obj,param)
 % cmds = left_click_and_drag(obj,param)
 %
 % Detect tool
+%
+% Compile with
+%   mex -largeArrayDims viterbi.cpp
 
 image_x = param.image_x;
 image_y = param.image_y;
@@ -20,7 +23,7 @@ tool_idx = get(obj.top_panel.tool_PM,'Value');
 if tool_idx == 1
   
   %=========================================================================
-
+  
   for layer_idx = 1:length(cur_layers)
     cur_layer = cur_layers(layer_idx);
     
@@ -31,7 +34,7 @@ if tool_idx == 1
       continue;
     elseif ~isempty(auto_idxs)
       
-      % Nx: number of along track records/range lines 
+      % Nx: number of along track records/range lines
       Nx = length(image_x);
       custom_data.mu = [11.2575 11.3748 11.4393 11.4555 11.4323   11.3666   11.2668   11.1332   10.9900 10.8484   10.6916];
       custom_data.sigma = [5.4171    5.2945    5.2187    5.1939    5.2174    5.3247    5.4643    5.6571    5.8428 6.0477    6.2935];
@@ -45,13 +48,63 @@ if tool_idx == 1
       
       % Match GT points with axis coordinates
       gt = [param.layer.x(manual_idxs); interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs))];
+      
+      % Echogram Parameters
+      detect_data    = image_c;
+      bottom_bin     = -1;
+      mask           = ones([1 Nx]);
+      egt_weight     = -1;
+      slope          = round(diff(surf_bins));
+      bounds         = [];
+      viterbi_weight = ones([1 Nx]);
+      mu_size        = 31;
+      mu             = log10(exp(-(-(mu_size-1)/2 : (mu_size-1)/2).^4/1));
+      mu(mu<-30)     = -30;
+      mu             = mu - mean(mu);
+      sigma          = sum(abs(mu))/10*ones(1,mu_size);
+      smooth_weight  = 20;
+      smooth_var     = inf;
+      repulsion      = 150000;
+      ice_bin_thr    = 10;
+      mult_weight    = 100;
+      
+      offset = gt(1,1) - x(1);
+      if(gt(1,2) + offset > length(image_x))
+        error('Index exceeds matrix dimensions, select smaller left-click-and-drag window.');
+      end
+      
+      %% Detrending
+      if 1
+%         detect_data    = image_c;        
+        % Along track filtering
+        detect_data = fir_dec(detect_data,ones(1,5)/5,1);        
+        % Estimate noise level
+        noise_value = mean(mean(detect_data(end-80:end-60,:)));        
+        % Estimate trend
+        trend = mean(detect_data,2);
+        trend(trend<noise_value) = noise_value;        
+        % Subtract trend
+        detect_data = bsxfun(@minus,detect_data,trend);        
+        % Remove bad circular convolution wrap around at end of record
+        detect_data(end-70:end,:) = 0;
+      end
 
-      % Run detection (HMM) algorithm
-      [y_new] = tomo.detect(double(image_c), double(surf_bins), -1,  double(gt), ones(Nx), custom_data.mu, custom_data.sigma, -1, 1, -1, -1, zeros(1,Nx - 1));
+      %% Call viterbi.cpp
+      tic
+      labels = tomo.viterbi(double(detect_data), ...
+        double(surf_bins), double(bottom_bin), ...
+        double(gt), double(mask), ...
+        double(mu), double(sigma), double(egt_weight), ...
+        double(smooth_weight), double(smooth_var), double(slope), ...
+        int64(bounds), double(viterbi_weight), ...
+        double(repulsion), double(ice_bin_thr), double(mult_weight));
+      toc
       
-      % Interpolate layer from image pixels to y-axis units
-      y_new = interp1(1:length(image_y), image_y, y_new);
+      % Correct layer offset
+      y_new  = labels(round(x(1)+offset) : round(x(2)+offset));
       
+      % Interpolate layer to match image y-axis
+      y_new  = interp1(1:length(image_y), image_y, y_new);
       cmds(end+1).undo_cmd = 'insert';
       cmds(end).undo_args = {cur_layer, auto_idxs, ...
         param.layer.y{cur_layer}(auto_idxs), ...
@@ -63,9 +116,8 @@ if tool_idx == 1
         2*ones(size(auto_idxs)), param.cur_quality*ones(size(auto_idxs))};
     end
   end
-  
 else
-    %%% Do nothing for now
+  %%% Do nothing for now
 end
 
 return

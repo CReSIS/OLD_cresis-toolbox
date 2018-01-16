@@ -108,9 +108,9 @@ end
 physical_constants;
 
 % Load frames file
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 % Load records file
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 
 global g_data;

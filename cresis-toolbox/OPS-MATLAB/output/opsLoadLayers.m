@@ -70,25 +70,17 @@ if ~isfield(param,'records')
   param.records = [];
 end
 
-if ~isfield(param.records,'frames_fn')
-  param.records.frames_fn = '';
-end
-
-if ~isfield(param.records,'records_fn')
-  param.records.records_fn = '';
-end
-
 physical_constants;
 
 % Load frames file
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 
 %% Load additional framing information for layerdata and echogram sources
 if any(strcmpi('layerdata',{layer_params.source})) ...
   || any(strcmpi('echogram',{layer_params.source}))
   % layerdata and echogram sources use records file for
   % framing gps time info
-  records_fn = ct_filename_support(param,param.records.records_fn,'records');
+  records_fn = ct_filename_support(param,'','records');
   records = load(records_fn,'gps_time','surface','elev','lat','lon');
 end
 
@@ -117,7 +109,7 @@ if any(strcmpi('ops',{layer_params.source}))
 end
 
 if any(strcmpi('records',{layer_params.source})) || any(strcmpi('lidar',{layer_params.source}))
-  records = load(ct_filename_support(param,param.records.records_fn,'records'),'gps_time','surface','elev','lat','lon');
+  records = load(ct_filename_support(param,'','records'),'gps_time','surface','elev','lat','lon');
 end
 
 if any(strcmpi('lidar',{layer_params.source}))
