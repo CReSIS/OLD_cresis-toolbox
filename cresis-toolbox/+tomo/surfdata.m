@@ -496,7 +496,7 @@ classdef surfdata < handle
       % surf_names: cell array of surface names
       
       if ~isempty(obj.surf)
-        surf_names = {obj.surf.names};
+        surf_names = {obj.surf.name};
       else
         surf_names = {};
       end
