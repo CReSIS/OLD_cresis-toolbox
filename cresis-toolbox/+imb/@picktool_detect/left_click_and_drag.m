@@ -66,7 +66,8 @@ if tool_idx == 1
       smooth_var     = inf;
       repulsion      = 150000;
       ice_bin_thr    = 10;
-      mult_weight    = 100;
+      mc             = -1 * ones(1, Nx);
+      mc_weight      = 0;
       
       offset = gt(1,1) - x(1);
       if(gt(1,2) + offset > length(image_x))
@@ -75,29 +76,27 @@ if tool_idx == 1
       
       %% Detrending
       if 1
-%         detect_data    = image_c;        
         % Along track filtering
-        detect_data = fir_dec(detect_data,ones(1,5)/5,1);        
+        detect_data = fir_dec(detect_data,ones(1,5)/5,1);
         % Estimate noise level
-        noise_value = mean(mean(detect_data(end-80:end-60,:)));        
+        noise_value = mean(mean(detect_data(end-80:end-60,:)));
         % Estimate trend
         trend = mean(detect_data,2);
-        trend(trend<noise_value) = noise_value;        
+        trend(trend<noise_value) = noise_value;
         % Subtract trend
-        detect_data = bsxfun(@minus,detect_data,trend);        
+        detect_data = bsxfun(@minus,detect_data,trend);
         % Remove bad circular convolution wrap around at end of record
         detect_data(end-70:end,:) = 0;
       end
-
+      
       %% Call viterbi.cpp
       tic
-      labels = tomo.viterbi(double(detect_data), ...
-        double(surf_bins), double(bottom_bin), ...
-        double(gt), double(mask), ...
-        double(mu), double(sigma), double(egt_weight), ...
-        double(smooth_weight), double(smooth_var), double(slope), ...
-        int64(bounds), double(viterbi_weight), ...
-        double(repulsion), double(ice_bin_thr), double(mult_weight));
+      labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
+        double(bottom_bin), double(gt), double(mask), double(mu), ...
+        double(sigma), double(egt_weight), double(smooth_weight), ...
+        double(smooth_var), double(slope), int64(bounds), ...
+        double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
+        double(mc), double(mc_weight));
       toc
       
       % Correct layer offset
