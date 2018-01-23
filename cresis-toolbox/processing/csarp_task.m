@@ -269,7 +269,7 @@ if any(strcmpi(radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords
     end
   end
   load_param.load.file_version = param.records.file_version;
-  load_param.load.wfs = records.settings.wfs;
+  load_param.load.wfs = orig_records.settings.wfs;
 elseif strcmpi(radar_name,'mcrds')
   load_param.load.offset = orig_records.offset;
   load_param.load.file_rec_offset = orig_records.relative_rec_num;
