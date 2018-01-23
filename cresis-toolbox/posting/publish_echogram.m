@@ -53,8 +53,12 @@ if ~isfield(param,'time_offset') || isempty(param.time_offset)
   param.time_offset = 0;
 end
 if ~isfield(param,'plot_quality') || isempty(param.plot_quality) 
-  % Color of layer plots will represent the quality level
-  param.plot_quality = true;
+  if isfield(lay.layerData{1},'quality')
+    % Color of layer plots will represent the quality level
+    param.plot_quality = true;
+  else
+    param.plot_quality = false;
+  end
 end
 if ~isreal(mdata.Data)
   warning('Input data are complex. Taking the abs()^2 of the data.');
