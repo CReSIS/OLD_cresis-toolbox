@@ -29,6 +29,12 @@ function create_surfdata(param,mdata)
 %     .dem_fn: filename to geotiff with DEM
 %     EXTRACT parameters
 %     .data_threshold: pixel values above this will be clipped (default is 13.5)
+%     VITERBI parameters
+%     .smooth_weight: smoothness weight (scalar, default is 55)
+%     .smooth_var: smoothness variance (scalar, default is -1)
+%     .repulsion: surface repulsion scaling factor (scalar, default is 150)
+%     .egt_weight: extra ground-truth weight (scalar, default is 10)
+%     .ice_bin_thr: ice_mask scanning threshold (scalar, default is 3)
 %     TRWS parameters
 %     .smooth_weight: smoothness weight [] (default is [22 22])
 %     .smooth_var: Gaussian weighting in the elevation angle bin dimension (default is 32)
@@ -558,38 +564,92 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     %% Run Viterbi
     viterbi_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
     bounds = [param.tomo_collate.bounds_relative(1) size(data,2)-1-param.tomo_collate.bounds_relative(2)];
+    
+    % Check for smoothness weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight)
+      smooth_weight = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight;
+    else
+      smooth_weight = 55; % schu
+    end
+    % Check for smoothness variance
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_var') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var)
+      smooth_var = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var;
+    else
+      smooth_var = -1;
+    end
+    % Check for repulsion weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'repulsion') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).repulsion)
+      repulsion = param.tomo_collate.surfdata_cmds(cmd_idx).repulsion;
+    else
+      repulsion = 150; % schu
+    end
+    % Check for extra ground truth weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'egt_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).egt_weight)
+      egt_weight = param.tomo_collate.surfdata_cmds(cmd_idx).egt_weight;
+    else
+      egt_weight = 10;
+    end
+    % Check for viterbi weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'viterbi_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).viterbi_weight)
+      viterbi_weight = param.tomo_collate.surfdata_cmds(cmd_idx).viterbi_weight;
+    else
+      viterbi_weight = ones([1 size(data,2)]);
+      viterbi_weight(round(size(data,2))+1) = 2;
+    end
+    % Check for ice_mask scanning threshold
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'ice_bin_thr') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).ice_bin_thr)
+      ice_bin_thr = param.tomo_collate.surfdata_cmds(cmd_idx).ice_bin_thr;
+    else
+      ice_bin_thr = 3;
+    end
+    % Check for slope
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'slope') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).slope)
+      slope = param.tomo_collate.surfdata_cmds(cmd_idx).slope;
+    else
+      slope = zeros(1, size(data,2)-1);
+    end
+    % Check for mass conservation
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'mc') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).mc)
+      mc = param.tomo_collate.surfdata_cmds(cmd_idx).mc;
+    else
+      mc = -1 * ones(1, size(data,2));
+    end
+    % Check for mass conservation weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'mc_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).mc_weight)
+      mc_weight = param.tomo_collate.surfdata_cmds(cmd_idx).mc_weight;
+    else
+      mc_weight = 0;
+    end
+    
     for rline = 1:size(mdata.Topography.img,3)
       if ~mod(rline-1,500)
         fprintf('  Viterbi %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
       end
       
-      mu_size       = 11;
-      mu            = sinc(linspace(-1.5, 1.5, mu_size));
-      sigma         = sum(mu)/20*ones(1,mu_size);
-      smooth_var    = -1;
-      smooth_weight = 45; % 55
-      repulsion     = 250; % 150
-      smooth_weight = 55; % schu
-      repulsion     = 150; % schu
-      ice_bin_thr   = 3;
-      
       detect_data = data(:,:,rline);
-      surf_bins = twtt_bin(:,rline).';
-      bottom_bin = Bottom_bin(rline);
-      gt = [33; bottom_bin];
-      viterbi_weight = ones([1 size(data,2)]);
-      viterbi_weight(gt(1,:)) = 2;
-      mask = ice_mask(:,rline).';
-      egt_weight = 10;
-      slope = zeros(1,63);
+      surf_bins   = twtt_bin(:,rline).';
+      bottom_bin  = Bottom_bin(rline);
+      gt          = [33; bottom_bin];
+      mask        = ice_mask(:,rline).';
+      mu_size     = 11;
+      mu          = sinc(linspace(-1.5, 1.5, mu_size));
+      sigma       = sum(mu)/20*ones(1,mu_size);
       
-      labels = tomo.viterbi(double(detect_data), ...
-        double(surf_bins), double(bottom_bin), ...
-        double(gt), double(mask), ...
-        double(mu), double(sigma), double(egt_weight), ...
-        double(smooth_weight), double(smooth_var), double(slope), ...
-        int64(bounds), double(viterbi_weight), ...
-        double(repulsion), double(ice_bin_thr), 1);
+      labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
+        double(bottom_bin), double(gt), double(mask), double(mu), ...
+        double(sigma), double(egt_weight), double(smooth_weight), ...
+        double(smooth_var), double(slope), int64(bounds), ...
+        double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
+        double(mc), double(mc_weight));
       
       viterbi_surface(:,rline) = labels;
     end
@@ -619,18 +679,21 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     %% Run TRW-S
     fprintf('  TRW-S (%s)\n', datestr(now));
     
+    % Check for smoothness weight
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_weight') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight)
       smooth_weight = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight;
     else
       smooth_weight = [22 22];
     end
+    % Check for smoothness variance
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_var') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var)
       smooth_var = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var;
     else
       smooth_var = 32;
     end
+    % Check for max number of loops
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'max_loops') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).max_loops)
       max_loops = param.tomo_collate.surfdata_cmds(cmd_idx).max_loops;
@@ -674,6 +737,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
   end
 end
+
+keyboard
 
 fprintf('Done (%s)\n', datestr(now));
 

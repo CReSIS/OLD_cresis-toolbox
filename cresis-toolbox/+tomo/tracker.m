@@ -1,11 +1,13 @@
-function viterbi_segs (params, options, geotiff_fn, geotiff2_fn)
-% function viterbi_segs (params, options)
+function tracker (params, options, geotiff_fn, geotiff2_fn)
+% function tracker (params, options)
 %
 % Builds a large matrix containing multiple segments of 2D data and applies
 %  the Viterbi layer-tracking program on it.
 % Loads crossovers from OPS to use as ground truth for the tracking.
+% Other functionality includes multiple supression and
+%  a simple detrending technique.
 %
-% See also: run_viterbi_segs.m
+% See also: run_tracker.m
 %
 % Authors: Victor Berger, John Paden
 
@@ -22,7 +24,7 @@ clear('param_override');
 
 % Input checking
 if ~exist('params','var')
-  error('Use run_viterbi_segs: A struct array of parameters must be passed in\n');
+  error('Use run_tracker: A struct array of parameters must be passed in\n');
 end
 if exist('param_override','var')
   param_override = merge_structs(gRadar, param_override);
@@ -160,6 +162,8 @@ for param_idx = 1:length(params)
   Nx             = size(big_matrix.Data, 2);
   slope          = round(diff(big_matrix.Surface));
   viterbi_weight = ones([1 Nx]);
+  mc             = -1 * ones(1, Nx);
+  mc_weight      = 0;
   
   if isempty(geotiff_fn)
     mask = ones([1 Nx]);
@@ -180,7 +184,7 @@ for param_idx = 1:length(params)
     mask = fl_mask;
     mask(isnan(mask)) = 1;
     
-    % TEMPORARILY HARDCODED FOR ANTARTICA:    
+    % TEMPORARILY HARDCODED FOR ANTARTICA:
     if 0
       [mask,R,~] = geotiffread(geotiff_fn);
       [mask2, R2, ~] = geotiffread(geotiff2_fn);
@@ -279,16 +283,16 @@ for param_idx = 1:length(params)
   
   %% Call viterbi.cpp
   tic
-  big_matrix.Labels = tomo.viterbi(double(big_matrix.Data), ...
-    double(surf_bins), double(bottom_bin), ...
-    double(gt), double(mask), ...
-    double(mu), double(sigma), double(egt_weight), ...
-    double(smooth_weight), double(smooth_var), double(slope), ...
-    int64(bounds), double(viterbi_weight), ...
-    double(repulsion), double(ice_bin_thr));
+  big_matrix.Labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
+    double(bottom_bin), double(gt), double(mask), double(mu), ...
+    double(sigma), double(egt_weight), double(smooth_weight), ...
+    double(smooth_var), double(slope), int64(bounds), ...
+    double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
+    double(mc), double(mc_weight));
   toc
   
-  if 0
+  % Used to debug, stop and check tracker output before saving result
+  if options.debug
     figure; imagesc(big_matrix.Data); hold on; plot(surf_bins, 'g'); plot(big_matrix.Labels, 'r');
     keyboard
   end
@@ -300,7 +304,7 @@ for param_idx = 1:length(params)
   
   %% Load labels into OPS using opsCopyLayers
   copy_param = [];
-  copy_param.layer_source.existence_check = false;
+  copy_param.layer_source.existence_check = false; 
   copy_param.layer_dest.existence_check = false;
   
   % Set the source (choose one)

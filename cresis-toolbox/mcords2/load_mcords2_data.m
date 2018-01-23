@@ -144,7 +144,11 @@ for img_idx = 1:length(param.load.imgs)
   if param.load.wf_adc_comb.en
     Nt = param.load.wf_adc_comb.Nt;
   else
-    Nt = param.wfs(wf).Nt;
+    if param.proc.raw_data
+      Nt = param.wfs(wf).Nt_raw;
+    else
+      Nt = param.wfs(wf).Nt;
+    end
   end
   if param.proc.combine_rx
     Nc = 1;

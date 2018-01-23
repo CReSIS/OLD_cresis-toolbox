@@ -188,6 +188,11 @@ elseif strcmpi(example_setup,'horizontal')
   tomo_collate.surfdata_cmds(end+1).cmd = 'viterbi';
   tomo_collate.surfdata_cmds(end).surf_names = 'bottom viterbi';
   tomo_collate.surfdata_cmds(end).visible = false;
+  tomo_collate.surfdata_cmds(end).smooth_weight = 55; % schu
+  tomo_collate.surfdata_cmds(end).smooth_var = -1; 
+  tomo_collate.surfdata_cmds(end).repulsion = 150; % schu
+  tomo_collate.surfdata_cmds(end).egt_weight = 10; 
+  tomo_collate.surfdata_cmds(end).ice_bin_thr = 3;
   
   tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
   tomo_collate.surfdata_cmds(end).surf_names = {'bottom trws','bottom'};

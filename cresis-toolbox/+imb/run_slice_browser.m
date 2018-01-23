@@ -9,7 +9,7 @@
 %% User Settings
 % =========================================================================
 
-if 0
+if 1
   param.radar_name = 'rds';
   param.season_name = '2014_Greenland_P3';
   out_type = 'music3D';
@@ -88,12 +88,12 @@ if isfield(mdata.Topography,'mu')
   custom_data.mu = mdata.Topography.mu;
   custom_data.sigma = mdata.Topography.sigma;
 end
-detect_tool.set_custom_data(custom_data);
+% detect_tool.set_custom_data(custom_data);
 obj.insert_tool(detect_tool);
 
 try; delete(extract_tool); end;
 extract_tool = imb.slicetool_extract();
-extract_tool.set_custom_data(custom_data);
+% extract_tool.set_custom_data(custom_data);
 obj.insert_tool(extract_tool);
 
 try; delete(max_tool); end;
@@ -136,6 +136,6 @@ if ~isempty(ice_mask_fn)
   custom_data.sb = obj;
   custom_data.reduce_flag = 1;
   custom_data.ice_mask_layer = 3;
-  icemask_tool.set_custom_data(custom_data);
+%   icemask_tool.set_custom_data(custom_data);
   obj.insert_tool(icemask_tool);
 end

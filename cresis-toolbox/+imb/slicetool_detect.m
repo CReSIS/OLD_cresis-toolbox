@@ -26,7 +26,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.sd. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd. You
       %     should not modify any fields of sb.
       %  .sd: surfdata .surf struct array containing surface information
       %  .data: 3D image
@@ -105,7 +105,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
           mask = isfinite(sb.sd.surf(control_idx).x(:,slice)) ...
             & isfinite(sb.sd.surf(control_idx).y(:,slice));
           gt = cat(2,gt,[sb.sd.surf(control_idx).x(mask,slice).'-1; ...
-            sb.sd.surf(control_idx).y(mask,slice).'+0.5]);        
+            sb.sd.surf(control_idx).y(mask,slice).'+0.5]);
           [~,unique_idxs] = unique(gt(1,:),'last','legacy');
           gt = gt(:,unique_idxs);
           viterbi_weight = ones([1 (size(sb.data,2))]);
@@ -117,7 +117,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
           bottom_bin = NaN;
           viterbi_weight = ones([1 length(gt)]);
         end
-
+        
         if isempty(surf_idx)
           surf_bins = NaN*sb.sd.surf(active_idx).y(:,slice);
         else
@@ -135,37 +135,38 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         detect_data = sb.data(:,:,slice);
         detect_data(detect_data>threshold) = threshold;
         detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
-
+        
         bounds = [1 (size(sb.data,2))];
-
+        
         mu_size       = 11;
         mu            = sinc(linspace(-1.5, 1.5, mu_size));
         sigma         = sum(mu)/20*ones(1,mu_size);
-        smooth_var    = -1;      
-        smooth_weight = 45;
+        smooth_var    = -1;
+        smooth_weight = 25;
         repulsion     = 250;
         ice_bin_thr   = 3;
-
+        mc            = -1 * ones(1, size(sb.data,2));
+        mc_weight     = 0;
+        
         %%%% TO COMPILE
         if 0
-            tmp = pwd;
-            cd ~/scripts/cresis-toolbox/cresis-toolbox/+tomo/
-            mex -largeArrayDims viterbi.cpp
-            cd(tmp);
+          tmp = pwd;
+          cd ~/scripts/cresis-toolbox/cresis-toolbox/+tomo/
+          mex -largeArrayDims viterbi.cpp
+          cd(tmp);
         end
         %%%%
         
         % Call viterbi.cpp
         tic
-        labels = tomo.viterbi(double(detect_data), ...
-        double(surf_bins), double(bottom_bin), ...
-        double(gt), double(mask), ...
-        double(mu), double(sigma), double(egt_weight), ...
-        double(smooth_weight), double(smooth_var), double(slope), ...
-        int64(bounds), double(viterbi_weight), ...
-        double(repulsion), double(ice_bin_thr));
+        labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
+          double(bottom_bin), double(gt), double(mask), double(mu), ...
+          double(sigma), double(egt_weight), double(smooth_weight), ...
+          double(smooth_var), double(slope), int64(bounds), ...
+          double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
+          double(mc), double(mc_weight));
         toc
-
+        
         % Create cmd for surface change
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
@@ -206,7 +207,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
       
       obj.gui.slice_rangeLE = uicontrol('parent',obj.h_fig);
-  
+      
       set(obj.gui.slice_rangeLE,'style','edit')
       set(obj.gui.slice_rangeLE,'string','-1:0')
       set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
@@ -219,7 +220,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       set(obj.gui.thresholdLE,'style','edit')
       set(obj.gui.thresholdLE,'string','13.5')
       set(obj.gui.thresholdLE,'TooltipString','Specify an image threshold.');
-       
+      
       % Ground Truth Weight
       obj.gui.gt_weightTXT = uicontrol('Style','text','string','GT weight');
       set(obj.gui.gt_weightTXT,'TooltipString','Specify weighting of ground truth.');
@@ -327,9 +328,9 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       obj.gui.table.height_margin(row,col) = 1;
       
       clear row col
-      table_draw(obj.gui.table);     
+      table_draw(obj.gui.table);
     end
-
+    
   end
   
 end

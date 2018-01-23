@@ -427,7 +427,7 @@ if (strcmpi(param.season_name,'2003_Greenland_P3')) ...
   
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6'})) && strcmpi(gps_source,'AWI'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6','2018_Greenland_Polar6'})) && strcmpi(gps_source,'AWI'))
   % Measurements are from Richard Hale Aug 12, 2015 for RDS and Aug 15,
   % 2015 for Snow Radar. Measurements are made relative to the AWI Aft
   % Science GPS antenna known as ST5.
@@ -939,6 +939,40 @@ if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar
   end
 end
 
+if (any(strcmpi(param.season_name,{'2018_Greenland_Polar6'})) && strcmpi(radar_name,'rds'))
+  % See notes in GPS section
+  
+  % Center elements left to right
+  Polar6_RDS = [-60.7213	-64.4623	-144.7008
+    -60.7149	-46.0371	-144.7002
+    -60.7086	-27.6119	-144.6996
+    -60.7022	-9.1867	-144.6989
+    -60.6959	9.2337	-144.6983
+    -60.6895	27.6637	-144.6977
+    -60.6832	46.0889	-144.6970
+    -60.6768	64.5141	-144.6964] * 2.54/100;
+  
+  Polar6_RDS(:,1) = -Polar6_RDS(:,1);
+  Polar6_RDS(:,3) = -Polar6_RDS(:,3);
+  
+  % NEED TO GET FROM RICHARD HALE
+  LArx(1,1:8) = Polar6_RDS(:,1).';
+  LArx(2,1:8) = Polar6_RDS(:,2).';
+  LArx(3,1:8) = Polar6_RDS(:,3).';
+  
+  LAtx = LArx(:,1:8);
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1:8;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 4;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2015_Greenland_C130') && strcmpi(radar_name,'rds'))
   % X,Y,Z are in aircraft coordinates, not IMU
   LArx(1,:) = [-36.13 -36.13]*2.54/100;
@@ -1378,7 +1412,7 @@ if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'snow')
   end
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6'})) && strcmpi(radar_name,'snow'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2018_Greenland_Polar6'})) && strcmpi(radar_name,'snow'))
   % See notes in GPS section
   
   LArx(1,1:2) = -[95.5 95.5];
