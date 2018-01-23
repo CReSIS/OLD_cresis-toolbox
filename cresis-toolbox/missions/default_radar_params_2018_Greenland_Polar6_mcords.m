@@ -1,14 +1,14 @@
-function [param,defaults] = default_radar_params_2017_Antarctica_Polar6_mcords
-% [param,defaults] = default_radar_params_2017_Antarctica_Polar6_mcords
+function [param,defaults] = default_radar_params_2018_Greenland_Polar6_mcords
+% [param,defaults] = default_radar_params_2018_Greenland_Polar6_mcords
 %
-% MCORDS 5: 2017 Antarctica Polar6
+% MCORDS 5: 2018 Greenland Polar6
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
 %
 % Author: John Paden
 
-param.season_name = '2017_Antarctica_Polar6';
+param.season_name = '2018_Greenland_Polar6';
 param.radar_name = 'mcords5';
 
 %% Control parameters (not used in the parameter spreadsheet directly)
@@ -18,8 +18,7 @@ default.header_load_func = @basic_load_mcords5;
 default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
 default.xml_version = 2.0;
 
-% default.noise_50ohm = [-41.6	-42.2	-42.4	-41.9	-42.5	-42.9	-41.7	-43.0	-44.1	-44.7	-43.1	-44.1	-41.8	-42.6	-41.4	-42.6	-41.8	-43.1	-42.0	-42.7	-41.1	-43.4	-42.1	-41.9];
-default.noise_50ohm = [-45.4	-45.7	-45.5	-45.6	-46.2	-46.7	-44.8	-46.1	-47.8	-48.8	-45.6	-47.5	-45.8	-46.1	-44.6	-45.1	-46.1	-46.7	-44.3	-45.8	-44.5	-46.5	-45.5	-44.9	];
+default.noise_50ohm = [-47.8	-48.8	-45.6	-47.5	-45.8	-46.1	-44.6	-45.1];
 
 default.Pt = (4*1000 + 4*500) * sum(chebwin(8,30).^2)/8;
 default.Gt = 8*4;
@@ -42,7 +41,7 @@ default.adc_folder_name = 'chan%d';
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 8
-  ref_adc = 12;
+  ref_adc = 4;
   default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
   default.txequal.ref_wf_adc = 4;
   default.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
@@ -55,8 +54,8 @@ if 1
   default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
   default.txequal.remove_linear_phase_en = true;
 elseif 0
-  % Channel 12 ADC is bad:
-  ref_adc = 13;
+  % Channel 4 ADC is bad:
+  ref_adc = 5;
   default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
   default.txequal.ref_wf_adc = 4;
   default.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
@@ -73,7 +72,7 @@ elseif 0
   %   Connect antenna 1 to a 50 ohm load
   %   Connect antenna 2 to WFG 1
   %   Connect antenna 3 to WFG 2
-  ref_adc = 12;
+  ref_adc = 4;
   default.txequal.img = [(1:8).', ref_adc*ones(8,1)];
   default.txequal.wf_mapping = [1 2 0 4 5 6 7 8];
   default.txequal.ref_wf_adc = 4;
@@ -106,9 +105,9 @@ end
 default.vectors.gps.time_offset = 1;
 
 %% Records worksheet in parameter spreadsheet
-default.records.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m';
-default.records.file.adcs = [1:24];
-default.records.file.adc_headers = [1:24];
+default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
+default.records.file.adcs = [1:8];
+default.records.file.adc_headers = [1:8];
 default.records.gps.en = 1;
 default.records.frame_mode = 0;
 default.records.presum_bug_fixed = 1;
@@ -146,7 +145,7 @@ default.get_heights.surf.search_rng = [0:2];
 
 %% CSARP worksheet in parameter spreadsheet
 default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(24,1),(1:24).'],[2*ones(24,1),(1:24).'],[3*ones(24,1),(1:24).']};
+default.csarp.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.csarp.frm_types = {0,[0 1],0,0,-1};
 default.csarp.chunk_len = 3500;
 default.csarp.chunk_overlap = 10;
@@ -198,7 +197,7 @@ default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.fs = 1600e6;
 default.radar.adc_bits = 12;
 default.radar.adc_full_scale = 2;
-default.radar.rx_paths = [1:22,24,23];
+default.radar.rx_paths = [1:8];
 default.radar.noise_figure = 2;
 default.radar.rx_gain = 48;
 default.radar.adc_SNR_dB = 59;
@@ -207,14 +206,14 @@ default.radar.Tadc_adjust = 0.000010179163; % System time delay: leave this empt
 defaults = {};
 
 %% Wideband settings
-default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9;
-default.radar.wfs(1).chan_equal_dB = [-2.5 -2.2 -2.2 -1.7 -0.9 -4.5 -6.8 -1.1 -4 -4.3 -2.9 -4.6 -1.2 -1.5 -0.9 -2.2 -1.2 -2.4 -1.8 1.9 -1.3 -4.1 -2 -1.6];
-default.radar.wfs(1).chan_equal_deg = [-168.6 -114.1 -5.7 9 30 24.1 -144.3 -137.7 113.1 64.8 124.3 133.7 108 138.1 71.6 102.9 -95.8 -127.2 -143.1 -139.6 -128.4 -172.3 -158.5 -152.4];
+default.radar.wfs(1).chan_equal_Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
+default.radar.wfs(1).chan_equal_dB = [-4 -4.3 -2.9 -4.6 -1.2 -1.5 -0.9 -2.2];
+default.radar.wfs(1).chan_equal_deg = [113.1 64.8 124.3 133.7 108 138.1 71.6 102.9];
 default.radar.ft_dec = [37 40];
 
  % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(8,1),(9:16).'],[2*ones(8,1),(9:16).'],[3*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
@@ -225,7 +224,7 @@ defaults{end+1} = default;
 
  % thin ice mode
 default.get_heights.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
-default.get_heights.imgs = {[1*ones(8,1),(9:16).'],[2*ones(8,1),(9:16).'],[3*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat'};
@@ -236,7 +235,7 @@ defaults{end+1} = default;
 
  % 2 beam imaging mode
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[1*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[1*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf3.mat','DC_20160413_04_wf3.mat'};
@@ -247,7 +246,7 @@ defaults{end+1} = default;
 
  % 3 beam imaging mode
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[2*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[2*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
@@ -258,7 +257,7 @@ defaults{end+1} = default;
 
  % sea ice mode
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[1*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[1*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf1.mat'};
@@ -269,7 +268,7 @@ defaults{end+1} = default;
 
  % image high thin with narrowband
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[2*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[2*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf2.mat','DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat'};
@@ -279,14 +278,14 @@ default.name = 'High Alt Thin Ice Image Mode 150-520 MHz';
 defaults{end+1} = default;
 
 %% Narrowband settings
-default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9;
-default.radar.wfs(1).chan_equal_dB = [1.1 -0.7 0.8 1.4 -0.8 -1.7 -1.7 0 0 0.9 0.2 0 3.2 1.7 3.9 2.4 0.7 1.2 0.7 3.7 1.1 -0.1 2.2 0.7];
-default.radar.wfs(1).chan_equal_deg = [74.5 108.1 -105.7 -106.6 -94.6 -26.7 92.2 94 -14.6 -69.7 -6.8 0 -13.9 -1.8 -48.8 -15.8 133.5 121.4 113.7 94.6 126.2 94.6 103.4 99.3];
+default.radar.wfs(1).chan_equal_Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0 0.9 0.2 0 3.2 1.7 3.9 2.4];
+default.radar.wfs(1).chan_equal_deg = [-14.6 -69.7 -6.8 0 -13.9 -1.8 -48.8 -15.8];
 default.radar.ft_dec = [3 20];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(8,1),(9:16).'],[2*ones(8,1),(9:16).'],[3*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
@@ -297,7 +296,7 @@ defaults{end+1} = default;
 
 % thin ice mode
 default.get_heights.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
-default.get_heights.imgs = {[1*ones(8,1),(9:16).'],[2*ones(8,1),(9:16).'],[3*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat'};
@@ -308,7 +307,7 @@ defaults{end+1} = default;
 
  % 2 beam imaging mode
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[1*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[1*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf3.mat','DC_20160413_04_wf3.mat'};
@@ -319,7 +318,7 @@ defaults{end+1} = default;
 
 % 3 beam imaging mode
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[2*ones(8,1),(9:16).']};
+default.get_heights.imgs = {[2*ones(8,1),(1:8).']};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
@@ -347,9 +346,9 @@ default.xml_regexp = '.*180-210MHz.*';
 default.name = 'Other Settings 180-210 MHz';
 defaults{end+1} = default;
 
-default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9;
-default.radar.wfs(1).chan_equal_dB = [-2.5 -2.2 -2.2 -1.7 -0.9 -4.5 -6.8 -1.1 -4 -4.3 -2.9 -4.6 -1.2 -1.5 -0.9 -2.2 -1.2 -2.4 -1.8 1.9 -1.3 -4.1 -2 -1.6];
-default.radar.wfs(1).chan_equal_deg = [-168.6 -114.1 -5.7 9 30 24.1 -144.3 -137.7 113.1 64.8 124.3 133.7 108 138.1 71.6 102.9 -95.8 -127.2 -143.1 -139.6 -128.4 -172.3 -158.5 -152.4];
+default.radar.wfs(1).chan_equal_Tsys = [-31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1]/1e9;
+default.radar.wfs(1).chan_equal_dB = [-4 -4.3 -2.9 -4.6 -1.2 -1.5 -0.9 -2.2];
+default.radar.wfs(1).chan_equal_deg = [113.1 64.8 124.3 133.7 108 138.1 71.6 102.9];
 
 default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf3.mat'};
 default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160426_05';
