@@ -58,14 +58,7 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-if ~isfield(param.records,'records_fn')
-  param.records.records_fn = '';
-end
-if ~isfield(param.records,'frames_fn')
-  param.records.frames_fn = '';
-end
-
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 records_ver = load(records_fn,'ver');
 if isfield(records_ver,'ver')
   records_file.records = load(records_fn);
@@ -74,7 +67,7 @@ else
 end
 if ~isfield(records_file.records,'lat') || isempty(records_file.records.lat)
   fprintf('No geographic data present\n');
-  frames_fn = ct_filename_support(param,param.records.frames_fn,'frames');
+  frames_fn = ct_filename_support(param,'','frames');
   if exist(frames_fn,'file')
     fprintf('  Frames file already exists, just exiting\n');
   else
@@ -378,8 +371,8 @@ end
 set(hui.fig.ctrl_panel.maxLengthTB,'String',sprintf('%i',GB.default_frame_len));
 
 % Load frames file or create default frame list if it does not exist
-if exist(ct_filename_support(GB.param,GB.param.records.frames_fn,'frames'),'file')
-  frames_fn = ct_filename_support(GB.param,GB.param.records.frames_fn,'frames');
+if exist(ct_filename_support(GB.param,'','frames'),'file')
+  frames_fn = ct_filename_support(GB.param,'','frames');
   frames_file = load(frames_fn,'frames');
   if find(frames_file.frames.frame_idxs > length(GB.records.lat))
     warning('Frames file %s\ncontains indices past the end of the records file (delete old file?)', frames_fn);
@@ -518,7 +511,7 @@ function savePB_callback(hObj,event)
 global hui; % hui: user interface handles
 global GB; % Geobase: contains all the geographic info
 
-fn = ct_filename_support(GB.param,GB.param.records.frames_fn,'frames');
+fn = ct_filename_support(GB.param,'','frames');
 [out_path] = fileparts(fn);
 if ~exist(out_path,'dir')
   fprintf('Making directory %s\n', out_path);

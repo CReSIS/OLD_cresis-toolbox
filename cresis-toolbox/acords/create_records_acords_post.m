@@ -73,7 +73,7 @@ for adc_idx = 1:length(records.filenames)
 end
 
 % Make sure output directory exists
-[out_dir out_name] = fileparts(ct_filename_support(param,param.records.records_fn,'records'));
+[out_dir out_name] = fileparts(ct_filename_support(param,'','records'));
 if ~exist(out_dir,'dir')
   mkdir(out_dir);
 end
@@ -81,7 +81,7 @@ end
 fprintf('Save variables (%.1f sec)\n', toc);
 param_records = param.records;
 param_radar = param.radar;
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 save(records_fn,'records','param_records','param_radar');
 create_records_aux_files(records_fn);
 

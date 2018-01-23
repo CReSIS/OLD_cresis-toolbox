@@ -56,14 +56,8 @@ if ~exist(csarp_out_path,'dir')
   mkdir(csarp_out_path);
 end
 
-if ~isfield(param.records,'records_fn')
-  param.records.records_fn = '';
-end
-if ~isfield(param.records,'frames_fn')
-  param.records.frames_fn = '';
-end
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
-records = load(ct_filename_support(param,param.records.records_fn,'records'));
+load(ct_filename_support(param,'','frames'));
+records = load(ct_filename_support(param,'','records'));
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);

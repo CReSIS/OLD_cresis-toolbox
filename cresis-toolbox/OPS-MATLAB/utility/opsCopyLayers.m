@@ -128,13 +128,7 @@ if ~any(copy_param.quality.value == [1 2 3])
 end
 
 %% Load "frames" file
-if ~isfield(param.records,'records_fn')
-  param.records.records_fn = '';
-end
-if ~isfield(param.records,'frames_fn')
-  param.records.frames_fn = '';
-end
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 
 %% Determine which frames to be processed
 if isempty(param.cmd.frms)
@@ -184,7 +178,7 @@ if strcmpi(copy_param.layer_dest.source,'ops')
 else
   % records, lidar, layerdata, and echogram sources use records file for
   % framing gps time info
-  records_fn = ct_filename_support(param,param.records.records_fn,'records');
+  records_fn = ct_filename_support(param,'','records');
   records = load(records_fn,'gps_time','surface','elev','lat','lon');
 end
 
@@ -400,7 +394,13 @@ end
 update_mask = frms_mask & update_mask;
 
 %% Overwrite quality level
-all_points.quality_interp = interp1(layer_source.gps_time,layer_source.quality,all_points.gps_time,'nearest');
+if isempty(layer_source.gps_time)
+  all_points.quality_interp = NaN*zeros(size(all_points.gps_time));
+elseif length(layer_source.gps_time) == 1
+  all_points.quality_interp = layer_source.quality;
+else
+  all_points.quality_interp = interp1(layer_source.gps_time,layer_source.quality,all_points.gps_time,'nearest');
+end
 if strcmpi(copy_param.quality.mode,'overwrite')
   all_points.quality_interp(:) = copy_param.quality.value;
 end

@@ -194,12 +194,12 @@ params = read_param_xls(params_fn);
 for param_idx = 1:length(params)
   
   param = params(param_idx);
+  param = merge_structs(param, param_override);
   if ~isempty(skip_phrase) ...
       && ~isempty(strfind(lower(param.cmd.notes),skip_phrase)) ...
       || ~params(param_idx).cmd.generic
     continue;
   end
-  param = merge_structs(param, param_override);
   
   param.nsidc.USER_SPECIFIED_DIRECTORY_BASE = USER_SPECIFIED_DIRECTORY_BASE;
   param.nsidc.L1B_cmd = L1B_cmd;

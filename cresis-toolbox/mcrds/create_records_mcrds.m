@@ -154,7 +154,7 @@ num_presum = hdrs.wfs(1).PreSum * hdrs.wfs(1).NumberWaveforms;
 % ===================================================================
 % ===================================================================
 if isfield(param,'tmp_path') && ~isempty(param.tmp_path)
-  fn = ct_filename_tmp(param,param.records.records_fn,'records','workspace');
+  fn = ct_filename_tmp(param,'','records','workspace');
   fprintf('Saving workspace %s (%s)\n', fn, datestr(now));
   try
     fn_dir = fileparts(fn);

@@ -137,10 +137,7 @@ for param_idx = 1:length(params)
     [~,ops_frames] = opsGetSegmentInfo(sys,ops_param);
   end
   % Load frames file
-  if ~isfield(param.records,'frames_fn')
-    param.records.frames_fn = '';
-  end
-  load(ct_filename_support(param,param.records.frames_fn,'frames'));
+  load(ct_filename_support(param,'','frames'));
   
   %% Load existing destination layer data for this segment
   % Load all frames 

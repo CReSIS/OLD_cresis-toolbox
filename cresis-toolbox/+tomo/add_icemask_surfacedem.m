@@ -214,6 +214,7 @@ if all(all(isnan(DEM)))
   Nx = 0;
 end
   
+DEM_coverage_warning = false;
 for rline = 1:Nx
   if ~mod(rline-1,500)
     fprintf('  Ice-DEM-Mask %d of %d (%s)\n', rline, Nx, datestr(now));
@@ -298,34 +299,41 @@ for rline = 1:Nx
       end
     end
   else
+    if ~DEM_coverage_warning
+      DEM_coverage_warning = true;
+      warning('DEM dem_per_slice_guard too small.');
+    end
+    clear intersection;
     twtt(:,rline) = NaN;
   end
 
   if exist('ice_mask_all','var')
-    % Convert from FCS/SAR to ECEF
-    intersection_ecef = Tfcs_ecef * intersection;
-    intersection_ecef_x = intersection_ecef(1,:).' + origin(1);
-    intersection_ecef_y = intersection_ecef(2,:).' + origin(2);
-    intersection_ecef_z = intersection_ecef(3,:).' + origin(3);
-    % Convert from ECEF to geodetic
-    [intersection_lat,intersection_lon,tri_h] = ecef2geodetic(intersection_ecef_x,intersection_ecef_y,intersection_ecef_z,WGS84.ellipsoid);
-    intersection_lat = intersection_lat*180/pi;
-    intersection_lon = intersection_lon*180/pi;
-    % Convert from geodetic to projection
-    [intersection_x,intersection_y] = projfwd(ice_mask_all.proj,intersection_lat,intersection_lon);
-    % Get mask coordinates nearest triangle center coordinates
-    intersection_x_idx = interp1(ice_mask_all.X,1:length(ice_mask_all.X),intersection_x,'nearest');
-    intersection_y_idx = interp1(ice_mask_all.Y,1:length(ice_mask_all.Y),intersection_y,'nearest');
-    % Find nan values and set to integer value
-    nidx = find(isnan(intersection_x_idx));
-    intersection_x_idx(nidx) = 1;
-    intersection_y_idx(nidx) = 1;
-    % Convert triangle mask coordinates to matrix indices
-    mask_idx = (intersection_x_idx-1)*length(ice_mask_all.Y) + intersection_y_idx;
-    % Find ice mask for triangle coordinates
-    ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
-    % Set previously nan valued coordinates to 0 mask
-    ice_mask(nidx,rline) = 0;
+    if exist('intersection','var')
+      % Convert from FCS/SAR to ECEF
+      intersection_ecef = Tfcs_ecef * intersection;
+      intersection_ecef_x = intersection_ecef(1,:).' + origin(1);
+      intersection_ecef_y = intersection_ecef(2,:).' + origin(2);
+      intersection_ecef_z = intersection_ecef(3,:).' + origin(3);
+      % Convert from ECEF to geodetic
+      [intersection_lat,intersection_lon,tri_h] = ecef2geodetic(intersection_ecef_x,intersection_ecef_y,intersection_ecef_z,WGS84.ellipsoid);
+      intersection_lat = intersection_lat*180/pi;
+      intersection_lon = intersection_lon*180/pi;
+      % Convert from geodetic to projection
+      [intersection_x,intersection_y] = projfwd(ice_mask_all.proj,intersection_lat,intersection_lon);
+      % Get mask coordinates nearest triangle center coordinates
+      intersection_x_idx = interp1(ice_mask_all.X,1:length(ice_mask_all.X),intersection_x,'nearest');
+      intersection_y_idx = interp1(ice_mask_all.Y,1:length(ice_mask_all.Y),intersection_y,'nearest');
+      % Find nan values and set to integer value
+      nidx = find(isnan(intersection_x_idx));
+      intersection_x_idx(nidx) = 1;
+      intersection_y_idx(nidx) = 1;
+      % Convert triangle mask coordinates to matrix indices
+      mask_idx = (intersection_x_idx-1)*length(ice_mask_all.Y) + intersection_y_idx;
+      % Find ice mask for triangle coordinates
+      ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
+      % Set previously nan valued coordinates to 0 mask
+      ice_mask(nidx,rline) = 0;
+    end
   end
   
   if 0

@@ -160,31 +160,18 @@ else
       % param.src_limits.  Otherwise use the entire coarse grid stored in param.theta.
       if isfield(param,'src_limits') && ~isempty(param.src_limits{src_idx})
         mask = (param.theta >= param.src_limits{src_idx}(1)) & (param.theta <= param.src_limits{src_idx}(end));
-        for old_src_idx = 1:src_idx-1
-          mask = mask & ~(param.theta >= out(old_src_idx,1)-param.theta_guard  ...
-            & param.theta <= out(old_src_idx,1)+param.theta_guard);
-        end
-        search_theta = param.theta(mask);
       else
-        search_theta = param.theta;
+        mask = logical(ones(size(param.theta)));
       end
       
       % Avoid evaluating cost function around previous sources
-      prev_doa = out(out >= search_theta(1) & out <= search_theta(end));
-      if ~isempty(prev_doa)
-        for prev_idx = 1:length(prev_doa)
-          mask_doa = prev_doa(prev_idx);
-          
-          bad_index = find(search_theta > prev_doa(prev_idx),1) - 1;
-          
-          if ~isempty(bad_index)
-            
-            bad_rng = bad_index - 1:bad_index + 1;
-            bad_mask = bad_rng < 1 | bad_rng > length(search_theta);
-            bad_rng = bad_rng(~bad_mask);
-            search_theta(bad_rng) = NaN;
-          end
-        end
+      for old_src_idx = 1:src_idx-1
+        mask = mask & ~(param.theta >= out(old_src_idx,1)-param.theta_guard  ...
+          & param.theta <= out(old_src_idx,1)+param.theta_guard);
+      end
+      search_theta = param.theta(mask);
+      if isempty(search_theta) == 0
+        error('No valid search_theta, but looking for another source. Consider reducing the theta_guard, increasing src_limits, or reducing the model order.');
       end
       
       search_theta  = search_theta(~isnan(search_theta));
@@ -200,8 +187,8 @@ else
       C           = SVs(:,numel(out)+1:end);
       Pa          = A * inv(A'*A) * A';
       Cb          = (eye(size(Pa,1))-Pa)*C;
-      B           = Cb ./ (repmat(sqrt(sum(abs(Cb).^2,1)),size(DCM,1), 1));
-      
+      B           = bsxfun(@rdivide, Cb, sqrt(sum(abs(Cb).^2,1)));
+
       % Evaluate likelihood function
       L           = abs(diag(B'*DCM*B));
       

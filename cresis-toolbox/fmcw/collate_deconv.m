@@ -352,14 +352,14 @@ if stage_one_en
           [max_val,max_bin] = max(sig_sample);
           good_bins = max_bin + param.analysis.specular.rbins;
           figure(2); clf;
-          plot(lp(sig_deconv)-lp(max_val));
+          plot((1:length(sig_deconv)) - max_bin, lp(sig_deconv)-lp(max_val));
           hold on
-          plot(lp(sig_sample)-lp(max_val),'r');
-          plot(lp(+max_val)+circshift(lp(sig_tg),[max_bin-1 0])-lp(max_val),'g')
+          plot((1:length(sig_deconv)) - max_bin, lp(sig_sample)-lp(max_val),'r');
+          plot((1:length(sig_deconv)) - max_bin, lp(+max_val)+circshift(lp(sig_tg),[max_bin-1 0])-lp(max_val),'g')
           hold off;
           grid on;
-          xlim(good_bins([1 end]))
-          xlabel('range bin')
+          xlim(good_bins([1 end]) - max_bin)
+          xlabel('relative range bin')
           ylabel('power(dB)')
           legend('deconvolved ice lead signal','ice lead signal','averaged ice lead signal','location','best')
           ylim([-80 0]);
@@ -441,6 +441,7 @@ if stage_one_en
       
       mask_idxs = find(mask);
       if ~any(mask) || debug_level == 2
+        warning('No waveforms passed. Relax specular.abs_metric requirements.\n');
         figure(1); clf;
         plot(spec.metric(1,:),'k');
         hold on;
@@ -989,6 +990,9 @@ if stage_two_en
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
     fn = fullfile(fn_dir,sprintf('deconv_tmp_%s.mat', param.day_seg));
     fns{end+1} = fn;
+    if ~exist(fn)
+      continue
+    end
     final = load(fn);
     
     min_twtt = min(final.deconv_twtt_min);
@@ -1039,7 +1043,21 @@ if stage_two_en
     fprintf('Loading %s\n', param.day_seg);
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
     fn = fullfile(fn_dir,sprintf('deconv_tmp_%s.mat', param.day_seg));
-    final = load(fn);
+    if ~exist(fn)
+        final.metric = [];
+        final.num_response = [];
+        final.deconv_H = {};
+        final.deconv_gps_time = [];
+        final.deconv_twtt_min = [];
+        final.deconv_twtt_max = [];
+        final.deconv_impulse_response = {};
+        final.freq = {};
+        final.deconv_DDC_Mt = [];
+        final.deconv_frame = [];
+        final.param_collate = param;
+    else
+      final = load(fn);
+    end
     
     % Create "twtts" the vector of all missing two way travel times
     if isempty(final.deconv_twtt_min)

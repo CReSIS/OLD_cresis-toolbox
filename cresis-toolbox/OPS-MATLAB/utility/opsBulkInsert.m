@@ -61,7 +61,8 @@ for param_idx = 1:length(params)
   elseif ~exist(framesFn,'file') && insertPathCmd
     error('  %s: missing %s\n', param.day_seg, framesFn);
   elseif ~exist(layerDir,'dir') && insertLayerCmd
-    error('  %s: missing %s\n', param.day_seg, layerDir);
+    warning('  %s: missing %s. Layer data directory for the particular segment is missing. If this is expected, run "dbcont".\n', param.day_seg, layerDir);
+    keyboard
   else
     fprintf('  %s checked\n', param.day_seg);
   end
@@ -309,6 +310,15 @@ if insertLayerCmd
       error('WARNING: NO LAYER DATA EXIST');
     end
     [opsLayerData,opsLayerDataGpsTime] = layerDataToOps(dayLayerData,settings);
+    
+    if isfield(settings,'layer_name_map')
+      for layerIdx = 1:length(opsLayerData)
+        match_idx = find(strcmpi(opsLayerData(layerIdx).properties.lyr_name, settings.layer_name_map.source_names));
+        if ~isempty(match_idx)
+          opsLayerData(layerIdx).properties.lyr_name = settings.layer_name_map.dest_names{match_idx};
+        end
+      end
+    end
     
     % CHECK FOR EMPTY LAYERS
     emptyLayerIdxs = [];

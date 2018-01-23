@@ -409,13 +409,13 @@ for idx = 1:length(file_type)
   end
 end
 
-% ATM files are known to have a small high frequency INS error which is
+% ATM and DMS files are known to have a small high frequency INS error which is
 % corrected here.
 for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
   
   gps = load(out_fn);
-  if regexpi(gps.gps_source,'atm')
+  if regexpi(gps.gps_source,'(atm|dms)')
     
     warning('Smoothing INS data: %s', out_fn);
     

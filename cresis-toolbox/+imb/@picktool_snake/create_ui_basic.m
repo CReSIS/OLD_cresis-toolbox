@@ -45,41 +45,40 @@ table_draw(obj.table);
 %============================================================================================
 % top panel table contents
 
-%----snake tool list box
-obj.top_panel.tool_PM = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.tool_PM,'Style','popupmenu');
-set(obj.top_panel.tool_PM,'String',{'basic','crandall','panton'});
-set(obj.top_panel.tool_PM,'Value',1)
-set(obj.top_panel.tool_PM,'Callback',@obj.toolPM_callback);
-
-%-----mode label
-obj.top_panel.mode_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.mode_label,'Style','text');
-set(obj.top_panel.mode_label,'String','Mode');
+% 
+% %-----mode label
+% obj.top_panel.mode_label = uicontrol('Parent',obj.top_panel.handle);
+% set(obj.top_panel.mode_label,'Style','text');
+% set(obj.top_panel.mode_label,'String','Mode');
+% 
+% %----snake tool list box
+% obj.top_panel.tool_PM = uicontrol('Parent',obj.top_panel.handle);
+% set(obj.top_panel.tool_PM,'Style','popupmenu');
+% set(obj.top_panel.tool_PM,'String',{'basic'});
+% set(obj.top_panel.tool_PM,'Value',1)
+% set(obj.top_panel.tool_PM,'Callback',@obj.toolPM_callback);
 
 %----insert range
 obj.top_panel.insert_range_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.insert_range_label,'Style','text');
-set(obj.top_panel.insert_range_label,'String','Max point range:');
+set(obj.top_panel.insert_range_label,'String','Manual range:');
+set(obj.top_panel.insert_range_label,'TooltipString','During manual (left click) entry, this sets the range of bins that will be searched to find the max. Set to "0" to not search.');
 %----insert pt search range box
 obj.top_panel.insert_range_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.insert_range_TE,'Style','edit');
 set(obj.top_panel.insert_range_TE,'String',obj.in_rng_sv);
+set(obj.top_panel.insert_range_TE,'TooltipString','During manual (left click) entry, this sets the range of bins that will be searched to find the max. Set to "0" to not search.');
+
 %----snake search range name
 obj.top_panel.snake_range_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.snake_range_label,'Style','text');
 set(obj.top_panel.snake_range_label,'String','Snake range:');
+set(obj.top_panel.snake_range_label,'TooltipString','During auto-snake (ALT left click and drag), snake will search +/- this many bins for the peak intensity.');
 %----snake search range box
 obj.top_panel.snake_range_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.snake_range_TE,'Style','edit');
 set(obj.top_panel.snake_range_TE,'String',obj.sn_rng_sv);
-%----reinterp mode enable label
-obj.top_panel.reinterp_mode_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.reinterp_mode_label,'Style','text');
-set(obj.top_panel.reinterp_mode_label,'String','Reinterpolation (beta):');
-%----reinterp mode enable cbox
-obj.top_panel.reinterp_mode_cbox = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.reinterp_mode_cbox,'Style','checkbox');
+set(obj.top_panel.snake_range_TE,'TooltipString','During auto-snake (ALT left click and drag), snake will search +/- this many bins for the peak intensity.');
 
 %---------------------------------------------------------------------------------------------
 % set up top panel table
@@ -90,57 +89,53 @@ obj.top_panel.table.false_width = NaN*zeros(30,30);
 obj.top_panel.table.false_height = NaN*zeros(30,30);
 obj.top_panel.table.offset = [0 0];
 
-row = 1; col = 1; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.mode_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
+row = 0;
 
-row = 1; col = 2;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.tool_PM;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
+% row = row+1; col = 1;
+% obj.top_panel.table.handles{row,col}   = obj.top_panel.mode_label;
+% obj.top_panel.table.width(row,col)     = inf;
+% obj.top_panel.table.height(row,col)    = 25;
+% obj.top_panel.table.width_margin(row,col)= 1.5;
+% obj.top_panel.table.height_margin(row,col)=1.5;
+% 
+% col = 2;
+% obj.top_panel.table.handles{row,col}   = obj.top_panel.tool_PM;
+% obj.top_panel.table.width(row,col)     = inf;
+% obj.top_panel.table.height(row,col)    = 25;
+% obj.top_panel.table.width_margin(row,col)= 1.5;
+% obj.top_panel.table.height_margin(row,col)=1.5;
 
-row = 2; col = 1;
+row = row+1; col = 1;
 obj.top_panel.table.handles{row,col}   = obj.top_panel.insert_range_label;
 obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
+obj.top_panel.table.height(row,col)    = 25;
 obj.top_panel.table.width_margin(row,col)= 1.5;
 obj.top_panel.table.height_margin(row,col)=1.5;
 
-row = 2; col = 2; 
+col = 2;
 obj.top_panel.table.handles{row,col}   = obj.top_panel.insert_range_TE;
 obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
+obj.top_panel.table.height(row,col)    = 25;
 obj.top_panel.table.width_margin(row,col)= 1.5;
 obj.top_panel.table.height_margin(row,col)=1.5;
 
-row = 3; col = 1;
+row = row+1; col = 1;
 obj.top_panel.table.handles{row,col}   = obj.top_panel.snake_range_label;
 obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
+obj.top_panel.table.height(row,col)    = 25;
 obj.top_panel.table.width_margin(row,col)= 1.5;
 obj.top_panel.table.height_margin(row,col)=1.5;
 
-row = 3; col = 2; 
+col = 2;
 obj.top_panel.table.handles{row,col}   = obj.top_panel.snake_range_TE;
 obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
+obj.top_panel.table.height(row,col)    = 25;
 obj.top_panel.table.width_margin(row,col)= 1.5;
 obj.top_panel.table.height_margin(row,col)=1.5;
 
-row = 4; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.reinterp_mode_label;
-obj.top_panel.table.width(row,col)     = inf;
-obj.top_panel.table.height(row,col)    = inf;
-obj.top_panel.table.width_margin(row,col)= 1.5;
-obj.top_panel.table.height_margin(row,col)=1.5;
-
-row = 4; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.reinterp_mode_cbox;
+% Add spacer to fill window
+row = row+1; col = 1;
+obj.top_panel.table.handles{row,col}   = [];
 obj.top_panel.table.width(row,col)     = inf;
 obj.top_panel.table.height(row,col)    = inf;
 obj.top_panel.table.width_margin(row,col)= 1.5;

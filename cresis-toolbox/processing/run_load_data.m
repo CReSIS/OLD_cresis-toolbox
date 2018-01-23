@@ -25,10 +25,6 @@ if run_example == 1
   frm = 37;
   param.load_data.recs = frames.frame_idxs(frm) + [0 99];
   
-  if ~isfield(param.records,'records_fn')
-    param.records.records_fn = '';
-  end
-  param.load_data.records_fn = param.records.records_fn;
   %   param.load_data.imgs = {[-1j 5]};
   %   param.load_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 8; 2 9; 2 10; 2 11; 2 12; 2 13; 2 14; 2 15; 2 16]};
   param.load_data.imgs = {[1 2]};
@@ -96,7 +92,6 @@ elseif run_example == 2
   frm = 1;
   param.load_data.recs = frames.frame_idxs(frm) - 1 + [10000 10250];
   
-  param.load_data.records_fn = param.records.records_fn;
   param.load_data.imgs = {[ones(24,1) (1:24).'],[2*ones(24,1) (1:24).'],[3*ones(24,1) (1:24).']};
   param.load_data.pulse_comp         = false;
   param.load_data.ft_dec             = false; % Fast-time decimation
@@ -188,7 +183,6 @@ elseif run_example == 3
   frm = 10;
   param.load_data.recs = frames.frame_idxs(frm) - 1 + [4001 8000];
   
-  param.load_data.records_fn = param.records.records_fn;
   param.load_data.imgs = {[1 1; 1 2; 1 3; 1 4; 1 5], [2 1; 2 2; 2 3; 2 4; 2 5]};
   param.load_data.imgs = {[1 1], [2 1]};
   param.load_data.pulse_comp         = true;
@@ -253,7 +247,6 @@ elseif run_example == 4
   frm = 2;
   param.load_data.recs = frames.frame_idxs(frm) - 1 + [5000 17000];
   
-  param.load_data.records_fn = param.records.records_fn;
   %   param.load_data.imgs = {[-1j 5]};
   param.load_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 8; 2 9; 2 10; 2 11; 2 12; 2 13; 2 14; 2 15; 2 16]};
   %   param.load_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 8]};
@@ -495,7 +488,6 @@ elseif run_example == 5
             for adc = 1:length(param.radar.wfs(wf).rx_paths)
               param.load_data.recs = all_recs(1) + blocks(block_idx) + [0 block_size-1];
               param.load_data.recs(2) = min(param.load_data.recs(2),all_recs(2));
-              param.load_data.records_fn = param.records.records_fn;
               param.load_data.imgs = {[wf adc]};
               param.load_data.pulse_comp         = false;
               param.load_data.ft_dec             = false; % Fast-time decimation

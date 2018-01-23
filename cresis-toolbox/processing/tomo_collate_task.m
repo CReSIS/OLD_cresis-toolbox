@@ -14,7 +14,7 @@ function success = tomo_collate_task(param)
 %     in param.
 %
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
-%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfdata,
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
@@ -35,6 +35,7 @@ if param.tomo_collate.add_icemask_surfacedem_flag
     
     % combined_fn: Filename with 3D data
     combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
+    fprintf('Loading %s (%s)\n', combined_fn, datestr(now));
     mdata = load(combined_fn);
   end
   
@@ -53,11 +54,11 @@ if param.tomo_collate.create_surfData_flag
     
     % combined_fn: Filename with 3D data
     combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
-    fprintf('Loading Data\n');
+    fprintf('Loading %s (%s)\n', combined_fn, datestr(now));
     mdata = load(combined_fn);
   end
   
-  tomo.create_surfData(param,mdata);
+  tomo.create_surfdata(param,mdata);
   fprintf('  Done (%s)\n', datestr(now));
 end
 

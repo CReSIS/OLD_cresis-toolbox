@@ -48,7 +48,8 @@ for rline = 1:Nx
   % Convert surface for this along-track slope to y,z coordinates
   surf_y = sin(theta) .* surface(:,rline) * c/2;
   surf_z = -cos(theta) .* surface(:,rline) * c/2;
-   
+  p = polyfit(surf_y,surf_z,1);
+
   % Determine the time to the surface and the position of incidence
   twtt_to_surf = interp1(theta, surface(:,rline), doa(:,rline));
   for doa_idx = 1:Nsig
@@ -68,17 +69,12 @@ for rline = 1:Nx
       if isempty(upper_bound)
         upper_bound = Nsv;
       end
-      interp_idxs = max(1,upper_bound-3) : min(Nsv,upper_bound+2);
-      interp_idxs = interp_idxs(~isnan(surf_y(interp_idxs)) & ~isnan(surf_z(interp_idxs)));
-    
-      % Ensure there are still enough points to polyfit
-      if length(interp_idxs) < 2
-        % Surface does not exist for this angle of arrival
-        continue;
-      end
       
-      % Determine the surface slope vector (ignoring along-track slope)
-      p = polyfit(surf_y(interp_idxs),surf_z(interp_idxs),1);
+      % IDEAL: Determine the local surface slope vector
+      %  (ignoring along-track slope since SAR focussing should accomodate for)
+      % NOT USING IDEAL: surface slope approximated by single polynomial
+      % for each range line
+      
       theta_slope = atan(p(1));
       theta_inc = doa(doa_idx,rline) + theta_slope;
       if abs(theta_inc) >= pi/2

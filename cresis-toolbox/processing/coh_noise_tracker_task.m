@@ -83,7 +83,7 @@ global g_data;
 physical_constants;
 surfTimes = [];
 
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 
 if ~isfield(param.get_heights,'elev_correction') || isempty(param.get_heights.elev_correction)
   param.get_heights.elev_correction = false;
@@ -301,6 +301,7 @@ if any(strcmpi(radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','sea
     end
   end
   load_param.load.file_version = param.records.file_version;
+  load_param.load.wfs = records.settings.wfs;
 elseif strcmpi(radar_name,'mcrds')
   load_param.load.offset = records.offset;
   load_param.load.file_rec_offset = records.relative_rec_num;

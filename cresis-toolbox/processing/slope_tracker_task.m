@@ -83,7 +83,7 @@ global g_data;
 physical_constants;
 surfTimes = [];
 
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 
 if ~isfield(param.slope,'elev_correction') || isempty(param.slope.elev_correction)
   param.slope.elev_correction = false;

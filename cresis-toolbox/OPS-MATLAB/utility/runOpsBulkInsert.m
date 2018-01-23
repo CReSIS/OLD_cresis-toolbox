@@ -58,6 +58,13 @@ settings.layerDataPath = 'layerData';
 % settings.layerDataPath = fullfile('CSARP_post','qlook');
 
 % ----------------------------------------------------------------
+% layer_name_map: OPTIONAL LAYER NAME REMAPPING
+%   This allows layers to be renamed when inserted into OPS.
+%   Normally this should be commented out so that layers are not renamed.
+% settings.layer_name_map.source_names = {'surface','bottom'};
+% settings.layer_name_map.dest_names = {'surface_old','bottom_old'};
+
+% ----------------------------------------------------------------
 % layerFilter: REGULAR EXPRESSION OF LAYER NAMES TO INSERT
 %   inline('~isempty(regexp(x,''(^surface$|^bottom$)''))');: only surface and bottom layers
 %   inline('~isempty(regexp(x,''^lm.*''))');: only layers starting with 'lm'
@@ -80,7 +87,7 @@ settings.gaps_dist = [300 60];
 % ----------------------------------------------------------------
 % pathSpacing: DISTANCE IN METERS TO SPACE THE PATH/LAYER POINTS (DEFAULT = 15m)
 % settings.pathSpacing = 5; % 5 m for snow and kuband
-settings.pathSpacing = 15; % 5 m for accum and rds
+settings.pathSpacing = 15; % 15 m for accum and rds
 
 % ----------------------------------------------------------------
 % seasonGroup: STRING name of the group for the season (DEFAULT = 'cresis_private')

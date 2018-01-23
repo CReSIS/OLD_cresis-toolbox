@@ -236,7 +236,7 @@ else
   task_param.debug_level = param.debug_level;
 end
 
-task_param.load.records_fn  = ct_filename_support(param,param.records.records_fn,'records');
+task_param.load.records_fn  = ct_filename_support(param,'','records');
 
 % Currently every field in param.analysis is used by analysis_task
 % so we just pass the whole structure

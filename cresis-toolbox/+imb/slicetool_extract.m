@@ -18,22 +18,22 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       obj.tool_shortcut = 'e';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
-      obj.help_string = 'e: Extract/refine tools which run TRWS solution to HMM inference model to find best layer. Neighboring slices effect cost function to improve solution.';
+      obj.help_string = 'e: Extract/refine tools which run TRWS solution to HMM inference model to find best surface. Neighboring slices effect cost function to improve solution.';
     end
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd. You 
       %     should not modify any fields of sb.
-      %  .layer: struct array containing layer information
+      %  .sd: surfdata .surf struct array containing surface information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
-      %  .layer_idx: active layer
+      %  .surf_idx: active surface
       % slices: array of slices to operate on (overrides sb.slice)
-      control_idx = sb.layer(sb.layer_idx).control_layer;
-      active_idx = sb.layer(sb.layer_idx).active_layer;
-      surf_idx = sb.layer(sb.layer_idx).surf_layer;
-      mask_idx = sb.layer(sb.layer_idx).mask_layer;
+      control_idx = sb.sd.surf(sb.surf_idx).gt;
+      active_idx = sb.sd.surf(sb.surf_idx).active;
+      surf_idx = sb.sd.surf(sb.surf_idx).top;
+      mask_idx = sb.sd.surf(sb.surf_idx).mask;
       
       try
         eval_cmd = get(obj.gui.slice_rangeLE,'String');
@@ -97,7 +97,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       else
         end_slice_idx = length(slices)-1;
       end
-      fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
+      fprintf('Apply %s to surface %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
       
       gt = [];
       if ~isempty(control_idx)
@@ -106,24 +106,24 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         % 2. Row 1: relative slice/range-line, Row 2: x, Row 3: y
         for idx = 1:length(slices)
           slice = slices(idx);
-          mask = isfinite(sb.layer(control_idx).x(:,slice)) ...
-            & isfinite(sb.layer(control_idx).y(:,slice));
+          mask = isfinite(sb.sd.surf(control_idx).x(:,slice)) ...
+            & isfinite(sb.sd.surf(control_idx).y(:,slice));
           mask(1:sb.bounds_relative(1)) = 0;
           mask(end-sb.bounds_relative(2)+1:end) = 0;
           gt = cat(2,gt,[(idx-1)*ones(1,sum(mask)); ...
-            sb.layer(control_idx).x(mask,slice).'-1; ...
-            sb.layer(control_idx).y(mask,slice).'+0.5]);
-          bottom_bin = sb.layer(control_idx).y(33,slices);
+            sb.sd.surf(control_idx).x(mask,slice).'-1; ...
+            sb.sd.surf(control_idx).y(mask,slice).'+0.5]);
+          bottom_bin = sb.sd.surf(control_idx).y(33,slices);
         end
       else
         bottom_bin = NaN*zeros(1,length(slices));
       end
       
       if isempty(surf_idx)
-        %error('extract cannot be run without a surface layer');
-        surf_bins = NaN*sb.layer(active_idx).y(:,slices);
+        %error('extract cannot be run without a surface surface');
+        surf_bins = NaN*sb.sd.surf(active_idx).y(:,slices);
       else
-        surf_bins = sb.layer(surf_idx).y(:,slices);
+        surf_bins = sb.sd.surf(surf_idx).y(:,slices);
       end
       surf_bins(isnan(surf_bins)) = -1;
       
@@ -132,12 +132,12 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       if isempty(mask_idx)
         mask = ones(size(sb.data,2),length(slices));
       else
-        mask = sb.layer(mask_idx).y(:,slices);
+        mask = sb.sd.surf(mask_idx).y(:,slices);
       end
       
       begin_slice = max(1, min(slices)-1);
       end_slice = min(size(sb.data,3), max(slices)+1);
-      edge = [sb.layer(active_idx).y(:,begin_slice), sb.layer(active_idx).y(:,end_slice)];
+      edge = [sb.sd.surf(active_idx).y(:,begin_slice), sb.sd.surf(active_idx).y(:,end_slice)];
       edge(mask(:,1) == 0,1) = surf_bins(mask(:,1) == 0,1);
       edge(mask(:,end) == 0,2) = surf_bins(mask(:,end) == 0,end);
       
@@ -145,9 +145,9 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       extract_data(extract_data>threshold(2)) = threshold(2);
       for idx = 1:length(slices)
         for col = 1:size(sb.data,2)
-          tmp = extract_data(1:min(end,surf_bins(col,idx)+70),col,idx);
+          tmp = extract_data(1:min(end,round(surf_bins(col,idx))+70),col,idx);
           tmp(tmp>threshold(1)) = threshold(1);
-          extract_data(1:min(end,surf_bins(col,idx)+70),col,idx) = tmp;
+          extract_data(1:min(end,round(surf_bins(col,idx))+70),col,idx) = tmp;
         end
       end
       if ~left_edge_en
@@ -174,15 +174,15 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       if top_edge_en && ~isempty(cols) && cols(1) > bounds(1)+1
         % Add ground truth from top edge as long as top edge is bounded
         gt = cat(2,gt,[slices-slices(1); ...
-          sb.layer(active_idx).x(cols(1)-1,slices)-1; ...
-          sb.layer(active_idx).y(cols(1)-1,slices)+0.5]);
+          sb.sd.surf(active_idx).x(cols(1)-1,slices)-1; ...
+          sb.sd.surf(active_idx).y(cols(1)-1,slices)+0.5]);
       end
       
       if bottom_edge_en && ~isempty(cols) && cols(end) < bounds(2)
         % Add ground truth from top edge as long as top edge is bounded
         gt = cat(2,gt,[slices-slices(1); ...
-          sb.layer(active_idx).x(cols(end)+1,slices)-1; ...
-          sb.layer(active_idx).y(cols(end)+1,slices)+0.5]);
+          sb.sd.surf(active_idx).x(cols(end)+1,slices)-1; ...
+          sb.sd.surf(active_idx).y(cols(end)+1,slices)+0.5]);
       end
       
       rows = [];
@@ -209,7 +209,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       end
       
       tic;
-      correct_surface = tomo.refine(double(extract_data), ...
+      correct_surface = tomo.trws(double(extract_data), ...
         double(surf_bins), double(bottom_bin), double(gt), double(mask), ...
         double(mu), double(sigma), smooth_weight, smooth_var, ...
         double(smooth_slope), double(edge), double(num_loops), int64(bounds));
@@ -219,16 +219,16 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
         correct_surface = correct_surface + rows(1) - 1;
       end
       
-     % Create cmd for layer change
+     % Create cmd for surface change
       cmd = [];
       for idx = start_slice_idx:end_slice_idx
         slice = slices(idx);
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
-        cmd{end}.undo.layer = active_idx;
-        cmd{end}.redo.layer = active_idx;
+        cmd{end}.undo.surf = active_idx;
+        cmd{end}.redo.surf = active_idx;
         cmd{end}.undo.x = cols;
-        cmd{end}.undo.y = sb.layer(active_idx).y(cols,slice);
+        cmd{end}.undo.y = sb.sd.surf(active_idx).y(cols,slice);
         cmd{end}.redo.x = cols;
         cmd{end}.redo.y = correct_surface(cols,idx);
         cmd{end}.type = 'standard';
@@ -304,21 +304,21 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       % Correlation length
       obj.gui.correlationTXT = uicontrol('Style','text','string','Correlation');
-      set(obj.gui.correlationTXT,'TooltipString','Specify a correlation length for layer impulse template.');
+      set(obj.gui.correlationTXT,'TooltipString','Specify a correlation length for surface impulse template.');
       
       obj.gui.correlationLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.correlationLE,'style','edit')
       set(obj.gui.correlationLE,'string','11')
-      set(obj.gui.correlationLE,'TooltipString','Specify a correlation length for layer impulse template.');
+      set(obj.gui.correlationLE,'TooltipString','Specify a correlation length for surface impulse template.');
       
       % Smooth
       obj.gui.smoothTXT = uicontrol('Style','text','string','Smoothness');
-      set(obj.gui.smoothTXT,'TooltipString','Specify layer smoothness ["slice weight" "column weight" "edges weight"].');
+      set(obj.gui.smoothTXT,'TooltipString','Specify surface smoothness ["slice weight" "column weight" "edges weight"].');
       
       obj.gui.smoothLE = uicontrol('parent',obj.h_fig);
       set(obj.gui.smoothLE,'style','edit')
       set(obj.gui.smoothLE,'string','[22 22 32]')
-      set(obj.gui.smoothLE,'TooltipString','Specify layer smoothness ["slice weight" "column weight" "edges weight"].');
+      set(obj.gui.smoothLE,'TooltipString','Specify surface smoothness ["slice weight" "column weight" "edges weight"].');
       
       % Select mask
       obj.gui.select_maskCB = uicontrol('parent',obj.h_fig);

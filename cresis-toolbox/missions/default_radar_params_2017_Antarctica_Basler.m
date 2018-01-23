@@ -25,14 +25,14 @@ default.Gt = 8*4;
 default.Ae = 2*0.468 * 0.468;
 
 default.system_loss_dB = 10.^(-5.88/10);
-default.max_DDS_RAM = 4000;
+default.max_DDS_RAM = 40000;
 default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 
 default.iq_mode = 0;
 default.tx_DDS_mask = [1 1 1 1 1 1 1 1];
 
-default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
-default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
+default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ft_dec','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
+default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 default.basic_surf_track_min_time = 2e-6;
 default.basic_surf_track_Tpd_factor = 1.1; % Normally 1.1 (set to 0 for no delay lab test)
@@ -41,12 +41,12 @@ default.adc_folder_name = 'chan%d';
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 8
-  ref_adc = 6;
+  ref_adc = 4;
   default.txequal.img = [(1:2:16).', ref_adc*ones(8,1)];
   default.txequal.ref_wf_adc = 4;
   default.txequal.wf_mapping = [1 2 3 4 5 6 7 8];
   default.txequal.Hwindow_desired = chebwin(8,30).';
-  default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000];
+  default.txequal.max_DDS_amp = [40000 40000 40000 40000 40000 40000 40000 40000];
   default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
   default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
   default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
@@ -55,12 +55,13 @@ if 1
   default.txequal.remove_linear_phase_en = true;
   
   %   Connect antenna N to WFG N for all N = 1 to 8, DDS 8 is bad
-%   ref_adc = 6;
+%   ref_adc = 4;
 %   default.txequal.img = [(1:2:16).', ref_adc*ones(8,1)];
-%   default.txequal.wf_mapping = [1 2 3 4 5 6 7 0];
+%   default.txequal.wf_mapping = [1 2 3 4 5 0 7 8];
 %   default.txequal.ref_wf_adc = 4;
-%   default.txequal.Hwindow_desired = [chebwin(7,30).' 0];
-%   default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 0];
+% %   default.txequal.Hwindow_desired = [chebwin(7,30).' 0];
+%   default.txequal.Hwindow_desired = [1 1 1 1 1 0 1 1];
+%   default.txequal.max_DDS_amp = [40000 40000 40000 40000 40000 0 40000 40000];
 %   default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
 %   default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
 %   default.txequal.time_validation = [0.4 0.4 0.4 0.4 0.4 0.4 0.4 0.4]*1e-9;
@@ -271,6 +272,7 @@ defaults = {};
 default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3]/1e9;
 default.radar.wfs(1).chan_equal_dB = [-2.5 -2.2 -2.2 -1.7 -0.9 -4.5 -6.8 -1.1];
 default.radar.wfs(1).chan_equal_deg = [-168.6 -114.1 -5.7 9 30 24.1 -144.3 -137.7];
+default.radar.ft_dec = [37 40];
 
  % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
@@ -342,6 +344,7 @@ defaults{end+1} = default;
 default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3]/1e9;
 default.radar.wfs(1).chan_equal_dB = [1.1 -0.7 0.8 1.4 -0.8 -1.7 -1.7 0];
 default.radar.wfs(1).chan_equal_deg = [74.5 108.1 -105.7 -106.6 -94.6 -26.7 92.2 94];
+default.radar.ft_dec = [3 20];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];

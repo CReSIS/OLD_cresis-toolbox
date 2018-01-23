@@ -88,7 +88,7 @@ global g_data;
 physical_constants;
 surfTimes = [];
 
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 
 if ~isfield(param.get_heights,'elev_correction') || isempty(param.get_heights.elev_correction)
   param.get_heights.elev_correction = false;
@@ -376,6 +376,7 @@ if any(strcmpi(radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords
     end
   end
   load_param.load.file_version = param.records.file_version;
+  load_param.load.wfs = records.settings.wfs;
 elseif strcmpi(radar_name,'mcrds')
   load_param.load.offset = records.offset;
   load_param.load.file_rec_offset = records.relative_rec_num;
@@ -776,7 +777,7 @@ for img_idx = 1:length(param.load.imgs)
   end
   
   %% Apply incoherent averaging with decimation
-  if size(param.get_heights.inc_B_filter,2) >= 1
+  if param.get_heights.inc_ave >= 1
     data_incoh = [];
     for adc_idx = 1:size(g_data,3)
       data_incoh(:,:,adc_idx) = fir_dec(fir_dec(abs(g_data(:,:,adc_idx)).^2,param.get_heights.inc_B_filter,1), param.get_heights.inc_ave);
