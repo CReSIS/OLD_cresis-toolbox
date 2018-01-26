@@ -1,4 +1,4 @@
-classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
+classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
   % Slice_browser tool which calls detect.cpp (HMM)
   
   properties (SetAccess = protected, GetAccess = public)
@@ -11,14 +11,14 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
   end
   
   methods
-    function obj = slicetool_extract()
+    function obj = slicetool_trws()
       obj.create_option_ui();
-      obj.tool_name = 'Extract';
-      obj.tool_menu_name = '(E)xtract';
+      obj.tool_name = 'trws';
+      obj.tool_menu_name = 'TRWS(e)';
       obj.tool_shortcut = 'e';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
-      obj.help_string = 'e: Extract/refine tools which run TRWS solution to HMM inference model to find best surface. Neighboring slices effect cost function to improve solution.';
+      obj.help_string = 'e: tracking tool which runs TRWS solution to HMM inference model to find best surface. Neighboring slices effect cost function to improve solution.';
     end
     
     function cmd = apply_PB_callback(obj,sb,slices)
@@ -120,7 +120,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       end
       
       if isempty(surf_idx)
-        %error('extract cannot be run without a surface surface');
+        %error('trws cannot be run without a surface surface');
         surf_bins = NaN*sb.sd.surf(active_idx).y(:,slices);
       else
         surf_bins = sb.sd.surf(surf_idx).y(:,slices);
@@ -141,13 +141,13 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       edge(mask(:,1) == 0,1) = surf_bins(mask(:,1) == 0,1);
       edge(mask(:,end) == 0,2) = surf_bins(mask(:,end) == 0,end);
       
-      extract_data = sb.data(:,:,slices);
-      extract_data(extract_data>threshold(2)) = threshold(2);
+      trws_data = sb.data(:,:,slices);
+      trws_data(trws_data>threshold(2)) = threshold(2);
       for idx = 1:length(slices)
         for col = 1:size(sb.data,2)
-          tmp = extract_data(1:min(end,round(surf_bins(col,idx))+70),col,idx);
+          tmp = trws_data(1:min(end,round(surf_bins(col,idx))+70),col,idx);
           tmp(tmp>threshold(1)) = threshold(1);
-          extract_data(1:min(end,round(surf_bins(col,idx))+70),col,idx) = tmp;
+          trws_data(1:min(end,round(surf_bins(col,idx))+70),col,idx) = tmp;
         end
       end
       if ~left_edge_en
@@ -169,7 +169,7 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       % sigma = obj.custom_data.sigma;
       mask = 90*fir_dec(fir_dec(double(shrink(mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
       mask(mask>=90) = inf;
-      bounds = [sb.bounds_relative(1) size(extract_data,2)-sb.bounds_relative(2)-1 -1 -1];
+      bounds = [sb.bounds_relative(1) size(trws_data,2)-sb.bounds_relative(2)-1 -1 -1];
       
       if top_edge_en && ~isempty(cols) && cols(1) > bounds(1)+1
         % Add ground truth from top edge as long as top edge is bounded
@@ -188,11 +188,11 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       rows = [];
       if isfinite(range) && size(gt,2) > 0
         % Restrict search to range of rows around ground truth
-        rows = max(1,min(round(gt(3,:)-range))) : min(size(extract_data,1),max(round(gt(3,:)+range)));
+        rows = max(1,min(round(gt(3,:)-range))) : min(size(trws_data,1),max(round(gt(3,:)+range)));
         if length(rows) < length(mu)+1
           error('Error: Range restriction leaves too few rows of data. Increase "Row range" option.');
         end
-        extract_data = extract_data(rows,:,:);
+        trws_data = trws_data(rows,:,:);
         surf_bins = surf_bins - rows(1) + 1;
         bottom_bin = bottom_bin - rows(1) + 1;
         gt(3,:) = gt(3,:) - rows(1) + 1;
@@ -200,20 +200,20 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       
       if 0
         %% DEBUG: For running mex function in debug mode
-        save('/tmp/mex_inputs.mat','extract_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_weight','smooth_var','smooth_slope','edge','num_loops','bounds');
+        save('/tmp/mex_inputs.mat','trws_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_weight','smooth_var','smooth_slope','edge','num_loops','bounds');
         load('/tmp/mex_inputs.mat');
-        correct_surface = tomo.refine(double(extract_data), ...
+        correct_surface = tomo.refine(double(trws_data), ...
           double(surf_bins), double(bottom_bin), double(gt), double(mask), ...
           double(mu), double(sigma), smooth_weight, smooth_var, ...
           double(smooth_slope), double(edge), double(num_loops), int64(bounds));
       end
       
       tic;
-      correct_surface = tomo.trws(double(extract_data), ...
+      correct_surface = tomo.trws(double(trws_data), ...
         double(surf_bins), double(bottom_bin), double(gt), double(mask), ...
         double(mu), double(sigma), smooth_weight, smooth_var, ...
         double(smooth_slope), double(edge), double(num_loops), int64(bounds));
-      fprintf('  %.2f sec per slice\n', toc/size(extract_data,3));
+      fprintf('  %.2f sec per slice\n', toc/size(trws_data,3));
       
       if ~isempty(rows)
         correct_surface = correct_surface + rows(1) - 1;
@@ -248,9 +248,9 @@ classdef (HandleCompatible = true) slicetool_extract < imb.slicetool
       obj.h_fig = figure('Visible','off','DockControls','off', ...
         'NumberTitle','off','ToolBar','none','MenuBar','none','Resize','off');
       if strcmpi(class(obj.h_fig),'double')
-        set(obj.h_fig,'Name',sprintf('%d: extract tool prefs',obj.h_fig));
+        set(obj.h_fig,'Name',sprintf('%d: trws tool prefs',obj.h_fig));
       else
-        set(obj.h_fig,'Name',sprintf('%d: extract tool prefs',obj.h_fig.Number));
+        set(obj.h_fig,'Name',sprintf('%d: trws tool prefs',obj.h_fig.Number));
       end
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');

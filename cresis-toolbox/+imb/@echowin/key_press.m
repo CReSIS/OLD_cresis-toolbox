@@ -268,7 +268,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         obj.savePB_callback();
       end
       
-    case 'd'
+    case 'v'
       if isempty(event.Modifier)
         set(obj.left_panel.toolPM,'Value',6);
         tmp = obj.tool_list{3}; obj.left_click = @tmp.left_click;

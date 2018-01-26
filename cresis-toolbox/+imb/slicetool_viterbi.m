@@ -1,5 +1,5 @@
-classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
-  % Slice_browser tool which calls detect.cpp (HMM)
+classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
+  % Slice_browser tool which calls viterbi.cpp (HMM)
   %
   % Compile C++ program with:
   %   mex -largeArrayDims viterbi.cpp
@@ -14,14 +14,14 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
   end
   
   methods
-    function obj = slicetool_detect()
+    function obj = slicetool_viterbi()
       obj.create_option_ui();
-      obj.tool_name = 'Detect';
-      obj.tool_menu_name = '(D)etect';
-      obj.tool_shortcut = 'd';
+      obj.tool_name = 'viterbi';
+      obj.tool_menu_name = '(V)iterbi';
+      obj.tool_shortcut = 'v';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
-      obj.help_string = 'd: Detect tool which runs viterbi solution to HMM inference model to find best surface. Neighboring slices have no influence on solution.';
+      obj.help_string = 'v: Viterbi tool which runs Viterbi solution to HMM inference model to find best surface. Neighboring slices have no influence on solution.';
     end
     
     function cmd = apply_PB_callback(obj,sb,slices)
@@ -132,9 +132,9 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
           mask = sb.sd.surf(mask_idx).y(:,slice);
         end
         
-        detect_data = sb.data(:,:,slice);
-        detect_data(detect_data>threshold) = threshold;
-        detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
+        viterbi_data = sb.data(:,:,slice);
+        viterbi_data(viterbi_data>threshold) = threshold;
+        viterbi_data = fir_dec(viterbi_data.',hanning(3).'/3,1).';
         
         bounds = [1 (size(sb.data,2))];
         
@@ -159,7 +159,7 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         
         % Call viterbi.cpp
         tic
-        labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
+        labels = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
           double(bottom_bin), double(gt), double(mask), double(mu), ...
           double(sigma), double(egt_weight), double(smooth_weight), ...
           double(smooth_var), double(slope), int64(bounds), ...
@@ -192,9 +192,9 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       obj.h_fig = figure('Visible','off','DockControls','off', ...
         'NumberTitle','off','ToolBar','none','MenuBar','none','Resize','off');
       if strcmpi(class(obj.h_fig),'double')
-        set(obj.h_fig,'Name',sprintf('%d: detect tool prefs',obj.h_fig));
+        set(obj.h_fig,'Name',sprintf('%d: viterbi tool prefs',obj.h_fig));
       else
-        set(obj.h_fig,'Name',sprintf('%d: detect tool prefs',obj.h_fig.Number));
+        set(obj.h_fig,'Name',sprintf('%d: viterbi tool prefs',obj.h_fig.Number));
       end
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');

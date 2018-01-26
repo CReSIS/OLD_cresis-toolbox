@@ -1,4 +1,4 @@
-classdef picktool_detect < imb.picktool
+classdef picktool_viterbi < imb.picktool
   
   properties
     top_panel
@@ -26,7 +26,7 @@ classdef picktool_detect < imb.picktool
   end
   
   methods
-    function obj = picktool_detect(h_fig)
+    function obj = picktool_viterbi(h_fig)
       %%% Pre Initialization %%%
       % Any code not using output argument (obj)
       if nargin == 0 || isempty(h_fig)
@@ -38,10 +38,10 @@ classdef picktool_detect < imb.picktool
       %%% Post Initialization %%%
       % Any code, including access to object
       obj.h_fig = h_fig;
-      obj.tool_name = '(d)etect';
-      obj.tool_name_title = 'Detect';
-      obj.tool_shortcut = 'd';
-      obj.help_string = sprintf('Detect tool which runs Viterbi solution to HMM inference model to find best layer. Neighboring slices have no influence on solution.');
+      obj.tool_name = '(v)iterbi';
+      obj.tool_name_title = 'viterbi';
+      obj.tool_shortcut = 'v';
+      obj.help_string = sprintf('viterbi tool which runs Viterbi solution to HMM inference model to find best layer. Neighboring slices have no influence on solution.');
       obj.bottom_panel = [];
       obj.top_panel = [];
       obj.table = [];
@@ -160,11 +160,11 @@ classdef picktool_detect < imb.picktool
           mask = sb.layer(mask_idx).y(:,slice);
         end
         
-        detect_data = sb.data(:,:,slice);
-        detect_data(detect_data>threshold) = threshold;
-        detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
+        viterbi_data = sb.data(:,:,slice);
+        viterbi_data(viterbi_data>threshold) = threshold;
+        viterbi_data = fir_dec(viterbi_data.',hanning(3).'/3,1).';
 
-        labels = tomo.detect(double(detect_data), ...
+        labels = tomo.viterbi(double(viterbi_data), ...
           double(surf_bins), double(bottom_bin), ...
           double(gt), double(mask), ...
           double(obj.custom_data.mu), double(obj.custom_data.sigma),-1,double(egt_weight), ...
@@ -195,9 +195,9 @@ classdef picktool_detect < imb.picktool
       obj.h_fig = figure('Visible','off','DockControls','off', ...
         'NumberTitle','off','ToolBar','none','MenuBar','none','Resize','off');
       if strcmpi(class(obj.h_fig),'double')
-        set(obj.h_fig,'Name',sprintf('%d: detect tool prefs',obj.h_fig));
+        set(obj.h_fig,'Name',sprintf('%d: viterbi tool prefs',obj.h_fig));
       else
-        set(obj.h_fig,'Name',sprintf('%d: detect tool prefs',obj.h_fig.Number));
+        set(obj.h_fig,'Name',sprintf('%d: viterbi tool prefs',obj.h_fig.Number));
       end
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');

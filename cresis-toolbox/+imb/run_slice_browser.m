@@ -81,20 +81,20 @@ sb_param.bounds_relative = bounds_relative;
 try; delete(obj); end;
 obj = imb.slice_browser(10*log10(mdata.Topography.img),[],sb_param);
 
-try; delete(detect_tool); end;
-detect_tool = imb.slicetool_detect();
+try; delete(viterbi_tool); end;
+viterbi_tool = imb.slicetool_viterbi();
 if isfield(mdata.Topography,'mu')
   % This field is only present after training has been run
   custom_data.mu = mdata.Topography.mu;
   custom_data.sigma = mdata.Topography.sigma;
 end
-% detect_tool.set_custom_data(custom_data);
-obj.insert_tool(detect_tool);
+% viterbi_tool.set_custom_data(custom_data);
+obj.insert_tool(viterbi_tool);
 
-try; delete(extract_tool); end;
-extract_tool = imb.slicetool_extract();
-% extract_tool.set_custom_data(custom_data);
-obj.insert_tool(extract_tool);
+try; delete(trws_tool); end;
+trws_tool = imb.slicetool_trws();
+% trws_tool.set_custom_data(custom_data);
+obj.insert_tool(trws_tool);
 
 try; delete(max_tool); end;
 max_tool = imb.slicetool_max();
