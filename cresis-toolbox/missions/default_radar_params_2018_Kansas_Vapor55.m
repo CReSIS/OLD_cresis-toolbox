@@ -1,7 +1,7 @@
 function [param,defaults] = default_radar_params_2018_Kansas_Vapor55
 % [param,defaults] = default_radar_params_2018_Kansas_Vapor55
 %
-% HFRDS2: 2018_Kansas_Vapor55
+% Snow9: 2018_Kansas_Vapor55
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
