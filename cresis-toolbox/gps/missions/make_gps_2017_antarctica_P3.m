@@ -38,8 +38,8 @@ sync_fns = {}; sync_params = {};
 % gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM-field_traj';
-gps_source_to_use = 'ATM';
-% gps_source_to_use = 'DMS';
+% gps_source_to_use = 'ATM';
+gps_source_to_use = 'DMS';
 
 if strcmpi(gps_source_to_use,'NMEA')
     
@@ -151,7 +151,7 @@ elseif strcmpi(gps_source_to_use,'ATM')
   fn_dates = sort(fn_dates);
   
 
-  for idx = 1:1%1:length(fn_dates)
+  for idx = 1:length(fn_dates)
     [year,month,day] = datevec(fn_dates(idx));
     fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
     file_idx = file_idx + 1;
@@ -164,15 +164,23 @@ elseif strcmpi(gps_source_to_use,'ATM')
   end
   
 elseif strcmpi(gps_source_to_use,'DMS')
-  year = 2017; month = 4; day = 20;
+  year = 2017; month = 11; day = 3;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filename(fullfile(in_base_path,'Wing_Flexure'),'Paden_',datestr(datenum(year,month,day),'yyyymmdd'),'.out');
+  in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'*DMS.out');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'applanix';
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','gps');
-  gps_source{file_idx} = 'dms-final_20170530';
+  gps_source{file_idx} = 'dms-final_20180126';
   sync_flag{file_idx} = 0;
   
+  year = 2017; month = 11; day = 25;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'*DMS.out');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'applanix';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','gps');
+  gps_source{file_idx} = 'dms-final_20180126';
+  sync_flag{file_idx} = 0;
 end
 
 
@@ -196,7 +204,7 @@ if ~isempty(hack_idx)
 end
 
 % Applanix files are known to have GPS time errors which are corrected here.
-fn_gps_time_error = {'gps_20171103.mat'}
+fn_gps_time_error = '';
 for idx = 1:length(fn_gps_time_error)
   out_fn = fullfile(gps_path,fn_gps_time_error{idx});
   
