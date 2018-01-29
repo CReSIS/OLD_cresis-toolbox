@@ -19,11 +19,6 @@ adc_folder_name = '20161108A';
 reuse_tmp_files = true;
 mat_or_bin_hdr_output = '.mat';
 
-base_dir = '/cresis/snfs1/scratch/paden/helicopter/';
-adc_folder_name = '';
-reuse_tmp_files = false;
-mat_or_bin_hdr_output = '.mat';
-
 % Set param.radar_name and param.season_name
 param = default_radar_params_2016_Greenland_TO;
 
