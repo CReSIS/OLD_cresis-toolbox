@@ -19,7 +19,7 @@
 % params = read_param_xls(ct_filename_param('kuband_param_2014_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 % params = read_param_xls(ct_filename_param('kuband_param_2015_Greenland_C130.xls'),'',{'analysis_spec' 'analysis'});
 % params = read_param_xls(ct_filename_param('kuband_param_2016_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-params = read_param_xls(ct_filename_param('kuband_param_2016_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2016_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
 
 % params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 % params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'',{'analysis_spec' 'analysis'});
@@ -38,7 +38,7 @@ params = read_param_xls(ct_filename_param('kuband_param_2016_Antarctica_DC8.xls'
 % params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_C130.xls'),'',{'analysis_spec' 'analysis'});
 % params = read_param_xls(ct_filename_param('snow_param_2016_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 % params = read_param_xls(ct_filename_param('snow_param_2016_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
+ params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 
 physical_constants;
 
@@ -51,17 +51,17 @@ Mt = 8; % Amount to over-sample when estimating peaks of lobes
 
 % stage_two_en: Only enable stage 2 when stage one done for all segments and make
 %   sure to enable the generic column for all segments. Stage 2 is not run for rds and accum.
-stage_two_en = false;
+stage_two_en = true;
 
 spec_file_input_type = 'noise'; % e.g. set to 'noise' to input from CSARP_noise folder
 spec_file_output_type = 'noise'; % e.g. set to 'noise' to output to CSARP_noise folder
 
 % debug_level:
 % 1. Set to 3 the very first time this is run to set Nt_shorten
-% 2. Set to 2 the very first time this is run to set rbins
+% 2. Set to 4 the very first time this is run to set rbins
 % 3. Set to 1 the first time for each segment to make sure good waveforms exist
 % 4. Set to 0 for routine operation/re-running
-debug_level = 3;
+debug_level = 1;
 
 preserve_old = false; % Set to true once you have final deconv files you do not want to overwrite
 

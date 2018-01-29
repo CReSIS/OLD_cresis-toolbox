@@ -1,42 +1,81 @@
-classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
-  % Slice_browser tool which calls detect.cpp (HMM)
-  %
-  % Compile C++ program with:
-  %   mex -largeArrayDims viterbi.cpp
+classdef picktool_viterbi < imb.picktool
   
-  properties (SetAccess = protected, GetAccess = public)
+  properties
+    top_panel
+    bottom_panel
+    table
+    last_tool;
+    last_layers;
+    last_range_gps;
+    first_time;    
+    cur_mode;    
+    
+    % properties to preserve tool values across deletions
+    in_rng_sv;
+    sn_rng_sv;
+    top_sm_sv;
+    bot_sm_sv;
+    top_pk_sv;
+    bot_pk_sv;
+    rep_sv;
   end
   
-  properties (SetAccess = protected, GetAccess = protected)
-  end
-  
-  events
+  properties (SetAccess = immutable, GetAccess = public) %constants
+    w           % window's width
+    h           % window's height
   end
   
   methods
-    function obj = slicetool_detect()
-      obj.create_option_ui();
-      obj.tool_name = 'Detect';
-      obj.tool_menu_name = '(D)etect';
-      obj.tool_shortcut = 'd';
-      obj.ctrl_pressed = 0;
-      obj.shift_pressed = 0;
-      obj.help_string = 'd: Detect tool which runs viterbi solution to HMM inference model to find best surface. Neighboring slices have no influence on solution.';
+    function obj = picktool_viterbi(h_fig)
+      %%% Pre Initialization %%%
+      % Any code not using output argument (obj)
+      if nargin == 0 || isempty(h_fig)
+        h_fig = figure('Visible','off');
+      else
+        figure(h_fig,'Visible','off');
+      end
+      
+      %%% Post Initialization %%%
+      % Any code, including access to object
+      obj.h_fig = h_fig;
+      obj.tool_name = '(v)iterbi';
+      obj.tool_name_title = 'viterbi';
+      obj.tool_shortcut = 'v';
+      obj.help_string = sprintf('viterbi tool which runs Viterbi solution to HMM inference model to find best layer. Neighboring slices have no influence on solution.');
+      obj.bottom_panel = [];
+      obj.top_panel = [];
+      obj.table = [];
+      obj.w = 200;
+      obj.h = 125;  
+      obj.first_time = true;
+
+      obj.in_rng_sv = 5;
+      obj.sn_rng_sv = 5;
+      obj.top_sm_sv = .5;
+      obj.bot_sm_sv = .5;
+      obj.top_pk_sv = .5;
+      obj.bot_pk_sv = .5;
+      obj.rep_sv = .5;
+      obj.cur_mode = 1;      
+      
+      obj.create_ui_components();
+      obj.create_ui_basic(0,0);
+
     end
-    
-    function cmd = apply_PB_callback(obj,sb,slices)
+        
+   function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.sd. You 
+      %     commands, cmd, that use sb.data to operate on sb.layer. You 
       %     should not modify any fields of sb.
-      %  .sd: surfdata .surf struct array containing surface information
+      %  .layer: struct array containing layer information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
-      %  .surf_idx: active surface
+      %  .layer_idx: active layer
       % slices: array of slices to operate on (overrides sb.slice)
-      control_idx = sb.sd.surf(sb.surf_idx).gt;
-      active_idx = sb.sd.surf(sb.surf_idx).active;
-      surf_idx = sb.sd.surf(sb.surf_idx).top;
-      mask_idx = sb.sd.surf(sb.surf_idx).mask;
+      control_idx = sb.layer(sb.layer_idx).control_layer;
+      active_idx = sb.layer(sb.layer_idx).active_layer;
+      surf_idx = sb.layer(sb.layer_idx).surf_layer;
+      mask_idx = sb.layer(sb.layer_idx).mask_layer;
       
       try
         slice_range = eval(get(obj.gui.slice_rangeLE,'String'));
@@ -64,115 +103,80 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
         cols = 1:size(sb.data,2);
       end
       
+      smooth_weight = -1;
+      smooth_var = -1;
+      
       if ~exist('slices','var') || isempty(slices)
+        slice_range = min(slice_range):max(slice_range);
         slices = sb.slice+slice_range;
       end
-      [~,slices_idxs] = intersect(slices,1:size(sb.data,3));
-      slices = slices(sort(slices_idxs));
+      slices = intersect(slices,1:size(sb.data,3));
       if numel(slices)==1
-        fprintf('Apply %s to surface %d slice %d\n', obj.tool_name, active_idx, sb.slice);
+        fprintf('Apply %s to layer %d slice %d\n', obj.tool_name, active_idx, sb.slice);
       else
-        fprintf('Apply %s to surface %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
-      end
-      if get(obj.gui.previousCB,'Value')
-        start_slice_idx = 2;
-      else
-        start_slice_idx = 1;
+        fprintf('Apply %s to layer %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
       end
       
       cmd = [];
-      for slice_idx = start_slice_idx:length(slices)
-        slice = slices(slice_idx);
+      for slice = slices(:).'
         % Create ground truth input
         % 1. Each column is one ground truth input
         % 2. Row 1: x, Row 2: y
         if numel(slices)>1
           fprintf('Slice %d\n',slice);
         end
-        if get(obj.gui.previousCB,'Value')
-          slice_prev = slices(slice_idx-1);
-          if slice_idx == 2
-            gt = [sb.sd.surf(active_idx).x(:,slice_prev).'-1; ...
-              sb.sd.surf(active_idx).y(:,slice_prev).'+0.5];
-          else
-            gt = [sb.sd.surf(active_idx).x(:,slice_prev).'-1; ...
-              labels(:).'+0.5];
-          end
+        if get(obj.gui.previousCB,'Value') && slice > 1
+          gt = [sb.layer(active_idx).x(cols(1:end),slice-1).'-1; ...
+            sb.layer(active_idx).y(cols(1:end),slice-1).'+0.5];
         else
           gt = [];
         end
         if ~isempty(control_idx)
-          mask = isfinite(sb.sd.surf(control_idx).x(:,slice)) ...
-            & isfinite(sb.sd.surf(control_idx).y(:,slice));
-          gt = cat(2,gt,[sb.sd.surf(control_idx).x(mask,slice).'-1; ...
-            sb.sd.surf(control_idx).y(mask,slice).'+0.5]);        
-          [~,unique_idxs] = unique(gt(1,:),'last','legacy');
+          mask = isfinite(sb.layer(control_idx).x(:,slice)) ...
+            & isfinite(sb.layer(control_idx).y(:,slice));
+          gt = cat(2,gt,[sb.layer(control_idx).x(mask,slice).'-1; ...
+            sb.layer(control_idx).y(mask,slice).'+0.5]);
+          [~,unique_idxs] = unique(gt(1,:),'last');
           gt = gt(:,unique_idxs);
-          viterbi_weight = ones([1 (size(sb.data,2))]);
-          viterbi_weight(1 + gt(1,:)) = 2;
           [~,sort_idxs] = sort(gt(1,:));
           gt = gt(:,sort_idxs);
-          bottom_bin = sb.sd.surf(control_idx).y(ceil(size(sb.data,2)/2)+1,slice);
+          bottom_bin = sb.layer(control_idx).y(ceil(size(sb.data,2)/2)+1,slice);
         else
           bottom_bin = NaN;
-          viterbi_weight = ones([1 length(gt)]);
         end
-
+        
         if isempty(surf_idx)
-          surf_bins = NaN*sb.sd.surf(active_idx).y(:,slice);
+          surf_bins = NaN*sb.layer(active_idx).y(:,slice);
         else
-          surf_bins = sb.sd.surf(surf_idx).y(:,slice);
+          surf_bins = sb.layer(surf_idx).y(:,slice);
         end
         surf_bins(isnan(surf_bins)) = -1;
+        
         bottom_bin(isnan(bottom_bin)) = -1;
         
         if isempty(mask_idx)
           mask = ones(size(sb.data,2),1);
         else
-          mask = sb.sd.surf(mask_idx).y(:,slice);
+          mask = sb.layer(mask_idx).y(:,slice);
         end
         
-        detect_data = sb.data(:,:,slice);
-        detect_data(detect_data>threshold) = threshold;
-        detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
+        viterbi_data = sb.data(:,:,slice);
+        viterbi_data(viterbi_data>threshold) = threshold;
+        viterbi_data = fir_dec(viterbi_data.',hanning(3).'/3,1).';
 
-        bounds = [1 (size(sb.data,2))];
+        labels = tomo.viterbi(double(viterbi_data), ...
+          double(surf_bins), double(bottom_bin), ...
+          double(gt), double(mask), ...
+          double(obj.custom_data.mu), double(obj.custom_data.sigma),-1,double(egt_weight), ...
+          double(smooth_weight), double(smooth_var), double(slope));
 
-        mu_size       = 11;
-        mu            = sinc(linspace(-1.5, 1.5, mu_size));
-        sigma         = sum(mu)/20*ones(1,mu_size);
-        smooth_var    = -1;      
-        smooth_weight = 45;
-        repulsion     = 250;
-        ice_bin_thr   = 3;
-
-        %%%% TO COMPILE
-        if 0
-            tmp = pwd;
-            cd ~/scripts/cresis-toolbox/cresis-toolbox/+tomo/
-            mex -largeArrayDims viterbi.cpp
-            cd(tmp);
-        end
-        %%%%
-        
-        % Call viterbi.cpp
-        tic
-        labels = tomo.viterbi(double(detect_data), ...
-        double(surf_bins), double(bottom_bin), ...
-        double(gt), double(mask), ...
-        double(mu), double(sigma), double(egt_weight), ...
-        double(smooth_weight), double(smooth_var), double(slope), ...
-        int64(bounds), double(viterbi_weight), ...
-        double(repulsion), double(ice_bin_thr));
-        toc
-
-        % Create cmd for surface change
+        % Create cmd for layer change
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
-        cmd{end}.undo.surf = active_idx;
-        cmd{end}.redo.surf = active_idx;
+        cmd{end}.undo.layer = active_idx;
+        cmd{end}.redo.layer = active_idx;
         cmd{end}.undo.x = cols;
-        cmd{end}.undo.y = sb.sd.surf(active_idx).y(cols,slice);
+        cmd{end}.undo.y = sb.layer(active_idx).y(cols,slice);
         cmd{end}.redo.x = cols;
         cmd{end}.redo.y = labels(cols);
         cmd{end}.type = 'standard';
@@ -191,25 +195,24 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
       obj.h_fig = figure('Visible','off','DockControls','off', ...
         'NumberTitle','off','ToolBar','none','MenuBar','none','Resize','off');
       if strcmpi(class(obj.h_fig),'double')
-        set(obj.h_fig,'Name',sprintf('%d: detect tool prefs',obj.h_fig));
+        set(obj.h_fig,'Name',sprintf('%d: viterbi tool prefs',obj.h_fig));
       else
-        set(obj.h_fig,'Name',sprintf('%d: detect tool prefs',obj.h_fig.Number));
+        set(obj.h_fig,'Name',sprintf('%d: viterbi tool prefs',obj.h_fig.Number));
       end
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       pos = get(obj.h_fig,'Position');
       pos(3) = 200;
-      pos(4) = 140;
+      pos(4) = 130;
       set(obj.h_fig,'Position',pos);
       
       % Slice range
       obj.gui.slice_rangeTXT = uicontrol('Style','text','string','Slice range');
-      set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
+      set(obj.gui.slice_rangeTXT,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
       
       obj.gui.slice_rangeLE = uicontrol('parent',obj.h_fig);
-  
       set(obj.gui.slice_rangeLE,'style','edit')
-      set(obj.gui.slice_rangeLE,'string','-1:0')
-      set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-1:10" or "1:-1:-10".');
+      set(obj.gui.slice_rangeLE,'string','0')
+      set(obj.gui.slice_rangeLE,'TooltipString','Enter a vector specifying relative range in slices. E.g. "-5:5".');
       
       % Threshold
       obj.gui.thresholdTXT = uicontrol('Style','text','string','Threshold');
@@ -333,5 +336,3 @@ classdef (HandleCompatible = true) slicetool_detect < imb.slicetool
   end
   
 end
-
-

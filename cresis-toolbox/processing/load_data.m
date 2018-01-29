@@ -54,7 +54,7 @@ try; toc; catch; tic; end;
 physical_constants;
 
 % Load records file
-records_fn = ct_filename_support(param,param.load_data.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 old_param_records = records.param_records;
 recs(1) = param.load_data.recs(1);

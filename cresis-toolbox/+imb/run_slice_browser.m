@@ -31,7 +31,7 @@ elseif 0
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
   
-else
+elseif 0
   param.radar_name = 'rds';
   param.season_name = '2016_Antarctica_DC8';
   out_type = 'music3D';
@@ -41,6 +41,18 @@ else
   geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
   ice_mask_fn = '';
   bounds_relative = [8 8 0 0];
+  
+else
+  param.radar_name = 'rds';
+  param.season_name = '2013_Antarctica_Basler';
+  out_type = 'NDH_music';
+  surfdata_source = '';
+  param.day_seg = '20140104_03';
+  frm = 2;
+  geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
+  ice_mask_fn = '';
+  bounds_relative = [8 8 0 0];
+
 end
 
 %% Automated Section
@@ -69,20 +81,20 @@ sb_param.bounds_relative = bounds_relative;
 try; delete(obj); end;
 obj = imb.slice_browser(10*log10(mdata.Topography.img),[],sb_param);
 
-try; delete(detect_tool); end;
-detect_tool = imb.slicetool_detect();
+try; delete(viterbi_tool); end;
+viterbi_tool = imb.slicetool_viterbi();
 if isfield(mdata.Topography,'mu')
   % This field is only present after training has been run
   custom_data.mu = mdata.Topography.mu;
   custom_data.sigma = mdata.Topography.sigma;
 end
-detect_tool.set_custom_data(custom_data);
-obj.insert_tool(detect_tool);
+% viterbi_tool.set_custom_data(custom_data);
+obj.insert_tool(viterbi_tool);
 
-try; delete(extract_tool); end;
-extract_tool = imb.slicetool_extract();
-extract_tool.set_custom_data(custom_data);
-obj.insert_tool(extract_tool);
+try; delete(trws_tool); end;
+trws_tool = imb.slicetool_trws();
+% trws_tool.set_custom_data(custom_data);
+obj.insert_tool(trws_tool);
 
 try; delete(max_tool); end;
 max_tool = imb.slicetool_max();
@@ -124,6 +136,6 @@ if ~isempty(ice_mask_fn)
   custom_data.sb = obj;
   custom_data.reduce_flag = 1;
   custom_data.ice_mask_layer = 3;
-  icemask_tool.set_custom_data(custom_data);
+%   icemask_tool.set_custom_data(custom_data);
   obj.insert_tool(icemask_tool);
 end

@@ -47,7 +47,7 @@ if any(strcmp(radar_name,{'icards','mcrds','mcords','mcords2','mcords3','mcords4
 %   outputs = {'CSARP_qlook','CSARP_standard','CSARP_mvdr','CSARP_layerData','CSARP_out'};
   outputs = {'CSARP_qlook','CSARP_standard','CSARP_mvdr'};
 %   outputs = {'CSARP_qlook','CSARP_csarp-combined'};
-  outputs_post_dir = '';
+  outputs_post_dir = 'CSARP_post';
   images = {'maps','echo'};
   pdf_en = 1;
   csv_outputs = {'csv','csv_good','kml','kml_good'};
@@ -74,7 +74,7 @@ gps_sources = {'atm-final_20170620'}; % Leave empty/undefined to not check gps_s
 processing_date_check = []; % Leave empty/undefined to not check processing date
 frm_types = {-1,0,-1,-1,-1};
 delete_bad_files = false;
-check_echogram_type = false; % Should be checked at least once before data posting
+check_echogram_type = true; % Should be checked at least once before data posting
 check_for_bad_files = true;
 enable_all_without_do_not_process = true;
 

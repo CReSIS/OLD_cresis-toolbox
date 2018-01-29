@@ -40,9 +40,9 @@ for layer_idx = 1:length(cur_layers)
       interp1(param.layer.x(manual_idxs),param.layer.y{cur_layer}(manual_idxs),param.layer.x(auto_idxs),interp_type), ...
       2*ones(size(auto_idxs)), param.cur_quality*ones(size(auto_idxs))};
     
-    if get(obj.panel.reinterp_mode_cbox,'Value')==1
-      % Need to implement
-    end
+%     if get(obj.panel.reinterp_mode_cbox,'Value')==1
+%       % Need to implement
+%     end
   end
 end
 

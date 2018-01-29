@@ -19,14 +19,22 @@ function create_surfdata(param,mdata)
 %     'fillgaps': will only update the specified layers if they did not
 %       already exist
 %   .surfdata_cmds: struct of surfdata commands to run
-%     .cmd: String with command: 'detect', 'extract', 'viterbi', or 'trws'
+%     .cmd: String with command: 'detect', 'dem', 'extract', 'viterbi', or 'trws'
 %     .surf_names: String or cell array of strings with surface names to be
 %       updated by the results of the command
 %     .visible: The visibility setting for this layer
 %     DETECT parameters
 %     .data_threshold: pixel values above this will be clipped (default is 13.5)
+%     DEM parameters
+%     .dem_fn: filename to geotiff with DEM
 %     EXTRACT parameters
 %     .data_threshold: pixel values above this will be clipped (default is 13.5)
+%     VITERBI parameters
+%     .smooth_weight: smoothness weight (scalar, default is 55)
+%     .smooth_var: smoothness variance (scalar, default is -1)
+%     .repulsion: surface repulsion scaling factor (scalar, default is 150)
+%     .egt_weight: extra ground-truth weight (scalar, default is 10)
+%     .ice_bin_thr: ice_mask scanning threshold (scalar, default is 3)
 %     TRWS parameters
 %     .smooth_weight: smoothness weight [] (default is [22 22])
 %     .smooth_var: Gaussian weighting in the elevation angle bin dimension (default is 32)
@@ -365,6 +373,147 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         'gt','bottom gt','quality','bottom quality');
     end
     
+  elseif strcmpi(cmd,'dem')
+    %% Run DEM
+    
+    param.tomo_collate.surfdata_cmds(cmd_idx).dem_bad_value = -32767;
+    param.tomo_collate.surfdata_cmds(cmd_idx).dem_guard = 12e3;
+    param.tomo_collate.surfdata_cmds(cmd_idx).dem_per_slice_guard = 240;
+    
+    % Load Geotiff projection information
+    proj = geotiffinfo(param.tomo_collate.surfdata_cmds(cmd_idx).dem_fn);
+    
+    % Load Geotiff raster, convert to double, set bad values to NaN
+    [DEM, R, ~] = geotiffread(param.tomo_collate.surfdata_cmds(cmd_idx).dem_fn);
+    DEM = double(DEM);
+    DEM(DEM==param.tomo_collate.surfdata_cmds(cmd_idx).dem_bad_value) = NaN;
+    
+    % Create Geotiff axes
+    DEM_x = R(3,1) + R(2,1)*(0:size(DEM,2)-1);
+    DEM_y = R(3,2) + R(1,2)*(0:size(DEM,1)-1);
+    
+    DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
+    DEM_y_mesh= repmat(DEM_y',[1 size(DEM,2)]);
+
+    % Project flight line to DEM coordinates
+    [mdata.x,mdata.y] = projfwd(proj,mdata.Latitude,mdata.Longitude);
+
+    % Process inputs
+    dem_guard = param.tomo_collate.surfdata_cmds(cmd_idx).dem_guard;
+    dem_per_slice_guard = param.tomo_collate.surfdata_cmds(cmd_idx).dem_per_slice_guard;
+    
+    top_idx = sd.get_index('top');
+    
+    theta = mdata.param_combine.array_param.theta;
+    if isfield(param.tomo_collate,'sv_cal_fn') && ~isempty(param.tomo_collate.sv_cal_fn)
+      theta_cal = load(param.tomo_collate.sv_cal_fn);
+      theta = theta_cal.theta;
+      theta_cal = theta;
+    end
+
+    % Loop to create dem_surface from DEM one range line at a time
+    dem_surface = NaN*zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
+    for rline = 1:size(mdata.Topography.img,3)
+      if ~mod(rline-1,500)
+        fprintf('  DEM %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
+      end
+      
+      DEM_mask = DEM_x_mesh > mdata.x(rline)-dem_guard & DEM_x_mesh < mdata.x(rline)+dem_guard ...
+        & DEM_y_mesh > mdata.y(rline)-dem_guard & DEM_y_mesh < mdata.y(rline)+dem_guard ...
+        & ~isnan(DEM);
+      DEM_idxs = find(DEM_mask);
+      
+      if numel(DEM_idxs)==0
+        % warning('Range Line %d of Frame %d is not spanned by DEM.',rline,param.proc.frm);
+        continue;
+      end
+      
+      % Convert from projection to geodetic (lat,lon,elev)
+      [DEM_lat,DEM_lon] = projinv(proj,DEM_x_mesh(DEM_idxs),DEM_y_mesh(DEM_idxs));
+      DEM_elev = DEM(DEM_idxs);
+      
+      if all(isnan(DEM(DEM_idxs)))
+        continue;
+      end
+      
+      % Convert from geodetic (lat,lon,elev) to ECEF (x,y,z)
+      physical_constants;
+      [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
+      
+      origin = mdata.param_combine.array_param.fcs{1}{1}.origin(:,rline);
+      
+      % Convert from ECEF to FCS/SAR
+      Tfcs_ecef = [mdata.param_combine.array_param.fcs{1}{1}.x(:,rline), ...
+        mdata.param_combine.array_param.fcs{1}{1}.y(:,rline), ...
+        mdata.param_combine.array_param.fcs{1}{1}.z(:,rline)];
+      Tecef_fcs = inv(Tfcs_ecef);
+      
+      tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];
+      DEM_fcs_x = tmp(1,:);
+      DEM_fcs_y = tmp(2,:);
+      DEM_fcs_z = tmp(3,:);
+      
+      slice_mask = DEM_fcs_x > -dem_per_slice_guard & DEM_fcs_x < dem_per_slice_guard;
+      
+      x = DEM_fcs_x(slice_mask);
+      y = DEM_fcs_y(slice_mask);
+      z = DEM_fcs_z(slice_mask);
+      
+      if(numel(x)>=3)
+        faces = delaunay(double(x),double(y));
+        vertices = [double(x).' double(y).' double(z).'];  % vertices stored as Nx3 matrix
+        vert1 = vertices(faces(:,1),:);
+        vert2 = vertices(faces(:,2),:);
+        vert3 = vertices(faces(:,3),:);
+        
+        twtt = NaN*zeros(size(mdata.Topography.img,2),1);
+        for theta_idx = 1:length(theta)
+          % Find the point on the top surface
+          top_twtt = interp1(1:length(mdata.Time),mdata.Time,sd.surf(top_idx).y(theta_idx));
+          top_orig = [0 sin(theta(theta_idx))*top_twtt*c/2 -cos(theta(theta_idx))*top_twtt*c/2];
+          
+          % Calculate refraction
+          theta_refract = asin(sin(theta(theta_idx))/sqrt(er_ice));
+          
+          dir = [0 sin(theta_refract) -cos(theta_refract)];
+          
+          [intersect, t] = TriangleRayIntersection(top_orig, dir, vert1, vert2, vert3);
+          
+          intersect_idx = find(intersect);
+          
+          if isempty(intersect_idx)
+            twtt(theta_idx) = NaN;
+          else
+            twtt(theta_idx) = top_twtt + t(intersect_idx(1))/(c/2/sqrt(er_ice));
+          end
+        end
+        dem_surface(:,rline) = interp1(mdata.Time,1:length(mdata.Time),twtt);
+        
+      end
+      
+    end
+    
+    for surf_name_idx = 1:length(surf_names)
+      surf_name = surf_names{surf_name_idx};
+      try
+        surf = sd.get_surf(surf_name);
+        if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
+          surf.y = dem_surface;
+          sd.set_surf(surf);
+        end
+      catch ME
+        surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
+        surf.y = dem_surface;
+        surf.plot_name_values = {'color','green','marker','^'};
+        surf.name = surf_name;
+        surf.visible = visible;
+        sd.insert_surf(surf);
+      end
+      sd.set(surf_name,'top','top','active','bottom','mask','ice mask', ...
+        'gt','bottom gt','quality','bottom quality');
+    end
+    
   elseif strcmpi(cmd,'extract')
     %% Run extract
     fprintf('  Extract (%s)\n', datestr(now));
@@ -415,38 +564,92 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     %% Run Viterbi
     viterbi_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
     bounds = [param.tomo_collate.bounds_relative(1) size(data,2)-1-param.tomo_collate.bounds_relative(2)];
+    
+    % Check for smoothness weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight)
+      smooth_weight = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight;
+    else
+      smooth_weight = 55; % schu
+    end
+    % Check for smoothness variance
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_var') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var)
+      smooth_var = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var;
+    else
+      smooth_var = -1;
+    end
+    % Check for repulsion weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'repulsion') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).repulsion)
+      repulsion = param.tomo_collate.surfdata_cmds(cmd_idx).repulsion;
+    else
+      repulsion = 150; % schu
+    end
+    % Check for extra ground truth weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'egt_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).egt_weight)
+      egt_weight = param.tomo_collate.surfdata_cmds(cmd_idx).egt_weight;
+    else
+      egt_weight = 10;
+    end
+    % Check for viterbi weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'viterbi_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).viterbi_weight)
+      viterbi_weight = param.tomo_collate.surfdata_cmds(cmd_idx).viterbi_weight;
+    else
+      viterbi_weight = ones([1 size(data,2)]);
+      viterbi_weight(round(size(data,2))+1) = 2;
+    end
+    % Check for ice_mask scanning threshold
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'ice_bin_thr') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).ice_bin_thr)
+      ice_bin_thr = param.tomo_collate.surfdata_cmds(cmd_idx).ice_bin_thr;
+    else
+      ice_bin_thr = 3;
+    end
+    % Check for slope
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'slope') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).slope)
+      slope = param.tomo_collate.surfdata_cmds(cmd_idx).slope;
+    else
+      slope = zeros(1, size(data,2)-1);
+    end
+    % Check for mass conservation
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'mc') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).mc)
+      mc = param.tomo_collate.surfdata_cmds(cmd_idx).mc;
+    else
+      mc = -1 * ones(1, size(data,2));
+    end
+    % Check for mass conservation weight
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'mc_weight') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).mc_weight)
+      mc_weight = param.tomo_collate.surfdata_cmds(cmd_idx).mc_weight;
+    else
+      mc_weight = 0;
+    end
+    
     for rline = 1:size(mdata.Topography.img,3)
       if ~mod(rline-1,500)
         fprintf('  Viterbi %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
       end
       
-      mu_size       = 11;
-      mu            = sinc(linspace(-1.5, 1.5, mu_size));
-      sigma         = sum(mu)/20*ones(1,mu_size);
-      smooth_var    = -1;
-      smooth_weight = 45; % 55
-      repulsion     = 250; % 150
-      smooth_weight = 55; % schu
-      repulsion     = 150; % schu
-      ice_bin_thr   = 3;
-      
       detect_data = data(:,:,rline);
-      surf_bins = twtt_bin(:,rline).';
-      bottom_bin = Bottom_bin(rline);
-      gt = [33; bottom_bin];
-      viterbi_weight = ones([1 size(data,2)]);
-      viterbi_weight(gt(1,:)) = 2;
-      mask = ice_mask(:,rline).';
-      egt_weight = 10;
-      slope = zeros(1,63);
+      surf_bins   = twtt_bin(:,rline).';
+      bottom_bin  = Bottom_bin(rline);
+      gt          = [33; bottom_bin];
+      mask        = ice_mask(:,rline).';
+      mu_size     = 11;
+      mu          = sinc(linspace(-1.5, 1.5, mu_size));
+      sigma       = sum(mu)/20*ones(1,mu_size);
       
-      labels = tomo.viterbi(double(detect_data), ...
-        double(surf_bins), double(bottom_bin), ...
-        double(gt), double(mask), ...
-        double(mu), double(sigma), double(egt_weight), ...
-        double(smooth_weight), double(smooth_var), double(slope), ...
-        int64(bounds), double(viterbi_weight), ...
-        double(repulsion), double(ice_bin_thr), 1);
+      labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
+        double(bottom_bin), double(gt), double(mask), double(mu), ...
+        double(sigma), double(egt_weight), double(smooth_weight), ...
+        double(smooth_var), double(slope), int64(bounds), ...
+        double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
+        double(mc), double(mc_weight));
       
       viterbi_surface(:,rline) = labels;
     end
@@ -476,18 +679,21 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     %% Run TRW-S
     fprintf('  TRW-S (%s)\n', datestr(now));
     
+    % Check for smoothness weight
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_weight') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight)
       smooth_weight = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight;
     else
       smooth_weight = [22 22];
     end
+    % Check for smoothness variance
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_var') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var)
       smooth_var = param.tomo_collate.surfdata_cmds(cmd_idx).smooth_var;
     else
       smooth_var = 32;
     end
+    % Check for max number of loops
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'max_loops') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).max_loops)
       max_loops = param.tomo_collate.surfdata_cmds(cmd_idx).max_loops;
@@ -531,6 +737,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
   end
 end
+
+keyboard
 
 fprintf('Done (%s)\n', datestr(now));
 

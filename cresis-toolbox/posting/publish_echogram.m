@@ -41,9 +41,6 @@ end
 if ~isfield(param,'axis_type') || isempty(param.axis_type)
   param.axis_type = 'standard';
 end
-if ~isfield(param,'plot_quality') || isempty(param.plot_quality) 
-  param.plot_quality = false;
-end
 if ~isfield(param,'caxis') || isempty(param.caxis) 
   param.caxis = [];
 end
@@ -54,6 +51,14 @@ end
 if ~isfield(param,'time_offset') || isempty(param.time_offset) 
   % Adds an offset to the two way travel time tics (in seconds)
   param.time_offset = 0;
+end
+if ~isfield(param,'plot_quality') || isempty(param.plot_quality) 
+  if isfield(lay.layerData{1},'quality')
+    % Color of layer plots will represent the quality level
+    param.plot_quality = true;
+  else
+    param.plot_quality = false;
+  end
 end
 if ~isreal(mdata.Data)
   warning('Input data are complex. Taking the abs()^2 of the data.');
@@ -605,28 +610,38 @@ echo_info.h_title = title(ah_echo,sprintf('Data Frame ID: %s', param.frm_id),'In
 hold on
 if param.plot_quality
   
+  % Surface
+  moderate_mask = lay.Surface_Quality~=2;
+  derived_mask = lay.Surface_Quality~=3;
+  good_mask = lay.Surface_Quality==2 | lay.Surface_Quality==3;
+  
   tmp_layer = DSurface;
-  tmp_layer(lay.Surface_Quality~=1) = NaN;
+  tmp_layer(good_mask) = NaN;
   echo_info.h_surf(1) = plot(tmp_layer,'g--');
   
   tmp_layer = DSurface;
-  tmp_layer(lay.Surface_Quality~=2) = NaN;
+  tmp_layer(moderate_mask) = NaN;
   echo_info.h_surf(2) = plot(tmp_layer,'y--');
   
   tmp_layer = DSurface;
-  tmp_layer(lay.Surface_Quality~=3) = NaN;
+  tmp_layer(derived_mask) = NaN;
   echo_info.h_surf(3) = plot(tmp_layer,'r--');
   
+  % Bottom
+  moderate_mask = lay.Bottom_Quality~=2;
+  derived_mask = lay.Bottom_Quality~=3;
+  good_mask = lay.Bottom_Quality==2 | lay.Bottom_Quality==3;
+  
   tmp_layer = DBottom;
-  tmp_layer(lay.Bottom_Quality~=1) = NaN;
+  tmp_layer(good_mask) = NaN;
   echo_info.h_bot(1) = plot(tmp_layer,'g--');
   
   tmp_layer = DBottom;
-  tmp_layer(lay.Bottom_Quality~=2) = NaN;
+  tmp_layer(moderate_mask) = NaN;
   echo_info.h_bot(2) = plot(tmp_layer,'y--');
   
   tmp_layer = DBottom;
-  tmp_layer(lay.Bottom_Quality~=3) = NaN;
+  tmp_layer(derived_mask) = NaN;
   echo_info.h_bot(3) = plot(tmp_layer,'r--');
 else
   echo_info.h_surf = plot(ah_echo,DSurface,'--m');

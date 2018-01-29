@@ -146,11 +146,11 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool_list{end+1} = imb.picktool_detect;
+obj.tool_list{end+1} = imb.picktool_viterbi;
 addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click: Enters a manual point based on parameters
 %   Find max in range (specify range line/bin extent to search)
-% Left click and drag: Runs tomo.detect algorithm on selected data.
+% Left click and drag: Runs tomo.viterbi algorithm on selected data.
 % Right click: Set cursor point
 % Right click and drag: Delete all points in range
 % Scroll: Zooms in/out

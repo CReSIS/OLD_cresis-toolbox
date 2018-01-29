@@ -14,7 +14,7 @@ x = param.x;
 y = param.y;
 cmds = [];
 
-fprintf('Detecting (HMM) points %f to %f, %f to %f\n', x, y);
+fprintf('Performing viterbi tracking on points %f to %f, %f to %f\n', x, y);
 
 param.x_bounds = 3;
 param.y_bounds = 1;
@@ -30,7 +30,7 @@ if tool_idx == 1
     [manual_idxs,auto_idxs,point_idxs] = find_matching_pnts(obj,param,cur_layer);
     
     if length(manual_idxs) < 1
-      warning('Insufficient points to detect');
+      warning('Insufficient points to track');
       continue;
     elseif ~isempty(auto_idxs)
       
@@ -50,7 +50,7 @@ if tool_idx == 1
       gt = [param.layer.x(manual_idxs); interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs))];
       
       % Echogram Parameters
-      detect_data    = image_c;
+      viterbi_data    = image_c;
       bottom_bin     = -1;
       mask           = ones([1 Nx]);
       egt_weight     = -1;
@@ -66,7 +66,8 @@ if tool_idx == 1
       smooth_var     = inf;
       repulsion      = 150000;
       ice_bin_thr    = 10;
-      mult_weight    = 100;
+      mc             = -1 * ones(1, Nx);
+      mc_weight      = 0;
       
       offset = gt(1,1) - x(1);
       if(gt(1,2) + offset > length(image_x))
@@ -75,29 +76,27 @@ if tool_idx == 1
       
       %% Detrending
       if 1
-%         detect_data    = image_c;        
         % Along track filtering
-        detect_data = fir_dec(detect_data,ones(1,5)/5,1);        
+        viterbi_data = fir_dec(viterbi_data,ones(1,5)/5,1);
         % Estimate noise level
-        noise_value = mean(mean(detect_data(end-80:end-60,:)));        
+        noise_value = mean(mean(viterbi_data(end-80:end-60,:)));
         % Estimate trend
-        trend = mean(detect_data,2);
-        trend(trend<noise_value) = noise_value;        
+        trend = mean(viterbi_data,2);
+        trend(trend<noise_value) = noise_value;
         % Subtract trend
-        detect_data = bsxfun(@minus,detect_data,trend);        
+        viterbi_data = bsxfun(@minus,viterbi_data,trend);
         % Remove bad circular convolution wrap around at end of record
-        detect_data(end-70:end,:) = 0;
+        viterbi_data(end-70:end,:) = 0;
       end
-
+      
       %% Call viterbi.cpp
       tic
-      labels = tomo.viterbi(double(detect_data), ...
-        double(surf_bins), double(bottom_bin), ...
-        double(gt), double(mask), ...
-        double(mu), double(sigma), double(egt_weight), ...
-        double(smooth_weight), double(smooth_var), double(slope), ...
-        int64(bounds), double(viterbi_weight), ...
-        double(repulsion), double(ice_bin_thr), double(mult_weight));
+      labels = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
+        double(bottom_bin), double(gt), double(mask), double(mu), ...
+        double(sigma), double(egt_weight), double(smooth_weight), ...
+        double(smooth_var), double(slope), int64(bounds), ...
+        double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
+        double(mc), double(mc_weight));
       toc
       
       % Correct layer offset
