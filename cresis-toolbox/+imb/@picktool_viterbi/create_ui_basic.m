@@ -2,7 +2,7 @@ function create_ui_basic(obj,xpos,ypos)
 
 % create_ui_basic(obj,xpos,ypos)
 %
-% Creates components for the HMM param window's UI when the detect
+% Creates components for the HMM param window's UI when the Viterbi
 % tool is selected. Plots the window at xpos,ypos.
 %
 
@@ -71,14 +71,14 @@ set(obj.top_panel.insert_range_label,'String','Max point range:');
 obj.top_panel.insert_range_TE = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.insert_range_TE,'Style','edit');
 set(obj.top_panel.insert_range_TE,'String',obj.in_rng_sv);
-%----Detect search range name
-obj.top_panel.Detect_range_label = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.Detect_range_label,'Style','text');
-set(obj.top_panel.Detect_range_label,'String','HMM detection range:');
-%----Detect search range box
-obj.top_panel.Detect_range_TE = uicontrol('Parent',obj.top_panel.handle);
-set(obj.top_panel.Detect_range_TE,'Style','edit');
-set(obj.top_panel.Detect_range_TE,'String',obj.sn_rng_sv);
+%----Viterbi search range name
+obj.top_panel.Viterbi_range_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.Viterbi_range_label,'Style','text');
+set(obj.top_panel.Viterbi_range_label,'String','HMM detection range:');
+%----Viterbi search range box
+obj.top_panel.Viterbi_range_TE = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.Viterbi_range_TE,'Style','edit');
+set(obj.top_panel.Viterbi_range_TE,'String',obj.sn_rng_sv);
 %----reinterp mode enable label
 obj.top_panel.reinterp_mode_label = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.reinterp_mode_label,'Style','text');
@@ -125,14 +125,14 @@ obj.top_panel.table.width_margin(row,col)= 1.5;
 obj.top_panel.table.height_margin(row,col)=1.5;
 
 row = 3; col = 1;
-obj.top_panel.table.handles{row,col}   = obj.top_panel.Detect_range_label;
+obj.top_panel.table.handles{row,col}   = obj.top_panel.Viterbi_range_label;
 obj.top_panel.table.width(row,col)     = inf;
 obj.top_panel.table.height(row,col)    = inf;
 obj.top_panel.table.width_margin(row,col)= 1.5;
 obj.top_panel.table.height_margin(row,col)=1.5;
 
 row = 3; col = 2; 
-obj.top_panel.table.handles{row,col}   = obj.top_panel.Detect_range_TE;
+obj.top_panel.table.handles{row,col}   = obj.top_panel.Viterbi_range_TE;
 obj.top_panel.table.width(row,col)     = inf;
 obj.top_panel.table.height(row,col)    = inf;
 obj.top_panel.table.width_margin(row,col)= 1.5;
