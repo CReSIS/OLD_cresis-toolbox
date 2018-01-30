@@ -83,17 +83,10 @@ obj = imb.slice_browser(10*log10(mdata.Topography.img),[],sb_param);
 
 try; delete(viterbi_tool); end;
 viterbi_tool = imb.slicetool_viterbi();
-if isfield(mdata.Topography,'mu')
-  % This field is only present after training has been run
-  custom_data.mu = mdata.Topography.mu;
-  custom_data.sigma = mdata.Topography.sigma;
-end
-% viterbi_tool.set_custom_data(custom_data);
 obj.insert_tool(viterbi_tool);
 
 try; delete(trws_tool); end;
 trws_tool = imb.slicetool_trws();
-% trws_tool.set_custom_data(custom_data);
 obj.insert_tool(trws_tool);
 
 try; delete(max_tool); end;
@@ -136,6 +129,6 @@ if ~isempty(ice_mask_fn)
   custom_data.sb = obj;
   custom_data.reduce_flag = 1;
   custom_data.ice_mask_layer = 3;
-%   icemask_tool.set_custom_data(custom_data);
+  icemask_tool.set_custom_data(custom_data);
   obj.insert_tool(icemask_tool);
 end

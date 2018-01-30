@@ -10,6 +10,8 @@
 //           2017-2018
 //
 // See also: viterbi_lib.h
+//
+// mex -v -largeArrayDims viterbi.cpp
 
 #include "viterbi_lib.h"
 

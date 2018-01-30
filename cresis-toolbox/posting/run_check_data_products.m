@@ -68,10 +68,12 @@ elseif any(strcmp(radar_name,{'kaband3','kuband3','snow3','kuband2','snow2','kub
   pdf_en = 0;
   csv_en = 0;
 end
-gps_sources = {'atm-final_20170620'}; % Leave empty/undefined to not check gps_sources
-% processing_date_check = datenum(2012,09,01); % Leave empty/undefined to not check porcessing date
+gps_sources = {'atm-final_20170620'}; % Should be checked at least once before data posting
 % gps_sources = {}; % Leave empty/undefined to not check gps_sources
+
+% processing_date_check = datenum(2012,09,01); % Leave empty/undefined to not check porcessing date
 processing_date_check = []; % Leave empty/undefined to not check processing date
+
 frm_types = {-1,0,-1,-1,-1};
 delete_bad_files = false;
 check_echogram_type = true; % Should be checked at least once before data posting

@@ -338,7 +338,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       obj.gui.rightEdgeCB = uicontrol('parent',obj.h_fig);
       set(obj.gui.rightEdgeCB,'style','checkbox')
       set(obj.gui.rightEdgeCB,'string','R')
-      set(obj.gui.rightEdgeCB,'value',0)
+      set(obj.gui.rightEdgeCB,'value',1)
       set(obj.gui.rightEdgeCB,'TooltipString','Check to force a right edge boundary condition.');   
       
       % Top edge
