@@ -139,7 +139,9 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         case 65536
           tmp = fread(fid,profile_len/2,'uint16');
         case 131072
-          tmp = fread(fid,profile_len*2,'int32'); % This might be /4 in some cases???
+          % This might be profile_len/4 in some cases???
+          % This might be int32 in some cases????
+          tmp = fread(fid,profile_len*2,'float32');
           isIQ = 1;
         case 196608
           tmp = fread(fid,profile_len/4,'float32');

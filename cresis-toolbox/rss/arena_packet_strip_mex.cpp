@@ -418,14 +418,17 @@ mexFunction( int nlhs,
               {
                 case 0x00000000:
                 case 0x00010000:
-                  // 16 bit range bins
+                  // num_expected is in units of bytes
+                  // num_expected_bins needs to be adjusted for 16 bit range bins
+                  //  >>1 = /2, 2 byte samples
                   num_expected_bins = num_expected_bins >> 1;
                   break;
                 case 0x00020000:
                 case 0x00030000:
-                  // 64 bit range bins
-                  //num_expected_bins = num_expected_bins >> 3; // Maybe this line should be here?
-                  *num_expected = *num_expected << 3; // Maybe this line should not be here?
+                  // num_expected is in units of bins
+                  // num_expected needs to be adjusted for 8 byte bins:
+                  //   <<3 = *8, 2 IQ channels, 4 byte samples or 2*4 = 8
+                  *num_expected = *num_expected << 3;
                   break;
               }
               if (num_expected_bins < *min_num_expected || num_expected_bins > *max_num_expected)
