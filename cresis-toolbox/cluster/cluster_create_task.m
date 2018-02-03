@@ -48,7 +48,7 @@ if ~isfield(sparam,'task_function') || isempty(sparam.task_function)
   error('sparam.task_function must be specified');
 end
 if isempty(which(sparam.task_function))
-  error('sparam.task_function is not in the path');
+  error('sparam.task_function (%s) is not in the path', sparam.task_function);
 end
 if isfield(dparam,'task_function') && isempty(which(dparam.task_function))
   error('dparam.task_function is not in the path');

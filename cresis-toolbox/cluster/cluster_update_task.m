@@ -140,6 +140,6 @@ if ctrl.error_mask(task_id)
   end
   if bitand(ctrl.error_mask(task_id),errorstruct_contains_error)
     fprintf('  Output file does not exist:\n');
-    errorstruct.getReport
+    warning('%s',out.errorstruct.getReport);
   end
 end
