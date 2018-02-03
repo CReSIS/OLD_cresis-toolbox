@@ -90,8 +90,12 @@ elseif strcmpi(ctrl.cluster.type,'matlab')
   %% Create the job on the matlab cluster/job manager
   new_job = createJob(ctrl.cluster.jm);
   new_job_id = new_job.ID;
-  createTask(new_job,@cluster_job,0,{in_fn,out_fn,task_list_str});
+  task = createTask(new_job,@cluster_job,0,{in_fn,out_fn,task_list_str});
   ctrl.active_jobs = ctrl.active_jobs + 1;
+  while ~strcmpi(task.State,'pending')
+    warning('%s: pausing because task is not in pending state.', mfilename);
+    pause(1);
+  end
   submit(new_job);
   
 elseif strcmpi(ctrl.cluster.type,'debug')

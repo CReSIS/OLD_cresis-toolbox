@@ -151,7 +151,7 @@ end
 
 %% Force check on outputs of all other jobs
 if force_check
-  for task_id = find(ctrl.job_status ~= 'C' && ctrl.job_status ~= 'T')
+  for task_id = find(ctrl.job_status ~= 'C' & ctrl.job_status ~= 'T')
     ctrl = cluster_update_task(ctrl,task_id);
   end
 end

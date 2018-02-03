@@ -72,7 +72,7 @@ if iscell(ctrl_chain)
               % Chain is complete
               active_stage(chain) = inf;
             end
-          elseif all(ctrl.retries >= ctrl.cluster.max_retries)
+          elseif all(ctrl.retries >= ctrl.cluster.max_retries | ~ctrl.error_mask)
             % Stop chain
             active_stage(chain) = -inf;
           end
@@ -99,7 +99,7 @@ if iscell(ctrl_chain)
       if ~any(ctrl.error_mask)
         fprintf('Stage %d succeeded\n', stage);
       else
-        fprintf('  Stage %d failed\n', stage);
+        fprintf('  Stage %d failed (%d of %d tasks failed)\n', stage, sum(ctrl.error_mask~=0), length(ctrl.error_mask));
       end
     end
   end
@@ -141,7 +141,7 @@ elseif isstruct(ctrl_chain)
     ctrl.submission_queue = ctrl.submission_queue(2:end);
   end
   
-  if ~isempty(job_tasks)
+  if ctrl.active_jobs < ctrl.cluster.max_jobs_active && ~isempty(job_tasks)
     [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);
     fprintf('Submitted these tasks in cluster job %d/%d:\n  %d', ctrl.batch_id, new_job_id, job_tasks(1))
     if length(job_tasks) > 1
@@ -149,6 +149,10 @@ elseif isstruct(ctrl_chain)
     end
     fprintf('\n');
     pause(ctrl.cluster.submit_pause);
+    
+  else
+    % Put jobs back in the queue because they can't be run yet
+    ctrl.submission_queue = cat(2,job_tasks,ctrl.submission_queue);
   end
   
   % Return the updated ctrl

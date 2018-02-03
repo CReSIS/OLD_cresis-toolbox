@@ -148,6 +148,8 @@ if ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
   % Job is completed and has an error
   
   if ctrl.retries(task_id) < ctrl.cluster.max_retries
+    delete(out_fn);
+    
     % Update task to ctrl structure
     ctrl.submission_queue = cat(2,ctrl.submission_queue,task_id);
     new_job_status = 'T';

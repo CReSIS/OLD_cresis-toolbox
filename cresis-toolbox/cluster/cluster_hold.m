@@ -18,7 +18,7 @@ function cluster_hold(ctrl,hold_state)
 %   cluster_create_task cluster_hold cluster_job_list cluster_job_status ...
 %   cluster_new_batch cluster_print cluster_rerun
 
-if isstruct(ctrl)
+if exist('ctrl','var') && isstruct(ctrl)
   %% This section actually does the placement/removal of holds
   if ~exist('hold_state','var') || isempty(hold_state)
     % When no hold state passed in, then toggle the hold state
@@ -42,28 +42,26 @@ if isstruct(ctrl)
   
 else
   %% Handle case where a non-structure method of identifying the batch was used
-  if ~isstruct(ctrl)
-    ctrls = cluster_get_batch_list;
-    for batch_idx = 1:length(ctrls)
-      if any(ctrls{batch_idx}.batch_id == ctrl)
-        if ~exist('hold_state','var') || isempty(hold_state)
-          % When no hold state passed in, then toggle the hold state
-          if exist(ctrls{batch_idx}.hold_fn,'file')
-            hold_state = 0;
-          else
-            hold_state = 1;
-          end
+  ctrls = cluster_get_batch_list;
+  for batch_idx = 1:length(ctrls)
+    if ~exist('ctrl','var') || any(ctrls{batch_idx}.batch_id == ctrl)
+      if ~exist('hold_state','var') || isempty(hold_state)
+        % When no hold state passed in, then toggle the hold state
+        if exist(ctrls{batch_idx}.hold_fn,'file')
+          hold_state = 0;
+        else
+          hold_state = 1;
         end
-        if hold_state == 1
-          fprintf(' Placing hold on batch %d\n', ctrls{batch_idx}.batch_id);
-        elseif hold_state == 0
-          fprintf(' Removing hold on batch %d\n', ctrls{batch_idx}.batch_id);
-        end
-        cluster_hold(ctrls{batch_idx},hold_state);
-      else
-        fprintf(' Skipping %d\n', ctrls{batch_idx}.batch_id);
       end
+      if hold_state == 1
+        fprintf(' Placing hold on batch %d\n', ctrls{batch_idx}.batch_id);
+      elseif hold_state == 0
+        fprintf(' Removing hold on batch %d\n', ctrls{batch_idx}.batch_id);
+      end
+      cluster_hold(ctrls{batch_idx},hold_state);
+    else
+      fprintf(' Skipping %d\n', ctrls{batch_idx}.batch_id);
     end
-    return;
   end
+  return;
 end

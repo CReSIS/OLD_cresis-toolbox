@@ -99,21 +99,21 @@ task_id = ctrl.task_id;
 
 %% Create task input file
 if task_id == 1
-  in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
+  static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
   static_param = sparam;
-  robust_save(in_fn,'static_param');
-  in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
+  robust_save(static_in_fn,'static_param');
+  dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
   dparam_task_field = sprintf('dparam_%d',task_id);
   dynamic_param = struct();
   dynamic_param.(dparam_task_field) = dparam;
-  robust_save(in_fn,'-v7.3','-struct','dynamic_param',dparam_task_field);
+  robust_save(dynamic_in_fn,'-v7.3','-struct','dynamic_param',dparam_task_field);
 else
   % Add the dynamic parameters
-  in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
+  dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
   dparam_task_field = sprintf('dparam_%d',task_id);
   dynamic_param = struct();
   dynamic_param.(dparam_task_field) = dparam;
-  robust_save(in_fn,'-append','-struct','dynamic_param',dparam_task_field);
+  robust_save(dynamic_in_fn,'-append','-struct','dynamic_param',dparam_task_field);
 end
 param = merge_structs(sparam,dparam);
 
