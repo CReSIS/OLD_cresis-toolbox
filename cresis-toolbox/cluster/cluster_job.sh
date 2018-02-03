@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Add some debugging information to stdout
-echo "Running cresis-toolbox Worker"
+echo "Running cresis-toolbox cluster_job.{sh,m}"
 id
 hostname
 declare
@@ -15,9 +15,9 @@ export  MCR_CACHE_VERBOSE=1
 # This is a Matlab compiled .m file which calls the specific cresis-toolbox command
 # specified in the environment variables (see worker_task.m for details)
 
-echo "Calling run_worker_task.sh"
-$MATLAB_TORQUE_PATH/run_worker_task.sh $MATLAB_MCR_PATH
-echo "Returned from run_worker_task.sh"
+echo "Calling run_cluster_job.sh"
+$MATLAB_CLUSTER_PATH/run_cluster_job.sh $MATLAB_MCR_PATH
+echo "Returned from run_cluster_job.sh"
 
 date
 

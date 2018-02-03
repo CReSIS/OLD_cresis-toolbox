@@ -58,10 +58,14 @@ for task_idx = 1:length(task_ids)
     eval_cmd = sprintf('%s);', eval_cmd);
     
     argsout = {};
+    errorstruct = [];
     fprintf('  %s: Eval %s\n', mfilename, eval_cmd);
-    eval(eval_cmd);
+    try
+      eval(eval_cmd);
+    catch errorstruct
+    end
     fprintf('  %s: Done eval\n', mfilename);
-    save(out_fn,'argsout');
+    save(out_fn,'argsout','errorstruct');
     
   elseif run_mode == 2
     setenv('INPUT_PATH',ctrl.in_fn_dir);

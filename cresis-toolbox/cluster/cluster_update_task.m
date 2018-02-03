@@ -97,7 +97,7 @@ if ctrl.job_status(task_id) == 'T'
   % This job was not found in the cluster: if output exists, then assume it
   % is 'C' and update error_mask based on output files. Otherwise, assume
   % it has not been submitted yet.
-  if ~out_fn_exist_error
+  if ~bitand(error_mask,out_fn_exist_error)
     ctrl.job_status(task_id) = 'C';
     ctrl.error_mask(task_id) = error_mask;
   end
@@ -114,7 +114,7 @@ else
   % is 'C' and update error_mask based on output files. Make sure this job
   % is not in the submission queue.
   ctrl.submission_queue = ctrl.submission_queue(ctrl.submission_queue~=task_id);
-  if ~out_fn_exist_error
+  if ~bitand(error_mask,out_fn_exist_error)
     ctrl.job_status(task_id) = 'C';
     ctrl.error_mask(task_id) = error_mask;
   end
