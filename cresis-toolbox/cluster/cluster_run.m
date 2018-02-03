@@ -40,52 +40,67 @@ if iscell(ctrl_chain)
   %% Traverse chain list
   active_stage = ones(numel(ctrl_chain),1);
   first_run = ones(numel(ctrl_chain),1);
-  while block && any(~isnan(active_stage))
+  while any(isfinite(active_stage))
     for chain = 1:numel(ctrl_chain)
-      stage = active_stage(chain);
-      if ~isnan(stage)
+      if isfinite(active_stage(chain))
         % 1. There is at least one batch left to run in this chain
-        ctrl = ctrl_chain{chain}{stage};
+        ctrl = ctrl_chain{chain}{active_stage(chain)};
         
         % 2. If this is the first loop of cluster_run, force a complete
         %   update of the job status information.
         if first_run(chain)
           ctrl = cluster_get_batch(ctrl);
-          ctrl_chain{chain}{stage} = ctrl;
         else
           ctrl = cluster_update_batch(ctrl);
-          ctrl_chain{chain}{stage} = ctrl;
+          pause(ctrl.cluster.stat_pause);
         end
         
-        % 3. If all jobs completed in a batch, then move to the next stage
-        while ~isnan(stage) && all(ctrl.job_status=='C')
-          stage = stage + 1;
-          if stage > numel(ctrl_chain{chain})
-            % Chain is complete
-            active_stage(chain) = NaN;
-            stage = NaN;
-          else
-            ctrl = ctrl_chain{chain}{stage};
-            % Repeat step "2."
-            if first_run(chain)
-              ctrl = cluster_get_batch(ctrl);
-              ctrl_chain{chain}{stage} = ctrl;
-            else
-              ctrl = cluster_update_batch(ctrl);
-              ctrl_chain{chain}{stage} = ctrl;
+        % 3. Submit jobs from the active stage for each parallel control structure
+        %   ctrl.max_active_jobs.
+        ctrl = cluster_run(ctrl);
+        
+        % 4. Update ctrl_chain
+        ctrl_chain{chain}{active_stage(chain)} = ctrl;
+        
+        % 5. If all jobs completed in a batch and:
+        %    If no errors, move to the next stage
+        %    If errors and out of retries, stop chain
+        if all(ctrl.job_status=='C')
+          if ~any(ctrl.error_mask)
+            active_stage(chain) = active_stage(chain) + 1;
+            if active_stage(chain) > numel(ctrl_chain{chain})
+              % Chain is complete
+              active_stage(chain) = inf;
             end
+          elseif all(ctrl.retries >= ctrl.cluster.max_retries)
+            % Stop chain
+            active_stage(chain) = -inf;
           end
         end
         
-        % 4. Submit jobs from the active stage for each parallel control structure
-        %   ctrl.max_active_jobs.
-        if ~isnan(stage)
-          ctrl = cluster_run(ctrl);
-          ctrl_chain{chain}{stage} = ctrl;
+        % 6. Check to see if a hold has been placed on this batch
+        if exist(ctrl.hold_fn,'file')
+          fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Either way, run dbcont to continue.\n');
+          keyboard
         end
-        
       end
       first_run(chain) = false;
+    end
+    if ~block
+      break;
+    end
+  end
+
+  failed_chains = find(active_stage == -inf);
+  for chain=1:length(failed_chains)
+    fprintf('Chain %d failed\n', chain);
+    for stage=1:numel(ctrl_chain{chain})
+      ctrl = ctrl_chain{chain}{stage};
+      if ~any(ctrl.error_mask)
+        fprintf('Stage %d succeeded\n', stage);
+      else
+        fprintf('  Stage %d failed\n', stage);
+      end
     end
   end
   
@@ -118,6 +133,7 @@ elseif isstruct(ctrl_chain)
       job_tasks = [];
       job_cpu_time = 0;
       job_mem = 0;
+      pause(ctrl.cluster.submit_pause);
     end
     job_tasks(end+1) = task_id;
     job_cpu_time = job_cpu_time + ctrl.cpu_time(task_id);
@@ -132,6 +148,7 @@ elseif isstruct(ctrl_chain)
       fprintf(', %d', job_tasks(2:end));
     end
     fprintf('\n');
+    pause(ctrl.cluster.submit_pause);
   end
   
   % Return the updated ctrl

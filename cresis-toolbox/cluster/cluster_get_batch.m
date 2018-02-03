@@ -77,6 +77,9 @@ ctrl.job_status = char('T'*ones(1,numel(ctrl.job_id_list)));
 % Start by assuming that there are no errors in any tasks
 ctrl.error_mask = zeros(size(ctrl.job_status));
 
+% Start by assuming no retries yet
+ctrl.retries = zeros(size(ctrl.job_status));
+
 job_status_found = zeros(size(ctrl.job_status));
 
 if ~force_check

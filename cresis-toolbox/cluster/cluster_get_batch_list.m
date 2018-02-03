@@ -51,6 +51,7 @@ for batch_idx = 1:length(batch_dirs)
   ctrls{batch_idx}.out_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'out');
   ctrls{batch_idx}.stdout_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'stdout');
   ctrls{batch_idx}.error_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'error');
+  ctrls{batch_idx}.hold_fn = fullfile(ctrls{batch_idx}.batch_dir,'hold');
 
   if strcmpi(ctrls{batch_idx}.cluster.type,'matlab')
     ctrls{batch_idx}.cluster.jm = parcluster();

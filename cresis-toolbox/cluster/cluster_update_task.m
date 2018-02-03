@@ -139,7 +139,32 @@ if ctrl.error_mask(task_id)
     fprintf('  errorstruct does not exist in output file\n');
   end
   if bitand(ctrl.error_mask(task_id),errorstruct_contains_error)
-    fprintf('  Output file does not exist:\n');
+    fprintf('  errorstruct contains an error:\n');
     warning('%s',out.errorstruct.getReport);
   end
+end
+
+if ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
+  % Job is completed and has an error
+  
+  if ctrl.retries(task_id) < ctrl.cluster.max_retries
+    % Update task to ctrl structure
+    ctrl.submission_queue = cat(2,ctrl.submission_queue,task_id);
+    new_job_status = 'T';
+    new_job_id = -1;
+    ctrl.job_id_list(task_id) = new_job_id;
+    ctrl.job_status(task_id) = new_job_status;
+    ctrl.error_mask(task_id) = 0;
+    ctrl.retries(task_id) = ctrl.retries(task_id) + 1;
+    
+    % Update job IDs in job ID file
+    fid = fopen(ctrl.job_id_fn,'r+');
+    fseek(fid, 21*(task_id-1), -1);
+    fprintf(fid,'%-20d\n', new_job_id);
+    fclose(fid);
+    
+    % Print out retry message
+    fprintf(' Retry %d Job %d:%d/%d %s (%s)\n', ctrl.retries(task_id), ctrl.batch_id, task_id, ctrl.job_id_list(task_id), param.notes, datestr(now));
+  end
+
 end

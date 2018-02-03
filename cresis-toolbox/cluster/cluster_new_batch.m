@@ -63,6 +63,14 @@ if ~isfield(ctrl.cluster,'max_retries') || isempty(ctrl.cluster.max_retries)
   ctrl.cluster.max_retries = 1;
 end
 
+if ~isfield(ctrl.cluster,'submit_pause') || isempty(ctrl.cluster.submit_pause)
+  ctrl.cluster.submit_pause = 0;
+end
+
+if ~isfield(ctrl.cluster,'stat_pause') || isempty(ctrl.cluster.stat_pause)
+  ctrl.cluster.stat_pause = 1;
+end
+
 %% Create directory to store temporary files
 % Find the first unique and unused batch_id
 % Assign batch_id, batch_dir
@@ -92,6 +100,7 @@ ctrl.job_status = '';
 ctrl.error_mask = [];
 ctrl.submission_queue = [];
 ctrl.active_jobs = 0;
+ctrl.retries = [];
 
 ctrl.in_fn_dir = fullfile(ctrl.batch_dir,'in');
 mkdir(ctrl.in_fn_dir)
@@ -101,6 +110,7 @@ ctrl.stdout_fn_dir = fullfile(ctrl.batch_dir,'stdout');
 mkdir(ctrl.stdout_fn_dir)
 ctrl.error_fn_dir = fullfile(ctrl.batch_dir,'error');
 mkdir(ctrl.error_fn_dir)
+ctrl.hold_fn = fullfile(ctrl.batch_dir,'hold');
 
 %% Get the job manager for the matlab cluster interface
 if strcmpi(ctrl.cluster.type,'matlab')

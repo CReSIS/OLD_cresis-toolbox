@@ -1,5 +1,5 @@
-function [ctrl,task_id] = cluster_create_task(ctrl,sparam,dparam)
-% [ctrl,task_id] = cluster_create_task(ctrl,sparam,dparam)
+function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam)
+% [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam)
 %
 % Creates a new job. Calls to this function need to be proceeded by
 % a single call to cluster_new_batch.m.
@@ -124,6 +124,7 @@ new_job_id = -1;
 ctrl.job_id_list(end+1) = new_job_id;
 ctrl.job_status(end+1) = new_job_status;
 ctrl.error_mask(end+1) = 0;
+ctrl.retries(end+1) = 0;
 
 %% Write new task ID to task_id file
 fid = fopen(ctrl.job_id_fn,'a');

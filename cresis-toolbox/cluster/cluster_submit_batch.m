@@ -1,5 +1,5 @@
-function out = cluster_submit_batch(fun,argsin,num_args_out,cpu_time)
-% out = cluster_submit_batch(fun,argsin,num_args_out,notes,cpu_time)
+function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time)
+% out = cluster_submit_batch(fun,block,argsin,num_args_out,notes,cpu_time)
 %
 % Runs an arbitrary job called "fun" with inputs "argsin". Introduces
 % about 30 seconds of overhead as long as a compile is not necessary.
@@ -14,10 +14,19 @@ function out = cluster_submit_batch(fun,argsin,num_args_out,cpu_time)
 % mem: expected maximum memory usage in bytes
 %
 % OUTPUTS:
-% out: cell vector of output arguments from the task
+% out: if block = true, cell vector of output arguments from the task
+% out: if block = false, cluster control structure for the batch
 %
 % EXAMPLES:
-% out = cluster_submit_batch('hanning',{10},1,60)
+% ctrl = cluster_submit_batch('hanning',false,{10},1,60);
+% ctrl_chain = {{ctrl}};
+% while any(isfinite(cluster_chain_stage(ctrl_chain)))
+%   ctrl_chain = cluster_run(ctrl_chain,false);
+% end
+% [in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,1,0);
+% cluster_cleanup(ctrl_chain{1}{1}.batch_id);
+%
+% out = cluster_submit_batch('hanning',true,{10},1,60)
 %
 % Authors: John Paden
 %
@@ -33,16 +42,40 @@ param.task_function = fun;
 param.argsin = argsin;
 param.num_args_out = num_args_out;
 param.cpu_time = cpu_time;
-ctrl = cluster_create_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
+ctrl = cluster_new_task(ctrl,param,[]);
 
 fprintf('Submitting %s\n', ctrl.batch_dir);
 
 ctrl_chain = {{ctrl}};
 
-ctrl_chain = cluster_run(ctrl_chain);
+ctrl_chain = cluster_run(ctrl_chain,block);
 
-[in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,1,0);
-
-cluster_cleanup(ctrl);
+if block
+  [in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,1,0);
+  cluster_cleanup(ctrl);
+else
+  out = ctrl;
+  
+end
 
 return;

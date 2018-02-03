@@ -19,15 +19,22 @@ function cluster_cleanup(ctrl)
 %   cluster_create_task cluster_hold cluster_job_list cluster_job_status ...
 %   cluster_new_batch cluster_print cluster_rerun
 
-%% Handle case where multiple batches may have been specified
-if ~isstruct(ctrl)
+if nargin == 0
+  answer = input('Are you sure you want to cleanup all cluster jobs? [y/N] ','s');
+  if isempty(regexpi(answer,'y'))
+    return
+  end
+end
+
+%% Handle case where batch IDs have been passed in
+if nargin == 0 || ~isstruct(ctrl)
   ctrls = cluster_get_batch_list;
   for batch_idx = 1:length(ctrls)
-    if any(ctrls{batch_idx}.batch_id == ctrl)
-      fprintf(' Deleting jobs in batch %d\n', ctrls{batch_idx}.batch_id);
+    if nargin == 0 || any(ctrls{batch_idx}.batch_id == ctrl)
+      fprintf('  Deleting jobs in batch %d\n', ctrls{batch_idx}.batch_id);
       cluster_cleanup(ctrls{batch_idx});
     else
-      fprintf(' Skipping %d\n', ctrls{batch_idx}.batch_id);
+      fprintf('  Skipping %d\n', ctrls{batch_idx}.batch_id);
     end
   end
   return;
