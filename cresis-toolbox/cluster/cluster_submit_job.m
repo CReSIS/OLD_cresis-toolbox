@@ -35,9 +35,10 @@ end
 %% Create the temporary file names
 in_fn = ctrl.in_fn_dir;
 out_fn = ctrl.out_fn_dir;
-job_id = job_tasks(end); % Use last job ID for the stdout and error files
-stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',job_id));
-error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',job_id));
+task_id_max = max(job_tasks); % Use max task ID for the stdout and error files
+% There can be multiple task IDs associated with this job
+stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_max));
+error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id_max));
 
 new_job_status = 'Q';
 
@@ -48,15 +49,15 @@ task_list_str = sprintf('%dd',job_tasks); task_list_str = task_list_str(1:end-1)
 if strcmpi(ctrl.cluster.type,'torque')
   %% Run the qsub command
   
-  worker = ctrl.cluster.worker_fn;
+  worker = ctrl.cluster.cluster_job_fn;
   [tmp worker_name] = fileparts(worker);
   
-  submit_arguments = sprintf(ctrl.cluster.group_submit_arguments,length(submission_queue) * ctrl.cluster.group_walltime);
+  submit_arguments = sprintf(ctrl.cluster.qsub_submit_arguments,job_cpu_time);
   
   % Add "qsub -m abe -M your@email.edu" to debug:
   if ctrl.cluster.interactive
     cmd = sprintf('qsub -I %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s''', ...
-      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, job_list_str);
+      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str);
     fprintf('1. Run the command from the bash shell:\n  %s\n', cmd);
     fprintf('2. Once the interactive mode starts, run the command in the interactive shell:  %s\n', worker);
     fprintf('3. Once the job completes, exit the interactive shell which causes torque to realize the job is complete.\n');
@@ -67,7 +68,7 @@ if strcmpi(ctrl.cluster.type,'torque')
     end
   else
     cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s'' %s  </dev/null', ...
-      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, job_list_str, worker);
+      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, worker);
     [status,result] = robust_system(cmd);
     
     [job_id_str,result_tok] = strtok(result,'.');

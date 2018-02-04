@@ -44,7 +44,6 @@ param.num_args_out = num_args_out;
 param.cpu_time = cpu_time;
 ctrl = cluster_new_task(ctrl,param,[]);
 
-
 fprintf('Submitting %s\n', ctrl.batch_dir);
 
 ctrl_chain = {{ctrl}};

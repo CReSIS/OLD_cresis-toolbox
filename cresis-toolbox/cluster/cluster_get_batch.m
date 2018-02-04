@@ -95,7 +95,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
     [system,user_name] = robust_system('whoami');
     user_name = user_name(1:end-1);
     cmd = sprintf('qstat -u %s </dev/null', user_name);
-    [status,result] = robust_system(cmd)
+    [status,result] = robust_system(cmd);
     
   elseif strcmpi(ctrl.cluster.type,'matlab')
     status = 0;
@@ -112,13 +112,15 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   % -----------------------------------------------------------------------
   if ~isempty(result)
     if strcmpi(ctrl.cluster.type,'torque')
-      qstat_res = textscan(result,'%s %s %s %s %s %s','HeaderLines',2,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
+      qstat_res = textscan(result,'%s %s %s %s %s %s %s %s %s %s %s %s','Headerlines',5,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
       for idx = 1:size(qstat_res{1},1)
-        qstat_res{7}(idx) = str2double(strtok(qstat_res{1}{idx},'.'));
-        if qstat_res{5}{idx,1} ~= 'C'
+        qstat_res{1}{idx} = str2double(strtok(qstat_res{1}{idx},'.'));
+        if qstat_res{10}{idx} ~= 'C'
           ctrl.active_jobs = ctrl.active_jobs + 1;
         end
       end
+      qstat_res{7} = cell2mat(qstat_res{1});
+      qstat_res{5} = qstat_res{10};
       
     elseif strcmpi(ctrl.cluster.type,'matlab')
       qstat_res{5} = {};

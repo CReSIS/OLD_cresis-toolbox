@@ -1,4 +1,4 @@
-function worker_task(task_in_fn_dir,task_out_fn_dir,job_list)
+function cluster_job(task_in_fn_dir,task_out_fn_dir,job_list)
 %
 % This M-file should be compiled:
 %   mcc -m -C worker_task.m
@@ -19,7 +19,7 @@ function worker_task(task_in_fn_dir,task_out_fn_dir,job_list)
 % Compile the worker_task.m and put the two outputs into the folder.
 % Put the shell script worker into this folder.
 
-fprintf('worker_task\n');
+fprintf('%s: Start (%s)\n', mfilename, datestr(now));
 
 if ~exist('task_in_fn_dir','var')
   task_in_fn_dir = getenv('INPUT_PATH');
@@ -34,7 +34,7 @@ job_list = regexp(job_list, 'd', 'split');
 
 for task_idx = 1:length(job_list)
   task_id = str2double(job_list{task_idx});
-  fprintf('Loading input arguments and control parameters for task %d\n');
+  fprintf('%s: Load task %d (%s)\n', mfilename, task_id, datestr(now));
   
   % Create in/out filenames
   static_in_fn = fullfile(task_in_fn_dir,'static.mat');
@@ -66,13 +66,13 @@ for task_idx = 1:length(job_list)
   % Evaluate command
   try
     argsout = {};
-    fprintf('Eval %s\n', eval_cmd);
+    fprintf('%s: Eval %s\n', mfilename, eval_cmd);
     eval(eval_cmd);
-    fprintf('Done eval\n');
+    fprintf('%s: Done Eval (%s)\n', mfilename, datestr(now));
     errorstruct = [];
     save(out_fn,'argsout','errorstruct');
   catch errorstruct
-    fprintf('%s: %s\n', errorstruct.identifier, errorstruct.message);
+    fprintf('%s: Error\n  %s: %s (%s)\n', mfilename, errorstruct.identifier, errorstruct.message, datestr(now));
     for stack_idx = 1:length(errorstruct.stack)
       fprintf('  %s: %d\n', errorstruct.stack(stack_idx).name, errorstruct.stack(stack_idx).line);
     end

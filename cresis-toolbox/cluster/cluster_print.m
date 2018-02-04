@@ -116,11 +116,14 @@ if print_flag == 1
   end
   
   
-  if strcmpi(ctrl.cluster.type,'custom_torque')
+  if strcmpi(ctrl.cluster.type,'torque')
     cmd = sprintf('qstat -f %d  </dev/null', torque_id);
-    [status,result] = robust_system(cmd,0);
+    try; [status,result] = system(cmd); end;
     
   elseif strcmpi(ctrl.cluster.type,'matlab')
+    keyboard
+    
+  elseif strcmpi(ctrl.cluster.type,'slurm')
     keyboard
     
   elseif strcmpi(ctrl.cluster.type,'debug')
@@ -157,11 +160,22 @@ if print_flag == 1
   
   % Check for existence of input file
   fprintf('\nINPUT ======================================================\n');
-  fn = fullfile(ctrl.in_fn_dir,sprintf('in_%d.mat',task_id));
-  fprintf('%s\n', fn);
-  if exist(fn,'file')
+  static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
+  fprintf('%s\n', static_in_fn);
+  if exist(static_in_fn,'file')
     fprintf('  Exists\n');
-    in = load(fn);
+    sparam = load(static_in_fn);
+  else
+    fprintf('  Does not exist\n');
+    in = [];
+  end
+  dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
+  fprintf('%s\n', dynamic_in_fn);
+  if exist(dynamic_in_fn,'file')
+    fprintf('  Exists\n');
+    dparam_task_field = sprintf('dparam_%d',task_id);
+    dparam = load(dynamic_in_fn,dparam_task_field);
+    in = merge_structs(sparam.static_param,dparam.(dparam_task_field));
   else
     fprintf('  Does not exist\n');
     in = [];
@@ -174,7 +188,7 @@ if print_flag == 1
   if exist(fn,'file')
     fprintf('  Exists\n');
     out = load(fn);
-    if isfield(out,'errorstruct')
+    if isfield(out,'errorstruct') && ~isempty(out.errorstruct)
       fprintf('%s: %s\n', out.errorstruct.identifier, out.errorstruct.message);
       for stack_idx = 1:length(out.errorstruct.stack)
         fprintf('  %s: %d\n', out.errorstruct.stack(stack_idx).name, out.errorstruct.stack(stack_idx).line);

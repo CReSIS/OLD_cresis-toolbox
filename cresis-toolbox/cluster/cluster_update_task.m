@@ -58,6 +58,26 @@ success_eval_error = 64;
 
 error_mask = 0;
 
+if exist(ctrl.hold_fn,'file')
+  fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Either way, run dbcont to continue.\n');
+  keyboard
+end
+
+if strcmpi(ctrl.cluster.type,'torque')
+  out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
+  % Sometimes the file system/matlab are slow in recognizing a file
+  if ctrl.job_status(task_id) == 'C' && ~exist(out_fn,'file')
+    start_time = tic;
+    while ~exist(out_fn,'file') && toc(start_time) < ctrl.cluster.file_check_pause;
+      pause(5);
+    end
+    if ~exist(out_fn,'file')
+      warning('Torque job completed without producing out:\n  %s.', out_fn);
+      keyboard
+    end
+  end
+end
+
 out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
 if exist(out_fn,'file')
   success = robust_cmd('out = load(out_fn);',3);
@@ -148,7 +168,9 @@ if ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
   % Job is completed and has an error
   
   if ctrl.retries(task_id) < ctrl.cluster.max_retries
-    delete(out_fn);
+    if ~bitand(ctrl.error_mask(task_id),out_fn_exist_error)
+      delete(out_fn);
+    end
     
     % Update task to ctrl structure
     ctrl.submission_queue = cat(2,ctrl.submission_queue,task_id);

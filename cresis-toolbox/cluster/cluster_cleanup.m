@@ -50,13 +50,13 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       % Only delete jobs that have not been completed (completed jobs
       % are effectively deleted already)
       if strcmpi(ctrl.cluster.type,'torque')
-        cmd = sprintf('qdel %i', ctrl.job_id_list(job_id));
-        [status,result] = robust_system(cmd)
+        cmd = sprintf('qdel -W 60 -a %i', ctrl.job_id_list(job_id));
+        try; [status,result] = system(cmd); end
       
       elseif strcmpi(ctrl.cluster.type,'matlab')
         for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
           if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list)
-            delete(ctrl.cluster.jm.Jobs(job_idx));
+            try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
           end
         end
         

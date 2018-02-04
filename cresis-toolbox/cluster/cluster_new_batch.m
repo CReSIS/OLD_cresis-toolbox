@@ -71,6 +71,10 @@ if ~isfield(ctrl.cluster,'stat_pause') || isempty(ctrl.cluster.stat_pause)
   ctrl.cluster.stat_pause = 1;
 end
 
+if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)
+  ctrl.cluster.file_check_pause = 10;
+end
+
 %% Create directory to store temporary files
 % Find the first unique and unused batch_id
 % Assign batch_id, batch_dir
