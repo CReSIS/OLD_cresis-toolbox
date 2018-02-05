@@ -118,6 +118,7 @@ if ctrl.job_status(task_id) == 'T'
   % is 'C' and update error_mask based on output files. Otherwise, assume
   % it has not been submitted yet.
   if ~bitand(error_mask,out_fn_exist_error)
+    ctrl.submission_queue = ctrl.submission_queue(ctrl.submission_queue~=task_id);
     ctrl.job_status(task_id) = 'C';
     ctrl.error_mask(task_id) = error_mask;
   end
