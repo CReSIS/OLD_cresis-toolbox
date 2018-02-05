@@ -1,23 +1,20 @@
-function worker_task(task_in_fn_dir,task_out_fn_dir,job_list)
+function cluster_job(task_in_fn_dir,task_out_fn_dir,job_list)
+% cluster_job(task_in_fn_dir,task_out_fn_dir,job_list)
 %
-% This M-file should be compiled:
-%   mcc -m -C worker_task.m
-% Then the worker_task and worker_task.ctf files should be moved
-% to a spot in the PATH that comes before Matlab's worker executable.
-% The worker shell script should also be placed in this same
-% directory.
+% This M-file should be compiled with cluster_compile.
 %
-% Then when the distributed toolbox calls the worker command via the
-% torque scheduler, it calls the worker shell script since it comes
-% before the Matlab's worker executable. The worker shell script
-% calls the compiled version of this function.
+% Then when the distributed toolbox calls the cluster_job.sh command via
+% the scheduler which calls the compiled version of this function.
 %
-% demo_matlab_torque.m shows how to use the scheduler from Matlab
+% cluster_submit_batch.m shows how to use the scheduler from Matlab
 %
-% In your bashrc file:
-%  declare -x PATH="/N/u/jpaden/Quarry/bin:${PATH}"
-% Compile the worker_task.m and put the two outputs into the folder.
-% Put the shell script worker into this folder.
+% Author: John Paden
+%
+% See also: cluster_chain_stage, cluster_cleanup, cluster_compile
+%   cluster_exec_job, cluster_get_batch, cluster_get_batch_list, 
+%   cluster_hold, cluster_job, cluster_new_batch, cluster_new_task,
+%   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
+%   cluster_update_batch, cluster_update_task
 
 fprintf('worker_task\n');
 
