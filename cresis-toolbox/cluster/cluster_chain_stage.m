@@ -19,9 +19,11 @@ function active_stage = cluster_chain_stage(ctrl_chain)
 %
 % Authors: John Paden
 %
-% See also: cluster_batch_list cluster_cleanup cluster_compile ...
-%   cluster_create_task cluster_hold cluster_job_list cluster_job_status ...
-%   cluster_new_batch cluster_print cluster_rerun
+% See also: cluster_chain_stage, cluster_cleanup, cluster_compile
+%   cluster_exec_job, cluster_get_batch, cluster_get_batch_list, 
+%   cluster_hold, cluster_job, cluster_new_batch, cluster_new_task,
+%   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
+%   cluster_update_batch, cluster_update_task
 
 %% Traverse chain list
 active_stage = ones(size(ctrl_chain));
