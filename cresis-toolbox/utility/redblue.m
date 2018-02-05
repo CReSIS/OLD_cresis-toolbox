@@ -1,65 +1,42 @@
-function c = redblue(m)
-%REDBLUE    Shades of red and blue color map
-%   REDBLUE(M), is an M-by-3 matrix that defines a colormap.
-%   The colors begin with bright blue, range through shades of
-%   blue to white, and then through shades of red to bright red.
-%   REDBLUE, by itself, is the same length as the current figure's
-%   colormap. If no figure exists, MATLAB creates one.
-%
-%   For example, to reset the colormap of the current figure:
-%
-%             colormap(redblue)
-%
-%   See also HSV, GRAY, HOT, BONE, COPPER, PINK, FLAG, 
-%   COLORMAP, RGBPLOT.
-%
-%   Adam Auton, 9th October 2009
-%
-% https://www.mathworks.com/matlabcentral/fileexchange/25536-red-blue-colormap
-% Copyright (c) 2009, Adam Auton
-% All rights reserved.
+function c = redblue(m, n)
+% REDBLUE Red/white/blue colormap
 % 
-% Redistribution and use in source and binary forms, with or without
-% modification, are permitted provided that the following conditions are
-% met:
+% 1st argument (m) is number of colors you want, ranging from red to blue.
+% if it's even, there will be two whites [1 1 1]
+% 2nd optional argument (n) is how dark you want the end of the color range to be, e.g.,
+% n=0.5 means that the red end will be [(1-n)=0.5 0 0] instead of [1 0 0]
 % 
-%     * Redistributions of source code must retain the above copyright
-%       notice, this list of conditions and the following disclaimer.
-%     * Redistributions in binary form must reproduce the above copyright
-%       notice, this list of conditions and the following disclaimer in
-%       the documentation and/or other materials provided with the distribution
-% 
-% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-% ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-% LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-% CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-% SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-% INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-% CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-% ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-% POSSIBILITY OF SUCH DAMAGE.
+% Joe MacGregor (NASA)
+% Last updated: 03/25/16
 
-if nargin < 1, m = size(get(gcf,'colormap'),1); end
-
-if (mod(m,2) == 0)
-    % From [0 0 1] to [1 1 1], then [1 1 1] to [1 0 0];
-    m1 = m*0.5;
-    r = (0:m1-1)'/max(m1-1,1);
-    g = r;
-    r = [r; ones(m1,1)];
-    g = [g; flipud(g)];
-    b = flipud(r);
-else
-    % From [0 0 1] to [1 1 1] to [1 0 0];
-    m1 = floor(m*0.5);
-    r = (0:m1-1)'/max(m1,1);
-    g = r;
-    r = [r; ones(m1+1,1)];
-    g = [g; 1; flipud(g)];
-    b = flipud(r);
+if (nargin < 1)
+    m                       = size(get(gcf, 'colormap'), 1);
 end
 
-c = [r g b]; 
-
+if ~mod(m, 2) % even number of colors
+    m2                      = m / 2;
+    switch nargin
+        case {0 1}
+            g               = linspace(0, 1, m2)';
+            b               = ones(m2, 1);
+        case 2
+            b               = n + linspace(0, (1 + n), m2)';
+            g               = zeros(m2, 1);
+            g(b > 1)        = b(b > 1) - 1;
+            b(b > 1)        = 1;
+    end
+    c                       = [g g b; flipud([b g g])]; % rgb
+else % odd number
+    m2                      = ceil(m / 2);
+    switch nargin
+        case {0 1}
+            g               = linspace(0, 1, m2)';
+            b               = ones(m2, 1);
+        case 2
+            b               = n + linspace(0, (1 + n), m2)';
+            g               = zeros(m2, 1);
+            g(b > 1)        = b(b > 1) - 1;
+            b(b > 1)        = 1;
+    end
+    c                       = [g g b; flipud([b(1:(end - 1)) repmat(g(1:(end - 1)), 1, 2)])]; % rgb
+end
