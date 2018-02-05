@@ -87,7 +87,7 @@ for img = 1:length(param.combine.imgs)
 end
 
 img_list = param.combine.imgs;
-  
+
 in_path = ct_filename_out(param, ...
   param.combine.in_path, 'CSARP_out');
 
@@ -226,7 +226,7 @@ for frm_idx = 1:length(param.cmd.frms);
   end
   param.combine.sar_type = param_csarp.csarp.sar_type;
   num_chunks_per_task = 1;
-    
+  
   for chunk_idx = 1:num_chunks_per_task:length(chunk_ids)
     %% To make the SAR processed chunks fit together seamlessly without
     % having to resample, we determine the start range line output for
@@ -271,8 +271,8 @@ for frm_idx = 1:length(param.cmd.frms);
       % already exists, then we do not run the task
       file_exists = true;
       for img = 1:length(param.combine.imgs)
-%         array_fn = fullfile(param.combine.out_path, ...
-%           sprintf('chk_%03d_img_%02d.mat', chunk_ids{chunk_idx}, img));
+        %         array_fn = fullfile(param.combine.out_path, ...
+        %           sprintf('chk_%03d_img_%02d.mat', chunk_ids{chunk_idx}, img));
         array_fn = fullfile(param.combine.out_path, ...
           sprintf('chk_%s_img_%02d.mat', chunk_ids{chunk_idx}, img));
         if ~exist(array_fn,'file')
@@ -451,7 +451,7 @@ for frm_idx = 1:length(param.cmd.frms);
       param_records = tmp.param_records;
       param_csarp = tmp.param_csarp;
       if chunk_idxs == 1
-      param_combine = tmp.param_combine;
+        param_combine = tmp.param_combine;
         param_combine.array_param.fcs{1}{1}.x = tmp.param_combine.array_param.fcs{1}{1}.x(:,tmp.param_combine.array_param.lines);
         param_combine.array_param.fcs{1}{1}.y = tmp.param_combine.array_param.fcs{1}{1}.y(:,tmp.param_combine.array_param.lines);
         param_combine.array_param.fcs{1}{1}.z = tmp.param_combine.array_param.fcs{1}{1}.z(:,tmp.param_combine.array_param.lines);
@@ -464,20 +464,20 @@ for frm_idx = 1:length(param.cmd.frms);
         param_combine.array_param.fcs{1}{1}.origin = [param_combine.array_param.fcs{1}{1}.origin tmp.param_combine.array_param.fcs{1}{1}.origin(:,tmp.param_combine.array_param.lines)];
       end
       if isfield(tmp,'Topography')
-%         3D-surface is present so concatenate it too
-%         Topography = cat(3,Topography,tmp.Topography);
-%         Concatenate all the fields under struct Topography: valR, bins, val, freq
-%         and img.
-        fields = fieldnames(tmp.Topography);      
+        %         3D-surface is present so concatenate it too
+        %         Topography = cat(3,Topography,tmp.Topography);
+        %         Concatenate all the fields under struct Topography: valR, bins, val, freq
+        %         and img.
+        fields = fieldnames(tmp.Topography);
         if chunk_idxs == 1
           for field_idx = 1:length(fields)
             Topography.(fields{field_idx}) = tmp.Topography.(fields{field_idx});
-          end       
-        else        
+          end
+        else
           for field_idx = 1:length(fields)
             max_dim = length(size(tmp.Topography.(fields{field_idx})));
             Topography.(fields{field_idx}) = cat(max_dim,Topography.(fields{field_idx}),tmp.Topography.(fields{field_idx}));
-          end       
+          end
         end
         
       end
@@ -537,69 +537,20 @@ for frm_idx = 1:length(param.cmd.frms);
       end
     else
       append = load(out_fn,'Time','Data');
-      %% Combine images
-      % Data,Time => already loaded data
-      % append.Data, append.Time => new data to append
-      % New_Time, New_Data => Combined result
+      combine.idx                   = img;
+      combine.Data                  = Data;
+      combine.Time                  = Time;
+      combine.appendData            = append.Data;
+      combine.appendTime            = append.Time;
+      combine.imb_comb_surf         = Surface;
+      combine.img_comb_weights      = [];
+      combine.img_comb_mult         = inf;
+      combine.img_comb              = param.get_heights.qlook.img_comb;
+      combine.img_comb_bins         = 0;
+      combine.img_comb_weights_mode = 'get_heights';
       
-      % Interpolate image N onto already loaded data (assumption is that image
-      % N-1 always comes before image N)
-      dt = Time(2)-Time(1);
-      New_Time = (Time(1) : dt : append.Time(end)).';
-      append.Data = interp1(append.Time,append.Data,New_Time,'linear',0);
-      
-      % Surface tracking image combine
-      %  param.combine.img_comb(1): time after surface return where
-      %    combine will happen
-      %  param.combine.img_comb(2): minimum time that combine will occur
-      %  param.combine.img_comb(3): guard time which specifies how
-      %    many seconds at the end of img1 will not be used... this is
-      %    important because the last samples of img1 will have low signal
-      %    power and blurred because they will only have captured a portion
-      %    of the chirp energy (typically this will be set to something
-      %    close to the pulse duration for img1)
-      %  param.combine.img_comb(4-6, 7-9, etc.): same fields as above
-      %    except between images 2 and 3, 3 and 4, etc.
-      
-      Surface = interp_finite(Surface,0);
-      % First row of img_bins indicates the start of the blend-region
-      img_bins = round(interp1(New_Time, 1:length(New_Time), ...
-        max(Surface+param.combine.img_comb((img-2)*3+1),param.combine.img_comb((img-2)*3+2)), 'linear','extrap'));
-      
-      % Determine guard at end of image 1 that will not be used
-      guard_bins = 1 + round(param.combine.img_comb((img-2)*3+3)/dt);
-      
-      % Check to make sure requested time is inside window and just
-      % force the combination bin to occur at the second to last bin
-      %   img_bins outside the img1 time window will be NaN due to interp1
-      %   img_bins inside the img1 time window may still be larger than
-      %     the guard allows
-      max_good_time = length(Time)*ones(1,size(Data,2));
-      invalid_rlines = find(isnan(img_bins) ...
-        | img_bins > max_good_time-guard_bins);
-      img_bins(invalid_rlines) = max_good_time(invalid_rlines)-guard_bins;
-      
-      % Second row of img_bins indicates the end of the blend-region
-      img_bins(2,:) = img_bins(1,:) + 1;
-      
-      difference = 10^(-0/10);
-      
-      % Combine images
-      New_Data = zeros(size(append.Data),'single');
-      for rline = 1:size(New_Data,2)
-        trans_bins = img_bins(1,rline)+1:img_bins(2,rline);
-        weights = 0.5+0.5*cos(pi*linspace(0,1,length(trans_bins)).');
-        if trans_bins <= size(append.Data,1)
-          New_Data(:,rline) = [Data(1:img_bins(1,rline),rline); ...
-            weights.*Data(trans_bins,rline) ...
-            + difference*(1-weights).*append.Data(trans_bins,rline); ...
-            difference*append.Data(img_bins(2,rline)+1:end,rline)];
-        else
-          New_Data(:,rline) = Data(1:size(New_Data,1),rline);
-        end        
-      end
-      Time = New_Time;
-      Data = New_Data;
+      % Call img_combine
+      [Data, Time]                  = img_combine(combine);
     end
   end
   

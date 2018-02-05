@@ -305,7 +305,7 @@ if ~param.get_heights.combine_only
         create_task_param.notes = sprintf('%s %s_%03d (%d of %d)/%d of %d records %d-%d', ...
           param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), break_idx, length(breaks), cur_recs(1), cur_recs(end));
         ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
-
+        
       elseif strcmp(param.sched.type,'ollie')
         dynamic_param.frms.(['frm',num2str(frm)]).frm_id = frm;
         dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).break_id = break_idx;
@@ -338,7 +338,7 @@ if ~param.get_heights.combine_only
     steady_param_file_name = sprintf('%s/qlook_%s_steady_param.mat', param.slurm_jobs_path, param.day_seg);
     save(steady_param_file_name,'steady_param');
   end
-
+  
   % =======================================================================
   % Wait for jobs to complete if a scheduler was used
   % =======================================================================
@@ -358,10 +358,10 @@ if ~param.get_heights.combine_only
     end
     get_heights_check_cluster_files; % Function call temporarily added to track down compute system problem
     torque_cleanup(ctrl);
-
+    
   elseif strcmp(param.sched.type,'ollie')
     return
-
+    
   elseif ~strcmpi(param.sched.type,'no scheduler')
     % ======================================================================
     % Wait for jobs to finish and clean up
@@ -589,59 +589,24 @@ for frm_idx = 1:length(param.cmd.frms);
     elseif ~isempty(param.get_heights.qlook.img_comb)
       %% Combine image with previous
       
-      % Data_Surface,Time_Surface => already loaded data
-      % Data, Time => new data to append
-      % New_Time, New_Data => Combined result
-      
       if Time(end) > Time_Surface(end)
-        % Interpolate image N onto already loaded data (assumption is that image
-        % N-1 always comes before image N)
-        dt = Time_Surface(2)-Time_Surface(1);
-        New_Time = (Time_Surface(1) : dt : Time(end)).';
-        Data = interp1(Time,Data,New_Time,'linear',0);
+        combine.idx                   = img;
+        combine.Data                  = Data_Surface;
+        combine.Time                  = Time_Surface;
+        combine.appendData            = Data;
+        combine.appendTime            = Time;
+        combine.imb_comb_surf         = 0;
+        combine.img_comb_weights      = [];
+        combine.img_comb_mult         = inf;
+        combine.img_comb              = param.get_heights.qlook.img_comb;
+        combine.img_comb_bins         = 0;
+        combine.img_comb_weights_mode = 'get_heights';
         
-        % Surface tracking image combine
-        %  param.get_heights.qlook.img_comb(1): Not used at this step
-        %  param.get_heights.qlook.img_comb(2): Not used at this step
-        %  param.get_heights.qlook.img_comb(3): guard time which specifies how
-        %    many seconds at the end of img1 will not be used... this is
-        %    important because the last samples of img1 will have low signal
-        %    power and blurred because they will only have captured a portion
-        %    of the chirp energy (typically this will be set to something
-        %    close to the pulse duration for img1)
-        %  param.get_heights.qlook.img_comb(4-6, 7-9, etc.): same fields as above
-        %    except between images 2 and 3, 3 and 4, etc.
-        
-        % Determine guard at end of image 1 that will not be used
-        max_good_time = length(Time_Surface)*ones(1,size(Data_Surface,2));
-        guard_bins = 1 + round(param.get_heights.qlook.img_comb((img-2)*3+3)/dt);
-        
-        % First row of img_bins indicates the start of the blend-region
-        img_bins = max_good_time-guard_bins;
-        
-        % Second row of img_bins indicates the end of the blend-region
-        img_bins(2,:) = img_bins(1,:) + 1;
-        
-        difference = 10^(-0/10);
-        
-        % Combine waveforms
-        New_Data = zeros(size(Data),'single');
-        for rline = 1:size(New_Data,2)
-          trans_bins = img_bins(1,rline)+1:img_bins(2,rline);
-          weights = 0.5+0.5*cos(pi*linspace(0,1,length(trans_bins)).');
-          New_Data(:,rline) = [Data_Surface(1:img_bins(1,rline),rline); ...
-            weights.*Data_Surface(trans_bins,rline) ...
-            + difference*(1-weights).*Data(trans_bins,rline); ...
-            difference*Data(img_bins(2,rline)+1:end,rline)];
-        end
-        Time_Surface = New_Time;
-        Data_Surface = New_Data;
+        % Call img_combine
+        [Data, Time]                  = img_combine(combine);
       end
-      
     end
   end
-  Time = Time_Surface;
-  Data = Data_Surface;
   
   %% Run surface tracker
   surf = param.get_heights.surf;
@@ -731,69 +696,20 @@ for frm_idx = 1:length(param.cmd.frms);
       end
     else
       append = load(out_fn,'Time','Data');
-      %% Combine images
-      % Data,Time => already loaded data
-      % append.Data, append.Time => new data to append
-      % New_Time, New_Data => Combined result
+      combine.idx                   = img;
+      combine.Data                  = Data;
+      combine.Time                  = Time;
+      combine.appendData            = append.Data;
+      combine.appendTime            = append.Time;
+      combine.imb_comb_surf         = Surface;
+      combine.img_comb_weights      = [];
+      combine.img_comb_mult         = inf;
+      combine.img_comb              = param.get_heights.qlook.img_comb;
+      combine.img_comb_bins         = 0;
+      combine.img_comb_weights_mode = 'get_heights';
       
-      % Interpolate image N onto already loaded data (assumption is that image
-      % N-1 always comes before image N)
-      dt = Time(2)-Time(1);
-      New_Time = (Time(1) : dt : append.Time(end)).';
-      append.Data = interp1(append.Time,append.Data,New_Time,'linear',0);
-      
-      % Surface tracking image combine
-      %  param.get_heights.qlook.img_comb(1): time after surface return where
-      %    combine will happen
-      %  param.get_heights.qlook.img_comb(2): minimum time that combine will occur
-      %  param.get_heights.qlook.img_comb(3): guard time which specifies how
-      %    many seconds at the end of img1 will not be used... this is
-      %    important because the last samples of img1 will have low signal
-      %    power and blurred because they will only have captured a portion
-      %    of the chirp energy (typically this will be set to something
-      %    close to the pulse duration for img1)
-      %  param.get_heights.qlook.img_comb(4-6, 7-9, etc.): same fields as above
-      %    except between images 2 and 3, 3 and 4, etc.
-      
-      Surface = interp_finite(Surface,0);
-      % First row of img_bins indicates the start of the blend-region
-      img_bins = round(interp1(New_Time, 1:length(New_Time), ...
-        max(Surface+param.get_heights.qlook.img_comb((img-2)*3+1),param.get_heights.qlook.img_comb((img-2)*3+2)), 'linear','extrap'));
-      
-      % Determine guard at end of image 1 that will not be used
-      guard_bins = 1 + round(param.get_heights.qlook.img_comb((img-2)*3+3)/dt);
-      
-      % Check to make sure requested time is inside window and just
-      % force the combination bin to occur at the second to last bin
-      %   img_bins outside the img1 time window will be NaN due to interp1
-      %   img_bins inside the img1 time window may still be larger than
-      %     the guard allows
-      max_good_time = length(Time)*ones(1,size(Data,2));
-      invalid_rlines = find(isnan(img_bins) ...
-        | img_bins > max_good_time-guard_bins);
-      img_bins(invalid_rlines) = max_good_time(invalid_rlines)-guard_bins;
-      
-      % Second row of img_bins indicates the end of the blend-region
-      img_bins(2,:) = img_bins(1,:) + 1;
-      
-      difference = 10^(-0/10);
-      
-      % Combine images
-      New_Data = zeros(size(append.Data),'single');
-      for rline = 1:size(New_Data,2)
-        trans_bins = img_bins(1,rline)+1:img_bins(2,rline);
-        weights = 0.5+0.5*cos(pi*linspace(0,1,length(trans_bins)).');
-        if trans_bins <= size(append.Data,1)
-          New_Data(:,rline) = [Data(1:img_bins(1,rline),rline); ...
-            weights.*Data(trans_bins,rline) ...
-            + difference*(1-weights).*append.Data(trans_bins,rline); ...
-            difference*append.Data(img_bins(2,rline)+1:end,rline)];
-        else
-          New_Data(:,rline) = Data(1:size(New_Data,1),rline);
-        end
-      end
-      Time = New_Time;
-      Data = New_Data;
+      % Call img_combine
+      [Data, Time]                  = img_combine(combine);
     end
   end
   
