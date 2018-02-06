@@ -65,7 +65,7 @@ if ~isfield(sparam,'notes')
   sparam.notes = '';
 end
 if ~isfield(sparam,'cpu_time') || isempty(sparam.cpu_time)
-  error('sparam.cpu_time must be specified');
+  sparam.cpu_time = 0;
 end
 if ~isfield(sparam,'mem') || isempty(sparam.mem)
   sparam.mem = 0;
@@ -103,12 +103,12 @@ task_id = ctrl.task_id;
 if task_id == 1
   static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
   static_param = sparam;
-  robust_save(static_in_fn,'static_param');
+  robust_save(static_in_fn,ctrl.cluster.file_version,'static_param');
   dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
   dparam_task_field = sprintf('dparam_%d',task_id);
   dynamic_param = struct();
   dynamic_param.(dparam_task_field) = dparam;
-  robust_save(dynamic_in_fn,'-v7.3','-struct','dynamic_param',dparam_task_field);
+  robust_save(dynamic_in_fn,ctrl.cluster.file_version,'-struct','dynamic_param',dparam_task_field);
 else
   % Add the dynamic parameters
   dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');

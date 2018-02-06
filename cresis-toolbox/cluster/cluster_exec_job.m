@@ -43,6 +43,30 @@ for task_idx = 1:length(task_ids)
     dparam_task_field = sprintf('dparam_%d',task_id);
     dparam = load(dynamic_in_fn,dparam_task_field);
     param = merge_structs(sparam.static_param,dparam.(dparam_task_field));
+    % Special merge of argsin cell array
+    if isfield(sparam.static_param,'argsin')
+      sparam_argsin_numel = numel(sparam.static_param.argsin);
+    else
+      sparam.static_param.argsin = {};
+      sparam_argsin_numel = 0;
+    end
+    if isfield(dparam.(dparam_task_field),'argsin')
+      dparam_argsin_numel = numel(dparam.(dparam_task_field).argsin);
+    else
+      dparam.(dparam_task_field).argsin = {};
+      dparam_argsin_numel = 0;
+    end
+    for idx = 1:max(sparam_argsin_numel,dparam_argsin_numel)
+      if idx <= sparam_argsin_numel
+        if idx <= dparam_argsin_numel
+          param.argsin{idx} = merge_structs(sparam.static_param.argsin{idx},dparam.(dparam_task_field).argsin{idx});
+        else
+          param.argsin{idx} = sparam.static_param.argsin{idx};
+        end
+      else
+        param.argsin{idx} = dparam.(dparam_task_field).argsin{idx};
+      end
+    end
     
     % Creating command to evaluate
     if param.num_args_out == 0

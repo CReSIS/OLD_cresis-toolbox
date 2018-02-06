@@ -77,6 +77,38 @@ if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_
   ctrl.cluster.file_check_pause = 10;
 end
 
+if ~isfield(ctrl.cluster,'rerun_only') || isempty(ctrl.cluster.rerun_only)
+  ctrl.cluster.rerun_only = false;
+end
+
+if ~isfield(ctrl.cluster,'hidden_depend_funs') || isempty(ctrl.cluster.hidden_depend_funs)
+  ctrl.cluster.hidden_depend_funs = [];
+end
+
+if ~isfield(ctrl.cluster,'force_compile') || isempty(ctrl.cluster.force_compile)
+  ctrl.cluster.force_compile = 0;
+end
+
+if ~isfield(ctrl.cluster,'cpu_time_mult') || isempty(ctrl.cluster.cpu_time_mult)
+  ctrl.cluster.cpu_time_mult = [];
+end
+
+if ~isfield(ctrl.cluster,'mem_mult') || isempty(ctrl.cluster.mem_mult)
+  ctrl.cluster.mem_mult = [];
+end
+
+if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
+  ctrl.cluster.file_version = '-v7';
+end
+
+if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
+  ctrl.cluster.qsub_submit_arguments = '-l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
+end
+
+if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm_submit_arguments)
+  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem %d -t 0-2:%d';
+end
+
 %% Create directory to store temporary files
 % Find the first unique and unused batch_id
 % Assign batch_id, batch_dir

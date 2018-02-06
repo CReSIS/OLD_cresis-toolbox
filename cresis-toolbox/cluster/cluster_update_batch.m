@@ -73,10 +73,12 @@ if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
     result = 'NA';
     
   elseif strcmpi(ctrl.cluster.type,'slurm')
+    % Runs squeue command
+    % ---------------------------------------------------------------------
     [system,user_name] = robust_system('whoami');
     user_name = user_name(1:end-1);
-    status = 0;
-    result = 'NA';
+    cmd = sprintf('squeue --users=%s </dev/null', user_name);
+    [status,result] = robust_system(cmd);
   end
   
   % Parse qstat command results
@@ -108,8 +110,15 @@ if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
       
       
     elseif strcmpi(ctrl.cluster.type,'slurm')
-      qstat_res{5} = {};
-      qstat_res{7} = [];
+      qstat_res = textscan(result,'%s %s %s %s %s %s %s %s','Headerlines',1,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
+      for idx = 1:size(qstat_res{1},1)
+        qstat_res{1}{idx} = str2double(qstat_res{1}{idx});
+        if qstat_res{5}{idx} ~= 'C'
+          ctrl.active_jobs = ctrl.active_jobs + 1;
+        end
+      end
+      qstat_res{7} = cell2mat(qstat_res{1});
+      
     end
     
     % Loop through all the jobs that qstat returned

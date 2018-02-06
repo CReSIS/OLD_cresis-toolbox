@@ -84,6 +84,7 @@ function [success surfTimes] = get_heights_task(param)
 % See also get_heights.m
 
 global g_data;
+g_data = [];
 
 physical_constants;
 surfTimes = [];
@@ -175,7 +176,7 @@ if ~isfield(param.records,'file_version')
 end
 
 if abs(sum(param.get_heights.B_filter)-1) > 1e4*eps
-  warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  %warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
   param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
 end
 
@@ -183,7 +184,7 @@ if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B
   param.get_heights.inc_B_filter = 1;
 end
 if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
-  warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  %warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
   param.get_heights.inc_B_filter = param.get_heights.inc_B_filter / sum(param.get_heights.inc_B_filter);
 end
 
@@ -220,14 +221,14 @@ if isfield(param.get_heights,'surface_src') && param.get_heights.surface_src
   layer_path = fullfile(ct_filename_out(param,'layerData','',0));
   
   %% Load the current frame
-  layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm));
+  layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.load.frm));
   layer = load(layer_fn);
   new_surface_gps_time = layer.GPS_time;
   new_surface = layer.layerData{1}.value{2}.data;
   new_bottom = layer.layerData{2}.value{2}.data;
   %% Get the previous frame if necessary
   if records.gps_time(1) < new_surface_gps_time(1)-1
-    layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm-1));
+    layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.load.frm-1));
     if exist(layer_fn,'file')
       layer = load(layer_fn);
       new_surface_gps_time = [layer.GPS_time new_surface_gps_time];
@@ -237,7 +238,7 @@ if isfield(param.get_heights,'surface_src') && param.get_heights.surface_src
   end
   %% Get the next frame if necessary
   if records.gps_time(end) > new_surface_gps_time(end)+1
-    layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm+1));
+    layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.load.frm+1));
     if exist(layer_fn,'file')
       layer = load(layer_fn);
       new_surface_gps_time = [new_surface_gps_time layer.GPS_time];
@@ -838,13 +839,13 @@ for img_idx = 1:length(param.load.imgs)
   if ~isnan(out_records.gps_time(1))
     fn = fullfile(ct_filename_out(param, ...
       param.get_heights.qlook.out_path, 'CSARP_qlook'), ...
-      sprintf('ql_data_%03d_01_01',param.proc.frm), sprintf('%s_img_%02d.mat', ...
+      sprintf('ql_data_%03d_01_01',param.load.frm), sprintf('%s_img_%02d.mat', ...
       datestr(epoch_to_datenum(out_records.gps_time(1)), 'yyyymmdd_HHMMSS'), ...
       img_idx));
   else % added for loopback test data in lab with gps data
     fn = fullfile(ct_filename_out(param, ...
       param.get_heights.qlook.out_path, 'CSARP_qlook'), ...
-      sprintf('ql_data_%03d_01_01',param.proc.frm), sprintf('%s_img_%02d.mat', ...
+      sprintf('ql_data_%03d_01_01',param.load.frm), sprintf('%s_img_%02d.mat', ...
       datestr(now, 'yyyymmdd_HHMMSS'), ...
       img_idx));
   end

@@ -110,31 +110,34 @@ end
 if print_flag == 1
   if isnumeric(task_id)
     % Matlab side job ID
-    torque_id = ctrl.job_id_list(task_id);
+    job_id = ctrl.job_id_list(task_id);
   else
     % Torque side job ID
-    torque_id = str2double(task_id);
-    task_id = ctrl.job_id_list(ctrl.job_id_list == torque_id)
+    job_id = str2double(task_id);
+    task_id = ctrl.job_id_list(ctrl.job_id_list == job_id)
   end
   
   
   if strcmpi(ctrl.cluster.type,'torque')
-    cmd = sprintf('qstat -f %d  </dev/null', torque_id);
+    cmd = sprintf('qstat -f %d  </dev/null', job_id);
     try; [status,result] = system(cmd); end;
     
   elseif strcmpi(ctrl.cluster.type,'matlab')
-    keyboard
+    cmd = 'NA';
+    status = -1;
     
   elseif strcmpi(ctrl.cluster.type,'slurm')
+    cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
     keyboard
     
   elseif strcmpi(ctrl.cluster.type,'debug')
     cmd = 'NA';
+    status = -1;
   end
   
   % Print job status
-  fprintf('Matlab Job ID %d\n', task_id);
-  fprintf('Torque Job ID %d\n', torque_id);
+  fprintf('Matlab Task ID %d\n', task_id);
+  fprintf('Cluster Job ID %d\n', job_id);
   
   if status == 0
     fprintf('\n\n%s ======================================================\n', cmd);
@@ -142,22 +145,27 @@ if print_flag == 1
   end
   
   % Print stdout file
-  fprintf('\n\nSTDOUT ======================================================\n');
-  actual_job_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
-  fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',actual_job_id));
-  fprintf('%s\n', fn);
-  if exist(fn,'file')
-    type(fn);
-  else
-    fprintf('  Does not exist\n');
-  end
-  fprintf('\n\nERROR ======================================================\n');
-  fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',actual_job_id));
-  fprintf('%s\n', fn);
-  if exist(fn,'file')
-    type(fn);
-  else
-    fprintf('  Does not exist\n');
+  if strcmpi(ctrl.cluster.type,'torque')
+    fprintf('\n\nSTDOUT ======================================================\n');
+    actual_job_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
+    fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',actual_job_id));
+    fprintf('%s\n', fn);
+    if exist(fn,'file')
+      type(fn);
+    else
+      fprintf('  Does not exist\n');
+    end
+    fprintf('\n\nERROR ======================================================\n');
+    fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',actual_job_id));
+    fprintf('%s\n', fn);
+    if exist(fn,'file')
+      type(fn);
+    else
+      fprintf('  Does not exist\n');
+    end
+  elseif strcmpi(ctrl.cluster.type,'matlab')
+    fprintf('\n\nSTDOUT ======================================================\n');
+    ctrl.cluster.jm.Jobs.findobj('ID',ctrl.job_id_list(task_id)).Tasks.Diary
   end
   
   % Check for existence of input file
@@ -196,9 +204,6 @@ if print_flag == 1
         fprintf('  %s: %d\n', out.errorstruct.stack(stack_idx).name, out.errorstruct.stack(stack_idx).line);
       end
     end
-    % Print job status
-    fprintf('Matlab Job ID %d\n', task_id);
-    fprintf('Torque Job ID %d\n', torque_id);
   else
     fprintf('  Does not exist\n');
     out = [];
@@ -220,20 +225,20 @@ if print_flag == 2
   end
   if isnumeric(task_id)
     % Matlab side job ID
-    torque_id = ctrl.job_id_list(task_id);
+    job_id = ctrl.job_id_list(task_id);
   else
     % Torque side job ID
-    torque_id = str2double(task_id);
-    task_id = ctrl.job_id_list(ctrl.job_id_list == torque_id);
+    job_id = str2double(task_id);
+    task_id = ctrl.job_id_list(ctrl.job_id_list == job_id);
   end
   
-  for idx = 1 : numel(torque_id)
+  for idx = 1 : numel(job_id)
     
     fprintf('\nMatlab Job ID %d\n', task_id(idx));
-    fprintf('Torque Job ID %d\n', torque_id(idx));
+    fprintf('Torque Job ID %d\n', job_id(idx));
     
     if strcmpi(ctrl.cluster.type,'custom_torque')
-      cmd = sprintf('qstat -f %d  </dev/null', torque_id);
+      cmd = sprintf('qstat -f %d  </dev/null', job_id);
       [status,result] = robust_system(cmd,0);
       
     elseif strcmpi(ctrl.cluster.type,'matlab')
@@ -258,7 +263,7 @@ if print_flag == 2
       
       % Print job status
       
-      % DEBUG: Find matching index in qstat -f result based on matching torque_id(i)
+      % DEBUG: Find matching index in qstat -f result based on matching job_id(i)
       host_property_value = value(host_property_idx);
       mem_property_value = value(mem_property_idx);
       used_walltime_property_value = value(used_walltime_property_idx);
@@ -316,7 +321,7 @@ return
 %% this is for a brief status of a single job
 % Print job statusjob_ids =numel(job_ids)
 %   fprintf('Matlab Job ID %d\n', task_id);
-%   fprintf('Torque Job ID %d\n', torque_id);
+%   fprintf('Torque Job ID %d\n', job_id);
 %   if print_flag == 2
 %     if status == 0
 %       qstat_res = textscan(result,'%s %s %s %s %s %s','HeaderLines',2,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);

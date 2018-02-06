@@ -51,6 +51,7 @@ if iscell(ctrl_chain)
         %   update of the job status information.
         if first_run(chain)
           ctrl = cluster_get_batch(ctrl);
+          first_run(chain) = false;
         else
           ctrl = cluster_update_batch(ctrl);
           pause(ctrl.cluster.stat_pause);
@@ -69,6 +70,7 @@ if iscell(ctrl_chain)
         if all(ctrl.job_status=='C')
           if ~any(ctrl.error_mask)
             active_stage(chain) = active_stage(chain) + 1;
+            first_run(chain) = true;
             if active_stage(chain) > numel(ctrl_chain{chain})
               % Chain is complete
               active_stage(chain) = inf;
@@ -85,7 +87,6 @@ if iscell(ctrl_chain)
           keyboard
         end
       end
-      first_run(chain) = false;
     end
     if ~block
       break;
@@ -94,7 +95,7 @@ if iscell(ctrl_chain)
 
   failed_chains = find(active_stage == -inf);
   for chain=1:length(failed_chains)
-    fprintf('Chain %d failed\n', chain);
+    fprintf('Chain %d failed (%s)\n', chain, datestr(now));
     for stage=1:numel(ctrl_chain{chain})
       ctrl = ctrl_chain{chain}{stage};
       if ~any(ctrl.error_mask)

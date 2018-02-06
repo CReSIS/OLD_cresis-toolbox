@@ -21,7 +21,7 @@ function cluster_compile(fun,hidden_depend_funs,force_compile,ctrl)
 %          check when fun not specified
 %  force_compile: force a compile even if dependent functions have not changed
 %    default is true if ctrl is undefined or if ctrl.cluster.type is 'slurm' or
-%    'custom_cluster'
+%    'torque'
 % ctrl: ctrl structure returned from cluster_new_batch, default is empty
 %  .cluster: cluster parameters
 %    .type: (only used to determine default state of force_compile)
@@ -49,7 +49,7 @@ if ~exist('hidden_depend_funs','var') || isempty(hidden_depend_funs)
   hidden_depend_funs = gRadar.cluster.hidden_depend_funs;
 end
 
-if ~isempty(ctrl) && isfield(ctrl,'cluster') && ~all(strcmpi(ctrl.cluster.type,{'custom_torque','slurm'}))
+if ~isempty(ctrl) && isfield(ctrl,'cluster') && all(~strcmpi(ctrl.cluster.type,{'torque','slurm'}))
   return;
 end  
 
@@ -66,7 +66,7 @@ cluster_job_fn = fullfile(getenv('MATLAB_CLUSTER_PATH'),'cluster_job.m');
 if ~force_compile
   % If any of the functions in depend_fun are newer, then recompile
   
-  test_date = dir(fullfile(getenv('MATLAB_CLUSTER_PATH'),'cluster_job.sh'));
+  test_date = dir(fullfile(getenv('MATLAB_CLUSTER_PATH'),'run_cluster_job.sh'));
   
   if length(test_date) == 0
     % File does not exist, have to compile to make the file

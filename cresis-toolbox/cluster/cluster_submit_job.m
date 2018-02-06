@@ -54,7 +54,7 @@ if strcmpi(ctrl.cluster.type,'torque')
   worker = ctrl.cluster.cluster_job_fn;
   [tmp worker_name] = fileparts(worker);
   
-  submit_arguments = sprintf(ctrl.cluster.qsub_submit_arguments,job_cpu_time);
+  submit_arguments = sprintf(ctrl.cluster.qsub_submit_arguments,ceil(job_mem/1e6),ceil(job_cpu_time/60));
   
   % Add "qsub -m abe -M your@email.edu" to debug:
   if ctrl.cluster.interactive
@@ -93,14 +93,38 @@ elseif strcmpi(ctrl.cluster.type,'matlab')
   %% Create the job on the matlab cluster/job manager
   new_job = createJob(ctrl.cluster.jm);
   new_job_id = new_job.ID;
-  task = createTask(new_job,@cluster_job,0,{in_fn,out_fn,task_list_str});
+  task = createTask(new_job,@cluster_job,0,{in_fn,out_fn,task_list_str},'CaptureDiary',true);
   ctrl.active_jobs = ctrl.active_jobs + 1;
   while ~strcmpi(task.State,'pending')
     warning('%s: pausing because task is not in pending state.', mfilename);
     pause(1);
   end
   submit(new_job);
+ 
+elseif strcmpi(ctrl.cluster.type,'slurm')
+  worker = ctrl.cluster.cluster_job_fn;
+  [tmp worker_name] = fileparts(worker);
   
+  submit_arguments = sprintf(ctrl.cluster.slurm_submit_arguments,ceil(job_mem/1e6),ceil(job_cpu_time/60));
+  
+  cmd = sprintf('srun %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s'' %s  </dev/null', ...
+    submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, worker);
+  [status,result] = robust_system(cmd);
+  
+  [job_id_str,result_tok] = strtok(result,'.');
+  try
+    new_job_id = str2double(job_id_str);
+    if isnan(new_job_id)
+      job_id_str
+      warning('job_id_str expected numeric, but is not');
+      keyboard;
+    end
+  catch
+    job_id_str
+    warning('job_id_str expected numeric, but is not');
+    keyboard;
+  end
+    
 elseif strcmpi(ctrl.cluster.type,'debug')
   %% Run the command now
   new_job_id = job_tasks(end);
@@ -109,6 +133,8 @@ elseif strcmpi(ctrl.cluster.type,'debug')
     ctrl.cluster.run_mode = [];
   end
   cluster_exec_job(ctrl,job_tasks,ctrl.cluster.run_mode);
+else
+  error('Invalid cluster type %s.', ctrl.cluster.type);
 end
 
 %% Update job IDs in job ID file

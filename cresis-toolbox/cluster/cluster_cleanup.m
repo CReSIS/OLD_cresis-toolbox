@@ -63,6 +63,9 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
         end
         
       elseif strcmpi(ctrl.cluster.type,'slurm')
+        cmd = sprintf('scancel %i', ctrl.job_id_list(job_id));
+        try; [status,result] = system(cmd); end
+        
       end
     end
   end
