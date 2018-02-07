@@ -73,6 +73,7 @@ end
 if ~isfield(sparam,'success') || isempty(sparam.success)
   sparam.success = '';
 end
+sparam.file_version = ctrl.cluster.file_version;
   
 %% Check for hold on this batch
 if exist(fullfile(ctrl.batch_dir,'hold'), 'file')

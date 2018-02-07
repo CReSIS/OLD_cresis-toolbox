@@ -99,7 +99,7 @@ if iscell(ctrl_chain)
     for stage=1:numel(ctrl_chain{chain})
       ctrl = ctrl_chain{chain}{stage};
       if ~any(ctrl.error_mask)
-        fprintf('Stage %d succeeded\n', stage);
+        fprintf('  Stage %d succeeded\n', stage);
       else
         fprintf('  Stage %d failed (%d of %d tasks failed)\n', stage, sum(ctrl.error_mask~=0), length(ctrl.error_mask));
       end
@@ -121,11 +121,10 @@ elseif isstruct(ctrl_chain)
     task_id = ctrl.submission_queue(1);
 
     if isempty(job_tasks) ...
-        && ctrl.cluster.max_time_per_job > 0 ...
         && ctrl.cluster.max_time_per_job < job_cpu_time + ctrl.cpu_time(task_id)
       error('ctrl.cluster.max_time_per_job is less than task %d time %.0f', task_id, ctrl.cpu_time(task_id));
     end
-    if ctrl.cluster.max_time_per_job < job_cpu_time + ctrl.cpu_time(task_id)
+    if ctrl.cluster.desired_time_per_job < job_cpu_time + ctrl.cpu_time(task_id) && ~isempty(job_tasks)
       [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);
       fprintf('Submitted these tasks in cluster job %d/%d:\n  %d', ctrl.batch_id, new_job_id, job_tasks(1))
       if length(job_tasks) > 1

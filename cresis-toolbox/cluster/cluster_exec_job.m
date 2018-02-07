@@ -91,7 +91,7 @@ for task_idx = 1:length(task_ids)
     catch errorstruct
     end
     fprintf('  %s: Done eval\n', mfilename);
-    save(out_fn,'argsout','errorstruct');
+    save(out_fn,param.file_version,'argsout','errorstruct');
     
   elseif run_mode == 2
     setenv('INPUT_PATH',ctrl.in_fn_dir);
@@ -107,7 +107,7 @@ for task_idx = 1:length(task_ids)
     job_list_str = sprintf('%dd',task_id); job_list_str = job_list_str(1:end-1);
     setenv('JOB_LIST',job_list_str);
     setenv('CUSTOM_CLUSTER','1');
-    system(ctrl.sched.cluster_job_fn);
+    system(ctrl.cluster.cluster_job_fn);
   end
 end
 return;

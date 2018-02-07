@@ -92,13 +92,13 @@ for task_idx = 1:length(job_list)
     eval(eval_cmd);
     fprintf('%s: Done Eval (%s)\n', mfilename, datestr(now));
     errorstruct = [];
-    save(out_fn,'argsout','errorstruct');
+    save(out_fn,param.file_version,'argsout','errorstruct');
   catch errorstruct
     fprintf('%s: Error\n  %s: %s (%s)\n', mfilename, errorstruct.identifier, errorstruct.message, datestr(now));
     for stack_idx = 1:length(errorstruct.stack)
       fprintf('  %s: %d\n', errorstruct.stack(stack_idx).name, errorstruct.stack(stack_idx).line);
     end
-    save(out_fn,'argsout','errorstruct');
+    save(out_fn,param.file_version,'argsout','errorstruct');
   end
 end
 

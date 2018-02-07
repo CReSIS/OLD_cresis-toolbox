@@ -49,6 +49,10 @@ end
 
 ctrl.cluster = param.cluster;
 
+if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
+  ctrl.cluster.type = 'debug';
+end
+
 if strcmpi(ctrl.cluster.type,'none')
   error('%s should not be called with ctrl.cluster.type="%s"', mfilename,ctrl.cluster.type);
 end
@@ -58,6 +62,10 @@ if ~isfield(ctrl.cluster,'max_jobs_active') || isempty(ctrl.cluster.max_jobs_act
 end
 
 if ~isfield(ctrl.cluster,'max_time_per_job') || isempty(ctrl.cluster.max_time_per_job)
+  ctrl.cluster.max_time_per_job = 86400;
+end
+
+if ~isfield(ctrl.cluster,'desired_time_per_job') || isempty(ctrl.cluster.desired_time_per_job)
   ctrl.cluster.max_time_per_job = 0;
 end
 
@@ -74,7 +82,7 @@ if ~isfield(ctrl.cluster,'stat_pause') || isempty(ctrl.cluster.stat_pause)
 end
 
 if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)
-  ctrl.cluster.file_check_pause = 10;
+  ctrl.cluster.file_check_pause = 30;
 end
 
 if ~isfield(ctrl.cluster,'rerun_only') || isempty(ctrl.cluster.rerun_only)
@@ -90,11 +98,11 @@ if ~isfield(ctrl.cluster,'force_compile') || isempty(ctrl.cluster.force_compile)
 end
 
 if ~isfield(ctrl.cluster,'cpu_time_mult') || isempty(ctrl.cluster.cpu_time_mult)
-  ctrl.cluster.cpu_time_mult = [];
+  ctrl.cluster.cpu_time_mult = 1;
 end
 
 if ~isfield(ctrl.cluster,'mem_mult') || isempty(ctrl.cluster.mem_mult)
-  ctrl.cluster.mem_mult = [];
+  ctrl.cluster.mem_mult = 1;
 end
 
 if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)

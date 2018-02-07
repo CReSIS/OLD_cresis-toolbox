@@ -41,7 +41,12 @@ if ~exist('ctrl','var')
 end
 
 if ~exist('fun','var')
-  fun = [];
+  fun = {};
+end
+
+% Support the legacy format of a single string containing a function
+if ischar(fun)
+  fun = {fun};
 end
 
 if ~exist('hidden_depend_funs','var') || isempty(hidden_depend_funs)
@@ -78,24 +83,26 @@ if ~force_compile
     end
     
     if ~isempty(fun)
-      try
-        if use_builtin_fdep
-          flist = matlab.codetools.requiredFilesAndProducts(fun);
-        else
-          warning off
-          flist = fdep(fun,'-q');
-          warning on
-          flist = flist.fun;
-        end
-        for fun_idx = 1:length(flist)
-          fun_info = dir(flist{fun_idx});
-          if fun_info.datenum > test_date.datenum
-            force_compile = true;
-            break;
+      for input_idx = 1:length(fun)
+        try
+          if use_builtin_fdep
+            flist = matlab.codetools.requiredFilesAndProducts(fun{input_idx});
+          else
+            warning off
+            flist = fdep(fun{input_idx},'-q');
+            warning on
+            flist = flist.fun;
           end
+          for fun_idx = 1:length(flist)
+            fun_info = dir(flist{fun_idx});
+            if fun_info.datenum > test_date.datenum
+              force_compile = true;
+              break;
+            end
+          end
+        catch
+          force_compile = true;
         end
-      catch
-        force_compile = true;
       end
     end
     

@@ -37,7 +37,8 @@ end
 %% Create the temporary file names
 in_fn = ctrl.in_fn_dir;
 out_fn = ctrl.out_fn_dir;
-task_id_max = max(job_tasks); % Use max task ID for the stdout and error files
+job_tasks = sort(job_tasks); % Sort tasks by ID (largest ID is last)
+task_id_max = job_tasks(end); % Use max task ID for the stdout and error files
 % There can be multiple task IDs associated with this job
 stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_max));
 error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id_max));

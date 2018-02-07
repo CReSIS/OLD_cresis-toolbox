@@ -55,13 +55,18 @@ for frm_idx = 1:length(param.cmd.frms);
     continue;
   end
   
+  % recs: Determine the records for this frame
+  if frm < length(frames.frame_idxs)
+    recs = frames.frame_idxs(frm):frames.frame_idxs(frm+1)-1;
+  else
+    recs = frames.frame_idxs(frm):length(records.gps_time);
+  end
+
   %% Output directory
-  in_path = fullfile(qlook_out_dir, sprintf('ql_data_%03d_01_01',frm));
+  in_fn_dir = fullfile(qlook_out_dir, sprintf('ql_data_%03d_01_01',frm));
   
   %% Concatenate blocks for each of the images
   for img = 1:length(param.get_heights.imgs)
-    
-    filenames = get_filenames(in_path,'','',sprintf('img_%02d.mat', img));
     
     if length(param.get_heights.imgs) == 1
       out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
@@ -82,79 +87,92 @@ for frm_idx = 1:length(param.cmd.frms);
     GPS_time = [];
     Data = [];
     custom = [];
-    if ~param.get_heights.combine_only
-      for block_idx = 1:length(filenames)
-        qlook_fn = filenames{block_idx};
-        tmp = load(qlook_fn);
-        time_vector_changed = false;
-        if isempty(Time)
-          Time = tmp.Time;
-        elseif any(size(Time) ~= size(tmp.Time)) || any(Time ~= tmp.Time)
-          % Determine the new time axis
-          time_vector_changed = true;
-          old_time = Time;
-          dt = Time(2) - Time(1);
-          start_time_diff = round((Time(1) - tmp.Time(1))/dt);
-          end_time_diff = round((tmp.Time(end) - Time(end))/dt);
-          if start_time_diff > 0
-            Time = [Time(1)+dt*(-start_time_diff:-1)'; Time];
-          end
-          if end_time_diff > 0
-            Time = [Time; Time(end)+dt*(1:end_time_diff)'];
-          end
+    
+    % Determine where breaks in processing blocks are going to occur
+    %   Rename variables for readability
+    block_size = param.get_heights.block_size(1);
+    breaks = 1:block_size:length(recs)-0.5*block_size;
+    
+    % Load each block
+    for break_idx = 1:length(breaks)
+      
+      % Determine the records for this block
+      if break_idx < length(breaks)
+        cur_recs_keep = [recs(breaks(break_idx)) recs(breaks(break_idx+1)-1)];
+      else
+        cur_recs_keep = [recs(breaks(break_idx)) recs(end)];
+      end
+      
+      in_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
+      in_fn = fullfile(in_fn_dir,in_fn_name);
+      
+      tmp = load(in_fn);
+      time_vector_changed = false;
+      if isempty(Time)
+        Time = tmp.Time;
+      elseif any(size(Time) ~= size(tmp.Time)) || any(Time ~= tmp.Time)
+        % Determine the new time axis
+        time_vector_changed = true;
+        old_time = Time;
+        dt = Time(2) - Time(1);
+        start_time_diff = round((Time(1) - tmp.Time(1))/dt);
+        end_time_diff = round((tmp.Time(end) - Time(end))/dt);
+        if start_time_diff > 0
+          Time = [Time(1)+dt*(-start_time_diff:-1)'; Time];
         end
-        Latitude = [Latitude double(tmp.Latitude)];
-        Longitude = [Longitude double(tmp.Longitude)];
-        Elevation = [Elevation double(tmp.Elevation)];
-        Roll = [Roll double(tmp.Roll)];
-        Pitch = [Pitch double(tmp.Pitch)];
-        Heading = [Heading double(tmp.Heading)];
-        GPS_time = [GPS_time tmp.GPS_time];
-        param_records = tmp.param_records;
-        param_get_heights = tmp.param_get_heights;
-        
-        if isfield(tmp,'custom') && ~isempty(tmp.custom)
-          % Custom fields are present, so concatenate them on the second dimension
-          % - Used for deconvolution waveform index
-          fields = fieldnames(tmp.custom);
-          if block_idx == 1
-            for field_idx = 1:length(fields)
-              custom.(fields{field_idx}) = tmp.custom.(fields{field_idx});
-            end
-          else
-            for field_idx = 1:length(fields)
-              max_dim = length(size(tmp.custom.(fields{field_idx})));
-              custom.(fields{field_idx}) = cat(max_dim,custom.(fields{field_idx}),tmp.custom.(fields{field_idx}));
-            end
-          end
-          
+        if end_time_diff > 0
+          Time = [Time; Time(end)+dt*(1:end_time_diff)'];
         end
-        
-        if time_vector_changed
-          if strcmpi(radar_type,'fmcw')
-            Data = [interp1(old_time,Data,Time,'nearest',0) interp1(tmp.Time,tmp.Data,Time,'nearest',0)];
-          else
-            Data = [interp1(old_time,Data,Time,'linear',0) interp1(tmp.Time,tmp.Data,Time,'linear',0)];
+      end
+      Latitude = [Latitude double(tmp.Latitude)];
+      Longitude = [Longitude double(tmp.Longitude)];
+      Elevation = [Elevation double(tmp.Elevation)];
+      Roll = [Roll double(tmp.Roll)];
+      Pitch = [Pitch double(tmp.Pitch)];
+      Heading = [Heading double(tmp.Heading)];
+      GPS_time = [GPS_time tmp.GPS_time];
+      param_records = tmp.param_records;
+      param_get_heights = tmp.param_get_heights;
+      
+      if isfield(tmp,'custom') && ~isempty(tmp.custom)
+        % Custom fields are present, so concatenate them on the second dimension
+        % - Used for deconvolution waveform index
+        fields = fieldnames(tmp.custom);
+        if break_idx == 1
+          for field_idx = 1:length(fields)
+            custom.(fields{field_idx}) = tmp.custom.(fields{field_idx});
           end
         else
-          Data = [Data tmp.Data];
+          for field_idx = 1:length(fields)
+            max_dim = length(size(tmp.custom.(fields{field_idx})));
+            custom.(fields{field_idx}) = cat(max_dim,custom.(fields{field_idx}),tmp.custom.(fields{field_idx}));
+          end
         end
+        
       end
-      %% Save output
-      fprintf('  Writing output to %s\n', out_fn);
-      Data = single(Data);
-      if isempty(custom)
-        save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-          'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
-          'param_get_heights','param_records');
+      
+      if time_vector_changed
+        if strcmpi(radar_type,'fmcw')
+          Data = [interp1(old_time,Data,Time,'nearest',0) interp1(tmp.Time,tmp.Data,Time,'nearest',0)];
+        else
+          Data = [interp1(old_time,Data,Time,'linear',0) interp1(tmp.Time,tmp.Data,Time,'linear',0)];
+        end
       else
-        save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-          'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
-          'param_get_heights','param_records','custom');
+        Data = [Data tmp.Data];
       end
+    end
+    
+    %% Save output
+    fprintf('  Writing output to %s\n', out_fn);
+    Data = single(Data);
+    if isempty(custom)
+      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+        'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
+        'param_get_heights','param_records');
     else
-      fprintf('  Reading output %s\n', out_fn);
-      load(out_fn);
+      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+        'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
+        'param_get_heights','param_records','custom');
     end
     
     %% Create temporary output for surface tracker
@@ -202,7 +220,6 @@ for frm_idx = 1:length(param.cmd.frms);
   if ~isfield(surf,'manual')
     surf.manual = false;
   end
-  
   
   if isfield(surf,'feedthru')
     %% Optional feed through removal

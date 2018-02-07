@@ -53,6 +53,11 @@ end
 if ~isfield(param.get_heights,'qlook') || isempty(param.get_heights.qlook)
   param.get_heights.qlook = [];
 end
+
+if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
+  param.get_heights.pulse_comp = 1;
+end
+
 if ~isfield(param.get_heights.qlook,'out_path') || isempty(param.get_heights.qlook.out_path)
   param.get_heights.qlook.out_path = '';
 end
@@ -80,6 +85,8 @@ else
     error('param.get_heights.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
   end
 end
+
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 %% Setup Processing
 % =====================================================================
@@ -121,16 +128,26 @@ end
 %% Create and setup the cluster batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
-cluster_compile('get_heights_task.m',ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+cluster_compile({'get_heights_task.m','get_heights_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
-if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  [wfs,~] = load_mcords_wfs(records.settings, param, ...
+    1:max(records.param_records.records.file.adcs), param.get_heights);
+  for img = 1:length(param.get_heights.imgs)
+    wf = abs(param.get_heights.imgs{img}(1,1));
+    total_num_sam(img) = wfs(wf).Nt_raw;
+  end
+  cpu_time_mult = ctrl.cluster.cpu_time_mult*18e-8;
+  mem_mult = ctrl.cluster.mem_mult*8;
+  
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.get_heights.imgs));
-  if ~isfield(param.cluster,'cpu_time_mult') || isempty(param.cluster.cpu_time_mult)
-    ctrl.cluster.cpu_time_mult = 8e-8;
-  end
-  if ~isfield(param.cluster,'mem_mult') || isempty(param.cluster.mem_mult)
-    ctrl.cluster.mem_mult = 64;
-  end
+  cpu_time_mult = ctrl.cluster.cpu_time_mult*8e-8;
+  mem_mult = ctrl.cluster.mem_mult*64;
+  
+else
+  error('radar_name %s not supported yet.', radar_name);
+  
 end
 
 %% Load data and create get_heights cluster tasks
@@ -198,21 +215,43 @@ for frm_idx = 1:length(param.cmd.frms)
     dparam.argsin{1}.load.recs = cur_recs;
     dparam.argsin{1}.load.recs_keep = cur_recs_keep;
     
+    % Create success condition
+    dparam.success = '';
+    for img = 1:length(param.get_heights.imgs)
+      out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
+      out_fn{img} = fullfile(out_fn_dir,out_fn_name);
+      if img == 1
+        dparam.success = cat(2,dparam.success, ...
+          sprintf('if ~exist(''%s'',''file'')', out_fn{img}));
+      else
+        dparam.success = cat(2,dparam.success, ...
+          sprintf(' || ~exist(''%s'',''file'')', out_fn{img}));
+      end
+    end
+    if 1
+      % Enable this check if you want to open each file to make sure it is
+      % not corrupt
+      for img = 1:length(param.get_heights.imgs)
+        out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
+        out_fn{img} = fullfile(out_fn_dir,out_fn_name);
+        dparam.success = cat(2,dparam.success, ...
+          sprintf('  load(''%s'');', out_fn{img}));
+      end
+    end
+    dparam.success = cat(2,dparam.success,sprintf('\n'));
+    success_error = 64;
+    dparam.success = cat(2,dparam.success, ...
+      sprintf('  error_mask = error_mask + %d;\n', success_error));
+    dparam.success = cat(2,dparam.success,sprintf('end;\n'));
+    
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
     if ctrl.cluster.rerun_only
-      % If we are in rerun only mode AND the get heights task output file
-      % exists, then we do not run the task.
-      file_exists = true;
-      for img = 1:length(param.get_heights.imgs)
-        out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end));
-        out_fn = fullfile(out_fn_dir,out_fn_name);
-        if ~exist(out_fn,'file')
-          file_exists = false;
-          break;
-        end
-      end
-      if file_exists
+      % If we are in rerun only mode AND the get heights task success
+      % condition passes without error, then we do not run the task.
+      error_mask = 0;
+      eval(dparam.success);
+      if ~error_mask
         fprintf('  %d: Already exists records %d to %d [rerun_only skipping] (%s)\n', ...
           break_idx, cur_recs(1), cur_recs(end), datestr(now));
         continue;
@@ -234,12 +273,12 @@ for frm_idx = 1:length(param.cmd.frms)
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.get_heights.imgs)
-      dparam.cpu_time = dparam.cpu_time + Nx*total_num_sam(img)*log2(total_num_sam(img))*ctrl.cluster.cpu_time_mult;
-      dparam.mem = 250e6 + max(dparam.mem,Nx*total_num_sam(img)*ctrl.cluster.mem_mult);
+      dparam.cpu_time = dparam.cpu_time + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      dparam.mem = 250e6 + max(dparam.mem,Nx*total_num_sam(img)*mem_mult);
     end
     dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
       mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
-      break_idx, length(breaks), cur_recs(1), cur_recs(end));
+      break_idx, length(breaks), cur_recs_keep(1), cur_recs_keep(end));
     
     ctrl = cluster_new_task(ctrl,sparam,dparam);
   end
@@ -253,14 +292,13 @@ ctrl_chain = {ctrl};
 ctrl = cluster_new_batch(param);
 cluster_compile('get_heights_combine_task.m',ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
-if any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  total_num_sam = 32000 * ones(size(param.get_heights.imgs));
-  if ~isfield(param.cluster,'cpu_time_mult') || isempty(param.cluster.cpu_time_mult)
-    ctrl.cluster.cpu_time_mult = 2e-8;
-  end
-  if ~isfield(param.cluster,'mem_mult') || isempty(param.cluster.mem_mult)
-    ctrl.cluster.mem_mult = 8;
-  end
+if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  cpu_time_mult = ctrl.cluster.cpu_time_mult*1e-8;
+  mem_mult = ctrl.cluster.mem_mult*8;
+  
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  cpu_time_mult = ctrl.cluster.cpu_time_mult*2e-8;
+  mem_mult = ctrl.cluster.mem_mult*8;
 end
 
 sparam = [];
@@ -270,15 +308,25 @@ sparam.num_args_out = 1;
 sparam.cpu_time = 0;
 sparam.mem = 0;
 for img = 1:length(param.get_heights.imgs)
-  sparam.cpu_time = sparam.cpu_time + numel(param.cmd.frms)*(Nx*total_num_sam(img)*log2(total_num_sam(img))*ctrl.cluster.cpu_time_mult);
+  sparam.cpu_time = sparam.cpu_time + numel(param.cmd.frms)*(Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult);
   if isempty(param.get_heights.qlook.img_comb)
-    sparam.mem = 250e6 + max(sparam.mem,Nx*total_num_sam(img)*ctrl.cluster.mem_mult);
+    sparam.mem = 250e6 + max(sparam.mem,Nx*total_num_sam(img)*mem_mult);
   else
-    sparam.mem = 250e6 + Nx*sum(total_num_sam)*ctrl.cluster.mem_mult;
+    sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;
   end
 end
 sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
   mfilename, param.radar_name, param.season_name, param.day_seg);
+
+% Create success condition
+success_error = 64;
+sparam.success = '';
+for frm = param.cmd.frms
+  out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
+  out_fn = fullfile(qlook_out_dir,out_fn_name);
+  sparam.success = cat(2,sparam.success, ...
+    sprintf('  error_mask = bitor(error_mask,%d*(~exist(''%s'',''file'')));\n', success_error, out_fn));
+end
 
 ctrl = cluster_new_task(ctrl,sparam,[]);
 
