@@ -50,19 +50,16 @@ end
 
 cluster_print_chain(ctrl_chain);
 
-[tmp tmp_name] = fileparts(tempname);
-chain_fn = fullfile(gRadar.cluster.data_location,sprintf('chain_%s.mat',tmp_name));
-fprintf('Saving chain: %s\n', chain_fn);
-save(chain_fn,'ctrl_chain');
+[chain_fn,chain_id] = cluster_save_chain(ctrl_chain);
 
-% Potentially stop and inspect cluster_print_chain output before running or
-% run the next lines on a different computer (the save/load functions are
-% for this purpose.
+% Potentially stop and inspect cluster_print_chain output to adjust
+% cluster control parameters before running or to run the next lines on a
+% different computer (the save/load functions are for this purpose).
 
 %return
 %ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.desired_time_per_job',5*60);
 %ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.cpu_time_mult',2);
 %ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.mem_mult',2);
 
-load(chain_fn);
+[ctrl_chain,chain_fn] = cluster_load_chain([],chain_id);
 ctrl_chain = cluster_run(ctrl_chain);

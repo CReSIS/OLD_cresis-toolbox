@@ -137,7 +137,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords
     wf = abs(param.get_heights.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult = 27e-8;
+  cpu_time_mult = 66e-8;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -298,11 +298,11 @@ end
 cluster_compile('get_heights_combine_task.m',ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
-  cpu_time_mult = 1e-8;
+  cpu_time_mult = 6e-8;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  cpu_time_mult = 2e-8;
+  cpu_time_mult = 6e-8;
   mem_mult = 8;
 end
 
@@ -310,10 +310,10 @@ sparam = [];
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'get_heights_combine_task';
 sparam.num_args_out = 1;
-sparam.cpu_time = 0;
+sparam.cpu_time = 10;
 sparam.mem = 0;
 for img = 1:length(param.get_heights.imgs)
-  sparam.cpu_time = sparam.cpu_time + 10 + numel(param.cmd.frms)*(Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult);
+  sparam.cpu_time = sparam.cpu_time + numel(param.cmd.frms)*(Nx*total_num_sam(img)*cpu_time_mult);
   if isempty(param.get_heights.qlook.img_comb)
     % Individual images, so need enough memory to hold the largest image
     sparam.mem = max(sparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
