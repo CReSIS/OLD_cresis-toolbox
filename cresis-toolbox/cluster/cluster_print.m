@@ -127,8 +127,9 @@ if print_flag == 1
     status = -1;
     
   elseif strcmpi(ctrl.cluster.type,'slurm')
-    cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
-    keyboard
+    %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
+    cmd = sprintf('scontrol show job %d', job_id);
+    try; [status,result] = system(cmd); end;
     
   elseif strcmpi(ctrl.cluster.type,'debug')
     cmd = 'NA';
@@ -145,7 +146,7 @@ if print_flag == 1
   end
   
   % Print stdout file
-  if strcmpi(ctrl.cluster.type,'torque')
+  if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
     fprintf('\n\nSTDOUT ======================================================\n');
     actual_job_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
     fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',actual_job_id));

@@ -1,5 +1,5 @@
-function ctrl = cluster_task_update(ctrl,task_id)
-% ctrl = cluster_task_update(ctrl,task_id)
+function ctrl = cluster_task_update(ctrl,task_id,update_mode)
+% ctrl = cluster_task_update(ctrl,task_id,update_mode)
 %
 % Updates a specific task's status. Support function for cluster_job_status.
 %
@@ -120,7 +120,9 @@ if strcmpi(ctrl.cluster.type,'torque')
       end
     end
   end
-  
+end
+
+if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   if ~bitand(error_mask,cluster_killed_error)
     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
     % Sometimes the file system/matlab are slow in recognizing a file
@@ -131,7 +133,7 @@ if strcmpi(ctrl.cluster.type,'torque')
       end
       if ~exist(out_fn,'file')
         warning('Cluster batch %d task %d (%d) completed without producing out:\n  %s.', ctrl.batch_id, task_id, job_id, out_fn);
-        keyboard
+        %keyboard
       end
     end
   end
@@ -139,7 +141,7 @@ end
 
 out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
 if exist(out_fn,'file')
-  success = robust_cmd('out = load(out_fn);',3);
+  success = robust_cmd('out = load(out_fn);',2);
   if ~success
     out = [];
     error_mask = error_mask + out_fn_load_error;
@@ -163,6 +165,12 @@ if isfield(out,'errorstruct')
   end
 else
   error_mask = error_mask + errorstruct_exist_error;
+end
+
+if isfield(out,'cpu_time_actual')
+  ctrl.cpu_time_actual(task_id) = out.cpu_time_actual;
+else
+  ctrl.cpu_time_actual(task_id) = -1;
 end
 
 try
@@ -236,12 +244,31 @@ if update_mode && ctrl.error_mask(task_id)
   end
 end
 
+if ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9 < ctrl.cpu_time_actual(task_id)
+  warning('CPU time actual (%.0f sec) is more than 90%% of estimated time (%.0f sec). Consider revising estimates.', ...
+    ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9);
+end
+
 if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
   % Job is completed and has an error
   
   if ctrl.retries(task_id) < ctrl.cluster.max_retries
     if ~bitand(ctrl.error_mask(task_id),out_fn_exist_error)
       delete(out_fn);
+    end
+
+    % Move stdout and error files
+    if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+      stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
+      error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id_out));
+      attempt_stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id_out, ctrl.retries(task_id)));
+      attempt_error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id_out, ctrl.retries(task_id)));
+      if exist(stdout_fn,'file')
+        movefile(stdout_fn,attempt_stdout_fn);
+      end
+      if exist(error_fn,'file')
+        movefile(error_fn,attempt_error_fn);
+      end
     end
     
     % Update task to ctrl structure

@@ -10,7 +10,8 @@ function cluster_hold(ctrl,hold_state)
 %   2. A vector of batch ids to apply hold to
 % hold_state = mode must be one of the following
 %   0: removes hold
-%   1: applies hold (default)
+%   1: applies hold
+%   []: if empty or undefined, the hold_state is toggled
 %
 % Author: John Paden
 %

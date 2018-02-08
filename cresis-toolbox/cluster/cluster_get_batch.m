@@ -151,6 +151,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       qstat_res = textscan(result,'%s %s %s %s %s %s %s %s','Headerlines',1,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
       for idx = 1:size(qstat_res{1},1)
         qstat_res{1}{idx} = str2double(qstat_res{1}{idx});
+        qstat_res{5}{idx} = qstat_res{5}{idx}(1);
         if qstat_res{5}{idx} ~= 'C'
           ctrl.active_jobs = ctrl.active_jobs + 1;
         end
@@ -186,5 +187,5 @@ end
 
 ctrl.active_jobs = 0;
 for task_id = 1:length(ctrl.job_status)
-  ctrl = cluster_update_task(ctrl,task_id);
+  ctrl = cluster_update_task(ctrl,task_id,update_mode);
 end

@@ -137,13 +137,13 @@ if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords
     wf = abs(param.get_heights.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult = ctrl.cluster.cpu_time_mult*18e-8;
-  mem_mult = ctrl.cluster.mem_mult*8;
+  cpu_time_mult = 27e-8;
+  mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.get_heights.imgs));
-  cpu_time_mult = ctrl.cluster.cpu_time_mult*8e-8;
-  mem_mult = ctrl.cluster.mem_mult*64;
+  cpu_time_mult = 8e-8;
+  mem_mult = 64;
   
 else
   error('radar_name %s not supported yet.', radar_name);
@@ -273,8 +273,8 @@ for frm_idx = 1:length(param.cmd.frms)
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.get_heights.imgs)
-      dparam.cpu_time = dparam.cpu_time + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-      dparam.mem = 250e6 + max(dparam.mem,Nx*total_num_sam(img)*mem_mult);
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
     dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
       mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
@@ -290,15 +290,20 @@ ctrl_chain = {ctrl};
 %% Create and setup the cluster batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
+if param.get_heights.surf.en
+  % If surface is enabled, the records file will be updated and this should
+  % not be done on the cluster.
+  ctrl.cluster.type = 'debug';
+end
 cluster_compile('get_heights_combine_task.m',ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
-  cpu_time_mult = ctrl.cluster.cpu_time_mult*1e-8;
-  mem_mult = ctrl.cluster.mem_mult*8;
+  cpu_time_mult = 1e-8;
+  mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  cpu_time_mult = ctrl.cluster.cpu_time_mult*2e-8;
-  mem_mult = ctrl.cluster.mem_mult*8;
+  cpu_time_mult = 2e-8;
+  mem_mult = 8;
 end
 
 sparam = [];
@@ -308,12 +313,17 @@ sparam.num_args_out = 1;
 sparam.cpu_time = 0;
 sparam.mem = 0;
 for img = 1:length(param.get_heights.imgs)
-  sparam.cpu_time = sparam.cpu_time + numel(param.cmd.frms)*(Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult);
+  sparam.cpu_time = sparam.cpu_time + 10 + numel(param.cmd.frms)*(Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult);
   if isempty(param.get_heights.qlook.img_comb)
-    sparam.mem = 250e6 + max(sparam.mem,Nx*total_num_sam(img)*mem_mult);
+    % Individual images, so need enough memory to hold the largest image
+    sparam.mem = max(sparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
   else
+    % Images combined into one so need enough memory to hold all images
     sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;
   end
+end
+if param.get_heights.surf.en
+  sparam.cpu_time = sparam.cpu_time + numel(records.gps_time)/5e6*120;
 end
 sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
   mfilename, param.radar_name, param.season_name, param.day_seg);

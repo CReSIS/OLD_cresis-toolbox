@@ -128,6 +128,11 @@ ctrl.job_id_list(end+1) = new_job_id;
 ctrl.job_status(end+1) = new_job_status;
 ctrl.error_mask(end+1) = 0;
 ctrl.retries(end+1) = 0;
+ctrl.notes{end+1} = param.notes;
+ctrl.cpu_time(end+1) = param.cpu_time;
+ctrl.mem(end+1) = param.mem;
+ctrl.success{end+1} = param.success;
+ctrl.cpu_time_actual(end+1) = -1;
 
 %% Write new task ID to task_id file
 fid = fopen(ctrl.job_id_fn,'a');

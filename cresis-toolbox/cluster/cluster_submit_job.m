@@ -108,13 +108,16 @@ elseif strcmpi(ctrl.cluster.type,'slurm')
   
   submit_arguments = sprintf(ctrl.cluster.slurm_submit_arguments,ceil(job_mem/1e6),ceil(job_cpu_time/60));
   
-  cmd = sprintf('srun %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s'' %s  </dev/null', ...
-    submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, worker);
+  cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
+  ctrl.cluster.matlab_mcr_path = '/global/AWIsoft/matlab/R2017b';
+  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" --wrap="%s"', ...
+    submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, worker);
   [status,result] = robust_system(cmd);
   
-  [job_id_str,result_tok] = strtok(result,'.');
+  search_str = 'Submitted batch job ';
+  job_id_str = regexp(result,search_str);
   try
-    new_job_id = str2double(job_id_str);
+    new_job_id = sscanf(result(job_id_str(1)+length(search_str):end),'%d');
     if isnan(new_job_id)
       job_id_str
       warning('job_id_str expected numeric, but is not');

@@ -31,6 +31,7 @@ for task_idx = 1:length(task_ids)
   task_id = task_ids(task_idx);
   
   if run_mode == 1
+    cluster_task_start_time = tic;
     fprintf('  %s: Loading input arguments and control parameters\n', mfilename);
 
     % Create in/out filenames
@@ -91,7 +92,8 @@ for task_idx = 1:length(task_ids)
     catch errorstruct
     end
     fprintf('  %s: Done eval\n', mfilename);
-    save(out_fn,param.file_version,'argsout','errorstruct');
+    cpu_time_actual = toc(cluster_task_start_time);
+    save(out_fn,param.file_version,'argsout','errorstruct','cpu_time_actual');
     
   elseif run_mode == 2
     setenv('INPUT_PATH',ctrl.in_fn_dir);

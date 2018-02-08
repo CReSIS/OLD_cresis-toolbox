@@ -662,7 +662,7 @@ records.notes = cat(2,sprintf('\nEPRI NOTES\n%s',epri_notes), ...
 records.param_records = param;
 
 fprintf('Saving records file %s (%s)\n',records_fn,datestr(now));
-save(records_fn,'-v6','-struct','records');
+save(records_fn,'-v7.3','-struct','records');
 
 % =====================================================================
 % Create record aux files for faster loading times

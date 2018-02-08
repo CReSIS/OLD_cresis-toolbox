@@ -82,7 +82,7 @@ if ~isfield(ctrl.cluster,'stat_pause') || isempty(ctrl.cluster.stat_pause)
 end
 
 if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)
-  ctrl.cluster.file_check_pause = 30;
+  ctrl.cluster.file_check_pause = 4;
 end
 
 if ~isfield(ctrl.cluster,'rerun_only') || isempty(ctrl.cluster.rerun_only)
@@ -105,6 +105,10 @@ if ~isfield(ctrl.cluster,'mem_mult') || isempty(ctrl.cluster.mem_mult)
   ctrl.cluster.mem_mult = 1;
 end
 
+if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
+  ctrl.cluster.mcc = 'system';
+end
+
 if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
   ctrl.cluster.file_version = '-v7';
 end
@@ -114,7 +118,7 @@ if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_s
 end
 
 if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm_submit_arguments)
-  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem %d -t 0-2:%d';
+  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%d --time=%d';
 end
 
 %% Create directory to store temporary files
@@ -147,6 +151,12 @@ ctrl.error_mask = [];
 ctrl.submission_queue = [];
 ctrl.active_jobs = 0;
 ctrl.retries = [];
+
+ctrl.notes = {};
+ctrl.cpu_time = [];
+ctrl.mem = [];
+ctrl.success = {};
+ctrl.cpu_time_actual = [];
 
 ctrl.in_fn_dir = fullfile(ctrl.batch_dir,'in');
 mkdir(ctrl.in_fn_dir)

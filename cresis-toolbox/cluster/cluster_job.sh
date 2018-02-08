@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# The following line is required to run on slurm:
+#Xsrun  I know what I am doing
+
 # =========================================================================
 # SETUP
 # =========================================================================
@@ -67,7 +70,7 @@ do
   return_value=$?
   echo Return value: $return_value
 
-  if [ $return_value -ne 255 ]
+  if [ $return_value -eq 0 ]
   then
     break
   fi
@@ -77,5 +80,6 @@ done
 
 echo "  cluster_job.{sh,m} Done" `whoami` `hostname` "("`date`")"
 date
+sleep 15 # Wait for file writes to take place and be available in file system metadata (seems to be necessary for high performance file systems)
 
 exit $return_value

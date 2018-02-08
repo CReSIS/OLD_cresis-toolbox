@@ -25,6 +25,12 @@ function cluster_compile(fun,hidden_depend_funs,force_compile,ctrl)
 % ctrl: ctrl structure returned from cluster_new_batch, default is empty
 %  .cluster: cluster parameters
 %    .type: (only used to determine default state of force_compile)
+%    .mcc: string containing 'system' or 'eval' and specifies which of
+%      these two functions will be used to execute the mcc command
+%      system is generally preferred because it only requires the matlab
+%      compiler license while the command line is running and then releases
+%      it. Calling eval does not release the license until the matlab
+%      session ends.
 %
 % Author: John Paden
 %
@@ -38,6 +44,14 @@ function cluster_compile(fun,hidden_depend_funs,force_compile,ctrl)
 
 if ~exist('ctrl','var')
   ctrl = [];
+end
+
+if ~isfield(ctrl,'cluster')
+  ctrl.cluster = [];
+end
+
+if ~isfield(ctrl.cluster,'mcc') 
+  ctrl.cluster.mcc = 'system';
 end
 
 if ~exist('fun','var')
@@ -54,7 +68,7 @@ if ~exist('hidden_depend_funs','var') || isempty(hidden_depend_funs)
   hidden_depend_funs = gRadar.cluster.hidden_depend_funs;
 end
 
-if ~isempty(ctrl) && isfield(ctrl,'cluster') && all(~strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+if isfield(ctrl.cluster,'type') && all(~strcmpi(ctrl.cluster.type,{'torque','slurm'}))
   return;
 end  
 
@@ -158,7 +172,11 @@ if force_compile
   
   fprintf('Start Compiling %s\n\n', datestr(now));
   fprintf('  %s\n', cmd);
-  system(cmd);
+  if strcmpi(ctrl.cluster.mcc,'system')
+    system(cmd);
+  else
+    eval(cmd);
+  end
   fprintf('\nDone Compiling %s\n', datestr(now));
 end
 

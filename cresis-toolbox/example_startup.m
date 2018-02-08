@@ -292,35 +292,40 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/home/ollie/tbinder/scripts/matlab/';
-  profile(pidx).ct_path                   = '/home/ollie/tbinder/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/home/ollie/tbinder/scripts/ct_params/';
-  profile(pidx).slurm_jobs_path           = '/home/ollie/tbinder/jobs/';
+  profile(pidx).personal_path             = '/home/ollie/jpaden/scripts/matlab/';
+  profile(pidx).ct_path                   = '/home/ollie/jpaden/scripts/cresis-toolbox/cresis-toolbox/';
+  profile(pidx).param_path                = '/home/ollie/jpaden/scripts/ct_params/';
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/work/ollie/tbinder/Scratch/mdce_tmp/';
-  profile(pidx).ct_tmp_file_path          = '/work/ollie/tbinder/Scratch/ct_tmp/';
+  profile(pidx).tmp_file_path             = '/work/ollie/jpaden/Scratch/mdce_tmp/';
+  profile(pidx).ct_tmp_file_path          = '/work/ollie/jpaden/Scratch/ct_tmp/';
 
-  profile(pidx).data_path                 = '/work/ollie/tbinder/Data/';
-  profile(pidx).data_support_path         = '/work/ollie/tbinder/Scratch/metadata/';
-  profile(pidx).support_path              = '/work/ollie/tbinder/Scratch/csarp_support/';
-  profile(pidx).out_path                  = '/work/ollie/tbinder/Scratch/';
-  profile(pidx).gis_path                  = '/work/ollie/tbinder/GIS_data/';
+  profile(pidx).data_path                 = '/work/ollie/jpaden/Data/';
+  profile(pidx).data_support_path         = '/work/ollie/jpaden/Scratch/metadata/';
+  profile(pidx).support_path              = '/work/ollie/jpaden/Scratch/csarp_support/';
+  profile(pidx).out_path                  = '/work/ollie/jpaden/Scratch/';
+  profile(pidx).gis_path                  = '/work/ollie/jpaden/GIS_data/';
+ 
+  profile(pidx).cluster.data_location     = '/work/ollie/jpaden/Scratch/mdce_tmp/cluster-temp';
+  profile(pidx).cluster.cluster_job_fn    = '/home/ollie/jpaden/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
 
-  profile(pidx).sched.type                = 'local';
-  %profile(pidx).sched.type                = 'ollie'; % creates param structures used by executables/slurm scripts
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  profile(pidx).sched.data_location       = '/work/ollie/tbinder/Scratch/torque-temp';
-  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=2,walltime=15:00';
-  profile(pidx).sched.max_in_queue        = 64;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/home/ollie/tbinder/scripts/cresis-toolbox-torque/worker';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
-    
+  %profile(pidx).cluster.type                    = 'torque';
+  %profile(pidx).cluster.type                    = 'matlab';
+  profile(pidx).cluster.type                    = 'slurm';
+  %profile(pidx).cluster.type                    = 'debug';
+  %profile(pidx).cluster.type                    = 'none';
+  profile(pidx).cluster.max_jobs_active         = 64;
+  profile(pidx).cluster.max_time_per_job        = 86400;
+  profile(pidx).cluster.desired_time_per_job    = 0;
+  profile(pidx).cluster.max_retries             = 2;
+  profile(pidx).cluster.submit_pause            = 0;
+  profile(pidx).cluster.stat_pause              = 1;
+  profile(pidx).cluster.file_check_pause        = 60;
+
+  profile(pidx).cluster.mcc                     = 'eval';
+  profile(pidx).cluster.slurm_submit_arguments  = '-N 1 -n 1 --mem=%d --time=%d';
+  
   %% Startup code (Automated Section)
   % =====================================================================
   
