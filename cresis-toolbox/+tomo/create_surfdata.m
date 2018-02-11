@@ -23,6 +23,7 @@ function create_surfdata(param,mdata)
 %     .surf_names: String or cell array of strings with surface names to be
 %       updated by the results of the command
 %     .visible: The visibility setting for this layer
+%     .plot_name_values: Plot name-value property fields
 %     DETECT parameters
 %     .data_threshold: pixel values above this will be clipped (default is 13.5)
 %     DEM parameters
@@ -286,6 +287,12 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     surf_names = {surf_names};
   end
   visible = param.tomo_collate.surfdata_cmds(cmd_idx).visible;
+  if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'plot_name_values') ...
+      && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).plot_name_values)
+    plot_name_values = param.tomo_collate.surfdata_cmds(cmd_idx).plot_name_values;
+  else
+    plot_name_values = {'color','black','marker','^'};
+  end
   
   if any(strcmpi(cmd,{'detect','extract'})) && isempty(mu)
     %% Training parameters for image template's mu and sigma
@@ -358,14 +365,16 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         surf = sd.get_surf(surf_name);
         if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
           surf.y = detect_surface;
+          surf.plot_name_values = plot_name_values;
+          surf.visible = visible;
           sd.set_surf(surf);
         end
       catch ME
         surf = tomo.surfdata.empty_surf();
         surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
         surf.y = detect_surface;
-        surf.plot_name_values = {'color','green','marker','^'};
         surf.name = surf_name;
+        surf.plot_name_values = plot_name_values;
         surf.visible = visible;
         sd.insert_surf(surf);
       end
@@ -469,7 +478,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         twtt = NaN*zeros(size(mdata.Topography.img,2),1);
         for theta_idx = 1:length(theta)
           % Find the point on the top surface
-          top_twtt = interp1(1:length(mdata.Time),mdata.Time,sd.surf(top_idx).y(theta_idx));
+          top_twtt = interp1(1:length(mdata.Time),mdata.Time,sd.surf(top_idx).y(theta_idx,rline));
           top_orig = [0 sin(theta(theta_idx))*top_twtt*c/2 -cos(theta(theta_idx))*top_twtt*c/2];
           
           % Calculate refraction
@@ -499,14 +508,16 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         surf = sd.get_surf(surf_name);
         if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
           surf.y = dem_surface;
+          surf.plot_name_values = plot_name_values;
+          surf.visible = visible;
           sd.set_surf(surf);
         end
       catch ME
         surf = tomo.surfdata.empty_surf();
         surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
         surf.y = dem_surface;
-        surf.plot_name_values = {'color','green','marker','^'};
         surf.name = surf_name;
+        surf.plot_name_values = plot_name_values;
         surf.visible = visible;
         sd.insert_surf(surf);
       end
@@ -545,14 +556,16 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         surf = sd.get_surf(surf_name);
         if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
           surf.y = extract_surface;
+          surf.plot_name_values = plot_name_values;
+          surf.visible = visible;
           sd.set_surf(surf);
         end
       catch ME
         surf = tomo.surfdata.empty_surf();
         surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
         surf.y = extract_surface;
-        surf.plot_name_values = {'color','yellow','marker','^'};
         surf.name = surf_name;
+        surf.plot_name_values = plot_name_values;
         surf.visible = visible;
         sd.insert_surf(surf);
       end
@@ -660,14 +673,16 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         surf = sd.get_surf(surf_name);
         if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
           surf.y = viterbi_surface;
+          surf.plot_name_values = plot_name_values;
+          surf.visible = visible;
           sd.set_surf(surf);
         end
       catch ME
         surf = tomo.surfdata.empty_surf();
         surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
         surf.y = viterbi_surface;
-        surf.plot_name_values = {'color','yellow','marker','^'};
         surf.name = surf_name;
+        surf.plot_name_values = plot_name_values;
         surf.visible = visible;
         sd.insert_surf(surf);
       end
@@ -721,14 +736,16 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         surf = sd.get_surf(surf_name);
         if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
           surf.y = trws_surface;
+          surf.plot_name_values = plot_name_values;
+          surf.visible = visible;
           sd.set_surf(surf);
         end
       catch ME
         surf = tomo.surfdata.empty_surf();
         surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
         surf.y = trws_surface;
-        surf.plot_name_values = {'color','green','marker','^'};
         surf.name = surf_name;
+        surf.plot_name_values = plot_name_values;
         surf.visible = visible;
         sd.insert_surf(surf);
       end
@@ -737,8 +754,6 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
   end
 end
-
-keyboard
 
 fprintf('Done (%s)\n', datestr(now));
 

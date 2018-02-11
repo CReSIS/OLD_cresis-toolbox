@@ -3,3 +3,8 @@
 /cresis-toolbox-torque/requiredMCRProducts.txt
 /cresis-toolbox-torque/run_worker_task.sh
 /cresis-toolbox-torque/worker_task
+/cresis-toolbox/cluster/mccExcludedFiles.log
+/cresis-toolbox/cluster/readme.txt
+/cresis-toolbox/cluster/requiredMCRProducts.txt
+/cresis-toolbox/cluster/run_cluster_job.sh
+/cresis-toolbox/cluster/cluster_job

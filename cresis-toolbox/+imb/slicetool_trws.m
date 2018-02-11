@@ -14,11 +14,11 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
     function obj = slicetool_trws()
       obj.create_option_ui();
       obj.tool_name = 'trws';
-      obj.tool_menu_name = 'TRWS(e)';
-      obj.tool_shortcut = 'e';
+      obj.tool_menu_name = 'TR(W)S';
+      obj.tool_shortcut = 'w';
       obj.ctrl_pressed = 0;
       obj.shift_pressed = 0;
-      obj.help_string = 'e: tracking tool which runs TRWS solution to HMM inference model to find best surface. Neighboring slices effect cost function to improve solution.';
+      obj.help_string = 'w: tracking tool which runs TRWS solution to HMM inference model to find best surface. Neighboring slices effect cost function to improve solution.';
     end
     
     function cmd = apply_PB_callback(obj,sb,slices)
@@ -338,7 +338,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       obj.gui.rightEdgeCB = uicontrol('parent',obj.h_fig);
       set(obj.gui.rightEdgeCB,'style','checkbox')
       set(obj.gui.rightEdgeCB,'string','R')
-      set(obj.gui.rightEdgeCB,'value',0)
+      set(obj.gui.rightEdgeCB,'value',1)
       set(obj.gui.rightEdgeCB,'TooltipString','Check to force a right edge boundary condition.');   
       
       % Top edge
