@@ -13,9 +13,10 @@
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'');
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03|20140506_01|20140325_05|20140325_06|20140325_07');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
 params = ct_set_params(params,'cmd.frms',[]);
 % params = ct_set_params(params,'cmd.generic',1,'20140401_03');
-% params = ct_set_params(params,'cmd.frms',[37 39 43:47]);
+% params = ct_set_params(params,'cmd.frms',[37]);
 % params = ct_set_params(params,'cmd.generic',0);
 
 % surfdata_ref: Directory where reference (ideal) layer exists
@@ -34,18 +35,26 @@ compare_params.surfdata_other = {};
 compare_params.surf_name_other = {};
 % cdf_title: Title or label to use in plots
 compare_params.cdf_title = {};
+
+% Victor's IGARSS18 paper
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+% compare_params.surf_name_other{end+1} = 'bottom detect';
+% compare_params.cdf_title{end+1} = 'Viterbi';
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+% compare_params.surf_name_other{end+1} = 'bottom extract';
+% compare_params.cdf_title{end+1} = 'TRW-S';
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+% compare_params.surf_name_other{end+1} = 'bottom viterbi';
+% compare_params.cdf_title{end+1} = 'Viterbi Mod';
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+% compare_params.surf_name_other{end+1} = 'bottom trws';
+% compare_params.cdf_title{end+1} = 'TRW-S Mod';
+
+% Mohanad's RadConf18 paper
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC_test';
 compare_params.surfdata_other{end+1} = 'surfData_no_MC';
-compare_params.surf_name_other{end+1} = 'bottom detect';
-compare_params.cdf_title{end+1} = 'Viterbi';
-compare_params.surfdata_other{end+1} = 'surfData_no_MC';
-compare_params.surf_name_other{end+1} = 'bottom extract';
-compare_params.cdf_title{end+1} = 'TRW-S';
-compare_params.surfdata_other{end+1} = 'surfData_no_MC';
-compare_params.surf_name_other{end+1} = 'bottom viterbi';
-compare_params.cdf_title{end+1} = 'Viterbi Mod';
-compare_params.surfdata_other{end+1} = 'surfData_no_MC';
-compare_params.surf_name_other{end+1} = 'bottom trws';
-compare_params.cdf_title{end+1} = 'TRW-S Mod';
+compare_params.surf_name_other{end+1} = 'bottom';
+compare_params.cdf_title{end+1} = 'TRW-S/Vitirbi';
 
 % compare.cutoffs: Cutoff interval in % for statistics;
 compare_params.cutoffs = [1 5 10 15 20 25];
