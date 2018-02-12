@@ -110,7 +110,7 @@ elseif strcmpi(ctrl.cluster.type,'slurm')
   
   cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
   ctrl.cluster.matlab_mcr_path = '/global/AWIsoft/matlab/R2017b';
-  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" --wrap="%s"', ...
+  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s', ...
     submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, worker);
   [status,result] = robust_system(cmd);
   
