@@ -21,10 +21,16 @@ function cluster_compile(fun,hidden_depend_funs,force_compile,ctrl)
 %          check when fun not specified
 %  force_compile: force a compile even if dependent functions have not changed
 %    default is true if ctrl is undefined or if ctrl.cluster.type is 'slurm' or
-%    'custom_cluster'
+%    'torque'
 % ctrl: ctrl structure returned from cluster_new_batch, default is empty
 %  .cluster: cluster parameters
 %    .type: (only used to determine default state of force_compile)
+%    .mcc: string containing 'system' or 'eval' and specifies which of
+%      these two functions will be used to execute the mcc command
+%      system is generally preferred because it only requires the matlab
+%      compiler license while the command line is running and then releases
+%      it. Calling eval does not release the license until the matlab
+%      session ends.
 %
 % Author: John Paden
 %
@@ -40,8 +46,21 @@ if ~exist('ctrl','var')
   ctrl = [];
 end
 
+if ~isfield(ctrl,'cluster')
+  ctrl.cluster = [];
+end
+
+if ~isfield(ctrl.cluster,'mcc') 
+  ctrl.cluster.mcc = 'system';
+end
+
 if ~exist('fun','var')
-  fun = [];
+  fun = {};
+end
+
+% Support the legacy format of a single string containing a function
+if ischar(fun)
+  fun = {fun};
 end
 
 if ~exist('hidden_depend_funs','var') || isempty(hidden_depend_funs)
@@ -49,7 +68,7 @@ if ~exist('hidden_depend_funs','var') || isempty(hidden_depend_funs)
   hidden_depend_funs = gRadar.cluster.hidden_depend_funs;
 end
 
-if ~isempty(ctrl) && isfield(ctrl,'cluster') && ~all(strcmpi(ctrl.cluster.type,{'custom_torque','slurm'}))
+if isfield(ctrl.cluster,'type') && all(~strcmpi(ctrl.cluster.type,{'torque','slurm'}))
   return;
 end  
 
@@ -66,7 +85,7 @@ cluster_job_fn = fullfile(getenv('MATLAB_CLUSTER_PATH'),'cluster_job.m');
 if ~force_compile
   % If any of the functions in depend_fun are newer, then recompile
   
-  test_date = dir(fullfile(getenv('MATLAB_CLUSTER_PATH'),'cluster_job.sh'));
+  test_date = dir(fullfile(getenv('MATLAB_CLUSTER_PATH'),'run_cluster_job.sh'));
   
   if length(test_date) == 0
     % File does not exist, have to compile to make the file
@@ -78,24 +97,26 @@ if ~force_compile
     end
     
     if ~isempty(fun)
-      try
-        if use_builtin_fdep
-          flist = matlab.codetools.requiredFilesAndProducts(fun);
-        else
-          warning off
-          flist = fdep(fun,'-q');
-          warning on
-          flist = flist.fun;
-        end
-        for fun_idx = 1:length(flist)
-          fun_info = dir(flist{fun_idx});
-          if fun_info.datenum > test_date.datenum
-            force_compile = true;
-            break;
+      for input_idx = 1:length(fun)
+        try
+          if use_builtin_fdep
+            flist = matlab.codetools.requiredFilesAndProducts(fun{input_idx});
+          else
+            warning off
+            flist = fdep(fun{input_idx},'-q');
+            warning on
+            flist = flist.fun;
           end
+          for fun_idx = 1:length(flist)
+            fun_info = dir(flist{fun_idx});
+            if fun_info.datenum > test_date.datenum
+              force_compile = true;
+              break;
+            end
+          end
+        catch
+          force_compile = true;
         end
-      catch
-        force_compile = true;
       end
     end
     
@@ -151,7 +172,11 @@ if force_compile
   
   fprintf('Start Compiling %s\n\n', datestr(now));
   fprintf('  %s\n', cmd);
-  system(cmd);
+  if strcmpi(ctrl.cluster.mcc,'system')
+    system(cmd);
+  else
+    eval(cmd);
+  end
   fprintf('\nDone Compiling %s\n', datestr(now));
 end
 

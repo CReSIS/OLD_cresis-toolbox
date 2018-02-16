@@ -37,7 +37,8 @@ end
 %% Create the temporary file names
 in_fn = ctrl.in_fn_dir;
 out_fn = ctrl.out_fn_dir;
-task_id_max = max(job_tasks); % Use max task ID for the stdout and error files
+job_tasks = sort(job_tasks); % Sort tasks by ID (largest ID is last)
+task_id_max = job_tasks(end); % Use max task ID for the stdout and error files
 % There can be multiple task IDs associated with this job
 stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_max));
 error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id_max));
@@ -54,7 +55,7 @@ if strcmpi(ctrl.cluster.type,'torque')
   worker = ctrl.cluster.cluster_job_fn;
   [tmp worker_name] = fileparts(worker);
   
-  submit_arguments = sprintf(ctrl.cluster.qsub_submit_arguments,job_cpu_time);
+  submit_arguments = sprintf(ctrl.cluster.qsub_submit_arguments,ceil(job_mem/1e6),ceil(job_cpu_time/60));
   
   % Add "qsub -m abe -M your@email.edu" to debug:
   if ctrl.cluster.interactive
@@ -93,14 +94,41 @@ elseif strcmpi(ctrl.cluster.type,'matlab')
   %% Create the job on the matlab cluster/job manager
   new_job = createJob(ctrl.cluster.jm);
   new_job_id = new_job.ID;
-  task = createTask(new_job,@cluster_job,0,{in_fn,out_fn,task_list_str});
+  task = createTask(new_job,@cluster_job,0,{in_fn,out_fn,task_list_str},'CaptureDiary',true);
   ctrl.active_jobs = ctrl.active_jobs + 1;
   while ~strcmpi(task.State,'pending')
     warning('%s: pausing because task is not in pending state.', mfilename);
     pause(1);
   end
   submit(new_job);
+ 
+elseif strcmpi(ctrl.cluster.type,'slurm')
+  worker = ctrl.cluster.cluster_job_fn;
+  [tmp worker_name] = fileparts(worker);
   
+  submit_arguments = sprintf(ctrl.cluster.slurm_submit_arguments,ceil(job_mem/1e6),ceil(job_cpu_time/60));
+  
+  cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
+  ctrl.cluster.matlab_mcr_path = '/global/AWIsoft/matlab/R2017b';
+  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s', ...
+    submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, worker);
+  [status,result] = robust_system(cmd);
+  
+  search_str = 'Submitted batch job ';
+  job_id_str = regexp(result,search_str);
+  try
+    new_job_id = sscanf(result(job_id_str(1)+length(search_str):end),'%d');
+    if isnan(new_job_id)
+      job_id_str
+      warning('job_id_str expected numeric, but is not');
+      keyboard;
+    end
+  catch
+    job_id_str
+    warning('job_id_str expected numeric, but is not');
+    keyboard;
+  end
+    
 elseif strcmpi(ctrl.cluster.type,'debug')
   %% Run the command now
   new_job_id = job_tasks(end);
@@ -109,6 +137,8 @@ elseif strcmpi(ctrl.cluster.type,'debug')
     ctrl.cluster.run_mode = [];
   end
   cluster_exec_job(ctrl,job_tasks,ctrl.cluster.run_mode);
+else
+  error('Invalid cluster type %s.', ctrl.cluster.type);
 end
 
 %% Update job IDs in job ID file

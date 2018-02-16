@@ -12,12 +12,12 @@ fprintf('========================================================\n');
 
 %% User Settings
 
-params             = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
+params             = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'20170406_02','post');
 % params             = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_DC8.xls'),'20091102_01','post');
-% params.cmd.generic = 1;
-% params.cmd.frms    = [];
+params.cmd.generic = 1;
+params.cmd.frms    = [];
 options.name       = 'CSARP_post/mvdr';
-options.debug      = false;
+options.debug      = true;
 % options.name       = 'standard1';
 geotiff_fn         = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
 % geotiff_fn         = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';

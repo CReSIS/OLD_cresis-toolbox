@@ -21,6 +21,7 @@ function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time)
 % ctrl = cluster_submit_batch('hanning',false,{10},1,60);
 % ctrl_chain = {{ctrl}};
 % while any(isfinite(cluster_chain_stage(ctrl_chain)))
+%   pause(1);
 %   ctrl_chain = cluster_run(ctrl_chain,false);
 % end
 % [in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,1,0);

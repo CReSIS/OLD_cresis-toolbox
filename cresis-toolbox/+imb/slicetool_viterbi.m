@@ -118,6 +118,32 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
           viterbi_weight = ones([1 length(gt)]);
         end
         
+        
+        %%
+        if ~isempty(control_idx)
+          % Create ground truth input
+          % 1. Each column is one ground truth input
+          % 2. Row 1: relative slice/range-line, Row 2: x, Row 3: y
+          
+          slice_range = 3;
+          
+          slices = slice-slice_range:slice+slice_range;
+          for idx = 1:length(slices)
+            slice = slices(idx);
+            mask = isfinite(sb.sd.surf(control_idx).x(:,slice)) ...
+              & isfinite(sb.sd.surf(control_idx).y(:,slice));
+            mask(1:sb.bounds_relative(1)) = 0;
+            mask(end-sb.bounds_relative(2)+1:end) = 0;
+          end
+        end
+        if isempty(mask_idx)
+          mask = ones(size(sb.data,2),length(slices));
+        else
+          mask = sb.sd.surf(mask_idx).y(:,slices);
+        end
+      
+        
+        %%
         if isempty(surf_idx)
           surf_bins = NaN*sb.sd.surf(active_idx).y(:,slice);
         else
@@ -125,13 +151,7 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
         end
         surf_bins(isnan(surf_bins)) = -1;
         bottom_bin(isnan(bottom_bin)) = -1;
-        
-        if isempty(mask_idx)
-          mask = ones(size(sb.data,2),1);
-        else
-          mask = sb.sd.surf(mask_idx).y(:,slice);
-        end
-        
+
         viterbi_data = sb.data(:,:,slice);
         viterbi_data(viterbi_data>threshold) = threshold;
         viterbi_data = fir_dec(viterbi_data.',hanning(3).'/3,1).';
@@ -143,7 +163,7 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
         sigma         = sum(mu)/20*ones(1,mu_size);
         smooth_var    = -1;
         smooth_weight = 25;
-        repulsion     = 250;
+        repulsion     = 100;%250;
         ice_bin_thr   = 3;
         mc            = -1 * ones(1, size(sb.data,2));
         mc_weight     = 0;
@@ -156,6 +176,10 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
           cd(tmp);
         end
         %%%%
+       
+        mask           = 90*fir_dec(fir_dec(double(shrink(mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
+        mask(mask>=90) = inf;
+        mask           = mask(:, slice_range+1);
         
         % Call viterbi.cpp
         tic

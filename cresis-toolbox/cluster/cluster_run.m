@@ -51,6 +51,7 @@ if iscell(ctrl_chain)
         %   update of the job status information.
         if first_run(chain)
           ctrl = cluster_get_batch(ctrl);
+          first_run(chain) = false;
         else
           ctrl = cluster_update_batch(ctrl);
           pause(ctrl.cluster.stat_pause);
@@ -69,6 +70,7 @@ if iscell(ctrl_chain)
         if all(ctrl.job_status=='C')
           if ~any(ctrl.error_mask)
             active_stage(chain) = active_stage(chain) + 1;
+            first_run(chain) = true;
             if active_stage(chain) > numel(ctrl_chain{chain})
               % Chain is complete
               active_stage(chain) = inf;
@@ -85,22 +87,28 @@ if iscell(ctrl_chain)
           keyboard
         end
       end
-      first_run(chain) = false;
     end
     if ~block
       break;
     end
   end
 
-  failed_chains = find(active_stage == -inf);
-  for chain=1:length(failed_chains)
-    fprintf('Chain %d failed\n', chain);
-    for stage=1:numel(ctrl_chain{chain})
-      ctrl = ctrl_chain{chain}{stage};
-      if ~any(ctrl.error_mask)
-        fprintf('Stage %d succeeded\n', stage);
-      else
-        fprintf('  Stage %d failed (%d of %d tasks failed)\n', stage, sum(ctrl.error_mask~=0), length(ctrl.error_mask));
+  for chain=1:numel(ctrl_chain)
+    if active_stage(chain) == inf
+      fprintf('Chain %d succeeded (%s)\n', chain, datestr(now));
+    else
+      fprintf('Chain %d failed (%s)\n', chain, datestr(now));
+      for stage=1:numel(ctrl_chain{chain})
+        ctrl = ctrl_chain{chain}{stage};
+        if all(ctrl.job_status=='C')
+          if all(ctrl.error_mask==0)
+            fprintf('  Stage %d succeeded\n', stage);
+          else any(ctrl.error_mask)
+            fprintf('  Stage %d failed (%d of %d tasks failed)\n', stage, sum(ctrl.error_mask~=0), length(ctrl.error_mask));
+          end
+        else
+          fprintf('  Stage %d not finished\n', stage);
+        end
       end
     end
   end
@@ -118,13 +126,13 @@ elseif isstruct(ctrl_chain)
   while ~isempty(ctrl.submission_queue) && ctrl.active_jobs < ctrl.cluster.max_jobs_active
     % Get task from queue
     task_id = ctrl.submission_queue(1);
+    task_cpu_time = 15 + ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id);
 
     if isempty(job_tasks) ...
-        && ctrl.cluster.max_time_per_job > 0 ...
-        && ctrl.cluster.max_time_per_job < job_cpu_time + ctrl.cpu_time(task_id)
-      error('ctrl.cluster.max_time_per_job is less than task %d time %.0f', task_id, ctrl.cpu_time(task_id));
+        && ctrl.cluster.max_time_per_job < job_cpu_time + task_cpu_time;
+      error('ctrl.cluster.max_time_per_job is less than task %d time %.0f', task_id, task_cpu_time);
     end
-    if ctrl.cluster.max_time_per_job < job_cpu_time + ctrl.cpu_time(task_id)
+    if ctrl.cluster.desired_time_per_job < job_cpu_time + task_cpu_time && ~isempty(job_tasks)
       [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);
       fprintf('Submitted these tasks in cluster job %d/%d:\n  %d', ctrl.batch_id, new_job_id, job_tasks(1))
       if length(job_tasks) > 1
@@ -137,8 +145,8 @@ elseif isstruct(ctrl_chain)
       pause(ctrl.cluster.submit_pause);
     end
     job_tasks(end+1) = task_id;
-    job_cpu_time = job_cpu_time + ctrl.cpu_time(task_id);
-    job_mem = max(job_mem, ctrl.mem(task_id));
+    job_cpu_time = job_cpu_time + task_cpu_time;
+    job_mem = max(job_mem, ctrl.cluster.mem_mult*ctrl.mem(task_id));
     ctrl.submission_queue = ctrl.submission_queue(2:end);
   end
   

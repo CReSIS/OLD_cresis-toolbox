@@ -70,12 +70,14 @@ for rline = 1:Nx
         upper_bound = Nsv;
       end
       
-      % IDEAL: Determine the local surface slope vector
+      % IDEAL: Determine the local surface slope vector... surface needs to be smooth or the gradient/slope will be noisy
       %  (ignoring along-track slope since SAR focussing should accomodate for)
       % NOT USING IDEAL: surface slope approximated by single polynomial
       % for each range line
+      % theta_slope = atan(p(1));
+      % NOT USING IDEAL: surface slope approximated by zero
       
-      theta_slope = atan(p(1));
+      theta_slope = 0;
       theta_inc = doa(doa_idx,rline) + theta_slope;
       if abs(theta_inc) >= pi/2
         continue;

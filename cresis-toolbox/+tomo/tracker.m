@@ -68,23 +68,7 @@ for param_idx = 1:length(params)
   big_matrix.GPS_time = [];
   big_matrix.Lat      = [];
   big_matrix.Lon      = [];
-  layer_params.name   = 'surface';
-  layer_params.source = 'ops';
-  try
-    Surface = opsLoadLayers(param,layer_params);
-  catch ME
-    warning(ME.getReport);
-    continue;
-  end
-  
-  % Catch error with layer not having correctly loaded from OPS
-  if(isempty(Surface.gps_time) || any(isnan(Surface.gps_time)) || any(isnan(Surface.twtt)))
-    warning('on', 'all');
-    warning('PROBLEM PROCESSING FRAME %s', param.day_seg);
-    warning('off', 'all');
-    continue;
-  end
-  
+
   % Load frames file
   load(ct_filename_support(param,'','frames'));
   
@@ -107,13 +91,60 @@ for param_idx = 1:length(params)
     data_fn_name        = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
     data_fn             = fullfile(data_fn_dir, data_fn_name);
     cur_matrix          = load(data_fn);
-    big_matrix.Data     = horzcat(big_matrix.Data, cur_matrix.Data);
     big_matrix.GPS_time = horzcat(big_matrix.GPS_time, cur_matrix.GPS_time);
     big_matrix.Lat      = horzcat(big_matrix.Lat, cur_matrix.Latitude);
     big_matrix.Lon      = horzcat(big_matrix.Lon, cur_matrix.Longitude);
     big_matrix.Time     = cur_matrix.Time;
+    %big_matrix.Data     = horzcat(big_matrix.Data, cur_matrix.Data);
+    
+    %% Image combine
+    load(data_fn, 'param_combine');
+    param.combine.imgs                   = param_combine.combine.imgs;
+    combine                              = param.combine;
+    combine.img_comb_mult                = 1.15;
+    combine.img_comb_bins                = 50;
+    update_img_combine_param.mode        = 'combine';
+    update_img_combine_param.update_surf = false;
+    combine.img_comb_weights             = [];
+    try
+      layer_params.name   = 'surface';
+      layer_params.source = 'ops';
+      layers              = opsLoadLayers(param,layer_params);
+    catch ME
+      warning(ME.getReport);
+      continue;
+    end
+    combine.out_path              = data_fn_dir;
+    combine.frm                   = frm;
+    combine.imb_comb_surf         = 0;
+    combine.img_comb_weights_mode = 'get_heights';  
+    [Data, big_matrix.Time]       = img_combine(param, combine, layers);    
+    big_matrix.Data               = horzcat(big_matrix.Data, Data);
+
+    big_matrix.Data = horzcat(big_matrix.Data, cur_matrix.Data);
+    
   end
   
+  %%
+  clear Surface;
+  layer_params.name   = 'surface';
+  layer_params.source = 'ops';
+  try
+    Surface = opsLoadLayers(param,layer_params);
+  catch ME
+    warning(ME.getReport);
+    continue;
+  end
+  
+  % Catch error with layer not having correctly loaded from OPS
+  if(isempty(Surface.gps_time) || any(isnan(Surface.gps_time)) || any(isnan(Surface.twtt)))
+    warning('on', 'all');
+    warning('PROBLEM PROCESSING FRAME %s', param.day_seg);
+    warning('off', 'all');
+    continue;
+  end
+  
+  %%
   opsAuthenticate(param,false);
   layer_name                   = 'bottom';
   sys                          = ct_output_dir(param.radar_name);
@@ -263,6 +294,8 @@ for param_idx = 1:length(params)
   %% Set variable echogram tracking parameters
   gt     = [cols(:).'; rows(:).'];
   bounds = [0 Nx];
+  mask   = 90*fir_dec(double(mask), ones(1,5)/3.7);
+  mask(mask>=90) = inf;
   
   %% Detrending routine
   if 1
@@ -304,7 +337,7 @@ for param_idx = 1:length(params)
   
   %% Load labels into OPS using opsCopyLayers
   copy_param = [];
-  copy_param.layer_source.existence_check = false; 
+  copy_param.layer_source.existence_check = false;
   copy_param.layer_dest.existence_check = false;
   
   % Set the source (choose one)

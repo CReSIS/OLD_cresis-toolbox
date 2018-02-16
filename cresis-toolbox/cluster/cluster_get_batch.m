@@ -1,5 +1,5 @@
-function ctrl = cluster_get_batch(ctrl,batch_id,force_check)
-% ctrl = cluster_get_batch(ctrl,batch_id,force_check)
+function ctrl = cluster_get_batch(ctrl,batch_id,force_check,update_mode)
+% ctrl = cluster_get_batch(ctrl,batch_id,force_check,update_mode)
 %
 % Updates task status information from the cluster. May be called from any
 % matlab process since it rebuilds the ctrl structure.
@@ -9,6 +9,11 @@ function ctrl = cluster_get_batch(ctrl,batch_id,force_check)
 %   ctrl.cluster.data_location is used
 %   ctrl.batch_id is used
 % batch_id: integer for which batch to get jobs info for
+% force_check: default to true, forces cluster_update_task to be run on all
+%   tasks
+% update_mode: Set to 1 when tasks should be updated and changes printed to
+%   the screen. Set to 0 when only getting task information, but not
+%   updating tasks.
 %
 % Outputs:
 % ctrl = ctrl structure for the specified batch_id
@@ -33,6 +38,9 @@ function ctrl = cluster_get_batch(ctrl,batch_id,force_check)
 
 if ~exist('force_check','var') || isempty(force_check)
   force_check = true;
+end
+if ~exist('update_mode','var') || isempty(update_mode)
+  update_mode = 1;
 end
 
 if isempty(ctrl)
@@ -70,7 +78,7 @@ end
 ctrl.job_id_list = textscan(fid,'%f');
 fclose(fid);
 ctrl.job_id_list = ctrl.job_id_list{1};
-ctrl.job_id = length(ctrl.job_id_list);
+ctrl.task_id = length(ctrl.job_id_list);
 
 % Start by assuming that all jobs are in the to be submitted queue
 ctrl.submission_queue = 1:numel(ctrl.job_id_list);
@@ -104,10 +112,12 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
     result = 'NA';
     
   elseif strcmpi(ctrl.cluster.type,'slurm')
+    % Runs squeue command
+    % -----------------------------------------------------------------------
     [system,user_name] = robust_system('whoami');
     user_name = user_name(1:end-1);
-    status = 0;
-    result = 'NA';
+    cmd = sprintf('squeue --users=%s </dev/null', user_name);
+    [status,result] = robust_system(cmd);
   end
   
   % Parse qstat command results
@@ -138,8 +148,15 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       end
       
     elseif strcmpi(ctrl.cluster.type,'slurm')
-      qstat_res{5} = {};
-      qstat_res{7} = [];
+      qstat_res = textscan(result,'%s %s %s %s %s %s %s %s','Headerlines',1,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
+      for idx = 1:size(qstat_res{1},1)
+        qstat_res{1}{idx} = str2double(qstat_res{1}{idx});
+        qstat_res{5}{idx} = qstat_res{5}{idx}(1);
+        if qstat_res{5}{idx} ~= 'C'
+          ctrl.active_jobs = ctrl.active_jobs + 1;
+        end
+      end
+      qstat_res{7} = cell2mat(qstat_res{1});
       
     end
     % Loop through all the jobs that qstat returned
@@ -157,7 +174,9 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
             % Only update job if it is not complete
             new_job_status = qstat_res{5}{idx};
             % Debug print
-            fprintf(' QJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
+            if update_mode
+              fprintf(' QJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
+            end
             ctrl.job_status(task_id) = new_job_status;
           end
         end
@@ -168,5 +187,5 @@ end
 
 ctrl.active_jobs = 0;
 for task_id = 1:length(ctrl.job_status)
-  ctrl = cluster_update_task(ctrl,task_id);
+  ctrl = cluster_update_task(ctrl,task_id,update_mode);
 end

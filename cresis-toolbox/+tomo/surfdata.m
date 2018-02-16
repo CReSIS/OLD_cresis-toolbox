@@ -682,9 +682,26 @@ classdef surfdata < handle
       ref = obj.get_surf(ref);
       other = sd_other.get_surf(other);
       
+      if 1
+      quality_mtx_ref = obj.surf(other.quality).y;
+      quality_mtx_other = sd_other.surf(other.quality).y;
+      
+      bad_idx_ref = find(quality_mtx_ref==0);
+      bad_idx_other = find(quality_mtx_other==0);
+      
+      ref.y(bad_idx_ref) = NaN;
+      other.y(bad_idx_ref) = NaN;
+      
+      ref.y(bad_idx_other) = NaN;
+      other.y(bad_idx_other) = NaN;
+%       if any(isnan(ref.y(:))) || any(isnan(other.y(:)))
+%         keyboard
+%       end
+      end
+      
       surf_diff = abs(other.y(1+DOA_trim(1):end-DOA_trim(end)+1,:) ...
         - ref.y(1+DOA_trim(1):end-DOA_trim(end)+1,:));
-      rmse        = sqrt(mean(abs(surf_diff(:)).^2));
+      rmse        = sqrt(nanmean(abs(surf_diff(:)).^2));
       mean_diff   = nanmean(surf_diff(:));
       median_diff = nanmedian(surf_diff(:));
       min_diff    = nanmin(surf_diff(:));

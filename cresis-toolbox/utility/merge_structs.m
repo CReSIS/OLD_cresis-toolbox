@@ -16,7 +16,7 @@ if isempty(S_over)
   S_out = S_in;
   return;
 end
-if isempty(S_in)
+if isempty(S_in) || ~isa(S_in,class(S_over)) || ~isstruct(S_over)
   S_out = S_over;
   return;
 end

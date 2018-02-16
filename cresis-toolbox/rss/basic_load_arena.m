@@ -180,7 +180,7 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
     end
   catch ME
     rec = rec - 1;
-    hdr.frame_sync = hdr.frame_sync(1:rec);
+    hdr{adc,wf}.frame_sync = hdr{adc,wf}.frame_sync(1:rec);
     break;
   end
   

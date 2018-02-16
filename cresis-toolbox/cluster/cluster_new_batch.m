@@ -49,6 +49,10 @@ end
 
 ctrl.cluster = param.cluster;
 
+if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
+  ctrl.cluster.type = 'debug';
+end
+
 if strcmpi(ctrl.cluster.type,'none')
   error('%s should not be called with ctrl.cluster.type="%s"', mfilename,ctrl.cluster.type);
 end
@@ -58,6 +62,10 @@ if ~isfield(ctrl.cluster,'max_jobs_active') || isempty(ctrl.cluster.max_jobs_act
 end
 
 if ~isfield(ctrl.cluster,'max_time_per_job') || isempty(ctrl.cluster.max_time_per_job)
+  ctrl.cluster.max_time_per_job = 86400;
+end
+
+if ~isfield(ctrl.cluster,'desired_time_per_job') || isempty(ctrl.cluster.desired_time_per_job)
   ctrl.cluster.max_time_per_job = 0;
 end
 
@@ -74,7 +82,43 @@ if ~isfield(ctrl.cluster,'stat_pause') || isempty(ctrl.cluster.stat_pause)
 end
 
 if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)
-  ctrl.cluster.file_check_pause = 10;
+  ctrl.cluster.file_check_pause = 4;
+end
+
+if ~isfield(ctrl.cluster,'rerun_only') || isempty(ctrl.cluster.rerun_only)
+  ctrl.cluster.rerun_only = false;
+end
+
+if ~isfield(ctrl.cluster,'hidden_depend_funs') || isempty(ctrl.cluster.hidden_depend_funs)
+  ctrl.cluster.hidden_depend_funs = [];
+end
+
+if ~isfield(ctrl.cluster,'force_compile') || isempty(ctrl.cluster.force_compile)
+  ctrl.cluster.force_compile = 0;
+end
+
+if ~isfield(ctrl.cluster,'cpu_time_mult') || isempty(ctrl.cluster.cpu_time_mult)
+  ctrl.cluster.cpu_time_mult = 1;
+end
+
+if ~isfield(ctrl.cluster,'mem_mult') || isempty(ctrl.cluster.mem_mult)
+  ctrl.cluster.mem_mult = 1;
+end
+
+if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
+  ctrl.cluster.mcc = 'system';
+end
+
+if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
+  ctrl.cluster.file_version = '-v7';
+end
+
+if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
+  ctrl.cluster.qsub_submit_arguments = '-l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
+end
+
+if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm_submit_arguments)
+  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%d --time=%d';
 end
 
 %% Create directory to store temporary files
@@ -107,6 +151,12 @@ ctrl.error_mask = [];
 ctrl.submission_queue = [];
 ctrl.active_jobs = 0;
 ctrl.retries = [];
+
+ctrl.notes = {};
+ctrl.cpu_time = [];
+ctrl.mem = [];
+ctrl.success = {};
+ctrl.cpu_time_actual = [];
 
 ctrl.in_fn_dir = fullfile(ctrl.batch_dir,'in');
 mkdir(ctrl.in_fn_dir)

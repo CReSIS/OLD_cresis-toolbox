@@ -1,8 +1,8 @@
 function [success] = robust_cmd(cmd,num_attempts)
 
 success = false;
-attempts = 0;
-while attempts < num_attempts
+attempt = 1;
+while attempt <= num_attempts
   try
     evalin('caller',cmd);
     success = true;
@@ -10,7 +10,8 @@ while attempts < num_attempts
   catch ME
     ME.getReport
     cmd
-    warning('Function failed, pausing 30 sec: %s', cmd);
-    pause(30);
+    warning('cmd failed on attempt %d of %d: %s', attempt, num_attempts, cmd);
+    pause(10);
   end
+  attempt = attempt + 1;
 end

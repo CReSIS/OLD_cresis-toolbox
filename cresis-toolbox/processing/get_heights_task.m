@@ -84,6 +84,7 @@ function [success surfTimes] = get_heights_task(param)
 % See also get_heights.m
 
 global g_data;
+g_data = [];
 
 physical_constants;
 surfTimes = [];
@@ -175,7 +176,7 @@ if ~isfield(param.records,'file_version')
 end
 
 if abs(sum(param.get_heights.B_filter)-1) > 1e4*eps
-  warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  %warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
   param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
 end
 
@@ -183,7 +184,7 @@ if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B
   param.get_heights.inc_B_filter = 1;
 end
 if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
-  warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  %warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
   param.get_heights.inc_B_filter = param.get_heights.inc_B_filter / sum(param.get_heights.inc_B_filter);
 end
 
@@ -220,14 +221,14 @@ if isfield(param.get_heights,'surface_src') && param.get_heights.surface_src
   layer_path = fullfile(ct_filename_out(param,'layerData','',0));
   
   %% Load the current frame
-  layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm));
+  layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.load.frm));
   layer = load(layer_fn);
   new_surface_gps_time = layer.GPS_time;
   new_surface = layer.layerData{1}.value{2}.data;
   new_bottom = layer.layerData{2}.value{2}.data;
   %% Get the previous frame if necessary
   if records.gps_time(1) < new_surface_gps_time(1)-1
-    layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm-1));
+    layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.load.frm-1));
     if exist(layer_fn,'file')
       layer = load(layer_fn);
       new_surface_gps_time = [layer.GPS_time new_surface_gps_time];
@@ -237,7 +238,7 @@ if isfield(param.get_heights,'surface_src') && param.get_heights.surface_src
   end
   %% Get the next frame if necessary
   if records.gps_time(end) > new_surface_gps_time(end)+1
-    layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.proc.frm+1));
+    layer_fn = fullfile(layer_path,sprintf('Data_%s_%03d.mat',param.day_seg,param.load.frm+1));
     if exist(layer_fn,'file')
       layer = load(layer_fn);
       new_surface_gps_time = [new_surface_gps_time layer.GPS_time];
@@ -496,7 +497,7 @@ end
 % 6. FIR decimate the data
 % =====================================================================
 
-for img_idx = 1:length(param.load.imgs)
+for img = 1:length(param.load.imgs)
   % Setup roll correction
   if param.get_heights.roll_correction
     if isempty(param.get_heights.lever_arm_fh)
@@ -510,17 +511,17 @@ for img_idx = 1:length(param.load.imgs)
 
     lever_arm_fh = param.get_heights.lever_arm_fh;
     % Setup motion compensation (roll removal)
-    radar_lever_arm = zeros(3,size(param.load.imgs{img_idx},1));
-    for wf_adc_idx = 1:size(param.load.imgs{img_idx},1)
-      wf = abs(param.load.imgs{img_idx}(wf_adc_idx,1));
-      adc = abs(param.load.imgs{img_idx}(wf_adc_idx,2));
+    radar_lever_arm = zeros(3,size(param.load.imgs{img},1));
+    for wf_adc_idx = 1:size(param.load.imgs{img},1)
+      wf = abs(param.load.imgs{img}(wf_adc_idx,1));
+      adc = abs(param.load.imgs{img}(wf_adc_idx,2));
       radar_lever_arm(:,wf_adc_idx) = lever_arm_fh(trajectory_param,wfs(wf).tx_weights,wfs(wf).rx_paths(adc));
     end
   end
   
   % Default values to use
-  wf = abs(param.load.imgs{img_idx}(1,1));
-  adc = abs(param.load.imgs{img_idx}(1,2));
+  wf = abs(param.load.imgs{img}(1,1));
+  adc = abs(param.load.imgs{img}(1,2));
   lambda_fc = c/wfs(wf).fc;
 
   %% Compute trajectory using GPS/INS data and the lever arm
@@ -542,7 +543,7 @@ for img_idx = 1:length(param.load.imgs)
   end
   
   %% Load data into g_data using load_mcords_data
-  load_param.load.imgs = param.load.imgs(img_idx);
+  load_param.load.imgs = param.load.imgs(img);
   % Determine combination times when multiple wf-adc pairs are being loaded
   % to form a single range line
   if size(load_param.load.imgs{1},2) == 2
@@ -704,8 +705,8 @@ for img_idx = 1:length(param.load.imgs)
   if param.get_heights.roll_correction
     % Apply roll-only motion compensation
     for wf_adc_idx = 1:size(g_data,3)
-      wf = abs(param.load.imgs{img_idx}(wf_adc_idx,1));
-      adc = abs(param.load.imgs{img_idx}(wf_adc_idx,2));
+      wf = abs(param.load.imgs{img}(wf_adc_idx,1));
+      adc = abs(param.load.imgs{img}(wf_adc_idx,2));
       rx = wfs(wf).rx_paths(adc);
       for rline = 1:size(g_data,2)
         drange = radar_lever_arm(2,wf_adc_idx) * -tan(out_records.roll(rline));
@@ -730,7 +731,7 @@ for img_idx = 1:length(param.load.imgs)
 
   %% FIR Decimate
   if simple_firdec
-%     if img_idx == 1
+%     if img == 1
       out_records.gps_time = fir_dec(out_records.gps_time, param.get_heights.decimate_factor);
       out_records.lat = fir_dec(out_records.lat, param.get_heights.decimate_factor);
       out_records.lon = fir_dec(out_records.lon, param.get_heights.decimate_factor);
@@ -750,7 +751,7 @@ for img_idx = 1:length(param.load.imgs)
     g_data = fir_dec(g_data, param.get_heights.B_filter, ...
         param.get_heights.decimate_factor, rline0, Nidxs);
 
-%     if img_idx == 1
+%     if img == 1
       out_records.gps_time = fir_dec(out_records.gps_time, param.get_heights.B_filter, ...
         param.get_heights.decimate_factor, rline0, Nidxs);
       out_records.lat = fir_dec(out_records.lat, param.get_heights.B_filter, ...
@@ -770,8 +771,8 @@ for img_idx = 1:length(param.load.imgs)
   
   if 0
     % Enable this if-statement only for debugging
-    figure(img_idx); clf;
-    imagesc([1 size(g_data,2)],wfs(img_idx).time, ...
+    figure(img); clf;
+    imagesc([1 size(g_data,2)],wfs(img).time, ...
       lp(g_data));
     keyboard
   end
@@ -835,22 +836,13 @@ for img_idx = 1:length(param.load.imgs)
   Heading = fir_dec(out_records.heading,param.get_heights.inc_ave);
   deconv_filter_idx = fir_dec(deconv_filter_idx,param.get_heights.inc_ave);
   
-  if ~isnan(out_records.gps_time(1))
-    fn = fullfile(ct_filename_out(param, ...
-      param.get_heights.qlook.out_path, 'CSARP_qlook'), ...
-      sprintf('ql_data_%03d_01_01',param.proc.frm), sprintf('%s_img_%02d.mat', ...
-      datestr(epoch_to_datenum(out_records.gps_time(1)), 'yyyymmdd_HHMMSS'), ...
-      img_idx));
-  else % added for loopback test data in lab with gps data
-    fn = fullfile(ct_filename_out(param, ...
-      param.get_heights.qlook.out_path, 'CSARP_qlook'), ...
-      sprintf('ql_data_%03d_01_01',param.proc.frm), sprintf('%s_img_%02d.mat', ...
-      datestr(now, 'yyyymmdd_HHMMSS'), ...
-      img_idx));
-  end
-  [path name ext] = fileparts(fn);
-  if ~exist(path,'dir')
-    mkdir(path);
+  out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,param.load.recs_keep(1),param.load.recs_keep(end));
+  out_fn_dir = fullfile(ct_filename_out(param, ...
+    param.get_heights.qlook.out_path, 'CSARP_qlook'), ...
+    sprintf('ql_data_%03d_01_01',param.load.frm));
+  out_fn = fullfile(out_fn_dir,out_fn_name);
+  if ~exist(out_fn_dir,'dir')
+    mkdir(out_fn_dir);
   end
   param_records = old_param_records;
   param_get_heights = param;
@@ -859,7 +851,7 @@ for img_idx = 1:length(param.load.imgs)
     custom.deconv_filter_idx = deconv_filter_idx;
   end
   clear deconv_filter_idx;
-  save(fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
+  save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
     'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'param_get_heights', 'param_records','custom');
   
 end

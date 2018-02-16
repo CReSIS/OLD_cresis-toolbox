@@ -648,14 +648,16 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         fprintf('  Viterbi %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
       end
       
-      detect_data = data(:,:,rline);
-      surf_bins   = twtt_bin(:,rline).';
-      bottom_bin  = Bottom_bin(rline);
-      gt          = [33; bottom_bin];
-      mask        = ice_mask(:,rline).';
-      mu_size     = 11;
-      mu          = sinc(linspace(-1.5, 1.5, mu_size));
-      sigma       = sum(mu)/20*ones(1,mu_size);
+      detect_data    = data(:,:,rline);
+      surf_bins      = twtt_bin(:,rline).';
+      bottom_bin     = Bottom_bin(rline);
+      gt             = [33; bottom_bin];
+      mask           = ice_mask(:,rline).';
+      mask           = 90*fir_dec(double(mask), ones(1,5)/3.7);
+      mask(mask>=90) = inf;
+      mu_size        = 11;
+      mu             = sinc(linspace(-1.5, 1.5, mu_size));
+      sigma          = sum(mu)/20*ones(1,mu_size);
       
       labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
         double(bottom_bin), double(gt), double(mask), double(mu), ...

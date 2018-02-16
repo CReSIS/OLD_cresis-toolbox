@@ -21,12 +21,12 @@
 
 %% User Settings
 
-out_dir = '/cresis/snfs1/scratch1/paden/coverage_maps/';
+out_dir = '/cresis/snfs1/scratch/paden/coverage_maps/';
 % out_dir = 'Z:\sfoga\coverage_maps\';
 
-% location = 'Greenland';
+location = 'Greenland';
 % location = 'Canada';
-location = 'Antarctica';
+% location = 'Antarctica';
 
 if strcmpi(location,'Greenland') || strcmpi(location,'Canada')
   season_names = {};
@@ -51,9 +51,13 @@ if strcmpi(location,'Greenland') || strcmpi(location,'Canada')
   season_names{end+1,1} = 'mcords2/2011_Greenland_P3';
   season_names{end+1,1} = 'mcords2/2012_Greenland_P3';
   season_names{end+1,1} = 'mcords3/2013_Greenland_P3';
+  season_names{end+1,1} = 'mcords3/2014_Greenland_P3';
+  season_names{end+1,1} = 'mcords5/2015_Greenland_C130';
+  season_names{end+1,1} = 'mcords5/2016_Greenland_P3';
+  season_names{end+1,1} = 'mcords3/2017_Greenland_P3';
   data_location = {};
   for idx=1:length(season_names)
-    data_location{idx} = 'layerData';
+    data_location{idx} = 'CSARP_post/layerData';
   end
 elseif strcmpi(location,'Antarctica')
   season_names = {};
@@ -155,24 +159,24 @@ for season_idx = 1:length(season_names)
     x = cat(2,x,x_tmp/1e3);
     y = cat(2,y,y_tmp/1e3);
   end
-  no_bottom_idxs = find(bottom==0);
-  moderate_idxs = find(bottom==1 & quality > 1);
-  bottom_idxs = find(bottom==1 & quality <= 1);
+  no_bottom_mask = bottom==0;
+  moderate_mask = bottom==1 & quality > 1;
+  bottom_mask = bottom==1 & ~moderate_mask;
   figure(1);
-  if isempty(no_bottom_idxs)
+  if any(no_bottom_mask)
+    bad_data_handles(season_idx) = plot(x(no_bottom_mask),y(no_bottom_mask),'r.');
+  else
     bad_data_handles(season_idx) = plot(1,NaN,'r.');
-  else
-    bad_data_handles(season_idx) = plot(x(no_bottom_idxs),y(no_bottom_idxs),'r.');
   end
-  if isempty(moderate_idxs)
+  if any(moderate_mask)
+    moderate_data_handles(season_idx) = plot(x(moderate_mask),y(moderate_mask),'y.');
+  else
     moderate_data_handles(season_idx) = plot(1,NaN,'y.');
-  else
-    moderate_data_handles(season_idx) = plot(x(moderate_idxs),y(moderate_idxs),'y.');
   end
-  if isempty(bottom_idxs)
-    good_data_handles(season_idx) = plot(1,NaN,'g.');
+  if any(bottom_mask)
+    good_data_handles(season_idx) = plot(x(bottom_mask),y(bottom_mask),'g.');
   else
-    good_data_handles(season_idx) = plot(x(bottom_idxs),y(bottom_idxs),'g.');
+    good_data_handles(season_idx) = plot(1,NaN,'g.');
   end
 end
 
