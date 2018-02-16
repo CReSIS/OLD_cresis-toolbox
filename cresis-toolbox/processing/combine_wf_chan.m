@@ -518,41 +518,16 @@ for frm_idx = 1:length(param.cmd.frms);
     keyboard
   end
   
-  %% Load each image and then combine with previous image (also trim time<0 values)
-  for img = 1:length(param.combine.imgs)
-    
-    if length(param.combine.imgs) == 1
-      out_fn = fullfile(out_path, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frm));
-    else
-      out_fn = fullfile(out_path, sprintf('Data_img_%02d_%s_%03d.mat', ...
-        img, param.day_seg, frm));
-    end
-    if img == 1
-      load(out_fn);
-      first_idx = find(Time <= 0,1,'last');
-      if ~isempty(first_idx)
-        Time = Time(first_idx:end);
-        Data = Data(first_idx:end,:);
-      end
-    else
-      append = load(out_fn,'Time','Data');
-      combine.idx                   = img;
-      combine.Data                  = Data;
-      combine.Time                  = Time;
-      combine.appendData            = append.Data;
-      combine.appendTime            = append.Time;
-      combine.imb_comb_surf         = Surface;
-      combine.img_comb_weights      = [];
-      combine.img_comb_mult         = inf;
-      combine.img_comb              = param.get_heights.qlook.img_comb;
-      combine.img_comb_bins         = 0;
-      combine.img_comb_weights_mode = 'get_heights';
-      
-      % Call img_combine
-      [Data, Time]                  = img_combine(combine);
-    end
-  end
+  %% Load each image and then combine with previous image (also trim time<0 values
+  % Call img_combine
+  clear combine;
+  Surface               = interp_finite(Surface,0);
+  combine               = param.combine;
+  combine.frm           = frm;
+  combine.out_path      = out_path; 
+  combine.trim_time     = true;
+  combine.imb_comb_surf = Surface;
+  [Data, Time]          = img_combine(param, combine);
   
   %% Save output
   out_fn = fullfile(out_path, sprintf('Data_%s_%03d.mat', ...

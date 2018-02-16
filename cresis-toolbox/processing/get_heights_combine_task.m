@@ -61,7 +61,7 @@ for frm_idx = 1:length(param.cmd.frms);
   else
     recs = frames.frame_idxs(frm):length(records.gps_time);
   end
-
+  
   %% Output directory
   in_fn_dir = fullfile(qlook_out_dir, sprintf('ql_data_%03d_01_01',frm));
   
@@ -179,25 +179,22 @@ for frm_idx = 1:length(param.cmd.frms);
     if img == 1
       Time_Surface = Time;
       Data_Surface = Data;
-    elseif ~isempty(param.get_heights.qlook.img_comb)
-      %% Combine image with previous
-      
-      if Time(end) > Time_Surface(end)
-        combine.idx                   = img;
-        combine.Data                  = Data_Surface;
-        combine.Time                  = Time_Surface;
-        combine.appendData            = Data;
-        combine.appendTime            = Time;
-        combine.imb_comb_surf         = 0;
-        combine.img_comb_weights      = [];
-        combine.img_comb_mult         = inf;
-        combine.img_comb              = param.get_heights.qlook.img_comb;
-        combine.img_comb_bins         = 0;
-        combine.img_comb_weights_mode = 'get_heights';
-        
-        % Call img_combine
-        [Data, Time]                  = img_combine(combine);
-      end
+    end
+  end
+  
+  if ~isempty(param.get_heights.qlook.img_comb)
+    %% Combine image with previous
+    if Time(end) > Time_Surface(end)
+      clear combine; 
+      combine.imgs     = param.get_heights.imgs;
+      combine.out_path = qlook_out_path;
+      combine.img_comb = param.get_heights.qlook.img_comb;
+      combine.frm  = frm;
+      combine.Data = Data_Surface;
+      combine.Time = Time_Surface;
+      [Data, Time] = img_combine(param, combine);
+      Data_Surface = Data;
+      Time_Surface = Time;
     end
   end
   
@@ -263,42 +260,17 @@ for frm_idx = 1:length(param.cmd.frms);
   % Reset the "Data" variable in case it was modified during surface
   % tracking
   Data = Data_Surface;
+  Surface = interp_finite(Surface,0);
   
   %% Combine images into a single image (also trim time<0 values)
-  % Load each image and then combine with previous image
-  for img = 1:num_imgs
-    if length(param.get_heights.imgs) == 1
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frm));
-    else
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
-        img, param.day_seg, frm));
-    end
-    if img == 1
-      load(out_fn);
-      first_idx = find(Time <= 0,1,'last');
-      if ~isempty(first_idx)
-        Time = Time(first_idx:end);
-        Data = Data(first_idx:end,:,:);
-      end
-    else
-      append = load(out_fn,'Time','Data');
-      combine.idx                   = img;
-      combine.Data                  = Data;
-      combine.Time                  = Time;
-      combine.appendData            = append.Data;
-      combine.appendTime            = append.Time;
-      combine.imb_comb_surf         = Surface;
-      combine.img_comb_weights      = [];
-      combine.img_comb_mult         = inf;
-      combine.img_comb              = param.get_heights.qlook.img_comb;
-      combine.img_comb_bins         = 0;
-      combine.img_comb_weights_mode = 'get_heights';
-      
-      % Call img_combine
-      [Data, Time]                  = img_combine(combine);
-    end
-  end
+  clear combine;
+  combine.frm           = frm;
+  combine.imgs          = param.get_heights.imgs;
+  combine.out_path      = qlook_out_dir;
+  combine.img_comb      = param.get_heights.qlook.img_comb;
+  combine.img_comb_surf = Surface;
+  combine.trim_time     = true;
+  [Data, Time]          = img_combine(param, combine);  
   
   %% Save combined image output
   out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...

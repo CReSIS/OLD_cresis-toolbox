@@ -138,48 +138,12 @@ for frm = param.cmd.frms
   end
   
   %% Load each image and then combine with previous image (also trim time<0 values)
-  for img = 1:length(combine.imgs)
-    if length(combine.imgs) == 1
-      img_fn = fullfile(out_path, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frm));
-    else
-      img_fn = fullfile(out_path, sprintf('Data_img_%02d_%s_%03d.mat', ...
-        img, param.day_seg, frm));
-    end
-    if img == 1
-      load(img_fn);
-      first_idx = find(Time <= 0,1,'last');
-      if ~isempty(first_idx)
-        Time = Time(first_idx:end);
-        Data = Data(first_idx:end,:);
-        if ~isempty(combine.img_comb_weights)
-          Data = Data*10.^(combine.img_comb_weights(img)/10);
-        end
-      end
-      
-      if isfield(param.combine,'img_comb_layer_params') && ~isempty(param.combine.img_comb_layer_params)
-        imb_comb_surf = interp1(layers.gps_time,layers.twtt,GPS_time);
-      end
-      if strcmpi(param.update_img_combine.mode,'get_heights')
-        Surface = imb_comb_surf;
-      elseif param.update_img_combine.update_surf
-        Surface = imb_comb_surf;
-      end
-    else
-      append                = load(img_fn,'Time','Data');
-      combine.idx           = img;
-      combine.Data          = Data;
-      combine.Time          = Time;
-      combine.appendData    = append.Data;
-      combine.appendTime    = append.Time;
-      combine.imb_comb_surf = imb_comb_surf;
-      
-      % Call img_combine
-      [Data, Time]          = img_combine(combine);
-    end
-  end
+  % Call img_combine
+  combine.out_path = out_path;
+  combine.frm      = frm;
+  [Data, Time]     = img_combine(param, combine, layers);
   
-  %% Save output  
+  %% Save output
   if strcmpi(param.update_img_combine.mode,'combine')
     % combine_wf_chan file
     save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
