@@ -1,8 +1,14 @@
-// refine.cpp: Extract 3D surface of ice-bed layers.
-// By Mingze Xu, July 2016
-// Correlation based mu/sigma, addition of smoothness, surface repulsion increased, input arg checks,
-//   merge with extract.cpp, bounds, init and edge conditions updated: John Paden 2017
-// Minor style changes to comply with new C++ standards: Victor Berger 2018
+// trws.cpp
+//
+// Extract 3D surface of ice-bed layers
+//
+// Authors: 
+//  Mingze Xu, July 2016
+//  Correlation based mu/sigma, addition of smoothness, surface repulsion increased, input arg checks,
+//    merge with extract.cpp, bounds, init and edge conditions updated: John Paden 2017
+//  Minor style changes to comply with new C++ standards: Victor Berger 2018
+//
+// See also: trws.h
 //
 // mex -v -largeArrayDims refine.cpp
 
@@ -77,6 +83,7 @@ public:
     const double *mu;
     const double *sigma;
     const size_t ms;
+    size_t t;
     // Shape
     const double *smooth_weight;
     const double smooth_var;
@@ -97,11 +104,12 @@ public:
             sigma(_sigma), ms(_ms), smooth_weight(_smooth_weight), smooth_var(_smooth_var), smooth_slope(_smooth_slope),
             edge(_edge), max_loop(_max_loop), bounds(_bounds), result(_result) {
             // Set dimensions
-            depth = dim_image[0];
-            height = dim_image[1];
-            width = dim_image[2];
+            depth      = dim_image[0];
+            height     = dim_image[1];
+            width      = dim_image[2];
             mid_height = height/2;
-            max_disp = depth-ms;
+            max_disp   = depth-ms;
+            t          = (ms-1)/2;
 
             // Set matrix
             for (size_t i = 0; i < height*width; i++) {
@@ -138,18 +146,27 @@ public:
     void surface_extracting();
 };
 
-size_t Refine::encode(size_t h, size_t w) {
-    return h + w*height;
-}
-
-size_t Refine::encode(size_t d, size_t h, size_t w) {
-    return d + h*depth + w*depth*height;
-}
-
 double Refine::unary_cost(size_t d, size_t h, size_t w) {
-    double cost = 0.0;
-    size_t t = (ms-1)/2;
     size_t center = encode(h,w);
+    
+    // Set cost to large if bottom is above surface
+    if (d+t+1 < sgt[center]) {
+        return LARGE;
+    }
+        
+    // Set cost to large if far from center ground truth (if present)
+    if ((bgt[w] != -1) && (h == mid_height) && (d+t < bgt[w]-20 || d+t > bgt[w]+20)) {
+        return LARGE;
+    }
+
+    double cost = 0;
+    
+    // Increase cost if far from extra ground truth
+    for (size_t i = 0; i < egt_size; i++) {
+        if (h == egt[3*i+1] && abs(w - egt[3*i]) < 4) {
+            cost += 10*sqr(abs((int)(egt[3*i+2]) - (int)(d+t))/(1.0 + 0.5*abs(w - egt[3*i])));
+        }
+    }
 
     // Ice mask
     if (!isinf(ice_mask[center]) && sgt[center] > t) {
@@ -168,39 +185,28 @@ double Refine::unary_cost(size_t d, size_t h, size_t w) {
             // Set 25 as the sensory distance
             // Set 200 as the maximum cost
             // 0.32 = 200 / 25^2
-            cost += 200 - 0.32*pow(abs((int)(d+t) - (int)sgt[center]),2);
-        }
-    }
-
-    // Bottom layer should be below surface layer
-    if (d+t+1 < sgt[center]) {
-        return LARGE;
-    }
-
-    // Bottom ground truth
-    if (h == mid_height && (d+t < bgt[w]-20 || d+t > bgt[w]+20)) {
-        return LARGE;
-    }
-
-    // Extra ground truth
-    for (size_t i = 0; i < egt_size; i++) {
-        if (h == egt[3*i+1] && abs(w - egt[3*i]) < 4) {
-            cost += 10*pow(abs((int)(egt[3*i+2]) - (int)(d+t))/(1.0 + 0.5*abs(w - egt[3*i])),2);
+            cost += 200 - 0.32 * sqr((int)(d+t) - (int)sgt[center]);
         }
     }
 
     // Image magnitude correlation
     double tmp_cost = 0;
     for (size_t i = 0; i < ms; i++) {
-        tmp_cost -= image[encode(d+i,h,w)]*mu[i] / sigma[i];
+        cost -= image[encode(d+i,h,w)]*mu[i] / sigma[i];
     }
-    cost = cost+tmp_cost;
-
     return cost;
 }
 
+
+size_t Refine::encode(size_t h, size_t w) {
+    return h + w*height;
+}
+
+size_t Refine::encode(size_t d, size_t h, size_t w) {
+    return d + h*depth + w*depth*height;
+}
+
 void Refine::set_prior() {
-    size_t t = (ms-1)/2;
     for (size_t w = 0, cp = 0; w < width; w++) {
         for (size_t h = 0; h < height; h++, cp++) {
             for (size_t d = 0; d < max_disp; d++) {
@@ -267,7 +273,6 @@ double Refine::set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t b
 }
 
 void Refine::set_result() {
-    size_t t = (ms-1)/2;
     double temp = 0.0;
     double min_val = INFINITY;
     size_t best_result;
@@ -314,14 +319,12 @@ void Refine::set_result() {
 }
 
 void Refine::surface_extracting() { 
-    int loop = 0;
-    size_t t = (ms-1)/2;
-
     // Propagate h/height from the midpoint out (mid_height) and let it be
     // biased by the current loop's results. This means the starting point
     // can have a large affect on the result because propagation away from
     // the starting point is much more effective and far reaching. In our
     // case, the midpoint always has ground truth so it is a good.
+    int loop = 0;
     double heights_array[height];
     for (int i=0; i<=mid_height; i++) {
         heights_array[i] = mid_height-i; // From center to left
