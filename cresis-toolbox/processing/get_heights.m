@@ -7,8 +7,6 @@ function ctrl_chain = get_heights(param,param_override)
 % 2. Generate quick look outputs (default location: CSARP_qlook)
 %
 % param = struct with processing parameters
-%         -- OR --
-%         function handle to script with processing parameters
 % param_override = parameters in this struct will override parameters
 %         in param.  This struct must also contain the gRadar fields.
 %         Typically global gRadar; param_override = gRadar;
@@ -33,6 +31,10 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
+if ~isfield(param.get_heights,'frm_types') || isempty(param.get_heights.frm_types)
+  param.get_heights.frm_types = {-1,-1,-1,-1,-1};
+end
+
 % Remove frames that do not exist from param.cmd.frms list
 load(ct_filename_support(param,'','frames')); % Load "frames" variable
 if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
@@ -50,17 +52,25 @@ end
 if ~isfield(param.get_heights,'combine_only') || isempty(param.get_heights.combine_only)
   param.get_heights.combine_only = false;
 end
-if ~isfield(param.get_heights,'qlook') || isempty(param.get_heights.qlook)
-  param.get_heights.qlook = [];
+
+% Convert inputs to new format that does not use qlook substruct
+if isfield(param.get_heights,'qlook')
+  warning('The get_heights.qlook field is deprecated. Please remove the qlook portion of each field (i.e. qlook.out_path should be just out_path).');
+  qlook_fieldnames = fieldnames(param.get_heights.qlook);
+  for name_idx = 1:length(qlook_fieldnames)
+    param.get_heights.(qlook_fieldnames{name_idx}) = param.get_heights.qlook.(qlook_fieldnames{name_idx});
+  end
+  param.get_heights = rmfield(param.get_heights,'qlook');
 end
 
 if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
   param.get_heights.pulse_comp = 1;
 end
 
-if ~isfield(param.get_heights.qlook,'out_path') || isempty(param.get_heights.qlook.out_path)
-  param.get_heights.qlook.out_path = '';
+if ~isfield(param.get_heights,'out_path') || isempty(param.get_heights.out_path)
+  param.get_heights.out_path = 'qlook';
 end
+
 if ~isfield(param.get_heights,'ground_based') || isempty(param.get_heights.ground_based)
   param.get_heights.ground_based = [];
 end
@@ -77,12 +87,12 @@ if numel(param.get_heights.block_size) == 1
 end
 
 % Check img_comb
-if numel(param.get_heights.imgs) == 1 || isempty(param.get_heights.qlook.img_comb)
+if numel(param.get_heights.imgs) == 1 || isempty(param.get_heights.img_comb)
   num_imgs = 1;
 else
   num_imgs = length(param.get_heights.imgs);
-  if length(param.get_heights.qlook.img_comb) ~= 3*(num_imgs-1)
-    error('param.get_heights.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
+  if length(param.get_heights.img_comb) ~= 3*(num_imgs-1)
+    error('param.get_heights.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
   end
 end
 
@@ -96,7 +106,7 @@ records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 
 % Quick look radar echogram output directory
-qlook_out_dir = ct_filename_out(param, param.get_heights.qlook.out_path, 'CSARP_qlook');
+qlook_out_dir = ct_filename_out(param, param.get_heights.out_path);
 
 % Get version information out of the deconvolution file
 if isfield(param.get_heights,'deconvolution') ...
@@ -313,8 +323,13 @@ sparam.num_args_out = 1;
 sparam.cpu_time = 10;
 sparam.mem = 0;
 for img = 1:length(param.get_heights.imgs)
+  % Find the longest frame
+  Nx = max(diff([frames.frame_idxs length(records.gps_time)+1]));
+  % Account for averaging
+  Nx = Nx / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
+  
   sparam.cpu_time = sparam.cpu_time + numel(param.cmd.frms)*(Nx*total_num_sam(img)*cpu_time_mult);
-  if isempty(param.get_heights.qlook.img_comb)
+  if isempty(param.get_heights.img_comb)
     % Individual images, so need enough memory to hold the largest image
     sparam.mem = max(sparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
   else

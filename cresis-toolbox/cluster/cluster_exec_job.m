@@ -32,7 +32,7 @@ for task_idx = 1:length(task_ids)
   
   if run_mode == 1
     cluster_task_start_time = tic;
-    fprintf('  %s: Loading input arguments and control parameters\n', mfilename);
+    fprintf('  %s: batch %d task %d\n', mfilename, ctrl.batch_id, task_id);
 
     % Create in/out filenames
     static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');

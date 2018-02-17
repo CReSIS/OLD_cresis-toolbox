@@ -1,29 +1,38 @@
-% script run_update_img_combine
+% script test_update_img_combine
 %
-% Script for running update_img_combine
+% Script for testing update_img_combine
 %
 % Authors: John Paden
 %
 % See also: run_update_img_combine.m, update_img_combine.m
 
-%% User Setup
+%% Test Setup
 % =====================================================================
-params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'');
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20161024_05');
+param_override = [];
 
+params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
 
-mode = 'get_heights'; % <== OFTEN CHANGED (get_heights or combine)
+params.cmd.generic = 1;
+params.cmd.frms = 1;
 
-update_img_combine_param.out_path = 'qlook';
-update_img_combine_param.img_comb_mult = inf; % <== OFTEN CHANGED (inf default)
-update_img_combine_param.img_comb_bins = 1; % <== OFTEN CHANGED (1 default)
-update_img_combine_param.img_comb_layer_params = struct('name','surface','source','layerdata','layerdata_source','CSARP_post/layerData');% <== OFTEN CHANGED
+test_run = 2;
+if test_run == 1
+  mode = 'get_heights';
+  update_img_combine_param.out_path = 'qlook';
+elseif test_run == 2
+  mode = 'combine';
+  update_img_combine_param.out_path = 'standard';
+end
+
+update_img_combine_param.img_comb_mult = inf;
+update_img_combine_param.img_comb_bins = 1;
+update_img_combine_param.img_comb_layer_params = [];
 
 %% Automated Section
 % =====================================================================
 
 param_override = [];
+param_override.out_path = fullfile(gRadar.out_path,'tests');
 param_override.(mode) = update_img_combine_param;
 param_override.update_img_combine.mode = mode;
 

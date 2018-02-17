@@ -90,6 +90,10 @@ ctrl.error_mask = zeros(size(ctrl.job_status));
 % Start by assuming no retries yet
 ctrl.retries = zeros(size(ctrl.job_status));
 
+% Start by assuming zero cpu time and memory requirements
+ctrl.cpu_time = zeros(size(ctrl.job_status));
+ctrl.mem = zeros(size(ctrl.job_status));
+
 job_status_found = zeros(size(ctrl.job_status));
 
 if ~force_check

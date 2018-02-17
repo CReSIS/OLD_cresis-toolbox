@@ -19,13 +19,21 @@ function success = get_heights_combine_task(param)
 % =====================================================================
 
 % Check img_comb
-if numel(param.get_heights.imgs) == 1 || isempty(param.get_heights.qlook.img_comb)
+if numel(param.get_heights.imgs) == 1 || isempty(param.get_heights.img_comb)
   num_imgs = 1;
 else
   num_imgs = length(param.get_heights.imgs);
-  if length(param.get_heights.qlook.img_comb) ~= 3*(num_imgs-1)
-    error('param.get_heights.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
+  if length(param.get_heights.img_comb) ~= 3*(num_imgs-1)
+    error('param.get_heights.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
   end
+end
+
+if ~isfield(param.get_heights,'img_comb_layer_params')
+  param.get_heights.img_comb_layer_params = [];
+end
+
+if ~isfield(param.get_heights,'trim_time')
+  param.get_heights.trim_time = true;
 end
 
 %% Setup Processing
@@ -38,7 +46,16 @@ records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 
 % Quick look radar echogram output directory
-qlook_out_dir = ct_filename_out(param, param.get_heights.qlook.out_path, 'CSARP_qlook');
+qlook_out_dir = ct_filename_out(param, param.get_heights.out_path, 'CSARP_qlook');
+
+% Preload layer for image combine if it is specified
+if isempty(param.get_heights.img_comb_layer_params)
+  layers = [];
+else
+  param_load_layers = param;
+  param_load_layers.cmd.frms = param.cmd.frms;
+  layers = opsLoadLayers(param_load_layers,param.get_heights.img_comb_layer_params);
+end
 
 % =====================================================================
 %% Loop through all the frames: combine and surface track
@@ -182,17 +199,12 @@ for frm_idx = 1:length(param.cmd.frms);
     end
   end
   
-  if ~isempty(param.get_heights.qlook.img_comb)
+  if ~isempty(param.get_heights.img_comb)
     %% Combine image with previous
     if Time(end) > Time_Surface(end)
-      clear combine; 
-      combine.imgs     = param.get_heights.imgs;
-      combine.out_path = qlook_out_path;
-      combine.img_comb = param.get_heights.qlook.img_comb;
-      combine.frm  = frm;
-      combine.Data = Data_Surface;
-      combine.Time = Time_Surface;
-      [Data, Time] = img_combine(param, combine);
+      param.load.frm = frm;
+      [Data, Time] = img_combine(param, 'get_heights', layers);
+      %% Update temporary output for surface tracker
       Data_Surface = Data;
       Time_Surface = Time;
     end
@@ -263,14 +275,12 @@ for frm_idx = 1:length(param.cmd.frms);
   Surface = interp_finite(Surface,0);
   
   %% Combine images into a single image (also trim time<0 values)
-  clear combine;
-  combine.frm           = frm;
-  combine.imgs          = param.get_heights.imgs;
-  combine.out_path      = qlook_out_dir;
-  combine.img_comb      = param.get_heights.qlook.img_comb;
-  combine.img_comb_surf = Surface;
-  combine.trim_time     = true;
-  [Data, Time]          = img_combine(param, combine);  
+  param.load.frm = frm;
+  if isempty(layers)
+    layers.gps_time = GPS_time;
+    layers.twtt = Surface;
+  end
+  [Data, Time] = img_combine(param, 'get_heights', layers);
   
   %% Save combined image output
   out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...

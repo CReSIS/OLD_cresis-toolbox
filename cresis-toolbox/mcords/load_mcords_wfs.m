@@ -101,8 +101,16 @@ function [wfs,rec_data_size] = load_mcords_wfs(settings, param, adcs, proc_param
 %
 % Author: John Paden
 
-if ~isfield(proc_param,'wf_adc_comb')
-  proc_param.wf_adc_comb.en = 0;
+%% Input Checking
+% =========================================================================
+if ~isfield(proc_param,'wf_adc_comb') || isempty(proc_param.wf_adc_comb)
+  proc_param.wf_adc_comb.en = false;
+end
+if ~isfield(proc_param,'ft_wind_time') || isempty(proc_param.ft_wind_time)
+  proc_param.ft_wind_time = false;
+end
+if ~isfield(proc_param,'ft_dec') || isempty(proc_param.ft_dec)
+  proc_param.ft_dec = proc_param.pulse_comp;
 end
 
 if param.records.file_version == 406 % ACORDS ver 2
@@ -110,6 +118,9 @@ if param.records.file_version == 406 % ACORDS ver 2
 else
   sample_size = 2;
 end
+
+%% Setup processing
+% =========================================================================
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
@@ -201,6 +212,8 @@ if proc_param.wf_adc_comb.en
   Nt_pc_max = max(Nt_pc);
 end
 
+%% Create default values for all waveforms
+% =========================================================================
 for wf = 1:length(param.radar.wfs)
   adc_idx = 1;
   

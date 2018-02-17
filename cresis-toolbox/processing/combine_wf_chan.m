@@ -68,6 +68,14 @@ if ~isfield(param.sched,'rerun_only') || isempty(param.sched.rerun_only)
   param.sched.rerun_only = false;
 end
 
+if ~isfield(param.combine,'img_comb_layer_params')
+  param.combine.img_comb_layer_params = [];
+end
+
+if ~isfield(param.combine,'trim_time')
+  param.combine.trim_time = true;
+end
+
 % Handles multilooking syntax:
 %  {{[1 1],[1 2],[1 3],[1 4],[1 5]},{[2 1],[2 2],[2 3],[2 4],[2 5]}}
 %  If the image is a cell array it describes multilooking across apertures
@@ -88,19 +96,15 @@ end
 
 img_list = param.combine.imgs;
 
-in_path = ct_filename_out(param, ...
-  param.combine.in_path, 'CSARP_out');
+if ~isfield(param.combine,'out_path') || isempty(param.get_heights.out_path)
+  param.combine.out_path = param.combine.method;
+end
 
-array_path = ct_filename_out(param, ...
-  param.combine.array_path, 'CSARP_out');
-
-out_path = ct_filename_out(param, ...
-  param.combine.out_path, sprintf('CSARP_%s', ...
-  param.combine.method));
+out_dir = ct_filename_out(param, param.combine.out_path);
 
 % Create the output directory
-if ~exist(out_path,'dir')
-  mkdir(out_path);
+if ~exist(out_dir,'dir')
+  mkdir(out_dir);
 end
 
 % Load frames file
@@ -118,6 +122,15 @@ if length(valid_frms) ~= length(param.cmd.frms)
   warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
     param.cmd.frms(find(bad_mask,1)));
   param.cmd.frms = valid_frms;
+end
+
+% Preload layer for image combine if it is specified
+if isempty(param.combine.img_comb_layer_params)
+  layers = [];
+else
+  param_load_layers = param;
+  param_load_layers.cmd.frms = param.cmd.frms;
+  layers = opsLoadLayers(param_load_layers,param.combine.img_comb_layer_params);
 end
 
 % =====================================================================
@@ -172,10 +185,12 @@ for frm_idx = 1:length(param.cmd.frms);
   elseif strcmpi(param.csarp.sar_type,'mltdp')
     sar_type = 'mltdp';
   end
-  param.combine.in_path = fullfile(in_path,sprintf('%s_data_%03d_01_01', sar_type, frm));
+  in_dir = fullfile(ct_filename_out(param, param.combine.in_path, 'CSARP_out'), ...
+    sprintf('%s_data_%03d_01_01', sar_type, frm));
   
-  %% Output directory
-  param.combine.out_path = fullfile(array_path,sprintf('array_%03d', frm));
+  %% Temporary output directory
+  array_dir= fullfile(ct_filename_out(param, param.combine.array_path, 'CSARP_out'), ...
+    sprintf('array_%03d', frm));
   
   %% Get the filenames for each chunk of data processed by csarp
   % DEBUG:
@@ -191,11 +206,11 @@ for frm_idx = 1:length(param.cmd.frms);
   % pair (in this case the first one in the list).
   img = 1;
   wf_adc_idx = 1;
-  filenames = get_filenames(param.combine.in_path,'', ...
+  filenames = get_filenames(in_dir,'', ...
     sprintf('wf_%02d_adc_%02d',img_list{img}{1}(wf_adc_idx,1), ...
     img_list{img}{1}(wf_adc_idx,2)),'.mat');
   if isempty(filenames)
-    error('No filenames found in %s', param.combine.in_path);
+    error('No filenames found in %s', in_dir);
   end
   chunk_ids = {};
   for idx = 1:length(filenames)
@@ -207,12 +222,12 @@ for frm_idx = 1:length(param.cmd.frms);
   end
   
   %% Create and clean the array_proc output directories
-  if exist(param.combine.out_path,'dir') && ~param.sched.rerun_only
+  if exist(array_dir,'dir') && ~param.sched.rerun_only
     % If folders do exist, clear them out
-    fprintf('  Cleaning array directory %s\n', param.combine.out_path);
-    rmdir(param.combine.out_path,'s');
+    fprintf('  Cleaning array directory %s\n', array_dir);
+    rmdir(array_dir,'s');
   end
-  mkdir(param.combine.out_path);
+  mkdir(array_dir);
   
   %% Combine Channels: Standard beam-forming, MUSIC, MVDR, etc)
   % - This is setup so that multiple fk chunks can be processed in the
@@ -271,9 +286,7 @@ for frm_idx = 1:length(param.cmd.frms);
       % already exists, then we do not run the task
       file_exists = true;
       for img = 1:length(param.combine.imgs)
-        %         array_fn = fullfile(param.combine.out_path, ...
-        %           sprintf('chk_%03d_img_%02d.mat', chunk_ids{chunk_idx}, img));
-        array_fn = fullfile(param.combine.out_path, ...
+        array_fn = fullfile(array_dir, ...
           sprintf('chk_%s_img_%02d.mat', chunk_ids{chunk_idx}, img));
         if ~exist(array_fn,'file')
           file_exists = false;
@@ -416,8 +429,9 @@ for frm_idx = 1:length(param.cmd.frms);
     continue;
   end
   
-  %% Output directory
-  param.combine.out_path = fullfile(array_path,sprintf('array_%03d', frm));
+  %% Temporary output directory
+  array_dir= fullfile(ct_filename_out(param, param.combine.array_path, 'CSARP_out'), ...
+    sprintf('array_%03d', frm));
   
   %% Loop through all the images
   for img = 1:length(param.combine.imgs)
@@ -434,7 +448,7 @@ for frm_idx = 1:length(param.cmd.frms);
     Bottom = [];
     Data = [];
     Topography = [];
-    chunk_fns = get_filenames(param.combine.out_path,'chk','',sprintf('img_%02d.mat',img));
+    chunk_fns = get_filenames(array_dir,'chk','',sprintf('img_%02d.mat',img));
     for chunk_idxs = 1:length(chunk_fns)
       tmp = load(chunk_fns{chunk_idxs});
       Time = tmp.Time;
@@ -486,10 +500,10 @@ for frm_idx = 1:length(param.cmd.frms);
     % =====================================================================
     % Save output
     if length(param.combine.imgs) == 1
-      out_fn = fullfile(out_path, sprintf('Data_%s_%03d.mat', ...
+      out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', ...
         param.day_seg, frm));
     else
-      out_fn = fullfile(out_path, sprintf('Data_img_%02d_%s_%03d.mat', ...
+      out_fn = fullfile(out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
         img, param.day_seg, frm));
     end
     fprintf('  Writing output to %s\n', out_fn);
@@ -518,19 +532,16 @@ for frm_idx = 1:length(param.cmd.frms);
     keyboard
   end
   
-  %% Load each image and then combine with previous image (also trim time<0 values
-  % Call img_combine
-  clear combine;
-  Surface               = interp_finite(Surface,0);
-  combine               = param.combine;
-  combine.frm           = frm;
-  combine.out_path      = out_path; 
-  combine.trim_time     = true;
-  combine.imb_comb_surf = Surface;
-  [Data, Time]          = img_combine(param, combine);
+  %% Combine images
+  if isempty(param.combine.img_comb_layer_params)
+    layers.gps_time = GPS_time;
+    layers.twtt = interp_finite(Surface,0);
+  end
+  param.load.frm        = frm;
+  [Data, Time]          = img_combine(param, 'combine', layers);
   
   %% Save output
-  out_fn = fullfile(out_path, sprintf('Data_%s_%03d.mat', ...
+  out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', ...
     param.day_seg, frm));
   fprintf('  Writing output to %s\n', out_fn);
   save('-v7.3',out_fn,'Time','Latitude','Longitude', ...

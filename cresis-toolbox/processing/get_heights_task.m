@@ -153,6 +153,14 @@ if ~isfield(param.get_heights,'ft_dec') || isempty(param.get_heights.ft_dec)
   param.get_heights.ft_dec = 1;
 end
 
+if ~isfield(param.get_heights,'ft_wind_time') || isempty(param.get_heights.ft_wind_time)
+  param.get_heights.ft_wind_time = 0;
+end
+
+if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
+  param.get_heights.trim_vals = 1;
+end
+
 if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
   param.get_heights.pulse_comp = 1;
 end
@@ -555,7 +563,7 @@ for img = 1:length(param.load.imgs)
     % t1 = time to switch from wf1 to wf2
     %wf_adc_surface = fir_dec(records.surface, param.get_heights.decimate_factor);
     wf_adc_surface = records.surface;
-    t1 = eval(param.get_heights.qlook.wf_adc_comb{1});
+    t1 = eval(param.get_heights.wf_adc_comb{1});
     % If the time to switch is longer than wf1 then it gets capped to wf1
     t1(t1 > wfs(wf1).time(end) - wfs(wf1).Tpd) = wfs(wf1).time(end) - wfs(wf1).Tpd;
     load_param.load.wf_adc_comb.Nt = round((wfs(wf2).time(end) - wfs(wf1).time(1)) / wfs(wf1).dt);
@@ -838,7 +846,7 @@ for img = 1:length(param.load.imgs)
   
   out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,param.load.recs_keep(1),param.load.recs_keep(end));
   out_fn_dir = fullfile(ct_filename_out(param, ...
-    param.get_heights.qlook.out_path, 'CSARP_qlook'), ...
+    param.get_heights.out_path, 'CSARP_qlook'), ...
     sprintf('ql_data_%03d_01_01',param.load.frm));
   out_fn = fullfile(out_fn_dir,out_fn_name);
   if ~exist(out_fn_dir,'dir')
