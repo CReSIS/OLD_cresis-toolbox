@@ -2,12 +2,11 @@
 //
 // Layer-tracking program based on the Viterbi algorithm
 //  for MUSIC-processed 2D and 3D data
-// 
-// Adapted from original code by Mingze Xu, David Crandall
 //
 // Authors: Victor Berger and John Paden
 //           Center for Remote Sensing of Ice Sheets
 //           2017-2018
+//          Adapted from original code by Mingze Xu and David Crandall
 //
 // See also: viterbi_lib.h
 //
@@ -18,46 +17,52 @@
 //  Used to define unary cost of target at position x, y
 double viterbi::unary_cost(int x, int y) {
     // Set cost to large if bottom is above surface
-    if ((f_sgt[x] > t) && (f_sgt[x] < f_row - t) && ((y + t + 1) < f_sgt[x])) {
+    if (y+t+1 < f_sgt[x]) {
         return LARGE;
     }
-    
-    // Set cost of center point to large if far from center ground truth
-    if ((f_bgt != -1) && (x == f_mid) && (y + t < f_bgt || y + t > f_bgt + 500)) {
+
+    // Set cost to large if far from center ground truth (if present)
+    if ((f_bgt != -1) && (x == f_mid) && (y + t < f_bgt-20|| y + t > f_bgt+20)) {
         return LARGE;
     }
     
     double cost = 0;
     
-    // Increase cost if point is far from extra ground truth
+    // Increase cost if far from extra ground truth
     for (int f = 0; f < (f_num_extra_tr / 2); ++f) {
-        if (f_egt_x[f] == x && x < f_bounds[1] && x > f_bounds[0]) {
-            cost += f_weight_points[x] * sqr(abs((int)f_egt_y[f] - (int)(t + y)) / f_egt_weight);
+        if (f_egt_x[f] == x && x) {
+            cost += f_weight_points[x] * 10 * sqr(((int)f_egt_y[f] - (int)(t + y)) / f_egt_weight);
             break;
         }
     }
-    
-    // Reduce cost for bins near a region with negative ice mask
-    for (int dist = 0, range = x - f_ice_bin_thr; range <= x + f_ice_bin_thr; ++range) {
-        if (range == x || abs(y - f_sgt[x]) > 40 || range < f_bounds[0] || range > f_bounds[1]) {
-            continue;
+
+    // Ice mask
+    if (!isinf(f_mask[x]) && f_sgt[x] > t) {
+        if (fabs(y + t - f_sgt[x]) <= f_mask[x]) {
+            if (f_mask[x] == 0) {
+                return 0;
+            }
+        } 
+        else {
+            return LARGE;
         }
-        if (f_mask[range] == 0) {
-            dist = abs(x - range);
-            cost -= 1000 * dist;
+    } 
+    else {
+        // Surface ground truth
+        if (fabs(y + t - f_sgt[x]) < 25 && f_sgt[x] > t) {
+            // Set 25 as the sensory distance
+            // Set 200 as the maximum cost
+            // 0.32 = 200 / 25^2
+            // Final cost is multiplied by repulsion scaling factor
+            cost += 200 - 0.32 * sqr(y + t - f_sgt[x]);
         }
-    }
-    
-    // Increased cost if bottom is close to surface
-    if (abs(y + t - f_sgt[x]) < 10) {
-        cost += f_repulsion * (100 - 10 * abs((int)(y + t) - (int)f_sgt[x]));
     }
     
     // Image magnitude correlation
     double tmp_cost = 0;
-    for (size_t i = 0; i < f_ms; i++)
-        tmp_cost  -= f_image[encode(x, y + i)] * f_mu[i] / f_sigma[i];
-    cost += tmp_cost;
+    for (size_t i = 0; i < f_ms; i++) {
+        cost -= f_image[encode(x, y + i)] * f_mu[i] / f_sigma[i];
+    }
     
     // Mass conservation 
     if(f_mc[x] != -1) {
@@ -68,7 +73,6 @@ double viterbi::unary_cost(int x, int y) {
             cost -= MC_WEIGHT * (1/fabs(f_mc[x] - y));
         }
     }
-    
     return cost;
 }
 
@@ -107,10 +111,12 @@ double* viterbi::find_path(void) {
     for (int k = start_col + 1; k <= end_col; ++k) {
         encode = vic_encode(viterbi_index, num_col_vis + start_col - k);
         viterbi_index = path[encode];
-        f_result[idx - 2] = f_mask[idx - 2] == 1 ? viterbi_index + t : f_sgt[idx - 2];
+//         f_result[idx - 2] = f_mask[idx - 2] == 1 ? viterbi_index + t : f_sgt[idx - 2];
+        f_result[idx - 2] = viterbi_index + t;
         --idx;
-        if (encode < 0 || idx < 2)
+        if (encode < 0 || idx < 2) {
             break;
+        }
     }
     
     delete[] path;
@@ -181,7 +187,6 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {   
-    
     if (nrhs != 17) {
         mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mc, mc_weight)\n"); 
     }

@@ -50,9 +50,9 @@ if tool_idx == 1
       gt = [param.layer.x(manual_idxs); interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs))];
       
       % Echogram Parameters
-      viterbi_data    = image_c;
+      viterbi_data   = image_c;
       bottom_bin     = -1;
-      mask           = ones([1 Nx]);
+      mask           = inf * ones([1 Nx]);
       egt_weight     = -1;
       slope          = round(diff(surf_bins));
       bounds         = [];
