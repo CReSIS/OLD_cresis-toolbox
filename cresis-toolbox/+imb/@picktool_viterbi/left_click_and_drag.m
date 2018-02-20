@@ -62,7 +62,7 @@ if tool_idx == 1
       mu(mu<-30)     = -30;
       mu             = mu - mean(mu);
       sigma          = sum(abs(mu))/10*ones(1,mu_size);
-      smooth_weight  = 20;
+      smooth_weight  = 5;
       smooth_var     = inf;
       repulsion      = 150000;
       ice_bin_thr    = 10;

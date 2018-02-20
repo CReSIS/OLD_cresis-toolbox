@@ -197,7 +197,7 @@ for param_idx = 1:length(params)
   mc_weight      = 0;
   
   if isempty(geotiff_fn)
-    mask = ones([1 Nx]);
+    mask = inf * ones([1 Nx]);
   else
     [mask,R,~] = geotiffread(geotiff_fn);
     proj = geotiffinfo(geotiff_fn);
