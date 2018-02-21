@@ -58,6 +58,7 @@ if param.analysis.surf.en
         param.analysis.out_dir), ...
         sprintf('surf_img_%02d_%d_%d.mat', img, cur_recs(1),cur_recs(end)));
       
+      fprintf('Surf img %d of %d/%d of %d: %s\n', img, length(param.analysis.imgs), break_idx, length(breaks), out_fn);
       surf = load(out_fn);
       
       gps_time = cat(2,gps_time,surf.gps_time);
@@ -121,6 +122,7 @@ if param.analysis.power.en
         param.analysis.out_dir), ...
         sprintf('power_img_%02d_%d_%d.mat', img, cur_recs(1),cur_recs(end)));
       
+      fprintf('Power img %d of %d/%d of %d: %s\n', img, length(param.analysis.imgs), break_idx, length(breaks), out_fn);
       power = load(out_fn);
       
       gps_time = cat(2,gps_time,power.gps_time);
@@ -185,6 +187,7 @@ if param.analysis.psd.en
         param.analysis.out_dir), ...
         sprintf('psd_img_%02d_%d_%d.mat', img, cur_recs(1),cur_recs(end)));
       
+      fprintf('PSD img %d of %d/%d of %d: %s\n', img, length(param.analysis.imgs), break_idx, length(breaks), out_fn);
       psd = load(out_fn);
       
       gps_time = cat(2,gps_time,psd.gps_time);
@@ -274,6 +277,7 @@ if param.analysis.coh_ave.en
         param.analysis.out_dir), ...
         sprintf('coh_noise_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
       
+      fprintf('Coh_noise img %d of %d/%d of %d: %s\n', img, length(param.analysis.imgs), break_idx, length(breaks), out_fn);
       noise = load(out_fn);
       if size(noise.coh_ave,1) ~= num_samples
         if any(any(isnan(noise.coh_ave))) || any(any(isnan(noise.coh_ave_samples)))
@@ -316,7 +320,7 @@ if param.analysis.coh_ave.en
     noise.doppler = doppler_concat;
     out_fn_dir = fileparts(out_fn);
     out_segment_fn_dir = fileparts(out_fn_dir);
-    out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_img_%02d_%s.mat', img, param.day_seg));
+    out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_img_%02d.mat', param.day_seg, img));
     fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
     save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
   end
@@ -368,6 +372,7 @@ if param.analysis.specular.en
           param.analysis.out_dir), ...
           sprintf('specular_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
         
+        fprintf('Specular img %d of %d/%d of %d: %s\n', img, length(param.analysis.imgs), break_idx, length(breaks), out_fn);
         spec = load(out_fn);
         
         wfs_freq = {};
@@ -415,7 +420,7 @@ if param.analysis.specular.en
       spec.deconv_DDC_Mt = deconv_DDC_Mt;
       out_fn_dir = fileparts(out_fn);
       out_segment_fn_dir = fileparts(out_fn_dir);
-      out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_img_%02d_wfadc_%d_%s.mat', img, wf_adc, param.day_seg));
+      out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_img_%02d.mat', param.day_seg, img));
       fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
       save(out_segment_fn,'-v7.3','-struct','spec');
     end

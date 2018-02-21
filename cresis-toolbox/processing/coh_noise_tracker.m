@@ -242,7 +242,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  cpu_time_mult = 100e-8;
+  cpu_time_mult = 1000e-8;
   mem_mult = 24;
 end
 
