@@ -37,7 +37,7 @@ double viterbi::unary_cost(int x, int y) {
     }
 
     // Ice mask
-    if (!isinf(f_mask[x]) && f_sgt[x] > t) {
+    if (!std::isinf(f_mask[x]) && f_sgt[x] > t) {
         if (fabs(y + t - f_sgt[x]) <= f_mask[x]) {
             if (f_mask[x] == 0) {
                 return 0;
