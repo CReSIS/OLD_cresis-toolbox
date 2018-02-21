@@ -104,7 +104,7 @@ for accum_idx = 1:length(accum(board).wf)
   num_sam = zeros(1,total_recs);
   time_offset = zeros(1,total_recs);
   nyquist_zone = zeros(1,total_recs);
-  waveform_ID = zeros(1,total_recs);
+  waveform_ID = char(zeros(8,total_recs));
   presums = zeros(1,total_recs);
   bit_shifts = zeros(1,total_recs);
   NCO_freq = zeros(1,total_recs);
@@ -353,7 +353,7 @@ for accum_idx = 1:length(accum(board).wf)
         bit_shifts(rline) = -fread(fid,1,'int8');
         start_idx(rline) = fread(fid,1,'uint16');
         stop_idx = fread(fid,1,'uint16');
-        waveform_ID(rline) = fread(fid,1,'uint64');
+        waveform_ID(:,rline) = char(fread(fid,8,'uint8')).';
         num_sam(rline) = 2*(stop_idx - start_idx(rline));
         
         % Raw/real data

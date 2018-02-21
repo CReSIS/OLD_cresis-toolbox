@@ -1,5 +1,5 @@
-function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam)
-% [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam)
+function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam,varargin)
+% [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam,varargin)
 %
 % Creates a new job. Calls to this function need to be proceeded by
 % a single call to cluster_new_batch.m.
@@ -11,7 +11,7 @@ function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam)
 %  .out_fn_dir: output arguments directory
 %  .stdout_fn_dir: standard output directory
 %  .error_fn_dir: error directory
-% sparam:
+% sparam: Static arguments to task
 %  .task_function: function handle of job, this function handle tells
 %    cluster_job.m what to run
 %  .argsin: cell vector of input arguments (default is {})
@@ -22,7 +22,8 @@ function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam)
 %  .mem: maximum memory usage of this task in bytes (default is 0)
 %  .success: string to be evaluated by "eval" to determine task success
 %    (default is 'success=1;')
-% dparam:
+% dparam: Dynamic arguments to task (will be merged with sparam when the
+%   task runs).
 %
 % Outputs:
 % ctrl: updated ctrl structure with new job
@@ -75,6 +76,11 @@ if ~isfield(sparam,'success') || isempty(sparam.success)
 end
 sparam.file_version = ctrl.cluster.file_version;
   
+dparam_save = 1;
+for param_idx = 1:2:length(varargin)
+  eval(sprintf('%s = varargin{param_idx+1};', varargin{param_idx}));
+end
+
 %% Check for hold on this batch
 if exist(fullfile(ctrl.batch_dir,'hold'), 'file')
   % Hold file exists
@@ -105,18 +111,24 @@ if task_id == 1
   static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
   static_param = sparam;
   robust_save(static_in_fn,ctrl.cluster.file_version,'static_param');
-  dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
-  dparam_task_field = sprintf('dparam_%d',task_id);
-  dynamic_param = struct();
-  dynamic_param.(dparam_task_field) = dparam;
-  robust_save(dynamic_in_fn,ctrl.cluster.file_version,'-struct','dynamic_param',dparam_task_field);
+  if dparam_save
+    dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
+    dynamic_param = [];
+    dynamic_param.dparam{task_id} = dparam;
+    robust_save(dynamic_in_fn,ctrl.cluster.file_version,'-struct','dynamic_param','dparam');
+  else
+    ctrl.dparam{task_id} = dparam;
+  end
 else
   % Add the dynamic parameters
-  dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
-  dparam_task_field = sprintf('dparam_%d',task_id);
-  dynamic_param = struct();
-  dynamic_param.(dparam_task_field) = dparam;
-  robust_save(dynamic_in_fn,'-append','-struct','dynamic_param',dparam_task_field);
+  if dparam_save
+    dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
+    dynamic_param = load(dynamic_in_fn);
+    dynamic_param.dparam{task_id} = dparam;
+    robust_save(dynamic_in_fn,ctrl.cluster.file_version,'-struct','dynamic_param','dparam');
+  else
+    ctrl.dparam{task_id} = dparam;
+  end
 end
 param = merge_structs(sparam,dparam);
 

@@ -114,7 +114,9 @@ if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
 end
 
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
-  ctrl.cluster.qsub_submit_arguments = '-l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
+  % -m n: no mail
+  % -l nodes=1:ppn=1: one compute node and one core/processor on the node
+  ctrl.cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
 end
 
 if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm_submit_arguments)

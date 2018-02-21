@@ -95,10 +95,8 @@ for img = 1:length(param.(mode).imgs)
       Data = Data*10.^(param.(mode).img_comb_weights(img)/10);
     end
     if isfield(param.(mode), 'trim_time') && param.(mode).trim_time
-      first_idx = find(Time <= 0,1,'last');
-      if isempty(first_idx)
-        error('Trim negative time is specified, but there are no non-negative times left.');
-      else
+      first_idx = find(Time >= 0,1,'first');
+      if ~isempty(first_idx)
         Time = Time(first_idx:end);
         Data = Data(first_idx:end,:);
       end

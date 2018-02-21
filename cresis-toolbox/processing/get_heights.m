@@ -1,10 +1,8 @@
 function ctrl_chain = get_heights(param,param_override)
 % ctrl_chain = get_heights(param,param_override)
 %
-% This function has two capabilities (enabled separately)
-% 1. Automated or manual pick: Gets the air/ice surface height using the
-%    data like an altimeter (manual mode is optional)
-% 2. Generate quick look outputs (default location: CSARP_qlook)
+% This function generates quick look outputs (CSARP_qlook), tracks the
+% surface, and (optionally) stores the surface to records.
 %
 % param = struct with processing parameters
 % param_override = parameters in this struct will override parameters
@@ -53,6 +51,10 @@ if ~isfield(param.get_heights,'combine_only') || isempty(param.get_heights.combi
   param.get_heights.combine_only = false;
 end
 
+if ~isfield(param.get_heights,'img_comb') || isempty(param.get_heights.img_comb)
+  param.get_heights.img_comb = [];
+end
+
 % Convert inputs to new format that does not use qlook substruct
 if isfield(param.get_heights,'qlook')
   warning('The get_heights.qlook field is deprecated. Please remove the qlook portion of each field (i.e. qlook.out_path should be just out_path).');
@@ -96,10 +98,11 @@ else
   end
 end
 
-[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
-
 %% Setup Processing
 % =====================================================================
+
+% Get the standard radar name
+[~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');
@@ -210,6 +213,7 @@ for frm_idx = 1:length(param.cmd.frms)
   for break_idx = 1:length(breaks)
     
     % Determine the current records being processed
+    % =================================================================
     if break_idx < length(breaks)
       cur_recs_keep = [recs(breaks(break_idx)) recs(breaks(break_idx+1)-1)];
       cur_recs = [max(1,recs(breaks(break_idx))-block_overlap) ...
@@ -220,12 +224,19 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     % Prepare task inputs
+    % =================================================================
     dparam = [];
     dparam.argsin{1}.load.frm = frm;
     dparam.argsin{1}.load.recs = cur_recs;
     dparam.argsin{1}.load.recs_keep = cur_recs_keep;
+    % Set the Nyquist zone field (FMCW radars)
+    wf = 1;
+    if isfield(frames,'nyquist_zone') && ~isnan(frames.nyquist_zone(frm))
+      dparam.argsin{1}.radar.wfs(wf).nyquist_zone = frames.nyquist_zone(frm);
+    end
     
     % Create success condition
+    % =================================================================
     dparam.success = '';
     for img = 1:length(param.get_heights.imgs)
       out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
@@ -238,17 +249,17 @@ for frm_idx = 1:length(param.cmd.frms)
           sprintf(' || ~exist(''%s'',''file'')', out_fn{img}));
       end
     end
-    if 1
-      % Enable this check if you want to open each file to make sure it is
-      % not corrupt
+    dparam.success = cat(2,dparam.success,sprintf('\n'));
+    if 0
+      % Enable this check if you want to open each output file to make
+      % sure it is not corrupt.
       for img = 1:length(param.get_heights.imgs)
         out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
         out_fn{img} = fullfile(out_fn_dir,out_fn_name);
         dparam.success = cat(2,dparam.success, ...
-          sprintf('  load(''%s'');', out_fn{img}));
+          sprintf('  load(''%s'');\n', out_fn{img}));
       end
     end
-    dparam.success = cat(2,dparam.success,sprintf('\n'));
     success_error = 64;
     dparam.success = cat(2,dparam.success, ...
       sprintf('  error_mask = error_mask + %d;\n', success_error));
@@ -268,14 +279,8 @@ for frm_idx = 1:length(param.cmd.frms)
       end
     end
     
-    % Set the Nyquist zone field (FMCW radars)
-    wf = 1;
-    if isfield(frames,'nyquist_zone') && ~isnan(frames.nyquist_zone(frm))
-      dparam.argsin{1}.radar.wfs(wf).nyquist_zone = frames.nyquist_zone(frm);
-    end
-    
-    % =================================================================
     % Create task
+    % =================================================================
     
     % CPU Time and Memory estimates:
     %  Nx*total_num_sam*K where K is some manually determined multiplier.
@@ -290,14 +295,16 @@ for frm_idx = 1:length(param.cmd.frms)
       mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
       break_idx, length(breaks), cur_recs_keep(1), cur_recs_keep(end));
     
-    ctrl = cluster_new_task(ctrl,sparam,dparam);
+    ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
   end
 end
+
+ctrl = cluster_save_dparam(ctrl);
 
 ctrl_chain = {ctrl};
 
 
-%% Create and setup the cluster batch
+%% Create and setup the combine batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
 if param.get_heights.surf.en
@@ -305,15 +312,14 @@ if param.get_heights.surf.en
   % not be done on the cluster.
   ctrl.cluster.type = 'debug';
 end
-cluster_compile('get_heights_combine_task.m',ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   cpu_time_mult = 6e-8;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  cpu_time_mult = 6e-8;
-  mem_mult = 8;
+  cpu_time_mult = 100e-8;
+  mem_mult = 24;
 end
 
 sparam = [];
@@ -322,16 +328,29 @@ sparam.task_function = 'get_heights_combine_task';
 sparam.num_args_out = 1;
 sparam.cpu_time = 10;
 sparam.mem = 0;
+% Add up all records being processed and find the most records in a frame
+Nx = 0;
+Nx_max = 0;
+for frm = param.cmd.frms
+  % recs: Determine the records for this frame
+  if frm < length(frames.frame_idxs)
+    Nx_frm = frames.frame_idxs(frm+1) - frames.frame_idxs(frm);
+  else
+    Nx_frm = length(records.gps_time) - frames.frame_idxs(frm) + 1;
+  end
+  if Nx_frm > Nx_max
+    Nx_max = Nx_frm;
+  end
+  Nx = Nx + Nx_frm;
+end
+% Account for averaging
+Nx_max = Nx_max / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
+Nx = Nx / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
 for img = 1:length(param.get_heights.imgs)
-  % Find the longest frame
-  Nx = max(diff([frames.frame_idxs length(records.gps_time)+1]));
-  % Account for averaging
-  Nx = Nx / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
-  
-  sparam.cpu_time = sparam.cpu_time + numel(param.cmd.frms)*(Nx*total_num_sam(img)*cpu_time_mult);
+  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
   if isempty(param.get_heights.img_comb)
     % Individual images, so need enough memory to hold the largest image
-    sparam.mem = max(sparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);
   else
     % Images combined into one so need enough memory to hold all images
     sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;

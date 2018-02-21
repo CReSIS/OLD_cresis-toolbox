@@ -45,13 +45,19 @@ out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
 
 % Read input
 sparam = load(static_in_fn);
-dparam_task_field = sprintf('dparam_%d',task_id);
-dparam = load(dynamic_in_fn,dparam_task_field);
-param = merge_structs(sparam.static_param,dparam.(dparam_task_field));
+if ~isfield(ctrl,'dparam') || numel(ctrl.dparam) < task_id || isempty(ctrl.dparam{task_id})
+  tmp = load(dynamic_in_fn);
+  ctrl.dparam = tmp.dparam;
+end
+param = merge_structs(sparam.static_param,ctrl.dparam{task_id});
 
 ctrl.notes{task_id} = param.notes;
-ctrl.cpu_time(task_id) = param.cpu_time;
-ctrl.mem(task_id) = param.mem;
+if ctrl.cpu_time(task_id) == 0
+  ctrl.cpu_time(task_id) = param.cpu_time;
+end
+if ctrl.mem(task_id) == 0
+  ctrl.mem(task_id) = param.mem;
+end
 ctrl.success{task_id} = param.success;
 
 out_fn_exist_error = 1;
@@ -113,10 +119,10 @@ if strcmpi(ctrl.cluster.type,'torque')
       error_file_str = error_file_str(:).';
       fclose(fid);
       if ~isempty(regexp(error_file_str,'PBS: job killed:'))
-        error_mask = error_mask + cluster_killed_error;
+        error_mask = bitor(error_mask,cluster_killed_error);
       end
       if ~isempty(regexp(error_file_str,'PBS: job killed: walltime'))
-        error_mask = error_mask + walltime_exceeded_error;
+        error_mask = bitor(error_mask,walltime_exceeded_error);
       end
     end
   end
@@ -144,27 +150,27 @@ if exist(out_fn,'file')
   success = robust_cmd('out = load(out_fn);',2);
   if ~success
     out = [];
-    error_mask = error_mask + out_fn_load_error;
+    error_mask = bitor(error_mask,out_fn_load_error);
   end
 else
   out = [];
-  error_mask = error_mask + out_fn_exist_error;
+  error_mask = bitor(error_mask,out_fn_exist_error);
 end
 
 if isfield(out,'argsout')
   if length(out.argsout) ~= param.num_args_out
-    error_mask = error_mask + argsout_length_error;
+    error_mask = bitor(error_mask,argsout_length_error);
   end
 else
-  error_mask = error_mask + argsout_exist_error;
+  error_mask = bitor(error_mask,argsout_exist_error);
 end
 
 if isfield(out,'errorstruct')
   if ~isempty(out.errorstruct)
-    error_mask = error_mask + errorstruct_contains_error;
+    error_mask = bitor(error_mask,errorstruct_contains_error);
   end
 else
-  error_mask = error_mask + errorstruct_exist_error;
+  error_mask = bitor(error_mask,errorstruct_exist_error);
 end
 
 if isfield(out,'cpu_time_actual')
@@ -173,11 +179,11 @@ else
   ctrl.cpu_time_actual(task_id) = -1;
 end
 
-try
-  eval(param.success); % Runs "error_mask = error_mask + success_error;" on failure
-catch ME
-  error_mask = error_mask + success_eval_error;
-end
+% try
+%   eval(param.success); % Runs some form of "error_mask = bitor(error_mask,success_error);" on failure
+% catch success_eval_ME
+%   error_mask = bitor(error_mask,success_eval_error);
+% end
 
 ctrl.error_mask(task_id) = 0;
 if ctrl.job_status(task_id) == 'T'
@@ -234,7 +240,7 @@ if update_mode && ctrl.error_mask(task_id)
     fprintf('  Task did not pass success criteria\n');
   end
   if bitand(ctrl.error_mask(task_id),success_eval_error)
-    fprintf('  Task success condition failed to evaluate\n');
+    fprintf('  Task success condition failed to evaluate: %s\n', success_eval_ME.getReport);
   end
   if bitand(ctrl.error_mask(task_id),cluster_killed_error)
     fprintf('  Cluster killed this job\n');
@@ -245,8 +251,8 @@ if update_mode && ctrl.error_mask(task_id)
 end
 
 if ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9 < ctrl.cpu_time_actual(task_id)
-  warning('CPU time actual (%.0f sec) is more than 90%% of estimated time (%.0f sec). Consider revising estimates.', ...
-    ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9);
+  warning(' %d:%d/%d: CPU time actual (%.0f sec) is more than 90%% of estimated time (%.0f sec). Consider revising estimates.', ...
+    ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9);
 end
 
 if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)

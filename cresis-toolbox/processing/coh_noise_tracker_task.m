@@ -358,9 +358,7 @@ load_param.load.adcs = param.load.adcs;
 load_param.proc.trim_vals           = param.get_heights.trim_vals;
 load_param.proc.pulse_comp          = param.get_heights.pulse_comp;
 load_param.proc.raw_data            = param.get_heights.raw_data;
-load_param.proc.ft_dec              = param.get_heights.ft_dec;
 load_param.proc.ft_wind             = param.get_heights.ft_wind;
-load_param.proc.ft_wind_time        = param.get_heights.ft_wind_time;
 load_param.proc.presums             = param.get_heights.presums;
 load_param.proc.combine_rx          = param.get_heights.combine_rx;
 load_param.proc.pulse_rfi           = param.get_heights.pulse_rfi;
@@ -566,7 +564,7 @@ for img = 1:length(param.load.imgs)
 
     %% 3. Save
     out_fn = fullfile(ct_filename_out(param, ...
-      param.analysis.out_path, 'CSARP_noise'), ...
+      param.analysis.out_dir), ...
       sprintf('surf_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
     [out_fn_dir] = fileparts(out_fn);
     if ~exist(out_fn_dir,'dir')
@@ -605,7 +603,7 @@ for img = 1:length(param.load.imgs)
 
     %% 3. Save
     out_fn = fullfile(ct_filename_out(param, ...
-      param.analysis.out_path, 'CSARP_noise'), ...
+      param.analysis.out_dir), ...
       sprintf('power_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
     [out_fn_dir] = fileparts(out_fn);
     if ~exist(out_fn_dir,'dir')
@@ -649,7 +647,7 @@ for img = 1:length(param.load.imgs)
 
     %% 3. Save
     out_fn = fullfile(ct_filename_out(param, ...
-      param.analysis.out_path, 'CSARP_noise'), ...
+      param.analysis.out_dir), ...
       sprintf('psd_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
     [out_fn_dir] = fileparts(out_fn);
     if ~exist(out_fn_dir,'dir')
@@ -848,8 +846,8 @@ for img = 1:length(param.load.imgs)
       wfs(wf).freq = freq;
       
       out_fn = fullfile(ct_filename_out(param, ...
-        param.analysis.out_path, 'CSARP_noise'), ...
-        sprintf('specular_img_%02d_wfadc_%d_%d_%d.mat',img,wf_adc,param.load.recs(1),param.load.recs(end)));
+        param.analysis.out_dir), ...
+        sprintf('specular_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
       [out_fn_dir] = fileparts(out_fn);
       if ~exist(out_fn_dir,'dir')
         mkdir(out_fn_dir);
@@ -910,6 +908,13 @@ for img = 1:length(param.load.imgs)
       end
     end
     
+    mu = mean(g_data,2);
+    sigma = zeros(size(g_data,1),1,size(g_data,3));
+    for rbin = 1:size(g_data,1)
+      sigma(rbin) = std(g_data(rbin,:,:),[],2);
+    end
+    mu(abs(mu)*10<sigma) = 0;
+    
     % Do averaging
     rline0_list = 1:param.analysis.coh_ave.block_ave:size(g_data,2);
     for rline0_idx = 1:length(rline0_list)
@@ -949,9 +954,6 @@ for img = 1:length(param.load.imgs)
           < repmat(coh.noise_power+param.analysis.coh_ave.power_threshold,[1 numel(rlines)]);
       else
         %% Regular method for collecting good_samples
-        mu = mean(g_data,2);
-        sigma = std(g_data,[],2);
-        mu(abs(mu)*10<sigma) = 0;
         good_samples = lp(bsxfun(@minus,g_data(:,rlines),mu)) < param.analysis.coh_ave.power_threshold;
         good_samples(:,max(lp(g_data(:,rlines)))>66) = 0; % PADEN HACK for snow 2016
       end
@@ -1003,7 +1005,7 @@ for img = 1:length(param.load.imgs)
     time = wfs(wf).time;
     
     out_fn = fullfile(ct_filename_out(param, ...
-      param.analysis.out_path, 'CSARP_noise'), ...
+      param.analysis.out_dir), ...
       sprintf('coh_noise_img_%02d_%d_%d.mat',img,param.load.recs(1),param.load.recs(end)));
     [out_fn_dir] = fileparts(out_fn);
     if ~exist(out_fn_dir,'dir')

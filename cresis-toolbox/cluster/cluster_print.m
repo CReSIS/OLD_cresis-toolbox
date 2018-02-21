@@ -118,31 +118,33 @@ if print_flag == 1
   end
   
   
-  if strcmpi(ctrl.cluster.type,'torque')
-    cmd = sprintf('qstat -f %d  </dev/null', job_id);
-    try; [status,result] = system(cmd); end;
-    
-  elseif strcmpi(ctrl.cluster.type,'matlab')
-    cmd = 'NA';
-    status = -1;
-    
-  elseif strcmpi(ctrl.cluster.type,'slurm')
-    %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
-    cmd = sprintf('scontrol show job %d', job_id);
-    try; [status,result] = system(cmd); end;
-    
-  elseif strcmpi(ctrl.cluster.type,'debug')
-    cmd = 'NA';
-    status = -1;
-  end
-  
   % Print job status
   fprintf('Matlab Task ID %d\n', task_id);
   fprintf('Cluster Job ID %d\n', job_id);
   
-  if status == 0
-    fprintf('\n\n%s ======================================================\n', cmd);
-    result
+  if job_id ~= -1
+    if strcmpi(ctrl.cluster.type,'torque')
+      cmd = sprintf('qstat -f %d  </dev/null', job_id);
+      try; [status,result] = system(cmd); end;
+      
+    elseif strcmpi(ctrl.cluster.type,'matlab')
+      cmd = 'NA';
+      status = -1;
+      
+    elseif strcmpi(ctrl.cluster.type,'slurm')
+      %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
+      cmd = sprintf('scontrol show job %d', job_id);
+      try; [status,result] = system(cmd); end;
+      
+    elseif strcmpi(ctrl.cluster.type,'debug')
+      cmd = 'NA';
+      status = -1;
+    end
+    
+    if status == 0
+      fprintf('\n\n%s ======================================================\n', cmd);
+      result
+    end
   end
   
   % Print stdout file
@@ -184,9 +186,8 @@ if print_flag == 1
   fprintf('%s\n', dynamic_in_fn);
   if exist(dynamic_in_fn,'file')
     fprintf('  Exists\n');
-    dparam_task_field = sprintf('dparam_%d',task_id);
-    dparam = load(dynamic_in_fn,dparam_task_field);
-    in = merge_structs(sparam.static_param,dparam.(dparam_task_field));
+    dparam = load(dynamic_in_fn);
+    in = merge_structs(sparam.static_param,dparam.dparam{task_id});
   else
     fprintf('  Does not exist\n');
     in = [];

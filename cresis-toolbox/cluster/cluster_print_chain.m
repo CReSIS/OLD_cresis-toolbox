@@ -34,7 +34,7 @@ if iscell(ctrl_chain)
   for chain = 1:numel(ctrl_chain)
     fprintf('Chain %d\n', chain);
     for stage=1:numel(ctrl_chain{chain})
-      fprintf('  Stage %d\n', stage);
+      fprintf('  Stage %d (Batch %d)\n', stage, ctrl_chain{chain}{stage}.batch_id);
       [ctrl_chain{chain}{stage},ctrl_stats] = cluster_print_chain(ctrl_chain{chain}{stage});
       stats.cpu_time = cat(2,stats.cpu_time,ctrl_stats.cpu_time);
       stats.mem = cat(2,stats.mem,ctrl_stats.mem);
@@ -44,7 +44,7 @@ if iscell(ctrl_chain)
     end
   end
   fprintf('====================================================\n');
-  fprintf('Number of jobs: %.0f, %.0f completed, %.0f error, %.0f retries\n', ...
+  fprintf('Number of tasks: %.0f, %.0f completed, %.0f error, %.0f retries\n', ...
     numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.error_mask~=0), sum(stats.retries));
   fprintf('Max CPU time: %.0f min\n', max(stats.cpu_time)/60);
   fprintf('Max mem: %.0f MB\n', max(stats.mem)/1e6);
@@ -62,7 +62,7 @@ elseif isstruct(ctrl_chain)
   stats.retries = ctrl.retries;
   stats.job_status = ctrl.job_status;
   
-  fprintf('    Number of jobs: %.0f, %.0f completed, %.0f error, %.0f retries\n', ...
+  fprintf('    Number of tasks: %.0f, %.0f completed, %.0f error, %.0f retries\n', ...
     numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.error_mask~=0), sum(stats.retries));
   fprintf('    Max CPU time: %.0f min\n', max(stats.cpu_time)/60);
   fprintf('    Max mem: %.0f MB\n', max(stats.mem)/1e6);

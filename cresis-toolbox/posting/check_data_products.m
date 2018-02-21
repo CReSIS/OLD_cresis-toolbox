@@ -72,7 +72,7 @@ if check_for_bad_files
     error('No segments to process in spreadsheet.');
   end
   
-  % 2. Go through each output directory type to find bad segment
+  % 2. Go through each echogram output directory type to find bad segment
   %    directories
   for output_idx = 1:length(outputs)
     out_dir = fullfile(ct_filename_out(first_param,'','',1),outputs_post_dir, ...
@@ -111,7 +111,7 @@ if check_for_bad_files
   
 end
 
-%% Check that all outputs are there
+%% Check that all outputs are there for each segment
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~enable_all_without_do_not_process
@@ -123,8 +123,10 @@ for param_idx = 1:length(params)
       continue;
     end
   end
+  % dirs_list: list of all output directories to check (usually just one)
   for dir_idx = 1:length(dirs_list)
     if ~isempty(dirs_list{dir_idx})
+      %% Setup for checking segment
       fprintf('\nChecking %s\n', params(param_idx).day_seg);
       param = params(param_idx);
       if ~isempty(regexpi(param.cmd.notes,'do not process'))
@@ -133,7 +135,7 @@ for param_idx = 1:length(params)
       param.out_path = dirs_list{dir_idx};
       param.support_path = support_dirs_list{dir_idx};
       
-      % Check for existance of gps file
+      %% Check for existance of gps file
       if strmatch('gps',supports)
         gps_fn = ct_filename_support(param,'','gps',true);
         fprintf('  GPS %s\n', gps_fn);
@@ -150,7 +152,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for existance of vectors file
+      %% Check for existance of vectors file
       clear vectors;
       if strmatch('vectors',supports)
         vectors_fn = ct_filename_support(param,'','vectors');
@@ -162,7 +164,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for existance of records file
+      %% Check for existance of records file
       if strmatch('records',supports)
         records_fn = ct_filename_support(param,'','records');
         fprintf('  Records %s\n', records_fn);
@@ -183,7 +185,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for existance of frames file
+      %% Check for existance of frames file
       if strmatch('frames',supports)
         frames_fn = ct_filename_support(param,'','frames');
         fprintf('  Frames %s\n', frames_fn);
@@ -200,6 +202,7 @@ for param_idx = 1:length(params)
         end
       end
       
+      %% Check echogram outputs
       for output_idx = 1:length(outputs)
         frames_fn = ct_filename_support(param,'','frames');
         load(frames_fn);
@@ -303,7 +306,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for expected image files
+      %% Check for expected image files
       for image_idx = 1:length(images)
         image_dir = fullfile(ct_filename_out(param, ...
           param.post.out_path, 'CSARP_post', true),'images',param.day_seg);
@@ -366,7 +369,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for expected pdf files
+      %% Check for expected pdf files
       if pdf_en
         pdf_dir = fullfile(ct_filename_out(param, ...
           '', 'CSARP_post', true),'pdf');
@@ -379,7 +382,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for expected csv, csv_good, kml, kml_good files
+      %% Check for expected csv, csv_good, kml, kml_good files
       if csv_en
         for csv_out_idx = 1:length(csv_outputs)
           csv_dir = fullfile(ct_filename_out(param, ...

@@ -864,6 +864,8 @@ for img = 1:length(param.load.imgs)
   
 end
 
+fprintf('%s done %s\n', mfilename, datestr(now));
+
 success = true;
 
 return;

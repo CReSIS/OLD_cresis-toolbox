@@ -60,7 +60,7 @@ elseif strcmp(radar_name,'accum2')
   pdf_en = 1;
   csv_outputs = {'csv','csv_good','kml','kml_good'};
   csv_en = 0;
-elseif any(strcmp(radar_name,{'kaband3','kuband3','snow3','kuband2','snow2','kuband','snow'}))
+elseif any(strcmp(radar_name,{'snow8','kaband3','kuband3','snow3','kuband2','snow2','kuband','snow'}))
   supports = {'gps','frames','records'};
   outputs = {'CSARP_qlook'};
   outputs_post_dir = 'CSARP_post';

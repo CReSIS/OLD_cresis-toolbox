@@ -69,15 +69,15 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                  = 'slurm';
   %profile(pidx).cluster.type                  = 'debug';
   %profile(pidx).cluster.type                  = 'none';
-  profile(pidx).cluster.max_jobs_active       = 64;
+  profile(pidx).cluster.max_jobs_active       = 512;
   profile(pidx).cluster.max_time_per_job      = 86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
-  profile(pidx).cluster.submit_pause          = 0;
-  profile(pidx).cluster.stat_pause            = 1;
-  profile(pidx).cluster.file_check_pause      = 60;
+  profile(pidx).cluster.submit_pause          = 0.1;
+  profile(pidx).cluster.stat_pause            = 2;
+  profile(pidx).cluster.file_check_pause      = 4;
   
-  profile(pidx).cluster.qsub_submit_arguments = '-l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
+  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
   profile(pidx).cluster.cluster_job_fn        = '/users/paden/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
   
   %% IU Profile Linux (PROFILE 2)
@@ -90,7 +90,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/N/dcwan/scratch/paden/mdce_tmp/';
+  profile(pidx).tmp_file_path             = '/N/dc2/scratch/jpaden/mdce_tmp/'; % scratch may be on dcwan or dc2
   profile(pidx).ct_tmp_file_path          = '/N/dcwan/projects/cresis/ct_tmp/';
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
@@ -99,22 +99,25 @@ if ~(~ismcc && isdeployed)
   profile(pidx).out_path                  = '/N/dcwan/projects/cresis/output/';
   profile(pidx).gis_path                  = '/N/dcwan/projects/cresis/GIS_data';
   
-  profile(pidx).sched.type                = 'custom_torque';
-  %profile(pidx).sched.type                = 'local'; % local parallel processing
-  %profile(pidx).sched.type                = 'no scheduler'; % no parallel processing (DEBUG MODE)
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  profile(pidx).sched.name                = '';
-  profile(pidx).sched.url                 = '';
-  profile(pidx).sched.data_location       = '/N/dcwan/scratch/jpaden/matlab_torque/';
-  profile(pidx).sched.submit_arguments    = '-m p -l nodes=1:ppn=1:dcwan,pmem=2gb,walltime=40:00';
-  profile(pidx).sched.max_in_queue        = 64;
-  profile(pidx).sched.max_tasks_per_jobs  = 64;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox-torque/worker';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
+  profile(pidx).cluster.data_location       = '/N/dc2/scratch/jpaden/ct_tmp/cluster-temp';
+  profile(pidx).cluster.cluster_job_fn        = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
+  
+  profile(pidx).cluster.type                  = 'torque';
+  %profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'slurm';
+  %profile(pidx).cluster.type                  = 'debug';
+  %profile(pidx).cluster.type                  = 'none';
+  profile(pidx).cluster.max_jobs_active       = 128;
+  profile(pidx).cluster.max_time_per_job      = 4*86400;
+  profile(pidx).cluster.desired_time_per_job  = 8*3600;
+  profile(pidx).cluster.max_retries           = 2;
+  profile(pidx).cluster.submit_pause          = 0.5;
+  profile(pidx).cluster.stat_pause            = 2;
+  profile(pidx).cluster.file_check_pause      = 4;
+  
+  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1:dcwan:dc2,pmem=%dmb,walltime=%d:00';
+  profile(pidx).cluster.cluster_job_fn        = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
+
  
   %% Field Profile Linux (PROFILE 3)
   % ----------------------------------------------------------------------
@@ -402,6 +405,7 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'rx_chan_equal_sar_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'rx_chan_equal_raw_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_task.m' 2};

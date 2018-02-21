@@ -31,22 +31,24 @@ fprintf('%s: Processing tasks %s', mfilename, job_list{1});
 fprintf(', %s', job_list{2:end});
 fprintf(' (%s)\n', datestr(now));
 
+% Create input filenames
+static_in_fn = fullfile(task_in_fn_dir,'static.mat');
+dynamic_in_fn = fullfile(task_in_fn_dir,'dynamic.mat');
+% Load inputs
+sparam = load(static_in_fn);
+dparam = load(dynamic_in_fn);
+
 for task_idx = 1:length(job_list)
   cluster_task_start_time = tic;
   task_id = str2double(job_list{task_idx});
-  fprintf('%s: Load task %d (%s)\n', mfilename, task_id, datestr(now));
+  fprintf('%s: Load task %d (%d of %d) (%s)\n', mfilename, task_id, task_idx, length(job_list), datestr(now));
   
-  % Create in/out filenames
-  static_in_fn = fullfile(task_in_fn_dir,'static.mat');
-  dynamic_in_fn = fullfile(task_in_fn_dir,'dynamic.mat');
+  % Create output filename
   out_fn = fullfile(task_out_fn_dir,sprintf('out_%d.mat',task_id));
   
   % Read input param struct
   %   param fields: 'taskfunction','argsin','num_args_out'
-  sparam = load(static_in_fn);
-  dparam_task_field = sprintf('dparam_%d',task_id);
-  dparam = load(dynamic_in_fn,dparam_task_field);
-  param = merge_structs(sparam.static_param,dparam.(dparam_task_field));
+  param = merge_structs(sparam.static_param,dparam.dparam{task_id});
   % Special merge of argsin cell array
   if isfield(sparam.static_param,'argsin')
     sparam_argsin_numel = numel(sparam.static_param.argsin);
@@ -54,21 +56,21 @@ for task_idx = 1:length(job_list)
     sparam.static_param.argsin = {};
     sparam_argsin_numel = 0;
   end
-  if isfield(dparam.(dparam_task_field),'argsin')
-    dparam_argsin_numel = numel(dparam.(dparam_task_field).argsin);
+  if isfield(dparam.dparam{task_id},'argsin')
+    dparam_argsin_numel = numel(dparam.dparam{task_id}.argsin);
   else
-    dparam.(dparam_task_field).argsin = {};
+    dparam.dparam{task_id}.argsin = {};
     dparam_argsin_numel = 0;
   end
   for idx = 1:max(sparam_argsin_numel,dparam_argsin_numel)
     if idx <= sparam_argsin_numel
       if idx <= dparam_argsin_numel
-        param.argsin{idx} = merge_structs(sparam.static_param.argsin{idx},dparam.(dparam_task_field).argsin{idx});
+        param.argsin{idx} = merge_structs(sparam.static_param.argsin{idx},dparam.dparam{task_id}.argsin{idx});
       else
         param.argsin{idx} = sparam.static_param.argsin{idx};
       end
     else
-      param.argsin{idx} = dparam.(dparam_task_field).argsin{idx};
+      param.argsin{idx} = dparam.dparam{task_id}.argsin{idx};
     end
   end
   
