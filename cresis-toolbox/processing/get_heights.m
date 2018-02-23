@@ -223,6 +223,16 @@ for frm_idx = 1:length(param.cmd.frms)
       cur_recs = [max(1,recs(breaks(break_idx))-block_overlap) min(length(records.gps_time),recs(end)+block_overlap)];
     end
     
+    % Fields required for manual submission to Slurm on Ollie
+    if strcmp(param.cluster.type,'ollie')
+      n_breaks(frm_idx) = length(breaks);
+      dynamic_param.frms.(['frm',num2str(frm)]).frm_id = frm;
+      dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).break_id = break_idx;
+      dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).recs = cur_recs;
+      dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).recs_keep = cur_recs_keep;
+      continue;
+    end
+    
     % Prepare task inputs
     % =================================================================
     dparam = [];
@@ -297,6 +307,38 @@ for frm_idx = 1:length(param.cmd.frms)
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
   end
+end
+
+% Export jobs files for manual submission to Slurm on Ollie
+if strcmp(param.cluster.type,'ollie')
+  dynamic_param.day_seg = param.day_seg;
+  static_param = sparam.argsin{1};
+  dynamic_param_file_name = sprintf('%s/qlook_%s_dynamic_param.mat', param.slurm_jobs_path, param.day_seg);
+  save(dynamic_param_file_name,'dynamic_param');
+  fprintf('Writing %s\n',dynamic_param_file_name);
+  
+  static_param_file_name = sprintf('%s/qlook_%s_static_param.mat', param.slurm_jobs_path, param.day_seg);
+  save(static_param_file_name,'static_param');
+  fprintf('Writing %s\n',static_param_file_name);
+  
+  txt_file_name = sprintf('%s/qlook_%s_parameters.txt', param.slurm_jobs_path, dynamic_param.day_seg);
+  fid = fopen(txt_file_name,'w');
+  fprintf(fid,'%3s\t %5s\n','frm','break');
+  frms = fieldnames(dynamic_param.frms);
+  for frm_idx = 1:length(param.cmd.frms)
+    breaks = fieldnames(dynamic_param.frms.(frms{frm_idx}).breaks);
+    for break_idx = 1:n_breaks(frm_idx)
+      params = [dynamic_param.frms.(frms{frm_idx}).frm_id, dynamic_param.frms.(frms{frm_idx}).breaks.(breaks{break_idx}).break_id];
+      formatSpec = '%03d\t %03d\n';
+      fprintf(fid,formatSpec,params);
+    end
+  end
+  fclose(fid);
+  fprintf('Writing %s\n',txt_file_name);
+  fprintf('Run batch_qlook.sh and batch_qlook_2.sh\n');
+  
+  ctrl_chain = {};
+  return;
 end
 
 ctrl = cluster_save_dparam(ctrl);
