@@ -187,7 +187,7 @@ for frm_idx = 1:length(param.cmd.frms)
     continue;
   end
   
-  % Clean the array_proc temporary output directory for this frame
+  % Clean the temporary output directory for this frame
   sub_apt_shift_idx = 1;
   sub_band_idx = 1;
   out_fn_dir = fullfile(qlook_out_dir, ...
