@@ -490,7 +490,9 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
           if param_file.write_en
             params(param_idx).radar.wfs(wf).Tadc_adjust = default.radar.Tadc_adjust;
           end
-          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc_adjust));
+          str = char(format(java.text.DecimalFormat('0.0000000000'),default.radar.Tadc_adjust));
+%          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc_adjust));
+          row_str = cat(2,row_str, sprintf('\t%s',str));
         end
         if any(strcmpi('f0',default.radar_worksheet_headers))
           if param_file.write_en
