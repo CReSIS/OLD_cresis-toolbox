@@ -26,7 +26,7 @@ if check_for_bad_files
     for param_idx = 1:length(params)
       param = params(param_idx);
       if strcmpi(file_type,'gps')
-        support_fn = ct_filename_support(param,param.vectors.gps.fn,'gps',true);
+        support_fn = ct_filename_support(param,'','gps',true);
       else
         support_fn = ct_filename_support(param,'',file_type{1});
       end
@@ -41,7 +41,11 @@ if check_for_bad_files
       if ~isempty(bad_idx)
         fprintf('BAD FILE !!!!!!!! %s\n', support_fns{bad_idx});
         if delete_bad_files
-          delete(support_fns{bad_idx});
+          if strcmpi(file_type,'gps')
+            warning('GPS files are shared with all radars, if this file is really not supposed to be here run "delete(%s);".',support_fns{bad_idx});
+          else
+            delete(support_fns{bad_idx});
+          end
         end
       end
     end
@@ -68,7 +72,7 @@ if check_for_bad_files
     error('No segments to process in spreadsheet.');
   end
   
-  % 2. Go through each output directory type to find bad segment
+  % 2. Go through each echogram output directory type to find bad segment
   %    directories
   for output_idx = 1:length(outputs)
     out_dir = fullfile(ct_filename_out(first_param,'','',1),outputs_post_dir, ...
@@ -107,7 +111,7 @@ if check_for_bad_files
   
 end
 
-%% Check that all outputs are there
+%% Check that all outputs are there for each segment
 for param_idx = 1:length(params)
   param = params(param_idx);
   if ~enable_all_without_do_not_process
@@ -119,8 +123,10 @@ for param_idx = 1:length(params)
       continue;
     end
   end
+  % dirs_list: list of all output directories to check (usually just one)
   for dir_idx = 1:length(dirs_list)
     if ~isempty(dirs_list{dir_idx})
+      %% Setup for checking segment
       fprintf('\nChecking %s\n', params(param_idx).day_seg);
       param = params(param_idx);
       if ~isempty(regexpi(param.cmd.notes,'do not process'))
@@ -129,9 +135,9 @@ for param_idx = 1:length(params)
       param.out_path = dirs_list{dir_idx};
       param.support_path = support_dirs_list{dir_idx};
       
-      % Check for existance of gps file
+      %% Check for existance of gps file
       if strmatch('gps',supports)
-        gps_fn = ct_filename_support(param,param.vectors.gps.fn,'gps',true);
+        gps_fn = ct_filename_support(param,'','gps',true);
         fprintf('  GPS %s\n', gps_fn);
         if exist(gps_fn,'file')
           try
@@ -146,7 +152,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for existance of vectors file
+      %% Check for existance of vectors file
       clear vectors;
       if strmatch('vectors',supports)
         vectors_fn = ct_filename_support(param,'','vectors');
@@ -158,7 +164,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for existance of records file
+      %% Check for existance of records file
       if strmatch('records',supports)
         records_fn = ct_filename_support(param,'','records');
         fprintf('  Records %s\n', records_fn);
@@ -179,7 +185,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for existance of frames file
+      %% Check for existance of frames file
       if strmatch('frames',supports)
         frames_fn = ct_filename_support(param,'','frames');
         fprintf('  Frames %s\n', frames_fn);
@@ -196,6 +202,7 @@ for param_idx = 1:length(params)
         end
       end
       
+      %% Check echogram outputs
       for output_idx = 1:length(outputs)
         frames_fn = ct_filename_support(param,'','frames');
         load(frames_fn);
@@ -243,26 +250,44 @@ for param_idx = 1:length(params)
                   fns2 = get_filenames(fn,'','','');
                   fn = fns2{1};
                 end
+                clear param_records
                 load(fn,'param_records');
                 if isempty(strmatch(param_records.gps_source,gps_sources))
-                  fprintf('    %s BAD GPS SOURCE %s\n', fn, param_records.gps_source);
+                  fprintf('    %s BAD GPS SOURCE %s!!!!!!!!!!!!!!!\n', fn, param_records.gps_source);
                   no_bad_gps_so_far_flag = false;
                 end
               end
+              if exist('check_echogram_type','var') && ~isempty(check_echogram_type)
+                if strcmp(outputs{output_idx},'CSARP_mvdr')
+                  clear param_combine
+                  load(fn,'param_combine');
+                  if ~strcmpi(param_combine.combine.method,'mvdr')
+                    fprintf('  Wrong processing type %s for mvdr in %s!!!!!\n', param_combine.combine.method, fn);
+                  end
+                elseif strcmp(outputs{output_idx},'CSARP_standard')
+                  clear param_combine
+                  load(fn,'param_combine');
+                  if ~strcmpi(param_combine.combine.method,'standard')
+                    fprintf('  Wrong processing type %s for standard in %s!!!!!\n', param_combine.combine.method, fn);
+                  end
+                end
+              end
+              
               if exist('processing_date_check','var') && ~isempty(processing_date_check) && ~strcmp(outputs{output_idx},'CSARP_layerData')
                 if strcmp(outputs{output_idx},'CSARP_out')
                   fns2 = get_filenames(fn,'','','');
                   fn = fns2{1};
                 end
                 if strcmp(outputs{output_idx},'CSARP_qlook')
+                  clear param_get_heights
                   load(fn,'param_get_heights');
                   if datenum(param_get_heights.get_heights.sw_version.cur_date_time) < processing_date_check
-                    fprintf('    %s IS OLD %s\n', fn, param_get_heights.get_heights.sw_version.cur_date_time);
+                    fprintf('    %s IS OLD %s!!!!!!!\n', fn, param_get_heights.get_heights.sw_version.cur_date_time);
                   end
                 else
                   load(fn,'param_csarp');
                   if datenum(param_csarp.csarp.sw_version.cur_date_time) < processing_date_check
-                    fprintf('    %s IS OLD %s\n', fn, param_csarp.csarp.sw_version.cur_date_time);
+                    fprintf('    %s IS OLD %s!!!!!!!\n', fn, param_csarp.csarp.sw_version.cur_date_time);
                   end
                 end
               end
@@ -281,7 +306,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for expected image files
+      %% Check for expected image files
       for image_idx = 1:length(images)
         image_dir = fullfile(ct_filename_out(param, ...
           param.post.out_path, 'CSARP_post', true),'images',param.day_seg);
@@ -344,7 +369,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for expected pdf files
+      %% Check for expected pdf files
       if pdf_en
         pdf_dir = fullfile(ct_filename_out(param, ...
           '', 'CSARP_post', true),'pdf');
@@ -357,7 +382,7 @@ for param_idx = 1:length(params)
         end
       end
       
-      % Check for expected csv, csv_good, kml, kml_good files
+      %% Check for expected csv, csv_good, kml, kml_good files
       if csv_en
         for csv_out_idx = 1:length(csv_outputs)
           csv_dir = fullfile(ct_filename_out(param, ...

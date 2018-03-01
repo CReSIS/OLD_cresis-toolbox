@@ -25,12 +25,6 @@ function [filenames,status] = get_filenames(filepath,filename_start,filename_mid
 %    filenames = GetFilenames('/d5/wblake','','','','recursive');
 %
 
-matlab_ver = ver('matlab');
-if str2double(matlab_ver.Version) >= 9.0
-  narginchk(4,5);
-else
-  error(nargchk(4,5,nargin,'struct'));
-end
 if nargin < 4 || nargin > 5
   error('Args:IncorrectFormat','Must have 4 or 5 arguments');
 elseif nargin == 4

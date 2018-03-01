@@ -61,24 +61,24 @@ if ~(~ismcc && isdeployed)
   profile(pidx).out_path                  = '/cresis/snfs1/dataproducts/ct_data/';
   profile(pidx).gis_path                  = '/cresis/snfs1/dataproducts/GIS_data/';
   
-  profile(pidx).sched.type                = 'custom_torque';
-  %profile(pidx).sched.type                = 'local'; % local parallel processing
-  %profile(pidx).sched.type                = 'no scheduler'; % no parallel processing (DEBUG MODE)
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  %profile(pidx).sched.name                = 'kjm';
-  %profile(pidx).sched.url                 = 'kraken.cluster.cresis.ku.edu';
-  profile(pidx).sched.data_location       = '/cresis/snfs1/scratch/paden/mdce_tmp/torque-temp';
-  %profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1,pmem=1725mb,walltime=120:00'; % 4 processes per node
-  %profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1,pmem=2300mb,walltime=120:00'; % 3 processes per node
-  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1,pmem=3450mb,walltime=120:00'; % 2 processes per node
-  %profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1,pmem=6500mb,walltime=120:00'; % 1 process per node
-  profile(pidx).sched.max_in_queue        = 64;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/users/paden/scripts/cresis-toolbox/cresis-toolbox-torque/worker';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
+  profile(pidx).cluster.data_location       = '/cresis/snfs1/scratch/paden/mdce_tmp/cluster-temp';
+  profile(pidx).cluster.cluster_job_fn        = '/users/paden/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
+  
+  profile(pidx).cluster.type                  = 'torque';
+  %profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'slurm';
+  %profile(pidx).cluster.type                  = 'debug';
+  %profile(pidx).cluster.type                  = 'none';
+  profile(pidx).cluster.max_jobs_active       = 512;
+  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.desired_time_per_job  = 0;
+  profile(pidx).cluster.max_retries           = 2;
+  profile(pidx).cluster.submit_pause          = 0.1;
+  profile(pidx).cluster.stat_pause            = 2;
+  profile(pidx).cluster.file_check_pause      = 4;
+  
+  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
+  profile(pidx).cluster.cluster_job_fn        = '/users/paden/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
   
   %% IU Profile Linux (PROFILE 2)
   % ----------------------------------------------------------------------
@@ -90,7 +90,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/N/dcwan/scratch/paden/mdce_tmp/';
+  profile(pidx).tmp_file_path             = '/N/dc2/scratch/jpaden/mdce_tmp/'; % scratch may be on dcwan or dc2
   profile(pidx).ct_tmp_file_path          = '/N/dcwan/projects/cresis/ct_tmp/';
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
@@ -99,22 +99,25 @@ if ~(~ismcc && isdeployed)
   profile(pidx).out_path                  = '/N/dcwan/projects/cresis/output/';
   profile(pidx).gis_path                  = '/N/dcwan/projects/cresis/GIS_data';
   
-  profile(pidx).sched.type                = 'custom_torque';
-  %profile(pidx).sched.type                = 'local'; % local parallel processing
-  %profile(pidx).sched.type                = 'no scheduler'; % no parallel processing (DEBUG MODE)
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  profile(pidx).sched.name                = '';
-  profile(pidx).sched.url                 = '';
-  profile(pidx).sched.data_location       = '/N/dcwan/scratch/jpaden/matlab_torque/';
-  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=1:dcwan,pmem=2gb,walltime=40:00';
-  profile(pidx).sched.max_in_queue        = 64;
-  profile(pidx).sched.max_tasks_per_jobs  = 64;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox-torque/worker';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
+  profile(pidx).cluster.data_location       = '/N/dc2/scratch/jpaden/ct_tmp/cluster-temp';
+  profile(pidx).cluster.cluster_job_fn        = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
+  
+  profile(pidx).cluster.type                  = 'torque';
+  %profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'slurm';
+  %profile(pidx).cluster.type                  = 'debug';
+  %profile(pidx).cluster.type                  = 'none';
+  profile(pidx).cluster.max_jobs_active       = 128;
+  profile(pidx).cluster.max_time_per_job      = 4*86400;
+  profile(pidx).cluster.desired_time_per_job  = 8*3600;
+  profile(pidx).cluster.max_retries           = 2;
+  profile(pidx).cluster.submit_pause          = 0.5;
+  profile(pidx).cluster.stat_pause            = 2;
+  profile(pidx).cluster.file_check_pause      = 4;
+  
+  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1:dcwan:dc2,pmem=%dmb,walltime=%d:00';
+  profile(pidx).cluster.cluster_job_fn        = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
+
  
   %% Field Profile Linux (PROFILE 3)
   % ----------------------------------------------------------------------
@@ -292,35 +295,40 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/home/ollie/tbinder/scripts/matlab/';
-  profile(pidx).ct_path                   = '/home/ollie/tbinder/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/home/ollie/tbinder/scripts/ct_params/';
-  profile(pidx).slurm_jobs_path           = '/home/ollie/tbinder/jobs/';
+  profile(pidx).personal_path             = '/home/ollie/jpaden/scripts/matlab/';
+  profile(pidx).ct_path                   = '/home/ollie/jpaden/scripts/cresis-toolbox/cresis-toolbox/';
+  profile(pidx).param_path                = '/home/ollie/jpaden/scripts/ct_params/';
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/work/ollie/tbinder/Scratch/mdce_tmp/';
-  profile(pidx).ct_tmp_file_path          = '/work/ollie/tbinder/Scratch/ct_tmp/';
+  profile(pidx).tmp_file_path             = '/work/ollie/jpaden/Scratch/mdce_tmp/';
+  profile(pidx).ct_tmp_file_path          = '/work/ollie/jpaden/Scratch/ct_tmp/';
 
-  profile(pidx).data_path                 = '/work/ollie/tbinder/Data/';
-  profile(pidx).data_support_path         = '/work/ollie/tbinder/Scratch/metadata/';
-  profile(pidx).support_path              = '/work/ollie/tbinder/Scratch/csarp_support/';
-  profile(pidx).out_path                  = '/work/ollie/tbinder/Scratch/';
-  profile(pidx).gis_path                  = '/work/ollie/tbinder/GIS_data/';
+  profile(pidx).data_path                 = '/work/ollie/jpaden/Data/';
+  profile(pidx).data_support_path         = '/work/ollie/jpaden/Scratch/metadata/';
+  profile(pidx).support_path              = '/work/ollie/jpaden/Scratch/csarp_support/';
+  profile(pidx).out_path                  = '/work/ollie/jpaden/Scratch/';
+  profile(pidx).gis_path                  = '/work/ollie/jpaden/GIS_data/';
+ 
+  profile(pidx).cluster.data_location     = '/work/ollie/jpaden/Scratch/mdce_tmp/cluster-temp';
+  profile(pidx).cluster.cluster_job_fn    = '/home/ollie/jpaden/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
 
-  profile(pidx).sched.type                = 'local';
-  %profile(pidx).sched.type                = 'ollie'; % creates param structures used by executables/slurm scripts
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  profile(pidx).sched.data_location       = '/work/ollie/tbinder/Scratch/torque-temp';
-  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=2,walltime=15:00';
-  profile(pidx).sched.max_in_queue        = 64;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/home/ollie/tbinder/scripts/cresis-toolbox-torque/worker';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
-    
+  %profile(pidx).cluster.type                    = 'torque';
+  %profile(pidx).cluster.type                    = 'matlab';
+  profile(pidx).cluster.type                    = 'slurm';
+  %profile(pidx).cluster.type                    = 'debug';
+  %profile(pidx).cluster.type                    = 'none';
+  profile(pidx).cluster.max_jobs_active         = 64;
+  profile(pidx).cluster.max_time_per_job        = 86400;
+  profile(pidx).cluster.desired_time_per_job    = 0;
+  profile(pidx).cluster.max_retries             = 2;
+  profile(pidx).cluster.submit_pause            = 0;
+  profile(pidx).cluster.stat_pause              = 1;
+  profile(pidx).cluster.file_check_pause        = 60;
+
+  profile(pidx).cluster.mcc                     = 'eval';
+  profile(pidx).cluster.slurm_submit_arguments  = '-N 1 -n 1 --mem=%d --time=%d';
+  
   %% Startup code (Automated Section)
   % =====================================================================
   
@@ -374,68 +382,8 @@ if ~(~ismcc && isdeployed)
   fprintf('  Setting global preferences in global variable gRadar\n');
   global gRadar;
   
-  % .debug_level = higher means more print outs, 0 is none, 1 is minimal
-  %   (the preferred default)
-  gRadar.debug_level = profile(cur_profile).debug_level;
-  % .sched.type = 'local', 'jobmanager', 'torque', or 'no scheduler'
-  %   Currently KU runs jobmanager, IU runs torque
-  %   local uses only the cores on your local machine
-  gRadar.sched.type = profile(cur_profile).sched.type;
-  % .sched.url = url of scheduler (e.g. qm2.quarry.teragrid.iu.edu or
-  %   heimdall.cluster.cresis.ku.edu)
-  if ~isfield(profile(cur_profile).sched,'url')
-    profile(cur_profile).sched.url = '';
-  end
-  gRadar.sched.url = profile(cur_profile).sched.url;
-  % .sched.name = name of scheduler (often leave blank, sometimes 'jm' or
-  %   'jm2')
-  if ~isfield(profile(cur_profile).sched,'name')
-    profile(cur_profile).sched.name = '';
-  end
-  gRadar.sched.name = profile(cur_profile).sched.name;
-  % .sched.cluster_size = forces the number of submitted tasks to never
-  %   exceed this number (i.e. even if there are more nodes available, it
-  %   will not use more than this number, set to inf to use all)
-  gRadar.sched.cluster_size = profile(cur_profile).sched.cluster_size;
-  % .sched.stop_on_fail = enter debug mode if failure occurs
-  gRadar.sched.stop_on_fail = profile(cur_profile).sched.stop_on_fail;
-  % .sched.data_location = torque scheduler only, this is where the
-  %   temporary job files will be stored
-  gRadar.sched.data_location = profile(cur_profile).sched.data_location;
-  % .sched.submit_arguments = torque scheduler only, these are the
-  %   additional arguments passed to the qsub command (qsub is the queue
-  %   submit command for the torque scheduler)
-  gRadar.sched.submit_arguments = profile(cur_profile).sched.submit_arguments;
-  % .sched.max_in_queue = same as cluster_size, but is used by the
-  %   wrapper function create_task. This function is necessary when
-  %   submitting thousands of jobs at once.  Matlab does not handle
-  %   large numbers of jobs (tasks) elegantly and slows down too much
-  %   and can crash the jobmanager.
-  gRadar.sched.max_in_queue = profile(cur_profile).sched.max_in_queue;
-  % .sched.max_tasks_per_jobs = unfortunately Matlab's torque scheduler
-  %   interface performs slowly when the number of tasks exceed about 50
-  %   tasks per job so you can force it to submit just a few (e.g. 50)
-  %   tasks per job and then submit multiple jobs
-  if ~isfield(profile(cur_profile).sched,'max_tasks_per_jobs')
-    profile(cur_profile).sched.max_tasks_per_jobs = '';
-  end
-  gRadar.sched.max_tasks_per_jobs = profile(cur_profile).sched.max_tasks_per_jobs;
-  % .sched.max_retries = Matlab's torque scheduler occasionally
-  %   submits tasks that don't ever execute and no error information
-  %   is returned except for the fact that the process does not return any
-  %   output arguments.  In this case, the toolbox will try to resubmit the
-  %   job up to this many times.
-  gRadar.sched.max_retries = profile(cur_profile).sched.max_retries;
-  % .sched.worker_fn = worker shell script filename
-  %   qsub job submissions all call this worker shell script which
-  %   then calls an MCC compiled worker_task.m
-  gRadar.sched.worker_fn = profile(cur_profile).sched.worker_fn;
-  % .sched.force_compile = boolean which controls whether or not
-  %   the torque scheduler will force a recompile before submitting
-  %   a batch job (typically this should be set to false because
-  %   the function checks the time stamp of dependent functions and
-  %   only recompiles when it is necessary to do so)
-  gRadar.sched.force_compile = profile(cur_profile).sched.force_compile;
+  % .cluster: structure with default cluster scheduler arguments
+  gRadar.cluster = profile(cur_profile).cluster;
   % .sched.hidden_depends_funs = cell vector of strings containing
   %   all the dependent functions that should be included when the
   %   torque_compile function is called. This list should only include
@@ -447,39 +395,36 @@ if ~(~ismcc && isdeployed)
   %     2: check this file and its dependencies only if "fun" is not
   %        specified in call to torque_compile.m (all functions called
   %        by torque_compile)
-  gRadar.sched.hidden_depend_funs = {};
-  gRadar.sched.hidden_depend_funs{end+1} = {'tomo_collate_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'create_records_accum2_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'create_records_acords_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'create_records_mcords_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'basic_load_fmcw.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'basic_load_fmcw2.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'rx_chan_equal_sar_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'rx_chan_equal_raw_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'analysis_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'get_heights_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'csarp_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'combine_wf_chan_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'nsidc_delivery_script_task.m' 2};
-  gRadar.sched.hidden_depend_funs{end+1} = {'hanning.m' 0};
-  gRadar.sched.hidden_depend_funs{end+1} = {'hamming.m' 0};
-  gRadar.sched.hidden_depend_funs{end+1} = {'blackman.m' 0};
-  gRadar.sched.hidden_depend_funs{end+1} = {'tukeywin.m' 0};
-  gRadar.sched.hidden_depend_funs{end+1} = {'tukeywin_trim.m' 1};
-  gRadar.sched.hidden_depend_funs{end+1} = {'chebwin.m' 0};
-  gRadar.sched.hidden_depend_funs{end+1} = {'kaiser.m' 0};
-  gRadar.sched.hidden_depend_funs{end+1} = {'boxcar.m' 0};
-  gRadar.sched.hidden_depend_funs{end+1} = {'butter.m' 0};
-  gRadar.sched.hidden_depend_funs{end+1} = {'array_proc_sv.m' 1};
-  gRadar.sched.hidden_depend_funs{end+1} = {'lever_arm.m' 1};
-  gRadar.sched.hidden_depend_funs{end+1} = {'doa_nonlcon.m' 1};
-  % For newer Matlab cluster access, we need a list of all the paths
-  gRadar.sched.AdditionalPaths = AdditionalPaths;
-  clear AdditionalPaths;
-  % For newer Matlab we need to know the version of the cluster interface
-  gRadar.sched.ver = profile(cur_profile).sched.ver;
+  gRadar.cluster.hidden_depend_funs = {};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'tomo_collate_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'create_records_accum2_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'create_records_acords_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'create_records_mcords_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'basic_load_fmcw.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'basic_load_fmcw2.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'rx_chan_equal_sar_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'rx_chan_equal_raw_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_combine_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_combine_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'csarp_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'nsidc_delivery_script_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'hanning.m' 0};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'hamming.m' 0};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'blackman.m' 0};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'tukeywin.m' 0};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'tukeywin_trim.m' 1};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'chebwin.m' 0};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'kaiser.m' 0};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'boxcar.m' 0};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'butter.m' 0};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'array_proc_sv.m' 1};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'lever_arm.m' 1};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'doa_nonlcon.m' 1};
 
   % .path = used by the scheduler to build the file dependency path
   %   typically this is the same at .ct_path

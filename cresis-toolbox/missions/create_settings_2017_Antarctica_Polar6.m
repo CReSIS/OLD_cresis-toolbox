@@ -8,8 +8,8 @@ physical_constants; % c = speed of light
 
 % Define waveforms
 if ispc
-  base_dir = 'c:\waveforms\';
-  rss_base_dir = 'C:\Users\Administrator\Desktop\Arena_Shared\configs\';
+  base_dir = 'C:\waveforms\';
+  rss_base_dir = 'C:\tmp\Arena_Shared\configs\';
 else
   base_dir = '~/waveforms/';
   rss_base_dir = '~/rss_waveforms/';

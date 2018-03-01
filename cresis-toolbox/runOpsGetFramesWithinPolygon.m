@@ -20,10 +20,45 @@ if status == 1
     % Get the segment name portion of the frame name
     seg{frm_idx} = message.frame{frm_idx}(1:11);
   end
-  seg = unique(seg);
+  [seg,idx1,idx2] = unique(seg);
   
   % Print list of segments
+  fprintf('day_seg\tnum frm\tfrms\n');
   for seg_idx = 1:length(seg)
-    fprintf('%s\n', seg{seg_idx});
+    % Print segment ID (day_seg)
+    fprintf('%s\t', seg{seg_idx});
+    % Get frame IDs associated with this segment
+    frm_ids = message.frame(idx2==seg_idx);
+    % Print number of frames
+    fprintf('%d\t', length(frm_ids));
+    % Print list of frames in nice matlab array format
+    %   Instead of [1,2,3,6], this prints [1:3,6]
+    fprintf('[');
+    state = 0; % State machine for printing
+    for frm_ids_idx = 1:length(frm_ids)
+      frm = str2double(frm_ids{frm_ids_idx}(13:end));
+      switch state
+        case 0 % Initial state
+          state = 1;
+          fprintf('%d',frm);
+        case 1 % New sequential range started
+          if frm == old_frm + 1
+            state = 2;
+          else
+            fprintf(',%d',frm);
+          end
+        case 2 % Within a sequential range
+          if frm ~= old_frm + 1
+            fprintf(':%d',old_frm);
+            fprintf(',%d',frm);
+            state = 1;
+          end
+      end
+      old_frm = frm;
+    end
+    if state == 2 % Print off the last unfinished range
+      fprintf(':%d',frm);
+    end
+    fprintf(']\n');
   end
 end

@@ -26,18 +26,18 @@ classdef (HandleCompatible = true) slicetool_delete< imb.slicetool
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd.surf. You 
       %     should not modify any fields of sb.
       %  .layer: struct array containing layer information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
       %  .layer_idx: active layer
       % slices: array of slices to operate on (overrides sb.slice)
-      control_idx = sb.layer(sb.layer_idx).control_layer;
-      active_idx = sb.layer(sb.layer_idx).active_layer;
-      surf_idx = sb.layer(sb.layer_idx).surf_layer;
-      mask_idx = sb.layer(sb.layer_idx).mask_layer;
-      quality_idx = sb.layer(sb.layer_idx).quality_layer;
+      control_idx = sb.sd.surf(sb.surf_idx).gt;
+      active_idx = sb.sd.surf(sb.surf_idx).active;
+      surf_idx = sb.sd.surf(sb.surf_idx).top;
+      mask_idx = sb.sd.surf(sb.surf_idx).mask;
+      quality_idx = sb.sd.surf(sb.surf_idx).quality;
 
       % If no control layer defined, then do nothing
       if isempty(control_idx)
@@ -65,10 +65,10 @@ classdef (HandleCompatible = true) slicetool_delete< imb.slicetool
         slice = slices(idx);
         cmd{end+1}.undo.slice = slice;
         cmd{end}.redo.slice = slice;
-        cmd{end}.undo.layer = control_idx;
-        cmd{end}.redo.layer = control_idx;
+        cmd{end}.undo.surf = control_idx;
+        cmd{end}.redo.surf = control_idx;
         cmd{end}.undo.x = cols;
-        cmd{end}.undo.y = sb.layer(control_idx).y(cols,slice);
+        cmd{end}.undo.y = sb.sd.surf(control_idx).y(cols,slice);
         cmd{end}.redo.x = cols;
         cmd{end}.redo.y = new_vals;
         cmd{end}.type = 'standard';

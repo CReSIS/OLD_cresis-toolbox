@@ -69,14 +69,15 @@ classdef crossover < handle
     % figure window
     function figure_visibility_toggle(obj,visibility_flag)
       if exist('visibility_flag','var')
-        cur_visibility = ~visibility_flag;
+        cur_visibility = visibility_flag;
       else
         cur_visibility = strcmpi(get(obj.h_fig,'Visible'),'on');
       end
       if cur_visibility
-        set(obj.h_fig,'Visible','off');
-      else
         set(obj.h_fig,'Visible','on');
+        figure(obj.h_fig);
+      else
+        set(obj.h_fig,'Visible','off');
       end
     end
     

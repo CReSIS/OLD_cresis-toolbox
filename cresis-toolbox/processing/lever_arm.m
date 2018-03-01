@@ -240,52 +240,14 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(gps_source,'c
 end
 
 if (strcmpi(param.season_name,'2017_Antarctica_Basler') && strcmpi(gps_source,'cresis'))
-  % Absolute position of IMU for radar systems
-  % For 2017:
-  %  GPS data are processed to the IMU.
-  %  The IMU is mounted on the floor (but reference point is above the floor).
-  %  Floor has 12 deg slope
-  %  GPS antenna phase center is 0.01303 m above the bottom of the antenna
-  %    and approximately 0.0146 m above the bottom of the ceiling Aluminum
-  %    assuming 1/16" Aluminum fuselage material
-  %  Antenna: ACC42G1215A-XT-1-N, Antcom Corporation, Novatel (KBA owned)
-  %  Location of radar IMU is:
-  %   X = 0;
-  %   Y = 0;
-  %   Z = 0;
-  %  Location of radar IMU box corner is:
-  %   X = -0.0765
-  %   Y = -0.106
-  %   Z = 0.076
-  %  Location of radar GPS antenna is:
-  %   X = -18.25 * 2.54/100 - 0.0765 = -0.5401
-  %   Y = -(80 - (10+10/16) - 82.625*sind(12)) * 2.54/100 + 0.106 = -1.2198
-  %   Z = 82.625*cosd(12) * 2.54/100 - 0.076 + 0.0146 = 1.9914
-  %  Location of camera GPS antenna is:
-  %   X = -0.5401
-  %   Y = -1.2198 - (38+15/16)*2.54/100 = -2.2088
-  %   Z = 1.9914
-  %  Location of camera IMU is:
-  %   X = (22+3/8)*2.54/100 - 0.5401 = 0.0282
-  %   Y = 0.106 -(193+10/16 - (10+10/16) - sind(12)*(8+7/8))*2.54/100 = -4.5891
-  %   Z = -0.076 - cosd(12)*(8+7/8)*2.54/100 = -0.2965
-  %  Location of camera is:
-  %   X = 0.0282 - 5*2.54/100 = -0.0988
-  %   Y = -4.5891 + 5*2.54/100 = -4.4621
-  %   Z = -0.2965 - 4*2.54/100 = -0.3981
-  %  Location of RDS antenna center is:
-  %   X = -0.5401
-  %   Y = -4.5891 + 37.5*2.54/100 = -3.6366
-  %   Z = -0.076 - 23.5*2.54/100 = -0.6729
-  %   ANTENNA SPACING: 0.48 m
-  
   warning('This file needs to be updated with actual values for 2017.');
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2017_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
+if (strcmpi(param.season_name,'2017_Antarctica_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
+    || (strcmpi(param.season_name,'2017_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
     || (strcmpi(param.season_name,'2014_Greenland_P3') && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'NMEA'))) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(gps_source,'ATM')) ...
     || (strcmpi(param.season_name,'2013_Greenland_P3') && strcmpi(gps_source,'ATM')) ...
@@ -410,7 +372,7 @@ if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8'})) && (strcmpi(gps_sour
   gps.z = -100.5*0.0254;
 end
 
-if (any(strcmpi(param.season_name,{'2016_Antarctica_DC8','2017_Antarctica_DC8'})) && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'DMS') || strcmpi(gps_source,'NMEA'))) 
+if (any(strcmpi(param.season_name,{'2016_Antarctica_DC8'})) && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'DMS') || strcmpi(gps_source,'NMEA'))) 
   % Absolute position of ATM antenna
   %  Matt L. 20141005: The measured new antenna position is 8.75" (0.222m) forward of the GPS antenna used in 2012.
   %
@@ -465,7 +427,7 @@ if (strcmpi(param.season_name,'2003_Greenland_P3')) ...
   
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6'})) && strcmpi(gps_source,'AWI'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6','2018_Greenland_Polar6'})) && strcmpi(gps_source,'AWI'))
   % Measurements are from Richard Hale Aug 12, 2015 for RDS and Aug 15,
   % 2015 for Snow Radar. Measurements are made relative to the AWI Aft
   % Science GPS antenna known as ST5.
@@ -581,7 +543,8 @@ if (strcmpi(param.season_name,'2010_Greenland_P3') && strcmpi(radar_name,'accum'
   end
 end
 
-if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'accum'))
+if (strcmpi(param.season_name,'2017_Antarctica_P3') && strcmpi(radar_name,'accum'))...
+    || (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'accum'))
   % Coordinates from Emily Arnold and offsets from Cameron
   % Accumulation antenna. X-offset is an estimate and needs to be measured.
   LArx(1,:)   = (-433.3*0.0254 - [0.2 0.2 0.2 0.2]) - gps.x; % m ESTIMATED
@@ -803,8 +766,7 @@ if (strcmpi(param.season_name,'2010_Antarctica_DC8') && strcmpi(radar_name,'kuba
     || (strcmpi(param.season_name,'2011_Antarctica_DC8') && strcmpi(radar_name,'kuband')) ...
     || (strcmpi(param.season_name,'2012_Antarctica_DC8') && strcmpi(radar_name,'kuband')) ...
     || (strcmpi(param.season_name,'2014_Antarctica_DC8') && strcmpi(radar_name,'kuband')) ...
-    || (strcmpi(param.season_name,'2016_Antarctica_DC8') && strcmpi(radar_name,'kuband')) ...
-    || (strcmpi(param.season_name,'2017_Antarctica_DC8') && strcmpi(radar_name,'kuband'))
+    || (strcmpi(param.season_name,'2016_Antarctica_DC8') && strcmpi(radar_name,'kuband'))
   % FROM ADAM WEBSTER (~DC8 crew):
   % Lever Arm to ATM antenna (this is valid for 2010, 2011 Antarctica DC8):
   % 	Snow: 733.3??? aft, 141.4??? down, 0??? lateral
@@ -977,6 +939,40 @@ if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar
   end
 end
 
+if (any(strcmpi(param.season_name,{'2018_Greenland_Polar6'})) && strcmpi(radar_name,'rds'))
+  % See notes in GPS section
+  
+  % Center elements left to right
+  Polar6_RDS = [-60.7213	-64.4623	-144.7008
+    -60.7149	-46.0371	-144.7002
+    -60.7086	-27.6119	-144.6996
+    -60.7022	-9.1867	-144.6989
+    -60.6959	9.2337	-144.6983
+    -60.6895	27.6637	-144.6977
+    -60.6832	46.0889	-144.6970
+    -60.6768	64.5141	-144.6964] * 2.54/100;
+  
+  Polar6_RDS(:,1) = -Polar6_RDS(:,1);
+  Polar6_RDS(:,3) = -Polar6_RDS(:,3);
+  
+  % NEED TO GET FROM RICHARD HALE
+  LArx(1,1:8) = Polar6_RDS(:,1).';
+  LArx(2,1:8) = Polar6_RDS(:,2).';
+  LArx(3,1:8) = Polar6_RDS(:,3).';
+  
+  LAtx = LArx(:,1:8);
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1:8;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 4;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2015_Greenland_C130') && strcmpi(radar_name,'rds'))
   % X,Y,Z are in aircraft coordinates, not IMU
   LArx(1,:) = [-36.13 -36.13]*2.54/100;
@@ -1028,13 +1024,11 @@ end
 
 if (strcmpi(param.season_name,'2017_Antarctica_Basler') && strcmpi(radar_name,'rds'))
   % See notes in GPS section
-  
-  % Center elements left to right
-  
+    
   % Measurements, X,Y,Z are in aircraft coordinates, not IMU coordinates
-  LArx(1,1:8) = -3.6182;
-  LArx(2,1:8) = (-3.5:1:3.5) * 0.48;
-  LArx(3,1:8) = 0.8158;
+  LArx(1,1:8) = 1.5859;
+  LArx(2,1:8) = [-64.4623 -46.0371 -27.6119 -9.1867 9.2337 27.6637 46.0889 64.5141] * 2.54/100;
+  LArx(3,1:8) = -3.4609;
   warning('This file needs to be updated with actual values for 2017.');
   
   LAtx = LArx(:,1:8);
@@ -1050,7 +1044,8 @@ if (strcmpi(param.season_name,'2017_Antarctica_Basler') && strcmpi(radar_name,'r
   end
 end
 
-if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'rds')) ...
+if (strcmpi(param.season_name,'2017_Antarctica_P3') && strcmpi(radar_name,'rds')) ...
+    || (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2013_Greenland_P3') && strcmpi(radar_name,'rds')) ...
@@ -1117,7 +1112,7 @@ if (strcmpi(param.season_name,'2009_Antarctica_DC8') && strcmpi(radar_name,'rds'
   end
 end
 
-if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8','2017_Antarctica_DC8'})) && strcmpi(radar_name,'rds'))
+if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8'})) && strcmpi(radar_name,'rds'))
   % NOTE: These come from Ali Mahmood's http://svn.cresis.ku.edu/cresis-toolbox/documents/Antenna Lever Arm GPS Report Support Files/2014_Antarctica_DC8_array_Schematic.pptx
   
   LArx(1,:)   = [-30.71368  -30.71368  -30.71368 -30.24632  -30.24632  -30.24632] - gps.x; % m
@@ -1417,7 +1412,7 @@ if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'snow')
   end
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6'})) && strcmpi(radar_name,'snow'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2018_Greenland_Polar6'})) && strcmpi(radar_name,'snow'))
   % See notes in GPS section
   
   LArx(1,1:2) = -[95.5 95.5];
@@ -1534,7 +1529,8 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(radar_name,'s
   end
 end
 
-if (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'snow')) ...
+if (strcmpi(param.season_name,'2017_Antarctica_P3') && strcmpi(radar_name,'snow')) ...
+    || (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'snow')) ...
     || (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'snow')) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(radar_name,'snow')) ...
     || (strcmpi(param.season_name,'2013_Greenland_P3') && strcmpi(radar_name,'snow')) ...
@@ -1586,8 +1582,7 @@ if (strcmpi(param.season_name,'2010_Antarctica_DC8') && strcmpi(radar_name,'snow
     || (strcmpi(param.season_name,'2011_Antarctica_DC8') && strcmpi(radar_name,'snow')) ...
     || (strcmpi(param.season_name,'2012_Antarctica_DC8') && strcmpi(radar_name,'snow')) ...
     || (strcmpi(param.season_name,'2014_Antarctica_DC8') && strcmpi(radar_name,'snow')) ...
-    || (strcmpi(param.season_name,'2016_Antarctica_DC8') && strcmpi(radar_name,'snow')) ...
-    || (strcmpi(param.season_name,'2017_Antarctica_DC8') && strcmpi(radar_name,'snow'))
+    || (strcmpi(param.season_name,'2016_Antarctica_DC8') && strcmpi(radar_name,'snow'))
   
   % FROM ADAM WEBSTER (~DC8 crew):
   % Lever Arm to ATM antenna (this is valid for 2010, 2011 Antarctica DC8):

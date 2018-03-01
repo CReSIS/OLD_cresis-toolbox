@@ -652,3 +652,21 @@ if ~isempty(hack_idx)
     save(out_fn,'-append','-struct','gps');
   end
 end
+
+
+
+for idx = 1:length(file_type)
+  out_fn = fullfile(gps_path,out_fns{idx});
+  
+  gps = load(out_fn);
+  if regexpi(gps.gps_source,'atm')
+    
+    warning('Smoothing INS data: %s', out_fn);
+    
+    gps.roll = sgolayfilt(gps.roll,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.pitch = sgolayfilt(gps.pitch,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.heading  = sgolayfilt(gps.heading,2,101); % Adjust filter length as needed to remove high frequency noise
+     
+    save(out_fn,'-append','-struct','gps','roll','pitch','heading');
+  end
+end

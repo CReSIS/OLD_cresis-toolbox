@@ -73,7 +73,7 @@ global g_data;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-param.load.records_fn = ct_filename_support(param,param.records.records_fn,'records');
+param.load.records_fn = ct_filename_support(param,'','records');
 
 if param.csarp.combine_rx && param.csarp.mocomp.en
   warning('CSARP motion compensation mode must be 0 for combine_rx (setting to 0)');
@@ -269,6 +269,7 @@ if any(strcmpi(radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords
     end
   end
   load_param.load.file_version = param.records.file_version;
+  load_param.load.wfs = orig_records.settings.wfs;
 elseif strcmpi(radar_name,'mcrds')
   load_param.load.offset = orig_records.offset;
   load_param.load.file_rec_offset = orig_records.relative_rec_num;

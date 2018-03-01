@@ -101,8 +101,16 @@ function [wfs,rec_data_size] = load_mcords_wfs(settings, param, adcs, proc_param
 %
 % Author: John Paden
 
-if ~isfield(proc_param,'wf_adc_comb')
-  proc_param.wf_adc_comb.en = 0;
+%% Input Checking
+% =========================================================================
+if ~isfield(proc_param,'wf_adc_comb') || isempty(proc_param.wf_adc_comb)
+  proc_param.wf_adc_comb.en = false;
+end
+if ~isfield(proc_param,'ft_wind_time') || isempty(proc_param.ft_wind_time)
+  proc_param.ft_wind_time = false;
+end
+if ~isfield(proc_param,'ft_dec') || isempty(proc_param.ft_dec)
+  proc_param.ft_dec = proc_param.pulse_comp;
 end
 
 if param.records.file_version == 406 % ACORDS ver 2
@@ -110,6 +118,9 @@ if param.records.file_version == 406 % ACORDS ver 2
 else
   sample_size = 2;
 end
+
+%% Setup processing
+% =========================================================================
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
@@ -201,6 +212,8 @@ if proc_param.wf_adc_comb.en
   Nt_pc_max = max(Nt_pc);
 end
 
+%% Create default values for all waveforms
+% =========================================================================
 for wf = 1:length(param.radar.wfs)
   adc_idx = 1;
   
@@ -226,7 +239,6 @@ for wf = 1:length(param.radar.wfs)
   wfs(wf).Tpd     = param.radar.wfs(wf).Tpd;
   wfs(wf).f0      = param.radar.wfs(wf).f0;
   wfs(wf).f1      = param.radar.wfs(wf).f1;
-  wfs(wf).ft_dec  = param.radar.wfs(wf).ft_dec;
   if isfield(param.radar.wfs(wf),'Tadc_adjust') && ~isempty(param.radar.wfs(wf).Tadc_adjust)
     Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
   else
@@ -251,6 +263,12 @@ for wf = 1:length(param.radar.wfs)
     fs = param.radar.fs;
   else
     fs = param.radar.fs / 2^(1+wfs(wf).DDC_mode);
+  end
+  if isfield(param.radar.wfs(wf),'ft_dec') && ~isempty(param.radar.wfs(wf).ft_dec)
+    wfs(wf).ft_dec = param.radar.wfs(wf).ft_dec;
+  else
+    [numerator denominator] = rat((wfs(wf).f1 - wfs(wf).f0) / fs);
+    wfs(wf).ft_dec = [numerator denominator];
   end
   if isfield(param.radar.wfs(wf),'DDC_freq') && ~isempty(param.radar.wfs(wf).DDC_freq)
     wfs(wf).DDC_freq   = param.radar.wfs(wf).DDC_freq;
@@ -335,6 +353,10 @@ for wf = 1:length(param.radar.wfs)
   
   % Apply receiver delays to reference function
   Nt = wfs(wf).Nt_pc;
+  if isempty(Nt)
+    warning('Undefined waveform %d: skipping waveform.', wf);
+    continue;
+  end
   df = 1/(Nt*dt);
   if wfs(wf).DDC_mode == 0
     freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';

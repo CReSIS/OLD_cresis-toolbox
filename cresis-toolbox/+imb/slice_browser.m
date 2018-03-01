@@ -1,7 +1,7 @@
 % script imb.slice_browser
 %
 % Class for browsing 3D imagery one 2D slice at a time and for editing
-% layers in that imagery.
+% surfaces in that imagery.
 %
 % Contructor: slice_browser(data,h_control_image,param)
 % data: 3D imagery
@@ -9,15 +9,9 @@
 %   aligned with the third dimension of the data. Clicks in this figure
 %   will then choose difference slices out of data based on the third axis.
 % param: structure controlling the operation of slice_browser
-%  .layer_fn: filename of .mat file containing layer structure array
+%  .surfdata_fn: filename of .mat file containing surf structure array
 %
-% Layer file should contain:
-%  layer: structure array of layer information
-%   .x: x-values of the layer
-%   .y: y-values of the layer
-%   .plot_name_values: name-value pairs to be passed to this layer's plot
-%     function
-%   .name: name of this layer
+% Surf file should contain surfdata class fields.
 %
 % Example:
 %  See run_slice_browser.m
@@ -30,9 +24,9 @@ classdef slice_browser < handle
     select_mask
     data % N-dimensional matrix with last dimension equal to Nx
     slice % Integer from 1 to Nx
-    layer % Layer structures
-    layer_fn
-    layer_idx % Active layer
+    sd % Surfdata class
+    surfdata_fn
+    surf_idx % Active surface
     bounds_relative
 
     % Slice GUI handles
@@ -46,16 +40,16 @@ classdef slice_browser < handle
     h_control_axes
     h_control_image
     h_control_plot
-    h_control_layer
+    h_control_surf
     h_control_is_child % logical (true means slice_browser created control)
     control_x, control_y % Last click position
     
-    % Layer GUI handles
-    h_layer_fig
-    h_layer_axes
-    h_layer_image
-    h_layer_plot
-    layer_x, layer_y % Last click position
+    % Surface GUI handles
+    h_surf_fig
+    h_surf_axes
+    h_surf_image
+    h_surf_plot
+    surf_x, surf_y % Last click position
     
     gui
     
@@ -114,14 +108,13 @@ classdef slice_browser < handle
       obj.slice_tool.timer.ExecutionMode = 'fixedSpacing';
       %start(obj.slice_tool.timer)
       
-      % Load layer data
-      if isfield(param,'layer_fn') && ~isempty(param.layer_fn)
-        tmp = load(param.layer_fn);
-        obj.layer_fn = param.layer_fn;
-        obj.layer = tmp.surf;
-        obj.layer_populate_defaults;
+      % Load surface data
+      if isfield(param,'surfdata_fn') && ~isempty(param.surfdata_fn)
+        obj.sd = tomo.surfdata(param.surfdata_fn);
+        obj.surfdata_fn = param.surfdata_fn;
       else
-        obj.layer = struct('x',{},'y',{},'name',{},'plot_name_values',{});
+        obj.sd = tomo.surfdata();
+        obj.surfdata_fn = '';
       end
       
       if ~isempty(h_control_image)
@@ -142,19 +135,19 @@ classdef slice_browser < handle
       obj.fh_key_press = param.fh_key_press;
       obj.fh_button_motion = param.fh_button_motion;
       
-      obj.h_layer_fig = figure;
+      obj.h_surf_fig = figure;
       pos = get(obj.h_fig,'Position');
       pos(3) = 750;
       pos(4) = 500;
       set(obj.h_fig,'Position',pos);
 
-      obj.h_layer_axes = axes('Parent',obj.h_layer_fig,'YDir','reverse');
-      obj.h_layer_image = imagesc(NaN*zeros(size(obj.data,2),size(obj.data,3)),'parent',obj.h_layer_axes);
-      colormap(obj.h_layer_axes, parula(256));
-      xlabel(obj.h_layer_axes,'Along-track range line');
-      ylabel(obj.h_layer_axes,'Cross-track');
-      hold(obj.h_layer_axes,'on');
-      obj.h_layer_plot = plot(NaN,NaN,'parent',obj.h_layer_axes,'Marker','x','Color','black','LineWidth',2,'MarkerSize',10);
+      obj.h_surf_axes = axes('Parent',obj.h_surf_fig,'YDir','reverse');
+      obj.h_surf_image = imagesc(NaN*zeros(size(obj.data,2),size(obj.data,3)),'parent',obj.h_surf_axes);
+      colormap(obj.h_surf_axes, parula(256));
+      xlabel(obj.h_surf_axes,'Along-track range line');
+      ylabel(obj.h_surf_axes,'Cross-track');
+      hold(obj.h_surf_axes,'on');
+      obj.h_surf_plot = plot(NaN,NaN,'parent',obj.h_surf_axes,'Marker','x','Color','black','LineWidth',2,'MarkerSize',10);
       
       obj.h_fig = figure;
 
@@ -172,12 +165,12 @@ classdef slice_browser < handle
       ylabel(obj.h_axes,'Range bin');
       
       obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
-      for layer_idx = 1:numel(obj.layer)
-          obj.layer(layer_idx).h_plot ...
-            = plot(obj.layer(layer_idx).x(:,obj.slice), ...
-            obj.layer(layer_idx).y(:,obj.slice), ...
+      for surf_idx = 1:numel(obj.sd.surf)
+          obj.sd.surf(surf_idx).h_plot ...
+            = plot(obj.sd.surf(surf_idx).x(:,obj.slice), ...
+            obj.sd.surf(surf_idx).y(:,obj.slice), ...
             'parent',obj.h_axes,'color','black', ...
-            obj.layer(layer_idx).plot_name_values{:});
+            obj.sd.surf(surf_idx).plot_name_values{:});
       end
       
       addlistener(obj.undo_stack,'synchronize_event',@obj.undo_sync);
@@ -186,7 +179,7 @@ classdef slice_browser < handle
       
       hold(obj.h_control_axes,'on');
       obj.h_control_plot = plot(NaN,NaN,'parent',obj.h_control_axes,'Marker','x','Color','black','LineWidth',2,'MarkerSize',10);
-      obj.h_control_layer = plot(NaN,NaN,'parent',obj.h_control_axes,'Marker','.','Color','red');
+      obj.h_control_surf = plot(NaN,NaN,'parent',obj.h_control_axes,'Marker','.','Color','red');
 
       % Set up figure callbacks and zoom
       zoom_figure_setup(obj.h_fig,'slice');
@@ -200,15 +193,15 @@ classdef slice_browser < handle
       set(obj.h_fig,'WindowKeyReleaseFcn',@obj.key_release);
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       
-      zoom_figure_setup(obj.h_layer_fig,'layer');
-      set(obj.h_layer_fig,'pointer','custom');
-      set(obj.h_layer_fig,'WindowButtonUpFcn',@obj.layer_button_up);
-      set(obj.h_layer_fig,'WindowButtonDownFcn',@obj.layer_button_down);
-%       set(obj.h_layer_fig,'WindowButtonMotionFcn',@obj.button_motion);
-      set(obj.h_layer_fig,'WindowScrollWheelFcn',@obj.layer_button_scroll);
-      set(obj.h_layer_fig,'WindowKeyPressFcn',@obj.key_press);
-      set(obj.h_layer_fig,'WindowKeyReleaseFcn',@obj.key_release);
-      set(obj.h_layer_fig,'CloseRequestFcn',[]);
+      zoom_figure_setup(obj.h_surf_fig,'surface');
+      set(obj.h_surf_fig,'pointer','custom');
+      set(obj.h_surf_fig,'WindowButtonUpFcn',@obj.surf_button_up);
+      set(obj.h_surf_fig,'WindowButtonDownFcn',@obj.surf_button_down);
+%       set(obj.h_surf_fig,'WindowButtonMotionFcn',@obj.button_motion);
+      set(obj.h_surf_fig,'WindowScrollWheelFcn',@obj.surf_button_scroll);
+      set(obj.h_surf_fig,'WindowKeyPressFcn',@obj.key_press);
+      set(obj.h_surf_fig,'WindowKeyReleaseFcn',@obj.key_release);
+      set(obj.h_surf_fig,'CloseRequestFcn',[]);
       
       if obj.h_control_is_child
         zoom_figure_setup(obj.h_control_fig,'echogram');
@@ -281,7 +274,7 @@ classdef slice_browser < handle
       set(obj.gui.savePB,'style','pushbutton')
       set(obj.gui.savePB,'string','(S)ave')
       set(obj.gui.savePB,'Callback',@obj.save_button_callback)
-      set(obj.gui.savePB,'TooltipString','(S)ave layers to file');
+      set(obj.gui.savePB,'TooltipString','(S)ave surfaces to file');
       
       obj.gui.helpPB = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.helpPB,'style','pushbutton')
@@ -289,16 +282,16 @@ classdef slice_browser < handle
       set(obj.gui.helpPB,'Callback',@obj.help_button_callback)
       set(obj.gui.helpPB,'TooltipString','Print help to stdout (F1)');
       
-      obj.gui.layerTXT = uicontrol('Style','text','string','Layer');
-      obj.gui.layerLB = uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.layerLB,'style','listbox')
-      set(obj.gui.layerLB,'string',{obj.layer.name})
-      set(obj.gui.layerLB,'Callback',@obj.layerLB_callback)
-      set(obj.gui.layerLB,'TooltipString','Select active layer (#)');
-      obj.gui.layerCM = uicontextmenu('Parent',obj.h_fig);
+      obj.gui.surfaceTXT = uicontrol('Style','text','string','Surface');
+      obj.gui.surfaceLB = uicontrol('parent',obj.gui.left_panel);
+      set(obj.gui.surfaceLB,'style','listbox')
+      set(obj.gui.surfaceLB,'string',obj.sd.get_names());
+      set(obj.gui.surfaceLB,'Callback',@obj.surfaceLB_callback)
+      set(obj.gui.surfaceLB,'TooltipString','Select active surface (#)');
+      obj.gui.surfaceCM = uicontextmenu('Parent',obj.h_fig);
       % Define the context menu items and install their callbacks
-      obj.gui.layerCM_visible = uimenu(obj.gui.layerCM, 'Label', 'Toggle Visible', 'Callback', @obj.layerLB_visibility_toggle);
-      set(obj.gui.layerLB,'UIContextMenu',obj.gui.layerCM);
+      obj.gui.surfaceCM_visible = uimenu(obj.gui.surfaceCM, 'Label', 'Toggle Visible', 'Callback', @obj.surfaceLB_visibility_toggle);
+      set(obj.gui.surfaceLB,'UIContextMenu',obj.gui.surfaceCM);
       
       obj.gui.applyPB= uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.applyPB,'style','pushbutton')
@@ -376,7 +369,7 @@ classdef slice_browser < handle
       col = 0;
       row = row + 1;
       col = col + 1;
-      obj.gui.left_table.handles{row,col}   = obj.gui.layerTXT;
+      obj.gui.left_table.handles{row,col}   = obj.gui.surfaceTXT;
       obj.gui.left_table.width(row,col)     = inf;
       obj.gui.left_table.height(row,col)    = 20;
       obj.gui.left_table.width_margin(row,col) = 1;
@@ -385,7 +378,7 @@ classdef slice_browser < handle
       col = 0;
       row = row + 1;
       col = col + 1;
-      obj.gui.left_table.handles{row,col}   = obj.gui.layerLB;
+      obj.gui.left_table.handles{row,col}   = obj.gui.surfaceLB;
       obj.gui.left_table.width(row,col)     = inf;
       obj.gui.left_table.height(row,col)    = inf;
       obj.gui.left_table.width_margin(row,col) = 1;
@@ -425,7 +418,7 @@ classdef slice_browser < handle
     %% destructor/delete
     function delete(obj)
       try; delete(obj.h_fig); end;
-      try; delete(obj.h_layer_fig); end;
+      try; delete(obj.h_surf_fig); end;
       for tool_idx = 1:length(obj.slice_tool.list)
         try; delete(obj.slice_tool.list{tool_idx}); end;
       end
@@ -437,7 +430,7 @@ classdef slice_browser < handle
         try; delete(obj.h_control_fig); end;
       end
       try; delete(obj.h_control_plot); end;
-      try; delete(obj.h_control_layer); end;
+      try; delete(obj.h_control_surf); end;
     end
     
     %% close_win
@@ -485,8 +478,8 @@ classdef slice_browser < handle
         for cmd_idx = 1:length(cmds_list)
           for subcmd_idx = 1:length(cmds_list{cmd_idx})
             if strcmp(cmds_list{cmd_idx}{subcmd_idx}.type,'standard')
-              layer_idx = cmds_list{cmd_idx}{subcmd_idx}.redo.layer;
-              obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.redo.x), ...
+              surf_idx = cmds_list{cmd_idx}{subcmd_idx}.redo.surf;
+              obj.sd.surf(surf_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.redo.x), ...
                 cmds_list{cmd_idx}{subcmd_idx}.redo.slice) ...
                 = cmds_list{cmd_idx}{subcmd_idx}.redo.y;
               new_slice = cmds_list{cmd_idx}{subcmd_idx}.redo.slice;
@@ -499,8 +492,8 @@ classdef slice_browser < handle
         for cmd_idx = 1:length(cmds_list)
           for subcmd_idx = 1:length(cmds_list{cmd_idx})
             if strcmp(cmds_list{cmd_idx}{subcmd_idx}.type,'standard')
-              layer_idx = cmds_list{cmd_idx}{subcmd_idx}.undo.layer;
-              obj.layer(layer_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.undo.x), ...
+              surf_idx = cmds_list{cmd_idx}{subcmd_idx}.undo.surf;
+              obj.sd.surf(surf_idx).y(round(cmds_list{cmd_idx}{subcmd_idx}.undo.x), ...
                 cmds_list{cmd_idx}{subcmd_idx}.undo.slice) ...
                 = cmds_list{cmd_idx}{subcmd_idx}.undo.y;
               new_slice = cmds_list{cmd_idx}{subcmd_idx}.undo.slice;
@@ -527,8 +520,8 @@ classdef slice_browser < handle
       rbbox;
     end
     
-    function layer_button_down(obj,h_obj,event)
-      [obj.layer_x,obj.layer_y,but] = get_mouse_info(obj.h_layer_fig,obj.h_layer_axes);
+    function surf_button_down(obj,h_obj,event)
+      [obj.surf_x,obj.surf_y,but] = get_mouse_info(obj.h_surf_fig,obj.h_surf_axes);
       %fprintf('Button Down: x = %.3f, y = %.3f, but = %d\n', obj.x, obj.y, but); % DEBUG ONLY
       rbbox;
     end
@@ -555,7 +548,7 @@ classdef slice_browser < handle
         return;
       end
       
-      layer_idx = get(obj.gui.layerLB,'value');
+      surf_idx = get(obj.gui.surfaceLB,'value');
       
       if obj.zoom_mode
         %% Zoom
@@ -577,18 +570,18 @@ classdef slice_browser < handle
               obj.update_slice;
             end
             
-            if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
-              layer_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
-            elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
-              layer_y = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
+            if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask'))
+              surf_y = obj.sd.surf(obj.sd.surf(surf_idx).top).y(:,obj.slice);
+            elseif ~isempty(regexp(obj.sd.surf(surf_idx).name, 'quality'))
+              surf_y = obj.sd.surf(obj.sd.surf(surf_idx).active).y(:,obj.slice);
             else
-              layer_y = obj.layer(layer_idx).y(:,obj.slice);
+              surf_y = obj.sd.surf(surf_idx).y(:,obj.slice);
             end
 
-            obj.select_mask = obj.select_mask | (obj.layer(layer_idx).x(:,obj.slice) >= min(x,obj.x) ...
-              & obj.layer(layer_idx).x(:,obj.slice) <= max(x,obj.x) ...
-              & layer_y >= min(y,obj.y) ...
-              & layer_y <= max(y,obj.y));
+            obj.select_mask = obj.select_mask | (obj.sd.surf(surf_idx).x(:,obj.slice) >= min(x,obj.x) ...
+              & obj.sd.surf(surf_idx).x(:,obj.slice) <= max(x,obj.x) ...
+              & surf_y >= min(y,obj.y) ...
+              & surf_y <= max(y,obj.y));
             obj.select_mask([1:obj.bounds_relative(1),end-obj.bounds_relative(2)+1:end]) = false;
           end
         else
@@ -596,14 +589,14 @@ classdef slice_browser < handle
           xlims = xlim(obj.h_axes);
           ylims = ylim(obj.h_axes);
           if x >= xlims(1) && x <= xlims(2) && y >= ylims(1) && y <= ylims(2)
-            layer_idx = get(obj.gui.layerLB,'value');
+            surf_idx = get(obj.gui.surfaceLB,'value');
             cmd = [];
             cmd{1}.undo.slice = obj.slice;
             cmd{1}.redo.slice = obj.slice;
-            cmd{1}.undo.layer = obj.layer(layer_idx).control_layer;
-            cmd{1}.redo.layer = obj.layer(layer_idx).control_layer;
+            cmd{1}.undo.surf = obj.sd.surf(surf_idx).gt;
+            cmd{1}.redo.surf = obj.sd.surf(surf_idx).gt;
             cmd{1}.undo.x = round(x);
-            cmd{1}.undo.y = obj.layer(obj.layer(layer_idx).control_layer).y(round(x),obj.slice);
+            cmd{1}.undo.y = obj.sd.surf(obj.sd.surf(surf_idx).gt).y(round(x),obj.slice);
             cmd{1}.redo.x = round(x);
             cmd{1}.redo.y = y;
             cmd{1}.type = 'standard';
@@ -628,21 +621,21 @@ classdef slice_browser < handle
       end
     end
     
-    function layer_button_up(obj,h_obj,event)
-      [x,y,but] = get_mouse_info(obj.h_layer_fig,obj.h_layer_axes);
+    function surf_button_up(obj,h_obj,event)
+      [x,y,but] = get_mouse_info(obj.h_surf_fig,obj.h_surf_axes);
       
       if obj.zoom_mode
-        zoom_button_up(x,y,but,struct('x',obj.layer_x,'y',obj.layer_y, ...
-          'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
+        zoom_button_up(x,y,but,struct('x',obj.surf_x,'y',obj.surf_y, ...
+          'h_axes',obj.h_surf_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
       else
-        if obj.layer_x == x
-          xlims = xlim(obj.h_layer_axes);
-          ylims = ylim(obj.h_layer_axes);
+        if obj.surf_x == x
+          xlims = xlim(obj.h_surf_axes);
+          ylims = ylim(obj.h_surf_axes);
           if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end) 
             obj.change_slice(round(x),false);
           end
         else
-          ylims = sort([y obj.layer_y]);
+          ylims = sort([y obj.surf_y]);
           obj.select_mask(:) = false;
           y_idxs = round(ylims(1)):round(ylims(2));
           y_idxs = y_idxs(y_idxs>=1 & y_idxs<=size(obj.data,2));
@@ -652,15 +645,15 @@ classdef slice_browser < handle
             for tool_idx = 1:length(obj.slice_tool.list)
               tool_name_list{tool_idx} = obj.slice_tool.list{tool_idx}.tool_name;
             end
-            xlims = sort([x obj.layer_x]);
+            xlims = sort([x obj.surf_x]);
             slices = round(xlims(1)):round(xlims(2));
             slices = slices(slices>=1 & slices<=size(obj.data,3));
-            title(obj.h_layer_axes,sprintf('Slices %d-%d, DOAs %d-%d\n', slices(1), slices(end), y_idxs(1), y_idxs(end)));
+            title(obj.h_surf_axes,sprintf('Slices %d-%d, DOAs %d-%d\n', slices(1), slices(end), y_idxs(1), y_idxs(end)));
             [tool_idx,ok] = listdlg('PromptString','Choose slicetool:',...
               'SelectionMode','single',...
               'ListString',tool_name_list);
             if ok == 1
-              obj.layer_idx = get(obj.gui.layerLB,'Value');
+              obj.surf_idx = get(obj.gui.surfaceLB,'Value');
               cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj,slices);
               if ~isempty(cmd)
                 obj.undo_stack.push(cmd);
@@ -698,7 +691,7 @@ classdef slice_browser < handle
 
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
       set(obj.h_control_plot,'XData',obj.slice,'YData',y);
-      set(obj.h_layer_plot,'XData',obj.slice,'YData',x);
+      set(obj.h_surf_plot,'XData',obj.slice,'YData',x);
     end
     
     %% button_scroll
@@ -712,9 +705,9 @@ classdef slice_browser < handle
         'h_axes',obj.h_control_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,1)]));
     end
     
-    function layer_button_scroll(obj,h_obj,event)
-      zoom_button_scroll(event,struct('h_fig',obj.h_layer_fig, ...
-        'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
+    function surf_button_scroll(obj,h_obj,event)
+      zoom_button_scroll(event,struct('h_fig',obj.h_surf_fig, ...
+        'h_axes',obj.h_surf_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)],'axes','x'));
     end
     
     %% key_press
@@ -745,7 +738,7 @@ classdef slice_browser < handle
             && strcmpi(obj.slice_tool.list{tool_idx}.tool_shortcut, event.Key) ...
             && any(obj.slice_tool.list{tool_idx}.ctrl_pressed == obj.ctrl_pressed) ...
             && any(obj.slice_tool.list{tool_idx}.shift_pressed == obj.shift_pressed)
-          obj.layer_idx = get(obj.gui.layerLB,'Value');
+          obj.surf_idx = get(obj.gui.surfaceLB,'Value');
           cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
           if ~isempty(cmd)
             obj.undo_stack.push(cmd);
@@ -759,7 +752,7 @@ classdef slice_browser < handle
       if ~isempty(event.Key)
         
         if length(event.Key) == 1 && event.Key >= '0' && event.Key <= '9'
-          set(obj.gui.layerLB,'value',event.Key-48)
+          set(obj.gui.surfaceLB,'value',event.Key-48)
           obj.update_slice();
           return;
         end
@@ -777,8 +770,8 @@ classdef slice_browser < handle
                 axis(obj.h_axes,'tight');
               elseif src==obj.h_control_fig
                 axis(obj.h_control_axes,'tight');
-              elseif src==obj.h_layer_fig
-                axis(obj.h_layer_axes,'tight');
+              elseif src==obj.h_surf_fig
+                axis(obj.h_surf_axes,'tight');
               end
               
             else
@@ -789,13 +782,13 @@ classdef slice_browser < handle
                 if obj.h_control_is_child
                   set(obj.h_control_fig,'pointer','custom');
                 end
-                set(obj.h_layer_fig,'pointer','custom');
+                set(obj.h_surf_fig,'pointer','custom');
               else
                 set(obj.h_fig,'pointer','arrow');
                 if obj.h_control_is_child
                   set(obj.h_control_fig,'pointer','arrow');
                 end
-                set(obj.h_layer_fig,'pointer','arrow');
+                set(obj.h_surf_fig,'pointer','arrow');
               end
             end
             
@@ -807,8 +800,8 @@ classdef slice_browser < handle
             elseif src==obj.h_control_fig
               zoom_arrow(event,struct('h_axes',obj.h_control_axes, ...
                 'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,1)]));
-            elseif src==obj.h_layer_fig
-              zoom_arrow(event,struct('h_axes',obj.h_layer_axes, ...
+            elseif src==obj.h_surf_fig
+              zoom_arrow(event,struct('h_axes',obj.h_surf_axes, ...
                 'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
             end
             
@@ -816,36 +809,36 @@ classdef slice_browser < handle
             if ~obj.shift_pressed
               obj.change_slice(obj.slice + 1,false);
             else
-              obj.change_slice(obj.slice + 10,false);
+              obj.change_slice(obj.slice + 5,false);
             end
           case 'comma'
             if ~obj.shift_pressed
               obj.change_slice(obj.slice - 1,false);
             else
-              obj.change_slice(obj.slice - 10,false);
+              obj.change_slice(obj.slice - 5,false);
             end
             
           case 'delete'
-            layer_idx = get(obj.gui.layerLB,'Value');
+            surf_idx = get(obj.gui.surfaceLB,'Value');
             cmd = [];
             cmd{1}.redo.x = find(obj.select_mask);
-            if ~isempty(regexp(obj.layer(layer_idx).name, 'mask|quality'))
-              if any(obj.layer(layer_idx).y(obj.select_mask,obj.slice))
+            if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask|quality'))
+              if any(obj.sd.surf(surf_idx).y(obj.select_mask,obj.slice))
                 cmd{1}.redo.y = false * ones(size(cmd{1}.redo.x));
               else
                 cmd{1}.redo.y = true * ones(size(cmd{1}.redo.x));
               end
             else
-              layer_idx = obj.layer(layer_idx).control_layer;
+              surf_idx = obj.sd.surf(surf_idx).gt;
               cmd{1}.redo.y = NaN * ones(size(cmd{1}.redo.x));
             end
             cmd{1}.undo.slice = obj.slice;
             cmd{1}.redo.slice = obj.slice;
-            cmd{1}.undo.layer = layer_idx;
-            cmd{1}.redo.layer = layer_idx;
+            cmd{1}.undo.surf = surf_idx;
+            cmd{1}.redo.surf = surf_idx;
             
             cmd{1}.undo.x = find(obj.select_mask);
-            cmd{1}.undo.y = obj.layer(layer_idx).y(obj.select_mask,obj.slice);
+            cmd{1}.undo.y = obj.sd.surf(surf_idx).y(obj.select_mask,obj.slice);
 
             cmd{1}.type = 'standard';
             obj.push(cmd);
@@ -912,7 +905,7 @@ classdef slice_browser < handle
         obj.update_slice();
         notify(obj,'SliceChange');
         set(obj.h_control_plot,'XData',obj.slice);
-        set(obj.h_layer_plot,'XData',obj.slice);
+        set(obj.h_surf_plot,'XData',obj.slice);
         
         xlims = xlim(obj.h_control_axes);
         ylims = ylim(obj.h_control_axes);
@@ -928,8 +921,8 @@ classdef slice_browser < handle
             'h_axes',obj.h_control_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,1)]));
         end
         
-        xlims = xlim(obj.h_layer_axes);
-        ylims = ylim(obj.h_layer_axes);
+        xlims = xlim(obj.h_surf_axes);
+        ylims = ylim(obj.h_surf_axes);
         if xlims(2) < obj.slice
           new_xlims = xlims + (obj.slice - 0.8*diff(xlims) - xlims(1));
         elseif xlims(1) > obj.slice
@@ -939,7 +932,7 @@ classdef slice_browser < handle
         end
         if ~isempty(new_xlims)
           zoom_button_up(new_xlims(1),ylims(1),1,struct('x',new_xlims(2),'y',ylims(2), ...
-            'h_axes',obj.h_layer_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
+            'h_axes',obj.h_surf_axes,'xlims',[1 size(obj.data,3)],'ylims',[1 size(obj.data,2)]));
         end
         
       elseif force_update
@@ -953,110 +946,100 @@ classdef slice_browser < handle
       
       title(sprintf('Slice:%d',obj.slice),'parent',obj.h_axes)
 
-      % Update layer plots
-      for layer_idx = 1:numel(obj.layer)
-        if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
-          tmp_y = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
-          tmp_y(~obj.layer(layer_idx).y(:,obj.slice)) = NaN;
-        elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
-          tmp_y = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
-          tmp_y(obj.layer(layer_idx).y(:,obj.slice) == 1) = NaN;
+      % Update surface plots
+      for surf_idx = 1:numel(obj.sd.surf)
+        if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask'))
+          tmp_y = obj.sd.surf(obj.sd.surf(surf_idx).top).y(:,obj.slice);
+          tmp_y(~obj.sd.surf(surf_idx).y(:,obj.slice)) = NaN;
+        elseif ~isempty(regexp(obj.sd.surf(surf_idx).name, 'quality'))
+          tmp_y = obj.sd.surf(obj.sd.surf(surf_idx).active).y(:,obj.slice);
+          tmp_y(obj.sd.surf(surf_idx).y(:,obj.slice) == 1) = NaN;
         else
-          tmp_y = obj.layer(layer_idx).y(:,obj.slice);
+          tmp_y = obj.sd.surf(surf_idx).y(:,obj.slice);
         end
         tmp_y(1:obj.bounds_relative(1),:) = NaN;
         tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
-        set(obj.layer(layer_idx).h_plot, ...
-          'XData', obj.layer(layer_idx).x(:,obj.slice), ...
+        set(obj.sd.surf(surf_idx).h_plot, ...
+          'XData', obj.sd.surf(surf_idx).x(:,obj.slice), ...
           'YData', tmp_y);
       end
       
-      if ~isempty(get(obj.gui.layerLB,'String'))
-        % Update layer selection related plots
-        layer_idx = get(obj.gui.layerLB,'value');
-        x_select = obj.layer(layer_idx).x(:,obj.slice);
-        if ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
-          y_select = obj.layer(obj.layer(layer_idx).surf_layer).y(:,obj.slice);
-        elseif ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
-          y_select = obj.layer(obj.layer(layer_idx).active_layer).y(:,obj.slice);
+      if ~isempty(get(obj.gui.surfaceLB,'String'))
+        % Update surface selection related plots
+        surf_idx = get(obj.gui.surfaceLB,'value');
+        x_select = obj.sd.surf(surf_idx).x(:,obj.slice);
+        if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask'))
+          y_select = obj.sd.surf(obj.sd.surf(surf_idx).top).y(:,obj.slice);
+        elseif ~isempty(regexp(obj.sd.surf(surf_idx).name, 'quality'))
+          y_select = obj.sd.surf(obj.sd.surf(surf_idx).active).y(:,obj.slice);
         else
-          y_select = obj.layer(layer_idx).y(:,obj.slice);
+          y_select = obj.sd.surf(surf_idx).y(:,obj.slice);
         end
         set(obj.gui.h_select_plot,'XData',x_select(obj.select_mask), ...
           'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
-        tmp_y = double(obj.layer(layer_idx).y);
+        tmp_y = double(obj.sd.surf(surf_idx).y);
         % Hide data outside bounds
         tmp_y(1:obj.bounds_relative(1),:) = NaN;
         tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
-        % Hide bad quality data when active layer shown and quality layer
+        % Hide bad quality data when active surface shown and quality surface
         % visible
-        if ~isempty(obj.layer(layer_idx).quality_layer) ...
-            && ~isempty(obj.layer(layer_idx).active_layer) ...
-            && obj.layer(layer_idx).active_layer == layer_idx ...
-            && obj.layer(obj.layer(layer_idx).quality_layer).visible
-          tmp_y(obj.layer(obj.layer(layer_idx).quality_layer).y ~= 1) = NaN;
+        if ~isempty(obj.sd.surf(surf_idx).quality) ...
+            && ~isempty(obj.sd.surf(surf_idx).active) ...
+            && obj.sd.surf(surf_idx).active == surf_idx ...
+            && obj.sd.surf(obj.sd.surf(surf_idx).quality).visible
+          tmp_y(obj.sd.surf(obj.sd.surf(surf_idx).quality).y ~= 1) = NaN;
         end
-        set(obj.h_layer_image,'CData',tmp_y);
+        set(obj.h_surf_image,'CData',tmp_y);
         
-        % Update layer visibility
+        % Update surface visibility
         if obj.plot_visibility == true
-          for layer_idx = 1:numel(obj.layer)
-            if obj.layer(layer_idx).visible
-              set(obj.layer(layer_idx).h_plot,'visible','on')
+          for surf_idx = 1:numel(obj.sd.surf)
+            if obj.sd.surf(surf_idx).visible
+              set(obj.sd.surf(surf_idx).h_plot,'visible','on')
             else
-              set(obj.layer(layer_idx).h_plot,'visible','off')
+              set(obj.sd.surf(surf_idx).h_plot,'visible','off')
             end
           end
           set(obj.gui.h_select_plot,'visible','on')
         else
-          for layer_idx = 1:numel(obj.layer)
-            set(obj.layer(layer_idx).h_plot,'visible','off')
+          for surf_idx = 1:numel(obj.sd.surf)
+            set(obj.sd.surf(surf_idx).h_plot,'visible','off')
           end
           set(obj.gui.h_select_plot,'visible','off')
         end
         
         % Update control figure plots
-        layer_idx = get(obj.gui.layerLB,'value');
-        if ~isempty(regexp(obj.layer(layer_idx).name, 'quality'))
-          active_idx = obj.layer(layer_idx).active_layer;
+        surf_idx = get(obj.gui.surfaceLB,'value');
+        if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'quality'))
+          active_idx = obj.sd.surf(surf_idx).active;
           if ~isempty(active_idx)
-            new_y = obj.layer(active_idx).y(ceil(size(obj.data,2)/2)+1,:);
-            new_y(2 == obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
-            set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',new_y);
+            new_y = obj.sd.surf(active_idx).y(ceil(size(obj.data,2)/2)+1,:);
+            new_y(2 == obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
+            set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
           end
-        elseif ~isempty(regexp(obj.layer(layer_idx).name, 'mask'))
-          surf_idx = obj.layer(layer_idx).surf_layer;
+        elseif ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask'))
+          surf_idx = obj.sd.surf(surf_idx).top;
           if ~isempty(surf_idx)
-            new_y = obj.layer(surf_idx).y(ceil(size(obj.data,2)/2)+1,:);
-            new_y(~obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
-            set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',new_y);
+            new_y = obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:);
+            new_y(~obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
+            set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
           end
         else
-          set(obj.h_control_layer,'XData',1:size(obj.data,3),'YData',obj.layer(layer_idx).y(ceil(size(obj.data,2)/2)+1,:));
+          set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:));
         end
       end
     end
     
-    %% layerLB_callback Tool
-    function layerLB_callback(obj,src,event)
+    %% surfaceLB_callback Tool
+    function surfaceLB_callback(obj,src,event)
       obj.update_slice();
     end
     
-    %% layerLB_visibility_toggle
-    function layerLB_visibility_toggle(obj,src,event)
-      layer_idx = get(obj.gui.layerLB,'value');
-      obj.layer(layer_idx).visible = ~obj.layer(layer_idx).visible;
+    %% surfaceLB_visibility_toggle
+    function surfaceLB_visibility_toggle(obj,src,event)
+      surf_idx = get(obj.gui.surfaceLB,'value');
+      obj.sd.surf(surf_idx).visible = ~obj.sd.surf(surf_idx).visible;
       obj.update_slice();
-    end
-    
-    %% layer_populate_defaults
-    function layer_populate_defaults(obj)
-      % Populates the default fields required for the layer object
-      for layer_idx = 1:length(obj.layer)
-        if ~isfield(obj.layer,'visible') || isempty(obj.layer(layer_idx).visible)
-          obj.layer(layer_idx).visible = true;
-        end
-      end
     end
     
     %% optionsPB_callback Tool
@@ -1073,7 +1056,7 @@ classdef slice_browser < handle
     %% applyPB_callback Tool
     function applyPB_callback(obj,src,event)
       tool_idx = get(obj.gui.toolPM,'Value');
-      obj.layer_idx = get(obj.gui.layerLB,'Value');
+      obj.surf_idx = get(obj.gui.surfaceLB,'Value');
       cmd = obj.slice_tool.list{tool_idx}.apply_PB_callback(obj);
       if ~isempty(cmd)
         obj.undo_stack.push(cmd);
@@ -1145,7 +1128,7 @@ classdef slice_browser < handle
      
     %% push
     function push(obj,cmd)
-      obj.layer_idx = get(obj.gui.layerLB,'Value');
+      obj.surf_idx = get(obj.gui.surfaceLB,'Value');
       for tool_idx = 1:length(obj.slice_tool.list)
         cmd = obj.slice_tool.list{tool_idx}.push_request(cmd);
       end
@@ -1155,8 +1138,7 @@ classdef slice_browser < handle
     %% save
     function save(obj)
       fprintf('Saving surfData (%s)...\n', datestr(now));
-      surf = obj.layer;
-      save(obj.layer_fn,'-v7.3','surf');
+      obj.sd.save_surfdata(obj.surfdata_fn);
       fprintf('  Done\n');
       for tool_idx = 1:length(obj.slice_tool.list)
         if ~isempty(obj.slice_tool.list{tool_idx}.save_callback) && ...

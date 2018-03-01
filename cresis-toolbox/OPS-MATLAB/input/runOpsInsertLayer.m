@@ -207,10 +207,9 @@ elseif 0
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'));
+  params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
   
-  % grid_fn = '/cresis/snfs1/scratch/paden/mass_conservation/HelheimStream-2014-11-18.nc';
-  grid_fn = '/cresis/snfs1/scratch/paden/mass_conservation/KangerdlugssuaqStream-2014-11-18.nc';
+  grid_fn = ct_filename_gis('greenland/mass_conservation/BedMachineGreenland-2017-09-20.nc');
   
   % Create geotiff projection structure
   % 1. Grab from a geotiff file with the same projection
@@ -224,17 +223,17 @@ elseif 0
   insert_param.proj.PM = [];
   insert_param.proj.PMLongToGreenwich = [];
   insert_param.proj.Zone = [];
-  geoid = almanac('earth',ncreadatt(grid_fn,'polar_stereographic','ellipsoid'),'m');
-  insert_param.proj.SemiMajor = geoid;
-  insert_param.proj.SemiMinor = minaxis(geoid);
+  grid_ellipsoid = referenceEllipsoid('WGS84');
+  insert_param.proj.SemiMajor = grid_ellipsoid.SemimajorAxis;
+  insert_param.proj.SemiMinor = grid_ellipsoid.SemiminorAxis;
   insert_param.proj.ProjParm = zeros(7,1);
-  insert_param.proj.ProjParm(1) = ncreadatt(grid_fn,'polar_stereographic','standard_parallel');
-  insert_param.proj.ProjParm(2) = ncreadatt(grid_fn,'polar_stereographic','straight_vertical_longitude_from_pole');
+  insert_param.proj.ProjParm(1) = ncreadatt(grid_fn,'mapping','standard_parallel');
+  insert_param.proj.ProjParm(2) = ncreadatt(grid_fn,'mapping','straight_vertical_longitude_from_pole');
   insert_param.proj.ProjParm(3) = 0;
   insert_param.proj.ProjParm(4) = 0;
   insert_param.proj.ProjParm(5) = 1;
-  insert_param.proj.ProjParm(6) = ncreadatt(grid_fn,'polar_stereographic','false_easting');
-  insert_param.proj.ProjParm(7) = ncreadatt(grid_fn,'polar_stereographic','false_northing');
+  insert_param.proj.ProjParm(6) = ncreadatt(grid_fn,'mapping','false_easting');
+  insert_param.proj.ProjParm(7) = ncreadatt(grid_fn,'mapping','false_northing');
   
   insert_param.proj.CTProjection = 'CT_PolarStereographic'; % Choose from list in toolbox/map/mapproj/private/projcode
   insert_param.proj.GeoTIFFCodes.CTProjection = 15; % CT_PolarStereographic from toolbox/map/mapproj/private/projcode
@@ -257,9 +256,9 @@ elseif 0
   insert_param.eval.ref_source.source = 'ops';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
   insert_param.eval.cmd = 'source = ref.twtt + source;';
-  insert_param.x = ncread(grid_fn,'x');
-  insert_param.y = ncread(grid_fn,'y');
-  insert_param.data = ncread(grid_fn,'thickness').' / (c/2/sqrt(er_ice));
+  insert_param.x = double(ncread(grid_fn,'x'));
+  insert_param.y = double(ncread(grid_fn,'y'));
+  insert_param.data = double(ncread(grid_fn,'thickness')).' / (c/2/sqrt(er_ice));
   
   insert_param.type = 'raster'; % Raster data
   insert_param.layer_dest.name = 'mc_bottom';

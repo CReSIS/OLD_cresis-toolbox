@@ -19,9 +19,9 @@ function fn = ct_filename_tmp(param,fn,type,filename)
 % type = type of data (e.g. records, picker)
 %
 % Examples:
-% ct_filename_tmp(param,param.records.records_fn,'records','workspace');
+% ct_filename_tmp(param,'','records','workspace');
 %   TMP/records/2010_Antarctica_DC8/workspace_20101026_01
-% ct_filename_tmp(param,param.records.records_fn,'records',sprintf('log_adc%d',adc));
+% ct_filename_tmp(param,'','records',sprintf('log_adc%d',adc));
 %   TMP/records/2010_Antarctica_DC8/log_adc1_20101026_01
 % ct_filename_tmp(tmp_file_param,'','picker','picker_fast_load');
 %   TMP/picker/2010_Antarctica_DC8/picker_fast_load

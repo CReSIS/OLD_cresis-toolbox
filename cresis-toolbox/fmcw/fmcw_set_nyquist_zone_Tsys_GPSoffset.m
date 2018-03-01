@@ -97,6 +97,7 @@ for param_idx = 1:length(params)
   
   %fprintf('\nSet nyquist zone %s (%s)\n', param.day_seg, datestr(now));
   
+  % Load radar surface from records and lidar surface
   layers = opsLoadLayers(param,layer_params);
 
   % Ensure that layer gps times are monotonically increasing
@@ -242,7 +243,7 @@ for param_idx = 1:length(params)
   end
   
   if debug_level > 0
-    % DEBUG: Plot reference layer and then interpolated layers
+    %% DEBUG: Plot reference layer and then interpolated layers
     figure(2); clf;
     debug_gps_offset = 0;
     debug_Tsys_offset = 0;
@@ -256,10 +257,12 @@ for param_idx = 1:length(params)
     for lay_idx = lay_idxs
       hold on;
       plot(layers(ref_idx).gps_time - origin, layers(lay_idx).twtt_ref, 'r')
-      plot(layers(ref_idx).gps_time(recs) - origin, layers(lay_idx).twtt_ref(recs), 'r.')
+      plot(layers(ref_idx).gps_time(recs) - origin, layers(lay_idx).twtt_ref(recs), 'r','LineWidth',4)
       grid on
     end
-    title('TWTT');
+    title('Are the Radar and LIDAR synchronized?');
+    xlabel('Relative GPS time (sec)');
+    ylabel('TWTT (sec)');
     legend('RADAR','LIDAR+ELEV','LIDAR','location','best');
   end
   

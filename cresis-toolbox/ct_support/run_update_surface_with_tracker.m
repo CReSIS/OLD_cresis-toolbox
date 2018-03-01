@@ -6,8 +6,8 @@
 
 %% User Settings
 % ----------------------------------------------------------------------
-params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2016_Greenland_Polar6.xls'),'','post');
+params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
+% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'','post');
 
 % params.cmd.generic = 1;
 % params.cmd.frms = [1]; % Specify specific frames (or leave empty/undefined to do all frames)
@@ -29,21 +29,23 @@ surf_override.manual = false;
 %% Enable one set of parameters
 if 1
   % RDS threshold method
+  debug_time_guard = 2e-6;
   surf_override.method = 'threshold';
   surf_override.noise_rng = [0 -50 -10];
-  surf_override.min_bin = 1.9e-6;
-  surf_override.threshold = 9;
+  surf_override.min_bin = 2e-6;
+  surf_override.threshold = 15;
   surf_override.sidelobe	= 15;
-  surf_override.max_diff	= 100e-9;
-  surf_override.filter_len	= 1;
+  surf_override.max_diff	= inf;
+  surf_override.filter_len	= 5;
   surf_override.medfilt = 3;
   surf_override.search_rng	= 0:2;
 %   surf_override.init.method	= 'snake';
 %   surf_override.init.search_rng	= [-10:10];
-%   surf_override.feedthru.time = 1e-9*[-75390765878 1115131099362];
-%   surf_override.feedthru.power_dB = [-74 -139];
+%   surf_override.feedthru.time = 1e-5*[-0.0084    0.0471    0.0768    0.1342    0.1749    0.2039];
+%   surf_override.feedthru.power_dB = [-95.7021  -69.3129  -39.6250  -40.4855  -58.8433  -96.5627];
 elseif 0
   % RDS max method
+  debug_time_guard = 2e-6;
   surf_override.method = 'max';
   surf_override.min_bin = 0.75e-6;
   surf_override.search_rng	= [-11:0];
@@ -55,6 +57,7 @@ elseif 0
   
 elseif 0
   % Accum
+  debug_time_guard = 2e-6;
   surf_override.method = 'threshold';
   surf_override.noise_rng = [200 -300 -100];
   surf_override.min_bin = 0.1e-6;
@@ -66,6 +69,7 @@ elseif 0
   
 elseif 1
   % FMCW Land Ice
+  debug_time_guard = 50e-9;
   surf_override.method = 'threshold';
   surf_override.noise_rng = [100 -700 -400];
   surf_override.noise_override = 1;
@@ -85,8 +89,9 @@ elseif 1
   surf_override.method = 'snake';
   surf_override.search_rng	= -90:90;
   
-elseif 1
+elseif 0
   % FMCW Sea Ice
+  debug_time_guard = 50e-9;
   surf_override.method = 'threshold';
   surf_override.noise_rng = [100 -400 -100];
   surf_override.threshold = 9;

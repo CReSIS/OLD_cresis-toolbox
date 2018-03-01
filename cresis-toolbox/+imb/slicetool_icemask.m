@@ -81,12 +81,12 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.layer. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd. You 
       %     should not modify any fields of sb.
-      %  .layer: struct array containing layer information
+      %  .sd: surfdata .surf struct array containing surface information
       %  .data: 3D image
       %  .slice: current slice in 3D image (third index of .data)
-      %  .layer_idx: active layer
+      %  .surf_idx: active surface
       % slices: array of slices to operate on (overrides sb.slice)
       figure(obj.ice.h_mask_fig);
       figure(obj.ice.h_dem_fig);
@@ -121,7 +121,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       % get theta and slice idxs for changes
       for cmd_idx = 1:length(cmd)
         if strcmp(cmd{cmd_idx}.type,'standard') && ...
-            cmd{cmd_idx}.redo.layer == obj.sb.layer(cmd{cmd_idx}.redo.layer).mask_layer
+            cmd{cmd_idx}.redo.surf == obj.sb.sd.surf(cmd{cmd_idx}.redo.surf).mask
           thetas = [thetas , cmd{cmd_idx}.redo.x];
           slices = [slices , cmd{cmd_idx}.redo.slice];
           vals = [vals , cmd{cmd_idx}.redo.y];
@@ -135,7 +135,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       end
 
       cmd_ice = obj.ice.edit_twtt(thetas,slices,vals,val_olds);
-      cmd_append = obj.form_sb_cmd(cmd_ice,cmd{1}.redo.layer);
+      cmd_append = obj.form_sb_cmd(cmd_ice,cmd{1}.redo.surf);
       
       if 0
         % When an ice mask command from the slice browser is run, it can
@@ -170,8 +170,8 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       if isempty(cmd_ice)
         for cmd_idx = 1:length(cmd)
           if strcmp(cmd{cmd_idx}.type,'standard') ...
-              && ~isempty(obj.sb.layer(cmd{cmd_idx}.redo.layer).mask_layer) ...
-              && cmd{cmd_idx}.redo.layer == obj.sb.layer(cmd{cmd_idx}.redo.layer).mask_layer            
+              && ~isempty(obj.sb.sd.surf(cmd{cmd_idx}.redo.surf).mask) ...
+              && cmd{cmd_idx}.redo.surf == obj.sb.sd.surf(cmd{cmd_idx}.redo.surf).mask            
             
               cmd = obj.overlay_intersects(cmd);
               return
@@ -211,11 +211,11 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
         theta = theta_idx(s_idx);
 %           ind = sub2ind([size(obj.intersections,2),size(obj.intersections,3)],theta,s_idx);
 
-        cmd{cmd_idx}.undo.layer = layer;
-        cmd{cmd_idx}.redo.layer = layer;
+        cmd{cmd_idx}.undo.surf = layer;
+        cmd{cmd_idx}.redo.surf = layer;
         cmd{cmd_idx}.undo.x = theta;
         cmd{cmd_idx}.redo.x = theta;
-        cmd{cmd_idx}.undo.y = obj.sb.layer(layer).y(theta,slice);
+        cmd{cmd_idx}.undo.y = obj.sb.sd.surf(layer).y(theta,slice);
         cmd{cmd_idx}.redo.y = logical(cmd{1}.redo.data_mask(s_idx));
         cmd{cmd_idx}.undo.slice = slice;
         cmd{cmd_idx}.redo.slice = slice;
@@ -229,17 +229,17 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
             for slice_idx = 1:length(unique_slices)
               slice = unique_slices(slice_idx);
               obj.sb.slice = slice;
-              obj.sb.layer_idx = obj.sb.layer(layer).active_layer;
-              mask_prev = obj.sb.layer(obj.sb.layer(obj.sb.layer_idx).mask_layer).y(:,slice);
+              obj.sb.surf_idx = obj.sb.sd.surf(layer).active;
+              mask_prev = obj.sb.sd.surf(obj.sb.sd.surf(obj.sb.surf_idx).mask).y(:,slice);
               for cmd_idx = 1:length(cmd)
                 if isfield(cmd{cmd_idx}.redo,'slice') && cmd{cmd_idx}.redo.slice == slice
                   break;
                 end
               end
-              obj.sb.layer(obj.sb.layer(obj.sb.layer_idx).mask_layer).y( ...
+              obj.sb.sd.surf(obj.sb.sd.surf(obj.sb.surf_idx).mask).y( ...
                 cmd{cmd_idx}.redo.x,slice) = cmd{cmd_idx}.redo.y;
               cmd(end+1) = obj.sb.slice_tool.list{tool_idx}.apply_PB_callback(obj.sb);
-              obj.sb.layer(obj.sb.layer(obj.sb.layer_idx).mask_layer).y(:,slice) = mask_prev;
+              obj.sb.sd.surf(obj.sb.sd.surf(obj.sb.surf_idx).mask).y(:,slice) = mask_prev;
             end
             break
           end

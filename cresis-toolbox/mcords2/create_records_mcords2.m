@@ -134,7 +134,7 @@ for board_idx = 1:length(boards)
     fprintf('  Parsing file %s (%s)\n', fn_name, datestr(now))
     
     %% Check for temporary files
-    if isfield(param.records,'tmp_fn_uses_adc_folder_name') && param.records.tmp_fn_uses_adc_folder_name
+    if ~isfield(param.records,'tmp_fn_uses_adc_folder_name') || isempty(param.records.tmp_fn_uses_adc_folder_name) || param.records.tmp_fn_uses_adc_folder_name
       tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
         fullfile(adc_folder_name, [fn_name '.mat']));
     else

@@ -490,7 +490,9 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
           if param_file.write_en
             params(param_idx).radar.wfs(wf).Tadc_adjust = default.radar.Tadc_adjust;
           end
-          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc_adjust));
+          str = char(format(java.text.DecimalFormat('0.0000000000'),default.radar.Tadc_adjust));
+%          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc_adjust));
+          row_str = cat(2,row_str, sprintf('\t%s',str));
         end
         if any(strcmpi('f0',default.radar_worksheet_headers))
           if param_file.write_en
@@ -503,6 +505,17 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
             params(param_idx).radar.wfs(wf).f1 = settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1);
           end
           row_str = cat(2,row_str, sprintf('\t%.16g',settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1)));
+        end
+        if any(strcmpi('ft_dec',default.radar_worksheet_headers))
+          if param_file.write_en
+            params(param_idx).radar.wfs(wf).ft_dec = default.radar.ft_dec;
+          end
+          row_str = cat(2,row_str, ...
+              sprintf('\t[%d',default.radar.ft_dec(1)));
+          row_str = cat(2,row_str, ...
+              sprintf(' %d',default.radar.ft_dec(2)));
+         row_str = cat(2,row_str, ...
+              sprintf(']'));         
         end
         if any(strcmpi('ref_fn',default.radar_worksheet_headers))
           if param_file.write_en

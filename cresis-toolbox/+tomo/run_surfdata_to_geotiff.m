@@ -1,91 +1,148 @@
 %% User Settings
 
 if 0
-  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140506_01','post');
+  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
   params.cmd.generic = 1;
-  params.cmd.frms = [3];
+  params.cmd.frms = [28];
   
   % surfdata_source: input surfData directory (ct_filename_out)
-  surfdata_source = 'paden_surfData';
+  dem.surfdata_source = 'surfData';
   
   % input_dir_name: input radar 3D image directory (ct_filename_out)
-  input_dir_name = 'CSA_music';
+  dem.input_dir_name = 'music3D';
   
   % output_dir_name: string containing output directory (ct_filename_out)
-  output_dir_name = 'paden_DEM';
+  dem.output_dir_name = 'DEM';
   
   % geotiff_fn: the projection information is taken from this file and this
   %   file is used for creating the maps
-  geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_90m.tif'));
+  dem.geotiff_fn = ct_filename_gis(params(1),fullfile('canada','Landsat-7','Canada_90m.tif'));
 
   % DOA_trim: remove this many direction of arrival bins on each side of the
   %   image
-  DOA_trim = 3;
+  dem.DOA_trim = 5;
   
-  theta_cal_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','sv_calibration','theta_cal.mat');
+  % med_filt: medfilt2 arguments for spatial filtering (leave blank for no filtering)
+  dem.med_filt = [5 17];
+  
+  % figure_dots_per_km: scalar representing the number of pixels per km in
+  %   the figures
+  dem.figure_dots_per_km = 20;
+  
+  % theta_cal_fn: string containing Theta calibration filename (leave blank
+  %   if no calibration used)
+  dem.theta_cal_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','sv_calibration','theta_cal.mat');
+  
+  % ice_mask_ref: string containing the reference citation for the ice mask
+  dem.ice_mask_ref = 'http://www.glims.org/RGI/rgi50_dl.html';
+  
+  % geotiff_ref: string containing the reference citation for the geotiff
+  dem.geotiff_ref = 'https://landsat.usgs.gov/';
+  
+  % DEM_ref: string containing the reference citation for the surface DEM
+  dem.DEM_ref = 'DEMs provided by the Polar Geospatial Center under NSF OPP awards 1043681, 1559691 and 1542736.';
+  
+  % ice_top: string containing surface name for the top of the ice (used for
+  % refraction)
+  dem.ice_top = 'top';
+  
+  % surface_names: cell array of strings containing surface names that output
+  % data products will be generated for
+  dem.surface_names = {'top','bottom'};
+%   dem.surface_names = {'bottom'};
+  
+  % quality_surface_names: cell array of strings containing surface names
+  % for the quality surface that corresponds to each entry in
+  % surface_names.
+  dem.quality_surface_names = {'top quality','bottom quality'};
+%   dem.quality_surface_names = {'bottom quality'};
+  
+  dem.grid_spacing = 25;
+  dem.bad_geotiff_value = -32767;
+  
+  param_override = struct('dem',dem);
   
 else
   params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'20091224_01','post');
   params.cmd.generic = 1;
-  params.cmd.frms = [16:18];
+  params.cmd.frms = [];
   
   % surfdata_source: input surfData directory (ct_filename_out)
-  surfdata_source = 'paden_surfData';
+  dem.surfdata_source = 'surfData';
   
   % input_dir_name: input radar 3D image directory (ct_filename_out)
-  input_dir_name = 'nick_music';
+  dem.input_dir_name = 'music3D';
   
   % output_dir_name: string containing output directory (ct_filename_out)
-  output_dir_name = 'paden_DEM';
+  dem.output_dir_name = 'DEM';
   
   % geotiff_fn: the projection information is taken from this file and this
   %   file is used for creating the maps
-  geotiff_fn = ct_filename_gis(params(1),fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
-
+  dem.geotiff_fn = ct_filename_gis(params(1),fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif'));
+  
   % DOA_trim: remove this many direction of arrival bins on each side of the
   %   image
-  DOA_trim = 15;
+  dem.DOA_trim = 15;
   
-  theta_cal_fn = '';
+  % med_filt: medfilt2 arguments for spatial filtering (leave blank for no filtering)
+  dem.med_filt = [13 9];
+  
+  % figure_dots_per_km: scalar representing the number of pixels per km in
+  %   the figures
+  dem.figure_dots_per_km = 20;
+  
+  % theta_cal_fn: string containing Theta calibration filename (leave blank
+  %   if no calibration used)
+  dem.theta_cal_fn = '';
+  
+  % ice_mask_ref: string containing the reference citation for the ice mask
+  dem.ice_mask_ref = '';
+  
+  % geotiff_ref: string containing the reference citation for the geotiff
+  dem.geotiff_ref = 'https://landsat.usgs.gov/';
+  
+  % DEM_ref: string containing the reference citation for the surface DEM
+  dem.DEM_ref = '';
+  
+  % ice_top: string containing surface name for the top of the ice (used for
+  % refraction)
+  dem.ice_top = 'top';
+  
+  % surface_names: cell array of strings containing surface names that output
+  % data products will be generated for
+  dem.surface_names = {'top','bottom'};
+  %dem.surface_names = {'bottom'};
+  
+  % quality_surface_names: cell array of strings containing surface names
+  % for the quality surface that corresponds to each entry in
+  % surface_names.
+  dem.quality_surface_names = {'top quality','bottom quality'};
+  %dem.quality_surface_names = {'bottom quality'};
+  
+  dem.grid_spacing = 25;
+  dem.bad_geotiff_value = -32767;
+  
+  param_override = struct('dem',dem);
   
 end
 
-% active_surfs: cell array of surfData surface names
-active_surfs = {'ice surface','bottom'};
+%% Automated data posting section
+% =========================================================================
 
-% ice_mask_ref: string containing the reference citation for the ice mask
-ice_mask_ref = 'http://www.glims.org/RGI/rgi50_dl.html';
-% ice_mask_ref = [];
+global gRadar;
 
-% geotiff_ref: string containing the reference citation for the geotiff
-% geotiff_ref = [];
-geotiff_ref = 'https://landsat.usgs.gov/';
-
-% DEM_ref: string containing the reference citation for the surface DEM
-DEM_ref = 'https://theia.cnes.fr/rocket/#/search?page=3&collection=Spirit&view=default';
-% DEM_ref = ct_filename_gis(gRadar,fullfile('antarctia','Landsat-7','Antarctica_LIMA.tif'));
-% DEM_ref = [];
-
-%% Automated Section
+% Input checking
+if exist('param_override','var')
+  param_override = merge_structs(gRadar,param_override);
+else
+  param_override = gRadar;
+end
 
 for param_idx = 1:length(params)
-  
   param = params(param_idx);
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
   end
   
-  param.dem.geotiff_fn = geotiff_fn;
-  param.dem.active_surfs = active_surfs;
-  param.dem.DOA_trim = DOA_trim;
-  param.dem.ice_mask_ref = ice_mask_ref;
-  param.dem.geotiff_ref = geotiff_ref;
-  param.dem.DEM_ref = DEM_ref;
-  param.dem.surfdata_source = surfdata_source;
-  param.dem.input_dir_name = input_dir_name;
-  param.dem.output_dir_name = output_dir_name;
-  param.dem.theta_cal_fn = theta_cal_fn;
-  
-  tomo.surfdata_to_geotiff(param);
-
+  tomo.surfdata_to_geotiff(param,param_override);
 end

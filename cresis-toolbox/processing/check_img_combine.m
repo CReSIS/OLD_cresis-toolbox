@@ -7,6 +7,8 @@ function mdata = check_img_combine(data_fn, rlines)
 % check_img_combine('~/Scratch/rds/2016_Greenland_Polar6/CSARP_qlook/20160413_17/Data_20160413_17_005');
 % mdata = check_img_combine('~/Scratch/rds/2016_Greenland_Polar6/CSARP_standard/20160426_03/Data_20160426_03_001.mat');
 %
+% mdata = check_img_combine('/cresis/snfs1/dataproducts/ct_data/accum/2017_Greenland_P3/CSARP_standard/20170511_01/Data_20170511_01_072.mat');
+%
 % Author: John Paden
 
 if ~exist('rlines','var')
@@ -45,10 +47,11 @@ end
 figure(2); clf;
 for rline = rlines(:).'
   for img = 1:length(mdata)
-    plot(mdata{img}.Time*1e6, lp(mdata{img}.Data(:,rline)));
+    h_plot = plot(mdata{img}.Time*1e6, lp(mdata{img}.Data(:,rline)));
     hold on;
     if img == 1
       legend_str{img} = 'Combined';
+      set(h_plot,'LineWidth',2);
     else
       legend_str{img} = sprintf('Img %d', img-1);
     end

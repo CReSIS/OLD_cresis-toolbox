@@ -35,6 +35,7 @@ end
 % to copy all the parameters and support variables over). We will update
 % the 3D image and time fields in the file at the end of fusing.
 combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
+fprintf('Creating %s (%s)\n', combined_fn, datestr(now));
 copyfile(fns{1}, combined_fn);
 
 Topography = [];

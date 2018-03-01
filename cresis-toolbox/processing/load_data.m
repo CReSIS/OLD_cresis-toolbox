@@ -54,7 +54,7 @@ try; toc; catch; tic; end;
 physical_constants;
 
 % Load records file
-records_fn = ct_filename_support(param,param.load_data.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 old_param_records = records.param_records;
 recs(1) = param.load_data.recs(1);
@@ -205,6 +205,7 @@ for break_idx = 1:length(breaks)
       end
     end
     load_param.load.file_version = param.records.file_version;
+    load_param.load.wfs = records.settings.wfs;
   elseif strcmpi(radar_name,'mcrds')
     load_param.load.file_rec_offset = records.file_rec_offset;
     load_param.load.filenames = records.filenames;

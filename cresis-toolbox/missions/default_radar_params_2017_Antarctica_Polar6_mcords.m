@@ -32,8 +32,8 @@ default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 default.iq_mode = 0;
 default.tx_DDS_mask = [1 1 1 1 1 1 1 1];
 
-default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
-default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
+default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ft_dec','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
+default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
 default.basic_surf_track_min_time = 2e-6;
 default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
@@ -106,7 +106,7 @@ end
 default.vectors.gps.time_offset = 1;
 
 %% Records worksheet in parameter spreadsheet
-default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
+default.records.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m';
 default.records.file.adcs = [1:24];
 default.records.file.adc_headers = [1:24];
 default.records.gps.en = 1;
@@ -210,6 +210,7 @@ defaults = {};
 default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9;
 default.radar.wfs(1).chan_equal_dB = [-2.5 -2.2 -2.2 -1.7 -0.9 -4.5 -6.8 -1.1 -4 -4.3 -2.9 -4.6 -1.2 -1.5 -0.9 -2.2 -1.2 -2.4 -1.8 1.9 -1.3 -4.1 -2 -1.6];
 default.radar.wfs(1).chan_equal_deg = [-168.6 -114.1 -5.7 9 30 24.1 -144.3 -137.7 113.1 64.8 124.3 133.7 108 138.1 71.6 102.9 -95.8 -127.2 -143.1 -139.6 -128.4 -172.3 -158.5 -152.4];
+default.radar.ft_dec = [37 40];
 
  % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
@@ -281,6 +282,7 @@ defaults{end+1} = default;
 default.radar.wfs(1).chan_equal_Tsys = [0.3 0.7 0 0.2 0.1 0.2 0.2 0.3 -31.8 -32.1 -31.7 -31.6 -31.2 -30.8 -31.5 -31.1 -4.3 -4.5 -4.6 -4.5 -4.5 -4.6 -4.5 -4.5]/1e9;
 default.radar.wfs(1).chan_equal_dB = [1.1 -0.7 0.8 1.4 -0.8 -1.7 -1.7 0 0 0.9 0.2 0 3.2 1.7 3.9 2.4 0.7 1.2 0.7 3.7 1.1 -0.1 2.2 0.7];
 default.radar.wfs(1).chan_equal_deg = [74.5 108.1 -105.7 -106.6 -94.6 -26.7 92.2 94 -14.6 -69.7 -6.8 0 -13.9 -1.8 -48.8 -15.8 133.5 121.4 113.7 94.6 126.2 94.6 103.4 99.3];
+default.radar.ft_dec = [3 20];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
