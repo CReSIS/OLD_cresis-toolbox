@@ -83,13 +83,13 @@ elseif 1
   sv_LUT_ref = [3];
   retrack_en = false;
   equalize_angle = 0;
-  output_fn = fullfile('//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
+  output_fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
     sprintf('combined_pattern_2017_Greenland_P3.mat'));
   degrees_of_freedom = 7; % spatial filter fitting (usually around the # of antennas)
   
   plot_rad_patterns;
   figure(6);
-  saveas(6,fullfile('//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
+  saveas(6,fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
     sprintf('combined_pattern_2017_Greenland_P3.fig')));
   
   % Individual Elements
@@ -98,14 +98,14 @@ elseif 1
   sv_LUT_ref = 3*ones(1,7);
   retrack_en = false;
   equalize_angle = 0;
-  output_fn = '//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/sv_table_all_2017_Greenland_P3.mat';
+  output_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/sv_table_all_2017_Greenland_P3.mat';
   degrees_of_freedom = 3*ones(1,7); % spatial filter fitting (usually around the # of antennas)
   plot_rad_patterns;
   figure(6);
-  saveas(6,fullfile('//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
+  saveas(6,fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
     sprintf('center_patterns_2017_Greenland_P3_power.fig')));
   figure(7);
-  saveas(7,fullfile('//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
+  saveas(7,fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
     sprintf('center_patterns_2017_Greenland_P3_phase.fig')));
 
   rad_patterns = [13:16]; % wf-adc indexes for patterns you want to generate
@@ -113,14 +113,14 @@ elseif 1
   sv_LUT_ref = 3*ones(1,4);
   retrack_en = false;
   equalize_angle = 0;
-  output_fn = '//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/sv_table_all_2017_Greenland_P3.mat';
+  output_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/sv_table_all_2017_Greenland_P3.mat';
   degrees_of_freedom = 3*ones(1,4); % spatial filter fitting (usually around the # of antennas)
   plot_rad_patterns;
   figure(6);
-  saveas(6,fullfile('//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
+  saveas(6,fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
     sprintf('left_patterns_2017_Greenland_P3_power.fig')));
   figure(7);
-  saveas(7,fullfile('//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
+  saveas(7,fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
     sprintf('left_patterns_2017_Greenland_P3_phase.fig')));
 
   rad_patterns = [20:23]; % wf-adc indexes for patterns you want to generate
@@ -128,14 +128,14 @@ elseif 1
   sv_LUT_ref = 3*ones(1,4);
   retrack_en = false;
   equalize_angle = 0;
-  output_fn = '//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/sv_table_all_2017_Greenland_P3.mat';
+  output_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/sv_table_all_2017_Greenland_P3.mat';
   degrees_of_freedom = 3*ones(1,4); % spatial filter fitting (usually around the # of antennas)
   plot_rad_patterns;
   figure(6);
-  saveas(6,fullfile('//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
+  saveas(6,fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
     sprintf('right_patterns_2017_Greenland_P3_power.fig')));
   figure(7);
-  saveas(7,fullfile('//cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
+  saveas(7,fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2017_Greenland_P3/CSARP_noise/', ...
     sprintf('right_patterns_2017_Greenland_P3_phase.fig')));
 
 elseif 0

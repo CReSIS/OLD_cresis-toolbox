@@ -227,9 +227,7 @@ clear data;
 
 alpha = (param.radar.wfs.step.f1 - param.radar.wfs.step.f0)/param.radar.wfs.Tpd;
 comb_f0 = param.radar.wfs.step.f0 + alpha*param.radar.wfs.Tpd*0.5 + abs(param.radar.wfs.step.f_step/2) + param.radar.wfs.step.f_offset;
-comb_f0 = 845e6;
 comb_f1 = comb_f0 + param.radar.wfs.step.f_step * size(pc_data,3) + param.radar.wfs.step.f_offset;
-comb_f1 = 585e6;
 
 % resample the compressed data at a frequency of 2 times of the combined bandwidth
 fs_new = 2*abs((comb_f1 - comb_f0));
