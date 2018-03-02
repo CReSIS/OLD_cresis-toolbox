@@ -325,6 +325,9 @@ if strcmpi(copy_param.gaps_fill.method,'preserve_gaps')
   ops_layer{1}.type = layer_source.type;
   ops_layer{1}.quality = layer_source.quality;
   ops_layer{1}.twtt = layer_source.twtt;
+  if length(master.GPS_time) < 2
+    error('Too few points in destination to interpolate onto.');
+  end
   lay = opsInterpLayersToMasterGPSTime(master,ops_layer,copy_param.gaps_fill.method_args);
   all_points.twtt_interp = lay.layerData{1}.value{2}.data;
   % All points automated (type 2) by default
