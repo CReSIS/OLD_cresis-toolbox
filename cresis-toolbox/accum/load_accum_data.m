@@ -227,9 +227,7 @@ clear data;
 
 alpha = (param.radar.wfs.step.f1 - param.radar.wfs.step.f0)/param.radar.wfs.Tpd;
 comb_f0 = param.radar.wfs.step.f0 + alpha*param.radar.wfs.Tpd*0.5 + abs(param.radar.wfs.step.f_step/2) + param.radar.wfs.step.f_offset;
-comb_f0 = 845e6;
 comb_f1 = comb_f0 + param.radar.wfs.step.f_step * size(pc_data,3) + param.radar.wfs.step.f_offset;
-comb_f1 = 585e6;
 
 % resample the compressed data at a frequency of 2 times of the combined bandwidth
 fs_new = 2*abs((comb_f1 - comb_f0));
@@ -245,11 +243,9 @@ df = param.radar.fs/Nt;
 Nt_step = abs(param.radar.wfs.step.f_step) / df;
 
 min_f0 = min(comb_f0,comb_f1);
-% comb_Nt = 16*Nt_step;
-comb_Nt = 13*Nt_step;
+comb_Nt = 16*Nt_step;
 comb_freq = min_f0 + df*(0:comb_Nt-1);
 
-param.radar.wfs.step.fLO = 866250000;
 pc_freq = param.radar.wfs.step.fLO + -df*(0:Nt-1);
 [~,pc_data_idx] = min(abs(pc_freq - comb_f0));
 
@@ -259,7 +255,7 @@ comb_freq = ifftshift(comb_freq,1);
 % Determine pulse compression phase offset
 if 1
   pc_phase_offset(3) = 0;
-  for wf=4:15
+  for wf=2:16
     pc_phase_offset(wf) = angle(mean(mean(conj(pc_data(pc_data_idx+Nt_step+(-10:10),:,wf-1)) .* conj(conj(pc_data(pc_data_idx+Nt_step+(-10:10),:,wf))),2)));
     pc_phase_offset(wf) = 0;
   end
@@ -268,7 +264,7 @@ if 1
 end
 
 data = zeros(length(comb_freq),size(pc_data,2));
-for wf = 3:15
+for wf = 1:16
   % Combine chirps
   % 1. Flip spectrum and conjugation of phase because negative side of frequencies were used
   % 2. Pulse compression phase shift because the phase of each of the pulse compression filters
