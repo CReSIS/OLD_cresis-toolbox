@@ -513,6 +513,11 @@ elseif strcmpi(copy_param.layer_dest.source,'echogram')
     echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
       sprintf('Data_%s_%03d.mat', param.day_seg, frm));
     if ~exist(echo_fn,'file')
+      % Combined echogram does not exist, try img_01 file
+      echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
+        sprintf('Data_img_01_%s_%03d.mat', param.day_seg, frm));
+    end
+    if ~exist(echo_fn,'file')
       warning('Echogram data file does not exist: %s\n', echo_fn);
       continue;
     end
