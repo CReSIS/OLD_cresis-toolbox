@@ -246,7 +246,8 @@ if (strcmpi(param.season_name,'2017_Antarctica_Basler') && strcmpi(gps_source,'c
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2017_Antarctica_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
+if (strcmpi(param.season_name,'2018_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
+    || (strcmpi(param.season_name,'2017_Antarctica_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
     || (strcmpi(param.season_name,'2017_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
     || (strcmpi(param.season_name,'2014_Greenland_P3') && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'NMEA'))) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(gps_source,'ATM')) ...
@@ -539,6 +540,32 @@ if (strcmpi(param.season_name,'2010_Greenland_P3') && strcmpi(radar_name,'accum'
   
   if rxchannel == 0
     rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (strcmpi(param.season_name,'2018_Greenland_P3') && strcmpi(radar_name,'accum'))
+  % Coordinates from Emily Arnold and offsets from Cameron
+  % Accumulation antenna. X-offset is an estimate and needs to be measured.
+  % The 8 elements are arranged in 2x4 array (2 in along-track). The
+  % along-track elements are combined using in cabin power combiners.
+  % Each of the four combined channels are individually transmitted and
+  % received on.
+  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0 0]) - gps.x; % m
+  LArx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
+  LArx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
+
+  LArx(1,:)   = (-433.3*0.0254 + [0 0 0 0 0]) - gps.x; % m
+  LAtx(2,:)   = (0 + [-0.39 -0.13 0.13 0.39]) - gps.y; % m
+  LAtx(3,:)   = (-72.5*0.0254 + [0 0 0 0]) - gps.z; % m
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1:4;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 2;
     tx_weights = ones(1,size(LAtx,2));
   end
 end
@@ -1044,7 +1071,8 @@ if (strcmpi(param.season_name,'2017_Antarctica_Basler') && strcmpi(radar_name,'r
   end
 end
 
-if (strcmpi(param.season_name,'2017_Antarctica_P3') && strcmpi(radar_name,'rds')) ...
+if (strcmpi(param.season_name,'2018_Greenland_P3') && strcmpi(radar_name,'rds')) ...
+    || (strcmpi(param.season_name,'2017_Antarctica_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(radar_name,'rds')) ...
@@ -1529,7 +1557,8 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(radar_name,'s
   end
 end
 
-if (strcmpi(param.season_name,'2017_Antarctica_P3') && strcmpi(radar_name,'snow')) ...
+if (strcmpi(param.season_name,'2018_Greenland_P3') && strcmpi(radar_name,'snow')) ...
+    || (strcmpi(param.season_name,'2017_Antarctica_P3') && strcmpi(radar_name,'snow')) ...
     || (strcmpi(param.season_name,'2017_Greenland_P3') && strcmpi(radar_name,'snow')) ...
     || (strcmpi(param.season_name,'2014_Greenland_P3') && strcmpi(radar_name,'snow')) ...
     || (strcmpi(param.season_name,'2013_Antarctica_P3') && strcmpi(radar_name,'snow')) ...
