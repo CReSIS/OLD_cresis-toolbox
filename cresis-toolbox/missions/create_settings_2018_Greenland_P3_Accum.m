@@ -9,7 +9,7 @@ physical_constants; % c = speed of light
 % Define waveforms
 if ispc
   base_dir = 'c:\waveforms_accum\';
-  rss_base_dir = 'c:\Temp\';
+  rss_base_dir = 'c:\Temp\rss_waveforms_accum\';
 else
   base_dir = '~/waveforms/';
   rss_base_dir = '~/rss_waveforms/';
@@ -103,7 +103,9 @@ arena.dacs = [4 5 6 7];
 arena.dacs_sampFreq = [2400e6 2400e6 2400e6 2400e6];
 arena.max_tx = 0.7*[1 1 1 1 1 1 1 1]; %for less power add "*.5" 
 arena.zeropimods = [0 180 270 90];
-arena.TTL_time = [0.1 0.2 2.2];
+arena.TTL_time = [0.1, 0.2, (0.2+3+0.3)];
+arena.dacs_internal_delay = 1.8;
+arena.dacs_start_delay = 3.2;
 
 arena.TTL_names = {};
 arena.TTL_names{end+1} = 'test';

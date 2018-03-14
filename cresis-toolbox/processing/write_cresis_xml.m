@@ -587,11 +587,21 @@ fclose(fid);
 
 %% Write RSS Arena XML config file
 if isfield(param,'arena')
+  % Defaults
+  if ~isfield(param.arena,'dacs_internal_delay') || isempty(param.arena.dacs_internal_delay)
+    param.arena.dacs_internal_delay = 0;
+  end
+  if ~isfield(param.arena,'dacs_start_delay') || isempty(param.arena.dacs_start_delay)
+    param.arena.dacs_start_delay = 0;
+  end
+  
   % Create arena parameter structure
   arena = struct('version','1');
   arena.awg = param.arena.awg;
   arena.dacs = param.arena.dacs;
   arena.dacs_sampFreq = param.arena.dacs_sampFreq;
+  arena.dacs_internal_delay = param.arena.dacs_internal_delay;
+  arena.dacs_start_delay = param.arena.dacs_start_delay;
   arena.zeropimods = param.arena.zeropimods;
   arena.TTL_time = param.arena.TTL_time;
   arena.TTL_names = param.arena.TTL_names;
