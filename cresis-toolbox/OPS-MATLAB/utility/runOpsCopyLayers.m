@@ -114,6 +114,7 @@ if strcmp(runOpsCopyLayers_operation,'copy_layer')
   elseif 0
     copy_param.layer_dest.source = 'layerdata';
     copy_param.layer_dest.layerdata_source = 'layerData';
+    copy_param.layer_dest.echogram_source = 'standard'; % Only required if layerData files do not exist and need to be created
   end
   
 end

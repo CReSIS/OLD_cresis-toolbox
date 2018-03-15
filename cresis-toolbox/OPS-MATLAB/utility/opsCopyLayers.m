@@ -325,6 +325,9 @@ if strcmpi(copy_param.gaps_fill.method,'preserve_gaps')
   ops_layer{1}.type = layer_source.type;
   ops_layer{1}.quality = layer_source.quality;
   ops_layer{1}.twtt = layer_source.twtt;
+  if length(master.GPS_time) < 2
+    error('Too few points in destination to interpolate onto.');
+  end
   lay = opsInterpLayersToMasterGPSTime(master,ops_layer,copy_param.gaps_fill.method_args);
   all_points.twtt_interp = lay.layerData{1}.value{2}.data;
   % All points automated (type 2) by default
@@ -509,6 +512,11 @@ elseif strcmpi(copy_param.layer_dest.source,'echogram')
     % Create file name for each frame
     echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
       sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+    if ~exist(echo_fn,'file')
+      % Combined echogram does not exist, try img_01 file
+      echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
+        sprintf('Data_img_01_%s_%03d.mat', param.day_seg, frm));
+    end
     if ~exist(echo_fn,'file')
       warning('Echogram data file does not exist: %s\n', echo_fn);
       continue;

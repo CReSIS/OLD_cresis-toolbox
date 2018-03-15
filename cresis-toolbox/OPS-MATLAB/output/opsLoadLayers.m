@@ -317,7 +317,62 @@ for frm_idx = 1:length(param.cmd.frms)
       layer_fn = fullfile(ct_filename_out(param,layer_param.layerdata_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
       if ~exist(layer_fn,'file')
-        if layer_param.existence_check
+        if isfield(layer_param,'echogram_source') && ~isempty(layer_param.echogram_source)
+          % Create the layer data file from the echogram source
+          warning('Layer data file does not exist. Since echogram_source specified, creating layer data:\n%s.', layer_fn);
+          
+          % Load the echogram
+          echogram_fn_dir = ct_filename_out(param,layer_param.echogram_source);
+          echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_%s_%03d.mat', ...
+            param.day_seg, frm));
+          if ~exist(echogram_fn,'file')
+            if layer_param.existence_check
+              error('Echogram file %s does not exist', echogram_fn);
+            else
+              warning('Echogram file %s does not exist', echogram_fn);
+              continue;
+            end
+          end
+          warning off;
+          lyr = load(echogram_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
+            'Elevation_Correction','Truncate_Bins','Time');
+          warning on;
+          lyr = uncompress_echogram(lyr);
+          Nx = length(lyr.GPS_time);
+
+          % Create the layer structure
+          for lay_idx = 1:2
+            % Manually picked points
+            %  inf/nan: no pick
+            %  finite: propagation time to target
+            lyr.layerData{lay_idx}.value{1}.data ...
+              = inf*ones(1,Nx);
+            % Automatically generated points
+            %  inf/nan: no pick
+            %  finite: propagation time to target
+            if lay_idx == 1 && isfield(lyr,'Surface')
+              lyr.layerData{lay_idx}.value{2}.data = lyr.Surface;
+            elseif lay_idx == 2 && isfield(lyr,'Bottom')
+              lyr.layerData{lay_idx}.value{2}.data = lyr.Bottom;
+            else
+              lyr.layerData{lay_idx}.value{2}.data ...
+                = inf*ones(1,Nx);
+            end
+            % Quality control level
+            %  1: good
+            %  2: moderate
+            %  3: derived
+            lyr.layerData{lay_idx}.quality ...
+              = ones(1,Nx);
+          end
+
+          layer_fn_dir = fileparts(layer_fn);
+          if ~exist(layer_fn_dir,'dir')
+            mkdir(layer_fn_dir);
+          end
+          save(layer_fn,'-v6','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
+
+        elseif layer_param.existence_check
           error('Layer file %s does not exist', layer_fn);
         else
           warning('Layer file %s does not exist', layer_fn);
