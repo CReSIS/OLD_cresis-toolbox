@@ -294,6 +294,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).personal_path             = '/home/ollie/jpaden/scripts/matlab/';
   profile(pidx).ct_path                   = '/home/ollie/jpaden/scripts/cresis-toolbox/cresis-toolbox/';
   profile(pidx).param_path                = '/home/ollie/jpaden/scripts/ct_params/';
+  profile(pidx).slurm_jobs_path           = '/home/ollie/tbinder/jobs';
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -312,6 +313,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                    = 'torque';
   %profile(pidx).cluster.type                    = 'matlab';
   profile(pidx).cluster.type                    = 'slurm';
+  %profile(pidx).cluster.type                    = 'ollie';
   %profile(pidx).cluster.type                    = 'debug';
   %profile(pidx).cluster.type                    = 'none';
   profile(pidx).cluster.max_jobs_active         = 64;
