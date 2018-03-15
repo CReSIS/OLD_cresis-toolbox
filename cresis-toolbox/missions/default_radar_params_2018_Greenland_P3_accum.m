@@ -41,11 +41,12 @@ default.adc_folder_name = 'chan%d';
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 8
-  ref_adc = 1;
+  ref_adc = 3;
   default.txequal.img = [(1:4).', ref_adc*ones(4,1)];
-  default.txequal.ref_wf_adc = 2;
+  default.txequal.ref_wf_adc = 3;
   default.txequal.wf_mapping = [1 2 3 4 ];
-  default.txequal.Hwindow_desired = [chebwin(4,30).' 0 0 0 0];
+  %default.txequal.Hwindow_desired = [chebwin(4,30).' 0 0 0 0];
+  default.txequal.Hwindow_desired = [0.7 1 1 0.7 0 0 0 0];
   default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000 ];
   default.txequal.time_delay_desired = [0 0 0 0 ];
   default.txequal.phase_desired = [0 0 0 0 ];

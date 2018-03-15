@@ -30,7 +30,7 @@ final_DDS_phase = [];
 final_DDS_phase_no_time = [];
 final_DDS_amp = [];
 final_DDS_time = [];
-if 1
+if 0
   % Initial conditions (usually all zeros phase/time with max amplitude)
   for idx = 1:length(f0_list)
     final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
@@ -47,9 +47,9 @@ else
   % MHz clock cycle after channels 1-4.
   
   % 600-900 MHz
-  final_DDS_phase{1} = [0 0 0 0 0 0 0 0];
+  final_DDS_phase{1} = [-90.2	177.2	0.0	-133.0	0.0	0.0	0.0	0.0];
   final_DDS_phase_no_time = [0 0 0 0 0 0 0 0]; % not used usually
-  final_DDS_amp{1} = [4095 4095 4095 4095 4095 4095 4095 4095];
+  final_DDS_amp{1} = [2880	3519	3713	4000	0	0	0	0];
   final_DDS_time{1} =  [0 0 0 0 0 0 0 0];
   
 end
@@ -273,7 +273,7 @@ for Tpd = [2e-6]
   param.tg.Haltitude = 17500*12*2.54/100;
   param.tg.Hice_thick = 0;
   param.prf = 10000;
-  param.presums = [16 16 16 16 16];
+  param.presums = [64 64 64 64 64];
   [param.wfs(1:4).atten] = deal(10);
   param.wfs(5).atten = deal(20);
   param.tx_weights = final_DDS_amp{cal_settings(freq_idx)};
@@ -285,11 +285,11 @@ for Tpd = [2e-6]
   param.f1 = f1_list(freq_idx);
   for wf=1:4
     param.wfs(wf).tx_mask = ones(1,8);
-    param.wfs(wf).tx_mask(9-wf) = 0;
+    param.wfs(wf).tx_mask(5-wf) = 0;
   end
   param.wfs(5).tx_mask = zeros(1,8);
   param.DDC_freq = (param.f0+param.f1)/2;
-  param.fn = fullfile(base_dir,sprintf('equalization_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthick.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.Tpd*1e6,param.tg.Hice_thick));
+  param.fn = fullfile(base_dir,sprintf('equal_%.0f-%.0fMHz_%.0fft.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54));
   write_cresis_xml(param);
 end
 
@@ -324,11 +324,11 @@ for Tpd = [2e-6]
   param.f1 = f1_list(freq_idx);
   for wf=1:4
     param.wfs(wf).tx_mask = ones(1,8);
-    param.wfs(wf).tx_mask(9-wf) = 0;
+    param.wfs(wf).tx_mask(5-wf) = 0;
   end
   param.wfs(5).tx_mask = zeros(1,8);
   param.DDC_freq = (param.f0+param.f1)/2;
-  param.fn = fullfile(base_dir,sprintf('equalization_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthick.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.Tpd*1e6,param.tg.Hice_thick));
+  param.fn = fullfile(base_dir,sprintf('equal_%.0f-%.0fMHz_%.0fft.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54));
   write_cresis_xml(param);
 end
 
