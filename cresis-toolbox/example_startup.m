@@ -66,9 +66,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
-  %profile(pidx).cluster.type                  = 'slurm';
   %profile(pidx).cluster.type                  = 'debug';
-  %profile(pidx).cluster.type                  = 'none';
   profile(pidx).cluster.max_jobs_active       = 512;
   profile(pidx).cluster.max_time_per_job      = 86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
@@ -78,7 +76,6 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.file_check_pause      = 4;
   
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
-  profile(pidx).cluster.cluster_job_fn        = '/users/paden/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
   
   %% IU Profile Linux (PROFILE 2)
   % ----------------------------------------------------------------------
@@ -104,9 +101,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
-  %profile(pidx).cluster.type                  = 'slurm';
   %profile(pidx).cluster.type                  = 'debug';
-  %profile(pidx).cluster.type                  = 'none';
   profile(pidx).cluster.max_jobs_active       = 128;
   profile(pidx).cluster.max_time_per_job      = 4*86400;
   profile(pidx).cluster.desired_time_per_job  = 8*3600;
@@ -116,7 +111,6 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.file_check_pause      = 4;
   
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1:dcwan:dc2,pmem=%dmb,walltime=%d:00';
-  profile(pidx).cluster.cluster_job_fn        = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
 
  
   %% Field Profile Linux (PROFILE 3)
@@ -138,19 +132,21 @@ if ~(~ismcc && isdeployed)
   profile(pidx).out_path                  = '/scratch/';
   profile(pidx).gis_path                  = '/scratch/GIS_data';
   
-  profile(pidx).sched.type                = 'custom_torque';
-  %profile(pidx).sched.type                = 'local'; % local parallel processing
-  %profile(pidx).sched.type                = 'no scheduler'; % no parallel processing (DEBUG MODE)
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  profile(pidx).sched.data_location       = '/scratch/tmp/torque-temp';
-  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=2,walltime=15:00';
-  profile(pidx).sched.max_in_queue        = 64;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/scratch/scripts/cresis-toolbox/cresis-toolbox-torque/worker';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
+  profile(pidx).cluster.data_location         = '/scratch/tmp/cluster-temp';
+  profile(pidx).cluster.cluster_job_fn        = '/scratch/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
+  
+  profile(pidx).cluster.type                  = 'torque';
+  %profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'debug';
+  profile(pidx).cluster.max_jobs_active       = 512;
+  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.desired_time_per_job  = 0;
+  profile(pidx).cluster.max_retries           = 2;
+  profile(pidx).cluster.submit_pause          = 0.1;
+  profile(pidx).cluster.stat_pause            = 2;
+  profile(pidx).cluster.file_check_pause      = 4;
+  
+  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
   
   %% KU Mobile Profile Windows (PROFILE 5)
   % ----------------------------------------------------------------------

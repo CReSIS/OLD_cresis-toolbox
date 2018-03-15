@@ -43,7 +43,7 @@ gps_source_to_use = 'NMEA';
 
 if strcmpi(gps_source_to_use,'NMEA')
   
-  year = 2018; month = 3; day = 14;
+  year = 2018; month = 3; day = 15;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -54,7 +54,7 @@ if strcmpi(gps_source_to_use,'NMEA')
 
 elseif strcmpi(gps_source_to_use,'ATM-field')
   
-  year = 2018; month = 3; day = 14;
+  year = 2018; month = 3; day = 15;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -65,7 +65,7 @@ elseif strcmpi(gps_source_to_use,'ATM-field')
  
 elseif strcmpi(gps_source_to_use,'ATM-field_traj')
   
-  year = 2017; month = 3; day = 14;
+  year = 2017; month = 3; day = 15;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yymmdd'),'itrf','noamb');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
