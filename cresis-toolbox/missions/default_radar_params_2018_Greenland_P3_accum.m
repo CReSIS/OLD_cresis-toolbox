@@ -49,9 +49,9 @@ if 1
   default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000 ];
   default.txequal.time_delay_desired = [0 0 0 0 ];
   default.txequal.phase_desired = [0 0 0 0 ];
-  default.txequal.time_validation = [0.4 0.4 0.4 0.4 ]*1e-9;
-  default.txequal.amp_validation = [3 3 3 3 ];
-  default.txequal.phase_validation = [35 35 35 35 ];
+  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0 0 0 0]*1e-9;
+  default.txequal.amp_validation = [3 3 3 3 0 0 0 0];
+  default.txequal.phase_validation = [35 35 35 35 0 0 0 0];
   default.txequal.remove_linear_phase_en = true;
 end
 
@@ -61,13 +61,13 @@ arena.awg = [];
 arena.awg(end+1).awg = 2;
 arena.awg(end).dacs = [4 5];
 arena.awg(end).dacClk = [2400e6 2400e6];
-arena.awg(end).desiredAlignMin = [10 10];
-arena.awg(end).desiredAlignMax = [30 40];
+arena.awg(end).desiredAlignMin = [13 8];
+arena.awg(end).desiredAlignMax = [27 22];
 arena.awg(end+1).awg = 3;
 arena.awg(end).dacs = [6 7];
 arena.awg(end).dacClk = [2400e6 2400e6];
-arena.awg(end).desiredAlignMin = [10 -10];
-arena.awg(end).desiredAlignMax = [30 10];
+arena.awg(end).desiredAlignMin = [9 24];
+arena.awg(end).desiredAlignMax = [23 38];
 arena.dacs = [4 5 6 7];
 arena.dacs_sampFreq = [2400e6 2400e6 2400e6 2400e6];
 arena.max_tx = 0.7*[1 1 1 1 1 1 1 1]; %for less power add "*.5" 
