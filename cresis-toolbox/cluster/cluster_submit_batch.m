@@ -19,7 +19,7 @@ function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time)
 %
 % EXAMPLES:
 % % Blocking example:
-% ctrl = cluster_submit_batch('hanning',true,{10},1,60);
+% cluster_submit_batch('hanning',true,{10},1,60);
 %
 % % Non-blocking example:
 % ctrl = cluster_submit_batch('hanning',false,{10},1,60);
