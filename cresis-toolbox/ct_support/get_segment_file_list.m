@@ -23,6 +23,7 @@ end
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
+if any(strcmpi(radar_name,{'accum','snow','kuband'}))
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.dat';
 elseif any(strcmpi(param.radar_name,{'acords'}))
