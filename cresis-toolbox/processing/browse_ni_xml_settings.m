@@ -241,7 +241,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
   %% Vectors Worksheet
   fprintf('\nVectors WorkSheet\n');
   fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', 'Date', ...
-    '1', 'file.start_idx', 'file.stop_idx', 'file.basedir', 'file.adc_folder_name', 'file.prefix', 'file.midfix','file.regexp','gps.time_offset');
+    '1', 'file.start_idx', 'file.stop_idx', 'file.base_dir', 'file.adc_folder_name', 'file.file_prefix', 'file.file_midfix','file.regexp','gps.time_offset');
   fprintf('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
     'YYYYMMDD','Segment','r','r','t','t','t','t','r','r');
   for set_idx = 1:length(settings)

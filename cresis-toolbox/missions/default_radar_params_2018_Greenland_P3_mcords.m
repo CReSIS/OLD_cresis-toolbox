@@ -99,7 +99,7 @@ default.get_heights.surf.search_rng = [0:2];
 
 %% CSARP worksheet in parameter spreadsheet
 default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.csarp.imgs = {[1*ones(4,1),(9:12).'],[2*ones(4,1),(9:12).'],[3*ones(4,1),(9:12).']};
 default.csarp.frm_types = {0,[0 1],0,0,-1};
 default.csarp.chunk_len = 5000;
 default.csarp.chunk_overlap = 10;
@@ -150,8 +150,7 @@ default.radar.fs = 1e9/9;
 default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 14;
 default.radar.adc_full_scale = 2;
-default.radar.rx_paths = [1,1:15];
-default.radar.rx_paths = [1 8 9 10 11 1 2 3 4 5 6 7 12 13 14 15];
+default.radar.rx_paths = [1 2 3 4 5 6 7 1 8 9 10 11 12 13 14 15];
 default.radar.noise_figure = 2;
 default.radar.rx_gain = 51.5;
 default.radar.adc_SNR_dB = 70;
@@ -166,19 +165,19 @@ default.radar.wfs(1).chan_equal_deg = [97.1	25.2	-60.1	-126.1	-38.7	6.4	-0.0	-13
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.get_heights.imgs = {[1*ones(4,1),(9:12).'],[2*ones(4,1),(9:12).'],[3*ones(4,1),(9:12).']};
 default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
-default.xml_regexp = 'survey_.*thick.xml';
+default.xml_regexp = '(survey_.*thick.xml';
 default.name = 'Survey Mode';
 defaults{end+1} = default;
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06];
-default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).']};
+default.get_heights.imgs = {[1*ones(4,1),(9:12).'],[2*ones(4,1),(9:12).']};
 default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
@@ -188,9 +187,33 @@ default.xml_regexp = 'survey_.*thin_ice.xml';
 default.name = 'Thin Ice Mode';
 defaults{end+1} = default;
 
+% image mode
+default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
+default.get_heights.imgs = {[1*ones(4,1),(9:12).'],[3*ones(4,1),(9:12).'],[5*ones(4,1),(9:12).']};
+default.csarp.imgs = default.get_heights.imgs;
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'image_.*thick.xml';
+default.name = 'Image Mode';
+defaults{end+1} = default;
+
+% image mode
+default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06];
+default.get_heights.imgs = {[1*ones(4,1),(9:12).'],[3*ones(4,1),(9:12).']};
+default.csarp.imgs = default.get_heights.imgs;
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'image_.*thin_ice.xml';
+default.name = 'Image Mode Thin Ice';
+defaults{end+1} = default;
+
 % high altitude mode
 default.get_heights.qlook.img_comb = [1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).']};
+default.get_heights.imgs = {[1*ones(4,1),(9:12).'],[2*ones(4,1),(9:12).']};
 default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
@@ -202,7 +225,7 @@ defaults{end+1} = default;
 
 % deconvolution mode
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.get_heights.imgs = {[1*ones(4,1),(9:12).'],[2*ones(4,1),(9:12).'],[3*ones(4,1),(9:12).']};
 default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
