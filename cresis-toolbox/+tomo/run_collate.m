@@ -201,6 +201,19 @@ elseif strcmpi(example_setup,'horizontal')
   tomo_collate.surfdata_cmds(end).smooth_var = 32;
   tomo_collate.surfdata_cmds(end).max_loops = 50;
   
+%   tomo_collate.surfdata_cmds(end+1).cmd = 'dem';
+%   tomo_collate.surfdata_cmds(end).surf_names = 'bottom dem';
+%   tomo_collate.surfdata_cmds(end).visible = false;
+%   tomo_collate.surfdata_cmds(end).plot_name_values = {'color','red','marker','^'};
+%   tomo_collate.surfdata_cmds(end).dem_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_nofilt/20140401_03/20140401_03_007_bottom.tif';
+%   tomo_collate.surfdata_cmds(end).dem_bad_value = -32767;
+%   
+%   tomo_collate.surfdata_cmds(end+1).cmd = 'dem';
+%   tomo_collate.surfdata_cmds(end).surf_names = 'bottom dem2';
+%   tomo_collate.surfdata_cmds(end).visible = false;
+%   tomo_collate.surfdata_cmds(end).plot_name_values = {'color','black','marker','^'};
+%   tomo_collate.surfdata_cmds(end).dem_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_nofilt/20140401_03/20140401_03_033_bottom.tif';
+%   tomo_collate.surfdata_cmds(end).dem_bad_value = -32767;
   
   % .fuse_images_flag: runs fuse_images.m when true
   tomo_collate.fuse_images_flag = true;
