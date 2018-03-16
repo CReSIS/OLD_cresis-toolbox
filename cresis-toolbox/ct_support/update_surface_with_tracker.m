@@ -3,6 +3,42 @@
 % Updates the Surface variable in an echogram using one of three surface
 % detections methods.
 %
+% surf: Parameters used to control the tracker. Only general parameters
+%   used within update_surface_with_tracker are included here. For more
+%   details about tracker specific parameters, look at the help for:
+%   tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
+%   tracker_max, tracker_snake_simple
+% .en: must be true for update_surface_with_tracker to run on a segment
+% .medfilt: scalar which specifies the length of a median filter to apply
+%   to the tracked data. Similar to medfilt1, but it handles edge
+%   conditions and allows for a threshold parameter to be set.
+% .medfilt_threshold: scalar used with medfilt. Median filter will only
+%   update in the difference of the median filter is more than this
+%   threshold. Default is 0 which means every pixel is updated.
+% .feedthru: all values in the radar image which exceed the power mask set
+%   by the time and power_dB vectors will be set to zero power. To get
+%   these values a typical procedure is: 
+%     plot(mdata.Time, lp(mean(mdata.Data,2)))
+%     [surf.feedthru.time,surf.feedthru.power_dB] = ginput; % Press enter to end the input
+%   .time: N length vector of two way travel times
+%   .power_dB: N length vector of power in dB
+% .method: string containing the method to use for tracking as long as
+%   manual mode is not enabled. Options:
+%    'threshold': runs tracker_threshold (generally the best for surface altimetry)
+%    'snake': runs tracker_snake_simple
+%    'max': tracker_max
+% .manual: Optional, default is false. If true, the manual version of
+%   tracker_snake_simple is run with tracker_snake_manual_gui.
+% .max_diff: used by tracker routines (optional, default is inf)
+% .min_bin: used by tracker routines
+% .max_bin: used by tracker routines (optional, default is not used)
+% .init.method: used by tracker routines (optional, default is not used)
+% .init.lidar_source: used by tracker routines (optional, default is not used)
+%
+% For more details about tracker specific parameters:
+% tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
+% tracker_max
+%
 % Example:
 %   See run_update_surface_with_tracker.m to run.
 %
@@ -11,11 +47,17 @@
 %% Automated Section
 % ----------------------------------------------------------------------
 physical_constants;
+global gRadar;
+
+if ~exist('debug_time_guard','var') || isempty(debug_time_guard)
+  debug_time_guard = 50e-9;
+end
 
 % gimp_geoid_loaded = false;
 
 for param_idx = 1:length(params)
   param = params(param_idx);
+  param = merge_structs(gRadar,param);
   
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
@@ -29,6 +71,10 @@ for param_idx = 1:length(params)
   
   if ~isfield(orig_surf,'max_diff')
     orig_surf.max_diff = inf;
+  end
+  
+  if ~isfield(orig_surf,'medfilt_threshold')
+    orig_surf.medfilt_threshold = 0;
   end
   
   fprintf('Updating surface %s (%s)\n', param.day_seg, datestr(now,'HH:MM:SS'));
@@ -88,6 +134,37 @@ for param_idx = 1:length(params)
       param.cmd.frms(find(bad_mask,1)));
     param.cmd.frms = valid_frms;
   end
+  
+  %% Get all the frames for this segment
+  if any(strcmpi(save_sources,'ops'))
+    opsAuthenticate(param,false);
+    sys = ct_output_dir(param.radar_name);
+    ops_param = struct('properties',[]);
+    ops_param.properties.season = param.season_name;
+    ops_param.properties.segment = param.day_seg;
+    [status,ops_seg_data] = opsGetSegmentInfo(sys,ops_param);
+  end
+  
+  %% Load LIDAR data if exists
+  if isfield(orig_surf,'init') && isfield(orig_surf.init,'lidar_source')
+    layer_params = [];
+    lay_idx = 1;
+    layer_params(lay_idx).name = 'surface';
+    layer_params(lay_idx).source = 'lidar';
+    layer_params(lay_idx).lidar_source = orig_surf.init.lidar_source;
+    
+    layers = opsLoadLayers(param,layer_params);
+    
+    % Ensure that layer gps times are monotonically increasing
+    lay_idx = 1;
+    layers_fieldnames = fieldnames(layers(lay_idx));
+    [~,unique_idxs] = unique(layers(lay_idx).gps_time);
+    for field_idx = 1:length(layers_fieldnames)-1
+      if ~isempty(layers(lay_idx).(layers_fieldnames{field_idx}))
+        layers(lay_idx).(layers_fieldnames{field_idx}) = layers(lay_idx).(layers_fieldnames{field_idx})(unique_idxs);
+      end
+    end
+  end
 
   %% Track each of the frames
   for frm_idx = 1:length(param.cmd.frms)
@@ -125,15 +202,15 @@ for param_idx = 1:length(params)
     end
     dt = mdata.Time(2) - mdata.Time(1);
 
-    if ~isfield(surf,'manual')
-      surf.manual = false;
+    if ~isfield(orig_surf,'manual')
+      orig_surf.manual = false;
     end
     
-    if isfield(surf,'feedthru')
+    if isfield(orig_surf,'feedthru')
       %% Optional feed through removal
       
       % Interpolate feed through power levels on to data time axis
-      feedthru_threshold = interp1(surf.feedthru.time,surf.feedthru.power_dB,mdata.Time);
+      feedthru_threshold = interp1(orig_surf.feedthru.time,orig_surf.feedthru.power_dB,mdata.Time);
       feedthru_threshold = interp_finite(feedthru_threshold,-inf);
       
       % Set all data to zero that does not exceed the feed through
@@ -143,6 +220,9 @@ for param_idx = 1:length(params)
       end
     end
     
+    %% Initialize surf.dem for dem and lidar methods
+    surf.dem = nan(size(mdata.GPS_time));
+
     %% Interpolate GIMP and Geoid
     if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
       mdata.sea_dem = interp2(sea_surface.lon,sea_surface.lat,sea_surface.elev,mod(mdata.Longitude,360),mdata.Latitude);
@@ -158,6 +238,23 @@ for param_idx = 1:length(params)
       surf.dem = interp_finite(surf.dem,length(mdata.Time)/2);
     end
     
+    %% Load LIDAR data if exists
+    if isfield(orig_surf,'init') && isfield(orig_surf.init,'lidar_source')
+      % Interpolate LIDAR onto RADAR time
+      lidar_interp_gaps_dist = [150 75];
+      ops_layer = [];
+      ops_layer{1}.gps_time = layers(lay_idx).gps_time;
+      ops_layer{1}.type = layers(lay_idx).type;
+      ops_layer{1}.quality = layers(lay_idx).quality;
+      ops_layer{1}.twtt = layers(lay_idx).twtt;
+      ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
+      ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
+      lay = opsInterpLayersToMasterGPSTime(mdata,ops_layer,lidar_interp_gaps_dist);
+      atm_layer = lay.layerData{1}.value{2}.data;
+      atm_layer = interp1(mdata.Time,1:length(mdata.Time),atm_layer);
+      surf.dem = merge_vectors(atm_layer, surf.dem);
+    end
+  
     surf.max_diff = orig_surf.max_diff/dt;
     
     %% Track the surface
@@ -179,7 +276,6 @@ for param_idx = 1:length(params)
     %% Run median filtering on tracked surface
     if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
       % OLD METHOD: new_surface = medfilt1(new_surface,surf.medfilt);
-      surf.medfilt_threshold = 10;
       for rline=1:length(new_surface)
         rlines = rline + (-surf.medfilt:surf.medfilt);
         rlines = rlines(rlines>=1 & rlines<=length(new_surface));
@@ -198,14 +294,14 @@ for param_idx = 1:length(params)
       imagesc([],mdata.Time,lp(mdata.Data));
       colormap(1-gray(256));
       hold on;
-      plot(Surface,'r');
-      if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
+      plot(Surface,'m');
+      if isfield(orig_surf,'init') && any(strcmpi(orig_surf.init.method,{'dem','lidar'}))
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem),'g')
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem-surf.max_diff),'r')
         plot(interp1(1:length(mdata.Time),mdata.Time,surf.dem+surf.max_diff),'b')
       end
       hold off;
-      %ylim([min(Surface)-10e-9 max(Surface)+10e-9])
+      ylim([min(Surface)-debug_time_guard max(Surface)+debug_time_guard])
       keyboard
     end
     
@@ -233,8 +329,8 @@ for param_idx = 1:length(params)
       ops_param = struct('properties',[]);
       ops_param.properties.location = param.post.ops.location;
       ops_param.properties.season = param.season_name;
-      ops_param.properties.start_gps_time = mdata.GPS_time(1);
-      ops_param.properties.stop_gps_time = mdata.GPS_time(end);
+      ops_param.properties.start_gps_time = ops_seg_data.properties.start_gps_time(frm);
+      ops_param.properties.stop_gps_time = ops_seg_data.properties.stop_gps_time(frm);
       
       sys = ct_output_dir(param.radar_name);
       [status,data] = opsGetPath(sys,ops_param);
@@ -242,7 +338,7 @@ for param_idx = 1:length(params)
       % Write the new layer information to these point path ID's
       ops_param = struct('properties',[]);
       ops_param.properties.point_path_id = data.properties.id;
-      ops_param.properties.twtt = interp1(mdata.GPS_time,Surface,data.properties.gps_time);
+      ops_param.properties.twtt = interp_finite(interp1(mdata.GPS_time,Surface,data.properties.gps_time));
       ops_param.properties.type = 2*ones(size(ops_param.properties.twtt));
       ops_param.properties.quality = 1*ones(size(ops_param.properties.twtt));
       ops_param.properties.lyr_name = save_ops_layer;

@@ -87,6 +87,10 @@ function [param] = load_accum2_data(param)
 %
 % See also get_heights.m, csarp.m, load_mcords.m, load_mcords_wfs.m
 
+if ~isfield(param.proc,'raw_data')
+  param.proc.raw_data = false;
+end
+
 load_accum2_data_tstart = tic;
 
 HEADER_SIZE = 0;
@@ -277,10 +281,12 @@ for board_idx = 1:length(boards)
         partial_hdr_size = HEADER_SIZE + wf*WF_HEADER_SIZE + (wf-1)*WF_FOOTER_SIZE;
         tmp = single(rec_data(1+mod(rel_adc-1,NUM_BOARDS) + ...
           NUM_ADCS_PER_BOARD*(0:wfs(wf).Nt_raw-1) + partial_hdr_size/2 + NUM_ADCS_PER_BOARD*wfs(wf).offset/2));
-        % Convert to volts, remove DC-bias, and apply trim
-        mean_tmp = mean(tmp(1+param.proc.trim_vals(1):end-param.proc.trim_vals(2)));
-        tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
-        tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V;
+        if ~param.proc.raw_data
+          % Convert to volts, remove DC-bias, and apply trim
+          mean_tmp = mean(tmp(1+param.proc.trim_vals(1):end-param.proc.trim_vals(2)));
+          tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
+          tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V;
+        end
         % Accumulate (presum)
         if num_accum == 0
           accum(board+1).data{accum_idx} = tmp;
@@ -300,6 +306,13 @@ for board_idx = 1:length(boards)
           wf_adc_idx = accum(board+1).wf_adc_idx(accum_idx);
           iq_mode = accum(board+1).iq_mode(accum_idx);
           
+          % Combine I&Q channels if necessary
+          if iq_mode == 1
+            continue;
+          elseif abs(iq_mode) >= 2
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx-1} + 1i*sign(iq_mode)*accum(board+1).data{accum_idx};
+          end
+          
           if param.proc.pulse_rfi.en
             pdata = abs(accum(board+1).data{accum_idx}).^2;
             inc_ave = param.proc.pulse_rfi.inc_ave;
@@ -317,15 +330,11 @@ for board_idx = 1:length(boards)
             end
           end
           % Apply channel compensation
-          chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-            .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-          accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}/chan_equal;
-          accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}/wfs(wf).adc_gains(adc);
-          % Combine I&Q channels if necessary
-          if iq_mode == 1
-            continue;
-          elseif abs(iq_mode) >= 2
-            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx-1} + 1i*sign(iq_mode)*accum(board+1).data{accum_idx};
+          if ~param.proc.raw_data
+            chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+              .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}/chan_equal;
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}/wfs(wf).adc_gains(adc);
           end
           
           if 0
@@ -369,21 +378,21 @@ for board_idx = 1:length(boards)
             accum(board+1).data{accum_idx} = fft([zeros(wfs(wf).pad_length,1); accum(board+1).data{accum_idx}]);
             % Zero pad end: (debug only)
             %accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx}, wfs(wf).Nt_pc);
-            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds) ...
-              .* wfs(wf).ref{adc}(wfs(wf).freq_inds));
-            if wfs(wf).dc_shift ~= 0
-              % Correct for small frequency offset caused by selecting bins from
-              % frequency domain as the method for down conversion
-              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
+            
+            % Apply matched filter and transform back to time domain
+            accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx} .* wfs(wf).ref{adc});
+            
+            if param.proc.ft_dec
+              % Digital down conversion and decimation
+              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
+              accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(wf).ft_dec(1), param.wfs(wf).ft_dec(2));
             end
+
           elseif param.proc.ft_dec
             accum(board+1).data{accum_idx} = fft(accum(board+1).data{accum_idx},wfs(wf).Nt_raw);
             accum(board+1).data{accum_idx} = ifft(accum(board+1).data{accum_idx}(wfs(wf).freq_inds));
-            if wfs(wf).dc_shift ~= 0
-              % Correct for small frequency offset caused by selecting bins from
-              % frequency domain as the method for down conversion
-              accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).dc_shift*wfs(wf).time);
-            end
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx}.*exp(-1i*2*pi*wfs(wf).fc*wfs(wf).time_raw);
+            accum(board+1).data{accum_idx} = resample(double(accum(board+1).data{accum_idx}), param.wfs(wf).ft_dec(1), param.wfs(wf).ft_dec(2));
           end
           if param.proc.combine_rx
             g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(board+1).data{accum_idx} / param.proc.presums / size(param.load.imgs{img_idx},1);

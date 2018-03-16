@@ -15,7 +15,7 @@ function [manual_idxs,auto_idxs,point_idxs] = find_matching_pnts(obj,param,cur_l
 mask = logical(ones(size(param.layer.x)));
 if mod(param.x_bounds,2)
   % Check for "must be a manual point"
-  mask = mask & param.layer.type{cur_layer} == 1;
+  mask = mask & param.layer.type{cur_layer} == 1 & ~isnan(param.layer.y{cur_layer});
 end
 if mod(floor(param.x_bounds/2),2)
   % Check for "must lie in the box drawn by user"

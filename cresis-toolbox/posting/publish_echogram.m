@@ -41,9 +41,6 @@ end
 if ~isfield(param,'axis_type') || isempty(param.axis_type)
   param.axis_type = 'standard';
 end
-if ~isfield(param,'plot_quality') || isempty(param.plot_quality) 
-  param.plot_quality = false;
-end
 if ~isfield(param,'caxis') || isempty(param.caxis) 
   param.caxis = [];
 end
@@ -54,6 +51,14 @@ end
 if ~isfield(param,'time_offset') || isempty(param.time_offset) 
   % Adds an offset to the two way travel time tics (in seconds)
   param.time_offset = 0;
+end
+if ~isfield(param,'plot_quality') || isempty(param.plot_quality) 
+  if isfield(lay.layerData{1},'quality')
+    % Color of layer plots will represent the quality level
+    param.plot_quality = true;
+  else
+    param.plot_quality = false;
+  end
 end
 if ~isreal(mdata.Data)
   warning('Input data are complex. Taking the abs()^2 of the data.');
@@ -254,6 +259,10 @@ elseif param.elev_comp == 3
 end
 
 % Create depth axis
+if all(isnan(lay.Surface))
+  warning('No surface points defined. Setting to zero.');
+  lay.Surface(:) = 0;
+end
 good_surface_vals = lay.Surface + fast_time_correction;
 good_surface_vals = good_surface_vals(isfinite(good_surface_vals));
 mean_surface_time = mean(good_surface_vals);
@@ -396,7 +405,7 @@ ah_echo = axes; % Depth axis with data
 if param.elev_comp == 3
   %% WGS-84 Elevation elevation comp plotting
   echogram_vals = lp(mdata.Data(depth_good_idxs,:));
-  
+
   if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'tonemap')
     echo_info.image = imagesc([],elev_axis(depth_good_idxs)+param.depth_offset, ...
       detrend_tonemap,'Parent',ah_echo);
@@ -408,6 +417,25 @@ if param.elev_comp == 3
   end
   set(ah_echo,'YDir','Normal');
   ylabel(ah_echo,sprintf('WGS-84 Elevation, e_r = %.2f (m)', param.er_ice));
+  
+elseif param.elev_comp == 2
+  %% Depth plot with surface variation compensation
+  echogram_vals = lp(mdata.Data(depth_good_idxs,:));
+  
+  if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'tonemap')
+    echo_info.image = imagesc([],Depth(depth_good_idxs)+param.depth_offset, ...
+      detrend_tonemap,'Parent',ah_echo);
+    axis(ah_echo_time,[0.5 size(detrend_tonemap,2)+0.5 (mean(lay.Surface) + depth_time([1 end]) + param.time_offset)*1e6]);
+  else
+    echo_info.image = imagesc([],Depth(depth_good_idxs)+param.depth_offset, ...
+      echogram_vals,'Parent',ah_echo);
+    axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 (mean(lay.Surface) + depth_time([1 end]) + param.time_offset)*1e6]);
+  end
+  if length(param.er_ice) == 1;
+    ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
+  else
+    ylabel(ah_echo,sprintf('depth, e_r from profile (m)', param.er_ice));
+  end
   
 else
   %% Everything except WGS-84 Elevation elevation comp plotting
@@ -501,11 +529,62 @@ else
   set(ah_echo_time,'Position',get(ah_echo,'Position'));
 end
 
-if isfield(param,'colormap') && ~isempty(param.colormap)
-  colormap(param.colormap);
+%% Set Colormap
+if isfield(param,'colormap') && isfield(param.colormap,'mode') && ~isempty(param.colormap.mode)
+  if strcmpi(param.colormap.mode,'QC')
+    if ~isfield(param.colormap,'img_sidelobe')
+      param.colormap.img_sidelobe = -45;
+    end
+    if ~isfield(param.colormap,'noise_buffer')
+      param.colormap.noise_buffer = -0.5;
+    end
+    if ~isfield(param.colormap,'noise_threshold_offset_dB')
+      param.colormap.noise_threshold_offset_dB = 8.2;
+    end
+    
+    % noise_rows: contains the rows that will be used to estimate noise power
+    yaxis_elev = elev_axis(depth_good_idxs)+param.depth_offset;
+    noise_rows = find((param.colormap.noise_buffer + yaxis_elev(1))>yaxis_elev,1);
+    
+    % noise_threshold: threshold value for color axis (set to be the median of
+    % the maximum noise power)
+    max_noise = nanmax(echogram_vals(1:noise_rows,:));
+    noise_threshold = nanmedian(max_noise)+param.colormap.noise_threshold_offset_dB;
+    
+    % Sets sidelobes to zero in CData: finds the max of each range line and all range
+    % bins that are img_sidelobe less than this max are set to zero (-inf on dB scale).
+    echogram_vals = get(echo_info.image,'CData');
+    for rline=1:size(echogram_vals,2)
+      echogram_vals(echogram_vals(:,rline) < max(echogram_vals(:,rline))+param.colormap.img_sidelobe,rline) = nan;
+    end
+    set(echo_info.image,'CData',echogram_vals);
+    
+    % noise_threshold: update this now that sidelobe threshold has been
+    % applied
+    max_noise = nanmax(echogram_vals(1:noise_rows,:));
+    noise_threshold_updated = nanmedian(max_noise)+param.colormap.noise_threshold_offset_dB;
+    if isfinite(noise_threshold_updated)
+      % Use the pre-sidelobe-thresholding noise threshold
+      noise_threshold = noise_threshold_updated;
+    end
+    
+    % Set the colormap
+    if isfinite(noise_threshold)
+      img_caxis = noise_threshold + [-6 +12];
+      caxis(ah_echo,img_caxis);
+      img_cmap = [gray(64); flipud(hsv(128))];
+      colormap(ah_echo,img_cmap)
+    else
+      keyboard
+      error('Failed to find valid noise threshold.');
+    end
+  else
+    colormap(ah_echo,param.colormap.mode);
+  end
 else
-  colormap(1-gray);
+  colormap(ah_echo,1-gray);
 end
+
 if ~isempty(param.caxis)
   if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'polynomial')
     check_vals = lp(mdata.Data(detrend_depth_good_idxs,:));
@@ -513,14 +592,14 @@ if ~isempty(param.caxis)
     check_vals = sort(check_vals(:));
     if length(check_vals) >= 2
       new_caxis = check_vals(1+round(param.caxis*(length(check_vals)-1)));
-      caxis(new_caxis);
+      caxis(ah_echo,new_caxis);
     end
   else
     echogram_vals = sort(echogram_vals(:));
     echogram_vals = echogram_vals(isfinite(echogram_vals));
     if length(echogram_vals) >= 2
       new_caxis = echogram_vals(1+round(param.caxis*(length(echogram_vals)-1)));
-      caxis(new_caxis);
+      caxis(ah_echo,new_caxis);
     end
   end
 end
@@ -531,28 +610,38 @@ echo_info.h_title = title(ah_echo,sprintf('Data Frame ID: %s', param.frm_id),'In
 hold on
 if param.plot_quality
   
+  % Surface
+  moderate_mask = lay.Surface_Quality~=2;
+  derived_mask = lay.Surface_Quality~=3;
+  good_mask = lay.Surface_Quality==2 | lay.Surface_Quality==3;
+  
   tmp_layer = DSurface;
-  tmp_layer(lay.Surface_Quality~=1) = NaN;
+  tmp_layer(good_mask) = NaN;
   echo_info.h_surf(1) = plot(tmp_layer,'g--');
   
   tmp_layer = DSurface;
-  tmp_layer(lay.Surface_Quality~=2) = NaN;
+  tmp_layer(moderate_mask) = NaN;
   echo_info.h_surf(2) = plot(tmp_layer,'y--');
   
   tmp_layer = DSurface;
-  tmp_layer(lay.Surface_Quality~=3) = NaN;
+  tmp_layer(derived_mask) = NaN;
   echo_info.h_surf(3) = plot(tmp_layer,'r--');
   
+  % Bottom
+  moderate_mask = lay.Bottom_Quality~=2;
+  derived_mask = lay.Bottom_Quality~=3;
+  good_mask = lay.Bottom_Quality==2 | lay.Bottom_Quality==3;
+  
   tmp_layer = DBottom;
-  tmp_layer(lay.Bottom_Quality~=1) = NaN;
+  tmp_layer(good_mask) = NaN;
   echo_info.h_bot(1) = plot(tmp_layer,'g--');
   
   tmp_layer = DBottom;
-  tmp_layer(lay.Bottom_Quality~=2) = NaN;
+  tmp_layer(moderate_mask) = NaN;
   echo_info.h_bot(2) = plot(tmp_layer,'y--');
   
   tmp_layer = DBottom;
-  tmp_layer(lay.Bottom_Quality~=3) = NaN;
+  tmp_layer(derived_mask) = NaN;
   echo_info.h_bot(3) = plot(tmp_layer,'r--');
 else
   echo_info.h_surf = plot(ah_echo,DSurface,'--m');

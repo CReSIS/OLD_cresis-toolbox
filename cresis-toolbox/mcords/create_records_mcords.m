@@ -122,7 +122,7 @@ for adc_idx = 1:length(param.records.file.adcs)
   [base_dir,adc_folder_name,filenames{adc_idx},file_idxs] = get_segment_file_list(param,adc);
 
   % Log file for each ADC
-  param.log_fn = ct_filename_tmp(param,param.records.records_fn,'records',sprintf('log_adc%d.txt',adc));
+  param.log_fn = ct_filename_tmp(param,'','records',sprintf('log_adc%d.txt',adc));
   
   % =================================================================
   %%% Execute tasks/jobs

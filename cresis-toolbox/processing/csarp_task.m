@@ -71,7 +71,9 @@ physical_constants;
 
 global g_data;
 
-param.load.records_fn = ct_filename_support(param,param.records.records_fn,'records');
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
+param.load.records_fn = ct_filename_support(param,'','records');
 
 if param.csarp.combine_rx && param.csarp.mocomp.en
   warning('CSARP motion compensation mode must be 0 for combine_rx (setting to 0)');
@@ -178,19 +180,19 @@ end
 
 %% Load waveforms
 % =========================================================================
-if strcmpi(param.radar_name,'mcrds')
+if strcmpi(radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,rec_data_size] = load_mcords_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'icards'}))% add icards----qishi
+elseif any(strcmpi(radar_name,{'icards'}))% add icards----qishi
   [wfs,rec_data_size] = load_icards_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
     load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   wfs = load_fmcw_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
 end
@@ -210,7 +212,7 @@ for idx = 1:length(param.load.imgs)
 end
 
 recs = param.load.recs - param.load.recs(1) + 1;
-if any(strcmpi(param.radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   % adc_headers: the actual adc headers that were loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -252,7 +254,7 @@ if any(strcmpi(param.radar_name,{'hfrds','icards','mcords','mcords2','mcords3','
 
     % Modify filename according to channel
     for file_idx = 1:length(load_param.load.filenames{idx})
-      if any(strcmpi(param.radar_name,{'mcords5'}))
+      if any(strcmpi(radar_name,{'mcords5'}))
         load_param.load.filenames{idx}{file_idx}(9:10) = sprintf('%02d',board);
       end
     end
@@ -267,7 +269,8 @@ if any(strcmpi(param.radar_name,{'hfrds','icards','mcords','mcords2','mcords3','
     end
   end
   load_param.load.file_version = param.records.file_version;
-elseif strcmpi(param.radar_name,'mcrds')
+  load_param.load.wfs = orig_records.settings.wfs;
+elseif strcmpi(radar_name,'mcrds')
   load_param.load.offset = orig_records.offset;
   load_param.load.file_rec_offset = orig_records.relative_rec_num;
   load_param.load.filenames = orig_records.relative_filename;
@@ -276,7 +279,7 @@ elseif strcmpi(param.radar_name,'mcrds')
   load_param.load.filepath = fullfile(base_dir, adc_folder_name);
   load_param.load.wfs = orig_records.settings.wfs;
   load_param.load.wfs_records = orig_records.settings.wfs_records;  
-elseif strcmpi(param.radar_name,'acords')
+elseif strcmpi(radar_name,'acords')
   load_param.load.offset = orig_records.offset;
   load_param.load.file_rec_offset = orig_records.relative_rec_num;
   load_param.load.filenames = orig_records.relative_filename;
@@ -285,7 +288,7 @@ elseif strcmpi(param.radar_name,'acords')
   load_param.load.filepath = fullfile(base_dir, adc_folder_name);
   load_param.load.wfs = orig_records.settings.wfs;
   load_param.load.wfs_records = orig_records.settings.wfs_records;
-elseif strcmpi(param.radar_name,'icards')% add icards---qishi
+elseif strcmpi(radar_name,'icards')% add icards---qishi
   load_param.load.offset = orig_records.offset;
   load_param.load.file_rec_offset = orig_records.relative_rec_num;
   load_param.load.filenames = orig_records.relative_filename;
@@ -294,7 +297,7 @@ elseif strcmpi(param.radar_name,'icards')% add icards---qishi
   load_param.load.filepath = fullfile(base_dir, adc_folder_name);
   load_param.load.wfs = orig_records.settings.wfs;
   load_param.load.wfs_records = orig_records.settings.wfs_records; 
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   % Determine which ADC boards are supported and which ones were actually loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -367,7 +370,7 @@ load_param.proc.coh_noise_arg      = param.csarp.coh_noise_arg;
 
 load_param.radar = param.radar;
 load_param.surface = orig_records.surface;
-if strcmpi(param.radar_name,'acords')
+if strcmpi(radar_name,'acords')
   load_param.load.file_version = param.records.file_version;
 end
 
@@ -376,29 +379,29 @@ end
 % Load data into g_data using load_mcords_data
 load_param.load.imgs = param.load.imgs;
 
-if strcmpi(param.radar_name,'mcords')
+if strcmpi(radar_name,'mcords')
   %   if strcmpi(param.season_name,'mcords_simulator')
   %     load_param.fn = get_filename(base_dir,'','','mat');
   %     load_simulated_data(load_param);
   %   else
   load_mcords_data(load_param);
   %   end
-elseif any(strcmpi(param.radar_name,{'hfrds','mcords2','mcords3','mcords4','mcords5','seaice'}))
+elseif any(strcmpi(radar_name,{'hfrds','mcords2','mcords3','mcords4','mcords5','seaice'}))
   load_mcords2_data(load_param);
-elseif strcmpi(param.radar_name,'accum2')
+elseif strcmpi(radar_name,'accum2')
   load_accum2_data(load_param);
-elseif strcmpi(param.radar_name,'acords')
+elseif strcmpi(radar_name,'acords')
   load_acords_data(load_param);
-elseif strcmpi(param.radar_name,'mcrds')
+elseif strcmpi(radar_name,'mcrds')
   if isfield(orig_records,'adc_phase_corr_deg') && isfield(param.radar,'adc_phase_corr_en') && param.radar.adc_phase_corr_en
     load_param.adc_phase_corr_deg = orig_records.adc_phase_corr_deg;
   else
     load_param.adc_phase_corr_deg = zeros(length(load_param.surface),max(orig_records.param_records.records.file.adcs));
   end
   load_mcrds_data(load_param);
-elseif strcmpi(param.radar_name,'icards')
+elseif strcmpi(radar_name,'icards')
   load_icards_data(load_param,param);
-elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
   load_param.proc.elev_correction = 0;%param.csarp.elev_correction;
   load_param.proc.deconvolution = param.csarp.deconvolution;
   load_param.proc.psd_smooth = param.csarp.psd_smooth;
@@ -462,7 +465,7 @@ lon = lon*180/pi;
 
 %% Remove coherent noise
 % =========================================================================
-if param.csarp.coh_noise_method && ~any(strcmpi(param.radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
+if param.csarp.coh_noise_method && ~any(strcmpi(radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
   
   if param.csarp.coh_noise_method == 3 && isempty(param.csarp.coh_noise_arg)
     param.csarp.coh_noise_arg = 255;

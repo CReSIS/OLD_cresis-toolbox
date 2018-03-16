@@ -36,6 +36,30 @@ if strcmpi(radar_setup,'MCORDS5')
   param.presums = 1;
 end
 
+%% RDS: MCORDS3_P3
+if strcmpi(radar_setup,'MCORDS3_P3')
+  [param,defaults] = default_radar_params_2014_Greenland_P3_mcords;
+  
+  % .file_search_mode: Specify how to search for a file: 'last_file', 'specific'
+  param.file_search_mode = '';
+
+  % .base_dir_search: cell vector of paths to search for data files
+  param.base_dir_search = {'/cresis/snfs1/data/MCoRDS/2014_Greenland_P3/20140401/'};
+  
+  % .img: wf-adc pair list which specifies which waveform-adc pairs to
+  %   analyze
+  param.img = cat(2,2*ones(15,1),[2:16].'); param.ref_wf_adc = 3;
+  
+  % .recs: two element vector specifying which records/range-lines to load
+  %   [start_record num_records]
+  param.recs = [0 inf];
+  
+  % .presums: Number of additional software presums (coherent averaging) to do
+  param.presums = 1;
+end
+
+
+
 %% Automated Section
 
 basic_radiometric_impulse_response(param,defaults);

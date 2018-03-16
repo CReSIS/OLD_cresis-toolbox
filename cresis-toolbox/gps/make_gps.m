@@ -8,8 +8,21 @@
 %  Can also do a cell array of strings in place of one of the strings and
 %  this will cause all the file to be concatenated into one output GPS file
 % file_type = 1 by N cell array of strings
-%  File format for each instance (e.g. 'Applanix', 'ATM', 'Litton', etc)
+%  File format for each cell in in_fn (e.g. 'Applanix', 'ATM', 'Litton', etc)
 %  Determines which read_gps_? function will be called
+%  Can also do a cell array of file type strings in place of one of the
+%  strings as long as the length matches the corresponding cell from in_fn.
+%  This allows the file type to be set on a per file basis.
+% in_fn_ins = 1 by N cell array of strings containing filenames (optional)
+%  Full path of input INS file (optional since INS often in GPS file)
+%  Can also do a cell array of strings in place of one of the strings and
+%  this will cause all the file to be concatenated into one output INS file
+% file_type_ins = 1 by N cell array of strings
+%  File format for each cell in in_fn_ins (e.g. 'Applanix', 'ATM', 'Litton', etc)
+%  Determines which read_gps_? or read_ins_? function will be called
+%  Can also do a cell array of file type strings in place of one of the
+%  strings as long as the length matches the corresponding cell from in_fn_ins.
+%  This allows the file type to be set on a per file basis.
 % params = 1 by N cell array of structures
 %  Parameters for each instance
 %  If the option to pass a cell array of filename strings for a single output GPS
@@ -87,39 +100,48 @@ for file_idx = 1:length(in_fns)
     params{file_idx} = repmat({params{file_idx}},size(in_fn));
   end
   clear gps;
+  separate_ins_data_flag = false;
   for in_fn_idx = 1:length(in_fn)
-    if strcmpi(file_type{file_idx},'Applanix')
+    if iscell(file_type{file_idx})
+      cur_file_type = file_type{file_idx}{in_fn_idx};
+    else
+      cur_file_type = file_type{file_idx};
+    end
+    if strcmpi(cur_file_type,'Applanix')
       gps_tmp = read_gps_applanix(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'awi_netcdf')
+    elseif strcmpi(cur_file_type,'awi_netcdf')
       gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'awi_netcdf+awi_netcdf')
+    elseif strcmpi(cur_file_type,'awi_netcdf+awi_netcdf')
       gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'cresis')
+    elseif strcmpi(cur_file_type,'cresis')
       gps_tmp = read_gps_cresis(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'DMSraw')
+    elseif strcmpi(cur_file_type,'DMSraw')
       gps_tmp = read_gps_dmsraw(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'General_ASCII')
+    elseif strcmpi(cur_file_type,'General_ASCII')
       gps_tmp = read_gps_general_ascii(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'Litton')
+    elseif strcmpi(cur_file_type,'Litton')
       gps_tmp = read_ins_litton(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'Litton_DGPS')
+    elseif strcmpi(cur_file_type,'Litton_DGPS')
       gps_tmp = read_gps_litton(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'NMEA')
+    elseif strcmpi(cur_file_type,'NMEA')
       gps_tmp = read_gps_nmea(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'Novatel')
+    elseif strcmpi(cur_file_type,'Novatel')
       gps_tmp = read_gps_novatel(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'Reveal')
+    elseif strcmpi(cur_file_type,'Reveal')
       gps_tmp = read_gps_reveal(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'Novatel_RPYGGA')
+    elseif strcmpi(cur_file_type,'Novatel_RPYGGA')
       gps_tmp = read_gps_novatel_rpygga(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif any(strcmpi(file_type{file_idx},{'Traj','Traj+Litton','Traj+Litton_DGPS','Traj+General_ASCII'}))
+    elseif any(strcmpi(cur_file_type,{'Traj','Traj+Litton','Traj+Litton_DGPS','Traj+General_ASCII'}))
       gps_tmp = read_gps_traj(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'TXT')
+    elseif strcmpi(cur_file_type,'TXT')
       gps_tmp = read_gps_txt(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(file_type{file_idx},'csv')
+    elseif strcmpi(cur_file_type,'csv')
       gps_tmp = read_gps_csv(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     else
-      error('Unrecognized GPS file type %s', file_type{file_idx});
+      error('Unrecognized GPS file type %s', cur_file_type);
+    end
+    if any(strcmpi(cur_file_type,{'Traj+Litton','Traj+Litton_DGPS','Traj+General_ASCII','awi_netcdf+awi_netcdf'}))
+      separate_ins_data_flag = true;
     end
     
     if in_fn_idx == 1
@@ -175,7 +197,7 @@ for file_idx = 1:length(in_fns)
   end
   
   %% Load INS data for special case where it is separate from GPS
-  if any(strcmpi(file_type{file_idx},{'Traj+Litton','Traj+Litton_DGPS','Traj+General_ASCII','awi_netcdf+awi_netcdf'}))
+  if separate_ins_data_flag
     if ischar(in_fns_ins{file_idx})
       in_fns_ins{file_idx} = {in_fns_ins{file_idx}};
     end
@@ -187,14 +209,23 @@ for file_idx = 1:length(in_fns)
       error('No input INS files found in in_fns{%d} variable. Usually this is because the file path is not setup.\n', file_idx);
     end
     for in_fn_idx = 1:length(in_fns_ins{file_idx})
+      if exist(file_type_ins,'var')
+        if iscell(file_type_ins{file_idx})
+          cur_file_type = file_type_ins{file_idx}{in_fn_idx};
+        else
+          cur_file_type = file_type_ins{file_idx};
+        end
+      else
+        cur_file_type = file_type{file_idx};
+      end
       fprintf('  INS file %s\n', in_fns_ins{file_idx}{in_fn_idx});
-      if strcmpi(file_type{file_idx},'Traj+Litton')
+      if strcmpi(cur_file_type,'Traj+Litton')
         ins_tmp = read_ins_litton(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
-      elseif strcmpi(file_type{file_idx},'Traj+Litton_DGPS')
+      elseif strcmpi(cur_file_type,'Traj+Litton_DGPS')
         ins_tmp = read_gps_litton(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
-      elseif strcmpi(file_type{file_idx},'Traj+General_ASCII')
+      elseif strcmpi(cur_file_type,'Traj+General_ASCII')
         ins_tmp = read_gps_general_ascii(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
-      elseif  strcmpi(file_type{file_idx},'awi_netcdf+awi_netcdf')
+      elseif  strcmpi(cur_file_type,'awi_netcdf+awi_netcdf')
         ins_tmp = read_gps_netcdf(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
       end
       if in_fn_idx == 1
@@ -410,12 +441,12 @@ for file_idx = 1:length(in_fns)
     end
 
     if isfield(gps,'radar_time')
-      save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','radar_time','sw_version');
+      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','radar_time','sw_version');
     else
-      save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','sw_version');
+      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','sw_version');
     end
   else
-    save(out_fn, '-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');
+    save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');
   end
   
   if debug_level >= 2

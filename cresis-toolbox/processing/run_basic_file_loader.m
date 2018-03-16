@@ -6,7 +6,7 @@
 
 %% Load data
 if 1
-  [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
+  [param,defaults] = default_radar_params_2017_Greenland_P3_accum;
   
   [data,fn,settings,default,gps,hdr,pc_param] = basic_file_loader(param,defaults);
   param.img = pc_param.img;
@@ -14,22 +14,25 @@ end
 
 %% Check Saturation
 if 1
-  wf = abs(param.img(1,1));
-  adc = abs(param.img(1,2));
-  figure(1); clf;
-  Nt = size(data,1);
-  dt = pc_param.time(2)-pc_param.time(1);
-  time = pc_param.time;
-  SATURATION_CORRECTION_FACTOR = 1722.5/4096;
-  h_plot = plot([1 size(data,2)],+SATURATION_CORRECTION_FACTOR*(2^12/2)*hdr.wfs(wf).presums/2^hdr.wfs(wf).bit_shifts*[1 1],'LineWidth',4,'LineStyle','--');
-  color = get(h_plot,'color');
-  hold on;
-  plot([1 size(data,2)],-SATURATION_CORRECTION_FACTOR*(2^12/2-1)*hdr.wfs(wf).presums/2^hdr.wfs(wf).bit_shifts*[1 1],'color',color,'LineWidth',4,'LineStyle','--');
-  h_plot = plot(max(real(data)),'color',color);
-  plot(max(imag(data)),'color',color);
-  plot(min(real(data)),'color',color);
-  plot(min(imag(data)),'color',color);
-  title(sprintf('wf: %d, adc: %d', wf, adc));
+  for wf_adc = 1:size(param.img,1)
+    wf = abs(param.img(wf_adc,1));
+    adc = abs(param.img(wf_adc,2));
+    figure(wf_adc); clf;
+    Nt = size(data,1);
+    dt = pc_param.time(2)-pc_param.time(1);
+    time = pc_param.time;
+    %SATURATION_CORRECTION_FACTOR = 1722.5/4096; % MCoRDS5-AWI POLAR6
+    SATURATION_CORRECTION_FACTOR = 4096/4096; % MCoRDS5-ACCUM P3
+    h_plot = plot([1 size(data,2)],+SATURATION_CORRECTION_FACTOR*(2^12/2)*hdr.wfs(wf).presums/2^hdr.wfs(wf).bit_shifts*[1 1],'LineWidth',4,'LineStyle','--');
+    color = get(h_plot,'color');
+    hold on;
+    plot([1 size(data,2)],-SATURATION_CORRECTION_FACTOR*(2^12/2-1)*hdr.wfs(wf).presums/2^hdr.wfs(wf).bit_shifts*[1 1],'color',color,'LineWidth',4,'LineStyle','--');
+    h_plot = plot(max(real(data(:,:,wf_adc))),'color',color);
+    plot(max(imag(data(:,:,wf_adc))),'color',color);
+    plot(min(real(data(:,:,wf_adc))),'color',color);
+    plot(min(imag(data(:,:,wf_adc))),'color',color);
+    title(sprintf('wf: %d, adc: %d', wf, adc));
+  end
 end
 
 %% Remove DC

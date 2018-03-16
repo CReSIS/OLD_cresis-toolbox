@@ -143,8 +143,10 @@ if isfield(surf,'init')
     new_surface_max = tracker_snake_simple(surf_data,surf.init);
   elseif strcmp(surf.init.method,'medfilt')
     new_surface_max = medfilt1(new_surface_max,surf.init.medfilt);
-  elseif strcmp(surf.init.method,'dem') & length(surf.dem) == size(surf_data,2)
-    new_surface_max = surf.dem - surf.min_bin + 1;
+  elseif strcmp(surf.init.method,'dem') && length(surf.dem) == size(surf_data,2)
+    new_surface_max(isfinite(surf.dem)) = surf.dem(isfinite(surf.dem)) - surf.min_bin + 1;
+  elseif strcmp(surf.init.method,'lidar') && length(surf.dem) == size(surf_data,2)
+    new_surface_max(isfinite(surf.dem)) = surf.dem(isfinite(surf.dem)) - surf.min_bin + 1;
   else
     error('Unsupported surface init method or surf.dem is wrong length');
   end

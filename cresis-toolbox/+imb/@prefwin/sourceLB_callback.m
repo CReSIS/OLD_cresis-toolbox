@@ -1,7 +1,28 @@
 function sourceLB_callback(obj,status,event)
 
+% Turn object into struct so we can check existence of fields
 h_status = get(status);
-if isfield(h_status,'Label') && strcmp(get(status,'Label'),'Remove')
+
+% Determine the name of the field that contains the selected menu item
+% 9.3 was first??? version using "Text" instead of "Label"
+if 0
+  matlab_ver = ver('matlab');
+  use_text = str2double(matlab_ver.Version) >= 9.3;
+elseif 1
+  if isfield(h_status,'Text')
+    use_text = 1;
+  else
+    use_text = 0;
+  end
+end
+
+if use_text
+  menu_field_name = 'Text';
+else
+  menu_field_name = 'Label';
+end
+
+if isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Remove')
   selected_items = get(obj.h_gui.sourceLB,'Value');
   items = get(obj.h_gui.sourceLB,'String');
   mask = logical(zeros(size(items)));
@@ -11,7 +32,7 @@ if isfield(h_status,'Label') && strcmp(get(status,'Label'),'Remove')
   set(obj.h_gui.sourceLB,'String',items);
   set(obj.h_gui.sourceLB,'Value',[]);
   
-elseif isfield(h_status,'Label') && strcmp(get(status,'Label'),'Add')
+elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Add')
   
   prompt = {'Enter new sources (E.g. CSARP_standard):'};
   dlg_title = 'Input new sources';

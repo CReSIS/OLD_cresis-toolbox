@@ -35,6 +35,14 @@ end
 
 [output_dir,radar_type] = ct_output_dir(param.radar_name);
 
+if strcmpi(type,'records') && isfield(param,'records') && isfield(param.records,'records_fn') && isempty(fn)
+  fn = param.records.records_fn;
+end
+
+if strcmpi(type,'frames') && isfield(param,'records') && isfield(param.records,'frames_fn') && isempty(fn)
+  fn = param.records.frames_fn;
+end
+
 if isempty(fn)
   if ~isfield(param,'day_seg') || isempty(param.day_seg)
     % Generate the default path

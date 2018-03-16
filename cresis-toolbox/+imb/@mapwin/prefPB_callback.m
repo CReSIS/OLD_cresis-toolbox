@@ -4,5 +4,6 @@ function prefPB_callback(obj,src,event)
 % Forces the pref window into the fore front
 
 set(obj.map_pref.h_fig,'Visible','on');
+figure(obj.map_pref.h_fig);
 
 return

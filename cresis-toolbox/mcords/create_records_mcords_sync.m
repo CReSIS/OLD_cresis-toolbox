@@ -25,7 +25,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   new_param = read_param_xls('/users/paden/scripts/branch/params-cr1/rds_param_2009_Antarctica_DC8.xls','20091028_02');
   %   new_param = read_param_xls('/users/paden/scripts/branch/params-cr1/rds_param_2011_Greenland_TO.xls','20110419_01');
   
-  fn = ct_filename_tmp(new_param,new_param.records.records_fn,'records','workspace');
+  fn = ct_filename_ct_tmp(new_param,'','records','workspace');
   fn = [fn '.mat'];
   fprintf('Loading workspace %s (%s)\n', fn, datestr(now));
   if exist(fn,'file')
@@ -94,15 +94,6 @@ if reprocessing_mode
     % range so the [2 4] includes files 2 and 4, use of +/- inf valid)
     param.records.file.rec_range = [1000 inf];
   end
-  
-  if 0
-    % If the record file name output needs to be changed, do it here.
-    % This is useful if you are breaking a segment into two after
-    % having read in all the files and you don't want to have to
-    % reread all the files just to break it into two groups.
-    param.records.records_fn = '/cresis/scratch1/mdce/csarp_support/records/mcords/2010_Greenland_DC8/records_20100420_seg3.mat';
-  end
-  
   
   if 0
     %% Incomplete method for finding good indices
@@ -456,7 +447,7 @@ end
 records.notes = '';
 records.param_records = param;
 
-records_fn = ct_filename_support(param,param.records.records_fn,'records');
+records_fn = ct_filename_support(param,'','records');
 fprintf('Saving records file %s (%s)\n',records_fn,datestr(now));
 save(records_fn,'-v7.3','-struct','records'); % Handle large file sizes, so use v7.3
 

@@ -1,4 +1,4 @@
-function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt] = load_fmcw_data(param,records)
+function [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt,img_nyquist_zone] = load_fmcw_data(param,records)
 % [img_time,img_valid_rng,img_deconv_filter_idx,img_freq] = load_fmcw_data(param,records)
 %
 % Loads and pulse compresses the FMCW data for functions like
@@ -104,8 +104,10 @@ for accum_idx = 1:length(accum(board).wf)
   num_sam = zeros(1,total_recs);
   time_offset = zeros(1,total_recs);
   nyquist_zone = zeros(1,total_recs);
+  waveform_ID = char(zeros(8,total_recs));
   presums = zeros(1,total_recs);
   bit_shifts = zeros(1,total_recs);
+  NCO_freq = zeros(1,total_recs);
   rline = 0;
   a_data = zeros(1,Nx,'single');
   
@@ -323,6 +325,40 @@ for accum_idx = 1:length(accum(board).wf)
            interp_flag = 0;
         end
       end
+      
+    elseif any(param.load.file_version == [8])
+      %% File Version 8: Carl Leuschen's Keysight + NI system
+      % Open file
+      [fid,msg] = fopen(fn,'r','ieee-be');
+      if fid < 1
+        fprintf('Could not open file %s\n', fn);
+        error(msg);
+      end
+      
+      % Read in records
+      for offset = param.load.offset{adc}(param.load.file_idx{adc} == file_idx)
+        rline = rline + 1;
+        % To determine size of data record we need and the time offset:
+        % 33: nyquist zone (external filter select)
+        % 34: presums
+        % 35: bit shifts
+        % 36: start index
+        % 38: stop index
+        % 40: waveform ID
+        fseek(fid,offset + 33,-1);
+        
+        % Currently we use only the first waveform header
+        nyquist_zone(rline) = fread(fid,1,'uint8');
+        presums(rline) = fread(fid,1,'uint8') + 1;
+        bit_shifts(rline) = -fread(fid,1,'int8');
+        start_idx(rline) = fread(fid,1,'uint16');
+        stop_idx = fread(fid,1,'uint16');
+        waveform_ID(:,rline) = char(fread(fid,8,'uint8')).';
+        num_sam(rline) = 2*(stop_idx - start_idx(rline));
+        
+        % Raw/real data
+        a_data(1:num_sam(rline),rline) = fread(fid,num_sam(rline),'int16=>single');
+      end
       % Close file
       fclose(fid);
       % Frame 13:
@@ -410,6 +446,16 @@ for accum_idx = 1:length(accum(board).wf)
   elseif ~isempty(param.radar.wfs(wf).nyquist_zone)
     nyquist_zone(:) = param.radar.wfs(wf).nyquist_zone;
   end
+  if ~isfield(param.radar.wfs(wf),'IF_trim') || isempty(param.radar.wfs(wf).IF_trim)
+    IF_trim = 0.5e6;
+  else
+    IF_trim = param.radar.wfs(wf).IF_trim;
+  end
+  if ~isfield(param.radar.wfs(wf),'max_nz') || isempty(param.radar.wfs(wf).max_nz)
+    max_nz = 3;
+  else
+    max_nz = param.radar.wfs(wf).max_nz;
+  end
   
   t_origin = 0;
   fs_raw = param.wfs(wf).fs_raw ./ Mt;
@@ -429,10 +475,17 @@ for accum_idx = 1:length(accum(board).wf)
   %  t_origin: start of transmit, should not change
   %  Tpd: pulse duration, should not change
   
-  if any(nyquist_zone > 3)
-    warning('Invalid Nyquist zone (greater than 3), resetting to NZ 2 or 3')
-    nyquist_zone(nyquist_zone > 3 & ~mod(nyquist_zone,2)) = 2;
-    nyquist_zone(nyquist_zone > 3 & mod(nyquist_zone,2)) = 3;
+  if any(nyquist_zone > max_nz)
+    warning('Invalid Nyquist zone (greater than %d), resetting to NZ %d or %d', max_nz, max_nz-1, max_nz);
+    if mod(max_nz,2)
+      % Max NZ is odd
+      nyquist_zone(nyquist_zone > max_nz & ~mod(nyquist_zone,2)) = max_nz-1; % Desired NZ is even
+      nyquist_zone(nyquist_zone > max_nz & mod(nyquist_zone,2)) = max_nz; % Desired NZ is odd
+    else
+      % Max NZ is even
+      nyquist_zone(nyquist_zone > max_nz & ~mod(nyquist_zone,2)) = max_nz; % Desired NZ is even
+      nyquist_zone(nyquist_zone > max_nz & mod(nyquist_zone,2)) = max_nz-1; % Desired NZ is odd
+    end
   end
   
   if ~isempty(param.radar.wfs(wf).record_start_idx)
@@ -476,7 +529,23 @@ for accum_idx = 1:length(accum(board).wf)
     start_bin = start_bin + find(good_mask,1)-1;
     stop_bin = stop_bin - (length(good_mask)-find(good_mask,1,'last'));
   end
-  
+
+  %% Remove unused/bad range bins
+  for rline = 1:size(a_data,2)
+    % Determine time gate for this range line
+    if isempty(param.radar.wfs(wf).good_rbins)
+      good_rbins(1) = 1 + start_bin/Mt(rline);
+      good_rbins(2) = stop_bin/Mt(rline);
+    else
+      good_rbins(1) = 1 + max(start_bin,param.radar.wfs(wf).good_rbins(1))/Mt(rline);
+      good_rbins(2) = min(stop_bin,param.radar.wfs(wf).good_rbins(2))/Mt(rline);
+    end
+    
+    num_sam(rline) = diff(good_rbins)+1;
+    a_data(1:num_sam(rline),rline,:) = a_data(good_rbins(1):good_rbins(2),rline,:);
+    a_data(num_sam(rline)+1:end,rline) = 0;
+  end  
+
   %% Convert from quantization to voltage @ ADC
   for rline = 1:size(a_data,2)
     quantization_to_V ...
@@ -487,16 +556,18 @@ for accum_idx = 1:length(accum(board).wf)
       % to the NCO_freq and is removed by the clip off bad IF freq code)
       a_data(:,rline,:) = a_data(:,rline,:) * quantization_to_V;
     else
-      a_data(:,rline,:) = (a_data(:,rline,:) - repmat(mean(a_data(:,rline,:)),[size(a_data,1),1,1])) * quantization_to_V;
+      a_data(1:num_sam(rline),rline,:) = bsxfun(@minus,a_data(1:num_sam(rline),rline,:), ...
+        mean(a_data(1:num_sam(rline),rline,:),1)) * quantization_to_V;
     end
   end
   
   if ~param.proc.pulse_comp
     img_time{1} = [];
-    img_valid_rng = [];
-    img_deconv_filter_idx = [];
-    img_freq = [];
+    img_valid_rng{1} = [];
+    img_deconv_filter_idx{1} = [];
+    img_freq{1} = [];
     img_Mt{1} = [];
+    img_nyquist_zone{1} = nyquist_zone;
     g_data{img_idx} = a_data;
     return;
   end
@@ -551,23 +622,12 @@ for accum_idx = 1:length(accum(board).wf)
   dt_raw = 1./fs_raw;
   start_time = zeros(1,size(a_data,2));
   for rline = 1:size(a_data,2)
-    %% Determine time gate for this range line
-    if isempty(param.radar.wfs(wf).good_rbins)
-      good_rbins(1) = 1 + start_bin/Mt(rline);
-      good_rbins(2) = stop_bin/Mt(rline);
-    else
-      good_rbins(1) = 1 + param.radar.wfs(wf).good_rbins(1)/Mt(rline);
-      good_rbins(2) = param.radar.wfs(wf).good_rbins(2)/Mt(rline);
-    end
-    
-    num_sam(rline) = good_rbins(2) - good_rbins(1) + 1; % Number of good samples in raw data
-    
     %% Clip off bad IF frequencies
     if ~DDC_or_raw_select(rline)
       %% DDC enabled
       %% Window and matched filter (FFT)
       a_data(1:standard_Nt(rline),rline,:) ...
-        = fftshift(fft(a_data(good_rbins(1):good_rbins(2),rline,:) ...
+        = fftshift(fft(a_data(1:num_sam(rline),rline,:) ...
         .* repmat(param.proc.ft_wind(num_sam(rline)),[1,1,size(a_data,3)]), standard_Nt(rline)));
       
       % Using standard Nt so that time bins always line up regardless of operation mode
@@ -606,17 +666,16 @@ for accum_idx = 1:length(accum(board).wf)
         time_offset(rline) = NCO_freq(rline) / abs(param.wfs(wf).chirp_rate);
       end
       %% Trim off aliased IF frequencies
-      freq_guard = 0.5e6;
       bad_if_freq_mask = logical(zeros(size(a_data,1),1));
-      bad_if_freq_mask(1:num_sam(rline)) = logical(freq_raw < nyquist_zone(rline)*param.wfs(wf).fs_raw/2+freq_guard ...
-        | freq_raw > (nyquist_zone(rline)+1)*param.wfs(wf).fs_raw/2-freq_guard);
+      bad_if_freq_mask(1:num_sam(rline)) = logical(freq_raw < nyquist_zone(rline)*param.wfs(wf).fs_raw/2+IF_trim ...
+        | freq_raw > (nyquist_zone(rline)+1)*param.wfs(wf).fs_raw/2-IF_trim);
       
       a_data(bad_if_freq_mask,rline) = 0;
     else
       %% No DDC (Raw)
       %% Window and matched filter (FFT)
       a_data(1:standard_Nt(rline),rline,:) ...
-        = fft(a_data(good_rbins(1):good_rbins(2),rline,:) ...
+        = fft(a_data(1:num_sam(rline),rline,:) ...
         .* repmat(param.proc.ft_wind(num_sam(rline)),[1,1,size(a_data,3)]), standard_Nt(rline));
       
       num_sam(rline) = standard_Nt(rline);
@@ -769,7 +828,7 @@ for accum_idx = 1:length(accum(board).wf)
       % 1-D FILTER
       a_data = fft(a_data,[],2);
       noise_bins = 1:round(size(a_data,1)*0.4);
-      bad_mask = lp(mean(abs(a_data(noise_bins,:,1)).^2)) > lp(median(mean(abs(a_data(noise_bins,:,1)).^2)))+param.proc.coh_noise_arg{2};
+      bad_mask = lp(nanmean(abs(a_data(noise_bins,:,1)).^2)) > lp(nanmedian(nanmean(abs(a_data(noise_bins,:,1)).^2)))+param.proc.coh_noise_arg{2};
       bad_mask = grow(bad_mask,param.proc.coh_noise_arg{3});
       bad_mask2 = filter2(Hwin/sum(Hwin),[ones(1,length(Hwin)/2-1/2) bad_mask ones(1,length(Hwin)/2-1/2)],'valid');
       for rbin = 1:size(a_data,1);
@@ -1027,7 +1086,7 @@ for accum_idx = 1:length(accum(board).wf)
     else
       freq_hack = param.wfs(wf).fc + (-floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
     end
-    a_data = ifft(fft(a_data) .* exp(j*2*pi*freq_hack*drange/(c/2)));
+    a_data = ifft(fft(a_data) .* exp(1i*2*pi*freq_hack*drange/(c/2)));
   
     % Set invalid bins to NaN, so that averaging with invalid bins results
     % in an invalid bin (NaN).
@@ -1242,6 +1301,7 @@ for accum_idx = 1:length(accum(board).wf)
   img_deconv_filter_idx{img_idx} = deconv_filter_idx;
   img_freq{img_idx} = freq;
   img_Mt{img_idx} = Mt;
+  img_nyquist_zone{img_idx} = nyquist_zone;
 end
 end
 

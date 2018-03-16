@@ -2,31 +2,36 @@
 %
 % This is a script which helps find the vectors.gps.time_offset field.
 % It is primarily useful over ocean where the surface is known to be flat.
+%
+
+error('USE run_fmcw_set_nyquist_zone_Tsys_GPSoffset.m IN PLACE OF THIS SCRIPT UNLESS YOU DO NOT HAVE THE REQUIRED INPUTS TO RUN THAT SCRIPT.\n');
 
 if 1
   % Only need to load things once
 %   records = load('/cresis/projects/dev/cr1/records/kuband/2009_Antarctica_DC8/records_20091018_01.mat');
 %   gps = load('/cresis/projects/dev/cr1/gps/2009_Antarctica_DC8/gps_20091018.mat');
-  records = load('/cresis/projects/dev/cr1/records/snow/2012_Antarctica_DC8/records_20121019_04.mat');
-  gps = load('/cresis/projects/dev/cr1/gps/2012_Antarctica_DC8/gps_20121019.mat');
+  records = load('/scratch/csarp_support/records/snow/2017_Greenland_P3/records_20170309_01.mat');
+  gps = load('/scratch/csarp_support/gps/2017_Greenland_P3/gps_20170309.mat');
 
   % Load ATM data
 
 end
 
+%% Plot
 figure(1); clf;
 
 % height_offset added to the red (radar) line
-height_offset = -23.3;
+height_offset = -23.3+42;
 gps_offset = 0;
 nz_sign = 1; % Change to -1 if Nyquist zone is flipped
 
 new_elev = interp1(gps.gps_time, gps.elev, records.gps_time + gps_offset);
 
 hold on;
-plot(gps.gps_time, gps.elev);
-% plot(records.gps_time + gps_offset, new_elev - records.surface*3e8/2 + height_offset, 'r');
-h_surface = plot(records.gps_time + gps_offset, records.elev - nz_sign*records.surface*3e8/2 + height_offset, 'g');
+plot(gps.gps_time-gps.gps_time(1), gps.elev);
+plot(records.gps_time-gps.gps_time(1) + gps_offset, +nz_sign*records.surface*3e8/2 + height_offset, 'r');
+
+h_surface = plot(records.gps_time-gps.gps_time(1) + gps_offset, new_elev - nz_sign*records.surface*3e8/2 + height_offset, 'g');
 grid on;
 hold off;
 

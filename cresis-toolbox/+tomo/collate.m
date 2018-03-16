@@ -2,7 +2,7 @@ function collate(param, param_override)
 % tomo.collate(param, param_override)
 %
 % Usually this function is called from tomo.run_collate.
-% Calls tomo.collate_task.
+% Calls tomo_collate_task.
 %
 % Inputs:
 %   param = struct with processing parameters
@@ -10,18 +10,20 @@ function collate(param, param_override)
 %     in param.
 %
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
-%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfdata,
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
 param = merge_structs(param,param_override);
 
+dbstack_info = dbstack;
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
+fprintf('=====================================================================\n');
+
 %% Determine which frames we will operate on
 % Load frames file
-if ~isfield(param.records,'frames_fn')
-  param.records.frames_fn = '';
-end
-load(ct_filename_support(param,param.records.frames_fn,'frames'));
+load(ct_filename_support(param,'','frames'));
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
@@ -45,11 +47,11 @@ if 0
   %   Options file: ~/.matlab/R2015b/mex_C++_glnxa64.xml
   % Replace -std=c++11 with -std=c++0x (should occur in two places)
   % Reference: http://stackoverflow.com/questions/14674597/cc1plus-error-unrecognized-command-line-option-std-c11-with-g
-  mex -largeArrayDims fuse.cpp
   mex -largeArrayDims train_model.cpp
   mex -largeArrayDims detect.cpp
   mex -largeArrayDims extract.cpp
-  mex -largeArrayDims refine.cpp
+  mex -largeArrayDims viterbi.cpp
+  mex -largeArrayDims trws.cpp
 end
 
 %% Initialize Torque setup
@@ -57,13 +59,13 @@ if strcmpi(param.sched.type,'custom_torque')
   global ctrl; % Make this global for convenience in debugging
   ctrl = torque_new_batch(param);
   fprintf('Torque batch: %s\n', ctrl.batch_dir);
-  torque_compile('collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
+  torque_compile('tomo_collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
 end
 
 %% Create Tasks
 task_param = param;
-fh = @collate_task;
-for frm_idx = 1:length(param.cmd.frms)
+fh = @tomo_collate_task;
+for frm_idx = 1:length(param.cmd.frms) 
   frm = param.cmd.frms(frm_idx);
   task_param.proc.frm = frm;
   arg = {task_param};

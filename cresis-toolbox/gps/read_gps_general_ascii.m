@@ -21,7 +21,7 @@ function gps = read_gps_general_ascii(fn,param)
 %
 % NAME          , -- LATITUDE --, -- LONGITUDE --,   HEIGHT,Q,StDev,-- VE --,-- VN --,-- VZ -- (velocity m/s)
 % 000327074.000 , 67 05 35.91995, -50 17 04.50389,  245.120,5,0.506,  -0.038,  -0.022,   0.059,
-
+%
 % fn = 'P:\HF_Sounder\Greenland2016\ProcessedGPS\04132016_UAV.csv';
 % param = [];
 % param.format_str = '%f%s%s%f%f%f%f%f%f';
@@ -32,6 +32,34 @@ function gps = read_gps_general_ascii(fn,param)
 % param.year = 2016;
 % param.month = 4;
 % param.day = 13;
+% gps = read_gps_general_ascii(fn,param);
+%
+% Example 3: Britsh Antarctic Survey CSV 
+%
+%    UTCDate	    UTCTime	     Longitude	      Latitude	       H-Ell	Q	    SDHeight	  PDOP	GP	     AccBiasZ	     AccBiasX	     AccBiasY	         Pitch	          Roll	       Heading	        GPSCOG
+%  2/01/2016	5:59:28 PM	-59.75016014	-83.25601022	154.428	1	0.021	1.63	10	0.0114794	1.22E-02	1.14E-03	-0.566398	2.903631	-165.146049	0
+%
+% fn = 'E:\Documents\Proposals\NSF_THWAITES\BAS_GPS_Example\FOU1.csv'
+% param = [];
+% param.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
+% param.types = {'date_MDY','time_HMS','lon_deg','lat_deg','elev_m','Q','SDHeight','PDOP','GP','AccBiasZ','AccBiasX','AccBiasY','pitch_deg','roll_deg','heading_deg','GPSCOG'};
+% param.textscan = {'delimiter',','};
+% param.headerlines = 23;
+% param.time_reference = 'utc';
+% gps = read_gps_general_ascii(fn,param);
+%
+% % Example 4: University of Alaska Fairbanks, Chris Larsen, LIDAR CSV
+%
+% fn = '/cresis/snfs1/dataproducts/metadata/2017_Antarctica_Basler/20171216/171215_190034.pos';
+% param = [];
+% param.format_str = '%f%f%f%f%f%f%f';
+% param.types = {'sec','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg'};
+% param.textscan = {};
+% param.headerlines = 1;
+% param.time_reference = 'utc';
+% param.year = 2017;
+% param.month = 12;
+% param.day = 15;
 % gps = read_gps_general_ascii(fn,param);
 %
 % Author: John Paden
@@ -80,40 +108,70 @@ num_rows = -1;
 gps = [];
 
 % Create gps time field
+year = [];
+month = [];
+day = [];
+hour = [];
+minute = [];
+sec = [];
+if isfield(tmp_gps,'date_MDY')
+  datenums = zeros(size(tmp_gps.date_MDY));
+  for row=1:length(tmp_gps.date_MDY)
+    try
+      datenums(row) = datenum(tmp_gps.date_MDY{row});
+    catch ME
+      warning('Row %d failed: %s\n', row, ME.getReport);
+      datenums(row) = NaN;
+    end
+  end
+  [year,month,day] = datevec(datenums);
+end
+if isfield(tmp_gps,'time_HMS')
+  datenums = zeros(size(tmp_gps.time_HMS));
+  for row=1:length(tmp_gps.time_HMS)
+    try
+      datenums(row) = datenum(tmp_gps.time_HMS{row});
+    catch ME
+      warning('Row %d failed: %s\n', row, ME.getReport);
+      datenums(row) = NaN;
+    end
+  end
+  [~,~,~,hour,minute,sec] = datevec(datenums);
+end
 if isfield(tmp_gps,'year')
   year = tmp_gps.year;
 elseif isfield(param,'year')
   year = param.year;
-else
+elseif isempty(year)
   year = 0;
 end
 if isfield(tmp_gps,'month')
   month = tmp_gps.month;
 elseif isfield(param,'month')
   month = param.month;
-else
+elseif isempty(month)
   month = 0;
 end
 if isfield(tmp_gps,'day')
   day = tmp_gps.day;
 elseif isfield(param,'day')
   day = param.day;
-else
+elseif isempty(day)
   day = 0;
 end
 if isfield(tmp_gps,'hour')
   hour = tmp_gps.hour;
-else
+elseif isempty(hour)
   hour = 0;
 end
 if isfield(tmp_gps,'minute')
   minute = tmp_gps.minute;
-else
+elseif isempty(minute)
   minute = 0;
 end
 if isfield(tmp_gps,'sec')
   sec = tmp_gps.sec;
-else
+elseif isempty(sec)
   sec = 0;
 end
 gps.gps_time = datenum_to_epoch(datenum(year,month,day,hour,minute,sec));

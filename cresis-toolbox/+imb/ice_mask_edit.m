@@ -156,15 +156,16 @@ classdef ice_mask_edit < handle
       set(obj.h_dem_fig,'NumberTitle','off');
       set(obj.h_dem_fig,'ToolBar','none');
       set(obj.h_dem_fig,'MenuBar','none');
-      set(obj.h_dem_fig,'Name','Satellite Image');
+      set(obj.h_dem_fig,'Name','Satellite');
       pos = get(obj.h_dem_fig,'Position');
       pos(3) = pos(3)+70+60;
       set(obj.h_dem_fig,'Position',pos);
       
       obj.gui.left_panel = uipanel('parent',obj.h_dem_fig);
       obj.gui.right_panel = uipanel('parent',obj.h_dem_fig);
-      obj.h_dem_axes = axes('Parent',obj.gui.right_panel,'YDir','normal');
+      obj.h_dem_axes = axes('Parent',obj.gui.right_panel);
       obj.h_dem_plot = imagesc(obj.dem_x/1e3,obj.dem_y/1e3,obj.dem,'Parent',obj.h_dem_axes);
+      set(obj.h_dem_axes,'YDir','normal');
       xlabel(obj.h_dem_axes,'X (km)');
       ylabel(obj.h_dem_axes,'Y (km)');
       hold(obj.h_dem_axes,'on')
@@ -176,8 +177,9 @@ classdef ice_mask_edit < handle
       set(obj.h_mask_fig,'MenuBar','none');
       set(obj.h_mask_fig,'Name','Ice Mask');
       
-      obj.h_mask_axes = axes('Parent',obj.h_mask_fig,'YDir','normal');
+      obj.h_mask_axes = axes('Parent',obj.h_mask_fig);
       obj.h_mask_plot = imagesc(obj.ice_x/1e3,obj.ice_y/1e3,obj.mask,'Parent',obj.h_mask_axes);
+      set(obj.h_mask_axes,'YDir','normal');
       xlabel(obj.h_mask_axes,'X (km)');
       ylabel(obj.h_mask_axes,'Y (km)');
       hold(obj.h_mask_axes,'on')
@@ -613,6 +615,10 @@ classdef ice_mask_edit < handle
       
       gray_idx = find(obj.dem_y_mesh>=y_p_lim(1) & obj.dem_y_mesh<=y_p_lim(2) &...
         obj.dem_x_mesh>=x_p_lim(1) & obj.dem_x_mesh<=x_p_lim(2));
+      
+      if isempty(gray_idx)
+        return
+      end
       
       gray_tmp = obj.gray(gray_idx);
       x_tmp = obj.dem_x_mesh(gray_idx);

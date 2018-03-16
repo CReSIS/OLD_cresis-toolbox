@@ -18,7 +18,7 @@ param = [];
 counter_correction_en = false;
 
 % Enable Just One Radar Setup
-radar_setup = 'KUBAND3';
+radar_setup = 'mcords5';
 
 %% Accum 1
 if strcmpi(radar_setup,'ACCUM')
@@ -109,10 +109,10 @@ if strcmpi(radar_setup,'KUBAND3')
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
   param.season_name = '2016_Antarctica_DC8';
-  base_dir = '/process/fmcw/kuband/';
+  base_dir = '/process3/20161115/fmcw/kuband/';
   param.adc_folder_name = '';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20161017'; % Only used for stdout print of the vectors worksheet
+  day_string = '20161115'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: ACORDS
@@ -138,8 +138,8 @@ end
 %% RDS: MCoRDS 3
 if strcmpi(radar_setup,'MCORDS3')
   param.radar_name = 'mcords3';
-  param.clk = 150e6;
-  adcs = [1 5];
+  param.clk = 1e9/9;
+  adcs = [1 5 9 13];
   raw_file_suffix = '.bin';
   reuse_tmp_files = true; % Set to false if you want to overwrite current results
   file_prefix_override = ''; % most of the time
@@ -148,12 +148,12 @@ if strcmpi(radar_setup,'MCORDS3')
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2016_Antarctica_DC8';
-  base_dir = '/process/mcords/';
+  param.season_name = '2017_Greenland_P3';
+  base_dir = '/process3/';
 %   base_dir = '/net/field1/landing/mcords/';
-  param.adc_folder_name = 'board%b';
+  param.adc_folder_name = '20170320/mcords/board%b';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20161014'; % Only used for stdout print of the vectors worksheet
+  day_string = '20170320'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: MCoRDS 4
@@ -177,20 +177,20 @@ end
 if strcmpi(radar_setup,'MCORDS5')
   param.radar_name = 'mcords5';
   param.clk = 1.6e9/8;
-  adcs = 1:24;
+  adcs = 1:8;
   raw_file_suffix = '.bin';
   reuse_tmp_files = true; % Set to false if you want to overwrite current results
   file_prefix_override = ''; % most of the time
   counter_correction_en = true;
-  presum_bug_fixed = true; % Seasons from 2015 Greenland Polar6 onward should be set to true
+  presum_bug_fixed = false; % Seasons from 2015 Greenland Polar6 onward should be set to true, except for 2017 Antarctica Basler which uses the cresis DDS with this bug
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2017_Antarctica_Polar6';
-  base_dir = '/cresis/snfs1/scratch/2016_Germany_AWI_tests/AWI_ICE_bak/test_flight/';
-  param.adc_folder_name = 'chan%d';
+  param.season_name = '2017_Antarctica_Basler';
+  base_dir = '/cresis/snfs1/data/MCoRDS/2017_Antarctica_Basler/';
+  param.adc_folder_name = '20171021/chan%d';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20160830'; % Only used for stdout print of the vectors worksheet
+  day_string = '20171021'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 1
@@ -288,10 +288,29 @@ if strcmpi(radar_setup,'SNOW5')
   expected_rec_sizes = [60480      120864      181296];
 end
 
+%% SNOW8
+if strcmpi(radar_setup,'SNOW8')
+  param.radar_name = 'snow8';
+  param.clk = 250e6;
+  adcs = 1;
+  param.file_version = 8;
+  raw_file_suffix = '.bin';
+  reuse_tmp_files = false; % Set to false if you want to overwrite current results
+  file_prefix_override = 'snow8'; % most of the time
+  counter_correction_en = false;
+  
+  % Parameters below this point OFTEN NEEDS TO BE CHANGED
+  param.season_name = '2017_Greenland_P3';
+  base_dir = '/process3/';
+  param.adc_folder_name = '20170320/fmcw/snow/';
+  file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  day_string = '20170320'; % Only used for stdout print of the vectors worksheet
+end
+
 %% User Settings that should not generally be changed
 % You may have to set to false to read some of the results from this function when it was first written (should always be true)
 tmp_fn_uses_adc_folder_name = true;
-online_mode = false;
+
 
 MIN_SEG_SIZE = 2;
 MAX_TIME_GAP = 1000/75;

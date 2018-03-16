@@ -23,27 +23,27 @@ fig_h = 1;
 dt = 1;
 
 % data_source: string 'gps' or 'records' (which files in csarp_support to use)
-data_source = 'records';
+data_source = 'gps';
 
 % Greenland
-% geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif'));
+geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif')); % (use for OIB coverage maps)
 % geotiff_fn = ct_filename_gis(gRadar,fullfile('arctic','Landsat-7','arctic_natural_90m.tif'));
-geotiff_fn = ct_filename_gis(gRadar,fullfile('greenland','Landsat-7','Greenland_natural.tif'));
+% geotiff_fn = ct_filename_gis(gRadar,fullfile('greenland','Landsat-7','Greenland_natural.tif'));
 % geotiff_fn = ct_filename_gis(gRadar,fullfile('canada','Landsat-7','Canada_90m.tif'));
-axis_limits = [-1024        -207       -1363        -560];
+axis_limits = [-2300 1000 -3500 1500]; % All of Arctic (use for OIB coverage maps)
 
 % Antarctica
-% geotiff_fn = ct_filename_gis(gRadar,fullfile('antarctica','NaturalEarth_Data','Antarctica_NaturalEarth.tif'));
-% axis_limits = [-2800    500       -1500       1800];
+% geotiff_fn = ct_filename_gis(gRadar,fullfile('antarctica','NaturalEarth_Data','Antarctica_NaturalEarth.tif')); % (use for OIB coverage maps)
+% axis_limits = [-3000 1000 -1500 2500]; % All of Antarctica (use for OIB coverage maps)
 
 % Cell vector of param spreadsheet filenames
-param_fns = {ct_filename_param('rds_param_2014_Greenland_P3.xls')};
+param_fns = {ct_filename_param('rds_param_2016_Greenland_P3.xls'),ct_filename_param('rds_param_2017_Greenland_P3.xls')};
 
 % plot_args: cell array of argument to plot function (e.g. 'b.' for blue dots)
-plot_args = {'b-','LineWidth',1};
+plot_args = {'LineWidth',1};
 
 % along_track_sampling: desired along track sampling of plot (m)
-along_track_sampling = 50;
+along_track_sampling = 100;
 
 % label: Add text labels to the plots for specific frames
 %  .day_seg: cell list of day segments to match
@@ -90,9 +90,9 @@ for param_fn_idx = 1:length(param_fns)
       continue;
     end
     
-    if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
-      continue;
-    end
+%     if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+%       continue;
+%     end
     
     if isempty(regexpi(param.cmd.notes,'do not process'))
       yyyymmdd_list{end+1} = param.yyyymmdd;
@@ -102,16 +102,21 @@ for param_fn_idx = 1:length(param_fns)
         gps = load(gps_fn,'gps_time','lat','lon');
       elseif strcmp(data_source,'records')
         records_fn = ct_filename_support(param,[],'records');
+        if ~exist(records_fn,'file')
+          warning('No records file: %s\n', records_fn);
+          continue;
+        end
+        frames_fn = ct_filename_support(param,'','frames');
+        if ~exist(frames_fn,'file')
+          warning('No frames file: %s\n', frames_fn);
+          continue;
+        end
         
         fprintf('  Processing %s: %s (%s)\n', param.day_seg, records_fn, datestr(now,'HH:MM:SS'));
         gps = load(records_fn,'gps_time','lat','lon');
         
-        if ~isfield(param.records,'frames_fn')
-          param.records.frames_fn = '';
-        end
-        
         % Load frames file
-        load(ct_filename_support(param,param.records.frames_fn,'frames'));
+        load(frames_fn);
         
         if isempty(param.cmd.frms)
           param.cmd.frms = 1:length(frames.frame_idxs);

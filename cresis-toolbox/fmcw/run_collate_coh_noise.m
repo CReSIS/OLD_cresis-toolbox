@@ -7,40 +7,38 @@
 %% USER SETTINGS
 % =========================================================================
 
-% param_fn = ct_filename_param('snow_param_2009_Greenland_P3.xls');
-% param_fn = ct_filename_param('snow_param_2009_Antarctica_DC8.xls');
-% param_fn = ct_filename_param('snow_param_2010_Greenland_DC8.xls');
-% param_fn = ct_filename_param('snow_param_2010_Greenland_P3.xls');
-% param_fn = ct_filename_param('snow_param_2010_Antarctica_DC8.xls');
-% param_fn = ct_filename_param('snow_param_2011_Greenland_P3.xls');
-% param_fn = ct_filename_param('snow_param_2011_Antarctica_DC8.xls');
-% param_fn = ct_filename_param('snow_param_2012_Greenland_P3.xls');
-% param_fn = ct_filename_param('snow_param_2012_Antarctica_DC8.xls');
-% param_fn = ct_filename_param('snow_param_2014_Greenland_P3.xls');
-% param_fn = ct_filename_param('snow_param_2015_Greenland_C130.xls');
-param_fn = ct_filename_param('snow_param_2016_Greenland_P3.xls');
+% params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2014_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_C130.xls'),'',{'analysis_coh_noise','analysis'});
+params = read_param_xls(ct_filename_param('snow_param_2016_Antarctica_DC8.xls'),'20161022_05',{'analysis_coh_noise','analysis'});
+params.cmd.generic = 1;
 
-% param_fn = ct_filename_param('kuband_param_2009_Greenland_P3.xls');
-% param_fn = ct_filename_param('kuband_param_2009_Antarctica_DC8.xls');
-% param_fn = ct_filename_param('kuband_param_2010_Greenland_DC8.xls');
-% param_fn = ct_filename_param('kuband_param_2010_Greenland_P3.xls');
-% param_fn = ct_filename_param('kuband_param_2010_Antarctica_DC8.xls');
-% param_fn = ct_filename_param('kuband_param_2011_Greenland_P3.xls');
-% param_fn = ct_filename_param('kuband_param_2011_Antarctica_DC8.xls');
-% param_fn = ct_filename_param('kuband_param_2012_Greenland_P3.xls');
-% param_fn = ct_filename_param('kuband_param_2012_Antarctica_DC8.xls');
-% param_fn = ct_filename_param('kuband_param_2014_Greenland_P3.xls');
-% param_fn = ct_filename_param('kuband_param_2015_Greenland_C130.xls');
+% params = read_param_xls(ct_filename_param('kuband_param_2009_Antarctica_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2010_Greenland_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2010_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2010_Antarctica_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2011_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2011_Antarctica_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2012_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2012_Antarctica_DC8.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2014_Greenland_P3.xls'),'',{'analysis_coh_noise','analysis'});
+% params = read_param_xls(ct_filename_param('kuband_param_2015_Greenland_C130.xls'),'',{'analysis_coh_noise','analysis'});
+params = read_param_xls(ct_filename_param('snow_param_2016_Antarctica_DC8.xls'),'20161022_05',{'analysis_coh_noise','analysis'});
 
 coh_ave_file_input_type = 'noise';
 coh_ave_file_output_type = 'noise';
 
-analysis_sheet_name = {'analysis_coh_noise','analysis'};
-day_seg = '';
-
 debug_level = 0;
-imgs = 1;
-wf_adcs = 1;
+imgs = [1];
+wf_adcs = [1];
 
 %% AUTOMATED SECTION
 

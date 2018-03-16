@@ -51,45 +51,46 @@ end
 for param_idx = 1:length(params)
   param = params(param_idx);
   cmd = param.cmd;
+  [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
   
   if isfield(cmd,'create_vectors') && cmd.create_vectors
-    if strcmpi(param.radar_name,'mcords')
+    if strcmpi(radar_name,'mcords')
       create_vectors_mcords(param,param_override);
-    elseif any(strcmpi(param.radar_name,{'mcords4','mcords3','mcords2','seaice'}))
+    elseif any(strcmpi(radar_name,{'mcords4','mcords3','mcords2','seaice'}))
       create_vectors_mcords2(param,param_override);
-    elseif strcmpi(param.radar_name,'mcrds')
+    elseif strcmpi(radar_name,'mcrds')
       create_vectors_mcrds(param,param_override);
-    elseif strcmpi(param.radar_name,'accum')
+    elseif strcmpi(radar_name,'accum')
       create_vectors_accum(param,param_override);
-    elseif strcmpi(param.radar_name,'accum2')
+    elseif strcmpi(radar_name,'accum2')
       create_vectors_accum2(param,param_override);
-    elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3'}))
+    elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3'}))
       create_vectors_fmcw(param,param_override);
-    elseif strcmpi(param.radar_name,'acords')
+    elseif strcmpi(radar_name,'acords')
       create_vectors_acords(param,param_override);
     end
   end
   if isfield(cmd,'create_records') && cmd.create_records
-    if strcmpi(param.radar_name,'mcords')
+    if strcmpi(radar_name,'mcords')
       original_sched = param_override.sched.type;
       param.sched.type = 'no scheduler';
       create_records_mcords(param,param_override);
       param.sched.type = original_sched;
-    elseif any(strcmpi(param.radar_name,{'hfrds'}))
+    elseif any(strcmpi(radar_name,{'hfrds'}))
       hfrds.create_records(param,param_override);
-    elseif any(strcmpi(param.radar_name,{'mcords5','mcords4','mcords3','mcords2','seaice'}))
+    elseif any(strcmpi(radar_name,{'mcords5','mcords4','mcords3','mcords2','seaice'}))
       create_records_mcords2(param,param_override);
-    elseif strcmpi(param.radar_name,'mcrds')
+    elseif strcmpi(radar_name,'mcrds')
       create_records_mcrds(param,param_override);
-    elseif strcmpi(param.radar_name,'icards')
+    elseif strcmpi(radar_name,'icards')
       create_records_icards(param,param_override);
-    elseif strcmpi(param.radar_name,'accum')
+    elseif strcmpi(radar_name,'accum')
       create_records_fmcw_accum(param,param_override);
-    elseif strcmpi(param.radar_name,'accum2')
+    elseif strcmpi(radar_name,'accum2')
       create_records_accum2(param,param_override);
-    elseif any(strcmpi(param.radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+    elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
       create_records_fmcw_accum(param,param_override);
-    elseif strcmpi(param.radar_name,'acords')
+    elseif strcmpi(radar_name,'acords')
       create_records_acords(param,param_override);
     end
   end

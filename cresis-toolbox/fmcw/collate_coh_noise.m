@@ -15,7 +15,6 @@
 % files can be loaded efficiently.
 % =========================================================================
 
-params = read_param_xls(param_fn,day_seg,analysis_sheet_name);
 for param_idx = 1:length(params)
   param = params(param_idx);
   
@@ -25,7 +24,8 @@ for param_idx = 1:length(params)
   end
   
   %% Segment must have selected this type of coherent noise removal
-  if ~any(param.get_heights.coh_noise_method == [7 9 17 19])
+  if ~isfield(param.get_heights,'coh_noise_method') || isempty(param.get_heights.coh_noise_method) || ~any(param.get_heights.coh_noise_method == [7 9 17 19])
+    warning('param.get_heights.coh_noise_method is not set to a valid choice (e.g. 17).');
     continue;
   end
   
@@ -34,7 +34,7 @@ for param_idx = 1:length(params)
     doppler_window = hanning(61); doppler_window = doppler_window(1:30); % experimental
     param.analysis.coh_ave.doppler_window = doppler_window;
   else
-    param.analysis.coh_ave.doppler_window = param.analysis.coh_ave.doppler_window(1:floor(length(param.analysis.coh_ave.doppler_window)/2));  
+    param.analysis.coh_ave.doppler_window = param.analysis.coh_ave.doppler_window(1:floor(length(param.analysis.coh_ave.doppler_window)/2));
     doppler_window = param.analysis.coh_ave.doppler_window;
   end
   
@@ -47,9 +47,28 @@ for param_idx = 1:length(params)
   fprintf('collate_coh_noise %s: %s\n', param.day_seg, fn);
   noise = load(fn);
   
+  %% Debug
+  if 0
+    records = load(ct_filename_support(param,'','records'));
+    load(ct_filename_support(param,'','frames'));
+    
+    aa=noise.coh_ave;
+    aa=fftshift(aa,1);
+    aa(:,any(lp(aa(100:end-100,:))>40)) = NaN;
+    aa=fftshift(aa,1);
+    aa(:,sum(isnan(noise.coh_ave))>10) = NaN;
+    aa(noise.coh_ave_samples<500)=NaN;
+    figure(1); clf;
+    imagesc(lp(aa))
+    figure(2); clf;
+    imagesc(lp(noise.coh_ave))
+    figure(1); h_axes=gca; figure(2); h_axes(end+1) = gca; linkaxes(h_axes,'xy');
+    return;
+  end
+  
   %% Create the Doppler mask
-  doppler_psd = lp(mean(noise.doppler,2));
-  doppler_psd = interp_finite(doppler_psd);
+  doppler_psd = lp(nanmean(noise.doppler,2));
+  doppler_psd = interp_finite(doppler_psd,NaN);
   doppler_noise_floor = medfilt1(double(doppler_psd),201);
   doppler_mask = doppler_psd > doppler_noise_floor + param.analysis.coh_ave.doppler_threshold;
   doppler_mask(1) = 0; % Regular coherent noise removal removes the DC component
@@ -59,7 +78,7 @@ for param_idx = 1:length(params)
     figure(1); clf;
     plot(doppler_psd)
     hold on;
-    plot(lp(max(noise.doppler,[],2)),'c')
+    plot(lp(nanmax(noise.doppler,[],2)),'c')
     plot(doppler_noise_floor + param.analysis.coh_ave.doppler_threshold,'r')
     plot(find(doppler_mask), doppler_psd(doppler_mask),'k.');
     fprintf('Adjust Doppler mask by running commands like "doppler_mask(1:120) = 0;"\n');
@@ -98,10 +117,10 @@ for param_idx = 1:length(params)
     keyboard
   end
   
+  %% Set the noise regimes
   noise.regime = ones(size(noise.gps_time));
-  
-  %% Segment specific hacks
   if strcmpi(noise.param_analysis.radar_name,'snow2') && strcmpi(noise.param_analysis.day_seg,'20120316_03')
+    %% Segment specific regimes
     bad_mask = noise.gps_time > 1.331923763327688e+09 & noise.gps_time < 1.331923803347247e+09;
     noise.coh_ave_samples(:,bad_mask) = param.analysis.coh_ave.min_samples;
     noise.regime(find(bad_mask,1):end) = 2;
@@ -109,7 +128,7 @@ for param_idx = 1:length(params)
   elseif isfield(param.analysis.coh_ave,'regimes') ...
       && ~isempty(param.analysis.coh_ave.regimes) ...
       && param.analysis.coh_ave.regimes.en
-    %% Cross correlate neighboring range lines to test for changes in statistics
+    %% Cross correlate neighboring range lines to test for changes in statistics which indciate a regime change
     dline = 2;
     dcorr = zeros(1,size(noise.coh_ave,2));
     tmp = interp_finite(noise.coh_ave);
@@ -144,6 +163,21 @@ for param_idx = 1:length(params)
       end
       noise.regime(rline) = cur_regime;
     end
+  elseif isfield(noise,'nyquist_zone')
+    %% Segment into regimes based on nyquist zone
+    noise.regime = noise.nyquist_zone;
+    
+    % Nyquist_zone: bit mask indicating which nyquist zones are used in each
+    % block. If only one nyquist zone is used, then only one bit will be
+    % one. This means the values will be 1, 2, 4, or 8.  In other words it
+    % will be a power of 2 and log2() will produce an integer. If two or
+    % more nyquist zones are used then log2() will not produce an integer.
+    % If two or more nyquist zones are used, then the mean/average will be
+    % contaminated and should not be used and we mark that column with 1 in
+    % mixed_nz_blocks and set these columns to zero valid samples.
+    mixed_nz_blocks = mod(log2(noise.nyquist_zone),1)~=0;
+    noise.coh_ave_samples(:,mixed_nz_blocks) = 0;
+    
   end
   regimes = unique(noise.regime);
   if length(regimes) > 1
@@ -151,7 +185,9 @@ for param_idx = 1:length(params)
   end
   
   %% Apply the filtering from coh_noise_arg across each regime
-  old_noise = noise;
+  noise.coh_ave_samples = uint32(noise.coh_ave_samples);
+  noise.coh_ave = single(noise.coh_ave);
+  old_noise_coh_ave = noise.coh_ave;
   if debug_level > 0
     figure(1); clf;
     imagesc(lp(noise.coh_ave));
@@ -166,9 +202,9 @@ for param_idx = 1:length(params)
     aa(2) = gca;
   end
   
-  mask = isnan(noise.coh_ave);
-  mask = filter2(param.analysis.coh_ave.power_grow,double(mask));
-  noise.coh_ave(mask > 0) = NaN;
+  for rline = 1:size(noise.coh_ave,2)
+    noise.coh_ave(filter2(param.analysis.coh_ave.power_grow,double(isnan(noise.coh_ave(:,rline)))) > 0) = NaN;
+  end
   
   if debug_level > 0
     figure(3); clf;
@@ -183,18 +219,18 @@ for param_idx = 1:length(params)
     regime_mask = find(noise.regime == regime);
     if any(all(isnan(noise.coh_ave(regime_mask,:))))
       regime_fill = find(all(isnan(noise.coh_ave(regime_mask,:)),1));
-      noise.coh_ave(regime_mask,regime_fill) = old_noise.coh_ave(regime_fill,regime_mask).';
+      noise.coh_ave(regime_mask,regime_fill) = old_noise_coh_ave(regime_fill,regime_mask).';
     end
     for rbin = 1:size(noise.coh_ave,2)
       noise.coh_ave(regime_mask,rbin) = interp_finite(noise.coh_ave(regime_mask,rbin),0);
     end
     if size(noise.coh_ave(regime_mask,:),1) < param.proc.coh_noise_arg{2}+2
-      %       sgolayfilt_F = size(noise.coh_ave(regime_mask,:),1);
-      %       if mod(sgolayfilt_F,2)==0
-      %         sgolayfilt_F = sgolayfilt_F - 1;
-      %       end
-      %       sgolayfilt_degree = min(param.proc.coh_noise_arg{1}, sgolayfilt_F-1);
-      %       noise.coh_ave(regime_mask,:) = single(sgolayfilt(double(noise.coh_ave(regime_mask,:)),sgolayfilt_degree,sgolayfilt_F));
+      sgolayfilt_F = size(noise.coh_ave(regime_mask,:),1);
+      if mod(sgolayfilt_F,2)==0
+        sgolayfilt_F = sgolayfilt_F - 1;
+      end
+      sgolayfilt_degree = min(param.proc.coh_noise_arg{1}, sgolayfilt_F-1);
+      noise.coh_ave(regime_mask,:) = single(sgolayfilt(double(noise.coh_ave(regime_mask,:)),sgolayfilt_degree,sgolayfilt_F));
     else
       %    noise.coh_ave(regime_mask,:) = single(sgolayfilt(double(noise.coh_ave(regime_mask,:)),param.proc.coh_noise_arg{1},param.proc.coh_noise_arg{2},param.proc.coh_noise_arg{3}));
       regime_mask_tmp = regime_mask(2:end-1);
@@ -205,6 +241,8 @@ for param_idx = 1:length(params)
       noise.coh_ave(regime_mask(end),:) = noise.coh_ave(regime_mask(end-1),:);
     end
   end
+  clear old_noise_coh_ave;
+  noise = rmfield(noise,'coh_ave_samples');
   
   %% Create the simplified output
   noise_simp = struct('gps_time',noise.gps_time);

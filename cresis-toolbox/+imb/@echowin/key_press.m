@@ -16,19 +16,14 @@ function key_press(obj,src,event)
 %   Control: none
 % -----------------------------------------------------------------------
 
-if any(strcmp('alt',event.Modifier))
-  obj.alt_pressed = true;
-end
-if any(strcmp('control',event.Modifier))
-  obj.control_pressed = true;
-end
-if any(strcmp('shift',event.Modifier))
-  obj.shift_pressed = true;
-end
+modifiers = get(event.Source,'CurrentModifier');
+obj.shift_pressed = ismember('shift',   modifiers);  % true/false
+obj.control_pressed  = ismember('control', modifiers);  % true/false
+obj.alt_pressed   = ismember('alt',     modifiers);  % true/false
 
 % Check to make sure that a key was pressed and not
 % just a modifier (e.g. shift, ctrl, alt)
-if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt') && ~strcmpi(event.Key,'ctrl')
+if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt') && ~strcmpi(event.Key,'control')
   
   % Switch layer number function (allows large numbers to be entered
   % as long as each number is entered within 0.5 seconds of the last
@@ -108,6 +103,9 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         case 5 % convert layers
           fprintf('Left click: No function\n');
           fprintf('Left click and drag: Convert layers within selected region to the layers specified in the param window (p)\n\n');
+         case 6 % HMM detection
+          fprintf('Left click: Enter point.\n');
+          fprintf('Left click and drag: Perform HMM detection on selected region.\n\n');
       end
       
       fprintf('Keyboard controls:\n\n');
@@ -270,6 +268,15 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         obj.savePB_callback();
       end
       
+    case 'v'
+      if isempty(event.Modifier)
+        set(obj.left_panel.toolPM,'Value',6);
+        tmp = obj.tool_list{3}; obj.left_click = @tmp.left_click;
+        tmp = obj.tool_list{3}; obj.left_click_and_drag = @tmp.left_click_and_drag;
+        tmp = obj.tool_list{3}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+        obj.toolPM_callback();
+      end
+      
     case 'u'
       %% Undo last tool operation
       obj.undo_stack.pop();
@@ -411,4 +418,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false));
       
   end
+  obj.shift_pressed = false;
+  obj.control_pressed = false;
+  obj.alt_pressed = false;
 end

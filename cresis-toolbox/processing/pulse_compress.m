@@ -353,6 +353,9 @@ fs = 1e9/2;
 Nt = 50000;
 t0 = 0e-6;
 dt = 1/fs;
+
+[hdr,data] = basic_load_mcords5(fn)
+
 BW = pc_param.f1-pc_param.f0;
 alpha = BW/pc_param.Tpd;
 pc_param.time = t0 + (0:dt:(Nt-1)*dt).';
@@ -412,7 +415,7 @@ hold off;
 xlabel('Time (us)');
 ylabel('Relative power (dB)');
 
-%% Example #4
+%% Example #5
 % MCRDS: showing use of zero padding and variable bandwidth fields to deal
 % with small time bandwidth products
 clear pc_param;
@@ -450,3 +453,82 @@ pc_param.BW = [25e6 25e6];
 [pc_signal,pc_time] = pulse_compress(signal,pc_param);
 plot(pc_time*1e6, lp(pc_signal,2),'g');
 
+%% Example #6
+% Accumulation radar using mcords5 system
+fn = 'mcords5_01_20170226_111814_04_0004.bin';
+[hdr,data_iq] = basic_load_mcords5(fn);
+data = data_iq{1} + j*data_iq{2};
+clear pc_param;
+pc_param.f0 = 600e6;
+pc_param.f1 = 900e6;
+pc_param.Tpd = 2e-6;
+pc_param.window_func = @hanning;
+pc_param.tukey = 0.05;
+pc_param.DDC_mode = true;
+fs = 1.6e9/4;
+Nt = size(data,1);
+t0 = 0e-6;
+dt = 1/fs;
+pc_param.time = t0 + (0:dt:(Nt-1)*dt).';
+pc_param.DDC_freq = 750e6;
+
+[pc_signal,pc_time] = pulse_compress(data,pc_param);
+
+title('Radar Echogram DDC4 mode (400 MSPS)');
+figure(1); clf;
+imagesc(lp(pc_signal));
+xlabel('Range line');
+ylabel('Range bin');
+ylim([4800 6000])
+
+figure(2); clf;
+title('Radar A-Scope DDC4 mode (400 MSPS)');
+plot(lp(data(:,1)))
+hold on
+plot(lp(data(:,1500)),'r')
+grid on;
+xlabel('Range line');
+ylabel('Range bin');
+ylim([30 80]);
+legend('Range line 1','Range line 2','location','best');
+
+%% Example #7
+% Accumulation radar using mcords5 system with NODDC firmware
+fn = 'mcords5_01_20170314_114046_01_0002.bin';
+[hdr,data_iq] = basic_load_mcords5(fn);
+%data = data_iq{1} + j*data_iq{2};
+data = conj(data_iq{1});
+clear pc_param;
+pc_param.f0 = 600e6;
+pc_param.f1 = 900e6;
+pc_param.Tpd = 2e-6;
+pc_param.window_func = @hanning;
+pc_param.tukey = 0.1;
+pc_param.DDC_mode = true;
+fs = 1.6e9/4;
+Nt = size(data,1);
+t0 = 0e-6;
+dt = 1/fs;
+pc_param.time = t0 + (0:dt:(Nt-1)*dt).';
+pc_param.DDC_freq = 800e6;
+data(1:1100,:) = 0;
+
+[pc_signal,pc_time] = pulse_compress(data,pc_param);
+
+title('Radar Echogram DDC4 mode (400 MSPS)');
+figure(1); clf;
+imagesc(lp(pc_signal));
+xlabel('Range line');
+ylabel('Range bin');
+% ylim([4800 6000])
+
+figure(2); clf;
+title('Radar A-Scope DDC4 mode (400 MSPS)');
+plot(lp(data(:,1)))
+hold on
+plot(lp(data(:,1500)),'r')
+grid on;
+xlabel('Range line');
+ylabel('Range bin');
+ylim([30 80]);
+legend('Range line 1','Range line 2','location','best');

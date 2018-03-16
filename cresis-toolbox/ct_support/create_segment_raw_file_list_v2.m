@@ -20,8 +20,10 @@ fprintf('=====================================================================\n
 fprintf('%s: %s (%s)\n', dbstack_info(1).name, day_string, datestr(now,'HH:MM:SS'));
 fprintf('=====================================================================\n');
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 if isempty(file_prefix_override)
-  file_prefix = param.radar_name;
+  file_prefix = radar_name;
 else
   file_prefix = file_prefix_override;
 end
@@ -36,6 +38,10 @@ end
 
 if ~exist('online_mode','var')
   online_mode = false;
+end
+
+if ~exist('no_stop_on_count','var')
+  no_stop_on_count = false;
 end
 
 if ~isfield('param','gps_time_offset') || isempty(param.gps_time_offset)
@@ -68,7 +74,7 @@ for adc_idx = 1:length(adcs)
   end
   
   % Sort ACORDS filenames because the extenions are not a standard length
-  if any(strcmpi(param.radar_name,{'acords'}))
+  if any(strcmpi(radar_name,{'acords'}))
     basenames = {};
     file_idxs = [];
     new_fns = {};
@@ -84,47 +90,47 @@ for adc_idx = 1:length(adcs)
   
   hdr_param = struct('file_mode','ieee-be');
   %% Setup the header information for this radar
-  if any(strcmpi(param.radar_name,{'accum'}))
+  if any(strcmpi(radar_name,{'accum'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([4 8 12]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/16;
-  elseif any(strcmpi(param.radar_name,{'accum2'}))
+  
+  elseif any(strcmpi(radar_name,{'accum2'}))
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     hdr_param.field_offsets = uint32(4*[1 3 4 5 6]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint32(1) uint32(1)};
     hdr_param.field_offsets = [1 3 4 5 6];
     hdr_param.frame_sync = hex2dec('1ACFFC1D');
-    param.clk = 1e9;
-  elseif any(strcmpi(param.radar_name,{'acords'}))
+   
+  elseif any(strcmpi(radar_name,{'acords'}))
     hdr_param.file_mode = 'ieee-le';
     hdr_param.frame_sync = uint32(0);
     hdr_param.field_offsets = uint32([0 4]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1)};
-    param.clk = 55e6;
-  elseif any(strcmpi(param.radar_name,{'mcords'}))
+   
+  elseif any(strcmpi(radar_name,{'mcords'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([16 8 12]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/9;
-  elseif any(strcmpi(param.radar_name,{'mcords2','mcords3'}))
+ 
+  elseif any(strcmpi(radar_name,{'mcords2','mcords3'}))
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
-    hdr_param.field_offsets = uint32([4 8 12]); % epri seconds fractions
-    hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/9;
-  elseif any(strcmpi(param.radar_name,{'mcords4'}))
+    hdr_param.field_offsets = uint32([4 8 12 16]); % epri seconds fraction counter
+      hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
+   
+  elseif any(strcmpi(radar_name,{'mcords4'}))
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     hdr_param.field_offsets = uint32([4 16 20]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/2;
-  elseif any(strcmpi(param.radar_name,{'mcords5','snow5'}))
+   
+  elseif any(strcmpi(radar_name,{'mcords5','snow5'}))
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
-  elseif any(strcmpi(param.radar_name,{'snow','kuband'}))
+  elseif any(strcmpi(radar_name,{'snow','kuband'}))
     hdr_param.frame_sync = uint32(hex2dec('DEADBEEF'));
     hdr_param.field_offsets = uint32([4 16 20]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/16;
-  elseif any(strcmpi(param.radar_name,{'snow2','kuband2'}))
+  
+  elseif any(strcmpi(radar_name,{'snow2','kuband2'}))
     if param.file_version == 2
       hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
       hdr_param.field_offsets = uint32([4 8 12 24]); % epri seconds fractions loopback/nyquist-zone
@@ -136,13 +142,20 @@ for adc_idx = 1:length(adcs)
     else
       error('File version %d not supported for this radar %s.', param.file_version, param.radar_name);
     end
-    param.clk = 1e9/8;
+  
     
-  elseif any(strcmpi(param.radar_name,{'snow3','kuband3','kaband3'}))
+  elseif any(strcmpi(radar_name,{'snow3','kuband3','kaband3'}))
     hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
-    hdr_param.field_offsets = uint32(4*[1 2 3 9 10 11]); % epri seconds fractions
+    hdr_param.field_offsets = uint32(4*[1 2 3 9 10 11]); % epri seconds fractions start/stop-index DDCfield1 DDCfield2
     hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint32(1) uint32(1) uint32(1)};
-    param.clk = 1e9/8;
+  
+  elseif any(strcmpi(radar_name,{'snow8'}))
+    hdr_param.frame_sync = uint32(hex2dec('BADA55E5'));
+    hdr_param.field_offsets = uint32([4 8 12 16 33 36 38 40]);
+    % epri seconds fractions counter nyquist-zone waveform-ID
+    hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1) uint8(1) uint16(1) uint16(1) uint64(1)};
+  
+    
   else
     error('Unsupported radar %s', param.radar_name);
   end
@@ -151,7 +164,7 @@ for adc_idx = 1:length(adcs)
   failed_load{adc_idx} = zeros(size(fns));
   for fn_idx = 1:length(fns)
     fn = fns{fn_idx};
-    if strcmp(param.radar_name,'acords')
+    if strcmp(radar_name,'acords')
       [~,fn_name,ext] = fileparts(fn);
       fn_name = [fn_name,ext];
     else
@@ -183,13 +196,13 @@ for adc_idx = 1:length(adcs)
     end
     
     try
-      if strcmp(param.radar_name,'accum')
+      if strcmp(radar_name,'accum')
         hdr = basic_load_accum(fn);
         wfs = hdr.wfs;
-      elseif strcmp(param.radar_name,'accum2')
+      elseif strcmp(radar_name,'accum2')
         hdr = basic_load_accum2(fn);
         wfs = hdr.wfs;
-      elseif strcmp(param.radar_name,'acords')
+      elseif strcmp(radar_name,'acords')
         % Load header information that never changes
         %   You need to get the record sizes
         clear hdr wfs
@@ -231,46 +244,50 @@ for adc_idx = 1:length(adcs)
             wfs{2}.adc_gains(hidx,:) = 10.^(80-hdr(hidx).high_gain_atten./20);
           end
         end
-      elseif strcmp(param.radar_name,'mcords')
+      elseif strcmp(radar_name,'mcords')
         hdr = basic_load_mcords(fn);
         wfs = hdr.wfs;
-      elseif strcmp(param.radar_name,'mcords2')
+      elseif strcmp(radar_name,'mcords2')
         hdr = basic_load_mcords2(fn);
         wfs = hdr.wfs;
-      elseif strcmp(param.radar_name,'mcords3')
+      elseif strcmp(radar_name,'mcords3')
         hdr = basic_load_mcords3(fn);
         wfs = hdr.wfs;
-      elseif strcmp(param.radar_name,'mcords4')
+      elseif strcmp(radar_name,'mcords4')
         hdr = basic_load_mcords4(fn);
         wfs = hdr.wfs;
-      elseif strcmp(param.radar_name,'mcords5')
+      elseif strcmp(radar_name,'mcords5')
         hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',presum_bug_fixed));
         wfs = hdr.wfs;
         for wf=1:length(wfs); wfs(wf).file_version = hdr.file_version; end;
-      elseif any(strcmp(param.radar_name,{'snow','kuband'}))
+      elseif any(strcmp(radar_name,{'snow','kuband'}))
         hdr = basic_load_fmcw(fn);
         wfs = hdr.wfs;
-      elseif any(strcmp(param.radar_name,{'snow2','kuband2'}))
+      elseif any(strcmp(radar_name,{'snow2','kuband2'}))
         hdr = basic_load_fmcw2(fn, struct('file_version',param.file_version));
         wfs = hdr.wfs;
-      elseif any(strcmp(param.radar_name,{'snow3','kuband3','kaband3'}))
+      elseif any(strcmp(radar_name,{'snow3','kuband3','kaband3'}))
         if param.file_version == 6
           hdr = basic_load_fmcw4(fn, struct('file_version',param.file_version));
         else
           hdr = basic_load_fmcw3(fn, struct('file_version',param.file_version));
         end
         wfs = struct('presums',hdr.presums);
-      elseif any(strcmp(param.radar_name,{'snow5'}))
+      elseif any(strcmp(radar_name,{'snow5'}))
         hdr = basic_load(fn);
         wfs = hdr.wfs;
+      elseif any(strcmp(radar_name,{'snow8'}))
+        hdr = basic_load_fmcw8(fn, struct('file_version',param.file_version));
+        wfs = struct('presums',hdr.presums);
       end
-    catch
+    catch ME
+      ME
       warning('  Failed to load... skipping.\n');
       failed_load{adc_idx}(fn_idx) = 1;
       continue;
     end
     
-    if any(strcmpi(param.radar_name,{'accum'}))
+    if any(strcmpi(radar_name,{'accum'}))
       [file_size offset unknown seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       % Find bad records by checking their size (i.e. the distance between
@@ -288,7 +305,7 @@ for adc_idx = 1:length(adcs)
       
       save(tmp_hdr_fn,'offset','unknown','seconds','fraction');
       
-    elseif any(strcmpi(param.radar_name,{'accum2'}))
+    elseif any(strcmpi(radar_name,{'accum2'}))
       [file_size offset radar_time_ms radar_time_ls radar_time_1pps_ms radar_time_1pps_ls] ...
         = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       radar_time = (hdr_data(3,:)*2^32 + hdr_data(4,:)) / (param.clk/100);
@@ -296,7 +313,7 @@ for adc_idx = 1:length(adcs)
       
       save(tmp_hdr_fn,'offset','radar_time','radar_time_1pps','wfs');
       
-    elseif strcmp(param.radar_name,'acords')
+    elseif strcmp(radar_name,'acords')
       % Load header information that can change on every record AND
       % is required for records generation (radar time)
       %     radar_time =
@@ -311,11 +328,11 @@ for adc_idx = 1:length(adcs)
       fractions = zeros(size(seconds));
       save(tmp_hdr_fn,'offset','seconds','hdr','hoffset','htime','wfs','raw_file_time');
       
-    elseif strcmp(param.radar_name,'mcords')
+    elseif strcmp(radar_name,'mcords')
       
-    elseif strcmp(param.radar_name,'mcords2')
+    elseif strcmp(radar_name,'mcords2')
       
-    elseif strcmp(param.radar_name,'mcords3')
+    elseif strcmp(radar_name,'mcords3')
       hdr_param.field_offsets = uint32([4 8 12 16]); % epri seconds fraction counter
       hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
@@ -340,9 +357,9 @@ for adc_idx = 1:length(adcs)
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
       
-    elseif strcmp(param.radar_name,'mcords4')
+    elseif strcmp(radar_name,'mcords4')
       
-    elseif any(strcmp(param.radar_name,{'mcords5','snow5'}))
+    elseif any(strcmp(radar_name,{'mcords5','snow5'}))
       if hdr.file_version == 407
         hdr_param.field_offsets = uint32([4 16 20 24]); % epri seconds fractions counter
       elseif hdr.file_version == 408
@@ -387,7 +404,7 @@ for adc_idx = 1:length(adcs)
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
       
-    elseif any(strcmp(param.radar_name,{'snow','kuband'}))
+    elseif any(strcmp(radar_name,{'snow','kuband'}))
       [file_size offset epri seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       % Find bad records by checking their size (i.e. the distance between
@@ -405,7 +422,7 @@ for adc_idx = 1:length(adcs)
       
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs');
       
-    elseif any(strcmp(param.radar_name,{'snow2','kuband2'}))
+    elseif any(strcmp(radar_name,{'snow2','kuband2'}))
       if param.file_version == 2
         [file_size offset epri seconds fraction tmp] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
         loopback = mod(floor(tmp/2^16),2^2) - 1;
@@ -454,7 +471,7 @@ for adc_idx = 1:length(adcs)
         save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs');
       end
       
-    elseif any(strcmp(param.radar_name,{'snow3','kuband3','kaband3'}))
+    elseif any(strcmp(radar_name,{'snow3','kuband3','kaband3'}))
       [file_size offset epri seconds fraction hdr9 hdr10 hdr11] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       
       start_idx = floor(hdr9/2^16);
@@ -502,6 +519,33 @@ for adc_idx = 1:length(adcs)
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs', ...
         'start_idx','stop_idx','DDC_filter_select','DDC_or_raw_select', ...
         'num_sam','nyquist_zone','NCO_freq_step');
+
+      
+    elseif any(strcmp(radar_name,{'snow8'}))
+      [file_size offset epri seconds fraction counter nyquist_zone start_idx stop_idx waveform_ID] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
+      
+      HEADER_SIZE = 48;
+      SAMPLE_SIZE = 2;
+      num_sam = 2*(stop_idx - start_idx);
+      expected_rec_size = HEADER_SIZE + SAMPLE_SIZE*double(num_sam);
+      meas_rec_size = diff(offset);
+      bad_mask = meas_rec_size ~= expected_rec_size(1:end-1);
+      bad_mask(end+1) = file_size < offset(end) + expected_rec_size(end);
+      if sum(bad_mask) > 1
+        warning('Found %d of %d record size errors', sum(bad_mask), length(bad_mask));
+      end
+      offset = offset(~bad_mask);
+      epri = epri(~bad_mask);
+      seconds = seconds(~bad_mask);
+      fraction = fraction(~bad_mask);
+      counter = counter(~bad_mask);
+      nyquist_zone = nyquist_zone(~bad_mask);
+      start_idx = start_idx(~bad_mask);
+      stop_idx = stop_idx(~bad_mask);
+      
+      seconds = BCD_to_seconds(seconds);
+      save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs', ...
+        'counter','nyquist_zone','start_idx','stop_idx');      
     end
   end
 end
@@ -527,7 +571,7 @@ adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
 fns = get_filenames(fullfile(base_dir,adc_folder_name), file_prefix, file_midfix, raw_file_suffix, get_fns_param);
 
 % Sort ACORDS filenames because the extenions are not a standard length
-if any(strcmpi(param.radar_name,{'acords'}))
+if any(strcmpi(radar_name,{'acords'}))
   basenames = {};
   file_idxs = [];
   new_fns = {};
@@ -559,7 +603,7 @@ for fn_idx = 1:length(fns_list{1})
     continue;
   end
   fn = fns_list{1}{fn_idx};
-  if strcmp(param.radar_name,'acords')
+  if strcmp(radar_name,'acords')
     [~,fn_name,ext] = fileparts(fn);
     fn_name = [fn_name,ext];
   else
@@ -577,16 +621,16 @@ for fn_idx = 1:length(fns_list{1})
     mkdir(tmp_hdr_fn_dir);
   end
   
-  if any(strcmpi(param.radar_name,{'accum'}))
+  if any(strcmpi(radar_name,{'accum'}))
     hdr = load(tmp_hdr_fn);
     unknown = cat(2,unknown,reshape(hdr.unknown,[1 length(hdr.unknown)]));
     seconds = cat(2,seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
     fraction = cat(2,fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-  elseif any(strcmpi(param.radar_name,{'accum2'}))
+  elseif any(strcmpi(radar_name,{'accum2'}))
     hdr = load(tmp_hdr_fn);
     radar_time = cat(2,epri,hdr.radar_time);
     radar_time_1pps = cat(2,epri,hdr.radar_time_1pps);
-  elseif any(strcmpi(param.radar_name,{'acords'}))
+  elseif any(strcmpi(radar_name,{'acords'}))
     hdr = load(tmp_hdr_fn);
     hdr_log = [hdr_log,hdr.hdr];
     hdr_raw = [hdr_raw fn_idx*ones(1,length(hdr.hdr))];
@@ -598,7 +642,7 @@ for fn_idx = 1:length(fns_list{1})
     epri = cat(2,epri,reshape(hdr.epri,[1 length(hdr.epri)]));
     seconds = cat(2,seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
     fraction = cat(2,fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-    if any(strcmpi(param.radar_name,{'mcords3','mcords5'}))
+    if any(strcmpi(radar_name,{'mcords3','mcords5'}))
       counter = cat(2,counter,reshape(hdr.counter,[1 length(hdr.counter)]));
     end
   end
@@ -618,37 +662,40 @@ if online_mode
   return;
 end
 
-%% Correct and process time variable
-%% Check to see if there are big soconds jumps (those encountered in 2016_Greenland_P3,
-%% jump to a large number and then drop back to correct values)?
-big_sec_jump_idxs = find(abs(diff(double(seconds)))>1e5);
-fraction_wrap_idxs = find(diff(double(fraction))<0);
-mid_jumps = find(~ismember(big_sec_jump_idxs,fraction_wrap_idxs));
-if ~isempty(mid_jumps)
+if 0
+  %% Check to see if there are big soconds jumps (those encountered in 2016_Greenland_P3,
+  %% jump to a large number and then drop back to correct values)?
+  big_sec_jump_idxs = find(abs(diff(double(seconds)))>1e5);
+  fraction_wrap_idxs = find(diff(double(fraction))<0);
+  mid_jumps = find(~ismember(big_sec_jump_idxs,fraction_wrap_idxs));
+  if ~isempty(mid_jumps)
     [tmp,tmp_idxs] = min(abs(fraction_wrap_idxs - big_sec_jump_idxs(mid_jumps)));
     big_sec_jump_idxs(mid_jumps) = fraction_wrap_idxs(tmp_idxs);
-end
-big_sec_jump_idxs = big_sec_jump_idxs(ismember(big_sec_jump_idxs,fraction_wrap_idxs));
-if ~isempty(big_sec_jump_idxs)
-  warning('Header seconds jump more than 1e5 sec, correcting jumps');
-  if 0
-    figure(101);plot(fraction);
-    max_fraction = max(fraction);
-    for idx = 1:length(big_sec_jump_idxs)
-      figure(101);hold on;plot([big_sec_jump_idxs(idx),big_sec_jump_idxs(idx)]+1,[0,1.2*max_fraction],'r--');
+  end
+  big_sec_jump_idxs = big_sec_jump_idxs(ismember(big_sec_jump_idxs,fraction_wrap_idxs));
+  if ~isempty(big_sec_jump_idxs)
+    warning('Header seconds jump more than 1e5 sec, correcting jumps');
+    if 0
+      figure(101);plot(fraction);
+      max_fraction = max(fraction);
+      for idx = 1:length(big_sec_jump_idxs)
+        figure(101);hold on;plot([big_sec_jump_idxs(idx),big_sec_jump_idxs(idx)]+1,[0,1.2*max_fraction],'r--');
+      end
+    end
+    for idx = 1:2:length(big_sec_jump_idxs)
+      jump_start = big_sec_jump_idxs(idx)+1;
+      wrap_idxs = [find(fraction_wrap_idxs == big_sec_jump_idxs(idx)):find(fraction_wrap_idxs == big_sec_jump_idxs(idx+1))];
+      wrap_idxs(1) = [];
+      for wrap_idx = wrap_idxs
+        seconds(jump_start:fraction_wrap_idxs(wrap_idx)) = seconds(jump_start-1)+1;
+        jump_start = fraction_wrap_idxs(wrap_idx) + 1;
+      end
     end
   end
-  for idx = 1:2:length(big_sec_jump_idxs) 
-    jump_start = big_sec_jump_idxs(idx)+1;
-    wrap_idxs = [find(fraction_wrap_idxs == big_sec_jump_idxs(idx)):find(fraction_wrap_idxs == big_sec_jump_idxs(idx+1))];
-    wrap_idxs(1) = [];
-    for wrap_idx = wrap_idxs
-      seconds(jump_start:fraction_wrap_idxs(wrap_idx)) = seconds(jump_start-1)+1;
-      jump_start = fraction_wrap_idxs(wrap_idx) + 1;
-    end
-  end
 end
-if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','mcords5'}))
+
+%% Correct and process time variable
+if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','mcords3','mcords5','snow8'}))
   utc_time_sod = double(seconds) + double(fraction) / param.clk;
   utc_time_sod = medfilt1(double(utc_time_sod));
   
@@ -659,23 +706,37 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
     counter_min_freq = 100;
     counter_bin = 0.01;
     anchor_idx = 1;
-    if any(strcmpi(param.radar_name,{'mcords5'}))
+    if any(strcmpi(radar_name,{'mcords5'}))
       counter_clk = param.clk;
-      keyboard
-    elseif any(strcmpi(param.radar_name,{'snow3','snow5','kuband3','accum'}))
+      if ~no_stop_on_count
+        keyboard
+      end
+    elseif any(strcmpi(radar_name,{'snow3','snow5','kuband3','accum'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       % set anchor_idx to a record that you believe has the correct time
       counter_clk = 3906.250/2/8;
       counter = epri;
-    elseif any(strcmpi(param.radar_name,{'mcords3'}))
+    elseif any(strcmpi(radar_name,{'mcords3'}))
       counter_clk = param.clk;
-      keyboard
-    elseif any(strcmpi(param.radar_name,{'kuband3','snow3'}))
+      if ~no_stop_on_count
+        keyboard
+      end
+    elseif any(strcmpi(radar_name,{'kuband3','snow3'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
       % set anchor_idx to a record that you believe has the correct time
       counter_clk = 3906.250/8;
       counter = epri;
-      keyboard
+      if ~no_stop_on_count
+        keyboard
+      end
+    elseif any(strcmpi(radar_name,{'snow8'}))
+      % counter_clk should be the EPRF (effective PRF after hardware presumming)
+      % set anchor_idx to a record that you believe has the correct time
+      counter_clk = 4000/8;
+      counter = epri;
+      if ~no_stop_on_count
+        keyboard
+      end
     else
       keyboard
     end
@@ -697,61 +758,73 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
     % Find the valid counter differences based on frequency of occurance
     % Assumption is that invalid differences happen infrequently
     % (counter_min_freq)
-     modes = unique(diff_counter);
-     correctable_records = zeros(size(diff_counter));
-     for idx=1:length(modes)
-       if sum(diff_counter == modes(idx)) > counter_min_freq
-         % Allow for a little slop in the differences (counter_bin)
-         correctable_records = correctable_records ...
-           | abs(diff_counter - modes(idx))/modes(idx) < counter_bin; 
-       end
-     end
-     
-     % Detect bad records when differences of counter and utc do not align
-     % with the expected relationship (counter is running at counter_clk
-     % frequency). Allow for some slop (counter_bad_threshold).
-     bad_records = abs(diff_counter ./ diff_utc - counter_clk) > counter_clk*counter_bad_threshold;
-     % Only correct records that had valid counter differences
-     bad_records = bad_records & correctable_records;
-     % Correct diff UTC using counter
-     diff_utc(bad_records) = diff_counter(bad_records) / counter_clk;
-     
-     % Recreate UTC by integrating diff UTC around the anchor_idx
-     % Integrate from the anchor_idx to 1
-     first = cumsum(-diff_utc(anchor_idx-1:-1:1));
-     first = first(end:-1:1);
-     % Integrate from the anchor_idx to the end
-     last = cumsum(diff_utc(anchor_idx:end));
+    modes = unique(diff_counter);
+    correctable_records = zeros(size(diff_counter));
+    for idx=1:length(modes)
+      if sum(diff_counter == modes(idx)) > counter_min_freq
+        % Allow for a little slop in the differences (counter_bin)
+        correctable_records = correctable_records ...
+          | abs(diff_counter - modes(idx))/modes(idx) < counter_bin;
+      end
+    end
     
-     % Create the corrected utc_time_sod
-     utc_time_sod_new = utc_time_sod(anchor_idx) + [first 0 last];
-     
-     figure(1); clf;
-     plot(utc_time_sod);
-     hold on;
-     plot(utc_time_sod_new,'r');
-     hold off;
-     xlabel('Record');
-     ylabel('UTC Time SOD (sec)');
-     legend('Original','Corrected','location','best');
-     figure(2); clf;
-     plot(utc_time_sod - utc_time_sod_new);
-     xlabel('Record');
-     ylabel('Time correction (sec)');
-     title('Ideally abs() is less than a few milliseconds');
-     figure(3); clf;
-     subplot(2,1,1);
-     plot(diff(epri),'.');
-     subplot(2,1,2);
-     plot(diff(epri),'.');
-     ylim([-3 5]);
-     xlabel('Record');
-     ylabel('Diff EPRI');
-     title('Should be 1 except at segment boundaries');
-     warning('Please check the corrected utc_time_sod (red) in figure 1 and the correction in figure 2. If correct, run "dbcont" to continue.');
-     keyboard
-     
-     utc_time_sod = utc_time_sod_new;
+    % Detect bad records when differences of counter and utc do not align
+    % with the expected relationship (counter is running at counter_clk
+    % frequency). Allow for some slop (counter_bad_threshold).
+    bad_records = abs(diff_counter ./ diff_utc - counter_clk) > counter_clk*counter_bad_threshold;
+    % Only correct records that had valid counter differences
+    bad_records = bad_records & correctable_records;
+    % Correct diff UTC using counter
+    diff_utc(bad_records) = diff_counter(bad_records) / counter_clk;
+    
+    % Recreate UTC by integrating diff UTC around the anchor_idx
+    % Integrate from the anchor_idx to 1
+    first = cumsum(-diff_utc(anchor_idx-1:-1:1));
+    first = first(end:-1:1);
+    % Integrate from the anchor_idx to the end
+    last = cumsum(diff_utc(anchor_idx:end));
+    
+    % Create the corrected utc_time_sod
+    utc_time_sod_new = utc_time_sod(anchor_idx) + [first 0 last];
+    
+    figure(1); clf;
+    plot(utc_time_sod);
+    hold on;
+    plot(utc_time_sod_new,'r');
+    hold off;
+    xlabel('Record');
+    ylabel('UTC Time SOD (sec)');
+    legend('Original','Corrected','location','best');
+    figure(2); clf;
+    plot(utc_time_sod - utc_time_sod_new);
+    xlabel('Record');
+    ylabel('Time correction (sec)');
+    title('Ideally abs() is less than a few milliseconds');
+    figure(3); clf;
+    subplot(2,1,1);
+    plot(diff(epri),'.');
+    subplot(2,1,2);
+    plot(diff(epri),'.');
+    ylim([-3 5]);
+    xlabel('Record');
+    ylabel('Diff EPRI');
+    title('Should be 1 except at segment boundaries');
+    warning('Please check the corrected utc_time_sod (red) in figure 1 and the correction in figure 2. If correct, run "dbcont" to continue.');
+    if no_stop_on_count
+      fn_fig = ct_filename_ct_tmp(param,'','headers', ['create_segments_utc_time_sod.fig']);
+      fprintf('Saving %s\n', fn_fig);
+      saveas(1,fn_fig);
+      fn_fig = ct_filename_ct_tmp(param,'','headers', ['create_segments_utc_time_sod_error.fig']);
+      fprintf('Saving %s\n', fn_fig);
+      saveas(2,fn_fig);
+      fn_fig = ct_filename_ct_tmp(param,'','headers', ['create_segments_epri.fig']);
+      fprintf('Saving %s\n', fn_fig);
+      saveas(3,fn_fig);
+    else
+      keyboard
+    end
+    
+    utc_time_sod = utc_time_sod_new;
   end
 
   % Check for day wraps in the UTC time seconds of day
@@ -781,7 +854,7 @@ if any(strcmpi(param.radar_name,{'accum','snow','kuband','snow2','kuband2','snow
   hold on;
   plot(time_gaps, utc_time_sod(time_gaps),'ro');
   hold off;
-elseif any(strcmpi(param.radar_name,{'acords'}))
+elseif any(strcmpi(radar_name,{'acords'}))
   utc_time_sod = seconds; % this is actually comp_time but doesn't need to 
   % be converted to actual utc_time_sod since it's only looking at gaps in 
   % the data
@@ -865,7 +938,7 @@ else
   error('Not supported');
 end
 
-% if any(strcmpi(param.radar_name,{'accum'}))
+% if any(strcmpi(radar_name,{'accum'}))
 %   %% Accum filter of bad records
 %   % Repeated data often occurs in accum during a FIFO overflow. Remove
 %   % these blocks.
@@ -1015,7 +1088,7 @@ for seg_idx = 1:length(segments)
     seg_idx, segments(seg_idx).start_idx, segments(seg_idx).stop_idx, base_dir, param.adc_folder_name, file_prefix, file_midfix, file_regexp, param.gps_time_offset+segments(seg_idx).day_wrap_offset);
 end
 
-if any(strcmpi(param.radar_name,{'acords'}))
+if any(strcmpi(radar_name,{'acords'}))
   % Print out some results that can be copied and pasted easily
   fprintf('\n')
   for seg_idx = 1:length(segments)

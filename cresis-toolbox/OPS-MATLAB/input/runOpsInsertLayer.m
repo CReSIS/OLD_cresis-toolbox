@@ -207,10 +207,9 @@ elseif 0
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'));
+  params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
   
-  % grid_fn = '/cresis/snfs1/scratch/paden/mass_conservation/HelheimStream-2014-11-18.nc';
-  grid_fn = '/cresis/snfs1/scratch/paden/mass_conservation/KangerdlugssuaqStream-2014-11-18.nc';
+  grid_fn = ct_filename_gis('greenland/mass_conservation/BedMachineGreenland-2017-09-20.nc');
   
   % Create geotiff projection structure
   % 1. Grab from a geotiff file with the same projection
@@ -224,17 +223,17 @@ elseif 0
   insert_param.proj.PM = [];
   insert_param.proj.PMLongToGreenwich = [];
   insert_param.proj.Zone = [];
-  geoid = almanac('earth',ncreadatt(grid_fn,'polar_stereographic','ellipsoid'),'m');
-  insert_param.proj.SemiMajor = geoid;
-  insert_param.proj.SemiMinor = minaxis(geoid);
+  grid_ellipsoid = referenceEllipsoid('WGS84');
+  insert_param.proj.SemiMajor = grid_ellipsoid.SemimajorAxis;
+  insert_param.proj.SemiMinor = grid_ellipsoid.SemiminorAxis;
   insert_param.proj.ProjParm = zeros(7,1);
-  insert_param.proj.ProjParm(1) = ncreadatt(grid_fn,'polar_stereographic','standard_parallel');
-  insert_param.proj.ProjParm(2) = ncreadatt(grid_fn,'polar_stereographic','straight_vertical_longitude_from_pole');
+  insert_param.proj.ProjParm(1) = ncreadatt(grid_fn,'mapping','standard_parallel');
+  insert_param.proj.ProjParm(2) = ncreadatt(grid_fn,'mapping','straight_vertical_longitude_from_pole');
   insert_param.proj.ProjParm(3) = 0;
   insert_param.proj.ProjParm(4) = 0;
   insert_param.proj.ProjParm(5) = 1;
-  insert_param.proj.ProjParm(6) = ncreadatt(grid_fn,'polar_stereographic','false_easting');
-  insert_param.proj.ProjParm(7) = ncreadatt(grid_fn,'polar_stereographic','false_northing');
+  insert_param.proj.ProjParm(6) = ncreadatt(grid_fn,'mapping','false_easting');
+  insert_param.proj.ProjParm(7) = ncreadatt(grid_fn,'mapping','false_northing');
   
   insert_param.proj.CTProjection = 'CT_PolarStereographic'; % Choose from list in toolbox/map/mapproj/private/projcode
   insert_param.proj.GeoTIFFCodes.CTProjection = 15; % CT_PolarStereographic from toolbox/map/mapproj/private/projcode
@@ -257,9 +256,9 @@ elseif 0
   insert_param.eval.ref_source.source = 'ops';
   insert_param.eval.ref_gaps_fill.method = 'interp_finite';
   insert_param.eval.cmd = 'source = ref.twtt + source;';
-  insert_param.x = ncread(grid_fn,'x');
-  insert_param.y = ncread(grid_fn,'y');
-  insert_param.data = ncread(grid_fn,'thickness').' / (c/2/sqrt(er_ice));
+  insert_param.x = double(ncread(grid_fn,'x'));
+  insert_param.y = double(ncread(grid_fn,'y'));
+  insert_param.data = double(ncread(grid_fn,'thickness')).' / (c/2/sqrt(er_ice));
   
   insert_param.type = 'raster'; % Raster data
   insert_param.layer_dest.name = 'mc_bottom';
@@ -367,7 +366,7 @@ elseif 0
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   
-elseif 1
+elseif 0
   %% Example 8: GIMP grid
   % =====================================================================
   % =====================================================================
@@ -378,7 +377,7 @@ elseif 1
   insert_param = [];
   
   %params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'));
-  params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'');
+  params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),'','post');
   
   grid_fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
   
@@ -398,10 +397,50 @@ elseif 1
   
   insert_param.type = 'raster'; % Raster data
   insert_param.layer_dest.name = 'GIMP';
-  insert_param.layer_dest.source = 'layerData';
+  insert_param.layer_dest.source = 'ops';
   insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
   insert_param.layer_dest.group = 'standard'; % For OPS layer_dest source
   insert_param.layer_dest.description = 'GIMP Grid'; % For OPS layer_dest source
+  insert_param.layer_dest.layerdata_source = 'layerData'; % For layerData layer_dest source
+  insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
+  insert_param.copy_method = 'overwrite';
+  insert_param.gaps_fill.method = 'interp_finite';
+  opsInsertLayer(params, insert_param);
+  
+elseif 1
+  %% Example 9: BEDMAP2 grid
+  % =====================================================================
+  % =====================================================================
+  % Use parameters spreadsheet to select segment and frame list for creating layers
+  % Set the generic to 1 for the selected segments and frames
+  
+  physical_constants;
+  insert_param = [];
+  
+  params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO_ndh_targetframes.xls'),'','post');
+  
+  grid_fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
+  
+  % Load the grid
+  points = [];
+  [points.elev,R] = geotiffread(grid_fn);
+  points.elev = double(points.elev);
+  x_axis = R.XLimWorld(1) + [R.XLimIntrinsic(1):R.XLimIntrinsic(2)-1]'*R.DeltaX;
+  y_axis = R.YLimWorld(2) + [R.YLimIntrinsic(1):R.YLimIntrinsic(2)-1]'*R.DeltaY;
+  
+  insert_param.proj = geotiffinfo(grid_fn);
+  
+  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
+  insert_param.x = x_axis;
+  insert_param.y = y_axis;
+  insert_param.data = points.elev;
+  
+  insert_param.type = 'raster'; % Raster data
+  insert_param.layer_dest.name = 'BEDMAP_surface';
+  insert_param.layer_dest.source = 'ops';
+  insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
+  insert_param.layer_dest.group = 'standard'; % For OPS layer_dest source
+  insert_param.layer_dest.description = 'BEDMAP 2 Surface'; % For OPS layer_dest source
   insert_param.layer_dest.layerdata_source = 'layerData'; % For layerData layer_dest source
   insert_param.layer_dest.existence_check = false; % Create layer if it does not exist
   insert_param.copy_method = 'overwrite';

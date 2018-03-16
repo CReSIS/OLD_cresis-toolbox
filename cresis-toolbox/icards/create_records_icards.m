@@ -244,7 +244,7 @@ hdr.file_rec_offset = hdrs.file_rec_offset;
 hdr.offset=hdrs.offset;
 %% Save workspace in case there is a failure
 if isfield(param,'tmp_path') && ~isempty(param.tmp_path)
-  fn = ct_filename_tmp(param,param.records.records_fn,'records','workspace');
+  fn = ct_filename_tmp(param,'','records','workspace');
   fprintf('Saving workspace %s (%s)\n', fn, datestr(now));
   try
     fn_dir = fileparts(fn);

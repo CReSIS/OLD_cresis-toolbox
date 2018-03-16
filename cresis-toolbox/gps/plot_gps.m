@@ -1,5 +1,5 @@
-function plot_gps(fn, plot_color, plot_est_heading)
-% plot_gps(fn OR gps, plot_color, plot_est_heading)
+function gps = plot_gps(fn, plot_color, plot_est_heading)
+% gps = plot_gps(fn OR gps, plot_color, plot_est_heading)
 %
 % Function for testing the quality of the GPS data.
 % 

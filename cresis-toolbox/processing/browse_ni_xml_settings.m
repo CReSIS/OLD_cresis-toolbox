@@ -19,6 +19,8 @@
 % Example:
 %   run_browse_ni_xml_settings.m
 
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
 %% Prepare inputs
 xml_version = defaults{1}.xml_version;
 cresis_xml_mapping;
@@ -346,11 +348,11 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
       default = settings(set_idx).default;
             
       % Determine file version
-      if strcmpi(param.radar_name,'mcords3')
+      if strcmpi(radar_name,'mcords3')
         file_version = 403;
-      elseif any(strcmpi(param.radar_name,{'mcords4'}))
+      elseif any(strcmpi(radar_name,{'mcords4'}))
         file_version = 404;
-      elseif any(strcmpi(param.radar_name,{'mcords5'}))
+      elseif any(strcmpi(radar_name,{'mcords5'}))
         if settings(set_idx).DDC_Ctrl.DDC_sel.Val == 0
           file_version = 408;
         elseif any(settings(set_idx).DDC_Ctrl.DDC_sel.Val == [1 2])
@@ -488,7 +490,9 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
           if param_file.write_en
             params(param_idx).radar.wfs(wf).Tadc_adjust = default.radar.Tadc_adjust;
           end
-          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc_adjust));
+          str = char(format(java.text.DecimalFormat('0.0000000000'),default.radar.Tadc_adjust));
+%          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc_adjust));
+          row_str = cat(2,row_str, sprintf('\t%s',str));
         end
         if any(strcmpi('f0',default.radar_worksheet_headers))
           if param_file.write_en
@@ -501,6 +505,17 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
             params(param_idx).radar.wfs(wf).f1 = settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1);
           end
           row_str = cat(2,row_str, sprintf('\t%.16g',settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1)));
+        end
+        if any(strcmpi('ft_dec',default.radar_worksheet_headers))
+          if param_file.write_en
+            params(param_idx).radar.wfs(wf).ft_dec = default.radar.ft_dec;
+          end
+          row_str = cat(2,row_str, ...
+              sprintf('\t[%d',default.radar.ft_dec(1)));
+          row_str = cat(2,row_str, ...
+              sprintf(' %d',default.radar.ft_dec(2)));
+         row_str = cat(2,row_str, ...
+              sprintf(']'));         
         end
         if any(strcmpi('ref_fn',default.radar_worksheet_headers))
           if param_file.write_en
@@ -516,7 +531,7 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
         end
         
         % Transmit weights
-        if any(strcmpi(param.radar_name,{'mcords3','mcords5'}))
+        if any(strcmpi(radar_name,{'mcords3','mcords5'}))
           tx_mask_inv = fliplr(~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0'));
           tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / default.max_DDS_RAM*default.tx_voltage;
         else

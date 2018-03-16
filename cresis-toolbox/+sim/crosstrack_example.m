@@ -326,6 +326,44 @@ if 1
   %% Run the simulation
   results = sim.crosstrack(param);
   
+  
+  %% To plot Slice model  
+ 
+slice = 11;    
+surface_z = results.z_grid-results.param.monte.target_param{1}.z.mean;
+surface_z_groung_truth =results.surf_model.z-results.param.monte.target_param{1}.z.mean;
+figure(5); clf;  plot(results.surf_model.y, surface_z_groung_truth(:,slice),'b');
+hold on 
+plot(results.surf_model.y, surface_z(:,slice),'r');
+xlim([-1500 1500])
+ylim([-200 250])
+title('Slice - surface model');
+xlabel('Cross-track (m)');
+ylabel('WGS84-Elevation (m)');
+hold off
+legend('Ground-truth surface','Actual surface');
+grid on
+
+% Slice - Range Bin v/s DOA
+figure(6),clf
+scatter(results.tomo.doa(:,1,slice)*(180/pi),results.array_param.bins, 20 , 10*log10(results.tomo.power(:,1,slice)),'fill');
+colorbar
+hold on
+scatter(results.tomo.doa(:,2,slice)*(180/pi),results.array_param.bins, 20 , 10*log10(results.tomo.power(:,2,slice)),'fill');
+colorbar
+set(gca,'Ydir','reverse')
+xlim([-60 60])
+ylim([1 100])
+title('Slice');
+xlabel('DOA (deg)');
+ylabel('Range bin');
+cc = caxis;
+h_cb = colorbar;
+set(get(h_cb,'YLabel'),'String','Relative power (dB)');
+grid on
+
+  
+  
   if param.debug_level >= 3
     return
   end

@@ -45,23 +45,26 @@ settings.seasonName = params(1).season_name;
 fprintf('Checking file inputs ...\n');
 for param_idx = 1:length(params)
   param = params(param_idx);
-  if param.cmd.generic == 1
-    if ~isempty(regexpi(param.cmd.notes,'do not process'))
-      warning('You have enabled a segment with ''do not process'' in the cmd.notes, dbcont to continue');
-      keyboard
-    end
-    recordsFn = ct_filename_support(param,'','records');
-    framesFn = ct_filename_support(param,'','frames');
-    layerDir = ct_filename_out(param,settings.layerDataPath,param.day_seg);
-    if ~exist(recordsFn,'file') && insertPathCmd
-      error('  %s: missing %s\n', param.day_seg, recordsFn);
-    elseif ~exist(framesFn,'file') && insertPathCmd
-      error('  %s: missing %s\n', param.day_seg, framesFn);
-    elseif ~exist(layerDir,'dir') && insertLayerCmd
-      error('  %s: missing %s\n', param.day_seg, layerDir);
-    else
-      fprintf('  %s checked\n', param.day_seg);
-    end
+  if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+    continue;
+  end
+  
+  if ~isempty(regexpi(param.cmd.notes,'do not process'))
+    warning('You have enabled a segment with ''do not process'' in the cmd.notes, dbcont to continue');
+    keyboard
+  end
+  recordsFn = ct_filename_support(param,'','records');
+  framesFn = ct_filename_support(param,'','frames');
+  layerDir = ct_filename_out(param,settings.layerDataPath,param.day_seg);
+  if ~exist(recordsFn,'file') && insertPathCmd
+    error('  %s: missing %s\n', param.day_seg, recordsFn);
+  elseif ~exist(framesFn,'file') && insertPathCmd
+    error('  %s: missing %s\n', param.day_seg, framesFn);
+  elseif ~exist(layerDir,'dir') && insertLayerCmd
+    warning('  %s: missing %s. Layer data directory for the particular segment is missing. If this is expected, run "dbcont".\n', param.day_seg, layerDir);
+    keyboard
+  else
+    fprintf('  %s checked\n', param.day_seg);
   end
 end
 
@@ -111,7 +114,7 @@ if insertPathCmd
       
       % CONFIRM THAT GENERIC IS NOT FLAGGED
       param = params(paramIdx);
-      if param.cmd.generic ~= 1
+      if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
         continue;
       end
       
@@ -258,7 +261,7 @@ if insertLayerCmd
     
     % CONFIRM THAT GENERIC IS NOT FLAGGED
     param = params(paramIdx);
-    if param.cmd.generic ~= 1
+    if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
       continue;
     end
     
@@ -307,6 +310,15 @@ if insertLayerCmd
       error('WARNING: NO LAYER DATA EXIST');
     end
     [opsLayerData,opsLayerDataGpsTime] = layerDataToOps(dayLayerData,settings);
+    
+    if isfield(settings,'layer_name_map')
+      for layerIdx = 1:length(opsLayerData)
+        match_idx = find(strcmpi(opsLayerData(layerIdx).properties.lyr_name, settings.layer_name_map.source_names));
+        if ~isempty(match_idx)
+          opsLayerData(layerIdx).properties.lyr_name = settings.layer_name_map.dest_names{match_idx};
+        end
+      end
+    end
     
     % CHECK FOR EMPTY LAYERS
     emptyLayerIdxs = [];
@@ -494,7 +506,7 @@ if insertAtmCmd
     
     % CONFIRM THAT GENERIC IS NOT FLAGGED
     param = params(paramIdx);
-    if param.cmd.generic ~= 1
+    if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
       continue;
     end
     

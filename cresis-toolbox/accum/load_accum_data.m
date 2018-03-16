@@ -32,10 +32,15 @@ rec_load_offset = 0;
 wf = 1;
 total_recs = param.load.recs(2)-param.load.recs(1)+1;
 rline = 0;
+last_file_flag = 0;
 data = zeros(1,total_recs,16,'single');
-while rec <= param.load.recs(end)
+while rec < param.load.recs(end) 
   % Determine which file contains this record
   file_idx = find(param.load.file_rec_offset{1} > rec,1) - 1;
+  if isempty(file_idx) % the last file contains the records
+      last_file_flag = 1;
+      file_idx = length(param.load.file_rec_offset{1});
+  end
   [tmp fn_name fn_ext] = fileparts(param.load.filenames{1}{file_idx});
   fn = fullfile(param.load.filepath, [fn_name fn_ext]);
   fprintf('  Loading %s\n', fn);
@@ -44,8 +49,13 @@ while rec <= param.load.recs(end)
   start_rec = rec - param.load.file_rec_offset{1}(file_idx);
   
   % Determine how many records we can load from this file
-  num_rec = min(param.load.file_rec_offset{1}(file_idx+1) - rec, ...
-    param.load.recs(end) - rec + 1);
+  if ~last_file_flag
+      num_rec = min(param.load.file_rec_offset{1}(file_idx+1) - rec, ...
+          param.load.recs(end) - rec + 1);
+  else
+      num_rec = min(rec - param.load.file_rec_offset{1}(file_idx), ...
+          param.load.recs(end) - rec + 1);
+  end
   
   if param.load.file_version == 101
     %% File Version 101: John Ledford and Carl Leuschen 1U-DAQ system
@@ -74,7 +84,7 @@ while rec <= param.load.recs(end)
       for wf = 1:16
         fseek(fid,32,0);
         data(1:num_sam,rline,wf) = fread(fid,num_sam,'uint16=>single');
-        fseek(fid,8,0);
+        fseek(fid,8,0);  % skip the 4 invalid samples at the end
       end
     end
     % Close file
@@ -196,7 +206,8 @@ end
 Nt_pc = Nt_ref-1 + size(data,1);
 step_integer = ceil(Nt_pc*abs(param.radar.wfs.step.f_step)/param.radar.fs);
 step_integer_mult = lcm(param.radar.fs,abs(param.radar.wfs.step.f_step))/param.radar.fs;
-step_integer = step_integer + mod(step_integer_mult-mod(step_integer,step_integer_mult),step_integer_mult);
+% step_integer = step_integer + mod(step_integer_mult-mod(step_integer,step_integer_mult),step_integer_mult);
+step_integer = step_integer + step_integer_mult - mod(step_integer,step_integer_mult);
 Nt_pc_aligned = step_integer*param.radar.fs/abs(param.radar.wfs.step.f_step);
 Nt_ref = Nt_ref + (Nt_pc_aligned - Nt_pc);
 pc_param.time = t0 - param.radar.wfs.Tsys - (Nt_ref-1)*dt + dt*(0:(size(data,1)+Nt_ref-1)-1).';
@@ -218,9 +229,17 @@ alpha = (param.radar.wfs.step.f1 - param.radar.wfs.step.f0)/param.radar.wfs.Tpd;
 comb_f0 = param.radar.wfs.step.f0 + alpha*param.radar.wfs.Tpd*0.5 + abs(param.radar.wfs.step.f_step/2) + param.radar.wfs.step.f_offset;
 comb_f1 = comb_f0 + param.radar.wfs.step.f_step * size(pc_data,3) + param.radar.wfs.step.f_offset;
 
+% resample the compressed data at a frequency of 2 times of the combined bandwidth
+fs_new = 2*abs((comb_f1 - comb_f0));
+[P,Q] = rat(fs_new/param.radar.fs);
+pc_data_new = zeros(size(pc_data,1)*fs_new/param.radar.fs,size(pc_data,2),size(pc_data,3));
+for wf_idx = 1:size(pc_data,3)
+    pc_data_new(:,:,wf_idx) = single(resample(double(pc_data(:,:,wf_idx)),P,Q));
+end
+pc_data = pc_data_new;
+param.radar.fs = fs_new;
 Nt = size(pc_data,1);
 df = param.radar.fs/Nt;
-
 Nt_step = abs(param.radar.wfs.step.f_step) / df;
 
 min_f0 = min(comb_f0,comb_f1);
@@ -235,9 +254,10 @@ comb_freq = ifftshift(comb_freq,1);
 
 % Determine pulse compression phase offset
 if 1
-  pc_phase_offset(1) = 0;
+  pc_phase_offset(3) = 0;
   for wf=2:16
-    pc_phase_offset(wf) = angle(mean(mean(conj(pc_data(pc_data_idx+Nt_step+(-10:10),:,wf-1)) .* conj(conj(pc_data(pc_data_idx+(-10:10),:,wf))),2)));
+    pc_phase_offset(wf) = angle(mean(mean(conj(pc_data(pc_data_idx+Nt_step+(-10:10),:,wf-1)) .* conj(conj(pc_data(pc_data_idx+Nt_step+(-10:10),:,wf))),2)));
+    pc_phase_offset(wf) = 0;
   end
   pc_phase_offset = cumsum(pc_phase_offset);
   pc_phase_offset
@@ -249,7 +269,8 @@ for wf = 1:16
   % 1. Flip spectrum and conjugation of phase because negative side of frequencies were used
   % 2. Pulse compression phase shift because the phase of each of the pulse compression filters
   %    won't align without this.
-  data(size(data,1)-(wf-1)*Nt_step + (0:-1:-Nt_step+1),:) = exp(j*pc_phase_offset(wf))*conj(pc_data(pc_data_idx+(0:Nt_step-1),:,wf));
+%   data(size(data,1)-(wf-1)*Nt_step + (0:-1:-Nt_step+1),:) = exp(j*pc_phase_offset(wf))*conj(pc_data(pc_data_idx+(0:Nt_step-1),:,wf));
+  data(size(data,1)-(wf-3)*Nt_step + (0:-1:-Nt_step+1),:) = exp(j*pc_phase_offset(wf))*conj(pc_data(pc_data_idx+(0:Nt_step-1),:,wf));
 end
 data = ifftshift(data,1);
 

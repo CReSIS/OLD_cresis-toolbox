@@ -38,6 +38,20 @@ function success = combine_wf_chan_task(param)
 % Preparation
 physical_constants;
 
+if strcmpi(param.csarp.sar_type,'f-k')
+  sar_type = 'fk';
+elseif strcmpi(param.csarp.sar_type,'tdbp')
+  sar_type = 'tdbp';
+elseif strcmpi(param.csarp.sar_type,'mltdp')
+  sar_type = 'mltdp';
+end
+in_fn_dir = fullfile(ct_filename_out(param, param.combine.in_path, 'CSARP_out'), ...
+  sprintf('%s_data_%03d_01_01', sar_type, param.combine.frm));
+
+%% Temporary output directory
+array_fn_dir= fullfile(ct_filename_out(param, param.combine.array_path, 'CSARP_out'), ...
+  sprintf('array_%03d', param.combine.frm));
+
 % =====================================================================
 % Process data
 % =====================================================================
@@ -89,10 +103,9 @@ for chunk_idx = 1:length(param.combine.chunk_ids)
         adc = wf_adc_list(wf_adc_idx,2);
         for subap = param.combine.subaps{ml_idx}
           for subbnd = param.combine.subbnds{ml_idx}
-            in_path = param.combine.in_path;
-            in_path(end-4:end-3) = sprintf('%02d',subap);
-            in_path(end-1:end) = sprintf('%02d',subbnd);
-            [sar_type_fn,status] = get_filenames(in_path, ...
+            in_fn_dir(end-4:end-3) = sprintf('%02d',subap);
+            in_fn_dir(end-1:end) = sprintf('%02d',subbnd);
+            [sar_type_fn,status] = get_filenames(in_fn_dir, ...
               sprintf('wf_%02.0f_adc_%02.0f_', wf, adc),['chk_',param.combine.chunk_ids{chunk_idx}],'.mat');
             if param.debug_level >= 1
               fprintf('  Loading SAR processed data %s (%s)\n', sar_type_fn{1}, datestr(now));
@@ -301,12 +314,22 @@ for chunk_idx = 1:length(param.combine.chunk_ids)
     % -------------------------------------------------------------------
     %% Save results
     [sar_type_fn_path sar_type_fn_name sar_type_fn_ext] = fileparts(sar_type_fn{1});
-    array_fn = fullfile(param.combine.out_path, [sar_type_fn_name(end-6:end) sprintf('_img_%02d', img_idx) sar_type_fn_ext]);
+    array_fn = fullfile(array_fn_dir, [sar_type_fn_name(end-6:end) sprintf('_img_%02d', img_idx) sar_type_fn_ext]);
     fprintf('  Saving combine_wf_chan data %s (%s)\n', array_fn, datestr(now));
     
-    Latitude = sar_type_file.lat(1,array_param.lines);
-    Longitude = sar_type_file.lon(1,array_param.lines);
-    Elevation = sar_type_file.elev(1,array_param.lines);
+    if ~isfield(sar_type_file,'lat')
+      warning('DEPRECATED CODE: You are using an old SAR file version without lat field. Computing position from the origin of the SAR coordinate system. Support for old SAR files will eventually be removed.');
+      [Latitude,Longitude,Elevation] ...
+        = ecef2geodetic(sar_type_file.fcs.origin(1,array_param.lines), ...
+        sar_type_file.fcs.origin(2,array_param.lines), ...
+        sar_type_file.fcs.origin(3,array_param.lines),WGS84.ellipsoid);
+      Latitude = Latitude*180/pi;
+      Longitude = Longitude*180/pi;
+    else
+      Latitude = sar_type_file.lat(1,array_param.lines);
+      Longitude = sar_type_file.lon(1,array_param.lines);
+      Elevation = sar_type_file.elev(1,array_param.lines);
+    end
     GPS_time = sar_type_file.fcs.gps_time(array_param.lines);
     Surface = sar_type_file.fcs.surface(array_param.lines);
     Bottom = sar_type_file.fcs.bottom(array_param.lines);

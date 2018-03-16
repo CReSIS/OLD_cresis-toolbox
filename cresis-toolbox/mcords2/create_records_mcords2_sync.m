@@ -15,7 +15,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % =====================================================================
   new_param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'20160426_05');
   
-  fn = ct_filename_tmp(new_param,new_param.records.records_fn,'records','workspace');
+  fn = ct_filename_ct_tmp(new_param,'','records','workspace');
   fn = [fn '.mat'];
   fprintf('Loading workspace %s (%s)\n', fn, datestr(now));
   if exist(fn,'file')
@@ -43,6 +43,10 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
 end
 
 fprintf('Running %s correction and gps sync (%s)\n', param.day_seg, datestr(now));
+
+if ~isfield(param.records,'presum_bug_fixed') || isempty(param.records.presum_bug_fixed)
+  param.records.presum_bug_fixed = false;
+end
 
 % =====================================================================
 %% Synchronize Between Boards
@@ -372,6 +376,7 @@ utc_time_sod_expected = double(records.raw.epri(good_idxs)) * init_EPRI_estimate
 utc_time_sod_expected = utc_time_sod_expected - utc_time_sod_expected(1) + utc_time_sod_measured(1) - one_second_jump_state;
 
 %% Compare expected and measured GPS times
+clock_notes = '';
 if strcmpi(param.day_seg,'20110418_03')
   fprintf('IMPLEMENTING HACK: This segment is known to have bad EPRI values in files 37, 58, and 113\n');
   fprintf('because the time stamps in the filenames on the computer indicate that the\n');
@@ -395,9 +400,9 @@ if strcmpi(param.day_seg,'20110418_03')
   end
   
   p = [NaN NaN];
-  clock_notes = sprintf('  Clock error %.12f\n  fs %.2f Hz\n  PRF %.6f Hz\n  max_error %.2f ms\n', ...
+  clock_notes = cat(2,clock_notes,sprintf('  Clock error %.12f\n  fs %.2f Hz\n  PRF %.6f Hz\n  max_error %.2f ms\n', ...
     p(1)/EPRI, param.radar.fs / (p(1)/EPRI), param.radar.prf / (p(1)/EPRI), ...
-    max(abs(utc_time_sod_corrected(good_idxs)-utc_time_sod_measured)) * 1000);
+    max(abs(utc_time_sod_corrected(good_idxs)-utc_time_sod_measured)) * 1000));
   
 else
   
@@ -427,6 +432,14 @@ else
     ylabel('Mismatch (sec)');
     title('Mismatch between expected and measured UTC time');
     xlabel('Records');
+    figure(2); clf;
+    plot(diff(utc_time_sod_measured) ./ diff(double(records.raw.epri(good_idxs))),'.');
+    ylabel('Estimated EPRI (sec)');
+    xlabel('Records');
+    epri_double = double(records.raw.epri(good_idxs));
+    final_EPRI_estimate = (utc_time_sod_measured(end)-utc_time_sod_measured(1)) / (epri_double(end)-epri_double(1));
+    title(sprintf('param.radar EPRI %.8f ms\ninit_EPRI_estimate %.8f ms\nfinal_EPRI_estimate %.8f ms', ...
+      EPRI*1e3, init_EPRI_estimate*1e3, final_EPRI_estimate*1e3),'interpreter','none');
     warning('The expected and measured times are off by > 0.1.');
     fprintf('Verify in the plot that all differences are less than 0.1 seconds\n');
     fprintf('except a few outliers. dbcont replaces these outliers. However, if\n');
@@ -442,7 +455,20 @@ else
     fprintf('You may need to set UTC_MAX_ERROR to a larger value to allow for this\n');
     fprintf('or use param.records.use_ideal_epri to help find a better EPRI.\n');
     UTC_MAX_ERROR = 0.1;
-    keyboard
+    good_mask = abs(utc_time_sod_expected-utc_time_sod_measured) <= UTC_MAX_ERROR;
+    good_percent = sum(good_mask)/length(good_mask);
+    clock_notes = cat(2,clock_notes,sprintf('Mismatch between expected and measured UTC time:\n'));
+    clock_notes = cat(2,clock_notes,sprintf('  %.4f%%\n', good_percent*100));
+    fn_fig = ct_filename_ct_tmp(param,'','records', ['mismatch_UTC_time.fig']);
+    fprintf('Saving %s\n', fn_fig);
+    [fn_fig_dir,name] = fileparts(fn_fig);
+    if ~exist(fn_fig_dir,'dir')
+      mkdir(fn_fig_dir);
+    end
+    saveas(1,fn_fig);
+    if good_percent < 0.995
+      keyboard
+    end
     good_mask = abs(utc_time_sod_expected-utc_time_sod_measured) <= UTC_MAX_ERROR;
     good_idxs = good_idxs(good_mask);
     utc_time_sod_measured = utc_time_sod_measured(good_mask);
@@ -454,10 +480,10 @@ else
   
   p = polyfit(double(records.raw.epri(good_idxs)),utc_time_sod_measured,1);
   utc_time_sod_corrected = double(records.raw.epri)*p(1) + p(2);
-  clock_notes = sprintf('  Clock error %.12f\n  fs %.2f Hz\n  PRF %.6f Hz\n  max_error %.2f ms\n', ...
+  clock_notes = cat(2,clock_notes,sprintf('  Clock error %.12f\n  fs %.2f Hz\n  PRF %.6f Hz\n  max_error %.2f ms\n', ...
     p(1)/EPRI, param.radar.fs / (p(1)/EPRI), param.radar.prf / (p(1)/EPRI), ...
-    max(abs(utc_time_sod_corrected(good_idxs)-utc_time_sod_measured)) * 1000);
-  fprintf(clock_notes);
+    max(abs(utc_time_sod_corrected(good_idxs)-utc_time_sod_measured)) * 1000));
+  fprintf('%s',clock_notes);
   plot(utc_time_sod_corrected(good_idxs), utc_time_sod_corrected(good_idxs)-utc_time_sod_measured);
   xlabel('UTC time seconds of day (sec)');
   ylabel('Mismatch (sec)');

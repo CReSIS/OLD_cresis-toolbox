@@ -18,8 +18,7 @@ default.header_load_func = @basic_load_mcords3;
 default.header_load_params = struct('clk',1e9/9,'presum_bug_fixed',false);
 default.xml_version = 2.0;
 
-% default.noise_50ohm = [-41.6	-42.2	-42.4	-41.9	-42.5	-42.9	-41.7	-43.0	-44.1	-44.7	-43.1	-44.1	-41.8	-42.6	-41.4	-42.6	-41.8	-43.1	-42.0	-42.7	-41.1	-43.4	-42.1	-41.9];
-default.noise_50ohm = [0 0 0 0 0 0 0];
+default.noise_50ohm = [-45.5	-44.3	-44.8	-44.9	-40.2	-40.8	-40.5	-41.4	-39.9	-40.2	-42.0	-43.6	-43.0	-44.1	-44.6];
 
 default.Pt = 1000 * [1 1 1 1 1 1 1];
 default.Gt = 7*4;
@@ -30,13 +29,13 @@ default.max_DDS_RAM = 40000;
 default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 
 default.iq_mode = 0;
-default.tx_DDS_mask = [1 1 1 1 1 1 0 0];
+default.tx_DDS_mask = [1 1 1 1 1 1 1 0];
 
 default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
 default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
-default.basic_surf_track_min_time = -inf; % Normally -inf for lab test, 2e-6 for flight test
-default.basic_surf_track_Tpd_factor = -inf; % Normally -inf for lab test, 1.1 for flight test
+default.basic_surf_track_min_time = 2e-6; % Normally -inf for lab test, 2e-6 for flight test
+default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
 default.adc_folder_name = 'board%b';
 
 if 1
@@ -100,7 +99,7 @@ default.get_heights.surf.search_rng = [0:2];
 
 %% CSARP worksheet in parameter spreadsheet
 default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).']};
+default.csarp.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
 default.csarp.frm_types = {0,[0 1],0,0,-1};
 default.csarp.chunk_len = 5000;
 default.csarp.chunk_overlap = 10;
@@ -152,21 +151,23 @@ default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 14;
 default.radar.adc_full_scale = 2;
 default.radar.rx_paths = [1,1:15];
+default.radar.rx_paths = [1 8 9 10 11 1 2 3 4 5 6 7 12 13 14 15];
 default.radar.noise_figure = 2;
 default.radar.rx_gain = 51.5;
 default.radar.adc_SNR_dB = 70;
-default.radar.Tadc_adjust = 1.60E-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.Tadc_adjust = -1.4455e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 defaults = {};
 
 %% Settings
-default.radar.wfs(1).chan_equal_Tsys = [0 0 0 0 0 0 0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0];
+default.radar.wfs(1).chan_equal_Tsys = [16.51	11.76	8.57	5.91	1.60	-0.13	0.00	-2.44	-4.83	-3.16	-2.76	-10.60	-6.05	-1.68	5.19]/1e9;
+default.radar.wfs(1).chan_equal_dB = [1.1	1.0	1.0	3.0	3.9	1.0	0.0	-2.6	-0.7	0.9	1.3	3.7	2.0	0.2	3.3];
+default.radar.wfs(1).chan_equal_deg = [97.1	25.2	-60.1	-126.1	-38.7	6.4	-0.0	-131.0	0.6	-25.1	-47.5	-86.3	-33.5	165.4	-106.6];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).']};
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'','',''};
@@ -175,17 +176,40 @@ default.xml_regexp = 'survey_.*thick.xml';
 default.name = 'Survey Mode';
 defaults{end+1} = default;
 
-% ping pong mode
-default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-%default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'],[3*ones(6,1),(1:6).'; 4*ones(6,1),(1:6).']};
-%default.get_heights.imgs = {[1*ones(5,1),[1 3 4 5 6].'],[2*ones(5,1),[1 3 4 5 6].'],[3*ones(5,1),[1 3 4 5 6].'; 4*ones(5,1),[1 3 4 5 6].']};
-default.get_heights.imgs = {[1*ones(6,1),(1:6).'],[2*ones(6,1),(1:6).'; 3*ones(6,1),(1:6).'],[4*ones(6,1),(1:6).'; 5*ones(6,1),(1:6).']};
+% survey mode
+default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06];
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).']};
+default.csarp.imgs = default.get_heights.imgs;
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
-default.radar.DC_adjust = {'','','',''};
+default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
-default.xml_regexp = 'pingpong.*.xml';
-default.name = 'Pingpong';
+default.xml_regexp = 'survey_.*thin_ice.xml';
+default.name = 'Thin Ice Mode';
+defaults{end+1} = default;
+
+% high altitude mode
+default.get_heights.qlook.img_comb = [1e-05 -inf 3e-06];
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).']};
+default.csarp.imgs = default.get_heights.imgs;
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'survey_.*high_altitude.xml';
+default.name = 'High Altitude Mode';
+defaults{end+1} = default;
+
+% deconvolution mode
+default.get_heights.qlook.img_comb = [];
+default.get_heights.imgs = {[1*ones(4,1),(2:5).'],[2*ones(4,1),(2:5).'],[3*ones(4,1),(2:5).']};
+default.csarp.imgs = default.get_heights.imgs;
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'','',''};
+default.radar.ref_fn = '';
+default.xml_regexp = 'survey_.*DECONVOLUTION.xml';
+default.name = 'Deconvolution Mode';
 defaults{end+1} = default;
 
 %% Other settings

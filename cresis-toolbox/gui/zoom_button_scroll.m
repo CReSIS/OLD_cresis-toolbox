@@ -7,9 +7,15 @@ function zoom_button_scroll(event,param)
 %  .ylims = max y-limits
 %  .h_axes = axes handle that we are zooming with
 %  .h_fig = figure handle that we are zooming in
+%  .axes = optional, string which specifies which axes can zoom ('xy' is
+%  default, 'x' is x only, 'y' is y only)
 %
 % See also: zoom_arrow.m, zoom_button_up.m zoom_button_scroll.m,
 %   zoom_setup.m, zoom_figure_setup.m
+
+if ~isfield(param,'axes') || isempty(param.axes)
+  param.axes = 'xy';
+end
 
 [x,y,but] = get_mouse_info(param.h_fig,param.h_axes);
 
@@ -42,7 +48,10 @@ if ~isempty(param.ylims)
     ylims(2) = param.ylims(2);
   end
 end
-xlim(param.h_axes,xlims);
-ylim(param.h_axes,ylims);
-
+if any(param.axes=='x')
+  xlim(param.h_axes,xlims);
+end
+if any(param.axes=='y')
+  ylim(param.h_axes,ylims);
+end
 end

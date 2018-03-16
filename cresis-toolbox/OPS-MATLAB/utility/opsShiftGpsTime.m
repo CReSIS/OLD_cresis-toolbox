@@ -29,44 +29,42 @@ function [ status,message ] = opsShiftGpsTime( sys,param )
 shifted_gps_time = data.properties.gps_time + param.properties.offset;
 
 % interpolate twtt onto the original gps time
-out_twtt = interp1(shifted_gps_time,data.properties.twtt,data.properties.gps_time);
-
-% construct the param for point delete
- deleteParam.properties.start_point_path_id = min (data.properties.point_path_id);
- deleteParam.properties.stop_point_path_id = max (data.properties.point_path_id);
- deleteParam.properties.max_twtt = max (data.properties.twtt);
- deleteParam.properties.min_twtt = min (data.properties.twtt);
- deleteParam.properties.lyr_name = param.properties.lyr_name;
- 
- % delete original layer points
- try
-  [~,message] = opsDeleteLayerPoints(sys,deleteParam);
- catch ME
-   error('Something wrong with point delete!');
- end
+if sum(isfinite(data.properties.twtt)) >= 2
+  out_twtt = interp1(shifted_gps_time,data.properties.twtt,data.properties.gps_time);
+else
+  status = 1;
+  msg = 'All points NaN, skipping shift';
+  fprintf('Gps Time Shift Successful:%d: %s\n', status, msg);
+  message = sprintf('Gps Time Shift Successful:%d: %s', status, msg);
+  return
+end
 
 % construct the param for point creation
-idx = ~isnan(out_twtt);
-createParam.properties.point_path_id = data.properties.point_path_id(idx);
+createParam.properties.point_path_id = data.properties.point_path_id;
 createParam.properties.username = authParam.properties.userName;
-createParam.properties.twtt = out_twtt(idx);
-createParam.properties.type = data.properties.type(idx); % need to verify
-createParam.properties.quality = data.properties.quality(idx); % need to verify
+createParam.properties.twtt = out_twtt;
+createParam.properties.type = data.properties.type;
+createParam.properties.quality = data.properties.quality;
+if ~isnan(param.properties.quality)
+  % Overriding quality setting
+  createParam.properties.quality(:) = param.properties.quality;
+end
 createParam.properties.lyr_name = param.properties.lyr_name;
 
 % create the layer points
 try
-  [status,message] = opsCreateLayerPoints(sys,createParam);
+  [status,msg] = opsCreateLayerPoints(sys,createParam);
 catch ME
-   error('Something wrong with layer point creation!');
+   for idx=1:length(ME.stack); disp(ME.stack(idx)); end;
+   error('opsCreateLayerPoints failed: %s %s', ME.message);
 end
  
 if status == 1
-    fprintf('Gps Time Shift Successful\n');
-    message = 'Gps Time Shift Successful';
+    fprintf('Gps Time Shift Successful:%d: %s\n', status, msg);
+    message = sprintf('Gps Time Shift Successful:%d: %s', status, msg);
 else
-    fprintf('Gps Time Shift Failed\n');
-    message = 'Gps Time Shift Failed';
+    warning('Gps Time Shift Failed:%d: %s', status, msg);
+    message = sprintf('Gps Time Shift Failed:%d: %s', status, msg);
 end
 
 end

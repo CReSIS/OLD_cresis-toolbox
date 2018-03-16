@@ -151,7 +151,6 @@ size_t TRWS::encode(size_t d, size_t h, size_t w) {
 }
 
 double TRWS::unary_cost(size_t d, size_t h, size_t w) {
-    double cost = 0.0;
     size_t t = (ms-1)/2;
 
     // Ice mask
@@ -174,23 +173,22 @@ double TRWS::unary_cost(size_t d, size_t h, size_t w) {
     }
 
     // Extra ground truth (uncomment these if use extra ground truth)
+    /*
     for (size_t i = 0; i < egt.size(); i++) {
         if (w == get<0>(egt[i]) && h == get<1>(egt[i])) {
-            cost += 2*pow(abs((int)get<2>(egt[i]) - (int)(d+t))/2.0,2);
-//             if (d+t == get<2>(egt[i])) {
-//                 return 0.0;
-//             } else {
-//                 return LARGE;
-//             }
+            if (d+t == get<2>(egt[i])) {
+                return 0.0;
+            } else {
+                return LARGE;
+            }
         }
     }
+    */
 
-    if (abs((int)(d+t) - (int)sgt[w][h]) < 10) {
-        cost += 100 - 10*abs((int)(d+t) - (int)sgt[w][h]);
+    double cost = 0.0;
+    if (abs((int)d - (int)sgt[w][h]) < 20) {
+        cost += 200;
     }
-//     if (abs((int)d - (int)sgt[w][h]) < 20) {
-//         cost += 200;
-//     }
 
     // Model quadratic distance
     for (size_t i = 0; i < ms; i++) {
@@ -296,10 +294,7 @@ void TRWS::surface_extracting() {
     size_t t = (ms-1)/2;
 
     while (loop < max_loop) {
-      if (loop > 0) {
-        mexPrintf("\b\b\b\b\b\b\b\b\b\b\b", loop);
-      }
-        mexPrintf("loop: %04d\n", loop+1);
+        mexPrintf("loop: %d\n", loop);
         mexEvalString("drawnow;");
         // Forward
         for (size_t h = 1; h < height-1; h++) {
@@ -438,14 +433,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         elayer.push_back(tuple<size_t, size_t, size_t>(floor(extra[i*3]), floor(extra[i*3+1]), floor(extra[i*3+2])));
     }
 
-    //mexPrintf("Initing TRWS ...\n");
-    //mexEvalString("drawnow;");
+    mexPrintf("Initing TRWS ...\n");
+    mexEvalString("drawnow;");
     TRWS trws(input, dim, slayer, blayer, elayer, mask, mean, var);
-    //mexPrintf("Setting prior ...\n");
-    //mexEvalString("drawnow;");
+    mexPrintf("Setting prior ...\n");
+    mexEvalString("drawnow;");
     trws.set_prior();
-    //mexPrintf("Extracting surface ...\n");
-    //mexEvalString("drawnow;");
+    mexPrintf("Extracting surface ...\n");
+    mexEvalString("drawnow;");
     trws.surface_extracting();
 
     plhs[0] = getMexArray(trws.result);
