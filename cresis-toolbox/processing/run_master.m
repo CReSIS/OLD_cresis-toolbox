@@ -20,11 +20,11 @@ function run_master
 %clear; % Optional
 %close all; % Optional
 
-params = read_param_xls(ct_filename_param('replace_this_filename.xls'));
+params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_DC8.xls'));
 
 clear('param_override');
 param_override = [];
-% param_override.sched.type = 'no scheduler';
+ param_override.sched.type = 'no scheduler';
 param_override.sched.cluster_size = inf;
 param_override.sched.rerun_only = false;
 %param_override.sched.submit_arguments    = '-q cresis -l nodes=1:ppn=2:dc2,walltime=60:00';

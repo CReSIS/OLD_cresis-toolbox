@@ -10,7 +10,7 @@
 % =====================================================================
 % Debug Setup
 % =====================================================================
-param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'20160426_11');
+param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),'20161107_04');
 
 clear('param_override');
 dbstop if error
