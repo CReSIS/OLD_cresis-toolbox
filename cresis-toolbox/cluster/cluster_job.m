@@ -1,5 +1,5 @@
-function cluster_job(task_in_fn_dir,task_out_fn_dir,job_list)
-% cluster_job(task_in_fn_dir,task_out_fn_dir,job_list)
+function cluster_job(task_in_fn_dir,task_out_fn_dir,task_ids)
+% cluster_job(task_in_fn_dir,task_out_fn_dir,task_ids)
 %
 % This M-file should be compiled with cluster_compile.
 %
@@ -22,13 +22,13 @@ end
 if ~exist('task_out_fn_dir','var')
   task_out_fn_dir = getenv('OUTPUT_PATH');
 end
-if ~exist('job_list','var')
-  job_list = getenv('JOB_LIST');
+if ~exist('task_ids','var')
+  task_ids = getenv('TASK_LIST');
 end
-job_list = regexp(job_list, 'd', 'split');
+task_ids = regexp(task_ids, 'd', 'split');
 
-fprintf('%s: Processing tasks %s', mfilename, job_list{1});
-fprintf(', %s', job_list{2:end});
+fprintf('%s: Processing tasks %s', mfilename, task_ids{1});
+fprintf(', %s', task_ids{2:end});
 fprintf(' (%s)\n', datestr(now));
 
 % Create input filenames
@@ -38,10 +38,10 @@ dynamic_in_fn = fullfile(task_in_fn_dir,'dynamic.mat');
 sparam = load(static_in_fn);
 dparam = load(dynamic_in_fn);
 
-for task_idx = 1:length(job_list)
+for task_idx = 1:length(task_ids)
   cluster_task_start_time = tic;
-  task_id = str2double(job_list{task_idx});
-  fprintf('%s: Load task %d (%d of %d) (%s)\n', mfilename, task_id, task_idx, length(job_list), datestr(now));
+  task_id = str2double(task_ids{task_idx});
+  fprintf('%s: Load task %d (%d of %d) (%s)\n', mfilename, task_id, task_idx, length(task_ids), datestr(now));
   
   % Create output filename
   out_fn = fullfile(task_out_fn_dir,sprintf('out_%d.mat',task_id));

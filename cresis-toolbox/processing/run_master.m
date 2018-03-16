@@ -20,18 +20,23 @@ function run_master
 %clear; % Optional
 %close all; % Optional
 
-params = read_param_xls(ct_filename_param('replace_this_filename.xls'));
+params = read_param_xls(ct_filename_param('replace_this_filename.xls'),'');
 
-clear('param_override');
+% Syntax for running a specific segment and frame by overriding parameter spreadsheet values
+%params = read_param_xls(ct_filename_param('replace_this_filename.xls'),'YYYYMMDD_SS');
+% params = ct_set_params(params,'cmd.csarp',0);
+% params = ct_set_params(params,'cmd.csarp',1,'day_seg','YYYYMMDD_SS');
+
 param_override = [];
-% param_override.sched.type = 'no scheduler';
-param_override.sched.cluster_size = inf;
-param_override.sched.rerun_only = false;
-%param_override.sched.submit_arguments    = '-q cresis -l nodes=1:ppn=2:dc2,walltime=60:00';
-param_override.sched.stop_on_fail = false;
+% dbstop if error;
+param_override.cluster.type = 'torque';
+% param_override.cluster.type = 'matlab';
+% param_override.cluster.type = 'debug';
+%param_override.cluster.rerun_only = true;
+param_override.cluster.desired_time_per_job  = 24*60*60;
+% param_override.cluster.cpu_time_mult  = 2;
+% param_override.cluster.mem_mult  = 2;
+% param_override.cluster.max_jobs_active       = 1;
+% param_override.cluster.qsub_submit_arguments = '-q debug -m n -l nodes=1:ppn=1:dcwan:dc2,pmem=%dmb,walltime=%d:00';
 
-master(params,param_override);
-
-return;
-
-
+ctrl_chain = master(params,param_override);

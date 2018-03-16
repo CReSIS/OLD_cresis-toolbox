@@ -354,6 +354,7 @@ else
       dt = ds.Time(2)-ds.Time(1);
       Time = ds.Time(1) - dt*round((ds.Time(1) - min_time)/dt) ...
         : dt : max(tmp.Time(end),ds.Time(end));
+      Time = reshape(Time,[numel(Time) 1]);
       % Interpolate original data
       ds.Data = interp1(ds.Time,ds.Data,Time);
       ds.Time = Time;

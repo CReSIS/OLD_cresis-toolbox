@@ -404,12 +404,13 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'rx_chan_equal_raw_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_combine_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_combine_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'csarp_sar_coord_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'csarp_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'nsidc_delivery_script_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'hanning.m' 0};
   gRadar.cluster.hidden_depend_funs{end+1} = {'hamming.m' 0};

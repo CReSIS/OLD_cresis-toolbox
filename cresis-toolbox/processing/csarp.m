@@ -1,5 +1,5 @@
-function csarp(param,param_override)
-% csarp(param,param_override)
+function ctrl_chain = csarp(param,param_override)
+% ctrl_chain = csarp(param,param_override)
 %
 % SAR processor function which breaks up the frame into chunks
 % which are processed by csarp_task.m
@@ -20,49 +20,29 @@ function csarp(param,param_override)
 % See also: run_master.m, master.m, run_csarp.m, csarp.m,
 %   csarp_task.m
 
+%% General Setup
 % =====================================================================
-% General Setup
-% =====================================================================
-
-if ~isstruct(param)
-  % Functional form
-  param();
-end
 param = merge_structs(param, param_override);
 
-dbstack_info = dbstack;
 fprintf('=====================================================================\n');
-fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
-% =====================================================================
-% Setup processing
+%% Input Checks
 % =====================================================================
 
-if ~isfield(param.csarp,'frm_overlap') || isempty(param.csarp.frm_overlap) ...
-    || param.csarp.frm_overlap == 0
-  param.csarp.frm_overlap = 0;
-else
-  error('A nonzero frame overlap is no longer allowed. Either remove the field or set to zero.');
-end
-
-% Get WGS84 ellipsoid parameters
+% Get speed of light, dielectric of ice constants
 physical_constants;
 
-[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
-
-csarp_out_path = ct_filename_out(param,param.csarp.out_path,'CSARP_out');
-if ~exist(csarp_out_path,'dir')
-  mkdir(csarp_out_path);
+if ~isfield(param.csarp,'frm_types') || isempty(param.csarp.frm_types)
+  param.csarp.frm_types = {-1,-1,-1,-1,-1};
 end
 
-load(ct_filename_support(param,'','frames'));
-records = load(ct_filename_support(param,'','records'));
-
-if isempty(param.cmd.frms)
+% Remove frames that do not exist from param.cmd.frms list
+load(ct_filename_support(param,'','frames')); % Load "frames" variable
+if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end
-% Remove frames that do not exist from param.cmd.frms list
 [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
 if length(valid_frms) ~= length(param.cmd.frms)
   bad_mask = ones(size(param.cmd.frms));
@@ -72,40 +52,137 @@ if length(valid_frms) ~= length(param.cmd.frms)
   param.cmd.frms = valid_frms;
 end
 
-if ~isfield(param.sched,'rerun_only') || isempty(param.sched.rerun_only)
-  param.sched.rerun_only = false;
+if ~isfield(param.csarp,'out_path') || isempty(param.csarp.out_path)
+  param.csarp.out_path = 'out';
 end
 
-% Cleanup/remove/delete old folders
-if ~param.sched.rerun_only
-  for frm = param.cmd.frms
-    if exist(csarp_out_path,'dir')
-        if strcmpi(param.csarp.sar_type,'f-k')
-          del_paths = get_filenames(csarp_out_path,sprintf('fk_data_%03d',frm),'','',struct('type','d'));
-        elseif strcmpi(param.csarp.sar_type,'tdbp')
-          del_paths = get_filenames(csarp_out_path,sprintf('tdpb_data_%03d',frm),'','',struct('type','d'));            
-        elseif strcmpi(param.csarp.sar_type,'mltdp')
-          del_paths = get_filenames(csarp_out_path,sprintf('mltdp_data_%03d',frm),'','',struct('type','d'));
-        else
-          error('Invalid SAR processing type (%s)\n', param.csarp.sar_type);
-        end
-      for idx = 1:length(del_paths)
-        fprintf('If required, manually remove path: %s\n', del_paths{idx});
-        %rmdir(del_paths{idx},'s');
-      end
-    end
-  end
+if ~isfield(param.csarp,'pulse_comp') || isempty(param.csarp.pulse_comp)
+  param.csarp.pulse_comp = 1;
 end
 
 if ~isfield(param.csarp,'ground_based') || isempty(param.csarp.ground_based)
   param.csarp.ground_based = false;
 end
 
-global g_data;
-g_data = [];
+if ~isfield(param.csarp,'sar_type') || isempty(param.csarp.sar_type)
+  param.csarp.sar_type = 'fk';
+end
 
+if strcmpi(param.csarp.sar_type,'f-k')
+  error('Deprecated sar_type name. Change param.csarp.sar_type from ''f-k'' to ''fk'' in  your parameters (or remove parameter since ''fk'' is the default mode).');
+end
+
+if ~isfield(param.csarp,'pulse_comp') || isempty(param.csarp.pulse_comp)
+  param.csarp.pulse_comp = true;
+end
+
+if ~isfield(param.csarp,'ft_dec') || isempty(param.csarp.ft_dec)
+  param.csarp.ft_dec = true;
+end
+
+if ~isfield(param.csarp,'ft_wind_time') || isempty(param.csarp.ft_wind_time)
+  param.csarp.ft_wind_time = [];
+end
+
+if ~isfield(param.csarp,'start_eps') || isempty(param.csarp.start_eps)
+  param.csarp.start_eps = er_ice;
+end
+
+if ~isfield(param.csarp,'time_of_full_support') || isempty(param.csarp.time_of_full_support)
+  param.csarp.time_of_full_support = inf;
+end
+
+if ~isfield(param.csarp,'force_one_wf_adc_pair_per_job') || isempty(param.csarp.force_one_wf_adc_pair_per_job)
+  param.csarp.force_one_wf_adc_pair_per_job = false;
+end
+
+if ~isfield(param.csarp,'combine_rx') || isempty(param.csarp.combine_rx)
+  param.csarp.combine_rx = false;
+end
+
+if ~isfield(param.csarp,'Lsar')
+  param.csarp.Lsar = [];
+end
+
+if ~isfield(param.csarp.Lsar,'agl')
+  param.csarp.Lsar.agl = 500;
+end
+
+if ~isfield(param.csarp.Lsar,'thick')
+  param.csarp.Lsar.thick = 1000;
+end
+
+if ~isfield(param.csarp,'trim_vals') || isempty(param.csarp.trim_vals)
+  param.csarp.trim_vals = [0 0];
+end
+
+if ~isfield(param.csarp,'coh_noise_removal') || isempty(param.csarp.coh_noise_removal) ...
+    || ~param.csarp.coh_noise_removal
+  param.csarp.coh_noise_removal = 0;
+  default_coh_noise_method = 0;
+elseif param.csarp.coh_noise_removal
+  default_coh_noise_method = 1;
+end
+
+if ~isfield(param.csarp,'coh_noise_method') || isempty(param.csarp.coh_noise_method)
+  param.csarp.coh_noise_method = default_coh_noise_method;
+end
+
+if ~isfield(param.csarp,'coh_noise_arg')
+  param.csarp.coh_noise_arg = [];
+end
+
+if ~isfield(param.csarp,'pulse_rfi') || isempty(param.csarp.pulse_rfi)
+  param.csarp.pulse_rfi.en = 0;
+end
+
+if ~isfield(param.csarp.mocomp,'filter')
+  param.csarp.mocomp.filter = '';
+end
+
+if ~isfield(param.csarp,'surf_filt_dist') || isempty(param.csarp.surf_filt_dist)
+  param.csarp.surf_filt_dist = 3e3;
+  warning('Surface filtering is not set. Using default value: %.0f m.',param.csarp.surf_filt_dist);
+end
+
+if ~isfield(param.csarp,'presums')
+  param.csarp.presums = 1;
+end
+
+if ~isfield(param.csarp,'deconvolution') || isempty(param.csarp.deconvolution)
+  param.csarp.deconvolution = 0;
+end
+
+if ~isfield(param.csarp,'psd_smooth') || isempty(param.csarp.psd_smooth)
+  param.csarp.psd_smooth = 0;
+end
+
+% Do not apply channel equalization during csarp combine unless receivers
+% are being combined at this stage (csarp-combined method)
+if ~param.csarp.combine_rx
+  for wf = 1:length(param.radar.wfs)
+    param.radar.wfs(wf).chan_equal_dB(:) = 0;
+    param.radar.wfs(wf).chan_equal_deg(:) = 0;
+  end
+end
+
+%% Setup processing
 % =====================================================================
-% Collect waveform information into one structure
+
+% Get the standard radar name
+[~,~,radar_name] = ct_output_dir(param.radar_name);
+
+% Load records file
+records_fn = ct_filename_support(param,'','records');
+records = load(records_fn);
+along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
+
+% SAR output directory
+csarp_out_dir = ct_filename_out(param, param.csarp.out_path);
+
+ctrl_chain = {};
+
+%% Collect waveform information into one structure
 %  - This is used to break the frame up into chunks
 % =====================================================================
 if strcmpi(radar_name,'mcrds')
@@ -118,6 +195,7 @@ elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
   wfs = load_icards_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+  error('Not supported');
   wfs = load_fmcw_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
   for wf=1:length(wfs)
@@ -126,212 +204,139 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
   end
 end
 
+%% Create the SAR coordinate system (used for structuring processing)
 % =====================================================================
-% Create reference trajectory (used for structuring processing)
-% =====================================================================
-trajectory_param = struct('rx_path', 0, ...
-  'tx_weights', [], 'lever_arm_fh', param.csarp.lever_arm_fh);
-% records = trajectory_with_leverarm(records,trajectory_param);
-% Lsar = use approximate SAR aperture length
-if isfield(param.csarp,'Lsar')
-  Lsar = c/wfs(1).fc*(param.csarp.Lsar.agl+param.csarp.Lsar.thick/sqrt(er_ice))/(2*param.csarp.sigma_x);
-else
-  Lsar = c/wfs(1).fc*(500+1000/sqrt(er_ice))/(2*param.csarp.sigma_x);
+
+sar_fn = fullfile(csarp_out_dir,'sar_coord.mat');
+if exist(sar_fn,'file')
+  sar = load(sar_fn,'Lsar','gps_source','type','sigma_x','version');
 end
-trajectory_param = struct('gps_source',records.gps_source, ...
-  'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
-  'tx_weights', [], 'lever_arm_fh', param.csarp.lever_arm_fh);
-ref = trajectory_with_leverarm(records,trajectory_param);
-along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev,Lsar);
-
-% =====================================================================
-% Setup static inputs for csarp_task
-% =====================================================================
-
-% Do not apply channel equalization during csarp combine unless receivers
-% are being combined at this stage (csarp-combined method)
-if ~param.csarp.combine_rx
-  for wf = 1:length(param.radar.wfs)
-    param.radar.wfs(wf).chan_equal_dB(:) = 0;
-    param.radar.wfs(wf).chan_equal_deg(:) = 0;
-  end
-end
-
-task_param = param;
-
-% =====================================================================
-% Setup the scheduler
-% =====================================================================
-if strcmpi(param.sched.type,'custom_torque')
-  global ctrl; % Make this global for convenience in debugging
-  ctrl = torque_new_batch(param);
-  fprintf('Torque batch: %s\n', ctrl.batch_dir);
-  torque_compile('csarp_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
-elseif ~strcmpi(param.sched.type,'no scheduler')
-  % Initialize submission ctrl structure
-  ctrl = [];
-  ctrl.cmd = 'init';
-  ctrl.sched = param.sched;
-  ctrl.fd = {};
-%   
-%   fd = [get_filenames(param.path,'','','.m',struct('recursive',1)); ...
-%   get_filenames(param.path,'','','.mexa64',struct('recursive',1))];
-% fd_override = [get_filenames(param.path_override,'','','.m',struct('recursive',1)); ...
-%   get_filenames(param.path_override,'','','.mexa64',struct('recursive',1))];
-% 
-% fd = merge_filelists(fd, fd_override);
-%   ctrl.fd = fd;
-
+Lsar = c/wfs(1).fc*(param.csarp.Lsar.agl+param.csarp.Lsar.thick/sqrt(er_ice))/(2*param.csarp.sigma_x);
+if ~exist(sar_fn,'file') ...
+    || sar.Lsar ~= Lsar ...
+    || ~strcmpi(sar.gps_source,records.gps_source) ...
+    || sar.type ~= param.csarp.mocomp.type ...
+    || sar.sigma_x ~= param.csarp.sigma_x ...
+    || sar.version ~= 1.0
   
+  ctrl = cluster_new_batch(param);
   
-  ctrl = create_task(ctrl);
-  
-  % Prepare submission ctrl structure for queuing jobs
-  ctrl.cmd = 'task';
-end
-
-% =====================================================================
-% SAR process each frame
-% =====================================================================
-out_recs = {};
-
-% Determine overlap of chunks from the range to furthest target
-times    = {wfs.time};
-times    = cell2mat(times.');
-max_time = min(max(times),param.csarp.time_of_full_support);
-if param.csarp.ground_based
-  chunk_overlap = (max_time*3e8/2/sqrt(param.csarp.start_eps)*c/wfs.fc)/(2*param.csarp.sigma_x); % m (maximum SAR aperture)
-else
-  chunk_overlap = (max_time*3e8/2)/(2*param.csarp.sigma_x); % m (maximum SAR aperture)
-end
-
-% Check to make sure the beam is not desired to steer too far
-%   forward/backward
-freqs       = {wfs.freq};
-freqs       = cell2mat(freqs.');
-v_p         = c/sqrt(er_ice);
-max_k       = 2*2*pi*max(freqs)/v_p;
-max_ang     = max(abs(asind(gen_kx(along_track)/max_k)));
-sar_bw = (c/min(freqs)) / (2*param.csarp.sigma_x) * 180/pi;
-max_des_ang = (max(abs(param.csarp.sub_aperture_steering))+0.5)*sar_bw;
-% if max_des_ang > max_ang
-%   error('Subaperture coefficient steers beam too far forward or backward');
-% end
-
-% =====================================================================
-% Prepare task inputs to minimize raw file reading. Because some of the
-% radars write multiple waveforms and adcs to the same file, it makes
-% sense for a job to take care of all the wf,adc pairs from that file.
-% Radars affected are mcrds, mcords2, and mcords3.
-%  Two modes of operation, determined by combine_rx in param spreadsheet:
-%  1. combine_rx = true
-%     Combine receivers (really combines all wf_adc pairs for each image
-%     in param.csarp.imgs)
-%  2. combine_rx = false
-%     Do not combine receivers (groups wf/adc pairs by board number).
-% =====================================================================
-force_one_wf_adc_pair_per_job = true;
-if ~param.csarp.combine_rx && any(strcmpi(radar_name,{'mcrds','mcords2','mcords3'}))
-  % Define adc to board mapping
-  if strcmpi(radar_name,'mcrds')
-    num_adcs_per_board = 8;
-    num_boards = 1;
-  elseif any(strcmpi(radar_name,{'mcords2','mcords3'}))
-    num_adcs_per_board = 4;
-    num_boards = 4;
-  end
-  
-  % Preallocate image list
-  imgs_list = cell(1, num_boards);
-  if length(param.csarp.imgs) > 1
-    for idx = 1:num_boards
-      imgs_list{idx} = cell(1, length(param.csarp.imgs));
-    end
-  end
-  
-  for img_idx = 1:length(param.csarp.imgs)
-    temp_imgs_list = param.csarp.imgs{img_idx};
+  if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+    cpu_time_mult = 4e-3;
+    mem_mult = 64;
     
-    % Sort the list and remove duplicates
-    [tmp,sorted_idxs] = unique(abs(temp_imgs_list),'rows');
-    temp_imgs_list = temp_imgs_list(sorted_idxs,:);
+  elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+    cpu_time_mult = 100e-8;
+    mem_mult = 64;
+  end
+  
+  sparam = [];
+  sparam.argsin{1} = param; % Static parameters
+  sparam.task_function = 'csarp_sar_coord_task';
+  sparam.num_args_out = 1;
+  Nx = numel(records.gps_time);
+  sparam.cpu_time = Nx*cpu_time_mult;
+  sparam.mem = 250e6 + Nx*mem_mult;
+  sparam.notes = sprintf('%s:%s:%s %s sar coordinate system', ...
+    mfilename, param.radar_name, param.season_name, param.day_seg);
     
-    % Split the sorted list into num_boards different individual lists,
-    % depending on what boards are used (see above)
-    for idx = 1:num_boards
-      keep_idxs = abs(temp_imgs_list(:,2))>(idx-1)*num_adcs_per_board & abs(temp_imgs_list(:,2))<(num_adcs_per_board*idx+1);
-      if iscell(imgs_list{idx})
-        imgs_list{idx}{img_idx} = temp_imgs_list(keep_idxs,:);
-      else
-        imgs_list{idx} = temp_imgs_list(keep_idxs,:);
-      end
-    end
+  % Create success condition
+  success_error = 64;
+  sparam.success = ...
+    sprintf('error_mask = bitor(error_mask,%d*(~exist(''%s'',''file'')));\n', success_error, sar_fn);
+  
+  ctrl = cluster_new_task(ctrl,sparam,[]);
+  
+  ctrl_chain{end+1} = ctrl;
+end
+
+%% Create imgs_list which divides up images into tasks
+% =====================================================================
+% imgs_list: cell array of images
+%  imgs_list{img}: cell array of wf-adc pair lists PER task
+%   imgs_list{img}{task}: array of wf-adc pairs to be processed by a task
+imgs_list = {};
+if param.csarp.combine_rx
+  % One SAR image with all wf-adc pairs
+  for img = 1:length(param.csarp.imgs)
+    imgs_list{1}{img} = param.csarp.imgs{img};
   end
-  % Remove empty lists from image cell array
-  keep_idxs = [];
-  for task_idx = 1:length(imgs_list)
-    for img_idx = 1:length(param.csarp.imgs)
-      if iscell(imgs_list{task_idx})
-        if ~isempty(imgs_list{task_idx}{img_idx})
-          keep_idxs = cat(2, keep_idxs, img_idx);
+  
+else
+  % One SAR image per wf-adc pair
+
+  if ~param.csarp.force_one_wf_adc_pair_per_job
+    % All SAR images from the same data files per task
+    for img = 1:length(param.csarp.imgs)
+      for wf_adc = 1:length(param.csarp.imgs{img})
+        adc = abs(param.csarp.imgs{img}(wf_adc,2));
+        [board,board_idx] = adc_to_board(radar_name,adc);
+        if length(imgs_list) < board_idx
+          imgs_list{board_idx} = [];
         end
-      else
-        if ~isempty(imgs_list{task_idx})
-          keep_idxs = cat(2, keep_idxs, task_idx);
+        if length(imgs_list{board_idx}) < img
+          imgs_list{board_idx}{img} = [];
         end
+        imgs_list{board_idx}{img}(end+1,:) = param.csarp.imgs{img}(wf_adc,:);
       end
     end
-    if iscell(imgs_list{1})
-      imgs_list{task_idx} = imgs_list{task_idx}(keep_idxs);
-      keep_idxs = [];
-    end
-  end
-  if iscell(imgs_list{1})
-    for task_idx = 1:length(imgs_list)
-      if ~isempty(imgs_list{task_idx})
-        keep_idxs = cat(2, keep_idxs, task_idx);
-      end
-    end
-    imgs_list = imgs_list(keep_idxs);
+    
   else
-    imgs_list = imgs_list(keep_idxs);
-  end
-  
-else
-  % Don't try to recombine the images... just do it the normal way:
-  imgs_list = param.csarp.imgs;
-end
-
-% If the number of jobs is going to be too small to fully utilize the cluster,
-% then break up the jobs as much as possible (or break the jobs up if
-% force_one_wf_adc_pair_per_job is set to true)
-if ~param.csarp.combine_rx && ...
-    (force_one_wf_adc_pair_per_job || ~strcmpi(param.sched.type,'no scheduler'))
-  % THIS IS A HACK... 2*64 should come from ClusterSize information
-  %   6 IS FROM TYPICAL NUMBER OF CHUNKS PER FRAME
-  if force_one_wf_adc_pair_per_job ...
-      || length(param.cmd.frms) * 6 * length(imgs_list) < 2*64
-    imgs_list = {};
-    for img_idx = 1:length(param.csarp.imgs)
-      for wf_adc_idx = 1: size(param.csarp.imgs{img_idx},1)
-        imgs_list{end+1} = param.csarp.imgs{img_idx}(wf_adc_idx,:);
+    % One SAR image per task
+    for img = 1:length(param.csarp.imgs)
+      for wf_adc = 1:length(param.csarp.imgs{img})
+        imgs_list{end+1}{1}(1,:) = param.csarp.imgs{img}(wf_adc,:);
       end
     end
   end
 end
 
+%% Create and setup the cluster batch
+% =====================================================================
+ctrl = cluster_new_batch(param);
+cluster_compile({'csarp_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+
+total_num_sam = {};
+if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  for imgs_idx = 1:length(imgs_list)
+    for img = 1:length(imgs_list{imgs_idx})
+      wf = abs(imgs_list{imgs_idx}{img}(1,1));
+      total_num_sam{imgs_idx}{img} = wfs(wf).Nt_raw;
+    end
+  end
+  cpu_time_mult = 6e-8;
+  mem_mult = 8;
+  
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  for imgs_idx = 1:length(imgs_list)
+    for img = 1:length(imgs_list{imgs_idx})
+      wf = abs(imgs_list{imgs_idx}{img}(1,1));
+      total_num_sam{imgs_idx}{img} = 32000;
+    end
+  end
+  cpu_time_mult = 8e-8;
+  mem_mult = 64;
+  
+else
+  error('radar_name %s not supported yet.', radar_name);
+  
+end
+
+%% Setup tasks to SAR process each frame
+% =====================================================================
 retry_fields = {};
+sparam.argsin{1} = param; % Static parameters
+sparam.task_function = 'csarp_task';
+sparam.num_args_out = 1;
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
   if ct_proc_frame(frames.proc_mode(frm),param.csarp.frm_types)
-    fprintf('csarp %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    fprintf('%s %s_%03i (%i of %i) %s\n', mfilename, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
   end
-  
-  task_param.proc.frm = frm;
-  
+
   % Current frame goes from the start record specified in the frames file
   % to the record just before the start record of the next frame.  For
   % the last frame, the stop record is just the last record in the segment.
@@ -339,121 +344,41 @@ for frm_idx = 1:length(param.cmd.frms)
   if frm < length(frames.frame_idxs)
     stop_rec = frames.frame_idxs(frm+1)-1;
   else
-    stop_rec = length(along_track);
+    stop_rec = length(records.gps_time);
   end
   
-  % Each frame is processed independently of all the other frames
-  % The output data is at along-track positions [0,sigma_x,2*sigma_x, ...]
-  %   - where 0 aligns with the first record of the frame
-  %   - last output occurs before the last record of the frame, but
-  %     will not in general be aligned with it
-  output_along_track = along_track(start_rec) : param.csarp.sigma_x : along_track(stop_rec);
+  % Determine length of the frame
+  frm_dist = along_track_approx(stop_rec) - along_track_approx(start_rec);
   
-  % Add additional output_along_track bins for frame overlap at the start
-  % and end of the frame, unless this is the first or last frame
-  frame_overlap = param.csarp.sigma_x:param.csarp.sigma_x:param.csarp.frm_overlap/2;
-  if frm == 1 && frm == length(frames.frame_idxs)
-    % Don't add any frame overlap
-  elseif frm == 1
-    % Only add frame overlap at the end of the frame
-    output_along_track = [output_along_track output_along_track(end)+frame_overlap];
-  elseif frm == length(frames.frame_idxs)
-    % Old add frame overlap at the start of the frame
-    output_along_track = [output_along_track(1)+fliplr(-frame_overlap) output_along_track];
-  else
-    % Add frame overlap at the start and end of the frame
-    output_along_track = [output_along_track(1)+fliplr(-frame_overlap) output_along_track output_along_track(end)+frame_overlap];
-  end
+  % Determine number of chunks and range lines per chunk
+  num_chunks = round(frm_dist / param.csarp.chunk_len);
   
-  % Break this frame up into chunks, each chunk will be processed separately
-  output_chunk_idxs = get_equal_alongtrack_spacing_idxs(output_along_track,param.csarp.chunk_len);
+  % Estimate number of input range lines per chunk
+  num_rlines_per_chunk = round((stop_rec-start_rec) / num_chunks);
   
-  % If last chunk is less than half the desired chunk size, combine with the
-  % previous chunk
-  if output_along_track(end) - output_along_track(output_chunk_idxs(end)) < param.csarp.chunk_len/2 ...
-      && length(output_chunk_idxs) > 1
-    output_chunk_idxs = output_chunk_idxs(1:end-1);
-  end
-  
-  %% SAR process each chunk of data in the frame
-  if strcmpi(param.csarp.sar_type,'mltdp') && 0    % set to 1 for surface fit over whole frame
-    task_param.proc.along_track_frm = along_track(start_rec:stop_rec);
-    [B,A] = butter(4,0.1);
-    
-    % Force elevation to be smooth (might be required for refraction)
-    task_param.proc.smoothed_elevation = filtfilt(B,A,records.elev(start_rec:stop_rec));
-    %smoothed_elevation = records.elev;
-    
-    % Fit surface to polynomial to force it to be smooth (required for refraction)
-    %  - Fit is done with special x-axis to prevent bad conditioning
-    smoothed_surface = filtfilt(B,A,records.surface(start_rec:stop_rec));
-    sz_poly_order = 21;
-    xfit = linspace(-1,1,length(smoothed_surface));
-    task_param.proc.smoothed_surface = polyval(polyfit(xfit,smoothed_surface,sz_poly_order),xfit);
-    if 0  % check if the fit is good 
-      figure(1);plot(records.elev(start_rec:stop_rec)); hold on;plot(smoothed_elevation,'r--');
-      figure(2);plot(records.surface(start_rec:stop_rec)*150e6); hold on;plot(smoothed_surface*150e6,'r--');
-      figure(3);plot(records.elev(start_rec:stop_rec)-records.surface(start_rec:stop_rec)*150e6);hold on;plot(smoothed_elevation-smoothed_surface*150e6,'r--');
-    end
-  end
-  if ~isfield(param.csarp,'start_chk') | isempty(param.csarp.start_chk)
-    start_chk = 1;
-  else
-    start_chk = param.csarp.start_chk;
-  end
-  if ~isfield(param.csarp,'end_chk') | isempty(param.csarp.end_chk)  
-    end_chk = length(output_chunk_idxs);
-  else
-    end_chk = param.csarp.end_chk; 
-  end
-  for chunk_idx = start_chk:end_chk 
-    % This chunk will process these along track outputs
-    task_param.csarp.chunk_id = chunk_idx;
-    start_x = output_along_track(output_chunk_idxs(chunk_idx));
-    if chunk_idx < length(output_chunk_idxs)
-      % Chunk overlap allows combine_wf_chan to work on neighborhoods of pixels
-      % (a chunk overlap of 10 allows a neighborhood of 10 along-track pixels)
-      stop_x = output_along_track(output_chunk_idxs(chunk_idx+1)-1 + param.csarp.chunk_overlap);
+  for chunk_idx = 1:num_chunks
+    % Setup dynamic params
+    % =====================================================================
+    dparam.argsin{1}.load.frm = frm;
+    dparam.argsin{1}.load.chunk_idx = chunk_idx;
+    dparam.argsin{1}.load.num_chunks = num_chunks;
+    if chunk_idx == num_chunks
+      dparam.argsin{1}.load.recs = [start_rec + num_rlines_per_chunk*(chunk_idx-1), stop_rec];
     else
-      stop_x = output_along_track(end);
+      dparam.argsin{1}.load.recs = start_rec + num_rlines_per_chunk*(chunk_idx-1) + [0, num_rlines_per_chunk-1];
     end
     
-    % These are the records which will be used
-    cur_recs = [find(along_track > start_x-chunk_overlap,1) ...
-      find(along_track < stop_x+chunk_overlap, 1, 'last')];
-    task_param.load.recs = cur_recs;
+    for imgs_idx = 1:length(imgs_list)
+      dparam.argsin{1}.load.imgs = imgs_list{imgs_idx};
+      sub_band_idx = 1;
+      dparam.argsin{1}.load.sub_band_idx = sub_band_idx;
     
-    % Along-track information required to register output properly
-    task_param.proc.output_along_track_offset = start_x - along_track(cur_recs(1));
-    task_param.proc.output_along_track_Nx = round((stop_x - start_x)/param.csarp.sigma_x) + 1;
-    if strcmpi(param.csarp.sar_type,'tdbp') 
-      output_along_track_idx_step = round(param.csarp.sigma_x/mean(diff(along_track(cur_recs(1):cur_recs(2)))));
-      load_idxs = 1:output_along_track_idx_step:cur_recs(2)-cur_recs(1)+1;
-      if chunk_idx < length(output_chunk_idxs)
-        task_param.proc.output_along_track_idxs = load_idxs(find(along_track(load_idxs + cur_recs(1)-1)>=start_x...
-          & along_track(load_idxs + cur_recs(1)-1)<start_x + param.csarp.chunk_len));
-      else
-        task_param.proc.output_along_track_idxs = load_idxs(find(along_track(load_idxs + cur_recs(1)-1)>=start_x...
-          & along_track(load_idxs + cur_recs(1)-1)<=min(start_x + param.csarp.chunk_len,stop_x)));
-      end
-    end
-
-    fprintf('  Processing chunk %s_%03d:%d records %d to %d, %.3f to %.3f km (%s)\n', ...
-      param.day_seg, frm, chunk_idx, cur_recs(1), cur_recs(2), ...
-      ([start_x stop_x]-along_track(start_rec))/1000, datestr(now));
-    for imgs_list_idx = 1:length(imgs_list)
-      if iscell(imgs_list{imgs_list_idx})
-        task_param.load.imgs = imgs_list{imgs_list_idx};
-      else
-        task_param.load.imgs = imgs_list(imgs_list_idx);
-      end
-      
       % Create a list of waveform/adc pairs for displaying to the string.
       wf_adc_str = '';
-      for img = 1:length(task_param.load.imgs)
-        for wf_adc_idx = 1:size(task_param.load.imgs{img},1)
-          wf = abs(task_param.load.imgs{img}(wf_adc_idx,1));
-          adc = abs(task_param.load.imgs{img}(wf_adc_idx,2));
+      for img = 1:length(dparam.argsin{1}.load.imgs)
+        for wf_adc_idx = 1:size(dparam.argsin{1}.load.imgs{img},1)
+          wf = abs(dparam.argsin{1}.load.imgs{img}(wf_adc_idx,1));
+          adc = abs(dparam.argsin{1}.load.imgs{img}(wf_adc_idx,2));
           if isempty(wf_adc_str)
             wf_adc_str = [wf_adc_str sprintf('wf,adc: %d,%d',wf,adc)];
           else
@@ -462,222 +387,78 @@ for frm_idx = 1:length(param.cmd.frms)
         end
       end
       
-      sub_band_idx = 1;
-      
+      % Create success condition
       % =================================================================
-      % Rerun only mode: Test to see if we need to run this task
-      if param.sched.rerun_only
-        file_exists = true;
-        for subap = 1:length(param.csarp.sub_aperture_steering)
-          % If we are in rerun only mode AND all the csarp task output files
-          % already exists, then we do not run the task
-          if strcmpi(param.csarp.sar_type,'f-k')
-            out_path = fullfile(ct_filename_out(param, ...
-              param.csarp.out_path, 'CSARP_out'), ...
-              sprintf('fk_data_%03d_%02d_%02d',frm, ...
-              subap, sub_band_idx));
-          elseif strcmpi(param.csarp.sar_type,'tdbp')
-            out_path = fullfile(ct_filename_out(param, ...
-              param.csarp.out_path, 'CSARP_out'), ...
-              sprintf('tdbp_data_%03d_%02d_%02d',frm, ...
-              subap, sub_band_idx));
-          elseif strcmpi(param.csarp.sar_type,'mltdp')
-            out_path = fullfile(ct_filename_out(param, ...
-              param.csarp.out_path, 'CSARP_out'), ...
-              sprintf('mltdp_data_%03d_%02d_%02d',frm, ...
-              subap, sub_band_idx));
-          end
-          for rerun_img_idx = 1:length(task_param.load.imgs)
-            % Check for the existence of every file that will be created by this job
-            if param.csarp.combine_rx
-              % Only one is created when combining and it is named using
-              % the first wf/adc pair in the list (even though multiple
-              % wf/adc pairs are included in the file).
-              wf  = abs(task_param.load.imgs{rerun_img_idx}(1,1));
-              adc = abs(task_param.load.imgs{rerun_img_idx}(1,2));
-              out_fn = sprintf('wf_%02d_adc_%02d_chk_%03d', abs(wf), abs(adc), chunk_idx);
-              out_full_fn = fullfile(out_path,[out_fn '.mat']);
-              if ~exist(out_full_fn,'file')
-                file_exists = false;
-              end
-            else
-              for wf_adc_idx = size(task_param.load.imgs{rerun_img_idx},1)
-                wf  = abs(task_param.load.imgs{rerun_img_idx}(wf_adc_idx,1));
-                adc = abs(task_param.load.imgs{rerun_img_idx}(wf_adc_idx,2));
-                out_fn = sprintf('wf_%02d_adc_%02d_chk_%03d', abs(wf), abs(adc), chunk_idx);
-                out_full_fn = fullfile(out_path,[out_fn '.mat']);
-                if ~exist(out_full_fn,'file')
-                  file_exists = false;
-                end
+      dparam.success = '';
+      success_error = 64;
+      for subap = 1:length(param.csarp.sub_aperture_steering)
+        out_fn_dir = fullfile(csarp_out_dir, ...
+          sprintf('%s_data_%03d_%02d_%02d',param.csarp.sar_type,frm, ...
+          subap, sub_band_idx));
+        for img = 1:length(dparam.argsin{1}.load.imgs)
+          if param.csarp.combine_rx
+            out_fn = fullfile(out_fn_dir,sprintf('img_%02d_%03d.mat',img,chunk_idx));
+            dparam.success = cat(2,dparam.success, ...
+              sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+            if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+              delete(out_fn);
+            end
+          else
+            for wf_adc = 1:size(dparam.argsin{1}.load.imgs{img},1)
+              wf  = abs(dparam.argsin{1}.load.imgs{img}(wf_adc,1));
+              adc = abs(dparam.argsin{1}.load.imgs{img}(wf_adc,2));
+              out_fn = fullfile(out_fn_dir,sprintf('wf_%02d_adc_%02d_%03d.mat',wf,adc,chunk_idx));
+              dparam.success = cat(2,dparam.success, ...
+                sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+              if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+                delete(out_fn);
               end
             end
           end
         end
-        if file_exists
-          fprintf('  %d/%d: Already exists %s [rerun_only skipping], combine_rx %d (%s)\n', ...
-            frm, chunk_idx, wf_adc_str, param.csarp.combine_rx, datestr(now));
+      end
+      
+      % Rerun only mode: Test to see if we need to run this task
+      % =================================================================
+      dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d %s %.0f to %.0f recs', ...
+        mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+        chunk_idx, num_chunks, wf_adc_str, dparam.argsin{1}.load.recs);
+      if ctrl.cluster.rerun_only
+        % If we are in rerun only mode AND the get heights task success
+        % condition passes without error, then we do not run the task.
+        error_mask = 0;
+        eval(dparam.success);
+        if ~error_mask
+          fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+            dparam.notes, datestr(now));
           continue;
         end
       end
-      task_param.proc.sub_band_idx = sub_band_idx;
-      task_param.proc.along_track = along_track(task_param.load.recs(1):task_param.load.recs(end));
       
+      % Create task
       % =================================================================
-      % Execute tasks/jobs
-      fh = @csarp_task;
-      arg{1} = task_param;
       
-      if strcmp(param.sched.type,'custom_torque')
-        create_task_param.conforming = true;
-        create_task_param.notes = sprintf('%s %s %d (%d of %d)/%d of %d %s combine_rx %d', ...
-          param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), chunk_idx, length(output_chunk_idxs), wf_adc_str, param.csarp.combine_rx);
-        ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
-
-      elseif strcmp(param.sched.type,'ollie')
-        dynamic_param.frms.(['frm',num2str(frm)]).frm_id = frm;
-        dynamic_param.frms.(['frm',num2str(frm)]).chunks.(['chunk',num2str(chunk_idx)]).chunk_id = chunk_idx;
-        dynamic_param.frms.(['frm',num2str(frm)]).chunks.(['chunk',num2str(chunk_idx)]).recs = task_param.load.recs;
-        dynamic_param.frms.(['frm',num2str(frm)]).chunks.(['chunk',num2str(chunk_idx)]).proc = task_param.proc;
-         
-      elseif ~strcmp(param.sched.type,'no scheduler')
-        [ctrl,job_id,task_id] = create_task(ctrl,fh,1,arg);
-        fprintf('  %d/%d: %s in job,task %d,%d, combine_rx %d (%s)\n', ...
-          frm, chunk_idx, wf_adc_str, job_id, task_id, param.csarp.combine_rx, datestr(now));
-        retry_fields{job_id,task_id}.wf_adc_str = wf_adc_str;
-        retry_fields{job_id,task_id}.arg = arg;
-        retry_fields{job_id,task_id}.frm = frm;
-        retry_fields{job_id,task_id}.chunk_idx = chunk_idx;
-        if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-          % Quit if a bad error occurred
-          fprintf('Bad errors occurred, quitting (%s)\n\n', datestr(now));
-          ctrl.cmd = 'done';
-          ctrl = create_task(ctrl);
-          return;
+      % CPU Time and Memory estimates:
+      %  Nx*total_num_sam*K where K is some manually determined multiplier.
+      Nx = diff(dparam.argsin{1}.load.recs);
+      dparam.cpu_time = 0;
+      dparam.mem = 250e6;
+      for img = 1:length(dparam.argsin{1}.load.imgs)
+        if strcmpi(param.csarp.sar_type,'fk')
+          dparam.cpu_time = dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img}*log2(total_num_sam{imgs_idx}{img})*size(dparam.argsin{1}.load.imgs{img},1)*cpu_time_mult;
+          dparam.mem = dparam.mem + Nx*total_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*mem_mult;
+        elseif strcmpi(param.csarp.sar_type,'tdbp')
         end
-      else
-        fprintf('  %s, %d (%d of %d)/%d of %d %s combine_rx %d (%s)\n', param.day_seg, frm, frm_idx, ...
-          length(param.cmd.frms), chunk_idx, length(output_chunk_idxs), ...
-          wf_adc_str, param.csarp.combine_rx, datestr(now));
-        success = fh(arg{1});
       end
+      
+      ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
     end
   end
 end
 
-% Export parameter structs in case of Schedule Type Ollie
-if strcmp(param.sched.type,'ollie')
-  for n_wf = 1:length(task_param.csarp.imgs)
-      dynamic_param.wf.(['wf',num2str(task_param.csarp.imgs{n_wf}(1))]).wf_id = task_param.csarp.imgs{n_wf}(1);
-      dynamic_param.wf.(['wf',num2str(task_param.csarp.imgs{n_wf}(1))]).channels = task_param.csarp.imgs{n_wf}(:,2);
-  end
-  dynamic_param.day_seg = param.day_seg;
-  steady_param = rmfield(task_param,'proc');
-  steady_param = rmfield(steady_param,'load');
-  steady_param.csarp = rmfield(steady_param.csarp,'chunk_id');
-  dynamic_param_file_name = sprintf('%s/csarp_%s_dynamic_param.mat', param.slurm_jobs_path, param.day_seg);
-  save(dynamic_param_file_name,'dynamic_param');
-  steady_param_file_name = sprintf('%s/csarp_%s_steady_param.mat', param.slurm_jobs_path, param.day_seg);
-  save(steady_param_file_name,'steady_param');
-end
+ctrl = cluster_save_dparam(ctrl);
 
-% =======================================================================
-% Wait for jobs to complete if a scheduler was used
-% =======================================================================
-if strcmpi(param.sched.type,'custom_torque')
-  % Wait until all submitted jobs to complete
-  ctrl = torque_rerun(ctrl);
-  if ~all(ctrl.error_mask == 0)
-    if ctrl.sched.stop_on_fail
-      torque_cleanup(ctrl);
-      error('Not all jobs completed, but out of retries (%s)', datestr(now));
-    else
-      warning('Not all jobs completed, but out of retries (%s)', datestr(now));
-      keyboard;
-    end
-  else
-    fprintf('Jobs completed (%s)\n\n', datestr(now));
-  end
-  torque_cleanup(ctrl);
-
-elseif strcmp(param.sched.type,'ollie')
-
-elseif ~strcmpi(param.sched.type,'no scheduler')
-  ctrl.cmd = 'done';
-  ctrl = create_task(ctrl);
-  if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-    % Quit if a bad error occurred
-    fprintf('Bad errors occurred, quitting (%s)\n', datestr(now));
-    if strcmp(ctrl.sched.type,'torque')
-      fprintf('Often on the Torque scheduler, these are not bad errors\n');
-      fprintf('because of system instabilities (e.g. file IO failure)\n');
-      fprintf('and the task simply needs to be resubmitted. If this is the case,\n');
-      fprintf('run "ctrl.error_mask = 2" and then run "dbcont".\n');
-      keyboard
-      if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-        return;
-      end
-    else
-      return
-    end
-  end
-  
-  retry = 1;
-  while ctrl.error_mask == 2 && retry <= param.sched.max_retries
-    fprintf('Tasks failed, retry %d of max %d\n', retry, param.sched.max_retries);
-    
-    % Bookkeeping (move previous run info to "old_" variables)
-    old_ctrl = ctrl;
-    old_retry_fields = retry_fields;
-    retry_fields = {};
-    
-    % Initialize submission ctrl structure
-    ctrl = [];
-    ctrl.cmd = 'init';
-    ctrl.sched = param.sched;
-    ctrl.fd = {};
-    ctrl = create_task(ctrl);
-    
-    % Prepare submission ctrl structure for queuing jobs
-    ctrl.cmd = 'task';
-    
-    for job_idx = 1:length(old_ctrl.jobs)
-      for task_idx = old_ctrl.jobs{job_idx}.error_idxs
-        [ctrl,job_id,task_id] = create_task(ctrl,fh,1,old_retry_fields{job_idx,task_idx}.arg);
-        fprintf('  %d/%d %s in job,task %d,%d, combine_rx %d (%s)\n', ...
-          old_retry_fields{job_idx,task_idx}.frm, old_retry_fields{job_idx,task_idx}.chunk_idx, ...
-          old_retry_fields{job_idx,task_idx}.wf_adc_str, ...
-          job_id, task_id, param.csarp.combine_rx, datestr(now));
-        retry_fields{job_id,task_id} = old_retry_fields{job_idx,task_idx};
-      end
-    end
-    ctrl.cmd = 'done';
-    ctrl = create_task(ctrl);
-    retry = retry + 1;
-    
-    if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-      % Quit if a bad error occurred
-      fprintf('Bad errors occurred, quitting (%s)\n\n', datestr(now));
-      if strcmp(ctrl.sched.type,'torque')
-        fprintf('Often on the Torque scheduler, these are not bad errors\n');
-        fprintf('because of system instabilities (e.g. file IO failure)\n');
-        fprintf('and the task simply needs to be resubmitted. If this is the case,\n');
-        fprintf('run "ctrl.error_mask = 2" and then run "dbcont".\n');
-        keyboard
-        if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-          return;
-        end
-      else
-        return
-      end
-    end
-  end
-  if ctrl.error_mask ~= 0
-    fprintf('Not all jobs completed, but out of retries (%s)\n', datestr(now));
-    return;
-  else
-    fprintf('Jobs completed (%s)\n\n', datestr(now));
-  end
-end
+ctrl_chain{end+1} = ctrl;
 
 fprintf('Done %s\n', datestr(now));
 

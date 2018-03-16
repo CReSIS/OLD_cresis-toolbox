@@ -81,6 +81,9 @@ fcs.bottom= zeros(1,length(output_along_track));
 good_rline = ones(1,length(output_along_track));
 
 for out_rline = 1:length(output_along_track)
+  if ~mod(out_rline-1,50000)
+    fprintf('%d of %d (%s)\n', out_rline, length(output_along_track), datestr(now));
+  end
   % For this output range line determine the input range lines
   rlines_in = find(along_track >= output_along_track(out_rline)-param.Lsar/2 ...
     & along_track <= output_along_track(out_rline)+param.Lsar/2);

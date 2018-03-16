@@ -1,5 +1,5 @@
-function master(params,param_override)
-% master(params,param_override)
+function ctrl_chain = master(params,param_override)
+% ctrl_chain = master(params,param_override)
 %
 % Function for processing radar depth sounder data. This function calls all the
 % individual processing functions.
@@ -48,10 +48,12 @@ end
 % Process each of the days
 % =====================================================================
 % =====================================================================
+ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
   cmd = param.cmd;
   [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+  new_chain = {};
   
   if isfield(cmd,'create_vectors') && cmd.create_vectors
     if strcmpi(radar_name,'mcords')
@@ -104,13 +106,16 @@ for param_idx = 1:length(params)
     end
   end
   if isfield(cmd,'get_heights') && cmd.get_heights
-    get_heights(param,param_override);
+    chain = get_heights(param,param_override);
+    new_chain = cat(2,new_chain,chain);
   end
   if isfield(cmd,'csarp') && cmd.csarp
-    csarp(param,param_override);
+    chain = csarp(param,param_override);
+    new_chain = cat(2,new_chain,chain);
   end
   if isfield(cmd,'combine_wf_chan') && cmd.combine_wf_chan
-    combine_wf_chan(param,param_override);
+    chain = combine_wf_chan(param,param_override);
+    new_chain = cat(2,new_chain,chain);
   end
   
   if isfield(cmd,'generic') && (ischar(cmd.generic) || iscell(cmd.generic))
@@ -134,11 +139,16 @@ for param_idx = 1:length(params)
         %   String contains command to run
         generic_fh = str2func(cmd.generic{generic_idx});
       end
-      generic_fh(param,param_override);
+      chain = generic_fh(param,param_override);
+      new_chain = cat(2,new_chain,chain);
     end
+  end
+  
+  if ~isempty(new_chain)
+    ctrl_chain{end+1} = new_chain;
   end
 end
 
-return;
+cluster_print_chain(ctrl_chain);
 
-
+[chain_fn,chain_id] = cluster_save_chain(ctrl_chain);
