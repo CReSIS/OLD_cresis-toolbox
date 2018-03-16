@@ -140,6 +140,10 @@ if strcmpi(node,'dac-ad9129_0014')
     for wf = 1:length(arena.wfs)
       zeropimods = arena.wfs(wf).zeropimods(:).';
       Tpd = round(arena.wfs(wf).Tpd*1e6);
+      delay = arena.dacs_start_delay - arena.dacs_internal_delay;
+      if delay < 0
+        error('Delay "arena.dacs_start_delay - arena.dacs_internal_delay" must be nonnegative: %g.', delay);
+      end
       if wf == 1
         wf_modes = 1+length(zeropimods);
       else
@@ -154,7 +158,7 @@ if strcmpi(node,'dac-ad9129_0014')
         grandchild = doc.createElement('enabled'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode('1'));
         grandchild = doc.createElement('delay'); child.appendChild(grandchild);
-        grandchild.appendChild(doc.createTextNode('0.000000'));
+        grandchild.appendChild(doc.createTextNode(sprintf('%.6f',delay)));
         grandchild = doc.createElement('vDelayEnabled'); child.appendChild(grandchild);
         grandchild.appendChild(doc.createTextNode('0'));
         grandchild = doc.createElement('vDelay'); child.appendChild(grandchild);
