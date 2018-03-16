@@ -179,11 +179,11 @@ else
   ctrl.cpu_time_actual(task_id) = -1;
 end
 
-% try
-%   eval(param.success); % Runs some form of "error_mask = bitor(error_mask,success_error);" on failure
-% catch success_eval_ME
-%   error_mask = bitor(error_mask,success_eval_error);
-% end
+try
+  eval(param.success); % Runs some form of "error_mask = bitor(error_mask,success_error);" on failure
+catch success_eval_ME
+  error_mask = bitor(error_mask,success_eval_error);
+end
 
 ctrl.error_mask(task_id) = 0;
 if ctrl.job_status(task_id) == 'T'
