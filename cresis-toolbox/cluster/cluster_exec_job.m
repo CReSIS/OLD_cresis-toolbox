@@ -27,6 +27,10 @@ if ~exist('run_mode','var') || isempty(run_mode)
   run_mode = 1;
 end
 
+if isnumeric(ctrl)
+  ctrl = cluster_get_batch([],ctrl);
+end
+
 % Create input filenames
 static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
 dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
