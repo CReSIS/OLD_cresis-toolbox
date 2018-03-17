@@ -25,6 +25,13 @@ function [chain_fn,chain_id] = cluster_save_chain(ctrl_chain,chain_id)
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task
 
+if isempty(ctrl_chain)
+  fprintf('ctrl_chain is empty. Nothing to save.\n');
+  chain_fn = '';
+  chain_id = NaN;
+  return
+end
+
 data_location = ctrl_chain{1}{1}.cluster.data_location;
 
 chain_fns = get_filenames(data_location,'chain_','','',struct('type','f'));
