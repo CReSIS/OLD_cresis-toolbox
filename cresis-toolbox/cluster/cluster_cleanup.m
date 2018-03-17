@@ -51,8 +51,6 @@ if nargin == 0 || ~isstruct(ctrl)
     if nargin == 0 || any(ctrls{batch_idx}.batch_id == ctrl)
       fprintf('  Deleting jobs in batch %d\n', ctrls{batch_idx}.batch_id);
       cluster_cleanup(ctrls{batch_idx},cleanup_mode);
-    else
-      fprintf('  Skipping %d\n', ctrls{batch_idx}.batch_id);
     end
   end
   return;

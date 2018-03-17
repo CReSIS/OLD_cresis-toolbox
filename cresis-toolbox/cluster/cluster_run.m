@@ -101,7 +101,7 @@ if iscell(ctrl_chain)
     if active_stage(chain) == inf
       fprintf('Chain %d succeeded (%s)\n', chain, datestr(now));
     else
-      fprintf('Chain %d failed (%s)\n', chain, datestr(now));
+      fprintf('Chain %d not finished or failed (%s)\n', chain, datestr(now));
       for stage=1:numel(ctrl_chain{chain})
         ctrl = ctrl_chain{chain}{stage};
         if all(ctrl.job_status=='C')
