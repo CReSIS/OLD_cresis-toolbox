@@ -42,8 +42,9 @@ function ctrl = cluster_new_batch(param,ctrl)
 %   cluster_update_batch, cluster_update_task
 
 %% Input arguments check
+global gRadar;
+
 if ~exist('param','var') || isempty(param)
-  global gRadar;
   param = gRadar;
 end
 
@@ -51,6 +52,22 @@ ctrl.cluster = param.cluster;
 
 if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
   ctrl.cluster.type = 'debug';
+end
+
+if ~isfield(ctrl.cluster,'cluster_job_fn') || isempty(ctrl.cluster.cluster_job_fn)
+  ctrl.cluster.cluster_job_fn = fullfile(gRadar.path,'cluster','cluster_job.sh');
+end
+
+if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
+  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'rwx','a');
+end
+
+if ~isfield(ctrl.cluster,'mcr_cache_root') || isempty(ctrl.cluster.mcr_cache_root)
+  ctrl.cluster.mcr_cache_root = '/tmp/';
+end
+
+if ~isfield(ctrl.cluster,'matlab_mcr_path') || isempty(ctrl.cluster.matlab_mcr_path)
+  ctrl.cluster.matlab_mcr_path = matlabroot;
 end
 
 if ~isfield(ctrl.cluster,'max_jobs_active') || isempty(ctrl.cluster.max_jobs_active)

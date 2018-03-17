@@ -27,7 +27,6 @@ function cluster_stop(ctrl_chain,mode)
 %   cluster_update_batch, cluster_update_task
 
 %% Input check
-all_ids_flag = false;
 if nargin == 0 || isempty(ctrl_chain)
   answer = input('Are you sure you want to stop all cluster jobs? [y/N] ','s');
   if isempty(regexpi(answer,'y'))

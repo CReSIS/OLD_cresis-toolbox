@@ -62,7 +62,6 @@ if ~(~ismcc && isdeployed)
   profile(pidx).gis_path                  = '/cresis/snfs1/dataproducts/GIS_data/';
   
   profile(pidx).cluster.data_location       = '/cresis/snfs1/scratch/paden/mdce_tmp/cluster-temp';
-  profile(pidx).cluster.cluster_job_fn        = '/users/paden/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
@@ -97,7 +96,6 @@ if ~(~ismcc && isdeployed)
   profile(pidx).gis_path                  = '/N/dcwan/projects/cresis/GIS_data';
   
   profile(pidx).cluster.data_location       = '/N/dc2/scratch/jpaden/ct_tmp/cluster-temp';
-  profile(pidx).cluster.cluster_job_fn        = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
@@ -133,7 +131,6 @@ if ~(~ismcc && isdeployed)
   profile(pidx).gis_path                  = '/scratch/GIS_data';
   
   profile(pidx).cluster.data_location         = '/scratch/tmp/cluster-temp';
-  profile(pidx).cluster.cluster_job_fn        = '/scratch/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
@@ -308,7 +305,6 @@ if ~(~ismcc && isdeployed)
   profile(pidx).gis_path                  = '/work/ollie/jpaden/GIS_data/';
  
   profile(pidx).cluster.data_location     = '/work/ollie/jpaden/Scratch/mdce_tmp/cluster-temp';
-  profile(pidx).cluster.cluster_job_fn    = '/home/ollie/jpaden/scripts/cresis-toolbox/cresis-toolbox/cluster/cluster_job.sh';
 
   %profile(pidx).cluster.type                    = 'torque';
   %profile(pidx).cluster.type                    = 'matlab';

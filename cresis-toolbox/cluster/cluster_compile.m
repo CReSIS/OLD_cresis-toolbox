@@ -42,6 +42,8 @@ function cluster_compile(fun,hidden_depend_funs,force_compile,ctrl)
 
 % Find dependencies that are directly called
 
+global gRadar;
+
 if ~exist('ctrl','var')
   ctrl = [];
 end
@@ -54,6 +56,10 @@ if ~isfield(ctrl.cluster,'mcc')
   ctrl.cluster.mcc = 'system';
 end
 
+if ~isfield(ctrl.cluster,'cluster_job_fn') || isempty(ctrl.cluster.cluster_job_fn)
+  ctrl.cluster.cluster_job_fn = fullfile(gRadar.path,'cluster','cluster_job.sh');
+end
+
 if ~exist('fun','var')
   fun = {};
 end
@@ -64,7 +70,6 @@ if ischar(fun)
 end
 
 if ~exist('hidden_depend_funs','var') || isempty(hidden_depend_funs)
-  global gRadar;
   hidden_depend_funs = gRadar.cluster.hidden_depend_funs;
 end
 
@@ -81,11 +86,13 @@ matlab_ver = ver('matlab');
 % threshold especially since fdep no longer works in that version
 use_builtin_fdep = str2double(matlab_ver.Version) >= 8.6;
 
-cluster_job_fn = fullfile(getenv('MATLAB_CLUSTER_PATH'),'cluster_job.m');
+cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
+cluster_job_fn = fullfile(cluster_job_fn_dir,'cluster_job.m');
+
 if ~force_compile
   % If any of the functions in depend_fun are newer, then recompile
   
-  test_date = dir(fullfile(getenv('MATLAB_CLUSTER_PATH'),'run_cluster_job.sh'));
+  test_date = dir(cluster_job_fn);
   
   if length(test_date) == 0
     % File does not exist, have to compile to make the file
@@ -153,7 +160,6 @@ if ~force_compile
 end
 
 if force_compile
-  cluster_job_fn_dir = fileparts(cluster_job_fn);
   cmd = sprintf('mcc -m -d %s -R ''-singleCompThread,-nodisplay'' %s', cluster_job_fn_dir, cluster_job_fn);
   
   for dep_idx = 1:length(hidden_depend_funs)

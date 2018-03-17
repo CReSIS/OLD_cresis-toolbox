@@ -199,8 +199,13 @@ for img = 1:length(param.combine.imgs)
             fcs{ml_idx}{wf_adc_idx}.bottom(rlines) = sar_data.fcs.bottom;
             fcs{ml_idx}{wf_adc_idx}.pos(:,rlines) = sar_data.fcs.pos;
             fcs{ml_idx}{wf_adc_idx}.squint = sar_data.fcs.squint;
-            fcs{ml_idx}{wf_adc_idx}.type = sar_data.fcs.type;
-            fcs{ml_idx}{wf_adc_idx}.filter = sar_data.fcs.filter;
+            if isfield(sar_data.fcs,'type')
+              fcs{ml_idx}{wf_adc_idx}.type = sar_data.fcs.type;
+              fcs{ml_idx}{wf_adc_idx}.filter = sar_data.fcs.filter;
+            else
+              fcs{ml_idx}{wf_adc_idx}.type = [];
+              fcs{ml_idx}{wf_adc_idx}.filter = [];
+            end
             sar_out_rlines = sar_data.out_rlines;
           
             chan_equal{ml_idx}(wf_adc_idx) = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
