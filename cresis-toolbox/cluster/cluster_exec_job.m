@@ -88,10 +88,30 @@ for task_idx = 1:length(task_ids)
     argsout = {};
     errorstruct = [];
     fprintf('  %s: Eval %s\n', mfilename, eval_cmd);
-    try
+    
+    if ctrl.cluster.dbstop_if_error
+      dbstop_if_error = false;
+      breakpoints = dbstatus;
+      for idx=1:length(breakpoints)
+        if strcmpi(breakpoints(idx).cond,'error') && length(breakpoints(idx).identifier)==1 && strcmpi(breakpoints(idx).identifier{1},'all')
+          dbstop_if_error = true;
+        end
+      end
+      dbstop if error
+      
       eval(eval_cmd);
-    catch errorstruct
+      
+      if ~dbstop_if_error
+        dbclear if error
+      end
+      
+    else
+      try
+        eval(eval_cmd);
+      catch errorstruct
+      end
     end
+    
     fprintf('  %s: Done eval\n', mfilename);
     cpu_time_actual = toc(cluster_task_start_time);
     save(out_fn,param.file_version,'argsout','errorstruct','cpu_time_actual');

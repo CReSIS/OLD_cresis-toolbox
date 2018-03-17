@@ -109,6 +109,10 @@ if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
   ctrl.cluster.file_version = '-v6';
 end
 
+if ~isfield(ctrl.cluster,'dbstop_if_error') || isempty(ctrl.cluster.dbstop_if_error)
+  ctrl.cluster.dbstop_if_error = true;
+end
+
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
   % -m n: no mail
   % -l nodes=1:ppn=1: one compute node and one core/processor on the node
