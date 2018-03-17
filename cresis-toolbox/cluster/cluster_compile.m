@@ -50,9 +50,12 @@ end
 
 if ~isfield(ctrl,'cluster')
   ctrl.cluster = [];
+  if isfield(gRadar,'cluster') && isfield(gRadar.cluster,'mcc')
+    ctrl.cluster.mcc = gRadar.cluster.mcc;
+  end
 end
 
-if ~isfield(ctrl.cluster,'mcc') 
+if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
 end
 
