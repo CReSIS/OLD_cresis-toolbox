@@ -75,6 +75,11 @@ elseif isstruct(ctrl_chain)
   
   % Update output
   ctrl_chain = ctrl;
+  
+elseif isnumeric(ctrl_chain)
+  ctrl_chain = cluster_load_chain([],ctrl_chain);
+  ctrl_chain = cluster_print_chain(ctrl_chain);
+  
 end
 
 return
