@@ -222,7 +222,7 @@ if ~exist(sar_fn,'file') ...
   ctrl = cluster_new_batch(param);
   
   if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
-    cpu_time_mult = 4e-3;
+    cpu_time_mult = 6e-3;
     mem_mult = 64;
     
   elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -235,7 +235,7 @@ if ~exist(sar_fn,'file') ...
   sparam.task_function = 'csarp_sar_coord_task';
   sparam.num_args_out = 1;
   Nx = numel(records.gps_time);
-  sparam.cpu_time = Nx*cpu_time_mult;
+  sparam.cpu_time = 60 + Nx*cpu_time_mult;
   sparam.mem = 250e6 + Nx*mem_mult;
   sparam.notes = sprintf('%s:%s:%s %s sar coordinate system', ...
     mfilename, param.radar_name, param.season_name, param.day_seg);
@@ -304,7 +304,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords
       total_num_sam{imgs_idx}{img} = wfs(wf).Nt_raw;
     end
   end
-  cpu_time_mult = 6e-8;
+  cpu_time_mult = 9e-8;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))

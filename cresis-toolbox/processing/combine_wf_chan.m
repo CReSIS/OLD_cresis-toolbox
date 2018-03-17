@@ -345,7 +345,7 @@ sparam = [];
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'combine_wf_chan_combine_task';
 sparam.num_args_out = 1;
-sparam.cpu_time = 10;
+sparam.cpu_time = 60;
 sparam.mem = 0;
 % Add up all records being processed and find the most records in a frame
 Nx = 0;

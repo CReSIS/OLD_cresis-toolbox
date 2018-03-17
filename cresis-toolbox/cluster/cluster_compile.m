@@ -88,11 +88,12 @@ use_builtin_fdep = str2double(matlab_ver.Version) >= 8.6;
 
 cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
 cluster_job_fn = fullfile(cluster_job_fn_dir,'cluster_job.m');
+cluster_job_fn_compiled = fullfile(cluster_job_fn_dir,'run_cluster_job.sh');
 
 if ~force_compile
   % If any of the functions in depend_fun are newer, then recompile
   
-  test_date = dir(cluster_job_fn);
+  test_date = dir(cluster_job_fn_compiled);
   
   if length(test_date) == 0
     % File does not exist, have to compile to make the file

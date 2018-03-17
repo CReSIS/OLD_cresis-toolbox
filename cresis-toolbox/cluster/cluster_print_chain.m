@@ -62,6 +62,17 @@ elseif isstruct(ctrl_chain)
   stats.retries = ctrl.retries;
   stats.job_status = ctrl.job_status;
   
+  % Create in/out filenames
+  static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
+  
+  % Read input
+  sparam = load(static_in_fn);
+  if ~isempty(ctrl.dparam)
+    param = merge_structs(sparam.static_param,ctrl.dparam{1});
+    fprintf('    task_function: %s\n', param.task_function);
+    fprintf('    notes: %s\n', param.notes);
+  end
+  
   fprintf('    Number of tasks: %.0f, %.0f completed, %.0f error, %.0f retries\n', ...
     numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.error_mask~=0), sum(stats.retries));
   fprintf('    Max CPU time: %.0f min\n', max(stats.cpu_time)/60);
