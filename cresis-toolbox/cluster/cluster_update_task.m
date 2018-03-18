@@ -252,7 +252,10 @@ end
 
 if ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9 < ctrl.cpu_time_actual(task_id)
   warning(' %d:%d/%d: CPU time actual (%.0f sec) is more than 90%% of estimated time (%.0f sec). Consider revising estimates.', ...
-    ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9);
+    ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id));
+elseif ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.3 > ctrl.cpu_time_actual(task_id)
+  warning(' %d:%d/%d: CPU time actual (%.0f sec) is less than 30%% of estimated time (%.0f sec). Consider revising estimates.', ...
+    ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id));
 end
 
 if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)

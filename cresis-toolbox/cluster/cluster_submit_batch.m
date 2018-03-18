@@ -24,9 +24,20 @@ function out = cluster_submit_batch(fun,block,argsin,num_args_out,cpu_time)
 % % Non-blocking example:
 % ctrl = cluster_submit_batch('hanning',false,{10},1,60);
 % ctrl_chain = {{ctrl}};
-% while any(isfinite(cluster_chain_stage(ctrl_chain)))
-%   pause(1);
-%   ctrl_chain = cluster_run(ctrl_chain,false);
+% [~,chain_id] = cluster_save_chain(ctrl_chain);
+%
+% while true
+%   % These are the three lines of code that should be run to poll the job:
+%   fprintf('%s\nPoll the chain:\n',repmat('=',[1 40]));
+%   ctrl_chain = cluster_run(chain_id,false);
+%   cluster_save_chain(ctrl_chain,chain_id,false);
+%
+%   % Check to see if any tasks are not complete and did not fail
+%   if ~any(isfinite(cluster_chain_stage(ctrl_chain)))
+%     % Done with all tasks (either completed or failed)
+%     break;
+%   end
+%   pause(10);
 % end
 % [in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,1,0);
 % cluster_cleanup(ctrl_chain{1}{1}.batch_id);
@@ -53,9 +64,8 @@ fprintf('Submitting %s\n', ctrl.batch_dir);
 
 ctrl_chain = {{ctrl}};
 
-ctrl_chain = cluster_run(ctrl_chain,block);
-
 if block
+  ctrl_chain = cluster_run(ctrl_chain,block);
   [in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,1,0);
   cluster_cleanup(ctrl);
 else
