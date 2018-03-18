@@ -91,10 +91,6 @@ surfTimes = [];
 
 records_fn = ct_filename_support(param,'','records');
 
-if ~isfield(param.get_heights,'elev_correction') || isempty(param.get_heights.elev_correction)
-  param.get_heights.elev_correction = false;
-end
-
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 %% Set simple_firdec (boolean, true means decimate in loader for efficiency)
@@ -115,85 +111,10 @@ else
   simple_firdec = false;
 end
 
-if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
-  param.get_heights.trim_vals = [0 0];
-end
-
-if ~isfield(param.get_heights,'coh_noise_method') || isempty(param.get_heights.coh_noise_method)
-  param.get_heights.coh_noise_method = 0;
-end
-
-if ~isfield(param.get_heights,'coh_noise_arg')
-  param.get_heights.coh_noise_arg = [];
-end
-
-if ~isfield(param.get_heights,'deconvolution') || isempty(param.get_heights.deconvolution)
-  param.get_heights.deconvolution = 0;
-end
-if ~isfield(param.get_heights,'deconv_enforce_wf_idx') 
-  param.get_heights.deconv_enforce_wf_idx = [];
-end
-if ~isfield(param.get_heights,'deconv_same_twtt_bin') 
-  param.get_heights.deconv_same_twtt_bin = [];
-end
-
-if ~isfield(param.get_heights,'psd_smooth') || isempty(param.get_heights.psd_smooth)
-  param.get_heights.psd_smooth = 0;
-end
-
-if ~isfield(param.get_heights,'ft_oversample') || isempty(param.get_heights.ft_oversample)
-  param.get_heights.ft_oversample = 1;
-end
-
-if ~isfield(param.get_heights,'pulse_rfi') || isempty(param.get_heights.pulse_rfi)
-  param.get_heights.pulse_rfi.en = 0;
-end
-
-if ~isfield(param.get_heights,'ft_dec') || isempty(param.get_heights.ft_dec)
-  param.get_heights.ft_dec = 1;
-end
-
-if ~isfield(param.get_heights,'ft_wind_time') || isempty(param.get_heights.ft_wind_time)
-  param.get_heights.ft_wind_time = 0;
-end
-
-if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
-  param.get_heights.trim_vals = 1;
-end
-
-if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
-  param.get_heights.pulse_comp = 1;
-end
-
-if ~isfield(param.get_heights,'raw_data') || isempty(param.get_heights.raw_data)
-  param.get_heights.raw_data = 0;
-end
-
-if ~isfield(param.get_heights,'roll_correction') || isempty(param.get_heights.roll_correction)
-  param.get_heights.roll_correction = 0;
-end
-
 if param.get_heights.roll_correction
   param.get_heights.combine_rx = false;
 else
   param.get_heights.combine_rx = true;
-end
-
-if ~isfield(param.records,'file_version')
-  param.records.file_version = [];
-end
-
-if abs(sum(param.get_heights.B_filter)-1) > 1e4*eps
-  %warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
-  param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
-end
-
-if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B_filter)
-  param.get_heights.inc_B_filter = 1;
-end
-if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
-  %warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
-  param.get_heights.inc_B_filter = param.get_heights.inc_B_filter / sum(param.get_heights.inc_B_filter);
 end
 
 % =====================================================================

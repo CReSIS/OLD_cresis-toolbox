@@ -304,7 +304,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords
       total_num_sam{imgs_idx}{img} = wfs(wf).Nt_raw;
     end
   end
-  cpu_time_mult = 9e-8;
+  cpu_time_mult = 150e-8;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))

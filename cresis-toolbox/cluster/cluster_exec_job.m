@@ -28,7 +28,7 @@ if ~exist('run_mode','var') || isempty(run_mode)
 end
 
 if isnumeric(ctrl)
-  ctrl = cluster_get_batch([],ctrl);
+  ctrl = cluster_get_batch([],ctrl,0);
 end
 
 % Create input filenames
