@@ -37,8 +37,8 @@ sync_fns = {}; sync_params = {};
 
 % gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'wingport-field';
-gps_source_to_use = 'wingstar-field';
-% gps_source_to_use = 'ATM-field';
+% gps_source_to_use = 'wingstar-field';
+gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM-field_traj';
 % gps_source_to_use = 'ATM';
 % gps_source_to_use = 'DMS';
