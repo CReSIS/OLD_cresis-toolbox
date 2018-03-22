@@ -1,5 +1,5 @@
-function combine_wf_chan(param,param_override)
-% combine_wf_chan(param,param_override)
+function ctrl_chain = combine_wf_chan(param,param_override)
+% ctrl_chain = combine_wf_chan(param,param_override)
 %
 % This script combines the receive channels and outputs the result
 % for each waveform. It also combines the waveforms. It takes in
@@ -38,34 +38,33 @@ function combine_wf_chan(param,param_override)
 % See also: run_master.m, master.m, run_combine_wf_chan.m, combine_wf_chan.m,
 %   combine_wf_chan_task.m
 
+%% General Setup
 % =====================================================================
-% General Setup
-% =====================================================================
-
-if ~isstruct(param)
-  % Functional form
-  param();
-end
 param = merge_structs(param, param_override);
 
-dbstack_info = dbstack;
 fprintf('=====================================================================\n');
-fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
-% =====================================================================
-% Setup processing
+%% Input Checks
 % =====================================================================
 
-% Get WGS84 ellipsoid parameters
-physical_constants;
-
-if ~isfield(param,'debug_level')
-  param.debug_level = 1;
+if ~isfield(param.combine,'frm_types') || isempty(param.combine.frm_types)
+  param.combine.frm_types = {-1,-1,-1,-1,-1};
 end
 
-if ~isfield(param.sched,'rerun_only') || isempty(param.sched.rerun_only)
-  param.sched.rerun_only = false;
+% Remove frames that do not exist from param.cmd.frms list
+load(ct_filename_support(param,'','frames')); % Load "frames" variable
+if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
+  param.cmd.frms = 1:length(frames.frame_idxs);
+end
+[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+if length(valid_frms) ~= length(param.cmd.frms)
+  bad_mask = ones(size(param.cmd.frms));
+  bad_mask(keep_idxs) = 0;
+  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
+    param.cmd.frms(find(bad_mask,1)));
+  param.cmd.frms = valid_frms;
 end
 
 if ~isfield(param.combine,'img_comb_layer_params')
@@ -74,6 +73,46 @@ end
 
 if ~isfield(param.combine,'trim_time')
   param.combine.trim_time = true;
+end
+
+if ~isfield(param.csarp,'pulse_comp') || isempty(param.csarp.pulse_comp)
+  param.csarp.pulse_comp = 1;
+end
+
+if ~isfield(param.combine,'in_path') || isempty(param.combine.in_path)
+  param.combine.in_path = 'out';
+end
+
+if ~isfield(param.combine,'array_path') || isempty(param.combine.array_path)
+  param.combine.array_path = 'out';
+end
+
+if ~isfield(param.combine,'out_path') || isempty(param.combine.out_path)
+  param.combine.out_path = param.combine.method;
+end
+
+if ~isfield(param.csarp,'out_path') || isempty(param.csarp.out_path)
+  param.csarp.out_path = 'out';
+end
+
+if ~isfield(param.combine,'sar_type') || isempty(param.combine.sar_type)
+  if ~isfield(param.csarp,'sar_type') || isempty(param.csarp.sar_type)
+    param.combine.sar_type = 'fk';
+  else
+    param.combine.sar_type = param.csarp.sar_type;
+  end
+end
+
+if strcmpi(param.combine.sar_type,'f-k')
+  error('Deprecated sar_type name. Change param.combine.sar_type from ''f-k'' to ''fk'' in  your parameters (or remove parameter since ''fk'' is the default mode).');
+end
+
+if ~isfield(param.combine,'chunk_len') || isempty(param.combine.chunk_len)
+  if ~isfield(param.csarp,'chunk_len') || isempty(param.csarp.chunk_len)
+    error('param.combine.chunk_len or param.csarp.chunk_len must be defined');
+  else
+    param.combine.chunk_len = param.csarp.chunk_len;
+  end
 end
 
 % Handles multilooking syntax:
@@ -94,35 +133,23 @@ for img = 1:length(param.combine.imgs)
   end
 end
 
-img_list = param.combine.imgs;
-
-if ~isfield(param.combine,'out_path') || isempty(param.get_heights.out_path)
+if ~isfield(param.combine,'out_path') || isempty(param.combine.out_path)
   param.combine.out_path = param.combine.method;
 end
 
-out_dir = ct_filename_out(param, param.combine.out_path);
+%% Setup processing
+% =====================================================================
 
-% Create the output directory
-if ~exist(out_dir,'dir')
-  mkdir(out_dir);
-end
+% Get the standard radar name
+[~,~,radar_name] = ct_output_dir(param.radar_name);
 
-% Load frames file
-load(ct_filename_support(param,'','frames'));
+% Create output directory path
+combine_out_dir = ct_filename_out(param, param.combine.out_path);
 
-% Check frames to process variable
-if isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frame_idxs);
-end
-% Remove frames that do not exist from param.cmd.frms list
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-if length(valid_frms) ~= length(param.cmd.frms)
-  bad_mask = ones(size(param.cmd.frms));
-  bad_mask(keep_idxs) = 0;
-  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-    param.cmd.frms(find(bad_mask,1)));
-  param.cmd.frms = valid_frms;
-end
+% Load records file
+records_fn = ct_filename_support(param,'','records');
+records = load(records_fn);
+along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
 
 % Preload layer for image combine if it is specified
 if isempty(param.combine.img_comb_layer_params)
@@ -133,423 +160,238 @@ else
   layers = opsLoadLayers(param_load_layers,param.combine.img_comb_layer_params);
 end
 
+%% Collect waveform information into one structure
+%  - This is used to break the frame up into chunks
 % =====================================================================
-% Setup the scheduler
-% =====================================================================
-fd = [get_filenames(param.path,'','','.m',struct('recursive',1)); ...
-  get_filenames(param.path,'','','.mexa64',struct('recursive',1))];
-fd_override = [get_filenames(param.path_override,'','','.m',struct('recursive',1)); ...
-  get_filenames(param.path_override,'','','.mexa64',struct('recursive',1))];
-
-fd = merge_filelists(fd, fd_override);
-
-if strcmpi(param.sched.type,'custom_torque')
-  global ctrl; % Make this global for convenience in debugging
-  ctrl = torque_new_batch(param);
-  fprintf('Torque batch: %s\n', ctrl.batch_dir);
-  torque_compile('combine_wf_chan_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
-elseif ~strcmpi(param.sched.type,'no scheduler')
-  % Initialize submission ctrl structure
-  global ctrl
-  ctrl = [];
-  ctrl.cmd = 'init';
-  ctrl.sched = param.sched;
-  ctrl.fd = fd;
-  ctrl = create_task(ctrl);
-  param.surf.manual = 0; % Turn manual pick off
-  
-  % Prepare submission ctrl structure for queing jobs
-  ctrl.cmd = 'task';
+if strcmpi(radar_name,'mcrds')
+  wfs = load_mcrds_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  wfs = load_mcords_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
+  wfs = load_icards_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+  error('Not supported');
+  wfs = load_fmcw_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+  for wf=1:length(wfs)
+    wfs(wf).time = param.csarp.time_of_full_support;
+    wfs(wf).freq = 1;
+  end
 end
 
-%% Loop through all the frame directories and process the fk
-% chunks in those directories
+%% Create and setup the cluster batch
 % =====================================================================
-retry_fields = {};
+ctrl = cluster_new_batch(param);
+cluster_compile({'combine_wf_chan_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+
+total_num_sam = [];
+if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  for img = 1:length(param.combine.imgs)
+    wf = abs(param.combine.imgs{img}{1}(1,1));
+    total_num_sam(img) = wfs(wf).Nt_raw;
+  end
+  cpu_time_mult = 6e-8;
+  mem_mult = 8;
+  
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  for img = 1:length(param.combine.imgs)
+    wf = abs(param.combine.imgs{img}{1}(1,1));
+    total_num_sam(img) = 32000;
+  end
+  cpu_time_mult = 8e-8;
+  mem_mult = 64;
+  
+else
+  error('radar_name %s not supported yet.', radar_name);
+  
+end
+
+%% Loop through all the frame directories and process the SAR chunks
+% =====================================================================
+sparam.argsin{1} = param; % Static parameters
+sparam.task_function = 'combine_wf_chan_task';
+sparam.num_args_out = 1;
+prev_frm_num_chunks = [];
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
-  if ct_proc_frame(frames.proc_mode(frm),param.csarp.frm_types)
+  if ct_proc_frame(frames.proc_mode(frm),param.combine.frm_types)
     fprintf('%s combine %s_%03i (%i of %i) %s\n', param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
   end
   
-  %% Input directory for this frame (only look at the first subaperture
-  % "_01_01" since combine_wf_chan_task will know which subapertures to load)
-  if strcmpi(param.csarp.sar_type,'f-k')
-    sar_type = 'fk';
-  elseif strcmpi(param.csarp.sar_type,'tdbp')
-    sar_type = 'tdbp';
-  elseif strcmpi(param.csarp.sar_type,'mltdp')
-    sar_type = 'mltdp';
-  end
-  in_dir = fullfile(ct_filename_out(param, param.combine.in_path, 'CSARP_out'), ...
-    sprintf('%s_data_%03d_01_01', sar_type, frm));
+  % Temporary output directory
+  combine_tmp_dir = fullfile(ct_filename_out(param, param.combine.array_path), ...
+    sprintf('%s_%03d', param.combine.method, frm));
   
-  %% Temporary output directory
-  array_dir= fullfile(ct_filename_out(param, param.combine.array_path, 'CSARP_out'), ...
-    sprintf('array_%03d', frm));
-  
-  %% Get the filenames for each chunk of data processed by csarp
-  % DEBUG:
-  %  - Get all the chunk files
-  %  - Normal operation is 1 to +inf (i.e. all files)
-  %  - The start/stop funtionality is not used except for debugging
-  %  - Set start_chunk and stop_chunk to restrict which chunks get processed
-  start_chunk = 1;
-  stop_chunk = inf;
-  % Get all time stamps in the directory: the assumption is that csarp.m
-  % has created all the necessary files for each wf/adc pair required.  So
-  % to get the time stamps, we just search for all the files for a particular
-  % pair (in this case the first one in the list).
-  img = 1;
-  wf_adc_idx = 1;
-  filenames = get_filenames(in_dir,'', ...
-    sprintf('wf_%02d_adc_%02d',img_list{img}{1}(wf_adc_idx,1), ...
-    img_list{img}{1}(wf_adc_idx,2)),'.mat');
-  if isempty(filenames)
-    error('No filenames found in %s', in_dir);
-  end
-  chunk_ids = {};
-  for idx = 1:length(filenames)
-    [path,name,ext] = fileparts(filenames{idx});
-    chunk_idx = str2double(name(end-2:end));
-    if chunk_idx >= start_chunk && chunk_idx <=stop_chunk
-      chunk_ids{end+1} = name(end-2:end);
-    end
+  % Current frame goes from the start record specified in the frames file
+  % to the record just before the start record of the next frame.  For
+  % the last frame, the stop record is just the last record in the segment.
+  start_rec = frames.frame_idxs(frm);
+  if frm < length(frames.frame_idxs)
+    stop_rec = frames.frame_idxs(frm+1)-1;
+  else
+    stop_rec = length(records.gps_time);
   end
   
-  %% Create and clean the array_proc output directories
-  if exist(array_dir,'dir') && ~param.sched.rerun_only
-    % If folders do exist, clear them out
-    fprintf('  Cleaning array directory %s\n', array_dir);
-    rmdir(array_dir,'s');
-  end
-  mkdir(array_dir);
+  % Determine length of the frame
+  frm_dist = along_track_approx(stop_rec) - along_track_approx(start_rec);
   
-  %% Combine Channels: Standard beam-forming, MUSIC, MVDR, etc)
-  % - This is setup so that multiple fk chunks can be processed in the
-  %   same task/job.
+  % Determine number of chunks and range lines per chunk
+  num_chunks = round(frm_dist / param.combine.chunk_len);
   
-  load(filenames{1},'param_csarp');
-  if strcmpi(param_csarp.csarp.sar_type,'f-k')
-    if max(param.combine.rline_rng) - min(param.combine.rline_rng) > param_csarp.csarp.chunk_overlap
-      error('SAR processing chunks will not align properly, chunk_overlap too small');
-    end
-  end
-  param.combine.sar_type = param_csarp.csarp.sar_type;
-  num_chunks_per_task = 1;
+  %% Process each chunk
+  for chunk_idx = 1:num_chunks  
+    % Prepare task inputs
+    % =================================================================
+    dparam = [];
+    dparam.argsin{1}.load.frm = frm;
+    dparam.argsin{1}.load.chunk_idx = chunk_idx;
+    dparam.argsin{1}.load.num_chunks = num_chunks;
+    prev_frm_num_chunks = num_chunks;
+    dparam.argsin{1}.load.prev_frm_num_chunks = prev_frm_num_chunks;
   
-  for chunk_idx = 1:num_chunks_per_task:length(chunk_ids)
-    %% To make the SAR processed chunks fit together seamlessly without
-    % having to resample, we determine the start range line output for
-    % each chunk.
-    % chunk_idxs: SAR chunks that will be processed by this task,
-    %   plus one additional one for calculating rlines(2)
-    chunk_idxs = chunk_idx + (0:num_chunks_per_task);
-    % chunk_Nx: the number of non-overlapping SAR chunk outputs
-    chunk_Nx = floor(param_csarp.csarp.chunk_len / param_csarp.csarp.sigma_x);
-    % min_offset: the minimum offset into the SAR chunk which array_proc can
-    %   output a full support estimate (since the output uses a neighborhood
-    %   of points around the pixel in question, the first output line generally
-    %   be from the first input line)
-    min_offset = -min(param.combine.rline_rng);
-    % rlines(1,:): this will be the first range line output by array_proc
-    %   for each SAR chunk this task is array processing
-    rlines = [];
-    rlines(1,:) = 1+mod(min_offset+param.combine.dline-(chunk_idxs-1)*chunk_Nx, param.combine.dline);
-    rlines(rlines<min_offset) = rlines(rlines<min_offset) + ceil(param.combine.dline/(1+min_offset)) * param.combine.dline;
-    rlines(2,1:end-1) = chunk_Nx + rlines(1,2:end) - param.combine.dline;
-    rlines = rlines(:,1:end-1);
-    
-    % Check if this is the last chunk. This last chunk could have variable
-    % length and we want to return all of the data from this chunk. To tell
-    % combine_task to do this, we set rlines(2) to infinity for
-    % this chunk
-    if chunk_idx+num_chunks_per_task-1 >= length(chunk_ids)
-      rlines(2,end) = inf;
-    end
-    
-    %% Get the chunk ids that this task will process
-    chunk_idx_last = min(chunk_idx+num_chunks_per_task-1, length(chunk_ids));
-    param.combine.chunk_ids = chunk_ids(chunk_idx:chunk_idx_last);
-    param.combine.rlines = rlines;
-    
-    %% Pass in the frame
-    param.combine.frm = frm;
-    
-    %% Rerun only mode: Test to see if we need to run this task
-    if param.sched.rerun_only
-      % If we are in rerun only mode AND all the combine_wf_chan task output files
-      % already exists, then we do not run the task
-      file_exists = true;
-      for img = 1:length(param.combine.imgs)
-        array_fn = fullfile(array_dir, ...
-          sprintf('chk_%s_img_%02d.mat', chunk_ids{chunk_idx}, img));
-        if ~exist(array_fn,'file')
-          file_exists = false;
-        end
+    % Create success condition
+    % =================================================================
+    dparam.success = '';
+    for img = 1:length(param.combine.imgs)
+      out_fn_name = sprintf('img_%02d_chk_%03d.mat',img,chunk_idx);
+      out_fn{img} = fullfile(combine_tmp_dir,out_fn_name);
+      if img == 1
+        dparam.success = cat(2,dparam.success, ...
+          sprintf('if ~exist(''%s'',''file'')', out_fn{img}));
+      else
+        dparam.success = cat(2,dparam.success, ...
+          sprintf(' || ~exist(''%s'',''file'')', out_fn{img}));
       end
-      if file_exists
-        fprintf('  %s already exists [rerun_only skipping] (%s)\n', ...
-          param.combine.chunk_ids{1}, datestr(now));
+      if ~ctrl.cluster.rerun_only && exist(out_fn{img},'file')
+        delete(out_fn{img});
+      end
+    end
+    dparam.success = cat(2,dparam.success,sprintf('\n'));
+    if 0
+      % Enable this check if you want to open each output file to make
+      % sure it is not corrupt.
+      for img = 1:length(param.combine.imgs)
+        out_fn_name = sprintf('img_%02d_chk_%03d.mat',img,chunk_idx);
+        out_fn{img} = fullfile(combine_tmp_dir,out_fn_name);
+        dparam.success = cat(2,dparam.success, ...
+          sprintf('  load(''%s'');\n', out_fn{img}));
+      end
+    end
+    success_error = 64;
+    dparam.success = cat(2,dparam.success, ...
+      sprintf('  error_mask = bitor(error_mask,%d);\n', success_error));
+    dparam.success = cat(2,dparam.success,sprintf('end;\n'));
+    
+    % Rerun only mode: Test to see if we need to run this task
+    % =================================================================
+    dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d', ...
+      mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+      chunk_idx, num_chunks);
+    if ctrl.cluster.rerun_only
+      % If we are in rerun only mode AND the get heights task success
+      % condition passes without error, then we do not run the task.
+      error_mask = 0;
+      eval(dparam.success);
+      if ~error_mask
+        fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+          dparam.notes, datestr(now));
         continue;
       end
     end
     
-    %% Execute tasks/jobs
-    fh = @combine_wf_chan_task;
-    arg{1} = param;
+    % Create task
+    % =================================================================
     
-    if strcmp(param.sched.type,'custom_torque')
-      create_task_param.conforming = true;
-      create_task_param.notes = sprintf('%s', ...
-        param.combine.chunk_ids{1});
-      ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
-      
-    elseif ~strcmp(param.sched.type,'no scheduler')
-      [ctrl,job_id,task_id] = create_task(ctrl,fh,1,arg);
-      fprintf('  %s task %d,%d (%s)\n', ...
-        param.combine.chunk_ids{1}, job_id, task_id, datestr(now));
-      retry_fields{job_id,task_id}.file_time = param.combine.chunk_ids{1};
-      retry_fields{job_id,task_id}.arg = arg;
-      retry_fields{job_id,task_id}.frm_dir_name = sprintf('Frm %d', frm);
-    else
-      success = fh(arg{1});
+    % CPU Time and Memory estimates:
+    %  Nx*total_num_sam*K where K is some manually determined multiplier.
+    Nx = stop_rec - start_rec + 1;
+    dparam.cpu_time = 0;
+    dparam.mem = 0;
+    for img = 1:length(param.combine.imgs)
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*cpu_time_mult;
+      dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
+    
+    ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
+    
   end
 end
 
-%% Wait for jobs to complete if a scheduler was used
-% =======================================================================
-if strcmpi(param.sched.type,'custom_torque')
-  % Wait until all submitted jobs to complete
-  ctrl = torque_rerun(ctrl);
-  if ~all(ctrl.error_mask == 0)
-    if ctrl.sched.stop_on_fail
-      torque_cleanup(ctrl);
-      error('Not all jobs completed, but out of retries (%s)', datestr(now));
-    else
-      warning('Not all jobs completed, but out of retries (%s)', datestr(now));
-      keyboard;
-    end
-  else
-    fprintf('Jobs completed (%s)\n\n', datestr(now));
-  end
-  torque_cleanup(ctrl);
-  
-elseif ~strcmpi(param.sched.type,'no scheduler')
-  ctrl.cmd = 'done';
-  ctrl = create_task(ctrl);
-  if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-    % Quit if a bad error occurred
-    fprintf('Bad errors occurred, quitting (%s)\n\n', datestr(now));
-    if strcmp(ctrl.sched.type,'torque')
-      fprintf('Often on the Torque scheduler, these are not bad errors\n');
-      fprintf('because of system instabilities (e.g. file IO failure)\n');
-      fprintf('and the task simply needs to be resubmitted. If this is the case,\n');
-      fprintf('run "ctrl.error_mask = 2" and then run "dbcont".\n');
-      keyboard
-      if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-        return;
-      end
-    else
-      return
-    end
-  end
-  
-  retry = 1;
-  while ctrl.error_mask == 2 && retry <= param.sched.max_retries
-    fprintf('Tasks failed, retry %d of max %d\n', retry, param.sched.max_retries);
-    
-    % Bookkeeping (move previous run info to "old_" variables)
-    old_ctrl = ctrl;
-    old_retry_fields = retry_fields;
-    retry_fields = {};
-    
-    % Initialize submission ctrl structure
-    ctrl = [];
-    ctrl.cmd = 'init';
-    ctrl.sched = param.sched;
-    ctrl.fd = fd;
-    ctrl = create_task(ctrl);
-    
-    % Prepare submission ctrl structure for queing jobs
-    ctrl.cmd = 'task';
-    
-    for job_idx = 1:length(old_ctrl.jobs)
-      for task_idx = old_ctrl.jobs{job_idx}.error_idxs
-        [ctrl,job_id,task_id] = create_task(ctrl,fh,1,old_retry_fields{job_idx,task_idx}.arg);
-        fprintf('  %s/%s task %d,%d (%s)\n', ...
-          old_retry_fields{job_idx,task_idx}.frm_dir_name, ...
-          old_retry_fields{job_idx,task_idx}.file_time, job_id, task_id, datestr(now));
-        retry_fields{job_id,task_id} = old_retry_fields{job_idx,task_idx};
-      end
-    end
-    ctrl.cmd = 'done';
-    ctrl = create_task(ctrl);
-    retry = retry + 1;
-    
-    if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-      % Quit if a bad error occurred
-      fprintf('Bad errors occurred, quitting (%s)\n\n', datestr(now));
-      if strcmp(ctrl.sched.type,'torque')
-        fprintf('Often on the Torque scheduler, these are not bad errors\n');
-        fprintf('because of system instabilities (e.g. file IO failure)\n');
-        fprintf('and the task simply needs to be resubmitted. If this is the case,\n');
-        fprintf('run "ctrl.error_mask = 2" and then run "dbcont".\n');
-        keyboard
-        if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-          return;
-        end
-      else
-        return
-      end
-    end
-  end
-  if ctrl.error_mask ~= 0
-    fprintf('Not all jobs completed, but out of retries (%s)\n', datestr(now));
-    return;
-  else
-    fprintf('Jobs completed (%s)\n\n', datestr(now));
-  end
-end
+ctrl = cluster_save_dparam(ctrl);
 
-%% Loop through all the frames
+ctrl_chain = {ctrl};
+
+%% Create and setup the combine batch
 % =====================================================================
-for frm_idx = 1:length(param.cmd.frms);
-  frm = param.cmd.frms(frm_idx);
+ctrl = cluster_new_batch(param);
+
+if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  cpu_time_mult = 6e-8;
+  mem_mult = 8;
   
-  if ct_proc_frame(frames.proc_mode(frm),param.csarp.frm_types)
-    fprintf('combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
-  else
-    fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
-    continue;
-  end
-  
-  %% Temporary output directory
-  array_dir= fullfile(ct_filename_out(param, param.combine.array_path, 'CSARP_out'), ...
-    sprintf('array_%03d', frm));
-  
-  %% Loop through all the images
-  for img = 1:length(param.combine.imgs)
-    
-    %% Loop through all the chunks and combine
-    Latitude = [];
-    Longitude = [];
-    Elevation = [];
-    Roll = [];
-    Pitch = [];
-    Heading = [];
-    GPS_time = [];
-    Surface = [];
-    Bottom = [];
-    Data = [];
-    Topography = [];
-    chunk_fns = get_filenames(array_dir,'chk','',sprintf('img_%02d.mat',img));
-    for chunk_idxs = 1:length(chunk_fns)
-      tmp = load(chunk_fns{chunk_idxs});
-      Time = tmp.Time;
-      Latitude = [Latitude double(tmp.Latitude)];
-      Longitude = [Longitude double(tmp.Longitude)];
-      Elevation = [Elevation double(tmp.Elevation)];
-      Roll = [Roll double(tmp.Roll)];
-      Pitch = [Pitch double(tmp.Pitch)];
-      Heading = [Heading double(tmp.Heading)];
-      GPS_time = [GPS_time tmp.GPS_time];
-      Surface = [Surface double(tmp.Surface)];
-      Bottom = [Bottom double(tmp.Bottom)];
-      Data = [Data tmp.Data];
-      param_records = tmp.param_records;
-      param_csarp = tmp.param_csarp;
-      if chunk_idxs == 1
-        param_combine = tmp.param_combine;
-        param_combine.array_param.fcs{1}{1}.x = tmp.param_combine.array_param.fcs{1}{1}.x(:,tmp.param_combine.array_param.lines);
-        param_combine.array_param.fcs{1}{1}.y = tmp.param_combine.array_param.fcs{1}{1}.y(:,tmp.param_combine.array_param.lines);
-        param_combine.array_param.fcs{1}{1}.z = tmp.param_combine.array_param.fcs{1}{1}.z(:,tmp.param_combine.array_param.lines);
-        param_combine.array_param.fcs{1}{1}.origin = tmp.param_combine.array_param.fcs{1}{1}.origin(:,tmp.param_combine.array_param.lines);
-      else
-        % Concatenate the fcs field
-        param_combine.array_param.fcs{1}{1}.x = [param_combine.array_param.fcs{1}{1}.x tmp.param_combine.array_param.fcs{1}{1}.x(:,tmp.param_combine.array_param.lines)];
-        param_combine.array_param.fcs{1}{1}.y = [param_combine.array_param.fcs{1}{1}.y tmp.param_combine.array_param.fcs{1}{1}.y(:,tmp.param_combine.array_param.lines)];
-        param_combine.array_param.fcs{1}{1}.z = [param_combine.array_param.fcs{1}{1}.z tmp.param_combine.array_param.fcs{1}{1}.z(:,tmp.param_combine.array_param.lines)];
-        param_combine.array_param.fcs{1}{1}.origin = [param_combine.array_param.fcs{1}{1}.origin tmp.param_combine.array_param.fcs{1}{1}.origin(:,tmp.param_combine.array_param.lines)];
-      end
-      if isfield(tmp,'Topography')
-        %         3D-surface is present so concatenate it too
-        %         Topography = cat(3,Topography,tmp.Topography);
-        %         Concatenate all the fields under struct Topography: valR, bins, val, freq
-        %         and img.
-        fields = fieldnames(tmp.Topography);
-        if chunk_idxs == 1
-          for field_idx = 1:length(fields)
-            Topography.(fields{field_idx}) = tmp.Topography.(fields{field_idx});
-          end
-        else
-          for field_idx = 1:length(fields)
-            max_dim = length(size(tmp.Topography.(fields{field_idx})));
-            Topography.(fields{field_idx}) = cat(max_dim,Topography.(fields{field_idx}),tmp.Topography.(fields{field_idx}));
-          end
-        end
-        
-      end
-    end
-    
-    % =====================================================================
-    % Save output
-    if length(param.combine.imgs) == 1
-      out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frm));
-    else
-      out_fn = fullfile(out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
-        img, param.day_seg, frm));
-    end
-    fprintf('  Writing output to %s\n', out_fn);
-    if isempty(Topography)
-      % Do not save 3D surface
-      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-        'Elevation','GPS_time','Data','Surface','Bottom', ...
-        'param_combine','param_records','param_csarp', ...
-        'Roll', 'Pitch', 'Heading');
-    else
-      % Save 3D surface
-      save('-v7.3',out_fn,'Topography','Time','Latitude', ...
-        'Longitude','Elevation','GPS_time','Data','Surface','Bottom', ...
-        'param_combine','param_records','param_csarp', ...
-        'Roll', 'Pitch', 'Heading');
-    end
-  end
-  
-  if isempty(param.combine.img_comb)
-    % No image combining is required
-    continue;
-  end
-  
-  if length(param.combine.img_comb) ~= 3*(length(param.combine.imgs)-1)
-    warning('param.combine.img_comb not the right length. There should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
-    keyboard
-  end
-  
-  %% Combine images
-  if isempty(param.combine.img_comb_layer_params)
-    layers.gps_time = GPS_time;
-    layers.twtt = interp_finite(Surface,0);
-  end
-  param.load.frm        = frm;
-  [Data, Time]          = img_combine(param, 'combine', layers);
-  
-  %% Save output
-  out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', ...
-    param.day_seg, frm));
-  fprintf('  Writing output to %s\n', out_fn);
-  save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-    'Elevation','GPS_time','Data','Surface','Bottom', ...
-    'param_combine','param_records','param_csarp', ...
-    'Roll', 'Pitch', 'Heading');
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  cpu_time_mult = 100e-8;
+  mem_mult = 24;
 end
 
+sparam = [];
+sparam.argsin{1} = param; % Static parameters
+sparam.task_function = 'combine_wf_chan_combine_task';
+sparam.num_args_out = 1;
+sparam.cpu_time = 60;
+sparam.mem = 0;
+% Add up all records being processed and find the most records in a frame
+Nx = 0;
+Nx_max = 0;
+for frm = param.cmd.frms
+  % recs: Determine the records for this frame
+  if frm < length(frames.frame_idxs)
+    Nx_frm = frames.frame_idxs(frm+1) - frames.frame_idxs(frm);
+  else
+    Nx_frm = length(records.gps_time) - frames.frame_idxs(frm) + 1;
+  end
+  if Nx_frm > Nx_max
+    Nx_max = Nx_frm;
+  end
+  Nx = Nx + Nx_frm;
+end
+% Account for averaging
+Nx_max = Nx_max / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
+Nx = Nx / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
+for img = 1:length(param.combine.imgs)
+  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
+  if isempty(param.get_heights.img_comb)
+    % Individual images, so need enough memory to hold the largest image
+    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);
+  else
+    % Images combined into one so need enough memory to hold all images
+    sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;
+  end
+end
+sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
+  mfilename, param.radar_name, param.season_name, param.day_seg);
+
+% Create success condition
+success_error = 64;
+sparam.success = '';
+for frm = param.cmd.frms
+  out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
+  out_fn = fullfile(combine_out_dir,out_fn_name);
+  sparam.success = cat(2,sparam.success, ...
+    sprintf('  error_mask = bitor(error_mask,%d*(~exist(''%s'',''file'')));\n', success_error, out_fn));
+end
+
+ctrl = cluster_new_task(ctrl,sparam,[]);
+
+ctrl_chain{end+1} = ctrl;
+    
 fprintf('Done %s\n', datestr(now));
 
 return;

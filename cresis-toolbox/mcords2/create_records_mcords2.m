@@ -23,8 +23,7 @@ function create_records_mcords2(param, param_override)
 % See also: run_master.m, master.m, run_create_records_mcords2.m, create_records_mcords2.m,
 %   create_records_mcords2_sync.m, check_records.m
 
-% =====================================================================
-% General Setup
+%% General Setup
 % =====================================================================
 
 if ~isstruct(param)
@@ -38,8 +37,7 @@ fprintf('=====================================================================\n
 fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
 fprintf('=====================================================================\n');
 
-% =====================================================================
-% Prep work
+%% Prep work
 % =====================================================================
 
 % Get WGS84 ellipsoid parameters
@@ -63,12 +61,19 @@ if ~isfield(param.records,'use_ideal_epri') || isempty(param.records.use_ideal_e
   param.records.use_ideal_epri = false;
 end
 
+if ~isfield(param.records,'gps') || isempty(param.records.gps.en)
+  param.records.gps.en = true;
+end
+
 if ~isfield(param.records,'presum_bug_fixed') || isempty(param.records.presum_bug_fixed)
   param.records.presum_bug_fixed = false;
 end
 
-% =====================================================================
-% Get the files
+if ~isfield(param.records,'tmp_fn_uses_adc_folder_name') || isempty(param.records.tmp_fn_uses_adc_folder_name)
+  param.records.tmp_fn_uses_adc_folder_name = true;
+end
+
+%% Get the files
 % =====================================================================
 clear wfs board_hdrs;
 for board_idx = 1:length(boards)
@@ -77,8 +82,7 @@ for board_idx = 1:length(boards)
   fprintf('Getting files for board %d (%d of %d) (%s)\n', ...
     board, board_idx, length(boards), datestr(now));
   
-  % =====================================================================
-  % Get the list of files to include in this records file
+  %% Get the list of files to include in this records file
   % =====================================================================
   if param.records.file_version == 404 || param.records.file_version == 407 || param.records.file_version == 408
     [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,board);
@@ -134,7 +138,7 @@ for board_idx = 1:length(boards)
     fprintf('  Parsing file %s (%s)\n', fn_name, datestr(now))
     
     %% Check for temporary files
-    if ~isfield(param.records,'tmp_fn_uses_adc_folder_name') || isempty(param.records.tmp_fn_uses_adc_folder_name) || param.records.tmp_fn_uses_adc_folder_name
+    if param.records.tmp_fn_uses_adc_folder_name
       tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
         fullfile(adc_folder_name, [fn_name '.mat']));
     else

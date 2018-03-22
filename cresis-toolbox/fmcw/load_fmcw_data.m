@@ -115,7 +115,7 @@ for accum_idx = 1:length(accum(board).wf)
     % Load the records one file at a time
     fn = param.load.filenames{adc}{file_idx};
     
-    fprintf('  Loading %s\n', fn);
+    fprintf('  Load %s (%s)\n', fn, datestr(now));
     
     if param.load.file_version == 1
       %% File Version 1: John Ledford and Carl Leuschen 1U-DAQ system

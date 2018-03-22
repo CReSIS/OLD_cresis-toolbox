@@ -11,9 +11,9 @@ function cluster_exec_job(ctrl,task_ids,run_mode)
 %  .out_fn_dir = output arguments directory
 % task_ids = vector of task IDs, to run
 % run_mode = optional scalar integer indicating how to run the job:
-%   1: Run job as if you were in no scheduler mode [default]
-%   2: Run job through uncompiled worker_task function
-%   3: Run job through compiled worker_task function
+%   1: Run job through uncompiled cluster_job.m function
+%   2: Run job through compiled cluster_job.m function
+%   3: Run job through cluster_job.sh function
 %
 % Author: John Paden
 %
@@ -25,6 +25,10 @@ function cluster_exec_job(ctrl,task_ids,run_mode)
 
 if ~exist('run_mode','var') || isempty(run_mode)
   run_mode = 1;
+end
+
+if isnumeric(ctrl)
+  ctrl = cluster_get_batch([],ctrl,0);
 end
 
 % Create input filenames
@@ -39,7 +43,7 @@ for task_idx = 1:length(task_ids)
   
   if run_mode == 1
     cluster_task_start_time = tic;
-    fprintf('  %s: batch %d task %d\n', mfilename, ctrl.batch_id, task_id);
+    fprintf('  %s: batch %d task %d (%d of %d) (%s)\n', mfilename, ctrl.batch_id, task_id, task_idx, length(task_ids), datestr(now));
 
     % Create output filename
     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
@@ -88,10 +92,30 @@ for task_idx = 1:length(task_ids)
     argsout = {};
     errorstruct = [];
     fprintf('  %s: Eval %s\n', mfilename, eval_cmd);
-    try
+    
+    if ctrl.cluster.dbstop_if_error
+      dbstop_if_error = false;
+      breakpoints = dbstatus;
+      for idx=1:length(breakpoints)
+        if strcmpi(breakpoints(idx).cond,'error') && length(breakpoints(idx).identifier)==1 && strcmpi(breakpoints(idx).identifier{1},'all')
+          dbstop_if_error = true;
+        end
+      end
+      dbstop if error
+      
       eval(eval_cmd);
-    catch errorstruct
+      
+      if ~dbstop_if_error
+        dbclear if error
+      end
+      
+    else
+      try
+        eval(eval_cmd);
+      catch errorstruct
+      end
     end
+    
     fprintf('  %s: Done eval\n', mfilename);
     cpu_time_actual = toc(cluster_task_start_time);
     save(out_fn,param.file_version,'argsout','errorstruct','cpu_time_actual');
@@ -99,16 +123,16 @@ for task_idx = 1:length(task_ids)
   elseif run_mode == 2
     setenv('INPUT_PATH',ctrl.in_fn_dir);
     setenv('OUTPUT_PATH',ctrl.out_fn_dir);
-    job_list_str = sprintf('%dd',task_id); job_list_str = job_list_str(1:end-1);
-    setenv('JOB_LIST',job_list_str);
+    task_list_str = sprintf('%dd',task_id); task_list_str = task_list_str(1:end-1);
+    setenv('TASK_LIST',task_list_str);
     setenv('CUSTOM_CLUSTER','1');
     cluster_job;
     
   elseif run_mode == 3
     setenv('INPUT_PATH',ctrl.in_fn_dir);
     setenv('OUTPUT_PATH',ctrl.out_fn_dir);
-    job_list_str = sprintf('%dd',task_id); job_list_str = job_list_str(1:end-1);
-    setenv('JOB_LIST',job_list_str);
+    task_list_str = sprintf('%dd',task_id); task_list_str = task_list_str(1:end-1);
+    setenv('TASK_LIST',task_list_str);
     setenv('CUSTOM_CLUSTER','1');
     system(ctrl.cluster.cluster_job_fn);
   end

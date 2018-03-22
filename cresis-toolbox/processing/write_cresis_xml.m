@@ -344,10 +344,14 @@ for wf = 1:length(param.wfs)
     = reshape(uint16(param.presums(wf)),[1 1]);
   
   if isfield(param,'tx_mask')
-    tx_mask = bin2dec(char('0' + param.tx_mask));
+    tx_mask_masked = param.tx_mask;
   else
-    tx_mask = bin2dec(char('0' + param.wfs(wf).tx_mask));
+    tx_mask_masked = param.wfs(wf).tx_mask;
   end
+  if isfield(param,'final_tx_mask')
+    tx_mask_masked = tx_mask_masked | param.final_tx_mask;
+  end
+  tx_mask = bin2dec(char('0' + tx_mask_masked));
   settings_enc(1).(config_var_enc)(1).('Waveforms')(wf).('TXZ20Mask') = reshape(uint8(tx_mask),[1 1]);
   
   if isfield(param,'sys_delay')

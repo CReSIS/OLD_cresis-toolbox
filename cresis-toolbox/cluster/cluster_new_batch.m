@@ -1,5 +1,5 @@
-function ctrl = cluster_new_batch(param)
-% ctrl = cluster_new_batch(param)
+function ctrl = cluster_new_batch(param,ctrl)
+% ctrl = cluster_new_batch(param,ctrl)
 %
 % Creates a new batch
 % 1. Creates a temporary batch directory in param.data_location
@@ -42,8 +42,9 @@ function ctrl = cluster_new_batch(param)
 %   cluster_update_batch, cluster_update_task
 
 %% Input arguments check
+global gRadar;
+
 if ~exist('param','var') || isempty(param)
-  global gRadar;
   param = gRadar;
 end
 
@@ -53,8 +54,20 @@ if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
   ctrl.cluster.type = 'debug';
 end
 
-if strcmpi(ctrl.cluster.type,'none')
-  error('%s should not be called with ctrl.cluster.type="%s"', mfilename,ctrl.cluster.type);
+if ~isfield(ctrl.cluster,'cluster_job_fn') || isempty(ctrl.cluster.cluster_job_fn)
+  ctrl.cluster.cluster_job_fn = fullfile(gRadar.path,'cluster','cluster_job.sh');
+end
+
+if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
+  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'rwx','a');
+end
+
+if ~isfield(ctrl.cluster,'mcr_cache_root') || isempty(ctrl.cluster.mcr_cache_root)
+  ctrl.cluster.mcr_cache_root = '/tmp/';
+end
+
+if ~isfield(ctrl.cluster,'matlab_mcr_path') || isempty(ctrl.cluster.matlab_mcr_path)
+  ctrl.cluster.matlab_mcr_path = matlabroot;
 end
 
 if ~isfield(ctrl.cluster,'max_jobs_active') || isempty(ctrl.cluster.max_jobs_active)
@@ -110,7 +123,11 @@ if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
 end
 
 if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
-  ctrl.cluster.file_version = '-v7';
+  ctrl.cluster.file_version = '-v6';
+end
+
+if ~isfield(ctrl.cluster,'dbstop_if_error') || isempty(ctrl.cluster.dbstop_if_error)
+  ctrl.cluster.dbstop_if_error = true;
 end
 
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
@@ -121,6 +138,16 @@ end
 
 if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm_submit_arguments)
   ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%d --time=%d';
+end
+
+%% Get the job manager for the matlab cluster interface
+if strcmpi(ctrl.cluster.type,'matlab')
+  ctrl.cluster.jm = parcluster();
+end
+
+%% Return if this ctrl already existed
+if nargin >= 2
+  return
 end
 
 %% Create directory to store temporary files
@@ -169,11 +196,6 @@ mkdir(ctrl.stdout_fn_dir)
 ctrl.error_fn_dir = fullfile(ctrl.batch_dir,'error');
 mkdir(ctrl.error_fn_dir)
 ctrl.hold_fn = fullfile(ctrl.batch_dir,'hold');
-
-%% Get the job manager for the matlab cluster interface
-if strcmpi(ctrl.cluster.type,'matlab')
-  ctrl.cluster.jm = parcluster();
-end
 
 %% Create empty job id list file (one 20 character line per task)
 ctrl.job_id_fn = fullfile(ctrl.batch_dir,'job_id_file');

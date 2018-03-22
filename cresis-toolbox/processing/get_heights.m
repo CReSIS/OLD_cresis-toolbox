@@ -98,6 +98,81 @@ else
   end
 end
 
+if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
+  param.get_heights.trim_vals = [0 0];
+end
+
+if ~isfield(param.get_heights,'coh_noise_method') || isempty(param.get_heights.coh_noise_method)
+  param.get_heights.coh_noise_method = 0;
+end
+
+if ~isfield(param.get_heights,'coh_noise_arg')
+  param.get_heights.coh_noise_arg = [];
+end
+
+if ~isfield(param.get_heights,'deconvolution') || isempty(param.get_heights.deconvolution)
+  param.get_heights.deconvolution = 0;
+end
+if ~isfield(param.get_heights,'deconv_enforce_wf_idx') 
+  param.get_heights.deconv_enforce_wf_idx = [];
+end
+if ~isfield(param.get_heights,'deconv_same_twtt_bin') 
+  param.get_heights.deconv_same_twtt_bin = [];
+end
+
+if ~isfield(param.get_heights,'psd_smooth') || isempty(param.get_heights.psd_smooth)
+  param.get_heights.psd_smooth = 0;
+end
+
+if ~isfield(param.get_heights,'ft_oversample') || isempty(param.get_heights.ft_oversample)
+  param.get_heights.ft_oversample = 1;
+end
+
+if ~isfield(param.get_heights,'pulse_rfi') || isempty(param.get_heights.pulse_rfi)
+  param.get_heights.pulse_rfi.en = 0;
+end
+
+if ~isfield(param.get_heights,'ft_dec') || isempty(param.get_heights.ft_dec)
+  param.get_heights.ft_dec = 1;
+end
+
+if ~isfield(param.get_heights,'ft_wind_time') || isempty(param.get_heights.ft_wind_time)
+  param.get_heights.ft_wind_time = 0;
+end
+
+if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
+  param.get_heights.trim_vals = 1;
+end
+
+if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
+  param.get_heights.pulse_comp = 1;
+end
+
+if ~isfield(param.get_heights,'raw_data') || isempty(param.get_heights.raw_data)
+  param.get_heights.raw_data = 0;
+end
+
+if ~isfield(param.get_heights,'elev_correction') || isempty(param.get_heights.elev_correction)
+  param.get_heights.elev_correction = false;
+end
+
+if ~isfield(param.get_heights,'roll_correction') || isempty(param.get_heights.roll_correction)
+  param.get_heights.roll_correction = 0;
+end
+
+if abs(sum(param.get_heights.B_filter)-1) > 1e4*eps
+  %warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
+end
+
+if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B_filter)
+  param.get_heights.inc_B_filter = 1;
+end
+if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
+  %warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  param.get_heights.inc_B_filter = param.get_heights.inc_B_filter / sum(param.get_heights.inc_B_filter);
+end
+
 %% Setup Processing
 % =====================================================================
 
@@ -143,6 +218,7 @@ end
 ctrl = cluster_new_batch(param);
 cluster_compile({'get_heights_task.m','get_heights_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
+total_num_sam = [];
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,~] = load_mcords_wfs(records.settings, param, ...
     1:max(records.param_records.records.file.adcs), param.get_heights);
@@ -187,14 +263,11 @@ for frm_idx = 1:length(param.cmd.frms)
     continue;
   end
   
-  % Clean the temporary output directory for this frame
+  % Create output directory name
   sub_apt_shift_idx = 1;
   sub_band_idx = 1;
   out_fn_dir = fullfile(qlook_out_dir, ...
     sprintf('ql_data_%03d_%02d_%02d',frm,sub_apt_shift_idx,sub_band_idx));
-  if ~ctrl.cluster.rerun_only && exist(out_fn_dir,'dir') 
-    rmdir(out_fn_dir,'s');
-  end
 
   % recs: Determine the records for this frame
   if frm < length(frames.frame_idxs)
@@ -258,6 +331,9 @@ for frm_idx = 1:length(param.cmd.frms)
         dparam.success = cat(2,dparam.success, ...
           sprintf(' || ~exist(''%s'',''file'')', out_fn{img}));
       end
+      if ~ctrl.cluster.rerun_only && exist(out_fn{img},'file')
+        delete(out_fn{img});
+      end
     end
     dparam.success = cat(2,dparam.success,sprintf('\n'));
     if 0
@@ -272,19 +348,22 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     success_error = 64;
     dparam.success = cat(2,dparam.success, ...
-      sprintf('  error_mask = error_mask + %d;\n', success_error));
+      sprintf('  error_mask = bitor(error_mask,%d);\n', success_error));
     dparam.success = cat(2,dparam.success,sprintf('end;\n'));
     
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
+    dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
+      mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+      break_idx, length(breaks), cur_recs_keep(1), cur_recs_keep(end));
     if ctrl.cluster.rerun_only
       % If we are in rerun only mode AND the get heights task success
       % condition passes without error, then we do not run the task.
       error_mask = 0;
       eval(dparam.success);
       if ~error_mask
-        fprintf('  %d: Already exists records %d to %d [rerun_only skipping] (%s)\n', ...
-          break_idx, cur_recs(1), cur_recs(end), datestr(now));
+        fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+          dparam.notes, datestr(now));
         continue;
       end
     end
@@ -301,9 +380,6 @@ for frm_idx = 1:length(param.cmd.frms)
       dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
-    dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
-      mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
-      break_idx, length(breaks), cur_recs_keep(1), cur_recs_keep(end));
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
   end
@@ -368,7 +444,7 @@ sparam = [];
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'get_heights_combine_task';
 sparam.num_args_out = 1;
-sparam.cpu_time = 10;
+sparam.cpu_time = 60;
 sparam.mem = 0;
 % Add up all records being processed and find the most records in a frame
 Nx = 0;

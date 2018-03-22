@@ -109,36 +109,8 @@ else
   simple_firdec = false;
 end
 
-if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
-  param.get_heights.trim_vals = [0 0];
-end
-
-if ~isfield(param.get_heights,'coh_noise_method') || isempty(param.get_heights.coh_noise_method)
-  param.get_heights.coh_noise_method = 0;
-end
-
-if ~isfield(param.get_heights,'pulse_rfi') || isempty(param.get_heights.pulse_rfi)
-  param.get_heights.pulse_rfi.en = 0;
-end
-
-if ~isfield(param.get_heights,'ft_dec') || isempty(param.get_heights.ft_dec)
-  param.get_heights.ft_dec = 1;
-end
-
-if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
-  param.get_heights.pulse_comp = 1;
-end
-
-if ~isfield(param.get_heights,'raw_data') || isempty(param.get_heights.raw_data)
-  param.get_heights.raw_data = 0;
-end
-
 % coh_noise_tracker_task never combines wf-adc pairs
 param.get_heights.combine_rx = 0;
-
-if ~isfield(param.records,'file_version')
-  param.records.file_version = [];
-end
 
 % Override load parameters based on specific analysis operation to run
 if param.analysis.coh_ave.en || param.analysis.specular.en
@@ -156,11 +128,6 @@ if param.analysis.specular.en
   for wf = 1:length(param.radar.wfs)
     param.radar.wfs(wf).ref_fn = '';
   end
-end
-
-if sum(param.get_heights.B_filter) ~= 1
-  warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
-  param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
 end
 
 param.load.recs_keep = param.load.recs; % Overlapping blocks not currently supported by coh_noise_tracker
@@ -358,7 +325,9 @@ load_param.load.adcs = param.load.adcs;
 load_param.proc.trim_vals           = param.get_heights.trim_vals;
 load_param.proc.pulse_comp          = param.get_heights.pulse_comp;
 load_param.proc.raw_data            = param.get_heights.raw_data;
+load_param.proc.ft_dec             = param.get_heights.ft_dec;
 load_param.proc.ft_wind             = param.get_heights.ft_wind;
+load_param.proc.ft_wind_time        = param.get_heights.ft_wind_time;
 load_param.proc.presums             = param.get_heights.presums;
 load_param.proc.combine_rx          = param.get_heights.combine_rx;
 load_param.proc.pulse_rfi           = param.get_heights.pulse_rfi;
@@ -398,9 +367,9 @@ for img = 1:length(param.load.imgs)
     'season_name',param.season_name,'radar_name',param.radar_name, ...
     'rx_path', wfs(wf).rx_paths(adc), ...
     'tx_weights', wfs(wf).tx_weights, 'lever_arm_fh', param.get_heights.lever_arm_fh);
-  for tmp_wf_adc_idx = 2:size(param.load.imgs{1},1)
-    tmp_wf = abs(param.load.imgs{1}(tmp_wf_adc_idx,1));
-    tmp_adc = abs(param.load.imgs{1}(tmp_wf_adc_idx,2));
+  for tmp_wf_adc_idx = 2:size(param.load.imgs{img},1)
+    tmp_wf = abs(param.load.imgs{img}(tmp_wf_adc_idx,1));
+    tmp_adc = abs(param.load.imgs{img}(tmp_wf_adc_idx,2));
     trajectory_param.rx_path(tmp_wf_adc_idx) = wfs(tmp_wf).rx_paths(tmp_adc);
   end
   out_records = trajectory_with_leverarm(records,trajectory_param);
@@ -475,9 +444,9 @@ for img = 1:length(param.load.imgs)
       'rx_path', wfs(wf).rx_paths(adc), ...
       'tx_weights', wfs(wf).tx_weights, 'lever_arm_fh', param.get_heights.lever_arm_fh);
     out_records = trajectory_with_leverarm(records,trajectory_param);
-    for tmp_wf_adc_idx = 2:size(param.load.imgs{1},1)
-      tmp_wf = abs(param.load.imgs{1}(tmp_wf_adc_idx,1));
-      tmp_adc = abs(param.load.imgs{1}(tmp_wf_adc_idx,2));
+    for tmp_wf_adc_idx = 2:size(param.load.imgs{img},1)
+      tmp_wf = abs(param.load.imgs{img}(tmp_wf_adc_idx,1));
+      tmp_adc = abs(param.load.imgs{img}(tmp_wf_adc_idx,2));
       trajectory_param.rx_path = wfs(tmp_wf).rx_paths(tmp_adc);
       trajectory_param.tx_weights = wfs(tmp_wf).tx_weights;
       tmp_records = trajectory_with_leverarm(records,trajectory_param);
@@ -664,7 +633,7 @@ for img = 1:length(param.load.imgs)
   % =======================================================================
   % =======================================================================
   if param.analysis.specular.en
-    for wf_adc = 1:size(param.load.imgs{1},1)
+    for wf_adc = 1:size(param.load.imgs{img},1)
       
       %% Compensate for elevation changes
       
