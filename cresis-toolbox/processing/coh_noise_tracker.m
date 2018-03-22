@@ -185,7 +185,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords
     wf = abs(param.analysis.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult = 66e-8;
+  cpu_time_mult = 140e-9;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -295,15 +295,15 @@ for break_idx = 1:length(breaks)
   dparam.mem = 0;
   for img = 1:length(param.analysis.imgs)
     if param.analysis.coh_ave.en
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
     if param.analysis.specular.en
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
     if param.analysis.surf.en
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
   end
@@ -321,7 +321,7 @@ ctrl_chain = {ctrl};
 ctrl = cluster_new_batch(param);
 
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
-  cpu_time_mult = 6e-8;
+  cpu_time_mult = 6e-6;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -333,7 +333,7 @@ sparam = [];
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'coh_noise_tracker_combine_task';
 sparam.num_args_out = 1;
-sparam.cpu_time = 10;
+sparam.cpu_time = 60;
 sparam.mem = 0;
 % Add up all records being processed and find the most records in a block
 Nx = length(records.gps_time);
@@ -341,21 +341,21 @@ for img = 1:length(param.analysis.imgs)
   Nt = total_num_sam(img);
   if param.analysis.coh_ave.en
     Nx_cmd = Nx / param.analysis.coh_ave.block_ave;
-    sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
-    sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
+    sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+    sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
   end
   if param.analysis.specular.en
     Nx_cmd = Nx / param.analysis.block_size * param.analysis.specular.threshold_max;
-    sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
-    sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
+    sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+    sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
   end
   if param.analysis.surf.en
     Nx_cmd = Nx / param.get_heights.decimate_factor;
     if isfinite(param.analysis.surf.Nt)
       Nt = param.analysis.surf.Nt;
     end
-    sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
-    sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
+    sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+    sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
   end
 end
 sparam.notes = sprintf('%s:%s:%s %s combine', ...

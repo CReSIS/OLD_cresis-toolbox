@@ -58,7 +58,10 @@ param.task_function = fun;
 param.argsin = argsin;
 param.num_args_out = num_args_out;
 param.cpu_time = cpu_time;
-ctrl = cluster_new_task(ctrl,param,[]);
+repeat_task = 1;
+for tmp = 1:repeat_task
+  ctrl = cluster_new_task(ctrl,param,[]);
+end
 
 fprintf('Submitting %s\n', ctrl.batch_dir);
 

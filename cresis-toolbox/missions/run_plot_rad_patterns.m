@@ -55,6 +55,92 @@ if 0
   plot_rad_patterns;
   
 elseif 1
+  %% 2018_Greenland_P3
+  
+  fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/surf_20180315_09_img_02.mat';
+%   fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/surf_20180315_10_img_03.mat';
+  elements_fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/sv_table_2018_Greenland_P3.mat';
+  
+  analysis.surf.motion_comp.en = true;
+  analysis.surf.chan_eq.en = true;
+  analysis.surf.rlines = [];
+  
+  good_mask_min_samples = 8;
+  good_mask_min_angle = -59;
+  good_mask_max_angle = 59; 
+  
+  plot_min_angle = -55;
+  plot_max_angle = 55;
+  
+  fit_method = 'filter'; % 'filter' or 'sgolay'
+  
+  debug_level = 1;
+  f0 = 180e6;
+  f1 = 210e6;
+    
+  % Combined Pattern
+  rad_patterns = [6]; % wf-adc indexes for patterns you want to generate
+  ref_pattern = [1];
+  sv_LUT_ref = [1];
+  retrack_en = false;
+  equalize_angle = 0;
+  output_fn = fullfile('/scratch/rds/2018_Greenland_P3/CSARP_analysis/', ...
+    sprintf('combined_pattern_2018_Greenland_P3.mat'));
+  degrees_of_freedom = 11; % spatial filter fitting (usually around the # of antennas)
+  
+  plot_rad_patterns;
+  figure(6);
+  saveas(6,fullfile('/scratch/rds/2018_Greenland_P3/CSARP_analysis/', ...
+    sprintf('combined_pattern_2018_Greenland_P3.fig')));
+  
+  return
+  % Individual Elements
+  rad_patterns = [17:19, 9:11]; % wf-adc indexes for patterns you want to generate
+  ref_pattern = 3;
+  sv_LUT_ref = 3*ones(1,7);
+  retrack_en = false;
+  equalize_angle = 0;
+  output_fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/sv_table_all_2018_Greenland_P3.mat';
+  degrees_of_freedom = 3*ones(1,7); % spatial filter fitting (usually around the # of antennas)
+  plot_rad_patterns;
+  figure(6);
+  saveas(6,fullfile('/scratch/rds/2018_Greenland_P3/CSARP_analysis/', ...
+    sprintf('center_patterns_2018_Greenland_P3_power.fig')));
+  figure(7);
+  saveas(7,fullfile('/scratch/rds/2018_Greenland_P3/CSARP_analysis/', ...
+    sprintf('center_patterns_2018_Greenland_P3_phase.fig')));
+
+  rad_patterns = [13:16]; % wf-adc indexes for patterns you want to generate
+  ref_pattern = 2;
+  sv_LUT_ref = 3*ones(1,4);
+  retrack_en = false;
+  equalize_angle = 0;
+  output_fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/sv_table_all_2018_Greenland_P3.mat';
+  degrees_of_freedom = 3*ones(1,4); % spatial filter fitting (usually around the # of antennas)
+  plot_rad_patterns;
+  figure(6);
+  saveas(6,fullfile('/scratch/rds/2018_Greenland_P3/CSARP_analysis/', ...
+    sprintf('left_patterns_2018_Greenland_P3_power.fig')));
+  figure(7);
+  saveas(7,fullfile('/scratch/rds/2018_Greenland_P3/CSARP_analysis/', ...
+    sprintf('left_patterns_2018_Greenland_P3_phase.fig')));
+
+  rad_patterns = [20:23]; % wf-adc indexes for patterns you want to generate
+  ref_pattern = 2;
+  sv_LUT_ref = 3*ones(1,4);
+  retrack_en = false;
+  equalize_angle = 0;
+  output_fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/sv_table_all_2018_Greenland_P3.mat';
+  degrees_of_freedom = 3*ones(1,4); % spatial filter fitting (usually around the # of antennas)
+  plot_rad_patterns;
+  figure(6);
+  saveas(6,fullfile('/scratch/rds/2018_Greenland_P3/CSARP_analysis/', ...
+    sprintf('right_patterns_2018_Greenland_P3_power.fig')));
+  figure(7);
+  saveas(7,fullfile('/scratch/rds/2018_Greenland_P3/CSARP_analysis/', ...
+    sprintf('right_patterns_2018_Greenland_P3_phase.fig')));
+  
+elseif 1
   %% 2017_Greenland_P3
   
   fn = '/scratch/rds/2017_Greenland_P3/CSARP_noise/surf_20170226_01_img_01.mat';
