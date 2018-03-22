@@ -1,7 +1,9 @@
-function cluster_hold(ctrl_chain,hold_state,mode)
-% cluster_hold(ctrl_chain,hold_state,mode)
+function cluster_stop(ctrl_chain,mode)
+% cluster_stop(ctrl_chain,mode)
 %
-% Places or removes hold on specified batches.
+% Stops and kills jobs for a chain or batch specified by ctrl_chain, but
+% leaves the ctrl_chain data files (unlike cluster_cleanup which stops jobs
+% and removes data files).
 %
 % Inputs:
 % ctrl_chain = Several options to specify
@@ -9,13 +11,12 @@ function cluster_hold(ctrl_chain,hold_state,mode)
 %   2. A ctrl structure identifying a batch
 %   3. A chain (cell array of ctrl)
 %   4. A list of chains (cell array of chains)
-% hold_state = mode must be one of the following
-%   0: removes hold
-%   1: applies hold
-%   []: if empty or undefined, the hold_state is toggled
 % mode: Only used if ctrl_chain is an integer array, default is 'chain'.
 %   Integer array will be treated as chains if mode is 'chain' and batches
 %   if mode is 'batch'.
+%
+% Examples:
+%   cluster_stop(1)
 %
 % Author: John Paden
 %
@@ -27,16 +28,12 @@ function cluster_hold(ctrl_chain,hold_state,mode)
 
 %% Input check
 if nargin == 0 || isempty(ctrl_chain)
-  answer = input('Are you sure you want to hold all cluster jobs? [y/N] ','s');
+  answer = input('Are you sure you want to stop all cluster jobs? [y/N] ','s');
   if isempty(regexpi(answer,'y'))
     return
   end
   
   ctrl_chain = cluster_get_batch_list;
-end
-
-if ~exist('hold_state','var')
-  hold_state = [];
 end
 
 %% Get a list of all batches
@@ -74,7 +71,7 @@ elseif iscell(ctrl_chain)
   end
   
 elseif isnumeric(ctrl_chain)
-  if nargin >= 3 && ~isempty(mode) && strcmpi(mode,'batch')
+  if nargin >= 2 && ~isempty(mode) && strcmpi(mode,'batch')
     % This is a list of batch IDs
     for idx = 1:length(ctrl_chain)
       batch_id = ctrl_chain(idx);
@@ -93,39 +90,42 @@ elseif isnumeric(ctrl_chain)
       catch
         continue
       end
-      cluster_hold(ctrl_chain,hold_state);
+      cluster_stop(ctrl_chain);
     end
     return;
   end
 end
 ctrls = ctrls(ctrls_mask);
 
-%% Place hold on each batch
+%% Stop jobs in each batch
 for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
-  
-  if isempty(hold_state)
-    % When no hold state passed in, then toggle the hold state
-    if exist(ctrl.hold_fn,'file')
-      hold_state = 0;
-    else
-      hold_state = 1;
-    end
-  end
-  if hold_state == 1
-    fprintf(' Placing hold on batch %d\n', ctrl.batch_id);
-  elseif hold_state == 0
-    fprintf(' Removing hold on batch %d\n', ctrl.batch_id);
-  end
-  
-  if hold_state == 1
-    fid = fopen(ctrl.hold_fn,'w');
-    fclose(fid);
+  fprintf('Stopping batch %d\n', ctrl.batch_id);
+  ctrl = cluster_get_batch(ctrl,ctrl.batch_id,false);
+  if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
     
-  elseif hold_state == 0
-    if exist(ctrl.hold_fn,'file')
-      delete(ctrl.hold_fn);
+    % For each job in the batch, delete the job
+    for job_id = 1:length(ctrl.job_id_list)
+      if ctrl.job_status(job_id) ~= 'C'
+        % Only delete jobs that have not been completed (completed jobs
+        % are effectively deleted already)
+        if strcmpi(ctrl.cluster.type,'torque')
+          cmd = sprintf('qdel -a %i', ctrl.job_id_list(job_id));
+          try; [status,result] = system(cmd); end
+          
+        elseif strcmpi(ctrl.cluster.type,'matlab')
+          for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
+            if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list)
+              try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
+            end
+          end
+          
+        elseif strcmpi(ctrl.cluster.type,'slurm')
+          cmd = sprintf('scancel %i', ctrl.job_id_list(job_id));
+          try; [status,result] = system(cmd); end
+          
+        end
+      end
     end
   end
 end
-

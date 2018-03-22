@@ -196,15 +196,13 @@ elseif param.elev_comp == 3
   % Filter surface
   lay.Surface_Filled = interp_finite(lay.Surface,0); % Need surface points everywhere for filtering operation
   if ~isfield(param,'surf_filt_en') || param.surf_filt_en
-    if length(lay.Surface_Filled) >= 100
-      [Bfilt,Afilt] = butter(2,0.02);
-      surf_filt = filtfilt(Bfilt,Afilt,lay.Surface_Filled);
-      tmp = polyval(polyfit(1:51,reshape(lay.Surface_Filled(1:51),[1 51]),2),1:51);
-      surf_filt(1:50) = tmp(1:50) - tmp(51) + surf_filt(51);
-      tmp = polyval(polyfit(1:51,reshape(lay.Surface_Filled(end-50:end),[1 51]),2),1:51);
-      surf_filt(end-49:end) = tmp(2:51) - tmp(1) + surf_filt(end-50);
+    Nx = length(lay.Surface_Filled);
+    if 30/Nx >= 0.5
+      % Layer is too short to properly filter
+      surf_filt = lay.Surface_Filled;
     else
-      surf_filt = medfilt1(lay.Surface_Filled,round(length(lay.Surface_Filled)/20)*2+1);
+      [B,A] = fir1(round(8*Nx/30/2)*2, 30/Nx);
+      surf_filt = fir_dec(lay.Surface_Filled,B,1);
     end
   elseif ~param.surf_filt_en || isempty(param.surf_filt_en)
     surf_filt = lay.Surface_Filled;

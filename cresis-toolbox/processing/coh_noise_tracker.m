@@ -70,6 +70,86 @@ if ~isfield(param.analysis,'out_dir') || isempty(param.analysis.out_dir)
   param.analysis.out_dir = 'analysis';
 end
 
+if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
+  param.get_heights.trim_vals = [0 0];
+end
+
+if ~isfield(param.get_heights,'coh_noise_method') || isempty(param.get_heights.coh_noise_method)
+  param.get_heights.coh_noise_method = 0;
+end
+
+if ~isfield(param.get_heights,'coh_noise_arg')
+  param.get_heights.coh_noise_arg = [];
+end
+
+if ~isfield(param.get_heights,'deconvolution') || isempty(param.get_heights.deconvolution)
+  param.get_heights.deconvolution = 0;
+end
+if ~isfield(param.get_heights,'deconv_enforce_wf_idx') 
+  param.get_heights.deconv_enforce_wf_idx = [];
+end
+if ~isfield(param.get_heights,'deconv_same_twtt_bin') 
+  param.get_heights.deconv_same_twtt_bin = [];
+end
+
+if ~isfield(param.get_heights,'psd_smooth') || isempty(param.get_heights.psd_smooth)
+  param.get_heights.psd_smooth = 0;
+end
+
+if ~isfield(param.get_heights,'ft_oversample') || isempty(param.get_heights.ft_oversample)
+  param.get_heights.ft_oversample = 1;
+end
+
+if ~isfield(param.get_heights,'pulse_rfi') || isempty(param.get_heights.pulse_rfi)
+  param.get_heights.pulse_rfi.en = 0;
+end
+
+if ~isfield(param.get_heights,'ft_dec') || isempty(param.get_heights.ft_dec)
+  param.get_heights.ft_dec = 1;
+end
+
+if ~isfield(param.get_heights,'ft_wind_time') || isempty(param.get_heights.ft_wind_time)
+  param.get_heights.ft_wind_time = 0;
+end
+
+if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
+  param.get_heights.trim_vals = 1;
+end
+
+if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
+  param.get_heights.pulse_comp = 1;
+end
+
+if ~isfield(param.get_heights,'raw_data') || isempty(param.get_heights.raw_data)
+  param.get_heights.raw_data = 0;
+end
+
+if ~isfield(param.get_heights,'elev_correction') || isempty(param.get_heights.elev_correction)
+  param.get_heights.elev_correction = false;
+end
+
+if ~isfield(param.get_heights,'roll_correction') || isempty(param.get_heights.roll_correction)
+  param.get_heights.roll_correction = 0;
+end
+
+if abs(sum(param.get_heights.B_filter)-1) > 1e4*eps
+  %warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
+end
+
+if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B_filter)
+  param.get_heights.inc_B_filter = 1;
+end
+if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
+  %warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+  param.get_heights.inc_B_filter = param.get_heights.inc_B_filter / sum(param.get_heights.inc_B_filter);
+end
+
+if param.analysis.surf.en
+  % Pulse compression should be enabled for surface waveform extraction
+  param.get_heights.pulse_comp = 1;
+end
+
 if param.analysis.coh_ave.en
   % Coherent noise removal must be turned off to measure it
   param.get_heights.coh_noise_method    = 0;
@@ -101,11 +181,11 @@ cluster_compile({'coh_noise_tracker_task.m','coh_noise_tracker_combine_task.m'},
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,~] = load_mcords_wfs(records.settings, param, ...
     1:max(records.param_records.records.file.adcs), param.get_heights);
-  for img = 1:length(param.get_heights.imgs)
-    wf = abs(param.get_heights.imgs{img}(1,1));
+  for img = 1:length(param.analysis.imgs)
+    wf = abs(param.analysis.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult = 66e-8;
+  cpu_time_mult = 140e-9;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -138,12 +218,6 @@ end
 % Create output directory string
 out_fn_dir = ct_filename_out(param,param.analysis.out_dir);
 
-% Cleanup folders
-if ~ctrl.cluster.rerun_only && exist(out_fn_dir,'dir')
-  fprintf('Removing path %s', out_fn_dir);
-  rmdir(out_fn_dir,'s');
-end
-
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'coh_noise_tracker_task';
 sparam.num_args_out = 1;
@@ -171,30 +245,42 @@ for break_idx = 1:length(breaks)
     if param.analysis.coh_ave.en
       out_fn = fullfile(out_fn_dir,sprintf('coh_noise_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
       dparam.success = cat(2,dparam.success, ...
-        sprintf('  error_mask = bitor(error_mask,%d*exist(%s,''file''));\n', success_error, out_fn));
+        sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+      if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+        delete(out_fn);
+      end
     end
     if param.analysis.specular.en
       out_fn = fullfile(out_fn_dir,sprintf('specular_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
       dparam.success = cat(2,dparam.success, ...
-        sprintf('  error_mask = bitor(error_mask,%d*exist(%s,''file''));\n', success_error, out_fn));
+        sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+      if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+        delete(out_fn);
+      end
     end
     if param.analysis.surf.en
       out_fn = fullfile(out_fn_dir,sprintf('surf_img_%02d_%d_%d.mat',cur_recs(1),cur_recs(end)));
       dparam.success = cat(2,dparam.success, ...
-        sprintf('  error_mask = bitor(error_mask,%d*exist(%s,''file''));\n', success_error, out_fn));
+        sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+      if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+        delete(out_fn);
+      end
     end
   end
   
   % Rerun only mode: Test to see if we need to run this task
   % =================================================================
+  dparam.notes = sprintf('%s:%s:%s %s %d of %d recs %d-%d', ...
+    mfilename, param.radar_name, param.season_name, param.day_seg, ...
+    break_idx, length(breaks), cur_recs(1), cur_recs(end));
   if ctrl.cluster.rerun_only
     % If we are in rerun only mode AND the get heights task success
     % condition passes without error, then we do not run the task.
     error_mask = 0;
     eval(dparam.success);
     if ~error_mask
-      fprintf('  %d: Already exists records %d to %d [rerun_only skipping] (%s)\n', ...
-        break_idx, cur_recs(1), cur_recs(end), datestr(now));
+      fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+        dparam.notes, datestr(now));
       continue;
     end
   end
@@ -209,21 +295,18 @@ for break_idx = 1:length(breaks)
   dparam.mem = 0;
   for img = 1:length(param.analysis.imgs)
     if param.analysis.coh_ave.en
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
     if param.analysis.specular.en
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
     if param.analysis.surf.en
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
   end
-  dparam.notes = sprintf('%s:%s:%s %s %d of %d recs %d-%d', ...
-    mfilename, param.radar_name, param.season_name, param.day_seg, ...
-    break_idx, length(breaks), cur_recs(1), cur_recs(end));
   
   ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
   
@@ -238,7 +321,7 @@ ctrl_chain = {ctrl};
 ctrl = cluster_new_batch(param);
 
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
-  cpu_time_mult = 6e-8;
+  cpu_time_mult = 6e-6;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -250,29 +333,29 @@ sparam = [];
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'coh_noise_tracker_combine_task';
 sparam.num_args_out = 1;
-sparam.cpu_time = 10;
+sparam.cpu_time = 60;
 sparam.mem = 0;
 % Add up all records being processed and find the most records in a block
 Nx = length(records.gps_time);
-for img = 1:length(param.get_heights.imgs)
+for img = 1:length(param.analysis.imgs)
   Nt = total_num_sam(img);
   if param.analysis.coh_ave.en
     Nx_cmd = Nx / param.analysis.coh_ave.block_ave;
-    sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
-    sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
+    sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+    sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
   end
   if param.analysis.specular.en
     Nx_cmd = Nx / param.analysis.block_size * param.analysis.specular.threshold_max;
-    sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
-    sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
+    sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+    sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
   end
   if param.analysis.surf.en
     Nx_cmd = Nx / param.get_heights.decimate_factor;
     if isfinite(param.analysis.surf.Nt)
       Nt = param.analysis.surf.Nt;
     end
-    sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
-    sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
+    sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+    sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
   end
 end
 sparam.notes = sprintf('%s:%s:%s %s combine', ...

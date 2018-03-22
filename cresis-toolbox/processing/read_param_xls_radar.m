@@ -141,6 +141,13 @@ sheet_name = 'radar';
 
 [params] = read_param_xls_generic(param_fn,sheet_name,params);
 
+% =======================================================================
+% Data posting parameters
+% =======================================================================
+sheet_name = 'post';
+
+[params] = read_param_xls_generic(param_fn,sheet_name,params);
+
 
 
 return

@@ -51,16 +51,15 @@ task_list_str = sprintf('%dd',job_tasks); task_list_str = task_list_str(1:end-1)
 % =========================================================================
 if strcmpi(ctrl.cluster.type,'torque')
   %% Run the qsub command
-  
   worker = ctrl.cluster.cluster_job_fn;
-  [tmp worker_name] = fileparts(worker);
+  [cluster_job_fn_dir worker_name] = fileparts(worker);
   
   submit_arguments = sprintf(ctrl.cluster.qsub_submit_arguments,ceil(job_mem/1e6),ceil(job_cpu_time/60));
   
   % Add "qsub -m abe -M your@email.edu" to debug:
   if ctrl.cluster.interactive
-    cmd = sprintf('qsub -I %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s''', ...
-      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str);
+    cmd = sprintf('qsub -I %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s"', ...
+      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path);
     fprintf('1. Run the command from the bash shell:\n  %s\n', cmd);
     fprintf('2. Once the interactive mode starts, run the command in the interactive shell:  %s\n', worker);
     fprintf('3. Once the job completes, exit the interactive shell which causes torque to realize the job is complete.\n');
@@ -70,8 +69,8 @@ if strcmpi(ctrl.cluster.type,'torque')
       keyboard
     end
   else
-    cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST=''%s'' %s  </dev/null', ...
-      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, worker);
+    cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s  </dev/null', ...
+      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, worker);
     [status,result] = robust_system(cmd);
     
     [job_id_str,result_tok] = strtok(result,'.');
@@ -104,13 +103,11 @@ elseif strcmpi(ctrl.cluster.type,'matlab')
  
 elseif strcmpi(ctrl.cluster.type,'slurm')
   worker = ctrl.cluster.cluster_job_fn;
-  [tmp worker_name] = fileparts(worker);
+  [cluster_job_fn_dir worker_name] = fileparts(worker);
   
   submit_arguments = sprintf(ctrl.cluster.slurm_submit_arguments,ceil(job_mem/1e6),ceil(job_cpu_time/60));
   
-  cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
-  ctrl.cluster.matlab_mcr_path = '/global/AWIsoft/matlab/R2017b';
-  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",JOB_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s', ...
+  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s', ...
     submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, worker);
   [status,result] = robust_system(cmd);
   

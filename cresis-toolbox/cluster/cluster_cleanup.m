@@ -30,6 +30,14 @@ if nargin == 0 || isempty(ctrl)
   if isempty(regexpi(answer,'y'))
     return
   end
+
+  % Delete all chain files
+  global gRadar;
+  param = gRadar;
+  chain_fns = get_filenames(param.cluster.data_location,'chain_','','',struct('type','f'));
+  for idx = 1:length(chain_fns)
+    delete(chain_fns{idx});
+  end
 end
 
 if ~exist('cleanup_mode','var') || isempty(cleanup_mode)
@@ -43,8 +51,6 @@ if nargin == 0 || ~isstruct(ctrl)
     if nargin == 0 || any(ctrls{batch_idx}.batch_id == ctrl)
       fprintf('  Deleting jobs in batch %d\n', ctrls{batch_idx}.batch_id);
       cluster_cleanup(ctrls{batch_idx},cleanup_mode);
-    else
-      fprintf('  Skipping %d\n', ctrls{batch_idx}.batch_id);
     end
   end
   return;

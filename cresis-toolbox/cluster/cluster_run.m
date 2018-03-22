@@ -32,6 +32,10 @@ function ctrl_chain = cluster_run(ctrl_chain,block)
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task
 
+if isnumeric(ctrl_chain)
+  ctrl_chain = cluster_load_chain([],ctrl_chain);
+end
+
 if iscell(ctrl_chain)
   %% Input checking
   if ~exist('block','var') || isempty(block)
@@ -97,7 +101,7 @@ if iscell(ctrl_chain)
     if active_stage(chain) == inf
       fprintf('Chain %d succeeded (%s)\n', chain, datestr(now));
     else
-      fprintf('Chain %d failed (%s)\n', chain, datestr(now));
+      fprintf('Chain %d not finished or failed (%s)\n', chain, datestr(now));
       for stage=1:numel(ctrl_chain{chain})
         ctrl = ctrl_chain{chain}{stage};
         if all(ctrl.job_status=='C')

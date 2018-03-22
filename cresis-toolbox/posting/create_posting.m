@@ -8,17 +8,16 @@ function create_posting(param, param_override)
 %
 % See also make_layer_files, run_make_layer_files, run_picker, picker
 
-if ~exist('param','var')
-  error('Call function from run_create_posting');
-end
+%% General Setup
+% =====================================================================
+param = merge_structs(param, param_override);
 
-fprintf('============================================================\n');
-fprintf('============================================================\n');
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+fprintf('=====================================================================\n');
 
 %% Input arguments check and setup
 % =========================================================================
-
-param = merge_structs(param,param_override);
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 

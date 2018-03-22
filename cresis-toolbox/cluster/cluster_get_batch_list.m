@@ -42,26 +42,25 @@ if nargout == 0
   fprintf('Batch Username    Directory\n');
 end
 for batch_idx = 1:length(batch_dirs)
-  ctrls{batch_idx}.cluster = param.cluster;
   ctrls{batch_idx}.batch_dir = batch_dirs{batch_idx};
-  ctrls{batch_idx}.job_id_fn = fullfile(ctrls{batch_idx}.batch_dir,'job_id_file');
-
+  
   [tmp batch_dir_name] = fileparts(ctrls{batch_idx}.batch_dir);
   ctrls{batch_idx}.batch_id = strtok(batch_dir_name(7:end),'_');
   ctrls{batch_idx}.batch_id = str2double(ctrls{batch_idx}.batch_id);
-  ctrls{batch_idx}.in_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'in');
-  ctrls{batch_idx}.out_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'out');
-  ctrls{batch_idx}.stdout_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'stdout');
-  ctrls{batch_idx}.error_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'error');
-  ctrls{batch_idx}.hold_fn = fullfile(ctrls{batch_idx}.batch_dir,'hold');
-
-  if strcmpi(ctrls{batch_idx}.cluster.type,'matlab')
-    ctrls{batch_idx}.cluster.jm = parcluster();
-  end
   
   if nargout == 0
-    fprintf('%6d %12s %s\n', ctrls{batch_idx}.batch_id, ctrls{batch_idx}.user, ctrls{batch_idx}.batch_dir);
+    fprintf('%6d %s\n', ctrls{batch_idx}.batch_id, ctrls{batch_idx}.batch_dir);
+  else
+    ctrls{batch_idx}.job_id_fn = fullfile(ctrls{batch_idx}.batch_dir,'job_id_file');
+    ctrls{batch_idx}.in_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'in');
+    ctrls{batch_idx}.out_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'out');
+    ctrls{batch_idx}.stdout_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'stdout');
+    ctrls{batch_idx}.error_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'error');
+    ctrls{batch_idx}.hold_fn = fullfile(ctrls{batch_idx}.batch_dir,'hold');
+    
+    ctrls{batch_idx} = cluster_new_batch(param,ctrls{batch_idx});
   end
+  
 end
 
 end

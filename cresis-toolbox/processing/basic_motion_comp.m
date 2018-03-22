@@ -1,5 +1,5 @@
-function [drange,ideal] = motion_comp(param,lever_arm_fh,roll,pitch,heading,lat,lon,elev)
-% [drange,ideal] = motion_comp(param,lever_arm_fh,roll,pitch,heading,lat,lon,elev)
+function [drange,ideal] = basic_motion_comp(param,lever_arm_fh,roll,pitch,heading,lat,lon,elev)
+% [drange,ideal] = basic_motion_comp(param,lever_arm_fh,roll,pitch,heading,lat,lon,elev)
 %
 % param
 %  .squint = vector in flight coordinate system, pointing from phase center
