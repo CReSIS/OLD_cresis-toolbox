@@ -33,14 +33,15 @@ gps_input_type = 'file_mcords'; % file_accum, or serial
 % You may have to run from bash shell: "chmod a+rwx /dev/ttyS0" as root
 serial_dev = '/dev/ttyS0';
 gps_input_fn_dir = 'E:\';
+gps_input_fn_start = 'GPS';
 % gps_input_fn_dir = '\\172.18.1.33\accum\';
 % gps_input_fn_dir = '/net/field1/landing/mcords/mcords5/';
 gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
                            % need to do this if files contain errors that
                            % cause program to crash
 
-kml_fn = 'C:\Users\administrator\Desktop\doc.kml';
-kml_mission_name = 'sinptransect.sequence';
+kml_fn = 'C:\Users\administrator\Desktop\sizzeast_labels.kml';
+kml_mission_name = '';
 
 enable_gps_record = false;
 gps_fn_dir = '/scratch/metadata/2015_Greenland_LC130/';
@@ -65,7 +66,14 @@ else
     kml_lat = pos{2};
   else
     kml_pos = kml_read_shapefile(kml_fn);
-    kml_mission_idx = find(strcmpi(kml_mission_name,{kml_pos.name}),1);
+    if isempty(kml_mission_name)
+      for idx=1:length(kml_pos)
+        fprintf('%d: %s\n', idx, kml_pos(idx).name);
+      end
+      kml_mission_idx = input('Enter mission number: ');
+    else
+      kml_mission_idx = find(strcmpi(kml_mission_name,{kml_pos.name}),1);
+    end
     if isempty(kml_mission_idx)
       error('Could not find mission %s in kml_pos.name.',kml_mission_name);
     end
@@ -125,6 +133,10 @@ if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
         fid = fopen(gps_in_fn,'r');
         while ~feof(fid)
           line_input = fgets(fid);
+          if isa(line_input,'double')
+            % Returned -1 double, so EOF
+            break;
+          end
           A = textscan(line_input,'%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s%f%f%f%f','delimiter',', ','emptyvalue',NaN);
           try
             if all(~cellfun(@isempty,A([1 4 5 6]))) && strcmp(A{1},'$GPGGA') && ~isnan(A{3}) && any(strcmpi(A{4},{'N','S'})) && ~isnan(A{5}) && any(strcmpi(A{6},{'W','E'}))
@@ -257,7 +269,7 @@ try
         gps_input_fn_ext = '.txt';
       end
       % Check to see if we are looking at the most recent GPS file
-      gps_in_fns = get_filenames(gps_input_fn_dir,'','',gps_input_fn_ext);
+      gps_in_fns = get_filenames(gps_input_fn_dir,gps_input_fn_start,'',gps_input_fn_ext);
       if ~isempty(gps_in_fns)
         if ~strcmpi(gps_in_fn,gps_in_fns{end})
           % New GPS file
