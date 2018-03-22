@@ -18,7 +18,7 @@ default.header_load_func = @basic_load_mcords3;
 default.header_load_params = struct('clk',1e9/9,'presum_bug_fixed',false);
 default.xml_version = 2.0;
 
-default.noise_50ohm = [-45.5	-44.3	-44.8	-44.9	-40.2	-40.8	-40.5	-41.4	-39.9	-40.2	-42.0	-43.6	-43.0	-44.1	-44.6];
+default.noise_50ohm = [-44.0	-44.0	-43.1	-43.9	-43.7	-43.6	-44.5	-43.2	-42.8	-43.0	-43.3	-45.3	-44.9	-44.2	-45.1	];
 
 default.Pt = 500 * [1 1 1 1 1 1 1];
 default.Gt = 7*4;
@@ -41,10 +41,24 @@ default.adc_folder_name = 'board%b';
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 7
-  ref_adc = 13;
+  ref_adc = 6;
   default.txequal.img = [(1:7).', ref_adc*ones(7,1)];
   default.txequal.ref_wf_adc = 3;
   default.txequal.wf_mapping = [1 2 3 4 5 6 7 0];
+  default.txequal.Hwindow_desired = [1 1 1 1 1 1 1 0];
+  default.txequal.max_DDS_amp = [40000 40000 40000 40000 40000 40000 40000 0];
+  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.time_validation = [3 3 3 3 3 3 3 3]*1e-9;
+  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  default.txequal.remove_linear_phase_en = true;
+  % Example 1: Antenna 2 bad configuration:
+  %   Connect antenna N to WFG N for all N = 1, 3 to 7
+  ref_adc = 6;
+  default.txequal.img = [(1:7).', ref_adc*ones(7,1)];
+  default.txequal.ref_wf_adc = 1;
+  default.txequal.wf_mapping = [1 0 3 4 5 6 7 0];
   default.txequal.Hwindow_desired = [1 1 1 1 1 1 1 0];
   default.txequal.max_DDS_amp = [40000 40000 40000 40000 40000 40000 40000 0];
   default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];

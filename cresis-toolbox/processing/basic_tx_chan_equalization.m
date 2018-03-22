@@ -791,6 +791,15 @@ if update_mode ~= 1
         = settings_enc.sys.DDSZ5FSetup.Waveforms(wave_idx).Presums + 1;
     end
   end
+  % Ensure that disabled channels are masked out
+  for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
+    % Tx 1 is bit 0, tx 2 is bit 1, tx 3 is bit 2, ...
+    tx_mask = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask;
+    tx_mask = fliplr(dec2bin(tx_mask))-'0';
+    tx_mask = tx_mask | default.txequal.wf_mapping==0;
+    tx_mask = bin2dec(char(fliplr(tx_mask+'0')));
+    settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask = uint8(tx_mask);
+  end
   
   fprintf('\nWriting %s\n', out_xml_fn);
   out_xml_fn_dir = fileparts(out_xml_fn);
