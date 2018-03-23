@@ -27,7 +27,6 @@ function cluster_stop(ctrl_chain,mode)
 %   cluster_update_batch, cluster_update_task
 
 %% Input check
-all_ids_flag = false;
 if nargin == 0 || isempty(ctrl_chain)
   answer = input('Are you sure you want to stop all cluster jobs? [y/N] ','s');
   if isempty(regexpi(answer,'y'))
@@ -111,7 +110,7 @@ for ctrl_idx = 1:length(ctrls)
         % Only delete jobs that have not been completed (completed jobs
         % are effectively deleted already)
         if strcmpi(ctrl.cluster.type,'torque')
-          cmd = sprintf('qdel -W 60 -a %i', ctrl.job_id_list(job_id));
+          cmd = sprintf('qdel -a %i', ctrl.job_id_list(job_id));
           try; [status,result] = system(cmd); end
           
         elseif strcmpi(ctrl.cluster.type,'matlab')

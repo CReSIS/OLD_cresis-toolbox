@@ -33,7 +33,6 @@ else
 end
 
 % Process each of the segments
-ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
   if param.cmd.records

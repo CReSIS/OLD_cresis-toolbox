@@ -5,6 +5,34 @@
 % Author: John Paden
 
 if 1
+  %% 2018_Greenland_P3
+  % fn = output from coh_noise surf tracker
+  fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/surf_20180315_09_img_01.mat';
+  output_fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/sv_table_2018_Greenland_P3.mat';
+  
+  % Transmit windowing
+  Hchan = boxcar(7).';
+  
+  analysis.surf.motion_comp.en = true;
+  analysis.surf.chan_eq.en = true;
+  tx_ant = [1:7]; % wf-adc index for each antenna
+  analysis.surf.rlines = [];
+  
+  ref_ant = 3; % Antenna to use as phase reference channel (usually a center element)
+  
+  good_mask_min_samples = 10;
+  good_mask_min_angle = -55;
+  good_mask_max_angle = 55;
+  
+  plot_min_angle = -41;
+  plot_max_angle = 41;
+  
+  fit_method = 'filter'; % 'filter' or 'sgolay'
+  degrees_of_freedom = 3; % order of spatial filter fitted to the data
+  
+  debug_level = 1;
+  
+elseif 0
   %% 2017_Greenland_P3
   % fn = output from coh_noise surf tracker
   fn = '/scratch/rds/2017_Greenland_P3/CSARP_noise/surf_20170226_01_img_01.mat';

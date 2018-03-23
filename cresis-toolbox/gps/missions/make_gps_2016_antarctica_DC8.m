@@ -421,7 +421,11 @@ for idx = 1:length(file_type)
     
     gps.roll = sgolayfilt(gps.roll,2,101);
     gps.pitch = sgolayfilt(gps.pitch,2,101);
-    gps.heading  = sgolayfilt(gps.heading,2,101);
+    heading_x = cos(gps.heading);
+    heading_y = sin(gps.heading);
+    heading_x  = sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_y  = sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.heading = atan2(heading_y,heading_x);
     
     save(out_fn,'-append','-struct','gps','roll','pitch','heading');
   end

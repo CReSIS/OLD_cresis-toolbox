@@ -76,12 +76,8 @@ if print_flag == 0
   if exist(static_in_fn,'file') && exist(dynamic_in_fn,'file')
     % Read input
     sparam = load(static_in_fn);
-    dparam_task_field = sprintf('dparam_%d',task_id);
-    dparam = load(dynamic_in_fn,dparam_task_field);
-    if ~isfield(dparam,dparam_task_field)
-      error('Task input does not exist for task %d', task_id);
-    end
-    in = merge_structs(sparam.static_param,dparam.(dparam_task_field));
+    dparam = load(dynamic_in_fn);
+    in = merge_structs(sparam.static_param,dparam.dparam{task_id});
   else
     warning('Missing one of the input files:\n  %s\n  %s', static_in_fn, dynamic_in_fn);
     in = [];

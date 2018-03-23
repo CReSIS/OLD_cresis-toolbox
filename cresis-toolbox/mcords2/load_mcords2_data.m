@@ -241,7 +241,7 @@ for board_idx = 1:length(boards)
     % ===============================================================
     
     if ~strcmpi(old_fn,fn)
-      fprintf('Load %s %s\n', datestr(now), fn);
+      fprintf('  Load %s (%s)\n', fn, datestr(now));
       old_fn = fn;
     end
     if param.load.file_version == 411

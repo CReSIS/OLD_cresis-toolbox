@@ -35,15 +35,26 @@ in_base_path = fullfile(data_support_path,'2018_Greenland_P3');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_fns = {}; sync_params = {};
 
-gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'wingport-field';
+% gps_source_to_use = 'wingstar-field';
 % gps_source_to_use = 'ATM-field';
-% gps_source_to_use = 'ATM-field_traj';
+gps_source_to_use = 'ATM-field_traj';
 % gps_source_to_use = 'ATM';
 % gps_source_to_use = 'DMS';
 
 if strcmpi(gps_source_to_use,'NMEA')
   
-  year = 2018; month = 3; day = 15;
+%   year = 2018; month = 3; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%     sync_flag{file_idx} = 0;
+  
+  year = 2018; month = 3; day = 22;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -51,7 +62,29 @@ if strcmpi(gps_source_to_use,'NMEA')
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
   gps_source{file_idx} = 'nmea-field';
     sync_flag{file_idx} = 0;
-
+    
+elseif strcmpi(gps_source_to_use,'wingport-field')
+  
+  year = 2018; month = 3; day = 15;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filename(in_base_path,'port_',datestr(datenum(year,month,day),'yyyymmdd'),'field.out');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'applanix';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+  gps_source{file_idx} = 'wingport-field';
+  sync_flag{file_idx} = 0; 
+  
+elseif strcmpi(gps_source_to_use,'wingstar-field')
+  
+  year = 2018; month = 3; day = 15;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filename(in_base_path,'port_',datestr(datenum(year,month,day),'yyyymmdd'),'field.out');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'applanix';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+  gps_source{file_idx} = 'wingstar-field';
+  sync_flag{file_idx} = 0; 
+  
 elseif strcmpi(gps_source_to_use,'ATM-field')
   
   year = 2018; month = 3; day = 15;
@@ -65,9 +98,9 @@ elseif strcmpi(gps_source_to_use,'ATM-field')
  
 elseif strcmpi(gps_source_to_use,'ATM-field_traj')
   
-  year = 2017; month = 3; day = 15;
+  year = 2018; month = 3; day = 20;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yymmdd'),'itrf','noamb');
+  in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yyyymmdd'),'','.gps');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'traj';
   params{file_idx} = struct('year',year,'time_reference','gps','input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
@@ -137,55 +170,6 @@ end
 % ======================================================================
 make_gps;
 
-% Debug code that sets up special processing
-hack_idx = cell2mat(strfind(out_fns,'gps_20170329.mat'));
-if ~isempty(hack_idx)
-  out_fn = fullfile(gps_path,out_fns{hack_idx});
-  
-  gps = load(out_fn);
-  if strcmpi(gps.gps_source,'nmea-field')
-    warning('Making monotonic gps time: %s', out_fn);
-    [gps,error_flag] = make_gps_monotonic(gps);
-    save(out_fn,'-append','-struct','gps');
-  end
-end
-hack_idx = cell2mat(strfind(out_fns,'gps_20170403.mat'));
-if ~isempty(hack_idx)
-  out_fn = fullfile(gps_path,out_fns{hack_idx});
-  
-  gps = load(out_fn);
-  if strcmpi(gps.gps_source,'nmea-field')
-    warning('Making monotonic gps time: %s', out_fn);
-    [gps,error_flag] = make_gps_monotonic(gps);
-    save(out_fn,'-append','-struct','gps');
-  end
-end
-hack_idx = cell2mat(strfind(out_fns,'gps_20170405.mat'));
-if ~isempty(hack_idx)
-  out_fn = fullfile(gps_path,out_fns{hack_idx});
-    
-  gps = load(out_fn);
-  if strcmpi(gps.gps_source,'nmea-field')
-    warning('Correcting elevation: %s', out_fn);
-    gps.elev(16000:20674) = interp1([16000 20674],gps.elev([16000 20674]),16000:20674);
-    save(out_fn,'-append','-struct','gps');
-  end
-end
-
-hack_idx = cell2mat(strfind(out_fns,'gps_20170424.mat'));
-if ~isempty(hack_idx)
-  out_fn = fullfile(gps_path,out_fns{hack_idx});
-  
-  gps = load(out_fn);
-  if strcmpi(gps.gps_source,'nmea-field')
-    warning('Making monotonic gps time: %s', out_fn);
-    [gps,error_flag] = make_gps_monotonic(gps);
-    save(out_fn,'-append','-struct','gps');
-  end
-end
-
-
-
 for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
   
@@ -196,8 +180,12 @@ for idx = 1:length(file_type)
     
     gps.roll = sgolayfilt(gps.roll,2,101); % Adjust filter length as needed to remove high frequency noise
     gps.pitch = sgolayfilt(gps.pitch,2,101); % Adjust filter length as needed to remove high frequency noise
-    gps.heading  = sgolayfilt(gps.heading,2,101); % Adjust filter length as needed to remove high frequency noise
-     
+    heading_x = cos(gps.heading);
+    heading_y = sin(gps.heading);
+    heading_x  = sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_y  = sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.heading = atan2(heading_y,heading_x);
+    
     save(out_fn,'-append','-struct','gps','roll','pitch','heading');
   end
 end

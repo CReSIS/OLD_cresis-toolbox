@@ -52,6 +52,10 @@ if isfield(ctrl,'batch_id')
   batch_id = ctrl.batch_id;
 end
 
+if isempty(batch_id)
+  error('%s called with no batch_id. Either ctrl.batch_id or batch_id must be specified.',mfilename);
+end
+
 ctrls = cluster_get_batch_list(ctrl);
 
 found = 0;

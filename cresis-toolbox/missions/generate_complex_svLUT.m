@@ -71,7 +71,7 @@ end
 if 0
   close all
   %% DEBUG
-  surf_bins = 50;
+  surf_bins = zero_surf_bin;
   figure(1); clf;
   subplot(3,1,1);
   plot(lp(data.surf_vals(surf_bins,:,1)),'.')
@@ -168,8 +168,8 @@ data.surf_vals = ifft(fft(data.surf_vals) .* exp(1i*2*pi*bsxfun(@times,freq,dtim
 if 0
   %% DEBUG CODE
   figure(fig_offset+3); clf;
-  myref = data.surf_vals(rbin,:,5);
-  dd=(fir_dec(squeeze(bsxfun(@times,data.surf_vals(rbin,:,:),conj(myref))).',hanning(5).',1) );
+  myref = data.surf_vals(zero_surf_bin,:,5);
+  dd=(fir_dec(squeeze(bsxfun(@times,data.surf_vals(zero_surf_bin,:,:),conj(myref))).',hanning(5).',1) );
   dd = bsxfun(@times,dd, exp(-j*angle(mean(dd,2))));
   var(angle(dd(:,1:340)).')
   imagesc(angle(dd));

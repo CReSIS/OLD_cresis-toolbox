@@ -604,6 +604,7 @@ for img_idx = 1:length(load_param.load.imgs)
 
     % Create fcs.pos: phase center in the flight coordinate system
     % 1. Convert phase center trajectory to ecef
+    ecef = zeros(3,size(records.lat,2));
     [ecef(1,:),ecef(2,:),ecef(3,:)] ...
       = geodetic2ecef(wgs84,records.lat,records.lon,records.elev);
 

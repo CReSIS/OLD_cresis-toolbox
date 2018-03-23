@@ -277,7 +277,7 @@ for frm_idx = 1:length(param.cmd.frms);
     if 0
       % Enable this check if you want to open each output file to make
       % sure it is not corrupt.
-      for img = 1:length(param.get_heights.imgs)
+      for img = 1:length(param.combine.imgs)
         out_fn_name = sprintf('img_%02d_chk_%03d.mat',img,chunk_idx);
         out_fn{img} = fullfile(combine_tmp_dir,out_fn_name);
         dparam.success = cat(2,dparam.success, ...
@@ -314,7 +314,7 @@ for frm_idx = 1:length(param.cmd.frms);
     Nx = stop_rec - start_rec + 1;
     dparam.cpu_time = 0;
     dparam.mem = 0;
-    for img = 1:length(param.get_heights.imgs)
+    for img = 1:length(param.combine.imgs)
       dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
@@ -345,7 +345,7 @@ sparam = [];
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'combine_wf_chan_combine_task';
 sparam.num_args_out = 1;
-sparam.cpu_time = 10;
+sparam.cpu_time = 60;
 sparam.mem = 0;
 % Add up all records being processed and find the most records in a frame
 Nx = 0;
@@ -365,7 +365,7 @@ end
 % Account for averaging
 Nx_max = Nx_max / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
 Nx = Nx / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
-for img = 1:length(param.get_heights.imgs)
+for img = 1:length(param.combine.imgs)
   sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
   if isempty(param.get_heights.img_comb)
     % Individual images, so need enough memory to hold the largest image
@@ -374,9 +374,6 @@ for img = 1:length(param.get_heights.imgs)
     % Images combined into one so need enough memory to hold all images
     sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;
   end
-end
-if param.get_heights.surf.en
-  sparam.cpu_time = sparam.cpu_time + numel(records.gps_time)/5e6*120;
 end
 sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
   mfilename, param.radar_name, param.season_name, param.day_seg);
