@@ -187,14 +187,17 @@ for break_idx = 1:length(breaks)
   
   % Rerun only mode: Test to see if we need to run this task
   % =================================================================
+  dparam.notes = sprintf('%s:%s:%s %s %d of %d recs %d-%d', ...
+    mfilename, param.radar_name, param.season_name, param.day_seg, ...
+    break_idx, length(breaks), cur_recs(1), cur_recs(end));
   if ctrl.cluster.rerun_only
     % If we are in rerun only mode AND the get heights task success
     % condition passes without error, then we do not run the task.
     error_mask = 0;
     eval(dparam.success);
     if ~error_mask
-      fprintf('  %d: Already exists records %d to %d [rerun_only skipping] (%s)\n', ...
-        break_idx, cur_recs(1), cur_recs(end), datestr(now));
+      fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+        dparam.notes, datestr(now));
       continue;
     end
   end
@@ -221,9 +224,6 @@ for break_idx = 1:length(breaks)
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
   end
-  dparam.notes = sprintf('%s:%s:%s %s %d of %d recs %d-%d', ...
-    mfilename, param.radar_name, param.season_name, param.day_seg, ...
-    break_idx, length(breaks), cur_recs(1), cur_recs(end));
   
   ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
   

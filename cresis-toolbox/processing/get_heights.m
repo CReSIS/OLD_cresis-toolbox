@@ -143,6 +143,7 @@ end
 ctrl = cluster_new_batch(param);
 cluster_compile({'get_heights_task.m','get_heights_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
+total_num_sam = [];
 if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,~] = load_mcords_wfs(records.settings, param, ...
     1:max(records.param_records.records.file.adcs), param.get_heights);
@@ -272,19 +273,22 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     success_error = 64;
     dparam.success = cat(2,dparam.success, ...
-      sprintf('  error_mask = error_mask + %d;\n', success_error));
+      sprintf('  error_mask = bitor(error_mask,%d);\n', success_error));
     dparam.success = cat(2,dparam.success,sprintf('end;\n'));
     
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
+    dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
+      mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+      break_idx, length(breaks), cur_recs_keep(1), cur_recs_keep(end));
     if ctrl.cluster.rerun_only
       % If we are in rerun only mode AND the get heights task success
       % condition passes without error, then we do not run the task.
       error_mask = 0;
       eval(dparam.success);
       if ~error_mask
-        fprintf('  %d: Already exists records %d to %d [rerun_only skipping] (%s)\n', ...
-          break_idx, cur_recs(1), cur_recs(end), datestr(now));
+        fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+          dparam.notes, datestr(now));
         continue;
       end
     end
@@ -301,9 +305,6 @@ for frm_idx = 1:length(param.cmd.frms)
       dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
-    dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
-      mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
-      break_idx, length(breaks), cur_recs_keep(1), cur_recs_keep(end));
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
   end

@@ -41,7 +41,7 @@ default.adc_folder_name = 'board%b';
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 7
-  ref_adc = 14;
+  ref_adc = 13;
   default.txequal.img = [(1:7).', ref_adc*ones(7,1)];
   default.txequal.ref_wf_adc = 3;
   default.txequal.wf_mapping = [1 2 3 4 5 6 7 0];

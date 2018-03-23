@@ -59,8 +59,8 @@ if ~isfield(param.records,'file_version') || isempty(param.records.file_version)
   param.records.file_version = 1;
 end
 
-if ~isfield(param.records,'debug_level') || isempty(param.records.debug_level)
-  param.records.debug_level = 1;
+if ~isfield(param.records,'tmp_fn_uses_adc_folder_name') || isempty(param.records.tmp_fn_uses_adc_folder_name)
+  param.records.tmp_fn_uses_adc_folder_name = 1;
 end
 
 % =====================================================================
@@ -214,7 +214,7 @@ for board_idx = 1:length(boards)
       
       [~,fn_name] = fileparts(fn);
       
-      if isfield(param.records,'tmp_fn_uses_adc_folder_name') && param.records.tmp_fn_uses_adc_folder_name
+      if param.records.tmp_fn_uses_adc_folder_name
         tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
           fullfile(adc_folder_name, [fn_name '.mat']));
       else

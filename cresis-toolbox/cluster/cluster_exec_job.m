@@ -11,9 +11,9 @@ function cluster_exec_job(ctrl,task_ids,run_mode)
 %  .out_fn_dir = output arguments directory
 % task_ids = vector of task IDs, to run
 % run_mode = optional scalar integer indicating how to run the job:
-%   1: Run job as if you were in no scheduler mode [default]
-%   2: Run job through uncompiled worker_task function
-%   3: Run job through compiled worker_task function
+%   1: Run job through uncompiled cluster_job.m function
+%   2: Run job through compiled cluster_job.m function
+%   3: Run job through cluster_job.sh function
 %
 % Author: John Paden
 %
@@ -39,7 +39,7 @@ for task_idx = 1:length(task_ids)
   
   if run_mode == 1
     cluster_task_start_time = tic;
-    fprintf('  %s: batch %d task %d\n', mfilename, ctrl.batch_id, task_id);
+    fprintf('  %s: batch %d task %d (%d of %d) (%s)\n', mfilename, ctrl.batch_id, task_id, task_idx, length(task_ids), datestr(now));
 
     % Create output filename
     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
@@ -99,16 +99,16 @@ for task_idx = 1:length(task_ids)
   elseif run_mode == 2
     setenv('INPUT_PATH',ctrl.in_fn_dir);
     setenv('OUTPUT_PATH',ctrl.out_fn_dir);
-    job_list_str = sprintf('%dd',task_id); job_list_str = job_list_str(1:end-1);
-    setenv('JOB_LIST',job_list_str);
+    task_list_str = sprintf('%dd',task_id); task_list_str = task_list_str(1:end-1);
+    setenv('TASK_LIST',task_list_str);
     setenv('CUSTOM_CLUSTER','1');
     cluster_job;
     
   elseif run_mode == 3
     setenv('INPUT_PATH',ctrl.in_fn_dir);
     setenv('OUTPUT_PATH',ctrl.out_fn_dir);
-    job_list_str = sprintf('%dd',task_id); job_list_str = job_list_str(1:end-1);
-    setenv('JOB_LIST',job_list_str);
+    task_list_str = sprintf('%dd',task_id); task_list_str = task_list_str(1:end-1);
+    setenv('TASK_LIST',task_list_str);
     setenv('CUSTOM_CLUSTER','1');
     system(ctrl.cluster.cluster_job_fn);
   end

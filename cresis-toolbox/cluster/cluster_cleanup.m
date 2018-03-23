@@ -30,6 +30,14 @@ if nargin == 0 || isempty(ctrl)
   if isempty(regexpi(answer,'y'))
     return
   end
+
+  % Delete all chain files
+  global gRadar;
+  param = gRadar;
+  chain_fns = get_filenames(param.cluster.data_location,'chain_','','',struct('type','f'));
+  for idx = 1:length(chain_fns)
+    delete(chain_fns{idx});
+  end
 end
 
 if ~exist('cleanup_mode','var') || isempty(cleanup_mode)

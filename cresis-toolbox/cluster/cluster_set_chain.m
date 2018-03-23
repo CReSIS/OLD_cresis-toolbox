@@ -2,6 +2,8 @@ function ctrl_chain = cluster_set_chain(ctrl_chain,varargin)
 % ctrl_chain = cluster_set_chain(ctrl_chain,varargin)
 %
 % ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.cpu_time_mult',2,'cluster.mem_mult',1);
+% ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.type','debug');
+% ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.desired_time_per_job',24*60*60);
 
 if iscell(ctrl_chain)
   %% Traverse chain list

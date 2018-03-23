@@ -20,18 +20,12 @@ function run_master
 %clear; % Optional
 %close all; % Optional
 
-params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_DC8.xls'));
+params = read_param_xls(ct_filename_param('replace_this_filename.xls'));
+% Syntax for running a specific segment and frame by overriding parameter spreadsheet values
+%params = read_param_xls(ct_filename_param('replace_this_filename.xls'),'YYYYMMDD_SS');
+% params = ct_set_params(params,'cmd.csarp',0);
+% params = ct_set_params(params,'cmd.csarp',1,'day_seg','YYYYMMDD_SS');
 
-clear('param_override');
 param_override = [];
- param_override.sched.type = 'no scheduler';
-param_override.sched.cluster_size = inf;
-param_override.sched.rerun_only = false;
-%param_override.sched.submit_arguments    = '-q cresis -l nodes=1:ppn=2:dc2,walltime=60:00';
-param_override.sched.stop_on_fail = false;
 
-master(params,param_override);
-
-return;
-
-
+ctrl_chain = master(params,param_override);

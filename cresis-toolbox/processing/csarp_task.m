@@ -38,7 +38,7 @@ function [success] = csarp_task(param)
 %      .en = boolean, apply motion compensation
 %      .type = see motion_comp.m for details
 %      .uniform_en = boolean, resample data to uniform sampling in along-track
-%   .sar_type = string, 'f-k' or 'tdc'
+%   .sar_type = string, 'fk' or 'tdbp'
 %   .sigma_x = along-track output sample spacing (meters)
 %   .sub_aperture_steering = vector of doppler centroids to process to
 %     (i.e. subapertures) normalized to the doppler bandwidth
@@ -67,74 +67,127 @@ function [success] = csarp_task(param)
 %
 
 %% Initialization and checking arguments
-physical_constants;
 
-global g_data;
+% Get speed of light, dielectric of ice constants
+physical_constants;
+wgs84 = wgs84Ellipsoid('meters');
+
+global g_data; g_data = [];
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-param.load.records_fn = ct_filename_support(param,'','records');
+records_fn = ct_filename_support(param,'','records');
+records = load(records_fn,'settings','param_records');
 
 if param.csarp.combine_rx && param.csarp.mocomp.en
   warning('CSARP motion compensation mode must be 0 for combine_rx (setting to 0)');
   param.csarp.mocomp.en = 0;
 end
 
-if ~isfield(param.csarp,'start_eps') || isempty(param.csarp.start_eps) || param.csarp.start_eps == 0
-  param.csarp.start_eps = er_ice;
+% SAR output directory
+csarp_out_dir = ct_filename_out(param, param.csarp.out_path);
+
+% Load SAR coordinate system
+sar_fn = fullfile(csarp_out_dir,'sar_coord.mat');
+sar = load(sar_fn,'version','Lsar','gps_source','type','sigma_x','along_track','surf_pp');
+
+% Determine output range lines
+output_along_track = 0 : param.csarp.sigma_x : sar.along_track(end);
+start_x = sar.along_track(param.load.recs(1));
+stop_x = sar.along_track(param.load.recs(2));
+out_rlines = find(output_along_track >= start_x & output_along_track <= stop_x);
+output_along_track = output_along_track(out_rlines);
+
+%% Collect waveform information into one structure
+%  - This is used to break the frame up into chunks
+% =====================================================================
+if strcmpi(radar_name,'mcrds')
+  wfs = load_mcrds_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  wfs = load_mcords_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
+  wfs = load_icards_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+  error('Not supported');
+  wfs = load_fmcw_wfs(records.settings, param, ...
+    records.param_records.records.file.adcs, param.csarp);
+  for wf=1:length(wfs)
+    wfs(wf).time = param.csarp.time_of_full_support;
+    wfs(wf).freq = 1;
+  end
 end
 
-if ~isfield(param.csarp,'trim_vals') || isempty(param.csarp.trim_vals)
-  param.csarp.trim_vals = [0 0];
-end
+%% Determine chunk overlap to ensure full support
+% =====================================================================
+% Determine overlap of chunks from the range to furthest target
+times    = cell2mat({wfs.time}.');
+max_time = min(max(times),param.csarp.time_of_full_support);
 
-if ~isfield(param.csarp,'coh_noise_removal') || isempty(param.csarp.coh_noise_removal) ...
-    || ~param.csarp.coh_noise_removal
-  default_coh_noise_method = 0;
-elseif param.csarp.coh_noise_removal
-  default_coh_noise_method = 1;
-end
+% wavelength (m)
+wf = abs(param.load.imgs{1}(1,1));
+lambda = c/wfs(wf).fc;
+% twtt to surface (sec)
+surf_time = ppval(sar.surf_pp, start_x); surf_time = min(max_time,surf_time);
+% effective in air max range (m)
+max_range = ((max_time-surf_time)/sqrt(param.csarp.start_eps) + surf_time) * c/2;
+% chunk overlap (m)
+chunk_overlap_start = (max_range*lambda)/(2*param.csarp.sigma_x) / 2;
 
-if ~isfield(param.csarp,'coh_noise_method') || isempty(param.csarp.coh_noise_method)
-  param.csarp.coh_noise_method = default_coh_noise_method;
-end
+% twtt to surface (sec)
+surf_time = ppval(sar.surf_pp, stop_x); surf_time = min(max_time,surf_time);
+% effective in air max range (m)
+max_range = ((max_time-surf_time)/sqrt(param.csarp.start_eps) + surf_time) * c/2;
+chunk_overlap_stop = (max_range*lambda)/(2*param.csarp.sigma_x) / 2;
 
-if ~isfield(param.csarp,'coh_noise_arg')
-  param.csarp.coh_noise_arg = [];
-end
+% These are the records which will be used
+cur_recs = [find(sar.along_track > start_x-chunk_overlap_start,1) ...
+  find(sar.along_track < stop_x+chunk_overlap_stop, 1, 'last')];
+param.load.recs = cur_recs;
 
-if ~isfield(param.csarp,'pulse_rfi') || isempty(param.csarp.pulse_rfi)
-  param.csarp.pulse_rfi.en = 0;
-end
- 
-if ~isfield(param.records,'file_version')
-  param.records.file_version = [];
-end
+%% Determine zero padding to prevent circular convolution aliasing
+% =====================================================================
+param.load.start_zero_pad = floor((sar.along_track(cur_recs(1)) - (start_x-chunk_overlap_start)) / param.csarp.sigma_x);
+param.load.stop_zero_pad = floor((stop_x+chunk_overlap_stop - sar.along_track(cur_recs(2))) / param.csarp.sigma_x);
 
-if ~isfield(param.csarp.mocomp,'filter')
-  param.csarp.mocomp.filter = '';
-end
+%% Prepare trajectory information
+% =========================================================================
 
-if ~isfield(param.csarp,'ground_based')
-  param.csarp.ground_based = 0;
-end
+% Create along-track vectors (output rline 1 is zero/origin)
+along_track = sar.along_track(param.load.recs(1):param.load.recs(end));
 
-if ~isfield(param.csarp,'presums')
-  param.csarp.presums = 1;
-end
+% Create FCS: SAR (flight) coordinate system
+fcs = [];
+fcs.Lsar = sar.Lsar;
+fcs.gps_source = sar.gps_source;
 
-if ~isfield(param.csarp,'deconvolution') || isempty(param.csarp.deconvolution)
-  param.csarp.deconvolution = 0;
-end
+% Slow, but memory efficient way to load SAR coordinate system
+tmp = load(sar_fn,'origin');
+fcs.origin = tmp.origin(:,out_rlines);
+tmp = load(sar_fn,'x');
+fcs.x = tmp.x(:,out_rlines);
+tmp = load(sar_fn,'z');
+fcs.z = tmp.z(:,out_rlines);
+fcs.y = cross(fcs.z,fcs.x);
+% fcs.pos: to be added for each individual SAR image
+tmp = load(sar_fn,'roll');
+fcs.roll = tmp.roll(1,out_rlines);
+tmp = load(sar_fn,'pitch');
+fcs.pitch = tmp.pitch(1,out_rlines);
+tmp = load(sar_fn,'heading');
+fcs.heading = tmp.heading(1,out_rlines);
+tmp = load(sar_fn,'gps_time');
+fcs.gps_time = tmp.gps_time(1,out_rlines);
 
-if ~isfield(param.csarp,'psd_smooth') || isempty(param.csarp.psd_smooth)
-  param.csarp.psd_smooth = 0;
-end
+fcs.surface = ppval(sar.surf_pp,output_along_track);
+fcs.bottom = NaN*ones(size(fcs.surface));
 
 %% Load record information
 % =====================================================================
 load_param.load.recs = param.load.recs;
-orig_records = read_records_aux_files(param.load.records_fn,param.load.recs);
+orig_records = read_records_aux_files(records_fn,param.load.recs);
 old_param_records = orig_records.param_records;
 old_param_records.gps_source = orig_records.gps_source;
 start_time_for_fn = orig_records.gps_time(1);
@@ -178,7 +231,7 @@ if isfield(param.csarp,'surface_src') && ~isempty(param.csarp.surface_src)
   orig_records.surface = new_surface;
 end
 
-%% Load waveforms
+%% Load waveforms and record data size
 % =========================================================================
 if strcmpi(radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(orig_records.settings, param, ...
@@ -198,7 +251,7 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
 end
 load_param.wfs                = wfs;
 
-%% Collect record file information required for using load_mcords_data
+%% Collect record file information required for using raw data loaders
 %  - Performs mapping between param.adcs and the records file contents
 %  - Translates filenames from relative to absolute
 %  - Makes filenames have the correct filesep
@@ -419,7 +472,7 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
   end
 end
 
-%% Prepare trajectory information
+%% Prepare reference trajectory information
 % =========================================================================
 
 %Decimate orig_records and ref according to presums
@@ -432,25 +485,15 @@ if param.csarp.presums > 1
   orig_records.heading = fir_dec(orig_records.heading,param.csarp.presums);
   orig_records.gps_time = fir_dec(orig_records.gps_time,param.csarp.presums);
   orig_records.surface = fir_dec(orig_records.surface,param.csarp.presums);
-  param.proc.along_track = fir_dec(param.proc.along_track,param.csarp.presums);
+  along_track = fir_dec(along_track,param.csarp.presums);
 end
 
+% Load reference trajectory
 trajectory_param = struct('gps_source',orig_records.gps_source, ...
   'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
   'tx_weights', [], 'lever_arm_fh', param.csarp.lever_arm_fh);
 ref = trajectory_with_leverarm(orig_records,trajectory_param);
 
-% Lsar = use approximate SAR aperture length
-if isfield(param.csarp,'Lsar')
-  Lsar = c/wfs(1).fc*(param.csarp.Lsar.agl+param.csarp.Lsar.thick/sqrt(er_ice))/(2*param.csarp.sigma_x);
-else
-  Lsar = c/wfs(1).fc*(500+1000/sqrt(er_ice))/(2*param.csarp.sigma_x);
-end
-
-along_track = param.proc.along_track - param.proc.along_track(1);
-
-output_along_track = along_track(1) + param.proc.output_along_track_offset ...
-  + param.csarp.sigma_x*(0:param.proc.output_along_track_Nx-1);
 
 % Resample reference trajectory at output positions
 % 1. Convert ref trajectory to ecef
@@ -462,7 +505,6 @@ ecef = interp1(along_track,ecef.',output_along_track,'linear','extrap').';
 [lat,lon,elev] = ecef2geodetic(ecef(1,:), ecef(2,:), ecef(3,:), WGS84.ellipsoid);
 lat = lat*180/pi;
 lon = lon*180/pi;
-
 %% Remove coherent noise
 % =========================================================================
 if param.csarp.coh_noise_method && ~any(strcmpi(radar_name,{'kuband','snow','kuband2','snow2','kuband3','kaband3','snow3','snow5'}))
@@ -519,13 +561,14 @@ end
 % =========================================================================
 for img_idx = 1:length(load_param.load.imgs)
   if param.csarp.combine_rx
-    % Receivers combined, so just get the first wf/adc pair info to name the outfile
+    % Receivers combined, so just run the first wf/adc pair
     imgs_list = load_param.load.imgs{1}(1,:);
   else
     % Receivers processed individually, so get information for all wf/adc pairs.
     imgs_list = load_param.load.imgs{img_idx};
   end
   
+  %% Loop to process each wf-adc pair
   for wf_adc_idx = 1:size(imgs_list,1)
     % Processing loop
     % Runs once for combine_rx = true
@@ -558,16 +601,38 @@ for img_idx = 1:length(load_param.load.imgs)
         records = trajectory_with_leverarm(orig_records,trajectory_param);
       end
     end
+
+    % Create fcs.pos: phase center in the flight coordinate system
+    % 1. Convert phase center trajectory to ecef
+    [ecef(1,:),ecef(2,:),ecef(3,:)] ...
+      = geodetic2ecef(wgs84,records.lat,records.lon,records.elev);
+
+    % 2. Use the fcs to convert ecef to fcs coordinates and store in fcs.pos
+    Nx = size(fcs.origin,2);
+    good_rline = logical(ones(1,Nx));
+    for out_rline = 1:Nx
+      % For this output range line determine the input range lines
+      rlines_in = find(along_track >= output_along_track(out_rline)-fcs.Lsar/2 ...
+        & along_track <= output_along_track(out_rline)+fcs.Lsar/2);
+      if isempty(rlines_in)
+        % Sometimes there are gaps in the data, we will use neighboring points
+        % to fill in these gaps
+        good_rline(out_rline) = 0;
+        continue;
+      end
+      fcs.pos(:,out_rline) = [fcs.x(:,out_rline) fcs.y(:,out_rline) fcs.z(:,out_rline)] \ (mean(ecef(:,rlines_in),2) - fcs.origin(:,out_rline));
+    end
+    if ~any(good_rline)
+      error('Data gap extends across entire chunk. Consider breaking segment into two at this gap or increasing the chunk size.');
+    end
+
+    % 3. Fill in any missing lines
+    fcs.pos(:,~good_rline) = interp1(output_along_track(good_rline),fcs.pos(:,good_rline).',output_along_track(~good_rline).','linear','extrap').';
     
-    SAR_coord_param.type = param.csarp.mocomp.type;
-    SAR_coord_param.squint = [0 0 -1].';
-    SAR_coord_param.Lsar = Lsar;
-    fcs = SAR_coord_system(SAR_coord_param,records,ref,along_track,output_along_track);
-    fcs.gps_source = orig_records.gps_source;
     
     %% SAR Processing
-    if strcmpi(param.csarp.sar_type,'f-k')
-      % f-k migration overview
+    if strcmpi(param.csarp.sar_type,'fk')
+      % fk migration overview
       %
       % 1. Loop for each subaperture (repeat steps 2-4 for each aperture)
       %
@@ -586,14 +651,14 @@ for img_idx = 1:length(load_param.load.imgs)
       %        --> data (decimated ft-fft)
       %        --> data (decimated ft/st-fft)
       %
-      % 4. Regular f-k migration for each subaperture
+      % 4. Regular fk migration for each subaperture
       
       g_data{img_idx}(:,:,wf_adc_idx) = fft(g_data{img_idx}(:,:,wf_adc_idx),[],1);
       
       fcs.squint = [0 0 -1].';
       %fcs.squint = fcs.squint ./ sqrt(dot(fcs.squint,fcs.squint));
       
-      %% Motion Compensation for f-k migration
+      %% Motion Compensation for fk migration
       if param.csarp.mocomp.en
         % Determine the required motion compensation (drange and dx)
         %  Positive drange means the the range will be made longer, time delay
@@ -602,7 +667,7 @@ for img_idx = 1:length(load_param.load.imgs)
         %  currently lags behind)
         fcs.type = param.csarp.mocomp.type;
         fcs.filter = param.csarp.mocomp.filter;
-        [drange,dx] = motion_comp(fcs,records,ref,along_track,output_along_track);
+        [drange,dx] = csarp_motion_comp(fcs,records,ref,along_track,output_along_track);
         
         % Time shift data in the frequency domain
         dtime = 2*drange/c;
@@ -623,7 +688,17 @@ for img_idx = 1:length(load_param.load.imgs)
       % BUG!: At the beginning and end of a segment there is no data and
       % the buffer is not added... need to fix.
       output_along_track_pre = fliplr(output_along_track(1)-param.csarp.sigma_x:-param.csarp.sigma_x:along_track(1));
+      if isempty(output_along_track_pre)
+        output_along_track_pre = [output_along_track(1)-param.csarp.sigma_x*(param.load.start_zero_pad:-1:1), output_along_track_pre];
+      else
+        output_along_track_pre = [output_along_track_pre(1)-param.csarp.sigma_x*(param.load.start_zero_pad:-1:1), output_along_track_pre];
+      end
       output_along_track_post = output_along_track(end)+param.csarp.sigma_x:param.csarp.sigma_x:along_track(end);
+      if isempty(output_along_track_post)
+        output_along_track_post = [output_along_track_post, output_along_track(end)+param.csarp.sigma_x*(1:param.load.stop_zero_pad)];
+      else
+        output_along_track_post = [output_along_track_post, output_along_track_post(end)+param.csarp.sigma_x*(1:param.load.stop_zero_pad)];
+      end
       output_along_track_full = [output_along_track_pre output_along_track output_along_track_post];
 
       %% Prepare subaperture variables
@@ -639,7 +714,7 @@ for img_idx = 1:length(load_param.load.imgs)
       proc_along_track = output_along_track_full(1) ...
         + proc_sigma_x * (0:length(output_along_track_full)*proc_oversample-1);
 
-      %% Uniform resampling and subaperture selection for f-k migration
+      %% Uniform resampling and subaperture selection for fk migration
       if param.csarp.mocomp.uniform_en
         % Uniformly resample data in slow-time onto output along-track
         data = arbitrary_resample(g_data{img_idx}(:,:,wf_adc_idx), ...
@@ -685,7 +760,7 @@ for img_idx = 1:length(load_param.load.imgs)
         data = g_data{img_idx}(:,filt_idx,wf_adc_idx);
       end
       
-      %% F-k migration
+      %% fk migration
       if param.csarp.mocomp.en
         eps_r  = perm_profile(mean(records.surface + dtime),wfs(wf).time,'constant',param.csarp.start_eps);
       else
@@ -714,7 +789,7 @@ for img_idx = 1:length(load_param.load.imgs)
       
       if param.csarp.mocomp.en
         %% Undo motion compensation
-        % Resample dtime to f-k migration output
+        % Resample dtime to fk migration output
         dtime = interp1(orig_records.gps_time,dtime,fcs.gps_time);
         
         % Time shift data in the frequency domain
@@ -727,25 +802,25 @@ for img_idx = 1:length(load_param.load.imgs)
       %% Save Radar data
       for subap = 1:num_subapertures
         % Create output path
-        out_path = fullfile(ct_filename_out(param, ...
-          param.csarp.out_path, 'CSARP_out'), ...
-          sprintf('fk_data_%03d_%02d_%02d',param.proc.frm, ...
-          subap, param.proc.sub_band_idx));
-        if ~exist(out_path,'dir')
-          mkdir(out_path);
+        out_fn_dir = fullfile(ct_filename_out(param, ...
+          param.csarp.out_path), ...
+          sprintf('%s_data_%03d_%02d_%02d',param.csarp.sar_type,param.load.frm, ...
+          subap, param.load.sub_band_idx));
+        if ~exist(out_fn_dir,'dir')
+          mkdir(out_fn_dir);
         end
         
-        % Create filename
-        % - Hack: multiple receivers are named with the first receiver in the list
-        out_fn = sprintf('wf_%02d_adc_%02d_chk_%03d',wf, adc,param.csarp.chunk_id);
-        out_full_fn = fullfile(out_path,[out_fn '.mat']);
-        
         % Save
-        fprintf('  Saving output %s\n', out_full_fn);
         param_records = old_param_records;
         param_csarp = param;
+        if param.csarp.combine_rx
+          out_fn = fullfile(out_fn_dir,sprintf('img_%02d_chk_%03d.mat', img_idx, param.load.chunk_idx));
+        else
+          out_fn = fullfile(out_fn_dir,sprintf('wf_%02d_adc_%02d_chk_%03d.mat', wf, adc, param.load.chunk_idx));
+        end
         fk_data = fk_data_ml(:,:,subap);
-        save('-v7.3',out_full_fn,'fk_data','fcs','lat','lon','elev','wfs','param_csarp','param_records');
+        fprintf('  Saving %s (%s)\n', out_fn, datestr(now));
+        save('-v6',out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_csarp','param_records');
       end
       
     elseif strcmpi(param.csarp.sar_type,'tdbp')
@@ -874,7 +949,7 @@ for img_idx = 1:length(load_param.load.imgs)
         param_csarp = param;
         param_csarp.tdbp = tdbp_param;
         tdbp_data = tdbp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_csarp','param_records','tdbp_param');
+        save('-v6',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_csarp','param_records','tdbp_param');
       end
     elseif strcmpi(param.csarp.sar_type,'mltdp')
       fcs.squint = [0 0 -1].';
@@ -940,11 +1015,14 @@ for img_idx = 1:length(load_param.load.imgs)
         param_records = old_param_records;
         param_csarp = param;
         mltdp_data = mltdp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'mltdp_data','fcs','lat','lon','elev','wfs','param_csarp','param_records');
+        save('-v6',out_full_fn,'mltdp_data','fcs','lat','lon','elev','wfs','param_csarp','param_records');
       end
     end
   end
 end
-clear data_storage;
+
+fprintf('%s done %s\n', mfilename, datestr(now));
+
 success = true;
+
 return
