@@ -18,7 +18,7 @@ default.header_load_func = @basic_load_mcords3;
 default.header_load_params = struct('clk',1e9/9,'presum_bug_fixed',false);
 default.xml_version = 2.0;
 
-default.noise_50ohm = [-45.5	-44.3	-44.8	-44.9	-40.2	-40.8	-40.5	-41.4	-39.9	-40.2	-42.0	-43.6	-43.0	-44.1	-44.6];
+default.noise_50ohm = [-44.0	-44.0	-43.1	-43.9	-43.7	-43.6	-44.5	-43.2	-42.8	-43.0	-43.3	-45.3	-44.9	-44.2	-45.1	];
 
 default.Pt = 500 * [1 1 1 1 1 1 1];
 default.Gt = 7*4;
@@ -41,10 +41,24 @@ default.adc_folder_name = 'board%b';
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 7
-  ref_adc = 13;
+  ref_adc = 6;
   default.txequal.img = [(1:7).', ref_adc*ones(7,1)];
   default.txequal.ref_wf_adc = 3;
   default.txequal.wf_mapping = [1 2 3 4 5 6 7 0];
+  default.txequal.Hwindow_desired = [1 1 1 1 1 1 1 0];
+  default.txequal.max_DDS_amp = [40000 40000 40000 40000 40000 40000 40000 0];
+  default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.phase_desired = [0 0 0 0 0 0 0 0];
+  default.txequal.time_validation = [3 3 3 3 3 3 3 3]*1e-9;
+  default.txequal.amp_validation = [3 3 3 3 3 3 3 3];
+  default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
+  default.txequal.remove_linear_phase_en = true;
+  % Example 1: Antenna 2 bad configuration:
+  %   Connect antenna N to WFG N for all N = 1, 3 to 7
+  ref_adc = 6;
+  default.txequal.img = [(1:7).', ref_adc*ones(7,1)];
+  default.txequal.ref_wf_adc = 1;
+  default.txequal.wf_mapping = [1 0 3 4 5 6 7 0];
   default.txequal.Hwindow_desired = [1 1 1 1 1 1 1 0];
   default.txequal.max_DDS_amp = [40000 40000 40000 40000 40000 40000 40000 0];
   default.txequal.time_delay_desired = [0 0 0 0 0 0 0 0];
@@ -150,7 +164,7 @@ default.radar.fs = 1e9/9;
 default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 14;
 default.radar.adc_full_scale = 2;
-default.radar.rx_paths = [1 2 3 4 5 6 7 1 8 9 10 11 12 13 14 15];
+default.radar.rx_paths = [8 9 10 11 1 1 2 3 4 5 6 7 12 13 14 15];
 default.radar.noise_figure = 2;
 default.radar.rx_gain = 51.5;
 default.radar.adc_SNR_dB = 70;
@@ -159,9 +173,9 @@ default.radar.Tadc_adjust = -1.4455e-06; % System time delay: leave this empty o
 defaults = {};
 
 %% Settings
-default.radar.wfs(1).chan_equal_Tsys = [16.51	11.76	8.57	5.91	1.60	-0.13	0.00	-2.44	-4.83	-3.16	-2.76	-10.60	-6.05	-1.68	5.19]/1e9;
-default.radar.wfs(1).chan_equal_dB = [1.1	1.0	1.0	3.0	3.9	1.0	0.0	-2.6	-0.7	0.9	1.3	3.7	2.0	0.2	3.3];
-default.radar.wfs(1).chan_equal_deg = [97.1	25.2	-60.1	-126.1	-38.7	6.4	-0.0	-131.0	0.6	-25.1	-47.5	-86.3	-33.5	165.4	-106.6];
+default.radar.wfs(1).chan_equal_Tsys = [65.3 60.8 63.3 62.9 62.3 60 58.1 -9 -9.9 -15.7 -16.3 -20.1 -19.6 -14.6 -11.3]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0.0 -2.1 -3.9 -5.6 -6.0 -2.3 -1.6 2.0 -1.5 -0.2 1.0 1.5 -0.4 -1.3 1.6];
+default.radar.wfs(1).chan_equal_deg = [0.0 80.9 -135.4 57.3 -11.2 -8.6 -155.0 78.3 -179.5 86.9 -90.4 -70.7 41.3 -165.5 -173.3];
 
 % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];

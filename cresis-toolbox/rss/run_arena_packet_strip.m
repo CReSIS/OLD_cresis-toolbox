@@ -14,7 +14,7 @@
 
 % =========================================================================
 %% Get filename list (USER SECTION)
-base_dir = '/cresis/snfs1/data/HF_Sounder/2016_Greenland_TO/';
+base_dir = 'Z:/HF_Sounder/2016_Greenland_TO/';
 adc_folder_name = '20161108A';
 reuse_tmp_files = false;
 mat_or_bin_hdr_output = '.mat';

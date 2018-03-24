@@ -140,28 +140,32 @@ for freq_idx = [1]
 %   param.tg.Hice_thick = 0; % Long enough for 10 us delay line
 %   param.fn = fullfile(calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fus_LOOPBACK.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
 %   write_cresis_xml(param);
-%   % Deconvolution Mode (for over calm lake or sea ice lead)
-%   param.wfs(1).atten = 31;
-%   param.wfs(2).atten = 31;
-%   param.tg.staged_recording = false;
-%   param.tg.altitude_guard = 3000*12*2.54/100;
-%   param.tg.Haltitude = 8000*12*2.54/100;
-%   param.tg.Hice_thick = 0 * 12*2.54/100/sqrt(er_ice);
-%   param.fn = fullfile(calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fft_%.0fus_DECONV.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.wfs(end).Tpd*1e6));
-%   write_cresis_xml(param);
-%   if freq_idx == 1
-%     % Noise Mode
-%     param.tx_weights = [0 0 0 0 0 0 0 0];
-%     [param.wfs(1:2).tx_mask] = deal([1 1 1 1 1 1 1 1]);
-%     param.wfs(1).atten = 30;
-%     param.wfs(2).atten = 0;
-%     param.tg.staged_recording = [1 2];
-%     param.tg.altitude_guard = 500*12*2.54/100;
-%     param.tg.Haltitude = 1400*12*2.54/100;
-%     param.tg.Hice_thick = 500;
-%     param.fn = fullfile(calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fus_NOISE.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
-%     write_cresis_xml(param);
-%   end
+  % Deconvolution Mode (for over calm lake or sea ice lead)
+  param.wfs(1).atten = 31;
+  param.wfs(2).atten = 31;
+  param.prf = 20000;
+  param.presums = [8 32-8];
+  param.tg.staged_recording = false;
+  param.tg.altitude_guard = 2000*12*2.54/100;
+  param.tg.Haltitude = 18000*12*2.54/100;
+  param.tg.Hice_thick = 0 * 12*2.54/100/sqrt(er_ice);
+  param.fn = fullfile(calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fft_%.0fus_DECONV.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.wfs(end).Tpd*1e6));
+  write_cresis_xml(param);
+  if freq_idx == 1
+    % Noise Mode
+    param.tx_weights = [0 0 0 0 0 0 0 0];
+    [param.wfs(1:2).tx_mask] = deal([1 1 1 1 1 1 1 1]);
+    param.wfs(1).atten = 20;
+    param.wfs(2).atten = 0;
+    param.prf = 40000;
+    param.presums = [16 64-16];
+    param.tg.staged_recording = [1 2];
+    param.tg.altitude_guard = 500*12*2.54/100;
+    param.tg.Haltitude = 1500*12*2.54/100;
+    param.tg.Hice_thick = ice_thickness(freq_idx);
+    param.fn = fullfile(calval_dir,sprintf('survey_%.0f-%.0fMHz_%.0fus_NOISE.xml',param.f0/1e6,param.f1/1e6,param.wfs(end).Tpd*1e6));
+    write_cresis_xml(param);
+  end
 end
 
 %% Deconvolution Mode

@@ -367,9 +367,9 @@ for img = 1:length(param.load.imgs)
     'season_name',param.season_name,'radar_name',param.radar_name, ...
     'rx_path', wfs(wf).rx_paths(adc), ...
     'tx_weights', wfs(wf).tx_weights, 'lever_arm_fh', param.get_heights.lever_arm_fh);
-  for tmp_wf_adc_idx = 2:size(param.load.imgs{1},1)
-    tmp_wf = abs(param.load.imgs{1}(tmp_wf_adc_idx,1));
-    tmp_adc = abs(param.load.imgs{1}(tmp_wf_adc_idx,2));
+  for tmp_wf_adc_idx = 2:size(param.load.imgs{img},1)
+    tmp_wf = abs(param.load.imgs{img}(tmp_wf_adc_idx,1));
+    tmp_adc = abs(param.load.imgs{img}(tmp_wf_adc_idx,2));
     trajectory_param.rx_path(tmp_wf_adc_idx) = wfs(tmp_wf).rx_paths(tmp_adc);
   end
   out_records = trajectory_with_leverarm(records,trajectory_param);
@@ -444,9 +444,9 @@ for img = 1:length(param.load.imgs)
       'rx_path', wfs(wf).rx_paths(adc), ...
       'tx_weights', wfs(wf).tx_weights, 'lever_arm_fh', param.get_heights.lever_arm_fh);
     out_records = trajectory_with_leverarm(records,trajectory_param);
-    for tmp_wf_adc_idx = 2:size(param.load.imgs{1},1)
-      tmp_wf = abs(param.load.imgs{1}(tmp_wf_adc_idx,1));
-      tmp_adc = abs(param.load.imgs{1}(tmp_wf_adc_idx,2));
+    for tmp_wf_adc_idx = 2:size(param.load.imgs{img},1)
+      tmp_wf = abs(param.load.imgs{img}(tmp_wf_adc_idx,1));
+      tmp_adc = abs(param.load.imgs{img}(tmp_wf_adc_idx,2));
       trajectory_param.rx_path = wfs(tmp_wf).rx_paths(tmp_adc);
       trajectory_param.tx_weights = wfs(tmp_wf).tx_weights;
       tmp_records = trajectory_with_leverarm(records,trajectory_param);
@@ -633,7 +633,7 @@ for img = 1:length(param.load.imgs)
   % =======================================================================
   % =======================================================================
   if param.analysis.specular.en
-    for wf_adc = 1:size(param.load.imgs{1},1)
+    for wf_adc = 1:size(param.load.imgs{img},1)
       
       %% Compensate for elevation changes
       

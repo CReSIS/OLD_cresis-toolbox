@@ -151,7 +151,7 @@ while first_run || abs(init_EPRI_estimate-init_EPRI_estimate_median)/init_EPRI_e
       warning('Radar sampling frequency is probably wrong (unless 1 PPS missing)\n');
       keyboard
     end
-  elseif any(strcmp(radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5'}))
+  elseif any(strcmp(radar_name,{'mcords','mcords2','mcords3','mcords4','mcords5','hfrds2'}))
     % No check is done
   else
     warning('Unsupported radar');

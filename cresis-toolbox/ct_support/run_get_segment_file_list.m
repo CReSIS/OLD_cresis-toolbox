@@ -4,7 +4,7 @@
 %
 % See also get_segment_file_list.m
 
-params = read_param_xls('/users/paden/scripts/branch/params-cr1/rds_param_2011_Antarctica_DC8.xls');
+params = read_param_xls('H:/scripts/ct_params/rds_param_2016_Greenland_TOdtu.xls');
 
 for param_idx = 1:length(params)
   param = params(param_idx);
