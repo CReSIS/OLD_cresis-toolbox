@@ -166,7 +166,7 @@ end
 if strcmpi(radar_name,'mcrds')
   wfs = load_mcrds_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   wfs = load_mcords_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
@@ -188,7 +188,7 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'combine_wf_chan_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = [];
-if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   for img = 1:length(param.combine.imgs)
     wf = abs(param.combine.imgs{img}{1}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
@@ -332,7 +332,7 @@ ctrl_chain = {ctrl};
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   cpu_time_mult = 6e-8;
   mem_mult = 8;
   

@@ -35,6 +35,13 @@ elseif any(strcmpi(radar_name,{'acords'}))
 elseif any(strcmpi(radar_name,{'hfrds'}))
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.bin';
+elseif any(strcmpi(radar_name,{'hfrds2'}))
+  % Create sub-folder name for the particular receiver
+  adc_folder_name = param.vectors.file.adc_folder_name;
+  board = adc;
+  adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
+  adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
+  ext = '.bin';
 elseif strcmpi(radar_name,'mcrds')
   adc_folder_name = param.vectors.file.adc_folder_name;
   ext = '.raw';

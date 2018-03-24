@@ -104,7 +104,7 @@ output_along_track = output_along_track(out_rlines);
 if strcmpi(radar_name,'mcrds')
   wfs = load_mcrds_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   wfs = load_mcords_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
@@ -237,7 +237,7 @@ if strcmpi(radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,rec_data_size] = load_mcords_wfs(orig_records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.csarp);
   load_param.load.rec_data_size = rec_data_size;
@@ -421,6 +421,7 @@ load_param.proc.trim_vals          = param.csarp.trim_vals;
 load_param.proc.coh_noise_method   = param.csarp.coh_noise_method;
 load_param.proc.coh_noise_arg      = param.csarp.coh_noise_arg;
 
+load_param.records = param.records;
 load_param.radar = param.radar;
 load_param.surface = orig_records.surface;
 if strcmpi(radar_name,'acords')

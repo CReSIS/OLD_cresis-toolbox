@@ -16,11 +16,11 @@
 %% Get filename list (USER SECTION)
 base_dir = '/cresis/snfs1/data/HF_Sounder/2016_Greenland_TO/';
 adc_folder_name = '20161108A';
-reuse_tmp_files = true;
+reuse_tmp_files = false;
 mat_or_bin_hdr_output = '.mat';
 
 % Set param.radar_name and param.season_name
-param = default_radar_params_2016_Greenland_TO;
+param = default_radar_params_2016_Greenland_TOdtu;
 
 % =========================================================================
 %% Read each system XML file into a system structure
@@ -263,7 +263,7 @@ for xml_idx = 1:length(settings)
       if strcmpi(radar_name,'KUSnow')
         offset = mod(hdr(1,:),2^32);
         mode_latch = mod(hdr(3,:),2^8);
-        subchannel = mod(floor(hdr(3,:)/2^8),2^8);
+        subchannel = mod(bitshift(hdr(3,:),-8),2^8);
         wg_delay_latch = mod(hdr(4,:),2^16);
         rel_time_cntr_latch = double(hdr(5,:));
         profile_cntr_latch = double(hdr(6,:));
@@ -276,7 +276,7 @@ for xml_idx = 1:length(settings)
       elseif strcmpi(radar_name,'TOHFSounder')
         offset = mod(hdr(1,:),2^32);
         mode_latch = mod(hdr(3,:),2^8);
-        subchannel = mod(floor(hdr(3,:)/2^8),2^8);
+        subchannel = mod(bitshift(hdr(3,:),-8),2^8);
         encoder = mod(hdr(4,:),2^32);
         rel_time_cntr_latch = double(hdr(5,:));
         profile_cntr_latch = double(hdr(6,:));
@@ -289,8 +289,8 @@ for xml_idx = 1:length(settings)
       elseif strcmpi(radar_name,'DopplerScat')
         offset = mod(hdr(1,:),2^32);
         mode_latch = mod(hdr(3,:),2^8);
-        decimation_ratio = mod(floor(hdr(3,:)/2^8),2^8);
-        num_pulses_burst = mod(floor(hdr(3,:)/2^16),2^8);
+        decimation_ratio = mod(bitshift(hdr(3,:),-8),2^8);
+        num_pulses_burst = mod(bitshift(hdr(3,:),-16),2^8);
         encoder = mod(hdr(4,:),2^32);
         rel_time_cntr_latch = double(hdr(5,:));
         profile_cntr_latch = double(hdr(6,:));

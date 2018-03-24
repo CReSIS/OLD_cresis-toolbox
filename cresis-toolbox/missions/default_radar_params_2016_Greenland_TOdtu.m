@@ -8,7 +8,7 @@ function [param,defaults] = default_radar_params_2016_Greenland_TO
 %
 % Author: John Paden
 
-param.season_name = '2016_Greenland_TO';
+param.season_name = '2016_Greenland_TOdtu';
 param.radar_name = 'hfrds2';
 
 %% Control parameters (not used in the parameter spreadsheet directly)

@@ -80,6 +80,8 @@ for param_idx = 1:length(params)
       param.sched.type = original_sched;
     elseif any(strcmpi(radar_name,{'hfrds'}))
       hfrds.create_records(param,param_override);
+    elseif any(strcmpi(radar_name,{'hfrds2'}))
+      create_records_arena(param,param_override);
     elseif any(strcmpi(radar_name,{'mcords5','mcords4','mcords3','mcords2','seaice'}))
       create_records_mcords2(param,param_override);
     elseif strcmpi(radar_name,'mcrds')
