@@ -405,10 +405,7 @@ for board_idx = 1:length(boards)
         end
         if ~param.proc.raw_data
           % Convert to volts, remove DC-bias, and apply trim
-          mean_tmp = mean(tmp(1+param.proc.trim_vals(1):end-param.proc.trim_vals(2)));
-          if param.load.file_version == 407
-              mean_tmp = wfs(wf).DC_adjust(adc);
-          end
+          mean_tmp = wfs(wf).DC_adjust(adc);
           tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
           tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V * quantization_to_V_adjustment;
           

@@ -125,7 +125,6 @@ for task_idx = 1:length(task_ids)
     setenv('OUTPUT_PATH',ctrl.out_fn_dir);
     task_list_str = sprintf('%dd',task_id); task_list_str = task_list_str(1:end-1);
     setenv('TASK_LIST',task_list_str);
-    setenv('CUSTOM_CLUSTER','1');
     cluster_job;
     
   elseif run_mode == 3
@@ -133,7 +132,9 @@ for task_idx = 1:length(task_ids)
     setenv('OUTPUT_PATH',ctrl.out_fn_dir);
     task_list_str = sprintf('%dd',task_id); task_list_str = task_list_str(1:end-1);
     setenv('TASK_LIST',task_list_str);
-    setenv('CUSTOM_CLUSTER','1');
+    cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
+    setenv('MATLAB_CLUSTER_PATH',cluster_job_fn_dir);
+    setenv('MATLAB_MCR_PATH',ctrl.cluster.matlab_mcr_path);
     system(ctrl.cluster.cluster_job_fn);
   end
 end

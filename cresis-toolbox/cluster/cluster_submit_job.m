@@ -58,7 +58,7 @@ if strcmpi(ctrl.cluster.type,'torque')
   
   % Add "qsub -m abe -M your@email.edu" to debug:
   if ctrl.cluster.interactive
-    cmd = sprintf('qsub -I %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s"', ...
+    cmd = sprintf('qsub -I %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s"', ...
       submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path);
     fprintf('1. Run the command from the bash shell:\n  %s\n', cmd);
     fprintf('2. Once the interactive mode starts, run the command in the interactive shell:  %s\n', worker);
@@ -69,7 +69,7 @@ if strcmpi(ctrl.cluster.type,'torque')
       keyboard
     end
   else
-    cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s  </dev/null', ...
+    cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s  </dev/null', ...
       submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, worker);
     [status,result] = robust_system(cmd);
     
@@ -107,7 +107,7 @@ elseif strcmpi(ctrl.cluster.type,'slurm')
   
   submit_arguments = sprintf(ctrl.cluster.slurm_submit_arguments,ceil(job_mem/1e6),ceil(job_cpu_time/60));
   
-  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",CUSTOM_TORQUE="1",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s', ...
+  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s', ...
     submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, worker);
   [status,result] = robust_system(cmd);
   
