@@ -38,8 +38,8 @@ sync_fns = {}; sync_params = {};
 % gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'wingport-field';
 % gps_source_to_use = 'wingstar-field';
-% gps_source_to_use = 'ATM-field';
-gps_source_to_use = 'ATM-field_traj';
+gps_source_to_use = 'ATM-field';
+% gps_source_to_use = 'ATM-field_traj';
 % gps_source_to_use = 'ATM';
 % gps_source_to_use = 'DMS';
 
@@ -87,7 +87,16 @@ elseif strcmpi(gps_source_to_use,'wingstar-field')
   
 elseif strcmpi(gps_source_to_use,'ATM-field')
   
-  year = 2018; month = 3; day = 15;
+%   year = 2018; month = 3; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'atm-field';
+%   sync_flag{file_idx} = 0; 
+  
+  year = 2018; month = 3; day = 22;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
