@@ -385,7 +385,7 @@ for frm = param.cmd.frms
   out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
   out_fn = fullfile(combine_out_dir,out_fn_name);
   sparam.success = cat(2,sparam.success, ...
-    sprintf('  error_mask = bitor(error_mask,%d*(~exist(''%s'',''file'')));\n', success_error, out_fn));
+    sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
 end
 
 ctrl = cluster_new_task(ctrl,sparam,[]);

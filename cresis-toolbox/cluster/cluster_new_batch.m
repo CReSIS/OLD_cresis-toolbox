@@ -118,6 +118,10 @@ if ~isfield(ctrl.cluster,'mem_mult') || isempty(ctrl.cluster.mem_mult)
   ctrl.cluster.mem_mult = 1;
 end
 
+if ~isfield(ctrl.cluster,'mem_to_ppn') || isempty(ctrl.cluster.mem_to_ppn)
+  ctrl.cluster.mem_to_ppn = [];
+end
+
 if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
 end
@@ -133,11 +137,11 @@ end
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
   % -m n: no mail
   % -l nodes=1:ppn=1: one compute node and one core/processor on the node
-  ctrl.cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
+  ctrl.cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
 end
 
 if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm_submit_arguments)
-  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%d --time=%d';
+  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%m --time=%t';
 end
 
 %% Get the job manager for the matlab cluster interface

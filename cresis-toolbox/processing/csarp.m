@@ -243,7 +243,7 @@ if ~exist(sar_fn,'file') ...
   % Create success condition
   success_error = 64;
   sparam.success = ...
-    sprintf('error_mask = bitor(error_mask,%d*(~exist(''%s'',''file'')));\n', success_error, sar_fn);
+    sprintf('error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, sar_fn);
   
   ctrl = cluster_new_task(ctrl,sparam,[]);
   
@@ -399,7 +399,7 @@ for frm_idx = 1:length(param.cmd.frms)
           if param.csarp.combine_rx
             out_fn = fullfile(out_fn_dir,sprintf('img_%02d_%03d.mat',img,chunk_idx));
             dparam.success = cat(2,dparam.success, ...
-              sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
@@ -409,7 +409,7 @@ for frm_idx = 1:length(param.cmd.frms)
               adc = abs(dparam.argsin{1}.load.imgs{img}(wf_adc,2));
               out_fn = fullfile(out_fn_dir,sprintf('wf_%02d_adc_%02d_%03d.mat',wf,adc,chunk_idx));
               dparam.success = cat(2,dparam.success, ...
-                sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+                sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
               if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
                 delete(out_fn);
               end
