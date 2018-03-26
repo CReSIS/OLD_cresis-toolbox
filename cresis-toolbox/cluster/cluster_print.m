@@ -145,8 +145,17 @@ if print_flag == 1
   
   % Print stdout file
   if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
-    fprintf('\n\nSTDOUT ======================================================\n');
     actual_job_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
+    retry = 0;
+    retry_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',actual_job_id, retry));
+    while exist(retry_fn,'file')
+      fprintf('\n\nSTDOUT retry %d ======================================================\n', retry);
+      fprintf('%s\n', retry_fn);
+      type(retry_fn);
+      retry = retry + 1;
+      retry_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',actual_job_id, retry));
+    end
+    fprintf('\n\nSTDOUT ======================================================\n');
     fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',actual_job_id));
     fprintf('%s\n', fn);
     if exist(fn,'file')
@@ -154,8 +163,17 @@ if print_flag == 1
     else
       fprintf('  Does not exist\n');
     end
+    retry = 0;
+    retry_fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',actual_job_id, retry));
+    while exist(retry_fn,'file')
+      fprintf('\n\nERROR retry %d ======================================================\n', retry);
+      fprintf('%s\n', retry_fn);
+      type(retry_fn);
+      retry = retry + 1;
+      retry_fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',actual_job_id, retry));
+    end
     fprintf('\n\nERROR ======================================================\n');
-    fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',actual_job_id));
+      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',actual_job_id));
     fprintf('%s\n', fn);
     if exist(fn,'file')
       type(fn);

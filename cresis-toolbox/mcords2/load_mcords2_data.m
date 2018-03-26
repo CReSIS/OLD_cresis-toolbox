@@ -330,8 +330,9 @@ for board_idx = 1:length(boards)
         % Search for offset to each mode/subchannel
         %  (HACK: assumes HF sounder header and data)
         idx = 0;
-        mode = bitand(255,rec_data(idx+5));
-        subchannel = bitand(255,bitshift(rec_data(idx+5),-8));
+        header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5);
+        mode = bitand(255,header);
+        subchannel = bitand(255,bitshift(header,-8));
         profile_idx = find(mode == param.records.profiles{board}(:,1) & subchannel == param.records.profiles{board}(:,2));
         if ~isempty(profile_idx)
           wf_adc_idx = find(param.records.wf_adc_profiles == param.records.profiles{board}(profile_idx,3) ...
@@ -342,8 +343,9 @@ for board_idx = 1:length(boards)
         end
         idx = idx + 18 + double(rec_data(18))/4; 
         while idx < length(rec_data)
-          mode = bitand(255,rec_data(idx+5));
-          subchannel = bitand(255,bitshift(rec_data(idx+5),-8));
+          header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5);
+          mode = bitand(255,header);
+          subchannel = bitand(255,bitshift(header,-8));
           profile_idx = find(mode == param.records.profiles{board}(:,1) & subchannel == param.records.profiles{board}(:,2));
           if ~isempty(profile_idx)
             wf_adc_idx = find(param.records.wf_adc_profiles == param.records.profiles{board}(profile_idx,3) ...
