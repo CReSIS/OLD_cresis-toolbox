@@ -74,6 +74,9 @@ end
 
 EPRI = total_presums / param.radar.prf;
 
+xml_fn = fullfile(param.vectors.file.base_dir,param.vectors.xml_fn);
+settings = read_arena_xml(xml_fn);
+
 %% Get the files
 % =====================================================================
 clear board_hdrs;
@@ -180,7 +183,7 @@ for board_idx = 1:length(boards)
   
   mask(mask) = ~bad_mask;
   
-  % Now find the first subrecord in each epri_pri
+  % Now find the first subrecord in each epri_pri and update epri_pri_idxs
   epri_pri_idxs = find(mask);
   for idx = 1:length(epri_pri_idxs)
     %if ~mod(idx-1,10000)
@@ -194,15 +197,33 @@ for board_idx = 1:length(boards)
     else
       % For second and later PRIs
       while profile_cntr_latch(epri_pri_idx) == pri
-        epri_pri_idx = epri_pri_idx-1;
+        epri_pri_idx = epri_pri_idx-1; % Search backwards until we find the previous PRI
       end
-      epri_pri_idxs(idx) = epri_pri_idx+1;
+      epri_pri_idxs(idx) = epri_pri_idx+1; % The subrecord after this is the first PRI in the current EPRI
     end
   end
+  
+  % Make sure all records in each epri are valid
   mask = zeros(size(pps_cntr_latch));
+  mask(epri_pri_idxs) = 1;
+  for idx = 1:length(epri_pri_idxs)-1
+    if ~mod(idx-1,1000000)
+     fprintf('%d\n', idx);
+    end
+    for pri_idx = epri_pri_idxs(idx):epri_pri_idxs(idx+1)-1
+      if mode_latch(pri_idx) >= size(settings.hdrs,1) ...
+          || subchannel(pri_idx) >= size(settings.hdrs,2) ...
+          || isempty(settings.hdrs{mode_latch(pri_idx)+1,subchannel(pri_idx)+1})
+        fprintf('Bad record %d\n', pri_idx);
+        mask(pri_idx) = 0;
+        break;
+      end
+    end
+  end
+  epri_pri_idxs = find(mask);
   epri_pri_idxs = epri_pri_idxs(1:end-1); % Remove last potentially incomplete record
   mask(epri_pri_idxs) = 1;
-    
+  
   % Find records that are split between two files and use a negative
   % offset to indicate this.
   for idx = 2:length(epri_pri_idxs)
