@@ -25,6 +25,17 @@ wgs84 = wgs84Ellipsoid('meters');
 % Load records file
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+% Apply presumming
+if param.csarp.presums > 1
+  records.lat = fir_dec(records.lat,param.csarp.presums);
+  records.lon = fir_dec(records.lon,param.csarp.presums);
+  records.elev = fir_dec(records.elev,param.csarp.presums);
+  records.roll = fir_dec(records.roll,param.csarp.presums);
+  records.pitch = fir_dec(records.pitch,param.csarp.presums);
+  records.heading = fir_dec(records.heading,param.csarp.presums);
+  records.gps_time = fir_dec(records.gps_time,param.csarp.presums);
+  records.surface = fir_dec(records.surface,param.csarp.presums);
+end
 
 % SAR output directory
 csarp_out_dir = ct_filename_out(param, param.csarp.out_path);
@@ -94,6 +105,7 @@ sar.Lsar = Lsar;
 sar.gps_source = records.gps_source;
 sar.type = param.csarp.mocomp.type;
 sar.sigma_x = param.csarp.sigma_x;
+sar.presums = param.csarp.presums;
 sar.along_track = along_track;
 sar.surf_pp = spline(along_track(surf_idxs),surf);
 sar.origin = fcs.origin;
@@ -110,7 +122,7 @@ if ~exist(sar_fn_dir,'dir')
   mkdir(sar_fn_dir);
 end
 fprintf('Saving SAR coord %s (%s)\n', sar_fn, datestr(now));
-save(sar_fn,'-v6','-struct','sar','version','Lsar','gps_source','type','sigma_x','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time');
+save(sar_fn,'-v6','-struct','sar','version','Lsar','gps_source','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time');
 
 fprintf('%s done %s\n', mfilename, datestr(now));
 

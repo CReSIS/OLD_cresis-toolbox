@@ -1,5 +1,13 @@
-% http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v2.0/33_34/33_34_1_1_5m_v2.0.tar.gz
+% Files are stored with names like:
+% http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v2.0/33_34/33_34_1_1_5m_v2.0.tar
+%
+% To determine the files that you want, load the natural earth geotiff
+% Then load the the arctic dem: ArcticDEM_Tile_Index_2017sept06.shp
+% This will show all the tiles and you can get the range of tiles
+% from there. Then specify the range in lat_tiles and lon_tiles.
+%
 % File name format: lat_lon_lonsub_latsub:
+%   Ignore sub indices (all subtiles will be downloaded for each tile)
 %
 % lon_tile 33,1: -800000 (left side)
 % lat_tile 31,1: -1000000 (lower side)
@@ -9,8 +17,8 @@
 % lon origin (tile 0): -4100000
 % resolution: 5
 
-wget_enable = 0; % wget ArcticDEM tiles
-untar_enable = 0; % untar the tiles
+wget_enable = 1; % wget ArcticDEM tiles
+untar_enable = 1; % untar the tiles
 decimate_enable = 1; % decimate the tiles by M
 M = 8;
 mosaic_enable = 1; % mosaic the decimated tiles
@@ -30,10 +38,17 @@ if 0
 end
 
 % 20140506_01
-if 1
+if 0
   lat_tiles = [28:31];
   lon_tiles = [31:35];
   mosaic_fn = '2014_Greenland_P3_20140506_01.tif';
+end
+
+% Iceland
+if 1
+  lat_tiles = [14:19];
+  lon_tiles = [50:55];
+  mosaic_fn = 'Iceland.tif';
 end
 
 %% Automated section
@@ -59,7 +74,7 @@ for lat_tiles_idx = 1:length(lat_tiles)
   for lon_tiles_idx = 1:length(lon_tiles)
     for sub_lon_idx = 1:2
       for sub_lat_idx = 1:2
-        tif_fn = sprintf('%02d_%02d_%01d_%01d_5m_v2.0.tar.gz', ...
+        tif_fn = sprintf('%02d_%02d_%01d_%01d_5m_v2.0.tar', ...
           lat_tiles(lat_tiles_idx), lon_tiles(lon_tiles_idx), sub_lon_idx, sub_lat_idx);
         geotiff_fn = sprintf('%02d_%02d_%01d_%01d_5m_v2.0_reg_dem.tif', ...
           lat_tiles(lat_tiles_idx), lon_tiles(lon_tiles_idx), sub_lon_idx, sub_lat_idx);

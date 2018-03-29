@@ -26,7 +26,7 @@ mat_or_bin_hdr_output = param.arena_packet_strip.mat_or_bin_hdr_output;
 %% Read each system XML file into a system structure
 system_xml_fns = get_filenames(fullfile(base_dir,adc_folder_name),'','','system.xml',struct('recursive',true));
 
-settings = [];
+clear settings;
 for xml_idx = 1:length(system_xml_fns)
   xml_fn = system_xml_fns{xml_idx};
   
@@ -64,21 +64,21 @@ for xml_idx = 1:length(settings)
   last_bytes_len = int32(0);
   num_expected = int32(-1);
   pkt_counter = int32(-1);
-  if strcmpi(radar_name,'KUSnow')
+  if strcmpi(settings(xml_idx).radar_name,'KUSnow')
     radar_header_type = snow_radar_header_type;
     min_num_expected = int32(0);
     max_num_expected = int32(settings(xml_idx).max_num_bins);
     default_num_expected = int32(512);
     num_header_fields = int32(9);
     length_field_offset = int32(68);
-  elseif strcmpi(radar_name,'TOHFSounder')
+  elseif strcmpi(settings(xml_idx).radar_name,'TOHFSounder')
     radar_header_type = hf_sounder_radar_header_type;
     min_num_expected = int32(0);
     max_num_expected = int32(settings(xml_idx).max_num_bins);
     default_num_expected = int32(512);
     num_header_fields = int32(9);
     length_field_offset = int32(68);
-  elseif strcmpi(radar_name,'DopplerScat')
+  elseif strcmpi(settings(xml_idx).radar_name,'DopplerScat')
     min_num_expected = int32(0);
     max_num_expected = int32(settings(xml_idx).max_num_bins);
     default_num_expected = int32(512);
@@ -148,7 +148,7 @@ for xml_idx = 1:length(settings)
     
     %% Write header output file
     if strcmpi(mat_or_bin_hdr_output,'.mat')
-      if strcmpi(radar_name,'KUSnow')
+      if strcmpi(settings(xml_idx).radar_name,'KUSnow')
         offset = mod(hdr(1,:),2^32);
         mode_latch = mod(hdr(3,:),2^8);
         subchannel = mod(bitshift(hdr(3,:),-8),2^8);
@@ -161,7 +161,7 @@ for xml_idx = 1:length(settings)
         save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
           'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch');
         
-      elseif strcmpi(radar_name,'TOHFSounder')
+      elseif strcmpi(settings(xml_idx).radar_name,'TOHFSounder')
         offset = mod(hdr(1,:),2^32);
         mode_latch = mod(hdr(3,:),2^8);
         subchannel = mod(bitshift(hdr(3,:),-8),2^8);
@@ -174,7 +174,7 @@ for xml_idx = 1:length(settings)
         save(out_hdr_fn, 'offset','mode_latch','subchannel','encoder', ...
           'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch');
         
-      elseif strcmpi(radar_name,'DopplerScat')
+      elseif strcmpi(settings(xml_idx).radar_name,'DopplerScat')
         offset = mod(hdr(1,:),2^32);
         mode_latch = mod(hdr(3,:),2^8);
         decimation_ratio = mod(bitshift(hdr(3,:),-8),2^8);

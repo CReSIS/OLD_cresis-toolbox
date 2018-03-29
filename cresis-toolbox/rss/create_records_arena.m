@@ -153,6 +153,11 @@ for board_idx = 1:length(boards)
     %  (indicated by mode and subchannel columns in param.records.profiles{board} not being finite)
     mask = profile == param.records.epri_profile{board};
   end
+  % Data before first PPS reset may be incorrectly time tagged
+  first_reset = find(diff(pps_cntr_latch)>0,1);
+  if pps_ftime_cntr_latch(first_reset) > 10e6
+    mask(1:first_reset) = 0;
+  end
   
   epri_pris = profile_cntr_latch(mask);
   
@@ -207,22 +212,22 @@ for board_idx = 1:length(boards)
   mask = zeros(size(pps_cntr_latch));
   mask(epri_pri_idxs) = 1;
   for idx = 1:length(epri_pri_idxs)-1
-    if ~mod(idx-1,1000000)
-     fprintf('%d\n', idx);
-    end
+    %if ~mod(idx-1,1000000)
+    %  fprintf('%d\n', idx);
+    %end
     for pri_idx = epri_pri_idxs(idx):epri_pri_idxs(idx+1)-1
-      if mode_latch(pri_idx) >= size(settings.hdrs,1) ...
-          || subchannel(pri_idx) >= size(settings.hdrs,2) ...
-          || isempty(settings.hdrs{mode_latch(pri_idx)+1,subchannel(pri_idx)+1})
+      if mode_latch(pri_idx) >= size(settings.adc,1) ...
+          || subchannel(pri_idx) >= size(settings.adc,2) ...
+          || ~isfield(settings.adc{mode_latch(pri_idx)+1,subchannel(pri_idx)+1},'digRx_RG') ...
+          || isempty(settings.adc{mode_latch(pri_idx)+1,subchannel(pri_idx)+1}.digRx_RG)
         fprintf('Bad record %d\n', pri_idx);
         mask(pri_idx) = 0;
         break;
       end
     end
   end
+  mask(find(mask,1,'last')) = 0; % Remove last potentially incomplete record
   epri_pri_idxs = find(mask);
-  epri_pri_idxs = epri_pri_idxs(1:end-1); % Remove last potentially incomplete record
-  mask(epri_pri_idxs) = 1;
   
   % Find records that are split between two files and use a negative
   % offset to indicate this.
@@ -348,14 +353,15 @@ records.raw.rel_time_cntr_latch = board_hdrs{1}.rel_time_cntr_latch;
 records.raw.pps_cntr_latch = board_hdrs{1}.pps_cntr_latch;
 records.raw.pps_ftime_cntr_latch = board_hdrs{1}.pps_ftime_cntr_latch;
 
-utc_time_sod_corrected = records.gps_time - utc_leap_seconds(records.gps_time(1));
+% Radar stores UTC time, convert to GPS time
+records.gps_time = records.gps_time + utc_leap_seconds(records.gps_time(1));
 
 %% Correlate GPS with radar data
 % ===================================================================
 fprintf('Loading GPS data (%s)\n', datestr(now));
 
 if param.records.gps.en
-  records = sync_radar_to_gps(param,records,utc_time_sod_corrected);
+  records = sync_radar_to_gps(param,records,records.gps_time);
   
 else
   records.lat = NaN*zeros(size(utc_time_sod_corrected));
