@@ -127,7 +127,7 @@ if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
 end
 
 if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
-  ctrl.cluster.file_version = '-v6';
+  ctrl.cluster.file_version = '-v7';
 end
 
 if ~isfield(ctrl.cluster,'dbstop_if_error') || isempty(ctrl.cluster.dbstop_if_error)

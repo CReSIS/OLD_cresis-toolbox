@@ -108,7 +108,7 @@ if iscell(ctrl_chain)
           if all(ctrl.error_mask==0)
             fprintf('  Stage %d succeeded\n', stage);
           else any(ctrl.error_mask)
-            fprintf('  Stage %d failed (%d of %d tasks failed)\n', stage, sum(ctrl.error_mask~=0), length(ctrl.error_mask));
+            fprintf('  Stage %d (batch %d) failed (%d of %d tasks failed)\n', stage, ctrl.batch_id, sum(ctrl.error_mask~=0), length(ctrl.error_mask));
           end
         else
           fprintf('  Stage %d not finished\n', stage);
@@ -130,7 +130,7 @@ elseif isstruct(ctrl_chain)
   while ~isempty(ctrl.submission_queue) && ctrl.active_jobs < ctrl.cluster.max_jobs_active
     % Get task from queue
     task_id = ctrl.submission_queue(1);
-    task_cpu_time = 15 + ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id);
+    task_cpu_time = 30 + ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id); % 30 sec to match cluster_run.sh end pause
 
     if isempty(job_tasks) ...
         && ctrl.cluster.max_time_per_job < job_cpu_time + task_cpu_time;

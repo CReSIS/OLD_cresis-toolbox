@@ -48,4 +48,5 @@ elseif isnumeric(chain_fn)
     end
   end
   
+  error('Chain ID %d not found.', load_chain_id);
 end

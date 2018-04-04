@@ -80,6 +80,6 @@ done
 
 echo "  cluster_job.{sh,m} Done" `whoami` `hostname` "("`date`")"
 date
-sleep 15 # Wait for file writes to take place and be available in file system metadata (seems to be necessary for high performance file systems)
+sleep 30 # Wait for file writes to take place and be available in file system metadata (seems to be necessary for high performance file systems)
 
 exit $return_value

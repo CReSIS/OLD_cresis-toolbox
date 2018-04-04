@@ -59,19 +59,22 @@ for col = 3:length(field_names)
   if ~isempty(field_names{col})
     period_idxs = find(field_names{col} == '.');
     
-    if field_types{col} ~= 'a'
+    if any(field_types{col}(1) == 'btr')
       field_type = field_types{col};
-      is_array = false;
+      array_type = '0';
     elseif field_types{col}(1) == 'a'
       field_type = field_types{col}(2);
-      is_array = true;
+      array_type = 'a';
+    elseif field_types{col}(1) == 'c'
+      field_type = field_types{col}(2);
+      array_type = 'c';
     else
       error('Unsupported field type (%s)', field_types{col});
     end
-    if ~is_array
+    if array_type == '0'
       params(1).(generic_ws) ...
         = struct_add_field(params(1).(generic_ws), field_names{col}, {[]});
-    else
+    elseif array_type == 'a'
       paren_idx = find(field_types{col}(4:end) == '(');
       if ~isempty(paren_idx)
         % Fields of the struct array
@@ -83,10 +86,19 @@ for col = 3:length(field_names)
         params(1).(generic_ws).(array_field_name) ...
           = struct_add_field(params(1).(generic_ws).(array_field_name), field_names{col}, {[]});
       end
+    elseif array_type == 'c'
+      paren_idx = find(field_types{col}(4:end) == '(');
+      if ~isempty(paren_idx)
+        % Fields of the struct array
+        array_field_name = field_types{col}(4+(0:paren_idx-2));
+        
+        if ~isfield(params(1).(generic_ws),array_field_name)
+          params(1).(generic_ws).(array_field_name) = {};
+        end
+      end
     end
   end
 end
-
 
 %% Read in each day_seg row
 for idx = 1:rows
@@ -102,12 +114,15 @@ for idx = 1:rows
       if ~isempty(field_names{col})
         period_idxs = find(field_names{col} == '.');
         
-        if field_types{col} ~= 'a'
+        if any(field_types{col}(1) == 'btr')
           field_type = field_types{col};
-          is_array = false;
+          array_type = '0';
         elseif field_types{col}(1) == 'a'
           field_type = field_types{col}(2);
-          is_array = true;
+          array_type = 'a';
+        elseif field_types{col}(1) == 'c'
+          field_type = field_types{col}(2);
+          array_type = 'c';
         else
           error('Unsupported field type (%s)', field_types{col});
         end
@@ -118,7 +133,7 @@ for idx = 1:rows
         else
           val = read_param_xls_general(row,col,num,txt);
         end
-        if ~is_array
+        if array_type == '0'
           if length(period_idxs) == 0
             params(idx).(generic_ws).(field_names{col}) = val;
           elseif length(period_idxs) == 1
@@ -127,7 +142,7 @@ for idx = 1:rows
             error('read_param_xls_generic:toomanyperiods', ...
               ' Fieldnames %s with more than 1 period not supported', field_names{col})
           end
-        else
+        elseif array_type == 'a'
           paren_idx = find(field_types{col}(4:end) == '(');
           if isempty(paren_idx)
             % Size of the struct array field (the size field should go first)
@@ -154,6 +169,36 @@ for idx = 1:rows
               if ~isempty(val)
                 fprintf('  Warning in row %d, column %s/%d (field %s)\n', row, char(65+mod(col-1,26)), col, field_names{col});
                 fprintf('    Struct array %s should have %d elements, but has more (ignoring)\n', array_field_name, length(params(idx).(generic_ws).(array_field_name)));
+              end
+            end
+          end
+        elseif array_type == 'c'
+          paren_idx = find(field_types{col}(4:end) == '(');
+          if isempty(paren_idx)
+            % Size of the struct array field (the size field should go first)
+            array_field_name = field_types{col}(4:end);
+            params(idx).(generic_ws).(array_field_name) = cell(1,val);
+          else
+            % Fields of the cell array
+            array_field_name = field_types{col}(4+(0:paren_idx-2));
+            array_field_idx = str2double(field_types{col}(4+paren_idx:end-1));
+            
+            if ~isfield(params(idx).(generic_ws),array_field_name) ...
+                || length(params(idx).(generic_ws).(array_field_name)) >= array_field_idx
+              % Only include the field if we don't exceed the declared
+              % size of the array
+              if length(period_idxs) == 0
+                params(idx).(generic_ws).(array_field_name){array_field_idx}.(field_names{col}) = val;
+              elseif length(period_idxs) == 1
+                params(idx).(generic_ws).(array_field_name){array_field_idx}.(field_names{col}(1:period_idxs-1)).(field_names{col}(period_idxs+1:end)) = val;
+              else
+                error('read_param_xls_generic:toomanyperiods', ...
+                  ' Fieldnames %s with more than 1 period not supported', field_names{col})
+              end
+            else
+              if ~isempty(val)
+                fprintf('  Warning in row %d, column %s/%d (field %s)\n', row, char(65+mod(col-1,26)), col, field_names{col});
+                fprintf('    Cell array %s should have %d elements, but has more (ignoring)\n', array_field_name, length(params(idx).(generic_ws).(array_field_name)));
               end
             end
           end

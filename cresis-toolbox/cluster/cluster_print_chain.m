@@ -62,27 +62,32 @@ elseif isstruct(ctrl_chain)
   stats.retries = ctrl.retries;
   stats.job_status = ctrl.job_status;
   
-  % Create in/out filenames
-  static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
-  
-  % Read input
-  sparam = load(static_in_fn);
-  if ~isempty(ctrl.dparam)
-    param = merge_structs(sparam.static_param,ctrl.dparam{1});
-    fprintf('    task_function: %s\n', param.task_function);
-    fprintf('    notes: %s\n', param.notes);
-  end
-  
-  fprintf('    Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
-    numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.job_status=='R'), sum(stats.job_status=='Q'), sum(stats.job_status=='T'), sum(stats.error_mask~=0), sum(stats.retries));
-  fprintf('    Error tasks:'); fprintf(' %d', find(stats.error_mask~=0)); fprintf('\n');
-  fprintf('    Max CPU time: %.0f min\n', max(stats.cpu_time)/60);
-  fprintf('    Max mem: %.0f MB\n', max(stats.mem)/1e6);
-  fprintf('    Mean CPU time: %.0f min\n', mean(stats.cpu_time)/60);
-  fprintf('    Mean mem: %.0f MB\n', mean(stats.mem)/1e6);
-  
-  if max(stats.cpu_time) > ctrl.cluster.max_time_per_job
-    warning('Max task cpu time exceeds ctrl.cluster.max_time_per_job setting.');
+  if isempty(ctrl.job_status)
+    fprintf('    No tasks\n');
+    
+  else
+    % Create in/out filenames
+    static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
+    
+    % Read input
+    sparam = load(static_in_fn);
+    if ~isempty(ctrl.dparam)
+      param = merge_structs(sparam.static_param,ctrl.dparam{1});
+      fprintf('    task_function: %s\n', param.task_function);
+      fprintf('    notes: %s\n', param.notes);
+    end
+    
+    fprintf('    Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
+      numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.job_status=='R'), sum(stats.job_status=='Q'), sum(stats.job_status=='T'), sum(stats.error_mask~=0), sum(stats.retries));
+    fprintf('    Error tasks:'); fprintf(' %d', find(stats.error_mask~=0)); fprintf('\n');
+    fprintf('    Max CPU time: %.0f min\n', max(stats.cpu_time)/60);
+    fprintf('    Max mem: %.0f MB\n', max(stats.mem)/1e6);
+    fprintf('    Mean CPU time: %.0f min\n', mean(stats.cpu_time)/60);
+    fprintf('    Mean mem: %.0f MB\n', mean(stats.mem)/1e6);
+    
+    if max(stats.cpu_time) > ctrl.cluster.max_time_per_job
+      warning('Max task cpu time exceeds ctrl.cluster.max_time_per_job setting.');
+    end
   end
   
   % Update output
