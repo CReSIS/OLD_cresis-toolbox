@@ -35,10 +35,10 @@ in_base_path = fullfile(data_support_path,'2018_Greenland_P3');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_fns = {}; sync_params = {};
 
-% gps_source_to_use = 'NMEA';
+gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'wingport-field';
 % gps_source_to_use = 'wingstar-field';
-gps_source_to_use = 'ATM-field';
+% gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM-field_traj';
 % gps_source_to_use = 'ATM';
 % gps_source_to_use = 'DMS';
@@ -52,16 +52,34 @@ if strcmpi(gps_source_to_use,'NMEA')
 %   file_type{file_idx} = 'NMEA';
 %   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
 %   gps_source{file_idx} = 'nmea-field';
-%     sync_flag{file_idx} = 0;
-  
-  year = 2018; month = 3; day = 22;
+%   sync_flag{file_idx} = 0;
+%   
+%   year = 2018; month = 3; day = 22;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+%   
+%   year = 2018; month = 4; day = 3;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+   
+  year = 2018; month = 4; day = 4;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'NMEA';
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
   gps_source{file_idx} = 'nmea-field';
-    sync_flag{file_idx} = 0;
+  sync_flag{file_idx} = 0;
     
 elseif strcmpi(gps_source_to_use,'wingport-field')
   
@@ -96,9 +114,18 @@ elseif strcmpi(gps_source_to_use,'ATM-field')
 %   gps_source{file_idx} = 'atm-field';
 %   sync_flag{file_idx} = 0; 
   
-  year = 2018; month = 3; day = 22;
+%   year = 2018; month = 3; day = 22;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'atm-field';
+%   sync_flag{file_idx} = 0; 
+  
+  year = 2018; month = 4; day = 3;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+  in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyyyy'),'GNSSK*.out');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'applanix';
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
@@ -196,5 +223,18 @@ for idx = 1:length(file_type)
     gps.heading = atan2(heading_y,heading_x);
     
     save(out_fn,'-append','-struct','gps','roll','pitch','heading');
+  end
+end
+
+hack_idx = cell2mat(strfind(out_fns,'gps_20180404.mat'));
+if ~isempty(hack_idx)
+  out_fn = fullfile(gps_path,out_fns{hack_idx});
+  
+  gps = load(out_fn);
+  if strcmpi(gps.gps_source,'nmea-field')
+    warning('Fixing north pole elevation: %s', out_fn);
+    gps.elev(17000:21000) = NaN;
+    gps.elev = interp_finite(gps.elev);
+    save(out_fn,'-append','-struct','gps');
   end
 end

@@ -190,7 +190,7 @@ qlook_out_dir = ct_filename_out(param, param.get_heights.out_path);
 if isfield(param.get_heights,'deconvolution') ...
     && ~isempty(param.get_heights.deconvolution) ...
     && param.get_heights.deconvolution == 3
-  out_fn_dir = ct_filename_out(param,'', 'CSARP_noise');
+  out_fn_dir = ct_filename_out(param,'analysis');
   out_segment_fn_dir = fileparts(out_fn_dir);
   out_segment_fn = fullfile(out_segment_fn_dir,sprintf('deconv_%s.mat', param.day_seg));
   spec = load(out_segment_fn,'param_collate');

@@ -86,7 +86,7 @@ elseif isnumeric(ctrl_chain)
     % This is a list of chain IDs
     for idx = 1:length(ctrl_chain)
       try
-        ctrl_chain = cluster_load_chain([],ctrl_chain(idx));
+        ctrl_chain = cluster_load_chain(ctrl_chain(idx));
       catch
         continue
       end
@@ -101,7 +101,7 @@ ctrls = ctrls(ctrls_mask);
 for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
   fprintf('Stopping batch %d\n', ctrl.batch_id);
-  ctrl = cluster_get_batch(ctrl,ctrl.batch_id,false);
+  ctrl = cluster_get_batch(ctrl,false,0);
   if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
     
     % For each job in the batch, delete the job

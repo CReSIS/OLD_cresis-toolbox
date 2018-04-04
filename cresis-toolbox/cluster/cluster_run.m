@@ -33,7 +33,7 @@ function ctrl_chain = cluster_run(ctrl_chain,block)
 %   cluster_update_batch, cluster_update_task
 
 if isnumeric(ctrl_chain)
-  ctrl_chain = cluster_load_chain([],ctrl_chain);
+  ctrl_chain = cluster_load_chain(ctrl_chain);
 end
 
 if iscell(ctrl_chain)

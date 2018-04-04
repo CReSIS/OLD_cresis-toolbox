@@ -111,6 +111,6 @@ if print_mode
   fprintf('\n\n');
   
   fprintf('Commands to load and run:\n');
-  fprintf('[ctrl_chain,chain_fn] = cluster_load_chain([],%d);\n', chain_id);
+  fprintf('[ctrl_chain,chain_fn] = cluster_load_chain(%d);\n', chain_id);
   fprintf('ctrl_chain = cluster_run(ctrl_chain);\n\n');
 end

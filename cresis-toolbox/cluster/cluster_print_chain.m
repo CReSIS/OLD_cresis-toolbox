@@ -54,7 +54,7 @@ if iscell(ctrl_chain)
 elseif isstruct(ctrl_chain)
   ctrl = ctrl_chain;
   
-  ctrl = cluster_get_batch(ctrl,[],[],0);
+  ctrl = cluster_get_batch(ctrl,true,0);
   
   stats.cpu_time = ctrl.cpu_time;
   stats.mem = ctrl.mem;
@@ -88,7 +88,7 @@ elseif isstruct(ctrl_chain)
   ctrl_chain = ctrl;
   
 elseif isnumeric(ctrl_chain)
-  ctrl_chain = cluster_load_chain([],ctrl_chain);
+  ctrl_chain = cluster_load_chain(ctrl_chain);
   ctrl_chain = cluster_print_chain(ctrl_chain);
   
 end

@@ -299,6 +299,8 @@ if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
     
     % Print out retry message
     fprintf(' Retry %d Job %d:%d/%d %s (%s)\n', ctrl.retries(task_id), ctrl.batch_id, task_id, ctrl.job_id_list(task_id), param.notes, datestr(now));
+  else
+    fprintf(' Out of retries %d Job %d:%d/%d %s (%s)\n', ctrl.retries(task_id), ctrl.batch_id, task_id, ctrl.job_id_list(task_id), param.notes, datestr(now));
   end
 
 end

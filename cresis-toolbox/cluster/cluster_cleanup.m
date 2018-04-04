@@ -64,7 +64,7 @@ end
 %% Delete the jobs on the cluster
 if cleanup_mode == 0 || cleanup_mode == 1
   if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
-    ctrl = cluster_get_batch(ctrl,ctrl.batch_id,false);
+    ctrl = cluster_get_batch(ctrl,false,0);
     
     % For each job in the batch, delete the job
     for job_id = 1:length(ctrl.job_id_list)
