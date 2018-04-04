@@ -126,6 +126,9 @@ elseif any(strcmpi(param.radar_name,{'icards'}))% there's a minor inacurracy (1e
     radar_gps_time=radar_gps_time(find(radar_gps_time<=gps.gps_time(end)));
   end
   
+elseif any(strcmpi(param.radar_name,{'hfrds2'}))
+  radar_gps_time = radar_time;
+  
 else
   utc_time_sod = radar_time;
   

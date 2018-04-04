@@ -47,10 +47,10 @@ if ~isfield(param.records.file,'adc_headers') || isempty(param.records.file.adc_
   param.records.file.adc_headers = param.records.file.adcs;
 end
 
-if param.records.file_version == 404 || param.records.file_version == 407 || param.records.file_version == 408
+if any(param.records.file_version == [404, 407, 408, 411])
   boards = unique(param.records.file.adc_headers);
   FRAME_SYNC = '1ACFFC1D';
-elseif param.records.file_version == 402 || param.records.file_version == 403
+elseif any(param.records.file_version == [402, 403])
   boards = unique(floor((param.records.file.adc_headers-1)/4));
   FRAME_SYNC = 'BADA55E5';
 else
@@ -84,9 +84,9 @@ for board_idx = 1:length(boards)
   
   %% Get the list of files to include in this records file
   % =====================================================================
-  if param.records.file_version == 404 || param.records.file_version == 407 || param.records.file_version == 408
+  if any(param.records.file_version == [404, 407, 408, 411])
     [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,board);
-  elseif param.records.file_version == 402 || param.records.file_version == 403
+  elseif any(param.records.file_version == [402, 403])
     [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,(board+1)*4);
   end
   

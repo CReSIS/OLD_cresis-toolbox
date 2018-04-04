@@ -43,7 +43,7 @@ for param_idx = 1:length(params)
   
   %% Load the coherent noise file
   fn_dir = fileparts(ct_filename_out(param,coh_ave_file_input_type, ''));
-  fn = fullfile(fn_dir,sprintf('coh_noise_img_%02d_%s.mat', img,param.day_seg));
+  fn = fullfile(fn_dir,sprintf('coh_noise_%s_img_%02d.mat', param.day_seg, img));
   fprintf('collate_coh_noise %s: %s\n', param.day_seg, fn);
   noise = load(fn);
   

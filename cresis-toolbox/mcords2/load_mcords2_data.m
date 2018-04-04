@@ -103,32 +103,49 @@ accum = build_img_load_struct(param.load.imgs, param.load.adcs, struct('file_ver
 if param.load.file_version == 402 || param.load.file_version == 403
   HEADER_SIZE = 32;
   WF_HEADER_SIZE = 8;
+  bin_size = 2;
+  sample_type = 'int16';
   num_boards = 4;
   boards = unique(floor((param.load.adcs-1)/num_boards));
 elseif param.load.file_version == 404
   HEADER_SIZE = 32;
   WF_HEADER_SIZE = 8;
-  boards = param.load.adcs;
+  bin_size = 2;
+  sample_type = 'int16';
   num_boards = 1;
+  boards = param.load.adcs;
 elseif param.load.file_version == 407 || param.load.file_version == 408
   if wfs(1).DDC_mode == 0
     % DDS Enabled
     HEADER_SIZE = 80;
     WF_HEADER_SIZE = 16;
-    boards = param.load.adcs;
+    bin_size = 2;
+    sample_type = 'int16';
     num_boards = 1;
+    boards = param.load.adcs;
   else
     % DDS Disabled
     HEADER_SIZE = 40;
     WF_HEADER_SIZE = 8;
-    boards = param.load.adcs;
+    bin_size = 2;
+    sample_type = 'int16';
     num_boards = 1;
+    boards = param.load.adcs;
   end
 elseif param.load.file_version == 411
   HEADER_SIZE = 128;
   WF_HEADER_SIZE = 0;
-  boards = param.load.adcs;
+  bin_size = 2;
+  sample_type = 'int16';
   num_boards = 1;
+  boards = param.load.adcs;
+elseif param.load.file_version == 412
+  HEADER_SIZE = NaN;
+  WF_HEADER_SIZE = NaN;
+  SUBRECORD_SIZE_OFFSET = 68; % HACK FIX LATER
+  bin_size = 4; % HACK FIX LATER
+  sample_type = 'int32'; % HACK FIX LATER
+  boards = unique(param.records.wf_adc_boards(1,param.load.adcs));
 end
 REC_BLOCK_SIZE = 20e6;
 
@@ -170,10 +187,21 @@ for board_idx = 1:length(boards)
   board = boards(board_idx);
   % Since all ADCs for this board have the same offset and file_idx info
   % we just need to grab the first valid adc_idx:
-  if param.load.file_version >= 404
-    adc_idx = find(param.load.adcs == board);
+  if param.load.file_version == 412
+    wf_adc_idx = find(param.records.wf_adc_boards == board, 1);
+    adc_idx = ceil(wf_adc_idx / size(param.records.wf_adc_profiles,1));
+  elseif param.load.file_version >= 404
+    adc_idx = find(param.load.adcs == board, 1);
   else
     adc_idx = find(floor((param.load.adcs-1)/4) == board, 1);
+  end
+  
+  % Calculate the record size
+  if param.load.file_version == 412
+    rec_size = median(diff(param.load.offset{adc_idx}));
+  else
+    all_hdr_size = HEADER_SIZE + length(wfs)*WF_HEADER_SIZE;
+    rec_size = all_hdr_size+num_boards*param.load.rec_data_size;
   end
   
   % ********************** %
@@ -181,7 +209,7 @@ for board_idx = 1:length(boards)
     % Get the last incomplete record from the previous file
     fn_idx = param.load.file_idx{adc_idx}(1) - 1;
     fn = param.load.filenames{adc_idx}{fn_idx};
-    if param.load.file_version == 411
+    if param.load.file_version == 411 || param.load.file_version == 412
       [fid,msg] = fopen(fn,'r','ieee-le');
     else
       [fid,msg] = fopen(fn,'r','ieee-be');
@@ -190,20 +218,19 @@ for board_idx = 1:length(boards)
       error('File open failed (%s)\n%s',fn, msg);
     end
     fseek(fid,param.load.offset{adc_idx}(1),'eof');
-    last_record = fread(fid,-double(param.load.offset{adc_idx}(1))/2,'int16');
+    last_record = fread(fid,-double(param.load.offset{adc_idx}(1))/bin_size,sample_type);
     fclose(fid);
     get_last_record = true;
   else
     % Do not need the last incomplete record from the previous file
-    last_record = int16([]);
+    last_record = zeros([0 0],sample_type);
     get_last_record = false;
   end
   
   num_accum = 0;
   out_idx = 0;
-  all_hdr_size = HEADER_SIZE + length(wfs)*WF_HEADER_SIZE;
   % Compute number of records to load per job
-  NUM_RECS_LOAD = ceil(REC_BLOCK_SIZE / (all_hdr_size+num_boards*param.load.rec_data_size));
+  NUM_RECS_LOAD = ceil(REC_BLOCK_SIZE / rec_size);
   rec = 1;
   
   while rec < total_rec;
@@ -244,7 +271,7 @@ for board_idx = 1:length(boards)
       fprintf('  Load %s (%s)\n', fn, datestr(now));
       old_fn = fn;
     end
-    if param.load.file_version == 411
+    if param.load.file_version == 411 || param.load.file_version == 412
       [fid,msg] = fopen(fn, 'r','ieee-le');
     else
       [fid,msg] = fopen(fn, 'r','ieee-be');
@@ -264,13 +291,13 @@ for board_idx = 1:length(boards)
       % There is at least one valid record to read in this block
       stop_rec = find(param.load.offset{adc_idx}(rec+(0:num_rec-1)) ~= -2^31,1,'last');
       
-      actual_block_size = all_hdr_size+num_boards*param.load.rec_data_size ...
+      actual_block_size = rec_size ...
         + param.load.offset{adc_idx}(rec+stop_rec-1) ...
-        - param.load.offset{adc_idx}(rec+start_rec-1) - 2*length(last_record);
+        - param.load.offset{adc_idx}(rec+start_rec-1) - bin_size*length(last_record);
       
-      offset = param.load.offset{adc_idx}(rec+start_rec-1) + 2*length(last_record);
+      offset = param.load.offset{adc_idx}(rec+start_rec-1) + bin_size*length(last_record);
       fseek(fid, offset, 'bof');
-      block_data = [last_record; fread(fid, (actual_block_size)/2, 'int16')];
+      block_data = [last_record; fread(fid, (actual_block_size)/bin_size, sample_type)];
       first_rec = rec+start_rec-1;
     end
     
@@ -287,15 +314,47 @@ for board_idx = 1:length(boards)
       end
 
       if ~dropped_record
-        rec_data = block_data((param.load.offset{adc_idx}(rec)/2-param.load.offset{adc_idx}(first_rec)/2+1) ...
-          + (0 : (all_hdr_size+num_boards*param.load.rec_data_size)/2-1 ));
-        last_record = int16([]);
+        rec_data = block_data((param.load.offset{adc_idx}(rec)/bin_size-param.load.offset{adc_idx}(first_rec)/bin_size+1) ...
+          + (0 : rec_size/bin_size-1 ));
+        last_record = zeros([0 0],sample_type);
       else
         % Dropped record... no data exists
         if rec == 1
-          rec_data = zeros((all_hdr_size+num_boards*param.load.rec_data_size)/2,1,'int16');
+          rec_data = zeros(rec_size/bin_size,1,sample_type);
         else
           % Just use the data from the last record
+        end
+      end
+
+      if param.load.file_version == 412
+        % Search for offset to each mode/subchannel
+        %  (HACK: assumes HF sounder header and data)
+        idx = 0;
+        header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5);
+        mode = bitand(255,header);
+        subchannel = bitand(255,bitshift(header,-8));
+        profile_idx = find(mode == param.records.profiles{board}(:,1) & subchannel == param.records.profiles{board}(:,2));
+        if ~isempty(profile_idx)
+          wf_adc_idx = find(param.records.wf_adc_profiles == param.records.profiles{board}(profile_idx,3) ...
+            & param.records.wf_adc_boards == board);
+          adc = ceil(wf_adc_idx / size(param.records.wf_adc_profiles,1));
+          wf = 1+mod(wf_adc_idx-1,size(param.records.wf_adc_profiles,1));
+          wfs(wf).offset = 18;
+        end
+        idx = idx + 18 + double(rec_data(18))/4; 
+        while idx < length(rec_data)
+          header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5);
+          mode = bitand(255,header);
+          subchannel = bitand(255,bitshift(header,-8));
+          profile_idx = find(mode == param.records.profiles{board}(:,1) & subchannel == param.records.profiles{board}(:,2));
+          if ~isempty(profile_idx)
+            wf_adc_idx = find(param.records.wf_adc_profiles == param.records.profiles{board}(profile_idx,3) ...
+              & param.records.wf_adc_boards == board);
+            adc = ceil(wf_adc_idx / size(param.records.wf_adc_profiles,1));
+            wf = 1+mod(wf_adc_idx-1,size(param.records.wf_adc_profiles,1));
+            wfs(wf).offset = 18 + idx;
+          end
+          idx = idx + 18 + double(rec_data(18))/4;
         end
       end
       
@@ -304,13 +363,13 @@ for board_idx = 1:length(boards)
       % ===============================================================
       for accum_idx = 1:length(accum(board+1).wf)
         adc = accum(board+1).adc(accum_idx);
-        rel_adc = mod(adc-1,num_boards)+1;
         wf = accum(board+1).wf(accum_idx);
         % Convert little endian load into big endian values
         cur_hdr_size = HEADER_SIZE + wf*WF_HEADER_SIZE;
         quantization_to_V_adjustment = 1;
         if param.load.file_version < 407
           % Old offset video sampling
+          rel_adc = mod(adc-1,num_boards)+1;
           tmp = single(rec_data(1+mod(rel_adc-1,num_boards) + num_boards*(0:wfs(wf).Nt_raw-1) + cur_hdr_size/2 + num_boards*wfs(wf).offset/2));
         elseif param.load.file_version == 407
           % DDC
@@ -341,14 +400,14 @@ for board_idx = 1:length(boards)
           tmp(7:8:end) = single(rec_data(cur_hdr_size/2 - 4 + wfs(wf).offset/2 + (4:8:wfs(wf).Nt_raw)));
           tmp(8:8:end) = single(rec_data(cur_hdr_size/2 - 4 + wfs(wf).offset/2 + (8:8:wfs(wf).Nt_raw)));
         elseif param.load.file_version == 411
-          tmp = single(rec_data(1+mod(rel_adc-1,num_boards) + num_boards*(0:wfs(wf).Nt_raw-1) + cur_hdr_size/2 + num_boards*wfs(wf).offset/2));
+          tmp = single(rec_data(1 + (0:wfs(wf).Nt_raw-1) + cur_hdr_size/2 + wfs(wf).offset/2));
+        elseif param.load.file_version == 412
+          tmp = single(rec_data(wfs(wf).offset + (0:2:2*wfs(wf).Nt_raw-1))) ...
+            + 1i*single(rec_data(wfs(wf).offset + (1:2:2*wfs(wf).Nt_raw-1)));
         end
         if ~param.proc.raw_data
           % Convert to volts, remove DC-bias, and apply trim
-          mean_tmp = mean(tmp(1+param.proc.trim_vals(1):end-param.proc.trim_vals(2)));
-          if param.load.file_version == 407
-              mean_tmp = wfs(wf).DC_adjust(adc);
-          end
+          mean_tmp = wfs(wf).DC_adjust(adc);
           tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
           tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V * quantization_to_V_adjustment;
           
@@ -374,12 +433,19 @@ for board_idx = 1:length(boards)
           img_idx = accum(board+1).img_idx(accum_idx);
           wf_adc_idx = accum(board+1).wf_adc_idx(accum_idx);
           iq_mode = accum(board+1).iq_mode(accum_idx);
+          zero_pi_mode = accum(board+1).zero_pi_mode(accum_idx);
 
           % Combine I&Q channels if necessary
           if iq_mode == 1
             continue;
           elseif abs(iq_mode) >= 2
             accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx-1} + 1i*sign(iq_mode)*accum(board+1).data{accum_idx};
+          end
+          % Combine zero and pi channels if necessary
+          if zero_pi_mode == 1
+            continue;
+          elseif zero_pi_mode >= 2
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx-1} - accum(board+1).data{accum_idx};
           end
           
           if param.proc.pulse_rfi.en
@@ -465,10 +531,10 @@ for board_idx = 1:length(boards)
       if double(param.load.offset{adc_idx}(rec)) < 0 && param.load.offset{adc_idx}(rec) ~= -2^31
         % Get the last record
         fseek(fid,param.load.offset{adc_idx}(rec),'eof');
-        last_record = fread(fid,-double(param.load.offset{adc_idx}(rec))/2,'int16');
+        last_record = fread(fid,-double(param.load.offset{adc_idx}(rec))/bin_size,sample_type);
       else
         get_last_record = false;
-        last_record = int16([]);
+        last_record = zeros([0 0],sample_type);
       end
     end
     
@@ -560,6 +626,7 @@ for board = boards
   accum(1+board).wf_adc_idx = [];
   accum(1+board).img_idx = [];
   accum(1+board).iq_mode = [];
+  accum(1+board).zero_pi_mode = [];
   accum(1+board).img_comb_idx = [];
   for adc = board_adcs
     for img_idx = 1:length(imgs)
@@ -568,12 +635,32 @@ for board = boards
           if abs(imgs{img_idx}(wf_adc_idx,adc_column)) == adc
             if isreal(imgs{img_idx})
               % [wf adc] --> real only waveform
-              accum(1+board).adc(end+1) = adc;
-              accum(1+board).wf(end+1) = imgs{img_idx}(wf_adc_idx,adc_column-1);
-              accum(1+board).wf_adc_idx(end+1) = wf_adc_idx;
-              accum(1+board).img_idx(end+1) = img_idx;
-              accum(1+board).iq_mode(end+1) = 0;
-              accum(1+board).img_comb_idx(end+1) = adc_column/2;
+              % [-wf adc] --> use wf 1 and 2 to form 1 minus 2
+              if sign(imgs{img_idx}(wf_adc_idx,adc_column-1)) == 1
+                accum(1+board).adc(end+1) = adc;
+                accum(1+board).wf(end+1) = imgs{img_idx}(wf_adc_idx,adc_column-1);
+                accum(1+board).wf_adc_idx(end+1) = wf_adc_idx;
+                accum(1+board).img_idx(end+1) = img_idx;
+                accum(1+board).iq_mode(end+1) = 0;
+                accum(1+board).zero_pi_mode(end+1) = 0;
+                accum(1+board).img_comb_idx(end+1) = adc_column/2;
+              else
+                accum(1+board).adc(end+1) = adc;
+                accum(1+board).wf(end+1) = abs(imgs{img_idx}(wf_adc_idx,adc_column-1));
+                accum(1+board).wf_adc_idx(end+1) = wf_adc_idx;
+                accum(1+board).img_idx(end+1) = img_idx;
+                accum(1+board).iq_mode(end+1) = 0;
+                accum(1+board).zero_pi_mode(end+1) = 1;
+                accum(1+board).img_comb_idx(end+1) = adc_column/2;
+                
+                accum(1+board).adc(end+1) = adc;
+                accum(1+board).wf(end+1) = abs(imgs{img_idx}(wf_adc_idx,adc_column-1))+1;
+                accum(1+board).wf_adc_idx(end+1) = wf_adc_idx;
+                accum(1+board).img_idx(end+1) = img_idx;
+                accum(1+board).iq_mode(end+1) = 0;
+                accum(1+board).zero_pi_mode(end+1) = 2;
+                accum(1+board).img_comb_idx(end+1) = adc_column/2;
+              end
             else
               % [j*wf adc] --> use waveform 1 and 2 to form I + j*Q
               % [-j*wf adc] --> use waveform 1 and 2 to form I - j*Q
@@ -586,6 +673,7 @@ for board = boards
                 accum(1+board).wf_adc_idx(end+1) = wf_adc_idx;
                 accum(1+board).img_idx(end+1) = img_idx;
                 accum(1+board).iq_mode(end+1) = 1;
+                accum(1+board).zero_pi_mode(end+1) = 0;
                 accum(1+board).img_comb_idx(end+1) = adc_column/2;
                 
                 accum(1+board).adc(end+1) = adc;
@@ -593,6 +681,7 @@ for board = boards
                 accum(1+board).wf_adc_idx(end+1) = wf_adc_idx;
                 accum(1+board).img_idx(end+1) = img_idx;
                 accum(1+board).iq_mode(end+1) = 2*sign(imag(imgs{img_idx}(wf_adc_idx,1)));
+                accum(1+board).zero_pi_mode(end+1) = 0;
                 accum(1+board).img_comb_idx(end+1) = adc_column/2;
               else
                 % Next adc is the Q channel
@@ -601,6 +690,7 @@ for board = boards
                 accum(1+board).wf_adc_idx(end+1) = wf_adc_idx;
                 accum(1+board).img_idx(end+1) = img_idx;
                 accum(1+board).iq_mode(end+1) = 1;
+                accum(1+board).zero_pi_mode(end+1) = 0;
                 accum(1+board).img_comb_idx(end+1) = adc_column/2;
                 
                 accum(1+board).adc(end+1) = adc+1;
@@ -608,6 +698,7 @@ for board = boards
                 accum(1+board).wf_adc_idx(end+1) = wf_adc_idx;
                 accum(1+board).img_idx(end+1) = img_idx;
                 accum(1+board).iq_mode(end+1) = 2*sign(imag(imgs{img_idx}(wf_adc_idx,2)));
+                accum(1+board).zero_pi_mode(end+1) = 0;
                 accum(1+board).img_comb_idx(end+1) = adc_column/2;
               end
             end

@@ -193,7 +193,6 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   end
 end
 
-ctrl.active_jobs = 0;
 for task_id = 1:length(ctrl.job_status)
   ctrl = cluster_update_task(ctrl,task_id,update_mode);
 end

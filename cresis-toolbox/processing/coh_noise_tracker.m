@@ -245,7 +245,7 @@ for break_idx = 1:length(breaks)
     if param.analysis.coh_ave.en
       out_fn = fullfile(out_fn_dir,sprintf('coh_noise_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
       dparam.success = cat(2,dparam.success, ...
-        sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+        sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
       if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
         delete(out_fn);
       end
@@ -253,7 +253,7 @@ for break_idx = 1:length(breaks)
     if param.analysis.specular.en
       out_fn = fullfile(out_fn_dir,sprintf('specular_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end)));
       dparam.success = cat(2,dparam.success, ...
-        sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+        sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
       if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
         delete(out_fn);
       end
@@ -261,7 +261,7 @@ for break_idx = 1:length(breaks)
     if param.analysis.surf.en
       out_fn = fullfile(out_fn_dir,sprintf('surf_img_%02d_%d_%d.mat',cur_recs(1),cur_recs(end)));
       dparam.success = cat(2,dparam.success, ...
-        sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+        sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
       if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
         delete(out_fn);
       end
@@ -370,17 +370,17 @@ for img = 1:length(param.analysis.imgs)
   if param.analysis.coh_ave.en
     out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_img_%02d.mat',img));
     dparam.success = cat(2,dparam.success, ...
-      sprintf('  error_mask = bitor(error_mask,%d*exist(%s,''file''));\n', success_error, out_fn));
+      sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
   end
   if param.analysis.specular.en
     out_fn = fullfile(out_fn_dir_dir,sprintf('specular_img_%02d.mat',img));
     dparam.success = cat(2,dparam.success, ...
-      sprintf('  error_mask = bitor(error_mask,%d*exist(%s,''file''));\n', success_error, out_fn));
+      sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
   end
   if param.analysis.surf.en
     out_fn = fullfile(out_fn_dir_dir,sprintf('surf_img_%02d.mat',img));
     dparam.success = cat(2,dparam.success, ...
-      sprintf('  error_mask = bitor(error_mask,%d*exist(%s,''file''));\n', success_error, out_fn));
+      sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
   end
 end
 

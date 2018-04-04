@@ -188,7 +188,7 @@ ctrl_chain = {};
 if strcmpi(radar_name,'mcrds')
   wfs = load_mcrds_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   wfs = load_mcords_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
@@ -221,7 +221,7 @@ if ~exist(sar_fn,'file') ...
   
   ctrl = cluster_new_batch(param);
   
-  if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
     cpu_time_mult = 6e-3;
     mem_mult = 64;
     
@@ -243,7 +243,7 @@ if ~exist(sar_fn,'file') ...
   % Create success condition
   success_error = 64;
   sparam.success = ...
-    sprintf('error_mask = bitor(error_mask,%d*(~exist(''%s'',''file'')));\n', success_error, sar_fn);
+    sprintf('error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, sar_fn);
   
   ctrl = cluster_new_task(ctrl,sparam,[]);
   
@@ -268,7 +268,7 @@ else
   if ~param.csarp.force_one_wf_adc_pair_per_job
     % All SAR images from the same data files per task
     for img = 1:length(param.csarp.imgs)
-      for wf_adc = 1:length(param.csarp.imgs{img})
+      for wf_adc = 1:size(param.csarp.imgs{img},1)
         adc = abs(param.csarp.imgs{img}(wf_adc,2));
         [board,board_idx] = adc_to_board(radar_name,adc);
         if length(imgs_list) < board_idx
@@ -297,7 +297,7 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'csarp_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = {};
-if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));
@@ -399,7 +399,7 @@ for frm_idx = 1:length(param.cmd.frms)
           if param.csarp.combine_rx
             out_fn = fullfile(out_fn_dir,sprintf('img_%02d_%03d.mat',img,chunk_idx));
             dparam.success = cat(2,dparam.success, ...
-              sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
@@ -409,7 +409,7 @@ for frm_idx = 1:length(param.cmd.frms)
               adc = abs(dparam.argsin{1}.load.imgs{img}(wf_adc,2));
               out_fn = fullfile(out_fn_dir,sprintf('wf_%02d_adc_%02d_%03d.mat',wf,adc,chunk_idx));
               dparam.success = cat(2,dparam.success, ...
-                sprintf('  error_mask = bitor(error_mask,%d*exist(''%s'',''file''));\n', success_error, out_fn));
+                sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
               if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
                 delete(out_fn);
               end

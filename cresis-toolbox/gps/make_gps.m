@@ -104,14 +104,25 @@ for file_idx = 1:length(in_fns)
   for in_fn_idx = 1:length(in_fn)
     if iscell(file_type{file_idx})
       cur_file_type = file_type{file_idx}{in_fn_idx};
+      if ~isempty(plus_idx)
+        warning('Deprecated GPS+INS file_type format using "+". Use file_type_ins instead of combining INS type with GPS file_type. For example "awi_netcdf+awi_netcdf" should be "awi_netcdf" in file_type and "awi_netcdf" in file_type_ins.');
+        separate_ins_data_flag = true;
+        file_type_ins{file_idx}{in_fn_idx} = cur_file_type(plus_idx+1:end);
+        cur_file_type = cur_file_type(1:plus_idx-1);
+      end
     else
       cur_file_type = file_type{file_idx};
+      plus_idx = regexp(cur_file_type,'+');
+      if ~isempty(plus_idx)
+        warning('Deprecated GPS+INS file_type format using "+". Use file_type_ins instead of combining INS type with GPS file_type. For example "awi_netcdf+awi_netcdf" should be "awi_netcdf" in file_type and "awi_netcdf" in file_type_ins.');
+        separate_ins_data_flag = true;
+        file_type_ins{file_idx} = cur_file_type(plus_idx+1:end);
+        cur_file_type = cur_file_type(1:plus_idx-1);
+      end
     end
     if strcmpi(cur_file_type,'Applanix')
       gps_tmp = read_gps_applanix(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(cur_file_type,'awi_netcdf')
-      gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'awi_netcdf+awi_netcdf')
       gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(cur_file_type,'cresis')
       gps_tmp = read_gps_cresis(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
@@ -131,7 +142,7 @@ for file_idx = 1:length(in_fns)
       gps_tmp = read_gps_reveal(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(cur_file_type,'Novatel_RPYGGA')
       gps_tmp = read_gps_novatel_rpygga(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif any(strcmpi(cur_file_type,{'Traj','Traj+Litton','Traj+Litton_DGPS','Traj+General_ASCII'}))
+    elseif strcmpi(cur_file_type,'Traj')
       gps_tmp = read_gps_traj(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(cur_file_type,'TXT')
       gps_tmp = read_gps_txt(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
@@ -139,9 +150,6 @@ for file_idx = 1:length(in_fns)
       gps_tmp = read_gps_csv(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     else
       error('Unrecognized GPS file type %s', cur_file_type);
-    end
-    if any(strcmpi(cur_file_type,{'Traj+Litton','Traj+Litton_DGPS','Traj+General_ASCII','awi_netcdf+awi_netcdf'}))
-      separate_ins_data_flag = true;
     end
     
     if in_fn_idx == 1
@@ -197,7 +205,8 @@ for file_idx = 1:length(in_fns)
   end
   
   %% Load INS data for special case where it is separate from GPS
-  if separate_ins_data_flag
+  if separate_ins_data_flag ...
+      || (exist('in_fns_ins','var') && length(in_fns_ins) >= file_idx && ~isempty(in_fns_ins{file_idx}))
     if ischar(in_fns_ins{file_idx})
       in_fns_ins{file_idx} = {in_fns_ins{file_idx}};
     end
@@ -209,24 +218,22 @@ for file_idx = 1:length(in_fns)
       error('No input INS files found in in_fns{%d} variable. Usually this is because the file path is not setup.\n', file_idx);
     end
     for in_fn_idx = 1:length(in_fns_ins{file_idx})
-      if exist(file_type_ins,'var')
-        if iscell(file_type_ins{file_idx})
-          cur_file_type = file_type_ins{file_idx}{in_fn_idx};
-        else
-          cur_file_type = file_type_ins{file_idx};
-        end
+      if iscell(file_type_ins{file_idx})
+        cur_file_type = file_type_ins{file_idx}{in_fn_idx};
       else
-        cur_file_type = file_type{file_idx};
+        cur_file_type = file_type_ins{file_idx};
       end
       fprintf('  INS file %s\n', in_fns_ins{file_idx}{in_fn_idx});
-      if strcmpi(cur_file_type,'Traj+Litton')
+      if strcmpi(cur_file_type,'Litton')
         ins_tmp = read_ins_litton(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
-      elseif strcmpi(cur_file_type,'Traj+Litton_DGPS')
+      elseif strcmpi(cur_file_type,'Litton_DGPS')
         ins_tmp = read_gps_litton(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
-      elseif strcmpi(cur_file_type,'Traj+General_ASCII')
+      elseif strcmpi(cur_file_type,'General_ASCII')
         ins_tmp = read_gps_general_ascii(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
-      elseif  strcmpi(cur_file_type,'awi_netcdf+awi_netcdf')
+      elseif  strcmpi(cur_file_type,'awi_netcdf')
         ins_tmp = read_gps_netcdf(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
+      else
+        error('Unknown INS type %s.', cur_file_type);
       end
       if in_fn_idx == 1
         ins = ins_tmp;

@@ -166,7 +166,7 @@ end
 if strcmpi(radar_name,'mcrds')
   wfs = load_mcrds_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   wfs = load_mcords_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
@@ -188,7 +188,7 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'combine_wf_chan_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = [];
-if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   for img = 1:length(param.combine.imgs)
     wf = abs(param.combine.imgs{img}{1}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
@@ -332,7 +332,7 @@ ctrl_chain = {ctrl};
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   cpu_time_mult = 6e-8;
   mem_mult = 8;
   
@@ -385,7 +385,7 @@ for frm = param.cmd.frms
   out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
   out_fn = fullfile(combine_out_dir,out_fn_name);
   sparam.success = cat(2,sparam.success, ...
-    sprintf('  error_mask = bitor(error_mask,%d*(~exist(''%s'',''file'')));\n', success_error, out_fn));
+    sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
 end
 
 ctrl = cluster_new_task(ctrl,sparam,[]);

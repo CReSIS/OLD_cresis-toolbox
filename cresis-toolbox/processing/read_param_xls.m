@@ -26,7 +26,7 @@ function [params] = read_param_xls(param_fn, day_seg_filter, generic_ws)
 %
 % Author: Brady Maasen, John Paden
 %
-% See also: master
+% See also: ct_set_params, master, read_param_xls
 
 cell_boolean = @read_param_xls_boolean;
 cell_text = @read_param_xls_text;

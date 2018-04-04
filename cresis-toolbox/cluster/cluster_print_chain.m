@@ -44,8 +44,8 @@ if iscell(ctrl_chain)
     end
   end
   fprintf('====================================================\n');
-  fprintf('Number of tasks: %.0f, %.0f completed, %.0f error, %.0f retries\n', ...
-    numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.error_mask~=0), sum(stats.retries));
+  fprintf('Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
+    numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.job_status=='R'), sum(stats.job_status=='Q'), sum(stats.job_status=='T'), sum(stats.error_mask~=0), sum(stats.retries));
   fprintf('Max CPU time: %.0f min\n', max(stats.cpu_time)/60);
   fprintf('Max mem: %.0f MB\n', max(stats.mem)/1e6);
   fprintf('Mean CPU time: %.0f min\n', mean(stats.cpu_time)/60);
@@ -73,8 +73,8 @@ elseif isstruct(ctrl_chain)
     fprintf('    notes: %s\n', param.notes);
   end
   
-  fprintf('    Number of tasks: %.0f, %.0f completed, %.0f error, %.0f retries\n', ...
-    numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.error_mask~=0), sum(stats.retries));
+  fprintf('    Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
+    numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.job_status=='R'), sum(stats.job_status=='Q'), sum(stats.job_status=='T'), sum(stats.error_mask~=0), sum(stats.retries));
   fprintf('    Max CPU time: %.0f min\n', max(stats.cpu_time)/60);
   fprintf('    Max mem: %.0f MB\n', max(stats.mem)/1e6);
   fprintf('    Mean CPU time: %.0f min\n', mean(stats.cpu_time)/60);

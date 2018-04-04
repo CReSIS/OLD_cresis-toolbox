@@ -134,7 +134,7 @@ else
   wf_num_sam = cell2mat({settings.wfs.num_sam}).';
 end
 wf = 1;
-if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice'}))
   wf = 1;
   wf_offsets(wf) = 0;
   if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)

@@ -200,7 +200,7 @@ if strcmpi(radar_name,'mcrds')
   [wfs,rec_data_size] = load_mcrds_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.get_heights);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,rec_data_size] = load_mcords_wfs(records.settings, param, ...
     1:max(old_param_records.records.file.adcs), param.get_heights);
   load_param.load.rec_data_size = rec_data_size;
@@ -249,7 +249,7 @@ for idx = 1:length(param.load.imgs)
 end
 
 recs = load_param.load.recs - load_param.load.recs(1) + 1;
-if any(strcmpi(radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'hfrds','hfrds2','icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   % adc_headers: the actual adc headers that were loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -408,6 +408,7 @@ load_param.proc.pulse_rfi           = param.get_heights.pulse_rfi;
 load_param.proc.coh_noise_method    = param.get_heights.coh_noise_method;
 load_param.proc.coh_noise_arg       = param.get_heights.coh_noise_arg;
 
+load_param.records = param.records;
 load_param.radar = param.radar;
 load_param.surface = records.surface;
 if strcmpi(radar_name,'acords')
@@ -496,7 +497,7 @@ for img = 1:length(param.load.imgs)
   if strcmpi(radar_name,'mcords')
     load_mcords_data(load_param);
     g_data = g_data{1};
-  elseif any(strcmpi(radar_name,{'hfrds','mcords2','mcords3','mcords4','mcords5'}))
+  elseif any(strcmpi(radar_name,{'hfrds','hfrds2','mcords2','mcords3','mcords4','mcords5'}))
     load_mcords2_data(load_param);
     g_data = g_data{1};
   elseif strcmpi(radar_name,'mcrds')
@@ -770,6 +771,7 @@ for img = 1:length(param.load.imgs)
     param.get_heights.out_path, 'CSARP_qlook'), ...
     sprintf('ql_data_%03d_01_01',param.load.frm));
   out_fn = fullfile(out_fn_dir,out_fn_name);
+  fprintf('  Save %s\n', out_fn);
   if ~exist(out_fn_dir,'dir')
     mkdir(out_fn_dir);
   end

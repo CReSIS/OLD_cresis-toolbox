@@ -75,7 +75,7 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
-if (strcmpi(param.season_name,'2016_Greenland_TO') && strcmpi(gps_source,'ATM'))
+if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(gps_source,'dtu'))
   % ===========================================================================
   % All antenna positions measurements are relative to GPS antenna
   % positions.
@@ -874,7 +874,7 @@ end
 %% Radar Depth Sounder
 % =========================================================================
 
-if (strcmpi(param.season_name,'2016_Greenland_TO') && strcmpi(radar_name,'rds'))
+if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(radar_name,'rds'))
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   LArx(1,:) = [-110.2]*2.54/100;
   LArx(2,:) = [9.84]*2.54/100;

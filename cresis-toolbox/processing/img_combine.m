@@ -77,7 +77,16 @@ end
 
 %% Combine images
 % =========================================================================
-for img = 1:length(param.(mode).imgs)
+% Check img_comb
+if numel(param.(mode).imgs) == 1 || isempty(param.(mode).img_comb)
+  num_imgs = 1;
+else
+  num_imgs = length(param.(mode).imgs);
+  if length(param.(mode).img_comb) ~= 3*(num_imgs-1)
+    error('param.%s.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.', mode);
+  end
+end
+for img = 1:num_imgs
   if length(param.(mode).imgs) == 1
     img_fn = fullfile(img_fn_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, param.load.frm));

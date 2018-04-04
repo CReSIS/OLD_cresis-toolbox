@@ -70,11 +70,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_time_per_job      = 86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
-  profile(pidx).cluster.submit_pause          = 0.1;
+  profile(pidx).cluster.submit_pause          = 0.2;
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
-  
-  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
   
   %% IU Profile Linux (PROFILE 2)
   % ----------------------------------------------------------------------
@@ -108,7 +106,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
   
-  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1:dcwan:dc2,pmem=%dmb,walltime=%d:00';
+  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
 
  
   %% Field Profile Linux (PROFILE 3)
@@ -139,11 +137,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_time_per_job      = 86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
-  profile(pidx).cluster.submit_pause          = 0.1;
+  profile(pidx).cluster.submit_pause          = 0.2;
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
-  
-  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=1,pmem=%dmb,walltime=%d:00';
+  profile(pidx).cluster.mem_to_ppn            = 0.9 * 131754468000 / 46;
   
   %% KU Mobile Profile Windows (PROFILE 5)
   % ----------------------------------------------------------------------
@@ -164,20 +161,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).out_path                  = 'D:\output\';
   profile(pidx).gis_path                  = 'C:\GIS_data\';
   
-  profile(pidx).sched.type                = 'local';
-  %profile(pidx).sched.type                = 'no scheduler'; % no parallel processing (DEBUG MODE)
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  %profile(pidx).sched.name                = '';
-  %profile(pidx).sched.url                 = '';
-  profile(pidx).sched.data_location       = '';
-  profile(pidx).sched.submit_arguments    = '';
-  profile(pidx).sched.max_in_queue        = inf;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
+  profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'debug';
+  %profile(pidx).cluster.type                  = 'none';
+  profile(pidx).cluster.max_jobs_active       = 4;
+  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.desired_time_per_job  = 0;
+  profile(pidx).cluster.max_retries           = 1;
+  profile(pidx).cluster.submit_pause          = 0;
+  profile(pidx).cluster.stat_pause            = 1;
   
   %% KU Desktop Profile Windows (PROFILE 6)
   % ----------------------------------------------------------------------
@@ -206,20 +198,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).out_path                  = 'X:/ct_data/';
   profile(pidx).gis_path                  = 'X:/GIS_data/';
   
-  %profile(pidx).sched.type                = 'local';
-  profile(pidx).sched.type                = 'no scheduler'; % no parallel processing (DEBUG MODE)
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  %profile(pidx).sched.name                = '';
-  %profile(pidx).sched.url                 = '';
-  profile(pidx).sched.data_location       = '';
-  profile(pidx).sched.submit_arguments    = '';
-  profile(pidx).sched.max_in_queue        = inf;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
+  profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'debug';
+  %profile(pidx).cluster.type                  = 'none';
+  profile(pidx).cluster.max_jobs_active       = 4;
+  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.desired_time_per_job  = 0;
+  profile(pidx).cluster.max_retries           = 1;
+  profile(pidx).cluster.submit_pause          = 0;
+  profile(pidx).cluster.stat_pause            = 1;
   
   %% AWI Profile Windows (PROFILE 7)
   % ----------------------------------------------------------------------
@@ -240,18 +227,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).out_path                  = 'F:\';
   profile(pidx).gis_path                  = 'C:\tmp\GIS_data\';
   
-  profile(pidx).sched.type                = 'local';
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  profile(pidx).sched.data_location       = '';
-  profile(pidx).sched.submit_arguments    = '';
-  profile(pidx).sched.max_in_queue        = 256;
-  profile(pidx).sched.max_tasks_per_jobs  = 256;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
+  profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'debug';
+  %profile(pidx).cluster.type                  = 'none';
+  profile(pidx).cluster.max_jobs_active       = 4;
+  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.desired_time_per_job  = 0;
+  profile(pidx).cluster.max_retries           = 1;
+  profile(pidx).cluster.submit_pause          = 0;
+  profile(pidx).cluster.stat_pause            = 1;
   
   %% AWI Profile Linux (PROFILE 8)
   % ----------------------------------------------------------------------
@@ -272,17 +256,16 @@ if ~(~ismcc && isdeployed)
   profile(pidx).out_path                  = '/home/administrator/Scratch/';
   profile(pidx).gis_path                  = '/home/administrator/GIS_data/';
   
-  profile(pidx).sched.type                = 'custom_torque';
-  profile(pidx).sched.ver                 = 2; % local and jobmanager only
-  profile(pidx).sched.data_location       = '/home/administrator/Scratch/torque-temp';
-  profile(pidx).sched.submit_arguments    = '-l nodes=1:ppn=2,walltime=15:00';
-  profile(pidx).sched.max_in_queue        = 64;
-  profile(pidx).sched.cluster_size        = inf;
-  profile(pidx).sched.stop_on_fail        = true;
-  profile(pidx).sched.max_retries         = 4;
-  profile(pidx).sched.worker_fn           = '/home/administrator/scripts/cresis-toolbox/cresis-toolbox-torque/worker';
-  profile(pidx).sched.force_compile       = false;
-  profile(pidx).sched.rerun_only          = false;
+  profile(pidx).cluster.type                  = 'torque';
+  %profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'debug';
+  profile(pidx).cluster.max_jobs_active       = 512;
+  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.desired_time_per_job  = 0;
+  profile(pidx).cluster.max_retries           = 2;
+  profile(pidx).cluster.submit_pause          = 0.2;
+  profile(pidx).cluster.stat_pause            = 2;
+  profile(pidx).cluster.file_check_pause      = 4;
 
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
@@ -306,22 +289,19 @@ if ~(~ismcc && isdeployed)
  
   profile(pidx).cluster.data_location     = '/work/ollie/jpaden/Scratch/mdce_tmp/cluster-temp';
 
-  %profile(pidx).cluster.type                    = 'torque';
   %profile(pidx).cluster.type                    = 'matlab';
   profile(pidx).cluster.type                    = 'slurm';
   %profile(pidx).cluster.type                    = 'ollie';
   %profile(pidx).cluster.type                    = 'debug';
-  %profile(pidx).cluster.type                    = 'none';
   profile(pidx).cluster.max_jobs_active         = 64;
   profile(pidx).cluster.max_time_per_job        = 86400;
-  profile(pidx).cluster.desired_time_per_job    = 0;
+  profile(pidx).cluster.desired_time_per_job    = 2*3600;
   profile(pidx).cluster.max_retries             = 2;
-  profile(pidx).cluster.submit_pause            = 0;
-  profile(pidx).cluster.stat_pause              = 1;
-  profile(pidx).cluster.file_check_pause        = 60;
+  profile(pidx).cluster.submit_pause            = 0.2;
+  profile(pidx).cluster.stat_pause              = 2;
+  profile(pidx).cluster.file_check_pause        = 4;
 
   profile(pidx).cluster.mcc                     = 'eval';
-  profile(pidx).cluster.slurm_submit_arguments  = '-N 1 -n 1 --mem=%d --time=%d';
   
   %% Startup code (Automated Section)
   % =====================================================================
@@ -408,6 +388,7 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'nsidc_delivery_script_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'arena_packet_strip_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'hanning.m' 0};
   gRadar.cluster.hidden_depend_funs{end+1} = {'hamming.m' 0};
   gRadar.cluster.hidden_depend_funs{end+1} = {'blackman.m' 0};

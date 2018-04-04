@@ -9,9 +9,15 @@
 
 %% User Setup
 % =====================================================================
+<<<<<<< HEAD
+% Debug Setup
+% =====================================================================
+param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),'20161107_04');
+=======
 param_override = [];
 
 params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'));
+>>>>>>> 05bb1dd0a1f88e5f80561a6a1328066d28703607
 
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');

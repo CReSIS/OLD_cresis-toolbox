@@ -928,7 +928,7 @@ for img = 1:length(param.load.imgs)
       end
       
       %% Debug Plots for determining coh_ave.power_threshold
-      if 0
+      if ~isdeployed && 0 % Switch "0" to "1" to debug
         figure(1); clf;
         imagesc(lp(g_data(:,rlines)));
         a1 = gca;
@@ -941,6 +941,7 @@ for img = 1:length(param.load.imgs)
         imagesc( lp(bsxfun(@minus,g_data(:,rlines),mu)) );
         a3 = gca;
         linkaxes([a1 a2 a3], 'xy');
+        keyboard
       end
 
       %% Collect information for this block

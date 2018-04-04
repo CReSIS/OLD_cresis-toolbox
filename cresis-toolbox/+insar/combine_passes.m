@@ -106,6 +106,9 @@ physical_constants;
 
 pass = [];
 
+%% Go through each frame and extract the pass(es) from that frame
+% NOTE: This code looks for every pass in the frame (i.e. a frame may
+% contain multiple passes and this code should find each).
 for frm_idx = 1:length(frms)
   % Find the distance to the start
   start_ecef = [start.x;start.y;start.z];
@@ -116,25 +119,27 @@ for frm_idx = 1:length(frms)
     WGS84.ellipsoid);
   radar_ecef = [radar_ecef.x; radar_ecef.y; radar_ecef.z];
   
+  %% Collect the closest point every time the trajectory passes near (<dist_min) the start point
   dist = bsxfun(@minus, radar_ecef, start_ecef);
   dist = sqrt(sum(abs(dist).^2));
   
   start_idxs = [];
-  start_points = dist < dist_min;
-  start_idx = find(start_points,1);
+  start_points = dist < dist_min; % Find all radar points within dist_min from start
+  start_idx = find(start_points,1); % Get the index of the first point on the trajectory that is within dist_min
   while ~isempty(start_idx)
-    stop_idx = find(start_points(start_idx:end)==0,1);
+    stop_idx = find(start_points(start_idx:end)==0,1); % Get the first point past the start point that is outside of dist_min 
     if isempty(stop_idx)
-      start_idx = [];
+      start_idx = []; % If there is no point past the outside, then terminate
     else
-      [~,new_idx] = min(dist(start_idx+(0:stop_idx-1)));
-      new_idx = new_idx + start_idx-1;
-      start_idxs = [start_idxs new_idx];
-      new_start_idx = find(start_points(start_idx+stop_idx-1:end),1);
-      start_idx = new_start_idx + start_idx+stop_idx-1-1;
+      [~,new_idx] = min(dist(start_idx+(0:stop_idx-1))); % Within the first section of the trajectory that is less than dist_min, find the index of the minimum point
+      new_idx = new_idx + start_idx-1; % Convert it to absolute index
+      start_idxs = [start_idxs new_idx]; % Add this index to the start_idxs array
+      new_start_idx = find(start_points(start_idx+stop_idx-1:end),1); % Find the next passby of the start point
+      start_idx = new_start_idx + start_idx+stop_idx-1-1; % Convert it to absolute index
     end
   end
   
+  %% Collect the closest point every time the trajectory passes near (<dist_min) the stop point
   stop_dist = bsxfun(@minus, radar_ecef, stop_ecef);
   stop_dist = sqrt(sum(abs(stop_dist).^2));
   
@@ -164,21 +169,22 @@ for frm_idx = 1:length(frms)
     pause;
   end
   
-  % Extract the data out of each
-  idxs = [start_idxs stop_idxs];
-  start_mask = [ones(size(start_idxs)) zeros(size(stop_idxs))];
-  [idxs,sort_idxs] = sort(idxs);
+  %% Extract the data out of each
+  idxs = [start_idxs stop_idxs]; % Concatenate into one long 1 by N array
+  [idxs,sort_idxs] = sort(idxs); % Sort the array
+  start_mask = [ones(size(start_idxs)) zeros(size(stop_idxs))]; % Create another 1 by N array that indicates which indices are start_idxs
   start_mask = start_mask(sort_idxs);
   
   for pass_idx = 2:length(idxs)
-    if start_mask(pass_idx) ~= start_mask(pass_idx-1)
-      start_idx = idxs(pass_idx-1);
-      stop_idx = idxs(pass_idx);
+    if start_mask(pass_idx) ~= start_mask(pass_idx-1) % If we have a start then stop or stop then start, we assume this is a SAR "pass"
+      start_idx = idxs(pass_idx-1); % Get the first index of this pass
+      stop_idx = idxs(pass_idx);% Get the last index of this pass
       
       frm_id = sprintf('%s_%03d', metadata{frm_idx}.param_csarp.day_seg, metadata{frm_idx}.frm);
       
       fprintf('New Segment: %s %d to %d\n', frm_id, start_idx, stop_idx);
-      
+  
+      %% Extract the pass and save it
       if start_mask(pass_idx-1)
         rlines = start_idx:stop_idx;
       else
@@ -210,6 +216,7 @@ for frm_idx = 1:length(frms)
   
 end
 
+%% Save the results
 out_fn = fullfile(ct_filename_out(param,'insar','',1),[pass_name '.mat']);
 out_fn_dir = fileparts(out_fn);
 if ~exist(out_fn_dir,'dir')

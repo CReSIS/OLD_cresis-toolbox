@@ -17,13 +17,13 @@ function [board,board_idx] = adc_to_board(radar_name,adc)
 [output_dir,radar_type,radar_name] = ct_output_dir(radar_name);
 
 if any(strcmpi(radar_name,{'mcords2','mcords3'}))
-  board = unique(floor((adc-1)/4));
+  board = unique(floor((abs(adc)-1)/4));
   board_idx = board+1;
 elseif any(strcmpi(radar_name,{'mcrds'}))
   board = 1;
   board_idx = 1;
 else
-  board = unique(adc);
+  board = unique(abs(adc));
   board_idx = board;
 end
 

@@ -45,7 +45,16 @@ gps_source_to_use = 'ATM-field';
 
 if strcmpi(gps_source_to_use,'NMEA')
   
-  year = 2018; month = 3; day = 15;
+%   year = 2018; month = 3; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%     sync_flag{file_idx} = 0;
+  
+  year = 2018; month = 3; day = 22;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -53,7 +62,7 @@ if strcmpi(gps_source_to_use,'NMEA')
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
   gps_source{file_idx} = 'nmea-field';
     sync_flag{file_idx} = 0;
-
+    
 elseif strcmpi(gps_source_to_use,'wingport-field')
   
   year = 2018; month = 3; day = 15;
@@ -78,7 +87,16 @@ elseif strcmpi(gps_source_to_use,'wingstar-field')
   
 elseif strcmpi(gps_source_to_use,'ATM-field')
   
-  year = 2018; month = 3; day = 15;
+%   year = 2018; month = 3; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'atm-field';
+%   sync_flag{file_idx} = 0; 
+  
+  year = 2018; month = 3; day = 22;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -89,9 +107,9 @@ elseif strcmpi(gps_source_to_use,'ATM-field')
  
 elseif strcmpi(gps_source_to_use,'ATM-field_traj')
   
-  year = 2017; month = 3; day = 15;
+  year = 2018; month = 3; day = 20;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yymmdd'),'itrf','noamb');
+  in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yyyymmdd'),'','.gps');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'traj';
   params{file_idx} = struct('year',year,'time_reference','gps','input_format','%f%f%f%f%f%f%f%f%f%f%f%f%f%f');

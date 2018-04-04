@@ -63,6 +63,10 @@ if ~isfield(param.records,'tmp_fn_uses_adc_folder_name') || isempty(param.record
   param.records.tmp_fn_uses_adc_folder_name = 1;
 end
 
+if ~isfield(param.vectors.gps,'utc_time_halved') || isempty(param.vectors.gps.utc_time_halved)
+  param.vectors.gps.utc_time_halved = [];
+end
+
 % =====================================================================
 %% Setup the scheduler
 % =====================================================================
