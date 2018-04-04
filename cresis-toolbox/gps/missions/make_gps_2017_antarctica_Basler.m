@@ -52,9 +52,10 @@ end
 if strcmpi(gps_source_to_use,'cresis')
   
   file_idx = file_idx + 1;
-  year = 2017; month = 10; day = 21;
+  year = 2017; month = 12; day = 15;
   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_diff_%s.txt',date_string));
+%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_ppp_%s.txt',date_string));
   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
   file_type{file_idx} = 'cresis';
   params{file_idx} = struct();
