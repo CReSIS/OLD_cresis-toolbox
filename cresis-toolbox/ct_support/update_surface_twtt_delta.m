@@ -85,8 +85,8 @@ for param_idx = 1:length(params)
           delta_offset_Tadc_adjust_mask = logical([]);
           for img = 1:length(mdata.param_get_heights.get_heights.imgs)
             for wf_adc_pair = 1:size(mdata.param_get_heights.get_heights.imgs{img},1)
-              wf = mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,1);
-              adc = mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,2);
+              wf = abs(mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,1));
+              adc = abs(mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,2));
               
               delta_offset_Tsys(img,wf_adc_pair) = param.radar.wfs(wf).Tsys(adc) - mdata.param_get_heights.radar.wfs(wf).Tsys(adc);
               delta_offset_Tsys_mask(img,wf_adc_pair) = true;
@@ -121,8 +121,8 @@ for param_idx = 1:length(params)
           
           for img = 1:length(mdata.param_get_heights.get_heights.imgs)
             for wf_adc_pair = 1:size(mdata.param_get_heights.get_heights.imgs{img},1)
-              wf = mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,1);
-              adc = mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,2);
+              wf = abs(mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,1));
+              adc = abs(mdata.param_get_heights.get_heights.imgs{img}(wf_adc_pair,2));
               
               mdata.param_get_heights.radar.wfs(wf).Tsys(adc) = param.radar.wfs(wf).Tsys(adc);
               mdata.param_get_heights.radar.wfs(wf).Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
@@ -138,8 +138,8 @@ for param_idx = 1:length(params)
           delta_offset_Tadc_adjust_mask = logical([]);
           for img = 1:length(mdata.param_csarp.csarp.imgs)
             for wf_adc_pair = 1:size(mdata.param_csarp.csarp.imgs{img},1)
-              wf = mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,1);
-              adc = mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,2);
+              wf = abs(mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,1));
+              adc = abs(mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,2));
               
               delta_offset_Tsys(img,wf_adc_pair) = param.radar.wfs(wf).Tsys(adc) - mdata.param_csarp.radar.wfs(wf).Tsys(adc);
               delta_offset_Tsys_mask(img,wf_adc_pair) = true;
@@ -174,8 +174,8 @@ for param_idx = 1:length(params)
           
           for img = 1:length(mdata.param_csarp.csarp.imgs)
             for wf_adc_pair = 1:size(mdata.param_csarp.csarp.imgs{img},1)
-              wf = mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,1);
-              adc = mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,2);
+              wf = abs(mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,1));
+              adc = abs(mdata.param_csarp.csarp.imgs{img}(wf_adc_pair,2));
               
               mdata.param_csarp.radar.wfs(wf).Tsys(adc) = param.radar.wfs(wf).Tsys(adc);
               mdata.param_csarp.radar.wfs(wf).Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;

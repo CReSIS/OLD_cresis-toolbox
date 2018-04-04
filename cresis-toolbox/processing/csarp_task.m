@@ -89,7 +89,7 @@ csarp_out_dir = ct_filename_out(param, param.csarp.out_path);
 
 % Load SAR coordinate system
 sar_fn = fullfile(csarp_out_dir,'sar_coord.mat');
-sar = load(sar_fn,'version','Lsar','gps_source','type','sigma_x','along_track','surf_pp');
+sar = load(sar_fn,'version','Lsar','gps_source','type','sigma_x','presums','along_track','surf_pp');
 
 % Determine output range lines
 output_along_track = 0 : param.csarp.sigma_x : sar.along_track(end);
@@ -186,8 +186,20 @@ fcs.bottom = NaN*ones(size(fcs.surface));
 
 %% Load record information
 % =====================================================================
-load_param.load.recs = param.load.recs;
-orig_records = read_records_aux_files(records_fn,param.load.recs);
+load_param.load.recs = [(param.load.recs(1)-1)*param.csarp.presums+1, ...
+        param.load.recs(2)*param.csarp.presums];
+orig_records = read_records_aux_files(records_fn,load_param.load.recs);
+%Decimate orig_records and ref according to presums
+if param.csarp.presums > 1
+  orig_records.lat = fir_dec(orig_records.lat,param.csarp.presums);
+  orig_records.lon = fir_dec(orig_records.lon,param.csarp.presums);
+  orig_records.elev = fir_dec(orig_records.elev,param.csarp.presums);
+  orig_records.roll = fir_dec(orig_records.roll,param.csarp.presums);
+  orig_records.pitch = fir_dec(orig_records.pitch,param.csarp.presums);
+  orig_records.heading = fir_dec(orig_records.heading,param.csarp.presums);
+  orig_records.gps_time = fir_dec(orig_records.gps_time,param.csarp.presums);
+  orig_records.surface = fir_dec(orig_records.surface,param.csarp.presums);
+end
 old_param_records = orig_records.param_records;
 old_param_records.gps_source = orig_records.gps_source;
 start_time_for_fn = orig_records.gps_time(1);
@@ -264,8 +276,7 @@ for idx = 1:length(param.load.imgs)
     abs(param.load.imgs{idx}(:,2)).', param.load.adcs));
 end
 
-recs = param.load.recs - param.load.recs(1) + 1;
-if any(strcmpi(radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'hfrds','hfrds2','icards','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   % adc_headers: the actual adc headers that were loaded
   if ~isfield(old_param_records.records.file,'adc_headers') || isempty(old_param_records.records.file.adc_headers)
     old_param_records.records.file.adc_headers = old_param_records.records.file.adcs;
@@ -292,7 +303,7 @@ if any(strcmpi(radar_name,{'hfrds','icards','mcords','mcords2','mcords3','mcords
     
     % Just get the file-information for the records we need
     load_param.load.file_idx{idx} = relative_rec_num_to_file_idx_vector( ...
-      param.load.recs,orig_records.relative_rec_num{board_idx});
+      load_param.load.recs,orig_records.relative_rec_num{board_idx});
     load_param.load.offset{idx} = orig_records.offset(board_idx,:);
     file_idxs = unique(load_param.load.file_idx{idx});
     
@@ -440,7 +451,7 @@ if strcmpi(radar_name,'mcords')
   %   else
   load_mcords_data(load_param);
   %   end
-elseif any(strcmpi(radar_name,{'hfrds','mcords2','mcords3','mcords4','mcords5','seaice'}))
+elseif any(strcmpi(radar_name,{'hfrds','hfrds2','mcords2','mcords3','mcords4','mcords5','seaice'}))
   load_mcords2_data(load_param);
 elseif strcmpi(radar_name,'accum2')
   load_accum2_data(load_param);
@@ -475,19 +486,6 @@ end
 
 %% Prepare reference trajectory information
 % =========================================================================
-
-%Decimate orig_records and ref according to presums
-if param.csarp.presums > 1
-  orig_records.lat = fir_dec(orig_records.lat,param.csarp.presums);
-  orig_records.lon = fir_dec(orig_records.lon,param.csarp.presums);
-  orig_records.elev = fir_dec(orig_records.elev,param.csarp.presums);
-  orig_records.roll = fir_dec(orig_records.roll,param.csarp.presums);
-  orig_records.pitch = fir_dec(orig_records.pitch,param.csarp.presums);
-  orig_records.heading = fir_dec(orig_records.heading,param.csarp.presums);
-  orig_records.gps_time = fir_dec(orig_records.gps_time,param.csarp.presums);
-  orig_records.surface = fir_dec(orig_records.surface,param.csarp.presums);
-  along_track = fir_dec(along_track,param.csarp.presums);
-end
 
 % Load reference trajectory
 trajectory_param = struct('gps_source',orig_records.gps_source, ...

@@ -6,15 +6,21 @@
 %
 % See also: run_master.m, master.m, run_create_frames.m, create_frames.m
 
+%% User Setup
 % =====================================================================
-% Debug Setup
-% =====================================================================
-param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),'20160413_01');
+param_override = [];
 
-clear('param_override');
-dbstop if error
-param_override.sched.type = 'no scheduler';
-param_override.sched.rerun_only = true;
+params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'));
+
+% Syntax for running a specific segment and frame by overriding parameter spreadsheet values
+%params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
+% params = ct_set_params(params,'cmd.create_frames',0);
+% params = ct_set_params(params,'cmd.create_frames',1,'day_seg','20161101_0[12345]');
+
+dbstop if error;
+
+%% Automated Section
+% =====================================================================
 
 % Input checking
 global gRadar;
@@ -24,4 +30,16 @@ else
   param_override = gRadar;
 end
 
-create_frames(param,param_override);
+% Process each of the segments
+for param_idx = 1:length(params)
+  param = params(param_idx);
+  if param.cmd.create_frames
+    if isempty(param.records.frame_mode) || mod(param.records.frame_mode,2)==0
+      create_frames(param,param_override);
+      fprintf('Type dbcont to continue when you are done creating frames for this segment.\n');
+      keyboard;
+    else
+      autogenerate_frames(param,param_override);
+    end
+  end
+end

@@ -202,11 +202,16 @@ if proc_param.wf_adc_comb.en
     else
       fs = param.radar.fs / 2^(1+wfs(wf).DDC_mode);
     end
+    if isfield(param.radar.wfs(wf),'zero_pad') && ~isempty(param.radar.wfs(wf).zero_pad)
+      wfs(wf).zero_pad   = param.radar.wfs(wf).zero_pad;
+    else
+      wfs(wf).zero_pad   = 0;
+    end
     
     Tpd     = param.radar.wfs(wf).Tpd;
     Nt_ref  = floor(Tpd * fs) + 1;
     Nt_raw  = settings.wfs(wf).num_sam;
-    Nt_pc(wf)   = Nt_raw + Nt_ref - 1;
+    Nt_pc(wf)   = Nt_raw + Nt_ref + wfs(wf).zero_pad - 1;
   end
   
   Nt_pc_max = max(Nt_pc);
@@ -264,6 +269,11 @@ for wf = 1:length(param.radar.wfs)
   else
     fs = param.radar.fs / 2^(1+wfs(wf).DDC_mode);
   end
+  if isfield(param.radar.wfs(wf),'zero_pad') && ~isempty(param.radar.wfs(wf).zero_pad)
+    wfs(wf).zero_pad   = param.radar.wfs(wf).zero_pad;
+  else
+    wfs(wf).zero_pad   = 0;
+  end
   if isfield(param.radar.wfs(wf),'ft_dec') && ~isempty(param.radar.wfs(wf).ft_dec)
     wfs(wf).ft_dec = param.radar.wfs(wf).ft_dec;
   else
@@ -288,7 +298,7 @@ for wf = 1:length(param.radar.wfs)
   wfs(wf).presums = settings.wfs(wf).presums;
   wfs(wf).Nt_ref  = floor(wfs(wf).Tpd * fs) + 1;
   wfs(wf).Nt_raw  = settings.wfs(wf).num_sam;
-  wfs(wf).Nt_pc   = wfs(wf).Nt_raw + wfs(wf).Nt_ref - 1;
+  wfs(wf).Nt_pc   = wfs(wf).Nt_raw + wfs(wf).Nt_ref + wfs(wf).zero_pad - 1;
   wfs(wf).pad_length = wfs(wf).Nt_pc - wfs(wf).Nt_raw;
   wfs(wf).offset  = wf_offsets(wf);
   if proc_param.wf_adc_comb.en
@@ -438,7 +448,7 @@ for wf = 1:length(param.radar.wfs)
       freq_inds = ifftshift(find(freq >= fc-BW_window/2 & freq <= fc+BW_window/2));
     else
       % DDC Enabled
-      freq_inds = find(freq >= min(f0,f1) & freq <= max(f0,f1));
+      freq_inds = find(freq >= fc-BW_window/2 & freq <= fc+BW_window/2);
     end
     [~,sorted_freq_inds] = sort(freq(freq_inds));
     sorted_freq_inds = freq_inds(sorted_freq_inds);

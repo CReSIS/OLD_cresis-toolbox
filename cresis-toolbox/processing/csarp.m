@@ -175,6 +175,18 @@ end
 % Load records file
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+% Apply presumming
+if param.csarp.presums > 1
+  records.lat = fir_dec(records.lat,param.csarp.presums);
+  records.lon = fir_dec(records.lon,param.csarp.presums);
+  records.elev = fir_dec(records.elev,param.csarp.presums);
+  records.roll = fir_dec(records.roll,param.csarp.presums);
+  records.pitch = fir_dec(records.pitch,param.csarp.presums);
+  records.heading = fir_dec(records.heading,param.csarp.presums);
+  records.gps_time = fir_dec(records.gps_time,param.csarp.presums);
+  records.surface = fir_dec(records.surface,param.csarp.presums);
+end
+% Along-track
 along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
 
 % SAR output directory
@@ -209,7 +221,7 @@ end
 
 sar_fn = fullfile(csarp_out_dir,'sar_coord.mat');
 if exist(sar_fn,'file')
-  sar = load(sar_fn,'Lsar','gps_source','type','sigma_x','version');
+  sar = load(sar_fn,'Lsar','gps_source','type','sigma_x','presums','version');
 end
 Lsar = c/wfs(1).fc*(param.csarp.Lsar.agl+param.csarp.Lsar.thick/sqrt(er_ice))/(2*param.csarp.sigma_x);
 if ~exist(sar_fn,'file') ...
@@ -217,6 +229,7 @@ if ~exist(sar_fn,'file') ...
     || ~strcmpi(sar.gps_source,records.gps_source) ...
     || sar.type ~= param.csarp.mocomp.type ...
     || sar.sigma_x ~= param.csarp.sigma_x ...
+    || sar.presums ~= param.csarp.presums ...
     || sar.version ~= 1.0
   
   ctrl = cluster_new_batch(param);
@@ -340,9 +353,9 @@ for frm_idx = 1:length(param.cmd.frms)
   % Current frame goes from the start record specified in the frames file
   % to the record just before the start record of the next frame.  For
   % the last frame, the stop record is just the last record in the segment.
-  start_rec = frames.frame_idxs(frm);
+  start_rec = ceil(frames.frame_idxs(frm)/param.csarp.presums);
   if frm < length(frames.frame_idxs)
-    stop_rec = frames.frame_idxs(frm+1)-1;
+    stop_rec = ceil((frames.frame_idxs(frm+1)-1)/param.csarp.presums);
   else
     stop_rec = length(records.gps_time);
   end
@@ -397,7 +410,7 @@ for frm_idx = 1:length(param.cmd.frms)
           subap, sub_band_idx));
         for img = 1:length(dparam.argsin{1}.load.imgs)
           if param.csarp.combine_rx
-            out_fn = fullfile(out_fn_dir,sprintf('img_%02d_%03d.mat',img,chunk_idx));
+            out_fn = fullfile(out_fn_dir,sprintf('img_%02d_chk_%03d.mat',img,chunk_idx));
             dparam.success = cat(2,dparam.success, ...
               sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
@@ -407,7 +420,7 @@ for frm_idx = 1:length(param.cmd.frms)
             for wf_adc = 1:size(dparam.argsin{1}.load.imgs{img},1)
               wf  = abs(dparam.argsin{1}.load.imgs{img}(wf_adc,1));
               adc = abs(dparam.argsin{1}.load.imgs{img}(wf_adc,2));
-              out_fn = fullfile(out_fn_dir,sprintf('wf_%02d_adc_%02d_%03d.mat',wf,adc,chunk_idx));
+              out_fn = fullfile(out_fn_dir,sprintf('wf_%02d_adc_%02d_chk_%03d.mat',wf,adc,chunk_idx));
               dparam.success = cat(2,dparam.success, ...
                 sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
               if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
@@ -422,7 +435,8 @@ for frm_idx = 1:length(param.cmd.frms)
       % =================================================================
       dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d %s %.0f to %.0f recs', ...
         mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
-        chunk_idx, num_chunks, wf_adc_str, dparam.argsin{1}.load.recs);
+        chunk_idx, num_chunks, wf_adc_str, (dparam.argsin{1}.load.recs(1)-1)*param.csarp.presums+1, ...
+        dparam.argsin{1}.load.recs(2)*param.csarp.presums);
       if ctrl.cluster.rerun_only
         % If we are in rerun only mode AND the get heights task success
         % condition passes without error, then we do not run the task.

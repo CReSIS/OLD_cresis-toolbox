@@ -52,6 +52,17 @@ load(ct_filename_support(param,'','frames')); % Load "frames" variable
 % Load records file
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+% Apply presumming
+if param.csarp.presums > 1
+  records.lat = fir_dec(records.lat,param.csarp.presums);
+  records.lon = fir_dec(records.lon,param.csarp.presums);
+  records.elev = fir_dec(records.elev,param.csarp.presums);
+  records.roll = fir_dec(records.roll,param.csarp.presums);
+  records.pitch = fir_dec(records.pitch,param.csarp.presums);
+  records.heading = fir_dec(records.heading,param.csarp.presums);
+  records.gps_time = fir_dec(records.gps_time,param.csarp.presums);
+  records.surface = fir_dec(records.surface,param.csarp.presums);
+end
 along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
 
 %% Combine chunks into each frame
@@ -73,9 +84,9 @@ for frm_idx = 1:length(param.cmd.frms);
   % Current frame goes from the start record specified in the frames file
   % to the record just before the start record of the next frame.  For
   % the last frame, the stop record is just the last record in the segment.
-  start_rec = frames.frame_idxs(frm);
+  start_rec = ceil(frames.frame_idxs(frm)/param.csarp.presums);
   if frm < length(frames.frame_idxs)
-    stop_rec = frames.frame_idxs(frm+1)-1;
+    stop_rec = ceil((frames.frame_idxs(frm+1)-1)/param.csarp.presums);
   else
     stop_rec = length(records.gps_time);
   end

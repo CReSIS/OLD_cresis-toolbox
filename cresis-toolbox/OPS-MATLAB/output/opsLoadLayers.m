@@ -75,15 +75,6 @@ physical_constants;
 % Load frames file
 load(ct_filename_support(param,'','frames'));
 
-%% Load additional framing information for layerdata and echogram sources
-if any(strcmpi('layerdata',{layer_params.source})) ...
-  || any(strcmpi('echogram',{layer_params.source}))
-  % layerdata and echogram sources use records file for
-  % framing gps time info
-  records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn,'gps_time','surface','elev','lat','lon');
-end
-
 %% Determine which frames need to be processed
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
@@ -106,10 +97,11 @@ if any(strcmpi('ops',{layer_params.source}))
   ops_param.properties.season = param.season_name;
   ops_param.properties.segment = param.day_seg;
   [status,ops_seg_data] = opsGetSegmentInfo(sys,ops_param);
-end
-
-if any(strcmpi('records',{layer_params.source})) || any(strcmpi('lidar',{layer_params.source}))
-  records = load(ct_filename_support(param,'','records'),'gps_time','surface','elev','lat','lon');
+else
+  % All other sources use records file for
+  % framing gps time info
+  records_fn = ct_filename_support(param,'','records');
+  records = load(records_fn,'gps_time','surface','elev','lat','lon');
 end
 
 if any(strcmpi('lidar',{layer_params.source}))

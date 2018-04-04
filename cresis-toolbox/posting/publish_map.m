@@ -115,11 +115,11 @@ if strcmpi(cmd,'setup')
       map_sub_title2 = sprintf('ASCAT \\sigma_0 at 40\\circ incidence for %02d/%02d/%04d', param.month, param.day, param.year);
      else
       hemisphere = 'north';
-      geotiff_fn = fullfile(ct_filename_gis(param,'greenland'),'Landsat-7','mzl7geo_90m_lzw.tif');
+      geotiff_fn = fullfile(ct_filename_gis(param,'arctic'),'NaturalEarth_Data','Arctic_NaturalEarth.tif');
       cmap = jet(256);
       cmap(255,:) = [0.5 0.5 0.5];
       cmap(256,:) = [0.5 0.5 0.5];
-      map_axis = [-3000 1000 -2000 2000];
+      map_axis = [-3000 1400 -2000 2000];
       contour_position = [0.1200    0.7100    0.2700    0.2700];
       map_sub_title = 'Polar Stereograph 70N/-45E';
      end
@@ -215,6 +215,12 @@ if strcmpi(cmd,'setup')
     proj = geotiffinfo(geotiff_fn);
     % Read the image
     [RGB, R, tmp] = geotiffread(geotiff_fn);
+    if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
+        RGB = uint8(RGB);
+    end
+    if strcmpi(class(RGB),'int16') || strcmpi(class(RGB),'single')
+        RGB = double(RGB);
+    end
     % =======================================================================
     % Raster image map
     ah_region = axes;

@@ -284,6 +284,9 @@ for img = 1:length(param.combine.imgs)
     % Remove prev chunk data
     for ml_idx = 1:length(ml_list)
       data{ml_idx} = data{ml_idx}(:,num_prev_chunk_rlines+1:end,:,:,:);
+      lat = lat(num_prev_chunk_rlines+1:end);
+      lon = lon(num_prev_chunk_rlines+1:end);
+      elev = elev(num_prev_chunk_rlines+1:end);
       for wf_adc_idx = 1:size(wf_adc_list,1)
         fcs{ml_idx}{wf_adc_idx}.origin = fcs{ml_idx}{wf_adc_idx}.origin(:,num_prev_chunk_rlines+1:end);
         fcs{ml_idx}{wf_adc_idx}.x = fcs{ml_idx}{wf_adc_idx}.x(:,num_prev_chunk_rlines+1:end);
@@ -305,6 +308,9 @@ for img = 1:length(param.combine.imgs)
     % Remove next chunk data
     for ml_idx = 1:length(ml_list)
       data{ml_idx} = data{ml_idx}(:,1:end-num_next_chunk_rlines,:,:,:);
+      lat = lat(1:end-num_next_chunk_rlines);
+      lon = lon(1:end-num_next_chunk_rlines);
+      elev = elev(1:end-num_next_chunk_rlines);
       for wf_adc_idx = 1:size(wf_adc_list,1)
         fcs{ml_idx}{wf_adc_idx}.origin = fcs{ml_idx}{wf_adc_idx}.origin(:,1:end-num_next_chunk_rlines);
         fcs{ml_idx}{wf_adc_idx}.x = fcs{ml_idx}{wf_adc_idx}.x(:,1:end-num_next_chunk_rlines);

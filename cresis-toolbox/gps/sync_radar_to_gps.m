@@ -127,7 +127,7 @@ elseif any(strcmpi(param.radar_name,{'icards'}))% there's a minor inacurracy (1e
   end
   
 elseif any(strcmpi(param.radar_name,{'hfrds2'}))
-  radar_gps_time = radar_time;
+  radar_gps_time = radar_time + param.vectors.gps.time_offset;
   
 else
   utc_time_sod = radar_time;
@@ -198,6 +198,13 @@ if nan_detected
     fprintf('GPS TIME: %s to %s\n', datestr(epoch_to_datenum(gps.gps_time(1))), datestr(epoch_to_datenum(gps.gps_time(end))));
     fprintf('RADAR GPS TIME: %s to %s\n', datestr(epoch_to_datenum(my_struct.gps_time(1))), datestr(epoch_to_datenum(my_struct.gps_time(end))));
   end
+  keyboard
+end
+
+nonmonotonic_records = diff(my_struct.gps_time) <= 0;
+if any(nonmonotonic_records)
+  warning('time not monotonically increasing: First non-monotonic record %d of %d total, %d total records.', ...
+    find(nonmonotonic_records,1), sum(nonmonotonic_records), length(my_struct.gps_time));
   keyboard
 end
 

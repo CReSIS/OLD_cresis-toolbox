@@ -313,36 +313,36 @@ for board_idx = 1:length(boards)
         dropped_record = false;
       end
 
-      if ~dropped_record
-        rec_data = block_data((param.load.offset{adc_idx}(rec)/bin_size-param.load.offset{adc_idx}(first_rec)/bin_size+1) ...
-          + (0 : rec_size/bin_size-1 ));
-        last_record = zeros([0 0],sample_type);
-      else
-        % Dropped record... no data exists
-        if rec == 1
-          rec_data = zeros(rec_size/bin_size,1,sample_type);
+      if param.load.file_version ~= 412
+        if ~dropped_record
+          rec_data = block_data((param.load.offset{adc_idx}(rec)/bin_size-param.load.offset{adc_idx}(first_rec)/bin_size+1) ...
+            + (0 : rec_size/bin_size-1 ));
+          last_record = zeros([0 0],sample_type);
         else
-          % Just use the data from the last record
+          % Dropped record... no data exists
+          if rec == 1
+            rec_data = zeros(rec_size/bin_size,1,sample_type);
+          else
+            % Just use the data from the last record
+          end
         end
-      end
-
-      if param.load.file_version == 412
+        
+      else
         % Search for offset to each mode/subchannel
         %  (HACK: assumes HF sounder header and data)
-        idx = 0;
-        header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5);
-        mode = bitand(255,header);
-        subchannel = bitand(255,bitshift(header,-8));
-        profile_idx = find(mode == param.records.profiles{board}(:,1) & subchannel == param.records.profiles{board}(:,2));
-        if ~isempty(profile_idx)
-          wf_adc_idx = find(param.records.wf_adc_profiles == param.records.profiles{board}(profile_idx,3) ...
-            & param.records.wf_adc_boards == board);
-          adc = ceil(wf_adc_idx / size(param.records.wf_adc_profiles,1));
-          wf = 1+mod(wf_adc_idx-1,size(param.records.wf_adc_profiles,1));
-          wfs(wf).offset = 18;
+        good_wfs = 0;
+        if rec==1
+          old_rec_data = zeros(rec_size/bin_size,1,sample_type);
+          wfs(1).offset =18;
+          wfs(2).offset =18;
+        else
+          old_rec_data = rec_data;
         end
-        idx = idx + 18 + double(rec_data(18))/4; 
-        while idx < length(rec_data)
+        if ~dropped_record
+          rec_data = block_data((param.load.offset{adc_idx}(rec)/bin_size-param.load.offset{adc_idx}(first_rec)/bin_size+1) ...
+            + (0 : rec_size/bin_size-1 ));
+          last_record = zeros([0 0],sample_type);
+          idx = 0;
           header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5);
           mode = bitand(255,header);
           subchannel = bitand(255,bitshift(header,-8));
@@ -352,9 +352,38 @@ for board_idx = 1:length(boards)
               & param.records.wf_adc_boards == board);
             adc = ceil(wf_adc_idx / size(param.records.wf_adc_profiles,1));
             wf = 1+mod(wf_adc_idx-1,size(param.records.wf_adc_profiles,1));
-            wfs(wf).offset = 18 + idx;
+            wfs(wf).offset = 18;
+            good_wfs = good_wfs+1;
           end
-          idx = idx + 18 + double(rec_data(18))/4;
+          if rec_data(idx+18) >= 0 && mod(rec_data(idx+18),4) == 0
+            idx = idx + 18 + double(rec_data(idx+18))/4;
+            while idx+18 < length(rec_data)
+              header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5);
+              mode = bitand(255,header);
+              subchannel = bitand(255,bitshift(header,-8));
+              profile_idx = find(mode == param.records.profiles{board}(:,1) & subchannel == param.records.profiles{board}(:,2));
+              if ~isempty(profile_idx)
+                wf_adc_idx = find(param.records.wf_adc_profiles == param.records.profiles{board}(profile_idx,3) ...
+                  & param.records.wf_adc_boards == board);
+                adc = ceil(wf_adc_idx / size(param.records.wf_adc_profiles,1));
+                wf = 1+mod(wf_adc_idx-1,size(param.records.wf_adc_profiles,1));
+                if 18 + idx + 2*wfs(wf).Nt_raw-1 <= length(rec_data)
+                  wfs(wf).offset = 18 + idx;
+                  good_wfs = good_wfs+1;
+                end
+              end
+              if rec_data(idx+18) >= 0 && mod(rec_data(idx+18),4) == 0 && idx + 18 + double(rec_data(idx+18))/4 <= length(rec_data)
+                idx = idx + 18 + double(rec_data(idx+18))/4;
+              else
+                break;
+              end
+            end
+          end
+        end
+       
+        if dropped_record || good_wfs ~= 2
+          % Dropped record... no data exists
+          rec_data = old_rec_data;
         end
       end
       
@@ -403,7 +432,7 @@ for board_idx = 1:length(boards)
           tmp = single(rec_data(1 + (0:wfs(wf).Nt_raw-1) + cur_hdr_size/2 + wfs(wf).offset/2));
         elseif param.load.file_version == 412
           tmp = single(rec_data(wfs(wf).offset + (0:2:2*wfs(wf).Nt_raw-1))) ...
-            + 1i*single(rec_data(wfs(wf).offset + (1:2:2*wfs(wf).Nt_raw-1)));
+            - 1i*single(rec_data(wfs(wf).offset + (1:2:2*wfs(wf).Nt_raw-1)));
         end
         if ~param.proc.raw_data
           % Convert to volts, remove DC-bias, and apply trim
@@ -445,7 +474,7 @@ for board_idx = 1:length(boards)
           if zero_pi_mode == 1
             continue;
           elseif zero_pi_mode >= 2
-            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx-1} - accum(board+1).data{accum_idx};
+            accum(board+1).data{accum_idx} = accum(board+1).data{accum_idx-1} + accum(board+1).data{accum_idx};
           end
           
           if param.proc.pulse_rfi.en
