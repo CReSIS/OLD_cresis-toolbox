@@ -205,7 +205,7 @@ end
 %% Create and setup the cluster batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
-cluster_compile({'combine_wf_chan_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+cluster_compile({'combine_wf_chan_task.m','combine_wf_chan_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = [];
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
@@ -407,6 +407,9 @@ for frm = param.cmd.frms
   out_fn = fullfile(combine_out_dir,out_fn_name);
   sparam.success = cat(2,sparam.success, ...
     sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+  if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+    delete(out_fn);
+  end
 end
 
 ctrl = cluster_new_task(ctrl,sparam,[]);

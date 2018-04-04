@@ -86,9 +86,10 @@ end
 
 % SAR output directory
 csarp_out_dir = ct_filename_out(param, param.csarp.out_path);
+csarp_coord_dir = ct_filename_out(param, param.csarp.coord_path);
 
 % Load SAR coordinate system
-sar_fn = fullfile(csarp_out_dir,'sar_coord.mat');
+sar_fn = fullfile(csarp_coord_dir,'sar_coord.mat');
 sar = load(sar_fn,'version','Lsar','gps_source','type','sigma_x','presums','along_track','surf_pp');
 
 % Determine output range lines
@@ -186,9 +187,11 @@ fcs.bottom = NaN*ones(size(fcs.surface));
 
 %% Load record information
 % =====================================================================
+load_param = param;
 load_param.load.recs = [(param.load.recs(1)-1)*param.csarp.presums+1, ...
         param.load.recs(2)*param.csarp.presums];
 orig_records = read_records_aux_files(records_fn,load_param.load.recs);
+all_records = orig_records;
 %Decimate orig_records and ref according to presums
 if param.csarp.presums > 1
   orig_records.lat = fir_dec(orig_records.lat,param.csarp.presums);
@@ -432,8 +435,6 @@ load_param.proc.trim_vals          = param.csarp.trim_vals;
 load_param.proc.coh_noise_method   = param.csarp.coh_noise_method;
 load_param.proc.coh_noise_arg      = param.csarp.coh_noise_arg;
 
-load_param.records = param.records;
-load_param.radar = param.radar;
 load_param.surface = orig_records.surface;
 if strcmpi(radar_name,'acords')
   load_param.load.file_version = param.records.file_version;
@@ -452,7 +453,7 @@ if strcmpi(radar_name,'mcords')
   load_mcords_data(load_param);
   %   end
 elseif any(strcmpi(radar_name,{'hfrds','hfrds2','mcords2','mcords3','mcords4','mcords5','seaice'}))
-  load_mcords2_data(load_param);
+  load_mcords2_data(load_param,all_records);
 elseif strcmpi(radar_name,'accum2')
   load_accum2_data(load_param);
 elseif strcmpi(radar_name,'acords')
@@ -548,8 +549,6 @@ if param.csarp.coh_noise_method && ~any(strcmpi(radar_name,{'kuband','snow','kub
         elseif param.csarp.coh_noise_method == 3
           g_data{idx}(:,:,wf_adc_idx) = bsxfun(@minus, g_data{idx}(:,:,wf_adc_idx), ...
             fir_dec(g_data{idx}(:,:,wf_adc_idx),hanning(param.csarp.coh_noise_arg).'/(param.csarp.coh_noise_arg/2+0.5),1));
-        else
-          error('param.csarp.coh_noise_method %d not supported.',param.csarp.coh_noise_method);
         end
       end
     end

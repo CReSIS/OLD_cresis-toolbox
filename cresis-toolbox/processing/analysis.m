@@ -1,21 +1,5 @@
-function analysis(param,param_override)
-% analysis(param,param_override)
-%
-% Function separates radar data for one day_seg into blocks which are
-% processed by analysis_task.m.
-%
-% This function has two capabilities (enabled separately):
-% 1.  Break radar data specified by day_seg into slow time blocks for
-%     evaluating power spectral density of noise (performed by
-%     analysis_task.m).
-%     -> For evaluating psd, block size is determined by number of
-%        incoherent averages specified by user in param file.
-% 2.  Break radar data specified by day_seg into slow time blocks for
-%     evaluating noise power of each range line in block (performed by
-%     analysis_task.m).
-%     ->  For evaluating np, block size is determined by np.analysis_frm_size
-%         field of param specified by user.
-%
+function ctrl_chain = analysis(param,param_override)
+% ctrl_chain = analysis(param,param_override)
 %
 % param = struct with processing parameters
 %         -- OR --
@@ -23,437 +7,423 @@ function analysis(param,param_override)
 % param_override = parameters in this struct will override parameters
 %         in param.  This struct must also contain the gRadar fields.
 %         Typically global gRadar; param_override = gRadar;
-% Authors: Theresa Stumpf, John Paden
 %
-% See also: master_mcords.m, analysis_task.m
-% =====================================================================
-% General Setup
-% =====================================================================
-% clear; % Useful when running as script
-%close all; % Optional
-tic;
-fprintf('\n\n==============================================\n\n');
+% Example:
+%  See run_analysis.m for how to run this function directly.
+%  Normally this function is called from master.m using the param spreadsheet.
+%
+% Authors: John Paden
+%
+% See also: master.m, run_analysis.m analysis.m,
+%   analysis_task.m
 
+%% General Setup
 % =====================================================================
-% User Settings
-% =====================================================================
-% param = []; % Uncomment if running as a script
-if ~exist('param','var') || isempty(param)
-  %param = read_param_xls('E:\mcords_param_2010_Antarctica_DC8.xls','20101013_seg4');
-  param = read_param_xls('/users/tstumpf/scripts/matlab/mcords_param_2010_Greenland_P3.xls','20100510_04');
-  
-  clear('param_override');
-  param_override.sched.type = 'no scheduler';
-  
-  % Input checking
-  if ~exist('param','var')
-    error('A struct array of parameters must be passed in\n');
-  end
-  global gRadar;
-  if exist('param_override','var')
-    param_override = merge_structs(gRadar,param_override);
-  else
-    param_override = gRadar;
-  end
-  
-elseif ~isstruct(param)
-  % Functional form
-  param();
-end
 param = merge_structs(param, param_override);
 
-% =====================================================================
-% Setup processing
-% =====================================================================
 fprintf('=====================================================================\n');
-fprintf('Analysis %s (%s)\n', param.day_seg, datestr(now));
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
-physical_constants;
+%% Input Checks
+% =====================================================================
 
-param.analysis.file.base_dir         = param.vectors.file.base_dirs;
-param.analysis.file.adc_folder_name  = param.vectors.file.adc_folder_name;
-param.analysis.file.file_prefix      = param.vectors.file.file_prefix;
-
-
-% Load frames file
-load(ct_filename_support(param,param.frames.frames_fn,'frames'));
-
-if ~isfield(frames,'records_fn')
-  frames.records_fn = '';
+if ~isempty(param.cmd.frms)
+  warning('All frames are always processed with analysis, setting param.cmd.frms to do all frames.');
+  param.cmd.frms = []; % All frames
 end
 
-% Load records file
-load(ct_filename_support(param,frames.records_fn,'records'));
-
-% -------------------------------------------------------------------------
-% Create analysis processing blocks
-% -------------------------------------------------------------------------
-
-% Determine total records being processed
-% If no records are specified, process all records for the particular day seg
-if isempty(param.analysis.records)
-  param.analysis.records = [1 length(records.time)];
+if ~isfield(param.analysis,'out_path') || isempty(param.analysis.out_path)
+  param.analysis.out_path = 'analysis';
 end
 
-if isinf(param.analysis.records(2))
-  param.analysis.records(2) = length(records.time);
+if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
+  error('param.analysis.block_size must be specified');
 end
 
-% Determine block size
-% -------------------------------------------------------------------------
-% SPECIAL CASES:
-%   1.  param.analysis.block_size = inf
-%       or param.analysis.block_size = 0
-%       param.analysis.np.block_size = inf
-%       or param.analysis.np.block_size = 0
-%           -->> process all records in one block
-%
-%   2. param.analysis.records(2) ~= num_blocks * block_size
-%           -->> process maximum number of processing blocks
-
-block_size = param.analysis.block_size;
-
-if isinf(block_size)
-  block_size = (param.analysis.records(2) - param.analysis.records(1))+1;
+if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
+  error('param.analysis.imgs must be specified');
 end
 
-if isempty(block_size)
-  block_size = (param.analysis.records(2) - param.analysis.records(1))+1;
+if ~isfield(param.analysis,'presums') || isempty(param.analysis.presums)
+  param.analysis.presums = 1;
 end
 
-if (param.analysis.records(2) - param.analysis.records(1)) < block_size
-  block_size = (param.analysis.records(2) - param.analysis.records(1))+1;
+if ~isfield(param.analysis,'lever_arm_fh') || isempty(param.analysis.lever_arm_fh)
+  param.analysis.lever_arm_fh = [];
 end
 
-param.analysis.block_size = block_size;
-num_blks = floor(((param.analysis.records(2)-param.analysis.records(1))+1)/block_size);
+if ~isfield(param.analysis,'trim_vals') || isempty(param.analysis.trim_vals)
+  param.analysis.trim_vals = [0 0];
+end
 
-if strcmpi(param.analysis.analysis_type,'psd')
-  if (param.analysis.records(1) + (num_blks*block_size)) < param.analysis.records(2)
-    param.analysis.records(2) = param.analysis.records(1) + (num_blks - 1)*block_size;
-    blocks = param.analysis.records(1):block_size:param.analysis.records(2);
-  else
-    blocks = param.analysis.records(1):block_size:param.analysis.records(2);
+% For each command in the list, set its default settings
+for cmd_idx = 1:length(param.analysis.cmd)
+  cmd = param.analysis.cmd{cmd_idx};
+  
+  if ~isfield(cmd,'en') || isempty(cmd.en)
+    cmd.en = true;
   end
-end
-
-if strcmpi(param.analysis.analysis_type,'np')
-  block_size = 1000;
-  blocks = param.analysis.records(1):block_size:param.analysis.records(2);
-end
-
-
-global g_data;
-g_data = [];
-
-% -------------------------------------------------------------------------
-% Clean up old directories, create new paths and store analysis parameters
-% -------------------------------------------------------------------------
-
-if strcmpi(param.analysis.analysis_type,'np')
-  param.analysis.coh_ave = 1;
-end
-
-% Specify output directory
-param.analysis.base_dir =  ct_filename_out(param, ...
-  param.analysis.out_path, 'CSARP_analysis');
-
-if strcmpi(param.analysis.analysis_type,'psd')
-  for blk_idx = 1:length(blocks)
-    start = blocks(blk_idx);
-    stop  = start + block_size -1;
-    recs = [start stop];
-    
-    for img_idx = 1:size(param.analysis.imgs,2)
-      bins = param.analysis.ft_bins(img_idx,:);
-      wf = param.analysis.imgs{img_idx}(1,1);
-      
-      
-      coh_ave = param.analysis.psd.coh_ave;
-      
-      
-      old_psd_dir = fullfile(param.analysis.base_dir,sprintf('psd_analysis/recs_%010d_%010d/bins_%04d_%04d/coh_ave_%05d/wf_%02d/',recs(1),recs(2),bins(1),bins(2),coh_ave,wf));
-      
-      if exist(old_psd_dir,'dir')
-        rmdir(old_psd_dir,'s');
-        fprintf('Removing path: %s\n', old_psd_dir);
-      end
-      
-      psd_analysis_dir = fullfile(param.analysis.base_dir,sprintf('psd_analysis/recs_%010d_%010d/bins_%04d_%04d/coh_ave_%05d/wf_%02d/',recs(1),recs(2),bins(1),bins(2),coh_ave,wf));
-      
-      if ~exist(psd_analysis_dir,'dir')
-        mkdir(psd_analysis_dir);
-      end
-      
+  
+  if ~isfield(cmd,'out_path') || isempty(cmd.out_path)
+    cmd.out_path = param.analysis.out_path;
+  end
+  
+  if ~isfield(cmd,'wf_adc_idxs') || isempty(cmd.wf_adc_idxs)
+    for img = 1:length(param.analysis.imgs)
+      cmd.wf_adc_idxs{img} = [];
     end
   end
+  
+  for img = 1:length(param.analysis.imgs)
+    if length(cmd.wf_adc_idxs) < length(param.analysis.imgs) || isempty(cmd.wf_adc_idxs{img})
+      % By default do all wf-adc pairs in the image
+      cmd.wf_adc_idxs{img} = 1:size(param.analysis.imgs{img},1);
+    end
+  end
+  
+  if ~isfield(cmd,'layer') || isempty(cmd.layer)
+    % Set the analysis start time to the beginning of the record
+    cmd.layer = -inf;
+  end
+  
+  if ~isfield(cmd,'Nt') || isempty(cmd.Nt)
+    % Set the analysis length to the whole record
+    cmd.Nt = inf;
+  end
+  
+  if ~isfield(cmd,'B_filter') || isempty(cmd.B_filter)
+    % Set the default filter to no filtering (B_filter = 1)
+    cmd.B_filter = 1;
+  end
+  
+  if abs(sum(cmd.B_filter)-1) > 1e4*eps
+    %warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
+    cmd.B_filter = cmd.B_filter / sum(cmd.B_filter);
+  end
+  
+  if ~isfield(cmd,'decimate_factor') || isempty(cmd.decimate_factor)
+    % Set the default decimation to none (decimate_factor = 1)
+    cmd.decimate_factor = 1;
+  end
+
+  switch lower(cmd.method)
+    case {'qlook'}
+      %
+    case {'waveform'}
+      %
+    case {'statistics'}
+      %
+    case {'saturation'}
+      %
+    case {'specular'}
+      %
+    case {'coherent_noise'}
+      % Set defaults fro coherent noise analysis method
+      
+      if ~isfield(cmd,'block_ave') || isempty(cmd.block_ave)
+        % Set the default block_ave to 1000
+        cmd.block_ave = 1000;
+      end
+      
+      if mod(param.analysis.block_size,cmd.block_ave)
+        error('The param.analysis.block_size (%s) must be a multiple of cmd.block_ave (%d).', ...
+          param.analysis.block_size, cmd.block_ave);
+      end
+      
+      if ~isfield(cmd,'power_threshold') || isempty(cmd.power_threshold)
+        % Set the default power_threshold to inf (i.e. no thresholding)
+        cmd.power_threshold = inf;
+      end
+      
+      cmd.coh_noise_method = 0;
+      cmd.coh_noise_arg = 0;
+      
+    case {'burst_noise'}
+      %
+  end
+  
+  % Update the command structure
+  param.analysis.cmd{cmd_idx} = cmd;
 end
 
-% Clean up preexisting noise power directories
-if strcmpi(param.analysis.analysis_type,'np')
-  
-  recs = [param.analysis.records(1) param.analysis.records(2)];
-  old_np_dir = fullfile(param.analysis.base_dir,sprintf('np_analysis/recs_%010d_%010d',recs(1),recs(end)));
-  
-  if exist(old_np_dir,'dir')
-    rmdir(old_np_dir,'s')
-    fprintf('Removing path: %s\n', old_np_dir);
-  end
-  
-  % Create new tmp directory for output of noise power processing blocks
-  np_analysis_dir = fullfile(param.analysis.base_dir,sprintf('np_analysis/recs_%010d_%010d',recs(1),recs(2)));
-  
-  if ~exist(np_analysis_dir,'dir')
-    mkdir(np_analysis_dir);
-  end
-  
-  np_tmp_dir = fullfile(np_analysis_dir,sprintf('tmp/'));
-  
-  if ~exist(np_tmp_dir,'dir')
-    mkdir(np_tmp_dir);
-  end
-  
+%% Setup processing
+% =====================================================================
+
+% Get the standard radar name
+[~,~,radar_name] = ct_output_dir(param.radar_name);
+
+% Load frames file
+load(ct_filename_support(param,'','frames'));
+
+% Load records file
+records_fn = ct_filename_support(param,'','records');
+records = load(records_fn);
+% Apply presumming
+if param.analysis.presums > 1
+  records.lat = fir_dec(records.lat,param.analysis.presums);
+  records.lon = fir_dec(records.lon,param.analysis.presums);
+  records.elev = fir_dec(records.elev,param.analysis.presums);
+  records.roll = fir_dec(records.roll,param.analysis.presums);
+  records.pitch = fir_dec(records.pitch,param.analysis.presums);
+  records.heading = fir_dec(records.heading,param.analysis.presums);
+  records.gps_time = fir_dec(records.gps_time,param.analysis.presums);
+  records.surface = fir_dec(records.surface,param.analysis.presums);
 end
 
-% =====================================================================
-% Setup static inputs for analysis_task
-% =====================================================================
-global gRadar
+% Compute all estimates with pulse compressed numbers even though raw data
+% are loaded
+param.analysis.pulse_comp = true;
+param.analysis.ft_wind = [];
 
-task_param.gRadar           = gRadar;
-task_param.ft_wind_time     = false;
-task_param.radar_name       = param.radar_name;
-task_param.season_name      = param.season_name;
-task_param.day_seg          = param.day_seg;
-task_param.load.imgs        = param.analysis.imgs;
-task_param.radar            = param.radar;
-task_param.profile.out_path = param.out_path;
+ctrl_chain = {};
 
-if ~isfield(param,'debug_level')
-  task_param.debug_level = 1;
+%% Create and setup the cluster batch
+% =====================================================================
+ctrl = cluster_new_batch(param);
+cluster_compile({'analysis_task.m','analysis_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  [wfs,~] = load_mcords_wfs(records.settings, param, ...
+    1:max(records.param_records.records.file.adcs), param.analysis);
+  for img = 1:length(param.analysis.imgs)
+    wf = abs(param.analysis.imgs{img}(1,1));
+    total_num_sam(img) = wfs(wf).Nt_raw;
+  end
+  cpu_time_mult = 140e-9;
+  mem_mult = 8;
+  
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  total_num_sam = 32000 * ones(size(param.analysis.imgs));
+  cpu_time_mult = 8e-8;
+  mem_mult = 33;
+  
 else
-  task_param.debug_level = param.debug_level;
-end
-
-task_param.load.records_fn  = ct_filename_support(param,'','records');
-
-% Currently every field in param.analysis is used by analysis_task
-% so we just pass the whole structure
-task_param.analysis     = param.analysis;
-task_param.analysis     = rmfield(task_param.analysis, {'imgs'});
-
-% =====================================================================
-% Setup the scheduler
-% =====================================================================
-fd = [get_filenames(param.path,'','','.m',struct('recursive',1)); ...
-  get_filenames(param.path,'','','.mexa64',struct('recursive',1))];
-fd_override = [get_filenames(param.path_override,'','','.m',struct('recursive',1)); ...
-  get_filenames(param.path_override,'','','.mexa64',struct('recursive',1))];
-
-fd = merge_filelists(fd, fd_override);
-
-if ~strcmpi(param.sched.type,'no scheduler')
-  % Initialize submission ctrl structure
-  ctrl.cmd = 'init';
-  ctrl.sched = param.sched;
-  ctrl.fd = fd;
-  ctrl = create_task(ctrl);
+  error('radar_name %s not supported yet.', radar_name);
   
-  % Prepare submission ctrl structure for queing jobs
-  ctrl.cmd = 'task';
 end
 
+%% Split up data into blocks and run equal tasks
 % =====================================================================
-% Load data and run analysis tasks
-% For each frame, load block_size records at a time (code groups by
-% file index, but has to watch negative offset values which imply the
-% record starts in a previous file and carries over into the next
-%   --> The last block can be up to 2*REC_BLOCK_SIZE
-% =====================================================================
+% Load param.analysis.block_size records at a time
+%    --> The last block can be up to 1.5*param.analysis.block_size
 out_recs = {};
 retry_fields = {};
 
-for block_idx = 1:length(blocks)
-  block = blocks(block_idx);
-  
-  fprintf('Processing block %d of %d\n', block_idx, length(blocks));
-  
-  % Find record numbers associated with frame boundaries
-  cur_recs = block + [0 block_size-1];
-  
-  if block_idx == length(blocks) && block_idx < block + block_size - 1
-    stop_rec = param.analysis.records(2);
-    cur_recs = [block stop_rec];
-  end
-    
-   
-  % =====================================================================
-  % Prepare task inputs
-  % =====================================================================
-  task_param.load.recs = cur_recs;
-  
-  for img_idx = 1:length(param.analysis.imgs)
-    wf  = param.analysis.imgs{img_idx}(1);
-    task_param.analysis.ft_bins = ...
-      param.analysis.ft_bins(img_idx,:);
-    for adc_idx = 1:size(param.analysis.imgs{img_idx})
-      adc = param.analysis.imgs{img_idx}(adc_idx,2);
-      task_param.load.imgs = {param.analysis.imgs{img_idx}(adc_idx,:)};
-      
-      % =================================================================
-      % Execute tasks/jobs
-      fh = @analysis_task;
-      arg{1} = task_param;
-      
-      if ~strcmp(param.sched.type,'no scheduler')
-        [ctrl,job_id,task_id] = create_task(ctrl,fh,1,arg);
-        fprintf('  ADC %d Wf %d Records %d to %d in job,task %d,%d (%s)\n', ...
-          adc, wf, cur_recs(1), cur_recs(end), job_id, task_id, datestr(now));
-        retry_fields{job_id,task_id}.cur_recs = cur_recs;
-        retry_fields{job_id,task_id}.adc = adc;
-        retry_fields{job_id,task_id}.wf = wf;
-        retry_fields{job_id,task_id}.arg = arg;
-        retry_fields{job_id,task_id}.block_idx = block_idx;
-        if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-          % Quit if a bad error occurred
-          fprintf('Bad errors occurred, quitting (%s)\n\n', datestr(now));
-          ctrl.cmd = 'done';
-          ctrl = create_task(ctrl);
-          return;
-        end
-      else
-        fprintf('  ADC %d Wf %d Records %d to %d (%s)\n', ...
-          adc, wf, cur_recs(1), cur_recs(end), datestr(now));
-        success = fh(arg{1});
-      end
-      
-    end
-  end
-  
+% Break records in segment into blocks
+breaks = 1:param.analysis.block_size:length(records.gps_time);
+
+% If the last block is less than half the desired block size, then combine
+% with earlier block if possible
+if length(records.gps_time)-breaks(end) < param.analysis.block_size/2 ...
+    && length(breaks) > 1
+  breaks = breaks(1:end-1);
 end
 
-% =======================================================================
-% Wait for jobs to complete if a scheduler was used
-% =======================================================================
-if ~strcmpi(param.sched.type,'no scheduler')
-  ctrl.cmd = 'done';
-  ctrl = create_task(ctrl);
-  if ctrl.error_mask ~= 0 && ctrl.error_mask ~= 2
-    % Quit if a bad error occurred
-    fprintf('Bad errors occurred, quitting (%s)\n\n', datestr(now));
-    return;
-  end
-  
-  retry = 1;
-  while ctrl.error_mask == 2 && retry <= param.sched.max_retries
-    fprintf('Tasks failed, retry %d of max %d\n', retry, param.sched.max_retries);
-    
-    % Bookkeeping (move previous run info to "old_" variables)
-    old_ctrl = ctrl;
-    old_retry_fields = retry_fields;
-    retry_fields = {};
-    
-    % Initialize submission ctrl structure
-    ctrl = [];
-    ctrl.cmd = 'init';
-    ctrl.sched = param.sched;
-    ctrl.fd = fd;
-    ctrl = create_task(ctrl);
-    
-    % Prepare submission ctrl structure for queing jobs
-    ctrl.cmd = 'task';
-    
-    for job_idx = 1:length(old_ctrl.jobs)
-      for task_idx = old_ctrl.jobs{job_idx}.error_idxs
-        [ctrl,job_id,task_id] = create_task(ctrl,fh,1,old_retry_fields{job_idx,task_idx}.arg);
-        fprintf('  %d ADC %d Wf %d Records %d to %d in job,task %d,%d (%s)\n', ...
-          old_retry_fields{job_idx,task_idx}.block_idx, ...
-          old_retry_fields{job_idx,task_idx}.adc, ...
-          old_retry_fields{job_idx,task_idx}.wf, ...
-          old_retry_fields{job_idx,task_idx}.arg, ...
-          old_retry_fields{job_idx,task_idx}.cur_recs(1), ...
-          old_retry_fields{job_idx,task_idx}.cur_recs(end), ...
-          job_id, task_id, datestr(now));
-        retry_fields{job_id,task_id} = old_retry_fields{job_idx,task_idx};
-      end
-    end
-    ctrl.cmd = 'done';
-    ctrl = create_task(ctrl);
-    retry = retry + 1;
-  end
-  if ctrl.error_mask ~= 0
-    fprintf('Not all jobs completed, but out of retries (%s)\n', datestr(now));
-    return;
+% Create output directory string
+out_fn_dir = ct_filename_out(param,param.analysis.out_path);
+
+sparam.argsin{1} = param; % Static parameters
+sparam.task_function = 'analysis_task';
+sparam.num_args_out = 1;
+sparam.argsin{1}.load.imgs = param.analysis.imgs;
+for break_idx = 1:length(breaks)
+  % Determine the start/stop record for this block
+  rec_load_start = breaks(break_idx);
+  if break_idx == length(breaks)
+    rec_load_stop = length(records.gps_time);
   else
-    fprintf('Jobs completed (%s)\n\n', datestr(now));
+    rec_load_stop = rec_load_start+param.analysis.block_size-1;
   end
-end
-
-% Concatenate Noise Power Blocks
-% -------------------------------------------------------------------------
-if strcmpi(param.analysis.analysis_type,'np')
+  cur_recs = [rec_load_start rec_load_stop];
+  actual_cur_recs = [(cur_recs(1)-1)*param.csarp.presums+1, ...
+    cur_recs(end)*param.csarp.presums];
   
-  % Build param_analyze
-param_radar                       = param.radar;
-param_analysis                    = param.analysis;
-param_radar.radar_name            = param.radar_name;
-param_analysis.season_name        = param.season_name;
-param_analysis.day_seg            = param.day_seg;
+  % Prepare task inputs
+  % =================================================================
+  dparam = [];
+  dparam.argsin{1}.load.recs = cur_recs;
   
-  analysis_recs = param.analysis.records(1):param.analysis.records(2);
-  np_analysis_dir = fullfile(param.analysis.base_dir, ...
-    sprintf('np_analysis/recs_%010d_%010d',param.analysis.records(1),param.analysis.records(2)));
-  np_tmp_dir = fullfile(np_analysis_dir, sprintf('tmp/'));
-  
-  for img_idx = 1:length(param.analysis.imgs)
-    wf = param.analysis.imgs{img_idx}(1);
-    tmp_wf_dir = fullfile(np_tmp_dir,sprintf('wf_%02d/',wf));
-    analysis_wf_dir = fullfile(np_analysis_dir, sprintf('wf_%02d/',wf));
-    
-    if ~exist(analysis_wf_dir,'dir')
-      mkdir(analysis_wf_dir)
-    end
-    
-    if param.analysis.gps.en
-      gps_string = sprintf('np_gps_time');
-      gps_files = get_filenames(tmp_wf_dir,gps_string,'','');
-      np_gps_time = [];
-      for gps_file_idx = 1:length(gps_files);
-        load(gps_files{gps_file_idx});
-        np_gps_time = [np_gps_time gps_time];
+  % Create success condition and set cpu_time, mem requirements
+  % =================================================================
+  Nx = cur_recs(end)-cur_recs(1)+1;
+  dparam.cpu_time = 0;
+  dparam.mem = 0;
+  dparam.success = '';
+  success_error = 64;
+  for img = 1:length(param.analysis.imgs)
+    for cmd_idx = 1:length(param.analysis.cmd)
+      cmd = param.analysis.cmd{cmd_idx}; % cmd: current command
+      if ~cmd.en
+        continue;
       end
-      np_gps_time_fn = fullfile(analysis_wf_dir,sprintf('np_gps_time_%s_%010f',param.day_seg,np_gps_time(1)));
-      save(np_gps_time_fn,'np_gps_time')
-    end
-    
-    for adc_idx = 1:size(param.analysis.imgs{img_idx},1)
-      adc = param.analysis.imgs{img_idx}(adc_idx,2);
-      element = param_radar.wfs(wf).rx_paths(adc);
-      adc_element_string = sprintf('adc_%02d_element_%02d',adc,element);
-      np_files = get_filenames(tmp_wf_dir,adc_element_string,'','');
-      np_dBm = [];
-      for file_idx = 1:length(np_files)
-        load(np_files{file_idx});
-        np_dBm = [np_dBm meas_np_dBm];
-        
-        if file_idx == 1
-          np_exp_dBm = exp_np_dBm;
-          hw_presums = presums;
-        end
-      end
-      np_fn = fullfile(analysis_wf_dir,...
-        sprintf('np_adc_%02d_element_%02d_%s.mat',adc,element,param.day_seg));
-      fprintf('  Saving noise power to file %s\n', np_fn);
-      save(np_fn,'np_dBm','np_exp_dBm','analysis_recs','hw_presums','param_radar','param_analysis')
       
+      % Create output directory string
+      out_fn_dir = ct_filename_out(param,cmd.out_path);
+      
+      % Load data
+      dparam.cpu_time = dparam.cpu_time + 10 + param.csarp.presums*size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+
+      % Process commands
+      switch lower(cmd.method)
+        case {'qlook'}
+          %
+        case {'waveform'}
+          out_fn = fullfile(out_fn_dir,sprintf('waveform_img_%02d_%d_%d.mat',img,actual_cur_recs));
+          dparam.success = cat(2,dparam.success, ...
+            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            delete(out_fn);
+          end
+          dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+          dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+          
+        case {'statistics'}
+          %
+        case {'saturation'}
+          %
+        case {'specular'}
+          out_fn = fullfile(out_fn_dir,sprintf('specular_img_%02d_%d_%d.mat',img,actual_cur_recs));
+          dparam.success = cat(2,dparam.success, ...
+            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            delete(out_fn);
+          end
+          dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+          dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+          
+        case {'coherent_noise'}
+          out_fn = fullfile(out_fn_dir,sprintf('coh_noise_img_%02d_%d_%d.mat',img,actual_cur_recs));
+          dparam.success = cat(2,dparam.success, ...
+            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            delete(out_fn);
+          end
+          dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+          dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+          
+        case {'burst_noise'}
+          %
+      end
     end
-    
   end
-  % Clean up tmp directory
-  fprintf('Removing path: %s\n', np_tmp_dir);
-  rmdir(np_tmp_dir,'s');
+  
+  % Rerun only mode: Test to see if we need to run this task
+  % =================================================================
+  dparam.notes = sprintf('%s:%s:%s %s %d of %d recs %d-%d', ...
+    mfilename, param.radar_name, param.season_name, param.day_seg, ...
+    break_idx, length(breaks), actual_cur_recs);
+  if ctrl.cluster.rerun_only
+    % If we are in rerun only mode AND the get heights task success
+    % condition passes without error, then we do not run the task.
+    error_mask = 0;
+    eval(dparam.success);
+    if ~error_mask
+      fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+        dparam.notes, datestr(now));
+      continue;
+    end
+  end
+  
+  % Create task
+  % =================================================================
+  ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
+  
 end
 
-return;
+ctrl = cluster_save_dparam(ctrl);
 
+ctrl_chain = {ctrl};
+
+%% Create and setup the combine batch
+% =====================================================================
+ctrl = cluster_new_batch(param);
+
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+  cpu_time_mult = 6e-6;
+  mem_mult = 8;
+  
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  cpu_time_mult = 1000e-8;
+  mem_mult = 24;
+end
+
+% Create success condition
+success_error = 64;
+out_fn_dir_dir = fileparts(out_fn_dir);
+sparam = [];
+sparam.success = '';
+sparam.argsin{1} = param; % Static parameters
+sparam.task_function = 'analysis_combine_task';
+sparam.num_args_out = 1;
+sparam.cpu_time = 60;
+sparam.mem = 0;
+% Add up all records being processed and find the most records in a block
+Nx = length(records.gps_time);
+for img = 1:length(param.analysis.imgs)
+  Nt = total_num_sam(img);
+  
+  for cmd_idx = 1:length(param.analysis.cmd)
+    cmd = param.analysis.cmd{cmd_idx};
+    if ~cmd.en
+      continue;
+    end
+    
+    switch lower(cmd.method)
+      case {'qlook'}
+        %
+      case {'waveform'}
+        Nx_cmd = Nx / param.get_heights.decimate_factor;
+        if isfinite(param.analysis.surf.Nt)
+          Nt = param.analysis.surf.Nt;
+        end
+        sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+        sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
+        out_fn = fullfile(out_fn_dir_dir,sprintf('surf_img_%02d.mat',img));
+        dparam.success = cat(2,dparam.success, ...
+          sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
+        if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+          delete(out_fn);
+        end
+        
+      case {'statistics'}
+        %
+      case {'saturation'}
+        %
+      case {'specular'}
+        Nx_cmd = Nx / param.analysis.block_size * param.analysis.specular.threshold_max;
+        sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+        sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
+        out_fn = fullfile(out_fn_dir_dir,sprintf('specular_img_%02d.mat',img));
+        dparam.success = cat(2,dparam.success, ...
+          sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
+        if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+          delete(out_fn);
+        end
+        
+      case {'coherent_noise'}
+        Nx_cmd = Nx / cmd.block_ave;
+        sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
+        sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
+        out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_img_%02d.mat',img));
+        dparam.success = cat(2,dparam.success, ...
+          sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
+        if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+          delete(out_fn);
+        end
+        
+      case {'burst_noise'}
+        %
+    end
+  end
+end
+sparam.notes = sprintf('%s:%s:%s %s combine', ...
+  mfilename, param.radar_name, param.season_name, param.day_seg);
+
+ctrl = cluster_new_task(ctrl,sparam,[]);
+
+ctrl_chain{end+1} = ctrl;
+    
+fprintf('Done %s\n', datestr(now));
+
+return

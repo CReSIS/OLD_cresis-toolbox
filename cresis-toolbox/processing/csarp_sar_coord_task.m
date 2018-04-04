@@ -38,7 +38,7 @@ if param.csarp.presums > 1
 end
 
 % SAR output directory
-csarp_out_dir = ct_filename_out(param, param.csarp.out_path);
+csarp_coord_dir = ct_filename_out(param, param.csarp.coord_path);
 
 %% Collect waveform information into one structure
 %  - This is used to break the frame up into chunks
@@ -116,7 +116,7 @@ sar.pitch = fcs.pitch;
 sar.heading = fcs.heading;
 sar.gps_time = fcs.gps_time;
 
-sar_fn = fullfile(csarp_out_dir,'sar_coord.mat');
+sar_fn = fullfile(csarp_coord_dir,'sar_coord.mat');
 sar_fn_dir = fileparts(sar_fn);
 if ~exist(sar_fn_dir,'dir')
   mkdir(sar_fn_dir);

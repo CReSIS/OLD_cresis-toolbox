@@ -70,7 +70,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
-  profile(pidx).cluster.max_jobs_active       = 512;
+  profile(pidx).cluster.max_jobs_active       = 96;
   profile(pidx).cluster.max_time_per_job      = 86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
@@ -137,7 +137,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
-  profile(pidx).cluster.max_jobs_active       = 512;
+  profile(pidx).cluster.max_jobs_active       = 128;
   profile(pidx).cluster.max_time_per_job      = 86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
@@ -263,7 +263,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
-  profile(pidx).cluster.max_jobs_active       = 512;
+  profile(pidx).cluster.max_jobs_active       = 128;
   profile(pidx).cluster.max_time_per_job      = 86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
@@ -297,7 +297,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.type                    = 'slurm';
   %profile(pidx).cluster.type                    = 'ollie';
   %profile(pidx).cluster.type                    = 'debug';
-  profile(pidx).cluster.max_jobs_active         = 64;
+  profile(pidx).cluster.max_jobs_active         = 128;
   profile(pidx).cluster.max_time_per_job        = 86400;
   profile(pidx).cluster.desired_time_per_job    = 2*3600;
   profile(pidx).cluster.max_retries             = 2;
@@ -380,8 +380,8 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'create_records_mcords_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'basic_load_fmcw.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'basic_load_fmcw2.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'rx_chan_equal_sar_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'rx_chan_equal_raw_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};

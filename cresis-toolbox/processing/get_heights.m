@@ -488,6 +488,9 @@ for frm = param.cmd.frms
   out_fn = fullfile(qlook_out_dir,out_fn_name);
   sparam.success = cat(2,sparam.success, ...
     sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+  if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+    delete(out_fn);
+  end
 end
 
 ctrl = cluster_new_task(ctrl,sparam,[]);

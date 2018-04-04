@@ -56,6 +56,10 @@ if ~isfield(param.csarp,'out_path') || isempty(param.csarp.out_path)
   param.csarp.out_path = 'out';
 end
 
+if ~isfield(param.csarp,'coord_path') || isempty(param.csarp.coord_path)
+  param.csarp.coord_path = param.csarp.out_path;
+end
+
 if ~isfield(param.csarp,'pulse_comp') || isempty(param.csarp.pulse_comp)
   param.csarp.pulse_comp = 1;
 end
@@ -191,6 +195,7 @@ along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.ele
 
 % SAR output directory
 csarp_out_dir = ct_filename_out(param, param.csarp.out_path);
+csarp_coord_dir = ct_filename_out(param, param.csarp.coord_path);
 
 ctrl_chain = {};
 
@@ -219,7 +224,7 @@ end
 %% Create the SAR coordinate system (used for structuring processing)
 % =====================================================================
 
-sar_fn = fullfile(csarp_out_dir,'sar_coord.mat');
+sar_fn = fullfile(csarp_coord_dir,'sar_coord.mat');
 if exist(sar_fn,'file')
   sar = load(sar_fn,'Lsar','gps_source','type','sigma_x','presums','version');
 end
@@ -307,7 +312,7 @@ end
 %% Create and setup the cluster batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
-cluster_compile({'csarp_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+cluster_compile({'csarp_task.m','csarp_sar_coord_task'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = {};
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
