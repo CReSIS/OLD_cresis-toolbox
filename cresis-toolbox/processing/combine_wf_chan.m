@@ -95,6 +95,14 @@ if ~isfield(param.csarp,'out_path') || isempty(param.csarp.out_path)
   param.csarp.out_path = 'out';
 end
 
+if ~isfield(param.combine,'presums') || isempty(param.combine.presums)
+  if ~isfield(param.csarp,'presums') || isempty(param.csarp.presums)
+    param.combine.presums = 1;
+  else
+    param.combine.presums = param.csarp.presums;
+  end
+end
+
 if ~isfield(param.combine,'sar_type') || isempty(param.combine.sar_type)
   if ~isfield(param.csarp,'sar_type') || isempty(param.csarp.sar_type)
     param.combine.sar_type = 'fk';
@@ -149,6 +157,18 @@ combine_out_dir = ct_filename_out(param, param.combine.out_path);
 % Load records file
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+% Apply presumming
+if param.csarp.presums > 1
+  records.lat = fir_dec(records.lat,param.csarp.presums);
+  records.lon = fir_dec(records.lon,param.csarp.presums);
+  records.elev = fir_dec(records.elev,param.csarp.presums);
+  records.roll = fir_dec(records.roll,param.csarp.presums);
+  records.pitch = fir_dec(records.pitch,param.csarp.presums);
+  records.heading = fir_dec(records.heading,param.csarp.presums);
+  records.gps_time = fir_dec(records.gps_time,param.csarp.presums);
+  records.surface = fir_dec(records.surface,param.csarp.presums);
+end
+% Along-track
 along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
 
 % Preload layer for image combine if it is specified
@@ -220,9 +240,10 @@ for frm_idx = 1:length(param.cmd.frms);
   
   if ct_proc_frame(frames.proc_mode(frm),param.combine.frm_types)
     fprintf('%s combine %s_%03i (%i of %i) %s\n', param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    skip_frame = false;
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
-    continue;
+    skip_frame = true;
   end
   
   % Temporary output directory
@@ -232,9 +253,9 @@ for frm_idx = 1:length(param.cmd.frms);
   % Current frame goes from the start record specified in the frames file
   % to the record just before the start record of the next frame.  For
   % the last frame, the stop record is just the last record in the segment.
-  start_rec = frames.frame_idxs(frm);
+  start_rec = ceil(frames.frame_idxs(frm)/param.csarp.presums);
   if frm < length(frames.frame_idxs)
-    stop_rec = frames.frame_idxs(frm+1)-1;
+    stop_rec = ceil((frames.frame_idxs(frm+1)-1)/param.csarp.presums);
   else
     stop_rec = length(records.gps_time);
   end
@@ -245,15 +266,14 @@ for frm_idx = 1:length(param.cmd.frms);
   % Determine number of chunks and range lines per chunk
   num_chunks = round(frm_dist / param.combine.chunk_len);
   
-  %% Process each chunk
-  for chunk_idx = 1:num_chunks  
+  %% Process each chunk (unless it is a skip frame)
+  for chunk_idx = 1:num_chunks*~skip_frame
     % Prepare task inputs
     % =================================================================
     dparam = [];
     dparam.argsin{1}.load.frm = frm;
     dparam.argsin{1}.load.chunk_idx = chunk_idx;
     dparam.argsin{1}.load.num_chunks = num_chunks;
-    prev_frm_num_chunks = num_chunks;
     dparam.argsin{1}.load.prev_frm_num_chunks = prev_frm_num_chunks;
   
     % Create success condition
@@ -322,6 +342,7 @@ for frm_idx = 1:length(param.cmd.frms);
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
     
   end
+  prev_frm_num_chunks = num_chunks;
 end
 
 ctrl = cluster_save_dparam(ctrl);

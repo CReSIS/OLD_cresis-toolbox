@@ -41,16 +41,10 @@ function create_frames(param, param_override)
 
 %% General Setup
 % =====================================================================
-
-if ~isstruct(param)
-  % Functional form
-  param();
-end
 param = merge_structs(param, param_override);
 
-dbstack_info = dbstack;
 fprintf('=====================================================================\n');
-fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
 %% Setup creation of frames
@@ -399,6 +393,12 @@ else
   GB.proj = geotiffinfo(GB.param.records.geotiff_fn);
   % Read the image
   [RGB, R, tmp] = geotiffread(GB.param.records.geotiff_fn);
+  if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
+    RGB = uint8(RGB);
+  end
+  if strcmpi(class(RGB),'int16') || strcmpi(class(RGB),'single')
+    RGB = double(RGB);
+  end
   R = R/1e3;
   
   [GB.X,GB.Y] = projfwd(GB.proj,double(GB.records.lat),double(GB.records.lon));

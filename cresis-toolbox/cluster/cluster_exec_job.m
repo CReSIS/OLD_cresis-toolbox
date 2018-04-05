@@ -91,6 +91,7 @@ for task_idx = 1:length(task_ids)
     
     argsout = {};
     errorstruct = [];
+    fprintf('  %s: %s\n', mfilename, param.notes);
     fprintf('  %s: Eval %s\n', mfilename, eval_cmd);
     
     if ctrl.cluster.dbstop_if_error
@@ -116,7 +117,7 @@ for task_idx = 1:length(task_ids)
       end
     end
     
-    fprintf('  %s: Done eval\n', mfilename);
+    fprintf('%s: Done Eval (%s)\n', mfilename, datestr(now));
     cpu_time_actual = toc(cluster_task_start_time);
     save(out_fn,param.file_version,'argsout','errorstruct','cpu_time_actual');
     

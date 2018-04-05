@@ -36,7 +36,11 @@ if ~(~ismcc && isdeployed)
   % AWI Profile Windows (PROFILE 7)
   % AWI Profile Linux (PROFILE 8)
   % AWI Profile Ollie (PROFILE 9)
-  cur_profile = 1;
+  if ispc
+    cur_profile = 6;
+  else
+    cur_profile = 1;
+  end
   
   fprintf('Startup Script Running\n');
   

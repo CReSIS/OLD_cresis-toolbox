@@ -180,8 +180,10 @@ if old_time > records.gps_time(1)
   warning('records out of order');
 end
 
-if any(diff(records.gps_time) < 0)
-  warning('time not monotonically increasing')
+nonmonotonic_records = diff(records.gps_time) < 0;
+if any(nonmonotonic_records)
+  warning('time not monotonically increasing: First non-monotonic record %d of %d total, %d total records.', ...
+    find(nonmonotonic_records,1), sum(nonmonotonic_records), length(records.gps_time));
 end
 
 if any(isnan(records.lat) | isnan(records.lon) | isnan(records.elev)  | isnan(records.roll)  | isnan(records.pitch)  | isnan(records.heading))

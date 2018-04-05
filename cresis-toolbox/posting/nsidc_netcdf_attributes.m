@@ -89,7 +89,7 @@ elseif any(strcmpi(param.season_name,{'2009_Greenland_P3','2009_Antarctica_DC8',
     '2012_Antarctica_DC8'}))
   netcdf.putAtt(ncid,varid,'investigators','C.Leuschen, C. Allen, R. Hale, J. Paden, F. Rodriguez');
 elseif any(strcmpi(param.season_name,{'2013_Greenland_P3', ...
-    '2013_Antarctica_P3','2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3'}))
+    '2013_Antarctica_P3','2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3'}))
   netcdf.putAtt(ncid,varid,'investigators','C.Leuschen, R. Hale, J. Li, J. Paden, F. Rodriguez');
 else
   error('Unsupported season\n');
@@ -166,7 +166,7 @@ if strcmp(sensor_type,'accum')
     '2014_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitter: 1 GSPS DDS, 5 W\n'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitter: 2.4 GSPS AWG, 400 W\n'));
   else
@@ -229,7 +229,7 @@ elseif strcmp(sensor_type,'rds')
   elseif any(strcmpi(param.season_name,{'2016_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitters: 2-channel DDS with phase/amplitude control, 250W SSPA per channel\n'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitters: 7-channel DDS with phase/amplitude control, 500W SSPA per channel\n'));
   else
@@ -246,7 +246,7 @@ elseif strcmp(sensor_type,'snow')
     '2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitter: DDS with 20x frequency multiplier, 0.1 W\n'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitter: Keysight M8195A AWG 65 GSPS, 0.1 W, 2-18 GHz\n'));
   else
@@ -272,14 +272,14 @@ if strcmp(sensor_type,'accum')
       sprintf('Single channel mode: all antennas used for tx and rx\n'));
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Multichannel channel mode: outer elements used for tx, all elements used for rx\n'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Multichannel: Forward 4 elements tx with power splitter, aft 4 elements used for rx with individual channels digitized\n'));
   else
     error('Unsupported season\n');
   end
 elseif strcmp(sensor_type,'rds')
-  if any(strcmpi(param.season_name,{'2010_Greenland_P3','2011_Greenland_P3','2012_Greenland_P3','2013_Antarctica_P3','2014_Greenland_P3','2017_Greenland_P3'}))
+  if any(strcmpi(param.season_name,{'2010_Greenland_P3','2011_Greenland_P3','2012_Greenland_P3','2013_Antarctica_P3','2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('TX/RX mode: Channels 1-7 are Tx/Rx (center elements), Channels 8-15 are Rx only (wing elements)\n'));
   elseif any(strcmpi(param.season_name,{'2013_Greenland_P3'}))
@@ -383,7 +383,7 @@ if strcmp(sensor_type,'accum')
       sprintf('Digitizer platform: NI PXIe Windows PC running LabView\n'));
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer manufacturer: National Instruments/Sundance'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
     digparams_val = cat(2,digparams_val, ...
@@ -428,7 +428,7 @@ elseif strcmp(sensor_type,'rds')
       sprintf('Digitizer manufacturer: Analog Devices and Custom'));
   elseif any(strcmpi(param.season_name,{'2011_Greenland_P3','2011_Antarctica_DC8','2012_Greenland_P3', ...
       '2012_Antarctica_DC8','2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2014_Antarctica_DC8','2016_Antarctica_DC8','2017_Greenland_P3',}))
+      '2014_Greenland_P3','2014_Antarctica_DC8','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3'}))
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
     digparams_val = cat(2,digparams_val, ...
@@ -492,7 +492,7 @@ elseif any(strcmp(sensor_type,{'kuband','snow'}))
       sprintf('Digitizer manufacturer: Analog Devices and Custom'));
   elseif any(strcmpi(param.season_name,{'2012_Greenland_P3', ...
       '2012_Antarctica_DC8','2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3'}))
+      '2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3'}))
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
     digparams_val = cat(2,digparams_val, ...
@@ -533,7 +533,7 @@ if strcmp(sensor_type,'accum')
       '2014_Greenland_P3','2016_Antarctica_DC8'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: 2 along-track x 4 cross-track elliptical dipole array\n'));
-  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3'}))
+  elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: 2 along-track x 4 cross-track elliptical dipole array (forward four for Tx, aft four for Rx)\n'));
   else
@@ -555,7 +555,7 @@ elseif strcmp(sensor_type,'rds')
       '2010_Greenland_P3', ...
       '2011_Greenland_P3','2012_Greenland_P3', ...
       '2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2017_Greenland_P3'}))
+      '2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: Three loaded dipole arrays with 15 elements: 4 left wing, 7 center wing, 4 right wing\n'));
     antparams_val = cat(2,antparams_val, ...
@@ -586,7 +586,7 @@ elseif strcmp(sensor_type,'snow')
       '2010_Greenland_P3','2010_Antarctica_DC8', ...
       '2011_Greenland_P3','2011_Antarctica_DC8','2012_Greenland_P3', ...
       '2012_Antarctica_DC8','2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2014_Greenland_DC8','2014_Antarctica_DC8','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3'}))
+      '2014_Greenland_P3','2014_Greenland_DC8','2014_Antarctica_DC8','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: ETS Lindgren TEM horn antenna model ETS 3115\n'));
   elseif any(strcmpi(param.season_name,{'2009_Antarctica_DC8'}))
