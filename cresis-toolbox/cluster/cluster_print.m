@@ -129,7 +129,7 @@ if print_flag == 1
       
     elseif strcmpi(ctrl.cluster.type,'slurm')
       %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
-      cmd = sprintf('scontrol show job %d', job_id);
+      cmd = sprintf('scontrol show job %d </dev/null', job_id);
       try; [status,result] = system(cmd); end;
       
     elseif strcmpi(ctrl.cluster.type,'debug')

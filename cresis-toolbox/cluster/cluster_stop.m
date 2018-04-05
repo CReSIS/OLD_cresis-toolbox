@@ -1,8 +1,8 @@
 function cluster_stop(ctrl_chain,mode)
 % cluster_stop(ctrl_chain,mode)
 %
-% Stops and kills jobs for a chain or batch specified by ctrl_chain, but
-% leaves the ctrl_chain data files (unlike cluster_cleanup which stops jobs
+% Sets a hold and kills jobs for a chain or batch specified by ctrl_chain, but
+% leaves the ctrl_chain data files (unlike cluster_cleanup which kills jobs
 % and removes data files).
 %
 % Inputs:
@@ -102,30 +102,42 @@ for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
   fprintf('Stopping batch %d\n', ctrl.batch_id);
   ctrl = cluster_get_batch(ctrl,false,0);
+  cluster_hold(ctrl,1);
   if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
     
     % For each job in the batch, delete the job
-    for job_id = 1:length(ctrl.job_id_list)
-      if ctrl.job_status(job_id) ~= 'C'
+    stopped_job_id_list = -1;
+    for task_id = 1:length(ctrl.job_id_list)
+      if any(ctrl.job_id_list(task_id) == stopped_job_id_list)
+        continue
+      end
+      if ctrl.job_status(task_id) ~= 'C'
         % Only delete jobs that have not been completed (completed jobs
         % are effectively deleted already)
         if strcmpi(ctrl.cluster.type,'torque')
-          cmd = sprintf('qdel -a %i', ctrl.job_id_list(job_id));
+          cmd = sprintf('qdel -W 60 -a %i </dev/null', ctrl.job_id_list(task_id));
           try; [status,result] = system(cmd); end
           
         elseif strcmpi(ctrl.cluster.type,'matlab')
           for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
-            if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list)
+            if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(task_id))
               try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
             end
           end
           
         elseif strcmpi(ctrl.cluster.type,'slurm')
-          cmd = sprintf('scancel %i', ctrl.job_id_list(job_id));
+          cmd = sprintf('scancel %i </dev/null', ctrl.job_id_list(task_id));
           try; [status,result] = system(cmd); end
           
         end
+        stopped_job_id_list(end+1) = ctrl.job_id_list(task_id);
       end
     end
+    fid = fopen(ctrl.job_id_fn,'r+');
+    for task_id = 1:length(ctrl.job_id_list)
+      fseek(fid, 21*(task_id-1), -1);
+      fprintf(fid,'%-20d\n', -1);
+    end
+    fclose(fid);
   end
 end

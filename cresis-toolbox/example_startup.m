@@ -57,15 +57,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = '/cresis/snfs1/scratch/paden/mdce_tmp/';
-  profile(pidx).ct_tmp_file_path          = '/cresis/snfs1/dataproducts/ct_data/ct_tmp';
   
   profile(pidx).data_path                 = '/cresis/snfs1/data/';
   profile(pidx).data_support_path         = '/cresis/snfs1/dataproducts/metadata/';
   profile(pidx).support_path              = '/cresis/snfs1/dataproducts/csarp_support/';
   profile(pidx).out_path                  = '/cresis/snfs1/dataproducts/ct_data/';
   profile(pidx).gis_path                  = '/cresis/snfs1/dataproducts/GIS_data/';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
   
-  profile(pidx).cluster.data_location       = '/cresis/snfs1/scratch/paden/mdce_tmp/cluster-temp';
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
@@ -89,15 +89,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = '/N/dc2/scratch/jpaden/mdce_tmp/'; % scratch may be on dcwan or dc2
-  profile(pidx).ct_tmp_file_path          = '/N/dcwan/projects/cresis/ct_tmp/';
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
   profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
   profile(pidx).support_path              = '/N/dcwan/projects/cresis/csarp_support/';
   profile(pidx).out_path                  = '/N/dcwan/projects/cresis/output/';
   profile(pidx).gis_path                  = '/N/dcwan/projects/cresis/GIS_data';
-  
-  profile(pidx).cluster.data_location       = '/N/dc2/scratch/jpaden/ct_tmp/cluster-temp';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
+
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
@@ -124,15 +124,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = '/scratch/tmp/';
-  profile(pidx).ct_tmp_file_path          = '/scratch/ct_tmp/';
   
   profile(pidx).data_path                 = '/scratch/';
   profile(pidx).data_support_path         = '/scratch/metadata/';
   profile(pidx).support_path              = '/scratch/csarp_support/';
   profile(pidx).out_path                  = '/scratch/';
   profile(pidx).gis_path                  = '/scratch/GIS_data';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
   
-  profile(pidx).cluster.data_location         = '/scratch/tmp/cluster-temp';
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
@@ -157,13 +157,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = 'C:\tmp\mdce_tmp\';
-  profile(pidx).ct_tmp_file_path          = 'D:\output\ct_tmp\';
   
   profile(pidx).data_path                 = 'D:\';
   profile(pidx).data_support_path         = 'C:\metadata\';
   profile(pidx).support_path              = 'C:\csarp_support\';
   profile(pidx).out_path                  = 'D:\output\';
   profile(pidx).gis_path                  = 'C:\GIS_data\';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
+  
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
   
   profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
@@ -194,13 +196,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = 'Y:/paden/mdce_tmp/';
-  profile(pidx).ct_tmp_file_path          = 'X:/ct_data/ct_tmp/';
   
   profile(pidx).data_path                 = 'V:/';
   profile(pidx).data_support_path         = 'X:/metadata/';
   profile(pidx).support_path              = 'X:/csarp_support/';
   profile(pidx).out_path                  = 'X:/ct_data/';
   profile(pidx).gis_path                  = 'X:/GIS_data/';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
+  
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
   
   profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
@@ -223,14 +227,16 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = 'F:\mdce_tmp\';
-  profile(pidx).ct_tmp_file_path          = 'F:\ct_tmp\';
   
   profile(pidx).data_path                 = 'D:\';
   profile(pidx).data_support_path         = 'F:\metadata\';
   profile(pidx).support_path              = 'F:\csarp_support\';
   profile(pidx).out_path                  = 'F:\';
   profile(pidx).gis_path                  = 'C:\tmp\GIS_data\';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
   
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
+
   profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
   %profile(pidx).cluster.type                  = 'none';
@@ -252,13 +258,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = '/home/administrator/Scratch/mdce_tmp/';
-  profile(pidx).ct_tmp_file_path          = '/home/administrator/Scratch/ct_tmp/';
   
   profile(pidx).data_path                 = '/mnt/AWI_SSD0/';
   profile(pidx).data_support_path         = '/home/administrator/Scratch/metadata/';
   profile(pidx).support_path              = '/home/administrator/Scratch/csarp_support/';
   profile(pidx).out_path                  = '/home/administrator/Scratch/';
   profile(pidx).gis_path                  = '/home/administrator/GIS_data/';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
+  
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
   
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
@@ -283,15 +291,15 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = '/work/ollie/jpaden/Scratch/mdce_tmp/';
-  profile(pidx).ct_tmp_file_path          = '/work/ollie/jpaden/Scratch/ct_tmp/';
 
   profile(pidx).data_path                 = '/work/ollie/jpaden/Data/';
   profile(pidx).data_support_path         = '/work/ollie/jpaden/Scratch/metadata/';
   profile(pidx).support_path              = '/work/ollie/jpaden/Scratch/csarp_support/';
   profile(pidx).out_path                  = '/work/ollie/jpaden/Scratch/';
   profile(pidx).gis_path                  = '/work/ollie/jpaden/GIS_data/';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
  
-  profile(pidx).cluster.data_location     = '/work/ollie/jpaden/Scratch/mdce_tmp/cluster-temp';
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
 
   %profile(pidx).cluster.type                    = 'matlab';
   profile(pidx).cluster.type                    = 'slurm';
