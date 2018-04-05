@@ -397,6 +397,12 @@ if (strcmpi(param.season_name,'2011_Antarctica_TO') && (strcmpi(gps_source,'Nova
   %gps.z = -(48.5+13.8)*0.0254; % Original file had this for 2011_Greenland_TO...
 end
 
+if (strcmpi(param.season_name,'2008_Greenland_Ground'))
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2006_Greenland_TO') && strcmpi(gps_source,'ATM'))
   gps.x = -5*12*2.54/100;
   gps.y = 5.75;
@@ -1371,9 +1377,6 @@ if (strcmpi(param.season_name,'2008_Greenland_Ground') && strcmpi(radar_name,'rd
   % Last 4 receive are antennas 5-8 in polarimetric V configuration
   % First 2 transmits are regular HH antenna positions
   % Third transmit is V antenna position for antenna 2
-  gps.x = 0*0.0254;
-  gps.y = 0*0.0254;
-  gps.z = 0*0.0254;
 
   LArx(1,:)   = -[ 4.365 4.365 4.365 4.365 4.365 4.365 4.365 4.365 4.365-0.857 4.365+0.857 4.365-0.857 4.365+0.857]/2 - gps.x;  % m
   LArx(2,:)   = [[ -3.5 -2.5 -1.5 -0.5 0.5 1.5 2.5 3.5]*0.857 0.8975 0.8975 1.9995 1.9995]  - gps.y; % m
