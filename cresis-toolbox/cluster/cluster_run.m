@@ -33,7 +33,7 @@ function ctrl_chain = cluster_run(ctrl_chain,block)
 %   cluster_update_batch, cluster_update_task
 
 if isnumeric(ctrl_chain)
-  ctrl_chain = cluster_load_chain([],ctrl_chain);
+  ctrl_chain = cluster_load_chain(ctrl_chain);
 end
 
 if iscell(ctrl_chain)
@@ -134,7 +134,7 @@ elseif isstruct(ctrl_chain)
 
     if isempty(job_tasks) ...
         && ctrl.cluster.max_time_per_job < job_cpu_time + task_cpu_time;
-      error('ctrl.cluster.max_time_per_job is less than task %d time %.0f', task_id, task_cpu_time);
+      error('ctrl.cluster.max_time_per_job is less than task %d''s requested time: %.0f sec', task_id, task_cpu_time);
     end
     if ctrl.cluster.desired_time_per_job < job_cpu_time + task_cpu_time && ~isempty(job_tasks)
       [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);

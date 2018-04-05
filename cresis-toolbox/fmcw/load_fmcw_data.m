@@ -30,7 +30,7 @@ if ~isfield(param.proc,'deconvolution') || isempty(param.proc.deconvolution)
   param.proc.deconvolution = 0;
 end
 if param.proc.deconvolution == 3
-  out_fn_dir = ct_filename_out(param,'', 'CSARP_noise');
+  out_fn_dir = ct_filename_out(param,'analysis');
   out_segment_fn_dir = fileparts(out_fn_dir);
   out_segment_fn = fullfile(out_segment_fn_dir,sprintf('deconv_%s.mat', param.day_seg));
   spec = load(out_segment_fn);
@@ -513,7 +513,7 @@ for board_idx = 1:length(boards)
     stop_bin = min(round(T*min(fs_raw)), floor((param.wfs(wf).Tpd - max_range_delay)*min(fs_raw) - start_idx/max(Mt))) * max(Mt);
     start_bin = ceil(start_bin/max_valid_Mt)*max_valid_Mt;
     stop_bin = floor(stop_bin/max_valid_Mt)*max_valid_Mt;
-    
+
     %% Process reduced bandwidth mode
     % =======================================================================
     if isfield(param.radar.wfs,'rbw_f0') && ~isempty(param.radar.wfs.rbw_f0)

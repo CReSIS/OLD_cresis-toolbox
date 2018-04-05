@@ -79,6 +79,10 @@ if ~isfield(param.csarp,'pulse_comp') || isempty(param.csarp.pulse_comp)
   param.csarp.pulse_comp = 1;
 end
 
+if ~isfield(param.csarp,'presums') || isempty(param.csarp.presums)
+  param.csarp.presums = 1;
+end
+
 if ~isfield(param.combine,'in_path') || isempty(param.combine.in_path)
   param.combine.in_path = 'out';
 end

@@ -1,14 +1,11 @@
-function ctrl = cluster_get_batch(ctrl,batch_id,force_check,update_mode)
-% ctrl = cluster_get_batch(ctrl,batch_id,force_check,update_mode)
+function ctrl = cluster_get_batch(ctrl,force_check,update_mode)
+% ctrl = cluster_get_batch(ctrl,force_check,update_mode)
 %
 % Updates task status information from the cluster. May be called from any
 % matlab process since it rebuilds the ctrl structure.
 %
 % Inputs:
-% ctrl = Default is to leave empty, []. However, if ctrl is provided:
-%   ctrl.cluster.data_location is used
-%   ctrl.batch_id is used
-% batch_id: integer for which batch to get jobs info for
+% ctrl = Must be specified. Identifies the batch.
 % force_check: default to true, forces cluster_update_task to be run on all
 %   tasks
 % update_mode: Set to 1 when tasks should be updated and changes printed to
@@ -43,9 +40,11 @@ if ~exist('update_mode','var') || isempty(update_mode)
   update_mode = 1;
 end
 
-if isempty(ctrl)
+if isnumeric(ctrl)
+  batch_id = ctrl;
   global gRadar;
-  ctrl.cluster = gRadar.cluster;
+  ctrl = [];
+  ctrl.cluster = gRadar.cluster; 
 end
 
 if isfield(ctrl,'batch_id')
@@ -110,7 +109,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   if strcmpi(ctrl.cluster.type,'torque')
     % Runs qstat command
     % -----------------------------------------------------------------------
-    [system,user_name] = robust_system('whoami');
+    [system,user_name] = robust_system('whoami </dev/null');
     user_name = user_name(1:end-1);
     cmd = sprintf('qstat -u %s </dev/null', user_name);
     [status,result] = robust_system(cmd);
@@ -122,7 +121,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   elseif strcmpi(ctrl.cluster.type,'slurm')
     % Runs squeue command
     % -----------------------------------------------------------------------
-    [system,user_name] = robust_system('whoami');
+    [system,user_name] = robust_system('whoami </dev/null');
     user_name = user_name(1:end-1);
     cmd = sprintf('squeue --users=%s </dev/null', user_name);
     [status,result] = robust_system(cmd);
