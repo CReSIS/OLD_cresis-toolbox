@@ -79,7 +79,7 @@ elseif isstruct(ctrl_chain)
   
   stats.str = [stats.str sprintf('    Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
     numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.job_status=='R'), sum(stats.job_status=='Q'), sum(stats.job_status=='T'), sum(stats.error_mask~=0), sum(stats.retries))];
-  stats.str = [stats.str sprintf('    Error tasks:'); fprintf(' %d', find(stats.error_mask~=0)); fprintf('\n')];
+  stats.str = [stats.str sprintf('    Error tasks:'), sprintf(' %d', find(stats.error_mask~=0)), sprintf('\n')];
   stats.str = [stats.str sprintf('    Max CPU time: %.0f min\n', max(stats.cpu_time)/60)];
   stats.str = [stats.str sprintf('    Max mem: %.0f MB\n', max(stats.mem)/1e6)];
   stats.str = [stats.str sprintf('    Mean CPU time: %.0f min\n', mean(stats.cpu_time)/60)];

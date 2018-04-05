@@ -1,20 +1,20 @@
-function cluster_cleanup(ctrl,cleanup_mode)
-% cluster_cleanup(ctrl,cleanup_mode)
+function cluster_cleanup(ctrl_chain,mode)
+% cluster_cleanup(ctrl_chain,mode)
 %
-% Delete batches (jobs from queue and temporary files)
+% Similar to cluster_stop, but also removes chain and batch files.
 %
 % Inputs:
-% ctrl = Several options which specify which batches to act on
-%   1. Pass in a cluster batch ctrl structure (only needs "batch_dir"
-%      defined)
-%   2. A vector of batch ids to apply hold to
-% cleanup_mode: default is 1
-%   0: delete tasks only and place hold on batch
-%   1: delete tasks and files
+% ctrl_chain = Several options to specify
+%   1. Vector of chain IDs or batch IDs, if batch ID, then mode must be set to 'batch'
+%   2. A ctrl structure identifying a batch
+%   3. A chain (cell array of ctrl)
+%   4. A list of chains (cell array of chains)
+% mode: Only used if ctrl_chain is an integer array, default is 'chain'.
+%   Integer array will be treated as chains if mode is 'chain' and batches
+%   if mode is 'batch'.
 %
 % Examples:
-%   cluster_cleanup(ctrl)
-%   cluster_cleanup([1 3])
+%   cluster_cleanup(1)
 %
 % Author: John Paden
 %
@@ -25,12 +25,14 @@ function cluster_cleanup(ctrl,cleanup_mode)
 %   cluster_update_batch, cluster_update_task
 
 %% Input check
-if nargin == 0 || isempty(ctrl)
-  answer = input('Are you sure you want to cleanup all cluster jobs? [y/N] ','s');
+if nargin == 0 || isempty(ctrl_chain)
+  answer = input('Are you sure you want to stop all cluster jobs? [y/N] ','s');
   if isempty(regexpi(answer,'y'))
     return
   end
-
+  
+  ctrl_chain = cluster_get_batch_list;
+  
   % Delete all chain files
   global gRadar;
   param = gRadar;
@@ -40,34 +42,81 @@ if nargin == 0 || isempty(ctrl)
   end
 end
 
-if ~exist('cleanup_mode','var') || isempty(cleanup_mode)
-  cleanup_mode = 1;
-end
+%% Get a list of all batches
+ctrls = cluster_get_batch_list;
+ctrls_mask = logical(zeros(size(ctrls)));
 
-%% Handle case where batch IDs have been passed in
-if nargin == 0 || ~isstruct(ctrl)
-  ctrls = cluster_get_batch_list;
-  for batch_idx = 1:length(ctrls)
-    if nargin == 0 || any(ctrls{batch_idx}.batch_id == ctrl)
-      fprintf('  Deleting jobs in batch %d\n', ctrls{batch_idx}.batch_id);
-      cluster_cleanup(ctrls{batch_idx},cleanup_mode);
+%% Determine which batches
+if isstruct(ctrl_chain)
+  % This is an array of batch control structures
+  for batch_idx = 1:length(ctrl_chain)
+    batch_id = ctrl_chain(batch_idx).batch_id;
+    for batch_idx = 1:length(ctrls)
+      if ctrls{batch_idx}.batch_id == batch_id
+        ctrls_mask(batch_idx) = true;
+      end
     end
   end
-  return;
+elseif iscell(ctrl_chain)
+  for chain_idx = 1:length(ctrl_chain)
+    if ~iscell(ctrl_chain{chain_idx})
+      % This is a control chain
+      chain = {ctrl_chain{chain_idx}};
+    else
+      % This is a list of control chains
+      chain = ctrl_chain{chain_idx};
+    end
+    for batch_idx = 1:length(chain)
+      batch_id = chain{batch_idx}.batch_id;
+      for batch_idx = 1:length(ctrls)
+        if ctrls{batch_idx}.batch_id == batch_id
+          ctrls_mask(batch_idx) = true;
+        end
+      end
+    end
+  end
+  
+elseif isnumeric(ctrl_chain)
+  if nargin >= 2 && ~isempty(mode) && strcmpi(mode,'batch')
+    % This is a list of batch IDs
+    for idx = 1:length(ctrl_chain)
+      batch_id = ctrl_chain(idx);
+      for batch_idx = 1:length(ctrls)
+        if ctrls{batch_idx}.batch_id == batch_id
+          ctrls_mask(batch_idx) = true;
+        end
+      end
+    end
+    
+  else
+    % This is a list of chain IDs
+    for idx = 1:length(ctrl_chain)
+      try
+        [tmp_ctrl_chain,chain_fn] = cluster_load_chain(ctrl_chain(idx));
+      catch
+        continue
+      end
+      cluster_cleanup(tmp_ctrl_chain);
+      delete(chain_fn);
+    end
+    return;
+  end
 end
+ctrls = ctrls(ctrls_mask);
 
-%% Place hold
-if cleanup_mode == 0
-  cluster_hold(ctrl,1)
-end
-
-%% Delete the jobs on the cluster
-if cleanup_mode == 0 || cleanup_mode == 1
+%% Stop jobs in each batch and remove files
+for ctrl_idx = 1:length(ctrls)
+  ctrl = ctrls{ctrl_idx};
+  fprintf('Removing batch %d\n', ctrl.batch_id);
+  ctrl = cluster_get_batch(ctrl,false,0);
   if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
-    ctrl = cluster_get_batch(ctrl,false,0);
     
     % For each job in the batch, delete the job
+    stopped_job_id_list = -1;
     for job_id = 1:length(ctrl.job_id_list)
+      if any(ctrl.job_id_list(job_id) == stopped_job_id_list)
+        continue
+      end
       if ctrl.job_status(job_id) ~= 'C'
         % Only delete jobs that have not been completed (completed jobs
         % are effectively deleted already)
@@ -77,7 +126,7 @@ if cleanup_mode == 0 || cleanup_mode == 1
           
         elseif strcmpi(ctrl.cluster.type,'matlab')
           for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
-            if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list)
+            if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(job_id))
               try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
             end
           end
@@ -87,15 +136,10 @@ if cleanup_mode == 0 || cleanup_mode == 1
           try; [status,result] = system(cmd); end
           
         end
+        stopped_job_id_list(end+1) = ctrl.job_id_list(job_id);
       end
     end
   end
-end
-
-%% Finally, remove the batch directory containing all the batch information
-if cleanup_mode == 1 && exist(ctrl.batch_dir,'dir')
   fprintf('  %s: Removing %s\n', mfilename, ctrl.batch_dir);
   robust_rmdir(ctrl.batch_dir);
-end
-
 end
