@@ -56,10 +56,6 @@ if ~isfield(param.csarp,'out_path') || isempty(param.csarp.out_path)
   param.csarp.out_path = 'out';
 end
 
-if ~isfield(param.csarp,'pulse_comp') || isempty(param.csarp.pulse_comp)
-  param.csarp.pulse_comp = 1;
-end
-
 if ~isfield(param.csarp,'ground_based') || isempty(param.csarp.ground_based)
   param.csarp.ground_based = false;
 end
@@ -220,6 +216,7 @@ end
 % =====================================================================
 
 sar_fn = fullfile(csarp_out_dir,'sar_coord.mat');
+fprintf('Looking for SAR coordinates file (%s):\n  %s\n', datestr(now), sar_fn);
 if exist(sar_fn,'file')
   sar = load(sar_fn,'Lsar','gps_source','type','sigma_x','presums','version');
 end

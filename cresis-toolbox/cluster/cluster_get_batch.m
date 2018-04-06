@@ -109,7 +109,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   if strcmpi(ctrl.cluster.type,'torque')
     % Runs qstat command
     % -----------------------------------------------------------------------
-    [system,user_name] = robust_system('whoami');
+    [system,user_name] = robust_system('whoami </dev/null');
     user_name = user_name(1:end-1);
     cmd = sprintf('qstat -u %s </dev/null', user_name);
     [status,result] = robust_system(cmd);
@@ -121,7 +121,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   elseif strcmpi(ctrl.cluster.type,'slurm')
     % Runs squeue command
     % -----------------------------------------------------------------------
-    [system,user_name] = robust_system('whoami');
+    [system,user_name] = robust_system('whoami </dev/null');
     user_name = user_name(1:end-1);
     cmd = sprintf('squeue --users=%s </dev/null', user_name);
     [status,result] = robust_system(cmd);
