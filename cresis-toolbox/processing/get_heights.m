@@ -200,9 +200,7 @@ if isfield(param.get_heights,'deconvolution') ...
 end
 
 % Get version information out of the coherent noise file
-if isfield(param.get_heights,'coh_noise_method') ...
-    && ~isempty(param.get_heights.coh_noise_method) ...
-    && any(param.get_heights.coh_noise_method == [17 19])
+if any(param.get_heights.coh_noise_method == [17 19])
   
   cdf_fn_dir = fileparts(ct_filename_out(param,param.get_heights.coh_noise_arg{4}, ''));
   cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s.nc', param.day_seg));

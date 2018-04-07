@@ -120,16 +120,12 @@ if ~isfield(param.csarp,'trim_vals') || isempty(param.csarp.trim_vals)
   param.csarp.trim_vals = [0 0];
 end
 
-if ~isfield(param.csarp,'coh_noise_removal') || isempty(param.csarp.coh_noise_removal) ...
-    || ~param.csarp.coh_noise_removal
-  param.csarp.coh_noise_removal = 0;
-  default_coh_noise_method = 0;
-elseif param.csarp.coh_noise_removal
-  default_coh_noise_method = 1;
+if isfield(param.csarp,'coh_noise_removal')
+  error('csarp.coh_noise_removal is deprecated. Please use the field name csarp.coh_noise_method or remove this column if not using coherent noise removal.');
 end
 
 if ~isfield(param.csarp,'coh_noise_method') || isempty(param.csarp.coh_noise_method)
-  param.csarp.coh_noise_method = default_coh_noise_method;
+  param.csarp.coh_noise_method = 0;
 end
 
 if ~isfield(param.csarp,'coh_noise_arg')
@@ -225,6 +221,7 @@ end
 % =====================================================================
 
 sar_fn = fullfile(csarp_coord_dir,'sar_coord.mat');
+fprintf('Looking for SAR coordinates file (%s):\n  %s\n', datestr(now), sar_fn);
 if exist(sar_fn,'file')
   sar = load(sar_fn,'Lsar','gps_source','type','sigma_x','presums','version');
 end
