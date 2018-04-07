@@ -1,5 +1,5 @@
-function [param] = load_mcords2_data(param)
-% [param] = load_mcords2_data(param)
+function [param] = load_mcords2_data(param,records)
+% [param] = load_mcords2_data(param,records)
 %
 % ----------------------------------------------------------------
 %
@@ -89,6 +89,9 @@ function [param] = load_mcords2_data(param)
 if ~isfield(param.proc,'raw_data')
   param.proc.raw_data = false;
 end
+if ~isfield(param.proc,'coh_noise_method')
+  param.proc.coh_noise_method = 0;
+end
 if ~isfield(param.load,'wf_adc_comb')
   param.load.wf_adc_comb.en = 0;
 end
@@ -177,6 +180,25 @@ for img_idx = 1:length(param.load.imgs)
   elseif param.proc.combine_rx
     g_data{img_idx}(:) = 0;
   end
+end
+
+if param.proc.coh_noise_method == 17
+  cdf_fn_dir = fileparts(ct_filename_out(param,'analysis', ''));
+  cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s.nc', param.day_seg));
+  
+  finfo = ncinfo(cdf_fn);
+  % Determine number of records and set recs(1) to this
+  Nt = finfo.Variables(find(strcmp('coh_aveI',{finfo.Variables.Name}))).Size(2);
+  
+  noise = [];
+  noise.gps_time = ncread(cdf_fn,'gps_time');
+  recs = find(noise.gps_time > records.gps_time(1) - 100 & noise.gps_time < records.gps_time(end) + 100);
+  noise.gps_time = noise.gps_time(recs);
+  
+  noise.coh_ave = ncread(cdf_fn,'coh_aveI',[recs(1) 1],[recs(end)-recs(1)+1 Nt]) ...
+    + j*ncread(cdf_fn,'coh_aveQ',[recs(1) 1],[recs(end)-recs(1)+1 Nt]);
+
+  noise.coh_ave = - interp1(reshape(noise.gps_time,[numel(noise.gps_time) 1]),noise.coh_ave,records.gps_time,'linear','extrap').';
 end
 
 % ===================================================================
@@ -434,6 +456,11 @@ for board_idx = 1:length(boards)
           tmp = single(rec_data(wfs(wf).offset + (0:2:2*wfs(wf).Nt_raw-1))) ...
             - 1i*single(rec_data(wfs(wf).offset + (1:2:2*wfs(wf).Nt_raw-1)));
         end
+        
+        if param.proc.coh_noise_method == 17
+          tmp = tmp + noise.coh_ave(:,rec)/2;
+        end
+
         if ~param.proc.raw_data
           % Convert to volts, remove DC-bias, and apply trim
           mean_tmp = wfs(wf).DC_adjust(adc);

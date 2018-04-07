@@ -22,6 +22,11 @@ if ~exist('conn','var') || isempty(conn)
   conn = 4;
 end
 
+if order < 0
+  B = shrink(A, order, conn);
+  return
+end
+
 B = A;
 while order > 0
   A = B;

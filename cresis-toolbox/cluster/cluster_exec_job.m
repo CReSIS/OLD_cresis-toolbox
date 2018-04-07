@@ -28,7 +28,7 @@ if ~exist('run_mode','var') || isempty(run_mode)
 end
 
 if isnumeric(ctrl)
-  ctrl = cluster_get_batch([],ctrl,0);
+  ctrl = cluster_get_batch(ctrl,false,0);
 end
 
 % Create input filenames
@@ -136,7 +136,7 @@ for task_idx = 1:length(task_ids)
     cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
     setenv('MATLAB_CLUSTER_PATH',cluster_job_fn_dir);
     setenv('MATLAB_MCR_PATH',ctrl.cluster.matlab_mcr_path);
-    system(ctrl.cluster.cluster_job_fn);
+    system([ctrl.cluster.cluster_job_fn ' </dev/null']);
   end
 end
 return;

@@ -86,7 +86,7 @@ if stage_one_en
     %% Load the specular surface file
     fprintf('Loading %s img %d wf_adc %d\n', param.day_seg, img, wf_adc);
     fn_dir = fileparts(ct_filename_out(param,spec_file_input_type, ''));
-    fn = fullfile(fn_dir,sprintf('specular_img_%02d_wfadc_%d_%s.mat', img, wf_adc, param.day_seg));
+    fn = fullfile(fn_dir,sprintf('specular_%s_img_%02d.mat', param.day_seg, img));
     spec = load(fn);
     
     %% Create the frequency spectrum axis
@@ -344,6 +344,7 @@ if stage_one_en
           grid on;
           xlabel('freq index')
           ylabel('phase(rad)')
+          ylim([-pi pi]);
           h_axes(2) = gca;
           linkaxes(h_axes,'x');
           
@@ -1249,7 +1250,7 @@ if stage_two_en
         imagesc(lp(deconv_H));
         h_axis(fig_h) = gca;
         grid on;
-        title(param.day_seg,'Interpreter','none')
+        title(sprintf('%s (dB)', param.day_seg),'Interpreter','none')
         xlabel('Deconv wf index');
         ylabel('Frequency bin');
         
@@ -1259,7 +1260,7 @@ if stage_two_en
         imagesc(deconv_H_angle);
         h_axis(fig_h) = gca;
         grid on;
-        title(param.day_seg,'Interpreter','none')
+        title(sprintf('%s (rad)', param.day_seg),'Interpreter','none')
         xlabel('Deconv wf index');
         ylabel('Frequency bin');
       end

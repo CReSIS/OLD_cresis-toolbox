@@ -1,5 +1,5 @@
-function [Data, Time] = img_combine(param, mode, layers)
-% [Data, Time] = img_combine(param, mode, layers)
+function [Data, Time] = img_combine(param, param_mode, layers)
+% [Data, Time] = img_combine(param, param_mode, layers)
 %
 % Blends and combines together individual echogram image files
 % "Data_img_II_*" into a combined datafile "Data_*" according to the
@@ -7,10 +7,10 @@ function [Data, Time] = img_combine(param, mode, layers)
 %
 % param: parameter structure usually loaded from parameter spreadsheet with
 %   read_param_xls.m. The parameter structure will either look at the
-%   get_heights or combine field depending on the mode parameter.
+%   get_heights or combine field depending on the param_mode parameter.
 %  .day_seg: segment name to load
 %  .load.frm: specifies the frame to load
-%  .(mode): structure that defines the img_combine parameters
+%  .(param_mode): structure that defines the img_combine parameters
 %   .out_path: output path to be updated
 %   .img_comb: 3x(length(imgs)-1) vector which describes combination. Each
 %     set of 3 numbers controls the merge for the corresponding two images:
@@ -37,7 +37,7 @@ function [Data, Time] = img_combine(param, mode, layers)
 %     to use for the surface (if "layers" input argument is specified, then
 %     this argument is ignored)
 %   .trim_time: if true, negative time samples will be removed/trimmed
-% mode: 'get_heights' or 'combine'
+% param_mode: 'get_heights' or 'combine'
 % layers: struct defining the two way travel time to the ice top for each
 %   range line, must contain finite values
 %  .gps_time: N element vector of GPS time's for the layer (ANSI C
@@ -51,43 +51,43 @@ function [Data, Time] = img_combine(param, mode, layers)
 %% Input checks
 % =========================================================================
 
-if ~isfield(param.(mode), 'img_comb_weights')
-  param.(mode).img_comb_weights = [];
+if ~isfield(param.(param_mode), 'img_comb_weights')
+  param.(param_mode).img_comb_weights = [];
 end
-if ~isfield(param.(mode), 'img_comb_mult')
-  param.(mode).img_comb_mult = inf;
+if ~isfield(param.(param_mode), 'img_comb_mult')
+  param.(param_mode).img_comb_mult = inf;
 end
-if ~isfield(param.(mode), 'img_comb_bins')
-  param.(mode).img_comb_bins = 0;
+if ~isfield(param.(param_mode), 'img_comb_bins')
+  param.(param_mode).img_comb_bins = 0;
 end
-if ~isfield(param.(mode), 'img_comb_weights_mode')
-  param.(mode).img_comb_weights_mode = '';
+if ~isfield(param.(param_mode), 'img_comb_weights_mode')
+  param.(param_mode).img_comb_weights_mode = '';
 end
 
 %% Setup processing
 % =========================================================================
 % Output path
-img_fn_dir = ct_filename_out(param,param.(mode).out_path,'');
+img_fn_dir = ct_filename_out(param,param.(param_mode).out_path,'');
 
-if isempty(layers) && isfield(param.(mode),'img_comb_layer_params') && ~isempty(param.(mode).img_comb_layer_params)
+if isempty(layers) && isfield(param.(param_mode),'img_comb_layer_params') && ~isempty(param.(param_mode).img_comb_layer_params)
   param_load_layers = param;
   param_load_layers.cmd.frms = param.load.frm;
-  layers = opsLoadLayers(param_load_layers,param.(mode).img_comb_layer_params);
+  layers = opsLoadLayers(param_load_layers,param.(param_mode).img_comb_layer_params);
 end
 
 %% Combine images
 % =========================================================================
 % Check img_comb
-if numel(param.(mode).imgs) == 1 || isempty(param.(mode).img_comb)
+if numel(param.(param_mode).imgs) == 1 || isempty(param.(param_mode).img_comb)
   num_imgs = 1;
 else
-  num_imgs = length(param.(mode).imgs);
-  if length(param.(mode).img_comb) ~= 3*(num_imgs-1)
-    error('param.%s.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.', mode);
+  num_imgs = length(param.(param_mode).imgs);
+  if length(param.(param_mode).img_comb) ~= 3*(num_imgs-1)
+    error('param.%s.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.', param_mode);
   end
 end
 for img = 1:num_imgs
-  if length(param.(mode).imgs) == 1
+  if length(param.(param_mode).imgs) == 1
     img_fn = fullfile(img_fn_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, param.load.frm));
   else
@@ -100,10 +100,10 @@ for img = 1:num_imgs
   % append.Data, append.Time => new data to append
   if img == 1
     load(img_fn,'Data','Time','GPS_time');
-    if ~isempty(param.(mode).img_comb_weights)
-      Data = Data*10.^(param.(mode).img_comb_weights(img)/10);
+    if ~isempty(param.(param_mode).img_comb_weights)
+      Data = Data*10.^(param.(param_mode).img_comb_weights(img)/10);
     end
-    if isfield(param.(mode), 'trim_time') && param.(mode).trim_time
+    if isfield(param.(param_mode), 'trim_time') && param.(param_mode).trim_time
       first_idx = find(Time >= 0,1,'first');
       if ~isempty(first_idx)
         Time = Time(first_idx:end);
@@ -117,7 +117,7 @@ for img = 1:num_imgs
     end
     
     % Report auto difference to stdout
-    if strcmpi(param.(mode).img_comb_weights_mode,'auto')
+    if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')
       fprintf('%.0f\t%.1f\n', img, lp(difference));
     end
     
@@ -131,16 +131,16 @@ for img = 1:num_imgs
     append.Data = interp1(append.Time,append.Data,newTime,'linear',0);
     
     % Determine guard at end of image 1 that will not be used
-    blend_bins = param.(mode).img_comb_bins;
-    guard_bins = 1 + round(param.(mode).img_comb((img-2)*3+3)/dt);
+    blend_bins = param.(param_mode).img_comb_bins;
+    guard_bins = 1 + round(param.(param_mode).img_comb((img-2)*3+3)/dt);
     max_good_time = length(Time)*ones(1,size(Data,2));
     
     % First row of img_bins indicates the start of the blend-region
     if ~(Surface == 0)
       img_bins = round(interp1(newTime, 1:length(newTime), ...
-        max(min(Surface * param.(mode).img_comb_mult, ...
-        Surface + param.(mode).img_comb((img-2)*3 + 1)), ...
-        param.(mode).img_comb((img-2)*3 + 2)), 'linear', 'extrap'));
+        max(min(Surface * param.(param_mode).img_comb_mult, ...
+        Surface + param.(param_mode).img_comb((img-2)*3 + 1)), ...
+        param.(param_mode).img_comb((img-2)*3 + 2)), 'linear', 'extrap'));
     else
       img_bins = max_good_time-guard_bins;
     end
@@ -158,7 +158,7 @@ for img = 1:num_imgs
     img_bins(2,:) = img_bins(1,:) + 1 + blend_bins;
     
     % Estimate difference
-    if strcmpi(param.(mode).img_comb_weights_mode,'auto')
+    if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')
       newData = zeros(size(append.Data),'single');
       difference = NaN*zeros(1,size(newData,2));
       for rline = 1:size(newData,2)
@@ -195,7 +195,7 @@ for img = 1:num_imgs
   end
   
   % Report auto difference to stdout
-  if strcmpi(param.(mode).img_comb_weights_mode,'auto')
+  if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')
     fprintf('\n');
   end
 end

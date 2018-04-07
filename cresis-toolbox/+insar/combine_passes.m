@@ -62,7 +62,7 @@ if 1
     % Start and stop chunk to load (inf for second element loads to the end)
     param.load_sar_data.chunk = [1 inf];
     
-    param.load_sar_data.sar_type = 'f-k';
+    param.load_sar_data.sar_type = 'fk';
     
     frm = str2double(frms{frm_idx}(13:end));
     param.load_sar_data.frame = frm;
@@ -222,4 +222,5 @@ out_fn_dir = fileparts(out_fn);
 if ~exist(out_fn_dir,'dir')
   mkdir(out_fn_dir);
 end
-save(out_fn,'-v7.3','pass');
+param_insar = param;
+save(out_fn,'-v7.3','pass','param_insar');

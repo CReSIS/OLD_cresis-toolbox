@@ -150,6 +150,22 @@ for pass_idx = 1:length(pass)
     pass(pass_idx).ref_y(rline) = offset(:,min_idx).'*ref.y(:,min_idx);
     pass(pass_idx).ref_z(rline) = offset(:,min_idx).'*ref.z(:,min_idx);
 
+    % Compute the location of all pixels from this range line in ECEF
+    wf = 1; % HACK: param_insar.load_sar_data.imgs
+    pass(pass_idx).wfs(wf).time;
+    time = pass(pass_idx).time(2)-pass(pass_idx).time(1);
+    
+    range = time * c/2;
+    range(time>pass(pass_idx).surface(rline)) = pass(pass_idx).surface(rline)*c/2 ...
+      + (time(time>pass(pass_idx).surface(rline)) - pass(pass_idx).surface(rline))*c/2/sqrt(er_ice);
+    
+    pixels = pass(pass_idx).ecef(:,rline) + pass(pass_idx).z(:,rline)*range;
+
+    % Compute the location of all pixels from this range line in the master
+    % line coordinate system FCS.
+    Tfcs = [ref.x, ref.y, ref.z];
+    pass(pass_idx).pixels(:,:,rline) = (pixels - ref.origin) / Tfcs;    
+    
   end
   
   pass(pass_idx).along_track_slave = geodetic_to_along_track(pass(pass_idx).lat,pass(pass_idx).lon,pass(pass_idx).elev);;

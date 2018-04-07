@@ -60,10 +60,6 @@ if ~isfield(param.csarp,'coord_path') || isempty(param.csarp.coord_path)
   param.csarp.coord_path = param.csarp.out_path;
 end
 
-if ~isfield(param.csarp,'pulse_comp') || isempty(param.csarp.pulse_comp)
-  param.csarp.pulse_comp = 1;
-end
-
 if ~isfield(param.csarp,'ground_based') || isempty(param.csarp.ground_based)
   param.csarp.ground_based = false;
 end

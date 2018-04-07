@@ -202,10 +202,9 @@ param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rat
 param.max_duty_cycle = 0.12;
 param.create_IQ = false;
 param.tg.altitude_guard = 750*12*2.54/100;
-param.tg.staged_recording = true;
 param.tg.staged_recording = [1 1 2 2 3 3];
-param.tg.Haltitude = 500*12*2.54/100;
-param.tg.Hice_thick = ice_thickness(freq_idx);
+param.tg.Haltitude = 1250*12*2.54/100;
+param.tg.Hice_thick = 3500;
 param.fn = fullfile(base_dir,'image_mode_10us_6wf_3500mthick.xml');
 param.prf = 12000;
 param.presums = [3 3 3 3 13 13];
@@ -226,10 +225,10 @@ param.wfs(4).Tpd = 3e-6;
 param.wfs(5).Tpd = 10e-6;
 param.wfs(6).Tpd = 10e-6;
 param.phase = final_DDS_phase{cal_settings(freq_idx)};
-param.tg.look_angle = [-15 15 -15 15 -15 15];
-for wf = 1:length(param.tg.look_angle)
+param.tg.look_angle_deg = [-15 15 -15 15 -15 15];
+for wf = 1:length(param.tg.look_angle_deg)
   nadir_vec = [0 0 1];
-  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))];
+  beam_vec = [0 sind(param.tg.look_angle_deg(wf)) cosd(param.tg.look_angle_deg(wf))];
   nadir_delay = -nadir_vec * phase_centers;
   beam_delay = -beam_vec * phase_centers;
   nadir_delay = nadir_delay - nadir_delay(4);
@@ -251,10 +250,9 @@ param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rat
 param.max_duty_cycle = 0.12;
 param.create_IQ = false;
 param.tg.altitude_guard = 750*12*2.54/100;
-param.tg.staged_recording = true;
 param.tg.staged_recording = [1 1 2 2];
-param.tg.Haltitude = 500*12*2.54/100;
-param.tg.Hice_thick = ice_thickness(freq_idx);
+param.tg.Haltitude = 1250*12*2.54/100;
+param.tg.Hice_thick = 2500;
 param.fn = fullfile(base_dir,'image_mode_10us_4wf_2000mthin.xml');
 param.prf = 12000;
 param.presums = [3 3 15 15];
@@ -271,10 +269,10 @@ param.wfs(2).Tpd = 1e-6;
 param.wfs(3).Tpd = 3e-6;
 param.wfs(4).Tpd = 3e-6;
 param.phase = final_DDS_phase{cal_settings(freq_idx)};
-param.tg.look_angle = [-15 15 -15 15];
-for wf = 1:length(param.tg.look_angle)
+param.tg.look_angle_deg = [-15 15 -15 15];
+for wf = 1:length(param.tg.look_angle_deg)
   nadir_vec = [0 0 1];
-  beam_vec = [0 sind(param.tg.look_angle(wf)) cosd(param.tg.look_angle(wf))];
+  beam_vec = [0 sind(param.tg.look_angle_deg(wf)) cosd(param.tg.look_angle_deg(wf))];
   nadir_delay = -nadir_vec * phase_centers;
   beam_delay = -beam_vec * phase_centers;
   nadir_delay = nadir_delay - nadir_delay(4);
@@ -287,6 +285,36 @@ end
 param.f0 = f0_list(freq_idx);
 param.f1 = f1_list(freq_idx);
 [param.wfs(:).tx_mask] = deal(final_tx_mask);
+write_cresis_xml(param);
+
+
+%% Ping pong Thin Ice
+% All Ice <2500 m, 500 +/- 250 m AGL
+param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
+param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 12.18e-6; param.final_tx_mask = final_tx_mask;
+param.max_duty_cycle = 0.12;
+param.create_IQ = false;
+param.tg.altitude_guard = 2500*12*2.54/100;
+param.tg.staged_recording = [0 0];
+param.tg.Haltitude = 10000*12*2.54/100;
+param.tg.Hice_thick = 2000;
+param.fn = fullfile(base_dir,'pingpong_mode_10us_4wf_2000mthin.xml');
+param.prf = 10000;
+param.presums = [15 15];
+param.wfs(1).atten = 0;
+param.wfs(2).atten = 0;
+DDS_amp = [40000 0 0 0 0 40000 40000 0];
+param.tx_weights = DDS_amp;
+param.tukey = 0.2;
+param.wfs(1).Tpd = 3e-6;
+param.wfs(2).Tpd = 3e-6;
+param.phase = final_DDS_phase{cal_settings(freq_idx)};
+param.tg.look_angle_deg = [30 30];
+param.delay = final_DDS_time{cal_settings(freq_idx)};
+param.f0 = f0_list(freq_idx);
+param.f1 = f1_list(freq_idx);
+[param.wfs(1).tx_mask] = deal([1 0 0 1 1 1 1 1]);
+[param.wfs(2).tx_mask] = deal([1 1 1 1 1 1 1 0]);
 write_cresis_xml(param);
 
 %% Transmit waveform test mode

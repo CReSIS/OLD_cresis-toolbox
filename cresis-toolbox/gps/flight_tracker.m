@@ -40,7 +40,8 @@ gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
                            % need to do this if files contain errors that
                            % cause program to crash
 
-kml_fn = 'C:\Users\administrator\Desktop\sizzeast_labels.kml';
+% For OIB, get kmz file from John Sonntag, then unzip the kmz file and use the "doc.kml" that is inside
+kml_fn = 'C:\Users\administrator\Desktop\doc.kml';
 kml_mission_name = '';
 
 enable_gps_record = false;

@@ -624,8 +624,6 @@ for img = 1:length(param.load.imgs)
       elseif param.get_heights.coh_noise_method == 3
         g_data(:,:,wf_adc_idx) = bsxfun(@minus, g_data(:,:,wf_adc_idx), ...
           fir_dec(g_data(:,:,wf_adc_idx),hanning(param.get_heights.coh_noise_arg).'/(param.get_heights.coh_noise_arg/2+0.5),1));
-      else
-        error('param.get_heights.coh_noise_method %d not supported.',param.get_heights.coh_noise_method);
       end
     end
     

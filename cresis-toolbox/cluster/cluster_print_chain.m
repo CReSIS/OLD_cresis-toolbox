@@ -29,20 +29,23 @@ if iscell(ctrl_chain)
   stats.cpu_time = [];
   stats.mem = [];
   stats.error_mask = [];
-  stats.job_status = [];
   stats.retries = [];
+  stats.job_status = [];
+  stats.str = '';
   for chain = 1:numel(ctrl_chain)
-    fprintf('Chain %d\n', chain);
+    stats.str = [stats.str sprintf('Chain %d\n', chain)];
     for stage=1:numel(ctrl_chain{chain})
-      fprintf('  Stage %d (Batch %d)\n', stage, ctrl_chain{chain}{stage}.batch_id);
+      stats.str = [stats.str sprintf('  Stage %d (Batch %d)\n', stage, ctrl_chain{chain}{stage}.batch_id)];
       [ctrl_chain{chain}{stage},ctrl_stats] = cluster_print_chain(ctrl_chain{chain}{stage});
       stats.cpu_time = cat(2,stats.cpu_time,ctrl_stats.cpu_time);
       stats.mem = cat(2,stats.mem,ctrl_stats.mem);
       stats.error_mask = cat(2,stats.error_mask,ctrl_stats.error_mask);
       stats.retries = cat(2,stats.retries,ctrl_stats.retries);
       stats.job_status = cat(2,stats.job_status,ctrl_stats.job_status);
+      stats.str = cat(2,stats.str,ctrl_stats.str);
     end
   end
+  fprintf('%s', stats.str);
   fprintf('====================================================\n');
   fprintf('Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
     numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.job_status=='R'), sum(stats.job_status=='Q'), sum(stats.job_status=='T'), sum(stats.error_mask~=0), sum(stats.retries));
@@ -54,16 +57,17 @@ if iscell(ctrl_chain)
 elseif isstruct(ctrl_chain)
   ctrl = ctrl_chain;
   
-  ctrl = cluster_get_batch(ctrl,[],[],0);
+  ctrl = cluster_get_batch(ctrl,true,0);
   
   stats.cpu_time = ctrl.cpu_time;
   stats.mem = ctrl.mem;
   stats.error_mask = ctrl.error_mask;
   stats.retries = ctrl.retries;
   stats.job_status = ctrl.job_status;
+  stats.str = '';
   
   if isempty(ctrl.job_status)
-    fprintf('    No tasks\n');
+    stats.str = [stats.str sprintf('    No tasks\n')];
     
   else
     % Create in/out filenames
@@ -73,28 +77,29 @@ elseif isstruct(ctrl_chain)
     sparam = load(static_in_fn);
     if ~isempty(ctrl.dparam)
       param = merge_structs(sparam.static_param,ctrl.dparam{1});
-      fprintf('    task_function: %s\n', param.task_function);
-      fprintf('    notes: %s\n', param.notes);
+      stats.str = [stats.str sprintf('    task_function: %s\n', param.task_function)];
+      stats.str = [stats.str sprintf('    notes: %s\n', param.notes)];
     end
     
-    fprintf('    Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
-      numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.job_status=='R'), sum(stats.job_status=='Q'), sum(stats.job_status=='T'), sum(stats.error_mask~=0), sum(stats.retries));
-    fprintf('    Error tasks:'); fprintf(' %d', find(stats.error_mask~=0)); fprintf('\n');
-    fprintf('    Max CPU time: %.0f min\n', max(stats.cpu_time)/60);
-    fprintf('    Max mem: %.0f MB\n', max(stats.mem)/1e6);
-    fprintf('    Mean CPU time: %.0f min\n', mean(stats.cpu_time)/60);
-    fprintf('    Mean mem: %.0f MB\n', mean(stats.mem)/1e6);
+    stats.str = [stats.str sprintf('    Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
+      numel(stats.cpu_time), sum(stats.job_status=='C'), sum(stats.job_status=='R'), sum(stats.job_status=='Q'), sum(stats.job_status=='T'), sum(stats.error_mask~=0), sum(stats.retries))];
+    stats.str = [stats.str sprintf('    Error tasks:'), sprintf(' %d', find(stats.error_mask~=0)), sprintf('\n')];
+    stats.str = [stats.str sprintf('    Max CPU time: %.0f min\n', max(stats.cpu_time)/60)];
+    stats.str = [stats.str sprintf('    Max mem: %.0f MB\n', max(stats.mem)/1e6)];
+    stats.str = [stats.str sprintf('    Mean CPU time: %.0f min\n', mean(stats.cpu_time)/60)];
+    stats.str = [stats.str sprintf('    Mean mem: %.0f MB\n', mean(stats.mem)/1e6)];
     
-    if max(stats.cpu_time) > ctrl.cluster.max_time_per_job
-      warning('Max task cpu time exceeds ctrl.cluster.max_time_per_job setting.');
+    [max_cpu_time,max_task_id] = max(stats.cpu_time);
+    if max_cpu_time > ctrl.cluster.max_time_per_job
+      warning(' %d:%d: Max task cpu time exceeds ctrl.cluster.max_time_per_job setting.', ctrl.batch_id, max_task_id);
     end
   end
-  
+
   % Update output
   ctrl_chain = ctrl;
   
 elseif isnumeric(ctrl_chain)
-  ctrl_chain = cluster_load_chain([],ctrl_chain);
+  ctrl_chain = cluster_load_chain(ctrl_chain);
   ctrl_chain = cluster_print_chain(ctrl_chain);
   
 end
