@@ -229,6 +229,16 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   cpu_time_mult = 66e-8;
   mem_mult = 8;
   
+elseif any(strcmpi(radar_name,{'mcrds'}))
+  [wfs,~] = load_mcrds_wfs(records.settings, param, ...
+    1:max(records.param_records.records.file.adcs), param.get_heights);
+  for img = 1:length(param.get_heights.imgs)
+    wf = abs(param.get_heights.imgs{img}(1,1));
+    total_num_sam(img) = wfs(wf).Nt_raw;
+  end
+  cpu_time_mult = 66e-8;
+  mem_mult = 8;
+  
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.get_heights.imgs));
   cpu_time_mult = 8e-8;

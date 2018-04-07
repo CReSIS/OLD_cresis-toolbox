@@ -109,6 +109,11 @@ for wf = 1:length(records_wfs.wfs(1).wfs)
   wfs(wf).Tpd     = records_wfs.wfs(1).wfs(wf).Tpd;
   wfs(wf).f0      = records_wfs.wfs(1).wfs(wf).f0;
   wfs(wf).f1      = records_wfs.wfs(1).wfs(wf).f1;
+  if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
+    wfs(wf).DDC_mode = param.radar.wfs(wf).DDC_mode;
+  else
+    wfs(wf).DDC_mode = 0;  
+  end
   if isfield(param.radar.wfs(wf),'ft_dec') && ~isempty(param.radar.wfs(wf).ft_dec)
     wfs(wf).ft_dec = param.radar.wfs(wf).ft_dec;
   else
@@ -250,6 +255,7 @@ for wf = 1:length(records_wfs.wfs(1).wfs)
     ft_wind(sorted_freq_inds) = proc_param.ft_wind(length(freq_inds));
     
     for adc = adcs
+      wfs(wf).ref_windowed(adc) = false;
       if ~wfs(wf).ref_windowed(adc)
         wfs(wf).ref{adc} = wfs(wf).ref{adc} .* ft_wind;
       end
