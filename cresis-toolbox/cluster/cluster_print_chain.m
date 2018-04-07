@@ -33,9 +33,9 @@ if iscell(ctrl_chain)
   stats.job_status = [];
   stats.str = '';
   for chain = 1:numel(ctrl_chain)
-    fprintf('Chain %d\n', chain);
+    stats.str = [stats.str sprintf('Chain %d\n', chain)];
     for stage=1:numel(ctrl_chain{chain})
-      fprintf('  Stage %d (Batch %d)\n', stage, ctrl_chain{chain}{stage}.batch_id);
+      stats.str = [stats.str sprintf('  Stage %d (Batch %d)\n', stage, ctrl_chain{chain}{stage}.batch_id)];
       [ctrl_chain{chain}{stage},ctrl_stats] = cluster_print_chain(ctrl_chain{chain}{stage});
       stats.cpu_time = cat(2,stats.cpu_time,ctrl_stats.cpu_time);
       stats.mem = cat(2,stats.mem,ctrl_stats.mem);
@@ -73,8 +73,8 @@ elseif isstruct(ctrl_chain)
   sparam = load(static_in_fn);
   if ~isempty(ctrl.dparam)
     param = merge_structs(sparam.static_param,ctrl.dparam{1});
-    fprintf('    task_function: %s\n', param.task_function);
-    fprintf('    notes: %s\n', param.notes);
+    stats.str = [stats.str sprintf('    task_function: %s\n', param.task_function)];
+    stats.str = [stats.str sprintf('    notes: %s\n', param.notes)];
   end
   
   stats.str = [stats.str sprintf('    Number of tasks: %.0f, %.0f/%.0f/%.0f/%.0f C/R/Q/T, %.0f error, %.0f retries\n', ...
@@ -85,8 +85,9 @@ elseif isstruct(ctrl_chain)
   stats.str = [stats.str sprintf('    Mean CPU time: %.0f min\n', mean(stats.cpu_time)/60)];
   stats.str = [stats.str sprintf('    Mean mem: %.0f MB\n', mean(stats.mem)/1e6)];
   
-  if max(stats.cpu_time) > ctrl.cluster.max_time_per_job
-    warning('Max task cpu time exceeds ctrl.cluster.max_time_per_job setting.');
+  [max_cpu_time,max_task_id] = max(stats.cpu_time);
+  if max_cpu_time > ctrl.cluster.max_time_per_job
+    warning(' %d:%d: Max task cpu time exceeds ctrl.cluster.max_time_per_job setting.', ctrl.batch_id, max_task_id);
   end
   
   % Update output

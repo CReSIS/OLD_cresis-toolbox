@@ -71,7 +71,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
   profile(pidx).cluster.max_jobs_active       = 512;
-  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
   profile(pidx).cluster.submit_pause          = 0.2;
@@ -138,7 +138,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
   profile(pidx).cluster.max_jobs_active       = 512;
-  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
   profile(pidx).cluster.submit_pause          = 0.2;
@@ -171,7 +171,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                  = 'debug';
   %profile(pidx).cluster.type                  = 'none';
   profile(pidx).cluster.max_jobs_active       = 4;
-  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
@@ -210,7 +210,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                  = 'debug';
   %profile(pidx).cluster.type                  = 'none';
   profile(pidx).cluster.max_jobs_active       = 4;
-  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
@@ -241,7 +241,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                  = 'debug';
   %profile(pidx).cluster.type                  = 'none';
   profile(pidx).cluster.max_jobs_active       = 4;
-  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
@@ -272,7 +272,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
   profile(pidx).cluster.max_jobs_active       = 512;
-  profile(pidx).cluster.max_time_per_job      = 86400;
+  profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
   profile(pidx).cluster.max_retries           = 2;
   profile(pidx).cluster.submit_pause          = 0.2;
@@ -306,7 +306,7 @@ if ~(~ismcc && isdeployed)
   %profile(pidx).cluster.type                    = 'ollie';
   %profile(pidx).cluster.type                    = 'debug';
   profile(pidx).cluster.max_jobs_active         = 64;
-  profile(pidx).cluster.max_time_per_job        = 86400;
+  profile(pidx).cluster.max_time_per_job        = 2*86400;
   profile(pidx).cluster.desired_time_per_job    = 2*3600;
   profile(pidx).cluster.max_retries             = 2;
   profile(pidx).cluster.submit_pause            = 0.2;

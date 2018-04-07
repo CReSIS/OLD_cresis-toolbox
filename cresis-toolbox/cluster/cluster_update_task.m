@@ -1,5 +1,5 @@
-function ctrl = cluster_task_update(ctrl,task_id,update_mode)
-% ctrl = cluster_task_update(ctrl,task_id,update_mode)
+function ctrl = cluster_update_task(ctrl,task_id,update_mode)
+% ctrl = cluster_update_task(ctrl,task_id,update_mode)
 %
 % Updates a specific task's status. Support function for cluster_job_status.
 %
@@ -263,23 +263,23 @@ end
 if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
   % Job is completed and has an error
   
+  % Move stdout and error files
+  if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+    stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
+    error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id_out));
+    attempt_stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id_out, ctrl.retries(task_id)));
+    attempt_error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id_out, ctrl.retries(task_id)));
+    if exist(stdout_fn,'file')
+      movefile(stdout_fn,attempt_stdout_fn);
+    end
+    if exist(error_fn,'file')
+      movefile(error_fn,attempt_error_fn);
+    end
+  end
+  
   if ctrl.retries(task_id) < ctrl.cluster.max_retries
     if ~bitand(ctrl.error_mask(task_id),out_fn_exist_error)
       delete(out_fn);
-    end
-
-    % Move stdout and error files
-    if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
-      stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
-      error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id_out));
-      attempt_stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id_out, ctrl.retries(task_id)));
-      attempt_error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id_out, ctrl.retries(task_id)));
-      if exist(stdout_fn,'file')
-        movefile(stdout_fn,attempt_stdout_fn);
-      end
-      if exist(error_fn,'file')
-        movefile(error_fn,attempt_error_fn);
-      end
     end
     
     % Update task to ctrl structure
