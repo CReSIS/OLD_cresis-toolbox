@@ -34,31 +34,41 @@ end
 for param_idx = 1:length(params)
   
   param = params(param_idx);
-
+  
   if use_filter
-    str = filter_field;
-    [token,str] = strtok(str,'.');
-    field_names = '';
-    while ~isempty(token)
-      field_names = sprintf('%s.(''%s'')',field_names,token);
+    if 1
+      cmd = sprintf('filter_value = params(param_idx).%s;', filter_field);
+      eval(cmd);
+    else
+      str = filter_field;
       [token,str] = strtok(str,'.');
+      field_names = '';
+      while ~isempty(token)
+        field_names = sprintf('%s.(''%s'')',field_names,token);
+        [token,str] = strtok(str,'.');
+      end
+      
+      cmd = sprintf('filter_value = params(param_idx)%s;', field_names);
+      eval(cmd);
     end
-    
-    cmd = sprintf('filter_value = params(param_idx)%s;', field_names);
-    eval(cmd);
   end
   
   if ~use_filter || ~isempty(regexpi(filter_value,filter_regexp))
     
-    str = field;
-    [token,str] = strtok(str,'.');
-    field_names = '';
-    while ~isempty(token)
-      field_names = sprintf('%s.(''%s'')',field_names,token);
+    if 1
+      cmd = sprintf('params(param_idx).%s = value;', field);
+      eval(cmd);
+    else
+      str = field;
       [token,str] = strtok(str,'.');
+      field_names = '';
+      while ~isempty(token)
+        field_names = sprintf('%s.(''%s'')',field_names,token);
+        [token,str] = strtok(str,'.');
+      end
+      
+      cmd = sprintf('params(param_idx)%s = value;', field_names);
+      eval(cmd);
     end
-    
-    cmd = sprintf('params(param_idx)%s = value;', field_names);
-    eval(cmd);
   end
 end

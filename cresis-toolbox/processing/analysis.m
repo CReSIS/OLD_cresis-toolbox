@@ -107,7 +107,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     cmd.decimate_factor = 1;
   end
 
-  switch lower(cmd.method)
+  switch lower(cmd.name)
     case {'qlook'}
       %
     case {'waveform'}
@@ -265,7 +265,7 @@ for break_idx = 1:length(breaks)
       dparam.cpu_time = dparam.cpu_time + 10 + param.csarp.presums*size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
 
       % Process commands
-      switch lower(cmd.method)
+      switch lower(cmd.name)
         case {'qlook'}
           %
         case {'waveform'}
@@ -369,7 +369,7 @@ for img = 1:length(param.analysis.imgs)
       continue;
     end
     
-    switch lower(cmd.method)
+    switch lower(cmd.name)
       case {'qlook'}
         %
       case {'waveform'}

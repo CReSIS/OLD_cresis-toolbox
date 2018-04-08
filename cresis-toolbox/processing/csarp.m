@@ -191,6 +191,18 @@ csarp_coord_dir = ct_filename_out(param, param.csarp.coord_path);
 
 ctrl_chain = {};
 
+% Get version information out of the coherent noise file
+if any(param.csarp.coh_noise_method == [17 19])
+  
+  cdf_fn_dir = fileparts(ct_filename_out(param,param.csarp.coh_noise_arg{4}, ''));
+  cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s.nc', param.day_seg));
+  
+  tmp = netcdf_to_mat(cdf_fn,[],'^sw_version.*');
+  param.csarp.coh_noise_version = tmp.sw_version;
+  tmp = netcdf_to_mat(cdf_fn,[],'^param_collate.*');
+  param.csarp.coh_noise_params = tmp.param_collate;
+end
+
 %% Collect waveform information into one structure
 %  - This is used to break the frame up into chunks
 % =====================================================================

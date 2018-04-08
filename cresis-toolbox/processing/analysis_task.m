@@ -376,7 +376,7 @@ for img = 1:length(param.load.imgs)
       continue;
     end
     
-    if strcmpi(cmd.method,{'saturation'})
+    if strcmpi(cmd.name,{'saturation'})
       %% Saturation check
       % ===================================================================
       % ===================================================================
@@ -433,7 +433,7 @@ for img = 1:length(param.load.imgs)
         'max_val_gps_time', 'max_val_gps_time_adc');
       
       
-    elseif strcmpi(cmd.method,{'specular'})
+    elseif strcmpi(cmd.name,{'specular'})
       %% Specular Analysis for Deconvolution
       % ===================================================================
       % ===================================================================
@@ -633,7 +633,7 @@ for img = 1:length(param.load.imgs)
       end
       
       
-    elseif strcmpi(cmd.method,{'coherent_noise'})
+    elseif strcmpi(cmd.name,{'coherent_noise'})
       %% Coherent Noise Analysis
       % ===================================================================
       % ===================================================================
@@ -790,7 +790,7 @@ for img = 1:length(param.load.imgs)
         'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone');
       
       
-    elseif strcmpi(cmd.method,{'waveform'})
+    elseif strcmpi(cmd.name,{'waveform'})
       %% Waveform extraction
       % ===================================================================
       % ===================================================================
@@ -828,7 +828,7 @@ for img = 1:length(param.load.imgs)
         'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
       
       
-    elseif strcmpi(cmd.method,{'statistics'})
+    elseif strcmpi(cmd.name,{'statistics'})
       %% Statistical analysis
       % ===================================================================
       % ===================================================================

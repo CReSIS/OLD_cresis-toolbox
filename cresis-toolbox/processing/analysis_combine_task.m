@@ -47,7 +47,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     continue;
   end
   
-  if strcmpi(cmd.method,{'saturation'})
+  if strcmpi(cmd.name,{'saturation'})
     %% Saturation check
     % ===================================================================
     % ===================================================================
@@ -103,7 +103,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
     
     
-  elseif strcmpi(cmd.method,{'specular'})
+  elseif strcmpi(cmd.name,{'specular'})
     %% Specular Analysis for Deconvolution
     % ===================================================================
     % ===================================================================
@@ -198,7 +198,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
     
     
-  elseif strcmpi(cmd.method,{'coherent_noise'})
+  elseif strcmpi(cmd.name,{'coherent_noise'})
     %% Coherent Noise Analysis
     % ===================================================================
     % ===================================================================
@@ -314,7 +314,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
     
     
-  elseif strcmpi(cmd.method,{'waveform'})
+  elseif strcmpi(cmd.name,{'waveform'})
     %% Waveform extraction
     % ===================================================================
     % ===================================================================
@@ -381,7 +381,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
     
     
-  elseif strcmpi(cmd.method,{'statistics'})
+  elseif strcmpi(cmd.name,{'statistics'})
     %% Statistical analysis
     % ===================================================================
     % ===================================================================

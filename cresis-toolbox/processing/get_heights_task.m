@@ -1,5 +1,5 @@
-function [success surfTimes] = get_heights_task(param)
-% [success surfTimes] = get_heights_task(param)
+function [success] = get_heights_task(param)
+% [success] = get_heights_task(param)
 %
 % Cluster task for get_heights. Does the actual data loading
 % and surface tracking.
@@ -77,7 +77,6 @@ function [success surfTimes] = get_heights_task(param)
 % success = boolean which is true when the function executes properly
 %   if a task fails before it can return success, then success will be
 %   empty
-% surfTimes = vector of propagation delays to the surface
 %
 % Author: John Paden
 %
@@ -87,7 +86,6 @@ global g_data;
 g_data = [];
 
 physical_constants;
-surfTimes = [];
 
 records_fn = ct_filename_support(param,'','records');
 

@@ -50,13 +50,13 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 1; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/users/paden/scripts/matlab/';
-  profile(pidx).ct_path                   = '/users/paden/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/users/paden/scripts/ct_params/';
+  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
+  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/cresis/snfs1/scratch/paden/mdce_tmp/';
+  profile(pidx).tmp_file_path             = sprintf('/cresis/snfs1/scratch/%s/mdce_tmp/',getenv('USER'));
   
   profile(pidx).data_path                 = '/cresis/snfs1/data/';
   profile(pidx).data_support_path         = '/cresis/snfs1/dataproducts/metadata/';
@@ -82,13 +82,13 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 2; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/N/u/jpaden/Karst/scripts/matlab/';
-  profile(pidx).ct_path                   = '/N/u/jpaden/Karst/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/N/u/jpaden/Karst/scripts/ct_params/';
+  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
+  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/N/dc2/scratch/jpaden/mdce_tmp/'; % scratch may be on dcwan or dc2
+  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/mdce_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
   profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
@@ -150,9 +150,9 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 5; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = 'C:\Users\paden\Documents\scripts\matlab\';
-  profile(pidx).ct_path                   = 'C:\Users\paden\Documents\scripts\cresis-toolbox\cresis-toolbox\';
-  profile(pidx).param_path                = 'C:\Users\paden\Documents\scripts\ct_params\';
+  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('USERPROFILE'));
+  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('USERPROFILE'));
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -189,13 +189,13 @@ if ~(~ismcc && isdeployed)
   % Z:\ --> \\titan.cresis.ku.edu\scratch2\
   pidx = 6; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = 'C:\Users\paden\Documents\scripts\matlab\';
-  profile(pidx).ct_path                   = 'C:\Users\paden\Documents\scripts\cresis-toolbox\cresis-toolbox\';
-  profile(pidx).param_path                = 'C:\Users\paden\Documents\scripts\ct_params\';
+  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('USERPROFILE'));
+  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('USERPROFILE'));
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = 'Y:/paden/mdce_tmp/';
+  profile(pidx).tmp_file_path             = 'C:\temp\mdce_tmp\';
   
   profile(pidx).data_path                 = 'V:/';
   profile(pidx).data_support_path         = 'X:/metadata/';
@@ -283,20 +283,20 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/home/ollie/jpaden/scripts/matlab/';
-  profile(pidx).ct_path                   = '/home/ollie/jpaden/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/home/ollie/jpaden/scripts/ct_params/';
-  profile(pidx).slurm_jobs_path           = '/home/ollie/tbinder/jobs';
+  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
+  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
+  profile(pidx).slurm_jobs_path           = sprintf('%s/jobs/',getenv('HOME'));
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/work/ollie/jpaden/Scratch/mdce_tmp/';
+  profile(pidx).tmp_file_path             = sprintf('%s/Scratch/mdce_tmp/',getenv('HOME'));
 
-  profile(pidx).data_path                 = '/work/ollie/jpaden/Data/';
-  profile(pidx).data_support_path         = '/work/ollie/jpaden/Scratch/metadata/';
-  profile(pidx).support_path              = '/work/ollie/jpaden/Scratch/csarp_support/';
-  profile(pidx).out_path                  = '/work/ollie/jpaden/Scratch/';
-  profile(pidx).gis_path                  = '/work/ollie/jpaden/GIS_data/';
+  profile(pidx).data_path                 = sprintf('%s/Data/',getenv('HOME'));
+  profile(pidx).data_support_path         = sprintf('%s/Scratch/metadata/',getenv('HOME'));
+  profile(pidx).support_path              = sprintf('%s/Scratch/csarp_support/',getenv('HOME'));
+  profile(pidx).out_path                  = sprintf('%s/Scratch/',getenv('HOME'));
+  profile(pidx).gis_path                  = sprintf('%s/GIS_data/',getenv('HOME'));
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
  
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
