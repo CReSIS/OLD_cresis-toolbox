@@ -282,7 +282,7 @@ for regime = regimes
         
         dd = noise.coh_ave(regime_mask,:)-coh_ave.';
 
-        figure(1); clf;
+        figure(2); clf;
         imagesc(lp(noise.coh_ave(regime_mask,:)-dd).')
         
         keyboard
@@ -300,6 +300,98 @@ for regime = regimes
         % Use fir_dec (no feedback)
         noise.coh_ave(regime_mask,:) = fir_dec(noise.coh_ave(regime_mask,:).',cmd.B_coh_noise,1).';
       end
+      
+    case 'custom2'
+      
+      coh_ave_RFI = noise.coh_ave(regime_mask,:).';
+      
+      % Remove RFI
+      B = [ones(1,11), 0, ones(1,11)]; A = 1; B = B / sum(B);
+      threshold = fir_dec(abs(coh_ave_RFI).^2, B, 1);
+      mask = lp(coh_ave_RFI) > lp(threshold) + 20;
+      coh_ave_RFI(mask) = 0;
+      for rbin = 1:size(coh_ave_RFI,1)
+        coh_ave_RFI(rbin,:) = interp_finite(coh_ave_RFI(rbin,:).',0).';
+      end
+
+      coh_ave = coh_ave_RFI;
+      Mx = 1;
+      Nx = size(coh_ave,2);
+      Nx_cutoff = round(cmd.Wn*Nx);
+      
+      median_coh_ave = median(abs(coh_ave),2);
+      mask = bsxfun(@gt,abs(coh_ave),abs(median_coh_ave*cmd.threshold));
+      
+      coh_ave(mask) = NaN;
+      
+      coh_ave_hpf = coh_ave_RFI;
+      for fc = -round(cmd.Wn*Nx):round(cmd.Wn*Nx)
+        coh_ave = coh_ave_hpf;
+        coh_ave(mask) = NaN;
+        coh_ave_mod = bsxfun(@times,coh_ave,exp(-1i*2*pi*fc/Nx*(0:Nx-1)));
+        mean_coh_ave = nanmean(coh_ave_mod,2);
+        mean_coh_ave = kron(mean_coh_ave, exp(1i*2*pi*fc/Nx*(0:Nx-1)));
+        coh_ave_hpf = coh_ave_hpf - mean_coh_ave;
+      end
+      
+      if 0
+        figure(1); clf;
+        imagesc(lp(coh_ave_hpf))
+        title('Should have coherent noise removed if working well.')
+        caxis([0 100]);
+        
+        figure(2); clf;
+        imagesc(lp(noise.coh_ave(regime_mask,:).'))
+        caxis([0 100]);
+        
+        figure(3); clf;
+        imagesc(mask)
+        
+        keyboard
+      end
+      
+      % Store data (1 - HPF = LPF)
+      noise.coh_ave(regime_mask,:) = coh_ave_RFI.'-coh_ave_hpf.';
+
+      
+    case 'custom'
+      
+      coh_ave = noise.coh_ave(regime_mask,:).';
+      
+      % Remove RFI
+      B = [ones(1,11), 0, ones(1,11)]; A = 1; B = B / sum(B);
+      threshold = fir_dec(abs(coh_ave).^2, B, 1);
+      mask = lp(coh_ave) > lp(threshold) + 20;
+      coh_ave(mask) = 0;
+      for rbin = 1:size(coh_ave,1)
+        coh_ave(rbin,:) = interp_finite(coh_ave(rbin,:).',0).';
+      end
+      
+      Mx = 1;
+      Nx = size(coh_ave,2);
+      Nx_cutoff = round(cmd.Wn*Nx);
+      coh_ave = fft(coh_ave,Mx*Nx,2);
+      
+      noise_est = coh_ave(end-63:end,:);
+      
+      H = mean(abs(noise_est).^2,1);
+      H = median(H(Nx_cutoff+1:end-Nx_cutoff)) ./ H;
+      
+      coh_ave(:,1:Nx_cutoff) = bsxfun(@times, coh_ave(:,1:Nx_cutoff), H(1:Nx_cutoff));
+      coh_ave(:,end-Nx_cutoff+2:end) = bsxfun(@times, coh_ave(:,end-Nx_cutoff+2:end), H(end-Nx_cutoff+2:end));
+
+      coh_ave(1:70,1:Mx) = 0;
+      
+      coh_ave = ifft(coh_ave,[],2);
+
+      if 0
+        figure(1); clf;
+        imagesc(lp(coh_ave))
+        keyboard
+      end
+      
+      % Store data (1 - HPF = LPF)
+      noise.coh_ave(regime_mask,:) = noise.coh_ave(regime_mask,:)-coh_ave.';
       
     case 'threshold'
       Nx = size(noise.coh_ave,1);
@@ -369,7 +461,7 @@ for regime = regimes
       ff(mask) = 0;
       dd(Nt_cutoff:end,end-Nx_cutoff+1:end) = ff;
       
-      if 1
+      if 0
         figure(1); clf;
         imagesc(lp(dd));
         fprintf('%s\t%d\n', param.day_seg, Nx-2*Nx_cutoff);
