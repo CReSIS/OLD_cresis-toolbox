@@ -23,7 +23,7 @@ if ~exist('conn','var') || isempty(conn)
 end
 
 if order < 0
-  B = shrink(A, order, conn);
+  B = shrink(A, -order, conn);
   return
 end
 

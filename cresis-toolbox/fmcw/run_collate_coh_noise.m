@@ -11,9 +11,16 @@ param_override = [];
 
 params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),'','analysis');
 % params = ct_set_params(params,'cmd.generic',0);
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20161110_01');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20161110_02');
 % params = ct_set_params(params,'cmd.generic',1,'cmd.notes','^((?!do not process).)*$');
 
+% params = ct_set_params(params,'analysis.cmd{1}.method','window');
+% params = ct_set_params(params,'analysis.cmd{1}.Wn',0.008);
+
+% params = ct_set_params(params,'analysis.cmd{1}.method','threshold');
+% params = ct_set_params(params,'analysis.cmd{1}.Wn',0.015);
+% params = ct_set_params(params,'analysis.cmd{1}.threshold',3);
+        
 param_override.collate_coh_noise.in_dir = 'analysis';
 param_override.collate_coh_noise.out_dir = 'analysis';
 param_override.collate_coh_noise.cmd_idx = 1;

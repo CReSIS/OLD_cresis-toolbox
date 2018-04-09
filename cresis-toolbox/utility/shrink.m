@@ -23,7 +23,7 @@ if ~exist('conn','var') || isempty(conn)
 end
 
 if order < 0
-  B = grow(A, order, conn);
+  B = grow(A, -order, conn);
   return
 end
 

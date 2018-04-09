@@ -183,7 +183,7 @@ for img_idx = 1:length(param.load.imgs)
 end
 
 if param.proc.coh_noise_method == 17
-  cdf_fn_dir = fileparts(ct_filename_out(param,'analysis', ''));
+  cdf_fn_dir = fileparts(ct_filename_out(param,param.proc.coh_noise_arg{4}));
   cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s.nc', param.day_seg));
   
   finfo = ncinfo(cdf_fn);

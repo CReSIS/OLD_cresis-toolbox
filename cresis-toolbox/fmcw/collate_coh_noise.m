@@ -254,6 +254,43 @@ for regime = regimes
     case 'DC'
       noise.coh_ave(regime_mask,:) = repmat(mean(noise.coh_ave(regime_mask,:)), [length(regime_mask) 1]);
       
+    case 'window'
+      coh_ave = noise.coh_ave(regime_mask,:).';
+      
+      % Remove RFI
+      B = [ones(1,11), 0, ones(1,11)]; A = 1; B = B / sum(B);
+      threshold = fir_dec(abs(coh_ave).^2, B, 1);
+      mask = lp(coh_ave) > lp(threshold) + 20;
+      coh_ave(mask) = 0;
+      for rbin = 1:size(coh_ave,1)
+        coh_ave(rbin,:) = interp_finite(coh_ave(rbin,:).',0).';
+      end
+      
+      % HPF
+      coh_ave = fft(coh_ave,[],2);
+      Nx = size(coh_ave,2);
+      Nx_cutoff = max(1,round(Nx*cmd.Wn));
+      H = hanning(2*Nx_cutoff-1); H = H(1:(length(H)-1)/2).';
+      H = [zeros(1,Nx_cutoff) H];
+      coh_ave(:,1:length(H)) = bsxfun(@times, coh_ave(:,1:length(H)), H);
+      coh_ave(:,end-length(H)+2:end) = bsxfun(@times, coh_ave(:,end-length(H)+2:end), H(end:-1:2));
+      coh_ave = ifft(coh_ave,[],2);
+      
+      if 0
+        figure(1); clf;
+        imagesc(lp(coh_ave));
+        
+        dd = noise.coh_ave(regime_mask,:)-coh_ave.';
+
+        figure(1); clf;
+        imagesc(lp(noise.coh_ave(regime_mask,:)-dd).')
+        
+        keyboard
+      end
+      
+      % Store data (1 - HPF = LPF)
+      noise.coh_ave(regime_mask,:) = noise.coh_ave(regime_mask,:)-coh_ave.';
+      
     case 'filter'
       if length(cmd.A_coh_noise) > 1
         % Use filtfilt
@@ -268,13 +305,14 @@ for regime = regimes
       Nx = size(noise.coh_ave,1);
       Mx = 10;
       Nx_cutoff = round(cmd.Wn*Mx*Nx);
+      Nx_buffer = round(3/cmd.Wn);
       
       coh_ave = noise.coh_ave(regime_mask,:).';
-      [~,min_rline] = min(mean(abs(coh_ave(:,1:max(1,round(Nx_cutoff/Mx)))).^2));
-      qq = bsxfun(@times,abs(coh_ave(:,min_rline)),exp(-1i*2*angle(bsxfun(@times,coh_ave(:,2:1+Nx_cutoff),conj(coh_ave(:,1))))));
-      [~,min_rline] = min(mean(abs(coh_ave(:,end-max(1,round(Nx_cutoff/Mx))+1:end)).^2));
-      qq2 = bsxfun(@times,abs(coh_ave(:,min_rline)),exp(-1i*2*angle(bsxfun(@times,coh_ave(:,end-Nx_cutoff:end-1),conj(coh_ave(:,end))))));
-      rr = [fliplr(bsxfun(@times,exp(1i*angle(coh_ave(:,2:1+Nx_cutoff))),qq)), coh_ave, fliplr(bsxfun(@times,exp(1i*angle(coh_ave(:,end-Nx_cutoff:end-1))),qq2))];
+      min_val = mean(abs(coh_ave(:,1:max(1,round(Nx_cutoff/Mx)))),2);
+      qq = bsxfun(@times,min_val,exp(-1i*2*angle(bsxfun(@times,coh_ave(:,2:1+Nx_buffer),conj(coh_ave(:,1))))));
+      min_val = mean(abs(coh_ave(:,end-max(1,round(Nx_cutoff/Mx))+1:end )),2);
+      qq2 = bsxfun(@times,min_val,exp(-1i*2*angle(bsxfun(@times,coh_ave(:,end-Nx_buffer:end-1),conj(coh_ave(:,end))))));
+      rr = [fliplr(bsxfun(@times,exp(1i*angle(coh_ave(:,2:1+Nx_buffer))),qq)), coh_ave, fliplr(bsxfun(@times,exp(1i*angle(coh_ave(:,end-Nx_buffer:end-1))),qq2))];
       Nx = size(rr,2);
       
       % Remove RFI
@@ -302,26 +340,32 @@ for regime = regimes
       Nt_cutoff = 1;
       ff=dd(Nt_cutoff:end,1:Nx_cutoff);
       mask = bsxfun(@gt, lp(ff), ee(Nt_cutoff:end) + cmd.threshold);
-      %   mask = fir_dec(double(~mask).',ones(1,11)/11,1).';
-      %   mask(mask<0.5) = 0; mask(mask>=0.5) = 1;
-      %   mask = grow(mask,2,8);
-      %   mask = ~shrink(mask,5);
-      %   mask = fir_dec(double(~mask).',ones(1,21)/21,1).';
-      %   mask(mask<0.8) = 0; mask(mask>=0.8) = 1;
-      %   mask = ~shrink(mask,2);
+%       mask(:,1:Mx) = 1;
+%       
+%       mask = fir_dec(double(~mask).',ones(1,11)/11,1).';
+%       mask(mask<0.5) = 0; mask(mask>=0.5) = 1;
+%       mask = grow(mask,cmd.grow_shrink(1),8);
+%       mask = ~shrink(mask,cmd.grow_shrink(2));
+%       mask = fir_dec(double(~mask).',ones(1,11)/11,1).';
+%       mask(mask<0.8) = 0; mask(mask>=0.8) = 1;
+%       mask = ~shrink(mask,2);
+      
       ff(mask) = 0;
       dd(Nt_cutoff:end,1:Nx_cutoff) = ff;
       
       % Negative frequencies
       ff=dd(Nt_cutoff:end,end-Nx_cutoff+1:end);
       mask = bsxfun(@gt, lp(ff), ee(Nt_cutoff:end) + cmd.threshold);
-      %   mask = fir_dec(double(~mask).',ones(1,11)/11,1).';
-      %   mask(mask<0.5) = 0; mask(mask>=0.5) = 1;
-      %   mask = grow(mask,2,8);
-      %   mask = ~shrink(mask,5);
-      %   mask = fir_dec(double(~mask).',ones(1,21)/21,1).';
-      %   mask(mask<0.8) = 0; mask(mask>=0.8) = 1;
-      %   mask = ~shrink(mask,2);
+%       mask(:,end-Mx+2:end) = 1;
+%       
+%       mask = fir_dec(double(~mask).',ones(1,11)/11,1).';
+%       mask(mask<0.5) = 0; mask(mask>=0.5) = 1;
+%       mask = grow(mask,cmd.grow_shrink(1),8);
+%       mask = ~shrink(mask,cmd.grow_shrink(2));
+%       mask = fir_dec(double(~mask).',ones(1,11)/11,1).';
+%       mask(mask<0.8) = 0; mask(mask>=0.8) = 1;
+%       mask = ~shrink(mask,2);
+      
       ff(mask) = 0;
       dd(Nt_cutoff:end,end-Nx_cutoff+1:end) = ff;
       
@@ -329,29 +373,34 @@ for regime = regimes
         figure(1); clf;
         imagesc(lp(dd));
         fprintf('%s\t%d\n', param.day_seg, Nx-2*Nx_cutoff);
-        xlim([1 2*Nx_cutoff])
+        xlim([1 2*Nx_cutoff]);
         ylim([Nt_cutoff Nt]);
-        keyboard
+        
+        figure(2); clf;
+        imagesc(lp(dd));
+        fprintf('%s\t%d\n', param.day_seg, Nx-2*Nx_cutoff);
+        xlim([size(dd,2)-Nx_cutoff*2 size(dd,2)]);
+        ylim([Nt_cutoff Nt]);
       end
       
       dd = ifft(dd,[],2);
       dd = dd(:,1:Nx);
       
-      dd = dd(:,1+Nx_cutoff:end-Nx_cutoff);
-      rr = rr(:,1+Nx_cutoff:end-Nx_cutoff);
+      dd = dd(:,1+Nx_buffer:end-Nx_buffer);
+      rr = rr(:,1+Nx_buffer:end-Nx_buffer);
       
       coh_ave = rr-dd;
       
       if 0
-        figure(3); clf;
-        imagesc(lp(rr-coh_ave));
-        xlim([1 100])
-        ylim([Nt_cutoff Nt]);
+        debug_fig_offset = 0;
+        incoh = noise.coh_ave(regime_mask,:).'-coh_ave;
+        figure(3+debug_fig_offset); clf;
+        imagesc(lp(incoh));
+
         
-        figure(2); clf;
-        imagesc(lp(rr-coh_ave));
-        xlim(Nx-Nx_cutoff*2-[100 0]);
-        ylim([Nt_cutoff Nt]);
+        figure(4+debug_fig_offset); clf;
+        imagesc(lp(incoh(Nt_cutoff:Nt,[1:100,end-99:end])));
+        
         keyboard
       end
       

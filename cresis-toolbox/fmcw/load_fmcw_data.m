@@ -591,7 +591,7 @@ for board_idx = 1:length(boards)
       % param.proc.coh_noise_arg{3} = frame window for sgolayfilt
       % param.proc.coh_noise_arg{4} = string for cdf directory, the ? in "CSARP_?"
       
-      cdf_fn_dir = fileparts(ct_filename_out(param,param.proc.coh_noise_arg{4}, ''));
+      cdf_fn_dir = fileparts(ct_filename_out(param,param.proc.coh_noise_arg{4}));
       cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s.nc', param.day_seg));
       
       finfo = ncinfo(cdf_fn);
