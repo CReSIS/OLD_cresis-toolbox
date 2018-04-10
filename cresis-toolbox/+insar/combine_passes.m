@@ -1,6 +1,79 @@
 %% User Settings
 frms = {};
-if 1
+if 0
+  frms{end+1} = '20161107_02_003';
+  frms{end+1} = '20161107_02_006'; % missed
+  frms{end+1} = '20161107_03_003';
+  frms{end+1} = '20161107_03_006'; % missed
+  frms{end+1} = '20161107_07_003';
+  frms{end+1} = '20161108_01_003';
+  frms{end+1} = '20161108_01_006';
+  frms{end+1} = '20161108_01_009';
+  frms{end+1} = '20161108_02_002';
+  frms{end+1} = '20161110_01_003';
+  frms{end+1} = '20161110_01_006';
+  frms{end+1} = '20161110_01_009';
+  frms{end+1} = '20161110_02_003';
+  frms{end+1} = '20161110_03_001';
+  pass_name = 'north';
+  start.lat = 69.174061;
+  start.lon = -49.668096;
+  stop.lat = 69.196834;
+  stop.lon = -48.906555;
+  dist_min = 2000;
+elseif 1
+  frms{end+1} = '20161108_01_010'; % missed
+  frms{end+1} = '20161110_02_001'; % missed
+  frms{end+1} = '20161110_03_008'; % missed
+  frms{end+1} = '20161111_01_008'; % missed
+  frms{end+1} = '20161107_02_001'; % 11.7 km short of stop point
+  frms{end+1} = '20161107_02_004';
+  frms{end+1} = '20161107_03_001';
+  frms{end+1} = '20161107_03_004';
+  frms{end+1} = '20161107_07_001';
+  frms{end+1} = '20161108_01_001';
+  frms{end+1} = '20161108_01_004';
+  frms{end+1} = '20161108_01_007';
+  frms{end+1} = '20161110_01_001';
+  frms{end+1} = '20161110_01_004';
+  frms{end+1} = '20161110_01_007';
+  frms{end+1} = '20161110_02_004';
+  frms{end+1} = '20161110_03_007';
+  frms{end+1} = '20161111_01_001'; 
+  frms{end+1} = '20161111_01_002';
+  frms{end+1} = '20161111_01_003';
+  frms{end+1} = '20161111_01_004';
+  frms{end+1} = '20161111_01_005';
+  frms{end+1} = '20161111_01_006';
+  frms{end+1} = '20161111_01_007';
+  pass_name = 'middle';
+  start.lat = 69.163;
+  start.lon = -49.675;
+  stop.lat = 69.176;
+  stop.lon = -48.888;
+  dist_min = 250;
+elseif 1
+  frms{end+1} = '20161107_02_002';
+  frms{end+1} = '20161107_02_005';
+  frms{end+1} = '20161107_03_002';
+  frms{end+1} = '20161107_03_005';
+  frms{end+1} = '20161107_07_002';
+  frms{end+1} = '20161108_01_002';
+  frms{end+1} = '20161108_01_005';
+  frms{end+1} = '20161108_01_008';
+  frms{end+1} = '20161108_02_001';
+  frms{end+1} = '20161110_01_002';
+  frms{end+1} = '20161110_01_005';
+  frms{end+1} = '20161110_01_008';
+  frms{end+1} = '20161110_02_002';
+  frms{end+1} = '20161110_02_005';
+  pass_name = 'south';
+  start.lat = 69.149;
+  start.lon = -49.666;
+  stop.lat = 69.162;
+  stop.lon = -48.846;
+  dist_min = 2000;
+elseif 0
   frms{end+1} = '20160413_01_001';
   frms{end+1} = '20160413_01_002';
   frms{end+1} = '20160413_02_001';
@@ -12,6 +85,7 @@ if 1
   start.lon = -50.204091;
   stop.lat = 67.096958;
   stop.lon = -50.054023;
+  dist_min = 100;
 elseif 0
   frms{end+1} = '20160416_01_002';
   frms{end+1} = '20160416_01_003';
@@ -26,6 +100,7 @@ elseif 0
   start.lon = -50.219048;
   stop.lat = 67.101868;
   stop.lon = -50.047311;
+  dist_min = 100;
 else
   frms{end+1} = '20160417_01_001';
   % frms{end+1} = '20160417_01_002'; GPS BAD
@@ -42,9 +117,8 @@ else
   start.lon = -50.192878;
   stop.lat = 67.108618;
   stop.lon = -49.968087;
+  dist_min = 100;
 end
-
-dist_min = 100;
 
 %% Automated
 
@@ -55,9 +129,10 @@ if 1
   for frm_idx = 1:length(frms)
     param = [];
     param.day_seg = frms{frm_idx}(1:11);
-    param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),param.day_seg);
+%     param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),param.day_seg);
+    param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),param.day_seg);
     
-    param.load_sar_data.fn = ''; % Leave empty for default
+    param.load_sar_data.fn = 'out_cn7'; % Leave empty for default
     
     % Start and stop chunk to load (inf for second element loads to the end)
     param.load_sar_data.chunk = [1 inf];
@@ -218,6 +293,7 @@ end
 
 %% Save the results
 out_fn = fullfile(ct_filename_out(param,'insar','',1),[pass_name '.mat']);
+fprintf('  Saving %s\n', out_fn);
 out_fn_dir = fileparts(out_fn);
 if ~exist(out_fn_dir,'dir')
   mkdir(out_fn_dir);

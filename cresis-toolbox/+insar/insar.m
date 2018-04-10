@@ -1,12 +1,33 @@
 
-if 1
+if 0
+  if ispc
+    fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/north.mat';
+  else
+    fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/north.mat';
+  end
+  master_idx = 1;
+elseif 1
+  if ispc
+    fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/middle.mat';
+  else
+    fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/middle.mat';
+  end
+  master_idx = 10;
+elseif 0
+  if ispc
+    fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/south.mat';
+  else
+    fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/south.mat';
+  end
+  master_idx = 1;
+elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
   else
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
   end
   master_idx = 1;
-elseif 1
+elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/medium_line.mat';
   else
@@ -27,7 +48,7 @@ proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenlan
 physical_constants;
 
 load(fn);
-rbins = 20:120;
+rbins = 20:300;
 
 %% Plot Results
 % =========================================================================
@@ -98,6 +119,8 @@ legend(h_plot_map,h_legend_map);
 %% Co-Register Results
 % =========================================================================
 
+wf = 1; % HACK TO HARD CODE
+
 if 1
   % Option 1: Use a single pass as the reference.
   ref = pass(master_idx);
@@ -114,7 +137,7 @@ else
 end
 
 along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev);
-ref.surface_bin = interp1(ref.wfs.time, 1:length(ref.wfs.time), ref.surface);
+ref.surface_bin = interp1(ref.wfs(1).time, 1:length(ref.wfs(wf).time), ref.surface);
 
 if 0
   h_fig_ref_idx = figure(102); clf;
@@ -150,22 +173,23 @@ for pass_idx = 1:length(pass)
     pass(pass_idx).ref_y(rline) = offset(:,min_idx).'*ref.y(:,min_idx);
     pass(pass_idx).ref_z(rline) = offset(:,min_idx).'*ref.z(:,min_idx);
 
-    % Compute the location of all pixels from this range line in ECEF
-    wf = 1; % HACK: param_insar.load_sar_data.imgs
-    pass(pass_idx).wfs(wf).time;
-    time = pass(pass_idx).time(2)-pass(pass_idx).time(1);
-    
-    range = time * c/2;
-    range(time>pass(pass_idx).surface(rline)) = pass(pass_idx).surface(rline)*c/2 ...
-      + (time(time>pass(pass_idx).surface(rline)) - pass(pass_idx).surface(rline))*c/2/sqrt(er_ice);
-    
-    pixels = pass(pass_idx).ecef(:,rline) + pass(pass_idx).z(:,rline)*range;
-
-    % Compute the location of all pixels from this range line in the master
-    % line coordinate system FCS.
-    Tfcs = [ref.x, ref.y, ref.z];
-    pass(pass_idx).pixels(:,:,rline) = (pixels - ref.origin) / Tfcs;    
-    
+    if 0
+      % Compute the location of all pixels from this range line in ECEF
+      wf = 1; % HACK: param_insar.load_sar_data.imgs
+      pass(pass_idx).wfs(wf).time;
+      time = pass(pass_idx).time(2)-pass(pass_idx).time(1);
+      
+      range = time * c/2;
+      range(time>pass(pass_idx).surface(rline)) = pass(pass_idx).surface(rline)*c/2 ...
+        + (time(time>pass(pass_idx).surface(rline)) - pass(pass_idx).surface(rline))*c/2/sqrt(er_ice);
+      
+      pixels = pass(pass_idx).ecef(:,rline) + pass(pass_idx).z(:,rline)*range;
+      
+      % Compute the location of all pixels from this range line in the master
+      % line coordinate system FCS.
+      Tfcs = [ref.x, ref.y, ref.z];
+      pass(pass_idx).pixels(:,:,rline) = (pixels - ref.origin) / Tfcs;
+    end
   end
   
   pass(pass_idx).along_track_slave = geodetic_to_along_track(pass(pass_idx).lat,pass(pass_idx).lon,pass(pass_idx).elev);;
@@ -200,7 +224,7 @@ for pass_idx = 1:length(pass)
       % Convert z-offset into time-offset assuming nadir DOA
       dt = pass(pass_idx).ref_z(rline)/(c/2);
       pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
-        .*exp(1i*2*pi*pass(end).wfs.freq*dt) );
+        .*exp(1i*2*pi*pass(end).wfs(wf).freq*dt) );
     end
   end
   
@@ -270,9 +294,9 @@ ylabel('Baseline (m)');
 grid on;
 legend(h_plot_baseline,h_legend_baseline);
 
-array_param.wfs.time = ref.wfs.time;
+array_param.wfs.time = ref.wfs(1).time;
 array_param.sv_fh = @array_proc_sv;
-array_param.wfs.fc = pass(1).wfs.fc;
+array_param.wfs.fc = pass(1).wfs(1).fc;
 array_param.imgs = {[ones(length(pass),1), (1:length(pass)).']};
 array_param.three_dim.en = true;
 

@@ -341,7 +341,11 @@ elseif strcmpi(copy_param.gaps_fill.method,'interp_finite')
   % interpolation interp_finite which interpolates through gaps
   
   % Interpolate source onto destination points using linear interpolation
-  all_points.twtt_interp = interp1(layer_source.gps_time, layer_source.twtt, all_points.gps_time);
+  if length(layer_source.gps_time) >= 2
+    all_points.twtt_interp = interp1(layer_source.gps_time, layer_source.twtt, all_points.gps_time);
+  else
+    all_points.twtt_interp = NaN(size(all_points.gps_time));
+  end
   % Fill in NaN gaps using interp_finite (default is 0 twtt if no good data
   % exists)
   all_points.twtt_interp = interp_finite(all_points.twtt_interp,0);

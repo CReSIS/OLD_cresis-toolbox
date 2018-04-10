@@ -279,6 +279,28 @@ if isfield(tmp_gps,'heading_deg')
   gps.heading = tmp_gps.heading_deg/180*pi;
 end
 
+% Look for LIDAR fields
+if isfield(tmp_gps,'surface_m')
+  if num_rows == -1
+    num_rows = length(tmp_gps.surface_m);
+  elseif length(tmp_gps.surface_m) < num_rows
+    tmp_gps.surface_m(end+1:num_rows) = NaN;
+  elseif length(tmp_gps.surface_m) < num_rows
+    tmp_gps.surface_m = tmp_gps.surface_m(1:num_rows);
+  end
+  gps.surface = tmp_gps.surface_m;
+end
+if isfield(tmp_gps,'range_m')
+  if num_rows == -1
+    num_rows = length(tmp_gps.range_m);
+  elseif length(tmp_gps.range_m) < num_rows
+    tmp_gps.range_m(end+1:num_rows) = NaN;
+  elseif length(tmp_gps.range_m) < num_rows
+    tmp_gps.range_m = tmp_gps.range_m(1:num_rows);
+  end
+  gps.range = tmp_gps.range_m;
+end
+
 % Final clean up to make sure all fields are present
 if isfield(gps,'gps_time')
   if strcmpi(param.time_reference,'utc')
@@ -311,6 +333,14 @@ end
 
 if ~isfield(gps,'heading')
   gps.heading = zeros(1,num_rows);
+end
+
+if ~isfield(gps,'surface')
+  gps.surface = zeros(1,num_rows);
+end
+
+if ~isfield(gps,'range')
+  gps.range = zeros(1,num_rows);
 end
 
 return;
