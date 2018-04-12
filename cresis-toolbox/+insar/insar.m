@@ -6,7 +6,7 @@ if 0
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/north.mat';
   end
   master_idx = 1;
-elseif 1
+elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/middle.mat';
   else
@@ -18,6 +18,20 @@ elseif 0
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/south.mat';
   else
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/south.mat';
+  end
+  master_idx = 1;
+elseif 0
+  if ispc
+    fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_south.mat';
+  else
+    fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_south.mat';
+  end
+  master_idx = 1;
+elseif 1
+  if ispc
+    fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_north.mat';
+  else
+    fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_north.mat';
   end
   master_idx = 1;
 elseif 0
@@ -103,9 +117,9 @@ for pass_idx = 1:length(pass)
   
   figure(h_fig_elev);
   if master_idx == pass_idx
-    h_plot_elev(end+1) = plot(pass(pass_idx).elev,'LineWidth',2);
+    h_plot_elev(end+1) = plot(pass(pass_idx).elev,'LineWidth',2,'UserData',pass_idx);
   else
-    h_plot_elev(end+1) = plot(pass(pass_idx).elev);
+    h_plot_elev(end+1) = plot(pass(pass_idx).elev,'UserData',pass_idx);
   end
   h_legend_elev{end+1} = sprintf('%d',pass_idx');
   
@@ -115,6 +129,17 @@ for pass_idx = 1:length(pass)
 end
 linkaxes(h_data_axes,'xy');
 legend(h_plot_map,h_legend_map);
+
+
+%% Apply GPS time offset
+% =========================================================================
+
+if 0
+  pass_idx = 5;
+  time_offset = -5;
+  pass(pass_idx).ecef = interp1(pass(pass_idx).gps_time,pass(pass_idx).ecef.',pass(pass_idx).gps_time+time_offset,'linear','extrap').';
+  pass(pass_idx).x = interp1(pass(pass_idx).gps_time,pass(pass_idx).x.',pass(pass_idx).gps_time+time_offset,'linear','extrap').';
+end
 
 %% Co-Register Results
 % =========================================================================
@@ -228,6 +253,15 @@ for pass_idx = 1:length(pass)
     end
   end
   
+  if 1
+    % Normalize surface phase
+    Nt = size(pass(pass_idx).ref_data,1);
+    Nx = size(pass(pass_idx).ref_data,2);
+    H = pass(ref_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt) .* conj(pass(pass_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt));
+    H = exp(1i*angle(H));
+    pass(pass_idx).ref_data = bsxfun(@times,pass(pass_idx).ref_data,H);
+  end
+  
   % Concatenate data into a single matrix
   data = cat(3,data,pass(pass_idx).ref_data);
   
@@ -235,26 +269,32 @@ for pass_idx = 1:length(pass)
   % -----------------------
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
-  if 0
+  if 1
     imagesc(lp(pass(pass_idx).ref_data(rbins,:)))
     colormap(1-gray(256));
+    ylabel('Range bin');
+    xlabel('Range line');
+    title(sprintf('%s_%03d %d',pass(pass_idx).param_csarp.day_seg,pass(pass_idx).param_csarp.load.frm,pass(pass_idx).direction),'interpreter','none')
+    caxis([-90 8]);
   else
     % Form interferogram (couple options)
-    complex_data = pass(pass_idx).ref_data(rbins,:) .* conj(ref.data(rbins,:));
+    complex_data = fir_dec(pass(pass_idx).ref_data(rbins,:) .* conj(ref.data(rbins,:)),ones(1,11)/11,1);
     % Plot interferogram
-    imagesc(hsv_plot(complex_data,-50));
+    imagesc(hsv_plot(complex_data,-90));
     colormap(hsv(256))
     h_colorbar = colorbar;
     caxis([-pi pi])
     set(get(h_colorbar,'ylabel'),'string','angle (radians)');
     ylabel('Range bin');
     xlabel('Range line');
+    title(sprintf('%s_%03d %d',pass(pass_idx).param_csarp.day_seg,pass(pass_idx).param_csarp.load.frm,pass(pass_idx).direction),'interpreter','none')
     
   end
   h_data_axes(end+1) = gca;
   
 end
 linkaxes(h_data_axes,'xy');
+return
 
 %% Array Processing
 
@@ -264,13 +304,14 @@ linkaxes(h_data_axes,'xy');
 % 3. Array processing parameters
 data = {permute(data,[1 2 4 5 3])};
 
+array_param = [];
 array_param.method = 1;
 array_param.Nsv = 64;
 array_param.Nsig = 2;
 array_param.bin_rng = [0];
-array_param.rline_rng = [-21:21];
+array_param.rline_rng = [-11:11];
 array_param.dbin = 1;
-array_param.dline = 1;
+array_param.dline = 6;
 array_param.freq_rng = 1;
 h_fig_baseline = figure(200); clf;
 h_plot_baseline = [];
@@ -309,24 +350,28 @@ array_param.method = 1;
 array_param.method = 2;
 [array_param2,result2] = array_proc(array_param,data);
 
-figure(11); clf;
+figure(101); clf;
 imagesc(lp(result0.val))
+title('Periodogram')
 colormap(1-gray(256))
 h_axes = gca;
 
-figure(12); clf;
+figure(102); clf;
 imagesc(lp(result1.val))
+title('MVDR')
 colormap(1-gray(256))
 h_axes(end+1) = gca;
 
-figure(13); clf;
+figure(103); clf;
 imagesc(lp(result2.val))
+title('MUSIC')
 colormap(1-gray(256))
 h_axes(end+1) = gca;
 
-figure(14); clf;
+figure(104); clf;
 imagesc(lp(fir_dec(abs(data{1}(:,:,master_idx)).^2, ones(size(array_param.rline_rng)), 1, ...
   1-array_param.rline_rng(1), size(data{1}(:,:,master_idx),2)-length(array_param.rline_rng)+1)))
+title('Single Channel');
 colormap(1-gray(256))
 h_axes(end+1) = gca;
 
