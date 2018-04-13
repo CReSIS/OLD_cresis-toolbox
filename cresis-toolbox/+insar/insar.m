@@ -249,15 +249,18 @@ for pass_idx = 1:length(pass)
       % Convert z-offset into time-offset assuming nadir DOA
       dt = pass(pass_idx).ref_z(rline)/(c/2);
       pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
-        .*exp(1i*2*pi*pass(end).wfs(wf).freq*dt) );
+        .*exp(1i*2*pi*pass(pass_idx).wfs(wf).freq*dt) );
     end
   end
+
+  % Match time axis to master_idx
+  pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(wf).time, pass(pass_idx).ref_data, pass(master_idx).wfs(wf).time, 'linear', 0);
   
   if 1
     % Normalize surface phase
     Nt = size(pass(pass_idx).ref_data,1);
     Nx = size(pass(pass_idx).ref_data,2);
-    H = pass(ref_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt) .* conj(pass(pass_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt));
+    H = pass(master_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt) .* conj(pass(pass_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt));
     H = exp(1i*angle(H));
     pass(pass_idx).ref_data = bsxfun(@times,pass(pass_idx).ref_data,H);
   end
@@ -269,7 +272,7 @@ for pass_idx = 1:length(pass)
   % -----------------------
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
-  if 1
+  if 0
     imagesc(lp(pass(pass_idx).ref_data(rbins,:)))
     colormap(1-gray(256));
     ylabel('Range bin');
@@ -294,7 +297,7 @@ for pass_idx = 1:length(pass)
   
 end
 linkaxes(h_data_axes,'xy');
-return
+% return
 
 %% Array Processing
 

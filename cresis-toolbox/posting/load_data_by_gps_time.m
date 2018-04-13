@@ -295,6 +295,7 @@ else
       frm_gps_time_stop = records.gps_time(end);
     end
     
+    fprintf('  %s\n', out_fn);
     if frm_idx == 1
       ds = load(out_fn);
       ds = uncompress_echogram(ds);

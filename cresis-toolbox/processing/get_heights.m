@@ -265,7 +265,7 @@ for frm_idx = 1:length(param.cmd.frms)
   % Check proc_mode from frames file that contains this frames type and
   % make sure the user has specified to process this frame type
   if ct_proc_frame(frames.proc_mode(frm),param.get_heights.frm_types)
-    fprintf('%s %s_%03i (%i of %i) %s\n', mfilename, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    fprintf('%s %s_%03i (%i of %i) (%s)\n', sparam.task_function, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
     fprintf('Skipping %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
@@ -362,7 +362,7 @@ for frm_idx = 1:length(param.cmd.frms)
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
     dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
-      mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+      sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
       break_idx, length(breaks), cur_recs_keep(1), cur_recs_keep(end));
     if ctrl.cluster.rerun_only
       % If we are in rerun only mode AND the get heights task success
@@ -454,6 +454,7 @@ sparam.task_function = 'get_heights_combine_task';
 sparam.num_args_out = 1;
 sparam.cpu_time = 60;
 sparam.mem = 0;
+fprintf('%s %s (%s)\n', sparam.task_function, param.day_seg, datestr(now));
 % Add up all records being processed and find the most records in a frame
 Nx = 0;
 Nx_max = 0;
@@ -485,8 +486,8 @@ end
 if param.get_heights.surf.en
   sparam.cpu_time = sparam.cpu_time + numel(records.gps_time)/5e6*120;
 end
-sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
-  mfilename, param.radar_name, param.season_name, param.day_seg);
+sparam.notes = sprintf('%s:%s:%s %s', ...
+  sparam.task_function, param.radar_name, param.season_name, param.day_seg);
 
 % Create success condition
 success_error = 64;

@@ -1,5 +1,5 @@
-function [success] = csarp_sar_task(param)
-% [success] = csarp_sar_task(param)
+function [success] = csarp_sar_coord_task(param)
+% [success] = csarp_sar_coord_task(param)
 %
 % Creates the SAR coordinate system for the entire segment.
 %
@@ -103,6 +103,7 @@ sar = [];
 sar.version = 1.0;
 sar.Lsar = Lsar;
 sar.gps_source = records.gps_source;
+sar.gps_time_offset = records.param_records.vectors.gps.time_offset;
 sar.type = param.csarp.mocomp.type;
 sar.sigma_x = param.csarp.sigma_x;
 sar.presums = param.csarp.presums;
@@ -122,7 +123,7 @@ if ~exist(sar_fn_dir,'dir')
   mkdir(sar_fn_dir);
 end
 fprintf('Saving SAR coord %s (%s)\n', sar_fn, datestr(now));
-save(sar_fn,'-v6','-struct','sar','version','Lsar','gps_source','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time');
+save(sar_fn,'-v7','-struct','sar','version','Lsar','gps_source','gps_time_offset','type','sigma_x','presums','surf_pp','along_track','origin','x','z','roll','pitch','heading','gps_time');
 
 fprintf('%s done %s\n', mfilename, datestr(now));
 

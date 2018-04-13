@@ -243,7 +243,7 @@ for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
   if ct_proc_frame(frames.proc_mode(frm),param.combine.frm_types)
-    fprintf('%s combine %s_%03i (%i of %i) %s\n', param.radar_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    fprintf('%s %s_%03i (%i of %i) (%s)\n', sparam.task_function, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
     skip_frame = false;
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
@@ -316,7 +316,7 @@ for frm_idx = 1:length(param.cmd.frms);
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
     dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d', ...
-      mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+      sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
       chunk_idx, num_chunks);
     if ctrl.cluster.rerun_only
       % If we are in rerun only mode AND the get heights task success
@@ -372,6 +372,7 @@ sparam.task_function = 'combine_wf_chan_combine_task';
 sparam.num_args_out = 1;
 sparam.cpu_time = 60;
 sparam.mem = 0;
+fprintf('%s %s (%s)\n', sparam.task_function, param.day_seg, datestr(now));
 % Add up all records being processed and find the most records in a frame
 Nx = 0;
 Nx_max = 0;
@@ -401,7 +402,7 @@ for img = 1:length(param.combine.imgs)
   end
 end
 sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
-  mfilename, param.radar_name, param.season_name, param.day_seg);
+  sparam.task_function, param.radar_name, param.season_name, param.day_seg);
 
 % Create success condition
 success_error = 64;
