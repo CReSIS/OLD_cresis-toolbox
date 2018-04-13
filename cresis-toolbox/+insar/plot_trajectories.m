@@ -25,14 +25,16 @@ for idx=1:length(array_param.fcs{1})
 end
 h_title = title(h_axes, '');
 
-for rline=1:size(array_param.fcs{1}{1}.pos,2)
+for rline=1:10:size(array_param.fcs{1}{1}.pos,2)
   for idx=1:length(array_param.fcs{1})
     set(h_plot(idx),'XData',array_param.fcs{1}{idx}.pos(2,rline),'YData',array_param.fcs{1}{idx}.pos(3,rline));
   end
   set(h_title,'String',sprintf('%d',rline));
 %   M(rline) = getframe;
+  pause
 end
 % movie(M);
+return
 
 
 % For each trajectory find the sum of all the distances to other trajectories 

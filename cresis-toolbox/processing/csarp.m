@@ -229,14 +229,21 @@ end
 % =====================================================================
 
 sar_fn = fullfile(csarp_coord_dir,'sar_coord.mat');
-fprintf('Looking for SAR coordinates file (%s):\n  %s\n', datestr(now), sar_fn);
+fprintf('csarp_sar_coord_task %s (%s):\n  %s\n', datestr(now), param.day_seg, sar_fn);
 if exist(sar_fn,'file')
-  sar = load(sar_fn,'Lsar','gps_source','type','sigma_x','presums','version');
+  sar_fields = {'Lsar','gps_source','gps_time_offset','type','sigma_x','presums','version'};
+  sar = load(sar_fn,sar_fields{:});
+  for sar_field = sar_fields
+    if ~isfield(sar,sar_field{1})
+      error('SAR coordinates file missing %s field. Either delete file or correct file and then rerun.', sar_field{1});
+    end
+  end
 end
 Lsar = c/wfs(1).fc*(param.csarp.Lsar.agl+param.csarp.Lsar.thick/sqrt(er_ice))/(2*param.csarp.sigma_x);
 if ~exist(sar_fn,'file') ...
     || sar.Lsar ~= Lsar ...
     || ~strcmpi(sar.gps_source,records.gps_source) ...
+    || sar.gps_time_offset ~= records.param_records.vectors.gps.time_offset ...
     || sar.type ~= param.csarp.mocomp.type ...
     || sar.sigma_x ~= param.csarp.sigma_x ...
     || sar.presums ~= param.csarp.presums ...
@@ -260,13 +267,16 @@ if ~exist(sar_fn,'file') ...
   Nx = numel(records.gps_time);
   sparam.cpu_time = 60 + Nx*cpu_time_mult;
   sparam.mem = 250e6 + Nx*mem_mult;
-  sparam.notes = sprintf('%s:%s:%s %s sar coordinate system', ...
-    mfilename, param.radar_name, param.season_name, param.day_seg);
+  sparam.notes = sprintf('%s:%s:%s %s', ...
+    sparam.task_function, param.radar_name, param.season_name, param.day_seg);
     
   % Create success condition
   success_error = 64;
   sparam.success = ...
     sprintf('error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, sar_fn);
+  if ~ctrl.cluster.rerun_only && exist(sar_fn,'file')
+    delete(sar_fn);
+  end
   
   ctrl = cluster_new_task(ctrl,sparam,[]);
   
@@ -354,7 +364,7 @@ sparam.num_args_out = 1;
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
   if ct_proc_frame(frames.proc_mode(frm),param.csarp.frm_types)
-    fprintf('%s %s_%03i (%i of %i) %s\n', mfilename, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    fprintf('%s %s_%03i (%i of %i) (%s)\n', sparam.task_function, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
@@ -444,7 +454,7 @@ for frm_idx = 1:length(param.cmd.frms)
       % Rerun only mode: Test to see if we need to run this task
       % =================================================================
       dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d %s %.0f to %.0f recs', ...
-        mfilename, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+        sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
         chunk_idx, num_chunks, wf_adc_str, (dparam.argsin{1}.load.recs(1)-1)*param.csarp.presums+1, ...
         dparam.argsin{1}.load.recs(2)*param.csarp.presums);
       if ctrl.cluster.rerun_only

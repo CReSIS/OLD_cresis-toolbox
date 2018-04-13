@@ -99,6 +99,15 @@ elev_interp    = interp1(lay.GPS_time,lay.Elevation,mdata.GPS_time,'linear','ext
 fast_time_correction = (mdata.Elevation - elev_interp)/(c/2);
 
 % =======================================================================
+% Mean removal detrending
+% =======================================================================
+if isfield(param,'detrend') && ~isempty(param.detrend)
+  if strcmpi(param.detrend.mode,'mean_removal')
+    mdata.Data = 10.^(bsxfun(@minus,lp(mdata.Data),mean(lp(mdata.Data),2))/10);
+  end
+end
+
+% =======================================================================
 % Elevation compensation
 % =======================================================================
 
@@ -359,7 +368,7 @@ if isfield(param,'detrend') && ~isempty(param.detrend)
     detrend_rlines = 1:size(mdata.Data,2);
     
     % Get the log of the mean range bin power
-    detrend_profile = lp(mean(abs(mdata.Data),2));
+    detrend_profile = lp(nanmean(abs(mdata.Data),2));
     
     % Create an xaxis to prevent badly conditioned polynomials
     if isempty(detrend_rbins)
@@ -382,7 +391,7 @@ if isfield(param,'detrend') && ~isempty(param.detrend)
     % Check detrending
     if 0
       figure;
-      plot(lp(mean(abs(mdata.Data),2)),'r');
+      plot(lp(nanmean(abs(mdata.Data),2)),'r');
       hold on;
       plot(detrend_profile);
       hold off;
