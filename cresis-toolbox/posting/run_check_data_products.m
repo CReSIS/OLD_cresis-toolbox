@@ -28,7 +28,8 @@ global gRadar
 % params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),[],'post');
-params = read_param_xls(ct_filename_param('accum_param_2017_Greenland_P3.xls'),[],'post');
+params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('accum_param_2017_Greenland_P3.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),[],'post');
 % params = ct_set_params(params,'cmd.generic',0);
@@ -42,10 +43,11 @@ support_backup_dirs = {'',''};
 support_dirs_list = [support_dir support_backup_dirs];
 
 [~,~,radar_name] = ct_output_dir(params(1).radar_name);
-if any(strcmp(radar_name,{'icards','mcrds','mcords','mcords2','mcords3','mcords4','mcords5'}))
+if any(strcmp(radar_name,{'hfrds','hfrds2','icards','mcrds','mcords','mcords2','mcords3','mcords4','mcords5'}))
   supports = {'gps','frames','records'};
 %   outputs = {'CSARP_qlook','CSARP_standard','CSARP_mvdr','CSARP_layerData','CSARP_out'};
-  outputs = {'CSARP_qlook','CSARP_standard','CSARP_mvdr'};
+  outputs = {'CSARP_qlook','CSARP_standard'};
+%   outputs = {'CSARP_qlook','CSARP_standard','CSARP_mvdr'};
 %   outputs = {'CSARP_qlook','CSARP_csarp-combined'};
   outputs_post_dir = 'CSARP_post';
   images = {'maps','echo'};
@@ -68,7 +70,7 @@ elseif any(strcmp(radar_name,{'snow8','kaband3','kuband3','snow3','kuband2','sno
   pdf_en = 0;
   csv_en = 0;
 end
-gps_sources = {'atm-final_20170620'}; % Should be checked at least once before data posting
+gps_sources = {'dtu-final20161129'}; % Should be checked at least once before data posting
 % gps_sources = {}; % Leave empty/undefined to not check gps_sources
 
 % processing_date_check = datenum(2012,09,01); % Leave empty/undefined to not check porcessing date
