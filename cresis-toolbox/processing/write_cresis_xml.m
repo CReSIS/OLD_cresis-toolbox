@@ -610,6 +610,13 @@ if isfield(param,'arena')
   arena.TTL_time = param.arena.TTL_time;
   arena.TTL_names = param.arena.TTL_names;
   arena.TTL_states = param.arena.TTL_states;
+  % Ensure non-negative delays
+  min_delay = inf;
+  for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
+    if min(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).Delay) < min_delay
+      min_delay = min(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).Delay);
+    end
+  end
   for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
     arena.PRI = 1 / settings_enc.sys.DDSZ5FSetup.PRF;
     arena.wfs(wf).zeropimods = param.arena.zeropimods;
@@ -620,7 +627,7 @@ if isfield(param,'arena')
       + settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq)/2;
     arena.wfs(wf).BW = abs(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StopZ20Freq ...
       - settings_enc.sys.DDSZ5FSetup.Waveforms(wf).StartZ20Freq);
-    arena.wfs(wf).delay = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).Delay;
+    arena.wfs(wf).delay = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).Delay - min_delay;
     arena.wfs(wf).phase = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).PhaseZ20Offset;
     arena.wfs(wf).Tpd = double(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).LenZ20Mult) ...
       * settings_enc.sys.DDSZ5FSetup.BaseZ20Len;
