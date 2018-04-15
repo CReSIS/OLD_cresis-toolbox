@@ -13,9 +13,11 @@ function cluster_hold(ctrl_chain,hold_state,mode)
 %   0: removes hold
 %   1: applies hold
 %   []: if empty or undefined, the hold_state is toggled
-% mode: Only used if ctrl_chain is an integer array, default is 'chain'.
-%   Integer array will be treated as chains if mode is 'chain' and batches
-%   if mode is 'batch'.
+% mode: string containing mode identifiers. If 'chain' is contained in the
+%   string then numeric IDs are treated as chain IDs. If 'batch' is contained
+%   in the string, then numeric IDs are treated as batch IDs. If 'hold' is
+%   contained in the string and torque cluster type, then each job will be
+%   sent a hold or unhold state command.
 %
 % Author: John Paden
 %
@@ -37,6 +39,10 @@ end
 
 if ~exist('hold_state','var')
   hold_state = [];
+end
+
+if ~exist('mode','var')
+  mode = 'chain';
 end
 
 %% Get a list of all batches
@@ -74,7 +80,7 @@ elseif iscell(ctrl_chain)
   end
   
 elseif isnumeric(ctrl_chain)
-  if nargin >= 3 && ~isempty(mode) && strcmpi(mode,'batch')
+  if nargin >= 3 && ~isempty(mode) && ~isempty(regexpi(mode,'batch'))
     % This is a list of batch IDs
     for idx = 1:length(ctrl_chain)
       batch_id = ctrl_chain(idx);
@@ -93,7 +99,7 @@ elseif isnumeric(ctrl_chain)
       catch
         continue
       end
-      cluster_hold(ctrl_chain,hold_state);
+      cluster_hold(ctrl_chain,hold_state,mode);
     end
     return;
   end
@@ -127,5 +133,46 @@ for ctrl_idx = 1:length(ctrls)
       delete(ctrl.hold_fn);
     end
   end
+  
+  % Enable this code if you need to place torque-holds on the jobs in the
+  % queue.
+  if ~isempty(regexpi(mode,'hold')) && any(strcmpi(ctrl.cluster.type,{'torque'}))
+    [fid,msg] = fopen(ctrl.job_id_fn,'r');
+    if fid < 1
+      warning ('Could not open job id list file %s\n', ctrl.job_id_fn);
+      ctrl.job_id_list = [];
+      ctrl.error_mask = [];
+      ctrl.job_status = [];
+      return;
+    end
+    ctrl.job_id_list = textscan(fid,'%f');
+    fclose(fid);
+    ctrl.job_id_list = ctrl.job_id_list{1};
+    job_id_list = unique(ctrl.job_id_list);
+    % For each job in the batch, remove/place as specified
+    for job_id = 1:length(job_id_list)
+      if hold_state == 1
+        cmd = sprintf('qhold -h u %i', job_id_list(job_id));
+        try
+          [status,result] = system(cmd);
+        catch
+          cmd
+          warning('system call failed');
+          %   keyboard;
+        end
+        
+      elseif hold_state == 0
+        cmd = sprintf('qalter -h n %i', job_id_list(job_id));
+        try
+          [status,result] = system(cmd);
+        catch
+          cmd
+          warning('system call failed');
+          %   keyboard;
+        end
+      end
+    end
+  end
+  
 end
 

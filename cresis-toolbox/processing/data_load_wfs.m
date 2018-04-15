@@ -206,6 +206,21 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).Nt_raw = 0;
   end
+  if isfield(param.radar.wfs(wf),'conjugate') && ~isempty(param.radar.wfs(wf).conjugate)
+    wfs(wf).conjugate   = param.radar.wfs(wf).conjugate;
+  else
+    wfs(wf).conjugate   = 0;
+  end
+  if isfield(param.radar.wfs(wf),'DC_adjust') && ~isempty(param.radar.wfs(wf).DC_adjust)
+    tmp = load(fullfile(ct_filename_out(param,'noise','',1), ...
+      param.radar.wfs(wf).DC_adjust),'DC_adjust');
+    for adc_idx = 1:length(adcs)
+      adc = adcs(adc_idx);
+      wfs(wf).DC_adjust(adc_idx) = tmp.DC_adjust(adc);
+    end
+  else
+    wfs(wf).DC_adjust   = zeros(size(adcs));
+  end
   
   % Other fields from param.radar files
   % =======================================================================
@@ -233,208 +248,7 @@ for wf = 1:length(param.radar.wfs)
   wfs(wf).quantization_to_V ...
     = param.radar.Vpp_scale * 2^num_bit_shifts ...
     / (2^14*wfs(wf).presums);
-  
-end
 
-% offset: bytes of data before this data channel
-% rec_data_size: number of bytes of data in the record
-if any(param.records.file_version == [405 406]) % [acords]
-  wf_num_sam = cell2mat({settings.wfs(1).wfs.num_sam}).';
-elseif any(param.records.file_version == [403 407 408]) % [mcords3 mcords5]
-  wf_num_sam = cell2mat({settings.wfs.num_sam}).';
-end
-
-
-
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice'}))
-  wf = 1;
-  wf_offsets(wf) = 0;
-  if ~wfs(wf).DDC_mode
-    % Real data
-    if any(strcmpi(radar_name,{'acords'}))
-      num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
-      rec_data_size = wf_num_sam(wf)*num_elem*sample_size;
-    else
-      rec_data_size = wf_num_sam(wf)*sample_size;
-    end
-  else
-    % Complex data
-    rec_data_size = 2*wf_num_sam(wf)*sample_size;
-  end
-  
-  for wf = 2:length(param.radar.wfs)
-    if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
-      wfs(wf).DDC_mode   = param.radar.wfs(wf).DDC_mode;
-    else
-      wfs(wf).DDC_mode   = 0;
-    end
-    
-    if ~wfs(wf).DDC_mode
-      % Real data
-      if any(strcmpi(radar_name,{'acords'}))
-        num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
-        wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
-        rec_data_size = rec_data_size + wf_num_sam(wf)*num_elem*sample_size;
-      else
-        wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
-        rec_data_size = rec_data_size + wf_num_sam(wf)*sample_size;
-      end
-    else
-      % Complex data
-      wf_offsets(wf) = wf_offsets(wf-1) + 2*wf_num_sam(wf-1)*sample_size;
-      rec_data_size = rec_data_size + 2*wf_num_sam(wf)*sample_size;
-    end
-  end
-  
-elseif strcmpi(radar_name,'accum2')
-  wf_offsets = cumsum([0; wf_num_sam(1:end-1)]) ...
-    * sample_size;
-  rec_data_size = sum(wf_num_sam) * sample_size;
-end
-
-if proc_param.wf_adc_comb.en
-  % Determine the waveform with the longest time record. All waveforms will
-  % be increased to this length for pulse compression to guarantee alignment
-  % of the frequency bins. This zero padding will be placed at the end of the
-  % waveform.
-  
-  for wf = 1:length(param.radar.wfs)
-    if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
-      wfs(wf).DDC_mode   = param.radar.wfs(wf).DDC_mode;
-    else
-      wfs(wf).DDC_mode   = 0;
-    end
-    if wfs(wf).DDC_mode == 0
-      fs = param.radar.fs;
-    else
-      fs = param.radar.fs / 2^(1+wfs(wf).DDC_mode);
-    end
-    if isfield(param.radar.wfs(wf),'zero_pad') && ~isempty(param.radar.wfs(wf).zero_pad)
-      wfs(wf).zero_pad   = param.radar.wfs(wf).zero_pad;
-    else
-      wfs(wf).zero_pad   = 0;
-    end
-    
-    Tpd     = param.radar.wfs(wf).Tpd;
-    Nt_ref  = floor(Tpd * fs) + 1;
-    Nt_raw  = settings.wfs(wf).num_sam;
-    Nt_pc(wf)   = Nt_raw + Nt_ref + wfs(wf).zero_pad - 1;
-  end
-  
-  Nt_pc_max = max(Nt_pc);
-end
-
-%% Create default values for all waveforms
-% =========================================================================
-for wf = 1:length(param.radar.wfs)
-  adc_idx = 1;
-  
-  if any(strcmpi(radar_name,{'acords'}))
-    settings.wfs(wf).bit_shifts = settings.wfs(1).wfs(wf).bit_shifts(1);
-    settings.wfs(wf).presums = settings.wfs(1).wfs(wf).presums(1);
-    settings.wfs(wf).num_sam = settings.wfs(1).wfs(wf).num_sam(1);
-    settings.wfs(wf).t0 = settings.wfs(1).wfs(wf).t0(1);
-    settings.wfs(wf).prf = settings.wfs(1).wfs(wf).prf(1);
-    settings.wfs(wf).f0 = settings.wfs(1).wfs(wf).f0(1);
-    settings.wfs(wf).f1 = settings.wfs(1).wfs(wf).f1(1);
-    settings.wfs(wf).wf_gen_clk = settings.wfs(1).wfs(wf).wf_gen_clk(1);
-    settings.wfs(wf).daq_clk = settings.wfs(1).wfs(wf).daq_clk(1);
-    settings.wfs(wf).Tpd = settings.wfs(1).wfs(wf).Tpd(1);
-    settings.wfs(wf).tx_win = settings.wfs(1).wfs(wf).tx_win(1);
-    settings.wfs(wf).blank = settings.wfs(1).wfs(wf).blank(1);
-    settings.wfs(wf).adc_gains = settings.wfs(1).wfs(wf).adc_gains(1,:);
-    if param.records.file_version == 406
-      settings.wfs(wf).elem_slots = settings.wfs(1).wfs(wf).elem_slots(1,:);
-    end
-  end
-  
-  wfs(wf).Tpd     = param.radar.wfs(wf).Tpd;
-  wfs(wf).f0      = param.radar.wfs(wf).f0;
-  wfs(wf).f1      = param.radar.wfs(wf).f1;
-  if isfield(param.radar.wfs(wf),'Tadc_adjust') && ~isempty(param.radar.wfs(wf).Tadc_adjust)
-    Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
-  else
-    Tadc_adjust = 0;
-  end
-  if isfield(param.radar.wfs(wf),'Tadc') && ~isempty(param.radar.wfs(wf).Tadc)
-    wfs(wf).t0    = param.radar.wfs(wf).Tadc + Tadc_adjust;
-  else
-    wfs(wf).t0    = settings.wfs(wf).t0 + Tadc_adjust;
-  end
-  if isfield(param.radar.wfs(wf),'blank') && ~isempty(param.radar.wfs(wf).blank)
-    wfs(wf).blank   = param.radar.wfs(wf).blank;
-  else
-    wfs(wf).blank   = [];
-  end
-  if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
-    wfs(wf).DDC_mode   = param.radar.wfs(wf).DDC_mode;
-  else
-    wfs(wf).DDC_mode   = 0;
-  end
-  if wfs(wf).DDC_mode == 0
-    fs = param.radar.fs;
-  else
-    fs = param.radar.fs / 2^(1+wfs(wf).DDC_mode);
-  end
-  if isfield(param.radar.wfs(wf),'zero_pad') && ~isempty(param.radar.wfs(wf).zero_pad)
-    wfs(wf).zero_pad   = param.radar.wfs(wf).zero_pad;
-  else
-    wfs(wf).zero_pad   = 0;
-  end
-  if isfield(param.radar.wfs(wf),'ft_dec') && ~isempty(param.radar.wfs(wf).ft_dec)
-    wfs(wf).ft_dec = param.radar.wfs(wf).ft_dec;
-  else
-    [numerator denominator] = rat((wfs(wf).f1 - wfs(wf).f0) / fs);
-    wfs(wf).ft_dec = [numerator denominator];
-  end
-  if isfield(param.radar.wfs(wf),'DDC_freq') && ~isempty(param.radar.wfs(wf).DDC_freq)
-    wfs(wf).DDC_freq   = param.radar.wfs(wf).DDC_freq;
-  else
-    wfs(wf).DDC_freq   = 0;
-  end
-  if isfield(param.radar.wfs(wf),'DC_adjust') && ~isempty(param.radar.wfs(wf).DC_adjust)
-    tmp = load(fullfile(ct_filename_out(param,'noise','',1), ...
-      param.radar.wfs(wf).DC_adjust),'DC_adjust');
-    for adc_idx = 1:length(adcs)
-      adc = adcs(adc_idx);
-      wfs(wf).DC_adjust(adc_idx) = tmp.DC_adjust(adc);
-    end
-  else
-    wfs(wf).DC_adjust   = zeros(size(adcs));
-  end
-  wfs(wf).presums = settings.wfs(wf).presums;
-  wfs(wf).Nt_ref  = floor(wfs(wf).Tpd * fs) + 1;
-  wfs(wf).Nt_raw  = settings.wfs(wf).num_sam;
-  wfs(wf).Nt_pc   = wfs(wf).Nt_raw + wfs(wf).Nt_ref + wfs(wf).zero_pad - 1;
-  wfs(wf).pad_length = wfs(wf).Nt_pc - wfs(wf).Nt_raw;
-  wfs(wf).offset  = wf_offsets(wf);
-  if proc_param.wf_adc_comb.en
-    wfs(wf).Nt_pc = Nt_pc_max;
-  end
-  
-  if isfield(param.radar.wfs(wf),'conjugate') && ~isempty(param.radar.wfs(wf).conjugate)
-    wfs(wf).conjugate   = param.radar.wfs(wf).conjugate;
-  else
-    wfs(wf).conjugate   = 0;
-  end
-
-  if isfield(param.radar.wfs(wf),'BW') && ~isempty(param.radar.wfs(wf).BW)
-    BW_window = param.radar.wfs(wf).BW(1);
-  else
-    BW_window = abs(wfs(wf).f1 - wfs(wf).f0);
-  end
-  
-  % ===================================================================
-  % Quantization to Voltage conversion
-  wfs(wf).quantization_to_V ...
-    = param.radar.Vpp_scale * 2^settings.wfs(wf).bit_shifts ...
-    / (2^14*wfs(wf).presums);
-  
-  % Other fields from param.radar files
-  wfs(wf).tx_weights = param.radar.wfs(wf).tx_weights;
-  wfs(wf).rx_paths = param.radar.wfs(wf).rx_paths;
-  wfs(wf).adc_gains = param.radar.wfs(wf).adc_gains;
-  
   % ===================================================================
   % Create reference waveform
   Tpd = wfs(wf).Tpd;
@@ -617,3 +431,59 @@ for wf = 1:length(param.radar.wfs)
   
 end
 
+%% Build raw data loading "state" structure
+% =========================================================================
+
+% offset: bytes of data before this data channel
+% rec_data_size: number of bytes of data in the record
+if any(param.records.file_version == [405 406]) % [acords]
+  wf_num_sam = cell2mat({settings.wfs(1).wfs.num_sam}).';
+elseif any(param.records.file_version == [403 407 408]) % [mcords3 mcords5]
+  wf_num_sam = cell2mat({settings.wfs.num_sam}).';
+end
+
+if any(param.records.file_version == [403 405 406 407 408]) % [acords]
+  wf = 1;
+  wf_offsets(wf) = 0;
+  if ~wfs(wf).DDC_mode
+    % Real data
+    if any(strcmpi(radar_name,{'acords'}))
+      num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
+      rec_data_size = wf_num_sam(wf)*num_elem*sample_size;
+    else
+      rec_data_size = wf_num_sam(wf)*sample_size;
+    end
+  else
+    % Complex data
+    rec_data_size = 2*wf_num_sam(wf)*sample_size;
+  end
+  
+  for wf = 2:length(param.radar.wfs)
+    if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
+      wfs(wf).DDC_mode   = param.radar.wfs(wf).DDC_mode;
+    else
+      wfs(wf).DDC_mode   = 0;
+    end
+    
+    if ~wfs(wf).DDC_mode
+      % Real data
+      if any(strcmpi(radar_name,{'acords'}))
+        num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
+        wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
+        rec_data_size = rec_data_size + wf_num_sam(wf)*num_elem*sample_size;
+      else
+        wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
+        rec_data_size = rec_data_size + wf_num_sam(wf)*sample_size;
+      end
+    else
+      % Complex data
+      wf_offsets(wf) = wf_offsets(wf-1) + 2*wf_num_sam(wf-1)*sample_size;
+      rec_data_size = rec_data_size + 2*wf_num_sam(wf)*sample_size;
+    end
+  end
+  
+elseif any(param.records.file_version == [102]) % [accum2]
+  wf_offsets = cumsum([0; wf_num_sam(1:end-1)]) ...
+    * sample_size;
+  rec_data_size = sum(wf_num_sam) * sample_size;
+end
