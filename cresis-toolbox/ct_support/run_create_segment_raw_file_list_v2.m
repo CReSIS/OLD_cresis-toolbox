@@ -16,6 +16,7 @@
 
 param = [];
 counter_correction_en = false;
+online_mode = false;
 
 % Enable Just One Radar Setup
 radar_setup = 'mcords5';
@@ -148,12 +149,12 @@ if strcmpi(radar_setup,'MCORDS3')
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2017_Greenland_P3';
-  base_dir = '/process3/';
+  param.season_name = '2018_Greenland_P3';
+  base_dir = '/process-archive/';
 %   base_dir = '/net/field1/landing/mcords/';
-  param.adc_folder_name = '20170320/mcords/board%b';
+  param.adc_folder_name = '20180414/mcords/board%b';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20170320'; % Only used for stdout print of the vectors worksheet
+  day_string = '20180414'; % Only used for stdout print of the vectors worksheet
 end
 
 %% RDS: MCoRDS 4
@@ -186,11 +187,11 @@ if strcmpi(radar_setup,'MCORDS5')
   union_time_epri_gaps = true;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2017_Antarctica_Basler';
-  base_dir = '/cresis/snfs1/data/MCoRDS/2017_Antarctica_Basler/';
-  param.adc_folder_name = '20171021/chan%d';
+  param.season_name = '2018_Greenland_P3';
+  base_dir = '/process-archive/';
+  param.adc_folder_name = '20180414/accum/chan%d';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20171021'; % Only used for stdout print of the vectors worksheet
+  day_string = '20180414'; % Only used for stdout print of the vectors worksheet
 end
 
 %% Snow 1
@@ -291,7 +292,7 @@ end
 %% SNOW8
 if strcmpi(radar_setup,'SNOW8')
   param.radar_name = 'snow8';
-  param.clk = 250e6;
+  param.clk = 125e6;
   adcs = 1;
   param.file_version = 8;
   raw_file_suffix = '.bin';
@@ -300,11 +301,11 @@ if strcmpi(radar_setup,'SNOW8')
   counter_correction_en = false;
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
-  param.season_name = '2017_Greenland_P3';
-  base_dir = '/process3/';
-  param.adc_folder_name = '20170320/fmcw/snow/';
+  param.season_name = '2018_Greenland_P3';
+  base_dir = '/process-archive/';
+  param.adc_folder_name = '20180414/fmcw/snow/';
   file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
-  day_string = '20170320'; % Only used for stdout print of the vectors worksheet
+  day_string = '20180414'; % Only used for stdout print of the vectors worksheet
 end
 
 %% User Settings that should not generally be changed
