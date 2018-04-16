@@ -66,7 +66,7 @@ if strcmpi(ctrl.cluster.type,'torque')
   % Insert number of processors
   if ~isempty(ctrl.cluster.mem_to_ppn)
     % If ppn should be used to limit memory...
-    submit_arguments = regexprep(submit_arguments,'%p',sprintf('%.0f',ceil(job_mem/ctrl.cluster.mem_to_ppn)));
+    submit_arguments = regexprep(submit_arguments,'%p',sprintf('%.0f',max(1,ceil(job_mem/ctrl.cluster.mem_to_ppn))));
   else
     % Normally 1
     submit_arguments = regexprep(submit_arguments,'%p',sprintf('%.0f',1));

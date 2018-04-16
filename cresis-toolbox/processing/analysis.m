@@ -236,8 +236,8 @@ for break_idx = 1:length(breaks)
     rec_load_stop = rec_load_start+param.analysis.block_size-1;
   end
   cur_recs = [rec_load_start rec_load_stop];
-  actual_cur_recs = [(cur_recs(1)-1)*param.csarp.presums+1, ...
-    cur_recs(end)*param.csarp.presums];
+  actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+    cur_recs(end)*param.analysis.presums];
   
   % Prepare task inputs
   % =================================================================
@@ -262,7 +262,7 @@ for break_idx = 1:length(breaks)
       out_fn_dir = ct_filename_out(param,cmd.out_path);
       
       % Load data
-      dparam.cpu_time = dparam.cpu_time + 10 + param.csarp.presums*size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + param.analysis.presums*size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
 
       % Process commands
       switch lower(cmd.name)

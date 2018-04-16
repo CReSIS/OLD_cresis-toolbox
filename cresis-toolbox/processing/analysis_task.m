@@ -121,7 +121,7 @@ elseif any(strcmpi(radar_name,{'icards'}))% add icards----qishi
   [wfs,rec_data_size] = load_icards_wfs(records.settings, param, ...
     1:max(param_records.records.file.adcs), param.analysis);
   load_param.load.rec_data_size = rec_data_size;
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   wfs = load_fmcw_wfs(records.settings, param, ...
     1:max(param_records.records.file.adcs), param.analysis);
 end
