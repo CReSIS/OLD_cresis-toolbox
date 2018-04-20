@@ -331,7 +331,7 @@ wfs(wf).DDC_freq=0
         % Positive frequencies first since this is an odd Nyquist zone
         wfs(wf).freq_raw = floor(nz0/2)*wfs(wf).fs_raw + df*(0:wfs(wf).Nt_raw-1);
         wfs(wf).freq_raw(end-floor(wfs(wf).Nt_raw/2)+1:end) ...
-          = wfs(wf).freq_raw(end-floor(wfs(wf).Nt_raw/2)+1:end) - ceil(nz0/2)*wfs(wf).fs_raw - ceil(nz0/2)*wfs(wf).fs_raw;
+          = wfs(wf).freq_raw(end-floor(wfs(wf).Nt_raw/2)+1:end) - (nz0/2+1)*wfs(wf).fs_raw - nz0/2*wfs(wf).fs_raw;
       end
     else
       % Assume complex sampling since signal crosses Nyquist boundary

@@ -239,7 +239,7 @@ end
 %   waveform 2 to be the second stage
 %   waveform 3, 4, and 5 to be the third stage
 if ~isempty(param.tg.staged_recording)
-  if param.tg.staged_recording(1) == 0
+  if all(param.tg.staged_recording == 0)
     param.tg.staged_recording = zeros(size(param.wfs));
   elseif length(param.tg.staged_recording) ~= length(param.wfs)
     param.tg.staged_recording = 1:length(param.wfs);
