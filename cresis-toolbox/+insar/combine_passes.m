@@ -1,6 +1,102 @@
 %% User Settings
 frms = {};
 if 1
+  frms{end+1} = '20161107_02_003';
+  frms{end+1} = '20161107_02_006';
+  frms{end+1} = '20161107_03_003';
+  frms{end+1} = '20161107_03_006';
+  frms{end+1} = '20161107_07_003';
+  frms{end+1} = '20161108_01_003';
+  frms{end+1} = '20161108_01_006';
+  frms{end+1} = '20161108_01_009';
+  frms{end+1} = '20161108_02_002';
+  frms{end+1} = '20161110_01_003';
+  frms{end+1} = '20161110_01_006';
+  frms{end+1} = '20161110_01_009';
+  frms{end+1} = '20161110_02_003';
+  frms{end+1} = '20161110_03_001';
+  pass_name = 'north';
+  start.lat = 69.174061;
+  start.lon = -49.668096;
+  stop.lat = 69.196834;
+  stop.lon = -48.906555;
+  dist_min = 2000;
+elseif 0
+  % frms{end+1} = '20161107_02_001'; % 11.7 km short of stop point
+  frms{end+1} = '20161107_02_004';
+  frms{end+1} = '20161107_03_001';
+  frms{end+1} = '20161107_03_004';
+  frms{end+1} = '20161107_07_001';
+  frms{end+1} = '20161108_01_001';
+  frms{end+1} = '20161108_01_004';
+  frms{end+1} = '20161108_01_007'; % Surface does not show up in interferogram
+  frms{end+1} = '20161108_01_010'; % Surface does not show up in interferogram
+  frms{end+1} = '20161110_01_001'; % Surface is faint
+  frms{end+1} = '20161110_01_004';
+  frms{end+1} = '20161110_01_007';
+  frms{end+1} = '20161110_02_001'; % 2 km short of stop point
+  frms{end+1} = '20161110_02_004';
+  frms{end+1} = '20161110_03_007';
+  frms{end+1} = '20161110_03_008';
+  frms{end+1} = '20161111_01_001'; % 460 m short of start point
+  frms{end+1} = '20161111_01_002';
+  frms{end+1} = '20161111_01_003';
+  frms{end+1} = '20161111_01_004';
+  frms{end+1} = '20161111_01_005';
+  frms{end+1} = '20161111_01_006';
+  frms{end+1} = '20161111_01_007';
+  frms{end+1} = '20161111_01_008';
+  pass_name = 'middle';
+  start.lat = 69.163;
+  start.lon = -49.675;
+  stop.lat = 69.176;
+  stop.lon = -48.888;
+  dist_min = 2500;
+elseif 0
+  frms{end+1} = '20161107_02_002';
+  frms{end+1} = '20161107_02_005';
+  frms{end+1} = '20161107_03_002';
+  frms{end+1} = '20161107_03_005';
+  frms{end+1} = '20161107_07_002';
+  frms{end+1} = '20161108_01_002';
+  frms{end+1} = '20161108_01_005';
+  frms{end+1} = '20161108_01_008'; % Surface does not show up in interferogram
+  frms{end+1} = '20161108_02_001'; % Surface does not show up in interferogram
+  frms{end+1} = '20161110_01_002';
+  frms{end+1} = '20161110_01_005';
+  frms{end+1} = '20161110_01_008';
+  frms{end+1} = '20161110_02_002';
+  frms{end+1} = '20161110_02_005';
+  pass_name = 'south';
+  start.lat = 69.149;
+  start.lon = -49.666;
+  stop.lat = 69.162;
+  stop.lon = -48.846;
+  dist_min = 2000;
+elseif 0
+  frms{end+1} = '20161101_03_004';
+  frms{end+1} = '20161101_01_002';
+  frms{end+1} = '20161101_02_002';
+  frms{end+1} = '20161101_03_002';
+  pass_name = 'iceland_south';
+  start.lat = 64.802;
+  start.lon = -18.850;
+  stop.lat = 64.807;
+  stop.lon = -19.105;
+  dist_min = 2000;
+elseif 1
+  frms{end+1} = '20161101_01_003';
+  frms{end+1} = '20161101_02_001';
+  frms{end+1} = '20161101_02_003';
+  frms{end+1} = '20161101_03_003';
+  frms{end+1} = '20161101_04_001';
+  pass_name = 'iceland_north';
+  start.lat = 64.843;
+  start.lon = -19.203;
+  stop.lat = 64.804;
+  stop.lon = -18.909;
+  dist_min = 2000;  
+elseif 0
   frms{end+1} = '20160413_01_001';
   frms{end+1} = '20160413_01_002';
   frms{end+1} = '20160413_02_001';
@@ -12,6 +108,7 @@ if 1
   start.lon = -50.204091;
   stop.lat = 67.096958;
   stop.lon = -50.054023;
+  dist_min = 100;
 elseif 0
   frms{end+1} = '20160416_01_002';
   frms{end+1} = '20160416_01_003';
@@ -26,6 +123,7 @@ elseif 0
   start.lon = -50.219048;
   stop.lat = 67.101868;
   stop.lon = -50.047311;
+  dist_min = 100;
 else
   frms{end+1} = '20160417_01_001';
   % frms{end+1} = '20160417_01_002'; GPS BAD
@@ -42,9 +140,8 @@ else
   start.lon = -50.192878;
   stop.lat = 67.108618;
   stop.lon = -49.968087;
+  dist_min = 100;
 end
-
-dist_min = 100;
 
 %% Automated
 
@@ -55,9 +152,10 @@ if 1
   for frm_idx = 1:length(frms)
     param = [];
     param.day_seg = frms{frm_idx}(1:11);
-    param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),param.day_seg);
+%     param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),param.day_seg);
+    param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),param.day_seg);
     
-    param.load_sar_data.fn = ''; % Leave empty for default
+    param.load_sar_data.fn = 'out_final'; % Leave empty for default
     
     % Start and stop chunk to load (inf for second element loads to the end)
     param.load_sar_data.chunk = [1 inf];
@@ -129,6 +227,9 @@ for frm_idx = 1:length(frms)
   while ~isempty(start_idx)
     stop_idx = find(start_points(start_idx:end)==0,1); % Get the first point past the start point that is outside of dist_min 
     if isempty(stop_idx)
+      [~,new_idx] = min(dist(start_idx:end)); % Within the first section of the trajectory that is less than dist_min, find the index of the minimum point
+      new_idx = new_idx + start_idx-1; % Convert it to absolute index
+      start_idxs = [start_idxs new_idx]; % Add this index to the start_idxs array
       start_idx = []; % If there is no point past the outside, then terminate
     else
       [~,new_idx] = min(dist(start_idx+(0:stop_idx-1))); % Within the first section of the trajectory that is less than dist_min, find the index of the minimum point
@@ -146,9 +247,12 @@ for frm_idx = 1:length(frms)
   stop_idxs = [];
   start_points = stop_dist < dist_min;
   start_idx = find(start_points,1);
-  while ~isempty(start_idx)
+  while ~isempty(start_idx) % This loop works in the same way as previous "start_idxs" loop
     stop_idx = find(start_points(start_idx:end)==0,1);
     if isempty(stop_idx)
+      [~,new_idx] = min(stop_dist(start_idx:end));
+      new_idx = new_idx + start_idx-1;
+      stop_idxs = [stop_idxs new_idx];
       start_idx = [];
     else
       [~,new_idx] = min(stop_dist(start_idx+(0:stop_idx-1)));
@@ -174,11 +278,13 @@ for frm_idx = 1:length(frms)
   [idxs,sort_idxs] = sort(idxs); % Sort the array
   start_mask = [ones(size(start_idxs)) zeros(size(stop_idxs))]; % Create another 1 by N array that indicates which indices are start_idxs
   start_mask = start_mask(sort_idxs);
+  no_passes_flag = true;
   
   for pass_idx = 2:length(idxs)
     if start_mask(pass_idx) ~= start_mask(pass_idx-1) % If we have a start then stop or stop then start, we assume this is a SAR "pass"
       start_idx = idxs(pass_idx-1); % Get the first index of this pass
       stop_idx = idxs(pass_idx);% Get the last index of this pass
+      no_passes_flag = false;
       
       frm_id = sprintf('%s_%03d', metadata{frm_idx}.param_csarp.day_seg, metadata{frm_idx}.frm);
       
@@ -187,11 +293,13 @@ for frm_idx = 1:length(frms)
       %% Extract the pass and save it
       if start_mask(pass_idx-1)
         rlines = start_idx:stop_idx;
+        pass(end+1).direction = 1;
       else
         rlines = stop_idx:-1:start_idx;
+        pass(end+1).direction = -1;
       end
       
-      pass(end+1).data = data{frm_idx}{1}(:,rlines);
+      pass(end).data = data{frm_idx}{1}(:,rlines);
       
       pass(end).gps_time = metadata{frm_idx}.fcs{1}{1}.gps_time(rlines);
       pass(end).lat = metadata{frm_idx}.lat(rlines);
@@ -213,11 +321,15 @@ for frm_idx = 1:length(frms)
       pass(end).pos = metadata{frm_idx}.fcs{1}{1}.pos(:,rlines);
     end
   end
+  if no_passes_flag
+    warning('Frame %s_%03d has no passes.', metadata{frm_idx}.param_csarp.day_seg, metadata{frm_idx}.frm);
+  end
   
 end
 
 %% Save the results
 out_fn = fullfile(ct_filename_out(param,'insar','',1),[pass_name '.mat']);
+fprintf('  Saving %s\n', out_fn);
 out_fn_dir = fileparts(out_fn);
 if ~exist(out_fn_dir,'dir')
   mkdir(out_fn_dir);

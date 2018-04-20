@@ -18,7 +18,7 @@ function layers = opsLoadLayers(param, layer_params)
 %    'records': Loads layer data from records file
 %    'echogram': Loads layer data from echogram files
 %    'layerdata': Loads layer data from layer data files
-%    'lidar': Loads (ATM or AWI) lidar data
+%    'lidar': Loads (ATM, AWI, or DTU) lidar data
 %    'ops': Loads layer data from Open Polar Server
 %  .echogram_source = string containing ct_filename_out argument if using
 %    'echogram' source
@@ -26,7 +26,7 @@ function layers = opsLoadLayers(param, layer_params)
 %  .layerdata_source = string containing ct_filename_out argument if using
 %    'echogram' source
 %    (e.g. 'layerData', 'CSARP_post/layerData')
-%  .lidar_source = string containing 'awi' or 'atm' if using lidar source
+%  .lidar_source = string containing 'atm', 'awi', or 'dtu' if using lidar source
 %  .existence_check = boolean, default is true and causes an error to be
 %    thrown if the layer does not exist. If false, no data points are
 %    returned when the layer does not exist and only a warning is given.
@@ -112,7 +112,8 @@ if any(strcmpi('lidar',{layer_params.source}))
     lidar = read_lidar_atm(lidar_fns);
     
   elseif any(strcmpi('awi',{layer_params.lidar_source}))
-    lidar_fns = get_filenames_lidar(param,param.day_seg(1:8));
+    lidar_fns = get_filenames_lidar(param, layer_params.lidar_source, ...
+      records.gps_time([1 end]));
     
     lidar_param = struct('time_reference','utc');
     lidar_param.nc_field = {'TIME','LATITUDE','LONGITUDE','ELEVATION','MJD','FOOT_ROUGH'};
@@ -122,6 +123,12 @@ if any(strcmpi('lidar',{layer_params.source}))
     lidar_param.custom_flag = [0 0 0 0 0 1];
     lidar_param.reshape_en = [1 1 1 1 1 1];
     lidar = read_lidar_netcdf(lidar_fns,lidar_param);
+  
+  elseif any(strcmpi('dtu',{layer_params.lidar_source}))
+    lidar_fns = get_filenames_lidar(param, layer_params.lidar_source, ...
+      records.gps_time([1 end]));
+    
+    lidar = read_lidar_dtu(lidar_fns,param);
     
   else
     error('Invalid LIDAR source %s', layer_params.lidar_source);
@@ -195,7 +202,7 @@ for frm_idx = 1:length(param.cmd.frms)
         layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
           NaN*zeros(1,sum(good_idxs)));
         layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-          lidar.rms(good_idxs));
+          NaN*zeros(1,sum(good_idxs)));
       else
         error('Unsupported layer %s for lidar source.', layer_param.name);
       end

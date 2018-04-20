@@ -1,81 +1,52 @@
-function [lidar] = read_lidar_dtu(param)
-% [lidar] = read_lidar_dtu(param)
+function [lidar] = read_lidar_dtu(fns, param)
+% [lidar] = read_lidar_dtu(fns, param)
 %
 % Reads the LIDAR data take by the Twin Otter for the hfrds2 radar
 % param = struct that controls reading of file(s)
-%   .time_reference = 'gps' or 'utc' (should always be 'utc' if from AWI)
-%   .file_type = '.ver' Can be either .scn or .ver
-%   .year = 2016 Desired campaign year (only 2016 is currently valid)
-%   .month = 11 Desired campaign month (only 11/November is currently valid)
-%   .day = [1,2,7,8,10,11,12] Desired campaign days of the month 
-%   .dates Optional field can be filled with datetime values to find the get multiple days worth of data
-% 	.season = '2016_Greenland_TOdtu'Campaign season 
-%	.data_dir = 'X:/metadata' Optional field that is hardcoded as X:/metadata if it is not included
-
+%   .season_name: season name such as 2016_Greenland_TOdtu
+%
 % lidar = struct of position and LIDAR data, each N x 1 vectors
 %   where N is the number of records in the file(s). The fields are:
 %  .gps_time = GPS time in dec.hour(UTC)
 %  .lat = latitude (deg)
 %  .lon = longitude (deg)
 %  .surface = WGS-84 surface elevation (m)
-
-%{
-From read-me file
-
-
-LIDAR *.scn files: dec.hour(UTC) latitude longitude  elevation  amplitude  #points/swath
-where position refers to the reflecting point on the ground.
-
-Be aware that there are some returns from low clouds on day 313.
-
-The  *.ver files only contain the central scan point, format is: 
-dec.hour(UTC) latitude longitude  elevation  amplitude  #points/swath  GPS.h  range
-%}
-
-
-%% Check the param structure
-%Check for the data_dir field
-basedir = 'X:/metadata';
-if ~isfield(param,'data_dir')
-    data_dir = basedir;
-else
-    if isempty(param.data_dir)
-        data_dir = basedir;
-    else
-        data_dir = param.data_dir;
-    end
-end
-fulldir = fullfile(data_dir,param.season,'LIDAR');
-
-%Check for the dates field
-if ~isfield(param,'dates')
-    param.dates = datetime(param.year,param.month,param.day);
-end
+%
+% See also: read_lidar_atm, read_lidar_awi, read_lidar_dtu,
+% get_filenames_lidar
 
 %% Read Lidar Data from the TOdtu data
-%Iterate through the dates
-    %Initialize the loading index
-    load_id = 1;
-for t = param.dates
-    %Calculate the day of the year in order to grab the correct lidar files
-    file_doy = num2str(day(t,'dayofyear'));
+for fn_idx = 1:length(fns)
+  fn = fns{fn_idx};
+  
+  [~,fn_name] = fileparts(fn);
+  % Expecting file name format: 312_t4_1x1 where "312" represents the day
+  % of year
+  day = str2double(fn_name(1:find(fn_name=='_',1)-1));
+  
+  year = str2double(param.season_name(1:find(param.season_name=='_',1)-1));
+  
+  %  The  *.ver files only contain the central scan point, format is:
+  % dec.hour(UTC) latitude longitude  surface_elevation #points/swath  GPS.height  range
+  %  14.3257462  69.185200  -49.753230   29.75  30  480.83  454.23
+  lidar_param = [];
+  lidar_param.format_str = '%f%f%f%f%f%f%f';
+  lidar_param.types = {'hour','lat_deg','lon_deg','surface_m','num_points','elev_m','range_m'};
+  lidar_param.textscan = {};
+  lidar_param.headerlines = 0;
+  lidar_param.time_reference = 'utc';
+  lidar_param.year = year;
+  lidar_param.day = day;
 
-    fns = get_filenames(fulldir,file_doy,'',param.file_type);
-
-    for fn_id = 1:length(fns)
-        %Read the file
-        A = dlmread(fns{fn_id});
-        lidar(load_id).date = datestr(t);
-        lidar(load_id).gps_time = A(:,1); %In UTC based on read_me
-        lidar(load_id).lat = A(:,2);
-        lidar(load_id).lon = A(:,3);
-        lidar(load_id).surface = A(:,4); %This could be column 4 or 6 but the data is larger so this column is assumed to be height above MSL or GPS elevation
-        load_id = load_id +1;
+  if fn_idx == 1
+    lidar = read_gps_general_ascii(fn,lidar_param);
+  else
+    tmp_lidar = read_gps_general_ascii(fn,lidar_param);
+    fieldnames_list = fieldnames(lidar);
+    for field_idx = 1:length(fieldnames_list)
+      fieldname = fieldnames_list{field_idx};
+      lidar.(fieldname)(end+(1:length(tmp_lidar.(fieldname)))) = tmp_lidar.(fieldname);
     end
+  end
 
-    %Check that lidar was populated
-    if isempty(fns)
-        warning('There is no data for the specified date %s or in the prescribed directory %s.',t,fulldir)
-    end
-end
 end

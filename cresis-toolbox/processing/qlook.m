@@ -1,8 +1,9 @@
-function ctrl_chain = get_heights(param,param_override)
-% ctrl_chain = get_heights(param,param_override)
+function ctrl_chain = qlook(param,param_override)
+% ctrl_chain = qlook(param,param_override)
 %
 % This function generates quick look outputs (CSARP_qlook), tracks the
-% surface, and (optionally) stores the surface to records.
+% surface, and (optionally) stores the surface to a layer data destination
+% (default is layerData).
 %
 % param = struct with processing parameters
 % param_override = parameters in this struct will override parameters
@@ -10,13 +11,13 @@ function ctrl_chain = get_heights(param,param_override)
 %         Typically global gRadar; param_override = gRadar;
 %
 % Example:
-%  See run_get_heights.m for how to run this function directly.
+%  See run_qlook.m for how to run this function directly.
 %  Normally this function is called from master.m using the param spreadsheet.
 %
 % Authors: John Paden
 %
-% See also: run_master.m, master.m, run_get_heights.m, get_heights.m,
-%   get_heights_task.m
+% See also: run_master.m, master.m, run_qlook.m, qlook.m,
+%   qlook_task.m
 
 %% General Setup
 % =====================================================================
@@ -29,8 +30,8 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
-if ~isfield(param.get_heights,'frm_types') || isempty(param.get_heights.frm_types)
-  param.get_heights.frm_types = {-1,-1,-1,-1,-1};
+if ~isfield(param.qlook,'frm_types') || isempty(param.qlook.frm_types)
+  param.qlook.frm_types = {-1,-1,-1,-1,-1};
 end
 
 % Remove frames that do not exist from param.cmd.frms list
@@ -47,130 +48,129 @@ if length(valid_frms) ~= length(param.cmd.frms)
   param.cmd.frms = valid_frms;
 end
 
-if ~isfield(param.get_heights,'combine_only') || isempty(param.get_heights.combine_only)
-  param.get_heights.combine_only = false;
+if ~isfield(param.qlook,'combine_only') || isempty(param.qlook.combine_only)
+  param.qlook.combine_only = false;
 end
 
-if ~isfield(param.get_heights,'img_comb') || isempty(param.get_heights.img_comb)
-  param.get_heights.img_comb = [];
+if ~isfield(param.qlook,'img_comb') || isempty(param.qlook.img_comb)
+  param.qlook.img_comb = [];
 end
 
 % Convert inputs to new format that does not use qlook substruct
-if isfield(param.get_heights,'qlook')
-  warning('The get_heights.qlook field is deprecated. Please remove the qlook portion of each field (i.e. qlook.out_path should be just out_path).');
-  qlook_fieldnames = fieldnames(param.get_heights.qlook);
-  for name_idx = 1:length(qlook_fieldnames)
-    param.get_heights.(qlook_fieldnames{name_idx}) = param.get_heights.qlook.(qlook_fieldnames{name_idx});
-  end
-  param.get_heights = rmfield(param.get_heights,'qlook');
+if ~isfield(param.qlook,'pulse_comp') || isempty(param.qlook.pulse_comp)
+  param.qlook.pulse_comp = 1;
 end
 
-if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
-  param.get_heights.pulse_comp = 1;
+if ~isfield(param.qlook,'out_path') || isempty(param.qlook.out_path)
+  param.qlook.out_path = 'qlook';
 end
 
-if ~isfield(param.get_heights,'out_path') || isempty(param.get_heights.out_path)
-  param.get_heights.out_path = 'qlook';
+if ~isfield(param.qlook,'ground_based') || isempty(param.qlook.ground_based)
+  param.qlook.ground_based = [];
 end
-
-if ~isfield(param.get_heights,'ground_based') || isempty(param.get_heights.ground_based)
-  param.get_heights.ground_based = [];
+if ~isfield(param.qlook,'imgs') || isempty(param.qlook.imgs)
+  error('No images specified in param.qlook.imgs. Nothing to do.');
 end
-if ~isfield(param.get_heights,'imgs') || isempty(param.get_heights.imgs)
-  error('No images specified in param.get_heights.imgs. Nothing to do.');
-end
-if ~isfield(param.get_heights,'block_size') || isempty(param.get_heights.block_size)
+if ~isfield(param.qlook,'block_size') || isempty(param.qlook.block_size)
   % [Block_Size Overlap]
-  param.get_heights.block_size = [10000 0];
+  param.qlook.block_size = [10000 0];
 end
-if numel(param.get_heights.block_size) == 1
+if numel(param.qlook.block_size) == 1
   % Overlap
-  param.get_heights.block_size(2) = 0;
+  param.qlook.block_size(2) = 0;
 end
 
 % Check img_comb
-if numel(param.get_heights.imgs) == 1 || isempty(param.get_heights.img_comb)
+if numel(param.qlook.imgs) == 1 || isempty(param.qlook.img_comb)
   num_imgs = 1;
 else
-  num_imgs = length(param.get_heights.imgs);
-  if length(param.get_heights.img_comb) ~= 3*(num_imgs-1)
-    error('param.get_heights.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
+  num_imgs = length(param.qlook.imgs);
+  if length(param.qlook.img_comb) ~= 3*(num_imgs-1)
+    error('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
   end
 end
 
-if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
-  param.get_heights.trim_vals = [0 0];
+if ~isfield(param.qlook,'trim_vals') || isempty(param.qlook.trim_vals)
+  param.qlook.trim_vals = [0 0];
 end
 
-if ~isfield(param.get_heights,'coh_noise_method') || isempty(param.get_heights.coh_noise_method)
-  param.get_heights.coh_noise_method = 0;
+if ~isfield(param.qlook,'coh_noise_method') || isempty(param.qlook.coh_noise_method)
+  param.qlook.coh_noise_method = 0;
 end
 
-if ~isfield(param.get_heights,'coh_noise_arg')
-  param.get_heights.coh_noise_arg = [];
+if ~isfield(param.qlook,'coh_noise_arg')
+  param.qlook.coh_noise_arg = [];
 end
 
-if ~isfield(param.get_heights,'deconvolution') || isempty(param.get_heights.deconvolution)
-  param.get_heights.deconvolution = 0;
+if ~isfield(param.qlook,'deconvolution') || isempty(param.qlook.deconvolution)
+  param.qlook.deconvolution = 0;
 end
-if ~isfield(param.get_heights,'deconv_enforce_wf_idx') 
-  param.get_heights.deconv_enforce_wf_idx = [];
+if ~isfield(param.qlook,'deconv_enforce_wf_idx') 
+  param.qlook.deconv_enforce_wf_idx = [];
 end
-if ~isfield(param.get_heights,'deconv_same_twtt_bin') 
-  param.get_heights.deconv_same_twtt_bin = [];
-end
-
-if ~isfield(param.get_heights,'psd_smooth') || isempty(param.get_heights.psd_smooth)
-  param.get_heights.psd_smooth = 0;
+if ~isfield(param.qlook,'deconv_same_twtt_bin') 
+  param.qlook.deconv_same_twtt_bin = [];
 end
 
-if ~isfield(param.get_heights,'ft_oversample') || isempty(param.get_heights.ft_oversample)
-  param.get_heights.ft_oversample = 1;
+if ~isfield(param.qlook,'psd_smooth') || isempty(param.qlook.psd_smooth)
+  param.qlook.psd_smooth = 0;
 end
 
-if ~isfield(param.get_heights,'pulse_rfi') || isempty(param.get_heights.pulse_rfi)
-  param.get_heights.pulse_rfi.en = 0;
+if ~isfield(param.qlook,'ft_oversample') || isempty(param.qlook.ft_oversample)
+  param.qlook.ft_oversample = 1;
 end
 
-if ~isfield(param.get_heights,'ft_dec') || isempty(param.get_heights.ft_dec)
-  param.get_heights.ft_dec = 1;
+if ~isfield(param.qlook,'pulse_rfi') || isempty(param.qlook.pulse_rfi)
+  param.qlook.pulse_rfi.en = 0;
 end
 
-if ~isfield(param.get_heights,'ft_wind_time') || isempty(param.get_heights.ft_wind_time)
-  param.get_heights.ft_wind_time = 0;
+if ~isfield(param.qlook,'ft_dec') || isempty(param.qlook.ft_dec)
+  param.qlook.ft_dec = 1;
 end
 
-if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
-  param.get_heights.trim_vals = 1;
+if ~isfield(param.qlook,'ft_wind_time') || isempty(param.qlook.ft_wind_time)
+  param.qlook.ft_wind_time = 0;
 end
 
-if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
-  param.get_heights.pulse_comp = 1;
+if ~isfield(param.qlook,'trim_vals') || isempty(param.qlook.trim_vals)
+  param.qlook.trim_vals = 1;
 end
 
-if ~isfield(param.get_heights,'raw_data') || isempty(param.get_heights.raw_data)
-  param.get_heights.raw_data = 0;
+if ~isfield(param.qlook,'pulse_comp') || isempty(param.qlook.pulse_comp)
+  param.qlook.pulse_comp = 1;
 end
 
-if ~isfield(param.get_heights,'elev_correction') || isempty(param.get_heights.elev_correction)
-  param.get_heights.elev_correction = false;
+if ~isfield(param.qlook,'raw_data') || isempty(param.qlook.raw_data)
+  param.qlook.raw_data = 0;
 end
 
-if ~isfield(param.get_heights,'roll_correction') || isempty(param.get_heights.roll_correction)
-  param.get_heights.roll_correction = 0;
+if ~isfield(param.qlook,'elev_correction') || isempty(param.qlook.elev_correction)
+  param.qlook.elev_correction = false;
 end
 
-if abs(sum(param.get_heights.B_filter)-1) > 1e4*eps
+if ~isfield(param.qlook,'roll_correction') || isempty(param.qlook.roll_correction)
+  param.qlook.roll_correction = 0;
+end
+
+if ~isfield(param.qlook,'surf_layer') || isempty(param.qlook.surf_layer)
+  param.qlook.surf_layer = [];
+end
+
+if ~isfield(param.qlook,'bottom_layer') || isempty(param.qlook.bottom_layer)
+  param.qlook.bottom_layer = [];
+end
+
+if abs(sum(param.qlook.B_filter)-1) > 1e4*eps
   %warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
-  param.get_heights.B_filter = param.get_heights.B_filter / sum(param.get_heights.B_filter);
+  param.qlook.B_filter = param.qlook.B_filter / sum(param.qlook.B_filter);
 end
 
-if ~isfield(param.get_heights,'inc_B_filter') || isempty(param.get_heights.inc_B_filter)
-  param.get_heights.inc_B_filter = 1;
+if ~isfield(param.qlook,'inc_B_filter') || isempty(param.qlook.inc_B_filter)
+  param.qlook.inc_B_filter = 1;
 end
-if abs(sum(param.get_heights.inc_B_filter)-1) > 1e4*eps
+if abs(sum(param.qlook.inc_B_filter)-1) > 1e4*eps
   %warning('inc_B_filter weights are not normalized. They must be normalized so normalizing to one now.')
-  param.get_heights.inc_B_filter = param.get_heights.inc_B_filter / sum(param.get_heights.inc_B_filter);
+  param.qlook.inc_B_filter = param.qlook.inc_B_filter / sum(param.qlook.inc_B_filter);
 end
 
 %% Setup Processing
@@ -184,44 +184,44 @@ records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 
 % Quick look radar echogram output directory
-qlook_out_dir = ct_filename_out(param, param.get_heights.out_path);
+qlook_out_dir = ct_filename_out(param, param.qlook.out_path);
 
 % Get version information out of the deconvolution file
-if isfield(param.get_heights,'deconvolution') ...
-    && ~isempty(param.get_heights.deconvolution) ...
-    && param.get_heights.deconvolution == 3
+if isfield(param.qlook,'deconvolution') ...
+    && ~isempty(param.qlook.deconvolution) ...
+    && param.qlook.deconvolution == 3
   out_fn_dir = ct_filename_out(param,'analysis');
   out_segment_fn_dir = fileparts(out_fn_dir);
   out_segment_fn = fullfile(out_segment_fn_dir,sprintf('deconv_%s.mat', param.day_seg));
   spec = load(out_segment_fn,'param_collate');
   
-  param.get_heights.deconvolution_sw_version = spec.param_collate.sw_version;
-  param.get_heights.deconvolution_params = spec.param_collate.analysis.specular;
+  param.qlook.deconvolution_sw_version = spec.param_collate.sw_version;
+  param.qlook.deconvolution_params = spec.param_collate.analysis.specular;
 end
 
 % Get version information out of the coherent noise file
-if any(param.get_heights.coh_noise_method == [17 19])
+if any(param.qlook.coh_noise_method == [17 19])
   
-  cdf_fn_dir = fileparts(ct_filename_out(param,param.get_heights.coh_noise_arg{4}, ''));
+  cdf_fn_dir = fileparts(ct_filename_out(param,param.qlook.coh_noise_arg{4}, ''));
   cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s.nc', param.day_seg));
   
   tmp = netcdf_to_mat(cdf_fn,[],'^sw_version.*');
-  param.get_heights.coh_noise_version = tmp.sw_version;
+  param.qlook.coh_noise_version = tmp.sw_version;
   tmp = netcdf_to_mat(cdf_fn,[],'^param_collate.*');
-  param.get_heights.coh_noise_params = tmp.param_collate;
+  param.qlook.coh_noise_params = tmp.param_collate;
 end
 
 %% Create and setup the cluster batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
-cluster_compile({'get_heights_task.m','get_heights_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+cluster_compile({'qlook_task.m','qlook_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = [];
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
   [wfs,~] = load_mcords_wfs(records.settings, param, ...
-    1:max(records.param_records.records.file.adcs), param.get_heights);
-  for img = 1:length(param.get_heights.imgs)
-    wf = abs(param.get_heights.imgs{img}(1,1));
+    1:max(records.param_records.records.file.adcs), param.qlook);
+  for img = 1:length(param.qlook.imgs)
+    wf = abs(param.qlook.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
   cpu_time_mult = 66e-8;
@@ -229,16 +229,16 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   
 elseif any(strcmpi(radar_name,{'mcrds'}))
   [wfs,~] = load_mcrds_wfs(records.settings, param, ...
-    1:max(records.param_records.records.file.adcs), param.get_heights);
-  for img = 1:length(param.get_heights.imgs)
-    wf = abs(param.get_heights.imgs{img}(1,1));
+    1:max(records.param_records.records.file.adcs), param.qlook);
+  for img = 1:length(param.qlook.imgs)
+    wf = abs(param.qlook.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
   cpu_time_mult = 66e-8;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  total_num_sam = 32000 * ones(size(param.get_heights.imgs));
+  total_num_sam = 32000 * ones(size(param.qlook.imgs));
   cpu_time_mult = 8e-8;
   mem_mult = 64;
   
@@ -247,7 +247,7 @@ else
   
 end
 
-%% Load data and create get_heights cluster tasks
+%% Load data and create qlook cluster tasks
 % =====================================================================
 %
 % For each frame load REC_BLOCK_SIZE records at a time (code groups
@@ -256,15 +256,15 @@ end
 %    --> The last block can range from 0.5 to 1.5 * REC_BLOCK_SIZE
 % =====================================================================
 sparam.argsin{1} = param; % Static parameters
-sparam.task_function = 'get_heights_task';
+sparam.task_function = 'qlook_task';
 sparam.num_args_out = 1;
-sparam.argsin{1}.load.imgs = param.get_heights.imgs;
+sparam.argsin{1}.load.imgs = param.qlook.imgs;
 for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
   
   % Check proc_mode from frames file that contains this frames type and
   % make sure the user has specified to process this frame type
-  if ct_proc_frame(frames.proc_mode(frm),param.get_heights.frm_types)
+  if ct_proc_frame(frames.proc_mode(frm),param.qlook.frm_types)
     fprintf('%s %s_%03i (%i of %i) (%s)\n', sparam.task_function, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
     fprintf('Skipping %s_%03i (no process frame)\n', param.day_seg, frm);
@@ -286,8 +286,8 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Determine where breaks in processing blocks are going to occur
   %   Rename variables for readability
-  block_size = param.get_heights.block_size(1);
-  block_overlap = param.get_heights.block_size(2);
+  block_size = param.qlook.block_size(1);
+  block_overlap = param.qlook.block_size(2);
   breaks = 1:block_size:length(recs)-0.5*block_size;
   
   % Create a cluster task for each block
@@ -329,7 +329,7 @@ for frm_idx = 1:length(param.cmd.frms)
     % Create success condition
     % =================================================================
     dparam.success = '';
-    for img = 1:length(param.get_heights.imgs)
+    for img = 1:length(param.qlook.imgs)
       out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
       out_fn{img} = fullfile(out_fn_dir,out_fn_name);
       if img == 1
@@ -347,7 +347,7 @@ for frm_idx = 1:length(param.cmd.frms)
     if 0
       % Enable this check if you want to open each output file to make
       % sure it is not corrupt.
-      for img = 1:length(param.get_heights.imgs)
+      for img = 1:length(param.qlook.imgs)
         out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
         out_fn{img} = fullfile(out_fn_dir,out_fn_name);
         dparam.success = cat(2,dparam.success, ...
@@ -384,7 +384,7 @@ for frm_idx = 1:length(param.cmd.frms)
     Nx = cur_recs(end)-cur_recs(1)+1;
     dparam.cpu_time = 0;
     dparam.mem = 0;
-    for img = 1:length(param.get_heights.imgs)
+    for img = 1:length(param.qlook.imgs)
       dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
     end
@@ -397,15 +397,15 @@ end
 if strcmp(param.cluster.type,'ollie')
   dynamic_param.day_seg = param.day_seg;
   static_param = sparam.argsin{1};
-  dynamic_param_file_name = sprintf('%s/qlook_%s_dynamic_param.mat', param.slurm_jobs_path, param.day_seg);
+  dynamic_param_file_name = sprintf('%s/get_heights_%s_dynamic_param.mat', param.slurm_jobs_path, param.day_seg);
   save(dynamic_param_file_name,'dynamic_param');
   fprintf('Writing %s\n',dynamic_param_file_name);
   
-  static_param_file_name = sprintf('%s/qlook_%s_static_param.mat', param.slurm_jobs_path, param.day_seg);
+  static_param_file_name = sprintf('%s/get_heights_%s_static_param.mat', param.slurm_jobs_path, param.day_seg);
   save(static_param_file_name,'static_param');
   fprintf('Writing %s\n',static_param_file_name);
   
-  txt_file_name = sprintf('%s/qlook_%s_parameters.txt', param.slurm_jobs_path, dynamic_param.day_seg);
+  txt_file_name = sprintf('%s/get_heights_%s_parameters.txt', param.slurm_jobs_path, dynamic_param.day_seg);
   fid = fopen(txt_file_name,'w');
   fprintf(fid,'%3s\t %5s\n','frm','break');
   frms = fieldnames(dynamic_param.frms);
@@ -419,7 +419,7 @@ if strcmp(param.cluster.type,'ollie')
   end
   fclose(fid);
   fprintf('Writing %s\n',txt_file_name);
-  fprintf('Run batch_qlook.sh and batch_qlook_2.sh\n');
+  fprintf('Run batch_get_heights.sh and batch_get_heights_2.sh\n');
   
   ctrl_chain = {};
   return;
@@ -433,7 +433,7 @@ ctrl_chain = {ctrl};
 %% Create and setup the combine batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
-if param.get_heights.surf.en
+if param.qlook.surf.en
   % If surface is enabled, the records file will be updated and this should
   % not be done on the cluster.
   ctrl.cluster.type = 'debug';
@@ -450,7 +450,7 @@ end
 
 sparam = [];
 sparam.argsin{1} = param; % Static parameters
-sparam.task_function = 'get_heights_combine_task';
+sparam.task_function = 'qlook_combine_task';
 sparam.num_args_out = 1;
 sparam.cpu_time = 60;
 sparam.mem = 0;
@@ -471,11 +471,11 @@ for frm = param.cmd.frms
   Nx = Nx + Nx_frm;
 end
 % Account for averaging
-Nx_max = Nx_max / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
-Nx = Nx / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
-for img = 1:length(param.get_heights.imgs)
+Nx_max = Nx_max / param.qlook.decimate_factor / max(1,param.qlook.inc_ave);
+Nx = Nx / param.qlook.decimate_factor / max(1,param.qlook.inc_ave);
+for img = 1:length(param.qlook.imgs)
   sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
-  if isempty(param.get_heights.img_comb)
+  if isempty(param.qlook.img_comb)
     % Individual images, so need enough memory to hold the largest image
     sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);
   else
@@ -483,7 +483,7 @@ for img = 1:length(param.get_heights.imgs)
     sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;
   end
 end
-if param.get_heights.surf.en
+if param.qlook.surf.en
   sparam.cpu_time = sparam.cpu_time + numel(records.gps_time)/5e6*120;
 end
 sparam.notes = sprintf('%s:%s:%s %s', ...

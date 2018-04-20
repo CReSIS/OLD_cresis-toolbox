@@ -32,8 +32,8 @@ settings.properties.only_layer_points = 0;
 
 % ----------------------------------------------------------------
 % paramFn: FILENAME.xls OF EXCEL CReSIS PARAMS SHEET
-settings.properties.season = 'rds_param_2016_Greenland_P3';
-settings.properties.segment = {'20160509_01','20160509_02','20160509_05','20160509_06','20160510_01'};
+settings.properties.season = '2016_Greenland_TOdtu';
+settings.properties.segment = {'20161101_04'};
 % ----------------------------------------------------------------
 % sys: SYSTEM NAME ('rds','snow','accum','kuband')
 sys = 'rds';

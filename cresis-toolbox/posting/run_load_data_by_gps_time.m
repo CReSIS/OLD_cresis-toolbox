@@ -111,6 +111,8 @@ if 0
   echo_param.detrend.poly_order = 4;
   echo_param.detrend.depth = '[min(Surface_Depth)+1 max(Surface_Depth)+20.1]';
   %echo_param.filter = inline('wiener2(N,[3 31])');
+else
+  echo_param.detrend = [];
 end
 % echo_param.filter = inline('fir_dec(N,ones([1 11])/11,1)');
 
@@ -223,6 +225,8 @@ if 0
     echo_param.detrend.poly_order = 4;
     echo_param.detrend.depth = '[min(Surface_Depth)+1 max(Surface_Depth)+20.1]';
     %echo_param.filter = inline('wiener2(N,[3 31])');
+  else
+    echo_param.detrend = [];
   end
   % echo_param.filter = inline('fir_dec(N,ones([1 11])/11,1)');
   
@@ -245,7 +249,12 @@ physical_constants;
 for param_idx = 1:length(params)
   param = params(param_idx);
   
-  out_fn_dir = fullfile('~/',datestr(epoch_to_datenum(param.start.gps_time),'yyyymmdd'));
+  out_fn_dir_name = '';
+  if ispc
+    out_fn_dir = fullfile(getenv('USERPROFILE'),'Documents','load_data_by_gps_time',out_fn_dir_name,datestr(epoch_to_datenum(param.start.gps_time),'yyyymmdd'));
+  else
+    out_fn_dir = fullfile(getenv('HOME'),'load_data_by_gps_time',out_fn_dir_name,datestr(epoch_to_datenum(param.start.gps_time),'yyyymmdd'));
+  end
   
   [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
   
@@ -495,6 +504,11 @@ for param_idx = 1:length(params)
   %% Save echogram file
   if param.save_files
     out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s.jpg',start_time_stamp_str, ...
+      stop_time_stamp_str, param.radar_name));
+    fprintf('Saving to %s\n', out_fn);
+    saveas(echo_param.fig_hand,out_fn);
+
+    out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s.fig',start_time_stamp_str, ...
       stop_time_stamp_str, param.radar_name));
     fprintf('Saving to %s\n', out_fn);
     saveas(echo_param.fig_hand,out_fn);

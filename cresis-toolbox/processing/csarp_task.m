@@ -135,13 +135,13 @@ surf_time = ppval(sar.surf_pp, start_x); surf_time = min(max_time,surf_time);
 % effective in air max range (m)
 max_range = ((max_time-surf_time)/sqrt(param.csarp.start_eps) + surf_time) * c/2;
 % chunk overlap (m)
-chunk_overlap_start = (max_range*lambda)/(2*param.csarp.sigma_x) / 2;
+chunk_overlap_start = max(0.02*param.csarp.chunk_len, (max_range*lambda)/(2*param.csarp.sigma_x) / 2);
 
 % twtt to surface (sec)
 surf_time = ppval(sar.surf_pp, stop_x); surf_time = min(max_time,surf_time);
 % effective in air max range (m)
 max_range = ((max_time-surf_time)/sqrt(param.csarp.start_eps) + surf_time) * c/2;
-chunk_overlap_stop = (max_range*lambda)/(2*param.csarp.sigma_x) / 2;
+chunk_overlap_stop = max(0.02*param.csarp.chunk_len, (max_range*lambda)/(2*param.csarp.sigma_x) / 2);
 
 % These are the records which will be used
 cur_recs = [find(sar.along_track > start_x-chunk_overlap_start,1) ...

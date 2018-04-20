@@ -72,8 +72,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
         % Prepare task inputs
         % =====================================================================
         cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.csarp.presums+1, ...
-          cur_recs(end)*param.csarp.presums];
+        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+          cur_recs(end)*param.analysis.presums];
         
         out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
           sprintf('saturation_img_%02d_%d_%d.mat',img,actual_cur_recs));
@@ -138,8 +138,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
           % Prepare task inputs
           % =====================================================================
           cur_recs = [rec_load_start rec_load_stop];
-          actual_cur_recs = [(cur_recs(1)-1)*param.csarp.presums+1, ...
-            cur_recs(end)*param.csarp.presums];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
           
           out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
             sprintf('specular_img_%02d_%d_%d.mat',img,actual_cur_recs));
@@ -219,8 +219,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
             rec_load_stop = rec_load_start+param.analysis.block_size-1;
           end
           cur_recs = [rec_load_start rec_load_stop];
-          actual_cur_recs = [(cur_recs(1)-1)*param.csarp.presums+1, ...
-            cur_recs(end)*param.csarp.presums];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
           
           out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
             sprintf('coh_noise_img_%02d_%d_%d.mat',img,actual_cur_recs));
@@ -257,8 +257,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
         % Prepare task inputs
         % =====================================================================
         cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.csarp.presums+1, ...
-          cur_recs(end)*param.csarp.presums];
+        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+          cur_recs(end)*param.analysis.presums];
         
         out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
           sprintf('coh_noise_img_%02d_%d_%d.mat',img,actual_cur_recs));
@@ -344,8 +344,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
         % Prepare task inputs
         % =====================================================================
         cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.csarp.presums+1, ...
-          cur_recs(end)*param.csarp.presums];    
+        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+          cur_recs(end)*param.analysis.presums];    
         
         out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
           sprintf('surf_img_%02d_%d_%d.mat',img,actual_cur_recs));
@@ -411,8 +411,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
         % Prepare task inputs
         % =====================================================================
         cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.csarp.presums+1, ...
-          cur_recs(end)*param.csarp.presums];
+        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+          cur_recs(end)*param.analysis.presums];
         
         out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
           sprintf('statistics_img_%02d_%d_%d.mat',img,actual_cur_recs));
