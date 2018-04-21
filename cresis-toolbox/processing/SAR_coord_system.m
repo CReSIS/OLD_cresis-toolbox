@@ -81,7 +81,7 @@ fcs.bottom= zeros(1,length(output_along_track));
 good_rline = ones(1,length(output_along_track));
 
 for out_rline = 1:length(output_along_track)
-  if ~mod(out_rline-1,50000)
+  if ~mod(out_rline-1,10)
     fprintf('%d of %d (%s)\n', out_rline, length(output_along_track), datestr(now));
   end
   % For this output range line determine the input range lines
@@ -116,9 +116,12 @@ for out_rline = 1:length(output_along_track)
     fit_ecef(3,:) = polyval(polyfit(1:size(ref_ecef,2),ref_ecef(3,:),1),rlines_in);
   elseif param.type == 2
     %% Compensation to piece-wise line fit to reference (param.type == 2)
-    fit_ecef(1,:) = polyval(polyfit(rlines_in,ref_ecef(1,rlines_in),1),rlines_in);
-    fit_ecef(2,:) = polyval(polyfit(rlines_in,ref_ecef(2,rlines_in),1),rlines_in);
-    fit_ecef(3,:) = polyval(polyfit(rlines_in,ref_ecef(3,rlines_in),1),rlines_in);
+    [p,~,mu] = polyfit(rlines_in,ref_ecef(1,rlines_in),1);
+    fit_ecef(1,:) = polyval(p,rlines_in,[],mu);
+    [p,~,mu] = polyfit(rlines_in,ref_ecef(2,rlines_in),1);
+    fit_ecef(2,:) = polyval(p,rlines_in,[],mu);
+    [p,~,mu] = polyfit(rlines_in,ref_ecef(3,rlines_in),1);
+    fit_ecef(3,:) = polyval(p,rlines_in,[],mu);
   elseif param.type >= 0 && param.type <= 1
     %% Compensation to reference (param.type == 1)
     fit_ecef = ref_ecef(:,rlines_in);
