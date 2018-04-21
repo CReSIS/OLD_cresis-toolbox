@@ -69,6 +69,7 @@ for board = boards
   state(board).wf_adc_idx = [];
   state(board).img = [];
   state(board).wf_adc_sum = [];
+  state(board).wf_adc_sum_done = [];
   state(board).img_comb_idx = [];
   for img = 1:length(param.load.imgs) % For each image img
     for wf_adc_idx = 1:size(param.load.imgs{img},1) % For ach wf-adc pair
@@ -96,8 +97,10 @@ for board = boards
           state(board).wf_adc_idx(end+1) = wf_adc_idx;
           state(board).img(end+1) = img;
           state(board).wf_adc_sum(end+1) = wf_adc_sum(wf_adc_sum_idx,3);
+          state(board).wf_adc_sum_done(end+1) = false;
           state(board).img_comb_idx(end+1) = adc_column/2;
         end
+        state(board).wf_adc_sum_done(ends) = true;
       end
     end
   end
@@ -155,7 +158,7 @@ for wf = 1:length(param.radar.wfs)
   if isfield(param.radar.wfs(wf),'blank') && ~isempty(param.radar.wfs(wf).blank)
     wfs(wf).blank   = param.radar.wfs(wf).blank;
   else
-    wfs(wf).blank   = 0;
+    wfs(wf).blank   = -inf;
   end
   if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
     wfs(wf).DDC_mode   = param.radar.wfs(wf).DDC_mode;
@@ -197,16 +200,6 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).presums = records.settings.wfs(1).wfs(wf).presums(1);
   else
     wfs(wf).presums = records.settings.wfs(wf).presums;
-  end
-  if isfield(param.radar.wfs(wf),'iq_mode') && ~isempty(param.radar.wfs(wf).iq_mode)
-    wfs(wf).iq_mode   = param.radar.wfs(wf).iq_mode;
-  else
-    wfs(wf).iq_mode   = 0;
-  end
-  if isfield(param.radar.wfs(wf),'zero_pi_mode') && ~isempty(param.radar.wfs(wf).zero_pi_mode)
-    wfs(wf).zero_pi_mode   = param.radar.wfs(wf).zero_pi_mode;
-  else
-    wfs(wf).zero_pi_mode   = 0;
   end
   if isfield(param.radar.wfs(wf),'BW') && ~isempty(param.radar.wfs(wf).BW)
     wfs(wf).BW_window = param.radar.wfs(wf).BW(1);
@@ -298,29 +291,11 @@ for wf = 1:length(param.radar.wfs)
     dt = 1/wfs(wf).fs_raw;
     wfs(wf).time_raw = wfs(wf).t0_raw + dt*(0:wfs(wf).Nt_raw-1).';
 
-    wfs(wf).f0 = 180e6
-    wfs(wf).f1 = 210e6
-    wfs(wf).fs_raw  =1e9/9
-    wfs(wf).Nt_raw = 1000;
-wfs(wf).DDC_freq=0
-
-    wfs(wf).f0 = 165e6
-    wfs(wf).f1 = 215e6
-    wfs(wf).fs_raw  =150e6
-    wfs(wf).Nt_raw = 1000;
-wfs(wf).DDC_freq=0
-
-    wfs(wf).f0 = 600e6
-    wfs(wf).f1 = 900e6
-    wfs(wf).fs_raw  =1600e6
-    wfs(wf).Nt_raw = 1000;
-    wfs(wf).DDC_freq = 750e6
-    
     nz0 = floor((wfs(wf).f0-wfs(wf).DDC_freq)/wfs(wf).fs_raw*2)
     nz1 = floor((wfs(wf).f1-wfs(wf).DDC_freq)/wfs(wf).fs_raw*2)
     
     df = wfs(wf).fs_raw/wfs(wf).Nt_raw;
-    if nz0 == nz1
+    if nz0 == nz1 && wfs(wf).DDC_mode == 0
       % Assume real sampling since signal does not cross Nyquist boundary
       if mod(nz0,2)
         % Negative frequencies first since this is an odd Nyquist zone
@@ -335,102 +310,42 @@ wfs(wf).DDC_freq=0
       end
     else
       % Assume complex sampling since signal crosses Nyquist boundary
-      wfs(wf).freq_raw = 
+      wfs(wf).freq_raw = wfs(wf).DDC_freq ...
+        + ifftshift( -floor(wfs(wf).Nt_raw/2)*df : df : floor((wfs(wf).Nt_raw-1)/2)*df ).';
+      % Shift the frequencies so they are centered on the signal bandwidth
+      wfs(wf).freq_raw = wfs(wf).freq_raw - floor((wfs(wf).freq_raw - (wfs(wf).fc-wfs(wf).fs_raw/2))/wfs(wf).fs_raw)*wfs(wf).fs_raw;
     end
     
-    nz_start = min(nz0,nz1)
-
-    wfs(wf).DDC_freq
+    wfs(wf).fs = wfs(wf).fs_raw * wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2);
     
-    if mod(nz_start,2)
-    else
-      fs*nz_start/2
-    end
-    
-    if proc_param.ft_dec
-      if wfs(wf).DDC_mode ~= 0
-        % DDC Enabled
-        freq = wfs(wf).DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-      end
-      wfs(wf).fc = fc;
-    else
-      wfs(wf).fc = fs*floor(max(f0,f1)/fs);
-    end
-
-    % Starts at fc goes to fc+BW/2, fc-BW/2 to fc
-    df = wfs(wf).fs_raw/wfs(wf).Nt_raw;
-    wfs(wf).freq = fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-
-    % Starts at fc goes to fc+BW/2, fc-BW/2 to fc
-    wfs(wf).freq = fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    wfs(wf).time = t0 + dt*(0:Nt-1).';
+    Nt_ref  = floor(wfs(wf).Tpd * wfs(wf).fs) + 1;
+    wfs(wf).pad_length = Nt_ref + wfs(wf).zero_pad - 1;
+    wfs(wf).Nt = ceil(wfs(wf).Nt_pc*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2)) ...
+      + wfs(wf).pad_length;
     
     
-    
-    wfs(wf).Nt_ref  = floor(wfs(wf).Tpd * wfs(wf).fs) + 1;
-    wfs(wf).Nt_pc   = wfs(wf).Nt_raw + wfs(wf).Nt_ref + wfs(wf).zero_pad - 1;
-    wfs(wf).pad_length = wfs(wf).Nt_pc - wfs(wf).Nt_raw;
-
-    wfs(wf).Nt = ceil(wfs(wf).Nt_pc*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2));
-    
-    wfs(wf).fs = fs * wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2);
-    
-    dt = 1/wfs(wf).fs;
+    % Starts at fc goes to fc+fs/2, fc-fs/2 to fc
     df = wfs(wf).fs/wfs(wf).Nt;
+    wfs(wf).freq = wfs(wf).fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
     
-    % Starts at fc goes to fc+BW/2, fc-BW/2 to fc
-    wfs(wf).freq = fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    wfs(wf).time = t0 + dt*(0:Nt-1).';
-    
-    wfs(wf).df_raw = df;
-    wfs(wf).dt_raw = 1/(Nt*df);
-    wfs(wf).fs_raw = Nt*df;
-    dt = wfs(wf).dt_raw;
-    % Let ftnz = fast time nyquist zone
-    % Starts at ftnz*fs goes to ftnz*fs+fs/2, ftnz*fs-fs/2 to ftnz*fs
-    %     wfs(wf).freq = round(fc/fs)*fs ...
-    %       + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    wfs(wf).freq_raw = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
-    wfs(wf).time_raw = t0 + dt*(0:Nt-1).';
-    
-    % Assuming pulse compression zero pads the front of the waveform, the
-    % output will start earlier by an amount proportional to the zero
-    % padding.
-    wfs(wf).time = wfs(wf).time - wfs(wf).pad_length / fs;
+    % Starts same as raw data minus the padding which is added at the front
+    dt = 1/wfs(wf).fs;
+    wfs(wf).time = wfs(wf).t0_raw - dt*wfs(wf).pad_length + dt*(0:wfs(wf).Nt-1).';
     
     % Modify reference function so that time vector elements are multiples
     % of dt.
     wfs(wf).time_correction = dt - mod(wfs(wf).time(1),dt);
     wfs(wf).time = wfs(wf).time + wfs(wf).time_correction;
     
-    for adc = adcs
-      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*freq*wfs(wf).time_correction);
-    end
-    
     %% Pulsed: Create reference function
     % =====================================================================
-    
-    dt = 1/wfs(wf).fs;
-    time = dt * (0 : Nt-1).';
-    if wfs(wf).DDC_mode == 0
-      % DDC Disabled or No DDC
-      ref = tukeywin_cont(time/wfs(wf).Tpd-0.5)*exp(1i*2*pi*f0*time + 1i*pi*wfs(wf).chirp_rate*time.^2);
-    else
-      % DDC Enabled
-      ref = tukeywin_cont(time/wfs(wf).Tpd-0.5)*exp(1i*2*pi*(f0 - wfs(wf).DDC_freq)*time + 1i*pi*wfs(wf).chirp_rate*time.^2);
-    end
+    BW = wfs(wf).f1 - wfs(wf).f0;
+    time = (0:dt:(wfs(wf).Nt-1)*dt).';
+    ref = tukeywin_cont(time/wfs(wf).Tpd-0.5)*exp(1i*2*pi*-BW/2*time + 1i*pi*wfs(wf).chirp_rate*time.^2);
     if ~isempty(wfs(wf).ft_wind_time)
       ref = wfs(wf).ft_wind_time(wfs(wf).Nt_ref).*ref;
     end
     
-    % Apply receiver delays to reference function
-    Nt = wfs(wf).Nt_pc;
-    df = 1/(Nt*dt);
-    if wfs(wf).DDC_mode == 0
-      freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
-    else
-      freq = wfs(wf).DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    end
     for adc = adcs
       ref_fn_name = char(param.radar.wfs(wf).ref_fn);
       ref_fn_name = regexprep(ref_fn_name,'%w',sprintf('%.0f',wf));
@@ -462,62 +377,18 @@ wfs(wf).DDC_freq=0
           .* exp(-1i*2*pi*freq*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
       end
       
-    end
-  end
-  
-  % ===================================================================
-  % Create raw data with zero padding freq axes variables
-  if ~proc_param.pulse_comp
-    Nt = wfs(wf).Nt_raw;
-  end
-  
-  df = 1/(Nt*dt);
-  %freq = round(fc/fs)*fs + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-  freq = fs*floor(fc/fs) + (0:df:(Nt-1)*df).';
-  wfs(wf).time_raw = wfs(wf).t0 + (0:dt:(Nt-1)*dt).';
-  
-  %% Create Decimation Information
-  if proc_param.ft_dec
-    if wfs(wf).DDC_mode ~= 0
-      % DDC Enabled
-      freq = wfs(wf).DDC_freq + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-    end
-    wfs(wf).fc = fc;
-  else
-    wfs(wf).fc = fs*floor(max(f0,f1)/fs);
-  end
-  
-  %% Create Windowing Information
-  if ~proc_param.ft_wind_time && ~isempty(proc_param.ft_wind) ...
-      && proc_param.pulse_comp
-    ft_wind = zeros(size(freq));
-    
-    if wfs(wf).DDC_mode == 0
-      % DDC Disabled or no DDC
-      freq_inds = ifftshift(find(freq >= fc-BW_window/2 & freq <= fc+BW_window/2));
-    else
-      % DDC Enabled
-      freq_inds = find(freq >= fc-BW_window/2 & freq <= fc+BW_window/2);
-    end
-    [~,sorted_freq_inds] = sort(freq(freq_inds));
-    sorted_freq_inds = freq_inds(sorted_freq_inds);
-    ft_wind(sorted_freq_inds) = proc_param.ft_wind(length(freq_inds));
-    
-    for adc = adcs
       if ~wfs(wf).ref_windowed(adc)
         wfs(wf).ref{adc} = wfs(wf).ref{adc} .* ft_wind;
       end
+      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*freq*wfs(wf).time_correction);
+
+      % Normalize reference function so that it is an estimator
+      %  -- Accounts for pulse duration differences
+      time_domain_ref = ifft(wfs(wf).ref{adc});
+      wfs(wf).ref{adc} = wfs(wf).ref{adc} ...
+        ./ dot(time_domain_ref,time_domain_ref);
     end
   end
-  
-  %% Normalize reference function so that it is an estimator
-  %  -- Accounts for pulse duration differences
-  for adc = adcs
-    time_domain_ref = ifft(wfs(wf).ref{adc});
-    wfs(wf).ref{adc} = wfs(wf).ref{adc} ...
-      ./ dot(time_domain_ref,time_domain_ref);
-  end
-  
 end
 
 %% Populate the waveform/adc offsets into each record
@@ -531,10 +402,9 @@ elseif any(param.records.file_version == [403 407 408]) % [mcords3 mcords5]
   wf_num_sam = cell2mat({settings.wfs.num_sam}).';
 end
 
-  if any(param.records.file_version == [1]) % [fmcw1]
-    wfs(wf).num_sam = settings.wfs.num_sam;
-  end
-
+if any(param.records.file_version == [1]) % [fmcw1]
+  wfs(wf).num_sam = settings.wfs.num_sam;
+end
 
 if any(param.records.file_version == [403 405 406 407 408]) % [acords]
   wf = 1;

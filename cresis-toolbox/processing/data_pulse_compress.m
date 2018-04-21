@@ -61,9 +61,45 @@ end
 %% Pulse compression
 % ===================================================================
 if strcmpi(param.proc.pulse_compress,'matched')
+  
+        if ~param.proc.raw_data
+        % Apply channel compensation
+        chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+          .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+        state(board+1).data{accum_idx} = state(board+1).data{accum_idx}/chan_equal;
+        state(board+1).data{accum_idx} = state(board+1).data{accum_idx}/wfs(wf).adc_gains(adc);
+        
+        if param.load.pulse_comp
+          % Apply blank (only should enable if sidelobe problems present)
+          state(board+1).data{accum_idx}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= param.surface(rec) + wfs(wf).blank) = 0;
+          
+          % Digital down conversion and decimation
+          state(board+1).data{accum_idx} = state(board+1).data{accum_idx}.*exp(-1i*2*pi*(wfs(wf).fc-wfs(wf).DDC_freq)*wfs(wf).time_raw);
+          state(board+1).data{accum_idx} = resample(double(state(board+1).data{accum_idx}), param.wfs(wf).ft_dec(1), param.wfs(wf).ft_dec(2));
+          
+          % Zero pad front: (the standard)
+          state(board+1).data{accum_idx} = fft([zeros(wfs(wf).pad_length,1); state(board+1).data{accum_idx}]);
+          % Zero pad end: (debug only)
+          %state(board+1).data{accum_idx} = fft(state(board+1).data{accum_idx}, wfs(wf).Nt_pc);
+          
+          % Pulse compression
+          %   Apply matched filter and transform back to time domain
+          state(board+1).data{accum_idx} = ifft(state(board+1).data{accum_idx} .* wfs(wf).ref{adc});
+          
+        end
+        
+      
+      
+      
+      % Store wf-adc pair in output matrix
+      data{img}(:,out_idx,wf_adc_idx) = state(board+1).data{accum_idx} / param.proc.presums;
+    end
+  
 elseif strcmpi(param.proc.pulse_compress,'deramp')
 elseif strcmpi(param.proc.pulse_compress,'stepped')
 end
+
+
 
 %% Oversampling
 % ===================================================================
