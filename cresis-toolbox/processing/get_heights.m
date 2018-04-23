@@ -140,10 +140,6 @@ if ~isfield(param.get_heights,'ft_wind_time') || isempty(param.get_heights.ft_wi
   param.get_heights.ft_wind_time = 0;
 end
 
-if ~isfield(param.get_heights,'trim_vals') || isempty(param.get_heights.trim_vals)
-  param.get_heights.trim_vals = 1;
-end
-
 if ~isfield(param.get_heights,'pulse_comp') || isempty(param.get_heights.pulse_comp)
   param.get_heights.pulse_comp = 1;
 end

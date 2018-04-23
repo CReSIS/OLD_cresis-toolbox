@@ -405,7 +405,11 @@ if isfield(param,'detrend') && ~isempty(param.detrend)
 end
 
 % Create echogram plot
-figure(param.fig_hand); clf;
+if ~ishandle(param.fig_hand)
+  figure(param.fig_hand);
+else
+  clf(param.fig_hand);
+end
 
 ah_echo_time = axes; % 2-way travel time axis
 ah_echo = axes; % Depth axis with data

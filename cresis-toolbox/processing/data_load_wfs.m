@@ -1,8 +1,8 @@
-function [wfs,state] = data_load_wfs(param, records)
-% [wfs,state] = data_load_wfs(param, records)
+function [wfs,states] = data_load_wfs(param, records)
+% [wfs,states] = data_load_wfs(param, records)
 %
 % Loads waveform/adc information into wfs
-% Loads state information for loading raw data into state
+% Loads states information for loading raw data into states
 % Both are required for data_load.m
 %
 % param: structure with parameter information
@@ -14,7 +14,7 @@ function [wfs,state] = data_load_wfs(param, records)
 %  .load.ft_wind: function handle to fast time window that will be applied
 %    in the frequency domain
 % wfs: 
-% state: structure vector that helps data_load load data (state of loader)
+% states: structure vector that helps data_load load data (states of loader)
 %   Each entry in the structure vector corresponds to a specific board.
 %     accum(board)
 %   Each entry contains lists of how to accumulate and store data for the
@@ -39,38 +39,37 @@ function [wfs,state] = data_load_wfs(param, records)
 %
 % See also: data_load.m
 
-save('/tmp/data_load_wfs_test.mat')
-keyboard
-load('/tmp/data_load_wfs_test.mat')
-
-%% Build raw data loading "state" structure
+%% Build raw data loading "states" structure
 % =========================================================================
 
 % Create list of wf-adc pairs to determine which boards to load
 wf_list = [];
 adc_list = [];
 board_list = [];
+board_idxs = [];
 for img = 1:length(param.load.imgs)
   for wf_adc_idx= 1:size(param.load.imgs{img},1)
     for adc_column = 2:2:size(param.load.imgs{img},2)
       wf_list(end+1) = param.load.imgs{img}(wf_adc_idx,adc_column-1);
       adc_list(end+1) = param.load.imgs{img}(wf_adc_idx,adc_column);
-      board_list(end+1) = adc_to_board(param.radar_name,adc_list(end));
+      [board_list(end+1),board_idxs(end+1)] = adc_to_board(param.radar_name,adc_list(end));
     end
   end
 end
 boards = unique(board_list);
 
-% Populate state structure
-state = [];
-for board = boards
-  state(board).adc = [];
-  state(board).wf = [];
-  state(board).wf_adc_idx = [];
-  state(board).img = [];
-  state(board).wf_adc_sum = [];
-  state(board).wf_adc_sum_done = [];
-  state(board).img_comb_idx = [];
+% Populate states structure
+states = [];
+for state_idx = 1:length(boards)
+  states(state_idx).board = boards(state_idx);
+  states(state_idx).board_idx = board_idxs(state_idx);
+  states(state_idx).adc = [];
+  states(state_idx).wf = [];
+  states(state_idx).wf_adc_idx = [];
+  states(state_idx).img = [];
+  states(state_idx).wf_adc_sum = [];
+  states(state_idx).wf_adc_sum_cmd = [];
+  states(state_idx).img_comb_idx = [];
   for img = 1:length(param.load.imgs) % For each image img
     for wf_adc_idx = 1:size(param.load.imgs{img},1) % For ach wf-adc pair
       for adc_column = 2:2:size(param.load.imgs{img},2) % For each combined wf-adc pair
@@ -91,16 +90,23 @@ for board = boards
         for wf_adc_sum_idx = 1:size(wf_adc_sum,1)
           wf = wf_adc_sum(wf_adc_sum_idx,1);
           adc = wf_adc_sum(wf_adc_sum_idx,2);
-          % Add wf-adc pair to state list
-          state(board).adc(end+1) = adc;
-          state(board).wf(end+1) = wf;
-          state(board).wf_adc_idx(end+1) = wf_adc_idx;
-          state(board).img(end+1) = img;
-          state(board).wf_adc_sum(end+1) = wf_adc_sum(wf_adc_sum_idx,3);
-          state(board).wf_adc_sum_done(end+1) = false;
-          state(board).img_comb_idx(end+1) = adc_column/2;
+          % Add wf-adc pair to states list
+          states(state_idx).adc(end+1) = adc;
+          states(state_idx).wf(end+1) = wf;
+          states(state_idx).wf_adc_idx(end+1) = wf_adc_idx;
+          states(state_idx).img(end+1) = img;
+          states(state_idx).wf_adc_sum(end+1) = wf_adc_sum(wf_adc_sum_idx,3);
+          if size(wf_adc_sum,1) == 1
+            states(state_idx).wf_adc_sum_cmd(end+1) = 3;
+          elseif wf_adc_sum_idx == 1
+            states(state_idx).wf_adc_sum_cmd(end+1) = 0;
+          elseif wf_adc_sum_idx < size(wf_adc_sum,1)
+            states(state_idx).wf_adc_sum_cmd(end+1) = 1;
+          else
+            states(state_idx).wf_adc_sum_cmd(end+1) = 2;
+          end
+          states(state_idx).img_comb_idx(end+1) = adc_column/2;
         end
-        state(board).wf_adc_sum_done(ends) = true;
       end
     end
   end
@@ -201,6 +207,11 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).presums = records.settings.wfs(wf).presums;
   end
+  if isfield(param.radar.wfs(wf),'presum_threshold') && ~isempty(param.radar.wfs(wf).presum_threshold)
+    wfs(wf).presum_threshold = param.radar.wfs(wf).presum_threshold;
+  else
+    wfs(wf).presum_threshold = 0.5;
+  end
   if isfield(param.radar.wfs(wf),'BW') && ~isempty(param.radar.wfs(wf).BW)
     wfs(wf).BW_window = param.radar.wfs(wf).BW(1);
   else
@@ -222,6 +233,11 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).ft_wind_time   = param.radar.wfs(wf).ft_wind_time;
   else
     wfs(wf).ft_wind_time   = [];
+  end
+  if isfield(param.radar.wfs(wf),'ft_wind_time') && ~isempty(param.radar.wfs(wf).ft_wind_time)
+    wfs(wf).ft_wind   = param.radar.wfs(wf).ft_wind;
+  else
+    wfs(wf).ft_wind   = @hanning;
   end
   if isfield(param.radar.wfs(wf),'tukey') && ~isempty(param.radar.wfs(wf).tukey)
     wfs(wf).tukey   = param.radar.wfs(wf).tukey;
@@ -247,10 +263,12 @@ for wf = 1:length(param.radar.wfs)
       
       wfs(wf).gain(adc) = load(gain_fn);
     end
+  else
+    wfs(wf).gain = [];
   end
-  if isfield(settings,'nyquist_zone')
-    wfs(wf).nyquist_zone    = settings.nyquist_zone;
-  elseif ~isempty(param.radar.wfs(wf).nyquist_zone)
+  if isfield(records.settings,'nyquist_zone')
+    wfs(wf).nyquist_zone    = records.settings.nyquist_zone;
+  elseif isfield(param.radar.wfs(wf),'nyquist_zone') && ~isempty(param.radar.wfs(wf).nyquist_zone)
     % Override nyquist zone
     wfs(wf).nyquist_zone    = param.radar.wfs(wf).nyquist_zone;
   else
@@ -288,11 +306,14 @@ for wf = 1:length(param.radar.wfs)
   elseif strcmpi(radar_type,'pulsed')
     %% Pulsed: Create time and frequency axis information
     % =====================================================================
+    
+    % Raw data
+    % ---------------------------------------------------------------------
     dt = 1/wfs(wf).fs_raw;
     wfs(wf).time_raw = wfs(wf).t0_raw + dt*(0:wfs(wf).Nt_raw-1).';
 
-    nz0 = floor((wfs(wf).f0-wfs(wf).DDC_freq)/wfs(wf).fs_raw*2)
-    nz1 = floor((wfs(wf).f1-wfs(wf).DDC_freq)/wfs(wf).fs_raw*2)
+    nz0 = floor((wfs(wf).f0-wfs(wf).DDC_freq)/wfs(wf).fs_raw*2);
+    nz1 = floor((wfs(wf).f1-wfs(wf).DDC_freq)/wfs(wf).fs_raw*2);
     
     df = wfs(wf).fs_raw/wfs(wf).Nt_raw;
     if nz0 == nz1 && wfs(wf).DDC_mode == 0
@@ -315,22 +336,38 @@ for wf = 1:length(param.radar.wfs)
       % Shift the frequencies so they are centered on the signal bandwidth
       wfs(wf).freq_raw = wfs(wf).freq_raw - floor((wfs(wf).freq_raw - (wfs(wf).fc-wfs(wf).fs_raw/2))/wfs(wf).fs_raw)*wfs(wf).fs_raw;
     end
+
     
+    % Pulse compressed data is applied to complex base banded raw data
+    % with f_LO = wfs(wf).fc-wfs(wf).DDC_freq
+    % ---------------------------------------------------------------------
+    wfs(wf).Nt_ref  = floor(wfs(wf).Tpd * wfs(wf).fs_raw) + 1;
+    wfs(wf).pad_length = wfs(wf).Nt_ref + wfs(wf).zero_pad - 1;
+    wfs(wf).Nt_pc = wfs(wf).Nt_raw + wfs(wf).pad_length;
+    wfs(wf).fs_pc = wfs(wf).fs_raw;
+    
+    % freq: Frequency axis for processed data. Starts at fc goes to fc+fs/2, fc-fs/2 to fc
+    df = wfs(wf).fs_pc/wfs(wf).Nt_pc;
+    freq_bb = ifftshift( -floor(wfs(wf).Nt_pc/2)*df : df : floor((wfs(wf).Nt_pc-1)/2)*df ).';
+    wfs(wf).freq_pc = wfs(wf).fc + freq_bb;
+    
+    % time: Time axis for processed data. Starts same as raw data minus the padding which is added at the front
+    dt = 1/wfs(wf).fs_pc;
+    wfs(wf).time_pc = wfs(wf).t0_raw - dt*wfs(wf).pad_length + dt*(0:wfs(wf).Nt_pc-1).';
+    
+    
+    % Final "processed" axes after decimation
+    % ---------------------------------------------------------------------
     wfs(wf).fs = wfs(wf).fs_raw * wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2);
+    wfs(wf).Nt = ceil(wfs(wf).Nt_pc*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2));
     
-    Nt_ref  = floor(wfs(wf).Tpd * wfs(wf).fs) + 1;
-    wfs(wf).pad_length = Nt_ref + wfs(wf).zero_pad - 1;
-    wfs(wf).Nt = ceil(wfs(wf).Nt_pc*wfs(wf).ft_dec(1)/wfs(wf).ft_dec(2)) ...
-      + wfs(wf).pad_length;
-    
-    
-    % Starts at fc goes to fc+fs/2, fc-fs/2 to fc
+    % freq: Frequency axis for processed data. Starts at fc goes to fc+fs/2, fc-fs/2 to fc
     df = wfs(wf).fs/wfs(wf).Nt;
-    wfs(wf).freq = wfs(wf).fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
+    wfs(wf).freq = wfs(wf).fc + ifftshift( -floor(wfs(wf).Nt/2)*df : df : floor((wfs(wf).Nt-1)/2)*df ).';
     
-    % Starts same as raw data minus the padding which is added at the front
+    % time: Time axis for processed data. Starts same as raw data minus the padding which is added at the front
     dt = 1/wfs(wf).fs;
-    wfs(wf).time = wfs(wf).t0_raw - dt*wfs(wf).pad_length + dt*(0:wfs(wf).Nt-1).';
+    wfs(wf).time = wfs(wf).time_pc(1) + dt*(0:wfs(wf).Nt-1).';
     
     % Modify reference function so that time vector elements are multiples
     % of dt.
@@ -340,8 +377,9 @@ for wf = 1:length(param.radar.wfs)
     %% Pulsed: Create reference function
     % =====================================================================
     BW = wfs(wf).f1 - wfs(wf).f0;
-    time = (0:dt:(wfs(wf).Nt-1)*dt).';
-    ref = tukeywin_cont(time/wfs(wf).Tpd-0.5)*exp(1i*2*pi*-BW/2*time + 1i*pi*wfs(wf).chirp_rate*time.^2);
+    dt = 1/wfs(wf).fs_pc;
+    time = (0:dt:(wfs(wf).Nt_pc-1)*dt).';
+    ref = tukeywin_cont(time/wfs(wf).Tpd-0.5, wfs(wf).tukey).*exp(1i*2*pi*-BW/2*time + 1i*pi*wfs(wf).chirp_rate*time.^2);
     if ~isempty(wfs(wf).ft_wind_time)
       ref = wfs(wf).ft_wind_time(wfs(wf).Nt_ref).*ref;
     end
@@ -353,8 +391,8 @@ for wf = 1:length(param.radar.wfs)
       ref_fn = fullfile(ct_filename_out(param,'noise','',1), [ref_fn_name '.mat']);
       
       if isempty(ref_fn_name) || ~exist(ref_fn,'file')
-        wfs(wf).ref{adc} = conj(fft(ref,Nt) ...
-          .* exp(-1i*2*pi*freq*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
+        wfs(wf).ref{adc} = conj(fft(ref,wfs(wf).Nt_pc) ...
+          .* exp(-1i*2*pi*wfs(wf).freq_pc*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
         wfs(wf).ref_windowed(adc) = false;
         
       else
@@ -378,9 +416,17 @@ for wf = 1:length(param.radar.wfs)
       end
       
       if ~wfs(wf).ref_windowed(adc)
-        wfs(wf).ref{adc} = wfs(wf).ref{adc} .* ft_wind;
+        % Use special fftshifted frequency axis to make applying the
+        % frequency window easier.
+        freq = fftshift(wfs(wf).freq_pc);
+        mask = ifftshift(freq>=wfs(wf).fc-wfs(wf).BW_window/2 & freq<=wfs(wf).fc+wfs(wf).BW_window/2);
+        wfs(wf).ref{adc}(mask) = ifftshift(fftshift(wfs(wf).ref{adc}(mask)) .* wfs(wf).ft_wind(sum(mask)));
+        wfs(wf).ref{adc}(~mask) = 0;
       end
-      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*freq*wfs(wf).time_correction);
+      
+      % Apply time correction so that start time will be a multiple of
+      % the sampling frequency of the radar
+      wfs(wf).ref{adc} = wfs(wf).ref{adc} .* exp(1i*2*pi*wfs(wf).freq_pc*wfs(wf).time_correction);
 
       % Normalize reference function so that it is an estimator
       %  -- Accounts for pulse duration differences
@@ -391,63 +437,104 @@ for wf = 1:length(param.radar.wfs)
   end
 end
 
-%% Populate the waveform/adc offsets into each record
+%% Populate the waveform offsets into each record
 % =========================================================================
+% File Version	Description
+% 1	snow, kuband (Leuschen/Ledford based)
+% 2	snow2, kuband2 (NI based)
+% 3	snow3, kuband3 (NI based, DDC enabled)
+% 4	snow3, kuband3 (NI based, no DDC?, limited use)
+% 5	snow3, kuband3, kaband3 (NI based, second version of DDC code)
+% 6	snow4, kuband4 (NI based, Spring 2015 NRL version of DDC code, multichannel)
+% 7	snow5 (NI based, AWI version of DDC code, multichannel, multiwaveform). Note this is a standard file type loaded by basic_load.m
+% 8	snow8 (NI based, Keysight waveform generator). Some files start with snow4 from the test flight.
+% 9	snow9 (RSS based, Arena Snow Radar).
+% 10	snow10 (RSS based, Arena Helicopter Snow Radar).
+% 101	accum (Leuschen/Ledford based)
+% 102	accum2 (Sundance, Paden/Rink based)
+% 401	mcords (Leuschen/Ledford based)
+% 402	mcords2 (NI based, XML files unreliable)
+% 403	mcords3 (NI based, header fields changed, XML files correct 2014 Antarctica DC8 and later unreliable before that)
+% 404	mcords4 (NI based, introduced 2013 Antarctica Basler, wideband, XML files complete)
+% 405	acords (Akins based, 2003 Greenland P3, low/high gain)
+% 406	acords v2 (Akins based, 2004 Antarctica P3-chile and 2005 Greenland TO, low/high gain, 4-channel option)
+% 407	mcords5 (NI based, introduced 2015 Greenland C130/Polar6, wideband, XML files complete, DDC)
+% 408	mcords5 (NI based, introduced 2015 Greenland C130/Polar6, wideband, XML files complete, No DDC)
+% 409	icards (?/Akins Linux PCI card based, introduced 1993 Greenland P3)
+% 410	mcrds (Akins based, introduced 2006 Greenland P3, multichannel/waveforms)
+% 411	hfrds (Leuschen eval board based, 2013 Antarctica G1XB???, 2016 Greenland G1XB)
+% 412	hfrds2 (RSS based, Arena HF Sounder, 2016 Greenland TOdtu).
+%
+% wfs(wf).wf_offset: bytes of data before this data waveform
+% wfs(wf).num_sam: bytes of data in this record
 
-% offset: bytes of data before this data channel
-% rec_data_size: number of bytes of data in the record
-if any(param.records.file_version == [405 406]) % [acords]
-  wf_num_sam = cell2mat({settings.wfs(1).wfs.num_sam}).';
-elseif any(param.records.file_version == [403 407 408]) % [mcords3 mcords5]
-  wf_num_sam = cell2mat({settings.wfs.num_sam}).';
-end
-
-if any(param.records.file_version == [1]) % [fmcw1]
-  wfs(wf).num_sam = settings.wfs.num_sam;
-end
-
-if any(param.records.file_version == [403 405 406 407 408]) % [acords]
-  wf = 1;
-  wf_offsets(wf) = 0;
-  if ~wfs(wf).DDC_mode
-    % Real data
-    if any(strcmpi(radar_name,{'acords'}))
-      num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
-      rec_data_size = wf_num_sam(wf)*num_elem*sample_size;
-    else
-      rec_data_size = wf_num_sam(wf)*sample_size;
-    end
-  else
-    % Complex data
-    rec_data_size = 2*wf_num_sam(wf)*sample_size;
-  end
+for wf = 1:length(param.radar.wfs)
   
-  for wf = 2:length(param.radar.wfs)
-    if isfield(param.radar.wfs(wf),'DDC_mode') && ~isempty(param.radar.wfs(wf).DDC_mode)
-      wfs(wf).DDC_mode   = param.radar.wfs(wf).DDC_mode;
-    else
-      wfs(wf).DDC_mode   = 0;
-    end
-    
-    if ~wfs(wf).DDC_mode
-      % Real data
-      if any(strcmpi(radar_name,{'acords'}))
-        num_elem = length(settings.wfs(wf).wfs(wf).adc_gains(1,:));
-        wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
-        rec_data_size = rec_data_size + wf_num_sam(wf)*num_elem*sample_size;
+  switch param.records.file_version
+    case {402,403}
+      HEADER_SIZE = 32;
+      WF_HEADER_SIZE = 8;
+      wfs(wf).record_mode = 0;
+      wfs(wf).complex = 0;
+      wfs(wf).sample_size = 2;
+      wfs(wf).adc_per_board = 4;
+      wfs(wf).sample_type = 'int16';
+      if wf == 1
+        wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
       else
-        wf_offsets(wf) = wf_offsets(wf-1) + wf_num_sam(wf-1)*sample_size;
-        rec_data_size = rec_data_size + wf_num_sam(wf)*sample_size;
+        wfs(wf).offset = wfs(wf-1).offset ...
+          + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
+          + WF_HEADER_SIZE;
       end
-    else
-      % Complex data
-      wf_offsets(wf) = wf_offsets(wf-1) + 2*wf_num_sam(wf-1)*sample_size;
-      rec_data_size = rec_data_size + 2*wf_num_sam(wf)*sample_size;
-    end
+    
   end
-  
-elseif any(param.records.file_version == [102]) % [accum2]
-  wf_offsets = cumsum([0; wf_num_sam(1:end-1)]) ...
-    * sample_size;
-  rec_data_size = sum(wf_num_sam) * sample_size;
-end
+end  
+
+% if param.load.file_version == 402 || param.load.file_version == 403
+%   HEADER_SIZE = 32;
+%   WF_HEADER_SIZE = 8;
+%   bin_size = 2;
+%   sample_type = 'int16';
+%   num_boards = 4;
+%   boards = unique(floor((param.load.adcs-1)/num_boards));
+% elseif param.load.file_version == 404
+%   HEADER_SIZE = 32;
+%   WF_HEADER_SIZE = 8;
+%   bin_size = 2;
+%   sample_type = 'int16';
+%   num_boards = 1;
+%   boards = param.load.adcs;
+% elseif param.load.file_version == 407 || param.load.file_version == 408
+%   if wfs(1).DDC_mode == 0
+%     % DDC Enabled
+%     HEADER_SIZE = 80;
+%     WF_HEADER_SIZE = 16;
+%     bin_size = 2;
+%     sample_type = 'int16';
+%     num_boards = 1;
+%     boards = param.load.adcs;
+%   else
+%     % DDC Disabled
+%     HEADER_SIZE = 40;
+%     WF_HEADER_SIZE = 8;
+%     bin_size = 2;
+%     sample_type = 'int16';
+%     num_boards = 1;
+%     boards = param.load.adcs;
+%   end
+% elseif param.load.file_version == 411
+%   HEADER_SIZE = 128;
+%   WF_HEADER_SIZE = 0;
+%   bin_size = 2;
+%   sample_type = 'int16';
+%   num_boards = 1;
+%   boards = param.load.adcs;
+% elseif param.load.file_version == 412
+%   HEADER_SIZE = NaN;
+%   WF_HEADER_SIZE = NaN;
+%   SUBRECORD_SIZE_OFFSET = 68; % HACK FIX LATER
+%   bin_size = 4; % HACK FIX LATER
+%   sample_type = 'int32'; % HACK FIX LATER
+%   boards = unique(param.records.wf_adc_boards(1,param.load.adcs));
+% end
+% 

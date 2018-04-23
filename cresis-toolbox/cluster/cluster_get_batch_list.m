@@ -37,10 +37,9 @@ end
 
 batch_dirs = get_filenames(param.cluster.data_location,'batch_','','',struct('type','d'));
 
+%% Collect directories into a batch list and sort
 ctrls = [];
-if nargout == 0
-  fprintf('Batch Username    Directory\n');
-end
+batch_ids = [];
 for batch_idx = 1:length(batch_dirs)
   ctrls{batch_idx}.batch_dir = batch_dirs{batch_idx};
   
@@ -48,11 +47,44 @@ for batch_idx = 1:length(batch_dirs)
   ctrls{batch_idx}.batch_id = strtok(batch_dir_name(7:end),'_');
   ctrls{batch_idx}.batch_id = str2double(ctrls{batch_idx}.batch_id);
   
+  batch_ids(end+1) = ctrls{batch_idx}.batch_id;
+end
+[~,sort_idxs] = sort(batch_ids);
+ctrls = ctrls(sort_idxs);
+
+%% Print results or populate remaining fields for each batch
+for batch_idx = 1:length(batch_dirs)  
+  ctrls{batch_idx}.in_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'in');
   if nargout == 0
-    fprintf('%6d %s\n', ctrls{batch_idx}.batch_id, ctrls{batch_idx}.batch_dir);
+    % Create input filenames
+    static_in_fn = fullfile(ctrls{batch_idx}.in_fn_dir,'static.mat');
+    dynamic_in_fn = fullfile(ctrls{batch_idx}.in_fn_dir,'dynamic.mat');
+    % Load input filenames
+    sparam = load(static_in_fn);
+    if exist(dynamic_in_fn,'file')
+      tmp = load(dynamic_in_fn);
+      ctrls{batch_idx}.dparam = tmp.dparam;
+      if isempty(ctrls{batch_idx}.dparam)
+        ctrls{batch_idx}.dparam = {[]};
+      end
+    else
+      ctrls{batch_idx}.dparam = {[]};
+    end
+    
+    fprintf('Batch %d %s\n', ctrls{batch_idx}.batch_id, ctrls{batch_idx}.batch_dir);
+    
+    param = merge_structs(sparam.static_param,ctrls{batch_idx}.dparam{1});
+    if ~isfield(param,'task_function')
+      param.task_function = '';
+    end
+    if ~isfield(param,'notes')
+      param.notes = '';
+    end
+    fprintf('    task_function: %s\n', param.task_function);
+    fprintf('    notes: %s\n', param.notes);
+      
   else
     ctrls{batch_idx}.job_id_fn = fullfile(ctrls{batch_idx}.batch_dir,'job_id_file');
-    ctrls{batch_idx}.in_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'in');
     ctrls{batch_idx}.out_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'out');
     ctrls{batch_idx}.stdout_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'stdout');
     ctrls{batch_idx}.error_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'error');
