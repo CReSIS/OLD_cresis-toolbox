@@ -33,7 +33,7 @@ elseif nargin == 4
   param.exact = 0;
   param.regexp = [];
 else
-  if ~ischar(param) && ~isstruct(param)
+  if ~ischar(param) && ~isstruct(param) && ~isempty(param)
     error('Args:IncorrectFormat','Fifth argument must be a string or struct');
   end
   if ischar(param)

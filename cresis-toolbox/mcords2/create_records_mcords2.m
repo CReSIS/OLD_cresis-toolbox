@@ -149,11 +149,11 @@ for board_idx = 1:length(boards)
       hdr_tmp = load(tmp_hdr_fn);
       
       % Concatenate hdr_tmp fields
-      board_hdrs{board_idx}.epri = cat(2,board_hdrs{board_idx}.epri,hdr_tmp.epri);
-      board_hdrs{board_idx}.seconds = cat(2,board_hdrs{board_idx}.seconds,hdr_tmp.seconds);
-      board_hdrs{board_idx}.fractions = cat(2,board_hdrs{board_idx}.fractions,hdr_tmp.fraction);
-      board_hdrs{board_idx}.file_idx = cat(2,board_hdrs{board_idx}.file_idx,file_idx*ones(1,length(hdr_tmp.offset)));
-      board_hdrs{board_idx}.offset = cat(2,board_hdrs{board_idx}.offset,hdr_tmp.offset);
+      board_hdrs{board_idx}.epri(end+1:end+length(hdr_tmp.epri)) = hdr_tmp.epri;
+      board_hdrs{board_idx}.seconds(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.seconds;
+      board_hdrs{board_idx}.fractions(end+1:end+length(hdr_tmp.fraction)) = hdr_tmp.fraction;
+      board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.epri)) = file_idx;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.offset)) = hdr_tmp.offset;
       
       if file_idx ~= file_idxs(end)
         % The last record in a file is generally incomplete and continues

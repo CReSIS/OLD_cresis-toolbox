@@ -98,7 +98,15 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
   adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
   adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
   adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
-  data_fns = get_filenames(fullfile(base_dir,adc_folder_name),defaults{1}.data_file_prefix,'','.bin');
+  if ~isfield(defaults{1},'data_file_regexp')
+    get_fns_param = [];
+  else
+    get_fns_param.regexp = defaults{1}.data_file_regexp;
+  end
+  if ~isfield(defaults{1},'data_file_midfix')
+    defaults{1}.data_file_midfix = '';
+  end
+  data_fns = get_filenames(fullfile(base_dir,adc_folder_name),defaults{1}.data_file_prefix,defaults{1}.data_file_midfix,'.bin',get_fns_param);
   fn_datenums = [];
   
   % Prepare parameter spreadsheet for writing if enabled

@@ -64,6 +64,10 @@ if ~isfield(param.csarp,'ground_based') || isempty(param.csarp.ground_based)
   param.csarp.ground_based = false;
 end
 
+if ~isfield(param.csarp,'lever_arm_fh') || isempty(param.csarp.lever_arm_fh)
+  param.csarp.lever_arm_fh = [];
+end
+
 if ~isfield(param.csarp,'sar_type') || isempty(param.csarp.sar_type)
   param.csarp.sar_type = 'fk';
 end

@@ -276,7 +276,7 @@ for break_idx = 1:length(breaks)
             delete(out_fn);
           end
           dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-          dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+          dparam.mem = max(dparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult);
           
         case {'statistics'}
           %
@@ -290,7 +290,7 @@ for break_idx = 1:length(breaks)
             delete(out_fn);
           end
           dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-          dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+          dparam.mem = max(dparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult);
           
         case {'coherent_noise'}
           out_fn = fullfile(out_fn_dir,sprintf('coh_noise_img_%02d_%d_%d.mat',img,actual_cur_recs));
@@ -300,7 +300,7 @@ for break_idx = 1:length(breaks)
             delete(out_fn);
           end
           dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
-          dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+          dparam.mem = max(dparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult);
           
         case {'burst_noise'}
           %

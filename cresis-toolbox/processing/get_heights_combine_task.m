@@ -169,7 +169,7 @@ for frm_idx = 1:length(param.cmd.frms);
       end
       
       if time_vector_changed
-        if strcmpi(radar_type,'fmcw')
+        if strcmpi(radar_type,'deramp')
           Data = [interp1(old_time,Data,Time,'nearest',0) interp1(tmp.Time,tmp.Data,Time,'nearest',0)];
         else
           Data = [interp1(old_time,Data,Time,'linear',0) interp1(tmp.Time,tmp.Data,Time,'linear',0)];

@@ -13,7 +13,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % =====================================================================
   % Debug Setup
   % =====================================================================
-  new_param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'20160426_05');
+  new_param = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'20180423_01');
   
   fn = ct_filename_ct_tmp(new_param,'','records','workspace');
   fn = [fn '.mat'];
@@ -290,6 +290,11 @@ pos_sec_jumps = abs(time_diff - 1 - init_EPRI_estimate) < init_EPRI_estimate*PRI
 
 neg_sec_jumps = abs(time_diff + 1 - init_EPRI_estimate) < init_EPRI_estimate*PRI_GUARD;
 
+% Remove neg_sec_jumps that occur where the fractions wrap, but the seconds
+% of day does not increment because these create false neg_sec_jumps. This
+% will happen with the 1 PPS signal is good, but the GPS SOD from NMEA is not
+neg_sec_jumps = neg_sec_jumps & ~(diff(board_hdrs{1}.fractions)<0 & diff(board_hdrs{1}.seconds) == 0);
+
 pos_sec_jump_idxs = find(pos_sec_jumps);
 neg_sec_jump_idxs = find(neg_sec_jumps);
 
@@ -427,6 +432,7 @@ else
     good_idxs = good_idxs(good_mask);
     utc_time_sod_measured = utc_time_sod_measured(good_mask);
   elseif any(abs(utc_time_sod_expected-utc_time_sod_measured) > 0.1)
+    UTC_MAX_ERROR = 0.1;
     figure(1); clf;
     plot(utc_time_sod_expected-utc_time_sod_measured);
     ylabel('Mismatch (sec)');
@@ -440,6 +446,12 @@ else
     final_EPRI_estimate = (utc_time_sod_measured(end)-utc_time_sod_measured(1)) / (epri_double(end)-epri_double(1));
     title(sprintf('param.radar EPRI %.8f ms\ninit_EPRI_estimate %.8f ms\nfinal_EPRI_estimate %.8f ms', ...
       EPRI*1e3, init_EPRI_estimate*1e3, final_EPRI_estimate*1e3),'interpreter','none');
+    figure(3); clf;
+    plot(utc_time_sod_expected-utc_time_sod_measured);
+    ylabel('Mismatch (sec)');
+    title(sprintf('Mismatch between expected and measured UTC time\nDO NOT CONTINUE IF MISMATCH FALLS\OUTSIDE THESE Y-LIMITS'));
+    xlabel('Records');
+    ylim([-UTC_MAX_ERROR UTC_MAX_ERROR]);
     warning('The expected and measured times are off by > 0.1.');
     fprintf('Verify in the plot that all differences are less than 0.1 seconds\n');
     fprintf('except a few outliers. dbcont replaces these outliers. However, if\n');
@@ -454,7 +466,6 @@ else
     fprintf('a slowly growing error between expected and measured UTC time.\n');
     fprintf('You may need to set UTC_MAX_ERROR to a larger value to allow for this\n');
     fprintf('or use param.records.use_ideal_epri to help find a better EPRI.\n');
-    UTC_MAX_ERROR = 0.1;
     good_mask = abs(utc_time_sod_expected-utc_time_sod_measured) <= UTC_MAX_ERROR;
     good_percent = sum(good_mask)/length(good_mask);
     clock_notes = cat(2,clock_notes,sprintf('Mismatch between expected and measured UTC time:\n'));

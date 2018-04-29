@@ -29,7 +29,9 @@ if iscell(M)
   
 elseif isnumeric(M)
   diff_M = diff(M);
-  if ~isempty(M) && all(M(:) == M(1))
+  if numel(M) <= 4
+    str = mat2str(M);
+  elseif ~isempty(M) && all(M(:) == M(1))
     str = sprintf('%g*ones(%s)', M(1), mat2str(size(M)));
   elseif (size(M,1) == 1 || size(M,2) == 1) && numel(M)>2 && all(diff_M == diff_M(1))
     if diff_M(1) == 1

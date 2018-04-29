@@ -709,7 +709,7 @@ if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','ku
     if any(strcmpi(radar_name,{'mcords5'}))
       counter_clk = param.clk;
       if ~no_stop_on_count
-        keyboard
+%         keyboard
       end
     elseif any(strcmpi(radar_name,{'snow3','snow5','kuband3','accum'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
@@ -719,7 +719,7 @@ if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','ku
     elseif any(strcmpi(radar_name,{'mcords3'}))
       counter_clk = param.clk;
       if ~no_stop_on_count
-        keyboard
+%         keyboard
       end
     elseif any(strcmpi(radar_name,{'kuband3','snow3'}))
       % counter_clk should be the EPRF (effective PRF after hardware presumming)
@@ -735,7 +735,7 @@ if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','ku
       counter_clk = 4000/8;
       counter = epri;
       if ~no_stop_on_count
-        keyboard
+%         keyboard
       end
     else
       keyboard

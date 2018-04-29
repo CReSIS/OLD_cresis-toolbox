@@ -339,8 +339,8 @@ for frm_idx = 1:length(param.cmd.frms);
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.combine.imgs)
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*cpu_time_mult;
-      dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+      dparam.cpu_time = dparam.cpu_time + 10 + size(param.combine.imgs{img},1)*Nx*total_num_sam(img)*cpu_time_mult;
+      dparam.mem = max(dparam.mem,250e6 + size(param.combine.imgs{img},1)*Nx*total_num_sam(img)*mem_mult);
     end
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);

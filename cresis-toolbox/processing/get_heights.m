@@ -73,6 +73,10 @@ if ~isfield(param.get_heights,'out_path') || isempty(param.get_heights.out_path)
   param.get_heights.out_path = 'qlook';
 end
 
+if ~isfield(param.get_heights,'lever_arm_fh') || isempty(param.get_heights.lever_arm_fh)
+  param.get_heights.lever_arm_fh = [];
+end
+
 if ~isfield(param.get_heights,'ground_based') || isempty(param.get_heights.ground_based)
   param.get_heights.ground_based = [];
 end
@@ -381,8 +385,8 @@ for frm_idx = 1:length(param.cmd.frms)
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.get_heights.imgs)
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-      dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam(img)*mem_mult);
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*size(param.get_heights.imgs{img},1)*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+      dparam.mem = max(dparam.mem,250e6 + Nx*size(param.get_heights.imgs{img},1)*total_num_sam(img)*mem_mult);
     end
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);

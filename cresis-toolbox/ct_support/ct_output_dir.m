@@ -8,7 +8,7 @@ function [output_dir,radar_type,radar_name] = ct_output_dir(radar_name)
 % radar_name: Specific radar string (e.g. accum2, snow8, mcords5, mcords5-accum)
 %
 % output_dir: Standard output directory (e.g. accum, snow, rds, accum)
-% radar_type: 'fmcw', 'stepped', or 'pulsed'
+% radar_type: 'deramp', 'stepped', or 'pulsed'
 % radar_name: Digital format radar name (e.g. (accum, snow, mcords5,
 %   mcords5)
 %
@@ -26,16 +26,16 @@ else
 end
 
 if any(strcmpi(radar_name,{'kuband','kuband2','kuband3'}))
-  radar_type = 'fmcw';
+  radar_type = 'deramp';
   output_dir = 'kuband';
 elseif any(strcmpi(radar_name,{'kaband3'}))
-  radar_type = 'fmcw';
+  radar_type = 'deramp';
   output_dir = 'kaband';
 elseif any(strcmpi(radar_name,{'snow','snow2','snow3','snow5','snow8','snow9'}))
-  radar_type = 'fmcw';
+  radar_type = 'deramp';
   output_dir = 'snow';
 elseif any(strcmpi(radar_name,{'accum0'}))
-  radar_type = 'fmcw';
+  radar_type = 'deramp';
   output_dir = 'accum';
 elseif any(strcmpi(radar_name,{'accum'}))
   radar_type = 'stepped';

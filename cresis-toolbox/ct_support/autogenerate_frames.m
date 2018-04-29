@@ -9,40 +9,16 @@ function autogenerate_frames(param,param_override)
 %  bit 2: special FMCW mode for breaking frames at settings changes
 %  bit 3: overwrites frame without asking
 
+%% General Setup
 % =====================================================================
-% General Setup
-% =====================================================================
-fprintf('\n\n==============================================\n');
-
-dbstack_info = dbstack;
-if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
-  % =====================================================================
-  % Debug Setup
-  % =====================================================================
-  param = read_param_xls('/users/paden/scripts/branch/params-cr1/kuband2_param_2012_Greenland_P3.xls','20120423_01');
-  
-  clear('param_override');
-  param_override.sched.type = 'no scheduler';
-  
-  % Input checking
-  if ~exist('param','var')
-    error('A struct array of parameters must be passed in\n');
-  end
-  global gRadar;
-  if exist('param_override','var')
-    param_override = merge_structs(gRadar,param_override);
-  else
-    param_override = gRadar;
-  end
-  
-elseif ~isstruct(param)
-  % Functional form
-  param();
-end
 param = merge_structs(param, param_override);
 
-fprintf('  autogenerate_frames %s\n', param.day_seg);
-fprintf('==============================================\n\n');
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+fprintf('=====================================================================\n');
+
+%% Setup creation of frames
+% =====================================================================
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 

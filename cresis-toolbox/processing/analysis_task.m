@@ -657,7 +657,7 @@ for img = 1:length(param.load.imgs)
       % Doppler domain data is not used if nyquist zone changes... set to
       % NaN?
       
-      if strcmpi(radar_type,'fmcw') && ~all(img_nyquist_zone == img_nyquist_zone(1))
+      if strcmpi(radar_type,'deramp') && ~all(img_nyquist_zone == img_nyquist_zone(1))
         doppler = NaN*zeros(1,size(g_data,2),size(g_data,3));
       else
         % Implement memory efficient fft operations
@@ -676,7 +676,7 @@ for img = 1:length(param.load.imgs)
       end
       
       %% Coh Noise: Block Analysis
-      if strcmpi(radar_type,'fmcw')
+      if strcmpi(radar_type,'deramp')
         for rline=1:size(g_data,2)
           g_data(:,rline,:) = fft(g_data(:,rline,:));
         end
@@ -752,7 +752,7 @@ for img = 1:length(param.load.imgs)
         coh_ave_samples(:,rline0_idx,:) = sum(good_samples,2);
         coh_ave(:,rline0_idx,:) = sum(g_data(:,rlines,:) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx,:);
         
-        if strcmpi(radar_type,'fmcw')
+        if strcmpi(radar_type,'deramp')
           % Nyquist_zone: bit mask for which nyquist zones are used in this
           % segment. For example, if nyquist zones 0 and 2 are used, then
           % nyquist zone will be 5 which is 0101 in binary and positions 0

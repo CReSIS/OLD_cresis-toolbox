@@ -74,7 +74,7 @@ if update_records_en
       keyboard
     end
     
-    if strcmpi(radar_type,'fmcw')
+    if strcmpi(radar_type,'deramp')
       utc_time_sod = double(records.raw.seconds) + double(records.raw.fraction)/param.radar.fs;
       
       %% Check for seconds of day roll over and unwrap (assume jump backward

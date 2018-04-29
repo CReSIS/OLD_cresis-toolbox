@@ -232,21 +232,23 @@ for board_idx = 1:length(boards)
         [success,hdr_tmp] = fh(arg{1},arg{2});
       end
       % Concatenate hdr_tmp fields
-      board_hdrs{board_idx}.seconds = cat(2,board_hdrs{board_idx}.seconds,hdr_tmp.seconds);
-      board_hdrs{board_idx}.fraction = cat(2,board_hdrs{board_idx}.fraction,hdr_tmp.fraction);
+      board_hdrs{board_idx}.seconds(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.seconds;
+      board_hdrs{board_idx}.fraction(end+1:end+length(hdr_tmp.fraction)) = hdr_tmp.fraction;
+      board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.epri)) = file_idx;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.offset)) = hdr_tmp.offset;
+      
       if length(board_hdrs{board_idx}.seconds) ~= length(board_hdrs{board_idx}.fraction)
+        fprintf('Bad file: seconds and fraction fields do not match.\n');
         keyboard
       end
-      board_hdrs{board_idx}.offset = cat(2,board_hdrs{board_idx}.offset,hdr_tmp.offset);
-      board_hdrs{board_idx}.file_idx(end+(1:length(hdr_tmp.seconds))) = file_idx;
       
       if param.records.file_version ~= 101
         if isfield(hdr_tmp,'epri')
-          board_hdrs{board_idx}.epri = cat(2,board_hdrs{board_idx}.epri,hdr_tmp.epri);
+          board_hdrs{board_idx}.epri(end+1:end+length(hdr_tmp.epri)) = hdr_tmp.epri;
         end
         if param.records.file_version == 2
-          board_hdrs{board_idx}.nyquist_zone = cat(2,board_hdrs{board_idx}.nyquist_zone,hdr_tmp.nyquist_zone);
-          board_hdrs{board_idx}.loopback_mode = cat(2,board_hdrs{board_idx}.loopback_mode,hdr_tmp.loopback);
+          board_hdrs{board_idx}.nyquist_zone(end+1:end+length(hdr_tmp.epri)) = hdr_tmp.nyquist_zone;
+          board_hdrs{board_idx}.loopback_mode(end+1:end+length(hdr_tmp.epri)) = hdr_tmp.loopback_mode;
         end
         board_hdrs{board_idx}.wfs{file_idx} = hdr_tmp.wfs;
       end

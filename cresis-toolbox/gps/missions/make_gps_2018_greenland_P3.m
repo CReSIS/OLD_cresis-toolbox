@@ -181,7 +181,52 @@ if strcmpi(gps_source_to_use,'NMEA')
 %   gps_source{file_idx} = 'nmea-field';
 %   sync_flag{file_idx} = 0;  
    
-  year = 2018; month = 4; day = 22;
+%   year = 2018; month = 4; day = 22;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0; 
+% 
+%   year = 2018; month = 4; day = 23;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0; 
+ 
+%   year = 2018; month = 4; day = 25;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0; 
+ 
+%   year = 2018; month = 4; day = 26;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0; 
+   
+%   year = 2018; month = 4; day = 27;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0; 
+  
+  year = 2018; month = 4; day = 29;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -419,6 +464,18 @@ if ~isempty(hack_idx)
     warning('Fixing north pole elevation: %s', out_fn);
     gps.elev(17000:21000) = NaN;
     gps.elev = interp_finite(gps.elev);
+    save(out_fn,'-append','-struct','gps');
+  end
+end
+
+hack_idx = cell2mat(strfind(out_fns,'gps_20180426.mat'));
+if ~isempty(hack_idx)
+  out_fn = fullfile(gps_path,out_fns{hack_idx});
+  
+  gps = load(out_fn);
+  if strcmpi(gps.gps_source,'nmea-field')
+    warning('Making monotonic gps time: %s', out_fn);
+    [gps,error_flag] = make_gps_monotonic(gps);
     save(out_fn,'-append','-struct','gps');
   end
 end

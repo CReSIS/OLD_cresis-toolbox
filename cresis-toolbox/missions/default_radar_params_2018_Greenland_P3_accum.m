@@ -102,8 +102,8 @@ default.vectors.gps.time_offset = 1;
 
 %% Records worksheet in parameter spreadsheet
 default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
-default.records.file.adcs = [1:4];
-default.records.file.adc_headers = [1:4];
+default.records.file.adcs = 1;
+default.records.file.adc_headers = 1;
 default.records.gps.en = 1;
 default.records.frame_mode = 0;
 default.records.presum_bug_fixed = 1;
@@ -141,7 +141,7 @@ default.get_heights.surf.search_rng = [0:2];
 
 %% CSARP worksheet in parameter spreadsheet
 default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
+default.csarp.imgs = {[1 1],[2 1]};
 default.csarp.frm_types = {0,[0 1],0,0,-1};
 default.csarp.chunk_len = 5000;
 default.csarp.chunk_overlap = 10;
@@ -207,7 +207,7 @@ default.radar.wfs(1).chan_equal_deg = [-105.5	-0.0	55.2	128.8];
 
  % survey mode
 default.get_heights.qlook.img_comb = [1e-06 -inf 2e-06];
-default.get_heights.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
+default.get_heights.imgs = {[1 1],[2 1]};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'','','','',''};
@@ -218,8 +218,8 @@ defaults{end+1} = default;
 
 %% Other settings
 default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[1*ones(4,1),(1:4).']};
-default.csarp.imgs = {[1*ones(4,1),(1:4).']};
+default.get_heights.imgs = {[1 1],[2 1]};
+default.csarp.imgs = {[1 1],[2 1]};
 default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'','','','',''};

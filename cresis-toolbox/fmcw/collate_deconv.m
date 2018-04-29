@@ -97,7 +97,7 @@ if stage_one_en
       Nt = mode(cellfun(@length,spec.deconv_mean)); % HACK: Force Nt to be constant... need to handle differently for multiple NZ in same processing block and DDC
     end
     [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
-    if strcmpi(radar_type,'fmcw')
+    if strcmpi(radar_type,'deramp')
       spec.freq = spec.wf_freq;
       spec.Tpd = spec.wfs(wf).Tpd;
     end
