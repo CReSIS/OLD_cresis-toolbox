@@ -157,8 +157,17 @@ if strcmpi(cmd,'setup')
   end
 
   if strcmpi(param.type, 'ASCAT')
-    figure(param.fig_hand); clf;
-    set(param.fig_hand,'Renderer','painters');
+    if length(param.fig_hand)>=1 && ishandle(param.fig_hand(1))
+      clf(param.fig_hand(1));
+    else
+      if length(param.fig_hand)>=1 && isnumeric(param.fig_hand(1))
+        param.fig_hand(1) = figure(param.fig_hand(1));
+      else
+        param.fig_hand(1) = figure();
+      end
+    end
+    map_info.fig_hand(1) = param.fig_hand(1);
+    set(param.fig_hand(1),'Renderer','painters');
     if ~exist(geotiff_fn,'file')
       error('%s not found, run ascat_to_geotiff for this segment.', geotiff_fn);
     end
@@ -172,7 +181,7 @@ if strcmpi(cmd,'setup')
     [RGB, R, tmp] = geotiffread(geotiff_fn);
     % =======================================================================
     % Large raster image map
-    ah_region = axes;
+    ah_region = axes('parent',param.fig_hand(1));
     %set(ah_region,'Position',[0.50000 0.1000 0.8*2/3 0.8000]);
     set(ah_region, 'Position',[0.54 0.15 0.8*2/3 0.75]);
     R = R/1e3;
@@ -186,20 +195,20 @@ if strcmpi(cmd,'setup')
     ylabel(ah_region, 'Y (km)')
     % =======================================================================
     % Zoomed out map...
-    ah_map = axes;
+    ah_map = axes('parent',param.fig_hand(1));
     h_region = mapshow(RGB, R,'Parent',ah_map);    
     axis(ah_map, map_axis)
     %set(ah_map,'Position',[0.01 0.1 0.5 .8])
     if strcmpi(param.location, 'Antarctica')
       set(ah_map, 'Position',[0.05 0.18 0.49 .6]);
-      set(param.fig_hand,'PaperPosition',[0.5 0.5 8 6]);
+      set(param.fig_hand(1),'PaperPosition',[0.5 0.5 8 6]);
     else
       set(ah_map, 'Position',[0.05 0.11 0.49 .78]);
-      set(param.fig_hand,'PaperPosition',[0.5 0.5 8 6]);
+      set(param.fig_hand(1),'PaperPosition',[0.5 0.5 8 6]);
     end
     xlabel(ah_map,'X (km)')
     ylabel(ah_map,'Y (km)')
-    set(param.fig_hand,'PaperOrientation','Portrait');
+    set(param.fig_hand(1),'PaperOrientation','Portrait');
     title(map_sub_title2);
     h_region_CData = get(h_region,'CData');
     h_region_XData = get(h_region,'XData');
@@ -209,8 +218,17 @@ if strcmpi(cmd,'setup')
     h_zoom = [];
     
   elseif strcmpi(param.type, 'geotiff')
-    figure(param.fig_hand); clf;
-    set(param.fig_hand,'Renderer','painters');
+    if length(param.fig_hand)>=1 && ishandle(param.fig_hand(1))
+      clf(param.fig_hand(1));
+    else
+      if length(param.fig_hand)>=1 && isnumeric(param.fig_hand(1))
+        param.fig_hand(1) = figure(param.fig_hand(1));
+      else
+        param.fig_hand(1) = figure();
+      end
+    end
+    map_info.fig_hand(1) = param.fig_hand(1);
+    set(param.fig_hand(1),'Renderer','painters');
     % Get the projection information
     proj = geotiffinfo(geotiff_fn);
     % Read the image
@@ -223,7 +241,7 @@ if strcmpi(cmd,'setup')
     end
     % =======================================================================
     % Raster image map
-    ah_region = axes;
+    ah_region = axes('parent',param.fig_hand(1));
     %set(ah_region,'Position',[0.50000 0.1000 0.8*2/3 0.8000]);
     set(ah_region, 'Position',[0.1 0.1 0.8 0.8]);
     R = R/1e3;
@@ -236,17 +254,26 @@ if strcmpi(cmd,'setup')
     xlabel(ah_region, 'X (km)')
     ylabel(ah_region, 'Y (km)')
 
-    set(param.fig_hand,'PaperOrientation','Portrait');
+    set(param.fig_hand(1),'PaperOrientation','Portrait');
     ah_map = [];
     ah_zoom = [];
     h_zoom = [];
 
  elseif strcmpi(param.type,'combined')
-    figure(param.fig_hand); clf;
-    set(param.fig_hand,'Renderer','painters');
+    if length(param.fig_hand)>=1 && ishandle(param.fig_hand(1))
+      clf(param.fig_hand(1));
+    else
+      if length(param.fig_hand)>=1 && isnumeric(param.fig_hand(1))
+        param.fig_hand(1) = figure(param.fig_hand(1));
+      else
+        param.fig_hand(1) = figure();
+      end
+    end
+    map_info.fig_hand(1) = param.fig_hand(1);
+    set(param.fig_hand(1),'Renderer','painters');
     % =======================================================================
     % Large raster image map
-    ah_region = axes;
+    ah_region = axes('parent',param.fig_hand(1));
     set(ah_region,'Position',[0.45000 0.1000 0.8*2/3 0.8000]);
     % Get the projection information
     proj = geotiffinfo(geotiff_fn);
@@ -273,7 +300,7 @@ if strcmpi(cmd,'setup')
     
     % =======================================================================
     % Magnified raster image map
-    ah_zoom = axes;
+    ah_zoom = axes('parent',param.fig_hand(1));
     set(ah_zoom,'Position',[0.1 0.12 0.5*2/3 0.5])
     % Plot the image
     % Plot the image
@@ -296,7 +323,7 @@ if strcmpi(cmd,'setup')
     
     % =======================================================================
     % Contour map
-    ah_map = axes;
+    ah_map = axes('parent',param.fig_hand(1));
     [ant_X,ant_Y] = projfwd(proj,coastline.Lat,coastline.Lon);
     %h_coast = plot(ah_map, ant_X/1000, ant_Y/1000,'k');
     cur_idx = 1;
@@ -310,15 +337,24 @@ if strcmpi(cmd,'setup')
     xlabel(ah_map,'X (km)')
     ylabel(ah_map,'Y (km)')
     
-    set(param.fig_hand,'PaperOrientation','Portrait');
-    set(param.fig_hand,'PaperPosition',[0.5 0.5 8 6]);
+    set(param.fig_hand(1),'PaperOrientation','Portrait');
+    set(param.fig_hand(1),'PaperPosition',[0.5 0.5 8 6]);
     
   elseif strcmpi(param.type,'singles')
-    figure(param.fig_hand); clf;
-    set(param.fig_hand,'Renderer','painters');
+    if length(param.fig_hand)>=1 && ishandle(param.fig_hand(1))
+      clf(param.fig_hand(1));
+    else
+      if length(param.fig_hand)>=1 && isnumeric(param.fig_hand(1))
+        param.fig_hand(1) = figure(param.fig_hand(1));
+      else
+        param.fig_hand(1) = figure();
+      end
+    end
+    map_info.fig_hand(1) = param.fig_hand(1);
+    set(param.fig_hand(1),'Renderer','painters');
     % =======================================================================
     % Large raster image map
-    ah_region = axes;
+    ah_region = axes('parent',param.fig_hand(1));
     % Get the projection information
     proj = geotiffinfo(geotiff_fn);
     % Read the image
@@ -333,14 +369,23 @@ if strcmpi(cmd,'setup')
     ah_region_orig_axis = axis(ah_region);
     xlabel(ah_region, 'X (km)')
     ylabel(ah_region, 'Y (km)')
-    set(param.fig_hand,'PaperOrientation','Landscape');
-    set(param.fig_hand,'PaperPosition',[0.5 0.5 8 6]);
+    set(param.fig_hand(1),'PaperOrientation','Landscape');
+    set(param.fig_hand(1),'PaperPosition',[0.5 0.5 8 6]);
     
-    figure(param.fig_hand+1); clf;
-    set(param.fig_hand+1,'Renderer','painters');
+    if length(param.fig_hand)>=2 && ishandle(param.fig_hand(2))
+      clf(param.fig_hand(2));
+    else
+      if length(param.fig_hand)>=2 && isnumeric(param.fig_hand(2))
+        param.fig_hand(2) = figure(param.fig_hand(2));
+      else
+        param.fig_hand(2) = figure();
+      end
+    end
+    map_info.fig_hand(2) = param.fig_hand(2);
+    set(param.fig_hand(2),'Renderer','painters');
     % =======================================================================
     % Magnified raster image map
-    ah_zoom = axes;
+    ah_zoom = axes('parent',param.fig_hand(2));
     % Plot the image
     h_zoom = mapshow(ah_zoom, RGB, R);
     h_zoom_CData = get(h_zoom,'CData');
@@ -350,31 +395,49 @@ if strcmpi(cmd,'setup')
     ah_zoom_orig_axis = axis(ah_zoom);
     xlabel(ah_zoom,'X (km)')
     ylabel(ah_zoom,'Y (km)')
-    set(param.fig_hand+1,'PaperOrientation','Landscape');
-    set(param.fig_hand+1,'PaperPosition',[0.5 0.5 8 6]);
+    set(param.fig_hand(2),'PaperOrientation','Landscape');
+    set(param.fig_hand(2),'PaperPosition',[0.5 0.5 8 6]);
     
-    figure(param.fig_hand+2); clf;
-    set(param.fig_hand+2,'Renderer','painters');
+    if length(param.fig_hand)>=3 && ishandle(param.fig_hand(3))
+      clf(param.fig_hand(3));
+    else
+      if length(param.fig_hand)>=3 && isnumeric(param.fig_hand(3))
+        param.fig_hand(3) = figure(param.fig_hand(3));
+      else
+        param.fig_hand(3) = figure();
+      end
+    end
+    map_info.fig_hand(3) = param.fig_hand(3);
+    set(param.fig_hand(3),'Renderer','painters');
     % =======================================================================
     % Contour map
-    ah_map = axes;
+    ah_map = axes('parent',param.fig_hand(3));
     [ant_X,ant_Y] = projfwd(proj,coastline.Lat,coastline.Lon);
     h_coast = plot(ah_map, ant_X/1000, ant_Y/1000,'k');
     axis(ah_map, map_axis)
     xlabel(ah_map,'X (km)')
     ylabel(ah_map,'Y (km)')
-    set(param.fig_hand+2,'PaperOrientation','Landscape');
-    set(param.fig_hand+2,'PaperPosition',[0.5 0.5 8 6]);
+    set(param.fig_hand(3),'PaperOrientation','Landscape');
+    set(param.fig_hand(3),'PaperPosition',[0.5 0.5 8 6]);
     
   elseif strcmpi(param.type,'contour')
-    figure(param.fig_hand); clf;
-    set(param.fig_hand,'Renderer','painters');
+    if length(param.fig_hand)>=1 && ishandle(param.fig_hand(1))
+      clf(param.fig_hand(1));
+    else
+      if length(param.fig_hand)>=1 && isnumeric(param.fig_hand(1))
+        param.fig_hand(1) = figure(param.fig_hand(1));
+      else
+        param.fig_hand(1) = figure();
+      end
+    end
+    map_info.fig_hand(1) = param.fig_hand(1);
+    set(param.fig_hand(1),'Renderer','painters');
     % =======================================================================
     % Regional map
     
     % Get the projection information
     proj = geotiffinfo(geotiff_fn);
-    ah_region = axes;
+    ah_region = axes('parent',param.fig_hand(1));
     set(ah_region,'Position',[0.5000 0.1000 0.8*0.58 0.8000]);
     [ant_X,ant_Y] = projfwd(proj,coastline.Lat,coastline.Lon);
     cur_idx = 1;
@@ -386,14 +449,14 @@ if strcmpi(cmd,'setup')
     axis(ah_region, map_axis)
     xlabel(ah_region,'X (km)')
     ylabel(ah_region,'Y (km)')
-    set(param.fig_hand,'PaperOrientation','Portrait');
-    set(param.fig_hand,'PaperPosition',[0.5 0.5 8 6]);
+    set(param.fig_hand(1),'PaperOrientation','Portrait');
+    set(param.fig_hand(1),'PaperPosition',[0.5 0.5 8 6]);
     
     % =======================================================================
     % Contour map
     
     % Get the projection information
-    ah_map = axes;
+    ah_map = axes('parent',param.fig_hand(1));
     [ant_X,ant_Y] = projfwd(proj,coastline.Lat,coastline.Lon);
     cur_idx = 1;
     for patch_idx = find(isnan(ant_X))
@@ -410,14 +473,23 @@ if strcmpi(cmd,'setup')
     h_zoom = 0;
     
   elseif strcmpi(param.type,'contour-singles')
-    figure(param.fig_hand+0); clf;
-    set(param.fig_hand,'Renderer','painters');
+    if length(param.fig_hand)>=1 && ishandle(param.fig_hand(1))
+      clf(param.fig_hand(1));
+    else
+      if length(param.fig_hand)>=1 && isnumeric(param.fig_hand(1))
+        param.fig_hand(1) = figure(param.fig_hand(1));
+      else
+        param.fig_hand(1) = figure();
+      end
+    end
+    map_info.fig_hand(1) = param.fig_hand(1);
+    set(param.fig_hand(1),'Renderer','painters');
     % =======================================================================
     % Regional map
     
     % Get the projection information
     proj = geotiffinfo(geotiff_fn);
-    ah_region = axes;
+    ah_region = axes('parent',param.fig_hand(1));
     [ant_X,ant_Y] = projfwd(proj,coastline.Lat,coastline.Lon);
     cur_idx = 1;
     for patch_idx = find(isnan(ant_X))
@@ -428,16 +500,25 @@ if strcmpi(cmd,'setup')
     axis(ah_region, map_axis)
     xlabel(ah_region,'X (km)')
     ylabel(ah_region,'Y (km)')
-    set(param.fig_hand+0,'PaperOrientation','Landscape');
-    set(param.fig_hand+0,'PaperPosition',[0.5 0.5 8 6]);
+    set(param.fig_hand(1),'PaperOrientation','Landscape');
+    set(param.fig_hand(1),'PaperPosition',[0.5 0.5 8 6]);
     
-    figure(param.fig_hand+2); clf;
-    set(param.fig_hand+2,'Renderer','painters');
+    if length(param.fig_hand)>=2 && ishandle(param.fig_hand(2))
+      clf(param.fig_hand(2));
+    else
+      if length(param.fig_hand)>=2 && isnumeric(param.fig_hand(2))
+        param.fig_hand(2) = figure(param.fig_hand(2));
+      else
+        param.fig_hand(2) = figure();
+      end
+    end
+    map_info.fig_hand(2) = param.fig_hand(2);
+    set(param.fig_hand(2),'Renderer','painters');
     % =======================================================================
     % Contour map
     
     % Get the projection information
-    ah_map = axes;
+    ah_map = axes('parent',param.fig_hand(2));
     [ant_X,ant_Y] = projfwd(proj,coastline.Lat,coastline.Lon);
     cur_idx = 1;
     for patch_idx = find(isnan(ant_X))
@@ -448,8 +529,8 @@ if strcmpi(cmd,'setup')
     axis(ah_map, map_axis)
     xlabel(ah_map,'X (km)')
     ylabel(ah_map,'Y (km)')
-    set(param.fig_hand+2,'PaperOrientation','Landscape');
-    set(param.fig_hand+2,'PaperPosition',[0.5 0.5 8 6]);
+    set(param.fig_hand(2),'PaperOrientation','Landscape');
+    set(param.fig_hand(2),'PaperPosition',[0.5 0.5 8 6]);
     
     ah_zoom = 0;
     h_zoom = 0;
@@ -821,7 +902,7 @@ elseif strcmpi(cmd,'plot')
     if param.resample
       % Resample region map because it will be saved in the pdf/eps/fig at full
       % resolution otherwise
-      PaperPosition = get(param.fig_hand,'PaperPosition');
+      PaperPosition = get(map_info.fig_hand(1),'PaperPosition');
       Position = get(ah_region,'Position');
       resolution = 200;
       pixels = round(PaperPosition(3:4) .* Position(3:4) * resolution);
@@ -854,7 +935,7 @@ elseif strcmpi(cmd,'plot')
       
       % Resample zoom map because it will be saved in the pdf/eps at full
       % resolution otherwise
-      PaperPosition = get(param.fig_hand,'PaperPosition');
+      PaperPosition = get(map_info.fig_hand(1),'PaperPosition');
       Position = get(ah_zoom,'Position');
       resolution = 200;
       pixels = round(PaperPosition(3:4) .* Position(3:4) * resolution);

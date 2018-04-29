@@ -405,14 +405,19 @@ if isfield(param,'detrend') && ~isempty(param.detrend)
 end
 
 % Create echogram plot
-if ~ishandle(param.fig_hand)
-  figure(param.fig_hand);
+if length(param.fig_hand)>=1 && ishandle(param.fig_hand(1))
+  clf(param.fig_hand(1));
 else
-  clf(param.fig_hand);
+  if length(param.fig_hand)>=1 && isnumeric(param.fig_hand(1))
+    param.fig_hand(1) = figure(param.fig_hand(1));
+  else
+    param.fig_hand(1) = figure();
+  end
 end
+echo_info.fig_hand = param.fig_hand(1);
 
-ah_echo_time = axes; % 2-way travel time axis
-ah_echo = axes; % Depth axis with data
+ah_echo_time = axes('parent',param.fig_hand(1)); % 2-way travel time axis
+ah_echo = axes('parent',param.fig_hand(1)); % Depth axis with data
 if param.elev_comp == 3
   %% WGS-84 Elevation elevation comp plotting
   echogram_vals = lp(mdata.Data(depth_good_idxs,:));

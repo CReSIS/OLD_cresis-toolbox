@@ -36,24 +36,6 @@ if ~isfield(param.post,'img') || isempty(param.post.img)
   param.post.img = 0;
 end
 
-% Hard code which figures will be used for maps and echogram
-fh_maps = 1;
-fh_echo = 2;
-
-% Matlab bug fix
-if param.post.pdf_en
-  fprintf('Closing windows because of bug in Matlab pdf writer\n');
-  % Current version of Matlab has a bug in saveas when saving to a
-  % pdf that causes the window to fail to save properly some times
-  % if it was not closed... have not tracked down.
-  if ishandle(fh_maps)
-    close(fh_maps);
-  end
-  if ishandle(fh_echo)
-    close(fh_echo);
-  end
-end
-
 % er_ice, c = speed of light
 physical_constants;
 
@@ -313,7 +295,11 @@ if param.post.maps_en
   if isfield(param.post.map,'geotiff')
     map_param.geotiff = param.post.map.geotiff;
   end
-  map_param.fig_hand = fh_maps;
+  if exist('map_info','var')
+    map_param.fig_hand = map_info.fig_hand;
+  else
+    map_param.fig_hand = [];
+  end
   map_param.resample = true;
   map_param.map_title = '';
   map_param.decimate_seg = true;
@@ -458,10 +444,10 @@ for frm_idx = 1:length(frms)
     % Save file
     map_fn = sprintf('%s_0maps.%s',frms{frm_idx}.frm_id,param.post.img_type);
     map_fn = fullfile(image_dir,map_fn);
-    set(fh_maps,'PaperUnits','inches');
-    set(fh_maps,'PaperPosition',[0.5 0.5 10 7.5]);
-    set(fh_maps,'PaperOrientation','Portrait');
-    print(map_param.fig_hand,print_device,print_dpi,map_fn);
+    set(map_info.fig_hand(1),'PaperUnits','inches');
+    set(map_info.fig_hand(1),'PaperPosition',[0.5 0.5 10 7.5]);
+    set(map_info.fig_hand(1),'PaperOrientation','Portrait');
+    print(map_info.fig_hand(1),print_device,print_dpi,map_fn);
     
     if param.post.pdf_en
       % Remove current file
@@ -471,11 +457,11 @@ for frm_idx = 1:length(frms)
       
       map_fn = sprintf('%s_%s_0maps.pdf',frms{frm_idx}.frm_id,time_stamp_str);
       map_fn = fullfile(pdf_dir,map_fn);
-      set(fh_maps,'PaperOrientation','Landscape');
+      set(map_info.fig_hand(1),'PaperOrientation','Landscape');
       
-      set(map_param.fig_hand,'PaperUnits','inches');
-      set(map_param.fig_hand,'PaperPosition',[0.5 0.5 10 7.5]);
-      saveas(map_param.fig_hand,map_fn);
+      set(map_info.fig_hand(1),'PaperUnits','inches');
+      set(map_info.fig_hand(1),'PaperPosition',[0.5 0.5 10 7.5]);
+      saveas(map_info.fig_hand(1),map_fn);
     end
   end
   
@@ -526,7 +512,11 @@ for frm_idx = 1:length(frms)
     end
     
     echo_param = param.post.echo;
-    echo_param.fig_hand = 2;
+    if exist('echo_info','var')
+      echo_param.fig_hand = echo_info.fig_hand;
+    else
+      echo_param.fig_hand = [];
+    end
     echo_param.num_x_tics = 6;
 
     echo_param.frm_id = frms{frm_idx}.frm_id;
@@ -563,11 +553,11 @@ for frm_idx = 1:length(frms)
     
     echo_fn = sprintf('%s_1echo.%s',frms{frm_idx}.frm_id,param.post.img_type);
     echo_fn = fullfile(image_dir,echo_fn);
-    set(echo_param.fig_hand,'PaperUnits','inches');
-    set(echo_param.fig_hand,param.post.echo.plot_params{1},param.post.echo.plot_params{2});
-    set(echo_param.fig_hand,'PaperOrientation','Portrait');
+    set(echo_info.fig_hand(1),'PaperUnits','inches');
+    set(echo_info.fig_hand(1),param.post.echo.plot_params{1},param.post.echo.plot_params{2});
+    set(echo_info.fig_hand(1),'PaperOrientation','Portrait');
     fprintf('    Saving output %s\n', echo_fn);
-    print(echo_param.fig_hand,print_device,print_dpi,echo_fn);
+    print(echo_info.fig_hand(1),print_device,print_dpi,echo_fn);
     
     if param.post.pdf_en
       % Remove current file
@@ -577,11 +567,11 @@ for frm_idx = 1:length(frms)
     
       echo_fn = sprintf('%s_%s_1echo.pdf',frms{frm_idx}.frm_id,time_stamp_str);
       echo_fn = fullfile(pdf_dir,echo_fn);
-      set(fh_echo,'PaperOrientation','Landscape');
-      set(fh_echo,'PaperUnits','inches');
-      set(fh_echo,'PaperPosition',[0.5 0.5 10 7.5]);
-      %print(fh_echo,'-depsc','-r72',echo_fn);
-      saveas(fh_echo,echo_fn);
+      set(echo_info.fig_hand(1),'PaperOrientation','Landscape');
+      set(echo_info.fig_hand(1),'PaperUnits','inches');
+      set(echo_info.fig_hand(1),'PaperPosition',[0.5 0.5 10 7.5]);
+      %print(echo_info.fig_hand(1),'-depsc','-r72',echo_fn);
+      saveas(echo_info.fig_hand(1),echo_fn);
     end
     % =====================================================================
     % Plot echogram w/ layers
@@ -596,9 +586,9 @@ for frm_idx = 1:length(frms)
       
       echo_fn = sprintf('%s_2echo_picks.%s',frms{frm_idx}.frm_id,param.post.img_type);
       echo_fn = fullfile(image_dir,echo_fn);
-      set(echo_param.fig_hand,param.post.echo.plot_params{1},param.post.echo.plot_params{2});
-      set(echo_param.fig_hand,'PaperOrientation','Portrait');
-      print(echo_param.fig_hand,print_device,print_dpi,echo_fn);
+      set(echo_info.fig_hand(1),param.post.echo.plot_params{1},param.post.echo.plot_params{2});
+      set(echo_info.fig_hand(1),'PaperOrientation','Portrait');
+      print(echo_info.fig_hand(1),print_device,print_dpi,echo_fn);
       
       if param.post.pdf_en
         % Remove current file
@@ -608,11 +598,11 @@ for frm_idx = 1:length(frms)
 
         echo_fn = sprintf('%s_%s_2echo_picks.pdf',frms{frm_idx}.frm_id,time_stamp_str);
         echo_fn = fullfile(pdf_dir,echo_fn);
-        set(fh_echo,'PaperOrientation','Landscape');
-        set(fh_echo,'PaperUnits','inches');
-        set(fh_echo,'PaperPosition',[0.5 0.5 10 7.5]);
-        %print(fh_echo,'-depsc','-r72',echo_fn);
-        saveas(fh_echo,echo_fn);
+        set(echo_info.fig_hand(1),'PaperOrientation','Landscape');
+        set(echo_info.fig_hand(1),'PaperUnits','inches');
+        set(echo_info.fig_hand(1),'PaperPosition',[0.5 0.5 10 7.5]);
+        %print(echo_info.fig_hand(1),'-depsc','-r72',echo_fn);
+        saveas(echo_info.fig_hand(1),echo_fn);
       end
     end
   end
@@ -859,5 +849,12 @@ if param.post.pdf_en
 end
 
 fprintf('Done %s (%s)\n', param.day_seg, datestr(now));
+
+try
+  delete(map_info.fig_hand)
+end
+try
+  delete(echo_info.fig_hand)
+end
 
 return;
