@@ -14,7 +14,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % Debug Setup
   % =====================================================================
   
-  new_param = read_param_xls(ct_filename_param('snow_param_2016_Antarctica_DC8.xls'),'20161112_03');
+  new_param = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),'20180429_02');
 
   fn = ct_filename_ct_tmp(new_param,'','records','workspace');
   fn = [fn '.mat'];
@@ -446,7 +446,7 @@ for board_idx = 1:length(board_hdrs)
     else
       %% Other timing jump error
       if param.records.manual_time_correct
-        fprintf('Manual time correction enabled: fix hdr.utc_time_sod manually and then run dbcont\n');
+        fprintf('Manual time correction enabled: fix hdr.utc_time_sod manually and then run dbcont. See code examples below this line for common fixes.\n');
         keyboard
         if 0
           % Time jump is real (do nothing)
@@ -516,13 +516,17 @@ for board_idx = 1:length(board_hdrs)
     max(abs(utc_time_sod_corrected-double(hdr.utc_time_sod))) * 1000);
   clock_notes = cat(2,clock_notes,cur_board_clock_notes);
   fprintf(cur_board_clock_notes);
-  figure(1); clf;
-  plot(utc_time_sod_corrected, utc_time_sod_corrected-double(hdr.utc_time_sod));
-  title('UTC time correction error (should be < few ms)','fontsize',10);
+  
+  h_fig = figure(1); clf(h_fig); h_axes = axes('parent',h_fig);
+  plot(h_axes,utc_time_sod_corrected, utc_time_sod_corrected-double(hdr.utc_time_sod));
+  title(h_axes,'UTC time correction error (should be < few ms)','fontsize',10);
+  xlabel(h_axes,'UTC seconds of day (sec)');
+  ylabel(h_axes,'Time correction (sec)');
+  
   pause(0.1);
   drawnow;
   if ~isfield(param.records,'debug_level') || isempty(param.records.debug_level) || param.records.debug_level > 1
-    fprintf('Please review the time clock comparison and then run "dbcont"\n');
+    warning(sprintf('\n\nPlease review the time clock correction in figure 1 and ensure it is less than a few milliseconds.\nIf not, manual correction is required. If it is, then no correction is required.\nRun "dbcont" when done reviewing figure 1.\n'));
     keyboard;
   end
   hdr.utc_time_sod = utc_time_sod_corrected;

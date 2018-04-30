@@ -13,7 +13,7 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
   % =====================================================================
   % Debug Setup
   % =====================================================================
-  new_param = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'20180423_01');
+  new_param = read_param_xls(ct_filename_param('accum_param_2018_Greenland_P3.xls'),'20180429_01');
   
   fn = ct_filename_ct_tmp(new_param,'','records','workspace');
   fn = [fn '.mat'];
@@ -40,6 +40,37 @@ if ~exist('param','var') || isempty(param) || length(dbstack_info) == 1
     param_override = gRadar;
   end
   param = merge_structs(param, param_override);
+  
+  % Reapply input checks to this new set of parameters
+  if ~isfield(param.records.file,'adc_headers') || isempty(param.records.file.adc_headers)
+    param.records.file.adc_headers = param.records.file.adcs;
+  end
+  
+  if any(param.records.file_version == [404, 407, 408, 411])
+    boards = unique(param.records.file.adc_headers);
+    FRAME_SYNC = '1ACFFC1D';
+  elseif any(param.records.file_version == [402, 403])
+    boards = unique(floor((param.records.file.adc_headers-1)/4));
+    FRAME_SYNC = 'BADA55E5';
+  else
+    error('Unsupported file version\n');
+  end
+  
+  if ~isfield(param.records,'use_ideal_epri') || isempty(param.records.use_ideal_epri)
+    param.records.use_ideal_epri = false;
+  end
+  
+  if ~isfield(param.records,'gps') || isempty(param.records.gps.en)
+    param.records.gps.en = true;
+  end
+  
+  if ~isfield(param.records,'presum_bug_fixed') || isempty(param.records.presum_bug_fixed)
+    param.records.presum_bug_fixed = false;
+  end
+  
+  if ~isfield(param.records,'tmp_fn_uses_adc_folder_name') || isempty(param.records.tmp_fn_uses_adc_folder_name)
+    param.records.tmp_fn_uses_adc_folder_name = true;
+  end
 end
 
 fprintf('Running %s correction and gps sync (%s)\n', param.day_seg, datestr(now));
@@ -432,40 +463,41 @@ else
     good_idxs = good_idxs(good_mask);
     utc_time_sod_measured = utc_time_sod_measured(good_mask);
   elseif any(abs(utc_time_sod_expected-utc_time_sod_measured) > 0.1)
-    UTC_MAX_ERROR = 0.1;
-    figure(1); clf;
-    plot(utc_time_sod_expected-utc_time_sod_measured);
-    ylabel('Mismatch (sec)');
-    title('Mismatch between expected and measured UTC time');
-    xlabel('Records');
-    figure(2); clf;
-    plot(diff(utc_time_sod_measured) ./ diff(double(records.raw.epri(good_idxs))),'.');
-    ylabel('Estimated EPRI (sec)');
-    xlabel('Records');
+    UTC_MAX_ERROR = 0.1; % <== THIS MAY NEED TO BE CHANGED
+    
+    h_fig = figure(1); clf(h_fig); h_axes = axes('parent',h_fig);
+    plot(h_axes, utc_time_sod_measured);
+    hold(h_axes, 'on');
+    plot(h_axes, utc_time_sod_expected,'--');
+    xlabel(h_axes, 'Record number');
+    ylabel(h_axes, 'Seconds of day (sec)');
+    title(h_axes, sprintf('Expected and measured should\nmatch except outliers.'),'fontsize',10);
+    legend(h_axes,'Measured','Expected');
+    
+    h_fig = figure(2); clf(h_fig); h_axes = axes('parent',h_fig);
+    plot(h_axes,utc_time_sod_expected-utc_time_sod_measured);
+    xlabel(h_axes, 'Record number');
+    ylabel(h_axes,'Mismatch (sec)');
+    title(h_axes,sprintf('Mismatch between expected and measured UTC time\nMANUAL CORRECTION REQUIRED IF MISMATCH\nFALLS OUTSIDE THE Y-LIMITS'),'fontsize',10);
+    ylim(h_axes,[-UTC_MAX_ERROR UTC_MAX_ERROR]);
+    
+    h_fig = figure(3); clf(h_fig); h_axes = axes('parent',h_fig);
+    plot(h_axes,diff(utc_time_sod_measured) ./ diff(double(records.raw.epri(good_idxs))),'.');
+    ylabel(h_axes,'Estimated EPRI (sec)');
+    xlabel(h_axes, 'Record number');
     epri_double = double(records.raw.epri(good_idxs));
     final_EPRI_estimate = (utc_time_sod_measured(end)-utc_time_sod_measured(1)) / (epri_double(end)-epri_double(1));
-    title(sprintf('param.radar EPRI %.8f ms\ninit_EPRI_estimate %.8f ms\nfinal_EPRI_estimate %.8f ms', ...
+    title(h_axes,sprintf('param.radar EPRI %.8f ms\ninit_EPRI_estimate %.8f ms\nfinal_EPRI_estimate %.8f ms', ...
       EPRI*1e3, init_EPRI_estimate*1e3, final_EPRI_estimate*1e3),'interpreter','none');
-    figure(3); clf;
-    plot(utc_time_sod_expected-utc_time_sod_measured);
-    ylabel('Mismatch (sec)');
-    title(sprintf('Mismatch between expected and measured UTC time\nDO NOT CONTINUE IF MISMATCH FALLS\OUTSIDE THESE Y-LIMITS'));
-    xlabel('Records');
-    ylim([-UTC_MAX_ERROR UTC_MAX_ERROR]);
-    warning('The expected and measured times are off by > 0.1.');
-    fprintf('Verify in the plot that all differences are less than 0.1 seconds\n');
-    fprintf('except a few outliers. dbcont replaces these outliers. However, if\n');
-    fprintf('there are large sections that are greater than 0.1 seconds (and not\n');
-    fprintf('just a few spikes from bad record headers), there might be a systematic\n');
-    fprintf('problem that should be debugged. Some situations (including total\n');
-    fprintf('failure of the 1 PPS) is solved by using the expected time completely):\n');
-    fprintf('    utc_time_sod_measured = utc_time_sod_expected;\n');
-    fprintf('For total failure of 1 PPS, you also have to set \n');
-    fprintf('param.vectors.gps.time_offset properly.\n');
-    fprintf('If the init_EPRI_estimate is off by a little, there will be\n');
-    fprintf('a slowly growing error between expected and measured UTC time.\n');
-    fprintf('You may need to set UTC_MAX_ERROR to a larger value to allow for this\n');
-    fprintf('or use param.records.use_ideal_epri to help find a better EPRI.\n');
+    
+    warning('\n\nThe expected and measured UTC times are off by > UTC_MAX_ERROR (%g seconds).', UTC_MAX_ERROR);
+    fprintf('\n==> Verify in figure 2 that mismatch curve is less than\n  UTC_MAX_ERROR (%g seconds) except for a few outliers. Run "dbcont" when done.\n\n', UTC_MAX_ERROR);
+    fprintf('If large sections are greater than UTC_MAX_ERROR, then manual correction is required.\n  Correct these by setting utc_time_sod_measured and utc_time_sod_expected to the\n  correct values and then run "dbcont".\n');
+    fprintf('Some situations (including total failure of the 1 PPS) is solved by using the expected time completely:\n');
+    fprintf('  utc_time_sod_measured = utc_time_sod_expected;\n');
+    fprintf('For total failure of 1 PPS, you first have to set param.vectors.gps.time_offset\n  to offset the expected curve to the right absolute time. Run "dbquit",\n  update the parameter, and then rerun records creation.\n');
+    fprintf('If the init_EPRI_estimate is off by a little, there will be a slowly growing\n  error between expected and measured UTC time. You may need to set UTC_MAX_ERROR in the code\n  above to a larger value to allow for this or use param.records.use_ideal_epri to help find\n  a better EPRI. Run "dbquit", update parameters, and then rerun records creation.\n');
+    
     good_mask = abs(utc_time_sod_expected-utc_time_sod_measured) <= UTC_MAX_ERROR;
     good_percent = sum(good_mask)/length(good_mask);
     clock_notes = cat(2,clock_notes,sprintf('Mismatch between expected and measured UTC time:\n'));
