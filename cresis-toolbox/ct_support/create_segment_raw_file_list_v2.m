@@ -787,29 +787,37 @@ if any(strcmpi(radar_name,{'accum','snow','kuband','snow2','kuband2','snow3','ku
     % Create the corrected utc_time_sod
     utc_time_sod_new = utc_time_sod(anchor_idx) + [first 0 last];
     
-    figure(1); clf;
-    plot(utc_time_sod);
-    hold on;
-    plot(utc_time_sod_new,'r');
-    hold off;
-    xlabel('Record');
-    ylabel('UTC Time SOD (sec)');
-    legend('Original','Corrected','location','best');
-    figure(2); clf;
-    plot(utc_time_sod - utc_time_sod_new);
-    xlabel('Record');
-    ylabel('Time correction (sec)');
-    title('Ideally abs() is less than a few milliseconds');
-    figure(3); clf;
-    subplot(2,1,1);
-    plot(diff(epri),'.');
-    subplot(2,1,2);
-    plot(diff(epri),'.');
-    ylim([-3 5]);
-    xlabel('Record');
-    ylabel('Diff EPRI');
-    title('Should be 1 except at segment boundaries');
-    warning('Please check the corrected utc_time_sod (red) in figure 1 and the correction in figure 2. If correct, run "dbcont" to continue.');
+    h_fig = figure(1); clf(h_fig); h_axes = axes('parent',h_fig);
+    plot(h_axes,utc_time_sod);
+    hold(h_axes,'on');
+    plot(h_axes,utc_time_sod_new,'r');
+    hold(h_axes,'off');
+    xlabel(h_axes,'Record number');
+    ylabel(h_axes,'UTC Time SOD (sec)');
+    legend(h_axes,'Original','Corrected','location','best');
+    title(h_axes,sprintf('UTC time original and corrected should\nmatch except at outliers'),'fontsize',10);
+    
+    UTC_MAX_ERROR = 0.1;
+    h_fig = figure(2); clf(h_fig); h_axes = axes('parent',h_fig);
+    plot(h_axes,utc_time_sod - utc_time_sod_new);
+    xlabel(h_axes,'Record number');
+    ylabel(h_axes,'Time correction (sec)');
+    ylim(h_axes,[-UTC_MAX_ERROR UTC_MAX_ERROR]);
+    title(h_axes,sprintf('Time correction should be within limits\nexcept for a few outliers.'),'fontsize',10);
+    
+    h_fig = figure(3); clf(h_fig);
+    h_axes = subplot(2,1,1);
+    plot(h_axes,diff(epri),'.');
+    ylabel(h_axes,'Diff EPRI');
+    h_axes = subplot(2,1,2);
+    plot(h_axes,diff(epri),'.');
+    ylim(h_axes,[-3 5]);
+    xlabel(h_axes,'Record number');
+    ylabel(h_axes,'Diff EPRI');
+    title(h_axes,'Should be 1 except occasional record drops.','fontsize',10);
+    
+    fprintf('\n\n');
+    warning(sprintf('==> Ensure that corrected time in figure 1 is good since this is used to create segment boundaries. Set utc_time_sod_new to correct value if not. Run "dbcont" when done reviewing (and applying corrections if they were needed).\n\nFigure 2 shows the applied time correction and if the time correction is outside the y-limits except for a few outliers it may indicate that there is a problem.\nFigure 3 shows the EPRI counter difference (how much it changes between each record). Many large jumps may indicate a problem in recording or in the headers themselves.\n'));
     if no_stop_on_count
       fn_fig = ct_filename_ct_tmp(param,'','headers', ['create_segments_utc_time_sod.fig']);
       fprintf('Saving %s\n', fn_fig);
