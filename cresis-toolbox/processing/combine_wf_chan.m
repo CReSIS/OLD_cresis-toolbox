@@ -379,21 +379,20 @@ Nx_max = 0;
 for frm = param.cmd.frms
   % recs: Determine the records for this frame
   if frm < length(frames.frame_idxs)
-    Nx_frm = frames.frame_idxs(frm+1) - frames.frame_idxs(frm);
+    Nx_frm = (along_track_approx(frames.frame_idxs(frm+1)) - along_track_approx(frames.frame_idxs(frm))) / param.csarp.sigma_x;
   else
-    Nx_frm = length(records.gps_time) - frames.frame_idxs(frm) + 1;
+    Nx_frm = (along_track_approx(length(records.gps_time)) - along_track_approx(frames.frame_idxs(frm) + 1)) / param.csarp.sigma_x;
   end
+  Nx_frm = round(Nx_frm);
   if Nx_frm > Nx_max
     Nx_max = Nx_frm;
   end
   Nx = Nx + Nx_frm;
 end
 % Account for averaging
-Nx_max = Nx_max / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
-Nx = Nx / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
 for img = 1:length(param.combine.imgs)
   sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
-  if isempty(param.get_heights.img_comb)
+  if isempty(param.combine.img_comb)
     % Individual images, so need enough memory to hold the largest image
     sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);
   else
