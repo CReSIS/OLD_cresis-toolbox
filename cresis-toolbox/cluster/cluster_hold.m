@@ -95,11 +95,11 @@ elseif isnumeric(ctrl_chain)
     % This is a list of chain IDs
     for idx = 1:length(ctrl_chain)
       try
-        ctrl_chain = cluster_load_chain(ctrl_chain(idx));
+        ctrl_chain_tmp = cluster_load_chain(ctrl_chain(idx));
       catch
         continue
       end
-      cluster_hold(ctrl_chain,hold_state,mode);
+      cluster_hold(ctrl_chain_tmp,hold_state,mode);
     end
     return;
   end
