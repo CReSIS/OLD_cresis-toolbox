@@ -420,6 +420,9 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     for imgs_idx = 1:length(imgs_list)
+      if isempty(imgs_list{imgs_idx})
+        continue;
+      end
       dparam.argsin{1}.load.imgs = imgs_list{imgs_idx};
       sub_band_idx = 1;
       dparam.argsin{1}.load.sub_band_idx = sub_band_idx;
