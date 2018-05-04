@@ -6,6 +6,7 @@ if 0
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/north.mat';
   end
   master_idx = 1;
+  rbins = 20:300;
 elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/middle.mat';
@@ -13,6 +14,7 @@ elseif 0
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/middle.mat';
   end
   master_idx = 10;
+  rbins = 20:300;
 elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/south.mat';
@@ -20,6 +22,7 @@ elseif 0
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/south.mat';
   end
   master_idx = 1;
+  rbins = 20:300;
 elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_south.mat';
@@ -27,20 +30,23 @@ elseif 0
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_south.mat';
   end
   master_idx = 1;
-elseif 1
+  rbins = 20:300;
+elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_north.mat';
   else
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_north.mat';
   end
   master_idx = 1;
-elseif 0
+  rbins = 20:300;
+elseif 1
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
   else
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
   end
   master_idx = 1;
+  rbins = 20:100;
 elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/medium_line.mat';
@@ -48,6 +54,7 @@ elseif 0
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/medium_line.mat';
   end
   master_idx = 2;
+  rbins = 20:100;
 else
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/bad_line.mat';
@@ -55,6 +62,7 @@ else
     fn = '/cresis/snfs1/dataproducts/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/bad_line.mat';
   end
   master_idx = 2;
+  rbins = 20:100;
 end
 
 proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenland_natural_90m.tif')));
@@ -62,7 +70,13 @@ proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenlan
 physical_constants;
 
 load(fn);
-rbins = 20:300;
+if isfield(pass(1).param_csarp,'proc')
+  warning('OLD FILE BEING USED, has proc field instead of just load.');
+  for pass_idx = 1:length(pass)
+    pass(pass_idx).param_csarp.load = merge_structs(pass(pass_idx).param_csarp.load,pass(pass_idx).param_csarp.proc);
+    pass(pass_idx).direction = 0;
+  end
+end
 
 %% Plot Results
 % =========================================================================
@@ -256,7 +270,7 @@ for pass_idx = 1:length(pass)
   % Match time axis to master_idx
   pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(wf).time, pass(pass_idx).ref_data, pass(master_idx).wfs(wf).time, 'linear', 0);
   
-  if 1
+  if 0
     % Normalize surface phase
     Nt = size(pass(pass_idx).ref_data,1);
     Nx = size(pass(pass_idx).ref_data,2);
@@ -291,6 +305,18 @@ for pass_idx = 1:length(pass)
     ylabel('Range bin');
     xlabel('Range line');
     title(sprintf('%s_%03d %d',pass(pass_idx).param_csarp.day_seg,pass(pass_idx).param_csarp.load.frm,pass(pass_idx).direction),'interpreter','none')
+    
+    if 0
+      coherence = fir_dec(pass(pass_idx).ref_data(rbins,:) .* conj(ref.data(rbins,:)) ./ abs(pass(pass_idx).ref_data(rbins,:)) ./ abs(ref.data(rbins,:))  ,ones(1,11)/11,1);
+      imagesc(abs(coherence));
+      colormap(1-gray(256))
+      h_colorbar = colorbar;
+      caxis([0 1])
+      set(get(h_colorbar,'ylabel'),'string','Coherence');
+      ylabel('Range bin');
+      xlabel('Range line');
+      title(sprintf('%s_%03d %d',pass(pass_idx).param_csarp.day_seg,pass(pass_idx).param_csarp.load.frm,pass(pass_idx).direction),'interpreter','none')
+    end
     
   end
   h_data_axes(end+1) = gca;
