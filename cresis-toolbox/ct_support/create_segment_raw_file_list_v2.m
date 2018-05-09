@@ -264,7 +264,11 @@ for adc_idx = 1:length(adcs)
         hdr = basic_load_fmcw(fn);
         wfs = hdr.wfs;
       elseif any(strcmp(radar_name,{'snow2','kuband2'}))
-        hdr = basic_load_fmcw2(fn, struct('file_version',param.file_version));
+        if param.file_version == 4 && param.nohack == 1
+          hdr = basic_load_fmcw2(fn, struct('file_version',param.file_version,'clk',param.clk,'nohack',param.nohack));
+        else
+          hdr = basic_load_fmcw2(fn, struct('file_version',param.file_version));
+        end
         wfs = hdr.wfs;
       elseif any(strcmp(radar_name,{'snow3','kuband3','kaband3'}))
         if param.file_version == 6
@@ -453,7 +457,7 @@ for adc_idx = 1:length(adcs)
         %   ASCII zero is "48"
         seconds = ((floor(sec1/2^8)-48)*10 + mod(sec1,2^8)-48) * 3600 ...
           + ((floor(sec2/2^24)-48)*10 + mod(floor(sec2/2^16),2^8)-48) * 60 ...
-          + ((floor(sec2/2^8)-48)*10 + mod(sec2,2^8)-48);
+          + ((floor(mod(sec2,2^16)/2^8)-48)*10 + mod(mod(sec2,2^16),2^8)-48);
         
         % Find bad records by checking their size (i.e. the distance between
         % frame syncs which should be constant).

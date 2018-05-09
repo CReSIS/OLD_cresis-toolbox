@@ -75,6 +75,13 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
+if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(gps_source,'nmea'))
+  warning('NEEDS TO BE DETERMINED');
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(gps_source,'dtu'))
   % ===========================================================================
   % All antenna positions measurements are relative to GPS antenna
@@ -1421,6 +1428,28 @@ end
 % =========================================================================
 %% Snow Radar
 % =========================================================================
+
+if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'snow'))
+  % X,Y,Z are in aircraft coordinates, not IMU
+  warning('NEEDS TO BE DETERMINED');
+  LArx(1,1) = 0*2.54/100;
+  LArx(2,1) = 0*2.54/100;
+  LArx(3,1) = 0*2.54/100;
+  
+  LAtx(1,1) = 0*2.54/100;
+  LAtx(2,1) = 0*2.54/100;
+  LAtx(3,1) = 0*2.54/100;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'snow'))
     % Snow Tx: X = 297.75",Y = 0;Z = -26.81"; RX: X = 168.5",Y = 0;Z = -38.75" 

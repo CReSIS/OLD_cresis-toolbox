@@ -218,7 +218,7 @@ if strcmpi(radar_setup,'SNOW2')
   param.radar_name = 'snow2';
   param.clk = 125e6;
   adcs = 1;
-  param.file_version = 2; % 2 for 2012
+  param.file_version = 2; % 2 for 2012, 4 for 2018_Alaska_SO (SIERRA) 
   raw_file_suffix = '.bin';
   reuse_tmp_files = true; % Set to false if you want to overwrite current results
   file_prefix_override = 'snow';
@@ -226,6 +226,9 @@ if strcmpi(radar_setup,'SNOW2')
   
   % Parameters below this point OFTEN NEEDS TO BE CHANGED
   param.season_name = '2012_Greenland_P3';
+  if strcmpi(param.season_name,'2018_Alaska_SO')
+      param.nohack = 1;
+  end
   base_dir = '/cresis/snfs1/data/SnowRadar/';
   param.adc_folder_name = '20120316';
   file_midfix = '20120316'; % Data files must contain this string in the middle of their name (usually should be empty)
