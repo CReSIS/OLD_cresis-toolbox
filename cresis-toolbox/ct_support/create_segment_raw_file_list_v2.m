@@ -65,6 +65,9 @@ for adc_idx = 1:length(adcs)
   adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
   
   fns = get_filenames(fullfile(base_dir,adc_folder_name), file_prefix, file_midfix, raw_file_suffix, get_fns_param);
+  if online_mode == 2
+    fns = fns(end);
+  end
   fns_list{adc_idx} = fns;
 
   if isempty(fns)
@@ -257,7 +260,18 @@ for adc_idx = 1:length(adcs)
         hdr = basic_load_mcords4(fn);
         wfs = hdr.wfs;
       elseif strcmp(radar_name,'mcords5')
-        hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',presum_bug_fixed));
+        try
+          hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',presum_bug_fixed));
+        catch ME
+          if 1
+            warning(ME.message);
+          else
+            fprintf('Hack to fix files with bad header information. Specify a different file here to get the header from.\n');
+            fn_hack = '/mnt/HDD0/1805101801/UWB/chan6/mcords5_06_20180510_112936_00_0000.bin';
+            hdr = basic_load_mcords5(fn_hack,struct('presum_bug_fixed',presum_bug_fixed));
+            hdr_param.frame_sync = uint32(hex2dec('01600558')); % Used for 20180510 Greenland Polar6 recovery
+          end
+        end
         wfs = hdr.wfs;
         for wf=1:length(wfs); wfs(wf).file_version = hdr.file_version; end;
       elseif any(strcmp(radar_name,{'snow','kuband'}))
@@ -651,14 +665,20 @@ end
 
 if online_mode
   epri_jumps = diff(double(epri));
-  fprintf('List of EPRI jumps:\n');
-  epri_jumps(abs(epri_jumps) > 100)
+  fprintf('List of up to 10 last EPRI jumps of >100 records:\n');
+  bad_jumps = epri_jumps(abs(epri_jumps) > 100);
+  fprintf('  %.0f jumps. Up to last 10: ', length(bad_jumps));
+  fprintf(' %.0f', bad_jumps(max(1,end-9):end));
+  fprintf(' record jumps\n');
   
   utc_time_sod = double(seconds) + double(fraction) / param.clk;
-  fprintf('List of UTC time SOD jumps:\n');
+  fprintf('UTC time SOD jumps of >0.5 sec:\n');
   utc_time_sod_jumps = diff(utc_time_sod);
-  utc_time_sod_jumps(abs(utc_time_sod_jumps) > 0.5)
-  
+  bad_jumps = utc_time_sod_jumps(abs(utc_time_sod_jumps) > 0.5);
+  fprintf('  %.0f jumps. Up to last 10: ', length(bad_jumps));
+  fprintf(' %.1f', bad_jumps(max(1,end-9):end));
+  fprintf(' second jumps\n');
+
   return;
 end
 
