@@ -378,19 +378,24 @@ for wf = 1:length(param.radar.wfs)
   
   %% Quantization to Voltage conversion
   % =======================================================================
-  if any(param.records.file_version == [405 406]) % acords
-    wfs(wf).bit_shifts = records.settings.wfs(1).wfs(wf).bit_shifts(1);
+  if isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts)
+    wfs(wf).bit_shifts   = param.radar.wfs(wf).bit_shifts;
+  elseif any(param.records.file_version == [405 406]) % acords
+    wfs(wf).bit_shifts = records.settings.wfs(1).wfs(wf).bit_shifts(1)*ones(size(adcs));
   elseif param.records.file_version == 410 % mcords
-    wfs(wf).bit_shifts = max(0,ceil(log(wfs(wf).presums)/log(2)) - 4);
+    wfs(wf).bit_shifts = max(0,ceil(log(wfs(wf).presums)/log(2)) - 4)*ones(size(adcs));
   elseif isfield(records.settings.wfs(wf),'bit_shifts')
-    wfs(wf).bit_shifts = records.settings.wfs(wf).bit_shifts;
+    wfs(wf).bit_shifts = records.settings.wfs(wf).bit_shifts*ones(size(adcs));
   else
-    wfs(wf).bit_shifts = 0;
+    wfs(wf).bit_shifts = 0*ones(size(adcs));
+  end
+  wfs(wf).quantization_to_V_dynamic = false;
+  if any(param.records.file_version == [3 5 7 8 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
+    wfs(wf).quantization_to_V_dynamic = true;
   end
   wfs(wf).quantization_to_V ...
-    = param.radar.Vpp_scale * 2^wfs(wf).bit_shifts ...
+    = param.radar.Vpp_scale * 2.^wfs(wf).bit_shifts ...
     / (2^param.radar.adc_bits*wfs(wf).presums);
-
   
   if strcmpi(radar_type,'deramp')
     %% FMCW: Create time and frequency axis information
