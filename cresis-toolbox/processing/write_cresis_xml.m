@@ -250,6 +250,10 @@ end
 for wf = 1:length(param.wfs)
   Tpd = param.wfs(wf).Tpd;
   
+  if ~isfield(param.wfs,'name')
+    param.wfs(wf).name = '';
+  end
+  
   if isfield(param,'phase')
     phase_setting = param.phase;
   else
@@ -620,6 +624,7 @@ if isfield(param,'arena')
   for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
     arena.PRI = 1 / settings_enc.sys.DDSZ5FSetup.PRF;
     arena.wfs(wf).zeropimods = param.arena.zeropimods;
+    arena.wfs(wf).name = param.wfs(wf).name;
     arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
     arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
     arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* param.arena.max_tx ./ max_DDS_amp;
