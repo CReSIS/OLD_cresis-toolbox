@@ -406,6 +406,17 @@ default.xml_regexp = 'image3_180-210MHz_.*thick.xml';
 default.name = '3 Beam Image Mode 180-210 MHz';
 defaults{end+1} = default;
 
+% egrip imaging mode
+default.get_heights.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
+default.get_heights.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).'; 4*ones(8,1),(1:8).']};
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
+default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image3';
+default.xml_regexp = 'egrip.*.xml';
+default.name = 'EGRIP Image 180-210 MHz';
+defaults{end+1} = default;
+
 %% Other settings
 
 default.get_heights.qlook.img_comb = [];
