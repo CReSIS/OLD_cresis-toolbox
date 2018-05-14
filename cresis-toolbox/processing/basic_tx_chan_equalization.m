@@ -836,6 +836,7 @@ if update_mode ~= 1
     for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
       arena.PRI = 1 / settings_enc.sys.DDSZ5FSetup.PRF;
       arena.wfs(wf).zeropimods = default.arena.zeropimods;
+      arena.wfs(wf).name = '';
       arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
       arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
       arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* default.arena.max_tx ./ default.txequal.max_DDS_amp;
