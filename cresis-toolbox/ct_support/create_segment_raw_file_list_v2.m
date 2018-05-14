@@ -262,14 +262,23 @@ for adc_idx = 1:length(adcs)
       elseif strcmp(radar_name,'mcords5')
         try
           hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',presum_bug_fixed));
+          hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
+          if hdr.file_version == 407
+            hdr_param.field_offsets = int32([4 16 20 24]); % epri seconds fractions counter
+          elseif hdr.file_version == 408
+            hdr_param.field_offsets = int32([4 32 36 48]); % epri seconds fractions counter
+          end
+          hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
         catch ME
-          if 1
-            warning(ME.message);
+          if 0
+            error(ME);
           else
-            fprintf('Hack to fix files with bad header information. Specify a different file here to get the header from.\n');
-            fn_hack = '/mnt/HDD0/1805101801/UWB/chan6/mcords5_06_20180510_112936_00_0000.bin';
+            fprintf('Warning HACK enabled for mcords5 without frame sync field\n');
+            fn_hack = '/mnt/HDD10/1805101801/UWB/chan6/mcords5_06_20180510_112936_00_0000.bin';
             hdr = basic_load_mcords5(fn_hack,struct('presum_bug_fixed',presum_bug_fixed));
             hdr_param.frame_sync = uint32(hex2dec('01600558')); % Used for 20180510 Greenland Polar6 recovery
+            hdr_param.field_offsets = int32([4 16 20 24]-44); % epri seconds fractions counter % Used for 20180511 Greenland Polar6 recovery
+            hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
           end
         end
         wfs = hdr.wfs;
