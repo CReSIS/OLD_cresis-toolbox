@@ -498,9 +498,8 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
           if param_file.write_en
             params(param_idx).radar.wfs(wf).Tadc_adjust = default.radar.Tadc_adjust;
           end
-          str = char(format(java.text.DecimalFormat('0.0000000000'),default.radar.Tadc_adjust));
-%          row_str = cat(2,row_str, sprintf('\t%g',default.radar.Tadc_adjust));
-          row_str = cat(2,row_str, sprintf('\t%s',str));
+          row_str = cat(2,row_str, sprintf('\t%s', ...
+            char(format(java.text.DecimalFormat('0.0000000000'),default.radar.Tadc_adjust))));
         end
         if any(strcmpi('f0',default.radar_worksheet_headers))
           if param_file.write_en
@@ -622,6 +621,20 @@ for adc_folder_name_idx = 1:length(adc_folder_names);
             params(param_idx).radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
           end
           row_str = cat(2,row_str, sprintf('\t%g',settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6));
+        end
+        
+        % Bit shifts
+        if param_file.write_en
+          if ~isfield(default.radar,'bit_shifts') || wf <= length(default.radar.bit_shifts)
+            params(param_idx).radar.wfs(wf).bit_shifts = '';
+          else
+            params(param_idx).radar.wfs(wf).bit_shifts = default.radar.bit_shifts{wf};
+          end
+        end
+        if isfield(default.radar,'bit_shifts') && wf <= length(default.radar.bit_shifts)
+          row_str = cat(2,row_str, sprintf('\t''%s''',default.radar.bit_shifts{wf}));
+        else
+          row_str = cat(2,row_str, sprintf('\t%s',''));
         end
         
       end
