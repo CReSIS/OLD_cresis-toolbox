@@ -11,23 +11,29 @@ USER_SPECIFIED_DIRECTORY_BASE = '/cresis/snfs1/scratch/paden/nsidc/';
 % Read rds spreadsheet
 % params_fn = ct_filename_param('snow_param_2009_Greenland_P3.xls');
 % params_fn = ct_filename_param('snow_param_2010_Greenland_DC8.xls');
-params_fn = ct_filename_param('snow_param_2010_Greenland_P3.xls');
+% params_fn = ct_filename_param('snow_param_2010_Greenland_P3.xls');
 % params_fn = ct_filename_param('snow_param_2011_Greenland_P3.xls');
 % params_fn = ct_filename_param('snow_param_2012_Greenland_P3.xls');
+params_fn = ct_filename_param('snow_param_2017_Antarctica_P3.xls');
 
 % Post L1B data
 L1B_cmd = true;
-data_dir_L1 = fullfile('CSARP_post','qlook'); % Non-RDS
+data_dir_L1 = fullfile('CSARP_post','qlook_snow'); % Non-RDS, snow8 ultra wide bandwidth
+% data_dir_L1 = fullfile('CSARP_post','qlook'); % Non-RDS
 % data_dir_L1 = fullfile('CSARP_post','mvdr'); % RDS
 
 % Post extra L1B data with the primary L1B data
+data_dir_L1_extra = {fullfile('CSARP_post','deconv_snow'), 'deconv';fullfile('CSARP_post','qlook_uwb'), 'uwb';fullfile('CSARP_post','deconv_uwb'), 'uwb_deconv'}; % Snow8 with uwb and snow deconv files
+image_extra = {'uwb'};  % snow8, {'uwb';'kuband'}
 % data_dir_L1_extra = {fullfile('CSARP_post','deconv'), 'deconv'}; % Snow radar with deconv file
-data_dir_L1_extra = {}; % All others
+% data_dir_L1_extra = {}; % All others
+% image_extral = {}; All others
 
 % Enable creation of classification mask files
-%L1B_supplement_cmd = true; % Snow radar with deconv file
-L1B_supplement_cmd = false; % All others
+L1B_supplement_cmd = true; % Snow radar with deconv file
+% L1B_supplement_cmd = false; % All others
 L1B_supplement_name = 'supplement';
+L1B_supplement_name_extra = {'uwb'}; % snow8, {'uwb';'kuband'}
 
 % Post L2 data
 L2_cmd = false;

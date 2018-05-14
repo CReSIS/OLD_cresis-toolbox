@@ -9,8 +9,10 @@ USER_SPECIFIED_DIRECTORY_BASE = param.nsidc.USER_SPECIFIED_DIRECTORY_BASE;
 L1B_cmd = param.nsidc.L1B_cmd;
 data_dir_L1 = param.nsidc.data_dir_L1;
 data_dir_L1_extra = param.nsidc.data_dir_L1_extra;
+image_extra = param.nsidc.image_extra;
 L1B_supplement_cmd = param.nsidc.L1B_supplement_cmd;
 L1B_supplement_name = param.nsidc.L1B_supplement_name;
+L1B_supplement_name_extra = param.nsidc.L1B_supplement_name_extra;
 L2_cmd = param.nsidc.L2_cmd;
 data_dir_L2 = param.nsidc.data_dir_L2;
 premet_param_L1B = param.nsidc.premet_param_L1B;
@@ -250,6 +252,10 @@ if L1B_cmd
     
     echogram_fn = fullfile(ct_filename_out(param,'post','',1),'images', ...
       param.day_seg, sprintf('%s_%03d_1echo.jpg',param.day_seg,frm));
+    if strcmpi(param.radar_name,'snow8')
+      echogram_fn = fullfile(ct_filename_out(param,'post','',1),'images', ...
+        param.day_seg, sprintf('%s_%03d_1echo_snow.jpg',param.day_seg,frm));
+    end
     new_echogram_fn = fullfile(out_data_dir, ...
       sprintf('%s%s_%s_%03d_%s.jpg',radar_type,data_type,param.day_seg,frm,'Echogram'));
     
@@ -257,7 +263,8 @@ if L1B_cmd
       param.day_seg, sprintf('%s_%03d_2echo_picks.jpg',param.day_seg,frm));
     new_echogram_picks_fn = fullfile(out_data_dir, ...
       sprintf('%s%s_%s_%03d_%s.jpg',radar_type,data_type,param.day_seg,frm,'Echogram_Picks'));
-    
+  
+   
     % Check for the existence of image files
     if ~exist(map_fn,'file')
       warning('Skipping: missing map file %s', map_fn);
@@ -290,6 +297,15 @@ if L1B_cmd
       [flag,message,~] = copyfile(echogram_picks_fn,new_echogram_picks_fn);
     end
     
+    % create extra image filenames
+    for extra_idx = 1:size(image_extra,1)
+        echogram_fn = fullfile(ct_filename_out(param,'post','',1),'images', ...
+            param.day_seg, sprintf('%s_%03d_1echo_%s.jpg',param.day_seg,frm,image_extra{extra_idx}));
+        new_echogram_fn = fullfile(out_data_dir, ...
+            sprintf('%s%s_%s_%03d_%s_%s.jpg',radar_type,data_type,param.day_seg,frm,image_extra{extra_idx},'Echogram'));
+        [flag,message,~] = copyfile(echogram_fn,new_echogram_fn);
+    end
+   
     % Create .premet, .spatial files for L1B data
     premet_param_merged = merge_structs(premet_param, premet_param_L1B);
     nsidc_create_premet_L1B(echo_fn,out_fn_premet_L1B,premet_param_merged);
@@ -358,7 +374,7 @@ if L1B_supplement_cmd
       continue;
     end
     
-    if ~isfield(frames,'quality')
+    if ~isfield(frames,'quality') && ~isfield(frames,'quality_snow') && ~isfield(frames,'quality_kuband')  && ~isfield(frames,'quality_uwb')
       continue;
     end
     
@@ -373,12 +389,15 @@ if L1B_supplement_cmd
     if ~exist(out_data_dir,'dir')
       mkdir(out_data_dir);
     end
-    
+    if strcmpi(param.radar_name,'snow8')
+        frames.quality = frames.quality_snow;
+    end     
     supplement = [];
     supplement.coh_noise_removal_artifact = uint8(mod(floor(frames.quality(frm)/2^0),2));
     supplement.deconvolution_artifact = uint8(mod(floor(frames.quality(frm)/2^1),2));
     supplement.vertical_stripes_artifact = uint8(mod(floor(frames.quality(frm)/2^2),2));
     supplement.missing_data = uint8(mod(floor(frames.quality(frm)/2^3),2));
+    supplement.no_good_data = uint8(mod(floor(frames.quality(frm)/2^4),2));
     supplement.low_SNR = uint8(mod(floor(frames.quality(frm)/2^5),2));
     supplement.unclassified_artifact = uint8(mod(floor(frames.quality(frm)/2^6),2));
     supplement.land_ice = uint8(mod(floor(frames.quality(frm)/2^7),2));
@@ -386,7 +405,23 @@ if L1B_supplement_cmd
     fprintf('   nc: %s\n', out_fn_netcdf);
     
     netcdf_from_mat(out_fn_netcdf,supplement,supplement_netcdf_param);
-    
+    for extra_idx = 1:size(L1B_supplement_name_extra,1)
+      out_fn_netcdf = fullfile(ct_filename_out(param,USER_SPECIFIED_DIRECTORY,'',1), ...
+        sprintf('%s%s_Files', radar_type, data_type),data_files_dir, ...
+        sprintf('%s%s_%s_%03d_%s_%s.nc',radar_type, data_type, param.day_seg, frm,L1B_supplement_name_extra{extra_idx}, L1B_supplement_name));
+      frames.quality = frames.(sprintf('quality_%s',L1B_supplement_name_extra{extra_idx}));
+      supplement = [];
+      supplement.coh_noise_removal_artifact = uint8(mod(floor(frames.quality(frm)/2^0),2));
+      supplement.deconvolution_artifact = uint8(mod(floor(frames.quality(frm)/2^1),2));
+      supplement.vertical_stripes_artifact = uint8(mod(floor(frames.quality(frm)/2^2),2));
+      supplement.missing_data = uint8(mod(floor(frames.quality(frm)/2^3),2));
+      supplement.no_good_data = uint8(mod(floor(frames.quality(frm)/2^4),2));
+      supplement.low_SNR = uint8(mod(floor(frames.quality(frm)/2^5),2));
+      supplement.unclassified_artifact = uint8(mod(floor(frames.quality(frm)/2^6),2));
+      supplement.land_ice = uint8(mod(floor(frames.quality(frm)/2^7),2)); 
+      fprintf('   extra nc: %s\n', out_fn_netcdf);
+      netcdf_from_mat(out_fn_netcdf,supplement,supplement_netcdf_param);
+    end  
   end
 end
 

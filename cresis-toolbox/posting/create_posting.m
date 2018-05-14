@@ -20,6 +20,15 @@ fprintf('=====================================================================\n
 % =========================================================================
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+if strcmpi(param.radar_name,'snow8')
+    if isempty(param.radar.wfs.rbw_f0) && isempty(param.radar.wfs.rbw_f1)
+        output_dir = 'snow uwb'
+    elseif param.radar.wfs.rbw_f0 == 2e9 && param.radar.wfs.rbw_f1 == 8e9
+        output_dir = 'snow';
+    elseif param.radar.wfs.rbw_f0 == 12e9 && param.radar.wfs.rbw_f1 == 18e9
+        output_dir = 'kuband';
+    end
+end
 
 if ~isfield(param.post,'ops')|| isempty(param.post.ops) ...
     || isempty(param.post.ops.en)

@@ -160,8 +160,12 @@ for board_idx = 1:length(boards)
           stop_idx = fread(fid,1,'uint16');
           num_sam(rline) = stop_idx - start_idx(rline);
           a_data(1:num_sam(rline),rline) = fread(fid,num_sam(rline),'int16=>single');
-          fseek(fid,WF_HEADER_SIZE,0);
-          a_data(:,rline) = a_data(:,rline) + fread(fid,num_sam(rline),'int16=>single');
+          if param.records.nohack
+              continue
+          else
+              fseek(fid,WF_HEADER_SIZE,0);
+              a_data(:,rline) = a_data(:,rline) + fread(fid,num_sam(rline),'int16=>single');
+          end
         end
         % Close file
         fclose(fid);

@@ -102,6 +102,14 @@ fast_time_correction = (mdata.Elevation - elev_interp)/(c/2);
 % Mean removal detrending
 % =======================================================================
 if isfield(param,'detrend') && ~isempty(param.detrend)
+  % if strcmpi(param.detrend.mode,'tonemap')
+  %   if ispc
+  %     load('H:\tmp\2016_Greenland_TOdtu_detrend_curve.mat');
+  %   else
+  %     load('~/tmp/2016_Greenland_TOdtu_detrend_curve.mat');
+  %   end
+  %   mdata.Data = 10.^(bsxfun(@minus,lp(mdata.Data),dd(1:size(mdata.Data,1)))/10); % HACK: DO NOT COMMIT
+  % end
   if strcmpi(param.detrend.mode,'mean_removal')
     mdata.Data = 10.^(bsxfun(@minus,lp(mdata.Data),mean(lp(mdata.Data),2))/10);
   end
@@ -623,7 +631,7 @@ end
 echo_info.h_title = title(ah_echo,sprintf('Data Frame ID: %s', param.frm_id),'Interpreter','none','FontWeight','normal');
 
 % Plot surface and bottom layer
-hold on
+hold(ah_echo,'on');
 if param.plot_quality
   
   % Surface
@@ -633,15 +641,15 @@ if param.plot_quality
   
   tmp_layer = DSurface;
   tmp_layer(good_mask) = NaN;
-  echo_info.h_surf(1) = plot(tmp_layer,'g--');
+  echo_info.h_surf(1) = plot(ah_echo,tmp_layer,'g--');
   
   tmp_layer = DSurface;
   tmp_layer(moderate_mask) = NaN;
-  echo_info.h_surf(2) = plot(tmp_layer,'y--');
+  echo_info.h_surf(2) = plot(ah_echo,tmp_layer,'y--');
   
   tmp_layer = DSurface;
   tmp_layer(derived_mask) = NaN;
-  echo_info.h_surf(3) = plot(tmp_layer,'r--');
+  echo_info.h_surf(3) = plot(ah_echo,tmp_layer,'r--');
   
   % Bottom
   moderate_mask = lay.Bottom_Quality~=2;
@@ -650,20 +658,20 @@ if param.plot_quality
   
   tmp_layer = DBottom;
   tmp_layer(good_mask) = NaN;
-  echo_info.h_bot(1) = plot(tmp_layer,'g--');
+  echo_info.h_bot(1) = plot(ah_echo,tmp_layer,'g--');
   
   tmp_layer = DBottom;
   tmp_layer(moderate_mask) = NaN;
-  echo_info.h_bot(2) = plot(tmp_layer,'y--');
+  echo_info.h_bot(2) = plot(ah_echo,tmp_layer,'y--');
   
   tmp_layer = DBottom;
   tmp_layer(derived_mask) = NaN;
-  echo_info.h_bot(3) = plot(tmp_layer,'r--');
+  echo_info.h_bot(3) = plot(ah_echo,tmp_layer,'r--');
 else
   echo_info.h_surf = plot(ah_echo,DSurface,'--m');
   echo_info.h_bot = plot(ah_echo,DBottom,'--r');
 end
-hold off
+hold(ah_echo,'off');
 
 echo_info.ah_echo_time = ah_echo_time;
 echo_info.ah_echo = ah_echo;

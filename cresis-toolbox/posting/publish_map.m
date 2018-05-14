@@ -123,7 +123,15 @@ if strcmpi(cmd,'setup')
       contour_position = [0.1200    0.7100    0.2700    0.2700];
       map_sub_title = 'Polar Stereograph 70N/-45E';
      end
-    
+     
+  elseif strcmpi(param.location,'Alaska')
+  hemisphere = 'north';
+  geotiff_fn = fullfile(ct_filename_gis(param,'alaska'),'','Alaska_Landsat7_polarstereo_90m.tif');
+  cmap = gray(256);
+  map_axis = [-5000 -1500 -1500 2500];
+  contour_position = [0.12 0.72 0.3 0.25];
+  map_sub_title = 'Polar Stereograph 70N/-45E';
+  
   else
     % If this is not one of the standard locations, this must be a geotiff
     % filename and the type must be geotiff... if not, it is an error.
