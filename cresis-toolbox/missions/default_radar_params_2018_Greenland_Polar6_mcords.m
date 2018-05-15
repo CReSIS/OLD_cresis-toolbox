@@ -128,6 +128,8 @@ arena.dacs_sampFreq = [1600e6 1600e6 1600e6 1600e6 1600e6 1600e6 1600e6 1600e6];
 arena.max_tx = [0.63 0.63 0.63 0.63 0.63 0.63 0.63 0.63];
 arena.zeropimods = [0 180];
 arena.TTL_time = [0.1 0.2 2.2];
+arena.dacs_internal_delay = 0.0;
+arena.dacs_start_delay = 0.0;
 
 arena.TTL_names = {};
 for PA = 1:8
