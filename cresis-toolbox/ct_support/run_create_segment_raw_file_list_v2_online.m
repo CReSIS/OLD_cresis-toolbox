@@ -22,6 +22,7 @@ while 1
   mcords3_en = 0;
   uwb_en = 1;
   snow3_en = 0;
+  snow8_en = 0;
   gps_en = 0; % Remember to add a new entry into make_gps_*.m file that you are using  
   
   %% User Settings that should not generally be changed
@@ -139,13 +140,38 @@ while 1
     end
   end
   
+  %% Snow 3 (OIB)
+  if snow3_en
+    param = [];
+    param.radar_name = 'snow3';
+    param.clk = 125e6;
+    adcs = 1;
+    param.file_version = 5; % 3 for 2013 Gr, 5 for after that
+    raw_file_suffix = '.bin';
+    reuse_tmp_files = true; % Set to false if you want to overwrite current results
+    file_prefix_override = '';
+    counter_correction_en = true;
+    
+    % Parameters below this point OFTEN NEEDS TO BE CHANGED
+    param.season_name = '2018_Greenland_P3';
+    base_dir = '/process/fmcw/snow/';
+    param.adc_folder_name = '';
+    file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+    
+    try
+      create_segment_raw_file_list_v2;
+    catch ME
+      warning(ME.getReport())
+    end
+  end
+  
   %% Snow 8 (OIB)
   if snow8_en
     param = [];
     param.radar_name = 'snow8';
     param.clk = 125e6;
     adcs = 1;
-    param.file_version = 8; % 3 for 2013 Gr, 5 for after that
+    param.file_version = 8;
     raw_file_suffix = '.bin';
     reuse_tmp_files = true; % Set to false if you want to overwrite current results
     file_prefix_override = '';

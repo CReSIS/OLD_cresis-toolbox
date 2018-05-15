@@ -9,7 +9,7 @@ radar_setup = 'MCORDS5';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
-  [param,defaults] = default_radar_params_2017_Antarctica_Polar6_mcords;
+  [param,defaults] = default_radar_params_2018_Greenland_Polar6_mcords;
   
   % .file_search_mode: Specify how to search for a file: 'last_file',
   %   'specific', 'default', 'segment', 'map', or empty to be asked
@@ -22,7 +22,7 @@ if strcmpi(radar_setup,'MCORDS5')
   %   will be placed
   if ispc
     param.out_xml_fn_dir = 'C:\waveforms\';
-    param.rss_base_dir = 'C:\temp\configs\';
+    param.rss_base_dir = 'C:\Users\Administrator\Desktop\Arena_Shared\configs\';
   else
     param.out_xml_fn_dir = '~/waveforms/';
     param.rss_base_dir = '~/rss_waveforms/';
