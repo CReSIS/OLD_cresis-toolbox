@@ -217,7 +217,7 @@ if strcmpi(cmd,'setup')
     xlabel(ah_map,'X (km)')
     ylabel(ah_map,'Y (km)')
     set(param.fig_hand(1),'PaperOrientation','Portrait');
-    title(map_sub_title2);
+    title(ah_map,map_sub_title2,'Interpreter','none');
     h_region_CData = get(h_region,'CData');
     h_region_XData = get(h_region,'XData');
     h_region_YData = get(h_region,'YData');
@@ -584,7 +584,7 @@ elseif strcmpi(cmd,'plot')
     else
       plot_idxs = 1:length(day_seg_x);
     end
-    set(1,'Renderer','painters');
+    set(param.fig_hand(1),'Renderer','painters');
     h_seg = plot(ah_region,day_seg_x(plot_idxs), ...
       day_seg_y(plot_idxs),'b.');
     % Make window 10% larger than required, plus extra for legend
@@ -633,7 +633,7 @@ elseif strcmpi(cmd,'plot')
     end
     hold(ah_region,'off')
     
-    ah_legend = legend([h_seg,h_frm(1) h_start(1)],'Segment','Frame','Start','Location','Southeast');
+    ah_legend = legend(ah_region, [h_seg,h_frm(1) h_start(1)],'Segment','Frame','Start','Location','Southeast');
     
     map_info.h_seg = h_seg;
     map_info.h_contour = 0;
@@ -715,7 +715,7 @@ elseif strcmpi(cmd,'plot')
     end
     hold(ah_region,'off')
     
-    ah_legend = legend([h_seg,h_frm(1) h_start(1)],'Segment','Frame','Start','Location','Southeast');
+    ah_legend = legend(ah_region, [h_seg,h_frm(1) h_start(1)],'Segment','Frame','Start','Location','Southeast');
     
     map_info.h_seg = h_seg;
     map_info.h_contour = 0;

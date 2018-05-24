@@ -238,8 +238,8 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_time_per_job      = 4*86400;
   profile(pidx).cluster.desired_time_per_job  = 8*3600;
   profile(pidx).cluster.max_retries           = 2;
-  profile(pidx).cluster.submit_pause          = 0.5;
-  profile(pidx).cluster.stat_pause            = 2;
+  profile(pidx).cluster.submit_pause          = 1;
+  profile(pidx).cluster.stat_pause            = 10;
   profile(pidx).cluster.file_check_pause      = 4;
   
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
@@ -337,8 +337,8 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_time_per_job        = 2*86400;
   profile(pidx).cluster.desired_time_per_job    = 2*3600;
   profile(pidx).cluster.max_retries             = 2;
-  profile(pidx).cluster.submit_pause            = 0.2;
-  profile(pidx).cluster.stat_pause              = 2;
+  profile(pidx).cluster.submit_pause            = 1;
+  profile(pidx).cluster.stat_pause              = 10;
   profile(pidx).cluster.file_check_pause        = 4;
 
   profile(pidx).cluster.mcc                     = 'eval';
