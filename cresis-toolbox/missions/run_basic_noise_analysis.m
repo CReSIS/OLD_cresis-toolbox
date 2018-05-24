@@ -9,11 +9,11 @@ physical_constants;
 param = [];
 
 % Enable Just One Radar Setup
-radar_setup = 'MCORDS5_P3';
+radar_setup = 'MCORDS5';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
-  [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
+  [param,defaults] = default_radar_params_2018_Greenland_Polar6_mcords;
   
   % .file_search_mode: Specify how to search for a file: 'last_file',
   %   'specific', 'default', or empty to be asked
@@ -29,7 +29,7 @@ if strcmpi(radar_setup,'MCORDS5')
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
-  wf = 2; adcs = 1:24;
+  wf = 3; adcs = 1:8;
   param.img = cat(2, wf*ones(length(adcs),1), adcs.');
 
   % .recs: two element vector specifying which records/range-lines to load

@@ -6,11 +6,11 @@
 % Author: John Paden, Logan Smith
 
 % Enable Just One Radar Setup
-radar_setup = 'MCORDS3_DC8';
+radar_setup = 'MCORDS5';
 
 %% RDS: MCORDS5
 if strcmpi(radar_setup,'MCORDS5')
-  [param,defaults] = default_radar_params_2016_Greenland_Polar6_mcords;
+  [param,defaults] = default_radar_params_2018_Greenland_Polar6_mcords;
   
   % .file_search_mode: Specify how to search for a file: 'last_file',
   %   'specific', 'default', or empty to be asked
@@ -21,8 +21,8 @@ if strcmpi(radar_setup,'MCORDS5')
   
   % .img: wf-adc pair list which specifies which waveform-adc pairs to
   %   analyze
-  wf = 1; adcs = 1:24; ref = 12; % Waveform 1, All ADCs
-  %wf = 1; adcs = 1:8; ref = 4; % Waveform 1, Left subarray
+  %wf = 1; adcs = 1:24; ref = 12; % Waveform 1, All ADCs
+  wf = 1; adcs = 1:8; ref = 4; % Waveform 1, Left subarray
   %wf = 1; adcs = 9:16; ref = 4; % Waveform 1, Center subarray
   %wf = 1; adcs = 17:24; ref = 4; % Waveform 1, Right subarray
   param.img = cat(2,wf*ones(length(adcs),1),adcs.'); param.ref_wf_adc = ref;
