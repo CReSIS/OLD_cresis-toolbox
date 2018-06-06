@@ -268,6 +268,7 @@ if (strcmpi(param.season_name,'2018_Greenland_P3') && any(strcmpi(gps_source,{'A
   %  The DGPS is located on the top of the aircraft, along the centerline, at fuselage station (FS) 752.75.
   %  Matt Linkswiler 20130923: Just to clarify, the position information (lat, lon, alt) is referenced to the GPS antenna.  The intertial measurements (pitch, roll, heading) are measured at the IMU sensor (directly attached to our T3 lidar below the floorboard, approximately 1m aft and 3m below the GPS antenna).
   %  Matt Linkswiler 20140306: Personal conversation verified that antenna position is not changing.
+  %  Kyle Krabill 20180606: Email confirming antenna position not changed. IMU is from T6, near the middle of the aircraft, not the aft port
   gps.x = -752.75*0.0254;
   gps.y = 0*0.0254;
   gps.z = -217.4*0.0254;
