@@ -762,6 +762,7 @@ classdef ice_mask_edit < handle
           intersect =  dir .* repmat(obj.mdata.twtt(:,rline)',3,1) * 3e8/2;
           
           intersect_ecef = Tfcs_ecef*intersect;
+          intersect_ecef(isnan(intersect_ecef)) = 0;
           intersect_ecef_all(1,:,rline) = intersect_ecef(1,:) + origin_ecef(1,rline);
           intersect_ecef_all(2,:,rline) = intersect_ecef(2,:) + origin_ecef(2,rline);
           intersect_ecef_all(3,:,rline) = intersect_ecef(3,:) + origin_ecef(3,rline);
