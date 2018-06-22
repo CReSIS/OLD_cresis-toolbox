@@ -122,6 +122,18 @@ end
 % surface from the first system loaded)
 param.use_master_surf = 0;
 
+% param.layer_params: set to plot layers on echograms
+layer_params = []; idx = 0;
+if 0 % Enable to plot layers on echograms
+  idx = idx+1;
+  layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'ops';
+  idx = idx+1;
+  layer_params(idx).name = 'bottom';
+  layer_params(idx).source = 'ops';
+end
+param.layer_params = layer_params;
+
 params = param;
 echo_params = echo_param;
 
@@ -235,6 +247,18 @@ if 0
   % different systems and you want the second system loaded to use the
   % surface from the first system loaded)
   param.use_master_surf = 0;
+
+  % param.layer_params: set to plot layers on echograms
+  layer_params = []; idx = 0;
+  if 0 % Enable to plot layers on echograms
+    idx = idx+1;
+    layer_params(idx).name = 'surface';
+    layer_params(idx).source = 'ops';
+    idx = idx+1;
+    layer_params(idx).name = 'bottom';
+    layer_params(idx).source = 'ops';
+  end
+  param.layer_params = layer_params;
   
   params(end+1) = param;
   echo_params(end+1) = echo_param;
@@ -490,16 +514,70 @@ for param_idx = 1:length(params)
   else
     lay.layerData{1}.value{2}.data = ds.Surface;
   end
-  lay.layerData{2}.value{1}.data = NaN*zeros(size(ds.Surface));
-  lay.layerData{2}.value{2}.data = NaN*zeros(size(ds.Surface));
+  
+  layer_params = param.layer_params;
+
+  if ds.Latitude<0
+    ds.param_records.post.location = 'antarctic';
+  else
+    ds.param_records.post.location = 'arctic';
+  end
+  
+  if isempty(layer_params)
+    lay.layerData{2}.value{1}.data = NaN*zeros(size(ds.Surface));
+    lay.layerData{2}.value{2}.data = NaN*zeros(size(ds.Surface));
+    
+  else
+    %% Load bottom layer
+    global gRadar;
+    param = merge_structs(param,gRadar);
+    param.day_seg = ds.frm_id(1:11);
+    param.cmd.frms = ds.start_frame:ds.stop_frame;
+    param.post.ops.location = ds.param_records.post.location;
+    
+    layers = opsLoadLayers(param,layer_params);
+    
+    master = [];
+    master.GPS_time = ds.GPS_time;
+    master.Latitude = ds.Latitude;
+    master.Longitude = ds.Longitude;
+    master.Elevation = ds.Elevation;
+
+    % Interpolate all layers onto a common master reference
+    for lay_idx = 1:length(layers)
+      ops_layer = [];
+      ops_layer{1}.gps_time = layers(lay_idx).gps_time;
+      ops_layer{1}.type = layers(lay_idx).type;
+      ops_layer{1}.quality = layers(lay_idx).quality;
+      ops_layer{1}.twtt = layers(lay_idx).twtt;
+      ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
+      ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
+      
+      load_lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
+      
+      if strcmpi(layer_params(lay_idx).name,'surface')
+        lay.layerData{1}.value{1}.data = load_lay.layerData{1}.value{1}.data;
+        lay.layerData{1}.value{2}.data = load_lay.layerData{1}.value{2}.data;
+      elseif strcmpi(layer_params(lay_idx).name,'bottom')
+        lay.layerData{2}.value{1}.data = load_lay.layerData{1}.value{1}.data;
+        lay.layerData{2}.value{2}.data = load_lay.layerData{1}.value{2}.data;
+      end
+    end
+  end
+  
   echo_info = publish_echogram(echo_param,ds,lay);
   season_name = param.season_name;
   season_name(season_name=='_') = ' ';
   title(sprintf('%s %s %s to %s', param.radar_name, season_name, ...
     datestr(epoch_to_datenum(param.start.gps_time)), datestr(epoch_to_datenum(param.stop.gps_time),'HH:MM:SS')));
   % set(echo_info.echo_title,'Visible', 'off');
-  set(echo_info.h_surf,'Visible','off');
-  set(echo_info.h_bot,'Visible','off');
+  if isempty(layer_params)
+    set(echo_info.h_surf,'Visible','off');
+    set(echo_info.h_bot,'Visible','off');
+  else
+    set(echo_info.h_surf,'Visible','on');
+    set(echo_info.h_bot,'Visible','on');
+  end
   
   %% Save echogram file
   if param.save_files
