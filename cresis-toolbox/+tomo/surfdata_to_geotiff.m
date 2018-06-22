@@ -531,11 +531,11 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Set figure/axes to 1 km:1 km scaling with a buffer around product
     map_buffer = 2e3;
-    map_min_x = min_x-map_buffer;
-    map_max_x = max_x+map_buffer;
-    map_min_y = min_y-map_buffer;
-    map_max_y = max_y+map_buffer;
-    axis(h_axes, [map_min_x map_max_x map_min_y map_max_y]/1e3);
+    map_axis = min_x-map_buffer;
+    map_axis(2) = max_x+map_buffer;
+    map_axis(3) = min_y-map_buffer;
+    map_axis(4) = max_y+map_buffer;
+    axis(h_axes, map_axis/1e3);
     
     set(h_axes,'Units','pixels');
     map_axes = get(h_axes,'Position');
@@ -543,8 +543,8 @@ for frm_idx = 1:length(param.cmd.frms)
     map_pos = get(h_fig_dem,'Position');
     
     map_new_axes = map_axes;
-    map_new_axes(3) = round(figure_dots_per_km*(map_max_x-map_min_x)/1e3);
-    map_new_axes(4) = round(figure_dots_per_km*(map_max_y-map_min_y)/1e3);
+    map_new_axes(3) = round(figure_dots_per_km*(map_axis(2)-map_axis(1))/1e3);
+    map_new_axes(4) = round(figure_dots_per_km*(map_axis(4)-map_axis(3))/1e3);
     map_pos(3) = map_new_axes(3) + map_pos(3)-map_axes(3);
     map_pos(4) = map_new_axes(4) + map_pos(4)-map_axes(4);
     set(h_fig_dem,'Position',map_pos);
@@ -739,7 +739,7 @@ for frm_idx = 1:length(param.cmd.frms)
     mat_fn = fullfile(out_dir,mat_fn_name);
     
     fprintf('  %s\n', mat_fn);
-    save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','DEM','points','boundary','param_surfdata');
+    save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','map_axis','map_new_axes','map_pos','points','boundary','param_surfdata');
   end
   try; delete(h_fig_dem); end;
 end
