@@ -6,7 +6,7 @@ function create_movie (params, options)
 %
 % Authors: Victor Berger, John Paden
 %
-% See also: tomo.run_create_movie.m, tomo.plot_surf_geotiff.m, 
+% See also: tomo.run_create_movie.m, tomo.plot_surf_geotiff.m,
 %  and tomo.freezeColors.m
 
 dbstack_info = dbstack;
@@ -130,12 +130,40 @@ for param_idx = 1:length(params)
     top_elev = filtfilt(B, A, interp_finite(param.topDEM.points.elev(32, :)));
     bot_elev = filtfilt(B, A, interp_finite(param.bottomDEM.points.elev(32, :)));
     
-    % Function call to plot_surf_geotiff generates map and DEM
+    % Function call to plot_DEM generates map and DEM
     param.frm = frm_idx;
     param = merge_structs(param, options);
     param.radar_name = options.sys;
-    [f2, ax2, cax2] = tomo.plot_surf_geotiff(param, '', mapper, 'notitle');
+    [f2, ax2, cax2] = tomo.plot_DEM(param, 'gt', mapper, 'title', 'off');
     caxis(ax1, cax2);
+    
+    min_x = min( inf, min(param.bottomDEM.points.x(:)));
+    max_x = max(-inf, max(param.bottomDEM.points.x(:)));
+    min_y = min( inf, min(param.bottomDEM.points.y(:)));
+    max_y = max(-inf, max(param.bottomDEM.points.y(:)));
+    
+    figure_dots_per_km = 20;
+    map_buffer = 2e3;
+    
+    map_min_x = min_x-map_buffer;
+    map_max_x = max_x+map_buffer;
+    map_min_y = min_y-map_buffer;
+    map_max_y = max_y+map_buffer;
+    
+    set(ax2,'Units','pixels');
+    map_axes = get(ax2,'Position');
+    set(f2,'Units','pixels');
+    map_pos = get(f2,'Position');
+    
+    map_new_axes = map_axes;
+    map_new_axes(3) = round(figure_dots_per_km*(map_max_x-map_min_x)/1e3);
+    map_new_axes(4) = round(figure_dots_per_km*(map_max_y-map_min_y)/1e3);
+    map_pos(3) = map_new_axes(3) + map_pos(3)-map_axes(3);
+    map_pos(4) = map_new_axes(4) + map_pos(4)-map_axes(4);
+    
+    set(f2,'Position',map_pos);
+    set(ax2,'Position',map_new_axes);
+    set(f2,'PaperPositionMode','auto');
     
     camzoom(ax1, options.zoom)
     oset       = 300;

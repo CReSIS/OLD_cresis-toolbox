@@ -8,6 +8,9 @@
 
 %% User parameters
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
+% params.cmd.generic = 1;
+% params.cmd.frms = [];
+
 options.geotiff_fn = ct_filename_gis([],'greenland\Landsat-7\Greenland_natural_90.tif');
 options.sys        = 'rds';
 options.location   = 'arctic';
