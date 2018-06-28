@@ -10,41 +10,22 @@
 
 %% Setup
 
-% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'');
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'');
+params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03|20140506_01|20140325_05|20140325_06|20140325_07');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+params = ct_set_params(params,'cmd.frms',[]);
+% params = ct_set_params(params,'cmd.generic',1,'20140401_03');
+% params = ct_set_params(params,'cmd.frms',[37]);
 % params = ct_set_params(params,'cmd.generic',0);
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03|20140506_01|20140325_05|20140325_06|20140325_07');
-% % params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-% params = ct_set_params(params,'cmd.frms',[]);
-% % params = ct_set_params(params,'cmd.generic',1,'20140401_03');
-% % params = ct_set_params(params,'cmd.frms',[37]);
-% % params = ct_set_params(params,'cmd.generic',0);
-
-
-
-  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
-%   params = ct_set_params(params,'cmd.generic',0);
-%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_05|20140325_06|20140325_07|20140401_03|20140506_01');
-%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-%   params = ct_set_params(params,'cmd.frms',[20]);
-
-
-
-
-
-
-
-
-
-
 
 % surfdata_ref: Directory where reference (ideal) layer exists
-% compare_params.surfdata_ref = 'old/surfData';
-compare_params.surfdata_ref = 'old/surfData';
+compare_params.surfdata_ref = 'surfData';
 % surf_name_ref: Name of layer in reference file
 compare_params.surf_name_ref = 'bottom';
 
 % surfdata_ref: Directory where reference (ideal) layer exists
-compare_params.surfdata_quality = 'old/surfData';
+compare_params.surfdata_quality = 'surfData';
 % surf_name_ref: Name of layer in reference file
 compare_params.layer_name_quality = 'bottom quality';
 
@@ -56,24 +37,24 @@ compare_params.surf_name_other = {};
 compare_params.cdf_title = {};
 
 % Victor's IGARSS18 paper
-% compare_params.surfdata_other{end+1} = 'shane_music_surfData';
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
 % compare_params.surf_name_other{end+1} = 'bottom detect';
 % compare_params.cdf_title{end+1} = 'Viterbi';
-% compare_params.surfdata_other{end+1} = 'shane_music_surfData';
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
 % compare_params.surf_name_other{end+1} = 'bottom extract';
 % compare_params.cdf_title{end+1} = 'TRW-S';
-compare_params.surfdata_other{end+1} = 'surfdata_Victor_TEST';
-compare_params.surf_name_other{end+1} = 'bottom viterbi';
-compare_params.cdf_title{end+1} = 'Viterbi Mod';
-compare_params.surfdata_other{end+1} = 'surfdata_Victor_TEST';
-compare_params.surf_name_other{end+1} = 'bottom trws';
-compare_params.cdf_title{end+1} = 'TRW-S Mod';
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+% compare_params.surf_name_other{end+1} = 'bottom viterbi';
+% compare_params.cdf_title{end+1} = 'Viterbi Mod';
+% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+% compare_params.surf_name_other{end+1} = 'bottom trws';
+% compare_params.cdf_title{end+1} = 'TRW-S Mod';
 
 % Mohanad's RadConf18 paper
 % compare_params.surfdata_other{end+1} = 'surfData_no_MC_test';
-% compare_params.surfdata_other{end+1} = 'surfData_no_MC';
-% compare_params.surf_name_other{end+1} = 'bottom';
-% compare_params.cdf_title{end+1} = 'TRW-S/Vitirbi';
+compare_params.surfdata_other{end+1} = 'surfData_no_MC';
+compare_params.surf_name_other{end+1} = 'bottom';
+compare_params.cdf_title{end+1} = 'TRW-S/Vitirbi';
 
 % compare.cutoffs: Cutoff interval in % for statistics;
 compare_params.cutoffs = [1 5 10 15 20 25];
@@ -219,7 +200,6 @@ if collate_results
   grid(h_axes,'on');
   legend(h_axes,h_plot,legend_str,'Location','southeast');
   
-%   end
   % Save
   if compare_params.save_cdf_flag
     set(h_comp_fig,'PaperPositionMode','auto');% This property prevents saved figure from being distorted
