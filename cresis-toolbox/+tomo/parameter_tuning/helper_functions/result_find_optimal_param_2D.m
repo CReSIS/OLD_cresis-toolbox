@@ -15,6 +15,8 @@ function [ result ] = result_find_optimal_param_2D( data_matrix, params, param_o
 %     result: the optimal set of parameter and its error measures returned by 
 %     the constraint minimization function in matlab (fmincon)
 
+    iterations = 100;
+
     fprintf('Search complete. Now use fmincon to find the best set of parameters close to the region of the best set of parameters we have found with respect to the same data set.\n\n'); 
     
     [~,rank_indices] = sort(data_matrix(:,end-1), 'ascend');  % rank by mean error from low to high 
@@ -44,7 +46,7 @@ function [ result ] = result_find_optimal_param_2D( data_matrix, params, param_o
     LB = [0; 0; 0];                                          % Lower bound for the input vector     
     UB = x0 + 500*ones(3,1);                                 % Upper bound for the input vector
     NONLCON = [];
-    OPTIONS = optimset('MaxFunEval',10 ,'DiffMinChange', 1); % step size is one
+    OPTIONS = optimset('MaxFunEval',iterations ,'DiffMinChange', 1); % step size is one
     
     x = fmincon(ObjFcn, x0, A, B, Aeq, Beq, LB, UB, NONLCON, OPTIONS);
     

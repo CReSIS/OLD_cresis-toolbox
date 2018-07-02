@@ -32,7 +32,7 @@ setup_parameters(Viterbi_param, [], 'grid', 'Viterbi', '2D', []);
                             
 
 %% do the job
-result_stat_struct = cluster_kernel_Viterbi_2D(params, param_override, options,...
+result_stat_struct = cluster_kernel_viterbi_2D(params, param_override, options,...
   geotiff_fn, geotiff2_fn, detect_params_array(1), stats_array(1), OPS_Surface, OPS_Bottom, OPS_data, OPS_crossover_data );
 
 result_stat_struct = compute_hit_ratios(result_stat_struct);

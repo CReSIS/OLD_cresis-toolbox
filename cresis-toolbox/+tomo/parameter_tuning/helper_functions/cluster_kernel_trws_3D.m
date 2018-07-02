@@ -1,4 +1,4 @@
-function [ stats_obj ] = cluster_kernel_TRWS_3D( sources, refs, detect_param_obj, stats_obj )
+function [ stats_obj ] = cluster_kernel_trws_3D( sources, refs, detect_param_obj, stats_obj )
 %TRWS_RUN Summary of this function goes here
 %   Detailed explanation goes here
 fprintf('Run TRWS --- Smooth1: %d, Smooth2: %d, GT: %d, smooth3: %d \n', detect_param_obj.smooth_1,...

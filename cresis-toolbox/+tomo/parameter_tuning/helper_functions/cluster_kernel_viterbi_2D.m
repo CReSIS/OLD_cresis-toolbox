@@ -1,4 +1,4 @@
-function [ stats_obj ] = cluster_kernel_Viterbi_2D( params, param_override, options, geotiff_fn, geotiff2_fn, viterbi_params, stats_obj, OPS_Surface, OPS_Bottom, OPS_data, OPS_crossover_data )
+function [ stats_obj ] = cluster_kernel_viterbi_2D( params, param_override, options, geotiff_fn, geotiff2_fn, viterbi_params, stats_obj, OPS_Surface, OPS_Bottom, OPS_data, OPS_crossover_data )
 %VITERBI_2D_KERNEL Summary of this function goes here
 %   Detailed explanation goes here
 

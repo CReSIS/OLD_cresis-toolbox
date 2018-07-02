@@ -26,7 +26,7 @@ memory_requirement = (.3*num_slices)*1000000;               % estimated memory u
   setup_parameters(TRWS_param, num_slices, 'grid', 'TRWS', '3D', []);
                                                             % setup the data structures for cluster processing 
 %% Initialize Cluster and start tasks
-result = cluster_TRWS_3D(cpu_time, memory_requirement, detect_params_array, ...
+result = cluster_trws_3D(cpu_time, memory_requirement, detect_params_array, ...
   stats_array, num_combinations, sources, references);
                                                             % run the test on different combination of parameters on the cluster
 %% data reorganization

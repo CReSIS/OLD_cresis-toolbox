@@ -1,4 +1,4 @@
-function [ result ] = cluster_TRWS_3D( cpu_time, memory_req, detect_params_array, ...
+function [ result ] = cluster_trws_3D( cpu_time, memory_req, detect_params_array, ...
   stats_array, num_combinations, sources, references )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
@@ -6,7 +6,7 @@ function [ result ] = cluster_TRWS_3D( cpu_time, memory_req, detect_params_array
   cluster_compile;
 
   ctrl = cluster_new_batch;
-  sparam.task_function = 'cluster_kernel_TRWS_3D';
+  sparam.task_function = 'cluster_kernel_trws_3D';
   sparam.num_args_out = 1;
   sparam.notes = '';
   sparam.success = '';

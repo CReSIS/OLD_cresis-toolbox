@@ -55,7 +55,7 @@ TRWS_param.smooth_3 = param_vec(4);
 [detect_params_array, stats_array, ~]...
   = setup_parameters(TRWS_param, num_slices, 'grid', 'TRWS', '3D', []);  % setup the data structures for cluster processing
 
-result_stat_struct = cluster_kernel_TRWS_3D(sources, references, detect_params_array(1), stats_array(1));
+result_stat_struct = cluster_kernel_trws_3D(sources, references, detect_params_array(1), stats_array(1));
 result_stat_struct = compute_hit_ratios(result_stat_struct);
 result_stat_struct = compute_errors(result_stat_struct);
 

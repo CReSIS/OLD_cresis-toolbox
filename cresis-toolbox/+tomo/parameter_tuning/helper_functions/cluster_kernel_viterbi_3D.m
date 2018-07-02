@@ -1,4 +1,4 @@
-function  [ stats_obj ]  = cluster_kernel_Viterbi_3D(sources, refs, detect_param_obj, stats_obj)
+function  [ stats_obj ]  = cluster_kernel_viterbi_3D(sources, refs, detect_param_obj, stats_obj)
 
   %% load the frame and ground truth (use a try catch block later)  
  fprintf('Run Viterbi --- SmoothWeight: %d, SmoothVariance: %d, GT: %d, Repulsion: %d \n', detect_param_obj.smooth_weight,...

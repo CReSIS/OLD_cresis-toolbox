@@ -14,6 +14,9 @@ function [ result ] = result_find_optimal_param_3D(data_matrix, algo_param, sour
 %     result: the optimal set of parameter and its error measures returned by 
 %     the constraint minimization function in matlab (fmincon)
 
+
+    iterations = 100;
+
     fprintf('Search complete. Now use fmincon to find the best set of parameters close to the region of the best set of parameters we have found with respect to the same data set.\n\n'); 
 
     [~,rank_indices] = sort(data_matrix(:,end-1), 'ascend'); % rank by mean error from low to high 
@@ -74,7 +77,7 @@ function [best_stats_param] = find_TRWS_3D_best_param(algo_param, data_matrix, s
     LB = x0 - 30*ones(3,1);                 % Lower bound for the input vector     
     UB = x0 + 30*ones(3,1);                 % Upper bound for the input vector
     NONLCON = [];
-    OPTIONS = optimset('MaxFunEval',300 ,'DiffMinChange', 1); % step size is one
+    OPTIONS = optimset('MaxFunEval',iterations ,'DiffMinChange', 1); % step size is one
     
     x = fmincon(ObjFcn, x0, A, B, Aeq, Beq, LB, UB, NONLCON, OPTIONS);       
     
@@ -146,7 +149,7 @@ function [best_stats_param] = find_Viterbi_3D_best_param(algo_param, data_matrix
     NONLCON = []; 
     LB = x0 - 50*ones(4,1);                 % Lower bound for the input vector     
     UB = x0 + 50*ones(4,1);                 % Upper bound for the input vector
-    OPTIONS = optimset('MaxFunEval',1 ,'DiffMinChange', 1); % step size is one
+    OPTIONS = optimset('MaxFunEval',iterations ,'DiffMinChange', 1); % step size is one
     
     x = fmincon(ObjFcn, x0, A, B, Aeq, Beq, LB, UB, NONLCON, OPTIONS);       
     

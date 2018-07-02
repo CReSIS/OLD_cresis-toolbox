@@ -15,19 +15,15 @@ bounds_relative = [3 2 0 0];
 
 segments_and_frame = containers.Map;
 segments_and_frame('20140325_05') = [1];
-% segments_and_frame('20140325_06') = [];
-% segments_and_frame('20140325_07') = [];
-% segments_and_frame('20140401_03') = [];
-% segments_and_frame('20140506_01') = [46];
 % segments_and_frame('20140325_06') = [1];
 % segments_and_frame('20140325_07') = [5];
 % segments_and_frame('20140401_03') = [33];
-% segments_and_frame('20140506_01') = [45 46];
+segments_and_frame('20140506_01') = [45 46];
 %% number of trials
 % Here we set up how many random vectors we'd like to generate
 % This is equivalent to how many tests we want to do in a random search
 
-number_of_trials = 1;
+number_of_trials = 6;
 
 %% range setup
 % Minimum and maximum value we want to setup for each component in a

@@ -28,7 +28,7 @@ memory_requirement = (.3*num_slices)*1000000;               % estimated memory u
                                                             % setup the data structures for cluster processing      
                                                         
 %% Initialize Cluster and start tasks
-result = cluster_Viterbi_3D(cpu_time, memory_requirement, detect_params_array, ...
+result = cluster_viterbi_3D(cpu_time, memory_requirement, detect_params_array, ...
   stats_array, num_combinations, sources, references);      % run the test on different combination of parameters on the cluster
 
 %% data reorganization 
