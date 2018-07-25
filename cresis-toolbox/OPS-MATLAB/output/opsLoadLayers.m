@@ -47,6 +47,9 @@ function layers = opsLoadLayers(param, layer_params)
 %        '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
 %        'source = source + 0.1;' % Apply a twtt shift
 %        'source = source*2;' % Surface multiple
+%  .frms: This field overrides the param.cmd.frms field, but must be the
+%    same for all elements of the layer_params struct array since only the
+%    first element will be used.
 %
 % layers: N element struct array with layer information
 %  .gps_time
@@ -74,6 +77,10 @@ physical_constants;
 
 % Load frames file
 load(ct_filename_support(param,'','frames'));
+
+if isfield(layer_params,'frms')
+  param.cmd.frms = layer_params.frms;
+end
 
 %% Determine which frames need to be processed
 if isempty(param.cmd.frms)

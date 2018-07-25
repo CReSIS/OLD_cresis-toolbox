@@ -1,5 +1,5 @@
-function [in,out] = cluster_print(ctrl,task_id,print_flag)
-% [in,out] = cluster_print(ctrl,task_id,print_flag)
+function [in,out] = cluster_print(ctrl,ids,print_mode,ids_type)
+% [in,out] = cluster_print(ctrl,ids,print_mode,ids_type)
 %
 % Prints out status information for a particular job ID.
 %
@@ -7,24 +7,30 @@ function [in,out] = cluster_print(ctrl,task_id,print_flag)
 % ctrl: integer for which batch to get jobs info for
 %   OR
 %   control structure for the batch (e.g. returned from cluster_job_list)
-% task_id: OPTIONS:
-%   integer for which job to print information about
-%   string containing torque ID to print information about
-% print_flag = optional (default is 1)
-%  0: do not print status (just return output arguments)
-%  1: print detailed status
-%  2: print brief status
+% ids: OPTIONS:
+%   integer array of task or job IDs to print information about
+% print_mode = optional (default is 1)
+%   0: do not print status (just return output arguments)
+%   1: print detailed status
+%   2: print brief status
+% ids_type: scalar integer indicating the type of the integers in the
+%   ids input argument. 0 for ids containing task ID and 1 for
+%   containing cluster side IDs (e.g. torque job ID). Default is 0.
 %
 % Author: John Paden
 %
 % See also: cluster_chain_stage, cluster_cleanup, cluster_compile
-%   cluster_exec_job, cluster_get_batch, cluster_get_batch_list, 
+%   cluster_exec_job, cluster_get_batch, cluster_get_batch_list,
 %   cluster_hold, cluster_job, cluster_new_batch, cluster_new_task,
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task
 
-if ~exist('print_flag','var') || isempty(print_flag)
-  print_flag = 1;
+if ~exist('print_mode','var') || isempty(print_mode)
+  print_mode = 1;
+end
+
+if ~exist('ids_type','var') || isempty(ids_type)
+  ids_type = 0;
 end
 
 if isstruct(ctrl)
@@ -62,320 +68,418 @@ ctrl.job_id_list = textscan(fid,'%f');
 fclose(fid);
 ctrl.job_id_list = ctrl.job_id_list{1};
 
-if (print_flag ~=2) && (numel(task_id)>1)
-  error('task_id must be a scalar for print_flag=0 and print_flag 0=1');
+id_out_of_bounds_warning_sent = false;
+
+%% Just return in,out from each task and print nothing except errors
+if print_mode == 0
+  % Create in/out filenames
+  static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
+  dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
+  
+  for id_idx = 1:length(ids)
+    id = ids(id_idx);
+    
+    if ids_type == 0
+      % cluster task ID (internal cluster*.m ID)
+      task_id = id;
+      try
+        job_id = ctrl.job_id_list(id);
+      catch
+        if ~id_out_of_bounds_warning_sent
+          warning('Ignoring out of bounds task ids (e.g. id %d).', id);
+          id_out_of_bounds_warning_sent = true;
+        end
+        continue;
+      end
+    else
+      % cluster job ID (e.g. torque job ID)
+      job_id = id;
+      task_id = ctrl.job_id_list(ctrl.job_id_list == id);
+    end
+    
+    %% Read input files
+    % Read static input file
+    try
+      sparam = load(static_in_fn);
+    catch
+      warning('Failed to load static input file:\n  %s', static_in_fn);
+      sparam = struct();
+    end
+    % Read dynamic input file
+    try
+      dparam = load(dynamic_in_fn);
+    catch
+      warning('Failed to load dynamic input file:\n  %s', dynamic_in_fn);
+      dparam = struct();
+    end
+    in{id_idx} = merge_structs(sparam.static_param,dparam.dparam{task_id});
+    
+    %% Read output file
+    out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
+    out{id_idx} = [];
+    try
+      out{id_idx} = load(out_fn);
+      if isfield(out{id_idx},'errorstruct')
+        if ~isempty(out{id_idx}.errorstruct)
+          fprintf('%s: %s\n', out{id_idx}.errorstruct.identifier, out{id_idx}.errorstruct.message);
+          for stack_idx = 1:length(out{id_idx}.errorstruct.stack)
+            fprintf('  %s: %d\n', out{id_idx}.errorstruct.stack(stack_idx).name, out{id_idx}.errorstruct.stack(stack_idx).line);
+          end
+        end
+      end
+    catch
+      warning('Failed to load output file:\n  %s', out_fn);
+    end
+  end
+  
+  return;
 end
 
-if print_flag == 0
-  % Check for existence of input files
+%% Print detailed information about each task
+if print_mode == 1
   
   % Create in/out filenames
   static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
   dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
   
-  if exist(static_in_fn,'file') && exist(dynamic_in_fn,'file')
-    % Read input
-    sparam = load(static_in_fn);
-    dparam = load(dynamic_in_fn);
-    in = merge_structs(sparam.static_param,dparam.dparam{task_id});
-  else
-    warning('Missing one of the input files:\n  %s\n  %s', static_in_fn, dynamic_in_fn);
-    in = [];
-  end
-  
-  % Check for existence of output file
-  out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
-  if exist(out_fn,'file')
-    out = load(out_fn);
-    if isfield(out,'errorstruct')
-      if ~isempty(out.errorstruct)
-        fprintf('%s: %s\n', out.errorstruct.identifier, out.errorstruct.message);
-        for stack_idx = 1:length(out.errorstruct.stack)
-          fprintf('  %s: %d\n', out.errorstruct.stack(stack_idx).name, out.errorstruct.stack(stack_idx).line);
+  for id_idx = 1:length(ids)
+    id = ids(id_idx);
+    
+    if ids_type == 0
+      % cluster task ID (internal cluster*.m ID)
+      task_id = id;
+      try
+        job_id = ctrl.job_id_list(id);
+      catch
+        if ~id_out_of_bounds_warning_sent
+          warning('Ignoring out of bounds task ids (e.g. id %d).', id);
+          id_out_of_bounds_warning_sent = true;
         end
+        continue;
       end
-    end
-  else
-    warning('No output file', out_fn);
-    out = [];
-  end
-  return;
-end
-
-%%
-if print_flag == 1
-  if isnumeric(task_id)
-    % Matlab side job ID
-    job_id = ctrl.job_id_list(task_id);
-  else
-    % Torque side job ID
-    job_id = str2double(task_id);
-    task_id = ctrl.job_id_list(ctrl.job_id_list == job_id)
-  end
-  
-  
-  % Print job status
-  fprintf('Matlab Task ID %d\n', task_id);
-  fprintf('Cluster Job ID %d\n', job_id);
-  
-  if job_id ~= -1
-    if strcmpi(ctrl.cluster.type,'torque')
-      cmd = sprintf('qstat -f %d  </dev/null', job_id);
-      try; [status,result] = system(cmd); end;
-      
-    elseif strcmpi(ctrl.cluster.type,'matlab')
-      cmd = 'NA';
-      status = -1;
-      
-    elseif strcmpi(ctrl.cluster.type,'slurm')
-      %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
-      cmd = sprintf('scontrol show job %d </dev/null', job_id);
-      try; [status,result] = system(cmd); end;
-      
-    elseif strcmpi(ctrl.cluster.type,'debug')
-      cmd = 'NA';
-      status = -1;
+    else
+      % cluster job ID (e.g. torque job ID)
+      job_id = id;
+      task_id = ctrl.job_id_list(ctrl.job_id_list == id);
     end
     
-    if status == 0
-      fprintf('\n\n%s ======================================================\n', cmd);
-      result
+    %% Print cluster scheduler information if available
+    fprintf('Matlab Task ID %d\n', task_id);
+    fprintf('Cluster Job ID %d\n', job_id);
+    
+    if job_id ~= -1
+      if strcmpi(ctrl.cluster.type,'torque')
+        cmd = sprintf('qstat -f %d  </dev/null', job_id);
+        try; [status,result] = system(cmd); end;
+        
+      elseif strcmpi(ctrl.cluster.type,'matlab')
+        cmd = 'NA';
+        status = -1;
+        
+      elseif strcmpi(ctrl.cluster.type,'slurm')
+        %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
+        cmd = sprintf('scontrol show job %d </dev/null', job_id);
+        try; [status,result] = system(cmd); end;
+        
+      elseif strcmpi(ctrl.cluster.type,'debug')
+        cmd = 'NA';
+        status = -1;
+      end
+      
+      if status == 0
+        fprintf('\nSCHEDULER INFO ============================================================\n');
+        fprintf('%s\n', cmd);
+        result
+      end
     end
+    
+    %% Print stdout and stderr files if available
+    if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+      retry = 0;
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
+      while exist(fn,'file')
+        fprintf('\n\nSTDOUT RETRY %d ==========================================================\n', retry);
+        fprintf('%s\n', fn);
+        type(fn);
+        retry = retry + 1;
+        fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
+      end
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id));
+      fprintf('\n\nSTDOUT ======================================================================\n');
+      fprintf('%s\n', fn);
+      if exist(fn,'file')
+        type(fn);
+      else
+        fprintf('  Does not exist\n');
+      end
+      
+      retry = 0;
+      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
+      while exist(fn,'file')
+        fprintf('\n\nSTDERR RETRY %d ==========================================================\n', retry);
+        fprintf('%s\n', fn);
+        type(fn);
+        retry = retry + 1;
+        fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
+      end
+      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id));
+      fprintf('\n\nSTDERR ======================================================================\n');
+      fprintf('%s\n', fn);
+      if exist(fn,'file')
+        type(fn);
+      else
+        fprintf('  Does not exist\n');
+      end
+      
+    elseif strcmpi(ctrl.cluster.type,'matlab')
+      fprintf('\n\nSTDOUT ======================================================================\n');
+      fprintf('ctrl.cluster.jm.Jobs.Tasks.Diary\n');
+      ctrl.cluster.jm.Jobs.findobj('ID',ctrl.job_id_list(task_id)).Tasks.Diary
+    end
+    
+    %% Read input files
+    % Read static input file
+    fprintf('\n\nSTATIC INPUT ==================================================================\n');
+    fprintf('%s\n', static_in_fn);
+    try
+      sparam = load(static_in_fn);
+      fprintf('  Loaded\n');
+    catch
+      fprintf('  Failed to load\n');
+      sparam = struct();
+    end
+    % Read dynamic input file
+    fprintf('\n\nDYNAMIC INPUT =================================================================\n');
+    fprintf('%s\n', dynamic_in_fn);
+    try
+      dparam = load(dynamic_in_fn);
+      fprintf('  Loaded\n');
+    catch
+      fprintf('  Failed to load\n');
+      dparam = struct();
+    end
+    in{id_idx} = merge_structs(sparam.static_param,dparam.dparam{task_id});
+    
+    %% Read output file
+    out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
+    out{id_idx} = [];
+    fprintf('\n\nOUT ===========================================================================\n');
+    fprintf('%s\n', out_fn);
+    try
+      out{id_idx} = load(out_fn);
+      fprintf('  Loaded\n');
+      try
+        if isfield(out{id_idx},'errorstruct')
+          if ~isempty(out{id_idx}.errorstruct)
+            fprintf('%s: %s\n', out{id_idx}.errorstruct.identifier, out{id_idx}.errorstruct.message);
+            for stack_idx = 1:length(out{id_idx}.errorstruct.stack)
+              fprintf('  %s: %d\n', out{id_idx}.errorstruct.stack(stack_idx).name, out{id_idx}.errorstruct.stack(stack_idx).line);
+            end
+          end
+        end
+      catch
+        fprintf('  Failed during errorstruct interpretation\n');
+      end
+    catch
+      fprintf('  Failed to load\n');
+    end
+    
   end
   
-  % Print stdout file
-  if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
-    retry = 0;
-    retry_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
-    while exist(retry_fn,'file')
-      fprintf('\n\nSTDOUT retry %d ======================================================\n', retry);
-      fprintf('%s\n', retry_fn);
-      type(retry_fn);
-      retry = retry + 1;
-      retry_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
-    end
-    fprintf('\n\nSTDOUT ======================================================\n');
-    actual_job_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
-    fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',actual_job_id));
-    fprintf('%s\n', fn);
-    if exist(fn,'file')
-      type(fn);
-    else
-      fprintf('  Does not exist\n');
-    end
-    retry = 0;
-    retry_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
-    while exist(retry_fn,'file')
-      fprintf('\n\nERROR retry %d ======================================================\n', retry);
-      fprintf('%s\n', retry_fn);
-      type(retry_fn);
-      retry = retry + 1;
-      retry_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
-    end
-    fprintf('\n\nERROR ======================================================\n');
-      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',actual_job_id));
-    fprintf('%s\n', fn);
-    if exist(fn,'file')
-      type(fn);
-    else
-      fprintf('  Does not exist\n');
-    end
-  elseif strcmpi(ctrl.cluster.type,'matlab')
-    fprintf('\n\nSTDOUT ======================================================\n');
-    ctrl.cluster.jm.Jobs.findobj('ID',ctrl.job_id_list(task_id)).Tasks.Diary
-  end
-  
-  % Check for existence of input file
-  fprintf('\nINPUT ======================================================\n');
+  return
+end
+
+%% Print summary information about each task
+if print_mode == 2
+  % Create in/out filenames
   static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
-  fprintf('%s\n', static_in_fn);
-  if exist(static_in_fn,'file')
-    fprintf('  Exists\n');
-    sparam = load(static_in_fn);
-  else
-    fprintf('  Does not exist\n');
-    in = [];
-  end
   dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
-  fprintf('%s\n', dynamic_in_fn);
-  if exist(dynamic_in_fn,'file')
-    fprintf('  Exists\n');
-    dparam = load(dynamic_in_fn);
-    in = merge_structs(sparam.static_param,dparam.dparam{task_id});
-  else
-    fprintf('  Does not exist\n');
-    in = [];
-  end
   
-  % Check for existence of output file
-  fprintf('\nOUTPUT ======================================================\n');
-  fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
-  fprintf('%s\n', fn);
-  if exist(fn,'file')
-    fprintf('  Exists\n');
-    out = load(fn);
-    if isfield(out,'errorstruct') && ~isempty(out.errorstruct)
-      fprintf('%s: %s\n', out.errorstruct.identifier, out.errorstruct.message);
-      for stack_idx = 1:length(out.errorstruct.stack)
-        fprintf('  %s: %d\n', out.errorstruct.stack(stack_idx).name, out.errorstruct.stack(stack_idx).line);
+  in = struct();
+  
+  exec_node_max_len = 0;
+  for id_idx = 1:length(ids)
+    id = ids(id_idx);
+    
+    if ids_type == 0
+      % cluster task ID (internal cluster*.m ID)
+      task_id = id;
+      try
+        job_id = ctrl.job_id_list(id);
+      catch
+        if ~id_out_of_bounds_warning_sent
+          warning('Ignoring out of bounds task ids (e.g. id %d).', id);
+          id_out_of_bounds_warning_sent = true;
+        end
+        continue;
       end
+    else
+      % cluster job ID (e.g. torque job ID)
+      job_id = id;
+      task_id = ctrl.job_id_list(ctrl.job_id_list == id);
     end
-  else
-    fprintf('  Does not exist\n');
-    out = [];
-  end
-  
-  if nargout == 0
-    clear in out
-  elseif nargout == 1
-    clear out
-  end
-end
+    lead_task_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
+    
+    in(id_idx).task_id = uint32(task_id);
+    in(id_idx).job_id = int32(job_id);
+    
+    in(id_idx).exec_node = '';
+    in(id_idx).cpu_time = NaN;
+    in(id_idx).cpu_time_actual = NaN;
+    in(id_idx).mem = NaN;
+    in(id_idx).mem_actual = NaN;
+   
+    if job_id ~= -1
+      if strcmpi(ctrl.cluster.type,'torque')
+        cmd = sprintf('qstat -f %d </dev/null', job_id);
+        try; [status,result] = system(cmd); end;
+        
+        if status == 0
+          try
+            idx = regexp(result,'exec_host');
+            tmp_result = result(idx:end);
+            idx = find(tmp_result=='=',1);
+            tmp_result = tmp_result(idx+2:end);
+            idx = find(tmp_result==10|tmp_result==13,1);
+            tmp_result = tmp_result(1:idx);
+            tmp_result(tmp_result==10 | tmp_result==13) = 0;
+            in(id_idx).exec_node = tmp_result;
+            if length(tmp_result) > exec_node_max_len
+              exec_node_max_len = length(tmp_result);
+            end
+          end
+          
+          try
+            idx = regexp(result,'resources_used.walltime');
+            tmp_result = result(idx:end);
+            idx = find(tmp_result=='=',1);
+            tmp_result = tmp_result(idx+2:end);
+            idx = find(tmp_result==10|tmp_result==13,1);
+            tmp_result = tmp_result(1:idx);
+            in(id_idx).cpu_time_actual = uint32((datenum(tmp_result) - datenum('00:00:00'))*86400/60);
+          end
+          
+          try
+            idx = regexp(result,'resources_used.mem');
+            tmp_result = result(idx:end);
+            idx = find(tmp_result=='=',1);
+            tmp_result = tmp_result(idx+2:end);
+            idx = find(tmp_result==10|tmp_result==13,1);
+            tmp_result = tmp_result(1:idx);
+            mem_units = sscanf(tmp_result,'%s');
+            if strcmpi(mem_units,'mb')
+              in(id_idx).mem = uint32(mem);
+            elseif strcmpi(mem_units,'kb')
+              in(id_idx).mem = uint32(mem/1e3);
+            elseif strcmpi(mem_units,'gb')
+              in(id_idx).mem = uint32(mem*1e3);
+            else
+              in(id_idx).mem = uint32(mem/1e6);
+            end
+          end
+          
+          try
+            idx = regexp(result,'Resource_List.walltime');
+            tmp_result = result(idx:end);
+            idx = find(tmp_result=='=',1);
+            tmp_result = tmp_result(idx+2:end);
+            idx = find(tmp_result==10|tmp_result==13,1);
+            tmp_result = tmp_result(1:idx);
+            in(id_idx).cpu_time = uint32((datenum(tmp_result) - datenum('00:00:00'))*86400/60);
+          end
+          
+          try
+            idx = regexp(result,'Resource_List.pmem');
+            tmp_result = result(idx:end);
+            idx = find(tmp_result=='=',1);
+            tmp_result = tmp_result(idx+2:end);
+            idx = find(tmp_result==10|tmp_result==13,1);
+            tmp_result = tmp_result(1:idx);
+            [mem,~,~,idx] = sscanf(tmp_result,'%d');
+            tmp_result = tmp_result(idx:end);
+            mem_units = sscanf(tmp_result,'%s');
+            if strcmpi(mem_units,'mb')
+              in(id_idx).mem = uint32(mem);
+            elseif strcmpi(mem_units,'kb')
+              in(id_idx).mem = uint32(mem/1e3);
+            elseif strcmpi(mem_units,'gb')
+              in(id_idx).mem = uint32(mem*1e3);
+            else
+              in(id_idx).mem = uint32(mem/1e6);
+            end
+          end
+        end
+        
+      elseif strcmpi(ctrl.cluster.type,'slurm')
+        %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
+        cmd = sprintf('scontrol show job %d </dev/null', job_id);
+        try; [status,result] = system(cmd); end;
+        
+        % This section not completed yet
 
-%% brief status of any set of jobes
-if print_flag == 2
-  if max(task_id)>numel(ctrl.job_id_list)
-    Num_jobs = numel(ctrl.job_id_list);
-    fprintf('\n%s: %d\n','Job ID not found',task_id(find(task_id>Num_jobs,1)))
-    return;
-  end
-  if isnumeric(task_id)
-    % Matlab side job ID
-    job_id = ctrl.job_id_list(task_id);
-  else
-    % Torque side job ID
-    job_id = str2double(task_id);
-    task_id = ctrl.job_id_list(ctrl.job_id_list == job_id);
-  end
-  
-  for idx = 1 : numel(job_id)
-    
-    fprintf('\nMatlab Job ID %d\n', task_id(idx));
-    fprintf('Torque Job ID %d\n', job_id(idx));
-    
-    if strcmpi(ctrl.cluster.type,'custom_torque')
-      cmd = sprintf('qstat -f %d  </dev/null', job_id);
-      [status,result] = robust_system(cmd,0);
-      
-    elseif strcmpi(ctrl.cluster.type,'matlab')
-      keyboard
-      
-    elseif strcmpi(ctrl.cluster.type,'debug')
-      cmd = 'NA';
-      status = 0;
-      result = '';
+        % NodeList=snowflake0
+      end
     end
     
-    if status==0 && isempty(result)
-      qstat_res = textscan(result,'%s %s %s %s %s %s','HeaderLines',2,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
-      [property, value] = qstat_res{[1 3]};
-      
-      % DEBUG: TORQUE ID
-      host_property_idx = find(strcmp(property,'exec_host'));
-      mem_property_idx = find(strcmp(property,'resources_used.mem'));
-      used_walltime_property_idx = find(strcmp(property,'resources_used.walltime'));
-      pmem_property_idx = find(strcmp(property,'Resource_List.pmem'));
-      list_walltime_property_idx = find(strcmp(property,'Resource_List.walltime'));
-      
-      % Print job status
-      
-      % DEBUG: Find matching index in qstat -f result based on matching job_id(i)
-      host_property_value = value(host_property_idx);
-      mem_property_value = value(mem_property_idx);
-      used_walltime_property_value = value(used_walltime_property_idx);
-      pmem_property_value = value(pmem_property_idx);
-      list_walltime_property_value = value(list_walltime_property_idx);
-      
-      if isempty(host_property_value)
-        fprintf('\n%s: %s\n','exec_host','Not found');
-      else
-        fprintf('\n%s: %s\n','exec_host',host_property_value{1});
+    % Check stdout and stderr files
+    if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+      retry = 0;
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
+      while exist(fn,'file')
+        retry = retry + 1;
+        fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
       end
-      if isempty(mem_property_value)
-        fprintf('%s: %s\n','resources_used.mem','Not found');
-      else
-        fprintf('%s: %s\n','resources_used.mem',mem_property_value{1});
-      end
-      if isempty(used_walltime_property_value)
-        fprintf('%s: %s\n','resources_used.walltime','Not found');
-      else
-        fprintf('%s: %s\n','resources_used.walltime',used_walltime_property_value{1});
-      end
-      if isempty(pmem_property_value)
-        fprintf('%s: %s\n','Resource_List.pmem','Not found');
-      else
-        fprintf('%s: %s\n','Resource_List.pmem',pmem_property_value{1});
-      end
-      if isempty(list_walltime_property_value)
-        fprintf('%s: %s\n','Resource_List.walltime','Not found');
-      else
-        fprintf('%s: %s\n','Resource_List.walltime',list_walltime_property_value{1});
-      end
+      in(id_idx).stdout_retry = retry;
       
-      % Check for existence of input file
-      fn = fullfile(ctrl.in_fn_dir,sprintf('in_%d.mat',task_id(idx)));
+      retry = 0;
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
+      while exist(fn,'file')
+        retry = retry + 1;
+        fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
+      end
+      in(id_idx).stderr_retry = retry;
+      
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',lead_task_id));
       if exist(fn,'file')
-        fprintf('\nINPUT: Exists\n');
+        in(id_idx).stdout = 1;
       else
-        fprintf('\nINPUT: Does not exist\n');
+        in(id_idx).stdout = 0;
       end
-      
-      % Check for existence of output file
-      fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id(idx)));
+      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',lead_task_id));
       if exist(fn,'file')
-        fprintf('OUTPUT: Exists\n');
+        in(id_idx).stderr = 1;
       else
-        fprintf('OUTPUT: Does not exist\n');
+        in(id_idx).stderr = 0;
       end
       
+    else
+      in(id_idx).stdout = NaN;
+      in(id_idx).stderr = NaN;
     end
-    fprintf('==================================\n');
+    
+    % Check input files
+    if exist(static_in_fn,'file')
+      in(id_idx).in_static = 1;
+    else
+      in(id_idx).in_static = 0;
+    end
+    if exist(dynamic_in_fn,'file')
+      in(id_idx).in_dynamic = 1;
+    else
+      in(id_idx).in_dynamic = 0;
+    end
+    
+    % Check output file
+    out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
+    if exist(out_fn,'file')
+      in(id_idx).out = 1;
+    else
+      in(id_idx).out = 0;
+    end
+    
   end
-end
-return
 
-%% this is for a brief status of a single job
-% Print job statusjob_ids =numel(job_ids)
-%   fprintf('Matlab Job ID %d\n', task_id);
-%   fprintf('Torque Job ID %d\n', job_id);
-%   if print_flag == 2
-%     if status == 0
-%       qstat_res = textscan(result,'%s %s %s %s %s %s','HeaderLines',2,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
-%       [property, value] = qstat_res{1:2:3};
-%
-%       host_property_idx = find(strcmp(property,'exec_host'),1,'last');
-%       mem_property_idx = find(strcmp(property,'resources_used.mem'),1,'last');
-%       used_walltime_property_idx = ,print_flag)
-%find(strcmp(property,'resources_used.walltime'),1,'last');
-%       pmem_property_idx = find(strcmp(property,'Resource_List.pmem'),1,'last');
-%       list_walltime_property_idx = find(strcmp(property,'Resource_List.walltime'),1,'last');
-%
-%       host_property_value = value(host_property_idx);
-%       mem_property_value = value(mem_property_idx);
-%       used_walltime_property_value = value(used_walltime_property_idx);
-%       pmem_property_value = value(pmem_property_idx);
-%       list_walltime_property_value = value(list_walltime_property_idx);
-%       if print_flag == 2
-%       fprintf('\n%s: %s\n','exec_host',host_property_value{1});
-%       fprintf('%s: %s\n','resources_used.mem',mem_property_value{1});
-%       fprintf('%s: %s\n','resources_used.walltime',used_walltime_property_value{1});
-%       fprintf('%s: %s\n','Resource_List.pmem',pmem_property_value{1});
-%       fprintf('%s: %s\n','Resource_List.walltime',list_walltime_property_value{1});
-%
-%    % Check for existence of input file
-%       fn = fullfile(ctrl.in_fn_dir,sprintf('in_%d.mat',task_id));
-%       if exist(fn,'file')
-%         fprintf('\nINPUT: Exists\n');
-%       else
-%         fprintf('\nINPUT: Does not exist\n');
-%       end
-%
-%    % Check for existence of output file
-%       fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
-%       if exist(fn,'file')
-%         fprintf('OUTPUT: Exists\n');
-%       else
-%         fprintf('OUTPUT: Does not exist\n');
-%       end
-%     end
-%   end
+  fprintf(print_struct(in));
+  
+  return
+end

@@ -47,7 +47,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     continue;
   end
   
-  if strcmpi(cmd.name,{'saturation'})
+  if strcmpi(cmd.method,{'saturation'})
     %% Saturation check
     % ===================================================================
     % ===================================================================
@@ -103,12 +103,15 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
     
     
-  elseif strcmpi(cmd.name,{'specular'})
+  elseif strcmpi(cmd.method,{'specular'})
     %% Specular Analysis for Deconvolution
     % ===================================================================
     % ===================================================================
     for img = 1:length(param.analysis.imgs)
       for wf_adc = 1:size(param.analysis.imgs{img},1)
+        wf = param.analysis.imgs{1}(wf_adc,1);
+        adc = param.analysis.imgs{1}(wf_adc,2);
+        
         gps_time = [];
         lat = [];
         lon = [];
@@ -122,9 +125,108 @@ for cmd_idx = 1:length(param.analysis.cmd)
         deconv_std = {};
         deconv_sample = {};
         deconv_freq = {};
+        deconv_t0 = [];
         deconv_twtt = [];
         deconv_forced = [];
         deconv_DDC_Mt = [];
+        for break_idx = 1:length(breaks)
+          rec_load_start = breaks(break_idx);
+          
+          if break_idx == length(breaks)
+            rec_load_stop = length(records.gps_time);
+          else
+            rec_load_stop = rec_load_start+param.analysis.block_size-1;
+          end
+          
+          %% Specular: Load task output and concatenate
+          % ===============================================================
+          cur_recs = [rec_load_start rec_load_stop];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
+          
+          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+            sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          
+          spec = load(out_fn);
+          
+          fprintf('%s\n',datestr(now))
+          
+          % Concatenate
+          gps_time(end+(1:numel(spec.gps_time))) = spec.gps_time;
+          lat(end+(1:numel(spec.lat))) = spec.lat;
+          lon(end+(1:numel(spec.lon))) = spec.lon;
+          elev(end+(1:numel(spec.elev))) = spec.elev;
+          roll(end+(1:numel(spec.roll))) = spec.roll;
+          pitch(end+(1:numel(spec.pitch))) = spec.pitch;
+          heading(end+(1:numel(spec.heading))) = spec.heading;
+          peakiness(end+(1:numel(spec.peakiness))) = spec.peakiness;
+          
+          deconv_gps_time(end+(1:numel(spec.deconv_gps_time))) = spec.deconv_gps_time;
+          deconv_twtt(end+(1:numel(spec.deconv_twtt))) = spec.deconv_twtt;
+          deconv_DDC_Mt(end+(1:numel(spec.deconv_DDC_Mt))) = spec.deconv_DDC_Mt;
+          deconv_forced(end+(1:numel(spec.deconv_forced))) = spec.deconv_forced;
+          
+          deconv_mean(end+(1:numel(spec.deconv_mean))) = spec.deconv_mean;
+          deconv_std(end+(1:numel(spec.deconv_std))) = spec.deconv_std;
+          deconv_sample(end+(1:numel(spec.deconv_sample))) = spec.deconv_sample;
+          for idx = 1:numel(spec.deconv_gps_time)
+            deconv_freq{end+1} = spec.freq;
+            deconv_t0(end+1) = spec.time(1);
+          end
+        end
+        
+        %% Specular: Store concatenated output
+        % =================================================================
+        spec.gps_time = gps_time;
+        spec.lat = lat;
+        spec.lon = lon;
+        spec.elev = elev;
+        spec.roll = roll;
+        spec.pitch = pitch;
+        spec.heading = heading;
+        spec.peakiness = peakiness;
+        spec.deconv_gps_time = deconv_gps_time;
+        spec.deconv_mean = deconv_mean;
+        spec.deconv_std = deconv_std;
+        spec.deconv_sample = deconv_sample;
+        spec.deconv_freq = deconv_freq;
+        spec.deconv_t0 = deconv_t0;
+        spec.deconv_twtt = deconv_twtt;
+        spec.deconv_forced = deconv_forced;
+        spec.deconv_DDC_Mt = deconv_DDC_Mt;
+        spec = rmfield(spec, {'time','freq'});
+        out_fn_dir = fileparts(out_fn);
+        out_segment_fn_dir = fileparts(out_fn_dir);
+        out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+        save(out_segment_fn,'-v7.3','-struct','spec');
+      end
+    end
+    
+    
+  elseif strcmpi(cmd.method,{'coh_noise'})
+    %% Coherent Noise Analysis
+    % ===================================================================
+    % ===================================================================
+    for img = 1:length(param.analysis.imgs)
+      
+      for wf_adc_idx = cmd.wf_adc_idxs{img}(:).'
+        wf = param.analysis.imgs{1}(wf_adc_idx,1);
+        adc = param.analysis.imgs{1}(wf_adc_idx,2);
+        
+        %% Loop through all the coherent noise tracker files and combine
+        % =====================================================================
+        gps_time = [];
+        lat = [];
+        lon = [];
+        elev = [];
+        roll = [];
+        pitch = [];
+        heading = [];
+        nyquist_zone = [];
+        coh_ave = [];
+        coh_ave_samples = [];
+        doppler_concat = [];
         for break_idx = 1:length(breaks)
           rec_load_start = breaks(break_idx);
           
@@ -142,179 +244,61 @@ for cmd_idx = 1:length(param.analysis.cmd)
             cur_recs(end)*param.analysis.presums];
           
           out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-            sprintf('specular_img_%02d_%d_%d.mat',img,actual_cur_recs));
+            sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
           
-          spec = load(out_fn);
-          
-          wfs_freq = {};
-          if ~isempty(spec.deconv_mean)
-            for idx = 1:length(spec.deconv_mean)
-              wfs_freq = cat(2,wfs_freq,spec.wfs.freq);
+          noise = load(out_fn);
+          if strcmpi(radar_name,'fmcw')
+            if size(noise.coh_ave,1) ~= num_samples
+              warning('A BAD RESAMPLING METHOD IS BEING APPLIED TO THE DATA AND LIKELY TO PRODUCE POOR RESULTS. THIS CODE NEEDS TO BE REPLACED');
+              if any(any(isnan(noise.coh_ave))) || any(any(isnan(noise.coh_ave_samples)))
+                warning('NaN found in noise.coh_ave or noise.coh_ave_samples')
+              end
+              noise.coh_ave = interp1([1:size(noise.coh_ave,1)],noise.coh_ave,linspace(1,size(noise.coh_ave,1),num_samples));
+              noise.coh_ave_samples = interp1([1:size(noise.coh_ave_samples,1)],noise.coh_ave_samples,linspace(1,size(noise.coh_ave_samples,1),num_samples));
             end
           end
-          gps_time = cat(2,gps_time,spec.gps_time);
-          lat = cat(2,lat,spec.lat);
-          lon = cat(2,lon,spec.lon);
-          elev = cat(2,elev,spec.elev);
-          roll = cat(2,roll,spec.roll);
-          pitch = cat(2,pitch,spec.pitch);
-          heading = cat(2,heading,spec.heading);
-          peakiness = cat(2,peakiness,spec.peakiness);
-          deconv_gps_time = cat(2,deconv_gps_time,spec.deconv_gps_time);
-          deconv_mean = cat(2,deconv_mean,spec.deconv_mean);
-          deconv_std = cat(2,deconv_std,spec.deconv_std);
-          deconv_sample = cat(2,deconv_sample,spec.deconv_sample);
-          deconv_freq = cat(2,deconv_freq,wfs_freq);
-          deconv_twtt = cat(2,deconv_twtt,spec.deconv_twtt);
-          deconv_DDC_Mt = cat(2,deconv_DDC_Mt,spec.deconv_DDC_Mt);
-          if ~isfield(spec,'deconv_forced')% HACK: IF STATEMENT SHOULD BE REMOVED
-            spec.deconv_forced = zeros(size(spec.deconv_twtt));
+          
+          gps_time = cat(2,gps_time,noise.gps_time);
+          lat = cat(2,lat,noise.lat);
+          lon = cat(2,lon,noise.lon);
+          elev = cat(2,elev,noise.elev);
+          roll = cat(2,roll,noise.roll);
+          pitch = cat(2,pitch,noise.pitch);
+          heading = cat(2,heading,noise.heading);
+          nyquist_zone = cat(2,nyquist_zone,noise.nyquist_zone);
+          coh_ave = cat(2,coh_ave,noise.coh_ave);
+          coh_ave_samples = cat(2,coh_ave_samples,noise.coh_ave_samples);
+          noise.doppler = reshape(noise.doppler,[numel(noise.doppler) 1]);
+          if break_idx > 1 && size(noise.doppler,1) ~= size(doppler_concat,1)
+            % Block was a different size than other Doppler spectrums, re-sample
+            % so that it can be stored in the output matrix
+            noise.doppler = interp1(0:numel(noise.doppler)-1,noise.doppler,linspace(0,numel(noise.doppler)-1,size(doppler_concat,1)).');
           end
-          deconv_forced = cat(2,deconv_forced,spec.deconv_forced);
+          doppler_concat = cat(2,doppler_concat,noise.doppler);
+          
         end
         
-        spec.gps_time = gps_time;
-        spec.lat = lat;
-        spec.lon = lon;
-        spec.elev = elev;
-        spec.roll = roll;
-        spec.pitch = pitch;
-        spec.heading = heading;
-        spec.peakiness = peakiness;
-        spec.deconv_gps_time = deconv_gps_time;
-        spec.deconv_mean = deconv_mean;
-        spec.deconv_std = deconv_std;
-        spec.deconv_sample = deconv_sample;
-        spec.wf_freq = deconv_freq;
-        spec.deconv_twtt = deconv_twtt;
-        spec.deconv_forced = deconv_forced;
-        spec.deconv_DDC_Mt = deconv_DDC_Mt;
+        noise.gps_time = gps_time;
+        noise.lat = lat;
+        noise.lon = lon;
+        noise.elev = elev;
+        noise.roll = roll;
+        noise.pitch = pitch;
+        noise.heading = heading;
+        noise.nyquist_zone = nyquist_zone;
+        noise.coh_ave = coh_ave;
+        noise.coh_ave_samples = coh_ave_samples;
+        noise.doppler = doppler_concat;
         out_fn_dir = fileparts(out_fn);
         out_segment_fn_dir = fileparts(out_fn_dir);
-        out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_img_%02d_wfadc_%d.mat', param.day_seg, img, wf_adc));
+        out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        save(out_segment_fn,'-v7.3','-struct','spec');
+        save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
       end
     end
     
     
-  elseif strcmpi(cmd.name,{'coherent_noise'})
-    %% Coherent Noise Analysis
-    % ===================================================================
-    % ===================================================================
-    for img = 1:length(param.analysis.imgs)
-      
-      % FMCW HACK: The FMCW radars were operated at different sampling
-      % frequencies for a few seasons. The time gate was not varied so the
-      % effect is different numbers of samples in each range line for the%
-      % different sampling frequencies.
-      % THIS CODE NEEDS TO BE REPLACED
-      if strcmpi(radar_name,'fmcw')
-        num_samples = [];
-        for break_idx = 1:length(breaks)
-          rec_load_start = breaks(break_idx);
-          if break_idx == length(breaks)
-            rec_load_stop = length(records.gps_time);
-          else
-            rec_load_stop = rec_load_start+param.analysis.block_size-1;
-          end
-          cur_recs = [rec_load_start rec_load_stop];
-          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-            cur_recs(end)*param.analysis.presums];
-          
-          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-            sprintf('coh_noise_img_%02d_%d_%d.mat',img,actual_cur_recs));
-          
-          mat_obj = matfile(out_fn);
-          num_samples = [num_samples,size(mat_obj,'coh_ave',1)];
-        end
-        num_samples = mode(num_samples);
-      end
-      
-      %% Loop through all the coherent noise tracker files and combine
-      % =====================================================================
-      gps_time = [];
-      lat = [];
-      lon = [];
-      elev = [];
-      roll = [];
-      pitch = [];
-      heading = [];
-      nyquist_zone = [];
-      coh_ave = [];
-      coh_ave_samples = [];
-      doppler_concat = [];
-      for break_idx = 1:length(breaks)
-        rec_load_start = breaks(break_idx);
-        
-        if break_idx == length(breaks)
-          rec_load_stop = length(records.gps_time);
-        else
-          rec_load_stop = rec_load_start+param.analysis.block_size-1;
-        end
-        
-        % =====================================================================
-        % Prepare task inputs
-        % =====================================================================
-        cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-          cur_recs(end)*param.analysis.presums];
-        
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-          sprintf('coh_noise_img_%02d_%d_%d.mat',img,actual_cur_recs));
-        
-        noise = load(out_fn);
-        if strcmpi(radar_name,'fmcw')
-          if size(noise.coh_ave,1) ~= num_samples
-            warning('A BAD RESAMPLING METHOD IS BEING APPLIED TO THE DATA AND LIKELY TO PRODUCE POOR RESULTS. THIS CODE NEEDS TO BE REPLACED');
-            if any(any(isnan(noise.coh_ave))) || any(any(isnan(noise.coh_ave_samples)))
-              warning('NaN found in noise.coh_ave or noise.coh_ave_samples')
-            end
-            noise.coh_ave = interp1([1:size(noise.coh_ave,1)],noise.coh_ave,linspace(1,size(noise.coh_ave,1),num_samples));
-            noise.coh_ave_samples = interp1([1:size(noise.coh_ave_samples,1)],noise.coh_ave_samples,linspace(1,size(noise.coh_ave_samples,1),num_samples));
-          end
-        end
-        
-        gps_time = cat(2,gps_time,noise.gps_time);
-        lat = cat(2,lat,noise.lat);
-        lon = cat(2,lon,noise.lon);
-        elev = cat(2,elev,noise.elev);
-        roll = cat(2,roll,noise.roll);
-        pitch = cat(2,pitch,noise.pitch);
-        heading = cat(2,heading,noise.heading);
-        nyquist_zone = cat(2,nyquist_zone,noise.nyquist_zone);
-        coh_ave = cat(2,coh_ave,noise.coh_ave);
-        coh_ave_samples = cat(2,coh_ave_samples,noise.coh_ave_samples);
-        noise.doppler = reshape(noise.doppler,[numel(noise.doppler) 1]);
-        if break_idx > 1 && size(noise.doppler,1) ~= size(doppler_concat,1)
-          % Block was a different size than other Doppler spectrums, re-sample
-          % so that it can be stored in the output matrix
-          noise.doppler = interp1(0:numel(noise.doppler)-1,noise.doppler,linspace(0,numel(noise.doppler)-1,size(doppler_concat,1)).');
-        end
-        doppler_concat = cat(2,doppler_concat,noise.doppler);
-        
-      end
-      
-      noise.gps_time = gps_time;
-      noise.lat = lat;
-      noise.lon = lon;
-      noise.elev = elev;
-      noise.roll = roll;
-      noise.pitch = pitch;
-      noise.heading = heading;
-      noise.nyquist_zone = nyquist_zone;
-      noise.coh_ave = coh_ave;
-      noise.coh_ave_samples = coh_ave_samples;
-      noise.doppler = doppler_concat;
-      out_fn_dir = fileparts(out_fn);
-      out_segment_fn_dir = fileparts(out_fn_dir);
-      out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_img_%02d.mat', param.day_seg, img));
-      fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-      save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
-    end
-    
-    
-  elseif strcmpi(cmd.name,{'waveform'})
+  elseif strcmpi(cmd.method,{'waveform'})
     %% Waveform extraction
     % ===================================================================
     % ===================================================================
@@ -381,7 +365,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
     
     
-  elseif strcmpi(cmd.name,{'statistics'})
+  elseif strcmpi(cmd.method,{'statistics'})
     %% Statistical analysis
     % ===================================================================
     % ===================================================================

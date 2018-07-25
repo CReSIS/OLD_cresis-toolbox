@@ -205,7 +205,6 @@ if param.csarp.presums > 1
 end
 old_param_records = orig_records.param_records;
 old_param_records.gps_source = orig_records.gps_source;
-start_time_for_fn = orig_records.gps_time(1);
 
 %% Get the new surface
 % =====================================================================

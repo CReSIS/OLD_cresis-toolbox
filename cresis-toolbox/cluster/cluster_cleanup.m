@@ -108,7 +108,11 @@ ctrls = ctrls(ctrls_mask);
 for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
   fprintf('Removing batch %d\n', ctrl.batch_id);
-  ctrl = cluster_get_batch(ctrl,false,0);
+  try
+    ctrl = cluster_get_batch(ctrl,false,0);
+  catch ME
+    warning(ME.getReport);
+  end
   if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
     
     % For each job in the batch, delete the job

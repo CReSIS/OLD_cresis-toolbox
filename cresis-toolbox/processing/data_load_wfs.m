@@ -1,43 +1,9 @@
 function [wfs,states] = data_load_wfs(param, records)
 % [wfs,states] = data_load_wfs(param, records)
 %
-% Loads waveform/adc information into wfs
-% Loads states information for loading raw data into states
-% Both are required for data_load.m
-%
-% param: structure with parameter information
-%  .records.file_version: raw file version
-%  .load.imgs: cell vector of imgs (each entry is a separate wf_adc_list)
-%    Each wf_adc_list is an Nx2 array where N is the number of channels,
-%    the first column is the waveform, and the second column is the adc.
-%    Absolute index of wf and adc are used in this array.
-%  .load.ft_wind: function handle to fast time window that will be applied
-%    in the frequency domain
-% wfs: 
-% states: structure vector that helps data_load load data (states of loader)
-%   Each entry in the structure vector corresponds to a specific board.
-%     accum(board)
-%   Each entry contains lists of how to accumulate and store data for the
-%   board when loading from load_mcords2_data.  load_mcords2_data first
-%   accumulates the data (presums):
-%     accum(board).data{accumulator-instance}
-%   Once the presums are finished, the data is processed and stored in
-%   the output variable:
-%     g_data{img}(fast-time,slow-time,wf_adc_idx)
-%   The three fields in accum(board) are all length Kx1 where K is the number
-%   of accumulator instances.  The number of accumulator instances is
-%   determined by the length of the fields.
-%  .adc = K x 1 vector indicating which adc this instance is pulled from
-%  .wf = K x 1 vector indicating which waveform this instance is pulled from
-%  .wf_adc_idx = an index in the final output array unless adcs are
-%    combined in which case size(g_data{:}, 3) == 1.
-%  .img = an index in the final output array
-%
-% Examples: At the bottom of this file
+% https://ops.cresis.ku.edu/wiki/index.php/Data_load#data_load_wfs.m
 %
 % Author: John Paden
-%
-% See also: data_load.m
 
 %% Build raw data loading "states" structure
 % =========================================================================
@@ -48,10 +14,10 @@ adc_list = [];
 board_list = [];
 board_idxs = [];
 for img = 1:length(param.load.imgs)
-  for wf_adc_idx= 1:size(param.load.imgs{img},1)
+  for wf_adc = 1:size(param.load.imgs{img},1)
     for adc_column = 2:2:size(param.load.imgs{img},2)
-      wf_list(end+1) = param.load.imgs{img}(wf_adc_idx,adc_column-1);
-      adc_list(end+1) = param.load.imgs{img}(wf_adc_idx,adc_column);
+      wf_list(end+1) = param.load.imgs{img}(wf_adc,adc_column-1);
+      adc_list(end+1) = param.load.imgs{img}(wf_adc,adc_column);
       [board_list(end+1),board_idxs(end+1)] = adc_to_board(param.radar_name,adc_list(end));
     end
   end
@@ -66,16 +32,16 @@ for state_idx = 1:length(boards)
   states(state_idx).board_idx = board_idxs(state_idx);
   states(state_idx).adc = [];
   states(state_idx).wf = [];
-  states(state_idx).wf_adc_idx = [];
+  states(state_idx).wf_adc = [];
   states(state_idx).img = [];
   states(state_idx).wf_adc_sum = [];
   states(state_idx).wf_adc_sum_cmd = [];
   states(state_idx).img_comb_idx = [];
   for img = 1:length(param.load.imgs) % For each image img
-    for wf_adc_idx = 1:size(param.load.imgs{img},1) % For ach wf-adc pair
+    for wf_adc = 1:size(param.load.imgs{img},1) % For ach wf-adc pair
       for adc_column = 2:2:size(param.load.imgs{img},2) % For each combined wf-adc pair
-        wf = param.load.imgs{img}(wf_adc_idx,adc_column-1); % wf stored in odd columns
-        adc = param.load.imgs{img}(wf_adc_idx,adc_column); % adc stored in even columns
+        wf = param.load.imgs{img}(wf_adc,adc_column-1); % wf stored in odd columns
+        adc = param.load.imgs{img}(wf_adc,adc_column); % adc stored in even columns
         
         % Determine if this wf,adc is from the current board
         if adc_to_board(param.radar_name,adc) ~= states(state_idx).board
@@ -100,7 +66,7 @@ for state_idx = 1:length(boards)
           % Add wf-adc pair to states list
           states(state_idx).adc(end+1) = adc;
           states(state_idx).wf(end+1) = wf;
-          states(state_idx).wf_adc_idx(end+1) = wf_adc_idx;
+          states(state_idx).wf_adc(end+1) = wf_adc;
           states(state_idx).img(end+1) = img;
           states(state_idx).wf_adc_sum(end+1) = wf_adc_sum(wf_adc_sum_idx,3);
           if size(wf_adc_sum,1) == 1
@@ -310,6 +276,15 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).nyquist_zone    = [];
   end
+  if ~isfield(param.radar.wfs(wf),'prepulse_H') || isempty(param.radar.wfs(wf).prepulse_H)
+    param.radar.wfs(wf).prepulse_H = [];
+  end
+  wfs(wf).prepulse_H   = param.radar.wfs(wf).prepulse_H;
+  if isfield(param.radar.wfs(wf).prepulse_H,'type') && ~isempty(param.radar.wfs(wf).prepulse_H.type)
+    wfs(wf).prepulse_H.type   = param.radar.wfs(wf).prepulse_H.type;
+  else
+    wfs(wf).prepulse_H.type   = '';
+  end
   if isfield(param.radar.wfs(wf),'coh_noise_method') && ~isempty(param.radar.wfs(wf).coh_noise_method)
     wfs(wf).coh_noise_method   = param.radar.wfs(wf).coh_noise_method;
   else
@@ -330,11 +305,10 @@ for wf = 1:length(param.radar.wfs)
       end
     case 'estimated'
       % Coherent noise estimated from loaded data
-      if isfield(param.radar.wfs(wf),'coh_noise_arg') && ~isempty(param.radar.wfs(wf).coh_noise_arg)
-        wfs(wf).coh_noise_arg   = param.radar.wfs(wf).coh_noise_arg;
-      else
-        wfs(wf).coh_noise_arg   = [];
+      if ~isfield(param.radar.wfs(wf),'coh_noise_arg') || isempty(param.radar.wfs(wf).coh_noise_arg)
+        param.radar.wfs(wf).coh_noise_arg   = [];
       end
+      wfs(wf).coh_noise_arg   = param.radar.wfs(wf).coh_noise_arg;
       if isfield(param.radar.wfs(wf).coh_noise_arg,'DC_remove_en') && ~isempty(param.radar.wfs(wf).coh_noise_arg.DC_remove_en)
         wfs(wf).coh_noise_arg.DC_remove_en   = param.radar.wfs(wf).coh_noise_arg.DC_remove_en;
       else

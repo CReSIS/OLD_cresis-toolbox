@@ -183,7 +183,10 @@ if force_compile
   fprintf('Start Compiling %s\n\n', datestr(now));
   fprintf('  %s\n', cmd);
   if strcmpi(ctrl.cluster.mcc,'system')
-    system(cmd);
+    status = system(cmd);
+    if status ~= 0
+      error('mcc failed to compile.');
+    end
   else
     eval(cmd);
   end

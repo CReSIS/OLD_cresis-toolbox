@@ -421,6 +421,12 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'qlook_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'qlook_combine_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'sar_coord_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'sar_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'array_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'array_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'csarp_sar_coord_task.m' 2};

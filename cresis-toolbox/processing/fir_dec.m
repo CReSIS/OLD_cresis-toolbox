@@ -1,5 +1,5 @@
-function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en)
-% [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en)
+function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en, phase_weights)
+% [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en, phase_weights)
 %
 % Applies a finite impulse response filter to the data and then decimates.
 % The FIR only operates on the second dimension of 2D datasets.
@@ -64,6 +64,10 @@ else
     renormalize_en = true;
   end
   
+  if ~exist('phase_weights','var') || isempty(phase_weights)
+    phase_weights = [];
+  end
+  
   if size(Bfilter,1) ~= 1
     error('Bfilter must be a row vector');
   end
@@ -77,8 +81,6 @@ else
   if size(data,2) == 1
     data = data.';
   end
-  
-  Bfilter = repmat(Bfilter, [size(data,1) 1]);
   
   out_data = zeros(size(data,1), Nidxs, class(data));
   
@@ -104,10 +106,24 @@ else
     end
     
     if ~renormalize
-      out_data(:,out_idx) = sum(data(:,idx_rng(1):idx_rng(2)) .* Bfilter,2);
+      if isempty(phase_weights)
+        out_data(:,out_idx) = sum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), Bfilter),2);
+      else
+        dphase = phase_weights(idx_rng(1):idx_rng(2));
+        dphase = conj(dphase./exp(1i * angle(mean(dphase))));
+        out_data(:,out_idx) = sum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), Bfilter .* dphase),2);
+      end
+
     else
-      out_data(:,out_idx) = sum(data(:,idx_rng(1):idx_rng(2)) ...
-        .* Bfilter(:,filter_rng(1):filter_rng(2)), 2);
+      if isempty(phase_weights)
+        out_data(:,out_idx) = sum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), ...
+          Bfilter(:,filter_rng(1):filter_rng(2))), 2);
+      else
+        dphase = phase_weights(idx_rng(1):idx_rng(2));
+        dphase = conj(dphase./exp(1i * angle(mean(dphase))));
+        out_data(:,out_idx) = sum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), ...
+          Bfilter(:,filter_rng(1):filter_rng(2)) .* dphase), 2);
+      end
       
       if renormalize_en
         renormalization_factor ...

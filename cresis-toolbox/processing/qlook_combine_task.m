@@ -57,8 +57,15 @@ else
   layers = opsLoadLayers(param_load_layers,param.qlook.img_comb_layer_params);
 end
 
-% =====================================================================
+%% Load layer data
+% =========================================================================
+
+if ~isempty(param.qlook.top_layer)
+  new_layer = opsLoadLayers(param,param.qlook.top_layer);
+end
+
 %% Loop through all the frames: combine and surface track
+% =====================================================================
 [output_dir,radar_type] = ct_output_dir(param.radar_name);
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
@@ -231,7 +238,7 @@ for frm_idx = 1:length(param.cmd.frms);
   end
   
   if isfield(surf,'feedthru')
-    %% Optional feed through removal
+    % Optional feed through removal
     
     % Interpolate feed through power levels on to data time axis
     feedthru_threshold = interp1(surf.feedthru.time,surf.feedthru.power_dB,Time);
@@ -243,31 +250,25 @@ for frm_idx = 1:length(param.cmd.frms);
     end
   end
   
-  if ~isempty(param.qlook.ground_based)
-    % Hack for ground based radar, surface time is zero
-    Surface = param.qlook.ground_based * ones(1,size(Data,2));
-    
+  if strcmpi(surf.method,'threshold')
+    new_surface = tracker_threshold(Data,surf);
+  elseif strcmpi(surf.method,'max')
+    new_surface = tracker_max(Data,surf);
+  elseif strcmpi(surf.method,'snake')
+    new_surface = tracker_snake_simple(Data,surf);
   else
-    if strcmpi(surf.method,'threshold')
-      new_surface = tracker_threshold(Data,surf);
-    elseif strcmpi(surf.method,'max')
-      new_surface = tracker_max(Data,surf);
-    elseif strcmpi(surf.method,'snake')
-      new_surface = tracker_snake_simple(Data,surf);
-    else
-      error('Not a supported surface tracking method.');
-    end
-    
-    %% Apply optional median filter
-    if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
-      new_surface = medfilt1(new_surface,surf.medfilt);
-    end
-    
-    %% Convert from range bins to two way travel time
-    Surface = interp1(1:length(Time), Time, new_surface);
-    
-    Surface = reshape(Surface, [1 length(Surface)]);
+    error('Not a supported surface tracking method.');
   end
+  
+  %% Apply optional median filter
+  if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
+    new_surface = medfilt1(new_surface,surf.medfilt);
+  end
+  
+  %% Convert from range bins to two way travel time
+  Surface = interp1(1:length(Time), Time, new_surface);
+  
+  Surface = reshape(Surface, [1 length(Surface)]);
   
   % Reset the "Data" variable in case it was modified during surface
   % tracking
@@ -299,6 +300,7 @@ for frm_idx = 1:length(param.cmd.frms);
   
 end
 
+%% Optionally store surface layer to disk
 if param.qlook.surf.en
   % Read the "Surface" variable from all the frames that were created
   % by this particular run of qlook
@@ -338,9 +340,9 @@ if param.qlook.surf.en
   create_records_aux_files(records_fn);
 end
 
+%% Done
+% =========================================================================
+
 fprintf('%s done %s\n', mfilename, datestr(now));
 
 success = true;
-
-return;
-

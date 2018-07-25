@@ -11,13 +11,19 @@
 % =====================================================================
 param_override = [];
 
-params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),[],'qlook');
+params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170311_02');
 
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
 params = ct_set_params(params,'cmd.qlook',0);
-params = ct_set_params(params,'cmd.qlook',1,'day_seg','20180408_01');
-params = ct_set_params(params,'cmd.frms',[10]);
+% params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170503_02');
+% params = ct_set_params(params,'cmd.frms',[221]);
+params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170311_02');
+params = ct_set_params(params,'cmd.frms',[7]);
+% params = ct_set_params(params,'qlook.presums',4);
+% params = ct_set_params(params,'qlook.dec',1);
+% params = ct_set_params(params,'qlook.out_path','qlook');
+params = ct_set_params(params,'radar.wfs(1).coh_noise_method','');
 
 dbstop if error;
 % param_override.cluster.type = 'torque';
