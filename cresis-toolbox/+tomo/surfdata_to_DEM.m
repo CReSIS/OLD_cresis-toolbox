@@ -1,5 +1,5 @@
-function surfdata_to_geotiff(param,param_override)
-% surfdata_to_geotiff(param,param_override))
+function surfdata_to_DEM(param,param_override)
+% surfdata_to_DEM(param,param_override))
 %
 % Takes a 3D image and surfdata and produces output data products for the
 % specified surfaces that include jpg images, geotiff of the surface, and
@@ -33,9 +33,9 @@ function surfdata_to_geotiff(param,param_override)
 % param.dem.theta_cal_fn: string containing filename to steering vector
 %   calibration file
 %
-% Author: Jordan Sprick, Nick Holschuh, John Paden
+% Authors: Jordan Sprick, Nick Holschuh, John Paden, Victor Berger
 %
-% See also: surfdata_to_geotiff.m, run_surfdata_to_geotiff.m
+% See also: surfdata_to_DEM.m, run_surfdata_to_DEM.m
 
 %% General Setup
 % =====================================================================
@@ -529,31 +529,33 @@ for frm_idx = 1:length(param.cmd.frms)
     ylabel('Y (km)');
     legend(hplot,'Flight line');
     
+    axis(axis_equal(h_axes, fline.x,fline.y));
+    h_fig_dem.Position = [50 50 800 600];
+    
     % Set figure/axes to 1 km:1 km scaling with a buffer around product
-    map_buffer = 2e3;
-    map_min_x = min_x-map_buffer;
-    map_max_x = max_x+map_buffer;
-    map_min_y = min_y-map_buffer;
-    map_max_y = max_y+map_buffer;
-    axis(h_axes, [map_min_x map_max_x map_min_y map_max_y]/1e3);
-    
-    set(h_axes,'Units','pixels');
-    map_axes = get(h_axes,'Position');
-    set(h_fig_dem,'Units','pixels');
-    map_pos = get(h_fig_dem,'Position');
-    
-    map_new_axes = map_axes;
-    map_new_axes(3) = round(figure_dots_per_km*(map_max_x-map_min_x)/1e3);
-    map_new_axes(4) = round(figure_dots_per_km*(map_max_y-map_min_y)/1e3);
-    map_pos(3) = map_new_axes(3) + map_pos(3)-map_axes(3);
-    map_pos(4) = map_new_axes(4) + map_pos(4)-map_axes(4);
-    set(h_fig_dem,'Position',map_pos);
-    set(h_axes,'Position',map_new_axes);
-    set(h_fig_dem,'PaperPositionMode','auto');
-    
+%         map_buffer = 2e3;
+%         map_axis = min_x-map_buffer;
+%         map_axis(2) = max_x+map_buffer;
+%         map_axis(3) = min_y-map_buffer;
+%         map_axis(4) = max_y+map_buffer;
+%     %     axis(h_axes, map_axis/1e3);
+%     
+%         set(h_axes,'Units','pixels');
+%         map_axes = get(h_axes,'Position');
+%         set(h_fig_dem,'Units','pixels');
+%         map_pos = get(h_fig_dem,'Position');
+%     
+%         map_new_axes = map_axes;
+%         map_new_axes(3) = round(figure_dots_per_km*(map_axis(2)-map_axis(1))/1e3);
+%         map_new_axes(4) = round(figure_dots_per_km*(map_axis(4)-map_axis(3))/1e3);
+%         map_pos(3) = map_new_axes(3) + map_pos(3)-map_axes(3);
+%         map_pos(4) = map_new_axes(4) + map_pos(4)-map_axes(4);
+%     %     set(h_fig_dem,'Position',map_pos);
+%     %     set(h_axes,'Position',map_new_axes);
+    set(h_fig_dem,'PaperPositionMode','auto');  
+%     
     % Clip and decimate the geotiff because it is usually very large
     clip_and_resample_image(h_img,gca,10);
-    
     title(sprintf('DEM %s_%03d %s',param.day_seg,frm,surface_names{surface_names_idx}),'interpreter','none');
     
     % Save output
@@ -563,8 +565,8 @@ for frm_idx = 1:length(param.cmd.frms)
     saveas(h_fig_dem,out_fn);
     out_fn = [fullfile(out_dir,out_fn_name),'.jpg'];
     fprintf('  %s\n', out_fn);
-    saveas(h_fig_dem,out_fn);
-    
+    print(out_fn,'-djpeg','-r0');
+%     saveas(h_fig_dem,out_fn);
     
     %% 3D rendering of DEM surface (disabled)
     if 0
@@ -739,7 +741,9 @@ for frm_idx = 1:length(param.cmd.frms)
     mat_fn = fullfile(out_dir,mat_fn_name);
     
     fprintf('  %s\n', mat_fn);
-    save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','DEM','points','boundary','param_surfdata');
+%     save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','map_axis','map_new_axes','map_pos','points','boundary','param_surfdata');
+    save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','points','boundary','param_surfdata');
+
   end
   try; delete(h_fig_dem); end;
 end

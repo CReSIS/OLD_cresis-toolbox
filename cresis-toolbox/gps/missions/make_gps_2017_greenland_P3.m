@@ -42,6 +42,7 @@ sync_fns = {}; sync_params = {};
 gps_source_to_use = 'DMS';
 
 if strcmpi(gps_source_to_use,'NMEA')
+  %% NMEA
     
 %     year = 2017; month = 3; day = 9;
 %     file_idx = file_idx + 1;
@@ -395,6 +396,7 @@ gps_source{file_idx} = 'nmea-field';
 sync_flag{file_idx} = 0;
 
 elseif strcmpi(gps_source_to_use,'ATM-field')
+  %% ATM-field
   
 %   year = 2017; month = 2; day = 26;
 %   file_idx = file_idx + 1;
@@ -514,7 +516,8 @@ elseif strcmpi(gps_source_to_use,'ATM-field')
   sync_flag{file_idx} = 0;
  
 elseif strcmpi(gps_source_to_use,'ATM-field_traj')
-  
+    %% ATM-field_traj
+
 %   year = 2017; month = 3; day = 9;
 %   file_idx = file_idx + 1;
 %   in_fns{file_idx} = get_filename(in_base_path,datestr(datenum(year,month,day),'yymmdd'),'itrf','noamb');
@@ -543,6 +546,8 @@ elseif strcmpi(gps_source_to_use,'ATM-field_traj')
   sync_flag{file_idx} = 0; 
   
 elseif strcmpi(gps_source_to_use,'ATM')
+  %% ATM
+  
   % Just some simple code to automate creation of the code in this section:
   %
   %   ATM_fns = get_filenames(in_base_path,'','','.out');
@@ -571,16 +576,15 @@ elseif strcmpi(gps_source_to_use,'ATM')
   end
   fn_dates = sort(fn_dates);
   
-
   for idx = 1:length(fn_dates)
     [year,month,day] = datevec(fn_dates(idx));
     fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
     file_idx = file_idx + 1;
       if idx==1 
-           in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
-      else  
-           in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'PPPK*.out');
-      end
+      in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+    else
+      in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'PPPK*.out');
+    end
     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
     file_type{file_idx} = 'applanix';
     params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
@@ -589,6 +593,8 @@ elseif strcmpi(gps_source_to_use,'ATM')
   end
   
 elseif strcmpi(gps_source_to_use,'DMS')
+  %% DMS
+  
   year = 2017; month = 4; day = 20;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filename(fullfile(in_base_path,'Wing_Flexure'),'Paden_',datestr(datenum(year,month,day),'yyyymmdd'),'.out');

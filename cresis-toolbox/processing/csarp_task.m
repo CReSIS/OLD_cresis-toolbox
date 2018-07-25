@@ -119,6 +119,7 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
     wfs(wf).time = param.csarp.time_of_full_support;
     wfs(wf).freq = 1;
   end
+elseif strcmpi(radar_name,'sim');
 end
 
 %% Determine chunk overlap to ensure full support
@@ -135,13 +136,15 @@ surf_time = ppval(sar.surf_pp, start_x); surf_time = min(max_time,surf_time);
 % effective in air max range (m)
 max_range = ((max_time-surf_time)/sqrt(param.csarp.start_eps) + surf_time) * c/2;
 % chunk overlap (m)
-chunk_overlap_start = max(0.02*param.csarp.chunk_len, (max_range*lambda)/(2*param.csarp.sigma_x) / 2);
+chunk_overlap_start = (max_range*lambda)/(2*param.csarp.sigma_x) / 2;
+% chunk_overlap_start = max_range/sqrt((2*param.csarp.sigma_x/lambda)^2-1);
 
 % twtt to surface (sec)
 surf_time = ppval(sar.surf_pp, stop_x); surf_time = min(max_time,surf_time);
 % effective in air max range (m)
 max_range = ((max_time-surf_time)/sqrt(param.csarp.start_eps) + surf_time) * c/2;
-chunk_overlap_stop = max(0.02*param.csarp.chunk_len, (max_range*lambda)/(2*param.csarp.sigma_x) / 2);
+chunk_overlap_stop = (max_range*lambda)/(2*param.csarp.sigma_x) / 2;
+% chunk_overlap_stop = max_range/sqrt((2*param.csarp.sigma_x/lambda)^2-1);
 
 % These are the records which will be used
 cur_recs = [find(sar.along_track > start_x-chunk_overlap_start,1) ...
@@ -482,6 +485,8 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
     wfs(wf).time = img_time{1};
     wfs(wf).freq = img_freq{1};
   end
+elseif strcmpi(radar_name,'sim');
+  
 end
 
 %% Prepare reference trajectory information
@@ -821,7 +826,7 @@ for img_idx = 1:length(load_param.load.imgs)
         save('-v6',out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_csarp','param_records');
       end
       
-    elseif strcmpi(param.csarp.sar_type,'tdbp')
+    elseif strcmpi(param.csarp.sar_type,'tdbp_old')
       % time domain backporjection overview
       data = g_data{img_idx}(:,:,wf_adc_idx);
       
@@ -1014,6 +1019,268 @@ for img_idx = 1:length(load_param.load.imgs)
         param_csarp = param;
         mltdp_data = mltdp_data0(:,:,subap);
         save('-v6',out_full_fn,'mltdp_data','fcs','lat','lon','elev','wfs','param_csarp','param_records');
+      end
+    elseif strcmpi(param.csarp.sar_type,'tdbp')
+    %% Time Domain Processor
+      % time domain backporjection overview
+      data = g_data{img_idx}(:,:,wf_adc_idx);
+      
+%       fcs_phase_centers = SAR_coord_system(SAR_coord_param,records,ref,along_track,along_track);
+      fcs_phase_center_idxs = interp1(output_along_track,1:length(output_along_track),along_track,'nearest');
+      if isnan(fcs_phase_center_idxs(1))
+        fcs_phase_center_idxs(1:find(~isnan(fcs_phase_center_idxs),1)-1) = 1;
+      end
+      if isnan(fcs_phase_center_idxs(end))
+        fcs_phase_center_idxs(find(~isnan(fcs_phase_center_idxs),1,'last')+1:end) = length(output_along_track);
+      end
+      for fcs_idx = 1:length(fcs_phase_center_idxs)
+        fcs_phase_centers.x(:,fcs_idx) = fcs.x(:,fcs_phase_center_idxs(fcs_idx));
+      end
+      
+      records.lon_ref = mean(records.lon);
+      records.lat_ref = mean(records.lat);
+      records.elev_ref = mean(records.elev);
+      
+      % set up SAR coordinate system
+      [x_ecef, y_ecef, z_ecef] = geodetic2ecef(records.lat*pi/180, records.lon*pi/180, records.elev, WGS84.ellipsoid);
+
+      SAR_coord_param.phase_center = [x_ecef;y_ecef;z_ecef];
+      SAR_coord_param.Lsar = sar.Lsar;
+      a1 = along_track(1);
+      SAR_coord_param.along_track = along_track-a1;
+      % Should be in c++ indices.
+      SAR_coord_param.output_along_track = output_along_track-a1;
+      SAR_coord_param.output_pos = fcs.origin;
+      SAR_coord_param.wfs = wfs(wf);
+      
+      % surface tracker
+      % two methods to get ice surface: param.surf_source 1/2
+      % 1: from get_heights; 2:from laser data;
+      param.surf_source = 1;
+      if param.surf_source == 1
+        surfTimes = records.surface;
+      elseif param.surf_source == 2
+        param.laser_surface = 1;
+        param.laser_data_fn = '/cresis/projects/metadata/2008_Greenland_TO_icessn/2008_Greenland/080801a_icessn_nadir0seg';
+        param.laser_data_fn = '/cresis/projects/metadata/2008_Greenland_TO_icessn/2008_Greenland/080707_icessn_nadir0seg';
+        fid = fopen(param.laser_data_fn);
+        [laser_data_tmp] = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f');
+        fclose(fid);
+        Year = 2008;
+        Mon = 7;
+        Day = 7;
+        laser_data.gps_time = (datenum(Year,Mon,Day)-datenum(1970,1,1))*86400 + laser_data_tmp{1};
+        laser_data.surf_elev = laser_data_tmp{4};
+        laser_data.surf_elev = interp1(laser_data.gps_time,laser_data.surf_elev,records.gps_time);
+        surfTimes = 2*(records.elev-laser_data.surf_elev)/c;
+        clear laser_data_tmp;
+      end
+      
+      for i = 1:3
+        fcs_phase_centers.x(i,:) = interp1(output_along_track,fcs.x(i,:),along_track);
+        fcs_phase_centers.z(i,:) = interp1(output_along_track,fcs.z(i,:),along_track);
+      end
+      idx1 = find(~isnan(fcs_phase_centers.x(1,:)),1)-1;
+      idx2 = find(~isnan(fcs_phase_centers.x(1,:)),1,'last')+1;
+      for i = 1:3
+        fcs_phase_centers.x(i,1:idx1) = fcs_phase_centers.x(i,idx1+1);
+        fcs_phase_centers.x(i,idx2:end) = fcs_phase_centers.x(i,idx2-1);
+        fcs_phase_centers.z(i,1:idx1) = fcs_phase_centers.z(i,idx1+1);
+        fcs_phase_centers.z(i,idx2:end) = fcs_phase_centers.z(i,idx2-1);
+      end
+      
+%       SAR_coord_param.surf = zeros(3,length(along_track));
+%       SAR_coord_param.surf(1,:) = x_ecef +surfTimes*c/2 .* fcs_phase_centers.z(1,:);
+%       SAR_coord_param.surf(2,:) = y_ecef + surfTimes*c/2 .* fcs_phase_centers.z(2,:);
+%       SAR_coord_param.surf(3,:) = z_ecef + surfTimes*c/2 .* fcs_phase_centers.z(3,:);
+      
+      surfTimes = sgolayfilt(records.surface,3,round(param.csarp.surf_filt_dist / median(diff(along_track))/2)*2+1);
+%       surfTimes = sar.surf_pp.coefs(out_rlines,end);
+%       SAR_coord_param.surf_poly = sar.surf_pp.coefs(out_rlines,:).'*c/2;
+      SAR_coord_param.surf_along_track = -surfTimes*c/2;
+      surf_poly = spline(along_track,SAR_coord_param.surf_along_track);
+      SAR_coord_param.surf_poly = surf_poly.coefs.';
+      SAR_coord_param.surf_line = polyfit(along_track,SAR_coord_param.surf_along_track,1);
+      
+      [~,surf_max_idx] = max(SAR_coord_param.surf_along_track);
+      if surf_max_idx==length(SAR_coord_param.surf_along_track);
+        surf_max_idx = surf_max_idx-1;
+      elseif surf_max_idx==1;
+        surf_max_idx = 2;
+      end
+      surf_max_poly = SAR_coord_param.surf_poly(:,surf_max_idx);
+      surf_der = polyval([length(surf_max_poly)-1:-1:1].'.*surf_max_poly(1:end-1),0);
+      if surf_der==0
+        surf_max = surf_max_poly(end);
+      elseif surf_der<0
+        surf_max_idx = surf_max_idx-1;
+        surf_max_poly = SAR_coord_param.surf_poly(:,surf_max_idx);
+      end
+      surf_at_max = roots((length(surf_max_poly)-1:-1:1).'.*surf_max_poly(1:end-1));
+     	surf_at_max = surf_at_max(surf_at_max>0 & surf_at_max<diff(along_track(surf_max_idx+[0,1])));
+      if isempty(surf_at_max)
+        surf_max = max(SAR_coord_param.surf_along_track(surf_max_idx+[0,1]));
+      else
+        surf_max = max(polyval(surf_max_poly,surf_at_max));
+      end
+      
+      SAR_coord_param.surf_max = surf_max;
+      
+      x_ecef = fcs.origin(1,:);
+      y_ecef = fcs.origin(2,:);
+      z_ecef = fcs.origin(3,:);
+            
+      SAR_coord_param.surfBins = floor((surfTimes - wfs(wf).time(1))/wfs(wf).dt);
+      
+      jordan; % filter these
+      output_surfTimes = -fcs.surface;
+      output_surfBins = floor((fcs.surface - wfs(wf).time(1))/wfs(wf).dt);
+      
+      t0 = wfs(wf).time(1);
+            
+      n = size(data,1);
+      m = length(output_along_track);
+      SAR_coord_param.pixel = zeros(3,n,m);
+      eta_ice = sqrt(er_ice);
+      for line = 1:m
+        surfBin = output_surfBins(line);
+        surfTime = abs(output_surfTimes(line));
+        
+        % if surface data is collected by radar
+        if surfBin<n
+%           
+          pixel_ranges = wfs(wf).time(1:surfBin)*c/2;
+          SAR_coord_param.pixel(1,1:surfBin,line) = x_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(1,line);
+          SAR_coord_param.pixel(2,1:surfBin,line) = y_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(2,line);
+          SAR_coord_param.pixel(3,1:surfBin,line) = z_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(3,line);
+          
+          pixel_ranges = (surfTime + (wfs(wf).time(surfBin+1)-surfTime)/eta_ice) * c/2;
+          SAR_coord_param.pixel(1,surfBin+1,line) = x_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(1,line);
+          SAR_coord_param.pixel(2,surfBin+1,line) = y_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(2,line);
+          SAR_coord_param.pixel(3,surfBin+1,line) = z_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(3,line);
+          
+          if surfBin<n-1
+            pixel_ranges = pixel_ranges+(wfs(wf).time(surfBin+2:end)-wfs(wf).time(surfBin+1))*c/eta_ice/2;
+            SAR_coord_param.pixel(1,surfBin+2:end,line) = x_ecef(line) + ...
+              pixel_ranges*fcs_phase_centers.z(1,line);
+            SAR_coord_param.pixel(2,surfBin+2:end,line) = y_ecef(line) + ...
+              pixel_ranges*fcs_phase_centers.z(2,line);
+            SAR_coord_param.pixel(3,surfBin+2:end,line) = z_ecef(line) + ...
+              pixel_ranges*fcs_phase_centers.z(3,line);
+          end
+          
+        % if surface data is not collected by radar
+        else
+          
+          pixel_ranges = wfs(wf).time(1:surfBin)*c/2;
+          SAR_coord_param.pixel(1,:,line) = x_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(1,line);
+          SAR_coord_param.pixel(2,:,line) = y_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(2,line);
+          SAR_coord_param.pixel(3,:,line) = z_ecef(line) + ...
+            pixel_ranges*fcs_phase_centers.z(3,line);
+          
+        end
+      end
+      
+      if isfield(param.csarp,'end_time') && ~isempty(param.csarp.end_time)
+        if param.csarp.end_time<=wfs(wf).time(end) && param.csarp.end_time>=wfs(wf).time(1)
+          tdbp_param.end_time = param.csarp.end_time;
+          t_idx = interp1(wfs(wf).time,1:length(wfs(wf).time),param.csarp.end_time,'next');
+          SAR_coord_param.pixel = SAR_coord_param.pixel(:,1:t_idx,:);
+        end
+      end
+%       
+      if isfield(param.csarp,'start_time') && ~isempty(param.csarp.start_time)
+        if param.csarp.start_time<=wfs(wf).time(end) && param.csarp.start_time>=wfs(wf).time(1)
+          tdbp_param.start_time = param.csarp.start_time;
+          t_idx = interp1(wfs(wf).time,1:length(wfs(wf).time),param.csarp.start_time,'previous');
+          SAR_coord_param.pixel = SAR_coord_param.pixel(:,t_idx:end,:);
+        end
+      end
+            
+      % number of entries in library
+      N_lib = 32;
+
+      dt = wfs(wf).dt;
+
+      bw = wfs(wf).f1 - wfs(wf).f0;
+      
+      % sub-time bin step given number of entries
+      dts = dt/N_lib;
+
+      matched_sig_lib = zeros(wfs(wf).Nt,N_lib);
+      mid = ceil(wfs(wf).Nt/2+1);
+      % loop through delays and directly create matched signal response
+      %   implements marginal time shift in signal to find envelope.
+      t = ((1:size(matched_sig_lib,1)).'-mid)*dt;
+      for del_idx = 0:(N_lib-1)
+          matched_sig_lib(:,del_idx+1) = sinc((t-dts*del_idx)*bw);
+      end
+      % Filter contains ~97.5% of area under sinc^2 curve
+      matched_sig_lib = matched_sig_lib(mid+(-ceil(3.94/bw/dt):ceil(3.94/bw/dt)),:);
+      
+      tdbp_param = SAR_coord_param;
+      clear SAR_coord_param;
+            
+      tdbp_param.fc = wfs(wf).fc;
+      tdbp_param.t0 = t0;
+      tdbp_param.dt = dt;
+      tdbp_param.matched_sig_lib = matched_sig_lib;
+      
+      tdbp_param.fcs_x = fcs_phase_centers.x;
+      
+      tdbp_param.st_wind = param.csarp.st_wind;
+      tdbp_param.k_window = 1;
+      
+      tdbp_param.n0 = 1;
+      tdbp_param.n1 = eta_ice;
+      
+      if isfield(param.csarp,'refraction_flag');
+        tdbp_param.refraction_flag = param.csarp.refraction_flag;
+      end
+      
+      kx_bw = abs(c/wfs(wf).fc)/param.csarp.sigma_x;
+      
+      num_subapertures = length(param.csarp.sub_aperture_steering);
+      tdbp_data0 = [];
+      for subap = 1:num_subapertures
+      
+        kx0 = param.csarp.sub_aperture_steering(subap);
+        kx_support_limits = asin(kx0+kx_bw*[-1,1]/2);
+        
+        tdbp_param.kx_support_limits = kx_support_limits;
+        
+        fprintf('Beginning SAR Processing...\n');
+        tdbp_data0(:,:,subap) = sar_proc_task(tdbp_param,double(data));
+      end
+      
+      for subap = 1:size(tdbp_data0,3) % save each subaperture data to its own folder
+        % Create output path
+        out_path = fullfile(ct_filename_out(param,param.csarp.out_path, 'CSARP_out'),...
+          sprintf('tdbp_data_%03d_%02d_%02d',param.load.frm,subap, param.load.sub_band_idx));
+        if ~exist(out_path,'dir')
+          mkdir(out_path);
+        end
+        
+        % Create filename
+        % - Hack: multiple receivers are named with the first receiver in the list
+        out_fn = sprintf('wf_%02d_adc_%02d_chk_%03d', wf, adc, param.load.chunk_idx);
+        out_full_fn = fullfile(out_path,[out_fn '.mat']);
+        
+        % Save
+        fprintf('  Saving output %s\n', out_full_fn);
+        param_records = old_param_records;
+        param_csarp = param;
+        param_csarp.tdbp = tdbp_param;
+        tdbp_data = tdbp_data0(:,:,subap);
+        save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_csarp','param_records','tdbp_param');
       end
     end
   end

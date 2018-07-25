@@ -503,6 +503,7 @@ for frm_idx = 1:length(param.cmd.frms)
           dparam.cpu_time = dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img}*log2(total_num_sam{imgs_idx}{img})*size(dparam.argsin{1}.load.imgs{img},1)*cpu_time_mult;
           dparam.mem = dparam.mem + Nx*total_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*mem_mult;
         elseif strcmpi(param.csarp.sar_type,'tdbp')
+          dparam.cpu_time = ctrl.cluster.max_time_per_job - 40;
         end
       end
       
