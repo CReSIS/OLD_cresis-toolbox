@@ -295,9 +295,28 @@ if print_mode == 2
   static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
   dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
   
-  in = struct();
+  %% Read input files
+  % Read static input file
+  try
+    sparam = load(static_in_fn);
+  catch
+    warning('Failed to load static input file:\n  %s', static_in_fn);
+    sparam = struct();
+  end
+  % Read dynamic input file
+  try
+    dparam = load(dynamic_in_fn);
+  catch
+    warning('Failed to load dynamic input file:\n  %s', dynamic_in_fn);
+    dparam = struct();
+  end
+  
+  info = struct();
   
   exec_node_max_len = 0;
+  cluster_job_id = [];
+  cluster_status = [];
+  cluster_result = {};
   for id_idx = 1:length(ids)
     id = ids(id_idx);
     
@@ -319,20 +338,32 @@ if print_mode == 2
       task_id = ctrl.job_id_list(ctrl.job_id_list == id);
     end
     lead_task_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
+    num_tasks = sum(ctrl.job_id_list==ctrl.job_id_list(task_id));
     
-    in(id_idx).task_id = uint32(task_id);
-    in(id_idx).job_id = int32(job_id);
+    info(id_idx).task_id = uint32(task_id);
+    info(id_idx).job_id = int32(job_id);
     
-    in(id_idx).exec_node = '';
-    in(id_idx).cpu_time = NaN;
-    in(id_idx).cpu_time_actual = NaN;
-    in(id_idx).mem = NaN;
-    in(id_idx).mem_actual = NaN;
+    info(id_idx).exec_node = '';
+    info(id_idx).task_est = NaN;
+    info(id_idx).task = NaN;
+    info(id_idx).job_est = '';
+    info(id_idx).job = '';
+    info(id_idx).mem = NaN;
+    info(id_idx).mem_actual = NaN;
    
     if job_id ~= -1
       if strcmpi(ctrl.cluster.type,'torque')
-        cmd = sprintf('qstat -f %d </dev/null', job_id);
-        try; [status,result] = system(cmd); end;
+        cluster_result_idx = find(cluster_job_id == job_id);
+        if isempty(cluster_result_idx)
+          cmd = sprintf('qstat -f %d </dev/null', job_id);
+          try; [status,result] = system(cmd); end;
+          cluster_job_id(end+1) = job_id;
+          cluster_status(end+1) = status;
+          cluster_result{end+1} = result;
+        else
+          status = cluster_status(cluster_result_idx);
+          result = cluster_result{cluster_result_idx};
+        end
         
         if status == 0
           try
@@ -343,12 +374,13 @@ if print_mode == 2
             idx = find(tmp_result==10|tmp_result==13,1);
             tmp_result = tmp_result(1:idx);
             tmp_result(tmp_result==10 | tmp_result==13) = 0;
-            in(id_idx).exec_node = tmp_result;
+            info(id_idx).exec_node = tmp_result;
             if length(tmp_result) > exec_node_max_len
               exec_node_max_len = length(tmp_result);
             end
           end
           
+          % CPU time in minutes
           try
             idx = regexp(result,'resources_used.walltime');
             tmp_result = result(idx:end);
@@ -356,9 +388,12 @@ if print_mode == 2
             tmp_result = tmp_result(idx+2:end);
             idx = find(tmp_result==10|tmp_result==13,1);
             tmp_result = tmp_result(1:idx);
-            in(id_idx).cpu_time_actual = uint32((datenum(tmp_result) - datenum('00:00:00'))*86400/60);
+            if ~isempty(tmp_result)
+              info(id_idx).job = sprintf('=%d/%d', round((datenum(tmp_result) - datenum('00:00:00'))*86400/60), num_tasks);
+            end
           end
           
+          % Memory in megabytes
           try
             idx = regexp(result,'resources_used.mem');
             tmp_result = result(idx:end);
@@ -366,18 +401,21 @@ if print_mode == 2
             tmp_result = tmp_result(idx+2:end);
             idx = find(tmp_result==10|tmp_result==13,1);
             tmp_result = tmp_result(1:idx);
+            [mem,~,~,idx] = sscanf(tmp_result,'%d');
+            tmp_result = tmp_result(idx:end);
             mem_units = sscanf(tmp_result,'%s');
             if strcmpi(mem_units,'mb')
-              in(id_idx).mem = uint32(mem);
+              info(id_idx).mem_actual = uint32(mem);
             elseif strcmpi(mem_units,'kb')
-              in(id_idx).mem = uint32(mem/1e3);
+              info(id_idx).mem_actual = uint32(mem/1e3);
             elseif strcmpi(mem_units,'gb')
-              in(id_idx).mem = uint32(mem*1e3);
+              info(id_idx).mem_actual = uint32(mem*1e3);
             else
-              in(id_idx).mem = uint32(mem/1e6);
+              info(id_idx).mem_actual = uint32(mem/1e6);
             end
           end
           
+          % CPU time requested in minutes
           try
             idx = regexp(result,'Resource_List.walltime');
             tmp_result = result(idx:end);
@@ -385,9 +423,12 @@ if print_mode == 2
             tmp_result = tmp_result(idx+2:end);
             idx = find(tmp_result==10|tmp_result==13,1);
             tmp_result = tmp_result(1:idx);
-            in(id_idx).cpu_time = uint32((datenum(tmp_result) - datenum('00:00:00'))*86400/60);
+            if ~isempty(tmp_result)
+              info(id_idx).job_est = sprintf('=%d/%d', round((datenum(tmp_result) - datenum('00:00:00'))*86400/60), num_tasks);
+            end
           end
           
+          % Memory requested in megabytes
           try
             idx = regexp(result,'Resource_List.pmem');
             tmp_result = result(idx:end);
@@ -399,21 +440,30 @@ if print_mode == 2
             tmp_result = tmp_result(idx:end);
             mem_units = sscanf(tmp_result,'%s');
             if strcmpi(mem_units,'mb')
-              in(id_idx).mem = uint32(mem);
+              info(id_idx).mem = uint32(mem);
             elseif strcmpi(mem_units,'kb')
-              in(id_idx).mem = uint32(mem/1e3);
+              info(id_idx).mem = uint32(mem/1e3);
             elseif strcmpi(mem_units,'gb')
-              in(id_idx).mem = uint32(mem*1e3);
+              info(id_idx).mem = uint32(mem*1e3);
             else
-              in(id_idx).mem = uint32(mem/1e6);
+              info(id_idx).mem = uint32(mem/1e6);
             end
           end
         end
         
       elseif strcmpi(ctrl.cluster.type,'slurm')
-        %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
-        cmd = sprintf('scontrol show job %d </dev/null', job_id);
-        try; [status,result] = system(cmd); end;
+        cluster_result_idx = find(cluster_job_id == job_id);
+        if isempty(cluster_result_idx)
+          %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
+          cmd = sprintf('scontrol show job %d </dev/null', job_id);
+          try; [status,result] = system(cmd); end;
+          cluster_job_id(end+1) = job_id;
+          cluster_status(end+1) = status;
+          cluster_result{end+1} = result;
+        else
+          status = cluster_status(cluster_result_idx);
+          result = cluster_result{cluster_result_idx};
+        end
         
         % This section not completed yet
 
@@ -429,7 +479,7 @@ if print_mode == 2
         retry = retry + 1;
         fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
       end
-      in(id_idx).stdout_retry = retry;
+      info(id_idx).stdout_retry = retry;
       
       retry = 0;
       fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
@@ -437,48 +487,81 @@ if print_mode == 2
         retry = retry + 1;
         fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
       end
-      in(id_idx).stderr_retry = retry;
+      info(id_idx).stderr_retry = retry;
       
       fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',lead_task_id));
       if exist(fn,'file')
-        in(id_idx).stdout = 1;
+        info(id_idx).stdout = 1;
       else
-        in(id_idx).stdout = 0;
+        info(id_idx).stdout = 0;
       end
       fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',lead_task_id));
       if exist(fn,'file')
-        in(id_idx).stderr = 1;
+        info(id_idx).stderr = 1;
       else
-        in(id_idx).stderr = 0;
+        info(id_idx).stderr = 0;
       end
       
     else
-      in(id_idx).stdout = NaN;
-      in(id_idx).stderr = NaN;
+      info(id_idx).stdout = NaN;
+      info(id_idx).stderr = NaN;
     end
     
     % Check input files
     if exist(static_in_fn,'file')
-      in(id_idx).in_static = 1;
+      info(id_idx).in_static = 1;
     else
-      in(id_idx).in_static = 0;
+      info(id_idx).in_static = 0;
     end
     if exist(dynamic_in_fn,'file')
-      in(id_idx).in_dynamic = 1;
+      info(id_idx).in_dynamic = 1;
     else
-      in(id_idx).in_dynamic = 0;
+      info(id_idx).in_dynamic = 0;
     end
     
     % Check output file
     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
     if exist(out_fn,'file')
-      in(id_idx).out = 1;
     else
-      in(id_idx).out = 0;
+    end
+
+    task_in = merge_structs(sparam.static_param,dparam.dparam{id});
+    if isnan(info(id_idx).mem)
+      info(id_idx).mem = task_in.mem/1e6;
     end
     
+    % Read output file
+    out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
+    out{id_idx} = [];
+    try
+      out{id_idx} = load(out_fn);
+      info(id_idx).out = 1;
+      try
+        if isfield(out{id_idx},'errorstruct')
+          if ~isempty(out{id_idx}.errorstruct)
+            fprintf('%s: %s\n', out{id_idx}.errorstruct.identifier, out{id_idx}.errorstruct.message);
+            for stack_idx = 1:length(out{id_idx}.errorstruct.stack)
+              fprintf('  %s: %d\n', out{id_idx}.errorstruct.stack(stack_idx).name, out{id_idx}.errorstruct.stack(stack_idx).line);
+            end
+          end
+        end
+      catch
+        info(id_idx).out = 0;
+      end
+    catch
+      info(id_idx).out = 0;
+    end
+    
+    info(id_idx).task_est = round(task_in.cpu_time/60);
+    if isfield(out{1},'cpu_time_actual')
+      info(id_idx).task = round(out{1}.cpu_time_actual/60);
+    end
+    
+    info(id_idx).notes = task_in.notes;
+    
   end
-
+  in = info;
+  
   fprintf(print_struct(in));
   
   return
