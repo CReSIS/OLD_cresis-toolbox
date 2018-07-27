@@ -35,38 +35,8 @@ if ~isfield(param.collate_coh_noise,'wf_adcs') || isempty(param.collate_coh_nois
   param.collate_coh_noise.wf_adcs = [];
 end
 
-% HACK TO SUPPORT OLD FORMAT... WILL BE REMOVED EVENTUALLY
-old_format = 0;
-if old_format
-  cmd.method = 'sgolayfilt';
-  cmd.K = param.get_heights.coh_noise_arg{1};
-  cmd.F = param.get_heights.coh_noise_arg{2};
-  cmd.W = param.get_heights.coh_noise_arg{3};
-end
-
-if ~isfield(cmd,'mode') || isempty(cmd.mode)
-  cmd.mode = 'DC';
-end
-
 if ~isfield(cmd,'dft_corr_length') || isempty(cmd.dft_corr_length)
   cmd.dft_corr_length = 1e6;
-end
-
-if ~isfield(cmd,'doppler_window') ...
-    || isempty(cmd.doppler_window)
-  doppler_window = hanning(61); doppler_window = doppler_window(1:30); % experimental
-  cmd.doppler_window = doppler_window;
-else
-  cmd.doppler_window = cmd.doppler_window(1:floor(length(cmd.doppler_window)/2));
-  doppler_window = cmd.doppler_window;
-end
-
-if ~isfield(cmd,'doppler_threshold') || isempty(cmd.doppler_threshold)
-  cmd.doppler_threshold = inf;
-end
-
-if ~isfield(cmd,'doppler_grow') || isempty(cmd.doppler_grow)
-  cmd.doppler_grow = 0;
 end
 
 if ~isfield(cmd,'min_samples') || isempty(cmd.min_samples)

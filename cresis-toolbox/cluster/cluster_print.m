@@ -604,7 +604,7 @@ if print_mode == 2
     
     info(id_idx).task_est = round(task_in.cpu_time/60);
     if isfield(out{1},'cpu_time_actual')
-      info(id_idx).task = round(out{1}.cpu_time_actual/60);
+      info(id_idx).task = round(out{id_idx}.cpu_time_actual/60);
     end
     
     info(id_idx).notes = task_in.notes;
