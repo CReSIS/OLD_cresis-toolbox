@@ -113,6 +113,31 @@ if print_mode == 0
       dparam = struct();
     end
     in{id_idx} = merge_structs(sparam.static_param,dparam.dparam{task_id});
+    % Special merge of argsin cell array
+    if isfield(sparam.static_param,'argsin')
+      sparam_argsin_numel = numel(sparam.static_param.argsin);
+    else
+      sparam.static_param.argsin = {};
+      sparam_argsin_numel = 0;
+    end
+    if isfield(dparam.dparam{task_id},'argsin')
+      dparam_argsin_numel = numel(dparam.dparam{task_id}.argsin);
+    else
+      dparam.dparam{task_id}.argsin = {};
+      dparam_argsin_numel = 0;
+    end
+    in{id_idx}.argsin = {};
+    for idx = 1:max(sparam_argsin_numel,dparam_argsin_numel)
+      if idx <= sparam_argsin_numel
+        if idx <= dparam_argsin_numel
+          in{id_idx}.argsin{idx} = merge_structs(sparam.static_param.argsin{idx},dparam.dparam{task_id}.argsin{idx});
+        else
+          in{id_idx}.argsin{idx} = sparam.static_param.argsin{idx};
+        end
+      else
+        in{id_idx}.argsin{idx} = dparam.dparam{task_id}.argsin{idx};
+      end
+    end
     
     %% Read output file
     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
@@ -259,6 +284,31 @@ if print_mode == 1
       dparam = struct();
     end
     in{id_idx} = merge_structs(sparam.static_param,dparam.dparam{task_id});
+    % Special merge of argsin cell array
+    if isfield(sparam.static_param,'argsin')
+      sparam_argsin_numel = numel(sparam.static_param.argsin);
+    else
+      sparam.static_param.argsin = {};
+      sparam_argsin_numel = 0;
+    end
+    if isfield(dparam.dparam{task_id},'argsin')
+      dparam_argsin_numel = numel(dparam.dparam{task_id}.argsin);
+    else
+      dparam.dparam{task_id}.argsin = {};
+      dparam_argsin_numel = 0;
+    end
+    in{id_idx}.argsin = {};
+    for idx = 1:max(sparam_argsin_numel,dparam_argsin_numel)
+      if idx <= sparam_argsin_numel
+        if idx <= dparam_argsin_numel
+          in{id_idx}.argsin{idx} = merge_structs(sparam.static_param.argsin{idx},dparam.dparam{task_id}.argsin{idx});
+        else
+          in{id_idx}.argsin{idx} = sparam.static_param.argsin{idx};
+        end
+      else
+        in{id_idx}.argsin{idx} = dparam.dparam{task_id}.argsin{idx};
+      end
+    end
     
     %% Read output file
     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
