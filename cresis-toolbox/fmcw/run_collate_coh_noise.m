@@ -22,7 +22,7 @@ params = ct_set_params(params,'cmd.generic',1);
 
 % params = ct_set_params(params,'analysis.cmd{1}.method','custom2');
 % params = ct_set_params(params,'analysis.cmd{1}.Wn',0.016);
-        
+
 param_override.collate_coh_noise.in_dir = 'analysis';
 param_override.collate_coh_noise.out_dir = 'analysis';
 param_override.collate_coh_noise.cmd_idx = 1;
@@ -48,6 +48,7 @@ for param_idx = 1:length(params)
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
   end
-  collate_coh_noise(param,param_override);
+%   collate_coh_noise(param,param_override);
+  collate_coh_noise
   
 end

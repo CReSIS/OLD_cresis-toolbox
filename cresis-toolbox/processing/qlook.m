@@ -244,26 +244,26 @@ for frm_idx = 1:length(param.cmd.frms)
   % Determine where breaks in processing blocks are going to occur
   %   Rename variables for readability
   block_size = param.qlook.block_size(1);
-  breaks = 1:block_size:length(recs)-0.5*block_size;
+  blocks = 1:block_size:length(recs)-0.5*block_size;
   
   % Create a cluster task for each block
-  for break_idx = 1:length(breaks)
+  for block_idx = 1:length(blocks)
     
     % Determine the current records being processed
     % =================================================================
-    if break_idx < length(breaks)
-      cur_recs = [recs(breaks(break_idx)) recs(breaks(break_idx+1)-1)];
+    if block_idx < length(blocks)
+      cur_recs = [recs(blocks(block_idx)) recs(blocks(block_idx+1)-1)];
     else
-      cur_recs = [recs(breaks(break_idx)) recs(end)];
+      cur_recs = [recs(blocks(block_idx)) recs(end)];
     end
     
     % Fields required for manual submission to Slurm on Ollie
     if strcmp(param.cluster.type,'ollie')
-      n_breaks(frm_idx) = length(breaks);
+      n_blocks(frm_idx) = length(blocks);
       dynamic_param.frms.(['frm',num2str(frm)]).frm_id = frm;
-      dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).break_id = break_idx;
-      dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).recs = cur_recs;
-      dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break',num2str(break_idx)]).recs_keep = cur_recs;
+      dynamic_param.frms.(['frm',num2str(frm)]).blocks.(['block',num2str(block_idx)]).block_id = block_idx;
+      dynamic_param.frms.(['frm',num2str(frm)]).blocks.(['block',num2str(block_idx)]).recs = cur_recs;
+      dynamic_param.frms.(['frm',num2str(frm)]).blocks.(['block',num2str(block_idx)]).recs_keep = cur_recs;
       continue;
     end
     
@@ -315,7 +315,7 @@ for frm_idx = 1:length(param.cmd.frms)
     % =================================================================
     dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
       sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
-      break_idx, length(breaks), cur_recs(1), cur_recs(end));
+      block_idx, length(blocks), cur_recs(1), cur_recs(end));
     if ctrl.cluster.rerun_only
       % If we are in rerun only mode AND the get heights task success
       % condition passes without error, then we do not run the task.
@@ -362,9 +362,9 @@ if strcmp(param.cluster.type,'ollie')
   fprintf(fid,'%3s\t %5s\n','frm','break');
   frms = fieldnames(dynamic_param.frms);
   for frm_idx = 1:length(param.cmd.frms)
-    breaks = fieldnames(dynamic_param.frms.(frms{frm_idx}).breaks);
-    for break_idx = 1:n_breaks(frm_idx)
-      params = [dynamic_param.frms.(frms{frm_idx}).frm_id, dynamic_param.frms.(frms{frm_idx}).breaks.(breaks{break_idx}).break_id];
+    blocks = fieldnames(dynamic_param.frms.(frms{frm_idx}).blocks);
+    for block_idx = 1:n_blocks(frm_idx)
+      params = [dynamic_param.frms.(frms{frm_idx}).frm_id, dynamic_param.frms.(frms{frm_idx}).blocks.(blocks{block_idx}).block_id];
       formatSpec = '%03d\t %03d\n';
       fprintf(fid,formatSpec,params);
     end

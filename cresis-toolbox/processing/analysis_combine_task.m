@@ -31,13 +31,13 @@ end
 [~,~,radar_name] = ct_output_dir(param.radar_name);
 
 % Break records in segment into blocks
-breaks = 1:param.analysis.block_size:length(records.gps_time);
+blocks = 1:param.analysis.block_size:length(records.gps_time);
 
 % If the last block is less than half the desired block size, then combine
 % with earlier block if possible
-if length(records.gps_time)-breaks(end) < param.analysis.block_size/2 ...
-    && length(breaks) > 1
-  breaks = breaks(1:end-1);
+if length(records.gps_time)-blocks(end) < param.analysis.block_size/2 ...
+    && length(blocks) > 1
+  blocks = blocks(1:end-1);
 end
 
 %% Loop through all given commands from 'analysis'
@@ -48,7 +48,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
   end
   
   if strcmpi(cmd.method,{'saturation'})
-    %% Saturation check
+    %% Saturation
     % ===================================================================
     % ===================================================================
     
@@ -59,10 +59,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
       max_val_gps_time = [];
       max_val_gps_time_adc = [];
       
-      for break_idx = 1:length(breaks)
-        rec_load_start = breaks(break_idx);
+      for block_idx = 1:length(blocks)
+        rec_load_start = blocks(block_idx);
         
-        if break_idx == length(breaks)
+        if block_idx == length(blocks)
           rec_load_stop = length(records.gps_time);
         else
           rec_load_stop = rec_load_start+param.analysis.block_size-1;
@@ -104,7 +104,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     
     
   elseif strcmpi(cmd.method,{'specular'})
-    %% Specular Analysis for Deconvolution
+    %% Specular
     % ===================================================================
     % ===================================================================
     for img = 1:length(param.analysis.imgs)
@@ -129,10 +129,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
         deconv_twtt = [];
         deconv_forced = [];
         deconv_DDC_Mt = [];
-        for break_idx = 1:length(breaks)
-          rec_load_start = breaks(break_idx);
+        for block_idx = 1:length(blocks)
+          rec_load_start = blocks(block_idx);
           
-          if break_idx == length(breaks)
+          if block_idx == length(blocks)
             rec_load_stop = length(records.gps_time);
           else
             rec_load_stop = rec_load_start+param.analysis.block_size-1;
@@ -205,17 +205,19 @@ for cmd_idx = 1:length(param.analysis.cmd)
     
     
   elseif strcmpi(cmd.method,{'coh_noise'})
-    %% Coherent Noise Analysis
+    %% Coh Noise
     % ===================================================================
     % ===================================================================
     for img = 1:length(param.analysis.imgs)
       
-      for wf_adc_idx = cmd.wf_adc_idxs{img}(:).'
-        wf = param.analysis.imgs{1}(wf_adc_idx,1);
-        adc = param.analysis.imgs{1}(wf_adc_idx,2);
+      for wf_adc = cmd.wf_adcs{img}(:).'
+        wf = param.analysis.imgs{1}(wf_adc,1);
+        adc = param.analysis.imgs{1}(wf_adc,2);
         
-        %% Loop through all the coherent noise tracker files and combine
+        %% Coh Noise: Loop through all the coherent noise tracker files and combine
         % =====================================================================
+        Nt = [];
+        t0 = [];
         gps_time = [];
         lat = [];
         lon = [];
@@ -223,21 +225,20 @@ for cmd_idx = 1:length(param.analysis.cmd)
         roll = [];
         pitch = [];
         heading = [];
-        nyquist_zone = [];
-        coh_ave = [];
-        coh_ave_samples = [];
-        doppler_concat = [];
-        for break_idx = 1:length(breaks)
-          rec_load_start = breaks(break_idx);
+        surface = [];
+        coh_ave = {};
+        coh_ave_samples = {};
+        doppler_concat = single([]);
+        for block_idx = 1:length(blocks)
+          rec_load_start = blocks(block_idx);
           
-          if break_idx == length(breaks)
+          if block_idx == length(blocks)
             rec_load_stop = length(records.gps_time);
           else
             rec_load_stop = rec_load_start+param.analysis.block_size-1;
           end
           
-          % =====================================================================
-          % Prepare task inputs
+          % Load each block and concatenate
           % =====================================================================
           cur_recs = [rec_load_start rec_load_stop];
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
@@ -247,36 +248,44 @@ for cmd_idx = 1:length(param.analysis.cmd)
             sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
           
           noise = load(out_fn);
-          if strcmpi(radar_name,'fmcw')
-            if size(noise.coh_ave,1) ~= num_samples
-              warning('A BAD RESAMPLING METHOD IS BEING APPLIED TO THE DATA AND LIKELY TO PRODUCE POOR RESULTS. THIS CODE NEEDS TO BE REPLACED');
-              if any(any(isnan(noise.coh_ave))) || any(any(isnan(noise.coh_ave_samples)))
-                warning('NaN found in noise.coh_ave or noise.coh_ave_samples')
-              end
-              noise.coh_ave = interp1([1:size(noise.coh_ave,1)],noise.coh_ave,linspace(1,size(noise.coh_ave,1),num_samples));
-              noise.coh_ave_samples = interp1([1:size(noise.coh_ave_samples,1)],noise.coh_ave_samples,linspace(1,size(noise.coh_ave_samples,1),num_samples));
-            end
-          end
           
-          gps_time = cat(2,gps_time,noise.gps_time);
-          lat = cat(2,lat,noise.lat);
-          lon = cat(2,lon,noise.lon);
-          elev = cat(2,elev,noise.elev);
-          roll = cat(2,roll,noise.roll);
-          pitch = cat(2,pitch,noise.pitch);
-          heading = cat(2,heading,noise.heading);
-          nyquist_zone = cat(2,nyquist_zone,noise.nyquist_zone);
-          coh_ave = cat(2,coh_ave,noise.coh_ave);
-          coh_ave_samples = cat(2,coh_ave_samples,noise.coh_ave_samples);
+          Nt(block_idx) = noise.Nt;
+          t0(block_idx) = noise.t0;
+          
+          gps_time(end+(1:length(noise.gps_time))) = noise.gps_time;
+          lat(end+(1:length(noise.lat))) = noise.lat;
+          lon(end+(1:length(noise.lon))) = noise.lon;
+          elev(end+(1:length(noise.elev))) = noise.elev;
+          roll(end+(1:length(noise.roll))) = noise.roll;
+          pitch(end+(1:length(noise.pitch))) = noise.pitch;
+          heading(end+(1:length(noise.heading))) = noise.heading;
+          surface(end+(1:length(noise.surface))) = noise.surface;
+          
+          % coh_ave and coh_ave_samples may be different lengths, so we
+          % just concatenate in cell arrays
+          coh_ave{block_idx} = noise.coh_ave;
+          coh_ave_samples{block_idx} = noise.coh_ave_samples;
+          
           noise.doppler = reshape(noise.doppler,[numel(noise.doppler) 1]);
-          if break_idx > 1 && size(noise.doppler,1) ~= size(doppler_concat,1)
-            % Block was a different size than other Doppler spectrums, re-sample
-            % so that it can be stored in the output matrix
-            noise.doppler = interp1(0:numel(noise.doppler)-1,noise.doppler,linspace(0,numel(noise.doppler)-1,size(doppler_concat,1)).');
+          if block_idx == 1
+            doppler_concat = noise.doppler;
+          else
+            if size(noise.doppler,1) ~= size(doppler_concat,1)
+              % Block was a different size than other Doppler spectrums, re-sample
+              % so that it can be stored in the output matrix
+              noise.doppler = interp1(0:numel(noise.doppler)-1,noise.doppler,linspace(0,numel(noise.doppler)-1,size(doppler_concat,1)).');
+            end
+            doppler_concat(:,end+1) = noise.doppler;
           end
-          doppler_concat = cat(2,doppler_concat,noise.doppler);
           
         end
+
+        % Constant noise fields carried over from last file loaded:
+        %   dt, fc, param_analysis, param_records
+        
+        % Overwrite concatenated dynamic fields for the whole segment:
+        noise.Nt = Nt;
+        noise.t0 = t0;
         
         noise.gps_time = gps_time;
         noise.lat = lat;
@@ -285,10 +294,13 @@ for cmd_idx = 1:length(param.analysis.cmd)
         noise.roll = roll;
         noise.pitch = pitch;
         noise.heading = heading;
-        noise.nyquist_zone = nyquist_zone;
+        noise.surface = surface;
+        
         noise.coh_ave = coh_ave;
         noise.coh_ave_samples = coh_ave_samples;
+        
         noise.doppler = doppler_concat;
+        
         out_fn_dir = fileparts(out_fn);
         out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
@@ -303,7 +315,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
     % ===================================================================
     % ===================================================================
     
-    %% Loop through all the surface tracker files and combine
+    %% Waveform: Loop through all the surface tracker files and combine
     % =====================================================================
     for img = 1:length(param.analysis.imgs)
       gps_time = [];
@@ -315,10 +327,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
       heading = [];
       surf_vals = [];
       surf_bins = [];
-      for break_idx = 1:length(breaks)
-        rec_load_start = breaks(break_idx);
+      for block_idx = 1:length(blocks)
+        rec_load_start = blocks(block_idx);
         
-        if break_idx == length(breaks)
+        if block_idx == length(blocks)
           rec_load_stop = length(records.gps_time);
         else
           rec_load_stop = rec_load_start+param.analysis.block_size-1;
@@ -366,11 +378,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
     
     
   elseif strcmpi(cmd.method,{'statistics'})
-    %% Statistical analysis
+    %% Statistics
     % ===================================================================
     % ===================================================================
     
-    %% Loop through all the power files and combine
+    %% Statistics: Loop through all the power files and combine
     % =====================================================================
     for img = 1:length(param.analysis.imgs)
       gps_time = [];
@@ -382,10 +394,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
       heading = [];
       power_vals = [];
       power_bins = [];
-      for break_idx = 1:length(breaks)
-        rec_load_start = breaks(break_idx);
+      for block_idx = 1:length(blocks)
+        rec_load_start = blocks(block_idx);
         
-        if break_idx == length(breaks)
+        if block_idx == length(blocks)
           rec_load_stop = length(records.gps_time);
         else
           rec_load_stop = rec_load_start+param.analysis.block_size-1;
@@ -431,7 +443,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
       save(out_segment_fn,'-v7.3','-struct','power');
     end
     
-    %% Loop through all the psd (power spectral density) files and combine
+    %% Statistics: Loop through all the psd (power spectral density) files and combine
     % =====================================================================
     for img = 1:length(param.analysis.imgs)
       gps_time = [];
@@ -445,10 +457,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
       psd_bins = [];
       psd_mean = [];
       psd_Rnn = [];
-      for break_idx = 1:length(breaks)
-        rec_load_start = breaks(break_idx);
+      for block_idx = 1:length(blocks)
+        rec_load_start = blocks(block_idx);
         
-        if break_idx == length(breaks)
+        if block_idx == length(blocks)
           rec_load_stop = length(records.gps_time);
         else
           rec_load_stop = rec_load_start+param.analysis.block_size-1;

@@ -65,7 +65,7 @@ for img = 1:length(param.load.imgs)
     end
     
     if strcmpi(cmd.method,{'saturation'})
-      %% Saturation check
+      %% Saturation
       % ===================================================================
       % ===================================================================
       
@@ -122,7 +122,7 @@ for img = 1:length(param.load.imgs)
       
       
     elseif strcmpi(cmd.method,{'specular'})
-      %% Specular Analysis for Deconvolution
+      %% Specular
       % ===================================================================
       % ===================================================================
       
@@ -341,8 +341,8 @@ for img = 1:length(param.load.imgs)
         wf = tmp_param.analysis.imgs{1}(wf_adc,1);
         adc = tmp_param.analysis.imgs{1}(wf_adc,2);
         
-        coh_ave_samples = [];
-        coh_ave = [];
+        coh_ave_samples = single([]);
+        coh_ave = single([]);
         nyquist_zone = [];
         gps_time = [];
         surface = [];
@@ -366,7 +366,7 @@ for img = 1:length(param.load.imgs)
         %% Coh Noise: Doppler
         % Implement memory efficient fft operations by doing one bin at a
         % time
-        doppler = zeros(1,size(data,2));
+        doppler = zeros(1,size(data,2),'single');
         num_bins = 0;
         for rbin=1:size(data,1)
           tmp = abs(fft(data(rbin,:))).^2;
@@ -440,8 +440,10 @@ for img = 1:length(param.load.imgs)
         end
         
         %% Coh Noise: Save results
-        time = tmp_hdr.time{1};
-        freq = tmp_hdr.freq{1};
+        Nt = length(tmp_hdr.time{1});
+        fc = tmp_hdr.freq{1}(1);
+        t0 = tmp_hdr.time{1}(1);
+        dt = tmp_hdr.time{1}(2)-tmp_hdr.time{1}(1);
         
         out_fn = fullfile(ct_filename_out(tmp_param, cmd.out_path), ...
           sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
@@ -451,19 +453,19 @@ for img = 1:length(param.load.imgs)
         end
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s\n', out_fn);
-        save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'time', 'freq', 'gps_time', 'surface', 'lat', ...
+        save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
           'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone');
       end
       
     elseif strcmpi(cmd.method,{'waveform'})
-      %% Waveform extraction
+      %% Waveform
       % ===================================================================
       % ===================================================================
       
-      %% 1. Load layer
+      %% Waveform: Load layer
       layers = opsLoadLayers(param,param.analysis.surf.layer_params);
       
-      %% 2. Extract surface values according to bin_rng
+      %% Waveform: Extract surface values according to bin_rng
       layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
       layers(1).twtt = interp_finite(layers(1).twtt,0);
       zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
@@ -479,7 +481,7 @@ for img = 1:length(param.load.imgs)
         surf_bins(1:2,rline) = [start_bin0, stop_bin0];
       end
       
-      %% 3. Save
+      %% Waveform: Save
       out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
         sprintf('surf_img_%02d_%d_%d.mat',img,task_recs));
       [out_fn_dir] = fileparts(out_fn);
@@ -494,14 +496,14 @@ for img = 1:length(param.load.imgs)
       
       
     elseif strcmpi(cmd.method,{'statistics'})
-      %% Statistical analysis
+      %% Statistics
       % ===================================================================
       % ===================================================================
       
-      %% 1. Load layers (there should be two)
+      %% Statistics: Load layers (there should be two)
       layers = opsLoadLayers(param,param.analysis.power.layer_params);
       
-      %% 2. Run function handles on the layers
+      %% Statistics: Run function handles on the layers
       layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
       layers(1).twtt = interp_finite(layers(1).twtt,0);
       start_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
@@ -518,7 +520,7 @@ for img = 1:length(param.load.imgs)
         end
       end
       
-      %% 3. Save
+      %% Statistics: Save
       out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
         sprintf('power_img_%02d_%d_%d.mat',img,task_recs));
       [out_fn_dir] = fileparts(out_fn);
@@ -531,38 +533,38 @@ for img = 1:length(param.load.imgs)
       save(out_fn,'-v7.3', 'power_vals','power_bins', 'wfs', 'gps_time', 'lat', ...
         'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
       
-      %% 1. Load layer
-      layers = opsLoadLayers(param,param.analysis.psd.layer_params);
-      
-      %% 2. Extract psd values according to bin_rng
-      layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
-      layers(1).twtt = interp_finite(layers(1).twtt,0);
-      zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
-      start_bin = zero_bin;
-      stop_bin = param.analysis.psd.Nt-1 + zero_bin;
-      psd_vals = zeros(param.analysis.psd.Nt, size(data,2), size(data,3));
-      psd_mean = zeros(1, size(data,2), size(data,3));
-      psd_Rnn = zeros(size(data,3), size(data,2), size(data,3));
-      for rline = 1:size(data,2)
-        start_bin0 = max(1,start_bin(rline));
-        stop_bin0 = min(size(data,1),stop_bin(rline));
-        out_bin0 = 1 + start_bin0-start_bin(rline);
-        out_bin1 = size(psd_vals,1) - (stop_bin(rline)-stop_bin0);
-        psd_vals(out_bin0:out_bin1,rline,:) = data(start_bin0:stop_bin0,rline,:);
-        psd_bins(1:2,rline) = [start_bin0, stop_bin0];
-        psd_mean(1,rline,:) = mean(abs(data(start_bin0:stop_bin0,rline,:)).^2);
-        snapshots = squeeze(data(start_bin0:stop_bin0,rline,:)).';
-        psd_Rnn(:,rline,:) = 1/(stop_bin0-start_bin0+1) * snapshots * snapshots';
-      end
-      psd_vals = mean(abs(fft(psd_vals)).^2,2);
-      
-      %% 3. Save
-      
-      param_analysis = param;
-      param_analysis.gps_source = records.gps_source;
-      fprintf('  Saving outputs %s\n', out_fn);
-      save(out_fn,'-v7.3', 'psd_vals','psd_bins', 'psd_mean', 'psd_Rnn', 'wfs', 'gps_time', 'lat', ...
-        'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+%       %% 1. Load layer
+%       layers = opsLoadLayers(param,param.analysis.psd.layer_params);
+%       
+%       %% 2. Extract psd values according to bin_rng
+%       layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
+%       layers(1).twtt = interp_finite(layers(1).twtt,0);
+%       zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
+%       start_bin = zero_bin;
+%       stop_bin = param.analysis.psd.Nt-1 + zero_bin;
+%       psd_vals = zeros(param.analysis.psd.Nt, size(data,2), size(data,3));
+%       psd_mean = zeros(1, size(data,2), size(data,3));
+%       psd_Rnn = zeros(size(data,3), size(data,2), size(data,3));
+%       for rline = 1:size(data,2)
+%         start_bin0 = max(1,start_bin(rline));
+%         stop_bin0 = min(size(data,1),stop_bin(rline));
+%         out_bin0 = 1 + start_bin0-start_bin(rline);
+%         out_bin1 = size(psd_vals,1) - (stop_bin(rline)-stop_bin0);
+%         psd_vals(out_bin0:out_bin1,rline,:) = data(start_bin0:stop_bin0,rline,:);
+%         psd_bins(1:2,rline) = [start_bin0, stop_bin0];
+%         psd_mean(1,rline,:) = mean(abs(data(start_bin0:stop_bin0,rline,:)).^2);
+%         snapshots = squeeze(data(start_bin0:stop_bin0,rline,:)).';
+%         psd_Rnn(:,rline,:) = 1/(stop_bin0-start_bin0+1) * snapshots * snapshots';
+%       end
+%       psd_vals = mean(abs(fft(psd_vals)).^2,2);
+%       
+%       %% 3. Save
+%       
+%       param_analysis = param;
+%       param_analysis.gps_source = records.gps_source;
+%       fprintf('  Saving outputs %s\n', out_fn);
+%       save(out_fn,'-v7.3', 'psd_vals','psd_bins', 'psd_mean', 'psd_Rnn', 'wfs', 'gps_time', 'lat', ...
+%         'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
     end
     
   end

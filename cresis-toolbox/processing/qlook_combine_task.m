@@ -115,16 +115,16 @@ for frm_idx = 1:length(param.cmd.frms);
     % Determine where breaks in processing blocks are going to occur
     %   Rename variables for readability
     block_size = param.qlook.block_size(1);
-    breaks = 1:block_size:length(recs)-0.5*block_size;
+    blocks = 1:block_size:length(recs)-0.5*block_size;
     
     % Load each block
-    for break_idx = 1:length(breaks)
+    for block_idx = 1:length(blocks)
       
       % Determine the records for this block
-      if break_idx < length(breaks)
-        cur_recs_keep = [recs(breaks(break_idx)) recs(breaks(break_idx+1)-1)];
+      if block_idx < length(blocks)
+        cur_recs_keep = [recs(blocks(block_idx)) recs(blocks(block_idx+1)-1)];
       else
-        cur_recs_keep = [recs(breaks(break_idx)) recs(end)];
+        cur_recs_keep = [recs(blocks(block_idx)) recs(end)];
       end
       
       in_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
@@ -162,7 +162,7 @@ for frm_idx = 1:length(param.cmd.frms);
         % Custom fields are present, so concatenate them on the second dimension
         % - Used for deconvolution waveform index
         fields = fieldnames(tmp.custom);
-        if break_idx == 1
+        if block_idx == 1
           for field_idx = 1:length(fields)
             custom.(fields{field_idx}) = tmp.custom.(fields{field_idx});
           end

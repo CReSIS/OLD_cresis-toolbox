@@ -284,24 +284,42 @@ for img = 1:length(param.load.imgs)
     %% Remove coherent noise for deramp radar
     % ===================================================================
     if strcmpi(radar_type,'deramp')
+      
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
         cdf_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
         cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
         
         finfo = ncinfo(cdf_fn);
-        % Determine number of records and set recs(1) to this
-        Nt = finfo.Variables(find(strcmp('coh_aveI',{finfo.Variables.Name}))).Size(2);
         
         noise = [];
+        noise.start_bin = ncread(cdf_fn,'start_bin');
+        noise.dt = ncread(cdf_fn,'dt');
+        noise.dft_freqs = ncread(cdf_fn,'dft_freqs');
+        noise.recs = ncread(cdf_fn,'recs');
         noise.gps_time = ncread(cdf_fn,'gps_time');
-        recs = find(noise.gps_time > hdr.gps_time(1) - 100 & noise.gps_time < hdr.gps_time(end) + 100);
-        noise.gps_time = noise.gps_time(recs);
+        noise.Nx = length(noise.gps_time);
         
-        noise.coh_ave = ncread(cdf_fn,'coh_aveI',[recs(1) 1],[recs(end)-recs(1)+1 Nt]) ...
-          + 1i*ncread(cdf_fn,'coh_aveQ',[recs(1) 1],[recs(end)-recs(1)+1 Nt]);
+        dt = hdr.time{img}(2)-hdr.time{img}(1);
+        if abs(noise.dt-dt)/dt > 1e-6
+          error('There is fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g).', dt, noise.dt);
+        end
+        start_bin = round(hdr.time{img}(1)/dt);
         
-        data{img}(1:wfs(wf).Nt,:,wf_adc) = data{img}(1:wfs(wf).Nt,:,wf_adc) ...
-          -interp1(reshape(noise.gps_time,[numel(noise.gps_time) 1]),noise.coh_ave,hdr.gps_time,'linear','extrap').';
+        % Nt by Nx_dft matrix (we grab a subset of the Nt samples)
+        noise.dft = ncread(cdf_fn,'dftI',[start_bin-noise.start_bin+1 1],[wfs(wf).Nt inf]) ...
+          + 1i*ncread(cdf_fn,'dftQ',[start_bin-noise.start_bin+1 1],[wfs(wf).Nt inf]);
+
+        recs = interp1(noise.gps_time, noise.recs, hdr.gps_time);
+        
+        for dft_idx = 1:length(noise.dft_freqs)
+          % mf: matched filter
+          % noise.dft(bin,dft_idx): Coefficient for the matched filter
+          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+          for bin = 1:wfs(wf).Nt
+            data{img}(bin,:,wf_adc) = data{img}(bin,:,wf_adc) ...
+              - noise.dft(bin,dft_idx) * mf;
+          end
+        end
         
       elseif strcmpi(wfs(wf).coh_noise_method,'estimated')
         % Apply coherent noise methods that require estimates derived now
@@ -326,9 +344,6 @@ for img = 1:length(param.load.imgs)
     end
     
     %% Deconvolution for deramp radar
-    % ===================================================================
-    
-    %% Subband
     % ===================================================================
     
   end

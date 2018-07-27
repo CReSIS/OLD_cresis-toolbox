@@ -142,8 +142,8 @@ for img = param.collate_deconv.imgs
     fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
     spec = load(fn);
     
-    warning('PADEN: HACK TO REMOVE:');
-    spec.param_analysis.radar.wfs.ft_wind = @hanning;
+%     warning('PADEN: HACK TO REMOVE:');
+%     spec.param_analysis.radar.wfs.ft_wind = @hanning;
 %     spec.param_analysis.radar.wfs(1).fc=     1.000000000000000e+10;
 %     spec.param_analysis.radar.wfs(1).chirp_rate=     6.666666666666666e+13;
 %     spec.param_analysis.radar.wfs(1).fs_raw=   250000000;
