@@ -47,9 +47,6 @@ if ~isfield(cmd,'power_grow') || isempty(cmd.power_grow)
   cmd.power_grow = 1;
 end
 
-param.collate_coh_noise.imgs = 1;
-param.collate_coh_noise.wf_adcs = [];
-
 for img = param.collate_coh_noise.imgs
   
   if isempty(param.collate_coh_noise.wf_adcs)
@@ -124,6 +121,7 @@ for img = param.collate_coh_noise.imgs
     noise_simp.param_collate = param;
     noise_simp.datestr = datestr(now);
     noise_simp.recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
+    noise_simp.file_version = '1';
     
     %% Store the simplified output in netcdf file
     % =====================================================================

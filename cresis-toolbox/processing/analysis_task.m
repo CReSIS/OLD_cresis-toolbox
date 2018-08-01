@@ -155,6 +155,7 @@ for img = 1:length(param.load.imgs)
         [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
+        
         data = data{1};
       
       

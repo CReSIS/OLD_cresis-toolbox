@@ -420,6 +420,7 @@ for img = 1:length(param.analysis.imgs)
           sparam.success = cat(2,sparam.success, ...
             sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn);
             delete(out_fn);
           end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
@@ -441,6 +442,7 @@ for img = 1:length(param.analysis.imgs)
           sparam.success = cat(2,sparam.success, ...
             sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn);
             delete(out_fn);
           end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
@@ -462,6 +464,7 @@ for img = 1:length(param.analysis.imgs)
           sparam.success = cat(2,sparam.success, ...
             sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn);
             delete(out_fn);
           end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;

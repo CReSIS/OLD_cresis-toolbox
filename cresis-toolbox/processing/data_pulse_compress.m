@@ -270,7 +270,7 @@ for img = 1:length(param.load.imgs)
           df = 1/T;
           hdr.freq{img} = fc + df * ifftshift(-floor(wfs(wf).Nt/2) : floor((wfs(wf).Nt-1)/2)).';
         end
-        % Fancy way to copy to make this more efficient for very large
+        % Method of copying to make this more efficient for very large
         % complex (real/imag) arrays. Lots of small matrix operations on
         % huge complex matrices is very slow in matlab. Real only matrices
         % are very fast though.
@@ -292,7 +292,7 @@ for img = 1:length(param.load.imgs)
           imD(1:cur_idx_start-1,rec,wf_adc) = NaN;
           imD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
         end
-        data{img}(1:wfs(wf).Nt,:,wf_adc) = reD + 1i*imD;
+        data{img}(1:wfs(wf).Nt,:,wf_adc) = reD(1:wfs(wf).Nt,:) + 1i*imD(1:wfs(wf).Nt,:);
         
       elseif strcmpi(radar_type,'stepped')
         
@@ -325,8 +325,10 @@ for img = 1:length(param.load.imgs)
         cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
         
         finfo = ncinfo(cdf_fn);
-        
+
         noise = [];
+        hdr.custom.coh_noise = ncread(cdf_fn,'datestr');
+        hdr.custom.coh_noise = hdr.custom.coh_noise(:);
         noise.start_bin = ncread(cdf_fn,'start_bin');
         noise.dt = ncread(cdf_fn,'dt');
         noise.dft_freqs = ncread(cdf_fn,'dft_freqs');
@@ -385,6 +387,8 @@ for img = 1:length(param.load.imgs)
       deconv_fn = fullfile(fileparts(ct_filename_out(param,wfs(wf).deconv.fn, '')), ...
         sprintf('deconv_%s_wf_%d_adc_%d.mat',param.day_seg, wf, adc));
       deconv = load(deconv_fn);
+      hdr.custom.deconv = final.param_collate_deconv_final.sw_version.cur_date_time;
+      hdr.custom.deconv = hdr.custom.deconv(:);
       
       deconv_map_idxs = interp1(deconv.map_gps_time,deconv.map_idxs,hdr.gps_time,'nearest');
       max_score = interp1(deconv.map_gps_time,deconv.max_score,hdr.gps_time,'nearest');
@@ -406,6 +410,7 @@ for img = 1:length(param.load.imgs)
         % Get the reference function
         h_nonnegative = deconv.ref_nonnegative{deconv_map_idx};
         h_negative = deconv.ref_negative{deconv_map_idx};
+        h_mult_factor = deconv.ref_mult_factor(deconv_map_idx);
         
         % Adjust deconvolution signal to match sample rline
         h_filled = [h_nonnegative; zeros(wfs(wf).Nt-length(h_nonnegative)-length(h_negative),1); h_negative];
@@ -428,21 +433,16 @@ for img = 1:length(param.load.imgs)
         
         % Create inverse filter relative to window
         freq = fftshift(hdr.freq{img});
-        Nt_shorten = find(deconv.cmd.f0 <= freq,1);
-        Nt_shorten(2) = length(freq) - find(deconv.cmd.f1 >= freq,1,'last');
+        cmd = deconv.param_collate_deconv.analysis.cmd{deconv.param_collate_deconv.collate_deconv.cmd_idx};
+        Nt_shorten = find(cmd.f0 <= freq,1);
+        Nt_shorten(2) = length(freq) - find(cmd.f1 >= freq,1,'last');
         Nt_Hwind = wfs(wf).Nt - sum(Nt_shorten);
         Hwind = deconv.ref_window(Nt_Hwind);
         Hwind_filled = ifftshift([zeros(Nt_shorten(1),1); Hwind; zeros(Nt_shorten(end),1)]);
         h_filled_inverse = Hwind_filled ./ h_filled;
         
-        % Normalize deconvolution filter
-        time_domain_ref = ifft(h_filled_inverse);
-        h_filled_inverse = h_filled_inverse ...
-          ./ dot(time_domain_ref,time_domain_ref);
-        
-        % Scale reflection assuming 0 dB at this range, R, to be: (1/R.^2)
-        R = deconv.twtt(deconv_map_idx) * c/2;
-        h_filled_inverse = h_filled_inverse * R.^-2;
+        % Normalize deconvolution
+        h_filled_inverse = h_filled_inverse * h_mult_factor;
         
         % Apply deconvolution filter
         data{img}(1:wfs(wf).Nt,deconv_mask,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,deconv_mask,wf_adc)), h_filled_inverse));

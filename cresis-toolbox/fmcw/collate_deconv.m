@@ -71,6 +71,11 @@ if ~isfield(param.collate_deconv,'min_score') || isempty(param.collate_deconv.mi
   param.collate_deconv.min_score = -10;
 end
 
+if ~isfield(param.collate_deconv,'Mt') || isempty(param.collate_deconv.Mt)
+  param.collate_deconv.Mt = 10;
+end
+Mt = param.collate_deconv.Mt;
+
 if ~isfield(param.collate_deconv,'out_dir') || isempty(param.collate_deconv.out_dir)
   param.collate_deconv.out_dir = 'analysis';
 end
@@ -159,6 +164,7 @@ end
 %  deconv.ref_window: reference window function handle
 %  deconv.ref_nonnegative: impulse responses for non-negative time, Nt_nonneg by Nx
 %  deconv.ref_negative: impulse responses for negative time, Nt_neg by Nx
+%  deconv.ref_mult_factor: multiplication factor for deconv wf, 1 by Nx
 %  deconv.impulse_reponse: deconvolved impulse reponse: Nt by Nx
 %  deconv.metric: metrics for each impulse response: 6 by Nx
 %  deconv.peakiness: peakiness score of each response: 1 by Nx
@@ -193,20 +199,6 @@ if param.collate_deconv.stage_one_en
       fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
       spec = load(fn);
       
-      % PADEN HACK
-      rline = 1;
-      Nt = length(spec.deconv_sample{rline});
-      df = spec.deconv_freq{rline}(2) - spec.deconv_freq{rline}(1);
-      B = df*Nt;
-      spec.dt = 1/B;
-      for rline = 1:length(spec.deconv_gps_time)
-        spec.deconv_fc(rline) = spec.deconv_freq{rline}(1);
-      end
-      spec.surface = 3e-6*ones(size(spec.lat));
-      spec.surface = spec.elev / (3e8/2);
-      spec = rmfield(spec,'deconv_freq');
-      %       return
-      
       %% Preallocate Outputs
       deconv = [];
       deconv.gps_time = [];
@@ -225,6 +217,7 @@ if param.collate_deconv.stage_one_en
       end
       deconv.ref_nonnegative = [];
       deconv.ref_negative = [];
+      deconv.ref_mult_factor = [];
       deconv.impulse_response = {};
       deconv.metric = [];
       deconv.peakiness = [];
@@ -233,17 +226,16 @@ if param.collate_deconv.stage_one_en
       if strcmpi(radar_type,'deramp')
         deconv.twtt = spec.deconv_twtt;
       end
+      param.analysis.cmd{param.collate_deconv.cmd_idx} = cmd;
       deconv.param_collate_deconv = param;
       deconv.param_analysis = spec.param_analysis;
       deconv.param_records = spec.param_records;
-      deconv.cmd = cmd;
+      deconv.file_version = '1';
       
       %% Handle the case where no specular targets were found
       % ===================================================================
       if size(spec.deconv_mean,2) == 0
         warning('This segment has no deconvolution waveforms');
-        fn_out = fullfile(fn_dir,sprintf('deconv_tmp_%s.mat',spec.param_analysis.day_seg));
-        save(fn_out,'-struct','final');
         continue;
       end
       
@@ -360,10 +352,6 @@ if param.collate_deconv.stage_one_en
         end
         % Take FFT of deconvolution impulse response
         h_filled = fft(h_filled);
-        % Normalize impulse response (just for plotting)
-        time_domain_ref = ifft(h_filled);
-        h_filled = h_filled ...
-          ./ dot(time_domain_ref,time_domain_ref);
         
         % Create inverse filter relative to window
         df = 1/(Nt*dt);
@@ -376,23 +364,24 @@ if param.collate_deconv.stage_one_en
         Hwind_filled = ifftshift([zeros(Nt_shorten(1),1); Hwind; zeros(Nt_shorten(end),1)]);
         h_filled_inverse = Hwind_filled ./ h_filled;
         
-        % Normalize deconvolution filter
-        time_domain_ref = ifft(h_filled_inverse);
-        h_filled_inverse = h_filled_inverse ...
-          ./ dot(time_domain_ref,time_domain_ref);
-        
-        % Scale reflection assuming 0 dB at this range, R, to be: (1/R.^2)
+        % Normalize so that reflection is 0 dB (i.e. we assume this
+        % specular target is a perfect reflector) at this range, R when
+        % voltage is scaled R.
         R = interp1(spec.gps_time,spec.surface,spec.deconv_gps_time(rline)) * c/2;
-        h_filled_inverse = h_filled_inverse * R.^-2;
-        
-        % Apply deconvolution filter
-        Mt = 10;
-        h_deconvolved = ifft(fft(spec.deconv_sample{rline}) .* h_filled_inverse) * R.^2;
+        % Apply deconvolution with unnormalized filter
+        h_deconvolved = ifft(fft(spec.deconv_sample{rline}) .* h_filled_inverse);
+        % Oversample to get a good measurement of the peak value
         h_deconvolved = interpft(h_deconvolved,Mt*Nt);
+        % Scale so that the peak value is 0dB at param.collate_deconv.R_norm range
+        h_mult_factor = param.collate_deconv.R_norm / (R*max(abs(h_deconvolved)));
+        h_filled_inverse = h_filled_inverse * h_mult_factor;
+        h_deconvolved = h_deconvolved * h_mult_factor;
+
+        % Oversample sample signal by the same amount as the deconvolution
+        h_sample = interpft(spec.deconv_sample{rline},Mt*Nt);
         
-        h_sample = spec.deconv_sample{rline};
-        h_sample = interpft(h_sample,Mt*Nt);
-        
+        % Find maximum values and indices for the deconvolved and
+        % undeconvolved signals.
         [deconv_max_val,deconv_max_idx] = max(h_deconvolved);
         [max_val,max_idx] = max(h_sample);
         
@@ -529,6 +518,7 @@ if param.collate_deconv.stage_one_en
         deconv.fc(rline) = spec.deconv_fc(rline);
         deconv.ref_nonnegative{rline} = h_nonnegative;
         deconv.ref_negative{rline} = h_negative;
+        deconv.ref_mult_factor(rline) = h_mult_factor;
         deconv.impulse_response{rline} = h_deconvolved;
         
       end
@@ -665,6 +655,16 @@ if param.collate_deconv.stage_one_en
       end
       out_fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
+      file_locked = false;
+      if exist(out_fn,'file')
+        tmp = load(out_fn,'file_version');
+        if isfield(tmp,'file_version')
+          file_locked = ~isempty(tmp.file_version=='L');
+        end
+      end
+      if file_locked
+        error('  File is locked.');
+      end
       save(out_fn,'-v7.3','-struct','deconv');
       
     end
@@ -691,7 +691,7 @@ if param.collate_deconv.stage_two_en
       for day_seg_idx = 1:length(cmd.day_segs)
         day_seg = cmd.day_segs{day_seg_idx};
         fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', day_seg, wf, adc));
-        fprintf('Loading %s img %d wf %d adc %d\n  %s\n', fn, img, wf, adc, fn);
+        fprintf('Loading %s img %d wf %d adc %d\n  %s\n', day_seg, img, wf, adc, fn);
         deconv = load(fn);
         
         deconv.day_seg = repmat({day_seg},[length(deconv.gps_time) 1]);
@@ -750,6 +750,7 @@ if param.collate_deconv.stage_two_en
       final.ref_window = deconv.ref_window;
       final.ref_nonnegative = deconv.ref_nonnegative(max_idxs);
       final.ref_negative = deconv.ref_negative(max_idxs);
+      final.ref_mult_factor = deconv.ref_mult_factor(max_idxs);
       final.impulse_response = deconv.impulse_response(max_idxs);
       final.metric = deconv.metric(:,max_idxs);
       final.peakiness = deconv.peakiness(max_idxs);
@@ -760,11 +761,11 @@ if param.collate_deconv.stage_two_en
       final.param_collate_deconv = deconv.param_collate_deconv;
       final.param_analysis = deconv.param_analysis;
       final.param_records = deconv.param_records;
-      final.cmd = deconv.cmd;
       final.map_day_seg = deconv.day_seg(max_idxs);
       final.map_gps_time = layer.gps_time;
       final.map_idxs = max_idxs_mapping(:).';
       final.max_score = max_score;
+      final.file_version = '1';
       
       % 7. Store final output file
       fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
@@ -773,6 +774,7 @@ if param.collate_deconv.stage_two_en
       end
       out_fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
+      ct_file_lock_check(out_fn);
       save(out_fn,'-v7.3','-struct','final');
       
     end

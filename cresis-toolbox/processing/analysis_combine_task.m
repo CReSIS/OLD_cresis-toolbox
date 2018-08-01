@@ -112,9 +112,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         wf = param.analysis.imgs{1}(wf_adc,1);
         adc = param.analysis.imgs{1}(wf_adc,2);
         
-      save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
-          'deconv_forced','peakiness', 'fc', 't0', 'dt', 'gps_time', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
         spec = [];
         spec.deconv_fc = [];
         spec.deconv_t0 = [];
@@ -184,10 +181,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
         spec.dt = spec_in.dt;
         spec.param_analysis = spec_in.param_analysis;
         spec.param_records = spec_in.param_records;
+        spec.file_version = '1';
         out_fn_dir = fileparts(out_fn);
         out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+        ct_file_lock_check(out_segment_fn);
         save(out_segment_fn,'-v7.3','-struct','spec');
       end
     end
@@ -290,10 +289,13 @@ for cmd_idx = 1:length(param.analysis.cmd)
         
         noise.doppler = doppler_concat;
         
+        noise.file_version = '1';
+        
         out_fn_dir = fileparts(out_fn);
         out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+        ct_file_lock_check(out_segment_fn);
         save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
       end
     end
