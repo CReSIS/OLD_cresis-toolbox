@@ -222,6 +222,7 @@ for img = 1:length(param.load.imgs)
         roll = tmp_hdr.records{1,wf_adc}.roll(peakiness_rlines);
         pitch = tmp_hdr.records{1,wf_adc}.pitch(peakiness_rlines);
         heading = tmp_hdr.records{1,wf_adc}.heading(peakiness_rlines);
+        surface = tmp_hdr.records{1,wf_adc}.surface(peakiness_rlines);
         
         %% Specular: Forced GPS Check
         deconv_forced = zeros(size(final_good_rlines));
@@ -251,7 +252,6 @@ for img = 1:length(param.load.imgs)
         deconv_std = {};
         deconv_sample = {};
         deconv_twtt = [];
-        deconv_DDC_Mt = [];
         for good_rline_idx = 1:length(final_good_rlines)
           % Get the specific STFT group we will be extracting an answer from
           final_good_rline = final_good_rlines(good_rline_idx);
@@ -297,7 +297,7 @@ for img = 1:length(param.load.imgs)
           Nt = tmp_hdr.Nt{1,wf_adc}(rline);
           comp_data = ifft(fft(data(:,center_rline+STFT_rlines,wf_adc)) .* exp(1i*2*pi*tmp_hdr.freq{1,wf_adc}*max_idx*dt) );
           % Apply amplitude correction
-          comp_data = comp_data .* repmat(1./abs(max_value), [Nt 1]);
+          comp_data = max(abs(max_value)) * comp_data .* repmat(1./abs(max_value), [Nt 1]);
           % Apply phase correction (compensating for phase from time delay shift)
           comp_data = comp_data .* repmat(exp(-1i*(phase_corr + 2*pi*tmp_hdr.freq{1,wf_adc}(1)*max_idx*dt)), [Nt 1]);
           
@@ -308,8 +308,9 @@ for img = 1:length(param.load.imgs)
           deconv_twtt(:,end+1) = tmp_hdr.time{1,wf_adc}(round(mean(max_idx)));
         end
         
-        freq = tmp_hdr.freq{1,wf_adc};
-        time = tmp_hdr.time{1,wf_adc};
+        deconv_fc = tmp_hdr.freq{1,wf_adc}(1) * ones(size(deconv_gps_time));
+        deconv_t0 = tmp_hdr.time{1,wf_adc}(1) * ones(size(deconv_gps_time));
+        dt = tmp_hdr.time{1,wf_adc}(2)-tmp_hdr.time{1,wf_adc}(1);
         
         %% Specular: Save Results
         out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
@@ -321,8 +322,8 @@ for img = 1:length(param.load.imgs)
         param_analysis = param;
         fprintf('  Saving outputs %s\n', out_fn);
         save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
-          'deconv_DDC_Mt','deconv_forced','peakiness', 'freq', 'time', 'gps_time', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+          'deconv_forced','peakiness', 'deconv_fc', 'deconv_t0', 'dt', 'gps_time', 'lat', ...
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records');
       end
       
       

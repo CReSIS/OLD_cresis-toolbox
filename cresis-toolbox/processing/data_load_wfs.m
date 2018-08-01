@@ -325,6 +325,15 @@ for wf = 1:length(param.radar.wfs)
         wfs(wf).coh_noise_arg.A_coh_noise   = 1;
       end
   end
+  if isfield(param.radar.wfs(wf),'deconv') && ~isempty(param.radar.wfs(wf).deconv)
+    wfs(wf).deconv    = param.radar.wfs(wf).deconv;
+  else
+    wfs(wf).deconv    = struct('en',false);
+  end
+  if ~isfield(param.radar.wfs(wf).deconv,'fn') || isempty(param.radar.wfs(wf).deconv.fn)
+    wfs(wf).deconv.fn = 'analysis';
+  end
+  
   if isfield(param.radar.wfs(wf),'chan_equal_dB') && ~isempty(param.radar.wfs(wf).chan_equal_dB)
     wfs(wf).chan_equal_dB   = param.radar.wfs(wf).chan_equal_dB;
   else

@@ -5,12 +5,16 @@ if param.load.raw_data && param.load.pulse_comp
   error('Pulse compression (param.load.pulse_comp) cannot be enabled with raw data loading (param.load.raw_data).');
 end
 
+physical_constants;
+
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 for img = 1:length(param.load.imgs)
   for wf_adc = 1:size(param.load.imgs{img},1)
     wf = param.load.imgs{img}(wf_adc,1);
     adc = param.load.imgs{img}(wf_adc,2);
+    BW_window_max_warning_printed = false;
+    BW_window_min_warning_printed = false;
     
     %% Pre-pulse compression filter
     % ===================================================================
@@ -183,7 +187,7 @@ for img = 1:length(param.load.imgs)
               || hdr.DDC_freq{img}(rec) ~= hdr.DDC_freq{img}(rec-1) ...
               || hdr.nyquist_zone{img}(rec) ~= hdr.nyquist_zone{img}(rec-1) ...
               || hdr.t_ref{img}(rec) ~= hdr.t_ref{img}(rec-1)
-              
+            
             % Convert IF frequency to time delay
             time = freq_raw_unique/wfs(wf).chirp_rate - hdr.t_ref{img}(rec);
             
@@ -194,13 +198,30 @@ for img = 1:length(param.load.imgs)
             time_correction_IF = -time_correction*wfs(wf).chirp_rate;
           end
           
+          % Get the start time for this record
+          hdr.t0{img}(rec) = time(1);
+          
           % Convert raw time into instantaneous frequency for the surface bin
           f_rf = wfs(wf).f0 + wfs(wf).chirp_rate*(time_raw - hdr.surface(rec));
           if wfs(wf).BW_window(2) > max(f_rf)
-            error('BW_window (%g) is more than maximum measured RF frequency (%g) with surface twtt %g.', wfs(wf).BW_window(2), max(f_rf), hdr.surface(rec))
+            if ~BW_window_max_warning_printed
+              BW_window_max_warning_printed = true;
+              warning('BW_window (%g) is more than maximum measured RF frequency (%g) with surface twtt %g.', wfs(wf).BW_window(2), max(f_rf), hdr.surface(rec))
+            end
+            % Mark record as bad, but keep 2 bins to simplify later code
+            hdr.Nt{img}(rec) = 2;
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = NaN;
+            continue
           end
           if wfs(wf).BW_window(1) < min(f_rf)
-            error('BW_window (%g) is less than minimum measured RF frequency (%g) with surface twtt %g.', wfs(wf).BW_window(1), min(f_rf), hdr.surface(rec))
+            if ~BW_window_min_warning_printed
+              BW_window_min_warning_printed = true;
+              warning('BW_window (%g) is less than minimum measured RF frequency (%g) with surface twtt %g.', wfs(wf).BW_window(1), min(f_rf), hdr.surface(rec))
+            end
+            % Mark record as bad, but keep 2 bins to simplify later code
+            hdr.Nt{img}(rec) = 2;
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = NaN;
+            continue
           end
           
           % Create the window for the particular range line
@@ -210,7 +231,6 @@ for img = 1:length(param.load.imgs)
           
           % Modulate the raw data to adjust the start time to always be a
           % multiple of wfs(wf).dt
-          hdr.t0{img}(rec) = time(1);
           data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) .* exp(1i*2*pi*time_correction_IF*time_raw);
           
           % Window and Pulse compress
@@ -250,14 +270,29 @@ for img = 1:length(param.load.imgs)
           df = 1/T;
           hdr.freq{img} = fc + df * ifftshift(-floor(wfs(wf).Nt/2) : floor((wfs(wf).Nt-1)/2)).';
         end
+        % Fancy way to copy to make this more efficient for very large
+        % complex (real/imag) arrays. Lots of small matrix operations on
+        % huge complex matrices is very slow in matlab. Real only matrices
+        % are very fast though.
+        reD = real(data{img}(1:wfs(wf).Nt,:,wf_adc));
+        imD = imag(data{img}(1:wfs(wf).Nt,:,wf_adc));
         for rec = 1:size(data{img},2)
           cur_idx_start = round(hdr.t0{img}(rec)/dt) - idx_start + 1;
           cur_idx_stop = round(hdr.t0{img}(rec)/dt) - idx_start + hdr.Nt{img}(rec);
           
-          data{img}(cur_idx_start : cur_idx_stop,rec,wf_adc) = data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
-          data{img}(1:cur_idx_start-1,rec,wf_adc) = NaN;
-          data{img}(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+          reD(cur_idx_start : cur_idx_stop,rec,wf_adc) = reD(1:hdr.Nt{img}(rec),rec,wf_adc);
+          reD(1:cur_idx_start-1,rec,wf_adc) = NaN;
+          reD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
         end
+        for rec = 1:size(data{img},2)
+          cur_idx_start = round(hdr.t0{img}(rec)/dt) - idx_start + 1;
+          cur_idx_stop = round(hdr.t0{img}(rec)/dt) - idx_start + hdr.Nt{img}(rec);
+          
+          imD(cur_idx_start : cur_idx_stop,rec,wf_adc) = imD(1:hdr.Nt{img}(rec),rec,wf_adc);
+          imD(1:cur_idx_start-1,rec,wf_adc) = NaN;
+          imD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+        end
+        data{img}(1:wfs(wf).Nt,:,wf_adc) = reD + 1i*imD;
         
       elseif strcmpi(radar_type,'stepped')
         
@@ -308,7 +343,7 @@ for img = 1:length(param.load.imgs)
         % Nt by Nx_dft matrix (we grab a subset of the Nt samples)
         noise.dft = ncread(cdf_fn,'dftI',[start_bin-noise.start_bin+1 1],[wfs(wf).Nt inf]) ...
           + 1i*ncread(cdf_fn,'dftQ',[start_bin-noise.start_bin+1 1],[wfs(wf).Nt inf]);
-
+        
         recs = interp1(noise.gps_time, noise.recs, hdr.gps_time);
         
         for dft_idx = 1:length(noise.dft_freqs)
@@ -343,8 +378,76 @@ for img = 1:length(param.load.imgs)
       end
     end
     
-    %% Deconvolution for deramp radar
+    %% Deconvolution
     % ===================================================================
+    
+    if wfs(wf).deconv.en
+      deconv_fn = fullfile(fileparts(ct_filename_out(param,wfs(wf).deconv.fn, '')), ...
+        sprintf('deconv_%s_wf_%d_adc_%d.mat',param.day_seg, wf, adc));
+      deconv = load(deconv_fn);
+      
+      deconv_map_idxs = interp1(deconv.map_gps_time,deconv.map_idxs,hdr.gps_time,'nearest');
+      max_score = interp1(deconv.map_gps_time,deconv.max_score,hdr.gps_time,'nearest');
+      
+      unique_idxs = unique(deconv_map_idxs);
+      
+      for unique_idxs_idx = 1:length(unique_idxs)
+        % deconv_mask: Create logical mask corresponding to range lines that use this deconv waveform
+        deconv_map_idx = unique_idxs(unique_idxs_idx);
+        deconv_mask = deconv_map_idx == deconv_map_idxs ...
+          & max_score > deconv.param_collate_deconv_final.collate_deconv.min_score;
+        
+        if wfs(wf).Nt <= 2 || ~any(deconv_mask)
+          % Range lines are bad (Nt <= 2), or no matching range lines that
+          % have a good enough score to justify deconvolution.
+          continue;
+        end
+        
+        % Get the reference function
+        h_nonnegative = deconv.ref_nonnegative{deconv_map_idx};
+        h_negative = deconv.ref_negative{deconv_map_idx};
+        
+        % Adjust deconvolution signal to match sample rline
+        h_filled = [h_nonnegative; zeros(wfs(wf).Nt-length(h_nonnegative)-length(h_negative),1); h_negative];
+        
+        % Is dt different? Error
+        dt = hdr.time{img}(2)-hdr.time{img}(1);
+        if abs(deconv.dt-dt)/dt > 1e-6
+          error('There is fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the deconvolution file (%g).', dt, deconv.dt);
+        end
+        
+        % Is fc different? Multiply time domain by exp(1i*2*pi*dfc*deconv_time)
+        dfc = hdr.freq{img}(1) - deconv.fc(deconv_map_idx);
+        if dfc/fc > 1e-6
+          deconv_time = t0 + dt*(0:Nt-1).';
+          h_filled = h_filled .* exp(1i*2*pi*dfc*deconv_time);
+        end
+        
+        % Take FFT of deconvolution impulse response
+        h_filled = fft(h_filled);
+        
+        % Create inverse filter relative to window
+        freq = fftshift(hdr.freq{img});
+        Nt_shorten = find(deconv.cmd.f0 <= freq,1);
+        Nt_shorten(2) = length(freq) - find(deconv.cmd.f1 >= freq,1,'last');
+        Nt_Hwind = wfs(wf).Nt - sum(Nt_shorten);
+        Hwind = deconv.ref_window(Nt_Hwind);
+        Hwind_filled = ifftshift([zeros(Nt_shorten(1),1); Hwind; zeros(Nt_shorten(end),1)]);
+        h_filled_inverse = Hwind_filled ./ h_filled;
+        
+        % Normalize deconvolution filter
+        time_domain_ref = ifft(h_filled_inverse);
+        h_filled_inverse = h_filled_inverse ...
+          ./ dot(time_domain_ref,time_domain_ref);
+        
+        % Scale reflection assuming 0 dB at this range, R, to be: (1/R.^2)
+        R = deconv.twtt(deconv_map_idx) * c/2;
+        h_filled_inverse = h_filled_inverse * R.^-2;
+        
+        % Apply deconvolution filter
+        data{img}(1:wfs(wf).Nt,deconv_mask,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,deconv_mask,wf_adc)), h_filled_inverse));
+      end
+    end
     
   end
   

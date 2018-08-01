@@ -112,23 +112,28 @@ for cmd_idx = 1:length(param.analysis.cmd)
         wf = param.analysis.imgs{1}(wf_adc,1);
         adc = param.analysis.imgs{1}(wf_adc,2);
         
-        gps_time = [];
-        lat = [];
-        lon = [];
-        elev = [];
-        roll = [];
-        pitch = [];
-        heading = [];
-        peakiness = [];
-        deconv_gps_time = [];
-        deconv_mean = {};
-        deconv_std = {};
-        deconv_sample = {};
-        deconv_freq = {};
-        deconv_t0 = [];
-        deconv_twtt = [];
-        deconv_forced = [];
-        deconv_DDC_Mt = [];
+      save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
+          'deconv_forced','peakiness', 'fc', 't0', 'dt', 'gps_time', 'lat', ...
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+        spec = [];
+        spec.deconv_fc = [];
+        spec.deconv_t0 = [];
+        spec.dt = [];
+        spec.deconv_gps_time = [];
+        spec.deconv_mean = {};
+        spec.deconv_std = {};
+        spec.deconv_sample = {};
+        spec.deconv_twtt = [];
+        spec.deconv_forced = [];
+        spec.gps_time = [];
+        spec.lat = [];
+        spec.lon = [];
+        spec.elev = [];
+        spec.roll = [];
+        spec.pitch = [];
+        spec.heading = [];
+        spec.surface = [];
+        spec.peakiness = [];
         for block_idx = 1:length(blocks)
           rec_load_start = blocks(block_idx);
           
@@ -147,54 +152,38 @@ for cmd_idx = 1:length(param.analysis.cmd)
           out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
             sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
           
-          spec = load(out_fn);
+          spec_in = load(out_fn);
           
           fprintf('%s\n',datestr(now))
           
           % Concatenate
-          gps_time(end+(1:numel(spec.gps_time))) = spec.gps_time;
-          lat(end+(1:numel(spec.lat))) = spec.lat;
-          lon(end+(1:numel(spec.lon))) = spec.lon;
-          elev(end+(1:numel(spec.elev))) = spec.elev;
-          roll(end+(1:numel(spec.roll))) = spec.roll;
-          pitch(end+(1:numel(spec.pitch))) = spec.pitch;
-          heading(end+(1:numel(spec.heading))) = spec.heading;
-          peakiness(end+(1:numel(spec.peakiness))) = spec.peakiness;
+          spec.deconv_gps_time(end+(1:numel(spec_in.deconv_gps_time))) = spec_in.deconv_gps_time;
+          spec.deconv_fc(end+(1:numel(spec_in.deconv_fc))) = spec_in.deconv_fc;
+          spec.deconv_t0(end+(1:numel(spec_in.deconv_t0))) = spec_in.deconv_t0;
+          spec.deconv_twtt(end+(1:numel(spec_in.deconv_twtt))) = spec_in.deconv_twtt;
+          spec.deconv_DDC_Mt(end+(1:numel(spec_in.deconv_DDC_Mt))) = spec_in.deconv_DDC_Mt;
+          spec.deconv_forced(end+(1:numel(spec_in.deconv_forced))) = spec_in.deconv_forced;
           
-          deconv_gps_time(end+(1:numel(spec.deconv_gps_time))) = spec.deconv_gps_time;
-          deconv_twtt(end+(1:numel(spec.deconv_twtt))) = spec.deconv_twtt;
-          deconv_DDC_Mt(end+(1:numel(spec.deconv_DDC_Mt))) = spec.deconv_DDC_Mt;
-          deconv_forced(end+(1:numel(spec.deconv_forced))) = spec.deconv_forced;
+          spec.deconv_mean(end+(1:numel(spec_in.deconv_mean))) = spec_in.deconv_mean;
+          spec.deconv_std(end+(1:numel(spec_in.deconv_std))) = spec_in.deconv_std;
+          spec.deconv_sample(end+(1:numel(spec_in.deconv_sample))) = spec_in.deconv_sample;
           
-          deconv_mean(end+(1:numel(spec.deconv_mean))) = spec.deconv_mean;
-          deconv_std(end+(1:numel(spec.deconv_std))) = spec.deconv_std;
-          deconv_sample(end+(1:numel(spec.deconv_sample))) = spec.deconv_sample;
-          for idx = 1:numel(spec.deconv_gps_time)
-            deconv_freq{end+1} = spec.freq;
-            deconv_t0(end+1) = spec.time(1);
-          end
+          spec.gps_time(end+(1:numel(spec_in.gps_time))) = spec_in.gps_time;
+          spec.lat(end+(1:numel(spec_in.lat))) = spec_in.lat;
+          spec.lon(end+(1:numel(spec_in.lon))) = spec_in.lon;
+          spec.elev(end+(1:numel(spec_in.elev))) = spec_in.elev;
+          spec.roll(end+(1:numel(spec_in.roll))) = spec_in.roll;
+          spec.pitch(end+(1:numel(spec_in.pitch))) = spec_in.pitch;
+          spec.heading(end+(1:numel(spec_in.heading))) = spec_in.heading;
+          spec.surface(end+(1:numel(spec_in.surface))) = spec_in.surface;
+          spec.peakiness(end+(1:numel(spec_in.peakiness))) = spec_in.peakiness;
         end
         
         %% Specular: Store concatenated output
         % =================================================================
-        spec.gps_time = gps_time;
-        spec.lat = lat;
-        spec.lon = lon;
-        spec.elev = elev;
-        spec.roll = roll;
-        spec.pitch = pitch;
-        spec.heading = heading;
-        spec.peakiness = peakiness;
-        spec.deconv_gps_time = deconv_gps_time;
-        spec.deconv_mean = deconv_mean;
-        spec.deconv_std = deconv_std;
-        spec.deconv_sample = deconv_sample;
-        spec.deconv_freq = deconv_freq;
-        spec.deconv_t0 = deconv_t0;
-        spec.deconv_twtt = deconv_twtt;
-        spec.deconv_forced = deconv_forced;
-        spec.deconv_DDC_Mt = deconv_DDC_Mt;
-        spec = rmfield(spec, {'time','freq'});
+        spec.dt = spec_in.dt;
+        spec.param_analysis = spec_in.param_analysis;
+        spec.param_records = spec_in.param_records;
         out_fn_dir = fileparts(out_fn);
         out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));

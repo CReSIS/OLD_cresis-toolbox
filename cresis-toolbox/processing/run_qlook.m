@@ -19,11 +19,17 @@ params = ct_set_params(params,'cmd.qlook',0);
 % params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170503_02');
 % params = ct_set_params(params,'cmd.frms',[221]);
 params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170311_02');
-% params = ct_set_params(params,'cmd.frms',[7]);
+params = ct_set_params(params,'cmd.frms',[]);
 % params = ct_set_params(params,'qlook.presums',4);
 % params = ct_set_params(params,'qlook.dec',1);
-% params = ct_set_params(params,'qlook.out_path','qlook');
 % params = ct_set_params(params,'radar.wfs(1).coh_noise_method','');
+
+params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis');
+params = ct_set_params(params,'qlook.out_path','qlook');
+% params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_snow');
+% params = ct_set_params(params,'qlook.out_path','qlook_snow');
+% params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_kuband');
+% params = ct_set_params(params,'qlook.out_path','qlook_kuband');
 
 dbstop if error;
 param_override.cluster.type = 'torque';

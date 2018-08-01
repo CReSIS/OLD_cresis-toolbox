@@ -96,6 +96,8 @@ if print_mode == 0
       job_id = id;
       task_id = ctrl.job_id_list(ctrl.job_id_list == id);
     end
+    lead_task_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
+    num_tasks = sum(ctrl.job_id_list==ctrl.job_id_list(task_id));
     
     %% Read input files
     % Read static input file
@@ -187,9 +189,11 @@ if print_mode == 1
       job_id = id;
       task_id = ctrl.job_id_list(ctrl.job_id_list == id);
     end
+    lead_task_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
+    num_tasks = sum(ctrl.job_id_list==ctrl.job_id_list(task_id));
     
     %% Print cluster scheduler information if available
-    fprintf('Matlab Task ID %d\n', task_id);
+    fprintf('Matlab Task ID %d (lead by %d with %d tasks)\n', task_id, lead_task_id, num_tasks);
     fprintf('Cluster Job ID %d\n', job_id);
     
     if job_id ~= -1
@@ -221,15 +225,15 @@ if print_mode == 1
     %% Print stdout and stderr files if available
     if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
       retry = 0;
-      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
       while exist(fn,'file')
         fprintf('\n\nSTDOUT RETRY %d ==========================================================\n', retry);
         fprintf('%s\n', fn);
         type(fn);
         retry = retry + 1;
-        fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
+        fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
       end
-      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id));
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',lead_task_id));
       fprintf('\n\nSTDOUT ======================================================================\n');
       fprintf('%s\n', fn);
       if exist(fn,'file')
@@ -239,15 +243,15 @@ if print_mode == 1
       end
       
       retry = 0;
-      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
+      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
       while exist(fn,'file')
         fprintf('\n\nSTDERR RETRY %d ==========================================================\n', retry);
         fprintf('%s\n', fn);
         type(fn);
         retry = retry + 1;
-        fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
+        fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
       end
-      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id));
+      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',lead_task_id));
       fprintf('\n\nSTDERR ======================================================================\n');
       fprintf('%s\n', fn);
       if exist(fn,'file')
