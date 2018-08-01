@@ -393,7 +393,7 @@ else
         & all_points.gps_time < records.gps_time(frames.frame_idxs(frm+1))) = 1;
     else
       frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))...
-        & all_points.gps_time < records.gps_time(end)) = 1;
+        & all_points.gps_time <= records.gps_time(end)) = 1;
     end
   end
 end
