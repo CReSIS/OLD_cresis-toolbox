@@ -274,8 +274,8 @@ for img = 1:length(param.load.imgs)
         % complex (real/imag) arrays. Lots of small matrix operations on
         % huge complex matrices is very slow in matlab. Real only matrices
         % are very fast though.
-        reD = real(data{img}(1:wfs(wf).Nt,:,wf_adc));
-        imD = imag(data{img}(1:wfs(wf).Nt,:,wf_adc));
+        reD = real(data{img}(:,:,wf_adc));
+        imD = imag(data{img}(:,:,wf_adc));
         for rec = 1:size(data{img},2)
           cur_idx_start = round(hdr.t0{img}(rec)/dt) - idx_start + 1;
           cur_idx_stop = round(hdr.t0{img}(rec)/dt) - idx_start + hdr.Nt{img}(rec);
