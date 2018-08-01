@@ -192,11 +192,11 @@ for frm_idx = 1:length(param.cmd.frms);
     if isempty(custom)
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
-        'param_qlook','param_records');
+        'param_qlook','param_records','file_version');
     else
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
-        'param_qlook','param_records','custom');
+        'param_qlook','param_records','file_version','custom');
     end
     
     %% Create temporary output for surface tracker
@@ -291,11 +291,11 @@ for frm_idx = 1:length(param.cmd.frms);
   if isempty(custom)
     save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
       'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-      'param_qlook','param_records');
+      'param_qlook','param_records','file_version');
   else
     save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
       'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-      'param_qlook','param_records','custom');
+      'param_qlook','param_records','file_version','custom');
   end
   
 end

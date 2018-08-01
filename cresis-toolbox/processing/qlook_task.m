@@ -276,9 +276,9 @@ for img = 1:length(param.load.imgs)
     mkdir(out_fn_dir);
   end
   param_qlook = param;
-  custom = [];
+  custom = hdr.custom;
   save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
-    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records','custom');
+    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'custom');
 end
 
 %% Done

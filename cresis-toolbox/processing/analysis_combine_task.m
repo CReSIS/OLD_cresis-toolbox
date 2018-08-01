@@ -186,7 +186,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        ct_file_lock_check(out_segment_fn);
         save(out_segment_fn,'-v7.3','-struct','spec');
       end
     end
@@ -295,7 +294,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-        ct_file_lock_check(out_segment_fn);
         save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
       end
     end
