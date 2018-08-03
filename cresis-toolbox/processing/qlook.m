@@ -174,19 +174,8 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'qlook_task.m','qlook_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = [];
+[wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.qlook.imgs})),records);
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
-  [wfs,~] = load_mcords_wfs(records.settings, param, ...
-    1:max(records.param_records.records.file.adcs), param.qlook);
-  for img = 1:length(param.qlook.imgs)
-    wf = abs(param.qlook.imgs{img}(1,1));
-    total_num_sam(img) = wfs(wf).Nt_raw;
-  end
-  cpu_time_mult = 66e-8;
-  mem_mult = 8;
-  
-elseif any(strcmpi(radar_name,{'mcrds'}))
-  [wfs,~] = load_mcrds_wfs(records.settings, param, ...
-    1:max(records.param_records.records.file.adcs), param.qlook);
   for img = 1:length(param.qlook.imgs)
     wf = abs(param.qlook.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;

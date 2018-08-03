@@ -274,25 +274,30 @@ for img = 1:length(param.load.imgs)
         % complex (real/imag) arrays. Lots of small matrix operations on
         % huge complex matrices is very slow in matlab. Real only matrices
         % are very fast though.
-        reD = real(data{img}(:,:,wf_adc));
-        imD = imag(data{img}(:,:,wf_adc));
-        for rec = 1:size(data{img},2)
-          cur_idx_start = round(hdr.t0{img}(rec)/dt) - idx_start + 1;
-          cur_idx_stop = round(hdr.t0{img}(rec)/dt) - idx_start + hdr.Nt{img}(rec);
-          
-          reD(cur_idx_start : cur_idx_stop,rec,wf_adc) = reD(1:hdr.Nt{img}(rec),rec,wf_adc);
-          reD(1:cur_idx_start-1,rec,wf_adc) = NaN;
-          reD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+        blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
+        for block = 1:length(blocks)-1
+          rlines = blocks(block) : blocks(block+1)-1;
+          reD = real(data{img}(:,rlines,wf_adc));
+          imD = imag(data{img}(:,rlines,wf_adc));
+          for rec = 1:length(rlines)
+            cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
+            cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+            
+            reD(cur_idx_start : cur_idx_stop,rec,wf_adc) = reD(1:hdr.Nt{img}(rlines(rec)),rec,wf_adc);
+            reD(1:cur_idx_start-1,rec,wf_adc) = NaN;
+            reD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+          end
+          for rec = 1:length(rlines)
+            cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
+            cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+            
+            imD(cur_idx_start : cur_idx_stop,rec,wf_adc) = imD(1:hdr.Nt{img}(rlines(rec)),rec,wf_adc);
+            imD(1:cur_idx_start-1,rec,wf_adc) = NaN;
+            imD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+          end
+          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = reD(1:wfs(wf).Nt,:) + 1i*imD(1:wfs(wf).Nt,:);
         end
-        for rec = 1:size(data{img},2)
-          cur_idx_start = round(hdr.t0{img}(rec)/dt) - idx_start + 1;
-          cur_idx_stop = round(hdr.t0{img}(rec)/dt) - idx_start + hdr.Nt{img}(rec);
-          
-          imD(cur_idx_start : cur_idx_stop,rec,wf_adc) = imD(1:hdr.Nt{img}(rec),rec,wf_adc);
-          imD(1:cur_idx_start-1,rec,wf_adc) = NaN;
-          imD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
-        end
-        data{img}(1:wfs(wf).Nt,:,wf_adc) = reD(1:wfs(wf).Nt,:) + 1i*imD(1:wfs(wf).Nt,:);
+        clear reD imD;
         
       elseif strcmpi(radar_type,'stepped')
         
@@ -387,7 +392,7 @@ for img = 1:length(param.load.imgs)
       deconv_fn = fullfile(fileparts(ct_filename_out(param,wfs(wf).deconv.fn, '')), ...
         sprintf('deconv_%s_wf_%d_adc_%d.mat',param.day_seg, wf, adc));
       deconv = load(deconv_fn);
-      hdr.custom.deconv = final.param_collate_deconv_final.sw_version.cur_date_time;
+      hdr.custom.deconv = deconv.param_collate_deconv_final.sw_version.cur_date_time;
       hdr.custom.deconv = hdr.custom.deconv(:);
       
       deconv_map_idxs = interp1(deconv.map_gps_time,deconv.map_idxs,hdr.gps_time,'nearest');
@@ -445,7 +450,12 @@ for img = 1:length(param.load.imgs)
         h_filled_inverse = h_filled_inverse * h_mult_factor;
         
         % Apply deconvolution filter
-        data{img}(1:wfs(wf).Nt,deconv_mask,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,deconv_mask,wf_adc)), h_filled_inverse));
+        deconv_mask_idxs = find(deconv_mask);
+        blocks = round(linspace(1,length(deconv_mask_idxs)+1,8)); blocks = unique(blocks);
+        for block = 1:length(blocks)-1
+          rlines = blocks(block) : blocks(block+1)-1;
+          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,rlines,wf_adc)), h_filled_inverse));
+        end        
       end
     end
     

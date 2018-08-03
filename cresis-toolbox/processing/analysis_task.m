@@ -151,6 +151,7 @@ for img = 1:length(param.load.imgs)
         % Pulse compression
         tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
         tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
+        tmp_wfs(wf).deconv.en = false;
         
         [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
         
@@ -223,7 +224,7 @@ for img = 1:length(param.load.imgs)
         roll = tmp_hdr.records{1,wf_adc}.roll(peakiness_rlines);
         pitch = tmp_hdr.records{1,wf_adc}.pitch(peakiness_rlines);
         heading = tmp_hdr.records{1,wf_adc}.heading(peakiness_rlines);
-        surface = tmp_hdr.records{1,wf_adc}.surface(peakiness_rlines);
+        surface = tmp_hdr.surface(peakiness_rlines);
         
         %% Specular: Forced GPS Check
         deconv_forced = zeros(size(final_good_rlines));
@@ -357,6 +358,7 @@ for img = 1:length(param.load.imgs)
         
         % Pulse compression
         tmp_wfs(wf).coh_noise_method = '';
+        tmp_wfs(wf).deconv.en = false;
         tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
         tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
         
@@ -365,10 +367,12 @@ for img = 1:length(param.load.imgs)
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         data = data{1};
         
-        %% Coh Noise: Doppler
-        % Implement memory efficient fft operations by doing one bin at a
-        % time
+        %% Coh Noise: Doppler and Data-Statistics
+        % Implement memory efficient fft and statistics operations by doing
+        % one bin at a time
         doppler = zeros(1,size(data,2),'single');
+        mu = zeros(size(data,1),1);
+        sigma = zeros(size(data,1),1);
         num_bins = 0;
         for rbin=1:size(data,1)
           tmp = abs(fft(data(rbin,:))).^2;
@@ -376,14 +380,13 @@ for img = 1:length(param.load.imgs)
             doppler = doppler + tmp;
             num_bins = num_bins + 1;
           end
+          mu(rbin) = nanmean(data(rbin,:));
+          sigma(rbin) = nanstd(data(rbin,:));
         end
         doppler = doppler/num_bins;
-        
+        mu(abs(mu)*10<sigma) = 0; % Throw out high variance means
+
         %% Coh Noise: Block Analysis
-        % Prepare variables for collecting good_samples
-        mu = nanmean(data,2);
-        sigma = nanstd(data,[],2);
-        mu(abs(mu)*10<sigma) = 0;
 
         % Do averaging
         rline0_list = 1:cmd.block_ave:size(data,2);

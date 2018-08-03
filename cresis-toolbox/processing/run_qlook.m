@@ -19,25 +19,27 @@ params = ct_set_params(params,'cmd.qlook',0);
 % params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170503_02');
 % params = ct_set_params(params,'cmd.frms',[221]);
 params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170311_02');
-params = ct_set_params(params,'cmd.frms',[44]);
+params = ct_set_params(params,'cmd.frms',[]);
 % params = ct_set_params(params,'qlook.presums',4);
 % params = ct_set_params(params,'qlook.dec',1);
 
-params = ct_set_params(params,'radar.wfs(1).coh_noise_method','');
+% params = ct_set_params(params,'radar.wfs(1).coh_noise_method','');
 
-params = ct_set_params(params,'radar.wfs(1).adc_gains',10.^(95.8/20));
+% params = ct_set_params(params,'radar.wfs(1).adc_gains',10.^(95.8/20));
 
-params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis');
+params = ct_set_params(params,'radar.wfs(1).deconv.en',0);
 params = ct_set_params(params,'qlook.out_path','qlook');
-% params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_snow');
-% params = ct_set_params(params,'qlook.out_path','qlook_snow');
+% params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis');
+% params = ct_set_params(params,'qlook.out_path','deconv');
+% params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_uwb');
+% params = ct_set_params(params,'qlook.out_path','qlook_uwb');
 % params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_kuband');
 % params = ct_set_params(params,'qlook.out_path','qlook_kuband');
 
 dbstop if error;
-% param_override.cluster.type = 'torque';
+param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 %param_override.cluster.rerun_only = true;
 param_override.cluster.desired_time_per_job  = 120*60;
 % param_override.cluster.cpu_time_mult  = 2;

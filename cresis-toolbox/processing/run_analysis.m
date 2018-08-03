@@ -12,8 +12,8 @@
 param_override = [];
 
 % params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170311_02',{'analysis_spec','analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170311_02',{'analysis_spec','analysis'});
-params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'','analysis');
+params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
 
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');

@@ -148,7 +148,7 @@ elseif 0
   opsInsertLayer(params, insert_param);
   
 elseif 1
-  %% Example 4: Merge Geoid data onto GIMP layer
+  %% Example 4: Merge Geoid data onto another (e.g. GIMP) layer
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -190,7 +190,7 @@ elseif 1
   insert_param.layer_dest.group = 'standard'; % For OPS layer_dest source
   insert_param.layer_dest.description = ''; % For OPS layer_dest source
   insert_param.layer_dest.layerdata_source = 'layerData'; % For layerData layer_dest source
-  insert_param.copy_method = 'overwrite';
+  insert_param.copy_method = 'overwrite'; % overwrite or fillgaps
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   

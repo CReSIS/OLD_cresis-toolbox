@@ -188,6 +188,7 @@ for frm_idx = 1:length(param.cmd.frms);
     
     %% Save output
     fprintf('  Writing output to %s\n', out_fn);
+    file_version = '1';
     Data = single(Data);
     if isempty(custom)
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...

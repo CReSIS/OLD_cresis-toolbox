@@ -613,6 +613,26 @@ if print_mode == 2
     
     info(id_idx).notes = task_in.notes;
     
+    if isnan(info(id_idx).mem_actual)
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',lead_task_id));
+      if exist(fn,'file')
+        fid = fopen(fn);
+        result = fread(fid,inf,'char=>char').';
+        fclose(fid);
+        % Memory requested in megabytes
+        try
+          idx = regexp(result,'Max Mem:');
+          tmp_result = result(idx:end);
+          idx = find(tmp_result==':',1);
+          tmp_result = tmp_result(idx+2:end);
+          idx = find(tmp_result==10|tmp_result==13,1);
+          tmp_result = tmp_result(1:idx);
+          [mem,~,~,idx] = sscanf(tmp_result,'%d');
+          info(id_idx).mem_actual = uint32(mem/1e3);
+        end
+      end
+    end
+    
   end
   in = info;
   
