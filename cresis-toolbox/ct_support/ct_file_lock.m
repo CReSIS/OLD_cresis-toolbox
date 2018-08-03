@@ -13,7 +13,9 @@ function ct_file_lock(fns,lock_state)
 
 if ischar(fns)
   fn = fns;
-  if exist(fn,'file')
+  if ~exist(fn,'file')
+    warning('File does not exist: %s', fn);
+  else
     tmp = load(fn,'file_version');
     if isfield(tmp,'file_version')
       file_version = tmp.file_version(~isletter(tmp.file_version));

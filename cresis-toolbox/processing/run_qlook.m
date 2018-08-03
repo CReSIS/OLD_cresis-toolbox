@@ -35,13 +35,13 @@ params = ct_set_params(params,'cmd.frms',[44]);
 % params = ct_set_params(params,'qlook.out_path','deconv');
 % params = ct_set_params(params,'qlook.resample',[]);
 
-% params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_uwb');
-% params = ct_set_params(params,'qlook.out_path','qlook_uwb');
-% params = ct_set_params(params,'qlook.resample',[3 2; 1 1]);
-
-params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_kuband');
-params = ct_set_params(params,'qlook.out_path','qlook_kuband');
-params = ct_set_params(params,'qlook.resample',[1 4; 1 1]);
+params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_uwb');
+params = ct_set_params(params,'qlook.out_path','qlook_uwb');
+params = ct_set_params(params,'qlook.resample',[3 2; 1 1]);
+% 
+% params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis_kuband');
+% params = ct_set_params(params,'qlook.out_path','qlook_kuband');
+% params = ct_set_params(params,'qlook.resample',[1 4; 1 1]);
 
 dbstop if error;
 % param_override.cluster.type = 'torque';

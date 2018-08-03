@@ -377,14 +377,14 @@ if param.collate_deconv.stage_one_en
         h_filled_inverse = h_filled_inverse * h_mult_factor;
         h_deconvolved = h_deconvolved * h_mult_factor;
 
-        % Oversample sample signal by the same amount as the deconvolution
+        % Oversample sample signal by the same amount as the deconvolved
+        % signal
         h_sample = interpft(spec.deconv_sample{rline},Mt*Nt);
         
         % Find maximum values and indices for the deconvolved and
         % undeconvolved signals.
         [deconv_max_val,deconv_max_idx] = max(h_deconvolved);
         [max_val,max_idx] = max(h_sample);
-        
         
         %% Check h_deconvolved
         if 0
@@ -524,7 +524,7 @@ if param.collate_deconv.stage_one_en
       end
       
       %% Print metric
-      if 0
+      if 1
         % Compare results to metric
         pass = bsxfun(@lt,deconv.metric,cmd.abs_metric(:));
         
