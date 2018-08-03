@@ -148,17 +148,15 @@ for cmd_idx = 1:length(param.analysis.cmd)
           
           out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
             sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
-          
+
+          fprintf('  Load %s (%s)\n', out_fn, datestr(now));
           spec_in = load(out_fn);
-          
-          fprintf('%s\n',datestr(now))
           
           % Concatenate
           spec.deconv_gps_time(end+(1:numel(spec_in.deconv_gps_time))) = spec_in.deconv_gps_time;
           spec.deconv_fc(end+(1:numel(spec_in.deconv_fc))) = spec_in.deconv_fc;
           spec.deconv_t0(end+(1:numel(spec_in.deconv_t0))) = spec_in.deconv_t0;
           spec.deconv_twtt(end+(1:numel(spec_in.deconv_twtt))) = spec_in.deconv_twtt;
-          spec.deconv_DDC_Mt(end+(1:numel(spec_in.deconv_DDC_Mt))) = spec_in.deconv_DDC_Mt;
           spec.deconv_forced(end+(1:numel(spec_in.deconv_forced))) = spec_in.deconv_forced;
           
           spec.deconv_mean(end+(1:numel(spec_in.deconv_mean))) = spec_in.deconv_mean;

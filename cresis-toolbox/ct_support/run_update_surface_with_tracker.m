@@ -6,11 +6,11 @@
 
 %% User Settings
 % ----------------------------------------------------------------------
-params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'','post');
+% params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
+params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170311_02','post');
 
-% params.cmd.generic = 1;
-% params.cmd.frms = [1]; % Specify specific frames (or leave empty/undefined to do all frames)
+params.cmd.generic = 1;
+params.cmd.frms = [7 8]; % Specify specific frames (or leave empty/undefined to do all frames)
 debug_level = 1;
 
 echogram_img = 0; % To choose an image besides the base (0) image
@@ -27,7 +27,7 @@ surf_override.min_bin = 0;
 surf_override.manual = false;
 
 %% Enable one set of parameters
-if 1
+if 0
   % RDS threshold method
   debug_time_guard = 2e-6;
   surf_override.method = 'threshold';
@@ -67,7 +67,7 @@ elseif 0
   surf_override.filter_len	= 5;
   surf_override.search_rng	= 0:1;
   
-elseif 1
+elseif 0
   % FMCW Land Ice
   debug_time_guard = 50e-9;
   surf_override.method = 'threshold';
@@ -89,21 +89,22 @@ elseif 1
   surf_override.method = 'snake';
   surf_override.search_rng	= -90:90;
   
-elseif 0
+elseif 1
   % FMCW Sea Ice
   debug_time_guard = 50e-9;
   surf_override.method = 'threshold';
   surf_override.noise_rng = [100 -400 -100];
-  surf_override.threshold = 9;
-  surf_override.sidelobe	= 13;
+  surf_override.threshold = 13;
+  surf_override.sidelobe	= 25;
   surf_override.max_diff	= 45e-9;
   surf_override.filter_len	= 7;
   surf_override.search_rng	= 0:10;
-  surf_override.detrend = 2;
-%   surf_override.init.method	= 'dem';
-%   surf_override.init.dem_offset = 0e-9;
-  surf_override.init.method	= 'medfilt';
-  surf_override.init.medfilt	= 51;
+  surf_override.detrend = 0;
+  surf_override.init.method	= 'dem';
+  surf_override.init.dem_offset = 64e-9;
+  surf_override.init.lidar_source = 'atm';
+%   surf_override.init.method	= 'medfilt';
+%   surf_override.init.medfilt	= 51;
 end
 
 %% Automated Section

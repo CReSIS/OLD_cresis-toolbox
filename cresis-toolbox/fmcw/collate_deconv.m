@@ -357,8 +357,8 @@ if param.collate_deconv.stage_one_en
         df = 1/(Nt*dt);
         freq = spec.deconv_fc(rline) + df * ifftshift(-floor(Nt/2) : floor((Nt-1)/2)).';       
         freq = fftshift(freq);
-        Nt_shorten = find(deconv.cmd.f0 <= freq,1);
-        Nt_shorten(2) = length(freq) - find(deconv.cmd.f1 >= freq,1,'last');
+        Nt_shorten = find(cmd.f0 <= freq,1);
+        Nt_shorten(2) = length(freq) - find(cmd.f1 >= freq,1,'last');
         Nt_Hwind = Nt - sum(Nt_shorten);
         Hwind = deconv.ref_window(Nt_Hwind);
         Hwind_filled = ifftshift([zeros(Nt_shorten(1),1); Hwind; zeros(Nt_shorten(end),1)]);
@@ -372,8 +372,8 @@ if param.collate_deconv.stage_one_en
         h_deconvolved = ifft(fft(spec.deconv_sample{rline}) .* h_filled_inverse);
         % Oversample to get a good measurement of the peak value
         h_deconvolved = interpft(h_deconvolved,Mt*Nt);
-        % Scale so that the peak value is 0dB at param.collate_deconv.R_norm range
-        h_mult_factor = param.collate_deconv.R_norm / (R*max(abs(h_deconvolved)));
+        % Scale so that the peak value is 1/R
+        h_mult_factor = 1 / (R*max(abs(h_deconvolved)));
         h_filled_inverse = h_filled_inverse * h_mult_factor;
         h_deconvolved = h_deconvolved * h_mult_factor;
 
@@ -655,16 +655,7 @@ if param.collate_deconv.stage_one_en
       end
       out_fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
-      file_locked = false;
-      if exist(out_fn,'file')
-        tmp = load(out_fn,'file_version');
-        if isfield(tmp,'file_version')
-          file_locked = ~isempty(tmp.file_version=='L');
-        end
-      end
-      if file_locked
-        error('  File is locked.');
-      end
+      ct_file_lock_check(out_fn);
       save(out_fn,'-v7.3','-struct','deconv');
       
     end

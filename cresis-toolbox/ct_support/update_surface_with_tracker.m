@@ -63,7 +63,7 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  orig_surf = merge_structs(param.get_heights.surf,surf_override);
+  orig_surf = merge_structs(param.qlook.surf,surf_override);
   
   if ~orig_surf.en
     continue;
@@ -79,40 +79,116 @@ for param_idx = 1:length(params)
   
   fprintf('Updating surface %s (%s)\n', param.day_seg, datestr(now,'HH:MM:SS'));
   
-  %% Load in GIMP and Geoid
+  %% Load in ocean mask, land DEM, and sea surface DEM
   load_surface_land_dems = false;
-  if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem') ...
-      && (~exist('load_surface_land_dems_finished','var') || ~load_surface_land_dems_finished)
-    load_surface_land_dems = true;
+  if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
+    if ~exist('load_surface_land_dems_finished','var') ...
+        || ~load_surface_land_dems_finished
+      load_surface_land_dems = true;
+      load_surface_land_dems_day_seg = '';
+    end
   end
   
   if load_surface_land_dems
-    sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
-    sea_surface.lat = ncread(sea_surface.fn,'lat');
-    sea_surface.lon = ncread(sea_surface.fn,'lon');
-    sea_surface.elev = ncread(sea_surface.fn,'mss').';
-    if 0
-      sea_surface.fn = ct_filename_gis([],fullfile('world','egm96_geoid','WW15MGH.DAC'));
-      [sea_surface.lat,sea_surface.lon,sea_surface.elev] = egm96_loader(sea_surface.fn);
-    end
+    % Load ocean mask shape file
+    ocean_mask_fn = ct_filename_gis([],fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
+    warning off;
+    %ocean_shp_all = shaperead(ocean_mask_fn, 'BoundingBox', [min_lon min_lat; max_lon max_lat]);
+    ocean_shp_all = shaperead(ocean_mask_fn);
+    warning on;
+    % All bounding boxes of every shape
+    ocean_shp_bb = [ocean_shp_all(:).BoundingBox];
     
-    if strcmpi(params(end).post.ops.location,'arctic')
-      land_surface.fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
-    elseif strcmpi(params(end).post.ops.location,'antarctic')
+    % Load land DEM
+    if strcmpi(param.post.ops.location,'arctic')
+      if 1
+        land_surface.fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
+        land_surface.bad_value = 32767;
+      else
+        % PADEN: Load Arctic DEM corresponding to this segment
+      end
+    elseif strcmpi(param.post.ops.location,'antarctic')
       land_surface.fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
-    end
-    [land_surface.dem, land_surface.R, tmp] = geotiffread(land_surface.fn);
-    land_surface.dem = double(land_surface.dem);
-    land_surface.dem(land_surface.dem == 32767) = NaN;
+      land_surface.bad_value = 32767;
+    end    
+    [land_surface.dem_all, land_surface.R, tmp] = geotiffread(land_surface.fn);
+    land_surface.x = land_surface.R(3,1) + land_surface.R(2,1)*(0:size(land_surface.dem_all,2)-1);
+    land_surface.y = land_surface.R(3,2) + land_surface.R(1,2)*(0:size(land_surface.dem_all,1)-1);
     land_surface.proj = geotiffinfo(land_surface.fn);
     
     load_surface_land_dems_finished = true;
+  end
+  
+  if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg)
+    % Load records file
+    records_fn = ct_filename_support(param,'','records');
+    records = load(records_fn);
+    min_lat = min(records.lat);
+    max_lat = max(records.lat);
+    min_lon = min(records.lon);
+    max_lon = max(records.lon);
+    [records.x,records.y] = projfwd(land_surface.proj,records.lat,records.lon);
+    min_x = min(records.x);
+    max_x = max(records.x);
+    min_y = min(records.y);
+    max_y = max(records.y);
+
+    % Restrict ocean_shp to data segment
+    bb_good_mask = ~(ocean_shp_bb(1,2:2:end)>max_lat | ocean_shp_bb(2,2:2:end)<min_lat ...
+      | ocean_shp_bb(1,1:2:end)>max_lon | ocean_shp_bb(2,1:2:end)<min_lon);
+    ocean_shp_day_seg = ocean_shp_all(bb_good_mask);
+    % All bounding boxes of every shape
+    ocean_shp_bb_day_seg = [ocean_shp_day_seg(:).BoundingBox];
+
+    % Load sea level data
+    if 0
+      % EGM-96
+      sea_surface.fn = ct_filename_gis([],'world\egm96_geoid\WW15MGH.DAC');
+      points = [];
+      [sea_surface.lat,sea_surface.lon,sea_surface.elev] = egm96_loader(sea_surface.fn);
+      points.lon = [points.lon 360];
+      sea_surface.lon = mod(sea_surface.lon+180,360)-180;
+      sea_surface.elev = [sea_surface.elev sea_surface.elev(:,1)];
+      [sea_surface.lon,sea_surface.lat] = meshgrid(sea_surface.lon,sea_surface.lat);
+    else
+      % Load DTU mean sea level
+      sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
+      sea_surface.lat = ncread(sea_surface.fn,'lat');
+      sea_surface.lon = mod(ncread(sea_surface.fn,'lon')+180,360)-180;
+      plot(sea_surface.lon)
+      dlat = sea_surface.lat(2)-sea_surface.lat(1);
+      lat_idxs = find(sea_surface.lat >= min_lat-2*dlat & sea_surface.lat <= max_lat+2*dlat);
+      dlon = sea_surface.lon(2)-sea_surface.lon(1);
+      lon_idxs = find(sea_surface.lon >= min_lon-2*dlon & sea_surface.lon <= max_lon+2*dlon);
+      sea_surface.lat = sea_surface.lat(lat_idxs);
+      sea_surface.lon = sea_surface.lon(lon_idxs);
+      sea_surface.elev = single(ncread(sea_surface.fn,'mss',[lon_idxs(1) lat_idxs(1)],[length(lon_idxs) length(lat_idxs)]).');
+    end
+
+    % Load land DEM
+    if strcmpi(param.post.ops.location,'arctic')
+      dx = land_surface.x(2)-land_surface.x(1);
+      x_idxs = find(land_surface.x >= min_x-2*dx & land_surface.x <= max_x+2*dx);
+      dy = land_surface.y(2)-land_surface.y(1);
+      y_idxs = find(land_surface.y >= min_y-2*dy & land_surface.y <= max_y+2*dy);
+      land_surface.x = land_surface.x(x_idxs);
+      land_surface.y = land_surface.y(y_idxs);
+      land_surface.dem = single(land_surface.dem_all(x_idxs,y_idxs));
+      
+      if 0
+        % PADEN: Load Arctic DEM corresponding to this segment
+      end
+    elseif strcmpi(param.post.ops.location,'antarctic')
+      land_surface.fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
+      [land_surface.dem, land_surface.R, tmp] = geotiffread(land_surface.fn);
+      land_surface.proj = geotiffinfo(land_surface.fn);
+    end
+      
+    load_surface_land_dems_day_seg = param.day_seg;
     
     if 0
       % Debug Plot
       figure(1); clf;
-      land_surface.x = land_surface.R(3,1) + land_surface.R(2,1)*(0:size(land_surface.dem,2)-1);
-      land_surface.y = land_surface.R(3,2) + land_surface.R(1,2)*(0:size(land_surface.dem,1)-1);
       imagesc(land_surface.x,land_surface.y,land_surface.dem)
       set(gca,'YDir','normal');
     end
@@ -146,7 +222,8 @@ for param_idx = 1:length(params)
   end
   
   %% Load LIDAR data if exists
-  if isfield(orig_surf,'init') && isfield(orig_surf.init,'lidar_source')
+  if isfield(orig_surf,'init') && isfield(orig_surf.init,'lidar_source') ...
+        && ~isempty(orig_surf.init.lidar_source)
     layer_params = [];
     lay_idx = 1;
     layer_params(lay_idx).name = 'surface';
@@ -225,21 +302,70 @@ for param_idx = 1:length(params)
 
     %% Interpolate GIMP and Geoid
     if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
-      mdata.sea_dem = interp2(sea_surface.lon,sea_surface.lat,sea_surface.elev,mod(mdata.Longitude,360),mdata.Latitude);
-      [mdata.x,mdata.y] = projfwd(land_surface.proj,mdata.Latitude,mdata.Longitude);
-      mdata.land_dem = interp2(land_surface.dem,(mdata.x-land_surface.R(3,1))/land_surface.R(2,1)+1, ...
-        (mdata.y-land_surface.R(3,2))/land_surface.R(1,2)+1);
       
-      % Merge GIMP and Geoid
+      mdata.sea_dem = interp2(sea_surface.lon,sea_surface.lat,sea_surface.elev,mdata.Longitude,mdata.Latitude);
+      [mdata.x,mdata.y] = projfwd(land_surface.proj,mdata.Latitude,mdata.Longitude);
+      if length(land_surface.x) > 2
+        mdata.land_dem = interp2(land_surface.x,land_surface.y,land_surface.dem,mdata.x,mdata.y);
+        mdata.land_dem(mdata.land_dem==land_surface.bad_value) = NaN;
+      else
+        mdata.land_dem = nan(size(mdata.GPS_time));
+      end
+
+      min_lat = min(mdata.Latitude);
+      max_lat = max(mdata.Latitude);
+      min_lon = min(mdata.Longitude);
+      max_lon = max(mdata.Longitude);
+      min_x = min(mdata.x);
+      max_x = max(mdata.x);
+      min_y = min(mdata.y);
+      max_y = max(mdata.y);
+           
+      % Restrict ocean mask features to our dataset (i.e. mask all features
+      % whose bounding boxes fall outside our limits.
+      bb_good_mask = ~(ocean_shp_bb_day_seg(1,2:2:end)>max_lat | ocean_shp_bb_day_seg(2,2:2:end)<min_lat ...
+        | ocean_shp_bb_day_seg(1,1:2:end)>max_lon | ocean_shp_bb_day_seg(2,1:2:end)<min_lon);
+      ocean_shp = ocean_shp_day_seg(bb_good_mask);
+      
+      % Create polygons, poly_x/poly_y, with all ocean shape features which
+      % lie in the bounding box.
+      % Further restrict the polygons by checking for bounding box overlap in
+      % projected coordinates
+      
+      poly_x = cell(0);
+      poly_y = cell(0);
+      for shp_idx = 1:length(ocean_shp)
+        % convert polygon to projected coordinates
+        [x,y] = projfwd(land_surface.proj,ocean_shp(shp_idx).Y,ocean_shp(shp_idx).X);
+        % if polygon is within projected bounding box
+        if min(x) < max_x && max(x) > min_x ...
+            && min(y) < max_y && max(y)>min_y
+          % add polygon
+          poly_x{end+1} = [x,nan];
+          poly_y{end+1} = [y,nan];
+        end
+      end
+      
+      % Create ocean mask to determine which points lie in the ocean
+      ocean_mask = true(size(mdata.Latitude));
+      for poly_idx = 1:length(poly_x)
+        
+        % Mask showing which DEM points are in polygon (on land)
+        land_mask_tmp = inpolygon(mdata.x,mdata.y,[poly_x{poly_idx}(1:100:end)],[poly_y{poly_idx}(1:100:end)]);
+        ocean_mask(land_mask_tmp) = false;
+      end
+      
+      % Merge land surface and sea surface DEMs
       surf.dem = mdata.land_dem;
-      surf.dem(isnan(surf.dem)) = mdata.sea_dem(isnan(surf.dem));
+      surf.dem(ocean_mask) = mdata.sea_dem(ocean_mask);
       surf.dem = (mdata.Elevation - surf.dem) / (c/2);
       surf.dem = interp1(mdata.Time,1:length(mdata.Time),surf.dem + surf.init.dem_offset);
       surf.dem = interp_finite(surf.dem,length(mdata.Time)/2);
     end
     
     %% Load LIDAR data if exists
-    if isfield(orig_surf,'init') && isfield(orig_surf.init,'lidar_source')
+    if isfield(orig_surf,'init') && isfield(orig_surf.init,'lidar_source') ...
+        && ~isempty(orig_surf.init.lidar_source)
       % Interpolate LIDAR onto RADAR time
       lidar_interp_gaps_dist = [150 75];
       ops_layer = [];
@@ -313,7 +439,9 @@ for param_idx = 1:length(params)
     if any(strcmpi(save_sources,'layerdata'))
       layer_fn = fullfile(ct_filename_out(param,layerdata_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-      if exist(layer_fn,'file')
+      if ~exist(layer_fn,'file')
+        warning('Layer file does not exist: %s', layer_fn);
+      else
         % Load the layerData file
         lay = load(layer_fn);
         % Update the surface auto picks
