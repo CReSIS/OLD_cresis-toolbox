@@ -54,7 +54,7 @@ end
 ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
-  if param.cmd.generic
+  if isfield(param.cmd,'generic') && ~iscell(param.cmd.generic) && ~ischar(param.cmd.generic) && param.cmd.generic
     ctrl_chain{end+1} = analysis(param,param_override);
   end
 end

@@ -293,35 +293,28 @@ for wf = 1:length(param.radar.wfs)
   switch wfs(wf).coh_noise_method
     case 'analysis'
       % Coherent noise from analysis.m process
-      if isfield(param.radar.wfs(wf),'coh_noise_arg') && ~isempty(param.radar.wfs(wf).coh_noise_arg)
-        wfs(wf).coh_noise_arg   = param.radar.wfs(wf).coh_noise_arg;
-      else
+      if ~isfield(param.radar.wfs(wf),'coh_noise_arg')
         wfs(wf).coh_noise_arg   = [];
-      end
-      if isfield(param.radar.wfs(wf).coh_noise_arg,'fn') && ~isempty(param.radar.wfs(wf).coh_noise_arg.fn)
-        wfs(wf).coh_noise_arg.fn   = param.radar.wfs(wf).coh_noise_arg.fn;
       else
+        wfs(wf).coh_noise_arg   = param.radar.wfs(wf).coh_noise_arg;
+      end
+      if ~isfield(wfs(wf).coh_noise_arg,'fn') || isempty(wfs(wf).coh_noise_arg.fn)
         wfs(wf).coh_noise_arg.fn   = 'analysis';
       end
     case 'estimated'
       % Coherent noise estimated from loaded data
-      if ~isfield(param.radar.wfs(wf),'coh_noise_arg') || isempty(param.radar.wfs(wf).coh_noise_arg)
-        param.radar.wfs(wf).coh_noise_arg   = [];
-      end
-      wfs(wf).coh_noise_arg   = param.radar.wfs(wf).coh_noise_arg;
-      if isfield(param.radar.wfs(wf).coh_noise_arg,'DC_remove_en') && ~isempty(param.radar.wfs(wf).coh_noise_arg.DC_remove_en)
-        wfs(wf).coh_noise_arg.DC_remove_en   = param.radar.wfs(wf).coh_noise_arg.DC_remove_en;
+      if ~isfield(param.radar.wfs(wf),'coh_noise_arg')
+        wfs(wf).coh_noise_arg   = [];
       else
+        wfs(wf).coh_noise_arg   = param.radar.wfs(wf).coh_noise_arg;
+      end
+      if ~isfield(wfs(wf).coh_noise_arg,'DC_remove_en') || isempty(wfs(wf).coh_noise_arg.DC_remove_en)
         wfs(wf).coh_noise_arg.DC_remove_en   = 1;
       end
-      if isfield(param.radar.wfs(wf).coh_noise_arg,'B_coh_noise') && ~isempty(param.radar.wfs(wf).coh_noise_arg.B_coh_noise)
-        wfs(wf).coh_noise_arg.B_coh_noise   = param.radar.wfs(wf).coh_noise_arg.B_coh_noise;
-      else
+      if ~isfield(wfs(wf).coh_noise_arg,'B_coh_noise') || isempty(wfs(wf).coh_noise_arg.B_coh_noise)
         wfs(wf).coh_noise_arg.B_coh_noise   = 1;
       end
-      if isfield(param.radar.wfs(wf).coh_noise_arg,'A_coh_noise') && ~isempty(param.radar.wfs(wf).coh_noise_arg.A_coh_noise)
-        wfs(wf).coh_noise_arg.A_coh_noise   = param.radar.wfs(wf).coh_noise_arg.A_coh_noise;
-      else
+      if ~isfield(wfs(wf).coh_noise_arg,'A_coh_noise') || isempty(wfs(wf).coh_noise_arg.A_coh_noise)
         wfs(wf).coh_noise_arg.A_coh_noise   = 1;
       end
   end
