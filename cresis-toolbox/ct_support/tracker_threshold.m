@@ -187,7 +187,7 @@ end
 
 %% Do not permit thresholded surface from exceeding max_diff from initial surface
 surface(abs(surface - new_surface_max) > surf.max_diff) = NaN;
-if strcmp(surf.init.method,'dem') || strcmp(surf.init.method,'lidar')
+if isfield(surf,'init') && (strcmp(surf.init.method,'dem') || strcmp(surf.init.method,'lidar'))
   surface = merge_vectors(surface, new_surface_max);
 else
   surface = interp_finite(surface,0);
