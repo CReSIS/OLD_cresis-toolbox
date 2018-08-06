@@ -8,7 +8,7 @@
 # =========================================================================
 
 # Add some debugging information to stdout
-echo "cluster_job.{sh,m} Start" `whoami` `hostname` "("`date`")"
+echo "cluster_job.{sh,m} Start" `whoami` "hostname:" `hostname` "("`date`")"
 #declare
 #pwd
 
@@ -28,7 +28,7 @@ parent_pid=$$
 max_attempts=3
 attempt=1
 
-while (( attempt < max_attempts ))
+while (( attempt <= max_attempts ))
 do
 
   echo Attempt $attempt of $max_attempts

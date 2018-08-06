@@ -46,7 +46,9 @@ param_records.gps_source = records.gps_source;
 frames_fn = ct_filename_support(param,'','frames');
 load(frames_fn);
 tmp_param = param;
-tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
+% Determine which frames have the records that are needed
+frms = find(task_recs(1) >= frames.frame_idxs,1,'last') : find(task_recs(2) >= frames.frame_idxs,1,'last');
+tmp_param.cmd.frms = max(1,min(frms)-1) : min(length(frames.frame_idxs),max(frms)+1);
 surf_layer = opsLoadLayers(tmp_param,param.analysis.surf_layer);
 if isempty(surf_layer.gps_time)
   records.surface(:) = 0;
