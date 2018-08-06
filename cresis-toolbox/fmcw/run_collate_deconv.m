@@ -38,43 +38,69 @@
 % params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_C130.xls'),'',{'analysis_spec' 'analysis'});
 % params = read_param_xls(ct_filename_param('snow_param_2016_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 % params = read_param_xls(ct_filename_param('snow_param_2016_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
- params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
+params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170311_02',{'analysis_spec' 'analysis'});
+params = ct_set_params(params,'cmd.generic',0);
 
-physical_constants;
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170314_01'); % Good
 
-stage_one_en = true; % All deconv segments must go through stage one.
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170320');
 
-CORR_METRIC_THRESHOLD = 0.996; % Found through experimentation
-CORR_METRIC_TIME_CONSTANT = 60; % Found through experimentation
-TWTT_GROUPS_PER_NZ = 5; % Number of two way travel time groups per Nyquist zone
-Mt = 8; % Amount to over-sample when estimating peaks of lobes
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170310_02');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170314_02');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20170311_02');
 
-% stage_two_en: Only enable stage 2 when stage one done for all segments and make
-%   sure to enable the generic column for all segments. Stage 2 is not run for rds and accum.
-stage_two_en = true;
+% params = ct_set_params(params,'analysis.cmd{1}.f0',2.85e9);
+% params = ct_set_params(params,'analysis.cmd{1}.f1',14e9);
+% params = ct_set_params(params,'analysis.cmd{1}.abs_metric',[58 4.5 -25 -35 inf inf]);
+% params = ct_set_params(params,'analysis.cmd{1}.SL_guard_bins',6);
+% param_override.collate_deconv.out_dir = 'analysis_uwb';
 
-spec_file_input_type = 'noise'; % e.g. set to 'noise' to input from CSARP_noise folder
-spec_file_output_type = 'noise'; % e.g. set to 'noise' to output to CSARP_noise folder
+% params = ct_set_params(params,'analysis.cmd{1}.f0',2.85e9);
+% params = ct_set_params(params,'analysis.cmd{1}.f1',8e9);
+% params = ct_set_params(params,'analysis.cmd{1}.abs_metric',[58 9.2 -25 -35 inf inf]);
+% params = ct_set_params(params,'analysis.cmd{1}.SL_guard_bins',10);
+% param_override.collate_deconv.out_dir = 'analysis';
 
+params = ct_set_params(params,'analysis.cmd{1}.f0',12e9);
+params = ct_set_params(params,'analysis.cmd{1}.f1',14e9);
+params = ct_set_params(params,'analysis.cmd{1}.abs_metric',[58 23 -25 -28 inf inf]);
+params = ct_set_params(params,'analysis.cmd{1}.SL_guard_bins',20);
+param_override.collate_deconv.out_dir = 'analysis_kuband';
+
+param_override.collate_deconv.cmd_idx = 1;
 % debug_level:
 % 1. Set to 3 the very first time this is run to set Nt_shorten
 % 2. Set to 4 the very first time this is run to set rbins
 % 3. Set to 1 the first time for each segment to make sure good waveforms exist
 % 4. Set to 0 for routine operation/re-running
-debug_level = 1;
+param_override.collate_deconv.debug_level = 1;
+param_override.collate_deconv.imgs = 1;
+param_override.collate_deconv.wf_adcs = [];
+param_override.collate_deconv.stage_one_en = true; % All deconv segments must go through stage one.
+param_override.collate_deconv.stage_two_en = true; % Stage 2 only required for fmcw and not rds or accum
+param.collate_deconv.Mt = 10; % Oversampling amount for peak measurements (Mt=10 recommended)
 
-preserve_old = false; % Set to true once you have final deconv files you do not want to overwrite
+param_override.collate_deconv.preserve_old = false;
 
-imgs = 1;
-wf_adcs = 1;
+%% Automated Section
+% =====================================================================
 
-%% AUTOMATED SECTION
-% =========================================================================
-
-for img = imgs
-  for wf_adc = wf_adcs
-    collate_deconv;
-  end
+% Input checking
+global gRadar;
+if exist('param_override','var')
+  param_override = merge_structs(gRadar,param_override);
+else
+  param_override = gRadar;
 end
 
-return;
+% Process each of the segments
+ctrl_chain = {};
+for param_idx = 1:length(params)
+  param = params(param_idx);
+  if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+    continue;
+  end
+  %collate_deconv(param,param_override);
+  collate_deconv
+  
+end
