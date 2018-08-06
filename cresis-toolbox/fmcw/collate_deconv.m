@@ -230,7 +230,11 @@ if param.collate_deconv.stage_one_en
       deconv.param_collate_deconv = param;
       deconv.param_analysis = spec.param_analysis;
       deconv.param_records = spec.param_records;
-      deconv.file_version = '1';
+      if param.ct_file_lock
+        deconv.file_version = '1L';
+      else
+        deconv.file_version = '1';
+      end
       
       %% Handle the case where no specular targets were found
       % ===================================================================
@@ -761,7 +765,11 @@ if param.collate_deconv.stage_two_en
       final.map_gps_time = layer.gps_time;
       final.map_idxs = max_idxs_mapping(:).';
       final.max_score = max_score;
-      final.file_version = '1';
+      if param.ct_file_lock
+        final.file_version = '1L';
+      else
+        final.file_version = '1';
+      end
       
       % 7. Store final output file
       fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));

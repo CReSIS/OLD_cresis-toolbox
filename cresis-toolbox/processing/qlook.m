@@ -63,11 +63,6 @@ end
 if ~isfield(param.qlook,'imgs') || isempty(param.qlook.imgs)
   param.qlook.imgs = {[1 1]};
 end
-% block_size: no default
-
-if ~isfield(param.qlook,'imgs') || isempty(param.qlook.imgs)
-  param.qlook.imgs = {[1 1]};
-end
 
 if ~isfield(param.qlook,'img_comb') || isempty(param.qlook.img_comb)
   param.qlook.img_comb = [];
@@ -440,10 +435,9 @@ for frm = param.cmd.frms
   out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
   out_fn = fullfile(qlook_out_dir,out_fn_name);
   sparam.success = cat(2,sparam.success, ...
-    sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+    sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
   if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-    ct_file_lock_check(out_fn);
-    delete(out_fn);
+    ct_file_lock_check(out_fn,3);
   end
 end
 

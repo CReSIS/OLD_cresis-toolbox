@@ -81,6 +81,7 @@ param_override.collate_deconv.stage_two_en = true; % Stage 2 only required for f
 param.collate_deconv.Mt = 10; % Oversampling amount for peak measurements (Mt=10 recommended)
 
 param_override.collate_deconv.preserve_old = false;
+param_override.collate_deconv.file_lock = false;
 
 %% Automated Section
 % =====================================================================

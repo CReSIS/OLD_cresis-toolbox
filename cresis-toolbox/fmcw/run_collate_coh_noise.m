@@ -30,6 +30,8 @@ param_override.collate_coh_noise.debug_level = 0; % Set to 1 to view threshold a
 param_override.collate_coh_noise.imgs = 1;
 param_override.collate_coh_noise.wf_adcs = [];
 
+param_override.collate_coh_noise.file_lock = false;
+
 %% Automated Section
 % =====================================================================
 

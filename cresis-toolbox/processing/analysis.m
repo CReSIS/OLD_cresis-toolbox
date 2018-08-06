@@ -424,10 +424,9 @@ for img = 1:length(param.analysis.imgs)
           adc = param.analysis.imgs{img}(wf_adc,2);
           out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
           sparam.success = cat(2,sparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4);\n', success_error, out_fn));
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            ct_file_lock_check(out_fn);
-            delete(out_fn);
+            ct_file_lock_check(out_fn,3);
           end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
@@ -446,10 +445,9 @@ for img = 1:length(param.analysis.imgs)
           adc = param.analysis.imgs{img}(wf_adc,2);
           out_fn = fullfile(out_fn_dir_dir,sprintf('specular_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
           sparam.success = cat(2,sparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4);\n', success_error, out_fn));
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            ct_file_lock_check(out_fn);
-            delete(out_fn);
+            ct_file_lock_check(out_fn,3);
           end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
@@ -468,10 +466,9 @@ for img = 1:length(param.analysis.imgs)
           adc = param.analysis.imgs{img}(wf_adc,2);
           out_fn = fullfile(out_fn_dir_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
           sparam.success = cat(2,sparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            ct_file_lock_check(out_fn);
-            delete(out_fn);
+            ct_file_lock_check(out_fn,3);
           end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);

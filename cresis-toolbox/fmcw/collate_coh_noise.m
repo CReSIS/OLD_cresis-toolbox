@@ -125,7 +125,11 @@ for img = param.collate_coh_noise.imgs
     noise_simp.param_collate = param;
     noise_simp.datestr = datestr(now);
     noise_simp.recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
-    noise_simp.file_version = '1';
+    if param.ct_file_lock
+      noise_simp.file_version = '1L';
+    else
+      noise_simp.file_version = '1';
+    end
     
     %% Store the simplified output in netcdf file
     % =====================================================================

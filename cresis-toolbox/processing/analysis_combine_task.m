@@ -179,7 +179,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         spec.dt = spec_in.dt;
         spec.param_analysis = spec_in.param_analysis;
         spec.param_records = spec_in.param_records;
-        spec.file_version = '1';
+        if param.ct_file_lock
+          spec.file_version = '1L';
+        else
+          spec.file_version = '1';
+        end
         out_fn_dir = fileparts(out_fn);
         out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
@@ -286,7 +290,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         
         noise.doppler = doppler_concat;
         
-        noise.file_version = '1';
+        if param.ct_file_lock
+          noise.file_version = '1L';
+        else
+          noise.file_version = '1';
+        end
         
         out_fn_dir = fileparts(out_fn);
         out_segment_fn_dir = fileparts(out_fn_dir);
