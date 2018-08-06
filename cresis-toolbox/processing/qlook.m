@@ -126,9 +126,12 @@ if ~isfield(param.qlook,'surf') || isempty(param.qlook.surf)
   param.qlook.surf.en = false;
 end
 
-if ~isfield(param.qlook,'top_layer') || isempty(param.qlook.top_layer)
-  param.qlook.top_layer = [];
+if ~isfield(param.qlook,'surf_layer') || isempty(param.qlook.surf_layer)
+  param.qlook.surf_layer.name = 'surface';
+  param.qlook.surf_layer.source = 'layerData';
 end
+% Never check for the existence of files
+param.qlook.surf_layer.existence_check = false;
 
 %% Setup Processing
 % =====================================================================
@@ -374,8 +377,8 @@ ctrl_chain = {ctrl};
 %% Create and setup the combine batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
-if param.qlook.surf.en
-  % If surface is enabled, the records file will be updated and this should
+if param.qlook.surf.en && strcmpi(param.qlook.surf_layer.source,'records')
+  % If surface is enabled and the surf_layer type is records, this should
   % not be done on the cluster.
   ctrl.cluster.type = 'debug';
 end

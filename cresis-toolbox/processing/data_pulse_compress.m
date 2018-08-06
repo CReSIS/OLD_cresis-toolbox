@@ -332,8 +332,8 @@ for img = 1:length(param.load.imgs)
         finfo = ncinfo(cdf_fn);
 
         noise = [];
-        hdr.custom.coh_noise = ncread(cdf_fn,'datestr');
-        hdr.custom.coh_noise = hdr.custom.coh_noise(:);
+        coh_noise_date_str = ncread(cdf_fn,'datestr');
+        hdr.custom.coh_noise(1:length(coh_noise_date_str),1,img,wf_adc) = coh_noise_date_str;
         noise.start_bin = ncread(cdf_fn,'start_bin');
         noise.dt = ncread(cdf_fn,'dt');
         noise.dft_freqs = ncread(cdf_fn,'dft_freqs');
@@ -392,14 +392,15 @@ for img = 1:length(param.load.imgs)
       deconv_fn = fullfile(fileparts(ct_filename_out(param,wfs(wf).deconv.fn, '')), ...
         sprintf('deconv_%s_wf_%d_adc_%d.mat',param.day_seg, wf, adc));
       deconv = load(deconv_fn);
-      hdr.custom.deconv = deconv.param_collate_deconv_final.sw_version.cur_date_time;
-      hdr.custom.deconv = hdr.custom.deconv(:);
+      deconv_date_str = deconv.param_collate_deconv_final.sw_version.cur_date_time;
+      hdr.custom.deconv(1:length(deconv_date_str),1,img,wf_adc) = deconv_date_str;
       
       deconv_map_idxs = interp1(deconv.map_gps_time,deconv.map_idxs,hdr.gps_time,'nearest');
       max_score = interp1(deconv.map_gps_time,deconv.max_score,hdr.gps_time,'nearest');
       
       unique_idxs = unique(deconv_map_idxs);
       
+      fc = hdr.freq{img}(1);
       for unique_idxs_idx = 1:length(unique_idxs)
         % deconv_mask: Create logical mask corresponding to range lines that use this deconv waveform
         deconv_map_idx = unique_idxs(unique_idxs_idx);
@@ -427,7 +428,7 @@ for img = 1:length(param.load.imgs)
         end
         
         % Is fc different? Multiply time domain by exp(1i*2*pi*dfc*deconv_time)
-        dfc = hdr.freq{img}(1) - deconv.fc(deconv_map_idx);
+        dfc = fc - deconv.fc(deconv_map_idx);
         if dfc/fc > 1e-6
           deconv_time = t0 + dt*(0:Nt-1).';
           h_filled = h_filled .* exp(1i*2*pi*dfc*deconv_time);
@@ -449,13 +450,29 @@ for img = 1:length(param.load.imgs)
         % Normalize deconvolution
         h_filled_inverse = h_filled_inverse * h_mult_factor;
         
+        % Baseband data
+        if wf_adc == 1
+          deconv_fc = (cmd.f0+cmd.f1)/2;
+          df = hdr.freq{img}(2)-hdr.freq{img}(1);
+          BW = df * wfs(wf).Nt;
+          dfc = deconv_fc - fc;
+          deconv_LO = exp(-1i*2*pi*dfc * hdr.time{img});
+          hdr.freq{img} = mod(hdr.freq{img} + dfc-wfs(wf).BW_window(1), BW)+wfs(wf).BW_window(1);
+        elseif abs(deconv_fc - (cmd.f0+cmd.f1)/2)/deconv_fc > 1e-6
+          error('Deconvolution center frequency must be the same for all wf-adc pairs in the image. Was %g and is now %g.', deconv_fc, (cmd.f0+cmd.f1)/2);
+        end
+        
         % Apply deconvolution filter
         deconv_mask_idxs = find(deconv_mask);
         blocks = round(linspace(1,length(deconv_mask_idxs)+1,8)); blocks = unique(blocks);
         for block = 1:length(blocks)-1
           rlines = blocks(block) : blocks(block+1)-1;
+          % Matched filter
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,rlines,wf_adc)), h_filled_inverse));
-        end        
+          % Down conversion to new deconvolution center frequency
+          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = bsxfun(@times, data{img}(1:wfs(wf).Nt,rlines,wf_adc), deconv_LO);
+        end
+        
       end
     end
     

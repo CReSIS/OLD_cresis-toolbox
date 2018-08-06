@@ -19,11 +19,11 @@ if ~isequal(pq(1,:),[1 1])
     % Resample time axis
     dt = hdr.time{img}(2) - hdr.time{img}(1);
     Nt = size(data{img},1);
-    hdr.time{img} = hdr.time{img}(1) + pq(1,2)/pq(1,1)*dt * (0:Nt-1);
+    hdr.time{img} = hdr.time{img}(1) + pq(1,2)/pq(1,1)*dt * (0:Nt-1).';
     
     % Resample frequency axis
     df = 1/(Nt*dt);
-    hdr.freq{img} = hdr.freq{img}(1) + df * ifftshift(floor(-Nt/2) : floor((Nt-1)/2));
+    hdr.freq{img} = hdr.freq{img}(1) + df * ifftshift(floor(-Nt/2) : floor((Nt-1)/2)).';
   end
 end
 

@@ -324,6 +324,8 @@ if param.collate_deconv.stage_one_en
           
           linkaxes(h_axes([1 3]),'x');
           linkaxes(h_axes([2 4]),'x');
+          
+          keyboard
         end
         
         %% Test deconvolution function
@@ -439,11 +441,13 @@ if param.collate_deconv.stage_one_en
           hold(h_axes(3),'on');
           plot(h_axes(3), lp(Hwind_filled,1) - max(lp(Hwind_filled,1)) + max(lp(h_filled)))
           plot(h_axes(3), lp(h_filled_inverse) - max(lp(h_filled_inverse)) + max(lp(h_filled)))
-          xlabel(h_axes(3), 'Range bin');
+          xlabel(h_axes(3), 'Frequency bin');
           ylabel(h_axes(3), 'Relative power (dB)');
           title(h_axes(3), 'Transfer function');
           legend(h_axes(3), 'sample','window','inverse','location','best');
           grid(h_axes(3), 'on');
+          
+          keyboard
         end
         
         
@@ -712,6 +716,7 @@ if param.collate_deconv.stage_two_en
       % 5. Find best score at each point along the flight track
       min_score = min(score);
       score = score-min_score;
+      clear max_score;
       for rline = 1:length(layer.twtt)
         % Score with twtt penalty and time constant penalty term
         d_twtt = layer.twtt(rline) - deconv.twtt;

@@ -48,22 +48,6 @@ records = load(records_fn);
 % Quick look radar echogram output directory
 qlook_out_dir = ct_filename_out(param, param.qlook.out_path, 'CSARP_qlook');
 
-% Preload layer for image combine if it is specified
-if isempty(param.qlook.img_comb_layer_params)
-  layers = [];
-else
-  param_load_layers = param;
-  param_load_layers.cmd.frms = param.cmd.frms;
-  layers = opsLoadLayers(param_load_layers,param.qlook.img_comb_layer_params);
-end
-
-%% Load layer data
-% =========================================================================
-
-if ~isempty(param.qlook.top_layer)
-  new_layer = opsLoadLayers(param,param.qlook.top_layer);
-end
-
 %% Loop through all the frames: combine and surface track
 % =====================================================================
 [output_dir,radar_type] = ct_output_dir(param.radar_name);
@@ -102,13 +86,14 @@ for frm_idx = 1:length(param.cmd.frms);
     
     %% Concatenate all the ql block outputs for this image
     Time = [];
+    GPS_time = [];
     Latitude = [];
     Longitude = [];
     Elevation = [];
     Roll = [];
     Pitch = [];
     Heading = [];
-    GPS_time = [];
+    Surface = [];
     Data = [];
     custom = [];
     
@@ -154,13 +139,14 @@ for frm_idx = 1:length(param.cmd.frms);
       Roll = [Roll double(tmp.Roll)];
       Pitch = [Pitch double(tmp.Pitch)];
       Heading = [Heading double(tmp.Heading)];
+      Surface = [Surface double(tmp.Surface)];
       GPS_time = [GPS_time tmp.GPS_time];
       param_records = tmp.param_records;
       param_qlook = tmp.param_qlook;
       
       if isfield(tmp,'custom') && ~isempty(tmp.custom)
-        % Custom fields are present, so concatenate them on the second dimension
-        % - Used for deconvolution waveform index
+        % Custom fields are present, so concatenate them on the last dimension
+        % - Used for coherent noise/deconv information
         fields = fieldnames(tmp.custom);
         if block_idx == 1
           for field_idx = 1:length(fields)
@@ -168,8 +154,7 @@ for frm_idx = 1:length(param.cmd.frms);
           end
         else
           for field_idx = 1:length(fields)
-            max_dim = length(size(tmp.custom.(fields{field_idx})));
-            custom.(fields{field_idx}) = cat(max_dim,custom.(fields{field_idx}),tmp.custom.(fields{field_idx}));
+            custom.(fields{field_idx}) = cat(2,custom.(fields{field_idx}),tmp.custom.(fields{field_idx}));
           end
         end
         
@@ -192,11 +177,11 @@ for frm_idx = 1:length(param.cmd.frms);
     Data = single(Data);
     if isempty(custom)
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-        'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
+        'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version');
     else
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-        'Elevation','Roll','Pitch','Heading','GPS_time','Data', ...
+        'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','custom');
     end
     
@@ -207,82 +192,81 @@ for frm_idx = 1:length(param.cmd.frms);
     end
   end
   
-  if ~isempty(param.qlook.img_comb)
-    %% Combine image with previous
-    if Time(end) > Time_Surface(end)
-      param.load.frm = frm;
-      [Data, Time] = img_combine(param, 'qlook', layers);
-      %% Update temporary output for surface tracker
-      Data_Surface = Data;
-      Time_Surface = Time;
+  %% Combine image with previous
+  img_combine_param = param;
+  img_combine_param.load.frm = frm;
+  surf_layer.gps_time = GPS_time;
+  surf_layer.twtt = Surface;
+  [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
+  %% Update temporary output for surface tracker
+  Data_Surface = Data;
+  Time_Surface = Time;
+  
+  if param.qlook.surf.en
+    %% Run ice top tracker to find ice surface
+    surf = param.qlook.surf;
+    if isfield(param.qlook.surf,'min_bin')
+      % Convert time min_bin into range bins
+      surf.min_bin = find(Time > param.qlook.surf.min_bin, 1);
     end
-  end
-  
-  %% Run surface tracker
-  surf = param.qlook.surf;
-  if isfield(param.qlook.surf,'min_bin')
-    % Convert time min_bin into range bins
-    surf.min_bin = find(Time > param.qlook.surf.min_bin, 1);
-  end
-  if isfield(param.qlook.surf,'max_bin') && ~isempty(param.qlook.surf.max_bin)
-    % Convert time max_bin into range bins
-    surf.max_bin = find(Time > param.qlook.surf.max_bin, 1);
-  end
-  if isfield(param.qlook.surf,'max_diff')
-    % Convert time max_diff into range bins
-    dt = Time(2) - Time(1);
-    surf.max_diff = param.qlook.surf.max_diff/dt;
-  end
-  
-  if ~isfield(surf,'manual')
-    surf.manual = false;
-  end
-  
-  if isfield(surf,'feedthru')
-    % Optional feed through removal
-    
-    % Interpolate feed through power levels on to data time axis
-    feedthru_threshold = interp1(surf.feedthru.time,surf.feedthru.power_dB,Time);
-    feedthru_threshold = interp_finite(feedthru_threshold);
-    
-    % Remove all data not exceeding feed through threshold power
-    for rline=1:size(Data,2)
-      Data(:,rline) = Data(:,rline) .* (lp(Data(:,rline)) > feedthru_threshold);
+    if isfield(param.qlook.surf,'max_bin') && ~isempty(param.qlook.surf.max_bin)
+      % Convert time max_bin into range bins
+      surf.max_bin = find(Time > param.qlook.surf.max_bin, 1);
     end
+    if isfield(param.qlook.surf,'max_diff')
+      % Convert time max_diff into range bins
+      dt = Time(2) - Time(1);
+      surf.max_diff = param.qlook.surf.max_diff/dt;
+    end
+    
+    if ~isfield(surf,'manual')
+      surf.manual = false;
+    end
+    
+    if isfield(surf,'feedthru')
+      % Optional feed through removal
+      
+      % Interpolate feed through power levels on to data time axis
+      feedthru_threshold = interp1(surf.feedthru.time,surf.feedthru.power_dB,Time);
+      feedthru_threshold = interp_finite(feedthru_threshold);
+      
+      % Remove all data not exceeding feed through threshold power
+      for rline=1:size(Data,2)
+        Data(:,rline) = Data(:,rline) .* (lp(Data(:,rline)) > feedthru_threshold);
+      end
+    end
+    
+    if strcmpi(surf.method,'threshold')
+      new_surface = tracker_threshold(Data,surf);
+    elseif strcmpi(surf.method,'max')
+      new_surface = tracker_max(Data,surf);
+    elseif strcmpi(surf.method,'snake')
+      new_surface = tracker_snake_simple(Data,surf);
+    else
+      error('Not a supported surface tracking method.');
+    end
+    
+    %% Apply optional median filter to surface layer
+    if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
+      new_surface = medfilt1(new_surface,surf.medfilt);
+    end
+    
+    %% Convert surface layer from range bins to two way travel time
+    Surface = interp1(1:length(Time), Time, new_surface);
+    
+    Surface = reshape(Surface, [1 length(Surface)]);
+    
+    % Reset the "Data" variable in case it was modified during surface
+    % tracking
+    Data = Data_Surface;
+    Surface = interp_finite(Surface,0);
+
+    % Update surf_layer twtt for ice top layer
+    surf_layer.twtt = Surface;
   end
-  
-  if strcmpi(surf.method,'threshold')
-    new_surface = tracker_threshold(Data,surf);
-  elseif strcmpi(surf.method,'max')
-    new_surface = tracker_max(Data,surf);
-  elseif strcmpi(surf.method,'snake')
-    new_surface = tracker_snake_simple(Data,surf);
-  else
-    error('Not a supported surface tracking method.');
-  end
-  
-  %% Apply optional median filter
-  if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
-    new_surface = medfilt1(new_surface,surf.medfilt);
-  end
-  
-  %% Convert from range bins to two way travel time
-  Surface = interp1(1:length(Time), Time, new_surface);
-  
-  Surface = reshape(Surface, [1 length(Surface)]);
-  
-  % Reset the "Data" variable in case it was modified during surface
-  % tracking
-  Data = Data_Surface;
-  Surface = interp_finite(Surface,0);
   
   %% Combine images into a single image (also trim time<0 values)
-  param.load.frm = frm;
-  if isempty(layers)
-    layers.gps_time = GPS_time;
-    layers.twtt = Surface;
-  end
-  [Data, Time] = img_combine(param, 'qlook', layers);
+  [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
   
   %% Save combined image output
   out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
@@ -306,39 +290,21 @@ if param.qlook.surf.en
   % Read the "Surface" variable from all the frames that were created
   % by this particular run of qlook
   
-  if isfield(records,'gps_time')
-    num_recs = length(records.gps_time);
+  copy_param.layer_source.name = 'surface';
+  copy_param.layer_source.source = 'echogram';
+  copy_param.layer_source.echogram_source = param.qlook.out_path;
+  copy_param.layer_source.existence_check = false;
+
+  copy_param.layer_dest = param.qlook.surf_layer;
+  if strcmpi(param.qlook.surf_layer.source,'layerdata')
+    copy_param.layer_dest.echogram_source = param.qlook.out_path;
   end
+  copy_param.layer_dest.existence_check = false;
+
+  copy_param.copy_method = 'overwrite';
+  copy_param.gaps_fill.method = 'interp_finite';
   
-  if ~isfield(records,'surface')
-    records.surface = zeros(1,num_recs);
-  end
-  
-  if length(records.surface) ~= num_recs
-    warning('Debug catch incase records.surface is wrong length... hand-fix to be correct length');
-    keyboard
-  end
-  
-  for frm = param.cmd.frms
-    if ~ct_proc_frame(frames.proc_mode(frm),param.qlook.frm_types)
-      continue;
-    end
-    out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
-      param.day_seg, frm));
-    load(out_fn,'GPS_time','Surface');
-    
-    if frm < length(frames.frame_idxs)
-      recs = frames.frame_idxs(frm):frames.frame_idxs(frm+1);
-    else
-      recs = frames.frame_idxs(frm):num_recs;
-    end
-    
-    records.surface(recs) = interp1(GPS_time,Surface,records.gps_time(recs),'linear','extrap');
-  end
-  
-  % Store surface information to the records file
-  save(records_fn,'-APPEND','-struct','records','surface');
-  create_records_aux_files(records_fn);
+  opsCopyLayers(param,copy_param);
 end
 
 %% Done

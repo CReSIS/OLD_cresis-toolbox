@@ -107,16 +107,16 @@ for param_idx = 1:length(params)
       autogenerate_frames(param,param_override);
     end
   end
-  if isfield(cmd,'get_heights') && cmd.get_heights
-    chain = get_heights(param,param_override);
+  if isfield(cmd,'qlook') && cmd.qlook
+    chain = qlook(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
-  if isfield(cmd,'csarp') && cmd.csarp
-    chain = csarp(param,param_override);
+  if isfield(cmd,'sar') && cmd.sar
+    chain = sar(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
-  if isfield(cmd,'combine_wf_chan') && cmd.combine_wf_chan
-    chain = combine_wf_chan(param,param_override);
+  if isfield(cmd,'array') && cmd.array
+    chain = array(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
   

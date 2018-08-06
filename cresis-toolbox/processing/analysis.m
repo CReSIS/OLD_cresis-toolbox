@@ -49,6 +49,13 @@ if ~isfield(param.analysis,'presums') || isempty(param.analysis.presums)
   param.analysis.presums = 1;
 end
 
+if ~isfield(param.analysis,'surf_layer') || isempty(param.analysis.surf_layer)
+  param.analysis.surf_layer.name = 'surface';
+  param.analysis.surf_layer.source = 'layerData';
+end
+% Never check for the existence of files
+param.analysis.surf_layer.existence_check = false;
+
 % For each command in the list, set its default settings
 for cmd_idx = 1:length(param.analysis.cmd)
   cmd = param.analysis.cmd{cmd_idx};

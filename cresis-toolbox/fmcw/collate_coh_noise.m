@@ -62,7 +62,7 @@ for img = param.collate_coh_noise.imgs
     % =====================================================================
     fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.in_dir));
     fn = fullfile(fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-    fprintf('Loading %s\n', fn);
+    fprintf('Loading %s (%s)\n', fn, datestr(now));
     noise = load(fn);
     
     % Each processed block has a constant start and stop bin, but between
@@ -93,21 +93,25 @@ for img = param.collate_coh_noise.imgs
     dft_freqs = dft_freqs(dft_freqs_idxs);
     noise.dft = zeros(stop_bin-start_bin+1, Nx_dft, 'single');
     for bin = start_bin:stop_bin
+      bin_idx = bin-start_bin+1;
       data_bin = nan(size(noise.gps_time));
       for block_idx = 1:length(noise.coh_ave)
         if bin >= start_bins(block_idx) && bin <= stop_bins(block_idx)
           data_bin(block_start(block_idx)+(0:block_size(block_idx)-1)) = noise.coh_ave{block_idx}(bin-start_bins(block_idx)+1,:);
         end
       end
-      %plot(lp(data_bin)); title(sprintf('%d',bin));
+      %figure(1); clf;
+      %plot(real(data_bin)); title(sprintf('%d',bin));
+      %figure(2); clf;
+      %plot(imag(data_bin)); title(sprintf('%d',bin));
       for dft_idx = 1:length(dft_freqs)
         mf = exp(1i*2*pi/Nx * dft_freqs(dft_idx) .* (0:Nx-1));
-        noise.dft(bin,dft_idx) = nanmean(mf.*data_bin);
-        data_bin = data_bin - noise.dft(bin,dft_idx) * mf;
+        noise.dft(bin_idx,dft_idx) = nanmean(mf.*data_bin);
+        data_bin = data_bin - noise.dft(bin_idx,dft_idx) * mf;
       end
-      %pause
+      %noise.dft(bin,dft_idx)
+      %keyboard
     end
-    
     
     %% Create the simplified output
     % =====================================================================
@@ -127,7 +131,7 @@ for img = param.collate_coh_noise.imgs
     % =====================================================================
     out_fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.out_dir, ''));
     out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
-    fprintf('Saving %s\n', out_fn);
+    fprintf('Saving %s (%s)\n', out_fn, datestr(now));
     netcdf_from_mat(out_fn,noise_simp);
 
 %         case 'custom2'

@@ -41,6 +41,21 @@ param_records.gps_source = records.gps_source;
 % Get output directory, radar type, and base radar name
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
+%% Load surface layer
+% =========================================================================
+frames_fn = ct_filename_support(param,'','frames');
+load(frames_fn);
+tmp_param = param;
+tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
+surf_layer = opsLoadLayers(tmp_param,param.analysis.surf_layer);
+if isempty(surf_layer.gps_time)
+  records.surface(:) = 0;
+elseif length(surf_layer.gps_time) == 1;
+  records.surface(:) = surf_layer.twtt;
+else
+  records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time));
+end
+
 %% Collect waveform information into one structure
 % =========================================================================
 [wfs,states] = data_load_wfs(param,records);

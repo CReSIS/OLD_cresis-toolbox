@@ -458,6 +458,9 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   opsCreateLayerPoints(sys,ops_param);
   
 elseif strcmpi(copy_param.layer_dest.source,'layerdata')
+  if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.layer_dest.layerdata_source)
+    copy_param.layer_dest.layerdata_source = 'layerData';
+  end
   for frm = param.cmd.frms
     %% Loop through and update selected frame files with surface
     layer_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.layerdata_source,''),...
