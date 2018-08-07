@@ -161,7 +161,7 @@ if isempty(surf_layer.gps_time)
 elseif length(surf_layer.gps_time) == 1;
   records.surface(:) = surf_layer.twtt;
 else
-  records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time));
+  records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time),0);
 end
 
 %% Collect waveform information into one structure

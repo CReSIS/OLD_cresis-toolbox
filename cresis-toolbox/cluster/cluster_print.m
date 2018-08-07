@@ -319,23 +319,27 @@ if print_mode == 1
     out{id_idx} = [];
     fprintf('\n\nOUT ===========================================================================\n');
     fprintf('%s\n', out_fn);
-    try
-      out{id_idx} = load(out_fn);
-      fprintf('  Loaded\n');
+    if ~exist(out_fn,'file')
+      fprintf('  File does not exist\n');
+    else
       try
-        if isfield(out{id_idx},'errorstruct')
-          if ~isempty(out{id_idx}.errorstruct)
-            fprintf('%s: %s\n', out{id_idx}.errorstruct.identifier, out{id_idx}.errorstruct.message);
-            for stack_idx = 1:length(out{id_idx}.errorstruct.stack)
-              fprintf('  %s: %d\n', out{id_idx}.errorstruct.stack(stack_idx).name, out{id_idx}.errorstruct.stack(stack_idx).line);
+        out{id_idx} = load(out_fn);
+        fprintf('  Loaded\n');
+        try
+          if isfield(out{id_idx},'errorstruct')
+            if ~isempty(out{id_idx}.errorstruct)
+              fprintf('%s: %s\n', out{id_idx}.errorstruct.identifier, out{id_idx}.errorstruct.message);
+              for stack_idx = 1:length(out{id_idx}.errorstruct.stack)
+                fprintf('  %s: %d\n', out{id_idx}.errorstruct.stack(stack_idx).name, out{id_idx}.errorstruct.stack(stack_idx).line);
+              end
             end
           end
+        catch
+          fprintf('  Failed during errorstruct interpretation\n');
         end
       catch
-        fprintf('  Failed during errorstruct interpretation\n');
+        fprintf('  Failed to load\n');
       end
-    catch
-      fprintf('  Failed to load\n');
     end
     
   end
