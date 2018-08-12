@@ -122,6 +122,13 @@ if ~isfield(ctrl.cluster,'mem_to_ppn') || isempty(ctrl.cluster.mem_to_ppn)
   ctrl.cluster.mem_to_ppn = [];
 end
 
+if ~isfield(ctrl.cluster,'max_ppn') || isempty(ctrl.cluster.max_ppn)
+  if ~isempty(ctrl.cluster.mem_to_ppn)
+    error('max_ppn must be specified if mem_to_ppn is specified.');
+  end
+  ctrl.cluster.max_ppn = [];
+end
+
 if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
 end
@@ -136,11 +143,18 @@ end
 
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
   % -m n: no mail
-  % -l nodes=1:ppn=1: one compute node and one core/processor on the node
+  % -l nodes=1:ppn=%p: 1 compute node and %p core/processors on the node.
+  % Specifying more than one node may cause torque to assign multiple
+  % machines which the current software does not support. Therefore nodes=1
+  % always.
   ctrl.cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p,pmem=%m,walltime=%t';
 end
 
 if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm_submit_arguments)
+  % -N, --nodes: specifies the number of nodes
+  % -cpus-per-task: specifies the number of cpus per task
+  % --mincpus: specifies the number of cpus per node
+  % -n, --ntasks: number of tasks
   ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%m --time=%t';
 end
 

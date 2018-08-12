@@ -30,6 +30,14 @@ if ~isfield(param.post,'frm_types') || isempty(param.post.frm_types)
   param.post.frm_types = {-1,0,-1,-1,-1};
 end
 
+if ~isfield(param.post,'img_type') || isempty(param.post.img_type)
+  param.post.img_type = 'jpg';
+end
+
+if ~isfield(param.post,'img_dpi') || isempty(param.post.img_dpi)
+  param.post.img_dpi = 150;
+end
+
 if ~isfield(param.post,'img') || isempty(param.post.img)
   % Data_YYYYMMDD_SS_FFF is image 0
   % Data_img_II_YYYYMMDD_SS_FFF is image II (where II is 1 or more)

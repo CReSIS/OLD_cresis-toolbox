@@ -71,7 +71,10 @@ if ischar(fns)
         if any(file_version=='L')
           % Check with user
           fprintf('<strong>File is locked: %s</strong>\nChoose one of these options:\n  1: Remove lock\n  2: Disable ct_file_lock\n  3: Stop execution\n', fn);
-          uinput = input('>> ');
+          uinput = [];
+          while isempty(uinput) || ~isnumeric(uinput)
+            uinput = input('? ');
+          end
           if uinput==1
             fprintf('  Removing lock\n');
             if check_mode == 2

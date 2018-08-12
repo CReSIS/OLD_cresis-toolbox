@@ -110,6 +110,12 @@ if ~isfield(cmd,'bad_gps_times') || isempty(cmd.bad_gps_times)
   cmd.bad_gps_times = [];
 end
 
+if ~isfield(cmd,'day_segs') || isempty(cmd.day_segs)
+  % Default is to use this day_seg only to find deconvolution waveforms
+  cmd.day_segs = {param.day_seg};
+end
+
+
 if ~isfield(cmd,'f0') || isempty(cmd.f0)
   % Default is no limits on lower frequency
   cmd.f0 = -inf;
@@ -198,6 +204,10 @@ if param.collate_deconv.stage_one_en
       fn = fullfile(fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
       spec = load(fn);
+      if isempty(spec.deconv_gps_time)
+        warning('No specular waveforms found.');
+        continue;
+      end
       
       %% Preallocate Outputs
       deconv = [];
@@ -537,6 +547,7 @@ if param.collate_deconv.stage_one_en
         pass = bsxfun(@lt,deconv.metric,cmd.abs_metric(:));
         
         score = nansum(bsxfun(@times, cmd.metric_weights(:), bsxfun(@minus, cmd.abs_metric(:), deconv.metric)));
+        score(:,any(isnan(deconv.metric))) = -inf;
         
         % Find the highest score in each bin
         twtts = unique(round(deconv.twtt*param.collate_deconv.twtt_penalty*10)/10/param.collate_deconv.twtt_penalty);
@@ -663,7 +674,7 @@ if param.collate_deconv.stage_one_en
       end
       out_fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
-      ct_file_lock_check(out_fn);
+      ct_file_lock_check(out_fn,2);
       save(out_fn,'-v7.3','-struct','deconv');
       
     end
@@ -686,23 +697,59 @@ if param.collate_deconv.stage_two_en
       %% Stage 2: Determine the best waveform for each record
       % ===================================================================
       % 1. Load all segments that are specified (default is just this segment)
-      cmd.day_segs = {param.day_seg};
       for day_seg_idx = 1:length(cmd.day_segs)
         day_seg = cmd.day_segs{day_seg_idx};
+        fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
         fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', day_seg, wf, adc));
-        fprintf('Loading %s img %d wf %d adc %d\n  %s\n', day_seg, img, wf, adc, fn);
-        deconv = load(fn);
+        fprintf('Loading lib %s img %d wf %d adc %d\n  %s\n', day_seg, img, wf, adc, fn);
+        if day_seg_idx == 1
+          deconv_lib = load(fn);
+          deconv_lib.day_seg = repmat({day_seg},[length(deconv_lib.gps_time) 1]);
+        else
+          tmp = load(fn);
+          deconv_lib.gps_time(end+(1:length(tmp.gps_time))) = tmp.gps_time;
+          deconv_lib.lat(end+(1:length(tmp.lat))) = tmp.lat;
+          deconv_lib.lon(end+(1:length(tmp.lon))) = tmp.lon;
+          deconv_lib.elev(end+(1:length(tmp.elev))) = tmp.elev;
+          deconv_lib.roll(end+(1:length(tmp.roll))) = tmp.roll;
+          deconv_lib.pitch(end+(1:length(tmp.pitch))) = tmp.pitch;
+          deconv_lib.heading(end+(1:length(tmp.heading))) = tmp.heading;
+          deconv_lib.frm(end+(1:length(tmp.frm))) = tmp.frm;
+          deconv_lib.rec(end+(1:length(tmp.rec))) = tmp.rec;
+          deconv_lib.ref_nonnegative(end+(1:length(tmp.ref_nonnegative))) = tmp.ref_nonnegative;
+          deconv_lib.ref_negative(end+(1:length(tmp.ref_negative))) = tmp.ref_negative;
+          deconv_lib.ref_mult_factor(end+(1:length(tmp.ref_mult_factor))) = tmp.ref_mult_factor;
+          deconv_lib.impulse_response(end+(1:length(tmp.impulse_response))) = tmp.impulse_response;
+          deconv_lib.metric(:,end+(1:length(tmp.metric))) = tmp.metric;
+          deconv_lib.peakiness(end+(1:length(tmp.peakiness))) = tmp.peakiness;
+          deconv_lib.fc(end+(1:length(tmp.fc))) = tmp.fc;
+          deconv_lib.twtt(end+(1:length(tmp.twtt))) = tmp.twtt;
+          deconv_lib.day_seg(end+(1:length(tmp.gps_time))) = repmat({day_seg},[length(tmp.gps_time) 1]);
+        end
         
-        deconv.day_seg = repmat({day_seg},[length(deconv.gps_time) 1]);
       end
-      if isempty(deconv.gps_time)
+      if isempty(deconv_lib.gps_time)
         error('There are no deconvolution waveforms in the files loaded. Specify other cmd.day_seg to load or remake current day_seg files with lower metric thresholds.');
+      end
+
+      % Load deconv
+      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
+      fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+      fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
+      if exist(fn)
+        deconv = load(fn,'param_collate_deconv','param_analysis','param_records');
+      else
+        fprintf('  Does not exist.\n');
+        deconv.param_collate_deconv = deconv_lib.param_collate_deconv;
+        deconv.param_analysis = [];
+        deconv.param_records = [];
       end
       
       % 2. Load surface using opsLoadLayers to determine which waveforms
       %    are needed
+      layer_params = [];
       layer_params.name = 'surface';
-      layer_params.source = 'records';
+      layer_params.source = 'layerData';
       layer = opsLoadLayers(param,layer_params);
       
       % 3. Decimate layer
@@ -714,61 +761,98 @@ if param.collate_deconv.stage_two_en
       layer.elev = layer.elev(decim_idxs);
       
       % 4. Compare results to metric
-      pass = bsxfun(@lt,deconv.metric,cmd.abs_metric(:));
-      score = nansum(bsxfun(@times, cmd.metric_weights(:), bsxfun(@minus, cmd.abs_metric(:), deconv.metric)));
+      pass = bsxfun(@lt,deconv_lib.metric,cmd.abs_metric(:));
+      score = nansum(bsxfun(@times, cmd.metric_weights(:), bsxfun(@minus, cmd.abs_metric(:), deconv_lib.metric)));
+      score(:,any(isnan(deconv_lib.metric))) = nan;
       
       % 5. Find best score at each point along the flight track
-      min_score = min(score);
+      min_score = nanmin(score);
       score = score-min_score;
-      clear max_score;
+      clear max_score unadjusted_score max_idx;
       for rline = 1:length(layer.twtt)
         % Score with twtt penalty and time constant penalty term
-        d_twtt = layer.twtt(rline) - deconv.twtt;
-        d_gps_time = layer.gps_time(rline) - deconv.gps_time;
-        adjusted_score = min_score + score .* exp(-abs(param.collate_deconv.twtt_penalty*d_twtt).^2) ...
-          .* exp(-abs(param.collate_deconv.gps_time_penalty*d_gps_time).^2);
+        d_twtt = layer.twtt(rline) - deconv_lib.twtt;
+        d_gps_time = layer.gps_time(rline) - deconv_lib.gps_time;
+        %adjusted_score = min_score + score .* exp(-abs(param.collate_deconv.twtt_penalty*d_twtt).^2) ...
+        %  .* exp(-abs(param.collate_deconv.gps_time_penalty*d_gps_time).^2);
+        adjusted_score = min_score + score - (100-100*exp(-abs(param.collate_deconv.twtt_penalty*d_twtt).^2)) ...
+          - (50-50*exp(-abs(param.collate_deconv.gps_time_penalty*d_gps_time).^2));
         
         [max_score(rline),max_idx(rline)] = max(adjusted_score);
+        unadjusted_score(rline) = min_score + score(max_idx(rline));
       end
       if any(max_score < param.collate_deconv.min_score)
-        warning('Score is too low for %d blocks of range lines.', sum(max_score < param.collate_deconv.min_score));
+        warning('Score is too low for %d of %d blocks of range lines.', sum(max_score < param.collate_deconv.min_score), length(max_score));
       end
       [max_idxs,~,max_idxs_mapping] = unique(max_idx);
       
+      [~,sort_idxs] = sort(deconv_lib.twtt(max_idxs));
+      unsort_idxs(sort_idxs) = 1:length(sort_idxs);
+      max_idxs = max_idxs(sort_idxs);
+      max_idxs_mapping = unsort_idxs(max_idxs_mapping);
+      
       % 6. Create the final output structure
       final = [];
-      final.gps_time = deconv.gps_time(max_idxs);
-      final.lat = deconv.lat(max_idxs);
-      final.lon = deconv.lon(max_idxs);
-      final.elev = deconv.elev(max_idxs);
-      final.roll = deconv.roll(max_idxs);
-      final.pitch = deconv.pitch(max_idxs);
-      final.heading = deconv.heading(max_idxs);
-      final.frm = deconv.frm(max_idxs);
-      final.rec = deconv.rec(max_idxs);
-      final.ref_windowed = deconv.ref_windowed;
-      final.ref_window = deconv.ref_window;
-      final.ref_nonnegative = deconv.ref_nonnegative(max_idxs);
-      final.ref_negative = deconv.ref_negative(max_idxs);
-      final.ref_mult_factor = deconv.ref_mult_factor(max_idxs);
-      final.impulse_response = deconv.impulse_response(max_idxs);
-      final.metric = deconv.metric(:,max_idxs);
-      final.peakiness = deconv.peakiness(max_idxs);
-      final.fc = deconv.fc(max_idxs);
-      final.dt = deconv.dt;
-      final.twtt = deconv.twtt(max_idxs);
+      final.gps_time = deconv_lib.gps_time(max_idxs);
+      final.lat = deconv_lib.lat(max_idxs);
+      final.lon = deconv_lib.lon(max_idxs);
+      final.elev = deconv_lib.elev(max_idxs);
+      final.roll = deconv_lib.roll(max_idxs);
+      final.pitch = deconv_lib.pitch(max_idxs);
+      final.heading = deconv_lib.heading(max_idxs);
+      final.frm = deconv_lib.frm(max_idxs);
+      final.rec = deconv_lib.rec(max_idxs);
+      final.ref_windowed = deconv_lib.ref_windowed;
+      final.ref_window = deconv_lib.ref_window;
+      final.ref_nonnegative = deconv_lib.ref_nonnegative(max_idxs);
+      final.ref_negative = deconv_lib.ref_negative(max_idxs);
+      final.ref_mult_factor = deconv_lib.ref_mult_factor(max_idxs);
+      final.impulse_response = deconv_lib.impulse_response(max_idxs);
+      final.metric = deconv_lib.metric(:,max_idxs);
+      final.peakiness = deconv_lib.peakiness(max_idxs);
+      final.fc = deconv_lib.fc(max_idxs);
+      final.dt = deconv_lib.dt;
+      final.twtt = deconv_lib.twtt(max_idxs);
       final.param_collate_deconv_final = param;
       final.param_collate_deconv = deconv.param_collate_deconv;
       final.param_analysis = deconv.param_analysis;
       final.param_records = deconv.param_records;
-      final.map_day_seg = deconv.day_seg(max_idxs);
+      final.map_day_seg = deconv_lib.day_seg(max_idxs);
       final.map_gps_time = layer.gps_time;
+      final.map_twtt = layer.twtt;
       final.map_idxs = max_idxs_mapping(:).';
       final.max_score = max_score;
+      final.unadjusted_score = unadjusted_score;
       if param.ct_file_lock
         final.file_version = '1L';
       else
         final.file_version = '1';
+      end
+
+      % Plot final output
+      if 1
+        h_fig = 1;
+        figure(h_fig); clf;
+        h_axes = axes('parent',h_fig);
+        h_plot = plot(h_axes(1), final.map_twtt);
+        hold(h_axes(1),'on');
+        h_scatter = scatter(h_axes(1), 1:length(final.map_idxs), final.twtt(final.map_idxs),[],final.map_idxs,'.');
+        xlabel(h_axes(1), 'Block');
+        ylabel(h_axes(1), 'Two way travel time (\mus)');
+        title(h_axes(1), param.day_seg, 'interpreter', 'none');
+        legend(h_axes(1), 'TWTT', 'Deconv TWTT','location','best');
+        grid(h_axes(1), 'on');
+        
+        h_fig = 2;
+        figure(h_fig); clf;
+        h_axes(2) = axes('parent',h_fig);
+        h_scatter = scatter(1:length(final.map_idxs), final.max_score,[],final.map_idxs,'.');
+        hold on;
+        h_scatter = scatter(1:length(final.map_idxs), final.unadjusted_score,[],final.map_idxs,'.');
+        xlabel(h_axes(2), 'Block');
+        ylabel(h_axes(2), 'Score');
+        title(h_axes(2), param.day_seg, 'interpreter', 'none');
+        grid(h_axes(2), 'on');
       end
       
       % 7. Store final output file
@@ -778,7 +862,7 @@ if param.collate_deconv.stage_two_en
       end
       out_fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
-      ct_file_lock_check(out_fn);
+      ct_file_lock_check(out_fn,2);
       save(out_fn,'-v7.3','-struct','final');
       
     end

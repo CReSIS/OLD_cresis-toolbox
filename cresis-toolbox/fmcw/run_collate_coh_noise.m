@@ -11,9 +11,9 @@ param_override = [];
 
 % params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),'','analysis');
 params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
-% params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',0);
 % params = ct_set_params(params,'cmd.generic',1);
-% params = ct_set_params(params,'cmd.generic',0,'day_seg','2016110[12]');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20170330_01|20170331_01');
 % params = ct_set_params(params,'cmd.generic',1,'cmd.notes','^((?!do not process).)*$');
 % params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
 

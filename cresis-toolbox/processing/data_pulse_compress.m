@@ -395,8 +395,8 @@ for img = 1:length(param.load.imgs)
       deconv_date_str = deconv.param_collate_deconv_final.sw_version.cur_date_time;
       hdr.custom.deconv(1:length(deconv_date_str),1,img,wf_adc) = deconv_date_str;
       
-      deconv_map_idxs = interp1(deconv.map_gps_time,deconv.map_idxs,hdr.gps_time,'nearest');
-      max_score = interp1(deconv.map_gps_time,deconv.max_score,hdr.gps_time,'nearest');
+      deconv_map_idxs = interp1(deconv.map_gps_time,deconv.map_idxs,hdr.gps_time,'nearest','extrap');
+      max_score = interp1(deconv.map_gps_time,deconv.max_score,hdr.gps_time,'nearest','extrap');
       
       unique_idxs = unique(deconv_map_idxs);
       
@@ -404,8 +404,9 @@ for img = 1:length(param.load.imgs)
       for unique_idxs_idx = 1:length(unique_idxs)
         % deconv_mask: Create logical mask corresponding to range lines that use this deconv waveform
         deconv_map_idx = unique_idxs(unique_idxs_idx);
-        deconv_mask = deconv_map_idx == deconv_map_idxs ...
-          & max_score > deconv.param_collate_deconv_final.collate_deconv.min_score;
+        deconv_mask = deconv_map_idx == deconv_map_idxs;
+        % deconv_mask = deconv_map_idx == deconv_map_idxs ...
+        %   & max_score > deconv.param_collate_deconv_final.collate_deconv.min_score;
         
         if wfs(wf).Nt <= 2 || ~any(deconv_mask)
           % Range lines are bad (Nt <= 2), or no matching range lines that

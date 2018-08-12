@@ -9,17 +9,15 @@
 param_override = [];
 
 % params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
-params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170419_04','post');
+params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'','post');
 
-params.cmd.generic = 1;
-params.cmd.frms = []; % Specify specific frames (or leave empty/undefined to do all frames)
+% params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'cmd.frms',[]); % Specify specific frames (or leave empty/undefined to do all frames)
 
 
 param_override.update_surface.debug_level = 0;
 param_override.update_surface.echogram_img = 0; % To choose an image besides the base (0) image
-% echogram_source: location of echogram data used for tracking, leave empty
-%  to not use an echogram (only useful when using the DEM init feature or
-%  wanting to set all values to NaN)
+% echogram_source: location of echogram data used for tracking
 param_override.update_surface.echogram_source = 'qlook';
 
 % layer_params: structure of layer references of where to store the output

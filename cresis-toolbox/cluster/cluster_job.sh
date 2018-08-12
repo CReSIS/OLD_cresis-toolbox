@@ -8,12 +8,14 @@
 # =========================================================================
 
 # Add some debugging information to stdout
-echo "cluster_job.{sh,m} Start" `whoami` "hostname:" `hostname` "("`date`")"
+echo "cluster_job.{sh,m} Start" `whoami` "hostname:"`hostname` "("`date`")"
 #declare
 #pwd
 
 # Make sure file permissions will be set so everyone can read
 umask 000
+
+taskset -p $$
 
 # Turn on MCR debugging information (goes to stderr)
 export  MCR_CACHE_VERBOSE=1
@@ -80,7 +82,7 @@ do
 
 done
 
-echo "  cluster_job.{sh,m} Done" `whoami` `hostname` "("`date`")"
+echo "  cluster_job.{sh,m} Done" "attempts:"$attempt "max_attempts:"$max_attempts "("`date`")"
 date
 sleep 30 # Wait for file writes to take place and be available in file system metadata (seems to be necessary for high performance file systems)
 

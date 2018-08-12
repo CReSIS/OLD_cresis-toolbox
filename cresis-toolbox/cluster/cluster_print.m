@@ -189,8 +189,13 @@ if print_mode == 1
       job_id = id;
       task_id = ctrl.job_id_list(ctrl.job_id_list == id);
     end
-    lead_task_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
-    num_tasks = sum(ctrl.job_id_list==ctrl.job_id_list(task_id));
+    if ctrl.job_id_list(task_id) == -1
+      lead_task_id = task_id;
+      num_tasks = 1;
+    else
+      lead_task_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
+      num_tasks = sum(ctrl.job_id_list==ctrl.job_id_list(task_id));
+    end
     
     %% Print cluster scheduler information if available
     fprintf('Matlab Task ID %d (lead by %d with %d tasks)\n', task_id, lead_task_id, num_tasks);
@@ -225,13 +230,13 @@ if print_mode == 1
     %% Print stdout and stderr files if available
     if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
       retry = 0;
-      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
       while exist(fn,'file')
         fprintf('\n\nSTDOUT RETRY %d ==========================================================\n', retry);
         fprintf('%s\n', fn);
         type(fn);
         retry = retry + 1;
-        fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
+        fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
       end
       fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',lead_task_id));
       fprintf('\n\nSTDOUT ======================================================================\n');
@@ -243,13 +248,13 @@ if print_mode == 1
       end
       
       retry = 0;
-      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
+      fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
       while exist(fn,'file')
         fprintf('\n\nSTDERR RETRY %d ==========================================================\n', retry);
         fprintf('%s\n', fn);
         type(fn);
         retry = retry + 1;
-        fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
+        fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
       end
       fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',lead_task_id));
       fprintf('\n\nSTDERR ======================================================================\n');
@@ -532,18 +537,18 @@ if print_mode == 2
     % Check stdout and stderr files
     if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
       retry = 0;
-      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
       while exist(fn,'file')
         retry = retry + 1;
-        fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',lead_task_id, retry));
+        fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
       end
       info(id_idx).stdout_retry = retry;
       
       retry = 0;
-      fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
+      fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
       while exist(fn,'file')
         retry = retry + 1;
-        fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',lead_task_id, retry));
+        fn = fullfile(ctrl.stdout_fn_dir,sprintf('error_%d_%d.txt',task_id, retry));
       end
       info(id_idx).stderr_retry = retry;
       
