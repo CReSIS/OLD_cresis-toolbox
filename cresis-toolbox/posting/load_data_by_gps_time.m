@@ -232,13 +232,19 @@ else
   stop_file_idx = find(stop.gps_time >= first_gps_time,1,'last');
   
   if isempty(start_file_idx)
-    error('Start time is before any radar data exists');
+    error('Start time (%s) is before any radar data exists (%s)', ...
+      datestr(epoch_to_datenum(start.gps_time)), ...
+      datestr(epoch_to_datenum(first_gps_time(1))));
   end
   if isempty(stop_file_idx)
-    error('Stop time is after any radar data exists');
+    error('Stop time (%s) is after any radar data exists (%s)', ...
+      datestr(epoch_to_datenum(stop.gps_time)), ...
+      datestr(epoch_to_datenum(first_gps_time(end))));
   end
   if start_file_idx ~= stop_file_idx
-    error('Time range includes times when no radar data exists');
+    error('Time range (%s to %s) includes times when no radar data exists', ...
+      datestr(epoch_to_datenum(start.gps_time)), ...
+      datestr(epoch_to_datenum(stop.gps_time)));
   end
   
   records_fn = [fns{start_file_idx}(1:end-2) 'mat'];

@@ -212,12 +212,6 @@ for wf = 1:length(records_wfs.wfs(1).wfs)
     adc = adcs(adc_idx);
     wfs(wf).ref{adc_idx} = conj(fft(ref,wfs(wf).Nt_pc) ...
       .* exp(-1i*2*pi*freq*param.radar.wfs(wf).Tsys(wfs(wf).rx_paths(adc))) );
-
-    % Normalize reference function so that it is an estimator
-    %  -- Accounts for pulse duration differences
-    time_domain_ref = ifft(wfs(wf).ref{adc_idx});
-    wfs(wf).ref{adc_idx} = wfs(wf).ref{adc_idx} ...
-      ./ dot(time_domain_ref,time_domain_ref);
   end
   
   % ===================================================================

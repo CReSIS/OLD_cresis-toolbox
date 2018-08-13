@@ -178,7 +178,7 @@ records = load(records_fn);
 ctrl = cluster_new_batch(param);
 cluster_compile({'coh_noise_tracker_task.m','coh_noise_tracker_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
-if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
   [wfs,~] = load_mcords_wfs(records.settings, param, ...
     1:max(records.param_records.records.file.adcs), param.get_heights);
   for img = 1:length(param.analysis.imgs)
@@ -320,7 +320,7 @@ ctrl_chain = {ctrl};
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
   cpu_time_mult = 6e-6;
   mem_mult = 8;
   

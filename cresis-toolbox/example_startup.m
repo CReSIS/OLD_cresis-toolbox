@@ -28,27 +28,92 @@ if ~(~ismcc && isdeployed)
   
   %% ===> SELECT CURRENT PROFILE HERE <===
   % cur_profile: Set the current profile to load (match to pidx below)
-  % KU Profile Linux (PROFILE 1)
-  % IU Profile Linux (PROFILE 2)
-  % Field Profile Linux (PROFILE 3)
-  % KU Mobile Profile Windows (PROFILE 5)
-  % KU Desktop Profile Windows (PROFILE 6)
-  % AWI Profile Windows (PROFILE 7)
-  % AWI Profile Linux (PROFILE 8)
+  % Profile Windows (PROFILE 1)
+  % Profile Linux/Mac (PROFILE 2)
+  % KU Profile Linux (PROFILE 3)
+  % KU Field Profile Linux (PROFILE 4)
+  % KU Desktop Profile Windows (PROFILE 5)
+  % IU Profile Linux (PROFILE 6)
+  % AWI Profile Field Windows (PROFILE 7)
+  % AWI Profile Field Linux (PROFILE 8)
   % AWI Profile Ollie (PROFILE 9)
   if ispc
-    cur_profile = 6; % Windows
+    cur_profile = 1; % Windows
   else
-    cur_profile = 1; % Linux/Mac
+    cur_profile = 2; % Linux/Mac
   end
   
   fprintf('Startup Script Running\n');
   
   format short; format compact;
-  
-  %% KU Profile Linux (PROFILE 1)
+
+  %% Profile Windows (PROFILE 1)
   % ----------------------------------------------------------------------
   pidx = 1; % profile index
+  profile(pidx).debug_level               = 1;
+  profile(pidx).personal_path             = sprintf('%s/My Documents/scripts/matlab/',getenv('USERPROFILE'));
+  profile(pidx).ct_path                   = sprintf('%s/My Documents/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
+  profile(pidx).param_path                = sprintf('%s/My Documents/scripts/ct_params/',getenv('USERPROFILE'));
+  
+  profile(pidx).code_path                 = profile(pidx).ct_path;
+  profile(pidx).code_path_override        = profile(pidx).personal_path;
+  profile(pidx).tmp_file_path             = 'C:\tmp\mdce_tmp\';
+  
+  profile(pidx).data_path                 = 'D:\';
+  profile(pidx).data_support_path         = 'C:\metadata\';
+  profile(pidx).support_path              = 'C:\csarp_support\';
+  profile(pidx).out_path                  = 'D:\output\';
+  profile(pidx).gis_path                  = 'C:\GIS_data\';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
+  
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
+  
+  profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'debug';
+  %profile(pidx).cluster.type                  = 'none';
+  profile(pidx).cluster.max_jobs_active       = 4;
+  profile(pidx).cluster.max_time_per_job      = 2*86400;
+  profile(pidx).cluster.desired_time_per_job  = 0;
+  profile(pidx).cluster.max_retries           = 1;
+  profile(pidx).cluster.submit_pause          = 0;
+  profile(pidx).cluster.stat_pause            = 1;
+  
+  %% Profile Linux/Mac (PROFILE 2)
+  % ----------------------------------------------------------------------
+  pidx = 2; % profile index
+  profile(pidx).debug_level               = 1;
+  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
+  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
+
+  profile(pidx).code_path                 = profile(pidx).ct_path;
+  profile(pidx).code_path_override        = profile(pidx).personal_path;
+  profile(pidx).tmp_file_path             = sprintf('%s/scratch/mdce_tmp/',getenv('HOME'));
+
+  profile(pidx).data_path                 = sprintf('%s/scratch/',getenv('HOME'));
+  profile(pidx).data_support_path         = sprintf('%s/scratch/metadata/',getenv('HOME'));
+  profile(pidx).support_path              = sprintf('%s/scratch/csarp_support/',getenv('HOME'));
+  profile(pidx).out_path                  = sprintf('%s/scratch/',getenv('HOME'));
+  profile(pidx).gis_path                  = sprintf('%s/scratch/GIS_data/',getenv('HOME'));
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
+ 
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
+
+  profile(pidx).cluster.type                    = 'matlab';
+  %profile(pidx).cluster.type                    = 'slurm';
+  %profile(pidx).cluster.type                    = 'ollie';
+  %profile(pidx).cluster.type                    = 'debug';
+  profile(pidx).cluster.max_jobs_active         = 128;
+  profile(pidx).cluster.max_time_per_job        = 2*86400;
+  profile(pidx).cluster.desired_time_per_job    = 2*3600;
+  profile(pidx).cluster.max_retries             = 2;
+  profile(pidx).cluster.submit_pause            = 0.2;
+  profile(pidx).cluster.stat_pause              = 2;
+  profile(pidx).cluster.file_check_pause        = 4;
+  
+  %% KU Profile Linux (PROFILE 3)
+  % ----------------------------------------------------------------------
+  pidx = 3; % profile index
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
   profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
@@ -77,45 +142,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0.2;
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
-  
-  %% IU Profile Linux (PROFILE 2)
-  % ----------------------------------------------------------------------
-  pidx = 2; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
-  
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/mdce_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
-  
-  profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
-  profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
-  profile(pidx).support_path              = '/N/dcwan/projects/cresis/csarp_support/';
-  profile(pidx).out_path                  = '/N/dcwan/projects/cresis/output/';
-  profile(pidx).gis_path                  = '/N/dcwan/projects/cresis/GIS_data';
-  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
-
-  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
-  
-  profile(pidx).cluster.type                  = 'torque';
-  %profile(pidx).cluster.type                  = 'matlab';
-  %profile(pidx).cluster.type                  = 'debug';
-  profile(pidx).cluster.max_jobs_active       = 128;
-  profile(pidx).cluster.max_time_per_job      = 4*86400;
-  profile(pidx).cluster.desired_time_per_job  = 8*3600;
-  profile(pidx).cluster.max_retries           = 2;
-  profile(pidx).cluster.submit_pause          = 0.5;
-  profile(pidx).cluster.stat_pause            = 2;
-  profile(pidx).cluster.file_check_pause      = 4;
-  
-  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
-
  
-  %% Field Profile Linux (PROFILE 3)
+  %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
-  pidx = 3; % profile index
+  pidx = 4; % profile index
   profile(pidx).debug_level               = 1;
   profile(pidx).personal_path             = '/scratch/scripts/matlab/';
   profile(pidx).ct_path                   = '/scratch/scripts/cresis-toolbox/cresis-toolbox/';
@@ -146,52 +176,16 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 131754468000 / 46;
   
-  %% KU Mobile Profile Windows (PROFILE 5)
+  
+  %% KU Desktop Profile Windows (PROFILE 5)
   % ----------------------------------------------------------------------
+  % V:\ --> \\cfs1.cresis.ku.edu\data\
+  % X:\ --> \\cfs1.cresis.ku.edu\dataproducts\
   pidx = 5; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('USERPROFILE'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('USERPROFILE'));
-  
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = 'C:\tmp\mdce_tmp\';
-  
-  profile(pidx).data_path                 = 'D:\';
-  profile(pidx).data_support_path         = 'C:\metadata\';
-  profile(pidx).support_path              = 'C:\csarp_support\';
-  profile(pidx).out_path                  = 'D:\output\';
-  profile(pidx).gis_path                  = 'C:\GIS_data\';
-  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
-  
-  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
-  
-  profile(pidx).cluster.type                  = 'matlab';
-  %profile(pidx).cluster.type                  = 'debug';
-  %profile(pidx).cluster.type                  = 'none';
-  profile(pidx).cluster.max_jobs_active       = 4;
-  profile(pidx).cluster.max_time_per_job      = 2*86400;
-  profile(pidx).cluster.desired_time_per_job  = 0;
-  profile(pidx).cluster.max_retries           = 1;
-  profile(pidx).cluster.submit_pause          = 0;
-  profile(pidx).cluster.stat_pause            = 1;
-  
-  %% KU Desktop Profile Windows (PROFILE 6)
-  % ----------------------------------------------------------------------
-  % H:\ --> \\emperor.cresis.ku.edu\paden\
-  % S:\ --> \\cfs1.cresis.ku.edu\\
-  % P:\ --> \\titan.cresis.ku.edu\projects\
-  % V:\ --> \\titan.cresis.ku.edu\data3\
-  % W:\ --> \\titan.cresis.ku.edu\data1\
-  % X:\ --> \\titan.cresis.ku.edu\data2\
-  % Y:\ --> \\titan.cresis.ku.edu\scratch1\
-  % Z:\ --> \\titan.cresis.ku.edu\scratch2\
-  pidx = 6; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('USERPROFILE'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('USERPROFILE'));
+  profile(pidx).personal_path             = sprintf('%s/My Documents/scripts/matlab/',getenv('USERPROFILE'));
+  profile(pidx).ct_path                   = sprintf('%s/My Documents/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
+  profile(pidx).param_path                = sprintf('%s/My Documents/scripts/ct_params/',getenv('USERPROFILE'));
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -216,7 +210,41 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
   
-  %% AWI Profile Windows (PROFILE 7)
+  %% IU Profile Linux (PROFILE 6)
+  % ----------------------------------------------------------------------
+  pidx = 6; % profile index
+  profile(pidx).debug_level               = 1;
+  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
+  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
+  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
+  
+  profile(pidx).code_path                 = profile(pidx).ct_path;
+  profile(pidx).code_path_override        = profile(pidx).personal_path;
+  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/mdce_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
+  
+  profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
+  profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
+  profile(pidx).support_path              = '/N/dcwan/projects/cresis/csarp_support/';
+  profile(pidx).out_path                  = '/N/dcwan/projects/cresis/output/';
+  profile(pidx).gis_path                  = '/N/dcwan/projects/cresis/GIS_data';
+  profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
+
+  profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
+  
+  profile(pidx).cluster.type                  = 'torque';
+  %profile(pidx).cluster.type                  = 'matlab';
+  %profile(pidx).cluster.type                  = 'debug';
+  profile(pidx).cluster.max_jobs_active       = 128;
+  profile(pidx).cluster.max_time_per_job      = 4*86400;
+  profile(pidx).cluster.desired_time_per_job  = 8*3600;
+  profile(pidx).cluster.max_retries           = 2;
+  profile(pidx).cluster.submit_pause          = 1;
+  profile(pidx).cluster.stat_pause            = 10;
+  profile(pidx).cluster.file_check_pause      = 4;
+  
+  profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
+  
+  %% AWI Profile Field Windows (PROFILE 7)
   % ----------------------------------------------------------------------
   pidx = 7; % profile index
   profile(pidx).debug_level               = 1;
@@ -247,23 +275,23 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
   
-  %% AWI Profile Linux (PROFILE 8)
+  %% AWI Profile Field Linux (PROFILE 8)
   % ----------------------------------------------------------------------
   pidx = 8; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/home/administrator/scripts/matlab/';
-  profile(pidx).ct_path                   = '/home/administrator/scripts/cresis-toolbox/cresis-toolbox/';
-  profile(pidx).param_path                = '/home/administrator/scripts/ct_params/';
+  profile(pidx).personal_path             = '/mnt/Scratch/scripts/matlab/';
+  profile(pidx).ct_path                   = '/mnt/Scratch/scripts/cresis-toolbox/cresis-toolbox/';
+  profile(pidx).param_path                = '/mnt/Scratch/scripts/ct_params/';
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/home/administrator/Scratch/mdce_tmp/';
+  profile(pidx).tmp_file_path             = '/mnt/Scratch/mdce_tmp/';
   
   profile(pidx).data_path                 = '/mnt/AWI_SSD0/';
-  profile(pidx).data_support_path         = '/home/administrator/Scratch/metadata/';
-  profile(pidx).support_path              = '/home/administrator/Scratch/csarp_support/';
-  profile(pidx).out_path                  = '/home/administrator/Scratch/';
-  profile(pidx).gis_path                  = '/home/administrator/GIS_data/';
+  profile(pidx).data_support_path         = '/mnt/Scratch/metadata/';
+  profile(pidx).support_path              = '/mnt/Scratch/csarp_support/';
+  profile(pidx).out_path                  = '/mnt/Scratch/';
+  profile(pidx).gis_path                  = '/mnt/Scratch/GIS_data/';
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
   
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
@@ -309,12 +337,12 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_time_per_job        = 2*86400;
   profile(pidx).cluster.desired_time_per_job    = 2*3600;
   profile(pidx).cluster.max_retries             = 2;
-  profile(pidx).cluster.submit_pause            = 0.2;
-  profile(pidx).cluster.stat_pause              = 2;
+  profile(pidx).cluster.submit_pause            = 1;
+  profile(pidx).cluster.stat_pause              = 10;
   profile(pidx).cluster.file_check_pause        = 4;
 
   profile(pidx).cluster.mcc                     = 'eval';
-  
+
   %% Startup code (Automated Section)
   % =====================================================================
   

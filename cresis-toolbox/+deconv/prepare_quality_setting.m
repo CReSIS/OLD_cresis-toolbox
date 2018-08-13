@@ -26,12 +26,14 @@ param.radar_name = 'snow';
 % param.season_name = '2009_Antarctica_DC8';
 % param.season_name = '2010_Antarctica_DC8';
 % param.season_name = '2011_Antarctica_DC8';
-param.season_name = '2012_Antarctica_DC8';
+% param.season_name = '2012_Antarctica_DC8';
+param.season_name = '2017_Antarctica_P3';
 % param.season_name = 'SEASON';
 
-if 0
+if 1
   % xls_fn: quality parameter spreadsheet (leave empty to not use)
-  xls_fn = 'C:\users\dangermo\Desktop\Processing\Snow Radar\snowRadarDeconQc_Newman_final.xlsx';
+%   xls_fn = 'C:\users\dangermo\Desktop\Processing\Snow Radar\snowRadarDeconQc_Newman_final.xlsx';
+  xls_fn = 'Y:\2017_Antarctica_P3\2017_Antarctica_P3_snowRadar_DeconQc_snow.xlsx';
 else
   xls_fn = '';
 %   params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'));
@@ -40,7 +42,7 @@ else
     params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'));
 end
 
-ignore_artifact_type = [1 2 3 5]; % Do not write these types to the frames file
+ignore_artifact_type = []; % Do not write these types to the frames file
 overwrite_mode = true; % Set to false to have a more interactive experience
 
 %% Automated Section
@@ -119,7 +121,7 @@ for row = 1:size(alldata,1)
     
     load(frames_fn);
     
-    update_field = 'quality';
+    update_field = 'quality_snow';
     if ~isfield(frames,update_field) || overwrite_mode
       frames.(update_field) = NaN*zeros(size(frames.frame_idxs));
     end
@@ -127,10 +129,10 @@ for row = 1:size(alldata,1)
     old_frames = frames;
     
     bad_data_mask = frames.proc_mode ~= 0;
-    frames.quality(bad_data_mask) = 2^4; % fifth bit: 2^4
+    frames.(update_field)(bad_data_mask) = 2^4; % fifth bit: 2^4
     
-    unassigned_mask = isnan(frames.quality) & frames.proc_mode == 0;
-    frames.quality(unassigned_mask) = 0;
+    unassigned_mask = isnan(frames.(update_field)) & frames.proc_mode == 0;
+    frames.(update_field)(unassigned_mask) = 0;
     
     update_field_mask_len = 8;
     % 1: coherent noise artifact
@@ -169,18 +171,18 @@ for row = 1:size(alldata,1)
         continue
       end
       
-      if ~isempty(regexpi(alldata{row,6},'SNR'))
+      if ~isempty(regexpi(alldata{row,5},'SNR'))
         artifact_type = 6;
-      elseif ~isempty(regexpi(alldata{row,6},'land')) || ~isempty(regexpi(alldata{row,6},'ramp'))
+      elseif ~isempty(regexpi(alldata{row,5},'land')) || ~isempty(regexpi(alldata{row,5},'ramp')) || ~isempty(regexpi(alldata{row,5},'iceberg'))
         artifact_type = 8;
-      elseif ~isempty(regexpi(alldata{row,6},'coher'))
+      elseif ~isempty(regexpi(alldata{row,5},'coher'))
         artifact_type = 1;
-      elseif ~isempty(regexpi(alldata{row,6},'vert'))
+      elseif ~isempty(regexpi(alldata{row,5},'vert'))
         artifact_type = 3;
-      elseif ~isempty(regexpi(alldata{row,6},'decon')) || ~isempty(regexpi(alldata{row,6},'lobe')) || ~isempty(regexpi(alldata{row,6},'blur'))
+      elseif ~isempty(regexpi(alldata{row,5},'decon')) || ~isempty(regexpi(alldata{row,5},'lobe')) || ~isempty(regexpi(alldata{row,5},'blur'))
         artifact_type = 2;
-      elseif ~isempty(regexpi(alldata{row,6},'bad'))
-        if ~isempty(regexpi(alldata{row,6},'gap'))
+      elseif ~isempty(regexpi(alldata{row,5},'bad'))
+        if ~isempty(regexpi(alldata{row,5},'gap'))
           artifact_type = 4;
         else
           artifact_type = 5;
@@ -195,7 +197,7 @@ for row = 1:size(alldata,1)
       
       alldata{row,2}
       frms
-      alldata{row,6}
+      alldata{row,5}
       artifact_type
       
       if any(artifact_type == ignore_artifact_type) || (length(frms) == 1 && frms == 0)
@@ -205,14 +207,14 @@ for row = 1:size(alldata,1)
       
       for frm = frms
         
-        quality_mask = fliplr(dec2bin(frames.quality(frm),update_field_mask_len));
+        quality_mask = fliplr(dec2bin(frames.(update_field)(frm),update_field_mask_len));
         
         if or_mask
           if quality_mask(artifact_type) == '0'
-            frames.quality(frm) = frames.quality(frm) + 2^(artifact_type-1);
+            frames.(update_field)(frm) = frames.(update_field)(frm) + 2^(artifact_type-1);
           end
         else
-          frames.quality(frm) = 2^(artifact_type-1);
+          frames.(update_field)(frm) = 2^(artifact_type-1);
         end
         
       end

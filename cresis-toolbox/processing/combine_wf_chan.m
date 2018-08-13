@@ -190,7 +190,7 @@ end
 if strcmpi(radar_name,'mcrds')
   wfs = load_mcrds_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
-elseif any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+elseif any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
   wfs = load_mcords_wfs(records.settings, param, ...
     records.param_records.records.file.adcs, param.csarp);
 elseif any(strcmpi(radar_name,{'icards'}))% add icards---qishi
@@ -212,7 +212,7 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'combine_wf_chan_task.m','combine_wf_chan_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = [];
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
   for img = 1:length(param.combine.imgs)
     wf = abs(param.combine.imgs{img}{1}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
@@ -357,7 +357,7 @@ ctrl_chain = {ctrl};
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
   cpu_time_mult = 6e-8;
   mem_mult = 8;
   
@@ -379,21 +379,20 @@ Nx_max = 0;
 for frm = param.cmd.frms
   % recs: Determine the records for this frame
   if frm < length(frames.frame_idxs)
-    Nx_frm = frames.frame_idxs(frm+1) - frames.frame_idxs(frm);
+    Nx_frm = (along_track_approx(frames.frame_idxs(frm+1)) - along_track_approx(frames.frame_idxs(frm))) / param.csarp.sigma_x;
   else
-    Nx_frm = length(records.gps_time) - frames.frame_idxs(frm) + 1;
+    Nx_frm = (along_track_approx(length(records.gps_time)) - along_track_approx(frames.frame_idxs(frm) + 1)) / param.csarp.sigma_x;
   end
+  Nx_frm = round(Nx_frm);
   if Nx_frm > Nx_max
     Nx_max = Nx_frm;
   end
   Nx = Nx + Nx_frm;
 end
 % Account for averaging
-Nx_max = Nx_max / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
-Nx = Nx / param.get_heights.decimate_factor / max(1,param.get_heights.inc_ave);
 for img = 1:length(param.combine.imgs)
   sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
-  if isempty(param.get_heights.img_comb)
+  if isempty(param.combine.img_comb)
     % Individual images, so need enough memory to hold the largest image
     sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);
   else

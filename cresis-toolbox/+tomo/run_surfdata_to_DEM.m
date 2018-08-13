@@ -1,15 +1,23 @@
+% script run_surfdata_to_DEM
+%
+% Run script for tomo.surfdata_to_DEM
+%
+% Authors: Jordan Sprick, Nick Holschuh, John Paden, Victor Berger
+%
+% See also: tomo.surfdata_to_DEM
+
 %% User Settings
 
-if 0
-  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
-  params.cmd.generic = 1;
-  params.cmd.frms = [28];
+if 1
+  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
+%   params.cmd.generic = 1;
+%   params.cmd.frms = [];
   
   % surfdata_source: input surfData directory (ct_filename_out)
-  dem.surfdata_source = 'surfData';
+  dem.surfdata_source = 'CSARP_post/surfData';
   
   % input_dir_name: input radar 3D image directory (ct_filename_out)
-  dem.input_dir_name = 'music3D';
+  dem.input_dir_name = 'CSARP_post/music3D';
   
   % output_dir_name: string containing output directory (ct_filename_out)
   dem.output_dir_name = 'DEM';
@@ -144,5 +152,5 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  tomo.surfdata_to_geotiff(param,param_override);
+  tomo.surfdata_to_DEM(param,param_override);
 end

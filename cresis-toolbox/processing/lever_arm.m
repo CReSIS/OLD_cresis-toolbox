@@ -75,6 +75,13 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
+if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(gps_source,'nmea'))
+  warning('NEEDS TO BE DETERMINED');
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(gps_source,'dtu'))
   % ===========================================================================
   % All antenna positions measurements are relative to GPS antenna
@@ -261,6 +268,7 @@ if (strcmpi(param.season_name,'2018_Greenland_P3') && any(strcmpi(gps_source,{'A
   %  The DGPS is located on the top of the aircraft, along the centerline, at fuselage station (FS) 752.75.
   %  Matt Linkswiler 20130923: Just to clarify, the position information (lat, lon, alt) is referenced to the GPS antenna.  The intertial measurements (pitch, roll, heading) are measured at the IMU sensor (directly attached to our T3 lidar below the floorboard, approximately 1m aft and 3m below the GPS antenna).
   %  Matt Linkswiler 20140306: Personal conversation verified that antenna position is not changing.
+  %  Kyle Krabill 20180606: Email confirming antenna position not changed. IMU is from T6, near the middle of the aircraft, not the aft port
   gps.x = -752.75*0.0254;
   gps.y = 0*0.0254;
   gps.z = -217.4*0.0254;
@@ -434,7 +442,7 @@ if (strcmpi(param.season_name,'2003_Greenland_P3')) ...
   
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6','2018_Greenland_Polar6'})) && strcmpi(gps_source,'AWI'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6','2018_Greenland_Polar6','2019_Antarctica_Polar6'})) && any(strcmpi(gps_source,{'AWI','NMEA'})))
   % Measurements are from Richard Hale Aug 12, 2015 for RDS and Aug 15,
   % 2015 for Snow Radar. Measurements are made relative to the AWI Aft
   % Science GPS antenna known as ST5.
@@ -922,6 +930,7 @@ if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'rds'))
   end
 end
 
+% Only for 24ch configuration
 if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6'})) && strcmpi(radar_name,'rds'))
   % See notes in GPS section
   
@@ -972,7 +981,8 @@ if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar
   end
 end
 
-if (any(strcmpi(param.season_name,{'2018_Greenland_Polar6'})) && strcmpi(radar_name,'rds'))
+% Only for 8ch configuration
+if (any(strcmpi(param.season_name,{'2018_Greenland_Polar6','2019_Antarctica_Polar6'})) && strcmpi(radar_name,'rds'))
   % See notes in GPS section
   
   % Center elements left to right
@@ -1421,6 +1431,28 @@ end
 % =========================================================================
 %% Snow Radar
 % =========================================================================
+
+if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'snow'))
+  % X,Y,Z are in aircraft coordinates, not IMU
+  warning('NEEDS TO BE DETERMINED');
+  LArx(1,1) = 0*2.54/100;
+  LArx(2,1) = 0*2.54/100;
+  LArx(3,1) = 0*2.54/100;
+  
+  LAtx(1,1) = 0*2.54/100;
+  LAtx(2,1) = 0*2.54/100;
+  LAtx(3,1) = 0*2.54/100;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'snow'))
     % Snow Tx: X = 297.75",Y = 0;Z = -26.81"; RX: X = 168.5",Y = 0;Z = -38.75" 

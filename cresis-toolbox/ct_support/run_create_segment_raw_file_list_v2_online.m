@@ -13,16 +13,17 @@
 % Author: John Paden
 
 while 1
-  
   counter_correction_en = false;
-  online_mode = true;
-  day_string = '20180414';
-  accum_en = 0;
-  kuband_en = 0;
-  rds_en = 0;
-  snow_en = 1;
-  gps_en = 1; % Remember to add a new entry into make_gps_*.m file that you are using
-  
+  online_mode = 2; % Set to 1 to read all files, 2 to read only last file
+  pause_time = 180;
+  day_string = '20180512';
+  mcords5_accum_en = 0;
+  kuband3_en = 0;
+  mcords3_en = 0;
+  uwb_en = 1;
+  snow3_en = 0;
+  snow8_en = 0;
+  gps_en = 0; % Remember to add a new entry into make_gps_*.m file that you are using  
   
   %% User Settings that should not generally be changed
   % You may have to set to false to read some of the results from this function when it was first written (should always be true)
@@ -32,8 +33,8 @@ while 1
   MAX_TIME_GAP = 1000/75;
   MIN_PRF = 100;
   
-  %% MCoRDS5-Accum
-  if accum_en
+  %% Accumulation Radar (mcords5-accum)
+  if mcords5_accum_en
     param = [];
     param.radar_name = 'mcords5';
     param.clk = 1.6e9/8;
@@ -60,7 +61,7 @@ while 1
   end
   
   %% Ku-band 3
-  if kuband_en
+  if kuband3_en
     param = [];
     param.radar_name = 'kuband3';
     param.clk = 125e6;
@@ -85,7 +86,7 @@ while 1
   end
   
   %% RDS: MCoRDS 3
-  if rds_en
+  if mcords3_en
     param = [];
     param.radar_name = 'mcords3';
     param.clk = 150e6;
@@ -112,13 +113,65 @@ while 1
     end
   end
   
+  %% RDS: MCoRDS 5 UWB
+  if uwb_en
+    param = [];
+    
+    param.radar_name = 'mcords5';
+    param.clk = 1.6e9/8;
+    adcs = 1; % Choose a smaller subset of channels to check if data rate an issue
+    raw_file_suffix = '.bin';
+    reuse_tmp_files = true; % Set to false if you want to overwrite current results
+    file_prefix_override = ''; % most of the time
+    counter_correction_en = true;
+    presum_bug_fixed = false; % Seasons from 2015 Greenland Polar6 onward should be set to true, except for 2017 Antarctica Basler which uses the cresis DDS with this bug
+    union_time_epri_gaps = true;
+    
+    % Parameters below this point OFTEN NEEDS TO BE CHANGED
+    param.season_name = '2018_Greenland_Polar6';
+    base_dir = 'D:\awi\';
+    param.adc_folder_name = 'chan%d';
+    file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+  
+    try
+      create_segment_raw_file_list_v2;
+    catch ME
+      warning(ME.getReport())
+    end
+  end
+  
+  %% Snow 3 (OIB)
+  if snow3_en
+    param = [];
+    param.radar_name = 'snow3';
+    param.clk = 125e6;
+    adcs = 1;
+    param.file_version = 5; % 3 for 2013 Gr, 5 for after that
+    raw_file_suffix = '.bin';
+    reuse_tmp_files = true; % Set to false if you want to overwrite current results
+    file_prefix_override = '';
+    counter_correction_en = true;
+    
+    % Parameters below this point OFTEN NEEDS TO BE CHANGED
+    param.season_name = '2018_Greenland_P3';
+    base_dir = '/process/fmcw/snow/';
+    param.adc_folder_name = '';
+    file_midfix = ''; % Data files must contain this string in the middle of their name (usually should be empty)
+    
+    try
+      create_segment_raw_file_list_v2;
+    catch ME
+      warning(ME.getReport())
+    end
+  end
+  
   %% Snow 8 (OIB)
-  if snow_en
+  if snow8_en
     param = [];
     param.radar_name = 'snow8';
     param.clk = 125e6;
     adcs = 1;
-    param.file_version = 8; % 3 for 2013 Gr, 5 for after that
+    param.file_version = 8;
     raw_file_suffix = '.bin';
     reuse_tmp_files = true; % Set to false if you want to overwrite current results
     file_prefix_override = '';
@@ -159,8 +212,8 @@ while 1
     end
   end
   
-  fprintf('Pausing for 30 seconds...\n');
-  pause(30);
+  fprintf('Pausing for %.0f seconds...\n', pause_time);
+  pause(pause_time);
 end
 
 return;

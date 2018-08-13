@@ -18,7 +18,7 @@ default.header_load_func = @basic_load_mcords5;
 default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
 default.xml_version = 2.0;
 
-default.noise_50ohm = [-47.8	-48.8	-45.6	-47.5	-45.8	-46.1	-44.6	-45.1];
+default.noise_50ohm = [-39.8	-41.0	-40.1	-39.6	-38.4	-39.1	-38.3	-39.6	];
 
 default.Pt = (4*1000 + 4*500) * sum(chebwin(8,30).^2)/8;
 default.Gt = 8*4;
@@ -31,10 +31,10 @@ default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 default.iq_mode = 0;
 default.tx_DDS_mask = [1 1 1 1 1 1 1 1];
 
-default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ft_dec','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
-default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
+default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ft_dec','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq','bit_shifts'};
+default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
 
-default.basic_surf_track_min_time = 2e-6;
+default.basic_surf_track_min_time = 2e-6; % Normally 0e-6 for lab test, 2e-6 for flight test
 default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
 default.adc_folder_name = 'chan%d';
 
@@ -100,6 +100,87 @@ elseif 0
   default.txequal.phase_validation = [35 35 35 35 35 35 35 35];
   default.txequal.remove_linear_phase_en = false;
 end
+
+%% AWI MCoRDS Arena Parameters
+arena.awg = [];
+arena.awg(end+1).awg = 0;
+arena.awg(end).dacs = [0 1];
+arena.awg(end).dacClk = [1600e6 1600e6];
+arena.awg(end).desiredAlignMin = [3 10];
+arena.awg(end).desiredAlignMax = [17 24];
+arena.awg(end+1).awg = 1;
+arena.awg(end).dacs = [2 3];
+arena.awg(end).dacClk = [1600e6 1600e6];
+arena.awg(end).desiredAlignMin = [-3 11];
+arena.awg(end).desiredAlignMax = [11 25];
+arena.awg(end+1).awg = 2;
+arena.awg(end).dacs = [4 5];
+arena.awg(end).dacClk = [1600e6 1600e6];
+arena.awg(end).desiredAlignMin = [4 10];
+arena.awg(end).desiredAlignMax = [18 24];
+arena.awg(end+1).awg = 3;
+arena.awg(end).dacs = [6 7];
+arena.awg(end).dacClk = [1600e6 1600e6];
+arena.awg(end).desiredAlignMin = [3 13];
+arena.awg(end).desiredAlignMax = [17 27];
+arena.dacs = [0 1 2 3 4 5 6 7];
+arena.dacs_sampFreq = [1600e6 1600e6 1600e6 1600e6 1600e6 1600e6 1600e6 1600e6];
+arena.max_tx = [0.63 0.63 0.63 0.63 0.63 0.63 0.63 0.63];
+arena.zeropimods = [0 180];
+arena.TTL_time = [0.1 0.2 2.2];
+arena.dacs_internal_delay = 0.0;
+arena.dacs_start_delay = 0.0;
+
+arena.TTL_names = {};
+for PA = 1:8
+  arena.TTL_names{end+1} = sprintf('PA ENA %d',PA);
+end
+arena.TTL_names{end+1} = 'T/R';
+arena.TTL_names{end+1} = 'ISO';
+arena.TTL_names{end+1} = 'EPRI';
+arena.TTL_names{end+1} = 'PRI';
+arena.TTL_names{end+1} = 'EPRI';
+arena.TTL_names{end+1} = 'PRI';
+arena.TTL_names{end+1} = 'EPRI';
+arena.TTL_names{end+1} = 'PRI';
+arena.TTL_states{1} = [
+  0 1 1 0 % PA ENA 1
+  0 1 1 0 % PA ENA 2
+  0 1 1 0 % PA ENA 3
+  0 1 1 0 % PA ENA 4
+  0 1 1 0 % PA ENA 5
+  0 1 1 0 % PA ENA 6
+  0 1 1 0 % PA ENA 7
+  0 1 1 0 % PA ENA 8
+  0 1 1 0 % T/R
+  0 1 1 0 % ISO
+  1 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  1 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  1 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  ];
+arena.TTL_states{2} = [
+  0 1 1 0 % PA ENA 1
+  0 1 1 0 % PA ENA 2
+  0 1 1 0 % PA ENA 3
+  0 1 1 0 % PA ENA 4
+  0 1 1 0 % PA ENA 5
+  0 1 1 0 % PA ENA 6
+  0 1 1 0 % PA ENA 7
+  0 1 1 0 % PA ENA 8
+  0 1 1 0 % T/R
+  0 1 1 0 % ISO
+  0 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  0 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  0 0 0 0 % EPRI
+  0 1 0 0 % PRI
+  ];
+
+default.arena = arena;
 
 %% Vectors worksheet in parameter spreadsheet
 default.vectors.gps.time_offset = 1;
@@ -312,7 +393,7 @@ default.combine.imgs = default.get_heights.imgs;
 default.combine.img_comb = default.get_heights.qlook.img_comb;
 default.radar.DC_adjust = {'DC_20160413_04_wf3.mat','DC_20160413_04_wf3.mat'};
 default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image';
-default.xml_regexp = 'image_180-210MHz_.*thick.xml';
+default.xml_regexp = '^image_180-210MHz_.*thick.xml';
 default.name = '2 Beam Image Mode 180-210 MHz';
 defaults{end+1} = default;
 
@@ -325,6 +406,17 @@ default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC
 default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image3';
 default.xml_regexp = 'image3_180-210MHz_.*thick.xml';
 default.name = '3 Beam Image Mode 180-210 MHz';
+defaults{end+1} = default;
+
+% egrip imaging mode
+default.get_heights.qlook.img_comb = [1e-06 -inf 1e-06 3e-06 -inf 1e-06];
+default.get_heights.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).'; 4*ones(8,1),(1:8).']};
+default.combine.imgs = default.get_heights.imgs;
+default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.radar.DC_adjust = {'DC_20160413_04_wf1.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat','DC_20160413_04_wf2.mat'};
+default.radar.ref_fn = 'deconv_wf_%w_adc_%a_20160413_06_image3';
+default.xml_regexp = 'egrip_image.*.xml';
+default.name = 'EGRIP Image 180-210 MHz';
 defaults{end+1} = default;
 
 %% Other settings

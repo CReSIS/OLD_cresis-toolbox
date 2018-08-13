@@ -52,6 +52,12 @@ param.snr_threshold = 10;
 %   averaging or stacking) to do
 param.presums = 10;
 
+% param.noise_bins_offsets = 1x2 vector specifying bins relative to peak
+%   to use in estimating the noise power (usually some range before the
+%   peak is used):
+%   param.noise_rbins = min(surf_bin)+param.noise_rbins_rel(1) : min(surf_bin)+param.noise_rbins_rel(2);
+param.noise_rbins_rel = [-20 -10];
+
 % param.ref_bins = 1x2 vector specifying bins relative to peak to use in
 %   correlation
 param.ref_bins = [-2 2];
@@ -162,7 +168,7 @@ for file_idx = 1:length(fns)
   surf_bin = surf_bin + good_time_bins(1)-1;
   
   param.noise_rlines = 1:size(ml_data,2);
-  param.noise_rbins = min(surf_bin)-40 : min(surf_bin)-30;
+  param.noise_rbins = min(surf_bin)+param.noise_rbins_rel(1) : min(surf_bin)+param.noise_rbins_rel(2);
   param.noise_rbins = param.noise_rbins(param.noise_rbins >= 1);
   
   param.rlines = 1:size(ml_data,2);
@@ -758,7 +764,7 @@ end
 
 %% Write XML file
 if update_mode ~= 1
-  [xml_fn_dir xml_fn_name xml_fn_ext] = fileparts(settings.fn);
+  [xml_fn_dir xml_fn_name xml_fn_ext] = ct_fileparts(settings.fn);
   out_xml_fn = fullfile(out_xml_fn_dir, sprintf('txequal_%s%s', xml_fn_name, xml_fn_ext));
   
   settings_enc = rmfield(settings_enc,'fn');
@@ -776,9 +782,16 @@ if update_mode ~= 1
     settings_enc = rmfield(settings_enc,'DDSZ5FSetup');
     settings_enc = rmfield(settings_enc,'XMLZ20FileZ20Path');
     settings_enc = rmfield(settings_enc,'xmlversion');
-    
+
+    % Try to write the new XML file to the settings directory (this will
+    % generally work if running basic_tx_chan_equal on the same computer
+    % that the data is being collected on). If the path does not exist,
+    % then use the default out_xml_fn.
     [old_fn_dir,old_fn_name,old_fn_ext] = fileparts(settings_enc.sys.XMLZ20FileZ20Path{1}.values{1});
-    out_xml_fn = fullfile(old_fn_dir, sprintf('%s_%s%s', old_fn_name, xml_fn_name, old_fn_ext));
+    new_out_xml_fn = fullfile(old_fn_dir, sprintf('%s_%s%s', old_fn_name, xml_fn_name, old_fn_ext));
+    if exist(old_fn_dir,'dir')
+      out_xml_fn = new_out_xml_fn;
+    end
   end
   
   if strcmpi(param.season_name,'2017_Antarctica_Basler')
@@ -795,7 +808,7 @@ if update_mode ~= 1
   for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
     % Tx 1 is bit 0, tx 2 is bit 1, tx 3 is bit 2, ...
     tx_mask = settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask;
-    tx_mask = fliplr(dec2bin(tx_mask))-'0';
+    tx_mask = fliplr(dec2bin(tx_mask,8))-'0';
     tx_mask = tx_mask | default.txequal.wf_mapping==0;
     tx_mask = bin2dec(char(fliplr(tx_mask+'0')));
     settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask = uint8(tx_mask);
@@ -836,6 +849,7 @@ if update_mode ~= 1
     for wf = 1:length(settings_enc.sys.DDSZ5FSetup.Waveforms)
       arena.PRI = 1 / settings_enc.sys.DDSZ5FSetup.PRF;
       arena.wfs(wf).zeropimods = default.arena.zeropimods;
+      arena.wfs(wf).name = '';
       arena.wfs(wf).tukey = settings_enc.sys.DDSZ5FSetup.RAMZ20Taper;
       arena.wfs(wf).enabled = fliplr(~logical(dec2bin(settings_enc.sys.DDSZ5FSetup.Waveforms(wf).TXZ20Mask(1),8)-'0'));
       arena.wfs(wf).scale = double(settings_enc.sys.DDSZ5FSetup.RamZ20Amplitude) .* default.arena.max_tx ./ default.txequal.max_DDS_amp;
@@ -851,16 +865,16 @@ if update_mode ~= 1
     end
     
     % Create XML document
-    doc = write_arena_xml([],'init',arena);
-    doc = write_arena_xml(doc,'ctu_0013',arena);
-    doc = write_arena_xml(doc,'dac-ad9129_0014',arena);
-    doc = write_arena_xml(doc,'dac-ad9129_0014_waveform',arena);
-    doc = write_arena_xml(doc,'psc_0001',arena);
-    doc = write_arena_xml(doc,'subsystems',arena);
+    xml_doc = write_arena_xml([],'init',arena);
+    xml_doc = write_arena_xml(xml_doc,'ctu_0013',arena);
+    xml_doc = write_arena_xml(xml_doc,'dac-ad9129_0014',arena);
+    xml_doc = write_arena_xml(xml_doc,'dac-ad9129_0014_waveform',arena);
+    xml_doc = write_arena_xml(xml_doc,'psc_0001',arena);
+    xml_doc = write_arena_xml(xml_doc,'subsystems',arena);
     
-    out_str = xmlwrite(doc);
+    out_str = xmlwrite(xml_doc);
     out_str = ['<!DOCTYPE systemXML>' out_str(find(out_str==10,1):end)];
-    [~,rss_fn_name] = fileparts(out_xml_fn);
+    [~,rss_fn_name] = ct_fileparts(out_xml_fn);
     rss_fn = fullfile(param.rss_base_dir,[rss_fn_name '.xml']);
     fprintf('\nWriting %s\n', rss_fn);
     if ~exist(param.rss_base_dir,'dir')

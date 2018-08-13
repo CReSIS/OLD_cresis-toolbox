@@ -164,6 +164,11 @@ supplement_netcdf_param(end).cdf_name = 'missing_data';
 supplement_netcdf_param(end).dim_name = {'unit'};
 supplement_netcdf_param(end).attributes = {'units' 'mask', ...
   'long_name', 'Radar echogram is missing data because radar range gate clips echogram'};
+supplement_netcdf_param(end+1).mat_name = 'no_good_data';
+supplement_netcdf_param(end).cdf_name = 'no_good_data';
+supplement_netcdf_param(end).dim_name = {'unit'};
+supplement_netcdf_param(end).attributes = {'units' 'mask', ...
+  'long_name', 'Radar echogram has no good data'};
 supplement_netcdf_param(end+1).mat_name = 'low_SNR';
 supplement_netcdf_param(end).cdf_name = 'low_SNR';
 supplement_netcdf_param(end).dim_name = {'unit'};
@@ -205,8 +210,10 @@ for param_idx = 1:length(params)
   param.nsidc.L1B_cmd = L1B_cmd;
   param.nsidc.data_dir_L1 = data_dir_L1;
   param.nsidc.data_dir_L1_extra = data_dir_L1_extra;
+  param.nsidc.image_extra = image_extra;
   param.nsidc.L1B_supplement_cmd = L1B_supplement_cmd;
   param.nsidc.L1B_supplement_name = L1B_supplement_name;
+  param.nsidc.L1B_supplement_name_extra = L1B_supplement_name_extra;
   param.nsidc.L2_cmd = L2_cmd;
   param.nsidc.data_dir_L2 = data_dir_L2;
   param.nsidc.premet_param_L1B = premet_param_L1B;

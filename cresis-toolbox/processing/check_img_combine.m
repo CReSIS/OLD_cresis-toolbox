@@ -21,11 +21,12 @@ clear mdata;
 
 mdata{1} = load(data_fn);
 
-figure(1); clf;
-imagesc([], mdata{1}.Time*1e6, lp(mdata{1}.Data));
-xlabel('Range line');
-ylabel('Time (us)');
-grid on;
+h_fig = figure; clf(h_fig);
+h_axes = axes('parent',h_fig);
+imagesc([], mdata{1}.Time*1e6, lp(mdata{1}.Data), 'Parent', h_axes);
+xlabel(h_axes, 'Range line');
+ylabel(h_axes, 'Time (us)');
+grid(h_axes,'on');
 
 done = false; img = 1;
 while ~done
@@ -44,11 +45,12 @@ while ~done
   end
 end
 
-figure(2); clf;
+h_fig = figure; clf(h_fig);
+h_axes = axes('parent',h_fig);
 for rline = rlines(:).'
   for img = 1:length(mdata)
-    h_plot = plot(mdata{img}.Time*1e6, lp(mdata{img}.Data(:,rline)));
-    hold on;
+    h_plot = plot(h_axes,mdata{img}.Time*1e6, lp(mdata{img}.Data(:,rline)));
+    hold(h_axes,'on');
     if img == 1
       legend_str{img} = 'Combined';
       set(h_plot,'LineWidth',2);
@@ -57,9 +59,9 @@ for rline = rlines(:).'
     end
   end
 end
-xlabel('Time (us)');
-ylabel('Relative power (dB)');
-grid on;
-legend(legend_str);
+xlabel(h_axes,'Time (us)');
+ylabel(h_axes,'Relative power (dB)');
+grid(h_axes,'on');
+legend(h_axes,legend_str);
 
 return
