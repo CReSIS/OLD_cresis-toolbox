@@ -12,13 +12,9 @@ cell_boolean = @read_param_xls_boolean;
 cell_text = @read_param_xls_text;
 cell_read = @read_param_xls_general;
 
-% ======================================================================%
-% CREATING THE PARAM STRUCTURE ARRAY FROM PARAM_STARTER.XLS
-% ======================================================================%
 warning('off','MATLAB:xlsread:Mode');
 
-% =======================================================================
-% Create Command Parameters
+%% Create Command Parameters
 % =======================================================================
 fprintf('Reading command/cmd of xls file: %s\n', param_fn);
 
@@ -66,12 +62,12 @@ if version < 4
     params(idx).day_seg                           = sprintf('%08.0f_%02.0f',num(row,1),num(row,2));
     col = 3;
     params(idx).cmd.frms                          = cell_read(row,col,num,txt); col = col + 1;
-    params(idx).cmd.create_vectors                = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.create_records                = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.create_frames                 = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.get_heights                   = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.csarp                         = cell_boolean(row,col,num,txt); col = col + 1;
-    params(idx).cmd.combine_wf_chan               = cell_boolean(row,col,num,txt); col = col + 1;
+    params(idx).cmd.vectors                       = cell_boolean(row,col,num,txt); col = col + 1;
+    params(idx).cmd.records                       = cell_boolean(row,col,num,txt); col = col + 1;
+    params(idx).cmd.frames                        = cell_boolean(row,col,num,txt); col = col + 1;
+    params(idx).cmd.qlook                         = cell_boolean(row,col,num,txt); col = col + 1;
+    params(idx).cmd.sar                           = cell_boolean(row,col,num,txt); col = col + 1;
+    params(idx).cmd.array                         = cell_boolean(row,col,num,txt); col = col + 1;
     params(idx).cmd.generic                       = cell_read(row,col,num,txt); col = col + 1;
     if isempty(params(idx).cmd.generic)
       params(idx).cmd.generic = 0;
@@ -98,57 +94,44 @@ else
   end
 end
 
-
-% =======================================================================
-% Create Vectors Parameters
+%% Create Vectors Parameters
 % =======================================================================
 sheet_name = 'vectors';
 
 [params] = read_param_xls_generic(param_fn,sheet_name,params);
 
-% =======================================================================
-% Create Records, Frames Parameters
+%% Create Records, Frames Parameters
 % =======================================================================
 sheet_name = 'records';
 
 [params] = read_param_xls_generic(param_fn,sheet_name,params);
 
+%% qlook parameters
 % =======================================================================
-% get_heights parameters
-% =======================================================================
-sheet_name = 'get_heights';
+sheet_name = 'qlook';
 
 [params] = read_param_xls_generic(param_fn,sheet_name,params);
 
+%% SAR parameters
 % =======================================================================
-% CSARP parameters
-% =======================================================================
-sheet_name = 'csarp';
+sheet_name = 'sar';
 
 [params] = read_param_xls_generic(param_fn,sheet_name,params);
 
+%% Combine waveforms and channel parameters
 % =======================================================================
-% Combine waveforms and channel parameters
-% =======================================================================
-sheet_name = 'combine';
+sheet_name = 'array';
 
 [params] = read_param_xls_generic(param_fn,sheet_name,params);
 
-% =======================================================================
-% Radar configuration parameters
+%% Radar configuration parameters
 % =======================================================================
 sheet_name = 'radar';
 
 [params] = read_param_xls_generic(param_fn,sheet_name,params);
 
-% =======================================================================
-% Data posting parameters
+%% Data posting parameters
 % =======================================================================
 sheet_name = 'post';
 
 [params] = read_param_xls_generic(param_fn,sheet_name,params);
-
-
-
-return
-

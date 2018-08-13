@@ -1,5 +1,9 @@
 function [hdr,data] = data_load(param,records,wfs,states)
 % [hdr,data] = data_load(param,records,wfs,states)
+%
+% https://ops.cresis.ku.edu/wiki/index.php/Data_load#data_load.m
+%
+% Author: John Paden
 
 %% Preallocate data
 % ===================================================================
@@ -13,13 +17,13 @@ for img = 1:length(param.load.imgs)
   Nt = wfs(wf).Nt_raw;
   Nc = size(param.load.imgs{img},1);
   data{img} = complex(zeros(Nt,Nx,Nc,'single'));
-  hdr.bad_rec{img} = zeros(Nx,Nc,'uint8');
-  hdr.nyquist_zone{img} = zeros(Nx,'uint8');
-  hdr.DDC_mode{img} = zeros(Nx,'double');
-  hdr.DDC_freq{img} = zeros(Nx,'double');
-  hdr.Nt{img} = zeros(Nx,'double');
-  hdr.t0{img} = zeros(Nx,'double');
-  hdr.t_ref{img} = zeros(Nx,'double');
+  hdr.bad_rec{img} = zeros(1,Nx,Nc,'uint8');
+  hdr.nyquist_zone{img} = zeros(1,Nx,'uint8');
+  hdr.DDC_mode{img} = zeros(1,Nx,'double');
+  hdr.DDC_freq{img} = zeros(1,Nx,'double');
+  hdr.Nt{img} = zeros(1,Nx,'double');
+  hdr.t0{img} = zeros(1,Nx,'double');
+  hdr.t_ref{img} = zeros(1,Nx,'double');
 end
 nyquist_zone = zeros(1,param.load.presums);
 DDC_mode = zeros(1,param.load.presums);
@@ -276,10 +280,10 @@ for state_idx = 1:length(states)
               || any(t_ref ~= t_ref(1)))
             % Too few presums, mark as bad record
             % Or a parameter changed within the presum block
-            data{state.img}(:,out_rec,state.wf_adc_idx(accum_idx)) = 0;
-            hdr.bad_rec{state.img}(out_rec,state.wf_adc_idx(accum_idx)) = 1;
+            data{state.img}(:,out_rec,state.wf_adc(accum_idx)) = 0;
+            hdr.bad_rec{state.img}(out_rec,state.wf_adc(accum_idx)) = 1;
           else
-            data{state.img(accum_idx)}(:,out_rec,state.wf_adc_idx(accum_idx)) = state.data{accum_idx};
+            data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = state.data{accum_idx};
           
             hdr.nyquist_zone{img}(out_rec) = nyquist_zone(1);
             hdr.DDC_mode{img}(out_rec) = DDC_mode(1);
@@ -295,32 +299,33 @@ for state_idx = 1:length(states)
               %   Number 2 is unmodified and is usually equal to hardware blank setting
               %   Set either number to -inf to disable
               blank_time = max(records.surface(rec) + wfs(wf).blank(1),wfs(wf).blank(2));
-              data{state.img(accum_idx)}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= blank_time,out_rec,state.wf_adc_idx(accum_idx)) = 0;
+              data{state.img(accum_idx)}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= blank_time,out_rec,state.wf_adc(accum_idx)) = 0;
             end
           end
         end
         
-        % Reset counters and increment record counter
+        % Reset counters
         num_presum_records = 0;
         num_accum = 0;
-        rec = rec + 1;
       end
+      % Increment record counter
+      rec = rec + 1;
     end
   end
   
 end
 
 for img = 1:length(param.load.imgs)
-  for wf_adc_idx = 1:size(data{img},3)
-    wf = param.load.imgs{img}(wf_adc_idx,1);
-    adc = param.load.imgs{img}(wf_adc_idx,2);
+  for wf_adc = 1:size(data{img},3)
+    wf = param.load.imgs{img}(wf_adc,1);
+    adc = param.load.imgs{img}(wf_adc,2);
     
     % Apply channel compensation, presum normalization, and constant
     % receiver gain compensation
     chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
       .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
     mult_factor = single(wfs(wf).quantization_to_V(adc)/param.load.presums/wfs(wf).adc_gains(adc)/chan_equal);
-    data{img}(:,:,wf_adc_idx) = mult_factor * data{img}(:,:,wf_adc_idx);
+    data{img}(:,:,wf_adc) = mult_factor * data{img}(:,:,wf_adc);
     
     % Compensate for receiver gain applied before ADC quantized the signal
     %  - For time varying receiver gain, the convention is to compensate
@@ -328,7 +333,7 @@ for img = 1:length(param.load.imgs)
     %    to vary the gain relative to that.
     % Apply fast-time varying gain if defined
     if ~isempty(wfs(wf).gain)
-      data{img}(:,:,wf_adc_idx) = bsxfun(@times,data{img}(:,:,wf_adc_idx),interp1(wfs(wf).gain.Time, wfs(wf).gain.Gain, wfs(wf).time_raw(1:wfs(wf).Nt_raw)));
+      data{img}(:,:,wf_adc) = bsxfun(@times,data{img}(:,:,wf_adc),interp1(wfs(wf).gain.Time, wfs(wf).gain.Gain, wfs(wf).time_raw(1:wfs(wf).Nt_raw)));
     end
     
     % Apply time varying channel compensation
@@ -348,7 +353,7 @@ for img = 1:length(param.load.imgs)
       chan_equal.chan_equal = ncread(cdf_fn,'chan_equalI',[recs(1) 1],[recs(end)-recs(1)+1 Nt]) ...
         + 1i*ncread(cdf_fn,'chan_equalQ',[recs(1) 1],[recs(end)-recs(1)+1 Nt]);
       
-      data{img}(1:wfs(wf).Nt_raw,:,wf_adc_idx) = data{img}(1:wfs(wf).Nt_raw,:,wf_adc_idx) ...
+      data{img}(1:wfs(wf).Nt_raw,:,wf_adc) = data{img}(1:wfs(wf).Nt_raw,:,wf_adc) ...
         .*interp1(reshape(chan_equal.gps_time,[numel(chan_equal.gps_time) 1]),chan_equal.chan_equal,records.gps_time,'linear','extrap').';
     end
   end
@@ -356,39 +361,47 @@ end
 
 %% Add record information
 % =========================================================================
+hdr.gps_source = records.gps_source;
 hdr.gps_time = fir_dec(records.gps_time,param.load.presums);
 hdr.surface = fir_dec(records.surface,param.load.presums);
-hdr.gps_source = records.gps_source;
-orig_records = records;
   
+%% Create trajectories
+
+% Create reference trajectory (rx_path == 0, tx_weights = [])
+trajectory_param = struct('gps_source',records.gps_source, ...
+  'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
+  'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
+hdr.ref = trajectory_with_leverarm(records,trajectory_param);
+
 for img = 1:length(param.load.imgs)
   
-  for wf_adc_idx = 1:size(data{img},3)
-    wf = param.load.imgs{img}(wf_adc_idx,1);
-    adc = param.load.imgs{img}(wf_adc_idx,2);
+  for wf_adc = 1:size(param.load.imgs{img},1)
+    wf = param.load.imgs{img}(wf_adc,1);
+    adc = param.load.imgs{img}(wf_adc,2);
     
-    if isempty(param.load_data.lever_arm_fh)
-      records = orig_records;
-      hdr.records{img}.lat(1,:,wf_adc_idx) = fir_dec(records.lat,param.load.presums);
-      hdr.records{img}.lon(1,:,wf_adc_idx) = fir_dec(records.lon,param.load.presums);
-      hdr.records{img}.elev(1,:,wf_adc_idx) = fir_dec(records.elev,param.load.presums);
-      hdr.records{img}.roll(1,:,wf_adc_idx) = fir_dec(records.roll,param.load.presums);
-      hdr.records{img}.pitch(1,:,wf_adc_idx) = fir_dec(records.pitch,param.load.presums);
-      hdr.records{img}.heading(1,:,wf_adc_idx) = fir_dec(records.heading,param.load.presums);
+    if isempty(param.radar.lever_arm_fh)
+      hdr.records{img,wf_adc}.lat = fir_dec(records.lat,param.load.presums);
+      hdr.records{img,wf_adc}.lon = fir_dec(records.lon,param.load.presums);
+      hdr.records{img,wf_adc}.elev = fir_dec(records.elev,param.load.presums);
+      hdr.records{img,wf_adc}.roll = fir_dec(records.roll,param.load.presums);
+      hdr.records{img,wf_adc}.pitch = fir_dec(records.pitch,param.load.presums);
+      hdr.records{img,wf_adc}.heading = fir_dec(records.heading,param.load.presums);
     else
       % Create actual trajectory
-      trajectory_param = struct('gps_source',orig_records.gps_source, ...
+      trajectory_param = struct('gps_source',records.gps_source, ...
         'season_name',param.season_name,'radar_name',param.radar_name, ...
         'rx_path', wfs(wf).rx_paths(adc), ...
-        'tx_weights', wfs(wf).tx_weights, 'lever_arm_fh', param.csarp.lever_arm_fh);
-      records = trajectory_with_leverarm(orig_records,trajectory_param);
-      hdr.records{img}.lat(1,:,wf_adc_idx) = fir_dec(records.lat,param.load.presums);
-      hdr.records{img}.lon(1,:,wf_adc_idx) = fir_dec(records.lon,param.load.presums);
-      hdr.records{img}.elev(1,:,wf_adc_idx) = fir_dec(records.elev,param.load.presums);
-      hdr.records{img}.roll(1,:,wf_adc_idx) = fir_dec(records.roll,param.load.presums);
-      hdr.records{img}.pitch(1,:,wf_adc_idx) = fir_dec(records.pitch,param.load.presums);
-      hdr.records{img}.heading(1,:,wf_adc_idx) = fir_dec(records.heading,param.load.presums);
+        'tx_weights', wfs(wf).tx_weights, 'lever_arm_fh', param.radar.lever_arm_fh);
+      hdr.records{img,wf_adc} = trajectory_with_leverarm(records,trajectory_param);
+      hdr.records{img,wf_adc}.lat = fir_dec(hdr.records{img,wf_adc}.lat,param.load.presums);
+      hdr.records{img,wf_adc}.lon = fir_dec(hdr.records{img,wf_adc}.lon,param.load.presums);
+      hdr.records{img,wf_adc}.elev = fir_dec(hdr.records{img,wf_adc}.elev,param.load.presums);
+      hdr.records{img,wf_adc}.roll = fir_dec(hdr.records{img,wf_adc}.roll,param.load.presums);
+      hdr.records{img,wf_adc}.pitch = fir_dec(hdr.records{img,wf_adc}.pitch,param.load.presums);
+      hdr.records{img,wf_adc}.heading = fir_dec(hdr.records{img,wf_adc}.heading,param.load.presums);
     end
+    hdr.records{img,wf_adc}.offset = hdr.records{img,wf_adc}.offset(1:param.load.presums:end-param.load.presums+1);
+    hdr.records{img,wf_adc} = rmfield(hdr.records{img,wf_adc},{'gps_time','surface'});
   end
 end
 

@@ -84,18 +84,53 @@ job_id = ctrl.job_id_list(task_id);
 % Get the task ID that the job ID is writing to
 task_id_out = find(ctrl.job_id_list == job_id,1,'last');
 
-if strcmpi(ctrl.cluster.type,'torque')
-  % Look at stdout to determine the last task that this job started
+if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+  % Extract information from stdout
   stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
   last_task_id = -1;
   if exist(stdout_fn,'file')
     if exist(stdout_fn,'file')
+      stdout_file_str = '';
       try
         fid = fopen(stdout_fn);
         stdout_file_str = fread(fid,inf,'char=>char');
         stdout_file_str = stdout_file_str(:).';
         fclose(fid);
-        % Find all task start messages in this job's stdout
+      end
+
+      % Find the hostname of the execution node
+      try
+        idx = regexp(stdout_file_str,'hostname:');
+        end_idx = idx+9 + find(stdout_file_str(idx+9:end)==' ',1)-1;
+        hostname = stdout_file_str(idx+9:end_idx-1);
+      catch
+        hostname = '';
+      end
+      
+      % Find the number of attempts to start the job
+      try
+        idx = regexp(stdout_file_str,'attempt:');
+        attempt = sscanf(stdout_file_str(idx+8:end),'%d');
+      catch
+        attempt = -1;
+      end
+      if isempty(attempt)
+        attempt = -1;
+      end
+      
+      % Find the allowed maximum number of attempts to start the job
+      try
+        idx = regexp(stdout_file_str,'max_attempts:');
+        max_attempts = sscanf(stdout_file_str(idx+13:end),'%d');
+      catch
+        max_attempts = -1;
+      end
+      if isempty(max_attempts)
+        max_attempts = -1;
+      end
+      
+      % Find the last task that this job started
+      try
         search_str = 'cluster_job: Load task ';
         idxs = regexp(stdout_file_str,search_str);
         if ~isempty(idxs)
@@ -128,24 +163,23 @@ if strcmpi(ctrl.cluster.type,'torque')
   end
 end
 
-if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
-  if ~bitand(error_mask,cluster_killed_error)
-    out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
-    % Sometimes the file system/matlab are slow in recognizing a file
-    if update_mode && ctrl.job_status(task_id) == 'C' && ~exist(out_fn,'file')
-      start_time = tic;
-      while ~exist(out_fn,'file') && toc(start_time) < ctrl.cluster.file_check_pause;
-        pause(5);
-      end
-      if ~exist(out_fn,'file')
-        warning('Cluster batch %d task %d (%d) completed without producing out:\n  %s.', ctrl.batch_id, task_id, job_id, out_fn);
-        %keyboard
-      end
-    end
-  end
-end
+% if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
+%   if ~bitand(error_mask,cluster_killed_error)
+%     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
+%     % Sometimes the file system/matlab are slow in recognizing a file
+%     if update_mode && ctrl.job_status(task_id) == 'C' && ~exist(out_fn,'file')
+%       start_time = tic;
+%       while ~exist(out_fn,'file') && toc(start_time) < ctrl.cluster.file_check_pause;
+%         pause(5);
+%       end
+%       if ~exist(out_fn,'file')
+%         %warning('Cluster batch %d task %d (%d) completed without producing out:\n  %s.', ctrl.batch_id, task_id, job_id, out_fn);
+%         %keyboard
+%       end
+%     end
+%   end
+% end
 
-out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
 if exist(out_fn,'file')
   success = robust_cmd('out = load(out_fn);',2);
   if ~success
@@ -216,21 +250,24 @@ else
 end
 
 if update_mode && ctrl.error_mask(task_id)
-  warning(' Job Error %d:%d/%d\n', ctrl.batch_id, task_id, job_id);
+  warning(' Job Error %d:%d/%d (lead task %d)\n', ctrl.batch_id, task_id, job_id, task_id_out);
+  if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+    fprintf('   hostname:%s attempt:%d max_attempts:%d\n', hostname, attempt, max_attempts);
+  end
   if bitand(ctrl.error_mask(task_id),out_fn_exist_error)
-    fprintf('  Output file does not exist\n');
+    fprintf('  Output file does not exist: %s\n', out_fn);
   end
   if bitand(ctrl.error_mask(task_id),out_fn_load_error)
-    fprintf('  Output file exists, but failed to load\n');
+    fprintf('  Output file exists, but failed to load: %s\n', out_fn);
   end
   if bitand(ctrl.error_mask(task_id),argsout_exist_error)
-    fprintf('  argsout does not exist in output file\n');
+    fprintf('  argsout does not exist in output file: %s\n', out_fn);
   end
   if bitand(ctrl.error_mask(task_id),argsout_length_error)
-    fprintf('  argsout is the wrong length in the output file\n');
+    fprintf('  argsout is the wrong length in the output file: %s\n', out_fn);
   end
   if bitand(ctrl.error_mask(task_id),errorstruct_exist_error)
-    fprintf('  errorstruct does not exist in output file\n');
+    fprintf('  errorstruct does not exist in output file: %s\n', out_fn);
   end
   if bitand(ctrl.error_mask(task_id),errorstruct_contains_error)
     fprintf('  errorstruct contains an error:\n');
@@ -263,17 +300,17 @@ end
 if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
   % Job is completed and has an error
   
-  % Move stdout and error files
+  % Copy stdout and error files
   if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
     stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
     error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id_out));
-    attempt_stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id_out, ctrl.retries(task_id)));
-    attempt_error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id_out, ctrl.retries(task_id)));
+    retry_stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, ctrl.retries(task_id)));
+    retry_error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d_%d.txt',task_id, ctrl.retries(task_id)));
     if exist(stdout_fn,'file')
-      movefile(stdout_fn,attempt_stdout_fn);
+      copyfile(stdout_fn,retry_stdout_fn);
     end
     if exist(error_fn,'file')
-      movefile(error_fn,attempt_error_fn);
+      copyfile(error_fn,retry_error_fn);
     end
   end
   
@@ -296,6 +333,19 @@ if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
     fseek(fid, 21*(task_id-1), -1);
     fprintf(fid,'%-20d\n', new_job_id);
     fclose(fid);
+    
+    % If there are no more tasks using the output files, then delete them
+    % so that the new retry files start with a blank file.
+    if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+      if ~any(ctrl.job_id_list == job_id)
+        if exist(stdout_fn,'file')
+          delete(stdout_fn);
+        end
+        if exist(error_fn,'file')
+          delete(error_fn);
+        end
+      end
+    end
     
     % Print out retry message
     fprintf(' Retry %d Job %d:%d/%d %s (%s)\n', ctrl.retries(task_id), ctrl.batch_id, task_id, ctrl.job_id_list(task_id), param.notes, datestr(now));

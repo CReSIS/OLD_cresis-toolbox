@@ -421,6 +421,12 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'qlook_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'qlook_combine_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'sar_coord_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'sar_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'array_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'array_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'csarp_sar_coord_task.m' 2};
@@ -475,6 +481,20 @@ if ~(~ismcc && isdeployed)
   gRadar.out_path = profile(cur_profile).out_path;
   % .GIS_path = where GIS files are stored (e.g. Landsat-7 imagery)
   gRadar.gis_path = profile(cur_profile).gis_path;
+  % .ct_file_lock_check: logical that determines if lock state should be
+  %   checked
+  if isfield(profile(cur_profile),'ct_file_lock_check')
+    gRadar.ct_file_lock_check = profile(cur_profile).ct_file_lock_check;
+  else
+    gRadar.ct_file_lock_check = true;
+  end
+  % .ct_file_lock: logical that determines if lock state will be enabled
+  %   when files are created
+  if isfield(profile(cur_profile),'ct_file_lock')
+    gRadar.ct_file_lock = profile(cur_profile).ct_file_lock;
+  else
+    gRadar.ct_file_lock = false;
+  end
   % .slurm_jobs_path = where param structures are stored for slurm scripts
   if ~isfield(profile(cur_profile),'slurm_jobs_path')
     profile(cur_profile).slurm_jobs_path = '';

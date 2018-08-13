@@ -20,6 +20,7 @@ function params = ct_set_params(params,field,value,filter_field,filter_regexp)
 %  params = ct_set_params(params,'cmd.generic',0);
 %  params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03|20140307_11');
 %  params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
+%  params = ct_set_params(params,'cmd.generic',1,'cmd.notes','^((?!Do not process).)*$');
 %
 % Authors: John Paden
 %

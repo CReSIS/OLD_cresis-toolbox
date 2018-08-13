@@ -147,8 +147,8 @@ elseif 0
   insert_param.gaps_fill.method_args = [300 60];
   opsInsertLayer(params, insert_param);
   
-elseif 0
-  %% Example 4: Merge Geoid data onto GIMP layer
+elseif 1
+  %% Example 4: Merge Geoid data onto another (e.g. GIMP) layer
   % =====================================================================
   % =====================================================================
   % Use parameters spreadsheet to select segment and frame list for creating layers
@@ -157,7 +157,8 @@ elseif 0
   physical_constants;
   insert_param = [];
   
-  params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'));
+  params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170311_02');
+  params.cmd.generic = 1;
   
   % Load in Geoid
   geoid_fn = ct_filename_gis([],'world\egm96_geoid\WW15MGH.DAC');
@@ -177,23 +178,19 @@ elseif 0
   points.y = points.y(good_mask);
   points.elev = points.elev(good_mask);
   
-  insert_param.eval.ref_source.name = 'surface';
-  insert_param.eval.ref_source.source = 'layerData';
-  insert_param.eval.ref_source.layerdata_source = 'layerData';
-  insert_param.eval.ref_gaps_fill.method = 'interp_finite';
-  insert_param.eval.cmd = 'source = (elev - ref.twtt*c/2)/(c/2/sqrt(er_ice)) - source + ref.twtt;';
+  insert_param.eval.cmd = 'source = (elev - source)/(c/2);';
   insert_param.x = points.x;
   insert_param.y = points.y;
-  insert_param.data = points.elev/(c/2/sqrt(er_ice));
+  insert_param.data = points.elev;
   
   insert_param.type = 'point'; % Point data
-  insert_param.layer_dest.name = 'GIMP';
-  insert_param.layer_dest.source = 'layerData';
+  insert_param.layer_dest.name = 'surface';
+  insert_param.layer_dest.source = 'records';
   insert_param.layer_dest.username = 'paden'; % For OPS layer_dest source
   insert_param.layer_dest.group = 'standard'; % For OPS layer_dest source
-  insert_param.layer_dest.description = 'GIMP Grid'; % For OPS layer_dest source
+  insert_param.layer_dest.description = ''; % For OPS layer_dest source
   insert_param.layer_dest.layerdata_source = 'layerData'; % For layerData layer_dest source
-  insert_param.copy_method = 'fillgaps';
+  insert_param.copy_method = 'overwrite'; % overwrite or fillgaps
   insert_param.gaps_fill.method = 'interp_finite';
   opsInsertLayer(params, insert_param);
   

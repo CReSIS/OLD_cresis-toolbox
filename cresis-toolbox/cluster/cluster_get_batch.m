@@ -8,9 +8,9 @@ function ctrl = cluster_get_batch(ctrl,force_check,update_mode)
 % ctrl = Must be specified. Identifies the batch.
 % force_check: default to true, forces cluster_update_task to be run on all
 %   tasks
-% update_mode: Set to 1 when tasks should be updated and changes printed to
-%   the screen. Set to 0 when only getting task information, but not
-%   updating tasks.
+% update_mode: Scalar integer indicating mode of operation:
+%   0: Only getting task information, but do not updating tasks.
+%   1: Get task information AND update/print tasks as required (default)
 %
 % Outputs:
 % ctrl = ctrl structure for the specified batch_id
@@ -99,10 +99,6 @@ ctrl.mem = zeros(size(ctrl.job_status));
 
 job_status_found = zeros(size(ctrl.job_status));
 
-if ~force_check
-  return
-end
-
 %% Update task status for each task using cluster interface
 ctrl.active_jobs = 0;
 if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
@@ -190,6 +186,23 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       end
     end
   end
+end
+
+if ~force_check
+  static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
+  dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
+  sparam = load(static_in_fn);
+  for task_id = 1:length(ctrl.job_status)
+    if ~isfield(ctrl,'dparam') || numel(ctrl.dparam) < task_id || isempty(ctrl.dparam{task_id})
+      tmp = load(dynamic_in_fn);
+      ctrl.dparam = tmp.dparam;
+    end
+    param = merge_structs(sparam.static_param,ctrl.dparam{task_id});
+    ctrl.cpu_time(task_id) = param.cpu_time;
+    ctrl.mem(task_id) = param.mem;
+  end
+  
+  return
 end
 
 for task_id = 1:length(ctrl.job_status)

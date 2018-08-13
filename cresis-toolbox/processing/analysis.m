@@ -49,13 +49,12 @@ if ~isfield(param.analysis,'presums') || isempty(param.analysis.presums)
   param.analysis.presums = 1;
 end
 
-if ~isfield(param.analysis,'lever_arm_fh') || isempty(param.analysis.lever_arm_fh)
-  param.analysis.lever_arm_fh = [];
+if ~isfield(param.analysis,'surf_layer') || isempty(param.analysis.surf_layer)
+  param.analysis.surf_layer.name = 'surface';
+  param.analysis.surf_layer.source = 'layerData';
 end
-
-if ~isfield(param.analysis,'trim_vals') || isempty(param.analysis.trim_vals)
-  param.analysis.trim_vals = [0 0];
-end
+% Never check for the existence of files
+param.analysis.surf_layer.existence_check = false;
 
 % For each command in the list, set its default settings
 for cmd_idx = 1:length(param.analysis.cmd)
@@ -69,16 +68,17 @@ for cmd_idx = 1:length(param.analysis.cmd)
     cmd.out_path = param.analysis.out_path;
   end
   
-  if ~isfield(cmd,'wf_adc_idxs') || isempty(cmd.wf_adc_idxs)
+  if ~isfield(cmd,'wf_adcs') || isempty(cmd.wf_adcs)
     for img = 1:length(param.analysis.imgs)
-      cmd.wf_adc_idxs{img} = [];
+      % By default do all wf-adc pairs in the image
+      cmd.wf_adcs{img} = 1:size(param.analysis.imgs{img},1);
     end
   end
   
   for img = 1:length(param.analysis.imgs)
-    if length(cmd.wf_adc_idxs) < length(param.analysis.imgs) || isempty(cmd.wf_adc_idxs{img})
+    if length(cmd.wf_adcs) < length(param.analysis.imgs)
       % By default do all wf-adc pairs in the image
-      cmd.wf_adc_idxs{img} = 1:size(param.analysis.imgs{img},1);
+      cmd.wf_adcs{img} = 1:size(param.analysis.imgs{img},1);
     end
   end
   
@@ -107,23 +107,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
     cmd.decimate_factor = 1;
   end
 
-  switch lower(cmd.name)
-    case {'qlook'}
-      %
-    case {'waveform'}
-      %
-    case {'statistics'}
-      %
-    case {'saturation'}
-      %
-    case {'specular'}
-      %
-    case {'coherent_noise'}
-      % Set defaults fro coherent noise analysis method
+  switch lower(cmd.method)
+    case {'coh_noise'}
+      % Set defaults for coherent noise analysis method
       
       if ~isfield(cmd,'block_ave') || isempty(cmd.block_ave)
-        % Set the default block_ave to 1000
-        cmd.block_ave = 1000;
+        cmd.block_ave = 2000;
       end
       
       if mod(param.analysis.block_size,cmd.block_ave)
@@ -136,10 +125,42 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.power_threshold = inf;
       end
       
-      cmd.coh_noise_method = 0;
-      cmd.coh_noise_arg = 0;
-      
     case {'burst_noise'}
+      %
+    case {'qlook'}
+      %
+    case {'saturation'}
+      %
+    case {'specular'}
+      % Set defaults for specular analysis method
+      
+      if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
+        cmd.rlines = 128;
+      end
+      
+      if ~isfield(cmd,'max_rlines') || isempty(cmd.max_rlines)
+        cmd.max_rlines = 10;
+      end
+      
+      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
+        cmd.threshold = 40;
+      end
+      
+      if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
+        cmd.signal_doppler_bins = [1:4 cmd.rlines+(-3:0)];
+      end
+      
+      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
+        cmd.noise_doppler_bins = [12:cmd.rlines-11];
+      end
+      
+      if ~isfield(cmd,'gps_times') || isempty(cmd.gps_times)
+        cmd.gps_times = [];
+      end
+      
+    case {'statistics'}
+      %
+    case {'waveform'}
       %
   end
   
@@ -183,9 +204,8 @@ ctrl_chain = {};
 ctrl = cluster_new_batch(param);
 cluster_compile({'analysis_task.m','analysis_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
+[wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.analysis.imgs})),records);
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
-  [wfs,~] = load_mcords_wfs(records.settings, param, ...
-    1:max(records.param_records.records.file.adcs), param.analysis);
   for img = 1:length(param.analysis.imgs)
     wf = abs(param.analysis.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
@@ -195,8 +215,8 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.analysis.imgs));
-  cpu_time_mult = 8e-8;
-  mem_mult = 33;
+  cpu_time_mult = 4e-8;
+  mem_mult = 17;
   
 else
   error('radar_name %s not supported yet.', radar_name);
@@ -251,6 +271,14 @@ for break_idx = 1:length(breaks)
   dparam.mem = 0;
   dparam.success = '';
   success_error = 64;
+  % Loading in the data: cpu_time and mem
+  dparam.mem = 250e6;
+  for img = 1:length(param.analysis.imgs)
+    dparam.cpu_time = dparam.cpu_time + 10 + length(param.analysis.imgs{img})*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+    dparam.mem = dparam.mem + length(param.analysis.imgs{img})*Nx*total_num_sam(img)*mem_mult;
+  end
+  data_load_memory = dparam.mem;
+  % Processing the data
   for img = 1:length(param.analysis.imgs)
     for cmd_idx = 1:length(param.analysis.cmd)
       cmd = param.analysis.cmd{cmd_idx}; % cmd: current command
@@ -265,45 +293,61 @@ for break_idx = 1:length(breaks)
       dparam.cpu_time = dparam.cpu_time + 10 + param.analysis.presums*size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
 
       % Process commands
-      switch lower(cmd.name)
+      switch lower(cmd.method)
+        case {'burst_noise'}
+          %
+
+        case {'coh_noise'}
+          for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+            wf = param.analysis.imgs{img}(wf_adc,1);
+            adc = param.analysis.imgs{img}(wf_adc,2);
+            out_fn = fullfile(out_fn_dir,sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            dparam.success = cat(2,dparam.success, ...
+              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+              delete(out_fn);
+            end
+            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+          end
+          
         case {'qlook'}
           %
-        case {'waveform'}
-          out_fn = fullfile(out_fn_dir,sprintf('waveform_img_%02d_%d_%d.mat',img,actual_cur_recs));
-          dparam.success = cat(2,dparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
-          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            delete(out_fn);
+          
+        case {'saturation'}
+          %
+          
+        case {'specular'}
+          for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+            wf = param.analysis.imgs{img}(wf_adc,1);
+            adc = param.analysis.imgs{img}(wf_adc,2);
+            out_fn = fullfile(out_fn_dir,sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            dparam.success = cat(2,dparam.success, ...
+              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+              delete(out_fn);
+            end
+            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
           end
-          dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-          dparam.mem = max(dparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult);
           
         case {'statistics'}
           %
-        case {'saturation'}
-          %
-        case {'specular'}
-          out_fn = fullfile(out_fn_dir,sprintf('specular_img_%02d_%d_%d.mat',img,actual_cur_recs));
-          dparam.success = cat(2,dparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
-          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            delete(out_fn);
-          end
-          dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-          dparam.mem = max(dparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult);
           
-        case {'coherent_noise'}
-          out_fn = fullfile(out_fn_dir,sprintf('coh_noise_img_%02d_%d_%d.mat',img,actual_cur_recs));
-          dparam.success = cat(2,dparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
-          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            delete(out_fn);
+        case {'waveform'}
+          for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+            wf = param.analysis.imgs{img}(wf_adc,1);
+            adc = param.analysis.imgs{img}(wf_adc,2);
+            out_fn = fullfile(out_fn_dir,sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            dparam.success = cat(2,dparam.success, ...
+              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+              delete(out_fn);
+            end
+            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
           end
-          dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
-          dparam.mem = max(dparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult);
           
-        case {'burst_noise'}
-          %
       end
     end
   end
@@ -344,8 +388,8 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  cpu_time_mult = 1000e-8;
-  mem_mult = 24;
+  cpu_time_mult = 2.6e-7;
+  mem_mult = 32;
 end
 
 % Create success condition
@@ -369,51 +413,67 @@ for img = 1:length(param.analysis.imgs)
       continue;
     end
     
-    switch lower(cmd.name)
+    switch lower(cmd.method)
+      case {'burst_noise'}
+        %
+        
+      case {'coh_noise'}
+        Nx_cmd = Nx / cmd.block_ave;
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          sparam.success = cat(2,sparam.success, ...
+            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
+        end
+        
       case {'qlook'}
         %
-      case {'waveform'}
-        Nx_cmd = Nx / param.get_heights.decimate_factor;
-        if isfinite(param.analysis.surf.Nt)
-          Nt = param.analysis.surf.Nt;
-        end
-        sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
-        sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
-        out_fn = fullfile(out_fn_dir_dir,sprintf('surf_img_%02d.mat',img));
-        dparam.success = cat(2,dparam.success, ...
-          sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
-        if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-          delete(out_fn);
+        
+      case {'saturation'}
+        %
+        
+      case {'specular'}
+        Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_fn_dir_dir,sprintf('specular_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          sparam.success = cat(2,sparam.success, ...
+            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
         end
         
       case {'statistics'}
         %
-      case {'saturation'}
-        %
-      case {'specular'}
-        Nx_cmd = Nx / param.analysis.block_size * param.analysis.specular.threshold_max;
-        sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
-        sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
-        out_fn = fullfile(out_fn_dir_dir,sprintf('specular_img_%02d.mat',img));
-        dparam.success = cat(2,dparam.success, ...
-          sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
-        if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-          delete(out_fn);
+        
+      case {'waveform'}
+        Nx_cmd = Nx / param.analysis.dec;
+        if isfinite(param.analysis.surf.Nt)
+          Nt = param.analysis.surf.Nt;
+        end
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_fn_dir_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          sparam.success = cat(2,sparam.success, ...
+            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
         end
         
-      case {'coherent_noise'}
-        Nx_cmd = Nx / cmd.block_ave;
-        sparam.cpu_time = sparam.cpu_time + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*cpu_time_mult;
-        sparam.mem = max(sparam.mem,250e6 + size(param.analysis.imgs{img},1)*Nx_cmd*Nt*mem_mult);
-        out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_img_%02d.mat',img));
-        dparam.success = cat(2,dparam.success, ...
-          sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
-        if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-          delete(out_fn);
-        end
-        
-      case {'burst_noise'}
-        %
     end
   end
 end

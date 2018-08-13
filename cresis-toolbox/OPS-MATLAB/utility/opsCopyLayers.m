@@ -393,7 +393,7 @@ else
         & all_points.gps_time < records.gps_time(frames.frame_idxs(frm+1))) = 1;
     else
       frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))...
-        & all_points.gps_time < records.gps_time(end)) = 1;
+        & all_points.gps_time <= records.gps_time(end)) = 1;
     end
   end
 end
@@ -458,6 +458,9 @@ if strcmpi(copy_param.layer_dest.source,'ops')
   opsCreateLayerPoints(sys,ops_param);
   
 elseif strcmpi(copy_param.layer_dest.source,'layerdata')
+  if ~isfield(copy_param.layer_dest,'layerdata_source') || isempty(copy_param.layer_dest.layerdata_source)
+    copy_param.layer_dest.layerdata_source = 'layerData';
+  end
   for frm = param.cmd.frms
     %% Loop through and update selected frame files with surface
     layer_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.layerdata_source,''),...
