@@ -1,83 +1,72 @@
-function [base_dir,adc_folder_name,fns,file_idxs] = get_segment_file_list(param,adc,silent_mode)
-% [base_dir,adc_folder_name,fns,file_idxs] = get_segment_file_list(param,adc,silent_mode)
+function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board)
+% [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board)
 %
-% Support function for create_vectors_* and create_records_*.
+% Support function for create_vectors.m and create_records.m.
 % Can also be used to get all the file information for every segment
 % using run_get_segment_file_list.m.
 %
-% param = struct from param spreadsheet read in (read_param_xls)
-% adc = optional parameter used with some radars that have multiple adcs
+% param: struct from param spreadsheet read in by read_param_xls
+%  .records
+%   .file
+%    .version: raw file version (see "raw file guide" on wiki)
+%    .board_folder_name: board folder name (%b in the filename will be
+%      replaced by the board number)
+%    .base_dir: base directory
+%    .prefix: beginning filename search term
+%    .midfix: middle filename search term
+%    .regexp: additional regular expression to run after the initial file
+%      search
+% board: optional parameter used with some radars that have multiple adcs
 %   This is 1-indexed adc.
 %
 % Author: John Paden
 %
 % See also run_get_segment_file_list.m
 
-if ~exist('silent_mode','var')
-  silent_mode = false;
-end
-
 if ~isfield(param.vectors.file,'file_midfix')
-  param.vectors.file.file_midfix = '';
+  param.records.file.midfix = '';
 end
 
-[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
-
-if any(strcmpi(radar_name,{'accum','snow','kuband'}))
-  adc_folder_name = param.vectors.file.adc_folder_name;
-  ext = '.dat';
-elseif any(strcmpi(radar_name,{'acords'}))
-  adc_folder_name = param.vectors.file.adc_folder_name;
-  ext = '';
-  if ~isfield(param.vectors.file,'file_regexp')
-    param.vectors.file.file_regexp = '\.[0-9]*$';
-  end
-elseif any(strcmpi(radar_name,{'hfrds'}))
-  adc_folder_name = param.vectors.file.adc_folder_name;
-  ext = '.bin';
-elseif any(strcmpi(radar_name,{'hfrds2'}))
-  % Create sub-folder name for the particular receiver
-  adc_folder_name = param.vectors.file.adc_folder_name;
-  board = adc;
-  adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
-  adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
-  ext = '.bin';
-elseif strcmpi(radar_name,'mcrds')
-  adc_folder_name = param.vectors.file.adc_folder_name;
-  ext = '.raw';
-elseif any(strcmpi(radar_name,{'accum2','kuband2','kuband3','icards','mcords','mcords2','mcords3','mcords4','mcords5','snow2','snow3','snow5','snow8'}))
-  % Create sub-folder name for the particular receiver
-  adc_folder_name = param.vectors.file.adc_folder_name;
-  
-  board = adc_to_board(param.radar_name,adc);
-  
-  adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
-  adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
-  
-  if param.records.file_version == 401 || param.records.file_version == 409
-    ext = '.dat';
+% Determine default regular expression to apply to file search
+if ~isfield(param.records.file,'regexp') || isempty(param.records.file.regexp)
+  if any(param.records.file.version == [405 406])
+    param.records.file.regexp = '\.[0-9]*$';
+  elseif any(param.records.file.version == [409])
+    param.records.file.regexp = '\.[0-9][0-9][0-9]$';
   else
-    ext = '.bin';
+    param.records.file.regexp = '';
   end
-else
-  error('Unsupported radar %s', param.radar_name);
 end
 
-if ~isfield(param.vectors.file,'file_regexp')
-  param.vectors.file.file_regexp = '';
+% Determine raw filename extension and check file version
+if any(param.records.file.version == [1 101 401])
+  ext = '.dat';
+elseif any(param.records.file.version == [2:10 102 402:408 411:412])
+  ext = '.bin';
+elseif any(param.records.file.version == [410])
+  ext = '.raw';
+elseif any(param.records.file.version == [405 406 409])
+  ext = '';
+else 
+  error('Unsupported file version\n');
 end
 
-base_dir = fullfile(ct_filename_data(param,param.vectors.file.base_dir),adc_folder_name);
+board_folder_name = param.vectors.file.board_folder_name;
+board_folder_name = regexprep(board_folder_name,'%d',sprintf('%.0f',adc));
+board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
 
+base_dir = fullfile(ct_filename_data(param,param.vectors.file.base_dir),board_folder_name);
+
+%% Return file list
 if nargout > 2
   if ~silent_mode
     fprintf('Getting files for %s (%s)\n', base_dir, datestr(now));
   end
-  get_fns_param = struct('regexp',param.vectors.file.file_regexp);
+  get_fns_param = struct('regexp',param.records.file.regexp);
   if ~isfield(param.vectors.file,'file_suffix')
-    fns = get_filenames(base_dir,param.vectors.file.file_prefix,param.vectors.file.file_midfix,ext,get_fns_param);
+    fns = get_filenames(base_dir,param.records.file.prefix,param.records.file.midfix,ext,get_fns_param);
   else
-    fns = get_filenames(base_dir,param.vectors.file.file_prefix,param.vectors.file.file_midfix,param.vectors.file.file_suffix,get_fns_param);
+    fns = get_filenames(base_dir,param.records.file.prefix,param.records.file.midfix,param.records.file.suffix,get_fns_param);
   end
   
   % Sort ACORDS filenames because the extenions are not a standard length
@@ -86,7 +75,7 @@ if nargout > 2
     file_idxs = [];
     new_fns = {};
     for fidx = 1:length(fns)
-      fname = fname_info_acords(fns{fidx},struct('hnum',1,'file_version',param.records.file_version));
+      fname = fname_info_acords(fns{fidx},struct('hnum',1,'file_version',param.records.file.version));
       new_fns{fidx} = [fname.basename sprintf('.%03d',fname.file_idx)];
     end
     [new_fns,sorted_idxs] = sort(new_fns);
@@ -100,7 +89,7 @@ if nargout > 2
   if isempty(fns)
     fprintf('No files match the mask:\n');
     fprintf('  path: %s\n', base_dir);
-    fprintf('  mask: %s*%s\n', param.vectors.file.file_prefix, ext);
+    fprintf('  mask: %s*%s\n', param.records.file.prefix, ext);
     error('No files found');
   end
   
