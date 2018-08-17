@@ -44,6 +44,14 @@ if ~isfield(param.post,'img') || isempty(param.post.img)
   param.post.img = 0;
 end
 
+if ~isfield(param.post,'echo') || isempty(param.post.echo)
+  param.post.echo = [];
+end
+
+if ~isfield(param.post.echo,'plot_params') || isempty(param.post.echo.plot_params)
+  param.post.echo.plot_params = {'PaperPosition',[0.25 2.5 8 6]};
+end
+
 % er_ice, c = speed of light
 physical_constants;
 
