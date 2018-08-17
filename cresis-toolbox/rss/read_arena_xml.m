@@ -224,6 +224,22 @@ for adc_idx = 1:adcList.getLength
       end
     end
     
+  elseif strcmpi(config_type,'adc-ad9680_0017')
+    % BAS Accumulation Radar, Dome Fuji RDS
+    expression = xpath.compile('//subChannels/subChannel/integrator/rg');
+    nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    for mode_idx = 1:nodeList.getLength
+      modes = nodeList.item(mode_idx-1);
+      range_gates = modes.getTextContent.toCharArray;
+      range_gates = range_gates(:).';
+      % Assumes simple range gate format "start:stop"
+      [start,stop] = strtok(range_gates,':'); stop=stop(2:end);
+      num_bins = str2double(stop) - str2double(start) + 1;
+      if num_bins > settings.max_num_bins
+        settings.max_num_bins = num_bins;
+      end
+    end
+    
   else
     error('ADC type %s not supported.', config_type);
   end
@@ -325,6 +341,10 @@ for dac_idx = 1:dacList.getLength
   expression = xpath.compile(sprintf('//subSystem/subSystem[name="%s"]',name));
   nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
   match = nodeList.item(0);
+  if isempty(match)
+    warning('DAC %s has no config assigned. Skipping.', name);
+    continue;
+  end
   
   % 3. Get the config name and type for this ADC
   expression = xpath.compile('config/@type');

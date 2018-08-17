@@ -35,7 +35,7 @@ end
 
 % =========================================================================
 %% Get File list
-fns = get_filenames(fullfile(base_dir,adc_folder_name),'[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]','','.dat',struct('recursive',true));
+fns = get_filenames(fullfile(base_dir,adc_folder_name),'','','.dat',struct('recursive',true,'regexp','[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'));
 fns_datenum = zeros(size(fns));
 for fn_idx = 1:length(fns)
   fname = fname_info_arena(fns{fn_idx});
@@ -59,6 +59,7 @@ for xml_idx = 1:length(settings)
   doppler_radar_header_type = 2;
   snow_radar_header_type = 5;
   hf_sounder_radar_header_type = 16;
+  ku0001_radar_header_type = 17;
   last_bytes_m = [];
   last_bytes = zeros(64,1,'uint8');
   last_bytes_len = int32(0);
@@ -84,6 +85,14 @@ for xml_idx = 1:length(settings)
     default_num_expected = int32(512);
     num_header_fields = int32(33);
     length_field_offset = int32(260);
+  elseif strcmpi(settings(xml_idx).radar_name,'ku0001')
+    radar_header_type = ku0001_radar_header_type;
+    min_num_expected = int32(0);
+    max_num_expected = int32(settings(xml_idx).max_num_bins);
+    default_num_expected = int32(512);
+    num_header_fields = int32(9);
+    length_field_offset = int32(68);
+    
   else
     error('Not a supported radar header type %d.', radar_header_type);
   end
@@ -129,11 +138,20 @@ for xml_idx = 1:length(settings)
       out_xml_fn = fullfile(out_fn_dir,[out_xml_fn_name out_xml_fn_ext]);
       fprintf('Copy %s\n  %s\n', settings(xml_idx).xml_fn,out_xml_fn);
       copyfile(settings(xml_idx).xml_fn,out_xml_fn);
-      fileattrib(out_xml_fn,'+w -x');      [~,out_xml_fn_name,out_xml_fn_ext] = fileparts(settings(xml_idx).config_xml_fn);
+      if ispc
+        fileattrib(out_xml_fn,'+w');
+      else
+        fileattrib(out_xml_fn,'+w -x');
+      end
+      [~,out_xml_fn_name,out_xml_fn_ext] = fileparts(settings(xml_idx).config_xml_fn);
       out_xml_fn = fullfile(out_fn_dir,[out_xml_fn_name out_xml_fn_ext]);
       fprintf('Copy %s\n  %s\n', settings(xml_idx).config_xml_fn,out_xml_fn);
       copyfile(settings(xml_idx).config_xml_fn,out_xml_fn);
-      fileattrib(out_xml_fn,'+w -x');
+      if ispc
+        fileattrib(out_xml_fn,'+w');
+      else
+        fileattrib(out_xml_fn,'+w -x');
+      end
     end
     
     % Check to see if outputs already exist

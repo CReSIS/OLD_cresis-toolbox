@@ -295,7 +295,24 @@ mexFunction( int nlhs,
       //    offset can be negative and this means that the record starts in the previous file and the offset is measured from the end of the file
       ((unsigned int *)(hdr+num_hdr*header_size))[0] = out_offset - *last_bytes_len;
       num_hdr++;
-      // 3. Determine number of bytes expected in this record
+      // 3a. Check length_field_offset
+      ptrdiff_t radar_header_length_offset = 12-*last_bytes_len; // Offset of radar header length field from start
+      int expected_length_field_offset;
+      if (radar_header_length_offset < 0)
+      {
+        // Profile data format and length fields were in the last bytes from the previous packet
+        expected_length_field_offset = 20+(*(int *)(last_bytes+12));
+      }
+      else
+      {
+        // Profile data format and length fields are in this packet
+        expected_length_field_offset = 20+(*(int *)(start+radar_header_length_offset));
+      }
+      if (*length_field_offset != expected_length_field_offset)
+      {
+        mexPrintf("%d: length_field_offset may be wrong:\n  length_field_offset=%d, expected_length_field_offset=%d\n", __LINE__, *length_field_offset, expected_length_field_offset); // PADEN
+      }
+      // 3b. Determine number of bytes expected in this record
       offset = *length_field_offset-*last_bytes_len;
       *last_bytes_len = 0;
       int profile_data_format;
@@ -319,11 +336,19 @@ mexFunction( int nlhs,
       switch (profile_data_format)
       {
         case 0x00000000:
-        case 0x00010000:
           // num_expected is in units of bytes
           // num_expected_bins needs to be adjusted for 16 bit range bins
           //  >>1 = /2, 2 byte samples
           num_expected_bins = num_expected_bins >> 1;
+          break;
+        case 0x00010000:
+          // num_expected is in units of bytes
+          // num_expected_bins needs to be adjusted for 16 bit IQ range bins
+          //  >>2 = /4, 4 byte samples
+          num_expected_bins = num_expected_bins >> 2;
+          //*num_expected = *num_expected >> 1; // These three lines replaced the above line for temporary hack;
+          //*num_expected = *num_expected - 1536*4; // con't from previous line.
+          //num_expected_bins = num_expected_bins >> 3; // con't from previous line.
           break;
         case 0x00020000:
         case 0x00030000:
@@ -408,7 +433,15 @@ mexFunction( int nlhs,
               // 2. Write output file offset into header (overwriting the first 32 bits of the header)
               ((unsigned int *)(hdr+num_hdr*header_size))[0] = out_offset + offset;
               num_hdr++;
-              // 3. Determine number of bytes expected in this record
+              // 3a. Check length_field_offset
+              ptrdiff_t radar_header_length_offset = offset + 12; // Offset of radar header length field from start
+              int expected_length_field_offset;
+              expected_length_field_offset = 20+(*(int *)(start+radar_header_length_offset));
+              if (*length_field_offset != expected_length_field_offset)
+              {
+                mexPrintf("%d: length_field_offset may be wrong:\n  length_field_offset=%d, expected_length_field_offset=%d\n", __LINE__, *length_field_offset, expected_length_field_offset); // PADEN
+              }
+              // 3b. Determine number of bytes expected in this record
               offset += *length_field_offset;
               *last_bytes_len = 0;
               int profile_data_format;
@@ -421,11 +454,19 @@ mexFunction( int nlhs,
               switch (profile_data_format)
               {
                 case 0x00000000:
-                case 0x00010000:
                   // num_expected is in units of bytes
                   // num_expected_bins needs to be adjusted for 16 bit range bins
                   //  >>1 = /2, 2 byte samples
                   num_expected_bins = num_expected_bins >> 1;
+                  break;
+                case 0x00010000:
+                  // num_expected is in units of bytes
+                  // num_expected_bins needs to be adjusted for 16 bit IQ range bins
+                  //  >>2 = /4, 4 byte samples
+                  num_expected_bins = num_expected_bins >> 2;
+                  //*num_expected = *num_expected >> 1; // These three lines replaced the above line for temporary hack;
+                  //*num_expected = *num_expected - 1536*4; // con't from previous line.
+                  //num_expected_bins = num_expected_bins >> 3; // con't from previous line.
                   break;
                 case 0x00020000:
                 case 0x00030000:

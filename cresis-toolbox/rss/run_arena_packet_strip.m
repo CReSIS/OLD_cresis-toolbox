@@ -17,14 +17,14 @@
 param_override = [];
 
 % Set param.radar_name and param.season_name
-param = default_radar_params_2016_Greenland_TOdtu;
+param = default_radar_params_2018_Antarctica_TObas;
 
 if ispc
-  param.arena_packet_strip.base_dir = 'HF_Sounder/2016_Greenland_TO/';
+  param.arena_packet_strip.base_dir = 'E:\tmp\2018_Antarctica_TObas\';
 else
   param.arena_packet_strip.base_dir = '/cresis/snfs1/data/HF_Sounder/2016_Greenland_TO/';
 end
-param.arena_packet_strip.adc_folder_names = {'20161101','20161102A','20161107A','20161107B','20161107C','20161108A','20161108B','20161110A','20161110B','20161111A','20161112A'};
+param.arena_packet_strip.adc_folder_names = {'20180817'};
 param.arena_packet_strip.reuse_tmp_files = true;
 param.arena_packet_strip.mat_or_bin_hdr_output = '.mat';
 
