@@ -79,7 +79,7 @@ if ~isfield(ctrl.cluster,'max_time_per_job') || isempty(ctrl.cluster.max_time_pe
 end
 
 if ~isfield(ctrl.cluster,'desired_time_per_job') || isempty(ctrl.cluster.desired_time_per_job)
-  ctrl.cluster.max_time_per_job = 0;
+  ctrl.cluster.desired_time_per_job = 0;
 end
 
 if ~isfield(ctrl.cluster,'max_retries') || isempty(ctrl.cluster.max_retries)

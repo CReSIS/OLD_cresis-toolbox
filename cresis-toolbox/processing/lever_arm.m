@@ -75,8 +75,9 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
-if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(gps_source,'nmea'))
-  warning('NEEDS TO BE DETERMINED');
+if (strcmpi(param.season_name,'2018_Alaska_SO') && (strcmpi(gps_source,'nmea') || strcmpi(gps_source,'lidar')))
+% The snow radar shared the same GPS antenna with the lidar of the univ. of Fairbanks
+% Emily measured the positions of the snow radar rx and tx antennas relative to the GPS antenna
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
@@ -246,7 +247,7 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(gps_source,'c
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2017_Antarctica_Basler') && strcmpi(gps_source,'cresis'))
+if (strcmpi(param.season_name,'2017_Antarctica_Basler') && (strcmpi(gps_source,'cresis') || strcmpi(gps_source,NMEA')))
   warning('This file needs to be updated with actual values for 2017.');
   gps.x = 0;
   gps.y = 0;
@@ -441,7 +442,7 @@ if (strcmpi(param.season_name,'2003_Greenland_P3')) ...
   
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6','2018_Greenland_Polar6'})) && strcmpi(gps_source,'AWI'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Antarctica_Polar6','2018_Greenland_Polar6'})) && any(strcmpi(gps_source,{'AWI','NMEA'})))
   % Measurements are from Richard Hale Aug 12, 2015 for RDS and Aug 15,
   % 2015 for Snow Radar. Measurements are made relative to the AWI Aft
   % Science GPS antenna known as ST5.
@@ -1430,15 +1431,14 @@ end
 % =========================================================================
 
 if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'snow'))
-  % X,Y,Z are in aircraft coordinates, not IMU
-  warning('NEEDS TO BE DETERMINED');
-  LArx(1,1) = 0*2.54/100;
-  LArx(2,1) = 0*2.54/100;
-  LArx(3,1) = 0*2.54/100;
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,1) = -0.288;
+  LArx(2,1) = -0.094;
+  LArx(3,1) = 1.289;
   
-  LAtx(1,1) = 0*2.54/100;
-  LAtx(2,1) = 0*2.54/100;
-  LAtx(3,1) = 0*2.54/100;
+  LAtx(1,1) = 4.991;
+  LAtx(2,1) = -0.094;
+  LAtx(3,1) = 1.815;
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;
