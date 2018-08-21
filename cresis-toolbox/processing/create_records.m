@@ -57,20 +57,20 @@ if ~isfield(param.records.file,'adcs') || isempty(param.records.file.adcs)
 end
 
 % boards: List of file groupings based on how ADC channels are stored in
-%   the files. 
-if any(param.records.file_version == [1:10 101:102 401 404:409 411])
+%   the files.
+if any(param.records.file.version == [1:10 101:102 401 404:409 411])
   % Each channel has its own file
   boards = unique(param.records.file.adcs);
-elseif any(param.records.file_version == [410])
+elseif any(param.records.file.version == [410])
   % MCRDS: All channels in the same file
   boards = 1;
-elseif any(param.records.file_version == [402 403])
+elseif any(param.records.file.version == [402 403])
   % NI MCRDS: 4 channels per board
   boards = unique(floor((param.records.file.adcs-1)/4));
-elseif param.records.file_version == 412
+elseif any(param.records.file.version == [9:10 103 412])
   % RSS: Complicated mapping that must be manually specified
   boards = param.records.file.boards;
-else 
+else
   error('Unsupported file version\n');
 end
 
@@ -84,11 +84,11 @@ if ~isfield(param.records.gps,'en') || isempty(param.records.gps.en)
 end
 
 if ~isfield(param.records,'presum_mode') || isempty(param.records.presum_mode)
-  if any(param.records.file_version == [402 403 404])
+  if any(param.records.file.version == [402 403 404])
     % 8-channel DDS board had a waveform bug that required an extra waveform
     % to be sent and discarded (not used for presumming)
     param.records.presum_mode = 1;
-  elseif any(param.records.file_version == [407 408])
+  elseif any(param.records.file.version == [407 408])
     error('The param.records.presum_mode must be specified. Set to 0 if not using the 8-channel 1 GSPS DDS by Ledford/Leuschen. Set to 1 if it was used.');;
   else
     param.records.presum_mode = 0;
@@ -99,18 +99,17 @@ if ~isfield(param.records,'use_ideal_epri') || isempty(param.records.use_ideal_e
   param.records.use_ideal_epri = false;
 end
 
-if ~isfield(param.vectors.gps,'utc_time_halved') || isempty(param.vectors.gps.utc_time_halved)
-  if param.records.file_version == 1
-    error('The param.vectors.gps.utc_time_halved must be specified. Set to 0 if the UTC time in the data files is half of what it should have been.');
+if ~isfield(param.records.gps,'utc_time_halved') || isempty(param.records.gps.utc_time_halved)
+  if param.records.file.version == 1
+    error('The param.records.gps.utc_time_halved must be specified. Set to 0 if the UTC time in the data files is half of what it should have been.');
   else
-    param.vectors.gps.utc_time_halved = 0;
+    param.records.gps.utc_time_halved = 0;
   end
 end
 
-%% Loop through each ADC and load
+%% Load headers from each board
 % =====================================================================
-
-clear wfs board_hdrs;
+clear board_hdrs;
 board_hdrs = {};
 records = [];
 for board_idx = 1:length(boards)
@@ -119,210 +118,293 @@ for board_idx = 1:length(boards)
   fprintf('Getting files for board %d (%d of %d) (%s)\n', ...
     board, board_idx, length(boards), datestr(now));
   
+  %% Load headers: get files
   % =====================================================================
-  %% Get the list of raw files to load in
-  % =====================================================================
-  
   [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,board);
-  
-  if any(param.records.file_version == [404, 407, 408, 411])
-    [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,board);
-  elseif any(param.records.file_version == [402, 403])
-    [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,(board+1)*4);
-  end
-  
-  % =====================================================================
-  %% Load headers from radar data files
-  % =====================================================================
   
   % Load header from radar data file
   fprintf('Loading raw files %i to %i\n',file_idxs([1 end]));
   
-  board_hdrs{board_idx}.seconds = zeros([0 0],'uint32');
-  board_hdrs{board_idx}.fraction = zeros([0 0],'uint32');
-  if param.records.file_version ~= 101
-    board_hdrs{board_idx}.epri = zeros([0 0],'uint32');
-  end
-  board_hdrs{board_idx}.offset = zeros([0 0],'uint32');
-  board_hdrs{board_idx}.file_idx = zeros([0 0],'uint32');
-  if param.records.file_version == 2
-    board_hdrs{board_idx}.nyquist_zone = zeros([0 0],'uint8');
-    board_hdrs{board_idx}.loopback_mode = zeros([0 0],'uint8');
-  end
-  % records.relative_rec_num = This variable contains the first record
-  % number of each file. After the loop runs there will always be one
-  % to many elements (161 files will mean 162 elements in the array)
-  % and the last entry is the record number that would have been next
-  % so that length(hdr.utc_time_sod) = records.relative_rec_num(end)-1
-  records.relative_rec_num{board_idx} = 1;
-  
-  init_EPRI_estimate = create_records_epri_estimate(param,file_idxs,board_fns{board_idx});
-  
-  % load('/home/cresis1/tmp/test_flight_settings_file_20133615.mat');
-  %fmcw_settings = fmcw_settings * 86400;
-  for file_idx = 1:length(file_idxs)
-    file_num = file_idxs(file_idx);
-    fn = board_fns{board_idx}{file_num};
+  % Initialize variables to store header fields
+  if any(param.records.file.version == [9 10 103 412])
+    % Arena based systems
+    board_hdrs{board_idx}.file_size = zeros([0 0],'int32');
+    board_hdrs{board_idx}.file_idx = zeros([0 0],'int32');
+    board_hdrs{board_idx}.offset = zeros([0 0],'int32');
+    board_hdrs{board_idx}.mode_latch = zeros([0 0],'int32');
+    board_hdrs{board_idx}.subchannel = zeros([0 0],'int32');
+    board_hdrs{board_idx}.pps_cntr_latch = zeros([0 0],'double'); % Time when PPS edge came in
+    board_hdrs{board_idx}.pps_ftime_cntr_latch = zeros([0 0],'double'); % Fractional time since edge
+    board_hdrs{board_idx}.profile_cntr_latch = zeros([0 0],'double'); % PRI counter
+    board_hdrs{board_idx}.rel_time_cntr_latch = zeros([0 0],'double'); % 10 MHz counts counter
+    cur_idx = 0;
     
-    %% Prepare arguments based on param.radar_name
-    first_byte = 0;
-    arg{1} = fn;
-    arg{2} = struct('clk',param.radar.fs,'utc_time_halved',param.vectors.gps.utc_time_halved, ...
-      'first_byte',first_byte, 'file_version', param.records.file_version, ...
-      'records',struct('en',1,'epri',init_EPRI_estimate,'force_all',param.records.force_all));
-    if strcmp(radar_name,'accum')
-      fh = @basic_load_accum;
-      finfo = fname_info_accum(fn);
-    elseif any(strcmp(radar_name,{'snow','kuband'}))
-      fh = @basic_load_fmcw;
-      finfo = fname_info_fmcw(fn);
-    elseif any(strcmp(radar_name,{'snow2','kuband2'}))
-      fh = @basic_load_fmcw2;
-      finfo = fname_info_fmcw(fn);
-    elseif any(strcmp(radar_name,{'snow3','kuband3','kaband3'}))
-      finfo = fname_info_fmcw(fn);
-      if file_idx < length(file_idxs)
-        next_finfo = fname_info_fmcw(board_fns{board_idx}{file_idxs(file_idx+1)});
-      else
-        next_finfo.datenum = inf;
-      end
-      if param.records.file_version == 4
-        fh = @basic_load_fmcw2;
-      elseif param.records.file_version == 6
-        fh = @basic_load_fmcw4;
-      else
-        fh = @basic_load_fmcw3;
-        if 0
-          settings_changed_guard_time = 5;
-          if any(fmcw_settings > finfo.datenum*86400-settings_changed_guard_time ...
-              & fmcw_settings < next_finfo.datenum*86400+settings_changed_guard_time)
-            arg{2}.records.force_all = true;
-          else
-            arg{2}.records.force_all = param.records.force_all || false;
-          end
-        else
-          arg{2}.records.force_all = true;
-        end
-      end
-    elseif any(strcmp(radar_name,{'snow5'}))
-      fh = @basic_load;
-      finfo = fname_info_fmcw(fn);
-    elseif any(strcmp(radar_name,{'snow8'}))
-      fh = @basic_load;
-      finfo = fname_info_fmcw(fn);
+  else
+    % NI, Rink, Paden, Leuschen, and Ledford systems
+    board_hdrs{board_idx}.seconds = zeros([0 0],'uint32');
+    board_hdrs{board_idx}.fraction = zeros([0 0],'uint32');
+    board_hdrs{board_idx}.offset = zeros([0 0],'uint32');
+    board_hdrs{board_idx}.file_idx = zeros([0 0],'uint32');
+    % records.relative_rec_num = This variable contains the first record
+    % number of each file. After the loop runs there will always be one
+    % to many elements (161 files will mean 162 elements in the array)
+    % and the last entry is the record number that would have been next
+    % so that length(hdr.utc_time_sod) = records.relative_rec_num(end)-1
+    records.relative_rec_num{board_idx} = 1;
+    
+    if param.records.file.version ~= 101
+      board_hdrs{board_idx}.epri = zeros([0 0],'uint32');
     end
+    if param.records.file.version == 2
+      board_hdrs{board_idx}.nyquist_zone = zeros([0 0],'uint8');
+      board_hdrs{board_idx}.loopback_mode = zeros([0 0],'uint8');
+    end
+  end
+  
+  for file_idx = 1:length(file_idxs)
+    % Get the temporary filename from the filename list
+    file_num = file_idxs(file_idx);
+    [~,fn_name] = fileparts(board_fns{board_idx}{file_num});
+    if any(param.records.file.version == [9 10 103 412])
+      % Update the filename to point to the packet stripped files
+      board_fns{board_idx}{file_num} = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
+        fullfile(adc_folder_name, [fn_name '.dat']));
+    end
+    fn = board_fns{board_idx}{file_num};
+    dir_info = dir(fn);
     
-    %% Create/run task for each file
-    if strcmpi(param.sched.type,'custom_torque')
-      create_task_param.conforming = true;
-      create_task_param.notes = sprintf('%i/%i %s', ...
-        file_idx,length(file_idxs), fn);
-      ctrl = torque_create_task(ctrl,fh,2,arg,create_task_param);
-    else
-      fprintf('  %i/%i %s (%s)\n', ...
-        file_idx,length(file_idxs), fn, datestr(now,'HH:MM:SS'));
-      
-      [~,fn_name] = fileparts(fn);
-      
-      if param.records.tmp_fn_uses_adc_folder_name
-        tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
-          fullfile(adc_folder_name, [fn_name '.mat']));
-      else
-        tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers',[fn_name '.mat']);
-      end
-      if exist(tmp_hdr_fn,'file')
-        hdr_tmp = load(tmp_hdr_fn);
-      elseif any(strcmp(radar_name,{'snow5','snow8'}))
-        error('Temporary header file (%s) not found. Have you run run_create_segment_raw_file_list_v2.m?', tmp_hdr_fn);
-      else
-        [success,hdr_tmp] = fh(arg{1},arg{2});
-      end
-      % Concatenate hdr_tmp fields
-      board_hdrs{board_idx}.seconds(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.seconds;
-      board_hdrs{board_idx}.fraction(end+1:end+length(hdr_tmp.fraction)) = hdr_tmp.fraction;
-      board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.epri)) = file_idx;
-      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.offset)) = hdr_tmp.offset;
-      
-      if length(board_hdrs{board_idx}.seconds) ~= length(board_hdrs{board_idx}.fraction)
-        fprintf('Bad file: seconds and fraction fields do not match.\n');
+    fprintf('  %i/%i %s (%s)\n', ...
+      file_idx,length(file_idxs), fn, datestr(now,'HH:MM:SS'));
+    
+    % Load temporary files
+    tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
+      fullfile(adc_folder_name, [fn_name '.mat']));
+    hdr_tmp = load(tmp_hdr_fn);
+    
+    %% Concatenate all the fields together
+    %  - Note that all fields from the file should have the same hdr_tmp
+    %  length. Error in the file if not.
+    if any(param.records.file.version == [9 10 103 412])
+      % Arena based systems
+      if hdr_tmp.offset > 1e9
         keyboard
       end
+
+      board_hdrs{board_idx}.file_size(cur_idx + (1:length(hdr_tmp.mode_latch))) = dir_info.bytes;
+      board_hdrs{board_idx}.file_idx(cur_idx + (1:length(hdr_tmp.mode_latch))) = file_idx;
       
-      if param.records.file_version ~= 101
-        if isfield(hdr_tmp,'epri')
-          board_hdrs{board_idx}.epri(end+1:end+length(hdr_tmp.epri)) = hdr_tmp.epri;
-        end
-        if param.records.file_version == 2
-          board_hdrs{board_idx}.nyquist_zone(end+1:end+length(hdr_tmp.epri)) = hdr_tmp.nyquist_zone;
-          board_hdrs{board_idx}.loopback_mode(end+1:end+length(hdr_tmp.epri)) = hdr_tmp.loopback_mode;
-        end
-        board_hdrs{board_idx}.wfs{file_idx} = hdr_tmp.wfs;
+      board_hdrs{board_idx}.mode_latch(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.mode_latch;
+      board_hdrs{board_idx}.offset(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.offset;
+      board_hdrs{board_idx}.subchannel(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.subchannel;
+      
+      board_hdrs{board_idx}.pps_cntr_latch(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.pps_cntr_latch;
+      board_hdrs{board_idx}.pps_ftime_cntr_latch(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.pps_ftime_cntr_latch;
+      board_hdrs{board_idx}.profile_cntr_latch(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.profile_cntr_latch;
+      board_hdrs{board_idx}.rel_time_cntr_latch(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.rel_time_cntr_latch;
+      
+      cur_idx = cur_idx + length(hdr_tmp.mode_latch);
+      
+    else
+      % NI, Rink, Paden, Leuschen, and Ledford systems
+      board_hdrs{board_idx}.seconds(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.seconds;
+      board_hdrs{board_idx}.fraction(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.fraction;
+      board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.seconds)) = file_idx;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.offset;
+      
+      if any(param.records.file.version == [1:8 102 401:404 407:408])
+        % Ledford, Rink and NI systems have EPRI field
+        board_hdrs{board_idx}.epri(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.epri;
+      elseif any(param.records.file.version == [1:8 102 401:404 407:408])
       end
       
-      %% Create records and file numbers
+      % Copy the waveform structure
+      wfs = hdr_tmp.wfs;
+      
+      % Create records and file numbers
       records.relative_rec_num{board_idx}(file_idx+1) = length(hdr_tmp.seconds)+records.relative_rec_num{board_idx}(file_idx);
       [fn_dir fn_name fn_ext] = fileparts(fn);
       records.relative_filename{board_idx}{file_idx} = [fn_name fn_ext];
     end
   end
   
-  if ~strcmpi(param.sched.type,'no scheduler')
-    %% Wait until all submitted jobs complete
-    ctrl = torque_rerun(ctrl);
-    if ~all(ctrl.error_mask == 0)
-      if ctrl.sched.stop_on_fail
-        torque_cleanup(ctrl);
-        error('Not all jobs completed, but out of retries (%s)', datestr(now,'HH:MM:SS'));
-      else
-        warning('Not all jobs completed, but out of retries (%s)', datestr(now,'HH:MM:SS'));
-        keyboard;
-      end
-    else
-      fprintf('Jobs completed (%s)\n\n', datestr(now,'HH:MM:SS'));
-    end
+end
+
+%% Correct EPRI for each board individually
+% ======================================================================
+
+if any(param.records.file.version == [9 10 103 412])
+  % Arena based systems
+
+  % Load XML settings file
+  xml_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
+    fullfile(param.records.xml_fn));
+  settings = read_arena_xml(xml_fn);
+  
+  for board_idx = 1:length(boards)
+    board = boards(board_idx);
     
-    % ======================================================================
-    %% Copy all successful task header outputs
-    hdrs = {};
-    for file_idx = 1:length(ctrl.out)
-      hdrs{file_idx} = ctrl.out{file_idx}.argsout{2};
-    end
-    
-    % ======================================================================
-    %% Copy all successful task header outputs to final destination
-    for file_idx = 1:length(file_idxs)
-      file_num = file_idxs(file_idx);
-      fn = board_fns{board_idx}{file_num};
-      % Concatenate hdr_tmp fields
-      board_hdrs{board_idx}.seconds = cat(2,board_hdrs{board_idx}.seconds,hdrs{file_idx}.seconds);
-      board_hdrs{board_idx}.fraction = cat(2,board_hdrs{board_idx}.fraction,hdrs{file_idx}.fraction);
-      board_hdrs{board_idx}.epri = cat(2,board_hdrs{board_idx}.epri,hdrs{file_idx}.epri);
-      board_hdrs{board_idx}.offset = cat(2,board_hdrs{board_idx}.offset,hdrs{file_idx}.offset);
-      board_hdrs{board_idx}.file_idx(end+(1:length(hdrs{file_idx}.seconds))) = file_idx;
-      if param.records.file_version == 2
-        board_hdrs{board_idx}.loopback_mode = cat(2,board_hdrs{board_idx}.loopback_mode,hdrs{file_idx}.loopback_mode);
-        board_hdrs{board_idx}.nyquist_zone = cat(2,board_hdrs{board_idx}.nyquist_zone,hdrs{file_idx}.nyquist_zone);
-      end
+    %% Correct EPRI/Arena: Find the PRIs associated with the EPRI profile
+    % =====================================================================
+    if size(param.records.arena.data_map{board},2) == 4
+      % No Profile Processor Digital System (use mode_latch,subchannel instead)
+      % Each row of param.records.arena.data_map{board} = [mode_latch channel wf adc]
       
-      % Create records and file numbers
-      records.relative_rec_num{board_idx}(file_idx+1) = length(hdrs{file_idx}.seconds)+records.relative_rec_num{board_idx}(file_idx);
-      board_hdrs{board_idx}.wfs{file_idx} = hdrs{file_idx}.wfs(1);
-      [fn_dir fn_name fn_ext] = fileparts(fn);
-      records.relative_filename{board_idx}{file_idx} = [fn_name fn_ext];
+      % Get the first row (which is always the EPRI row)
+      epri_mode = param.records.arena.data_map{board}(1,1);
+      epri_subchannel = param.records.arena.data_map{board}(1,2);
+      
+      mask = board_hdrs{board_idx}.mode_latch == epri_mode & board_hdrs{board_idx}.subchannel == epri_subchannel;
+    else
+      error('Profile mode not supported.');
+      % Profile Processor Digital System
+      % Each row of param.records.arena.data_map{board} = [profile wf adc]
+      epri_profile = param.records.arena.data_map{board}(1,1);
+      
+      mask = profile == epri_profile;
+    end
+    % Data before first PPS reset may be incorrectly time tagged so we do not
+    % use it
+    first_reset = find(diff(board_hdrs{board_idx}.pps_cntr_latch)>0,1);
+    if board_hdrs{board_idx}.pps_ftime_cntr_latch(first_reset) > 10e6
+      mask(1:first_reset) = 0;
     end
     
-    %% Cleanup torque jobs
-    torque_cleanup(ctrl);
+    epri_pris = board_hdrs{board_idx}.profile_cntr_latch(mask);
     
+    %% Correct EPRI/Arena: Find EPRI jumps and mask out
+    % =====================================================================
+    jump_idxs = find( abs(diff(double(epri_pris))/settings.total_presums - 1) > 0.1);
+    
+    bad_mask = zeros(size(epri_pris));
+    for jump_idx = jump_idxs
+      jump = (epri_pris(jump_idx+1)-epri_pris(jump_idx))/settings.total_presums - 1;
+      fprintf('jump_idx: %d, jump: %d\n', jump_idx, jump);
+      fprintf('epri_pris: %d %d\n', epri_pris(jump_idx+1), epri_pris(jump_idx));
+      if jump < -0.1
+        fprintf('Negative or zero time jump\n');
+        keyboard
+        bad_mask(jump_idx+1:end) = epri_pris(jump_idx+1:end) < epri_pris(jump_idx);
+      elseif jump > 0.1 && jump < 100
+        fprintf('Dropped some records\n');
+        %keyboard
+      elseif jump > 50000
+        fprintf('Record header error\n');
+        keyboard
+        epri_pris(jump_idx+1) = epri_pris(jump_idx);
+        bad_mask(jump_idx+1) = 1;
+      elseif jump > 100
+        fprintf('Dropped many records or record header error\n');
+        %       keyboard
+      end
+    end
+    
+    mask(mask) = ~bad_mask;
+    
+    %% Correct EPRI/Arena: Update epri_pri_idxs
+    % Find the first subrecord in each epri_pri and update epri_pri_idxs
+    epri_pri_idxs = find(mask);
+    for idx = 1:length(epri_pri_idxs)
+      %if ~mod(idx-1,10000)
+      %  fprintf('%d\n', idx);
+      %end
+      epri_pri_idx = epri_pri_idxs(idx);
+      pri = board_hdrs{board_idx}.profile_cntr_latch(epri_pri_idx);
+      if board_hdrs{board_idx}.profile_cntr_latch(1) == pri
+        % Special case for first PRI
+        epri_pri_idxs(idx) = 1;
+      else
+        % For second and later PRIs
+        while board_hdrs{board_idx}.profile_cntr_latch(epri_pri_idx) == pri
+          epri_pri_idx = epri_pri_idx-1; % Search backwards until we find the previous PRI
+        end
+        epri_pri_idxs(idx) = epri_pri_idx+1; % The subrecord after this is the first PRI in the current EPRI
+      end
+    end
+    
+    %% Correct EPRI/Arena: Ensure all records are valid in each EPRI
+    % =====================================================================
+    mask = zeros(size(board_hdrs{board_idx}.pps_cntr_latch));
+    mask(epri_pri_idxs) = 1;
+    for idx = 1:length(epri_pri_idxs)-1
+      %if ~mod(idx-1,1000000)
+      %  fprintf('%d\n', idx);
+      %end
+      for pri_idx = epri_pri_idxs(idx):epri_pri_idxs(idx+1)-1
+        if board_hdrs{board_idx}.mode_latch(pri_idx) >= size(settings.adc,1) ...
+            || board_hdrs{board_idx}.subchannel(pri_idx) >= size(settings.adc,2) ...
+            || ~isfield(settings.adc{board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1},'rg') ...
+            || isempty(settings.adc{board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1}.rg)
+          fprintf('Bad record %d\n', pri_idx);
+          mask(pri_idx) = 0;
+          break;
+        end
+      end
+    end
+    mask(find(mask,1,'last')) = 0; % Remove last potentially incomplete record
+    epri_pri_idxs = find(mask);
+    
+    %% Correct EPRI/Arena: Fix records split between two files
+    % Find records that are split between two files and use a negative
+    % offset to indicate this.
+    for idx = 2:length(epri_pri_idxs)
+      if board_hdrs{board_idx}.file_idx(epri_pri_idxs(idx)) > board_hdrs{board_idx}.file_idx(epri_pri_idxs(idx-1))
+        % This record is split between files
+        if board_hdrs{board_idx}.offset(epri_pri_idxs(idx)) >= 2^31
+          % This split is already handled by arena_packet_strip, but we need
+          % to convert uint32 number to negative int32.
+          board_hdrs{board_idx}.offset(epri_pri_idxs(idx)) = board_hdrs{board_idx}.offset(epri_pri_idxs(idx)) - 2^32;
+        else
+          % Convert last record from previous file to negative offset in the
+          % new file
+          board_hdrs{board_idx}.offset(epri_pri_idxs(idx-1)) = board_hdrs{board_idx}.offset(epri_pri_idxs(idx-1)) - board_hdrs{board_idx}.file_size(epri_pri_idxs(idx-1));
+          board_hdrs{board_idx}.file_idx(epri_pri_idxs(idx-1)) = board_hdrs{board_idx}.file_idx(epri_pri_idxs(idx-1)) + 1;
+        end
+      end
+    end
+    
+    % Store new outputs
+    board_hdrs{board_idx}.epri_pri_idxs = epri_pri_idxs;
+    board_hdrs{board_idx}.mask = logical(mask);
+  end
+
+  %% Correct EPRI/Arena: Mask outputs
+  for board_idx = 1:length(boards)
+    board_hdrs{board_idx}.offset = board_hdrs{board_idx}.offset(board_hdrs{board_idx}.mask);
+    board_hdrs{board_idx}.file_idx = board_hdrs{board_idx}.file_idx(board_hdrs{board_idx}.mask);
+    board_hdrs{board_idx}.profile_cntr_latch = board_hdrs{board_idx}.profile_cntr_latch(board_hdrs{board_idx}.mask);
+    board_hdrs{board_idx}.rel_time_cntr_latch = board_hdrs{board_idx}.rel_time_cntr_latch(board_hdrs{board_idx}.mask);
+    board_hdrs{board_idx}.pps_cntr_latch = board_hdrs{board_idx}.pps_cntr_latch(board_hdrs{board_idx}.mask);
+    board_hdrs{board_idx}.pps_ftime_cntr_latch = board_hdrs{board_idx}.pps_ftime_cntr_latch(board_hdrs{board_idx}.mask);
+    board_hdrs{board_idx} = rmfield(board_hdrs{board_idx},{'file_size','mode_latch','subchannel','mask'});
   end
   
+  %% Correct EPRI/Arena: Populate wfs structure
+  for board_idx = 1:length(boards)
+    board = boards(board_idx);
+    
+    for map_idx = 1:size(param.records.arena.data_map{board_idx},1)
+      wf = param.records.arena.data_map{board_idx}(map_idx,3);
+      % adc = param.records.arena.data_map{board_idx}(map_idx,4);
+      mode_latch = param.records.arena.data_map{board_idx}(map_idx,1);
+      subchannel = param.records.arena.data_map{board_idx}(map_idx,2);
+      
+      wfs(wf).num_sam = settings.adc{mode_latch+1,subchannel+1}.num_sam;
+      wfs(wf).bit_shifts = param.radar.wfs(wf).bit_shifts;
+      wfs(wf).t0 = param.radar.wfs(wf).Tadc;
+      wfs(wf).presums = settings.adc{mode_latch+1,subchannel+1}.presums;
+    end
+  end
+
+else
+  % NI, Rink, Paden, Leuschen, and Ledford systems
+
 end
 
 %% Save workspace in case there is a failure
 create_records_save_workspace;
 
 %% Correct time, sync GPS data, and save records
-create_records_fmcw_accum_sync;
+create_records_sync;
 
 return;
 

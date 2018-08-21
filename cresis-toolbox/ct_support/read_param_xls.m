@@ -28,16 +28,8 @@ function [params] = read_param_xls(param_fn, day_seg_filter, generic_ws)
 %
 % See also: ct_set_params, master, read_param_xls
 
-cell_boolean = @read_param_xls_boolean;
-cell_text = @read_param_xls_text;
-cell_read = @read_param_xls_general;
-
-% ======================================================================%
-% CREATING THE PARAM STRUCTURE ARRAY FROM PARAM_STARTER.XLS
-% ======================================================================%
-warning('off','MATLAB:xlsread:Mode');
-
 %% Load standard worksheets
+warning('off','MATLAB:xlsread:Mode');
 [params] = read_param_xls_radar(param_fn);
 
 if isempty(params) || isempty(params(1).day_seg)
@@ -60,6 +52,7 @@ if exist('generic_ws','var')
     end
   end
 end
+warning('on','MATLAB:xlsread:Mode');
 
 %% Just get the specific day_seg that was requested
 if exist('day_seg_filter','var') && ~isempty(day_seg_filter)

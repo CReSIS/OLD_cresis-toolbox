@@ -24,7 +24,9 @@ if ispc
 else
   param.arena_packet_strip.base_dir = '/cresis/snfs1/data/HF_Sounder/2016_Greenland_TO/';
 end
-param.arena_packet_strip.adc_folder_names = {'20180817'};
+param.arena_packet_strip.xml_folder_names = {'20180817'};
+param.arena_packet_strip.board_folder_names = {'20180817/chan%b'};
+param.arena_packet_strip.boards = {[1 2]};
 param.arena_packet_strip.reuse_tmp_files = true;
 param.arena_packet_strip.mat_or_bin_hdr_output = '.mat';
 
@@ -60,55 +62,6 @@ cluster_print_chain(ctrl_chain);
 
 return
 %ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.desired_time_per_job',5*60);
-%ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.cpu_time_mult',2);
-%ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.mem_mult',2);
-
-[ctrl_chain,chain_fn] = cluster_load_chain([],chain_id);
-ctrl_chain = cluster_run(ctrl_chain);
-
-
-
-
-
-
-
-
-
-%% Automated section
-% =========================================================================
-
-fun = 'arena_packet_strip_task';
-
-ctrl = cluster_new_batch(param_override);
-
-cluster_compile(fun,[],0,ctrl);
-
-sparam = [];
-sparam.task_function = fun;
-sparam.argsin{1} = param; % Static parameters
-sparam.num_args_out = 1;
-for adc_folder_idx = 1:numel(adc_folder_names)
-  adc_folder_name = adc_folder_names{adc_folder_idx};
-  dparam = [];
-  dparam.argsin{1}.arena_packet_strip.adc_folder_name = adc_folder_name;
-  fns = get_filenames(fullfile(param.arena_packet_strip.base_dir,adc_folder_name),'[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]','','.dat',struct('recursive',true));
-  dparam.cpu_time = 60 + 40*length(fns);
-  dparam.notes = sprintf('%s:%s:%s %d files', ...
-      mfilename, param.arena_packet_strip.base_dir, adc_folder_name, length(fns));
-  ctrl = cluster_new_task(ctrl,sparam,dparam);
-end
-
-ctrl_chain = {{ctrl}};
-
-[chain_fn,chain_id] = cluster_save_chain(ctrl_chain);
-
-% Potentially stop and inspect cluster_print_chain output to adjust
-% cluster control parameters before running or to run the next lines on a
-% different computer (the save/load functions are for this purpose).
-
-return
-ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.type','debug');
-ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.desired_time_per_job',0);
 %ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.cpu_time_mult',2);
 %ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.mem_mult',2);
 

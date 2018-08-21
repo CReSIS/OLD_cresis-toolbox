@@ -1,5 +1,5 @@
-function [params] = read_param_xls_rds(param_fn, day_seg_filter)
-% [params] = read_param_xls_rds(param_fn, day_seg_filter)
+function [params] = read_param_xls_radar(param_fn, day_seg_filter)
+% [params] = read_param_xls_radar(param_fn, day_seg_filter)
 %
 % Support function for read_param_xls (for acords, mcrds, mcords,
 % mcords2 radars).
@@ -93,12 +93,6 @@ else
     params(idx).param_file_version                = param_file_version;
   end
 end
-
-%% Create Vectors Parameters
-% =======================================================================
-sheet_name = 'vectors';
-
-[params] = read_param_xls_generic(param_fn,sheet_name,params);
 
 %% Create Records, Frames Parameters
 % =======================================================================

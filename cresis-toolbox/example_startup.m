@@ -59,10 +59,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = 'C:\tmp\mdce_tmp\';
   
-  profile(pidx).data_path                 = 'D:\';
+  profile(pidx).data_path                 = 'C:\';
   profile(pidx).data_support_path         = 'C:\metadata\';
   profile(pidx).support_path              = 'C:\csarp_support\';
-  profile(pidx).out_path                  = 'D:\output\';
+  profile(pidx).out_path                  = 'C:\output\';
   profile(pidx).gis_path                  = 'C:\GIS_data\';
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
   
@@ -506,6 +506,3 @@ if ~(~ismcc && isdeployed)
 else
   % fprintf('Compiling code: not running addpath in the compiled code\n');
 end
-
-return;
-

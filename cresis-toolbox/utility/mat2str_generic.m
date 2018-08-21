@@ -2,7 +2,7 @@ function str = mat2str_generic(M)
 % str = mat2str_generic(M)
 %
 % Expanded capability over Matlab's mat2str. Supports cell arrays.
-% Also supports simplifcation of regular structures in matrices such as
+% Also supports simplification of regular structures in matrices such as
 % [1 1 1 1 1] getting turned into ones(1,5).
 %
 % Author: John Paden
@@ -26,6 +26,45 @@ if iscell(M)
     end
   end
   str = cat(2,str,'}');
+  
+elseif ischar(M)
+  str = mat2str(M);
+  
+elseif isstruct(M)
+  str = '';
+  if length(M) > 1
+    str = [str '['];
+  end
+  for M_idx = 1:length(M)
+    if M_idx > 1
+      str = [str ','];
+    end
+    str = [str 'struct('];
+    struct_field_names = fieldnames(M);
+    for field_idx = 1:length(struct_field_names)
+      if field_idx > 1
+        str = [str ','];
+      end
+      if iscell(M(M_idx).(struct_field_names{field_idx}))
+        str = [str sprintf('''%s'',{%s}', struct_field_names{field_idx},mat2str_generic(M(M_idx).(struct_field_names{field_idx})) )];
+      else
+        str = [str sprintf('''%s'',%s', struct_field_names{field_idx},mat2str_generic(M(M_idx).(struct_field_names{field_idx})) )];
+      end
+    end
+    str = [str ')'];
+  end
+  if length(M) > 1
+    str = [str ']'];
+  end
+  
+elseif islogical(M)
+  str = mat2str(M);
+  
+elseif isa(M,'function_handle')
+  str = func2str(M);
+  if str(1) ~= '@'
+    str = ['@' str];
+  end
   
 elseif isnumeric(M)
   diff_M = diff(M);

@@ -23,7 +23,7 @@ function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(para
 %
 % See also run_get_segment_file_list.m
 
-if ~isfield(param.vectors.file,'file_midfix')
+if ~isfield(param.records.file,'file_midfix')
   param.records.file.midfix = '';
 end
 
@@ -39,9 +39,9 @@ if ~isfield(param.records.file,'regexp') || isempty(param.records.file.regexp)
 end
 
 % Determine raw filename extension and check file version
-if any(param.records.file.version == [1 101 401])
+if any(param.records.file.version == [1 9:10 101 103 401 412])
   ext = '.dat';
-elseif any(param.records.file.version == [2:10 102 402:408 411:412])
+elseif any(param.records.file.version == [2:8 102 402:408 411])
   ext = '.bin';
 elseif any(param.records.file.version == [410])
   ext = '.raw';
@@ -51,26 +51,25 @@ else
   error('Unsupported file version\n');
 end
 
-board_folder_name = param.vectors.file.board_folder_name;
-board_folder_name = regexprep(board_folder_name,'%d',sprintf('%.0f',adc));
+board_folder_name = param.records.file.board_folder_name;
 board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
 
-base_dir = fullfile(ct_filename_data(param,param.vectors.file.base_dir),board_folder_name);
+base_dir = fullfile(ct_filename_data(param,param.records.file.base_dir),board_folder_name);
 
 %% Return file list
 if nargout > 2
-  if ~silent_mode
+  if 0
     fprintf('Getting files for %s (%s)\n', base_dir, datestr(now));
   end
   get_fns_param = struct('regexp',param.records.file.regexp);
-  if ~isfield(param.vectors.file,'file_suffix')
+  if ~isfield(param.records.file,'file_suffix')
     fns = get_filenames(base_dir,param.records.file.prefix,param.records.file.midfix,ext,get_fns_param);
   else
     fns = get_filenames(base_dir,param.records.file.prefix,param.records.file.midfix,param.records.file.suffix,get_fns_param);
   end
   
   % Sort ACORDS filenames because the extenions are not a standard length
-  if any(strcmpi(radar_name,{'acords'}))
+  if any(param.records.file.version == [405 406])
     basenames = {};
     file_idxs = [];
     new_fns = {};
@@ -81,8 +80,8 @@ if nargout > 2
     [new_fns,sorted_idxs] = sort(new_fns);
     fns = fns(sorted_idxs);
   end
-  
-  if ~silent_mode
+
+  if 0
     fprintf('  Found %d files in %s\n', length(fns), base_dir);
   end
   
@@ -93,20 +92,20 @@ if nargout > 2
     error('No files found');
   end
   
-  if param.vectors.file.stop_idx == inf
+  if param.records.file.stop_idx == inf
     % A stop index of infinity says to include all files
     stop_idx = length(fns);
-  elseif param.vectors.file.stop_idx > length(fns)
-    warning('Stop index (%d) is larger than number of files available (%d). This can be caused by an error in the stop index or missing files. dbcont to continue.',param.vectors.file.stop_idx,length(fns));
+  elseif param.records.file.stop_idx > length(fns)
+    warning('Stop index (%d) is larger than number of files available (%d). This can be caused by an error in the stop index or missing files. dbcont to continue.',param.records.file.stop_idx,length(fns));
     keyboard
     stop_idx = length(fns);
-  elseif param.vectors.file.stop_idx < 0;
+  elseif param.records.file.stop_idx < 0;
     % A stop index of -N says to include all but the last N files
-    stop_idx = length(fns) + param.vectors.file.stop_idx;
+    stop_idx = length(fns) + param.records.file.stop_idx;
   else
-    stop_idx = param.vectors.file.stop_idx;
+    stop_idx = param.records.file.stop_idx;
   end
-  file_idxs = param.vectors.file.start_idx:stop_idx;
+  file_idxs = param.records.file.start_idx:stop_idx;
   
   if isempty(file_idxs)
     error('No files selected to load out of %i files', length(fns));

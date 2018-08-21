@@ -5,7 +5,10 @@ function out = print_struct(in,mode)
 % contents on a structure. Only numeric and char fields are supported.
 %
 % in: structure
-% mode: 0 uses spaces, 1 uses tabs to separate fields
+% mode: bit mask representing:
+%   0x0001: 0: uses spaces, 1: uses tabs to separate fields
+%   0x0002: 0: regular structure array, 1: flat structure where each field
+%                                          is the same length
 % out: string which can be printed via fprintf(out) for display
 %
 % Examples:
@@ -26,9 +29,20 @@ field_strs = {};
 for field_idx = 1:num_fields
   field_strs{1,field_idx} = fields{field_idx};
 end
-for struct_idx = 1:length(in)
+if bitand(mode,2)
+  % Single struct element with arrays in each field
+  num_elements = length(in(1).(fields{1}));
+else
+  % Typical struct array
+  num_elements = length(in);
+end
+for struct_idx = 1:num_elements
   for field_idx = 1:num_fields
-    field = in(struct_idx).(fields{field_idx});
+    if bitand(mode,2)
+      field = in(1).(fields{field_idx})(struct_idx);
+    else
+      field = in(struct_idx).(fields{field_idx});
+    end
     if ischar(field)
       field(field==10|field==13) = 0;
       field_strs{struct_idx+1,field_idx} = field;
@@ -45,10 +59,10 @@ field_lens = max(cellfun(@length,field_strs));
 
 row = 1;
 for col = 1:size(field_strs,2)
-  if mode == 0
-  format_str = sprintf('<strong>%%%ds</strong> ', field_lens(col));
+  if bitand(mode,1)
+    format_str = sprintf('%%s\t', field_lens(col));
   else
-  format_str = sprintf('%%s\t', field_lens(col));
+    format_str = sprintf('<strong>%%%ds</strong> ', field_lens(col));
   end
   new_out = sprintf(format_str,field_strs{row,col});
   out(end+(1:numel(new_out))) = new_out;
@@ -56,10 +70,10 @@ end
 out(end+1) = 13;
 for row = 2:size(field_strs,1)
   for col = 1:size(field_strs,2)
-  if mode == 0
-    format_str = sprintf('%%%ds ', field_lens(col));
-  else
+  if bitand(mode,1)
     format_str = sprintf('%%s\t', field_lens(col));
+  else
+    format_str = sprintf('%%%ds ', field_lens(col));
   end
     new_out = sprintf(format_str,field_strs{row,col});
     out(end+(1:numel(new_out))) = new_out;

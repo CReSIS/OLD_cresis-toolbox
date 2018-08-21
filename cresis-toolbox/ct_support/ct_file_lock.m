@@ -1,5 +1,5 @@
-function ct_file_lock(fns,lock_state)
-% ct_file_lock(fns,lock_state)
+function ct_file_lock(fns,lock_state,file_version)
+% ct_file_lock(fns,lock_state,file_version)
 %
 % Locks or unlocks a file or a cell array of files
 %
@@ -9,6 +9,8 @@ function ct_file_lock(fns,lock_state)
 %   0: file is not locked (no letter in file_version)
 %   1: file is locked ('L' in file_version)
 %   2: file should be deleted ('D' in file_version)
+% file_version: in case the file does not have a file_version field, use
+% this value, default values is '1'
 %
 % Author: John Paden
 %
@@ -28,7 +30,8 @@ if ischar(fns)
     tmp = load(fn,'file_version');
     if isfield(tmp,'file_version')
       file_version = tmp.file_version(~isletter(tmp.file_version));
-    else
+    elseif ~exist('file_version','var')
+      % If file_version was not passed in, assume "1"
       file_version = '1';
     end
     if lock_state==1

@@ -1,10 +1,11 @@
 function [hdr,data] = basic_load_arena(fn,param)
 % [hdr,data] = basic_load_arena(fn, param)
 %
-% Loads a single arena radar file (after the network headers have been
-% removed by run_arena_packet_strip.m). This is primarily for debugging.
-% NOTE: 64-bit OS may be essential to load the large files into
-% memory.
+% Loads a single arena radar file after the network headers have been
+% removed by run_arena_packet_strip.m. This loader will NOT work on arena
+% files that do not have the network packet header bytes removed. This
+% function is primarily for debugging. NOTE: 64-bit OS may be essential to
+% load the large files into memory.
 %
 % fn: string containing filename of arena data
 % param: struct controlling loading of data
@@ -38,9 +39,8 @@ function [hdr,data] = basic_load_arena(fn,param)
 %
 % See also run_arena_packet_strip.m
 
-doppler_radar_header_type = 2;
-snow_radar_header_type = 5;
-hf_sounder_radar_header_type = 16;
+% Load header types
+arena_radar_header_type;
 arena_frame_sync = uint64(uint64(hex2dec('7F800000'))*2^32 + hex2dec('80000000'));
 
 %% Check input arguments
@@ -122,6 +122,10 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
         new_hdr = basic_load_arena_doppler(fid);
         subchannel = 0;
         mode = new_hdr.mode;
+      elseif hdr_type == ku0001_radar_header_type
+        new_hdr = basic_load_arena_ku0001(fid);
+        subchannel = new_hdr.subchannel;
+        mode = new_hdr.mode;
       else
         subchannel = 0;
         mode = fread(fid,1,'uint8');
@@ -134,14 +138,15 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
       profile_len = fread(fid,1,'uint32');
       isIQ = 0;
       switch profile_type
-        case 0
+        case 0 % 0x00000
           tmp = fread(fid,profile_len/2,'int16');
-        case 65536
-          tmp = fread(fid,profile_len/2,'uint16');
-        case 131072
+        case 65536 % 0x10000
+          tmp = fread(fid,profile_len/2,'int16');
+          isIQ = 1;
+        case 131072 % 0x20000
           tmp = fread(fid,profile_len/4,'int32');
           isIQ = 1;
-        case 196608
+        case 196608 % 0x30000
           tmp = fread(fid,profile_len/4,'float32');
           isIQ = 1;
         otherwise
@@ -229,6 +234,24 @@ end
 % =========================================================================
 %% Function for loading HF sounder radar header
 function hdr = basic_load_arena_hf_sounder(fid)
+
+hdr.mode = fread(fid,1,'uint8');
+tmp = fread(fid,1,'uint8');
+hdr.subchannel = mod(tmp,16);
+hdr.data_channel = floor(tmp/16);
+fseek(fid,6,0);
+hdr.encoder = fread(fid,1,'uint32');
+fseek(fid,4,0);
+hdr.rel_time_cntr_latch = fread(fid,1,'uint64');
+hdr.profile_cntr_latch = fread(fid,1,'uint64');
+hdr.pps_ftime_cntr_latch = fread(fid,1,'uint64');
+hdr.pps_cntr_latch = fread(fid,1,'uint64');
+
+end
+
+% =========================================================================
+%% Function for loading BAS TO/ku0001 radar header
+function hdr = basic_load_arena_ku0001(fid)
 
 hdr.mode = fread(fid,1,'uint8');
 tmp = fread(fid,1,'uint8');

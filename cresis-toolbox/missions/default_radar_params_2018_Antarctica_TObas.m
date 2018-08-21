@@ -1,7 +1,7 @@
 function [param,defaults] = default_radar_params_2018_Antarctica_TObas
 % [param,defaults] = default_radar_params_2018_Antarctica_TObas
 %
-% HFRDS2: 2018_Antarctica_TObas
+% Accum3: 2018_Antarctica_TObas
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -12,20 +12,17 @@ param.season_name = '2018_Antarctica_TObas';
 param.radar_name = 'accum3';
 
 %% Control parameters (not used in the parameter spreadsheet directly)
-default.xml_file_prefix = 'mcords5';
-default.data_file_prefix = 'mcords5';
-default.header_load_func = @basic_load_mcords5;
+default.header_load_func = @basic_load_arena;
 default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
 default.xml_version = 100.0;
 
 default.noise_50ohm = [0 0 0 0];
 
-default.Pt = 4*400;
-default.Gt = 4*4;
-default.Ae = 2*0.2*0.2;
+default.Pt = 400;
+default.Gt = 4*2;
+default.Ae = default.Gt*(3e8/750e6)^2;
 
 default.system_loss_dB = 10.^(-5.88/10);
-default.max_DDS_RAM = 4000;
 default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 
 default.iq_mode = 0;
@@ -36,17 +33,16 @@ default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r',
 
 default.basic_surf_track_min_time = 2e-6;
 default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
-default.adc_folder_name = '';
 
 if 1
   % Example 1: Normal configuration:
   %   Connect antenna N to WFG N for all N = 1 to 8
-  ref_adc = 2;
-  default.txequal.img = [(1:4).', ref_adc*ones(4,1)];
-  default.txequal.ref_wf_adc = 2;
-  default.txequal.wf_mapping = [1 2 3 4 ];
-  default.txequal.Hwindow_desired = chebwin(4,30).';
-  default.txequal.max_DDS_amp = [4000 4000 4000 4000 ];
+  ref_adc = 1;
+  default.txequal.img = [(1:1).', ref_adc*ones(1,1)];
+  default.txequal.ref_wf_adc = 1;
+  default.txequal.wf_mapping = [1];
+  default.txequal.Hwindow_desired = chebwin(1,30).';
+  default.txequal.max_DDS_amp = [4000];
   default.txequal.time_delay_desired = [0 0 0 0 ];
   default.txequal.phase_desired = [0 0 0 0 ];
   default.txequal.time_validation = [0.4 0.4 0.4 0.4 ]*1e-9;
@@ -55,95 +51,87 @@ if 1
   default.txequal.remove_linear_phase_en = true;
 end
 
-%% Vectors worksheet in parameter spreadsheet
-default.vectors.gps.time_offset = 1;
-
 %% Records worksheet in parameter spreadsheet
-default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
-default.records.file.adcs = 1;
-default.records.file.adc_headers = 1;
-default.records.gps.en = 1;
-default.records.frame_mode = 0;
-default.records.presum_bug_fixed = 1;
-default.records.tmp_fn_uses_adc_folder_name = 1;
+default.records.gps.time_offset = 0;
+default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
+default.records.frames.mode = 0;
 
-%% Get heights (quick-look) worksheet in parameter spreadsheet
-default.get_heights.qlook.out_path = '';
-default.get_heights.qlook.en = 1;
-default.get_heights.block_size = 5000;
-default.get_heights.frm_types = {0,[0 1],0,0,-1};
-default.get_heights.coh_noise_method = [];
-default.get_heights.coh_noise_arg = [];
-default.get_heights.ft_wind = @hanning;
-default.get_heights.ft_wind_time = false;
-default.get_heights.ft_dec = true;
-default.get_heights.pulse_comp = [];
-default.get_heights.pulse_rfi.en = [];
-default.get_heights.pulse_rfi.inc_ave= [];
-default.get_heights.pulse_rfi.thresh_scale = [];
-default.get_heights.roll_correction = 0;
-default.get_heights.lever_arm_fh = @lever_arm;
-default.get_heights.elev_correction = 0;
-default.get_heights.B_filter = ones(1,20)/20;
-default.get_heights.decimate_factor = 20;
-default.get_heights.inc_ave = 10;
-default.get_heights.surf.en = 1;
-default.get_heights.surf.method = 'threshold';
-default.get_heights.surf.noise_rng = [0 -50 10];
-default.get_heights.surf.min_bin = 2e-6;
-default.get_heights.surf.max_bin = [];
-default.get_heights.surf.threshold = 9;
-default.get_heights.surf.sidelobe = 15;
-default.get_heights.surf.medfilt = 3;
-default.get_heights.surf.search_rng = [0:2];
+%% Quick Look worksheet in parameter spreadsheet
+default.qlook.out_path = '';
+default.qlook.block_size = 5000;
+default.qlook.frm_types = {0,[0 1],0,0,-1};
+default.qlook.coh_noise_method = [];
+default.qlook.coh_noise_arg = [];
+default.qlook.ft_wind = @hanning;
+default.qlook.ft_wind_time = false;
+default.qlook.ft_dec = true;
+default.qlook.pulse_comp = [];
+default.qlook.pulse_rfi.en = [];
+default.qlook.pulse_rfi.inc_ave= [];
+default.qlook.pulse_rfi.thresh_scale = [];
+default.qlook.roll_correction = 0;
+default.qlook.lever_arm_fh = @lever_arm;
+default.qlook.elev_correction = 0;
+default.qlook.B_filter = ones(1,20)/20;
+default.qlook.decimate_factor = 20;
+default.qlook.inc_ave = 10;
+default.qlook.surf.en = 1;
+default.qlook.surf.method = 'threshold';
+default.qlook.surf.noise_rng = [0 -50 10];
+default.qlook.surf.min_bin = 2e-6;
+default.qlook.surf.max_bin = [];
+default.qlook.surf.threshold = 9;
+default.qlook.surf.sidelobe = 15;
+default.qlook.surf.medfilt = 3;
+default.qlook.surf.search_rng = [0:2];
 
-%% CSARP worksheet in parameter spreadsheet
-default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
-default.csarp.frm_types = {0,[0 1],0,0,-1};
-default.csarp.chunk_len = 5000;
-default.csarp.chunk_overlap = 10;
-default.csarp.frm_overlap = 0;
-default.csarp.coh_noise_removal = 0;
-default.csarp.combine_rx = 0;
-default.csarp.time_of_full_support = inf;
-default.csarp.pulse_rfi.en = [];
-default.csarp.pulse_rfi.inc_ave= [];
-default.csarp.pulse_rfi.thresh_scale = [];
-default.csarp.trim_vals = [];
-default.csarp.pulse_comp = 1;
-default.csarp.ft_dec = 1;
-default.csarp.ft_wind = @hanning;
-default.csarp.ft_wind_time = 0;
-default.csarp.lever_arm_fh = @lever_arm;
-default.csarp.mocomp.en = 1;
-default.csarp.mocomp.type = 2;
-default.csarp.mocomp.filter = {@butter  [2]  [0.1000]};
-default.csarp.mocomp.uniform_en = 1;
-default.csarp.sar_type = 'f-k';
-default.csarp.sigma_x = 2.5;
-default.csarp.sub_aperture_steering = 0;
-default.csarp.st_wind = @hanning;
-default.csarp.start_eps = 3.15;
+%% SAR worksheet in parameter spreadsheet
+default.sar.out_path = '';
+default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
+default.sar.frm_types = {0,[0 1],0,0,-1};
+default.sar.chunk_len = 5000;
+default.sar.chunk_overlap = 10;
+default.sar.frm_overlap = 0;
+default.sar.coh_noise_removal = 0;
+default.sar.combine_rx = 0;
+default.sar.time_of_full_support = inf;
+default.sar.pulse_rfi.en = [];
+default.sar.pulse_rfi.inc_ave= [];
+default.sar.pulse_rfi.thresh_scale = [];
+default.sar.trim_vals = [];
+default.sar.pulse_comp = 1;
+default.sar.ft_dec = 1;
+default.sar.ft_wind = @hanning;
+default.sar.ft_wind_time = 0;
+default.sar.lever_arm_fh = @lever_arm;
+default.sar.mocomp.en = 1;
+default.sar.mocomp.type = 2;
+default.sar.mocomp.filter = {@butter  [2]  [0.1000]};
+default.sar.mocomp.uniform_en = 1;
+default.sar.sar_type = 'f-k';
+default.sar.sigma_x = 2.5;
+default.sar.sub_aperture_steering = 0;
+default.sar.st_wind = @hanning;
+default.sar.start_eps = 3.15;
 
 %% Combine worksheet in parameter spreadsheet
-default.combine.in_path = '';
-default.combine.array_path = '';
-default.combine.out_path = '';
-default.combine.method = 'standard';
-default.combine.window = @hanning;
-default.combine.bin_rng = 0;
-default.combine.rline_rng = -5:5;
-default.combine.dbin = 1;
-default.combine.dline = 6;
-default.combine.DCM = [];
-default.combine.three_dim.en = 0;
-default.combine.three_dim.layer_fn = '';
-default.combine.Nsv = 1;
-default.combine.theta_rng = [0 0];
-default.combine.sv_fh = @array_proc_sv;
-default.combine.diag_load = 0;
-default.combine.Nsig = 2;
+default.array.in_path = '';
+default.array.array_path = '';
+default.array.out_path = '';
+default.array.method = 'standard';
+default.array.window = @hanning;
+default.array.bin_rng = 0;
+default.array.rline_rng = -5:5;
+default.array.dbin = 1;
+default.array.dline = 6;
+default.array.DCM = [];
+default.array.three_dim.en = 0;
+default.array.three_dim.layer_fn = '';
+default.array.Nsv = 1;
+default.array.theta_rng = [0 0];
+default.array.sv_fh = @array_proc_sv;
+default.array.diag_load = 0;
+default.array.Nsig = 2;
 
 %% Radar worksheet in parameter spreadsheet
 default.radar.fs = 500e6;
@@ -158,33 +146,44 @@ default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or
 
 defaults = {};
 
-%% Wideband settings
-default.radar.wfs(1).chan_equal_Tsys = [0.15	0.00	0.10	0.68]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [-105.5	-0.0	55.2	128.8];
+% Deconvolution Mode
+default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0];
+default.radar.wfs(1).chan_equal_deg = [0];
 
- % survey mode
-default.get_heights.qlook.img_comb = [1e-06 -inf 2e-06];
-default.get_heights.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
-default.combine.imgs = default.get_heights.imgs;
-default.combine.img_comb = default.get_heights.qlook.img_comb;
-default.radar.DC_adjust = {'',''};
+default.qlook.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.qlook.img_comb;
+default.radar.ref_fn = '';
+default.xml_regexp = '.*deconv.xml';
+default.name = 'Deconv Mode 600-900 MHz';
+defaults{end+1} = default;
+
+% Survey Mode
+default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0];
+default.radar.wfs(1).chan_equal_deg = [0];
+
+default.qlook.qlook.img_comb = [2e-06 -inf 2e-06];
+default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.qlook.img_comb;
 default.radar.ref_fn = '';
 default.xml_regexp = 'survey_600-900MHz_.*.xml';
 default.name = 'Survey Mode 600-900 MHz';
 defaults{end+1} = default;
 
 %% Other settings
-default.get_heights.qlook.img_comb = [];
-default.get_heights.imgs = {[1*ones(4,1),(1:4).']};
-default.csarp.imgs = {[1*ones(4,1),(1:4).']};
-default.combine.imgs = default.get_heights.imgs;
-default.combine.img_comb = default.get_heights.qlook.img_comb;
-default.radar.DC_adjust = {''};
+default.qlook.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.qlook.img_comb;
 default.radar.ref_fn = '';
 
 default.xml_regexp = '.*';
 default.name = 'Default 600-900 MHz';
 defaults{end+1} = default;
-
-return;
