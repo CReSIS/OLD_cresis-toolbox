@@ -122,6 +122,8 @@ for file_idx = 1:length(in_fns)
     end
     if strcmpi(cur_file_type,'Applanix')
       gps_tmp = read_gps_applanix(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
+    elseif strcmpi(cur_file_type,'arena')
+      gps_tmp = read_gps_arena(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(cur_file_type,'awi_netcdf')
       gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     elseif strcmpi(cur_file_type,'cresis')

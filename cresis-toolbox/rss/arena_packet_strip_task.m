@@ -282,29 +282,110 @@ for xml_idx = 1:length(settings)
   if isempty(match_idx)
     error('No match for psc config name %s.', settings(xml_idx).psc_config_name);
   end
-  oparam = default_param;
-  oparam.records = defaults{match_idx}.records;
-  oparam.qlook = defaults{match_idx}.qlook;
-  oparam.sar = defaults{match_idx}.sar;
-  oparam.array = defaults{match_idx}.array;
-  
-  oparam.records.file.version = 103;
-  oparam.records.file.boards = param.arena_packet_strip.boards;
-  oparam.records.file.prefix = datestr(settings(xml_idx).xml_fname.datenum,'YYYYmmDD_HHMMSS');
-  for board_idx = 1:length(param.arena_packet_strip.boards)
-    oparam.records.file.start_idx(board_idx) = 1;
-    oparam.records.file.stop_idx(board_idx) = length(settings(xml_idx).fns{board_idx});
+  if xml_idx == 1
+    oparams = default_param;
   end
-  oparam.records.file.base_dir = param.arena_packet_strip.base_dir;
-  oparam.records.file.board_folder_name = param.arena_packet_strip.board_folder_name;
-  oparam.records.file.clk = 10e6;
-  oparam.records.gps.time_offset = 0;
-  oparam.records.gps.en = 1;
-  [~,xml_fn_name] = fileparts(settings(xml_idx).xml_fn);
-  oparam.records.xml_fn = fullfile(param.arena_packet_strip.xml_folder_name, xml_fn_name);
   
-  % Print results
+  [~,xml_fn_name] = fileparts(settings(xml_idx).xml_fn);
+  oparams(xml_idx).day_seg = sprintf('%s_%02d',xml_fn_name(1:8),xml_idx);
+  oparams(xml_idx).records = defaults{match_idx}.records;
+  oparams(xml_idx).qlook = defaults{match_idx}.qlook;
+  oparams(xml_idx).sar = defaults{match_idx}.sar;
+  oparams(xml_idx).array = defaults{match_idx}.array;
+  
+  oparams(xml_idx).records.file.version = 103;
+  oparams(xml_idx).records.file.boards = param.arena_packet_strip.boards;
+  oparams(xml_idx).records.file.prefix = datestr(settings(xml_idx).xml_fname.datenum,'YYYYmmDD_HHMMSS');
+  for board_idx = 1:length(param.arena_packet_strip.boards)
+    oparams(xml_idx).records.file.start_idx(board_idx) = 1;
+    oparams(xml_idx).records.file.stop_idx(board_idx) = length(settings(xml_idx).fns{board_idx});
+  end
+  oparams(xml_idx).records.file.base_dir = param.arena_packet_strip.base_dir;
+  oparams(xml_idx).records.file.board_folder_name = param.arena_packet_strip.board_folder_name;
+  oparams(xml_idx).records.file.clk = 10e6;
+  oparams(xml_idx).records.gps.time_offset = 0;
+  oparams(xml_idx).records.gps.en = 1;
+  [~,xml_fn_name] = fileparts(settings(xml_idx).xml_fn);
+  oparams(xml_idx).records.xml_fn = fullfile(param.arena_packet_strip.xml_folder_name, [xml_fn_name '.xml']);
+  
+  if settings(xml_idx).adc{1}.adcMode == 1
+    oparams(xml_idx).radar.fs = settings(xml_idx).adc{1}.sampFreq/2;
+  end
+  oparams(xml_idx).radar.prf = settings(xml_idx).prf;
+  oparams(xml_idx).radar.adc_bits = defaults{match_idx}.radar.adc_bits;
+  oparams(xml_idx).radar.Vpp_scale = defaults{match_idx}.radar.Vpp_scale;
+  oparams(xml_idx).radar.lever_arm_fh = defaults{match_idx}.radar.lever_arm_fh;
+  
+  % Collect all waveforms
+  data_map = defaults{match_idx}.records.arena.data_map;
+  board_map = [];
+  mode_latch_map = [];
+  subchannel_map = [];
+  wfs_map = [];
+  adc_map = [];
+  for board_idx = 1:length(data_map)
+    for profile_idx = 1:size(data_map{board_idx},1)
+      board_map(end+1) = param.arena_packet_strip.boards(board_idx);
+      mode_latch_map(end+1) = data_map{board_idx}(profile_idx,1);
+      subchannel_map(end+1) = data_map{board_idx}(profile_idx,2);
+      wfs_map(end+1) = data_map{board_idx}(profile_idx,3);
+      adc_map(end+1) = data_map{board_idx}(profile_idx,4);
+    end
+  end
+  [wfs,unique_map] = unique(wfs_map);
+  board = board_map(unique_map);
+  mode_latch = mode_latch_map(unique_map);
+  subchannel = subchannel_map(unique_map);
+  adc = adc_map(unique_map);
+  for wf_idx = 1:length(wfs)
+    wf = wfs(wf_idx);
+    
+    fc = settings(xml_idx).dac{1}.wfs{mode_latch(wf_idx)+1}.centerFreq*1e6;
+    BW = settings(xml_idx).dac{1}.wfs{mode_latch(wf_idx)+1}.bandwidth*1e6;
+    Nt = settings(xml_idx).dac{1}.wfs{mode_latch(wf_idx)+1}.numPoints;
+    fs = settings(xml_idx).dac{1}.sampFreq*1e6;
+    Tpd = Nt/fs;
+    t_dac = settings(xml_idx).dac{1}.wfs{mode_latch(wf_idx)+1}.initialDelay * 1e-6;
+    t_arena = 3.0720e-6;
+    
+    oparams(xml_idx).radar.wfs(wf).f0 = fc-BW/2;
+    oparams(xml_idx).radar.wfs(wf).f1 = fc+BW/2;
+    oparams(xml_idx).radar.wfs(wf).tukey = settings(xml_idx).dac{1}.wfs{mode_latch(wf_idx)+1}.alpha;
+    oparams(xml_idx).radar.wfs(wf).BW_window = mat2str_generic([fc-BW/2 fc+BW/2]);
+    oparams(xml_idx).radar.wfs(wf).Tpd = Tpd;
+    oparams(xml_idx).radar.wfs(wf).tx_weights = settings(xml_idx).dac{1}.wfs{mode_latch(wf_idx)+1}.scale;
+    oparams(xml_idx).radar.wfs(wf).rx_paths = defaults{match_idx}.radar.rx_paths;
+    oparams(xml_idx).radar.wfs(wf).adc_gains = defaults{match_idx}.radar.adc_gains;
+    oparams(xml_idx).radar.wfs(wf).chan_equal_dB = defaults{match_idx}.radar.wfs(1).chan_equal_dB;
+    oparams(xml_idx).radar.wfs(wf).chan_equal_deg = defaults{match_idx}.radar.wfs(1).chan_equal_deg;
+    oparams(xml_idx).radar.wfs(wf).Tsys = defaults{match_idx}.radar.wfs(1).chan_equal_Tsys;
+    oparams(xml_idx).radar.wfs(wf).presums = settings(xml_idx).psc.mode_count(mode_latch(wf_idx)+1);
+    oparams(xml_idx).radar.wfs(wf).bit_shifts = ceil(max(0,log2( oparams(xml_idx).radar.wfs(wf).presums /4)));
+    oparams(xml_idx).radar.wfs(wf).Tadc = sscanf(settings(xml_idx).adc{1}.rg,'%d') / oparams(xml_idx).radar.fs - t_arena - t_dac;
+    
+  end
+%   board
+%   wfs
+%   mode_latch
+%   subchannel
+  
+%   defaults{match_idx}.records.arena.data_map(:,3
+%   wfs = 
+  
 end
+
+fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  cmd\n'); fprintf('%s</strong>\n','='*ones(1,80));
+read_param_xls_print(param.arena_packet_strip.param_fn,'cmd',oparams);
+fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  records\n'); fprintf('%s</strong>\n','='*ones(1,80));
+read_param_xls_print(param.arena_packet_strip.param_fn,'records',oparams);
+fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  qlook\n'); fprintf('%s</strong>\n','='*ones(1,80));
+read_param_xls_print(param.arena_packet_strip.param_fn,'qlook',oparams);
+fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  sar\n'); fprintf('%s</strong>\n','='*ones(1,80));
+read_param_xls_print(param.arena_packet_strip.param_fn,'sar',oparams);
+fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  array\n'); fprintf('%s</strong>\n','='*ones(1,80));
+read_param_xls_print(param.arena_packet_strip.param_fn,'array',oparams);
+fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  radar\n'); fprintf('%s</strong>\n','='*ones(1,80));
+read_param_xls_print(param.arena_packet_strip.param_fn,'radar',oparams);
 
 fprintf('%s done %s\n', mfilename, datestr(now));
 

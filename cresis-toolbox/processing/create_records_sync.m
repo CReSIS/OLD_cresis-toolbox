@@ -89,7 +89,7 @@ if any(param.records.file.version == [9 10 103 412])
     % file_idx: Missing records filled in with NaN
     file_idx = nan(size(epri));
     file_idx(out_idxs) = board_hdrs{board_idx}.file_idx;
-    board_hdrs{board_idx}.file_idx = file_idx;
+    board_hdrs{board_idx}.file_idx = interp_finite(file_idx);
     
     % Time stamps are assumed to be the same from each board so each board
     % just writes all of its time stamps to the output records fields.

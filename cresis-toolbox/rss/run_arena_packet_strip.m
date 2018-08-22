@@ -26,9 +26,12 @@ else
 end
 param.arena_packet_strip.xml_folder_names = {'20180817'};
 param.arena_packet_strip.board_folder_names = {'20180817/chan%b'};
+% param.arena_packet_strip.xml_folder_names = {'20180821'};
+% param.arena_packet_strip.board_folder_names = {'20180821'};
 param.arena_packet_strip.boards = {[1 2]};
 param.arena_packet_strip.reuse_tmp_files = true;
 param.arena_packet_strip.mat_or_bin_hdr_output = '.mat';
+param.arena_packet_strip.param_fn = ct_filename_param('accum_param_2018_Antarctica_TObas.xls');
 
 dbstop if error;
 param_override.cluster.type = 'debug';

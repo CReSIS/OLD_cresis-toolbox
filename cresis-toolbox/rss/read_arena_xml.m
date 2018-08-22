@@ -154,11 +154,14 @@ for seq = psc.seq
   end
 end
 if ~epri_found
-  fprintf('<strong>No mode named "epri". One mode in the config files must be named "epri".</strong>\nChoose a seq from below to be the EPRI:\n');
+  fprintf('<strong>No mode named "epri". One sequence in the psc config must be named "epri".</strong>\nChoose a seq from below to be the EPRI:\n');
   fprintf(print_struct(psc,2));
   uinput = [];
   while isempty(uinput) || ~isnumeric(uinput) || uinput < 0 || uinput > length(psc.name)-1
-    uinput = input('? ');
+    uinput = input('[0] ? ');
+    if isempty(uinput)
+      uinput = 0;
+    end
   end
   psc.name{uinput+1} = 'epri';
 end
@@ -166,27 +169,37 @@ end
 
 pulse = 0; seq = 0;
 if strcmpi(psc.name{seq+1},'epri')
-  state = 1;
+  total_presums = 1;
 else
-  state = 0; % Searching for first epri
+  total_presums = 0; % Searching for first epri
 end
+total_pri = 0;
+mode_count = [];
 done = false;
 max_iterations = 1e5; % Walk through 1e5 pulses (may need to be larger)
 for iterations = 1:max_iterations
+  if total_presums > 0
+    total_pri = total_pri + psc.period(seq+1);
+    if length(mode_count) < psc.mode(seq+1)+1
+      mode_count(psc.mode(seq+1)+1) = 1;
+    else
+      mode_count(psc.mode(seq+1)+1) = mode_count(psc.mode(seq+1)+1) + 1;
+    end
+  end
   if psc.repeatCount(seq+1) > 0
     % Decrement repeat counter
     psc.repeatCount(seq+1) = psc.repeatCount(seq+1) - 1;
     seq = psc.repeatTo(seq+1);
-    if state > 0
-      state = state + 1;
+    if total_presums > 0
+      total_presums = total_presums + 1;
     end
   else
     % Reset repeat counter
     psc.repeatCount(seq+1) = settings.psc.repeatCount(seq+1);
     seq = psc.next(seq+1);
     if strcmpi(psc.name{seq+1},'epri')
-      if state == 0
-        state = state + 1;
+      if total_presums == 0
+        total_presums = total_presums + 1;
       else
         done = true;
         break;
@@ -195,10 +208,12 @@ for iterations = 1:max_iterations
   end
 end
 if ~done
-  warning('max_state (%d) is too small and epri was not found twice in order to measure the effective pulse repetition interval. Rerun above loop with a larger max_state until done is true or verify CTU configuration is correct.', max_state);
+  warning('max_iterations (%d) is too small and epri was not found twice in order to measure the effective pulse repetition interval. Rerun above loop with a larger max_state until done is true or verify CTU configuration is correct.', max_iterations);
   keyboard
 end
-settings.total_presums = state;
+settings.prf = 1/total_pri;
+settings.total_presums = total_presums;
+settings.psc.mode_count = mode_count;
 
 %% Read in ADCs
 % Get all the ADCs
@@ -480,7 +495,7 @@ for adc_idx = 1:adcList.getLength
         decimation = nodeList.item(0);
         decimation = decimation.getTextContent.toCharArray;
         decimation = str2double(decimation(:).');
-
+        
         % Update adc settings for this integrator's modes and subchannel
         for mode_idx = 1:length(modes)
           mode_latch = modes(mode_idx);
@@ -501,7 +516,7 @@ for adc_idx = 1:adcList.getLength
         if isempty(integrator_cfg)
           continue;
         end
-
+        
         % Modes that this integrator services
         expression = xpath.compile('modes');
         nodeList = expression.evaluate(integrator_cfg,XPathConstants.NODESET);
@@ -511,7 +526,7 @@ for adc_idx = 1:adcList.getLength
         modes = nodeList.item(0);
         modes = modes.getTextContent.toCharArray;
         modes = str2double(modes(:).');
-
+        
         % Number of integrations
         expression = xpath.compile('numInt');
         nodeList = expression.evaluate(integrator_cfg,XPathConstants.NODESET);
@@ -573,7 +588,7 @@ for ctu_idx = 1:ctuList.getLength
   nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
   match = nodeList.item(0);
   
-  % 3. Get the config name and type for this ADC
+  % 3. Get the config name and type for this CTU
   expression = xpath.compile('config/@type');
   nodeList = expression.evaluate(match,XPathConstants.NODESET);
   config_type = nodeList.item(0).getTextContent.toCharArray;
@@ -583,7 +598,7 @@ for ctu_idx = 1:ctuList.getLength
   config_name = nodeList.item(0).getTextContent.toCharArray;
   config_name = config_name(:).';
   
-  % Get the config associated with this ADC
+  % Get the config associated with this CTU
   expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',config_type,config_name));
   nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
   ctu_cfg = nodeList.item(0);
@@ -630,8 +645,48 @@ for ctu_idx = 1:ctuList.getLength
       segmentStates = segmentStates(:).';
       settings.ctu{mode_latch+1}.segmentStates = segmentStates;
     end
+    
+  elseif strcmpi(config_type,'ctu_001D')
+    
+    % Get each subchannel
+    expression = xpath.compile('mode');
+    mode_nodeList = expression.evaluate(ctu_cfg,XPathConstants.NODESET);
+    for mode_idx = 1:mode_nodeList.getLength
+      mode_cfg = mode_nodeList.item(mode_idx-1);
+      if isempty(mode_cfg)
+        continue;
+      end
+      
+      expression = xpath.compile('id');
+      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      mode_latch = nodeList.item(0);
+      mode_latch = mode_latch.getTextContent.toCharArray;
+      mode_latch = str2double(mode_latch(:).');
+      
+      expression = xpath.compile('segmentTimes');
+      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      segmentTimes = nodeList.item(0);
+      segmentTimes = segmentTimes.getTextContent.toCharArray;
+      segmentTimes = segmentTimes(:).';
+      settings.ctu{mode_latch+1}.segmentTimes = segmentTimes;
+      
+      expression = xpath.compile('segmentStates');
+      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      segmentStates = nodeList.item(0);
+      segmentStates = segmentStates.getTextContent.toCharArray;
+      segmentStates = segmentStates(:).';
+      settings.ctu{mode_latch+1}.segmentStates = segmentStates;
+    end
   end
-  
 end
 
 
@@ -656,7 +711,7 @@ for dac_idx = 1:dacList.getLength
     continue;
   end
   
-  % 3. Get the config name and type for this ADC
+  % 3. Get the config name and type for this DAC
   expression = xpath.compile('config/@type');
   nodeList = expression.evaluate(match,XPathConstants.NODESET);
   config_type = nodeList.item(0).getTextContent.toCharArray;
@@ -666,7 +721,7 @@ for dac_idx = 1:dacList.getLength
   config_name = nodeList.item(0).getTextContent.toCharArray;
   config_name = config_name(:).';
   
-  % Get the config associated with this ADC
+  % Get the config associated with this DAC
   expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',config_type,config_name));
   nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
   dac_cfg = nodeList.item(0);
@@ -703,7 +758,7 @@ for dac_idx = 1:dacList.getLength
       delay = str2double(delay(:).');
       settings.dac{mode_latch+1}.delay = delay;
       
-      % 3. Get the config name and type for this ADC
+      % 3. Get the config name and type for this DAC waveform
       expression = xpath.compile('config/@type');
       nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
       config_type = nodeList.item(0).getTextContent.toCharArray;
@@ -713,12 +768,12 @@ for dac_idx = 1:dacList.getLength
       config_name = nodeList.item(0).getTextContent.toCharArray;
       config_name = config_name(:).';
       
-      % Get the config associated with this ADC
+      % Get the config associated with this DAC waveform
       expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',config_type,config_name));
       nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
       dac_wf_cfg = nodeList.item(0);
       
-      % Find the longest possible record size
+      % Read DAC waveform parameters
       if strcmpi(config_type,'dac-ad9129_0012_waveform')
         % TOHFSounder
         
@@ -765,6 +820,27 @@ for dac_idx = 1:dacList.getLength
           bandwidth = bandwidth.getTextContent.toCharArray;
           bandwidth = str2double(bandwidth(:).');
           settings.dac{mode_latch+1}.wfs{pulse_idx}.bandwidth = bandwidth;
+          
+          expression = xpath.compile('initialDelay');
+          nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
+          initialDelay = nodeList.item(0);
+          initialDelay = initialDelay.getTextContent.toCharArray;
+          initialDelay = str2double(initialDelay(:).');
+          settings.dac{mode_latch+1}.wfs{pulse_idx}.initialDelay = initialDelay;
+          
+          expression = xpath.compile('initialPhase');
+          nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
+          initialPhase = nodeList.item(0);
+          initialPhase = initialPhase.getTextContent.toCharArray;
+          initialPhase = str2double(initialPhase(:).');
+          settings.dac{mode_latch+1}.wfs{pulse_idx}.initialPhase = initialPhase;
+          
+          expression = xpath.compile('afterPulseDelay');
+          nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
+          afterPulseDelay = nodeList.item(0);
+          afterPulseDelay = afterPulseDelay.getTextContent.toCharArray;
+          afterPulseDelay = str2double(afterPulseDelay(:).');
+          settings.dac{mode_latch+1}.wfs{pulse_idx}.afterPulseDelay = afterPulseDelay;
           
           expression = xpath.compile('taper');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);

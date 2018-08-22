@@ -74,7 +74,7 @@ success_eval_error = 512;
 error_mask = 0;
 
 if update_mode && exist(ctrl.hold_fn,'file')
-  fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Either way, run dbcont to continue.\n');
+  fprintf('This batch has a hold. Run <strong>cluster_hold(ctrl)</strong> to remove. Either way, run <strong>dbcont</strong> to continue.\n');
   keyboard
 end
 

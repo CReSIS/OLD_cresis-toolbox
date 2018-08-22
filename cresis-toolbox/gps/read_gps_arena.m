@@ -1,182 +1,152 @@
-% function gps = read_gps_arena()
+function gps = read_gps_arena(fn, param)
+% gps = read_gps_arena(fn, param)
+%
+% Reads in Arena GPS files that include NMEA and radar time.
+%
+% nmea:$GPGGA,144752.011,3857.134780,N,09515.862427,W,1,12,0.76,317.502,M,-29.504,M,,*5D
+% relTimeCntr:15345172719345668
+% profileCntr:2968
+% ppsCntr:1534517272
+%
+% Input Args:
+%   fn = string containing input Arena GPS filename
+%     e.g. 20180817_094746_ARENA-CTU-ctu-gps.txt
+%   param = tells the file GPS type and the year, month, day to determine
+%     absolute time (GGA NMEA files just give the time of day)
+%     .year
+%     .month
+%     .day
+%     .time_reference = 'gps' or 'utc' (should always be 'utc')
+%     .nmea_tag = NEMA string to identify good lines (e.g. '$GPGGA')
+%
+% Output Args:
+% gps = output structure with fields
+%  .time = GPS time in seconds since Jan 1, 1970 epoch (sec)
+%  .lat = latitude (deg)
+%  .lon = longitude (deg)
+%  .elev = elevation (m)
+%  .roll = roll (rad)
+%  .pitch = pitch (rad)
+%  .heading = true heading (rad)
+%  .relTimeCntr: radar time, 64 bit counter free-running at 10 MHz
+%  .profileCntr: pulse counter
+%  .ppsCntr: PPS counter
+%
+% Example:
+%   fn = 'E:\tmp\2018_Antarctica_TObas\20180817\logs\20180817_094746_ARENA-CTU-ctu-gps.txt';
+%   gps = read_gps_arena(fn, struct('year',2018,'month',8,'day',17,'time_reference','utc'));
+%   plot(gps.lon,gps.lat);
+%   datestr(epoch_to_datenum(gps.gps_time(1)));
+%   gps.utc_time = gps.gps_time - utc_leap_seconds(gps.gps_time(1))
+%   plot_gps(gps)
+%
+% Author: John Paden
+%
+% See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
+%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
+%   read_gps_txt, plot_gps
 
-fn = '/users/paden/tmp/19691231_180005_arena-ctu-ctu_NMEA.bin';
-fn = '/users/paden/tmp/20160623_140746_arena-ctu-ctu_NMEA.bin';
+if ~exist('param','var') || isempty(param)
+  error('Year, month, day must be specified in param struct');
+end
 
+[fid,msg] = fopen(fn,'r');
+if fid < 0
+  error('Error opening %s: %s', fn, msg);
+end
 
-fid = fopen(fn,'r');
-
-A = fread(fid,14*2,'uint32');
-
+format_str = '%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s';
+nmea_idx = 0;
+while ~feof(fid)
+  str = fgets(fid);
+  [token,remain] = strtok(str,':');
+  if strcmpi(token,'nmea')
+    nmea_idx = nmea_idx + 1;
+    C = textscan(remain(2:end),format_str,'delimiter',', ','emptyvalue',NaN);
+    [tag,UTC_time_file(nmea_idx),latitude(nmea_idx),N_S(nmea_idx),longitude(nmea_idx),E_W(nmea_idx),fix,NoSatelite,dilution,...
+      altitude(nmea_idx),alt_unit,geode_ref,geode_unit,dgps,checksum] = deal(C{:});
+  elseif strcmpi(token,'relTimeCntr')
+    if nmea_idx>0
+      relTimeCntr(nmea_idx) = str2double(remain(2:end));
+    end
+  elseif strcmpi(token,'profileCntr')
+    if nmea_idx>0
+      profileCntr(nmea_idx) = str2double(remain(2:end));
+    end
+  elseif strcmpi(token,'ppsCntr')
+    if nmea_idx>0
+      ppsCntr(nmea_idx) = str2double(remain(2:end));
+    end
+  end
+end
 fclose(fid);
 
-finfo = frame_sync_info(fn,struct('sync','1DFCCF1A','file_mode','ieee-le'));
+%   CONVERT LATITUDE AND LONGITUDE TO [DD.DDD] FROM [DDDMM.MMM]
+lat_MM = mod(latitude,100);
+lat_DD = (latitude - lat_MM)./100;
+lat = lat_DD + lat_MM./60;
+lon_MM = mod(longitude,100);
+lon_DD = (longitude - lon_MM)./100;
+lon = lon_DD + lon_MM./60;
 
-hdr_param = [];
-hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
-hdr_param.field_offsets = uint32([8:8:48]); % byte offsets for: rel_time_cntr rel_time_cntr_pps utctime lat lon elev
-hdr_param.field_types = {uint64(1) uint64(1) uint64(1) uint64(1) uint64(1) uint64(1)};
-hdr_param.file_mode = 'ieee-le';
+%   IMPLY NEGATIVE LATITUDE AND LONGITUDE TO SOUTH AND WEST COORDINATES
+lat(N_S == 'S') = -1 * lat(N_S == 'S');
+lon(E_W == 'W') = -1 * lon(E_W == 'W');
 
-[file_size offset rel_time_cntr rel_time_cntr_pps utctime lat lon elev] ...
-  = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
+%   CREATE NEW ELEVATION VARIABLE
+elev = altitude;
 
+% Convert HHMMSS format to ANSI-C standard, seconds since Jan 1 1970
+sec = mod(UTC_time_file,100);
+min = mod([UTC_time_file-sec]./100,100);
+hour = [[UTC_time_file-sec]./100 - min]./100;
+UTC_time = datenum_to_epoch(datenum(param.year,param.month,param.day,hour,min,sec));
 
-%%
-rel_time_cntr = double(rel_time_cntr) / 10e6;
+% ENSURE ALL VECTORS IN 1xN FORMAT
+UTC_time = reshape(UTC_time,[1 length(UTC_time)]);
+lat = reshape(lat,[1 length(lat)]);
+lon = reshape(lon,[1 length(lon)]);
+elev = reshape(elev,[1 length(elev)]);
 
-figure(1); clf;
-set(1,'WindowStyle','docked');
-subplot(2,1,1);
-plot(rel_time_cntr)
-title('Relative time');
-subplot(2,1,2);
-plot(diff(double(rel_time_cntr)),'.')
-title('Relative time diff');
-ylim([-3 3]);
+goodIdxs = find(~isnan(lat));
+UTC_time = UTC_time(goodIdxs);
+lat = lat(goodIdxs);
+lon = lon(goodIdxs);
+elev = elev(goodIdxs);
 
-%%
-rel_time_cntr_pps = double(rel_time_cntr_pps) / 10e6;
-figure(2); clf;
-set(2,'WindowStyle','docked');
-subplot(2,1,1);
-plot(rel_time_cntr_pps)
-title('PPS time');
-subplot(2,1,2);
-plot(diff(double(rel_time_cntr_pps)),'.')
-title('PPS time diff');
-ylim([-3 3]);
-
-%%
-year = 2000 + double(bitand(utctime,15*2^4))*10/2^4 + double(bitand(utctime,15));
-month = double(bitand(utctime,15*2^12))*10/2^12 + double(bitand(utctime,15*2^8))/2^8;
-day = double(bitand(utctime,15*2^20))*10/2^20 + double(bitand(utctime,15*2^16))/2^16;
-hour = double(bitand(utctime,15*2^60))*10/2^60 + double(bitand(utctime,15*2^56))/2^56;
-min = double(bitand(utctime,15*2^52))*10/2^52 + double(bitand(utctime,15*2^48))/2^48;
-utctime = bitshift(utctime,-4*6);
-sec = double(bitand(utctime,15));
-utctime = bitshift(utctime,-4);
-for idx = 1:5
-  sec = sec/10 + double(bitand(utctime,15));
-  utctime = bitshift(utctime,-4);
+% ===================================================================
+% Find jumps in the GPS time that are probably due to day interval
+% 86400 seconds.
+day_jumps = find(diff(UTC_time) < -60000);
+for jump_idx = day_jumps
+  UTC_time(jump_idx+1:end) = UTC_time(jump_idx+1:end) + 86400;
 end
-sec = sec * 10;
 
-utc_time = datenum(year,month,day,hour,min,sec);
-fprintf('%s to %s\n', datestr(utc_time(1)), datestr(utc_time(end)));
-utc_time = datenum_to_epoch(utc_time);
-utc_time_sod = epoch_to_sod(utc_time);
-
-figure(3); clf;
-set(3,'WindowStyle','docked');
-subplot(2,1,1);
-plot(utc_time_sod)
-title('UTC time SOD');
-subplot(2,1,2);
-plot(diff(double(utc_time_sod)),'.');
-title('UTC time SOD diff');
-ylim([-3 3]);
-
-%%
-latsec = double(bitand(lat,15));
-lat = bitshift(lat,-4);
-for idx = 1:12
-  latsec = latsec/10 + double(bitand(lat,15));
-  lat = bitshift(lat,-4);
-end
-latsec = latsec * 10;
-
-latdeg = double(bitand(lat,15));
-lat = bitshift(lat,-4);
-for idx = 1:1
-  latdeg = latdeg/10 + double(bitand(lat,15));
-  lat = bitshift(lat,-4);
-end
-latdeg = latdeg * 10;
-
-if lat
-  lat = -(latdeg + latsec/60);
+% ===================================================================
+% Store outputs in structure
+% ===================================================================
+if strcmpi(param.time_reference,'utc')
+  % UTC time stored in file, so need to add leap seconds back in
+  if ~isempty(UTC_time)
+    gps.gps_time = UTC_time + utc_leap_seconds(UTC_time(1));
+  else
+    gps.gps_time = [];
+  end
 else
-  lat = latdeg + latsec/60;
+  warning('NMEA files are usually always UTC time, but GPS time has been specified.');
+  gps.gps_time = UTC_time;
 end
 
-figure(4); clf;
-set(4,'WindowStyle','docked');
-plot(lat);
-title('Latitude');
+gps.lat = lat;
+gps.lon = lon;
+gps.elev = elev;
 
-%%
-lonsec = double(bitand(lon,15));
-lon = bitshift(lon,-4);
-for idx = 1:11
-  lonsec = lonsec/10 + double(bitand(lon,15));
-  lon = bitshift(lon,-4);
-end
-lonsec = lonsec * 10;
+gps.roll = zeros(size(gps.lat));
+gps.pitch = zeros(size(gps.lat));
+gps.heading = zeros(size(gps.lat));
 
-londeg = double(bitand(lon,15));
-lon = bitshift(lon,-4);
-for idx = 1:2
-  londeg = londeg/10 + double(bitand(lon,15));
-  lon = bitshift(lon,-4);
-end
-londeg = londeg * 100;
+gps.relTimeCntr = relTimeCntr;
+gps.profileCntr = profileCntr;
+gps.ppsCntr = ppsCntr;
 
-if lon
-  lon = -(londeg + lonsec/60);
-else
-  lon = londeg + lonsec/60;
-end
-
-figure(5); clf;
-set(5,'WindowStyle','docked');
-plot(lon);
-title('Longitude');
-
-%%
-% 4 bits Geoid Sign
-% 16 bits Geoid BCD whole number
-% 4 bits Elevation Sign
-% 20 bits Elevation BCD whole number
-% 20 bits Elevation BCD fraction
-elev_wgs = double(bitand(elev,15));
-elev = bitshift(elev,-4);
-for idx = 1:9
-  elev_wgs = elev_wgs/10 + double(bitand(elev,15));
-  elev = bitshift(elev,-4);
-end
-elev_wgs = elev_wgs * 1e4;
-elev_sign = double(bitand(elev,15));
-elev = bitshift(elev,-4);
-
-geoid = double(bitand(elev,15));
-elev = bitshift(elev,-4);
-for idx = 1:3
-  geoid = geoid/10 + double(bitand(elev,15));
-  elev = bitshift(elev,-4);
-end
-geoid = geoid * 100;
-if elev
-  geoid = -geoid;
-else
-  geoid = geoid;
-end
-
-if elev_sign
-  elev = -elev_wgs;
-else
-  elev = elev_wgs;
-end
-
-figure(6); clf;
-set(6,'WindowStyle','docked');
-subplot(2,1,1);
-plot(elev);
-title('Elevation');
-subplot(2,1,2);
-plot(geoid);
-title('Geoid');
-
-return
-
-% end
+return;

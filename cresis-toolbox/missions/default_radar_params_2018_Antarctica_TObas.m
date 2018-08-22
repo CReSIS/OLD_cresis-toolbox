@@ -28,11 +28,11 @@ default.tx_voltage = sqrt(1000*50)*10^(-2/20);
 default.iq_mode = 0;
 default.tx_DDS_mask = [1 1 1 1];
 
-default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
-default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
-
 default.basic_surf_track_min_time = 2e-6;
 default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
+default.records.file.board_folder_name = 'chan%b';
+default.records.file.boards = [1 2];
+default.records.file.version = 103;
 
 if 1
   % Example 1: Normal configuration:
@@ -59,30 +59,16 @@ default.records.frames.mode = 0;
 %% Quick Look worksheet in parameter spreadsheet
 default.qlook.out_path = '';
 default.qlook.block_size = 5000;
-default.qlook.frm_types = {0,[0 1],0,0,-1};
-default.qlook.coh_noise_method = [];
-default.qlook.coh_noise_arg = [];
-default.qlook.ft_wind = @hanning;
-default.qlook.ft_wind_time = false;
-default.qlook.ft_dec = true;
-default.qlook.pulse_comp = [];
-default.qlook.pulse_rfi.en = [];
-default.qlook.pulse_rfi.inc_ave= [];
-default.qlook.pulse_rfi.thresh_scale = [];
-default.qlook.roll_correction = 0;
-default.qlook.lever_arm_fh = @lever_arm;
-default.qlook.elev_correction = 0;
-default.qlook.B_filter = ones(1,20)/20;
-default.qlook.decimate_factor = 20;
-default.qlook.inc_ave = 10;
+default.qlook.motion_comp = 0;
+default.qlook.dec = 20;
+default.qlook.inc_dec = 10;
 default.qlook.surf.en = 1;
-default.qlook.surf.method = 'threshold';
-default.qlook.surf.noise_rng = [0 -50 10];
 default.qlook.surf.min_bin = 2e-6;
-default.qlook.surf.max_bin = [];
-default.qlook.surf.threshold = 9;
-default.qlook.surf.sidelobe = 15;
-default.qlook.surf.medfilt = 3;
+default.qlook.surf.method = 'threshold';
+default.qlook.surf.threshold = 17;
+default.qlook.surf.filter_len = 7;
+default.qlook.surf.sidelobe = 17;
+default.qlook.surf.noise_rng = [0 -50 10];
 default.qlook.surf.search_rng = [0:2];
 
 %% SAR worksheet in parameter spreadsheet
@@ -134,55 +120,60 @@ default.array.diag_load = 0;
 default.array.Nsig = 2;
 
 %% Radar worksheet in parameter spreadsheet
-default.radar.fs = 500e6;
-default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 14;
-default.radar.adc_full_scale = 2;
-default.radar.rx_paths = 1;
+default.radar.Vpp_scale = 2;
 default.radar.noise_figure = 2;
-default.radar.rx_gain = 45;
 default.radar.adc_SNR_dB = 59;
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.lever_arm_fh = @lever_arm;
+default.radar.adc_gains = 10.^([45 27]/20);
+default.radar.rx_paths = [1 1];
 
 defaults = {};
 
 % Deconvolution Mode
-default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0];
-default.radar.wfs(1).chan_equal_deg = [0];
-
+default.records.arena.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
 default.radar.ref_fn = '';
+default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0];
+default.radar.wfs(1).chan_equal_deg = [0];
+
 default.xml_regexp = '.*deconv.xml';
 default.name = 'Deconv Mode 600-900 MHz';
 defaults{end+1} = default;
 
 % Survey Mode
-default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0];
-default.radar.wfs(1).chan_equal_deg = [0];
-
+default.records.arena.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [2e-06 -inf 2e-06];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
 default.radar.ref_fn = '';
+default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0];
+default.radar.wfs(1).chan_equal_deg = [0];
+
 default.xml_regexp = 'survey_600-900MHz_.*.xml';
 default.name = 'Survey Mode 600-900 MHz';
 defaults{end+1} = default;
 
 %% Other settings
+default.records.arena.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
 default.radar.ref_fn = '';
+default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0];
+default.radar.wfs(1).chan_equal_deg = [0];
 
 default.xml_regexp = '.*';
 default.name = 'Default 600-900 MHz';

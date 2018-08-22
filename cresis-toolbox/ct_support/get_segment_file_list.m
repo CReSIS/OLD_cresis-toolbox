@@ -103,9 +103,9 @@ if nargout > 2
     % A stop index of -N says to include all but the last N files
     stop_idx = length(fns) + param.records.file.stop_idx;
   else
-    stop_idx = param.records.file.stop_idx;
+    stop_idx = param.records.file.stop_idx(board);
   end
-  file_idxs = param.records.file.start_idx:stop_idx;
+  file_idxs = param.records.file.start_idx(board):stop_idx;
   
   if isempty(file_idxs)
     error('No files selected to load out of %i files', length(fns));

@@ -17,13 +17,12 @@ warning('off','MATLAB:xlsread:Mode');
 %% Create Generic Parameters
 % =======================================================================
 sheet_name = generic_ws;
-fprintf('Reading sheet %s of xls file: %s\n', sheet_name, param_fn);
 warning off MATLAB:xlsfinfo:ActiveX
 [status, sheets] = xlsfinfo(param_fn);
 warning on MATLAB:xlsfinfo:ActiveX
 sheet_idx = strmatch(generic_ws,sheets,'exact');
 if isempty(sheet_idx)
-  fprintf('  Sheet not found\n');
+  warning('  Sheet %s not found.', generic_ws);
   return
 end
 
