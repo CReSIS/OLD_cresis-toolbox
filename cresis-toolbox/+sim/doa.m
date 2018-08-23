@@ -1,4 +1,4 @@
-function results = doa(param)
+function [results, DCM_runs] = doa(param)
 % results = doa(param)
 %
 % Function for simulating direction of arrival algorithms
@@ -9,9 +9,20 @@ param.src.fc = (param.src.f0 + param.src.f1)/2;
 param.src.fs = param.src.f1 - param.src.f0;
 
 % Get phase center positions of antenna array
-[phase_center] = param.src.lever_arm.fh(param.src.lever_arm.args{:});
-param.src.y_pc   = phase_center(2,:).';
-param.src.z_pc   = phase_center(3,:).';
+if isfield(param.src,'phase_center')
+  param.src.y_pc   = param.src.phase_center(2,:).';
+  param.src.z_pc   = param.src.phase_center(3,:).';
+  
+elseif isfield(param.src,'lever_arm.fh')
+  [phase_center] = param.src.lever_arm.fh(param.src.lever_arm.args{:});
+  param.src.y_pc   = phase_center(2,:).';
+  param.src.z_pc   = phase_center(3,:).';
+elseif isfield(param.src,'y_pc') && isfield(param.src,'z_pc')
+  % Do nothing. Already defined 
+else
+  warniing('Phase center information are not defined')
+  keyboard
+end
 
 % Setup theta grid and steering vectors
 [param.method.theta, param.method.SV] ...
@@ -84,12 +95,23 @@ doa_wb_fd_param.nb_filter_banks = param.method.wb_fd.filter_banks;
 %==========================================================================
 
 theta_est = [];
-for method = param.method.list
-  theta_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
-  hessian_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
-  amp_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
-  cost_func{method} = zeros(param.monte.runs,size(param.monte.SNR,1));
+if isfield(param,'M') && ~isempty(param.M)
+    % Model order estimation simulation. M=Nc-1 usually.
+    for method = param.method.list
+        theta_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),param.Nc-1);
+        hessian_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),param.Nc-1);
+        amp_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),param.Nc-1);
+        cost_func{method} = zeros(param.monte.runs,size(param.monte.SNR,1));
+    end
+else
+    for method = param.method.list
+        theta_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
+        hessian_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
+        amp_est{method} = zeros(param.monte.runs,size(param.monte.SNR,1),size(param.monte.SNR,2));
+        cost_func{method} = zeros(param.monte.runs,size(param.monte.SNR,1));
+    end
 end
+
 rng_args = zeros(param.monte.runs);
 
 doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', param.method.theta_guard));
@@ -97,30 +119,51 @@ doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', param.method.theta_guar
 start_time = tic;
 for test_idx = 1:size(param.monte.SNR,1)
   
+    if isempty(param.monte.DOA)   % (for k = 0 model order estimation)  
+        param.src.DOAs   = []; 
+    else
+        param.src.DOAs   = param.monte.DOA(test_idx,:);
+    end
   param.src.SNR    = param.monte.SNR(test_idx,:);
   param.src.Nsnap  = param.monte.Nsnap(test_idx);
-  param.src.DOAs   = param.monte.DOA(test_idx,:);
   
   % Set number of signals, Nsig, field
-  doa_nb_1d_param.Nsig = size(param.src.SNR,2);
-  doa_nb_nd_param.Nsig = size(param.src.SNR,2);
-  doa_wb_td_param.Nsig = size(param.src.SNR,2);
-  doa_wb_fd_param.Nsig = size(param.src.SNR,2);
+  if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
+      % For model order estimation simulation.
+      doa_nb_1d_param.Nsig = Nsig_tmp;
+      doa_nb_nd_param.Nsig = Nsig_tmp;
+      doa_wb_td_param.Nsig = Nsig_tmp;
+      doa_wb_fd_param.Nsig = Nsig_tmp;
+      
+      LB = zeros(Nsig_tmp,1);
+      UB = zeros(Nsig_tmp,1);
+  else
+      doa_nb_1d_param.Nsig = size(param.src.SNR,2);
+      doa_nb_nd_param.Nsig = size(param.src.SNR,2);
+      doa_wb_td_param.Nsig = size(param.src.SNR,2);
+      doa_wb_fd_param.Nsig = size(param.src.SNR,2);
+      
+      LB = zeros(length(param.src.DOAs),1);
+      UB = zeros(length(param.src.DOAs),1);
+  end
   
   % Set source limits for N-dimensional constrained optimization
-  LB = zeros(length(param.src.DOAs),1);
-  UB = zeros(length(param.src.DOAs),1);
   for src_idx = 1:length(param.src.DOAs)
     LB(src_idx) = param.method.src_limits{src_idx}(1);
     UB(src_idx) = param.method.src_limits{src_idx}(2);
   end
   
   for run_idx = 1:param.monte.runs
-    if ~mod(run_idx-1,50)
-      fprintf('test: %2d of %d / run %4d of %d (%.1f sec)\n', ...
-        test_idx, size(param.monte.SNR,1), run_idx, param.monte.runs, toc(start_time));
-    end
-    
+      if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
+          % For model order estimation simulation.
+          fprintf('q:%2d  k:%2d of %d / run %4d of %d (%.1f sec)\n', ...
+              length(param.monte.DOA),param.Nsig_tmp, param.M, run_idx, param.monte.runs, toc(start_time));
+      else
+          if ~mod(run_idx-1,50)
+              fprintf('test: %2d of %d / run %4d of %d (%.1f sec)\n', ...
+                  test_idx, size(param.monte.SNR,1), run_idx, param.monte.runs, toc(start_time));
+          end
+      end
     % Setup random number generator
     rng_args(run_idx) = param.monte.random_seed_offset + run_idx;
     rng(rng_args(run_idx));
@@ -128,6 +171,11 @@ for test_idx = 1:size(param.monte.SNR,1)
     % Simulate array data
     [Data,DCM,imp_response,DCM_fd] = sim.doa_wideband_data(param);
     
+    if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
+        % For model order estimation simulation.
+        DCM_runs{run_idx} = DCM;
+    end
+  
     % Set up estimation parameters for each method
     doa_wb_td_param.h    = conv(imp_response.vals,imp_response.vals,'same');
     doa_wb_td_param.h    = doa_wb_td_param.h ./ max(abs(doa_wb_td_param.h));
@@ -182,19 +230,45 @@ for test_idx = 1:size(param.monte.SNR,1)
       end
       
       % Store outputs into variables
-      [theta_est{method}(run_idx,test_idx,:),sort_idxs] = sort(doa);
-      HESSIAN = diag(HESSIAN);
-      hessian_est{method}(run_idx,test_idx,:) = HESSIAN(sort_idxs);
-      cost_func{method}(run_idx,test_idx) = Jval;
-      
+      if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
+          % For model order estimation simulation.
+          [theta_est{method}(run_idx,test_idx,1:Nsig_tmp),sort_idxs] = sort(doa);
+          HESSIAN = diag(HESSIAN);
+          
+          % for only suboptimal methods (param.subopt_only). DOa estimation not required.
+          %In that case run using doa_example_suboptimal.m and the following
+          %section cannot be evaluated as we do not have doa.
+          
+          if param.doa_example == 1
+              hessian_est{method}(run_idx,test_idx,1:Nsig_tmp) = HESSIAN(sort_idxs);
+              cost_func{method}(run_idx,test_idx) = Jval;
+          end
+      else
+          [theta_est{method}(run_idx,test_idx,:),sort_idxs] = sort(doa);
+          HESSIAN = diag(HESSIAN);
+          hessian_est{method}(run_idx,test_idx,:) = HESSIAN(sort_idxs);
+          cost_func{method}(run_idx,test_idx) = Jval;
+      end
     end
   end
 end
 
 % Copy outputs into output argument structure
-results.theta_est = theta_est;
-results.rng_args = rng_args;
-results.hessian_est = hessian_est;
-results.cost_func = cost_func;
+if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
+    % For model order estimation simulation.
+    results.theta_est = theta_est;
+    results.rng_args = rng_args;
+    
+    if param.doa_example == 1
+        results.hessian_est = hessian_est;
+        results.cost_func = cost_func;
+    end
+    results.DCM = DCM_runs;
+else
+    results.theta_est = theta_est;
+    results.rng_args = rng_args;
+    results.hessian_est = hessian_est;
+    results.cost_func = cost_func;
+end
 
 return;

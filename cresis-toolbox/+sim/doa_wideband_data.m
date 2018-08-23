@@ -3,6 +3,7 @@ function [Data, DCM, imp_resp, DCM_fd] = doa_wideband_data(param)
 %
 % Funcion to simulate multichannel array wideband data.
 %
+% Usually called from sim.doa script
 % Inputs:
 % param
 %       .src
@@ -31,6 +32,7 @@ function [Data, DCM, imp_resp, DCM_fd] = doa_wideband_data(param)
 %   lever_arm.m
 % =========================================================================
 physical_constants
+% rng default
 
 if ~exist('param.src.noise.en','var')
   param.src.noise.en = 1;
@@ -50,13 +52,48 @@ dt          = 1/fs;                         % sampling interval
 fc          = param.src.fc;               % carrier frequncy 
 W           = param.method.wb_td.widening_factor;  % widening factor
 NB          = param.method.wb_fd.filter_banks;  % Number of narrowband filter banks
+Nc          = length(param.src.y_pc);
 
+% Transmit beamforming
+src_params = param.src;
+if isfield(src_params,'tx_weights') && ~isempty(src_params.tx_weights)
+  comp_tx_weight = src_params.tx_weights;
+else
+  comp_tx_weight = ones(Q,1);
+end
+  
+% Array calibration errors
+if isfield(param,'error_params') && ~isempty(param.error_params)
+  error_params   = param.error_params;
+  error_ypc      = error_params.error_ypc;
+  error_zpc      = error_params.error_zpc;
+  error_phase    = error_params.error_phase;
+  error_g_s      = error_params.error_g_s;
+  error_g_p      = error_params.error_g_p;
+  error_g_offset = error_params.error_g_offset;
+else
+  error_ypc      = zeros(Nc,1);
+  error_zpc      = zeros(Nc,1);
+  error_phase    = zeros(Nc,1);
+  error_g_s      = zeros(Nc,1);
+  error_g_p      = zeros(Nc,1);
+  error_g_offset = zeros(Nc,1);
+end
+
+% Mutual coupling matrix
+if isfield(param.src,'mutual_coup_mtx') && ~isempty(param.src.mutual_coup_mtx)
+  C = param.src.mutual_coup_mtx;
+else
+  C = eye(Nc);
+end
+  
 % Setup matrix of time delays of each channel for the given DOAs
 % -------------------------------------------------------------------------
-uy          = sin(param.src.DOAs.*(pi/180));
-uz          = sqrt(1-uy.^2);
-Tau_mtx     = (2/c).*(-1.*param.src.z_pc*uz + param.src.y_pc*uy);
-
+if ~isempty(param.src.DOAs)
+    uy          = sin(param.src.DOAs.*(pi/180));
+    uz          = sqrt(1-uy.^2);
+    Tau_mtx     = (2/c).*(-1.*(param.src.z_pc+error_zpc)*uz + (param.src.y_pc+error_ypc)*uy);
+end
 % -------------------------------------------------------------------------
 % Determine number of fast time samples needed
 % -------------------------------------------------------------------------
@@ -81,9 +118,10 @@ time            = (0:dt:(Nt-1)*dt).';
 S               = complex(zeros(Q,Nt));
 % Ps              = Ps./(Num_sens);
 
-for idx = 1:Q;
-    sigma_s     = sqrt(Ps(idx)/2);
-    S(idx,:)    =  sigma_s.*(randn(1,Nt) - 1i*randn(1,Nt));
+for idx = 1:Q;  
+  weight      = comp_tx_weight(idx);
+  sigma_s     = sqrt(Ps(idx)/2);
+  S(idx,:)    =  weight*sigma_s.*(randn(1,Nt) - 1i*randn(1,Nt));
 end
 
 % -------------------------------------------------------------------------
@@ -92,8 +130,7 @@ end
 Ts          = 1/fs;
 Ttot        = 10*(tau_max + W*Ts);
 Lwin        = ceil(Ttot/Ts);
-% Force number of samples in frequency domain window to be
-% odd
+% Force number of samples in frequency domain window to be odd
 if ~mod(Lwin,2)
   Lwin = Lwin + 1;
 end
@@ -128,9 +165,9 @@ Hwin            = ifftshift(Hwin);
 for q_idx = 1:Q
    Sref_fd = fft(S(q_idx,:));
    Sref_fd = Sref_fd(:);
-   Sref_fd = Sref_fd.*Hwin;
-   S(q_idx,:) = ifft(Sref_fd);   
+   Sref_fd = Sref_fd.*Hwin;   
    
+   S(q_idx,:) = ifft(Sref_fd);      
 end
 
 % -------------------------------------------------------------------------
@@ -140,18 +177,28 @@ end
 tmp_dat     = complex(zeros(Num_sens,Nt,Q));
 
 % Create delayed version of each windowed signal 
-for q_idx   = 1:Q
-   tau_vec  = Tau_mtx(:,q_idx);
-   Sref_fd  = fft(S(q_idx,:));
-   Sref_fd  = Sref_fd(:);
-  
-    for m_idx = 1:Num_sens
-        tau = tau_vec(m_idx);
-        tmp_dat(m_idx,:,q_idx) = ifft(Sref_fd.*exp(1i*2*pi*f_pb.*tau));
-%         tmp_dat(m_idx,:,q_idx) = ifft(Sref_fd.*exp(1i*2*pi*f_pb.*tau)*exp(-1i*2*pi*fc.*tau));
-    end      
+if ~isempty(param.src.DOAs)
+    for q_idx   = 1:Q
+        tau_vec  = Tau_mtx(:,q_idx);
+        Sref_fd  = fft(S(q_idx,:));
+        Sref_fd  = Sref_fd(:);
+        
+        tmp_doa = param.src.DOAs(q_idx).*(pi/180);
+        gain_error_exp = error_g_s.*(sin(tmp_doa)-sin(error_g_p)).^2 + error_g_offset;
+        gain_error  = exp(-gain_error_exp./2);
+        %   gain_error  = 10.^(gain_error_exp./20);
+        %   gain_error  = 1+gain_error_exp;
+        %   gain_error  = 10.^(-gain_error_exp./20);
+        phase_error = error_phase;
+        pg_error = gain_error .* exp(1i*phase_error);
+        for m_idx = 1:Num_sens
+            tau = tau_vec(m_idx);
+            tmp_dat(m_idx,:,q_idx) = pg_error(m_idx)*ifft(Sref_fd.*exp(1i*2*pi*f_pb.*tau));
+            %         tmp_dat(m_idx,:,q_idx) = ifft(Sref_fd.*exp(1i*2*pi*f_pb.*tau));
+            %         tmp_dat(m_idx,:,q_idx) = ifft(Sref_fd.*exp(1i*2*pi*f_pb.*tau)*exp(-1i*2*pi*fc.*tau));
+        end
+    end
 end
-
 % =========================================================================
 % Create MxNt matrix of additive white Gaussian noise
 % =========================================================================
@@ -168,6 +215,9 @@ end
 % Sum plane waves incident on each element by summing over Q dimension
 % =========================================================================
 array_data      = sum(tmp_dat,3);
+
+% Account for mutual coupling effect
+array_data = C*array_data;
 
 % Add noise
 % -------------------------------------------------------------------------
