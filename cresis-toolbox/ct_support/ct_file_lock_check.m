@@ -70,7 +70,7 @@ if ischar(fns)
       case {2,3}
         if any(file_version=='L')
           % Check with user
-          fprintf('<strong>File is locked: %s</strong>\nChoose one of these options:\n  1: Remove lock\n  2: Disable ct_file_lock\n  3: Stop execution\n', fn);
+          fprintf('<strong>File is locked: %s</strong>\nChoose one of these options:\n  1: Remove lock on this file\n  2: Disable gRadar.ct_file_lock_check (which disabled file lock checking globally)\n  3: Stop execution\n', fn);
           uinput = [];
           while isempty(uinput) || ~isnumeric(uinput)
             uinput = input('? ');

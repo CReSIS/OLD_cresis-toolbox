@@ -173,7 +173,7 @@ cluster_compile({'qlook_task.m','qlook_combine_task.m'},ctrl.cluster.hidden_depe
 
 total_num_sam = [];
 [wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.qlook.imgs})),records);
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2','accum3'}))
   for img = 1:length(param.qlook.imgs)
     wf = abs(param.qlook.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
@@ -378,7 +378,7 @@ if param.qlook.surf.en && strcmpi(param.qlook.surf_layer.source,'records')
   ctrl.cluster.type = 'debug';
 end
 
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2','accum3'}))
   cpu_time_mult = 6e-8;
   mem_mult = 8;
   

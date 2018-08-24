@@ -376,132 +376,91 @@ for cmd_idx = 1:length(param.analysis.cmd)
     %% Statistics
     % ===================================================================
     % ===================================================================
-    
-    %% Statistics: Loop through all the power files and combine
-    % =====================================================================
     for img = 1:length(param.analysis.imgs)
-      gps_time = [];
-      lat = [];
-      lon = [];
-      elev = [];
-      roll = [];
-      pitch = [];
-      heading = [];
-      power_vals = [];
-      power_bins = [];
-      for block_idx = 1:length(blocks)
-        rec_load_start = blocks(block_idx);
+      
+      for wf_adc = cmd.wf_adcs{img}(:).'
+        wf = param.analysis.imgs{1}(wf_adc,1);
+        adc = param.analysis.imgs{1}(wf_adc,2);
         
-        if block_idx == length(blocks)
-          rec_load_stop = length(records.gps_time);
+        %% Statistics: Loop through all the stats files and combine
+        % =====================================================================
+        gps_time = [];
+        lat = [];
+        lon = [];
+        elev = [];
+        roll = [];
+        pitch = [];
+        heading = [];
+        surface = [];
+        tmp_stats = {};
+        time = {};
+        freq = {};
+        for block_idx = 1:length(blocks)
+          rec_load_start = blocks(block_idx);
+          
+          if block_idx == length(blocks)
+            rec_load_stop = length(records.gps_time);
+          else
+            rec_load_stop = rec_load_start+param.analysis.block_size-1;
+          end
+          
+          % Load each block and concatenate
+          % =====================================================================
+          cur_recs = [rec_load_start rec_load_stop];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
+          
+          out_fn = fullfile(ct_filename_out(param, cmd.out_path), ...
+            sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          
+          stats = load(out_fn);
+          
+          gps_time(end+(1:length(stats.gps_time))) = stats.gps_time;
+          lat(end+(1:length(stats.lat))) = stats.lat;
+          lon(end+(1:length(stats.lon))) = stats.lon;
+          elev(end+(1:length(stats.elev))) = stats.elev;
+          roll(end+(1:length(stats.roll))) = stats.roll;
+          pitch(end+(1:length(stats.pitch))) = stats.pitch;
+          heading(end+(1:length(stats.heading))) = stats.heading;
+          surface(end+(1:length(stats.surface))) = stats.surface;
+          
+          % stats may be different lengths, so we just concatenate in cell
+          % arrays
+          time{block_idx} = stats.time;
+          freq{block_idx} = stats.freq;
+          tmp_stats{block_idx} = stats.stats;
+          
+        end
+
+        % Constant stats fields carried over from last file loaded:
+        %   param_analysis, param_records
+        
+        % Overwrite concatenated dynamic fields for the whole segment:
+        stats.gps_time = gps_time;
+        stats.lat = lat;
+        stats.lon = lon;
+        stats.elev = elev;
+        stats.roll = roll;
+        stats.pitch = pitch;
+        stats.heading = heading;
+        stats.surface = surface;
+        
+        stats.freq = freq;
+        stats.time = time;
+        stats.stats = tmp_stats;
+        
+        if param.ct_file_lock
+          stats.file_version = '1L';
         else
-          rec_load_stop = rec_load_start+param.analysis.block_size-1;
+          stats.file_version = '1';
         end
         
-        % =====================================================================
-        % Prepare task inputs
-        % =====================================================================
-        cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-          cur_recs(end)*param.analysis.presums];
-        
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-          sprintf('statistics_img_%02d_%d_%d.mat',img,actual_cur_recs));
-        
-        power = load(out_fn);
-        
-        gps_time = cat(2,gps_time,power.gps_time);
-        lat = cat(2,lat,power.lat);
-        lon = cat(2,lon,power.lon);
-        elev = cat(2,elev,power.elev);
-        roll = cat(2,roll,power.roll);
-        pitch = cat(2,pitch,power.pitch);
-        heading = cat(2,heading,power.heading);
-        power_vals = cat(2,power_vals,power.power_vals);
-        power_bins = cat(2,power_bins,power.power_bins);
+        out_fn_dir = fileparts(out_fn);
+        out_segment_fn_dir = fileparts(out_fn_dir);
+        out_segment_fn = fullfile(out_segment_fn_dir,sprintf('stats_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+        save(out_segment_fn,'-v7.3','-struct','stats'); % Use HDF because of the large file size
       end
-      
-      power.gps_time = gps_time;
-      power.lat = lat;
-      power.lon = lon;
-      power.elev = elev;
-      power.roll = roll;
-      power.pitch = pitch;
-      power.heading = heading;
-      power.power_vals = power_vals;
-      power.power_bins = power_bins;
-      
-      out_fn_dir = fileparts(out_fn);
-      out_segment_fn_dir = fileparts(out_fn_dir);
-      out_segment_fn = fullfile(out_segment_fn_dir,sprintf('power_%s_img_%02d.mat', param.day_seg, img));
-      fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-      save(out_segment_fn,'-v7.3','-struct','power');
-    end
-    
-    %% Statistics: Loop through all the psd (power spectral density) files and combine
-    % =====================================================================
-    for img = 1:length(param.analysis.imgs)
-      gps_time = [];
-      lat = [];
-      lon = [];
-      elev = [];
-      roll = [];
-      pitch = [];
-      heading = [];
-      psd_vals = [];
-      psd_bins = [];
-      psd_mean = [];
-      psd_Rnn = [];
-      for block_idx = 1:length(blocks)
-        rec_load_start = blocks(block_idx);
-        
-        if block_idx == length(blocks)
-          rec_load_stop = length(records.gps_time);
-        else
-          rec_load_stop = rec_load_start+param.analysis.block_size-1;
-        end
-        
-        % =====================================================================
-        % Prepare task inputs
-        % =====================================================================
-        cur_recs = [rec_load_start rec_load_stop];
-        
-        out_fn = fullfile(ct_filename_out(param, ...
-          param.analysis.out_path, 'CSARP_noise'), ...
-          sprintf('psd_img_%02d_%d_%d.mat', img, cur_recs(1),cur_recs(end)));
-        
-        psd = load(out_fn);
-        
-        gps_time = cat(2,gps_time,psd.gps_time);
-        lat = cat(2,lat,psd.lat);
-        lon = cat(2,lon,psd.lon);
-        elev = cat(2,elev,psd.elev);
-        roll = cat(2,roll,psd.roll);
-        pitch = cat(2,pitch,psd.pitch);
-        heading = cat(2,heading,psd.heading);
-        psd_vals = cat(2,psd_vals,psd.psd_vals);
-        psd_bins = cat(2,psd_bins,psd.psd_bins);
-        psd_mean = cat(2,psd_mean,psd.psd_mean);
-        psd_Rnn = cat(2,psd_Rnn,psd.psd_Rnn);
-      end
-      
-      psd.gps_time = gps_time;
-      psd.lat = lat;
-      psd.lon = lon;
-      psd.elev = elev;
-      psd.roll = roll;
-      psd.pitch = pitch;
-      psd.heading = heading;
-      psd.psd_vals = psd_vals;
-      psd.psd_bins = psd_bins;
-      psd.psd_mean = psd_mean;
-      psd.psd_Rnn = psd_Rnn;
-      
-      out_fn_dir = fileparts(out_fn);
-      out_segment_fn_dir = fileparts(out_fn_dir);
-      out_segment_fn = fullfile(out_segment_fn_dir,sprintf('psd_%s_img_%02d.mat', param.day_seg, img));
-      fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-      save(out_segment_fn,'-v7.3','-struct','psd');
     end
     
   end

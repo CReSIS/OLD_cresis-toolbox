@@ -175,8 +175,8 @@ for img = 1:length(param.load.imgs)
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         
         data = data{1};
-      
-      
+        
+        
         % Correct all the data to a constant elevation (no zero padding is
         % applied so wrap around could be an issue for DDC data)
         for rline = 1:size(data,2)
@@ -287,12 +287,12 @@ for img = 1:length(param.load.imgs)
           % requirements may be prohibitive, we do this in a loop
           % Enforce the same DDC filter in this group. Skip groups that have DDC filter swiches.
           STFT_rlines = -cmd.rlines/4 : cmd.rlines/4-1;
-%           if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
-%             if any(diff(img_Mt(center_rline + STFT_rlines)))
-%               fprintf('    Including different DDC filters, skipped.\n');
-%               continue
-%             end
-%           end
+          %           if any(strcmpi(radar_name,{'kuband','kuband2','kuband3','kaband3','snow','snow2','snow3','snow5','snow8'}))
+          %             if any(diff(img_Mt(center_rline + STFT_rlines)))
+          %               fprintf('    Including different DDC filters, skipped.\n');
+          %               continue
+          %             end
+          %           end
           Mt = 100;
           max_value = zeros(size(STFT_rlines));
           max_idx_unfilt = zeros(size(STFT_rlines));
@@ -402,9 +402,9 @@ for img = 1:length(param.load.imgs)
         end
         doppler = doppler/num_bins;
         mu(abs(mu)*10<sigma) = 0; % Throw out high variance means
-
+        
         %% Coh Noise: Block Analysis
-
+        
         % Do averaging
         rline0_list = 1:cmd.block_ave:size(data,2);
         for rline0_idx = 1:length(rline0_list)
@@ -521,72 +521,162 @@ for img = 1:length(param.load.imgs)
       %% Statistics
       % ===================================================================
       % ===================================================================
+      tmp_param = param;
+      tmp_param.load.pulse_comp = cmd.pulse_compress;
+      tmp_param.load.motion_comp = cmd.motion_comp;
+      tmp_hdr = hdr;
+      tmp_wfs = wfs;
       
-      %% Statistics: Load layers (there should be two)
-      layers = opsLoadLayers(param,param.analysis.power.layer_params);
-      
-      %% Statistics: Run function handles on the layers
-      layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
-      layers(1).twtt = interp_finite(layers(1).twtt,0);
-      start_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
-      start_bin = min(max(1,start_bin),size(data,1));
-      layers(2).twtt = interp1(layers(2).gps_time, layers(2).twtt, gps_time(1,:));
-      layers(2).twtt = interp_finite(layers(2).twtt,0);
-      stop_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(2).twtt,'linear','extrap'));
-      stop_bin = min(max(1,stop_bin),size(data,1));
-      for rline = 1:size(data,2)
-        vals = data(start_bin(rline):stop_bin(rline),rline,:);
-        power_bins(1:2,rline) = [start_bin(rline); stop_bin(rline)];
-        for fh_idx = 1:length(param.analysis.power.fh)
-          power_vals(fh_idx,rline,:) = param.analysis.power.fh{fh_idx}(vals);
+      for wf_adc = cmd.wf_adcs{img}(:).'
+        wf = tmp_param.analysis.imgs{1}(wf_adc,1);
+        adc = tmp_param.analysis.imgs{1}(wf_adc,2);
+        
+        % Pulse compression
+        tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
+        tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
+        
+        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
+        
+        [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
+        
+        data = data{1};
+        freq = tmp_hdr.freq{1};
+        time = tmp_hdr.time{1};
+        
+        %% Statistics: Load start and stop times
+        dt = time(2)-time(1);
+        Tpd = tmp_wfs(wf).Tpd;
+        if isnumeric(cmd.start_time)
+          start_bin = find(time>=cmd.start_time,1)*ones(1,size(data,2));
+          if isempty(start_bin)
+            error('No time (%g-%g) is >= cmd.start_time (%g).', time(1), time(end), cmd.start_time);
+          end
+        elseif isstruct(cmd.start_time)
+          cmd.start_time.eval.Tpd = Tpd;
+          cmd.start_time.eval.dt = dt;
+          layers = opsLoadLayers(param,cmd.start_time);
+          layers.twtt = interp1(layers.gps_time, layers.twtt, hdr.gps_time(1,:));
+          layers.twtt = interp_finite(layers.twtt,0);
+          start_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
+          start_bin = min(max(1,start_bin),size(data,1));
         end
+        if isnumeric(cmd.stop_time)
+          stop_bin = find(time<=cmd.stop_time,1,'last')*ones(1,size(data,2));
+          if isempty(stop_bin)
+            error('No time (%g-%g) is <= cmd.stop_time (%g).', time(1), time(end), cmd.stop_time);
+          end
+        elseif isstruct(cmd.stop_time)
+          cmd.stop_time.eval.Tpd = Tpd;
+          cmd.stop_time.eval.dt = dt;
+          layers = opsLoadLayers(param,cmd.stop_time);
+          layers.twtt = interp1(layers.gps_time, layers.twtt, hdr.gps_time(1,:));
+          layers.twtt = interp_finite(layers.twtt,0);
+          stop_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
+          stop_bin = min(max(1,stop_bin),size(data,1));
+        end
+        Nt = max(floor(stop_bin - start_bin + 1));
+        
+        % Two modes for block_ave:
+        % block_ave == 1: Special execution mode
+        % block_ave > 1: x is carved into blocks for processing
+        %
+        % Two modes for cmd.stats
+        % String: @fh(param,cmd,data,start_bin,stop_bin)
+        %   block_ave == 1: data
+        %   block_ave > 1: data(:,rline_subset)
+        % Function handle: @fh(vals)
+        %   bin_subset is forced to Nt = min(stop_bin-start_bin)
+        %   block_ave == 1: data(bin_subset,:)
+        %   block_ave > 1: data(bin_subset,rline_subset)
+        %   bin_subset is start_bin+Nt, missing range bins are set to NaN
+        
+        %% Statistics: Block Analysis
+        if cmd.block_ave == 1
+          stats = {};
+          for stat_idx = 1:numel(cmd.stats)
+            if ischar(cmd.stats{stat_idx})
+              % Function handle string
+              fh = str2func(cmd.stats{stat_idx});
+              stats{stat_idx} = fh(param,cmd,data,start_bin,stop_bin);
+            else
+              % Function handle
+              if Nt == size(data,1)
+                stats{stat_idx} = cmd.stats(data);
+              else
+                vals = nan(Nt,size(data,2));
+                for rline = 1:size(data,2)
+                  vals(1:stop_bin(rline)-start_bin(rline)+1,rline) = data(start_bin(rline):stop_bin(rline),rline);
+                end
+                stats{stat_idx} = cmd.stats{stat_idx}(vals);
+              end
+            end
+          end
+          
+          gps_time = hdr.gps_time;
+          surface = hdr.surface;
+          lat = hdr.records{img,wf_adc}.lat;
+          lon = hdr.records{img,wf_adc}.lon;
+          elev = hdr.records{img,wf_adc}.elev;
+          roll = hdr.records{img,wf_adc}.roll;
+          pitch = hdr.records{img,wf_adc}.pitch;
+          heading = hdr.records{img,wf_adc}.heading;
+          
+        else
+          rline0_list = 1:cmd.block_ave:size(data,2);
+          stats = {};
+          for stat_idx = 1:numel(cmd.stats)
+            stats{stat_idx} = [];
+          end
+          gps_time = []; surface = [];
+          lat = []; lon = []; elev = [];
+          roll = []; pitch = []; heading = [];
+          for rline0_idx = 1:length(rline0_list)
+            rline0 = rline0_list(rline0_idx);
+            rlines = rline0 + (0:min(cmd.block_ave-1,size(data,2)-rline0));
+            
+            %% Statistics: Run function handles on the layers
+            vals = zeros(stop_bin(1)-start_bin(1)+1,cmd.block_ave);
+            for rlines_idx = 1:length(rlines)
+              vals(:,rlines_idx) = data(start_bin:stop_bin,rlines(rlines_idx));
+            end
+            for stat_idx = 1:numel(cmd.stats)
+              if ischar(cmd.stats)
+                % Function handle string
+                fh = str2func(cmd.stats);
+                tmp = fh(param,cmd,vals,start_bin,stop_bin);
+                stats{stat_idx}(:,end+(1:size(tmp,2))) = tmp;
+              else
+                % Function handle
+                tmp = cmd.stats{stat_idx}(vals);
+                stats{stat_idx}(:,end+(1:size(tmp,2))) = tmp;
+              end
+            end
+            
+            gps_time(rline0_idx) = mean(hdr.gps_time(rlines));
+            surface(rline0_idx) = mean(hdr.surface(rlines));
+            lat(rline0_idx) = mean(hdr.records{img,wf_adc}.lat(rlines));
+            lon(rline0_idx) = mean(hdr.records{img,wf_adc}.lon(rlines));
+            elev(rline0_idx) = mean(hdr.records{img,wf_adc}.elev(rlines));
+            roll(rline0_idx) = mean(hdr.records{img,wf_adc}.roll(rlines));
+            pitch(rline0_idx) = mean(hdr.records{img,wf_adc}.pitch(rlines));
+            heading(rline0_idx) = mean(hdr.records{img,wf_adc}.heading(rlines));
+          end
+        end
+        
+        %% Statistics: Save results
+        
+        out_fn = fullfile(ct_filename_out(tmp_param, cmd.out_path), ...
+          sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
+        [out_fn_dir] = fileparts(out_fn);
+        if ~exist(out_fn_dir,'dir')
+          mkdir(out_fn_dir);
+        end
+        param_analysis = tmp_param;
+        fprintf('  Saving outputs %s\n', out_fn);
+        save(out_fn,'-v7.3', 'stats', 'freq', 'time', 'start_bin', 'gps_time', 'surface', 'lat', ...
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
       end
       
-      %% Statistics: Save
-      out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-        sprintf('power_img_%02d_%d_%d.mat',img,task_recs));
-      [out_fn_dir] = fileparts(out_fn);
-      if ~exist(out_fn_dir,'dir')
-        mkdir(out_fn_dir);
-      end
-      param_analysis = param;
-      param_analysis.gps_source = records.gps_source;
-      fprintf('  Saving outputs %s\n', out_fn);
-      save(out_fn,'-v7.3', 'power_vals','power_bins', 'wfs', 'gps_time', 'lat', ...
-        'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
-      
-%       %% 1. Load layer
-%       layers = opsLoadLayers(param,param.analysis.psd.layer_params);
-%       
-%       %% 2. Extract psd values according to bin_rng
-%       layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
-%       layers(1).twtt = interp_finite(layers(1).twtt,0);
-%       zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
-%       start_bin = zero_bin;
-%       stop_bin = param.analysis.psd.Nt-1 + zero_bin;
-%       psd_vals = zeros(param.analysis.psd.Nt, size(data,2), size(data,3));
-%       psd_mean = zeros(1, size(data,2), size(data,3));
-%       psd_Rnn = zeros(size(data,3), size(data,2), size(data,3));
-%       for rline = 1:size(data,2)
-%         start_bin0 = max(1,start_bin(rline));
-%         stop_bin0 = min(size(data,1),stop_bin(rline));
-%         out_bin0 = 1 + start_bin0-start_bin(rline);
-%         out_bin1 = size(psd_vals,1) - (stop_bin(rline)-stop_bin0);
-%         psd_vals(out_bin0:out_bin1,rline,:) = data(start_bin0:stop_bin0,rline,:);
-%         psd_bins(1:2,rline) = [start_bin0, stop_bin0];
-%         psd_mean(1,rline,:) = mean(abs(data(start_bin0:stop_bin0,rline,:)).^2);
-%         snapshots = squeeze(data(start_bin0:stop_bin0,rline,:)).';
-%         psd_Rnn(:,rline,:) = 1/(stop_bin0-start_bin0+1) * snapshots * snapshots';
-%       end
-%       psd_vals = mean(abs(fft(psd_vals)).^2,2);
-%       
-%       %% 3. Save
-%       
-%       param_analysis = param;
-%       param_analysis.gps_source = records.gps_source;
-%       fprintf('  Saving outputs %s\n', out_fn);
-%       save(out_fn,'-v7.3', 'psd_vals','psd_bins', 'psd_mean', 'psd_Rnn', 'wfs', 'gps_time', 'lat', ...
-%         'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
     end
     
   end
@@ -595,6 +685,3 @@ end
 fprintf('%s done %s\n', mfilename, datestr(now));
 
 success = true;
-
-return;
-

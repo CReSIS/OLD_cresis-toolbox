@@ -37,7 +37,8 @@ function [hdr,data] = basic_load_arena(fn,param)
 %
 % Authors: John Paden
 %
-% See also run_arena_packet_strip.m
+% See also: basic_load_arena.m, run_arena_packet_strip.m,
+% arena_packet_strip.m, arena_packet_strip_task.m
 
 % Load header types
 arena_radar_header_type;

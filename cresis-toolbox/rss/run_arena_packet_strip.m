@@ -10,7 +10,8 @@
 %
 % Author: John Paden
 %
-% See also: basic_load_arena.m
+% See also: basic_load_arena.m, run_arena_packet_strip.m,
+% arena_packet_strip.m, arena_packet_strip_task.m
 
 %% User Setup
 % =========================================================================
@@ -24,11 +25,12 @@ if ispc
 else
   param.arena_packet_strip.base_dir = '/cresis/snfs1/data/HF_Sounder/2016_Greenland_TO/';
 end
-param.arena_packet_strip.xml_folder_names = {'20180817'};
-param.arena_packet_strip.board_folder_names = {'20180817/chan%b'};
-% param.arena_packet_strip.xml_folder_names = {'20180821'};
-% param.arena_packet_strip.board_folder_names = {'20180821'};
-param.arena_packet_strip.boards = {[1 2]};
+% param.arena_packet_strip.config_folder_names = {'20180817'};
+% param.arena_packet_strip.board_folder_names = {'20180817/%b'};
+param.arena_packet_strip.config_folder_names = {'20180821'};
+param.arena_packet_strip.board_folder_names = {'20180821'};
+param.arena_packet_strip.board_map = {'digrx0','digrx1'};
+param.arena_packet_strip.tx_map = {'awg0'};
 param.arena_packet_strip.reuse_tmp_files = true;
 param.arena_packet_strip.mat_or_bin_hdr_output = '.mat';
 param.arena_packet_strip.param_fn = ct_filename_param('accum_param_2018_Antarctica_TObas.xls');

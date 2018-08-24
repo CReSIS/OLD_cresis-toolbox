@@ -70,7 +70,6 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
-  %profile(pidx).cluster.type                  = 'none';
   profile(pidx).cluster.max_jobs_active       = 4;
   profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
@@ -202,7 +201,6 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
-  %profile(pidx).cluster.type                  = 'none';
   profile(pidx).cluster.max_jobs_active       = 4;
   profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;
@@ -267,7 +265,6 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
-  %profile(pidx).cluster.type                  = 'none';
   profile(pidx).cluster.max_jobs_active       = 4;
   profile(pidx).cluster.max_time_per_job      = 2*86400;
   profile(pidx).cluster.desired_time_per_job  = 0;

@@ -1,23 +1,68 @@
-function settings = read_arena_xml(xml_fn)
-% settings = read_arena_xml(xml_fn)
+function configs = read_arena_xml(config_fn,system_fn,adc_map,dac_map)
+% configs = read_arena_xml(config_fn,system_fn,adc_map,dac_map)
 %
-% settings = read_arena_xml('c:\temp\config_GHSR.xml');
+% config_fn: config XML file name
+% system_fn: system XML file name. If left empty or undefined, the system
+%   file name will be constructed from the config filename. For example:
+%     20180817_094746_config.xml will produce 20180817_094746_system.xml
+% adc_map: cell array of strings which matches adc names to index in
+%   configs.adc. This index is called the board_idx and adc configs will
+%   be stored as: configs.adc{board_idx,1+mode,1+subchannel}.
+%   This parameter is optional. Default is an empty array which causes the
+%   order of configs.adc to match the order the adc configs are read in.
+% dac_map:cell array which matches dac names to index in configs.dac.
+%   This index is called the tx_idx and dac configs will be stored as:
+%   configs.dac{dac_idx}
+%   This parameter is optional. Default is an empty array which causes the
+%   order of configs.dac to match the order the dac configs are read in.
+%
+% Examples:
+% % 1. Use the default system file name generated from the config file
+% % 2. Map digrx0 to board 1
+% % 3. Map digrx1 to board 2
+% % 4. Map awg0 to tx 1
+% configs = read_arena_xml('20180817_094746_config.xml','',{'digrx0','digrx1'},{'awg0'});
+%
+% % 1. Explicitly set the config and system filenames separately
+% configs = read_arena_xml('my_config.xml,'system.xml'');
 %
 % Author: John Paden
 
-[xml_fn_dir,xml_fn_name] = fileparts(xml_fn);
-xml_type_idx = find(xml_fn_name=='_',1,'last');
-config_xml_fn = fullfile(xml_fn_dir,[xml_fn_name(1:xml_type_idx), 'config.xml']);
+if ~exist('system_fn','var')
+  system_fn = '';
+end
 
-settings.xml_fn = xml_fn;
-settings.xml_fname = fname_info_arena(xml_fn);
-settings.config_xml_fn = config_xml_fn;
-settings.max_num_bins = 0;
+if ~exist('adc_map','var')
+  adc_map = '';
+end
 
-doc = xmlread(xml_fn);
+if ~exist('dac_map','var')
+  dac_map = '';
+end
+
+% User did not supply system_fn, generate the system xml filename from the
+% config xml filename.
+if isempty(system_fn)
+  [config_fn_dir,config_fn_name] = fileparts(config_fn);
+  xml_type_idx = find(config_fn_name=='_',1,'last');
+  system_fn = fullfile(config_fn_dir,[config_fn_name(1:xml_type_idx), 'system.xml']);
+end
+
+configs.config_fn = config_fn;
+configs.system_fn = system_fn;
+configs.config_fname_info = fname_info_arena(config_fn);
+configs.min_num_bins = inf;
+configs.max_num_bins = 0;
+configs.prf = [];
+configs.radar_name = [];
+configs.total_presums = [];
+configs.adc = {};
+configs.dac = {};
+
+doc = xmlread(system_fn);
 %   sys = doc.getElementsByTagName('system'); sys = sys.item(0);
 
-doc_cfg = xmlread(config_xml_fn);
+doc_cfg = xmlread(config_fn);
 %   sys = doc.getElementsByTagName('system'); sys = sys.item(0);
 
 %   for idx = 1:sys.getLength
@@ -41,7 +86,10 @@ expression = xpath.compile('//system/@type');
 nodeList = expression.evaluate(doc,XPathConstants.NODESET);
 radar_name = nodeList.item(0).getTextContent.toCharArray;
 radar_name = radar_name(:).';
-settings.radar_name = radar_name;
+configs.radar_name = radar_name;
+
+%% PULSE SEQUENCE
+% =========================================================================
 
 % 1. Get the name of the CTU
 % 1a. Get the CTU
@@ -67,23 +115,27 @@ config_type = nodeList.item(0).getTextContent.toCharArray;
 config_type = config_type(:).';
 expression = xpath.compile('config');
 nodeList = expression.evaluate(match,XPathConstants.NODESET);
-settings.psc_config_name = nodeList.item(0).getTextContent.toCharArray;
-settings.psc_config_name = settings.psc_config_name(:).';
+config_name = nodeList.item(0).getTextContent.toCharArray;
+config_name = config_name(:).';
+
+configs.psc.name = name;
+configs.psc.config_type = config_type;
+configs.psc.config_name = config_name;
 
 % 4. Get the config associated with this ADC
-expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',config_type,settings.psc_config_name));
+expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',config_type,config_name));
 nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
 psc_cfg = nodeList.item(0);
 
 % 5. Read the pulse sequence
 expression = xpath.compile('sequence');
 sequence_nodeList = expression.evaluate(psc_cfg,XPathConstants.NODESET);
-settings.psc.name = {};
-settings.psc.mode = [];
-settings.psc.next = [];
-settings.psc.repeatTo = [];
-settings.psc.repeatCount = [];
-settings.psc.period = [];
+configs.psc.seq.name = {};
+configs.psc.seq.mode = [];
+configs.psc.seq.next = [];
+configs.psc.seq.repeatTo = [];
+configs.psc.seq.repeatCount = [];
+configs.psc.seq.period = [];
 for sequence_idx = 1:sequence_nodeList.getLength
   sequence_cfg = sequence_nodeList.item(sequence_idx-1);
   if isempty(sequence_cfg)
@@ -96,7 +148,7 @@ for sequence_idx = 1:sequence_nodeList.getLength
     name{sequence_idx} = '';
   else
     name = nodeList.item(0);
-    settings.psc.name{sequence_idx} = name.getTextContent.toCharArray.';
+    configs.psc.seq.name{sequence_idx} = name.getTextContent.toCharArray.';
   end
   
   expression = xpath.compile('mode');
@@ -106,7 +158,7 @@ for sequence_idx = 1:sequence_nodeList.getLength
   end
   mode_latch = nodeList.item(0);
   mode_latch = mode_latch.getTextContent.toCharArray;
-  settings.psc.mode(sequence_idx) = str2double(mode_latch(:).');
+  configs.psc.seq.mode(sequence_idx) = str2double(mode_latch(:).');
   
   expression = xpath.compile('next');
   nodeList = expression.evaluate(sequence_cfg,XPathConstants.NODESET);
@@ -115,7 +167,7 @@ for sequence_idx = 1:sequence_nodeList.getLength
   end
   next = nodeList.item(0);
   next = next.getTextContent.toCharArray;
-  settings.psc.next(sequence_idx) = str2double(next(:).');
+  configs.psc.seq.next(sequence_idx) = str2double(next(:).');
   
   expression = xpath.compile('repeatTo');
   nodeList = expression.evaluate(sequence_cfg,XPathConstants.NODESET);
@@ -124,7 +176,7 @@ for sequence_idx = 1:sequence_nodeList.getLength
   end
   repeatTo = nodeList.item(0);
   repeatTo = repeatTo.getTextContent.toCharArray;
-  settings.psc.repeatTo(sequence_idx) = str2double(repeatTo(:).');
+  configs.psc.seq.repeatTo(sequence_idx) = str2double(repeatTo(:).');
   
   expression = xpath.compile('repeatCount');
   nodeList = expression.evaluate(sequence_cfg,XPathConstants.NODESET);
@@ -133,7 +185,7 @@ for sequence_idx = 1:sequence_nodeList.getLength
   end
   repeatCount = nodeList.item(0);
   repeatCount = repeatCount.getTextContent.toCharArray;
-  settings.psc.repeatCount(sequence_idx) = str2double(repeatCount(:).');
+  configs.psc.seq.repeatCount(sequence_idx) = str2double(repeatCount(:).');
   
   expression = xpath.compile('period');
   nodeList = expression.evaluate(sequence_cfg,XPathConstants.NODESET);
@@ -142,33 +194,33 @@ for sequence_idx = 1:sequence_nodeList.getLength
   end
   period = nodeList.item(0);
   period = period.getTextContent.toCharArray;
-  settings.psc.period(sequence_idx) = str2double(period(:).')*1e-6;
+  configs.psc.seq.period(sequence_idx) = str2double(period(:).')*1e-6;
 end
 
 epri_found = false;
-psc = settings.psc;
-psc.seq = 0:length(psc.name)-1;
-for seq = psc.seq
-  if strcmpi(psc.name{seq+1},'epri')
+psc = configs.psc;
+psc.seq.idx = 0:length(psc.seq.name)-1;
+for seq = psc.seq.idx
+  if strcmpi(psc.seq.name{seq+1},'epri')
     epri_found = true;
   end
 end
 if ~epri_found
-  fprintf('<strong>No mode named "epri". One sequence in the psc config must be named "epri".</strong>\nChoose a seq from below to be the EPRI:\n');
-  fprintf(print_struct(psc,2));
+  fprintf('<strong>No mode named "epri". One sequence in the psc config must be named "epri".</strong>\nChoose an idx from below to be the EPRI:\n');
+  fprintf(print_struct(psc.seq,2));
   uinput = [];
-  while isempty(uinput) || ~isnumeric(uinput) || uinput < 0 || uinput > length(psc.name)-1
+  while isempty(uinput) || ~isnumeric(uinput) || uinput < 0 || uinput > length(psc.seq.name)-1
     uinput = input('[0] ? ');
     if isempty(uinput)
       uinput = 0;
     end
   end
-  psc.name{uinput+1} = 'epri';
+  psc.seq.name{uinput+1} = 'epri';
 end
 
 
 pulse = 0; seq = 0;
-if strcmpi(psc.name{seq+1},'epri')
+if strcmpi(psc.seq.name{seq+1},'epri')
   total_presums = 1;
 else
   total_presums = 0; % Searching for first epri
@@ -179,25 +231,25 @@ done = false;
 max_iterations = 1e5; % Walk through 1e5 pulses (may need to be larger)
 for iterations = 1:max_iterations
   if total_presums > 0
-    total_pri = total_pri + psc.period(seq+1);
-    if length(mode_count) < psc.mode(seq+1)+1
-      mode_count(psc.mode(seq+1)+1) = 1;
+    total_pri = total_pri + psc.seq.period(seq+1);
+    if length(mode_count) < psc.seq.mode(seq+1)+1
+      mode_count(psc.seq.mode(seq+1)+1) = 1;
     else
-      mode_count(psc.mode(seq+1)+1) = mode_count(psc.mode(seq+1)+1) + 1;
+      mode_count(psc.seq.mode(seq+1)+1) = mode_count(psc.seq.mode(seq+1)+1) + 1;
     end
   end
-  if psc.repeatCount(seq+1) > 0
+  if psc.seq.repeatCount(seq+1) > 0
     % Decrement repeat counter
-    psc.repeatCount(seq+1) = psc.repeatCount(seq+1) - 1;
-    seq = psc.repeatTo(seq+1);
+    psc.seq.repeatCount(seq+1) = psc.seq.repeatCount(seq+1) - 1;
+    seq = psc.seq.repeatTo(seq+1);
     if total_presums > 0
       total_presums = total_presums + 1;
     end
   else
     % Reset repeat counter
-    psc.repeatCount(seq+1) = settings.psc.repeatCount(seq+1);
-    seq = psc.next(seq+1);
-    if strcmpi(psc.name{seq+1},'epri')
+    psc.seq.repeatCount(seq+1) = configs.psc.seq.repeatCount(seq+1);
+    seq = psc.seq.next(seq+1);
+    if strcmpi(psc.seq.name{seq+1},'epri')
       if total_presums == 0
         total_presums = total_presums + 1;
       else
@@ -211,11 +263,12 @@ if ~done
   warning('max_iterations (%d) is too small and epri was not found twice in order to measure the effective pulse repetition interval. Rerun above loop with a larger max_state until done is true or verify CTU configuration is correct.', max_iterations);
   keyboard
 end
-settings.prf = 1/total_pri;
-settings.total_presums = total_presums;
-settings.psc.mode_count = mode_count;
+configs.prf = 1/total_pri;
+configs.total_presums = total_presums;
+configs.psc.seq.mode_count = mode_count;
 
-%% Read in ADCs
+%% ADCS
+% =========================================================================
 % Get all the ADCs
 expression = xpath.compile('//subSystem[starts-with(@type,"adc")]');
 % expression = xpath.compile('//subSystem[@type="daq"]');
@@ -230,6 +283,14 @@ for adc_idx = 1:adcList.getLength
   nodeList = expression.evaluate(adcList.item(adc_idx-1),XPathConstants.NODESET);
   name = nodeList.item(0).getTextContent.toCharArray;
   name = name(:).';
+  if isempty(adc_map)
+    board_idx = adc_idx;
+  else
+    board_idx = strmatch(name,adc_map);
+  end
+  if isempty(board_idx)
+    continue;
+  end
   
   % 2. Search for the subSystem in the config XML
   expression = xpath.compile(sprintf('//subSystem/subSystem[name="%s"]',name));
@@ -251,7 +312,7 @@ for adc_idx = 1:adcList.getLength
   nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
   adc_cfg = nodeList.item(0);
   
-  % Load settings and find the longest possible record size which is used
+  % Load configs and find the longest possible record size which is used
   % by arena_packet_strip to prevent bad headers from causing major data
   % loss.
   if strcmpi(config_type,'adc-ads42lb69_0010')
@@ -302,7 +363,7 @@ for adc_idx = 1:adcList.getLength
         ncoFreq = nodeList.item(0);
         ncoFreq = ncoFreq.getTextContent.toCharArray;
         ncoFreq = str2double(ncoFreq(:).');
-        settings.adc{mode_latch+1,subchannel+1}.ncoFreq = ncoFreq;
+        configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoFreq = ncoFreq;
         
         expression = xpath.compile('cicDecimation');
         nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
@@ -312,7 +373,7 @@ for adc_idx = 1:adcList.getLength
         cicDecimation = nodeList.item(0);
         cicDecimation = cicDecimation.getTextContent.toCharArray;
         cicDecimation = str2double(cicDecimation(:).');
-        settings.adc{mode_latch+1,subchannel+1}.cicDecimation = cicDecimation;
+        configs.adc{adc_idx,mode_latch+1,subchannel+1}.cicDecimation = cicDecimation;
       end
     end
     
@@ -362,11 +423,14 @@ for adc_idx = 1:adcList.getLength
         % Assumes simple range gate format "start:stop"
         [start,stop] = strtok(digRx_RG,':'); stop=stop(2:end);
         num_bins = str2double(stop) - str2double(start) + 1;
-        if num_bins > settings.max_num_bins
-          settings.max_num_bins = num_bins;
+        if num_bins < configs.min_num_bins
+          configs.min_num_bins = num_bins;
+        end
+        if num_bins > configs.max_num_bins
+          configs.max_num_bins = num_bins;
         end
         
-        settings.adc{mode_latch+1,subchannel+1}.rg = rg;
+        configs.adc{adc_idx,mode_latch+1,subchannel+1}.rg = rg;
       end
     end
     
@@ -383,8 +447,11 @@ for adc_idx = 1:adcList.getLength
       % Assumes simple range gate format "start:stop"
       [start,stop] = strtok(range_gates,':'); stop=stop(2:end);
       num_bins = str2double(stop) - str2double(start) + 1;
-      if num_bins > settings.max_num_bins
-        settings.max_num_bins = num_bins;
+      if num_bins < configs.min_num_bins
+        configs.min_num_bins = num_bins;
+      end
+      if num_bins > configs.max_num_bins
+        configs.max_num_bins = num_bins;
       end
     end
     
@@ -401,8 +468,11 @@ for adc_idx = 1:adcList.getLength
       % Assumes simple range gate format "start:stop"
       [start,stop] = strtok(range_gates,':'); stop=stop(2:end);
       num_bins = str2double(stop) - str2double(start) + 1;
-      if num_bins > settings.max_num_bins
-        settings.max_num_bins = num_bins;
+      if num_bins < configs.min_num_bins
+        configs.min_num_bins = num_bins;
+      end
+      if num_bins > configs.max_num_bins
+        configs.max_num_bins = num_bins;
       end
     end
     
@@ -432,6 +502,46 @@ for adc_idx = 1:adcList.getLength
     sampFreq = sampFreq.getTextContent.toCharArray;
     sampFreq = str2double(sampFreq(:).') * 1e6;
     
+    % Get the DDC0 NCO Mode
+    expression = xpath.compile('ddc0NcoMode');
+    nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    ddc0NcoMode = nodeList.item(0);
+    ddc0NcoMode = ddc0NcoMode.getTextContent.toCharArray;
+    ddc0NcoMode = str2double(ddc0NcoMode(:).');    
+    
+    % Get the DDC1 NCO Mode
+    expression = xpath.compile('ddc1NcoMode');
+    nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    ddc1NcoMode = nodeList.item(0);
+    ddc1NcoMode = ddc1NcoMode.getTextContent.toCharArray;
+    ddc1NcoMode = str2double(ddc1NcoMode(:).');
+    
+    % Get the DDC0 NCO Frequency
+    expression = xpath.compile('ddc0NcoFreq');
+    nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    ddc0NcoFreq = nodeList.item(0);
+    ddc0NcoFreq = ddc0NcoFreq.getTextContent.toCharArray;
+    ddc0NcoFreq = str2double(ddc0NcoFreq(:).') * 1e6;    
+    
+    % Get the DDC1 NCO Frequency
+    expression = xpath.compile('ddc1NcoFreq');
+    nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    ddc1NcoFreq = nodeList.item(0);
+    ddc1NcoFreq = ddc1NcoFreq.getTextContent.toCharArray;
+    ddc1NcoFreq = str2double(ddc1NcoFreq(:).') * 1e6;
+    
     % Get each subchannel
     expression = xpath.compile('subChannels/subChannel');
     subchannel_nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
@@ -451,7 +561,7 @@ for adc_idx = 1:adcList.getLength
       subchannel = subchannel.getTextContent.toCharArray;
       subchannel = str2double(subchannel(:).');
       
-      % Load each digital receiver's settings
+      % Load each digital receiver's configs
       expression = xpath.compile('digRx');
       digRx_nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
       for digRx_idx = 1:digRx_nodeList.getLength
@@ -496,19 +606,26 @@ for adc_idx = 1:adcList.getLength
         decimation = decimation.getTextContent.toCharArray;
         decimation = str2double(decimation(:).');
         
-        % Update adc settings for this integrator's modes and subchannel
+        % Update adc configs for this integrator's modes and subchannel
         for mode_idx = 1:length(modes)
           mode_latch = modes(mode_idx);
           
-          settings.adc{mode_latch+1,subchannel+1}.ncoPhase = ncoPhase;
-          settings.adc{mode_latch+1,subchannel+1}.ncoFreq = ncoFreq;
-          settings.adc{mode_latch+1,subchannel+1}.cicDecimation = decimation;
-          settings.adc{mode_latch+1,subchannel+1}.adcMode = adcMode;
-          settings.adc{mode_latch+1,subchannel+1}.sampFreq = sampFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.name = name;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.config_name = config_name;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.config_type = config_type;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoPhase = ncoPhase;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ncoFreq = ncoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.cicDecimation = decimation;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.adcMode = adcMode;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.sampFreq = sampFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoMode = ddc0NcoMode;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoMode = ddc1NcoMode;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoFreq = ddc0NcoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoFreq = ddc1NcoFreq;
         end
       end
       
-      % Load each integrator's settings
+      % Load each integrator's configs
       expression = xpath.compile('integrator');
       integrator_nodeList = expression.evaluate(subchannel_cfg,XPathConstants.NODESET);
       for integrator_idx = 1:integrator_nodeList.getLength
@@ -549,17 +666,20 @@ for adc_idx = 1:adcList.getLength
         % Assumes simple range gate format "start:stop"
         [start,stop] = strtok(rg,':'); stop=stop(2:end);
         num_bins = str2double(stop) - str2double(start) + 1;
-        if num_bins > settings.max_num_bins
-          settings.max_num_bins = num_bins;
+        if num_bins < configs.min_num_bins
+          configs.min_num_bins = num_bins;
+        end
+        if num_bins > configs.max_num_bins
+          configs.max_num_bins = num_bins;
         end
         
-        % Update adc settings for this integrator's modes and subchannel
+        % Update adc configs for this integrator's modes and subchannel
         for mode_idx = 1:length(modes)
           mode_latch = modes(mode_idx);
           
-          settings.adc{mode_latch+1,subchannel+1}.presums = adcMode;
-          settings.adc{mode_latch+1,subchannel+1}.num_sam = num_bins;
-          settings.adc{mode_latch+1,subchannel+1}.rg = rg;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.presums = adcMode;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.num_sam = num_bins;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.rg = rg;
         end
         
       end
@@ -571,126 +691,131 @@ for adc_idx = 1:adcList.getLength
 end
 
 
+%% CTU DIGITAL IO
+% =========================================================================
 % Get all the CTUs
 expression = xpath.compile('//subSystem[starts-with(@type,"ctu")]');
 ctuList = expression.evaluate(doc,XPathConstants.NODESET);
 
-for ctu_idx = 1:ctuList.getLength
+% 1. Get the name of the CTU
+expression = xpath.compile('name');
+nodeList = expression.evaluate(ctuList.item(0),XPathConstants.NODESET);
+name = nodeList.item(0).getTextContent.toCharArray;
+name = name(:).';
+
+% 2. Search for the subSystem in the config XML
+expression = xpath.compile(sprintf('//subSystem/subSystem[name="%s"]',name));
+nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
+match = nodeList.item(0);
+
+% 3. Get the config name and type for this CTU
+expression = xpath.compile('config/@type');
+nodeList = expression.evaluate(match,XPathConstants.NODESET);
+config_type = nodeList.item(0).getTextContent.toCharArray;
+config_type = config_type(:).';
+expression = xpath.compile('config');
+nodeList = expression.evaluate(match,XPathConstants.NODESET);
+config_name = nodeList.item(0).getTextContent.toCharArray;
+config_name = config_name(:).';
+
+configs.ctu.name = name;
+configs.ctu.config_type = config_type;
+configs.ctu.config_name = config_name;
+configs.ctu.io = {};
+
+% Get the config associated with this CTU
+expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',config_type,config_name));
+nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
+ctu_cfg = nodeList.item(0);
+
+% Find the longest possible record size
+if strcmpi(config_type,'ctu_0013')
+  % TOHFSounder
   
-  % 1. Get the name of the CTU
-  expression = xpath.compile('name');
-  nodeList = expression.evaluate(ctuList.item(ctu_idx-1),XPathConstants.NODESET);
-  name = nodeList.item(0).getTextContent.toCharArray;
-  name = name(:).';
-  
-  % 2. Search for the subSystem in the config XML
-  expression = xpath.compile(sprintf('//subSystem/subSystem[name="%s"]',name));
-  nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
-  match = nodeList.item(0);
-  
-  % 3. Get the config name and type for this CTU
-  expression = xpath.compile('config/@type');
-  nodeList = expression.evaluate(match,XPathConstants.NODESET);
-  config_type = nodeList.item(0).getTextContent.toCharArray;
-  config_type = config_type(:).';
-  expression = xpath.compile('config');
-  nodeList = expression.evaluate(match,XPathConstants.NODESET);
-  config_name = nodeList.item(0).getTextContent.toCharArray;
-  config_name = config_name(:).';
-  
-  % Get the config associated with this CTU
-  expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',config_type,config_name));
-  nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
-  ctu_cfg = nodeList.item(0);
-  
-  % Find the longest possible record size
-  if strcmpi(config_type,'ctu_0013')
-    % TOHFSounder
-    
-    % Get each subchannel
-    expression = xpath.compile('mode');
-    mode_nodeList = expression.evaluate(ctu_cfg,XPathConstants.NODESET);
-    for mode_idx = 1:mode_nodeList.getLength
-      mode_cfg = mode_nodeList.item(mode_idx-1);
-      if isempty(mode_cfg)
-        continue;
-      end
-      
-      expression = xpath.compile('id');
-      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
-      if nodeList.getLength < 1 || isempty(nodeList.item(0))
-        continue;
-      end
-      mode_latch = nodeList.item(0);
-      mode_latch = mode_latch.getTextContent.toCharArray;
-      mode_latch = str2double(mode_latch(:).');
-      
-      expression = xpath.compile('segmentTimes');
-      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
-      if nodeList.getLength < 1 || isempty(nodeList.item(0))
-        continue;
-      end
-      segmentTimes = nodeList.item(0);
-      segmentTimes = segmentTimes.getTextContent.toCharArray;
-      segmentTimes = segmentTimes(:).';
-      settings.ctu{mode_latch+1}.segmentTimes = segmentTimes;
-      
-      expression = xpath.compile('segmentStates');
-      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
-      if nodeList.getLength < 1 || isempty(nodeList.item(0))
-        continue;
-      end
-      segmentStates = nodeList.item(0);
-      segmentStates = segmentStates.getTextContent.toCharArray;
-      segmentStates = segmentStates(:).';
-      settings.ctu{mode_latch+1}.segmentStates = segmentStates;
+  % Get each subchannel
+  expression = xpath.compile('mode');
+  mode_nodeList = expression.evaluate(ctu_cfg,XPathConstants.NODESET);
+  for mode_idx = 1:mode_nodeList.getLength
+    mode_cfg = mode_nodeList.item(mode_idx-1);
+    if isempty(mode_cfg)
+      continue;
     end
     
-  elseif strcmpi(config_type,'ctu_001D')
-    
-    % Get each subchannel
-    expression = xpath.compile('mode');
-    mode_nodeList = expression.evaluate(ctu_cfg,XPathConstants.NODESET);
-    for mode_idx = 1:mode_nodeList.getLength
-      mode_cfg = mode_nodeList.item(mode_idx-1);
-      if isempty(mode_cfg)
-        continue;
-      end
-      
-      expression = xpath.compile('id');
-      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
-      if nodeList.getLength < 1 || isempty(nodeList.item(0))
-        continue;
-      end
-      mode_latch = nodeList.item(0);
-      mode_latch = mode_latch.getTextContent.toCharArray;
-      mode_latch = str2double(mode_latch(:).');
-      
-      expression = xpath.compile('segmentTimes');
-      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
-      if nodeList.getLength < 1 || isempty(nodeList.item(0))
-        continue;
-      end
-      segmentTimes = nodeList.item(0);
-      segmentTimes = segmentTimes.getTextContent.toCharArray;
-      segmentTimes = segmentTimes(:).';
-      settings.ctu{mode_latch+1}.segmentTimes = segmentTimes;
-      
-      expression = xpath.compile('segmentStates');
-      nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
-      if nodeList.getLength < 1 || isempty(nodeList.item(0))
-        continue;
-      end
-      segmentStates = nodeList.item(0);
-      segmentStates = segmentStates.getTextContent.toCharArray;
-      segmentStates = segmentStates(:).';
-      settings.ctu{mode_latch+1}.segmentStates = segmentStates;
+    expression = xpath.compile('id');
+    nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
     end
+    mode_latch = nodeList.item(0);
+    mode_latch = mode_latch.getTextContent.toCharArray;
+    mode_latch = str2double(mode_latch(:).');
+    
+    expression = xpath.compile('segmentTimes');
+    nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    segmentTimes = nodeList.item(0);
+    segmentTimes = segmentTimes.getTextContent.toCharArray;
+    segmentTimes = segmentTimes(:).';
+    configs.ctu.io{mode_latch+1}.segmentTimes = segmentTimes;
+    
+    expression = xpath.compile('segmentStates');
+    nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    segmentStates = nodeList.item(0);
+    segmentStates = segmentStates.getTextContent.toCharArray;
+    segmentStates = segmentStates(:).';
+    configs.ctu.io{mode_latch+1}.segmentStates = segmentStates;
+  end
+  
+elseif strcmpi(config_type,'ctu_001D')
+  
+  % Get each subchannel
+  expression = xpath.compile('mode');
+  mode_nodeList = expression.evaluate(ctu_cfg,XPathConstants.NODESET);
+  for mode_idx = 1:mode_nodeList.getLength
+    mode_cfg = mode_nodeList.item(mode_idx-1);
+    if isempty(mode_cfg)
+      continue;
+    end
+    
+    expression = xpath.compile('id');
+    nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    mode_latch = nodeList.item(0);
+    mode_latch = mode_latch.getTextContent.toCharArray;
+    mode_latch = str2double(mode_latch(:).');
+    
+    expression = xpath.compile('segmentTimes');
+    nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    segmentTimes = nodeList.item(0);
+    segmentTimes = segmentTimes.getTextContent.toCharArray;
+    segmentTimes = segmentTimes(:).';
+    configs.ctu.io{mode_latch+1}.segmentTimes = segmentTimes;
+    
+    expression = xpath.compile('segmentStates');
+    nodeList = expression.evaluate(mode_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    segmentStates = nodeList.item(0);
+    segmentStates = segmentStates.getTextContent.toCharArray;
+    segmentStates = segmentStates(:).';
+    configs.ctu.io{mode_latch+1}.segmentStates = segmentStates;
   end
 end
 
 
-% Get all the DACs
+%% DACS/AWG
+% =========================================================================
 expression = xpath.compile('//subSystem[starts-with(@type,"dac")]');
 dacList = expression.evaluate(doc,XPathConstants.NODESET);
 
@@ -756,7 +881,7 @@ for dac_idx = 1:dacList.getLength
       delay = nodeList.item(0);
       delay = delay.getTextContent.toCharArray;
       delay = str2double(delay(:).');
-      settings.dac{mode_latch+1}.delay = delay;
+      configs.dac{mode_latch+1}.delay = delay;
       
       % 3. Get the config name and type for this DAC waveform
       expression = xpath.compile('config/@type');
@@ -782,14 +907,14 @@ for dac_idx = 1:dacList.getLength
         name = nodeList.item(0);
         name = name.getTextContent.toCharArray;
         name = name(:).';
-        settings.dac{mode_latch+1}.name = name;
+        configs.dac{mode_latch+1}.name = name;
         
         expression = xpath.compile('sampFreq');
         nodeList = expression.evaluate(dac_wf_cfg,XPathConstants.NODESET);
         sampFreq = nodeList.item(0);
         sampFreq = sampFreq.getTextContent.toCharArray;
         sampFreq = str2double(sampFreq(:).');
-        settings.dac{mode_latch+1}.sampFreq = sampFreq;
+        configs.dac{mode_latch+1}.sampFreq = sampFreq;
         
         % Get each subchannel
         expression = xpath.compile('pulse');
@@ -805,70 +930,70 @@ for dac_idx = 1:dacList.getLength
           name = nodeList.item(0);
           name = name.getTextContent.toCharArray;
           name = name(:).';
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.name = name;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.name = name;
           
           expression = xpath.compile('centerFreq');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           centerFreq = nodeList.item(0);
           centerFreq = centerFreq.getTextContent.toCharArray;
           centerFreq = str2double(centerFreq(:).');
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.centerFreq = centerFreq;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.centerFreq = centerFreq;
           
           expression = xpath.compile('bandwidth');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           bandwidth = nodeList.item(0);
           bandwidth = bandwidth.getTextContent.toCharArray;
           bandwidth = str2double(bandwidth(:).');
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.bandwidth = bandwidth;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.bandwidth = bandwidth;
           
           expression = xpath.compile('initialDelay');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           initialDelay = nodeList.item(0);
           initialDelay = initialDelay.getTextContent.toCharArray;
           initialDelay = str2double(initialDelay(:).');
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.initialDelay = initialDelay;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.initialDelay = initialDelay;
           
           expression = xpath.compile('initialPhase');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           initialPhase = nodeList.item(0);
           initialPhase = initialPhase.getTextContent.toCharArray;
           initialPhase = str2double(initialPhase(:).');
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.initialPhase = initialPhase;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.initialPhase = initialPhase;
           
           expression = xpath.compile('afterPulseDelay');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           afterPulseDelay = nodeList.item(0);
           afterPulseDelay = afterPulseDelay.getTextContent.toCharArray;
           afterPulseDelay = str2double(afterPulseDelay(:).');
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.afterPulseDelay = afterPulseDelay;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.afterPulseDelay = afterPulseDelay;
           
           expression = xpath.compile('taper');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           taper = nodeList.item(0);
           taper = taper.getTextContent.toCharArray;
           taper = taper(:).';
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.taper = taper;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.taper = taper;
           
           expression = xpath.compile('alpha');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           alpha = nodeList.item(0);
           alpha = alpha.getTextContent.toCharArray;
           alpha = str2double(alpha(:).');
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.alpha = alpha;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.alpha = alpha;
           
           expression = xpath.compile('scale');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           scale = nodeList.item(0);
           scale = scale.getTextContent.toCharArray;
           scale = str2double(scale(:).');
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.scale = scale;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.scale = scale;
           
           expression = xpath.compile('numPoints');
           nodeList = expression.evaluate(pulse_cfg,XPathConstants.NODESET);
           numPoints = nodeList.item(0);
           numPoints = numPoints.getTextContent.toCharArray;
           numPoints = str2double(numPoints(:).');
-          settings.dac{mode_latch+1}.wfs{pulse_idx}.numPoints = numPoints;
+          configs.dac{mode_latch+1}.wfs{pulse_idx}.numPoints = numPoints;
         end
       end
       

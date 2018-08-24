@@ -107,20 +107,28 @@ if ~isfield(param.records.gps,'utc_time_halved') || isempty(param.records.gps.ut
   end
 end
 
+if ~isfield(param.records,'frames') || isempty(param.records.frames)
+  param.records.frames = [];
+end
+
+if ~isfield(param.records.frames,'mode') || isempty(param.records.frames.mode)
+  param.records.frames.mode = 0;
+end
+
 %% Load headers from each board
 % =====================================================================
 clear board_hdrs;
 board_hdrs = {};
 records = [];
 for board_idx = 1:length(boards)
-  board = boards(board_idx);
+  board = boards{board_idx};
   
-  fprintf('Getting files for board %d (%d of %d) (%s)\n', ...
+  fprintf('Getting files for board %s (%d of %d) (%s)\n', ...
     board, board_idx, length(boards), datestr(now));
   
   %% Load headers: get files
   % =====================================================================
-  [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,board);
+  [base_dir,adc_folder_name,board_fns{board_idx},file_idxs] = get_segment_file_list(param,board_idx);
   
   % Load header from radar data file
   fprintf('Loading raw files %i to %i\n',file_idxs([1 end]));
@@ -235,30 +243,28 @@ end
 if any(param.records.file.version == [9 10 103 412])
   % Arena based systems
 
-  % Load XML settings file
-  xml_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
-    fullfile(param.records.xml_fn));
-  settings = read_arena_xml(xml_fn);
+  % Load XML configs file
+  config_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
+    fullfile(param.records.config_fn));
+  configs = read_arena_xml(config_fn);
   
   for board_idx = 1:length(boards)
-    board = boards(board_idx);
-    
     %% Correct EPRI/Arena: Find the PRIs associated with the EPRI profile
     % =====================================================================
-    if size(param.records.arena.data_map{board},2) == 4
+    if size(param.records.data_map{board_idx},2) == 4
       % No Profile Processor Digital System (use mode_latch,subchannel instead)
-      % Each row of param.records.arena.data_map{board} = [mode_latch channel wf adc]
+      % Each row of param.records.data_map{board_idx} = [mode_latch channel wf adc]
       
       % Get the first row (which is always the EPRI row)
-      epri_mode = param.records.arena.data_map{board}(1,1);
-      epri_subchannel = param.records.arena.data_map{board}(1,2);
+      epri_mode = param.records.data_map{board_idx}(1,1);
+      epri_subchannel = param.records.data_map{board_idx}(1,2);
       
       mask = board_hdrs{board_idx}.mode_latch == epri_mode & board_hdrs{board_idx}.subchannel == epri_subchannel;
     else
       error('Profile mode not supported.');
       % Profile Processor Digital System
-      % Each row of param.records.arena.data_map{board} = [profile wf adc]
-      epri_profile = param.records.arena.data_map{board}(1,1);
+      % Each row of param.records.data_map{board_idx} = [profile wf adc]
+      epri_profile = param.records.data_map{board_idx}(1,1);
       
       mask = profile == epri_profile;
     end
@@ -273,11 +279,11 @@ if any(param.records.file.version == [9 10 103 412])
     
     %% Correct EPRI/Arena: Find EPRI jumps and mask out
     % =====================================================================
-    jump_idxs = find( abs(diff(double(epri_pris))/settings.total_presums - 1) > 0.1);
+    jump_idxs = find( abs(diff(double(epri_pris))/configs.total_presums - 1) > 0.1);
     
     bad_mask = zeros(size(epri_pris));
     for jump_idx = jump_idxs
-      jump = (epri_pris(jump_idx+1)-epri_pris(jump_idx))/settings.total_presums - 1;
+      jump = (epri_pris(jump_idx+1)-epri_pris(jump_idx))/configs.total_presums - 1;
       fprintf('jump_idx: %d, jump: %d\n', jump_idx, jump);
       fprintf('epri_pris: %d %d\n', epri_pris(jump_idx+1), epri_pris(jump_idx));
       if jump < -0.1
@@ -330,10 +336,10 @@ if any(param.records.file.version == [9 10 103 412])
       %  fprintf('%d\n', idx);
       %end
       for pri_idx = epri_pri_idxs(idx):epri_pri_idxs(idx+1)-1
-        if board_hdrs{board_idx}.mode_latch(pri_idx) >= size(settings.adc,1) ...
-            || board_hdrs{board_idx}.subchannel(pri_idx) >= size(settings.adc,2) ...
-            || ~isfield(settings.adc{board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1},'rg') ...
-            || isempty(settings.adc{board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1}.rg)
+        if board_hdrs{board_idx}.mode_latch(pri_idx) >= size(configs.adc,2) ...
+            || board_hdrs{board_idx}.subchannel(pri_idx) >= size(configs.adc,3) ...
+            || ~isfield(configs.adc{board_idx,board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1},'rg') ...
+            || isempty(configs.adc{board_idx,board_hdrs{board_idx}.mode_latch(pri_idx)+1,board_hdrs{board_idx}.subchannel(pri_idx)+1}.rg)
           fprintf('Bad record %d\n', pri_idx);
           mask(pri_idx) = 0;
           break;
@@ -382,16 +388,16 @@ if any(param.records.file.version == [9 10 103 412])
   for board_idx = 1:length(boards)
     board = boards(board_idx);
     
-    for map_idx = 1:size(param.records.arena.data_map{board_idx},1)
-      wf = param.records.arena.data_map{board_idx}(map_idx,3);
-      % adc = param.records.arena.data_map{board_idx}(map_idx,4);
-      mode_latch = param.records.arena.data_map{board_idx}(map_idx,1);
-      subchannel = param.records.arena.data_map{board_idx}(map_idx,2);
+    for map_idx = 1:size(param.records.data_map{board_idx},1)
+      wf = param.records.data_map{board_idx}(map_idx,3);
+      % adc = param.records.data_map{board_idx}(map_idx,4);
+      mode_latch = param.records.data_map{board_idx}(map_idx,1);
+      subchannel = param.records.data_map{board_idx}(map_idx,2);
       
-      wfs(wf).num_sam = settings.adc{mode_latch+1,subchannel+1}.num_sam;
+      wfs(wf).num_sam = configs.adc{board_idx,mode_latch+1,subchannel+1}.num_sam;
       wfs(wf).bit_shifts = param.radar.wfs(wf).bit_shifts;
       wfs(wf).t0 = param.radar.wfs(wf).Tadc;
-      wfs(wf).presums = settings.adc{mode_latch+1,subchannel+1}.presums;
+      wfs(wf).presums = configs.adc{board_idx,mode_latch+1,subchannel+1}.presums;
     end
   end
 
@@ -406,5 +412,12 @@ create_records_save_workspace;
 %% Correct time, sync GPS data, and save records
 create_records_sync;
 
-return;
-
+%% Create frames
+% param.records.frames.mode == 0: Do nothing
+if param.records.frames.mode == 1
+  create_frames(param,param_override);
+  fprintf('Type dbcont to continue when you are done creating frames for this segment.\n');
+  keyboard;
+elseif param.records.frames.mode == 2
+  autogenerate_frames(param,param_override);
+end

@@ -5,6 +5,8 @@ if param.load.raw_data && param.load.pulse_comp
   error('Pulse compression (param.load.pulse_comp) cannot be enabled with raw data loading (param.load.raw_data).');
 end
 
+hdr.custom = [];
+
 physical_constants;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
@@ -89,14 +91,14 @@ for img = 1:length(param.load.imgs)
         
         if wf_adc == 1
           hdr.time{img} = wfs(wf).time;
-          hdr.fc{img} = wfs(wf).freq(1);
+          hdr.freq{img} = wfs(wf).freq;
         end
         
         
       elseif strcmpi(radar_type,'deramp')
         
         % Minimum step size in BW using only FFTs to constrain BW
-        wfs(wf).df = wfs(wf).chirp_rate * 2^(1+wfs(wf).DDC_mode_max) / wfs(wf).fs_raw;
+        wfs(wf).df = wfs(wf).chirp_rate * wfs(wf).DDC_dec_max / wfs(wf).fs_raw;
         
         % Check that number of samples is an integer
         wfs(wf).Nt_raw = abs(diff(wfs(wf).BW_window)) / wfs(wf).df;
@@ -111,17 +113,12 @@ for img = 1:length(param.load.imgs)
           
           % Check to see if axes has changed since last record
           if rec == 1 ...
-              || hdr.DDC_mode{img}(rec) ~= hdr.DDC_mode{img}(rec-1) ...
+              || hdr.DDC_dec{img}(rec) ~= hdr.DDC_dec{img}(rec-1) ...
               || hdr.DDC_freq{img}(rec) ~= hdr.DDC_freq{img}(rec-1) ...
               || hdr.nyquist_zone{img}(rec) ~= hdr.nyquist_zone{img}(rec-1)
             
-            if hdr.DDC_mode{img}(rec)
-              fs_raw = wfs(wf).fs_raw ./ 2^(1+hdr.DDC_mode{img}(rec));
-              Nt = wfs(wf).Nt_raw * 2.^(-hdr.DDC_mode{img}(rec)+wfs(wf).DDC_mode_max);
-            else
-              fs_raw = wfs(wf).fs_raw;
-              Nt = wfs(wf).Nt_raw * 2.^(1+wfs(wf).DDC_mode_max);
-            end
+            fs_raw = wfs(wf).fs_raw ./ hdr.DDC_dec{img}(rec);
+            Nt = wfs(wf).Nt_raw * wfs(wf).DDC_dec_max / hdr.DDC_dec{img}(rec);
             
             t0 = hdr.t0{img}(rec) + wfs(wf).Tadc_adjust;
             Nt_raw = hdr.Nt{img}(rec);
@@ -183,7 +180,7 @@ for img = 1:length(param.load.imgs)
           
           % Check to see if reference time offset has changed since last record
           if rec == 1 ...
-              || hdr.DDC_mode{img}(rec) ~= hdr.DDC_mode{img}(rec-1) ...
+              || hdr.DDC_dec{img}(rec) ~= hdr.DDC_dec{img}(rec-1) ...
               || hdr.DDC_freq{img}(rec) ~= hdr.DDC_freq{img}(rec-1) ...
               || hdr.nyquist_zone{img}(rec) ~= hdr.nyquist_zone{img}(rec-1) ...
               || hdr.t_ref{img}(rec) ~= hdr.t_ref{img}(rec-1)
@@ -479,5 +476,7 @@ for img = 1:length(param.load.imgs)
     
   end
   
-  data{img} = data{img}(1:wfs(wf).Nt,:,:);
+  if param.load.pulse_comp == 1
+    data{img} = data{img}(1:wfs(wf).Nt,:,:);
+  end
 end

@@ -1,5 +1,5 @@
-function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board)
-% [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board)
+function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board_idx)
+% [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board_idx)
 %
 % Support function for create_vectors.m and create_records.m.
 % Can also be used to get all the file information for every segment
@@ -17,7 +17,6 @@ function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(para
 %    .regexp: additional regular expression to run after the initial file
 %      search
 % board: optional parameter used with some radars that have multiple adcs
-%   This is 1-indexed adc.
 %
 % Author: John Paden
 %
@@ -52,7 +51,7 @@ else
 end
 
 board_folder_name = param.records.file.board_folder_name;
-board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
+board_folder_name = regexprep(board_folder_name,'%b',param.records.file.boards{board_idx});
 
 base_dir = fullfile(ct_filename_data(param,param.records.file.base_dir),board_folder_name);
 
@@ -103,9 +102,9 @@ if nargout > 2
     % A stop index of -N says to include all but the last N files
     stop_idx = length(fns) + param.records.file.stop_idx;
   else
-    stop_idx = param.records.file.stop_idx(board);
+    stop_idx = param.records.file.stop_idx(board_idx);
   end
-  file_idxs = param.records.file.start_idx(board):stop_idx;
+  file_idxs = param.records.file.start_idx(board_idx):stop_idx;
   
   if isempty(file_idxs)
     error('No files selected to load out of %i files', length(fns));

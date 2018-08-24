@@ -33,7 +33,7 @@ function layers = opsLoadLayers(param, layer_params)
 %  .debug = default is false
 %  .eval: Optional structure for performing operations on the layer
 %    .cmd: Command string that will be passed to eval
-%    .$(custom): Custom fields
+%    .$(custom): Custom fields to be accessed in cmd as es.$(custom)
 %     Variables available are:
 %       physical_constants
 %       "gps_time" (sec)
@@ -42,7 +42,7 @@ function layers = opsLoadLayers(param, layer_params)
 %       "lon" (deg)
 %       "elev" (m)
 %       "source" (twtt in sec)
-%       "eval_struct" (the eval structure passed in by the user)
+%       "es" (this eval structure passed in by the user)
 %     The cmd string should generally update "source" variable. For example:
 %        '[B,A] = butter(0.1,2); source = filtfilt(B,A,source);' % Filter
 %        'source = source + 0.1;' % Apply a twtt shift
@@ -515,15 +515,15 @@ end
 for layer_idx = 1:length(layer_params)
   layer_param = layer_params(layer_idx);
   if isfield(layer_param,'eval') && ~isempty(layer_param.eval)
-    source = layers(layer_idx).twtt;
-    gps_time = layers(layer_idx).gps_time;
+    s = layers(layer_idx).twtt;
+    time = layers(layer_idx).gps_time;
     lat = layers(layer_idx).lat;
     lon = layers(layer_idx).lon;
     elev = layers(layer_idx).elev;
-    along_track = geodetic_to_along_track(lat,lon,elev);
-    eval_struct = layer_param.eval;
+    at = geodetic_to_along_track(lat,lon,elev);
+    es = layer_param.eval;
     eval(layer_param.eval.cmd);
-    layers(layer_idx).twtt = source;
+    layers(layer_idx).twtt = s;
   end
 end
 

@@ -62,7 +62,7 @@ function [phase_center] = lever_arm(param, tx_weights, rxchannel)
 % Author: Theresa Stumpf, John Paden
 
 if strcmpi(param.gps_source,'NA')
-  error('Cannot call lever arm function with gps source of NA (no GPS data)');
+  error('Cannot call lever arm function with gps source of NA (no GPS data). Set param.radar.lever_arm to empty.');
 end
 
 LAtx = [];
@@ -75,8 +75,34 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
+if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
+  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+  % Aircraft: British Antarctic Survey (BAS) VP-FBL
+  %
+  % Carl Robinson at BAS Aug 2018: Though we do have measurements for
+  % various fits back to lidar and other sensors it will be easiest to
+  % measure to antenna when installed.  Also we have a full point cloud
+  % model of the exterior of the Twin Otter that shows the antennas.  We
+  % have four antennas to choose from 3 around the wing area on the cabin
+  % and one slightly further back over the centre of the camera bay we can
+  % choose one to measure off. All the antennas have their TNC connectors
+  % accessible in the cabin so can do a direct measurement to the chosen
+  % one and use the datasheet to reference to the antenna centre. (Antenna
+  % datasheet attached for reference) We will survey all the sensors (2 x
+  % IMU, Lidar, radar antennas, GPS antenna) when we install at Rothera
+  % also. We normally use the one over the camera bay as that is on the
+  % centre line of the aircraft, the other GPS antennas are slightly offset
+  % to avoid ribs, cables and other aircraft structure. Only the one over
+  % the camera bay is on the centerline.
+
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
+
 if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(gps_source,'nmea'))
-  warning('NEEDS TO BE DETERMINED');
+  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
@@ -123,7 +149,7 @@ if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(gps_source,'ATM'))
 end
 
 if (strcmpi(param.season_name,'2015_Alaska_TOnrl') && strcmpi(gps_source,'NRL'))
-  warning('NEEDS TO BE DETERMINED');
+  warning('ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
@@ -172,7 +198,7 @@ if (strcmpi(param.season_name,'2015_Greenland_C130') && strcmpi(gps_source,'ATM'
 end
 
 if (strcmpi(param.season_name,'2014_Alaska_TOnrl') && strcmpi(gps_source,'NRL'))
-  warning('NEEDS TO BE DETERMINED');
+  warning('ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
@@ -513,6 +539,30 @@ end
 % =========================================================================
 %% Accumulation Radar
 % =========================================================================
+
+if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'accum'))
+  % Accumulation antenna
+  LArx(1,:)   = (-302.625*0.0254 + [0 0 0 0]) - gps.x; % m
+  LArx(2,:)   = (0.75 + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
+  LArx(3,:)   = (5*0.0254 + [0 0 0 0]) - gps.z; % m
+  
+  LArx = mean(LArx,2);
+  
+  LAtx(1,:)   = (-302.625*0.0254 + [0 0 0 0]) - gps.x; % m
+  LAtx(2,:)   = (0.75 + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
+  LAtx(3,:)   = (5*0.0254 + [0 0 0 0]) - gps.z; % m
+  
+  LAtx = mean(LAtx,2);
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if (strcmpi(param.season_name,'2009_antarctica_TO') && strcmpi(radar_name,'accum')) ...
     || (strcmpi(param.season_name,'2011_antarctica_TO') && strcmpi(radar_name,'accum'))
@@ -1309,7 +1359,7 @@ end
 
 if (strcmpi(param.season_name,'2004_Antarctica_P3') && strcmpi(radar_name,'rds'))
   % Based on GISMO antenna positions.doc (assumes same antenna and gps
-  % setup as 2007 mission).  THIS NEEDS TO BE VERIFIED!!!
+  % setup as 2007 mission).  THIS ACTUAL LEVER ARM NEEDS TO BE VERIFIED!!!
     LArx(1,:) = [630 630 630 630 630]*0.0254 - gps.x; % meters
   LArx(2,:) = [448.6 481.6 515.1 549.1 mean([448.6 481.6 515.1 549.1])]*0.0254 - gps.y; % m
   
@@ -1334,7 +1384,7 @@ end
 
 if (strcmpi(param.season_name,'2003_Greenland_P3') && strcmpi(radar_name,'rds'))
   % Based on GISMO antenna positions.doc (assumes same antenna and gps
-  % setup as 2007 mission).  THIS NEEDS TO BE VERIFIED!!!
+  % setup as 2007 mission).  THIS ACTUAL LEVER ARM NEEDS TO BE VERIFIED!!!
   LArx(1,:) = [630]*0.0254 - gps.x; % meters
   LArx(2,:) = [mean([448.6 481.6 515.1 549.1])]*0.0254 - gps.y; % m
   
@@ -1434,7 +1484,7 @@ end
 
 if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'snow'))
   % X,Y,Z are in aircraft coordinates, not IMU
-  warning('NEEDS TO BE DETERMINED');
+  warning('ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   LArx(1,1) = 0*2.54/100;
   LArx(2,1) = 0*2.54/100;
   LArx(3,1) = 0*2.54/100;
@@ -1499,7 +1549,7 @@ end
 
 if (strcmpi(param.season_name,'2015_Alaska_TOnrl') && strcmpi(radar_name,'snow'))
   % X,Y,Z are in aircraft coordinates, not IMU
-  warning('NEEDS TO BE DETERMINED');
+  warning('ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   LArx(1,1) = 0*2.54/100;
   LArx(2,1) = 0*2.54/100;
   LArx(3,1) = 0*2.54/100;

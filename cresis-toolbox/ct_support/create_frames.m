@@ -53,14 +53,14 @@ fprintf('=====================================================================\n
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 records_fn = ct_filename_support(param,'','records');
-records_ver = load(records_fn,'ver');
-if isfield(records_ver,'ver')
+records_ver = load(records_fn,'ver','file_version');
+if isfield(records_ver,'ver') || isfield(records_ver,'file_version')
   records_file.records = load(records_fn);
 else
   records_file = load(records_fn, 'records');
 end
-if ~isfield(records_file.records,'lat') || isempty(records_file.records.lat)
-  fprintf('No geographic data present\n');
+if ~isfield(records_file.records,'lat') || isempty(records_file.records.lat) || all(isnan(records_file.records.lat))
+  fprintf('No geographic data present in records file.\n');
   frames_fn = ct_filename_support(param,'','frames');
   if exist(frames_fn,'file')
     fprintf('  Frames file already exists, just exiting\n');
@@ -69,8 +69,13 @@ if ~isfield(records_file.records,'lat') || isempty(records_file.records.lat)
     frames.frame_idxs = 1;
     frames.nyquist_zone = NaN;
     frames.proc_mode = 0;
+    if param.ct_file_lock
+      file_version = '1L';
+    else
+      file_version = '1';
+    end
     fprintf('  Saving %s\n', frames_fn);
-    save(frames_fn,'frames');
+    save(frames_fn,'frames','file_version');
   end
   return;
 end
@@ -381,18 +386,18 @@ else
 end
 GB.cur_frame = 1;
 
-if isempty(GB.param.records.geotiff_fn)
+if isempty(GB.param.records.frames.geotiff_fn)
   GB.map_mode = false;
 else
-  GB.param.records.geotiff_fn = ct_filename_gis(param, GB.param.records.geotiff_fn);
+  GB.param.records.frames.geotiff_fn = ct_filename_gis(param, GB.param.records.frames.geotiff_fn);
   % Using Matlab's mapping mode with the geotiff provided
   GB.map_mode = true;
   % Using Matlab's mapping mode with the geotiff provided
   GB.map_mode = true;
   % Obtain the projection structure.
-  GB.proj = geotiffinfo(GB.param.records.geotiff_fn);
+  GB.proj = geotiffinfo(GB.param.records.frames.geotiff_fn);
   % Read the image
-  [RGB, R, tmp] = geotiffread(GB.param.records.geotiff_fn);
+  [RGB, R, tmp] = geotiffread(GB.param.records.frames.geotiff_fn);
   if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
     RGB = uint8(RGB);
   end
@@ -517,7 +522,13 @@ if ~exist(out_path,'dir')
   fprintf('Making directory %s\n', out_path);
   mkdir(out_path);
 end
-save(fn,'-STRUCT','GB','frames');
+if GB.param.ct_file_lock
+  GB.file_version = '1L';
+else
+  GB.file_version = '1';
+end
+ct_file_lock_check(fn,3);
+save(fn,'-STRUCT','GB','frames','file_version');
 fprintf('Frames saved in %s\n', fn);
 
 end

@@ -14,7 +14,6 @@ param.radar_name = 'accum3';
 %% Control parameters (not used in the parameter spreadsheet directly)
 default.header_load_func = @basic_load_arena;
 default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
-default.xml_version = 100.0;
 
 default.noise_50ohm = [0 0 0 0];
 
@@ -54,7 +53,7 @@ end
 %% Records worksheet in parameter spreadsheet
 default.records.gps.time_offset = 0;
 default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
-default.records.frames.mode = 0;
+default.records.frames.mode = 1;
 
 %% Quick Look worksheet in parameter spreadsheet
 default.qlook.out_path = '';
@@ -126,55 +125,67 @@ default.radar.noise_figure = 2;
 default.radar.adc_SNR_dB = 59;
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
-default.radar.adc_gains = 10.^([45 27]/20);
+default.radar.adc_gains_dB = [45 27];
 default.radar.rx_paths = [1 1];
+chan_equal_Tsys = [0]/1e9;
+chan_equal_dB = [0];
+chan_equal_deg = [0];
 
 defaults = {};
 
 % Deconvolution Mode
-default.records.arena.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
 default.radar.ref_fn = '';
-default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0];
-default.radar.wfs(1).chan_equal_deg = [0];
+for wf = 1:2
+  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).adcs = [1];
+end
 
-default.xml_regexp = '.*deconv.xml';
+default.config_regexp = '.*deconv.*';
 default.name = 'Deconv Mode 600-900 MHz';
 defaults{end+1} = default;
 
 % Survey Mode
-default.records.arena.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [2e-06 -inf 2e-06];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
 default.radar.ref_fn = '';
-default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0];
-default.radar.wfs(1).chan_equal_deg = [0];
+for wf = 1:2
+  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).adcs = [1];
+end
 
-default.xml_regexp = 'survey_600-900MHz_.*.xml';
+default.config_regexp = '.*survey.*';
 default.name = 'Survey Mode 600-900 MHz';
 defaults{end+1} = default;
 
 %% Other settings
-default.records.arena.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
 default.radar.ref_fn = '';
-default.radar.wfs(1).chan_equal_Tsys = [0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0];
-default.radar.wfs(1).chan_equal_deg = [0];
+for wf = 1:2
+  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).adcs = [1];
+end
 
-default.xml_regexp = '.*';
+default.config_regexp = '.*';
 default.name = 'Default 600-900 MHz';
 defaults{end+1} = default;

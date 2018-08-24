@@ -144,7 +144,8 @@ if load_surface_land_dems
   load_surface_land_dems_finished = true;
 end
 
-if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg)
+if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg) ...
+    && isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
   % Load records file
   records_fn = ct_filename_support(param,'','records');
   records = load(records_fn);

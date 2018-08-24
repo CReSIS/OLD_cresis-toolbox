@@ -82,14 +82,30 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
   end
   
-  if ~isfield(cmd,'layer') || isempty(cmd.layer)
+  if ~isfield(cmd,'start_time') || isempty(cmd.start_time)
     % Set the analysis start time to the beginning of the record
-    cmd.layer = -inf;
+    cmd.start_time = -inf;
+  end
+  if isstruct(cmd.start_time)
+    if ~isfield(cmd.start_time,'name') || isempty(cmd.start_time.name)
+      cmd.start_time.name = 'surface';
+    end
+    if ~isfield(cmd.start_time,'source') || isempty(cmd.start_time.source)
+      cmd.start_time.source = 'layerData';
+    end
   end
   
-  if ~isfield(cmd,'Nt') || isempty(cmd.Nt)
-    % Set the analysis length to the whole record
-    cmd.Nt = inf;
+  if ~isfield(cmd,'stop_time') || isempty(cmd.stop_time)
+    % Set the analysis stop time to the end of the record
+    cmd.stop_time = inf;
+  end
+  if isstruct(cmd.stop_time)
+    if ~isfield(cmd.stop_time,'name') || isempty(cmd.stop_time.name)
+      cmd.stop_time.name = 'surface';
+    end
+    if ~isfield(cmd.stop_time,'source') || isempty(cmd.stop_time.source)
+      cmd.stop_time.source = 'layerData';
+    end
   end
   
   if ~isfield(cmd,'B_filter') || isempty(cmd.B_filter)
@@ -107,6 +123,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
     cmd.decimate_factor = 1;
   end
 
+  if ~isfield(cmd,'method') || isempty(cmd.method)
+    error('cmd.method must be defined in param.analysis.cmd cell array');
+  end
+  
   switch lower(cmd.method)
     case {'coh_noise'}
       % Set defaults for coherent noise analysis method
@@ -159,7 +179,24 @@ for cmd_idx = 1:length(param.analysis.cmd)
       end
       
     case {'statistics'}
-      %
+      % Set defaults for statistical analysis method
+      
+      if ~isfield(cmd,'block_ave') || isempty(cmd.block_ave)
+        cmd.block_ave = 2000;
+      end
+      
+      if ~isfield(cmd,'pulse_compress') || isempty(cmd.pulse_compress)
+        cmd.pulse_compress = false;
+      end
+      
+      if ~isfield(cmd,'motion_comp') || isempty(cmd.motion_comp)
+        cmd.motion_comp = false;
+      end
+      
+      if ~isfield(cmd,'stats') || isempty(cmd.stats)
+        error('The statistical command requires that the stats field be set.');
+      end
+      
     case {'waveform'}
       %
   end
@@ -205,7 +242,7 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'analysis_task.m','analysis_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 [wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.analysis.imgs})),records);
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2','accum3'}))
   for img = 1:length(param.analysis.imgs)
     wf = abs(param.analysis.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
@@ -332,7 +369,18 @@ for break_idx = 1:length(breaks)
           end
           
         case {'statistics'}
-          %
+          for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+            wf = param.analysis.imgs{img}(wf_adc,1);
+            adc = param.analysis.imgs{img}(wf_adc,2);
+            out_fn = fullfile(out_fn_dir,sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            dparam.success = cat(2,dparam.success, ...
+              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+              delete(out_fn);
+            end
+            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+          end
           
         case {'waveform'}
           for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
@@ -383,7 +431,7 @@ ctrl_chain = {ctrl};
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2','accum3'}))
   cpu_time_mult = 6e-6;
   mem_mult = 8;
   
@@ -454,7 +502,26 @@ for img = 1:length(param.analysis.imgs)
         end
         
       case {'statistics'}
-        %
+        Nx_cmd = Nx / cmd.block_ave;
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_fn_dir_dir,sprintf('stats_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          sparam.success = cat(2,sparam.success, ...
+            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+          if cmd.block_ave < 64
+            % HACK: Assume that if no block averaging is done, that the data size
+            % is small. Really need to get a user "hint" here.
+            sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)/128*log2(Nx_cmd)*cpu_time_mult;
+            sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
+          else
+            sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
+            sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
+          end
+        end
         
       case {'waveform'}
         Nx_cmd = Nx / param.analysis.dec;

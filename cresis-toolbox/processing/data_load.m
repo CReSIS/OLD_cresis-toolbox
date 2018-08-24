@@ -34,7 +34,7 @@ t_ref = zeros(1,param.load.presums);
 
 %% Endian mode
 % ===================================================================
-if any(param.records.file_version==[9 411 412])
+if any(param.records.file.version==[9 411 412])
   file_mode = 'ieee-le';
 else
   file_mode = 'ieee-be';
@@ -51,9 +51,11 @@ for state_idx = 1:length(states)
   out_rec = 0;
   num_accum = 0;
   num_presum_records = 0;
-  
+
+  % Find the file index for each record. If records.offset has extra
+  % entries, get file_idxs for these too.
   file_idxs = relative_rec_num_to_file_idx_vector( ...
-    param.load.recs,records.relative_rec_num{board_idx});
+    param.load.recs+[0 size(records.offset,2)-(1+diff(param.load.recs))],records.relative_rec_num{board_idx});
   
   rec = 1;
   while rec <= total_rec
@@ -78,7 +80,7 @@ for state_idx = 1:length(states)
 
       % Open the file
       fprintf('  Open %s (%s)\n', fn, datestr(now));
-      [fid,msg] = fopen(fn, 'r',file_mode);
+      [fid,msg] = fopen(fn, 'rb',file_mode);
       if fid <= 0
         error('File open failed (%s)\n%s',fn, msg);
       end
@@ -99,6 +101,7 @@ for state_idx = 1:length(states)
       
       % Load the rest of the file into memory
       file_data = [file_data_last_file(:); fread(fid,inf,'uint8=>uint8')];
+      fclose(fid);
     end
 
     %% Pull out records from this file
@@ -121,17 +124,30 @@ for state_idx = 1:length(states)
         % Extract next record (determine its relative position in the
         % file_data memory block
         rec_offset = records.offset(board_idx,rec) - file_data_offset;
+
+        % record_mode==1: Find the size of the current record
+        if rec < length(file_idxs) && file_idxs(rec+1) == file_idxs(rec)
+          % Next record is in this file, rec size is set to the offset to
+          % the next record
+          rec_size = records.offset(board_idx,rec+1) - records.offset(board_idx,rec);
+        else
+          % Next record is in the next file, rec_size is set to the rest of
+          % the data in this file
+          rec_size = (length(file_data)-file_data_offset) - records.offset(board_idx,rec);
+        end
         
         % Process all adc-wf pairs in this record
         for accum_idx = 1:length(state.wf)
           adc = state.adc(accum_idx);
           wf = state.wf(accum_idx);
+          mode_latch = state.mode(accum_idx);
+          subchannel = state.subchannel(accum_idx);
           
           % Read in headers for this waveform
           % ---------------------------------------------------------------
           
           if wfs(wf).quantization_to_V_dynamic
-            if param.records.file_version == 407
+            if param.records.file.version == 407
               bit_shifts = -typecast(file_data(rec_offset + wfs(wf).offset - 4),'int8');
               % Apply dynamic bit shifts
               quantization_to_V_adjustment = 2^(bit_shifts - wfs(wf).bit_shifts);
@@ -141,19 +157,19 @@ for state_idx = 1:length(states)
           end
 
           % Read in headers for this record
-          if any(param.records.file_version == [3 5 7 8])
+          if any(param.records.file.version == [3 5 7 8])
             % Number of fast-time samples Nt, and start time t0
             start_idx = double(typecast(file_data(rec_offset+37:rec_offset+38), 'uint16')) + wfs(wf).time_raw_trim(1);
             stop_idx = double(typecast(file_data(rec_offset+39:rec_offset+40), 'uint16')) - wfs(wf).time_raw_trim(2);
-            if param.records.file_version == 8
+            if param.records.file.version == 8
               Nt(num_accum+1) = stop_idx - start_idx;
               wfs(wf).Nt_raw = Nt(num_accum+1);
             else
               % NCO frequency
               DDC_freq(num_accum+1) = double(-typecast(file_data(rec_offset+43:rec_offset+44),'uint16'));
-              if param.records.file_version == 3
+              if param.records.file.version == 3
                 DDC_freq(num_accum+1) = DDC_freq(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2 - 62.5e6;
-              elseif any(param.records.file_version == [5 7])
+              elseif any(param.records.file.version == [5 7])
                 DDC_freq(num_accum+1) = DDC_freq(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2;
               end
               
@@ -182,9 +198,9 @@ for state_idx = 1:length(states)
             end
             
             % Nyquist zone
-            if param.records.file_version == 8
+            if param.records.file.version == 8
               nyquist_zone(num_accum+1) = file_data(rec_offset+34);
-            elseif any(param.records.file_version == [3 5 7])
+            elseif any(param.records.file.version == [3 5 7])
               nyquist_zone(num_accum+1) = file_data(rec_offset+45);
             end
           end
@@ -209,7 +225,7 @@ for state_idx = 1:length(states)
               end
               adc_offset = mod(adc-1,wfs(wf).adc_per_board);
               tmp = tmp(1+adc_offset : wfs(wf).adc_per_board : end);
-              if param.records.file_version ~= 408
+              if param.records.file.version ~= 408
                 tmp_data{adc,wf} = tmp;
               else
                 % 8 sample interleave for file_version 408
@@ -225,6 +241,47 @@ for state_idx = 1:length(states)
               
             case 1
               % Read in RSS dynamic record
+              sub_rec_offset = 0;
+              while sub_rec_offset < rec_size
+                total_offset = rec_offset + sub_rec_offset;
+                radar_header_type = mod(typecast(file_data(total_offset+(9:12)),'uint32'),2^31); % Ignore MSB
+                radar_header_len = double(typecast(file_data(total_offset+(13:16)),'uint32'));
+                radar_profile_length = double(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32'));
+                if any(radar_header_type == [5 16 23])
+                  if mode_latch == typecast(file_data(total_offset+17),'uint8') ...
+                      && subchannel == typecast(file_data(total_offset+18),'uint8')
+                    % This matches the mode and subchannel that we need
+                    radar_profile_format = typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32');
+                    is_IQ = 0;
+                    switch radar_profile_format
+                      case 0 % 0x00000
+                        tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16'));
+                      case 65536 % 0x10000
+                        tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16'));
+                        is_IQ = 1;
+                      case 131072 % 0x20000
+                        tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int32'));
+                        is_IQ = 1;
+                      case 196608 % 0x30000
+                        tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'single'));
+                        is_IQ = 1;
+                    end
+                    if is_IQ
+                      if wfs(wf).conjugate
+                        tmp_data{adc,wf} = tmp_data{adc,wf}(1:2:end) - 1i*tmp_data{adc,wf}(2:2:end);
+                      else
+                        tmp_data{adc,wf} = tmp_data{adc,wf}(1:2:end) + 1i*tmp_data{adc,wf}(2:2:end);
+                      end
+                    end
+                    % Found the record so break
+                    break;
+                  end
+                else
+                  % Unsupported radar header type, skip this record
+                  break;
+                end
+                sub_rec_offset = sub_rec_offset + 24 + radar_header_len + radar_profile_length;
+              end
               
           end
           
@@ -271,7 +328,7 @@ for state_idx = 1:length(states)
 
           % Store to output
           if num_accum < num_presum_records*wfs(wf).presum_threshold ...
-              || any(param.records.file_version == [3 5 7]) ...
+              || any(param.records.file.version == [3 5 7]) ...
               && (any(nyquist_zone ~= nyquist_zone(1)) ...
               || any(DDC_mode ~= DDC_mode(1)) ...
               || any(DDC_freq ~= DDC_freq(1)) ...
@@ -324,7 +381,7 @@ for img = 1:length(param.load.imgs)
     % receiver gain compensation
     chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
       .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-    mult_factor = single(wfs(wf).quantization_to_V(adc)/param.load.presums/wfs(wf).adc_gains(adc)/chan_equal);
+    mult_factor = single(wfs(wf).quantization_to_V(adc)/param.load.presums/10.^(wfs(wf).adc_gains_dB(adc)/20)/chan_equal);
     data{img}(:,:,wf_adc) = mult_factor * data{img}(:,:,wf_adc);
     
     % Compensate for receiver gain applied before ADC quantized the signal
@@ -380,6 +437,7 @@ for img = 1:length(param.load.imgs)
     adc = param.load.imgs{img}(wf_adc,2);
     
     if isempty(param.radar.lever_arm_fh)
+      hdr.records{img,wf_adc} = records;
       hdr.records{img,wf_adc}.lat = fir_dec(records.lat,param.load.presums);
       hdr.records{img,wf_adc}.lon = fir_dec(records.lon,param.load.presums);
       hdr.records{img,wf_adc}.elev = fir_dec(records.elev,param.load.presums);
@@ -400,7 +458,7 @@ for img = 1:length(param.load.imgs)
       hdr.records{img,wf_adc}.pitch = fir_dec(hdr.records{img,wf_adc}.pitch,param.load.presums);
       hdr.records{img,wf_adc}.heading = fir_dec(hdr.records{img,wf_adc}.heading,param.load.presums);
     end
-    hdr.records{img,wf_adc}.offset = hdr.records{img,wf_adc}.offset(1:param.load.presums:end-param.load.presums+1);
+    hdr.records{img,wf_adc}.offset = hdr.records{img,wf_adc}.offset(:,1:param.load.presums:end-param.load.presums+1);
     hdr.records{img,wf_adc} = rmfield(hdr.records{img,wf_adc},{'gps_time','surface'});
   end
 end
