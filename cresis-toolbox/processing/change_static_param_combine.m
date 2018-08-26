@@ -1,4 +1,8 @@
-function change_steady_param_qlook(old_filename,new_filename,out_path,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8,ch9,ch10,ch11,ch12,ch13,ch14,ch15,ch16,ch17,ch18,ch19,ch20,ch21,ch22,ch23,ch24)
+function change_static_param_combine(old_filename,new_filename,new_method,out_path,ch1,ch2,ch3,ch4,ch5,ch6,ch7,ch8,ch9,ch10,ch11,ch12,ch13,ch14,ch15,ch16,ch17,ch18,ch19,ch20,ch21,ch22,ch23,ch24)
+
+if(~isequal(new_method,'standard') && ~isequal(new_method,'mvdr'))
+    error('Method selection is not valid. Choose "standard" or "mvdr"');
+end
 
 if (ischar(ch1))
   ch1=str2num(ch1);
@@ -99,11 +103,12 @@ if(ch22==1) channel_selection = [channel_selection 22]; end
 if(ch23==1) channel_selection = [channel_selection 23]; end
 if(ch24==1) channel_selection = [channel_selection 24]; end
 
-load(old_filename,'steady_param');
+load(old_filename,'static_param');
 
-steady_param.get_heights.imgs = {[ones([size(channel_selection,2) 1]),channel_selection.'],[2*ones([size(channel_selection,2) 1]),channel_selection.'],[3*ones([size(channel_selection,2) 1]),channel_selection.']};
-steady_param.get_heights.qlook.out_path = out_path;
+static_param.combine.imgs = {[ones([size(channel_selection,2) 1]),channel_selection.'],[2*ones([size(channel_selection,2) 1]),channel_selection.'],[3*ones([size(channel_selection,2) 1]),channel_selection.']};
+static_param.combine.method = new_method;
+static_param.combine.out_path = out_path;
 
-save(new_filename,'steady_param');
+save(new_filename,'static_param');
 
 return;

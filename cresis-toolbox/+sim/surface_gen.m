@@ -37,7 +37,6 @@ ysize = length(surf_model.y_axis);
 
 %% Create random surface height and radar cross section (RCS)
 surf_model.dem = param.z.rms_height .* randn(ysize, xsize);
-surf_model.rcs = sqrt(param.rcs_in.var/2) .* (randn(ysize, xsize) + 1i*randn(ysize, xsize));
 
 %% Filter surface height in x-dimension
 if param.dx/param.z.corr_length_x < 1
@@ -61,12 +60,22 @@ end
 surf_model.dem = param.z.mean + surf_model.dem;
 
 %% Add in mean RCS
-surf_model.rcs = param.rcs_in.mean + surf_model.rcs;
+% surf_model.rcs = param.rcs_in.mean + surf_model.rcs;
 
 surf_model.x = param.x;
 surf_model.y = param.y;
-surf_model.z = interp2(surf_model.x_axis, surf_model.y_axis, surf_model.dem, surf_model.x, surf_model.y);
-surf_model.rcs = interp2(surf_model.x_axis, surf_model.y_axis, surf_model.rcs, surf_model.x, surf_model.y);
+% interp2 assignes NaN to all queries that lie outside the domain of the
+% sample points in all interpolation methods, except for 'spline' and
+% 'makima', where interp2 does extrapolation. This problem happened few
+% times, so I changed the method to 'spline', or you can add
+% interp2(...,'linear',extrapval), where extrapval is a constant value that
+% gets assigned to all queries outside the domain of the sample points.
+% surf_model.z = interp2(surf_model.x_axis, surf_model.y_axis, surf_model.dem, surf_model.x, surf_model.y,'spline');
+% surf_model.rcs = interp2(surf_model.x_axis, surf_model.y_axis, surf_model.rcs, surf_model.x, surf_model.y,'spline');
+surf_model.z = interp2(surf_model.x_axis, surf_model.y_axis, surf_model.dem, surf_model.x, surf_model.y,'linear',0);
+surf_model.rcs = param.rcs_in.mean + sqrt(param.rcs_in.var/2) .* (randn(length(surf_model.y), length(surf_model.x)) + 1i*randn(length(surf_model.y), length(surf_model.x)));
+
+% surf_model.rcs = interp2(surf_model.x_axis, surf_model.y_axis, surf_model.rcs, surf_model.x, surf_model.y,'linear',0);
 surf_model.Nx = length(param.x);
 
 return;
