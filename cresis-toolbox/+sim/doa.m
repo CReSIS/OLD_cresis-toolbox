@@ -13,14 +13,14 @@ if isfield(param.src,'phase_center')
   param.src.y_pc   = param.src.phase_center(2,:).';
   param.src.z_pc   = param.src.phase_center(3,:).';
   
-elseif isfield(param.src,'lever_arm.fh')
+elseif isfield(param.src,'lever_arm') && isfield(param.src.lever_arm,'fh')
   [phase_center] = param.src.lever_arm.fh(param.src.lever_arm.args{:});
   param.src.y_pc   = phase_center(2,:).';
   param.src.z_pc   = phase_center(3,:).';
 elseif isfield(param.src,'y_pc') && isfield(param.src,'z_pc')
   % Do nothing. Already defined 
 else
-  warniing('Phase center information are not defined')
+  warning('Phase center information are not defined')
   keyboard
 end
 
