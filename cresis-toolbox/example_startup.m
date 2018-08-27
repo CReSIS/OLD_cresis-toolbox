@@ -51,9 +51,9 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 1; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('USERPROFILE'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('USERPROFILE'));
+  profile(pidx).personal_path             = sprintf('%s/My Documents/scripts/matlab/',getenv('USERPROFILE'));
+  profile(pidx).ct_path                   = sprintf('%s/My Documents/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
+  profile(pidx).param_path                = sprintf('%s/My Documents/scripts/ct_params/',getenv('USERPROFILE'));
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
@@ -183,9 +183,9 @@ if ~(~ismcc && isdeployed)
   % X:\ --> \\cfs1.cresis.ku.edu\dataproducts\
   pidx = 5; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('USERPROFILE'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('USERPROFILE'));
+  profile(pidx).personal_path             = sprintf('%s/My Documents/scripts/matlab/',getenv('USERPROFILE'));
+  profile(pidx).ct_path                   = sprintf('%s/My Documents/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
+  profile(pidx).param_path                = sprintf('%s/My Documents/scripts/ct_params/',getenv('USERPROFILE'));
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
