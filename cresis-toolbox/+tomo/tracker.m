@@ -11,7 +11,6 @@ function tracker (params, options, geotiff_fn, geotiff2_fn)
 %
 % Authors: Victor Berger, John Paden
 
-
 %% Automated Section
 % =====================================================================
 % Create param structure array
@@ -45,6 +44,9 @@ smooth_var    = inf;
 repulsion     = 150000;
 smooth_weight = 100;
 ice_bin_thr   = 10;
+CF.sensory_distance = 200;
+CF.max_cost = 50;
+CF.lambda = 0.075;
 
 %% Process each of the segments
 % =====================================================================
@@ -95,36 +97,36 @@ for param_idx = 1:length(params)
     big_matrix.Lat      = horzcat(big_matrix.Lat, cur_matrix.Latitude);
     big_matrix.Lon      = horzcat(big_matrix.Lon, cur_matrix.Longitude);
     big_matrix.Time     = cur_matrix.Time;
-    %big_matrix.Data     = horzcat(big_matrix.Data, cur_matrix.Data);
+    big_matrix.Data     = horzcat(big_matrix.Data, cur_matrix.Data);
     
     %% Image combine
-    load(data_fn, 'param_combine');
-    param.combine.imgs                   = param_combine.combine.imgs;
-    combine                              = param.combine;
-    combine.img_comb_mult                = 1.15;
-    combine.img_comb_bins                = 50;
-    update_img_combine_param.mode        = 'combine';
-    update_img_combine_param.update_surf = false;
-    combine.img_comb_weights             = [];
-    try
-      layer_params.name   = 'surface';
-      layer_params.source = 'ops';
-      layers              = opsLoadLayers(param,layer_params);
-    catch ME
-      warning(ME.getReport);
-      continue;
-    end
-    combine.out_path              = data_fn_dir;
-    combine.frm                   = frm;
-    combine.imb_comb_surf         = 0;
-    combine.img_comb_weights_mode = 'get_heights';  
-    [Data, big_matrix.Time]       = img_combine(param, combine, layers);    
-    big_matrix.Data               = horzcat(big_matrix.Data, Data);
-
-    big_matrix.Data = horzcat(big_matrix.Data, cur_matrix.Data);
+%     load(data_fn, 'param_combine');
+%     param.combine.imgs                   = param_combine.combine.imgs;
+%     combine                              = param.combine;
+%     combine.img_comb_mult                = 1.15;
+%     combine.img_comb_bins                = 50;
+%     update_img_combine_param.mode        = 'combine';
+%     update_img_combine_param.update_surf = false;
+%     combine.img_comb_weights             = [];
+%     try
+%       layer_params.name   = 'surface';
+%       layer_params.source = 'ops';
+%       layers              = opsLoadLayers(param,layer_params);
+%     catch ME
+%       warning(ME.getReport);
+%       continue;
+%     end
+%     combine.out_path              = data_fn_dir;
+%     combine.frm                   = frm;
+%     combine.imb_comb_surf         = 0;
+%     combine.img_comb_weights_mode = 'get_heights';  
+%     [Data, big_matrix.Time]       = img_combine(param, combine, layers);    
+%     big_matrix.Data               = horzcat(big_matrix.Data, Data);
+% 
+%     big_matrix.Data               = horzcat(big_matrix.Data, cur_matrix.Data);
     
   end
-  
+
   %%
   clear Surface;
   layer_params.name   = 'surface';
@@ -151,7 +153,7 @@ for param_idx = 1:length(params)
   ops_param                    = struct('properties',[]);
   ops_param.properties.season  = param.season_name;
   ops_param.properties.segment = param.day_seg;
-  [status,ops_frames]          = opsGetSegmentInfo(sys,ops_param);
+  [~,ops_frames]          = opsGetSegmentInfo(sys,ops_param);
   
   ops_param = struct('properties',[]);
   ops_param.properties.location = param.post.ops.location;
@@ -218,7 +220,7 @@ for param_idx = 1:length(params)
     % TEMPORARILY HARDCODED FOR ANTARTICA:
     if 0
       [mask,R,~] = geotiffread(geotiff_fn);
-      [mask2, R2, ~] = geotiffread(geotiff2_fn);
+      [mask2, ~, ~] = geotiffread(geotiff2_fn);
       proj = geotiffinfo(geotiff_fn);
       [points.x, points.y] = projfwd(proj, big_matrix.Lat, big_matrix.Lon);
       X = R(3,1) + R(2,1)*(1:size(mask,2));
@@ -254,7 +256,7 @@ for param_idx = 1:length(params)
   end
   
   query = sprintf('SELECT rds_segments.id FROM rds_seasons,rds_segments where rds_seasons.name=''%s'' and rds_seasons.id=rds_segments.season_id and rds_segments.name=''%s''',param.season_name,param.day_seg);
-  [status,tables] = opsQuery(query);
+  [~,tables] = opsQuery(query);
   segment_id = tables{1};
   
   ops_param                       = struct('properties',[]);
@@ -264,7 +266,7 @@ for param_idx = 1:length(params)
   ops_param.properties.segment_id = ones(size(ops_param.properties.frame)) ...
     *double(segment_id);
   
-  [status,data] = opsGetCrossovers(sys,ops_param);
+  [~,data] = opsGetCrossovers(sys,ops_param);
   
   %%
   rline = [];
@@ -321,7 +323,8 @@ for param_idx = 1:length(params)
     double(sigma), double(egt_weight), double(smooth_weight), ...
     double(smooth_var), double(slope), int64(bounds), ...
     double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-    double(mc), double(mc_weight));
+    double(mc), double(mc_weight), ...
+    double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
   toc
   
   % Used to debug, stop and check tracker output before saving result

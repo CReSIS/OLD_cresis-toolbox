@@ -141,7 +141,7 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
         else
           mask = sb.sd.surf(mask_idx).y(:,slices);
         end
-      
+        
         
         %%
         if isempty(surf_idx)
@@ -151,7 +151,7 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
         end
         surf_bins(isnan(surf_bins)) = -1;
         bottom_bin(isnan(bottom_bin)) = -1;
-
+        
         viterbi_data = sb.data(:,:,slice);
         viterbi_data(viterbi_data>threshold) = threshold;
         viterbi_data = fir_dec(viterbi_data.',hanning(3).'/3,1).';
@@ -162,8 +162,8 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
         mu            = sinc(linspace(-1.5, 1.5, mu_size));
         sigma         = sum(mu)/20*ones(1,mu_size);
         smooth_var    = -1;
-        smooth_weight = 25;
-        repulsion     = 100;%250;
+        smooth_weight = 10;
+        repulsion     = 100;
         ice_bin_thr   = 3;
         mc            = -1 * ones(1, size(sb.data,2));
         mc_weight     = 0;
@@ -176,10 +176,14 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
           cd(tmp);
         end
         %%%%
-       
+        
         mask           = 90*fir_dec(fir_dec(double(shrink(mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
         mask(mask>=90) = inf;
         mask           = mask(:, slice_range+1);
+        
+        CF.sensory_distance = 200;
+        CF.max_cost = 50;
+        CF.lambda = 0.075;
         
         % Call viterbi.cpp
         tic
@@ -188,8 +192,11 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
           double(sigma), double(egt_weight), double(smooth_weight), ...
           double(smooth_var), double(slope), int64(bounds), ...
           double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-          double(mc), double(mc_weight));
+          double(mc), double(mc_weight), ...
+          double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
         toc
+        
+        labels(surf_bins(:) > labels(:)) = surf_bins(surf_bins(:) > labels(:));
         
         % Create cmd for surface change
         cmd{end+1}.undo.slice = slice;

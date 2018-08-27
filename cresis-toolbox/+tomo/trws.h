@@ -25,14 +25,16 @@ const int dir_all   = 4;
 #define SIGMA 24
 // Default scale of smooth (input argument: smooth_weight)
 #define SCALE 5
+// CF: sensory distance (input argument: sensory_distance)
+#define CF_SENSORY_DISTANCE 50
+// CF: maximum cost (input argument: max_cost)
+#define CF_MAX_COST 200
+// CF: lambda (input argument: lambda)
+#define CF_LAMBDA 0.075
 // TRWS: large cost
 #define LARGE 1000000000
-// TRWS: gamma
-#define gamma 0.5
-// TRWS: max_loops
-#define MAX_LOOP 50
-
-
+// TRWS: max_loops (input argument: num_loops)
+#define MAX_LOOP 50 
 typedef vector< pair<size_t, size_t> > CoordType;
 typedef vector< tuple<size_t, size_t, size_t> > PointType;
 typedef vector< vector<size_t> > LayerType;

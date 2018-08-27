@@ -68,6 +68,9 @@ if tool_idx == 1
       ice_bin_thr    = 10;
       mc             = -1 * ones(1, Nx);
       mc_weight      = 0;
+      CF.sensory_distance = 200;
+      CF.max_cost = 50;
+      CF.lambda = 0.075;
       
       offset = gt(1,1) - x(1);
       if(gt(1,2) + offset > length(image_x))
@@ -96,7 +99,8 @@ if tool_idx == 1
         double(sigma), double(egt_weight), double(smooth_weight), ...
         double(smooth_var), double(slope), int64(bounds), ...
         double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-        double(mc), double(mc_weight));
+        double(mc), double(mc_weight), ...
+        double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
       toc
       
       % Correct layer offset
