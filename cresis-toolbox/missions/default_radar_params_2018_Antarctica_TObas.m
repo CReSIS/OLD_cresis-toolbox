@@ -27,9 +27,9 @@ default.fs = 1000e6;
 default.fs_dac = 2000e6;
 default.max_duty_cycle = 0.1;
 default.max_data_rate = 60;
-default.max_tx = [1 1];
+default.max_tx = [1];
 
-default.tx_enable = [1 1];
+default.tx_enable = [1];
 
 default.basic_surf_track_min_time = 2e-6;
 default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
@@ -76,8 +76,9 @@ dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg0';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = default.fs_dac;
-arena.dac(dac_idx).desiredAlignMin = 3;
-arena.dac(dac_idx).desiredAlignMax = 17;
+arena.dac(dac_idx).desiredAlignMin = -7;
+arena.dac(dac_idx).desiredAlignMax = 5;
+arena.dac(dac_idx).dcoPhase = 80;
 
 adc_idx = 0;
 adc_idx = adc_idx + 1;
@@ -85,7 +86,7 @@ arena.adc(adc_idx).name = 'digrx0';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = default.fs;
 arena.adc(adc_idx).adcMode = 1;
-arena.adc(adc_idx).desiredAlignMin = -12;
+arena.adc(adc_idx).desiredAlignMin = -15;
 arena.adc(adc_idx).desiredAlignMax = 0;
 arena.adc(adc_idx).ip = '10.0.0.100';
 adc_idx = adc_idx + 1;
@@ -94,7 +95,7 @@ arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = default.fs;
 arena.adc(adc_idx).adcMode = 1;
 arena.adc(adc_idx).desiredAlignMin = -34;
-arena.adc(adc_idx).desiredAlignMax = -10;
+arena.adc(adc_idx).desiredAlignMax = -20;
 arena.adc(adc_idx).ip = '10.0.0.101';
 
 daq_idx = 0;
@@ -110,7 +111,7 @@ arena.param.board_map = {'digrx0','digrx1'};
 arena.param.tx_map = {'dac0','dac1'};
 
 arena.param.tx_max = [1 1];
-arena.param.PA_setup_time = 0.3e-6; % Time required to enable PA before transmit
+arena.param.PA_setup_time = 2e-6; % Time required to enable PA before transmit
 arena.param.TTL_time_delay = 0.0; % TTL time delay relative to transmit start
 arena.param.ADC_time_delay = 0.0; % ADC time delay relative to transmit start
 arena.param.data_map = {[0 0 1 1],[0 0 2 1]};
@@ -123,6 +124,9 @@ arena.daq.type = 'daq_0001';
 
 arena.ctu.name = 'ctu';
 arena.ctu.type = 'ctu_001D';
+arena.ctu.nmea = 31;
+arena.ctu.pps = 10;
+arena.ctu.pps_polarity = 1;
 idx = 0;
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'EPRI';
@@ -155,7 +159,7 @@ arena.ctu.out.bit_group(idx).bits = 5;
 arena.ctu.out.bit_group(idx).epri = [0 0];
 arena.ctu.out.bit_group(idx).pri = [0 0];
 
-arena.ctu.out.time_cmd = {'0.3e-6+param.wfs(wf).Tpd+0.3e-6' '2/param.prf'};
+arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2/param.prf'};
 
 default.arena = arena;
 

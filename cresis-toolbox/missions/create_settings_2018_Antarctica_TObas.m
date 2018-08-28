@@ -44,7 +44,7 @@ else
   idx = 1;
   final_DDS_phase{idx} = [0];
   final_DDS_phase_no_time{idx} = [0]; % not used usually
-  final_DDS_amp{idx} = [1];
+  final_DDS_amp{idx} = [0.2];
   final_DDS_time{idx} =  [0];
 end
 

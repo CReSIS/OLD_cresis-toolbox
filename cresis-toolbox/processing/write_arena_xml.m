@@ -318,14 +318,14 @@ if strcmpi(arena.ctu.type,'ctu_001D')
   child = doc.createElement('pps'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
   grandchild = doc.createElement('input'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode('0'));
+  grandchild.appendChild(doc.createTextNode( sprintf('%d',arena.ctu.pps) ));
   grandchild = doc.createElement('polarity'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode('0'));
+  grandchild.appendChild(doc.createTextNode( sprintf('%d',arena.ctu.pps_polarity) ));
   
   child = doc.createElement('nmea'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
   grandchild = doc.createElement('input'); child.appendChild(grandchild);
-  grandchild.appendChild(doc.createTextNode('0'));
+  grandchild.appendChild(doc.createTextNode( sprintf('%d',arena.ctu.nmea) ));
   
   child = doc.createElement('pscIntr'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
@@ -1117,7 +1117,7 @@ for subsystem_idx = 1:length(arena.subsystem)
       child = doc.createElement('desiredAlignMax'); mezz.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%g',dac.desiredAlignMax)));
       child = doc.createElement('dcoPhase'); mezz.appendChild(child);
-      child.appendChild(doc.createTextNode('0'));
+      child.appendChild(doc.createTextNode(sprintf('%g',dac.dcoPhase)));
       child = doc.createElement('config'); mezz.appendChild(child);
       child.appendChild(doc.createTextNode(mezz_name));
       child.setAttribute('type',config_type);
