@@ -75,7 +75,18 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
-if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
+if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'arena'))
+  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+  % Platform: Ground based sled
+  %
+
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
+if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena')) ...
+    || (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'bas'))
   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Aircraft: British Antarctic Survey (BAS) VP-FBL
   %
@@ -546,13 +557,13 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'ac
   LArx(2,:)   = (0.75 + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
   LArx(3,:)   = (5*0.0254 + [0 0 0 0]) - gps.z; % m
   
-  LArx = mean(LArx,2);
+  LArx = mean(LArx,2); % Combine all 4 elements into a single element
   
   LAtx(1,:)   = (-302.625*0.0254 + [0 0 0 0]) - gps.x; % m
   LAtx(2,:)   = (0.75 + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
   LAtx(3,:)   = (5*0.0254 + [0 0 0 0]) - gps.z; % m
   
-  LAtx = mean(LAtx,2);
+  LAtx = mean(LAtx,2); % Combine all 4 elements into a single element
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;
@@ -937,6 +948,26 @@ end
 % =========================================================================
 %% Radar Depth Sounder
 % =========================================================================
+
+if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'rds'))
+  % Accumulation antenna
+  LArx(1,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.x; % m
+  LArx(2,:)   = 0.75*[-3:3] - gps.y; % m
+  LArx(3,:)   = (5*0.0254 + [0 0 0 0 0 0 0 0]) - gps.z; % m
+  
+  LAtx(1,:)   = (0 + [0 0 0 0]) - gps.x; % m
+  LAtx(2,:)   = 0.75*[-3:2:3] - gps.y; % m
+  LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(radar_name,'rds'))
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
