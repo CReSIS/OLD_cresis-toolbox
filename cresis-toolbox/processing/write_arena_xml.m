@@ -46,7 +46,7 @@ for adc_idx = adc_idxs
   configs = system.getFirstChild;
   
   config = doc.createElement('config'); configs.appendChild(config);
-  config.setAttribute('type','adc-ad9680_0017');
+  config.setAttribute('type',adc.type);
   
   child = doc.createElement('name'); config.appendChild(child);
   child.appendChild(doc.createTextNode(sprintf('%s',adc.name)));
@@ -211,9 +211,8 @@ if strcmpi(arena.ctu.type,'ctu_001D')
   system = doc.getFirstChild;
   configs = system.getFirstChild;
   
-  config = doc.createElement('config');
-  configs.appendChild(config);
-  config.setAttribute('type','ctu_001D');
+  config = doc.createElement('config'); configs.appendChild(config);
+  config.setAttribute('type',arena.ctu.type);
   
   child = doc.createElement('name'); config.appendChild(child);
   child.appendChild(doc.createTextNode('ctu'));
@@ -223,7 +222,7 @@ if strcmpi(arena.ctu.type,'ctu_001D')
   
   for group_idx = 1:length(arena.ctu.out.bit_group)
     bit_group = arena.ctu.out.bit_group(group_idx);
-    outputBitGrouping = doc.createElement('outputBitGrouping'); subchannel.appendChild(outputBitGrouping);
+    outputBitGrouping = doc.createElement('outputBitGrouping'); config.appendChild(outputBitGrouping);
     
     child = doc.createElement('name'); outputBitGrouping.appendChild(child);
     child.appendChild(doc.createTextNode(bit_group.name));
@@ -263,7 +262,7 @@ if strcmpi(arena.ctu.type,'ctu_001D')
     for field = fields
       field = field{1};
       
-      mode_xml = doc.createElement('mode'); subchannel.appendChild(mode_xml);
+      mode_xml = doc.createElement('mode'); config.appendChild(mode_xml);
       
       child = doc.createElement('id'); mode_xml.appendChild(child);
       if modes(1) == 0
@@ -344,10 +343,10 @@ if strcmpi(arena.ctu.type,'ctu_0013')
   
   config = doc.createElement('config');
   configs.appendChild(config);
-  config.setAttribute('type','ctu_0013');
+  config.setAttribute('type',arena.ctu_type);
   
   child = doc.createElement('name'); config.appendChild(child);
-  child.appendChild(doc.createTextNode('ctuConfig0'));
+  child.appendChild(doc.createTextNode('ctu'));
   
   child = doc.createElement('description'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
@@ -450,7 +449,7 @@ for dac_idx = dac_idxs
   configs = system.getFirstChild;
   
   config = doc.createElement('config'); configs.appendChild(config);
-  config.setAttribute('type','dac-ad9129_0012');
+  config.setAttribute('type',dac.type);
   
   child = doc.createElement('name'); config.appendChild(child);
   child.appendChild(doc.createTextNode(sprintf('%s',dac.name)));
@@ -522,7 +521,7 @@ for dac_idx = dac_idxs
     alpha = wfs(wf).tukey;
     
     config = doc.createElement('config'); configs.appendChild(config);
-    config.setAttribute('type','dac-ad9129_0012_waveform');
+    config.setAttribute('type',sprintf('%s_waveform',dac.type));
     
     child = doc.createElement('name'); config.appendChild(child);
     child.appendChild(doc.createTextNode('No_Tx'));
@@ -588,7 +587,7 @@ for dac_idx = dac_idxs
     
     for zeropimod = unique_zeropimods
       config = doc.createElement('config'); configs.appendChild(config);
-      config.setAttribute('type','dac-ad9129_0012_waveform');
+      config.setAttribute('type',sprintf('%s_waveform',dac.type));
       
       child = doc.createElement('name'); config.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus',dac_idx,wfs(wf).name,Tpd) ));
@@ -640,7 +639,7 @@ for dac_idx = dac_idxs
   
   for dac = arena.dacs
     config = doc.createElement('config'); configs.appendChild(config);
-    config.setAttribute('type','dac-ad9129_0014');
+    config.setAttribute('type',dac.type);
     
     child = doc.createElement('name'); config.appendChild(child);
     child.appendChild(doc.createTextNode(sprintf('dacConfig%d',dac)));
@@ -710,7 +709,7 @@ for dac_idx = dac_idxs
   Nt = round((wfs(wf).Tpd+equal.delay/1e9) * fs);
   
   config = doc.createElement('config'); configs.appendChild(config);
-  config.setAttribute('type','dac-ad9129_0014_waveform');
+  config.setAttribute('type',sprintf('%s_waveform',dac.type));
   
   child = doc.createElement('name'); config.appendChild(child);
   child.appendChild(doc.createTextNode('No_Tx'));
@@ -771,7 +770,7 @@ for dac_idx = dac_idxs
         waveform_names{end+1} = new_waveform_name;
         
         config = doc.createElement('config'); configs.appendChild(config);
-        config.setAttribute('type','dac-ad9129_0014_waveform');
+        config.setAttribute('type',sprintf('%s_waveform',dac.type));
         
         child = doc.createElement('name'); config.appendChild(child);
         child.appendChild(doc.createTextNode(waveform_names{end}));
@@ -821,10 +820,10 @@ for daq_idx = daq_idxs
   configs = system.getFirstChild;
   
   config = doc.createElement('config'); configs.appendChild(config);
-  config.setAttribute('type','daq_0001');
+  config.setAttribute('type',daq.type);
   
   child = doc.createElement('name'); config.appendChild(child);
-  child.appendChild(doc.createTextNode(sprintf('daq_%s',daq.name)));
+  child.appendChild(doc.createTextNode(sprintf('%s',daq.name)));
   
   child = doc.createElement('description'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
@@ -866,7 +865,7 @@ for daq_idx = daq_idxs
     child.appendChild(doc.createTextNode( sprintf('%s:%s',subsystem_name,adc.name) ));
     
     child = doc.createElement('fileName'); recorder.appendChild(child);
-    child.appendChild(doc.createTextNode( sprintf('%s_%d',daq.fileName,adc_idx) ));
+    child.appendChild(doc.createTextNode( sprintf('%s_%s',daq.fileName,adc.name) ));
     
     child = doc.createElement('fileCount'); recorder.appendChild(child);
     child.appendChild(doc.createTextNode('-1'));
@@ -893,10 +892,10 @@ if strcmpi(arena.psc.type,'psc_0003')
   configs = system.getFirstChild;
   
   config = doc.createElement('config'); configs.appendChild(config);
-  config.setAttribute('type','psc_0001');
+  config.setAttribute('type',arena.psc.type);
   
   child = doc.createElement('name'); config.appendChild(child);
-  child.appendChild(doc.createTextNode('pscConfig0'));
+  child.appendChild(doc.createTextNode('psc'));
   
   child = doc.createElement('description'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
@@ -974,6 +973,9 @@ if strcmpi(arena.psc.type,'psc_0003')
         error('Odd number of presums, %d, greater than 1 not supported.', ...
           wfs(wf).presums);
       end
+    end
+    if wf == length(wfs)
+      psc_repeat(end,4) = 0;
     end
     num_psc = num_psc + size(psc_repeat,1);
     
@@ -1081,7 +1083,8 @@ for subsystem_idx = 1:length(arena.subsystem)
       
       mezz = doc.createElement('subSystem'); subsystem_doc.appendChild(mezz);
       
-      mezz.appendChild(doc.createTextNode(mezz_name));
+      child = doc.createElement('name'); mezz.appendChild(child);
+      child.appendChild(doc.createTextNode(mezz_name));
       
       child = doc.createElement('fanSpeeds'); mezz.appendChild(child);
       child.appendChild(doc.createTextNode('20 20 20'));
@@ -1093,7 +1096,8 @@ for subsystem_idx = 1:length(arena.subsystem)
       
       mezz = doc.createElement('subSystem'); subsystem_doc.appendChild(mezz);
       
-      mezz.appendChild(doc.createTextNode(mezz_name));
+      child = doc.createElement('name'); mezz.appendChild(child);
+      child.appendChild(doc.createTextNode(mezz_name));
 
       % Find the DAC in the list
       dac_idx = find(strcmpi(mezz_name,{arena.dac.name}));
@@ -1125,7 +1129,8 @@ for subsystem_idx = 1:length(arena.subsystem)
       
       mezz = doc.createElement('subSystem'); subsystem_doc.appendChild(mezz);
       
-      mezz.appendChild(doc.createTextNode(mezz_name));
+      child = doc.createElement('name'); mezz.appendChild(child);
+      child.appendChild(doc.createTextNode(mezz_name));
       
       % Find the ADC in the list
       adc_idx = find(strcmpi(mezz_name,{arena.adc.name}));
@@ -1159,7 +1164,7 @@ for subsystem_idx = 1:length(arena.subsystem)
       child = doc.createElement('config'); dataOutput.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('socket_%s',adc.name)));
       child.setAttribute('type','socket');
-      child = doc.createElement('config'); dataOutput.appendChild(child);
+      child = doc.createElement('interface'); dataOutput.appendChild(child);
       child.appendChild(doc.createTextNode('eth0'));
       child.setAttribute('type','nic');
     end

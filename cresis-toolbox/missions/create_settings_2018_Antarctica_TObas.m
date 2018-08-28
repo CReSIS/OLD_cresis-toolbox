@@ -17,7 +17,7 @@ f0_list = [600e6];
 f1_list = [900e6];
 DDC_select_list = [1]; % Which DDC mode to use
 cal_settings = [1];
-prf = 10000;
+prf = 30000;
 
 % presums: Ensure lambda/4 sampling (fudge factor allows difference) and an
 %   that presums are an even number.
@@ -95,37 +95,25 @@ for freq_idx = [1]
   param.DDC_freq = 250e6;
   param.zeropimods = [0 180];
   
-  % wf == 1 is the EPRI always
-  param.interleave = 7; % Explicitly programs 2 times as many sequence slots (first set is for interleave loop, second set is for calibration loop)
-  param.wfs(1).presums = 4; % Creates 1+Z modes (2 would create 2 modes)
-  param.wfs(2).presums = 14; % Creates Z modes
-%   param.cal.wfs(1).presums = 7*(4+14)-2; % Create 1+Z modes (epri + pri)
-%   param.cal.wfs(2).presums = 1; % Create 1
-%   param.cal.wfs(3).presums = 1; % Create 1
-  param.tukey = 0.08;
-  param.wfs(1).Tpd = 3e-6;
-  param.wfs(2).Tpd = 10e-6;
+  param.wfs(1).presums = presums;
+  param.wfs(1).Tpd = 2e-6;
   param.wfs(1).tukey = 0.1;
-  param.wfs(2).tukey = 0.1;
   
-  param.wfs(1).name = 'low_gain';
-  param.wfs(2).name = 'high_gain';
+  param.wfs(1).name = 'single';
   
   param.tx_weights = final_DDS_amp{cal_settings(freq_idx)};
   param.wfs(1).phase = final_DDS_phase{cal_settings(freq_idx)};
-  param.wfs(2).phase = final_DDS_phase{cal_settings(freq_idx)};
   param.phase = final_DDS_phase{cal_settings(freq_idx)};
   param.wfs(1).delay = final_DDS_time{cal_settings(freq_idx)};
-  param.wfs(2).delay = final_DDS_time{cal_settings(freq_idx)};
   param.delay = final_DDS_time{cal_settings(freq_idx)};
   
   idx = find(strcmpi('AttenFirst18dB',{param.arena.ctu.out.bit_group.name}));
-  param.arena.ctu.out.bit_group(idx).epri = {[1 1],[0 0]};
-  param.arena.ctu.out.bit_group(idx).pri = {[1 1],[0 0]};
+  param.arena.ctu.out.bit_group(idx).epri = {[1 1]};
+  param.arena.ctu.out.bit_group(idx).pri = {[1 1]};
   
   idx = find(strcmpi('AttenSecond7dB',{param.arena.ctu.out.bit_group.name}));
-  param.arena.ctu.out.bit_group(idx).epri = {[0 0],[0 0]};
-  param.arena.ctu.out.bit_group(idx).pri = {[0 0],[0 0]};
+  param.arena.ctu.out.bit_group(idx).epri = {[0 0]};
+  param.arena.ctu.out.bit_group(idx).pri = {[0 0]};
   
   param.arena.fn = fullfile(arena_base_dir,sprintf('survey_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthick.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.wfs(end).Tpd*1e6,param.tg.Hice_thick));
   write_radar_config(param);
