@@ -12,6 +12,7 @@ function [filenames,status] = get_filenames(filepath,filename_start,filename_mid
 %      .recursive: boolean, default 0, recursive into directories
 %      .type: 'f' or 'd', default 'f', file type f=file, d=directory
 %      .exact: boolean, default 0, requires exact match
+%      .regexp: regular expression
 %      Legacy support: if param is a string, it can only be 'recursive'
 % Output:
 %    Returns a column cell vector of filenames that correspond to paths of

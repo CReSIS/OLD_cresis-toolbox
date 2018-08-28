@@ -63,22 +63,32 @@ end
 
 if ~isfield(param.load_data,'raw_data') || isempty(param.load_data.raw_data)
   param.load_data.raw_data = 0;
+elseif param.load_data.raw_data && param.load_data.pulse_comp
+  error('Pulse compression (param.load_data.pulse_comp) cannot be enabled with raw data loading (param.load_data.raw_data).');
 end
 
 if ~isfield(param.load_data,'pulse_comp') || isempty(param.load_data.pulse_comp)
   param.load_data.pulse_comp = 1;
 end
 
-if ~isfield(param.load_data,'presums')
+if param.load_data.raw_data
+  param.load_data.pulse_comp = 0;
+end
+
+if ~isfield(param.load_data,'presums') || isempty(param.load_data.presums)
   param.load_data.presums = 1;
 end
 
-if ~isfield(param.load_data,'lever_arm_fh') || isempty(param.load_data.lever_arm_fh)
-  param.load_data.lever_arm_fh = [];
+if ~isfield(param.load_data,'resample') || isempty(param.load_data.resample)
+  param.load_data.resample = [1 1; 1 1];
+end
+
+if size(param.load_data.resample,1) == 1
+  param.load_data.resample(2,1:2) = [1 1];
 end
 
 if ~isfield(param.load_data,'motion_comp') || isempty(param.load_data.motion_comp)
-  param.load_data.motion_comp = [0; 0; 1];
+  param.load_data.motion_comp = false;
 end
 
 %% Setup processing
@@ -93,7 +103,7 @@ param.load.imgs = param.load_data.imgs;
 %% Load records file
 % =====================================================================
 records_fn = ct_filename_support(param,'','records');
-  records = read_records_aux_files(records_fn,param.load.recs);
+records = read_records_aux_files(records_fn,param.load.recs);
 old_param_records = records.param_records;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
@@ -101,24 +111,25 @@ old_param_records = records.param_records;
 %% Collect waveform information into one structure
 % =====================================================================
 [wfs,states] = data_load_wfs(param,records);
+param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 
 %% Load data
 % =====================================================================
 param.load.raw_data = param.load_data.raw_data;
 param.load.presums = param.load_data.presums;
-param.load.rec_offset = 0;
-
 [hdr,data] = data_load(param,records,wfs,states);
 
 param.load.pulse_comp = param.load_data.pulse_comp;
+[hdr,data] = data_pulse_compress(param,hdr,wfs,data);
 
-data = data_pulse_compress(param,hdr,wfs,data);
+[hdr,data] = data_merge_combine(param,hdr,data);
 
-data = data_merge_combine(param,hdr,wfs,data);
+%% Resample
+% ===================================================================
+[hdr,data] = data_resample(hdr,data,param.load_data.resample);
 
 %% Complete hdr (header)
 % =====================================================================
 hdr.param_load_data = param;
-hdr.wfs = wfs;
 
 fprintf('%s done %s\n', mfilename, datestr(now));

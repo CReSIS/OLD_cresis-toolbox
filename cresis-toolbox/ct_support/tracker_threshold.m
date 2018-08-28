@@ -161,7 +161,7 @@ if isempty(surf.noise_override)
   if isfinite(surf.threshold_rng)
     THRESHOLD = NaN;
   else
-    THRESHOLD = surf.threshold + median(median_mdata(median_mdata ~= 0));
+    THRESHOLD = surf.threshold + median(median_mdata(median_mdata ~= 0 & ~isnan(median_mdata)));
   end
 else
   THRESHOLD = surf.threshold + surf.noise_override;
@@ -187,9 +187,13 @@ end
 
 %% Do not permit thresholded surface from exceeding max_diff from initial surface
 surface(abs(surface - new_surface_max) > surf.max_diff) = NaN;
-surface = interp_finite(surface,0);
-if all(surface == 0)
-  surface = new_surface_max;
+if isfield(surf,'init') && (strcmp(surf.init.method,'dem') || strcmp(surf.init.method,'lidar'))
+  surface = merge_vectors(surface, new_surface_max);
+else
+  surface = interp_finite(surface,0);
+  if all(surface == 0)
+    surface = new_surface_max;
+  end
 end
 
 if (length(surf.search_rng) > 1 || surf.search_rng ~= 0)

@@ -39,8 +39,8 @@ sync_fns = {}; sync_params = {};
 % gps_source_to_use = 'wingport-field';
 % gps_source_to_use = 'wingstar-field';
 % gps_source_to_use = 'ATM-field';
-gps_source_to_use = 'ATM-field_traj';
-% gps_source_to_use = 'ATM';
+% gps_source_to_use = 'ATM-field_traj';
+gps_source_to_use = 'ATM';
 % gps_source_to_use = 'DMS';
 
 if strcmpi(gps_source_to_use,'NMEA')
@@ -413,7 +413,7 @@ elseif strcmpi(gps_source_to_use,'ATM')
   %     fprintf('year = %d; month = %d; day = %d;\n', year, month, day);
   %   end
   
- ATM_fns = get_filenames(in_base_path,'','','.out');
+ ATM_fns = get_filenames(in_base_path,'','','PPPK*.out');
   fn_dates = [];
   for idx = 1:length(ATM_fns)
     fn = ATM_fns{idx};
