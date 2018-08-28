@@ -3,9 +3,9 @@
 % Description: Run script for tomo.collate
 %
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
-%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData,
+%   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfData
 %
-% Author: John Paden, Jordan Sprick, and Mingze Xu
+% Author: John Paden, Jordan Sprick, Mingze Xu, and Victor Berger
 
 clear('param_override');
 
@@ -29,7 +29,7 @@ if strcmpi(example_setup,'vertical')
   tomo_collate.in_dir = 'music3D';
   
   % .out_dir: ct_filename_out directory to which output surfData will be exported
-  tomo_collate.out_dir = 'surfData_no_MC';
+  tomo_collate.out_dir = 'surfData';
 
   % .imgs: list of images II to use from .in_dir (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam when
@@ -193,6 +193,9 @@ elseif strcmpi(example_setup,'horizontal')
   tomo_collate.surfdata_cmds(end).repulsion = 150; % schu
   tomo_collate.surfdata_cmds(end).egt_weight = 10; 
   tomo_collate.surfdata_cmds(end).ice_bin_thr = 3;
+  tomo_collate.surfdata_cmds(end).CF_sensory_distance = 50;
+  tomo_collate.surfdata_cmds(end).CF_max_cost = 200;
+  tomo_collate.surfdata_cmds(end).CF_lambda = 0.075;
   
   tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
   tomo_collate.surfdata_cmds(end).surf_names = {'bottom trws','bottom'};
@@ -200,6 +203,9 @@ elseif strcmpi(example_setup,'horizontal')
   tomo_collate.surfdata_cmds(end).smooth_weight = [22 22];
   tomo_collate.surfdata_cmds(end).smooth_var = 32;
   tomo_collate.surfdata_cmds(end).max_loops = 50;
+  tomo_collate.surfdata_cmds(end).CF_sensory_distance = 50;
+  tomo_collate.surfdata_cmds(end).CF_max_cost = 200;
+  tomo_collate.surfdata_cmds(end).CF_lambda = 0.075;
   
 %   tomo_collate.surfdata_cmds(end+1).cmd = 'dem';
 %   tomo_collate.surfdata_cmds(end).surf_names = 'bottom dem';
@@ -250,4 +256,3 @@ for param_idx = 1:length(params)
   
   tomo.collate(param,param_override);
 end
-

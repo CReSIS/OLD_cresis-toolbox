@@ -119,8 +119,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
         bottom_bin = NaN*zeros(1,length(slices));
       end
       
-      if isempty(surf_idx)
-        %error('trws cannot be run without a surface surface');
+      if isempty(surf_idx) 
         surf_bins = NaN*sb.sd.surf(active_idx).y(:,slices);
       else
         surf_bins = sb.sd.surf(surf_idx).y(:,slices);
@@ -161,15 +160,17 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       else
         smooth_slope = [];
       end
+      
       smooth_weight = smooth(1:2);
       smooth_var = smooth(3);
       mu = sinc(linspace(-1.5,1.5,mu_size));
       sigma = sum(mu)/20*ones(1,mu_size);
-      % mu = obj.custom_data.mu;
-      % sigma = obj.custom_data.sigma;
       mask = 90*fir_dec(fir_dec(double(shrink(mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
       mask(mask>=90) = inf;
       bounds = [sb.bounds_relative(1) size(trws_data,2)-sb.bounds_relative(2)-1 -1 -1];
+      CF.sensory_distance = 200;
+      CF.max_cost = 50;
+      CF.lambda = 0.075;
       
       if top_edge_en && ~isempty(cols) && cols(1) > bounds(1)+1
         % Add ground truth from top edge as long as top edge is bounded
@@ -207,14 +208,17 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
           double(mu), double(sigma), smooth_weight, smooth_var, ...
           double(smooth_slope), double(edge), double(num_loops), int64(bounds));
       end
-      
-      tic;
+
+      tic;      
       correct_surface = tomo.trws(double(trws_data), ...
         double(surf_bins), double(bottom_bin), double(gt), double(mask), ...
-        double(mu), double(sigma), smooth_weight, smooth_var, ...
-        double(smooth_slope), double(edge), double(num_loops), int64(bounds));
-      fprintf('  %.2f sec per slice\n', toc/size(trws_data,3));
+        double(mu), double(sigma), double(smooth_weight), double(smooth_var), ...
+        double(smooth_slope), double(edge), double(num_loops), int64(bounds), ...
+        double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
+      toc;
       
+      fprintf('  %.2f sec per slice\n', toc/size(trws_data,3));
+     
       if ~isempty(rows)
         correct_surface = correct_surface + rows(1) - 1;
       end

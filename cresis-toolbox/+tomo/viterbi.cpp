@@ -8,11 +8,13 @@
 //           2017-2018
 //          Adapted from original code by Mingze Xu and David Crandall
 //
-// See also: viterbi_lib.h
+// Change to cost function (shifted exponential decay): Victor Berger and John Paden 2018
+//
+// See also: viterbi.h
 //
 // mex -v -largeArrayDims viterbi.cpp
 
-#include "viterbi_lib.h"
+#include "viterbi.h"
 
 //  Used to define unary cost of target at position x, y
 double viterbi::unary_cost(int x, int y) {
@@ -22,7 +24,7 @@ double viterbi::unary_cost(int x, int y) {
     }
 
     // Set cost to large if far from center ground truth (if present)
-    if ((f_bgt != -1) && (x == f_mid) && (y + t < f_bgt-20|| y + t > f_bgt+20)) {
+    if ((f_bgt != -1) && (x == f_mid) && (y + t < f_bgt - 20 || y + t > f_bgt + 20)) {
         return LARGE;
     }
     
@@ -47,17 +49,15 @@ double viterbi::unary_cost(int x, int y) {
             return LARGE;
         }
     } 
-    else {
-        // Surface ground truth
-        if (fabs(y + t - f_sgt[x]) < 25 && f_sgt[x] > t) {
-            // Set 25 as the sensory distance
-            // Set 200 as the maximum cost
-            // 0.32 = 200 / 25^2
-            // Final cost is multiplied by repulsion scaling factor
-            cost += 200 - 0.32 * sqr(y + t - f_sgt[x]);
-        }
-    }
     
+    // Shifted exponential decay
+    else {
+         if (fabs(y + t - f_sgt[x]) < f_CF_sensory_distance && f_sgt[x] > t) {
+                cost += (f_CF_max_cost * exp(-f_CF_lambda * fabs(y + t - f_sgt[x]))) 
+                - (f_CF_max_cost * exp(-f_CF_lambda * f_CF_sensory_distance));
+         }
+    }
+
     // Image magnitude correlation
     double tmp_cost = 0;
     for (size_t i = 0; i < f_ms; i++) {
@@ -111,7 +111,6 @@ double* viterbi::find_path(void) {
     for (int k = start_col + 1; k <= end_col; ++k) {
         encode = vic_encode(viterbi_index, num_col_vis + start_col - k);
         viterbi_index = path[encode];
-//         f_result[idx - 2] = f_mask[idx - 2] == 1 ? viterbi_index + t : f_sgt[idx - 2];
         f_result[idx - 2] = viterbi_index + t;
         --idx;
         if (encode < 0 || idx < 2) {
@@ -186,9 +185,9 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 }
 
 // MATLAB FUNCTION START
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {   
-    if (nrhs != 17) {
-        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mc, mc_weight)\n"); 
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {  
+    if (nrhs != 20) {
+        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mc, mc_weight, CF_sensory_distance, CF_max_cost, CF_lambda)\n"); 
     }
     
     // Input checking
@@ -202,6 +201,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     const int _row = mxGetM(prhs[0]);
     const int _col = mxGetN(prhs[0]);
     const double *_image = mxGetPr(prhs[0]);
+    
     // surface ground truth ===============================================
     if (!mxIsDouble(prhs[1])) {
         mexErrMsgTxt("usage: sgt must be type double");
@@ -210,11 +210,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgTxt("usage: sgt must have size(sgt,1)=size(image,2)");
     }
     const double *_surf_tr = mxGetPr(prhs[1]);
+    
     // bottom ground truth ================================================
     if (!mxIsDouble(prhs[2]) || mxGetNumberOfElements(prhs[2]) != 1) {
         mexErrMsgTxt("usage: bgt must be a scalar of type double");
     }
     const double *t_bott_tr = mxGetPr(prhs[2]);
+    
     // extra ground truth =================================================
     if (!mxIsDouble(prhs[3])) {
         mexErrMsgTxt("usage: egt must be type double");
@@ -229,6 +231,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         }
     }
     const double *t_egt = mxGetPr(prhs[3]);
+    
     // mask ===============================================================
     if (!mxIsDouble(prhs[4])) {
         mexErrMsgTxt("usage: mask must be type double");
@@ -237,12 +240,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgTxt("usage: mask must have size(mask,1)=size(image,2)");
     }
     const double *_mask = mxGetPr(prhs[4]);
+    
     // mu (mean) ==========================================================
     if (!mxIsDouble(prhs[5])) {
         mexErrMsgTxt("usage: mean must be type double");
     }
     const size_t _ms = mxGetNumberOfElements(prhs[5]);
     const double *_mu = mxGetPr(prhs[5]); 
+    
     // sigma (variance) ===================================================
     if (!mxIsDouble(prhs[6])) {
         mexErrMsgTxt("usage: variance must be type double");
@@ -251,6 +256,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgTxt("usage: variance must have numel=numel(variance)");
     }
     const double *_sigma          = mxGetPr(prhs[6]); 
+    
     // extra ground truth weight ==========================================
     if (!mxIsDouble(prhs[7])) {
         mexErrMsgTxt("usage: extra_ground_truth must be type double");
@@ -260,6 +266,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }    
     const double *t_egt_weight    = mxGetPr(prhs[7]);
     const double _egt_weight = t_egt_weight && t_egt_weight < 0 ? EGT_WEIGHT : t_egt_weight[0];
+    
     // smooth_weight ======================================================
     if (!mxIsDouble(prhs[8])) {
         mexErrMsgTxt("usage: smooth_weight must be type double");
@@ -269,6 +276,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }    
     const double *t_smooth_weight = mxGetPr(prhs[8]);
     const double _smooth_weight = t_smooth_weight[0] < 0 ? SCALE : t_smooth_weight[0];
+    
     // smooth_var =========================================================
     if (!mxIsDouble(prhs[9])) {
         mexErrMsgTxt("usage: smooth_var must be type double");
@@ -278,6 +286,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }    
     const double *t_smooth_var = mxGetPr(prhs[9]);
     const double _smooth_var = t_smooth_var[0] < 0 ? SIGMA : t_smooth_var[0];
+    
     // smooth_slope =======================================================
     if (!mxIsDouble(prhs[10])) {
         mexErrMsgTxt("usage: smooth_slope must be type double");
@@ -286,6 +295,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgTxt("usage: smooth_slope must have numel=size(image,2)-1");
     }
     const double *_smooth_slope = mxGetPr(prhs[10]);
+    
     // bounds =============================================================
     ptrdiff_t _bounds[2];
     if (nrhs >= 13 && mxGetNumberOfElements(prhs[11])) {
@@ -319,6 +329,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         _bounds[0] = 0;
         _bounds[1] = _col;
     }
+    
     // weight_points ======================================================
     if (!mxIsDouble(prhs[12])) {
         mexErrMsgTxt("usage: weight_points must be type double");
@@ -327,6 +338,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgTxt("usage: weight_points must have size(mask,1)=size(image,2)");
     }   
     const double *_weight_points  = mxGetPr(prhs[12]);
+    
     // repulsion ==========================================================
     if (!mxIsDouble(prhs[13])) {
         mexErrMsgTxt("usage: repulsion must be type double");
@@ -336,6 +348,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }    
     const double *t_repulsion = mxGetPr(prhs[13]);
     const double _repulsion = t_repulsion[0] < 0 ? REPULSION : t_repulsion[0];
+    
     // ice_bin_thr ========================================================
     if (!mxIsDouble(prhs[14])) {
         mexErrMsgTxt("usage: ice_bin_thr must be type double");
@@ -354,6 +367,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgTxt("usage: mc must have size(mc,1)=size(image,2)");
     }
     const double *_mc = mxGetPr(prhs[15]);
+    
     // mc_weight ==========================================================
     if (!mxIsDouble(prhs[16])) {
         mexErrMsgTxt("usage: mc_weight must be type double");
@@ -363,6 +377,43 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }    
     const double *t_mc_weight = mxGetPr(prhs[16]);
     const double _mc_weight = t_mc_weight[0] < 0 ? MC_WEIGHT : t_mc_weight[0];
+    
+    // Cost Function parameters (sensory distance, maximum cost, and lambda)
+    // sensory_distance =====================================================
+    if (!mxIsDouble(prhs[17])) {
+        mexErrMsgTxt("usage: CF_sensory_distance must be type double");
+    }
+    if (mxGetNumberOfElements(prhs[17]) != 1) {
+        mexErrMsgTxt("usage: CF_sensory_distance must be a scalar");
+    }
+    double _CF_sensory_distance = floor(mxGetPr(prhs[17])[0]);
+    if (_CF_sensory_distance < 0) {
+        _CF_sensory_distance = CF_SENSORY_DISTANCE;
+    }
+    
+    // maximum_cost =========================================================
+    if (!mxIsDouble(prhs[18])) {
+        mexErrMsgTxt("usage: CF_max_cost must be type double");
+    }
+    if (mxGetNumberOfElements(prhs[18]) != 1) {
+        mexErrMsgTxt("usage: CF_max_cost must be a scalar");
+    }
+    double _CF_max_cost = floor(mxGetPr(prhs[18])[0]);
+    if (_CF_max_cost < 0) {
+        _CF_max_cost = CF_MAX_COST;
+    }
+    
+    // lambda ===============================================================
+    if (!mxIsDouble(prhs[19])) {
+        mexErrMsgTxt("usage: CF_lambda must be type double");
+    }
+    if (mxGetNumberOfElements(prhs[19]) != 1) {
+        mexErrMsgTxt("usage: CF_lambda must be a scalar");
+    }
+    double _CF_lambda = mxGetPr(prhs[19])[0];
+    if (_CF_lambda < 0) {
+        _CF_lambda = CF_LAMBDA;
+    }
     
     // ====================================================================
     // Initialize surface layer array
@@ -388,6 +439,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     // Run viterbi algorithm
     viterbi obj(_row, _col, _image, _sgt, _bgt, _mask, _mu, _sigma, _mid, 
                 _egt_weight, _smooth_weight, _smooth_var, _smooth_slope,
-                _bounds, _ms, _num_extra_tr, _egt_x, _egt_y, _result,  
-                _weight_points, _repulsion, _ice_bin_thr, _mc, _mc_weight); 
+                _bounds, _ms, _num_extra_tr, _egt_x, _egt_y, _weight_points, 
+                _repulsion, _ice_bin_thr, _mc, _mc_weight, _CF_sensory_distance, 
+                _CF_max_cost, _CF_lambda, _result); 
 }
