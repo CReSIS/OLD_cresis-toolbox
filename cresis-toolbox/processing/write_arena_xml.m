@@ -115,7 +115,7 @@ for adc_idx = adc_idxs
     subchannel = doc.createElement('subChannel'); subchannels.appendChild(subchannel);
     
     child = doc.createElement('id'); subchannel.appendChild(child);
-    child.appendChild(doc.createTextNode( sprintf('%d',subchannel_idx) ));
+    child.appendChild(doc.createTextNode( sprintf('%d',subchannel_idx-1) ));
     
     num_modes = 0;
     for wf = 1:length(wfs)
@@ -134,7 +134,7 @@ for adc_idx = adc_idxs
         child.appendChild(doc.createTextNode(sprintf('%d',mode)));
         
         child = doc.createElement('adcDdcChannel'); digRx.appendChild(child);
-        child.appendChild(doc.createTextNode('0'));
+        child.appendChild(doc.createTextNode( sprintf('%d',subchannel_idx-1) ));
         
         child = doc.createElement('bypass'); digRx.appendChild(child);
         child.appendChild(doc.createTextNode('1'));
@@ -304,7 +304,7 @@ if strcmpi(arena.ctu.type,'ctu_001D')
             error('arena.ctu.out.bit_group(%d): Value (%g) is too big for number of bits (%d).', group_idx, val, length(arena.ctu.out.bit_group.bits));
           end
           val_bin = dec2bin(val,length(arena.ctu.out.bit_group(group_idx).bits));
-          segmentStates_val(arena.ctu.out.bit_group(group_idx).bits+1) = val_bin;
+          segmentStates_val(arena.ctu.out.bit_group(group_idx).bits+1) = fliplr(val_bin);
         end
         if segment_idx == 1
           segmentStates_str = ['00000000' dec2hex(bin2dec(fliplr(segmentStates_val)),8)];
@@ -972,6 +972,7 @@ if strcmpi(arena.psc.type,'psc_0003')
         psc_repeat(:,1) = length(zeropimods)*(wf-1) + (1:length(zeropimods));
         psc_repeat(:,4) = num_psc + (1:length(zeropimods));
         psc_repeat(end,2:3) = [num_psc, (wfs(wf).presums-length(zeropimods))/length(zeropimods)];
+        psc_name = {};
         for zeropimod = zeropimods
           psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
         end
