@@ -79,7 +79,7 @@ phase_centers = bsxfun(@minus,phase_centers,mean(phase_centers,2));
 % <1700 m thick ice, 1200 +/- 500 ft AGL
 ice_thickness = [4500];
 for freq_idx = [1]
-  [~,defaults] = default_radar_params_2018_Antarctica_Ground;
+  [~,defaults] = default_radar_params_2018_Antarctica_Ground_mcords6;
   param = defaults{1};
   param.flight_hours = 4;
   param.prf = prf;
