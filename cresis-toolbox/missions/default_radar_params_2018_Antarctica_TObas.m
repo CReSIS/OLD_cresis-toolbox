@@ -13,7 +13,6 @@ param.radar_name = 'accum3';
 
 %% Control parameters (not used in the parameter spreadsheet directly)
 default.header_load_func = @basic_load_arena;
-default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
 
 default.noise_50ohm = [0 0 0 0];
 
@@ -97,6 +96,7 @@ arena.adc(adc_idx).adcMode = 1;
 arena.adc(adc_idx).desiredAlignMin = -34;
 arena.adc(adc_idx).desiredAlignMax = -20;
 arena.adc(adc_idx).ip = '10.0.0.101';
+arena.adc(adc_idx).wf_set = 1;
 
 daq_idx = 0;
 daq_idx = daq_idx + 1;

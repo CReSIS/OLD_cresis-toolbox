@@ -19,6 +19,8 @@ function doc = write_arena_xml(doc,param)
 % See also: read_arena_xml, read_cresis_xml, write_arena_xml, write_ni_xml,
 % write_radar_xml
 
+%% Initialization
+
 wfs = param.wfs;
 arena = param.arena;
 
@@ -29,7 +31,6 @@ import javax.xml.xpath.*
 factory = XPathFactory.newInstance;
 xpath = factory.newXPath;
 
-%% Initialization:
 doc = com.mathworks.xml.XMLUtils.createDocument('system');
 system = doc.getDocumentElement;
 
@@ -61,10 +62,13 @@ for adc_idx = adc_idxs
   child.appendChild(doc.createTextNode(sprintf('%d',adc.adcMode)));
   if adc.adcMode == 0
     fs = adc.sampFreq;
+    num_subchannel = 1;
   elseif adc.adcMode == 1
     fs = adc.sampFreq / 2;
+    num_subchannel = 1;
   elseif adc.adcMode == 2
     fs = adc.sampFreq / 4;
+    num_subchannel = 2;
   end
   
   child = doc.createElement('ddc0Adc'); config.appendChild(child);
@@ -88,108 +92,110 @@ for adc_idx = adc_idxs
     child = doc.createElement('ddc1NcoMode'); config.appendChild(child);
     child.appendChild(doc.createTextNode('1'));
     child = doc.createElement('ddc0NcoFreq'); config.appendChild(child);
-    child.appendChild(doc.createTextNode('250'));
+    child.appendChild(doc.createTextNode(sprintf('%g',wfs(1).DDC_freq/1e6)));
     child = doc.createElement('ddc1NcoFreq'); config.appendChild(child);
-    child.appendChild(doc.createTextNode('250'));
+    child.appendChild(doc.createTextNode(sprintf('%g',wfs(1).DDC_freq/1e6)));
   elseif all(cell2mat({wfs.DDC_freq}) == wfs(1).DDC_freq)
     child = doc.createElement('ddc0NcoMode'); config.appendChild(child);
     child.appendChild(doc.createTextNode('2'));
     child = doc.createElement('ddc1NcoMode'); config.appendChild(child);
     child.appendChild(doc.createTextNode('2'));
     child = doc.createElement('ddc0NcoFreq'); config.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%g',adc.sampFreq/1e6)));
+    child.appendChild(doc.createTextNode(sprintf('%g',wfs(1).DDC_freq/1e6)));
     child = doc.createElement('ddc1NcoFreq'); config.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%g',adc.sampFreq/1e6)));
+    child.appendChild(doc.createTextNode(sprintf('%g',wfs(1).DDC_freq/1e6)));
   else
     error('wfs(wf).DDC_freq must be the same for all wf.');
   end
   
   subchannels = doc.createElement('subChannels'); config.appendChild(subchannels);
-  subchannel = doc.createElement('subChannel'); subchannels.appendChild(subchannel);
   
-  child = doc.createElement('id'); subchannel.appendChild(child);
-  child.appendChild(doc.createTextNode('0'));
-  
-  num_modes = 0;
-  for wf = 1:length(wfs)
-    zeropimods = wfs(wf).zeropimods(:).';
-    Tpd = round(wfs(wf).Tpd*1e6);
-    if wf == 1
-      modes = num_modes+(0:length(zeropimods));
-    else
-      modes = num_modes+(0:length(zeropimods)-1);
-    end
+  for subchannel_idx = 1:num_subchannel
     
-    for mode = modes
-      digRx = doc.createElement('digRx'); subchannel.appendChild(digRx);
-      
-      child = doc.createElement('modes'); digRx.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('%d',mode)));
-      
-      child = doc.createElement('adcDdcChannel'); digRx.appendChild(child);
-      child.appendChild(doc.createTextNode('0'));
-      
-      child = doc.createElement('bypass'); digRx.appendChild(child);
-      child.appendChild(doc.createTextNode('1'));
-      
-      if mode == modes(end)
-        child = doc.createElement('zeroPi'); digRx.appendChild(child);
-        child.appendChild(doc.createTextNode('1'));
+    subchannel = doc.createElement('subChannel'); subchannels.appendChild(subchannel);
+    
+    child = doc.createElement('id'); subchannel.appendChild(child);
+    child.appendChild(doc.createTextNode( sprintf('%d',subchannel_idx) ));
+    
+    num_modes = 0;
+    for wf = 1:length(wfs)
+      zeropimods = wfs(wf).zeropimods(:).';
+      Tpd = round(wfs(wf).Tpd*1e6);
+      if wf == 1
+        modes = num_modes+(0:length(zeropimods));
       else
-        child = doc.createElement('zeroPi'); digRx.appendChild(child);
-        child.appendChild(doc.createTextNode('0'));
+        modes = num_modes+(0:length(zeropimods)-1);
       end
       
-      child = doc.createElement('ncoFreq'); digRx.appendChild(child);
-      child.appendChild(doc.createTextNode('0'));
+      for mode = modes
+        digRx = doc.createElement('digRx'); subchannel.appendChild(digRx);
+        
+        child = doc.createElement('modes'); digRx.appendChild(child);
+        child.appendChild(doc.createTextNode(sprintf('%d',mode)));
+        
+        child = doc.createElement('adcDdcChannel'); digRx.appendChild(child);
+        child.appendChild(doc.createTextNode('0'));
+        
+        child = doc.createElement('bypass'); digRx.appendChild(child);
+        child.appendChild(doc.createTextNode('1'));
+        
+        if mode == modes(end)
+          child = doc.createElement('zeroPi'); digRx.appendChild(child);
+          child.appendChild(doc.createTextNode('1'));
+        else
+          child = doc.createElement('zeroPi'); digRx.appendChild(child);
+          child.appendChild(doc.createTextNode('0'));
+        end
+        
+        child = doc.createElement('ncoFreq'); digRx.appendChild(child);
+        child.appendChild(doc.createTextNode('0'));
+        
+        child = doc.createElement('ncoPhase'); digRx.appendChild(child);
+        child.appendChild(doc.createTextNode('0'));
+        
+        child = doc.createElement('decimation'); digRx.appendChild(child);
+        child.appendChild(doc.createTextNode('1'));
+      end
       
-      child = doc.createElement('ncoPhase'); digRx.appendChild(child);
-      child.appendChild(doc.createTextNode('0'));
-      
-      child = doc.createElement('decimation'); digRx.appendChild(child);
-      child.appendChild(doc.createTextNode('1'));
+      num_modes = num_modes + length(modes);
     end
     
-    num_modes = num_modes + length(modes);
-  end
-  
-  num_modes = 0;
-  for wf = 1:length(wfs)
-    zeropimods = wfs(wf).zeropimods(:).';
-    Tpd = round(wfs(wf).Tpd*1e6);
-    if wf == 1
-      modes = num_modes+(0:length(zeropimods));
-    else
-      modes = num_modes+(0:length(zeropimods)-1);
+    num_modes = 0;
+    for wf = 1:length(wfs)
+      zeropimods = wfs(wf).zeropimods(:).';
+      Tpd = round(wfs(wf).Tpd*1e6);
+      if wf == 1
+        modes = num_modes+(0:length(zeropimods));
+      else
+        modes = num_modes+(0:length(zeropimods)-1);
+      end
+      
+      integrator = doc.createElement('integrator'); subchannel.appendChild(integrator);
+      
+      child = doc.createElement('modes'); integrator.appendChild(child);
+      child.appendChild(doc.createTextNode(sprintf('%d:%d',modes(1),modes(end))));
+      
+      child = doc.createElement('rstModes'); integrator.appendChild(child);
+      child.appendChild(doc.createTextNode(sprintf('%d',modes(1))));
+      
+      child = doc.createElement('numInt'); integrator.appendChild(child);
+      child.appendChild(doc.createTextNode(sprintf('%d',wfs(wf).presums)));
+      
+      start_bin = round(wfs(wf).Tstart*fs);
+      Nt = round((wfs(wf).Tend-wfs(wf).Tstart)*fs/8)*8;
+      stop_bin = start_bin + Nt-1;
+      child = doc.createElement('rg'); integrator.appendChild(child);
+      child.appendChild(doc.createTextNode(sprintf('%d:%d',start_bin,stop_bin)));
+      
+      num_modes = num_modes + length(modes);
     end
     
-    integrator = doc.createElement('integrator'); subchannel.appendChild(integrator);
+    child = doc.createElement('coefficients'); subchannel.appendChild(child);
+    B = [-2639,   650,   5580,   4956,   -2234,   -4562,   3195,   7530,   -1873,   -9996,   23,   12794,   3149,   -15261,   -7593,   17087,   13401,   -17768,   -20479,   16789,   28599,   -13618,   -37362,   7754,   46182,   1220,   -54308,   -13597,   60804,   29468,   -64619,   -48712,   64584,   70923,   -59485,   -95395,   48110,   121110,   -29288,   -146707,   1941,   170497,   34900,   -190452,   -82119,   204182,   140592,   -208843,   -211381,   200951,   296148,   -175880,   -397987,   126738,   523336,   -41506,   -686878,   -105268,   926999,   383082,   -1373977,   -1083207,   2862960,   7162362,   7162362,   2862960,   -1083207,   -1373977,   383082,   926999,   -105268,   -686878,   -41506,   523336,   126738,   -397987,   -175880,   296148,   200951,   -211381,   -208843,   140592,   204182,   -82119,   -190452,   34900,   170497,   1941,   -146707,   -29288,   121110,   48110,   -95395,   -59485,   70923,   64584,   -48712,   -64619,   29468,   60804,   -13597,   -54308,   1220,   46182,   7754,   -37362,   -13618,   28599,   16789,   -20479,   -17768,   13401,   17087,   -7593,   -15261,   3149,   12794,   23,   -9996,   -1873,   7530,   3195,   -4562,   -2234,   4956,   5580,   650,   -2639];
+    coefficients_str = sprintf('%d',B(1));
+    coefficients_str = [coefficients_str sprintf(',%d',B(2:end))];
+    child.appendChild(doc.createTextNode(coefficients_str));
     
-    child = doc.createElement('modes'); integrator.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%d:%d',modes(1),modes(end))));
-    
-    child = doc.createElement('rstModes'); integrator.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%d',modes(1))));
-    
-    child = doc.createElement('numInt'); integrator.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%d',wfs(wf).presums)));
-    
-    start_bin = round(wfs(wf).Tstart*fs);
-    Nt = round((wfs(wf).Tend-wfs(wf).Tstart)*fs/8)*8;
-    stop_bin = start_bin + Nt-1;
-    child = doc.createElement('rg'); integrator.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%d:%d',start_bin,stop_bin)));
-    
-    num_modes = num_modes + length(modes);
-  end
-  
-  child = doc.createElement('coefficients'); subchannel.appendChild(child);
-  B = [-2639,   650,   5580,   4956,   -2234,   -4562,   3195,   7530,   -1873,   -9996,   23,   12794,   3149,   -15261,   -7593,   17087,   13401,   -17768,   -20479,   16789,   28599,   -13618,   -37362,   7754,   46182,   1220,   -54308,   -13597,   60804,   29468,   -64619,   -48712,   64584,   70923,   -59485,   -95395,   48110,   121110,   -29288,   -146707,   1941,   170497,   34900,   -190452,   -82119,   204182,   140592,   -208843,   -211381,   200951,   296148,   -175880,   -397987,   126738,   523336,   -41506,   -686878,   -105268,   926999,   383082,   -1373977,   -1083207,   2862960,   7162362,   7162362,   2862960,   -1083207,   -1373977,   383082,   926999,   -105268,   -686878,   -41506,   523336,   126738,   -397987,   -175880,   296148,   200951,   -211381,   -208843,   140592,   204182,   -82119,   -190452,   34900,   170497,   1941,   -146707,   -29288,   121110,   48110,   -95395,   -59485,   70923,   64584,   -48712,   -64619,   29468,   60804,   -13597,   -54308,   1220,   46182,   7754,   -37362,   -13618,   28599,   16789,   -20479,   -17768,   13401,   17087,   -7593,   -15261,   3149,   12794,   23,   -9996,   -1873,   7530,   3195,   -4562,   -2234,   4956,   5580,   650,   -2639];
-  coefficients_str = sprintf('%d',B(1));
-  coefficients_str = [coefficients_str sprintf(',%d',B(2:end))];
-  child.appendChild(doc.createTextNode(coefficients_str));
-  
-  if adc.adcMode == 2
   end
   
   child = doc.createElement('shiftLSB'); config.appendChild(child);
@@ -540,9 +546,9 @@ for dac_idx = dac_idxs
     child = doc.createElement('bandwidth'); pulse.appendChild(child);
     child.appendChild(doc.createTextNode(sprintf('%f',BW/1e6)));
     child = doc.createElement('initialDelay'); pulse.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).delay*1e-3)));
+    child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).delay(tx_idx)*1e-3)));
     child = doc.createElement('initialPhase'); pulse.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).phase+zeropimod)));
+    child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).phase(tx_idx)+zeropimod)));
     child = doc.createElement('afterPulseDelay'); pulse.appendChild(child);
     child.appendChild(doc.createTextNode('0.000000'));
     child = doc.createElement('taper'); pulse.appendChild(child);
@@ -606,9 +612,9 @@ for dac_idx = dac_idxs
       child = doc.createElement('bandwidth'); pulse.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%f',BW/1e6)));
       child = doc.createElement('initialDelay'); pulse.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).delay*1e-3)));
+      child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).delay(tx_idx)*1e-3)));
       child = doc.createElement('initialPhase'); pulse.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).phase+zeropimod)));
+      child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).phase(tx_idx)+zeropimod)));
       child = doc.createElement('afterPulseDelay'); pulse.appendChild(child);
       child.appendChild(doc.createTextNode('0.000000'));
       child = doc.createElement('taper'); pulse.appendChild(child);
@@ -1008,7 +1014,7 @@ if strcmpi(arena.psc.type,'psc_0003')
   end
 end
 
-%% socket
+%% SOCKET
 for adc_idx = 1:length(arena.adc)
   
   adc = arena.adc(adc_idx);
@@ -1038,7 +1044,7 @@ for adc_idx = 1:length(arena.adc)
   child.appendChild(doc.createTextNode('8192'));
 end
 
-%% Subsystems
+%% SUBSYSTEM
 system = doc.getFirstChild;
 configs = system.getFirstChild;
 
@@ -1066,7 +1072,7 @@ for subsystem_idx = 1:length(arena.subsystem)
     child.appendChild(doc.createTextNode('psc'));
     child.setAttribute('type',arena.psc.type);
   end
-
+  
   for mezz_idx = 1:length(subsystem.subSystem)
     mezz_name = subsystem.subSystem{mezz_idx};
     
@@ -1098,7 +1104,7 @@ for subsystem_idx = 1:length(arena.subsystem)
       
       child = doc.createElement('name'); mezz.appendChild(child);
       child.appendChild(doc.createTextNode(mezz_name));
-
+      
       % Find the DAC in the list
       dac_idx = find(strcmpi(mezz_name,{arena.dac.name}));
       if isempty(dac_idx)
@@ -1168,6 +1174,84 @@ for subsystem_idx = 1:length(arena.subsystem)
       child.appendChild(doc.createTextNode('eth0'));
       child.setAttribute('type','nic');
     end
-
+    
   end
 end
+
+%% param.records.data_map
+num_psc = 0;
+total_data_map = [];
+for wf = 1:length(wfs)
+  
+  zeropimods = wfs(wf).zeropimods(:).';
+  if wf == 1
+    if wfs(wf).presums == 1
+      modes = 0;
+    elseif wfs(wf).presums == length(zeropimods)
+      modes = 0:length(zeropimods)-1;
+    elseif mod(wfs(wf).presums,length(zeropimods)) == 0
+      modes = [0:length(zeropimods), 1:length(zeropimods)-1];
+    else
+      error('Presums %d>1 so presums must be a multiple of zeropimods length=%d.', ...
+        wfs(wf).presums, length(zeropimods));
+    end
+  else
+    if wfs(wf).presums == 1
+      modes = length(zeropimods)*(wf-1)+1;
+    elseif ~mod(wfs(wf).presums,2)
+      modes = length(zeropimods)*(wf-1) + (1:length(zeropimods));
+    else
+      error('Odd number of presums, %d, greater than 1 not supported.', ...
+        wfs(wf).presums);
+    end
+  end
+  num_psc = num_psc + size(psc_repeat,1);
+  
+  out_adc_idx = [];
+  for adc_idx = 1:numel(arena.adc)
+    adc = arena.adc(adc_idx);
+    if adc.adcMode == 0 || adc.adcMode == 1
+      num_subchannel = 1;
+    elseif adc.adcMode == 2
+      num_subchannel = 2;
+    end
+    
+    board_idx = find(strcmpi(adc.name,param.board_map));
+    
+    mode_latch = modes(end);
+    
+    for subchannel_id = 0:num_subchannel-1
+      wf_set = 0;
+      if isfield(adc,'wf_set') && ~isempty(adc.wf_set)
+        wf_set = adc.wf_set;
+      end
+      if numel(out_adc_idx) < wf_set+1
+        out_adc_idx(wf_set+1) = 1;
+      else
+        out_adc_idx(wf_set+1) = out_adc_idx(wf_set+1) + 1;
+      end
+      total_data_map(end+1,1:5) = [board_idx mode_latch subchannel_id wf_set*numel(wfs)+wf out_adc_idx(wf_set+1)];
+    end
+    
+  end
+end
+
+if 0
+  for board_idx = 1:length(param.board_map)
+    mask = total_data_map(:,1) == board_idx;
+    fprintf('board_idx %d\n', board_idx);
+    data_map = total_data_map(mask,2:5)
+  end
+end
+
+fprintf('  param.records.data_map = {');
+for board_idx = 1:length(param.board_map)
+  mask = total_data_map(:,1) == board_idx;
+  data_map = total_data_map(mask,2:5);
+  if board_idx > 1
+    fprintf(',');
+  end
+  fprintf('%s',mat2str_generic(data_map));
+end
+fprintf('}\n');
+

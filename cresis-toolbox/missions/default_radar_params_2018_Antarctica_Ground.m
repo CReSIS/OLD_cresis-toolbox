@@ -1,21 +1,20 @@
-function [param,defaults] = default_radar_params_2018_Antarctica_TObas
-% [param,defaults] = default_radar_params_2018_Antarctica_TObas
+function [param,defaults] = default_radar_params_2018_Antarctica_Ground
+% [param,defaults] = default_radar_params_2018_Antarctica_Ground
 %
-% Accum3: 2018_Antarctica_TObas
+% Accum3: 2018_Antarctica_Ground
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
 %
 % Author: John Paden
 
-param.season_name = '2018_Antarctica_TObas';
+param.season_name = '2018_Antarctica_Ground';
 param.radar_name = 'accum3';
 
 %% Control parameters (not used in the parameter spreadsheet directly)
 default.header_load_func = @basic_load_arena;
-default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
 
-default.noise_50ohm = [0 0 0 0];
+default.noise_50ohm = [0 0 0 0 0 0 0 0];
 
 default.Pt = 400; % Transmit power at the transmit antenna
 default.Gt = 4*2; % Transmit antenna gain
@@ -23,19 +22,19 @@ default.Ae = default.Gt*(3e8/750e6)^2; % Receiver antenna effective area
 default.system_loss_dB = 10.^(-5.88/10); % Losses from the receive antenna to before the first LNA
 default.noise_figure = 2; % Noise figure of receiver starting at the first LNA
 default.adc_SNR_dB = 59; % ADC full scale signal SNR (relative to quantization noise)
-default.fs = 1000e6;
-default.fs_dac = 2000e6;
+default.fs = 640e6;
+default.fs_dac = 1280e6;
 default.max_duty_cycle = 0.1;
 default.max_data_rate = 60;
-default.max_tx = [1 1];
+default.max_tx = [1 1 1 1];
 
-default.tx_enable = [1 1];
+default.tx_enable = [1 1 1 1];
 
 default.basic_surf_track_min_time = 2e-6;
 default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
-default.board_map = {'digrx0','digrx1'};
-default.tx_map = {'awg0'};
-default.records.file.boards = [1 2];
+default.board_map = {'digrx0','digrx1','digrx2','digrx3'};
+default.tx_map = {'awg0','awg1','awg2','awg3'};
+default.records.file.boards = [1 2 3 4];
 default.records.file.version = 103;
 
 if 1
@@ -55,7 +54,7 @@ if 1
   default.txequal.remove_linear_phase_en = true;
 end
 
-%% BAS ACCUM Arena Parameters
+%% MCoRDS6 Arena Parameters
 arena = [];
 subsystem_idx = 0;
 subsystem_idx = subsystem_idx + 1;
@@ -87,31 +86,35 @@ arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = default.fs_dac;
 arena.dac(dac_idx).desiredAlignMin = 3;
 arena.dac(dac_idx).desiredAlignMax = 17;
+arena.dac(dac_idx).dcoPhase = 0;
 dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg1';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = default.fs_dac;
 arena.dac(dac_idx).desiredAlignMin = 4;
 arena.dac(dac_idx).desiredAlignMax = 10;
+arena.dac(dac_idx).dcoPhase = 0;
 dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg2';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = default.fs_dac;
 arena.dac(dac_idx).desiredAlignMin = 4;
 arena.dac(dac_idx).desiredAlignMax = 10;
+arena.dac(dac_idx).dcoPhase = 0;
 dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg3';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = default.fs_dac;
 arena.dac(dac_idx).desiredAlignMin = 4;
 arena.dac(dac_idx).desiredAlignMax = 10;
+arena.dac(dac_idx).dcoPhase = 0;
 
 adc_idx = 0;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx0';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = default.fs;
-arena.adc(adc_idx).adcMode = 1;
+arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -12;
 arena.adc(adc_idx).desiredAlignMax = 0;
 arena.adc(adc_idx).ip = '10.0.0.100';
@@ -119,7 +122,7 @@ adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = default.fs;
-arena.adc(adc_idx).adcMode = 1;
+arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -34;
 arena.adc(adc_idx).desiredAlignMax = -10;
 arena.adc(adc_idx).ip = '10.0.0.101';
@@ -127,7 +130,7 @@ adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx2';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = default.fs;
-arena.adc(adc_idx).adcMode = 1;
+arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -34;
 arena.adc(adc_idx).desiredAlignMax = -10;
 arena.adc(adc_idx).ip = '10.0.0.102';
@@ -135,7 +138,7 @@ adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx3';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = default.fs;
-arena.adc(adc_idx).adcMode = 1;
+arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -34;
 arena.adc(adc_idx).desiredAlignMax = -10;
 arena.adc(adc_idx).ip = '10.0.0.103';
@@ -153,10 +156,17 @@ arena.param.board_map = {'digrx0','digrx1'};
 arena.param.tx_map = {'dac0','dac1'};
 
 arena.param.tx_max = [1 1];
-arena.param.PA_setup_time = 0.3e-6; % Time required to enable PA before transmit
+arena.param.PA_setup_time = 2e-6; % Time required to enable PA before transmit
 arena.param.TTL_time_delay = 0.0; % TTL time delay relative to transmit start
 arena.param.ADC_time_delay = 0.0; % ADC time delay relative to transmit start
-arena.param.data_map = {[0 0 1 1],[0 0 2 1]};
+arena.param.data_map = {
+  [0 0 1 1
+   0 0 0 0
+   0 0 0 0],
+  [0 0 1 1
+   0 0 0 0
+   0 0 0 0]}
+   
 % mode 0, subchannel 0, board_idx 1 is wf-adc 1-1
 % mode 0, subchannel 0, board_idx 2 is wf-adc 2-1
 
@@ -166,6 +176,9 @@ arena.daq.type = 'daq_0001';
 
 arena.ctu.name = 'ctu';
 arena.ctu.type = 'ctu_001D';
+arena.ctu.nmea = 31;
+arena.ctu.pps = 10;
+arena.ctu.pps_polarity = 1;
 idx = 0;
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'EPRI';
@@ -203,7 +216,7 @@ arena.ctu.out.bit_group(idx).pri = [0 0];
 %   arena.ctu.out.bit_group(idx).epri = [0 0];
 %   arena.ctu.out.bit_group(idx).pri = [0 0];
 
-arena.ctu.out.time_cmd = {'0.3e-6+param.wfs(wf).Tpd+0.3e-6' '2/param.prf'};
+arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2/param.prf'};
 
 default.arena = arena;
 

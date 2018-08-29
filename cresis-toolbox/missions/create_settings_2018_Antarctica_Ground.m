@@ -31,10 +31,10 @@ final_DDS_time = [];
 if 0
   % Initial conditions (usually all zeros phase/time with max amplitude)
   for idx = 1:length(f0_list)
-    final_DDS_phase{idx} = [0];
-    final_DDS_phase_no_time{idx} = [0]; % not used usually
-    final_DDS_amp{idx} = [1];
-    final_DDS_time{idx} =  [0];
+    final_DDS_phase{idx} = [0 0 0 0];
+    final_DDS_phase_no_time{idx} = [0 0 0 0]; % not used usually
+    final_DDS_amp{idx} = [1 1 1 1];
+    final_DDS_time{idx} =  [0 0 0 0];
   end
 else
   % COPY AND PASTE RESULTS FROM basic_tx_chan_equalization_SEASON_NAME.m
@@ -42,16 +42,16 @@ else
   
   % 160-230 MHz
   idx = 1;
-  final_DDS_phase{idx} = [0];
-  final_DDS_phase_no_time{idx} = [0]; % not used usually
-  final_DDS_amp{idx} = [1];
-  final_DDS_time{idx} =  [0];
+  final_DDS_phase{idx} = [0 0 0 0];
+  final_DDS_phase_no_time{idx} = [0 0 0 0]; % not used usually
+  final_DDS_amp{idx} = [1 1 1 1];
+  final_DDS_time{idx} =  [0 0 0 0];
 end
 
 % Hwindow_orig: Desired window created during transmit calibration
 %  This is used any time a window that is different from that used
 %  during calibration is to be used.
-Hwindow_orig = chebwin(1).';
+Hwindow_orig = chebwin(4).';
 
 %% SETUP
 % =========================================================================
@@ -61,9 +61,10 @@ param.season_name = '2018_Antarctica_Ground';
 param.radar_name = 'mcords6';
 param.gps_source = 'arena-field';
 clear phase_centers;
-for tx_chan = 1:1
+num_tx = 4;
+for tx_chan = 1:num_tx
   % Just enable the current antenna to determine its phase center
-  tx_weights = zeros(1,1);
+  tx_weights = zeros(1,num_tx);
   tx_weights(tx_chan) = 1;
   rxchan = 1; % Fix the receiver (it should not matter which one you choose)
   % Determine phase center for the antenna
@@ -74,7 +75,7 @@ phase_centers = bsxfun(@minus,phase_centers,mean(phase_centers,2));
 
 %% Survey Mode + loopback, noise, and deconv modes
 % <1700 m thick ice, 1200 +/- 500 ft AGL
-ice_thickness = [1700];
+ice_thickness = [4500];
 for freq_idx = [1]
   [~,defaults] = default_radar_params_2018_Antarctica_Ground;
   param = defaults{1};
@@ -84,21 +85,21 @@ for freq_idx = [1]
   param.zeropimods = [0 180]; % 180 causes a special mode in some ADC/DAC
   
   param.tg.staged_recording = [1];
-  param.tg.altitude_guard = 500*12*2.54/100;
-  param.tg.Haltitude = 1200*12*2.54/100;
+  param.tg.altitude_guard = 0*12*2.54/100;
+  param.tg.Haltitude = 0*12*2.54/100;
   param.tg.Hice_thick = ice_thickness(freq_idx);
   
   param.create_IQ = false;
   
   param.f0 = f0_list(freq_idx);
   param.f1 = f1_list(freq_idx);
-  param.DDC_freq = 250e6;
+  param.DDC_freq = 160e6;
   param.zeropimods = [0 180];
   
   % wf == 1 is the EPRI always
-  param.interleave = 7; % Explicitly programs 2 times as many sequence slots (first set is for interleave loop, second set is for calibration loop)
-  param.wfs(1).presums = 4; % Creates 1+Z modes (2 would create 2 modes)
-  param.wfs(2).presums = 14; % Creates Z modes
+%   param.interleave = 7; % Explicitly programs 2 times as many sequence slots (first set is for interleave loop, second set is for calibration loop)
+  param.wfs(1).presums = 64; % Creates 1+Z modes (2 would create 2 modes)
+  param.wfs(2).presums = 128; % Creates Z modes
 %   param.cal.wfs(1).presums = 7*(4+14)-2; % Create 1+Z modes (epri + pri)
 %   param.cal.wfs(2).presums = 1; % Create 1
 %   param.cal.wfs(3).presums = 1; % Create 1
@@ -119,13 +120,9 @@ for freq_idx = [1]
   param.wfs(2).delay = final_DDS_time{cal_settings(freq_idx)};
   param.delay = final_DDS_time{cal_settings(freq_idx)};
   
-  idx = find(strcmpi('AttenFirst18dB',{param.arena.ctu.out.bit_group.name}));
-  param.arena.ctu.out.bit_group(idx).epri = {[1 1],[0 0]};
-  param.arena.ctu.out.bit_group(idx).pri = {[1 1],[0 0]};
-  
-  idx = find(strcmpi('AttenSecond7dB',{param.arena.ctu.out.bit_group.name}));
-  param.arena.ctu.out.bit_group(idx).epri = {[0 0],[0 0]};
-  param.arena.ctu.out.bit_group(idx).pri = {[0 0],[0 0]};
+  idx = find(strcmpi('Atten',{param.arena.ctu.out.bit_group.name}));
+  param.arena.ctu.out.bit_group(idx).epri = {[20 20],[0 0]};
+  param.arena.ctu.out.bit_group(idx).pri = {[20 20],[0 0]};
   
   param.arena.fn = fullfile(arena_base_dir,sprintf('survey_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthick.xml',param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.wfs(end).Tpd*1e6,param.tg.Hice_thick));
   write_radar_config(param);

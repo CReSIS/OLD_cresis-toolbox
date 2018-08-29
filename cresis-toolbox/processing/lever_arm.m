@@ -952,19 +952,19 @@ end
 if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'rds'))
   % Accumulation antenna
   LArx(1,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = 0.75*[-3:3] - gps.y; % m
+  LArx(2,:)   = 0.75*[-3.5:3.5] - gps.y; % m
   LArx(3,:)   = (5*0.0254 + [0 0 0 0 0 0 0 0]) - gps.z; % m
   
   LAtx(1,:)   = (0 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = 0.75*[-3:2:3] - gps.y; % m
+  LAtx(2,:)   = 0.75*[-3.5:2:3.5] - gps.y; % m
   LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
-    rxchannel = 1;
+    rxchannel = 4;
   end
   
   if rxchannel == 0
-    rxchannel = 1;
+    rxchannel = 4;
     tx_weights = ones(1,size(LAtx,2));
   end
 end
