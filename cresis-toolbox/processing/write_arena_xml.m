@@ -181,7 +181,7 @@ for adc_idx = adc_idxs
       child = doc.createElement('numInt'); integrator.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d',wfs(wf).presums)));
       
-      start_bin = round(wfs(wf).Tstart*fs);
+      start_bin = round(wfs(wf).Tstart*fs/8)*8;
       Nt = round((wfs(wf).Tend-wfs(wf).Tstart)*fs/8)*8;
       stop_bin = start_bin + Nt-1;
       child = doc.createElement('rg'); integrator.appendChild(child);

@@ -159,7 +159,7 @@ arena.ctu.out.bit_group(idx).bits = 5;
 arena.ctu.out.bit_group(idx).epri = [0 0];
 arena.ctu.out.bit_group(idx).pri = [0 0];
 
-arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2/param.prf'};
+arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+1e-6' '2/param.prf'};
 
 default.arena = arena;
 
