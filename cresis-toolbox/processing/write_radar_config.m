@@ -54,10 +54,10 @@ function configs = write_radar_xml(param)
 %  .presums = row vector of presums for each waveform
 %  .wfs = struct array of waveform definitions
 %   .atten = receiver attenuator settings (same for all channels)
-%   .delay = 1x8 row vector of optimal transmit delays (ns)
+%   .delay = 1 by N_tx row vector of optimal transmit delays (ns)
 %   .f0 = start frequency (Hz)
 %   .f1 = stop frequency (Hz)
-%   .tx_enable = 1x8 row vector of logicals (1 disables transmit)
+%   .tx_enable = 1 by N_tx row vector of logicals (1 disables transmit)
 %   .tg = waveform specific time gate fields
 %    .altitude_guard = surface timing will be +/- this many meters
 %    .Haltitude = nominal meters above ground level
@@ -65,7 +65,7 @@ function configs = write_radar_xml(param)
 %   .tx_weights = 1x8 row vector of DDS amplitudes (will be scaled to max_tx)
 %   .tukey = Tukey weighting to use on transmit pulse
 %   .Tpd = pulse duration in seconds
-%   .phase = 1x8 row vector of optimal transmit phase weights (deg)
+%   .phase = 1 by N_tx row vector of optimal transmit phase weights (deg)
 %   .f0 = start frequency (Hz) if not specified in .wfs field
 %   .f1 = stop frequency (Hz) if not specified in .wfs field
 %
@@ -280,21 +280,21 @@ for wf = 1:length(param.wfs)
       % return + any off nadir scattering that is to be caught.
       Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd, Tstop_ref);
     else
-      % Also the last stage
-      Tend = Tstart_ref + Hice_thick / (3e8/2/sqrt(er_ice));
+      % The first stage is also the last stage
+      Tend = Tstart_ref + Hice_thick / (3e8/2/sqrt(er_ice)) + param.wfs(wf).Tpd;
     end
   elseif isempty(next_stage_wf)
     % Last Stage
     Tstart = Tstart_ref + param.wfs(wf).Tpd;
-    Tend = Tstop_ref;
+    Tend = Tstop_ref + param.wfs(wf).Tpd;
   else
     % In between first and last stage
     Tstart = Tstart_ref + param.wfs(wf).Tpd;
     Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd, Tstop_ref);
   end
   
-  param.wfs(wf).Tstart = Tstart;
-  param.wfs(wf).Tend = Tend;
+  param.wfs(wf).Tstart = Tstart-Tguard;
+  param.wfs(wf).Tend = Tend+Tguard;
 end
 
 if param.create_IQ

@@ -273,7 +273,8 @@ for config_idx = 1:length(configs)
   
   % Determine which default parameters to use
   % =======================================================================
-  [default_param,defaults] = default_radar_params_2018_Antarctica_TObas;
+  default_param = param.arena_packet_strip.default_param;
+  defaults = param.arena_packet_strip.defaults;
   match_idx = [];
   for default_idx = 1:length(defaults)
     match = regexpi(configs(config_idx).psc.config_name, defaults{default_idx}.config_regexp);
@@ -340,7 +341,7 @@ for config_idx = 1:length(configs)
   oparams(config_idx).records.config_fn = fullfile(param.arena_packet_strip.config_folder_name, [config_fn_name '.xml']);
   
   oparams(config_idx).radar.fs = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.sampFreq;
-  oparams(config_idx).radar.prf = configs(config_idx).prf;
+  oparams(config_idx).radar.prf = configs(config_idx).prf * configs(config_idx).total_presums;
   oparams(config_idx).radar.adc_bits = defaults{match_idx}.radar.adc_bits;
   oparams(config_idx).radar.Vpp_scale = defaults{match_idx}.radar.Vpp_scale;
   oparams(config_idx).radar.lever_arm_fh = defaults{match_idx}.radar.lever_arm_fh;
@@ -395,7 +396,11 @@ for config_idx = 1:length(configs)
     oparams(config_idx).radar.wfs(wf).tukey = configs(config_idx).dac{1}.wfs{mode_latch+1}.alpha;
     oparams(config_idx).radar.wfs(wf).BW_window = [fc-BW/2 fc+BW/2];
     oparams(config_idx).radar.wfs(wf).Tpd = Tpd;
-    oparams(config_idx).radar.wfs(wf).tx_weights = configs(config_idx).dac{1}.wfs{mode_latch+1}.scale;
+    scale = [];
+    for tx_idx = 1:size(configs(config_idx).dac,1)
+      scale(tx_idx) = configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale;
+    end
+    oparams(config_idx).radar.wfs(wf).tx_weights = scale;
     oparams(config_idx).radar.wfs(wf).rx_paths = defaults{match_idx}.radar.rx_paths;
     oparams(config_idx).radar.wfs(wf).adc_gains_dB = round(defaults{match_idx}.radar.adc_gains_dB*10)/10;
     oparams(config_idx).radar.wfs(wf).chan_equal_dB = round(defaults{match_idx}.radar.wfs(wf).chan_equal_dB*10)/10;
@@ -409,20 +414,22 @@ for config_idx = 1:length(configs)
   end
 end
 
-% Print parameter spreadsheet values
-% =========================================================================
-fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  cmd\n'); fprintf('%s</strong>\n','='*ones(1,80));
-read_param_xls_print(param.arena_packet_strip.param_fn,'cmd',oparams);
-fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  records\n'); fprintf('%s</strong>\n','='*ones(1,80));
-read_param_xls_print(param.arena_packet_strip.param_fn,'records',oparams);
-fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  qlook\n'); fprintf('%s</strong>\n','='*ones(1,80));
-read_param_xls_print(param.arena_packet_strip.param_fn,'qlook',oparams);
-fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  sar\n'); fprintf('%s</strong>\n','='*ones(1,80));
-read_param_xls_print(param.arena_packet_strip.param_fn,'sar',oparams);
-fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  array\n'); fprintf('%s</strong>\n','='*ones(1,80));
-read_param_xls_print(param.arena_packet_strip.param_fn,'array',oparams);
-fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  radar\n'); fprintf('%s</strong>\n','='*ones(1,80));
-read_param_xls_print(param.arena_packet_strip.param_fn,'radar',oparams);
+if ~isempty(param.arena_packet_strip.param_fn)
+  % Print parameter spreadsheet values
+  % =========================================================================
+  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  cmd\n'); fprintf('%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.arena_packet_strip.param_fn,'cmd',oparams);
+  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  records\n'); fprintf('%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.arena_packet_strip.param_fn,'records',oparams);
+  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  qlook\n'); fprintf('%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.arena_packet_strip.param_fn,'qlook',oparams);
+  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  sar\n'); fprintf('%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.arena_packet_strip.param_fn,'sar',oparams);
+  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  array\n'); fprintf('%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.arena_packet_strip.param_fn,'array',oparams);
+  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  radar\n'); fprintf('%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.arena_packet_strip.param_fn,'radar',oparams);
+end
 
 %% Exit task
 % =========================================================================

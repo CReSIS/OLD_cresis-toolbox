@@ -1,7 +1,7 @@
-function [param,defaults] = default_radar_params_2018_Antarctica_Ground
-% [param,defaults] = default_radar_params_2018_Antarctica_Ground
+function [param,defaults] = default_radar_params_2018_Antarctica_Ground_mcords6
+% [param,defaults] = default_radar_params_2018_Antarctica_Ground_mcords6
 %
-% Accum3: 2018_Antarctica_Ground
+% MCoRDS6: 2018_Antarctica_Ground
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -9,7 +9,7 @@ function [param,defaults] = default_radar_params_2018_Antarctica_Ground
 % Author: John Paden
 
 param.season_name = '2018_Antarctica_Ground';
-param.radar_name = 'accum3';
+param.radar_name = 'mcords6';
 
 %% Control parameters (not used in the parameter spreadsheet directly)
 default.header_load_func = @basic_load_arena;
@@ -18,7 +18,7 @@ default.noise_50ohm = [0 0 0 0 0 0 0 0];
 
 default.Pt = 400; % Transmit power at the transmit antenna
 default.Gt = 4*2; % Transmit antenna gain
-default.Ae = default.Gt*(3e8/750e6)^2; % Receiver antenna effective area
+default.Ae = default.Gt*(3e8/195e6)^2; % Receiver antenna effective area
 default.system_loss_dB = 10.^(-5.88/10); % Losses from the receive antenna to before the first LNA
 default.noise_figure = 2; % Noise figure of receiver starting at the first LNA
 default.adc_SNR_dB = 59; % ADC full scale signal SNR (relative to quantization noise)
@@ -118,6 +118,8 @@ arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = 0;
 arena.adc(adc_idx).desiredAlignMax = 14;
 arena.adc(adc_idx).ip = '10.0.0.100';
+arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).shiftLSB = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -126,6 +128,8 @@ arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -7;
 arena.adc(adc_idx).desiredAlignMax = 10;
 arena.adc(adc_idx).ip = '10.0.0.100';
+arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).shiftLSB = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx2';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -134,6 +138,8 @@ arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -10;
 arena.adc(adc_idx).desiredAlignMax = 4;
 arena.adc(adc_idx).ip = '10.0.0.100';
+arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).shiftLSB = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx3';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -142,6 +148,8 @@ arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = 13;
 arena.adc(adc_idx).desiredAlignMax = 27;
 arena.adc(adc_idx).ip = '10.0.0.100';
+arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).shiftLSB = 1;
 
 daq_idx = 0;
 daq_idx = daq_idx + 1;
@@ -152,10 +160,10 @@ arena.daq(daq_idx).fileStripe = '/mnt/scratch/%b/';
 arena.daq(daq_idx).fileName = 'mcords';
 
 arena.system.name = 'ku0001';
-arena.param.board_map = {'digrx0','digrx1'};
-arena.param.tx_map = {'dac0','dac1'};
+arena.param.board_map = default.board_map;
+arena.param.tx_map = default.tx_map;
 
-arena.param.tx_max = [1 1];
+arena.param.tx_max = [1 1 1 1];
 arena.param.PA_setup_time = 2e-6; % Time required to enable PA before transmit
 arena.param.TTL_time_delay = 0.0; % TTL time delay relative to transmit start
 arena.param.ADC_time_delay = 0.0; % ADC time delay relative to transmit start
@@ -242,7 +250,6 @@ default.qlook.surf.search_rng = [0:2];
 
 %% SAR worksheet in parameter spreadsheet
 default.sar.out_path = '';
-default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
 default.sar.frm_types = {0,[0 1],0,0,-1};
 default.sar.chunk_len = 5000;
 default.sar.chunk_overlap = 10;
@@ -293,18 +300,18 @@ default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2;
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
-default.radar.adc_gains_dB = [45 27]; % Gain from the first LNA to the ADC
-default.radar.rx_paths = [1 1];
-chan_equal_Tsys = [0]/1e9;
-chan_equal_dB = [0];
-chan_equal_deg = [0];
+default.radar.adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
+default.radar.rx_paths = [1 2 3 4 5 6 7 8];
+chan_equal_Tsys = [0 0 0 0 0 0 0 0]/1e9;
+chan_equal_dB = [0 0 0 0 0 0 0 0];
+chan_equal_deg = [0 0 0 0 0 0 0 0];
 
 defaults = {};
 
 % Deconvolution Mode
 default.records.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [];
-default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
@@ -317,13 +324,13 @@ for wf = 1:2
 end
 
 default.config_regexp = '.*deconv.*';
-default.name = 'Deconv Mode 600-900 MHz';
+default.name = 'Deconv Mode 160-230 MHz';
 defaults{end+1} = default;
 
 % Survey Mode
 default.records.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [2e-06 -inf 2e-06];
-default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
@@ -336,13 +343,13 @@ for wf = 1:2
 end
 
 default.config_regexp = '.*survey.*';
-default.name = 'Survey Mode 600-900 MHz';
+default.name = 'Survey Mode 160-230 MHz';
 defaults{end+1} = default;
 
 %% Other settings
 default.records.data_map = {[0 0 1 1],[0 0 2 1]};
 default.qlook.qlook.img_comb = [];
-default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.qlook.img_comb;
@@ -355,5 +362,5 @@ for wf = 1:2
 end
 
 default.config_regexp = '.*';
-default.name = 'Default 600-900 MHz';
+default.name = 'Default 160-230 MHz';
 defaults{end+1} = default;

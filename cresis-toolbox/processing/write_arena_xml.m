@@ -198,11 +198,23 @@ for adc_idx = adc_idxs
     
   end
   
-  child = doc.createElement('shiftLSB'); config.appendChild(child);
-  child.appendChild(doc.createTextNode('0'));
-  
-  child = doc.createElement('outputSelect'); config.appendChild(child);
-  child.appendChild(doc.createTextNode('1'));
+  if adc.outputSelect == 1
+    % Field used to determine how many right shifts to apply (16 LSB after
+    % shift are saved).
+    child = doc.createElement('shiftLSB'); config.appendChild(child);
+    child.appendChild(doc.createTextNode( sprintf('%d', adc.shiftLSB) ));
+    child = doc.createElement('outputSelect'); config.appendChild(child);
+    child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
+  elseif adc.outputSelect == 0
+    % Field not used for 32 bit IQ records
+    child = doc.createElement('shiftLSB'); config.appendChild(child);
+    child.appendChild(doc.createTextNode( '0' ));
+    child = doc.createElement('outputSelect'); config.appendChild(child);
+    child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
+  else
+    error('Invalid adc.outputSelect (%d)', adc.outputSelect);
+  end
+
   
   child = doc.createElement('nbufs'); config.appendChild(child);
   child.appendChild(doc.createTextNode('128'));
@@ -901,7 +913,7 @@ if strcmpi(arena.psc.type,'psc_0003')
   config.setAttribute('type',arena.psc.type);
   
   child = doc.createElement('name'); config.appendChild(child);
-  child.appendChild(doc.createTextNode('psc'));
+  child.appendChild(doc.createTextNode( sprintf('psc_%s',arena.psc_name) ));
   
   child = doc.createElement('description'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
@@ -1070,7 +1082,7 @@ for subsystem_idx = 1:length(arena.subsystem)
     child.setAttribute('type',arena.daq.type);
   elseif strcmpi(subsystem.name,'ARENA-CTU')
     child = doc.createElement('config'); subsystem_doc.appendChild(child);
-    child.appendChild(doc.createTextNode('psc'));
+    child.appendChild(doc.createTextNode( sprintf('psc_%s',arena.psc_name) ));
     child.setAttribute('type',arena.psc.type);
   end
   
