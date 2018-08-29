@@ -309,7 +309,7 @@ chan_equal_deg = [0 0 0 0 0 0 0 0];
 defaults = {};
 
 % Deconvolution Mode
-default.records.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[1 0 1 1;1 1 1 2;4 0 2 1;4 1 2 2],[1 0 1 3;1 1 1 4;4 0 2 3;4 1 2 4],[1 0 1 5;1 1 1 6;4 0 2 5;4 1 2 6],[1 0 1 7;1 1 1 8;4 0 2 7;4 1 2 8]}
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
@@ -328,7 +328,7 @@ default.name = 'Deconv Mode 160-230 MHz';
 defaults{end+1} = default;
 
 % Survey Mode
-default.records.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[1 0 1 1;1 1 1 2;4 0 2 1;4 1 2 2],[1 0 1 3;1 1 1 4;4 0 2 3;4 1 2 4],[1 0 1 5;1 1 1 6;4 0 2 5;4 1 2 6],[1 0 1 7;1 1 1 8;4 0 2 7;4 1 2 8]}
 default.qlook.qlook.img_comb = [2e-06 -inf 2e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
@@ -347,7 +347,7 @@ default.name = 'Survey Mode 160-230 MHz';
 defaults{end+1} = default;
 
 %% Other settings
-default.records.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[1 0 1 1;1 1 1 2;4 0 2 1;4 1 2 2],[1 0 1 3;1 1 1 4;4 0 2 3;4 1 2 4],[1 0 1 5;1 1 1 6;4 0 2 5;4 1 2 6],[1 0 1 7;1 1 1 8;4 0 2 7;4 1 2 8]}
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;

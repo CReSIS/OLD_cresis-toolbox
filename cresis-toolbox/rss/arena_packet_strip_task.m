@@ -353,12 +353,12 @@ for config_idx = 1:length(configs)
     mode_latch = mode_wfs(wf_idx);
     subchannel = subchannel_wfs(wf_idx);
     
-    fc = configs(config_idx).dac{1}.wfs{mode_latch+1}.centerFreq*1e6;
-    BW = configs(config_idx).dac{1}.wfs{mode_latch+1}.bandwidth*1e6;
-    Nt = configs(config_idx).dac{1}.wfs{mode_latch+1}.numPoints;
-    fs = configs(config_idx).dac{1}.sampFreq*1e6;
+    fc = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.centerFreq*1e6;
+    BW = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.bandwidth*1e6;
+    Nt = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.numPoints;
+    fs = configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6;
     Tpd = Nt/fs;
-    t_dac = configs(config_idx).dac{1}.wfs{mode_latch+1}.initialDelay * 1e-6;
+    t_dac = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.initialDelay * 1e-6;
     t_arena = 3.0720e-6;
     
     switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.adcMode)
@@ -393,7 +393,7 @@ for config_idx = 1:length(configs)
     oparams(config_idx).radar.wfs(wf).adcs = defaults{match_idx}.radar.wfs(wf).adcs;
     oparams(config_idx).radar.wfs(wf).f0 = fc-BW/2;
     oparams(config_idx).radar.wfs(wf).f1 = fc+BW/2;
-    oparams(config_idx).radar.wfs(wf).tukey = configs(config_idx).dac{1}.wfs{mode_latch+1}.alpha;
+    oparams(config_idx).radar.wfs(wf).tukey = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.alpha;
     oparams(config_idx).radar.wfs(wf).BW_window = [fc-BW/2 fc+BW/2];
     oparams(config_idx).radar.wfs(wf).Tpd = Tpd;
     scale = [];

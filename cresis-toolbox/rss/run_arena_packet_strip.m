@@ -33,7 +33,7 @@ end
 % param.arena_packet_strip.config_folder_names = {'20180817'};
 % param.arena_packet_strip.board_folder_names = {'20180817/%b'};
 param.arena_packet_strip.config_folder_names = {'20180829'};
-param.arena_packet_strip.board_folder_names = {'20180829'};
+param.arena_packet_strip.board_folder_names = {'20180829/%b'};
 param.arena_packet_strip.board_map = {'digrx0','digrx1','digrx2','digrx3'};
 param.arena_packet_strip.tx_map = {'awg0','awg1','awg2','awg3'};
 param.arena_packet_strip.reuse_tmp_files = true;
