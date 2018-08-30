@@ -174,6 +174,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 131754468000 / 46;
+  profile(pidx).cluster.max_ppn               = 4;
   
   
   %% KU Desktop Profile Windows (PROFILE 5)

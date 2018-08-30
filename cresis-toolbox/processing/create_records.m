@@ -285,7 +285,7 @@ if any(param.records.file.version == [9 10 103 412])
     for jump_idx = jump_idxs
       jump = (epri_pris(jump_idx+1)-epri_pris(jump_idx))/configs.total_presums - 1;
       fprintf('jump_idx: %d, jump: %d\n', jump_idx, jump);
-      fprintf('epri_pris: %d %d\n', epri_pris(jump_idx+1), epri_pris(jump_idx));
+      fprintf('epri_pris: %d to %d\n', epri_pris(jump_idx), epri_pris(jump_idx+1));
       if jump < -0.1
         fprintf('Negative or zero time jump\n');
         keyboard

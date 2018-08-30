@@ -19,8 +19,8 @@ param_override = [];
 
 % Set param.radar_name and param.season_name and get radar default
 % parameters.
-% [param,defaults] = default_radar_params_2018_Antarctica_TObas_accum3;
-[param,defaults] = default_radar_params_2018_Antarctica_Ground_mcords6;
+[param,defaults] = default_radar_params_2018_Antarctica_TObas_accum3;
+% [param,defaults] = default_radar_params_2018_Antarctica_Ground_mcords6;
 
 param.arena_packet_strip.defaults = defaults;
 param.arena_packet_strip.default_param = param;
@@ -32,14 +32,16 @@ else
 end
 % param.arena_packet_strip.config_folder_names = {'20180817'};
 % param.arena_packet_strip.board_folder_names = {'20180817/%b'};
-param.arena_packet_strip.config_folder_names = {'20180829'};
+param.arena_packet_strip.config_folder_names = {'20180829/'};
 param.arena_packet_strip.board_folder_names = {'20180829/%b'};
-param.arena_packet_strip.board_map = {'digrx0','digrx1','digrx2','digrx3'};
-param.arena_packet_strip.tx_map = {'awg0','awg1','awg2','awg3'};
+% param.arena_packet_strip.board_map = {'digrx0','digrx1','digrx2','digrx3'};
+% param.arena_packet_strip.tx_map = {'awg0','awg1','awg2','awg3'};
+param.arena_packet_strip.board_map = {'digrx0','digrx1'};
+param.arena_packet_strip.tx_map = {'awg0'};
 param.arena_packet_strip.reuse_tmp_files = true;
 param.arena_packet_strip.mat_or_bin_hdr_output = '.mat';
-% param.arena_packet_strip.param_fn = ct_filename_param('accum_param_2018_Antarctica_TObas.xls');
-param.arena_packet_strip.param_fn = ct_filename_param('rds_param_2018_Antarctica_Ground.xls');
+param.arena_packet_strip.param_fn = ct_filename_param('accum_param_2018_Antarctica_TObas.xls');
+% param.arena_packet_strip.param_fn = ct_filename_param('rds_param_2018_Antarctica_Ground.xls');
 
 dbstop if error;
 param_override.cluster.type = 'debug';
