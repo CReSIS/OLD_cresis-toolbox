@@ -15,12 +15,6 @@ set(obj.h_fig,'Position',[xpos ypos obj.w obj.h]);
 % set(obj.top_panel.handle,'visible','on');
 % set(obj.bottom_panel.handle,'visible','off');
 
-
-
-
-
-
-
 if ~obj.first_time
   figure(obj.h_fig);
   clf;
@@ -86,7 +80,15 @@ set(obj.top_panel.reinterp_mode_label,'String','Reinterpolation (beta):');
 %----reinterp mode enable cbox
 obj.top_panel.reinterp_mode_cbox = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.reinterp_mode_cbox,'Style','checkbox');
-
+%----column restriction label
+obj.top_panel.column_restriction_label = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.column_restriction_label,'Style','text');
+set(obj.top_panel.column_restriction_label,'String','Column tracking restriction:');
+%----column restriction cbox
+obj.top_panel.column_restriction_cbox = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.column_restriction_cbox,'Style','checkbox');
+set(obj.top_panel.column_restriction_cbox,'Value', 1);
+%%
 %---------------------------------------------------------------------------------------------
 % set up top panel table
 obj.top_panel.table.ui=obj.top_panel.handle;
@@ -147,6 +149,20 @@ obj.top_panel.table.height_margin(row,col)=1.5;
 
 row = 4; col = 2; 
 obj.top_panel.table.handles{row,col}   = obj.top_panel.reinterp_mode_cbox;
+obj.top_panel.table.width(row,col)     = inf;
+obj.top_panel.table.height(row,col)    = inf;
+obj.top_panel.table.width_margin(row,col)= 1.5;
+obj.top_panel.table.height_margin(row,col)=1.5;
+
+row = 5; col = 1;
+obj.top_panel.table.handles{row,col}   = obj.top_panel.column_restriction_label;
+obj.top_panel.table.width(row,col)     = inf;
+obj.top_panel.table.height(row,col)    = inf;
+obj.top_panel.table.width_margin(row,col)= 1.5;
+obj.top_panel.table.height_margin(row,col)=1.5;
+
+row = 5; col = 2; 
+obj.top_panel.table.handles{row,col}   = obj.top_panel.column_restriction_cbox;
 obj.top_panel.table.width(row,col)     = inf;
 obj.top_panel.table.height(row,col)    = inf;
 obj.top_panel.table.width_margin(row,col)= 1.5;
