@@ -75,6 +75,10 @@ if ~isfield(records_file.records,'lat') || isempty(records_file.records.lat) || 
       file_version = '1';
     end
     fprintf('  Saving %s\n', frames_fn);
+    frames_fn_dir = fileparts(frames_fn);
+    if ~exist(frames_fn_dir,'dir')
+      mkdir(frames_fn_dir);
+    end
     save(frames_fn,'frames','file_version');
   end
   return;

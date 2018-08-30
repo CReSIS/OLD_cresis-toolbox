@@ -60,7 +60,13 @@ for batch_idx = 1:length(batch_dirs)
     static_in_fn = fullfile(ctrls{batch_idx}.in_fn_dir,'static.mat');
     dynamic_in_fn = fullfile(ctrls{batch_idx}.in_fn_dir,'dynamic.mat');
     % Load input filenames
-    sparam = load(static_in_fn);
+    if exist(static_in_fn,'file')
+      sparam = load(static_in_fn);
+    else
+      warning('Missing %s', static_in_fn);
+      sparam = [];
+      sparam.static_param = [];
+    end
     if exist(dynamic_in_fn,'file')
       tmp = load(dynamic_in_fn);
       ctrls{batch_idx}.dparam = tmp.dparam;

@@ -218,6 +218,8 @@ if print_mode == 1
       elseif strcmpi(ctrl.cluster.type,'debug')
         cmd = 'NA';
         status = -1;
+      else
+        error('Invalid ctrl.cluster.type ("%s") for this task. May be populated from gRadar.cluster.type in startup.m.', ctrl.cluster.type);
       end
       
       if status == 0
