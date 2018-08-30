@@ -66,11 +66,56 @@ if any(param.records.file.version == [9 10 103 412])
   %% Align/Arena: Create output EPRI vector
   min_epri = inf;
   max_epri = -inf;
+  epri_list = [];
   for board_idx = 1:length(boards)
-    min_epri = min(min_epri,min(board_hdrs{board_idx}.epri_pri_idxs));
-    max_epri = max(max_epri,max(board_hdrs{board_idx}.epri_pri_idxs));
+    % Cluster EPRI values
+    
+    epri_pri_idxs = board_hdrs{board_idx}.epri_pri_idxs;
+    epri_jump_threshold = 10000;
+    
+    [A,B] = sort(epri_pri_idxs);
+    med = median(A);
+    [~,med_idx] = min(abs(A-med));
+    A = A-med;
+    dA = diff(A);
+    bad_mask = zeros(size(B));
+    bad_start_idx = find(dA(med_idx:length(dA)) > epri_jump_threshold,1);
+    if ~isempty(bad_start_idx)
+      bad_mask(med_idx+bad_start_idx:end) = true;
+    end
+    bad_start_idx = find(dA(med_idx-1:-1:1) > epri_jump_threshold,1);
+    if ~isempty(bad_start_idx)
+      bad_mask(med_idx-bad_start_idx:-1:1) = true;
+    end
+    back_idxs = 1:length(B);
+    back_idxs = back_idxs(B);
+    if sum(bad_mask) > 0
+      warning('%d of %d records show bad out of range EPRI values.', sum(bad_mask), length(epri_pri_idxs));
+    end
+    epri_pri_idxs = epri_pri_idxs(back_idxs(logical(~bad_mask)));
+    
+    % Remove isolated EPRI values
+    min_epri = min(min_epri,min(epri_pri_idxs));
+    max_epri = max(max_epri,max(epri_pri_idxs));
+    epri_list(end+(1:length(epri_pri_idxs))) = epri_pri_idxs;
+    diff_epri_pri_idxs = diff(epri_pri_idxs);
+    diff_epri(board_idx) = median(diff_epri_pri_idxs);
+    min_score = inf;
+    for offset = 0:diff_epri(board_idx)
+      score = sum(mod((epri_pri_idxs - offset)/diff_epri(board_idx),1) ~= 0);
+      if score < min_score
+        min_score = score;
+      end
+    end
+    if min_score > 0
+      warning('%d of %d records show slipped EPRI values.', min_score, length(epri_pri_idxs));
+    end
   end
-  epri = min_epri:max_epri;
+  master_epri = mode(epri_list);
+  if any(diff_epri ~= diff_epri(1))
+    error('Inconsistent EPRI step size between boards. Should all be the same: %s', mat2str_generic(diff_epri));
+  end
+  epri = [fliplr(master_epri:-diff_epri(1):min_epri), master_epri+diff_epri:diff_epri:max_epri];
   
   %% Align/Arena: Fill in missing records from each board
   records.raw.pps_cntr_latch = nan(size(epri));
@@ -79,6 +124,7 @@ if any(param.records.file.version == [9 10 103 412])
   records.raw.rel_time_cntr_latch = nan(size(epri));
   for board_idx = 1:length(boards)
     [~,out_idxs] = intersect(epri,board_hdrs{board_idx}.epri_pri_idxs);
+    fprintf('Board %d is missing %d of %d records.\n', board_idx, length(epri)-length(out_idxs), length(epri));
     
     % offset: Missing records filled in with -2^31
     offset = zeros(size(epri),'int32');

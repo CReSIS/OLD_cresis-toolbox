@@ -78,13 +78,13 @@ while ~feof(fid) && rec_in < param.recs(1) + param.recs(2)
     elseif feof(fid)
       break;
     else
-      fprintf('Locked at byte %d\n', ftell(fid));
+      fprintf('Locked at byte %d\n', ftell(fid)-8);
       lock_state = 1;
     end
   else
     tmp = fread(fid,1,'uint64=>uint64');
     if tmp ~= arena_frame_sync
-      fprintf('Lost lock state at byte %d\n', ftell(fid));
+      fprintf('Lost lock state at byte %d\n', ftell(fid)-8);
       lock_state = 0;
       continue;
     elseif feof(fid)
