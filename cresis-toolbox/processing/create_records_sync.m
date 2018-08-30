@@ -70,7 +70,7 @@ if any(param.records.file.version == [9 10 103 412])
   for board_idx = 1:length(boards)
     % Cluster EPRI values
     
-    epri_pri_idxs = board_hdrs{board_idx}.epri_pri_idxs;
+    epri_pri_idxs = board_hdrs{board_idx}.profile_cntr_latch;
     epri_jump_threshold = 10000;
     
     [A,B] = sort(epri_pri_idxs);
@@ -123,7 +123,7 @@ if any(param.records.file.version == [9 10 103 412])
   records.raw.profile_cntr_latch = nan(size(epri));
   records.raw.rel_time_cntr_latch = nan(size(epri));
   for board_idx = 1:length(boards)
-    [~,out_idxs] = intersect(epri,board_hdrs{board_idx}.epri_pri_idxs);
+    [~,out_idxs] = intersect(epri,board_hdrs{board_idx}.profile_cntr_latch);
     fprintf('Board %d is missing %d of %d records.\n', board_idx, length(epri)-length(out_idxs), length(epri));
     
     % offset: Missing records filled in with -2^31
@@ -152,6 +152,37 @@ if any(param.records.file.version == [9 10 103 412])
   radar_time = double(records.raw.pps_cntr_latch) ...
     + double(records.raw.pps_ftime_cntr_latch)/param.records.file.clk;
 else
+  
+end
+
+%% Correct radar time with EPRI
+% ===================================================================
+if any(param.records.file.version == [9 10 103 412])
+  epri_time = epri/param.radar.prf;
+  radar_time_error = epri_time - radar_time;
+  epri_time = epri_time - median(radar_time_error);
+  radar_time_error = radar_time_error - median(radar_time_error);
+  
+  if 0
+    plot(radar_time_error);
+    ylim([-1 1])
+  end
+  
+  bad_idxs = find(abs(radar_time_error)>0.2);
+
+  if 0
+    bad_idxs
+    test_time = radar_time;
+    test_time(bad_idxs) = epri_time(bad_idxs);
+    figure(1); clf;
+    plot(test_time);
+    ylims = ylim;
+    hold on;
+    plot(radar_time)
+    ylim(ylims)
+  end
+  
+  radar_time(bad_idxs) = epri_time(bad_idxs);
   
 end
 

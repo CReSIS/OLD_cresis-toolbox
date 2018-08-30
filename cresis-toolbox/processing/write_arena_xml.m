@@ -920,6 +920,8 @@ if strcmpi(arena.psc.type,'psc_0003')
   num_modes = 0;
   for wf = 1:length(wfs)
     
+    wfs(wf).Tpd = round(wfs(wf).Tpd*10e6)/10e6;
+    
     % Create "psc_repeat" matrix. Each row represents a sequence with the
     % columns defined as:
     % [mode repeatTo repeatCount next]

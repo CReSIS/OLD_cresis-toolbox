@@ -677,7 +677,7 @@ for adc_idx = 1:adcList.getLength
         for mode_idx = 1:length(modes)
           mode_latch = modes(mode_idx);
           
-          configs.adc{adc_idx,mode_latch+1,subchannel+1}.presums = adcMode;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.presums = numInt;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.num_sam = num_bins;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.rg = rg;
         end

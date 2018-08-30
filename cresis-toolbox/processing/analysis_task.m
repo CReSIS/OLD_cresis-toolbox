@@ -521,19 +521,20 @@ for img = 1:length(param.load.imgs)
       %% Statistics
       % ===================================================================
       % ===================================================================
-      tmp_param = param;
-      tmp_param.load.pulse_comp = cmd.pulse_compress;
-      tmp_param.load.motion_comp = cmd.motion_comp;
-      tmp_hdr = hdr;
-      tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'
         wf = tmp_param.analysis.imgs{1}(wf_adc,1);
         adc = tmp_param.analysis.imgs{1}(wf_adc,2);
         
         % Pulse compression
-        tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
-        tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
+        tmp_param = param;
+        tmp_param.load.pulse_comp = cmd.pulse_compress;
+        tmp_param.load.motion_comp = cmd.motion_comp;
+        tmp_hdr = hdr;
+        tmp_wfs = wfs;
+        
+        tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
+        tmp_hdr.records = {hdr.records{1,wf_adc}};
         
         [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
         

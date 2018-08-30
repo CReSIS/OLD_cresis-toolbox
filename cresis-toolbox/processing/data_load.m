@@ -75,7 +75,7 @@ for state_idx = 1:length(states)
       % Get the file's name
       adc = state.adc(1);
       fn_name = records.relative_filename{board_idx}{file_idx};
-      [fn_dir] = get_segment_file_list(param,adc);
+      [fn_dir] = get_segment_file_list(param,board_idx);
       fn = fullfile(fn_dir,fn_name);
 
       % Open the file
@@ -102,6 +102,8 @@ for state_idx = 1:length(states)
       % Load the rest of the file into memory
       file_data = [file_data_last_file(:); fread(fid,inf,'uint8=>uint8')];
       fclose(fid);
+    else
+      file_idx = -1;
     end
 
     %% Pull out records from this file
@@ -137,6 +139,7 @@ for state_idx = 1:length(states)
         end
         
         % Process all adc-wf pairs in this record
+        missed_wf_adc = false;
         for accum_idx = 1:length(state.wf)
           adc = state.adc(accum_idx);
           wf = state.wf(accum_idx);
@@ -242,6 +245,7 @@ for state_idx = 1:length(states)
             case 1
               % Read in RSS dynamic record
               sub_rec_offset = 0;
+              missed_wf_adc = true;
               while sub_rec_offset < rec_size
                 total_offset = rec_offset + sub_rec_offset;
                 radar_header_type = mod(typecast(file_data(total_offset+(9:12)),'uint32'),2^31); % Ignore MSB
@@ -253,6 +257,11 @@ for state_idx = 1:length(states)
                     % This matches the mode and subchannel that we need
                     radar_profile_format = typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32');
                     is_IQ = 0;
+                    if length(file_data) < total_offset+24+radar_header_len+radar_profile_length
+                      % Unexpected end of file, so we missed the record
+                      missed_wf_adc = true;
+                      break;
+                    end
                     switch radar_profile_format
                       case 0 % 0x00000
                         tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16'));
@@ -274,6 +283,7 @@ for state_idx = 1:length(states)
                       end
                     end
                     % Found the record so break
+                    missed_wf_adc = false;
                     break;
                   end
                 else
@@ -282,7 +292,10 @@ for state_idx = 1:length(states)
                 end
                 sub_rec_offset = sub_rec_offset + 24 + radar_header_len + radar_profile_length;
               end
-              
+          end
+          
+          if missed_wf_adc
+            break;
           end
           
           if quantization_to_V_adjustment ~= 1 && ~param.load.raw_data
@@ -302,7 +315,9 @@ for state_idx = 1:length(states)
             state.data{accum_idx} = state.data{accum_idx} + tmp_data{adc,wf};
           end
         end
-        num_accum = num_accum + 1;
+        if ~missed_wf_adc
+          num_accum = num_accum + 1;
+        end
       end
       
       % Store to output if number of presums is met
@@ -311,19 +326,21 @@ for state_idx = 1:length(states)
         out_rec = out_rec + 1;
         for accum_idx = 1:length(state.wf)
           % Sum up wf-adc sum pairs until done
-          switch state.wf_adc_sum_cmd(accum_idx)
-            case 0
-              state.data{accum_idx} = state.wf_adc_sum(accum_idx)*state.data{accum_idx};
-              continue;
-            case 1
-              state.data{accum_idx} = state.data{accum_idx} ...
-                + state.wf_adc_sum(accum_idx)*state.data{accum_idx};
-              continue;
-            case 2
-              state.data{accum_idx} = state.data{accum_idx} ...
-                + state.wf_adc_sum(accum_idx)*state.data{accum_idx};
-            case 3
-              state.data{accum_idx} = state.wf_adc_sum(accum_idx)*state.data{accum_idx};
+          if num_accum >= 1
+            switch state.wf_adc_sum_cmd(accum_idx)
+              case 0
+                state.data{accum_idx} = state.wf_adc_sum(accum_idx)*state.data{accum_idx};
+                continue;
+              case 1
+                state.data{accum_idx} = state.data{accum_idx} ...
+                  + state.wf_adc_sum(accum_idx)*state.data{accum_idx};
+                continue;
+              case 2
+                state.data{accum_idx} = state.data{accum_idx} ...
+                  + state.wf_adc_sum(accum_idx)*state.data{accum_idx};
+              case 3
+                state.data{accum_idx} = state.wf_adc_sum(accum_idx)*state.data{accum_idx};
+            end
           end
 
           % Store to output

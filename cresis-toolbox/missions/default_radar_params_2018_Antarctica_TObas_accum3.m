@@ -100,6 +100,7 @@ arena.adc(adc_idx).desiredAlignMax = -20;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).shiftLSB = 1;
+arena.adc(adc_idx).wf_set = 1;
 
 daq_idx = 0;
 daq_idx = daq_idx + 1;
@@ -248,7 +249,7 @@ chan_equal_deg = [0];
 defaults = {};
 
 % Deconvolution Mode
-default.records.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[1 0 1 1],[1 0 2 1]};
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
@@ -267,7 +268,7 @@ default.name = 'Deconv Mode 600-900 MHz';
 defaults{end+1} = default;
 
 % Survey Mode
-default.records.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[1 0 1 1],[1 0 2 1]};
 default.qlook.qlook.img_comb = [2e-06 -inf 2e-06];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
@@ -286,7 +287,7 @@ default.name = 'Survey Mode 600-900 MHz';
 defaults{end+1} = default;
 
 %% Other settings
-default.records.data_map = {[0 0 1 1],[0 0 2 1]};
+default.records.data_map = {[1 0 1 1],[1 0 2 1]};
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;

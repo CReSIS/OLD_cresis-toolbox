@@ -308,7 +308,7 @@ end
 %% Check data rate (move to write_arena_xml)
 % =========================================================================
 param.num_chan = 2;
-param.sample_size = 2;
+param.sample_size = 4;
 param.decimation = 2;
 PRI_guard = 1e-6;
 

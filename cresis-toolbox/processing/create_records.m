@@ -294,7 +294,7 @@ if any(param.records.file.version == [9 10 103 412])
         fprintf('Dropped some records\n');
         %keyboard
       elseif jump > 50000
-        fprintf('Record header error\n');
+        fprintf('Record header error or dropped > 50000 records\n');
         keyboard
         epri_pris(jump_idx+1) = epri_pris(jump_idx);
         bad_mask(jump_idx+1) = 1;

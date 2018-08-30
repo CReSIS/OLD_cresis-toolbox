@@ -11,13 +11,14 @@ if ispc
   arena_base_dir = 'C:\waveforms_arena\';
 else
   arena_base_dir = '/arena/waveforms/';
+  calval_dir = 'cal_val';
 end
 
 f0_list = [600e6];
 f1_list = [900e6];
 DDC_select_list = [1]; % Which DDC mode to use
 cal_settings = [1];
-prf = 30000;
+prf = 1000;
 
 % presums: Ensure lambda/4 sampling (fudge factor allows difference) and an
 %   that presums are an even number.
@@ -95,7 +96,7 @@ for freq_idx = [1]
   param.DDC_freq = 250e6;
   param.zeropimods = [0 180];
   
-  param.wfs(1).presums = presums;
+  param.wfs(1).presums = 128;
   param.wfs(1).Tpd = 2e-6;
   param.wfs(1).tukey = 0.1;
   
