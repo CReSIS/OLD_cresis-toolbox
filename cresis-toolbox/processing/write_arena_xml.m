@@ -926,24 +926,24 @@ if strcmpi(arena.psc.type,'psc_0003')
     zeropimods = wfs(wf).zeropimods(:).';
     if wf == 1
       if wfs(wf).presums == 1
-        psc_repeat = [0 0 0 1];
+        psc_repeat = [num_modes 0 0 1];
         zeropimod = zeropimods(1);
         psc_name = {sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimod)};
         num_pulse_states = num_pulse_states + 1;
-        num_modes = 1;
+        num_modes = num_modes + 1;
       elseif wfs(wf).presums == length(zeropimods)
         psc_repeat = zeros(length(zeropimods),4);
-        psc_repeat(:,1) = 0:length(zeropimods)-1;
+        psc_repeat(:,1) = num_modes + (0:length(zeropimods)-1);
         psc_repeat(:,4) = num_psc + (1:length(zeropimods));
         psc_repeat(end,2:3) = [0 0];
         psc_name{1} = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimods(1));
         for zeropimod = zeropimods(2:end)
           psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
         end
-        num_modes = 2;
+        num_modes = num_modes + length(zeropimods);
       elseif mod(wfs(wf).presums,length(zeropimods)) == 0
         psc_repeat = zeros(2*length(zeropimods),4);
-        psc_repeat(:,1) = [0:length(zeropimods), 1:length(zeropimods)-1];
+        psc_repeat(:,1) = num_modes + [0:length(zeropimods), 1:length(zeropimods)-1];
         psc_repeat(:,4) = num_psc + (1:2*length(zeropimods));
         psc_repeat(end,2:3) = [length(zeropimods), (wfs(wf).presums-2*length(zeropimods))/length(zeropimods)];
         psc_name{1} = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimods(1));
@@ -953,27 +953,30 @@ if strcmpi(arena.psc.type,'psc_0003')
         for zeropimod = zeropimods
           psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
         end
+        num_modes = num_modes + 2*length(zeropimods);
       else
         error('Presums %d>1 so presums must be a multiple of zeropimods length=%d.', ...
           wfs(wf).presums, length(zeropimods));
       end
     else
       if wfs(wf).presums == 1
-        psc_repeat = [length(zeropimods)*(wf-1)+1 0 0 num_psc+length(zeropimods)];
+        psc_repeat = [num_modes 0 0 num_psc+length(zeropimods)];
         zeropimod = zeropimods(1);
         psc_name = {sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod)};
+        num_modes = num_modes + 1;
       elseif wfs(wf).presums == length(zeropimods)
         psc_repeat = zeros(length(zeropimods),4);
-        psc_repeat(:,1) = 0:length(zeropimods)-1;
+        psc_repeat(:,1) = num_modes + (0:length(zeropimods)-1);
         psc_repeat(:,4) = num_psc + (1:length(zeropimods));
         psc_repeat(end,2:3) = [0 0];
         psc_name{1} = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimods(1));
         for zeropimod = zeropimods
           psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
         end
+        num_modes = num_modes + length(zeropimods);
       elseif mod(wfs(wf).presums,length(zeropimods)) == 0
         psc_repeat = zeros(2*length(zeropimods),4);
-        psc_repeat(:,1) = (length(zeropimods)+1)*(wf-1) + [0:length(zeropimods), 1:length(zeropimods)-1];
+        psc_repeat(:,1) = num_modes + [0:length(zeropimods), 1:length(zeropimods)-1];
         psc_repeat(:,4) = num_psc + (1:2*length(zeropimods));
         psc_repeat(end,2:3) = [num_psc+length(zeropimods), (wfs(wf).presums-2*length(zeropimods))/length(zeropimods)];
         psc_name = {};
@@ -983,6 +986,7 @@ if strcmpi(arena.psc.type,'psc_0003')
         for zeropimod = zeropimods
           psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
         end
+        num_modes = num_modes + 2*length(zeropimods);
       else
         error('Presums %d>1 so presums must be a multiple of zeropimods length=%d.', ...
           wfs(wf).presums, length(zeropimods));

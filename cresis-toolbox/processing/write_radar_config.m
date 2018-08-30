@@ -271,17 +271,17 @@ for wf = 1:length(param.wfs)
   if current_stage == 0
     % Record the whole range gate
     Tstart = Tstart_ref;
-    Tend = Tstop_ref;
+    Tend = Tstop_ref + param.wfs(wf).Tpd;
   elseif current_stage == 1
     % First Stage
     Tstart = Tstart_ref;
     if ~isempty(next_stage_wf)
       % Cover the pulse duration of the next waveform after the surface
       % return + any off nadir scattering that is to be caught.
-      Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd, Tstop_ref);
+      Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd + param.wfs(wf).Tpd, Tstop_ref);
     else
       % The first stage is also the last stage
-      Tend = Tstart_ref + Hice_thick / (3e8/2/sqrt(er_ice)) + param.wfs(wf).Tpd;
+      Tend = Tstop_ref + param.wfs(wf).Tpd;
     end
   elseif isempty(next_stage_wf)
     % Last Stage
@@ -290,7 +290,7 @@ for wf = 1:length(param.wfs)
   else
     % In between first and last stage
     Tstart = Tstart_ref + param.wfs(wf).Tpd;
-    Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd, Tstop_ref);
+    Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd + param.wfs(wf).Tpd, Tstop_ref);
   end
   
   param.wfs(wf).Tstart = Tstart-Tguard;
