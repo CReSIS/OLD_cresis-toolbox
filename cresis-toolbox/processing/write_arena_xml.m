@@ -121,11 +121,7 @@ for adc_idx = adc_idxs
     for wf = 1:length(wfs)
       zeropimods = wfs(wf).zeropimods(:).';
       Tpd = round(wfs(wf).Tpd*1e6);
-      if wf == 1
-        modes = num_modes+(0:length(zeropimods));
-      else
-        modes = num_modes+(0:length(zeropimods)-1);
-      end
+      modes = num_modes+(0:length(zeropimods));
       
       for mode = modes
         digRx = doc.createElement('digRx'); subchannel.appendChild(digRx);
@@ -164,11 +160,7 @@ for adc_idx = adc_idxs
     for wf = 1:length(wfs)
       zeropimods = wfs(wf).zeropimods(:).';
       Tpd = round(wfs(wf).Tpd*1e6);
-      if wf == 1
-        modes = num_modes+(0:length(zeropimods));
-      else
-        modes = num_modes+(0:length(zeropimods)-1);
-      end
+      modes = num_modes+(0:length(zeropimods));
       
       integrator = doc.createElement('integrator'); subchannel.appendChild(integrator);
       
@@ -262,11 +254,7 @@ if strcmpi(arena.ctu.type,'ctu_001D')
   for wf = 1:length(wfs)
     zeropimods = wfs(wf).zeropimods(:).';
     Tpd = round(wfs(wf).Tpd*1e6);
-    if wf == 1
-      modes = num_modes+(0:length(zeropimods));
-    else
-      modes = num_modes+(0:length(zeropimods)-1);
-    end
+    modes = num_modes+(0:length(zeropimods));
     
     if modes(1) == 0
       if length(modes) > 1
@@ -479,11 +467,7 @@ for dac_idx = dac_idxs
   for wf = 1:length(wfs)
     zeropimods = wfs(wf).zeropimods(:).';
     Tpd = round(wfs(wf).Tpd*1e6);
-    if wf == 1
-      modes = num_modes+(0:length(zeropimods));
-    else
-      modes = num_modes+(0:length(zeropimods)-1);
-    end
+    modes = num_modes+(0:length(zeropimods));
     
     for mode_latch = modes
       mode_xml = doc.createElement('mode'); config.appendChild(mode_xml);
@@ -580,11 +564,7 @@ for dac_idx = dac_idxs
   for wf = 1:length(wfs)
     zeropimods = wfs(wf).zeropimods(:).';
     Tpd = round(wfs(wf).Tpd*1e6);
-    if wf == 1
-      modes = num_modes+(0:length(zeropimods));
-    else
-      modes = num_modes+(0:length(zeropimods)-1);
-    end
+    modes = num_modes+(0:length(zeropimods));
     
     fc = (wfs(wf).f0+wfs(wf).f1)/2;
     Nt = round(wfs(wf).Tpd * dac.dacClk/8)*8;
@@ -705,7 +685,7 @@ for dac_idx = dac_idxs
   end
 end
 
-%% DAC Waveforms: dac-ad9129_0012
+%% DAC Waveforms: dac-ad9129_0014
 dac_idxs = find(strcmpi('dac-ad9129_0014',{arena.dac.type}));
 for dac_idx = dac_idxs
   
@@ -937,7 +917,7 @@ if strcmpi(arena.psc.type,'psc_0003')
   child.appendChild(doc.createTextNode('0'));
   
   num_psc = 0;
-  num_wf = 0;
+  num_modes = 0;
   for wf = 1:length(wfs)
     
     % Create "psc_repeat" matrix. Each row represents a sequence with the
@@ -950,6 +930,7 @@ if strcmpi(arena.psc.type,'psc_0003')
         zeropimod = zeropimods(1);
         psc_name = {sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimod)};
         num_pulse_states = num_pulse_states + 1;
+        num_modes = 1;
       elseif wfs(wf).presums == length(zeropimods)
         psc_repeat = zeros(length(zeropimods),4);
         psc_repeat(:,1) = 0:length(zeropimods)-1;
@@ -959,6 +940,7 @@ if strcmpi(arena.psc.type,'psc_0003')
         for zeropimod = zeropimods(2:end)
           psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
         end
+        num_modes = 2;
       elseif mod(wfs(wf).presums,length(zeropimods)) == 0
         psc_repeat = zeros(2*length(zeropimods),4);
         psc_repeat(:,1) = [0:length(zeropimods), 1:length(zeropimods)-1];
@@ -978,19 +960,32 @@ if strcmpi(arena.psc.type,'psc_0003')
     else
       if wfs(wf).presums == 1
         psc_repeat = [length(zeropimods)*(wf-1)+1 0 0 num_psc+length(zeropimods)];
-        psc_name = {sprintf('%.0fus, PRI, Zero',wfs(wf).Tpd*1e6)};
-      elseif ~mod(wfs(wf).presums,2)
+        zeropimod = zeropimods(1);
+        psc_name = {sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod)};
+      elseif wfs(wf).presums == length(zeropimods)
         psc_repeat = zeros(length(zeropimods),4);
-        psc_repeat(:,1) = length(zeropimods)*(wf-1) + (1:length(zeropimods));
+        psc_repeat(:,1) = 0:length(zeropimods)-1;
         psc_repeat(:,4) = num_psc + (1:length(zeropimods));
-        psc_repeat(end,2:3) = [num_psc, (wfs(wf).presums-length(zeropimods))/length(zeropimods)];
+        psc_repeat(end,2:3) = [0 0];
+        psc_name{1} = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimods(1));
+        for zeropimod = zeropimods
+          psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
+        end
+      elseif mod(wfs(wf).presums,length(zeropimods)) == 0
+        psc_repeat = zeros(2*length(zeropimods),4);
+        psc_repeat(:,1) = (length(zeropimods)+1)*(wf-1) + [0:length(zeropimods), 1:length(zeropimods)-1];
+        psc_repeat(:,4) = num_psc + (1:2*length(zeropimods));
+        psc_repeat(end,2:3) = [num_psc+length(zeropimods), (wfs(wf).presums-2*length(zeropimods))/length(zeropimods)];
         psc_name = {};
         for zeropimod = zeropimods
           psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
         end
+        for zeropimod = zeropimods
+          psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
+        end
       else
-        error('Odd number of presums, %d, greater than 1 not supported.', ...
-          wfs(wf).presums);
+        error('Presums %d>1 so presums must be a multiple of zeropimods length=%d.', ...
+          wfs(wf).presums, length(zeropimods));
       end
     end
     if wf == length(wfs)
