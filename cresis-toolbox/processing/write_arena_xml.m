@@ -37,6 +37,137 @@ system = doc.getDocumentElement;
 configs = doc.createElement('configs');
 system.appendChild(configs);
 
+%% Determine modes/sequences for each waveform
+total_modes = 0;
+for wf = 1:length(wfs)
+  zeropimods = wfs(wf).zeropimods(:).';
+  
+  % Sequence of modes goes:
+  % For length(zeropimods) == 1
+  %   If wf == 1
+  % 1. Phase is zeropimods(1)
+  %
+  % For length(zeropimods) == N > 1
+  % 1. Phase is zeropimods(1), eprireset integrator
+  % 2. Phase is zeropimods(2)
+  %   ...
+  % N. Phase is zeropimods(N)
+  % N+1. Phase is zeropimods(1)
+  
+  if numel(zeropimods) == 1
+    % This waveform has only one phase in its zero_pi_mode sequence.
+    zeropimod = zeropimods(1);
+    
+    % We use integrator reset, so more than one presum requires two
+    % modes, one to reset and one to determine the number of presums
+    if wfs(wf).presums > 1
+      num_modes = 2;
+      wfs(wf).reset = false(1,num_modes);
+      wfs(wf).reset(1) = true;
+      wfs(wf).next = total_modes+[1 2];
+      wfs(wf).repeat_to = [0 total_modes+1];
+      wfs(wf).repeat_count = [0 wfs(wf).presums-2];
+    else
+      % No presumming so no reset mode is required
+      num_modes = 1;
+      wfs(wf).reset = false(1,num_modes);
+      wfs(wf).next = total_modes+[1];
+      wfs(wf).repeat_to = 0;
+      wfs(wf).repeat_count = 0;
+    end
+    if zeropimod==180 || zeropimod==270
+      wfs(wf).tx_invert = true(1,num_modes);
+    else
+      wfs(wf).tx_invert = false(1,num_modes);
+    end
+    if zeropimod==180 || zeropimod==270
+      wfs(wf).adc_zeropi = true(1,num_modes);
+    else
+      wfs(wf).adc_zeropi = false(1,num_modes);
+    end
+    if zeropimod==90 || zeropimod==270
+      wfs(wf).zeropiphase = 90*ones(1,num_modes);
+    else
+      wfs(wf).zeropiphase = zeros(1,num_modes);
+    end
+    
+  else
+    if mod(wfs(wf).presums,numel(zeropimods))
+      error('The number of presums, wfs(wf).presums = %d, must be a multiple of numel(wfs(wf).zeropimods) = %d.', wfs(wf).presums, numel(wfs(wf).zeropimods));
+    end
+    
+    wfs(wf).tx_invert = false(1,numel(zeropimods));
+    wfs(wf).adc_zeropi = false(1,numel(zeropimods));
+    wfs(wf).zeropiphase = zeros(1,numel(zeropimods));
+    for zeropimod_idx = 1:numel(zeropimods)
+      zeropimod = zeropimods(zeropimod_idx);
+      if zeropimod==180 || zeropimod==270
+        wfs(wf).tx_invert(zeropimod_idx) = true;
+      else
+        wfs(wf).tx_invert(zeropimod_idx) = false;
+      end
+      if zeropimod==180 || zeropimod==270
+        wfs(wf).adc_zeropi(zeropimod_idx) = true;
+      else
+        wfs(wf).adc_zeropi(zeropimod_idx) = false;
+      end
+      if zeropimod==90 || zeropimod==270
+        wfs(wf).zeropiphase(zeropimod_idx) = 90;
+      else
+        wfs(wf).zeropiphase(zeropimod_idx) = 0;
+      end
+    end
+    
+    if wfs(wf).presums / numel(zeropimods) > 1
+      % We use integrator reset, so more than one cycle through its zero pi
+      % mode sequence requires a reset and a non-reset version of the first
+      % zero pi mode in the sequence to reset the integrator. Two modes are
+      % created for the first mode (except that the first one will be reset
+      % and the second one will not be reset).
+      num_modes = 1+numel(zeropimods);
+      wfs(wf).tx_invert = wfs(wf).tx_invert([1 1 2:end]);
+      wfs(wf).adc_zeropi = wfs(wf).adc_zeropi([1 1 2:end]);
+      wfs(wf).zeropiphase = wfs(wf).zeropiphase([1 1 2:end]);
+      wfs(wf).next = total_modes+[2 2:num_modes];
+      wfs(wf).repeat_to = zeros(1,num_modes);
+      wfs(wf).repeat_to(end) = total_modes+1;
+      wfs(wf).repeat_count = zeros(1,num_modes);
+      wfs(wf).repeat_count(end) = wfs(wf).presums-numel(zeropimods);
+      
+    else
+      % This waveform has only one cycle through zero pi mode sequence, so
+      % we don't need a reset and non-reset mode for the first zero pi
+      % mode in the sequence.
+      num_modes = numel(zeropimods);
+      wfs(wf).next = total_modes+(1:num_modes);
+      wfs(wf).repeat_to = zeros(1,num_modes);
+      wfs(wf).repeat_count = zeros(1,num_modes);
+    end
+    % A reset is always required with zero pi modulation, because there is
+    % always more than one pulse being averaged.
+    wfs(wf).reset = false(1,num_modes);
+    wfs(wf).reset(1) = true;
+    
+  end
+  
+  wfs(wf).modes = total_modes+(0:num_modes-1);
+      
+  % If this is the first waveform, then the epri is true for the first
+  % mode of this waveform.
+  wfs(wf).epri = false(1,num_modes);
+  if wf == 1
+    wfs(wf).epri(1) = true;
+  end
+  
+  % If the last waveform, then the next should go to the first mode
+  if wf == length(wfs)
+    wfs(wf).next(end) = 0;
+  end
+  
+  total_modes = total_modes + num_modes;
+end
+
+
 %% ADC: adc-ad9680_0017
 adc_idxs = find(strcmpi('adc-ad9680_0017',{arena.adc.type}));
 for adc_idx = adc_idxs
@@ -117,17 +248,14 @@ for adc_idx = adc_idxs
     child = doc.createElement('id'); subchannel.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%d',subchannel_idx-1) ));
     
-    num_modes = 0;
     for wf = 1:length(wfs)
-      zeropimods = wfs(wf).zeropimods(:).';
-      Tpd = round(wfs(wf).Tpd*1e6);
-      modes = num_modes+(0:length(zeropimods));
-      
-      for mode = modes
+      for mode_idx = 1:length(wfs(wf).modes)
+        mode_latch = wfs(wf).modes;
+        
         digRx = doc.createElement('digRx'); subchannel.appendChild(digRx);
         
         child = doc.createElement('modes'); digRx.appendChild(child);
-        child.appendChild(doc.createTextNode(sprintf('%d',mode)));
+        child.appendChild(doc.createTextNode(sprintf('%d',mode_latch)));
         
         child = doc.createElement('adcDdcChannel'); digRx.appendChild(child);
         child.appendChild(doc.createTextNode( sprintf('%d',subchannel_idx-1) ));
@@ -135,7 +263,7 @@ for adc_idx = adc_idxs
         child = doc.createElement('bypass'); digRx.appendChild(child);
         child.appendChild(doc.createTextNode('1'));
         
-        if mode == modes(end)
+        if wfs(wf).adc_zeropi(mode_idx)
           child = doc.createElement('zeroPi'); digRx.appendChild(child);
           child.appendChild(doc.createTextNode('1'));
         else
@@ -152,15 +280,10 @@ for adc_idx = adc_idxs
         child = doc.createElement('decimation'); digRx.appendChild(child);
         child.appendChild(doc.createTextNode('1'));
       end
-      
-      num_modes = num_modes + length(modes);
     end
     
-    num_modes = 0;
-    for wf = 1:length(wfs)
-      zeropimods = wfs(wf).zeropimods(:).';
-      Tpd = round(wfs(wf).Tpd*1e6);
-      modes = num_modes+(0:length(zeropimods));
+    for mode_idx = 1:length(wfs(wf).modes)
+      modes = wfs(wf).modes;
       
       integrator = doc.createElement('integrator'); subchannel.appendChild(integrator);
       
@@ -178,8 +301,6 @@ for adc_idx = adc_idxs
       stop_bin = start_bin + Nt-1;
       child = doc.createElement('rg'); integrator.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d:%d',start_bin,stop_bin)));
-      
-      num_modes = num_modes + length(modes);
     end
     
     child = doc.createElement('coefficients'); subchannel.appendChild(child);
@@ -250,14 +371,10 @@ if strcmpi(arena.ctu.type,'ctu_001D')
     child.appendChild(doc.createTextNode(bit_str));
   end
   
-  num_modes = 0;
   for wf = 1:length(wfs)
-    zeropimods = wfs(wf).zeropimods(:).';
-    Tpd = round(wfs(wf).Tpd*1e6);
-    modes = num_modes+(0:length(zeropimods));
-    
-    if modes(1) == 0
-      if length(modes) > 1
+    modes = wfs(wf).modes;
+    if wfs(wf).epri(1)
+      if numel(wfs(wf).modes) > 1
         fields = {'epri' 'pri'};
       else
         fields = {'epri'};
@@ -271,7 +388,7 @@ if strcmpi(arena.ctu.type,'ctu_001D')
       mode_xml = doc.createElement('mode'); config.appendChild(mode_xml);
       
       child = doc.createElement('id'); mode_xml.appendChild(child);
-      if modes(1) == 0
+      if wfs(wf).epri(1)
         if strcmpi(field,'epri')
           child.appendChild(doc.createTextNode(sprintf('%d',modes(1))));
         else
@@ -318,7 +435,6 @@ if strcmpi(arena.ctu.type,'ctu_001D')
       child = doc.createElement('segmentStates'); mode_xml.appendChild(child);
       child.appendChild(doc.createTextNode(segmentStates_str));
     end
-    num_modes = num_modes + length(modes);
   end
   
   child = doc.createElement('pps'); config.appendChild(child);
@@ -463,19 +579,19 @@ for dac_idx = dac_idxs
   child = doc.createElement('description'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
   
-  num_modes = 0;
   for wf = 1:length(wfs)
-    zeropimods = wfs(wf).zeropimods(:).';
     Tpd = round(wfs(wf).Tpd*1e6);
-    modes = num_modes+(0:length(zeropimods));
+    modes = wfs(wf).modes;
     
-    for mode_latch = modes
+    for mode_idx = 1:length(modes)
+      mode_latch = modes(mode_idx);
+      
       mode_xml = doc.createElement('mode'); config.appendChild(mode_xml);
       
       child = doc.createElement('id'); mode_xml.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d',mode_latch)));
       
-      if mode_latch == modes(end)
+      if wfs(wf).tx_invert(mode_idx)
         child = doc.createElement('invert'); mode_xml.appendChild(child);
         child.appendChild(doc.createTextNode('1'));
       else
@@ -489,13 +605,15 @@ for dac_idx = dac_idxs
       child = doc.createElement('config'); mode_xml.appendChild(child);
       child.setAttribute('type','dac-ad9129_0012_waveform');
       if wfs(wf).tx_enable(dac_idx)
-        child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus',dac_idx,wfs(wf).name,Tpd) ));
+        if wfs(wf).zeropiphase(mode_idx) == 0
+          child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus',dac_idx,wfs(wf).name,Tpd) ));
+        else
+          child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus_%.0fdeg',dac_idx,wfs(wf).name,Tpd,wfs(wf).zeropiphase) ));
+        end
       else
         child.appendChild(doc.createTextNode('No_Tx'));
       end
     end
-    
-    num_modes = num_modes + length(modes);
   end
 end
 
@@ -519,7 +637,7 @@ for dac_idx = dac_idxs
     BW = abs(wfs(wf).f1-wfs(wf).f0);
     %scale = wfs(wf).tx_weights(tx_idx);
     scale = 0;
-    zeropimod = 0;
+    zeropiphase = 0;
     alpha = wfs(wf).tukey;
     
     config = doc.createElement('config'); configs.appendChild(config);
@@ -544,7 +662,7 @@ for dac_idx = dac_idxs
     child = doc.createElement('initialDelay'); pulse.appendChild(child);
     child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).delay(tx_idx)*1e-3)));
     child = doc.createElement('initialPhase'); pulse.appendChild(child);
-    child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).phase(tx_idx)+zeropimod)));
+    child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).phase(tx_idx)+zeropiphase)));
     child = doc.createElement('afterPulseDelay'); pulse.appendChild(child);
     child.appendChild(doc.createTextNode('0.000000'));
     child = doc.createElement('taper'); pulse.appendChild(child);
@@ -560,11 +678,8 @@ for dac_idx = dac_idxs
   end
   
   % Create waveforms for each of the modes
-  num_modes = 0;
   for wf = 1:length(wfs)
-    zeropimods = wfs(wf).zeropimods(:).';
     Tpd = round(wfs(wf).Tpd*1e6);
-    modes = num_modes+(0:length(zeropimods));
     
     fc = (wfs(wf).f0+wfs(wf).f1)/2;
     Nt = round(wfs(wf).Tpd * dac.dacClk/8)*8;
@@ -576,19 +691,16 @@ for dac_idx = dac_idxs
     end
     alpha = wfs(wf).tukey;
     
-    unique_zeropimods = zeropimods(1);
-    for zeropimod = zeropimods(2:end).'
-      if all(abs(angle(exp(1i*(zeropimod/180*pi+pi))) - angle(exp(1i*unique_zeropimods/180*pi))) > 10*eps)
-        unique_zeropimods(end+1) = zeropimod;
-      end
-    end
-    
-    for zeropimod = unique_zeropimods
+    for zeropiphase = unique(wfs(wf).zeropiphase)
       config = doc.createElement('config'); configs.appendChild(config);
       config.setAttribute('type',sprintf('%s_waveform',dac.type));
       
       child = doc.createElement('name'); config.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus',dac_idx,wfs(wf).name,Tpd) ));
+      if wfs(wf).zeropiphase(mode_idx) == 0
+        child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus',dac_idx,wfs(wf).name,Tpd) ));
+      else
+        child.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus_%.0fdeg',dac_idx,wfs(wf).name,Tpd,zeropiphase) ));
+      end
       
       child = doc.createElement('description'); config.appendChild(child);
       child.appendChild(doc.createTextNode(''));
@@ -606,7 +718,7 @@ for dac_idx = dac_idxs
       child = doc.createElement('initialDelay'); pulse.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).delay(tx_idx)*1e-3)));
       child = doc.createElement('initialPhase'); pulse.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).phase(tx_idx)+zeropimod)));
+      child.appendChild(doc.createTextNode(sprintf('%f',wfs(wf).phase(tx_idx)+zeropiphase)));
       child = doc.createElement('afterPulseDelay'); pulse.appendChild(child);
       child.appendChild(doc.createTextNode('0.000000'));
       child = doc.createElement('taper'); pulse.appendChild(child);
@@ -620,8 +732,6 @@ for dac_idx = dac_idxs
       child = doc.createElement('Filename'); pulse.appendChild(child);
       child.appendChild(doc.createTextNode(''));
     end
-    
-    num_modes = num_modes + length(modes);
   end
   
 end
@@ -916,94 +1026,12 @@ if strcmpi(arena.psc.type,'psc_0003')
   child = doc.createElement('interruptEna'); config.appendChild(child);
   child.appendChild(doc.createTextNode('0'));
   
-  num_psc = 0;
-  num_modes = 0;
   for wf = 1:length(wfs)
-    
-    wfs(wf).Tpd = round(wfs(wf).Tpd*10e6)/10e6;
-    
-    % Create "psc_repeat" matrix. Each row represents a sequence with the
-    % columns defined as:
-    % [mode repeatTo repeatCount next]
-    zeropimods = wfs(wf).zeropimods(:).';
-    if wf == 1
-      if wfs(wf).presums == 1
-        psc_repeat = [num_modes 0 0 1];
-        zeropimod = zeropimods(1);
-        psc_name = {sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimod)};
-        num_pulse_states = num_pulse_states + 1;
-        num_modes = num_modes + 1;
-      elseif wfs(wf).presums == length(zeropimods)
-        psc_repeat = zeros(length(zeropimods),4);
-        psc_repeat(:,1) = num_modes + (0:length(zeropimods)-1);
-        psc_repeat(:,4) = num_psc + (1:length(zeropimods));
-        psc_repeat(end,2:3) = [0 0];
-        psc_name{1} = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimods(1));
-        for zeropimod = zeropimods(2:end)
-          psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
-        end
-        num_modes = num_modes + length(zeropimods);
-      elseif mod(wfs(wf).presums,length(zeropimods)) == 0
-        psc_repeat = zeros(2*length(zeropimods),4);
-        psc_repeat(:,1) = num_modes + [0:length(zeropimods), 1:length(zeropimods)-1];
-        psc_repeat(:,4) = num_psc + (1:2*length(zeropimods));
-        psc_repeat(end,2:3) = [length(zeropimods), (wfs(wf).presums-2*length(zeropimods))/length(zeropimods)];
-        psc_name{1} = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimods(1));
-        for zeropimod = zeropimods(2:end)
-          psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
-        end
-        for zeropimod = zeropimods
-          psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
-        end
-        num_modes = num_modes + 2*length(zeropimods);
-      else
-        error('Presums %d>1 so presums must be a multiple of zeropimods length=%d.', ...
-          wfs(wf).presums, length(zeropimods));
-      end
-    else
-      if wfs(wf).presums == 1
-        psc_repeat = [num_modes 0 0 num_psc+length(zeropimods)];
-        zeropimod = zeropimods(1);
-        psc_name = {sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod)};
-        num_modes = num_modes + 1;
-      elseif wfs(wf).presums == length(zeropimods)
-        psc_repeat = zeros(length(zeropimods),4);
-        psc_repeat(:,1) = num_modes + (0:length(zeropimods)-1);
-        psc_repeat(:,4) = num_psc + (1:length(zeropimods));
-        psc_repeat(end,2:3) = [0 0];
-        psc_name{1} = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropimods(1));
-        for zeropimod = zeropimods
-          psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
-        end
-        num_modes = num_modes + length(zeropimods);
-      elseif mod(wfs(wf).presums,length(zeropimods)) == 0
-        psc_repeat = zeros(2*length(zeropimods),4);
-        psc_repeat(:,1) = num_modes + [0:length(zeropimods), 1:length(zeropimods)-1];
-        psc_repeat(:,4) = num_psc + (1:2*length(zeropimods));
-        psc_repeat(end,2:3) = [num_psc+length(zeropimods), (wfs(wf).presums-2*length(zeropimods))/length(zeropimods)];
-        psc_name = {};
-        for zeropimod = zeropimods
-          psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
-        end
-        for zeropimod = zeropimods
-          psc_name{end+1} = sprintf('%.0fus, PRI, %d',wfs(wf).Tpd*1e6, zeropimod);
-        end
-        num_modes = num_modes + 2*length(zeropimods);
-      else
-        error('Presums %d>1 so presums must be a multiple of zeropimods length=%d.', ...
-          wfs(wf).presums, length(zeropimods));
-      end
-    end
-    if wf == length(wfs)
-      psc_repeat(end,4) = 0;
-    end
-    num_psc = num_psc + size(psc_repeat,1);
-    
-    for psc_idx = 1:size(psc_repeat,1)
-      mode = psc_repeat(psc_idx,1);
-      repeat_to = psc_repeat(psc_idx,2);
-      repeat_count = psc_repeat(psc_idx,3);
-      next = psc_repeat(psc_idx,4);
+    for mode_idx = 1:numel(wfs(wf).modes)
+      mode = wfs(wf).modes(mode_idx);
+      repeat_to = wfs(wf).repeat_to(mode_idx);
+      repeat_count = wfs(wf).repeat_count(mode_idx);
+      next = wfs(wf).next(mode_idx);
       sequence = doc.createElement('sequence'); config.appendChild(sequence);
       sequence.setAttribute('type','primary');
       child = doc.createElement('marker'); sequence.appendChild(child);
@@ -1013,7 +1041,20 @@ if strcmpi(arena.psc.type,'psc_0003')
       child = doc.createElement('mode'); sequence.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d',mode)));
       child = doc.createElement('name'); sequence.appendChild(child);
-      child.appendChild(doc.createTextNode(psc_name{psc_idx}));
+      if wfs(wf).epri(mode_idx)
+        field = 'EPRI';
+      else
+        field = 'PRI';
+      end
+      zeropiphase = 0;
+      if wfs(wf).tx_invert
+        zeropiphase = zeropiphase + 180;
+      end
+      if wfs(wf).zeropiphase
+        zeropiphase = zeropiphase + 90;
+      end
+      psc_name = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropiphase);
+      child.appendChild(doc.createTextNode(psc_name));
       child = doc.createElement('period'); sequence.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%g',1/param.prf*1e6)));
       child = doc.createElement('next'); sequence.appendChild(child);
@@ -1197,30 +1238,6 @@ num_psc = 0;
 total_data_map = [];
 for wf = 1:length(wfs)
   
-  zeropimods = wfs(wf).zeropimods(:).';
-  if wf == 1
-    if wfs(wf).presums == 1
-      modes = 0;
-    elseif wfs(wf).presums == length(zeropimods)
-      modes = 0:length(zeropimods)-1;
-    elseif mod(wfs(wf).presums,length(zeropimods)) == 0
-      modes = [0:length(zeropimods), 1:length(zeropimods)-1];
-    else
-      error('Presums %d>1 so presums must be a multiple of zeropimods length=%d.', ...
-        wfs(wf).presums, length(zeropimods));
-    end
-  else
-    if wfs(wf).presums == 1
-      modes = length(zeropimods)*(wf-1)+1;
-    elseif ~mod(wfs(wf).presums,2)
-      modes = length(zeropimods)*(wf-1) + (1:length(zeropimods));
-    else
-      error('Odd number of presums, %d, greater than 1 not supported.', ...
-        wfs(wf).presums);
-    end
-  end
-  num_psc = num_psc + size(psc_repeat,1);
-  
   out_adc_idx = [];
   for adc_idx = 1:numel(arena.adc)
     adc = arena.adc(adc_idx);
@@ -1232,7 +1249,7 @@ for wf = 1:length(wfs)
     
     board_idx = find(strcmpi(adc.name,param.board_map));
     
-    mode_latch = modes(end);
+    mode_latch = wfs(wf).modes(end);
     
     for subchannel_id = 0:num_subchannel-1
       wf_set = 0;
