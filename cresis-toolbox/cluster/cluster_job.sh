@@ -8,12 +8,14 @@
 # =========================================================================
 
 # Add some debugging information to stdout
-echo "cluster_job.{sh,m} Start" `whoami` `hostname` "("`date`")"
+echo "cluster_job.{sh,m} Start" `whoami` "hostname:"`hostname` "("`date`")"
 #declare
 #pwd
 
 # Make sure file permissions will be set so everyone can read
 umask 000
+
+taskset -p $$
 
 # Turn on MCR debugging information (goes to stderr)
 export  MCR_CACHE_VERBOSE=1
@@ -28,8 +30,10 @@ parent_pid=$$
 max_attempts=3
 attempt=1
 
-while (( attempt < max_attempts ))
+while (( attempt <= max_attempts ))
 do
+
+  echo Attempt $attempt of $max_attempts
 
   # Start child process
   # Run run_cluster_job.sh (runs Matlab compiled cluster_job.m)
@@ -44,13 +48,13 @@ do
   max_cpu=0
   while [[ ! -z $child_proc ]]
   do
-    mem=`ps -eo ppid,pid,rss | sed -n "/^\s*$parent_pid\s*$child_pid/p" | awk '{print $3}'`
+    mem=`ps -eo ppid,rss | sed -n "/^\s*$child_pid/p" | awk '{print $2}'`
     #echo Mem: $mem
     if (( mem > max_mem ))
     then
       max_mem=$mem
     fi
-    cpu=`ps -eo ppid,pid,cputime | sed -n "/^\s*$parent_pid\s*$child_pid/p" | awk '{print $3}'`
+    cpu=`ps -eo ppid,cputime | sed -n "/^\s*$child_pid/p" | awk '{print $2}'`
     #echo CPU: $cpu
     if [[ ! -z $cpu ]]
     then
@@ -60,7 +64,7 @@ do
     # Update maximum memory and maximum CPU
 
     child_proc=`ps -eo ppid,pid | sed -n "/^\s*$parent_pid\s*$child_pid/p" | awk '{print $2}'`
-    sleep 1
+    sleep 0.5
   done
   echo Max Mem: $max_mem
   echo Max CPU: $max_cpu
@@ -78,7 +82,7 @@ do
 
 done
 
-echo "  cluster_job.{sh,m} Done" `whoami` `hostname` "("`date`")"
+echo "  cluster_job.{sh,m} Done" "attempts:"$attempt "max_attempts:"$max_attempts "("`date`")"
 date
 sleep 30 # Wait for file writes to take place and be available in file system metadata (seems to be necessary for high performance file systems)
 

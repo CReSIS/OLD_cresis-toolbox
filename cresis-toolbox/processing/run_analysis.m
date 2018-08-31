@@ -11,22 +11,29 @@
 % =====================================================================
 param_override = [];
 
-params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),'','analysis');
+% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170311_02',{'analysis_spec','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
+params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'',{'analysis_stat','analysis'});
 
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20161107_03');
+% params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20161107_03');
 % params = ct_set_params(params,'cmd.frms',6);
 % params = ct_set_params(params,'cmd.csarp',1,'day_seg','20161024_05');
 % params = ct_set_params(params,'csarp.out_path','paden_out');
+% params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'analysis.presums',4);
+% params = ct_set_params(params,'analysis.cmd{1}.dec',10);
 
-dbstop if error;
-param_override.cluster.type = 'torque';
+% dbstop if error;
+% param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-% param_override.cluster.type = 'debug';
+param_override.cluster.type = 'debug';
 param_override.cluster.rerun_only = false;
-param_override.cluster.desired_time_per_job  = 15*60;
+param_override.cluster.desired_time_per_job  = 120*60;
 param_override.cluster.max_time_per_job  = 2000*60;
 % param_override.cluster.cpu_time_mult  = 2;
 % param_override.cluster.mem_mult  = 2;
@@ -48,7 +55,7 @@ end
 ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
-  if param.cmd.generic
+  if isfield(param.cmd,'generic') && ~iscell(param.cmd.generic) && ~ischar(param.cmd.generic) && param.cmd.generic
     ctrl_chain{end+1} = analysis(param,param_override);
   end
 end

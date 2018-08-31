@@ -10,14 +10,14 @@
 % =====================================================================
 param_override = [];
 
-params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'));
+params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'');
 
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
 % params = ct_set_params(params,'cmd.create_frames',0);
 % params = ct_set_params(params,'cmd.create_frames',1,'day_seg','20161101_0[12345]');
 
-dbstop if error;
+param_override.ct_file_lock = 1;
 
 %% Automated Section
 % =====================================================================
@@ -33,8 +33,8 @@ end
 % Process each of the segments
 for param_idx = 1:length(params)
   param = params(param_idx);
-  if param.cmd.create_frames
-    if isempty(param.records.frame_mode) || mod(param.records.frame_mode,2)==0
+  if param.cmd.generic
+    if param.records.frames.mode == 0
       create_frames(param,param_override);
       fprintf('Type dbcont to continue when you are done creating frames for this segment.\n');
       keyboard;

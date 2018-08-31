@@ -16,43 +16,37 @@ if run_example == 1
   %    freq-wavenumber domains
   % =======================================================================
   
-  param = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03');
+  param = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170309_01');
   
   % Determine which records you want to load:
   frames_fn = '';
   frames_fn = ct_filename_support(param,frames_fn,'frames');
   load(frames_fn);
-  frm = 37;
-  param.load_data.recs = frames.frame_idxs(frm) + [0 99];
+  frm = 17;
+  param.load_data.recs = frames.frame_idxs(frm) + 0 + [0 1999];
   
   %   param.load_data.imgs = {[-1j 5]};
   %   param.load_data.imgs = {[2 2; 2 3; 2 4; 2 5; 2 6; 2 7; 2 8; 2 9; 2 10; 2 11; 2 12; 2 13; 2 14; 2 15; 2 16]};
-  param.load_data.imgs = {[1 2]};
-  param.load_data.pulse_comp         = true;
-  param.load_data.ft_dec             = true; % Fast-time decimation
-  param.load_data.ft_wind            = @hanning;
-  param.load_data.ft_wind_time       = false; % Apply window on time domain chirp
-  param.load_data.presums            = 1; % Coherent averaging
-  param.load_data.combine_rx         = false;
-  param.load_data.pulse_rfi.en       = false;
-  param.load_data.pulse_rfi.inc_ave  = 101;
-  param.load_data.pulse_rfi.thresh_scale = 10^(13/10);
-  param.load_data.trim_vals          = [0 0];
+  param.load_data.imgs                  = {[1 1]};
+  param.load_data.pulse_comp            = true;
+  param.load_data.ft_wind               = @hanning;
+  param.load_data.combine_rx            = false;
   
   % Load data
-  [data,hdr] = load_data(param);
+  [hdr,data] = load_data(param);
   
   % Plot data
   img = 1;
   wf_adc_idx = 1;
-  wf = abs(param.load_data.imgs{img}(wf_adc_idx,1));
   
   figure(1); clf;
-  imagesc([],hdr.wfs(wf).time, ...
+  imagesc([],hdr.time{img}, ...
     lp(data{img}(:,:,wf_adc_idx)));
   title('Time-space domain');
   grid on;
   colorbar
+  
+  return;
   
   noise_bins = 190:230;
   

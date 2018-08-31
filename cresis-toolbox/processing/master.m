@@ -55,68 +55,19 @@ for param_idx = 1:length(params)
   [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
   new_chain = {};
   
-  if isfield(cmd,'create_vectors') && cmd.create_vectors
-    if strcmpi(radar_name,'mcords')
-      create_vectors_mcords(param,param_override);
-    elseif any(strcmpi(radar_name,{'mcords4','mcords3','mcords2','seaice'}))
-      create_vectors_mcords2(param,param_override);
-    elseif strcmpi(radar_name,'mcrds')
-      create_vectors_mcrds(param,param_override);
-    elseif strcmpi(radar_name,'accum')
-      create_vectors_accum(param,param_override);
-    elseif strcmpi(radar_name,'accum2')
-      create_vectors_accum2(param,param_override);
-    elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3'}))
-      create_vectors_fmcw(param,param_override);
-    elseif strcmpi(radar_name,'acords')
-      create_vectors_acords(param,param_override);
-    end
-  end
   if isfield(cmd,'create_records') && cmd.create_records
-    if strcmpi(radar_name,'mcords')
-      original_sched = param_override.sched.type;
-      param.sched.type = 'no scheduler';
-      create_records_mcords(param,param_override);
-      param.sched.type = original_sched;
-    elseif any(strcmpi(radar_name,{'hfrds'}))
-      hfrds.create_records(param,param_override);
-    elseif any(strcmpi(radar_name,{'hfrds2'}))
-      create_records_arena(param,param_override);
-    elseif any(strcmpi(radar_name,{'mcords5','mcords4','mcords3','mcords2','seaice'}))
-      create_records_mcords2(param,param_override);
-    elseif strcmpi(radar_name,'mcrds')
-      create_records_mcrds(param,param_override);
-    elseif strcmpi(radar_name,'icards')
-      create_records_icards(param,param_override);
-    elseif strcmpi(radar_name,'accum')
-      create_records_fmcw_accum(param,param_override);
-    elseif strcmpi(radar_name,'accum2')
-      create_records_accum2(param,param_override);
-    elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-      create_records_fmcw_accum(param,param_override);
-    elseif strcmpi(radar_name,'acords')
-      create_records_acords(param,param_override);
-    end
+    create_records(param,param_override);
   end
-  if isfield(cmd,'create_frames') && cmd.create_frames
-    if isempty(param.records.frame_mode) || mod(param.records.frame_mode,2)==0
-      create_frames(param,param_override);
-      fprintf('Type dbcont to continue when you are done creating frames for this segment.\n');
-      keyboard;
-    else
-      autogenerate_frames(param,param_override);
-    end
-  end
-  if isfield(cmd,'get_heights') && cmd.get_heights
-    chain = get_heights(param,param_override);
+  if isfield(cmd,'qlook') && cmd.qlook
+    chain = qlook(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
-  if isfield(cmd,'csarp') && cmd.csarp
-    chain = csarp(param,param_override);
+  if isfield(cmd,'sar') && cmd.sar
+    chain = sar(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
-  if isfield(cmd,'combine_wf_chan') && cmd.combine_wf_chan
-    chain = combine_wf_chan(param,param_override);
+  if isfield(cmd,'array') && cmd.array
+    chain = array(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
   

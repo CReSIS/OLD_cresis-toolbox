@@ -2,11 +2,11 @@ function my_struct = sync_radar_to_gps(param,my_struct,radar_time,comp_time)
 % my_struct = sync_radar_to_gps(param,my_struct,radar_time,comp_time)
 %
 % param = struct from read_param_xls
-%  param.radar_name
+%  param.records.file.version
 %  param.season_name
 %  param.day_seg
-%  param.vectors.gps.fn
-%  param.vectors.gps.time_offset
+%  param.records.gps.fn
+%  param.records.gps.time_offset
 % my_struct = vector or records struct to add GPS fields to
 % radar_time = time recorded to raw data files by radar (contents depend on radar)
 %   mcrds,accum2: radar_time is a free running 64 bit counter
@@ -30,12 +30,12 @@ function my_struct = sync_radar_to_gps(param,my_struct,radar_time,comp_time)
 %
 % Called from create_vectors* or create_records*
 
-if ~isfield(param.vectors.gps,'fn')
-  param.vectors.gps.fn = '';
+if ~isfield(param.records.gps,'fn')
+  param.records.gps.fn = '';
 end
 
 %% Load the GPS data
-gps = load(ct_filename_support(param,param.vectors.gps.fn,'gps',true));
+gps = load(ct_filename_support(param,param.records.gps.fn,'gps',true));
 
 %% Check for non-monotonically increasing gps time
 if any(diff(gps.gps_time) <= 0)
@@ -58,14 +58,15 @@ if any(isnan(gps.lat)) ...
   error('GPS file has NaN');
 end
 
-if any(strcmpi(param.radar_name,{'mcrds','accum2'}))
+if any(param.records.file.version == [102 410])
+  % MCRDS and ACCUM2
   %% Isolate the section of radar time from gps.radar_time that will be
   % used to interpolate with.
-  if strcmpi(param.season_name,'2013_Antarctica_P3') & strcmpi(param.radar_name,'accum2') & strcmpi(param.day_seg(1:8),'20131119')
+  if strcmpi(param.season_name,'2013_Antarctica_P3') && param.records.file.version == 102 && strcmpi(param.day_seg(1:8),'20131119')
     % no gps sync files, set radar_gps_time = comp_time(1) + radar_time -
     % radar_time(1) + comp_time_offset (-6*3600), the computer time offset
     % from gps time was 6 hours late
-    radar_gps_time =  comp_time(1) + radar_time-radar_time(1) -6*3600 + param.vectors.gps.time_offset;
+    radar_gps_time =  comp_time(1) + radar_time-radar_time(1) -6*3600 + param.records.gps.time_offset;
   else
     guard_time = 5;
     good_idxs = find(gps.comp_time >= comp_time(1)-guard_time ...
@@ -87,7 +88,8 @@ if any(strcmpi(param.radar_name,{'mcrds','accum2'}))
   
   %% DO NOT Apply GPS sync correction to radar time (this is done already
   % in create_records for these radars)
-elseif any(strcmpi(param.radar_name,{'acords'}))
+elseif any(param.records.file.version == [405 406])
+  % ACORDS
   comp_time = radar_time;
   guard_time = 0;
   good_idxs = find(gps.comp_time >= comp_time(1)-guard_time ...
@@ -97,7 +99,10 @@ elseif any(strcmpi(param.radar_name,{'acords'}))
   radar_gps_time = interp1(good_comp_time, good_sync_gps_time, ...
       comp_time,'linear','extrap');
   
-elseif any(strcmpi(param.radar_name,{'icards'}))% there's a minor inacurracy (1e-7)of first
+elseif any(param.records.file.version == [409])
+  % ICARDS
+  
+  % there's a minor inacurracy (1e-7)of first
   % when read the csv file. This may cause radar_gps_time start earlier than gps.gps_time(first file)
   % or later than gps.gps_time(last file). This phenomenon will further
   % cause NaN when using interp1 to sync radar and gps!!This problem
@@ -112,7 +117,7 @@ elseif any(strcmpi(param.radar_name,{'icards'}))% there's a minor inacurracy (1e
   end
   
   %% Apply GPS sync correction to radar time
-  utc_time_sod = utc_time_sod + param.vectors.gps.time_offset;
+  utc_time_sod = utc_time_sod + param.records.gps.time_offset;
   
   %% Determine absolute radar time and convert from UTC to GPS
   year = str2double(param.day_seg(1:4));
@@ -126,10 +131,15 @@ elseif any(strcmpi(param.radar_name,{'icards'}))% there's a minor inacurracy (1e
     radar_gps_time=radar_gps_time(find(radar_gps_time<=gps.gps_time(end)));
   end
   
-elseif any(strcmpi(param.radar_name,{'hfrds2'}))
-  radar_gps_time = radar_time + param.vectors.gps.time_offset;
+elseif any(param.records.file.version == [9 10 103 412])
+  % Arena based systems
+  
+  radar_gps_time = radar_time + param.records.gps.time_offset;
+  % Convert from UTC to GPS
+  radar_gps_time = radar_gps_time + utc_leap_seconds(radar_gps_time(1));
   
 else
+  % NI based, Ledford systems
   utc_time_sod = radar_time;
   
   %% Check for seconds of day roll over and unwrap (assume jump backward
@@ -140,7 +150,7 @@ else
   end
   
   %% Apply GPS sync correction to radar time
-  utc_time_sod = utc_time_sod + param.vectors.gps.time_offset;
+  utc_time_sod = utc_time_sod + param.records.gps.time_offset;
   
   %% Determine absolute radar time and convert from UTC to GPS
   year = str2double(param.day_seg(1:4));
@@ -190,8 +200,9 @@ if any(isnan(my_struct.gps_time))
   nan_detected = true;
 end
 if nan_detected
-  warning('NaN found in GPS data');
-  if any(strcmpi(param.radar_name,{'acords','mcrds','accum2'}))
+  warning('NaN found in GPS data. Inspect gps.* and my_struct.* variables and fix my_struct GPS/Attitude fields (gps_time, lat, lon, elev, roll, pitch, heading) since NaN are not allowed in these fields. Usually the problem is with a param.records.gps.time_offset problem or the GPS file not covering the time that the radar data were collected. In this case, fix the gps file or time_offset and rerun.');
+  if any(param.records.file.version == [102 405 406 410])
+    % Accum2, ACORDS, MCRDS
     fprintf('GPS COMP TIME: %s to %s\n', datestr(epoch_to_datenum(gps.comp_time(1))), datestr(epoch_to_datenum(gps.comp_time(end))));
     fprintf('RADAR COMP TIME: %s to %s\n', datestr(epoch_to_datenum(comp_time(1))), datestr(epoch_to_datenum(comp_time(end))));
   else

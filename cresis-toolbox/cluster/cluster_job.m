@@ -1,5 +1,5 @@
-function cluster_job(task_in_fn_dir,task_out_fn_dir,task_ids)
-% cluster_job(task_in_fn_dir,task_out_fn_dir,task_ids)
+function cluster_job(task_in_fn_dir,task_out_fn_dir,task_ids,num_proc)
+% cluster_job(task_in_fn_dir,task_out_fn_dir,task_ids,num_proc)
 %
 % This M-file should be compiled with cluster_compile.
 %
@@ -26,6 +26,12 @@ if ~exist('task_ids','var')
   task_ids = getenv('TASK_LIST');
 end
 task_ids = regexp(task_ids, 'd', 'split');
+if ~exist('num_proc','var')
+  num_proc = getenv('NUM_PROC');
+end
+if ~isempty(num_proc)
+  cluster_cpu_affinity(num_proc);
+end
 
 fprintf('%s: Processing tasks %s', mfilename, task_ids{1});
 fprintf(', %s', task_ids{2:end});

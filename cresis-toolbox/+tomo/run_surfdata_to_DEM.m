@@ -66,7 +66,7 @@ if 1
 %   dem.quality_surface_names = {'bottom quality'};
   
   dem.grid_spacing = 25;
-  dem.bad_geotiff_value = -32767;
+  dem.bad_geotiff_value = 32767;
   
   param_override = struct('dem',dem);
   
@@ -128,7 +128,7 @@ else
   %dem.quality_surface_names = {'bottom quality'};
   
   dem.grid_spacing = 25;
-  dem.bad_geotiff_value = -32767;
+  dem.bad_geotiff_value = 32767;
   
   param_override = struct('dem',dem);
   
