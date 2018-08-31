@@ -66,7 +66,7 @@ for wf = 1:length(wfs)
       wfs(wf).reset(1) = true;
       wfs(wf).next = total_modes+[1 2];
       wfs(wf).repeat_to = [0 total_modes+1];
-      wfs(wf).repeat_count = [0 wfs(wf).presums-2];
+      wfs(wf).repeat_count = [0 wfs(wf).presums/numel(zeropimods)-1];
     else
       % No presumming so no reset mode is required
       num_modes = 1;
@@ -132,7 +132,7 @@ for wf = 1:length(wfs)
       wfs(wf).repeat_to = zeros(1,num_modes);
       wfs(wf).repeat_to(end) = total_modes+1;
       wfs(wf).repeat_count = zeros(1,num_modes);
-      wfs(wf).repeat_count(end) = wfs(wf).presums-numel(zeropimods);
+      wfs(wf).repeat_count(end) = wfs(wf).presums/numel(zeropimods)-1;
       
     else
       % This waveform has only one cycle through zero pi mode sequence, so
@@ -249,8 +249,10 @@ for adc_idx = adc_idxs
     child.appendChild(doc.createTextNode( sprintf('%d',subchannel_idx-1) ));
     
     for wf = 1:length(wfs)
+      modes = wfs(wf).modes;
+      
       for mode_idx = 1:length(wfs(wf).modes)
-        mode_latch = wfs(wf).modes;
+        mode_latch = modes(mode_idx);
         
         digRx = doc.createElement('digRx'); subchannel.appendChild(digRx);
         
@@ -280,10 +282,6 @@ for adc_idx = adc_idxs
         child = doc.createElement('decimation'); digRx.appendChild(child);
         child.appendChild(doc.createTextNode('1'));
       end
-    end
-    
-    for mode_idx = 1:length(wfs(wf).modes)
-      modes = wfs(wf).modes;
       
       integrator = doc.createElement('integrator'); subchannel.appendChild(integrator);
       
@@ -1053,7 +1051,7 @@ if strcmpi(arena.psc.type,'psc_0003')
       if wfs(wf).zeropiphase
         zeropiphase = zeropiphase + 90;
       end
-      psc_name = sprintf('%.0fus, EPRI, %d',wfs(wf).Tpd*1e6, zeropiphase);
+      psc_name = sprintf('%.0fus, %s, %d',wfs(wf).Tpd*1e6, field, zeropiphase);
       child.appendChild(doc.createTextNode(psc_name));
       child = doc.createElement('period'); sequence.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%g',1/param.prf*1e6)));
