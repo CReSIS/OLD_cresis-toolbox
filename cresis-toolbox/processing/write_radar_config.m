@@ -133,6 +133,12 @@ if duty_cycle > param.max_duty_cycle
   error('Duty cycle too high');
 end
 
+if isfield(param,'prf_multiple') && ~isempty(param.prf_multiple)
+  if any(mod(param.prf_multiple/param.prf,1))
+    error('param.prf (%g) must be a factor of default.prf_multiple (%s) for coherent noise cancelling to work.', param.prf, mat2str_generic(param.prf_multiple));
+  end
+end
+
 %% Convert staged_recording logical setting (0 or 1) into array of
 % waveform positions in the staged recording. Staged recording is used to
 % record overlapping range gates with different gains to provide a single

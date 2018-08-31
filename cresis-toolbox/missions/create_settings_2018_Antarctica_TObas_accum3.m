@@ -18,7 +18,7 @@ f0_list = [600e6];
 f1_list = [900e6];
 DDC_select_list = [1]; % Which DDC mode to use
 cal_settings = [1];
-prf = 1000;
+prf = 20000;
 
 % presums: Ensure lambda/4 sampling (fudge factor allows difference) and an
 %   that presums are an even number.

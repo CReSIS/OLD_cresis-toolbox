@@ -27,6 +27,7 @@ default.fs_dac = 2000e6;
 default.max_duty_cycle = 0.1;
 default.max_data_rate = 60;
 default.max_tx = [1];
+default.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
 
 default.tx_enable = [1];
 
