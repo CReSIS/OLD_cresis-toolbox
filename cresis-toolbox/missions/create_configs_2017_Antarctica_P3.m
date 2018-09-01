@@ -1,4 +1,4 @@
- % script create_settings_2017_Antarctica_P3
+ % script create_configs_2017_Antarctica_P3
 %
 % Creates NI radar depth sounder settings
 

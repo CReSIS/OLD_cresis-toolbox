@@ -1,4 +1,4 @@
-% script create_settings_2016_Antarctica_DC8
+% script create_configs_2016_Antarctica_DC8
 %
 % Creates NI radar depth sounder settings
 
@@ -35,7 +35,7 @@ if 0
     final_DDS_amp{idx} = [57750 0 65450 61292 61600 54478 0 0];
     final_DDS_time{idx} =  [0 0 0 0 0 0 0 0];
   end
-  final_tx_mask = [1 1 0 0 0 0 1 0];
+  final_tx_mask = [1 1 0 0 0 0 0 0];
 else
   % COPY AND PASTE RESULTS FROM basic_tx_chan_equalization_SEASON_NAME.m
   % HERE:
@@ -48,11 +48,10 @@ else
   
   % After transmit calibration during Oct 4, 2016 test flight (10 us) <-- Use 10 us!
   final_DDS_phase{end+1} = [-10.8	0.0	94.7	-53.1	-85.5	65.7	0.0	0.0];
-  %final_DDS_amp{end+1} = [41142	44690	44087	43212	61600	38806	0	0];
-  final_DDS_amp{end+1} = [41142	0	44087	43212	61600	38806	0	0];
+  final_DDS_amp{end+1} = [41142	44690	44087	43212	61600	38806	0	0];
   final_DDS_time{end+1} =  [-4.78	0.00	-3.71	-4.80	-3.78	-8.57	0.00	0.00];
   final_DDS_phase_no_time{end+1} = [0 0 0 0 0 0  0 0];
-  final_tx_mask = [1 1 0 0 0 0 1 0];
+  final_tx_mask = [1 1 0 0 0 0 0 0];
 end
 
 Hwindow_orig = [1 1 1 1 1 1 0 0]; % Desired window created during transmit calibration
@@ -288,11 +287,8 @@ for Tpd = [1e-6 3e-6 10e-6]
   for wf=1:6
     param.wfs(wf).tx_mask = ones(1,8);
     param.wfs(wf).tx_mask(9-wf) = 0;
-    if wf == 2
-      param.wfs(wf).tx_mask = ones(1,8);
-    end
   end
-  param.wfs(7).tx_mask = final_tx_mask;
+  param.wfs(7).tx_mask = zeros(1,8);
   write_cresis_xml(param);
 end
 
@@ -325,7 +321,7 @@ for Tpd = [1e-6 3e-6 10e-6]
   param.f0 = f0_list(freq_idx);
   param.f1 = f1_list(freq_idx);
   param.wfs(1).tx_mask = [1 1 1 1 0 1 1 0];
-  param.wfs(2).tx_mask = [1 1 1 0 1 1 1 1];
+  param.wfs(2).tx_mask = [1 1 1 0 1 1 0 1];
   param.wfs(3).tx_mask = [1 1 0 1 1 0 1 1];
   write_cresis_xml(param);
 end
@@ -363,9 +359,6 @@ for Tpd = [1e-6 3e-6 10e-6]
   for wf=1:6
     param.wfs(wf).tx_mask = ones(1,8);
     param.wfs(wf).tx_mask(9-wf) = 0;
-    if wf == 2
-      param.wfs(wf).tx_mask = ones(1,8);
-    end
   end
   write_cresis_xml(param);
 end
@@ -399,10 +392,7 @@ for Tpd = 10e-6
   for wf=1:6
     param.wfs(wf).tx_mask = ones(1,8);
     param.wfs(wf).tx_mask(9-wf) = 0;
-    if wf == 2
-      param.wfs(wf).tx_mask = ones(1,8);
-    end
   end
-  param.wfs(7).tx_mask = final_tx_mask;
+  param.wfs(7).tx_mask = zeros(1,8);
   write_cresis_xml(param);
 end

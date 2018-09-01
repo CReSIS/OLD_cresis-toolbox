@@ -1,4 +1,4 @@
-% script create_settings_2015_Greenland_Polar6
+% script create_configs_2015_Greenland_Polar6
 %
 % Creates NI radar depth sounder settings
 %

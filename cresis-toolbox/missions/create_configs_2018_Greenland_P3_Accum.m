@@ -1,4 +1,4 @@
-% script create_settings_2018_Greenland_P3_Accum
+% script create_configs_2018_Greenland_P3_Accum
 %
 % Creates NI radar depth sounder settings
 %
