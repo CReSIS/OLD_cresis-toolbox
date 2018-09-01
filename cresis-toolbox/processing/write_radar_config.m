@@ -334,24 +334,25 @@ end
 
 %% Check data rate (move to write_arena_xml)
 % =========================================================================
-
-param.data_rate
-param.epri
-
-fprintf('  EPRF: %.1f Hz\n', param.epri);
-fc = (param.wfs(1).f0+param.wfs(wf).f1)/2;
-lambda_fc = 3e8/fc;
-fprintf('  fc Nyquist sampling rate velocity: %.1f m/s (%.1f knots)\n', lambda_fc/4 * EPRF, lambda_fc/4 * EPRF / 0.5515)
-fprintf('  Data rate: %.1f MB/sec (%.1f hours: %.1f TB)\n', data_rate / 2^20, param.flight_hours, param.flight_hours*3600*data_rate/2^40);
+fprintf('\n');
+fprintf('  param.eprf: %.1f Hz\n', param.eprf);
+lambda = c/max(param.wfs(1).f0,param.wfs(1).f1);
+fprintf('  fc Nyquist sampling rate velocity: %.1f m/s (%.1f knots)\n', lambda/4 * param.eprf, lambda/4 * param.eprf / 0.5515)
+fprintf('  Data rate: %.1f MB/sec (%.1f hours: %.1f TB)\n', param.data_rate / 2^20, param.flight_hours, param.flight_hours*3600*param.data_rate/2^40);
 
 for wf = 1:numel(param.wfs)
-  if 1/param.prf - PRI_guard - param.wfs(wf).Tend <= 0
+  PRI = 1/param.prf;
+  if PRI - param.PRI_guard - param.wfs(wf).Tend <= 0
     error('Data recording window, %.2f us, is too long for this PRI, %.2f us, including %.2f us time guard', ...
-      param.wfs(wf).Tend*1e6, 1/param.prf*1e6, PRI_guard*1e6);
+      param.wfs(wf).Tend*1e6, 1/param.prf*1e6, param.PRI_guard*1e6);
+  end
+  if param.wfs(wf).Tend/PRI > param.PRI_guard_percentage
+    error('Data recording window, %.2f us, is exceeds the duty cycle, %.1f, for this PRI, %.2f us', ...
+      param.wfs(wf).Tend*1e6, param.PRI_guard_percentage*100, 1/param.prf*1e6);
   end
 end
 
-if data_rate / 2^20 > param.max_data_rate
+if param.data_rate / 2^20 > param.max_data_rate
   error('Data rate %f MB/sec is too high', data_rate/2^20);
 end
 
