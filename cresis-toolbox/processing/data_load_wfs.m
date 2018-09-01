@@ -107,7 +107,7 @@ for wf = 1:length(param.radar.wfs)
       error('Invalid DDC_dec_max %g. Set to 1 if decimation never used. It must be a positive integer.', wfs(wf).DDC_dec_max);
     end
   else
-    wfs(wf).DDC_dec_max   = 1; % No decimation
+    wfs(wf).DDC_dec_max   = wfs(wf).DDC_dec; % No decimation variation
   end
   
   if ~isfield(param.radar,'fs') || isempty(param.radar.fs)
@@ -379,7 +379,7 @@ for wf = 1:length(param.radar.wfs)
   end
   wfs(wf).quantization_to_V ...
     = param.radar.Vpp_scale * 2.^wfs(wf).bit_shifts ...
-    / (2^param.radar.adc_bits*wfs(wf).presums);
+    / (2^param.radar.adc_bits*wfs(wf).presums) * ones(size(adcs));
   
   if strcmpi(radar_type,'deramp')
     %% FMCW: Create time and frequency axis information
@@ -421,7 +421,7 @@ for wf = 1:length(param.radar.wfs)
       fs = wfs(wf).fs_raw * wfs(wf).DDC_dec;
       
       % Determine the Nyquist zone offset of the sampling
-      if mod(round(wfs(wf).fc - wfs(wf).DDC_freq) / (fs/2), 2)
+      if mod(round( (wfs(wf).fc - wfs(wf).DDC_freq) / (fs/2) ), 2)
         % Odd number nyquist zone offset: frequency axis is flipped and
         % shifted. Conjugate in the time domain to flip frequency axis
         % and conjugate frequency domain during loading. Raw frequency axis

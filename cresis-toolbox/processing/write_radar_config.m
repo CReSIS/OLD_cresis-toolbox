@@ -311,24 +311,34 @@ if param.create_IQ
   end
 end
 
+%% Write output
+if isfield(param,'ni') && ~isempty(param.ni)
+  fprintf('Writing %s\n', param.fn);
+  out_xml_fn_dir = fileparts(out_xml_fn);
+  if ~exist(out_xml_fn_dir,'dir')
+    mkdir(out_xml_fn_dir);
+  end
+  fid = fopen(out_xml_fn,'w');
+  fprintf(fid,'<?xml version=''1.0'' standalone=''yes'' ?>\n');
+  fprintf(fid,'<LVData xmlns="http://www.ni.com/LVData">\n');
+  write_ni_xml_object(settings_enc,fid,true,struct('array_list','Waveforms','enum_list','DDCZ20sel'));
+  fprintf(fid,'</LVData>');
+  fclose(fid);
+end
+
+%% Create RSS Arena XML structure
+if isfield(param,'arena') && ~isempty(param.arena)
+  % Create XML document
+  [doc,param] = write_arena_xml([],param);
+end
+
 %% Check data rate (move to write_arena_xml)
 % =========================================================================
-param.num_chan = 2;
-param.sample_size = 4;
-param.decimation = 2;
-PRI_guard = 1e-6;
 
-num_sam = 0;
-presums = 0;
-for wf = 1:numel(param.wfs)
-  num_sam = num_sam + (param.wfs(wf).Tend-param.wfs(wf).Tstart)*param.fs;
-  presums = presums + param.wfs(wf).presums;
-end
-EPRF = double(param.prf) / presums;
+param.data_rate
+param.epri
 
-data_rate = EPRF * num_sam * param.sample_size * param.num_chan / param.decimation;
-
-fprintf('  EPRF: %.1f Hz\n', EPRF);
+fprintf('  EPRF: %.1f Hz\n', param.epri);
 fc = (param.wfs(1).f0+param.wfs(wf).f1)/2;
 lambda_fc = 3e8/fc;
 fprintf('  fc Nyquist sampling rate velocity: %.1f m/s (%.1f knots)\n', lambda_fc/4 * EPRF, lambda_fc/4 * EPRF / 0.5515)
@@ -345,26 +355,9 @@ if data_rate / 2^20 > param.max_data_rate
   error('Data rate %f MB/sec is too high', data_rate/2^20);
 end
 
-%% Write output
-if isfield(param,'ni') && ~isempty(param.ni)
-  fprintf('Writing %s\n', param.fn);
-  out_xml_fn_dir = fileparts(out_xml_fn);
-  if ~exist(out_xml_fn_dir,'dir')
-    mkdir(out_xml_fn_dir);
-  end
-  fid = fopen(out_xml_fn,'w');
-  fprintf(fid,'<?xml version=''1.0'' standalone=''yes'' ?>\n');
-  fprintf(fid,'<LVData xmlns="http://www.ni.com/LVData">\n');
-  write_ni_xml_object(settings_enc,fid,true,struct('array_list','Waveforms','enum_list','DDCZ20sel'));
-  fprintf(fid,'</LVData>');
-  fclose(fid);
-end
-
 %% Write RSS Arena XML config file
 if isfield(param,'arena') && ~isempty(param.arena)
   % Create XML document
-  doc = write_arena_xml([],param);
-
   out_str = xmlwrite(doc);
   out_str = ['<!DOCTYPE systemXML>' out_str(find(out_str==10,1):end)];
   arena_fn_dir = fileparts(param.arena.fn);

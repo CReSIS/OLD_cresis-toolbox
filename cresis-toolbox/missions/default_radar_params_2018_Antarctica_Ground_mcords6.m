@@ -27,6 +27,8 @@ default.fs_dac = 1280e6;
 default.max_duty_cycle = 0.1;
 default.max_data_rate = 60;
 default.max_tx = [1 1 1 1];
+default.PRI_guard = 1e-6;
+default.PRI_guard_percentage = 450e6/500e6;
 
 default.tx_enable = [1 1 1 1];
 
@@ -118,7 +120,7 @@ arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = 0;
 arena.adc(adc_idx).desiredAlignMax = 14;
 arena.adc(adc_idx).ip = '10.0.0.100';
-arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).outputSelect = 0;
 arena.adc(adc_idx).shiftLSB = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx1';
@@ -128,7 +130,7 @@ arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -7;
 arena.adc(adc_idx).desiredAlignMax = 10;
 arena.adc(adc_idx).ip = '10.0.0.100';
-arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).outputSelect = 0;
 arena.adc(adc_idx).shiftLSB = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx2';
@@ -138,7 +140,7 @@ arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -10;
 arena.adc(adc_idx).desiredAlignMax = 4;
 arena.adc(adc_idx).ip = '10.0.0.100';
-arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).outputSelect = 0;
 arena.adc(adc_idx).shiftLSB = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx3';
@@ -148,15 +150,15 @@ arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = 13;
 arena.adc(adc_idx).desiredAlignMax = 27;
 arena.adc(adc_idx).ip = '10.0.0.100';
-arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).outputSelect = 0;
 arena.adc(adc_idx).shiftLSB = 1;
 
 daq_idx = 0;
 daq_idx = daq_idx + 1;
 arena.daq(daq_idx).name = 'daq0';
 arena.daq(daq_idx).type = 'daq_0001';
-arena.daq(daq_idx).auxDir = '/mnt/scratch/';
-arena.daq(daq_idx).fileStripe = '/mnt/scratch/%b/';
+arena.daq(daq_idx).auxDir = '/data/';
+arena.daq(daq_idx).fileStripe = '/data/%b/';
 arena.daq(daq_idx).fileName = 'mcords';
 
 arena.system.name = 'ku0001';
@@ -302,7 +304,7 @@ chan_equal_deg = [0 0 0 0 0 0 0 0];
 defaults = {};
 
 % Deconvolution Mode
-default.records.data_map = {[1 0 1 1;1 1 1 2;4 0 2 1;4 1 2 2],[1 0 1 3;1 1 1 4;4 0 2 3;4 1 2 4],[1 0 1 5;1 1 1 6;4 0 2 5;4 1 2 6],[1 0 1 7;1 1 1 8;4 0 2 7;4 1 2 8]};
+default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8]};
 default.qlook.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
@@ -313,7 +315,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
 end
 
 default.config_regexp = '.*deconv.*';
@@ -321,8 +323,8 @@ default.name = 'Deconv Mode 160-230 MHz';
 defaults{end+1} = default;
 
 % Survey Mode
-default.records.data_map = {[1 0 1 1;1 1 1 2;4 0 2 1;4 1 2 2],[1 0 1 3;1 1 1 4;4 0 2 3;4 1 2 4],[1 0 1 5;1 1 1 6;4 0 2 5;4 1 2 6],[1 0 1 7;1 1 1 8;4 0 2 7;4 1 2 8]};
-default.qlook.qlook.img_comb = [2e-06 -inf 2e-06];
+default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8]};
+default.qlook.img_comb = [10e-06 -inf 3e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
@@ -332,7 +334,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
 end
 
 default.config_regexp = '.*survey.*';
@@ -340,8 +342,8 @@ default.name = 'Survey Mode 160-230 MHz';
 defaults{end+1} = default;
 
 %% Other settings
-default.records.data_map = {[1 0 1 1;1 1 1 2;4 0 2 1;4 1 2 2],[1 0 1 3;1 1 1 4;4 0 2 3;4 1 2 4],[1 0 1 5;1 1 1 6;4 0 2 5;4 1 2 6],[1 0 1 7;1 1 1 8;4 0 2 7;4 1 2 8]};
-default.qlook.qlook.img_comb = [];
+default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8]};
+default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
@@ -351,7 +353,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
 end
 
 default.config_regexp = '.*';
