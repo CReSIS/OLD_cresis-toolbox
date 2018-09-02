@@ -1,4 +1,4 @@
-% script create_settings_2013_Antarctica_Basler
+% script create_configs_2013_Antarctica_Basler3
 %
 % Creates NI radar depth sounder settings
 

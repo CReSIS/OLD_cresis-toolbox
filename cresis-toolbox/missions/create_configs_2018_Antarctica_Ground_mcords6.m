@@ -1,4 +1,4 @@
-% script create_settings_2018_Antarctica_Ground
+% script create_configs_2018_Antarctica_Ground_mcords6
 %
 % Creates Arena accumulation radar settings
 %

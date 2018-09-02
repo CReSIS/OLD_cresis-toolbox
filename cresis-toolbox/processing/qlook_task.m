@@ -271,7 +271,7 @@ for img = 1:length(param.load.imgs)
   Heading = hdr.records{img}.heading;
   Surface = hdr.surface;
   
-  Time = hdr(img).time{img};
+  Time = hdr.time{img};
   
   % Output filename
   out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,task_recs(1),task_recs(end));

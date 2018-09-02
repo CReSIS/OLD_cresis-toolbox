@@ -1,5 +1,5 @@
-function doc = write_arena_xml(doc,param)
-% doc = write_arena_xml(doc,param)
+function [doc,param] = write_arena_xml(doc,param)
+% [doc,param] = write_arena_xml(doc,param)
 %
 % doc: set to [] to create a new document, or pass in the result of a
 %   previous call to write_arena_xml to continue adding to an existing
@@ -36,6 +36,13 @@ system = doc.getDocumentElement;
 
 configs = doc.createElement('configs');
 system.appendChild(configs);
+
+% Calculate effective pulse repetition interval (PSC repeat interval)
+presums = 0;
+for wf = 1:numel(param.wfs)
+  presums = presums + param.wfs(wf).presums;
+end
+param.eprf = param.prf / presums;
 
 %% Determine modes/sequences for each waveform
 total_modes = 0;
@@ -170,6 +177,7 @@ end
 
 %% ADC: adc-ad9680_0017
 adc_idxs = find(strcmpi('adc-ad9680_0017',{arena.adc.type}));
+param.data_rate = 0;
 for adc_idx = adc_idxs
   
   adc = arena.adc(adc_idx);
@@ -240,7 +248,8 @@ for adc_idx = adc_idxs
   end
   
   subchannels = doc.createElement('subChannels'); config.appendChild(subchannels);
-  
+
+  total_Nt = 0;
   for subchannel_idx = 1:num_subchannel
     
     subchannel = doc.createElement('subChannel'); subchannels.appendChild(subchannel);
@@ -296,6 +305,7 @@ for adc_idx = adc_idxs
       
       start_bin = round(wfs(wf).Tstart*fs/8)*8;
       Nt = round((wfs(wf).Tend-wfs(wf).Tstart)*fs/8)*8;
+      total_Nt = total_Nt + Nt*param.eprf;
       stop_bin = start_bin + Nt-1;
       child = doc.createElement('rg'); integrator.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d:%d',start_bin,stop_bin)));
@@ -316,16 +326,17 @@ for adc_idx = adc_idxs
     child.appendChild(doc.createTextNode( sprintf('%d', adc.shiftLSB) ));
     child = doc.createElement('outputSelect'); config.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
+    param.data_rate = param.data_rate + total_Nt*2;
   elseif adc.outputSelect == 0
     % Field not used for 32 bit IQ records
     child = doc.createElement('shiftLSB'); config.appendChild(child);
     child.appendChild(doc.createTextNode( '0' ));
     child = doc.createElement('outputSelect'); config.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
+    param.data_rate = param.data_rate + total_Nt*4;
   else
     error('Invalid adc.outputSelect (%d)', adc.outputSelect);
   end
-
   
   child = doc.createElement('nbufs'); config.appendChild(child);
   child.appendChild(doc.createTextNode('128'));

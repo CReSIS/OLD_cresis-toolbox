@@ -1,4 +1,4 @@
-% script create_settings_2018_Antarctica_TObas
+% script create_configs_2018_Antarctica_TObas_accum3
 %
 % Creates Arena accumulation radar settings
 %

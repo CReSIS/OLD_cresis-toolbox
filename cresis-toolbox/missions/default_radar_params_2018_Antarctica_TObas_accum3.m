@@ -28,6 +28,8 @@ default.max_duty_cycle = 0.1;
 default.max_data_rate = 60;
 default.max_tx = [1];
 default.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
+default.PRI_guard = 1e-6;
+default.PRI_guard_percentage = 450e6/500e6;
 
 default.tx_enable = [1];
 

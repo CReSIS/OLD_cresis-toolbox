@@ -1,4 +1,4 @@
-% script create_settings_2017_Antarctica_DC8
+% script create_configs_2017_Antarctica_DC8
 %
 % Creates NI radar depth sounder settings
 

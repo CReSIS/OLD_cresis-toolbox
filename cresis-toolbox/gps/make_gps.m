@@ -179,6 +179,26 @@ for file_idx = 1:length(in_fns)
   gps.pitch = gps.pitch(good_mask);
   gps.heading = gps.heading(good_mask);
   gps.gps_source = gps_source{file_idx};
+  
+  %% Check for day wraps
+  % Find jumps in the GPS time that are probably due to day interval
+  % 86400 seconds.
+  day_jumps = find(diff(gps.gps_time) < -60000);
+  if ~isempty(day_jumps)
+    warning('Found a day wrap... correcting');
+  end
+  for jump_idx = day_jumps
+    gps.gps_time(jump_idx+1:end) = gps.gps_time(jump_idx+1:end) + 86400;
+  end
+  if exist('sync_flag','var') && sync_flag{file_idx}
+    day_jumps = find(diff(sync_gps.gps_time) < -60000);
+    if ~isempty(day_jumps)
+      warning('Found a day wrap in sync gps... correcting');
+    end
+    for jump_idx = day_jumps
+      sync_gps.gps_time(jump_idx+1:end) = sync_gps.gps_time(jump_idx+1:end) + 86400;
+    end
+  end
 
   %% Check/make the GPS data monotonic in time in case it is not
   gps = make_gps_monotonic(gps);
@@ -380,26 +400,6 @@ for file_idx = 1:length(in_fns)
   if all(gps.heading == 0)
     warning('This file has heading(:) == 0. Using the estimated heading.');
     gps.heading = est_heading;
-  end
-  
-  %% Check for day wraps
-  % Find jumps in the GPS time that are probably due to day interval
-  % 86400 seconds.
-  day_jumps = find(diff(gps.gps_time) < -60000);
-  if ~isempty(day_jumps)
-    warning('Found a day wrap... correcting');
-  end
-  for jump_idx = day_jumps
-    gps.gps_time(jump_idx+1:end) = gps.gps_time(jump_idx+1:end) + 86400;
-  end
-  if exist('sync_flag','var') && sync_flag{file_idx}
-    day_jumps = find(diff(sync_gps.gps_time) < -60000);
-    if ~isempty(day_jumps)
-      warning('Found a day wrap in sync gps... correcting');
-    end
-    for jump_idx = day_jumps
-      sync_gps.gps_time(jump_idx+1:end) = sync_gps.gps_time(jump_idx+1:end) + 86400;
-    end
   end
   
   %% Add software revision information

@@ -166,6 +166,19 @@ for config_idx = 1:length(configs)
         end
       end
       
+      % Copy Log Files
+      if fn_idx == 1 && board_idx == 1
+        [out_config_fn_dir] = fileparts(configs(config_idx).config_fn);
+        log_files = fullfile(out_config_fn_dir,'logs/*');
+        global gRadar
+        out_log_dir = fullfile(gRadar.data_support_path, param.season_name, param.arena_packet_strip.config_folder_name);
+        if ~exist(out_log_dir,'dir')
+          mkdir(out_log_dir)
+        end
+        fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
+        copyfile(log_files, out_log_dir);
+      end
+      
       % Check to see if outputs already exist
       if reuse_tmp_files && exist(out_fn,'file') && exist(out_hdr_fn,'file')
         continue;
@@ -318,6 +331,7 @@ for config_idx = 1:length(configs)
   % =======================================================================
   [~,config_fn_name] = fileparts(configs(config_idx).config_fn);
   oparams(config_idx).day_seg = sprintf('%s_%02d',config_fn_name(1:8),config_idx);
+  oparams(config_idx).cmd.notes = configs(config_idx).psc.config_name(5:end);
   oparams(config_idx).records = defaults{match_idx}.records;
   oparams(config_idx).qlook = defaults{match_idx}.qlook;
   oparams(config_idx).sar = defaults{match_idx}.sar;

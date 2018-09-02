@@ -354,8 +354,8 @@ for state_idx = 1:length(states)
               || any(t_ref ~= t_ref(1)))
             % Too few presums, mark as bad record
             % Or a parameter changed within the presum block
-            data{state.img}(:,out_rec,state.wf_adc(accum_idx)) = 0;
-            hdr.bad_rec{state.img}(out_rec,state.wf_adc(accum_idx)) = 1;
+            data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = 0;
+            hdr.bad_rec{state.img(accum_idx)}(out_rec,state.wf_adc(accum_idx)) = 1;
           else
             data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = state.data{accum_idx};
           
