@@ -58,21 +58,24 @@ else
   records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time));
 end
 
-%% Collect waveform information into one structure
-% =========================================================================
-[wfs,states] = data_load_wfs(param,records);
-param.radar.wfs = merge_structs(param.radar.wfs,wfs);
-
 %% Load and process each image separately
 % =====================================================================
 store_param = param;
 for img = 1:length(param.load.imgs)
+
+  param = store_param;
+  param.load.raw_data = false;
+  param.load.presums = param.analysis.presums;
+  param.load.imgs = param.load.imgs(img);
+  img = 1;
+  
+  %% Collect waveform information into one structure
+  % =========================================================================
+  [wfs,states] = data_load_wfs(param,records);
+  param.radar.wfs = merge_structs(param.radar.wfs,wfs);
   
   %% Load data
   % =========================================================================
-  param.load.raw_data = false;
-  param.load.presums = param.analysis.presums;
-  param.load.imgs = store_param.load.imgs(img);
   [hdr,raw_data] = data_load(param,records,wfs,states);
   
   for cmd_idx = 1:length(param.analysis.cmd)
@@ -133,7 +136,7 @@ for img = 1:length(param.load.imgs)
       end
       param_analysis = param;
       param_analysis.gps_source = records.gps_source;
-      fprintf('  Saving outputs %s\n', out_fn);
+      fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
       save(out_fn,'-v7.3', 'max_rline', 'max_waveform', 'gps_time',...
         'max_val_gps_time', 'max_val_gps_time_adc');
       
@@ -339,7 +342,7 @@ for img = 1:length(param.load.imgs)
           mkdir(out_fn_dir);
         end
         param_analysis = param;
-        fprintf('  Saving outputs %s\n', out_fn);
+      fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
           'deconv_forced','peakiness', 'deconv_fc', 'deconv_t0', 'dt', 'gps_time', 'lat', ...
           'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records');
@@ -474,7 +477,7 @@ for img = 1:length(param.load.imgs)
           mkdir(out_fn_dir);
         end
         param_analysis = tmp_param;
-        fprintf('  Saving outputs %s\n', out_fn);
+        fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
           'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone');
       end
@@ -512,7 +515,7 @@ for img = 1:length(param.load.imgs)
       end
       param_analysis = param;
       param_analysis.gps_source = records.gps_source;
-      fprintf('  Saving outputs %s\n', out_fn);
+      fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
       save(out_fn,'-v7.3', 'surf_vals','surf_bins', 'wfs', 'gps_time', 'lat', ...
         'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
       
@@ -522,17 +525,17 @@ for img = 1:length(param.load.imgs)
       % ===================================================================
       % ===================================================================
       
-      for wf_adc = cmd.wf_adcs{img}(:).'
+      tmp_param = param;
+      tmp_param.load.pulse_comp = true;
+      tmp_param.load.motion_comp = true;
+      tmp_hdr = hdr;
+      tmp_wfs = wfs;
+      
+      for wf_adc = cmd.wf_adcs{img}(:).'        
         wf = tmp_param.analysis.imgs{1}(wf_adc,1);
         adc = tmp_param.analysis.imgs{1}(wf_adc,2);
         
         % Pulse compression
-        tmp_param = param;
-        tmp_param.load.pulse_comp = cmd.pulse_compress;
-        tmp_param.load.motion_comp = cmd.motion_comp;
-        tmp_hdr = hdr;
-        tmp_wfs = wfs;
-        
         tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
         tmp_hdr.records = {hdr.records{1,wf_adc}};
         
@@ -673,7 +676,7 @@ for img = 1:length(param.load.imgs)
           mkdir(out_fn_dir);
         end
         param_analysis = tmp_param;
-        fprintf('  Saving outputs %s\n', out_fn);
+        fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         save(out_fn,'-v7.3', 'stats', 'freq', 'time', 'start_bin', 'gps_time', 'surface', 'lat', ...
           'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
       end

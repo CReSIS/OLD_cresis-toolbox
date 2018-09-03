@@ -101,7 +101,11 @@ ctrls = ctrls(ctrls_mask);
 for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
   fprintf('Stopping batch %d\n', ctrl.batch_id);
-  ctrl = cluster_get_batch(ctrl,false,0);
+  try
+    ctrl = cluster_get_batch(ctrl,false,0);
+  catch
+    continue
+  end
   cluster_hold(ctrl,1);
   if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
     
