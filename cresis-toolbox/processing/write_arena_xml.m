@@ -322,8 +322,9 @@ for adc_idx = adc_idxs
   if adc.outputSelect == 1
     % Field used to determine how many right shifts to apply (16 LSB after
     % shift are saved).
+    shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) - max(0,16 - param.radar.adc_bits);
     child = doc.createElement('shiftLSB'); config.appendChild(child);
-    child.appendChild(doc.createTextNode( sprintf('%d', adc.shiftLSB) ));
+    child.appendChild(doc.createTextNode( sprintf('%d', shiftLSB) ));
     child = doc.createElement('outputSelect'); config.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
     param.data_rate = param.data_rate + total_Nt*2;

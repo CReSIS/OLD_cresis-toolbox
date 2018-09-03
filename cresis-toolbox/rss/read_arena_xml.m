@@ -542,6 +542,32 @@ for adc_idx = 1:adcList.getLength
     ddc1NcoFreq = ddc1NcoFreq.getTextContent.toCharArray;
     ddc1NcoFreq = str2double(ddc1NcoFreq(:).') * 1e6;
     
+    % Get the number of shifts
+    expression = xpath.compile('outputSelect');
+    nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+    if nodeList.getLength < 1 || isempty(nodeList.item(0))
+      continue;
+    end
+    outputSelect = nodeList.item(0);
+    outputSelect = outputSelect.getTextContent.toCharArray;
+    outputSelect = str2double(outputSelect(:).');
+    
+    if outputSelect == 0
+      % 32 bit IQ with no bit shifts
+      shiftLSB = 0;
+    else outputSelect == 1
+      % 16 bit IQ with bit shifts
+      % Get the number of shifts
+      expression = xpath.compile('shiftLSB');
+      nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
+      if nodeList.getLength < 1 || isempty(nodeList.item(0))
+        continue;
+      end
+      shiftLSB = nodeList.item(0);
+      shiftLSB = shiftLSB.getTextContent.toCharArray;
+      shiftLSB = str2double(shiftLSB(:).');
+    end
+    
     % Get each subchannel
     expression = xpath.compile('subChannels/subChannel');
     subchannel_nodeList = expression.evaluate(adc_cfg,XPathConstants.NODESET);
@@ -622,6 +648,7 @@ for adc_idx = 1:adcList.getLength
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoMode = ddc1NcoMode;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc0NcoFreq = ddc0NcoFreq;
           configs.adc{adc_idx,mode_latch+1,subchannel+1}.ddc1NcoFreq = ddc1NcoFreq;
+          configs.adc{adc_idx,mode_latch+1,subchannel+1}.shiftLSB = shiftLSB;
         end
       end
       
