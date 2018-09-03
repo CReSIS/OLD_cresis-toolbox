@@ -81,9 +81,7 @@ for freq_idx = [1]
   param = defaults{1};
   param.flight_hours = 4;
   param.prf = prf;
-  
-  param.zeropimods = [0 180]; % 180 causes a special mode in some ADC/DAC
-  
+
   param.tg.staged_recording = [1];
   param.tg.altitude_guard = 500*12*2.54/100;
   param.tg.Haltitude = 1200*12*2.54/100;
@@ -164,3 +162,60 @@ for freq_idx = [1]
     param = old_param;
   end
 end
+
+
+%% Survey Mode + loopback, noise, and deconv modes
+% <1700 m thick ice, 1200 +/- 500 ft AGL
+ice_thickness = [1700];
+for freq_idx = [1]
+  [~,defaults] = default_radar_params_2018_Antarctica_TObas_accum3;
+  param = defaults{1};
+  param.flight_hours = 4;
+  param.prf = prf;
+  
+  param.tg.staged_recording = [0 0];
+  param.tg.altitude_guard = 500*12*2.54/100;
+  param.tg.Haltitude = 1200*12*2.54/100;
+  param.tg.Hice_thick = ice_thickness(freq_idx);
+  
+  param.create_IQ = false;
+  
+  param.f0 = f0_list(freq_idx);
+  param.f1 = f1_list(freq_idx);
+  param.DDC_freq = 250e6;
+  param.zeropimods = [0];
+  
+  param.wfs(1).presums = 128;
+  param.wfs(1).Tpd = 2e-6;
+  param.wfs(1).tukey = 0.1;
+  
+  param.wfs(2).presums = 128;
+  param.wfs(2).Tpd = 2e-6;
+  param.wfs(2).tukey = 0.1;
+  
+  param.wfs(1).name = 'zero';
+  param.wfs(2).name = 'pi';
+  
+  param.tx_weights = final_DDS_amp{cal_settings(freq_idx)};
+  param.wfs(1).phase = final_DDS_phase{cal_settings(freq_idx)};
+  param.phase = final_DDS_phase{cal_settings(freq_idx)};
+  param.wfs(1).delay = final_DDS_time{cal_settings(freq_idx)};
+  param.delay = final_DDS_time{cal_settings(freq_idx)};
+  
+  idx = find(strcmpi('AttenFirst18dB',{param.arena.ctu.out.bit_group.name}));
+  param.arena.ctu.out.bit_group(idx).epri = {[0 0],[0 0]};
+  param.arena.ctu.out.bit_group(idx).pri = {[0 0],[0 0]};
+  
+  idx = find(strcmpi('AttenSecond7dB',{param.arena.ctu.out.bit_group.name}));
+  param.arena.ctu.out.bit_group(idx).epri = {[1 1],[1 1]};
+  param.arena.ctu.out.bit_group(idx).pri = {[1 1],[1 1]};
+  
+  param.arena.psc_name = sprintf('zeropitest_%.0f-%.0fMHz_%.0fft_%.0fus_%.0fmthick', ...
+    param.f0/1e6,param.f1/1e6,param.tg.Haltitude*100/12/2.54,param.wfs(end).Tpd*1e6,param.tg.Hice_thick);
+  param.arena.fn = fullfile(arena_base_dir,sprintf('%s.xml',param.arena.psc_name));
+  write_radar_config(param);
+
+  
+end
+
+
