@@ -9,11 +9,10 @@ physical_constants; % c = speed of light
 % Define waveforms
 if ispc
   arena_base_dir = 'C:\waveforms_arena\';
-  calval_dir = 'cal_val';
 else
   arena_base_dir = '/arena/waveforms/';
-  calval_dir = 'cal_val';
 end
+calval_dir = 'cal_val';
 
 f0_list = [160e6];
 f1_list = [230e6];

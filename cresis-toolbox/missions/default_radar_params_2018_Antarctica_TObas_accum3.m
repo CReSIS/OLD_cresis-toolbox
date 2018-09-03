@@ -92,7 +92,6 @@ arena.adc(adc_idx).desiredAlignMin = -15;
 arena.adc(adc_idx).desiredAlignMax = 0;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
-arena.adc(adc_idx).shiftLSB = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -102,7 +101,6 @@ arena.adc(adc_idx).desiredAlignMin = -34;
 arena.adc(adc_idx).desiredAlignMax = -20;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
-arena.adc(adc_idx).shiftLSB = 1;
 arena.adc(adc_idx).wf_set = 1;
 
 daq_idx = 0;

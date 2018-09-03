@@ -422,7 +422,7 @@ for config_idx = 1:length(configs)
     oparams(config_idx).radar.wfs(wf).chan_equal_deg = round(defaults{match_idx}.radar.wfs(wf).chan_equal_deg*10)/10;
     oparams(config_idx).radar.wfs(wf).Tsys = defaults{match_idx}.radar.wfs(wf).chan_equal_Tsys;
     oparams(config_idx).radar.wfs(wf).presums = configs(config_idx).psc.seq.mode_count(mode_latch+1);
-    oparams(config_idx).radar.wfs(wf).bit_shifts = ceil(max(0,log2( oparams(config_idx).radar.wfs(wf).presums /4)));
+    oparams(config_idx).radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB;
     oparams(config_idx).radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
       / oparams(config_idx).radar.fs*oparams(config_idx).radar.wfs(wf).DDC_dec - t_arena - t_dac;
     
