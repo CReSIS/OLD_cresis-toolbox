@@ -112,7 +112,9 @@ for img = 1:num_imgs
     end
     Surface = zeros(size(GPS_time));
     if ~isempty(layers)
-      Surface = interp1(layers.gps_time,layers.twtt,GPS_time);
+      if all(isfinite(layers.gps_time))
+        Surface = interp1(layers.gps_time,layers.twtt,GPS_time);
+      end
       Surface = interp_finite(Surface,0);
     end
     

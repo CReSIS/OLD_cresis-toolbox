@@ -555,7 +555,7 @@ for adc_idx = 1:adcList.getLength
     if outputSelect == 0
       % 32 bit IQ with no bit shifts
       shiftLSB = 0;
-    else outputSelect == 1
+    elseif outputSelect == 1
       % 16 bit IQ with bit shifts
       % Get the number of shifts
       expression = xpath.compile('shiftLSB');

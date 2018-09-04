@@ -373,8 +373,7 @@ for config_idx = 1:length(configs)
     Nt = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.numPoints;
     fs = configs(config_idx).dac{1,mode_latch+1}.sampFreq*1e6;
     Tpd = Nt/fs;
-    t_dac = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.initialDelay * 1e-6;
-    t_arena = 3.0720e-6;
+    t_dac = (configs(config_idx).dac{1}.delay) * 1e-6;
     
     switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.adcMode)
       case 0
@@ -421,10 +420,11 @@ for config_idx = 1:length(configs)
     oparams(config_idx).radar.wfs(wf).chan_equal_dB = round(defaults{match_idx}.radar.wfs(wf).chan_equal_dB*10)/10;
     oparams(config_idx).radar.wfs(wf).chan_equal_deg = round(defaults{match_idx}.radar.wfs(wf).chan_equal_deg*10)/10;
     oparams(config_idx).radar.wfs(wf).Tsys = defaults{match_idx}.radar.wfs(wf).chan_equal_Tsys;
-    oparams(config_idx).radar.wfs(wf).presums = configs(config_idx).psc.seq.mode_count(mode_latch+1);
+    oparams(config_idx).radar.wfs(wf).presums = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.presums;
     oparams(config_idx).radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB;
     oparams(config_idx).radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
-      / oparams(config_idx).radar.fs*oparams(config_idx).radar.wfs(wf).DDC_dec - t_arena - t_dac;
+      / oparams(config_idx).radar.fs*oparams(config_idx).radar.wfs(wf).DDC_dec ...
+      - param.arena_packet_strip.defaults{1}.arena.param.ADC_time_delay - t_dac;
     
   end
 end

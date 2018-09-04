@@ -26,7 +26,7 @@ default.fs = 1000e6;
 default.fs_dac = 2000e6;
 default.max_duty_cycle = 0.1;
 default.max_data_rate = 60;
-default.max_tx = [1];
+default.max_tx = [0.7];
 default.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
 default.PRI_guard = 1e-6;
 default.PRI_guard_percentage = 450e6/500e6;
@@ -107,21 +107,18 @@ daq_idx = 0;
 daq_idx = daq_idx + 1;
 arena.daq(daq_idx).name = 'daq0';
 arena.daq(daq_idx).type = 'daq_0001';
-arena.daq(daq_idx).auxDir = '/mnt/scratch/';
-arena.daq(daq_idx).fileStripe = '/mnt/scratch/%b/';
+arena.daq(daq_idx).auxDir = '/data/';
+arena.daq(daq_idx).fileStripe = '/data/%b/';
 arena.daq(daq_idx).fileName = 'accum3';
 
 arena.system.name = 'ku0001';
 arena.param.board_map = {'digrx0','digrx1'};
-arena.param.tx_map = {'dac0','dac1'};
+arena.param.tx_map = {'dac0'};
 
 arena.param.tx_max = [1 1];
 arena.param.PA_setup_time = 2e-6; % Time required to enable PA before transmit
 arena.param.TTL_time_delay = 0.0; % TTL time delay relative to transmit start
-arena.param.ADC_time_delay = 0.0; % ADC time delay relative to transmit start
-arena.param.data_map = {[0 0 1 1],[0 0 2 1]};
-% mode 0, subchannel 0, board_idx 1 is wf-adc 1-1
-% mode 0, subchannel 0, board_idx 2 is wf-adc 2-1
+arena.param.ADC_time_delay = 3.0720e-6; % ADC time delay relative to transmit start
 
 arena.psc.type = 'psc_0003';
 
@@ -238,7 +235,7 @@ default.array.Nsig = 2;
 
 %% Radar worksheet in parameter spreadsheet
 default.radar.adc_bits = 14;
-default.radar.Vpp_scale = 2;
+default.radar.Vpp_scale = 2 / 5; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
 default.radar.adc_gains_dB = [45 27]; % Gain from the first LNA to the ADC
@@ -251,11 +248,11 @@ defaults = {};
 
 % Deconvolution Mode
 default.records.data_map = {[2 0 1 1],[2 0 2 1]};
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
@@ -268,13 +265,32 @@ default.config_regexp = '.*deconv.*';
 default.name = 'Deconv Mode 600-900 MHz';
 defaults{end+1} = default;
 
-% Survey Mode
+% Loopback Mode
 default.records.data_map = {[2 0 1 1],[2 0 2 1]};
-default.qlook.qlook.img_comb = [2e-06 -inf 2e-06];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
+default.radar.ref_fn = '';
+for wf = 1:2
+  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).adcs = [1];
+end
+
+default.config_regexp = '.*loopback.*';
+default.name = 'Loopback Mode 600-900 MHz';
+defaults{end+1} = default;
+
+% Survey Mode
+default.records.data_map = {[2 0 1 1],[2 0 2 1]};
+default.qlook.img_comb = [2e-06 -inf 2e-06];
+default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
@@ -289,11 +305,11 @@ defaults{end+1} = default;
 
 %% Other settings
 default.records.data_map = {[2 0 1 1],[2 0 2 1]};
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;

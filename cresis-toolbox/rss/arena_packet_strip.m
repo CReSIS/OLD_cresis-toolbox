@@ -41,8 +41,28 @@ for config_folder_idx = 1:numel(param.arena_packet_strip.config_folder_names)
   dparam = [];
   dparam.argsin{1}.arena_packet_strip.config_folder_name = config_folder_name;
   dparam.argsin{1}.arena_packet_strip.board_folder_name = board_folder_name;
-  dparam.argsin{1}.arena_packet_strip.board_map = param.arena_packet_strip.board_map;
-  dparam.argsin{1}.arena_packet_strip.tx_map = param.arena_packet_strip.tx_map;
+  
+  if ~isfield(param.arena_packet_strip,'board_map') || isempty(param.arena_packet_strip.board_map)
+    dparam.argsin{1}.arena_packet_strip.board_map = param.arena_packet_strip.defaults{1}.board_map;
+  else
+    dparam.argsin{1}.arena_packet_strip.board_map = param.arena_packet_strip.board_map;
+  end
+  if ~isfield(param.arena_packet_strip,'tx_map') || isempty(param.arena_packet_strip.tx_map)
+    dparam.argsin{1}.arena_packet_strip.tx_map = param.arena_packet_strip.defaults{1}.tx_map;
+  else
+    dparam.argsin{1}.arena_packet_strip.tx_map = param.arena_packet_strip.tx_map;
+  end
+  if ~isfield(param.arena_packet_strip,'reuse_tmp_files') || isempty(param.arena_packet_strip.reuse_tmp_files)
+    dparam.argsin{1}.arena_packet_strip.reuse_tmp_files = true;
+  end
+  if ~isfield(param.arena_packet_strip,'mat_or_bin_hdr_output') || isempty(param.arena_packet_strip.mat_or_bin_hdr_output)
+    dparam.argsin{1}.arena_packet_strip.mat_or_bin_hdr_output = '.mat';
+  end
+  if ~isfield(param.arena_packet_strip,'param_fn') || isempty(param.arena_packet_strip.param_fn)
+    dparam.argsin{1}.arena_packet_strip.param_fn ...
+      = ct_filename_param(sprintf('%s_param_%s.xls',ct_output_dir(param.radar_name),param.season_name));
+  end
+  
   fns = get_filenames(fullfile(param.arena_packet_strip.base_dir,config_folder_name),'','','.dat',struct('recursive',true,'regexp','[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'));
   dparam.cpu_time = 60 + 40*length(fns);
   dparam.notes = sprintf('%s:%s:%s %d files', ...

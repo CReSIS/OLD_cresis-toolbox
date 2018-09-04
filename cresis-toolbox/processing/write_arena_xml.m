@@ -303,7 +303,10 @@ for adc_idx = adc_idxs
       child = doc.createElement('numInt'); integrator.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d',wfs(wf).presums)));
       
-      start_bin = round(wfs(wf).Tstart*fs/8)*8;
+      start_bin = round( (wfs(wf).Tstart+arena.param.PA_setup_time+arena.param.ADC_time_delay) *fs/8)*8;
+      if start_bin < 0
+        error('Start bin (%d) is less than zero. Increase start time wfs(%d).Tstart, %g.', start_bin, wf, wfs(wf).Tstart);
+      end
       Nt = round((wfs(wf).Tend-wfs(wf).Tstart)*fs/8)*8;
       total_Nt = total_Nt + Nt*param.eprf;
       stop_bin = start_bin + Nt-1;
@@ -322,19 +325,20 @@ for adc_idx = adc_idxs
   if adc.outputSelect == 1
     % Field used to determine how many right shifts to apply (16 LSB after
     % shift are saved).
-    shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) - max(0,16 - param.radar.adc_bits);
+    %shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) - max(0,16 - param.radar.adc_bits);
+    shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) + 1;
     child = doc.createElement('shiftLSB'); config.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%d', shiftLSB) ));
     child = doc.createElement('outputSelect'); config.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
-    param.data_rate = param.data_rate + total_Nt*2;
+    param.data_rate = param.data_rate + total_Nt*4;
   elseif adc.outputSelect == 0
     % Field not used for 32 bit IQ records
     child = doc.createElement('shiftLSB'); config.appendChild(child);
     child.appendChild(doc.createTextNode( '0' ));
     child = doc.createElement('outputSelect'); config.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
-    param.data_rate = param.data_rate + total_Nt*4;
+    param.data_rate = param.data_rate + total_Nt*8;
   else
     error('Invalid adc.outputSelect (%d)', adc.outputSelect);
   end

@@ -291,24 +291,28 @@ end
 
 %% Optionally store surface layer to disk
 if param.qlook.surf.en
-  % Read the "Surface" variable from all the frames that were created
-  % by this particular run of qlook
-  
-  copy_param.layer_source.name = 'surface';
-  copy_param.layer_source.source = 'echogram';
-  copy_param.layer_source.echogram_source = param.qlook.out_path;
-  copy_param.layer_source.existence_check = false;
-
-  copy_param.layer_dest = param.qlook.surf_layer;
-  if strcmpi(param.qlook.surf_layer.source,'layerdata')
-    copy_param.layer_dest.echogram_source = param.qlook.out_path;
+  if ~param.records.gps.en
+    warning('Surface tracking param.qlook.surf.en is not done when param.records.gps.en is false.');
+  else
+    % Read the "Surface" variable from all the frames that were created
+    % by this particular run of qlook
+    
+    copy_param.layer_source.name = 'surface';
+    copy_param.layer_source.source = 'echogram';
+    copy_param.layer_source.echogram_source = param.qlook.out_path;
+    copy_param.layer_source.existence_check = false;
+    
+    copy_param.layer_dest = param.qlook.surf_layer;
+    if strcmpi(param.qlook.surf_layer.source,'layerdata')
+      copy_param.layer_dest.echogram_source = param.qlook.out_path;
+    end
+    copy_param.layer_dest.existence_check = false;
+    
+    copy_param.copy_method = 'overwrite';
+    copy_param.gaps_fill.method = 'interp_finite';
+    
+    opsCopyLayers(param,copy_param);
   end
-  copy_param.layer_dest.existence_check = false;
-
-  copy_param.copy_method = 'overwrite';
-  copy_param.gaps_fill.method = 'interp_finite';
-  
-  opsCopyLayers(param,copy_param);
 end
 
 %% Done

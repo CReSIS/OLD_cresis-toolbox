@@ -353,7 +353,7 @@ for wf = 1:numel(param.wfs)
 end
 
 if param.data_rate / 2^20 > param.max_data_rate
-  error('Data rate %f MB/sec is too high', data_rate/2^20);
+  error('Data rate %f MB/sec is too high', param.data_rate/2^20);
 end
 
 %% Write RSS Arena XML config file
