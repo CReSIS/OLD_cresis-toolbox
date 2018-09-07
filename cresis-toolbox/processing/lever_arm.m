@@ -105,6 +105,17 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'ar
   % centre line of the aircraft, the other GPS antennas are slightly offset
   % to avoid ribs, cables and other aircraft structure. Only the one over
   % the camera bay is on the centerline.
+  %
+  % GPS physical location leverarm measurements measured Sept 5, 2018
+  % 	3+5/8" from back of antenna box
+  % 	9+15/16" from right/starboard side of lid (used edge of lid)
+  % 	64+1/16" below to the lid of the antenna
+  % 	All measurements relative to the bottom center of the antenna connector
+  % 	GPS antenna is not on center line (it is offset to the port side slightly)
+  %     1.0625" port of center line
+  %     1.25" aft of second to last rib in main cabin
+  %     Rib is at 308" FS (althought this may be wrong)
+
 
   gps.x = 0;
   gps.y = 0;
