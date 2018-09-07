@@ -5,6 +5,11 @@ function logs = read_arena_logs(fns)
 %
 % fns = get_filenames('/data/logs/','','','.txt');
 % logs = read_arena_logs(fns);
+% 
+% log_idx = find(strcmp('20180905_164210',{logs.date_str}));
+% for idx=1:length(logs(log_idx).notes.nmeaTime_str)
+%   fprintf('%s: %s\n', logs(log_idx).notes.nmeaTime_str{idx}, logs(log_idx).notes.notes{idx});
+% end
 %
 % Author: John Paden
 
