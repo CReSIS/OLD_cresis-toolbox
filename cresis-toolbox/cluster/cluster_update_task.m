@@ -163,22 +163,23 @@ if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
   end
 end
 
-% if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
-%   if ~bitand(error_mask,cluster_killed_error)
-%     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
-%     % Sometimes the file system/matlab are slow in recognizing a file
-%     if update_mode && ctrl.job_status(task_id) == 'C' && ~exist(out_fn,'file')
-%       start_time = tic;
-%       while ~exist(out_fn,'file') && toc(start_time) < ctrl.cluster.file_check_pause;
-%         pause(5);
-%       end
-%       if ~exist(out_fn,'file')
-%         %warning('Cluster batch %d task %d (%d) completed without producing out:\n  %s.', ctrl.batch_id, task_id, job_id, out_fn);
-%         %keyboard
-%       end
-%     end
-%   end
-% end
+if update_mode && strcmpi(ctrl.cluster.type,'matlab') && ctrl.job_status(task_id) == 'C'
+  stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
+  error_fn = fullfile(ctrl.error_fn_dir,sprintf('error_%d.txt',task_id_out));
+  
+  if ~exist(error_fn,'file')
+    fid = fopen(error_fn,'w');
+    str = evalc(sprintf('ctrl.cluster.jm.Jobs(%d).Tasks(1)',job_id));
+    fwrite(fid,str,'char');
+    fclose(fid);
+  end
+  
+  if ~exist(stdout_fn,'file')
+    fid = fopen(stdout_fn,'w');
+    fwrite(fid,ctrl.cluster.jm.Jobs(job_id).Tasks(1).Diary,'char');
+    fclose(fid);
+  end
+end
 
 if exist(out_fn,'file')
   success = robust_cmd('out = load(out_fn);',2);

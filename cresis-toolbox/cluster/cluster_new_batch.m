@@ -158,11 +158,6 @@ if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm
   ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%m --time=%t';
 end
 
-%% Get the job manager for the matlab cluster interface
-if strcmpi(ctrl.cluster.type,'matlab')
-  ctrl.cluster.jm = parcluster();
-end
-
 %% Return if this ctrl already existed
 if nargin >= 2
   return

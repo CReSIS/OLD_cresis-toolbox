@@ -422,7 +422,11 @@ for frm_idx = 1:length(frms)
     end
   end
   
-  time_stamp_str = datestr(epoch_to_datenum(lay.GPS_time(1)),'HHMMSS');
+  if isnan(lay.GPS_time)
+    time_stamp_str = sprintf('000000',frms{frm_idx}.frm_id);
+  else
+    time_stamp_str = datestr(epoch_to_datenum(lay.GPS_time(1)),'HHMMSS');
+  end
   
   if param.post.maps_en || param.post.echo_en
     image_dir = fullfile(post_path,'images',day_segs{frm_idx});
@@ -528,6 +532,20 @@ for frm_idx = 1:length(frms)
       mdata.GPS_time = interp1(old_rlines,mdata.GPS_time,new_rlines);
     end
     
+    GPS_time_nan = false;
+    if any(isnan(lay.GPS_time))
+      warning('GPS time in layer data has NaN. Faking GPS time.');
+      GPS_time_nan = true;
+    end
+    if any(isnan(mdata.GPS_time))
+      warning('GPS time in echogram data has NaN. Faking GPS time.');
+      GPS_time_nan = true;
+    end
+    if GPS_time_nan
+      lay.GPS_time = 1:length(lay.GPS_time);
+      mdata.GPS_time = linspace(lay.GPS_time(1),lay.GPS_time(end),length(mdata.GPS_time));
+    end
+    
     echo_param = param.post.echo;
     if exist('echo_info','var')
       echo_param.fig_hand = echo_info.fig_hand;
@@ -559,9 +577,15 @@ for frm_idx = 1:length(frms)
     hour = hour + 24*days_offset;
     stop_time_str = sprintf('%02d:%02d:%04.1f', hour, minute, sec);
     
-    echo_info.h_title = title(echo_info.ah_echo,sprintf('%s %s: "%s"  %s: %s to %s GPS', output_dir, param.season_name, ...
-      param.cmd.mission_names, frms{frm_idx}.frm_id, start_time_str, ...
-      stop_time_str),'Interpreter','none','FontWeight','normal','FontSize',9);
+    if GPS_time_nan
+      echo_info.h_title = title(echo_info.ah_echo,sprintf('%s %s: "%s"  %s: No GPS', output_dir, param.season_name, ...
+        param.cmd.mission_names, frms{frm_idx}.frm_id), ...
+        'Interpreter','none','FontWeight','normal','FontSize',9);
+    else
+      echo_info.h_title = title(echo_info.ah_echo,sprintf('%s %s: "%s"  %s: %s to %s GPS', output_dir, param.season_name, ...
+        param.cmd.mission_names, frms{frm_idx}.frm_id, start_time_str, ...
+        stop_time_str),'Interpreter','none','FontWeight','normal','FontSize',9);
+    end
     
     % Remove current file
     echo_fn = sprintf('%s*_1echo.%s',frms{frm_idx}.frm_id,param.post.img_type);

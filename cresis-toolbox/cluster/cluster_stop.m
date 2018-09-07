@@ -98,6 +98,9 @@ end
 ctrls = ctrls(ctrls_mask);
 
 %% Stop jobs in each batch
+if strcmpi(ctrl.cluster.type,'matlab') && ~isfield(ctrl.cluster.jm)
+  ctrl.cluster.jm = parcluster;
+end
 for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
   fprintf('Stopping batch %d\n', ctrl.batch_id);

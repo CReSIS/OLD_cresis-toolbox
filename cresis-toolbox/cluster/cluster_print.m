@@ -230,7 +230,7 @@ if print_mode == 1
     end
     
     %% Print stdout and stderr files if available
-    if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+    if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       retry = 0;
       fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d_%d.txt',task_id, retry));
       while exist(fn,'file')
@@ -266,11 +266,6 @@ if print_mode == 1
       else
         fprintf('  Does not exist\n');
       end
-      
-    elseif strcmpi(ctrl.cluster.type,'matlab')
-      fprintf('\n\nSTDOUT ======================================================================\n');
-      fprintf('ctrl.cluster.jm.Jobs.Tasks.Diary\n');
-      ctrl.cluster.jm.Jobs.findobj('ID',ctrl.job_id_list(task_id)).Tasks.Diary
     end
     
     %% Read input files

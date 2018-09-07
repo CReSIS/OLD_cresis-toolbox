@@ -71,7 +71,6 @@ if any(param.records.file.version == [9 10 103 412])
     % Cluster EPRI values
     
     epri_pri_idxs = board_hdrs{board_idx}.profile_cntr_latch;
-    epri_jump_threshold = 10000;
     
     [A,B] = sort(epri_pri_idxs);
     med = median(A);
@@ -79,18 +78,18 @@ if any(param.records.file.version == [9 10 103 412])
     A = A-med;
     dA = diff(A);
     bad_mask = zeros(size(B));
-    bad_start_idx = find(dA(med_idx:length(dA)) > epri_jump_threshold,1);
+    bad_start_idx = find(dA(med_idx:end) > param.records.epri_jump_threshold,1);
     if ~isempty(bad_start_idx)
       bad_mask(med_idx+bad_start_idx:end) = true;
     end
-    bad_start_idx = find(dA(med_idx-1:-1:1) > epri_jump_threshold,1);
+    bad_start_idx = find(dA(med_idx-1:-1:1) > param.records.epri_jump_threshold,1);
     if ~isempty(bad_start_idx)
       bad_mask(med_idx-bad_start_idx:-1:1) = true;
     end
     back_idxs = 1:length(B);
     back_idxs = back_idxs(B);
     if sum(bad_mask) > 0
-      warning('%d of %d records show bad out of range EPRI values.', sum(bad_mask), length(epri_pri_idxs));
+      warning('%d of %d records show bad out of range EPRI values. max jump is %d, param.records.epri_jump_threshold is %d', sum(bad_mask), length(epri_pri_idxs), max(dA), param.records.epri_jump_threshold);
     end
     epri_pri_idxs = epri_pri_idxs(back_idxs(logical(~bad_mask)));
     
@@ -123,26 +122,26 @@ if any(param.records.file.version == [9 10 103 412])
   records.raw.profile_cntr_latch = nan(size(epri));
   records.raw.rel_time_cntr_latch = nan(size(epri));
   for board_idx = 1:length(boards)
-    [~,out_idxs] = intersect(epri,board_hdrs{board_idx}.profile_cntr_latch);
+    [~,out_idxs,in_idxs] = intersect(epri,board_hdrs{board_idx}.profile_cntr_latch);
     fprintf('Board %d is missing %d of %d records.\n', board_idx, length(epri)-length(out_idxs), length(epri));
     
     % offset: Missing records filled in with -2^31
     offset = zeros(size(epri),'int32');
     offset(:) = -2^31;
-    offset(out_idxs) = board_hdrs{board_idx}.offset;
+    offset(out_idxs) = board_hdrs{board_idx}.offset(in_idxs);
     board_hdrs{board_idx}.offset = offset;
     
     % file_idx: Missing records filled in with NaN
     file_idx = nan(size(epri));
-    file_idx(out_idxs) = board_hdrs{board_idx}.file_idx;
+    file_idx(out_idxs) = board_hdrs{board_idx}.file_idx(in_idxs);
     board_hdrs{board_idx}.file_idx = interp_finite(file_idx,[],'nearest');
     
     % Time stamps are assumed to be the same from each board so each board
     % just writes all of its time stamps to the output records fields.
-    records.raw.pps_cntr_latch(out_idxs) = board_hdrs{board_idx}.pps_cntr_latch;
-    records.raw.pps_ftime_cntr_latch(out_idxs) = board_hdrs{board_idx}.pps_ftime_cntr_latch;
-    records.raw.profile_cntr_latch(out_idxs) = board_hdrs{board_idx}.profile_cntr_latch;
-    records.raw.rel_time_cntr_latch(out_idxs) = board_hdrs{board_idx}.rel_time_cntr_latch;
+    records.raw.pps_cntr_latch(out_idxs) = board_hdrs{board_idx}.pps_cntr_latch(in_idxs);
+    records.raw.pps_ftime_cntr_latch(out_idxs) = board_hdrs{board_idx}.pps_ftime_cntr_latch(in_idxs);
+    records.raw.profile_cntr_latch(out_idxs) = board_hdrs{board_idx}.profile_cntr_latch(in_idxs);
+    records.raw.rel_time_cntr_latch(out_idxs) = board_hdrs{board_idx}.rel_time_cntr_latch(in_idxs);
   end
   records.raw.pps_cntr_latch = interp_finite(records.raw.pps_cntr_latch);
   records.raw.pps_ftime_cntr_latch = interp_finite(records.raw.pps_ftime_cntr_latch);

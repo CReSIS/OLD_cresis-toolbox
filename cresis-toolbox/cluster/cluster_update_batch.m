@@ -98,9 +98,14 @@ if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
     elseif strcmpi(ctrl.cluster.type,'matlab')
       qstat_res{5} = {};
       qstat_res{7} = [];
-      for job_idx = 1:length(ctrl.cluster.jm.Jobs)
-        qstat_res{7}(job_idx,1) = ctrl.cluster.jm.Jobs(job_idx).ID;
-        if strcmpi(ctrl.cluster.jm.Jobs(job_idx).State,'finished')
+      if ~isfield(ctrl.cluster.jm)
+        ctrl.cluster.jm = parcluster;
+      end
+      IDs = cell2mat({ctrl.cluster.jm.Jobs.ID});
+      States = {ctrl.cluster.jm.Jobs.State};
+      for job_idx = 1:length(IDs)
+        qstat_res{7}(job_idx,1) = IDs(job_idx);
+        if any(strcmpi(States(job_idx),{'finished','failed'}))
           qstat_res{5}{job_idx,1} = 'C';
         else
           ctrl.active_jobs = ctrl.active_jobs + 1;

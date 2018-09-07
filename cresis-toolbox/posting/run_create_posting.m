@@ -9,7 +9,8 @@
 
 %% User Settings
 % params = read_param_xls(ct_filename_param('accum_param_2018_Greenland_P3.xls'),[],'post');
-params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),[],'post');
+params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),[],'post');
+% params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),[],'post');
 % params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),[],'post');
 
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values

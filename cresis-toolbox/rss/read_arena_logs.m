@@ -1,7 +1,12 @@
 function logs = read_arena_logs(fns)
-
-
-fns = get_filenames('/data/logs/','','','.txt');
+% logs = read_arena_logs(fns)
+%
+% Reads ARENA log files
+%
+% fns = get_filenames('/data/logs/','','','.txt');
+% logs = read_arena_logs(fns);
+%
+% Author: John Paden
 
 logs = struct(); logs = logs([]);
 
@@ -66,29 +71,35 @@ for fn_idx = 1:length(fns)
       idx = 1;
     end
     
-    
     if isnan(val)
       try
         if length(remain) > 2 && strcmpi(remain(1:2),'0x')
-          remain = hex2dec(remain(3:end));
-          cmd_str = sprintf('logs(log_idx)%s.%s(idx) = %g;', eval_str,token,remain);
+          val = hex2dec(remain(3:end));
+          cmd_str = sprintf('logs(log_idx)%s.%s(idx) = val;', eval_str,token);
         else
           error;
         end
       catch
-        cmd_str = sprintf('logs(log_idx)%s.%s{idx} = ''%s'';', eval_str,token,remain);
+        if length(remain)>2 && any(strcmpi(remain(end-1:end),{':C',':V'}))
+          [val,~] = strtok(remain,':');
+          val = str2double(val);
+          cmd_str = sprintf('logs(log_idx)%s.%s(idx) = val;', eval_str,token);
+        else
+          cmd_str = sprintf('logs(log_idx)%s.%s{idx} = ''%s'';', eval_str,token,remain);
+        end
       end
     else
       if isempty(regexpi(token,'time')) && ~strcmp(token,'ppsCntr')
-        cmd_str = sprintf('logs(log_idx)%s.%s(idx) = %g;', eval_str,token,val);
+        cmd_str = sprintf('logs(log_idx)%s.%s(idx) = val;', eval_str,token);
       else
         if strcmpi(token,'relTimeCntr')
           val = val / 10e6;
         end
         try
-          cmd_str = sprintf('logs(log_idx)%s.%s{idx} = ''%s'';', eval_str,token,datestr(epoch_to_datenum(val)));
+          cmd_str = sprintf('logs(log_idx)%s.%s(idx) = val;', eval_str,token);
+          cmd_str = [cmd_str sprintf('logs(log_idx)%s.%s_str{idx} = ''%s'';', eval_str,token,datestr(epoch_to_datenum(val)))];
         catch
-          cmd_str = sprintf('logs(log_idx)%s.%s(idx) = %g;', eval_str,token,val);
+          cmd_str = sprintf('logs(log_idx)%s.%s(idx) = val;', eval_str,token);
         end
       end
     end

@@ -43,19 +43,6 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-if ~isfield(param.records,'file') || isempty(param.records.file)
-  param.records.file = [];
-end
-
-if ~isfield(param.records.file,'version') || isempty(param.records.file.version)
-  error('The param.records.file.version field must be specified.');
-end
-
-if ~isfield(param.records.file,'adcs') || isempty(param.records.file.adcs)
-  % Assume a single channel system
-  param.records.file.adcs = 1;
-end
-
 % boards: List of file groupings based on how ADC channels are stored in
 %   the files.
 if any(param.records.file.version == [1:10 101:102 401 404:409 411])
@@ -74,10 +61,25 @@ else
   error('Unsupported file version\n');
 end
 
+if ~isfield(param.records.file,'adcs') || isempty(param.records.file.adcs)
+  % Assume a single channel system
+  param.records.file.adcs = 1;
+end
+
+if ~isfield(param.records,'epri_jump_threshold') || isempty(param.records.epri_jump_threshold)
+  param.records.epri_jump_threshold = 10000;
+end
+
+if ~isfield(param.records,'file') || isempty(param.records.file)
+  param.records.file = [];
+end
+if ~isfield(param.records.file,'version') || isempty(param.records.file.version)
+  error('The param.records.file.version field must be specified.');
+end
+
 if ~isfield(param.records,'gps') || isempty(param.records.gps)
   param.records.gps = [];
 end
-
 if ~isfield(param.records.gps,'en') || isempty(param.records.gps.en)
   % Assume that GPS synchronization is enabled
   param.records.gps.en = true;

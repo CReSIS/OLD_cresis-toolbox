@@ -152,6 +152,13 @@ elseif isstruct(ctrl_chain)
     job_cpu_time = job_cpu_time + task_cpu_time;
     job_mem = max(job_mem, ctrl.cluster.mem_mult*ctrl.mem(task_id));
     ctrl.submission_queue = ctrl.submission_queue(2:end);
+    
+    % Check to see if a hold has been placed on this batch
+    if exist(ctrl.hold_fn,'file')
+      fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "block=false" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
+      keyboard
+    end
+    
   end
   
   if ctrl.active_jobs < ctrl.cluster.max_jobs_active && ~isempty(job_tasks)
