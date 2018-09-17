@@ -68,6 +68,9 @@ if tool_idx == 1
       ice_bin_thr    = 10;
       mc             = -1 * ones(1, Nx);
       mc_weight      = 0;
+      CF.sensory_distance = 200;
+      CF.max_cost = 50;
+      CF.lambda = 0.075;
       
       offset = gt(1,1) - x(1);
       if(gt(1,2) + offset > length(image_x))
@@ -89,15 +92,41 @@ if tool_idx == 1
         viterbi_data(end-70:end,:) = 0;
       end
       
-      %% Call viterbi.cpp
+      %% Column restriction between first and last selected GT points
+      if obj.top_panel.column_restriction_cbox.Value
+        first_point    = max(manual_idxs(1)-10, 1);
+        last_point     = min(length(viterbi_data), manual_idxs(end)+10);
+        viterbi_data   = viterbi_data(:, first_point : last_point);
+        surf_bins      = surf_bins(:, first_point : last_point);
+        mask           = mask(:, first_point : last_point);
+        viterbi_weight = viterbi_weight(:, first_point : last_point);
+        mc             = mc(:, first_point : last_point);
+        slope          = round(diff(surf_bins));
+        
+        if ~isempty(gt)
+          gt(1, 2:end) = 10 + gt(1, 2:end) - gt(1,1);
+          gt(1,1) = 10; 
+        end
+        
+        labels = NaN * ones(1, size(image_c, 2));
+      end
+      
+      %% Call viterbi.cpp      
       tic
-      labels = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
+      labels_temp = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(bottom_bin), double(gt), double(mask), double(mu), ...
         double(sigma), double(egt_weight), double(smooth_weight), ...
         double(smooth_var), double(slope), int64(bounds), ...
         double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-        double(mc), double(mc_weight));
+        double(mc), double(mc_weight), ...
+        double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
       toc
+      
+      if obj.top_panel.column_restriction_cbox.Value
+        labels(1, first_point : last_point-1) = labels_temp(1:end-1);
+      else
+        labels = labels_temp;
+      end
       
       % Correct layer offset
       y_new  = labels(round(x(1)+offset) : round(x(2)+offset));

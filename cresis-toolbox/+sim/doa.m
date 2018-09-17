@@ -13,14 +13,14 @@ if isfield(param.src,'phase_center')
   param.src.y_pc   = param.src.phase_center(2,:).';
   param.src.z_pc   = param.src.phase_center(3,:).';
   
-elseif isfield(param.src,'lever_arm.fh')
+elseif isfield(param.src,'lever_arm') && isfield(param.src.lever_arm,'fh')
   [phase_center] = param.src.lever_arm.fh(param.src.lever_arm.args{:});
   param.src.y_pc   = phase_center(2,:).';
   param.src.z_pc   = phase_center(3,:).';
 elseif isfield(param.src,'y_pc') && isfield(param.src,'z_pc')
   % Do nothing. Already defined 
 else
-  warniing('Phase center information are not defined')
+  warning('Phase center information are not defined')
   keyboard
 end
 
@@ -130,13 +130,13 @@ for test_idx = 1:size(param.monte.SNR,1)
   % Set number of signals, Nsig, field
   if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
       % For model order estimation simulation.
-      doa_nb_1d_param.Nsig = Nsig_tmp;
-      doa_nb_nd_param.Nsig = Nsig_tmp;
-      doa_wb_td_param.Nsig = Nsig_tmp;
-      doa_wb_fd_param.Nsig = Nsig_tmp;
+      doa_nb_1d_param.Nsig = param.Nsig_tmp;
+      doa_nb_nd_param.Nsig = param.Nsig_tmp;
+      doa_wb_td_param.Nsig = param.Nsig_tmp;
+      doa_wb_fd_param.Nsig = param.Nsig_tmp;
       
-      LB = zeros(Nsig_tmp,1);
-      UB = zeros(Nsig_tmp,1);
+      LB = zeros(param.Nsig_tmp,1);
+      UB = zeros(param.Nsig_tmp,1);
   else
       doa_nb_1d_param.Nsig = size(param.src.SNR,2);
       doa_nb_nd_param.Nsig = size(param.src.SNR,2);
@@ -148,7 +148,7 @@ for test_idx = 1:size(param.monte.SNR,1)
   end
   
   % Set source limits for N-dimensional constrained optimization
-  for src_idx = 1:length(param.src.DOAs)
+  for src_idx = 1:length(LB)
     LB(src_idx) = param.method.src_limits{src_idx}(1);
     UB(src_idx) = param.method.src_limits{src_idx}(2);
   end
@@ -232,7 +232,7 @@ for test_idx = 1:size(param.monte.SNR,1)
       % Store outputs into variables
       if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
           % For model order estimation simulation.
-          [theta_est{method}(run_idx,test_idx,1:Nsig_tmp),sort_idxs] = sort(doa);
+          [theta_est{method}(run_idx,test_idx,1:param.Nsig_tmp),sort_idxs] = sort(doa);
           HESSIAN = diag(HESSIAN);
           
           % for only suboptimal methods (param.subopt_only). DOa estimation not required.
@@ -240,7 +240,7 @@ for test_idx = 1:size(param.monte.SNR,1)
           %section cannot be evaluated as we do not have doa.
           
           if param.doa_example == 1
-              hessian_est{method}(run_idx,test_idx,1:Nsig_tmp) = HESSIAN(sort_idxs);
+              hessian_est{method}(run_idx,test_idx,1:param.Nsig_tmp) = HESSIAN(sort_idxs);
               cost_func{method}(run_idx,test_idx) = Jval;
           end
       else

@@ -1847,7 +1847,7 @@ subopt_log_func_all = [];
                         %% Process and save the outputs {method}(run_idx,test_idx,1:Nsig_tmp)                        
                         doa_tmp(1:param.monte.runs,:) = squeeze(results{1, Nsig_tmp}.theta_est{1, param.method.list});
                         
-                        doa_mle_all{Nsig_tmp} = doa_tmp(:,1:Nsig_tmp) *180/pi; % each cell contain DOA for all runs. row indicates the run number.
+                        doa_mle_all{Nsig_tmp} = doa_tmp(:,1:Nsig_tmp); % each cell contain DOA for all runs. row indicates the run number.
                     end
                     Nruns = param.monte.runs;  % for now
                     for Run_Idx = 1:Nruns;
@@ -2109,7 +2109,7 @@ subopt_log_func_all = [];
                 
                 if optimal_test ==1   % 1 for optimal
                     doa_tmp(1:param.monte.runs,:) = squeeze(results{1, Nsig_tmp}.theta_est{1, param.method.list});
-                    doa_mle_all_k{Nsig_tmp}       = doa_tmp(:,1:Nsig_tmp) *180/pi; % each cell contain DOA for all runs. row indicates the run number.
+                    doa_mle_all_k{Nsig_tmp}       = doa_tmp(:,1:Nsig_tmp); % each cell contain DOA for all runs. row indicates the run number.
                 end
             end
             %       if optimal_test ==1

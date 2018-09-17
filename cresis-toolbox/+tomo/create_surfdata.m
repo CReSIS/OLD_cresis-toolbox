@@ -54,7 +54,7 @@ function create_surfdata(param,mdata)
 % See also: tomo.run_collate, tomo.collate, tomo_collate_task,
 %   tomo.fuse_images, tomo.add_icemask_surfacedem, tomo.create_surfdata,
 %
-% Author: John Paden, Jordan Sprick, and Mingze Xu
+% Author: John Paden, Jordan Sprick, Mingze Xu, and Victor Berger
 
 if ~isfield(param.tomo_collate,'out_dir') || isempty(param.tomo_collate.out_dir)
   param.tomo_collate.out_dir = 'surfData';
@@ -606,14 +606,6 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     else
       egt_weight = 10;
     end
-    % Check for viterbi weight
-    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'viterbi_weight') ...
-        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).viterbi_weight)
-      viterbi_weight = param.tomo_collate.surfdata_cmds(cmd_idx).viterbi_weight;
-    else
-      viterbi_weight = ones([1 size(data,2)]);
-      viterbi_weight(round(size(data,2))+1) = 2;
-    end
     % Check for ice_mask scanning threshold
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'ice_bin_thr') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).ice_bin_thr)
@@ -642,6 +634,27 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     else
       mc_weight = 0;
     end
+    % Check for CF sensory distance
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'CF_sensory_distance') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).CF_sensory_distance)
+      CF.sensory_distance = param.tomo_collate.surfdata_cmds(cmd_idx).CF_sensory_distance;
+    else
+      CF.sensory_distance = 50;
+    end
+    % Check for CF max cost
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'CF_max_cost') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).CF_max_cost)
+      CF.max_cost = param.tomo_collate.surfdata_cmds(cmd_idx).CF_max_cost;
+    else
+      CF.max_cost = 200;
+    end
+    % Check for CF sensory distance
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'CF_lambda') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).CF_lambda)
+      CF.lambda = param.tomo_collate.surfdata_cmds(cmd_idx).CF_lambda;
+    else
+      CF.lambda = 0.075;
+    end
     
     for rline = 1:size(mdata.Topography.img,3)
       if ~mod(rline-1,500)
@@ -652,23 +665,47 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       surf_bins      = twtt_bin(:,rline).';
       bottom_bin     = Bottom_bin(rline);
       gt             = [33; bottom_bin];
-      mask           = ice_mask(:,rline).';
+      
+      % Check for viterbi weight
+      if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'viterbi_weight') ...
+          && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).viterbi_weight)
+        viterbi_weight = param.tomo_collate.surfdata_cmds(cmd_idx).viterbi_weight;
+      else
+        viterbi_weight = ones([1 size(data,2)]);
+        viterbi_weight(gt(1, :)) = 2;
+      end
+
+      threshold = 17.815; % schu
+      detect_data(detect_data>threshold) = threshold;
+      detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
+      
+      mask = ice_mask(:,rline).';
+      slice_range = 3;
+      slice = rline;
+      slices = slice-slice_range:slice+slice_range;
+      for idx = 1:length(slices)
+        mask = isfinite(mask);
+        mask(1:param.tomo_collate.bounds_relative(1)) = 0;
+        mask(end-param.tomo_collate.bounds_relative(2)+1:end) = 0;
+      end
+
       mask           = 90*fir_dec(double(mask), ones(1,5)/3.7);
       mask(mask>=90) = inf;
       mu_size        = 11;
       mu             = sinc(linspace(-1.5, 1.5, mu_size));
       sigma          = sum(mu)/20*ones(1,mu_size);
-      
+
       labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
         double(bottom_bin), double(gt), double(mask), double(mu), ...
         double(sigma), double(egt_weight), double(smooth_weight), ...
         double(smooth_var), double(slope), int64(bounds), ...
         double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-        double(mc), double(mc_weight));
+        double(mc), double(mc_weight), ...
+        double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
       
       viterbi_surface(:,rline) = labels;
     end
-    
+
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
       try
@@ -695,7 +732,6 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
   elseif strcmpi(cmd,'trws')
     %% Run TRW-S
     fprintf('  TRW-S (%s)\n', datestr(now));
-    
     % Check for smoothness weight
     if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'smooth_weight') ...
         && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).smooth_weight)
@@ -717,6 +753,28 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     else
       max_loops = 50;
     end
+    % Check for CF sensory distance
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'CF_sensory_distance') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).CF_sensory_distance)
+      CF.sensory_distance = param.tomo_collate.surfdata_cmds(cmd_idx).CF_sensory_distance;
+    else
+      CF.sensory_distance = 50;
+    end
+    % Check for CF max cost
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'CF_max_cost') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).CF_max_cost)
+      CF.max_cost = param.tomo_collate.surfdata_cmds(cmd_idx).CF_max_cost;
+    else
+      CF.max_cost = 200;
+    end
+    % Check for CF sensory distance
+    if isfield(param.tomo_collate.surfdata_cmds(cmd_idx),'CF_lambda') ...
+        && ~isempty(param.tomo_collate.surfdata_cmds(cmd_idx).CF_lambda)
+      CF.lambda = param.tomo_collate.surfdata_cmds(cmd_idx).CF_lambda;
+    else
+      CF.lambda = 0.075;
+    end
+    
     smooth_slope = [];
     mu_size = 11;
     mu = sinc(linspace(-1.5,1.5,mu_size));
@@ -728,9 +786,10 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     trws_surface = tomo.trws(data, double(twtt_bin), double(Bottom_bin), ...
       double([]), double(ice_mask_transition), double(mu), double(sigma), ...
       smooth_weight, smooth_var, double(smooth_slope), [], ...
-      double(max_loops), int64(bounds));
+      double(max_loops), int64(bounds), CF.sensory_distance, CF.max_cost, CF.lambda);
     
-    trws_surface = reshape(trws_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));
+    trws_surface = reshape(trws_surface,size(mdata.Topography.img,2), ...
+      size(mdata.Topography.img,3));
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
