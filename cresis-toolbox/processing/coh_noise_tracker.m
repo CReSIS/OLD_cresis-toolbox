@@ -368,17 +368,17 @@ sparam.success = '';
 out_fn_dir_dir = fileparts(out_fn_dir);
 for img = 1:length(param.analysis.imgs)
   if param.analysis.coh_ave.en
-    out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_img_%02d.mat',img));
+    out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_%s_img_%02d.mat', param.day_seg, img));
     dparam.success = cat(2,dparam.success, ...
       sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
   end
   if param.analysis.specular.en
-    out_fn = fullfile(out_fn_dir_dir,sprintf('specular_img_%02d.mat',img));
+    out_fn = fullfile(out_fn_dir_dir,sprintf('specular_%s_img_%02d.mat', param.day_seg, img));
     dparam.success = cat(2,dparam.success, ...
       sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
   end
   if param.analysis.surf.en
-    out_fn = fullfile(out_fn_dir_dir,sprintf('surf_img_%02d.mat',img));
+    out_fn = fullfile(out_fn_dir_dir,sprintf('surf_%s_img_%02d.mat', param.day_seg, img));
     dparam.success = cat(2,dparam.success, ...
       sprintf('  error_mask = bitor(error_mask,%d*~exist(%s,''file''));\n', success_error, out_fn));
   end
