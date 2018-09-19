@@ -394,7 +394,6 @@ for img = 1:length(param.load.imgs)
           
           % Create the window for the particular range line
           window_start_idx = find(f_rf >= wfs(wf).BW_window(1),1);
-          %   window_start_idx = window_start_idx_norm;
           H_idxs = window_start_idx : window_start_idx+Nt_raw_trim-1;
           if 0
             % ENABLE_FOR_DEBUG
@@ -402,15 +401,8 @@ for img = 1:length(param.load.imgs)
               window_start_idx, window_start_idx_norm);
           end
           
-          % Deskew of the residual video phase (not the standard because we
-          % actually move the window to track the td)
-          %   tmp = circshift(data{img}(H_idxs,rec,wf_adc),-[window_start_idx_norm-window_start_idx,0]);
-          %   tmp_freq = ifftshift(-floor(length(tmp)/2) : floor((length(tmp)-1)/2)).';
-          %   tmp_freq = (0:length(tmp)-1).';
-          %   tmp = tmp .* exp(1i*2*pi*tmp_freq*(window_start_idx_norm-window_start_idx)/length(tmp));
-          tmp = data{img}(H_idxs,rec,wf_adc);
-          
           % Window and Pulse compress
+          tmp = data{img}(H_idxs,rec,wf_adc);
           if 0
             % Debug: Verify pulse compression window is correct
             clf;

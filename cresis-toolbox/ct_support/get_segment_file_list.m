@@ -27,6 +27,10 @@ if ~isfield(param.records.file,'file_midfix')
   param.records.file.midfix = '';
 end
 
+if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
+  param.records.file.boards = {''};
+end
+
 % Determine default regular expression to apply to file search
 if ~isfield(param.records.file,'regexp') || isempty(param.records.file.regexp)
   if any(param.records.file.version == [405 406])

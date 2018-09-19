@@ -20,15 +20,15 @@ for img = 1:length(param.load.imgs)
   hdr.bad_rec{img} = zeros(1,Nx,Nc,'uint8');
   hdr.nyquist_zone_hw{img} = zeros(1,Nx,'uint8');
   hdr.nyquist_zone_signal{img} = nan(1,Nx);
-  hdr.DDC_mode{img} = zeros(1,Nx,'double');
+  hdr.DDC_dec{img} = ones(1,Nx,'double');
   hdr.DDC_freq{img} = zeros(1,Nx,'double');
   hdr.Nt{img} = zeros(1,Nx,'double');
-  hdr.t0{img} = zeros(1,Nx,'double');
+  hdr.t0_raw{img} = zeros(1,Nx,'double');
   hdr.t_ref{img} = zeros(1,Nx,'double');
 end
 nyquist_zone_hw = zeros(1,param.load.presums);
 nyquist_zone_signal = NaN;
-DDC_mode = zeros(1,param.load.presums);
+DDC_dec = ones(1,param.load.presums);
 DDC_freq = zeros(1,param.load.presums);
 Nt = zeros(1,param.load.presums);
 t0 = zeros(1,param.load.presums);
@@ -178,12 +178,12 @@ for state_idx = 1:length(states)
                 DDC_freq(num_accum+1) = DDC_freq(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2;
               end
               
-              DDC_mode(num_accum+1) = double(file_data(rec_offset+46));
+              DDC_dec(num_accum+1) = 2^(double(file_data(rec_offset+46))+1);
               raw_or_DDC = file_data(rec_offset + wfs(wf).offset +48);
               if raw_or_DDC
                 Nt(num_accum+1) = (stop_idx - start_idx);
               else
-                Nt(num_accum+1) = floor((stop_idx - start_idx) / 2^(1+DDC_mode(num_accum+1)));
+                Nt(num_accum+1) = floor((stop_idx - start_idx) / DDC_dec(num_accum+1));
               end
               wfs(wf).Nt_raw = Nt(num_accum+1);
             end
@@ -355,7 +355,7 @@ for state_idx = 1:length(states)
           % Store to output
           if num_accum < num_presum_records*wfs(wf).presum_threshold ...
               || any(nyquist_zone_hw ~= nyquist_zone_hw(1)) ...
-              || any(DDC_mode ~= DDC_mode(1)) ...
+              || any(DDC_dec ~= DDC_dec(1)) ...
               || any(DDC_freq ~= DDC_freq(1)) ...
               || any(Nt ~= Nt(1)) ...
               || any(t0 ~= t0(1)) ...
@@ -369,10 +369,10 @@ for state_idx = 1:length(states)
           
             hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw(1);
             hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal;
-            hdr.DDC_mode{img}(out_rec) = DDC_mode(1);
+            hdr.DDC_dec{img}(out_rec) = DDC_dec(1);
             hdr.DDC_freq{img}(out_rec) = DDC_freq(1);
             hdr.Nt{img}(out_rec) = Nt(1);
-            hdr.t0{img}(out_rec) = t0(1);
+            hdr.t0_raw{img}(out_rec) = t0(1);
             hdr.t_ref{img}(out_rec) = t_ref(1);
             
             if any(isfinite(wfs(wf).blank))

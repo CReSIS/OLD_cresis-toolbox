@@ -91,7 +91,11 @@ end
 % =========================================================================
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 for wf = 1:length(param.radar.wfs)
-  adcs = param.radar.wfs(wf).adcs;
+  if ~isfield(param.radar.wfs(wf),'adcs') || isempty(param.radar.wfs(wf).adcs)
+    adcs = 1;
+  else
+    adcs = param.radar.wfs(wf).adcs;
+  end
   
   %% Input checks
   % =======================================================================
@@ -119,6 +123,11 @@ for wf = 1:length(param.radar.wfs)
   end
   wfs(wf).fs_raw = param.radar.fs / wfs(wf).DDC_dec;
   
+  if isfield(param.radar.wfs(wf),'td_mean') && ~isempty(param.radar.wfs(wf).td_mean)
+    wfs(wf).td_mean = param.radar.wfs(wf).td_mean;
+  else
+    wfs(wf).td_mean = 3e-6;
+  end
   if isfield(param.radar.wfs(wf),'Tpd') && ~isempty(param.radar.wfs(wf).Tpd)
     wfs(wf).Tpd = param.radar.wfs(wf).Tpd;
   elseif any(param.records.file.version == [405 406 410]) % [acords mcords]
@@ -359,9 +368,21 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).ref_fn   = '';
   end
 
-  wfs(wf).tx_weights = param.radar.wfs(wf).tx_weights;
-  wfs(wf).rx_paths = param.radar.wfs(wf).rx_paths;
-  wfs(wf).adc_gains_dB = param.radar.wfs(wf).adc_gains_dB;
+  if isfield(param.radar.wfs(wf),'tx_weights') && ~isempty(param.radar.wfs(wf).tx_weights)
+    wfs(wf).tx_weights   = param.radar.wfs(wf).tx_weights;
+  else
+    wfs(wf).tx_weights   = 1;
+  end
+  if isfield(param.radar.wfs(wf),'rx_paths') && ~isempty(param.radar.wfs(wf).rx_paths)
+    wfs(wf).rx_paths   = param.radar.wfs(wf).rx_paths;
+  else
+    wfs(wf).rx_paths   = 1;
+  end
+  if isfield(param.radar.wfs(wf),'adc_gains_dB') && ~isempty(param.radar.wfs(wf).adc_gains_dB)
+    wfs(wf).adc_gains_dB   = param.radar.wfs(wf).adc_gains_dB;
+  else
+    wfs(wf).adc_gains_dB   = 0;
+  end
 
   %% Compute supporting variables
   % =======================================================================
