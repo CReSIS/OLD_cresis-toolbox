@@ -92,6 +92,16 @@ if ~isfield(surf,'dem')
   surf.dem = [];
 end
 
+if ~isfield(surf,'init')
+  surf.init = [];
+end
+if ~isfield(surf.init,'method')
+  surf.init.method = '';
+end
+if ~any(strcmpi(surf.init.method,{'snake','medfilt','dem','lidar',''}))
+  error('Unsupported surface init method. Disable by setting to an empty string (default setting).');
+end
+
 %% Clip data according to min and max bins that surface is allowed to be in
 data = data(surf.min_bin:surf.max_bin,:);
 
@@ -138,18 +148,20 @@ for rline=1:size(surf_data,2)
 end
 
 %% Create Initial Surface
-if isfield(surf,'init')
-  if strcmp(surf.init.method,'snake')
-    new_surface_max = tracker_snake_simple(surf_data,surf.init);
-  elseif strcmp(surf.init.method,'medfilt')
-    new_surface_max = medfilt1(new_surface_max,surf.init.medfilt);
-  elseif strcmp(surf.init.method,'dem') && length(surf.dem) == size(surf_data,2)
-    new_surface_max(isfinite(surf.dem)) = surf.dem(isfinite(surf.dem)) - surf.min_bin + 1;
-  elseif strcmp(surf.init.method,'lidar') && length(surf.dem) == size(surf_data,2)
-    new_surface_max(isfinite(surf.dem)) = surf.dem(isfinite(surf.dem)) - surf.min_bin + 1;
-  else
-    error('Unsupported surface init method or surf.dem is wrong length');
+if strcmp(surf.init.method,'snake')
+  new_surface_max = tracker_snake_simple(surf_data,surf.init);
+elseif strcmp(surf.init.method,'medfilt')
+  new_surface_max = medfilt1(new_surface_max,surf.init.medfilt);
+elseif strcmp(surf.init.method,'dem')
+  if length(surf.dem) ~= size(surf_data,2)
+    error('length(surf.dem) ~= size(surf_data,2)');
   end
+  new_surface_max(isfinite(surf.dem)) = surf.dem(isfinite(surf.dem)) - surf.min_bin + 1;
+elseif strcmp(surf.init.method,'lidar')
+  if length(surf.dem) ~= size(surf_data,2)
+    error('length(surf.dem) ~= size(surf_data,2)');
+  end
+  new_surface_max(isfinite(surf.dem)) = surf.dem(isfinite(surf.dem)) - surf.min_bin + 1;
 end
 
 if ~isempty(surf.noise_override) && all(median_mdata==0)
@@ -187,7 +199,7 @@ end
 
 %% Do not permit thresholded surface from exceeding max_diff from initial surface
 surface(abs(surface - new_surface_max) > surf.max_diff) = NaN;
-if isfield(surf,'init') && (strcmp(surf.init.method,'dem') || strcmp(surf.init.method,'lidar'))
+if any(strcmp(surf.init.method,{'dem','lidar'}))
   surface = merge_vectors(surface, new_surface_max);
 else
   surface = interp_finite(surface,0);

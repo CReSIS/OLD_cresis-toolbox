@@ -18,14 +18,16 @@ for img = 1:length(param.load.imgs)
   Nc = size(param.load.imgs{img},1);
   data{img} = complex(zeros(Nt,Nx,Nc,'single'));
   hdr.bad_rec{img} = zeros(1,Nx,Nc,'uint8');
-  hdr.nyquist_zone{img} = zeros(1,Nx,'uint8');
+  hdr.nyquist_zone_hw{img} = zeros(1,Nx,'uint8');
+  hdr.nyquist_zone_signal{img} = nan(1,Nx);
   hdr.DDC_mode{img} = zeros(1,Nx,'double');
   hdr.DDC_freq{img} = zeros(1,Nx,'double');
   hdr.Nt{img} = zeros(1,Nx,'double');
   hdr.t0{img} = zeros(1,Nx,'double');
   hdr.t_ref{img} = zeros(1,Nx,'double');
 end
-nyquist_zone = zeros(1,param.load.presums);
+nyquist_zone_hw = zeros(1,param.load.presums);
+nyquist_zone_signal = NaN;
 DDC_mode = zeros(1,param.load.presums);
 DDC_freq = zeros(1,param.load.presums);
 Nt = zeros(1,param.load.presums);
@@ -202,9 +204,16 @@ for state_idx = 1:length(states)
             
             % Nyquist zone
             if param.records.file.version == 8
-              nyquist_zone(num_accum+1) = file_data(rec_offset+34);
+              nyquist_zone_hw(num_accum+1) = file_data(rec_offset+34);
             elseif any(param.records.file.version == [3 5 7])
-              nyquist_zone(num_accum+1) = file_data(rec_offset+45);
+              nyquist_zone_hw(num_accum+1) = file_data(rec_offset+45);
+            end
+          end
+          if isfield(records.settings,'nyquist_zone')
+            if isnan(records.settings.nyquist_zone(rec))
+              nyquist_zone_signal = nyquist_zone_hw(1);
+            else
+              nyquist_zone_signal = records.settings.nyquist_zone(rec);
             end
           end
           
@@ -345,13 +354,12 @@ for state_idx = 1:length(states)
 
           % Store to output
           if num_accum < num_presum_records*wfs(wf).presum_threshold ...
-              || any(param.records.file.version == [3 5 7]) ...
-              && (any(nyquist_zone ~= nyquist_zone(1)) ...
+              || any(nyquist_zone_hw ~= nyquist_zone_hw(1)) ...
               || any(DDC_mode ~= DDC_mode(1)) ...
               || any(DDC_freq ~= DDC_freq(1)) ...
               || any(Nt ~= Nt(1)) ...
               || any(t0 ~= t0(1)) ...
-              || any(t_ref ~= t_ref(1)))
+              || any(t_ref ~= t_ref(1))
             % Too few presums, mark as bad record
             % Or a parameter changed within the presum block
             data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = 0;
@@ -359,7 +367,8 @@ for state_idx = 1:length(states)
           else
             data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = state.data{accum_idx};
           
-            hdr.nyquist_zone{img}(out_rec) = nyquist_zone(1);
+            hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw(1);
+            hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal;
             hdr.DDC_mode{img}(out_rec) = DDC_mode(1);
             hdr.DDC_freq{img}(out_rec) = DDC_freq(1);
             hdr.Nt{img}(out_rec) = Nt(1);

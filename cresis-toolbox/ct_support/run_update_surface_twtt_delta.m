@@ -13,15 +13,31 @@
 params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'));
 % params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
-data_types = {'qlook','deconv'};
-imgs = [0];
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20170310_01');
 
+% params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170310_01');
+
+params = ct_set_params(params,'update_surface_twtt_delta.data_types',{'qlook','deconv','qlook_uwb','qlook_kuband'});
+% params = ct_set_params(params,'update_surface_twtt_delta.data_types',{'deconv'});
+params = ct_set_params(params,'update_surface_twtt_delta.imgs',[0]);
 
 %% Automated Section
-% ----------------------------------------------------------------------
+% =====================================================================
 
-update_surface_twtt_delta;
+% Input checking
+global gRadar;
+if exist('param_override','var')
+  param_override = merge_structs(gRadar,param_override);
+else
+  param_override = gRadar;
+end
 
-return;
+% Process each of the segments
+ctrl_chain = {};
+for param_idx = 1:length(params)
+  param = params(param_idx);
+  if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+    continue;
+  end
+  update_surface_twtt_delta(param,param_override);
+end

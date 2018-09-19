@@ -29,7 +29,7 @@ if ischar(fns)
   else
     tmp = load(fn,'file_version');
     if isfield(tmp,'file_version')
-      file_version = tmp.file_version(~isletter(tmp.file_version));
+      file_version = tmp.file_version(isstrprop(tmp.file_version,'digit'));
     elseif ~exist('file_version','var')
       % If file_version was not passed in, assume "1"
       file_version = '1';
@@ -39,6 +39,7 @@ if ischar(fns)
     elseif lock_state==2
       file_version = [file_version, 'D'];
     end
+    file_version = sprintf('%8s',file_version);
     save(fn,'-append','file_version');
   end
 else

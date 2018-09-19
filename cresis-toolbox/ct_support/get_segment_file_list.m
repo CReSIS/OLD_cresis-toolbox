@@ -20,7 +20,8 @@ function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(para
 %
 % Author: John Paden
 %
-% See also run_get_segment_file_list.m
+% See also: get_frame_id, get_raw_files.m, get_segment_file_list.m,
+%   run_get_segment_file_list.m
 
 if ~isfield(param.records.file,'file_midfix')
   param.records.file.midfix = '';

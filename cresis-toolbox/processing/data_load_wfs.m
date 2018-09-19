@@ -329,17 +329,25 @@ for wf = 1:length(param.radar.wfs)
   if ~isfield(param.radar.wfs(wf).deconv,'fn') || isempty(param.radar.wfs(wf).deconv.fn)
     wfs(wf).deconv.fn = 'analysis';
   end
-  
+  % Per wf-adc pair amplitude equalization
   if isfield(param.radar.wfs(wf),'chan_equal_dB') && ~isempty(param.radar.wfs(wf).chan_equal_dB)
-    wfs(wf).chan_equal_dB   = param.radar.wfs(wf).chan_equal_dB;
+    wfs(wf).chan_equal_dB       = param.radar.wfs(wf).chan_equal_dB;
   else
     wfs(wf).chan_equal_dB(adcs) = 0;
   end
+  % Per wf-adc pair phase equalization
   if isfield(param.radar.wfs(wf),'chan_equal_deg') && ~isempty(param.radar.wfs(wf).chan_equal_deg)
-    wfs(wf).chan_equal_deg   = param.radar.wfs(wf).chan_equal_deg;
+    wfs(wf).chan_equal_deg       = param.radar.wfs(wf).chan_equal_deg;
   else
     wfs(wf).chan_equal_deg(adcs) = 0;
   end
+  % Per wf-adc pair time delay correction
+  if isfield(param.radar.wfs(wf),'Tsys') && ~isempty(param.radar.wfs(wf).Tsys)
+    wfs(wf).Tsys       = param.radar.wfs(wf).Tsys;
+  else
+    wfs(wf).Tsys(adcs) = 0;
+  end
+  % Time varying channel equalization file
   if isfield(param.radar.wfs(wf),'chan_equal') && ~isempty(param.radar.wfs(wf).chan_equal)
     wfs(wf).chan_equal   = param.radar.wfs(wf).chan_equal;
   else

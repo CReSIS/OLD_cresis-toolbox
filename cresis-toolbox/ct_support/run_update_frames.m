@@ -6,7 +6,7 @@ clear param;
 param.radar_name = 'snow';
 % param.day_seg = '20090425_04';
 % param.day_seg = '20100421_03';
-param.day_seg = '20120402_01';
+param.day_seg = '20170407_02';
 
 % param.season_name = '2009_Greenland_P3';
 % param.image_out_dir = {{'/cresis/snfs1/dataproducts/ct_data/snow/2009_Greenland_P3/CSARP_post/images/'}, ...
@@ -32,13 +32,13 @@ param.day_seg = '20120402_01';
 % param.image_out_dir = {{'/cresis/snfs1/dataproducts/public/data/snow/2011_Greenland_P3/images/'}};
 % param.mat_out_dir = {{'/cresis/snfs1/dataproducts/public/data/snow/2011_Greenland_P3/CSARP_deconv/'}};
 
-param.season_name = '2012_Greenland_P3';
+param.season_name = '2017_Greenland_P3';
 % param.image_out_dir = {{'/cresis/snfs1/dataproducts/public/data/snow/2012_Greenland_P3/images/'}, ...
 %   {'/cresis/snfs1/dataproducts/public/data/temp/for_Snow_Workshop/2012_Greenland_P3/images/'}};
 % param.mat_out_dir = {{'/cresis/snfs1/dataproducts/public/data/snow/2012_Greenland_P3/CSARP_deconv/'}, ...
 %   {'/cresis/snfs1/dataproducts/public/data/temp/for_Snow_Workshop/2012_Greenland_P3/CSARP_deconv/'}};
-param.image_out_dir = {{'/cresis/snfs1/dataproducts/public/data/snow/2012_Greenland_P3/images/'}};
-param.mat_out_dir = {{'/cresis/snfs1/dataproducts/public/data/snow/2012_Greenland_P3/CSARP_deconv/'}};
+param.image_out_dir = {{'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_post_deconv/images/'}};
+param.mat_out_dir = {{'/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_deconv/'}};
 
 param.img_type = 'echo.jpg';
 
@@ -62,7 +62,7 @@ fmcw_img_debug_mode = true;
 noise_time_duration = 45e-9;
 noise_time_buffer = 250e-9;
 img_sidelobe = -35;
-noise_threshold_offset_dB = 3.2;
+noise_threshold_offset_dB = -100;
 
 update_frames;
 

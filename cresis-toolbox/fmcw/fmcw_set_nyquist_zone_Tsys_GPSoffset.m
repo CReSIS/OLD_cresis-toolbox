@@ -84,7 +84,7 @@ layer_params(idx).source = 'lidar';
 layer_params(idx).lidar_source = lidar_source;
 idx = idx + 1;
 layer_params(idx).name = 'surface';
-layer_params(idx).source = 'records';
+layer_params(idx).source = 'layerdata';
 
 global gRadar;
 for param_idx = 1:length(params)
@@ -237,8 +237,7 @@ for param_idx = 1:length(params)
     % 2. Use elevation when LIDAR is not available
     elev_twtt = (layers(2).elev - surf_elev)/(3e8/2);
 
-    combined_twtt = layers(1).twtt_ref;
-    combined_twtt(isnan(combined_twtt)) = elev_twtt(isnan(combined_twtt));
+    combined_twtt = merge_vectors(layers(1).twtt_ref,elev_twtt);
     
   end
   
@@ -318,7 +317,7 @@ for param_idx = 1:length(params)
   fprintf('%s\tGPS offset (sec) using %d records:\t%.1f\n', param.day_seg, numel(recs), -lags(peak_idx)*dt);
   
   if save_records_en
-    nz = fmcw_set_nyquist_zone_from_elev(param, combined_twtt, max_nz);
+    nz = fmcw_set_nyquist_zone_from_elev(param, layers(2).gps_time, combined_twtt, max_nz);
     
     if debug_level > 0
       figure(4); clf;

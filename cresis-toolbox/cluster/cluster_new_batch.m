@@ -141,6 +141,10 @@ if ~isfield(ctrl.cluster,'dbstop_if_error') || isempty(ctrl.cluster.dbstop_if_er
   ctrl.cluster.dbstop_if_error = true;
 end
 
+if ~isfield(ctrl.cluster,'stop_on_error') || isempty(ctrl.cluster.stop_on_error)
+  ctrl.cluster.stop_on_error = true;
+end
+
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
   % -m n: no mail
   % -l nodes=1:ppn=%p: 1 compute node and %p core/processors on the node.
