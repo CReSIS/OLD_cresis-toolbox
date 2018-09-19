@@ -598,7 +598,7 @@ if param.collate_deconv.stage_one_en
         legend(h_axes(2), 'P','ML','FSL','RSL','IFSL','IRSL','location','best');
         grid(h_axes(2), 'on');
         
-        linkaxes(h_axes);
+        try; linkaxes(h_axes); end;
         
         twtt_bin = deconv.twtt * param.collate_deconv.twtt_penalty;
         
@@ -635,7 +635,7 @@ if param.collate_deconv.stage_one_en
         
         % Print table
         fprintf('Metric Threshold (Must be below this to pass)\n');
-        fprintf('Peak\tML\tPSL FE\tPSL RS\tISL FE\tISL RE\n');
+        fprintf('Peak\tML\tPSL FE\tPSL RE\tISL FE\tISL RE\n');
         fprintf('%.1f\t', cmd.abs_metric); fprintf('\n');
         fprintf('Metric ( '); fprintf(2,'Red Failed '); fprintf(')\n');
         fprintf('INDEX\tFRM\tREC\tPeak\tML\tPSL FE\tPSL RS\tISL FE\tISL RE\tPASS\tSCORE\tTWTT\n');

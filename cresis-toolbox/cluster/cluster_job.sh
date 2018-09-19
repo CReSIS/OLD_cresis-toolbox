@@ -24,6 +24,37 @@ export  MCR_CACHE_VERBOSE=1
 parent_pid=$$
 #echo Parent: $parent_pid
 
+# Check for sufficient space in $MCR_CACHE_ROOT for MCR to run
+# =======================================================================
+if [ -z $MCR_CACHE_ROOT ]
+then
+  # If not defined, use default
+  MCR_CACHE_ROOT=/tmp/`whoami`
+fi
+# Make sure the directory is created to ensure df will run successfully
+mkdir -p $MCR_CACHE_ROOT
+if (( $? == 0 ))
+then
+  # Get the space available in kilobytes (-P prevents line wrap in the
+  # middle of a printout when the file system name is too long).
+  tmp_avail=`df -P $MCR_CACHE_ROOT | tail -1 | awk '{print $4}'`
+else
+  # Cannot even create the directory
+  tmp_avail=0
+fi
+echo Space available on MCR_CACHE_ROOT=$MCR_CACHE_ROOT is $tmp_avail kB
+if (( tmp_avail < 5000 ))
+then
+   echo "Less than 5 MB of space on drive pointed to by MCR_CACHE_ROOT."
+   if [ -n "$MCR_CACHE_ROOT2" ]
+   then
+     echo "Using backup MCR_CACHE_ROOT2=$MCR_CACHE_ROOT2"
+     MCR_CACHE_ROOT=$MCR_CACHE_ROOT2
+   else
+     echo "You may want to define MCR_CACHE_ROOT2 as a backup in your .bashrc."
+   fi
+fi
+
 # =========================================================================
 # ATTEMPT TO RUN CLUSTER_JOB.M UP TO MAX_ATTEMPTS TIMES
 # =========================================================================
@@ -72,11 +103,13 @@ do
   # Get return value from child process
   wait $child_pid
   return_value=$?
-  echo Return value: $return_value
 
   if [ $return_value -eq 0 ]
   then
+    echo "  Successful return value of $return_value."
     break
+  else
+    echo "  Failed with return value of $return_value. This usually is caused by reasons unrelated to the Matlab script itself."
   fi
   ((attempt++))
 

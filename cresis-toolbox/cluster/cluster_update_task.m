@@ -272,6 +272,9 @@ if update_mode && ctrl.error_mask(task_id)
   if bitand(ctrl.error_mask(task_id),errorstruct_contains_error)
     fprintf('  errorstruct contains an error:\n');
     warning('%s',out.errorstruct.getReport);
+    if ctrl.cluster.stop_on_error
+      keyboard
+    end
   end
   if bitand(ctrl.error_mask(task_id),success_error)
     fprintf('  Task did not pass success criteria\n');

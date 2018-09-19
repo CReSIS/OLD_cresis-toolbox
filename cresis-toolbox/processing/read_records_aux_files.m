@@ -41,10 +41,7 @@ records.heading = ncread(cdf_fn,'heading',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.gps_time = ncread(cdf_fn,'gps_time',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.surface = ncread(cdf_fn,'surface',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 try
-  records.settings.nyquist_zone = ncread(cdf_fn,'settings(1).nyquist_zone',[recs(1), 1],[recs(2)-recs(1)+1, 6]);
-end
-try
-  records.settings.loopback_mode = ncread(cdf_fn,'settings(1).loopback_mode',[recs(1), 1],[recs(2)-recs(1)+1, 6]);
+  records.settings.nyquist_zone = ncread(cdf_fn,'settings(1).nyquist_zone',[1, recs(1)],[1, recs(2)-recs(1)+1]);
 end
 
 records.offset = ncread(cdf_fn,'offset',[1 recs(1)],[inf recs(2)-recs(1)+1]);

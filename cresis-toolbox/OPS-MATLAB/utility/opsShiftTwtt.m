@@ -3,6 +3,8 @@ function [status,message] = opsShiftTwtt(sys,param)
 % [status,data] = opsShiftTwtt(sys,param)
 %
 % Shift the TWTT of layer points in the database.
+% runOpsCopyLayers may also be used and is more flexible, but is also
+% slower.
 %
 % Input:
 %   sys: (string) sys name ('rds','accum','snow',...)

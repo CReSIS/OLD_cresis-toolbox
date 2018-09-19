@@ -17,7 +17,8 @@ function time = gps_sow_to_epoch(sow,param)
 % Example:
 %  read_gps_applanix.m
 %
-% See also datenum_to_epoch.m, epoch_to_datenum.m, epoch_to_gps_sow
+% See also epoch_to_datenum.m, datenum_to_epoch.m, epoch_to_gps_sow.m,
+%   epoch_to_sod.m, gps_sow_to_epoch.m, utc_leap_seconds.m
 
 % GPS weeks started counting Jan 6, 1980
 start_GPS = datenum(1980,1,06);

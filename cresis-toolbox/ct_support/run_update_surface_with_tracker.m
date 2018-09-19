@@ -9,23 +9,23 @@
 param_override = [];
 
 % params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
-params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'','post');
+params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170407_02','post');
 
-% params = ct_set_params(params,'cmd.generic',1);
-% params = ct_set_params(params,'cmd.frms',[]); % Specify specific frames (or leave empty/undefined to do all frames)
+params = ct_set_params(params,'cmd.generic',1);
+params = ct_set_params(params,'cmd.frms',[49:499]); % Specify specific frames (or leave empty/undefined to do all frames)
 
 
 param_override.update_surface.debug_level = 0;
 param_override.update_surface.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking
-param_override.update_surface.echogram_source = 'qlook';
+param_override.update_surface.echogram_source = 'deconv';
 
 % layer_params: structure of layer references of where to store the output
 param_override.update_surface.layer_params = []; idx = 0;
 idx = idx + 1;
 param_override.update_surface.layer_params(idx).name = 'surface';
 param_override.update_surface.layer_params(idx).source = 'echogram';
-param_override.update_surface.layer_params(idx).echogram_source = 'qlook';
+param_override.update_surface.layer_params(idx).echogram_source = 'deconv';
 idx = idx + 1;
 param_override.update_surface.layer_params(idx).name = 'surface';
 param_override.update_surface.layer_params(idx).source = 'layerdata';
@@ -108,7 +108,7 @@ elseif 1
   % FMCW Sea Ice
   debug_time_guard = 50e-9;
   surf_override.method = 'threshold';
-  surf_override.method = '';
+%   surf_override.method = '';
   surf_override.noise_rng = [100 -400 -100];
   surf_override.threshold = 13;
   surf_override.sidelobe	= 25;
@@ -117,6 +117,7 @@ elseif 1
   surf_override.search_rng	= 0:10;
   surf_override.detrend = 0;
   surf_override.init.method	= 'dem';
+  surf_override.init.method	= '';
   surf_override.init.dem_offset = 67e-9;
 %   surf_override.init.lidar_source = 'atm';
 %   surf_override.init.method	= 'medfilt';

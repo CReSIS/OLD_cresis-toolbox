@@ -35,7 +35,8 @@ function [day_seg,frm_id,recs,num_recs] = get_frame_id(param,gps_time,search_par
 %
 % Author: John Paden
 %
-% See also: get_raw_files.m, datenum_to_epoch.m
+% See also: get_frame_id, get_raw_files.m, get_segment_file_list.m,
+%   run_get_segment_file_list.m
 
 if ~exist('search_params','var')
   search_params = [];
