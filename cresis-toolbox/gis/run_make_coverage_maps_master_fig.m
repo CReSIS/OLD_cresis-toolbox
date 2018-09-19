@@ -20,32 +20,32 @@ location = 'Greenland';
 
 if strcmpi(location,'Greenland')
   season_names = {};
-  
-%   season_names{end+1} = 'rds_param_1993_Greenland_P3';
-%   season_names{end+1} = 'rds_param_1995_Greenland_P3';
+%   
+  season_names{end+1} = 'rds_param_1993_Greenland_P3';
+  season_names{end+1} = 'rds_param_1995_Greenland_P3';
   season_names{end+1} = 'rds_param_1996_Greenland_P3';
-%   season_names{end+1} = 'rds_param_1997_Greenland_P3';
-%   season_names{end+1} = 'rds_param_1998_Greenland_P3';
-%   season_names{end+1} = 'rds_param_1999_Greenland_P3';
-%   season_names{end+1} = 'rds_param_2001_Greenland_P3';
-%   season_names{end+1} = 'rds_param_2002_Greenland_P3';
-%   season_names{end+1} = 'rds_param_2006_Greenland_TO';
+  season_names{end+1} = 'rds_param_1997_Greenland_P3';
+  season_names{end+1} = 'rds_param_1998_Greenland_P3';
+  season_names{end+1} = 'rds_param_1999_Greenland_P3';
+  season_names{end+1} = 'rds_param_2001_Greenland_P3';
+  season_names{end+1} = 'rds_param_2002_Greenland_P3';
+  season_names{end+1} = 'rds_param_2006_Greenland_TO';
   season_names{end+1} = 'rds_param_2008_Greenland_Ground';
-%   season_names{end+1} = 'rds_param_2008_Greenland_TO';
-%   season_names{end+1} = 'rds_param_2009_Greenland_TO';
-%   season_names{end+1} = 'rds_param_2010_Greenland_DC8';
-%   season_names{end+1} = 'rds_param_2010_Greenland_P3';
-%   season_names{end+1} = 'rds_param_2011_Greenland_P3';
-%   season_names{end+1} = 'rds_param_2012_Greenland_P3';
-%   season_names{end+1} = 'rds_param_2013_Greenland_P3';
-%   season_names{end+1} = 'rds_param_2014_Greenland_P3';
-%   season_names{end+1} = 'rds_param_2015_Greenland_C130';
-%   season_names{end+1} = 'rds_param_2015_Greenland_Polar6';
-%   season_names{end+1} = 'rds_param_2016_Greenland_G1XB';
-%   season_names{end+1} = 'rds_param_2016_Greenland_P3';
+  season_names{end+1} = 'rds_param_2008_Greenland_TO';
+  season_names{end+1} = 'rds_param_2009_Greenland_TO';
+  season_names{end+1} = 'rds_param_2010_Greenland_DC8';
+  season_names{end+1} = 'rds_param_2010_Greenland_P3';
+  season_names{end+1} = 'rds_param_2011_Greenland_P3';
+  season_names{end+1} = 'rds_param_2012_Greenland_P3';
+  season_names{end+1} = 'rds_param_2013_Greenland_P3';
+  season_names{end+1} = 'rds_param_2014_Greenland_P3';
+  season_names{end+1} = 'rds_param_2015_Greenland_C130';
+  season_names{end+1} = 'rds_param_2015_Greenland_Polar6';
+  season_names{end+1} = 'rds_param_2016_Greenland_G1XB';
+  season_names{end+1} = 'rds_param_2016_Greenland_P3';
   season_names{end+1} = 'rds_param_2016_Greenland_Polar6';
-%   season_names{end+1} = 'rds_param_2016_Greenland_TOdtu';
-%   season_names{end+1} = 'rds_param_2017_Greenland_P3';
+  season_names{end+1} = 'rds_param_2016_Greenland_TOdtu';
+  season_names{end+1} = 'rds_param_2017_Greenland_P3';
 
   
 
@@ -111,6 +111,9 @@ elseif strcmpi(location,'Antarctica')
   geotiff_fn = ct_filename_gis(gRadar,'antarctica/Landsat-7/Antarctica_LIMA_480m.tif');
 end
 
+% --------- STEP 6: SET THE GEOTIFF, FIGURE SIZE AND PAPER POSITION ---------
+user_variables.method = 'agg'; %Aggregation after aggregation
+% user_variables.method = 'dec'; %Plain decimation
 
 
 %% Automated section
@@ -155,6 +158,28 @@ layer_params(idx).layerdata_source = 'CSARP_post/layerData';
 % layer_params(idx).layerdata_source = 'CSARP_post/layerData';
 user_variables.layer_params = layer_params;
 
+
+
+
+h_good = plot(1,NaN,'g.');
+h_mod = plot(1,NaN,'y.');
+h_bad = plot(1,NaN,'r.');
+
+if strcmpi(user_variables.method, 'agg')
+  mag = plot(1,NaN,'m.');
+  legend([mag h_good h_mod h_bad], 'NaN', 'Good','Moderate','Bad','Location','Best');
+else
+  legend([h_good h_mod h_bad], 'Good','Moderate','Bad','Location','Best');
+end
+
+set(figure_handle,'UserData',season_names);
+h_children = get(1,'Children');
+debug_test = get(h_children(2),'Children');
+h_geotiff = h_children(end);
+
+
+
+
 % Reading params for the selected seasons
 for season_idx = 1:length(season_names)
 
@@ -168,23 +193,22 @@ for season_idx = 1:length(season_names)
 %     warning('Error reading %s', sseason_names{season_idx});
 %     continue;
 %   end
-  details = {};
-  details.season = season_names{season_idx};
-  details.before = 0;
-  details.after = 0;
-  season_stats{end+1}.details = details;
-  user_variables.season_name = season_names{season_idx};
-  season_layers{end+1} = layers;
+  
 end
-user_variables.season_stats = season_stats;
-mag = plot(1,NaN,'m.');
-h_good = plot(1,NaN,'g.');
-h_mod = plot(1,NaN,'y.');
-h_bad = plot(1,NaN,'r.');
-legend([mag h_good h_mod h_bad], 'NaN', 'Good','Moderate','Bad','Location','Best');
-set(figure_handle,'UserData',season_names);
+
+user_variables.season_names = season_names;
 
 % *** Call to make_coverage_maps ***
 test_make_coverage_maps(params, user_variables);
+
+% mag = plot(1,NaN,'m.');
+% h_good = plot(1,NaN,'g.');
+% h_mod = plot(1,NaN,'y.');
+% h_bad = plot(1,NaN,'r.');
+% legend([mag h_good h_mod h_bad], 'NaN', 'Good','Moderate','Bad','Location','Best');
+% set(figure_handle,'UserData',season_names);
+% h_children = get(1,'Children');
+% h_children = get(h_children(2),'Children');
+% h_geotiff = h_children(end);
 
 
