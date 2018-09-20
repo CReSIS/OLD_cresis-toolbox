@@ -382,6 +382,7 @@ for img = 1:length(param.load.imgs)
         tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
         tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
         
+        tmp_hdr.nyquist_zone_signal{img} = double(tmp_hdr.nyquist_zone_hw{img});
         [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
@@ -448,7 +449,7 @@ for img = 1:length(param.load.imgs)
             % nyquist zone will be 3 which is 0011 in binary and positions 0
             % and 1 are set to 1.
             nz_mask = char('0'*ones(1,32));
-            nz_mask(32-unique(hdr.nyquist_zone{img,wf_adc}(rlines))) = '1';
+            nz_mask(32-unique(hdr.nyquist_zone_hw{img,wf_adc}(rlines))) = '1';
             nyquist_zone(1,rline0_idx) = bin2dec(nz_mask);
           else
             nyquist_zone(1,rline0_idx) = 1;

@@ -18,7 +18,7 @@ params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),''
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20170309_01');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20170406_02');
 
 % dbstop if error;
 param_override.cluster.type = 'torque';

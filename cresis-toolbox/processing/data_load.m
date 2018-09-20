@@ -209,12 +209,9 @@ for state_idx = 1:length(states)
               nyquist_zone_hw(num_accum+1) = file_data(rec_offset+45);
             end
           end
-          if isfield(records.settings,'nyquist_zone')
-            if isnan(records.settings.nyquist_zone(rec))
-              nyquist_zone_signal = nyquist_zone_hw(1);
-            else
-              nyquist_zone_signal = records.settings.nyquist_zone(rec);
-            end
+          nyquist_zone_signal = nyquist_zone_hw(1);
+          if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
+            nyquist_zone_signal = records.settings.nyquist_zone(rec);
           end
           
 
