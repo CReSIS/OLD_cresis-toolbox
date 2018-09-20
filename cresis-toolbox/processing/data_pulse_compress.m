@@ -577,7 +577,7 @@ for img = 1:length(param.load.imgs)
         
         % Adjust coherent noise dft for changes in adc_gains relative to
         % when the coherent noise was loaded and estimated.
-        noise.dft = noise.dft * wfs(wf).adc_gains(adc) ./ noise.param_analysis.radar.wfs(wf).adc_gains(adc);
+        noise.dft = noise.dft * 10.^((wfs(wf).adc_gains_dB(adc)-noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
         
         recs = interp1(noise.gps_time, noise.recs, hdr.gps_time);
         

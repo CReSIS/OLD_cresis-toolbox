@@ -16,9 +16,10 @@ params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),''
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
 params = ct_set_params(params,'cmd.qlook',0);
-% params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170309_01');
-params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170406_02');
-params = ct_set_params(params,'cmd.frms',[9:12]);
+% params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170406_02');
+% params = ct_set_params(params,'cmd.frms',[9:12]);
+params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170311_02');
+params = ct_set_params(params,'cmd.frms',[]);
 % params = ct_set_params(params,'qlook.presums',4);
 % params = ct_set_params(params,'qlook.dec',1);
 
@@ -40,7 +41,7 @@ params = ct_set_params(params,'cmd.frms',[9:12]);
 % 2-18 GHz Deconvolution Settings
 
 params = ct_set_params(params,'radar.wfs(1).deconv.en',0);
-params = ct_set_params(params,'radar.wfs(1).coh_noise_method','');
+% params = ct_set_params(params,'radar.wfs(1).coh_noise_method',''); % HACK
 params = ct_set_params(params,'qlook.out_path','qlook');
 params = ct_set_params(params,'qlook.resample',[]);
 
@@ -60,9 +61,9 @@ params = ct_set_params(params,'qlook.resample',[]);
 % params = ct_set_params(params,'qlook.resample',[1 4; 1 1]);
 
 dbstop if error;
-% param_override.cluster.type = 'torque';
+param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 %param_override.cluster.rerun_only = true;
 param_override.cluster.desired_time_per_job  = 240*60;
 % param_override.cluster.cpu_time_mult  = 2;
