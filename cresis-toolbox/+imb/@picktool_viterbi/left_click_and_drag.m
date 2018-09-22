@@ -71,12 +71,7 @@ if tool_idx == 1
       CF.sensory_distance = 200;
       CF.max_cost = 50;
       CF.lambda = 0.075;
-      
-      offset = gt(1,1) - x(1);
-      if(gt(1,2) + offset > length(image_x))
-        error('Index exceeds matrix dimensions, select smaller left-click-and-drag window.');
-      end
-      
+
       %% Detrending
       if 1
         % Along track filtering
@@ -94,26 +89,17 @@ if tool_idx == 1
       
       %% Column restriction between first and last selected GT points
       if obj.top_panel.column_restriction_cbox.Value
-        first_point    = max(manual_idxs(1)-10, 1);
-        last_point     = min(length(viterbi_data), manual_idxs(end)+10);
-        viterbi_data   = viterbi_data(:, first_point : last_point);
-        surf_bins      = surf_bins(:, first_point : last_point);
-        mask           = mask(:, first_point : last_point);
-        viterbi_weight = viterbi_weight(:, first_point : last_point);
-        mc             = mc(:, first_point : last_point);
+        viterbi_data   = viterbi_data(:, auto_idxs);
+        surf_bins      = surf_bins(:, auto_idxs);
+        mask           = mask(:, auto_idxs);
+        viterbi_weight = viterbi_weight(:, auto_idxs);
+        mc             = mc(:, auto_idxs);
         slope          = round(diff(surf_bins));
-        
-        if ~isempty(gt)
-          gt(1, 2:end) = 10 + gt(1, 2:end) - gt(1,1);
-          gt(1,1) = 10; 
-        end
-        
-        labels = NaN * ones(1, size(image_c, 2));
       end
-      
+
       %% Call viterbi.cpp      
       tic
-      labels_temp = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
+      y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(bottom_bin), double(gt), double(mask), double(mu), ...
         double(sigma), double(egt_weight), double(smooth_weight), ...
         double(smooth_var), double(slope), int64(bounds), ...
@@ -121,18 +107,16 @@ if tool_idx == 1
         double(mc), double(mc_weight), ...
         double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
       toc
-      
+
       if obj.top_panel.column_restriction_cbox.Value
-        labels(1, first_point : last_point-1) = labels_temp(1:end-1);
+        y_new(end) = y_new(end-1);
       else
-        labels = labels_temp;
+        y_new = y_new(auto_idxs);
       end
-      
-      % Correct layer offset
-      y_new  = labels(round(x(1)+offset) : round(x(2)+offset));
       
       % Interpolate layer to match image y-axis
       y_new  = interp1(1:length(image_y), image_y, y_new);
+
       cmds(end+1).undo_cmd = 'insert';
       cmds(end).undo_args = {cur_layer, auto_idxs, ...
         param.layer.y{cur_layer}(auto_idxs), ...
