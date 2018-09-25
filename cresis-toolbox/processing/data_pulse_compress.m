@@ -73,6 +73,73 @@ for img = 1:length(param.load.imgs)
       end
     end
     
+    %% Remove coherent noise for deramp radar
+    % ===================================================================
+    if strcmpi(radar_type,'deramp')
+      
+      if strcmpi(wfs(wf).coh_noise_method,'analysis')
+        cdf_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
+        cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
+        
+        finfo = ncinfo(cdf_fn);
+        
+        noise = [];
+        coh_noise_date_str = ncread(cdf_fn,'datestr');
+        hdr.custom.coh_noise(1:length(coh_noise_date_str),1,img,wf_adc) = coh_noise_date_str;
+        noise.start_bin = ncread(cdf_fn,'start_bin');
+        noise.dt = ncread(cdf_fn,'dt');
+        noise.dft_freqs = ncread(cdf_fn,'dft_freqs');
+        noise.recs = ncread(cdf_fn,'recs');
+        noise.gps_time = ncread(cdf_fn,'gps_time');
+        noise.Nx = length(noise.gps_time);
+        
+        tmp = netcdf_to_mat(cdf_fn,[],'^param_analysis');
+        noise.param_analysis = tmp.param_analysis;
+        
+        %         dt = hdr.time{img}(2)-hdr.time{img}(1);
+        %         if abs(noise.dt-dt)/dt > 1e-6
+        %           error('There is a fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g).', dt, noise.dt);
+        %         end
+        % Adjust coherent noise start_bin for changes in t_ref relative to
+        % when the coherent noise was loaded and estimated.
+        %         delta_t_ref_bin = (noise.param_analysis.radar.wfs(wf).t_ref - wfs(wf).t_ref)/dt;
+        %         if abs(round(delta_t_ref_bin)-delta_t_ref_bin) > 1e-3
+        %           error('There is a fast-time reference time delay discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g). Changes in t_ref require recreating the coherent noise file or the changes must be a multiple of a time bin (%g).', ...
+        %             wfs(wf).t_ref, noise.param_analysis.radar.wfs(wf).t_ref, dt);
+        %         end
+        %         start_bin = round(hdr.time{img}(1)/dt) + delta_t_ref_bin;
+        
+        % Nt by Nx_dft matrix (we grab a subset of the Nt samples)
+        noise.dft = ncread(cdf_fn,'dftI') ...
+          + 1i*ncread(cdf_fn,'dftQ');
+        
+        % Adjust coherent noise dft for changes in adc_gains relative to
+        % when the coherent noise was loaded and estimated.
+        noise.dft = noise.dft * 10.^((wfs(wf).adc_gains_dB(adc)-noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
+        
+        recs = interp1(noise.gps_time, noise.recs, hdr.gps_time);
+        
+        %         if 0
+        %           imagesc(lp( bsxfun(@minus, data{1}(1:wfs(wf).Nt,:), mean(data{1}(1:wfs(wf).Nt,:),2) )  ))
+        %           figure(1); clf;
+        %           plot(lp(mean(data{1}(1:wfs(wf).Nt,:),2)))
+        %           hold on
+        %           plot(lp(noise.dft))
+        %         end
+        
+        cn.data = zeros([size(noise.dft,1) numel(recs)],'single');
+        for dft_idx = 1:length(noise.dft_freqs)
+          % mf: matched filter
+          % noise.dft(bin,dft_idx): Coefficient for the matched filter
+          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+          for bin = 1:size(noise.dft,1)
+            cn.data(bin,:) = cn.data(bin,:)-noise.dft(bin,dft_idx) * mf;
+          end
+        end
+      end
+    end
+    
+    
     %% Pulse compression
     % ===================================================================
     if param.load.pulse_comp == 1
@@ -244,6 +311,13 @@ for img = 1:length(param.load.imgs)
             Nt_desired = round(wfs(wf).fs_raw/wfs(wf).chirp_rate*diff(wfs(wf).BW_window)/2)*2;
             fs_raw_dec = wfs(wf).fs_raw ./ hdr.DDC_dec{img}(rec);
             Nt_raw_trim = round(fs_raw_dec/wfs(wf).chirp_rate*diff(wfs(wf).BW_window)/2)*2;
+            if 0
+              % Debug: Test how fast different data record lengths are
+              for Nt_raw_trim_test=Nt_raw_trim+(0:10)
+                Nt_raw_trim_test
+                tic; for run = 1:4; fft(rand(Nt_raw_trim_test,2000)); fft(rand(floor(Nt_raw_trim_test/2)+1,2000)); end; toc;
+              end
+            end
             [p,q] = rat(Nt_raw_trim*hdr.DDC_dec{img}(rec) / Nt_desired);
             % Create raw time domain window
             H_Nt = wfs(wf).ft_wind(Nt_raw_trim);
@@ -298,17 +372,17 @@ for img = 1:length(param.load.imgs)
               & freq_raw_valid <= (1+nz)*wfs(wf).fs_raw/2);
             
             if mod(nz,2)
-              freq_raw_valid(conjugate_bins) = nz*wfs(wf).fs_raw-freq_raw_valid(conjugate_bins);
+              freq_raw_valid(conjugate_bins) = nz*wfs(wf).fs_raw - freq_raw_valid(conjugate_bins);
             else
               freq_raw_valid(conjugate_bins) = (nz+1)*wfs(wf).fs_raw - freq_raw_valid(conjugate_bins);
             end
             
             freq_raw_valid = df_raw*round(freq_raw_valid/df_raw);
             
-            [~,unique_idxs] = unique(freq_raw_valid);
-            if mod(length(unique_idxs),2)
-              unique_idxs = unique_idxs(1:end-1);
-            end
+            [~,unique_idxs,return_idxs] = unique(freq_raw_valid);
+            %             if mod(length(unique_idxs),2)
+            %               unique_idxs = unique_idxs(1:end-1);
+            %             end
             
             freq_raw_unique = freq_raw_valid(unique_idxs);
             conjugate_unique = conjugate_bins(unique_idxs);
@@ -338,22 +412,64 @@ for img = 1:length(param.load.imgs)
               xlabel('Bin (reordered)');
               ylabel('Frequency (Hz)');
             end
+            
+            %% Determine the mapping of frequencies to time delays for coh noise
+            if strcmpi(wfs(wf).coh_noise_method,'analysis')
+              % =============================================================
+              
+              cn.df_raw = wfs(wf).fs_raw/hdr.DDC_dec{img}(rec)/Nt_raw_trim;
+              
+              % nz: Nyquist zone containing signal spectrum (just renaming
+              %   variable for convenience). The assumption is that the
+              %   signal does not cross nyquist zones.
+              cn.nz = double(hdr.nyquist_zone_hw{img}(rec));
+              
+              % f_nz0: Lowest frequency in terms of ADC input frequency of the
+              %   nyquist zone which contains the signal
+              cn.f_nz0 = wfs(wf).fs_raw * floor(cn.nz/2);
+              
+              cn.freq_raw =  cn.f_nz0 + mod(hdr.DDC_freq{img}(rec) ...
+                + cn.df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).', wfs(wf).fs_raw);
+              cn.freq_raw_valid = cn.freq_raw;
+              
+              cn.conjugate_bins = ~(cn.freq_raw_valid >= cn.nz*wfs(wf).fs_raw/2 ...
+                & cn.freq_raw_valid <= (1+cn.nz)*wfs(wf).fs_raw/2);
+              
+              if mod(cn.nz,2)
+                cn.freq_raw_valid(cn.conjugate_bins) = cn.nz*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+              else
+                cn.freq_raw_valid(cn.conjugate_bins) = (cn.nz+1)*wfs(wf).fs_raw - cn.freq_raw_valid(cn.conjugate_bins);
+              end
+              
+              cn.freq_raw_valid = cn.df_raw*round(cn.freq_raw_valid/cn.df_raw);
+              
+              [~,cn.unique_idxs,cn.return_idxs] = unique(cn.freq_raw_valid);
+              %               if mod(length(cn.unique_idxs),2)
+              %                 cn.unique_idxs = cn.unique_idxs(1:end-1);
+              %               end
+              
+              cn.freq_raw_unique = cn.freq_raw_valid(cn.unique_idxs);
+              cn.conjugate_unique = cn.conjugate_bins(cn.unique_idxs);
+            end
+            
           end
           
           % Check to see if reference time offset has changed since last record
           if freq_axes_changed ...
               || hdr.t_ref{img}(rec) ~= hdr.t_ref{img}(rec-1)
             
+            freq_axes_changed = false; % Reset state
+            
+            %% Time axis
+            
             % Convert IF frequency to time delay and account for reference
             % deramp time offset, hdr.t_ref
-            time_rel = freq_raw_unique/wfs(wf).chirp_rate; % Relative time to t_ref
-            time = time_rel + hdr.t_ref{img}(rec);
+            time = freq_raw_unique/wfs(wf).chirp_rate + hdr.t_ref{img}(rec);
             
             % Ensure that start time is a multiple of dt
             dt = time(2)-time(1);
             time_correction = dt - mod(time(1),dt);
             time = time + time_correction;
-            time_correction_IF = -time_correction*wfs(wf).chirp_rate;
             
             fc = sum(wfs(wf).BW_window)/2;
             Nt = length(time);
@@ -361,7 +477,32 @@ for img = 1:length(param.load.imgs)
             df = 1/T;
             freq = fc + df * ifftshift(-floor(Nt/2) : floor((Nt-1)/2)).';
             
-            freq_axes_changed = false; % Reset state
+            deskew = exp(-1i*pi*wfs(wf).chirp_rate*(time-wfs(wf).td_mean).^2);
+            deskew_shift = 1i*2*pi*(0:Nt_raw_trim-1).'/Nt_raw_trim;
+            time_correction = exp(1i*2*pi*freq*time_correction);
+            
+            %% Time axis for coh noise
+            if strcmpi(wfs(wf).coh_noise_method,'analysis')
+              
+              % Convert IF frequency to time delay and account for reference
+              % deramp time offset, hdr.t_ref
+              cn.time = cn.freq_raw_unique/wfs(wf).chirp_rate + hdr.t_ref{img}(rec);
+              
+              % Ensure that start time is a multiple of dt
+              cn.dt = cn.time(2)-cn.time(1);
+              cn.time_correction = cn.dt - mod(cn.time(1),cn.dt);
+              cn.time = cn.time + cn.time_correction;
+              
+              fc = sum(wfs(wf).BW_window)/2;
+              Nt = length(cn.time);
+              T = Nt*dt;
+              df = 1/T;
+              cn.freq = fc + df * ifftshift(-floor(Nt/2) : floor((Nt-1)/2)).';
+              
+              cn.deskew = exp(-1i*pi*wfs(wf).chirp_rate*(cn.time-wfs(wf).td_mean).^2);
+              cn.deskew_shift = 1i*2*pi*(0:Nt_raw_trim-1).'/Nt_raw_trim;
+              cn.time_correction = exp(1i*2*pi*cn.freq*cn.time_correction);
+            end
           end
           
           % Get the start time for this record
@@ -394,6 +535,7 @@ for img = 1:length(param.load.imgs)
           
           % Create the window for the particular range line
           window_start_idx = find(f_rf >= wfs(wf).BW_window(1),1);
+          window_start_idx = window_start_idx_norm;
           H_idxs = window_start_idx : window_start_idx+Nt_raw_trim-1;
           if 0
             % ENABLE_FOR_DEBUG
@@ -402,20 +544,87 @@ for img = 1:length(param.load.imgs)
           end
           
           % Window and Pulse compress
-          tmp = data{img}(H_idxs,rec,wf_adc);
           if 0
             % Debug: Verify pulse compression window is correct
             clf;
-            plot(lp(tmp));
+            plot(lp(data{img}(H_idxs,rec,wf_adc)));
             hold on;
-            plot(lp(tmp .* H_Nt));
+            plot(lp(data{img}(H_idxs,rec,wf_adc) .* H_Nt));
           end
-          tmp = fft(tmp .* H_Nt);
+          
+          
+          % FFT (raw deramped time to regular time) and window
+          tmp = fft(data{img}(H_idxs,rec,wf_adc) .* H_Nt);
           
           % Deskew of the residual video phase (not the standard because we
           % actually move the window to track the td)
-          tmp_freq = (0:length(tmp)-1).';
-          tmp = tmp .* exp(1i*2*pi*tmp_freq*(window_start_idx_norm-window_start_idx)/length(tmp));
+          %tmp = tmp .* exp(deskew_shift*(window_start_idx_norm-window_start_idx));
+          
+          % Remove coherent noise
+          if strcmpi(wfs(wf).coh_noise_method,'analysis')
+            if 0
+              % Debug: Create fake coherent noise based on current data
+              %   Adjust the rec range to grab multiple range lines for
+              %   better average:
+              tmp = fft(mean(data{img}(H_idxs,rec+(0:99),wf_adc),2) .* H_Nt);
+              cn.tmp = tmp(cn.unique_idxs);
+              cn.tmp(cn.conjugate_unique) = conj(cn.tmp(cn.conjugate_unique));
+              cn.tmp = ifftshift(fft(conj(cn.tmp)));
+              cn.tmp = cn.tmp .* cn.time_correction;
+              cn.tmp = ifft(cn.tmp);
+              cn.tmp = -cn.tmp .* cn.deskew;
+            else
+              if abs(noise.dt-cn.dt)/cn.dt > 1e-6
+                error('There is a fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g).', dt, noise.dt);
+              end
+              % Adjust coherent noise start_bin for changes in t_ref relative to
+              % when the coherent noise was loaded and estimated.
+              delta_t_ref_bin = (noise.param_analysis.radar.wfs(wf).t_ref - wfs(wf).t_ref)/cn.dt;
+              if abs(round(delta_t_ref_bin)-delta_t_ref_bin) > 1e-3
+                error('There is a fast-time reference time delay discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g). Changes in t_ref require recreating the coherent noise file or the changes must be a multiple of a time bin (%g).', ...
+                  wfs(wf).t_ref, noise.param_analysis.radar.wfs(wf).t_ref, cn.dt);
+              end
+              start_bin = 1 + round(cn.time(1)/cn.dt) - noise.start_bin + delta_t_ref_bin;
+              cn.tmp = cn.data(start_bin + (0:length(cn.time)-1),rec);
+            end
+            
+            % Coherent noise is fully pulse compressed. We undo the operations
+            % until we get back to a point where we can subtract away the
+            % result from our present data. This is necessary because the
+            % coherent noise may have been processed in a different signal
+            % nyquist zone than we are processing the data now; this happens
+            % when the operator chooses the wrong nyquist zone during data
+            % collection.
+            
+            % Undo tmp = tmp .* deskew;
+            cn.tmp = cn.tmp ./ cn.deskew;
+            % Undo tmp = ifft(tmp);
+            cn.tmp = fft(cn.tmp);
+            % Undo tmp = tmp .* time_correction;
+            cn.tmp = cn.tmp ./ cn.time_correction;
+            % Undo tmp = ifftshift(fft(conj(tmp)));
+            cn.tmp = conj(ifft(fftshift(cn.tmp)));
+            % Undo tmp = tmp(unique_idxs);
+            cn.tmp = cn.tmp(cn.return_idxs);
+            % Undo tmp(conjugate_unique) = conj(tmp(conjugate_unique));
+            cn.tmp(cn.conjugate_bins) = conj(cn.tmp(cn.conjugate_bins));
+            
+            if 0
+              % Debug
+              figure(1); clf;
+              plot(real(tmp));
+              hold on;
+              plot(real(-cn.tmp),'--');
+              
+              figure(2); clf;
+              plot(imag(tmp));
+              hold on;
+              plot(imag(-cn.tmp),'--');
+            end
+            
+            % Subtract the coherent noise
+            tmp = tmp + cn.tmp;
+          end
           
           % Reorder result in case it is wrapped
           tmp = tmp(unique_idxs);
@@ -431,13 +640,13 @@ for img = 1:length(param.load.imgs)
           % pure time shift and not introduce any phase shift in the other
           % domain, we make sure the phase is zero in the center of the
           % window: -time_raw(1+floor(Nt/2))
-          tmp = tmp .* exp(1i*2*pi*freq*time_correction);
+          tmp = tmp .* time_correction;
           
           % Return to time domain
           tmp = ifft(tmp);
           
           % Deskew of the residual video phase (second stage)
-          tmp = tmp .* exp(-1i*pi*wfs(wf).chirp_rate*(time-wfs(wf).td_mean).^2);
+          tmp = tmp .* deskew;
           
           % Resample data so it aligns to constant time step
           if p~=q
@@ -539,67 +748,7 @@ for img = 1:length(param.load.imgs)
     % ===================================================================
     if strcmpi(radar_type,'deramp')
       
-      if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        cdf_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
-        cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
-        
-        finfo = ncinfo(cdf_fn);
-
-        noise = [];
-        coh_noise_date_str = ncread(cdf_fn,'datestr');
-        hdr.custom.coh_noise(1:length(coh_noise_date_str),1,img,wf_adc) = coh_noise_date_str;
-        noise.start_bin = ncread(cdf_fn,'start_bin');
-        noise.dt = ncread(cdf_fn,'dt');
-        noise.dft_freqs = ncread(cdf_fn,'dft_freqs');
-        noise.recs = ncread(cdf_fn,'recs');
-        noise.gps_time = ncread(cdf_fn,'gps_time');
-        noise.Nx = length(noise.gps_time);
-        
-        tmp = netcdf_to_mat(cdf_fn,[],'^param_analysis');
-        noise.param_analysis = tmp.param_analysis;
-        
-        dt = hdr.time{img}(2)-hdr.time{img}(1);
-        if abs(noise.dt-dt)/dt > 1e-6
-          error('There is a fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g).', dt, noise.dt);
-        end
-        % Adjust coherent noise start_bin for changes in t_ref relative to
-        % when the coherent noise was loaded and estimated.
-        delta_t_ref_bin = (noise.param_analysis.radar.wfs(wf).t_ref - wfs(wf).t_ref)/dt;
-        if abs(round(delta_t_ref_bin)-delta_t_ref_bin) > 1e-3
-          error('There is a fast-time reference time delay discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g). Changes in t_ref require recreating the coherent noise file or the changes must be a multiple of a time bin (%g).', ...
-            wfs(wf).t_ref, noise.param_analysis.radar.wfs(wf).t_ref, dt);
-        end
-        start_bin = round(hdr.time{img}(1)/dt) + delta_t_ref_bin;
-        
-        % Nt by Nx_dft matrix (we grab a subset of the Nt samples)
-        noise.dft = ncread(cdf_fn,'dftI',[start_bin-noise.start_bin+1 1],[wfs(wf).Nt inf]) ...
-          + 1i*ncread(cdf_fn,'dftQ',[start_bin-noise.start_bin+1 1],[wfs(wf).Nt inf]);
-        
-        % Adjust coherent noise dft for changes in adc_gains relative to
-        % when the coherent noise was loaded and estimated.
-        noise.dft = noise.dft * wfs(wf).adc_gains(adc) ./ noise.param_analysis.radar.wfs(wf).adc_gains(adc);
-        
-        recs = interp1(noise.gps_time, noise.recs, hdr.gps_time);
-        
-        if 0
-          imagesc(lp( bsxfun(@minus, data{1}(1:wfs(wf).Nt,:), mean(data{1}(1:wfs(wf).Nt,:),2) )  ))
-          figure(1); clf;
-          plot(lp(mean(data{1}(1:wfs(wf).Nt,:),2)))
-          hold on
-          plot(lp(noise.dft))
-        end
-        
-        for dft_idx = 1:length(noise.dft_freqs)
-          % mf: matched filter
-          % noise.dft(bin,dft_idx): Coefficient for the matched filter
-          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
-          for bin = 1:wfs(wf).Nt
-            data{img}(bin,:,wf_adc) = data{img}(bin,:,wf_adc) ...
-              - noise.dft(bin,dft_idx) * mf;
-          end
-        end
-        
-      elseif strcmpi(wfs(wf).coh_noise_method,'estimated')
+      if strcmpi(wfs(wf).coh_noise_method,'estimated')
         % Apply coherent noise methods that require estimates derived now
         
         if wfs(wf).coh_noise_arg.DC_remove_en
@@ -641,7 +790,7 @@ for img = 1:length(param.load.imgs)
         % waveform that will be applied
         cmd = deconv.param_collate_deconv.analysis.cmd{deconv.param_collate_deconv.collate_deconv.cmd_idx};
         freq = fftshift(hdr.freq{img});
-      fc = hdr.freq{img}(1);
+        fc = hdr.freq{img}(1);
         
         % Prepare variables to baseband data to new center frequency (in
         % case the deconvolution filter subbands)
