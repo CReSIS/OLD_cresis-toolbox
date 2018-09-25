@@ -392,6 +392,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         pitch = [];
         heading = [];
         surface = [];
+        start_bin = [];
         tmp_stats = {};
         time = {};
         freq = {};
@@ -423,6 +424,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           pitch(end+(1:length(stats.pitch))) = stats.pitch;
           heading(end+(1:length(stats.heading))) = stats.heading;
           surface(end+(1:length(stats.surface))) = stats.surface;
+          start_bin(end+(1:length(stats.start_bin))) = stats.start_bin;
           
           % stats may be different lengths, so we just concatenate in cell
           % arrays
@@ -444,6 +446,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         stats.pitch = pitch;
         stats.heading = heading;
         stats.surface = surface;
+        stats.start_bin = start_bin;
         
         stats.freq = freq;
         stats.time = time;

@@ -148,10 +148,12 @@ if any(param.records.file.version == [9 10 103 412])
   records.raw.profile_cntr_latch = interp_finite(records.raw.profile_cntr_latch);
   records.raw.rel_time_cntr_latch = interp_finite(records.raw.rel_time_cntr_latch);
 
-  radar_time = double(records.raw.pps_cntr_latch) ...
-    + double(records.raw.pps_ftime_cntr_latch)/param.records.file.clk;
+  % radar_time = double(records.raw.pps_cntr_latch) ...
+  %   + double(records.raw.pps_ftime_cntr_latch)/param.records.file.clk;
+  radar_time = double(records.raw.rel_time_cntr_latch)/param.records.file.clk;
+  comp_time = [];
 else
-  
+  comp_time = [];
 end
 
 %% Correct radar time with EPRI
@@ -182,7 +184,6 @@ if any(param.records.file.version == [9 10 103 412])
   end
   
   radar_time(bad_idxs) = epri_time(bad_idxs);
-  
 end
 
 %% Correlate GPS with radar data
@@ -190,7 +191,7 @@ end
 fprintf('Loading GPS data (%s)\n', datestr(now));
 
 if param.records.gps.en
-  records = sync_radar_to_gps(param,records,radar_time);
+  records = sync_radar_to_gps(param,records,radar_time,comp_time);
   
 else
   records.gps_time = NaN*zeros(size(radar_time));

@@ -54,40 +54,61 @@
 
 for file_idx = 1:length(in_fns)
   in_fn = in_fns{file_idx};
+  if ischar(in_fn)
+    in_fn = {in_fn};
+  end
+  if ~exist('sync_fns','var')
+    sync_fn = {};
+  else
+    sync_fn = sync_fns{file_idx};
+  end
+  if ischar(sync_fn)
+    sync_fn = {sync_fn};
+  end
   out_fn = fullfile(gps_path,out_fns{file_idx});
   if isempty(in_fn)
     error('No input GPS files found in in_fns{%d} variable. Usually this is because the file path is not setup.\n', file_idx);
   end
-  if iscell(in_fn)
-    fprintf('Input files (%.1f sec)\n', toc);
-    for in_fn_idx = 1:length(in_fn)
-      fprintf('  %s\n', in_fn{in_fn_idx});
-    end
-  else
-    fprintf('Input file %s (%.1f sec)\n', in_fn, toc);
+  fprintf('Sync files (%.1f sec)\n', toc);
+  for in_fn_idx = 1:length(in_fn)
+    fprintf('  %s\n', in_fn{in_fn_idx});
+  end
+  fprintf('Input files (%.1f sec)\n', toc);
+  for in_fn_idx = 1:length(in_fn)
+    fprintf('  %s\n', in_fn{in_fn_idx});
   end
   fprintf('  Output file %s\n', out_fn);
   
-  if exist('sync_flag','var') && sync_flag{file_idx}
-    %% Load Radar-Synchronization NMEA format 3 sync files (mcrds, accum2)
-    if ~iscell(sync_fns{file_idx})
-      sync_fns{file_idx} = {sync_fns{file_idx}};
+  %% Load Radar Sync GPS files (mcrds, accum2, arena)
+  if isstruct(sync_params{file_idx})
+    sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
+  end
+  clear sync_gps;
+  for sync_fn_idx = 1:length(sync_fn)
+    if iscell(sync_file_type{file_idx})
+      cur_file_type = sync_file_type{file_idx}{sync_fn_idx};
+    else
+      cur_file_type = sync_file_type{file_idx};
     end
-    clear sync_gps;
-    for sync_fn_idx = 1:length(sync_fns{file_idx})
-      fprintf('  Sync file %s\n', sync_fns{file_idx}{sync_fn_idx});
-      if sync_fn_idx == 1
-        sync_gps = read_gps_nmea(sync_fns{file_idx}{sync_fn_idx},sync_params{file_idx});
-      else
-        sync_gps_tmp = read_gps_nmea(sync_fns{file_idx}{sync_fn_idx},sync_params{file_idx});
-        sync_gps.gps_time = [sync_gps.gps_time, sync_gps_tmp.gps_time];
-        sync_gps.lat = [sync_gps.lat, sync_gps_tmp.lat];
-        sync_gps.lon = [sync_gps.lon, sync_gps_tmp.lon];
-        sync_gps.elev = [sync_gps.elev, sync_gps_tmp.elev];
-        sync_gps.comp_time = [sync_gps.comp_time, sync_gps_tmp.comp_time];
-        if isfield(sync_gps,'radar_time')
-          sync_gps.radar_time = [sync_gps.radar_time, sync_gps_tmp.radar_time];
-        end
+    gps_fh = make_gps_fh(cur_file_type);
+    gps_tmp = gps_fh(sync_fn{sync_fn_idx},sync_params{file_idx}{sync_fn_idx});
+    
+    if sync_fn_idx == 1
+      sync_gps = gps_tmp;
+    else
+      sync_gps.gps_time = [sync_gps.gps_time, gps_tmp.gps_time];
+      sync_gps.lat = [sync_gps.lat, gps_tmp.lat];
+      sync_gps.lon = [sync_gps.lon, gps_tmp.lon];
+      sync_gps.elev = [sync_gps.elev, gps_tmp.elev];
+      sync_gps.roll = [sync_gps.roll, gps_tmp.roll];
+      sync_gps.pitch = [sync_gps.pitch, gps_tmp.pitch];
+      sync_gps.heading = [sync_gps.heading, gps_tmp.heading];
+      sync_gps.comp_time = [sync_gps.comp_time, gps_tmp.comp_time];
+      if isfield(sync_gps,'radar_time')
+        sync_gps.radar_time = [sync_gps.radar_time, sync_gps_tmp.radar_time];
+      end
+      if isfield(sync_gps,'profileCntr')
+        sync_gps.profileCntr = [sync_gps.profileCntr, sync_gps_tmp.profileCntr];
       end
     end
   end
@@ -104,6 +125,7 @@ for file_idx = 1:length(in_fns)
   for in_fn_idx = 1:length(in_fn)
     if iscell(file_type{file_idx})
       cur_file_type = file_type{file_idx}{in_fn_idx};
+      plus_idx = regexp(cur_file_type,'+');
       if ~isempty(plus_idx)
         warning('Deprecated GPS+INS file_type format using "+". Use file_type_ins instead of combining INS type with GPS file_type. For example "awi_netcdf+awi_netcdf" should be "awi_netcdf" in file_type and "awi_netcdf" in file_type_ins.');
         separate_ins_data_flag = true;
@@ -120,39 +142,8 @@ for file_idx = 1:length(in_fns)
         cur_file_type = cur_file_type(1:plus_idx-1);
       end
     end
-    if strcmpi(cur_file_type,'Applanix')
-      gps_tmp = read_gps_applanix(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'arena')
-      gps_tmp = read_gps_arena(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'awi_netcdf')
-      gps_tmp = read_gps_netcdf(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'cresis')
-      gps_tmp = read_gps_cresis(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'DMSraw')
-      gps_tmp = read_gps_dmsraw(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'General_ASCII')
-      gps_tmp = read_gps_general_ascii(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'Litton')
-      gps_tmp = read_ins_litton(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'Litton_DGPS')
-      gps_tmp = read_gps_litton(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'NMEA')
-      gps_tmp = read_gps_nmea(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'Novatel')
-      gps_tmp = read_gps_novatel(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'Reveal')
-      gps_tmp = read_gps_reveal(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'Novatel_RPYGGA')
-      gps_tmp = read_gps_novatel_rpygga(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'Traj')
-      gps_tmp = read_gps_traj(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'TXT')
-      gps_tmp = read_gps_txt(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    elseif strcmpi(cur_file_type,'csv')
-      gps_tmp = read_gps_csv(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
-    else
-      error('Unrecognized GPS file type %s', cur_file_type);
-    end
+    gps_fh = make_gps_fh(cur_file_type);
+    gps_tmp = gps_fh(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     
     if in_fn_idx == 1
       gps = gps_tmp;

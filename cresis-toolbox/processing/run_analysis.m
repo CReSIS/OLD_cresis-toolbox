@@ -13,16 +13,17 @@ param_override = [];
 
 % params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'20170311_02',{'analysis_spec','analysis'});
 % params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec','analysis'});
-params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
+% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
+params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'',{'analysis_stat','analysis'});
 
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20170406_02');
+% params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170406_02');
 
 % dbstop if error;
-param_override.cluster.type = 'torque';
-% param_override.cluster.type = 'matlab';
+% param_override.cluster.type = 'torque';
+param_override.cluster.type = 'matlab';
 % param_override.cluster.type = 'debug';
 param_override.cluster.rerun_only = false;
 param_override.cluster.desired_time_per_job  = 120*60;
