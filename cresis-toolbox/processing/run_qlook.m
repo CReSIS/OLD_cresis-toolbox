@@ -16,10 +16,11 @@ params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls
 
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 %params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
-% params = ct_set_params(params,'cmd.qlook',0);
-% params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170309_01');
-% params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170406_02');
-% params = ct_set_params(params,'cmd.frms',[9:12]);
+params = ct_set_params(params,'cmd.qlook',0);
+params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170310_01');
+% params = ct_set_params(params,'cmd.frms',[9:13]);
+% params = ct_set_params(params,'cmd.qlook',1,'day_seg','20170311_02');
+% params = ct_set_params(params,'cmd.frms',[]);
 % params = ct_set_params(params,'qlook.presums',4);
 % params = ct_set_params(params,'qlook.dec',1);
 
@@ -40,10 +41,10 @@ params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls
 
 % 2-18 GHz Deconvolution Settings
 
-% params = ct_set_params(params,'radar.wfs(1).deconv.en',0);
-% params = ct_set_params(params,'radar.wfs(1).coh_noise_method','');
-% params = ct_set_params(params,'qlook.out_path','qlook');
-% params = ct_set_params(params,'qlook.resample',[]);
+params = ct_set_params(params,'radar.wfs(1).deconv.en',0);
+% params = ct_set_params(params,'radar.wfs(1).coh_noise_method',''); % HACK
+params = ct_set_params(params,'qlook.out_path','qlook');
+params = ct_set_params(params,'qlook.resample',[]);
 
 % params = ct_set_params(params,'radar.wfs(1).deconv.en',1);
 % params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis');
