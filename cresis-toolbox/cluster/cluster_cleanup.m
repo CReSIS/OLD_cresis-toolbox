@@ -110,7 +110,7 @@ for ctrl_idx = 1:length(ctrls)
   fprintf('Removing batch %d\n', ctrl.batch_id);
   try
     ctrl = cluster_get_batch(ctrl,false,0);
-    if strcmpi(ctrl.cluster.type,'matlab') && ~isfield(ctrl.cluster.jm)
+    if strcmpi(ctrl.cluster.type,'matlab') && ~isfield(ctrl.cluster,'jm')
       ctrl.cluster.jm = parcluster;
     end
     if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))

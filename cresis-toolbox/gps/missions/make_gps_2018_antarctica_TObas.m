@@ -33,39 +33,24 @@ debug_level = 1;
 in_base_path = fullfile(data_support_path,'2018_Antarctica_TObas');
 
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
-sync_fns = {}; sync_params = {};
+sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 gps_source_to_use = 'arena';
 
 if strcmpi(gps_source_to_use,'arena')
 %% ARENA
   
-%   year = 2018; month = 8; day = 17;
-%   file_idx = file_idx + 1;
-%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-%   file_type{file_idx} = 'arena';
-%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
-%   gps_source{file_idx} = 'arena-field';
-%   sync_flag{file_idx} = 0;
-
-%   year = 2018; month = 8; day = 29;
-%   file_idx = file_idx + 1;
-%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-%   file_type{file_idx} = 'arena';
-%   params{file_idx} = struct('year',year,'month',month,'day',day+1,'format',3,'time_reference','utc');
-%   gps_source{file_idx} = 'arena-field';
-%   sync_flag{file_idx} = 0;
-
-  year = 2018; month = 8; day = 30;
+  year = 2018; month = 9; day = 24;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'arena';
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
   gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 0;
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = in_fns{file_idx};
+  sync_file_type{file_idx} = 'arena';
+  sync_params{file_idx} = params{file_idx};
 
 end
 

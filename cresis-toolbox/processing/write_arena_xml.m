@@ -312,6 +312,30 @@ for adc_idx = adc_idxs
       stop_bin = start_bin + Nt-1;
       child = doc.createElement('rg'); integrator.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d:%d',start_bin,stop_bin)));
+      
+      if adc.outputSelect == 1
+        % Set bit shifts/bit_shift/bitshift
+        
+        % Field used to determine how many right shifts to apply (16 LSB after
+        % shift are saved).
+        shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) - max(0,16 - param.radar.adc_bits);
+        %shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) + 1;
+        child = doc.createElement('shiftLSB'); integrator.appendChild(child);
+        child.appendChild(doc.createTextNode( sprintf('%d', shiftLSB) ));
+        child = doc.createElement('outputSelect'); integrator.appendChild(child);
+        child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
+        param.data_rate = param.data_rate + total_Nt*4;
+      elseif adc.outputSelect == 0
+        % Field not used for 32 bit IQ records
+        child = doc.createElement('shiftLSB'); integrator.appendChild(child);
+        child.appendChild(doc.createTextNode( '0' ));
+        child = doc.createElement('outputSelect'); integrator.appendChild(child);
+        child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
+        param.data_rate = param.data_rate + total_Nt*8;
+      else
+        error('Invalid adc.outputSelect (%d)', adc.outputSelect);
+      end
+      
     end
     
     child = doc.createElement('coefficients'); subchannel.appendChild(child);
@@ -320,27 +344,6 @@ for adc_idx = adc_idxs
     coefficients_str = [coefficients_str sprintf(',%d',B(2:end))];
     child.appendChild(doc.createTextNode(coefficients_str));
     
-  end
-  
-  if adc.outputSelect == 1
-    % Field used to determine how many right shifts to apply (16 LSB after
-    % shift are saved).
-    %shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) - max(0,16 - param.radar.adc_bits);
-    shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) + 1;
-    child = doc.createElement('shiftLSB'); config.appendChild(child);
-    child.appendChild(doc.createTextNode( sprintf('%d', shiftLSB) ));
-    child = doc.createElement('outputSelect'); config.appendChild(child);
-    child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
-    param.data_rate = param.data_rate + total_Nt*4;
-  elseif adc.outputSelect == 0
-    % Field not used for 32 bit IQ records
-    child = doc.createElement('shiftLSB'); config.appendChild(child);
-    child.appendChild(doc.createTextNode( '0' ));
-    child = doc.createElement('outputSelect'); config.appendChild(child);
-    child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
-    param.data_rate = param.data_rate + total_Nt*8;
-  else
-    error('Invalid adc.outputSelect (%d)', adc.outputSelect);
   end
   
   child = doc.createElement('nbufs'); config.appendChild(child);

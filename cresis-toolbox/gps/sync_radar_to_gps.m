@@ -134,9 +134,10 @@ elseif any(param.records.file.version == [409])
 elseif any(param.records.file.version == [9 10 103 412])
   % Arena based systems
   
-  radar_gps_time = radar_time + param.records.gps.time_offset;
-  % Convert from UTC to GPS
-  radar_gps_time = radar_gps_time + utc_leap_seconds(radar_gps_time(1));
+  % Interpolate gps.sync_gps_time to radar gps_time using gps.radar_time
+  % and radar_time
+  radar_gps_time = interp1(gps.radar_time, gps.sync_gps_time, ...
+    radar_time,'linear','extrap');
   
 else
   % NI based, Ledford systems

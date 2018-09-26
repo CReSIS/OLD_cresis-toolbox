@@ -2,9 +2,9 @@
 % title('Low Gain Not Synced 555 kHz PA off'); hold on;
 % fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_kx/stats_20180831_01_wf_1_adc_1.mat';
 
-figure(17); hold on;
-title('High Gain Alis unsynched vs. Haras Synched'); hold on;
-fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_kx/stats_20180831_15_wf_2_adc_1.mat';
+% figure(17); hold on;
+% title('High Gain Alis unsynched vs. Haras Synched'); hold on;
+% fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_kx/stats_20180831_15_wf_2_adc_1.mat';
 
 % figure(5); clf;
 % title('Low Gain ~Synced 555 kHz PA on'); hold on;
@@ -37,6 +37,10 @@ fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_kx/stats_20180831_15_w
 % figure(4); clf;
 % title('High Gain Synced 500 kHz PA On'); hold on;
 % fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_kx/stats_20180831_08_wf_2_adc_1.mat';
+
+figure(17); clf;
+title('John Test'); hold on;
+fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_kx/stats_20180922_03_wf_1_adc_1.mat';
 
 % =========================================================================
 

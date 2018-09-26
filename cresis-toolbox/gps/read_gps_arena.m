@@ -16,8 +16,9 @@ function gps = read_gps_arena(fn, param)
 %     .year
 %     .month
 %     .day
-%     .time_reference = 'gps' or 'utc' (should always be 'utc')
-%     .nmea_tag = NEMA string to identify good lines (e.g. '$GPGGA')
+%     .time_reference: 'gps' or 'utc' (should always be 'utc')
+%     .nmea_tag: NEMA string to identify good lines (e.g. '$GPGGA')
+%     .clk: clock for radar_time counter, defaults to 10e6
 %
 % Output Args:
 % gps = output structure with fields
@@ -49,34 +50,31 @@ function gps = read_gps_arena(fn, param)
 if ~exist('param','var') || isempty(param)
   error('Year, month, day must be specified in param struct');
 end
-
+if ~isfield(param,'clk') || isempty(param.clk)
+  param.clk = 10e6;
+end
+  
 [fid,msg] = fopen(fn,'r');
 if fid < 0
   error('Error opening %s: %s', fn, msg);
 end
 
 format_str = '%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s';
-nmea_idx = 0;
+nmea_idx = 1;
 while ~feof(fid)
   str = fgets(fid);
   [token,remain] = strtok(str,':');
   if strcmpi(token,'nmea')
-    nmea_idx = nmea_idx + 1;
     C = textscan(remain(2:end),format_str,'delimiter',', ','emptyvalue',NaN);
     [tag,UTC_time_file(nmea_idx),latitude(nmea_idx),N_S(nmea_idx),longitude(nmea_idx),E_W(nmea_idx),fix,NoSatelite,dilution,...
       altitude(nmea_idx),alt_unit,geode_ref,geode_unit,dgps,checksum] = deal(C{:});
+    nmea_idx = nmea_idx + 1;
   elseif strcmpi(token,'relTimeCntr')
-    if nmea_idx>0
-      relTimeCntr(nmea_idx) = str2double(remain(2:end));
-    end
+    relTimeCntr(nmea_idx) = str2double(remain(2:end));
   elseif strcmpi(token,'profileCntr')
-    if nmea_idx>0
-      profileCntr(nmea_idx) = str2double(remain(2:end));
-    end
+    profileCntr(nmea_idx) = str2double(remain(2:end));
   elseif strcmpi(token,'ppsCntr')
-    if nmea_idx>0
-      ppsCntr(nmea_idx) = str2double(remain(2:end));
-    end
+    ppsCntr(nmea_idx) = str2double(remain(2:end));
   end
 end
 fclose(fid);
@@ -145,8 +143,19 @@ gps.roll = zeros(size(gps.lat));
 gps.pitch = zeros(size(gps.lat));
 gps.heading = zeros(size(gps.lat));
 
-gps.relTimeCntr = relTimeCntr;
+gps.radar_time = relTimeCntr/param.clk;
 gps.profileCntr = profileCntr;
-gps.ppsCntr = ppsCntr;
+gps.comp_time = ppsCntr;
+
+[comp_time_year,comp_time_month,comp_time_day] = datevec(epoch_to_datenum(gps.comp_time));
+if comp_time_year ~= param.year
+  warning('comp_time year is %d and does not match param.year %d.', comp_time_year, param.year);
+end
+if comp_time_month ~= param.month
+  warning('comp_time month is %d and does not match param.month %d.', comp_time_month, param.month);
+end
+if comp_time_day ~= param.day
+  warning('comp_time day is %d and does not match param.day %d.', comp_time_day, param.day);
+end
 
 return;

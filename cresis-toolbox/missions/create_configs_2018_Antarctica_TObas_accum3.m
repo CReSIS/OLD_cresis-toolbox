@@ -104,8 +104,8 @@ for freq_idx = [1]
   % Loopback Mode (0e-6 delay line)
   old_param = param;
   param.tg.Haltitude = 3e8/2 * 0e-6; % Set the delay line here
-  param.tg.altitude_guard = 3e8/2 * 3e-6;
-  param.tg.Hice_thick = 0;
+  param.tg.altitude_guard = 3e8/2 * 0e-6;
+  param.tg.Hice_thick = 800;
   param.tg.staged_recording = false;
   param.arena.psc_name = sprintf('survey_%.0f-%.0fMHz_%.0fusDelay_%.0fus_LOOPBACK', ...
     param.f0/1e6,param.f1/1e6,param.tg.Haltitude/(3e8/2)*1e6,param.wfs(end).Tpd*1e6);
