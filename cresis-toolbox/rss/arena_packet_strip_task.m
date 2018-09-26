@@ -416,7 +416,7 @@ for config_idx = 1:length(configs)
     end
     oparams(config_idx).radar.wfs(wf).tx_weights = scale;
     oparams(config_idx).radar.wfs(wf).rx_paths = defaults{match_idx}.radar.rx_paths;
-    oparams(config_idx).radar.wfs(wf).adc_gains_dB = round(defaults{match_idx}.radar.adc_gains_dB*10)/10;
+    oparams(config_idx).radar.wfs(wf).adc_gains_dB = round(defaults{match_idx}.radar.wfs(wf).adc_gains_dB*10)/10;
     oparams(config_idx).radar.wfs(wf).chan_equal_dB = round(defaults{match_idx}.radar.wfs(wf).chan_equal_dB*10)/10;
     oparams(config_idx).radar.wfs(wf).chan_equal_deg = round(defaults{match_idx}.radar.wfs(wf).chan_equal_deg*10)/10;
     oparams(config_idx).radar.wfs(wf).Tsys = defaults{match_idx}.radar.wfs(wf).chan_equal_Tsys;
