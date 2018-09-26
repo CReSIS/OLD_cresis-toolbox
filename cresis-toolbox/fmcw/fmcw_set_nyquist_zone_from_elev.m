@@ -23,7 +23,7 @@ BW = abs(wfs(wf).f1-wfs(wf).f0) * wfs(wf).fmult;
 alpha = BW / wfs(wf).Tpd;
 nz_twtt = param.radar.fs/2/alpha;
 
-nz = floor((agl_twtt+wfs(wf).Tsys) / nz_twtt);
+nz = floor((agl_twtt+wfs(wf).Tsys-wfs(wf).t_ref) / nz_twtt);
 interp_nz = isnan(nz);
 nz = round(interp_finite(nz,NaN));
 
