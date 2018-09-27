@@ -169,13 +169,17 @@ if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg) ...
   %  - Left side of the shape is to the right of the segment, >max_lon
   %  - Right side of the shape is to the left of the segment, <min_lon
   % Handle longitude in a special way because it wraps around.
-  rel_min_lon = mean_lon + angle(exp(1i*(ocean_shp_bb(1,1:2:end) - mean_lon)/180*pi))*180/pi;
-  rel_max_lon = mean_lon + angle(exp(1i*(ocean_shp_bb(2,1:2:end) - mean_lon)/180*pi))*180/pi;
-  bb_good_mask = ~(ocean_shp_bb(1,2:2:end)>max_lat | ocean_shp_bb(2,2:2:end)<min_lat ...
-    | rel_min_lon>max_lon | rel_max_lon<min_lon);
-  ocean_shp_day_seg = ocean_shp_all(bb_good_mask);
-  % All bounding boxes of every shape
-  ocean_shp_bb_day_seg = [ocean_shp_day_seg(:).BoundingBox];
+  if isempty(ocean_shp_bb)
+    ocean_shp_day_seg = [];
+  else
+    rel_min_lon = mean_lon + angle(exp(1i*(ocean_shp_bb(1,1:2:end) - mean_lon)/180*pi))*180/pi;
+    rel_max_lon = mean_lon + angle(exp(1i*(ocean_shp_bb(2,1:2:end) - mean_lon)/180*pi))*180/pi;
+    bb_good_mask = ~(ocean_shp_bb(1,2:2:end)>max_lat | ocean_shp_bb(2,2:2:end)<min_lat ...
+      | rel_min_lon>max_lon | rel_max_lon<min_lon);
+    ocean_shp_day_seg = ocean_shp_all(bb_good_mask);
+    % All bounding boxes of every shape
+    ocean_shp_bb_day_seg = [ocean_shp_day_seg(:).BoundingBox];
+  end
   
   if 0
     % Debug code to check bounding box code
@@ -210,17 +214,25 @@ if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg) ...
     dlon = sea_surface.lon(2)-sea_surface.lon(1);
     rel_lon = mean_lon + angle(exp(1i*(sea_surface.lon - mean_lon)/180*pi))*180/pi;
     lon_idxs = find(rel_lon >= min_lon-2*dlon & rel_lon <= max_lon+2*dlon);
+    break_idx = find(diff(lon_idxs)~=1);
     sea_surface.lat = sea_surface.lat(lat_idxs);
     sea_surface.lon = rel_lon(lon_idxs);
     % Transpose elev because "x" axis (which is longitude) must be on the
     % column dimension for interp2.
     % Convert to single because interp2 requires single or double type
     % and single is smaller yet has enough precision.
-    sea_surface.elev = single(ncread(sea_surface.fn,'mss',[lon_idxs(1) lat_idxs(1)],[length(lon_idxs) length(lat_idxs)]).');
-    % In case longitude wrapped across to 360 to 0, resort to remove wrap
-    % so that interp2 will work.
-    [sea_surface.lon,sort_idxs] = sort(sea_surface.lon);
-    sea_surface.elev = sea_surface.elev(:,sort_idxs);
+    if isempty(break_idx)
+      sea_surface.elev = single(ncread(sea_surface.fn,'mss', ...
+        [lon_idxs(1) lat_idxs(1)],[length(lon_idxs) length(lat_idxs)]).');
+    else
+      sea_surface.elev = single(ncread(sea_surface.fn,'mss', ...
+        [lon_idxs(break_idx+1) lat_idxs(1)],[length(lon_idxs)-break_idx length(lat_idxs)]).');
+      sea_surface.elev = [sea_surface.elev, single(ncread(sea_surface.fn,'mss', ...
+        [1 lat_idxs(1)],[break_idx length(lat_idxs)]).')];
+      sea_surface.lon = sea_surface.lon([break_idx+1:end,1:break_idx]);
+    end
+    [sea_surface.lon,unique_idxs] = unique(sea_surface.lon);
+    sea_surface.elev = sea_surface.elev(:,unique_idxs);
   end
   
   % Load land DEM
@@ -387,11 +399,15 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Restrict ocean mask features to our dataset (i.e. mask all features
     % whose bounding boxes fall outside our limits.
-    rel_min_lon = mean_lon + angle(exp(1i*(ocean_shp_bb_day_seg(1,1:2:end) - mean_lon)/180*pi))*180/pi;
-    rel_max_lon = mean_lon + angle(exp(1i*(ocean_shp_bb_day_seg(2,1:2:end) - mean_lon)/180*pi))*180/pi;
-    bb_good_mask = ~(ocean_shp_bb_day_seg(1,2:2:end)>max_lat | ocean_shp_bb_day_seg(2,2:2:end)<min_lat ...
-      | rel_min_lon>max_lon | rel_max_lon<min_lon);
-    ocean_shp = ocean_shp_day_seg(bb_good_mask);
+    if isempty(ocean_shp_day_seg)
+      ocean_shp = [];
+    else
+      rel_min_lon = mean_lon + angle(exp(1i*(ocean_shp_bb_day_seg(1,1:2:end) - mean_lon)/180*pi))*180/pi;
+      rel_max_lon = mean_lon + angle(exp(1i*(ocean_shp_bb_day_seg(2,1:2:end) - mean_lon)/180*pi))*180/pi;
+      bb_good_mask = ~(ocean_shp_bb_day_seg(1,2:2:end)>max_lat | ocean_shp_bb_day_seg(2,2:2:end)<min_lat ...
+        | rel_min_lon>max_lon | rel_max_lon<min_lon);
+      ocean_shp = ocean_shp_day_seg(bb_good_mask);
+    end
     
     % Create polygons, poly_x/poly_y, with all ocean shape features which
     % lie in the bounding box.

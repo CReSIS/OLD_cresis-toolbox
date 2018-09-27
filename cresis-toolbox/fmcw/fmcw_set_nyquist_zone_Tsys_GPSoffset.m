@@ -18,54 +18,177 @@
 %
 % Author: John Paden
 
+%% General Setup
+% =====================================================================
+param = merge_structs(param, param_override);
+
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+fprintf('=====================================================================\n');
+
 % =========================================================================
 %% Automated Section
 % =========================================================================
 
 physical_constants();
 
-param = params(end);
+%% Load in ocean mask, land DEM, and sea surface DEM
+global load_surface_land_dems_finished;
+global load_surface_land_dems_day_seg;
+global ocean_shp_all;
+global ocean_shp_bb;
+global land_surface;
 load_surface_land_dems = false;
-if combine_surface_land_dems ...
-    && (~exist('load_surface_land_dems_finished','var') || ~load_surface_land_dems_finished)
+if isempty(load_surface_land_dems_finished) ...
+    || ~load_surface_land_dems_finished
   load_surface_land_dems = true;
+  load_surface_land_dems_day_seg = '';
 end
 
 if load_surface_land_dems
-  sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
-  sea_surface.lat = ncread(sea_surface.fn,'lat');
-  sea_surface.lon = ncread(sea_surface.fn,'lon');
-  sea_surface.elev = ncread(sea_surface.fn,'mss').';
-  if 0
-    sea_surface.fn = ct_filename_gis([],fullfile('world','egm96_geoid','WW15MGH.DAC'));
-    [sea_surface.lat,sea_surface.lon,sea_surface.elev] = egm96_loader(sea_surface.fn);
-  end
+  % Load ocean mask shape file (-180 to +180 lon)
+  ocean_mask_fn = ct_filename_gis([],fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
+  warning off;
+  %ocean_shp_all = shaperead(ocean_mask_fn, 'BoundingBox', [min_lon min_lat; max_lon max_lat]);
+  ocean_shp_all = shaperead(ocean_mask_fn);
+  warning on;
+  % All bounding boxes of every shape
+  ocean_shp_bb = [ocean_shp_all(:).BoundingBox];
   
-  if strcmpi(params(end).post.ops.location,'arctic')
-    land_surface.fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
-    land_surface.bad_value = 32767;
-  elseif strcmpi(params(end).post.ops.location,'antarctic')
+  % Load land DEM
+  if strcmpi(param.post.ops.location,'arctic')
+    if 1
+      land_surface.fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
+      land_surface.bad_value = 32767;
+    else
+      % PADEN: Load Arctic DEM corresponding to this segment
+    end
+  elseif strcmpi(param.post.ops.location,'antarctic')
     land_surface.fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
     land_surface.bad_value = 32767;
   end
-  [land_surface.dem, land_surface.R, tmp] = geotiffread(land_surface.fn);
-  land_surface.dem = double(land_surface.dem);
-  land_surface.dem(land_surface.dem == land_surface.bad_value) = NaN;
+  [land_surface.dem_all, land_surface.R, tmp] = geotiffread(land_surface.fn);
+  land_surface.x_all = land_surface.R(3,1) + land_surface.R(2,1)*(0:size(land_surface.dem_all,2)-1);
+  land_surface.y_all = land_surface.R(3,2) + land_surface.R(1,2)*(0:size(land_surface.dem_all,1)-1);
   land_surface.proj = geotiffinfo(land_surface.fn);
-
-  if strcmpi(params(end).post.ops.location,'antarctic')
-    land_surface.geoid_fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/gl04c_geiod_to_WGS84.tif');
-    land_surface.geoid_dem = geotiffread(land_surface.geoid_fn);
-    land_surface.dem = land_surface.dem + land_surface.geoid_dem;
-  end
   
   load_surface_land_dems_finished = true;
+end
+
+if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg)
+  % Load records file
+  records_fn = ct_filename_support(param,'','records');
+  records = load(records_fn);
+  min_lat = min(records.lat);
+  max_lat = max(records.lat);
+  % Handle longitude in a special way because it wraps around.
+  mean_lon = angle(mean(exp(1i*records.lon/180*pi)))*180/pi;
+  max_lon = mean_lon + max(angle(exp(1i*(records.lon-mean_lon)/180*pi)))*180/pi;
+  min_lon = mean_lon + min(angle(exp(1i*(records.lon-mean_lon)/180*pi)))*180/pi;
+  
+  [records.x,records.y] = projfwd(land_surface.proj,records.lat,records.lon);
+  min_x = min(records.x);
+  max_x = max(records.x);
+  min_y = min(records.y);
+  max_y = max(records.y);
+  
+  % Get all ocean shapes within the data segment bounding box. Shape is
+  % not included if any of the following holds:
+  %  - Bottom of the shape is above the top of the segment, >max_lat
+  %  - Top of the shape is below the bottom of the segment, <min_lat
+  %  - Left side of the shape is to the right of the segment, >max_lon
+  %  - Right side of the shape is to the left of the segment, <min_lon
+  % Handle longitude in a special way because it wraps around.
+  if isempty(ocean_shp_bb)
+    ocean_shp_day_seg = [];
+  else
+    rel_min_lon = mean_lon + angle(exp(1i*(ocean_shp_bb(1,1:2:end) - mean_lon)/180*pi))*180/pi;
+    rel_max_lon = mean_lon + angle(exp(1i*(ocean_shp_bb(2,1:2:end) - mean_lon)/180*pi))*180/pi;
+    bb_good_mask = ~(ocean_shp_bb(1,2:2:end)>max_lat | ocean_shp_bb(2,2:2:end)<min_lat ...
+      | rel_min_lon>max_lon | rel_max_lon<min_lon);
+    ocean_shp_day_seg = ocean_shp_all(bb_good_mask);
+    % All bounding boxes of every shape
+    ocean_shp_bb_day_seg = [ocean_shp_day_seg(:).BoundingBox];
+  end
+  
+  if 0
+    % Debug code to check bounding box code
+    figure(1); clf;
+    for idx=1:length(ocean_shp_day_seg)
+      if length(ocean_shp_day_seg(idx).X) > 2000
+        plot(ocean_shp_day_seg(idx).X(1:5:end),ocean_shp_day_seg(idx).Y(1:5:end))
+      else
+        plot(ocean_shp_day_seg(idx).X,ocean_shp_day_seg(idx).Y)
+      end
+      hold on;
+    end
+    plot(records.lon(1:100:end),records.lat(1:100:end),'k.')
+  end
+  
+  % Load sea level data (0 to 360 lon data)
+  if 0
+    % EGM-96
+    sea_surface.fn = ct_filename_gis([],'world\egm96_geoid\WW15MGH.DAC');
+    points = [];
+    [sea_surface.lat,sea_surface.lon,sea_surface.elev] = egm96_loader(sea_surface.fn);
+    points.lon = [points.lon 360];
+    sea_surface.elev = [sea_surface.elev sea_surface.elev(:,1)];
+    [sea_surface.lon,sea_surface.lat] = meshgrid(sea_surface.lon,sea_surface.lat);
+  else
+    % Load DTU mean sea level
+    sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
+    sea_surface.lat = ncread(sea_surface.fn,'lat');
+    sea_surface.lon = ncread(sea_surface.fn,'lon');
+    dlat = sea_surface.lat(2)-sea_surface.lat(1);
+    lat_idxs = find(sea_surface.lat >= min_lat-2*dlat & sea_surface.lat <= max_lat+2*dlat);
+    dlon = sea_surface.lon(2)-sea_surface.lon(1);
+    rel_lon = mean_lon + angle(exp(1i*(sea_surface.lon - mean_lon)/180*pi))*180/pi;
+    lon_idxs = find(rel_lon >= min_lon-2*dlon & rel_lon <= max_lon+2*dlon);
+    break_idx = find(diff(lon_idxs)~=1);
+    sea_surface.lat = sea_surface.lat(lat_idxs);
+    sea_surface.lon = rel_lon(lon_idxs);
+    % Transpose elev because "x" axis (which is longitude) must be on the
+    % column dimension for interp2.
+    % Convert to single because interp2 requires single or double type
+    % and single is smaller yet has enough precision.
+    if isempty(break_idx)
+      sea_surface.elev = single(ncread(sea_surface.fn,'mss', ...
+        [lon_idxs(1) lat_idxs(1)],[length(lon_idxs) length(lat_idxs)]).');
+    else
+      sea_surface.elev = single(ncread(sea_surface.fn,'mss', ...
+        [lon_idxs(break_idx+1) lat_idxs(1)],[length(lon_idxs)-break_idx length(lat_idxs)]).');
+      sea_surface.elev = [sea_surface.elev, single(ncread(sea_surface.fn,'mss', ...
+        [1 lat_idxs(1)],[break_idx length(lat_idxs)]).')];
+      sea_surface.lon = sea_surface.lon([break_idx+1:end,1:break_idx]);
+    end
+    [sea_surface.lon,unique_idxs] = unique(sea_surface.lon);
+    sea_surface.elev = sea_surface.elev(:,unique_idxs);
+  end
+  
+  % Load land DEM
+  if strcmpi(param.post.ops.location,'arctic')
+    dx = land_surface.x_all(2)-land_surface.x_all(1);
+    x_idxs = find(land_surface.x_all >= min_x-2*dx & land_surface.x_all <= max_x+2*dx);
+    dy = land_surface.y_all(2)-land_surface.y_all(1);
+    y_idxs = find(land_surface.y_all >= min_y-2*dy & land_surface.y_all <= max_y+2*dy);
+    land_surface.x = land_surface.x_all(x_idxs);
+    land_surface.y = land_surface.y_all(y_idxs);
+    land_surface.dem = single(land_surface.dem_all(x_idxs,y_idxs).');
+    
+    if 0
+      % PADEN: Load Arctic DEM corresponding to this segment
+    end
+  elseif strcmpi(param.post.ops.location,'antarctic')
+    land_surface.fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
+    [land_surface.dem, land_surface.R, tmp] = geotiffread(land_surface.fn);
+    land_surface.proj = geotiffinfo(land_surface.fn);
+  end
+  
+  load_surface_land_dems_day_seg = param.day_seg;
   
   if 0
     % Debug Plot
     figure(1); clf;
-    land_surface.x = land_surface.R(3,1) + land_surface.R(2,1)*(0:size(land_surface.dem,2)-1);
-    land_surface.y = land_surface.R(3,2) + land_surface.R(1,2)*(0:size(land_surface.dem,1)-1);
     imagesc(land_surface.x,land_surface.y,land_surface.dem)
     set(gca,'YDir','normal');
   end
@@ -214,8 +337,13 @@ for param_idx = 1:length(params)
       plot(records.x,records.y);
     end
     
-    records.land_dem = interp2(land_surface.dem,(records.x-land_surface.R(3,1))/land_surface.R(2,1)+1, ...
-      (records.y-land_surface.R(3,2))/land_surface.R(1,2)+1);
+    if length(land_surface.x) > 2 && length(land_surface.y) > 2
+      records.land_dem = interp2(land_surface.x,land_surface.y,land_surface.dem,records.x,records.y);
+      records.land_dem(records.land_dem==land_surface.bad_value) = NaN;
+    else
+      records.land_dem = nan(size(records.x));
+    end
+    
     if 0
       % Debug Plot
       figure(20); clf;

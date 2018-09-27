@@ -216,9 +216,7 @@ if (length(surf.search_rng) > 1 || surf.search_rng ~= 0)
       search_bins = search_bins(find(search_bins >= 1 & search_bins <= size(surf_data,1)));
       %offset = find(diff(surf_data(search_bins,rline)) < 0,1);
       [~,offset] = max(surf_data(search_bins,rline));
-      if isempty(offset)
-        surface(rline) = search_bins(end);
-      else
+      if ~isempty(offset)
         surface(rline) = search_bins(offset);
       end
     end
