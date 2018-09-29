@@ -58,7 +58,7 @@ end
 Hwindow_orig = chebwin(1).';
 
 %% Survey Mode + survey-test, loopback, noise, and deconv modes
-% <1700 m thick ice, 1200 +/- 500 ft AGL
+% <1700 m thick ice, 1400 +/- 300 ft AGL
 ice_thickness = [1600];
 for freq_idx = 1
   [~,defaults] = default_radar_params_2018_Antarctica_TObas_accum3;
@@ -155,7 +155,7 @@ end
 
 
 %% Survey Mode + survey-test, loopback, noise, and deconv modes
-% <1700 m thick ice, 1200 +/- 500 ft AGL
+% <2500 m thick ice, 1400 +/- 300 ft AGL
 ice_thickness = [2500];
 for freq_idx = 1
   [~,defaults] = default_radar_params_2018_Antarctica_TObas_accum3;
