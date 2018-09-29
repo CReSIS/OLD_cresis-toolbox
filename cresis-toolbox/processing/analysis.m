@@ -442,7 +442,6 @@ end
 
 % Create success condition
 success_error = 64;
-out_fn_dir_dir = fileparts(out_fn_dir);
 sparam = [];
 sparam.success = '';
 sparam.argsin{1} = param; % Static parameters
@@ -461,6 +460,10 @@ for img = 1:length(param.analysis.imgs)
       continue;
     end
     
+    % Create output directory string
+    out_fn_dir = ct_filename_out(param,cmd.out_path);
+    out_fn_dir_dir = fileparts(out_fn_dir);
+      
     switch lower(cmd.method)
       case {'burst_noise'}
         %

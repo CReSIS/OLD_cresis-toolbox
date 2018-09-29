@@ -153,8 +153,8 @@ for img = 1:length(param.load.imgs)
       tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.analysis.imgs{1}(wf_adc,1);
-        adc = param.analysis.imgs{1}(wf_adc,2);
+        wf = param.load.imgs{1}(wf_adc,1);
+        adc = param.load.imgs{1}(wf_adc,2);
         
         coh_ave_samples = [];
         coh_ave = [];
@@ -361,8 +361,8 @@ for img = 1:length(param.load.imgs)
       tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = tmp_param.analysis.imgs{1}(wf_adc,1);
-        adc = tmp_param.analysis.imgs{1}(wf_adc,2);
+        wf = tmp_param.load.imgs{1}(wf_adc,1);
+        adc = tmp_param.load.imgs{1}(wf_adc,2);
         
         coh_ave_samples = single([]);
         coh_ave = single([]);
@@ -533,8 +533,8 @@ for img = 1:length(param.load.imgs)
       tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'        
-        wf = tmp_param.analysis.imgs{1}(wf_adc,1);
-        adc = tmp_param.analysis.imgs{1}(wf_adc,2);
+        wf = tmp_param.load.imgs{1}(wf_adc,1);
+        adc = tmp_param.load.imgs{1}(wf_adc,2);
         
         % Pulse compression
         tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};

@@ -395,46 +395,48 @@ for state_idx = 1:length(states)
   
 end
 
-for img = 1:length(param.load.imgs)
-  for wf_adc = 1:size(data{img},3)
-    wf = param.load.imgs{img}(wf_adc,1);
-    adc = param.load.imgs{img}(wf_adc,2);
-    
-    % Apply channel compensation, presum normalization, and constant
-    % receiver gain compensation
-    chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-      .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-    mult_factor = single(wfs(wf).quantization_to_V(adc)/param.load.presums/10.^(wfs(wf).adc_gains_dB(adc)/20)/chan_equal);
-    data{img}(:,:,wf_adc) = mult_factor * data{img}(:,:,wf_adc);
-    
-    % Compensate for receiver gain applied before ADC quantized the signal
-    %  - For time varying receiver gain, the convention is to compensate
-    %    to the maximum receiver gain and use the wfs(wf).gain parameter
-    %    to vary the gain relative to that.
-    % Apply fast-time varying gain if defined
-    if ~isempty(wfs(wf).gain)
-      data{img}(:,:,wf_adc) = bsxfun(@times,data{img}(:,:,wf_adc),interp1(wfs(wf).gain.Time, wfs(wf).gain.Gain, wfs(wf).time_raw(1:wfs(wf).Nt_raw)));
-    end
-    
-    % Apply time varying channel compensation
-    if ~isempty(wfs(wf).chan_equal)
-      cdf_fn_dir = fileparts(ct_filename_out(param,wfs(wf).chan_equal, ''));
-      cdf_fn = fullfile(cdf_fn_dir,sprintf('chan_equal_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
+if ~param.load.raw_data
+  for img = 1:length(param.load.imgs)
+    for wf_adc = 1:size(data{img},3)
+      wf = param.load.imgs{img}(wf_adc,1);
+      adc = param.load.imgs{img}(wf_adc,2);
       
-      finfo = ncinfo(cdf_fn);
-      % Determine number of records and set recs(1) to this
-      Nt = finfo.Variables(find(strcmp('chan_equal',{finfo.Variables.Name}))).Size(2);
+      % Apply channel compensation, presum normalization, and constant
+      % receiver gain compensation
+      chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
+        .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+      mult_factor = single(wfs(wf).quantization_to_V(adc)/param.load.presums/10.^(wfs(wf).adc_gains_dB(adc)/20)/chan_equal);
+      data{img}(:,:,wf_adc) = mult_factor * data{img}(:,:,wf_adc);
       
-      chan_equal = [];
-      chan_equal.gps_time = ncread(cdf_fn,'gps_time');
-      recs = find(chan_equal.gps_time > records.gps_time(1) - 100 & chan_equal.gps_time < records.gps_time(end) + 100);
-      chan_equal.gps_time = chan_equal.gps_time(recs);
+      % Compensate for receiver gain applied before ADC quantized the signal
+      %  - For time varying receiver gain, the convention is to compensate
+      %    to the maximum receiver gain and use the wfs(wf).gain parameter
+      %    to vary the gain relative to that.
+      % Apply fast-time varying gain if defined
+      if ~isempty(wfs(wf).gain)
+        data{img}(:,:,wf_adc) = bsxfun(@times,data{img}(:,:,wf_adc),interp1(wfs(wf).gain.Time, wfs(wf).gain.Gain, wfs(wf).time_raw(1:wfs(wf).Nt_raw)));
+      end
       
-      chan_equal.chan_equal = ncread(cdf_fn,'chan_equalI',[recs(1) 1],[recs(end)-recs(1)+1 Nt]) ...
-        + 1i*ncread(cdf_fn,'chan_equalQ',[recs(1) 1],[recs(end)-recs(1)+1 Nt]);
-      
-      data{img}(1:wfs(wf).Nt_raw,:,wf_adc) = data{img}(1:wfs(wf).Nt_raw,:,wf_adc) ...
-        .*interp1(reshape(chan_equal.gps_time,[numel(chan_equal.gps_time) 1]),chan_equal.chan_equal,records.gps_time,'linear','extrap').';
+      % Apply time varying channel compensation
+      if ~isempty(wfs(wf).chan_equal)
+        cdf_fn_dir = fileparts(ct_filename_out(param,wfs(wf).chan_equal, ''));
+        cdf_fn = fullfile(cdf_fn_dir,sprintf('chan_equal_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
+        
+        finfo = ncinfo(cdf_fn);
+        % Determine number of records and set recs(1) to this
+        Nt = finfo.Variables(find(strcmp('chan_equal',{finfo.Variables.Name}))).Size(2);
+        
+        chan_equal = [];
+        chan_equal.gps_time = ncread(cdf_fn,'gps_time');
+        recs = find(chan_equal.gps_time > records.gps_time(1) - 100 & chan_equal.gps_time < records.gps_time(end) + 100);
+        chan_equal.gps_time = chan_equal.gps_time(recs);
+        
+        chan_equal.chan_equal = ncread(cdf_fn,'chan_equalI',[recs(1) 1],[recs(end)-recs(1)+1 Nt]) ...
+          + 1i*ncread(cdf_fn,'chan_equalQ',[recs(1) 1],[recs(end)-recs(1)+1 Nt]);
+        
+        data{img}(1:wfs(wf).Nt_raw,:,wf_adc) = data{img}(1:wfs(wf).Nt_raw,:,wf_adc) ...
+          .*interp1(reshape(chan_equal.gps_time,[numel(chan_equal.gps_time) 1]),chan_equal.chan_equal,records.gps_time,'linear','extrap').';
+      end
     end
   end
 end

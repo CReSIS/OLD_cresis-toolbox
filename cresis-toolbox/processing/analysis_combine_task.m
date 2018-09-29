@@ -109,8 +109,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
     % ===================================================================
     for img = 1:length(param.analysis.imgs)
       for wf_adc = 1:size(param.analysis.imgs{img},1)
-        wf = param.analysis.imgs{1}(wf_adc,1);
-        adc = param.analysis.imgs{1}(wf_adc,2);
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
         
         spec = [];
         spec.deconv_fc = [];
@@ -200,8 +200,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
     for img = 1:length(param.analysis.imgs)
       
       for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.analysis.imgs{1}(wf_adc,1);
-        adc = param.analysis.imgs{1}(wf_adc,2);
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
         
         %% Coh Noise: Loop through all the coherent noise tracker files and combine
         % =====================================================================
@@ -379,8 +379,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
     for img = 1:length(param.analysis.imgs)
       
       for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.analysis.imgs{1}(wf_adc,1);
-        adc = param.analysis.imgs{1}(wf_adc,2);
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
         
         %% Statistics: Loop through all the stats files and combine
         % =====================================================================

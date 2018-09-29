@@ -149,6 +149,9 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
         qstat_res{7}(job_idx,1) = IDs(job_idx);
         if any(strcmpi(States(job_idx),{'finished','failed'}))
           qstat_res{5}{job_idx,1} = 'C';
+        elseif any(strcmpi(States(job_idx),{'running'}))
+          ctrl.active_jobs = ctrl.active_jobs + 1;
+          qstat_res{5}{job_idx,1} = 'R';
         else
           ctrl.active_jobs = ctrl.active_jobs + 1;
           qstat_res{5}{job_idx,1} = 'Q';

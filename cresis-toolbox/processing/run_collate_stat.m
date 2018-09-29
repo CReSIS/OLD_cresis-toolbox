@@ -1,3 +1,43 @@
+if 1
+  figure(1); clf;
+  fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_ft/stats_20180927_06_wf_2_adc_1.mat';
+  
+  stats = load(fn);
+  
+  % V^2/Z0= P
+  Z0 = 50;
+  
+  physical_constants;
+  F = 2;
+  BW = 300e6;
+  10*log10(BoltzmannConst*290*BW*F)
+  
+  block = 1;
+  
+  legend_str = {};
+  for stat_idx = 1:3
+    
+    Nt = size(stats.stats{block}{stat_idx},1);
+    time = stats.time{block}(stats.start_bin(1)+(0:Nt-1));
+    
+    legend_str{stat_idx} = sprintf('%d: %s\n',stat_idx,func2str(stats.param_analysis.analysis.cmd{4}.stats{stat_idx}));
+    
+    plot(time*1e6, lp(stats.stats{block}{stat_idx}(:,1) / Z0,1));
+    hold on;
+    grid on
+    xlabel('Time (\mus)');
+    ylabel('Relative power (dB)');
+    
+  end
+  legend(legend_str,'location','best','interpreter','none');
+  
+  
+  
+  
+  return
+  
+end
+
 % figure(1); clf;
 % title('Low Gain Not Synced 555 kHz PA off'); hold on;
 % fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_kx/stats_20180831_01_wf_1_adc_1.mat';
