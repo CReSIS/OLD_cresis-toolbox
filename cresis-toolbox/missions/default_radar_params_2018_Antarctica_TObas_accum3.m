@@ -162,7 +162,7 @@ arena.ctu.out.bit_group(idx).bits = 5;
 arena.ctu.out.bit_group(idx).epri = [1 1];
 arena.ctu.out.bit_group(idx).pri = [1 1];
 
-arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+100e-9' '2/param.prf'};
+arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2/param.prf'};
 
 default.arena = arena;
 
@@ -257,7 +257,9 @@ default.post.pdf_en = 1;
 default.post.map.location = 'Antarctica';
 default.post.map.type = 'combined';
 default.post.echo.elev_comp = 2;
-default.post.echo.depth = '[min(Surface_Depth)-1500 max(Surface_Depth)+100]';
+default.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+1500]';
+% default.post.echo.elev_comp = 3;
+% default.post.echo.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+100]';
 default.post.echo.er_ice = 3.15;
 default.post.ops.location = 'antarctic';
   

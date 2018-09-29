@@ -40,7 +40,19 @@ gps_source_to_use = 'arena';
 if strcmpi(gps_source_to_use,'arena')
 %% ARENA
 
-  year = 2018; month = 9; day = 27;
+%   year = 2018; month = 9; day = 27;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   sync_file_type{file_idx} = 'arena';
+%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+
+  year = 2018; month = 9; day = 29;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -81,7 +93,7 @@ for idx = 1:length(file_type)
     save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
   end
   
-  if regexpi(out_fn,'20180927')
+  if regexpi(out_fn,'20180929')
     % Fake GPS for testing
     warning('Faking GPS data: %s', out_fn);
     gps = load(out_fn);

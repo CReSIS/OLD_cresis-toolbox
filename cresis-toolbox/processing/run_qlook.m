@@ -41,10 +41,10 @@ params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls
 
 % 2-18 GHz Deconvolution Settings
 
-params = ct_set_params(params,'radar.wfs(1).deconv.en',0);
+% params = ct_set_params(params,'radar.wfs(1).deconv.en',0);
 % params = ct_set_params(params,'radar.wfs(1).coh_noise_method',''); % HACK
-params = ct_set_params(params,'qlook.out_path','qlook');
-params = ct_set_params(params,'qlook.resample',[]);
+% params = ct_set_params(params,'qlook.out_path','qlook');
+% params = ct_set_params(params,'qlook.resample',[]);
 
 % params = ct_set_params(params,'radar.wfs(1).deconv.en',1);
 % params = ct_set_params(params,'radar.wfs(1).deconv.fn','analysis');

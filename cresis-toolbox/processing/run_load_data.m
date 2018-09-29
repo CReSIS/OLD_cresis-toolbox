@@ -16,7 +16,7 @@ if run_example == 1
   %    freq-wavenumber domains
   % =======================================================================
   
-  param = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'20180927_10');
+  param = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'20180929_02');
   
   % Determine which records you want to load:
   frames_fn = '';
@@ -39,6 +39,11 @@ if run_example == 1
   % Plot data
   img = 1;
   wf_adc_idx = 1;
+  
+  figure(1); clf;
+  plot(hdr.time{img},real(data{img}(:,1)));
+  
+  return;
   
   figure(1); clf;
   imagesc([],hdr.time{img}, ...
