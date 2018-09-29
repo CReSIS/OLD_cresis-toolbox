@@ -147,14 +147,31 @@ gps.radar_time = relTimeCntr/param.clk;
 gps.profileCntr = profileCntr;
 gps.comp_time = ppsCntr;
 
+% If GPS is bad, NMEA may be constant, return empty arrays in this case
+if all(gps.lat(1)==gps.lat)
+  warning('GPS data is constant. Not using this file.');
+  gps.gps_time = [];
+  gps.lat = [];
+  gps.lon = [];
+  gps.elev = [];
+  gps.roll = [];
+  gps.pitch = [];
+  gps.heading = [];
+  gps.radar_time = [];
+  gps.profileCntr = [];
+  gps.comp_time = [];
+  return;
+end
+
 [comp_time_year,comp_time_month,comp_time_day] = datevec(epoch_to_datenum(gps.comp_time));
-if comp_time_year ~= param.year
+if any(comp_time_year ~= param.year)
   warning('comp_time year is %d and does not match param.year %d.', comp_time_year, param.year);
 end
-if comp_time_month ~= param.month
+if any(comp_time_month ~= param.month)
   warning('comp_time month is %d and does not match param.month %d.', comp_time_month, param.month);
 end
-if comp_time_day ~= param.day
+if any(comp_time_day ~= param.day)
+  comp_time_day = comp_time_day(find(comp_time_day ~= param.day,1));
   warning('comp_time day is %d and does not match param.day %d.', comp_time_day, param.day);
 end
 

@@ -69,21 +69,17 @@ for file_idx = 1:length(in_fns)
   if isempty(in_fn)
     error('No input GPS files found in in_fns{%d} variable. Usually this is because the file path is not setup.\n', file_idx);
   end
-  fprintf('Sync files (%.1f sec)\n', toc);
-  for in_fn_idx = 1:length(in_fn)
-    fprintf('  %s\n', in_fn{in_fn_idx});
-  end
-  fprintf('Input files (%.1f sec)\n', toc);
-  for in_fn_idx = 1:length(in_fn)
-    fprintf('  %s\n', in_fn{in_fn_idx});
-  end
-  fprintf('  Output file %s\n', out_fn);
+  
+  fprintf('=====================================================================\n');
+  fprintf('%s: %s (%s)\n', mfilename, out_fn, datestr(now));
+  fprintf('=====================================================================\n');
   
   %% Load Radar Sync GPS files (mcrds, accum2, arena)
   if isstruct(sync_params{file_idx})
     sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
   end
   clear sync_gps;
+  fprintf('Sync files (%.1f sec)\n', toc);
   for sync_fn_idx = 1:length(sync_fn)
     if iscell(sync_file_type{file_idx})
       cur_file_type = sync_file_type{file_idx}{sync_fn_idx};
@@ -91,6 +87,7 @@ for file_idx = 1:length(in_fns)
       cur_file_type = sync_file_type{file_idx};
     end
     gps_fh = make_gps_fh(cur_file_type);
+    fprintf('  %s\n', sync_fn{sync_fn_idx});
     gps_tmp = gps_fh(sync_fn{sync_fn_idx},sync_params{file_idx}{sync_fn_idx});
     
     if sync_fn_idx == 1
@@ -105,10 +102,10 @@ for file_idx = 1:length(in_fns)
       sync_gps.heading = [sync_gps.heading, gps_tmp.heading];
       sync_gps.comp_time = [sync_gps.comp_time, gps_tmp.comp_time];
       if isfield(sync_gps,'radar_time')
-        sync_gps.radar_time = [sync_gps.radar_time, sync_gps_tmp.radar_time];
+        sync_gps.radar_time = [sync_gps.radar_time, gps_tmp.radar_time];
       end
       if isfield(sync_gps,'profileCntr')
-        sync_gps.profileCntr = [sync_gps.profileCntr, sync_gps_tmp.profileCntr];
+        sync_gps.profileCntr = [sync_gps.profileCntr, gps_tmp.profileCntr];
       end
     end
   end
@@ -122,6 +119,7 @@ for file_idx = 1:length(in_fns)
   end
   clear gps;
   separate_ins_data_flag = false;
+  fprintf('Input files (%.1f sec)\n', toc);
   for in_fn_idx = 1:length(in_fn)
     if iscell(file_type{file_idx})
       cur_file_type = file_type{file_idx}{in_fn_idx};
@@ -143,6 +141,7 @@ for file_idx = 1:length(in_fns)
       end
     end
     gps_fh = make_gps_fh(cur_file_type);
+    fprintf('  %s\n', in_fn{in_fn_idx});
     gps_tmp = gps_fh(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     
     if in_fn_idx == 1
@@ -396,8 +395,12 @@ for file_idx = 1:length(in_fns)
   %% Add software revision information
   gps.sw_version = current_software_version;
 
-  %% Add the Radar Synchronization variables for mcrds, accum2, acords
+  %% Save output file
+  fprintf('Output file %s\n', out_fn);
   if exist('sync_flag','var') && sync_flag{file_idx}
+    % Add the Radar Synchronization variables for mcrds, accum2, acords,
+    % arena
+    
     % Synchronize computer time and radar time from NMEA file to gps time
     gps.sync_gps_time = sync_gps.gps_time;
     gps.sync_lat = sync_gps.lat;

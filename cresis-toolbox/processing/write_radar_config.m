@@ -134,7 +134,7 @@ if duty_cycle > param.max_duty_cycle
 end
 
 if isfield(param,'prf_multiple') && ~isempty(param.prf_multiple)
-  if any(mod(param.prf_multiple/param.prf,1))
+  if any(abs(mod(param.prf_multiple/param.prf,1) - 0) > 1e-10 & abs(mod(param.prf_multiple/param.prf,1) - 1) > 1e-10)
     error('param.prf (%g) must be a factor of default.prf_multiple (%s) for coherent noise cancelling to work.', param.prf, mat2str_generic(param.prf_multiple));
   end
 end
@@ -173,12 +173,14 @@ end
 %   This would cause waveform 1 to be the first stage
 %   waveform 2 to be the second stage
 %   waveform 3, 4, and 5 to be the third stage
-if ~isempty(param.tg.staged_recording)
-  if all(param.tg.staged_recording == 0)
-    param.tg.staged_recording = zeros(size(param.wfs));
-  elseif length(param.tg.staged_recording) ~= length(param.wfs)
-    param.tg.staged_recording = 1:length(param.wfs);
+for wf_set = 1:length(param.tg.staged_recording)
+  current_stage = param.tg.staged_recording{wf_set};
+  if all(current_stage == 0)
+    current_stage = zeros(size(param.wfs));
+  elseif length(current_stage) ~= length(param.wfs)
+    current_stage = 1:length(param.wfs);
   end
+  param.tg.staged_recording{wf_set} = current_stage;
 end
 
 %% Create the outputs for each waveform
@@ -249,58 +251,69 @@ for wf = 1:length(param.wfs)
   end
   
   look_angle_ice_deg = asind(sind(look_angle_deg)/sqrt(er_ice));
-  current_stage = param.tg.staged_recording(wf);
-  next_stage_wf = find(param.tg.staged_recording == current_stage+1,1);
-  if strcmpi(start_ref,'surface')
-    Tstart_ref = Haltitude / (3e8/2);
-  elseif strcmpi(start_ref,'bottom')
-    Tstart_ref = Haltitude / (3e8/2) + Hice_thick_min / (3e8/2/sqrt(er_ice));
-  else
-    error('Invalid start ref %s', start_ref);
-  end
-  if strcmpi(stop_ref,'surface')
-    Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2);
-  elseif strcmpi(stop_ref,'bottom')
-    Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2) + Hice_thick/cosd(look_angle_ice_deg) / (3e8/2/sqrt(er_ice));
-  elseif isempty(stop_ref)
-    if current_stage > 0 && ~isempty(next_stage_wf)
-      % First and in between stages default references surface
+  
+  for wf_set = 1:length(param.tg.staged_recording)
+    
+    current_stage = param.tg.staged_recording{wf_set}(wf);
+    
+    for next_stage_wf_set = 1:length(param.tg.staged_recording)
+      next_stage_wf = find(param.tg.staged_recording{next_stage_wf_set} == current_stage+1,1);
+      if ~isempty(next_stage_wf)
+        break;
+      end
+    end
+    if strcmpi(start_ref,'surface')
+      Tstart_ref = Haltitude / (3e8/2);
+    elseif strcmpi(start_ref,'bottom')
+      Tstart_ref = Haltitude / (3e8/2) + Hice_thick_min / (3e8/2/sqrt(er_ice));
+    else
+      error('Invalid start ref %s', start_ref);
+    end
+    if strcmpi(stop_ref,'surface')
       Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2);
-    else
-      % Last stage default reference is bottom
+    elseif strcmpi(stop_ref,'bottom')
       Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2) + Hice_thick/cosd(look_angle_ice_deg) / (3e8/2/sqrt(er_ice));
-    end
-  else
-    error('Invalid start ref %s', start_ref);
-  end
-  
-  if current_stage == 0
-    % Record the whole range gate
-    Tstart = Tstart_ref;
-    Tend = Tstop_ref + param.wfs(wf).Tpd;
-  elseif current_stage == 1
-    % First Stage
-    Tstart = Tstart_ref;
-    if ~isempty(next_stage_wf)
-      % Cover the pulse duration of the next waveform after the surface
-      % return + any off nadir scattering that is to be caught.
-      Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd + param.wfs(wf).Tpd, Tstop_ref);
+    elseif isempty(stop_ref)
+      if current_stage > 0 && ~isempty(next_stage_wf)
+        % First and in between stages default references surface
+        Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2);
+      else
+        % Last stage default reference is bottom
+        Tstop_ref = Haltitude/cosd(look_angle_deg) / (3e8/2) + Hice_thick/cosd(look_angle_ice_deg) / (3e8/2/sqrt(er_ice));
+      end
     else
-      % The first stage is also the last stage
-      Tend = Tstop_ref + param.wfs(wf).Tpd;
+      error('Invalid start ref %s', start_ref);
     end
-  elseif isempty(next_stage_wf)
-    % Last Stage
-    Tstart = Tstart_ref + param.wfs(wf).Tpd;
-    Tend = Tstop_ref + param.wfs(wf).Tpd;
-  else
-    % In between first and last stage
-    Tstart = Tstart_ref + param.wfs(wf).Tpd;
-    Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd + param.wfs(wf).Tpd, Tstop_ref);
+    
+    if current_stage == 0
+      % Record the whole range gate
+      Tstart = Tstart_ref;
+      Tend = Tstop_ref + param.wfs(wf).Tpd;
+    elseif current_stage == 1
+      % First Stage
+      Tstart = Tstart_ref;
+      if ~isempty(next_stage_wf)
+        % Cover the pulse duration of the next waveform after the surface
+        % return + any off nadir scattering that is to be caught.
+        Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd + param.wfs(wf).Tpd, Tstop_ref);
+      else
+        % The first stage is also the last stage
+        Tend = Tstop_ref + param.wfs(wf).Tpd;
+      end
+    elseif isempty(next_stage_wf)
+      % Last Stage
+      Tstart = Tstart_ref + param.wfs(wf).Tpd;
+      Tend = Tstop_ref + param.wfs(wf).Tpd;
+    else
+      % In between first and last stage
+      Tstart = Tstart_ref + param.wfs(wf).Tpd;
+      Tend = max(Tstart_ref + param.wfs(next_stage_wf).Tpd + param.wfs(wf).Tpd, Tstop_ref);
+    end
+    
+    param.wfs(wf).Tstart{wf_set} = Tstart-Tguard;
+    param.wfs(wf).Tend{wf_set} = Tend+Tguard;
+    
   end
-  
-  param.wfs(wf).Tstart = Tstart-Tguard;
-  param.wfs(wf).Tend = Tend+Tguard;
 end
 
 if param.create_IQ
@@ -326,6 +339,8 @@ if isfield(param,'ni') && ~isempty(param.ni)
   fclose(fid);
 end
 
+fprintf('\n');
+
 %% Create RSS Arena XML structure
 if isfield(param,'arena') && ~isempty(param.arena)
   % Create XML document
@@ -334,21 +349,24 @@ end
 
 %% Check data rate (move to write_arena_xml)
 % =========================================================================
-fprintf('\n');
 fprintf('  param.eprf: %.1f Hz\n', param.eprf);
 lambda = c/max(param.wfs(1).f0,param.wfs(1).f1);
 fprintf('  fc Nyquist sampling rate velocity: %.1f m/s (%.1f knots)\n', lambda/4 * param.eprf, lambda/4 * param.eprf / 0.5515)
-fprintf('  Data rate: %.1f MB/sec (%.1f hours: %.1f TB)\n', param.data_rate / 2^20, param.flight_hours, param.flight_hours*3600*param.data_rate/2^40);
+fprintf('  Data rate: %.1f MB/sec (%.1f hours: %.2f TB)\n', param.data_rate / 2^20, param.flight_hours, param.flight_hours*3600*param.data_rate/2^40);
 
 for wf = 1:numel(param.wfs)
   PRI = 1/param.prf;
-  if PRI - param.PRI_guard - param.wfs(wf).Tend <= 0
-    error('Data recording window, %.2f us, is too long for this PRI, %.2f us, including %.2f us time guard', ...
-      param.wfs(wf).Tend*1e6, 1/param.prf*1e6, param.PRI_guard*1e6);
+  Tend = -inf;
+  for wf_set = 1:length(param.wfs(wf).Tend)
+    Tend = max(Tend,param.wfs(wf).Tend{wf_set});
   end
-  if param.wfs(wf).Tend/PRI > param.PRI_guard_percentage
+  if PRI - param.PRI_guard - Tend <= 0
+    error('Data recording window, %.2f us, is too long for this PRI, %.2f us, including %.2f us time guard', ...
+      Tend*1e6, 1/param.prf*1e6, param.PRI_guard*1e6);
+  end
+  if Tend/PRI > param.PRI_guard_percentage
     error('Data recording window, %.2f us, is exceeds the duty cycle, %.1f, for this PRI, %.2f us', ...
-      param.wfs(wf).Tend*1e6, param.PRI_guard_percentage*100, 1/param.prf*1e6);
+      Tend*1e6, param.PRI_guard_percentage*100, 1/param.prf*1e6);
   end
 end
 

@@ -21,8 +21,8 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-if ~isfield(param.post,'ops')|| isempty(param.post.ops) ...
-    || isempty(param.post.ops.en)
+if ~isfield(param.post,'ops') || isempty(param.post.ops) ...
+    || ~isfield(param.post.ops,'en') || isempty(param.post.ops.en)
   param.post.ops.en = 0;
 end
 

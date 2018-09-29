@@ -427,6 +427,7 @@ for config_idx = 1:length(configs)
       - param.arena_packet_strip.defaults{1}.arena.param.ADC_time_delay - t_dac;
     
   end
+  oparams(config_idx).post = defaults{match_idx}.post;
 end
 
 if ~isempty(param.arena_packet_strip.param_fn)
@@ -444,6 +445,8 @@ if ~isempty(param.arena_packet_strip.param_fn)
   read_param_xls_print(param.arena_packet_strip.param_fn,'array',oparams);
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  radar\n'); fprintf('%s</strong>\n','='*ones(1,80));
   read_param_xls_print(param.arena_packet_strip.param_fn,'radar',oparams);
+  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  post\n'); fprintf('%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.arena_packet_strip.param_fn,'post',oparams);
 end
 
 %% Exit task

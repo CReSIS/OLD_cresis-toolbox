@@ -39,8 +39,8 @@ gps_source_to_use = 'arena';
 
 if strcmpi(gps_source_to_use,'arena')
 %% ARENA
-  
-  year = 2018; month = 9; day = 24;
+
+  year = 2018; month = 9; day = 27;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -48,10 +48,10 @@ if strcmpi(gps_source_to_use,'arena')
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
   gps_source{file_idx} = 'arena-field';
   sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = in_fns{file_idx};
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = params{file_idx};
-
+  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+  
 end
 
 % ======================================================================
@@ -62,10 +62,12 @@ make_gps;
 for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
   
-  gps = load(out_fn);
+  gps = load(out_fn,'gps_source');
   if regexpi(gps.gps_source,'arena')
-    
-    warning('Extrapolating GPS data: %s', out_fn);
+    % Extrapolation is necessary because GPS data starts after/stops before
+    % the beginning/end of the radar data.
+    warning('Extrapolating arena GPS data: %s', out_fn);
+    gps = load(out_fn);
     
     new_gps_time = [gps.gps_time(1)-10, gps.gps_time,gps.gps_time(end)+10];
     gps.lat = interp1(gps.gps_time,gps.lat,new_gps_time,'linear','extrap');
@@ -78,4 +80,19 @@ for idx = 1:length(file_type)
     
     save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
   end
+  
+  if regexpi(out_fn,'20180927')
+    % Fake GPS for testing
+    warning('Faking GPS data: %s', out_fn);
+    gps = load(out_fn);
+    
+    velocity = 70;
+    gps.lat = -75.5 - (gps.gps_time-gps.gps_time(1))*velocity/111111;
+    gps.lon(:) = -106.75;
+    gps.elev(:) = 500;
+    
+    save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
+  end
+  
 end
+

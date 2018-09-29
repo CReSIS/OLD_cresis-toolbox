@@ -30,8 +30,8 @@ if ispc
 else
   param.arena_packet_strip.base_dir = '/data/';
 end
-param.arena_packet_strip.config_folder_names = {'20180924/'};
-param.arena_packet_strip.board_folder_names = {'20180924/%b'};
+param.arena_packet_strip.config_folder_names = {'20180927/'};
+param.arena_packet_strip.board_folder_names = {'20180927/%b'};
 
 
 dbstop if error;

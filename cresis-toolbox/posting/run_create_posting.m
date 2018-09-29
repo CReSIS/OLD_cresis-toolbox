@@ -19,8 +19,6 @@ params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20180315_10');
 % params = ct_set_params(params,'cmd.frms',[1]);
 
-params = ct_set_params(params,'post.ops.en',0);
-
 %% Automated Section
 % =====================================================================
 % Create param structure array

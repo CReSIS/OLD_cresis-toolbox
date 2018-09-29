@@ -92,6 +92,7 @@ arena.adc(adc_idx).desiredAlignMin = -15;
 arena.adc(adc_idx).desiredAlignMax = 0;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
+arena.adc(adc_idx).wf_set = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -101,7 +102,7 @@ arena.adc(adc_idx).desiredAlignMin = -34;
 arena.adc(adc_idx).desiredAlignMax = -20;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
-arena.adc(adc_idx).wf_set = 1;
+arena.adc(adc_idx).wf_set = 2;
 
 daq_idx = 0;
 daq_idx = daq_idx + 1;
@@ -238,13 +239,28 @@ default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2 / 5; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
-default.radar.wf(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
-default.radar.wf(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
+default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
+default.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
 default.radar.rx_paths = [1 1];
 chan_equal_Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
-
+default.post.data_dirs = {'qlook'};
+default.post.layer_dir = 'layerData';
+default.post.maps_en = 1;
+default.post.echo_en = 1;
+default.post.layers_en = 0;
+default.post.data_en = 0;
+default.post.csv_en = 1;
+default.post.concat_en = 1;
+default.post.pdf_en = 1;
+default.post.map.location = 'Antarctica';
+default.post.map.type = 'combined';
+default.post.echo.elev_comp = 2;
+default.post.echo.depth = '[min(Surface_Depth)-1500 max(Surface_Depth)+100]';
+default.post.echo.er_ice = 3.15;
+default.post.ops.location = 'antarctic';
+  
 defaults = {};
 
 % Deconvolution Mode
