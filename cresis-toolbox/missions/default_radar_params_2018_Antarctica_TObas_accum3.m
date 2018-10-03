@@ -245,6 +245,8 @@ default.radar.rx_paths = [1 1];
 chan_equal_Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
+
+%% Post Worksheet in parameter spreadsheet
 default.post.data_dirs = {'qlook'};
 default.post.layer_dir = 'layerData';
 default.post.maps_en = 1;
@@ -262,7 +264,9 @@ default.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+1500]';
 % default.post.echo.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+100]';
 default.post.echo.er_ice = 3.15;
 default.post.ops.location = 'antarctic';
-  
+
+%% Radar Setting Parameters
+
 defaults = {};
 
 % Deconvolution Mode
@@ -322,7 +326,7 @@ default.config_regexp = '.*survey.*';
 default.name = 'Survey Mode 600-900 MHz';
 defaults{end+1} = default;
 
-%% Other settings
+% Other settings
 default.records.data_map = {[2 0 1 1],[2 0 2 1]};
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};

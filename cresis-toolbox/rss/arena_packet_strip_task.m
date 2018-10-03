@@ -26,7 +26,12 @@ mat_or_bin_hdr_output = param.arena_packet_strip.mat_or_bin_hdr_output;
 %% Read each config/system XML file pair into a configs structure
 % =========================================================================
 % config_fns = get_filenames(fullfile(base_dir,config_folder_name),'','','config.xml',struct('recursive',true));
-config_fns = get_filenames(fullfile(base_dir,config_folder_name),'','','config.xml');
+config_fns_dir = fullfile(base_dir,config_folder_name);
+config_fns = get_filenames(config_fns_dir,'','','config.xml');
+
+if isempty(config_fns)
+  error('No configuration files found in %s.', config_fns_dir);
+end
 
 clear configs;
 for config_idx = 1:length(config_fns)
