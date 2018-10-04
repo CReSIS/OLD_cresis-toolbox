@@ -26,7 +26,12 @@ mat_or_bin_hdr_output = param.arena_packet_strip.mat_or_bin_hdr_output;
 %% Read each config/system XML file pair into a configs structure
 % =========================================================================
 % config_fns = get_filenames(fullfile(base_dir,config_folder_name),'','','config.xml',struct('recursive',true));
-config_fns = get_filenames(fullfile(base_dir,config_folder_name),'','','config.xml');
+config_fns_dir = fullfile(base_dir,config_folder_name);
+config_fns = get_filenames(config_fns_dir,'','','config.xml');
+
+if isempty(config_fns)
+  error('No configuration files found in %s.', config_fns_dir);
+end
 
 clear configs;
 for config_idx = 1:length(config_fns)
@@ -421,7 +426,7 @@ for config_idx = 1:length(configs)
     oparams(config_idx).radar.wfs(wf).chan_equal_deg = round(defaults{match_idx}.radar.wfs(wf).chan_equal_deg*10)/10;
     oparams(config_idx).radar.wfs(wf).Tsys = defaults{match_idx}.radar.wfs(wf).chan_equal_Tsys;
     oparams(config_idx).radar.wfs(wf).presums = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.presums;
-    oparams(config_idx).radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB;
+    oparams(config_idx).radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB - 2;
     oparams(config_idx).radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
       / oparams(config_idx).radar.fs*oparams(config_idx).radar.wfs(wf).DDC_dec ...
       - param.arena_packet_strip.defaults{1}.arena.param.ADC_time_delay - t_dac;

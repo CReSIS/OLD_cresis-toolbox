@@ -249,7 +249,7 @@ default.array.Nsig = 2;
 
 %% Radar worksheet
 default.radar.adc_bits = 14;
-default.radar.Vpp_scale = 2 / 5; % Digital receiver gain is 5, full scale Vpp is 2
+default.radar.Vpp_scale = 1.5; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
 default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
@@ -277,7 +277,8 @@ default.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+1500]';
 % default.post.echo.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+100]';
 default.post.echo.er_ice = 3.15;
 default.post.ops.location = 'antarctic';
-  
+
+
 %% Radar Settings
 
 defaults = {};

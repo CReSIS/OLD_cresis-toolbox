@@ -53,8 +53,8 @@ fprintf('=====================================================================\n
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 records_fn = ct_filename_support(param,'','records');
-records_ver = load(records_fn,'ver','file_version');
-if isfield(records_ver,'ver') || isfield(records_ver,'file_version')
+records_ver = load(records_fn,'file_version');
+if isfield(records_ver,'file_version')
   records_file.records = load(records_fn);
 else
   records_file = load(records_fn, 'records');

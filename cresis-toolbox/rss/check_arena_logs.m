@@ -46,9 +46,9 @@ end
 
 log_fieldnames = fieldnames(logs);
 
-voltage_threshold = 0.01;
-temperature_threshold = 55;
-alignment_threshold = 1;
+voltage_threshold = 0.05;
+temperature_threshold = 65;
+alignment_threshold = 8;
 link_error_threshold = 1;
 
 for field_idx = 1:length(log_fieldnames)
@@ -104,8 +104,8 @@ for field_idx = 1:length(log_fieldnames)
         min_max = max(alignment{idx}(1,:));
         max_min = min(alignment{idx}(2,:));
         max_max = max(alignment{idx}(2,:));
-        if abs(min_max-max_min) >= alignment_threshold ...
-            || abs(max_max-min_min) >= alignment_threshold
+        if abs(min_max-min_min) >= alignment_threshold ...
+            || abs(max_max-max_min) >= alignment_threshold
           fprintf(2,'%s.%s: %d [%d to %d] : [%d to %d]\n', parent_str, fieldname, idx, ...
             min_min, min_max, ...
             max_min, max_max);
