@@ -52,6 +52,7 @@ param.preprocess.min_seg_size = 2;
 %% Records worksheet
 default.records.file.boards = [1];
 default.records.file.version = 8;
+default.records.file.prefix = param.preprocess.file.prefix;
 default.records.gps.time_offset = 1;
 default.records.gps.en = 1;
 default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
@@ -126,7 +127,7 @@ default.array.diag_load = 0;
 default.array.Nsig = 2;
 
 %% Radar worksheet
-default.radar.prf = 1/(8*256e-6);
+default.radar.prf = 1/256e-6;
 default.radar.fs = 250e6;
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2; % Digital receiver gain is 5, full scale Vpp is 2
@@ -159,10 +160,10 @@ default.post.pdf_en = 1;
 default.post.map.location = 'Antarctica';
 default.post.map.type = 'combined';
 default.post.echo.elev_comp = 2;
-default.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+1500]';
+default.post.echo.depth = '[min(Surface_Depth)-2 max(Surface_Depth)+25]';
 % default.post.echo.elev_comp = 3;
-% default.post.echo.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+100]';
-default.post.echo.er_ice = (1+0.51*0.3)^3;
+% default.post.echo.depth = '[min(Surface_Elev)-25 max(Surface_Elev)+2]';
+default.post.echo.er_ice = round((1+0.51*0.3)^3 * 100)/100;
 default.post.ops.location = 'antarctic';
   
 %% Radar Settings

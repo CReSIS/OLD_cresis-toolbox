@@ -20,11 +20,10 @@ function success = preprocess_task_cresis(param)
 failed_load = {};
 fns_list = cell(size(param.preprocess.daq.board_map));
 for board_idx = 1:numel(param.preprocess.daq.board_map)
-  board = param.preprocess.daq.board_map{board_idx};
-  
   %% Read Headers: Filenames
+  board = param.preprocess.daq.board_map{board_idx};
   board_folder_name = param.preprocess.board_folder_name;
-  board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
+  board_folder_name = regexprep(board_folder_name,'%b',board);
   
   get_filenames_param = struct('regexp',param.preprocess.file.regexp);
   fns = get_filenames(fullfile(param.preprocess.base_dir,board_folder_name), ...
@@ -568,6 +567,9 @@ hdr_raw = [];
 hoffset = 0;
 offset = 0;
 board_idx = 1;
+board = param.preprocess.daq.board_map{board_idx};
+board_folder_name = param.preprocess.board_folder_name;
+board_folder_name = regexprep(board_folder_name,'%b',board);
 for fn_idx = 1:length(fns_list{board_idx})
   % Skip files that failed to load
   if failed_load{1}(fn_idx)
@@ -913,6 +915,151 @@ end
 
 if any(param.preprocess.file.version == [403 404 407 408])
   % NI XML settings files available, break segments based on settings files
+  % and header information
+  
+  xml_version = param.preprocess.daq.xml_version;
+  cresis_xml_mapping;
+  
+  settings_fn_dir = fullfile(param.preprocess.base_dir,param.preprocess.config_folder_name);
+  fprintf('%s\n', settings_fn_dir);
+  
+  % Read XML files in this directory
+  [settings,settings_enc] = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
+  
+  % Get the date information out of the filename
+  board_idx = 1;
+  fn_datenums = [];
+  for data_fn_idx = 1:length(fns_list{board_idx})
+    fname = fname_info_mcords2(fns_list{board_idx}{data_fn_idx});
+    fn_datenums(end+1) = fname.datenum;
+  end
+  
+  %% Print out settings from each XML file (and plot if enabled)
+  oparams = {};
+  for set_idx = 1:length(settings)
+    % Print out settings
+    [~,settings_fn_name] = fileparts(settings(set_idx).fn);
+    fprintf('===================== Setting %d =================\n', set_idx);
+    fprintf('%s: %d waveforms\n', settings_fn_name, length(settings(set_idx).(config_var).Waveforms));
+    if isfield(settings(set_idx),'XML_File_Path')
+      fprintf('  %s\n', settings(set_idx).XML_File_Path{1}.values{1});
+    end
+    fprintf('   PRF:'); fprintf(' %g', settings(set_idx).(config_var).(prf_var)); fprintf('\n');
+    fprintf('   Amp:'); fprintf(' %g', settings(set_idx).(config_var).(ram_amp_var)); fprintf('\n');
+    fprintf('   Tukey:'); fprintf(' %g', settings(set_idx).(config_var).RAM_Taper); fprintf('\n');
+    Tpd = double(settings(set_idx).(config_var).Waveforms(1).Len_Mult)*settings(set_idx).(config_var).Base_Len;
+    fprintf('   f0-f1:'); fprintf(' %g-%g MHz %g us', settings(set_idx).(config_var).Waveforms(1).Start_Freq(1)/1e6, ...
+      settings(set_idx).(config_var).Waveforms(1).Stop_Freq(1)/1e6, Tpd*1e6); fprintf('\n');
+    fprintf('   Tx Mask:'); fprintf(' %g', settings(set_idx).(config_var).Waveforms(1).TX_Mask); fprintf('\n');
+    for wf = 1:length(settings(set_idx).(config_var).Waveforms)
+      fprintf('    WF %d Atten:', wf); fprintf(' %g', settings(set_idx).(config_var).Waveforms(wf).Attenuator_2); fprintf('\n');
+      fprintf('    WF %d Len:', wf); fprintf(' %.1f us', 1e6*settings(set_idx).(config_var).Base_Len*settings(set_idx).(config_var).Waveforms(wf).Len_Mult); fprintf('\n');
+    end
+    
+    if set_idx < length(settings)
+      settings(set_idx).file_matches = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
+    else
+      settings(set_idx).file_matches = find(fn_datenums >= settings(set_idx).datenum);
+    end
+    
+    % Use file header results to remove bad files
+    settings(set_idx).day_wrap_offset = 0;
+    
+    % Associate default parameters with each settings
+    default = default_radar_params_settings_match(param.preprocess.defaults,settings(set_idx));
+    oparams{end+1} = default;
+    oparams{end} = rmfield(oparams{end},'config_regexp');
+    oparams{end} = rmfield(oparams{end},'name');
+    
+    % Parameter spreadsheet
+    % =======================================================================
+    oparams{end}.day_seg = sprintf('%s_%02d',param.preprocess.date_str,length(oparams));
+    oparams{end}.cmd.notes = default.name;
+    
+    oparams{end}.records.file.base_dir = param.preprocess.base_dir;
+    oparams{end}.records.file.board_folder_name = param.preprocess.board_folder_name;
+    oparams{end}.records.gps.time_offset = oparams{end}.records.gps.time_offset+settings(set_idx).day_wrap_offset;
+    if ~isempty(oparams{end}.records.file.board_folder_name) ...
+        && oparams{end}.records.file.board_folder_name(1) ~= filesep
+      % Ensures that board_folder_name is not a text number which Excel
+      % will misinterpret as a numeric type
+      oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
+    end
+    oparams{end}.records.file.clk = param.preprocess.daq.clk;
+    oparams{end}.radar.prf = settings(set_idx).(config_var).(prf_var);
+
+    % Usually the default.radar.wfs structure only has one waveform
+    % entry which is to be copied to all the waveforms so we keep "wf"
+    % and "wf" separate.
+    if numel(oparams{end}.radar.wfs) == 1
+      oparams{end}.radar.wfs = repmat(oparams{end}.radar.wfs,[1 numel(settings(set_idx).(config_var).Waveforms)]);
+    end
+      
+    for wf = 1:numel(settings(set_idx).(config_var).Waveforms)
+      oparams{end}.radar.wfs(wf).Tpd = double(settings(set_idx).(config_var).Waveforms(wf).Len_Mult)*settings(set_idx).(config_var).Base_Len;
+      oparams{end}.radar.wfs(wf).f0 = settings(set_idx).(config_var).Waveforms(wf).Start_Freq(1);
+      oparams{end}.radar.wfs(wf).f1 = settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1);
+      oparams{end}.radar.wfs(wf).tukey = settings(set_idx).(config_var).RAM_Taper;
+      % Transmit weights
+      if any(param.preprocess.file.version == [403 407 408])
+        tx_mask_inv = fliplr(~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0'));
+        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.preprocess.daq.max_wg_counts*param.preprocess.daq.max_wg_voltage;
+      else
+        tx_mask_inv = ~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0');
+        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.preprocess.daq.max_wg_counts*param.preprocess.daq.max_wg_voltage;
+      end
+      tx_weights = tx_weights(logical(param.preprocess.daq.tx_mask));
+      oparams{end}.radar.wfs(wf).tx_weights = tx_weights;
+      
+      % ADC Gains
+      atten = double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_1(1)) ...
+        + double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_2(1));
+      oparams{end}.radar.wfs(wf).adc_gains = 10.^((param.preprocess.daq.rx_gain - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths)))/20);
+      
+      % DDC mode and frequency
+      oparams{end}.radar.wfs(wf).DDC_dec = 2^(2+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
+      oparams{end}.radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
+    end
+    
+    % Adjust start/stop files for this segment if there are time gaps in
+    % the start/stop files.
+    start_idx = settings(set_idx).file_matches(1);
+    while start_idx <= settings(set_idx).file_matches(end)
+      mask = file_idxs==start_idx;
+      if all(diff(utc_time_sod(mask)) <= param.preprocess.max_time_gap)
+        % Found a good start file
+        break;
+      end
+      start_idx = start_idx + 1;
+    end
+    
+    stop_idx = settings(set_idx).file_matches(end);
+    while stop_idx >= 1
+      mask = file_idxs==stop_idx;
+      if all(diff(utc_time_sod(mask)) <= param.preprocess.max_time_gap)
+        % Found a good end file
+        break;
+      end
+      stop_idx = stop_idx - 1;
+    end
+    
+    settings(set_idx).file_matches = start_idx:stop_idx;
+    
+    mask = file_idxs >= start_idx & file_idxs <= stop_idx;
+    
+    time_gaps = diff(utc_time_sod(mask)) > param.preprocess.max_time_gap;
+    if any(time_gaps)
+      % Create multiple segments because there are time jumps in this
+      % segment (probably due to recording errors) which exceed the allowed
+      % amount.
+      
+      % NOT SUPPORT YET...
+      keyboard
+    end
+    
+    oparams{end}.records.file.start_idx = start_idx;
+    oparams{end}.records.file.stop_idx = stop_idx;
+  end
   
 elseif any(param.preprocess.file.version == [410])
   % MCRDS headers available, break segments based on filenames
@@ -973,33 +1120,39 @@ else
   [~,sort_idxs] = sort(cell2mat({segments.start_time}));
   segments = segments(sort_idxs);
   
+  oparams = {};
   for segment_idx = 1:length(segments)
     segment = segments(segment_idx);
     
     % Determine which default parameters to use
     % =======================================================================
     match_idx = 1;
-    defaults = param.preprocess.defaults;
-    oparams = defaults{match_idx};
-    oparams = rmfield(oparams,'config_regexp');
-    oparams = rmfield(oparams,'name');
+    oparams{end+1} = param.preprocess.defaults{match_idx};
+    oparams{end} = rmfield(oparams{end},'config_regexp');
+    oparams{end} = rmfield(oparams{end},'name');
     
     % Parameter spreadsheet
     % =======================================================================
-    oparams(segment_idx).day_seg = sprintf('%s_%02d',param.preprocess.date_str,segment_idx);
-    oparams(segment_idx).cmd.notes = defaults{match_idx}.name;
+    oparams{end}.day_seg = sprintf('%s_%02d',param.preprocess.date_str,segment_idx);
+    oparams{end}.cmd.notes = param.preprocess.defaults{match_idx}.name;
     
     for board_idx = 1:numel(param.preprocess.daq.board_map)
-      oparams(segment_idx).records.file.start_idx(board_idx) = segment.start_idx;
-      oparams(segment_idx).records.file.stop_idx(board_idx) = segment.stop_idx;
+      oparams{end}.records.file.start_idx(board_idx) = segment.start_idx;
+      oparams{end}.records.file.stop_idx(board_idx) = segment.stop_idx;
     end
-    oparams(segment_idx).records.file.base_dir = param.preprocess.base_dir;
-    oparams(segment_idx).records.file.board_folder_name = param.preprocess.board_folder_name;
-    oparams(segment_idx).records.gps.time_offset = oparams(segment_idx).records.gps.time_offset+segment.day_wrap_offset;
-    if ~isnan(str2double(oparams(segment_idx).records.file.board_folder_name))
-      oparams(segment_idx).records.file.board_folder_name = ['/' oparams(segment_idx).records.file.board_folder_name];
+    oparams{end}.records.file.base_dir = param.preprocess.base_dir;
+    oparams{end}.records.file.board_folder_name = param.preprocess.board_folder_name;
+    if ~isempty(oparams{end}.records.file.board_folder_name) ...
+        && oparams{end}.records.file.board_folder_name(1) ~= filesep
+      % Ensures that board_folder_name is not a text number which Excel
+      % will misinterpret as a numeric type
+      oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
-    oparams(segment_idx).records.file.clk = param.preprocess.daq.clk;
+    oparams{end}.records.gps.time_offset = oparams{end}.records.gps.time_offset+segment.day_wrap_offset;
+    if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
+      oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
+    end
+    oparams{end}.records.file.clk = param.preprocess.daq.clk;
     
     for wf_idx = 1:length(hdr.wfs)
       wf = hdr.wfs(wf_idx);

@@ -1,14 +1,14 @@
 function param = default_radar_params_2018_Greenland_P3_snow
-% param = default_radar_params_2018_Greenland_P3_snow8
+% param = default_radar_params_2018_Greenland_P3_snow
 %
-% Snow8: 2018_Greenland_P3
+% Snow: 2018_Greenland_P3
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
 %
 % Author: John Paden
 
-%% Preprocess Parameters
+%% Preprocess parameters
 param.season_name = '2018_Greenland_P3';
 param.radar_name = 'snow8';
 
@@ -16,8 +16,10 @@ param.preprocess.daq.type = 'cresis';
 param.preprocess.daq.xml_version = -1; % No XML file available
 param.preprocess.daq.header_load_func = @basic_load_fmcw8;
 param.preprocess.daq.board_map = {''};
-param.preprocess.daq.tx_map = {''};
 param.preprocess.daq.clk = 125e6;
+
+param.preprocess.wg.type = 'cresis';
+param.preprocess.wg.tx_map = {''};
 
 param.preprocess.file.version = 8;
 param.preprocess.file.prefix = param.radar_name;

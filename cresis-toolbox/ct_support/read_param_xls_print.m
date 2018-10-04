@@ -5,7 +5,8 @@ function read_param_xls_print(param_fn, generic_ws, params)
 %
 % param_fn: MS Excel .xls parameter spreadsheet to load in
 % generic_ws: worksheet name to load in
-% params: add new fields to this structure
+% params: add new fields from this cell array of structures. A cell array
+%   is used to handle dissimilar structures.
 %
 % Author: John Paden
 %
@@ -35,12 +36,14 @@ fprintf('\n');
 
 %% Print values
 for param_idx = 1:length(params)
+  param = params{param_idx};
+  
   % Print field values
-  fprintf('%s\t%d', params(param_idx).day_seg(1:8), str2double(params(param_idx).day_seg(10:11)));
+  fprintf('%s\t%d', param.day_seg(1:8), str2double(param.day_seg(10:11)));
   for h_idx = 1:length(headers)
     if headers(h_idx).array_type == '0'
       try
-        eval_str = sprintf('params(param_idx).%s.%s',headers(h_idx).generic_ws,headers(h_idx).field_names);
+        eval_str = sprintf('param.%s.%s',headers(h_idx).generic_ws,headers(h_idx).field_names);
         value = eval(eval_str);
         if isempty(value)
           fprintf('\t');
@@ -61,10 +64,10 @@ for param_idx = 1:length(params)
       
     elseif headers(h_idx).array_type == 'a'
       try
-        eval_str = sprintf('numel(params(param_idx).%s.%s)',headers(h_idx).generic_ws,headers(h_idx).array_field_name);
+        eval_str = sprintf('numel(param.%s.%s)',headers(h_idx).generic_ws,headers(h_idx).array_field_name);
         value = eval(eval_str);
         if headers(h_idx).array_field_idx <= value
-          eval_str = sprintf('params(param_idx).%s.%s(%d).%s',headers(h_idx).generic_ws,headers(h_idx).array_field_name,headers(h_idx).array_field_idx,headers(h_idx).field_names);
+          eval_str = sprintf('param.%s.%s(%d).%s',headers(h_idx).generic_ws,headers(h_idx).array_field_name,headers(h_idx).array_field_idx,headers(h_idx).field_names);
           value = eval(eval_str);
           if isempty(value)
             fprintf('\t');
@@ -88,7 +91,7 @@ for param_idx = 1:length(params)
       
     elseif headers(h_idx).array_type == 'as'
       try
-        eval_str = sprintf('numel(params(param_idx).%s.%s)',headers(h_idx).generic_ws,headers(h_idx).array_field_name);
+        eval_str = sprintf('numel(param.%s.%s)',headers(h_idx).generic_ws,headers(h_idx).array_field_name);
         value = eval(eval_str);
         fprintf('\t%d',value);
       catch
@@ -97,10 +100,10 @@ for param_idx = 1:length(params)
       
     elseif headers(h_idx).array_type == 'c'
       try
-        eval_str = sprintf('numel(params(param_idx).%s.%s)',headers(h_idx).generic_ws,headers(h_idx).array_field_name);
+        eval_str = sprintf('numel(param.%s.%s)',headers(h_idx).generic_ws,headers(h_idx).array_field_name);
         value = eval(eval_str);
         if headers(h_idx).array_field_idx <= value
-          eval_str = sprintf('params(param_idx).%s.%s{%d}.%s',headers(h_idx).generic_ws,headers(h_idx).array_field_name,headers(h_idx).array_field_idx,headers(h_idx).field_names);
+          eval_str = sprintf('param.%s.%s{%d}.%s',headers(h_idx).generic_ws,headers(h_idx).array_field_name,headers(h_idx).array_field_idx,headers(h_idx).field_names);
           value = eval(eval_str);
           if isempty(value)
             fprintf('\t');
@@ -124,7 +127,7 @@ for param_idx = 1:length(params)
       
     elseif headers(h_idx).array_type == 'cs'
       try
-        eval_str = sprintf('numel(params(param_idx).%s.%s)',headers(h_idx).generic_ws,headers(h_idx).array_field_name);
+        eval_str = sprintf('numel(param.%s.%s)',headers(h_idx).generic_ws,headers(h_idx).array_field_name);
         value = eval(eval_str);
         fprintf('\t%d',value);
       catch

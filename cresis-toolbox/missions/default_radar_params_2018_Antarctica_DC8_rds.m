@@ -1,7 +1,7 @@
-function [param,defaults] = default_radar_params_2018_Antarctica_DC8_mcords
-% [param,defaults] = default_radar_params_2018_Antarctica_DC8_mcords
+function param = default_radar_params_2018_Antarctica_DC8_rds
+% param = default_radar_params_2018_Antarctica_DC8_rds
 %
-% MCORDS 3: 2018 Antarctica DC8
+% rds: 2018_Antarctica_DC8
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -11,7 +11,7 @@ function [param,defaults] = default_radar_params_2018_Antarctica_DC8_mcords
 param.season_name = '2018_Antarctica_DC8';
 param.radar_name = 'mcords3';
 
-%% Control parameters (not used in the parameter spreadsheet directly)
+%% Control parameters
 % default.xml_file_prefix = 'mcords3';
 % default.data_file_prefix = 'mcords3';
 % default.header_load_func = @basic_load_mcords3;

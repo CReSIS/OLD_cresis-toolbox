@@ -1,61 +1,30 @@
-function [param,defaults] = default_radar_params_2018_Antarctica_TObas_accum3
-% [param,defaults] = default_radar_params_2018_Antarctica_TObas_accum3
+function param = default_radar_params_2018_Antarctica_TObas_accum
+% param = default_radar_params_2018_Antarctica_TObas_accum
 %
-% Accum3: 2018_Antarctica_TObas
+% Accum: 2018_Antarctica_TObas
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
 %
 % Author: John Paden
 
+%% Preprocess parameters
 param.season_name = '2018_Antarctica_TObas';
 param.radar_name = 'accum3';
 
-%% Control parameters (not used in the parameter spreadsheet directly)
-default.header_load_func = @basic_load_arena;
+param.preprocess.daq.type = 'arena';
+param.preprocess.daq.header_load_func = @basic_load_arena;
+param.preprocess.daq.board_map = {'digrx0','digrx1'};
+param.preprocess.daq.clk = 10e6;
 
-default.noise_50ohm = [0 0 0 0];
+param.preprocess.wg.type = 'arena';
+param.preprocess.wg.tx_map = {'dac0'};
 
-default.Pt = 400; % Transmit power at the transmit antenna
-default.Gt = 4*2; % Transmit antenna gain
-default.Ae = default.Gt*(3e8/750e6)^2; % Receiver antenna effective area
-default.system_loss_dB = 10.^(-5.88/10); % Losses from the receive antenna to before the first LNA
-default.noise_figure = 2; % Noise figure of receiver starting at the first LNA
-default.adc_SNR_dB = 59; % ADC full scale signal SNR (relative to quantization noise)
-default.fs = 1000e6;
-default.fs_dac = 2000e6;
-default.max_duty_cycle = 0.1;
-default.max_data_rate = 60;
-default.max_tx = [0.7];
-default.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
-default.PRI_guard = 1e-6;
-default.PRI_guard_percentage = 450e6/500e6;
-
-default.tx_enable = [1];
-
-default.basic_surf_track_min_time = 2e-6;
-default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
-default.board_map = {'digrx0','digrx1'};
-default.tx_map = {'awg0'};
-default.records.file.boards = [1 2];
-default.records.file.version = 103;
-
-if 1
-  % Example 1: Normal configuration:
-  %   Connect antenna N to WFG N for all N = 1 to 1
-  ref_adc = 1;
-  default.txequal.img = [(1:1).', ref_adc*ones(1,1)];
-  default.txequal.ref_wf_adc = 1;
-  default.txequal.wf_mapping = [1];
-  default.txequal.Hwindow_desired = chebwin(1,30).';
-  default.txequal.max_DDS_amp = [4000];
-  default.txequal.time_delay_desired = [0];
-  default.txequal.phase_desired = [0];
-  default.txequal.time_validation = [0.4]*1e-9;
-  default.txequal.amp_validation = [3];
-  default.txequal.phase_validation = [35];
-  default.txequal.remove_linear_phase_en = true;
-end
+param.preprocess.file.version = 103;
+param.preprocess.file.prefix = param.radar_name;
+param.preprocess.file.suffix = '.bin';
+param.preprocess.max_time_gap = 10;
+param.preprocess.min_seg_size = 1;
 
 %% BAS ACCUM Arena Parameters
 arena = [];
@@ -113,8 +82,6 @@ arena.daq(daq_idx).fileStripe = '/data/%b/';
 arena.daq(daq_idx).fileName = 'accum3';
 
 arena.system.name = 'ku0001';
-arena.param.board_map = {'digrx0','digrx1'};
-arena.param.tx_map = {'dac0'};
 
 arena.param.tx_max = [1 1];
 arena.param.PA_setup_time = 2e-6; % Time required to enable PA before transmit
@@ -164,14 +131,60 @@ arena.ctu.out.bit_group(idx).pri = [1 1];
 
 arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2/param.prf'};
 
-default.arena = arena;
+param.preprocess.arena = arena;
+
+% %% Control parameters (not used in the parameter spreadsheet directly)
+% default.header_load_func = @basic_load_arena;
+% 
+% default.noise_50ohm = [0 0 0 0];
+% 
+% default.Pt = 400; % Transmit power at the transmit antenna
+% default.Gt = 4*2; % Transmit antenna gain
+% default.Ae = default.Gt*(3e8/750e6)^2; % Receiver antenna effective area
+% default.system_loss_dB = 10.^(-5.88/10); % Losses from the receive antenna to before the first LNA
+% default.noise_figure = 2; % Noise figure of receiver starting at the first LNA
+% default.adc_SNR_dB = 59; % ADC full scale signal SNR (relative to quantization noise)
+% default.fs = 1000e6;
+% default.fs_dac = 2000e6;
+% default.max_duty_cycle = 0.1;
+% default.max_data_rate = 60;
+% default.max_tx = [0.7];
+% default.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
+% default.PRI_guard = 1e-6;
+% default.PRI_guard_percentage = 450e6/500e6;
+% 
+% default.tx_enable = [1];
+% 
+% default.basic_surf_track_min_time = 2e-6;
+% default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
+% default.board_map = {'digrx0','digrx1'};
+% default.tx_map = {'awg0'};
+% default.records.file.boards = [1 2];
+% default.records.file.version = 103;
+
+if 1
+  % Example 1: Normal configuration:
+  %   Connect antenna N to WFG N for all N = 1 to 1
+  ref_adc = 1;
+  default.txequal.img = [(1:1).', ref_adc*ones(1,1)];
+  default.txequal.ref_wf_adc = 1;
+  default.txequal.wf_mapping = [1];
+  default.txequal.Hwindow_desired = chebwin(1,30).';
+  default.txequal.max_DDS_amp = [4000];
+  default.txequal.time_delay_desired = [0];
+  default.txequal.phase_desired = [0];
+  default.txequal.time_validation = [0.4]*1e-9;
+  default.txequal.amp_validation = [3];
+  default.txequal.phase_validation = [35];
+  default.txequal.remove_linear_phase_en = true;
+end
 
 %% Records worksheet parameter spreadsheet
 default.records.gps.time_offset = 0;
 default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
 default.records.frames.mode = 1;
 
-%% Quick Look worksheet parameter spreadsheet
+%% Qlook worksheet
 default.qlook.out_path = '';
 default.qlook.block_size = 5000;
 default.qlook.motion_comp = 0;
@@ -186,7 +199,7 @@ default.qlook.surf.sidelobe = 17;
 default.qlook.surf.noise_rng = [0 -50 10];
 default.qlook.surf.search_rng = [0:2];
 
-%% SAR worksheet parameter spreadsheet
+%% SAR worksheet
 default.sar.out_path = '';
 default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
 default.sar.frm_types = {0,[0 1],0,0,-1};
@@ -215,7 +228,7 @@ default.sar.sub_aperture_steering = 0;
 default.sar.st_wind = @hanning;
 default.sar.start_eps = 3.15;
 
-%% Array worksheet parameter spreadsheet
+%% Array worksheet
 default.array.in_path = '';
 default.array.array_path = '';
 default.array.out_path = '';
@@ -234,7 +247,7 @@ default.array.sv_fh = @array_proc_sv;
 default.array.diag_load = 0;
 default.array.Nsig = 2;
 
-%% Radar worksheet parameter spreadsheet
+%% Radar worksheet
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2 / 5; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
@@ -245,6 +258,8 @@ default.radar.wfs(1).rx_paths = [1]; % ADC to rx path mapping
 chan_equal_Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
+
+%% Post worksheet
 default.post.data_dirs = {'qlook'};
 default.post.layer_dir = 'layerData';
 default.post.maps_en = 1;
@@ -263,6 +278,8 @@ default.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+1500]';
 default.post.echo.er_ice = 3.15;
 default.post.ops.location = 'antarctic';
   
+%% Radar Settings
+
 defaults = {};
 
 % Deconvolution Mode
@@ -322,7 +339,7 @@ default.config_regexp = '.*survey.*';
 default.name = 'Survey Mode 600-900 MHz';
 defaults{end+1} = default;
 
-%% Other settings
+% Other settings
 default.records.data_map = {[2 0 1 1],[2 0 2 1]};
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
@@ -340,3 +357,7 @@ end
 default.config_regexp = '.*';
 default.name = 'Default 600-900 MHz';
 defaults{end+1} = default;
+
+%% Add default settings
+
+param.preprocess.defaults = defaults;

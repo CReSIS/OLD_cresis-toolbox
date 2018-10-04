@@ -56,6 +56,14 @@ if ~isfield(param.preprocess,'min_seg_size') || isempty(param.preprocess.min_seg
   % discarded)
   param.preprocess.min_seg_size = 2;
 end
+if ~isfield(param.preprocess,'skip_files_start') || isempty(param.preprocess.skip_files_start)
+  % Number of files to ignore at the beginning of the segment
+  param.preprocess.skip_files_start = 0;
+end
+if ~isfield(param.preprocess,'skip_files_end') || isempty(param.preprocess.skip_files_end)
+  % Number of files to ignore at the end of the segment
+  param.preprocess.skip_files_end = 0;
+end
 
 
 %% Create each task
@@ -80,6 +88,7 @@ for config_folder_idx = 1:numel(param.preprocess.config_folder_names)
   dparam.argsin{1}.preprocess.board_folder_name = board_folder_name;
   dparam.argsin{1}.preprocess.date_str = param.preprocess.date_strs{config_folder_idx};
   dparam.argsin{1}.preprocess.daq = param.preprocess.daq;
+  dparam.argsin{1}.preprocess.wg = param.preprocess.wg;
   
   if ~isfield(param.preprocess,'reuse_tmp_files') || isempty(param.preprocess.reuse_tmp_files)
     dparam.argsin{1}.preprocess.reuse_tmp_files = true;
@@ -102,7 +111,7 @@ for config_folder_idx = 1:numel(param.preprocess.config_folder_names)
     for board_idx = 1:length(param.preprocess.daq.board_map)
       board = param.preprocess.daq.board_map{board_idx};
       board_folder_name = param.preprocess.board_folder_names{config_folder_idx};
-      board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
+      board_folder_name = regexprep(board_folder_name,'%b',board);
       
       get_filenames_param = struct('regexp',param.preprocess.file.regexp);
       fns = get_filenames(fullfile(param.preprocess.base_dir,board_folder_name), ...

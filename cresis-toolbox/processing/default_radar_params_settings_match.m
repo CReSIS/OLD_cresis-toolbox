@@ -9,7 +9,7 @@ found = false;
 if isfield(settings,'XML_File_Path')
   settings_fn = settings.XML_File_Path{1}.values{1};
   for default_idx = 1:length(defaults)
-    if ~isempty(regexp(settings_fn, defaults{default_idx}.xml_regexp))
+    if ~isempty(regexp(settings_fn, defaults{default_idx}.config_regexp))
       default = defaults{default_idx};
       found = true;
       break;
