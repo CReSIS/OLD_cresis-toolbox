@@ -17,24 +17,24 @@ param_override = [];
 % Set param.radar_name and param.season_name and get radar default
 % parameters.
 % param = default_radar_params_2018_Greenland_P3_rds;
-param = default_radar_params_2018_Greenland_P3_snow;
-% param = default_radar_params_2018_Antarctica_TObas_accum3;
-% param = default_radar_params_2018_Antarctica_Ground_mcords6;
+% param = default_radar_params_2018_Greenland_P3_snow;
+param = default_radar_params_2018_Antarctica_TObas_accum;
+% param = default_radar_params_2018_Antarctica_Ground_rds;
 
 if ispc
-  param.preprocess.base_dir = 'E:\tmp\2018_Antarctica_TObas\';
+  param.config.base_dir = 'E:\tmp\2018_Antarctica_TObas\';
 else
-  param.preprocess.base_dir = '/N/dcwan/projects/cresis/2018_Greenland_P3/';
-  % param.preprocess.base_dir = '/data/';
+  % param.config.base_dir = '/N/dcwan/projects/cresis/2018_Greenland_P3/';
+  param.config.base_dir = '/data/';
 end
-% param.preprocess.config_folder_names = {'20180405/mcords/'};
-% param.preprocess.board_folder_names = {'20180405/mcords/%b'};
-% param.preprocess.date_strs = {'20180405'};
-param.preprocess.config_folder_names = {'20180405/fmcw/snow/'};
-param.preprocess.board_folder_names = {'20180405/fmcw/snow/'};
-param.preprocess.date_strs = {'20180405'};
-% param.preprocess.config_folder_names = {'20180929/'};
-% param.preprocess.board_folder_names = {'20180929/%b'};
+% param.config.config_folder_names = {'20180405/mcords/'};
+% param.config.board_folder_names = {'20180405/mcords/%b'};
+% param.config.date_strs = {'20180405'};
+% param.config.config_folder_names = {'20180405/fmcw/snow/'};
+% param.config.board_folder_names = {'20180405/fmcw/snow/'};
+% param.config.date_strs = {'20180405'};
+param.config.config_folder_names = {'20181004/'};
+param.config.board_folder_names = {'20181004/%b'};
 
 
 dbstop if error;

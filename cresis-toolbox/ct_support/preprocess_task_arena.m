@@ -1,5 +1,5 @@
-function success = arena_packet_strip_task(param)
-% success = arena_packet_strip_task(param)
+function success = preprocess_task_arena(param)
+% success = preprocess_task_arena(param)
 %
 % Strips data out of Arena packets and creates:
 % 1. Files of just radar data
@@ -18,10 +18,10 @@ function success = arena_packet_strip_task(param)
 % arena_packet_strip.m, arena_packet_strip_task.m
 
 % Pull in the inputs from param struct
-base_dir = fullfile(param.arena_packet_strip.base_dir);
-config_folder_name = fullfile(param.arena_packet_strip.config_folder_name);
-reuse_tmp_files = param.arena_packet_strip.reuse_tmp_files;
-mat_or_bin_hdr_output = param.arena_packet_strip.mat_or_bin_hdr_output;
+base_dir = fullfile(param.config.base_dir);
+config_folder_name = fullfile(param.config.config_folder_name);
+reuse_tmp_files = param.config.reuse_tmp_files;
+mat_or_bin_hdr_output = param.config.mat_or_bin_hdr_output;
 
 %% Read each config/system XML file pair into a configs structure
 % =========================================================================
@@ -37,7 +37,7 @@ clear configs;
 for config_idx = 1:length(config_fns)
   config_fn = config_fns{config_idx};
   
-  configs(config_idx) = read_arena_xml(config_fn,'',param.arena_packet_strip.board_map,param.arena_packet_strip.tx_map);
+  configs(config_idx) = read_arena_xml(config_fn,'',param.config.board_map,param.config.tx_map);
 end
 
 %% Process each segment of data
@@ -89,10 +89,10 @@ for config_idx = 1:length(configs)
   end
   
   %% Get Files for each board
-  for board_idx = 1:length(param.arena_packet_strip.board_map)
-    board = param.arena_packet_strip.board_map(board_idx);
+  for board_idx = 1:length(param.config.board_map)
+    board = param.config.board_map(board_idx);
     
-    board_folder_name = fullfile(param.arena_packet_strip.board_folder_name);
+    board_folder_name = fullfile(param.config.board_folder_name);
     
     % Replace all "%b" in board_folder_name with the board number
     board_folder_name = regexprep(board_folder_name,'%b',board);
@@ -176,7 +176,7 @@ for config_idx = 1:length(configs)
         [out_config_fn_dir] = fileparts(configs(config_idx).config_fn);
         log_files = fullfile(out_config_fn_dir,'logs/*');
         global gRadar
-        out_log_dir = fullfile(gRadar.data_support_path, param.season_name, param.arena_packet_strip.config_folder_name);
+        out_log_dir = fullfile(gRadar.data_support_path, param.season_name, param.config.config_folder_name);
         if ~exist(out_log_dir,'dir')
           mkdir(out_log_dir)
         end
@@ -288,15 +288,19 @@ end
 
 %% Print out segments
 % =========================================================================
+oparams = {};
 for config_idx = 1:length(configs)
+  
+  if isempty(configs(config_idx).fns{1})
+    % Skip this config file if there are no data files
+    continue;
+  end
   
   % Determine which default parameters to use
   % =======================================================================
-  default_param = param.arena_packet_strip.default_param;
-  defaults = param.arena_packet_strip.defaults;
   match_idx = [];
-  for default_idx = 1:length(defaults)
-    match = regexpi(configs(config_idx).psc.config_name, defaults{default_idx}.config_regexp);
+  for default_idx = 1:length(param.config.defaults)
+    match = regexpi(configs(config_idx).psc.config_name, param.config.defaults{default_idx}.config_regexp);
     if ~isempty(match)
       match_idx = default_idx;
       break;
@@ -305,13 +309,11 @@ for config_idx = 1:length(configs)
   if isempty(match_idx)
     error('No match for psc config name %s.', configs(config_idx).psc.config_name);
   end
-  if config_idx == 1
-    oparams = default_param;
-  end
+  oparams{end+1} = param.config.defaults{match_idx};
 
   % Create map from wfs to board_idx, mode, subchannel, adc
   % =======================================================================
-  data_map = defaults{match_idx}.records.data_map;
+  data_map = oparams{end}.records.data_map;
   board_idx_map = [];
   mode_map = [];
   subchannel_map = [];
@@ -335,38 +337,37 @@ for config_idx = 1:length(configs)
   % Parameter spreadsheet
   % =======================================================================
   [~,config_fn_name] = fileparts(configs(config_idx).config_fn);
-  oparams(config_idx).day_seg = sprintf('%s_%02d',config_fn_name(1:8),config_idx);
-  oparams(config_idx).cmd.notes = configs(config_idx).psc.config_name(5:end);
-  oparams(config_idx).records = defaults{match_idx}.records;
-  oparams(config_idx).qlook = defaults{match_idx}.qlook;
-  oparams(config_idx).sar = defaults{match_idx}.sar;
-  oparams(config_idx).array = defaults{match_idx}.array;
+  oparams{end}.day_seg = sprintf('%s_%02d',config_fn_name(1:8),numel(oparams));
+  oparams{end}.cmd.notes = configs(config_idx).psc.config_name(5:end);
   
-  oparams(config_idx).records.file.version = 103;
-  oparams(config_idx).records.file.boards = param.arena_packet_strip.board_map;
-  oparams(config_idx).records.file.prefix = datestr(configs(config_idx).config_fname_info.datenum,'YYYYmmDD_HHMMSS');
-  for board_idx = 1:length(param.arena_packet_strip.board_map)
-    oparams(config_idx).records.file.start_idx(board_idx) = 1;
-    oparams(config_idx).records.file.stop_idx(board_idx) = length(configs(config_idx).fns{board_idx});
+  oparams{end}.records.file.version = 103;
+  oparams{end}.records.file.boards = param.config.board_map;
+  oparams{end}.records.file.prefix = datestr(configs(config_idx).config_fname_info.datenum,'YYYYmmDD_HHMMSS');
+  for board_idx = 1:length(param.config.board_map)
+    oparams{end}.records.file.start_idx(board_idx) = 1;
+    oparams{end}.records.file.stop_idx(board_idx) = length(configs(config_idx).fns{board_idx});
   end
-  oparams(config_idx).records.file.base_dir = ct_filename_ct_tmp(param,'','headers','');
-  oparams(config_idx).records.file.board_folder_name = param.arena_packet_strip.board_folder_name;
-  if ~isnan(str2double(oparams(config_idx).records.file.board_folder_name))
-    oparams(config_idx).records.file.board_folder_name = ['/' oparams(config_idx).records.file.board_folder_name];
+  oparams{end}.records.file.base_dir = ct_filename_ct_tmp(param,'','headers','');
+  oparams{end}.records.file.board_folder_name = param.config.board_folder_name;
+  if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
+    oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
   end
-  oparams(config_idx).records.file.clk = 10e6;
-  oparams(config_idx).records.gps.time_offset = 0;
-  oparams(config_idx).records.gps.en = 1;
+  oparams{end}.records.file.clk = 10e6;
+  oparams{end}.records.gps.time_offset = 0;
+  oparams{end}.records.gps.en = 1;
   [~,config_fn_name] = fileparts(configs(config_idx).config_fn);
-  oparams(config_idx).records.config_fn = fullfile(param.arena_packet_strip.config_folder_name, [config_fn_name '.xml']);
+  oparams{end}.records.config_fn = fullfile(param.config.config_folder_name, [config_fn_name '.xml']);
   
-  oparams(config_idx).radar.fs = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.sampFreq;
-  oparams(config_idx).radar.prf = configs(config_idx).prf * configs(config_idx).total_presums;
-  oparams(config_idx).radar.adc_bits = defaults{match_idx}.radar.adc_bits;
-  oparams(config_idx).radar.Vpp_scale = defaults{match_idx}.radar.Vpp_scale;
-  oparams(config_idx).radar.lever_arm_fh = defaults{match_idx}.radar.lever_arm_fh;
+  oparams{end}.radar.fs = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.sampFreq;
+  oparams{end}.radar.prf = configs(config_idx).prf * configs(config_idx).total_presums;
   
-  for wf_idx = 1:length(wfs)
+  % Usually the default.radar.wfs structure only has one waveform
+  % entry which is to be copied to all the waveforms.
+  if numel(oparams{end}.radar.wfs) == 1
+    oparams{end}.radar.wfs = repmat(oparams{end}.radar.wfs,[1 numel(wfs)]);
+  end
+  
+  for wf_idx = 1:numel(wfs)
     wf = wfs(wf_idx);
     
     board_idx = board_idx_wfs(wf_idx);
@@ -382,76 +383,69 @@ for config_idx = 1:length(configs)
     
     switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.adcMode)
       case 0
-        oparams(config_idx).radar.wfs(wf).DDC_dec = 1;
+        oparams{end}.radar.wfs(wf).DDC_dec = 1;
       case 1
-        oparams(config_idx).radar.wfs(wf).DDC_dec = 2;
+        oparams{end}.radar.wfs(wf).DDC_dec = 2;
       case 2
-        oparams(config_idx).radar.wfs(wf).DDC_dec = 4;
+        oparams{end}.radar.wfs(wf).DDC_dec = 4;
     end
     
     if subchannel_wfs(1) == 0
       switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc0NcoMode)
         case 0
-          oparams(config_idx).radar.wfs(wf).DDC_freq = 0;
+          oparams{end}.radar.wfs(wf).DDC_freq = 0;
         case 1
-          oparams(config_idx).radar.wfs(wf).DDC_freq = oparams(config_idx).radar.fs/4;
+          oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
         case 2
-          oparams(config_idx).radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc0NcoFreq;
+          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc0NcoFreq;
       end
     elseif subchannel_wfs(1) == 1
       switch (configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc1NcoMode)
         case 0
-          oparams(config_idx).radar.wfs(wf).DDC_freq = 0;
+          oparams{end}.radar.wfs(wf).DDC_freq = 0;
         case 1
-          oparams(config_idx).radar.wfs(wf).DDC_freq = oparams(config_idx).radar.fs/4;
+          oparams{end}.radar.wfs(wf).DDC_freq = oparams{end}.radar.fs/4;
         case 2
-          oparams(config_idx).radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc1NcoFreq;
+          oparams{end}.radar.wfs(wf).DDC_freq = configs(config_idx).adc{board_idx_wfs(1),1+mode_wfs(1),1+subchannel_wfs(1)}.ddc1NcoFreq;
       end
     end
     
-    oparams(config_idx).radar.wfs(wf).adcs = defaults{match_idx}.radar.wfs(wf).adcs;
-    oparams(config_idx).radar.wfs(wf).f0 = fc-BW/2;
-    oparams(config_idx).radar.wfs(wf).f1 = fc+BW/2;
-    oparams(config_idx).radar.wfs(wf).tukey = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.alpha;
-    oparams(config_idx).radar.wfs(wf).BW_window = [fc-BW/2 fc+BW/2];
-    oparams(config_idx).radar.wfs(wf).Tpd = Tpd;
+    oparams{end}.radar.wfs(wf).f0 = fc-BW/2;
+    oparams{end}.radar.wfs(wf).f1 = fc+BW/2;
+    oparams{end}.radar.wfs(wf).tukey = configs(config_idx).dac{1,mode_latch+1}.wfs{1}.alpha;
+    oparams{end}.radar.wfs(wf).BW_window = [fc-BW/2 fc+BW/2];
+    oparams{end}.radar.wfs(wf).Tpd = Tpd;
     scale = [];
     for tx_idx = 1:size(configs(config_idx).dac,1)
       scale(tx_idx) = configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale;
     end
-    oparams(config_idx).radar.wfs(wf).tx_weights = scale;
-    oparams(config_idx).radar.wfs(wf).rx_paths = defaults{match_idx}.radar.wfs(wf).rx_paths;
-    oparams(config_idx).radar.wfs(wf).adc_gains_dB = round(defaults{match_idx}.radar.wfs(wf).adc_gains_dB*10)/10;
-    oparams(config_idx).radar.wfs(wf).chan_equal_dB = round(defaults{match_idx}.radar.wfs(wf).chan_equal_dB*10)/10;
-    oparams(config_idx).radar.wfs(wf).chan_equal_deg = round(defaults{match_idx}.radar.wfs(wf).chan_equal_deg*10)/10;
-    oparams(config_idx).radar.wfs(wf).Tsys = defaults{match_idx}.radar.wfs(wf).chan_equal_Tsys;
-    oparams(config_idx).radar.wfs(wf).presums = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.presums;
-    oparams(config_idx).radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB - 2;
-    oparams(config_idx).radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
-      / oparams(config_idx).radar.fs*oparams(config_idx).radar.wfs(wf).DDC_dec ...
-      - param.arena_packet_strip.defaults{1}.arena.param.ADC_time_delay - t_dac;
+    oparams{end}.radar.wfs(wf).tx_weights = scale;
+    oparams{end}.radar.wfs(wf).presums = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.presums;
+    oparams{end}.radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB - 2;
+    oparams{end}.radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
+      / oparams{end}.radar.fs*oparams{end}.radar.wfs(wf).DDC_dec ...
+      - param.config.arena.param.ADC_time_delay - t_dac;
     
   end
-  oparams(config_idx).post = defaults{match_idx}.post;
 end
 
-if ~isempty(param.arena_packet_strip.param_fn)
+if ~isempty(param.config.param_fn)
   % Print parameter spreadsheet values
   % =========================================================================
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  cmd\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.arena_packet_strip.param_fn,'cmd',oparams);
+  read_param_xls_print(param.config.param_fn,'cmd',oparams);
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  records\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.arena_packet_strip.param_fn,'records',oparams);
+  read_param_xls_print(param.config.param_fn,'records',oparams);
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  qlook\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.arena_packet_strip.param_fn,'qlook',oparams);
+  read_param_xls_print(param.config.param_fn,'qlook',oparams);
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  sar\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.arena_packet_strip.param_fn,'sar',oparams);
+  read_param_xls_print(param.config.param_fn,'sar',oparams);
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  array\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.arena_packet_strip.param_fn,'array',oparams);
+  read_param_xls_print(param.config.param_fn,'array',oparams);
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  radar\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.arena_packet_strip.param_fn,'radar',oparams);
+  read_param_xls_print(param.config.param_fn,'radar',oparams);
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  post\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.arena_packet_strip.param_fn,'post',oparams);
+  read_param_xls_print(param.config.param_fn,'post',oparams);
 end
 
 %% Exit task

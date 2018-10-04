@@ -44,7 +44,7 @@ function gps = read_gps_arena(fn, param)
 % Author: John Paden
 %
 % See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
+%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj,
 %   read_gps_txt, plot_gps
 
 if ~exist('param','var') || isempty(param)
@@ -53,7 +53,7 @@ end
 if ~isfield(param,'clk') || isempty(param.clk)
   param.clk = 10e6;
 end
-  
+
 [fid,msg] = fopen(fn,'r');
 if fid < 0
   error('Error opening %s: %s', fn, msg);
@@ -149,7 +149,7 @@ gps.comp_time = ppsCntr;
 
 % If GPS is bad, NMEA may be constant, return empty arrays in this case
 if all(gps.lat(1)==gps.lat)
-  warning('GPS data is constant. Not using this file.');
+  warning('GPS data is constant. This generally means invalid data so not loading this file.');
   gps.gps_time = [];
   gps.lat = [];
   gps.lon = [];
@@ -163,16 +163,24 @@ if all(gps.lat(1)==gps.lat)
   return;
 end
 
-[comp_time_year,comp_time_month,comp_time_day] = datevec(epoch_to_datenum(gps.comp_time));
-if any(comp_time_year ~= param.year)
-  warning('comp_time year is %d and does not match param.year %d.', comp_time_year, param.year);
-end
-if any(comp_time_month ~= param.month)
-  warning('comp_time month is %d and does not match param.month %d.', comp_time_month, param.month);
-end
-if any(comp_time_day ~= param.day)
-  comp_time_day = comp_time_day(find(comp_time_day ~= param.day,1));
-  warning('comp_time day is %d and does not match param.day %d.', comp_time_day, param.day);
+if all(gps.radar_time(1)==gps.radar_time)
+  warning('gps.radar_time is constant. GPS 1 PPS may not have been received. Radar synchronization to GPS will not be possible with this file.');
 end
 
-return;
+if all(gps.comp_time(1)==gps.comp_time)
+  warning('gps.comp_time is constant. GPS 1 PPS may not have been received.');
+  
+else
+  [comp_time_year,comp_time_month,comp_time_day] = datevec(epoch_to_datenum(gps.comp_time));
+  if any(comp_time_year ~= param.year)
+    warning('comp_time year is %d and does not match param.year %d.', comp_time_year, param.year);
+  end
+  if any(comp_time_month ~= param.month)
+    warning('comp_time month is %d and does not match param.month %d.', comp_time_month, param.month);
+  end
+  if any(comp_time_day ~= param.day)
+    comp_time_day = comp_time_day(find(comp_time_day ~= param.day,1));
+    warning('comp_time day is %d and does not match param.day %d.', comp_time_day, param.day);
+  end
+end
+

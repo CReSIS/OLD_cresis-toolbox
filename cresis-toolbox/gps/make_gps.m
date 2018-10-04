@@ -157,6 +157,10 @@ for file_idx = 1:length(in_fns)
     end
   end
   
+  if isempty(gps.gps_time)
+    error('No GPS data loaded, isempty(gps.gps_time) == true.\n');
+  end
+  
   %% Remove records with NaN
   good_mask = ~(isnan(gps.gps_time(1:length(gps.gps_time))) | isnan(gps.lat) ...
     | isnan(gps.lon) | isnan(gps.elev) ...

@@ -126,7 +126,11 @@ if param.elev_comp == 1
   dt = mdata.Time(2)-mdata.Time(1);
   dBins = round(dRange / (c/2) / dt);
   dtime = dRange/(c/2);
+  dtime = interp_finite(dtime,0); % Deal with NaN (e.g. when GPS is missing)
   zero_pad_len = max(abs(dBins));
+  if isnan(zero_pad_len)
+    zero_pad_len = 0;
+  end
   mdata.Data = cat(1,mdata.Data,zeros(zero_pad_len,size(mdata.Data,2)));
   mdata.Time = mdata.Time(1) + (mdata.Time(2)-mdata.Time(1)) * (0:1:size(mdata.Data,1)-1);
 

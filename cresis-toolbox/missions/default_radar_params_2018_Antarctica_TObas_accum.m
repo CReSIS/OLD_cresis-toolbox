@@ -12,22 +12,32 @@ function param = default_radar_params_2018_Antarctica_TObas_accum
 param.season_name = '2018_Antarctica_TObas';
 param.radar_name = 'accum3';
 
-param.preprocess.daq.type = 'arena';
-param.preprocess.daq.header_load_func = @basic_load_arena;
-param.preprocess.daq.board_map = {'digrx0','digrx1'};
-param.preprocess.daq.clk = 10e6;
+param.config.daq_type = 'arena';
+param.config.wg_type = 'arena';
+param.config.header_load_func = @basic_load_arena;
+param.config.board_map = {'digrx0','digrx1'};
+param.config.tx_map = {'awg0'};
 
-param.preprocess.wg.type = 'arena';
-param.preprocess.wg.tx_map = {'dac0'};
+param.config.file.version = 103;
+param.config.file.prefix = param.radar_name;
+param.config.file.suffix = '.bin';
+param.config.max_time_gap = 10;
+param.config.min_seg_size = 1;
 
-param.preprocess.file.version = 103;
-param.preprocess.file.prefix = param.radar_name;
-param.preprocess.file.suffix = '.bin';
-param.preprocess.max_time_gap = 10;
-param.preprocess.min_seg_size = 1;
+param.config.max_data_rate = 60;
+param.config.max_duty_cycle = 0.1;
+param.config.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
+param.config.PRI_guard = 1e-6;
+param.config.PRI_guard_percentage = 450e6/500e6;
+param.config.tx_enable = [1];
+param.config.max_tx = 1.0;
+param.config.max_tx_voltage = sqrt(400*50)*10^(-2/20); % voltage at max_tx
 
 %% BAS ACCUM Arena Parameters
 arena = [];
+arena.clk = 10e6;
+fs = 1000e6;
+fs_dac = 2000e6;
 subsystem_idx = 0;
 subsystem_idx = subsystem_idx + 1;
 arena.subsystem(subsystem_idx).name = 'ARENA-CTU';
@@ -46,29 +56,35 @@ dac_idx = 0;
 dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg0';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
-arena.dac(dac_idx).dacClk = default.fs_dac;
+arena.dac(dac_idx).dacClk = fs_dac;
 arena.dac(dac_idx).desiredAlignMin = -7;
 arena.dac(dac_idx).desiredAlignMax = 5;
+arena.dac(dac_idx).desiredAlignMin = -7;
+arena.dac(dac_idx).desiredAlignMax = 7;
 arena.dac(dac_idx).dcoPhase = 80;
 
 adc_idx = 0;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx0';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
-arena.adc(adc_idx).sampFreq = default.fs;
+arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 1;
 arena.adc(adc_idx).desiredAlignMin = -15;
 arena.adc(adc_idx).desiredAlignMax = 0;
+arena.adc(adc_idx).desiredAlignMin = -2;
+arena.adc(adc_idx).desiredAlignMax = 12;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 1;
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
-arena.adc(adc_idx).sampFreq = default.fs;
+arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 1;
 arena.adc(adc_idx).desiredAlignMin = -34;
 arena.adc(adc_idx).desiredAlignMax = -20;
+arena.adc(adc_idx).desiredAlignMin = -11;
+arena.adc(adc_idx).desiredAlignMax = 3;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 2;
@@ -131,7 +147,7 @@ arena.ctu.out.bit_group(idx).pri = [1 1];
 
 arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2/param.prf'};
 
-param.preprocess.arena = arena;
+param.config.arena = arena;
 
 % %% Control parameters (not used in the parameter spreadsheet directly)
 % default.header_load_func = @basic_load_arena;
@@ -144,8 +160,6 @@ param.preprocess.arena = arena;
 % default.system_loss_dB = 10.^(-5.88/10); % Losses from the receive antenna to before the first LNA
 % default.noise_figure = 2; % Noise figure of receiver starting at the first LNA
 % default.adc_SNR_dB = 59; % ADC full scale signal SNR (relative to quantization noise)
-% default.fs = 1000e6;
-% default.fs_dac = 2000e6;
 % default.max_duty_cycle = 0.1;
 % default.max_data_rate = 60;
 % default.max_tx = [0.7];
@@ -179,7 +193,12 @@ if 1
   default.txequal.remove_linear_phase_en = true;
 end
 
-%% Records worksheet parameter spreadsheet
+%% Command worksheet
+default.cmd.records = 1;
+default.cmd.qlook = 1;
+default.cmd.generic = 1;
+
+%% Records worksheet
 default.records.gps.time_offset = 0;
 default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
 default.records.frames.mode = 1;
@@ -254,8 +273,9 @@ default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or
 default.radar.lever_arm_fh = @lever_arm;
 default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
 default.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
-default.radar.wfs(1).rx_paths = [1]; % ADC to rx path mapping
-chan_equal_Tsys = [0]/1e9;
+default.radar.wfs(1).rx_paths = [1]; % ADC to rx path mapping for wf 1
+default.radar.wfs(2).rx_paths = [1]; % ADC to rx path mapping for wf 2
+Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
 
@@ -292,7 +312,7 @@ default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
-  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
@@ -311,7 +331,7 @@ default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
-  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
@@ -330,7 +350,7 @@ default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
-  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
@@ -349,7 +369,7 @@ default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
-  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
@@ -361,4 +381,4 @@ defaults{end+1} = default;
 
 %% Add default settings
 
-param.preprocess.defaults = defaults;
+param.config.defaults = defaults;

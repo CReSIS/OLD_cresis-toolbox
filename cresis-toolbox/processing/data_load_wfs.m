@@ -334,6 +334,7 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).deconv    = param.radar.wfs(wf).deconv;
   else
     wfs(wf).deconv    = struct('en',false);
+    param.radar.wfs(wf).deconv = [];
   end
   if ~isfield(param.radar.wfs(wf).deconv,'fn') || isempty(param.radar.wfs(wf).deconv.fn)
     wfs(wf).deconv.fn = 'analysis';
