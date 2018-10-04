@@ -127,7 +127,7 @@ for ctrl_idx = 1:length(ctrls)
           
         elseif strcmpi(ctrl.cluster.type,'matlab')
           for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
-            if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(task_id))
+            if ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(task_id)
               try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
             end
           end
