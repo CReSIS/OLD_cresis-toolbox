@@ -55,9 +55,6 @@ radar_time_notes = '';
 epri_notes = '';
 clock_notes = '';
 
-%% Correct GPS time using EPRI
-% ======================================================================
-
 %% Align all boards using EPRI
 % ======================================================================
 if any(param.records.file.version == [9 10 103 412])
@@ -184,6 +181,90 @@ if any(param.records.file.version == [9 10 103 412])
   end
   
   radar_time(bad_idxs) = epri_time(bad_idxs);
+  
+elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
+  
+  epri = double(board_hdrs{1}.epri);
+  utc_time_sod = double(board_hdrs{1}.seconds) + double(board_hdrs{1}.fraction) / param.records.file.clk;
+  
+  if 0
+    % Test sequences
+    utc_time_sod = [0 1 2 3 10000 5 6 7 8 9 10 11 12 13 24 25 26 27 28 19 20 21 22 19 20 21 22]
+    utc_time_sod = utc_time_sod + 0.0001*randn(size(utc_time_sod))
+    epri = 100 + [1:23, 20:23]
+    epri(15) = 5000;
+  end
+  
+  % Estimate the pulse repetition interval, PRI
+  PRI = median(diff(utc_time_sod));
+  
+  % Create an EPRI sequence from the time record
+  time_epri = utc_time_sod / PRI;
+  [~,good_time_idx] = min(abs(utc_time_sod - median(utc_time_sod)));
+  time_epri = time_epri - time_epri(good_time_idx);
+  
+  % Find the difference of the time-generated epri and the recorded epri
+  dtime_epri = diff(time_epri);
+  depri = diff(epri);
+  
+  % Find good/bad differences. Mask values are:
+  %  0: both differences are bad
+  %  1: EPRI good
+  %  2: Time-generated EPRI good
+  %  3: EPRI and time-generated EPRI good
+  dtime_epri_threshold = 0.1; % Allow for 10% PRI error
+  mask = (depri == 1) + (2*(abs(dtime_epri-1) < dtime_epri_threshold));
+  % If the EPRI's both indicate the same number of skipped records,
+  % consider it a good difference.
+  mask(mask ~= 3 & depri == round(dtime_epri)) = 3;
+  
+  % Fix differenced time-generated EPRIs using differenced EPRIs
+  dtime_epri(mask==1) = depri(mask==1);
+  % Fix differenced EPRIs using differenced time-generated EPRIs
+  depri(mask==2) = round(dtime_epri(mask==2));
+  
+  % Find sequences of good records (where mask > 0) and deal with each
+  % segment separately.
+  good_out_mask = false(size(utc_time_sod));
+  start_idx = find(mask ~= 0,1);
+  while ~isempty(start_idx)
+    stop_idx = start_idx-1 + find(mask(start_idx+1:end) == 0,1);
+    if isempty(stop_idx)
+      stop_idx = numel(mask);
+    end
+    
+    % Find a median point in each segment and assume this value is good
+    [~,good_time_idx] = min(abs(utc_time_sod(start_idx:stop_idx+1) - median(utc_time_sod(start_idx:stop_idx+1))));
+    [~,good_epri_idx] = min(abs(epri(start_idx:stop_idx+1) - median(epri(start_idx:stop_idx+1))));
+    
+    % Reconstruct epri
+    tmp = [0 cumsum(depri(start_idx:stop_idx))];
+    tmp = tmp - tmp(good_epri_idx) + epri(start_idx-1+good_epri_idx);
+    epri_new(start_idx:stop_idx+1) = tmp;
+    
+    % Reconstruct time from time-generated EPRIs
+    tmp = [0 cumsum(dtime_epri(start_idx:stop_idx))*PRI];
+    tmp = tmp - tmp(good_time_idx) + utc_time_sod(start_idx-1+good_time_idx);
+    utc_time_sod_new(start_idx:stop_idx+1) = tmp;
+    
+    % Mark these records as good outputs
+    good_out_mask(start_idx:stop_idx+1) = true;
+    
+    % Find the next sequence
+    start_idx = stop_idx + find(mask(stop_idx+1:end) ~= 0,1);
+  end
+  
+  utc_time_sod = utc_time_sod_new;
+  
+  % Check for day wraps in the UTC time seconds of day
+  day_wrap_idxs = find(diff(utc_time_sod) < -50000);
+  day_wrap_offset = zeros(size(utc_time_sod));
+  for day_wrap_idx = day_wrap_idxs
+    day_wrap_offset(day_wrap_idx+1:end) = day_wrap_offset(day_wrap_idx+1:end) + 86400;
+  end
+  utc_time_sod = utc_time_sod + day_wrap_offset;
+  
+  radar_time = utc_time_sod;
 end
 
 %% Correlate GPS with radar data

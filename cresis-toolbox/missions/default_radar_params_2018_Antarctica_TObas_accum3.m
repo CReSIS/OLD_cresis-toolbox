@@ -1,5 +1,5 @@
-function [param,defaults] = default_radar_params_2018_Antarctica_TObas
-% [param,defaults] = default_radar_params_2018_Antarctica_TObas
+function [param,defaults] = default_radar_params_2018_Antarctica_TObas_accum3
+% [param,defaults] = default_radar_params_2018_Antarctica_TObas_accum3
 %
 % Accum3: 2018_Antarctica_TObas
 %
@@ -42,7 +42,7 @@ default.records.file.version = 103;
 
 if 1
   % Example 1: Normal configuration:
-  %   Connect antenna N to WFG N for all N = 1 to 8
+  %   Connect antenna N to WFG N for all N = 1 to 1
   ref_adc = 1;
   default.txequal.img = [(1:1).', ref_adc*ones(1,1)];
   default.txequal.ref_wf_adc = 1;
@@ -166,12 +166,12 @@ arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.1e-6' '2/param.prf'};
 
 default.arena = arena;
 
-%% Records worksheet in parameter spreadsheet
+%% Records worksheet parameter spreadsheet
 default.records.gps.time_offset = 0;
 default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
 default.records.frames.mode = 1;
 
-%% Quick Look worksheet in parameter spreadsheet
+%% Quick Look worksheet parameter spreadsheet
 default.qlook.out_path = '';
 default.qlook.block_size = 5000;
 default.qlook.motion_comp = 0;
@@ -186,7 +186,7 @@ default.qlook.surf.sidelobe = 17;
 default.qlook.surf.noise_rng = [0 -50 10];
 default.qlook.surf.search_rng = [0:2];
 
-%% SAR worksheet in parameter spreadsheet
+%% SAR worksheet parameter spreadsheet
 default.sar.out_path = '';
 default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
 default.sar.frm_types = {0,[0 1],0,0,-1};
@@ -209,13 +209,13 @@ default.sar.mocomp.en = 1;
 default.sar.mocomp.type = 2;
 default.sar.mocomp.filter = {@butter  [2]  [0.1000]};
 default.sar.mocomp.uniform_en = 1;
-default.sar.sar_type = 'f-k';
+default.sar.sar_type = 'fk';
 default.sar.sigma_x = 2.5;
 default.sar.sub_aperture_steering = 0;
 default.sar.st_wind = @hanning;
 default.sar.start_eps = 3.15;
 
-%% Combine worksheet in parameter spreadsheet
+%% Array worksheet parameter spreadsheet
 default.array.in_path = '';
 default.array.array_path = '';
 default.array.out_path = '';
@@ -234,14 +234,14 @@ default.array.sv_fh = @array_proc_sv;
 default.array.diag_load = 0;
 default.array.Nsig = 2;
 
-%% Radar worksheet in parameter spreadsheet
+%% Radar worksheet parameter spreadsheet
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2 / 5; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
 default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
 default.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
-default.radar.rx_paths = [1 1];
+default.radar.wfs(1).rx_paths = [1]; % ADC to rx path mapping
 chan_equal_Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];

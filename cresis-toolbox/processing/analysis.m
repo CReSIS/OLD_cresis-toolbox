@@ -1,6 +1,8 @@
 function ctrl_chain = analysis(param,param_override)
 % ctrl_chain = analysis(param,param_override)
 %
+% https://ops.cresis.ku.edu/wiki/index.php/Analysis
+%
 % param = struct with processing parameters
 %         -- OR --
 %         function handle to script with processing parameters
@@ -14,8 +16,7 @@ function ctrl_chain = analysis(param,param_override)
 %
 % Authors: John Paden
 %
-% See also: master.m, run_analysis.m analysis.m,
-%   analysis_task.m
+% See also: master.m, run_analysis.m analysis.m, analysis_task.m
 
 %% General Setup
 % =====================================================================
@@ -501,7 +502,7 @@ for img = 1:length(param.analysis.imgs)
             ct_file_lock_check(out_fn,3);
           end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
+          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult*1.5);
         end
         
       case {'statistics'}

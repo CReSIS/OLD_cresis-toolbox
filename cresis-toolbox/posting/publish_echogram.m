@@ -231,10 +231,17 @@ elseif param.elev_comp == 3
   mdata.Data = mdata.Data(~negative_bins,:);
   % Create elevation axis to interpolate to
   max_elev = max(mdata.Elevation);
-  min_elev = min(mdata.Elevation - surf_filt*c/2 - (mdata.Time(end)-surf_filt)*c/2/sqrt(param.er_ice));
-  dt = mdata.Time(2)-mdata.Time(1);
-  dr = dt * c/2 / sqrt(param.er_ice);
-  elev_axis = max_elev:-dr:min_elev;
+  if length(mdata.Time) < 2
+    min_elev = min(mdata.Elevation);
+    dt = inf;
+    dr = inf;
+    elev_axis = max_elev:-dr:min_elev;
+  else
+    min_elev = min(mdata.Elevation - surf_filt*c/2 - (mdata.Time(end)-surf_filt)*c/2/sqrt(param.er_ice));
+    dt = mdata.Time(2)-mdata.Time(1);
+    dr = dt * c/2 / sqrt(param.er_ice);
+    elev_axis = max_elev:-dr:min_elev;
+  end
 
   % Zero pad data to create space for interpolated data
   zero_pad_len = length(elev_axis) - length(mdata.Time);
@@ -264,7 +271,11 @@ elseif param.elev_comp == 3
       time0 = surf_filt(rline) + (surf_elev - elev_axis(first_ice_idx))/(c/2/sqrt(param.er_ice));
       new_time = cat(1,new_time, (time0 + dt_ice*(0:length(elev_axis)-length(new_time)-1)).');
     end
-    mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(1:length(mdata.Time),rline), new_time, 'linear',0);
+    if length(mdata.Time) < 2
+      mdata.Data(:,rline) = nan(size(new_time));
+    else
+      mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(1:length(mdata.Time),rline), new_time, 'linear',0);
+    end
     mdata.Elevation(rline) = mdata.Elevation(rline) + dRange(rline);
     lay.Surface(rline) = lay.Surface(rline) + dtime(rline);
     lay.Bottom(rline) = lay.Bottom(rline) + dtime(rline);
@@ -430,14 +441,33 @@ if param.elev_comp == 3
   %% WGS-84 Elevation elevation comp plotting
   echogram_vals = lp(mdata.Data(depth_good_idxs,:));
 
+  echo_info.image = imagesc(NaN,'Parent',ah_echo);
   if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'tonemap')
-    echo_info.image = imagesc([],elev_axis(depth_good_idxs)+param.depth_offset, ...
-      detrend_tonemap,'Parent',ah_echo);
-    axis(ah_echo_time,[0.5 size(detrend_tonemap,2)+0.5 reshape(new_time(depth_good_idxs([1 end]))*1e6 + param.time_offset*1e6,[1 2])])
+    set(echo_info.image,'XData',1:size(echogram_vals,1), ...
+      'YData',elev_axis(depth_good_idxs)+param.depth_offset, ...
+      'CData',detrend_tonemap);
+    if ~isempty(echogram_vals)
+      if length(depth_good_idxs) < 2
+        xlim(ah_echo,[1 size(detrend_tonemap,2)]);
+      else
+        axis(ah_echo,[1 size(detrend_tonemap,2) sort(elev_axis(depth_good_idxs([1 end]))+param.depth_offset)]);
+        axis(ah_echo_time,[0.5 size(detrend_tonemap,2)+0.5 ...
+          reshape(new_time(depth_good_idxs([1 end]))*1e6 + param.time_offset*1e6,[1 2])]);
+      end
+    end
   else
-    echo_info.image = imagesc([],elev_axis(depth_good_idxs)+param.depth_offset, ...
-      echogram_vals,'Parent',ah_echo);
-    axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 reshape(new_time(depth_good_idxs([1 end]))*1e6 + param.time_offset*1e6,[1 2])])
+    set(echo_info.image,'XData',1:size(echogram_vals,1), ...
+      'YData',elev_axis(depth_good_idxs)+param.depth_offset, ...
+      'CData',echogram_vals);
+    if ~isempty(echogram_vals)
+      if length(depth_good_idxs) < 2
+        xlim(ah_echo,[1 size(echogram_vals,2)]);
+      else
+        axis(ah_echo,[1 size(echogram_vals,2) sort(elev_axis(depth_good_idxs([end 1]))+param.depth_offset)]);
+        axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 ...
+          reshape(new_time(depth_good_idxs([1 end]))*1e6 + param.time_offset*1e6,[1 2])]);
+      end
+    end
   end
   set(ah_echo,'YDir','Normal');
   ylabel(ah_echo,sprintf('WGS-84 Elevation, e_r = %.2f (m)', param.er_ice));

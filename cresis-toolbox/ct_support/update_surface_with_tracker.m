@@ -91,12 +91,16 @@ if ~orig_surf.en
   return;
 end
 
-if ~isfield(orig_surf,'max_diff')
+if ~isfield(orig_surf,'max_diff') || isempty(orig_surf.max_diff)
   orig_surf.max_diff = inf;
 end
 
-if ~isfield(orig_surf,'medfilt_threshold')
+if ~isfield(orig_surf,'medfilt_threshold') || isempty(orig_surf.medfilt_threshold)
   orig_surf.medfilt_threshold = 0;
+end
+
+if ~isfield(orig_surf,'trim') || isempty(orig_surf.trim)
+  orig_surf.trim = [0 0];
 end
 
 %% Load in ocean mask, land DEM, and sea surface DEM
@@ -340,6 +344,20 @@ for frm_idx = 1:length(param.cmd.frms)
     mdata = load(data_fn,'GPS_time','Latitude','Longitude','Elevation','Time');
   else
     mdata = load(data_fn);
+  end
+  
+  %% Trim echogram data
+  for rline = 1:size(mdata.Data,2)
+    start_bin = find(~isnan(mdata.Data(:,rline)) & mdata.Data(:,rline) ~= 0,1);
+    if ~isempty(start_bin)
+      stop_bin = min(size(mdata.Data,1), start_bin+surf.trim(1)-1);
+      mdata.Data(start_bin:stop_bin,rline) = 0;
+    end
+    stop_bin = find(~isnan(mdata.Data(:,rline)) & mdata.Data(:,rline) ~= 0,1,'last');
+    if ~isempty(stop_bin)
+      start_bin = max(1, stop_bin-surf.trim(2)+1);
+      mdata.Data(start_bin:stop_bin,rline) = 0;
+    end
   end
   
   %% Update surf structure for this particular echogram

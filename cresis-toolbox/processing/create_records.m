@@ -43,11 +43,16 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
+if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
+  % Assume a single channel system
+  param.records.file.boards = {''};
+end
+
 % boards: List of file groupings based on how ADC channels are stored in
 %   the files.
 if any(param.records.file.version == [1:10 101:102 401 404:409 411])
   % Each channel has its own file
-  boards = unique(param.records.file.adcs);
+  boards = param.records.file.boards;
 elseif any(param.records.file.version == [410])
   % MCRDS: All channels in the same file
   boards = 1;
@@ -59,11 +64,6 @@ elseif any(param.records.file.version == [9:10 103 412])
   boards = param.records.file.boards;
 else
   error('Unsupported file version\n');
-end
-
-if ~isfield(param.records.file,'adcs') || isempty(param.records.file.adcs)
-  % Assume a single channel system
-  param.records.file.adcs = 1;
 end
 
 if ~isfield(param.records,'epri_jump_threshold') || isempty(param.records.epri_jump_threshold)

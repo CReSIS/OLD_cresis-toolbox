@@ -465,13 +465,13 @@ if print_mode == 2
             tmp_result = tmp_result(idx:end);
             mem_units = sscanf(tmp_result,'%s');
             if strcmpi(mem_units,'mb')
-              info(id_idx).mem_actual = uint32(mem);
+              info(id_idx).mem_actual = mem;
             elseif strcmpi(mem_units,'kb')
-              info(id_idx).mem_actual = uint32(mem/1e3);
+              info(id_idx).mem_actual = mem/1e3;
             elseif strcmpi(mem_units,'gb')
-              info(id_idx).mem_actual = uint32(mem*1e3);
+              info(id_idx).mem_actual = mem*1e3;
             else
-              info(id_idx).mem_actual = uint32(mem/1e6);
+              info(id_idx).mem_actual = mem/1e6;
             end
           end
           
@@ -634,7 +634,7 @@ if print_mode == 2
           idx = find(tmp_result==10|tmp_result==13,1);
           tmp_result = tmp_result(1:idx);
           [mem,~,~,idx] = sscanf(tmp_result,'%d');
-          info(id_idx).mem_actual = uint32(mem/1e3);
+          info(id_idx).mem_actual = mem/1e3;
         end
       end
     end

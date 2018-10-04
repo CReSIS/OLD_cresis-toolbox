@@ -47,32 +47,36 @@ function surface = tracker_threshold(data,surf)
 if ~exist('surf','var')
   surf = struct();
 end
-if ~isfield(surf,'noise_rng')
+if ~isfield(surf,'noise_rng') || isempty(surf.noise_rng)
   surf.noise_rng = [0 -inf -1];
 end
-if ~isfield(surf,'noise_override')
+if ~isfield(surf,'noise_override') || isempty(surf.noise_override)
   surf.noise_override = [];
 end
-if ~isfield(surf,'search_rng')
+if ~isfield(surf,'search_rng') || isempty(surf.search_rng)
   surf.search_rng = 0;
 end
-if ~isfield(surf,'threshold')
+if ~isfield(surf,'threshold') || isempty(surf.threshold)
   surf.threshold = 17;
 end
-if ~isfield(surf,'threshold_rng')
+if ~isfield(surf,'threshold_rng') || isempty(surf.threshold_rng)
   surf.threshold_rng = inf;
 end
-if ~isfield(surf,'sidelobe')
+if ~isfield(surf,'sidelobe') || isempty(surf.sidelobe)
   surf.sidelobe = 13;
 end
-if ~isfield(surf,'max_diff')
+if ~isfield(surf,'max_diff') || isempty(surf.max_diff)
   surf.max_diff = inf;
 end
-if ~isfield(surf,'filter_len')
-  surf.filter_len = 1;
+if ~isfield(surf,'filter_len') || isempty(surf.filter_len)
+  surf.filter_len = [1 1];
 end
-if mod(surf.filter_len,2) == 0
-  error('Surface filter length must be odd');
+if length(surf.filter_len) == 1
+  warning('Deprecated surf.filter_len format. Should specify 2 element vector that specifies the multilooks in [cross-track along-track].');
+  surf.filter_len = [1 surf.filter_len(1)];
+end
+if any(mod(surf.filter_len,2) == 0)
+  error('Surface filter lengths must be odd');
 end
 
 if ~isfield(surf,'min_bin') || isempty(surf.min_bin)
@@ -108,9 +112,14 @@ data = data(surf.min_bin:surf.max_bin,:);
 %% Filter data and convert to log domain
 surf.normalize_each_bin = false;
 if ~surf.normalize_each_bin
-  surf_data = fir_dec(data,ones(1,surf.filter_len(1))/surf.filter_len(1),1);
-  if length(surf.filter_len) == 2
+  surf_data = data;
+  if surf.filter_len(1) ~= 1
+    % Multilooking in cross-track/fast-time
     surf_data = fir_dec(surf_data.',ones(1,surf.filter_len(2))/surf.filter_len(2),1).';
+  end
+  if surf.filter_len(2) ~= 1
+    % Multilooking in along-track
+    surf_data = fir_dec(surf_data,ones(1,surf.filter_len(1))/surf.filter_len(1),1);
   end
   surf_data = lp(surf_data,1);
 else

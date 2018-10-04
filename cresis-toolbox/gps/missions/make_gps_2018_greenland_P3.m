@@ -33,7 +33,7 @@ debug_level = 1;
 in_base_path = fullfile(data_support_path,'2018_Greenland_P3');
 
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
-sync_fns = {}; sync_params = {};
+sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 % gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'wingport-field';
