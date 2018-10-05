@@ -432,7 +432,7 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'nsidc_delivery_script_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'arena_packet_strip_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'preprocess_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'hanning.m' 0};
   gRadar.cluster.hidden_depend_funs{end+1} = {'hamming.m' 0};
   gRadar.cluster.hidden_depend_funs{end+1} = {'blackman.m' 0};
