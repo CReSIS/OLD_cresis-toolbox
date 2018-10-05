@@ -185,6 +185,11 @@ if length(valid_frms) ~= length(param.cmd.frms)
   param.cmd.frms = valid_frms;
 end
 
+if isempty(param.cmd.frms)
+  % No valid frames specified to post
+  return;
+end
+
 % Build a list of frame information and eliminate frames that have
 % proc_mode set to not post.
 frm_idx = 0;
