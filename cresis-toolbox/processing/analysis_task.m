@@ -63,7 +63,7 @@ end
 %% Load and process each image separately
 % =====================================================================
 store_param = param;
-for img = 1:length(param.load.imgs)
+for img = 1:length(store_param.load.imgs)
 
   param = store_param;
   param.load.raw_data = false;
@@ -155,8 +155,10 @@ for img = 1:length(param.load.imgs)
       tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.load.imgs{1}(wf_adc,1);
-        adc = param.load.imgs{1}(wf_adc,2);
+        tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
+        tmp_hdr.records = {hdr.records{1,wf_adc}};
+        wf = tmp_param.load.imgs{1}(1,1);
+        adc = tmp_param.load.imgs{1}(1,2);
         
         coh_ave_samples = [];
         coh_ave = [];
@@ -171,10 +173,7 @@ for img = 1:length(param.load.imgs)
         heading = [];
         
         % Pulse compression
-        tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
-        tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
         tmp_wfs(wf).deconv.en = false;
-        
         [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
@@ -363,8 +362,10 @@ for img = 1:length(param.load.imgs)
       tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = tmp_param.load.imgs{1}(wf_adc,1);
-        adc = tmp_param.load.imgs{1}(wf_adc,2);
+        tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
+        tmp_hdr.records = {hdr.records{1,wf_adc}};
+        wf = tmp_param.load.imgs{1}(1,1);
+        adc = tmp_param.load.imgs{1}(1,2);
         
         coh_ave_samples = single([]);
         coh_ave = single([]);
@@ -381,9 +382,6 @@ for img = 1:length(param.load.imgs)
         % Pulse compression
         tmp_wfs(wf).coh_noise_method = '';
         tmp_wfs(wf).deconv.en = false;
-        tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
-        tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
-        
         tmp_hdr.nyquist_zone_signal{img} = double(tmp_hdr.nyquist_zone_hw{img});
         [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
         
@@ -535,13 +533,12 @@ for img = 1:length(param.load.imgs)
       tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'        
-        wf = tmp_param.load.imgs{1}(wf_adc,1);
-        adc = tmp_param.load.imgs{1}(wf_adc,2);
-        
-        % Pulse compression
         tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
         tmp_hdr.records = {hdr.records{1,wf_adc}};
+        wf = tmp_param.load.imgs{1}(1,1);
+        adc = tmp_param.load.imgs{1}(1,2);
         
+        % Pulse compression
         [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
