@@ -52,11 +52,6 @@ else
   final_DDS_time{idx} =  [0];
 end
 
-% Hwindow_orig: Desired window created during transmit calibration
-%  This is used any time a window that is different from that used
-%  during calibration is to be used.
-Hwindow_orig = chebwin(1).';
-
 %% Survey Mode + survey-test, loopback, noise, and deconv modes
 % <1700 m thick ice, 1400 +/- 300 ft AGL
 ice_thickness = [1600];
