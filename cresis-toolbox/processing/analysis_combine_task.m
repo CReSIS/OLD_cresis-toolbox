@@ -215,6 +215,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         pitch = [];
         heading = [];
         surface = [];
+        nyquist_zone = [];
         coh_ave = {};
         coh_ave_samples = {};
         doppler_concat = single([]);
@@ -249,6 +250,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           pitch(end+(1:length(noise.pitch))) = noise.pitch;
           heading(end+(1:length(noise.heading))) = noise.heading;
           surface(end+(1:length(noise.surface))) = noise.surface;
+          nyquist_zone(end+(1:length(noise.nyquist_zone))) = noise.nyquist_zone;
           
           % coh_ave and coh_ave_samples may be different lengths, so we
           % just concatenate in cell arrays
@@ -284,6 +286,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         noise.pitch = pitch;
         noise.heading = heading;
         noise.surface = surface;
+        noise.nyquist_zone = nyquist_zone;
         
         noise.coh_ave = coh_ave;
         noise.coh_ave_samples = coh_ave_samples;

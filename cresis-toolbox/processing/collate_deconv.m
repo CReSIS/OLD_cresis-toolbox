@@ -142,7 +142,7 @@ if ~isfield(cmd,'ML_threshold') || isempty(cmd.ML_threshold)
   cmd.ML_threshold = 15;
 end
 
-if ~isfield(cmd,'rbins') || isempty(cmd.rbins)
+if param.collate_deconv.stage_one_en && (~isfield(cmd,'rbins') || isempty(cmd.rbins))
   error('The "rbins" field must be set in the cmd to a range of indices about the peak to use in the deconvolution waveform, e.g. cmd.rbins = [-110 40] to use 110 bins before the peak and 40 bins after the peak. rbins should be a cell array with each element corresponding to the param.collate_deconv.imgs array.');
 end
 

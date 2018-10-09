@@ -65,6 +65,16 @@ for img = param.collate_coh_noise.imgs
     fprintf('Loading %s (%s)\n', fn, datestr(now));
     noise = load(fn);
     
+    % HACK: Need to fix files since change to data_pulse_compress
+    noise.Nt = noise.Nt-1;
+    for block_idx = 1:length(noise.coh_ave)
+      for subrec = 1:size(noise.coh_ave{block_idx},2)
+        idx = find(~isnan(noise.coh_ave{block_idx}(:,subrec)),1,'last');
+        noise.coh_ave{block_idx}(idx,subrec) = NaN;
+      end
+    end
+    % END HACK
+    
     % Each processed block has a constant start and stop bin, but between
     % blocks the start/stop range bin may change.
     start_bins = round(noise.t0/noise.dt);

@@ -416,6 +416,7 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'basic_load_fmcw2.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_combine_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task_stats_max.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};
