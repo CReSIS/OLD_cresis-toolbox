@@ -612,7 +612,7 @@ for img = 1:length(param.load.imgs)
             tmp = tmp .* cn.time_correction;
             tmp = ifft(tmp);
             tmp = tmp .* cn.deskew;
-            tmp(end) = 0; % HACK: DO NOT COMMIT
+            tmp(end) = 0;
             
             if 0
               % Debug
@@ -890,7 +890,7 @@ for img = 1:length(param.load.imgs)
         h_filled_inverse = Hwind_filled ./ h_filled;
         
         % Normalize deconvolution
-        h_filled_inverse = h_filled_inverse * h_mult_factor;
+        h_filled_inverse = h_filled_inverse * h_mult_factor * abs(h_nonnegative(1)./max(deconv.impulse_response{deconv_map_idx}));
         
         % Is adc_gains_dB different?
         h_filled_inverse = h_filled_inverse / 10.^((wfs(wf).adc_gains_dB(adc)-deconv.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);

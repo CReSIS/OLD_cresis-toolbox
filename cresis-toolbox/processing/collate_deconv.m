@@ -258,9 +258,54 @@ if param.collate_deconv.stage_one_en
       %% Analyze each waveform, extract impulse response and metrics
       % ===================================================================
       % ===================================================================
+      
+      %% HACK: To deal with broken data_pulse_compress
+      hack_records = load(ct_filename_support(param,'','records'));
+%       hack_trajectory_param = struct('gps_source',hack_records.gps_source, ...
+%   'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
+%   'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
+% hack_records = trajectory_with_leverarm(hack_records,hack_trajectory_param);
+
+      % Break records in segment into blocks
+      hack_breaks = 1:spec.param_analysis.analysis.block_size:length(hack_records.gps_time);
+      
+      % If the last block is less than half the desired block size, then combine
+      % with earlier block if possible
+      if length(hack_records.gps_time)-hack_breaks(end) < spec.param_analysis.analysis.block_size/2 ...
+          && length(hack_breaks) > 1
+        hack_breaks = hack_breaks(1:end-1);
+      end
+      hack_breaks(end+1) = length(hack_records.gps_time)+1;
+      hack_elev = interp1(hack_records.gps_time,hack_records.elev,spec.deconv_gps_time,'nearest','extrap');
+      for rline = 1:length(spec.deconv_gps_time)
+        hack_block_idx = find(deconv.rec(rline) >= hack_breaks,1,'last');
+        hack_elev_block = hack_records.elev(hack_breaks(hack_block_idx):hack_breaks(hack_block_idx+1)-1);
+        hack_twtt(rline) = spec.deconv_twtt(rline) + (hack_elev(rline) - hack_elev_block(1))/(c/2);
+      end
+      figure(1); clf;
+      plot(spec.deconv_twtt);
+      hold on
+      plot(hack_twtt)
+      hack_end = spec.deconv_t0+spec.param_analysis.radar.fs/2*spec.param_analysis.radar.wfs.Tpd/(spec.param_analysis.radar.wfs.f1-spec.param_analysis.radar.wfs.f0);
+      plot(hack_end)
+      hack_bad_guard = 2e-9;
+      hack_bad_mask = abs(mod(hack_twtt+hack_bad_guard-min(spec.deconv_t0),spec.param_analysis.radar.fs/2*spec.param_analysis.radar.wfs.Tpd/(spec.param_analysis.radar.wfs.f1-spec.param_analysis.radar.wfs.f0))) < 2*hack_bad_guard;
+      plot(find(~hack_bad_mask),hack_twtt(~hack_bad_mask),'.');
+      %% END HACK
+
       for rline = 1:length(spec.deconv_gps_time)
         
         %% Create impulse response
+        
+        % HACK: To deal with broken data_pulse_compress
+        if hack_bad_mask(rline)
+          fprintf('HACK: skipping %d: %g\n', rline, hack_twtt(rline));
+          deconv.metric(:,rline) = NaN(6,1);
+          [~,match_idx] = min(abs(spec.gps_time - spec.deconv_gps_time(rline)));
+          deconv.gps_time(rline) = spec.gps_time(match_idx);
+          continue
+        end
+        % END HACK
         
         % h: impulse response
         h = spec.deconv_mean{rline};
@@ -829,33 +874,147 @@ if param.collate_deconv.stage_two_en
         final.file_version = '1';
       end
 
-      % Plot final output
-      if 1
-        h_fig = 1;
-        figure(h_fig); clf;
-        h_axes = axes('parent',h_fig);
-        h_plot = plot(h_axes(1), final.map_twtt);
+      % 7. Plot final deconv waveforms
+      
+      % TWTT Figure
+      % ===================================================================
+      h_fig = 1;
+      figure(h_fig); clf;
+      h_axes = axes('parent',h_fig);
+      
+      legend_str = {};
+      h_plot = [];
+      for idx = 1:length(final.gps_time)
+        h_plot(idx+1) = plot(h_axes(1), find(final.map_idxs==idx), final.twtt(final.map_idxs(final.map_idxs==idx)),'.');
         hold(h_axes(1),'on');
-        h_scatter = scatter(h_axes(1), 1:length(final.map_idxs), final.twtt(final.map_idxs),[],final.map_idxs,'.');
-        xlabel(h_axes(1), 'Block');
-        ylabel(h_axes(1), 'Two way travel time (\mus)');
-        title(h_axes(1), param.day_seg, 'interpreter', 'none');
-        legend(h_axes(1), 'TWTT', 'Deconv TWTT','location','best');
-        grid(h_axes(1), 'on');
-        
-        h_fig = 2;
-        figure(h_fig); clf;
-        h_axes(2) = axes('parent',h_fig);
-        h_scatter = scatter(1:length(final.map_idxs), final.max_score,[],final.map_idxs,'.');
-        hold on;
-        h_scatter = scatter(1:length(final.map_idxs), final.unadjusted_score,[],final.map_idxs,'.');
-        xlabel(h_axes(2), 'Block');
-        ylabel(h_axes(2), 'Score');
-        title(h_axes(2), param.day_seg, 'interpreter', 'none');
-        grid(h_axes(2), 'on');
+        legend_str{idx+1} = sprintf('%d',idx);
       end
       
-      % 7. Store final output file
+      h_plot(1) = plot(h_axes(1), final.map_twtt, 'k', 'LineWidth',2);
+      legend_str{1} = 'TWTT';
+      
+      xlabel(h_axes(1), 'Block');
+      ylabel(h_axes(1), 'Two way travel time (\mus)');
+      title(h_axes(1), param.day_seg, 'interpreter', 'none');
+      legend(h_axes(1), h_plot, legend_str,'location','best');
+      grid(h_axes(1), 'on');
+      
+      fig_fn = ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt',param.collate_deconv.out_dir));
+      fprintf('Saving %s\n', fig_fn);
+      fig_fn_dir = fileparts(fig_fn);
+      if ~exist(fig_fn_dir,'dir')
+        mkdir(fig_fn_dir);
+      end
+      saveas(h_fig,[fig_fn '.fig']);
+      saveas(h_fig,[fig_fn '.jpg']);
+      
+      % Score Figure
+      % ===================================================================
+      h_fig = 2;
+      figure(h_fig); clf;
+      h_axes(2) = axes('parent',h_fig);
+      
+      legend_str = {};
+      h_plot = [];
+      for idx = 1:length(final.gps_time)
+        h_plot(idx) = plot(h_axes(2), find(final.map_idxs==idx), final.max_score(find(final.map_idxs==idx)),'.');
+        hold(h_axes(2),'on');
+        legend_str{idx} = sprintf('%d',idx);
+      end
+      for idx = 1:length(final.gps_time)
+        h_new_plot = plot(h_axes(2), find(final.map_idxs==idx), final.unadjusted_score(find(final.map_idxs==idx)),'.');
+        set(h_new_plot, 'Color', get(h_plot(idx),'Color'))
+      end
+      
+      xlabel(h_axes(2), 'Block');
+      ylabel(h_axes(2), 'Score');
+      title(h_axes(2), param.day_seg, 'interpreter', 'none');
+      legend(h_axes(2), h_plot, legend_str,'location','best');
+      grid(h_axes(2), 'on');
+      
+      fig_fn = ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score',param.collate_deconv.out_dir));
+      fprintf('Saving %s\n', fig_fn);
+      fig_fn_dir = fileparts(fig_fn);
+      if ~exist(fig_fn_dir,'dir')
+        mkdir(fig_fn_dir);
+      end
+      saveas(h_fig,[fig_fn '.fig']);
+      saveas(h_fig,[fig_fn '.jpg']);
+      
+      % Transfer Function Figure
+      % ===================================================================
+      h_fig = 3;
+      figure(h_fig); clf;
+      pos = get(h_fig,'Position');
+      set(h_fig,'Position',[pos(1:2) 1000 600]);
+      h_axes(3) = subplot(5,1,1:2,'parent',h_fig);
+      h_axes(4) = subplot(5,1,3:5,'parent',h_fig);
+      
+      legend_str = {};
+      for idx = 1:length(final.gps_time)
+        % Get the reference function
+        h_nonnegative = final.ref_nonnegative{idx};
+        h_negative = final.ref_negative{idx};
+        h_mult_factor = final.ref_mult_factor(idx);
+        
+        % Adjust deconvolution signal to match sample rline
+        h_filled = [h_nonnegative; h_negative];
+        
+        % Take FFT of deconvolution impulse response
+        h_filled = fft(h_filled);
+        
+        Nt = numel(h_filled);
+        df = 1/(Nt*final.dt);
+        freq = final.fc(idx) + df * ifftshift(-floor(Nt/2) : floor((Nt-1)/2)).';
+        freq = fftshift(freq);
+        fc_idx = find(freq==final.fc(idx));
+        
+        h_filled_lp = fftshift(lp(h_filled));
+        h_filled_phase = fftshift(angle(h_filled));
+        h_filled_phase = unwrap(h_filled_phase)*180/pi;
+        h_filled_phase = h_filled_phase - h_filled_phase(fc_idx);
+        
+        if max(freq) > 2e9
+          freq_scale = 1e9;
+        else
+          freq_scale = 1e6;
+        end
+        plot(h_axes(3), freq/freq_scale, h_filled_lp);
+        hold(h_axes(3),'on');
+        plot(h_axes(4), freq/freq_scale, h_filled_phase);
+        hold(h_axes(4),'on');
+        legend_str{idx} = sprintf('%d %s_%03d %4.0f %4.1fus',idx, ...
+          final.map_day_seg{idx},final.frm(idx),round(lp(final.ref_nonnegative{idx}(1),2)), ...
+          round(final.twtt(idx)*1e7)/10);
+      end
+      
+      if freq_scale == 1e9
+        xlabel(h_axes(4), 'Frequency (GHz)');
+      else
+        xlabel(h_axes(4), 'Frequency (MHz)');
+      end
+      ylabel(h_axes(3), 'Relative power (dB)');
+      ylabel(h_axes(4), 'Relative angle (deg)');
+      title(h_axes(3), sprintf('%s (Legend idx:frm:peak:twtt)', param.day_seg), 'interpreter', 'none');
+      grid(h_axes(3), 'on');
+      grid(h_axes(4), 'on');
+      h_legend = legend(h_axes(3), legend_str, 'location', 'northeastoutside', 'interpreter','none');
+      drawnow;
+      pos3 = get(h_axes(3),'Position');
+      pos4 = get(h_axes(4),'Position');
+      set(h_axes(4),'Position',[pos4(1:2) pos3(3) pos4(4)]);
+      
+      fig_fn = ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func',param.collate_deconv.out_dir));
+      fprintf('Saving %s\n', fig_fn);
+      fig_fn_dir = fileparts(fig_fn);
+      if ~exist(fig_fn_dir,'dir')
+        mkdir(fig_fn_dir);
+      end
+      saveas(h_fig,[fig_fn '.fig']);
+      saveas(h_fig,[fig_fn '.jpg']);
+      
+      
+      % 8. Store final output file
       fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
       if ~exist(fn_dir,'dir')
         mkdir(fn_dir);
