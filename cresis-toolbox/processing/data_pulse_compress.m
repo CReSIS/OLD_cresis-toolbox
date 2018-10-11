@@ -370,7 +370,13 @@ for img = 1:length(param.load.imgs)
             freq_raw_valid = freq_raw;
             
             % conjugate_bins: logical mask indicating which bins are
-            % conjugated
+            % conjugated, this is also used to determine how frequencies
+            % are wrapped in the nyquist zone when real only sampling is
+            % used (for DFT there are 1 or 2 bins which are real-only and
+            % these are marked to be conjugated by using >= and <=; since
+            % conjugation of these real only bins makes no difference the
+            % only reason to do this is because of the nyquist zone
+            % wrapping)
             conjugate_bins = ~(freq_raw_valid >= nz*wfs(wf).fs_raw/2 ...
               & freq_raw_valid <= (1+nz)*wfs(wf).fs_raw/2);
             
