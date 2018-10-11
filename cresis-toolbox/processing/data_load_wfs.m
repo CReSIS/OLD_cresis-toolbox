@@ -5,6 +5,12 @@ function [wfs,states] = data_load_wfs(param, records)
 %
 % Author: John Paden
 
+    % HACK: REMOVE AFTER 2017 DONE
+    if any(param.records.file.version == [1:8]) && isfield(records.settings.wfs(1),'wfs')
+      records.settings.wfs = records.settings.wfs.wfs;
+    end
+    % END HACK
+
 %% Build raw data loading "states" structure
 % =========================================================================
 
@@ -215,7 +221,7 @@ for wf = 1:length(param.radar.wfs)
   end
   if isfield(param.radar.wfs(wf),'presums') && ~isempty(param.radar.wfs(wf).presums)
     wfs(wf).presums = param.radar.wfs(wf).presums;
-  elseif any(param.records.file.version == [1:8 405 406 410]) % [acords mcords]
+  elseif any(param.records.file.version == [405 406 410]) % [acords mcrds]
     wfs(wf).presums = records.settings.wfs(1).wfs(wf).presums(1);
   else
     wfs(wf).presums = records.settings.wfs(wf).presums;

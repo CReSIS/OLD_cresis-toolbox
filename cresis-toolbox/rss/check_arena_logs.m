@@ -46,10 +46,10 @@ end
 
 log_fieldnames = fieldnames(logs);
 
-voltage_threshold = 0.05;
-temperature_threshold = 65;
+voltage_threshold = 0.05; % No official recommendation, but maybe +/-5%
+temperature_threshold = 80; % 80 is RSS/Torry recommended max, but actually can support higher
 alignment_threshold = 8;
-link_error_threshold = 1;
+link_error_threshold = 1; % 1 is RSS/Torry recommended max
 
 for field_idx = 1:length(log_fieldnames)
   fieldname = log_fieldnames{field_idx};

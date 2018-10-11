@@ -153,7 +153,7 @@ for board_idx = 1:length(boards)
     % NI, Rink, Paden, Leuschen, and Ledford systems
     board_hdrs{board_idx}.seconds = zeros([0 0],'uint32');
     board_hdrs{board_idx}.fraction = zeros([0 0],'uint32');
-    board_hdrs{board_idx}.offset = zeros([0 0],'uint32');
+    board_hdrs{board_idx}.offset = zeros([0 0],'int32');
     board_hdrs{board_idx}.file_idx = zeros([0 0],'uint32');
     % records.relative_rec_num = This variable contains the first record
     % number of each file. After the loop runs there will always be one
@@ -201,7 +201,7 @@ for board_idx = 1:length(boards)
       end
 
       board_hdrs{board_idx}.file_size(cur_idx + (1:length(hdr_tmp.mode_latch))) = dir_info.bytes;
-      board_hdrs{board_idx}.file_idx(cur_idx + (1:length(hdr_tmp.mode_latch))) = file_idx;
+      board_hdrs{board_idx}.file_idx(cur_idx + (1:length(hdr_tmp.mode_latch))) = file_num;
       
       board_hdrs{board_idx}.mode_latch(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.mode_latch;
       board_hdrs{board_idx}.offset(cur_idx + (1:length(hdr_tmp.mode_latch))) = hdr_tmp.offset;
@@ -218,13 +218,12 @@ for board_idx = 1:length(boards)
       % NI, Rink, Paden, Leuschen, and Ledford systems
       board_hdrs{board_idx}.seconds(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.seconds;
       board_hdrs{board_idx}.fraction(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.fraction;
-      board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.seconds)) = file_idx;
-      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.offset;
+      board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.seconds)) = file_num;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.seconds)) = int32(hdr_tmp.offset);
       
       if any(param.records.file.version == [1:8 102 401:404 407:408])
         % Ledford, Rink and NI systems have EPRI field
         board_hdrs{board_idx}.epri(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.epri;
-      elseif any(param.records.file.version == [1:8 102 401:404 407:408])
       end
       
       % Copy the waveform structure
@@ -234,6 +233,29 @@ for board_idx = 1:length(boards)
       records.relative_rec_num{board_idx}(file_idx+1) = length(hdr_tmp.seconds)+records.relative_rec_num{board_idx}(file_idx);
       [fn_dir fn_name fn_ext] = fileparts(fn);
       records.relative_filename{board_idx}{file_idx} = [fn_name fn_ext];
+      
+      % Handle records that span two files
+      if file_idx ~= length(file_idxs)
+        % The last record in a file is generally incomplete and continues
+        % in the next file. This incomplete record is marked as being
+        % in the next file (so we increment file_idx) and we use a negative
+        % index to indicate that it actually started in this file where the
+        % negative index is relative to the end of this file.
+        board_hdrs{board_idx}.file_idx(end) = board_hdrs{board_idx}.file_idx(end) + 1;
+        file_size = dir(fn);
+        board_hdrs{board_idx}.offset(end) = board_hdrs{board_idx}.offset(end) - file_size.bytes;
+      else
+        % Drop the last record of the last file since it is generally not a
+        % complete record and there is no additional file to load which
+        % contains the remainder of the record.
+        if any(param.records.file.version == [1:8 102 401:404 407:408])
+          board_hdrs{board_idx}.epri = board_hdrs{board_idx}.epri(1:end-1);
+        end
+        board_hdrs{board_idx}.seconds = board_hdrs{board_idx}.seconds(1:end-1);
+        board_hdrs{board_idx}.fraction = board_hdrs{board_idx}.fraction(1:end-1);
+        board_hdrs{board_idx}.file_idx = board_hdrs{board_idx}.file_idx(1:end-1);
+        board_hdrs{board_idx}.offset = board_hdrs{board_idx}.offset(1:end-1);
+      end
     end
   end
   

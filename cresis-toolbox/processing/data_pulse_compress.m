@@ -373,8 +373,6 @@ for img = 1:length(param.load.imgs)
             % conjugated
             conjugate_bins = ~(freq_raw_valid >= nz*wfs(wf).fs_raw/2 ...
               & freq_raw_valid <= (1+nz)*wfs(wf).fs_raw/2);
-            conjugate_bins = ~(freq_raw_valid > nz*wfs(wf).fs_raw/2 ...
-              & freq_raw_valid < (1+nz)*wfs(wf).fs_raw/2);
             
             % freq_raw_valid: modified to handle wrapping at Nyquist
             % boundaries
@@ -596,7 +594,7 @@ for img = 1:length(param.load.imgs)
             
             % Coherent noise is fully pulse compressed. The nyquist_zone
             % set in hardware is always used for the coherent noise
-            % processing even if it is wrong. Three steps:
+            % processing even if the setting is wrong. Three steps:
             % 1: Fully pulse compress the data in the hardware nyquist zone
             % 2: Subtract the coherent noise away
             % 3: If the hardware and actual nyquist zone are different,

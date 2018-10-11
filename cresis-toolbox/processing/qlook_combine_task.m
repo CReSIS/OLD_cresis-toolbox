@@ -121,8 +121,10 @@ for frm_idx = 1:length(param.cmd.frms);
         Time = tmp.Time;
       elseif any(size(Time) ~= size(tmp.Time)) || any(Time ~= tmp.Time)
         % Determine the new time axis
+        %   Note that even though time axis is aligned with multiples of
+        %   dt, there will be rounding errors which need to be dealt with
+        %   here.
         time_vector_changed = true;
-        old_time = Time;
         dt = Time(2) - Time(1);
         start_time_diff = round((Time(1) - tmp.Time(1))/dt);
         end_time_diff = round((tmp.Time(end) - Time(end))/dt);
@@ -161,11 +163,8 @@ for frm_idx = 1:length(param.cmd.frms);
       end
       
       if time_vector_changed
-        if strcmpi(radar_type,'deramp')
-          Data = [interp1(old_time,Data,Time,'nearest',0) interp1(tmp.Time,tmp.Data,Time,'nearest',0)];
-        else
-          Data = [interp1(old_time,Data,Time,'linear',0) interp1(tmp.Time,tmp.Data,Time,'linear',0)];
-        end
+        Data = [[zeros(start_time_diff,size(Data,2)); Data; zeros(end_time_diff,size(Data,2))], ...
+          [zeros(-start_time_diff,size(tmp.Data,2)); tmp.Data; zeros(-end_time_diff,size(tmp.Data,2))]];
       else
         Data = [Data tmp.Data];
       end
@@ -188,12 +187,6 @@ for frm_idx = 1:length(param.cmd.frms);
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
         'param_qlook','param_records','file_version','custom');
     end
-    
-    %% Create temporary output for surface tracker
-    if img == 1
-      Time_Surface = Time;
-      Data_Surface = Data;
-    end
   end
   
   %% Combine image with previous
@@ -202,9 +195,8 @@ for frm_idx = 1:length(param.cmd.frms);
   surf_layer.gps_time = GPS_time;
   surf_layer.twtt = Surface;
   [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
-  %% Update temporary output for surface tracker
+  %% Temporary storage for surface tracker
   Data_Surface = Data;
-  Time_Surface = Time;
   
   if param.qlook.surf.en
     %% Run ice top tracker to find ice surface

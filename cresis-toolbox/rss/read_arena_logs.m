@@ -12,6 +12,8 @@ function logs = read_arena_logs(fns)
 % end
 %
 % Author: John Paden
+%
+% See also: run_check_arena_logs.m, check_arena_logs.m, read_arena_logs.m
 
 logs = struct(); logs = logs([]);
 
