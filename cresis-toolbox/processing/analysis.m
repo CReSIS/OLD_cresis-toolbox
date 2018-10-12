@@ -128,7 +128,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
     error('cmd.method must be defined in param.analysis.cmd cell array');
   end
   
-  switch lower(cmd.method)
+  cmd.method = lower(cmd.method);
+  switch cmd.method
     case {'coh_noise'}
       % Set defaults for coherent noise analysis method
       
@@ -316,6 +317,7 @@ for break_idx = 1:length(breaks)
     dparam.mem = dparam.mem + length(param.analysis.imgs{img})*Nx*total_num_sam(img)*mem_mult;
   end
   data_load_memory = dparam.mem;
+  cmd_method_str = ''; % Used to store the first valid method for dparam.notes
   % Processing the data
   for img = 1:length(param.analysis.imgs)
     for cmd_idx = 1:length(param.analysis.cmd)
@@ -331,7 +333,7 @@ for break_idx = 1:length(breaks)
       dparam.cpu_time = dparam.cpu_time + 10 + param.analysis.presums*size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
 
       % Process commands
-      switch lower(cmd.method)
+      switch cmd.method
         case {'burst_noise'}
           %
 
@@ -347,6 +349,9 @@ for break_idx = 1:length(breaks)
             end
             dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
             dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isempty(cmd_method_str)
+              cmd_method_str = '_coh_noise';
+            end
           end
           
         case {'qlook'}
@@ -367,6 +372,9 @@ for break_idx = 1:length(breaks)
             end
             dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
             dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isempty(cmd_method_str)
+              cmd_method_str = '_specular';
+            end
           end
           
         case {'statistics'}
@@ -381,6 +389,9 @@ for break_idx = 1:length(breaks)
             end
             dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
             dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isempty(cmd_method_str)
+              cmd_method_str = '_stats';
+            end
           end
           
         case {'waveform'}
@@ -403,8 +414,8 @@ for break_idx = 1:length(breaks)
   
   % Rerun only mode: Test to see if we need to run this task
   % =================================================================
-  dparam.notes = sprintf('%s:%s:%s %s %d of %d recs %d-%d', ...
-    mfilename, param.radar_name, param.season_name, param.day_seg, ...
+  dparam.notes = sprintf('%s%s:%s:%s %s %d of %d recs %d-%d', ...
+    mfilename, cmd_method_str, param.radar_name, param.season_name, param.day_seg, ...
     break_idx, length(breaks), actual_cur_recs);
   if ctrl.cluster.rerun_only
     % If we are in rerun only mode AND the get heights task success
@@ -465,7 +476,7 @@ for img = 1:length(param.analysis.imgs)
     out_fn_dir = ct_filename_out(param,cmd.out_path);
     out_fn_dir_dir = fileparts(out_fn_dir);
       
-    switch lower(cmd.method)
+    switch cmd.method
       case {'burst_noise'}
         %
         

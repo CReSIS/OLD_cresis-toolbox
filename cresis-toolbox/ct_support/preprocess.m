@@ -113,8 +113,8 @@ for config_folder_idx = 1:numel(param.config.config_folder_names)
     
   elseif strcmpi(param.config.daq_type,'cresis')
     num_fns = 0;
-    for board_idx = 1:length(param.config.daq.board_map)
-      board = param.config.daq.board_map{board_idx};
+    for board_idx = 1:length(param.config.board_map)
+      board = param.config.board_map{board_idx};
       board_folder_name = param.config.board_folder_names{config_folder_idx};
       board_folder_name = regexprep(board_folder_name,'%b',board);
       

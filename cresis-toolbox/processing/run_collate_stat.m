@@ -1,3 +1,19 @@
+if 0
+  stat = load('/N/dcwan/projects/cresis/output/snow/2017_Greenland_P3/CSARP_analysis_max/stats_20170419_04_wf_1_adc_1.mat');
+  
+  stat
+  
+  max_pow = [];
+  max_idx = [];
+  for block_idx = 1:size(stat.stats,2)
+    max_pow(end+(1:size(stat.stats{block_idx}{1},2))) = stat.stats{block_idx}{1}(1,:);
+    max_idx(end+(1:size(stat.stats{block_idx}{1},2))) = stat.stats{block_idx}{1}(2,:);
+  end
+  
+  return;
+end
+
+
 if 1
   figure(1); clf;
   fn = '/scratch/accum/2018_Antarctica_TObas/CSARP_analysis_ft/stats_20180927_06_wf_2_adc_1.mat';
@@ -90,13 +106,13 @@ block = 1;
 
 legend_str = {};
 for stat_idx = 1:3
-
+  
   fc = stats.freq{block}(1);
   dt = stats.time{block}(2)-stats.time{block}(1);
   Nt = size(stats.stats{block}{stat_idx},1);
   df = 1/(dt*Nt);
   freq = fc + ifftshift( -floor(Nt/2)*df : df : floor((Nt-1)/2)*df ).';
-
+  
   legend_str{stat_idx} = sprintf('%d: %s\n',stat_idx,func2str(stats.param_analysis.analysis.cmd{3}.stats{stat_idx}));
   
   plot(fftshift(freq/1e6), fftshift(lp(stats.stats{block}{stat_idx}(:,1),1)));

@@ -128,6 +128,14 @@ end
 % Never check for the existence of files
 param.qlook.surf_layer.existence_check = false;
 
+if ~isfield(param.records,'gps') || isempty(param.records.gps)
+  param.records.gps = [];
+end
+if ~isfield(param.records.gps,'en') || isempty(param.records.gps.en)
+  % Assume that GPS synchronization is enabled
+  param.records.gps.en = true;
+end
+
 %% Setup Processing
 % =====================================================================
 

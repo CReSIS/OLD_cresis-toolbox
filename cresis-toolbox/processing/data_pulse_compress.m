@@ -364,25 +364,36 @@ for img = 1:length(param.load.imgs)
             %   nyquist zone which contains the signal
             f_nz0 = wfs(wf).fs_raw * floor(nz/2);
             
+            % freq_raw: Frequency axis of raw data
             freq_raw =  f_nz0 + mod(hdr.DDC_freq{img}(rec) ...
               + df_raw*ifftshift(-floor(Nt_raw_trim/2):floor((Nt_raw_trim-1)/2)).', wfs(wf).fs_raw);
             freq_raw_valid = freq_raw;
             
+            % conjugate_bins: logical mask indicating which bins are
+            % conjugated, this is also used to determine how frequencies
+            % are wrapped in the nyquist zone when real only sampling is
+            % used (for DFT there are 1 or 2 bins which are real-only and
+            % these are marked to be conjugated by using >= and <=; since
+            % conjugation of these real only bins makes no difference the
+            % only reason to do this is because of the nyquist zone
+            % wrapping)
             conjugate_bins = ~(freq_raw_valid >= nz*wfs(wf).fs_raw/2 ...
               & freq_raw_valid <= (1+nz)*wfs(wf).fs_raw/2);
             
+            % freq_raw_valid: modified to handle wrapping at Nyquist
+            % boundaries
             if mod(nz,2)
               freq_raw_valid(conjugate_bins) = nz*wfs(wf).fs_raw - freq_raw_valid(conjugate_bins);
             else
               freq_raw_valid(conjugate_bins) = (nz+1)*wfs(wf).fs_raw - freq_raw_valid(conjugate_bins);
             end
             
+            % freq_raw_valid: reduce rounding errors so that unique will
+            % work properly
             freq_raw_valid = df_raw*round(freq_raw_valid/df_raw);
             
+            % Only keep the unique frequency bins
             [~,unique_idxs,return_idxs] = unique(freq_raw_valid);
-            %             if mod(length(unique_idxs),2)
-            %               unique_idxs = unique_idxs(1:end-1);
-            %             end
             
             freq_raw_unique = freq_raw_valid(unique_idxs);
             conjugate_unique = conjugate_bins(unique_idxs);
@@ -444,10 +455,7 @@ for img = 1:length(param.load.imgs)
               cn.freq_raw_valid = cn.df_raw*round(cn.freq_raw_valid/cn.df_raw);
               
               [~,cn.unique_idxs,cn.return_idxs] = unique(cn.freq_raw_valid);
-              %               if mod(length(cn.unique_idxs),2)
-              %                 cn.unique_idxs = cn.unique_idxs(1:end-1);
-              %               end
-              
+            
               cn.freq_raw_unique = cn.freq_raw_valid(cn.unique_idxs);
               cn.conjugate_unique = cn.conjugate_bins(cn.unique_idxs);
             end
@@ -573,6 +581,7 @@ for img = 1:length(param.load.imgs)
               cn.tmp = cn.tmp .* cn.time_correction;
               cn.tmp = ifft(cn.tmp);
               cn.tmp = -cn.tmp .* cn.deskew;
+              cn.tmp(end) = 0;
             else
               if abs(noise.dt-cn.dt)/cn.dt > 1e-6
                 error('There is a fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g).', dt, noise.dt);
@@ -585,29 +594,29 @@ for img = 1:length(param.load.imgs)
                   wfs(wf).t_ref, noise.param_analysis.radar.wfs(wf).t_ref, cn.dt);
               end
               start_bin = 1 + round(cn.time(1)/cn.dt) - noise.start_bin + delta_t_ref_bin;
-              cn.tmp = cn.data(start_bin + (0:length(cn.time)-1),rec);
+              cn.tmp = cn.data(start_bin + (0:length(cn.time)-2),rec);
+              cn.tmp(end+1) = 0;
             end
             
-            % Coherent noise is fully pulse compressed. We undo the operations
-            % until we get back to a point where we can subtract away the
-            % result from our present data. This is necessary because the
-            % coherent noise may have been processed in a different signal
-            % nyquist zone than we are processing the data now; this happens
-            % when the operator chooses the wrong nyquist zone during data
-            % collection.
+            % Coherent noise is fully pulse compressed. The nyquist_zone
+            % set in hardware is always used for the coherent noise
+            % processing even if the setting is wrong. Three steps:
+            % 1: Fully pulse compress the data in the hardware nyquist zone
+            % 2: Subtract the coherent noise away
+            % 3: If the hardware and actual nyquist zone are different,
+            %    then invert the pulse compression and repulse compress in the
+            %    actual nyquist zone.
             
-            % Undo tmp = tmp .* deskew;
-            cn.tmp = cn.tmp ./ cn.deskew;
-            % Undo tmp = ifft(tmp);
-            cn.tmp = fft(cn.tmp);
-            % Undo tmp = tmp .* time_correction;
-            cn.tmp = cn.tmp ./ cn.time_correction;
-            % Undo tmp = ifftshift(fft(conj(tmp)));
-            cn.tmp = conj(ifft(fftshift(cn.tmp)));
-            % Undo tmp = tmp(unique_idxs);
-            cn.tmp = cn.tmp(cn.return_idxs);
-            % Undo tmp(conjugate_unique) = conj(tmp(conjugate_unique));
-            cn.tmp(cn.conjugate_bins) = conj(cn.tmp(cn.conjugate_bins));
+            % 1: Fully pulse compress the data in the hardware nyquist zone
+            %    (see below for full description of pulse compression
+            %    steps)
+            tmp = tmp(cn.unique_idxs);
+            tmp(cn.conjugate_unique) = conj(tmp(cn.conjugate_unique));
+            tmp = ifftshift(fft(conj(tmp)));
+            tmp = tmp .* cn.time_correction;
+            tmp = ifft(tmp);
+            tmp = tmp .* cn.deskew;
+            tmp(end) = 0;
             
             if 0
               % Debug
@@ -622,38 +631,72 @@ for img = 1:length(param.load.imgs)
               plot(imag(-cn.tmp),'--');
             end
             
-            % Subtract the coherent noise
+            % 2: Subtract the coherent noise away
             tmp = tmp + cn.tmp;
-          end
-          
-          % Reorder result in case it is wrapped
-          tmp = tmp(unique_idxs);
-          % Some of the frequency bins are conjugated versions of the
-          % signal
-          tmp(conjugate_unique) = conj(tmp(conjugate_unique));
-          
-          % Complex baseband data (shifts by ~Tpd/2)
-          tmp = ifftshift(fft(conj(tmp)));
-          
-          % Modulate the raw data to adjust the start time to always be a
-          % multiple of wfs(wf).dt. Since we want this adjustment to be a
-          % pure time shift and not introduce any phase shift in the other
-          % domain, we make sure the phase is zero in the center of the
-          % window: -time_raw(1+floor(Nt/2))
-          tmp = tmp .* time_correction;
-          
-          % Return to time domain
-          tmp = ifft(tmp);
-          
-          % Deskew of the residual video phase (second stage)
-          tmp = tmp .* deskew;
-          
-          % Resample data so it aligns to constant time step
-          if p~=q
-            tmp = resample(tmp,p,q);
+            
+            % 3: If the hardware and actual nyquist zone are different,
+            %    then invert the pulse compression and repulse compress in the
+            %    actual nyquist zone.
+            if nz ~= double(hdr.nyquist_zone_hw{img}(rec))
+              % Reverse Pulse Compression:
+              % Undo tmp = tmp .* deskew;
+              tmp = tmp ./ cn.deskew;
+              % Undo tmp = ifft(tmp);
+              tmp = fft(tmp);
+              % Undo tmp = tmp .* time_correction;
+              tmp = tmp ./ cn.time_correction;
+              % Undo tmp = ifftshift(fft(conj(tmp)));
+              tmp = conj(ifft(fftshift(tmp)));
+              % Undo tmp = tmp(unique_idxs);
+              tmp = tmp(cn.return_idxs);
+              % Undo tmp(conjugate_unique) = conj(tmp(conjugate_unique));
+              tmp(cn.conjugate_bins) = conj(tmp(cn.conjugate_bins));
+              
+              % Pulse compression (see below for full description)
+              tmp = tmp(unique_idxs);
+              tmp(conjugate_unique) = conj(tmp(conjugate_unique));
+              tmp = ifftshift(fft(conj(tmp)));
+              tmp = tmp .* time_correction;
+              tmp = ifft(tmp);
+              tmp = tmp .* deskew;
+              if p~=q
+                tmp = resample(tmp,p,q);
+              end
+            end
+            
+          else
+            % FULL DESCRIPTION OF PULSE COMPRESSION STEPS
+            
+            % Reorder result in case it is wrapped
+            tmp = tmp(unique_idxs);
+            % Some of the frequency bins are conjugated versions of the
+            % signal
+            tmp(conjugate_unique) = conj(tmp(conjugate_unique));
+            
+            % Complex baseband data (shifts by ~Tpd/2)
+            tmp = ifftshift(fft(conj(tmp)));
+            
+            % Modulate the raw data to adjust the start time to always be a
+            % multiple of wfs(wf).dt. Since we want this adjustment to be a
+            % pure time shift and not introduce any phase shift in the other
+            % domain, we make sure the phase is zero in the center of the
+            % window: -time_raw(1+floor(Nt/2))
+            tmp = tmp .* time_correction;
+            
+            % Return to time domain
+            tmp = ifft(tmp);
+            
+            % Deskew of the residual video phase (second stage)
+            tmp = tmp .* deskew;
+            
+            % Resample data so it aligns to constant time step
+            if p~=q
+              tmp = resample(tmp,p,q);
+            end
           end
           
           % Update the data matrix with the pulse compressed waveform
+          tmp = tmp(1:end-1);
           hdr.Nt{img}(rec) = length(tmp);
           data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = tmp;
         end
@@ -838,7 +881,7 @@ for img = 1:length(param.load.imgs)
           h_filled = h_filled .* exp(1i*2*pi*dfc*deconv_time);
         end
         deconv_LO = exp(-1i*2*pi*(dfc+deconv_dfc) * hdr.time{img});
-        
+
         % Take FFT of deconvolution impulse response
         h_filled = fft(h_filled);
         
@@ -851,7 +894,10 @@ for img = 1:length(param.load.imgs)
         h_filled_inverse = Hwind_filled ./ h_filled;
         
         % Normalize deconvolution
-        h_filled_inverse = h_filled_inverse * h_mult_factor;
+        h_filled_inverse = h_filled_inverse * h_mult_factor * abs(h_nonnegative(1)./max(deconv.impulse_response{deconv_map_idx}));
+        
+        % Is adc_gains_dB different?
+        h_filled_inverse = h_filled_inverse / 10.^((wfs(wf).adc_gains_dB(adc)-deconv.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
         
         % Apply deconvolution filter
         deconv_mask_idxs = find(deconv_mask);

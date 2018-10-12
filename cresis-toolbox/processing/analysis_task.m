@@ -320,7 +320,7 @@ for img = 1:length(store_param.load.imgs)
           Nt = tmp_hdr.Nt{1,wf_adc}(rline);
           comp_data = ifft(fft(data(:,center_rline+STFT_rlines,wf_adc)) .* exp(1i*2*pi*tmp_hdr.freq{1,wf_adc}*max_idx*dt) );
           % Apply amplitude correction
-          comp_data = max(abs(max_value)) * comp_data .* repmat(1./abs(max_value), [Nt 1]);
+          %comp_data = max(abs(max_value)) * comp_data .* repmat(1./abs(max_value), [Nt 1]);
           % Apply phase correction (compensating for phase from time delay shift)
           comp_data = comp_data .* repmat(exp(-1i*(phase_corr + 2*pi*tmp_hdr.freq{1,wf_adc}(1)*max_idx*dt)), [Nt 1]);
           
