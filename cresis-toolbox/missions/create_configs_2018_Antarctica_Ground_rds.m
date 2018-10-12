@@ -73,7 +73,7 @@ for freq_idx = [1]
   
   config.f0 = f0_list(freq_idx);
   config.f1 = f1_list(freq_idx);
-  config.DDC_freq = 170e6;
+  config.DDC_freq = 160e6;
   config.zeropimods = [0 180];
   
   config.wfs(1).presums = 256;
