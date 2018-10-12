@@ -201,6 +201,9 @@ for frm_idx = 1:length(param.cmd.frms);
   if param.qlook.surf.en
     %% Run ice top tracker to find ice surface
     surf = param.qlook.surf;
+    if ~isfield(param.qlook.surf,'fixed_value')
+      surf.fixed_value = 0;
+    end
     if isfield(param.qlook.surf,'min_bin')
       % Convert time min_bin into range bins
       surf.min_bin = find(Time > param.qlook.surf.min_bin, 1);
@@ -238,6 +241,12 @@ for frm_idx = 1:length(param.cmd.frms);
       new_surface = tracker_max(Data,surf);
     elseif strcmpi(surf.method,'snake')
       new_surface = tracker_snake_simple(Data,surf);
+    elseif strcmpi(surf.method,'snake')
+      new_surface = tracker_snake_simple(Data,surf);
+    elseif strcmpi(surf.method,'nan')
+      new_surface = nan(1,size(Data,2));
+    elseif strcmpi(surf.method,'fixed')
+      new_surface = ones(1,size(Data,2)) * surf.fixed_value;
     else
       error('Not a supported surface tracking method.');
     end

@@ -57,10 +57,14 @@ for file_idx = 1:length(in_fns)
   if ischar(in_fn)
     in_fn = {in_fn};
   end
-  if ~exist('sync_fns','var')
+  if ~exist('sync_flag','var') || ~sync_flag{file_idx}
     sync_fn = {};
   else
-    sync_fn = sync_fns{file_idx};
+    if ~exist('sync_fns','var') || file_idx > length(sync_fns)
+      error('sync_flag is true, but no files specified in sync_fns for this date.');
+    else
+      sync_fn = sync_fns{file_idx};
+    end
   end
   if ischar(sync_fn)
     sync_fn = {sync_fn};

@@ -199,7 +199,11 @@ end
 if ~force_check
   static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
   dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
-  sparam = load(static_in_fn);
+  if isempty(ctrl.job_status)
+    sparam = [];
+  else
+    sparam = load(static_in_fn);
+  end
   for task_id = 1:length(ctrl.job_status)
     if ~isfield(ctrl,'dparam') || numel(ctrl.dparam) < task_id || isempty(ctrl.dparam{task_id})
       tmp = load(dynamic_in_fn);
