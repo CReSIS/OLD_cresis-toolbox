@@ -95,6 +95,10 @@ if ~isfield(orig_surf,'max_diff') || isempty(orig_surf.max_diff)
   orig_surf.max_diff = inf;
 end
 
+if ~isfield(orig_surf,'fixed_value') || isempty(orig_surf.fixed_value)
+  orig_surf.fixed_value = 0;
+end
+
 if ~isfield(orig_surf,'medfilt_threshold') || isempty(orig_surf.medfilt_threshold)
   orig_surf.medfilt_threshold = 0;
 end
@@ -499,6 +503,8 @@ for frm_idx = 1:length(param.cmd.frms)
     new_surface = tracker_snake_simple(mdata.Data,surf);
   elseif strcmpi(surf.method,'nan')
     new_surface = nan(size(mdata.GPS_time));
+  elseif strcmpi(surf.method,'fixed')
+    new_surface = ones(size(mdata.GPS_time)) * surf.fixed_value;
   elseif isempty(surf.method)
     new_surface = surf.dem;
   else

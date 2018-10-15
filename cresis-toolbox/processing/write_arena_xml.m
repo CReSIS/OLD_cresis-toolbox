@@ -484,7 +484,7 @@ if strcmpi(arena.ctu.type,'ctu_001D')
       end
       
       child = doc.createElement('numSegments'); mode_xml.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('%d',2)));
+      child.appendChild(doc.createTextNode(sprintf('%d',length(arena.ctu.out.time_cmd))));
       
       segmentTimes_str = '';
       segmentStates_str = '';

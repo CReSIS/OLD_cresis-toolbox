@@ -65,8 +65,8 @@ dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg0';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = fs_dac;
-arena.dac(dac_idx).desiredAlignMin = -24;
-arena.dac(dac_idx).desiredAlignMax = -10;
+arena.dac(dac_idx).desiredAlignMin = -10;
+arena.dac(dac_idx).desiredAlignMax = 4;
 arena.dac(dac_idx).dcoPhase = 80;
 dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg1';
@@ -79,8 +79,8 @@ dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg2';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = fs_dac;
-arena.dac(dac_idx).desiredAlignMin = -17;
-arena.dac(dac_idx).desiredAlignMax = -3;
+arena.dac(dac_idx).desiredAlignMin = 4;
+arena.dac(dac_idx).desiredAlignMax = 18;
 arena.dac(dac_idx).dcoPhase = 80;
 dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg3';
@@ -96,8 +96,8 @@ arena.adc(adc_idx).name = 'digrx0';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 2;
-arena.adc(adc_idx).desiredAlignMin = 0;
-arena.adc(adc_idx).desiredAlignMax = 14;
+arena.adc(adc_idx).desiredAlignMin = -12;
+arena.adc(adc_idx).desiredAlignMax = 8;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
 adc_idx = adc_idx + 1;
@@ -105,8 +105,8 @@ arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 2;
-arena.adc(adc_idx).desiredAlignMin = -7;
-arena.adc(adc_idx).desiredAlignMax = 10;
+arena.adc(adc_idx).desiredAlignMin = -17;
+arena.adc(adc_idx).desiredAlignMax = 3;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
 adc_idx = adc_idx + 1;
@@ -114,8 +114,8 @@ arena.adc(adc_idx).name = 'digrx2';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 2;
-arena.adc(adc_idx).desiredAlignMin = -10;
-arena.adc(adc_idx).desiredAlignMax = 4;
+arena.adc(adc_idx).desiredAlignMin = -21;
+arena.adc(adc_idx).desiredAlignMax = -1;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
 adc_idx = adc_idx + 1;
@@ -123,8 +123,8 @@ arena.adc(adc_idx).name = 'digrx3';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 2;
-arena.adc(adc_idx).desiredAlignMin = 13;
-arena.adc(adc_idx).desiredAlignMax = 27;
+arena.adc(adc_idx).desiredAlignMin = -20;
+arena.adc(adc_idx).desiredAlignMax = 0;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
 
@@ -141,7 +141,7 @@ arena.system.name = 'ku0001';
 arena.param.tx_max = [1 1 1 1];
 arena.param.PA_setup_time = 2e-6; % Time required to enable PA before transmit
 arena.param.TTL_time_delay = 0.0; % TTL time delay relative to transmit start
-arena.param.ADC_time_delay = 0.0; % ADC time delay relative to transmit start
+arena.param.ADC_time_delay = 3.0720e-6; % ADC time delay relative to transmit start
    
 % mode 0, subchannel 0, board_idx 1 is wf-adc 1-1
 % mode 0, subchannel 0, board_idx 2 is wf-adc 2-1
@@ -159,30 +159,30 @@ idx = 0;
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'EPRI';
 arena.ctu.out.bit_group(idx).bits = 0;
-arena.ctu.out.bit_group(idx).epri = [1 0];
-arena.ctu.out.bit_group(idx).pri = [0 0];
+arena.ctu.out.bit_group(idx).epri = [1 0 0];
+arena.ctu.out.bit_group(idx).pri = [0 0 0];
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'PRI';
 arena.ctu.out.bit_group(idx).bits = 1;
-arena.ctu.out.bit_group(idx).epri = [1 0];
-arena.ctu.out.bit_group(idx).pri = [1 0];
+arena.ctu.out.bit_group(idx).epri = [1 0 0];
+arena.ctu.out.bit_group(idx).pri = [1 0 0];
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'TR';
 arena.ctu.out.bit_group(idx).bits = 2;
-arena.ctu.out.bit_group(idx).epri = [1 0];
-arena.ctu.out.bit_group(idx).pri = [1 0];
+arena.ctu.out.bit_group(idx).epri = [1 0 0];
+arena.ctu.out.bit_group(idx).pri = [1 0 0];
 idx = idx + 1;
-arena.ctu.out.bit_group(idx).name = 'CalSwitch';
+arena.ctu.out.bit_group(idx).name = 'Isolation';
 arena.ctu.out.bit_group(idx).bits = 3;
-arena.ctu.out.bit_group(idx).epri = [1 0];
-arena.ctu.out.bit_group(idx).pri = [1 0];
+arena.ctu.out.bit_group(idx).epri = [1 1 0];
+arena.ctu.out.bit_group(idx).pri = [1 1 0];
 % idx = idx + 1;
 % arena.ctu.out.bit_group(idx).name = 'Atten';
 % arena.ctu.out.bit_group(idx).bits = 4:8;
 % arena.ctu.out.bit_group(idx).epri = [0 0];
 % arena.ctu.out.bit_group(idx).pri = [0 0];
 
-arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2/param.prf'};
+arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2e-6+param.wfs(wf).Tpd*2+0.5e-6' '2/param.prf'};
 
 param.config.arena = arena;
 
@@ -238,20 +238,22 @@ default.cmd.records = 1;
 default.cmd.qlook = 1;
 default.cmd.generic = 1;
 
-%% Records worksheet in parameter spreadsheet
+%% Records worksheet
 default.records.gps.time_offset = 0;
 default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
 default.records.frames.mode = 1;
 
-%% Quick Look worksheet in parameter spreadsheet
+%% Quick Look worksheet
 default.qlook.out_path = '';
 default.qlook.block_size = 5000;
 default.qlook.motion_comp = 0;
 default.qlook.dec = 20;
 default.qlook.inc_dec = 10;
-default.qlook.surf.en = 0;
+default.qlook.surf.en = 1;
+default.qlook.surf.method = 'fixed';
+default.qlook.surf.fixed_value = 0;
 
-%% SAR worksheet in parameter spreadsheet
+%% SAR worksheet
 default.sar.out_path = '';
 default.sar.frm_types = {0,[0 1],0,0,-1};
 default.sar.chunk_len = 5000;
@@ -279,7 +281,7 @@ default.sar.sub_aperture_steering = 0;
 default.sar.st_wind = @hanning;
 default.sar.start_eps = 3.15;
 
-%% Combine worksheet in parameter spreadsheet
+%% Array worksheet
 default.array.in_path = '';
 default.array.array_path = '';
 default.array.out_path = '';
@@ -298,16 +300,37 @@ default.array.sv_fh = @array_proc_sv;
 default.array.diag_load = 0;
 default.array.Nsig = 2;
 
-%% Radar worksheet in parameter spreadsheet
+%% Radar worksheet
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2;
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
 default.radar.adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
-default.radar.rx_paths = [1 2 3 4 5 6 7 8];
 Tsys = [0 0 0 0 0 0 0 0]/1e9;
 chan_equal_dB = [0 0 0 0 0 0 0 0];
 chan_equal_deg = [0 0 0 0 0 0 0 0];
+
+%% Post worksheet
+default.post.data_dirs = {'qlook'};
+default.post.layer_dir = 'layerData';
+default.post.maps_en = 1;
+default.post.echo_en = 1;
+default.post.layers_en = 0;
+default.post.data_en = 0;
+default.post.csv_en = 1;
+default.post.concat_en = 1;
+default.post.pdf_en = 1;
+default.post.map.location = 'Antarctica';
+default.post.map.type = 'combined';
+default.post.echo.elev_comp = 2;
+default.post.echo.depth = '[min(Surface_Depth)-10 max(Surface_Depth)+4500]';
+% default.post.echo.elev_comp = 3;
+% default.post.echo.depth = '[min(Surface_Elev)-4500 max(Surface_Elev)+10]';
+default.post.echo.er_ice = 3.15;
+default.post.ops.location = 'antarctic';
+
+
+%% Radar Settings
 
 defaults = {};
 
@@ -324,6 +347,8 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
+  default.radar.wfs(wf).rx_paths = [1 2 3 4 5 6 7 8];
+  default.radar.wfs(wf).adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
 end
 
 default.config_regexp = '.*deconv.*';
@@ -343,13 +368,15 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
+  default.radar.wfs(wf).rx_paths = [1 2 3 4 5 6 7 8];
+  default.radar.wfs(wf).adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
 end
 
 default.config_regexp = '.*survey.*';
 default.name = 'Survey Mode 170-230 MHz';
 defaults{end+1} = default;
 
-%% Other settings
+% Other settings
 default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8]};
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
@@ -362,8 +389,14 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
+  default.radar.wfs(wf).rx_paths = [1 2 3 4 5 6 7 8];
+  default.radar.wfs(wf).adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
 end
 
 default.config_regexp = '.*';
 default.name = 'Default 170-230 MHz';
 defaults{end+1} = default;
+
+%% Add default settings
+
+param.config.defaults = defaults;
