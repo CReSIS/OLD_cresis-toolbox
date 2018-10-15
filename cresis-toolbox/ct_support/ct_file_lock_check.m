@@ -30,7 +30,7 @@ if ~exist('check_mode','var')
 end
 
 global gRadar;
-if isfield(gRadar,'ct_file_lock_check') && ~gRadar.ct_file_lock_check
+if isfield(gRadar,'ct_file_lock_check') && ~gRadar.ct_file_lock_check && check_mode ~= 4
   check_mode = 0;
 end
 

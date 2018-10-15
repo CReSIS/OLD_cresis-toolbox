@@ -226,7 +226,7 @@ end
 
 %% Trim
 % ===================================================================
-[hdr,data] = data_trim(hdr,data,param.radar.wfs.time_trim);
+%[hdr,data] = data_trim(hdr,data,param.radar.wfs.time_trim);
 
 %% Multilook the data (incoherent averaging with decimation)
 % =========================================================================

@@ -65,7 +65,7 @@ for freq_idx = [1]
   config.zeropimods = [0 180]; % 180 causes a special mode in some ADC/DAC
   
   config.tg.staged_recording = {[1 2]};
-  config.tg.altitude_guard = 200*12*2.54/100;
+  config.tg.altitude_guard = 100*12*2.54/100;
   config.tg.Haltitude = 100*12*2.54/100;
   config.tg.Hice_thick = ice_thickness(freq_idx);
   
@@ -105,7 +105,7 @@ for freq_idx = [1]
     old_config = config;
     config.tg.Haltitude = 3e8/2 * 0e-6; % Set the delay line here
     config.tg.altitude_guard = 3e8/2 * 0e-6;
-    config.tg.Hice_thick = 800;
+    config.tg.Hice_thick = 2000;
     config.tg.staged_recording = {[0],[0]};
     config.tx_weights = [0 0 0 0];
     config.tx_enable = [0 0 0 0];

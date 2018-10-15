@@ -344,10 +344,17 @@ for wf = 1:length(param.radar.wfs)
   if isfield(param.radar.wfs(wf),'deconv') && ~isempty(param.radar.wfs(wf).deconv)
     wfs(wf).deconv    = param.radar.wfs(wf).deconv;
   else
-    wfs(wf).deconv    = struct('en',false);
+    wfs(wf).deconv    = [];
     param.radar.wfs(wf).deconv = [];
   end
-  if ~isfield(param.radar.wfs(wf).deconv,'fn') || isempty(param.radar.wfs(wf).deconv.fn)
+  if isfield(param.radar.wfs(wf).deconv,'en') && ~isempty(param.radar.wfs(wf).deconv.en)
+    wfs(wf).deconv.en = param.radar.wfs(wf).deconv.en;
+  else
+    wfs(wf).deconv.en = false;
+  end
+  if isfield(param.radar.wfs(wf).deconv,'fn') && ~isempty(param.radar.wfs(wf).deconv.fn)
+    wfs(wf).deconv.fn = param.radar.wfs(wf).deconv.fn;
+  else
     wfs(wf).deconv.fn = 'analysis';
   end
   % Per wf-adc pair amplitude equalization

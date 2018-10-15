@@ -101,6 +101,9 @@ for frm_idx = 1:length(param.cmd.frms);
     %   Rename variables for readability
     block_size = param.qlook.block_size(1);
     blocks = 1:block_size:length(recs)-0.5*block_size;
+    if isempty(blocks)
+      blocks = 1;
+    end
     
     % Load each block
     for block_idx = 1:length(blocks)

@@ -439,11 +439,9 @@ create_records_sync;
 %% Create frames
 % param.records.frames.mode == 0: Do nothing
 if param.records.frames.mode == 1
-  frames_fn = ct_filename_support(param,'','frames');
-  if ~exist(frames_fn,'file')
-    autogenerate_frames(param,param_override);
-  end
   create_frames(param,param_override);
+  fprintf('Type dbcont to continue when you are done creating frames for this segment.\n');
+  keyboard;
 elseif param.records.frames.mode == 2
   autogenerate_frames(param,param_override);
 end
