@@ -173,10 +173,10 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.qlook.presums;
-[hdr,data] = data_load(param,records,wfs,states);
+[hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
-[hdr,data] = data_pulse_compress(param,hdr,wfs,data);
+[hdr,data] = data_pulse_compress(param,hdr,data);
 
 param.load.motion_comp = param.qlook.motion_comp;
 [hdr,data] = data_merge_combine(param,hdr,data);
@@ -223,6 +223,10 @@ end
 %% Resample
 % ===================================================================
 [hdr,data] = data_resample(hdr,data,param.qlook.resample);
+
+%% Trim
+% ===================================================================
+[hdr,data] = data_trim(hdr,data,param.radar.wfs.time_trim);
 
 %% Multilook the data (incoherent averaging with decimation)
 % =========================================================================

@@ -78,7 +78,7 @@ for img = 1:length(store_param.load.imgs)
   
   %% Load data
   % =========================================================================
-  [hdr,raw_data] = data_load(param,records,wfs,states);
+  [hdr,raw_data] = data_load(param,records,states);
   
   for cmd_idx = 1:length(param.analysis.cmd)
     cmd = param.analysis.cmd{cmd_idx};
@@ -152,7 +152,6 @@ for img = 1:length(store_param.load.imgs)
       tmp_param.load.pulse_comp = true;
       tmp_param.load.motion_comp = true;
       tmp_hdr = hdr;
-      tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'
         tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
@@ -173,11 +172,13 @@ for img = 1:length(store_param.load.imgs)
         heading = [];
         
         % Pulse compression
-        tmp_wfs(wf).deconv.en = false;
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
+        tmp_param.radar.wfs(wf).deconv.en = false;
+        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         
+        [tmp_hdr,data] = data_trim(tmp_hdr,data,tmp_param.radar.wfs.time_trim);
+
         data = data{1};
         
         
@@ -359,7 +360,6 @@ for img = 1:length(store_param.load.imgs)
       tmp_param.load.pulse_comp = true;
       tmp_param.load.motion_comp = false;
       tmp_hdr = hdr;
-      tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'
         tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
@@ -380,10 +380,11 @@ for img = 1:length(store_param.load.imgs)
         heading = [];
         
         % Pulse compression
-        tmp_wfs(wf).coh_noise_method = '';
-        tmp_wfs(wf).deconv.en = false;
+        tmp_param.radar.wfs(wf).coh_noise_method = '';
+        tmp_param.radar.wfs(wf).deconv.en = false;
+        tmp_param.radar.wfs(wf).time_trim = [0 0];
         tmp_hdr.nyquist_zone_signal{img} = double(tmp_hdr.nyquist_zone_hw{img});
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
+        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         data = data{1};
@@ -530,7 +531,6 @@ for img = 1:length(store_param.load.imgs)
       tmp_param.load.pulse_comp = true;
       tmp_param.load.motion_comp = true;
       tmp_hdr = hdr;
-      tmp_wfs = wfs;
       
       for wf_adc = cmd.wf_adcs{img}(:).'        
         tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
@@ -539,7 +539,7 @@ for img = 1:length(store_param.load.imgs)
         adc = tmp_param.load.imgs{1}(1,2);
         
         % Pulse compression
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
+        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         
@@ -549,7 +549,7 @@ for img = 1:length(store_param.load.imgs)
         
         %% Statistics: Load start and stop times
         dt = time(2)-time(1);
-        Tpd = tmp_wfs(wf).Tpd;
+        Tpd = tmp_param.radar.wfs(wf).Tpd;
         if isnumeric(cmd.start_time)
           start_bin = find(time>=cmd.start_time,1)*ones(1,size(data,2));
           if isempty(start_bin)
