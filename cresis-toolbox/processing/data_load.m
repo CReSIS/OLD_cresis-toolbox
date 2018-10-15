@@ -1,9 +1,11 @@
-function [hdr,data] = data_load(param,records,wfs,states)
-% [hdr,data] = data_load(param,records,wfs,states)
+function [hdr,data] = data_load(param,records,states)
+% [hdr,data] = data_load(param,records,states)
 %
 % https://ops.cresis.ku.edu/wiki/index.php/Data_load#data_load.m
 %
 % Author: John Paden
+
+wfs = param.radar.wfs;
 
 %% Preallocate data
 % ===================================================================

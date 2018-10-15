@@ -77,7 +77,7 @@ end
 Mt = param.collate_deconv.Mt;
 
 if ~isfield(param.collate_deconv,'out_dir') || isempty(param.collate_deconv.out_dir)
-  param.collate_deconv.out_dir = 'analysis';
+  param.collate_deconv.out_dir = param.collate_deconv.in_dir;
 end
 
 if ~isfield(param.collate_deconv,'preserve_old') || isempty(param.collate_deconv.preserve_old)
@@ -433,14 +433,15 @@ if param.collate_deconv.stage_one_en
         h_deconvolved = ifft(fft(spec.deconv_sample{rline}) .* h_filled_inverse);
         % Oversample to get a good measurement of the peak value
         h_deconvolved = interpft(h_deconvolved,Mt*Nt);
-        % Scale so that the peak value is 1/R
-        h_mult_factor = 1 / (R*max(abs(h_deconvolved)));
-        h_filled_inverse = h_filled_inverse * h_mult_factor;
-        h_deconvolved = h_deconvolved * h_mult_factor;
 
         % Oversample sample signal by the same amount as the deconvolved
         % signal
         h_sample = interpft(spec.deconv_sample{rline},Mt*Nt);
+        
+        % Scale so that the peak value is 1/R
+        h_mult_factor = max(abs(h_sample)) / max(abs(h_deconvolved));
+        h_filled_inverse = h_filled_inverse * h_mult_factor;
+        h_deconvolved = h_deconvolved * h_mult_factor;
         
         % Find maximum values and indices for the deconvolved and
         % undeconvolved signals.

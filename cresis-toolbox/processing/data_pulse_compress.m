@@ -1,5 +1,7 @@
-function [hdr,data] = data_pulse_compress(param,hdr,wfs,data)
-% [hdr,data] = data_pulse_compress(param,hdr,wfs,data)
+function [hdr,data] = data_pulse_compress(param,hdr,data)
+% [hdr,data] = data_pulse_compress(param,hdr,data)
+
+wfs = param.radar.wfs;
 
 if param.load.raw_data && param.load.pulse_comp
   error('Pulse compression (param.load.pulse_comp) cannot be enabled with raw data loading (param.load.raw_data).');
@@ -29,7 +31,7 @@ for img = 1:length(param.load.imgs)
     %% Burst RFI removal
     % ===================================================================
     
-    %% Remove coherent noise for pulsed radar
+    %% Coherent noise: Pulsed
     % ===================================================================
     if strcmpi(radar_type,'pulsed')
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
@@ -73,7 +75,7 @@ for img = 1:length(param.load.imgs)
       end
     end
     
-    %% Remove coherent noise for deramp radar
+    %% Coherent noise: Deramp
     % ===================================================================
     if strcmpi(radar_type,'deramp')
       
@@ -140,10 +142,11 @@ for img = 1:length(param.load.imgs)
     end
     
     
-    %% Pulse compression
+    %% Pulse compress
     % ===================================================================
     if param.load.pulse_comp == 1
       
+      %% Pulse compress: Pulsed
       if strcmpi(radar_type,'pulsed')
         % Digital down conversion
         data{img}(1:wfs(wf).Nt_raw,:,wf_adc) = bsxfun(@times,data{img}(1:wfs(wf).Nt_raw,:,wf_adc), ...
@@ -163,7 +166,7 @@ for img = 1:length(param.load.imgs)
         
         
       elseif strcmpi(radar_type,'deramp')
-        %% Pulse compress: deramp
+        %% Pulse compress: Deramp
         if 0
           % ENABLE_FOR_DEBUG
           % Create simulated data
@@ -276,7 +279,7 @@ for img = 1:length(param.load.imgs)
             
             freq_axes_changed = true;
             
-            %% Set output time sampling
+            %% Pulse compress: Output time
             % The output time axes for every choice of DDC_dec must have
             % the same sample spacing. We compute the resampling ratio
             % required to achieve this in the pulse compressed time domain.
@@ -340,7 +343,7 @@ for img = 1:length(param.load.imgs)
               q
             end
             
-            %% Determine the mapping of frequencies to time delays
+            %% Pulse compress: IF->Delay
             % =============================================================
             if 0
               % ENABLE_FOR_DEBUG_FREQ_MAP
@@ -424,7 +427,7 @@ for img = 1:length(param.load.imgs)
               ylabel('Frequency (Hz)');
             end
             
-            %% Determine the mapping of frequencies to time delays for coh noise
+            %% Pulse compress: IF->Delay (Coh Noise)
             if strcmpi(wfs(wf).coh_noise_method,'analysis')
               % =============================================================
               
@@ -455,7 +458,7 @@ for img = 1:length(param.load.imgs)
               cn.freq_raw_valid = cn.df_raw*round(cn.freq_raw_valid/cn.df_raw);
               
               [~,cn.unique_idxs,cn.return_idxs] = unique(cn.freq_raw_valid);
-            
+              
               cn.freq_raw_unique = cn.freq_raw_valid(cn.unique_idxs);
               cn.conjugate_unique = cn.conjugate_bins(cn.unique_idxs);
             end
@@ -468,7 +471,7 @@ for img = 1:length(param.load.imgs)
             
             freq_axes_changed = false; % Reset state
             
-            %% Time axis
+            %% Pulse compress: Time axis
             
             % Convert IF frequency to time delay and account for reference
             % deramp time offset, hdr.t_ref
@@ -489,7 +492,7 @@ for img = 1:length(param.load.imgs)
             deskew_shift = 1i*2*pi*(0:Nt_raw_trim-1).'/Nt_raw_trim;
             time_correction = exp(1i*2*pi*freq*time_correction);
             
-            %% Time axis for coh noise
+            %% Pulse compress: Time axis (Coh Noise)
             if strcmpi(wfs(wf).coh_noise_method,'analysis')
               
               % Convert IF frequency to time delay and account for reference
@@ -787,7 +790,7 @@ for img = 1:length(param.load.imgs)
       end
     end
     
-    %% Remove coherent noise for deramp radar
+    %% Coherent noise: Deramp
     % ===================================================================
     if strcmpi(radar_type,'deramp')
       
@@ -815,8 +818,7 @@ for img = 1:length(param.load.imgs)
     
     %% Deconvolution
     % ===================================================================
-    
-    if wfs(wf).deconv.en
+    if param.load.pulse_comp == 1 && wfs(wf).deconv.en
       deconv_fn = fullfile(fileparts(ct_filename_out(param,wfs(wf).deconv.fn, '')), ...
         sprintf('deconv_%s_wf_%d_adc_%d.mat',param.day_seg, wf, adc));
       deconv = load(deconv_fn);
@@ -832,7 +834,6 @@ for img = 1:length(param.load.imgs)
         % Prepare variables that are constant for each deconvolution
         % waveform that will be applied
         cmd = deconv.param_collate_deconv.analysis.cmd{deconv.param_collate_deconv.collate_deconv.cmd_idx};
-        freq = fftshift(hdr.freq{img});
         fc = hdr.freq{img}(1);
         
         % Prepare variables to baseband data to new center frequency (in
@@ -864,9 +865,10 @@ for img = 1:length(param.load.imgs)
         h_nonnegative = deconv.ref_nonnegative{deconv_map_idx};
         h_negative = deconv.ref_negative{deconv_map_idx};
         h_mult_factor = deconv.ref_mult_factor(deconv_map_idx);
+        h_ref_length = length(h_nonnegative)+length(h_negative)-1;
         
         % Adjust deconvolution signal to match sample rline
-        h_filled = [h_nonnegative; zeros(wfs(wf).Nt-length(h_nonnegative)-length(h_negative),1); h_negative];
+        h_filled = [h_nonnegative; zeros(wfs(wf).Nt-1,1); h_negative];
         
         % Is dt different? Error
         dt = hdr.time{img}(2)-hdr.time{img}(1);
@@ -881,14 +883,18 @@ for img = 1:length(param.load.imgs)
           h_filled = h_filled .* exp(1i*2*pi*dfc*deconv_time);
         end
         deconv_LO = exp(-1i*2*pi*(dfc+deconv_dfc) * hdr.time{img});
-
+        
+        % Adjust length of FFT to avoid circular convolution
+        deconv_Nt = wfs(wf).Nt + h_ref_length;
+        deconv_freq = fftshift(fc + 1/(deconv_Nt*dt) * ifftshift(-floor(deconv_Nt/2) : floor((deconv_Nt-1)/2)).');
+        
         % Take FFT of deconvolution impulse response
         h_filled = fft(h_filled);
         
         % Create inverse filter relative to window
-        Nt_shorten = find(cmd.f0 <= freq,1);
-        Nt_shorten(2) = length(freq) - find(cmd.f1 >= freq,1,'last');
-        Nt_Hwind = wfs(wf).Nt - sum(Nt_shorten);
+        Nt_shorten = find(cmd.f0 <= deconv_freq,1);
+        Nt_shorten(2) = deconv_Nt - find(cmd.f1 >= deconv_freq,1,'last');
+        Nt_Hwind = deconv_Nt - sum(Nt_shorten);
         Hwind = deconv.ref_window(Nt_Hwind);
         Hwind_filled = ifftshift([zeros(Nt_shorten(1),1); Hwind; zeros(Nt_shorten(end),1)]);
         h_filled_inverse = Hwind_filled ./ h_filled;
@@ -905,7 +911,7 @@ for img = 1:length(param.load.imgs)
         for block = 1:length(blocks)-1
           rlines = deconv_mask_idxs(blocks(block) : blocks(block+1)-1);
           % Matched filter
-          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,rlines,wf_adc)), h_filled_inverse));
+          data{img}(1:wfs(wf).Nt+h_ref_length,rlines,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,rlines,wf_adc),deconv_Nt), h_filled_inverse));
           % Down conversion to new deconvolution center frequency
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = bsxfun(@times, data{img}(1:wfs(wf).Nt,rlines,wf_adc), deconv_LO);
         end

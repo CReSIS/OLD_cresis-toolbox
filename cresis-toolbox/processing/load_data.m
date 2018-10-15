@@ -117,16 +117,20 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 % =====================================================================
 param.load.raw_data = param.load_data.raw_data;
 param.load.presums = param.load_data.presums;
-[hdr,data] = data_load(param,records,wfs,states);
+[hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = param.load_data.pulse_comp;
-[hdr,data] = data_pulse_compress(param,hdr,wfs,data);
+[hdr,data] = data_pulse_compress(param,hdr,data);
 
 [hdr,data] = data_merge_combine(param,hdr,data);
 
 %% Resample
 % ===================================================================
 [hdr,data] = data_resample(hdr,data,param.load_data.resample);
+
+%% Trim
+% ===================================================================
+[hdr,data] = data_trim(hdr,data,param.radar.wfs.time_trim);
 
 %% Complete hdr (header)
 % =====================================================================
