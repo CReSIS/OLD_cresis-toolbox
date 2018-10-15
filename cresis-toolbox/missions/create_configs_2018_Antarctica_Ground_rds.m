@@ -59,14 +59,14 @@ for freq_idx = [1]
   param = default_radar_params_2018_Antarctica_Ground_rds;
   config = param.config;
   
-  config.flight_hours = 4;
+  config.flight_hours = 10;
   config.prf = prf;
   
   config.zeropimods = [0 180]; % 180 causes a special mode in some ADC/DAC
   
   config.tg.staged_recording = {[1 2]};
-  config.tg.altitude_guard = 0*12*2.54/100;
-  config.tg.Haltitude = 0*12*2.54/100;
+  config.tg.altitude_guard = 200*12*2.54/100;
+  config.tg.Haltitude = 100*12*2.54/100;
   config.tg.Hice_thick = ice_thickness(freq_idx);
   
   config.create_IQ = false;
@@ -100,22 +100,31 @@ for freq_idx = [1]
   config.arena.fn = fullfile(arena_base_dir,sprintf('%s.xml',config.arena.psc_name));
   write_radar_config(config);
   
-  % Loopback Mode (0e-6 delay line)
-  config.tg.Haltitude = 3e8/2 * 0e-6;
-  config.tg.staged_recording = {[]};
-  config.arena.psc_name = sprintf('survey_%.0f-%.0fMHz_%.0fusDelay_%.0fus_LOOPBACK', ...
-    config.f0/1e6,config.f1/1e6,config.tg.Haltitude/(3e8/2)*1e6,config.wfs(end).Tpd*1e6);
-  config.arena.fn = fullfile(arena_base_dir,calval_dir,sprintf('%s.xml',config.arena.psc_name));
-  write_radar_config(config);
-  
-  if freq_idx == 1
-    % Noise Mode
-    config.tg.staged_recording = {[1 2]};
+  for tr_antenna = 1:4
+    % Loopback Mode (0e-6 delay line)
+    old_config = config;
+    config.tg.Haltitude = 3e8/2 * 0e-6; % Set the delay line here
+    config.tg.altitude_guard = 3e8/2 * 0e-6;
+    config.tg.Hice_thick = 800;
+    config.tg.staged_recording = {[0],[0]};
     config.tx_weights = [0 0 0 0];
-    config.tx_eable = [0 0 0 0];
-    config.arena.psc_name = sprintf('survey_%.0f-%.0fMHz_%.0fft_%.0fus_NOISE', ...
-      config.f0/1e6,config.f1/1e6,config.tg.Haltitude*100/12/2.54,config.wfs(end).Tpd*1e6);
+    config.tx_enable = [0 0 0 0];
+    config.tx_weights(tr_antenna) = 1;
+    config.tx_enable(tr_antenna) = 1;
+    config.arena.psc_name = sprintf('survey_%.0f-%.0fMHz_%.0fusDelay_%.0fus_LOOPBACK_TRANTENNA%d', ...
+      config.f0/1e6,config.f1/1e6,config.tg.Haltitude/(3e8/2)*1e6,config.wfs(end).Tpd*1e6, tr_antenna);
     config.arena.fn = fullfile(arena_base_dir,calval_dir,sprintf('%s.xml',config.arena.psc_name));
     write_radar_config(config);
+    config = old_config;
   end
+  
+  % Noise Mode
+  old_config = config;
+  config.tx_weights = [0 0 0 0];
+  config.tx_enable = [0 0 0 0];
+  config.arena.psc_name = sprintf('survey_%.0f-%.0fMHz_%.0fft_%.0fus_NOISE', ...
+    config.f0/1e6,config.f1/1e6,config.tg.Haltitude*100/12/2.54,config.wfs(end).Tpd*1e6);
+  config.arena.fn = fullfile(arena_base_dir,calval_dir,sprintf('%s.xml',config.arena.psc_name));
+  write_radar_config(config);
+  config = old_config;
 end

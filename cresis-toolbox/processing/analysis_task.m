@@ -527,8 +527,8 @@ for img = 1:length(store_param.load.imgs)
       % ===================================================================
       
       tmp_param = param;
-      tmp_param.load.pulse_comp = true;
-      tmp_param.load.motion_comp = true;
+      tmp_param.load.pulse_comp = cmd.pulse_comp;
+      tmp_param.load.motion_comp = cmd.motion_comp;
       tmp_hdr = hdr;
       tmp_wfs = wfs;
       
@@ -558,11 +558,25 @@ for img = 1:length(store_param.load.imgs)
         elseif isstruct(cmd.start_time)
           cmd.start_time.eval.Tpd = Tpd;
           cmd.start_time.eval.dt = dt;
+          cmd.start_time.eval.Tstart = time(1);
+          cmd.start_time.eval.Tend = time(end);
           layers = opsLoadLayers(param,cmd.start_time);
           layers.twtt = interp1(layers.gps_time, layers.twtt, hdr.gps_time(1,:));
           layers.twtt = interp_finite(layers.twtt,0);
           start_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
           start_bin = min(max(1,start_bin),size(data,1));
+        elseif ischar(cmd.start_time)
+          es = [];
+          es.Tpd = Tpd;
+          es.dt = dt;
+          es.Tstart = time(1);
+          es.Tend = time(end);
+          s = 0;
+          eval(cmd.start_time);
+          start_bin = find(time>=s,1)*ones(1,size(data,2));
+          if isempty(start_bin)
+            error('No time (%g-%g) is >= cmd.start_time (%g).', time(1), time(end), cmd.start_time);
+          end
         end
         if isnumeric(cmd.stop_time)
           stop_bin = find(time<=cmd.stop_time,1,'last')*ones(1,size(data,2));
@@ -577,6 +591,18 @@ for img = 1:length(store_param.load.imgs)
           layers.twtt = interp_finite(layers.twtt,0);
           stop_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
           stop_bin = min(max(1,stop_bin),size(data,1));
+        elseif ischar(cmd.stop_time)
+          es = [];
+          es.Tpd = Tpd;
+          es.dt = dt;
+          es.Tstart = time(1);
+          es.Tend = time(end);
+          s = 0;
+          eval(cmd.stop_time);
+          stop_bin = find(time<=s,1,'last')*ones(1,size(data,2));
+          if isempty(stop_bin)
+            error('No time (%g-%g) is >= cmd.stop_time (%g).', time(1), time(end), cmd.stop_time);
+          end
         end
         Nt = max(floor(stop_bin - start_bin + 1));
         
@@ -644,9 +670,9 @@ for img = 1:length(store_param.load.imgs)
               vals(:,rlines_idx) = data(start_bin:stop_bin,rlines(rlines_idx));
             end
             for stat_idx = 1:numel(cmd.stats)
-              if ischar(cmd.stats)
+              if ischar(cmd.stats{stat_idx})
                 % Function handle string
-                fh = str2func(cmd.stats);
+                fh = str2func(cmd.stats{stat_idx});
                 tmp = fh(param,cmd,vals,start_bin,stop_bin);
                 stats{stat_idx}(:,end+(1:size(tmp,2))) = tmp;
               else

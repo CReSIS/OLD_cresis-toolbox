@@ -421,7 +421,7 @@ for config_idx = 1:length(configs)
     end
     oparams{end}.radar.wfs(wf).tx_weights = scale;
     oparams{end}.radar.wfs(wf).presums = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.presums;
-    oparams{end}.radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB - 2;
+    oparams{end}.radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB - 2 - param.config.arena.adc(board_idx).gain_dB(subchannel+1)/6;
     oparams{end}.radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
       / oparams{end}.radar.fs*oparams{end}.radar.wfs(wf).DDC_dec ...
       - param.config.arena.param.ADC_time_delay - t_dac;
@@ -446,6 +446,8 @@ if ~isempty(param.config.param_fn)
   read_param_xls_print(param.config.param_fn,'radar',oparams);
   fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  post\n'); fprintf('%s</strong>\n','='*ones(1,80));
   read_param_xls_print(param.config.param_fn,'post',oparams);
+  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  analysis\n'); fprintf('%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'analysis',oparams);
 end
 
 %% Exit task

@@ -114,6 +114,9 @@ for file_idx = 1:length(in_fns)
     end
   end
   
+  %% Check/make the sync GPS data monotonic in time in case it is not
+  sync_gps = make_gps_monotonic(sync_gps);
+  
   %% Load GPS files
   if ischar(in_fn)
     in_fn = {in_fn};

@@ -1,60 +1,46 @@
 function [hdr,data] = data_merge_combine(param,hdr,data)
 
+physical_constants;
+
 %% Combine wf-adc pairs into a single wf-adc pair
 % =========================================================================
 
-% Apply motion compensation
+% Not supported yet
 
+%% Motion compensation
+% =========================================================================
+if param.qlook.motion_comp
+  % Remove elevation variations
+  for img = 1:length(param.load.imgs)
+    data{img} = fft(data{img});
+    for wf_adc = 1:size(param.load.imgs{img},1)
+      dtime = (hdr.records{img,wf_adc}.elev-hdr.ref.elev) / (c/2);
+      data{img}(:,rline) = data{img}(:,rline) .* exp(1j*2*pi*hdr.freq{img}*dtime);
+    end
+  end
+end
 
-
-
-
-
-  %% Roll compensation
-%   if param.qlook.roll_correction
-%     % Apply roll-only motion compensation
-%     for wf_adc = 1:size(param.load.imgs{img},1)
-%       wf = abs(param.load.imgs{img}(wf_adc,1));
-%       adc = abs(param.load.imgs{img}(wf_adc,2));
-%       rx = wfs(wf).rx_paths(adc);
-%       for rline = 1:size(g_data,2)
-%         drange = radar_lever_arm(2,wf_adc) * -tan(out_records.roll(rline));
-%         dphase = drange * 2 * 2*pi/lambda_fc;
-%         g_data(:,rline,wf_adc) = g_data(:,rline,wf_adc) * exp(1j*dphase);
-%       end
-%     end
-%     g_data = mean(g_data,3);
-%   end
-%   
-%   %% Elevation compensation
-%   if param.qlook.elev_correction && ~simple_firdec
-%     % Remove elevation variations (just a phase shift, not a time shift)
-%     %  - With simple_firdec there is no point in elevation compensation
-%     %    because the along-track averaging has already been done
-%     drange = out_records.elev-mean(out_records.elev);
-%     dphase = drange * 2 * 2*pi/lambda_fc;
-%     for rline = 1:size(g_data,2)
-%       g_data(:,rline) = g_data(:,rline) .* exp(1j*dphase(rline));
-%     end
-%   end
-
-
-
-
-% Create new trajectory for combined phase centers
-
-% Combined
-%data{state.img(img_comb_idx,accum_idx)}(Nt,Nx,COMBINE_TO_CREATE_NEW)
-
-% Combine chain is a cell which contains lists for which wf-adc idx to
-% include in the current cell index, also includes a set of Tsys,
-% chan_equal style coefficients to apply to each wf-adc idx before
-% combining.
+%% Create new trajectory for combined phase centers
+% =========================================================================
+for img = 1:length(param.load.imgs)
+  x = zeros(size(param.load.imgs{img},1), size(hdr.ref.gps_time,2));
+  y = zeros(size(param.load.imgs{img},1), size(hdr.ref.gps_time,2));
+  z = zeros(size(param.load.imgs{img},1), size(hdr.ref.gps_time,2));
+  for wf_adc = 1:size(param.load.imgs{img},1)
+    [x(wf_adc,:),y(wf_adc,:),z(wf_adc,:)] = geodetic2ecef(hdr.records{img,wf_adc}.lat*pi/180, ...
+      hdr.records{img,wf_adc}.lon*pi/180,hdr.records{img,wf_adc}.elev,WGS84.ellipsoid);
+  end
+  [hdr.records{img,1}.lat,hdr.records{img,1}.lon,hdr.records{img,1}.elev] ...
+    = ecef2geodetic(mean(x,1),mean(y,1),mean(z,1),WGS84.ellipsoid);
+  hdr.records{img,1}.lat = hdr.records{img,1}.lat*180/pi;
+  hdr.records{img,1}.lon = hdr.records{img,1}.lon*180/pi;
+end
+% Only keep the first wf_adc entry since this is the one that has been
+% overwritten by the combined phase center.
+hdr.records = hdr.records(:,1);
 
 %% Combine images into a single image
 % =========================================================================
-%data{state.img(COMBINE_TO_CREATE_SINGLE,accum_idx)}(Nt,Nx,Nc)
-
-
-
+for img = 1:length(param.load.imgs)
+  data{img} = mean(data{img},3);
 end

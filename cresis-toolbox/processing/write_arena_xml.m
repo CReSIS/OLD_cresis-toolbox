@@ -303,7 +303,6 @@ for adc_idx = adc_idxs
   
   subchannels = doc.createElement('subChannels'); config.appendChild(subchannels);
 
-  total_Nt = 0;
   for subchannel_idx = 1:num_subchannel
     
     subchannel = doc.createElement('subChannel'); subchannels.appendChild(subchannel);
@@ -377,7 +376,6 @@ for adc_idx = adc_idxs
         error('Start bin (%d) is less than zero. Increase start time wfs(%d).Tstart, %g.', start_bin, wf, Tstart);
       end
       Nt = round((Tend-Tstart)*fs/8)*8;
-      total_Nt = total_Nt + Nt*param.eprf;
       stop_bin = start_bin + Nt-1;
       child = doc.createElement('rg'); integrator.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d:%d',start_bin,stop_bin)));
@@ -392,14 +390,14 @@ for adc_idx = adc_idxs
         child.appendChild(doc.createTextNode( sprintf('%d', shiftLSB) ));
         child = doc.createElement('outputSelect'); integrator.appendChild(child);
         child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
-        param.data_rate = param.data_rate + total_Nt*4;
+        param.data_rate = param.data_rate + Nt*4*param.eprf;
       elseif adc.outputSelect == 0
         % Field not used for 32 bit IQ records
         child = doc.createElement('shiftLSB'); integrator.appendChild(child);
         child.appendChild(doc.createTextNode( '0' ));
         child = doc.createElement('outputSelect'); integrator.appendChild(child);
         child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
-        param.data_rate = param.data_rate + total_Nt*8;
+        param.data_rate = param.data_rate + Nt*8*param.eprf;
       else
         error('Invalid adc.outputSelect (%d)', adc.outputSelect);
       end

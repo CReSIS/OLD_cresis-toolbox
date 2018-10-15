@@ -100,6 +100,7 @@ arena.adc(adc_idx).desiredAlignMin = -12;
 arena.adc(adc_idx).desiredAlignMax = 8;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
+arena.adc(adc_idx).gain_dB = [2.4 2.4];
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -109,6 +110,7 @@ arena.adc(adc_idx).desiredAlignMin = -17;
 arena.adc(adc_idx).desiredAlignMax = 3;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
+arena.adc(adc_idx).gain_dB = [2.4 2.4];
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx2';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -118,6 +120,7 @@ arena.adc(adc_idx).desiredAlignMin = -21;
 arena.adc(adc_idx).desiredAlignMax = -1;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
+arena.adc(adc_idx).gain_dB = [2.4 2.4];
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx3';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -127,6 +130,7 @@ arena.adc(adc_idx).desiredAlignMin = -20;
 arena.adc(adc_idx).desiredAlignMax = 0;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
+arena.adc(adc_idx).gain_dB = [2.4 2.4];
 
 daq_idx = 0;
 daq_idx = daq_idx + 1;
@@ -182,7 +186,7 @@ arena.ctu.out.bit_group(idx).pri = [1 1 0];
 % arena.ctu.out.bit_group(idx).epri = [0 0];
 % arena.ctu.out.bit_group(idx).pri = [0 0];
 
-arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2e-6+param.wfs(wf).Tpd*2+0.5e-6' '2/param.prf'};
+arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2e-6+param.wfs(wf).Tpd+2.5e-6' '2/param.prf'};
 
 param.config.arena = arena;
 
@@ -302,10 +306,9 @@ default.array.Nsig = 2;
 
 %% Radar worksheet
 default.radar.adc_bits = 14;
-default.radar.Vpp_scale = 2;
+default.radar.Vpp_scale = 1.37;
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
-default.radar.adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
 Tsys = [0 0 0 0 0 0 0 0]/1e9;
 chan_equal_dB = [0 0 0 0 0 0 0 0];
 chan_equal_deg = [0 0 0 0 0 0 0 0];
@@ -329,30 +332,61 @@ default.post.echo.depth = '[min(Surface_Depth)-10 max(Surface_Depth)+4500]';
 default.post.echo.er_ice = 3.15;
 default.post.ops.location = 'antarctic';
 
+%% Analysis worksheet
+default.analysis.block_size = 5000;
+default.analysis.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
+cmd_idx = 0;
+cmd_idx = cmd_idx + 1;
+default.analysis.cmd{cmd_idx}.method = 'statistics';
+default.analysis.cmd{cmd_idx}.out_path = 'analysis_mean';
+default.analysis.cmd{cmd_idx}.block_ave = 1000;
+default.analysis.cmd{cmd_idx}.stats = {@(x)nanmean(x.*conj(x),2)};
+cmd_idx = cmd_idx + 1;
+default.analysis.cmd{cmd_idx}.method = 'statistics';
+default.analysis.cmd{cmd_idx}.out_path = 'analysis_freq';
+default.analysis.cmd{cmd_idx}.block_ave = 1000;
+default.analysis.cmd{cmd_idx}.start_time = 's=es.Tend-es.Tpd-3e-6;';
+default.analysis.cmd{cmd_idx}.stop_time = 's=es.Tend-es.Tpd;';
+default.analysis.cmd{cmd_idx}.stats = {@(x)mean(abs(fft(x)).^2,2)  @(x)mean(abs(fft(fir_dec(x,10))).^2,2)  @(x)mean(abs(fft(fir_dec(x,100))).^2,2)};
+cmd_idx = cmd_idx + 1;
+default.analysis.cmd{cmd_idx}.method = 'statistics';
+default.analysis.cmd{cmd_idx}.out_path = 'analysis_max';
+default.analysis.cmd{cmd_idx}.block_ave = 1;
+default.analysis.cmd{cmd_idx}.pulse_comp = 1;
+default.analysis.cmd{cmd_idx}.start_time = 's=min(es.Tend-2*es.Tpd,es.Tpd+6e-6);';
+default.analysis.cmd{cmd_idx}.stats = {'analysis_task_stats_max'};
+cmd_idx = cmd_idx + 1;
+default.analysis.cmd{cmd_idx}.method = 'statistics';
+default.analysis.cmd{cmd_idx}.en = 0;
+default.analysis.cmd{cmd_idx}.out_path = 'analysis_kx';
+default.analysis.cmd{cmd_idx}.block_ave = 5000;
+default.analysis.cmd{cmd_idx}.stats = {'analysis_task_stats_kx'};
+default.analysis.cmd{cmd_idx}.kx = 1000;
+
 
 %% Radar Settings
 
 defaults = {};
 
-% Deconvolution Mode
+% Noise Mode
 default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8]};
-default.qlook.qlook.img_comb = [];
+default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
-  default.radar.wfs(wf).rx_paths = [1 2 3 4 5 6 7 8];
+  default.radar.wfs(wf).rx_paths = [2 4 1 3 5 6 7 8];
   default.radar.wfs(wf).adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
 end
 
-default.config_regexp = '.*deconv.*';
-default.name = 'Deconv Mode 170-230 MHz';
+default.config_regexp = '.*NOISE.*';
+default.name = 'Noise Mode 170-230 MHz';
 defaults{end+1} = default;
 
 % Survey Mode
@@ -361,15 +395,15 @@ default.qlook.img_comb = [10e-06 -inf 3e-06];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
-  default.radar.wfs(wf).rx_paths = [1 2 3 4 5 6 7 8];
-  default.radar.wfs(wf).adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
+  default.radar.wfs(wf).rx_paths = [2 4 1 3 5 6 7 8];
+  default.radar.wfs(wf).adc_gains_dB = [46 46 46 46 46 46 46 46]; % Gain from the first LNA to the ADC
 end
 
 default.config_regexp = '.*survey.*';
@@ -382,15 +416,15 @@ default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
-default.array.img_comb = default.qlook.qlook.img_comb;
+default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
 for wf = 1:2
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
-  default.radar.wfs(wf).rx_paths = [1 2 3 4 5 6 7 8];
-  default.radar.wfs(wf).adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
+  default.radar.wfs(wf).rx_paths = [2 4 1 3 5 6 7 8];
+  default.radar.wfs(wf).adc_gains_dB = [46 46 46 46 46 46 46 46]; % Gain from the first LNA to the ADC
 end
 
 default.config_regexp = '.*';

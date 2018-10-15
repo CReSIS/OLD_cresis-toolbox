@@ -72,6 +72,7 @@ arena.adc(adc_idx).desiredAlignMax = 0;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 1;
+arena.adc(adc_idx).gain_dB = [0 0];
 adc_idx = adc_idx + 1;
 arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
@@ -82,6 +83,7 @@ arena.adc(adc_idx).desiredAlignMax = -20;
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 2;
+arena.adc(adc_idx).gain_dB = [0 0];
 
 daq_idx = 0;
 daq_idx = daq_idx + 1;
@@ -247,6 +249,36 @@ default.post.echo.depth = '[min(Surface_Depth)-100 max(Surface_Depth)+1500]';
 % default.post.echo.depth = '[min(Surface_Elev)-1500 max(Surface_Elev)+100]';
 default.post.echo.er_ice = 3.15;
 default.post.ops.location = 'antarctic';
+
+%% Analysis worksheet
+default.analysis.block_size = 5000;
+default.analysis.imgs = {[1 1],[2 1]};
+cmd_idx = 0;
+cmd_idx = cmd_idx + 1;
+default.analysis.cmd{cmd_idx}.method = 'statistics';
+default.analysis.cmd{cmd_idx}.out_path = 'analysis_mean';
+default.analysis.cmd{cmd_idx}.block_ave = 1000;
+default.analysis.cmd{cmd_idx}.stats = {@(x)nanmean(x.*conj(x),2)};
+cmd_idx = cmd_idx + 1;
+default.analysis.cmd{cmd_idx}.method = 'statistics';
+default.analysis.cmd{cmd_idx}.out_path = 'analysis_freq';
+default.analysis.cmd{cmd_idx}.block_ave = 1000;
+default.analysis.cmd{cmd_idx}.start_time = 's=es.Tend-es.Tpd-2e-6;';
+default.analysis.cmd{cmd_idx}.stop_time = 's=es.Tend-es.Tpd;';
+default.analysis.cmd{cmd_idx}.stats = {@(x)mean(abs(fft(x)).^2,2)  @(x)mean(abs(fft(fir_dec(x,10))).^2,2)  @(x)mean(abs(fft(fir_dec(x,100))).^2,2)};
+cmd_idx = cmd_idx + 1;
+default.analysis.cmd{cmd_idx}.method = 'statistics';
+default.analysis.cmd{cmd_idx}.out_path = 'analysis_max';
+default.analysis.cmd{cmd_idx}.block_ave = 1;
+default.analysis.cmd{cmd_idx}.pulse_comp = 1;
+default.analysis.cmd{cmd_idx}.stats = {'analysis_task_stats_max'};
+cmd_idx = cmd_idx + 1;
+default.analysis.cmd{cmd_idx}.method = 'statistics';
+default.analysis.cmd{cmd_idx}.en = 0;
+default.analysis.cmd{cmd_idx}.out_path = 'analysis_kx';
+default.analysis.cmd{cmd_idx}.block_ave = 5000;
+default.analysis.cmd{cmd_idx}.stats = {'analysis_task_stats_kx'};
+default.analysis.cmd{cmd_idx}.kx = 1000;
 
 
 %% Radar Settings

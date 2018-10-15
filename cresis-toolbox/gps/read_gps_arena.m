@@ -130,6 +130,20 @@ while ~feof(fid)
 end
 fclose(fid);
 
+if nmea_idx < 2
+  gps.gps_time = [];
+  gps.lat = [];
+  gps.lon = [];
+  gps.elev = [];
+  gps.roll = [];
+  gps.pitch = [];
+  gps.heading = [];
+  gps.radar_time = [];
+  gps.profileCntr = [];
+  gps.comp_time = [];
+  return;
+end
+
 %   CONVERT LATITUDE AND LONGITUDE TO [DD.DDD] FROM [DDDMM.MMM]
 lat_MM = mod(latitude,100);
 lat_DD = (latitude - lat_MM)./100;

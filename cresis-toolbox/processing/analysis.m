@@ -187,8 +187,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.block_ave = 2000;
       end
       
-      if ~isfield(cmd,'pulse_compress') || isempty(cmd.pulse_compress)
-        cmd.pulse_compress = false;
+      if ~isfield(cmd,'pulse_comp') || isempty(cmd.pulse_comp)
+        cmd.pulse_comp = false;
       end
       
       if ~isfield(cmd,'motion_comp') || isempty(cmd.motion_comp)
