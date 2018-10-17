@@ -115,11 +115,11 @@ if ~surf.normalize_each_bin
   surf_data = data;
   if surf.filter_len(1) ~= 1
     % Multilooking in cross-track/fast-time
-    surf_data = fir_dec(surf_data.',ones(1,surf.filter_len(2))/surf.filter_len(2),1).';
+    surf_data = fir_dec(surf_data.',ones(1,surf.filter_len(1))/surf.filter_len(1),1).';
   end
   if surf.filter_len(2) ~= 1
     % Multilooking in along-track
-    surf_data = fir_dec(surf_data,ones(1,surf.filter_len(1))/surf.filter_len(1),1);
+    surf_data = fir_dec(surf_data,ones(1,surf.filter_len(2))/surf.filter_len(2),1);
   end
   surf_data = lp(surf_data,1);
 else

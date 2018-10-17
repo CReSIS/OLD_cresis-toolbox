@@ -429,25 +429,65 @@ for config_idx = 1:length(configs)
   end
 end
 
+%% Print out segments
+% =========================================================================
 if ~isempty(param.config.param_fn)
-  % Print parameter spreadsheet values
+  % Print parameter spreadsheet values to stdout and param_txt_fn
   % =========================================================================
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  cmd\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'cmd',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  records\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'records',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  qlook\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'qlook',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  sar\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'sar',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  array\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'array',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  radar\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'radar',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  post\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'post',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  analysis\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'analysis',oparams);
+  fid = 1;
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  cmd\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'cmd',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  records\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'records',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  qlook\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'qlook',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  sar\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'sar',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  array\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'array',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  radar\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'radar',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'post',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  fprintf(fid,'\n');
+  
+  param_txt_fn = ct_filename_ct_tmp(param,'','param', [param.config.date_str,'.txt']);
+  fprintf('Writing %s\n\n', param_txt_fn);
+  param_txt_fn_dir = fileparts(param_txt_fn);
+  if ~exist(param_txt_fn_dir,'dir')
+    mkdir(param_txt_fn_dir);
+  end
+  [fid,msg] = fopen(param_txt_fn,'wb');
+  if fid<0
+    error('Could not write to %s: %s\n', param_txt_fn, msg);
+  end
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  cmd\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'cmd',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  records\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'records',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  qlook\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'qlook',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  sar\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'sar',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  array\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'array',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  radar\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'radar',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'post',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  fprintf(fid,'\n');
+  fclose(fid);
 end
 
 %% Exit task

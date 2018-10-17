@@ -117,6 +117,10 @@ if ~isfield(param.qlook,'resample') || isempty(param.qlook.resample)
   param.qlook.resample = [1 1; 1 1];
 end
 
+if ~isfield(param.qlook,'trim') || isempty(param.qlook.trim)
+  param.qlook.trim = [0 0];
+end
+
 if ~isfield(param.qlook,'surf') || isempty(param.qlook.surf)
   param.qlook.surf.en = false;
 end
@@ -135,6 +139,8 @@ if ~isfield(param.records.gps,'en') || isempty(param.records.gps.en)
   % Assume that GPS synchronization is enabled
   param.records.gps.en = true;
 end
+
+[~,out_path_dir] = fileparts(param.qlook.out_path);
 
 %% Setup Processing
 % =====================================================================
@@ -311,8 +317,8 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
-    dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
-      sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+    dparam.notes = sprintf('%s:%s:%s:%s %s_%03d (%d of %d)/%d of %d recs %d-%d', ...
+      sparam.task_function, param.radar_name, param.season_name, out_path_dir, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
       block_idx, length(blocks), cur_recs(1), cur_recs(end));
     if ctrl.cluster.rerun_only
       % If we are in rerun only mode AND the get heights task success
@@ -436,8 +442,8 @@ end
 if param.qlook.surf.en
   sparam.cpu_time = sparam.cpu_time + numel(records.gps_time)/5e6*120;
 end
-sparam.notes = sprintf('%s:%s:%s %s', ...
-  sparam.task_function, param.radar_name, param.season_name, param.day_seg);
+sparam.notes = sprintf('%s:%s:%s:%s %s', ...
+  sparam.task_function, param.radar_name, param.season_name, out_path_dir, param.day_seg);
 
 % Create success condition
 success_error = 64;

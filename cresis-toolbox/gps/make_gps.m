@@ -79,43 +79,45 @@ for file_idx = 1:length(in_fns)
   fprintf('=====================================================================\n');
   
   %% Load Radar Sync GPS files (mcrds, accum2, arena)
-  if isstruct(sync_params{file_idx})
-    sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
-  end
-  clear sync_gps;
-  fprintf('Sync files (%.1f sec)\n', toc);
-  for sync_fn_idx = 1:length(sync_fn)
-    if iscell(sync_file_type{file_idx})
-      cur_file_type = sync_file_type{file_idx}{sync_fn_idx};
-    else
-      cur_file_type = sync_file_type{file_idx};
+  if exist('sync_flag','var') && sync_flag{file_idx}
+    if isstruct(sync_params{file_idx})
+      sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
     end
-    gps_fh = make_gps_fh(cur_file_type);
-    fprintf('  %s\n', sync_fn{sync_fn_idx});
-    gps_tmp = gps_fh(sync_fn{sync_fn_idx},sync_params{file_idx}{sync_fn_idx});
+    clear sync_gps;
+    fprintf('Sync files (%.1f sec)\n', toc);
+    for sync_fn_idx = 1:length(sync_fn)
+      if iscell(sync_file_type{file_idx})
+        cur_file_type = sync_file_type{file_idx}{sync_fn_idx};
+      else
+        cur_file_type = sync_file_type{file_idx};
+      end
+      gps_fh = make_gps_fh(cur_file_type);
+      fprintf('  %s\n', sync_fn{sync_fn_idx});
+      gps_tmp = gps_fh(sync_fn{sync_fn_idx},sync_params{file_idx}{sync_fn_idx});
+      
+      if sync_fn_idx == 1
+        sync_gps = gps_tmp;
+      else
+        sync_gps.gps_time = [sync_gps.gps_time, gps_tmp.gps_time];
+        sync_gps.lat = [sync_gps.lat, gps_tmp.lat];
+        sync_gps.lon = [sync_gps.lon, gps_tmp.lon];
+        sync_gps.elev = [sync_gps.elev, gps_tmp.elev];
+        sync_gps.roll = [sync_gps.roll, gps_tmp.roll];
+        sync_gps.pitch = [sync_gps.pitch, gps_tmp.pitch];
+        sync_gps.heading = [sync_gps.heading, gps_tmp.heading];
+        sync_gps.comp_time = [sync_gps.comp_time, gps_tmp.comp_time];
+        if isfield(sync_gps,'radar_time')
+          sync_gps.radar_time = [sync_gps.radar_time, gps_tmp.radar_time];
+        end
+        if isfield(sync_gps,'profileCntr')
+          sync_gps.profileCntr = [sync_gps.profileCntr, gps_tmp.profileCntr];
+        end
+      end
+    end
     
-    if sync_fn_idx == 1
-      sync_gps = gps_tmp;
-    else
-      sync_gps.gps_time = [sync_gps.gps_time, gps_tmp.gps_time];
-      sync_gps.lat = [sync_gps.lat, gps_tmp.lat];
-      sync_gps.lon = [sync_gps.lon, gps_tmp.lon];
-      sync_gps.elev = [sync_gps.elev, gps_tmp.elev];
-      sync_gps.roll = [sync_gps.roll, gps_tmp.roll];
-      sync_gps.pitch = [sync_gps.pitch, gps_tmp.pitch];
-      sync_gps.heading = [sync_gps.heading, gps_tmp.heading];
-      sync_gps.comp_time = [sync_gps.comp_time, gps_tmp.comp_time];
-      if isfield(sync_gps,'radar_time')
-        sync_gps.radar_time = [sync_gps.radar_time, gps_tmp.radar_time];
-      end
-      if isfield(sync_gps,'profileCntr')
-        sync_gps.profileCntr = [sync_gps.profileCntr, gps_tmp.profileCntr];
-      end
-    end
+    %% Check/make the sync GPS data monotonic in time in case it is not
+    sync_gps = make_gps_monotonic(sync_gps);
   end
-  
-  %% Check/make the sync GPS data monotonic in time in case it is not
-  sync_gps = make_gps_monotonic(sync_gps);
   
   %% Load GPS files
   if ischar(in_fn)

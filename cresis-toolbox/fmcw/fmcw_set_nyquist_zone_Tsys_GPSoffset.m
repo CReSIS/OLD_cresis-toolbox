@@ -167,13 +167,13 @@ if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg)
   
   % Load land DEM
   if strcmpi(param.post.ops.location,'arctic')
-    dx = land_surface.x_all(2)-land_surface.x_all(1);
+    dx = abs(land_surface.x_all(2)-land_surface.x_all(1));
     x_idxs = find(land_surface.x_all >= min_x-2*dx & land_surface.x_all <= max_x+2*dx);
-    dy = land_surface.y_all(2)-land_surface.y_all(1);
+    dy = abs(land_surface.y_all(2)-land_surface.y_all(1));
     y_idxs = find(land_surface.y_all >= min_y-2*dy & land_surface.y_all <= max_y+2*dy);
     land_surface.x = land_surface.x_all(x_idxs);
     land_surface.y = land_surface.y_all(y_idxs);
-    land_surface.dem = single(land_surface.dem_all(x_idxs,y_idxs).');
+    land_surface.dem = single(land_surface.dem_all(y_idxs,x_idxs));
     
     if 0
       % PADEN: Load Arctic DEM corresponding to this segment
@@ -190,7 +190,12 @@ if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg)
     % Debug Plot
     figure(1); clf;
     imagesc(land_surface.x,land_surface.y,land_surface.dem)
+    hold on;
+    plot(records.x,records.y,'r','LineWidth',2)
     set(gca,'YDir','normal');
+    xlabel('X (m)');
+    ylabel('Y (m)');
+    legend('Flightline','location','best');
   end
 end
 

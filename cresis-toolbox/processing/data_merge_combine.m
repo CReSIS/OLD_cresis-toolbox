@@ -10,13 +10,17 @@ physical_constants;
 %% Motion compensation
 % =========================================================================
 if param.qlook.motion_comp
-  % Remove elevation variations
+  % Remove elevation variations between each phase center and the reference
+  % position of the array. The goal is to compensate for relative time
+  % delays between each of the elements so that they can be constructively
+  % added together.
   for img = 1:length(param.load.imgs)
-    data{img} = fft(data{img});
+    data{img} = fft(data{img},[],1);
     for wf_adc = 1:size(param.load.imgs{img},1)
       dtime = (hdr.records{img,wf_adc}.elev-hdr.ref.elev) / (c/2);
-      data{img}(:,rline) = data{img}(:,rline) .* exp(1j*2*pi*hdr.freq{img}*dtime);
+      data{img} = data{img} .* exp(1j*2*pi*hdr.freq{img}*dtime);
     end
+    data{img} = ifft(data{img},[],1);
   end
 end
 

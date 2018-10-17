@@ -418,10 +418,11 @@ for board_idx = 1:numel(param.config.board_map)
       nyquist_zone = nyquist_zone(~bad_mask);
       start_idx = start_idx(~bad_mask);
       stop_idx = stop_idx(~bad_mask);
+      waveform_ID = waveform_ID(~bad_mask);
       
       seconds = BCD_to_seconds(seconds);
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs', ...
-        'counter','nyquist_zone','start_idx','stop_idx');
+        'counter','nyquist_zone','start_idx','stop_idx','waveform_ID');
       
     elseif any(param.config.file.version == [101])
       [file_size offset unknown seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
@@ -560,6 +561,7 @@ counter = [];
 radar_time = [];
 radar_time_1pps = [];
 file_idxs = [];
+waveform_ID = [];
 unknown = [];
 hdr_log = [];
 htime = [];
@@ -610,11 +612,70 @@ for fn_idx = 1:length(fns_list{board_idx})
     epri = cat(2,epri,reshape(hdr.epri,[1 length(hdr.epri)]));
     seconds = cat(2,seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
     fraction = cat(2,fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-    if any(param.config.file.version == [403 407 408])
+    if any(param.config.file.version == [8])
+      waveform_ID = cat(2,waveform_ID,reshape(hdr.waveform_ID,[1 length(hdr.waveform_ID)]));
+    elseif any(param.config.file.version == [403 407 408])
       counter = cat(2,counter,reshape(hdr.counter,[1 length(hdr.counter)]));
     end
   end
   file_idxs = cat(2,file_idxs,fn_idx*ones([1 length(hdr.offset)]));
+end
+
+if 0
+  % waveform_ID decoding for: any(param.config.file.version == [8])
+  keyboard
+  waveform_ID_unique = unique(waveform_ID)
+  waveform_ID_char = char(reshape(typecast(waveform_ID_unique,'int8'),[8 length(waveform_ID_unique)]).')
+  dec2bin(waveform_ID_unique)
+  % Manually create the map from waveform_ID_unique values to tref using
+  % the above three outputs:
+  waveform_map = [uint64(2314885530819506224) 0
+    uint64(2314885530819508528) 9
+    uint64(2314885530819572272) 12
+    uint64(2314885530819703600) 33
+    uint64(4629771061639012448) 0
+    uint64(4629771061639017056) 9
+    uint64(4629771061639144544) 12
+    uint64(4629771061639407200) 33
+    uint64(5713170579264979799) 0];
+  % Use manually created map to map from waveform_ID to tref:
+  waveform_t_ref = nan(size(waveform_ID));
+  for idx = 1:size(waveform_map,1)
+    waveform_t_ref(waveform_map(idx,1) == waveform_ID) = double(waveform_map(idx,2)) * 1.0e-6;
+  end
+  any(isnan(waveform_t_ref))
+  plot(waveform_t_ref);
+  xlabel('Record');
+  ylabel('t\_ref (us)')
+  
+  % Example from 20170426:
+  %
+  % waveform_ID_unique =
+  %   Columns 1 through 6
+  %   2314885530819506224  2314885530819508528  2314885530819572272  2314885530819703600  4629771061639012448  4629771061639017056
+  %   Columns 7 through 9
+  %   4629771061639144544  4629771061639407200  5713170579264979799
+  % waveform_ID_char = char(reshape(typecast(waveform_ID_unique,'int8'),[8 length(waveform_ID_unique)]).')
+  % waveform_ID_char =
+  % 000
+  % 090
+  % 021
+  % 033
+  % ```@@@@@
+  % `r`@@@@@
+  % `db@@@@@
+  % `ff@@@@@
+  % WCMF_BIO
+  % ans =
+  % 010000000100000001000000010000000100000001100000011000000000000
+  % 010000000100000001000000010000000100000001100000011101000000000
+  % 010000000100000001000000010000000100000001100010011001000000000
+  % 010000000100000001000000010000000100000001100110011010000000000
+  % 100000001000000010000000100000001000000011000000110000000000000 <-- 1-bit shift error
+  % 100000001000000010000000100000001000000011000000111010000000000 <-- 1-bit shift error
+  % 100000001000000010000000100000001000000011000100110010000000000 <-- 1-bit shift error
+  % 100000001000000010000000100000001000000011001100110100000000000 <-- 1-bit shift error
+  % 100111101001001010000100101111101000110010011010100010000000000 <-- manually determine tref
 end
 
 if param.config.online_mode
@@ -1163,22 +1224,62 @@ end
 %% Print out segments
 % =========================================================================
 if ~isempty(param.config.param_fn)
-  % Print parameter spreadsheet values
+  % Print parameter spreadsheet values to stdout and param_txt_fn
   % =========================================================================
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  cmd\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'cmd',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  records\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'records',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  qlook\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'qlook',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  sar\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'sar',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  array\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'array',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  radar\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'radar',oparams);
-  fprintf('<strong>%s\n','='*ones(1,80)); fprintf('  post\n'); fprintf('%s</strong>\n','='*ones(1,80));
-  read_param_xls_print(param.config.param_fn,'post',oparams);
+  fid = 1;
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  cmd\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'cmd',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  records\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'records',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  qlook\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'qlook',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  sar\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'sar',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  array\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'array',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  radar\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'radar',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'post',oparams,fid);
+  fprintf(fid,'<strong>%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s</strong>\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  fprintf(fid,'\n');
+  
+  param_txt_fn = ct_filename_ct_tmp(param,'','param', [param.config.date_str,'.txt']);
+  fprintf('Writing %s\n\n', param_txt_fn);
+  param_txt_fn_dir = fileparts(param_txt_fn);
+  if ~exist(param_txt_fn_dir,'dir')
+    mkdir(param_txt_fn_dir);
+  end
+  [fid,msg] = fopen(param_txt_fn,'wb');
+  if fid<0
+    error('Could not write to %s: %s\n', param_txt_fn, msg);
+  end
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  cmd\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'cmd',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  records\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'records',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  qlook\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'qlook',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  sar\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'sar',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  array\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'array',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  radar\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'radar',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  post\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'post',oparams,fid);
+  fprintf(fid,'\n');
+  fprintf(fid,'%s\n','='*ones(1,80)); fprintf(fid,'  analysis\n'); fprintf(fid,'%s\n','='*ones(1,80));
+  read_param_xls_print(param.config.param_fn,'analysis',oparams,fid);
+  fprintf(fid,'\n');
+  fclose(fid);
 end
 
 %% Exit task

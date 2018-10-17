@@ -155,11 +155,18 @@ for img = param.update_collate_deconv.imgs
             if tmp_deconv{cmd_idx}{seg_idx}.dt ~= deconv_lib.dt
               error('Time bins do not align %g ~= deconv_lib.dt == %g', tmp_deconv{cmd_idx}{seg_idx}.dt, deconv_lib.dt);
             end
-    % HACK
-    if isempty(deconv.param_analysis)
-      deconv.param_analysis = tmp_deconv{cmd_idx}{seg_idx}.param_analysis;
-    end
-    % END HACK
+            
+            % HACK
+            if isempty(deconv.param_collate_deconv)
+              deconv.param_collate_deconv = tmp_deconv{cmd_idx}{seg_idx}.param_collate_deconv;
+            end
+            if isempty(deconv.param_analysis)
+              deconv.param_analysis = tmp_deconv{cmd_idx}{seg_idx}.param_analysis;
+            end
+            if isempty(deconv.param_records)
+              deconv.param_records = tmp_deconv{cmd_idx}{seg_idx}.param_records;
+            end
+            % END HACK
             
             % Make sure selected waveforms to add/replace exist
             param.update_collate_deconv.cmd{cmd_idx}.idxs{seg_idx}  ...

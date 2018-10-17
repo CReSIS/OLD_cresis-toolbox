@@ -173,9 +173,9 @@ end
 
 if force_compile
   if ctrl.cluster.mem_to_ppn
-    cmd = sprintf('mcc -m -d %s -R ''-nodisplay'' %s', cluster_job_fn_dir, cluster_job_fn);
+    cmd = sprintf('mcc -m -d %s %s', cluster_job_fn_dir, cluster_job_fn);
   else
-    cmd = sprintf('mcc -m -d %s -R ''-singleCompThread,-nodisplay'' %s', cluster_job_fn_dir, cluster_job_fn);
+    cmd = sprintf('mcc -m -d %s -R ''-singleCompThread'' %s', cluster_job_fn_dir, cluster_job_fn);
   end
   
   for dep_idx = 1:length(hidden_depend_funs)

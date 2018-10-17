@@ -83,6 +83,7 @@ for img = 1:length(param.load.imgs)
         cdf_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
         cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
         
+        fprintf('  Loading coherent noise: %s\n', cdf_fn);
         finfo = ncinfo(cdf_fn);
         
         noise = [];
@@ -821,6 +822,7 @@ for img = 1:length(param.load.imgs)
     if param.load.pulse_comp == 1 && wfs(wf).deconv.en
       deconv_fn = fullfile(fileparts(ct_filename_out(param,wfs(wf).deconv.fn, '')), ...
         sprintf('deconv_%s_wf_%d_adc_%d.mat',param.day_seg, wf, adc));
+      fprintf('  Loading deconvolution: %s\n', deconv_fn);
       deconv = load(deconv_fn);
       deconv_date_str = deconv.param_collate_deconv_final.sw_version.cur_date_time;
       hdr.custom.deconv(1:length(deconv_date_str),1,img,wf_adc) = deconv_date_str;

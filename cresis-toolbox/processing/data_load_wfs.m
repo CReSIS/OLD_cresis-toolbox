@@ -161,11 +161,6 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).f1 = records.settings.wfs(1).wfs(wf).f1(1);
   end
   wfs(wf).f1 = wfs(wf).f1*wfs(wf).fmult + wfs(wf).fLO;
-  if isfield(param.radar.wfs(wf),'time_trim') && ~isempty(param.radar.wfs(wf).time_trim)
-    wfs(wf).time_trim   = param.radar.wfs(wf).time_trim;
-  else
-    wfs(wf).time_trim   = [0 0];
-  end
   if isfield(param.radar.wfs(wf),'time_raw_trim') && ~isempty(param.radar.wfs(wf).time_raw_trim)
     wfs(wf).time_raw_trim   = param.radar.wfs(wf).time_raw_trim;
   else
