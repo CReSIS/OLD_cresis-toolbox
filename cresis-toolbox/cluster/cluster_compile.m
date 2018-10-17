@@ -99,6 +99,7 @@ use_builtin_fdep = str2double(matlab_ver.Version) >= 8.6;
 
 cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
 cluster_job_fn = fullfile(cluster_job_fn_dir,'cluster_job.m');
+cluster_job_bin_fn = fullfile(cluster_job_fn_dir,'cluster_job');
 cluster_job_fn_compiled = fullfile(cluster_job_fn_dir,'run_cluster_job.sh');
 
 if ~force_compile
@@ -193,6 +194,7 @@ if force_compile
   end
   
   fprintf('Start Compiling %s\n\n', datestr(now));
+  %delete(cluster_job_bin_fn);
   fprintf('  %s\n', cmd);
   if strcmpi(ctrl.cluster.mcc,'system')
     status = system(cmd);
