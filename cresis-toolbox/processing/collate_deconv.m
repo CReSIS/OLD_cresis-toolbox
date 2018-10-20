@@ -742,6 +742,19 @@ if param.collate_deconv.stage_two_en
       
       %% Stage 2: Determine the best waveform for each record
       % ===================================================================
+
+      % Load deconv
+      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
+      fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+      fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
+      if exist(fn)
+        deconv = load(fn,'param_collate_deconv','param_analysis','param_records');
+        new_file = false;
+      else
+        fprintf('  Does not exist.\n');
+        new_file = true;
+      end
+      
       % 1. Load all segments that are specified (default is just this segment)
       for day_seg_idx = 1:length(cmd.day_segs)
         day_seg = cmd.day_segs{day_seg_idx};
@@ -772,23 +785,15 @@ if param.collate_deconv.stage_two_en
           deconv_lib.twtt(end+(1:length(tmp.twtt))) = tmp.twtt;
           deconv_lib.day_seg(end+(1:length(tmp.gps_time))) = repmat({day_seg},[length(tmp.gps_time) 1]);
         end
+        if new_file
+          deconv.param_collate_deconv = deconv_lib.param_collate_deconv;
+          deconv.param_analysis = deconv_lib.param_analysis;
+          deconv.param_records = deconv_lib.param_records;
+        end
         
       end
       if isempty(deconv_lib.gps_time)
         error('There are no deconvolution waveforms in the files loaded. Specify other cmd.day_seg to load or remake current day_seg files with lower metric thresholds.');
-      end
-
-      % Load deconv
-      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
-      fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-      fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
-      if exist(fn)
-        deconv = load(fn,'param_collate_deconv','param_analysis','param_records');
-      else
-        fprintf('  Does not exist.\n');
-        deconv.param_collate_deconv = deconv_lib.param_collate_deconv;
-        deconv.param_analysis = [];
-        deconv.param_records = [];
       end
       
       % 2. Load surface using opsLoadLayers to determine which waveforms
