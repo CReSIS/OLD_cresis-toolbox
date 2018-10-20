@@ -41,10 +41,13 @@ if ~exist('update_mode','var') || isempty(update_mode)
 end
 
 if isnumeric(ctrl)
+  ctrl_is_struct = false;
   batch_id = ctrl;
   global gRadar;
   ctrl = [];
-  ctrl.cluster = gRadar.cluster; 
+  ctrl.cluster = gRadar.cluster;
+else
+  ctrl_is_struct = true;
 end
 
 if isfield(ctrl,'batch_id')
@@ -57,17 +60,80 @@ end
 
 ctrls = cluster_get_batch_list(ctrl);
 
-found = 0;
+match_idxs = [];
 for batch_idx = 1:length(ctrls)
   if ctrls{batch_idx}.batch_id == batch_id
-    found = 1;
-    ctrl = ctrls{batch_idx};
-    break;
+    match_idxs(end+1) = batch_idx;
   end
 end
 
-if found == 0
-  fprintf('Batch %d not found\n', batch_id);
+if isempty(match_idxs)
+  error('Batch %d not found.', batch_id);
+end
+if ~ctrl_is_struct || ~isfield(ctrl,'batch_dir')
+  if length(match_idxs) > 1
+    
+    fprintf('<strong>There are %d matches for this batch_id %d.</strong>\n', length(match_idxs), batch_id);
+    fprintf('Select a batch from the list below:\n');
+    % This for-loop from cluster_get_batch_list.m:
+    for match_idxs_idx = 1:length(match_idxs)
+      batch_idx = match_idxs(match_idxs_idx);
+      % Create input filenames
+      static_in_fn = fullfile(ctrls{batch_idx}.in_fn_dir,'static.mat');
+      dynamic_in_fn = fullfile(ctrls{batch_idx}.in_fn_dir,'dynamic.mat');
+      % Load input filenames
+      if exist(static_in_fn,'file')
+        sparam = load(static_in_fn);
+      else
+        warning('Missing %s', static_in_fn);
+        sparam = [];
+        sparam.static_param = [];
+      end
+      if exist(dynamic_in_fn,'file')
+        tmp = load(dynamic_in_fn);
+        ctrls{batch_idx}.dparam = tmp.dparam;
+        if isempty(ctrls{batch_idx}.dparam)
+          ctrls{batch_idx}.dparam = {[]};
+        end
+      else
+        ctrls{batch_idx}.dparam = {[]};
+      end
+      
+      fprintf('<strong>%d</strong>: Batch %d %s\n', match_idxs_idx, ctrls{batch_idx}.batch_id, ctrls{batch_idx}.batch_dir);
+      
+      param = merge_structs(sparam.static_param,ctrls{batch_idx}.dparam{1});
+      if ~isfield(param,'task_function')
+        param.task_function = '';
+      end
+      if ~isfield(param,'notes')
+        param.notes = '';
+      end
+      fprintf('    task_function: %s\n', param.task_function);
+      fprintf('    notes: %s\n', param.notes);
+    end
+    
+    % Check with user
+    uinput = [];
+    while length(uinput)~=1 || ~isnumeric(uinput) || uinput < 1 || uinput > length(match_idxs)
+      uinput = input('? ');
+    end
+    match_idxs = match_idxs(uinput);
+  end
+  
+  ctrl = ctrls{match_idxs};
+  
+else
+  found = false;
+  for match_idxs_idx = 1:length(match_idxs)
+    if strcmpi(ctrls{match_idxs(match_idxs_idx)}.batch_dir,ctrl.batch_dir)
+      found = true;
+      ctrl = merge_structs(ctrls{match_idxs(match_idxs_idx)}, ctrl);
+      break;
+    end
+  end
+  if ~found
+    error('Batch %d found, but original batch seems to be deleted since ctrl.batch_dir does not match an existing batch.', batch_id);
+  end
 end
 
 [fid,msg] = fopen(ctrl.job_id_fn,'r');

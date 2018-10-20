@@ -28,6 +28,62 @@ save_changes = true;
 %% Prep (load records and gps files)
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+if isfield(records.param_records,'vectors')
+  warning('Old parameter format with "vectors" field found in records file. Updating format.');
+  records.param_records.records.file.start_idx = records.param_records.vectors.file.start_idx;
+  records.param_records.records.file.stop_idx = records.param_records.vectors.file.stop_idx;
+  records.param_records.records.file.base_dir = records.param_records.vectors.file.base_dir;
+  records.param_records.records.file.board_folder_name = records.param_records.vectors.file.adc_folder_name;
+  records.param_records.records.file.prefix = records.param_records.vectors.file.file_prefix;
+  records.param_records.records.gps = records.param_records.vectors.gps;
+  
+  records.param_records.records.file.version = records.param_records.records.file_version;
+  records.param_records.records.frames.geotiff_fn = records.param_records.records.geotiff_fn;
+  records.param_records.records.frames.mode = records.param_records.records.frame_mode;
+  records.param_records = rmfield(records.param_records,'vectors');
+  try
+    records.param_records.records.file = rmfield(records.param_records.records.file,'adcs');
+  end
+  try
+    records.param_records.records.file = rmfield(records.param_records.records.file,'adc_headers');
+  end
+  try
+    records.param_records.records.gps = rmfield(records.param_records.records.gps,'verification');
+  end
+  try
+    records.param_records.records.gps = rmfield(records.param_records.records.gps,'fn');
+  end
+  if isfield(records.param_records.records.gps,'utc_time_halved') && isempty(records.param_records.records.gps.utc_time_halved)
+    records.param_records.records.gps = rmfield(records.param_records.records.gps,'utc_time_halved');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'records_fn');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'force_all');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'frames_fn');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'geotiff_fn');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'frame_mode');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'debug_level');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'file_version');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'tmp_fn_uses_adc_folder_name');
+  end
+  try
+    records.param_records.records = rmfield(records.param_records.records,'manual_time_correct');
+  end
+end
 
 gps_fn = ct_filename_support(param,'','gps',1);
 
@@ -68,8 +124,8 @@ if any(strcmpi(param.radar_name,{'accum2','mcrds'}))
   records.gps_source = gps.gps_source;
 else
   % Determine time offset delta and apply to radar time
-  delta_offset = param.vectors.gps.time_offset - records.param_records.vectors.gps.time_offset
-  records.param_records.vectors.gps.time_offset = param.vectors.gps.time_offset;
+  delta_offset = param.records.gps.time_offset - records.param_records.records.gps.time_offset;
+  records.param_records.records.gps.time_offset = param.records.gps.time_offset;
   records.gps_time = records.gps_time + delta_offset;
   
   % Interpolate to find new trajectory

@@ -42,7 +42,6 @@ if nargin == 0 || isempty(ctrl_chain)
   end
 
   if strcmpi(gRadar.cluster.type,'matlab')
-    delete_all_cluster_jobs = true;
     jm = parcluster;
     delete(jm.Jobs);
   end

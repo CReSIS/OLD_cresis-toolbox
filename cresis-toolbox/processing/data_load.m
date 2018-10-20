@@ -44,6 +44,25 @@ else
   file_mode = 'ieee-be';
 end
 
+%% Waveform Map (t_ref calculation)
+% ===================================================================
+if any(param.records.file.version==[8])
+  % Handles bit shift error in waveform_ID field
+  waveform_ID_map = [typecast(uint8('     000'),'uint64')
+    typecast(uint8('     090'),'uint64')
+    typecast(uint8('     120'),'uint64')
+    typecast(uint8('     330'),'uint64')
+    typecast(uint8('     000')*2,'uint64')
+    typecast(uint8('     090')*2,'uint64')
+    typecast(uint8('     120')*2,'uint64')
+    typecast(uint8('     330')*2,'uint64')
+    typecast(uint8('OIB_FMCW'),'uint64')
+    typecast(uint8('OIB_FMCW')*2,'uint64')
+  ];
+  waveform_ID_t_ref = [0e-6 9e-6 12e-6 33e-6 0e-6 9e-6 12e-6 33e-6 0e-6 0e-6];
+  
+end
+
 %% Load data
 % ===================================================================
 for state_idx = 1:length(states)
@@ -195,8 +214,17 @@ for state_idx = 1:length(states)
               data{state.img(accum_idx)}(wfs(wf).Nt_raw,1,1) = 0;
             end
             
-            % Reference deramp time delay, t_ref
-            t_ref(num_accum+1) = wfs(wf).t_ref;
+            if param.records.file.version == 8
+              waveform_ID = typecast(file_data(rec_offset+41:rec_offset+48), 'uint64');
+              waveform_ID_map_idx = find(waveform_ID_map == waveform_ID,1);
+              if isempty(waveform_ID_map_idx)
+                error('%ld waveform_ID not found in waveform_ID_map.',waveform_ID);
+              end
+              t_ref(num_accum+1) = wfs(wf).t_ref + waveform_ID_t_ref(waveform_ID_map_idx);
+            else
+              % Reference deramp time delay, t_ref
+              t_ref(num_accum+1) = wfs(wf).t_ref;
+            end
             
             % Bit shifts
             if wfs(wf).quantization_to_V_dynamic

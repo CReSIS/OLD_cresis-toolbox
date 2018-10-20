@@ -1,4 +1,4 @@
-%function update_collate_deconv(param,param_override)
+function update_collate_deconv(param,param_override)
 % update_collate_deconv(param,param_override)
 %
 % This scripts updates the collate_deconv output files. It allows one to
@@ -81,31 +81,14 @@ for img = param.update_collate_deconv.imgs
     fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
     if exist(fn,'file')
+      new_file = false;
       deconv = load(fn,'param_collate_deconv','param_analysis','param_records');
       deconv_lib = load(fn);
     else
+      new_file = true;
+      deconv = [];
+      deconv_lib = [];
       fprintf('  Does not exist.\n');
-      deconv.param_collate_deconv = [];
-      deconv.param_analysis = [];
-      deconv.param_records = [];
-      deconv_lib.elev = [];
-      deconv_lib.fc = [];
-      deconv_lib.frm = [];
-      deconv_lib.gps_time = [];
-      deconv_lib.heading = [];
-      deconv_lib.impulse_response = [];
-      deconv_lib.lat = [];
-      deconv_lib.lon  = [];
-      deconv_lib.map_day_seg = [];
-      deconv_lib.metric = [];
-      deconv_lib.peakiness = [];
-      deconv_lib.pitch = [];
-      deconv_lib.rec = [];
-      deconv_lib.ref_mult_factor = [];
-      deconv_lib.ref_negative = [];
-      deconv_lib.ref_nonnegative = [];
-      deconv_lib.roll = [];
-      deconv_lib.twtt = [];
     end
     
     % Execute update commands
@@ -116,6 +99,10 @@ for img = param.update_collate_deconv.imgs
           fprintf('%s:', param.update_collate_deconv.cmd{cmd_idx}.method);
           fprintf(' %d', param.update_collate_deconv.cmd{cmd_idx}.idxs);
           fprintf('\n');
+          
+          if new_file
+            error('Delete not allowed on segments that do not have a deconv file or any waveforms loaded.');
+          end
           
           deconv_idxs = setdiff(1:length(deconv_lib.gps_time), param.update_collate_deconv.cmd{cmd_idx}.idxs);
           deconv_lib.elev = deconv_lib.elev(deconv_idxs);
@@ -152,21 +139,36 @@ for img = param.update_collate_deconv.imgs
             fprintf('  Loading %s img %d wf %d adc %d\n  %s\n', tmp_param.day_seg, img, wf, adc, fn);
             tmp_deconv{cmd_idx}{seg_idx} = load(fn);
             
-            if tmp_deconv{cmd_idx}{seg_idx}.dt ~= deconv_lib.dt
-              error('Time bins do not align %g ~= deconv_lib.dt == %g', tmp_deconv{cmd_idx}{seg_idx}.dt, deconv_lib.dt);
-            end
-            
-            % HACK
-            if isempty(deconv.param_collate_deconv)
+            if new_file
+              new_file = false;
+              deconv_lib = tmp_deconv{cmd_idx}{seg_idx};
+              deconv_lib.elev = [];
+              deconv_lib.fc = [];
+              deconv_lib.frm = [];
+              deconv_lib.gps_time = [];
+              deconv_lib.heading = [];
+              deconv_lib.impulse_response = [];
+              deconv_lib.lat = [];
+              deconv_lib.lon  = [];
+              deconv_lib.map_day_seg = [];
+              deconv_lib.metric = [];
+              deconv_lib.peakiness = [];
+              deconv_lib.pitch = [];
+              deconv_lib.rec = [];
+              deconv_lib.ref_mult_factor = [];
+              deconv_lib.ref_negative = [];
+              deconv_lib.ref_nonnegative = [];
+              deconv_lib.roll = [];
+              deconv_lib.twtt = [];
+              
               deconv.param_collate_deconv = tmp_deconv{cmd_idx}{seg_idx}.param_collate_deconv;
-            end
-            if isempty(deconv.param_analysis)
               deconv.param_analysis = tmp_deconv{cmd_idx}{seg_idx}.param_analysis;
-            end
-            if isempty(deconv.param_records)
               deconv.param_records = tmp_deconv{cmd_idx}{seg_idx}.param_records;
             end
-            % END HACK
+            
+            if isfield(deconv_lib,'dt') && abs(tmp_deconv{cmd_idx}{seg_idx}.dt - deconv_lib.dt)/deconv_lib.dt > 1e-6
+              error('Time bins do not align %g ~= deconv_lib.dt == %g', tmp_deconv{cmd_idx}{seg_idx}.dt, deconv_lib.dt);
+            end
             
             % Make sure selected waveforms to add/replace exist
             param.update_collate_deconv.cmd{cmd_idx}.idxs{seg_idx}  ...
@@ -217,7 +219,9 @@ for img = param.update_collate_deconv.imgs
           fprintf('\n');
       end
     end
-    
+    if ~isfield(deconv_lib,'gps_time') || isempty(deconv_lib.gps_time)
+      error('Cannot create a deconv file with zero waveforms.');
+    end
     
     % 2. Load surface using opsLoadLayers to determine which waveforms
     %    are needed
@@ -291,15 +295,7 @@ for img = param.update_collate_deconv.imgs
     final.param_collate_deconv = deconv.param_collate_deconv;
     final.param_analysis = deconv.param_analysis;
     final.param_records = deconv.param_records;
-    
-    
-    
-    % Normalize deconvolution
-    %h_mult_factor = h_mult_factor ...
-    %  * abs(h_nonnegative(1)./max(deconv.impulse_response{deconv_map_idx})) ...
-    %  / 10.^((-deconv.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
-    
-    final.map_day_seg = deconv_lib.map_day_seg(max_idxs);
+    final.map_day_seg = deconv_lib.map_day_seg(max_idxs); % differs from collate_deconv
     final.map_gps_time = layer.gps_time;
     final.map_twtt = layer.twtt;
     final.map_idxs = max_idxs_mapping(:).';
@@ -342,8 +338,8 @@ for img = param.update_collate_deconv.imgs
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    %saveas(h_fig,[fig_fn '.fig']);
-    %saveas(h_fig,[fig_fn '.jpg']);
+    saveas(h_fig,[fig_fn '.fig']);
+    saveas(h_fig,[fig_fn '.jpg']);
     
     % Score Figure
     % ===================================================================
@@ -375,8 +371,8 @@ for img = param.update_collate_deconv.imgs
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    %saveas(h_fig,[fig_fn '.fig']);
-    %saveas(h_fig,[fig_fn '.jpg']);
+    saveas(h_fig,[fig_fn '.fig']);
+    saveas(h_fig,[fig_fn '.jpg']);
     
     % Transfer Function Figure
     % ===================================================================
@@ -447,8 +443,8 @@ for img = param.update_collate_deconv.imgs
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    %saveas(h_fig,[fig_fn '.fig']);
-    %saveas(h_fig,[fig_fn '.jpg']);
+    saveas(h_fig,[fig_fn '.fig']);
+    saveas(h_fig,[fig_fn '.jpg']);
     
     
     % Save outputs

@@ -546,7 +546,7 @@ for board_idx = 1:numel(param.config.board_map)
   if any(failed_load{board_idx})
     warning('Some files failed to load, consider deleting these to avoid problems.');
     for fn_idx = find(failed_load{board_idx})
-      fprintf('  %s\n', fns_list{fn_idx});
+      fprintf('  %s\n', fns_list{board_idx}{fn_idx});
     end
   end
 end
