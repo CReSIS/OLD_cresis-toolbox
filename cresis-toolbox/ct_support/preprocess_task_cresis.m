@@ -123,9 +123,6 @@ for board_idx = 1:numel(param.config.board_map)
     
   elseif any(param.config.file.version == [7 407 408])
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
-    if hdr.file_version == 7
-      hdr_param.field_offsets = int32([4 8 12 16]); % epri seconds fractions counter
-    end
     
   else
     error('Unsupported radar %s', param.radar_name);
@@ -175,7 +172,7 @@ for board_idx = 1:numel(param.config.board_map)
         hdr = basic_load_fmcw2(fn, struct('file_version',param.config.file.version));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [4])
-        hdr = basic_load_fmcw2(fn, struct('file_version',param.config.file.version,'clk',param.config.ni.clk));
+        hdr = basic_load_fmcw2(fn, struct('file_version',param.config.file.version,'clk',param.config.cresis.clk));
         wfs = hdr.wfs;
       elseif any(param.config.file.version == [3 5])
         hdr = basic_load_fmcw3(fn, struct('file_version',param.config.file.version));
@@ -186,6 +183,7 @@ for board_idx = 1:numel(param.config.board_map)
       elseif any(param.config.file.version == [7])
         hdr = basic_load(fn);
         wfs = hdr.wfs;
+        hdr_param.field_offsets = int32([4 8 12 16]); % epri seconds fractions counter
       elseif any(param.config.file.version == [8])
         hdr = basic_load_fmcw8(fn, struct('file_version',param.config.file.version));
         wfs = struct('presums',hdr.presums);
@@ -251,7 +249,7 @@ for board_idx = 1:numel(param.config.board_map)
         end
       elseif any(param.config.file.version == [407 408])
         try
-          hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',presum_bug_fixed));
+          hdr = basic_load_mcords5(fn,struct('presum_bug_fixed',param.config.cresis.presum_bug_fixed));
           hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
           if hdr.file_version == 407
             hdr_param.field_offsets = int32([4 16 20 24]); % epri seconds fractions counter
@@ -260,12 +258,13 @@ for board_idx = 1:numel(param.config.board_map)
           end
           hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
         catch ME
-          if 0
+          if 1
+            fprintf('Warning HACK NOT enabled for mcords5 without frame sync field. Enabling may fix this problem.\n');
             error(ME);
           else
             fprintf('Warning HACK enabled for mcords5 without frame sync field\n');
             fn_hack = '/mnt/HDD10/1805101801/UWB/chan6/mcords5_06_20180510_112936_00_0000.bin';
-            hdr = basic_load_mcords5(fn_hack,struct('presum_bug_fixed',presum_bug_fixed));
+            hdr = basic_load_mcords5(fn_hack,struct('presum_bug_fixed',param.config.cresis.presum_bug_fixed));
             hdr_param.frame_sync = uint32(hex2dec('01600558')); % Used for 20180510 Greenland Polar6 recovery
             hdr_param.field_offsets = int32([4 16 20 24]-36); % epri seconds fractions counter % Used for 20180511 Greenland Polar6 recovery
             hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
@@ -275,7 +274,7 @@ for board_idx = 1:numel(param.config.board_map)
         for wf=1:length(wfs); wfs(wf).file_version = hdr.file_version; end;
       end
     catch ME
-      ME
+      ME.getReport
       warning('  Failed to load... skipping.\n');
       failed_load{board_idx}(fn_idx) = true;
       continue;
@@ -445,8 +444,8 @@ for board_idx = 1:numel(param.config.board_map)
     elseif any(param.config.file.version == [102])
       [file_size offset radar_time_ms radar_time_ls radar_time_1pps_ms radar_time_1pps_ls] ...
         = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
-      radar_time = (hdr_data(3,:)*2^32 + hdr_data(4,:)) / (param.config.ni.clk/100);
-      radar_time_1pps = (hdr_data(5,:)*2^32 + hdr_data(6,:)) / (param.config.ni.clk/100);
+      radar_time = (hdr_data(3,:)*2^32 + hdr_data(4,:)) / (param.config.cresis.clk/100);
+      radar_time_1pps = (hdr_data(5,:)*2^32 + hdr_data(6,:)) / (param.config.cresis.clk/100);
       
       save(tmp_hdr_fn,'offset','radar_time','radar_time_1pps','wfs');
       
@@ -686,7 +685,7 @@ if param.config.online_mode
   fprintf(' %.0f', bad_jumps(max(1,end-9):end));
   fprintf(' record jumps\n');
   
-  utc_time_sod = double(seconds) + double(fraction) / param.config.ni.clk;
+  utc_time_sod = double(seconds) + double(fraction) / param.config.cresis.clk;
   fprintf('UTC time SOD jumps of >0.5 sec:\n');
   utc_time_sod_jumps = diff(utc_time_sod);
   bad_jumps = utc_time_sod_jumps(abs(utc_time_sod_jumps) > 0.5);
@@ -731,7 +730,7 @@ end
 
 %% Correct time variable
 if any(param.config.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
-  utc_time_sod = double(seconds) + double(fraction) / param.config.ni.clk;
+  utc_time_sod = double(seconds) + double(fraction) / param.config.cresis.clk;
   
   if 0
     % Test sequences
@@ -1046,7 +1045,7 @@ if any(param.config.file.version == [403 404 407 408])
       % will misinterpret as a numeric type
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
-    oparams{end}.records.file.clk = param.config.ni.clk;
+    oparams{end}.records.file.clk = param.config.cresis.clk;
     oparams{end}.radar.prf = settings(set_idx).(config_var).(prf_var);
 
     % Usually the default.radar.wfs structure only has one waveform
@@ -1063,18 +1062,19 @@ if any(param.config.file.version == [403 404 407 408])
       % Transmit weights
       if any(param.config.file.version == [403 407 408])
         tx_mask_inv = fliplr(~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0'));
-        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.config.daq.max_wg_counts*param.config.daq.max_wg_voltage;
+        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.config.max_tx*param.config.max_tx_voltage;
       else
         tx_mask_inv = ~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0');
-        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.config.daq.max_wg_counts*param.config.daq.max_wg_voltage;
+        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.config.max_tx*param.config.max_tx_voltage;
       end
-      tx_weights = tx_weights(logical(param.config.daq.tx_mask));
+
+      tx_weights = tx_weights(logical(param.config.tx_enable));
       oparams{end}.radar.wfs(wf).tx_weights = tx_weights;
       
       % ADC Gains
       atten = double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_1(1)) ...
         + double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_2(1));
-      oparams{end}.radar.wfs(wf).adc_gains = 10.^((param.config.daq.rx_gain - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths)))/20);
+      oparams{end}.radar.wfs(wf).adc_gains = 10.^((param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths)))/20);
       
       % DDC mode and frequency
       oparams{end}.radar.wfs(wf).DDC_dec = 2^(2+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
@@ -1212,7 +1212,7 @@ else
     if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
-    oparams{end}.records.file.clk = param.config.ni.clk;
+    oparams{end}.records.file.clk = param.config.cresis.clk;
     
     for wf_idx = 1:length(hdr.wfs)
       wf = hdr.wfs(wf_idx);

@@ -529,9 +529,8 @@ for img = 1:length(param.load.imgs)
                 wfs(wf).BW_window(2), max(f_rf), hdr.surface(rec))
             end
             % Mark record as bad, but keep 2 bins to simplify later code
-            hdr.Nt{img}(rec) = 2;
-            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = NaN;
-            continue
+            %hdr.Nt{img}(rec) = 0;
+            %continue
           end
           if wfs(wf).BW_window(1) < min(f_rf)
             if ~BW_window_min_warning_printed
@@ -540,9 +539,9 @@ for img = 1:length(param.load.imgs)
                 wfs(wf).BW_window(1), min(f_rf), hdr.surface(rec))
             end
             % Mark record as bad, but keep 2 bins to simplify later code
-            hdr.Nt{img}(rec) = 2;
-            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = NaN;
-            continue
+            %hdr.Nt{img}(rec) = 2;
+            %data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = NaN;
+            %continue
           end
           
           % Create the window for the particular range line
@@ -699,8 +698,14 @@ for img = 1:length(param.load.imgs)
             end
           end
           
-          % Update the data matrix with the pulse compressed waveform
-          tmp = tmp(1:end-1);
+          % Update the data matrix with the pulse compressed waveform and
+          % handle nz_trim
+          if length(param.radar.wfs(wf).nz_trim) >= nz+1
+            tmp = tmp(1+param.radar.wfs(wf).nz_trim{nz+1}(1) : end-1-param.radar.wfs(wf).nz_trim{nz+1}(2));
+            hdr.t0{img}(rec) = hdr.t0{img}(rec) + dt*param.radar.wfs(wf).nz_trim{nz+1}(1);
+          else
+            tmp = tmp(1 : end-1);
+          end
           hdr.Nt{img}(rec) = length(tmp);
           data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = tmp;
         end
@@ -819,7 +824,7 @@ for img = 1:length(param.load.imgs)
     
     %% Deconvolution
     % ===================================================================
-    if param.load.pulse_comp == 1 && wfs(wf).deconv.en
+    if param.load.pulse_comp == 1 && wfs(wf).deconv.en && wfs(wf).Nt > 0
       deconv_fn = fullfile(fileparts(ct_filename_out(param,wfs(wf).deconv.fn, '')), ...
         sprintf('deconv_%s_wf_%d_adc_%d.mat',param.day_seg, wf, adc));
       fprintf('  Loading deconvolution: %s\n', deconv_fn);

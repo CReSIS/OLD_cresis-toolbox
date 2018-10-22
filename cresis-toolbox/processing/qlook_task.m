@@ -197,10 +197,10 @@ hdr.surface = fir_dec(hdr.surface, param.qlook.B_filter, ...
 
 for img = 1:length(param.load.imgs)
   
-  if param.qlook.motion_comp
+  if param.qlook.motion_comp && ~isempty(hdr.freq{img})
     phase_weights = exp(-1i * hdr.records{img}.elev * 4*pi*hdr.freq{img}(1)/c);
     data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
-      param.qlook.dec, rline0, Nidxs, true, phase_weights);
+      param.qlook.dec, rline0, Nidxs, [], phase_weights);
   else
     data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
       param.qlook.dec, rline0, Nidxs);

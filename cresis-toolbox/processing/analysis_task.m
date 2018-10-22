@@ -57,7 +57,7 @@ if isempty(surf_layer.gps_time)
 elseif length(surf_layer.gps_time) == 1;
   records.surface(:) = surf_layer.twtt;
 else
-  records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time));
+  records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time),0);
 end
 
 %% Load and process each image separately
@@ -382,7 +382,8 @@ for img = 1:length(store_param.load.imgs)
         % Pulse compression
         tmp_param.radar.wfs(wf).coh_noise_method = '';
         tmp_param.radar.wfs(wf).deconv.en = false;
-        tmp_param.radar.wfs(wf).time_trim = [0 0];
+        tmp_param.radar.wfs(wf).nz_trim = {};
+
         tmp_hdr.nyquist_zone_signal{img} = double(tmp_hdr.nyquist_zone_hw{img});
         [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         

@@ -22,8 +22,11 @@ function surface = tracker_threshold(data,surf)
 %    is 13.
 %  .max_diff = maximum deviation of the surface from the inital surface (in
 %    range bins), set to inf to not have a limit
-%  .filter_len = an along track boxcar filter is applied, must be a
-%    positive odd integer (e.g. 1, 3, 5, etc)
+%  .filter_len = if defined and not empty, it should be a 2 element vector
+%    that specifies the size of a 2D boxcar filter to apply to the data
+%    before tracking. The first dimension is cross track and the second
+%    dimension is along-track. Each dimension must be a positive odd
+%    integer (e.g. [1 7], [3 3], [3 7], etc).
 %  .min_bin = the minimum row (range bin) data that the tracker will look at
 %  .init.method = 'medfilt' or 'snake' or 'dem'
 %     .init.search_rng = required for tracker_snake_simple (e.g. [-120:120])

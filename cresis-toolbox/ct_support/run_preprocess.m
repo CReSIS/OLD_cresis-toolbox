@@ -12,36 +12,16 @@
 
 %% User Setup
 % =========================================================================
-param_override = [];
+param_override = []; param = [];
 
-% Set param.radar_name and param.season_name and get radar default
-% parameters.
-% param = default_radar_params_2018_Greenland_P3_rds;
-% param = default_radar_params_2018_Greenland_P3_snow;
-param = default_radar_params_2018_Antarctica_TObas_accum;
-% param = default_radar_params_2018_Antarctica_Ground_rds;
-
-if ispc
-  param.config.base_dir = 'E:\tmp\2018_Antarctica_TObas\';
-else
-  % param.config.base_dir = '/N/dcwan/projects/cresis/2018_Greenland_P3/';
-  param.config.base_dir = '/data/';
-end
-% param.config.config_folder_names = {'20180405/mcords/'};
-% param.config.board_folder_names = {'20180405/mcords/%b'};
-% param.config.date_strs = {'20180405'};
-% param.config.config_folder_names = {'20180405/fmcw/snow/'};
-% param.config.board_folder_names = {'20180405/fmcw/snow/'};
-% param.config.date_strs = {'20180405'};
-param.config.config_folder_names = {'20181004/'};
-param.config.board_folder_names = {'20181004/%b'};
-
+run_preprocess_OIB; % REPLACE THIS LINE WITH CORRECT SETUP SCRIPT
 
 dbstop if error;
-param_override.cluster.type = 'debug';
+param_override.config.reuse_tmp_files = true;
+% param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-% param_override.cluster.type = 'debug';
-%param_override.cluster.rerun_only = true;
+param_override.cluster.type = 'debug';
+% param_override.cluster.rerun_only = true;
 param_override.cluster.desired_time_per_job  = 0*60;
 % param_override.cluster.cpu_time_mult  = 2;
 % param_override.cluster.mem_mult  = 2;

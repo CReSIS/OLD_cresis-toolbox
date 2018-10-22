@@ -119,8 +119,15 @@ for frm_idx = 1:length(param.cmd.frms);
       in_fn = fullfile(in_fn_dir,in_fn_name);
       
       tmp = load(in_fn);
+      if length(tmp.Time) == 1
+        % Force length==1 in fast time to just be empty to simplify data
+        % handling later. The idea is that a length 1 range line is useless
+        % anyway so we might as well simplify things by making it zero length.
+        tmp.Time = [];
+        tmp.Data = tmp.Data([],:);
+      end
       time_vector_changed = false;
-      if isempty(Time)
+      if block_idx == 1
         Time = tmp.Time;
       elseif any(size(Time) ~= size(tmp.Time)) || any(Time ~= tmp.Time)
         % Determine the new time axis
@@ -128,14 +135,23 @@ for frm_idx = 1:length(param.cmd.frms);
         %   dt, there will be rounding errors which need to be dealt with
         %   here.
         time_vector_changed = true;
-        dt = Time(2) - Time(1);
-        start_time_diff = round((Time(1) - tmp.Time(1))/dt);
-        end_time_diff = round((tmp.Time(end) - Time(end))/dt);
-        if start_time_diff > 0
-          Time = [Time(1)+dt*(-start_time_diff:-1)'; Time];
-        end
-        if end_time_diff > 0
-          Time = [Time; Time(end)+dt*(1:end_time_diff)'];
+        if isempty(Time)
+          Time = tmp.Time;
+          start_time_diff = size(Time,1);
+          end_time_diff = 0;
+        elseif isempty(tmp.Time)
+          start_time_diff = -size(Time,1);
+          end_time_diff = 0;
+        else
+          dt = Time(2) - Time(1);
+          start_time_diff = round((Time(1) - tmp.Time(1))/dt);
+          end_time_diff = round((tmp.Time(end) - Time(end))/dt);
+          if start_time_diff > 0
+            Time = [Time(1)+dt*(-start_time_diff:-1)'; Time];
+          end
+          if end_time_diff > 0
+            Time = [Time; Time(end)+dt*(1:end_time_diff)'];
+          end
         end
       end
       Latitude = [Latitude double(tmp.Latitude)];

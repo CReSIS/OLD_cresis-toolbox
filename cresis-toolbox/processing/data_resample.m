@@ -8,6 +8,9 @@ function [hdr,data] = data_resample(hdr,data,pq)
 % Fast time resampling
 if ~isequal(pq(1,:),[1 1])
   for img = 1:length(data)
+     if length(hdr.time{img}) < 2
+       continue;
+     end
     % To ensure the output bins always align with other processing blocks
     % after processing
     dt = hdr.time{img}(2) - hdr.time{img}(1);

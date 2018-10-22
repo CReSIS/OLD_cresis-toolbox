@@ -12,106 +12,125 @@ function [param,defaults] = default_radar_params_2018_Greenland_P3_accum
 param.season_name = '2018_Greenland_P3';
 param.radar_name = 'mcords5-accum';
 
-param.preprocess.daq.type = 'cresis';
-param.preprocess.daq.xml_version = 2.0;
-param.preprocess.daq.header_load_func = @basic_load_mcords5;
-param.preprocess.daq.board_map = {'chan1','chan2','chan3','chan4'};
-param.preprocess.daq.clk = 1e9/8;
+param.config.file.version = 407;
+param.config.file.prefix = 'mcords5';
+param.config.file.suffix = '.bin';
+param.config.max_time_gap = 10;
+param.config.min_seg_size = 2;
 
-param.preprocess.wg.type = 'arena';
-param.preprocess.wg.tx_map = {'awg0','awg1'};
+param.config.daq_type = 'cresis';
+param.config.wg_type = 'arena';
+param.config.header_load_func = @basic_load_mcords5;
+param.config.board_map = {'chan1'};
+param.config.tx_map = {'awg4','awg5','awg6','awg7'};
 
-param.preprocess.file.version = 103;
-param.preprocess.file.prefix = param.radar_name;
-param.preprocess.file.suffix = '.bin';
-param.preprocess.max_time_gap = 10;
-param.preprocess.min_seg_size = 1;
+param.config.daq.xml_version = 2.0;
 
-%% OIB Accum Arena Parameters
+param.config.max_data_rate = 100;
+param.config.max_duty_cycle = 0.12;
+param.config.prf_multiple = []; % Power supply sync signal that PRF must be a factor of these numbers
+param.config.PRI_guard = 10e-6;
+param.config.PRI_guard_percentage = 1;
+param.config.tx_enable = [1 0 0 0];
+param.config.max_tx = 0.7*[1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0];
+param.config.max_tx_voltage = sqrt(400*50)*10^(-2/20); % voltage at max_tx
+
+%% CReSIS Parameters
+param.config.cresis.clk = 1.6e9/8;
+param.config.cresis.rx_gain_dB = 45;
+param.config.cresis.presum_bug_fixed = true;
+
+%% BAS ACCUM Arena Parameters
 arena = [];
-arena.awg = [];
-arena.awg(end+1).awg = 2;
-arena.awg(end).dacs = [4 5];
-arena.awg(end).dacClk = [2400e6 2400e6];
-arena.awg(end).desiredAlignMin = [13 8];
-arena.awg(end).desiredAlignMax = [27 22];
-arena.awg(end+1).awg = 3;
-arena.awg(end).dacs = [6 7];
-arena.awg(end).dacClk = [2400e6 2400e6];
-arena.awg(end).desiredAlignMin = [9 24];
-arena.awg(end).desiredAlignMax = [23 38];
-arena.dacs = [4 5 6 7];
-arena.dacs_sampFreq = [2400e6 2400e6 2400e6 2400e6];
-arena.max_tx = 0.7*[1 1 1 1 1 1 1 1]; %for less power add "*.5" 
-arena.zeropimods = [0 180 270 90];
-arena.TTL_time = [0.1, 0.2, (0.2+3+0.3)];
-arena.dacs_internal_delay = 1.8;
-arena.dacs_start_delay = 3.2;
+arena.clk = 10e6;
+fs_dac = 2400e6;
+subsystem_idx = 0;
+subsystem_idx = subsystem_idx + 1;
+arena.subsystem(subsystem_idx).name = 'ARENA-CTU';
+arena.subsystem(subsystem_idx).subSystem{1} = 'ctu';
+subsystem_idx = subsystem_idx + 1;
+arena.subsystem(subsystem_idx).name = 'ARENA2';
+arena.subsystem(subsystem_idx).subSystem{1} = 'awg4';
+arena.subsystem(subsystem_idx).subSystem{2} = 'awg5';
+subsystem_idx = subsystem_idx + 1;
+arena.subsystem(subsystem_idx).name = 'ARENA3';
+arena.subsystem(subsystem_idx).subSystem{1} = 'awg6';
+arena.subsystem(subsystem_idx).subSystem{2} = 'awg7';
 
-arena.TTL_names = {};
-arena.TTL_names{end+1} = 'test';
-arena.TTL_names{end+1} = 'EPRI';
-arena.TTL_names{end+1} = 'PRI';
-arena.TTL_names{end+1} = 'PA_ENA';
-arena.TTL_states{1} = [
-  0 1 0 0 % test
-  1 0 0 0 % EPRI
-  0 1 0 0 % PRI
-  0 0 1 0 % PA ENA
-  ];
-arena.TTL_states{2} = [
-  0 1 0 0 % test
-  0 0 0 0 % EPRI
-  0 1 0 0 % PRI
-  0 0 1 0 % PA ENA
-  ];
+dac_idx = 0;
+dac_idx = dac_idx + 1;
+arena.dac(dac_idx).name = 'awg4';
+arena.dac(dac_idx).type = 'dac-ad9129_0012';
+arena.dac(dac_idx).dacClk = fs_dac;
+arena.dac(dac_idx).desiredAlignMin = 13;
+arena.dac(dac_idx).desiredAlignMax = 27;
+arena.dac(dac_idx).dcoPhase = 80;
+arena.dac(dac_idx).name = 'awg5';
+arena.dac(dac_idx).type = 'dac-ad9129_0012';
+arena.dac(dac_idx).dacClk = fs_dac;
+arena.dac(dac_idx).desiredAlignMin = 8;
+arena.dac(dac_idx).desiredAlignMax = 22;
+arena.dac(dac_idx).dcoPhase = 80;
+arena.dac(dac_idx).name = 'awg6';
+arena.dac(dac_idx).type = 'dac-ad9129_0012';
+arena.dac(dac_idx).dacClk = fs_dac;
+arena.dac(dac_idx).desiredAlignMin = 9;
+arena.dac(dac_idx).desiredAlignMax = 23;
+arena.dac(dac_idx).dcoPhase = 80;
+arena.dac(dac_idx).name = 'awg7';
+arena.dac(dac_idx).type = 'dac-ad9129_0012';
+arena.dac(dac_idx).dacClk = fs_dac;
+arena.dac(dac_idx).desiredAlignMin = 24;
+arena.dac(dac_idx).desiredAlignMax = 38;
+arena.dac(dac_idx).dcoPhase = 80;
 
-param.preprocess.arena = arena;
+adc_idx = 0;
 
-% %% Control parameters (not used in the parameter spreadsheet directly)
-% default.xml_file_prefix = 'mcords5';
-% default.data_file_prefix = 'mcords5';
-% default.header_load_func = @basic_load_mcords5;
-% default.header_load_params = struct('clk',1600e6,'presum_bug_fixed',true);
-% default.xml_version = 2.0;
-% 
-% default.noise_50ohm = [0 0 0 0];
-% 
-% default.Pt = 4*400;
-% default.Gt = 4*4;
-% default.Ae = 2*0.2*0.2;
-% 
-% default.system_loss_dB = 10.^(-5.88/10);
-% default.max_DDS_RAM = 4000;
-% default.tx_voltage = sqrt(1000*50)*10^(-2/20);
-% 
-% default.iq_mode = 0;
-% default.tx_DDS_mask = [1 1 1 1];
-% 
-% default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
-% default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
-% 
-% default.basic_surf_track_min_time = -inf; % Normally -inf for lab test, 2e-6 for flight test
-% default.basic_surf_track_Tpd_factor = -inf; % Normally -inf for lab test, 1.1 for flight test
-% default.adc_folder_name = 'chan%d';
+daq_idx = 0;
 
-if 1
-  % Example 1: Normal configuration:
-  %   Connect antenna N to WFG N for all N = 1 to 8
-  ref_adc = 3;
-  default.txequal.img = [(1:4).', ref_adc*ones(4,1)];
-  default.txequal.ref_wf_adc = 3;
-  default.txequal.wf_mapping = [1 2 3 4 ];
-  %default.txequal.Hwindow_desired = [chebwin(4,30).' 0 0 0 0];
-  default.txequal.Hwindow_desired = [0.7 1 1 0.7 0 0 0 0];
-  default.txequal.max_DDS_amp = [4000 4000 4000 4000 4000 4000 4000 4000 ];
-  default.txequal.time_delay_desired = [0 0 0 0 ];
-  default.txequal.phase_desired = [0 0 0 0 ];
-  default.txequal.time_validation = [0.4 0.4 0.4 0.4 0 0 0 0]*1e-9;
-  default.txequal.amp_validation = [3 3 3 3 0 0 0 0];
-  default.txequal.phase_validation = [35 35 35 35 0 0 0 0];
-  default.txequal.remove_linear_phase_en = true;
-end
+arena.system.name = 'ku0001';
+
+arena.param.tx_max = [1 1];
+arena.param.PA_setup_time = 2e-6; % Time required to enable PA before transmit
+arena.param.TTL_time_delay = 0.0; % TTL time delay relative to transmit start
+
+arena.psc.type = 'psc_0003';
+
+arena.ctu.name = 'ctu';
+arena.ctu.type = 'ctu_001D';
+arena.ctu.nmea = 31;
+arena.ctu.pps = 10;
+arena.ctu.pps_polarity = 1;
+idx = 0;
+idx = idx + 1;
+arena.ctu.out.bit_group(idx).name = 'test';
+arena.ctu.out.bit_group(idx).bits = 0;
+arena.ctu.out.bit_group(idx).epri = [0 1 0 0];
+arena.ctu.out.bit_group(idx).pri = [0 1 0 0];
+idx = idx + 1;
+arena.ctu.out.bit_group(idx).name = 'EPRI';
+arena.ctu.out.bit_group(idx).bits = 1;
+arena.ctu.out.bit_group(idx).epri = [1 0 0 0];
+arena.ctu.out.bit_group(idx).pri = [1 0 0 0];
+idx = idx + 1;
+arena.ctu.out.bit_group(idx).name = 'PRI';
+arena.ctu.out.bit_group(idx).bits = 2;
+arena.ctu.out.bit_group(idx).epri = [0 1 0 0];
+arena.ctu.out.bit_group(idx).pri = [0 1 0 0];
+idx = idx + 1;
+arena.ctu.out.bit_group(idx).name = 'PA_ENA';
+arena.ctu.out.bit_group(idx).bits = 3;
+arena.ctu.out.bit_group(idx).epri = [1 1 1 0];
+arena.ctu.out.bit_group(idx).pri = [1 1 1 0];
+
+arena.ctu.out.time_cmd = {'2e-6' '2.1e-6' '2.1e-6+param.wfs(wf).Tpd+0.3e-6' '2/param.prf'};
+
+param.config.arena = arena;
+
+%% Command worksheet
+default.cmd.records = 1;
+default.cmd.qlook = 1;
+default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.gps.time_offset = 1;
@@ -206,11 +225,8 @@ default.radar.fs = 1600e6;
 default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 12;
 default.radar.adc_full_scale = 2;
-default.radar.rx_paths = [1:4];
 default.radar.noise_figure = 2;
-default.radar.rx_gain = 45;
 default.radar.adc_SNR_dB = 59;
-default.radar.Tadc_adjust = 6.95E-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 %% Post worksheet
 default.post.data_dirs = {'qlook'};
@@ -235,20 +251,21 @@ default.post.ops.location = 'arctic';
 
 defaults = {};
 
-% Wideband settings
-default.radar.wfs(1).chan_equal_Tsys = [0.15	0.00	0.10	0.68]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [-105.5	-0.0	55.2	128.8];
-
- % survey mode
+% survey mode
 default.qlook.img_comb = [1e-06 -inf 2e-06];
 default.qlook.imgs = {[1 1],[2 1]};
+default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
-default.radar.DC_adjust = {'','','','',''};
-default.radar.ref_fn = '';
-default.xml_regexp = 'survey_600-900MHz_.*.xml';
+default.config_regexp = 'survey_600-900MHz_.*.xml';
 default.name = 'Survey Mode 600-900 MHz';
+for wf = 1:2
+  default.radar.wfs(wf).rx_paths = [1:4];
+  default.radar.wfs(wf).Tadc_adjust = 6.95E-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+  default.radar.wfs(wf).chan_equal_Tsys = [0.15	0.00	0.10	0.68]/1e9;
+  default.radar.wfs(wf).chan_equal_dB = [0 0 0 0];
+  default.radar.wfs(wf).chan_equal_deg = [-105.5	-0.0	55.2	128.8];
+end
 defaults{end+1} = default;
 
 % Other settings
@@ -257,13 +274,17 @@ default.qlook.imgs = {[1 1],[2 1]};
 default.sar.imgs = {[1 1],[2 1]};
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
-default.radar.DC_adjust = {'','','','',''};
-default.radar.ref_fn = '';
-
-default.xml_regexp = '.*';
+default.config_regexp = '.*';
 default.name = 'Default 600-900 MHz';
+for wf = 1:2
+  default.radar.wfs(wf).rx_paths = [1:4];
+  default.radar.wfs(wf).Tadc_adjust = 6.95E-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+  default.radar.wfs(wf).chan_equal_Tsys = [0.15	0.00	0.10	0.68]/1e9;
+  default.radar.wfs(wf).chan_equal_dB = [0 0 0 0];
+  default.radar.wfs(wf).chan_equal_deg = [-105.5	-0.0	55.2	128.8];
+end
 defaults{end+1} = default;
 
 %% Add default settings
 
-param.preprocess.defaults = defaults;
+param.config.defaults = defaults;

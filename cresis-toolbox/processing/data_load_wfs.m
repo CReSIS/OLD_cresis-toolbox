@@ -294,6 +294,11 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).nyquist_zone    = [];
   end
+  if isfield(param.radar.wfs(wf),'nz_trim') && ~isempty(param.radar.wfs(wf).nz_trim)
+    wfs(wf).nz_trim   = param.radar.wfs(wf).nz_trim;
+  else
+    wfs(wf).nz_trim   = {};
+  end
   if ~isfield(param.radar.wfs(wf),'prepulse_H') || isempty(param.radar.wfs(wf).prepulse_H)
     param.radar.wfs(wf).prepulse_H = [];
   end

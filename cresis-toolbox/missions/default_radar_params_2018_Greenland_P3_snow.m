@@ -25,13 +25,11 @@ param.config.board_map = {''};
 param.config.tx_map = {''};
 
 param.config.daq.xml_version = -1; % No XML file available
-param.config.file.version = 8;
-param.config.file.prefix = param.radar_name;
-param.config.file.suffix = '.bin';
-param.config.max_time_gap = 10;
-param.config.min_seg_size = 2;
 
-param.config.ni.clk = 125e6;
+param.config.tx_enable = [1];
+
+%% CReSIS parameters
+param.config.cresis.clk = 125e6;
 
 %% Command worksheet
 default.cmd.records = 1;
@@ -134,6 +132,7 @@ for wf = 1:1
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).nz_trim = {[0 0],[0 2],[0 0],[0 0]};
 end
 
 %% Post worksheet
