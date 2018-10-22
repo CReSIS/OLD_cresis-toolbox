@@ -112,9 +112,7 @@ for state_idx = 1:length(states)
       if ~isempty(file_data_last_file)
         file_data_offset = records.offset(board_idx,rec);
       elseif records.offset(board_idx,rec) < 0
-        if num_bytes==inf
-          finfo = dir(fn)
-        end
+        finfo = dir(fn);
         file_data_offset = finfo.bytes + records.offset(board_idx,rec);
         fseek(fid,file_data_offset,-1);
       else
