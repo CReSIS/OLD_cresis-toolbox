@@ -66,6 +66,67 @@ public:
              const double d_CF_sensory_distance, 
              const double d_CF_max_cost, 
              const double d_CF_lambda,
+             double *d_result,
+             double *d_cost
+	) : 
+	f_row(d_row),                   
+	f_col(d_col),
+	f_image(d_image),
+	f_sgt(d_sgt),
+	f_bgt(d_bgt),
+	f_mask(d_mask),
+	f_mu(d_mu),
+	f_sigma(d_sigma),
+	f_mid(d_mid),    
+	f_egt_weight(d_egt_weight),
+	f_smooth_weight(d_smooth_weight),
+	f_smooth_var(d_smooth_var),
+	f_smooth_slope(d_smooth_slope), 
+	f_bounds(d_bounds),
+	f_ms(d_ms),         
+	f_num_extra_tr(d_num_extra_tr),
+	f_egt_x(d_egt_x),        
+	f_egt_y(d_egt_y),
+	f_weight_points(d_weight_points),
+	f_repulsion(d_repulsion),    
+	f_ice_bin_thr(d_ice_bin_thr), 
+    f_mc(d_mc),               
+    f_mc_weight(d_mc_weight),
+    f_CF_sensory_distance(d_CF_sensory_distance), 
+    f_CF_max_cost(d_CF_max_cost),
+    f_CF_lambda(d_CF_lambda),
+    f_result(d_result),
+    f_cost(d_cost)
+	{  
+		find_path();
+	}
+	
+    viterbi( const int d_row,          
+             const int d_col,
+             const double *d_image,         
+             const int *d_sgt,
+             const int d_bgt,               
+             const double *d_mask,
+		     const double *d_mu,            
+             const double *d_sigma,
+		     const int d_mid,              
+             const double d_egt_weight,
+		     const double d_smooth_weight,  
+             const double d_smooth_var,
+		     const double *d_smooth_slope, 
+             const ptrdiff_t *d_bounds,
+		     const size_t d_ms,             
+             const int d_num_extra_tr,
+		     const double *d_egt_x,         
+             const double *d_egt_y,
+             const double *d_weight_points,
+		     const double d_repulsion,      
+             const double d_ice_bin_thr,
+             const double *d_mc,            
+             const double d_mc_weight, 
+             const double d_CF_sensory_distance, 
+             const double d_CF_max_cost, 
+             const double d_CF_lambda,
              double *d_result
 	) : 
 	f_row(d_row),                   
@@ -106,7 +167,8 @@ public:
                  f_CF_sensory_distance, f_CF_max_cost, f_CF_lambda;
 	const ptrdiff_t *f_bounds;
 	const size_t f_ms;
-	double *f_result;
+	double *f_result, *f_cost;
+
 	int depth, num_col_vis, t, start_col, end_col;
 
 	// METHODS
@@ -128,9 +190,6 @@ public:
 	int encode(int x, int y) { return x * f_row + y; }
 	 
     int vic_encode(int row, int col) { return depth * col + row; }
-    
-    int fact(int x) {return (x <= 1) ? 1 : (x * fact(x-1)); }
-
 
     // THE CODE BELOW THIS POINT WAS TAKEN FROM DAVID CRANDALL
     // Distance transform

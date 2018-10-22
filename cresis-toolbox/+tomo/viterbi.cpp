@@ -15,6 +15,7 @@
 // mex -v -largeArrayDims viterbi.cpp
 
 #include "viterbi.h"
+int _nlhs = 0;
 
 //  Used to define unary cost of target at position x, y
 double viterbi::unary_cost(int x, int y) {
@@ -87,10 +88,13 @@ double* viterbi::find_path(void) {
     int *path = new int[depth * (num_col_vis + 2)];
     double path_prob[depth], path_prob_next[depth], index[depth];
     
-    for (int k = 0; k < f_col; ++k) {
+    for (int k = 0; k < f_col; ++k)
         f_result[k] = 0;
-    }
-    
+
+    if (_nlhs > 1)
+        for (int k = 0; k < f_col; ++k)
+            f_cost[k] = 0;
+
     for (int k = 0; k < depth * (num_col_vis + 2); ++k) {
         path[k] = 0;
     }
@@ -100,25 +104,28 @@ double* viterbi::find_path(void) {
         path_prob_next[k] = 0;
         index[k] = 0;
     }
-    
-    viterbi_right(path, path_prob, path_prob_next, index);
+
+    viterbi_right(path, path_prob, path_prob_next, index); 
+
     int encode;
     int viterbi_index     = calculate_best(path_prob);
     int idx               = end_col;
-    f_result[end_col - 1] = f_mask[end_col - 1] == 1 ? viterbi_index + t : f_sgt[end_col - 1];
-    
+    f_result[end_col - 1] = (f_mask[end_col - 1] == 1 || std::isinf(f_mask[end_col - 1])) ? viterbi_index + t : f_sgt[end_col - 1];
+
     // Set result vector
     for (int k = start_col + 1; k <= end_col; ++k) {
         encode = vic_encode(viterbi_index, num_col_vis + start_col - k);
         viterbi_index = path[encode];
-        f_result[idx - 2] = viterbi_index + t;
+        f_result[idx - 2] = viterbi_index + t; 
+        if (_nlhs > 1)
+            f_cost[idx - 2]   = unary_cost(idx-2, viterbi_index+t);
         --idx;
         if (encode < 0 || idx < 2) {
             break;
         }
     }
     
-    delete[] path;
+    delete[] path; 
     return f_result;
 }
 
@@ -172,10 +179,10 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
             for (int row = 0; row < depth; ++row) {
                 path[idx] = index[row];
                 if (!next) {
-                    path_prob_next[row] += unary_cost(col, row);
+                    path_prob_next[row] += unary_cost(col, row); 
                 }
                 else {
-                    path_prob[row] += unary_cost(col, row);
+                    path_prob[row] += unary_cost(col, row); 
                 }
                 ++idx;
             }
@@ -186,9 +193,11 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {  
-    if (nrhs != 20) {
-        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mc, mc_weight, CF_sensory_distance, CF_max_cost, CF_lambda)\n"); 
+    if (nrhs != 20 || nlhs < 1 || nlhs > 2) {
+        mexErrMsgTxt("Usage: [labels, [cost]] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mc, mc_weight, CF_sensory_distance, CF_max_cost, CF_lambda)\n"); 
     }
+    
+    _nlhs = nlhs;
     
     // Input checking
     // input image ========================================================
@@ -428,18 +437,31 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     
     double _egt_x[(_num_extra_tr / 2)], _egt_y[(_num_extra_tr / 2)];
     for (int p = 0; p < (_num_extra_tr / 2); ++p) {
-        _egt_x[p] = t_egt[p * 2];
+        _egt_x[p] = t_egt[(p * 2)];
         _egt_y[p] = t_egt[(p * 2) + 1];
     }
     
     // Allocate output
-    plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
-    double *_result = mxGetPr(plhs[0]);
-    
-    // Run viterbi algorithm
-    viterbi obj(_row, _col, _image, _sgt, _bgt, _mask, _mu, _sigma, _mid, 
+    if (nlhs == 1) // No cost output
+    {
+        plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
+        double *_result = mxGetPr(plhs[0]); 
+        viterbi obj(_row, _col, _image, _sgt, _bgt, _mask, _mu, _sigma, _mid, 
                 _egt_weight, _smooth_weight, _smooth_var, _smooth_slope,
                 _bounds, _ms, _num_extra_tr, _egt_x, _egt_y, _weight_points, 
                 _repulsion, _ice_bin_thr, _mc, _mc_weight, _CF_sensory_distance, 
                 _CF_max_cost, _CF_lambda, _result); 
+    }
+    else if (nlhs == 2) // Second vector is unary cost output
+    {
+        plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
+        plhs[1] = mxCreateDoubleMatrix(1, _col, mxREAL);
+        double *_result = mxGetPr(plhs[0]);
+        double *_cost   = mxGetPr(plhs[1]); 
+        viterbi obj(_row, _col, _image, _sgt, _bgt, _mask, _mu, _sigma, _mid, 
+                _egt_weight, _smooth_weight, _smooth_var, _smooth_slope,
+                _bounds, _ms, _num_extra_tr, _egt_x, _egt_y, _weight_points, 
+                _repulsion, _ice_bin_thr, _mc, _mc_weight, _CF_sensory_distance, 
+                _CF_max_cost, _CF_lambda, _result, _cost); 
+    }
 }
