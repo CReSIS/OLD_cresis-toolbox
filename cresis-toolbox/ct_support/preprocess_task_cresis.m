@@ -607,14 +607,19 @@ for fn_idx = 1:length(fns_list{board_idx})
     seconds = cat(2,seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
     fraction = cat(2,0,reshape(fraction,[1 length(fraction)]));
   else
-    hdr = load(tmp_hdr_fn);
-    epri = cat(2,epri,reshape(hdr.epri,[1 length(hdr.epri)]));
-    seconds = cat(2,seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
-    fraction = cat(2,fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-    if any(param.config.file.version == [8])
-      waveform_ID = cat(2,waveform_ID,reshape(hdr.waveform_ID,[1 length(hdr.waveform_ID)]));
-    elseif any(param.config.file.version == [403 407 408])
-      counter = cat(2,counter,reshape(hdr.counter,[1 length(hdr.counter)]));
+    try
+      hdr = load(tmp_hdr_fn);
+      epri = cat(2,epri,reshape(hdr.epri,[1 length(hdr.epri)]));
+      seconds = cat(2,seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
+      fraction = cat(2,fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
+      if any(param.config.file.version == [8])
+        waveform_ID = cat(2,waveform_ID,reshape(hdr.waveform_ID,[1 length(hdr.waveform_ID)]));
+      elseif any(param.config.file.version == [403 407 408])
+        counter = cat(2,counter,reshape(hdr.counter,[1 length(hdr.counter)]));
+      end
+    catch ME
+      ME.getReport
+      delete(tmp_hdr_fn);
     end
   end
   file_idxs = cat(2,file_idxs,fn_idx*ones([1 length(hdr.offset)]));
@@ -1049,6 +1054,8 @@ if any(param.config.file.version == [403 404 407 408])
       % will misinterpret as a numeric type
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
+    oparams{end}.records.file.version = param.config.file.version;
+    oparams{end}.records.file.prefix = param.config.file.prefix;
     oparams{end}.records.file.clk = param.config.cresis.clk;
     oparams{end}.radar.prf = settings(set_idx).(config_var).(prf_var);
 
@@ -1216,6 +1223,8 @@ else
     if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
+    oparams{end}.records.file.version = param.config.file.version;
+    oparams{end}.records.file.prefix = param.config.file.prefix;
     oparams{end}.records.file.clk = param.config.cresis.clk;
     
     for wf_idx = 1:length(hdr.wfs)

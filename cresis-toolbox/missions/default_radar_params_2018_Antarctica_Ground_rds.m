@@ -190,53 +190,6 @@ arena.ctu.out.time_cmd = {'2e-6+param.wfs(wf).Tpd+0.5e-6' '2e-6+param.wfs(wf).Tp
 
 param.config.arena = arena;
 
-
-%% Control parameters (not used in the parameter spreadsheet directly)
-% default.header_load_func = @basic_load_arena;
-% 
-% default.noise_50ohm = [0 0 0 0 0 0 0 0];
-% 
-% default.Pt = 400; % Transmit power at the transmit antenna
-% default.Gt = 4*2; % Transmit antenna gain
-% default.Ae = default.Gt*(3e8/195e6)^2; % Receiver antenna effective area
-% default.system_loss_dB = 10.^(-5.88/10); % Losses from the receive antenna to before the first LNA
-% default.noise_figure = 2; % Noise figure of receiver starting at the first LNA
-% default.adc_SNR_dB = 59; % ADC full scale signal SNR (relative to quantization noise)
-% fs = 640e6;
-% fs_dac = 1280e6;
-% default.max_duty_cycle = 0.1;
-% default.max_data_rate = 60;
-% default.max_tx = [1 1 1 1];
-% default.PRI_guard = 1e-6;
-% default.PRI_guard_percentage = 450e6/500e6;
-% 
-% default.tx_enable = [1 1 1 1];
-% 
-% default.basic_surf_track_min_time = 2e-6;
-% default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
-% default.board_map = {'digrx0','digrx1','digrx2','digrx3'};
-% default.tx_map = {'awg0','awg1','awg2','awg3'};
-% default.records.file.boards = [1 2 3 4];
-% default.records.file.version = 103;
-
-if 1
-  % Example 1: Normal configuration:
-  %   Connect antenna N to WFG N for all N = 1 to 8
-  ref_adc = 1;
-  default.txequal.img = [(1:1).', ref_adc*ones(1,1)];
-  default.txequal.ref_wf_adc = 1;
-  default.txequal.wf_mapping = [1];
-  default.txequal.Hwindow_desired = chebwin(1,30).';
-  default.txequal.max_DDS_amp = [4000];
-  default.txequal.time_delay_desired = [0];
-  default.txequal.phase_desired = [0];
-  default.txequal.time_validation = [0.4]*1e-9;
-  default.txequal.amp_validation = [3];
-  default.txequal.phase_validation = [35];
-  default.txequal.remove_linear_phase_en = true;
-end
-
-
 %% Command worksheet
 default.cmd.records = 1;
 default.cmd.qlook = 1;

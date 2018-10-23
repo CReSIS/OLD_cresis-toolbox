@@ -133,14 +133,12 @@ default.cmd.qlook = 1;
 default.cmd.generic = 1;
 
 %% Records worksheet
-default.records.gps.time_offset = 1;
-default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
 default.records.file.adcs = 1;
-default.records.file.adc_headers = 1;
+default.records.frames.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
+default.records.frames.mode = 2;
 default.records.gps.en = 1;
-default.records.frame_mode = 0;
+default.records.gps.time_offset = 1;
 default.records.presum_bug_fixed = 1;
-default.records.tmp_fn_uses_adc_folder_name = 1;
 
 %% Qlook worksheet
 default.qlook.out_path = '';
