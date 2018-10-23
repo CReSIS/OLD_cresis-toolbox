@@ -515,13 +515,13 @@ for board_idx = 1:numel(param.config.board_map)
         
       elseif any(param.config.file.version == [7])
         % User must supply the valid record sizes
-        if ~exist('expected_rec_sizes','var')
+        if ~isfield(param.config.cresis,'expected_rec_sizes') || isempty(param.config.cresis.expected_rec_sizes)
           fprintf('Record sizes found in this file:\n');
           fprintf('  %d', unique(diff(offset)));
           fprintf('\n');
           error('For file version 7 expected record sizes must be supplied.');
         end
-        expected_rec_size = expected_rec_sizes;
+        expected_rec_size = param.config.cresis.expected_rec_sizes;
         meas_rec_size = diff(offset);
         bad_mask = all(bsxfun(@(x,y) x ~= y, meas_rec_size, expected_rec_size(:)),1);
         bad_mask(end+1) = 1;
@@ -831,6 +831,10 @@ if any(param.config.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
   fprintf('\n\n');
   warning(sprintf('==> Ensure that corrected time in figure 1 is good since this is used to create segment boundaries. Set utc_time_sod_new to correct value if not. Run "dbcont" when done reviewing (and applying corrections if they were needed).\n\nFigure 2 shows the applied time correction and if the time correction is outside the y-limits except for a few outliers it may indicate that there is a problem.\nFigure 3 shows the EPRI counter difference (how much it changes between each record). Many large jumps may indicate a problem in recording or in the headers themselves.\n'));
   fn_fig = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,'create_segments_utc_time_sod.fig'));
+  fn_fig_dir = fileparts(fn_fig);
+  if ~exist(fn_fig_dir,'dir')
+    mkdir(fn_fig_dir);
+  end
   fprintf('Saving %s\n', fn_fig);
   saveas(1,fn_fig);
   fn_fig = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,'create_segments_utc_time_sod_error.fig'));

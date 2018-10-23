@@ -216,6 +216,12 @@ for board_idx = 1:length(boards)
       
     else
       % NI, Rink, Paden, Leuschen, and Ledford systems
+      if isempty(hdr_tmp.seconds)
+        fprintf('    File with no records.\n');
+        records.relative_rec_num{board_idx}(file_idx+1) = records.relative_rec_num{board_idx}(file_idx);
+        continue;
+      end
+
       board_hdrs{board_idx}.seconds(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.seconds;
       board_hdrs{board_idx}.fraction(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.fraction;
       board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.seconds)) = file_num;
