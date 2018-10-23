@@ -47,9 +47,6 @@ default.cmd.generic = 1;
 %% Records worksheet
 default.records.gps.time_offset = 1;
 default.records.file.adcs = [2:16];
-default.records.file.adc_headers = [2:16];
-default.records.file.version = 403;
-default.records.gps.en = 1;
 default.records.frames.mode = 1;
 default.records.frames.geotiff_fn = 'greenland\Landsat-7\mzl7geo_90m_lzw.tif';
 default.records.presum_bug_fixed = 0;

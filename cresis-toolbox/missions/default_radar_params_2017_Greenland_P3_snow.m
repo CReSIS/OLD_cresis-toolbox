@@ -40,13 +40,10 @@ default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.file.boards = [1];
-default.records.file.version = 8;
-default.records.file.prefix = param.config.file.prefix;
-default.records.gps.time_offset = 1;
-default.records.gps.en = 1;
 default.records.frames.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m.tif';
 default.records.frames.mode = 2;
-default.records.data_map = {}; % Empty means direct mapping to wf-adc
+default.records.gps.time_offset = 1;
+default.records.gps.en = 1;
 
 %% Qlook worksheet
 default.qlook.img_comb = [];
