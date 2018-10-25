@@ -47,7 +47,12 @@ if ischar(fns)
       end
     else
       warning off;
-      tmp = load(fn,'file_version');
+      try
+        tmp = load(fn,'file_version');
+      catch
+        % Corrupt file so consider it to not be locked
+        return;
+      end
       warning on;
     end
     if isfield(tmp,'file_version')

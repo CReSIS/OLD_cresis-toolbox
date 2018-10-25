@@ -578,7 +578,7 @@ for fn_idx = 1:length(fns_list{board_idx})
   end
   
   % Create temporary header filename
-  fn = fns_list{1}{fn_idx};
+  fn = fns_list{board_idx}{fn_idx};
   if any(param.config.file.version == [405 406])
     [~,fn_name,ext] = fileparts(fn);
     fn_name = [fn_name,ext];
