@@ -7,9 +7,9 @@
 % See also: tomo.create_movie.m
 
 %% User parameters
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140325_07','post');
 params.cmd.generic = 1;
-params.cmd.frms = 33 : 37;
+params.cmd.frms = 1 : 4;
 
 options.geotiff_fn = ct_filename_gis([],'greenland\Landsat-7\Greenland_natural_90.tif');
 options.sys        = 'rds';
@@ -79,6 +79,6 @@ options.memory_dump_size = 1000; % Arbitrary. 1000 works well
 options.cmaplim = [-250 2250]; 
 
 %% Automated section
-tomo.create_movie_multi(params, options);
+tomo.create_movie(params, options);
 
 

@@ -7,7 +7,7 @@ function create_movie (params, options)
 % Authors: Victor Berger, John Paden
 %
 % See also: tomo.run_create_movie.m, tomo.plot_surf_geotiff.m,
-%  and tomo.freezeColors.m
+%  tomo.plot_DEM, and tomo.freezeColors.m
 
 dbstack_info = dbstack;
 fprintf('=====================================================================\n');
@@ -214,7 +214,7 @@ for param_idx = 1:length(params)
     
     camlight
     shading interp
-    if exist('options.cmaplim', 'var') && ~isempty(options.cmaplim)
+    if isfield(options, 'cmaplim') && ~isempty(options.cmaplim)
       colormap(demcmap(options.cmaplim, 240));
     else
       colormap(demcmap(param.bottomDEM.points.elev, 24));

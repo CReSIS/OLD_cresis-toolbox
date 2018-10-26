@@ -1,5 +1,6 @@
 function [fig_h, ax, cax, data, crossover_frms, crossover_DEM, crossover_badmask] = plot_DEM(param, varargin)
-% [fig_h, ax, cax] = tomo.plot_DEM(param, varargin)
+% [fig_h, ax, cax, data, crossover_frms, ...
+%  crossover_DEM, crossover_badmask] = plot_DEM(param, varargin)
 %
 % Generate a DEM image containing the reference frame bottom,
 %  the frames that intersect (cross-over) the reference,
@@ -63,7 +64,7 @@ else
 end
 
 if strcmp(p.Results.crossover, 'on')
-  drawCO = 1; 
+  drawCO = 1;
 else
   drawCO = 0;
 end
@@ -98,7 +99,7 @@ hold on;
 xlabel('X (km)');
 ylabel('Y (km)');
 
-if drawCO 
+if drawCO
   %% Create a buffer around the flowline
   max_angle = 500 / WGS84.semimajor;
   max_angle_deg = max_angle * 180/pi;
@@ -121,7 +122,7 @@ if drawCO
   OPSparams.properties.location = param.location;
   OPSparams.properties.bound = WKT_polygon;
   fprintf('\nLoading radar points from OPS, this may take a minute.. (%s)\n', datestr(now));
-
+  
   try
     [~,data] = opsGetPointsWithinPolygon(param.radar_name,OPSparams);
     fprintf('  Done (%s)', datestr(now));
@@ -129,7 +130,7 @@ if drawCO
     fprintf('\nFailed to load cross-overs for frame %s, so none will be shown.\n', sprintf('%s_%03d',param.day_seg, param.frm));
     drawCO = false;
   end
-
+  
   if exist('data', 'var') && isfield(data.properties, 'Frame')
     crossover_frms = {};
     
@@ -139,7 +140,7 @@ if drawCO
       data.properties.Frame = data.properties.Frame(keep_pnts);
       crossover_frms = unique(data.properties.Frame);
     end
-
+    
     crossover_DEM     = cell(1, length(crossover_frms));
     crossover_badmask = ones(1, length(crossover_frms));
     for crossover_idx = 1:length(crossover_frms)

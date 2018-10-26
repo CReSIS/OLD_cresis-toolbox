@@ -2,9 +2,9 @@
 %
 % Author: Victor Berger
 
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140401_03','post');
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'20140325_07','post');
 params.cmd.generic = 1;
-params.cmd.frms = 33 : 37;
+params.cmd.frms = 1:4;
 
 options.videoPath = 'movies_HQ';
 % options.videoFormat = 'MPEG-4';
@@ -50,8 +50,6 @@ for param_idx = 1:length(params)
     for frm_idx = param.cmd.frms
       options.videoName = sprintf('Movie_%s_%03d',param.day_seg, frm_idx);
       options.videoPathTMP = ct_filename_out(param, options.videoPath);
-      
-      keyboard
       
       fn = strcat(fullfile(options.videoPathTMP, options.videoName), '.mat');
       
