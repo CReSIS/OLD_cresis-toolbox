@@ -1,4 +1,4 @@
-function [fig_h, ax, cax] = plot_DEM(param, varargin)
+function [fig_h, ax, cax, data, crossover_frms, crossover_DEM, crossover_badmask] = plot_DEM(param, varargin)
 % [fig_h, ax, cax] = tomo.plot_DEM(param, varargin)
 %
 % Generate a DEM image containing the reference frame bottom,
@@ -43,6 +43,8 @@ addOptional(p, 'title', 'off')
 addOptional(p, 'width', 560, @isnumeric);
 addOptional(p, 'height', 420, @isnumeric);
 addOptional(p, 'crossover', 'off', @(x)(strcmp(x, 'on') || (strcmp(x, 'off'))));
+addOptional(p, 'fill', 'on')
+addOptional(p, 'cmaplim', '', @isnumeric);
 parse(p, param, varargin{:});
 
 physical_constants;
@@ -58,6 +60,12 @@ if isempty(p.Results.gt)
   fprintf('  Done (%s)', datestr(now));
 else
   gt = p.Results.gt;
+end
+
+if strcmp(p.Results.crossover, 'on')
+  drawCO = 1; 
+else
+  drawCO = 0;
 end
 
 fig_h          = figure;
@@ -90,15 +98,15 @@ hold on;
 xlabel('X (km)');
 ylabel('Y (km)');
 
-if strcmp(p.Results.crossover, 'on')
+if drawCO 
   %% Create a buffer around the flowline
   max_angle = 500 / WGS84.semimajor;
   max_angle_deg = max_angle * 180/pi;
   
-  [latbuffer, lonbuffer] = bufferm(lat, lon, max_angle_deg);
+  [latbuffer, lonbuffer] = bufferm(lat, lon, 10*max_angle_deg);
   
   if any(isnan(latbuffer)) || any(isnan(lonbuffer))
-    fprintf('\nAttention: frame %s has a self-intersection (this is usually not a problem)\n', sprintf('%s_%03d',param.day_seg, frm_idx));
+    fprintf('\nAttention: frame %s has a self-intersection (this is usually not a problem)\n', sprintf('%s_%03d',param.day_seg, param.frm));
     latbuffer = latbuffer(find(isnan(latbuffer), 1, 'last')+1:end);
     lonbuffer = lonbuffer(find(isnan(lonbuffer), 1, 'last')+1:end);
   end
@@ -113,48 +121,48 @@ if strcmp(p.Results.crossover, 'on')
   OPSparams.properties.location = param.location;
   OPSparams.properties.bound = WKT_polygon;
   fprintf('\nLoading radar points from OPS, this may take a minute.. (%s)\n', datestr(now));
-  
+
   try
-    [~,data] = opsGetFramesWithinPolygon(param.radar_name,OPSparams);
+    [~,data] = opsGetPointsWithinPolygon(param.radar_name,OPSparams);
     fprintf('  Done (%s)', datestr(now));
   catch ME
     fprintf('\nFailed to load cross-overs for frame %s, so none will be shown.\n', sprintf('%s_%03d',param.day_seg, param.frm));
     drawCO = false;
   end
-  
-  if exist('data', 'var') && isfield(data, 'frame')
-    %% HACK -> restrict cross-over frames to 2014 Gr P3
+
+  if exist('data', 'var') && isfield(data.properties, 'Frame')
     crossover_frms = {};
-    for data_idx = 1:length(data.frame)
-      if ~isempty(strfind(data.frame{data_idx}, '2014'))
-        crossover_frms{end+1} = data.frame(data_idx);
-      end
-    end
-    %%
     
+    %% HACK -> restrict cross-over frames to 2014 Gr P3
+    if 1
+      keep_pnts = strcmpi('2014_Greenland_P3',data.properties.Season.');
+      data.properties.Frame = data.properties.Frame(keep_pnts);
+      crossover_frms = unique(data.properties.Frame);
+    end
+
     crossover_DEM     = cell(1, length(crossover_frms));
     crossover_badmask = ones(1, length(crossover_frms));
     for crossover_idx = 1:length(crossover_frms)
       ds = param.day_seg;
-      param.day_seg = crossover_frms{crossover_idx}{1};
+      param.day_seg = crossover_frms{crossover_idx};
       param.day_seg = param.day_seg(1:end-4);
       
       try
-        crossover_DEM{crossover_idx}.topDEM = load(fullfile(ct_filename_out(param, param.DEM_source, ''), sprintf('%s_top',crossover_frms{crossover_idx}{1})));
-        crossover_DEM{crossover_idx}.bottomDEM = load(fullfile(ct_filename_out(param, param.DEM_source, ''), sprintf('%s_bottom',crossover_frms{crossover_idx}{1})));
+        crossover_DEM{crossover_idx}.topDEM = load(fullfile(ct_filename_out(param, param.DEM_source, ''), sprintf('%s_top',crossover_frms{crossover_idx})));
+        crossover_DEM{crossover_idx}.bottomDEM = load(fullfile(ct_filename_out(param, param.DEM_source, ''), sprintf('%s_bottom',crossover_frms{crossover_idx})));
         crossover_DEM{crossover_idx}.NaNDEM = crossover_DEM{crossover_idx}.bottomDEM.DEM;
         crossover_DEM{crossover_idx}.NaNDEM(crossover_DEM{crossover_idx}.NaNDEM == -32767) = NaN;
       catch ME
-        fprintf('\nFailed to load cross-over frame %s', crossover_frms{crossover_idx}{1});
+        fprintf('\nFailed to load cross-over frame %s', crossover_frms{crossover_idx});
         crossover_badmask(crossover_idx) = 0;
       end
       param.day_seg = ds;
     end
   end
   
-  if exist('data', 'var') && isfield(data, 'frame')
+  if drawCO && exist('data', 'var') && isfield(data.properties, 'Frame')
     for surf_idx = 1:length(crossover_frms)
-      if ~crossover_badmask(surf_idx) || strcmp(crossover_frms{surf_idx}{1},sprintf('%s_%03d',param.day_seg, param.frm))
+      if ~crossover_badmask(surf_idx) || strcmp(crossover_frms{surf_idx},sprintf('%s_%03d',param.day_seg, param.frm))
         continue;
       end
       
@@ -172,10 +180,17 @@ param.NaNDEM(param.NaNDEM == -32767) = NaN;
 imagesc(param.bottomDEM.xaxis/1e3,param.bottomDEM.yaxis/1e3,param.NaNDEM, ...
   'Parent',ax, 'AlphaData', ~isnan(param.NaNDEM));
 
-colormap(demcmap(param.bottomDEM.points.elev, 24));
+if isempty(p.Results.cmaplim)
+  colormap(demcmap(param.bottomDEM.points.elev, 240));
+else
+  colormap(demcmap(p.Results.cmaplim, 240));
+end
 cb2 = colorbar;
 cb2.Label.String = 'Bed elevation (WGS-84, m)';
-plot(param.bottomDEM.points.x(32, :)/1e3, param.bottomDEM.points.y(32, :)/1e3, 'k', 'LineWidth', 1 , 'Parent', ax);
+
+plot(param.bottomDEM.points.x(round(size(param.bottomDEM.points.x, 1)/2), :)/1e3, ...
+  param.bottomDEM.points.y(round(size(param.bottomDEM.points.y, 1)/2), :)/1e3, ...
+  'r', 'LineWidth', 1 , 'Parent', ax);
 legend(ax,'Flight line');
 shading(ax, 'interp');
 
@@ -187,6 +202,6 @@ if strcmp(p.Results.title, 'on')
     'Interpreter','none','FontWeight','normal','FontSize', 15, 'Parent', ax);
 end
 
-axis(axis_equal(ax, x, y, 'buffer', 2.5));
+axis(ax, axis_equal(ax, x, y, 'buffer', 2.5));
 
 end
