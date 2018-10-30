@@ -232,6 +232,24 @@ for frm_idx = 1:length(param.cmd.frms)
     continue;
   end
   
+  % Create combine_out_fn which is used for rerun_only==true checks
+  if ctrl.cluster.rerun_only
+    combine_out_fn = {};
+    if length(param.qlook.imgs) > 2
+      for img = 1:length(param.qlook.imgs)
+        out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+          img, param.day_seg, frm));
+        combine_out_fn{end+1} = out_fn;
+      end
+    end
+    if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
+      % A combined file should be created
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+        param.day_seg, frm));
+      combine_out_fn{end+1} = out_fn;
+    end
+  end
+  
   % Create output directory name
   sub_apt_shift_idx = 1;
   sub_band_idx = 1;
@@ -306,9 +324,10 @@ for frm_idx = 1:length(param.cmd.frms)
       sparam.task_function, param.radar_name, param.season_name, out_path_dir, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
       block_idx, length(blocks), cur_recs(1), cur_recs(end));
     if ctrl.cluster.rerun_only
-      % If we are in rerun only mode AND the get heights task success
-      % condition passes without error, then we do not run the task.
-      if ~cluster_file_success(dparam.file_success)
+      % If we are in rerun only mode AND the qlook task file success
+      % condition passes without error (or the combined file passes),
+      % then we do not run the task.
+      if ~cluster_file_success(dparam.file_success) || ~cluster_file_success(combine_out_fn)
         fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
           dparam.notes, datestr(now));
         continue;
@@ -431,12 +450,28 @@ sparam.notes = sprintf('%s:%s:%s:%s %s', ...
 % Create success condition
 sparam.file_success = {};
 for frm = param.cmd.frms
-  out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
-  out_fn = fullfile(qlook_out_dir,out_fn_name);
-  sparam.file_success{end+1} = out_fn;
-  if ~ctrl.cluster.rerun_only
-    ct_file_lock_check(out_fn,3);
+
+  if length(param.qlook.imgs) > 2
+    for img = 1:length(param.qlook.imgs)
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+        img, param.day_seg, frm));
+      sparam.file_success{end+1} = out_fn;
+      if ~ctrl.cluster.rerun_only
+        ct_file_lock_check(out_fn,3);
+      end
+    end
   end
+
+  if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
+    % A combined file should be created
+    out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+    sparam.file_success{end+1} = out_fn;
+    if ~ctrl.cluster.rerun_only
+      ct_file_lock_check(out_fn,3);
+    end
+  end
+  
 end
 
 ctrl = cluster_new_task(ctrl,sparam,[]);

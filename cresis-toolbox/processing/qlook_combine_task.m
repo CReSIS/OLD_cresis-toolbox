@@ -351,6 +351,42 @@ for frm_idx = 1:length(param.cmd.frms);
     end
   end
   
+  
+  %% Delete temporary files now that all combined files are created
+  for img = 1:length(param.qlook.imgs)
+    
+    if length(param.qlook.imgs) == 1
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+        param.day_seg, frm));
+    else
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+        img, param.day_seg, frm));
+    end
+    
+    % Determine where breaks in processing blocks are going to occur
+    block_size = param.qlook.block_size(1);
+    blocks = 1:block_size:length(recs)-0.5*block_size;
+    if isempty(blocks)
+      blocks = 1;
+    end
+    
+    % Load each block
+    for block_idx = 1:length(blocks)
+      
+      % Determine the records for this block
+      if block_idx < length(blocks)
+        cur_recs_keep = [recs(blocks(block_idx)) recs(blocks(block_idx+1)-1)];
+      else
+        cur_recs_keep = [recs(blocks(block_idx)) recs(end)];
+      end
+      
+      in_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
+      in_fn = fullfile(in_fn_dir,in_fn_name);
+      
+      delete(in_fn);
+    end
+  end
+  
 end
 
 %% Optionally store surface layer to disk

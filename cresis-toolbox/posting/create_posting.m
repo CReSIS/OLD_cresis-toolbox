@@ -564,8 +564,9 @@ for frm_idx = 1:length(frms)
     echo_param.ops.en = true;
     
     echo_info = publish_echogram(echo_param,mdata,lay);
-    set(echo_info.h_surf,'Visible','off')
-    set(echo_info.h_bot,'Visible','off')
+    set(echo_info.h_surf,'Visible','off');
+    set(echo_info.h_bot,'Visible','off');
+    set(echo_info.fig_hand(1),'Name',param.post.data_dirs{1});
     
     % Update title (handle segment wrapping from one day to the next)
     seg_year = str2double(param.day_seg(1:4));
