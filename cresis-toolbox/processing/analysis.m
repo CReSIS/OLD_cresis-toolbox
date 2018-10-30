@@ -236,9 +236,7 @@ end
 param.analysis.pulse_comp = true;
 param.analysis.ft_wind = [];
 
-ctrl_chain = {};
-
-%% Create and setup the cluster batch
+%% Setup cluster
 % =====================================================================
 ctrl = cluster_new_batch(param);
 cluster_compile({'analysis_task.m','analysis_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
@@ -262,7 +260,96 @@ else
   
 end
 
-%% Split up data into blocks and run equal tasks
+ctrl_chain = {};
+
+%% Combine: Success criteria
+combine_file_success = {};
+for img = 1:length(param.analysis.imgs)
+  Nt = total_num_sam(img);
+  
+  for cmd_idx = 1:length(param.analysis.cmd)
+    cmd = param.analysis.cmd{cmd_idx};
+    if ~cmd.en
+      continue;
+    end
+    
+    % Create output directory string
+    out_fn_dir = ct_filename_out(param,cmd.out_path);
+    out_fn_dir_dir = fileparts(out_fn_dir);
+      
+    switch cmd.method
+      case {'burst_noise'}
+        %
+        
+      case {'coh_noise'}
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          combine_file_success{end+1} = out_fn;
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+        end
+        
+      case {'qlook'}
+        %
+        
+      case {'saturation'}
+        %
+        
+      case {'specular'}
+        Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_fn_dir_dir,sprintf('specular_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          combine_file_success{end+1} = out_fn;
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+        end
+        
+      case {'statistics'}
+        Nx_cmd = Nx / cmd.block_ave;
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_fn_dir_dir,sprintf('stats_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          combine_file_success{end+1} = out_fn;
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+        end
+        
+      case {'waveform'}
+        Nx_cmd = Nx / param.analysis.dec;
+        if isfinite(param.analysis.surf.Nt)
+          Nt = param.analysis.surf.Nt;
+        end
+        for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
+          wf = param.analysis.imgs{img}(wf_adc,1);
+          adc = param.analysis.imgs{img}(wf_adc,2);
+          out_fn = fullfile(out_fn_dir_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          combine_file_success{end+1} = out_fn;
+          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+            ct_file_lock_check(out_fn,3);
+          end
+        end
+        
+    end
+  end
+end
+combine_file_success_failed = cluster_file_success(combine_file_success);
+
+if ctrl.cluster.rerun_only && ~combine_file_success_failed
+  fprintf('  Combine files already exist [rerun_only skipping segment]: %s (%s)\n', ...
+    param.day_seg, datestr(now));
+  fprintf('Done %s\n', datestr(now));
+  return;
+end
+
+%% Block: Create tasks
 % =====================================================================
 % Load param.analysis.block_size records at a time
 %    --> The last block can be up to 1.5*param.analysis.block_size
@@ -308,7 +395,7 @@ for break_idx = 1:length(breaks)
   Nx = cur_recs(end)-cur_recs(1)+1;
   dparam.cpu_time = 0;
   dparam.mem = 0;
-  dparam.success = '';
+  dparam.file_success = {};
   success_error = 64;
   % Loading in the data: cpu_time and mem
   dparam.mem = 250e6;
@@ -342,8 +429,7 @@ for break_idx = 1:length(breaks)
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
             out_fn = fullfile(out_fn_dir,sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
-            dparam.success = cat(2,dparam.success, ...
-              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
@@ -365,8 +451,7 @@ for break_idx = 1:length(breaks)
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
             out_fn = fullfile(out_fn_dir,sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
-            dparam.success = cat(2,dparam.success, ...
-              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
@@ -382,8 +467,7 @@ for break_idx = 1:length(breaks)
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
             out_fn = fullfile(out_fn_dir,sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
-            dparam.success = cat(2,dparam.success, ...
-              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
@@ -399,8 +483,7 @@ for break_idx = 1:length(breaks)
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
             out_fn = fullfile(out_fn_dir,sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
-            dparam.success = cat(2,dparam.success, ...
-              sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+            dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
@@ -418,11 +501,9 @@ for break_idx = 1:length(breaks)
     mfilename, cmd_method_str, param.radar_name, param.season_name, param.day_seg, ...
     break_idx, length(breaks), actual_cur_recs);
   if ctrl.cluster.rerun_only
-    % If we are in rerun only mode AND the get heights task success
-    % condition passes without error, then we do not run the task.
-    error_mask = 0;
-    eval(dparam.success);
-    if ~error_mask
+    % If we are in rerun only mode AND the analysis task file success
+    % condition passes without error then we do not run the task.
+    if ~cluster_file_success(dparam.file_success)
       fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
         dparam.notes, datestr(now));
       continue;
@@ -437,9 +518,9 @@ end
 
 ctrl = cluster_save_dparam(ctrl);
 
-ctrl_chain = {ctrl};
+ctrl_chain{end+1} = ctrl;
 
-%% Create and setup the combine batch
+%% Combine: Create combine task
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
@@ -483,14 +564,6 @@ for img = 1:length(param.analysis.imgs)
       case {'coh_noise'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          wf = param.analysis.imgs{img}(wf_adc,1);
-          adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
-          sparam.success = cat(2,sparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
-          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            ct_file_lock_check(out_fn,3);
-          end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
         end
@@ -504,14 +577,6 @@ for img = 1:length(param.analysis.imgs)
       case {'specular'}
         Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          wf = param.analysis.imgs{img}(wf_adc,1);
-          adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_fn_dir_dir,sprintf('specular_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
-          sparam.success = cat(2,sparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
-          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            ct_file_lock_check(out_fn,3);
-          end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult*1.5);
         end
@@ -519,14 +584,6 @@ for img = 1:length(param.analysis.imgs)
       case {'statistics'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          wf = param.analysis.imgs{img}(wf_adc,1);
-          adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_fn_dir_dir,sprintf('stats_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
-          sparam.success = cat(2,sparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
-          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            ct_file_lock_check(out_fn,3);
-          end
           if cmd.block_ave < 64
             % HACK: Assume that if no block averaging is done, that the data size
             % is small. Really need to get a user "hint" here.
@@ -544,14 +601,6 @@ for img = 1:length(param.analysis.imgs)
           Nt = param.analysis.surf.Nt;
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          wf = param.analysis.imgs{img}(wf_adc,1);
-          adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_fn_dir_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
-          sparam.success = cat(2,sparam.success, ...
-            sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
-          if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-            ct_file_lock_check(out_fn,3);
-          end
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
         end
@@ -559,6 +608,7 @@ for img = 1:length(param.analysis.imgs)
     end
   end
 end
+sparam.file_success = combine_file_success;
 sparam.notes = sprintf('%s:%s:%s %s combine', ...
   mfilename, param.radar_name, param.season_name, param.day_seg);
 

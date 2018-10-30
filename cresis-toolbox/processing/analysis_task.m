@@ -139,8 +139,13 @@ for img = 1:length(store_param.load.imgs)
       param_analysis = param;
       param_analysis.gps_source = records.gps_source;
       fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+      if param.ct_file_lock
+        file_version = '1L';
+      else
+        file_version = '1';
+      end
       save(out_fn,'-v7.3', 'max_rline', 'max_waveform', 'gps_time',...
-        'max_val_gps_time', 'max_val_gps_time_adc');
+        'max_val_gps_time', 'max_val_gps_time_adc', 'file_version');
       
       
     elseif strcmpi(cmd.method,{'specular'})
@@ -344,10 +349,15 @@ for img = 1:length(store_param.load.imgs)
           mkdir(out_fn_dir);
         end
         param_analysis = param;
-      fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        if param.ct_file_lock
+          file_version = '1L';
+        else
+          file_version = '1';
+        end
         save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
           'deconv_forced','peakiness', 'deconv_fc', 'deconv_t0', 'dt', 'gps_time', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records','file_version');
       end
       
       
@@ -481,8 +491,13 @@ for img = 1:length(store_param.load.imgs)
         end
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        if param.ct_file_lock
+          file_version = '1L';
+        else
+          file_version = '1';
+        end
         save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone','file_version');
       end
       
     elseif strcmpi(cmd.method,{'waveform'})
@@ -519,8 +534,13 @@ for img = 1:length(store_param.load.imgs)
       param_analysis = param;
       param_analysis.gps_source = records.gps_source;
       fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+      if param.ct_file_lock
+        file_version = '1L';
+      else
+        file_version = '1';
+      end
       save(out_fn,'-v7.3', 'surf_vals','surf_bins', 'wfs', 'gps_time', 'lat', ...
-        'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+        'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','file_version');
       
       
     elseif strcmpi(cmd.method,{'statistics'})
@@ -704,8 +724,13 @@ for img = 1:length(store_param.load.imgs)
         end
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        if param.ct_file_lock
+          file_version = '1L';
+        else
+          file_version = '1';
+        end
         save(out_fn,'-v7.3', 'stats', 'freq', 'time', 'start_bin', 'gps_time', 'surface', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','file_version');
       end
       
     end

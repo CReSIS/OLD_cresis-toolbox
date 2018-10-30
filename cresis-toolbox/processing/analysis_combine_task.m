@@ -13,6 +13,8 @@ function [success] = analysis_combine_task(param)
 %
 % See also analysis.m
 
+%% Setup
+
 % Load records file
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
@@ -40,7 +42,7 @@ if length(records.gps_time)-blocks(end) < param.analysis.block_size/2 ...
   blocks = blocks(1:end-1);
 end
 
-%% Loop through all given commands from 'analysis'
+%% Loop through all commands
 for cmd_idx = 1:length(param.analysis.cmd)
   cmd = param.analysis.cmd{cmd_idx};
   if ~cmd.en
@@ -68,9 +70,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
           rec_load_stop = rec_load_start+param.analysis.block_size-1;
         end
         
-        % =====================================================================
-        % Prepare task inputs
-        % =====================================================================
         cur_recs = [rec_load_start rec_load_stop];
         actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
           cur_recs(end)*param.analysis.presums];
@@ -334,9 +333,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
           rec_load_stop = rec_load_start+param.analysis.block_size-1;
         end
         
-        % =====================================================================
-        % Prepare task inputs
-        % =====================================================================
         cur_recs = [rec_load_start rec_load_stop];
         actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
           cur_recs(end)*param.analysis.presums];    
@@ -466,6 +462,140 @@ for cmd_idx = 1:length(param.analysis.cmd)
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('stats_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','stats'); % Use HDF because of the large file size
+      end
+    end
+    
+  end
+end
+
+%% Delete temporary files
+for cmd_idx = 1:length(param.analysis.cmd)
+  cmd = param.analysis.cmd{cmd_idx};
+  if ~cmd.en
+    continue;
+  end
+  
+  if strcmpi(cmd.method,{'saturation'})
+    for img = 1:length(param.analysis.imgs)
+      for block_idx = 1:length(blocks)
+        rec_load_start = blocks(block_idx);
+        
+        if block_idx == length(blocks)
+          rec_load_stop = length(records.gps_time);
+        else
+          rec_load_stop = rec_load_start+param.analysis.block_size-1;
+        end
+        
+        cur_recs = [rec_load_start rec_load_stop];
+        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+          cur_recs(end)*param.analysis.presums];
+        
+        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+          sprintf('saturation_img_%02d_%d_%d.mat',img,actual_cur_recs));
+        delete(out_fn);
+      end
+    end
+    
+    
+  elseif strcmpi(cmd.method,{'specular'})
+    for img = 1:length(param.analysis.imgs)
+      for wf_adc = 1:size(param.analysis.imgs{img},1)
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
+        for block_idx = 1:length(blocks)
+          rec_load_start = blocks(block_idx);
+          
+          if block_idx == length(blocks)
+            rec_load_stop = length(records.gps_time);
+          else
+            rec_load_stop = rec_load_start+param.analysis.block_size-1;
+          end
+          
+          cur_recs = [rec_load_start rec_load_stop];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
+          
+          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+            sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          delete(out_fn);
+        end
+      end
+    end
+    
+    
+  elseif strcmpi(cmd.method,{'coh_noise'})
+    for img = 1:length(param.analysis.imgs)
+      for wf_adc = cmd.wf_adcs{img}(:).'
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
+        for block_idx = 1:length(blocks)
+          rec_load_start = blocks(block_idx);
+          
+          if block_idx == length(blocks)
+            rec_load_stop = length(records.gps_time);
+          else
+            rec_load_stop = rec_load_start+param.analysis.block_size-1;
+          end
+          
+          cur_recs = [rec_load_start rec_load_stop];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
+          
+          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+            sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          
+          delete(out_fn);
+        end
+      end
+    end
+    
+    
+  elseif strcmpi(cmd.method,{'waveform'})
+    for img = 1:length(param.analysis.imgs)
+      for block_idx = 1:length(blocks)
+        rec_load_start = blocks(block_idx);
+        
+        if block_idx == length(blocks)
+          rec_load_stop = length(records.gps_time);
+        else
+          rec_load_stop = rec_load_start+param.analysis.block_size-1;
+        end
+        
+        cur_recs = [rec_load_start rec_load_stop];
+        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+          cur_recs(end)*param.analysis.presums];    
+        
+        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+          sprintf('surf_img_%02d_%d_%d.mat',img,actual_cur_recs));
+        
+        delete(out_fn);
+      end
+    end
+    
+    
+  elseif strcmpi(cmd.method,{'statistics'})
+    for img = 1:length(param.analysis.imgs)
+      for wf_adc = cmd.wf_adcs{img}(:).'
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
+        for block_idx = 1:length(blocks)
+          rec_load_start = blocks(block_idx);
+          
+          if block_idx == length(blocks)
+            rec_load_stop = length(records.gps_time);
+          else
+            rec_load_stop = rec_load_start+param.analysis.block_size-1;
+          end
+          
+          cur_recs = [rec_load_start rec_load_stop];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
+          
+          out_fn = fullfile(ct_filename_out(param, cmd.out_path), ...
+            sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          
+          delete(out_fn);
+        end
       end
     end
     
