@@ -202,6 +202,7 @@ ctrl.notes = {};
 ctrl.cpu_time = [];
 ctrl.mem = [];
 ctrl.success = {};
+ctrl.file_success = {};
 ctrl.cpu_time_actual = [];
 
 ctrl.in_fn_dir = fullfile(ctrl.batch_dir,'in');

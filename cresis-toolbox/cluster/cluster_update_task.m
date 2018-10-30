@@ -59,6 +59,12 @@ if ctrl.mem(task_id) == 0
   ctrl.mem(task_id) = param.mem;
 end
 ctrl.success{task_id} = param.success;
+% HACK
+if ~isfield(param,'file_success')
+  param.file_success = {};
+end
+% END HACK
+ctrl.file_success{task_id} = param.file_success;
 
 out_fn_exist_error = 1;
 out_fn_load_error = 2;
@@ -70,6 +76,8 @@ success_error = 64;
 cluster_killed_error = 128;
 walltime_exceeded_error = 256;
 success_eval_error = 512;
+file_success_error = 1024;
+file_success_corrupt_error = 2048;
 
 error_mask = 0;
 
@@ -214,11 +222,15 @@ else
   ctrl.cpu_time_actual(task_id) = -1;
 end
 
+% Check success criteria
 try
   eval(param.success); % Runs some form of "error_mask = bitor(error_mask,success_error);" on failure
 catch success_eval_ME
   error_mask = bitor(error_mask,success_eval_error);
 end
+
+% Check that all output files are successfully generated
+error_mask = bitor(error_mask,cluster_file_success(param.file_success));
 
 ctrl.error_mask(task_id) = 0;
 if ctrl.job_status(task_id) == 'T'
@@ -288,6 +300,12 @@ if update_mode && ctrl.error_mask(task_id)
   end
   if bitand(ctrl.error_mask(task_id),walltime_exceeded_error)
     fprintf('  Cluster killed this job due to wall time\n');
+  end
+  if bitand(ctrl.error_mask(task_id),file_success_error)
+    fprintf('  File success check failed (missing files)\n');
+  end
+  if bitand(ctrl.error_mask(task_id),file_success_corrupt_error)
+    fprintf('  File success check failed (corrupt files)\n');
   end
 end
 
