@@ -309,20 +309,20 @@ if ~(~ismcc && isdeployed)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
-  profile(pidx).slurm_jobs_path           = sprintf('%s/jobs/',getenv('HOME'));
+  profile(pidx).personal_path             = sprintf('/work/ollie/%s/scripts/matlab/',getenv('USER'));
+  profile(pidx).ct_path                   = sprintf('/work/ollie/%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USER'));
+  profile(pidx).param_path                = sprintf('/work/ollie/%s/scripts/ct_params/',getenv('USER'));
+  profile(pidx).slurm_jobs_path           = sprintf('/work/ollie/%s/jobs/',getenv('USER'));
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('%s/Scratch/mdce_tmp/',getenv('HOME'));
+  profile(pidx).tmp_file_path             = sprintf('/work/ollie/%s/Scratch/mdce_tmp/',getenv('USER'));
 
-  profile(pidx).data_path                 = sprintf('%s/Data/',getenv('HOME'));
-  profile(pidx).data_support_path         = sprintf('%s/Scratch/metadata/',getenv('HOME'));
-  profile(pidx).support_path              = sprintf('%s/Scratch/csarp_support/',getenv('HOME'));
-  profile(pidx).out_path                  = sprintf('%s/Scratch/',getenv('HOME'));
-  profile(pidx).gis_path                  = sprintf('%s/GIS_data/',getenv('HOME'));
+  profile(pidx).data_path                 = sprintf('/work/ollie/%s/Data/',getenv('USER'));
+  profile(pidx).data_support_path         = sprintf('/work/ollie/%s/Scratch/metadata/',getenv('USER'));
+  profile(pidx).support_path              = sprintf('/work/ollie/%s/Scratch/csarp_support/',getenv('USER'));
+  profile(pidx).out_path                  = sprintf('/work/ollie/%s/Scratch/',getenv('USER'));
+  profile(pidx).gis_path                  = sprintf('/work/ollie/%s/GIS_data/',getenv('USER'));
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
  
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');

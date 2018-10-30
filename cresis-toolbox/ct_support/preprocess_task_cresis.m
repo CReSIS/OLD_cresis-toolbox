@@ -576,16 +576,22 @@ for board_idx = 1:num_board_to_load
         
       elseif any(param.config.file.version == [7])
         % User must supply the valid record sizes
-        if ~exist('expected_rec_sizes','var')
+        if ~isfield(param.config.cresis,'expected_rec_sizes') || isempty(param.config.cresis.expected_rec_sizes)
           fprintf('Record sizes found in this file:\n');
           fprintf('  %d', unique(diff(offset)));
           fprintf('\n');
-          error('For file version 7 expected record sizes must be supplied.');
+          error('For file version 7 expected record sizes must be supplied in param.config.cresis.expected_rec_sizes. You can start by using the record sizes listed here, but there may be other valid record sizes and the output of this function should be monitored.');
         end
-        expected_rec_size = expected_rec_sizes;
+        expected_rec_size = param.config.cresis.expected_rec_sizes;
         meas_rec_size = diff(offset);
         bad_mask = all(bsxfun(@(x,y) x ~= y, meas_rec_size, expected_rec_size(:)),1);
-        bad_mask(end+1) = 1;
+        if any(bad_mask)
+          fprintf('Record sizes found in this file:\n');
+          fprintf('  %d', unique(diff(offset)));
+          fprintf('\n');
+          warning('param.config.cresis.expected_rec_sizes does not match %d of the records in this file. Records not matching are removed. If these are valid records, update param.config.cresis.expected_rec_sizes.', sum(bad_mask));
+        end
+        bad_mask(end+1) = false;
       end
       
       % Remove bad records (i.e. ones with sizes that are not expected
@@ -839,9 +845,11 @@ for board_idx = 1:numel(param.config.board_map)
     ylabel(h_axes,'Diff EPRI');
     title(h_axes,'Should be 1 except occasional record drops.','fontsize',10);
     
-    fprintf('\n\n');
-    warning(sprintf('==> Ensure that corrected time in figure 1 is good since this is used to create segment boundaries. Set utc_time_sod_new to correct value if not. Run "dbcont" when done reviewing (and applying corrections if they were needed).\n\nFigure 2 shows the applied time correction and if the time correction is outside the y-limits except for a few outliers it may indicate that there is a problem.\nFigure 3 shows the EPRI counter difference (how much it changes between each record). Many large jumps may indicate a problem in recording or in the headers themselves.\n'));
     fn_fig = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,sprintf('create_segments_utc_time_sod_board_%d.fig',board_idx)));
+    fn_fig_dir = fileparts(fn_fig);
+    if ~exist(fn_fig_dir,'dir')
+      mkdir(fn_fig_dir);
+    end
     fprintf('Saving %s\n', fn_fig);
     saveas(1,fn_fig);
     fn_fig = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,sprintf('create_segments_utc_time_sod_error_board_%d.fig',board_idx)));
