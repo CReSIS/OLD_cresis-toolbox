@@ -65,11 +65,16 @@ for map_idx = 1:length(varmap)
   mapped_var_dim_names = cat(2,mapped_var_dim_names, ...
     reshape(varmap(map_idx).dim_name,[1 numel(varmap(map_idx).dim_name)]));
 end
-mapped_var_dim_names = unique(mapped_var_dim_names);
+if ~isempty(mapped_var_dim_names)
+  % If empty, unique returns erroneous 0-by-1 cell array
+  mapped_var_dim_names = unique(mapped_var_dim_names);
+end
 
 %% Find the size of each dimension (mapped_var_dim_sizes)
 mapped_var_dim_sizes = -1 * ones(size(mapped_var_dim_names));
-[vars.map_idx] = deal(zeros(size(vars)));
+if ~isempty(vars)
+  [vars.map_idx] = deal(zeros(size(vars)));
+end
 for map_idx = 1:length(varmap)
   var_idx = strmatch(varmap(map_idx).mat_name,{vars.name},'exact');
   
@@ -310,7 +315,7 @@ for field_idx = 1:length(mat_fieldnames)
     field = mat{field_idx};
   end
   
-  if isstruct(field)
+  if isstruct(field) && ~isempty(field)
     %% Structure Array: recurse on each element of the structure array
     if debug_level > 0
       fprintf('%s%s\n', indention, field_name)
@@ -319,7 +324,7 @@ for field_idx = 1:length(mat_fieldnames)
       new_vars = netcdf_from_mat_get_vars(field(idx),[parent field_name sprintf('(%d)',idx) '.']);
       vars = cat(2,vars,new_vars);
     end
-  elseif iscell(field)
+  elseif iscell(field) && ~isempty(field)
     %% Check to see if this is the special cell_string case (i.e.
     % a cell array of character strings)
     not_char = false;

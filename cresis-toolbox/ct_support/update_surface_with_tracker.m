@@ -345,9 +345,9 @@ for frm_idx = 1:length(param.cmd.frms)
   
   %% Load echogram data
   if strcmpi(surf.method,'') && debug_level == 0
-    mdata = load(data_fn,'GPS_time','Latitude','Longitude','Elevation','Time');
+    mdata = load_L1B(data_fn,'GPS_time','Latitude','Longitude','Elevation','Time');
   else
-    mdata = load(data_fn);
+    mdata = load_L1B(data_fn);
   end
   
   %% Trim echogram data

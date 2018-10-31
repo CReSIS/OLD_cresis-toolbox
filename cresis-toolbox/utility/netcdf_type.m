@@ -32,7 +32,7 @@ elseif strcmpi('single',type)
   type = netcdf.getConstant('NC_FLOAT');
 elseif strcmpi('single',type)
   type = netcdf.getConstant('NC_FLOAT');
-elseif any(strcmpi({'char','inline','function_handle','cell_string'},type))
+elseif any(strcmpi({'char','inline','function_handle','cell_string','struct','cell'},type))
   type = netcdf.getConstant('NC_CHAR');
 else
   type = NaN;
