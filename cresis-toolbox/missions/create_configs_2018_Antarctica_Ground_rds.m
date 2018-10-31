@@ -76,7 +76,7 @@ for freq_idx = [1]
   config.DDC_freq = 160e6;
   config.zeropimods = [0 180];
   
-  config.wfs(1).presums = 64;
+  config.wfs(1).presums = 256;
   config.wfs(2).presums = 256;
   config.tukey = 0.08;
   config.wfs(1).Tpd = 3e-6;
