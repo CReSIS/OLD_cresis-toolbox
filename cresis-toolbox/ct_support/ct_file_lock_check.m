@@ -31,10 +31,12 @@ end
 
 global gRadar;
 if isfield(gRadar,'ct_file_lock_check') && ~gRadar.ct_file_lock_check
-  no_stdio= true;
+  no_stdio = true;
   if check_mode ~= 3 && check_mode ~= 4
     check_mode = 0;
   end
+else
+  no_stdio = false;
 end
 
 if ischar(fns)

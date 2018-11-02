@@ -112,7 +112,10 @@ global load_surface_land_dems_finished;
 global load_surface_land_dems_day_seg;
 global ocean_shp_all;
 global ocean_shp_bb;
+global ocean_shp_day_seg;
+global ocean_shp_bb_day_seg;
 global land_surface;
+global sea_surface;
 load_surface_land_dems = false;
 if isfield(orig_surf,'init') && strcmpi(orig_surf.init.method,'dem')
   if isempty(load_surface_land_dems_finished) ...
@@ -411,7 +414,7 @@ for frm_idx = 1:length(param.cmd.frms)
     min_lat = min(mdata.Latitude);
     max_lat = max(mdata.Latitude);
     % Handle longitude in a special way because it wraps around.
-    mean_lon = angle(mean(exp(1i*records.lon/180*pi)))*180/pi;
+    mean_lon = angle(mean(exp(1i*mdata.Longitude/180*pi)))*180/pi;
     max_lon = mean_lon + max(angle(exp(1i*(mdata.Longitude-mean_lon)/180*pi)))*180/pi;
     min_lon = mean_lon + min(angle(exp(1i*(mdata.Longitude-mean_lon)/180*pi)))*180/pi;
     min_x = min(mdata.x);
