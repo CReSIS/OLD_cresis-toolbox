@@ -65,12 +65,21 @@ function layers = opsLoadLayers(param, layer_params)
 %
 % See also: runOpsLoadLayers.m
 
+%% Input checks
+
 if ~isfield(param,'debug') || isempty(param.debug)
   param.debug = false;
 end
 
 if ~isfield(param,'records')
   param.records = [];
+end
+
+for layer_idx = 1:length(layer_params)
+  if ~isfield(layer_params,'echogram_source_img') || isempty(layer_params(layer_idx).echogram_source_img)
+    % Default is a combined file Data_YYYYMMDD_SS.mat
+    layer_params(layer_idx).echogram_source_img = 0;
+  end
 end
 
 physical_constants;
@@ -248,8 +257,13 @@ for frm_idx = 1:length(param.cmd.frms)
     
     %% Load Echogram Data
     if strcmpi(layer_param.source,'echogram')
-      data_fn = fullfile(ct_filename_out(param,layer_param.echogram_source,''), ...
-        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+      if layer_param.echogram_source_img == 0
+        data_fn = fullfile(ct_filename_out(param,layer_param.echogram_source,''), ...
+          sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+      else
+        data_fn = fullfile(ct_filename_out(param,layer_param.echogram_source,''), ...
+          sprintf('Data_img_%02d_%s_%03d.mat', layer_param.echogram_source_img, param.day_seg, frm));
+      end
       
       if ~exist(data_fn,'file')
         if layer_param.existence_check
@@ -329,8 +343,13 @@ for frm_idx = 1:length(param.cmd.frms)
           
           % Load the echogram
           echogram_fn_dir = ct_filename_out(param,layer_param.echogram_source);
-          echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_%s_%03d.mat', ...
-            param.day_seg, frm));
+          if layer_param.echogram_source_img == 0
+            echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_%s_%03d.mat', ...
+              param.day_seg, frm));
+          else
+            echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+              layer_param.echogram_source_img, param.day_seg, frm));
+          end
           if ~exist(echogram_fn,'file')
             if layer_param.existence_check
               error('Echogram file %s does not exist', echogram_fn);

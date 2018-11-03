@@ -1,6 +1,6 @@
-if 1
+if 0
   % Plot analysis_mean
-  param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181014_02',{'analysis','analysis'});
+  param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181015_02',{'analysis','analysis'});
   img = 2;
   wf_adcs = param.analysis.imgs{img};
   h_fig(1) = figure(1); clf(h_fig(1));
@@ -34,7 +34,7 @@ end
 
 if 0
   % Plot analysis_freq
-  param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181014_02',{'analysis','analysis'});
+  param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181015_02',{'analysis','analysis'});
   img = 2;
   wf_adcs = param.analysis.imgs{img};
   num_ave = [1 10 100];
@@ -79,9 +79,9 @@ if 0
   return
 end
 
-if 0
+if 1
   % Plot analysis_max
-  param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181014_02',{'analysis','analysis'});
+  param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181015_02',{'analysis','analysis'});
   img = 2;
   wf_adcs = param.analysis.imgs{img};
   h_fig(1) = figure(1); clf(h_fig(1));

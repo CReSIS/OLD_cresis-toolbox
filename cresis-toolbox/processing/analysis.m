@@ -265,8 +265,6 @@ ctrl_chain = {};
 %% Combine: Success criteria
 combine_file_success = {};
 for img = 1:length(param.analysis.imgs)
-  Nt = total_num_sam(img);
-  
   for cmd_idx = 1:length(param.analysis.cmd)
     cmd = param.analysis.cmd{cmd_idx};
     if ~cmd.en
@@ -299,7 +297,6 @@ for img = 1:length(param.analysis.imgs)
         %
         
       case {'specular'}
-        Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           wf = param.analysis.imgs{img}(wf_adc,1);
           adc = param.analysis.imgs{img}(wf_adc,2);
@@ -311,7 +308,6 @@ for img = 1:length(param.analysis.imgs)
         end
         
       case {'statistics'}
-        Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           wf = param.analysis.imgs{img}(wf_adc,1);
           adc = param.analysis.imgs{img}(wf_adc,2);
@@ -323,10 +319,6 @@ for img = 1:length(param.analysis.imgs)
         end
         
       case {'waveform'}
-        Nx_cmd = Nx / param.analysis.dec;
-        if isfinite(param.analysis.surf.Nt)
-          Nt = param.analysis.surf.Nt;
-        end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           wf = param.analysis.imgs{img}(wf_adc,1);
           adc = param.analysis.imgs{img}(wf_adc,2);

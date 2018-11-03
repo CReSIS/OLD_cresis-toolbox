@@ -114,6 +114,7 @@ for idx = 1:length(file_type)
     gps.lat = -75.5 - (gps.gps_time-gps.gps_time(1))*velocity/111111;
     gps.lon(:) = -106.75;
     gps.elev(:) = 500;
+    gps.heading(:) = -pi;
     
     save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
   end

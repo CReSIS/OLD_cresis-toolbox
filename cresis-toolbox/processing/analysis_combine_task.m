@@ -476,127 +476,33 @@ for cmd_idx = 1:length(param.analysis.cmd)
   end
   
   if strcmpi(cmd.method,{'saturation'})
-    for img = 1:length(param.analysis.imgs)
-      for block_idx = 1:length(blocks)
-        rec_load_start = blocks(block_idx);
-        
-        if block_idx == length(blocks)
-          rec_load_stop = length(records.gps_time);
-        else
-          rec_load_stop = rec_load_start+param.analysis.block_size-1;
-        end
-        
-        cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-          cur_recs(end)*param.analysis.presums];
-        
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-          sprintf('saturation_img_%02d_%d_%d.mat',img,actual_cur_recs));
-        delete(out_fn);
-      end
+    out_fn_dir = ct_filename_out(param, cmd.out_path);
+    if exist(out_fn_dir,'dir')
+      rmdir(out_fn_dir,'s');
     end
-    
-    
+
   elseif strcmpi(cmd.method,{'specular'})
-    for img = 1:length(param.analysis.imgs)
-      for wf_adc = 1:size(param.analysis.imgs{img},1)
-        wf = param.analysis.imgs{img}(wf_adc,1);
-        adc = param.analysis.imgs{img}(wf_adc,2);
-        for block_idx = 1:length(blocks)
-          rec_load_start = blocks(block_idx);
-          
-          if block_idx == length(blocks)
-            rec_load_stop = length(records.gps_time);
-          else
-            rec_load_stop = rec_load_start+param.analysis.block_size-1;
-          end
-          
-          cur_recs = [rec_load_start rec_load_stop];
-          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-            cur_recs(end)*param.analysis.presums];
-          
-          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-            sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
-          delete(out_fn);
-        end
-      end
+    out_fn_dir = ct_filename_out(param, cmd.out_path);
+    if exist(out_fn_dir,'dir')
+      rmdir(out_fn_dir,'s');
     end
-    
     
   elseif strcmpi(cmd.method,{'coh_noise'})
-    for img = 1:length(param.analysis.imgs)
-      for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.analysis.imgs{img}(wf_adc,1);
-        adc = param.analysis.imgs{img}(wf_adc,2);
-        for block_idx = 1:length(blocks)
-          rec_load_start = blocks(block_idx);
-          
-          if block_idx == length(blocks)
-            rec_load_stop = length(records.gps_time);
-          else
-            rec_load_stop = rec_load_start+param.analysis.block_size-1;
-          end
-          
-          cur_recs = [rec_load_start rec_load_stop];
-          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-            cur_recs(end)*param.analysis.presums];
-          
-          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-            sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
-          
-          delete(out_fn);
-        end
-      end
+    out_fn_dir = ct_filename_out(param, cmd.out_path);
+    if exist(out_fn_dir,'dir')
+      rmdir(out_fn_dir,'s');
     end
-    
     
   elseif strcmpi(cmd.method,{'waveform'})
-    for img = 1:length(param.analysis.imgs)
-      for block_idx = 1:length(blocks)
-        rec_load_start = blocks(block_idx);
-        
-        if block_idx == length(blocks)
-          rec_load_stop = length(records.gps_time);
-        else
-          rec_load_stop = rec_load_start+param.analysis.block_size-1;
-        end
-        
-        cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-          cur_recs(end)*param.analysis.presums];    
-        
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-          sprintf('surf_img_%02d_%d_%d.mat',img,actual_cur_recs));
-        
-        delete(out_fn);
-      end
+    out_fn_dir = ct_filename_out(param, cmd.out_path);
+    if exist(out_fn_dir,'dir')
+      rmdir(out_fn_dir,'s');
     end
     
-    
   elseif strcmpi(cmd.method,{'statistics'})
-    for img = 1:length(param.analysis.imgs)
-      for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.analysis.imgs{img}(wf_adc,1);
-        adc = param.analysis.imgs{img}(wf_adc,2);
-        for block_idx = 1:length(blocks)
-          rec_load_start = blocks(block_idx);
-          
-          if block_idx == length(blocks)
-            rec_load_stop = length(records.gps_time);
-          else
-            rec_load_stop = rec_load_start+param.analysis.block_size-1;
-          end
-          
-          cur_recs = [rec_load_start rec_load_stop];
-          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-            cur_recs(end)*param.analysis.presums];
-          
-          out_fn = fullfile(ct_filename_out(param, cmd.out_path), ...
-            sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
-          
-          delete(out_fn);
-        end
-      end
+    out_fn_dir = ct_filename_out(param, cmd.out_path);
+    if exist(out_fn_dir,'dir')
+      rmdir(out_fn_dir,'s');
     end
     
   end

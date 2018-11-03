@@ -93,58 +93,53 @@ job_id = ctrl.job_id_list(task_id);
 task_id_out = find(ctrl.job_id_list == job_id,1,'last');
 
 if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+  hostname = '';
+  attempt = -1;
+  max_attempts = -1;
   % Extract information from stdout
   stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
   last_task_id = -1;
   if exist(stdout_fn,'file')
-    if exist(stdout_fn,'file')
-      stdout_file_str = '';
-      try
-        fid = fopen(stdout_fn);
-        stdout_file_str = fread(fid,inf,'char=>char');
-        stdout_file_str = stdout_file_str(:).';
-        fclose(fid);
-      end
-
-      % Find the hostname of the execution node
-      try
-        idx = regexp(stdout_file_str,'hostname:');
-        end_idx = idx+9 + find(stdout_file_str(idx+9:end)==' ',1)-1;
-        hostname = stdout_file_str(idx+9:end_idx-1);
-      catch
-        hostname = '';
-      end
-      
-      % Find the number of attempts to start the job
-      try
-        idx = regexp(stdout_file_str,'attempt:');
-        attempt = sscanf(stdout_file_str(idx+8:end),'%d');
-      catch
-        attempt = -1;
-      end
-      if isempty(attempt)
-        attempt = -1;
-      end
-      
-      % Find the allowed maximum number of attempts to start the job
-      try
-        idx = regexp(stdout_file_str,'max_attempts:');
-        max_attempts = sscanf(stdout_file_str(idx+13:end),'%d');
-      catch
-        max_attempts = -1;
-      end
-      if isempty(max_attempts)
-        max_attempts = -1;
-      end
-      
-      % Find the last task that this job started
-      try
-        search_str = 'cluster_job: Load task ';
-        idxs = regexp(stdout_file_str,search_str);
-        if ~isempty(idxs)
-          % Look at the task ID from the last start message
-          last_task_id = sscanf(stdout_file_str(idxs(end)+length(search_str):end),'%d');
-        end
+    stdout_file_str = '';
+    try
+      fid = fopen(stdout_fn);
+      stdout_file_str = fread(fid,inf,'char=>char');
+      stdout_file_str = stdout_file_str(:).';
+      fclose(fid);
+    end
+    
+    % Find the hostname of the execution node
+    try
+      idx = regexp(stdout_file_str,'hostname:');
+      end_idx = idx+9 + find(stdout_file_str(idx+9:end)==' ',1)-1;
+      hostname = stdout_file_str(idx+9:end_idx-1);
+    end
+    
+    % Find the number of attempts to start the job
+    try
+      idx = regexp(stdout_file_str,'attempt:');
+      attempt = sscanf(stdout_file_str(idx+8:end),'%d');
+    end
+    if isempty(attempt)
+      attempt = -1;
+    end
+    
+    % Find the allowed maximum number of attempts to start the job
+    try
+      idx = regexp(stdout_file_str,'max_attempts:');
+      max_attempts = sscanf(stdout_file_str(idx+13:end),'%d');
+    end
+    if isempty(max_attempts)
+      max_attempts = -1;
+    end
+    
+    % Find the last task that this job started
+    try
+      search_str = 'cluster_job: Load task ';
+      idxs = regexp(stdout_file_str,search_str);
+      if ~isempty(idxs)
+        % Look at the task ID from the last start message
+        last_task_id = sscanf(stdout_file_str(idxs(end)+length(search_str):end),'%d');
       end
     end
   end

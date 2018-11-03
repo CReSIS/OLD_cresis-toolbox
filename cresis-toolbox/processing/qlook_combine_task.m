@@ -354,15 +354,6 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Delete temporary files now that all combined files are created
   for img = 1:length(param.qlook.imgs)
-    
-    if length(param.qlook.imgs) == 1
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frm));
-    else
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
-        img, param.day_seg, frm));
-    end
-    
     % Determine where breaks in processing blocks are going to occur
     block_size = param.qlook.block_size(1);
     blocks = 1:block_size:length(recs)-0.5*block_size;
@@ -386,14 +377,24 @@ for frm_idx = 1:length(param.cmd.frms);
       delete(in_fn);
     end
   end
+  rmdir(in_fn_dir);
   
 end
+
 
 %% Optionally store surface layer to disk
 if param.qlook.surf.en
   if ~param.records.gps.en
     warning('Surface tracking param.qlook.surf.en is not done when param.records.gps.en is false.');
   else
+    if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
+      % A combined file should be created
+      echogram_source_img = 0;
+    else
+      % Store the result in img 1 since a combined file is not created
+      echogram_source_img = 1;
+    end
+    
     % Read the "Surface" variable from all the frames that were created
     % by this particular run of qlook
     
@@ -401,12 +402,14 @@ if param.qlook.surf.en
     copy_param.layer_source.source = 'echogram';
     copy_param.layer_source.echogram_source = param.qlook.out_path;
     copy_param.layer_source.existence_check = false;
+    copy_param.layer_source.echogram_source_img = echogram_source_img;
     
     copy_param.layer_dest = param.qlook.surf_layer;
     if strcmpi(param.qlook.surf_layer.source,'layerdata')
       copy_param.layer_dest.echogram_source = param.qlook.out_path;
     end
     copy_param.layer_dest.existence_check = false;
+    copy_param.layer_dest.echogram_source_img = echogram_source_img;
     
     copy_param.copy_method = 'overwrite';
     copy_param.gaps_fill.method = 'interp_finite';
