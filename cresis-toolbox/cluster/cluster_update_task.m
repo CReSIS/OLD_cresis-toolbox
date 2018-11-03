@@ -172,14 +172,18 @@ if update_mode && strcmpi(ctrl.cluster.type,'matlab') && ctrl.job_status(task_id
   
   if ~exist(error_fn,'file')
     fid = fopen(error_fn,'w');
-    str = evalc(sprintf('ctrl.cluster.jm.Jobs(%d).Tasks(1)',job_id));
-    fwrite(fid,str,'char');
+    try
+      str = evalc(sprintf('ctrl.cluster.jm.Jobs.findobj(''ID'',%d).Tasks(1)',job_id));
+      fwrite(fid,str,'char');
+    end
     fclose(fid);
   end
   
   if ~exist(stdout_fn,'file')
     fid = fopen(stdout_fn,'w');
-    fwrite(fid,ctrl.cluster.jm.Jobs(job_id).Tasks(1).Diary,'char');
+    try
+      fwrite(fid,ctrl.cluster.jm.Jobs.findobj('ID',job_id).Tasks(1).Diary,'char');
+    end
     fclose(fid);
   end
 end

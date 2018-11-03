@@ -21,8 +21,8 @@ params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'
 
 dbstop if error;
 % param_override.cluster.type = 'torque';
-% param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+param_override.cluster.type = 'matlab';
+% param_override.cluster.type = 'debug';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;
 % param_override.cluster.cpu_time_mult  = 2;

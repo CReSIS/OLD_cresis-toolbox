@@ -1,4 +1,4 @@
-if 0
+if 1
   % Plot analysis_mean
   param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181015_02',{'analysis','analysis'});
   img = 2;
@@ -79,7 +79,7 @@ if 0
   return
 end
 
-if 1
+if 0
   % Plot analysis_max
   param = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),'20181015_02',{'analysis','analysis'});
   img = 2;
