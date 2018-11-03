@@ -94,8 +94,16 @@ if ~isfield(ctrl.cluster,'stat_pause') || isempty(ctrl.cluster.stat_pause)
   ctrl.cluster.stat_pause = 1;
 end
 
+if ~isfield(ctrl.cluster,'job_complete_pause') || isempty(ctrl.cluster.job_complete_pause)
+  ctrl.cluster.job_complete_pause = 5;
+end
+
 if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)
   ctrl.cluster.file_check_pause = 4;
+end
+
+if ~isfield(ctrl.cluster,'interactive') || isempty(ctrl.cluster.interactive)
+  ctrl.cluster.interactive = 0;
 end
 
 if ~isfield(ctrl.cluster,'rerun_only') || isempty(ctrl.cluster.rerun_only)
