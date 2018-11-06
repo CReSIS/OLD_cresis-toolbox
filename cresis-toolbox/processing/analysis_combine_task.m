@@ -477,32 +477,37 @@ for cmd_idx = 1:length(param.analysis.cmd)
   
   if strcmpi(cmd.method,{'saturation'})
     out_fn_dir = ct_filename_out(param, cmd.out_path);
-    if exist(out_fn_dir,'dir')
-      rmdir(out_fn_dir,'s');
+    delete(fullfile(out_fn_dir,'saturation_*'));
+    try
+      rmdir(out_fn_dir); % Only deletes if empty
     end
-
+    
   elseif strcmpi(cmd.method,{'specular'})
     out_fn_dir = ct_filename_out(param, cmd.out_path);
-    if exist(out_fn_dir,'dir')
-      rmdir(out_fn_dir,'s');
+    delete(fullfile(out_fn_dir,'specular_*'));
+    try
+      rmdir(out_fn_dir); % Only deletes if empty
     end
     
   elseif strcmpi(cmd.method,{'coh_noise'})
     out_fn_dir = ct_filename_out(param, cmd.out_path);
-    if exist(out_fn_dir,'dir')
-      rmdir(out_fn_dir,'s');
+    delete(fullfile(out_fn_dir,'coh_noise_*'));
+    try
+      rmdir(out_fn_dir); % Only deletes if empty
     end
     
   elseif strcmpi(cmd.method,{'waveform'})
     out_fn_dir = ct_filename_out(param, cmd.out_path);
-    if exist(out_fn_dir,'dir')
-      rmdir(out_fn_dir,'s');
+    delete(fullfile(out_fn_dir,'surf_*'));
+    try
+      rmdir(out_fn_dir); % Only deletes if empty
     end
     
   elseif strcmpi(cmd.method,{'statistics'})
     out_fn_dir = ct_filename_out(param, cmd.out_path);
-    if exist(out_fn_dir,'dir')
-      rmdir(out_fn_dir,'s');
+    delete(fullfile(out_fn_dir,'stats_*'));
+    try
+      rmdir(out_fn_dir); % Only deletes if empty
     end
     
   end

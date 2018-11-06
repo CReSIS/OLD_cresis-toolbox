@@ -112,6 +112,10 @@ layer_params = cat_structs(2,param.check_surface.ref_layer_params,param.check_su
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 
+% Load frames file
+frames_fn = ct_filename_support(param,'','frames');
+load(frames_fn);
+
 % =========================================================================
 %% Load in ocean mask, land DEM, and sea surface DEM
 % =========================================================================
@@ -403,6 +407,9 @@ surf.dem_twtt = (mdata.Elevation - surf.dem) / (c/2);
 % Merge land/sea surface with reference (usually lidar) layer
 surf.dem_twtt = merge_vectors(layers(ref_idx).twtt_ref, surf.dem_twtt);
 
+mdata.land_dem_twtt = (mdata.Elevation - mdata.land_dem) / (c/2);
+mdata.sea_dem_twtt = (mdata.Elevation - mdata.sea_dem) / (c/2);
+
 % =====================================================================
 %% Check surface: System time delay
 % =====================================================================
@@ -440,7 +447,8 @@ saveas(h_fig,[fig_fn '.jpg']);
 % =====================================================================
 
 % Find the longest contiguous section of small twtt_error
-mask = ~isnan(twtt_error);
+% 1. Try LIDAR-only first
+mask = ~isnan(twtt_error) & ~isnan(layers(ref_idx).twtt_ref);
 mask_length = zeros(size(mask));
 mask_length(1) = mask(1);
 for idx=2:length(mask)
@@ -454,25 +462,98 @@ else
   recs = find(layers(radar_idx).gps_time >= min(gpstime_coords) ...
     & layers(radar_idx).gps_time <= max(gpstime_coords));
 end
+dem_source = 'lidar';
+% 2. Try LIDAR+Land next
+if length(recs)<1000
+  mask = ~isnan(twtt_error) & ~isnan(mdata.land_dem);
+  mask_length = zeros(size(mask));
+  mask_length(1) = mask(1);
+  for idx=2:length(mask)
+    mask_length(idx) = mask(idx)*mask_length(idx-1) + mask(idx);
+  end
+  [corr_len,corr_idx] = max(mask_length);
+  if corr_len==0
+    recs = [];
+  else
+    gpstime_coords = layers(radar_idx).gps_time(corr_idx+[-corr_len+1,0]);
+    recs = find(layers(radar_idx).gps_time >= min(gpstime_coords) ...
+      & layers(radar_idx).gps_time <= max(gpstime_coords));
+  end
+  dem_source = 'land';
+end
+% 3. Try LIDAR+Land+Sea next
+if length(recs)<1000
+  mask = ~isnan(twtt_error);
+  mask_length = zeros(size(mask));
+  mask_length(1) = mask(1);
+  for idx=2:length(mask)
+    mask_length(idx) = mask(idx)*mask_length(idx-1) + mask(idx);
+  end
+  [corr_len,corr_idx] = max(mask_length);
+  if corr_len==0
+    recs = [];
+  else
+    gpstime_coords = layers(radar_idx).gps_time(corr_idx+[-corr_len+1,0]);
+    recs = find(layers(radar_idx).gps_time >= min(gpstime_coords) ...
+      & layers(radar_idx).gps_time <= max(gpstime_coords));
+  end
+  dem_source = 'sea';
+end
 
-clf(h_fig);
 debug_gps_offset = 0;
 debug_Tsys_offset = 0;
 debug_Tsys_ratio = 1;
+
+if any(~isnan(mdata.land_dem(recs)))
+end
+if any(~isnan(layers(ref_idx).twtt_ref(recs)))
+end
+
+clf(h_fig);
 h_axes = axes('parent',h_fig);
 origin = layers(radar_idx).gps_time(1);
 h_plot = [];
-mdata.land_dem_twtt = (mdata.Elevation - mdata.land_dem) / (c/2);
-mdata.sea_dem_twtt = (mdata.Elevation - mdata.sea_dem) / (c/2);
+frms = interp1([records.gps_time(frames.frame_idxs), records.gps_time(end)+diff(records.gps_time(end-1:end))], ...
+  [1:length(frames.frame_idxs), length(frames.frame_idxs)+1], layers(radar_idx).gps_time);
+h_plot(end+1) = plot(h_axes,frms, mdata.land_dem_twtt);
+hold(h_axes,'on');
+h_plot(end+1) = plot(h_axes,frms, mdata.sea_dem_twtt);
+h_plot(end+1) = plot(h_axes,frms, layers(ref_idx).twtt_ref);
+h_plot(end+1) = plot(h_axes,frms, surf.dem_twtt);
+if ~isempty(recs)
+  h_plot(end+1) = plot(h_axes,frms(recs), mdata.land_dem_twtt(recs), 'x');
+  h_plot(end+1) = plot(h_axes,frms(recs), mdata.sea_dem_twtt(recs), 'o');
+  h_plot(end+1) = plot(h_axes,frms(recs), layers(ref_idx).twtt_ref(recs), '<');
+  h_plot(end+1) = plot(h_axes,frms(recs), surf.dem_twtt(recs), '.');
+  for idx=1:4
+    set(h_plot(idx+4),'Color',get(h_plot(idx),'Color'));
+  end
+end
+frms = interp1([records.gps_time(frames.frame_idxs), records.gps_time(end)+diff(records.gps_time(end-1:end))] + debug_gps_offset, ...
+  [1:length(frames.frame_idxs), length(frames.frame_idxs)+1], layers(radar_idx).gps_time);
+h_plot(9) = plot(h_axes,frms, layers(radar_idx).twtt_ref*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
+legend(h_axes,h_plot([1:4 9]),'Land','Sea','Ref','Combined','Radar','location','best');
+grid(h_axes,'on');
+xlabel(h_axes,'Frame');
+ylabel(h_axes,'TWTT (sec)');
+fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt_frm');
+fprintf('Saving %s\n', fig_fn);
+saveas(h_fig,[fig_fn '.fig']);
+saveas(h_fig,[fig_fn '.jpg']);
+
+clf(h_fig);
+h_axes = axes('parent',h_fig);
+origin = layers(radar_idx).gps_time(1);
+h_plot = [];
 h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time - origin, mdata.land_dem_twtt);
 hold(h_axes,'on');
 h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time - origin, mdata.sea_dem_twtt);
 h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time - origin, layers(ref_idx).twtt_ref);
 h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time - origin, surf.dem_twtt);
 if ~isempty(recs)
-  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, mdata.land_dem_twtt(recs), '.');
-  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, mdata.sea_dem_twtt(recs), '.');
-  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, layers(ref_idx).twtt_ref(recs), '.');
+  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, mdata.land_dem_twtt(recs), 'x');
+  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, mdata.sea_dem_twtt(recs), 'o');
+  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, layers(ref_idx).twtt_ref(recs), '<');
   h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, surf.dem_twtt(recs), '.');
   for idx=1:4
     set(h_plot(idx+4),'Color',get(h_plot(idx),'Color'));
@@ -503,12 +584,11 @@ if isempty(recs)
   lags = NaN;
   peak_idx = 1;
 else
-  dt = median(diff(layers(radar_idx).gps_time(recs)));
   t0 = layers(radar_idx).gps_time(recs(1));
   gps_time = t0:dt:layers(radar_idx).gps_time(recs(end));
   radar_layer = interp1(layers(radar_idx).gps_time, ...
     layers(radar_idx).twtt, gps_time);
-  if length(layers(ref_idx).gps_time) < 2
+  if length(layers(radar_idx).gps_time) < 2
     ref_layer = NaN(size(gps_time));
   else
     ref_layer = interp1(layers(radar_idx).gps_time, ...
@@ -531,6 +611,10 @@ else
     ref_corr = 1./ref_corr;
   end
   [peak_val,peak_idx] = max(ref_corr);
+  if peak_idx == 1 || isnan(peak_val)
+    lags(peak_idx) = NaN;
+  end
+    
 end
 
 clf(h_fig);
@@ -597,23 +681,35 @@ else
   default_nz = NaN;
 end
 
+% =====================================================================
+%% Check surface: Text file
+% =====================================================================
+if strcmpi(radar_type,'deramp')
+  wf = 1;
+  BW = diff(param.radar.wfs(wf).BW_window);
+  dt = 1/BW;
+  t_ref_new = param.radar.wfs(wf).t_ref + round(nanmedian(twtt_error)/dt)*dt;
+else
+  t_ref_new = 0;
+end
+
 txt_fn = [ct_filename_ct_tmp(param,'','check_surface','time') '.txt'];
 fprintf('Saving %s\n', txt_fn);
 fid = fopen(txt_fn,'wb');
-fprintf(fid,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\n', ...
+fprintf(fid,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n', ...
   param.day_seg, 1e9*mean_offset, ...
   1e9*nanmedian(twtt_error), ...
   1e9*nanstd(twtt_error), ...
   1e9*nanmax(abs(twtt_error-mean_offset)), ...
   1e9*nanmean(twtt_error_all), ...
-  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz);
-fprintf(1,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\n', ...
+  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, t_ref_new, dem_source);
+fprintf(1,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n', ...
   param.day_seg, 1e9*mean_offset, ...
   1e9*nanmedian(twtt_error), ...
   1e9*nanstd(twtt_error), ...
   1e9*nanmax(abs(twtt_error-mean_offset)), ...
   1e9*nanmean(twtt_error_all), ...
-  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz);
+  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, t_ref_new, dem_source);
 fclose(fid);
 
 % =====================================================================

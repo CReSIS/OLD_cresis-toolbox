@@ -109,9 +109,8 @@ chain_id = new_chain_id;
 
 % Print information to load and run
 if print_mode
-  fprintf('Saving chain %d to %s\n\n', chain_id, chain_fn);
-  fprintf('%% Commands to load and run from any computer\n');
-  fprintf('%%   (chain file contains list of file dependencies):\n');
+  fprintf('Saving chain %d to %s\n\n\n', chain_id, chain_fn);
+  fprintf('%% Commands to load and run from any computer (chain file contains list of file dependencies):\n');
   fprintf('[ctrl_chain,chain_fn] = cluster_load_chain(%d);\n', chain_id);
   fprintf('ctrl_chain = cluster_run(ctrl_chain);\n\n');
 end

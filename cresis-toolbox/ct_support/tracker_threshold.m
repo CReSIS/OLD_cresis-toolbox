@@ -134,10 +134,22 @@ end
 %% Detrend the data
 if surf.detrend > 0
   poly_x = (-size(surf_data,1)/2+(1:size(surf_data,1))).';
-  mean_power = lp(mean(10.^(surf_data/10),2));
+  mean_power = nanmean(surf_data,2);
   good_mask = isfinite(mean_power);
   p = polyfit(poly_x(good_mask),mean_power(good_mask),surf.detrend);
-  surf_data = surf_data - repmat(polyval(p,poly_x),[1 size(surf_data,2)]);
+  poly_curve = polyval(p,poly_x);
+  poly_curve(~good_mask) = NaN;
+  poly_curve = interp_finite(poly_curve,0);
+  if 0
+    % Debug
+    rline = 200;
+    figure(1); clf;
+    plot(surf_data(:,rline))
+    hold on
+    plot(poly_curve);
+    keyboard
+  end
+  surf_data = surf_data - repmat(poly_curve,[1 size(surf_data,2)]);
 end
 
 %% Determine the threshold value using range bins specified by noise_rng
