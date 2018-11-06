@@ -77,6 +77,7 @@ for param_idx = 1:length(params)
       fprintf('\n\nWorking on frame %s, found parts: \n', sprintf('Movie_%s_%03d',param.day_seg, frm_idx));
       parts_list = ls(fullfile(options.parts_dir, sprintf('Movie_%s_%03d_part_*',param.day_seg, frm_idx)));
       disp(parts_list)
+      parts_list = dir(fullfile(options.parts_dir, sprintf('Movie_%s_%03d_part_*',param.day_seg, frm_idx)));
       
       for partn = 1:size(parts_list, 1)
         part_fn = fullfile(options.parts_dir, sprintf('Movie_%s_%03d_part_%d.mat',param.day_seg, frm_idx, partn));
