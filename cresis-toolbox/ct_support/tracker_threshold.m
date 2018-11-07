@@ -130,7 +130,22 @@ else
   surf_data = surf_data - repmat(mean(surf_data,2),[1 size(surf_data,2)]);
   surf_data = lp(surf_data);
 end
+surf_data(~isfinite(surf_data)) = NaN;
 
+%% Trim echogram data
+for rline = 1:size(surf_data,2)
+  start_bin = find(isfinite(surf_data(:,rline)),1);
+  if ~isempty(start_bin)
+    stop_bin = min(size(surf_data,1), start_bin+surf.filter_trim(1)-1);
+    surf_data(start_bin:stop_bin,rline) = NaN;
+  end
+  stop_bin = find(isfinite(surf_data(:,rline)),1,'last');
+  if ~isempty(stop_bin)
+    start_bin = max(1, stop_bin-surf.filter_trim(2)+1);
+    surf_data(start_bin:stop_bin,rline) = NaN;
+  end
+end
+  
 %% Detrend the data
 if surf.detrend > 0
   poly_x = (-size(surf_data,1)/2+(1:size(surf_data,1))).';
@@ -146,6 +161,7 @@ if surf.detrend > 0
     figure(1); clf;
     plot(surf_data(:,rline))
     hold on
+    plot(mean_power)
     plot(poly_curve);
     keyboard
   end
@@ -207,14 +223,32 @@ end
 surface = NaN*zeros(1,size(surf_data,2));
 for rline=1:size(surf_data,2)
   rbins = max(1,round(new_surface_max(rline) - surf.max_diff)) : min(size(surf_data,1),round(new_surface_max(rline) + surf.max_diff));
-  
-  if isnan(THRESHOLD)
-    mask = median_mdata ~= 0 & (1:size(surf_data,2)) - rline <= surf.threshold_rng;
-    RLINE_THRESHOLD = surf.threshold + median(median_mdata(mask));
-    threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,RLINE_THRESHOLD);
+
+  if 0
+    % Expensive Sidelobe Check
+    for rbin = 1:size(surf_data,1)
+      if surf_data(rbin,rline) < max(surf_data(max(1,rbin-25) : min(size(surf_data,1),rbin+25),rline))-surf.sidelobe
+        surf_data(rbin,rline) = NaN;
+      end
+    end
+    if isnan(THRESHOLD)
+      mask = median_mdata ~= 0 & (1:size(surf_data,2)) - rline <= surf.threshold_rng;
+      RLINE_THRESHOLD = surf.threshold + median(median_mdata(mask));
+      threshold_rline = max(max(surf_data(:,rline)),RLINE_THRESHOLD);
+    else
+      threshold_rline = THRESHOLD;
+    end
   else
-    threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,THRESHOLD);
+    % Fast Sidelobe Check
+    if isnan(THRESHOLD)
+      mask = median_mdata ~= 0 & (1:size(surf_data,2)) - rline <= surf.threshold_rng;
+      RLINE_THRESHOLD = surf.threshold + median(median_mdata(mask));
+      threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,RLINE_THRESHOLD);
+    else
+      threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,THRESHOLD);
+    end
   end
+  
   thresh_bin = find(surf_data(rbins,rline) > threshold_rline,1);
   if ~isempty(thresh_bin)
     surface(rline) = rbins(1) - 1 + thresh_bin;

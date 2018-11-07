@@ -513,8 +513,6 @@ for frm_idx = 1:length(param.cmd.frms)
   else
     error('Not a supported surface tracking method.');
   end
-  % Convert from range bins to two way travel time
-  Surface = interp1(1:length(mdata.Time), mdata.Time, new_surface);
   
   %% Run median filtering on tracked surface
   if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
@@ -527,6 +525,9 @@ for frm_idx = 1:length(param.cmd.frms)
       end
     end
   end
+  
+  % Convert from range bins to two way travel time
+  Surface = interp1(1:length(mdata.Time), mdata.Time, new_surface);
   
   %% Debug plot result
   if debug_level > 0

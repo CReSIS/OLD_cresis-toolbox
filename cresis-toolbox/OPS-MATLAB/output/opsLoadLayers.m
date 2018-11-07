@@ -284,7 +284,11 @@ for frm_idx = 1:length(param.cmd.frms)
       end
       
       % Load data
-      mdata = load(data_fn,echogram_layer_name,'GPS_time','Elevation','Latitude','Longitude');
+      warning off;
+      mdata = load(data_fn,echogram_layer_name,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
+        'Elevation_Correction','Truncate_Bins','Time');
+      warning on;
+      mdata = uncompress_echogram(mdata);
       
       % Remove data that is not contained within frame boundaries
       frms_mask = logical(zeros(size(mdata.GPS_time)));
@@ -359,35 +363,35 @@ for frm_idx = 1:length(param.cmd.frms)
             end
           end
           warning off;
-          lyr = load(echogram_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
+          lay = load(echogram_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
             'Elevation_Correction','Truncate_Bins','Time');
           warning on;
-          lyr = uncompress_echogram(lyr);
-          Nx = length(lyr.GPS_time);
+          lay = uncompress_echogram(lay);
+          Nx = length(lay.GPS_time);
 
           % Create the layer structure
           for lay_idx = 1:2
             % Manually picked points
             %  inf/nan: no pick
             %  finite: propagation time to target
-            lyr.layerData{lay_idx}.value{1}.data ...
+            lay.layerData{lay_idx}.value{1}.data ...
               = inf*ones(1,Nx);
             % Automatically generated points
             %  inf/nan: no pick
             %  finite: propagation time to target
-            if lay_idx == 1 && isfield(lyr,'Surface')
-              lyr.layerData{lay_idx}.value{2}.data = lyr.Surface;
-            elseif lay_idx == 2 && isfield(lyr,'Bottom')
-              lyr.layerData{lay_idx}.value{2}.data = lyr.Bottom;
+            if lay_idx == 1 && isfield(lay,'Surface')
+              lay.layerData{lay_idx}.value{2}.data = lay.Surface;
+            elseif lay_idx == 2 && isfield(lay,'Bottom')
+              lay.layerData{lay_idx}.value{2}.data = lay.Bottom;
             else
-              lyr.layerData{lay_idx}.value{2}.data ...
+              lay.layerData{lay_idx}.value{2}.data ...
                 = inf*ones(1,Nx);
             end
             % Quality control level
             %  1: good
             %  2: moderate
             %  3: derived
-            lyr.layerData{lay_idx}.quality ...
+            lay.layerData{lay_idx}.quality ...
               = ones(1,Nx);
           end
 
@@ -395,7 +399,7 @@ for frm_idx = 1:length(param.cmd.frms)
           if ~exist(layer_fn_dir,'dir')
             mkdir(layer_fn_dir);
           end
-          save(layer_fn,'-v6','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
+          save(layer_fn,'-v6','-struct','lay','layerData','Latitude','Longitude','Elevation','GPS_time');
 
         elseif layer_param.existence_check
           error('Layer file %s does not exist', layer_fn);
