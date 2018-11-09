@@ -138,9 +138,11 @@ for idx = 1:rows
             params(idx).(generic_ws).(field_names{col}) = val;
           elseif length(period_idxs) == 1
             params(idx).(generic_ws).(field_names{col}(1:period_idxs-1)).(field_names{col}(period_idxs+1:end)) = val;
+          elseif length(period_idxs) == 2
+            params(idx).(generic_ws).(field_names{col}(1:period_idxs(1)-1)).(field_names{col}(period_idxs(1)+1:period_idxs(2)-1)).(field_names{col}(period_idxs(2)+1:end)) = val;
           else
             error('read_param_xls_generic:toomanyperiods', ...
-              ' Fieldnames %s with more than 1 period not supported', field_names{col})
+              ' Fieldnames %s with more than 2 periods not supported', field_names{col})
           end
         elseif array_type == 'a'
           paren_idx = find(field_types{col}(4:end) == '(');
@@ -161,9 +163,11 @@ for idx = 1:rows
                 params(idx).(generic_ws).(array_field_name)(array_field_idx).(field_names{col}) = val;
               elseif length(period_idxs) == 1
                 params(idx).(generic_ws).(array_field_name)(array_field_idx).(field_names{col}(1:period_idxs-1)).(field_names{col}(period_idxs+1:end)) = val;
+              elseif length(period_idxs) == 2
+                params(idx).(generic_ws).(array_field_name)(array_field_idx).(field_names{col}(1:period_idxs(1)-1)).(field_names{col}(period_idxs(1)+1:period_idxs(2)-1)).(field_names{col}(period_idxs(2)+1:end)) = val;
               else
                 error('read_param_xls_generic:toomanyperiods', ...
-                  ' Fieldnames %s with more than 1 period not supported', field_names{col})
+                  ' Fieldnames %s with more than 2 periods not supported', field_names{col})
               end
             else
               if ~isempty(val)
@@ -191,9 +195,11 @@ for idx = 1:rows
                 params(idx).(generic_ws).(array_field_name){array_field_idx}.(field_names{col}) = val;
               elseif length(period_idxs) == 1
                 params(idx).(generic_ws).(array_field_name){array_field_idx}.(field_names{col}(1:period_idxs-1)).(field_names{col}(period_idxs+1:end)) = val;
+              elseif length(period_idxs) == 2
+                params(idx).(generic_ws).(array_field_name)(array_field_idx).(field_names{col}(1:period_idxs(1)-1)).(field_names{col}(period_idxs(1)+1:period_idxs(2)-1)).(field_names{col}(period_idxs(2)+1:end)) = val;
               else
                 error('read_param_xls_generic:toomanyperiods', ...
-                  ' Fieldnames %s with more than 1 period not supported', field_names{col})
+                  ' Fieldnames %s with more than 2 periods not supported', field_names{col})
               end
             else
               if ~isempty(val)

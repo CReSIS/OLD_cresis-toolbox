@@ -36,6 +36,7 @@ file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 gps_source_to_use = 'arena';
+% gps_source_to_use = 'bas';
 
 if strcmpi(gps_source_to_use,'arena')
 %% ARENA
@@ -51,7 +52,7 @@ if strcmpi(gps_source_to_use,'arena')
 %   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
 %   sync_file_type{file_idx} = 'arena';
 %   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
-
+%   
 %   year = 2018; month = 9; day = 29;
 %   file_idx = file_idx + 1;
 %   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
@@ -63,19 +64,24 @@ if strcmpi(gps_source_to_use,'arena')
 %   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
 %   sync_file_type{file_idx} = 'arena';
 %   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
- 
+  
   year = 2018; month = 10; day = 4;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
   gps_source{file_idx} = 'arena-field';
   sync_flag{file_idx} = 1;
   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  
+  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
+
+end
+
+if strcmpi(gps_source_to_use,'bas')
+%% BAS
+
 end
 
 % ======================================================================
@@ -93,16 +99,18 @@ for idx = 1:length(file_type)
     warning('Extrapolating arena GPS data: %s', out_fn);
     gps = load(out_fn);
     
-    new_gps_time = [gps.gps_time(1)-10, gps.gps_time,gps.gps_time(end)+10];
-    gps.lat = interp1(gps.gps_time,gps.lat,new_gps_time,'linear','extrap');
-    gps.lon = interp1(gps.gps_time,gps.lon,new_gps_time,'linear','extrap');
-    gps.elev = interp1(gps.gps_time,gps.elev,new_gps_time,'linear','extrap');
-    gps.roll = interp1(gps.gps_time,gps.roll,new_gps_time,'linear','extrap');
-    gps.pitch = interp1(gps.gps_time,gps.pitch,new_gps_time,'linear','extrap');
-    gps.heading = interp1(gps.gps_time,gps.heading,new_gps_time,'linear','extrap');
-    gps.gps_time = new_gps_time;
-    
-    save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
+    if length(gps.lat) >= 2
+      new_gps_time = [gps.gps_time(1)-10, gps.gps_time,gps.gps_time(end)+10];
+      gps.lat = interp1(gps.gps_time,gps.lat,new_gps_time,'linear','extrap');
+      gps.lon = interp1(gps.gps_time,gps.lon,new_gps_time,'linear','extrap');
+      gps.elev = interp1(gps.gps_time,gps.elev,new_gps_time,'linear','extrap');
+      gps.roll = interp1(gps.gps_time,gps.roll,new_gps_time,'linear','extrap');
+      gps.pitch = interp1(gps.gps_time,gps.pitch,new_gps_time,'linear','extrap');
+      gps.heading = interp1(gps.gps_time,gps.heading,new_gps_time,'linear','extrap');
+      gps.gps_time = new_gps_time;
+      
+      save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
+    end
   end
   
   if regexpi(out_fn,'20180929')

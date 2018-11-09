@@ -7,21 +7,25 @@ function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormali
 % With 2 input arguments, it does simple coherent averaging (also known as
 % stacking or presumming).
 %
-% data = 1D row or column vector or 2D array
-%
-% If only 2 arguments and second argument is a scalar:
-%  Bfilter = scalar, amount to presum (boxcar window and then decimate)
+% data: 1D row or column vector (Nx length) or 2D array (Nt by Nx)
+% Bfilter: scalar, amount to presum (boxcar window and then decimate)
 %    boxcar window is normalized so that it is a mean (as opposed to sum)
 %    If Bfilter (the amount to presum) is less than one, then nothing
 %    happens.
 %
 % If 3 or more arguments:
-%  Bfilter = FIR filter coefficients (row vector), must be even order
+%  Bfilter: FIR filter coefficients (row vector), must be even order
 %    (i.e. odd length)
-%  dec_factor = Decimation factor to apply to the data (default is 1)
-%  start_idx = first output corresponds to this input index (default is 1)
-%  Nidxs = number of outputs (default is the max supported by the input)
-%  renormalize_en = renormalize edge effects, default is true
+%  dec_factor: Decimation factor to apply to the data (default is 1)
+%  start_idx: first output corresponds to this input index (default is 1)
+%  Nidxs: number of outputs (default is the max supported by the input)
+%  renormalize_en: renormalize edge effects, default is true
+%  phase_weights: must be a vector with Nx elements. If not empty, each
+%    output will have its inputs multiplied by the conjugate of the
+%    corresponding phase_weights with the average phase of each weight
+%    removed. This is useful for doing a simple narrow-band elevation
+%    compensation. The weights in this case can be the
+%    exp(-j*4*pi/lambda*elevation).
 %
 % Authors: John Paden
 %
