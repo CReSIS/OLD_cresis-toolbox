@@ -107,7 +107,7 @@ end
 if ~isfield(track.init,'method') || isempty(track.init.method)
   track.init.method = '';
 end
-if ~any(strcmpi(track.init.method,{'snake','medfilt','dem'}))
+if ~any(strcmpi(track.init.method,{'snake','medfilt','dem','lidar'}))
   error('Unsupported surface init method %s. Disable by setting to an empty string (default setting).', track.init.method);
 end
 if ~isfield(track.init,'max_diff') || isempty(track.init.max_diff)
@@ -505,17 +505,27 @@ for frm_idx = 1:length(param.cmd.frms)
   
   %% Track: Detrend
   if ischar(track.detrend)
-    detrend_curve = interp1(detrend.time,detrend.min_means,mdata.Time);
-    data = bsxfun(@minus,data,detrend_curve);
+    detrend_curve = interp_finite(interp1(detrend.time,interp_finite(detrend.min_means),mdata.Time),NaN);
+    if 0
+      % Debug
+      rline = 200;
+      figure(1); clf;
+      plot(data(:,rline))
+      hold on
+      mean_power = nanmean(data,2);
+      plot(mean_power)
+      plot(detrend_curve);
+      keyboard
+    end
     
   elseif track.detrend > 0
     poly_x = (-size(data,1)/2+(1:size(data,1))).';
     mean_power = nanmean(data,2);
     good_mask = isfinite(mean_power);
     p = polyfit(poly_x(good_mask),mean_power(good_mask),track.detrend);
-    poly_curve = polyval(p,poly_x);
-    poly_curve(~good_mask) = NaN;
-    poly_curve = interp_finite(poly_curve,0);
+    detrend_curve = polyval(p,poly_x);
+    detrend_curve(~good_mask) = NaN;
+    detrend_curve = interp_finite(detrend_curve,0);
     if 0
       % Debug
       rline = 200;
@@ -523,12 +533,12 @@ for frm_idx = 1:length(param.cmd.frms)
       plot(data(:,rline))
       hold on
       plot(mean_power)
-      plot(poly_curve);
+      plot(detrend_curve);
       keyboard
     end
-    data = data - repmat(poly_curve,[1 Nx]);
     
   end
+  data = bsxfun(@minus,data,detrend_curve);
   
   %% Track: Sidelobe
   if ~isempty(track.sidelobe_rows)
@@ -625,6 +635,14 @@ for frm_idx = 1:length(param.cmd.frms)
     error('Not a supported layer tracking method.');
   end
 
+  %% Track: max_diff
+  new_layer(abs(new_layer  - track.dem) > track.init.max_diff) = NaN;
+  if any(strcmpi(track.init.method,{'dem','lidar'}))
+    new_layer = merge_vectors(new_layer, track.dem);
+  else
+    new_layer = interp_finite(new_layer,NaN);
+  end
+  
   %% Track: Median filtering
   if isfield(track,'medfilt') && ~isempty(track.medfilt)
     % OLD METHOD: new_layer = medfilt1(new_layer,track.medfilt);
@@ -661,7 +679,7 @@ for frm_idx = 1:length(param.cmd.frms)
     hold on;
     plot(find(new_quality==1),Surface(new_quality==1),'g.');
     plot(find(new_quality==3),Surface(new_quality==3),'r.');
-    if isfield(track,'init') && any(strcmpi(track.init.method,{'dem','lidar'}))
+    if any(strcmpi(track.init.method,{'dem','lidar'}))
       plot(interp1(1:length(mdata.Time),mdata.Time,track.dem),'m--')
       plot(interp1(1:length(mdata.Time),mdata.Time,track.dem-track.max_diff),'r--')
       plot(interp1(1:length(mdata.Time),mdata.Time,track.dem+track.max_diff),'b--')
@@ -719,7 +737,7 @@ for frm_idx = 1:length(param.cmd.frms)
         % Update the surface auto picks
         lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
-        lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data);
+        lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
         % Append the new results back to the layerData file
         fprintf('  Saving %s (%s)\n', layer_fn, datestr(now));
         save(layer_fn,'-append','-struct','lay','layerData');

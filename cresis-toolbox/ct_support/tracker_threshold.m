@@ -89,7 +89,7 @@ if isempty(surf.threshold_noise_dB)
   if isfinite(surf.threshold_rng)
     THRESHOLD = NaN;
   else
-    THRESHOLD = surf.threshold + median(median_mdata(median_mdata ~= 0 & ~isnan(median_mdata)));
+    THRESHOLD = surf.threshold + median(median_mdata(~isnan(median_mdata)));
   end
 else
   THRESHOLD = surf.threshold + surf.threshold_noise_dB;
@@ -117,26 +117,21 @@ for rline=1:size(data,2)
   end
 end
 
-%% Do not permit thresholded surface from exceeding max_diff from initial surface
-surface(abs(surface - surf.dem) > surf.init.max_diff) = NaN;
-surface = merge_vectors(surface, surf.dem);
-
 if 0
   % Debug plot
   figure(1); clf;
   imagesc(data);
   hold on;
   plot(surf.dem,'b');
-  plot(surface,'k--','LineWidth',2);
+  plot(find(quality==1), surface(quality==1),'g.','LineWidth',2);
+  plot(find(quality==3), surface(quality==3),'r.','LineWidth',2);
   cc = caxis;
   colorbar;
   if THRESHOLD < cc(2)
-    caxis([THRESHOLD cc(2)]);
+    caxis([THRESHOLD THRESHOLD+3]);
   else
     title(sprintf('ERROR: no value in image is larger than THRESHOLD %g.', THRESHOLD));
   end
   colormap(1-gray(256));
   keyboard
-end
-
 end

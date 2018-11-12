@@ -56,8 +56,9 @@ for frm = 1:length(frames.frame_idxs)
     echogram_fn = fullfile(echogram_fn_dir, ...
       sprintf('Data_img_%02d_%s_%03d.mat',param.get_echogram_stats.echogram_img,param.day_seg,frm));
   end
+  fprintf('%s\n', echogram_fn);
   mdata = load_L1B(echogram_fn);
-  if isempty(mdata.Time)
+  if length(mdata.Time) < 2
     continue;
   end
   dt_frm = mdata.Time(2)-mdata.Time(1);
@@ -184,6 +185,11 @@ for frm = 1:length(frames.frame_idxs)
 end
 
 %% Save Results
+output_dir = fileparts(ct_filename_ct_tmp(param,'','echogram_stats',''));
+if ~exist(output_dir,'dir')
+  fprintf('Creating directory %s\n', output_dir);
+  mkdir(output_dir);
+end
 
 % detrend file
 h_fig = figure;
@@ -277,9 +283,5 @@ close(h_fig);
 % Matlab file
 mat_fn = [ct_filename_ct_tmp(param,'','echogram_stats','stats') '.mat'];
 fprintf('Saving %s\n', mat_fn);
-mat_fn_dir = fileparts(mat_fn);
-if ~exist(mat_fn_dir,'dir')
-  mkdir(mat_fn_dir);
-end
 param_get_echogram_stats = param;
 save(mat_fn,'-v7.3','param_get_echogram_stats','dt','gps_time','bins','sums','counts','min_means','all_bins','all_sums','all_counts','signal_max_vals','signal_mean_vals','noise_max_vals','noise_mean_vals','peak_wfs','SNR_wfs','SNR_bins','sidelobe_vals','sidelobe_rows','sidelobe_dB');
