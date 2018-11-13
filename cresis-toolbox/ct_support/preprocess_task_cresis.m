@@ -1054,6 +1054,7 @@ if any(param.config.file.version == [403 404 407 408])
       % will misinterpret as a numeric type
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
+    oparams{end}.records.file.boards = param.config.board_map;
     oparams{end}.records.file.version = param.config.file.version;
     oparams{end}.records.file.prefix = param.config.file.prefix;
     oparams{end}.records.file.clk = param.config.cresis.clk;
@@ -1223,6 +1224,7 @@ else
     if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
+    oparams{end}.records.file.boards = param.config.board_map;
     oparams{end}.records.file.version = param.config.file.version;
     oparams{end}.records.file.prefix = param.config.file.prefix;
     oparams{end}.records.file.clk = param.config.cresis.clk;

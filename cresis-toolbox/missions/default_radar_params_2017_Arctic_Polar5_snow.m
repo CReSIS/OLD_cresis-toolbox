@@ -45,17 +45,17 @@ default.records.gps.time_offset = 1;
 
 %% Qlook worksheet
 default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1]};
+default.qlook.imgs = {[2 1],[1 1],[1 2],[2 2]};
 default.qlook.out_path = '';
 default.qlook.block_size = 2000;
 default.qlook.motion_comp = 0;
 default.qlook.dec = 4;
 default.qlook.inc_dec = 5;
 default.qlook.surf.en = 1;
-default.qlook.surf.min_bin = 1e-6;
+default.qlook.surf.min_bin = 0;
 default.qlook.surf.method = 'threshold';
 default.qlook.surf.threshold = 17;
-default.qlook.surf.filter_len = 7;
+default.qlook.surf.filter_len = [1 7];
 default.qlook.surf.sidelobe = 19;
 default.qlook.surf.max_diff = 1.2e-7;
 default.qlook.surf.noise_rng = [100 -700 -300];
@@ -120,32 +120,33 @@ default.radar.lever_arm_fh = @lever_arm;
 chan_equal_Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
-for wf = 1:1
-  default.radar.wfs(wf).tx_weights = 1; % Watts
+for wf = 1:2
+  default.radar.wfs(wf).fmult = 16;
+  default.radar.wfs(wf).fLO = 20e9;
+  default.radar.wfs(wf).tx_weights = 0.1; % Watts
   default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
   default.radar.wfs(wf).ref_fn = '';
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).nz_trim = {[0 0],[0 2],[0 0],[0 0]};
+  default.radar.wfs(wf).adcs = [1 2];
 end
 
 %% Post worksheet
 default.post.data_dirs = {'qlook'};
 default.post.layer_dir = 'layerData';
-default.post.maps_en = 1;
+default.post.maps_en = 0;
 default.post.echo_en = 1;
 default.post.layers_en = 0;
 default.post.data_en = 0;
-default.post.csv_en = 1;
-default.post.concat_en = 1;
-default.post.pdf_en = 1;
+default.post.csv_en = 0;
+default.post.concat_en = 0;
+default.post.pdf_en = 0;
 default.post.map.location = 'Arctic';
-default.post.map.type = 'combined';
-default.post.echo.elev_comp = 2;
-default.post.echo.depth = '[min(Surface_Depth)-2 max(Surface_Depth)+25]';
+default.post.map.type = 'contour';
+default.post.echo.elev_comp = 3;
+default.post.echo.depth = '[min(Surface_Elev)-2.5 max(Surface_Elev)+4]';
 % default.post.echo.elev_comp = 3;
 % default.post.echo.depth = '[min(Surface_Elev)-25 max(Surface_Elev)+2]';
 default.post.echo.er_ice = round((1+0.51*0.3)^3 * 100)/100;
@@ -156,11 +157,13 @@ default.post.ops.location = 'arctic';
 defaults = {};
 
 % Survey Mode 2-18 GHz
-default.radar.wfs(1).f0 = 2e9;
-default.radar.wfs(1).f1 = 18e9;
-default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [2.7e9 17.5e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+for wf = 1:2
+  default.radar.wfs(wf).f0 = 2e9;
+  default.radar.wfs(wf).f1 = 18e9;
+  default.radar.wfs(wf).Tpd = 240e-6;
+  default.radar.wfs(wf).BW_window = [2.7e9 17.5e9];
+  default.radar.wfs(wf).t_ref = -0.000000040063;
+end
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 2-18 GHz';

@@ -117,6 +117,9 @@ if ~isfield(param.records.frames,'mode') || isempty(param.records.frames.mode)
   param.records.frames.mode = 0;
 end
 
+command_window_out_fn = ct_filename_ct_tmp(param,'','records', ['console.txt']);
+diary(command_window_out_fn);
+
 %% Load headers from each board
 % =====================================================================
 clear board_hdrs;
@@ -451,3 +454,7 @@ if param.records.frames.mode == 1
 elseif param.records.frames.mode == 2
   autogenerate_frames(param,param_override);
 end
+
+diary off;
+fprintf('Console output: %s\n', command_window_out_fn);
+

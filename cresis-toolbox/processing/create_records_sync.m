@@ -149,7 +149,92 @@ if any(param.records.file.version == [9 10 103 412])
   %   + double(records.raw.pps_ftime_cntr_latch)/param.records.file.clk;
   radar_time = double(records.raw.rel_time_cntr_latch)/param.records.file.clk;
   comp_time = [];
+
 else
+  %% Align/CReSIS: Create output EPRI vector
+  min_epri = inf;
+  max_epri = -inf;
+  epri_list = [];
+  for board_idx = 1:length(boards)
+    % Cluster EPRI values
+    
+    epri_raw = double(board_hdrs{board_idx}.epri);
+    
+    [A,B] = sort(epri_raw);
+    med = median(A);
+    [~,med_idx] = min(abs(A-med));
+    A = A-med;
+    dA = diff(A);
+    bad_mask = zeros(size(B));
+    bad_start_idx = find(dA(med_idx:end) > param.records.epri_jump_threshold,1);
+    if ~isempty(bad_start_idx)
+      bad_mask(med_idx+bad_start_idx:end) = true;
+    end
+    bad_start_idx = find(dA(med_idx-1:-1:1) > param.records.epri_jump_threshold,1);
+    if ~isempty(bad_start_idx)
+      bad_mask(med_idx-bad_start_idx:-1:1) = true;
+    end
+    back_idxs = 1:length(B);
+    back_idxs = back_idxs(B);
+    if sum(bad_mask) > 0
+      warning('%d of %d records show bad out of range EPRI values. max jump is %d, param.records.epri_jump_threshold is %d', sum(bad_mask), length(epri_raw), max(dA), param.records.epri_jump_threshold);
+    end
+    epri_raw = epri_raw(back_idxs(logical(~bad_mask)));
+    
+    % Remove isolated EPRI values
+    min_epri = min(min_epri,min(epri_raw));
+    max_epri = max(max_epri,max(epri_raw));
+    epri_list(end+(1:length(epri_raw))) = epri_raw;
+    diff_epri_raw = diff(epri_raw);
+    diff_epri(board_idx) = median(diff_epri_raw);
+    min_score = inf;
+    for offset = 0:diff_epri(board_idx)
+      score = sum(mod((epri_raw - offset)/diff_epri(board_idx),1) ~= 0);
+      if score < min_score
+        min_score = score;
+      end
+    end
+    if min_score > 0
+      warning('%d of %d records show slipped EPRI values.', min_score, length(epri_raw));
+    end
+  end
+  master_epri = mode(epri_list);
+  if any(diff_epri ~= diff_epri(1))
+    error('Inconsistent EPRI step size between boards. Should all be the same: %s', mat2str_generic(diff_epri));
+  end
+  epri = [fliplr(master_epri:-diff_epri(1):min_epri), master_epri+diff_epri:diff_epri:max_epri];
+  utc_time_sod = double(board_hdrs{1}.seconds) + double(board_hdrs{1}.fraction) / param.records.file.clk;
+
+  %% Align/CReSIS: Fill in missing records from each board
+  records.raw.epri = nan(size(epri));
+  records.raw.seconds = nan(size(epri));
+  records.raw.fraction = nan(size(epri));
+  for board_idx = 1:length(boards)
+    [~,out_idxs,in_idxs] = intersect(epri,board_hdrs{board_idx}.epri);
+    fprintf('Board %d is missing %d of %d records.\n', board_idx, length(epri)-length(out_idxs), length(epri));
+    
+    % offset: Missing records filled in with -2^31
+    offset = zeros(size(epri),'int32');
+    offset(:) = -2^31;
+    offset(out_idxs) = board_hdrs{board_idx}.offset(in_idxs);
+    board_hdrs{board_idx}.offset = offset;
+    
+    % file_idx: Missing records filled in with NaN
+    file_idx = nan(size(epri));
+    file_idx(out_idxs) = board_hdrs{board_idx}.file_idx(in_idxs);
+    board_hdrs{board_idx}.file_idx = interp_finite(file_idx,[],'nearest');
+    
+    % Time stamps are assumed to be the same from each board so each board
+    % just writes all of its time stamps to the output records fields.
+    records.raw.epri(out_idxs) = board_hdrs{board_idx}.epri(in_idxs);
+    records.raw.seconds(out_idxs) = board_hdrs{board_idx}.seconds(in_idxs);
+    records.raw.fraction(out_idxs) = board_hdrs{board_idx}.fraction(in_idxs);
+  end
+  records.raw.epri = interp_finite(records.raw.epri);
+  records.raw.seconds = interp_finite(records.raw.seconds);
+  records.raw.fraction = interp_finite(records.raw.fraction);
+
+  utc_time_sod = double(records.raw.seconds) + double(records.raw.fraction) / param.records.file.clk;
   comp_time = [];
 end
 
