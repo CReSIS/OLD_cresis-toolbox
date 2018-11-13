@@ -20,8 +20,6 @@ params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'
 
 %% Automated Section
 % =====================================================================
-% Create param structure array
-% =====================================================================
 % Input checking
 global gRadar;
 if exist('param_override','var')

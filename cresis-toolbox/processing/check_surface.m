@@ -19,6 +19,9 @@ function check_surface(param,param_override)
 %
 % See run_check_surface.m for how to run.
 %
+% cat /N/dcwan/projects/cresis/output/ct_tmp/check_surface/snow/2017_Greenland_P3/*.txt
+%
+%
 % Author: John Paden
 
 % =====================================================================
@@ -307,8 +310,8 @@ for lay_idx = 1:length(layers)
   end
 end
 
-% Radar twtt is already synced to radar gps time
-layers(radar_idx).twtt_ref = layers(radar_idx).twtt;
+% Throw out low quality radar data
+layers(radar_idx).twtt(layers(radar_idx).quality==3) = NaN;
 
 % Interpolate ref layer to radar gps time
 master = [];
@@ -420,15 +423,19 @@ twtt_error = twtt_error_all;
 twtt_error(abs(twtt_error) > max_twtt_diff) = NaN;
 
 mean_offset = nanmean(twtt_error);
+origin = layers(radar_idx).gps_time(1);
 
 h_fig = figure(1); clf(h_fig);
 h_axes = axes('parent',h_fig);
-plot(h_axes,layers(radar_idx).gps_time, twtt_error_all*1e9)
+plot(h_axes,layers(radar_idx).gps_time - origin, twtt_error_all*1e9)
 hold(h_axes,'on');
-plot(h_axes,layers(radar_idx).gps_time, twtt_error*1e9,'g.')
-xlabel(h_axes,'GPS time (sec since Jan 1, 1970)');
+plot(h_axes,layers(radar_idx).gps_time - origin, twtt_error*1e9,'g.')
+xlabel(h_axes,sprintf('Relative GPS time (sec from %s)', datestr(epoch_to_datenum(origin))));
 ylabel(h_axes,'TWTT error (ns)');
 grid(h_axes,'on');
+if max(twtt_error)>min(twtt_error)
+  ylim([min(twtt_error) max(twtt_error)]*1e9);
+end
 
 fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt_error');
 fprintf('Saving %s\n', fig_fn);
@@ -437,9 +444,6 @@ if ~exist(fig_fn_dir,'dir')
   mkdir(fig_fn_dir);
 end
 saveas(h_fig,[fig_fn '.fig']);
-if max(twtt_error)>min(twtt_error)
-  ylim([min(twtt_error) max(twtt_error)]);
-end
 saveas(h_fig,[fig_fn '.jpg']);
 
 % =====================================================================
@@ -531,7 +535,7 @@ if ~isempty(recs)
 end
 frms = interp1([records.gps_time(frames.frame_idxs), records.gps_time(end)+diff(records.gps_time(end-1:end))] + debug_gps_offset, ...
   [1:length(frames.frame_idxs), length(frames.frame_idxs)+1], layers(radar_idx).gps_time);
-h_plot(9) = plot(h_axes,frms, layers(radar_idx).twtt_ref*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
+h_plot(9) = plot(h_axes,frms, layers(radar_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
 legend(h_axes,h_plot([1:4 9]),'Land','Sea','Ref','Combined','Radar','location','best');
 grid(h_axes,'on');
 xlabel(h_axes,'Frame');
@@ -559,10 +563,10 @@ if ~isempty(recs)
     set(h_plot(idx+4),'Color',get(h_plot(idx),'Color'));
   end
 end
-h_plot(9) = plot(h_axes,layers(radar_idx).gps_time + debug_gps_offset - origin, layers(radar_idx).twtt_ref*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
+h_plot(9) = plot(h_axes,layers(radar_idx).gps_time + debug_gps_offset - origin, layers(radar_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
 legend(h_axes,h_plot([1:4 9]),'Land','Sea','Ref','Combined','Radar','location','best');
 grid(h_axes,'on');
-xlabel(h_axes,'GPS time (sec)');
+xlabel(h_axes,sprintf('Relative GPS time (sec from %s)', datestr(epoch_to_datenum(origin))));
 ylabel(h_axes,'TWTT (sec)');
 fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt');
 fprintf('Saving %s\n', fig_fn);

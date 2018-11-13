@@ -506,6 +506,9 @@ for frm_idx = 1:length(param.cmd.frms)
   %% Track: Detrend
   if ischar(track.detrend)
     detrend_curve = interp_finite(interp1(detrend.time,interp_finite(detrend.min_means),mdata.Time),NaN);
+    if all(isnan(detrend_curve))
+      error('Detrend curve is all NaN.');
+    end
     if 0
       % Debug
       rline = 200;

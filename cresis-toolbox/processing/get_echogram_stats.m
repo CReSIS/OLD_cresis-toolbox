@@ -56,7 +56,7 @@ for frm = 1:length(frames.frame_idxs)
     echogram_fn = fullfile(echogram_fn_dir, ...
       sprintf('Data_img_%02d_%s_%03d.mat',param.get_echogram_stats.echogram_img,param.day_seg,frm));
   end
-  fprintf('%s\n', echogram_fn);
+  fprintf('%d of %d: %s\n', frm, length(frames.frame_idxs), echogram_fn);
   mdata = load_L1B(echogram_fn);
   if length(mdata.Time) < 2
     continue;
