@@ -213,6 +213,7 @@ for state_idx = 1:length(states)
             end
             
             if param.records.file.version == 8
+              % Debug: char(file_data(rec_offset+41:rec_offset+48).')
               waveform_ID = typecast(file_data(rec_offset+41:rec_offset+48), 'uint64');
               waveform_ID_map_idx = find(waveform_ID_map == waveform_ID,1);
               if isempty(waveform_ID_map_idx)

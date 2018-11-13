@@ -93,24 +93,24 @@ if ~exist(chain_fn_dir,'dir')
   mkdir(chain_fn_dir)
 end
 
+% Build directory dependency list
+file_deps = {chain_fn};
+for chain=1:numel(ctrl_chain)
+  for stage=1:numel(ctrl_chain{chain})
+    file_deps{end+1} = ctrl_chain{chain}{stage}.batch_dir;
+  end
+end
+
 % Save the chain
-save(chain_fn,'ctrl_chain');
+save(chain_fn,'ctrl_chain','file_deps');
 
 % Return the new chain ID
 chain_id = new_chain_id;
 
 % Print information to load and run
 if print_mode
-  fprintf('Saving chain %d. Files/directories required:\n', chain_id);
-  fprintf('%s', chain_fn);
-  for chain=1:numel(ctrl_chain)
-    for stage=1:numel(ctrl_chain{chain})
-      fprintf(' %s', ctrl_chain{chain}{stage}.batch_dir);
-    end
-  end
-  fprintf('\n\n');
-  
-  fprintf('%% Commands to load and run:\n');
+  fprintf('Saving chain %d to %s\n\n\n', chain_id, chain_fn);
+  fprintf('%% Commands to load and run from any computer (chain file contains list of file dependencies):\n');
   fprintf('[ctrl_chain,chain_fn] = cluster_load_chain(%d);\n', chain_id);
   fprintf('ctrl_chain = cluster_run(ctrl_chain);\n\n');
 end

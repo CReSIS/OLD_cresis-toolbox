@@ -27,13 +27,6 @@ function [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task
 
-if ~isfield(ctrl.cluster,'submit_pause')
-  ctrl.cluster.submit_pause = 2;
-end
-if ~isfield(ctrl.cluster,'interactive')
-  ctrl.cluster.interactive = 0;
-end
-
 %% Create the temporary file names
 in_fn = ctrl.in_fn_dir;
 out_fn = ctrl.out_fn_dir;
@@ -77,8 +70,8 @@ if strcmpi(ctrl.cluster.type,'torque')
   
   % Add "qsub -m abe -M your@email.edu" to debug:
   if ctrl.cluster.interactive
-    cmd = sprintf('qsub -I %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",NUM_PROC="%d"', ...
-      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, num_proc);
+    cmd = sprintf('qsub -I %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",NUM_PROC="%d",JOB_COMPLETE_PAUSE="%d"', ...
+      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, num_proc, ctrl.cluster.job_complete_pause);
     fprintf('1. Run the command from the bash shell:\n  %s\n', cmd);
     fprintf('2. Once the interactive mode starts, run the command in the interactive shell:  %s\n', worker);
     fprintf('3. Once the job completes, exit the interactive shell which causes torque to realize the job is complete.\n');
@@ -88,8 +81,8 @@ if strcmpi(ctrl.cluster.type,'torque')
       keyboard
     end
   else
-    cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",NUM_PROC="%d" %s  </dev/null', ...
-      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, num_proc, worker);
+    cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",NUM_PROC="%d",JOB_COMPLETE_PAUSE="%d" %s  </dev/null', ...
+      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, num_proc, ctrl.cluster.job_complete_pause, worker);
     [status,result] = robust_system(cmd);
     
     [job_id_str,result_tok] = strtok(result,'.');
@@ -136,8 +129,8 @@ elseif strcmpi(ctrl.cluster.type,'slurm')
   % Insert CPU time
   submit_arguments = regexprep(submit_arguments,'%t',sprintf('%.0f',ceil(job_cpu_time/60)));  
   
-  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s" %s </dev/null', ...
-    submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, worker);
+  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",JOB_COMPLETE_PAUSE="%d" %s </dev/null', ...
+    submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, ctrl.cluster.job_complete_pause, worker);
   [status,result] = robust_system(cmd);
   
   search_str = 'Submitted batch job ';

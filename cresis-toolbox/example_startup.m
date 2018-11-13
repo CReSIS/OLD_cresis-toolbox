@@ -141,6 +141,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0.2;
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
+  profile(pidx).cluster.job_complete_pause    = 60;
  
   %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
@@ -175,6 +176,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 131754468000 / 46;
   profile(pidx).cluster.max_ppn               = 4;
+  profile(pidx).cluster.job_complete_pause    = 5;
   
   
   %% KU Desktop Profile Windows (PROFILE 5)
@@ -240,6 +242,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 1;
   profile(pidx).cluster.stat_pause            = 10;
   profile(pidx).cluster.file_check_pause      = 4;
+  profile(pidx).cluster.job_complete_pause    = 40;
   
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
   
@@ -304,6 +307,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0.2;
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
+  profile(pidx).cluster.job_complete_pause    = 5;
 
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
@@ -338,6 +342,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause            = 1;
   profile(pidx).cluster.stat_pause              = 10;
   profile(pidx).cluster.file_check_pause        = 4;
+  profile(pidx).cluster.job_complete_pause      = 30;
 
   profile(pidx).cluster.mcc                     = 'eval';
 

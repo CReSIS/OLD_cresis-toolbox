@@ -1,4 +1,4 @@
-function surface = tracker_threshold(data,surf)
+function [surface,quality] = tracker_threshold(data,surf)
 % surface = tracker_threshold(data,surf)
 %
 % data = Nt by Nx 2D matrix of nonnegative linear power values
@@ -13,7 +13,7 @@ function surface = tracker_threshold(data,surf)
 %      max bin that will be used to estimate the noise (usually these
 %      are negative such as [-50 -10] so that the noise estimate uses data
 %      before the peak).
-%  .noise_override: double scalar, use this value for the noise estimate
+%  .threshold_noise_dB: double scalar, use this value for the noise estimate
 %     rather than the value estimated from noise_rng
 %  .threshold = double scalar, relative threshold above noise estimate
 %    in log10 scale. Default is 17.
@@ -50,14 +50,11 @@ function surface = tracker_threshold(data,surf)
 if ~exist('surf','var')
   surf = struct();
 end
-if ~isfield(surf,'noise_rng') || isempty(surf.noise_rng)
-  surf.noise_rng = [0 -inf -1];
+if ~isfield(surf,'threshold_noise_rng') || isempty(surf.threshold_noise_rng)
+  surf.threshold_noise_rng = [0 -inf -1];
 end
-if ~isfield(surf,'noise_override') || isempty(surf.noise_override)
-  surf.noise_override = [];
-end
-if ~isfield(surf,'search_rng') || isempty(surf.search_rng)
-  surf.search_rng = 0;
+if ~isfield(surf,'threshold_noise_dB') || isempty(surf.threshold_noise_dB)
+  surf.threshold_noise_dB = [];
 end
 if ~isfield(surf,'threshold') || isempty(surf.threshold)
   surf.threshold = 17;
@@ -65,192 +62,76 @@ end
 if ~isfield(surf,'threshold_rng') || isempty(surf.threshold_rng)
   surf.threshold_rng = inf;
 end
-if ~isfield(surf,'sidelobe') || isempty(surf.sidelobe)
-  surf.sidelobe = 13;
-end
-if ~isfield(surf,'max_diff') || isempty(surf.max_diff)
-  surf.max_diff = inf;
-end
-if ~isfield(surf,'filter_len') || isempty(surf.filter_len)
-  surf.filter_len = [1 1];
-end
-if length(surf.filter_len) == 1
-  warning('Deprecated surf.filter_len format. Should specify 2 element vector that specifies the multilooks in [cross-track along-track].');
-  surf.filter_len = [1 surf.filter_len(1)];
-end
-if any(mod(surf.filter_len,2) == 0)
-  error('Surface filter lengths must be odd');
-end
 
-if ~isfield(surf,'min_bin') || isempty(surf.min_bin)
-  surf.min_bin = 1;
-end
-
-if ~isfield(surf,'max_bin') || isempty(surf.max_bin) || ~isfinite(surf.max_bin)
-  surf.max_bin = size(data,1);
-end
-
-if ~isfield(surf,'detrend') || isempty(surf.detrend)
-  surf.detrend = 0;
-end
-
-if ~isfield(surf,'dem')
-  % Constrain maximum search with this expected surface
-  surf.dem = [];
-end
-
-if ~isfield(surf,'init')
-  surf.init = [];
-end
-if ~isfield(surf.init,'method')
-  surf.init.method = '';
-end
-if ~any(strcmpi(surf.init.method,{'snake','medfilt','dem','lidar',''}))
-  error('Unsupported surface init method. Disable by setting to an empty string (default setting).');
-end
-
-%% Clip data according to min and max bins that surface is allowed to be in
-data = data(surf.min_bin:surf.max_bin,:);
-
-%% Filter data and convert to log domain
-surf.normalize_each_bin = false;
-if ~surf.normalize_each_bin
-  surf_data = data;
-  if surf.filter_len(1) ~= 1
-    % Multilooking in cross-track/fast-time
-    surf_data = fir_dec(surf_data.',ones(1,surf.filter_len(1))/surf.filter_len(1),1).';
-  end
-  if surf.filter_len(2) ~= 1
-    % Multilooking in along-track
-    surf_data = fir_dec(surf_data,ones(1,surf.filter_len(2))/surf.filter_len(2),1);
-  end
-  surf_data = lp(surf_data,1);
-else
-  surf_data = fir_dec(data,ones(1,surf.filter_len)/surf.filter_len,1);
-  surf_data = surf_data - repmat(mean(surf_data,2),[1 size(surf_data,2)]);
-  surf_data = lp(surf_data);
-end
-
-%% Detrend the data
-if surf.detrend > 0
-  poly_x = (-size(surf_data,1)/2+(1:size(surf_data,1))).';
-  mean_power = lp(mean(10.^(surf_data/10),2));
-  good_mask = isfinite(mean_power);
-  p = polyfit(poly_x(good_mask),mean_power(good_mask),surf.detrend);
-  surf_data = surf_data - repmat(polyval(p,poly_x),[1 size(surf_data,2)]);
-end
 
 %% Determine the threshold value using range bins specified by noise_rng
-median_mdata = zeros(1,size(surf_data,2));
-new_surface_max = zeros(1,size(surf_data,2));
-new_surface_max_val = zeros(1,size(surf_data,2));
-for rline=1:size(surf_data,2)
-  [new_surface_max_val(rline),new_surface_max(rline)] = max(surf_data(:,rline));
+median_mdata = zeros(1,size(data,2));
+for rline=1:size(data,2)
   % Remove range bins that are zero
-  good_mask = surf_data(:,rline) ~= 0;
+  good_mask = data(:,rline) ~= 0;
   % Remove range bins at start and end of record
-  good_mask(1:min(length(good_mask),find(good_mask,1)-1+surf.noise_rng(1))) = 0;
-  good_mask(max(1,find(good_mask,1,'last')+1-surf.noise_rng(1)):end) = 0;
+  good_mask(1:min(length(good_mask),find(good_mask,1)-1+surf.threshold_noise_rng(1))) = 0;
+  good_mask(max(1,find(good_mask,1,'last')+1-surf.threshold_noise_rng(1)):end) = 0;
   % Grab the specified range of bins
-  good_mask(1:min(length(good_mask),max(0,new_surface_max(rline)+surf.noise_rng(2)))) = 0;
-  good_mask(max(1,new_surface_max(rline)+surf.noise_rng(3)):end) = 0;
+  good_mask(1:min(length(good_mask),max(0,surf.dem(rline)+surf.threshold_noise_rng(2)))) = 0;
+  good_mask(max(1,surf.dem(rline)+surf.threshold_noise_rng(3)):end) = 0;
   if any(good_mask)
-    median_mdata(rline) = median(surf_data(good_mask,rline));
+    median_mdata(rline) = nanmedian(data(good_mask,rline));
   end
 end
 
-%% Create Initial Surface
-if strcmp(surf.init.method,'snake')
-  new_surface_max = tracker_snake_simple(surf_data,surf.init);
-elseif strcmp(surf.init.method,'medfilt')
-  new_surface_max = medfilt1(new_surface_max,surf.init.medfilt);
-elseif strcmp(surf.init.method,'dem')
-  if length(surf.dem) ~= size(surf_data,2)
-    error('length(surf.dem) ~= size(surf_data,2)');
-  end
-  new_surface_max(isfinite(surf.dem)) = surf.dem(isfinite(surf.dem)) - surf.min_bin + 1;
-elseif strcmp(surf.init.method,'lidar')
-  if length(surf.dem) ~= size(surf_data,2)
-    error('length(surf.dem) ~= size(surf_data,2)');
-  end
-  new_surface_max(isfinite(surf.dem)) = surf.dem(isfinite(surf.dem)) - surf.min_bin + 1;
-end
-
-if ~isempty(surf.noise_override) && all(median_mdata==0)
+if ~isempty(surf.threshold_noise_dB) && all(median_mdata==0)
   warning('Insufficient information to generate threshold since all values are zero.');
-  surface = new_surface_max;
+  surface = surf.dem;
   return
 end
-if isempty(surf.noise_override)
+if isempty(surf.threshold_noise_dB)
   if isfinite(surf.threshold_rng)
     THRESHOLD = NaN;
   else
-    THRESHOLD = surf.threshold + median(median_mdata(median_mdata ~= 0 & ~isnan(median_mdata)));
+    THRESHOLD = surf.threshold + median(median_mdata(~isnan(median_mdata)));
   end
 else
-  THRESHOLD = surf.threshold + surf.noise_override;
+  THRESHOLD = surf.threshold + surf.threshold_noise_dB;
 end
 
 %% Perform thresholding
-surface = NaN*zeros(1,size(surf_data,2));
-for rline=1:size(surf_data,2)
-  rbins = max(1,round(new_surface_max(rline) - surf.max_diff)) : min(size(surf_data,1),round(new_surface_max(rline) + surf.max_diff));
-  
+surface = NaN*zeros(1,size(data,2));
+quality = 3*ones(1,size(data,2));
+for rline=1:size(data,2)
+  rbins = max(1,round(surf.dem(rline) - surf.init.max_diff)) : min(size(data,1),round(surf.dem(rline) + surf.init.max_diff));
+
+  % Fast Sidelobe Check
   if isnan(THRESHOLD)
-    mask = median_mdata ~= 0 & (1:size(surf_data,2)) - rline <= surf.threshold_rng;
+    mask = median_mdata ~= 0 & (1:size(data,2)) - rline <= surf.threshold_rng;
     RLINE_THRESHOLD = surf.threshold + median(median_mdata(mask));
-    threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,RLINE_THRESHOLD);
+    threshold_rline = RLINE_THRESHOLD;
   else
-    threshold_rline = max(max(surf_data(:,rline))-surf.sidelobe,THRESHOLD);
+    threshold_rline = THRESHOLD;
   end
-  thresh_bin = find(surf_data(rbins,rline) > threshold_rline,1);
+  
+  thresh_bin = find(data(rbins,rline) > threshold_rline,1);
   if ~isempty(thresh_bin)
+    quality(rline) = 1;
     surface(rline) = rbins(1) - 1 + thresh_bin;
   end
 end
 
-%% Do not permit thresholded surface from exceeding max_diff from initial surface
-surface(abs(surface - new_surface_max) > surf.max_diff) = NaN;
-if any(strcmp(surf.init.method,{'dem','lidar'}))
-  surface = merge_vectors(surface, new_surface_max);
-else
-  surface = interp_finite(surface,0);
-  if all(surface == 0)
-    surface = new_surface_max;
-  end
-end
-
-if (length(surf.search_rng) > 1 || surf.search_rng ~= 0)
-  if 1
-    % Find the next peak after the threshold
-    for rline = 1:size(surf_data,2)
-      search_bins = round(surface(rline)) + surf.search_rng;
-      search_bins = search_bins(find(search_bins >= 1 & search_bins <= size(surf_data,1)));
-      %offset = find(diff(surf_data(search_bins,rline)) < 0,1);
-      [~,offset] = max(surf_data(search_bins,rline));
-      if ~isempty(offset)
-        surface(rline) = search_bins(offset);
-      end
-    end
-  end
-end
-surface = surface + surf.min_bin - 1;
-
 if 0
   % Debug plot
-  surf_plot = surface - surf.min_bin;
   figure(1); clf;
-  imagesc(surf_data);
+  imagesc(data);
   hold on;
-  plot(new_surface_max,'b');
-  plot(surf_plot,'k','LineWidth',2);
-  ylims = [min(min(surf_plot),min(new_surface_max)) max(max(surf_plot),max(new_surface_max))];
-  ylims = ylims + diff(ylims)*[-0.1 0.1];
-  ylim(ylims)
+  plot(surf.dem,'b');
+  plot(find(quality==1), surface(quality==1),'g.','LineWidth',2);
+  plot(find(quality==3), surface(quality==3),'r.','LineWidth',2);
   cc = caxis;
-  caxis([THRESHOLD-20 cc(2)]);
+  colorbar;
+  if THRESHOLD < cc(2)
+    caxis([THRESHOLD THRESHOLD+3]);
+  else
+    title(sprintf('ERROR: no value in image is larger than THRESHOLD %g.', THRESHOLD));
+  end
   colormap(1-gray(256));
   keyboard
-end
-
 end

@@ -129,7 +129,7 @@ if ~isfield(param.qlook,'surf_layer') || isempty(param.qlook.surf_layer)
   param.qlook.surf_layer.name = 'surface';
   param.qlook.surf_layer.source = 'layerData';
 end
-% Never check for the existence of files
+% Never check for the existence of layers
 param.qlook.surf_layer.existence_check = false;
 
 if ~isfield(param.records,'gps') || isempty(param.records.gps)
@@ -150,6 +150,9 @@ end
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');
+if ~exist(records_fn)
+  error('You must run create the records file before running anything else:\n  %s', records_fn);
+end
 records = load(records_fn);
 
 % Quick look radar echogram output directory
@@ -180,7 +183,7 @@ qlook_out_dir = ct_filename_out(param, param.qlook.out_path);
 %   param.qlook.coh_noise_params = tmp.param_collate;
 % end
 
-%% Create and setup the cluster batch
+%% Setup cluster
 % =====================================================================
 ctrl = cluster_new_batch(param);
 cluster_compile({'qlook_task.m','qlook_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
@@ -205,7 +208,9 @@ else
   
 end
 
-%% Load data and create qlook cluster tasks
+ctrl_chain = {};
+
+%% Block: Create tasks
 % =====================================================================
 %
 % For each frame load REC_BLOCK_SIZE records at a time (code groups
@@ -227,6 +232,25 @@ for frm_idx = 1:length(param.cmd.frms)
   else
     fprintf('Skipping %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
+  end
+  
+  % Create combine_file_success for this frame only which is used for
+  % rerun_only==true checks
+  if ctrl.cluster.rerun_only
+    combine_file_success = {};
+    if length(param.qlook.imgs) > 2
+      for img = 1:length(param.qlook.imgs)
+        out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+          img, param.day_seg, frm));
+        combine_file_success{end+1} = out_fn;
+      end
+    end
+    if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
+      % A combined file should be created
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+        param.day_seg, frm));
+      combine_file_success{end+1} = out_fn;
+    end
   end
   
   % Create output directory name
@@ -284,36 +308,18 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Create success condition
     % =================================================================
-    dparam.success = '';
     for img = 1:length(param.qlook.imgs)
       out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end));
       out_fn{img} = fullfile(out_fn_dir,out_fn_name);
       if img == 1
-        dparam.success = cat(2,dparam.success, ...
-          sprintf('if ~exist(''%s'',''file'')', out_fn{img}));
+        dparam.file_success = out_fn(img);
       else
-        dparam.success = cat(2,dparam.success, ...
-          sprintf(' || ~exist(''%s'',''file'')', out_fn{img}));
+        dparam.file_success{end+1} = out_fn{img};
       end
       if ~ctrl.cluster.rerun_only && exist(out_fn{img},'file')
         delete(out_fn{img});
       end
     end
-    dparam.success = cat(2,dparam.success,sprintf('\n'));
-    if 0
-      % Enable this check if you want to open each output file to make
-      % sure it is not corrupt.
-      for img = 1:length(param.qlook.imgs)
-        out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end));
-        out_fn{img} = fullfile(out_fn_dir,out_fn_name);
-        dparam.success = cat(2,dparam.success, ...
-          sprintf('  load(''%s'');\n', out_fn{img}));
-      end
-    end
-    success_error = 64;
-    dparam.success = cat(2,dparam.success, ...
-      sprintf('  error_mask = bitor(error_mask,%d);\n', success_error));
-    dparam.success = cat(2,dparam.success,sprintf('end;\n'));
     
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
@@ -321,11 +327,10 @@ for frm_idx = 1:length(param.cmd.frms)
       sparam.task_function, param.radar_name, param.season_name, out_path_dir, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
       block_idx, length(blocks), cur_recs(1), cur_recs(end));
     if ctrl.cluster.rerun_only
-      % If we are in rerun only mode AND the get heights task success
-      % condition passes without error, then we do not run the task.
-      error_mask = 0;
-      eval(dparam.success);
-      if ~error_mask
+      % If we are in rerun only mode AND the qlook task file success
+      % condition passes without error (or the combined file passes),
+      % then we do not run the task.
+      if ~cluster_file_success(dparam.file_success) || ~cluster_file_success(combine_file_success)
         fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
           dparam.notes, datestr(now));
         continue;
@@ -383,10 +388,10 @@ end
 
 ctrl = cluster_save_dparam(ctrl);
 
-ctrl_chain = {ctrl};
+ctrl_chain{end+1} = ctrl;
 
 
-%% Create and setup the combine batch
+%% Combine: Create combine task
 % =====================================================================
 ctrl = cluster_new_batch(param);
 if param.qlook.surf.en && strcmpi(param.qlook.surf_layer.source,'records')
@@ -445,17 +450,31 @@ end
 sparam.notes = sprintf('%s:%s:%s:%s %s', ...
   sparam.task_function, param.radar_name, param.season_name, out_path_dir, param.day_seg);
 
-% Create success condition
-success_error = 64;
-sparam.success = '';
+% Create success critera
+sparam.file_success = {};
 for frm = param.cmd.frms
-  out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
-  out_fn = fullfile(qlook_out_dir,out_fn_name);
-  sparam.success = cat(2,sparam.success, ...
-    sprintf('  error_mask = bitor(error_mask,%d*~ct_file_lock_check(''%s'',4));\n', success_error, out_fn));
-  if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-    ct_file_lock_check(out_fn,3);
+  if length(param.qlook.imgs) > 2
+    for img = 1:length(param.qlook.imgs)
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+        img, param.day_seg, frm));
+      sparam.file_success{end+1} = out_fn;
+      if ~ctrl.cluster.rerun_only
+        % Mark file for deletion
+        ct_file_lock_check(out_fn,3);
+      end
+    end
   end
+  if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
+    % A combined file should be created
+    out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+    sparam.file_success{end+1} = out_fn;
+    if ~ctrl.cluster.rerun_only
+      % Mark file for deletion
+      ct_file_lock_check(out_fn,3);
+    end
+  end
+  
 end
 
 ctrl = cluster_new_task(ctrl,sparam,[]);

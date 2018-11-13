@@ -1,38 +1,86 @@
-function mean_val = mean_without_outliers(vals, std_threshold)
-% mean_val = mean_without_outliers(vals, std_threshold)
+function m = mean_without_outliers(x, num_stddev, percent, dim)
+% m = mean_without_outliers(x, num_stddev, percent, dim)
 %
-% vals is an array of values, operates on first non-singleton dimension
-%   NaN values are ignored
+% Finds the mean of x without outliers. Similar to Matlab's trimmean
 %
-% Uses median filter and standard deviation based threshold to cull bad
-% values and take the mean of the good values only.
+% 1. Removes ~isfinite elements of x and elements defined by percent
+% 2. Finds the median, uses this to calculate the standard deviation instead
+% of the mean
+% 3. Removes elements of x that are num_stddev standard deviations out from
+% the median.
+% 4. Finds the mean of the remaining elements
+%
+% x: array of values, operates on first non-singleton dimension, ~isfinite
+%   are ignored
+% percent: value from 0 to 1, this fraction of elements on top and bottom
+%   will be removed, default is 0.1
+% num_stddev: threhold to remove elements, number of standard deviations
+%   about the median to remove elements, default is 1
+%
+% Examples:
+%
+% mean([1 1 1 1 2 2 2 3 3 3])
+% x = [1 1 1 1 2 2 2 1000 3 3 3;1 1 1 1 2 2 2 1000 3 3 3];
+% m = mean_without_outliers(x, 1, 0, 2)
+% 
+% x = [-20 1 1 1 1 2 2 2 1000 3 3 3;-20 1 1 1 1 2 2 2 1000 3 3 3];
+% m = mean_without_outliers(x, 1, 0, 2)
+% 
+% x = [-20 1 1 1 1 2 2 2 1000 3 3 3;-20 1 1 1 1 2 2 2 1000 3 3 3];
+% m = mean_without_outliers(x, 1, 0.2, 2)
+% 
+% x = [-20 1 1 1 1 2 2 2 1000 3 3 3;-20 1 1 1 1 2 2 2 1000 3 3 3].';
+% m = mean_without_outliers(x, 1, 0.2)
 %
 % Author: John Paden
 
-if ~exist('std_threshold','var')
-  std_threshold = 2;
+%% Check Inputs
+if ~exist('num_stddev','var')
+  num_stddev = 2;
 end
 
-median_vals = median(vals);
-std_vals = std(vals);
-
-dim = find(size(vals) > 1,1);
-if isempty(dim)
-  mean_val = vals;
+if ~exist('percent','var') || isempty(percent)
+  percent = 0;
 end
 
-repmat_size = ones(size(size(vals)));
-repmat_size(dim) = size(vals,dim);
-
-std_vals(std_vals == 0) = inf;
-good_mask = abs(vals - repmat(median_vals,repmat_size)) < repmat(std_vals,repmat_size) * std_threshold;
-
-vals(~good_mask) = NaN;
-
-% 2011 Matlab does not support nanmean
-%mean_val = nanmean(vals,dim);
-vals_nan = isnan(vals);
-vals(vals_nan) = 0;
-mean_val = sum(vals,dim) ./ sum(~vals_nan,dim);
-
+if isempty(x)
+  m = NaN;
+  return;
 end
+
+dims = size(x);
+if ~exist('dim','var') || isempty(dim)
+  dim = find(dims > 1,1);
+end
+
+%% Calculate mean without outliers
+
+% Permute dimension to operate on to the first dimension
+permute_idxs = 1:size(dims,2);
+permute_idxs([1 dim]) = permute_idxs([dim 1]);
+x = permute(x, permute_idxs);
+
+% Remove ~isfinite values
+x(~isfinite(x)) = NaN;
+
+% Remove percent outliers
+if percent ~= 0
+  median_x = nanmedian(x,1);
+  dist_median = abs(bsxfun(@minus,x,median_x)).^2;
+  [~,dist_idxs] = sort(dist_median,1);
+  x = x(dist_idxs);
+  x(end-round(percent*size(x,1))+1 : end, :) = NaN;
+end
+
+% Remove standard deviation outliers
+median_x = nanmedian(x,1);
+x_zeromean = abs(bsxfun(@minus,x,median_x)).^2;
+var_x = mean(x_zeromean,1);
+
+x(bsxfun(@gt, x_zeromean, num_stddev^2 * var_x)) = NaN;
+
+m = nanmean(x,1);
+
+% Permute matrix back to original form
+m = permute(m, permute_idxs);
+

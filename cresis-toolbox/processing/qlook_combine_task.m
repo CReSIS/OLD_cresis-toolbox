@@ -54,6 +54,32 @@ qlook_out_dir = ct_filename_out(param, param.qlook.out_path, 'CSARP_qlook');
 for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
+  outputs_done = true;
+  for img = 1:length(param.qlook.imgs)
+    if length(param.qlook.imgs) == 1
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+        param.day_seg, frm));
+    else
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+        img, param.day_seg, frm));
+    end
+    if ~ct_file_lock_check(out_fn,4)
+      outputs_done = false;
+    end
+  end
+  if length(param.qlook.imgs) > 1
+    out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+
+    if ~ct_file_lock_check(out_fn,4)
+      outputs_done = false;
+    end
+  end
+  if outputs_done
+    fprintf('Done, skipping %s\n', out_fn);
+    continue;
+  end
+  
   % Check digits of proc_mode from frames file and make sure the user has
   % specified to process this frame type
   if ct_proc_frame(frames.proc_mode(frm),param.qlook.frm_types)
@@ -289,31 +315,86 @@ for frm_idx = 1:length(param.cmd.frms);
     surf_layer.twtt = Surface;
   end
   
-  %% Combine images into a single image (also trim time<0 values)
-  [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
-  
   %% Save combined image output
-  out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
-    param.day_seg, frm));
-  fprintf('  Writing output to %s\n', out_fn);
-  Data = single(Data);
-  if isempty(custom)
-    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-      'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-      'param_qlook','param_records','file_version');
+  if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
+    % A combined file should be created
+    out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
   else
-    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-      'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
-      'param_qlook','param_records','file_version','custom');
+    % Store the result in img 1 since a combined file is not created
+    img = 1;
+    out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+      img, param.day_seg, frm));
+  end
+  fprintf('  Writing output to %s\n', out_fn);
+  
+  if num_imgs == 1 && Time(1) > 0
+    if param.qlook.surf.en
+      % No images were combined, therefore the data is unchanged and we can
+      % just update the Surface variable.
+      save(out_fn,'-append','Surface');
+    end
+    
+  else
+    % Combine images into a single image (also trim time<0 values)
+    [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
+    
+    Data = single(Data);
+    if isempty(custom)
+      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+        'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
+        'param_qlook','param_records','file_version');
+    else
+      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+        'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
+        'param_qlook','param_records','file_version','custom');
+    end
   end
   
+  
+  %% Delete temporary files now that all combined files are created
+  for img = 1:length(param.qlook.imgs)
+    % Determine where breaks in processing blocks are going to occur
+    block_size = param.qlook.block_size(1);
+    blocks = 1:block_size:length(recs)-0.5*block_size;
+    if isempty(blocks)
+      blocks = 1;
+    end
+    
+    % Load each block
+    for block_idx = 1:length(blocks)
+      
+      % Determine the records for this block
+      if block_idx < length(blocks)
+        cur_recs_keep = [recs(blocks(block_idx)) recs(blocks(block_idx+1)-1)];
+      else
+        cur_recs_keep = [recs(blocks(block_idx)) recs(end)];
+      end
+      
+      in_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
+      in_fn = fullfile(in_fn_dir,in_fn_name);
+      
+      delete(in_fn);
+    end
+  end
+  rmdir(in_fn_dir);
+  
 end
+
 
 %% Optionally store surface layer to disk
 if param.qlook.surf.en
   if ~param.records.gps.en
     warning('Surface tracking param.qlook.surf.en is not done when param.records.gps.en is false.');
   else
+    if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
+      % A combined file should be created
+      echogram_source_img = 0;
+    else
+      % Store the result in img 1 since a combined file is not created
+      echogram_source_img = 1;
+    end
+    
     % Read the "Surface" variable from all the frames that were created
     % by this particular run of qlook
     
@@ -321,12 +402,14 @@ if param.qlook.surf.en
     copy_param.layer_source.source = 'echogram';
     copy_param.layer_source.echogram_source = param.qlook.out_path;
     copy_param.layer_source.existence_check = false;
+    copy_param.layer_source.echogram_source_img = echogram_source_img;
     
     copy_param.layer_dest = param.qlook.surf_layer;
     if strcmpi(param.qlook.surf_layer.source,'layerdata')
       copy_param.layer_dest.echogram_source = param.qlook.out_path;
     end
     copy_param.layer_dest.existence_check = false;
+    copy_param.layer_dest.echogram_source_img = echogram_source_img;
     
     copy_param.copy_method = 'overwrite';
     copy_param.gaps_fill.method = 'interp_finite';

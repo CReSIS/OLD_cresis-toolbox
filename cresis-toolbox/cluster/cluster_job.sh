@@ -117,6 +117,13 @@ done
 
 echo "  cluster_job.{sh,m} Done" "attempts:"$attempt "max_attempts:"$max_attempts "("`date`")"
 date
-sleep 30 # Wait for file writes to take place and be available in file system metadata (seems to be necessary for high performance file systems)
+
+if [[ -z $JOB_COMPLETE_PAUSE ]]
+then
+  JOB_COMPLETE_PAUSE=5
+fi
+
+echo sleep $JOB_COMPLETE_PAUSE
+sleep $JOB_COMPLETE_PAUSE # Wait for file writes to take place and be available in file system metadata (seems to be necessary for high performance file systems)
 
 exit $return_value

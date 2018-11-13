@@ -20,8 +20,9 @@ function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam,varargin)
 %    default is '' (nothing is written out)
 %  .cpu_time: maximum cpu time of this task in seconds
 %  .mem: maximum memory usage of this task in bytes (default is 0)
-%  .success: string to be evaluated by "eval" to determine task success
-%    (default is 'success=1;')
+%  .file_success: cell array of files that must exist to determine the
+%    task a success. If the file is a .mat file, then it must have the
+%    file_version variable and not be marked for deletion.
 % dparam: Dynamic arguments to task (will be merged with sparam when the
 %   task runs).
 %
@@ -73,6 +74,9 @@ if ~isfield(sparam,'mem') || isempty(sparam.mem)
 end
 if ~isfield(sparam,'success') || isempty(sparam.success)
   sparam.success = '';
+end
+if ~isfield(sparam,'file_success') || isempty(sparam.file_success)
+  sparam.file_success = {};
 end
 sparam.file_version = ctrl.cluster.file_version;
   
@@ -144,6 +148,7 @@ ctrl.notes{end+1} = param.notes;
 ctrl.cpu_time(end+1) = param.cpu_time;
 ctrl.mem(end+1) = param.mem;
 ctrl.success{end+1} = param.success;
+ctrl.file_success{end+1} = param.file_success;
 ctrl.cpu_time_actual(end+1) = -1;
 
 %% Write new task ID to task_id file

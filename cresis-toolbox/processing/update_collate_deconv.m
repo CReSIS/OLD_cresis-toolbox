@@ -81,9 +81,18 @@ for img = param.update_collate_deconv.imgs
     fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
     if exist(fn,'file')
-      new_file = false;
       deconv = load(fn,'param_collate_deconv','param_analysis','param_records');
-      deconv_lib = load(fn);
+      if ~isfield(deconv,'param_collate_deconv') || isempty(deconv.param_collate_deconv) ...
+         || ~isfield(deconv,'param_analysis') || isempty(deconv.param_analysis) ...
+         || ~isfield(deconv,'param_records') || isempty(deconv.param_records)
+        new_file = true;
+        deconv = [];
+        deconv_lib = [];
+        fprintf('  Does not exist.\n');
+      else
+        new_file = false;
+        deconv_lib = load(fn);
+      end
     else
       new_file = true;
       deconv = [];

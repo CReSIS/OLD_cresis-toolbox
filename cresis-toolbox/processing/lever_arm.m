@@ -1807,11 +1807,20 @@ end
 % Amplitude (not power) weightings for transmit side.
 A = tx_weights;
 magsum       = sum(A);
-
-% Weighted average of Xb, Yb and Zb components
-LAtx_pc(1,1)    = dot(LAtx(1,:),A)/magsum;
-LAtx_pc(2,1)    = dot(LAtx(2,:),A)/magsum;
-LAtx_pc(3,1)    = dot(LAtx(3,:),A)/magsum;
+if magsum == 0
+  % A == 0 meaning transmitters are disabled, technically no transmit phase
+  % center in this case (e.g. if collecting noise data). Handle this
+  % special case by just taking the average of all the transmitter
+  % locations in order to avoid getting NaN positions.
+  LAtx_pc(1,1)    = mean(LAtx(1,:),2);
+  LAtx_pc(2,1)    = mean(LAtx(2,:),2);
+  LAtx_pc(3,1)    = mean(LAtx(3,:),2);
+else
+  % Weighted average of Xb, Yb and Zb components
+  LAtx_pc(1,1)    = dot(LAtx(1,:),A)/magsum;
+  LAtx_pc(2,1)    = dot(LAtx(2,:),A)/magsum;
+  LAtx_pc(3,1)    = dot(LAtx(3,:),A)/magsum;
+end
 
 phase_center = (mean(LArx(:,rxchannel),2) + LAtx_pc)./2;
 

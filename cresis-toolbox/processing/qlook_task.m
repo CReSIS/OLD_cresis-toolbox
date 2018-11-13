@@ -291,8 +291,13 @@ for img = 1:length(param.load.imgs)
   end
   param_qlook = param;
   custom = hdr.custom;
+  if param.ct_file_lock
+    file_version = '1L';
+  else
+    file_version = '1';
+  end
   save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
-    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'custom');
+    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'custom','file_version');
 end
 
 %% Done

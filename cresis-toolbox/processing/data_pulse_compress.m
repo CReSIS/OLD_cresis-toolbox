@@ -99,19 +99,6 @@ for img = 1:length(param.load.imgs)
         tmp = netcdf_to_mat(cdf_fn,[],'^param_analysis');
         noise.param_analysis = tmp.param_analysis;
         
-        %         dt = hdr.time{img}(2)-hdr.time{img}(1);
-        %         if abs(noise.dt-dt)/dt > 1e-6
-        %           error('There is a fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g).', dt, noise.dt);
-        %         end
-        % Adjust coherent noise start_bin for changes in t_ref relative to
-        % when the coherent noise was loaded and estimated.
-        %         delta_t_ref_bin = (noise.param_analysis.radar.wfs(wf).t_ref - wfs(wf).t_ref)/dt;
-        %         if abs(round(delta_t_ref_bin)-delta_t_ref_bin) > 1e-3
-        %           error('There is a fast-time reference time delay discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g). Changes in t_ref require recreating the coherent noise file or the changes must be a multiple of a time bin (%g).', ...
-        %             wfs(wf).t_ref, noise.param_analysis.radar.wfs(wf).t_ref, dt);
-        %         end
-        %         start_bin = round(hdr.time{img}(1)/dt) + delta_t_ref_bin;
-        
         % Nt by Nx_dft matrix (we grab a subset of the Nt samples)
         noise.dft = ncread(cdf_fn,'dftI') ...
           + 1i*ncread(cdf_fn,'dftQ');
@@ -120,7 +107,7 @@ for img = 1:length(param.load.imgs)
         % when the coherent noise was loaded and estimated.
         noise.dft = noise.dft * 10.^((wfs(wf).adc_gains_dB(adc)-noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
         
-        recs = interp1(noise.gps_time, noise.recs, hdr.gps_time);
+        recs = interp1(noise.gps_time, noise.recs, hdr.gps_time, 'linear', 'extrap');
         
         %         if 0
         %           imagesc(lp( bsxfun(@minus, data{1}(1:wfs(wf).Nt,:), mean(data{1}(1:wfs(wf).Nt,:),2) )  ))
@@ -511,9 +498,34 @@ for img = 1:length(param.load.imgs)
               df = 1/T;
               cn.freq = fc + df * ifftshift(-floor(Nt/2) : floor((Nt-1)/2)).';
               
+              % cn.deskew: handled differently below
+              % cn.deskew_shift: handled differently below
+              cn.time_correction = exp(1i*2*pi*cn.freq*cn.time_correction);
+              
+              
+              % Handle changes between when the noise file was created and
+              % this current processing.
+              % 1. Check for a fast-time sample interval discrepancy
+              if abs(noise.dt-cn.dt)/cn.dt > 1e-6
+                error('There is a fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g).', dt, noise.dt);
+              end
+              % 2. Ensure that the t_ref difference is a multiple of cn.dt
+              %    when the coherent noise was loaded and estimated.
+              delta_t_ref_bin = (noise.param_analysis.radar.wfs(wf).t_ref - wfs(wf).t_ref)/cn.dt;
+              if abs(round(delta_t_ref_bin)-delta_t_ref_bin) > 1e-3
+                error('There is a fast-time reference time delay discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g). Changes in t_ref require recreating the coherent noise file or the changes must be a multiple of a time bin (%g).', ...
+                  wfs(wf).t_ref, noise.param_analysis.radar.wfs(wf).t_ref, cn.dt);
+              end
+              delta_t_ref_bin = round(delta_t_ref_bin);
+              
+              % Apply a time correction so the deskew matches the original
+              % time axis used when the noise data were estimated. Only the
+              % deskew is different, the cn.time_correction is required to not
+              % change or else a new noise file is required.
+              cn.time = cn.time + delta_t_ref_bin * cn.dt;
+              
               cn.deskew = exp(-1i*pi*wfs(wf).chirp_rate*(cn.time-wfs(wf).td_mean).^2);
               cn.deskew_shift = 1i*2*pi*(0:Nt_raw_trim-1).'/Nt_raw_trim;
-              cn.time_correction = exp(1i*2*pi*cn.freq*cn.time_correction);
             end
           end
           
@@ -586,17 +598,7 @@ for img = 1:length(param.load.imgs)
               cn.tmp = -cn.tmp .* cn.deskew;
               cn.tmp(end) = 0;
             else
-              if abs(noise.dt-cn.dt)/cn.dt > 1e-6
-                error('There is a fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g).', dt, noise.dt);
-              end
-              % Adjust coherent noise start_bin for changes in t_ref relative to
-              % when the coherent noise was loaded and estimated.
-              delta_t_ref_bin = (noise.param_analysis.radar.wfs(wf).t_ref - wfs(wf).t_ref)/cn.dt;
-              if abs(round(delta_t_ref_bin)-delta_t_ref_bin) > 1e-3
-                error('There is a fast-time reference time delay discrepancy between the current processing settings (%g) and those used to generate the coherent noise file (%g). Changes in t_ref require recreating the coherent noise file or the changes must be a multiple of a time bin (%g).', ...
-                  wfs(wf).t_ref, noise.param_analysis.radar.wfs(wf).t_ref, cn.dt);
-              end
-              start_bin = 1 + round(cn.time(1)/cn.dt) - noise.start_bin + delta_t_ref_bin;
+              start_bin = 1 + round(cn.time(1)/cn.dt) - noise.start_bin;
               cn.tmp = cn.data(start_bin + (0:length(cn.time)-2),rec);
               cn.tmp(end+1) = 0;
             end
@@ -665,6 +667,12 @@ for img = 1:length(param.load.imgs)
               if p~=q
                 tmp = resample(tmp,p,q);
               end
+              
+            % 4: If only the delta t_ref is different,  then invert the
+            %    coherent noise deskew and then apply the new deskew.
+            elseif delta_t_ref_bin ~= 0
+              %
+              tmp = tmp ./ cn.deskew .* deskew;
             end
             
           else

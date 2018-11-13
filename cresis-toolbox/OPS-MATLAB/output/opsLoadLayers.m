@@ -65,12 +65,21 @@ function layers = opsLoadLayers(param, layer_params)
 %
 % See also: runOpsLoadLayers.m
 
+%% Input checks
+
 if ~isfield(param,'debug') || isempty(param.debug)
   param.debug = false;
 end
 
 if ~isfield(param,'records')
   param.records = [];
+end
+
+for layer_idx = 1:length(layer_params)
+  if ~isfield(layer_params,'echogram_source_img') || isempty(layer_params(layer_idx).echogram_source_img)
+    % Default is a combined file Data_YYYYMMDD_SS.mat
+    layer_params(layer_idx).echogram_source_img = 0;
+  end
 end
 
 physical_constants;
@@ -248,8 +257,13 @@ for frm_idx = 1:length(param.cmd.frms)
     
     %% Load Echogram Data
     if strcmpi(layer_param.source,'echogram')
-      data_fn = fullfile(ct_filename_out(param,layer_param.echogram_source,''), ...
-        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+      if layer_param.echogram_source_img == 0
+        data_fn = fullfile(ct_filename_out(param,layer_param.echogram_source,''), ...
+          sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+      else
+        data_fn = fullfile(ct_filename_out(param,layer_param.echogram_source,''), ...
+          sprintf('Data_img_%02d_%s_%03d.mat', layer_param.echogram_source_img, param.day_seg, frm));
+      end
       
       if ~exist(data_fn,'file')
         if layer_param.existence_check
@@ -270,7 +284,11 @@ for frm_idx = 1:length(param.cmd.frms)
       end
       
       % Load data
-      mdata = load(data_fn,echogram_layer_name,'GPS_time','Elevation','Latitude','Longitude');
+      warning off;
+      mdata = load(data_fn,echogram_layer_name,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
+        'Elevation_Correction','Truncate_Bins','Time');
+      warning on;
+      mdata = uncompress_echogram(mdata);
       
       % Remove data that is not contained within frame boundaries
       frms_mask = logical(zeros(size(mdata.GPS_time)));
@@ -329,8 +347,13 @@ for frm_idx = 1:length(param.cmd.frms)
           
           % Load the echogram
           echogram_fn_dir = ct_filename_out(param,layer_param.echogram_source);
-          echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_%s_%03d.mat', ...
-            param.day_seg, frm));
+          if layer_param.echogram_source_img == 0
+            echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_%s_%03d.mat', ...
+              param.day_seg, frm));
+          else
+            echogram_fn = fullfile(echogram_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+              layer_param.echogram_source_img, param.day_seg, frm));
+          end
           if ~exist(echogram_fn,'file')
             if layer_param.existence_check
               error('Echogram file %s does not exist', echogram_fn);
@@ -340,35 +363,35 @@ for frm_idx = 1:length(param.cmd.frms)
             end
           end
           warning off;
-          lyr = load(echogram_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
+          lay = load(echogram_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
             'Elevation_Correction','Truncate_Bins','Time');
           warning on;
-          lyr = uncompress_echogram(lyr);
-          Nx = length(lyr.GPS_time);
+          lay = uncompress_echogram(lay);
+          Nx = length(lay.GPS_time);
 
           % Create the layer structure
           for lay_idx = 1:2
             % Manually picked points
             %  inf/nan: no pick
             %  finite: propagation time to target
-            lyr.layerData{lay_idx}.value{1}.data ...
+            lay.layerData{lay_idx}.value{1}.data ...
               = inf*ones(1,Nx);
             % Automatically generated points
             %  inf/nan: no pick
             %  finite: propagation time to target
-            if lay_idx == 1 && isfield(lyr,'Surface')
-              lyr.layerData{lay_idx}.value{2}.data = lyr.Surface;
-            elseif lay_idx == 2 && isfield(lyr,'Bottom')
-              lyr.layerData{lay_idx}.value{2}.data = lyr.Bottom;
+            if lay_idx == 1 && isfield(lay,'Surface')
+              lay.layerData{lay_idx}.value{2}.data = lay.Surface;
+            elseif lay_idx == 2 && isfield(lay,'Bottom')
+              lay.layerData{lay_idx}.value{2}.data = lay.Bottom;
             else
-              lyr.layerData{lay_idx}.value{2}.data ...
+              lay.layerData{lay_idx}.value{2}.data ...
                 = inf*ones(1,Nx);
             end
             % Quality control level
             %  1: good
             %  2: moderate
             %  3: derived
-            lyr.layerData{lay_idx}.quality ...
+            lay.layerData{lay_idx}.quality ...
               = ones(1,Nx);
           end
 
@@ -376,7 +399,7 @@ for frm_idx = 1:length(param.cmd.frms)
           if ~exist(layer_fn_dir,'dir')
             mkdir(layer_fn_dir);
           end
-          save(layer_fn,'-v6','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
+          save(layer_fn,'-v6','-struct','lay','layerData','Latitude','Longitude','Elevation','GPS_time');
 
         elseif layer_param.existence_check
           error('Layer file %s does not exist', layer_fn);

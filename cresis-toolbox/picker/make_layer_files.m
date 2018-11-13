@@ -181,7 +181,7 @@ for frm_idx = 1:length(param.cmd.frms)
       
       if param.make_layer_files.save_changes
         fprintf('    Update: %s\n', out_fn);
-        save(out_fn,'-v6','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
+        save(out_fn,'-v7.3','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
       else
         fprintf('  Not saving information (TEST MODE)\n');
       end
@@ -191,7 +191,7 @@ for frm_idx = 1:length(param.cmd.frms)
   else
     if param.make_layer_files.save_changes
       fprintf('    New: %s\n', out_fn);
-      save(out_fn,'-v6','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
+      save(out_fn,'-v7.3','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
     else
       fprintf('  Not saving information (TEST MODE)\n');
     end
