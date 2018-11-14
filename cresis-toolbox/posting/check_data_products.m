@@ -1,7 +1,7 @@
 % script check_data_products
 %
-% Script for checking non-RDS data products (needs to be modified to fully
-% support RDS data products).  Lists missing and extra files.
+% Script for checking data products.  Lists missing and extra files.
+% Optionally deletes extra files.
 %
 % Example:
 %   See run_check_data_products.m for how to run.
@@ -11,6 +11,13 @@
 %% Automated Section
 
 %% Check that only good files are present in each directory
+
+command_window_out_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','check_data_products', sprintf('console_%s.txt',datestr(now,'YYYYmmDD_HHMMSS')));
+command_window_out_fn_dir = fileparts(command_window_out_fn);
+if ~exist(command_window_out_fn_dir,'dir')
+  mkdir(command_window_out_fn_dir);
+end
+diary(command_window_out_fn);
 
 if check_for_bad_files
   % Check support (gps, frames, records) directories
@@ -406,3 +413,5 @@ for param_idx = 1:length(params)
   end
 end
 
+diary off;
+fprintf('Console output: %s\n', command_window_out_fn);

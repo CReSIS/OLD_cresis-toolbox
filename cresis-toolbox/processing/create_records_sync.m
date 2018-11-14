@@ -203,7 +203,6 @@ else
     error('Inconsistent EPRI step size between boards. Should all be the same: %s', mat2str_generic(diff_epri));
   end
   epri = [fliplr(master_epri:-diff_epri(1):min_epri), master_epri+diff_epri:diff_epri:max_epri];
-  utc_time_sod = double(board_hdrs{1}.seconds) + double(board_hdrs{1}.fraction) / param.records.file.clk;
 
   %% Align/CReSIS: Fill in missing records from each board
   records.raw.epri = nan(size(epri));
@@ -227,7 +226,8 @@ else
     % Time stamps are assumed to be the same from each board so each board
     % just writes all of its time stamps to the output records fields.
     records.raw.epri(out_idxs) = board_hdrs{board_idx}.epri(in_idxs);
-    records.raw.seconds(out_idxs) = board_hdrs{board_idx}.seconds(in_idxs);
+    records.raw.seconds(out_idxs) = board_hdrs{board_idx}.seconds(in_idxs) ...
+      + max(param.records.gps.time_offset) - param.records.gps.time_offset(board_idx);
     records.raw.fraction(out_idxs) = board_hdrs{board_idx}.fraction(in_idxs);
   end
   records.raw.epri = interp_finite(records.raw.epri);
@@ -268,10 +268,7 @@ if any(param.records.file.version == [9 10 103 412])
   radar_time(bad_idxs) = epri_time(bad_idxs);
   
 elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
-  
-  epri = double(board_hdrs{1}.epri);
-  utc_time_sod = double(board_hdrs{1}.seconds) + double(board_hdrs{1}.fraction) / param.records.file.clk;
-  
+ 
   if 0
     % Test sequences
     utc_time_sod = [0 1 2 3 10000 5 6 7 8 9 10 11 12 13 24 25 26 27 28 19 20 21 22 19 20 21 22]

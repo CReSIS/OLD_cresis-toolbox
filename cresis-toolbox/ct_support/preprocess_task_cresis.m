@@ -15,24 +15,31 @@ function success = preprocess_task_cresis(param)
 % 2. Use file version instead of radar name
 % 3. Use last read to allow header wraps... or not.
 
+%% Input checks
+% =========================================================================
+
+if ~isfield(param.config,'field_time_gap') || isempty(param.config.field_time_gap)
+  param.config.field_time_gap = 'utc_time_sod';
+end
+
 %% Read Headers
 % =========================================================================
 
 % Save concatenated temporary file
 fn_board_hdrs = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,'board_hdrs.mat'));
-num_board_to_load = numel(param.config.board_map)
+num_board_to_load = numel(param.config.board_map);
+board_hdrs = cell(1,num_board_to_load);
+failed_load = cell(1,num_board_to_load);
+fns_list = cell(1,num_board_to_load);
 if exist(fn_board_hdrs,'file')
   try
-    load(fn_board_hdrs,'-v7.3','board_hdrs','fns_list');
+    load(fn_board_hdrs,'board_hdrs','fns_list','failed_load');
     num_board_to_load = 0;
   catch ME
     ME.getReport
   end
 end
 
-board_hdrs = {};
-failed_load = {};
-fns_list = cell(size(param.config.board_map));
 for board_idx = 1:num_board_to_load
   %% Read Headers: Filenames
   board = param.config.board_map{board_idx};
@@ -144,6 +151,15 @@ for board_idx = 1:num_board_to_load
   
   %% Read Headers: File Loop
   failed_load{board_idx} = false(size(fns));
+  board_hdrs{board_idx}.unknown = [];
+  board_hdrs{board_idx}.radar_time = [];
+  board_hdrs{board_idx}.radar_time_1pps = [];
+  board_hdrs{board_idx}.epri = [];
+  board_hdrs{board_idx}.seconds = [];
+  board_hdrs{board_idx}.fraction = [];
+  board_hdrs{board_idx}.waveform_ID = [];
+  board_hdrs{board_idx}.counter = [];
+  board_hdrs{board_idx}.file_idxs = [];
   for fn_idx = 1:length(fns)
     
     % Create temporary filename that will store the header information for
@@ -198,9 +214,9 @@ for board_idx = 1:num_board_to_load
             board_hdrs{board_idx}.fraction ...
               = cat(2,board_hdrs{board_idx}.fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
             if any(param.config.file.version == [8])
-              waveform_ID = cat(2,waveform_ID,reshape(hdr.waveform_ID,[1 length(hdr.waveform_ID)]));
+              board_hdrs{board_idx}.waveform_ID = cat(2,board_hdrs{board_idx}.waveform_ID,reshape(hdr.waveform_ID,[1 length(hdr.waveform_ID)]));
             elseif any(param.config.file.version == [403 407 408])
-              counter = cat(2,counter,reshape(hdr.counter,[1 length(hdr.counter)]));
+              board_hdrs{board_idx}.counter = cat(2,board_hdrs{board_idx}.counter,reshape(hdr.counter,[1 length(hdr.counter)]));
             end
           end
           board_hdrs{board_idx}.file_idxs = cat(2,board_hdrs{board_idx}.file_idxs,fn_idx*ones([1 length(hdr.offset)]));
@@ -647,7 +663,7 @@ for board_idx = 1:num_board_to_load
 end
 
 % Save concatenated temporary file
-save(fn_board_hdrs,'-v7.3','board_hdrs','fns_list');
+save(fn_board_hdrs,'-v7.3','board_hdrs','fns_list','failed_load');
 
 %% List bad files
 % =========================================================================
@@ -749,6 +765,7 @@ for board_idx = 1:numel(param.config.board_map)
   
   if any(param.config.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
     utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.config.cresis.clk;
+    epri = double(board_hdrs{board_idx}.epri);
     
     if 0
       % Test sequences
@@ -759,10 +776,10 @@ for board_idx = 1:numel(param.config.board_map)
     end
     
     % Estimate the pulse repetition interval, PRI
-    PRI = median(diff(utc_time_sod));
+    PRI = medfilt1(diff(utc_time_sod),51);
     
     % Create an EPRI sequence from the time record
-    time_epri = utc_time_sod / PRI;
+    time_epri = utc_time_sod(1)/PRI(1) + [0 cumsum(diff(utc_time_sod) ./ PRI)];
     [~,good_time_idx] = min(abs(utc_time_sod - median(utc_time_sod)));
     time_epri = time_epri - time_epri(good_time_idx);
     
@@ -805,7 +822,7 @@ for board_idx = 1:numel(param.config.board_map)
       tmp = tmp - tmp(good_epri_idx) + epri(start_idx-1+good_epri_idx);
       
       % Reconstruct time from time-generated EPRIs
-      tmp = [0 cumsum(dtime_epri(start_idx:stop_idx))*PRI];
+      tmp = [0 cumsum(dtime_epri(start_idx:stop_idx).*PRI(start_idx:stop_idx))];
       tmp = tmp - tmp(good_time_idx) + utc_time_sod(start_idx-1+good_time_idx);
       utc_time_sod_new(start_idx:stop_idx+1) = tmp;
       
@@ -815,6 +832,17 @@ for board_idx = 1:numel(param.config.board_map)
       % Find the next sequence
       start_idx = stop_idx + find(mask(stop_idx+1:end) ~= 0,1);
     end
+    
+    % START IMPORTANT TIME CORRECTION
+    
+    % NOTE: If custom per-day utc_time_sod corrections are required,
+    % include that code here to change the utc_time_sod_new.m. This
+    % function should be able to identify the radar and date of the data
+    % and apply the custom correction based on that.
+    
+    % utc_time_sod_new = preprocess_task_cresis_custom(); % <-- CREATE
+    
+    % END IMPORTANT TIME CORRECTION
     
     h_fig = figure(1); clf(h_fig); h_axes = axes('parent',h_fig);
     plot(h_axes,utc_time_sod);
@@ -863,14 +891,17 @@ for board_idx = 1:numel(param.config.board_map)
     
     % Check for day wraps in the UTC time seconds of day
     day_wrap_idxs = find(diff(utc_time_sod) < -50000);
-    day_wrap_offset = zeros(size(utc_time_sod));
-    for day_wrap_idx = day_wrap_idxs
-      day_wrap_offset(day_wrap_idx+1:end) = day_wrap_offset(day_wrap_idx+1:end) + 86400;
+    board_hdrs{board_idx}.day_wrap_offset = zeros(size(utc_time_sod));
+    if ~isempty(day_wrap_idxs)
+      fprintf('Found %d potential day wraps in board %d. Unwrapping times.', numel(day_wrap_idxs), board_idx);
+      board_hdrs{board_idx}.day_wrap_offset = zeros(size(utc_time_sod));
+      for day_wrap_idx = day_wrap_idxs
+        board_hdrs{board_idx}.day_wrap_offset(day_wrap_idx+1:end) = board_hdrs{board_idx}.day_wrap_offset(day_wrap_idx+1:end) + 86400;
+      end
+      utc_time_sod = utc_time_sod + board_hdrs{board_idx}.day_wrap_offset;
     end
-    utc_time_sod = utc_time_sod + day_wrap_offset;
-    clear day_wrap_offset;
     
-    clear depri dtime_epri dtime_epri_threshold time_epri utc_time_sod_new;
+    clear depri dtime_epri dtime_epri_threshold time_epri utc_time_sod_new day_wrap_idxs;
     board_hdrs{board_idx}.utc_time_sod = utc_time_sod;
     board_hdrs{board_idx}.epri = epri;
     
@@ -885,7 +916,6 @@ for board_idx = 1:numel(param.config.board_map)
       day_wrap_offset(day_wrap_idx+1:end) = day_wrap_offset(day_wrap_idx+1:end) + 86400;
     end
     utc_time_sod = utc_time_sod + day_wrap_offset;
-    clear day_wrap_offset;
     
     time_gaps = find(abs(diff(utc_time_sod)) > MAX_TIME_GAP);
     
@@ -961,7 +991,6 @@ for board_idx = 1:numel(param.config.board_map)
 
   board_hdrs{board_idx}.utc_time_sod = utc_time_sod;
   board_hdrs{board_idx}.epri = epri;
-  board_hdrs{board_idx}.file_idx = file_idx;
 end
 
 % if any(strcmpi(radar_name,{'accum'}))
@@ -988,7 +1017,6 @@ end
 
 %% Create Segments
 % =========================================================================
-% (only do this for the first channel)
 
 if any(param.config.file.version == [403 404 407 408])
   %% Create Segments: Read XML settings
@@ -999,17 +1027,18 @@ if any(param.config.file.version == [403 404 407 408])
   cresis_xml_mapping;
   
   settings_fn_dir = fullfile(param.config.base_dir,param.config.config_folder_name);
-  fprintf('%s\n', settings_fn_dir);
+  fprintf('\nSettings Directory: %s\n\n', settings_fn_dir);
   
   % Read XML files in this directory
   [settings,settings_enc] = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
   
   % Get the date information out of the filename
+  fn_datenums = {};
   for board_idx = 1:numel(param.config.board_map)
-    fn_datenums = [];
+    fn_datenums{board_idx} = [];
     for data_fn_idx = 1:length(fns_list{board_idx})
       fname = fname_info_mcords2(fns_list{board_idx}{data_fn_idx});
-      fn_datenums(end+1) = fname.datenum;
+      fn_datenums{board_idx}(end+1) = fname.datenum;
     end
   end
   
@@ -1035,14 +1064,13 @@ if any(param.config.file.version == [403 404 407 408])
       fprintf('    WF %d Len:', wf); fprintf(' %.1f us', 1e6*settings(set_idx).(config_var).Base_Len*settings(set_idx).(config_var).Waveforms(wf).Len_Mult); fprintf('\n');
     end
     
-    if set_idx < length(settings)
-      settings(set_idx).file_matches = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
-    else
-      settings(set_idx).file_matches = find(fn_datenums >= settings(set_idx).datenum);
+    for board_idx = 1:numel(param.config.board_map)
+      if set_idx < length(settings)
+        settings(set_idx).file_matches{board_idx} = find(fn_datenums{board_idx} >= settings(set_idx).datenum & fn_datenums{board_idx} < settings(set_idx+1).datenum);
+      else
+        settings(set_idx).file_matches{board_idx} = find(fn_datenums{board_idx} >= settings(set_idx).datenum);
+      end
     end
-    
-    % Use file header results to remove bad files
-    settings(set_idx).day_wrap_offset = 0;
     
     % Associate default parameters with each settings
     default = default_radar_params_settings_match(param.config.defaults,settings(set_idx));
@@ -1057,7 +1085,6 @@ if any(param.config.file.version == [403 404 407 408])
     
     oparams{end}.records.file.base_dir = param.config.base_dir;
     oparams{end}.records.file.board_folder_name = param.config.board_folder_name;
-    oparams{end}.records.gps.time_offset = oparams{end}.records.gps.time_offset+settings(set_idx).day_wrap_offset;
     if ~isempty(oparams{end}.records.file.board_folder_name) ...
         && oparams{end}.records.file.board_folder_name(1) ~= filesep
       % Ensures that board_folder_name is not a text number which Excel
@@ -1103,177 +1130,107 @@ if any(param.config.file.version == [403 404 407 408])
       oparams{end}.radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
     end
     
-    % Adjust start/stop files for this segment if there are time gaps in
-    % the start/stop files.
-    start_idx = settings(set_idx).file_matches(1);
-    stop_idx = settings(set_idx).file_matches(end);
-    while start_idx <= stop_idx
-      mask = file_idxs==start_idx;
-      if all(diff(utc_time_sod(mask)) <= param.config.max_time_gap)
-        % Found a good start file
-        break;
+    counters = {};
+    file_idxs = {};
+    for board_idx = 1:numel(param.config.board_map)
+      counters{board_idx} = double(board_hdrs{board_idx}.(param.config.field_time_gap));
+      file_idxs{board_idx} = board_hdrs{board_idx}.file_idxs;
+      day_wrap_offset{board_idx} = board_hdrs{board_idx}.day_wrap_offset;
+      % Restrict to just these settings
+      if isempty(settings(set_idx).file_matches{board_idx})
+        counters{board_idx} = [];
+        file_idxs{board_idx} = [];
+      else
+        mask = file_idxs{board_idx} >= settings(set_idx).file_matches{board_idx}(1) ...
+          & file_idxs{board_idx} <= settings(set_idx).file_matches{board_idx}(end);
+        counters{board_idx} = counters{board_idx}(mask);
+        file_idxs{board_idx} = file_idxs{board_idx}(mask);
+        day_wrap_offset{board_idx} = day_wrap_offset{board_idx}(mask);
       end
-      start_idx = start_idx + 1;
     end
+    [segs,stats] = create_segments(counters,file_idxs,day_wrap_offset,param.config.max_time_gap);
     
-    while stop_idx >= start_idx
-      mask = file_idxs==stop_idx;
-      if all(diff(utc_time_sod(mask)) <= param.config.max_time_gap)
-        % Found a good end file
-        break;
-      end
-      stop_idx = stop_idx - 1;
-    end
-    
-    settings(set_idx).file_matches = start_idx:stop_idx;
-    
-    mask = file_idxs >= start_idx & file_idxs <= stop_idx;
-    
-    time_gaps = find(diff(utc_time_sod(mask)) > param.config.max_time_gap);
-    if ~isempty(time_gaps)
-      % Create multiple segments because there are time jumps in this
-      % segment (probably due to recording errors) which exceed the allowed
-      % amount.
-      original_stop_idx = stop_idx;
-      for gap_idx = 1:length(time_gaps)
-        if gap_idx == length(time_gaps)
-          stop_idx = original_stop_idx;
-        else
-          stop_idx = file_idxs(time_gaps(gap_idx));
-          warning('Split %s into another segment at file %s.', settings(set_idx).fn, fns_list{board_idx}{stop_idx})
-        end
-        
-        % Adjust start/stop files for this new segment if there are time
-        % gaps in the start/stop files.
-        while start_idx <= stop_idx
-          mask = file_idxs==start_idx;
-          if all(diff(utc_time_sod(mask)) <= param.config.max_time_gap)
-            % Found a good start file
-            break;
-          end
-          start_idx = start_idx + 1;
-        end
-        
-        while stop_idx >= start_idx
-          mask = file_idxs==stop_idx;
-          if all(diff(utc_time_sod(mask)) <= param.config.max_time_gap)
-            % Found a good end file
-            break;
-          end
-          stop_idx = stop_idx - 1;
-        end
-        
-        oparams{end}.day_seg = sprintf('%s_%02d',param.config.date_str,length(oparams));
-        for board_idx = 1:numel(param.config.board_map)
-          oparams{end}.records.file.start_idx(board_idx) = start_idx;
-          oparams{end}.records.file.stop_idx(board_idx) = stop_idx;
-        end
-        
-        if gap_idx < length(time_gaps)
-          % Make copies of the current oparams for each time-contiguous set of
-          % data.
-          oparams{end+1} = oparams{end};
-          start_idx = file_idxs(time_gaps(gap_idx)) + 1;
-        end
+    if 1
+      % Debug: Test Code
+      for seg_idx = 1:length(segs)
+        fprintf('Segment %d\n', seg_idx);
+        disp(segs(seg_idx))
       end
       
+      fprintf('On time: %g\n', sum(stats.on_time));
+      fprintf('Seg\tOn%%\tOn');
+      for board_idx = 1:size(stats.board_time,2)
+        fprintf('\t%d%%\t%d', board_idx, board_idx);
+      end
+      fprintf('\n');
+      
+      for seg_idx = 1:length(segs)
+        fprintf('%d\t%.0f%%\t%.1g', seg_idx, stats.on_time(seg_idx)/sum(stats.on_time)*100, stats.on_time(seg_idx));
+        for board_idx = 1:size(stats.board_time,2)
+          fprintf('\t%.0f%%\t%.1g', stats.board_time(seg_idx,board_idx)/stats.on_time(seg_idx)*100, stats.board_time(seg_idx,board_idx));
+        end
+        fprintf('\n');
+      end
+    end
+    
+    if isempty(segs)
+      oparams = oparams(1:end-1);
     else
-      for board_idx = 1:numel(param.config.board_map)
-        oparams{end}.records.file.start_idx(board_idx) = start_idx;
-        oparams{end}.records.file.stop_idx(board_idx) = stop_idx;
+      for seg_idx = 1:length(segs)
+        segment = segs(seg_idx);
+        if seg_idx < length(segs)
+          oparams{end+1} = oparams{end};
+        end
+        oparams{end}.records.file.start_idx = segment.start_idxs;
+        oparams{end}.records.file.stop_idx = segment.stop_idxs;
+        oparams{end}.records.gps.time_offset = default.records.gps.time_offset + segment.day_wrap_offset;
       end
-      
     end
-    
   end
   
 elseif any(param.config.file.version == [410])
   % MCRDS headers available, break segments based on filenames
   
 else
-  % No heading information, break segments based on time or radar counter
-  % information.
-  
-  param.config.cresis.segmentation_mode = 'time';
-  %param.config.cresis.segmentation_mode = 'epri';
-  
-  if strcmpi(param.config.cresis.segmentation_mode,'time')
-    
-    % Look for time gaps (this is used later for segmentation)
-    time_gaps = [1 find(abs(diff(utc_time_sod)) > param.config.max_time_gap)];
-    
-    % Plot results
-    figure(1); clf;
-    plot(utc_time_sod);
-    ylabel('UTC time seconds of day');
-    xlabel('Record');
-    grid on;
-    hold on;
-    plot([1 time_gaps], utc_time_sod([1 time_gaps]),'ro');
-    hold off;
-    legend('UTC Time','Start of each gap','location','best');
-    
-    
-    % Using time
-    bad_mask = logical(zeros(size(fns_list{1})));
-    segments = [];
-    segment_start = file_idxs(1);
-    start_time = utc_time_sod(1);
-    start_day_wrap_offset = day_wrap_offset(1);
-    seg_idx = 0;
-    for gap_idx = 1:length(time_gaps)
-      time_gap = time_gaps(gap_idx);
-      if file_idxs(time_gap) == file_idxs(time_gap + 1)
-        bad_mask(file_idxs(time_gap)) = 1;
-      end
-      
-      if bad_mask(file_idxs(time_gap))
-        segment_stop = file_idxs(time_gap)-1;
-      else
-        segment_stop = file_idxs(time_gap);
-      end
-      
-      if segment_stop - segment_start + 1 >= param.config.min_seg_size
-        seg_idx = seg_idx + 1;
-        segments(seg_idx).start_time = start_time;
-        segments(seg_idx).start_idx = segment_start;
-        segments(seg_idx).stop_idx = segment_stop;
-        segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
-        [~,fn_start_name,fn_start_name_ext] = fileparts(fns_list{1}{segment_start});
-        [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns_list{1}{segment_stop});
-        fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
-          datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
-          [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
-      end
-      
-      segment_start = file_idxs(time_gap)+1;
-      start_time = utc_time_sod(time_gap+1);
-      start_day_wrap_offset = day_wrap_offset(time_gap+1);
-    end
-    segment_stop = length(fns_list{1});
-    if segment_stop - segment_start + 1 >= param.config.min_seg_size
-      seg_idx = seg_idx + 1;
-      segments(seg_idx).start_time = start_time;
-      segments(seg_idx).start_idx = segment_start;
-      segments(seg_idx).stop_idx = segment_stop;
-      segments(seg_idx).day_wrap_offset = start_day_wrap_offset;
-      [~,fn_start_name,fn_start_name_ext] = fileparts(fns_list{1}{segment_start});
-      [~,fn_stop_name,fn_stop_name_ext] = fileparts(fns_list{1}{segment_stop});
-      fprintf('%2d: %s %4d-%4d %s - %s\n', seg_idx, ...
-        datestr(epoch_to_datenum(start_time)), segment_start, segment_stop,...
-        [fn_start_name fn_start_name_ext], [fn_stop_name fn_stop_name_ext]);
-    end
-    
-    [~,sort_idxs] = sort(cell2mat({segments.start_time}));
-    segments = segments(sort_idxs);
-    
-  elseif strcmpi(param.config.cresis.segmentation_mode,'epri')
-    
+  % No heading information, break segments based on time, epri, or radar
+  % counter information (param.config.field_time_gap and
+  % param.config.max_time_gap determine which field and gap size to use).
+  counters = {};
+  file_idxs = {};
+  for board_idx = 1:numel(param.config.board_map)
+    counters{board_idx} = double(board_hdrs{board_idx}.(param.config.field_time_gap));
+    file_idxs{board_idx} = board_hdrs{board_idx}.file_idxs;
+    day_wrap_offset{board_idx} = board_hdrs{board_idx}.day_wrap_offset;
   end
+  [segs,stats] = create_segments(counters,file_idxs,day_wrap_offset,param.config.max_time_gap);
   
+  if 1
+    % Debug: Test Code
+    for seg_idx = 1:length(segs)
+      fprintf('Segment %d\n', seg_idx);
+      disp(segs(seg_idx))
+    end
+    
+    fprintf('On time: %g\n', sum(stats.on_time));
+    fprintf('Seg\tOn%%\tOn');
+    for board_idx = 1:size(stats.board_time,2)
+      fprintf('\t%d%%\t%d', board_idx, board_idx);
+    end
+    fprintf('\n');
+    
+    for seg_idx = 1:length(segs)
+      fprintf('%d\t%.0f%%\t%.1g', seg_idx, stats.on_time(seg_idx)/sum(stats.on_time)*100, stats.on_time(seg_idx));
+      for board_idx = 1:size(stats.board_time,2)
+        fprintf('\t%.0f%%\t%.1g', stats.board_time(seg_idx,board_idx)/stats.on_time(seg_idx)*100, stats.board_time(seg_idx,board_idx));
+      end
+      fprintf('\n');
+    end
+  end
+
+  % Create the parameters to output
   oparams = {};
-  for segment_idx = 1:length(segments)
-    segment = segments(segment_idx);
+  for segment_idx = 1:length(segs)
+    segment = segs(segment_idx);
     
     % Determine which default parameters to use
     % =======================================================================
@@ -1287,10 +1244,10 @@ else
     oparams{end}.day_seg = sprintf('%s_%02d',param.config.date_str,segment_idx);
     oparams{end}.cmd.notes = param.config.defaults{match_idx}.name;
     
-    for board_idx = 1:numel(param.config.board_map)
-      oparams{end}.records.file.start_idx(board_idx) = segment.start_idx;
-      oparams{end}.records.file.stop_idx(board_idx) = segment.stop_idx;
-    end
+    oparams{end}.records.file.start_idx = segment.start_idxs;
+    oparams{end}.records.file.stop_idx = segment.stop_idxs;
+    oparams{end}.records.gps.time_offset = param.config.defaults{match_idx}.records.gps.time_offset + segment.day_wrap_offset;
+    
     oparams{end}.records.file.base_dir = param.config.base_dir;
     oparams{end}.records.file.board_folder_name = param.config.board_folder_name;
     if ~isempty(oparams{end}.records.file.board_folder_name) ...
@@ -1299,7 +1256,6 @@ else
       % will misinterpret as a numeric type
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
-    oparams{end}.records.gps.time_offset = oparams{end}.records.gps.time_offset+segment.day_wrap_offset;
     if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
       oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];
     end
@@ -1307,10 +1263,6 @@ else
     oparams{end}.records.file.version = param.config.file.version;
     oparams{end}.records.file.prefix = param.config.file.prefix;
     oparams{end}.records.file.clk = param.config.cresis.clk;
-    
-    for wf_idx = 1:length(hdr.wfs)
-      wf = hdr.wfs(wf_idx);
-    end
   end
   
 end

@@ -118,6 +118,10 @@ if ~isfield(param.records.frames,'mode') || isempty(param.records.frames.mode)
 end
 
 command_window_out_fn = ct_filename_ct_tmp(param,'','records', ['console.txt']);
+command_window_out_fn_dir = fileparts(command_window_out_fn);
+if ~exist(command_window_out_fn_dir,'dir')
+  mkdir(command_window_out_fn_dir);
+end
 diary(command_window_out_fn);
 
 %% Load headers from each board

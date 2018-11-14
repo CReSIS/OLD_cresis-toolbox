@@ -4,27 +4,39 @@
 
 %% User Settings
 % ====================================================================
+param_override = [];
 
 params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'));
 
-param_override.compress_echogram.echogram_dir = 'qlook';
-param_override.compress_echogram.out_dir = 'CSARP_post/qlook';
+% param_override.compress_echogram.echogram_dir = 'qlook';
+% param_override.compress_echogram.out_dir = 'CSARP_post/qlook';
+% params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 
 % param_override.compress_echogram.echogram_dir = 'deconv';
 % param_override.compress_echogram.out_dir = 'CSARP_post/deconv';
-% 
+% params = ct_set_params(params,'cmd.generic',1,'cmd.notes','2-8');
+% params = ct_set_params(params,'cmd.generic',1,'cmd.notes','2-18');
+% params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
+
 % param_override.compress_echogram.echogram_dir = 'qlook_kuband';
 % param_override.compress_echogram.out_dir = 'CSARP_post/qlook_kuband';
-% 
-% param_override.compress_echogram.echogram_dir = 'qlook_uwb';
-% param_override.compress_echogram.out_dir = 'CSARP_post/qlook_uwb';
+% params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'cmd.generic',1,'cmd.notes','2-18');
+% params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
+
+param_override.compress_echogram.echogram_dir = 'qlook_uwb';
+param_override.compress_echogram.out_dir = 'CSARP_post/qlook_uwb';
+params = ct_set_params(params,'cmd.generic',1,'cmd.notes','2-18');
+params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
+for idx=1:37
+  params(idx).cmd.generic=0;
+end
 
 % params = ct_set_params(params,'cmd.generic',0);
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20170424_02');
 % params = ct_set_params(params,'cmd.generic',1,'cmd.mission_names','^sea.*');
 % params = ct_set_params(params,'cmd.generic',1,'cmd.mission_names','(?(?!^sea.*)^.*)');
-params = ct_set_params(params,'cmd.generic',1);
-params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 params = ct_set_params(params,'cmd.frms',[]);
 
 %% Automated Section

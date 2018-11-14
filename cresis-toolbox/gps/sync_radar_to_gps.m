@@ -66,7 +66,7 @@ if any(param.records.file.version == [102 410])
     % no gps sync files, set radar_gps_time = comp_time(1) + radar_time -
     % radar_time(1) + comp_time_offset (-6*3600), the computer time offset
     % from gps time was 6 hours late
-    radar_gps_time =  comp_time(1) + radar_time-radar_time(1) -6*3600 + param.records.gps.time_offset;
+    radar_gps_time =  comp_time(1) + radar_time-radar_time(1) -6*3600 + max(param.records.gps.time_offset);
   else
     guard_time = 5;
     good_idxs = find(gps.comp_time >= comp_time(1)-guard_time ...
@@ -117,7 +117,7 @@ elseif any(param.records.file.version == [409])
   end
   
   %% Apply GPS sync correction to radar time
-  utc_time_sod = utc_time_sod + param.records.gps.time_offset;
+  utc_time_sod = utc_time_sod + max(param.records.gps.time_offset);
   
   %% Determine absolute radar time and convert from UTC to GPS
   year = str2double(param.day_seg(1:4));
@@ -151,7 +151,7 @@ else
   end
   
   %% Apply GPS sync correction to radar time
-  utc_time_sod = utc_time_sod + param.records.gps.time_offset;
+  utc_time_sod = utc_time_sod + max(param.records.gps.time_offset);
   
   %% Determine absolute radar time and convert from UTC to GPS
   year = str2double(param.day_seg(1:4));
@@ -201,7 +201,7 @@ if any(isnan(my_struct.gps_time))
   nan_detected = true;
 end
 if nan_detected
-  warning('NaN found in GPS data. Inspect gps.* and my_struct.* variables and fix my_struct GPS/Attitude fields (gps_time, lat, lon, elev, roll, pitch, heading) since NaN are not allowed in these fields. Usually the problem is with a param.records.gps.time_offset problem or the GPS file not covering the time that the radar data were collected. In this case, fix the gps file or time_offset and rerun.');
+  warning('NaN found in GPS data. Inspect gps.* and my_struct.* variables and fix my_struct GPS/Attitude fields (gps_time, lat, lon, elev, roll, pitch, heading) since NaN are not allowed in these fields. Usually the problem is with a max(param.records.gps.time_offset) problem or the GPS file not covering the time that the radar data were collected. In this case, fix the gps file or time_offset and rerun.');
   if any(param.records.file.version == [102 405 406 410])
     % Accum2, ACORDS, MCRDS
     fprintf('GPS COMP TIME: %s to %s\n', datestr(epoch_to_datenum(gps.comp_time(1))), datestr(epoch_to_datenum(gps.comp_time(end))));

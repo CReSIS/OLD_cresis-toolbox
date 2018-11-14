@@ -157,11 +157,18 @@ for frm = param.cmd.frms
     if elev_comp
       max_elev = max(tmp.Elevation);
       dRange = max_elev - tmp.Elevation;
-      dt = tmp.Time(2)-tmp.Time(1);
-      dBins = round(dRange / (c/2) / dt);
+      if length(tmp.Time)<2
+        dt = 1;
+        dBins = zeros(size(dRange));
+      else
+        dt = tmp.Time(2)-tmp.Time(1);
+        dBins = round(dRange / (c/2) / dt);
+      end
       zero_pad_len = max(abs(dBins));
       tmp.Data = cat(1,tmp.Data,zeros(zero_pad_len,size(tmp.Data,2)));
-      tmp.Time = tmp.Time(1) + (tmp.Time(2)-tmp.Time(1)) * (0:size(tmp.Data,1)-1).';
+      if ~isempty(tmp.Time)
+        tmp.Time = tmp.Time(1) + dt * (0:size(tmp.Data,1)-1).';
+      end
       for rline = 1:size(tmp.Data,2)
         if dBins(rline) > 0
           tmp.Data(1+dBins(rline):end,rline) = tmp.Data(1:end-dBins(rline),rline);
@@ -208,11 +215,13 @@ for frm = param.cmd.frms
       %    These will have a NaN for a range line when no valid bins were
       %    truncated for that range line.  Zero padded bins from elevation
       %    compensation are not valid.
-      for rline = 1:size(tmp.Data,2)
-        if 1+dBins(rline) < good_bins(1)
-          tmp.Truncate_Median(rline) = median(tmp.Data(1+dBins(rline):good_bins(1),rline));
-          tmp.Truncate_Mean(rline) = mean(tmp.Data(1+dBins(rline):good_bins(1),rline));
-          tmp.Truncate_Std_Dev(rline) = std(tmp.Data(1+dBins(rline):good_bins(1),rline));
+      if ~isempty(good_bins)
+        for rline = 1:size(tmp.Data,2)
+          if 1+dBins(rline) < good_bins(1)
+            tmp.Truncate_Median(rline) = median(tmp.Data(1+dBins(rline):good_bins(1),rline));
+            tmp.Truncate_Mean(rline) = mean(tmp.Data(1+dBins(rline):good_bins(1),rline));
+            tmp.Truncate_Std_Dev(rline) = std(tmp.Data(1+dBins(rline):good_bins(1),rline));
+          end
         end
       end
       tmp.Data = tmp.Data(good_bins,:);
@@ -224,10 +233,15 @@ for frm = param.cmd.frms
       % created in this process and Data becomes compressed
       tmp.Data = 10*log10(tmp.Data);
       tmp.minData = max(min(tmp.Data(isfinite(tmp.Data))), median(tmp.Data(isfinite(tmp.Data))) - 20);
-      tmp.Data = tmp.Data - tmp.minData;
+      if ~isempty(tmp.Data)
+        tmp.Data = tmp.Data - tmp.minData;
+      end
       tmp.maxData = min(max(tmp.Data(isfinite(tmp.Data))), median(tmp.Data(isfinite(tmp.Data))) + 60);
-      
-      tmp.Data = compress_func(round(tmp.Data*double(intmax(compress_type))/tmp.maxData));
+      if ~isempty(tmp.Data)
+        tmp.Data = compress_func(round(tmp.Data*double(intmax(compress_type))/tmp.maxData));
+      else
+        tmp.Data = compress_func(tmp.Data);
+      end
     end
     
     if 0
