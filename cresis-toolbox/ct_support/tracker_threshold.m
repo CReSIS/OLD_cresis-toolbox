@@ -62,6 +62,7 @@ end
 if ~isfield(surf,'threshold_rng') || isempty(surf.threshold_rng)
   surf.threshold_rng = inf;
 end
+surf.dem = round(surf.dem);
 
 
 %% Determine the threshold value using range bins specified by noise_rng

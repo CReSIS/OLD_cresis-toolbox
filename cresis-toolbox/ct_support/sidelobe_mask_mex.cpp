@@ -64,8 +64,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
   if (!mxIsSingle(prhs[2])) {
     mexErrMsgTxt("usage: sl must be type single");
   }
-  if (mxGetNumberOfElements(prhs[2]) != numel_sl_rows) {
-    mexErrMsgTxt("usage: sl must have numel equal to size(image,3)");
+  if (mxGetNumberOfElements(prhs[2]) != sl_rows[numel_sl_rows-1]-sl_rows[0]+1) {
+    mexErrMsgTxt("usage: sl must have numel equal to sl_rows(end)-sl_rows(1)+1.");
   }
   float *sl = (float*)mxGetData(prhs[2]);
   
