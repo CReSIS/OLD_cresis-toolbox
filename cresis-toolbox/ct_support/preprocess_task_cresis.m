@@ -1080,7 +1080,6 @@ if any(param.config.file.version == [403 404 407 408])
     
     % Parameter spreadsheet
     % =======================================================================
-    oparams{end}.day_seg = sprintf('%s_%02d',param.config.date_str,length(oparams));
     oparams{end}.cmd.notes = default.name;
     
     oparams{end}.records.file.base_dir = param.config.base_dir;
@@ -1178,9 +1177,10 @@ if any(param.config.file.version == [403 404 407 408])
     else
       for seg_idx = 1:length(segs)
         segment = segs(seg_idx);
-        if seg_idx < length(segs)
+        if seg_idx > 1
           oparams{end+1} = oparams{end};
         end
+        oparams{end}.day_seg = sprintf('%s_%02d',param.config.date_str,length(oparams));
         oparams{end}.records.file.start_idx = segment.start_idxs;
         oparams{end}.records.file.stop_idx = segment.stop_idxs;
         oparams{end}.records.gps.time_offset = default.records.gps.time_offset + segment.day_wrap_offset;

@@ -43,28 +43,22 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
-  % Assume a single channel system
-  param.records.file.boards = {''};
-end
-
-% boards: List of file groupings based on how ADC channels are stored in
-%   the files.
-if any(param.records.file.version == [1:10 101:102 401 404:409 411])
-  % Each channel has its own file
-  boards = param.records.file.boards;
-elseif any(param.records.file.version == [410])
-  % MCRDS: All channels in the same file
-  boards = 1;
-elseif any(param.records.file.version == [402 403])
-  % NI MCRDS: 4 channels per board
-  boards = unique(floor((param.records.file.adcs-1)/4));
-elseif any(param.records.file.version == [9:10 103 412])
-  % RSS: Complicated mapping that must be manually specified
-  boards = param.records.file.boards;
+% boards: List of subdirectories containing the files for each board (a
+% board is a data stream stored to disk and often contains the data stream
+% from multiple ADCs)
+if any(param.records.file.version == [1:5 8 101:102 405:406 409:411])
+  if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
+    % Assume a single channel system
+    param.records.file.boards = {''};
+  end
+elseif any(param.records.file.version == [6:7 9:10 103 401:404 407:408 412])
+  if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
+    error('param.records.file.boards should be specified.');
+  end
 else
   error('Unsupported file version\n');
 end
+boards = param.records.file.boards;
 
 if ~isfield(param.records,'epri_jump_threshold') || isempty(param.records.epri_jump_threshold)
   param.records.epri_jump_threshold = 10000;
