@@ -38,6 +38,7 @@ param.config.max_tx_voltage = sqrt(250*50)*10^(-2/20); % voltage at max_tx
 %% CReSIS parameters
 param.config.cresis.clk = 1e9/9;
 param.config.cresis.rx_gain_dB = 51.5;
+param.config.cresis.gps_file_mask = 'GPS*';
 
 %% Command worksheet
 default.cmd.records = 1;
