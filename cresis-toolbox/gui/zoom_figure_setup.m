@@ -3,8 +3,9 @@ function zoom_figure_setup(h_fig, figure_name)
 %
 % Initialization for zoom figure.
 %
-% See also: zoom_arrow.m, zoom_button_up.m zoom_button_scroll.m,
-%   zoom_setup.m, zoom_figure_setup.m
+% See also: zoom_arrow.m, zoom_button_motion.m, zoom_button_scroll.m,
+%   zoom_button_up.m, zoom_figure_setup.m, zoom_setup.m
+
 
 set(h_fig,'DockControls','off')
 set(h_fig,'NumberTitle','off');

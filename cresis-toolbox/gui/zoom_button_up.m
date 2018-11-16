@@ -24,8 +24,8 @@ function zoom_button_up(x,y,but,param)
 %  zoom_setup(h_fig);
 %  set(h_fig,'pointer','custom');
 %
-% See also: zoom_arrow.m, zoom_button_up.m zoom_button_scroll.m,
-%   zoom_setup.m, zoom_figure_setup.m
+% See also: zoom_arrow.m, zoom_button_motion.m, zoom_button_scroll.m,
+%   zoom_button_up.m, zoom_figure_setup.m, zoom_setup.m
 
 if isempty(param.x) || isempty(param.y)
   return;
@@ -55,12 +55,22 @@ xlims(2) = min(xlims(2),param.xlims(2));
 ylims(2) = min(ylims(2),param.ylims(2));
 
 if param.axis_equal
-  xylimscell = num2cell(axis_equal(param.h_axes, xlims, ylims, 'buffer', 0));
-  [xlims(1), xlims(2), ylims(1), ylims(2)] = xylimscell{:};
-  xlims(1) = 1e3*xlims(1);
-  xlims(2) = 1e3*xlims(2);
-  ylims(1) = 1e3*ylims(1);
-  ylims(2) = 1e3*ylims(2);
+  cur_units = get(param.h_axes,'Units');
+  set(param.h_axes,'Units','pixels');
+  axis_pos = get(param.h_axes,'Position');
+  set(param.h_axes,'Units',cur_units);
+  aspect_ratio = axis_pos(3)/axis_pos(4);
+  x_length = diff(xlims);
+  y_length = diff(ylims);
+  if x_length > y_length*aspect_ratio
+    y_mid = mean(ylims);
+    ylims(1) = y_mid - x_length/2/aspect_ratio;
+    ylims(2) = y_mid + x_length/2/aspect_ratio;
+  elseif y_length*aspect_ratio > x_length
+    x_mid = mean(xlims);
+    xlims(1) = x_mid - y_length/2*aspect_ratio;
+    xlims(2) = x_mid + y_length/2*aspect_ratio;
+  end
 end
 
 if but == 4
@@ -75,12 +85,11 @@ if but == 4
   return;
 end
 
-if xlims(2) <= xlims(1) || ylims(2) <= ylims(1)
-  return;
-end
-
 if but == 1 && x~=param.x && y~=param.y
   %% Left click and drag: Zoom to region
+  if xlims(2) <= xlims(1) || ylims(2) <= ylims(1)
+    return;
+  end
   if any(param.axes=='x')
     xlim(param.h_axes,xlims);
   end

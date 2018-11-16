@@ -54,43 +54,14 @@ frames.frame_idxs = zeros(size(frame_breaks));
 frames.frame_idxs(1) = 1;
 idx = 2;
 rec = 2;
-if any(strcmp(param.radar_name,{'snow2','kuband2'})) ...
-    && str2double(param.day_seg(1:8)) > 20120630
-  % Only 2012 Antarctica DC8 and later snow2/kuband2 supports "settings" field, so the
-  % "> 20120630" check supports this... NEEDS TO BE SET TO CORRECT DATE WHICH IS SOMETIME
-  % IN THE MIDDLE OF THE CAMPAIGN...
-  while idx <= length(frame_breaks)
-    if along_track(rec) > frame_breaks(idx)
-      frames.frame_idxs(idx) = rec;
-      frames.nyquist_zone(idx) = double(mod(records.settings(rec),4));
-      idx = idx + 1;
-    elseif records.settings(rec) ~= records.settings(rec-1)
-      if along_track(rec) - along_track(frames.frame_idxs(idx-1)) < frame_length/2 && idx > 2 && ~mod(floor(records.settings(rec-1)/2^2),2)
-        % Remove last frame if it is short and not the first frame and
-        % not a loopback segment
-        idx = idx - 1;
-      end
-      new_frame_breaks = along_track(rec):frame_length:along_track(end);
-      frame_breaks = [frame_breaks(1:idx-1) new_frame_breaks];
-      if along_track(end)-frame_breaks(end) < frame_length/2 && idx ~= length(frame_breaks)
-        frame_breaks = frame_breaks(1:end-1);
-      end
-      frames.frame_idxs(idx) = rec;
-      frames.nyquist_zone(idx) = double(mod(records.settings(rec),4));
-      idx = idx + 1;
-    end
-    rec = rec + 1;
+while idx <= length(frame_breaks)
+  if along_track(rec) > frame_breaks(idx)
+    frames.frame_idxs(idx) = rec;
+    idx = idx + 1;
   end
-else
-  while idx <= length(frame_breaks)
-    if along_track(rec) > frame_breaks(idx)
-      frames.frame_idxs(idx) = rec;
-      idx = idx + 1;
-    end
-    rec = rec + 1;
-  end
-  frames.nyquist_zone = NaN*zeros(size(frames.frame_idxs));
+  rec = rec + 1;
 end
+frames.nyquist_zone = NaN*zeros(size(frames.frame_idxs));
 frames.proc_mode = zeros(size(frames.frame_idxs));
 
 fprintf('  Saving %s (%s)\n', frames_fn, datestr(now));
