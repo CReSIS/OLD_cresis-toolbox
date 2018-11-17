@@ -518,9 +518,7 @@ classdef (HandleCompatible = true) create_frames < handle
       obj.h_geotiff.insert_pnt(1,frm,segment);
       
       % Set strings in GUI according to frames list
-      frm_text = get(obj.h_gui.fig.ctrl_panel.framesLB,'String');
-      frm_text(frm+1+num:end+num) = frm_text(frm+1:end);
-      for frm = frm+(0:num)
+      for frm = 1:length(obj.frames.frame_idxs)
         if frm == length(obj.frames.frame_idxs)
           recs = [obj.frames.frame_idxs(frm) length(obj.records.lat)];
         else
@@ -629,9 +627,7 @@ classdef (HandleCompatible = true) create_frames < handle
         obj.h_geotiff.insert_pnt(1,frm-1,segment);
       
         % Set strings in GUI according to frames list
-        frm_text = get(obj.h_gui.fig.ctrl_panel.framesLB,'String');
-        frm_text(frm+1:end+1) = frm_text(frm:end);
-        for frm = frm-1:frm
+        for frm = 1:length(obj.frames.frame_idxs)
           if frm == length(obj.frames.frame_idxs)
             recs = [obj.frames.frame_idxs(frm) length(obj.records.lat)];
           else
@@ -665,6 +661,15 @@ classdef (HandleCompatible = true) create_frames < handle
         case {'backspace','delete'}
           obj.deletePB_callback();
           status = 0;
+        case 'downarrow'
+          if gco == obj.h_gui.fig.ctrl_panel.framesLB
+            status = 0;
+          end
+          
+        case 'uparrow'
+          if gco == obj.h_gui.fig.ctrl_panel.framesLB
+            status = 0;
+          end
       end
       
     end

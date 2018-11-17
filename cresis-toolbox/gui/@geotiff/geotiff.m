@@ -26,6 +26,7 @@ classdef (HandleCompatible = true) geotiff < handle
     h_fig_owned_by_geotiff
     line_style
     marker
+    quiver_scale
     
     % zoom_mode: boolean
     zoom_mode
@@ -42,6 +43,8 @@ classdef (HandleCompatible = true) geotiff < handle
     %  .value: NxM cell array
     %  .value_name: 1xM cell array of strings
     %  .h_plot: handle to plot
+    %  .h_quiver: handle to quiver plot
+    %  .h_plot_selected: handle to selected plot
     %  .h_text: handle to text
     segments
     
@@ -143,6 +146,7 @@ classdef (HandleCompatible = true) geotiff < handle
       % Setup segments
       obj.line_style = '-';
       obj.marker = 'x';
+      obj.quiver_scale = 0.4;
       obj.segments = [];
 
     end
@@ -438,10 +442,13 @@ classdef (HandleCompatible = true) geotiff < handle
       obj.segments(end).selected = NaN*zeros(size(y));
       if ~isempty(x)
         obj.segments(end).h_plot = plot(x,y,'LineStyle',obj.line_style,'Marker',obj.marker,'Linewidth',2,'Parent',obj.h_axes);
+        obj.segments(end).h_quiver = quiver(x,y,obj.quiver_scale*[diff(x); 0],obj.quiver_scale*[diff(y); 0],0,'Color',get(obj.segments(end).h_plot,'Color'));
         obj.segments(end).h_plot_selected = plot(x,obj.segments(end).selected,'LineStyle',obj.line_style,'Marker',obj.marker,'Linewidth',2,'Parent',obj.h_axes,'MarkerSize',10);
       else
         obj.segments(end).h_plot = plot(NaN,NaN,'LineStyle',obj.line_style,'Marker',obj.marker,'Linewidth',2,'Parent',obj.h_axes);
         set(obj.segments(end).h_plot,'XData',[],'YData',[]);
+        obj.segments(end).h_quiver = quiver(NaN,NaN,0,0,0,'Color',get(obj.segments(end).h_plot,'Color'));
+        set(obj.segments(end).h_quiver,'XData',[],'YData',[],'UData',[],'VData',[]);
         obj.segments(end).h_plot_selected = plot(NaN,NaN,'LineStyle',obj.line_style,'Marker',obj.marker,'Linewidth',2,'Parent',obj.h_axes,'MarkerSize',10);
         set(obj.segments(end).h_plot_selected,'XData',[],'YData',[]);
       end
@@ -484,6 +491,10 @@ classdef (HandleCompatible = true) geotiff < handle
       set(obj.segments(idx).h_plot, 'XData', obj.segments(idx).x, ...
         'YData', obj.segments(idx).y);
       
+      set(obj.segments(idx).h_quiver, 'XData', obj.segments(idx).x, ...
+        'YData', obj.segments(idx).y, 'UData', obj.quiver_scale*[diff(obj.segments(idx).x); 0], ...
+        'VData', obj.quiver_scale*[diff(obj.segments(idx).y); 0]);
+      
       obj.segments(idx).selected = [obj.segments(idx).selected(1:pnt); nan(size(x)); obj.segments(idx).selected(pnt+1:end)];
       set(obj.segments(idx).h_plot_selected, 'XData', obj.segments(idx).x, ...
         'YData', obj.segments(idx).selected);
@@ -514,6 +525,10 @@ classdef (HandleCompatible = true) geotiff < handle
       set(obj.segments(idx).h_plot, 'XData', obj.segments(idx).x, ...
         'YData', obj.segments(idx).y);
       
+      set(obj.segments(idx).h_quiver, 'XData', obj.segments(idx).x, ...
+        'YData', obj.segments(idx).y, 'UData', obj.quiver_scale*[diff(obj.segments(idx).x); 0], ...
+        'VData', obj.quiver_scale*[diff(obj.segments(idx).y); 0]);
+      
       obj.segments(idx).selected(~isnan(obj.segments(idx).selected)) ...
         = obj.segments(idx).y(~isnan(obj.segments(idx).selected));
       set(obj.segments(idx).h_plot_selected, 'XData', obj.segments(idx).x, ...
@@ -541,6 +556,16 @@ classdef (HandleCompatible = true) geotiff < handle
       set(obj.segments(idx).h_plot, 'XData', obj.segments(idx).x, ...
         'YData', obj.segments(idx).y);
       
+      if isempty(obj.segments(idx).x)
+        set(obj.segments(idx).h_quiver, 'XData', [], ...
+          'YData', [], 'UData', [], ...
+          'VData', []);
+      else
+        set(obj.segments(idx).h_quiver, 'XData', obj.segments(idx).x, ...
+          'YData', obj.segments(idx).y, 'UData', obj.quiver_scale*[diff(obj.segments(idx).x); 0], ...
+          'VData', obj.quiver_scale*[diff(obj.segments(idx).y); 0]);
+      end
+      
       obj.segments(idx).selected = obj.segments(idx).selected(mask);
       set(obj.segments(idx).h_plot_selected, 'XData', obj.segments(idx).x, ...
         'YData', obj.segments(idx).selected);
@@ -558,6 +583,7 @@ classdef (HandleCompatible = true) geotiff < handle
     function delete_segment(obj,idx)
       try
         delete(obj.segments(idx).h_plot);
+        delete(obj.segments(idx).h_quiver);
         delete(obj.segments(idx).h_plot_selected);
         obj.segments = obj.segments([1:idx-1 idx+1:end]);
       end
