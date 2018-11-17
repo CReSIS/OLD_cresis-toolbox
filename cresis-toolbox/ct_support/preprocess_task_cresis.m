@@ -82,6 +82,21 @@ for board_idx = 1:num_board_to_load
     fns = fns(sorted_idxs);
   end
   
+  % Copy Log Files
+  if board_idx == 1 && ~isempty(param.config.cresis.gps_file_mask)
+    log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.cresis.gps_file_mask);
+    out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.date_str);
+    try
+      if ~exist(out_log_dir,'dir')
+        mkdir(out_log_dir)
+      end
+      fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
+      copyfile(log_files, out_log_dir);
+    catch ME
+      warning('Error while copying log files:\n%s\n', ME.getReport);
+    end
+  end
+  
   %% Read Headers: Header Info
   hdr_param = struct('file_mode','ieee-be');
   if any(param.config.file.version == [1])

@@ -47,10 +47,18 @@ for config_idx = 1:numel(param.config.default)
   %% Input checks
   % =========================================================================
   
+  if strcmpi(cparam.config.daq_type,'cresis')
+    % CReSIS DAQ only parameters
+    if ~isfield(cparam.config.cresis,'gps_file_mask') || isempty(cparam.config.cresis.gps_file_mask)
+      % File mask relative to param.config.config_folder_name for GPS files
+      % Leave empty if there are no GPS files to copy.
+      cparam.config.cresis.gps_file_mask = '';
+    end
+  end
+  
   if ~isfield(cparam.config,'file') || isempty(cparam.config.file)
     cparam.config.file = [];
   end
-  
   if ~isfield(cparam.config.file,'prefix') || isempty(cparam.config.file.prefix)
     cparam.config.file.prefix = '';
   end

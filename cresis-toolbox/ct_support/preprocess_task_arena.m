@@ -175,13 +175,16 @@ for config_idx = 1:length(configs)
       if fn_idx == 1 && board_idx == 1
         [out_config_fn_dir] = fileparts(configs(config_idx).config_fn);
         log_files = fullfile(out_config_fn_dir,'logs/*');
-        global gRadar
-        out_log_dir = fullfile(gRadar.data_support_path, param.season_name, param.config.config_folder_name);
-        if ~exist(out_log_dir,'dir')
-          mkdir(out_log_dir)
+        out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.config_folder_name);
+        try
+          if ~exist(out_log_dir,'dir')
+            mkdir(out_log_dir)
+          end
+          fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
+          copyfile(log_files, out_log_dir);
+        catch ME
+          warning('Error while copying log files:\n%s\n', ME.getReport);
         end
-        fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
-        copyfile(log_files, out_log_dir);
       end
       
       % Check to see if outputs already exist
