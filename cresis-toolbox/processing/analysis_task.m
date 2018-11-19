@@ -367,7 +367,7 @@ for img = 1:length(store_param.load.imgs)
       % ===================================================================
       
       tmp_param = param;
-      tmp_param.load.pulse_comp = true;
+      tmp_param.load.pulse_comp = cmd.pulse_comp;
       tmp_param.load.motion_comp = false;
       tmp_hdr = hdr;
       

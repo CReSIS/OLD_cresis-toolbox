@@ -55,8 +55,8 @@ for img = param.collate_coh_noise.imgs
     wf_adcs = param.collate_coh_noise.wf_adcs;
   end
   for wf_adc = wf_adcs
-    wf = param.analysis.imgs{img}(wf_adcs,1);
-    adc = param.analysis.imgs{img}(wf_adcs,2);
+    wf = param.analysis.imgs{img}(wf_adc,1);
+    adc = param.analysis.imgs{img}(wf_adc,2);
     
     %% Load the coherent noise file
     % =====================================================================
@@ -110,17 +110,21 @@ for img = param.collate_coh_noise.imgs
           data_bin(block_start(block_idx)+(0:block_size(block_idx)-1)) = noise.coh_ave{block_idx}(bin-start_bins(block_idx)+1,:);
         end
       end
-      %figure(1); clf;
-      %plot(real(data_bin)); title(sprintf('%d',bin));
-      %figure(2); clf;
-      %plot(imag(data_bin)); title(sprintf('%d',bin));
+      if 0
+        figure(1); clf;
+        plot(real(data_bin)); title(sprintf('%d',bin));
+        figure(2); clf;
+        plot(imag(data_bin)); title(sprintf('%d',bin));
+      end
       for dft_idx = 1:length(dft_freqs)
         mf = exp(1i*2*pi/Nx * dft_freqs(dft_idx) .* (0:Nx-1));
         noise.dft(bin_idx,dft_idx) = nanmean(mf.*data_bin);
         data_bin = data_bin - noise.dft(bin_idx,dft_idx) * mf;
       end
-      %noise.dft(bin,dft_idx)
-      %keyboard
+      if 0
+        noise.dft(bin_idx,dft_idx)
+        keyboard
+      end
     end
     
     %% Create the simplified output

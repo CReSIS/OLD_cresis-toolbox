@@ -195,8 +195,8 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
     wf = abs(param.qlook.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult = 66e-8;
-  mem_mult = 8;
+  cpu_time_mult = 22e-8;
+  mem_mult = 24;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.qlook.imgs));

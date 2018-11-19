@@ -38,20 +38,71 @@ for img = 1:length(param.load.imgs)
         cdf_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
         cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
         
-        finfo = ncinfo(cdf_fn);
-        % Determine number of records and set recs(1) to this
-        Nt = finfo.Variables(find(strcmp('coh_aveI',{finfo.Variables.Name}))).Size(2);
-        
+        fprintf('  Loading coherent noise: %s\n', cdf_fn);
         noise = [];
+       
+        tmp = netcdf_to_mat(cdf_fn,[],'^param_analysis');
+        noise.param_analysis = tmp.param_analysis;
+        
+        tmp = netcdf_to_mat(cdf_fn,[],'^param_collate');
+        noise.param_collate = tmp.param_collate;
+        
+        cmd = noise.param_collate.analysis.cmd{noise.param_collate.collate_coh_noise.cmd_idx};
+        cmd.pulse_comp = true; % HACK: DO NOT COMMIT. NEEDS TO BE REMOVED
+        
+        coh_noise_date_str = ncread(cdf_fn,'datestr');
+        hdr.custom.coh_noise(1:length(coh_noise_date_str),1,img,wf_adc) = coh_noise_date_str;
+        noise.start_bin = ncread(cdf_fn,'start_bin');
+        noise.dt = ncread(cdf_fn,'dt');
+        noise.dft_freqs = ncread(cdf_fn,'dft_freqs');
+        noise.recs = ncread(cdf_fn,'recs');
         noise.gps_time = ncread(cdf_fn,'gps_time');
-        recs = find(noise.gps_time > records.gps_time(1) - 100 & noise.gps_time < records.gps_time(end) + 100);
-        noise.gps_time = noise.gps_time(recs);
+        noise.Nx = length(noise.gps_time);
         
-        noise.coh_ave = ncread(cdf_fn,'coh_aveI',[recs(1) 1],[recs(end)-recs(1)+1 Nt]) ...
-          + 1i*ncread(cdf_fn,'coh_aveQ',[recs(1) 1],[recs(end)-recs(1)+1 Nt]);
+        % Nt by Nx_dft matrix (we grab a subset of the Nt samples)
+        noise.dft = ncread(cdf_fn,'dftI') ...
+          + 1i*ncread(cdf_fn,'dftQ');
         
-        data{img}(1:wfs(wf).Nt_raw,:,wf_adc) = data{img}(1:wfs(wf).Nt_raw,:,wf_adc) ...
-          -interp1(reshape(noise.gps_time,[numel(noise.gps_time) 1]),noise.coh_ave,records.gps_time,'linear','extrap').';
+        % Adjust coherent noise dft for changes in adc_gains relative to
+        % when the coherent noise was loaded and estimated.
+        noise.dft = noise.dft * 10.^((wfs(wf).adc_gains_dB(adc)-noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
+        
+        recs = interp1(noise.gps_time, noise.recs, hdr.gps_time, 'linear', 'extrap');
+        
+        if ~cmd.pulse_comp
+          if 0
+            % Debug Code
+        
+            cn.data = zeros([size(noise.dft,1) numel(recs)],'single');
+            for dft_idx = 1:length(noise.dft_freqs)
+              % mf: matched filter
+              % noise.dft(bin,dft_idx): Coefficient for the matched filter
+              mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+              for bin = 1:size(noise.dft,1)
+                cn.data(bin,:) = cn.data(bin,:)-noise.dft(bin,dft_idx) * mf;
+              end
+            end
+            
+            figure(1); clf;
+            imagesc(lp( bsxfun(@minus, data{img}(1:wfs(wf).Nt,:), mean(data{img}(1:wfs(wf).Nt,:),2) )  ))
+            figure(2); clf;
+            imagesc(lp( data{img}(1:wfs(wf).Nt,:,wf_adc) ))
+            figure(3); clf;
+            imagesc(lp( cn.data ))
+            figure(4); clf;
+            plot(lp(mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2)))
+            legend('Mean','CN');
+          end
+        
+          for dft_idx = 1:length(noise.dft_freqs)
+            % mf: matched filter
+            % noise.dft(bin,dft_idx): Coefficient for the matched filter
+            mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+            for bin = 1:size(noise.dft,1)
+              data{img}(bin,:,wf_adc) = data{img}(bin,:,wf_adc)-noise.dft(bin,dft_idx) * mf;
+            end
+          end
+        end
         
       elseif strcmpi(wfs(wf).coh_noise_method,'estimated')
         % Apply coherent noise methods that require estimates derived now
@@ -84,8 +135,6 @@ for img = 1:length(param.load.imgs)
         cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
         
         fprintf('  Loading coherent noise: %s\n', cdf_fn);
-        finfo = ncinfo(cdf_fn);
-        
         noise = [];
         coh_noise_date_str = ncread(cdf_fn,'datestr');
         hdr.custom.coh_noise(1:length(coh_noise_date_str),1,img,wf_adc) = coh_noise_date_str;
@@ -109,13 +158,14 @@ for img = 1:length(param.load.imgs)
         
         recs = interp1(noise.gps_time, noise.recs, hdr.gps_time, 'linear', 'extrap');
         
-        %         if 0
-        %           imagesc(lp( bsxfun(@minus, data{1}(1:wfs(wf).Nt,:), mean(data{1}(1:wfs(wf).Nt,:),2) )  ))
-        %           figure(1); clf;
-        %           plot(lp(mean(data{1}(1:wfs(wf).Nt,:),2)))
-        %           hold on
-        %           plot(lp(noise.dft))
-        %         end
+        if 0
+          % Debug Code
+          imagesc(lp( bsxfun(@minus, data{img}(1:wfs(wf).Nt,:), mean(data{img}(1:wfs(wf).Nt,:),2) )  ))
+          figure(1); clf;
+          plot(lp(mean(data{img}(1:wfs(wf).Nt,:),2)))
+          hold on
+          plot(lp(noise.dft))
+        end
         
         cn.data = zeros([size(noise.dft,1) numel(recs)],'single');
         for dft_idx = 1:length(noise.dft_freqs)
@@ -830,6 +880,21 @@ for img = 1:length(param.load.imgs)
       end
     end
     
+    %% Coherent noise: Pulsed
+    % ===================================================================
+    if strcmpi(radar_type,'pulsed')
+      if strcmpi(wfs(wf).coh_noise_method,'analysis')
+        for dft_idx = 1:length(noise.dft_freqs)
+          % mf: matched filter
+          % noise.dft(bin,dft_idx): Coefficient for the matched filter
+          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+          for bin = 1:size(noise.dft,1)
+            data{img}(bin,:,wf_adc) = data{img}(bin,:,wf_adc)-noise.dft(bin,dft_idx) * mf;
+          end
+        end
+      end
+    end
+
     %% Deconvolution
     % ===================================================================
     if param.load.pulse_comp == 1 && wfs(wf).deconv.en && wfs(wf).Nt > 0

@@ -137,6 +137,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.block_ave = 2000;
       end
       
+      if ~isfield(cmd,'pulse_comp') || isempty(cmd.pulse_comp)
+        cmd.pulse_comp = true;
+      end
+      
       if mod(param.analysis.block_size,cmd.block_ave)
         error('The param.analysis.block_size (%d) must be a multiple of cmd.block_ave (%d).', ...
           param.analysis.block_size, cmd.block_ave);

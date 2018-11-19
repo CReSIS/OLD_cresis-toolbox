@@ -2,6 +2,8 @@
 %
 % Runs check_surface.m
 %
+% cat /N/dcwan/projects/cresis/output/ct_tmp/check_surface/snow/2017_Greenland_P3/*.txt
+%
 % Author: John Paden
 
 %% User Settings
@@ -25,10 +27,11 @@ params = ct_set_params(params,'radar.nz_valid',[0 1 2 3]);
 
 % params.cmd.generic=1;
 params = ct_set_params(params,'cmd.generic',1);
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170327_01');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20170324_02');
 % params = ct_set_params(params,'cmd.generic',1,'cmd.mission_names','^sea.*');
 % params = ct_set_params(params,'cmd.generic',1,'cmd.mission_names','(?(?!^sea.*)^.*)');
-params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
+% params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 
 param_override.check_surface.save_records_en = false;
 

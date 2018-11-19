@@ -33,6 +33,7 @@ failed_load = cell(1,num_board_to_load);
 fns_list = cell(1,num_board_to_load);
 if exist(fn_board_hdrs,'file')
   try
+    fprintf('Found %s\n  Trying to load...\n', fn_board_hdrs);
     load(fn_board_hdrs,'board_hdrs','fns_list','failed_load');
     num_board_to_load = 0;
   catch ME

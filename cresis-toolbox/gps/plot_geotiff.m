@@ -55,6 +55,9 @@ if 0
   RGB(RGB<0) = NaN;
 end
 imagesc(R(3,1) + R(2,1)*(1:size(RGB,2)), R(3,2) + R(1,2)*(1:size(RGB,1)), RGB,'parent',h_axes);
+if isa(RGB,'uint8')
+  colormap(h_axes,gray(256));
+end
 set(h_axes,'YDir','normal');
 
 if exist('lat','var') && ~isempty(lat)
