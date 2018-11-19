@@ -263,15 +263,20 @@ elseif length(max_vals_rounded) >= 2
 end
 
 % SNR file
+records_fn = ct_filename_support(param,'','records');
+records = load(records_fn);
+frms = interp1([records.gps_time(frames.frame_idxs), records.gps_time(end)+diff(records.gps_time(end-1:end))], ...
+  [1:length(frames.frame_idxs), length(frames.frame_idxs)+1], gps_time);
 h_fig = figure;
 h_axes = axes('parent',h_fig);
-plot(h_axes,signal_max_vals);
+plot(h_axes,frms,signal_max_vals);
 hold(h_axes,'on');
-plot(h_axes,noise_mean_vals);
+plot(h_axes,frms,noise_mean_vals);
 legend(h_axes,'Signal','Noise');
-xlabel(h_axes,'Range lines');
+xlabel(h_axes,'Frames');
 ylabel(h_axes,'Relative power (dB)');
 grid(h_axes,'on');
+title(sprintf('%s',regexprep(param.day_seg,'_','\\_')));
 fig_fn = [ct_filename_ct_tmp(param,'','echogram_stats','SNR') '.fig'];
 fprintf('Saving %s\n', fig_fn);
 saveas(h_fig,fig_fn);

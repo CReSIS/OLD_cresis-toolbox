@@ -429,9 +429,9 @@ for img = 1:length(store_param.load.imgs)
           
           % Regular method for collecting good_samples
           % ===============================================================
-          good_samples = lp(bsxfun(@minus,data(:,rlines),mu)) < cmd.power_threshold;
+          good_samples = lp(bsxfun(@minus,data(:,rlines),mu)) < cmd.threshold;
           
-          %% Coh Noise: Debug coh_ave.power_threshold
+          %% Coh Noise: Debug coh_ave.threshold
           if 0
             figure(1); clf;
             imagesc(lp(data(:,rlines)));

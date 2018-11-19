@@ -98,7 +98,7 @@ end
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 for wf = 1:length(param.radar.wfs)
   if ~isfield(param.radar.wfs(wf),'adcs') || isempty(param.radar.wfs(wf).adcs)
-    adcs = 1;
+    adcs = 1:length(param.radar.wfs(wf).rx_paths);
   else
     adcs = param.radar.wfs(wf).adcs;
   end
@@ -427,7 +427,7 @@ for wf = 1:length(param.radar.wfs)
   end
   wfs(wf).quantization_to_V ...
     = param.radar.Vpp_scale * 2.^wfs(wf).bit_shifts ...
-    / (2^param.radar.adc_bits*wfs(wf).presums) * ones(size(adcs));
+    / (2^param.radar.adc_bits*wfs(wf).presums);
   
   if strcmpi(radar_type,'deramp')
     %% FMCW: Create time and frequency axis information

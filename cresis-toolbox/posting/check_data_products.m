@@ -314,9 +314,11 @@ for param_idx = 1:length(params)
       end
       
       %% Check for expected image files
+      frames_fn = ct_filename_support(param,'','frames');
+      load(frames_fn);
       for image_idx = 1:length(images)
         image_dir = fullfile(ct_filename_out(param, ...
-          param.post.out_path, 'CSARP_post', true),'images',param.day_seg);
+          '', outputs_post_dir, true),'images',param.day_seg);
         fprintf('  Images %s in %s\n', images{image_idx}, image_dir);
         frms = find(ct_proc_frame(frames.proc_mode,frm_types));
         if length(unique(frms)) ~= length(frms)

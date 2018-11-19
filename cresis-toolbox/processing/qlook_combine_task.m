@@ -245,72 +245,11 @@ for frm_idx = 1:length(param.cmd.frms);
   
   if param.qlook.surf.en
     %% Run ice top tracker to find ice surface
-    surf = param.qlook.surf;
-    if ~isfield(param.qlook.surf,'fixed_value')
-      surf.fixed_value = 0;
-    end
-    if isfield(param.qlook.surf,'min_bin')
-      % Convert time min_bin into range bins
-      surf.min_bin = find(Time > param.qlook.surf.min_bin, 1);
-    end
-    if isfield(param.qlook.surf,'max_bin') && ~isempty(param.qlook.surf.max_bin)
-      % Convert time max_bin into range bins
-      surf.max_bin = find(Time > param.qlook.surf.max_bin, 1);
-    end
-    if isfield(param.qlook.surf,'max_diff')
-      % Convert time max_diff into range bins
-      dt = Time(2) - Time(1);
-      surf.max_diff = param.qlook.surf.max_diff/dt;
-    end
+    surf_param = param;
+    surf_param.cmd.frms = frm;
+    surf_param.layer_tracker.echogram_source = struct('Data',Data,'Time',Time,'GPS_time',GPS_time,'Latitude',Latitude,'Longitude',Longitude,'Elevation',Elevation);
+    Surface = layer_tracker(surf_param,[]);
     
-    if ~isfield(surf,'manual')
-      surf.manual = false;
-    end
-    
-    if isfield(surf,'feedthru')
-      % Optional feed through removal
-      
-      % Interpolate feed through power levels on to data time axis
-      feedthru_threshold = interp1(surf.feedthru.time,surf.feedthru.power_dB,Time);
-      feedthru_threshold = interp_finite(feedthru_threshold);
-      
-      % Remove all data not exceeding feed through threshold power
-      for rline=1:size(Data,2)
-        Data(:,rline) = Data(:,rline) .* (lp(Data(:,rline)) > feedthru_threshold);
-      end
-    end
-    
-    if strcmpi(surf.method,'threshold')
-      new_surface = tracker_threshold(Data,surf);
-    elseif strcmpi(surf.method,'max')
-      new_surface = tracker_max(Data,surf);
-    elseif strcmpi(surf.method,'snake')
-      new_surface = tracker_snake_simple(Data,surf);
-    elseif strcmpi(surf.method,'snake')
-      new_surface = tracker_snake_simple(Data,surf);
-    elseif strcmpi(surf.method,'nan')
-      new_surface = nan(1,size(Data,2));
-    elseif strcmpi(surf.method,'fixed')
-      new_surface = ones(1,size(Data,2)) * surf.fixed_value;
-    else
-      error('Not a supported surface tracking method.');
-    end
-    
-    %% Apply optional median filter to surface layer
-    if isfield(surf,'medfilt') && ~isempty(surf.medfilt)
-      new_surface = medfilt1(new_surface,surf.medfilt);
-    end
-    
-    %% Convert surface layer from range bins to two way travel time
-    Surface = interp1(1:length(Time), Time, new_surface);
-    
-    Surface = reshape(Surface, [1 length(Surface)]);
-    
-    % Reset the "Data" variable in case it was modified during surface
-    % tracking
-    Data = Data_Surface;
-    Surface = interp_finite(Surface,0);
-
     % Update surf_layer twtt for ice top layer
     surf_layer.twtt = Surface;
   end

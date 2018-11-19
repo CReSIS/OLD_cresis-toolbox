@@ -9,7 +9,7 @@ physical_constants;
 
 %% Motion compensation
 % =========================================================================
-if param.qlook.motion_comp
+if param.load.motion_comp
   % Remove elevation variations between each phase center and the reference
   % position of the array. The goal is to compensate for relative time
   % delays between each of the elements so that they can be constructively

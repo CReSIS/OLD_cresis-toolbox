@@ -44,19 +44,20 @@ switch ct_output_dir(params(1).radar_name)
   case 'rds'
     debug_time_guard = 2e-6;
     track_override.method = 'threshold';
-    track_override.noise_rng = [0 -50 -10];
-    track_override.min_bin = 2e-6;
+    track_override.threshold_noise_rng = [0 -1e-6 -0.5e-6];
+    track_override.min_bin = 1.2e-6;
     track_override.threshold = 15;
     track_override.sidelobe	= 15;
     track_override.max_diff	= inf;
-    track_override.filter_len	= 5;
-    track_override.medfilt = 3;
-    track_override.search_rng	= 0:2;
+    track_override.filter = [3 3];
+    track_override.medfilt = 11;
+    track_override.medfilt_threshold = 100;
+    track_override.search_rng	= [0 0.1e-6];
     
   case 'accum'
     debug_time_guard = 2e-6;
     track_override.method = 'threshold';
-    track_override.noise_rng = [200 -300 -100];
+    track_override.threshold_noise_rng = [200 -300 -100];
     track_override.min_bin = 0.1e-6;
     track_override.threshold = 9;
     track_override.sidelobe	= 12;

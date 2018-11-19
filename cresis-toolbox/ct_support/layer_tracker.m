@@ -1,5 +1,5 @@
-function layer_tracker(param,param_override)
-% layer_tracker(param,param_override)
+function Surface = layer_tracker(param,param_override)
+% Surface = layer_tracker(param,param_override)
 %
 % Tracks a layer using one of the layer tracking methods.
 %
@@ -36,12 +36,17 @@ function layer_tracker(param,param_override)
 % .init.dem_layer: dem layer struct to be used with opsLoadLayers
 %   (usually lidar surface)
 %
+% Surface: If there is an output argument, then param.cmd.frms must be set
+% to a single frame and the surface for this frame will be returned and no
+% outputs will be saved.
+%
 % For more details about tracker specific parameters:
 % tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
 % tracker_max
 %
 % Example:
-%   See run_layer_tracker.m to run.
+%   See run_layer_tracker.m to run in regular mode.
+%   See qlook_combine_task.m to run in single frame mode.
 %
 % Author: John Paden
 
@@ -58,6 +63,10 @@ fprintf('=====================================================================\n
 % =====================================================================
 
 physical_constants;
+
+if ~isfield(param,'layer_tracker') || isempty(param.layer_tracker)
+  param.layer_tracker = [];
+end
 
 % debug_level: set to 1 to enable a debug plot
 if ~isfield(param.layer_tracker,'debug_level') || isempty(param.layer_tracker.debug_level)
@@ -83,9 +92,15 @@ if ~isfield(param.layer_tracker,'echogram_source') || isempty(param.layer_tracke
 end
 echogram_source = param.layer_tracker.echogram_source;
 
-layer_params = param_override.layer_tracker.layer_params;
+if ~isfield(param.layer_tracker,'layer_params') || isempty(param.layer_tracker.layer_params)
+  param.layer_tracker.layer_params = [];
+end
+layer_params = param.layer_tracker.layer_params;
 
-track = merge_structs(param.qlook.surf,param_override.layer_tracker.track);
+if ~isfield(param.layer_tracker,'track') || isempty(param.layer_tracker.track)
+  param.layer_tracker.track = [];
+end
+track = merge_structs(param.qlook.surf,param.layer_tracker.track);
 
 if ~track.en
   return;
@@ -363,26 +378,26 @@ if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg) ...
 end
 
 %% Determine valid frames to process
-load(ct_filename_support(param,'','frames'));
-if isempty(param.cmd.frms)
-  param.cmd.frms = 1:length(frames.frame_idxs);
-end
-% Remove frames that do not exist from param.cmd.frms list
-[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-if length(valid_frms) ~= length(param.cmd.frms)
-  bad_mask = ones(size(param.cmd.frms));
-  bad_mask(keep_idxs) = 0;
-  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-    param.cmd.frms(find(bad_mask,1)));
-  param.cmd.frms = valid_frms;
+if nargout ~= 1
+  load(ct_filename_support(param,'','frames'));
+  if isempty(param.cmd.frms)
+    param.cmd.frms = 1:length(frames.frame_idxs);
+  end
+  % Remove frames that do not exist from param.cmd.frms list
+  [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+  if length(valid_frms) ~= length(param.cmd.frms)
+    bad_mask = ones(size(param.cmd.frms));
+    bad_mask(keep_idxs) = 0;
+    warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
+      param.cmd.frms(find(bad_mask,1)));
+    param.cmd.frms = valid_frms;
+  end
 end
 
 %% Load reference surface
 if isfield(track,'init') && isfield(track.init,'dem_layer') ...
     && ~isempty(track.init.dem_layer)
-  layer_params = track.init.dem_layer;
-  
-  layers = opsLoadLayers(param,layer_params);
+  layers = opsLoadLayers(param,track.init.dem_layer);
   
   % Ensure that layer gps times are monotonically increasing
   lay_idx = 1;
@@ -400,30 +415,38 @@ orig_track = track;
 for frm_idx = 1:length(param.cmd.frms)
   %% Track: Load echogram data
   frm = param.cmd.frms(frm_idx);
-  if ~exist('echogram_img','var')
-    echogram_img = 0;
-  end
-  if echogram_img == 0
-    data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
-      sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-  else
-    data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
-      sprintf('Data_img_%02d_%s_%03d.mat', echogram_img, param.day_seg, frm));
-  end
-  [~,data_fn_name] = fileparts(data_fn);
-  fprintf('%d of %d %s (%s)\n', frm_idx, length(param.cmd.frms), data_fn, datestr(now,'HH:MM:SS'));
-  
-  if ~exist(data_fn,'file')
-    warning('  Missing file\n');
-    continue;
-  end
   track = orig_track;
-  
-  if strcmpi(track.method,'') && debug_level == 0
-    mdata = load_L1B(data_fn,'GPS_time','Latitude','Longitude','Elevation','Time');
+  if isstruct(echogram_source)
+    % echogram_source is the data structure
+    mdata = echogram_source;
+    
   else
-    mdata = load_L1B(data_fn);
+    % echogram_source is a file path indicator
+    if ~exist('echogram_img','var')
+      echogram_img = 0;
+    end
+    if echogram_img == 0
+      data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
+        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+    else
+      data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
+        sprintf('Data_img_%02d_%s_%03d.mat', echogram_img, param.day_seg, frm));
+    end
+    [~,data_fn_name] = fileparts(data_fn);
+    fprintf('%d of %d %s (%s)\n', frm_idx, length(param.cmd.frms), data_fn, datestr(now,'HH:MM:SS'));
+    
+    if ~exist(data_fn,'file')
+      warning('  Missing file\n');
+      continue;
+    end
+    
+    if strcmpi(track.method,'') && debug_level == 0
+      mdata = load_L1B(data_fn,'GPS_time','Latitude','Longitude','Elevation','Time');
+    else
+      mdata = load_L1B(data_fn);
+    end
   end
+  
   data = lp(mdata.Data);
   Nx = size(mdata.Data,2);
   if size(mdata.Data,1) < 2
@@ -551,6 +574,7 @@ for frm_idx = 1:length(param.cmd.frms)
         plot(detrend_curve);
         keyboard
       end
+      data = bsxfun(@minus,data,detrend_curve);
       
     elseif track.detrend > 0
       poly_x = (-size(data,1)/2+(1:size(data,1))).';
@@ -570,9 +594,8 @@ for frm_idx = 1:length(param.cmd.frms)
         plot(detrend_curve);
         keyboard
       end
-      
+      data = bsxfun(@minus,data,detrend_curve);
     end
-    data = bsxfun(@minus,data,detrend_curve);
     
     %% Track: Sidelobe
     if ~isempty(track.sidelobe_rows)
@@ -734,6 +757,9 @@ for frm_idx = 1:length(param.cmd.frms)
   end
   
   %% Track: Save
+  if nargout == 1
+    return;
+  end
   for layer_idx = 1:length(layer_params)
     layer_param = layer_params(layer_idx);
     

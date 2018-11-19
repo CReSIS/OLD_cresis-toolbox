@@ -7,15 +7,21 @@ function update_surface_twtt_delta(param,param_override)
 % very large because large time system time delay errors affect the focussing.
 %
 % Updates Time, param_{qlook,sar}.radar.wfs(wf).Tadc_adjust,
-% param_{qlook,sar}radar.wfs(wf).Tsys, Surface, and Bottom variables.
+% param_{qlook,sar}radar.wfs(wf).Tsys,
+% param_{qlook,sar}radar.wfs(wf).t_ref, Surface, and Bottom variables.
+%
+% Optionally updates adc_gains_dB. If enabled and there has been a change
+% in the adc_gains_dB field, this will cause
+% param_{qlook,sar}radar.wfs(wf).adc_gains_dB and Data to be updated.
 %
 % Note that only the param_{qlook,sar} field that matters gets
 % updated. For example, param_records and param_combine will not be used or
 % updated because Tadc_adjust and Tsys are not used during these processes
 % and so their value does not matter when those processes are applied.
 %
-% Tsys, t_ref and Tadc_adjust changes can only be corrected when the same
-% change is applied to all waveform-adc pairs used in the data product.
+% Tsys, t_ref, Tadc_adjust, and adc_gains_dB changes can only be corrected
+% when the same change is applied to all waveform-adc pairs used in the
+% data product.
 %
 % Note that Tadc_adjust and t_ref are opposite sign to Tsys
 %  - Tsys is subtracted away from time
@@ -31,6 +37,13 @@ function update_surface_twtt_delta(param,param_override)
 fprintf('=====================================================================\n');
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
+
+%% Input Checks
+
+if ~isfield(param.update_surface_twtt_delta,'update_adc_gains_dB') ...
+    || isempty(param.update_surface_twtt_delta.update_adc_gains_dB)
+  param.update_surface_twtt_delta.update_adc_gains_dB = false;
+end
 
 % Remove frames that do not exist from param.cmd.frms list
 load(ct_filename_support(param,'','frames'));
@@ -98,6 +111,8 @@ for frm_idx = 1:length(param.cmd.frms)
       delta_offset_Tsys_mask = logical([]);
       delta_offset_Tadc_adjust = [];
       delta_offset_Tadc_adjust_mask = logical([]);
+      delta_offset_adc_gains_dB = [];
+      delta_offset_adc_gains_dB_mask = logical([]);
       for img = 1:length(mdata.(param_field).(param_field(7:end)).imgs)
         for wf_adc_pair = 1:size(mdata.(param_field).(param_field(7:end)).imgs{img},1)
           wf = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,1));
@@ -142,6 +157,21 @@ for frm_idx = 1:length(param.cmd.frms)
           delta_offset_Tadc_adjust(wf) = param.radar.wfs(wf).Tadc_adjust ...
             - mdata.(param_field).radar.wfs(wf).Tadc_adjust;
           delta_offset_Tadc_adjust_mask(wf) = true;
+          
+          % adc_gains_dB correction
+          if param.update_surface_twtt_delta.update_adc_gains_dB
+            if ~isfield(param.radar.wfs(wf),'adc_gains_dB') ...
+                || numel(param.radar.wfs(wf).adc_gains_dB) < adc
+              param.radar.wfs(wf).adc_gains_dB(adc) = 0;
+            end
+            if ~isfield(mdata.(param_field).radar.wfs(wf),'adc_gains_dB') ...
+                || numel(mdata.(param_field).radar.wfs(wf).adc_gains_dB) < adc
+              mdata.(param_field).radar.wfs(wf).adc_gains_dB(adc) = 0;
+            end
+            delta_offset_adc_gains_dB(img,wf_adc_pair) = param.radar.wfs(wf).adc_gains_dB(adc) ...
+              - mdata.(param_field).radar.wfs(wf).adc_gains_dB(adc);
+            delta_offset_adc_gains_dB_mask(img,wf_adc_pair) = true;
+          end
         end
       end
       
@@ -169,6 +199,16 @@ for frm_idx = 1:length(param.cmd.frms)
       end
       delta_offset_Tadc_adjust = delta_offset_Tadc_adjust(first_idx);
       
+      if param.update_surface_twtt_delta.update_adc_gains_dB
+        first_idx = find(delta_offset_adc_gains_dB_mask,1);
+        delta_offset_adc_gains_dB(~delta_offset_adc_gains_dB_mask) = NaN;
+        if ~all(delta_offset_adc_gains_dB(delta_offset_adc_gains_dB_mask) == delta_offset_adc_gains_dB(first_idx))
+          delta_offset_adc_gains_dB
+          error('Different adc_gains_dB delta offsets for each waveform, cannot proceed: reprocess data.');
+        end
+        delta_offset_adc_gains_dB = delta_offset_adc_gains_dB(first_idx);
+      end
+      
       for img = 1:length(mdata.(param_field).(param_field(7:end)).imgs)
         for wf_adc_pair = 1:size(mdata.(param_field).(param_field(7:end)).imgs{img},1)
           wf = abs(mdata.(param_field).(param_field(7:end)).imgs{img}(wf_adc_pair,1));
@@ -177,14 +217,27 @@ for frm_idx = 1:length(param.cmd.frms)
           mdata.(param_field).radar.wfs(wf).t_ref = param.radar.wfs(wf).t_ref;
           mdata.(param_field).radar.wfs(wf).Tsys(adc) = param.radar.wfs(wf).Tsys(adc);
           mdata.(param_field).radar.wfs(wf).Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
+          if param.update_surface_twtt_delta.update_adc_gains_dB
+            mdata.(param_field).radar.wfs(wf).adc_gains_dB(adc) = param.radar.wfs(wf).adc_gains_dB(adc);
+          end
         end
       end
       
       %% Update Data File
-      if delta_offset_t_ref ~= 0 || delta_offset_Tsys ~= 0 || delta_offset_Tadc_adjust ~= 0
+      if delta_offset_t_ref ~= 0 || delta_offset_Tsys ~= 0 || delta_offset_Tadc_adjust ~= 0 ...
+          || (param.update_surface_twtt_delta.update_adc_gains_dB && delta_offset_adc_gains_dB ~= 0)
         fprintf('  t_ref Offset  %g %s (%s)\n', delta_offset_t_ref, data_fn, datestr(now,'HH:MM:SS'));
         fprintf('  Tsys Offset %g %s (%s)\n', delta_offset_Tsys, data_fn, datestr(now,'HH:MM:SS'));
         fprintf('  Tadc_adjust Offset %g %s (%s)\n', delta_offset_Tadc_adjust, data_fn, datestr(now,'HH:MM:SS'));
+        if param.update_surface_twtt_delta.update_adc_gains_dB
+          fprintf('  adc_gains_dB Offset %g %s (%s)\n', delta_offset_adc_gains_dB, data_fn, datestr(now,'HH:MM:SS'));
+          if delta_offset_adc_gains_dB ~= 0
+            tmp = load(data_fn,'Data');
+            tmp.Data = tmp.Data * 10^(-delta_offset_adc_gains_dB/10);
+            mdata.Data = tmp.Data;
+            fields_to_update{end+1} = 'Data';
+          end
+        end
         
         % Note that Tadc_adjust is opposite sign to Tsys
         %  - Tsys is subtracted away

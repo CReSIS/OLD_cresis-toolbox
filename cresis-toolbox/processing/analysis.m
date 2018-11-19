@@ -138,13 +138,13 @@ for cmd_idx = 1:length(param.analysis.cmd)
       end
       
       if mod(param.analysis.block_size,cmd.block_ave)
-        error('The param.analysis.block_size (%s) must be a multiple of cmd.block_ave (%d).', ...
+        error('The param.analysis.block_size (%d) must be a multiple of cmd.block_ave (%d).', ...
           param.analysis.block_size, cmd.block_ave);
       end
       
-      if ~isfield(cmd,'power_threshold') || isempty(cmd.power_threshold)
+      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
         % Set the default power_threshold to inf (i.e. no thresholding)
-        cmd.power_threshold = inf;
+        cmd.threshold = inf;
       end
       
     case {'burst_noise'}
@@ -247,8 +247,8 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
     wf = abs(param.analysis.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult = 140e-9;
-  mem_mult = 8;
+  cpu_time_mult =35e-9;
+  mem_mult = 11;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.analysis.imgs));
