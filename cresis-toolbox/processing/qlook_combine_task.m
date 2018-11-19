@@ -67,7 +67,7 @@ for frm_idx = 1:length(param.cmd.frms);
       outputs_done = false;
     end
   end
-  if length(param.qlook.imgs) > 1
+  if length(param.qlook.imgs) > 1 && ~isempty(param.qlook.img_comb)
     out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));
 
@@ -316,7 +316,11 @@ for frm_idx = 1:length(param.cmd.frms);
       delete(in_fn);
     end
   end
-  rmdir(in_fn_dir);
+  % Attempt to remove ql_data_FFF_01_01 directory since it is no longer
+  % needed.
+  try
+    rmdir(in_fn_dir);
+  end
   
 end
 
