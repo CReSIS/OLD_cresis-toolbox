@@ -18,9 +18,13 @@ function layers = opsCopyLayers(param,copy_param)
 %       .name: string (e.g. 'surface', 'Surface', 'bottom', 'atm', etc)
 %       .source: string (e.g. 'records', 'echogram', 'layerdata', 'lidar',
 %         'custom', or 'ops')
-%       .echogram_source: used only with echogram source, string
+%       .echogram_source: used only with "echogram" source, string
 %         containing file path argument to ct_filename_out.m
 %         (e.g. 'qlook', 'mvdr', 'CSARP_post/standard')
+%       .echogram_source_img: used only with "echogram" source, scalar
+%         integer specifying the image. Zero is default.
+%           0: Data_YYYYMMDD_FF.mat
+%           II: Data_img_II_YYYYMMDD_FF.mat
 %       .layerdata_source: used only with layerdata source, string
 %         containing file path argument to ct_filename_out.m
 %         (e.g. 'layerData', 'CSARP_post/layerData')
@@ -125,6 +129,11 @@ end
 
 if ~any(copy_param.quality.value == [1 2 3])
   error('Invalid quality value %d', copy_param.quality.value);
+end
+
+if ~isfield(copy_param.layer_source,'echogram_source_img') || isempty(copy_param.layer_source.echogram_source_img)
+  % Default is a combined file Data_YYYYMMDD_SS.mat
+  copy_param.layer_source.echogram_source_img = 0;
 end
 
 %% Load "frames" file
@@ -517,12 +526,12 @@ elseif strcmpi(copy_param.layer_dest.source,'echogram')
   %% Loop through and update selected frame files with surface
   for frm = param.cmd.frms
     % Create file name for each frame
-    echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
-      sprintf('Data_%s_%03d.mat', param.day_seg, frm));
-    if ~exist(echo_fn,'file')
-      % Combined echogram does not exist, try img_01 file
+    if copy_param.layer_source.echogram_source_img == 0
       echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
-        sprintf('Data_img_01_%s_%03d.mat', param.day_seg, frm));
+        sprintf('Data_%s_%03d.mat', param.day_seg, frm));
+    else
+      echo_fn = fullfile(ct_filename_out(param,copy_param.layer_dest.echogram_source,''), ...
+        sprintf('Data_img_%02d_%s_%03d.mat', copy_param.layer_source.echogram_source_img, param.day_seg, frm));
     end
     if ~exist(echo_fn,'file')
       warning('Echogram data file does not exist: %s\n', echo_fn);
