@@ -184,7 +184,11 @@ function [array_param,dout] = array_proc(array_param,din,dout)
 %   .bins = same size as .valR and gives the corresponding bin for each
 %     element of .valR
 %
-% See also sim.crosstrack.m for an example of how to run.
+% See also: run_master.m, master.m, run_array.m, array.m, load_sar_data.m,
+% array_proc.m, array_task.m, array_combine_task.m
+%
+% Also used in: sim.crosstrack.m
+
     
 % =====================================================================
 %% Process and check input arguments
@@ -498,9 +502,9 @@ for lineIdx = 1:1:length(array_param.lines)
   end
   
   line = array_param.lines(lineIdx);
-  if array_param.debug_level >= 0
-    fprintf('    Record %.0f (%.0f of %.0f) (%.1f sec)\n', line, lineIdx, ...
-      length(array_param.lines), toc);
+  if ~mod(lineIdx-1,10^floor(log10(length(array_param.lines))-1))
+    fprintf('    Record %.0f (%.0f of %.0f) (%s)\n', line, lineIdx, ...
+      length(array_param.lines), datestr(now));
   end
   
   %% Check for edge conditions (not enough data to create dataSample
@@ -538,7 +542,7 @@ for lineIdx = 1:1:length(array_param.lines)
   
 if 0
   %% Debug: Check results against surface
-  surface_bin = round(interp1(array_param.wfs.time,1:length(array_param.wfs.time),array_param.fcs{1}{1}.surface(line)));
+  surface_bin = round(interp1(array_param.wfs.time,1:length(array_param.wfs.time),array_param.surface(line)));
   
 %   Hdata = exp(1i*angle(squeeze(din{1}(surface_bin,line,1,1,:))));
 %   array_param.sv{ml_idx} = bsxfun(@(x,y) x.*y, array_param.sv{ml_idx}, Hdata./exp(1i*angle(array_param.sv{ml_idx}(:,1))) );
@@ -951,14 +955,14 @@ end
           doa_res = doa_param.doa_constraints(src_idx);
           switch (doa_res.method)
             case 'surfleft' % Incidence angle to surface clutter on left
-              mid_doa(src_idx) = acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
+              mid_doa(src_idx) = acos(array_param.surface(line) / array_param.wfs.time(bin));
             case 'surfright'% Incidence angle to surface clutter on right
-              mid_doa(src_idx) = -acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
+              mid_doa(src_idx) = -acos(array_param.surface(line) / array_param.wfs.time(bin));
             case 'layerleft'
               table_doa   = [0:89.75]/180*pi;
-              table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-                + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
+              table_delay = array_param.surface(line) ./ cos(table_doa) ...
+                + (doa_res.layer.twtt(line)-array_param.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.surface(line));
               if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
                 mid_doa(src_idx) = 0;
               else
@@ -966,9 +970,9 @@ end
               end
             case 'layerright'
               table_doa = [0:89.75]/180*pi;
-              table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-                + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
+              table_delay = array_param.surface(line) ./ cos(table_doa) ...
+                + (doa_res.layer.twtt(line)-array_param.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.surface(line));
               if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
                 mid_doa(src_idx) = 0;
               else
@@ -1099,14 +1103,14 @@ end
           doa_res = doa_param.doa_constraints(src_idx);
           switch (doa_res.method)
             case 'surfleft' % Incidence angle to surface clutter on left
-              mid_doa(src_idx) = acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
+              mid_doa(src_idx) = acos(array_param.surface(line) / array_param.wfs.time(bin));
             case 'surfright'% Incidence angle to surface clutter on right
-              mid_doa(src_idx) = -acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
+              mid_doa(src_idx) = -acos(array_param.surface(line) / array_param.wfs.time(bin));
             case 'layerleft'
               table_doa   = [0:89.75]/180*pi;
-              table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-                + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
+              table_delay = array_param.surface(line) ./ cos(table_doa) ...
+                + (doa_res.layer.twtt(line)-array_param.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.surface(line));
               if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
                 mid_doa(src_idx) = 0;
               else
@@ -1114,9 +1118,9 @@ end
               end
             case 'layerright'
               table_doa = [0:89.75]/180*pi;
-              table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-                + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
+              table_delay = array_param.surface(line) ./ cos(table_doa) ...
+                + (doa_res.layer.twtt(line)-array_param.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.surface(line));
               if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
                 mid_doa(src_idx) = 0;
               else
@@ -1372,14 +1376,14 @@ end
           doa_res = doa_param.doa_constraints(src_idx);
           switch (doa_res.method)
             case 'surfleft'
-              mid_doa(src_idx) = acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
+              mid_doa(src_idx) = acos(array_param.surface(line) / array_param.wfs.time(bin));
             case 'surfright'
-              mid_doa(src_idx) = -acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
+              mid_doa(src_idx) = -acos(array_param.surface(line) / array_param.wfs.time(bin));
             case 'layerleft'
               table_doa = [0:89.75]/180*pi;
-              table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-                + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
+              table_delay = array_param.surface(line) ./ cos(table_doa) ...
+                + (doa_res.layer.twtt(line)-array_param.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.surface(line));
               if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
                 mid_doa(src_idx) = 0;
               else
@@ -1387,9 +1391,9 @@ end
               end
             case 'layerright'
               table_doa = [0:89.75]/180*pi;
-              table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-                + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
+              table_delay = array_param.surface(line) ./ cos(table_doa) ...
+                + (doa_res.layer.twtt(line)-array_param.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.surface(line));
               if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
                 mid_doa(src_idx) = 0;
               else
@@ -1492,12 +1496,12 @@ end
         plot(dout.doa(:,:,lineIdx)*180/pi,'.')
         hold on;
         surf = interp1(array_param.wfs.time,1:length(array_param.wfs.time), ...
-          array_param.fcs{1}{1}.surface);
+          array_param.surface);
         surf = interp1(array_param.bins, 1:length(array_param.bins), surf);
         plot(surf(line)*ones(1,2),[-90 90],'k')
         ylim([-90 90])
-        surf_curve = acosd(array_param.fcs{1}{1}.surface(line) ./ array_param.wfs.time(array_param.bins));
-        bad_mask = array_param.wfs.time(array_param.bins) < array_param.fcs{1}{1}.surface(line);
+        surf_curve = acosd(array_param.surface(line) ./ array_param.wfs.time(array_param.bins));
+        bad_mask = array_param.wfs.time(array_param.bins) < array_param.surface(line);
         surf_curve(bad_mask) = NaN;
         plot(surf_curve,'r')
         hold on
@@ -1505,8 +1509,8 @@ end
         
         if isfield(array_param.doa_constraints,'layer')
           table_doa = [0:89.75]/180*pi;
-          table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-            + (array_param.doa_constraints(2).layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+          table_delay = array_param.surface(line) ./ cos(table_doa) ...
+            + (array_param.doa_constraints(2).layer.twtt(line)-array_param.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
           plot(interp1(array_param.wfs.time(array_param.bins), 1:length(array_param.wfs.time(array_param.bins)), ...
             table_delay), table_doa*180/pi, 'k');
           plot(interp1(array_param.wfs.time(array_param.bins), 1:length(array_param.wfs.time(array_param.bins)), ...

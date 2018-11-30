@@ -634,7 +634,6 @@ for frm_idx = 1:length(param.cmd.frms)
     dt = mdata.Time(2) - mdata.Time(1);
     track.init.max_diff = orig_track.init.max_diff/dt;
     track.max_rng = round(orig_track.max_rng(1)/dt) : round(orig_track.max_rng(end)/dt);
-    track.threshold_noise_rng = round(orig_track.threshold_noise_rng/dt);
     data = data(track.min_bin:track.max_bin,:);
     
     %% Track: Create Initial Surface
@@ -672,6 +671,7 @@ for frm_idx = 1:length(param.cmd.frms)
     
     %% Track: Tracking
     if strcmpi(track.method,'threshold')
+      track.threshold_noise_rng = round(orig_track.threshold_noise_rng/dt);
       [new_layer,new_quality] = tracker_threshold(data,track);
     elseif strcmpi(track.method,'viterbi')
       new_layer = tracker_viterbi(data,track);
@@ -680,6 +680,7 @@ for frm_idx = 1:length(param.cmd.frms)
       new_layer = tracker_max(data,track);
       new_quality = ones(1,Nx);
     elseif strcmpi(track.method,'snake')
+      track.search_rng = round(orig_track.snake_rng(1)/dt) : round(orig_track.snake_rng(2)/dt);
       new_layer = tracker_snake_simple(data,track);
       new_quality = ones(1,Nx);
     elseif strcmpi(track.method,'fixed')
@@ -728,7 +729,7 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     %% Track: Convert bins to twtt
-    Surface = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin);
+    Surface = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1);
     
   end
   
@@ -748,7 +749,7 @@ for frm_idx = 1:length(param.cmd.frms)
     hold off;
     if ~isempty(mdata.Time)
       ylims = [max(mdata.Time(1),min(Surface)-debug_time_guard) min(mdata.Time(end),max(Surface)+debug_time_guard)];
-      if ylims(end)<ylims(1)
+      if ylims(end)>ylims(1)
         ylim(ylims);
       end
     end
@@ -785,7 +786,7 @@ for frm_idx = 1:length(param.cmd.frms)
         lay.Longitude = mdata.Longitude;
         lay.Elevation = mdata.Elevation;
         
-        lay.layerData{1}.quality = interp1(mdata.GPS_time,quality,lay.GPS_time,'nearest');
+        lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
         lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
         lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data);

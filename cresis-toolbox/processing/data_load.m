@@ -38,10 +38,21 @@ t_ref = zeros(1,param.load.presums);
 
 %% Endian mode
 % ===================================================================
+[~,~,endian] = computer;
 if any(param.records.file.version==[9 411 412])
-  file_mode = 'ieee-le';
+  if endian == 'B'
+    % IEEE little endian files with IEEE big endian computer
+    swap_bytes_en = true;
+  else
+    swap_bytes_en = false;
+  end
 else
-  file_mode = 'ieee-be';
+  if endian == 'L'
+    % IEEE big endian files with IEEE little endian computer
+    swap_bytes_en = true;
+  else
+    swap_bytes_en = false;
+  end
 end
 
 %% Waveform Map (t_ref calculation)
@@ -58,7 +69,7 @@ if any(param.records.file.version==[8])
     typecast(uint8('     330')*2,'uint64')
     typecast(uint8('OIB_FMCW'),'uint64')
     typecast(uint8('OIB_FMCW')*2,'uint64')
-  ];
+    ];
   waveform_ID_t_ref = [0e-6 9e-6 12e-6 33e-6 0e-6 9e-6 12e-6 33e-6 0e-6 0e-6];
   
 end
@@ -103,7 +114,7 @@ for state_idx = 1:length(states)
 
       % Open the file
       fprintf('  Open %s (%s)\n', fn, datestr(now));
-      [fid,msg] = fopen(fn, 'rb',file_mode);
+      [fid,msg] = fopen(fn, 'rb');
       if fid <= 0
         error('File open failed (%s)\n%s',fn, msg);
       end
@@ -183,14 +194,23 @@ for state_idx = 1:length(states)
           % Read in headers for this record
           if any(param.records.file.version == [3 5 7 8])
             % Number of fast-time samples Nt, and start time t0
-            start_idx = double(typecast(file_data(rec_offset+37:rec_offset+38), 'uint16')) + wfs(wf).time_raw_trim(1);
-            stop_idx = double(typecast(file_data(rec_offset+39:rec_offset+40), 'uint16')) - wfs(wf).time_raw_trim(2);
+            if swap_bytes_en
+              start_idx = 2*double(swapbytes(typecast(file_data(rec_offset+37:rec_offset+38), 'uint16'))) + wfs(wf).time_raw_trim(1);
+              stop_idx = 2*double(swapbytes(typecast(file_data(rec_offset+39:rec_offset+40), 'uint16'))) - wfs(wf).time_raw_trim(2);
+            else
+              start_idx = 2*double(typecast(file_data(rec_offset+37:rec_offset+38), 'uint16')) + wfs(wf).time_raw_trim(1);
+              stop_idx = 2*double(typecast(file_data(rec_offset+39:rec_offset+40), 'uint16')) - wfs(wf).time_raw_trim(2);
+            end
             if param.records.file.version == 8
               Nt(num_accum+1) = stop_idx - start_idx;
               wfs(wf).Nt_raw = Nt(num_accum+1);
             else
               % NCO frequency
-              DDC_freq(num_accum+1) = double(-typecast(file_data(rec_offset+43:rec_offset+44),'uint16'));
+              if swap_bytes_en
+                DDC_freq(num_accum+1) = double(-swapbytes(typecast(file_data(rec_offset+43:rec_offset+44),'uint16')));
+              else
+                DDC_freq(num_accum+1) = double(-typecast(file_data(rec_offset+43:rec_offset+44),'uint16'));
+              end
               if param.records.file.version == 3
                 DDC_freq(num_accum+1) = DDC_freq(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2 - 62.5e6;
               elseif any(param.records.file.version == [5 7])
@@ -214,6 +234,8 @@ for state_idx = 1:length(states)
             
             if param.records.file.version == 8
               % Debug: char(file_data(rec_offset+41:rec_offset+48).')
+              % No swapbytes should be necessary for this typecast because
+              % it is actually a string of 8 characters.
               waveform_ID = typecast(file_data(rec_offset+41:rec_offset+48), 'uint64');
               waveform_ID_map_idx = find(waveform_ID_map == waveform_ID,1);
               if isempty(waveform_ID_map_idx)
@@ -251,9 +273,13 @@ for state_idx = 1:length(states)
               %  - Supports interleaved IQ samples
               %  - Supports arbitrary sample types
               %  - Supports interleaved data channels ("adcs")
-              start_bin = rec_offset + wfs(wf).offset + wfs(wf).time_raw_trim(1)*wfs(wf).adc_per_board*wfs(wf).sample_size;
+              start_bin = 1+rec_offset + wfs(wf).offset + wfs(wf).time_raw_trim(1)*wfs(wf).adc_per_board*wfs(wf).sample_size;
               stop_bin = start_bin + wfs(wf).Nt_raw*wfs(wf).adc_per_board*wfs(wf).sample_size-1;
-              tmp = single(typecast(file_data(start_bin : stop_bin), wfs(wf).sample_type));
+              if swap_bytes_en
+                tmp = single(swapbytes(typecast(file_data(start_bin : stop_bin), wfs(wf).sample_type)));
+              else
+                tmp = single(typecast(file_data(start_bin : stop_bin), wfs(wf).sample_type));
+              end
               if wfs(wf).complex
                 if wfs(wf).conjugate
                   tmp = tmp(1:2:end) - 1i*tmp(2:2:end);
@@ -283,32 +309,55 @@ for state_idx = 1:length(states)
               missed_wf_adc = true;
               while sub_rec_offset < rec_size
                 total_offset = rec_offset + sub_rec_offset;
-                radar_header_type = mod(typecast(file_data(total_offset+(9:12)),'uint32'),2^31); % Ignore MSB
-                radar_header_len = double(typecast(file_data(total_offset+(13:16)),'uint32'));
-                radar_profile_length = double(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32'));
+                if swap_bytes_en
+                  radar_header_type = mod(swapbytes(typecast(file_data(total_offset+(9:12)),'uint32')),2^31); % Ignore MSB
+                  radar_header_len = double(swapbytes(typecast(file_data(total_offset+(13:16)),'uint32')));
+                  radar_profile_length = double(swapbytes(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32')));
+                else
+                  radar_header_type = mod(typecast(file_data(total_offset+(9:12)),'uint32'),2^31); % Ignore MSB
+                  radar_header_len = double(typecast(file_data(total_offset+(13:16)),'uint32'));
+                  radar_profile_length = double(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32'));
+                end
                 if any(radar_header_type == [5 16 23])
                   if mode_latch == typecast(file_data(total_offset+17),'uint8') ...
                       && subchannel == typecast(file_data(total_offset+18),'uint8')
                     % This matches the mode and subchannel that we need
-                    radar_profile_format = typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32');
                     is_IQ = 0;
                     if length(file_data) < total_offset+24+radar_header_len+radar_profile_length
                       % Unexpected end of file, so we missed the record
                       missed_wf_adc = true;
                       break;
                     end
-                    switch radar_profile_format
-                      case 0 % 0x00000
-                        tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16'));
-                      case 65536 % 0x10000
-                        tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16'));
-                        is_IQ = 1;
-                      case 131072 % 0x20000
-                        tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int32'));
-                        is_IQ = 1;
-                      case 196608 % 0x30000
-                        tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'single'));
-                        is_IQ = 1;
+                    if swap_bytes_en
+                      radar_profile_format = swapbytes(typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32'));
+                      switch radar_profile_format
+                        case 0 % 0x00000
+                          tmp_data{adc,wf} = single(swapbytes(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16')));
+                        case 65536 % 0x10000
+                          tmp_data{adc,wf} = single(swapbytes(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16')));
+                          is_IQ = 1;
+                        case 131072 % 0x20000
+                          tmp_data{adc,wf} = single(swapbytes(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int32')));
+                          is_IQ = 1;
+                        case 196608 % 0x30000
+                          tmp_data{adc,wf} = single(swapbytes(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'single')));
+                          is_IQ = 1;
+                      end
+                    else
+                      radar_profile_format = typecast(file_data(total_offset+radar_header_len+(17:20)),'uint32');
+                      switch radar_profile_format
+                        case 0 % 0x00000
+                          tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16'));
+                        case 65536 % 0x10000
+                          tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int16'));
+                          is_IQ = 1;
+                        case 131072 % 0x20000
+                          tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'int32'));
+                          is_IQ = 1;
+                        case 196608 % 0x30000
+                          tmp_data{adc,wf} = single(typecast(file_data(total_offset+24+radar_header_len+(1:radar_profile_length)),'single'));
+                          is_IQ = 1;
+                      end
                     end
                     if is_IQ
                       if wfs(wf).conjugate

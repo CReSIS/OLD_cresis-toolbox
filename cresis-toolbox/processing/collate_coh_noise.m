@@ -24,8 +24,20 @@ fprintf('=====================================================================\n
 %% Input checks
 % =====================================================================
 
+if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
+  param.collate_coh_noise.cmd_idx = 1;
+end
+
 cmd = param.analysis.cmd{param.collate_coh_noise.cmd_idx};
 debug_level = param.collate_coh_noise.debug_level;
+
+if ~isfield(param.collate_coh_noise,'in_dir') || isempty(param.collate_coh_noise.in_dir)
+  param.collate_coh_noise.in_dir = 'analysis';
+end
+
+if ~isfield(param.collate_coh_noise,'out_dir') || isempty(param.collate_coh_noise.out_dir)
+  param.collate_coh_noise.out_dir = 'analysis';
+end
 
 if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
   param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
@@ -33,6 +45,10 @@ end
 
 if ~isfield(param.collate_coh_noise,'wf_adcs') || isempty(param.collate_coh_noise.wf_adcs)
   param.collate_coh_noise.wf_adcs = [];
+end
+
+if ~isfield(param.collate_coh_noise,'plot_en') || isempty(param.collate_coh_noise.plot_en)
+  param.collate_coh_noise.plot_en = false;
 end
 
 if ~isfield(cmd,'dft_corr_length') || isempty(cmd.dft_corr_length)
@@ -45,6 +61,16 @@ end
 
 if ~isfield(cmd,'power_grow') || isempty(cmd.power_grow)
   cmd.power_grow = 1;
+end
+
+if param.collate_coh_noise.plot_en
+  fig_visible = 'off';
+  h_fig = figure('Visible',fig_visible);
+  h_axes = axes('parent',h_fig);
+  for idx=2:4
+    h_fig(idx) = figure('Visible',fig_visible);
+    h_axes(idx) = axes('parent',h_fig(idx));
+  end
 end
 
 for img = param.collate_coh_noise.imgs
@@ -64,16 +90,6 @@ for img = param.collate_coh_noise.imgs
     fn = fullfile(fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Loading %s (%s)\n', fn, datestr(now));
     noise = load(fn);
-    
-%     % HACK: Need to fix files since change to data_pulse_compress
-%     noise.Nt = noise.Nt-1;
-%     for block_idx = 1:length(noise.coh_ave)
-%       for subrec = 1:size(noise.coh_ave{block_idx},2)
-%         idx = find(~isnan(noise.coh_ave{block_idx}(:,subrec)),1,'last');
-%         noise.coh_ave{block_idx}(idx,subrec) = NaN;
-%       end
-%     end
-%     % END HACK
     
     % Each processed block has a constant start and stop bin, but between
     % blocks the start/stop range bin may change.
@@ -102,29 +118,143 @@ for img = param.collate_coh_noise.imgs
     [~,dft_freqs_idxs] = sort(abs(dft_freqs));
     dft_freqs = dft_freqs(dft_freqs_idxs);
     noise.dft = zeros(stop_bin-start_bin+1, Nx_dft, 'single');
+    threshold = zeros(stop_bin-start_bin+1,1);
+    if param.collate_coh_noise.plot_en
+      cn_before = zeros(stop_bin-start_bin+1,Nx);
+      cn_after = zeros(stop_bin-start_bin+1,Nx);
+      cn_before_mag = zeros(stop_bin-start_bin+1,Nx);
+    end
     for bin = start_bin:stop_bin
       bin_idx = bin-start_bin+1;
-      data_bin = nan(size(noise.gps_time));
+      coh_bin = nan(size(noise.gps_time));
+      coh_bin_mag = nan(size(noise.gps_time));
       for block_idx = 1:length(noise.coh_ave)
         if bin >= start_bins(block_idx) && bin <= stop_bins(block_idx)
-          data_bin(block_start(block_idx)+(0:block_size(block_idx)-1)) = noise.coh_ave{block_idx}(bin-start_bins(block_idx)+1,:);
+          tmp = noise.coh_ave{block_idx}(bin-start_bins(block_idx)+1,:);
+          tmp(noise.coh_ave_samples{block_idx}(bin-start_bins(block_idx)+1,:) < cmd.min_samples) = NaN;
+          coh_bin(block_start(block_idx)+(0:block_size(block_idx)-1)) = tmp;
+          coh_bin_mag(block_start(block_idx)+(0:block_size(block_idx)-1)) = noise.coh_ave_mag{block_idx}(bin-start_bins(block_idx)+1,:);
         end
       end
       if 0
+        % Debug plots
         figure(1); clf;
-        plot(real(data_bin)); title(sprintf('%d',bin));
+        plot(real(coh_bin)); title(sprintf('%d',bin));
+        plot(real(coh_bin_mag)); title(sprintf('%d',bin));
         figure(2); clf;
-        plot(imag(data_bin)); title(sprintf('%d',bin));
+        plot(imag(coh_bin)); title(sprintf('%d',bin));
+        plot(imag(coh_bin_mag)); title(sprintf('%d',bin));
+      end
+      if param.collate_coh_noise.plot_en
+        cn_before(bin_idx,:) = coh_bin;
+        cn_before_mag(bin_idx,:) = coh_bin_mag;
+      end
+      if size(coh_bin_mag,2) < 10
+        threshold(bin_idx) = lp(mean(abs(coh_bin_mag).^2,2));
+      else
+        threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,10)),[],2);
       end
       for dft_idx = 1:length(dft_freqs)
         mf = exp(1i*2*pi/Nx * dft_freqs(dft_idx) .* (0:Nx-1));
-        noise.dft(bin_idx,dft_idx) = nanmean(mf.*data_bin);
-        data_bin = data_bin - noise.dft(bin_idx,dft_idx) * mf;
+        noise.dft(bin_idx,dft_idx) = nanmean(conj(mf).*coh_bin);
+        coh_bin = coh_bin - noise.dft(bin_idx,dft_idx) * mf;
+      end
+      if param.collate_coh_noise.plot_en
+        cn_after(bin_idx,:) = coh_bin;
       end
       if 0
+        % Debug plots
         noise.dft(bin_idx,dft_idx)
         keyboard
       end
+    end
+    orig_threshold = threshold;
+    Tpd_bin  = round(param.radar.wfs(wf).Tpd/noise.dt) - start_bin;
+    if any(wf == [1 2])
+      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+    elseif any(wf == [3 4])
+      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-130)=-130; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+    elseif any(wf == [5 6])
+      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-142)=-142; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+    else
+      keyboard
+    end
+%     figure(100); plot(threshold); hold on;
+    eval(param.collate_coh_noise.threshold_eval);
+    
+    if param.collate_coh_noise.plot_en
+      dxt = mean_without_outliers(diff(noise.gps_time));
+      Xt = Nx*dxt;
+      dfx = 1/Xt;
+      fx = dfx * (-floor(Nx/2) : floor((Nx-1)/2));
+      
+      for idx=1:4
+        delete(get(h_axes(idx),'Children'));
+      end
+      
+      mask = isnan(cn_before);
+      cn_before(mask) = 0;
+      imagesc(fx, [], fftshift(lp( fft(cn_before,[],2) ),2), 'parent', h_axes(1));
+      cn_before(mask) = NaN;
+      cc=caxis(h_axes(1));
+      title(h_axes(1), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      ylabel(h_axes(1), 'Range bin');
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      fig_fn_dir = fileparts(fig_fn);
+      if ~exist(fig_fn_dir,'dir')
+        mkdir(fig_fn_dir);
+      end
+      saveas(h_fig(1),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(1),fig_fn);
+      
+      cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
+      imagesc(lp(cn_before),'parent',h_axes(2));
+      title(h_axes(2), sprintf('Before %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      ylabel(h_axes(2), 'Range bin');
+      xlabel(h_axes(2), 'Block');
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(2),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(2),fig_fn);
+      
+      imagesc(lp(cn_after),'parent',h_axes(3));
+      caxis(h_axes(3), cc);
+      title(h_axes(3), sprintf('After %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      xlabel(h_axes(3), 'Block');
+      ylabel(h_axes(3), 'Range bin');
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(3),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(3),fig_fn);
+      
+      linkaxes(h_axes(2:3));
+      
+      plot(h_axes(4), orig_threshold)
+      hold(h_axes(4), 'on');
+      grid(h_axes(4), 'on');
+      plot(h_axes(4), threshold)
+      plot(h_axes(4), lp(abs(noise.dft(:,1)).^2))
+      legend(h_axes(4), 'Original', 'Modified', 'DC Noise', 'location', 'best')
+      xlabel(h_axes(4), 'Range bin');
+      ylabel(h_axes(4), 'Relative power (dB)');
+      title(h_axes(4), sprintf('Threshold %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      param.collate_coh_noise.threshold_ylims = [-180 -20];
+      ylim(h_axes(4),param.collate_coh_noise.threshold_ylims);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(4),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(4),fig_fn);
+
+      %keyboard
     end
     
     %% Create the simplified output
@@ -136,6 +266,7 @@ for img = param.collate_coh_noise.imgs
     noise_simp.dftI = real(noise.dft);
     noise_simp.dftQ = imag(noise.dft);
     noise_simp.param_analysis = noise.param_analysis;
+    noise_simp.threshold = threshold;
     noise_simp.param_collate = param;
     noise_simp.datestr = datestr(now);
     noise_simp.recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
@@ -206,4 +337,7 @@ for img = param.collate_coh_noise.imgs
 %           
     
   end
+end
+if param.collate_coh_noise.plot_en
+  delete(h_fig);
 end

@@ -5,12 +5,6 @@ function [wfs,states] = data_load_wfs(param, records)
 %
 % Author: John Paden
 
-    % HACK: REMOVE AFTER 2017 DONE
-    if any(param.records.file.version == [1:8]) && isfield(records.settings.wfs(1),'wfs')
-      records.settings.wfs = records.settings.wfs.wfs;
-    end
-    % END HACK
-
 %% Build raw data loading "states" structure
 % =========================================================================
 
@@ -263,16 +257,6 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).tukey   = param.radar.wfs(wf).tukey;
   else
     wfs(wf).tukey   = 0;
-  end
-  if isfield(param.radar.wfs(wf),'DC_adjust') && ~isempty(param.radar.wfs(wf).DC_adjust)
-    tmp = load(fullfile(ct_filename_out(param,'noise','',1), ...
-      param.radar.wfs(wf).DC_adjust),'DC_adjust');
-    for adc_idx = 1:length(adcs)
-      adc = adcs(adc_idx);
-      wfs(wf).DC_adjust(adc_idx) = tmp.DC_adjust(adc);
-    end
-  else
-    wfs(wf).DC_adjust   = zeros(size(adcs));
   end
   if isfield(param.radar.wfs(wf),'gain_fn') && ~isempty(param.radar.wfs(wf).gain_fn)
     for adc = adcs

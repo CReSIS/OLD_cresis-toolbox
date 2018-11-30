@@ -117,10 +117,6 @@ if ~isfield(param.qlook,'resample') || isempty(param.qlook.resample)
   param.qlook.resample = [1 1; 1 1];
 end
 
-if ~isfield(param.qlook,'trim') || isempty(param.qlook.trim)
-  param.qlook.trim = [0 0];
-end
-
 if ~isfield(param.qlook,'surf') || isempty(param.qlook.surf)
   param.qlook.surf.en = false;
 end
@@ -138,6 +134,10 @@ end
 if ~isfield(param.records.gps,'en') || isempty(param.records.gps.en)
   % Assume that GPS synchronization is enabled
   param.records.gps.en = true;
+end
+
+if ~isfield(param.qlook,'trim') || isempty(param.qlook.trim)
+  param.qlook.trim = [0 0];
 end
 
 [~,out_path_dir] = fileparts(param.qlook.out_path);
@@ -308,16 +308,13 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Create success condition
     % =================================================================
+    dparam.file_success = {};
     for img = 1:length(param.qlook.imgs)
       out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end));
-      out_fn{img} = fullfile(out_fn_dir,out_fn_name);
-      if img == 1
-        dparam.file_success = out_fn(img);
-      else
-        dparam.file_success{end+1} = out_fn{img};
-      end
-      if ~ctrl.cluster.rerun_only && exist(out_fn{img},'file')
-        delete(out_fn{img});
+      out_fn = fullfile(out_fn_dir,out_fn_name);
+      dparam.file_success{end+1} = out_fn;
+      if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+        delete(out_fn);
       end
     end
     

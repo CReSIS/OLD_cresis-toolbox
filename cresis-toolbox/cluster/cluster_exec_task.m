@@ -1,7 +1,8 @@
-function cluster_exec_job(ctrl,task_ids,run_mode)
-% cluster_exec_job(ctrl,task_ids,run_mode)
+function cluster_exec_task(ctrl,task_ids,run_mode)
+% cluster_exec_task(ctrl,task_ids,run_mode)
 %
-% Re-executes a specific job from the command line (runs it locally).
+% Re-executes specific tasks from the command line (runs them locally using
+% one of three modes).
 %
 % Inputs:
 % ctrl = ctrl structure returned from cluster_new_batch
@@ -18,7 +19,7 @@ function cluster_exec_job(ctrl,task_ids,run_mode)
 % Author: John Paden
 %
 % See also: cluster_chain_stage, cluster_cleanup, cluster_compile
-%   cluster_exec_job, cluster_get_batch, cluster_get_batch_list, 
+%   cluster_exec_task, cluster_get_batch, cluster_get_batch_list, 
 %   cluster_hold, cluster_job, cluster_new_batch, cluster_new_task,
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task

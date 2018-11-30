@@ -31,7 +31,17 @@ function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormali
 %
 % See also: decimate, resample, downsample
 
-if nargin == 2 && length(Bfilter) == 1
+if nargin == 3 && length(Bfilter)==dec_factor && all(Bfilter(1)==Bfilter) ...
+    && abs(sum(Bfilter)-1) < 1e4*eps
+  simple_fir_dec = true;
+  Bfilter = dec_factor;
+elseif nargin == 2 && length(Bfilter) == 1
+  simple_fir_dec = true;
+else
+  simple_fir_dec = false;
+end
+
+if simple_fir_dec
   coh_avgs = Bfilter;
   if coh_avgs >= 1
     siz = size(data);

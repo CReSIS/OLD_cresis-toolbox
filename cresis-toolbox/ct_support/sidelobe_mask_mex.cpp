@@ -8,6 +8,7 @@
 
 #include "matrix.h"
 #include "mex.h"
+#include <math.h>
 
 // function mask = sidelobe_mask(data, sl_rows, sl)
 // % mask = sidelobe_mask(data, sl_rows, sl)
@@ -92,8 +93,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         // There is at least one valid bin to check
         ptrdiff_t cur_idx = idx + cur_row - row;
         ptrdiff_t stop_row = row + sl_rows[numel_sl_rows-1];
+        
         // Make sure sidelobe rows do not extend beyond the last row
-        if (stop_row >= dim_data[0]) {
+        // dim_data is unsigned so we make sure stop_row >= 0
+        if (stop_row >= 0 && stop_row >= dim_data[0]) {
           stop_row = dim_data[0]-1;
         }
         

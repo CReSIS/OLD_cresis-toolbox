@@ -1,5 +1,5 @@
-function [board,board_idx,profile] = wf_adc_to_board(param,img)
-% [board,board_idx,profile] = wf_adc_to_board(param,img)
+function [board,board_idx,profile] = wf_adc_to_board(param,wf_adc_list)
+% [board,board_idx,profile] = wf_adc_to_board(param,wf_adc_list)
 %
 % Support function for determining which file (referred to as board since
 % each board usually generates its own file and may have multiple adcs) a
@@ -11,7 +11,7 @@ function [board,board_idx,profile] = wf_adc_to_board(param,img)
 %   .records
 %     .file.version
 %     .data_map
-% img: list of wf-adc pairs (N by 2 matrix where first column is the wf and
+% wf_adc_list: list of wf-adc pairs (N by 2 matrix where first column is the wf and
 %   the second column is the adc. wf is one indexed. adc is one indexed.
 %
 % Outputs:
@@ -28,7 +28,7 @@ function [board,board_idx,profile] = wf_adc_to_board(param,img)
 
 if any(param.records.file.version == [402 403])
   % NI systems with 4 adcs per board
-  board = unique(floor((img(:,2).'-1)/4));
+  board = unique(floor((wf_adc_list(:,2).'-1)/4));
   board_idx = board+1;
   profile = [];
   
@@ -40,15 +40,15 @@ elseif any(param.records.file.version == [410])
   
 elseif any(param.records.file.version == [9 10 103 412])
   % RSS which uses param.records.data_map
-  board = zeros(1,size(img,1));
-  profile = zeros(size(img,1),2);
-  for wf_adc = 1:size(img,1)
+  board = zeros(1,size(wf_adc_list,1));
+  profile = zeros(size(wf_adc_list,1),2);
+  for wf_adc = 1:size(wf_adc_list,1)
     found = false;
     for board_idx = 1:length(param.records.data_map)
       for profile_idx = 1:size(param.records.data_map{board_idx},1)
         wf = param.records.data_map{board_idx}(profile_idx,3);
         adc = param.records.data_map{board_idx}(profile_idx,4);
-        if img(wf_adc,1) == wf && img(wf_adc,2) == adc
+        if wf_adc_list(wf_adc,1) == wf && wf_adc_list(wf_adc,2) == adc
           board(wf_adc) = board_idx;
           profile(wf_adc,1) = param.records.data_map{board_idx}(profile_idx,1); % mode
           profile(wf_adc,2) = param.records.data_map{board_idx}(profile_idx,2); % subchannel
@@ -57,7 +57,7 @@ elseif any(param.records.file.version == [9 10 103 412])
       end
     end
     if ~found
-      error('Did not find wf-adc pair (%d,%d).', img(wf_adc,1), img(wf_adc,2));
+      error('Did not find wf-adc pair (%d,%d).', wf_adc_list(wf_adc,1), wf_adc_list(wf_adc,2));
     end
   end
   board = unique(board);
@@ -65,7 +65,7 @@ elseif any(param.records.file.version == [9 10 103 412])
   
 else
   % All other systems
-  board = unique(img(:,2).');
+  board = unique(wf_adc_list(:,2).');
   board_idx = board;
   profile = [];
 end

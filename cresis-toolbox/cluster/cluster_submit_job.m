@@ -155,7 +155,7 @@ elseif strcmpi(ctrl.cluster.type,'debug')
   if ~isfield(ctrl.cluster,'run_mode')
     ctrl.cluster.run_mode = [];
   end
-  cluster_exec_job(ctrl,job_tasks,ctrl.cluster.run_mode);
+  cluster_exec_task(ctrl,job_tasks,ctrl.cluster.run_mode);
 else
   error('Invalid cluster type %s.', ctrl.cluster.type);
 end

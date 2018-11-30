@@ -3,7 +3,7 @@ function [surface,quality] = tracker_threshold(data,surf)
 %
 % data = Nt by Nx 2D matrix of nonnegative linear power values
 % surf = structure controlling operating of the tracker
-%  .noise_rng = [100 -700 -300];
+%  .threshold_noise_rng = [100 -700 -300];
 %    Specifies the region relative to the peak power to estimate the noise
 %    power from. It is a 1 by 3 integer array.
 %    first element: All data points that are zero at the beginning of the
@@ -14,30 +14,17 @@ function [surface,quality] = tracker_threshold(data,surf)
 %      are negative such as [-50 -10] so that the noise estimate uses data
 %      before the peak).
 %  .threshold_noise_dB: double scalar, use this value for the noise estimate
-%     rather than the value estimated from noise_rng
+%     rather than the value estimated from threshold_noise_rng
 %  .threshold = double scalar, relative threshold above noise estimate
 %    in log10 scale. Default is 17.
-%  .sidelobe	= double scalar, sidelobe value that specifies the minimum
-%    threshold value as max_value - surf.sidelobe. In log10 scale. Default
-%    is 13.
-%  .max_diff = maximum deviation of the surface from the inital surface (in
-%    range bins), set to inf to not have a limit
-%  .filter_len = if defined and not empty, it should be a 2 element vector
-%    that specifies the size of a 2D boxcar filter to apply to the data
-%    before tracking. The first dimension is cross track and the second
-%    dimension is along-track. Each dimension must be a positive odd
-%    integer (e.g. [1 7], [3 3], [3 7], etc).
-%  .min_bin = the minimum row (range bin) data that the tracker will look at
-%  .init.method = 'medfilt' or 'snake' or 'dem'
-%     .init.search_rng = required for tracker_snake_simple (e.g. [-120:120])
-%     .init.medfilt = required for medfilt1 (e.g. 101)
-%  .dem = surface dem used by .init.method == 'dem'
-%  .detrend = polynomial order of detrend function (polyfit to power data)
-%     zero or lower or leaving empty/undefined does no detrending
-%  .search_rng: search range around threshold bin to find a max value
+%  .threshold_rel_max = negative double scalar, relative threshold below
+%    max of valid bins in dB scale. Default is NaN (i.e. threshold not used).
 %  .threshold_rng: threshold for a given range line uses this range of
 %     range values around the current range line to estimate the threshold.
 %     Set to inf to include all range lines in estimate. Default is inf.
+%  .dem = initial dem (used in estimate noise)
+%  .init.max_diff = maximum deviation of the surface from surf.dem in
+%    range bins), set to inf to not have a limit
 %
 % surface = 1 by size(data,2) vector of range bins where the surface
 %   was tracked at
@@ -59,6 +46,13 @@ end
 if ~isfield(surf,'threshold') || isempty(surf.threshold)
   surf.threshold = 17;
 end
+if ~isfield(surf,'threshold_rel_max') || isempty(surf.threshold_rel_max)
+  % Threshold for each range line is the maximum of 1. the threshold found
+  % from the noise estimate+threshold and 2. the maximum value plus this
+  % relative amount. Default is -inf so that the max value threshold is not
+  % used.
+  surf.threshold_rel_max = NaN;
+end
 if ~isfield(surf,'threshold_rng') || isempty(surf.threshold_rng)
   surf.threshold_rng = inf;
 end
@@ -66,7 +60,7 @@ surf.dem = round(surf.dem);
 
 
 %% Determine the threshold value using range bins specified by noise_rng
-median_mdata = zeros(1,size(data,2));
+median_mdata = nan(1,size(data,2));
 for rline=1:size(data,2)
   % Remove range bins that are zero
   good_mask = data(:,rline) ~= 0;
@@ -81,19 +75,20 @@ for rline=1:size(data,2)
   end
 end
 
-if ~isempty(surf.threshold_noise_dB) && all(median_mdata==0)
+% median_mdata: Noise estimate for each range line
+% surf.threshold_noise_dB: Hard coded noise value
+% surf.threshold: Threshold in dB above the noise estimate
+% surf.threshold_rng: +/- range lines to use in the noise estimate for a
+%   particular range line (this is useful if the noise estimates are noisy)
+% surf.threshold_rel_max: Threshold in dB below the maximum value in the
+%   rbin range
+if ~isempty(surf.threshold_noise_dB) && all(isnan(median_mdata)) && surf.threshold_rel_max == -inf 
   warning('Insufficient information to generate threshold since all values are zero.');
   surface = surf.dem;
   return
 end
-if isempty(surf.threshold_noise_dB)
-  if isfinite(surf.threshold_rng)
-    THRESHOLD = NaN;
-  else
-    THRESHOLD = surf.threshold + median(median_mdata(~isnan(median_mdata)));
-  end
-else
-  THRESHOLD = surf.threshold + surf.threshold_noise_dB;
+if surf.threshold_rng == inf
+  all_median_mdata = nanmedian(median_mdata);
 end
 
 %% Perform thresholding
@@ -102,14 +97,15 @@ quality = 3*ones(1,size(data,2));
 for rline=1:size(data,2)
   rbins = max(1,round(surf.dem(rline) - surf.init.max_diff)) : min(size(data,1),round(surf.dem(rline) + surf.init.max_diff));
 
-  % Fast Sidelobe Check
-  if isnan(THRESHOLD)
-    mask = median_mdata ~= 0 & (1:size(data,2)) - rline <= surf.threshold_rng;
-    RLINE_THRESHOLD = surf.threshold + median(median_mdata(mask));
-    threshold_rline = RLINE_THRESHOLD;
+  if ~isempty(surf.threshold_noise_dB)
+    threshold_rline = surf.threshold_noise_dB;
+  elseif surf.threshold_rng == inf
+    threshold_rline = all_median_mdata + surf.threshold;
   else
-    threshold_rline = THRESHOLD;
+    threshold_rline = surf.threshold + ...
+      nanmedian(median_mdata( max(1,rline-surf.threshold_rng) : min(length(median_mdata),rline+surf.threshold_rng) ));
   end
+  threshold_rline = max(threshold_rline,max(data(rbins,rline))+surf.threshold_rel_max);
   
   thresh_bin = find(data(rbins,rline) > threshold_rline,1);
   if ~isempty(thresh_bin)

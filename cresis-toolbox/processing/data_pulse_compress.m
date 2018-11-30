@@ -62,6 +62,7 @@ for img = 1:length(param.load.imgs)
         % Nt by Nx_dft matrix (we grab a subset of the Nt samples)
         noise.dft = ncread(cdf_fn,'dftI') ...
           + 1i*ncread(cdf_fn,'dftQ');
+        noise.dft(~isfinite(noise.dft)) = 0;
         
         % Adjust coherent noise dft for changes in adc_gains relative to
         % when the coherent noise was loaded and estimated.
@@ -151,6 +152,7 @@ for img = 1:length(param.load.imgs)
         % Nt by Nx_dft matrix (we grab a subset of the Nt samples)
         noise.dft = ncread(cdf_fn,'dftI') ...
           + 1i*ncread(cdf_fn,'dftQ');
+        noise.dft(~isfinite(noise.dft)) = 0;
         
         % Adjust coherent noise dft for changes in adc_gains relative to
         % when the coherent noise was loaded and estimated.
@@ -349,6 +351,9 @@ for img = 1:length(param.load.imgs)
               Nt_rf = round((wfs(wf).Tpd + max(td_max,tref) - min(td_min,tref) + 2*tguard)*fs_rf/Mt_oversample)*Mt_oversample;
               hdr.Nt{img}(rec) = Nt_rf / Mt_oversample;
             end
+            % In case the decimation length does not align with the desired
+            % length, Nt_desired, we determine what resampling is required
+            % and store this in p,q.
             Nt_desired = round(wfs(wf).fs_raw/wfs(wf).chirp_rate*diff(wfs(wf).BW_window)/2)*2;
             fs_raw_dec = wfs(wf).fs_raw ./ hdr.DDC_dec{img}(rec);
             Nt_raw_trim = round(fs_raw_dec/wfs(wf).chirp_rate*diff(wfs(wf).BW_window)/2)*2;
@@ -650,7 +655,7 @@ for img = 1:length(param.load.imgs)
             else
               start_bin = 1 + round(cn.time(1)/cn.dt) - noise.start_bin;
               cn.tmp = cn.data(start_bin + (0:length(cn.time)-2),rec);
-              cn.tmp(end+1) = 0;
+              cn.tmp(end+1) = 0; % Add invalid sample back in
             end
             
             % Coherent noise is fully pulse compressed. The nyquist_zone
@@ -672,6 +677,9 @@ for img = 1:length(param.load.imgs)
             tmp = ifft(tmp);
             tmp = tmp .* cn.deskew;
             tmp(end) = 0;
+            if p~=q
+              tmp = resample(tmp,p,q);
+            end
             
             if 0
               % Debug
@@ -694,6 +702,11 @@ for img = 1:length(param.load.imgs)
             %    actual nyquist zone.
             if nz ~= double(hdr.nyquist_zone_hw{img}(rec))
               % Reverse Pulse Compression:
+              % Undo tmp = resample(tmp,p,q);
+              if p~=q
+                tmp = resample(tmp,q,p);
+              end
+              % Do not undo tmp(end) = 0;
               % Undo tmp = tmp .* deskew;
               tmp = tmp ./ cn.deskew;
               % Undo tmp = ifft(tmp);
@@ -714,6 +727,7 @@ for img = 1:length(param.load.imgs)
               tmp = tmp .* time_correction;
               tmp = ifft(tmp);
               tmp = tmp .* deskew;
+              % tmp(end) = 0; % Skip since it was not undone
               if p~=q
                 tmp = resample(tmp,p,q);
               end
@@ -749,6 +763,9 @@ for img = 1:length(param.load.imgs)
             
             % Deskew of the residual video phase (second stage)
             tmp = tmp .* deskew;
+            
+            % Last sample set to zero (invalid sample)
+            tmp(end) = 0;
             
             % Resample data so it aligns to constant time step
             if p~=q
@@ -910,23 +927,20 @@ for img = 1:length(param.load.imgs)
       
       unique_idxs = unique(deconv_map_idxs);
       
-      if wf_adc == 1
-        % Prepare variables that are constant for each deconvolution
-        % waveform that will be applied
-        cmd = deconv.param_collate_deconv.analysis.cmd{deconv.param_collate_deconv.collate_deconv.cmd_idx};
-        fc = hdr.freq{img}(1);
-        
-        % Prepare variables to baseband data to new center frequency (in
-        % case the deconvolution filter subbands)
-        deconv_fc = (cmd.f0+cmd.f1)/2;
-        df = hdr.freq{img}(2)-hdr.freq{img}(1);
-        BW = df * wfs(wf).Nt;
-        deconv_dfc = deconv_fc - fc;
-        hdr.freq{img} = mod(hdr.freq{img} + deconv_dfc-wfs(wf).BW_window(1), BW)+wfs(wf).BW_window(1);
-        
-      elseif abs(deconv_fc - (cmd.f0+cmd.f1)/2)/deconv_fc > 1e-6
+      cmd = deconv.param_collate_deconv.analysis.cmd{deconv.param_collate_deconv.collate_deconv.cmd_idx};
+      if wf_adc > 1 && abs(deconv_fc - (cmd.f0+cmd.f1)/2)/deconv_fc > 1e-6
         error('Deconvolution center frequency must be the same for all wf-adc pairs in the image. Was %g and is now %g.', deconv_fc, (cmd.f0+cmd.f1)/2);
       end
+      % Prepare variables
+      fc = hdr.freq{img}(1);
+      
+      % Prepare variables to baseband data to new center frequency (in
+      % case the deconvolution filter subbands)
+      deconv_fc = (cmd.f0+cmd.f1)/2;
+      df = hdr.freq{img}(2)-hdr.freq{img}(1);
+      BW = df * wfs(wf).Nt;
+      deconv_dfc = deconv_fc - fc;
+      hdr.freq{img} = mod(hdr.freq{img} + deconv_dfc-wfs(wf).BW_window(1), BW)+wfs(wf).BW_window(1);
       
       for unique_idxs_idx = 1:length(unique_idxs)
         % deconv_mask: Create logical mask corresponding to range lines that use this deconv waveform
@@ -981,9 +995,6 @@ for img = 1:length(param.load.imgs)
         
         % Normalize deconvolution
         h_filled_inverse = h_filled_inverse * h_mult_factor * abs(h_nonnegative(1)./max(deconv.impulse_response{deconv_map_idx}));
-        
-        % Is adc_gains_dB different?
-        h_filled_inverse = h_filled_inverse / 10.^((wfs(wf).adc_gains_dB(adc)-deconv.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
         
         % Apply deconvolution filter
         deconv_mask_idxs = find(deconv_mask);

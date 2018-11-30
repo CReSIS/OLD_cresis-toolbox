@@ -25,10 +25,10 @@ data = fftshift(data,2);
 kx = fftshift(kx);
 
 %% Create slow time window
-num_subapertures = length(param.csarp.sub_aperture_steering);
+num_subapertures = length(param.sar.sub_aperture_steering);
 proc_oversample = (1+num_subapertures)/2;
 Nx_out = size(data,2)/proc_oversample;
-Hwindow = param.csarp.st_wind(Nx_out).';
+Hwindow = param.sar.st_wind(Nx_out).';
 
 %% Preallocate output matrix
 fk_data = zeros(size(data,1),size(data,2)/proc_oversample,num_subapertures,class(data));

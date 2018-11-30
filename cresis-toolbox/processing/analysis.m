@@ -109,25 +109,32 @@ for cmd_idx = 1:length(param.analysis.cmd)
     end
   end
   
-  if ~isfield(cmd,'B_filter') || isempty(cmd.B_filter)
-    % Set the default filter to no filtering (B_filter = 1)
-    cmd.B_filter = 1;
+  if ~isfield(cmd,'dec') || isempty(cmd.dec)
+    % Set the default decimation to none (dec = 1)
+    cmd.dec = 1;
   end
-  
+  if ~isfield(cmd,'B_filter') || isempty(cmd.B_filter)
+    if cmd.dec == 1
+      cmd.B_filter = 1;
+    else
+      cmd.B_filter = boxcar(cmd.dec);
+    end
+  end
+  if ~mod(length(cmd.B_filter),2) && cmd.dec ~= length(cmd.B_filter)
+    error('cmd.B_filter must be odd length if cmd.dec ~= length(cmd.B_filter).');
+  end
+  cmd.B_filter = cmd.B_filter(:).'; % Must be row vector
   if abs(sum(cmd.B_filter)-1) > 1e4*eps
-    %warning('B_filter weights are not normalized. They must be normalized so normalizing to one now.')
     cmd.B_filter = cmd.B_filter / sum(cmd.B_filter);
   end
-  
-  if ~isfield(cmd,'decimate_factor') || isempty(cmd.decimate_factor)
-    % Set the default decimation to none (decimate_factor = 1)
-    cmd.decimate_factor = 1;
+        
+  if ~isfield(cmd,'trim') || isempty(cmd.trim)
+    cmd.trim = [0 0];
   end
 
   if ~isfield(cmd,'method') || isempty(cmd.method)
     error('cmd.method must be defined in param.analysis.cmd cell array');
   end
-  
   cmd.method = lower(cmd.method);
   switch cmd.method
     case {'coh_noise'}
@@ -136,19 +143,38 @@ for cmd_idx = 1:length(param.analysis.cmd)
       if ~isfield(cmd,'block_ave') || isempty(cmd.block_ave)
         cmd.block_ave = 2000;
       end
-      
-      if ~isfield(cmd,'pulse_comp') || isempty(cmd.pulse_comp)
-        cmd.pulse_comp = true;
-      end
-      
       if mod(param.analysis.block_size,cmd.block_ave)
         error('The param.analysis.block_size (%d) must be a multiple of cmd.block_ave (%d).', ...
           param.analysis.block_size, cmd.block_ave);
       end
       
-      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
-        % Set the default power_threshold to inf (i.e. no thresholding)
-        cmd.threshold = inf;
+      if ~isfield(cmd,'mag_en') || isempty(cmd.mag_en)
+        % Default is to collect magnitude sums (coh_ave_mag) in addition to
+        % phase-coherent sums (coh_ave)
+        cmd.mag_en = true;
+      end
+      
+      if ~isfield(cmd,'pulse_comp') || isempty(cmd.pulse_comp)
+        cmd.pulse_comp = true;
+      end
+      
+      if ~isfield(cmd,'threshold')
+        cmd.threshold = [];
+      end
+      if isempty(cmd.threshold)
+        if ischar(cmd.threshold)
+          % Set the default file path to CSARP_analysis
+          cmd.threshold = 'analysis';
+        else
+          % Set the default power_threshold to inf (i.e. no thresholding)
+          cmd.threshold = inf;
+        end
+      end
+      
+      if ~isfield(cmd,'threshold_removeDC') || isempty(cmd.threshold_removeDC)
+        % Default is to not remove slow-time DC before determining good
+        % samples to use in coh_ave and coh_ave_mag
+        cmd.threshold_removeDC = false;
       end
       
     case {'burst_noise'}
@@ -160,28 +186,28 @@ for cmd_idx = 1:length(param.analysis.cmd)
     case {'specular'}
       % Set defaults for specular analysis method
       
-      if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
-        cmd.rlines = 128;
+      if ~isfield(cmd,'gps_times') || isempty(cmd.gps_times)
+        cmd.gps_times = [];
       end
       
       if ~isfield(cmd,'max_rlines') || isempty(cmd.max_rlines)
         cmd.max_rlines = 10;
       end
       
-      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
-        cmd.threshold = 40;
+      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
+        cmd.noise_doppler_bins = [12:cmd.rlines-11];
+      end
+      
+      if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
+        cmd.rlines = 128;
       end
       
       if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
         cmd.signal_doppler_bins = [1:4 cmd.rlines+(-3:0)];
       end
       
-      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
-        cmd.noise_doppler_bins = [12:cmd.rlines-11];
-      end
-      
-      if ~isfield(cmd,'gps_times') || isempty(cmd.gps_times)
-        cmd.gps_times = [];
+      if ~isfield(cmd,'threshold') || isempty(cmd.threshold)
+        cmd.threshold = 40;
       end
       
     case {'statistics'}
@@ -191,12 +217,20 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.block_ave = 2000;
       end
       
-      if ~isfield(cmd,'pulse_comp') || isempty(cmd.pulse_comp)
-        cmd.pulse_comp = false;
+      if ~isfield(cmd,'combine_rx') || isempty(cmd.combine_rx)
+        cmd.combine_rx = false;
       end
       
       if ~isfield(cmd,'motion_comp') || isempty(cmd.motion_comp)
-        cmd.motion_comp = false;
+        if cmd.combine_rx
+          cmd.motion_comp = true;
+        else
+          cmd.motion_comp = false;
+        end
+      end
+      
+      if ~isfield(cmd,'pulse_comp') || isempty(cmd.pulse_comp)
+        cmd.pulse_comp = false;
       end
       
       if ~isfield(cmd,'stats') || isempty(cmd.stats)
@@ -204,7 +238,31 @@ for cmd_idx = 1:length(param.analysis.cmd)
       end
       
     case {'waveform'}
-      %
+      
+      if ~isfield(cmd,'combine_rx') || isempty(cmd.combine_rx)
+        cmd.combine_rx = false;
+      end
+      
+      if ~isfield(cmd,'motion_comp') || isempty(cmd.motion_comp)
+        if cmd.combine_rx
+          cmd.motion_comp = true;
+        else
+          cmd.motion_comp = false;
+        end
+      end
+      
+      if ~isfield(cmd,'Nt') || isempty(cmd.Nt)
+        error('The statistical command requires that the Nt field be set.');
+      end
+      
+      if ~isfield(cmd,'pulse_comp') || isempty(cmd.pulse_comp)
+        cmd.pulse_comp = true;
+      end
+      
+      if ~isfield(cmd,'start_time') || isempty(cmd.start_time)
+        error('The statistical command requires that the start_time field be set.');
+      end
+
   end
   
   % Update the command structure
@@ -485,6 +543,9 @@ for break_idx = 1:length(breaks)
             end
             dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
             dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isempty(cmd_method_str)
+              cmd_method_str = '_waveform';
+            end
           end
           
       end
@@ -592,9 +653,9 @@ for img = 1:length(param.analysis.imgs)
         end
         
       case {'waveform'}
-        Nx_cmd = Nx / param.analysis.dec;
-        if isfinite(param.analysis.surf.Nt)
-          Nt = param.analysis.surf.Nt;
+        Nx_cmd = Nx / cmd.dec;
+        if isfinite(cmd.Nt)
+          Nt = cmd.Nt;
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;

@@ -14,9 +14,12 @@ function [data,metadata] = load_sar_data(param)
 %   * no data decimation is done except when combining
 %   * does not support multiple tx channels yet
 %
-% Example: See run_load_sar_data.m
-%
 % Author: John Paden, Logan Smith
+%
+% See also: run_master.m, master.m, run_array.m, array.m, load_sar_data.m,
+% array_proc.m, array_task.m, array_combine_task.m
+%
+% Also used in: run_load_sar_data.m
 
 % The base path for all the data
 base_path = ct_filename_out(param,param.load_sar_data.fn,'CSARP_out');

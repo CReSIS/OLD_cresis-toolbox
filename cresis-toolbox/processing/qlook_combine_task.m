@@ -28,14 +28,6 @@ else
   end
 end
 
-if ~isfield(param.qlook,'img_comb_layer_params')
-  param.qlook.img_comb_layer_params = [];
-end
-
-if ~isfield(param.qlook,'trim_time')
-  param.qlook.trim_time = true;
-end
-
 %% Setup Processing
 % =====================================================================
 
@@ -83,7 +75,7 @@ for frm_idx = 1:length(param.cmd.frms);
   % Check digits of proc_mode from frames file and make sure the user has
   % specified to process this frame type
   if ct_proc_frame(frames.proc_mode(frm),param.qlook.frm_types)
-    fprintf('qlook combine frame %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
+    fprintf('qlook_combine frame %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
@@ -101,15 +93,6 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Concatenate blocks for each of the images
   for img = 1:length(param.qlook.imgs)
-    
-    if length(param.qlook.imgs) == 1
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frm));
-    else
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
-        img, param.day_seg, frm));
-    end
-    
     %% Concatenate all the ql block outputs for this image
     Time = [];
     GPS_time = [];
@@ -216,6 +199,13 @@ for frm_idx = 1:length(param.cmd.frms);
     end
     
     %% Save output
+    if length(param.qlook.imgs) == 1
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+        param.day_seg, frm));
+    else
+      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+        img, param.day_seg, frm));
+    end
     fprintf('  Writing output to %s\n', out_fn);
     if param.ct_file_lock
       file_version = '1L';
@@ -275,10 +265,9 @@ for frm_idx = 1:length(param.cmd.frms);
     end
     
   else
-    % Combine images into a single image (also trim time<0 values)
+    % Combine images into a single image (also trim invalid times)
     [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
     
-    Data = single(Data);
     if isempty(custom)
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','Roll','Pitch','Heading','GPS_time','Data','Surface', ...
@@ -292,6 +281,7 @@ for frm_idx = 1:length(param.cmd.frms);
   
   
   %% Delete temporary files now that all combined files are created
+  if 0 % HACK: NEED TO REMOVE
   for img = 1:length(param.qlook.imgs)
     % Determine where breaks in processing blocks are going to occur
     block_size = param.qlook.block_size(1);
@@ -320,6 +310,7 @@ for frm_idx = 1:length(param.cmd.frms);
   % needed.
   try
     rmdir(in_fn_dir);
+  end
   end
   
 end

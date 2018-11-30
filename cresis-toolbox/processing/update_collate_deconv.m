@@ -23,34 +23,57 @@ physical_constants;
 % =====================================================================
 
 cmd = param.analysis.cmd{param.update_collate_deconv.cmd_idx};
+[output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+
+% param.update_collate_deconv structure
+% =========================================================================
+
+if ~isfield(param.update_collate_deconv,'debug_plots')
+  param.update_collate_deconv.debug_plots = {};
+end
+
+if ~isfield(param.update_collate_deconv,'gps_time_penalty') || isempty(param.update_collate_deconv.gps_time_penalty)
+  param.update_collate_deconv.gps_time_penalty = 1/(10*24*3600);
+end
 
 if ~isfield(param.update_collate_deconv,'imgs') || isempty(param.update_collate_deconv.imgs)
   param.update_collate_deconv.imgs = 1:length(param.analysis.imgs);
-end
-
-if ~isfield(param.update_collate_deconv,'wf_adcs') || isempty(param.update_collate_deconv.wf_adcs)
-  param.update_collate_deconv.wf_adcs = [];
 end
 
 if ~isfield(param.update_collate_deconv,'in_dir') || isempty(param.update_collate_deconv.in_dir)
   param.update_collate_deconv.in_dir = 'analysis';
 end
 
-if ~isfield(param.update_collate_deconv,'out_dir') || isempty(param.update_collate_deconv.out_dir)
-  param.update_collate_deconv.out_dir = param.update_collate_deconv.in_dir;
-end
-
 if ~isfield(param.update_collate_deconv,'min_score') || isempty(param.update_collate_deconv.min_score)
   param.update_collate_deconv.min_score = -10;
 end
 
-if ~isfield(param.update_collate_deconv,'twtt_penalty') || isempty(param.update_collate_deconv.twtt_penalty)
-  param.update_collate_deconv.twtt_penalty = 1e5;
+if ~isfield(param.update_collate_deconv,'out_dir') || isempty(param.update_collate_deconv.out_dir)
+  param.update_collate_deconv.out_dir = param.update_collate_deconv.in_dir;
 end
 
-if ~isfield(param.update_collate_deconv,'gps_time_penalty') || isempty(param.update_collate_deconv.gps_time_penalty)
-  param.update_collate_deconv.gps_time_penalty = 1/7200;
+if ~isfield(param.update_collate_deconv,'twtt_penalty') || isempty(param.update_collate_deconv.twtt_penalty)
+  if strcmpi(radar_type,'deramp')
+    param.update_collate_deconv.twtt_penalty = 1e6;
+  else
+    % No twtt dependence
+    param.update_collate_deconv.twtt_penalty = 1e-6;
+  end
 end
+
+if ~isfield(param.update_collate_deconv,'wf_adcs') || isempty(param.update_collate_deconv.wf_adcs)
+  param.update_collate_deconv.wf_adcs = [];
+end
+
+% Other Setup
+% =========================================================================
+
+if ~isempty(param.update_collate_deconv.debug_plots)
+  h_fig = get_figures(3,any(strcmp('visible',param.update_collate_deconv.debug_plots)),'collate_deconv');
+end
+
+% cmd structure
+% =========================================================================
 
 if ~isfield(cmd,'abs_metric') || isempty(cmd.abs_metric)
   error('The "abs_metric" field must be set in the cmd.');
@@ -72,19 +95,20 @@ for img = param.update_collate_deconv.imgs
     wf_adcs = param.update_collate_deconv.wf_adcs;
   end
   for wf_adc = wf_adcs
-    wf = param.analysis.imgs{img}(wf_adcs,1);
-    adc = param.analysis.imgs{img}(wf_adcs,2);
+    wf = param.analysis.imgs{img}(wf_adc,1);
+    adc = param.analysis.imgs{img}(wf_adc,2);
     
     % Load input
     % ===================================================================
     fn_dir = fileparts(ct_filename_out(param,param.update_collate_deconv.in_dir, ''));
     fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+    fprintf('\n==============================================================\n');
     fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
     if exist(fn,'file')
       deconv = load(fn,'param_collate_deconv','param_analysis','param_records');
       if ~isfield(deconv,'param_collate_deconv') || isempty(deconv.param_collate_deconv) ...
-         || ~isfield(deconv,'param_analysis') || isempty(deconv.param_analysis) ...
-         || ~isfield(deconv,'param_records') || isempty(deconv.param_records)
+          || ~isfield(deconv,'param_analysis') || isempty(deconv.param_analysis) ...
+          || ~isfield(deconv,'param_records') || isempty(deconv.param_records)
         new_file = true;
         deconv = [];
         deconv_lib = [];
@@ -140,12 +164,23 @@ for img = param.update_collate_deconv.imgs
             fprintf(' %d', param.update_collate_deconv.cmd{cmd_idx}.idxs{seg_idx});
             fprintf(')');
           end
+          fprintf('\n');
           
           for seg_idx = 1:length(param.update_collate_deconv.cmd{cmd_idx}.day_seg)
+            if ~isfield(param.update_collate_deconv.cmd{cmd_idx},'wf_adcs_map') ...
+                || numel(param.update_collate_deconv.cmd{cmd_idx}.wf_adcs_map) < seg_idx ...
+                || isempty(param.update_collate_deconv.cmd{cmd_idx}.wf_adcs_map{seg_idx})
+              wf_map = wf;
+              adc_map = adc;
+            else
+              wf_map = param.update_collate_deconv.cmd{cmd_idx}.wf_adcs_map{seg_idx}{img}(wf_adc,1);
+              adc_map = param.update_collate_deconv.cmd{cmd_idx}.wf_adcs_map{seg_idx}{img}(wf_adc,2);
+            end
+            
             tmp_param.day_seg = param.update_collate_deconv.cmd{cmd_idx}.day_seg{seg_idx};
             fn_dir = fileparts(ct_filename_out(tmp_param,param.update_collate_deconv.in_dir, ''));
-            fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', tmp_param.day_seg, wf, adc));
-            fprintf('  Loading %s img %d wf %d adc %d\n  %s\n', tmp_param.day_seg, img, wf, adc, fn);
+            fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', tmp_param.day_seg, wf_map, adc_map));
+            fprintf('  Loading %s img %d wf %d adc %d\n  %s\n', tmp_param.day_seg, img, wf_map, adc_map, fn);
             tmp_deconv{cmd_idx}{seg_idx} = load(fn);
             
             if new_file
@@ -317,144 +352,139 @@ for img = param.update_collate_deconv.imgs
     end
     
     % 7. Plot final deconv waveforms
-    
-    % TWTT Figure
-    % ===================================================================
-    h_fig = 1;
-    figure(h_fig); clf;
-    h_axes = axes('parent',h_fig);
-    
-    legend_str = {};
-    h_plot = [];
-    for idx = 1:length(final.gps_time)
-      h_plot(idx+1) = plot(h_axes(1), find(final.map_idxs==idx), final.twtt(final.map_idxs(final.map_idxs==idx)),'.');
-      hold(h_axes(1),'on');
-      legend_str{idx+1} = sprintf('%d',idx);
-    end
-    
-    h_plot(1) = plot(h_axes(1), final.map_twtt, 'k', 'LineWidth',2);
-    legend_str{1} = 'TWTT';
-    
-    xlabel(h_axes(1), 'Block');
-    ylabel(h_axes(1), 'Two way travel time (\mus)');
-    title(h_axes(1), param.day_seg, 'interpreter', 'none');
-    legend(h_axes(1), h_plot, legend_str,'location','best');
-    grid(h_axes(1), 'on');
-    
-    fig_fn = ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt',param.update_collate_deconv.out_dir));
-    fprintf('Saving %s\n', fig_fn);
-    fig_fn_dir = fileparts(fig_fn);
-    if ~exist(fig_fn_dir,'dir')
-      mkdir(fig_fn_dir);
-    end
-    saveas(h_fig,[fig_fn '.fig']);
-    saveas(h_fig,[fig_fn '.jpg']);
-    
-    % Score Figure
-    % ===================================================================
-    h_fig = 2;
-    figure(h_fig); clf;
-    h_axes(2) = axes('parent',h_fig);
-    
-    legend_str = {};
-    h_plot = [];
-    for idx = 1:length(final.gps_time)
-      h_plot(idx) = plot(h_axes(2), find(final.map_idxs==idx), final.max_score(find(final.map_idxs==idx)),'.');
-      hold(h_axes(2),'on');
-      legend_str{idx} = sprintf('%d',idx);
-    end
-    for idx = 1:length(final.gps_time)
-      h_new_plot = plot(h_axes(2), find(final.map_idxs==idx), final.unadjusted_score(find(final.map_idxs==idx)),'.');
-      set(h_new_plot, 'Color', get(h_plot(idx),'Color'))
-    end
-    
-    xlabel(h_axes(2), 'Block');
-    ylabel(h_axes(2), 'Score');
-    title(h_axes(2), param.day_seg, 'interpreter', 'none');
-    legend(h_axes(2), h_plot, legend_str,'location','best');
-    grid(h_axes(2), 'on');
-    
-    fig_fn = ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score',param.update_collate_deconv.out_dir));
-    fprintf('Saving %s\n', fig_fn);
-    fig_fn_dir = fileparts(fig_fn);
-    if ~exist(fig_fn_dir,'dir')
-      mkdir(fig_fn_dir);
-    end
-    saveas(h_fig,[fig_fn '.fig']);
-    saveas(h_fig,[fig_fn '.jpg']);
-    
-    % Transfer Function Figure
-    % ===================================================================
-    h_fig = 3;
-    figure(h_fig); clf;
-    pos = get(h_fig,'Position');
-    set(h_fig,'Position',[pos(1:2) 1000 600]);
-    h_axes(3) = subplot(5,1,1:2,'parent',h_fig);
-    h_axes(4) = subplot(5,1,3:5,'parent',h_fig);
-    
-    legend_str = {};
-    for idx = 1:length(final.gps_time)
-      % Get the reference function
-      h_nonnegative = final.ref_nonnegative{idx};
-      h_negative = final.ref_negative{idx};
-      h_mult_factor = final.ref_mult_factor(idx);
+    if any(strcmp('final',param.update_collate_deconv.debug_plots))
+      % TWTT Figure
+      % ===================================================================
+      clf(h_fig(1));
+      h_axes = axes('parent',h_fig(1));
       
-      % Adjust deconvolution signal to match sample rline
-      h_filled = [h_nonnegative; h_negative];
-      
-      % Take FFT of deconvolution impulse response
-      h_filled = fft(h_filled);
-      
-      Nt = numel(h_filled);
-      df = 1/(Nt*final.dt);
-      freq = final.fc(idx) + df * ifftshift(-floor(Nt/2) : floor((Nt-1)/2)).';
-      freq = fftshift(freq);
-      fc_idx = find(freq==final.fc(idx));
-      
-      h_filled_lp = fftshift(lp(h_filled));
-      h_filled_phase = fftshift(angle(h_filled));
-      h_filled_phase = unwrap(h_filled_phase)*180/pi;
-      h_filled_phase = h_filled_phase - h_filled_phase(fc_idx);
-      
-      if max(freq) > 2e9
-        freq_scale = 1e9;
-      else
-        freq_scale = 1e6;
+      legend_str = {};
+      h_plot = [];
+      for idx = 1:length(final.gps_time)
+        h_plot(idx+1) = plot(h_axes(1), find(final.map_idxs==idx), final.twtt(final.map_idxs(final.map_idxs==idx)),'.');
+        hold(h_axes(1),'on');
+        legend_str{idx+1} = sprintf('%d',idx);
       end
-      plot(h_axes(3), freq/freq_scale, h_filled_lp);
-      hold(h_axes(3),'on');
-      plot(h_axes(4), freq/freq_scale, h_filled_phase);
-      hold(h_axes(4),'on');
-      legend_str{idx} = sprintf('%d %s_%03d %4.0f %4.1fus',idx, ...
-        final.map_day_seg{idx},final.frm(idx),round(lp(final.ref_nonnegative{idx}(1),2)), ...
-        round(final.twtt(idx)*1e7)/10);
+      
+      h_plot(1) = plot(h_axes(1), final.map_twtt, 'k', 'LineWidth',2);
+      legend_str{1} = 'TWTT';
+      
+      xlabel(h_axes(1), 'Block');
+      ylabel(h_axes(1), 'Two way travel time (\mus)');
+      title(h_axes(1), param.day_seg, 'interpreter', 'none');
+      legend(h_axes(1), h_plot, legend_str,'location','best');
+      grid(h_axes(1), 'on');
+      
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      fig_fn_dir = fileparts(fig_fn);
+      if ~exist(fig_fn_dir,'dir')
+        mkdir(fig_fn_dir);
+      end
+      saveas(h_fig(1),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.jpg'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(1),fig_fn);
+      
+      % Score Figure
+      % ===================================================================
+      clf(h_fig(2));
+      h_axes(2) = axes('parent',h_fig(2));
+      
+      legend_str = {};
+      h_plot = [];
+      for idx = 1:length(final.gps_time)
+        h_plot(idx) = plot(h_axes(2), find(final.map_idxs==idx), final.max_score(find(final.map_idxs==idx)),'.');
+        hold(h_axes(2),'on');
+        legend_str{idx} = sprintf('%d',idx);
+      end
+      for idx = 1:length(final.gps_time)
+        h_new_plot = plot(h_axes(2), find(final.map_idxs==idx), final.unadjusted_score(find(final.map_idxs==idx)),'.');
+        set(h_new_plot, 'Color', get(h_plot(idx),'Color'))
+      end
+      
+      xlabel(h_axes(2), 'Block');
+      ylabel(h_axes(2), 'Score');
+      title(h_axes(2), param.day_seg, 'interpreter', 'none');
+      legend(h_axes(2), h_plot, legend_str,'location','best');
+      grid(h_axes(2), 'on');
+      
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(2),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.jpg'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(2),fig_fn);
+      
+      % Transfer Function Figure
+      % ===================================================================
+      clf(h_fig(3));
+      pos = get(h_fig(3),'Position');
+      set(h_fig(3),'Position',[pos(1:2) 1000 600]);
+      h_axes(3) = subplot(5,1,1:2,'parent',h_fig(3));
+      h_axes(4) = subplot(5,1,3:5,'parent',h_fig(3));
+      
+      legend_str = {};
+      for idx = 1:length(final.gps_time)
+        % Get the reference function
+        h_nonnegative = final.ref_nonnegative{idx};
+        h_negative = final.ref_negative{idx};
+        h_mult_factor = final.ref_mult_factor(idx);
+        
+        % Adjust deconvolution signal to match sample rline
+        h_filled = [h_nonnegative; h_negative];
+        
+        % Take FFT of deconvolution impulse response
+        h_filled = fft(h_filled);
+        
+        Nt = numel(h_filled);
+        df = 1/(Nt*final.dt);
+        freq = final.fc(idx) + df * ifftshift(-floor(Nt/2) : floor((Nt-1)/2)).';
+        freq = fftshift(freq);
+        fc_idx = find(freq==final.fc(idx));
+        
+        h_filled_lp = fftshift(lp(h_filled));
+        h_filled_phase = fftshift(angle(h_filled));
+        h_filled_phase = unwrap(h_filled_phase)*180/pi;
+        h_filled_phase = h_filled_phase - h_filled_phase(fc_idx);
+        
+        if max(freq) > 2e9
+          freq_scale = 1e9;
+        else
+          freq_scale = 1e6;
+        end
+        plot(h_axes(3), freq/freq_scale, h_filled_lp);
+        hold(h_axes(3),'on');
+        plot(h_axes(4), freq/freq_scale, h_filled_phase);
+        hold(h_axes(4),'on');
+        legend_str{idx} = sprintf('%d %s_%03d %4.0f %4.1fus',idx, ...
+          final.map_day_seg{idx},final.frm(idx),round(lp(final.ref_nonnegative{idx}(1),2)), ...
+          round(final.twtt(idx)*1e7)/10);
+      end
+      
+      if freq_scale == 1e9
+        xlabel(h_axes(4), 'Frequency (GHz)');
+      else
+        xlabel(h_axes(4), 'Frequency (MHz)');
+      end
+      ylabel(h_axes(3), 'Relative power (dB)');
+      ylabel(h_axes(4), 'Relative angle (deg)');
+      title(h_axes(3), sprintf('%s (Legend idx:frm:peak:twtt)', param.day_seg), 'interpreter', 'none');
+      grid(h_axes(3), 'on');
+      grid(h_axes(4), 'on');
+      h_legend = legend(h_axes(3), legend_str, 'location', 'northeastoutside', 'interpreter','none');
+      drawnow;
+      pos3 = get(h_axes(3),'Position');
+      pos4 = get(h_axes(4),'Position');
+      set(h_axes(4),'Position',[pos4(1:2) pos3(3) pos4(4)]);
+      
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.fig'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(3),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.jpg'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(3),fig_fn);
     end
-    
-    if freq_scale == 1e9
-      xlabel(h_axes(4), 'Frequency (GHz)');
-    else
-      xlabel(h_axes(4), 'Frequency (MHz)');
-    end
-    ylabel(h_axes(3), 'Relative power (dB)');
-    ylabel(h_axes(4), 'Relative angle (deg)');
-    title(h_axes(3), sprintf('%s (Legend idx:frm:peak:twtt)', param.day_seg), 'interpreter', 'none');
-    grid(h_axes(3), 'on');
-    grid(h_axes(4), 'on');
-    h_legend = legend(h_axes(3), legend_str, 'location', 'northeastoutside', 'interpreter','none');
-    drawnow;
-    pos3 = get(h_axes(3),'Position');
-    pos4 = get(h_axes(4),'Position');
-    set(h_axes(4),'Position',[pos4(1:2) pos3(3) pos4(4)]);
-    
-    fig_fn = ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func',param.update_collate_deconv.out_dir));
-    fprintf('Saving %s\n', fig_fn);
-    fig_fn_dir = fileparts(fig_fn);
-    if ~exist(fig_fn_dir,'dir')
-      mkdir(fig_fn_dir);
-    end
-    saveas(h_fig,[fig_fn '.fig']);
-    saveas(h_fig,[fig_fn '.jpg']);
-    
     
     % Save outputs
     % ===================================================================

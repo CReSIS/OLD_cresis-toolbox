@@ -179,6 +179,7 @@ param.load.pulse_comp = true;
 [hdr,data] = data_pulse_compress(param,hdr,data);
 
 param.load.motion_comp = param.qlook.motion_comp;
+param.load.combine_rx = true;
 [hdr,data] = data_merge_combine(param,hdr,data);
 
 %% Unfocussed SAR processing (stacking only)
