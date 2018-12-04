@@ -262,9 +262,9 @@ for img = param.collate_coh_noise.imgs
     noise_simp = struct('gps_time',noise.gps_time);
     noise_simp.start_bin = start_bin;
     noise_simp.dt = noise.dt;
+    noise_simp.fc = noise.fc;
     noise_simp.dft_freqs = dft_freqs;
-    noise_simp.dftI = real(noise.dft);
-    noise_simp.dftQ = imag(noise.dft);
+    noise_simp.dft = noise.dft;
     noise_simp.param_analysis = noise.param_analysis;
     noise_simp.threshold = threshold;
     noise_simp.param_collate = param;
@@ -276,12 +276,12 @@ for img = param.collate_coh_noise.imgs
       noise_simp.file_version = '1';
     end
     
-    %% Store the simplified output in netcdf file
+    %% Save the result
     % =====================================================================
     out_fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.out_dir, ''));
-    out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
+    out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Saving %s (%s)\n', out_fn, datestr(now));
-    netcdf_from_mat(out_fn,noise_simp);
+    save(out_fn,'-v7.3','-struct','noise_simp');
 
 %         case 'custom2'
 %           

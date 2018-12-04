@@ -78,9 +78,9 @@ function [array_param,dout] = array_proc(array_param,din,dout)
 %  .rlines
 %    2 element vector which specifies the first and last output range line.
 %    This is an optional parameter that overrules the "support" parameter.
-%    It is used by combine_wf_chan_task.m to make sure all of the
+%    It is used by array_task.m to make sure all of the
 %    chunks of SAR data run through array_proc can be seamlessly stitched
-%    in combine_wf_chan.
+%    in array_combine_task.
 %  .freq_rng
 %    Vector containing each spatial frequency to be used when computing
 %    the max value for each range bin.  If array_param.Nsv = 64, then
@@ -370,7 +370,7 @@ end
 
 if ~isempty(array_param.rlines)
   % Start/stop output range lines passed in (typical operation from
-  % combine_wf_chan_task)
+  % array_task)
   array_param.lines = array_param.rlines(1): array_param.dline ...
     : min(array_param.rlines(2),size(din{1},2)-max(array_param.rline_rng));
 elseif strcmpi(array_param.support,'full')

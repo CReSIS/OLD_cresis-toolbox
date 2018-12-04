@@ -52,8 +52,15 @@ if ~isfield(param.sar,'combine_rx') || isempty(param.sar.combine_rx)
   param.sar.combine_rx = false;
 end
 
-if ~isfield(param.sar,'force_one_wf_adc_pair_per_job') || isempty(param.sar.force_one_wf_adc_pair_per_job)
-  param.sar.force_one_wf_adc_pair_per_job = false;
+if ~isfield(param.sar,'wf_adc_pair_task_group_method') || isempty(param.sar.wf_adc_pair_task_group_method)
+  % 'one': One wf_adc pair per task, least memory and maximum
+  %   parallelization at the cost of increased disk IO
+  % 'img': One image per task, most constant amount of memory required for
+  %   each SAR image being produced by a single task, may increase
+  %   disk IO.
+  % 'board': All images for a board in one task, least disk IO and maximum
+  %   memory
+  param.sar.wf_adc_pair_task_group_method = 'img';
 end
 
 if ~isfield(param.sar,'frm_types') || isempty(param.sar.frm_types)
@@ -106,7 +113,7 @@ if ~isfield(param.sar,'surf_layer') || isempty(param.sar.surf_layer)
   param.sar.surf_layer.source = 'layerData';
 end
 % Never check for the existence of layers
-param.array.surf_layer.existence_check = false;
+param.sar.surf_layer.existence_check = false;
 
 if ~isfield(param.sar,'time_of_full_support') || isempty(param.sar.time_of_full_support)
   param.sar.time_of_full_support = inf;
@@ -114,15 +121,6 @@ end
 
 %% Setup processing
 % =====================================================================
-
-% Do not apply channel equalization during sar processing unless receivers
-% are being combined at this stage (combine_rx is true)
-if ~param.sar.combine_rx
-  for wf = 1:length(param.radar.wfs)
-    param.radar.wfs(wf).chan_equal_dB(:) = 0;
-    param.radar.wfs(wf).chan_equal_deg(:) = 0;
-  end
-end
 
 % Get the standard radar name
 [~,~,radar_name] = ct_output_dir(param.radar_name);
@@ -259,15 +257,29 @@ if param.sar.combine_rx
   
 else
   % One SAR image per wf-adc pair
-
-  if ~param.sar.force_one_wf_adc_pair_per_job
-    % All SAR images from the same data files per task
+  
+  if strcmpi(param.sar.wf_adc_pair_task_group_method,'one')
+    % One SAR image per task
+    for img = 1:length(param.sar.imgs)
+      for wf_adc = 1:length(param.sar.imgs{img})
+        imgs_list{end+1}{1}(1,:) = param.sar.imgs{img}(wf_adc,:);
+      end
+    end
+    
+  else
+    % Handles:
+    %  strcmpi(param.sar.wf_adc_pair_task_group_method,'board')
+    %    All SAR images for a single board in one task
+    %  strcmpi(param.sar.wf_adc_pair_task_group_method,'img')
+    %    All SAR images for a single board/image pair in one task
+    
+    % Divide images up into boards
     for img = 1:length(param.sar.imgs)
       for wf_adc = 1:size(param.sar.imgs{img},1)
         wf = param.sar.imgs{img}(wf_adc,1);
         adc = param.sar.imgs{img}(wf_adc,2);
         [board,board_idx,profile] = wf_adc_to_board(param,[wf adc]);
-
+        
         if length(imgs_list) < board_idx
           imgs_list{board_idx} = [];
         end
@@ -277,18 +289,28 @@ else
         imgs_list{board_idx}{img}(end+1,:) = param.sar.imgs{img}(wf_adc,:);
       end
     end
+    % Remove empty imgs
+    mask = ~cellfun(@isempty,imgs_list);
+    imgs_list = imgs_list(mask);
     
-  else
-    % One SAR image per task
-    for img = 1:length(param.sar.imgs)
-      for wf_adc = 1:length(param.sar.imgs{img})
-        imgs_list{end+1}{1}(1,:) = param.sar.imgs{img}(wf_adc,:);
+    if strcmpi(param.sar.wf_adc_pair_task_group_method,'img')
+      % All SAR images from the same image per task, but also breaks at
+      % board boundaries.
+      
+      % Break each imgs_list into a single image
+      new_imgs_list = {};
+      for imgs_list_idx = 1:length(imgs_list)
+        for img = 1:length(imgs_list{imgs_list_idx})
+          new_imgs_list{end+1}{1} = imgs_list{imgs_list_idx}{img};
+        end
       end
+      imgs_list = new_imgs_list;
+      clear new_imgs_list;
     end
   end
 end
 
-%% Create and setup the cluster batch
+%% Create and Setup the cluster batch
 % =====================================================================
 ctrl = cluster_new_batch(param);
 cluster_compile({'sar_task.m','sar_coord_task'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
@@ -301,8 +323,8 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
       total_num_sam{imgs_idx}{img} = wfs(wf).Nt_raw;
     end
   end
-  cpu_time_mult = 150e-8/100;
-  mem_mult = 8;
+  cpu_time_mult = 65e-10;
+  mem_mult = [1.3 1.3];
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   for imgs_idx = 1:length(imgs_list)
@@ -346,6 +368,7 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Determine length of the frame
   frm_dist = along_track_approx(stop_rec) - along_track_approx(start_rec);
+  dx_approx = median(diff(along_track_approx));
   
   % Determine number of chunks and range lines per chunk
   num_chunks = round(frm_dist / param.sar.chunk_len);
@@ -387,6 +410,25 @@ for frm_idx = 1:length(param.cmd.frms)
         end
       end
       
+      % Estimate chunk overlap to help decide memory and cpu times
+      % =================================================================
+      % Determine overlap of chunks from the range to furthest target
+      
+      chunk_overlap_est = [];
+      for img = 1:length(dparam.argsin{1}.load.imgs)
+        max_time = min(wfs(wf).time(end),param.sar.time_of_full_support);
+        % wavelength (m)
+        wf = param.sar.imgs{img}(1,1);
+        lambda = c/wfs(wf).fc;
+        % twtt to surface (sec)
+        surf_time = min(max_time,min(records.surface));
+        % effective in air max range (m)
+        max_range = ((max_time-surf_time)/sqrt(param.sar.start_eps) + surf_time) * c/2;
+        % chunk overlap (m)
+        chunk_overlap_est(img) = round((max_range*lambda)/(2*param.sar.sigma_x) / 2);
+        % chunk_overlap_est(img) = max_range/sqrt((2*param.sar.sigma_x/lambda)^2-1);
+      end
+      
       % Create success condition
       % =================================================================
       dparam.file_success = {};
@@ -412,7 +454,6 @@ for frm_idx = 1:length(param.cmd.frms)
               if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
                 delete(out_fn);
               end
-              
             end
           end
         end
@@ -439,19 +480,96 @@ for frm_idx = 1:length(param.cmd.frms)
       
       % CPU Time and Memory estimates:
       %  Nx*total_num_sam*K where K is some manually determined multiplier.
-      Nx = diff(dparam.argsin{1}.load.recs);
       dparam.cpu_time = 0;
       dparam.mem = 250e6;
+      mem_biggest = 0;
       for img = 1:length(dparam.argsin{1}.load.imgs)
+        Nx = diff(dparam.argsin{1}.load.recs) + 2*chunk_overlap_est(img)/dx_approx;
         if strcmpi(param.sar.sar_type,'fk')
-          dparam.cpu_time = dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img}*log2(total_num_sam{imgs_idx}{img})*size(dparam.argsin{1}.load.imgs{img},1)*cpu_time_mult;
-          dparam.mem = dparam.mem + Nx*total_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*mem_mult;
+          dparam.cpu_time = dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img} ...
+            *(10+2*log2(total_num_sam{imgs_idx}{img}))*size(dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
+          % Raw Data and Pulse Compression Memory Requirements:
+          mem_biggest = max(mem_biggest,Nx*total_num_sam{imgs_idx}{img}*16);
+          mem_pulse_compress = Nx*total_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*8*mem_mult(1);
+          % SAR Memory Requirements:
+          % NOTE: Need to consider number of SAR subapertures, length(param.sar.sub_aperture_steering)
+          mem_sar = 0;
+          dparam.mem = dparam.mem + max(mem_pulse_compress);
         elseif strcmpi(param.sar.sar_type,'tdbp')
           dparam.cpu_time = ctrl.cluster.max_time_per_job - 40;
         end
       end
+      % Two copies of 256 MB file or Double, two copies, divided into 8 blocks
+      dparam.mem = dparam.mem + max(1e9/2,2*2*mem_biggest/8)*mem_mult(2);
       
-      ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
+      if dparam.mem > ctrl.cluster.max_mem_per_job
+        if strcmpi(param.sar.wf_adc_pair_task_group_method,'board')
+          error('Task is requiring too much memory. Use param.sar.wf_adc_pair_task_group_method = ''img'' or ''one'' to reduce memory usage.');
+        elseif strcmpi(param.sar.wf_adc_pair_task_group_method,'one')
+          error('Task is requiring too much memory. Either decrease the chunk size or increase cluster.max_mem_per_job.');
+        end
+        warning('Task is requiring too much memory. Converting this task to param.sar.wf_adc_pair_task_group_method = ''one''.');
+        for wf_adc = 1:size(dparam.argsin{1}.load.imgs{1},1)
+          tmp_dparam = dparam;
+          tmp_dparam.argsin{1}.load.imgs = {dparam.argsin{1}.load.imgs{1}(wf_adc,:)};
+          wf = tmp_dparam.argsin{1}.load.imgs{1}(1,1);
+          adc = tmp_dparam.argsin{1}.load.imgs{1}(1,2);
+          wf_adc_str = sprintf('%d,%d', wf, adc);
+          tmp_dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d %s %.0f to %.0f recs', ...
+            sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+            chunk_idx, num_chunks, wf_adc_str, (dparam.argsin{1}.load.recs(1)-1)*param.sar.presums+1, ...
+            dparam.argsin{1}.load.recs(2)*param.sar.presums);
+          
+          tmp_dparam.cpu_time = 0;
+          tmp_dparam.mem = 250e6;
+          mem_biggest = 0;
+          for img = 1:length(tmp_dparam.argsin{1}.load.imgs)
+            Nx = diff(tmp_dparam.argsin{1}.load.recs) + 2*chunk_overlap_est(img)/dx_approx;
+            if strcmpi(param.sar.sar_type,'fk')
+              tmp_dparam.cpu_time = tmp_dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img} ...
+                *(10+2*log2(total_num_sam{imgs_idx}{img}))*size(tmp_dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
+              % Raw Data and Pulse Compression Memory Requirements:
+              mem_biggest = max(mem_biggest,Nx*total_num_sam{imgs_idx}{img}*16);
+              mem_pulse_compress = Nx*total_num_sam{imgs_idx}{img}*size(tmp_dparam.argsin{1}.load.imgs{img},1)*8*mem_mult(1);
+              % SAR Memory Requirements:
+              % NOTE: Need to consider number of SAR subapertures, length(param.sar.sub_aperture_steering)
+              mem_sar = 0;
+              tmp_dparam.mem = tmp_dparam.mem + max(mem_pulse_compress);
+            elseif strcmpi(param.sar.sar_type,'tdbp')
+              tmp_dparam.cpu_time = ctrl.cluster.max_time_per_job - 40;
+            end
+          end
+          % Two copies of 256 MB file or Double, two copies, divided into 8 blocks
+          tmp_dparam.mem = tmp_dparam.mem + max(1e9/2,2*2*mem_biggest/8)*mem_mult(2);
+          
+      
+          tmp_dparam.file_success = {};
+          for subap = 1:length(param.sar.sub_aperture_steering)
+            out_fn_dir = fullfile(sar_out_dir, ...
+              sprintf('%s_data_%03d_%02d_%02d',param.sar.sar_type,frm, ...
+              subap, sub_band_idx));
+            for img = 1:length(tmp_dparam.argsin{1}.load.imgs)
+              if param.sar.combine_rx
+                out_fn = fullfile(out_fn_dir,sprintf('img_%02d_chk_%03d.mat',img,chunk_idx));
+                
+                tmp_dparam.file_success{end+1} = out_fn;
+              else
+                for wf_adc = 1:size(tmp_dparam.argsin{1}.load.imgs{img},1)
+                  wf  = abs(tmp_dparam.argsin{1}.load.imgs{img}(wf_adc,1));
+                  adc = abs(tmp_dparam.argsin{1}.load.imgs{img}(wf_adc,2));
+                  out_fn = fullfile(out_fn_dir,sprintf('wf_%02d_adc_%02d_chk_%03d.mat',wf,adc,chunk_idx));
+                  
+                  tmp_dparam.file_success{end+1} = out_fn;
+                end
+              end
+            end
+          end
+          
+          ctrl = cluster_new_task(ctrl,sparam,tmp_dparam,'dparam_save',0);
+        end
+      else
+        ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
+      end
     end
   end
 end

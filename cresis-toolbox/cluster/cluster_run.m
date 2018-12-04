@@ -124,6 +124,13 @@ elseif isstruct(ctrl_chain)
     return;
   end
 
+  % Sort submission queue tasks based on memory usage: this is done to
+  % increase the chance that tasks with similar memory usage will be
+  % grouped together in jobs to make the cluster memory request more
+  % efficient.
+  [~,sort_idxs] = sort(ctrl.mem(ctrl.submission_queue));
+  ctrl.submission_queue = ctrl.submission_queue(sort_idxs);
+  
   job_tasks = [];
   job_cpu_time = 0;
   job_mem = 0;

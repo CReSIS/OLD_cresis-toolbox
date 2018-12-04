@@ -178,6 +178,23 @@ for frm_idx = 1:length(param.cmd.frms);
     end
   end
   
+  %% Delete temporary files now that all combined files are created
+  if 0 % HACK: NEED TO REMOVE THE "if 0"
+  for img = 1:length(param.array.imgs)
+    % Determine where breaks in processing blocks are going to occur
+    for chunk_idx = 1:num_chunks
+      array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
+      delete(array_fn);
+    end
+  end
+  % Attempt to remove METHOD_FFF directory since it is no longer
+  % needed.
+  try
+    rmdir(array_fn_dir);
+  end
+  end  
+  
+  %% Combine images
   if isempty(param.array.img_comb)
     % No image combining is required
     continue;
@@ -188,7 +205,6 @@ for frm_idx = 1:length(param.cmd.frms);
     keyboard
   end
   
-  %% Combine images
   img_combine_param = param;
   img_combine_param.load.frm = frm;
   surf_layer.gps_time = GPS_time;

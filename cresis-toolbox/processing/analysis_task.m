@@ -427,10 +427,10 @@ for img = 1:length(store_param.load.imgs)
         
         if ischar(cmd.threshold)
           % threshold is a vector loaded from a coh_noise_simp file
-          cdf_fn_dir = fileparts(ct_filename_out(param,cmd.threshold, ''));
-          cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.nc', param.day_seg, wf, adc));
-          fprintf('  Loading coherent noise threshold: %s\n', cdf_fn);
-          threshold = ncread(cdf_fn,'threshold');
+          noise_fn_dir = fileparts(ct_filename_out(param,cmd.threshold, ''));
+          noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+          fprintf('  Loading coh_noise threshold: %s\n', noise_fn);
+          load(noise_fn,'threshold');
         else
           % threshold is a scalar constant
           threshold = cmd.threshold;

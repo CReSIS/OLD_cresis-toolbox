@@ -16,7 +16,20 @@ params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'')
 % Syntax for running a specific segment and frame by overriding parameter spreadsheet values
 params = ct_set_params(params,'cmd.array',0);
 params = ct_set_params(params,'cmd.array',1,'day_seg','20180404_02');
-params = ct_set_params(params,'cmd.frms',1);
+params = ct_set_params(params,'cmd.frms',[]);
+params = ct_set_params(params,'array.method','mvdr');
+%params = ct_set_params(params,'array.DCM',[]);
+params = ct_set_params(params,'array.bin_rng',-1:1);
+params = ct_set_params(params,'array.rline_rng',-9:9);
+
+params = ct_set_params(params,'array.method','music');
+params = ct_set_params(params,'array.out_path','music_imgs4_Nsig2');
+params = ct_set_params(params,'array.three_dim.en',1);
+params = ct_set_params(params,'array.Nsv',64);
+params = ct_set_params(params,'array.Nsig',2);
+params = ct_set_params(params,'array.imgs',{[ones([7 1]),[6:12].'],[2*ones([7 1]),[6:12].'],[3*ones([7 1]),[6:12].'],[4*ones([7 1]),[6:12].']});
+params = ct_set_params(params,'array.img_comb',[]);
+
 
 for param_idx = 1:length(params)
   %param = params(param_idx);
@@ -31,11 +44,11 @@ for param_idx = 1:length(params)
 end
 
 dbstop if error;
-% param_override.cluster.type = 'torque';
+param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 %param_override.cluster.rerun_only = true;
-% param_override.cluster.desired_time_per_job  = 0*60;
+param_override.cluster.desired_time_per_job  = 10*60;
 % param_override.cluster.cpu_time_mult  = 2;
 % param_override.cluster.mem_mult  = 2;
 % param_override.cluster.max_jobs_active       = 1;

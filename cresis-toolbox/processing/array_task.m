@@ -229,8 +229,12 @@ for img = 1:length(param.array.imgs)
             end
             sar_out_rlines = sar_data.out_rlines;
           
-            chan_equal{ml_idx}(wf_adc) = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
-              .* exp(j*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
+            chan_equal{ml_idx}(wf_adc) ...
+                     = 10.^((param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
+              - sar_data.param_sar.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
+              .* exp(1i*( ...
+                             param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
+              - sar_data.param_sar.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
           end
             
           % Correct any changes in Tsys
@@ -462,17 +466,6 @@ for img = 1:length(param.array.imgs)
   param.array.fcs = fcs;
   array_proc_param = param.array;
 
-  %% Process: Update surface values
-  % =======================================================================
-  if isempty(surf_layer.gps_time)
-    array_proc_param.surface = zeros(size(fcs{1}{1}.gps_time(array_proc_param.lines)));
-  elseif length(surf_layer.gps_time) == 1;
-    array_proc_param.surface = surf_layer.twtt*ones(size(fcs{1}{1}.gps_time(array_proc_param.lines)));
-  else
-    array_proc_param.surface = interp_finite(interp1(surf_layer.gps_time, ...
-      surf_layer.twtt,fcs{1}{1}.gps_time(array_proc_param.lines)),0);
-  end
-  
   %% Process: Array Processing
   % =======================================================================
   if strcmpi(param.array.method,'combine_rx')
@@ -488,6 +481,16 @@ for img = 1:length(param.array.imgs)
     param.array.lines = param.array.rlines(1,chunk_idx): param.array.dline ...
       : min(param.array.rlines(2,chunk_idx),size(data{1},2)-max(param.array.rline_rng));
     
+    % Process: Update surface values
+    if isempty(surf_layer.gps_time)
+      array_proc_param.surface = zeros(size(fcs{1}{1}.gps_time(array_proc_param.lines)));
+    elseif length(surf_layer.gps_time) == 1;
+      array_proc_param.surface = surf_layer.twtt*ones(size(fcs{1}{1}.gps_time(array_proc_param.lines)));
+    else
+      array_proc_param.surface = interp_finite(interp1(surf_layer.gps_time, ...
+        surf_layer.twtt,fcs{1}{1}.gps_time(array_proc_param.lines)),0);
+    end
+  
     % Perform incoherent averaging
     Hfilter2 = ones(length(param.array.bin_rng),length(param.array.rline_rng));
     Hfilter2 = Hfilter2 / numel(Hfilter2);
@@ -549,10 +552,23 @@ for img = 1:length(param.array.imgs)
     % necessary because the output is decimated and the decimation may not
     % align with chunk lengths)
     first_rline = find(~mod(sar_out_rlines-1,param.array.dline),1);
-    array_proc_param.rlines = num_prev_chunk_rlines + (first_rline : param.array.dline : length(sar_out_rlines));
-    array_proc_param.rlines = array_proc_param.rlines([1 end]);
+    rlines = num_prev_chunk_rlines + (first_rline : param.array.dline : length(sar_out_rlines));
+    array_proc_param.rlines = rlines([1 end]);
+    rlines = array_proc_param.rlines(1): array_proc_param.dline ...
+    : min(array_proc_param.rlines(2),size(data{1},2)-max(array_proc_param.rline_rng));
+  
+    % Process: Update surface values
+    if isempty(surf_layer.gps_time)
+      array_proc_param.surface = zeros(size(fcs{1}{1}.gps_time(rlines)));
+    elseif length(surf_layer.gps_time) == 1;
+      array_proc_param.surface = surf_layer.twtt*ones(size(fcs{1}{1}.gps_time(rlines)));
+    else
+      array_proc_param.surface = interp_finite(interp1(surf_layer.gps_time, ...
+        surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
+    end
     
     % Array Processing Function Call
+    array_proc_param.rlines = array_proc_param.rlines([1 end]);
     [array_proc_param,tomo] = array_proc(array_proc_param,data);
     param.array.bins = array_proc_param.bins;
     param.array.lines = array_proc_param.lines;

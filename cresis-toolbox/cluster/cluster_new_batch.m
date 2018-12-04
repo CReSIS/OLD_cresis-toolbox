@@ -74,6 +74,10 @@ if ~isfield(ctrl.cluster,'max_jobs_active') || isempty(ctrl.cluster.max_jobs_act
   ctrl.cluster.max_jobs_active = 1;
 end
 
+if ~isfield(ctrl.cluster,'max_mem_per_job') || isempty(ctrl.cluster.max_mem_per_job)
+  ctrl.cluster.max_mem_per_job = inf;
+end
+
 if ~isfield(ctrl.cluster,'max_time_per_job') || isempty(ctrl.cluster.max_time_per_job)
   ctrl.cluster.max_time_per_job = 86400;
 end

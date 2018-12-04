@@ -94,6 +94,10 @@ if ~isfield(param.array,'array_path') || isempty(param.array.array_path)
   param.array.array_path = param.array.in_path;
 end
 
+if ~isfield(param.array,'method') || isempty(param.array.method)
+  param.array.method = 'standard';
+end
+
 if ~isfield(param.array,'out_path') || isempty(param.array.out_path)
   param.array.out_path = param.array.method;
 end
@@ -183,7 +187,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
     wf = abs(param.array.imgs{img}{1}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult = 6e-8;
+  cpu_time_mult = 12e-8;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -197,6 +201,24 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
 else
   error('radar_name %s not supported yet.', radar_name);
   
+end
+
+if any(strcmpi(param.array.method,{'standard','period'}))
+elseif strcmpi(param.array.method,'mvdr')
+  cpu_time_mult = cpu_time_mult*4;
+elseif strcmpi(param.array.method,'music')
+  cpu_time_mult = cpu_time_mult*8;
+% elseif strcmpi(param.array.method,'eig')
+% elseif strcmpi(param.array.method,'risr')
+% elseif strcmpi(param.array.method,'geonull')
+% elseif strcmpi(param.array.method,'robust2')
+elseif strcmpi(param.array.method,'mle')
+  cpu_time_mult = cpu_time_mult*480;
+% elseif strcmpi(param.array.method,'wbdcm')
+elseif strcmpi(param.array.method,'wbmle')
+  cpu_time_mult = cpu_time_mult*480;
+else
+  error('Invalid method %s', param.array.method);
 end
 
 %% Loop through all the frame directories and process the SAR chunks
@@ -354,7 +376,7 @@ for frm = param.cmd.frms
 end
 % Account for averaging
 for img = 1:length(param.array.imgs)
-  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult);
+  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult)*param.array.Nsv/5;
   if isempty(param.array.img_comb)
     % Individual images, so need enough memory to hold the largest image
     sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);

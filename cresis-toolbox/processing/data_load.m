@@ -18,7 +18,9 @@ for img = 1:length(param.load.imgs)
   wf = abs(param.load.imgs{img}(1,1));
   Nt = wfs(wf).Nt_raw;
   Nc = size(param.load.imgs{img},1);
-  data{img} = complex(zeros(Nt,Nx,Nc,'single'));
+  % data{img}: may eventually be complex(zeros(Nt,Nx,Nc,'single')) after
+  % the first record/range-line is written
+  data{img} = zeros(0,Nx,Nc,'single');
   hdr.bad_rec{img} = zeros(1,Nx,Nc,'uint8');
   hdr.nyquist_zone_hw{img} = zeros(1,Nx,'uint8');
   hdr.nyquist_zone_signal{img} = nan(1,Nx);
@@ -227,10 +229,6 @@ for state_idx = 1:length(states)
               wfs(wf).Nt_raw = Nt(num_accum+1);
             end
             t0(num_accum+1) = start_idx/wfs(wf).fs_raw;
-            if size(data{state.img(accum_idx)},1) < wfs(wf).Nt_raw
-              % Force data output to grow to the current record size
-              data{state.img(accum_idx)}(wfs(wf).Nt_raw,1,1) = 0;
-            end
             
             if param.records.file.version == 8
               % Debug: char(file_data(rec_offset+41:rec_offset+48).')
@@ -263,6 +261,10 @@ for state_idx = 1:length(states)
           nyquist_zone_signal = nyquist_zone_hw(1);
           if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
             nyquist_zone_signal = records.settings.nyquist_zone(rec);
+          end
+          if size(data{state.img(accum_idx)},1) < wfs(wf).Nt_raw
+            % Force data output to grow to the current record size
+            data{state.img(accum_idx)}(wfs(wf).Nt_raw,1,1) = 0;
           end
           
 
@@ -438,7 +440,7 @@ for state_idx = 1:length(states)
             % Too few presums, mark as bad record
             % Or a parameter changed within the presum block
             data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = 0;
-            hdr.bad_rec{state.img(accum_idx)}(out_rec,state.wf_adc(accum_idx)) = 1;
+            hdr.bad_rec{state.img(accum_idx)}(1,out_rec,state.wf_adc(accum_idx)) = 1;
           else
             data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = state.data{accum_idx};
           
