@@ -65,12 +65,12 @@ surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
 for img = 1:length(param.array.imgs)
   %% Process: Per Img Setup
   % =======================================================================
-  % Convert old syntax to new multilooking across SLC images syntax
+  % ml_list is the list of SLC images that we will multilook across. It is
+  % a cell array of wf_adc_tables. Each will be array processed separately,
+  % but will be combined during multilooking. Typically this multilooking
+  % across images is not used so that there is usually a single
+  % cell/wf_adc_table in ml_list.
   ml_list = param.array.imgs{img};
-  % SLC = single look complex SAR echogram
-  if ~iscell(ml_list)
-    ml_list = {ml_list};
-  end
   wf_base = ml_list{1}(1,1);
   
   %% Process: Load data
@@ -85,20 +85,6 @@ for img = 1:length(param.array.imgs)
     % image list, so we only grab the first image.  Multilooking across
     % SLCs IS NOT supported for this method!
     ml_list = {ml_list{1}(1,:)};
-  end
-  if ~isfield(param.array,'subaps') || isempty(param.array.subaps)
-    % If SAR sub-apertures not set, we assume that there is just one
-    % subaperture to be passed in for each multilook input
-    for ml_idx = 1:length(ml_list)
-      param.array.subaps{ml_idx} = [1];
-    end
-  end
-  if ~isfield(param.array,'subbnds') || isempty(param.array.subbnds)
-    % If subbands not set, we assume that there is just one
-    % subaperture to be passed in for each multilook input
-    for ml_idx = 1:length(ml_list)
-      param.array.subbnds{ml_idx} = [1];
-    end
   end
   clear fcs chan_equal data lat lon elev;
   num_next_rlines = 0;
@@ -115,8 +101,8 @@ for img = 1:length(param.array.imgs)
     for wf_adc = 1:size(wf_adc_list,1)
       wf = wf_adc_list(wf_adc,1);
       adc = wf_adc_list(wf_adc,2);
-      for subap = param.array.subaps{ml_idx}
-        for subbnd = param.array.subbnds{ml_idx}
+      for subap = param.array.subaps{img}{ml_idx}
+        for subbnd = param.array.subbnds{img}{ml_idx}
           in_fn_dir(end-4:end-3) = sprintf('%02d',subap);
           in_fn_dir(end-1:end) = sprintf('%02d',subbnd);
           
@@ -151,7 +137,7 @@ for img = 1:length(param.array.imgs)
             rlines = 1:num_prev_chunk_rlines;
             
             if size(sar_data.(data_field_name),2) >= num_prev_chunk_rlines
-              if subap == param.array.subaps{ml_idx}(1) && subbnd == param.array.subbnds{ml_idx}(1)
+              if subap == param.array.subaps{img}{ml_idx}(1) && subbnd == param.array.subbnds{img}{ml_idx}(1)
                 fcs{ml_idx}{wf_adc}.origin(:,rlines) = sar_data.fcs.origin(:,end-num_prev_chunk_rlines+1:end);
                 fcs{ml_idx}{wf_adc}.x(:,rlines) = sar_data.fcs.x(:,end-num_prev_chunk_rlines+1:end);
                 fcs{ml_idx}{wf_adc}.y(:,rlines) = sar_data.fcs.y(:,end-num_prev_chunk_rlines+1:end);
@@ -205,7 +191,7 @@ for img = 1:length(param.array.imgs)
           num_rlines = size(sar_data.(data_field_name),2);
           rlines = num_prev_chunk_rlines + (1:num_rlines);
           
-          if subap == param.array.subaps{ml_idx}(1) && subbnd == param.array.subbnds{ml_idx}(1)
+          if subap == param.array.subaps{img}{ml_idx}(1) && subbnd == param.array.subbnds{img}{ml_idx}(1)
             fcs{ml_idx}{wf_adc}.Lsar = sar_data.fcs.Lsar;
             fcs{ml_idx}{wf_adc}.gps_source = sar_data.fcs.gps_source;
             fcs{ml_idx}{wf_adc}.origin(:,rlines) = sar_data.fcs.origin;
@@ -284,7 +270,7 @@ for img = 1:length(param.array.imgs)
             rlines = num_prev_chunk_rlines + num_rlines + (1:num_next_chunk_rlines);
             
             if size(sar_data.(data_field_name),2) >= num_next_chunk_rlines
-              if subap == param.array.subaps{ml_idx}(1) && subbnd == param.array.subbnds{ml_idx}(1)
+              if subap == param.array.subaps{img}{ml_idx}(1) && subbnd == param.array.subbnds{img}{ml_idx}(1)
                 fcs{ml_idx}{wf_adc}.origin(:,rlines) = sar_data.fcs.origin(:,1:num_next_chunk_rlines);
                 fcs{ml_idx}{wf_adc}.x(:,rlines) = sar_data.fcs.x(:,1:num_next_chunk_rlines);
                 fcs{ml_idx}{wf_adc}.y(:,rlines) = sar_data.fcs.y(:,1:num_next_chunk_rlines);

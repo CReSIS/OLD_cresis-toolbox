@@ -71,8 +71,20 @@ if ~isfield(param.(param_mode), 'img_comb_trim') || isempty(param.(param_mode).i
   else
     % Set relative trim to be 50% support level or higher for pulse compression
     % Set absolute trim to be >= 0 time
-    wf_first = param.(param_mode).imgs{1}{1}(1,1);
-    wf_last = param.(param_mode).imgs{end}{1}(1,1);
+    if iscell(param.(param_mode).imgs{1})
+      % Multilook format (param_mode is 'array')
+      wf_adc_list = param.(param_mode).imgs{1}{1};
+    else
+      wf_adc_list = param.(param_mode).imgs{1};
+    end
+    wf_first = wf_adc_list(1,1);
+    if iscell(param.(param_mode).imgs{end})
+      % Multilook format (param_mode is 'array')
+      wf_adc_list = param.(param_mode).imgs{end}{1};
+    else
+      wf_adc_list = param.(param_mode).imgs{end};
+    end
+    wf_last = wf_adc_list(1,1);
     param.(param_mode).img_comb_trim = [param.radar.wfs(wf_first).Tpd/2 -param.radar.wfs(wf_last).Tpd/2 0 inf];
   end
 end

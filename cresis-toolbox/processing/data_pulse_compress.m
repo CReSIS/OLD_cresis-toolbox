@@ -931,6 +931,10 @@ for img = 1:length(param.load.imgs)
     
     %% Coherent noise: Pulsed
     % ===================================================================
+    if 0
+      % Debug Test Code
+      before = data{img}(1:size(noise.dft,1),:,wf_adc);
+    end
     if strcmpi(radar_type,'pulsed')
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
         for dft_idx = 1:length(noise.dft_freqs)
@@ -942,6 +946,24 @@ for img = 1:length(param.load.imgs)
           end
         end
       end
+    end
+    if 0
+      % Debug Test Code
+      after = data{img}(1:size(noise.dft,1),:,wf_adc);
+      Nfir = 21;
+      beforef = fir_dec(before,Nfir);
+      afterf = fir_dec(after,Nfir);
+      figure(1); clf;
+      imagesc(lp(beforef));
+      cc=caxis;
+      figure(2); clf;
+      imagesc(lp(afterf));
+      caxis(cc);
+      figure(3); clf;
+      rline = round(min(8000-1,size(afterf,2))/Nfir) + 1;
+      plot(lp(beforef(:,rline)));
+      hold on;
+      plot(lp(afterf(:,rline)));
     end
 
     %% Deconvolution

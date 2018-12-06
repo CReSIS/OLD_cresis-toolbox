@@ -48,22 +48,6 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
-if ~isfield(param,'sar') || isempty(param.sar)
-  param.sar = [];
-end
-
-if ~isfield(param.array,'chunk_len') || isempty(param.array.chunk_len)
-  if ~isfield(param.sar,'chunk_len') || isempty(param.sar.chunk_len)
-    error('param.array.chunk_len or param.sar.chunk_len must be defined');
-  else
-    param.array.chunk_len = param.sar.chunk_len;
-  end
-end
-
-if ~isfield(param.array,'frm_types') || isempty(param.array.frm_types)
-  param.array.frm_types = {-1,-1,-1,-1,-1};
-end
-
 % Remove frames that do not exist from param.cmd.frms list
 load(ct_filename_support(param,'','frames')); % Load "frames" variable
 if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
@@ -78,18 +62,42 @@ if length(valid_frms) ~= length(param.cmd.frms)
   param.cmd.frms = valid_frms;
 end
 
-if ~isfield(param.sar,'pulse_comp') || isempty(param.sar.pulse_comp)
-  param.sar.pulse_comp = 1;
+% Handles multilooking syntax:
+%  {{[1 1],[1 2],[1 3],[1 4],[1 5]},{[2 1],[2 2],[2 3],[2 4],[2 5]}}
+%  If the image is a cell array it describes multilooking across apertures
+if ~iscell(param.array.imgs{1})
+  % No special multilooking, reformat old syntax to new multilooking syntax
+  for img = 1:length(param.array.imgs)
+    param.array.imgs{img} = {param.array.imgs{img}};
+  end
 end
 
-if ~isfield(param.sar,'presums') || isempty(param.sar.presums)
-  param.sar.presums = 1;
+% param.sar gets used to create the defaults of several fields so we make
+% sure the field is available
+if ~isfield(param,'sar') || isempty(param.sar)
+  param.sar = [];
+end
+if ~isfield(param.sar,'sigma_x') || isempty(param.sar.sigma_x)
+  error('The param.sar.sigma_x field must be set to calculate cpu time and memory requirements.');
+end
+
+% param.array.* fields
+% -------------------------------------------------------------------------
+if ~isfield(param.array,'chunk_len') || isempty(param.array.chunk_len)
+  if ~isfield(param.sar,'chunk_len') || isempty(param.sar.chunk_len)
+    error('param.array.chunk_len or param.sar.chunk_len must be defined');
+  else
+    param.array.chunk_len = param.sar.chunk_len;
+  end
+end
+
+if ~isfield(param.array,'frm_types') || isempty(param.array.frm_types)
+  param.array.frm_types = {-1,-1,-1,-1,-1};
 end
 
 if ~isfield(param.array,'in_path') || isempty(param.array.in_path)
   param.array.in_path = 'out';
 end
-
 if ~isfield(param.array,'array_path') || isempty(param.array.array_path)
   param.array.array_path = param.array.in_path;
 end
@@ -103,6 +111,9 @@ if ~isfield(param.array,'out_path') || isempty(param.array.out_path)
 end
 
 if ~isfield(param.array,'presums') || isempty(param.array.presums)
+  if ~isfield(param.sar,'presums') || isempty(param.sar.presums)
+    param.sar.presums = 1;
+  end
   if ~isfield(param.sar,'presums') || isempty(param.sar.presums)
     param.array.presums = 1;
   else
@@ -121,28 +132,32 @@ if strcmpi(param.array.sar_type,'f-k')
   error('Deprecated sar_type name. Change param.array.sar_type from ''f-k'' to ''fk'' in  your parameters (or remove parameter since ''fk'' is the default mode).');
 end
 
+if ~isfield(param.array,'subaps') || isempty(param.array.subaps)
+  % If SAR sub-apertures not set, we assume that there is just one
+  % subaperture to be passed in for each multilook input
+  for img = 1:length(param.array.imgs)
+    for ml_idx = 1:length(param.array.imgs{img})
+      param.array.subaps{img}{ml_idx} = [1];
+    end
+  end
+end
+
+if ~isfield(param.array,'subbnds') || isempty(param.array.subbnds)
+  % If subbands not set, we assume that there is just one
+  % subaperture to be passed in for each multilook input
+  for img = 1:length(param.array.imgs)
+    for ml_idx = 1:length(param.array.imgs{img})
+      param.array.subbnds{img}{ml_idx} = [1];
+    end
+  end
+end
+
 if ~isfield(param.array,'surf_layer') || isempty(param.array.surf_layer)
   param.array.surf_layer.name = 'surface';
   param.array.surf_layer.source = 'layerData';
 end
 % Never check for the existence of layers
 param.array.surf_layer.existence_check = false;
-
-% Handles multilooking syntax:
-%  {{[1 1],[1 2],[1 3],[1 4],[1 5]},{[2 1],[2 2],[2 3],[2 4],[2 5]}}
-%  If the image is a cell array it describes multilooking across apertures
-if ~iscell(param.array.imgs{1})
-  % No special multilooking, reformat old syntax to new multilooking syntax
-  for img = 1:length(param.array.imgs)
-    param.array.imgs{img} = {param.array.imgs{img}};
-  end
-end
-
-for img = 1:length(param.array.imgs)
-  for ml_idx = 1:length(param.array.imgs{img})
-    param.array.imgs{img}{ml_idx} = param.array.imgs{img}{ml_idx};
-  end
-end
 
 %% Setup processing
 % =====================================================================
@@ -181,18 +196,29 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 ctrl = cluster_new_batch(param);
 cluster_compile({'array_task.m','array_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
-total_num_sam = [];
+total_num_sam = zeros(size(param.array.imgs));
+total_num_sam_combine = zeros(size(param.array.imgs));
+if param.array.three_dim.en
+  Nsv = param.array.Nsv;
+else
+  Nsv = 1;
+end
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
   for img = 1:length(param.array.imgs)
-    wf = abs(param.array.imgs{img}{1}(1,1));
-    total_num_sam(img) = wfs(wf).Nt_raw;
+    wf = param.array.imgs{img}{1}(1,1);
+    total_num_sam_combine(img) = total_num_sam_combine(img) + wfs(wf).Nt_pc/param.array.dbin*Nsv;
+    for ml_idx = 1:length(param.array.imgs{img})
+      wf = param.array.imgs{img}{ml_idx}(1,1);
+      total_num_sam(img) = total_num_sam(img) + wfs(wf).Nt_pc/param.array.dbin ...
+        * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
+    end
   end
-  cpu_time_mult = 12e-8;
-  mem_mult = 8;
+  cpu_time_mult = 3e-6;
+  mem_mult = 16;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   for img = 1:length(param.array.imgs)
-    wf = abs(param.array.imgs{img}{1}(1,1));
+    wf = param.array.imgs{img}{1}(1,1);
     total_num_sam(img) = 32000;
   end
   cpu_time_mult = 8e-8;
@@ -320,12 +346,14 @@ for frm_idx = 1:length(param.cmd.frms);
     
     % CPU Time and Memory estimates:
     %  Nx*total_num_sam*K where K is some manually determined multiplier.
-    Nx = stop_rec - start_rec + 1;
+    Nx = round(frm_dist / num_chunks / param.sar.sigma_x);
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.array.imgs)
-      dparam.cpu_time = dparam.cpu_time + 10 + size(param.array.imgs{img},1)*Nx*total_num_sam(img)*cpu_time_mult;
-      dparam.mem = max(dparam.mem,250e6 + size(param.array.imgs{img},1)*Nx*total_num_sam(img)*mem_mult);
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*cpu_time_mult;
+      % Take the max of the input data size and the output data size
+      dparam.mem = max(dparam.mem,250e6 + max( Nx*total_num_sam(img)*mem_mult, ...
+        Nx/param.array.dline*total_num_sam_combine(img)*mem_mult ));
     end
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
@@ -343,7 +371,7 @@ ctrl_chain = {ctrl};
 ctrl = cluster_new_batch(param);
 
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
-  cpu_time_mult = 6e-8;
+  cpu_time_mult = 1e-6;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -364,9 +392,9 @@ Nx_max = 0;
 for frm = param.cmd.frms
   % recs: Determine the records for this frame
   if frm < length(frames.frame_idxs)
-    Nx_frm = (along_track_approx(frames.frame_idxs(frm+1)) - along_track_approx(frames.frame_idxs(frm))) / param.sar.sigma_x;
+    Nx_frm = (along_track_approx(frames.frame_idxs(frm+1)) - along_track_approx(frames.frame_idxs(frm))) / param.sar.sigma_x / param.array.dline;
   else
-    Nx_frm = (along_track_approx(length(records.gps_time)) - along_track_approx(frames.frame_idxs(frm) + 1)) / param.sar.sigma_x;
+    Nx_frm = (along_track_approx(length(records.gps_time)) - along_track_approx(frames.frame_idxs(frm) + 1)) / param.sar.sigma_x / param.array.dline;
   end
   Nx_frm = round(Nx_frm);
   if Nx_frm > Nx_max
@@ -376,13 +404,13 @@ for frm = param.cmd.frms
 end
 % Account for averaging
 for img = 1:length(param.array.imgs)
-  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam(img)*cpu_time_mult)*param.array.Nsv/5;
+  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_combine(img)*cpu_time_mult);
   if isempty(param.array.img_comb)
     % Individual images, so need enough memory to hold the largest image
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam(img)*mem_mult);
+    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam_combine(img)*mem_mult);
   else
     % Images combined into one so need enough memory to hold all images
-    sparam.mem = 250e6 + Nx*sum(total_num_sam)*mem_mult;
+    sparam.mem = max(sparam.mem,250e6 + Nx_max*sum(total_num_sam_combine)*mem_mult);
   end
 end
 sparam.notes = sprintf('%s:%s:%s %s combine frames', ...

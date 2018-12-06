@@ -398,7 +398,7 @@ if param.qlook.surf.en && strcmpi(param.qlook.surf_layer.source,'records')
 end
 
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
-  cpu_time_mult = 6e-8;
+  cpu_time_mult = 12e-8;
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
