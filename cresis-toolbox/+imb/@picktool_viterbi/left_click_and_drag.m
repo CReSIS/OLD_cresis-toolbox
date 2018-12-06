@@ -62,16 +62,36 @@ if tool_idx == 1
       mu(mu<-30)     = -30;
       mu             = mu - mean(mu);
       sigma          = sum(abs(mu))/10*ones(1,mu_size);
-      smooth_weight  = 5;
-      smooth_var     = inf;
-      repulsion      = 150000;
-      ice_bin_thr    = 10;
       mc             = -1 * ones(1, Nx);
       mc_weight      = 0;
       CF.sensory_distance = 200;
       CF.max_cost = 50;
       CF.lambda = 0.075;
-
+      
+      try
+        smooth_weight = str2double(obj.top_panel.smoothness_weight_TE.String);
+      catch ME
+        smooth_weight = 3;
+      end
+      
+      try
+        smooth_var = str2double(obj.top_panel.smoothness_variance_TE.String);
+      catch ME
+        smooth_var = Inf;
+      end
+      
+      try
+        repulsion = str2double(obj.top_panel.repulsion_TE.String);
+      catch ME
+        repulsion = 150000;
+      end
+      
+      try
+        ice_bin_thr = str2double(obj.top_panel.icebinthr_TE.String);
+      catch ME
+        ice_bin_thr = 10;
+      end
+      
       %% Detrending
       if 1
         % Along track filtering
@@ -96,17 +116,47 @@ if tool_idx == 1
         mc             = mc(:, auto_idxs);
         slope          = round(diff(surf_bins));
       end
-
-      %% Call viterbi.cpp      
+      
+      %% Top suppression
+      if obj.top_panel.top_sup_cbox.Value
+        tic
+        topbuffer = 10;
+        botbuffer = 30;
+        filtvalue = 50;
+        for rline = 1 : size(viterbi_data, 2)
+          column_chunk = viterbi_data(round(surf_bins(rline) - topbuffer) : ...
+            round(surf_bins(rline) + botbuffer), rline);
+          viterbi_data(round(surf_bins(rline) - topbuffer) : ...
+            round(surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
+        end
+        fprintf('Top suppression took %.2f sec.\n', toc);
+      end
+      
+      %% Multiple suppression
+      if obj.top_panel.mult_sup_cbox.Value
+        tic
+        topbuffer = 10;
+        botbuffer = 5;
+        filtvalue = 50;
+        for rline = 1 : size(viterbi_data, 2)
+          column_chunk = viterbi_data(round(2*surf_bins(rline) - topbuffer) : ...
+            round(2*surf_bins(rline) + botbuffer), rline);
+          viterbi_data(round(2*surf_bins(rline) - topbuffer) : ...
+            round(2*surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
+        end
+        fprintf('Multiple suppression took %.2f sec.\n', toc);
+      end
+      
+      %% Call viterbi.cpp
       tic
-      y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
+      [y_new, cost] = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(bottom_bin), double(gt), double(mask), double(mu), ...
         double(sigma), double(egt_weight), double(smooth_weight), ...
         double(smooth_var), double(slope), int64(bounds), ...
         double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
         double(mc), double(mc_weight), ...
         double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
-      toc
+      fprintf('Viterbi call took %.2f sec.\n', toc);
 
       if obj.top_panel.column_restriction_cbox.Value
         y_new(end) = y_new(end-1);
@@ -116,16 +166,34 @@ if tool_idx == 1
       
       % Interpolate layer to match image y-axis
       y_new  = interp1(1:length(image_y), image_y, y_new);
-
       cmds(end+1).undo_cmd = 'insert';
-      cmds(end).undo_args = {cur_layer, auto_idxs, ...
+      % Quality measurement from Viterbi algorithm result
+      if obj.top_panel.quality_output_cbox.Value
+        try
+          thrs = str2double(obj.top_panel.quality_threshold_TE.String);
+        catch ME
+          thrs = -20;
+        end        
+        quality = ones(size(cost));
+        quality(cost < thrs) = 3;
+        cmds(end).undo_args = {cur_layer, auto_idxs, ...
+        param.layer.y{cur_layer}(auto_idxs), ...
+        param.layer.type{cur_layer}(auto_idxs), quality};
+      else
+        cmds(end).undo_args = {cur_layer, auto_idxs, ...
         param.layer.y{cur_layer}(auto_idxs), ...
         param.layer.type{cur_layer}(auto_idxs), ...
         param.layer.qual{cur_layer}(auto_idxs)};
+      end
+
       cmds(end).redo_cmd = 'insert';
-      cmds(end).redo_args = {cur_layer, auto_idxs, ...
-        y_new, ...
-        2*ones(size(auto_idxs)), param.cur_quality*ones(size(auto_idxs))};
+      if obj.top_panel.quality_output_cbox.Value
+        cmds(end).redo_args = {cur_layer, auto_idxs, y_new, ...
+          2*ones(size(auto_idxs)), quality};        
+      else
+        cmds(end).redo_args = {cur_layer, auto_idxs, y_new, ...
+          2*ones(size(auto_idxs)), param.cur_quality*ones(size(auto_idxs))};
+      end
     end
   end
 else
@@ -133,4 +201,3 @@ else
 end
 
 return
-
