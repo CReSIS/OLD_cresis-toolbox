@@ -123,7 +123,7 @@ for param_idx = 1:length(params)
   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
     continue;
   end
-
+  
   param = merge_structs(param,param_override);
   
   dbstack_info = dbstack;
@@ -157,12 +157,16 @@ for param_idx = 1:length(params)
   viterbi_tic = tic;
   
   for frm = param.cmd.frms
-    
     if options.debug
-      fprintf('VITERBI: Running frame %s_%03d. ',param.day_seg,frm);
+      fprintf('Running frame %s_%03d.\n',param.day_seg,frm);
     end
-
-    cur_matrix          = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
+    
+    try
+      cur_matrix = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
+    catch ME
+      continue;
+    end
+    
     big_matrix.GPS_time = horzcat(big_matrix.GPS_time, cur_matrix.GPS_time);
     big_matrix.Lat      = horzcat(big_matrix.Lat, cur_matrix.Latitude);
     big_matrix.Lon      = horzcat(big_matrix.Lon, cur_matrix.Longitude);
@@ -198,7 +202,7 @@ for param_idx = 1:length(params)
     end
   end
   
-  if options.debug  
+  if options.debug
     fprintf('\nDone: image combine (%s)', datestr(now,'HH:MM:SS'));
   end
   
@@ -240,24 +244,44 @@ for param_idx = 1:length(params)
   ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
   ops_param.properties.nativeGeom = true;
   [~,ops_data] = opsGetPath(sys,ops_param);
-
+  
   big_matrix.Surface = interp_finite(interp1(Surface.gps_time,Surface.twtt,big_matrix.GPS_time));
   
   if options.debug
     fprintf('\nDone: opsAuthenticate, opsGetSegmentInfo, time-range bin interpolation (%s)', datestr(now,'HH:MM:SS'));
   end
   
-  %% Multiple suppression
   big_matrix.Data = lp(big_matrix.Data);
   surf_bins = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), big_matrix.Surface));
+  
+  %% Top suppression
   topbuffer = 10;
-  botbuffer = 5;
+  botbuffer = 30;
   filtvalue = 50;
   for rline = 1 : size(big_matrix.Data, 2)
-    column_chunk = big_matrix.Data(round(2*surf_bins(rline) - topbuffer) : ...
-      round(2*surf_bins(rline) + botbuffer), rline);
-    big_matrix.Data(round(2*surf_bins(rline) - topbuffer) : ...
-      round(2*surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
+    column_chunk = big_matrix.Data(round(surf_bins(rline) - topbuffer) : ...
+      round(surf_bins(rline) + botbuffer), rline);
+    big_matrix.Data(round(surf_bins(rline) - topbuffer) : ...
+      round(surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
+  end
+  
+  if options.debug
+    fprintf('\nDone: top suppression (%s)', datestr(now,'HH:MM:SS'));
+  end
+  
+  %% Multiple suppression
+  topbuffer = 10;
+  botbuffer = 5;
+  filtvalue = 100;
+  for rline = 1 : size(big_matrix.Data, 2)
+    try
+      column_chunk = big_matrix.Data(round(2*surf_bins(rline) - topbuffer) : ...
+        round(2*surf_bins(rline) + botbuffer), rline);
+      big_matrix.Data(round(2*surf_bins(rline) - topbuffer) : ...
+        round(2*surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
+    catch ME
+      continue;
+    end
   end
   
   if options.debug
@@ -271,60 +295,90 @@ for param_idx = 1:length(params)
   mc_weight      = 0;
   
   %% Ice mask calculation
-  if isempty(options.geotiff_fn)
-    mask = inf * ones([1 Nx]);
+  if isempty(options.icemask_fn)
+    ice_mask.mask = inf * ones([1 Nx]);
   else
-    [mask,R,~] = geotiffread(options.geotiff_fn);
-    proj = geotiffinfo(options.geotiff_fn);
-    [points.x, points.y] = projfwd(proj, big_matrix.Lat, big_matrix.Lon);
-    X = R(3,1) + R(2,1)*(1:size(mask,2));
-    Y = R(3,2) + R(1,2)*(1:size(mask,1));
-    if 0
-      figure;
-      imagesc(X,Y,mask);
-      hold on;
-      plot(points.x,points.y)
-    end
-    [X,Y] = meshgrid(X,Y);
-    fl_mask = round(interp2(X, Y, double(mask), points.x, points.y));
-    mask = fl_mask;
-    mask(isnan(mask)) = 1;
-    
-    % Useful for Antarctica seasons:
-    if 0
-      [mask,R,~] = geotiffread(options.geotiff_fn);
-      [mask2, ~, ~] = geotiffread(options.geotiff2_fn);
-      proj = geotiffinfo(options.geotiff_fn);
-      [points.x, points.y] = projfwd(proj, big_matrix.Lat, big_matrix.Lon);
-      X = R(3,1) + R(2,1)*(1:size(mask,2));
-      Y = R(3,2) + R(1,2)*(1:size(mask,1));
+    if ~options.binary_icemask
+      try
+        [ice_mask.mask,ice_mask.R,~] = geotiffread(options.icemask_fn);
+        ice_mask.proj = geotiffinfo(options.icemask_fn);
+      catch ME
+        fprintf('\nProblem loading ice mask file, check.\n');
+        keyboard
+      end
+      [points.x, points.y] = projfwd(ice_mask.proj, big_matrix.Lat, big_matrix.Lon);
+      ice_mask.X = ice_mask.R(3,1) + ice_mask.R(2,1)*(1:size(ice_mask.mask,2));
+      ice_mask.Y = ice_mask.R(3,2) + ice_mask.R(1,2)*(1:size(ice_mask.mask,1));
       if 0
         figure;
-        imagesc(X,Y,mask);
+        imagesc(ice_mask.X,ice_mask.Y,ice_mask.mask);
         hold on;
         plot(points.x,points.y)
       end
-      [X,Y] = meshgrid(X,Y);
-      fl_mask = interp2(X, Y, double(mask), points.x, points.y);
-      fl_mask = round(interp2(X, Y, double(mask), points.x, points.y));
-      mask = fl_mask;
-      mask(isnan(mask)) = 1;
-      fl_mask2 = interp2(X, Y, double(mask2), points.x, points.y);
-      fl_mask2 = round(interp2(X, Y, double(mask2), points.x, points.y));
-      mask2 = fl_mask2;
-      mask2(isnan(mask2)) = 1;
-      f_mask = zeros(size(mask));
-      for i = 1:length(f_mask)
-        if ((mask(1, i) == 0 || mask(1, i) == 1) && (mask2(1, i) == 127))
-          f_mask(1, i) = 1;
+      [ice_mask.X,ice_mask.Y] = meshgrid(ice_mask.X,ice_mask.Y);
+      ice_mask.fl_mask = round(interp2(ice_mask.X, ice_mask.Y, double(ice_mask.mask), points.x, points.y));
+      ice_mask.mask = ice_mask.fl_mask;
+      ice_mask.mask(isnan(ice_mask.mask)) = 1;
+      
+      % Useful for Antarctica seasons:
+      if 0
+        [ice_mask.mask,ice_mask.R,~] = geotiffread(options.icemask_fn);
+        [ice_mask.mask2, ~, ~] = geotiffread(options.icemask2_fn);
+        ice_mask.proj = geotiffinfo(options.icemask_fn);
+        [points.x, points.y] = projfwd(ice_mask.proj, big_matrix.Lat, big_matrix.Lon);
+        ice_mask.X = ice_mask.R(3,1) + ice_mask.R(2,1)*(1:size(ice_mask.mask,2));
+        ice_mask.Y = ice_mask.R(3,2) + ice_mask.R(1,2)*(1:size(ice_mask.mask,1));
+        if 0
+          figure;
+          imagesc(ice_mask.X,ice_mask.Y,ice_mask.mask);
+          hold on;
+          plot(points.x,points.y)
+        end
+        [ice_mask.X,ice_mask.Y] = meshgrid(ice_mask.X,ice_mask.Y);
+        ice_mask.fl_mask = interp2(ice_mask.X, ice_mask.Y, double(ice_mask.mask), points.x, points.y);
+        ice_mask.fl_mask = round(interp2(ice_mask.X, ice_mask.Y, double(ice_mask.mask), points.x, points.y));
+        ice_mask.mask = ice_mask.fl_mask;
+        ice_mask.mask(isnan(ice_mask.mask)) = 1;
+        ice_mask.fl_mask2 = interp2(ice_mask.X, ice_mask.Y, double(ice_mask.mask2), points.x, points.y);
+        ice_mask.fl_mask2 = round(interp2(ice_mask.X, ice_mask.Y, double(ice_mask.mask2), points.x, points.y));
+        ice_mask.mask2 = ice_mask.fl_mask2;
+        ice_mask.mask2(isnan(ice_mask.mask2)) = 1;
+        ice_mask.f_mask = zeros(size(ice_mask.mask));
+        for i = 1:length(ice_mask.f_mask)
+          if ((ice_mask.mask(1, i) == 0 || ice_mask.mask(1, i) == 1) && (ice_mask.mask2(1, i) == 127))
+            ice_mask.f_mask(1, i) = 1;
+          end
+        end
+        ice_mask.mask = ice_mask.f_mask;
+        if max(max(ice_mask.mask)) > 100
+          ice_mask.tmp_mask = zeros(size(ice_mask.mask));
+          ice_mask.tmp_mask(ice_mask.mask == 0) = 1;
+          ice_mask.mask = ice_mask.tmp_mask;
         end
       end
-      mask = f_mask;
-      if max(max(mask)) > 100
-        tmp_mask = zeros(size(mask));
-        tmp_mask(mask == 0) = 1;
-        mask = tmp_mask;
+    else
+      [ice_mask_fn_dir, ice_mask_fn_name] = fileparts(options.icemask_fn);
+      ice_mask_mat_fn = fullfile(ice_mask_fn_dir,[ice_mask_fn_name '.mat']);
+      ice_mask = load(ice_mask_mat_fn,'R','X','Y','proj');
+      
+      [fid,msg] = fopen(options.icemask_fn,'r');
+      if fid < 1
+        fprintf('Could not open file %s\n', ice_mask_bin_fn);
+        error(msg);
       end
+      ice_mask.mask = logical(fread(fid,[length(ice_mask.Y),length(ice_mask.X)],'uint8'));
+      fclose(fid);
+      [points.x, points.y] = projfwd(ice_mask.proj, big_matrix.Lat, big_matrix.Lon);
+      
+      if 0
+        figure;
+        imagesc(ice_mask.X,ice_mask.Y,ice_mask.mask);
+        hold on;
+        plot(points.x,points.y)
+      end
+      
+      ice_mask.mask = round(interp2(ice_mask.X, ice_mask.Y, double(ice_mask.mask), points.x, points.y));
+      ice_mask.mask(isnan(ice_mask.mask)) = 1;
     end
   end
   
@@ -332,6 +386,7 @@ for param_idx = 1:length(params)
     fprintf('\nDone: ice mask calculation (%s)', datestr(now,'HH:MM:SS'));
   end
   
+  %% Crossover loading
   if options.viterbi.crossoverload
     query = sprintf('SELECT rds_segments.id FROM rds_seasons,rds_segments where rds_seasons.name=''%s'' and rds_seasons.id=rds_segments.season_id and rds_segments.name=''%s''',param.season_name,param.day_seg);
     [~,tables] = opsQuery(query);
@@ -380,8 +435,9 @@ for param_idx = 1:length(params)
   
   %% Set variable echogram tracking parameters
   bounds = [0 Nx];
-  mask   = 90*fir_dec(double(mask), ones(1,5)/3.7);
-  mask(mask>=90) = Inf;
+  ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
+  ice_mask.mask   = 90*fir_dec(double(ice_mask.mask), ones(1,5)/3.7);
+  ice_mask.mask(ice_mask.mask>=90) = Inf;
   
   %% Detrending routine
   if 1
@@ -408,13 +464,15 @@ for param_idx = 1:length(params)
   if options.debug
     fprintf('\nProceeding with Viterbi call... ');
   end
+  
   labels_wholeseg = tomo.viterbi(double(big_matrix.Data), double(surf_bins), ...
-    double(bottom_bin), double(gt), double(mask), double(mu), ...
+    double(bottom_bin), double(gt), double(ice_mask.mask), double(mu), ...
     double(sigma), double(egt_weight), double(smooth_weight), ...
     double(smooth_var), double(slope), int64(bounds), ...
     double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
     double(mc), double(mc_weight), ...
     double(CF.sensorydist), double(CF.max_cost), double(CF.lambda));
+  
   viterbi_toc = toc(viterbi_tic);
   if options.debug
     fprintf(' done. (%s)\n', datestr(now));
@@ -431,8 +489,8 @@ for param_idx = 1:length(params)
   if options.ops_write
     % Interpolate from row number to TWTT
     big_matrix.TWTT = interp1(1:length(big_matrix.Time), big_matrix.Time, labels_wholeseg);
-    big_matrix.TWTT(~mask) = big_matrix.Surface(~mask);
-    big_matrix.TWTT(isnan(mask)) = NaN;
+    big_matrix.TWTT(~ice_mask.mask) = big_matrix.Surface(~ice_mask.mask);
+    big_matrix.TWTT(isnan(ice_mask.mask)) = NaN;
     
     %% Load labels into OPS using opsCopyLayers
     copy_param = [];
@@ -444,8 +502,14 @@ for param_idx = 1:length(params)
     copy_param.layer_source.gps_time = big_matrix.GPS_time;
     copy_param.layer_source.twtt = big_matrix.TWTT;
     
-    copy_param.layer_dest.name = options.viterbi.layername;
+    % Set the destination
+        copy_param.layer_dest.name = options.viterbi.layername;
+%     copy_param.layer_dest.name = 'Viterbi_New';
     copy_param.layer_dest.source = 'ops';
+    %     copy_param.layer_dest.group = 'standard';
+    %     copy_param.layer_dest.description = '';
+    %     copy_param.layer_dest.source = 'layerdata';
+    %     copy_param.layer_dest.layerdata_source = 'victor_layerData_ViterbiNew';
     
     copy_param.copy_method = 'overwrite';
     
@@ -461,16 +525,20 @@ for param_idx = 1:length(params)
     opsCopyLayers(param,copy_param);
     fprintf('  Complete (%s)\n', datestr(now));
   end
-
+  
   %% Generate labels struct with separate frame results
   idx_ctr = 0;
   for frm = param.cmd.frms
-    labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).bot = ...
-      labels_wholeseg(idx_ctr + 1 : idx_ctr + length(data_struct.(sprintf('data_%s_%03d',param.day_seg,frm)).Bottom));
-    labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).toc = ...
-      viterbi_toc/length(param.cmd.frms);
-    idx_ctr = idx_ctr + length(data_struct.(sprintf('data_%s_%03d',param.day_seg,frm)).Bottom);
-  end  
+    try
+      labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).bot = ...
+        labels_wholeseg(idx_ctr + 1 : idx_ctr + length(data_struct.(sprintf('data_%s_%03d',param.day_seg,frm)).Bottom));
+      labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).toc = ...
+        viterbi_toc/length(param.cmd.frms);
+      idx_ctr = idx_ctr + length(data_struct.(sprintf('data_%s_%03d',param.day_seg,frm)).Bottom);
+    catch ME
+      continue;
+    end
+  end
 end
 
 warning('on','all');

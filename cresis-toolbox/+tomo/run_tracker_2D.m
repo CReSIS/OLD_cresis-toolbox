@@ -14,28 +14,43 @@ fprintf('=====================================================================\n
 
 %% General User Settings
 % Tracking algorithms: 'viterbi', 'mcmc', 'lsm'
-% algorithms = {'viterbi', 'mcmc'};
-algorithms = {'viterbi', 'mcmc','lsm'};
+% algorithms = {'viterbi', 'mcmc', 'lsm'};
+algorithms = {'viterbi'};
 
-params = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'),'','post');
+params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20170322_05');
-params = ct_set_params(params,'cmd.frms',1);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_05');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_06');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_07');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
+% params = ct_set_params(params,'cmd.frms',1);
 
-options.name       = 'CSARP_post/standard';
-options.debug      = false;
+options.name       = 'CSARP_post/mvdr';
+options.debug      = true;
 options.ops_write  = false;
-options.geotiff_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
 
-% Useful for Antarctica seasons:
-% options.geotiff_fn  = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';
-% options.geotiff2_fn = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif';
-
-if ~isempty(options.geotiff_fn)
-  options.geotiff_fn  = ct_filename_gis([],options.geotiff_fn);
-end
-if isfield(options, 'geotiff2_fn') && ~isempty(options.geotiff2_fn)
-  options.geotiff2_fn = ct_filename_gis([],options.geotiff2_fn);
+%% Ice mask options
+if 0 % If using GeoTIFF file for ice mask
+  options.binary_icemask = false;
+  options.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
+  
+  % Useful for Antarctica seasons:
+  % options.icemask_fn  = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';
+  % options.icemask2_fn = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif';
+  
+  if ~isempty(options.icemask_fn)
+    options.icemask_fn  = ct_filename_gis([],options.icemask_fn);
+  end
+  if isfield(options, 'icemask2_fn') && ~isempty(options.icemask2_fn)
+    options.icemask2_fn = ct_filename_gis([],options.icemask2_fn);
+  end
+  
+else % If using binary file for ice mask
+  options.binary_icemask = true;
+  param.radar_name       = 'rds';
+  param.season_name      = '2014_Greenland_P3';
+  options.icemask_fn     = ct_filename_gis(param,fullfile('canada','ice_mask','03_rgi50_ArcticCanadaNorth','03_rgi50_ArcticCanadaNorth.bin'));
 end
 
 %% Viterbi User Settings
@@ -53,7 +68,7 @@ options.viterbi.mu             = options.viterbi.mu - mean(options.viterbi.mu);
 options.viterbi.sigma          = sum(abs(options.viterbi.mu))/10*ones(1,options.viterbi.mu_size);
 options.viterbi.smooth_var     = inf;
 options.viterbi.repulsion      = 150000;
-options.viterbi.smooth_weight  = 5;
+options.viterbi.smooth_weight  = 40;
 options.viterbi.ice_bin_thr    = 10;
 options.viterbi.CF.sensorydist = 200;
 options.viterbi.CF.max_cost    = 50;
@@ -107,7 +122,12 @@ for param_idx = 1:length(params)
   for frm = param.cmd.frms
     data_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
     data_fn      = fullfile(data_fn_dir, data_fn_name);
-    data_struct.(sprintf('data_%s_%03d',param.day_seg,frm)) = load(data_fn);
+    try
+      data_struct.(sprintf('data_%s_%03d',param.day_seg,frm)) = load(data_fn);
+    catch ME
+      fprintf('\nFailed to load file %s, skipping.\n', data_fn);
+      continue;
+    end
   end
 end
 
@@ -124,9 +144,9 @@ if any(strcmp(algorithms, 'lsm'))
 end
 
 % Display results overlaid on echogram
-if 1
+if 0
   frame = '20170322_05_001';
-  figure; imagesc(lp(data_struct.(sprintf('data_%s', frame)).Data)); 
+  figure; imagesc(lp(data_struct.(sprintf('data_%s', frame)).Data));
   colormap(1-gray(256)); hold on;
   if any(strcmp(algorithms, 'viterbi'))
     plot(surf_bins);
