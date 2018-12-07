@@ -157,11 +157,6 @@ for img = 1:num_imgs
       Surface = interp_finite(Surface,0);
     end
     
-    % Report auto difference to stdout
-    if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')
-      fprintf('%.0f\t%.1f\n', img, lp(difference));
-    end
-    
   else
     append = load(img_fn,'Time','Data');
     
@@ -188,14 +183,10 @@ for img = 1:num_imgs
     max_good_time = length(Time)*ones(1,size(Data,2));
     
     % First row of img_bins indicates the start of the blend-region
-    if ~(Surface == 0)
       img_bins = round(interp1(newTime, 1:length(newTime), ...
         max(min(Surface * param.(param_mode).img_comb_mult, ...
         Surface + param.(param_mode).img_comb((img-2)*3 + 1)), ...
         param.(param_mode).img_comb((img-2)*3 + 2)), 'linear', 'extrap'));
-    else
-      img_bins = max_good_time-guard_bins;
-    end
     
     % Check to make sure requested time is inside window and just
     % force the combination bin to occur at the second to last bin

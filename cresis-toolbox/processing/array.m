@@ -233,7 +233,7 @@ if any(strcmpi(param.array.method,{'standard','period'}))
 elseif strcmpi(param.array.method,'mvdr')
   cpu_time_mult = cpu_time_mult*4;
 elseif strcmpi(param.array.method,'music')
-  cpu_time_mult = cpu_time_mult*8;
+  cpu_time_mult = cpu_time_mult*4;
 % elseif strcmpi(param.array.method,'eig')
 % elseif strcmpi(param.array.method,'risr')
 % elseif strcmpi(param.array.method,'geonull')
@@ -404,7 +404,7 @@ for frm = param.cmd.frms
 end
 % Account for averaging
 for img = 1:length(param.array.imgs)
-  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_combine(img)*cpu_time_mult);
+  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_combine(img)*cpu_time_mult) * (1 + (Nsv-1)*0.2);
   if isempty(param.array.img_comb)
     % Individual images, so need enough memory to hold the largest image
     sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam_combine(img)*mem_mult);

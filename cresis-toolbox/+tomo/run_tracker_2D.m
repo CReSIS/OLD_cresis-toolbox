@@ -17,21 +17,37 @@ fprintf('=====================================================================\n
 % algorithms = {'viterbi', 'mcmc', 'lsm'};
 algorithms = {'viterbi'};
 
-params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_05');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_06');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_07');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
-% params = ct_set_params(params,'cmd.frms',1);
+% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
+% params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_05');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_06');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_07');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
 
-options.name       = 'CSARP_post/mvdr';
-options.debug      = true;
-options.ops_write  = false;
+
+params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'','post');
+params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20180404_02');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20180405_01');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20180406_01');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20180418_04');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20180418_05');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20180418_06');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20180419_01');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20180419_02');
+
+params = ct_set_params(params,'cmd.frms',[]);
+
+options.name       = 'mvdr';
+options.debug      = false;
+options.ops_write  = true;
+
+options.surf_layer.name = 'surface';
+options.surf_layer.source = 'layerData';
 
 %% Ice mask options
-if 0 % If using GeoTIFF file for ice mask
+if 1 % If using GeoTIFF file for ice mask
   options.binary_icemask = false;
   options.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
   
@@ -58,6 +74,14 @@ options.viterbi.crossoverload  = true;
 options.viterbi.layername      = 'viterbi_bottom';
 options.viterbi.framecat       = false;
 
+options.viterbi.layer_dest.name = 'bottom';
+options.viterbi.layer_dest.source = 'layerdata';
+% options.viterbi.layer_dest.layerdata_source = 'layerdata';
+
+% options.viterbi.layer_dest.source = 'ops';
+% options.viterbi.layer_dest.group = 'standard';
+% options.viterbi.layer_dest.description = '';
+
 options.viterbi.bottom_bin     = -1;
 options.viterbi.egt_weight     = -1;
 options.viterbi.mu_size        = 31;
@@ -68,7 +92,7 @@ options.viterbi.mu             = options.viterbi.mu - mean(options.viterbi.mu);
 options.viterbi.sigma          = sum(abs(options.viterbi.mu))/10*ones(1,options.viterbi.mu_size);
 options.viterbi.smooth_var     = inf;
 options.viterbi.repulsion      = 150000;
-options.viterbi.smooth_weight  = 40;
+options.viterbi.smooth_weight  = 5;
 options.viterbi.ice_bin_thr    = 10;
 options.viterbi.CF.sensorydist = 200;
 options.viterbi.CF.max_cost    = 50;
@@ -166,5 +190,3 @@ if 0
   end
   
 end
-
-keyboard

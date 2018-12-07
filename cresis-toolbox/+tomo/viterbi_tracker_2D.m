@@ -206,11 +206,10 @@ for param_idx = 1:length(params)
     fprintf('\nDone: image combine (%s)', datestr(now,'HH:MM:SS'));
   end
   
+
   clear Surface;
-  layer_params.name   = 'surface';
-  layer_params.source = 'ops';
   try
-    Surface = opsLoadLayers(param,layer_params);
+    Surface = opsLoadLayers(param,options.surf_layer);
   catch ME
     warning(ME.getReport);
     continue;
@@ -229,22 +228,6 @@ for param_idx = 1:length(params)
   end
   
   %%
-  opsAuthenticate(param,false);
-  layer_name                   = 'bottom';
-  sys                          = ct_output_dir(param.radar_name);
-  ops_param                    = struct('properties',[]);
-  ops_param.properties.season  = param.season_name;
-  ops_param.properties.segment = param.day_seg;
-  [~,ops_frames]               = opsGetSegmentInfo(sys,ops_param);
-  
-  ops_param = struct('properties',[]);
-  ops_param.properties.location = param.post.ops.location;
-  ops_param.properties.season = param.season_name;
-  ops_param.properties.start_gps_time = ops_frames.properties.start_gps_time(1);
-  ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
-  ops_param.properties.nativeGeom = true;
-  [~,ops_data] = opsGetPath(sys,ops_param);
-  
   big_matrix.Surface = interp_finite(interp1(Surface.gps_time,Surface.twtt,big_matrix.GPS_time));
   
   if options.debug
@@ -388,6 +371,22 @@ for param_idx = 1:length(params)
   
   %% Crossover loading
   if options.viterbi.crossoverload
+    opsAuthenticate(param,false);
+    layer_name                   = 'bottom';
+    sys                          = ct_output_dir(param.radar_name);
+    ops_param                    = struct('properties',[]);
+    ops_param.properties.season  = param.season_name;
+    ops_param.properties.segment = param.day_seg;
+    [~,ops_frames]               = opsGetSegmentInfo(sys,ops_param);
+    
+    ops_param = struct('properties',[]);
+    ops_param.properties.location = param.post.ops.location;
+    ops_param.properties.season = param.season_name;
+    ops_param.properties.start_gps_time = ops_frames.properties.start_gps_time(1);
+    ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
+    ops_param.properties.nativeGeom = true;
+    [~,ops_data] = opsGetPath(sys,ops_param);
+    
     query = sprintf('SELECT rds_segments.id FROM rds_seasons,rds_segments where rds_seasons.name=''%s'' and rds_seasons.id=rds_segments.season_id and rds_segments.name=''%s''',param.season_name,param.day_seg);
     [~,tables] = opsQuery(query);
     segment_id = tables{1};
@@ -494,6 +493,7 @@ for param_idx = 1:length(params)
     
     %% Load labels into OPS using opsCopyLayers
     copy_param = [];
+    copy_param.layer_dest = options.viterbi.layer_dest;
     copy_param.layer_source.existence_check = false;
     copy_param.layer_dest.existence_check = false;
     
@@ -501,16 +501,8 @@ for param_idx = 1:length(params)
     copy_param.layer_source.source = 'custom';
     copy_param.layer_source.gps_time = big_matrix.GPS_time;
     copy_param.layer_source.twtt = big_matrix.TWTT;
-    
-    % Set the destination
-        copy_param.layer_dest.name = options.viterbi.layername;
-%     copy_param.layer_dest.name = 'Viterbi_New';
-    copy_param.layer_dest.source = 'ops';
-    %     copy_param.layer_dest.group = 'standard';
-    %     copy_param.layer_dest.description = '';
-    %     copy_param.layer_dest.source = 'layerdata';
-    %     copy_param.layer_dest.layerdata_source = 'victor_layerData_ViterbiNew';
-    
+
+    % Copy parameters
     copy_param.copy_method = 'overwrite';
     
     if strcmpi(copy_param.layer_dest.name,'surface')
