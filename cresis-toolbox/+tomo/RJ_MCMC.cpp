@@ -60,6 +60,8 @@ typedef vector< pair<int, int> > PathType;
 #define VERT_THRESH_VALUE 0.1
 #define SMALL_CONSTANT 0.00001
 
+#define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 //Utility
