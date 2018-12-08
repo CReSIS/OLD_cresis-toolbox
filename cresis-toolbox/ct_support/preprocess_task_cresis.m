@@ -149,8 +149,8 @@ for board_idx = 1:num_board_to_load
     
   elseif any(param.config.file.version == [404])
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
-    hdr_param.field_offsets = int32([4 16 20]); % epri seconds fractions
-    hdr_param.field_types = {uint32(1) uint32(1) uint32(1)};
+    hdr_param.field_offsets = int32([4 16 20 24]); % epri seconds fraction counter
+    hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
     
   elseif any(param.config.file.version == [405 406])
     hdr_param.file_mode = 'ieee-le';
@@ -549,8 +549,6 @@ for board_idx = 1:num_board_to_load
       error('Not supported');
       
     elseif any(param.config.file.version == [403])
-      hdr_param.field_offsets = int32([4 8 12 16]); % epri seconds fraction counter
-      hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       seconds = BCD_to_seconds(seconds);
       
@@ -574,6 +572,27 @@ for board_idx = 1:num_board_to_load
       save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
       
     elseif any(param.config.file.version == [404])
+      [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
+      seconds = BCD_to_seconds(seconds);
+      
+      % Find bad records by checking their size
+      % The distance between frame syncs should be constant
+      expected_rec_size = median(diff(offset));
+      meas_rec_size = diff(offset);
+      bad_mask = all(bsxfun(@(x,y) x ~= y, meas_rec_size, expected_rec_size(:)),1);
+      % Note that we always assume that the last record in the file is
+      % good (since it is a partial record and we would have to look at
+      % the next file to see if the complete record is there)
+      bad_mask(end+1) = false;
+      
+      % Remove bad records (i.e. ones with sizes that are not expected
+      offset = double(offset(~bad_mask));
+      epri = double(epri(~bad_mask));
+      seconds = double(seconds(~bad_mask));
+      fraction = double(fraction(~bad_mask));
+      counter = double(counter(~bad_mask));
+      
+      save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
       
     elseif any(param.config.file.version == [405 406])
       % Load header information that can change on every record AND
@@ -779,7 +798,7 @@ end
 % =========================================================================
 for board_idx = 1:numel(param.config.board_map)
   
-  if any(param.config.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
+  if any(param.config.file.version == [1 2 3 4 5 6 7 8 101 403 404 407 408])
     utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.config.cresis.clk;
     epri = double(board_hdrs{board_idx}.epri);
     
