@@ -83,12 +83,24 @@ end
 
 % param.array.* fields
 % -------------------------------------------------------------------------
+if ~isfield(param.array,'bin_rng') || isempty(param.array.bin_rng)
+  param.array.bin_rng = 0;
+end
+
 if ~isfield(param.array,'chunk_len') || isempty(param.array.chunk_len)
   if ~isfield(param.sar,'chunk_len') || isempty(param.sar.chunk_len)
     error('param.array.chunk_len or param.sar.chunk_len must be defined');
   else
     param.array.chunk_len = param.sar.chunk_len;
   end
+end
+
+if ~isfield(param.array,'dline') || isempty(param.array.dline)
+  error('param.array.dline must be specified.');
+end
+
+if ~isfield(param.array,'dbin') || isempty(param.array.dbin)
+  param.array.dbin = 1;
 end
 
 if ~isfield(param.array,'frm_types') || isempty(param.array.frm_types)
@@ -119,6 +131,10 @@ if ~isfield(param.array,'presums') || isempty(param.array.presums)
   else
     param.array.presums = param.sar.presums;
   end
+end
+
+if ~isfield(param.array,'rline_rng') || isempty(param.array.rline_rng)
+  error('param.array.rline_rng must be specified.');
 end
 
 if ~isfield(param.array,'sar_type') || isempty(param.array.sar_type)
@@ -268,7 +284,7 @@ for frm_idx = 1:length(param.cmd.frms);
   % rerun_only==true checks
   if ctrl.cluster.rerun_only
     combine_file_success = {};
-    if length(param.array.imgs) > 2
+    if length(param.array.imgs) > 1
       for img = 1:length(param.array.imgs)
         out_fn = fullfile(array_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
           img, param.day_seg, frm));
@@ -419,7 +435,7 @@ sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
 % Create success condition
 sparam.file_success = {};
 for frm = param.cmd.frms
-  if length(param.array.imgs) > 2
+  if length(param.array.imgs) > 1
     for img = 1:length(param.array.imgs)
       out_fn = fullfile(array_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
         img, param.day_seg, frm));

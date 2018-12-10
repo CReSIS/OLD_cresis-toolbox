@@ -146,17 +146,17 @@ classdef dem_class < handle
       
       % Determine bounds of region of interest
       % -------------------------------------------------------------------
-      obj.min_x = min(obj.x);
-      obj.max_x = max(obj.x);
-      obj.min_y = min(obj.y);
-      obj.max_y = max(obj.y);
+      obj.min_x = min(obj.x(:));
+      obj.max_x = max(obj.x(:));
+      obj.min_y = min(obj.y(:));
+      obj.max_y = max(obj.y(:));
       
-      obj.min_lat = min(obj.lat);
-      obj.max_lat = max(obj.lat);
+      obj.min_lat = min(obj.lat(:));
+      obj.max_lat = max(obj.lat(:));
       % Handle longitude in a special way because it wraps around.
-      obj.mean_lon = angle(mean(exp(1i*obj.lon/180*pi)))*180/pi;
-      obj.max_lon = obj.mean_lon + max(angle(exp(1i*(obj.lon-obj.mean_lon)/180*pi)))*180/pi;
-      obj.min_lon = obj.mean_lon + min(angle(exp(1i*(obj.lon-obj.mean_lon)/180*pi)))*180/pi;
+      obj.mean_lon = angle(mean(exp(1i*obj.lon(:)/180*pi)))*180/pi;
+      obj.max_lon = obj.mean_lon + max(angle(exp(1i*(obj.lon(:)-obj.mean_lon)/180*pi)))*180/pi;
+      obj.min_lon = obj.mean_lon + min(angle(exp(1i*(obj.lon(:)-obj.mean_lon)/180*pi)))*180/pi;
       
       % Load GIS data as needed
       % -------------------------------------------------------------------
@@ -364,8 +364,8 @@ classdef dem_class < handle
     %% get_vector_dem: Get DEM corresponding to geographic vector
     % =====================================================================
     function [land_dem,msl,ocean_mask] = get_vector_dem(obj)
-      %  When a tile is accessed and it does not exist, then it is downloaded and
-      %  loaded and stored
+      %  When a tile is accessed and it does not exist, then it is
+      %  downloaded, loaded, and stored
       
       % MSL
       % -------------------------------------------------------------------
@@ -394,7 +394,7 @@ classdef dem_class < handle
           % Determine which tiles are needed
           tile_x = obj.dem_info(di).x_tile_origin + obj.x/obj.dem_info(di).x_tile_size;
           tile_y = obj.dem_info(di).y_tile_origin + obj.y/obj.dem_info(di).y_tile_size;
-          tiles = unique(floor([tile_x.' tile_y.']),'rows');
+          tiles = unique(floor([tile_x(:), tile_y(:)]),'rows');
           
           % Download and untar files
           % ===============================================================
@@ -443,7 +443,8 @@ classdef dem_class < handle
                 fprintf('  %s\n', cmd);
                 system(cmd);
                 if ~exist(fn,'file')
-                  error('Failed to download file.');
+                  fprintf(2,'    Failed to download file. It may not exist.\n');
+                  continue;
                 end
               end
               
@@ -492,10 +493,10 @@ classdef dem_class < handle
               x_max_tile = x_min_tile + x_tile_size;
               y_min_tile = (yi-y_tile_origin) * y_tile_size;
               y_max_tile = y_min_tile + y_tile_size;
-              tile_mask = obj.x >= x_min_tile & obj.x < x_max_tile ...
-                & obj.y >= y_min_tile & obj.y < y_max_tile;
+              tile_mask = obj.x >= x_min_tile & obj.x <= x_max_tile ...
+                & obj.y >= y_min_tile & obj.y <= y_max_tile;
               land_dem(tile_mask) = interp2(obj.x_all{di}{xi,yi}, ...
-                obj.y_all{di}{xi,yi}, obj.dem_all{di}{xi,yi}, obj.x(tile_mask), obj.y(tile_mask));
+                obj.y_all{di}{xi,yi}, obj.dem_all{di}{xi,yi}, obj.x(tile_mask), obj.y(tile_mask),'*linear');
               
             end
           end
@@ -503,27 +504,27 @@ classdef dem_class < handle
         
         % Ocean Mask
         % -----------------------------------------------------------------
-        min_x = min(obj.x);
-        max_x = max(obj.x);
-        min_y = min(obj.y);
-        max_y = max(obj.y);
-        
-        min_lat = min(obj.lat(mask));
-        max_lat = max(obj.lat(mask));
-        % Handle longitude in a special way because it wraps around.
-        mean_lon = angle(mean(exp(1i*obj.lon(mask)/180*pi)))*180/pi;
-        max_lon = mean_lon + max(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
-        min_lon = mean_lon + min(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
+%         min_x = min(obj.x);
+%         max_x = max(obj.x);
+%         min_y = min(obj.y);
+%         max_y = max(obj.y);
+%         
+%         min_lat = min(obj.lat(mask));
+%         max_lat = max(obj.lat(mask));
+%         % Handle longitude in a special way because it wraps around.
+%         mean_lon = angle(mean(exp(1i*obj.lon(mask)/180*pi)))*180/pi;
+%         max_lon = mean_lon + max(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
+%         min_lon = mean_lon + min(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
         
         % Restrict ocean mask features to our dataset (i.e. mask all features
         % whose bounding boxes fall outside our limits.
         if isempty(obj.ocean.shp)
           ocean_shp = [];
         else
-          rel_min_lon = mean_lon + angle(exp(1i*(obj.ocean.bb(1,1:2:end) - mean_lon)/180*pi))*180/pi;
-          rel_max_lon = mean_lon + angle(exp(1i*(obj.ocean.bb(2,1:2:end) - mean_lon)/180*pi))*180/pi;
-          bb_good_mask = ~(obj.ocean.bb(1,2:2:end)>max_lat | obj.ocean.bb(2,2:2:end)<min_lat ...
-            | rel_min_lon>max_lon | rel_max_lon<min_lon);
+          rel_min_lon = obj.mean_lon + angle(exp(1i*(obj.ocean.bb(1,1:2:end) - obj.mean_lon)/180*pi))*180/pi;
+          rel_max_lon = obj.mean_lon + angle(exp(1i*(obj.ocean.bb(2,1:2:end) - obj.mean_lon)/180*pi))*180/pi;
+          bb_good_mask = ~(obj.ocean.bb(1,2:2:end)>obj.max_lat | obj.ocean.bb(2,2:2:end)<obj.min_lat ...
+            | rel_min_lon>obj.max_lon | rel_max_lon<obj.min_lon);
           ocean_shp = obj.ocean.shp(bb_good_mask);
         end
         
@@ -537,8 +538,8 @@ classdef dem_class < handle
           % convert polygon to projected coordinates
           [x,y] = projfwd(obj.dem_info(di).proj,ocean_shp(shp_idx).Y,ocean_shp(shp_idx).X);
           % if polygon is within projected bounding box
-          if min(x) < max_x && max(x) > min_x ...
-              && min(y) < max_y && max(y)>min_y
+          if min(x) < obj.max_x && max(x) > obj.min_x ...
+              && min(y) < obj.max_y && max(y)>obj.min_y
             % add polygon
             poly_x{end+1} = [x,nan];
             poly_y{end+1} = [y,nan];
@@ -580,7 +581,36 @@ classdef dem_class < handle
       end
       
     end
-        
+    
+    %% get_vector_mosaic: Get DEM mosaic around geographic vector
+    % =====================================================================
+    function [land_dem,msl,ocean_mask,proj,x,y] = get_vector_mosaic(obj,res)
+      %  When a tile is accessed and it does not exist, then it is
+      %  downloaded, loaded, and stored
+      
+      % Find the first valid dem_info and use this dem's projection to
+      % define the proj, x, and y
+      proj = obj.dem_info(obj.di(1)).proj;
+      
+      % Determine bounds of region of interest
+      min_x = round(min(obj.x)/res)*res;
+      max_x = round(max(obj.x)/res)*res;
+      min_y = round(min(obj.y)/res)*res;
+      max_y = round(max(obj.y)/res)*res;
+
+      % Create output mosaic coordinates
+      x = min_x : res : max_x;
+      y = (min_y : res : max_y).';
+      x_mesh = repmat(x,[size(y,1) 1]);
+      y_mesh = repmat(y,[1 size(x,2)]);
+      [lat_mesh,lon_mesh] = projinv(proj,x_mesh,y_mesh);
+
+      obj.set_vector(lat_mesh,lon_mesh);
+      
+      [land_dem,msl,ocean_mask] = get_vector_dem(obj);
+      
+    end
+    
     %% clear: Clear all loaded DEMs from memory
     % =====================================================================
     function clear(obj)

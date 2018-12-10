@@ -1,4 +1,4 @@
-function collate(param, param_override)
+function ctrl_chain = collate(param, param_override)
 % tomo.collate(param, param_override)
 %
 % Usually this function is called from tomo.run_collate.
@@ -14,23 +14,26 @@ function collate(param, param_override)
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
-param = merge_structs(param,param_override);
+%% General Setup
+% =====================================================================
+param = merge_structs(param, param_override);
 
-dbstack_info = dbstack;
 fprintf('=====================================================================\n');
-fprintf('%s: %s (%s)\n', dbstack_info(1).name, param.day_seg, datestr(now,'HH:MM:SS'));
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
-%% Determine which frames we will operate on
+%% Input Checks
+% =====================================================================
+
 % Load frames file
 load(ct_filename_support(param,'','frames'));
 
-if isempty(param.cmd.frms)
+% Remove frames that do not exist from param.cmd.frms list
+load(ct_filename_support(param,'','frames')); % Load "frames" variable
+if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
 end
-% Remove frames that do not exist from param.cmd.frms list
 [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-% valid_frms = ones(1,length(param.cmd.frms));
 if length(valid_frms) ~= length(param.cmd.frms)
   bad_mask = ones(size(param.cmd.frms));
   bad_mask(keep_idxs) = 0;
@@ -38,6 +41,67 @@ if length(valid_frms) ~= length(param.cmd.frms)
     param.cmd.frms(find(bad_mask,1)));
   param.cmd.frms = valid_frms;
 end
+
+% sar.* fields
+% -------------------------------------------------------------------------
+
+% param.sar gets used to create the defaults of several fields so we make
+% sure the field is available
+if ~isfield(param,'sar') || isempty(param.sar)
+  param.sar = [];
+end
+if ~isfield(param.sar,'sigma_x') || isempty(param.sar.sigma_x)
+  error('The param.sar.sigma_x field must be set to calculate cpu time and memory requirements.');
+end
+
+% array.* fields
+% -------------------------------------------------------------------------
+
+if ~isfield(param.array,'dline') || isempty(param.array.dline)
+  error('param.array.dline must be specified.');
+end
+
+if ~isfield(param.array,'method') || isempty(param.array.method)
+  param.array.method = 'music';
+end
+
+% tomo_collate.* fields
+% -------------------------------------------------------------------------
+if ~isfield(param.tomo_collate,'frm_types') || isempty(param.tomo_collate.frm_types)
+  param.tomo_collate.frm_types = {-1,-1,-1,-1,-1};
+end
+
+if ~isfield(param.tomo_collate,'in_path') || isempty(param.tomo_collate.in_path)
+  param.tomo_collate.in_path = 'music3D';
+end
+  
+if ~isfield(param.tomo_collate,'surf_out_path') || isempty(param.tomo_collate.surf_out_path)
+  param.tomo_collate.surf_out_path = 'surfData';
+end
+  
+if ~isfield(param.tomo_collate,'out_path') || isempty(param.tomo_collate.out_path)
+  param.tomo_collate.out_path = param.tomo_collate.in_path;
+end
+  
+%% Setup Processing
+% =====================================================================
+
+% Get the standard radar name
+[~,~,radar_name] = ct_output_dir(param.radar_name);
+
+% Load records file
+records_fn = ct_filename_support(param,'','records');
+if ~exist(records_fn)
+  error('You must run create the records file before running anything else:\n  %s', records_fn);
+end
+records = load(records_fn);
+
+% Along-track
+along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
+
+% Tomo collate radar echogram output directory
+out_path_dir = ct_filename_out(param, param.tomo_collate.out_path);
+surf_out_dir = ct_filename_out(param, param.tomo_collate.surf_out_path);
 
 %% Compile C++ functions
 if 0
@@ -54,52 +118,122 @@ if 0
   mex -largeArrayDims trws.cpp
 end
 
-%% Initialize Torque setup
-if strcmpi(param.sched.type,'custom_torque')
-  global ctrl; % Make this global for convenience in debugging
-  ctrl = torque_new_batch(param);
-  fprintf('Torque batch: %s\n', ctrl.batch_dir);
-  torque_compile('tomo_collate_task.m',ctrl.sched.hidden_depend_funs,ctrl.sched.force_compile);
+%% Setup cluster
+% =====================================================================
+ctrl = cluster_new_batch(param);
+cluster_compile({'tomo_collate_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+
+total_num_sam = 0;
+total_img = 0;
+if param.array.three_dim.en
+  if any(strcmpi(param.array.method,{'music'}))
+    Nsv = param.array.Nsv;
+  elseif any(strcmpi(param.array.method,{'mle'}))
+    Nsv = 2*param.array.Nsig;
+  else
+    error('Unsupported param.array.method %s\n', param.array.method);
+  end
+else
+  error('param.array.three_dim.en is false, 3D settings should be set when running tomo.collate.');
 end
+[wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.array.imgs})),records);
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
+  for v_img = 1:length(param.tomo_collate.imgs)
+    for h_img = 1:length(param.tomo_collate.imgs{v_img})
+      img = param.tomo_collate.imgs{v_img}(h_img);
+      wf = param.tomo_collate.imgs{v_img}(1,1);
+      total_num_sam = total_num_sam + wfs(wf).Nt_pc;
+      total_img = total_img + 1;
+    end
+  end
+  cpu_time_mult = 22e-8;
+  mem_mult = 8;
+  
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  total_num_sam = 32000 * ones(size(param.tomo_collate.imgs));
+  cpu_time_mult = 8e-8;
+  mem_mult = 64;
+  
+else
+  error('radar_name %s not supported yet.', radar_name);
+  
+end
+
+ctrl_chain = {};
 
 %% Create Tasks
-task_param = param;
-fh = @tomo_collate_task;
-for frm_idx = 1:length(param.cmd.frms) 
+sparam.argsin{1} = param; % Static parameters
+sparam.task_function = 'tomo_collate_task';
+sparam.num_args_out = 1;
+sparam.argsin{1}.load.imgs = param.tomo_collate.imgs;
+for frm_idx = 1:length(param.cmd.frms)
   frm = param.cmd.frms(frm_idx);
-  task_param.proc.frm = frm;
-  arg = {task_param};
   
-  if strcmp(param.sched.type,'custom_torque')
-    create_task_param.conforming = true;
-    create_task_param.notes = sprintf('%s_%03d (%d of %d)', ...
-      param.day_seg, frm, frm_idx, length(param.cmd.frms));
-    ctrl = torque_create_task(ctrl,fh,1,arg,create_task_param);
+  % Check proc_mode from frames file that contains this frames type and
+  % make sure the user has specified to process this frame type
+  if ct_proc_frame(frames.proc_mode(frm),param.tomo_collate.frm_types)
+    fprintf('%s %s_%03i (%i of %i) (%s)\n', sparam.task_function, param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
-    fprintf('%s_%03d (%d of %d)\n', ...
-      param.day_seg, frm, frm_idx, length(param.cmd.frms));
-    fh(arg{:});
+    fprintf('Skipping %s_%03i (no process frame)\n', param.day_seg, frm);
+    continue;
   end
-end
-
-%% Wait for tasks to finish
-if strcmpi(param.sched.type,'custom_torque')
-  % Wait until all submitted jobs to complete
-  ctrl = torque_rerun(ctrl);
-  if ~all(ctrl.error_mask == 0)
-    if ctrl.sched.stop_on_fail
-      torque_cleanup(ctrl);
-      error('Not all jobs completed, but out of retries (%s)', datestr(now));
-    else
-      warning('Not all jobs completed, but out of retries (%s)', datestr(now));
-      keyboard;
+  
+  % Current frame goes from the start record specified in the frames file
+  % to the record just before the start record of the next frame.  For
+  % the last frame, the stop record is just the last record in the segment.
+  start_rec = frames.frame_idxs(frm);
+  if frm < length(frames.frame_idxs)
+    stop_rec = frames.frame_idxs(frm+1)-1;
+  else
+    stop_rec = length(records.gps_time);
+  end
+  
+  % Determine length of the frame
+  frm_dist = along_track_approx(stop_rec) - along_track_approx(start_rec);
+  
+  % Prepare task inputs
+  % =================================================================
+  dparam = [];
+  dparam.argsin{1}.load.frm = frm;
+  
+  % Create success condition
+  % =================================================================
+  dparam.file_success = {};
+  out_fn = fullfile(out_path_dir, sprintf('Data_%s_%03d.mat', ...
+    param.day_seg, frm));
+  dparam.file_success{end+1} = out_fn;
+  if ~ctrl.cluster.rerun_only
+    % Mark file for deletion
+    ct_file_lock_check(out_fn,3);
+  end
+  
+  % Rerun only mode: Test to see if we need to run this task
+  % =================================================================
+  dparam.notes = sprintf('%s:%s:%s:%s %s_%03d (%d of %d)', ...
+    sparam.task_function, param.radar_name, param.season_name, out_path_dir, param.day_seg, frm, frm_idx, length(param.cmd.frms));
+  if ctrl.cluster.rerun_only
+    % If we are in rerun only mode AND the tomo_collate task file success
+    % condition passes without error then we do not run the task.
+    if ~cluster_file_success(dparam.file_success) || ~cluster_file_success(combine_file_success)
+      fprintf('  Already exists [rerun_only skipping]: %s (%s)\n', ...
+        dparam.notes, datestr(now));
+      continue;
     end
-  else
-    fprintf('Jobs completed (%s)\n\n', datestr(now));
   end
   
-  % Test files?
-  torque_cleanup(ctrl);
+  % Create task
+  % =================================================================
+  
+  % CPU Time and Memory estimates:
+  %  Nx*total_num_sam*K where K is some manually determined multiplier.
+  Nx = round(frm_dist / param.sar.sigma_x / param.array.dline);
+  dparam.cpu_time = 10 + Nx*Nsv*total_num_sam*cpu_time_mult;
+  dparam.mem = 250e6 + Nx*Nsv*total_num_sam*mem_mult;
+  ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
 end
 
-end
+ctrl = cluster_save_dparam(ctrl);
+
+ctrl_chain{end+1} = ctrl;
+
+fprintf('Done %s\n', datestr(now));

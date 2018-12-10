@@ -238,7 +238,7 @@ for frm_idx = 1:length(param.cmd.frms)
   % rerun_only==true checks
   if ctrl.cluster.rerun_only
     combine_file_success = {};
-    if length(param.qlook.imgs) > 2
+    if length(param.qlook.imgs) > 1
       for img = 1:length(param.qlook.imgs)
         out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
           img, param.day_seg, frm));
@@ -450,7 +450,7 @@ sparam.notes = sprintf('%s:%s:%s:%s %s', ...
 % Create success critera
 sparam.file_success = {};
 for frm = param.cmd.frms
-  if length(param.qlook.imgs) > 2
+  if length(param.qlook.imgs) > 1
     for img = 1:length(param.qlook.imgs)
       out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
         img, param.day_seg, frm));
@@ -479,6 +479,3 @@ ctrl = cluster_new_task(ctrl,sparam,[]);
 ctrl_chain{end+1} = ctrl;
     
 fprintf('Done %s\n', datestr(now));
-
-return;
-

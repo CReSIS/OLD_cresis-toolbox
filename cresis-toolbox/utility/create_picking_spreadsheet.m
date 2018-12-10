@@ -42,10 +42,17 @@ end
 params = read_param_xls(param_fn);
 
 %% Create Excel spreadsheet
-if strcmpi(pick_param.mode,'excel')
-  [radar_name_short,radar_type] = ct_output_dir(params(1).radar_name);
+output_dir = ct_output_dir(params(1).radar_name);
+if strcmpi(pick_param.mode,'ascii')
+  fn = fullfile(xls_fn_dir, sprintf('%s_picking_%s.txt', output_dir, params(1).season_name));
+  [fid,msg] = fopen(fn,'wb');
+  if fid<0
+    error('Failed to open file %s\n', msg);
+  end
   
-  xls_fn = fullfile(xls_fn_dir, sprintf('%s_picking_%s.xls', radar_name_short, params(1).season_name));
+elseif strcmpi(pick_param.mode,'excel')
+  
+  xls_fn = fullfile(xls_fn_dir, sprintf('%s_picking_%s.xls', output_dir, params(1).season_name));
   
   if exist(xls_fn,'file')
     warning('File %s already exists, overwriting', xls_fn);
@@ -58,6 +65,7 @@ if strcmpi(pick_param.mode,'excel')
   col_header      = {'Segment','NumFrames','Surface','Bottom',...
     'Owner','Notes','QC','QC_Owner'};
   xlswrite(xls_fn, col_header,  'sheet1', 'A1')
+
 end
 
 %% Read in segment and frame data
@@ -78,6 +86,7 @@ for params_idx = 1:length(params)
   if strcmpi(pick_param.mode,'ascii')
     for frm = 1:length(frames.frame_idxs)
       fprintf('%s_%03d\t\t0\n', param.day_seg, frm);
+      fprintf(fid,'%s_%03d\t\t0\n', param.day_seg, frm);
     end
   elseif strcmpi(pick_param.mode,'excel')
     data_row{1} = param.day_seg;
@@ -94,7 +103,11 @@ for params_idx = 1:length(params)
 end
 
 %% Write data to excel file
-if strcmpi(pick_param.mode,'excel')
+if strcmpi(pick_param.mode,'ascii')
+  fclose(fid);
+  fprintf('File done: %s\n', fn);
+  
+elseif strcmpi(pick_param.mode,'excel')
   % Create Excel_Application COM.
   Excel       = actxserver('Excel.Application');
   
