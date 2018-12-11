@@ -26,7 +26,7 @@ function mdata = add_icemask_surfacedem(param, mdata)
 %% Load Geotiff and Ice Mask
 dem_res = 10;
 global gdem;
-if ~isvalid(gdem)
+if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
   gdem = dem_class();
 end
 gdem.set_res(dem_res);
@@ -52,6 +52,7 @@ sv_cal_fn = [];
 if isfield(param.tomo_collate,'sv_cal_fn')
   sv_cal_fn = param.tomo_collate.sv_cal_fn;
 end
+sv_cal_fn = [ct_filename_ct_tmp(param,'','tomo_collate','theta_cal') '.mat']; % HACK: NEED TO REMOVE
 
 %% Create DEM
 Nx = length(mdata.GPS_time);
@@ -237,11 +238,12 @@ for rline = 1:Nx
   end
   
   if 0
+    figure(1); clf;
     imagesc([],mdata.Time,lp(mdata.Topography.img(:,:,rline)))
     hold on
-    plot(twtt,'k')
+    plot(twtt(:,rline),'k')
     hold off
-    pause
+    keyboard
   end
   
 end

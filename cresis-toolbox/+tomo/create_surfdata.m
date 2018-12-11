@@ -56,13 +56,13 @@ function create_surfdata(param,mdata)
 %
 % Author: John Paden, Jordan Sprick, Mingze Xu, and Victor Berger
 
-if ~isfield(param.tomo_collate,'out_dir') || isempty(param.tomo_collate.out_dir)
-  param.tomo_collate.out_dir = 'surfData';
+if ~isfield(param.tomo_collate,'out_path') || isempty(param.tomo_collate.surf_out_path)
+  param.tomo_collate.surf_out_path = 'surfData';
 end
 
 %% Load surface and bottom information
 param_load_layers = param;
-param_load_layers.cmd.frms = round([-1,0,1] + param.proc.frm);
+param_load_layers.cmd.frms = round([-1,0,1] + param.load.frm);
 
 layers = opsLoadLayers(param_load_layers,param.tomo_collate.layer_params);
 
@@ -118,11 +118,11 @@ mu_length = 11;
 twtt_bin(isnan(twtt_bin) | twtt_bin > length(mdata.Time)-mu_length) = length(mdata.Time)-mu_length;
 
 %% Create output filename
-out_dir = ct_filename_out(param,param.tomo_collate.out_dir,'');
+out_dir = ct_filename_out(param,param.tomo_collate.surf_out_path,'');
 if ~isdir(out_dir)
   mkdir(out_dir);
 end
-out_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm);
+out_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
 out_fn = fullfile(out_dir,out_fn_name);
 if any(strcmpi(param.tomo_collate.surfData_mode,{'append','fillgaps'}))
   if ~exist(out_fn,'file')
@@ -145,17 +145,17 @@ end
 if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
   %% Create surfData
   sd = tomo.surfdata();
-  sd.radar_name = mdata.param_combine.radar_name;
-  sd.season_name = mdata.param_combine.season_name;
-  sd.day_seg = mdata.param_combine.day_seg;
-  sd.frm = mdata.param_combine.combine.frm;
+  sd.radar_name = mdata.param_array.radar_name;
+  sd.season_name = mdata.param_array.season_name;
+  sd.day_seg = mdata.param_array.day_seg;
+  sd.frm = mdata.param_array.load.frm;
   sd.gps_time = mdata.GPS_time;
   sd.theta = mdata.theta(:); % Make a column vector
   sd.time = mdata.Time(:); % Make a column vector
-  sd.FCS.origin = mdata.param_combine.array_param.fcs{1}{1}.origin;
-  sd.FCS.x = mdata.param_combine.array_param.fcs{1}{1}.x;
-  sd.FCS.y = mdata.param_combine.array_param.fcs{1}{1}.y;
-  sd.FCS.z = mdata.param_combine.array_param.fcs{1}{1}.z;
+  sd.FCS.origin = mdata.param_array.array_param.fcs{1}{1}.origin;
+  sd.FCS.x = mdata.param_array.array_param.fcs{1}{1}.x;
+  sd.FCS.y = mdata.param_array.array_param.fcs{1}{1}.y;
+  sd.FCS.z = mdata.param_array.array_param.fcs{1}{1}.z;
 end
 
 Nsv = size(mdata.Topography.img,2);
@@ -324,7 +324,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     in_dir = ct_filename_out(param,param.tomo_collate.in_dir);
     
     % combined_fn: Filename with 3D data
-    combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
+    combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm));
     
     Topography = mdata.Topography;
     save(combined_fn,'-append','Topography');
@@ -413,7 +413,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     top_idx = sd.get_index('top');
     
-    theta = mdata.param_combine.array_param.theta;
+    theta = mdata.param_array.array_param.theta;
     if isfield(param.tomo_collate,'sv_cal_fn') && ~isempty(param.tomo_collate.sv_cal_fn)
       theta_cal = load(param.tomo_collate.sv_cal_fn);
       theta = theta_cal.theta;
@@ -433,7 +433,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       DEM_idxs = find(DEM_mask);
       
       if numel(DEM_idxs)==0
-        % warning('Range Line %d of Frame %d is not spanned by DEM.',rline,param.proc.frm);
+        % warning('Range Line %d of Frame %d is not spanned by DEM.',rline,param.load.frm);
         continue;
       end
       
@@ -449,12 +449,12 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       physical_constants;
       [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
       
-      origin = mdata.param_combine.array_param.fcs{1}{1}.origin(:,rline);
+      origin = mdata.param_array.array_param.fcs{1}{1}.origin(:,rline);
       
       % Convert from ECEF to FCS/SAR
-      Tfcs_ecef = [mdata.param_combine.array_param.fcs{1}{1}.x(:,rline), ...
-        mdata.param_combine.array_param.fcs{1}{1}.y(:,rline), ...
-        mdata.param_combine.array_param.fcs{1}{1}.z(:,rline)];
+      Tfcs_ecef = [mdata.param_array.array_param.fcs{1}{1}.x(:,rline), ...
+        mdata.param_array.array_param.fcs{1}{1}.y(:,rline), ...
+        mdata.param_array.array_param.fcs{1}{1}.z(:,rline)];
       Tecef_fcs = inv(Tfcs_ecef);
       
       tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];

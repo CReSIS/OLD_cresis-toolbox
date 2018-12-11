@@ -7,7 +7,7 @@
 %% Typical Use
 % =========================================================================
 % Check to see if class already exists
-if ~isvalid(gdem)
+if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
   gdem = dem_class();
 end
 

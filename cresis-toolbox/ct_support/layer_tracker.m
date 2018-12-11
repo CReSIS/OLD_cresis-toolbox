@@ -212,7 +212,7 @@ end
 %% Load in ocean mask, land DEM, and sea surface DEM
 if isfield(track,'init') && strcmpi(track.init.method,'dem')
   global gdem;
-  if ~isvalid(gdem)
+  if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
     gdem = dem_class();
   end
   gdem.set_res(500);

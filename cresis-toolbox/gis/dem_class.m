@@ -85,7 +85,7 @@ classdef dem_class < handle
       obj.dem_info(di).x_subtile_size = 50e3;
       obj.dem_info(di).no_data = -9999;
       obj.dem_info(di).proj = geotiffinfo(ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif'));
-      obj.dem_info(di).out_path = '/cresis/snfs1/dataproducts/GIS_data/arctic/ArcticDEM/';
+      obj.dem_info(di).out_path = ct_filename_gis('arctic/ArcticDEM/');
       
       % REMA
       % -------------------------------------------------------------------
@@ -299,7 +299,7 @@ classdef dem_class < handle
           
           % Single large DEM file
           % ---------------------------------------------------------------
-          url = fullfile(obj.dem_info(di).url, obj.dem_info(di).mosaic_fn_fh(obj.dem_info(di).res_str{ri}));
+          url = [obj.dem_info(di).url, obj.dem_info(di).mosaic_fn_fh(obj.dem_info(di).res_str{ri})];
           [~,url_name,url_ext] = fileparts(url);
           tif_fn = fullfile(obj.dem_info(di).out_path, [url_name,url_ext]);
           
@@ -407,7 +407,7 @@ classdef dem_class < handle
                 for sub_y_idx = 1:2
                   if any(tile_x >= tiles(tiles_idx,1) & tile_x <= tiles(tiles_idx,1)+1 ...
                       & tile_y >= tiles(tiles_idx,2) & tile_y <= tiles(tiles_idx,2)+1)
-                    url_list{end+1} = fullfile(obj.dem_info(di).url,obj.dem_info(di).subtile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),sub_x_idx,sub_y_idx,obj.dem_info(di).res_str{ri}));
+                    url_list{end+1} = [obj.dem_info(di).url,obj.dem_info(di).subtile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),sub_x_idx,sub_y_idx,obj.dem_info(di).res_str{ri})];
                     xi_list(end+1) = 2*tiles(tiles_idx,1) + sub_x_idx - 2;
                     yi_list(end+1) = 2*tiles(tiles_idx,2) + sub_y_idx - 2;
                     x_tile_size = obj.dem_info(di).x_subtile_size;
@@ -418,7 +418,7 @@ classdef dem_class < handle
                 end
               end
             else
-              url_list{end+1} = fullfile(obj.dem_info(di).url,obj.dem_info(di).tile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),obj.dem_info(di).res_str{ri}));
+              url_list{end+1} = [obj.dem_info(di).url,obj.dem_info(di).tile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),obj.dem_info(di).res_str{ri})];
               xi_list(end+1) = tiles(tiles_idx,1);
               yi_list(end+1) = tiles(tiles_idx,2);
               x_tile_size = obj.dem_info(di).x_tile_size;
