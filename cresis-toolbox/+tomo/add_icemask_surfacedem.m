@@ -48,11 +48,10 @@ else
 end
 
 % sv_cal_fn: steering vector calibration filename
-sv_cal_fn = [];
-if isfield(param.tomo_collate,'sv_cal_fn')
-  sv_cal_fn = param.tomo_collate.sv_cal_fn;
+sv_cal_fn = [ct_filename_ct_tmp(param,'','tomo_collate','theta_cal') '.mat'];
+if ~exist(sv_cal_fn,'file')
+  sv_cal_fn = [];
 end
-sv_cal_fn = [ct_filename_ct_tmp(param,'','tomo_collate','theta_cal') '.mat']; % HACK: NEED TO REMOVE
 
 %% Create DEM
 Nx = length(mdata.GPS_time);

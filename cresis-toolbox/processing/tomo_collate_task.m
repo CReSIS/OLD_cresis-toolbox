@@ -38,8 +38,6 @@ if param.tomo_collate.add_icemask_surfacedem_flag
     fprintf('Loading %s (%s)\n', combined_fn, datestr(now));
     mdata = load(combined_fn);
   end
-  mdata.Time = mdata.Time-0.25e-6; % HACK: NEED TO REMOVE
-  mdata.Surface = mdata.Surface-0.1e-6; % HACK: NEED TO REMOVE
   
   mdata = tomo.add_icemask_surfacedem(param, mdata);
   

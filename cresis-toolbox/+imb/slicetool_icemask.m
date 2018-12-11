@@ -36,7 +36,7 @@ classdef (HandleCompatible = true) slicetool_icemask < imb.slicetool
       param.mdata.twtt = custom_data.mdata.twtt;
       param.mdata.theta = custom_data.mdata.theta_cal;
       param.mdata.ice_mask = custom_data.mdata.ice_mask;
-      param.mdata.param_combine = custom_data.mdata.param_combine;
+      param.mdata.param_array = custom_data.mdata.param_array;
 %       rmfield(param,'mdata');
       param.DEM = custom_data.DEM;
       param.R = custom_data.R;
