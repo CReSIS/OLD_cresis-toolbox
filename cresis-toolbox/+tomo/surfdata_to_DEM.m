@@ -108,10 +108,6 @@ for frm_idx = 1:length(param.cmd.frms)
     mdata.theta = theta.theta;
   end
   
-  if(isfield(param,'theta_cal_fn') && ~isempty(param.dem.theta_cal_fn))
-    theta_cal = load(param.dem.theta_cal_fn);
-    mdata.theta = theta_cal.theta;
-  end
   
   %% Setup for convert doa,twtt to radar FCS for each surface
   
@@ -166,15 +162,15 @@ for frm_idx = 1:length(param.cmd.frms)
     y_plane = zeros(size(y_active));
     z_plane = zeros(size(y_active));
     for rline = 1:size(y_active,2)
-      x_plane(:,rline) = mdata.param_combine.array_param.fcs{1}{1}.origin(1,rline) ...
-        + mdata.param_combine.array_param.fcs{1}{1}.y(1,rline) * y_active(:,rline) ...
-        + mdata.param_combine.array_param.fcs{1}{1}.z(1,rline) * z_active(:,rline);
-      y_plane(:,rline) = mdata.param_combine.array_param.fcs{1}{1}.origin(2,rline) ...
-        + mdata.param_combine.array_param.fcs{1}{1}.y(2,rline) * y_active(:,rline) ...
-        + mdata.param_combine.array_param.fcs{1}{1}.z(2,rline) * z_active(:,rline);
-      z_plane(:,rline) = mdata.param_combine.array_param.fcs{1}{1}.origin(3,rline) ...
-        + mdata.param_combine.array_param.fcs{1}{1}.y(3,rline) * y_active(:,rline) ...
-        + mdata.param_combine.array_param.fcs{1}{1}.z(3,rline) * z_active(:,rline);
+      x_plane(:,rline) = mdata.param_array.array_param.fcs{1}{1}.origin(1,rline) ...
+        + mdata.param_array.array_param.fcs{1}{1}.y(1,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_param.fcs{1}{1}.z(1,rline) * z_active(:,rline);
+      y_plane(:,rline) = mdata.param_array.array_param.fcs{1}{1}.origin(2,rline) ...
+        + mdata.param_array.array_param.fcs{1}{1}.y(2,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_param.fcs{1}{1}.z(2,rline) * z_active(:,rline);
+      z_plane(:,rline) = mdata.param_array.array_param.fcs{1}{1}.origin(3,rline) ...
+        + mdata.param_array.array_param.fcs{1}{1}.y(3,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_param.fcs{1}{1}.z(3,rline) * z_active(:,rline);
     end
     
     % Convert from ECEF to geodetic
@@ -514,9 +510,9 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Plot flightline
     [fline.lat,fline.lon,fline.elev] = ecef2geodetic( ...
-      mdata.param_combine.array_param.fcs{1}{1}.origin(1,:), ...
-      mdata.param_combine.array_param.fcs{1}{1}.origin(2,:), ...
-      mdata.param_combine.array_param.fcs{1}{1}.origin(3,:),WGS84.ellipsoid);
+      mdata.param_array.array_param.fcs{1}{1}.origin(1,:), ...
+      mdata.param_array.array_param.fcs{1}{1}.origin(2,:), ...
+      mdata.param_array.array_param.fcs{1}{1}.origin(3,:),WGS84.ellipsoid);
     fline.lat = fline.lat*180/pi;
     fline.lon = fline.lon*180/pi;
     [fline.x,fline.y] = projfwd(proj,fline.lat,fline.lon);
@@ -717,9 +713,9 @@ for frm_idx = 1:length(param.cmd.frms)
     if isfield(param,'sw_version')
       sw_version = param.sw_version;
     end
-    param_combine = [];
-    if isfield(mdata,'param_combine')
-      param_combine = mdata.param_combine;
+    param_array = [];
+    if isfield(mdata,'param_array')
+      param_array = mdata.param_array;
     end
     ice_mask_ref = [];
     if isfield(param,'ice_mask_ref')
@@ -741,8 +737,8 @@ for frm_idx = 1:length(param.cmd.frms)
     mat_fn = fullfile(out_dir,mat_fn_name);
     
     fprintf('  %s\n', mat_fn);
-%     save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','map_axis','map_new_axes','map_pos','points','boundary','param_surfdata');
-    save(mat_fn,'sw_version','param_combine','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','points','boundary','param_surfdata');
+%     save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','map_axis','map_new_axes','map_pos','points','boundary','param_surfdata');
+    save(mat_fn,'sw_version','param_array','ice_mask_ref','geotiff_ref','DEM_ref','xaxis','yaxis','DEM','points','boundary','param_surfdata');
 
   end
   try; delete(h_fig_dem); end;
