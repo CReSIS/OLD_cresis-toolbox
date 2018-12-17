@@ -14,8 +14,15 @@ if 1
   param.season_name = '2018_Greenland_P3';
   out_type = 'music_imgs4_Nsig2';
   surfdata_source = 'surfData';
+%   surfdata_source = 'surfData_englacial';
   param.day_seg = '20180404_02';
   frm = 1;
+  param.day_seg = '20180406_01';
+  frm = 1;
+%   param.day_seg = '20180418_06';
+%   frm = 13;
+%   param.day_seg = '20180405_01';
+%   frm = 56;
   geotiff_fn = ct_filename_gis(param,fullfile('greenland','Landsat-7','Greenland_natural_90m.tif'));
   ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.bin'));
   ice_mask_fn = '';

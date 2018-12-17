@@ -213,7 +213,7 @@ end
 if isfield(track,'init') && strcmpi(track.init.method,'dem')
   global gdem;
   if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
-    gdem = dem_class();
+    gdem = dem_class(param,500);
   end
   gdem.set_res(500);
 

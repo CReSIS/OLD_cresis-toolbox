@@ -8,7 +8,7 @@
 % =========================================================================
 % Check to see if class already exists
 if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
-  gdem = dem_class();
+  gdem = dem_class(gRadar);
 end
 
 % Set the desired DEM resolution

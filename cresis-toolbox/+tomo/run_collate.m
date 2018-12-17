@@ -220,41 +220,64 @@ elseif strcmpi(example_setup,'horizontal')
 elseif strcmpi(example_setup,'grid')
   %% Grid multiwaveform fuse example
   params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'','post');
-  params = ct_set_params(params,'cmd.generic',0);
-  params = ct_set_params(params,'cmd.generic',1,'day_seg','20180404_02');
-  params = ct_set_params(params,'cmd.frms',[]);
   
+%   params = ct_set_params(params,'cmd.generic',0);
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180406_01');
+%   params = ct_set_params(params,'cmd.frms',[]);
+
+  % 20180418_06_013 --> 3D object in ice
+  % 20180405_01_056 --> 3D object in ice
+  params = ct_set_params(params,'cmd.generic',0);
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180404_02');
+%   params = ct_set_params(params,'cmd.frms',,'day_seg','20180404_02');
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180406_01');
+%   params = ct_set_params(params,'cmd.frms',[2],'day_seg','20180406_01');
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180418_06');
+%   params = ct_set_params(params,'cmd.frms',[13],'day_seg','20180418_06');
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180405_01');
+%   params = ct_set_params(params,'cmd.frms',[56],'day_seg','20180405_01');
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20180418_05');
+  params = ct_set_params(params,'cmd.frms',[],'day_seg','20180418_05');
+
   params = ct_set_params(params,'array.method','music');
   params = ct_set_params(params,'array.three_dim.en',1);
   for param_idx = 1:length(params)
     if params(param_idx).cmd.generic
       if length(params(param_idx).radar.wfs) == 4
         params(param_idx).array.imgs = {[ones([7 1]),[6:12].'],[2*ones([7 1]),[6:12].'],[3*ones([7 1]),[6:12].'],[4*ones([7 1]),[6:12].']};
+        tomo_collate.imgs = {[1 2],[3 4]};
+        tomo_collate.img_comb = [0 3e-6 1e-6];
+        params = ct_set_params(params,'array.Nsv',64);
+        params = ct_set_params(params,'array.Nsig',2);
       elseif length(params(param_idx).radar.wfs) == 6
         params(param_idx).array.imgs = {[ones([7 1]),[6:12].'],[2*ones([7 1]),[6:12].'],[3*ones([7 1]),[6:12].'],[4*ones([7 1]),[6:12].'],[5*ones([7 1]),[6:12].'],[6*ones([7 1]),[6:12].']};
+        tomo_collate.imgs = {[1 2],[3 4],[5 6]};
+        tomo_collate.img_comb = [0 3e-6 1e-6 0 10e-6 3e-6];
+        params = ct_set_params(params,'array.Nsv',64);
+        params = ct_set_params(params,'array.Nsig',2);
       elseif length(params(param_idx).radar.wfs) == 2
-        % No change required
+        % imgs: No change required
+        tomo_collate.imgs = {1};
+        tomo_collate.img_comb = [];
+        params = ct_set_params(params,'array.Nsv',128);
+        params = ct_set_params(params,'array.Nsig',4);
       else
         keyboard
       end
-    end
-    if strcmpi(params(param_idx).day_seg,'20180406_01')
-      params = ct_set_params(params,'array.Nsv',128);
-      params = ct_set_params(params,'array.Nsig',4);
-    else
-      params = ct_set_params(params,'array.Nsv',64);
-      params = ct_set_params(params,'array.Nsig',2);
     end
   end
   
   % .in_path: ct_filename_out directory to use at input, fused image will be stored here.
   tomo_collate.in_path = 'music_imgs4_Nsig2';
+  
+  % .surf_out_path: ct_filename_out directory to use at output for surfData
+  tomo_collate.surf_out_path = 'surfData';
+%   tomo_collate.surf_out_path = 'surfData_englacial';
 
   % .imgs: list of images II to use from .in_path (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam when
   %   horizontal fuse is used. They should be listed from top to bottom
   %   when vertical fuse is used.
-  tomo_collate.imgs = {[1 2],[3 4]};
   tomo_collate.master_img_idx = 1;
   
   % .img_comb: Same as get_heights and combine worksheets. This is
@@ -265,7 +288,6 @@ elseif strcmpi(example_setup,'grid')
   %     1st element: Minimum time to begin combine
   %     2nd element: Minimum time after ice surface to begin combine
   %     3rd element: Time at end of the preceeding waveform to not use
-  tomo_collate.img_comb = [0 3e-6 1e-6];
   
   % .fuse_columns: aligns with .imgs, each entry should contain 2xN-1
   % entries where N is the length of the corresponding cell in .imgs. Each
@@ -301,11 +323,13 @@ elseif strcmpi(example_setup,'grid')
   tomo_collate.layer_params = struct('name','surface','source','layerdata');
   tomo_collate.layer_params(2).name = 'bottom';
   tomo_collate.layer_params(2).source = 'layerdata';
+%   tomo_collate.layer_params(2).name = 'float';
+%   tomo_collate.layer_params(2).source = 'ops';
   
   % surfData_mode: surfData mode ('overwrite','fillgaps', or 'append', note that append with the
   %   same surface name as an existing surface will overwrite that surface whereas fillgaps
   %   will leave the surface untouched if it already exists)
-  tomo_collate.surfData_mode = 'append';
+  tomo_collate.surfData_mode = 'overwrite';
   
   % surfdata_cmds: surfdata commands to run
   tomo_collate.surfdata_cmds = [];
@@ -329,9 +353,9 @@ else
 end
 
 dbstop if error;
-% param_override.cluster.type = 'torque';
+param_override.cluster.type = 'torque';
 % param_override.cluster.type = 'matlab';
-param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'debug';
 % param_override.cluster.rerun_only = true;
 % param_override.cluster.desired_time_per_job  = 240*60;
 % param_override.cluster.cpu_time_mult  = 2;

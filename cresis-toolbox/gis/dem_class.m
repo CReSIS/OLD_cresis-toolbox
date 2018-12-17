@@ -15,6 +15,8 @@ classdef dem_class < handle
     dem_info
     % res: Resolution (m)
     res
+    % param: gRadar/parameter spreadsheet parameter structure
+    param % only .gis_path used
     
     % DEM properties
     dem_all
@@ -49,12 +51,18 @@ classdef dem_class < handle
   
   methods
     %% constructor
-    function obj = dem_class(res)
+    function obj = dem_class(param,res)
       
       % Input checks
       % ===================================================================
+      if ~exist('param','var') || isempty(param) || ~isfield(param,'gis_path') || isempty(param.gis_path)
+        error('param.gis_path must be defined.');
+      end
+      obj.param = param;
       if ~exist('res','var') || isempty(res)
         obj.res = 1000;
+      else
+        obj.res = res;
       end
       
       % Setup DEM List
@@ -84,8 +92,8 @@ classdef dem_class < handle
       obj.dem_info(di).y_subtile_size = 50e3;
       obj.dem_info(di).x_subtile_size = 50e3;
       obj.dem_info(di).no_data = -9999;
-      obj.dem_info(di).proj = geotiffinfo(ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif'));
-      obj.dem_info(di).out_path = ct_filename_gis('arctic/ArcticDEM/');
+      obj.dem_info(di).proj = geotiffinfo(ct_filename_gis(obj.param,'greenland/DEM/GIMP/gimpdem_90m.tif'));
+      obj.dem_info(di).out_path = ct_filename_gis(obj.param,'arctic/ArcticDEM/');
       
       % REMA
       % -------------------------------------------------------------------
@@ -103,7 +111,7 @@ classdef dem_class < handle
       obj.dem_info(di).y_tile_size = 100e3;
       obj.dem_info(di).x_tile_size = 100e3;
       obj.dem_info(di).no_data = -9999;
-      obj.dem_info(di).proj = geotiffinfo(ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif'));
+      obj.dem_info(di).proj = geotiffinfo(ct_filename_gis(obj.param,'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif'));
       
       % Prepare DEM fields
       % -------------------------------------------------------------------
@@ -189,7 +197,7 @@ classdef dem_class < handle
       % -------------------------------------------------------------------
       if 0
         % EGM-96
-        obj.msl.fn = ct_filename_gis([],'world\egm96_geoid\WW15MGH.DAC');
+        obj.msl.fn = ct_filename_gis(obj.param,'world\egm96_geoid\WW15MGH.DAC');
         points = [];
         [obj.msl.lat,obj.msl.lon,obj.msl.elev] = egm96_loader(obj.msl.fn);
         obj.msl.lon = [obj.msl.lon 360];
@@ -197,7 +205,7 @@ classdef dem_class < handle
         [obj.msl.lon,obj.msl.lat] = meshgrid(obj.msl.lon,obj.msl.lat);
       else
         % Load DTU mean sea level
-        obj.msl.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
+        obj.msl.fn = ct_filename_gis(obj.param,fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
         obj.msl.lat = ncread(obj.msl.fn,'lat');
         obj.msl.lon = ncread(obj.msl.fn,'lon');
         dlat = obj.msl.lat(2)-obj.msl.lat(1);
@@ -237,7 +245,7 @@ classdef dem_class < handle
       % Load ocean mask shape file (-180 to +180 lon)
       % -------------------------------------------------------------------
       if ~isfield(obj.ocean,'shp_all')
-        ocean_mask_fn = ct_filename_gis([],fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
+        ocean_mask_fn = ct_filename_gis(obj.param,fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
         warning off;
         obj.ocean.shp_all = shaperead(ocean_mask_fn);
         warning on;

@@ -112,7 +112,7 @@ data = 10*log10(double(mdata.Topography.img));
 % 1. Convert from twtt to bins
 twtt_bin = round(interp1(mdata.Time, 1:length(mdata.Time), mdata.twtt));
 % 2. The tracking software assumes that the surface never approaches
-%    within mu_lengthof the top/bottom of the range line, so we truncate
+%    within mu_length of the top/bottom of the range line, so we truncate
 %    surface to ensure this never happens.
 mu_length = 11;
 twtt_bin(isnan(twtt_bin) | twtt_bin > length(mdata.Time)-mu_length) = length(mdata.Time)-mu_length;
@@ -775,7 +775,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       CF.lambda = 0.075;
     end
     
-    smooth_slope = [];
+    smooth_slope = diff(mean(twtt_bin,2));
     mu_size = 11;
     mu = sinc(linspace(-1.5,1.5,mu_size));
     sigma = sum(mu)/20*ones(1,mu_size);

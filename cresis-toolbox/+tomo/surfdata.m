@@ -512,9 +512,9 @@ classdef surfdata < handle
       if ~exist(fn_dir,'dir')
         mkdir(fn_dir);
       end
-      
+      file_version = '1L';
       save(fn, 'surf', 'version', 'gps_time', 'theta', 'time', 'FCS', ...
-        'radar_name', 'season_name', 'day_seg', 'frm', '-v7.3');
+        'radar_name', 'season_name', 'day_seg', 'frm', 'file_version', '-v7.3');
     end
 
     %% get_names

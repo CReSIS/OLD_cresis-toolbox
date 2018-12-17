@@ -101,7 +101,7 @@ along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.ele
 
 % Tomo collate radar echogram output directory
 out_path_dir = ct_filename_out(param, param.tomo_collate.out_path);
-surf_out_dir = ct_filename_out(param, param.tomo_collate.surf_out_path);
+surf_out_path_dir = ct_filename_out(param, param.tomo_collate.surf_out_path);
 
 %% Compile C++ functions
 if 0
@@ -142,12 +142,14 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
     for h_img = 1:length(param.tomo_collate.imgs{v_img})
       img = param.tomo_collate.imgs{v_img}(h_img);
       wf = param.tomo_collate.imgs{v_img}(1,1);
-      total_num_sam = total_num_sam + wfs(wf).Nt_pc;
+      if h_img == 1
+        total_num_sam = total_num_sam + wfs(wf).Nt_pc;
+      end
       total_img = total_img + 1;
     end
   end
-  cpu_time_mult = 22e-8;
-  mem_mult = 8;
+  cpu_time_mult = 20e-6;
+  mem_mult = 14;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.tomo_collate.imgs));
@@ -199,9 +201,16 @@ for frm_idx = 1:length(param.cmd.frms)
   % Create success condition
   % =================================================================
   dparam.file_success = {};
-  out_fn = fullfile(out_path_dir, sprintf('Data_%s_%03d.mat', ...
-    param.day_seg, frm));
-  dparam.file_success{end+1} = out_fn;
+  if param.tomo_collate.fuse_images_flag || param.tomo_collate.add_icemask_surfacedem_flag
+    out_fn = fullfile(out_path_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+    dparam.file_success{end+1} = out_fn;
+  end
+  if param.tomo_collate.create_surfData_flag
+    out_fn = fullfile(surf_out_path_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+    dparam.file_success{end+1} = out_fn;
+  end
   if ~ctrl.cluster.rerun_only
     % Mark file for deletion
     ct_file_lock_check(out_fn,3);

@@ -807,15 +807,15 @@ classdef slice_browser < handle
             
           case 'period'
             if ~obj.shift_pressed
-              obj.change_slice(obj.slice + 1,false);
-            else
               obj.change_slice(obj.slice + 5,false);
+            else
+              obj.change_slice(obj.slice + 1,false);
             end
           case 'comma'
             if ~obj.shift_pressed
-              obj.change_slice(obj.slice - 1,false);
-            else
               obj.change_slice(obj.slice - 5,false);
+            else
+              obj.change_slice(obj.slice - 1,false);
             end
             
           case 'delete'

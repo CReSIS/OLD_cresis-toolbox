@@ -113,7 +113,8 @@ if any(strcmpi('ops',{layer_params.source}))
   ops_param.properties.season = param.season_name;
   ops_param.properties.segment = param.day_seg;
   [status,ops_seg_data] = opsGetSegmentInfo(sys,ops_param);
-else
+end
+if ~all(strcmpi('ops',{layer_params.source}))
   % All other sources use records file for
   % framing gps time info
   records_fn = ct_filename_support(param,'','records');

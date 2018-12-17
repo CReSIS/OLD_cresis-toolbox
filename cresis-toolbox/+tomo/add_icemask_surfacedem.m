@@ -27,7 +27,7 @@ function mdata = add_icemask_surfacedem(param, mdata)
 dem_res = 10;
 global gdem;
 if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
-  gdem = dem_class();
+  gdem = dem_class(param,dem_res);
 end
 gdem.set_res(dem_res);
 
@@ -100,7 +100,7 @@ Nx = length(mdata.GPS_time);
 theta = mdata.param_array.array_param.theta;
 if ~isempty(sv_cal_fn)
   theta_cal = load(sv_cal_fn);
-  theta = theta_cal.theta;
+  theta = interp1(theta_cal.theta_original, theta_cal.theta, theta, 'linear', 'extrap');
   theta_cal = theta;
 end
 
@@ -262,7 +262,12 @@ in_dir = ct_filename_out(param,param.tomo_collate.in_path);
 combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm));
 
 ice_mask = logical(ice_mask);
-save(combined_fn,'-append','twtt','ice_mask','theta');
+if param.ct_file_lock
+  file_version = '1L';
+else
+  file_version = '1';
+end
+save(combined_fn,'-append','twtt','ice_mask','theta','file_version');
 
 if exist('theta_cal','var')
   save(combined_fn,'-append','theta_cal');

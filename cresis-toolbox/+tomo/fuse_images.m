@@ -103,12 +103,16 @@ for v_img = 1:length(param.tomo_collate.imgs)
   % Create fuse weights
   fuse_weights = [];
   Topography.img = zeros(size(hdata{1}.Topography.img));
-  for img_idx = 1:Nimg
-    fuse_weights(img_idx,:) = exp( -((0:Nsv-1)-Nsv*((Nimg-img_idx)*2+1)/(2*Nimg)).^2 / (2*(Nsv/Nimg).^1.5) );
-    Topography.img = Topography.img + bsxfun(@times,fuse_weights(img_idx,:), ...
-      hdata{img_idx}.Topography.img);
+  if Nimg > 1
+    for img_idx = 1:Nimg
+      fuse_weights(img_idx,:) = exp( -((0:Nsv-1)-Nsv*((Nimg-img_idx)*2+1)/(2*Nimg)).^2 / (2*(Nsv/Nimg).^1.5) );
+      Topography.img = Topography.img + bsxfun(@times,fuse_weights(img_idx,:), ...
+        hdata{img_idx}.Topography.img);
+    end
+    Topography.img = bsxfun(@times,1./sum(fuse_weights),Topography.img);
+  else
+    Topography.img = hdata{img_idx}.Topography.img;
   end
-  Topography.img = bsxfun(@times,1./sum(fuse_weights),Topography.img);
   
   mdata{v_img} = hdata{1};
   clear hdata;
@@ -122,12 +126,15 @@ end
 Topography = [];
 for v_img = 1:length(param.tomo_collate.imgs)
   if v_img == 1
+    Time = mdata{v_img}.Time;
+    Data = mdata{v_img}.Data;
+    Topography.img = mdata{v_img}.Topography.img;
     first_idx = find(Time >= Time(1)+param.tomo_collate.img_comb_trim(1) ...
       & Time >= param.tomo_collate.img_comb_trim(3),1,'first');
     if ~isempty(first_idx)
       Time = Time(first_idx:end);
       Data = Data(first_idx:end,:);
-      Topography.img = mdata{v_img}.Topography.img(first_idx:end,:,:);
+      Topography.img = Topography.img(first_idx:end,:,:);
     else
       error('Zero range bin length images not supported.');
     end
@@ -137,7 +144,7 @@ for v_img = 1:length(param.tomo_collate.imgs)
       if ~isempty(last_idx)
         Time = Time(1:last_idx);
         Data = Data(1:last_idx,:);
-        Topography.img = mdata{v_img}.Topography.img(1:last_idx,:,:);
+        Topography.img = Topography.img(1:last_idx,:,:);
       else
         error('Zero range bin length images not supported.');
       end
@@ -230,7 +237,12 @@ for v_img = 1:length(param.tomo_collate.imgs)
 end
 
 % Append new fused image to the combined file
-save(combined_fn,'-append','Time','Data','Topography');
+if param.ct_file_lock
+  file_version = '1L';
+else
+  file_version = '1';
+end
+save(combined_fn,'-append','Time','Data','Topography','file_version');
 
 mdata = mdata{1};
 mdata.Time = Time;
