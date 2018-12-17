@@ -13,6 +13,7 @@ if 1
 %   params.cmd.generic = 1;
 %   params.cmd.frms = [];
   params = ct_set_params(params,'cmd.generic',0);
+<<<<<<< HEAD
 %   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180404_02');
 %   params = ct_set_params(params,'cmd.frms',[1]);
 %   params = ct_set_params(params,'cmd.generic',1,'day_seg','20180418_06');
@@ -25,13 +26,23 @@ if 1
   % surfdata_source: input surfData directory (ct_filename_out)
   dem.surfdata_source = 'surfData';
 %   dem.surfdata_source = 'surfData_englacial';
+=======
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20180404_02');
+  params = ct_set_params(params,'cmd.frms',[1]);
+  
+  % surfdata_source: input surfData directory (ct_filename_out)
+  dem.surfdata_source = 'surfData';
+>>>>>>> b0236d9308395d6ebf7152661ff64e3ad4d4ff0e
   
   % input_dir_name: input radar 3D image directory (ct_filename_out)
   dem.input_dir_name = 'music_imgs4_Nsig2';
   
   % output_dir_name: string containing output directory (ct_filename_out)
   dem.output_dir_name = 'DEM';
+<<<<<<< HEAD
 %   dem.output_dir_name = 'DEM_englacial';
+=======
+>>>>>>> b0236d9308395d6ebf7152661ff64e3ad4d4ff0e
   
   % geotiff_fn: the projection information is taken from this file and this
   %   file is used for creating the maps

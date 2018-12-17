@@ -108,10 +108,6 @@ for frm_idx = 1:length(param.cmd.frms)
     mdata.theta = theta.theta;
   end
   
-  if(isfield(param,'theta_cal_fn') && ~isempty(param.dem.theta_cal_fn))
-    theta_cal = load(param.dem.theta_cal_fn);
-    mdata.theta = theta_cal.theta;
-  end
   
   %% Setup for convert doa,twtt to radar FCS for each surface
   

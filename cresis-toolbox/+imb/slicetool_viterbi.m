@@ -127,19 +127,18 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
           
           slice_range = 3;
           
-          slices = slice-slice_range:slice+slice_range;
-          for idx = 1:length(slices)
-            slice = slices(idx);
-            mask = isfinite(sb.sd.surf(control_idx).x(:,slice)) ...
-              & isfinite(sb.sd.surf(control_idx).y(:,slice));
+          m_slices = slice-slice_range : slice+slice_range;
+          for m_slice_idx = 1:length(m_slices)
+            mask = isfinite(sb.sd.surf(control_idx).x(:,m_slices(m_slice_idx))) ...
+              & isfinite(sb.sd.surf(control_idx).y(:,m_slices(m_slice_idx)));
             mask(1:sb.bounds_relative(1)) = 0;
             mask(end-sb.bounds_relative(2)+1:end) = 0;
           end
         end
         if isempty(mask_idx)
-          mask = ones(size(sb.data,2),length(slices));
+          mask = ones(size(sb.data,2),length(m_slices));
         else
-          mask = sb.sd.surf(mask_idx).y(:,slices);
+          mask = sb.sd.surf(mask_idx).y(:,m_slices);
         end
         
         
