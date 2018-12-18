@@ -419,12 +419,24 @@ for config_idx = 1:length(configs)
     oparams{end}.radar.wfs(wf).BW_window = [fc-BW/2 fc+BW/2];
     oparams{end}.radar.wfs(wf).Tpd = Tpd;
     scale = [];
-    for tx_idx = 1:size(configs(config_idx).dac,1)
-      scale(tx_idx) = configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale;
+    for tx = 1:length(oparams{end}.radar.wfs(wf).tx_paths)
+      if isfinite(oparams{end}.radar.wfs(wf).tx_paths(tx))
+        tx_idx = oparams{end}.radar.wfs(wf).tx_paths(tx);
+        scale(tx) = configs(config_idx).dac{tx_idx,mode_latch+1}.wfs{1}.scale;
+      else
+        scale(tx) = 0;
+      end
     end
     oparams{end}.radar.wfs(wf).tx_weights = scale;
     oparams{end}.radar.wfs(wf).presums = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.presums;
-    oparams{end}.radar.wfs(wf).bit_shifts = configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.shiftLSB - 2 - param.config.arena.adc(board_idx).gain_dB(subchannel+1)/6;
+    adc_idxs = find(wfs_map == wf);
+    for adc_idx = adc_idxs
+      adc = adc_map(adc_idx);
+      adc_board_idx = board_idx_map(adc_idx);
+      adc_mode = mode_map(adc_idx);
+      adc_subchannel = subchannel_map(adc_idx);
+      oparams{end}.radar.wfs(wf).bit_shifts(adc) = configs(config_idx).adc{adc_board_idx,adc_mode+1,adc_subchannel+1}.shiftLSB - 2 - param.config.arena.adc(adc_board_idx).gain_dB(adc_subchannel+1)/6;
+    end
     oparams{end}.radar.wfs(wf).Tadc = sscanf(configs(config_idx).adc{board_idx,mode_latch+1,subchannel+1}.rg,'%d') ...
       / oparams{end}.radar.fs*oparams{end}.radar.wfs(wf).DDC_dec ...
       - param.config.arena.param.ADC_time_delay - t_dac;

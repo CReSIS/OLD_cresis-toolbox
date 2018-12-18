@@ -220,9 +220,9 @@ default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 1.37;
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
-Tsys = [0 0 0 0 0 0 0 0]/1e9;
-chan_equal_dB = [0 0 0 0 0 0 0 0];
-chan_equal_deg = [0 0 0 0 0 0 0 0];
+Tsys = [0 0 0 0]/1e9;
+chan_equal_dB = [0 0 0 0];
+chan_equal_deg = [0 0 0 0];
 
 %% Post worksheet
 default.post.data_dirs = {'qlook'};
@@ -293,7 +293,8 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4];
   default.radar.wfs(wf).rx_paths = [2 4 1 3];
-  default.radar.wfs(wf).adc_gains_dB = [45 45 45 45]; % Gain from the first LNA to the ADC
+  default.radar.wfs(wf).adc_gains_dB = [46 46 46 46]; % Gain from the first LNA to the ADC
+  default.radar.wfs(wf).tx_paths = [1 2 NaN NaN];
 end
 
 default.config_regexp = '.*NOISE.*';
@@ -315,6 +316,7 @@ for wf = 1:2
   default.radar.wfs(wf).adcs = [1 2 3 4];
   default.radar.wfs(wf).rx_paths = [2 4 1 3];
   default.radar.wfs(wf).adc_gains_dB = [46 46 46 46]; % Gain from the first LNA to the ADC
+  default.radar.wfs(wf).tx_paths = [1 2 NaN NaN];
 end
 
 default.config_regexp = '.*survey.*';
@@ -336,6 +338,7 @@ for wf = 1:2
   default.radar.wfs(wf).adcs = [1 2 3 4];
   default.radar.wfs(wf).rx_paths = [2 4 1 3];
   default.radar.wfs(wf).adc_gains_dB = [46 46 46 46]; % Gain from the first LNA to the ADC
+  default.radar.wfs(wf).tx_paths = [1 2 NaN NaN];
 end
 
 default.config_regexp = '.*';
