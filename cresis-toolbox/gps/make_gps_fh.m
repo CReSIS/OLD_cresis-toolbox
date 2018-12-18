@@ -11,6 +11,8 @@ switch (lower(cur_file_type))
     gps_fh = @read_gps_applanix;
   case 'arena'
     gps_fh = @read_gps_arena;
+  case 'arena_cpu_time'
+    gps_fh = @read_gps_arena_cpu_time;
   case 'awi_netcdf'
     gps_fh = @read_gps_netcdf;
   case 'cresis'
