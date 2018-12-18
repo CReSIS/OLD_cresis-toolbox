@@ -298,6 +298,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).tx_paths = [1];
 end
 
 default.config_regexp = '.*deconv.*';
@@ -317,6 +318,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).tx_paths = [1];
 end
 
 default.config_regexp = '.*loopback.*';
@@ -336,6 +338,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).tx_paths = [1];
 end
 
 default.config_regexp = '.*survey.*';
@@ -355,6 +358,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).tx_paths = [1];
 end
 
 default.config_regexp = '.*';
