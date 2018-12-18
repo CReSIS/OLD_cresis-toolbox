@@ -79,19 +79,19 @@ if strcmpi(gps_source_to_use,'arena')
   
 elseif strcmpi(gps_source_to_use,'arena_cpu_time')
     
-  year = 2018; month = 10; day = 15;
+  year = 2018; month = 12; day = 17;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('UA_%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',2018,'time_reference','utc');
+  params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
   gps_source{file_idx} = 'arena-field';
   sync_flag{file_idx} = 1;
   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
   sync_file_type{file_idx} = 'arena_cpu_time';
   sync_params{file_idx} = struct('time_reference','utc', ...
-    'cpu_time_fn',fullfile(in_base_path,sprintf('cpu_time_%04d%02d%02d.csv',year,month,day)), ...
-    'cpu_time_ref','utc');
+    'cpu_time_fn',fullfile(in_base_path,sprintf('cpu_time_%04d%02d%02d.csv',year,month,day)));
+
   
 end
 

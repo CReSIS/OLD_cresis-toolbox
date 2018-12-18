@@ -18,16 +18,16 @@ function gps = read_gps_arena_cpu_time(fn, param)
 %     e.g. 20180817_094746_ARENA-CTU-ctu-gps.txt
 %   param: tells the file GPS type and the year, month, day to determine
 %     absolute time (GGA NMEA files just give the time of day)
-%     .year
-%     .month
-%     .day
-%     .time_reference: 'gps' or 'utc' (should always be 'utc')
-%     .nmea_tag: NEMA string to identify good lines (e.g. '$GPGGA')
+%     .time_reference: 'gps' or 'utc' (CPU time is usually utc)
 %     .clk: clock for radar_time counter, defaults to 10e6
+%     .cpu_time_fn: filename to CSV file with GPS_TIME,CPU_TIME. See
+%       read_cpu_time.m for more details. Note that both the GPS_TIME and
+%       CPU_TIME need to be in the same reference (e.g. both should be in
+%       UTC-time or both should be in GPS-atomic-time).
 %
 % Output Args:
 % gps: output structure with fields
-%  .time: NaN (sec)
+%  .gps_time: radar time with optional offset (sec)
 %  .lat: NaN (deg)
 %  .lon: NaN (deg)
 %  .elev: NaN (m)
@@ -54,7 +54,7 @@ if ~isfield(param,'clk') || isempty(param.clk)
   param.clk = 10e6;
 end
 
-[fid,msg] = fopen(fn,'r');
+[fid,msg] = fopen(fn,'rb');
 if fid < 0
   error('Error opening %s: %s', fn, msg);
 end
@@ -125,17 +125,12 @@ if strcmpi(param.time_reference,'utc')
 else
   gps.gps_time = gps.radar_time;
 end
-if isfield(param,'cpu_time_fn') && exist(param.cpu_time_fn,'file')
+if isfield(param,'cpu_time_fn') && ~isempty(param.cpu_time_fn)
+  if ~exist(param.cpu_time_fn,'file')
+    error('Missing CPU time file %s', param.cpu_time_fn);
+  end
   % Apply a correction to the GPS time
   [gps_time,cpu_time] = read_cpu_time(param.cpu_time_fn);
-  if strcmpi(param.cpu_time_ref,'utc')
-    % UTC time stored in file, so need to add leap seconds back in
-    if ~isempty(gps_time)
-      gps_time = gps_time + utc_leap_seconds(gps_time(1));
-    else
-      gps_time = [];
-    end
-  end
   if length(cpu_time) == 1
     gps.gps_time = gps.gps_time + gps_time - cpu_time;
   else
