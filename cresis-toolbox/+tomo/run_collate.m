@@ -104,23 +104,27 @@ if strcmpi(example_setup,'vertical')
 
 elseif strcmpi(example_setup,'horizontal')
   %% Horizontal multibeam fuse example
-  params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
+%   params = read_param_xls(ct_filename_param('rds_param_2013_Greenland_P3.xls'),'','post');
+fn = 'rds_param_2013_Greenland_P3.xls';
+param.param_path = '/users/mohanad/scripts/ct_params/';
+params = read_param_xls(ct_filename_param(param,fn));
+
   params = ct_set_params(params,'cmd.generic',0);
 %   params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_05|20140325_06|20140325_07|20140401_03|20140506_01');
-  params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_05');
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20130420_01');
   params = ct_set_params(params,'cmd.frms',[2]);
 
   % .in_dir: ct_filename_out directory to use at input, fused image will be stored here.
-  tomo_collate.in_dir = 'music3D';
+  tomo_collate.in_dir = 'music_mohanad';
   
   % .out_dir: ct_filename_out directory to which output surfData will be exported
-  tomo_collate.out_dir = 'surfData_no_MC';
+  tomo_collate.out_dir = 'music_surfData_no_MC_mohanad';
 
   % .imgs: list of images II to use from .in_dir (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam when
   %   horizontal fuse is used. They should be listed from top to bottom
   %   when vertical fuse is used.
-  tomo_collate.imgs = [1 2 3];
+  tomo_collate.imgs = [1 2];
   
   % .img_comb: Same as get_heights and combine worksheets. This is
   %   used for vertical using only. For N images,

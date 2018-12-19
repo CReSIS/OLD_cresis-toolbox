@@ -235,6 +235,20 @@ if ischar(array_param.method)
   end
 end
 
+if array_param.method == 9;
+  array_param.NB = array_param.NB;
+  array_param.W  = 1;
+  doa_param.nb_filter_banks = array_param.NB;
+elseif array_param.method == 8;
+  array_param.NB = 1;
+  array_param.W  = array_param.W;
+  doa_param.nb_filter_banks = array_param.NB;
+else
+  array_param.NB = 1;
+  array_param.W  = 1;
+  doa_param.nb_filter_banks = array_param.NB;
+end
+
 if ~isfield(array_param,'window') || isempty(array_param.window)
   array_param.window = @boxcar;
 end
@@ -324,6 +338,14 @@ if ~isfield(array_param.three_dim,'en') || isempty(array_param.three_dim.en)
   array_param.three_dim.en = false;
 end
 
+if ~isfield(array_param,'method_mode') || isempty(array_param.method_mode)
+  if array_param.method == 2
+  array_param.method_mode = 'beamformer';
+  elseif array_param.method == 7
+    array_param.method_mode = 'mle';
+  end
+end
+
 % ====================================================================
 % Process the data
 % =====================================================================
@@ -359,7 +381,7 @@ end
 
 % Number of slow-time/along-track samples in the data
 if strcmpi(array_param.support,'short')
-  Nx = array_param.dline * floor(size(din{1},2)/array_param.dline)
+  Nx = array_param.dline * floor(size(din{1},2)/array_param.dline);
 else
   Nx = size(din{1},2);
 end
@@ -403,6 +425,8 @@ if ~exist('dout','var')
         NaN*zeros(length(array_param.bins),array_param.Nsig,length(array_param.lines),'single');
       dout.cost = ...
         NaN*zeros(length(array_param.bins), length(array_param.lines),'single');
+      dout.all_DOAs = ...
+        NaN*zeros(length(array_param.bins),array_param.Nsig,length(array_param.lines),'single');
       if restrict_bins
         dout.tomo_top = ...
           NaN*zeros(1,length(array_param.lines),'single');
@@ -416,6 +440,18 @@ if ~exist('dout','var')
       if array_param.three_dim.en
         dout.img ...
           = NaN*zeros(length(array_param.bins),Nsv,length(array_param.lines),'single');
+      end
+      if array_param.method == 2 && strcmp(array_param.method_mode,'estimator')
+        dout.doa = ...
+          NaN*zeros(length(array_param.bins),array_param.Nsig,length(array_param.lines),'single');
+        dout.hessian = ...
+          NaN*zeros(length(array_param.bins),array_param.Nsig,length(array_param.lines),'single');
+        dout.power = ...
+          NaN*zeros(length(array_param.bins),array_param.Nsig,length(array_param.lines),'single');
+        dout.cost = ...
+          NaN*zeros(length(array_param.bins), length(array_param.lines),'single');
+        dout.all_DOAs = ...
+          NaN*zeros(length(array_param.bins),array_param.Nsig,length(array_param.lines),'single');
       end
   end
 end
@@ -483,6 +519,7 @@ end
 
 %% Array process each pixel by looping through each range line and each
 %% range bin
+Nsig_tmp = array_param.Nsig;
 tic;
 line = 0;
 for lineIdx = 1:1:length(array_param.lines)
@@ -586,6 +623,14 @@ if 0
   keyboard
 end
   
+%% Setup line-varying parameters for MUSIC
+  if array_param.method == 2 && strcmp(array_param.method_mode,'estimator')
+    doa_param.y_pc  = y_pos{1};
+    doa_param.z_pc  = z_pos{1};
+    doa_param.theta = fftshift(theta);
+    doa_param.SV    = fftshift(array_param.sv{1},2);
+  end
+  
   %% Setup line-varying parameters for MLE
   if array_param.method == 7
     doa_param.y_pc  = y_pos{1};
@@ -648,9 +693,36 @@ end
     hist_poly = polyfit(hist_bins,dout.doa(hist_bins,lineIdx-1),2);
     warning on;
   end
-  
+   
+   % Find the first range-bin where the surface starts.
+    % Do not process bins before the surface,
+    Time = array_param.wfs.time(1:Nt); % TWTT
+    R_bins_values = Time*c/2;
+    if ~isfield(array_param.fcs{1}{1},'surface') || isempty(array_param.fcs{1}{1}.surface) || ~strcmp(array_param.method_mode,'s-mle')
+        % Simulation data (even though we still can provid this information)
+        first_bin_idx = 1;
+    else
+        % Real data        
+        time_to_surface = array_param.fcs{1}{1}.surface(line); % TWTT
+%         range_to_surface = time_to_surface*c;
+        [~, first_bin_idx] = min(abs(Time-time_to_surface));
+%         first_bin = R_bins_values(first_bin_idx);
+    end
+    % Reference DoA to decide on the left and right portions of the
+    % surface. Should be passed  as a field in array_param
+    ref_doa = 0;
+    prev_doa = [-0.1 ; +0.1]*pi/180;
+    
+    model_order_results_optimal.NT.doa(1:length(array_proc_bin_idxs),1:max(array_param.Nsig),1:length(array_param.lines))    = NaN;
+    model_order_results_optimal.AIC.doa(1:length(array_proc_bin_idxs),1:max(array_param.Nsig),1:length(array_param.lines))   = NaN;
+    model_order_results_optimal.HQ.doa(1:length(array_proc_bin_idxs),1:max(array_param.Nsig),1:length(array_param.lines))    = NaN;
+    model_order_results_optimal.MDL.doa(1:length(array_proc_bin_idxs),1:max(array_param.Nsig),1:length(array_param.lines))   = NaN;
+    model_order_results_optimal.AICc.doa(1:length(array_proc_bin_idxs),1:max(array_param.Nsig),1:length(array_param.lines))  = NaN;
+    model_order_results_optimal.KICvc.doa(1:length(array_proc_bin_idxs),1:max(array_param.Nsig),1:length(array_param.lines)) = NaN;
+    model_order_results_optimal.WIC.doa(1:length(array_proc_bin_idxs),1:max(array_param.Nsig),1:length(array_param.lines))   = NaN;
+    
   %% Iterate through each range bin and calculate third dimension (y-dimension) of image.
-  for binIdx_idx = 1:1:length(array_proc_bin_idxs)
+  for binIdx_idx = first_bin_idx : length(array_proc_bin_idxs)%    1:1:length(array_proc_bin_idxs)
     binIdx = array_proc_bin_idxs(binIdx_idx);
     bin = array_param.bins(binIdx);
     
@@ -760,40 +832,8 @@ end
         %  squared spectrums of the smallest eigenvectors are used.
         dataSample = din{1}(bin+array_param.bin_rng,line+rline_rng,:,:,:);
         dataSample = reshape(dataSample,[length(array_param.bin_rng)*length(rline_rng)*Na*Nb Nc]);
-        
-        if isempty(array_param.sv)
-          Sarray(:,binIdx) = pmusic(dataSample,array_param.Nsig,Nsv);
-        else
-          Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
-          [V,D] = eig(Rxx);
-          eigenVals = diag(D);
-          [eigenVals noiseIdxs] = sort(eigenVals);
-          
-          % DEBUG CODE TO SLOWLY BUILD UP MUSIC SOLUTION, ONE EIGEN VECTOR
-          % AT A TIME
-          %           if 0
-          %             if binIdx >162
-          %               figure(1); clf;
-          %               acc = 0;
-          %               Nsig
-          %               keyboard
-          %               for sig_idx = 1:size(V,2)
-          %                 acc = acc + abs(array_param.sv(:,:,lineIdx)'*V(:,sig_idx)).^2;
-          %                 plot(fftshift(lp(1./acc)),'r')
-          %                 plot(fftshift(lp(1./acc)))
-          %                 hold on
-          %               end
-          %             end
-          %             SmusicEV(:,binIdx) = eigenVals;
-          %           end
-          
-          noiseIdxs = noiseIdxs(1:end-array_param.Nsig);
-          Sarray(:,binIdx) = mean(abs(array_param.sv{1}(:,:).'*V(:,noiseIdxs)).^2,2);
-        end
-        for ml_idx = 2:length(din)
-          dataSample = din{ml_idx}(bin+array_param.bin_rng,line+rline_rng,:,:,:);
-          dataSample = reshape(dataSample,[length(array_param.bin_rng)*length(rline_rng)*Na*Nb Nc]);
-          
+  
+        if strcmp(array_param.method_mode,'beamformer')       
           if isempty(array_param.sv)
             Sarray(:,binIdx) = pmusic(dataSample,array_param.Nsig,Nsv);
           else
@@ -801,18 +841,138 @@ end
             [V,D] = eig(Rxx);
             eigenVals = diag(D);
             [eigenVals noiseIdxs] = sort(eigenVals);
+            %           dout.Rxx_all(binIdx,:,:,lineIdx) = Rxx;
+%             dout.data(binIdx,:,lineIdx) = squeeze(din{1}(bin,line,:,:,:));
+%             dout.y_pos(binIdx,:,lineIdx) = y_pos{1};
+%             dout.z_pos(binIdx,:,lineIdx) = z_pos{1};
+            % DEBUG CODE TO SLOWLY BUILD UP MUSIC SOLUTION, ONE EIGEN VECTOR
+            % AT A TIME
+            %           if 0
+            %             if binIdx >162
+            %               figure(1); clf;
+            %               acc = 0;
+            %               Nsig
+            %               keyboard
+            %               for sig_idx = 1:size(V,2)
+            %                 acc = acc + abs(array_param.sv(:,:,lineIdx)'*V(:,sig_idx)).^2;
+            %                 plot(fftshift(lp(1./acc)),'r')
+            %                 plot(fftshift(lp(1./acc)))
+            %                 hold on
+            %               end
+            %             end
+            %             SmusicEV(:,binIdx) = eigenVals;
+            %           end
             
             noiseIdxs = noiseIdxs(1:end-array_param.Nsig);
-            Sarray(:,binIdx) = Sarray(:,binIdx) ...
-              + mean(abs(array_param.sv{ml_idx}(:,:).'*V(:,noiseIdxs)).^2,2);
+            Sarray(:,binIdx) = mean(abs(array_param.sv{1}(:,:).'*V(:,noiseIdxs)).^2,2);
+          end
+          for ml_idx = 2:length(din)
+            dataSample = din{ml_idx}(bin+array_param.bin_rng,line+rline_rng,:,:,:);
+            dataSample = reshape(dataSample,[length(array_param.bin_rng)*length(rline_rng)*Na*Nb Nc]);
+            
+            if isempty(array_param.sv)
+              Sarray(:,binIdx) = pmusic(dataSample,array_param.Nsig,Nsv);
+            else
+              Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
+              [V,D] = eig(Rxx);
+              eigenVals = diag(D);
+              [eigenVals noiseIdxs] = sort(eigenVals);
+              
+              noiseIdxs = noiseIdxs(1:end-array_param.Nsig);
+              Sarray(:,binIdx) = Sarray(:,binIdx) ...
+                + mean(abs(array_param.sv{ml_idx}(:,:).'*V(:,noiseIdxs)).^2,2);
+            end
+          end
+          if isempty(array_param.sv)
+            Sarray(:,binIdx) = Sarray(:,binIdx) / length(din);
+          else
+            Sarray(:,binIdx) = 0.5 ./ (Sarray(:,binIdx) / length(din));
           end
         end
-        if isempty(array_param.sv)
-          Sarray(:,binIdx) = Sarray(:,binIdx) / length(din);
-        else
-          Sarray(:,binIdx) = 0.5 ./ (Sarray(:,binIdx) / length(din));
-        end
         
+        % This section is used when MUSIC work as an estimator
+        % -----------------------------------------------------
+        if strcmp(array_param.method_mode,'estimator')
+          array_data  = dataSample.';
+          Rxx = 1/size(array_data,2) * (array_data * array_data');
+          doa_param.Rxx = Rxx;
+          if 1
+            if isfield(array_param,'Nsig_true') && ~isempty(array_param.Nsig_true)
+              if array_param.Nsig_true(binIdx,lineIdx) > 2
+                array_param.Nsig = 2;
+              else
+                array_param.Nsig = array_param.Nsig_true(binIdx,lineIdx);
+              end
+            end
+            if array_param.Nsig == 0
+              dout.doa(binIdx,:,lineIdx)     = NaN;
+              dout.cost(binIdx,lineIdx)      = NaN;
+              dout.hessian(binIdx,:,lineIdx) = NaN;
+              dout.power(binIdx,:,lineIdx)   = NaN;
+              continue
+            end
+            doa_param.Nsig = array_param.Nsig;
+          end
+          
+          % Initialization
+          doa_param.fs              = array_param.wfs.fs;
+          doa_param.fc              = array_param.wfs.fc;
+          doa_param.Nsig            = array_param.Nsig;
+          doa_param.doa_constraints = array_param.doa_constraints;
+          doa_param.theta_guard     = array_param.theta_guard;
+          doa_param.search_type     = array_param.init;
+          doa_param.options         = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+          
+          for src_idx = 1:array_param.Nsig
+            doa_param.src_limits{src_idx} = doa_param.doa_constraints(src_idx).init_src_limits/180*pi;
+            %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
+          end
+          
+          theta0 = music_initialization(Rxx,doa_param);
+          
+          % Lower/upper bounds
+          for src_idx = 1:array_param.Nsig
+            doa_param.src_limits{src_idx} = doa_param.doa_constraints(src_idx).src_limits/180*pi;
+            %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
+            LB(src_idx) = doa_param.src_limits{src_idx}(1);
+            UB(src_idx) = doa_param.src_limits{src_idx}(2);
+          end
+          
+          % Run the optimizer
+          doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
+          
+          [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
+            fmincon(@(theta_hat) music_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
+          
+          
+          % Apply pseudoinverse and estimate power for each source
+          Nsv2{1} = 'theta';
+          Nsv2{2} = doa(:)';
+          [~,A] = array_param.sv_fh(Nsv2,doa_param.fc,doa_param.y_pc,doa_param.z_pc);
+          Weights = (A'*A)\A';
+          S_hat   = Weights*dataSample.';
+          P_hat   = mean(abs(S_hat).^2,2);
+
+          [doa,sort_idxs] = sort(doa,'ascend');
+           for sig_i = 1:length(doa)
+             % Negative/positive DOAs are on the left/right side of the surface
+             if doa(sig_i)<0
+               sig_idx = 1;
+             elseif doa(sig_i)>=0
+               sig_idx = 2;
+             end
+             dout.doa(binIdx,sig_idx,lineIdx)     = doa(sig_i);
+             dout.hessian(binIdx,sig_idx,lineIdx) = HESSIAN(sort_idxs(sig_i) + length(sort_idxs)*(sort_idxs(sig_i)-1));
+             dout.power(binIdx,sig_idx,lineIdx)   = P_hat(sig_i);
+           end
+           dout.cost(binIdx,lineIdx) = Jval;
+%            
+%           dout.doa(binIdx,:,lineIdx)     = doa;
+%           dout.cost(binIdx,lineIdx)      = Jval;
+%           dout.hessian(binIdx,:,lineIdx) = diag(HESSIAN);
+%           dout.power(binIdx,:,lineIdx)   = P_hat;
+        end
+
       case 3
         %% EIGENVECTOR pseudospectrum
         %  Same as MUSIC except the Idxividual noise subspace eigenvectors
@@ -942,87 +1102,488 @@ end
         dataSample  = reshape(dataSample,[length(array_param.bin_rng)*length(rline_rng)*Na*Nb Nc]);
         array_data  = dataSample.';
         Rxx         = (1/size(array_data,2)) * (array_data * array_data');
-        doa_param.Rxx = Rxx; % put Rxx in doa_param (to pass to fiminsearch
+        doa_param.Rxx = Rxx; % put Rxx in doa_param (to pass to fiminsearch)
         
-        
-        % Setup DOA Constraints
-        for src_idx = 1:array_param.Nsig
-          % Determine src_limits for each constraint
-          doa_res = doa_param.doa_constraints(src_idx);
-          switch (doa_res.method)
-            case 'surfleft' % Incidence angle to surface clutter on left
-              mid_doa(src_idx) = acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
-            case 'surfright'% Incidence angle to surface clutter on right
-              mid_doa(src_idx) = -acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
-            case 'layerleft'
-              table_doa   = [0:89.75]/180*pi;
-              table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-                + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
-              if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
-                mid_doa(src_idx) = 0;
-              else
-                mid_doa(src_idx) = interp1(table_delay, table_doa, array_param.wfs.time(bin));
-              end
-            case 'layerright'
-              table_doa = [0:89.75]/180*pi;
-              table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
-                + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-              doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
-              if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
-                mid_doa(src_idx) = 0;
-              else
-                mid_doa(src_idx) = -interp1(table_delay, table_doa, array_param.wfs.time(bin));
-              end
-            otherwise % 'fixed'
-              mid_doa(src_idx) = 0;
-          end
+        if isfield(array_param,'testing') && ~isempty(array_param.testing) && array_param.testing==1 ...
+                && isfield(array_param,'optimal_test') && ~isempty(array_param.optimal_test) && array_param.optimal_test==1
+            % MOE simulations
+            array_param.Nsig_new = array_param.Nsig;
+        else
+            if 1 && isfield(array_param,'Nsig_true') && ~isempty(array_param.Nsig_true)
+                if array_param.Nsig_true(binIdx,lineIdx) > 2
+                    array_param.Nsig_new = 2;
+                else
+                    array_param.Nsig_new = array_param.Nsig_true(binIdx,lineIdx);
+                end
+            else
+                if array_param.Nsig > 2
+                    array_param.Nsig = 2;
+                end
+                array_param.Nsig_new = array_param.Nsig;
+            end
+            array_param.Nsig_new = array_param.Nsig;
         end
-        
-        % Initialize search
-        for src_idx = 1:array_param.Nsig
-          doa_param.src_limits{src_idx} = mid_doa(src_idx) ...
-            + doa_param.doa_constraints(src_idx).init_src_limits/180*pi;
-          %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
+        if (array_param.Nsig == 0) || ...
+            (isfield(array_param,'Nsig_true') && ~isempty(array_param.Nsig_true) && array_param.Nsig_true(binIdx,lineIdx) == 0)
+          dout.doa(binIdx,:,lineIdx) = NaN;
+          dout.cost(binIdx,lineIdx) = NaN;
+          dout.hessian(binIdx,:,lineIdx) = NaN;
+          dout.power(binIdx,:,lineIdx) = NaN;
+          continue
         end
+%           doa_param.Nsig = array_param.Nsig_new;
         
-        doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
+        clear sources_number
+         % Determine the possible number of DoAs
+         % --------------------------------------
+         if (isfield(array_param,'testing') && ~isempty(array_param.testing) && array_param.testing==1) ...
+             || (~isfield(array_param,'testing'))
+           % Model order estimation: optimal
+           % ------------------------------
+           if isfield(array_param,'optimal_test') && ~isempty(array_param.optimal_test) && array_param.optimal_test==1
+             possible_Nsig_opt = [1 : max(array_param.Nsig)];
+           end
+           
+           % Model order estimation: suboptimal
+           % ---------------------------------
+           if isfield(array_param,'suboptimal_test') && ~isempty(array_param.suboptimal_test) && array_param.suboptimal_test==1
+             % Determine the eigenvalues of Rxx
+             eigval = eig(Rxx);
+             eigval = sort(real(eigval),'descend');
+             
+             model_order_suboptimal_param.Nc         = Nc;
+             model_order_suboptimal_param.Nsnap      = size(array_data,2);
+             model_order_suboptimal_param.eigval     = eigval;
+             model_order_suboptimal_param.penalty_NT = array_param.penalty_NT;
+             
+             param_MOE.norm_term_suboptimal = array_param.norm_term_suboptimal;
+             param_MOE.norm_allign_zero     = array_param.norm_allign_zero;
+             model_order_suboptimal_param.param_MOE = param_MOE;
+             
+             sources_number_all = [];
+             for model_order_method = array_param.moe_methods
+               model_order_suboptimal_param.method  = model_order_method;
+               sources_number = sim.model_order_suboptimal(model_order_suboptimal_param);
+               
+               switch model_order_method
+                 case 0
+                   model_order_results_suboptimal.NT.Nest(binIdx,lineIdx)    = sources_number;
+                 case 1
+                   model_order_results_suboptimal.AIC.Nest(binIdx,lineIdx)   = sources_number;
+                 case 2
+                   model_order_results_suboptimal.HQ.Nest(binIdx,lineIdx)    = sources_number;
+                 case 3
+                   model_order_results_suboptimal.MDL.Nest(binIdx,lineIdx)   = sources_number;
+                 case 4
+                   model_order_results_suboptimal.AICc.Nest(binIdx,lineIdx)  = sources_number;
+                 case 5
+                   model_order_results_suboptimal.KICvc.Nest(binIdx,lineIdx) = sources_number;
+                 case 6
+                   model_order_results_suboptimal.WIC.Nest(binIdx,lineIdx)   = sources_number;
+                 otherwise
+                   error('Not supported')
+               end
+               sources_number_all(model_order_method+1) = sources_number;
+             end
+             
+             possible_Nsig_subopt = max(sources_number_all);
+             if possible_Nsig_subopt > array_param.Nsig
+               possible_Nsig_subopt = array_param.Nsig;
+             end
+             
+           end
+         end
+          
+         if exist('possible_Nsig_opt','var')
+           possible_Nsig = possible_Nsig_opt;
+         elseif exist('possible_Nsig_subopt','var')
+           possible_Nsig = possible_Nsig_subopt;
+         else
+           possible_Nsig = array_param.Nsig_new;
+         end
+         
+         % Estimate DoA for all possible number of targets
+         % -----------------------------------------------
+         doa_mle = [];
+         if ~isempty(possible_Nsig) && max(possible_Nsig) ~= 0
+           % Don't process zero-targets case, which can happen, upto this
+           % point, in the case of suboptimal MOE.
+           for Nsig_idx = possible_Nsig
+             % Setup DOA Constraints
+             for src_idx = 1:Nsig_idx
+               % Determine src_limits for each constraint
+               doa_res = doa_param.doa_constraints(src_idx);
+               switch (doa_res.method)
+                 case 'surfleft' % Incidence angle to surface clutter on left
+                   mid_doa(src_idx) = acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
+                 case 'surfright'% Incidence angle to surface clutter on right
+                   mid_doa(src_idx) = -acos(array_param.fcs{1}{1}.surface(line) / array_param.wfs.time(bin));
+                 case 'layerleft'
+                   table_doa   = [0:89.75]/180*pi;
+                   table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
+                     + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+                   doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
+                   if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
+                     mid_doa(src_idx) = 0;
+                   else
+                     mid_doa(src_idx) = interp1(table_delay, table_doa, array_param.wfs.time(bin));
+                   end
+                 case 'layerright'
+                   table_doa = [0:89.75]/180*pi;
+                   table_delay = array_param.fcs{1}{1}.surface(line) ./ cos(table_doa) ...
+                     + (doa_res.layer.twtt(line)-array_param.fcs{1}{1}.surface(line)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+                   doa_res.layer.twtt(line) = max(doa_res.layer.twtt(line),array_param.fcs{1}{1}.surface(line));
+                   if array_param.wfs.time(bin) <= doa_res.layer.twtt(line)
+                     mid_doa(src_idx) = 0;
+                   else
+                     mid_doa(src_idx) = -interp1(table_delay, table_doa, array_param.wfs.time(bin));
+                   end
+                 otherwise % 'fixed'
+                   mid_doa(src_idx) = 0;
+               end
+             end
+             
+             % Sequential MLE (S-MLE) section
+             % -----------------------------------------------------------
+             % Calculate current and next DoAs using the flat
+             % earth approximation. If not calculated, it still
+             % work as MLE, but not sequential MLE
+             
+             if strcmp(array_param.method_mode,'s-mle')  
+               doa_param.method_mode = array_param.method_mode;
+               
+               % Prepare current and next DoAs uisng flat earth approximation
+               if binIdx == first_bin_idx
+                 tmp_doa = prev_doa;
+                 doa_flat_earth_curr = prev_doa;
+                 for doa_idx = 1:length(tmp_doa)
+                   doa_flat_earth_next(doa_idx,1) = sign(prev_doa(doa_idx))*acos((R_bins_values(binIdx)/R_bins_values(binIdx+1)) * cos(prev_doa(doa_idx)));
+                   if tmp_doa(doa_idx) < ref_doa
+                     % Left DoA
+                     sign_doa(doa_idx) = -1;
+                   elseif tmp_doa(doa_idx) >= ref_doa
+                     % Right DoA
+                     sign_doa(doa_idx) = +1;
+                   end
+                 end                 
+                 
+               elseif binIdx > first_bin_idx && binIdx < Nt
+                 good_doa_idx = find(prev_doa(~isnan(prev_doa)));
+                 
+                 tmp_doa = doa_flat_earth_curr;
+                 tmp_doa(good_doa_idx) = prev_doa(good_doa_idx);
+                 tmp_doa = sort(tmp_doa,'ascend');
+                 for doa_idx = 1:length(tmp_doa)
+                   if tmp_doa(doa_idx) < ref_doa
+                     % Left DoA
+                     sign_doa(doa_idx) = -1;
+                   elseif tmp_doa(doa_idx) >= ref_doa
+                     % Right DoA
+                     sign_doa(doa_idx) = +1;
+                   end
+                   
+                   doa_flat_earth_curr(doa_idx,1) = sign_doa(doa_idx)*acos((R_bins_values(binIdx-1)/R_bins_values(binIdx)) * cos(tmp_doa(doa_idx)));
+                   doa_flat_earth_next(doa_idx,1) = sign_doa(doa_idx)*acos((R_bins_values(binIdx-1)/R_bins_values(binIdx+1)) * cos(tmp_doa(doa_idx)));
+                 end
+                 
+               elseif binIdx == Nt
+                 for doa_idx = 1:length(tmp_doa)
+                   if tmp_doa(doa_idx) < ref_doa
+                     % Left DoA
+                     sign_doa(doa_idx) = -1;
+                   elseif tmp_doa(doa_idx) > ref_doa
+                     % Right DoA
+                     sign_doa(doa_idx) = +1;
+                   end
+                   doa_flat_earth_curr(doa_idx,1) = sign_doa(doa_idx)*acos((R_bins_values(binIdx-1)/R_bins_values(binIdx)) * cos(tmp_doa(doa_idx)));
+                   doa_flat_earth_next(doa_idx,1) = doa_flat_earth_curr(doa_idx,1) + delta_doa(doa_idx,1);
+                 end
+                 
+                 tmp_doa = sort(tmp_doa,'ascend');
+               end
+               
+               % Change in DoA from current range-bin to the next
+               delta_doa = doa_flat_earth_next-doa_flat_earth_curr;
+               
+               % Upper and lower DoA bounds and initial DoA
+               mul_const = 2;
+               for doa_idx = 1:length(tmp_doa)                
+                 if sign_doa(doa_idx) == -1
+                   % Left DoA
+                   if binIdx ~= first_bin_idx
+                     UB(doa_idx,1) = tmp_doa(doa_idx) + sign_doa(doa_idx)*doa_param.theta_guard; %0.5*pi/180;
+                   else
+                     UB(doa_idx,1) = tmp_doa(doa_idx);  
+                   end
+                   
+                   mean_doa(doa_idx,1) = UB(doa_idx,1) + delta_doa(doa_idx,1);
+                   
+                   if 1
+                     LB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const*delta_doa(doa_idx,1);
+                   elseif 0
+                     if abs(delta_doa(doa_idx,1)) < 5*pi/180
+                       LB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const*delta_doa(doa_idx,1)*pi/180;
+                     else
+                       LB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const/2*delta_doa(doa_idx,1);
+                     end
+                   end
+                   
+                   if UB(doa_idx,1)>ref_doa
+                     UB(doa_idx,1) = ref_doa;
+                   end
+                   
+                   if LB(doa_idx,1)>UB(doa_idx,1)
+                     warning('Lower bound is greater than upper bound .. Consider loosening your DoA bounds')
+                     keyboard;
+                     % UB(doa_idx,1) = LB(doa_idx,1);
+                   end
+                 else
+                   % Right DoA
+                   if binIdx ~= first_bin_idx
+                      LB(doa_idx,1) = tmp_doa(doa_idx) + sign_doa(doa_idx)*doa_param.theta_guard;%0.5*pi/180;
+                   else
+                     LB(doa_idx,1) = tmp_doa(doa_idx);
+                   end
+                   
+                   mean_doa(doa_idx,1) = LB(doa_idx,1) + delta_doa(doa_idx,1);
+                   
+                   if 1
+                     UB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const*delta_doa(doa_idx,1);
+                   elseif 0
+                     if abs(delta_doa(doa_idx,1)) < 5*pi/180
+                       UB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const*delta_doa(doa_idx,1)*pi/180;
+                     else
+                       UB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const/2*delta_doa(doa_idx,1);
+                     end
+                   end
+                   
+                   if LB(doa_idx,1)<ref_doa
+                     LB(doa_idx,1) = ref_doa;
+                   end
+                   
+                   if LB(doa_idx,1)>UB(doa_idx,1)
+                     warning('Lower bound is greater than upper bound .. Consider loosening your DoA bounds')
+                     keyboard;
+                   end
+                 end
+               end
+               
+               if 0
+                 theta0 = mean_doa;
+%                  theta0 = (LB+UB)./2;                 
+               elseif 1
+                 % This needs to be checked more. It may lead to the case of LB > UB.
+                 for src_idx = 1:Nsig_idx %array_param.Nsig
+                   doa_param.src_limits{src_idx} = [LB(src_idx)  UB(src_idx)];
+                 end
+                 % doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
+                 doa_param.Nsig = Nsig_idx;
+                 theta0 = mle_initialization(Rxx,doa_param);
+               end
+               
+               % Choose the a priri pdf (pdf of the DOA before taking
+                % measurements). There is Uniform and Gaussian only
+               % at this point. In both case you should pass in variance
+               % (mean is the same for both distributions).
+               if 1
+                 % Gaussian a priori pdf: variance is small
+                 var_doa = delta_doa.^2;
+               elseif 0
+                 % Uniform a priori pdf: variance if large (e.g. 5 or 10)
+                 var_doa = 10;
+               end
+               
+               doa_param.apriori.mean_doa = mean_doa;
+               doa_param.apriori.var_doa  = var_doa;
+             end
+              
+             if ~exist('theta0','var')
+               % Initialize search
+               for src_idx = 1:Nsig_idx %array_param.Nsig
+                 doa_param.src_limits{src_idx} = mid_doa(src_idx) ...
+                   + doa_param.doa_constraints(src_idx).init_src_limits/180*pi;
+                 %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
+               end
+               
+               %                             doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
+               doa_param.Nsig = Nsig_idx;
+               theta0 = mle_initialization(Rxx,doa_param);
+             end
+             %% Minimization of wb_cost_function
+             doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
+             % Set source limits
+             lower_lim = zeros(Nsig_idx,1);
+             upper_lim = zeros(Nsig_idx,1);
+             for src_idx = 1:Nsig_idx %array_param.Nsig
+               doa_param.src_limits{src_idx} = mid_doa(src_idx) ...
+                 + doa_param.doa_constraints(src_idx).src_limits/180*pi;
+               %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
+               lower_lim(src_idx) = doa_param.src_limits{src_idx}(1);
+               upper_lim(src_idx) = doa_param.src_limits{src_idx}(2);
+             end
+             
+             if ~exist('LB','var') && ~exist('UB','var')
+               LB = lower_lim;
+               UB = upper_lim;
+             end
+             
+             doa = [];
+             if max(theta0)>max(UB)
+               keyboard;
+             end
+             
+             warning off;
+             if max(UB)<=max(upper_lim) && min(LB)>=min(lower_lim)
+               if strcmp(array_param.method_mode,'s-mle') && Nsig_idx == 1
+                 % S-MLE is setup to handle 2 DOAs at a time (left and right)
+                 % So, if there is one DOA, then choose the one that his
+                 % lower cost (or larger log-likelihood)
+                 for tmp_doa_idx = 1:length(tmp_doa)
+                   doa_param.apriori.mean_doa = mean_doa(tmp_doa_idx);
+                   doa_param.apriori.var_doa  = var_doa(tmp_doa_idx);
+                   [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
+                     fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB(tmp_doa_idx),UB(tmp_doa_idx),doa_nonlcon_fh,doa_param.options);
+                   
+                   tmp_DOA(tmp_doa_idx) = doa;
+                   tmp_cost(tmp_doa_idx) = Jval;
+                 end
+                 [~, best_doa_idx] = nanmin(tmp_cost);
+                 doa = tmp_DOA(best_doa_idx);
+               else
+                 [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
+                   fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
+               end
+               
+               if 0
+                 % Set any repeated DoAs to NaN. Repeated DoAs makes
+                 % the projection matrix non-invertible (i.e. all NaN)
+                 doa_tol = 0.5*pi/180;
+                 for doa_idx = 1:length(doa)
+                   doa_diff = abs(doa(doa_idx)-doa);
+                   rep_doa_idx = find(doa_diff<=doa_tol);
+                   if length(rep_doa_idx) > 1
+                     doa(rep_doa_idx(2:end)) = NaN;
+                   end
+                 end
+               end
+             else
+               %                             keyboard
+               doa = NaN(Nsig_idx,1);
+               HESSIAN = NaN(Nsig_idx);
+               Jval = NaN;
+             end
+             
+             clear theta0 LB UB
+             
+             [doa,sort_idxs] = sort(doa);
+             
+             doa_mle{Nsig_idx} = doa;
+             
+           end
+         end
         
-        theta0 = mle_initialization(Rxx,doa_param);
-        
-        %% Minimization of wb_cost_function
-        % Set source limits
-        LB = zeros(array_param.Nsig,1);
-        UB = zeros(array_param.Nsig,1);
-        for src_idx = 1:array_param.Nsig
-          doa_param.src_limits{src_idx} = mid_doa(src_idx) ...
-            + doa_param.doa_constraints(src_idx).src_limits/180*pi;
-          %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
-          LB(src_idx) = doa_param.src_limits{src_idx}(1);
-          UB(src_idx) = doa_param.src_limits{src_idx}(2);
-        end
-        
-        doa = [];
-        
-        warning off;
-        [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
-          fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
-        
-        [doa,sort_idxs] = sort(doa);
-        dout.doa(binIdx,:,lineIdx) = doa;
-        dout.cost(binIdx,lineIdx) = Jval;
-        dout.hessian(binIdx,:,lineIdx) = HESSIAN(sort_idxs + length(doa)*(sort_idxs-1));
-        
-        % Apply pseudoinverse and estimate power for each source
-        k               = 4*pi*doa_param.fc/c;
-        A               = exp(1i*k*(doa_param.y_pc*sin(doa(:)).' - doa_param.z_pc*cos(doa(:)).'));
-        Weights         = inv(A'*A)*A';
-        S_hat           = Weights*array_data;
-        P_hat           = mean(abs(S_hat).^2,2);
-        warning on;
+         % MOHANAD: Model order estimation: optimal
+         % ----------------------------------------
+         if ~isempty(doa_mle) && isfield(array_param,'testing') && ~isempty(array_param.testing) && array_param.testing==1 ...
+             && isfield(array_param,'optimal_test') && ~isempty(array_param.optimal_test) && array_param.optimal_test==1
+           % Determine the eigenvalues and eigenvectors of Rxx
+           [eigvec,eigval] = eig(Rxx);
+           [eigval,index]  = sort(real(diag(eigval)),'descend');
+           eigvec          = eigvec(:,index);
+           
+           model_order_optimal_param.Nc         = Nc;
+           model_order_optimal_param.Nsnap      = size(array_data,2);
+           model_order_optimal_param.eigval     = eigval;
+           model_order_optimal_param.eigvec     = eigvec;
+           model_order_optimal_param.penalty_NT_opt = array_param.penalty_NT_opt;
+           
+           param_MOE.norm_term_optimal = array_param.norm_term_optimal;
+           param_MOE.opt_norm_term     = array_param.opt_norm_term;
+           param_MOE.norm_allign_zero  = array_param.norm_allign_zero;
+           model_order_optimal_param.param_MOE  = param_MOE;
+           model_order_optimal_param.doa_mle    = doa_mle;
+           
+           model_order_optimal_param.y_pc  = doa_param.y_pc;
+           model_order_optimal_param.z_pc  = doa_param.z_pc;
+           model_order_optimal_param.fc    = array_param.wfs.fc;
+           
+           for model_order_method = array_param.moe_methods
+             model_order_optimal_param.method  = model_order_method;
+             
+             [sources_number,doa] = sim.model_order_optimal(model_order_optimal_param);
+             
+             switch model_order_method
+               case 0
+                 model_order_results_optimal.NT.Nest(binIdx,lineIdx)    = sources_number;
+                 model_order_results_optimal.NT.doa(binIdx,:,lineIdx)     = doa;
+               case 1
+                 model_order_results_optimal.AIC.Nest(binIdx,lineIdx)   = sources_number;
+                 model_order_results_optimal.AIC.doa(binIdx,:,lineIdx)    = doa;
+               case 2
+                 model_order_results_optimal.HQ.Nest(binIdx,lineIdx)    = sources_number;
+                 model_order_results_optimal.HQ.doa(binIdx,:,lineIdx)     = doa;
+               case 3
+                 model_order_results_optimal.MDL.Nest(binIdx,lineIdx)   = sources_number;
+                 model_order_results_optimal.MDL.doa(binIdx,:,lineIdx)    = doa;
+               case 4
+                 model_order_results_optimal.AICc.Nest(binIdx,lineIdx)  = sources_number;
+                 model_order_results_optimal.AICc.doa(binIdx,:,lineIdx)   = doa;
+               case 5
+                 model_order_results_optimal.KICvc.Nest(binIdx,lineIdx) = sources_number;
+                 model_order_results_optimal.KICvc.doa(binIdx,:,lineIdx)  = doa;
+               case 6
+                 model_order_results_optimal.WIC.Nest(binIdx,lineIdx)   = sources_number;
+                 model_order_results_optimal.WIC.doa(binIdx,:,lineIdx)    = doa;
+               otherwise
+                 error('Not supported')
+             end
+           end
+         end
+         
+         % Store the DOAs of maximum possible targets
+%          dout.all_DOAs(binIdx,:,lineIdx) = doa_mle{end};
+         
+         if ~exist('sources_number','var')
+           sources_number = length(doa_mle) ;%array_param.Nsig;
+         end
+         
+         if ~isempty(sources_number) && (sources_number ~= 0)
+           doa = doa_mle{sources_number};
+           % Apply pseudoinverse and estimate power for each source
+           Nsv2{1} = 'theta';
+           Nsv2{2} = doa(:)';
+           [~,A] = array_param.sv_fh(Nsv2,doa_param.fc,doa_param.y_pc,doa_param.z_pc);
+%            k       = 4*pi*doa_param.fc/c;
+%            A       = sqrt(1/length(doa_param.y_pc))*exp(1i*k*(doa_param.y_pc*sin(doa(:)).' - doa_param.z_pc*cos(doa(:)).'));
+           Weights = (A'*A)\A';
+           %         Weights         = inv(A'*A)*A';
+           S_hat   = Weights*array_data;
+           P_hat   = mean(abs(S_hat).^2,2);
+           warning on;
+           
+           % This loop is to handle the case where Nsig<Nsig_max
+           % (array_param.Nsig)
+           for sig_i = 1:sources_number
+             % Negative/positive DOAs are on the left/right side of the surface
+             if doa(sig_i)<0
+               sig_idx = 1;
+             elseif doa(sig_i)>=0
+               sig_idx = 2;
+             end             
+             dout.doa(binIdx,sig_idx,lineIdx)     = doa(sig_i);
+             dout.hessian(binIdx,sig_idx,lineIdx) = HESSIAN(sort_idxs(sig_i) + length(sort_idxs)*(sort_idxs(sig_i)-1));
+             dout.power(binIdx,sig_idx,lineIdx)   = P_hat(sig_i);
+           end
+           dout.cost(binIdx,lineIdx) = Jval;
+         end
+         
+         if isfield(model_order_results_optimal.NT,'doa') && all(~isnan(model_order_results_optimal.NT.doa(binIdx,:,lineIdx)))
+           prev_doa = model_order_results_optimal.NT.doa(binIdx,:,lineIdx);
+           prev_doa = sort(prev_doa(~isnan(prev_doa)),'ascend');
+         else
+           prev_doa = doa;
+         end
 
-        dout.power(binIdx,:,lineIdx)  = P_hat;
-        
         if 0
           %% DEBUG code to plot cost function
           Ngrid     = 128;
@@ -1350,20 +1911,43 @@ end
         %% WBMLE Wideband Maximum Likelihood Estimator algorithm
         
         % Create data covariance matrix (DCM)
-        Nsnap_td = length(array_param.bin_rng);
-        Nsnap_other = length(rline_rng)*Na*Nb;
-        NB = array_param.NB;
+        Nsnap_td    = length(array_param.bin_rng);
+        Nsnap_other = length(rline_rng)*Na*Nb; 
+%         NB = array_param.NB;
+        NB = doa_param.nb_filter_banks;
+        
+        % Make sure that there are enough range bins (otherwisw, DCM will
+        % be all zeros
+        if Nsnap_td < NB
+          error('length(array_param.bin_rng) MUST be >= doa_param.nb_filter_banks (i.e. array_param.NB)')
+        end
+        
         DCM_fd = complex(zeros(Nc*NB,Nc));
+        array_data = [];
         % Perform DFT for each set of data samples
         for idx = 1:NB:Nsnap_td-NB+1
-          x_nb = fft(din{1}(offset_bin + array_param.bin_rng(idx + (0:NB-1)), ...
+          % Mohanad: Each loop process one group of data. Each group of
+          % data has represents the number of snapshots per subband. So,
+          % the total number of fast-time snapshots is
+          % length(1:NB:Nsnap_td-NB+1) * NB. To compare against MLE, the
+          % number of fast-time snapshots in MLE must be equal to the
+          % number of snapshots per subband, which is the n umber of data
+          % groups length(1:NB:Nsnap_td-NB+1) or ceil((Nsnap_td-NB+1)/NB).
+          x_nb = fft(din{1}(bin + array_param.bin_rng(idx + (0:NB-1)), ...
             line+rline_rng,:,:,:));
           for nb = 1:NB
             x_nb_snaps = reshape(x_nb(nb,:,:,:,:),[Nsnap_other Nc]);
             DCM_fd((nb-1)*Nc+(1:Nc),:) = DCM_fd((nb-1)*Nc+(1:Nc),:) + x_nb_snaps.'*conj(x_nb_snaps);
           end
+          
+          array_data_tmp = din{1}(bin + array_param.bin_rng(idx + (0:NB-1)), ...
+            line+rline_rng,:,:,:);
+%           array_data = cat(2,array_data,reshape(array_data_tmp,[NB*Nsnap_other Nc]));
+          array_data = cat(1,array_data,reshape(array_data_tmp,[NB*Nsnap_other Nc])); % Mohanad
+          
         end
-        DCM_fd = 1/(Nsnap_td*Nsnap_other) * DCM_fd;
+%         DCM_fd = 1/(Nsnap_td*Nsnap_other) * DCM_fd;
+        DCM_fd = 1/(ceil((Nsnap_td-NB+1)/NB)*Nsnap_other) * DCM_fd; % Mohanad: divide by number of data groups, not Nsnap_td
         doa_param.DCM  = DCM_fd;
         
         % DOA Constraints
@@ -1405,7 +1989,7 @@ end
           doa_param.src_limits{src_idx} = mid_doa(src_idx) ...
             + doa_param.doa_constraints(src_idx).init_src_limits/180*pi;
         end
-        theta0 = wbmle_initialization(DCM,doa_param);
+        theta0 = wbmle_initialization(DCM_fd,doa_param);
         
         %% Minimization of wb_cost_function
         % Set source limits
@@ -1428,6 +2012,16 @@ end
         dout.func_counts(binIdx,lineIdx)  = OUTPUT.funcCount;
         dout.hessian(binIdx,:,lineIdx)  = diag(HESSIAN);
         
+        % Apply pseudoinverse and estimate power for each source    
+        P_hat = 0;
+        k       = 4*pi*(doa_param.fc + doa_param.fs*[0:floor((NB-1)/2), -floor(NB/2):-1]/NB)/c;
+        for band_idx = 1:NB
+          A       = sqrt(1/length(doa_param.y_pc)) *exp(1i*k(band_idx)*(doa_param.y_pc*sin(doa(:)).' - doa_param.z_pc*cos(doa(:)).'));
+          Weights = inv(A'*A)*A';
+          S_hat   = Weights*array_data.';
+          P_hat   = P_hat + mean(abs(S_hat).^2,2);
+        end
+        dout.power(binIdx,:,lineIdx)  = P_hat;
     end
   end
   
@@ -1524,5 +2118,36 @@ end
 
 % Save theta variable
 array_param.theta = theta_fftshift;
+array_param.Nsig = Nsig_tmp;
 
+if isfield(array_param,'testing') && ~isempty(array_param.testing) && array_param.testing==1 ...
+        && isfield(array_param,'optimal_test') && ~isempty(array_param.optimal_test) && array_param.optimal_test==1
+    dout.model_order_results_optimal = model_order_results_optimal;
+    
+else
+    model_order_results_optimal.NT.Nest(1:binIdx,1:lineIdx)    = -999;
+    model_order_results_optimal.AIC.Nest(1:binIdx,1:lineIdx)   = -999;
+    model_order_results_optimal.HQ.Nest(1:binIdx,1:lineIdx)    = -999;
+    model_order_results_optimal.MDL.Nest(1:binIdx,1:lineIdx)   = -999;
+    model_order_results_optimal.AICc.Nest(1:binIdx,1:lineIdx)  = -999;
+    model_order_results_optimal.KICvc.Nest(1:binIdx,1:lineIdx) = -999;
+    model_order_results_optimal.WIC.Nest(1:binIdx,1:lineIdx)   = -999;
+    
+    dout.model_order_results_optimal = model_order_results_optimal;
+end
+
+if isfield(array_param,'testing') && ~isempty(array_param.testing) && array_param.testing==1 ...
+        && isfield(array_param,'suboptimal_test') && ~isempty(array_param.suboptimal_test) && array_param.suboptimal_test==1
+    dout.model_order_results_suboptimal = model_order_results_suboptimal;
+else
+    model_order_results_suboptimal.NT.Nest(1:binIdx,1:lineIdx)    = -999;
+    model_order_results_suboptimal.AIC.Nest(1:binIdx,1:lineIdx)   = -999;
+    model_order_results_suboptimal.HQ.Nest(1:binIdx,1:lineIdx)    = -999;
+    model_order_results_suboptimal.MDL.Nest(1:binIdx,1:lineIdx)   = -999;
+    model_order_results_suboptimal.AICc.Nest(1:binIdx,1:lineIdx)  = -999;
+    model_order_results_suboptimal.KICvc.Nest(1:binIdx,1:lineIdx) = -999;
+    model_order_results_suboptimal.WIC.Nest(1:binIdx,1:lineIdx)   = -999;
+    
+    dout.model_order_results_suboptimal = model_order_results_suboptimal;
+end
 return;
