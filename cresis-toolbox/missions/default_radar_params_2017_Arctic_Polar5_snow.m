@@ -30,7 +30,7 @@ param.config.tx_enable = [1];
 
 %% CReSIS parameters
 param.config.cresis.clk = 125e6;
-param.config.cresis.expected_rec_sizes = [60480      120864      181296];
+param.config.cresis.expected_rec_sizes = [30288 60480      120864      181296];
 
 %% Command worksheet
 default.cmd.records = 1;
