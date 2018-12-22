@@ -4,26 +4,6 @@ function success = array_task(param)
 % Task/job running on cluster that is called from array. This
 % function is generally not called directly.
 %
-% param.array = structure controlling the processing
-%   Fields used in this function (and potentially array_proc.m)
-%   .imgs = images to process
-%   .method = 'combine_rx', 'standard', 'mvdr', 'music', etc.
-%   .three_dim.en = boolean, enable 3-D mode
-%   .Nsv = used to compute sv
-%   .sv = steering vector function handle (empty for default)
-%   .in_path = input path string
-%   .out_path = output path string
-%
-%   Fields used by array_proc.m only
-%   .window
-%   .bin_rng
-%   .rline_rng
-%   .dbin
-%   .dline
-%   .first_line = required to stitch multiple chunks together
-%   .chan_equal
-%   .freq_rng
-%
 % success = boolean which is true when the function executes properly
 %   if a task fails before it can return success, then success will be
 %   empty
@@ -91,9 +71,9 @@ for img = 1:length(param.array.imgs)
   prev_chunk_failed_flag = false;
   next_chunk_failed_flag = false;
   % num_prev_chunk_rlines: number of range lines to load from the previous chunk
-  num_prev_chunk_rlines = max(-param.array.rline_rng);
-  % num_next_chunk_rlines: number of range lines to load from the previous chunk
-  num_next_chunk_rlines = max(param.array.rline_rng);
+  num_prev_chunk_rlines = round(max(-param.array.line_rng));
+  % num_next_chunk_rlines: number of range lines to load from the next chunk
+  num_next_chunk_rlines = round(max(param.array.line_rng));
   % out_rlines: output range lines from SAR processor for the current chunk
   sar_out_rlines = [];
   for ml_idx = 1:length(ml_list)
@@ -379,6 +359,9 @@ for img = 1:length(param.array.imgs)
     end
   end
   
+  param.array_proc.chan_equal = chan_equal;
+  param.array_proc.fcs = fcs;
+  
   %% Process: WBDCM Setup
   % =======================================================================
   % Setup fields for wideband space-time doa estimator passed to
@@ -442,75 +425,77 @@ for img = 1:length(param.array.imgs)
     %  - Ensure we grab enough samples of the impulse response so that
     %    array_proc is always happy.
     Hwin_num_samp = 2 * Mt * (W_ideal + param.array.W);
-    param.array.imp_resp.vals ...
+    param.array_proc.imp_resp.vals ...
       = fftshift(Hwin([1:1+Hwin_num_samp, end-Hwin_num_samp+1:end]));
-    param.array.imp_resp.time_vec ...
+    param.array_proc.imp_resp.time_vec ...
       = sar_data.wfs(wf).dt/Mt * (-Hwin_num_samp:Hwin_num_samp);
   end
-  
-  param.array.chan_equal = chan_equal;
-  param.array.fcs = fcs;
-  array_proc_param = param.array;
 
   %% Process: Array Processing
   % =======================================================================
   if strcmpi(param.array.method,'combine_rx')
-    % csarp.m already combined channels, just incoherently average
+    % sar.m already combined channels, just incoherently average
     % ---------------------------------------------------------------------
     
-    % Number of fast-time samples in the data
+    % Number of fast-time range bins
     Nt = size(data{1},1);
+    % Number of along-track range lines
+    Nx = size(data{1},2);
     
-    param.array.bins = numel(param.array.bin_rng)/2+0.5 : param.array.dbin ...
-      : Nt-(numel(param.array.bin_rng)/2-0.5);
-    
-    param.array.lines = param.array.rlines(1,chunk_idx): param.array.dline ...
-      : min(param.array.rlines(2,chunk_idx),size(data{1},2)-max(param.array.rline_rng));
+    param.array_proc.bins = 1-param.bin_rng(1) : param.dbin : Nt-param.bin_rng(end);
+    param.array_proc.lines = 1-param.line_rng(1) : param.dline : Nx-param.line_rng(end);
     
     % Process: Update surface values
     if isempty(surf_layer.gps_time)
-      array_proc_param.surface = zeros(size(fcs{1}{1}.gps_time(array_proc_param.lines)));
+      param.array_proc.surface = zeros(size(param.array_proc.lines));
     elseif length(surf_layer.gps_time) == 1;
-      array_proc_param.surface = surf_layer.twtt*ones(size(fcs{1}{1}.gps_time(array_proc_param.lines)));
+      param.array_proc.surface = surf_layer.twtt*ones(size(param.array_proc.lines));
     else
-      array_proc_param.surface = interp_finite(interp1(surf_layer.gps_time, ...
-        surf_layer.twtt,fcs{1}{1}.gps_time(array_proc_param.lines)),0);
+      param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
+        surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
     end
   
     % Perform incoherent averaging
-    Hfilter2 = ones(length(param.array.bin_rng),length(param.array.rline_rng));
+    Hfilter2 = ones(length(param.array.bin_rng),length(param.array.line_rng));
     Hfilter2 = Hfilter2 / numel(Hfilter2);
-    tomo.val = filter2(Hfilter2, abs(data{1}).^2);
+    dout.val = filter2(Hfilter2, abs(data{1}).^2);
     
-    tomo.val = tomo.val(param.array.bins,param.array.lines);
+    dout.val = dout.val(param.array_proc.bins,param.array_proc.lines);
     
   else
     % Regular array processing operation
     % ---------------------------------------------------------------------
     
     % Load bin restriction layers if specified
-    if isfield(param.array,'bin_restriction') && ~isempty(param.array.bin_restriction)
+    if ~isempty(param.array.bin_restriction)
       ops_param = param;
       % Invalid frames will be ignored by opsLoadLayers so we can ignore edge cases
       ops_param.cmd.frms = param.load.frm + (-1:1);
-      param.array.bin_restriction = opsLoadLayers(ops_param, param.array.bin_restriction);
-      for idx=1:2
-        % Interpolate layers onto GPS time of loaded data
-        param.array.bin_restriction(idx).bin = interp1(param.array.bin_restriction(idx).gps_time, ...
-          param.array.bin_restriction(idx).twtt, sar_data.fcs.gps_time);
-        % Convert from two way travel time to range bins
-        param.array.bin_restriction(idx).bin = interp1(sar_data.wfs(wf).time, ...
-          1:length(sar_data.wfs(wf).time), param.array.bin_restriction(idx).bin);
-        % Ensure there is a value everywhere
-        param.array.bin_restriction(idx).bin = interp_finite(param.array.bin_restriction(idx).bin);
-      end
+      bin_restriction_layers = opsLoadLayers(ops_param, param.array.bin_restriction);
+      % Interpolate layers onto GPS time of loaded data
+      param.array_proc.bin_restriction.start_bin = interp1(bin_restriction_layers(1).gps_time, ...
+        bin_restriction_layers(1).twtt, sar_data.fcs.gps_time);
+      % Convert from two way travel time to range bins
+      param.array_proc.bin_restriction.start_bin = interp1(sar_data.wfs(wf).time, ...
+        1:length(sar_data.wfs(wf).time), param.array_proc.bin_restriction.start_bin);
+      % Ensure there is a value everywhere
+      param.array_proc.bin_restriction.start_bin = interp_finite(param.array.bin_restriction.start_bin);
+
+      % Interpolate layers onto GPS time of loaded data
+      param.array_proc.bin_restriction.stop_bin = interp1(bin_restriction_layers(1).gps_time, ...
+        bin_restriction_layers(1).twtt, sar_data.fcs.gps_time);
+      % Convert from two way travel time to range bins
+      param.array_proc.bin_restriction.stop_bin = interp1(sar_data.wfs(wf).time, ...
+        1:length(sar_data.wfs(wf).time), param.array_proc.bin_restriction.stop_bin);
+      % Ensure there is a value everywhere
+      param.array_proc.bin_restriction.stop_bin = interp_finite(param.array.bin_restriction.stop_bin);    
     end
     
-    if isfield(param.array,'doa_constraints') && ~isempty(param.array.doa_constraints)
+    if ~isempty(param.array.doa_constraints)
       % If DOA constraints are specified, they must be specified for
-      % every signal. For no constraints, choose 'fixed' method and
-      % [-pi/2 pi/2] for init_src_limits and src_limits.
-      for src_idx = 1:param.array.Nsig
+      % every source. For no constraints, choose 'fixed' method and
+      % [-90 90] for init_src_limits and src_limits.
+      for src_idx = 1:param.array.Nsrc
         % Load layers for each DOA constraint that needs it
         doa_res = param.array.doa_constraints(src_idx);
         switch (doa_res.method)
@@ -518,20 +503,20 @@ for img = 1:length(param.array.imgs)
             ops_param = param;
             % Invalid frames will be ignored by opsLoadLayers so we can ignore edge cases
             ops_param.cmd.frms = param.load.frm + (-1:1);
-            param.array.doa_constraints(src_idx).layer = opsLoadLayers(ops_param, doa_res.params);
+            param.array_proc.doa_constraints(src_idx).layer = opsLoadLayers(ops_param, doa_res.params);
             % Interpolate layers onto GPS time of loaded data
-            param.array.doa_constraints(src_idx).layer.twtt = interp1(param.array.doa_constraints(src_idx).layer.gps_time, ...
+            param.array_proc.doa_constraints(src_idx).layer.twtt = interp1(param.array.doa_constraints(src_idx).layer.gps_time, ...
               param.array.doa_constraints(src_idx).layer.twtt, sar_data.fcs.gps_time);
             % Ensure there is a value everywhere
-            param.array.doa_constraints(src_idx).layer.twtt = interp_finite(param.array.doa_constraints(src_idx).layer.twtt);
+            param.array_proc.doa_constraints(src_idx).layer.twtt = interp_finite(param.array.doa_constraints(src_idx).layer.twtt);
         end
       end
     end
     
-    array_proc_param.wfs = sar_data.wfs(wf);
-    array_proc_param.imgs = param.array.imgs{img};
-    if ~iscell(array_proc_param.imgs)
-      array_proc_param.imgs = {array_proc_param.imgs};
+    param.array_proc.wfs = sar_data.wfs(wf);
+    param.array_proc.imgs = param.array.imgs{img};
+    if ~iscell(param.array_proc.imgs)
+      param.array_proc.imgs = {param.array_proc.imgs};
     end
     
     % Determine output range lines so that chunks will be seamless (this is
@@ -539,25 +524,23 @@ for img = 1:length(param.array.imgs)
     % align with chunk lengths)
     first_rline = find(~mod(sar_out_rlines-1,param.array.dline),1);
     rlines = num_prev_chunk_rlines + (first_rline : param.array.dline : length(sar_out_rlines));
-    array_proc_param.rlines = rlines([1 end]);
-    rlines = array_proc_param.rlines(1): array_proc_param.dline ...
-    : min(array_proc_param.rlines(2),size(data{1},2)-max(array_proc_param.rline_rng));
+    param.array_proc.lines = rlines([1 end]);
+    rlines = param.array_proc.rlines(1): param.array_proc.dline ...
+    : min(param.array_proc.rlines(2),size(data{1},2)-max(param.array_proc.line_rng));
   
     % Process: Update surface values
     if isempty(surf_layer.gps_time)
-      array_proc_param.surface = zeros(size(fcs{1}{1}.gps_time(rlines)));
+      param.array_proc.surface = zeros(size(param.array_proc.lines));
     elseif length(surf_layer.gps_time) == 1;
-      array_proc_param.surface = surf_layer.twtt*ones(size(fcs{1}{1}.gps_time(rlines)));
+      param.array_proc.surface = surf_layer.twtt*ones(size(param.array_proc.lines));
     else
-      array_proc_param.surface = interp_finite(interp1(surf_layer.gps_time, ...
-        surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
+      param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
+        surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
     end
     
     % Array Processing Function Call
-    array_proc_param.rlines = array_proc_param.rlines([1 end]);
-    [array_proc_param,tomo] = array_proc(array_proc_param,data);
-    param.array.bins = array_proc_param.bins;
-    param.array.lines = array_proc_param.lines;
+    param.array_proc.lines = param.array_proc.lines([1 end]);
+    [param,dout] = array_proc(param,data);
   end
   
   %% Process: Debugging
@@ -570,8 +553,8 @@ for img = 1:length(param.array.imgs)
     colorbar
     grid on;
     figure(2); clf;
-    %imagesc(10*log10(tomo.val));
-    imagesc(10*log10(local_detrend(tomo.val,[20 50],[5 2],3)));
+    %imagesc(10*log10(dout.val));
+    imagesc(10*log10(local_detrend(dout.val,[20 50],[5 2],3)));
     title(sprintf('Waveform %d: Tomography', wf));
     colorbar
     grid on;
@@ -587,36 +570,34 @@ for img = 1:length(param.array.imgs)
     mkdir(array_tmp_dir);
   end
   
-  Latitude = lat(1,array_proc_param.lines);
-  Longitude = lon(1,array_proc_param.lines);
-  Elevation = elev(1,array_proc_param.lines);
-  GPS_time = fcs{1}{1}.gps_time(array_proc_param.lines);
-  Surface = array_proc_param.surface;
-  Bottom = fcs{1}{1}.bottom(array_proc_param.lines);
-  Roll = fcs{1}{1}.roll(array_proc_param.lines);
-  Pitch = fcs{1}{1}.pitch(array_proc_param.lines);
-  Heading = fcs{1}{1}.heading(array_proc_param.lines);
-  Data = tomo.val;
-  Time = sar_data.wfs(wf_base).time(array_proc_param.bins);
+  Latitude = lat(1,param.array_proc.lines);
+  Longitude = lon(1,param.array_proc.lines);
+  Elevation = elev(1,param.array_proc.lines);
+  GPS_time = fcs{1}{1}.gps_time(param.array_proc.lines);
+  Surface = param.array_proc.surface;
+  Bottom = fcs{1}{1}.bottom(param.array_proc.lines);
+  Roll = fcs{1}{1}.roll(param.array_proc.lines);
+  Pitch = fcs{1}{1}.pitch(param.array_proc.lines);
+  Heading = fcs{1}{1}.heading(param.array_proc.lines);
+  Data = dout.val;
+  Time = sar_data.wfs(wf_base).time(param.array_proc.bins);
   param_records = sar_data.param_records;
   param_sar = sar_data.param_sar;
-  array_proc_param.sv = []; % Set this to empty because it is so large
   param_array = param;
-  param_array.array_param = array_proc_param;
   if param.ct_file_lock
     file_version = '1L';
   else
     file_version = '1';
   end
-  if ~param.array.three_dim.en
-    % Do not save 3D-image
+  if ~param.array.tomo_en
+    % Do not save tomographic 3D-image
     save('-v7.3',array_fn,'Data','Latitude','Longitude','Elevation','GPS_time', ...
       'Surface','Bottom','Time','param_array','param_records', ...
       'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
   else
-    % Save 3D-image in file
-    Topography = tomo;
-    save('-v7.3',array_fn,'Topography','Data','Latitude','Longitude','Elevation','GPS_time', ...
+    % Save tomographic 3D-image
+    Tomo = dout.tomo;
+    save('-v7.3',array_fn,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
       'Surface','Bottom','Time','param_array','param_records', ...
       'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
   end

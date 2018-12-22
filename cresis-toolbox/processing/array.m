@@ -83,9 +83,6 @@ end
 
 % param.array.* fields
 % -------------------------------------------------------------------------
-if ~isfield(param.array,'bin_rng') || isempty(param.array.bin_rng)
-  param.array.bin_rng = 0;
-end
 
 if ~isfield(param.array,'chunk_len') || isempty(param.array.chunk_len)
   if ~isfield(param.sar,'chunk_len') || isempty(param.sar.chunk_len)
@@ -93,14 +90,6 @@ if ~isfield(param.array,'chunk_len') || isempty(param.array.chunk_len)
   else
     param.array.chunk_len = param.sar.chunk_len;
   end
-end
-
-if ~isfield(param.array,'dline') || isempty(param.array.dline)
-  error('param.array.dline must be specified.');
-end
-
-if ~isfield(param.array,'dbin') || isempty(param.array.dbin)
-  param.array.dbin = 1;
 end
 
 if ~isfield(param.array,'frm_types') || isempty(param.array.frm_types)
@@ -112,10 +101,6 @@ if ~isfield(param.array,'in_path') || isempty(param.array.in_path)
 end
 if ~isfield(param.array,'array_path') || isempty(param.array.array_path)
   param.array.array_path = param.array.in_path;
-end
-
-if ~isfield(param.array,'method') || isempty(param.array.method)
-  param.array.method = 'standard';
 end
 
 if ~isfield(param.array,'out_path') || isempty(param.array.out_path)
@@ -131,10 +116,6 @@ if ~isfield(param.array,'presums') || isempty(param.array.presums)
   else
     param.array.presums = param.sar.presums;
   end
-end
-
-if ~isfield(param.array,'rline_rng') || isempty(param.array.rline_rng)
-  error('param.array.rline_rng must be specified.');
 end
 
 if ~isfield(param.array,'sar_type') || isempty(param.array.sar_type)
@@ -174,6 +155,10 @@ if ~isfield(param.array,'surf_layer') || isempty(param.array.surf_layer)
 end
 % Never check for the existence of layers
 param.array.surf_layer.existence_check = false;
+
+% param.array.* fields used by array_proc.m
+% -------------------------------------------------------------------------
+param.array = array_proc(param.array);
 
 %% Setup processing
 % =====================================================================
