@@ -55,6 +55,9 @@ radar_time_notes = '';
 epri_notes = '';
 clock_notes = '';
 
+% Initialize records.settings
+records.settings = [];
+
 %% Align all boards using EPRI
 % ======================================================================
 if any(param.records.file.version == [9 10 103 412])
@@ -208,6 +211,10 @@ else
   records.raw.epri = nan(size(epri));
   records.raw.seconds = nan(size(epri));
   records.raw.fraction = nan(size(epri));
+  if param.records.file.version == 8
+    records.settings.nyquist_zone = nan(size(epri));
+    records.settings.waveform_ID = nan(size(epri));
+  end
   for board_idx = 1:length(boards)
     [~,out_idxs,in_idxs] = intersect(epri,board_hdrs{board_idx}.epri);
     fprintf('Board %d is missing %d of %d records.\n', board_idx, length(epri)-length(out_idxs), length(epri));
@@ -229,6 +236,10 @@ else
     records.raw.seconds(out_idxs) = board_hdrs{board_idx}.seconds(in_idxs) ...
       + max(param.records.gps.time_offset) - param.records.gps.time_offset(board_idx);
     records.raw.fraction(out_idxs) = board_hdrs{board_idx}.fraction(in_idxs);
+    if param.records.file.version == 8
+      records.settings.nyquist_zone(out_idxs) = board_hdrs{board_idx}.nyquist_zone(in_idxs);
+      records.settings.waveform_ID(out_idxs) = board_hdrs{board_idx}.waveform_ID(in_idxs);
+    end
   end
   records.raw.epri = interp_finite(records.raw.epri);
   records.raw.seconds = interp_finite(records.raw.seconds);
@@ -407,8 +418,6 @@ if param.ct_file_lock
 else
   records.file_version = '1';
 end
-
-records.settings = [];
 
 % Create the first entry in the records.settings field
 records.settings.wfs_records = 1;
