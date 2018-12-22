@@ -169,6 +169,9 @@ for board_idx = 1:length(boards)
     if param.records.file.version == 2
       board_hdrs{board_idx}.nyquist_zone = zeros([0 0],'uint8');
       board_hdrs{board_idx}.loopback_mode = zeros([0 0],'uint8');
+    elseif param.records.file.version == 8
+      board_hdrs{board_idx}.nyquist_zone = zeros([0 0],'uint8');
+      board_hdrs{board_idx}.waveform_ID = zeros([0 0],'uint64');
     end
   end
   
@@ -232,6 +235,10 @@ for board_idx = 1:length(boards)
         % Ledford, Rink and NI systems have EPRI field
         board_hdrs{board_idx}.epri(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.epri;
       end
+      if param.records.file.version == 8
+        board_hdrs{board_idx}.nyquist_zone(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.nyquist_zone;
+        board_hdrs{board_idx}.waveform_ID(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.waveform_ID;
+      end
       
       % Copy the waveform structure
       wfs = hdr_tmp.wfs;
@@ -257,6 +264,10 @@ for board_idx = 1:length(boards)
         % contains the remainder of the record.
         if any(param.records.file.version == [1:8 102 401:404 407:408])
           board_hdrs{board_idx}.epri = board_hdrs{board_idx}.epri(1:end-1);
+        end
+        if param.records.file.version == 8
+          board_hdrs{board_idx}.nyquist_zone = board_hdrs{board_idx}.nyquist_zone(1:end-1);
+          board_hdrs{board_idx}.waveform_ID = board_hdrs{board_idx}.waveform_ID(1:end-1);
         end
         board_hdrs{board_idx}.seconds = board_hdrs{board_idx}.seconds(1:end-1);
         board_hdrs{board_idx}.fraction = board_hdrs{board_idx}.fraction(1:end-1);
