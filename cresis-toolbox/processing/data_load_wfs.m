@@ -608,7 +608,7 @@ end
 for wf = 1:length(param.radar.wfs)
   
   switch param.records.file.version
-    case {8}
+    case {7,8}
       HEADER_SIZE = 48;
       WF_HEADER_SIZE = 0;
       wfs(wf).record_mode = 0;
