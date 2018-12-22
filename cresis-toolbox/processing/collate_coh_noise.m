@@ -168,19 +168,22 @@ for img = param.collate_coh_noise.imgs
         keyboard
       end
     end
-    orig_threshold = threshold;
-    Tpd_bin  = round(param.radar.wfs(wf).Tpd/noise.dt) - start_bin;
-    if any(wf == [1 2])
-      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
-    elseif any(wf == [3 4])
-      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-130)=-130; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
-    elseif any(wf == [5 6])
-      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-142)=-142; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
-    else
-      keyboard
+    if 0
+      orig_threshold = threshold;
+      Tpd_bin  = round(param.radar.wfs(wf).Tpd/noise.dt) - start_bin;
+      % HACK
+      if any(wf == [1 2])
+        param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+      elseif any(wf == [3 4])
+        param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-130)=-130; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+      elseif any(wf == [5 6])
+        param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-142)=-142; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+      else
+        keyboard
+      end
+      %     figure(100); plot(threshold); hold on;
+      eval(param.collate_coh_noise.threshold_eval);
     end
-%     figure(100); plot(threshold); hold on;
-    eval(param.collate_coh_noise.threshold_eval);
     
     if param.collate_coh_noise.plot_en
       dxt = mean_without_outliers(diff(noise.gps_time));
