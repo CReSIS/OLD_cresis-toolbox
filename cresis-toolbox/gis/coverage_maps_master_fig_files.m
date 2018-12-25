@@ -21,8 +21,9 @@
 
 %% User Settings
 
-out_dir = '/cresis/snfs1/scratch/paden/coverage_maps/';
+% out_dir = '/cresis/snfs1/scratch/paden/coverage_maps/';
 % out_dir = 'Z:\sfoga\coverage_maps\';
+out_dir = 'H:\rohan\Oldscript\';
 
 location = 'Greenland';
 % location = 'Canada';
@@ -30,31 +31,31 @@ location = 'Greenland';
 
 if strcmpi(location,'Greenland') || strcmpi(location,'Canada')
   season_names = {};
-  season_names{end+1,1} = 'icards/1993_Greenland_P3';
-  season_names{end+1,1} = 'icards/1995_Greenland_P3';
-  season_names{end+1,1} = 'icards/1996_Greenland_P3';
-  season_names{end+1,1} = 'icards/1997_Greenland_P3';
-  season_names{end+1,1} = 'icards/1998_Greenland_P3';
-  season_names{end+1,1} = 'icards/1999_Greenland_P3';
-  season_names{end+1,1} = 'icards/2001_Greenland_P3';
-  season_names{end+1,1} = 'icards/2002_Greenland_P3';
-  season_names{end+1,1} = 'acords/2003_Greenland_P3';
-  season_names{end+1,1} = 'acords/2005_Greenland_TO';
-  season_names{end+1,1} = 'mcrds/2006_Greenland_TO';
-  season_names{end+1,1} = 'mcrds/2007_Greenland_P3';
-  season_names{end+1,1} = 'mcrds/2008_Greenland_Ground';
-  season_names{end+1,1} = 'mcrds/2008_Greenland_TO';
-  season_names{end+1,1} = 'mcrds/2009_Greenland_TO';
-  season_names{end+1,1} = 'mcords/2010_Greenland_DC8';
-  season_names{end+1,1} = 'mcords/2010_Greenland_P3';
-  season_names{end+1,1} = 'mcords/2011_Greenland_TO';
-  season_names{end+1,1} = 'mcords2/2011_Greenland_P3';
-  season_names{end+1,1} = 'mcords2/2012_Greenland_P3';
-  season_names{end+1,1} = 'mcords3/2013_Greenland_P3';
-  season_names{end+1,1} = 'mcords3/2014_Greenland_P3';
+%   season_names{end+1,1} = 'icards/1993_Greenland_P3';
+%   season_names{end+1,1} = 'icards/1995_Greenland_P3';
+%   season_names{end+1,1} = 'icards/1996_Greenland_P3';
+%   season_names{end+1,1} = 'icards/1997_Greenland_P3';
+%   season_names{end+1,1} = 'icards/1998_Greenland_P3';
+%   season_names{end+1,1} = 'icards/1999_Greenland_P3';
+%   season_names{end+1,1} = 'icards/2001_Greenland_P3';
+%   season_names{end+1,1} = 'icards/2002_Greenland_P3';
+%   season_names{end+1,1} = 'acords/2003_Greenland_P3';
+%   season_names{end+1,1} = 'acords/2005_Greenland_TO';
+%   season_names{end+1,1} = 'mcrds/2006_Greenland_TO';
+%   season_names{end+1,1} = 'mcrds/2007_Greenland_P3';
+%   season_names{end+1,1} = 'mcrds/2008_Greenland_Ground';
+%   season_names{end+1,1} = 'mcrds/2008_Greenland_TO';
+%   season_names{end+1,1} = 'mcrds/2010_Greenland_TO';
+%   season_names{end+1,1} = 'mcords/2010_Greenland_DC8';
+%   season_names{end+1,1} = 'mcords/2010_Greenland_P3';
+%   season_names{end+1,1} = 'mcords/2011_Greenland_TO';
+%   season_names{end+1,1} = 'mcords2/2011_Greenland_P3';
+%   season_names{end+1,1} = 'mcords2/2012_Greenland_P3';
+%   season_names{end+1,1} = 'mcords3/2013_Greenland_P3';
+%   season_names{end+1,1} = 'mcords3/2014_Greenland_P3';
   season_names{end+1,1} = 'mcords5/2015_Greenland_C130';
-  season_names{end+1,1} = 'mcords5/2016_Greenland_P3';
-  season_names{end+1,1} = 'mcords3/2017_Greenland_P3';
+%   season_names{end+1,1} = 'mcords5/2016_Greenland_P3';
+%   season_names{end+1,1} = 'mcords3/2017_Greenland_P3';
   data_location = {};
   for idx=1:length(season_names)
     data_location{idx} = 'CSARP_post/layerData';
@@ -189,26 +190,26 @@ set(1,'PaperPosition',fig_paper_position);
 set(1,'UserData',season_names);
 
 %% Save Matlab figure
-image_master_fn = fullfile(out_dir,sprintf('%s_All_Seasons.fig',location));
+image_master_fn = fullfile(out_dir,sprintf('%s_All_Seasonssssss.fig',location));
 saveas(1,image_master_fn);
 
 %% Save JPG figure
-image_master_fn = fullfile(out_dir,sprintf('%s_All_Seasons.jpg',location));
-saveas(1,image_master_fn);
+% image_master_fn = fullfile(out_dir,sprintf('%s_All_Seasons.jpg',location));
+% saveas(1,image_master_fn);
 
 %% Save PDF figure
-h_children = get(1,'Children');
-h_children = get(h_children(2),'Children');
-h_geotiff = h_children(end);
-% Sort children handles into 3xN matrix where N is the length of 
-% season_names and row 1 is good data, row 2 is moderate quality data,
-% and row 3 is bad data (no bottom)
-h_children = reshape(h_children(4:end-1),[3 length(season_names)]);
-original_marker_size = get(h_children(1),'MarkerSize');
-set(h_children,'MarkerSize',0.1);
-image_master_fn = fullfile(out_dir,sprintf('%s_All_Seasons.pdf',location));
-saveas(1,image_master_fn);
-set(h_children,'MarkerSize',original_marker_size);
+% h_children = get(1,'Children');
+% h_children = get(h_children(2),'Children');
+% h_geotiff = h_children(end);
+% % Sort children handles into 3xN matrix where N is the length of 
+% % season_names and row 1 is good data, row 2 is moderate quality data,
+% % and row 3 is bad data (no bottom)
+% h_children = reshape(h_children(4:end-1),[3 length(season_names)]);
+% original_marker_size = get(h_children(1),'MarkerSize');
+% set(h_children,'MarkerSize',0.1);
+% image_master_fn = fullfile(out_dir,sprintf('%s_All_Seasons.pdf',location));
+% saveas(1,image_master_fn);
+% set(h_children,'MarkerSize',original_marker_size);
 
 return;
 
@@ -216,14 +217,14 @@ return;
 
 %% User Setting
 
-all_seasons_fn = '/cresis/scratch1/petan/coverage_maps/Antarctica_All_Seasons.fig';
+all_seasons_fn = '/cresis/scratch1/petan/coverage_maps/Antarctica_2017.fig';
 
 %% Load figure and sort handles (copy and paste this section exactly)
 
 h_fig = open(all_seasons_fn);
 season_names = flipud(get(h_fig,'UserData'));
 for season_idx = 1:length(season_names)
-  season_names{season_idx} = sprintf('%d: %s', season_idx, season_names{season_idx});
+  season_names{season_idx} = sprintf('2017%d: %s', season_idx, season_names{season_idx});
 end
 h_children = get(h_fig,'Children');
 h_children = get(h_children(2),'Children');
