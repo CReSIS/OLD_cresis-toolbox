@@ -609,8 +609,8 @@ for wf = 1:length(param.radar.wfs)
   
   switch param.records.file.version
     case {7,8}
-      HEADER_SIZE = 48;
-      WF_HEADER_SIZE = 0;
+      HEADER_SIZE = 0;
+      WF_HEADER_SIZE = 48;
       wfs(wf).record_mode = 0;
       wfs(wf).complex = 0;
       wfs(wf).sample_size = 2;
@@ -619,9 +619,9 @@ for wf = 1:length(param.radar.wfs)
       if wf == 1
         wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
       else
-        wfs(wf).offset = wfs(wf-1).offset ...
+        wfs(wf).offset = wfs(wf-1).offset + ...
           + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
-          + WF_HEADER_SIZE;
+          + HEADER_SIZE + WF_HEADER_SIZE;
       end
       
     case {9,10,103,412}

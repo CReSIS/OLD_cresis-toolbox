@@ -195,46 +195,77 @@ for state_idx = 1:length(states)
 
           % Read in headers for this record
           if any(param.records.file.version == [3 5 7 8])
-            % Number of fast-time samples Nt, and start time t0
-            if swap_bytes_en
-              start_idx = 2*double(swapbytes(typecast(file_data(rec_offset+37:rec_offset+38), 'uint16'))) + wfs(wf).time_raw_trim(1);
-              stop_idx = 2*double(swapbytes(typecast(file_data(rec_offset+39:rec_offset+40), 'uint16'))) - wfs(wf).time_raw_trim(2);
-            else
-              start_idx = 2*double(typecast(file_data(rec_offset+37:rec_offset+38), 'uint16')) + wfs(wf).time_raw_trim(1);
-              stop_idx = 2*double(typecast(file_data(rec_offset+39:rec_offset+40), 'uint16')) - wfs(wf).time_raw_trim(2);
+
+            HEADER_SIZE = 0;
+            WF_HEADER_SIZE = 48;
+            for tmp_wf = 1:wf
+              if tmp_wf == 1
+                wf_hdr_offset = rec_offset;
+                wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
+              else
+                wf_hdr_offset = wf_hdr_offset + last_wf_size;
+                wfs(wf).offset = wfs(wf-1).offset + last_wf_size;
+              end
+              
+              if param.records.file.version == 8
+                if swap_bytes_en
+                  start_idx = 2*double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
+                  stop_idx = 2*double(swapbytes(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16')));
+                else
+                  start_idx = 2*double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
+                  stop_idx = 2*double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
+                end
+                Nt(num_accum+1) = stop_idx - start_idx;
+                wfs(wf).Nt_raw = Nt(num_accum+1);
+              else
+                if swap_bytes_en
+                  start_idx = double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
+                  stop_idx = double(swapbytes(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16')));
+                else
+                  start_idx = double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
+                  stop_idx = double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
+                end
+                DDC_dec(num_accum+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
+                raw_or_DDC = file_data(wf_hdr_offset + 48);
+                if raw_or_DDC
+                  Nt(num_accum+1) = (stop_idx - start_idx);
+                else
+                  Nt(num_accum+1) = floor((stop_idx - start_idx) / DDC_dec(num_accum+1));
+                end
+              end
+              
+              if tmp_wf == wf
+                start_idx = start_idx + DDC_dec(num_accum+1)*wfs(wf).time_raw_trim(1);
+                Nt(num_accum+1) = Nt(num_accum+1) - sum(wfs(wf).time_raw_trim);
+                break;
+              else
+                last_wf_size = wfs(wf).sample_size*(1+~raw_or_DDC)*wfs(wf).adc_per_board*Nt(num_accum+1) + WF_HEADER_SIZE;
+              end
+              
             end
-            if param.records.file.version == 8
-              Nt(num_accum+1) = stop_idx - start_idx;
-              wfs(wf).Nt_raw = Nt(num_accum+1);
-            else
+            wfs(wf).Nt_raw = Nt(num_accum+1);
+            
+            % Number of fast-time samples Nt, and start time t0
+            if param.records.file.version ~= 8
               % NCO frequency
               if swap_bytes_en
-                DDC_freq(num_accum+1) = double(-swapbytes(typecast(file_data(rec_offset+43:rec_offset+44),'uint16')));
+                DDC_freq(num_accum+1) = double(swapbytes(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16')));
               else
-                DDC_freq(num_accum+1) = double(-typecast(file_data(rec_offset+43:rec_offset+44),'uint16'));
+                DDC_freq(num_accum+1) = double(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16'));
               end
               if param.records.file.version == 3
                 DDC_freq(num_accum+1) = DDC_freq(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2 - 62.5e6;
               elseif any(param.records.file.version == [5 7])
                 DDC_freq(num_accum+1) = DDC_freq(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2;
               end
-              
-              DDC_dec(num_accum+1) = 2^(double(file_data(rec_offset+46))+1);
-              raw_or_DDC = file_data(rec_offset + wfs(wf).offset +48);
-              if raw_or_DDC
-                Nt(num_accum+1) = (stop_idx - start_idx);
-              else
-                Nt(num_accum+1) = floor((stop_idx - start_idx) / DDC_dec(num_accum+1));
-              end
-              wfs(wf).Nt_raw = Nt(num_accum+1);
             end
             t0(num_accum+1) = start_idx/wfs(wf).fs_raw;
             
             if param.records.file.version == 8
-              % Debug: char(file_data(rec_offset+41:rec_offset+48).')
+              % Debug: char(file_data(wf_hdr_offset+41:wf_hdr_offset+48).')
               % No swapbytes should be necessary for this typecast because
               % it is actually a string of 8 characters.
-              waveform_ID = typecast(file_data(rec_offset+41:rec_offset+48), 'uint64');
+              waveform_ID = typecast(file_data(wf_hdr_offset+41:wf_hdr_offset+48), 'uint64');
               waveform_ID_map_idx = find(waveform_ID_map == waveform_ID,1);
               if isempty(waveform_ID_map_idx)
                 error('%ld waveform_ID not found in waveform_ID_map.',waveform_ID);
@@ -247,15 +278,15 @@ for state_idx = 1:length(states)
             
             % Bit shifts
             if wfs(wf).quantization_to_V_dynamic
-              bit_shifts = double(-typecast(file_data(rec_offset+36),'int8'));
+              bit_shifts = double(-typecast(file_data(wf_hdr_offset+36),'int8'));
               quantization_to_V_adjustment = 2^(bit_shifts - wfs(wf).bit_shifts(adc));
             end
             
             % Nyquist zone
             if param.records.file.version == 8
-              nyquist_zone_hw(num_accum+1) = file_data(rec_offset+34);
+              nyquist_zone_hw(num_accum+1) = file_data(wf_hdr_offset+34);
             elseif any(param.records.file.version == [3 5 7])
-              nyquist_zone_hw(num_accum+1) = file_data(rec_offset+45);
+              nyquist_zone_hw(num_accum+1) = file_data(wf_hdr_offset+45);
             end
           end
           nyquist_zone_signal = nyquist_zone_hw(1);
@@ -442,13 +473,15 @@ for state_idx = 1:length(states)
             data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = 0;
             hdr.bad_rec{state.img(accum_idx)}(1,out_rec,state.wf_adc(accum_idx)) = 1;
           else
-            data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = state.data{accum_idx};
+            wf = state.wf(accum_idx);
+            img = state.img(accum_idx);
+            data{img}(1:wfs(wf).Nt_raw,out_rec,state.wf_adc(accum_idx)) = state.data{accum_idx};
           
             hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw(1);
             hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal;
             hdr.DDC_dec{img}(out_rec) = DDC_dec(1);
             hdr.DDC_freq{img}(out_rec) = DDC_freq(1);
-            hdr.Nt{img}(out_rec) = Nt(1);
+            hdr.Nt{img}(out_rec) = wfs(wf).Nt_raw;
             hdr.t0_raw{img}(out_rec) = t0(1);
             hdr.t_ref{img}(out_rec) = t_ref(1);
             
@@ -459,7 +492,7 @@ for state_idx = 1:length(states)
               %   Number 2 is unmodified and is usually equal to hardware blank setting
               %   Set either number to -inf to disable
               blank_time = max(records.surface(rec) + wfs(wf).blank(1),wfs(wf).blank(2));
-              data{state.img(accum_idx)}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= blank_time,out_rec,state.wf_adc(accum_idx)) = 0;
+              data{img}(wfs(wf).time_raw-param.radar.wfs(wf).Tsys(adc) <= blank_time,out_rec,state.wf_adc(accum_idx)) = 0;
             end
           end
         end
