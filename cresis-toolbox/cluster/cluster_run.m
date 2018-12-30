@@ -47,6 +47,11 @@ if iscell(ctrl_chain)
   first_run = ones(numel(ctrl_chain),1);
   while any(isfinite(active_stage))
     for chain = 1:numel(ctrl_chain)
+      if isempty(ctrl_chain{chain})
+        % No batches in this chain
+        active_stage(chain) = inf;
+        continue;
+      end
       if isfinite(active_stage(chain))
         % 1. There is at least one batch left to run in this chain
         ctrl = ctrl_chain{chain}{active_stage(chain)};

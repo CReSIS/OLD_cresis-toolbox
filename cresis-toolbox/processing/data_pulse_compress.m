@@ -844,8 +844,15 @@ for img = 1:length(param.load.imgs)
         
         % Create a matrix of data with constant time rows, fill invalid samples with NaN
         if wf_adc == 1
-          idx_start = min(round(hdr.t0{img}/dt));
-          wfs(wf).Nt = max(round(hdr.t0{img}/dt) + hdr.Nt{img})-idx_start;
+          if all(isnan(hdr.t0{img}))
+            % All records are bad
+            idx_start = 0;
+            wfs(wf).Nt = 0;
+            dt = 1;
+          else
+            idx_start = min(round(hdr.t0{img}/dt));
+            wfs(wf).Nt = max(round(hdr.t0{img}/dt) + hdr.Nt{img})-idx_start;
+          end
           hdr.time{img} = idx_start*dt + dt*(0:wfs(wf).Nt-1).';
           fc = sum(wfs(wf).BW_window)/2;
           T = wfs(wf).Nt*dt;
@@ -862,16 +869,28 @@ for img = 1:length(param.load.imgs)
           reD = real(data{img}(:,rlines,wf_adc));
           imD = imag(data{img}(:,rlines,wf_adc));
           for rec = 1:length(rlines)
-            cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
-            cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+            if isnan(hdr.t0{img}(rlines(rec)))
+              % This is a bad record
+              cur_idx_start = 1;
+              cur_idx_stop = 0;
+            else
+              cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
+              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+            end
             
             reD(cur_idx_start : cur_idx_stop,rec,wf_adc) = reD(1:hdr.Nt{img}(rlines(rec)),rec,wf_adc);
             reD(1:cur_idx_start-1,rec,wf_adc) = NaN;
             reD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
           end
           for rec = 1:length(rlines)
-            cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
-            cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+            if isnan(hdr.t0{img}(rlines(rec)))
+              % This is a bad record
+              cur_idx_start = 1;
+              cur_idx_stop = 0;
+            else
+              cur_idx_start = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + 1;
+              cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
+            end
             
             imD(cur_idx_start : cur_idx_stop,rec,wf_adc) = imD(1:hdr.Nt{img}(rlines(rec)),rec,wf_adc);
             imD(1:cur_idx_start-1,rec,wf_adc) = NaN;

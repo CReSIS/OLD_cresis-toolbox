@@ -333,6 +333,7 @@ if param.collate_deconv.stage_one_en
           ylabel(h_axes(2), 'Relative power (dB)');
           title(h_axes(2), 'Impulse response rising edge');
           legend(h_axes(2), 'mean','sample','std','h','location','best');
+          Nt = length(spec.deconv_mean{rline});
           xlim(h_axes(2), [Nt+2*cmd.rbins{img}(1) Nt]);
           ylim(h_axes(2), [-debug_ylim 0]);
           grid(h_axes(2), 'on');
