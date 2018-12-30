@@ -11,8 +11,8 @@ function out = mle_initialization(DCM,param)
 %   DCM = data covariance matrix
 %
 %   param = control struction containing the following fields:
-%     .Nsig   = number of sources specified by array_param.Nsig field,
-%     .src_limits = 1 x param.Nsig cell containing bounds for the
+%     .Nsig   = number of sources specified by array_param.Nsrc field,
+%     .src_limits = 1 x param.Nsrc cell containing bounds for the
 %               search, specified as DOAs in radians, of the form:
 %               param.src_limits{source index} = [lowerbound upperbound]
 %               Assumption is that sources are sorted from small to large
@@ -47,13 +47,13 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
   %% Perform N-dimensional grid search
   
   % Allocate grid search results
-  if param.Nsig == 1
+  if param.Nsrc == 1
     J = NaN*zeros(length(param.theta),1);
   else
-    J = NaN*zeros(length(param.theta)*ones(1,param.Nsig));
+    J = NaN*zeros(length(param.theta)*ones(1,param.Nsrc));
   end
   % Allocate temporary variables
-  theta_idxs = zeros(param.Nsig,1);
+  theta_idxs = zeros(param.Nsrc,1);
   sizeJ = size(J);
   % Loop through every index of J and evaluate the cost function at that
   % index in the N-dimensional grid if DOA constraints allow
@@ -61,19 +61,19 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
     % For this specific index into the grid, determine the index of
     % each source into the param.theta array (theta_idxs)
     tmp_idx = idx;
-    for src_idx = param.Nsig:-1:1
+    for src_idx = param.Nsrc:-1:1
       idx_mod = prod(sizeJ(1:src_idx-1));
       theta_idxs(src_idx) = 1 + floor((tmp_idx-1) / idx_mod);
       tmp_idx = tmp_idx - (theta_idxs(src_idx)-1)*idx_mod;
     end
     
     % For this index into the grid, get the theta values for each source
-    theta = reshape(param.theta(theta_idxs), [param.Nsig 1]);
+    theta = reshape(param.theta(theta_idxs), [param.Nsrc 1]);
     
     % Determine if this is an index that we need to evaluate the cost
     % function for.
     good = true;
-    for src_idx = 1:param.Nsig
+    for src_idx = 1:param.Nsrc
       % Make sure sources are in order and that there is guard room between
       % the sources, if not: do not evaluate this index of the grid
       if (theta(src_idx) < param.src_limits{src_idx}(1) || theta(src_idx) > param.src_limits{src_idx}(2)) ...
@@ -95,13 +95,13 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
   % Find the index to the minimum point in the grid search
   [~,tmp_idx] = nanmax(J(:));
   % Convert this 1-D index into N-D index
-  for src_idx = param.Nsig:-1:1
+  for src_idx = param.Nsrc:-1:1
     idx_mod = prod(sizeJ(1:src_idx-1));
     theta_idxs(src_idx) = 1 + floor((tmp_idx-1) / idx_mod);
     tmp_idx = tmp_idx - (theta_idxs(src_idx)-1)*idx_mod;
   end
   % Get the theta for each source using N-D index
-  out = reshape(param.theta(theta_idxs), [param.Nsig 1]);
+  out = reshape(param.theta(theta_idxs), [param.Nsrc 1]);
   
 else
   %% Perform N-dimensional alternating projection search
@@ -153,9 +153,9 @@ else
   % =========================================================================
   % Initialize remaining sources
   % =========================================================================
-  if param.Nsig > 1
+  if param.Nsrc > 1
     clear L max_idx
-    for src_idx = 2:param.Nsig
+    for src_idx = 2:param.Nsrc
       % If param.src_limits was specified, only look at thetas bounded by
       % param.src_limits.  Otherwise use the entire coarse grid stored in param.theta.
       if isfield(param,'src_limits') && ~isempty(param.src_limits{src_idx})

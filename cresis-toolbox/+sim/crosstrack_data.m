@@ -1,5 +1,5 @@
-function sim_data = crosstrack_data(param,target_model)
-% sim_data = sim.crosstrack_data(param,target_model)
+function [sim_data,time] = crosstrack_data(param,target_model)
+% [sim_data,time] = sim.crosstrack_data(param,target_model)
 %
 % Creates 2-D simulated radar data specifically for testing array
 % processing algorithms. This is equivalent to SAR-processed
@@ -65,20 +65,83 @@ freq = df*fftshift([-floor(Nt/2) : floor((Nt-1)/2)].');
 % ref = reference function (eventually in frequency domain)
 tref = (param.src.t0+param.src.t1)/2;
 ref = param.src.ft_func(time - tref);
+ref = ref./max(ref);
 ref = fft(ref);
 
+% From Sravya: SCALING WHEN USING FFT.
+% Mohanad: Scaling ref in f-domain means that norm(ref./sqrt(N))^2=1, which is nice
+% because it will do the job without affecting the total SNR of the data.
+ref = ref/norm(ref);%sqrt(Nt);
+if 0
+  % Sravya's way: I don't think it matters if rcs is real or complex
+  if isreal(target_model.rcs(1))
+    ref = ref/Nt;
+  else
+    ref = ref/sqrt(Nt);
+  end
+end
+
+% Transmit beamforming
+Q = size(target_model.z,1);
+if isfield(param.src,'tx_weights') && ~isempty(param.src.tx_weights)
+  comp_tx_weight = param.src.tx_weights;
+else
+  comp_tx_weight = ones(Q,1);
+end
+
+% Array calibration errors
+if isfield(param,'error_params') && ~isempty(param.error_params)
+  error_params   = param.error_params;
+  error_ypc      = error_params.error_ypc;
+  error_zpc      = error_params.error_zpc;
+  error_phase    = error_params.error_phase;
+  error_g_s      = error_params.error_g_s;
+  error_g_p      = error_params.error_g_p;
+  error_g_offset = error_params.error_g_offset;
+else
+  error_ypc      = zeros(Nc,1);
+  error_zpc      = zeros(Nc,1);
+  error_phase    = zeros(Nc,1);
+  error_g_s      = zeros(Nc,1);
+  error_g_p      = zeros(Nc,1);
+  error_g_offset = zeros(Nc,1);
+end
+
+if isfield(param,'array_gain_model_fh') && ~isempty(param.array_gain_model_fh)
+ array_gain_model_fh =  param.array_gain_model_fh;
+else
+  array_gain_model_fh = @(x) (10.^(x/20));
+end
+  
+% Mutual coupling matrix
+if isfield(param.src,'mutual_coup_mtx') && ~isempty(param.src.mutual_coup_mtx)
+  C = param.src.mutual_coup_mtx;
+else
+  C = eye(Nc);
+end
+
+% Multipath weights
+if isfield(param,'MP_params')
+  MP_params = param.MP_params;
+end
+
+% error_ypc = param.error_ypc;
+% error_zpc = param.error_zpc;
+
+%% Loop through each snapshot
 sim_data = zeros(Nt, Nc, Nx);
 td_min = inf;
 td_max = -inf;
-%% Loop through each snapshot
+
+Num_targets = size(target_model.z,1);
 for snapshot = 1:Nx
   %% Loop through each receiver
   for chan = 1:Nc
     %% Loop through each target
-    for target = 1:size(target_model.z,1)
+    for target = 1:Num_targets
       % Determine the range from the receiver to the target
-      Rvec = [target_model.y(target) - param.src.y_pc(chan);
-        target_model.z(target,snapshot) - param.src.z_pc(chan)];
+      Rvec = [target_model.y(target) - (param.src.y_pc(chan)+error_ypc(chan));
+        target_model.z(target,snapshot) - (param.src.z_pc(chan)+error_zpc(chan))];
       R = norm(Rvec,2);
       td = 2*R/c;
       if td < td_min
@@ -87,14 +150,77 @@ for snapshot = 1:Nx
       if td > td_max
         td_max = td;
       end
-      amp = target_model.rcs(target,snapshot);
-      % Add this target's energy to the simulated data matrix
+      
+      % Incorporate gain and phase array errors. Location errors were
+      % incorporated previously in Rvec. 
+      % Multiplying theta by the sign of y guarantees that +/-theta goes with +/-y
+      target_doa = sign(target_model.y(target)) * atan(abs(target_model.y(target))/abs(target_model.z(target,snapshot)));
+      gain_error_exp = error_g_s(chan).*(sin(target_doa)-sin(error_g_p(chan))).^2 + error_g_offset(chan);
+%       gain_error = array_gain_model_fh(gain_error_exp);
+      gain_error  = 10.^(gain_error_exp./20);
+      phase_error = error_phase(chan);
+      pg_error = gain_error .* exp(1i*phase_error);
+        
+      amp = target_model.rcs(target,snapshot); 
+      tx_weight = comp_tx_weight(target);
+      
+      % Add this target's energy to the simulated data matrix 
       sim_data(:,chan,snapshot) = sim_data(:,chan,snapshot) ...
-        + amp * exp(-1i*2*pi*param.src.fc*td) ...
+        + amp *tx_weight*pg_error*exp(-1i*2*pi*param.src.fc*td) ...
         * exp(-1i*2*pi*freq*(td-tref)) .* ref;
+      
+      if isfield(param,'MP_params')
+        % Incorporate MPCs associated with this target, if any
+        y_pos_MP = MP_params{target}.y_pos_MP;
+        z_pos_MP = MP_params{target}.z_pos_MP;
+        w_MP     = MP_params{target}.w_MP;
+        w_MP = (10.^(w_MP./20));
+        
+        for MP_idx = 1:length(w_MP)  
+          MPC_signal = [];
+          % Distance from the main target location to the reflctor
+          R_MP_tr = sqrt((target_model.y(target)-y_pos_MP(MP_idx)).^2 + ...
+            (target_model.z(target,snapshot)-z_pos_MP(MP_idx)).^2);
+          
+          % Distance from the reflector location to the radar
+          R_MP_rr = sqrt((y_pos_MP(MP_idx) - (param.src.y_pc(chan)+error_ypc(chan))).^2 + ...
+            (z_pos_MP(MP_idx) - (param.src.z_pc(chan)+error_zpc(chan))).^2);
+          
+          doa_MP = sign(y_pos_MP(MP_idx)) * atan(abs(y_pos_MP(MP_idx)/z_pos_MP(MP_idx)));
+          gain_error_exp = error_g_s(chan).*(sin(doa_MP)-sin(error_g_p(chan))).^2 + error_g_offset(chan);
+          gain_error = array_gain_model_fh(gain_error_exp);
+%           gain_error  = exp(-gain_error_exp./2);
+          phase_error = error_phase(chan);
+          pg_error = gain_error .* exp(1i*phase_error);
+          
+          % MPC  signal: the signal arrives at the target's location after
+          % traveling a distance R. Then this signal is delayed by the
+          % travel time from the target location to the reflector location
+          % then to the back to the radar receiver.
+          % amp is the target's signal. Using different amp means different
+          % target.
+          MPC_signal = amp *tx_weight*w_MP(MP_idx)*pg_error* ...                               % Amplitude reduces by w_MP
+            exp(-1i*2*pi*param.src.fc*R/c) * exp(-1i*2*pi*freq*(R/c-tref))* ...                % Radar to target location
+            exp(-1i*2*pi*param.src.fc*R_MP_tr/c) .* exp(-1i*2*pi*freq*(R_MP_tr/c-tref))* ...   % Target to reflector
+            exp(-1i*2*pi*param.src.fc*R_MP_rr/c) .* exp(-1i*2*pi*freq*(R_MP_rr/c-tref)).* ...  % Reflector to receiver
+            ref;
+          
+          % Contaminated signal
+          sim_data(:,chan,snapshot) = sim_data(:,chan,snapshot) + MPC_signal;
+%         end
+        end
+      end
+
     end
   end
+  
+  % Incorporate mutual coupling matrix
+  for binIdx = 1:Nt
+    sim_data(binIdx,:,snapshot) = C * sim_data(binIdx,:,snapshot).';
+  end
+  
 end
+
 fprintf('    time gate ranges from %.0f ns to %.0f ns\n', time(1)*1e9, time(end)*1e9);
 fprintf('    td ranges from %.0f ns to %.0f ns\n', td_min*1e9, td_max*1e9);
 
@@ -106,6 +232,31 @@ for chan = 1:Nc
 end
 
 %% Apply fast time frequency domain window to sim_data and convert to time domain
-sim_data = ifft(sim_data .* repmat(param.src.ft_wind(Nt),[1 Nc Nx]));
+if 1 ||(isfield(param,'optimal_test') || isfield(param,'suboptimal_test'))
+  % For MOE: Sravya used flipped Hanning window
+  sim_data = ifft(sim_data .* repmat(ifftshift(param.src.ft_wind(Nt)),[1 Nc Nx]));
+else
+  % Other simulations: John used normal Hanning window
+  sim_data = ifft(sim_data .* repmat(param.src.ft_wind(Nt),[1 Nc Nx]));
+end
+
+% figure;imagesc(10*log10(abs(squeeze(sim_data(:,8,:)))));
+%% Debug:
+if 0
+  % Debug: Plot surface model. Here we plot the range-bins, but the targets are plotted in crosstrack.m
+  h = figure(1000);
+  hold on,circle(0,0,R_shell_values);
+  
+  ylim([-2500 -900])
+  xlabel('Cross-track, y (m) ')
+  ylabel('Range, z (m)')
+  set(h,'position',[194   280   655   586])
+  if param.dist_target_factor >1
+    title('Distributed targets in constant range cylinders, Uniformly sampled  in wavenumber','interpreter','Latex')
+  else
+    title('Point targets in constant range cylinders, Uniformly sampled in wavenumber','interpreter','Latex')
+  end
+  grid on
+end
 
 end

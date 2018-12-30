@@ -115,6 +115,33 @@ for file_idx = 1:length(in_fns)
       end
     end
     
+    %% Remove records with NaN
+    if isfield(sync_gps,'radar_time')
+      good_mask = ~(isnan(sync_gps.gps_time) | isnan(sync_gps.radar_time));
+      sync_gps.radar_time = sync_gps.radar_time(good_mask);
+    else
+      good_mask = ~(isnan(sync_gps.gps_time) | isnan(sync_gps.comp_time));
+    end
+    sync_gps.gps_time = sync_gps.gps_time(good_mask);
+    sync_gps.comp_time = sync_gps.comp_time(good_mask);
+    sync_gps.lat = sync_gps.lat(good_mask);
+    sync_gps.lon = sync_gps.lon(good_mask);
+    sync_gps.elev = sync_gps.elev(good_mask);
+    sync_gps.roll = sync_gps.roll(good_mask);
+    sync_gps.pitch = sync_gps.pitch(good_mask);
+    sync_gps.heading = sync_gps.heading(good_mask);
+    
+    %% Check for day wraps
+    % Find jumps in the GPS time that are probably due to day interval
+    % 86400 seconds.
+    day_jumps = find(diff(sync_gps.gps_time) < -60000);
+    if ~isempty(day_jumps)
+      warning('Found a day wrap in sync gps... correcting');
+    end
+    for jump_idx = day_jumps
+      sync_gps.gps_time(jump_idx+1:end) = sync_gps.gps_time(jump_idx+1:end) + 86400;
+    end
+    
     %% Check/make the sync GPS data monotonic in time in case it is not
     sync_gps = make_gps_monotonic(sync_gps);
   end
@@ -171,7 +198,7 @@ for file_idx = 1:length(in_fns)
   end
   
   %% Remove records with NaN
-  good_mask = ~(isnan(gps.gps_time(1:length(gps.gps_time))) | isnan(gps.lat) ...
+  good_mask = ~(isnan(gps.gps_time) | isnan(gps.lat) ...
     | isnan(gps.lon) | isnan(gps.elev) ...
     | isnan(gps.roll) | isnan(gps.pitch) | isnan(gps.heading));
   gps.gps_time = gps.gps_time(good_mask);
@@ -192,15 +219,6 @@ for file_idx = 1:length(in_fns)
   end
   for jump_idx = day_jumps
     gps.gps_time(jump_idx+1:end) = gps.gps_time(jump_idx+1:end) + 86400;
-  end
-  if exist('sync_flag','var') && sync_flag{file_idx}
-    day_jumps = find(diff(sync_gps.gps_time) < -60000);
-    if ~isempty(day_jumps)
-      warning('Found a day wrap in sync gps... correcting');
-    end
-    for jump_idx = day_jumps
-      sync_gps.gps_time(jump_idx+1:end) = sync_gps.gps_time(jump_idx+1:end) + 86400;
-    end
   end
 
   %% Check/make the GPS data monotonic in time in case it is not
