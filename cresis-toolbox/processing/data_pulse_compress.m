@@ -353,8 +353,11 @@ for img = 1:length(param.load.imgs)
           fs_rf = Mt_oversample*wfs(wf).fs_raw/hdr.DDC_dec{img}(rec);
           time = hdr.t0_raw{img}(rec) + 1/fs_rf * (0:Nt_rf-1).';
           for rec = 1:length(tds)
+
             fprintf('Simulating %d of %d\n', rec, length(tds));
             td = tds(rec);
+
+            hdr.bad_rec{img}(rec) = false;
             
             f_rf = wfs(wf).f0 + alpha*(time_raw_no_trim - hdr.surface(rec));
             if wfs(wf).f0 > wfs(wf).f1
@@ -415,6 +418,14 @@ for img = 1:length(param.load.imgs)
         freq_axes_changed = false;
         for rec = 1:size(data{img},2)
           
+          if hdr.bad_rec{img}(rec)
+            % Bad record, do nothing except make sure the record length is
+            % 0 so that the data record will be filled with NaN
+            hdr.Nt{img}(rec) = 0;
+            hdr.t0{img}(rec) = NaN;
+            continue;
+          end
+
           % Check to see if axes has changed since last record
           if rec == 1 ...
               || hdr.DDC_dec{img}(rec) ~= hdr.DDC_dec{img}(rec-1) ...
