@@ -148,12 +148,6 @@ end
 if ~any(strcmpi(track.init.max_diff_method,{'merge_vectors','interp_finite'}))
   error('Unsupported max diff method %s. Options are merge_vectors, interp_finite. The default is interp_finite unless a dem or reference layer is provided.', track.init.max_diff_method);
 end
-if ~isfield(track.init,'threshold_dB') || isempty(track.init.threshold_dB)
-  track.init.threshold_dB = 15;
-end
-if ~isfield(track.init,'threshold_noise_rng') || isempty(track.init.threshold_noise_rng)
-  track.init.threshold_noise_rng = [0 -inf inf];
-end
 
 if ~isfield(track,'filter') || isempty(track.filter)
   track.filter = [1 1];
@@ -208,6 +202,17 @@ if ~isfield(track,'sidelobe_rows') || isempty(track.sidelobe_rows) || ~isfield(t
   track.sidelobe_dB = [];
 end
 
+if ~isfield(track,'snake_rng') || isempty(track.snake_rng)
+  track.snake_rng = [-2e-7 2e-7];
+end
+
+if ~isfield(track,'threshold_dB') || isempty(track.threshold_dB)
+  track.threshold_dB = 15;
+end
+
+if ~isfield(track,'threshold_noise_rng') || isempty(track.threshold_noise_rng)
+  track.threshold_noise_rng = [0 -inf inf];
+end
 
 %% Load in ocean mask, land DEM, and sea surface DEM
 if isfield(track,'init') && strcmpi(track.init.method,'dem')
