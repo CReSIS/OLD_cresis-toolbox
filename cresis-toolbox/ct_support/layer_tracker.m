@@ -228,18 +228,22 @@ end
 
 %% Determine valid frames to process
 if nargout ~= 1
-  load(ct_filename_support(param,'','frames'));
-  if isempty(param.cmd.frms)
-    param.cmd.frms = 1:length(frames.frame_idxs);
-  end
-  % Remove frames that do not exist from param.cmd.frms list
-  [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-  if length(valid_frms) ~= length(param.cmd.frms)
-    bad_mask = ones(size(param.cmd.frms));
-    bad_mask(keep_idxs) = 0;
-    warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-      param.cmd.frms(find(bad_mask,1)));
-    param.cmd.frms = valid_frms;
+  frames_fn = ct_filename_support(param,'','frames');
+  if ~exist(frames_fn,'file')
+    warning('Cannot verify param.cmd.frms because frames file does not exist: %s.', frames_fn);
+  else
+    if isempty(param.cmd.frms)
+      param.cmd.frms = 1:length(frames.frame_idxs);
+    end
+    % Remove frames that do not exist from param.cmd.frms list
+    [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+    if length(valid_frms) ~= length(param.cmd.frms)
+      bad_mask = ones(size(param.cmd.frms));
+      bad_mask(keep_idxs) = 0;
+      warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
+        param.cmd.frms(find(bad_mask,1)));
+      param.cmd.frms = valid_frms;
+    end
   end
 end
 
@@ -282,7 +286,7 @@ for frm_idx = 1:length(param.cmd.frms)
         sprintf('Data_img_%02d_%s_%03d.mat', echogram_img, param.day_seg, frm));
     end
     [~,data_fn_name] = fileparts(data_fn);
-    fprintf('%d of %d %s (%s)\n', frm_idx, length(param.cmd.frms), data_fn, datestr(now,'HH:MM:SS'));
+    fprintf('%d of %d %s (%s)\n', frm_idx, length(param.cmd.frms), data_fn, datestr(now));
     
     if ~exist(data_fn,'file')
       warning('  Missing file\n');
