@@ -252,7 +252,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
             new_job_status = qstat_res{5}{idx};
             % Debug print
             if update_mode
-              fprintf(' QJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
+              fprintf(' Job %d:%d (%d) status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
             end
             ctrl.job_status(task_id) = new_job_status;
           end

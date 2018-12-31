@@ -146,11 +146,11 @@ elseif isstruct(ctrl_chain)
 
     if isempty(job_tasks) ...
         && ctrl.cluster.max_time_per_job < job_cpu_time + task_cpu_time;
-      error('ctrl.cluster.max_time_per_job is less than task %d''s requested time: %.0f sec', task_id, task_cpu_time);
+      error('ctrl.cluster.max_time_per_job is less than task %d:%d''s requested time: %.0f sec', ctrl.batch_id, task_id, task_cpu_time);
     end
     if ctrl.cluster.desired_time_per_job < job_cpu_time + task_cpu_time && ~isempty(job_tasks)
       [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);
-      fprintf('Submitted %d tasks in cluster job %d: (%s)\n  %s\n  %d: %d', length(job_tasks), ...
+      fprintf('Submitted %d tasks in cluster job (%d): (%s)\n  %s\n  %d: %d', length(job_tasks), ...
         new_job_id, datestr(now), ctrl.notes{job_tasks(1)}, ctrl.batch_id, job_tasks(1));
       if length(job_tasks) > 1
         fprintf(', %d', job_tasks(2:end));
@@ -176,7 +176,7 @@ elseif isstruct(ctrl_chain)
   
   if ctrl.active_jobs < ctrl.cluster.max_jobs_active && ~isempty(job_tasks)
     [ctrl,new_job_id] = cluster_submit_job(ctrl,job_tasks,job_cpu_time,job_mem);
-    fprintf('Submitted %d tasks in cluster job %d: (%s)\n  %s\n  %d: %d', length(job_tasks), ...
+    fprintf('Submitted %d tasks in cluster job (%d): (%s)\n  %s\n  %d: %d', length(job_tasks), ...
       new_job_id, datestr(now), ctrl.notes{job_tasks(1)}, ctrl.batch_id, job_tasks(1));
     if length(job_tasks) > 1
       fprintf(', %d', job_tasks(2:end));

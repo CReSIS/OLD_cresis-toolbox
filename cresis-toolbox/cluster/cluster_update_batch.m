@@ -144,7 +144,7 @@ if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
           if ctrl.job_status(task_id) ~= 'C'
             new_job_status = qstat_res{5}{idx};
             % Debug: Print a message for all changes besides running and exiting
-            fprintf(' QJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
+            fprintf(' Job %d:%d (%d) status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
             ctrl.job_status(task_id) = new_job_status;
             if any(ctrl.job_status(task_id) == 'C')
               % Get the output information
