@@ -229,8 +229,10 @@ for state_idx = 1:length(states)
                 raw_or_DDC = file_data(wf_hdr_offset + 48);
                 if raw_or_DDC
                   Nt(num_accum+1) = (stop_idx - start_idx);
+                  wfs(wf).complex = false;
                 else
                   Nt(num_accum+1) = floor((stop_idx - start_idx) / DDC_dec(num_accum+1));
+                  wfs(wf).complex = true;
                 end
               end
               
@@ -307,7 +309,7 @@ for state_idx = 1:length(states)
               %  - Supports arbitrary sample types
               %  - Supports interleaved data channels ("adcs")
               start_bin = 1+rec_offset + wfs(wf).offset + wfs(wf).time_raw_trim(1)*wfs(wf).adc_per_board*wfs(wf).sample_size;
-              stop_bin = start_bin + wfs(wf).Nt_raw*wfs(wf).adc_per_board*wfs(wf).sample_size-1;
+              stop_bin = start_bin + (1+wfs(wf).complex)*wfs(wf).Nt_raw*wfs(wf).adc_per_board*wfs(wf).sample_size-1;
               if swap_bytes_en
                 tmp = single(swapbytes(typecast(file_data(start_bin : stop_bin), wfs(wf).sample_type)));
               else

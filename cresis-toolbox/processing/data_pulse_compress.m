@@ -758,6 +758,8 @@ for img = 1:length(param.load.imgs)
           end
           
           
+          %% Pulse compress: FFT and Deskew
+          
           % Window and DFT (raw deramped time to regular time)
           tmp = fft(data{img}(H_idxs,rec,wf_adc) .* H_Nt);
           
