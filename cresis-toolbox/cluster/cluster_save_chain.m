@@ -27,7 +27,14 @@ function [chain_fn,chain_id] = cluster_save_chain(ctrl_chain,chain_id,print_mode
 %   cluster_update_batch, cluster_update_task
 
 %% Input Checks
-if isempty(ctrl_chain)
+good_chain_idx = [];
+for chain_idx = 1:length(ctrl_chain)
+  if ~isempty(ctrl_chain{chain_idx})
+    good_chain_idx = chain_idx;
+    break;
+  end
+end
+if isempty(ctrl_chain) || isempty(good_chain_idx)
   fprintf('ctrl_chain is empty. Nothing to save.\n');
   chain_fn = '';
   chain_id = [];
@@ -39,7 +46,7 @@ if nargin < 3 || isempty(print_mode)
 end
 
 %% Determine the new chain ID and chain filename
-data_location = ctrl_chain{1}{1}.cluster.data_location;
+data_location = ctrl_chain{good_chain_idx}{1}.cluster.data_location;
 
 chain_fns = get_filenames(data_location,'chain_','','',struct('type','f'));
 

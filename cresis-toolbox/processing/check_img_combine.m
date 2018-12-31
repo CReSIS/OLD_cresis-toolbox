@@ -45,7 +45,7 @@ for file_idx = 1:numel(data_fns)
   [data_fn_dir,data_fn_name] = fileparts(data_fn);
   
   clear mdata;
-  mdata{1} = load(data_fn);
+  mdata{1} = load_L1B(data_fn);
   
   %% Image of the file passed in
   h_fig = figure; clf(h_fig);
@@ -73,7 +73,7 @@ for file_idx = 1:numel(data_fns)
       data_img_fn = fullfile(data_fn_dir,[data_fn_name(1:5) sprintf('img_%02d_', img) data_fn_name(6:end) '.mat']);
     end
     if exist(data_img_fn,'file')
-      mdata{img+1} = load(data_img_fn);
+      mdata{img+1} = load_L1B(data_img_fn);
       img = img + 1;
     else
       done = true;
