@@ -225,13 +225,18 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       end
       
     elseif strcmpi(ctrl.cluster.type,'slurm')
-      qstat_res = textscan(result,'%s %s %s %s %s %s %s %s','Headerlines',1,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
+      qstat_res = textscan(result,'%s %s %s %s %s %s %s %*[^\n]','Headerlines',1,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
+      try
       for idx = 1:size(qstat_res{1},1)
         qstat_res{1}{idx} = str2double(qstat_res{1}{idx});
         qstat_res{5}{idx} = qstat_res{5}{idx}(1);
         if qstat_res{5}{idx} ~= 'C'
           ctrl.active_jobs = ctrl.active_jobs + 1;
         end
+      end
+      catch ME
+        ME.getReport
+        keyboard
       end
       qstat_res{7} = cell2mat(qstat_res{1});
       
@@ -252,7 +257,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
             new_job_status = qstat_res{5}{idx};
             % Debug print
             if update_mode
-              fprintf(' QJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
+              fprintf(' Job %d:%d (%d) status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
             end
             ctrl.job_status(task_id) = new_job_status;
           end

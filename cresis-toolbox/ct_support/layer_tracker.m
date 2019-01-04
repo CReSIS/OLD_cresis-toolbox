@@ -148,12 +148,6 @@ end
 if ~any(strcmpi(track.init.max_diff_method,{'merge_vectors','interp_finite'}))
   error('Unsupported max diff method %s. Options are merge_vectors, interp_finite. The default is interp_finite unless a dem or reference layer is provided.', track.init.max_diff_method);
 end
-if ~isfield(track.init,'threshold_dB') || isempty(track.init.threshold_dB)
-  track.init.threshold_dB = 15;
-end
-if ~isfield(track.init,'threshold_noise_rng') || isempty(track.init.threshold_noise_rng)
-  track.init.threshold_noise_rng = [0 -inf inf];
-end
 
 if ~isfield(track,'filter') || isempty(track.filter)
   track.filter = [1 1];
@@ -208,6 +202,17 @@ if ~isfield(track,'sidelobe_rows') || isempty(track.sidelobe_rows) || ~isfield(t
   track.sidelobe_dB = [];
 end
 
+if ~isfield(track,'snake_rng') || isempty(track.snake_rng)
+  track.snake_rng = [-2e-7 2e-7];
+end
+
+if ~isfield(track,'threshold_dB') || isempty(track.threshold_dB)
+  track.threshold_dB = 15;
+end
+
+if ~isfield(track,'threshold_noise_rng') || isempty(track.threshold_noise_rng)
+  track.threshold_noise_rng = [0 -inf inf];
+end
 
 %% Load in ocean mask, land DEM, and sea surface DEM
 if isfield(track,'init') && strcmpi(track.init.method,'dem')
@@ -228,18 +233,23 @@ end
 
 %% Determine valid frames to process
 if nargout ~= 1
-  load(ct_filename_support(param,'','frames'));
-  if isempty(param.cmd.frms)
-    param.cmd.frms = 1:length(frames.frame_idxs);
-  end
-  % Remove frames that do not exist from param.cmd.frms list
-  [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-  if length(valid_frms) ~= length(param.cmd.frms)
-    bad_mask = ones(size(param.cmd.frms));
-    bad_mask(keep_idxs) = 0;
-    warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-      param.cmd.frms(find(bad_mask,1)));
-    param.cmd.frms = valid_frms;
+  frames_fn = ct_filename_support(param,'','frames');
+  if ~exist(frames_fn,'file')
+    warning('Cannot verify param.cmd.frms because frames file does not exist: %s.', frames_fn);
+  else
+    load(frames_fn);
+    if isempty(param.cmd.frms)
+      param.cmd.frms = 1:length(frames.frame_idxs);
+    end
+    % Remove frames that do not exist from param.cmd.frms list
+    [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+    if length(valid_frms) ~= length(param.cmd.frms)
+      bad_mask = ones(size(param.cmd.frms));
+      bad_mask(keep_idxs) = 0;
+      warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
+        param.cmd.frms(find(bad_mask,1)));
+      param.cmd.frms = valid_frms;
+    end
   end
 end
 
@@ -282,7 +292,7 @@ for frm_idx = 1:length(param.cmd.frms)
         sprintf('Data_img_%02d_%s_%03d.mat', echogram_img, param.day_seg, frm));
     end
     [~,data_fn_name] = fileparts(data_fn);
-    fprintf('%d of %d %s (%s)\n', frm_idx, length(param.cmd.frms), data_fn, datestr(now,'HH:MM:SS'));
+    fprintf('%d of %d %s (%s)\n', frm_idx, length(param.cmd.frms), data_fn, datestr(now));
     
     if ~exist(data_fn,'file')
       warning('  Missing file\n');

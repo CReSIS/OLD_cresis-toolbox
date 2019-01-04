@@ -30,7 +30,7 @@ param.config.tx_enable = [1];
 
 %% CReSIS parameters
 param.config.cresis.clk = 125e6;
-param.config.cresis.expected_rec_sizes = [60480      120864      181296];
+param.config.cresis.expected_rec_sizes = [30288 60480      120864      181296];
 
 %% Command worksheet
 default.cmd.records = 1;
@@ -112,7 +112,7 @@ default.array.Nsig = 2;
 
 %% Radar worksheet
 default.radar.prf = 1/256e-6;
-default.radar.fs = 250e6;
+default.radar.fs = 125e6;
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = []; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
@@ -122,7 +122,7 @@ chan_equal_dB = [0];
 chan_equal_deg = [0];
 for wf = 1:2
   default.radar.wfs(wf).fmult = 16;
-  default.radar.wfs(wf).fLO = 20e9;
+  default.radar.wfs(wf).fLO = -20e9;
   default.radar.wfs(wf).tx_weights = 0.1; % Watts
   default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
@@ -158,8 +158,8 @@ defaults = {};
 
 % Survey Mode 2-18 GHz
 for wf = 1:2
-  default.radar.wfs(wf).f0 = 2e9;
-  default.radar.wfs(wf).f1 = 18e9;
+  default.radar.wfs(wf).f0 = 2.375e9;
+  default.radar.wfs(wf).f1 = 1.375e9;
   default.radar.wfs(wf).Tpd = 240e-6;
   default.radar.wfs(wf).BW_window = [2.7e9 17.5e9];
   default.radar.wfs(wf).t_ref = -0.000000040063;

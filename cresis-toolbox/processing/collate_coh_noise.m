@@ -27,9 +27,11 @@ fprintf('=====================================================================\n
 if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
   param.collate_coh_noise.cmd_idx = 1;
 end
-
 cmd = param.analysis.cmd{param.collate_coh_noise.cmd_idx};
-debug_level = param.collate_coh_noise.debug_level;
+
+if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
+  param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
+end
 
 if ~isfield(param.collate_coh_noise,'in_dir') || isempty(param.collate_coh_noise.in_dir)
   param.collate_coh_noise.in_dir = 'analysis';
@@ -39,16 +41,19 @@ if ~isfield(param.collate_coh_noise,'out_dir') || isempty(param.collate_coh_nois
   param.collate_coh_noise.out_dir = 'analysis';
 end
 
-if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
-  param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
+if ~isfield(param.collate_coh_noise,'plot_en') || isempty(param.collate_coh_noise.plot_en)
+  param.collate_coh_noise.plot_en = false;
+end
+
+if ~isfield(param.collate_coh_noise,'threshold_eval') || isempty(param.collate_coh_noise.threshold_eval)
+  % Default is no evaluation
+  % Example of how to use evaluation:
+  %   params(param_idx).collate_coh_noise.threshold_eval{wf} = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+  param.collate_coh_noise.threshold_eval = {};
 end
 
 if ~isfield(param.collate_coh_noise,'wf_adcs') || isempty(param.collate_coh_noise.wf_adcs)
   param.collate_coh_noise.wf_adcs = [];
-end
-
-if ~isfield(param.collate_coh_noise,'plot_en') || isempty(param.collate_coh_noise.plot_en)
-  param.collate_coh_noise.plot_en = false;
 end
 
 if ~isfield(cmd,'dft_corr_length') || isempty(cmd.dft_corr_length)
@@ -169,18 +174,17 @@ for img = param.collate_coh_noise.imgs
       end
     end
     orig_threshold = threshold;
-    Tpd_bin  = round(param.radar.wfs(wf).Tpd/noise.dt) - start_bin;
-    if any(wf == [1 2])
-      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
-    elseif any(wf == [3 4])
-      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-130)=-130; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
-    elseif any(wf == [5 6])
-      param.collate_coh_noise.threshold_eval = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-142)=-142; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
-    else
-      keyboard
+    if ~isempty(param.collate_coh_noise.threshold_eval)
+      if numel(param.collate_coh_noise.threshold_eval) < wf
+        error('If param.collate_coh_noise.threshold_eval is specified, there must be a cell entry for each waveform that is used. Waveform %d cannot be found since numel(param.collate_coh_noise.threshold_eval)=%d',wf,numel(param.collate_coh_noise.threshold_eval));
+      end
+
+      Tpd_bin  = round(param.radar.wfs(wf).Tpd/noise.dt) - start_bin;
+      %figure(100); plot(threshold); hold on;
+      % Example:
+      %param.collate_coh_noise.threshold_eval{wf} = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+      eval(param.collate_coh_noise.threshold_eval{wf});
     end
-%     figure(100); plot(threshold); hold on;
-    eval(param.collate_coh_noise.threshold_eval);
     
     if param.collate_coh_noise.plot_en
       dxt = mean_without_outliers(diff(noise.gps_time));
@@ -196,43 +200,51 @@ for img = param.collate_coh_noise.imgs
       cn_before(mask) = 0;
       imagesc(fx, [], fftshift(lp( fft(cn_before,[],2) ),2), 'parent', h_axes(1));
       cn_before(mask) = NaN;
-      cc=caxis(h_axes(1));
       title(h_axes(1), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(1), 'Range bin');
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       fig_fn_dir = fileparts(fig_fn);
       if ~exist(fig_fn_dir,'dir')
         mkdir(fig_fn_dir);
       end
       saveas(h_fig(1),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
-      fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(1),fig_fn);
+      size_fig = whos('cn_before');
+      if size_fig.bytes < 1e9
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        saveas(h_fig(1),fig_fn);
+      end
       
       cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
       imagesc(lp(cn_before),'parent',h_axes(2));
       title(h_axes(2), sprintf('Before %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(2), 'Range bin');
       xlabel(h_axes(2), 'Block');
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.fig'];
-      fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(2),fig_fn);
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       saveas(h_fig(2),fig_fn);
+      if size_fig.bytes < 1e9
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        saveas(h_fig(2),fig_fn);
+      end
       
       imagesc(lp(cn_after),'parent',h_axes(3));
+      cc=caxis(h_axes(2));
       caxis(h_axes(3), cc);
       title(h_axes(3), sprintf('After %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       xlabel(h_axes(3), 'Block');
       ylabel(h_axes(3), 'Range bin');
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
-      fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(3),fig_fn);
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       saveas(h_fig(3),fig_fn);
+      if size_fig.bytes < 1e9
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        saveas(h_fig(3),fig_fn);
+      end
       
       linkaxes(h_axes(2:3));
       
@@ -247,10 +259,10 @@ for img = param.collate_coh_noise.imgs
       title(h_axes(4), sprintf('Threshold %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       param.collate_coh_noise.threshold_ylims = [-180 -20];
       ylim(h_axes(4),param.collate_coh_noise.threshold_ylims);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       saveas(h_fig(4),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
       saveas(h_fig(4),fig_fn);
 
