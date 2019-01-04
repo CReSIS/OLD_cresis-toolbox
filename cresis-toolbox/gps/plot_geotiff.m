@@ -43,12 +43,18 @@ R = R/1e3;
 if ~exist('h_fig','var') || isempty(h_fig)
   h_fig = figure;
   h_axes = axes('parent',h_fig);
-elseif length(h_fig) == 1
-  clf(h_fig);
-  h_axes = axes('parent',h_fig);
-elseif length(h_fig) == 2
-  h_axes = h_fig(2);
-  h_fig = h_fig(1);
+else
+  if isnumeric(h_fig(1)) && ~ishandle(h_fig(1))
+    % User supplied a new figure number to use
+    h_fig = figure(h_fig);
+    h_axes = axes('parent',h_fig);
+  elseif length(h_fig) == 1
+    clf(h_fig);
+    h_axes = axes('parent',h_fig);
+  elseif length(h_fig) == 2
+    h_axes = h_fig(2);
+    h_fig = h_fig(1);
+  end
 end
 if 0
   % DEBUG
