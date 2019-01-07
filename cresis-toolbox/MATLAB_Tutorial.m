@@ -3032,8 +3032,8 @@ if section_number == 12
   param.day_seg = '20110414_04';
   param.cmd.frms = 1;
   param.post.ops.location = 'arctic';
-  % global gRadar;
-  % param = merge_structs(param,gRadar);
+  global gRadar;
+  param = merge_structs(param,gRadar);
   
   % Before we load the data, we must the layers themselves (in this case
   % top and bottum) and their source (ops).
@@ -3105,6 +3105,70 @@ if section_number == 12
   xlabel('Range line');
   ylabel('Depth (m)')
   colormap(1-gray(256))
+  
+  
+  %% Load echogram and layerData and sync + extract bottom power
+  
+  % Step 1: Load echogram file
+  % echogram_fn: filename to L1B echogram data file, typical path might be:
+  %   echogram_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2011_Antarctica_DC8/CSARP_standard/20111014_07/Data_20111014_07_005.mat';
+  echogram_fn = fullfile(data_folder_path,'CRESIS_MAT_ECHODATA.mat');
+  % load_L1B: General cresis toolbox function that loads compressed
+  % echograms and netcdf files in addition to the standard format.
+  %mdata = load_L1B(fn);
+  mdata = load(echogram_fn);
+  
+  % Step 2: Load layerData file
+  % layer_fn: filename to layerData L2 layer file, typical path might be:
+  %   layer_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2011_Antarctica_DC8/CSARP_layerData/20111014_07/Data_20111014_07_005.mat';
+  layer_fn = fullfile(data_folder_path,'CRESIS_MAT_DATA.mat');
+  lay = load(layer_fn);
+  
+  % Step 3: Synchronize layer data with echogram data
+  %  Units are two way travel time (twtt) in seconds
+  %  Layer 1 is surface
+  %  Layer 2 is bottom
+  %  Value 2 is the full layer info, value 1 has just the manually entered points
+  mdata.Surface = interp1(lay.GPS_time,lay.layerData{1}.value{2}.data,mdata.GPS_time);
+  mdata.Bottom = interp1(lay.GPS_time,lay.layerData{2}.value{2}.data,mdata.GPS_time);
+  
+  % Step 4: Surface and Bottom converted to rows/range-bins from twtt
+  mdata.Surface_Bin = interp1(mdata.Time,1:length(mdata.Time),mdata.Surface);
+  mdata.Bottom_Bin = interp1(mdata.Time,1:length(mdata.Time),mdata.Bottom);
+
+  % Step 5: Plot echogram with synchronized layer data
+  figure;
+  imagesc(lp(mdata.Data));
+  xlabel('Range lines');
+  ylabel('Range bins');
+  hcolor = colorbar;
+  set(get(hcolor,'YLabel'),'string','Relative power (dB)');
+  hold on;
+  plot(mdata.Surface_Bin);
+  plot(mdata.Bottom_Bin);
+  hold off;
+  
+  % Step 6: Extract max bottom scattering power
+  Nt = size(mdata.Data,1);
+  Nx = size(mdata.Data,2);
+  mdata.Bottom_Power_dB = zeros(1,Nx);
+  % rbin_relative_search_rng: Search in a range around the bottom pick to
+  % find the maximum power returned To return just the pixel power at the
+  % bottom bin, set rbin_relative_search_rng = [0 0].
+  rbin_relative_search_rng = [-5 10];
+  for rline = 1:Nx
+    rbin_search_rng = max(1,round(mdata.Bottom_Bin(rline))+rbin_relative_search_rng(1)) ...
+      : min(Nt, round(mdata.Bottom_Bin(rline))+rbin_relative_search_rng(end));
+    mdata.Bottom_Power_dB(rline) = max(10*log10(mdata.Data(rbin_search_rng, rline)));
+  end
+
+  % Step 7: Plot max bottom scattering power
+  figure;
+  plot(mdata.Bottom_Power_dB);
+  xlabel('Range lines');
+  ylabel('Bottom relative power (dB)');
+  grid on;
+  
   
 end
     
