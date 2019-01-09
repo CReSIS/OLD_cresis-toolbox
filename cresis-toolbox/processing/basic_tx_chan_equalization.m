@@ -76,6 +76,7 @@ fprintf('Enter the mode:\n');
 fprintf(' 1: Validation\n');
 fprintf(' 2: Create new settings file (STEP ONE: updates delay)\n')
 fprintf(' 3: Create new settings file (STEP TWO: updates amplitude and phase)\n')
+fprintf(' 4: Create new settings file (ALTERNATE STEP TWO: fixes amplitude at maximum and only updates phase)\n')
 if isempty(g_basic_tx_chan_equalization_mode)
   default_mode = 1;
 else
@@ -103,6 +104,13 @@ elseif update_mode == 3
   update_delay = false;
   % update_amplitude: logical which causes the DDS RAM (amplitude) values to be updated
   update_amplitude = true;
+  % update_phase: logical which causes the DDS phase values to be updated
+  update_phase = true;
+elseif update_mode == 4
+  % STEP TWO: updates amplitude and phase
+  update_delay = false;
+  % keep_amplitude: logical which keeps DDS RAM (amplitude) maximum values 
+  update_amplitude = false;
   % update_phase: logical which causes the DDS phase values to be updated
   update_phase = true;
 else
@@ -383,7 +391,7 @@ for file_idx = 1:length(fns)
       wf = abs(param.wf_mapping(chan));
       ref_power = tx_powers(chan,:)./tx_powers(param.ref_chan,:);
       
-      if chan == param.ref_chan
+      if chan == param.ref_chan  || update_mode == 4
         median_mask = ones(size(good_rlines));
         delta_power(chan) = 0;
       else
