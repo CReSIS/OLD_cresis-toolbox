@@ -1,4 +1,4 @@
-% script make_coverage_maps.m
+ % script make_coverage_maps.m
 % 
 % Author: Rohan Choudhari
 
@@ -44,18 +44,14 @@ function test_make_coverage_maps(params, user_variables)
 global gRadar;
 yyyymmdd_list = {};
 
-
+% ***** OUTDATED, UPDATE *****
 %Set the title for the figure, initialize required variables
 if strcmp(user_variables.data_source,'gps') || strcmp(user_variables.data_source,'records')
   title(strcat(params(1).season_name,'_coverage_map'),'Interpreter','none');
   fprintf('  Creating coverage map for %s: \n', params(1).season_name);
 elseif strcmp(user_variables.data_source,'layer')
-  fprintf('  Creating coverage map for %s: \n', user_variables.season_name);
-  
-  % for plotting the quality of data
-  bad_data_handles = [];
-  moderate_data_handles = [];
-  good_data_handles = [];
+%   fprintf('  Creating coverage map for %s: \n', user_variables.season_name);
+
   
   bottom = [];
   quality = [];
@@ -196,203 +192,253 @@ if strcmp(user_variables.data_source,'gps') || strcmp(user_variables.data_source
     
   end
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 elseif strcmp(user_variables.data_source,'layer')
+  
+  %Getting the layer params 
   layer_params = user_variables.layer_params;
   
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  x_red = [];
-  x_magenta = [];
-  x_yellow = [];
-  x_green = [];
-  y_red = [];
-  y_yellow = [];
-  y_green = [];
-  y_magenta = [];
-  
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      
-        
-  for season_idx = 1:length(params)
-    fprintf('Loading season %s \n',  user_variables.season_stats{season_idx}.details.season);
-        
-    points_before = 0;
-    points_after = 0;
-    user_variables.season_stats{season_idx}.seg = {};
+  % Colorwise handles
+  good_data_handles = [];
+  mod_data_handles = [];
+  mag_data_handles = [];
+  bad_data_handles = [];
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% AGGREGATE METHOD %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  if strcmpi(user_variables.method,'agg')
     
-    segs = {};
-    for param_idx = 1:length(params{season_idx})
-      param = params{season_idx}(param_idx);
-      param = merge_structs(param,gRadar);
-      seg = {};
-      seg.name = param.day_seg;
-      try
-        layer = opsLoadLayers(param,layer_params);
-      catch
-%         fprintf('%s not found\n', param.day_seg);
-        continue;
-      end
+    %Arrays store points to be plotted on the map
+    x_red = [];
+    x_magenta = [];
+    x_yellow = [];
+    x_green = [];
+    y_red = [];
+    y_yellow = [];
+    y_green = [];
+    y_magenta = [];
+    
+    
+    %Looping through seasons
+    for season_idx = length(params):-1:1
       
-%       fprintf('opsLoadLayers %s\n', param.day_seg);
+      %Reinitializing for each season
+      x_red = [];
+      x_magenta = [];
+      x_yellow = [];
+      x_green = [];
+      y_red = [];
+      y_yellow = [];
+      y_green = [];
+      y_magenta = [];
       
-      if isempty(layer)
-        continue;
-      end;
-      for layer_idx = 1:length(layer)
+      
+      fprintf('Loading season %s \n',  user_variables.season_names{season_idx});
+      
+      %Looping through the params of the season
+      for param_idx = 1:length(params{season_idx})
         
-        if length(layer(layer_idx).lat) ~= length(layer(layer_idx).type)
-          fprintf('    Bad file\n');
+        fprintf('Param %d \n', param_idx);
+        param = params{season_idx}(param_idx);
+        param = merge_structs(param,gRadar);
+        
+        if(strcmp(param.day_seg(1:end-3), '20100402'))
+          disp('Found');
+        else
           continue;
         end
-        along_track = geodetic_to_along_track(layer(layer_idx).lat,layer(layer_idx).lon,zeros(size(layer(layer_idx).lat)));
-        idxs = get_equal_alongtrack_spacing_idxs(along_track,500);
-        points_before = points_before + length(along_track);
-        points_after = points_after + length(idxs);
         
-        for idx = 1:(length(idxs)-1)
-          bottom_sec = isfinite(layer(layer_idx).twtt(idxs(idx):idxs(idx+1)-1));
-          quality_sec = layer(layer_idx).quality(idxs(idx):idxs(idx+1)-1);
-          [x_sec,y_sec] = projfwd(user_variables.proj,layer(layer_idx).lat(idxs(idx):idxs(idx+1)-1),layer(layer_idx).lon(idxs(idx):idxs(idx+1)-1));
-          x_sec = x_sec/1e3;
-          y_sec = y_sec/1e3;
-          
-          red = isnan(quality_sec);
-          magenta = quality_sec==3;
-          yellow = bottom_sec==1 & (quality_sec==1 | quality_sec==2);
-          green = bottom_sec==1 & quality_sec==1;
-          
-          if(all(green==1))
-            x_green = cat(2, x_green,x_sec(round(length(green)/2)));
-            y_green = cat(2, y_green,y_sec(round(length(green)/2)));
-          elseif(all(yellow==1))
-            x_yellow = cat(2, x_yellow,x_sec(round(length(yellow)/2)));
-            y_yellow = cat(2, y_yellow,y_sec(round(length(yellow)/2)));
-          elseif(all(red==1))
-            x_red = cat(2, x_red,x_sec(round(length(red)/2)));
-            y_red = cat(2, y_red,y_sec(round(length(red)/2)));
-          end
-          if(any(magenta==1))
-            x_magenta = cat(2, x_magenta,x_sec(round(length(magenta)/2)));
-            y_magenta = cat(2, y_magenta,y_sec(round(length(magenta)/2)));
-          end
-          
+        %Reading layerData
+        try
+          layer = opsLoadLayers(param,layer_params);
+        catch
+          continue;
         end
         
+        if isempty(layer)
+          continue;
+        end;
         
-        
-        %         bottom = cat(2,bottom,isfinite(layer(layer_idx).twtt(idxs)));
-        %         quality = cat(2,quality,layer(layer_idx).quality(idxs));
-        %         [x_tmp,y_tmp] = projfwd(user_variables.proj,layer(layer_idx).lat(idxs),layer(layer_idx).lon(idxs));
-        %         x = cat(2,x,x_tmp/1e3);
-        %         y = cat(2,y,y_tmp/1e3);
+        %Looping through the layer data
+        for layer_idx = 1:length(layer)
+          
+          %Checking for bad file
+          if length(layer(layer_idx).lat) ~= length(layer(layer_idx).type)
+            fprintf('    Bad file\n');
+            continue;
+          end
+          
+          %Getting the spacing indexes
+          along_track = geodetic_to_along_track(layer(layer_idx).lat,layer(layer_idx).lon,zeros(size(layer(layer_idx).lat)));
+          idxs = get_equal_alongtrack_spacing_idxs(along_track,500);
+          
+          %Looping through the spacing index
+          for idx = 1:(length(idxs)-1)
+            
+            %Aggregating points between indexes
+            %bottom_sec: logical vector, true if points exists
+            bottom_sec = isfinite(layer(layer_idx).twtt(idxs(idx):idxs(idx+1)-1));
+            quality_sec = layer(layer_idx).quality(idxs(idx):idxs(idx+1)-1);
+            % If point does not exist, then set its quality to NaN
+            quality_sec(~bottom_sec) = NaN;
+            % Assume good quality for all points that exist, but have NaN
+            % quality.
+            quality_sec(bottom_sec & isnan(quality_sec)) = 1;
+            [x_sec,y_sec] = projfwd(user_variables.proj,layer(layer_idx).lat(idxs(idx):idxs(idx+1)-1),layer(layer_idx).lon(idxs(idx):idxs(idx+1)-1));
+            x_sec = x_sec/1e3;
+            y_sec = y_sec/1e3;
+            
+            %If the vector satisfies any condition, the middle point is
+            %selected to be plotted.
+            %if(all(green==1))
+            if all(quality_sec==1)
+              x_green(end+1) = mean(x_sec);
+              y_green(end+1) = mean(y_sec);
+            %elseif(all(yellow==1))
+            elseif all(quality_sec==1 | quality_sec==2)
+              x_yellow(end+1) = mean(x_sec);
+              y_yellow(end+1) = mean(y_sec);
+%               x_yellow = cat(2, x_yellow,x_sec(round(length(yellow)/2)));
+%               y_yellow = cat(2, y_yellow,y_sec(round(length(yellow)/2)));
+            %elseif(all(red==1))
+            elseif all(isnan(quality_sec))
+              x_red(end+1) = mean(x_sec);
+              y_red(end+1) = mean(y_sec);
+%               x_red = cat(2, x_red,x_sec(round(length(red)/2)));
+%               y_red = cat(2, y_red,y_sec(round(length(red)/2)));
+            else
+              %if(any(magenta==1))
+              x_magenta(end+1) = mean(x_sec);
+              y_magenta(end+1) = mean(y_sec);
+%               x_magenta = cat(2, x_magenta,x_sec(round(length(magenta)/2)));
+%               y_magenta = cat(2, y_magenta,y_sec(round(length(magenta)/2)));
+            end
+            
+          end
+        end
+       
+      
       end
-      %       seg.before = length(along_track);
-      %       seg.after = length(idxs);
-      %       user_variables.season_stats{season_idx}.seg{end+1} = seg;
-      %       fprintf('\t%s\t%s\t%d\t%d\n', user_variables.season_stats{season_idx}.details.season, param.day_seg, seg.before, seg.after);
+      
+      %Plotting
+      if ~isempty(x_green)
+        good_data_handles(season_idx) = plot(x_green, y_green,'g.');
+      else
+        good_data_handles(season_idx) = plot(1,NaN,'g.');
+      end
+      
+      if ~isempty(x_yellow)      
+        mod_data_handles(season_idx) = plot(x_yellow, y_yellow,'y.');
+      else
+        mod_data_handles(season_idx) = plot(1,NaN,'y.');
+      end
+      
+      if ~isempty(x_magenta)      
+        mag_data_handles(season_idx) = plot(x_magenta, y_magenta,'m.');
+      else
+        mag_data_handles(season_idx) = plot(1,NaN,'m.');
+      end
+      
+      if ~isempty(x_red)      
+        bad_data_handles(season_idx) = plot(x_red, y_red,'r.');
+      else
+        bad_data_handles(season_idx) = plot(1,NaN,'r.');
+      end
 
+      
     end
-      plot(x_green,y_green,'g.');
-      plot(x_yellow,y_yellow,'y.');
-      plot(x_magenta,y_magenta,'m.');
-      plot(x_red,y_red,'r.');
+      
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLAIN DECIMATION METHOD %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  elseif strcmpi(user_variables.method,'dec')
     
-%     user_variables.season_stats{season_idx}.details.before = points_before;
-%     user_variables.season_stats{season_idx}.details.after = points_after;
-%     fprintf('\t%s\t%d\t%d\n', user_variables.season_stats{season_idx}.details.season, points_after, points_before);
-     
-
-
-
-
-
-
-
-
-
+        
+    % for plotting the quality of data
+    bad_data_handles = [];
+    moderate_data_handles = [];
+    good_data_handles = [];
     
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% AGGREGATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %     no_data = bottom==0;
-% %     no_data = isnan(quality);
-% %     good_or_moderate = bottom==1 & (quality==1 | quality==2);
-% %     good = bottom==1 & quality==1;
-% %     
-%     
-%     length_quality = length(quality);
-%     club = 15;
-%     parts = fix(length_quality/club);
-%     leftover = length_quality - (parts*club);
-%     
-%     dim(1:1, 1:parts) = club;
-%     dim = cat(2, dim, leftover);
-%     grouped = mat2cell(quality, 1, dim);
-%     grouped_bottom = mat2cell(bottom, 1, dim);
-%     grouped_x = mat2cell(x, 1, dim);
-%     grouped_y = mat2cell(y, 1, dim);
-%     
-%     for row_idx = 1:length(grouped)
-% %       no_data = grouped_bottom{row_idx}==0;
-%       red = isnan(grouped{row_idx});
-%       magenta = grouped{row_idx}==3;
-%       yellow = grouped_bottom{row_idx}==1 & (grouped{row_idx}==1 | grouped{row_idx}==2);
-%       green = grouped_bottom{row_idx}==1 & grouped{row_idx}==1;
-%       
-%       x_plot = grouped_x{row_idx};
-%       y_plot = grouped_y{row_idx};
-%       
-%       if(all(green==1))
-%         x_green = cat(2, x_green,x_plot(round(length(green)/2))); 
-%         y_green = cat(2, y_green,y_plot(round(length(green)/2))); 
-% %         plot(x_plot(round(length(green)/2)),y_plot(round(length(green)/2)),'g.');
-%       elseif(all(yellow==1))        
-%         x_yellow = cat(2, x_yellow,x_plot(round(length(yellow)/2))); 
-%         y_yellow = cat(2, y_yellow,y_plot(round(length(yellow)/2))); 
-% %         plot(x_plot(round(length(yellow)/2)),y_plot(round(length(yellow)/2)),'y.');
-%       elseif(all(red==1))
-%         x_red = cat(2, x_red,x_plot(round(length(red)/2))); 
-%         y_red = cat(2, y_red,y_plot(round(length(red)/2)));
-% %         plot(x_plot(round(length(red)/2)),y_plot(round(length(red)/2)),'r.');
-%       end
-%       if(any(magenta==1))
-%         x_magenta = cat(2, x_magenta,x_plot(round(length(magenta)/2)));
-%         y_magenta = cat(2, y_magenta,y_plot(round(length(magenta)/2)));
-%       end
-%     end
-%     
-%   
+    for season_idx = 1:length(params)
+      for param_idx = 1:length(params{season_idx})
+        param = params{season_idx}(param_idx);
+        param = merge_structs(param,gRadar);
+        
+        try
+          layer = opsLoadLayers(param,layer_params);
+        catch
+          continue;
+        end
+        
+        if isempty(layer)
+          continue;
+        end;
+        
+        for layer_idx = 1:length(layer)
+        
+          if length(layer(layer_idx).lat) ~= length(layer(layer_idx).type)
+            fprintf('    Bad file\n');
+            continue;
+          end
+          
+          along_track = geodetic_to_along_track(layer(layer_idx).lat,layer(layer_idx).lon,zeros(size(layer(layer_idx).lat)));
+          idxs = get_equal_alongtrack_spacing_idxs(along_track,500);
+    
+          bottom = cat(2,bottom,isfinite(layer(layer_idx).twtt(idxs)));
+          quality = cat(2,quality,layer(layer_idx).quality(idxs));
+          [x_tmp,y_tmp] = projfwd(user_variables.proj,layer(layer_idx).lat(idxs),layer(layer_idx).lon(idxs));
+          x = cat(2,x,x_tmp/1e3);
+          y = cat(2,y,y_tmp/1e3);
+        end
+      end
+      
+      no_bottom_mask = bottom==0;
+      moderate_mask = bottom==1 & quality > 1;
+      bottom_mask = bottom==1 & ~moderate_mask;
+      
+      if any(no_bottom_mask)
+        bad_data_handles(season_idx) = plot(x(no_bottom_mask),y(no_bottom_mask),'r.');
+      else
+        bad_data_handles(season_idx) = plot(1,NaN,'r.');
+      end
+      if any(moderate_mask)
+        moderate_data_handles(season_idx) = plot(x(moderate_mask),y(moderate_mask),'y.');
+      else
+        moderate_data_handles(season_idx) = plot(1,NaN,'y.');
+      end
+      if any(bottom_mask)
+        good_data_handles(season_idx) = plot(x(bottom_mask),y(bottom_mask),'g.');
+      else
+        good_data_handles(season_idx) = plot(1,NaN,'g.');
+      end
+      
+    end
+    
+  end
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PLAIN DECIMATION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%     no_bottom_mask = bottom==0;
-%     moderate_mask = bottom==1 & quality > 1;
-%     bottom_mask = bottom==1 & ~moderate_mask;
-%     
-%     if any(no_bottom_mask)
-%       bad_data_handles(season_idx) = plot(x(no_bottom_mask),y(no_bottom_mask),'r.');
-%     else
-%       bad_data_handles(season_idx) = plot(1,NaN,'r.');
-%     end
-%     if any(moderate_mask)
-%       moderate_data_handles(season_idx) = plot(x(moderate_mask),y(moderate_mask),'y.');
-%     else
-%       moderate_data_handles(season_idx) = plot(1,NaN,'y.');
-%     end
-%     if any(bottom_mask)
-%       good_data_handles(season_idx) = plot(x(bottom_mask),y(bottom_mask),'g.');
-%     else
-%       good_data_handles(season_idx) = plot(1,NaN,'g.');
-%     end
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  end
   
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%   plot(x_green,y_green,'g.');
-%   plot(x_yellow,y_yellow,'y.');
-%   plot(x_red,y_red,'r.');
-%   plot(x_magenta,y_magenta,'m.');
-  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
 
     % saving the coverage map
     if user_variables.save_img == 1
@@ -402,7 +448,9 @@ elseif strcmp(user_variables.data_source,'layer')
 %           image_fn = fullfile(user_variables.out_dir,image_fn_name);
 %           saveas(figure(1), image_fn);
 
-          image_fn_name = sprintf('aggregate_greenland_master_coverage_map_%s', date);
+%           image_fn_name = sprintf('aggregate_greenland_master_coverage_map_%s', date);
+          
+          image_fn_name = sprintf('modified201617test_%s', date);  
           image_fn = fullfile(user_variables.out_dir,image_fn_name);
           savefig(figure(1), image_fn, 'compact');
 

@@ -1096,7 +1096,18 @@ if (strcmpi(param.season_name,'2018_Greenland_P3') && strcmpi(radar_name,'rds'))
     || (strcmpi(param.season_name,'2012_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2011_Greenland_P3') && strcmpi(radar_name,'rds')) ...
     || (strcmpi(param.season_name,'2010_Greenland_P3') && strcmpi(radar_name,'rds'))
-  % Center elements left to right
+  
+  % Offsets from the ground plane (based on the CAD model)
+  if 1
+    XYZ_offset = ...
+      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0; ...
+      1.8, 0.4, 1.5, 0, -1.5, -0.4, -1.8, 2, 2, 2.1, 2.1, -2.1, -2.1, -2, -2; ...
+      -15.4, -14.8, -16.5, -13.3, -16.5, -14.8, -15.4, -16.7, -16.7, -16.7, -16.7, -16.7, -16.7, -16.7, -16.7];
+  else
+    XYZ_offset = zeros(3,15);
+  end
+ 
+  % Center elements left to right (in inches)
   LArx(:,1) = [-587.7	-88.6	-72.8];
   LArx(:,2) = [-587.7	-58.7	-71];
   LArx(:,3) = [-587.7	-30.4	-69.2];
@@ -1104,17 +1115,21 @@ if (strcmpi(param.season_name,'2018_Greenland_P3') && strcmpi(radar_name,'rds'))
   LArx(:,5) = [-587.7	30.4	-69.2];
   LArx(:,6) = [-587.7	58.7	-71];
   LArx(:,7) = [-587.7	88.6	-72.8];
-  % Left outer elements, left to right
+  % Left outer elements, left to right (in inches)
   LArx(:,8) = [-586.3	-549.2	-128.7];
   LArx(:,9) = [-586.3	-520.6	-125.2];
   LArx(:,10) = [-586.3	-491.2	-121.6];
   LArx(:,11) = [-586.3	-462.2	-118.1];
-  % Right outer elements, left to right
+  % Right outer elements, left to right (in inches)
   LArx(:,12) = [-586.3	462.2	-118.1];
   LArx(:,13) = [-586.3	491.2	-121.6];
   LArx(:,14) = [-586.3	520.6	-125.2];
   LArx(:,15) = [-586.3	549.2	-128.7];
   
+  % Add offsets from ground plane
+  LArx = LArx + XYZ_offset;
+  
+  % Convert to meters units and add gps trajectory position
   LArx(1,:)   = LArx(1,:)*0.0254 - gps.x;
   LArx(2,:)   = LArx(2,:)*0.0254 - gps.y;
   LArx(3,:)   = LArx(3,:)*0.0254 - gps.z;

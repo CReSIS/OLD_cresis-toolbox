@@ -32,7 +32,7 @@ function [Data, DCM, imp_resp, DCM_fd] = doa_wideband_data(param)
 %   lever_arm.m
 % =========================================================================
 physical_constants
-% rng default
+% rng default % For reproducibility, if needed
 
 if ~exist('param.src.noise.en','var')
   param.src.noise.en = 1;
@@ -45,6 +45,12 @@ Psig_dB     = param.src.SNR;
 Ps          = 10.^(Psig_dB./10);
 sigma_n     = sqrt(1/2);                    % assumes unity noise power
 Q           = numel(param.src.DOAs);     % number of sources
+if isfield(param.src,'DOAs_MP')
+  Q_MP = numel(param.src.DOAs_MP);
+else
+  param.src.DOAs_MP = [];
+  Q_MP = 0;
+end
 Num_sens    = length(param.src.y_pc); % number of sensors
 fs          = param.src.fs;               % sampling frequency
 BW          = param.src.f1 - param.src.f0; % chirp BW
@@ -59,7 +65,7 @@ src_params = param.src;
 if isfield(src_params,'tx_weights') && ~isempty(src_params.tx_weights)
   comp_tx_weight = src_params.tx_weights;
 else
-  comp_tx_weight = ones(Q,1);
+  comp_tx_weight = ones(Q+Q_MP,1);
 end
   
 % Array calibration errors
@@ -86,13 +92,31 @@ if isfield(param.src,'mutual_coup_mtx') && ~isempty(param.src.mutual_coup_mtx)
 else
   C = eye(Nc);
 end
-  
+
+% Multipath delays and weights
+if isfield(param.src,'tau_MP') && ~isempty(param.src.tau_MP)
+  tau_MP = param.src.tau_MP;
+else
+  tau_MP = zeros(Q+Q_MP,1);
+end
+
+if isfield(param.src,'w_MP') && ~isempty(param.src.w_MP)
+  w_MP = param.src.w_MP;
+else
+  w_MP = zeros(Q+Q_MP,1);
+end
+
 % Setup matrix of time delays of each channel for the given DOAs
 % -------------------------------------------------------------------------
 if ~isempty(param.src.DOAs)
-    uy          = sin(param.src.DOAs.*(pi/180));
-    uz          = sqrt(1-uy.^2);
-    Tau_mtx     = (2/c).*(-1.*(param.src.z_pc+error_zpc)*uz + (param.src.y_pc+error_ypc)*uy);
+  for idx = 1:Q
+    doa(:,idx) = [param.src.DOAs(idx),param.src.DOAs_MP(1+(idx-1)*Q_MP:idx*Q_MP)];
+  end
+  doa = doa(:).';
+  
+  uy          = sin(doa.*(pi/180));
+  uz          = sqrt(1-uy.^2);
+  Tau_mtx     = (2/c).*(-1.*(param.src.z_pc+error_zpc)*uz + (param.src.y_pc+error_ypc)*uy);
 end
 % -------------------------------------------------------------------------
 % Determine number of fast time samples needed
@@ -118,11 +142,21 @@ time            = (0:dt:(Nt-1)*dt).';
 S               = complex(zeros(Q,Nt));
 % Ps              = Ps./(Num_sens);
 
-for idx = 1:Q;  
-  weight      = comp_tx_weight(idx);
-  sigma_s     = sqrt(Ps(idx)/2);
-  S(idx,:)    =  weight*sigma_s.*(randn(1,Nt) - 1i*randn(1,Nt));
+tmp_idx = 1;
+for idx = 1:Q;
+  weight      = comp_tx_weight(tmp_idx);
+  sigma_s     = sqrt(Ps(tmp_idx)/2);
+  S(tmp_idx,:) = weight*sigma_s.*(randn(1,Nt) - 1i*randn(1,Nt));
+  
+  % MPCs associated with this target
+  for idx_MP = 1:Q_MP
+    sigma_MP = sqrt((10.^(w_MP(idx_MP+tmp_idx)./10))/2);
+    
+    S(idx_MP+tmp_idx,:) =  sigma_MP * S(tmp_idx,:);
+  end
+  tmp_idx = tmp_idx + Q_MP + 1;
 end
+
 
 % -------------------------------------------------------------------------
 % Setup impulse response model and corresponding time series
@@ -162,7 +196,7 @@ Hwin            = ifftshift(Hwin);
 % Window sources to obtain modeled complex envelope of signal from each 
 % direction
 % -------------------------------------------------------------------------
-for q_idx = 1:Q
+for q_idx = 1:Q+Q_MP
    Sref_fd = fft(S(q_idx,:));
    Sref_fd = Sref_fd(:);
    Sref_fd = Sref_fd.*Hwin;   
@@ -174,16 +208,16 @@ end
 % Build MxNtxQ data cube of signal measurements across array over Nt
 % samples
 % -------------------------------------------------------------------------
-tmp_dat     = complex(zeros(Num_sens,Nt,Q));
+tmp_dat     = complex(zeros(Num_sens,Nt,Q+Q_MP));
 
 % Create delayed version of each windowed signal 
 if ~isempty(param.src.DOAs)
-    for q_idx   = 1:Q
+    for q_idx   = 1:Q+Q_MP
         tau_vec  = Tau_mtx(:,q_idx);
         Sref_fd  = fft(S(q_idx,:));
         Sref_fd  = Sref_fd(:);
         
-        tmp_doa = param.src.DOAs(q_idx).*(pi/180);
+        tmp_doa = doa(q_idx).*(pi/180);
         gain_error_exp = error_g_s.*(sin(tmp_doa)-sin(error_g_p)).^2 + error_g_offset;
         gain_error  = exp(-gain_error_exp./2);
         %   gain_error  = 10.^(gain_error_exp./20);
@@ -191,9 +225,10 @@ if ~isempty(param.src.DOAs)
         %   gain_error  = 10.^(-gain_error_exp./20);
         phase_error = error_phase;
         pg_error = gain_error .* exp(1i*phase_error);
+        phase_delay_MP = exp(-1i*2*pi*f_pb*tau_MP(q_idx));
         for m_idx = 1:Num_sens
             tau = tau_vec(m_idx);
-            tmp_dat(m_idx,:,q_idx) = pg_error(m_idx)*ifft(Sref_fd.*exp(1i*2*pi*f_pb.*tau));
+            tmp_dat(m_idx,:,q_idx) = ifft(phase_delay_MP.*Sref_fd.*exp(1i*2*pi*f_pb.*tau)*pg_error(m_idx));
             %         tmp_dat(m_idx,:,q_idx) = ifft(Sref_fd.*exp(1i*2*pi*f_pb.*tau));
             %         tmp_dat(m_idx,:,q_idx) = ifft(Sref_fd.*exp(1i*2*pi*f_pb.*tau)*exp(-1i*2*pi*fc.*tau));
         end
@@ -258,7 +293,8 @@ for idx = 1:Nsnap/NB
     DCM_fd((nb-1)*Num_sens+(1:Num_sens),:) = DCM_fd((nb-1)*Num_sens+(1:Num_sens),:) + x_nb(:,nb)*x_nb(:,nb)';
   end
 end
-DCM_fd = (1/Nsnap)*DCM_fd;
+% DCM_fd = (1/Nsnap)*DCM_fd; % John: divide by total number of snapshots
+DCM_fd = (1/(Nsnap/NB))*DCM_fd; % Mohanad: divide by the number of f-domain snapshots
 
 return
 
