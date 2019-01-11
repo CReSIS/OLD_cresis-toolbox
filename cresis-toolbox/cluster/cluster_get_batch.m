@@ -58,26 +58,20 @@ if isempty(batch_id)
   error('%s called with no batch_id. Either ctrl.batch_id or batch_id must be specified.',mfilename);
 end
 
+% Get the specific batch (ctrl.batch_id specified)
 ctrls = cluster_get_batch_list(ctrl);
 
-match_idxs = [];
-for batch_idx = 1:length(ctrls)
-  if ctrls{batch_idx}.batch_id == batch_id
-    match_idxs(end+1) = batch_idx;
-  end
-end
-
-if isempty(match_idxs)
+if isempty(ctrls)
   error('Batch %d not found.', batch_id);
 end
 if ~ctrl_is_struct || ~isfield(ctrl,'batch_dir')
-  if length(match_idxs) > 1
-    
-    fprintf('<strong>There are %d matches for this batch_id %d.</strong>\n', length(match_idxs), batch_id);
+  if length(ctrls) == 1
+    ctrl = ctrls{1};
+  else
+    fprintf('<strong>There are %d matches for this batch_id %d.</strong>\n', length(ctrls), batch_id);
     fprintf('Select a batch from the list below:\n');
     % This for-loop from cluster_get_batch_list.m:
-    for match_idxs_idx = 1:length(match_idxs)
-      batch_idx = match_idxs(match_idxs_idx);
+    for batch_idx = 1:length(ctrls)
       % Create input filenames
       static_in_fn = fullfile(ctrls{batch_idx}.in_fn_dir,'static.mat');
       dynamic_in_fn = fullfile(ctrls{batch_idx}.in_fn_dir,'dynamic.mat');
@@ -99,7 +93,7 @@ if ~ctrl_is_struct || ~isfield(ctrl,'batch_dir')
         ctrls{batch_idx}.dparam = {[]};
       end
       
-      fprintf('<strong>%d</strong>: Batch %d %s\n', match_idxs_idx, ctrls{batch_idx}.batch_id, ctrls{batch_idx}.batch_dir);
+      fprintf('<strong>%d</strong>: Batch %d %s\n', batch_idx, ctrls{batch_idx}.batch_id, ctrls{batch_idx}.batch_dir);
       
       param = merge_structs(sparam.static_param,ctrls{batch_idx}.dparam{1});
       if ~isfield(param,'task_function')
@@ -114,20 +108,18 @@ if ~ctrl_is_struct || ~isfield(ctrl,'batch_dir')
     
     % Check with user
     uinput = [];
-    while length(uinput)~=1 || ~isnumeric(uinput) || uinput < 1 || uinput > length(match_idxs)
+    while length(uinput)~=1 || ~isnumeric(uinput) || uinput < 1 || uinput > length(ctrls)
       uinput = input('? ');
     end
-    match_idxs = match_idxs(uinput);
+    ctrl = ctrls{uinput};
   end
-  
-  ctrl = ctrls{match_idxs};
   
 else
   found = false;
-  for match_idxs_idx = 1:length(match_idxs)
-    if strcmpi(ctrls{match_idxs(match_idxs_idx)}.batch_dir,ctrl.batch_dir)
+  for batch_idx = 1:length(ctrls)
+    if strcmpi(ctrls{batch_idx}.batch_dir,ctrl.batch_dir)
       found = true;
-      ctrl = merge_structs(ctrls{match_idxs(match_idxs_idx)}, ctrl);
+      ctrl = merge_structs(ctrls{batch_idx}, ctrl);
       break;
     end
   end
@@ -168,12 +160,26 @@ job_status_found = zeros(size(ctrl.job_status));
 %% Update task status for each task using cluster interface
 ctrl.active_jobs = 0;
 if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
+  
+  if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
+    if ~isfield(ctrl.cluster,'user_name') || isempty(ctrl.cluster.user_name)
+      [~,ctrl.cluster.user_name] = system('whoami </dev/null');
+      ctrl.cluster.user_name = ctrl.cluster.user_name(1:end-1);
+    end
+    if ~isfield(ctrl.cluster,'ssh_user_name') || isempty(ctrl.cluster.ssh_user_name)
+      [~,ctrl.cluster.ssh_user_name] = system('whoami </dev/null');
+      ctrl.cluster.ssh_user_name = ctrl.cluster.ssh_user_name(1:end-1);
+    end
+  end
+  
   if strcmpi(ctrl.cluster.type,'torque')
     % Runs qstat command
     % -----------------------------------------------------------------------
-    [system,user_name] = robust_system('whoami </dev/null');
-    user_name = user_name(1:end-1);
-    cmd = sprintf('qstat -u %s </dev/null', user_name);
+    if isempty(ctrl.cluster.ssh_hostname)
+      cmd = sprintf('qstat -u %s </dev/null', ctrl.cluster.user_name);
+    else
+      cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "qstat -u %s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, ctrl.cluster.ssh_user_name);
+    end
     [status,result] = robust_system(cmd);
     
   elseif strcmpi(ctrl.cluster.type,'matlab')
@@ -183,9 +189,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   elseif strcmpi(ctrl.cluster.type,'slurm')
     % Runs squeue command
     % -----------------------------------------------------------------------
-    [system,user_name] = robust_system('whoami </dev/null');
-    user_name = user_name(1:end-1);
-    cmd = sprintf('squeue --users=%s </dev/null', user_name);
+    cmd = sprintf('squeue --users=%s </dev/null', ctrl.cluster.user_name);
     [status,result] = robust_system(cmd);
   end
   

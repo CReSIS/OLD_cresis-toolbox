@@ -1,0 +1,64 @@
+" REMINDER FOR VIMDIFF:
+"
+" Command Description
+" ]c  advance to the next block with differences
+" [c  reverse search for the previous block with differences
+" do (diff obtain)  bring changes from the other file to the current file
+" dp (diff put) send changes from the current file to the other file
+" zo  unfold/unhide text
+" zc  refold/rehide text
+" zr  unfold both files completely
+" zm  fold both files completely
+" ctrl-w twice  Switch between splits (i.e. between the two documents being differenced)
+" :syntax off  Turns colors off (sometimes necessary to be able to see the text)
+" :set formatoptions-=cro Turns off auto-comment insertion
+" :setl noai nocin nosi inde=  Turns off auto-indent
+
+" Sets the autoindent and tab sizes
+set ts=2
+set shiftwidth=2
+
+" Turns all autoindenting tabs into spaces
+set et
+
+" Shortens messages
+set shortmess=s
+
+" Always try to keep 5 lines visible below and above cursor
+set so=4
+
+" Stops that annoying ~File backup system
+set nobackup
+" Jumps to matching bracket
+"set showmatch
+" Gives you one extra line on the screen (removes INSERT MODE crap)
+set noshowmode
+
+" Turn auto-indenting on
+filetype plugin indent on
+
+" Ctrl-Up
+map ^[[1;5A gk
+imap ^[[1;5A <esc>lgki
+" Ctrl-Right
+map ^[[1;5C w
+imap ^[[1;5C <esc>lwi
+" Ctrl-Down
+map ^[[1;5B gj
+imap ^[[1;5B <esc>lgji
+" Ctrl-Left
+map ^[[1;5D b
+imap ^[[1;5D <esc>lbi
+
+" Change colors for diff operation
+
+highlight DiffAdd    term=bold         ctermbg=lightred ctermfg=black    cterm=bold guibg=lightred  guifg=black    gui=bold
+highlight DiffText   term=reverse,bold ctermbg=yellow       ctermfg=black   cterm=bold guibg=yellow    guifg=black   gui=bold
+highlight DiffChange term=bold         ctermbg=gray     ctermfg=black    cterm=bold guibg=gray      guifg=black    gui=bold
+"highlight DiffDelete term=none         ctermbg=darkblue  ctermfg=darkblue cterm=none guibg=DarkBlue   guifg=DarkBlue gui=none
+
+"highlight diffRemoved term=bold ctermbg=black   ctermfg=red    cterm=bold guibg=DarkRed     guifg=white gui=none
+"highlight diffAdded   term=bold ctermbg=black   ctermfg=green  cterm=bold guibg=DarkGreen   guifg=white gui=none
+"highlight diffChanged term=bold ctermbg=black   ctermfg=yellow cterm=bold guibg=DarkYellow  guifg=white gui=none
+"highlight diffLine    term=bold ctermbg=magenta ctermfg=white  cterm=bold guibg=DarkMagenta guifg=white gui=none
+"highlight diffFile    term=bold ctermbg=yellow  ctermfg=black  cterm=none guibg=DarkYellow  guifg=white gui=none

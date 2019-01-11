@@ -81,8 +81,14 @@ if strcmpi(ctrl.cluster.type,'torque')
       keyboard
     end
   else
-    cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",NUM_PROC="%d",JOB_COMPLETE_PAUSE="%d" %s  </dev/null', ...
-      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, num_proc, ctrl.cluster.job_complete_pause, worker);
+    if isempty(ctrl.cluster.ssh_hostname)
+      cmd = sprintf('qsub %s -e %s -o %s -v INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",NUM_PROC="%d",JOB_COMPLETE_PAUSE="%d" %s  </dev/null', ...
+        submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, num_proc, ctrl.cluster.job_complete_pause, worker);
+    else
+      cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "qsub %s -e %s -o %s -v INPUT_PATH=\"%s\",OUTPUT_PATH=\"%s\",TASK_LIST=''%s'',MATLAB_CLUSTER_PATH=\"%s\",MATLAB_MCR_PATH=\"%s\",NUM_PROC=\"%d\",JOB_COMPLETE_PAUSE=\"%d\" %s  </dev/null"', ...
+        ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, num_proc, ctrl.cluster.job_complete_pause, worker);
+    end
+    
     [status,result] = robust_system(cmd);
     
     [job_id_str,result_tok] = strtok(result,'.');
