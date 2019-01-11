@@ -135,8 +135,15 @@ elseif strcmpi(ctrl.cluster.type,'slurm')
   % Insert CPU time
   submit_arguments = regexprep(submit_arguments,'%t',sprintf('%.0f',ceil(job_cpu_time/60)));  
   
-  cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",JOB_COMPLETE_PAUSE="%d" %s </dev/null', ...
-    submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, ctrl.cluster.job_complete_pause, worker);
+  
+    if isempty(ctrl.cluster.ssh_hostname)
+      cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",JOB_COMPLETE_PAUSE="%d" %s </dev/null', ...
+        submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, ctrl.cluster.job_complete_pause, worker);
+    else
+      cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "sbatch %s -e %s -o %s --export=INPUT_PATH=\"%s\",OUTPUT_PATH=\"%s\",TASK_LIST=\"%s\",MATLAB_CLUSTER_PATH=\"%s\",MATLAB_MCR_PATH=\"%s\",JOB_COMPLETE_PAUSE=\"%d\" %s </dev/null"', ...
+        ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, ctrl.cluster.job_complete_pause, worker);
+    end
+  
   [status,result] = robust_system(cmd);
   
   search_str = 'Submitted batch job ';
