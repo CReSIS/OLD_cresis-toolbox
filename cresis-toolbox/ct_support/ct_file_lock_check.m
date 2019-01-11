@@ -113,6 +113,10 @@ if ischar(fns)
           else
             error('File %s is locked.', fn);
           end
+        elseif check_mode == 3 && ~any(file_version=='D')
+          % File is not locked and not marked for deletion: we mark it for
+          % deletion without asking the user
+          ct_file_lock(fn,2);
         end
 
       case 4
