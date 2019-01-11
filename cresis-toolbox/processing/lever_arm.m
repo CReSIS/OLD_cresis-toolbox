@@ -1585,13 +1585,13 @@ end
 if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2018_Greenland_Polar6'})) && strcmpi(radar_name,'snow'))
   % See notes in GPS section
   
-  LArx(1,1:2) = -[95.5 95.5];
-  LArx(2,1:2) = [-20.2 -20.2];
-  LArx(3,1:2) = -[-86.4 -86.4];
+  LArx(1,1:2) = -[95.5 95.5]*2.54/100;
+  LArx(2,1:2) = [-20.2 -20.2]*2.54/100;
+  LArx(3,1:2) = -[-86.4 -86.4]*2.54/100;
   
-  LAtx(1,1:2) = -[95.5 95.5];
-  LAtx(2,1:2) = [20 20];
-  LAtx(3,1:2) = -[-86.4 -86.4];
+  LAtx(1,1:2) = -[95.5 95.5]*2.54/100;
+  LAtx(2,1:2) = [20 20]*2.54/100;
+  LAtx(3,1:2) = -[-86.4 -86.4]*2.54/100;
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1:2;
