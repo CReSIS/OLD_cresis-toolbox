@@ -32,8 +32,8 @@ param.config.prf_multiple = []; % Power supply sync signal that PRF must be a fa
 param.config.PRI_guard = 10e-6;
 param.config.PRI_guard_percentage = 1;
 param.config.tx_enable = [1 1 1 1 1 1 1 0];
-param.config.max_tx = 40000;
-param.config.max_tx_voltage = sqrt(250*50)*10^(-2/20); % voltage at max_tx
+param.config.max_tx = [40000 40000 40000 40000 40000 40000 40000 0];
+param.config.max_tx_voltage = sqrt([250 250 250 250 250 250 250]*50)*10^(-2/20); % voltage at max_tx
 
 %% CReSIS parameters
 param.config.cresis.clk = 1e9/9;
