@@ -335,6 +335,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
   default.radar.wfs(wf).rx_paths = [2 4 1 3 5 6 7 8];
+  default.radar.wfs(wf).tx_paths = [1 2 3 4];
   default.radar.wfs(wf).adc_gains_dB = [45 45 45 45 45 45 45 45]; % Gain from the first LNA to the ADC
 end
 
@@ -356,6 +357,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
   default.radar.wfs(wf).rx_paths = [2 4 1 3 5 6 7 8];
+  default.radar.wfs(wf).tx_paths = [1 2 3 4];
   default.radar.wfs(wf).adc_gains_dB = [46 46 46 46 46 46 46 46]; % Gain from the first LNA to the ADC
 end
 
@@ -377,6 +379,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
   default.radar.wfs(wf).rx_paths = [2 4 1 3 5 6 7 8];
+  default.radar.wfs(wf).tx_paths = [1 2 3 4];
   default.radar.wfs(wf).adc_gains_dB = [46 46 46 46 46 46 46 46]; % Gain from the first LNA to the ADC
 end
 

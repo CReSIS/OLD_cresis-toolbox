@@ -282,13 +282,13 @@ for img = 1:length(param.load.imgs)
   out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,task_recs(1),task_recs(end));
   % Output directory name (_01_01 refer to subaperture and subband which are
   % hardcoded to 1 for now)
-  out_fn_dir = fullfile(ct_filename_out(param, ...
-    param.qlook.out_path, 'CSARP_qlook'), ...
+  tmp_out_fn_dir = fullfile(ct_filename_out(param, ...
+    param.qlook.out_path, 'qlook_tmp'), ...
     sprintf('ql_data_%03d_01_01',param.load.frm));
-  out_fn = fullfile(out_fn_dir,out_fn_name);
+  out_fn = fullfile(tmp_out_fn_dir,out_fn_name);
   fprintf('  Save %s\n', out_fn);
-  if ~exist(out_fn_dir,'dir')
-    mkdir(out_fn_dir);
+  if ~exist(tmp_out_fn_dir,'dir')
+    mkdir(tmp_out_fn_dir);
   end
   param_qlook = param;
   custom = hdr.custom;

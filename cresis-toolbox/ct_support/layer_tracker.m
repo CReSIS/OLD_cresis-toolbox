@@ -211,7 +211,7 @@ if ~isfield(track,'threshold_dB') || isempty(track.threshold_dB)
 end
 
 if ~isfield(track,'threshold_noise_rng') || isempty(track.threshold_noise_rng)
-  track.threshold_noise_rng = [0 -inf inf];
+  track.threshold_noise_rng = [0 -inf -1];
 end
 
 %% Load in ocean mask, land DEM, and sea surface DEM

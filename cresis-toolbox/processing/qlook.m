@@ -156,32 +156,8 @@ end
 records = load(records_fn);
 
 % Quick look radar echogram output directory
-qlook_out_dir = ct_filename_out(param, param.qlook.out_path);
-
-% % Get version information out of the deconvolution file
-% if isfield(param.qlook,'deconvolution') ...
-%     && ~isempty(param.qlook.deconvolution) ...
-%     && param.qlook.deconvolution == 3
-%   out_fn_dir = ct_filename_out(param,'analysis');
-%   out_segment_fn_dir = fileparts(out_fn_dir);
-%   out_segment_fn = fullfile(out_segment_fn_dir,sprintf('deconv_%s.mat', param.day_seg));
-%   spec = load(out_segment_fn,'param_collate');
-%   
-%   param.qlook.deconvolution_sw_version = spec.param_collate.sw_version;
-%   param.qlook.deconvolution_params = spec.param_collate.analysis.specular;
-% end
-% 
-% % Get version information out of the coherent noise file
-% if any(param.qlook.coh_noise_method == [17 19])
-%   
-%   cdf_fn_dir = fileparts(ct_filename_out(param,param.qlook.coh_noise_arg{4}, ''));
-%   cdf_fn = fullfile(cdf_fn_dir,sprintf('coh_noise_simp_%s.nc', param.day_seg));
-%   
-%   tmp = netcdf_to_mat(cdf_fn,[],'^sw_version.*');
-%   param.qlook.coh_noise_version = tmp.sw_version;
-%   tmp = netcdf_to_mat(cdf_fn,[],'^param_collate.*');
-%   param.qlook.coh_noise_params = tmp.param_collate;
-% end
+out_fn_dir = ct_filename_out(param, param.qlook.out_path);
+tmp_out_fn_dir = ct_filename_out(param, param.qlook.out_path,'qlook_tmp');
 
 %% Setup cluster
 % =====================================================================
@@ -240,14 +216,14 @@ for frm_idx = 1:length(param.cmd.frms)
     combine_file_success = {};
     if length(param.qlook.imgs) > 1
       for img = 1:length(param.qlook.imgs)
-        out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+        out_fn = fullfile(out_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
           img, param.day_seg, frm));
         combine_file_success{end+1} = out_fn;
       end
     end
     if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
       % A combined file should be created
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+      out_fn = fullfile(out_fn_dir, sprintf('Data_%s_%03d.mat', ...
         param.day_seg, frm));
       combine_file_success{end+1} = out_fn;
     end
@@ -256,7 +232,7 @@ for frm_idx = 1:length(param.cmd.frms)
   % Create output directory name
   sub_apt_shift_idx = 1;
   sub_band_idx = 1;
-  out_fn_dir = fullfile(qlook_out_dir, ...
+  tmp_out_fn_dir = fullfile(tmp_out_fn_dir, ...
     sprintf('ql_data_%03d_%02d_%02d',frm,sub_apt_shift_idx,sub_band_idx));
 
   % recs: Determine the records for this frame
@@ -311,7 +287,7 @@ for frm_idx = 1:length(param.cmd.frms)
     dparam.file_success = {};
     for img = 1:length(param.qlook.imgs)
       out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs(1),cur_recs(end));
-      out_fn = fullfile(out_fn_dir,out_fn_name);
+      out_fn = fullfile(tmp_out_fn_dir,out_fn_name);
       dparam.file_success{end+1} = out_fn;
       if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
         delete(out_fn);
@@ -452,7 +428,7 @@ sparam.file_success = {};
 for frm = param.cmd.frms
   if length(param.qlook.imgs) > 1
     for img = 1:length(param.qlook.imgs)
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+      out_fn = fullfile(out_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
         img, param.day_seg, frm));
       sparam.file_success{end+1} = out_fn;
       if ~ctrl.cluster.rerun_only
@@ -463,7 +439,7 @@ for frm = param.cmd.frms
   end
   if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
     % A combined file should be created
-    out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+    out_fn = fullfile(out_fn_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));
     sparam.file_success{end+1} = out_fn;
     if ~ctrl.cluster.rerun_only

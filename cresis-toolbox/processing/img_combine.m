@@ -36,7 +36,12 @@ function [Data, Time] = img_combine(param, param_mode, layers)
 %   .img_comb_layer_params: opsLoadLayers input parameters to load a layer
 %     to use for the surface (if "layers" input argument is specified, then
 %     this argument is ignored)
-%   .trim_time: if true, negative time samples will be removed/trimmed
+%   .img_comb_trim: 4-element vector, first two elements give the relative
+%     amount to trim from the start and end of fast-time and the second two
+%     elements give the absolute time to trim to at the start and end of
+%     fast-time. Default for deramp is [0 0 0 inf]. Default for other
+%     radars is [-Tpd/2 Tpd/2 0 inf] because there is roll-off from the
+%     pulse compression.
 % param_mode: 'qlook' or 'array'
 % layers: struct defining the two way travel time to the ice top for each
 %   range line, must contain finite values

@@ -1145,10 +1145,10 @@ if any(param.config.file.version == [403 404 407 408])
       % Transmit weights
       if any(param.config.file.version == [403 407 408])
         tx_mask_inv = fliplr(~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0'));
-        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.config.max_tx*param.config.max_tx_voltage;
+        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv ./ param.config.max_tx.*param.config.max_tx_voltage;
       else
         tx_mask_inv = ~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0');
-        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.config.max_tx*param.config.max_tx_voltage;
+        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv ./ param.config.max_tx.*param.config.max_tx_voltage;
       end
 
       tx_weights = tx_weights(logical(param.config.tx_enable));
@@ -1160,8 +1160,13 @@ if any(param.config.file.version == [403 404 407 408])
       oparams{end}.radar.wfs(wf).adc_gains = 10.^((param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths)))/20);
       
       % DDC mode and frequency
-      oparams{end}.radar.wfs(wf).DDC_dec = 2^(2+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
-      oparams{end}.radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
+      if isfield(settings(set_idx), 'DDC_Ctrl')
+        oparams{end}.radar.wfs(wf).DDC_dec = 2^(2+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
+        oparams{end}.radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
+      else
+        oparams{end}.radar.wfs(wf).DDC_dec = 1;
+        oparams{end}.radar.wfs(wf).DDC_freq = 0;
+      end
     end
     
     counters = {};
