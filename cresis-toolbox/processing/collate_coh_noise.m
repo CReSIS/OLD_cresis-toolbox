@@ -29,6 +29,29 @@ if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_nois
 end
 cmd = param.analysis.cmd{param.collate_coh_noise.cmd_idx};
 
+if ~isfield(param.collate_coh_noise,'debug_plots') || isempty(param.collate_coh_noise.debug_plots)
+  param.collate_coh_noise.debug_plots = {};
+end
+enable_visible_plot = any(strcmp('visible',param.collate_coh_noise.debug_plots));
+if ~isempty(param.collate_coh_noise.debug_plots)
+  h_fig = get_figures(5,enable_visible_plot);
+end
+enable_threshold_plot = any(strcmp('threshold',param.collate_coh_noise.debug_plots));
+enable_cn_plots = any(strcmp('cn',param.collate_coh_noise.debug_plots));
+enable_debug_plot = any(strcmp('debug',param.collate_coh_noise.debug_plots));
+
+if ~isfield(param.collate_coh_noise,'dft_corr_length') || isempty(param.collate_coh_noise.dft_corr_length)
+  param.collate_coh_noise.dft_corr_length = 1e6;
+end
+
+if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
+  param.collate_coh_noise.firdec_fs = 0;
+end
+
+if ~isfield(param.collate_coh_noise,'firdec_fcutoff') || isempty(param.collate_coh_noise.firdec_fcutoff)
+  param.collate_coh_noise.firdec_fcutoff = 0;
+end
+
 if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
   param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
 end
@@ -37,12 +60,12 @@ if ~isfield(param.collate_coh_noise,'in_dir') || isempty(param.collate_coh_noise
   param.collate_coh_noise.in_dir = 'analysis';
 end
 
-if ~isfield(param.collate_coh_noise,'out_dir') || isempty(param.collate_coh_noise.out_dir)
-  param.collate_coh_noise.out_dir = 'analysis';
+if ~isfield(cmd,'min_samples') || isempty(cmd.min_samples)
+  cmd.min_samples = 0.5*cmd.block_ave;
 end
 
-if ~isfield(param.collate_coh_noise,'plot_en') || isempty(param.collate_coh_noise.plot_en)
-  param.collate_coh_noise.plot_en = false;
+if ~isfield(param.collate_coh_noise,'out_dir') || isempty(param.collate_coh_noise.out_dir)
+  param.collate_coh_noise.out_dir = 'analysis';
 end
 
 if ~isfield(param.collate_coh_noise,'threshold_eval') || isempty(param.collate_coh_noise.threshold_eval)
@@ -54,28 +77,6 @@ end
 
 if ~isfield(param.collate_coh_noise,'wf_adcs') || isempty(param.collate_coh_noise.wf_adcs)
   param.collate_coh_noise.wf_adcs = [];
-end
-
-if ~isfield(cmd,'dft_corr_length') || isempty(cmd.dft_corr_length)
-  cmd.dft_corr_length = 1e6;
-end
-
-if ~isfield(cmd,'min_samples') || isempty(cmd.min_samples)
-  cmd.min_samples = 0.5*cmd.block_ave;
-end
-
-if ~isfield(cmd,'power_grow') || isempty(cmd.power_grow)
-  cmd.power_grow = 1;
-end
-
-if param.collate_coh_noise.plot_en
-  fig_visible = 'off';
-  h_fig = figure('Visible',fig_visible);
-  h_axes = axes('parent',h_fig);
-  for idx=2:4
-    h_fig(idx) = figure('Visible',fig_visible);
-    h_axes(idx) = axes('parent',h_fig(idx));
-  end
 end
 
 for img = param.collate_coh_noise.imgs
@@ -115,7 +116,8 @@ for img = param.collate_coh_noise.imgs
     %% Fourier analysis of each bin
     % =====================================================================
     Nx = length(noise.gps_time);
-    Nx_dft = round(Nx / cmd.dft_corr_length);
+    
+    Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_length);
     if Nx_dft<1
       Nx_dft = 1;
     end
@@ -123,8 +125,17 @@ for img = param.collate_coh_noise.imgs
     [~,dft_freqs_idxs] = sort(abs(dft_freqs));
     dft_freqs = dft_freqs(dft_freqs_idxs);
     noise.dft = zeros(stop_bin-start_bin+1, Nx_dft, 'single');
+    
+    dgps_time = median(diff(noise.gps_time));
+    dx = max(1,round(1/(dgps_time * param.collate_coh_noise.firdec_fs)));
+    dec_idxs = 1:dx:Nx;
+    noise.coh_noise_gps_time = noise.gps_time(dec_idxs);
+    Nx_coh_noise = length(dec_idxs);
+    noise.coh_noise = zeros(stop_bin-start_bin+1, Nx_coh_noise, 'single');
+    
     threshold = zeros(stop_bin-start_bin+1,1);
-    if param.collate_coh_noise.plot_en
+    
+    if enable_cn_plots
       cn_before = zeros(stop_bin-start_bin+1,Nx);
       cn_after = zeros(stop_bin-start_bin+1,Nx);
       cn_before_mag = zeros(stop_bin-start_bin+1,Nx);
@@ -150,7 +161,7 @@ for img = param.collate_coh_noise.imgs
         plot(imag(coh_bin)); title(sprintf('%d',bin));
         plot(imag(coh_bin_mag)); title(sprintf('%d',bin));
       end
-      if param.collate_coh_noise.plot_en
+      if enable_cn_plots
         cn_before(bin_idx,:) = coh_bin;
         cn_before_mag(bin_idx,:) = coh_bin_mag;
       end
@@ -159,12 +170,26 @@ for img = param.collate_coh_noise.imgs
       else
         threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,10)),[],2);
       end
-      for dft_idx = 1:length(dft_freqs)
-        mf = exp(1i*2*pi/Nx * dft_freqs(dft_idx) .* (0:Nx-1));
-        noise.dft(bin_idx,dft_idx) = nanmean(conj(mf).*coh_bin);
-        coh_bin = coh_bin - noise.dft(bin_idx,dft_idx) * mf;
+      if strcmpi(param.collate_coh_noise.method,'dft')
+        for dft_idx = 1:length(dft_freqs)
+          mf = exp(1i*2*pi/Nx * dft_freqs(dft_idx) .* (0:Nx-1));
+          noise.dft(bin_idx,dft_idx) = nanmean(conj(mf).*coh_bin);
+          coh_bin = coh_bin - noise.dft(bin_idx,dft_idx) * mf;
+        end
+      elseif strcmpi(param.collate_coh_noise.method,'firdec')
+        fcutoff = param.collate_coh_noise.firdec_fcutoff(noise.dt*bin);
+        if fcutoff == 0
+          noise.coh_noise(bin_idx,:) = nanmean(coh_bin);
+        else
+          B = boxcar(round(1/(fcutoff*dgps_time)/2)*2+1).';
+          B = B / sum(B);
+          noise.coh_noise(bin_idx,:) = fir_dec(coh_bin,B,dx);
+        end
+        noise.coh_noise(bin_idx,isnan(noise.coh_noise(bin_idx,:))) = 0;
+        noise_est = interp_finite(interp1(noise.coh_noise_gps_time,noise.coh_noise(bin_idx,:),noise.gps_time));
+        coh_bin = coh_bin - noise_est;
       end
-      if param.collate_coh_noise.plot_en
+      if enable_cn_plots
         cn_after(bin_idx,:) = coh_bin;
       end
       if 0
@@ -186,18 +211,17 @@ for img = param.collate_coh_noise.imgs
       eval(param.collate_coh_noise.threshold_eval{wf});
     end
     
-    if param.collate_coh_noise.plot_en
+    if enable_cn_plots
       dxt = mean_without_outliers(diff(noise.gps_time));
       Xt = Nx*dxt;
       dfx = 1/Xt;
       fx = dfx * (-floor(Nx/2) : floor((Nx-1)/2));
       
-      for idx=1:4
-        delete(get(h_axes(idx),'Children'));
-      end
-      
       mask = isnan(cn_before);
       cn_before(mask) = 0;
+      
+      clf(h_fig(1));
+      h_axes(1) = axes('parent',h_fig(1));
       imagesc(fx, [], fftshift(lp( fft(cn_before,[],2) ),2), 'parent', h_axes(1));
       cn_before(mask) = NaN;
       title(h_axes(1), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
@@ -217,8 +241,11 @@ for img = param.collate_coh_noise.imgs
         saveas(h_fig(1),fig_fn);
       end
       
-      cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
+      %cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
+      clf(h_fig(2));
+      h_axes(2) = axes('parent',h_fig(2));
       imagesc(lp(cn_before),'parent',h_axes(2));
+      cc=caxis(h_axes(2));
       title(h_axes(2), sprintf('Before %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(2), 'Range bin');
       xlabel(h_axes(2), 'Block');
@@ -231,42 +258,70 @@ for img = param.collate_coh_noise.imgs
         saveas(h_fig(2),fig_fn);
       end
       
-      imagesc(lp(cn_after),'parent',h_axes(3));
-      cc=caxis(h_axes(2));
-      caxis(h_axes(3), cc);
-      title(h_axes(3), sprintf('After %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
-      xlabel(h_axes(3), 'Block');
+      %cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
+      clf(h_fig(3));
+      h_axes(3) = axes('parent',h_fig(3));
+      imagesc(angle(cn_before),'parent',h_axes(3));
+      title(h_axes(3), sprintf('Before %s wf %d adc %d (phase)',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(3), 'Range bin');
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      xlabel(h_axes(3), 'Block');
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       saveas(h_fig(3),fig_fn);
       if size_fig.bytes < 1e9
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         saveas(h_fig(3),fig_fn);
       end
       
-      linkaxes(h_axes(2:3));
+      clf(h_fig(4));
+      h_axes(4) = axes('parent',h_fig(4));
+      imagesc(lp(cn_after),'parent',h_axes(4));
+      caxis(h_axes(4), cc);
+      title(h_axes(4), sprintf('After %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      xlabel(h_axes(4), 'Block');
+      ylabel(h_axes(4), 'Range bin');
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fprintf('Saving %s\n', fig_fn);
+      saveas(h_fig(4),fig_fn);
+      if size_fig.bytes < 1e9
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        saveas(h_fig(4),fig_fn);
+      end
       
-      plot(h_axes(4), orig_threshold)
-      hold(h_axes(4), 'on');
-      grid(h_axes(4), 'on');
-      plot(h_axes(4), threshold)
-      plot(h_axes(4), lp(abs(noise.dft(:,1)).^2))
-      legend(h_axes(4), 'Original', 'Modified', 'DC Noise', 'location', 'best')
-      xlabel(h_axes(4), 'Range bin');
-      ylabel(h_axes(4), 'Relative power (dB)');
-      title(h_axes(4), sprintf('Threshold %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      linkaxes(h_axes(2:4));
+    end
+    
+    if enable_threshold_plot
+      clf(h_fig(5));
+      h_axes(5) = axes('parent',h_fig(5));
+      plot(h_axes(5), orig_threshold)
+      hold(h_axes(5), 'on');
+      grid(h_axes(5), 'on');
+      plot(h_axes(5), threshold)
+      plot(h_axes(5), lp(abs(noise.dft(:,1)).^2))
+      legend(h_axes(5), 'Original', 'Modified', 'DC Noise', 'location', 'best')
+      xlabel(h_axes(5), 'Range bin');
+      ylabel(h_axes(5), 'Relative power (dB)');
+      title(h_axes(5), sprintf('Threshold %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       param.collate_coh_noise.threshold_ylims = [-180 -20];
-      ylim(h_axes(4),param.collate_coh_noise.threshold_ylims);
+      ylim(h_axes(5),param.collate_coh_noise.threshold_ylims);
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(4),fig_fn);
+      saveas(h_fig(5),fig_fn);
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(4),fig_fn);
-
-      %keyboard
+      saveas(h_fig(5),fig_fn);
+    end
+    
+    if enable_debug_plot
+      % Bring plots to front
+      for h_fig_idx = 1:length(h_fig)
+        figure(h_fig(h_fig_idx));
+      end
+      % Enter debug mode
+      keyboard
     end
     
     %% Create the simplified output
@@ -275,8 +330,13 @@ for img = param.collate_coh_noise.imgs
     noise_simp.start_bin = start_bin;
     noise_simp.dt = noise.dt;
     noise_simp.fc = noise.fc;
-    noise_simp.dft_freqs = dft_freqs;
-    noise_simp.dft = noise.dft;
+    if strcmpi(param.collate_coh_noise.method,'dft')
+      noise_simp.dft_freqs = dft_freqs;
+      noise_simp.dft = noise.dft;
+    elseif strcmpi(param.collate_coh_noise.method,'firdec')
+      noise_simp.coh_noise_gps_time = noise.coh_noise_gps_time;
+      noise_simp.coh_noise = noise.coh_noise;
+    end
     noise_simp.param_analysis = noise.param_analysis;
     noise_simp.threshold = threshold;
     noise_simp.param_collate = param;
@@ -350,6 +410,9 @@ for img = param.collate_coh_noise.imgs
     
   end
 end
-if param.collate_coh_noise.plot_en
-  delete(h_fig);
+
+if ~isempty(param.collate_coh_noise.debug_plots)
+  try
+    delete(h_fig);
+  end
 end

@@ -30,86 +30,93 @@ for img = 1:length(param.load.imgs)
     
     %% Burst RFI removal
     % ===================================================================
+ 
+    %% Coherent noise: Analysis Load
+    % ===================================================================
+    if strcmpi(wfs(wf).coh_noise_method,'analysis')
+      noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
+      noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+      
+      fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
+      noise = load(noise_fn);
+      
+      cmd = noise.param_analysis.analysis.cmd{noise.param_collate.collate_coh_noise.cmd_idx};
+      
+      hdr.custom.coh_noise(1:length(noise.datestr),1,img,wf_adc) = noise.datestr;
+      noise.Nx = length(noise.gps_time);
+      
+      if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
+        coh_noise = noise.dft;
+      elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
+        coh_noise = noise.coh_noise;
+      end
+      
+      % Nt by Nx_dft matrix
+      coh_noise(~isfinite(coh_noise)) = 0;
+      
+      % Adjust coherent noise dft for changes in adc_gains relative to
+      % when the coherent noise was loaded and estimated.
+      coh_noise = coh_noise * 10.^((wfs(wf).adc_gains_dB(adc)-noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
+      
+      % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
+      % changes relative to when the coherent noise was loaded and
+      % estimated.
+      coh_noise = coh_noise * 10.^(( ...
+        noise.param_analysis.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
+        - param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
+        .* exp(1i*( ...
+        noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
+        - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
+      
+      % Correct any changes in Tsys
+      Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+      Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
+      dTsys = Tsys-Tsys_old;
+      noise.Nt = size(coh_noise,1);
+      noise.freq = noise.fc + 1/(noise.dt*noise.Nt) * ifftshift(-floor(noise.Nt/2):floor((noise.Nt-1)/2)).';
+      if dTsys ~= 0
+        % Positive dTsys means Tsys > Tsys_old and we should reduce the
+        % time delay to all targets by dTsys.
+        coh_noise = ifft(bsxfun(@times, fft(coh_noise), exp(1i*2*pi*noise.freq*dTsys)));
+      end
+      
+      recs = interp1(noise.gps_time, noise.recs, hdr.gps_time, 'linear', 'extrap');
+    end
     
     %% Coherent noise: Pulsed
     % ===================================================================
     if strcmpi(radar_type,'pulsed')
-      if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
-        noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-        
-        fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
-        noise = load(noise_fn);
-        
-        cmd = noise.param_collate.analysis.cmd{noise.param_collate.collate_coh_noise.cmd_idx};
-        cmd.pulse_comp = true; % HACK: DO NOT COMMIT. NEEDS TO BE REMOVED
-        
-        hdr.custom.coh_noise(1:length(noise.datestr),1,img,wf_adc) = noise.datestr;
-        noise.Nx = length(noise.gps_time);
-        
-        % Nt by Nx_dft matrix
-        noise.dft(~isfinite(noise.dft)) = 0;
-        
-        % Adjust coherent noise dft for changes in adc_gains relative to
-        % when the coherent noise was loaded and estimated.
-        noise.dft = noise.dft * 10.^((wfs(wf).adc_gains_dB(adc)-noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
-        
-        % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
-        % changes relative to when the coherent noise was loaded and
-        % estimated.
-        noise.dft = noise.dft * 10.^(( ...
-          noise.param_analysis.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
-          - param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
-          .* exp(1i*( ...
-          noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
-          - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
-        
-        % Correct any changes in Tsys
-        Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-        Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-        dTsys = Tsys-Tsys_old;
-        noise.Nt = size(noise.dft,1);
-        noise.freq = noise.fc + 1/(noise.dt*noise.Nt) * ifftshift(-floor(noise.Nt/2):floor((noise.Nt-1)/2)).';
-        if dTsys ~= 0
-          % Positive dTsys means Tsys > Tsys_old and we should reduce the
-          % time delay to all targets by dTsys.
-          noise.dft = ifft(fft(noise.dft) .* exp(1i*2*pi*noise.freq*dTsys));
-        end
-        
-        recs = interp1(noise.gps_time, noise.recs, hdr.gps_time, 'linear', 'extrap');
-        
-        if ~cmd.pulse_comp
-          if 0
-            % Debug Code
-            
-            cn.data = zeros([size(noise.dft,1) numel(recs)],'single');
-            for dft_idx = 1:length(noise.dft_freqs)
-              % mf: matched filter
-              % noise.dft(bin,dft_idx): Coefficient for the matched filter
-              mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
-              for bin = 1:size(noise.dft,1)
-                cn.data(bin,:) = cn.data(bin,:)-noise.dft(bin,dft_idx) * mf;
-              end
-            end
-            
-            figure(1); clf;
-            imagesc(lp( bsxfun(@minus, data{img}(1:wfs(wf).Nt,:), mean(data{img}(1:wfs(wf).Nt,:),2) )  ))
-            figure(2); clf;
-            imagesc(lp( data{img}(1:wfs(wf).Nt,:,wf_adc) ))
-            figure(3); clf;
-            imagesc(lp( cn.data ))
-            figure(4); clf;
-            plot(lp(mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2)))
-            legend('Mean','CN');
-          end
+      if strcmpi(wfs(wf).coh_noise_method,'analysis') && ~cmd.pulse_comp
+        if 0
+          % Debug Code
           
+          cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
           for dft_idx = 1:length(noise.dft_freqs)
             % mf: matched filter
-            % noise.dft(bin,dft_idx): Coefficient for the matched filter
+            % coh_noise(bin,dft_idx): Coefficient for the matched filter
             mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
-            for bin = 1:size(noise.dft,1)
-              data{img}(bin,:,wf_adc) = data{img}(bin,:,wf_adc)-noise.dft(bin,dft_idx) * mf;
+            for bin = 1:size(coh_noise,1)
+              cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
             end
+          end
+          
+          figure(1); clf;
+          imagesc(lp( bsxfun(@minus, data{img}(1:wfs(wf).Nt,:), mean(data{img}(1:wfs(wf).Nt,:),2) )  ))
+          figure(2); clf;
+          imagesc(lp( data{img}(1:wfs(wf).Nt,:,wf_adc) ))
+          figure(3); clf;
+          imagesc(lp( cn.data ))
+          figure(4); clf;
+          plot(lp(mean(data{img}(1:wfs(wf).Nt,:,wf_adc),2)))
+          legend('Mean','CN');
+        end
+        
+        for dft_idx = 1:length(noise.dft_freqs)
+          % mf: matched filter
+          % coh_noise(bin,dft_idx): Coefficient for the matched filter
+          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+          for bin = 1:size(coh_noise,1)
+            data{img}(bin,:,wf_adc) = data{img}(bin,:,wf_adc)-coh_noise(bin,dft_idx) * mf;
           end
         end
         
@@ -138,68 +145,23 @@ for img = 1:length(param.load.imgs)
     %% Coherent noise: Deramp
     % ===================================================================
     if strcmpi(radar_type,'deramp')
-      
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        noise_fn_dir = fileparts(ct_filename_out(param,wfs(wf).coh_noise_arg.fn, ''));
-        noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
-        
-        fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
-        noise = load(noise_fn);
-        
-        cmd = noise.param_collate.analysis.cmd{noise.param_collate.collate_coh_noise.cmd_idx};
-        cmd.pulse_comp = true; % HACK: DO NOT COMMIT. NEEDS TO BE REMOVED
-        
-        hdr.custom.coh_noise(1:length(noise.datestr),1,img,wf_adc) = noise.datestr;
-        noise.Nx = length(noise.gps_time);
-        
-        % Nt by Nx_dft matrix
-        noise.dft(~isfinite(noise.dft)) = 0;
-        
-        % Adjust coherent noise dft for changes in adc_gains relative to
-        % when the coherent noise was loaded and estimated.
-        noise.dft = noise.dft * 10.^((wfs(wf).adc_gains_dB(adc)-noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
-        
-        % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
-        % changes relative to when the coherent noise was loaded and
-        % estimated.
-        noise.dft = noise.dft * 10.^(( ...
-          noise.param_analysis.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
-          - param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
-          .* exp(1i*( ...
-          noise.param_analysis.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
-          - param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
-        
-        % Correct any changes in Tsys
-        Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-        Tsys_old = noise.param_analysis.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
-        dTsys = Tsys-Tsys_old;
-        noise.Nt = size(noise.dft,1);
-        noise.freq = noise.fc + 1/(noise.dt*noise.Nt) * ifftshift(-floor(noise.Nt/2):floor((noise.Nt-1)/2)).';
-        if dTsys ~= 0
-          % Positive dTsys means Tsys > Tsys_old and we should reduce the
-          % time delay to all targets by dTsys.
-          noise.dft = ifft(fft(noise.dft) .* exp(1i*2*pi*noise.freq*dTsys));
-        end
-        
-        
-        recs = interp1(noise.gps_time, noise.recs, hdr.gps_time, 'linear', 'extrap');
-        
         if 0
           % Debug Code
           imagesc(lp( bsxfun(@minus, data{img}(1:wfs(wf).Nt,:), mean(data{img}(1:wfs(wf).Nt,:),2) )  ))
           figure(1); clf;
           plot(lp(mean(data{img}(1:wfs(wf).Nt,:),2)))
           hold on
-          plot(lp(noise.dft))
+          plot(lp(coh_noise))
         end
         
-        cn.data = zeros([size(noise.dft,1) numel(recs)],'single');
+        cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
         for dft_idx = 1:length(noise.dft_freqs)
           % mf: matched filter
-          % noise.dft(bin,dft_idx): Coefficient for the matched filter
+          % coh_noise(bin,dft_idx): Coefficient for the matched filter
           mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
-          for bin = 1:size(noise.dft,1)
-            cn.data(bin,:) = cn.data(bin,:)-noise.dft(bin,dft_idx) * mf;
+          for bin = 1:size(coh_noise,1)
+            cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
           end
         end
       end
@@ -1091,34 +1053,44 @@ for img = 1:length(param.load.imgs)
     % ===================================================================
     if 0
       % Debug Test Code
-      before = data{img}(1:size(noise.dft,1),:,wf_adc);
+      before = data{img}(1:wfs(wf).Nt,:,wf_adc);
     end
     if strcmpi(radar_type,'pulsed')
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        for dft_idx = 1:length(noise.dft_freqs)
-          % mf: matched filter
-          % noise.dft(bin,dft_idx): Coefficient for the matched filter
-          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
-          for bin = 1:size(noise.dft,1)
-            data{img}(bin,:,wf_adc) = data{img}(bin,:,wf_adc)-noise.dft(bin,dft_idx) * mf;
+        if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
+          for dft_idx = 1:length(noise.dft_freqs)
+            % mf: matched filter
+            % coh_noise(bin,dft_idx): Coefficient for the matched filter
+            mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+            for bin = 1:size(coh_noise,1)
+              data{img}(bin,:,wf_adc) = data{img}(bin,:,wf_adc)-coh_noise(bin,dft_idx) * mf;
+            end
           end
+          
+        elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
+          data{img}(1:size(coh_noise,1),:,wf_adc) = data{img}(1:size(coh_noise,1),:,wf_adc) ...
+            - interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
         end
       end
     end
     if 0
       % Debug Test Code
-      after = data{img}(1:size(noise.dft,1),:,wf_adc);
-      Nfir = 21;
+      after = data{img}(1:wfs(wf).Nt,:,wf_adc);
+      Nfir = 51;
       beforef = fir_dec(before,Nfir);
       afterf = fir_dec(after,Nfir);
       figure(1); clf;
       imagesc(lp(beforef));
       cc=caxis;
+      h_axes = gca;
       figure(2); clf;
       imagesc(lp(afterf));
       caxis(cc);
+      h_axes(end+1) = gca;
+      linkaxes(h_axes);
+      
       figure(3); clf;
-      rline = round(min(8000-1,size(afterf,2))/Nfir) + 1;
+      rline = min(size(afterf,2),61);
       plot(lp(beforef(:,rline)));
       hold on;
       plot(lp(afterf(:,rline)));

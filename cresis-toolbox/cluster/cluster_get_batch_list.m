@@ -62,8 +62,8 @@ for dir_idx = 1:length(batch_dirs)
   
   if isempty(batch_id_match) || batch_id_match == batch_id
     ctrls{end+1}.batch_dir = batch_dirs{dir_idx};
-    ctrls{dir_idx}.batch_id = batch_id;
-    batch_ids(end+1) = ctrls{dir_idx}.batch_id;
+    ctrls{end}.batch_id = batch_id;
+    batch_ids(end+1) = ctrls{end}.batch_id;
   end
 end
 [~,sort_idxs] = sort(batch_ids);
