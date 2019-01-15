@@ -190,7 +190,11 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
   elseif strcmpi(ctrl.cluster.type,'slurm')
     % Runs squeue command
     % -----------------------------------------------------------------------
-    cmd = sprintf('squeue --users=%s </dev/null', ctrl.cluster.user_name);
+    if isempty(ctrl.cluster.ssh_hostname)
+      cmd = sprintf('squeue --users=%s </dev/null', ctrl.cluster.user_name);
+    else
+      cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "squeue --users=%s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, ctrl.cluster.ssh_user_name);
+    end
     [status,result] = robust_system(cmd);
   end
   
