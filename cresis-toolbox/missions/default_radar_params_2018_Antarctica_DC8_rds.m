@@ -36,7 +36,7 @@ param.config.max_tx = [57750 57750 65450 61292 61600 54478 0 0];
 param.config.max_tx_voltage = sqrt(1000*50)*10^(-2/20); % voltage at max_tx
 
 %% CReSIS parameters
-param.config.cresis.clk = 900e6/16;
+param.config.cresis.clk = 900e6/6;
 param.config.cresis.rx_gain_dB = 51.5;
 param.config.cresis.gps_file_mask = 'GPS*';
 
@@ -48,7 +48,7 @@ default.cmd.generic = 1;
 %% Records worksheet
 default.records.gps.time_offset = 1;
 default.records.frames.mode = 1;
-default.records.frames.geotiff_fn = 'greenland\Landsat-7\mzl7geo_90m_lzw.tif';
+default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m';
 default.records.presum_bug_fixed = 0;
 
 %% Qlook worksheet
@@ -151,7 +151,7 @@ default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
-default.config_regexp = '(survey_.*thick.xml';
+default.config_regexp = 'survey_.*thick.xml';
 default.name = 'Survey Mode';
 defaults{end+1} = default;
 
