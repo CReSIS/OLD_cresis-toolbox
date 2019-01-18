@@ -38,7 +38,8 @@ records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
 
 % Quick look radar echogram output directory
-qlook_out_dir = ct_filename_out(param, param.qlook.out_path, 'CSARP_qlook');
+out_dir = ct_filename_out(param, param.qlook.out_path);
+tmp_out_dir = ct_filename_out(param, param.qlook.out_path, 'qlook_tmp');
 
 %% Loop through all the frames: combine and surface track
 % =====================================================================
@@ -49,10 +50,10 @@ for frm_idx = 1:length(param.cmd.frms);
   outputs_done = true;
   for img = 1:length(param.qlook.imgs)
     if length(param.qlook.imgs) == 1
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+      out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', ...
         param.day_seg, frm));
     else
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+      out_fn = fullfile(out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
         img, param.day_seg, frm));
     end
     if ~ct_file_lock_check(out_fn,4)
@@ -60,7 +61,7 @@ for frm_idx = 1:length(param.cmd.frms);
     end
   end
   if length(param.qlook.imgs) > 1 && ~isempty(param.qlook.img_comb)
-    out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+    out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));
 
     if ~ct_file_lock_check(out_fn,4)
@@ -89,7 +90,7 @@ for frm_idx = 1:length(param.cmd.frms);
   end
   
   %% Output directory
-  in_fn_dir = fullfile(qlook_out_dir, sprintf('ql_data_%03d_01_01',frm));
+  in_fn_dir = fullfile(tmp_out_dir, sprintf('ql_data_%03d_01_01',frm));
   
   %% Concatenate blocks for each of the images
   for img = 1:length(param.qlook.imgs)
@@ -200,14 +201,18 @@ for frm_idx = 1:length(param.cmd.frms);
     
     %% Save output
     if length(param.qlook.imgs) == 1
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+      out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', ...
         param.day_seg, frm));
     else
-      out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+      out_fn = fullfile(out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
         img, param.day_seg, frm));
     end
     fprintf('  Writing output to %s\n', out_fn);
-    if param.ct_file_lock
+    if length(param.qlook.imgs) == 1 || img == 1
+      % This is the combined file and it is not done yet so mark it deleted
+      % until the last step is complete.
+      file_version = '1D';
+    elseif param.ct_file_lock
       file_version = '1L';
     else
       file_version = '1';
@@ -247,25 +252,32 @@ for frm_idx = 1:length(param.cmd.frms);
   %% Save combined image output
   if length(param.qlook.imgs) == 1 || ~isempty(param.qlook.img_comb)
     % A combined file should be created
-    out_fn = fullfile(qlook_out_dir, sprintf('Data_%s_%03d.mat', ...
+    out_fn = fullfile(out_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));
   else
     % Store the result in img 1 since a combined file is not created
     img = 1;
-    out_fn = fullfile(qlook_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+    out_fn = fullfile(out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
       img, param.day_seg, frm));
   end
   fprintf('  Writing output to %s\n', out_fn);
   
-  if num_imgs == 1 && Time(1) > 0
+  if param.ct_file_lock
+    file_version = '1L';
+  else
+    file_version = '1';
+  end
+  if num_imgs == 1 && Time(1) > 0 && strcmpi(radar_type,'deramp')
     if param.qlook.surf.en
-      % No images were combined, therefore the data is unchanged and we can
-      % just update the Surface variable.
-      save(out_fn,'-append','Surface');
+      % No images were combined, no img_comb_trim needs to be done,
+      % therefore the data will remain unchanged and we can just update the
+      % Surface variable and mark the file_version complete.
+      save(out_fn,'-append','Surface','file_version');
     end
     
   else
-    % Combine images into a single image (also trim invalid times)
+    % Combine images into a single image (also trim invalid times with
+    % img_comb_trim)
     [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
     
     if isempty(custom)
@@ -281,36 +293,36 @@ for frm_idx = 1:length(param.cmd.frms);
   
   
   %% Delete temporary files now that all combined files are created
-  if 0 % HACK: NEED TO REMOVE
-  for img = 1:length(param.qlook.imgs)
-    % Determine where breaks in processing blocks are going to occur
-    block_size = param.qlook.block_size(1);
-    blocks = 1:block_size:length(recs)-0.5*block_size;
-    if isempty(blocks)
-      blocks = 1;
-    end
-    
-    % Load each block
-    for block_idx = 1:length(blocks)
-      
-      % Determine the records for this block
-      if block_idx < length(blocks)
-        cur_recs_keep = [recs(blocks(block_idx)) recs(blocks(block_idx+1)-1)];
-      else
-        cur_recs_keep = [recs(blocks(block_idx)) recs(end)];
+  if 0 % HACK: DISABLE TO NOT DELETE TEMPORARY FILES
+    for img = 1:length(param.qlook.imgs)
+      % Determine where breaks in processing blocks are going to occur
+      block_size = param.qlook.block_size(1);
+      blocks = 1:block_size:length(recs)-0.5*block_size;
+      if isempty(blocks)
+        blocks = 1;
       end
       
-      in_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
-      in_fn = fullfile(in_fn_dir,in_fn_name);
-      
-      delete(in_fn);
+      % Load each block
+      for block_idx = 1:length(blocks)
+        
+        % Determine the records for this block
+        if block_idx < length(blocks)
+          cur_recs_keep = [recs(blocks(block_idx)) recs(blocks(block_idx+1)-1)];
+        else
+          cur_recs_keep = [recs(blocks(block_idx)) recs(end)];
+        end
+        
+        in_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,cur_recs_keep(1),cur_recs_keep(end));
+        in_fn = fullfile(in_fn_dir,in_fn_name);
+        
+        delete(in_fn);
+      end
     end
-  end
-  % Attempt to remove ql_data_FFF_01_01 directory since it is no longer
-  % needed.
-  try
-    rmdir(in_fn_dir);
-  end
+    % Attempt to remove ql_data_FFF_01_01 directory since it is no longer
+    % needed.
+    try
+      rmdir(in_fn_dir);
+    end
   end
   
 end

@@ -22,6 +22,10 @@ if ~isfield(param.config,'field_time_gap') || isempty(param.config.field_time_ga
   param.config.field_time_gap = 'utc_time_sod';
 end
 
+if ~isfield(param.config,'plots_visible') || isempty(param.config.plots_visible)
+  param.config.plots_visible = 1;
+end
+
 %% Read Headers
 % =========================================================================
 
@@ -879,7 +883,9 @@ for board_idx = 1:numel(param.config.board_map)
     
     % END IMPORTANT TIME CORRECTION
     
-    h_fig = figure(1); clf(h_fig); h_axes = axes('parent',h_fig);
+    h_fig = get_figures(3,param.config.plots_visible,mfilename);
+    
+    clf(h_fig(1)); h_axes = axes('parent',h_fig(1));
     plot(h_axes,utc_time_sod);
     hold(h_axes,'on');
     plot(h_axes,utc_time_sod_new,'r');
@@ -887,17 +893,17 @@ for board_idx = 1:numel(param.config.board_map)
     xlabel(h_axes,'Record number');
     ylabel(h_axes,'UTC Time SOD (sec)');
     legend(h_axes,'Original','Corrected','location','best');
-    title(h_axes,sprintf('UTC time original and corrected should\nmatch except at outliers'),'fontsize',10);
+    title(h_axes,sprintf('%s: UTC time original and corrected should\nmatch except at outliers',param.config.date_str),'fontsize',10);
     
     UTC_MAX_ERROR = 0.1;
-    h_fig = figure(2); clf(h_fig); h_axes = axes('parent',h_fig);
+    clf(h_fig(2)); h_axes = axes('parent',h_fig(2));
     plot(h_axes,utc_time_sod - utc_time_sod_new);
     xlabel(h_axes,'Record number');
     ylabel(h_axes,'Time correction (sec)');
     ylim(h_axes,[-UTC_MAX_ERROR UTC_MAX_ERROR]);
-    title(h_axes,sprintf('Time correction should be within limits\nexcept for a few outliers.'),'fontsize',10);
+    title(h_axes,sprintf('%s: Time correction should be within limits\nexcept for a few outliers.',param.config.date_str),'fontsize',10);
     
-    h_fig = figure(3); clf(h_fig);
+    clf(h_fig(3)); h_axes = axes('parent',h_fig(3));
     h_axes = subplot(2,1,1);
     plot(h_axes,diff(epri),'.');
     ylabel(h_axes,'Diff EPRI');
@@ -906,21 +912,30 @@ for board_idx = 1:numel(param.config.board_map)
     ylim(h_axes,[-3 5]);
     xlabel(h_axes,'Record number');
     ylabel(h_axes,'Diff EPRI');
-    title(h_axes,'Should be 1 except occasional record drops.','fontsize',10);
+    title(h_axes,sprintf('%s: Should be 1 except occasional record drops.',param.config.date_str),'fontsize',10);
     
-    fn_fig = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,sprintf('create_segments_utc_time_sod_board_%d.fig',board_idx)));
+    fn_fig = ct_filename_ct_tmp(param,'','headers', sprintf('preprocess_%s_utc_time_sod_board_%d.fig',param.config.date_str,board_idx));
     fn_fig_dir = fileparts(fn_fig);
     if ~exist(fn_fig_dir,'dir')
       mkdir(fn_fig_dir);
     end
     fprintf('Saving %s\n', fn_fig);
-    saveas(1,fn_fig);
-    fn_fig = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,sprintf('create_segments_utc_time_sod_error_board_%d.fig',board_idx)));
+    saveas(h_fig(1),fn_fig);
+    fn_fig = [fn_fig(1:end-3), 'jpg'];
     fprintf('Saving %s\n', fn_fig);
-    saveas(2,fn_fig);
-    fn_fig = ct_filename_ct_tmp(param,'','headers', fullfile(param.config.date_str,sprintf('create_segments_epri_board_%d.fig',board_idx)));
+    saveas(h_fig(1),fn_fig);
+    fn_fig = ct_filename_ct_tmp(param,'','headers', sprintf('preprocess_%s_utc_time_sod_error_board_%d.fig',param.config.date_str,board_idx));
     fprintf('Saving %s\n', fn_fig);
-    saveas(3,fn_fig);
+    saveas(h_fig(2),fn_fig);
+    fn_fig = [fn_fig(1:end-3), 'jpg'];
+    fprintf('Saving %s\n', fn_fig);
+    saveas(h_fig(2),fn_fig);
+    fn_fig = ct_filename_ct_tmp(param,'','headers', sprintf('preprocess_%s_epri_board_%d.fig',param.config.date_str,board_idx));
+    fprintf('Saving %s\n', fn_fig);
+    saveas(h_fig(3),fn_fig);
+    fn_fig = [fn_fig(1:end-3), 'jpg'];
+    fprintf('Saving %s\n', fn_fig);
+    saveas(h_fig(3),fn_fig);
     
     utc_time_sod = utc_time_sod_new;
     
@@ -1145,10 +1160,10 @@ if any(param.config.file.version == [403 404 407 408])
       % Transmit weights
       if any(param.config.file.version == [403 407 408])
         tx_mask_inv = fliplr(~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0'));
-        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.config.max_tx*param.config.max_tx_voltage;
+        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv ./ param.config.max_tx.*param.config.max_tx_voltage;
       else
         tx_mask_inv = ~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0');
-        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv / param.config.max_tx*param.config.max_tx_voltage;
+        tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv ./ param.config.max_tx.*param.config.max_tx_voltage;
       end
 
       tx_weights = tx_weights(logical(param.config.tx_enable));
@@ -1160,8 +1175,13 @@ if any(param.config.file.version == [403 404 407 408])
       oparams{end}.radar.wfs(wf).adc_gains = 10.^((param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths)))/20);
       
       % DDC mode and frequency
-      oparams{end}.radar.wfs(wf).DDC_dec = 2^(2+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
-      oparams{end}.radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
+      if isfield(settings(set_idx), 'DDC_Ctrl')
+        oparams{end}.radar.wfs(wf).DDC_dec = 2^(2+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
+        oparams{end}.radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
+      else
+        oparams{end}.radar.wfs(wf).DDC_dec = 1;
+        oparams{end}.radar.wfs(wf).DDC_freq = 0;
+      end
     end
     
     counters = {};

@@ -87,6 +87,12 @@ for img = 1:length(store_param.load.imgs)
       continue;
     end
     
+    % Create temporary output directory
+    tmp_out_fn_dir = ct_filename_out(param, cmd.out_path,'analysis_tmp');
+    if ~exist(tmp_out_fn_dir,'dir')
+      mkdir(tmp_out_fn_dir);
+    end
+    
     if strcmpi(cmd.method,{'saturation'})
       %% Saturation
       % ===================================================================
@@ -131,12 +137,8 @@ for img = 1:length(store_param.load.imgs)
         gps_time = records.gps_time;
         max_val_gps_time = gps_time(:,max_rline);
       end
-      out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+      out_fn = fullfile(tmp_out_fn_dir, ...
         sprintf('saturation_img_%02d_%d_%d.mat',img,task_recs));
-      [out_fn_dir] = fileparts(out_fn);
-      if ~exist(out_fn_dir,'dir')
-        mkdir(out_fn_dir);
-      end
       param_analysis = param;
       fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
       if param.ct_file_lock
@@ -344,12 +346,8 @@ for img = 1:length(store_param.load.imgs)
         dt = tmp_hdr.time{1,1}(2)-tmp_hdr.time{1,1}(1);
         
         %% Specular: Save Results
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+        out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        [out_fn_dir] = fileparts(out_fn);
-        if ~exist(out_fn_dir,'dir')
-          mkdir(out_fn_dir);
-        end
         param_analysis = param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         if param.ct_file_lock
@@ -508,12 +506,8 @@ for img = 1:length(store_param.load.imgs)
         t0 = tmp_hdr.time{1}(1);
         dt = tmp_hdr.time{1}(2)-tmp_hdr.time{1}(1);
         
-        out_fn = fullfile(ct_filename_out(tmp_param, cmd.out_path), ...
+        out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        [out_fn_dir] = fileparts(out_fn);
-        if ~exist(out_fn_dir,'dir')
-          mkdir(out_fn_dir);
-        end
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         if param.ct_file_lock
@@ -614,12 +608,8 @@ for img = 1:length(store_param.load.imgs)
         end
         
         %% Waveform: Save
-        out_fn = fullfile(ct_filename_out(tmp_param, cmd.out_path), ...
+        out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        [out_fn_dir] = fileparts(out_fn);
-        if ~exist(out_fn_dir,'dir')
-          mkdir(out_fn_dir);
-        end
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         if param.ct_file_lock
@@ -640,7 +630,7 @@ for img = 1:length(store_param.load.imgs)
       tmp_param = param;
       tmp_param.load.pulse_comp = cmd.pulse_comp;
       tmp_param.load.motion_comp = cmd.motion_comp;
-      tmp_param.load.motion_comp = cmd.combine_rx;
+      tmp_param.load.combine_rx = cmd.combine_rx;
       tmp_hdr = hdr;
       
       for wf_adc = cmd.wf_adcs{cmd_img}(:).'        
@@ -806,12 +796,8 @@ for img = 1:length(store_param.load.imgs)
         
         %% Statistics: Save results
         
-        out_fn = fullfile(ct_filename_out(tmp_param, cmd.out_path), ...
+        out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        [out_fn_dir] = fileparts(out_fn);
-        if ~exist(out_fn_dir,'dir')
-          mkdir(out_fn_dir);
-        end
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         if param.ct_file_lock

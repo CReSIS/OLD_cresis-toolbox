@@ -26,17 +26,17 @@ param.config.tx_map = {'','','','','','','',''};
 
 param.config.daq.xml_version = 2.0;
 
-param.config.max_data_rate = 100;
-param.config.max_duty_cycle = 0.12;
+param.config.max_data_rate = 600;
+param.config.max_duty_cycle = 0.16;
 param.config.prf_multiple = []; % Power supply sync signal that PRF must be a factor of these numbers
 param.config.PRI_guard = 10e-6;
 param.config.PRI_guard_percentage = 1;
 param.config.tx_enable = [1 1 1 1 1 1 1 1];
-param.config.max_tx = 40000;
+param.config.max_tx = 50000;
 param.config.max_tx_voltage = sqrt(250*50)*10^(-2/20); % voltage at max_tx
 
 %% CReSIS parameters
-param.config.cresis.clk = 1e9/9;
+param.config.cresis.clk = 1e9/8;
 param.config.cresis.rx_gain_dB = 51.5;
 param.config.cresis.gps_file_mask = 'GPS*';
 
@@ -117,12 +117,12 @@ default.array.diag_load = 0;
 default.array.Nsig = 2;
 
 %% Radar worksheet
-default.radar.fs = 1e9/9;
+default.radar.fs = 1e9/2;
 default.radar.Tadc = []; % normally leave empty to use value in file header
-default.radar.adc_bits = 14;
+default.radar.adc_bits = 12;
 default.radar.Vpp_scale = 2;
 
-default.radar.wfs.rx_paths = [8 9 10 11 1 1 2 3 4 5 6 7 12 13 14 15];
+default.radar.wfs.rx_paths = [1 2 3 4 5 6 7 8];
 default.radar.wfs.noise_figure = 2;
 default.radar.wfs.Tadc_adjust = -1.4455e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
@@ -150,9 +150,9 @@ default.post.ops.gaps_dist = [300 60];
 %% Radar Settings
 defaults = {};
 
-default.radar.wfs(1).Tsys = [65.3 60.8 63.3 62.9 62.3 60 58.1 -9 -9.9 -15.7 -16.3 -20.1 -19.6 -14.6 -11.3]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0.0 -2.1 -3.9 -5.6 -6.0 -2.3 -1.6 2.0 -1.5 -0.2 1.0 1.5 -0.4 -1.3 1.6];
-default.radar.wfs(1).chan_equal_deg = [0.0 80.9 -135.4 57.3 -11.2 -8.6 -155.0 78.3 -179.5 86.9 -90.4 -70.7 41.3 -165.5 -173.3];
+default.radar.wfs(1).Tsys = [0 0 0 0 0 0 0 0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0 0];
+default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0 0];
 
 % survey mode
 default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];

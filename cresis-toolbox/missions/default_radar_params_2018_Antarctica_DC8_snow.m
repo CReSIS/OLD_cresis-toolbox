@@ -12,52 +12,36 @@ function param = default_radar_params_2018_Antarctica_DC8_snow
 param.season_name = '2018_Antarctica_DC8';
 param.radar_name = 'snow8';
 
-param.preprocess.daq.type = 'cresis';
-param.preprocess.daq.xml_version = -1; % No XML file available
-param.preprocess.daq.header_load_func = @basic_load_fmcw8;
-param.preprocess.daq.board_map = {''};
-param.preprocess.daq.tx_map = {''};
-param.preprocess.daq.clk = 125e6;
+param.config.file.version = 8;
+param.config.file.prefix = param.radar_name;
+param.config.file.suffix = '.bin';
+param.config.max_time_gap = 10;
+param.config.min_seg_size = 2;
 
-param.preprocess.file.version = 8;
-param.preprocess.file.prefix = param.radar_name;
-param.preprocess.file.suffix = '.bin';
-param.preprocess.max_time_gap = 10;
-param.preprocess.min_seg_size = 2;
+param.config.daq_type = 'cresis';
+param.config.wg_type = 'cresis';
+param.config.header_load_func = @basic_load_fmcw8;
+param.config.board_map = {''};
+param.config.tx_map = {''};
 
-%% Control parameters
+param.config.daq.xml_version = -1; % No XML file available
 
-% default.noise_50ohm = [0 0 0 0];
+param.config.tx_enable = [1];
 
-% default.Pt = 1; % Transmit power at the transmit antenna
-% default.Gt = 10; % Transmit antenna gain
-% default.Ae = default.Gt*(3e8/10e9)^2; % Receiver antenna effective area
-% default.system_loss_dB = 10.^(-5.88/10); % Losses from the receive antenna to before the first LNA
-% default.noise_figure = 2; % Noise figure of receiver starting at the first LNA
-% default.adc_SNR_dB = 70; % ADC full scale signal SNR (relative to quantization noise)
-% default.fs = 250e6;
-% default.fs_dac = 2000e6;
-% default.max_duty_cycle = 0.1;
-% default.max_data_rate = 60;
-% default.max_tx = [0.7];
-% default.prf_multiple = [10e6 10e6/20]; % Power supply sync signal that PRF must be a factor of these numbers
-% default.PRI_guard = 1e-6;
-% default.PRI_guard_percentage = 450e6/500e6;
+%% CReSIS parameters
+param.config.cresis.clk = 125e6;
 
-% default.tx_enable = [1];
-
-% default.basic_surf_track_min_time = 2e-6;
-% default.basic_surf_track_Tpd_factor = 1.1; % Normally -inf for lab test, 1.1 for flight test
+%% Command worksheet
+default.cmd.records = 1;
+default.cmd.qlook = 1;
+default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.file.boards = [1];
-default.records.file.version = 8;
-default.records.file.prefix = param.preprocess.file.prefix;
-default.records.gps.time_offset = 1;
+default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m';
+default.records.frames.mode = 2;
 default.records.gps.en = 1;
-default.records.frames.geotiff_fn = 'antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
-default.records.frames.mode = 1;
-default.records.data_map = {}; % Empty means direct mapping to wf-adc
+default.records.gps.time_offset = 1;
 
 %% Qlook worksheet
 default.qlook.img_comb = [];
@@ -145,6 +129,8 @@ for wf = 1:1
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).nz_trim = {[0 0],[0 2],[0 0],[0 0]};
+  default.radar.wfs(wf).nz_valid = [0 1 2 3];
 end
 
 %% Post worksheet
@@ -164,7 +150,7 @@ default.post.echo.depth = '[min(Surface_Depth)-2 max(Surface_Depth)+25]';
 % default.post.echo.elev_comp = 3;
 % default.post.echo.depth = '[min(Surface_Elev)-25 max(Surface_Elev)+2]';
 default.post.echo.er_ice = round((1+0.51*0.3)^3 * 100)/100;
-default.post.ops.location = 'antarctic';
+default.post.ops.location = 'arctic';
   
 %% Radar Settings
 
@@ -205,4 +191,4 @@ defaults{end+1} = default;
 
 %% Add default settings
 
-param.preprocess.defaults = defaults;
+param.config.defaults = defaults;

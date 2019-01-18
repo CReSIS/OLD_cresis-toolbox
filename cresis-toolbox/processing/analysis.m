@@ -333,9 +333,9 @@ for img = 1:length(param.analysis.imgs)
       continue;
     end
     
-    % Create output directory string
+    % Create combine file output directory string
     out_fn_dir = ct_filename_out(param,cmd.out_path);
-    out_fn_dir_dir = fileparts(out_fn_dir);
+    out_segment_fn_dir = fileparts(out_fn_dir);
       
     switch cmd.method
       case {'burst_noise'}
@@ -345,7 +345,7 @@ for img = 1:length(param.analysis.imgs)
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           wf = param.analysis.imgs{img}(wf_adc,1);
           adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_fn_dir_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          out_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
           combine_file_success{end+1} = out_fn;
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
             ct_file_lock_check(out_fn,3);
@@ -362,7 +362,7 @@ for img = 1:length(param.analysis.imgs)
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           wf = param.analysis.imgs{img}(wf_adc,1);
           adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_fn_dir_dir,sprintf('specular_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          out_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
           combine_file_success{end+1} = out_fn;
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
             ct_file_lock_check(out_fn,3);
@@ -373,7 +373,7 @@ for img = 1:length(param.analysis.imgs)
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           wf = param.analysis.imgs{img}(wf_adc,1);
           adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_fn_dir_dir,sprintf('stats_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          out_fn = fullfile(out_segment_fn_dir,sprintf('stats_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
           combine_file_success{end+1} = out_fn;
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
             ct_file_lock_check(out_fn,3);
@@ -384,7 +384,7 @@ for img = 1:length(param.analysis.imgs)
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           wf = param.analysis.imgs{img}(wf_adc,1);
           adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_fn_dir_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          out_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
           combine_file_success{end+1} = out_fn;
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
             ct_file_lock_check(out_fn,3);
@@ -419,9 +419,6 @@ if length(records.gps_time)-breaks(end) < param.analysis.block_size/2 ...
     && length(breaks) > 1
   breaks = breaks(1:end-1);
 end
-
-% Create output directory string
-out_fn_dir = ct_filename_out(param,param.analysis.out_path);
 
 sparam.argsin{1} = param; % Static parameters
 sparam.task_function = 'analysis_task';
@@ -467,8 +464,8 @@ for break_idx = 1:length(breaks)
         continue;
       end
       
-      % Create output directory string
-      out_fn_dir = ct_filename_out(param,cmd.out_path);
+      % Create temporary output directory string
+      tmp_out_fn_dir = ct_filename_out(param,cmd.out_path,'analysis_tmp');
       
       % Load data
       dparam.cpu_time = dparam.cpu_time + 10 + param.analysis.presums*size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
@@ -482,7 +479,7 @@ for break_idx = 1:length(breaks)
           for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
-            out_fn = fullfile(out_fn_dir,sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            out_fn = fullfile(tmp_out_fn_dir,sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
             dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
@@ -504,7 +501,7 @@ for break_idx = 1:length(breaks)
           for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
-            out_fn = fullfile(out_fn_dir,sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            out_fn = fullfile(tmp_out_fn_dir,sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
             dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
@@ -520,7 +517,7 @@ for break_idx = 1:length(breaks)
           for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
-            out_fn = fullfile(out_fn_dir,sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            out_fn = fullfile(tmp_out_fn_dir,sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
             dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
@@ -536,7 +533,7 @@ for break_idx = 1:length(breaks)
           for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
-            out_fn = fullfile(out_fn_dir,sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            out_fn = fullfile(tmp_out_fn_dir,sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
             dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
@@ -609,10 +606,6 @@ for img = 1:length(param.analysis.imgs)
     if ~cmd.en
       continue;
     end
-    
-    % Create output directory string
-    out_fn_dir = ct_filename_out(param,cmd.out_path);
-    out_fn_dir_dir = fileparts(out_fn_dir);
       
     switch cmd.method
       case {'burst_noise'}

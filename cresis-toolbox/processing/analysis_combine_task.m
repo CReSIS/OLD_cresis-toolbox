@@ -49,6 +49,15 @@ for cmd_idx = 1:length(param.analysis.cmd)
     continue;
   end
   
+  % Create temporary output directory string
+  tmp_out_fn_dir = ct_filename_out(param, cmd.out_path, 'analysis_tmp');
+  % Create combined output directory
+  out_fn_dir = ct_filename_out(param, cmd.out_path);
+  out_segment_fn_dir = fileparts(out_fn_dir);
+  if ~exist(out_segment_fn_dir,'dir')
+    mkdir(out_segment_fn_dir);
+  end
+
   if strcmpi(cmd.method,{'saturation'})
     %% Saturation
     % ===================================================================
@@ -74,7 +83,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
         actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
           cur_recs(end)*param.analysis.presums];
         
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+        out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('saturation_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
         
         satur = load(out_fn);
@@ -93,8 +102,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         satur.max_val_gps_time = max_val_gps_time;
         satur.max_val_gps_time_adc = max_val_gps_time_adc;
         
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('saturation_%s_img_%02d.mat', param.day_seg, img));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','satur');
@@ -145,7 +152,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
             cur_recs(end)*param.analysis.presums];
           
-          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+          out_fn = fullfile(tmp_out_fn_dir, ...
             sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
 
           fprintf('  Load %s (%s)\n', out_fn, datestr(now));
@@ -183,8 +190,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         else
           spec.file_version = '1';
         end
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','spec');
@@ -234,7 +239,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
             cur_recs(end)*param.analysis.presums];
           
-          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+          out_fn = fullfile(tmp_out_fn_dir, ...
             sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
           
           noise = load(out_fn);
@@ -301,8 +306,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
           noise.file_version = '1';
         end
         
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
@@ -343,7 +346,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
             cur_recs(end)*param.analysis.presums];
           
-          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+          out_fn = fullfile(tmp_out_fn_dir, ...
             sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
           
           waveform = load(out_fn);
@@ -373,8 +376,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         waveform.wf_data = wf_data;
         waveform.time_rng = time_rng;
         
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','waveform'); % Use HDF because of the large file size
@@ -421,7 +422,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
             cur_recs(end)*param.analysis.presums];
           
-          out_fn = fullfile(ct_filename_out(param, cmd.out_path), ...
+          out_fn = fullfile(tmp_out_fn_dir, ...
             sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
           
           stats = load(out_fn);
@@ -468,8 +469,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
           stats.file_version = '1';
         end
         
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('stats_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','stats'); % Use HDF because of the large file size
@@ -480,47 +479,45 @@ for cmd_idx = 1:length(param.analysis.cmd)
 end
 
 %% Delete temporary files
-for cmd_idx = []%1:length(param.analysis.cmd) % HACK
-  cmd = param.analysis.cmd{cmd_idx};
-  if ~cmd.en
-    continue;
-  end
-  
-  if strcmpi(cmd.method,{'saturation'})
-    out_fn_dir = ct_filename_out(param, cmd.out_path);
-    delete(fullfile(out_fn_dir,'saturation_*'));
-    try
-      rmdir(out_fn_dir); % Only deletes if empty
+if 0 % HACK: DISABLE TO NOT DELETE TEMPORARY FILES
+  for cmd_idx = 1:length(param.analysis.cmd)
+    cmd = param.analysis.cmd{cmd_idx};
+    if ~cmd.en
+      continue;
     end
     
-  elseif strcmpi(cmd.method,{'specular'})
-    out_fn_dir = ct_filename_out(param, cmd.out_path);
-    delete(fullfile(out_fn_dir,'specular_*'));
-    try
-      rmdir(out_fn_dir); % Only deletes if empty
+    tmp_out_fn_dir = ct_filename_out(param, cmd.out_path, 'analysis_tmp');
+    if strcmpi(cmd.method,{'saturation'})
+      delete(fullfile(tmp_out_fn_dir,'saturation_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    elseif strcmpi(cmd.method,{'specular'})
+      delete(fullfile(tmp_out_fn_dir,'specular_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    elseif strcmpi(cmd.method,{'coh_noise'})
+      delete(fullfile(tmp_out_fn_dir,'coh_noise_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    elseif strcmpi(cmd.method,{'waveform'})
+      delete(fullfile(tmp_out_fn_dir,'surf_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    elseif strcmpi(cmd.method,{'statistics'})
+      delete(fullfile(tmp_out_fn_dir,'stats_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
     end
-    
-  elseif strcmpi(cmd.method,{'coh_noise'})
-    out_fn_dir = ct_filename_out(param, cmd.out_path);
-    delete(fullfile(out_fn_dir,'coh_noise_*'));
-    try
-      rmdir(out_fn_dir); % Only deletes if empty
-    end
-    
-  elseif strcmpi(cmd.method,{'waveform'})
-    out_fn_dir = ct_filename_out(param, cmd.out_path);
-    delete(fullfile(out_fn_dir,'surf_*'));
-    try
-      rmdir(out_fn_dir); % Only deletes if empty
-    end
-    
-  elseif strcmpi(cmd.method,{'statistics'})
-    out_fn_dir = ct_filename_out(param, cmd.out_path);
-    delete(fullfile(out_fn_dir,'stats_*'));
-    try
-      rmdir(out_fn_dir); % Only deletes if empty
-    end
-    
   end
 end
 
