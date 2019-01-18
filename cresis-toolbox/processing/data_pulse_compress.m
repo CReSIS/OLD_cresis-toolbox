@@ -39,6 +39,11 @@ for img = 1:length(param.load.imgs)
       
       fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
       noise = load(noise_fn);
+      if ~isfield(noise.param_collate.collate_coh_noise,'method') || isempty(noise.param_collate.collate_coh_noise.method)
+        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
+        noise.param_collate.collate_coh_noise.method = 'dft';
+        save(noise_fn,'-struct','noise')
+      end
       
       cmd = noise.param_analysis.analysis.cmd{noise.param_collate.collate_coh_noise.cmd_idx};
       
@@ -448,7 +453,11 @@ for img = 1:length(param.load.imgs)
             t0 = hdr.t0_raw{img}(rec) + wfs(wf).Tadc_adjust;
             dt_raw = 1/fs_raw_dec;
             time_raw_no_trim = (t0:dt_raw:t0+dt_raw*(hdr.Nt{img}(rec)-1)).';
-            % Create RF frequency axis for minimum delay to surface expected
+            % Create RF frequency axis for minimum delay to surface
+            % expected
+            % td_mean: t_rf (RF time of arrival) relative to the t_ref (REF
+            %   time of arrival), td_mean is NOT the mean delay and should be
+            %   renamed.
             f_rf = wfs(wf).f0 + wfs(wf).chirp_rate*(time_raw_no_trim - wfs(wf).td_mean);
             if wfs(wf).f0 > wfs(wf).f1
               window_start_idx_norm = find(f_rf <= wfs(wf).BW_window(2),1);
@@ -1082,10 +1091,12 @@ for img = 1:length(param.load.imgs)
       figure(1); clf;
       imagesc(lp(beforef));
       cc=caxis;
+      colormap(1-gray(256));
       h_axes = gca;
       figure(2); clf;
       imagesc(lp(afterf));
       caxis(cc);
+      colormap(1-gray(256));
       h_axes(end+1) = gca;
       linkaxes(h_axes);
       

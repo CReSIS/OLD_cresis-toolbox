@@ -29,7 +29,7 @@ cmd = param.analysis.cmd{param.update_collate_deconv.cmd_idx};
 % =========================================================================
 
 if ~isfield(param.update_collate_deconv,'debug_plots')
-  param.update_collate_deconv.debug_plots = {};
+  param.update_collate_deconv.debug_plots = {'final'};
 end
 
 if ~isfield(param.update_collate_deconv,'gps_time_penalty') || isempty(param.update_collate_deconv.gps_time_penalty)

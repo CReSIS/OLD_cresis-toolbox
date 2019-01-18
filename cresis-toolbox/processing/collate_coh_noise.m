@@ -36,9 +36,13 @@ enable_visible_plot = any(strcmp('visible',param.collate_coh_noise.debug_plots))
 if ~isempty(param.collate_coh_noise.debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
 end
-enable_threshold_plot = any(strcmp('threshold',param.collate_coh_noise.debug_plots));
+enable_threshold_plot = any(strcmp('threshold_plot',param.collate_coh_noise.debug_plots));
 enable_cn_plots = any(strcmp('cn',param.collate_coh_noise.debug_plots));
 enable_debug_plot = any(strcmp('debug',param.collate_coh_noise.debug_plots));
+enable_threshold = enable_threshold_plot || any(strcmp('threshold',param.collate_coh_noise.debug_plots));
+if ~isempty(param.collate_coh_noise.debug_plots)
+  h_fig = get_figures(5,enable_visible_plot);
+end
 
 if ~isfield(param.collate_coh_noise,'dft_corr_length') || isempty(param.collate_coh_noise.dft_corr_length)
   param.collate_coh_noise.dft_corr_length = 1e6;
@@ -104,6 +108,7 @@ for img = param.collate_coh_noise.imgs
     % Determine the first start bin and the last stop bin
     start_bin = min(start_bins);
     stop_bin = max(stop_bins);
+    Nt = stop_bin-start_bin+1;
       
     % Get the size of each processing block
     block_size = cellfun(@(t) size(t,2),noise.coh_ave);
@@ -124,51 +129,64 @@ for img = param.collate_coh_noise.imgs
     dft_freqs = ifftshift(-floor(Nx_dft/2) : floor((Nx_dft-1)/2));
     [~,dft_freqs_idxs] = sort(abs(dft_freqs));
     dft_freqs = dft_freqs(dft_freqs_idxs);
-    noise.dft = zeros(stop_bin-start_bin+1, Nx_dft, 'single');
+    noise.dft = zeros(Nt, Nx_dft, 'single');
     
     dgps_time = median(diff(noise.gps_time));
     dx = max(1,round(1/(dgps_time * param.collate_coh_noise.firdec_fs)));
     dec_idxs = 1:dx:Nx;
     noise.coh_noise_gps_time = noise.gps_time(dec_idxs);
     Nx_coh_noise = length(dec_idxs);
-    noise.coh_noise = zeros(stop_bin-start_bin+1, Nx_coh_noise, 'single');
+    noise.coh_noise = zeros(Nt, Nx_coh_noise, 'single');
     
-    threshold = zeros(stop_bin-start_bin+1,1);
+    if enable_threshold
+      threshold = zeros(Nt,1);
+      cn_before_mag = zeros(Nx,Nt);
+    end
     
     if enable_cn_plots
-      cn_before = zeros(stop_bin-start_bin+1,Nx);
-      cn_after = zeros(stop_bin-start_bin+1,Nx);
-      cn_before_mag = zeros(stop_bin-start_bin+1,Nx);
+      % Transposed to speed up writes
+      cn_before = zeros(Nx,Nt);
+      cn_after = zeros(Nx,Nt);
     end
     for bin = start_bin:stop_bin
       bin_idx = bin-start_bin+1;
+      if ~mod(bin_idx-1,10^floor(log10(Nt)-1))
+        fprintf('  Estimating rbin index %d of %d (%s)\n', bin_idx, Nt, datestr(now));
+      end
       coh_bin = nan(size(noise.gps_time));
-      coh_bin_mag = nan(size(noise.gps_time));
+      if enable_threshold
+        coh_bin_mag = nan(size(noise.gps_time));
+      end
       for block_idx = 1:length(noise.coh_ave)
         if bin >= start_bins(block_idx) && bin <= stop_bins(block_idx)
           tmp = noise.coh_ave{block_idx}(bin-start_bins(block_idx)+1,:);
           tmp(noise.coh_ave_samples{block_idx}(bin-start_bins(block_idx)+1,:) < cmd.min_samples) = NaN;
           coh_bin(block_start(block_idx)+(0:block_size(block_idx)-1)) = tmp;
-          coh_bin_mag(block_start(block_idx)+(0:block_size(block_idx)-1)) = noise.coh_ave_mag{block_idx}(bin-start_bins(block_idx)+1,:);
+          if enable_threshold
+            coh_bin_mag(block_start(block_idx)+(0:block_size(block_idx)-1)) = noise.coh_ave_mag{block_idx}(bin-start_bins(block_idx)+1,:);
+          end
         end
       end
       if 0
         % Debug plots
         figure(1); clf;
         plot(real(coh_bin)); title(sprintf('%d',bin));
-        plot(real(coh_bin_mag)); title(sprintf('%d',bin));
+        if enable_threshold
+          plot(coh_bin_mag); title(sprintf('%d',bin));
+        end
         figure(2); clf;
         plot(imag(coh_bin)); title(sprintf('%d',bin));
-        plot(imag(coh_bin_mag)); title(sprintf('%d',bin));
       end
       if enable_cn_plots
-        cn_before(bin_idx,:) = coh_bin;
-        cn_before_mag(bin_idx,:) = coh_bin_mag;
+        cn_before(:,bin_idx) = coh_bin;
       end
-      if size(coh_bin_mag,2) < 10
-        threshold(bin_idx) = lp(mean(abs(coh_bin_mag).^2,2));
-      else
-        threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,10)),[],2);
+      if enable_threshold
+        cn_before_mag(:,bin_idx) = coh_bin_mag;
+        if size(coh_bin_mag,2) < 10
+          threshold(bin_idx) = lp(mean(abs(coh_bin_mag).^2,2));
+        else
+          threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,10)),[],2);
+        end
       end
       if strcmpi(param.collate_coh_noise.method,'dft')
         for dft_idx = 1:length(dft_freqs)
@@ -179,9 +197,14 @@ for img = param.collate_coh_noise.imgs
       elseif strcmpi(param.collate_coh_noise.method,'firdec')
         fcutoff = param.collate_coh_noise.firdec_fcutoff(noise.dt*bin);
         if fcutoff == 0
+          % Zero cutoff frequency: Take mean over all values
           noise.coh_noise(bin_idx,:) = nanmean(coh_bin);
+        elseif fcutoff < 0
+          % Negative cutoff frequency: Disable coherent noise removal
+          noise.coh_noise(bin_idx,:) = 0;
         else
-          B = boxcar(round(1/(fcutoff*dgps_time)/2)*2+1).';
+          % Positive cutoff frequency: Regular FIR filter
+          B = tukeywin(round(1/(fcutoff*dgps_time)/2)*2+1,0.5).';
           B = B / sum(B);
           noise.coh_noise(bin_idx,:) = fir_dec(coh_bin,B,dx);
         end
@@ -190,7 +213,7 @@ for img = param.collate_coh_noise.imgs
         coh_bin = coh_bin - noise_est;
       end
       if enable_cn_plots
-        cn_after(bin_idx,:) = coh_bin;
+        cn_after(:,bin_idx) = coh_bin;
       end
       if 0
         % Debug plots
@@ -198,20 +221,26 @@ for img = param.collate_coh_noise.imgs
         keyboard
       end
     end
-    orig_threshold = threshold;
-    if ~isempty(param.collate_coh_noise.threshold_eval)
-      if numel(param.collate_coh_noise.threshold_eval) < wf
-        error('If param.collate_coh_noise.threshold_eval is specified, there must be a cell entry for each waveform that is used. Waveform %d cannot be found since numel(param.collate_coh_noise.threshold_eval)=%d',wf,numel(param.collate_coh_noise.threshold_eval));
+    
+    if enable_threshold
+      orig_threshold = threshold;
+      if ~isempty(param.collate_coh_noise.threshold_eval)
+        if numel(param.collate_coh_noise.threshold_eval) < wf
+          error('If param.collate_coh_noise.threshold_eval is specified, there must be a cell entry for each waveform that is used. Waveform %d cannot be found since numel(param.collate_coh_noise.threshold_eval)=%d',wf,numel(param.collate_coh_noise.threshold_eval));
+        end
+        
+        Tpd_bin  = round(param.radar.wfs(wf).Tpd/noise.dt) - start_bin;
+        %figure(100); plot(threshold); hold on;
+        % Example:
+        %param.collate_coh_noise.threshold_eval{wf} = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+        eval(param.collate_coh_noise.threshold_eval{wf});
       end
-
-      Tpd_bin  = round(param.radar.wfs(wf).Tpd/noise.dt) - start_bin;
-      %figure(100); plot(threshold); hold on;
-      % Example:
-      %param.collate_coh_noise.threshold_eval{wf} = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
-      eval(param.collate_coh_noise.threshold_eval{wf});
     end
     
     if enable_cn_plots
+      cn_before = cn_before.';
+      cn_after = cn_after.';
+      
       dxt = mean_without_outliers(diff(noise.gps_time));
       Xt = Nx*dxt;
       dfx = 1/Xt;
@@ -338,7 +367,9 @@ for img = param.collate_coh_noise.imgs
       noise_simp.coh_noise = noise.coh_noise;
     end
     noise_simp.param_analysis = noise.param_analysis;
-    noise_simp.threshold = threshold;
+    if enable_threshold
+      noise_simp.threshold = threshold;
+    end
     noise_simp.param_collate = param;
     noise_simp.datestr = datestr(now);
     noise_simp.recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
