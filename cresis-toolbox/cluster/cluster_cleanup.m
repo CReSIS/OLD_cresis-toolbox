@@ -112,7 +112,7 @@ ctrls = ctrls(ctrls_mask);
 %% Stop jobs in each batch and remove files
 for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
-  fprintf('Removing batch %d\n', ctrl.batch_id);
+  fprintf('Removing batch %d (%s)\n', ctrl.batch_id, datestr(now));
   try
     ctrl = cluster_get_batch(ctrl,false,0);
     if strcmpi(ctrl.cluster.type,'matlab') && ~isfield(ctrl.cluster,'jm')
@@ -129,25 +129,25 @@ for ctrl_idx = 1:length(ctrls)
         if ctrl.job_status(task_id) ~= 'C'
           % Only delete jobs that have not been completed (completed jobs
           % are effectively deleted already)
-          if strcmpi(ctrl.cluster.type,'torque')
-            cmd = sprintf('qdel -W 60 -a %i </dev/null', ctrl.job_id_list(task_id));
-            try; [status,result] = system(cmd); end
-            
-          elseif strcmpi(ctrl.cluster.type,'matlab')
+          if strcmpi(ctrl.cluster.type,'matlab')
             for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
               if ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(task_id)
                 try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
               end
             end
-            
-          elseif strcmpi(ctrl.cluster.type,'slurm')
-            cmd = sprintf('scancel %i </dev/null', ctrl.job_id_list(task_id));
-            try; [status,result] = system(cmd); end
-            
           end
           stopped_job_id_list(end+1) = ctrl.job_id_list(task_id);
         end
       end
+     
+      if strcmpi(ctrl.cluster.type,'torque')
+        cmd = sprintf('qdel -W 60 -a %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        try; [status,result] = system(cmd); end
+      elseif strcmpi(ctrl.cluster.type,'slurm')
+        cmd = sprintf('scancel %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        try; [status,result] = system(cmd); end
+      end
+
     end
   catch ME
     warning(ME.getReport);

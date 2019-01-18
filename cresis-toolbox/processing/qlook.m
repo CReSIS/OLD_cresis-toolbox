@@ -317,10 +317,10 @@ for frm_idx = 1:length(param.cmd.frms)
     %  Nx*total_num_sam*K where K is some manually determined multiplier.
     Nx = cur_recs(end)-cur_recs(1)+1;
     dparam.cpu_time = 0;
-    dparam.mem = 0;
+    dparam.mem = 250e6;
     for img = 1:length(param.qlook.imgs)
       dparam.cpu_time = dparam.cpu_time + 10 + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-      dparam.mem = max(dparam.mem,250e6 + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*mem_mult);
+      dparam.mem = dparam.mem + Nx*size(param.qlook.imgs{img},1)*total_num_sam(img)*mem_mult;
     end
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);

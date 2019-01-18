@@ -1,11 +1,15 @@
-function ctrls = cluster_get_batch_list(param)
-% ctrls = cluster_get_batch_list(param)
+function ctrls = cluster_get_batch_list(param,get_mode)
+% ctrls = cluster_get_batch_list(param,get_mode)
 %
 % Gets a list of batches using the specified data location.
 %
 % Inputs:
-% param = optional input (just needs to contain param.cluster.data_location)
+% param: optional input (just needs to contain param.cluster.data_location)
 %   default value is to use global gRadar
+%  .batch_id: If it contains param.batch_id, then only return batches which
+%    match this ID
+% get_mode: mode 0 returns complete ctrl structure, mode 1 returns just the
+%   batch ids
 %
 % Outputs:
 % ctrls = cell vector of batch jobs (can be used with the other cluster_*
@@ -30,9 +34,19 @@ function ctrls = cluster_get_batch_list(param)
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task
 
-if ~exist('param','var')
+if ~exist('get_mode','var') || isempty(get_mode)
+  get_mode = 0;
+end
+
+if ~exist('param','var') || isempty(param)
   global gRadar;
   param = gRadar;
+end
+
+if ~isfield(param,'batch_id') || isempty(param.batch_id)
+  batch_id_match = [];
+else
+  batch_id_match = param.batch_id;
 end
 
 batch_dirs = get_filenames(param.cluster.data_location,'batch_','','',struct('type','d'));
@@ -40,20 +54,26 @@ batch_dirs = get_filenames(param.cluster.data_location,'batch_','','',struct('ty
 %% Collect directories into a batch list and sort
 ctrls = [];
 batch_ids = [];
-for batch_idx = 1:length(batch_dirs)
-  ctrls{batch_idx}.batch_dir = batch_dirs{batch_idx};
+for dir_idx = 1:length(batch_dirs)
   
-  [tmp batch_dir_name] = fileparts(ctrls{batch_idx}.batch_dir);
-  ctrls{batch_idx}.batch_id = strtok(batch_dir_name(7:end),'_');
-  ctrls{batch_idx}.batch_id = str2double(ctrls{batch_idx}.batch_id);
+  [tmp batch_dir_name] = fileparts(batch_dirs{dir_idx});
+  batch_id = strtok(batch_dir_name(7:end),'_');
+  batch_id = str2double(batch_id);
   
-  batch_ids(end+1) = ctrls{batch_idx}.batch_id;
+  if isempty(batch_id_match) || batch_id_match == batch_id
+    ctrls{end+1}.batch_dir = batch_dirs{dir_idx};
+    ctrls{end}.batch_id = batch_id;
+    batch_ids(end+1) = ctrls{end}.batch_id;
+  end
 end
 [~,sort_idxs] = sort(batch_ids);
 ctrls = ctrls(sort_idxs);
+if get_mode == 1
+  return
+end
 
 %% Print results or populate remaining fields for each batch
-for batch_idx = 1:length(batch_dirs)  
+for batch_idx = 1:length(ctrls)  
   ctrls{batch_idx}.in_fn_dir = fullfile(ctrls{batch_idx}.batch_dir,'in');
   if nargout == 0
     % Create input filenames
@@ -99,6 +119,4 @@ for batch_idx = 1:length(batch_dirs)
     ctrls{batch_idx} = cluster_new_batch(param,ctrls{batch_idx});
   end
   
-end
-
 end

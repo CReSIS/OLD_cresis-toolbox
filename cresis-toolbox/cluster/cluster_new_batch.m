@@ -50,20 +50,44 @@ end
 
 ctrl.cluster = param.cluster;
 
-if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
-  ctrl.cluster.type = 'debug';
-end
-
 if ~isfield(ctrl.cluster,'cluster_job_fn') || isempty(ctrl.cluster.cluster_job_fn)
   ctrl.cluster.cluster_job_fn = fullfile(gRadar.path,'cluster','cluster_job.sh');
 end
 
-if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
-  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'rwx','a');
+if ~isfield(ctrl.cluster,'cpu_time_mult') || isempty(ctrl.cluster.cpu_time_mult)
+  ctrl.cluster.cpu_time_mult = 1;
 end
 
-if ~isfield(ctrl.cluster,'mcr_cache_root') || isempty(ctrl.cluster.mcr_cache_root)
-  ctrl.cluster.mcr_cache_root = '/tmp/';
+if ~isfield(ctrl.cluster,'dbstop_if_error') || isempty(ctrl.cluster.dbstop_if_error)
+  ctrl.cluster.dbstop_if_error = true;
+end
+
+if ~isfield(ctrl.cluster,'desired_time_per_job') || isempty(ctrl.cluster.desired_time_per_job)
+  ctrl.cluster.max_time_per_job = 0;
+end
+
+if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)
+  ctrl.cluster.file_check_pause = 4;
+end
+
+if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
+  ctrl.cluster.file_version = '-v7.3';
+end
+
+if ~isfield(ctrl.cluster,'force_compile') || isempty(ctrl.cluster.force_compile)
+  ctrl.cluster.force_compile = 0;
+end
+
+if ~isfield(ctrl.cluster,'hidden_depend_funs') || isempty(ctrl.cluster.hidden_depend_funs)
+  ctrl.cluster.hidden_depend_funs = [];
+end
+
+if ~isfield(ctrl.cluster,'interactive') || isempty(ctrl.cluster.interactive)
+  ctrl.cluster.interactive = 0;
+end
+
+if ~isfield(ctrl.cluster,'job_complete_pause') || isempty(ctrl.cluster.job_complete_pause)
+  ctrl.cluster.job_complete_pause = 5;
 end
 
 if ~isfield(ctrl.cluster,'matlab_mcr_path') || isempty(ctrl.cluster.matlab_mcr_path)
@@ -82,48 +106,16 @@ if ~isfield(ctrl.cluster,'max_time_per_job') || isempty(ctrl.cluster.max_time_pe
   ctrl.cluster.max_time_per_job = 86400;
 end
 
-if ~isfield(ctrl.cluster,'desired_time_per_job') || isempty(ctrl.cluster.desired_time_per_job)
-  ctrl.cluster.max_time_per_job = 0;
-end
-
 if ~isfield(ctrl.cluster,'max_retries') || isempty(ctrl.cluster.max_retries)
   ctrl.cluster.max_retries = 1;
 end
 
-if ~isfield(ctrl.cluster,'submit_pause') || isempty(ctrl.cluster.submit_pause)
-  ctrl.cluster.submit_pause = 0;
-end
-
-if ~isfield(ctrl.cluster,'stat_pause') || isempty(ctrl.cluster.stat_pause)
-  ctrl.cluster.stat_pause = 1;
-end
-
-if ~isfield(ctrl.cluster,'job_complete_pause') || isempty(ctrl.cluster.job_complete_pause)
-  ctrl.cluster.job_complete_pause = 5;
-end
-
-if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)
-  ctrl.cluster.file_check_pause = 4;
-end
-
-if ~isfield(ctrl.cluster,'interactive') || isempty(ctrl.cluster.interactive)
-  ctrl.cluster.interactive = 0;
+if ~isfield(ctrl.cluster,'mcr_cache_root') || isempty(ctrl.cluster.mcr_cache_root)
+  ctrl.cluster.mcr_cache_root = '/tmp/';
 end
 
 if ~isfield(ctrl.cluster,'rerun_only') || isempty(ctrl.cluster.rerun_only)
   ctrl.cluster.rerun_only = false;
-end
-
-if ~isfield(ctrl.cluster,'hidden_depend_funs') || isempty(ctrl.cluster.hidden_depend_funs)
-  ctrl.cluster.hidden_depend_funs = [];
-end
-
-if ~isfield(ctrl.cluster,'force_compile') || isempty(ctrl.cluster.force_compile)
-  ctrl.cluster.force_compile = 0;
-end
-
-if ~isfield(ctrl.cluster,'cpu_time_mult') || isempty(ctrl.cluster.cpu_time_mult)
-  ctrl.cluster.cpu_time_mult = 1;
 end
 
 if ~isfield(ctrl.cluster,'mem_mult') || isempty(ctrl.cluster.mem_mult)
@@ -145,18 +137,6 @@ if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
 end
 
-if ~isfield(ctrl.cluster,'file_version') || isempty(ctrl.cluster.file_version)
-  ctrl.cluster.file_version = '-v7';
-end
-
-if ~isfield(ctrl.cluster,'dbstop_if_error') || isempty(ctrl.cluster.dbstop_if_error)
-  ctrl.cluster.dbstop_if_error = true;
-end
-
-if ~isfield(ctrl.cluster,'stop_on_error') || isempty(ctrl.cluster.stop_on_error)
-  ctrl.cluster.stop_on_error = true;
-end
-
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
   % -m n: no mail
   % -l nodes=1:ppn=%p: 1 compute node and %p core/processors on the node.
@@ -174,6 +154,34 @@ if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm
   ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%m --time=%t';
 end
 
+if ~isfield(ctrl.cluster,'ssh_hostname') || isempty(ctrl.cluster.ssh_hostname)
+  ctrl.cluster.ssh_hostname = '';
+end
+
+if ~isfield(ctrl.cluster,'ssh_port') || isempty(ctrl.cluster.ssh_port)
+  ctrl.cluster.ssh_port = 22;
+end
+
+if ~isfield(ctrl.cluster,'stat_pause') || isempty(ctrl.cluster.stat_pause)
+  ctrl.cluster.stat_pause = 1;
+end
+
+if ~isfield(ctrl.cluster,'stop_on_error') || isempty(ctrl.cluster.stop_on_error)
+  ctrl.cluster.stop_on_error = true;
+end
+
+if ~isfield(ctrl.cluster,'submit_pause') || isempty(ctrl.cluster.submit_pause)
+  ctrl.cluster.submit_pause = 0;
+end
+
+if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
+  ctrl.cluster.type = 'debug';
+end
+if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
+  % Ensure matlab compiled file has execute permissions
+  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'rwx','a');
+end
+  
 %% Return if this ctrl already existed
 if nargin >= 2
   return
@@ -182,7 +190,7 @@ end
 %% Create directory to store temporary files
 % Find the first unique and unused batch_id
 % Assign batch_id, batch_dir
-ctrls = cluster_get_batch_list(param);
+ctrls = cluster_get_batch_list(param,1);
 
 ctrl.batch_id = 1;
 done = 0;
