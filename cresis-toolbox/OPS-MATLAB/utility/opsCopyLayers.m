@@ -388,21 +388,39 @@ all_frms = 1:length(frames.frame_idxs);
 % Otherwise we will create a new mask where each point within the start
 % and stop gps times of the selected frames is equal to 1 and all other
 % points are equal to 0.
+%
+% We divide up the segment into frames so that we avoid rounding issues and
+% to every point is included in a frame.
 frms_mask = zeros(size(update_mask));
 if strcmpi(copy_param.layer_dest.source,'ops')
   for frm = param.cmd.frms
-    frms_mask(all_points.gps_time >= ops_frames.properties.start_gps_time(frm)...
-          & all_points.gps_time < ops_frames.properties.stop_gps_time(frm)) = 1;
+    if frm == 1
+      if frm == length(ops_frames.properties.start_gps_time)
+        frms_mask(:) = 1;
+      else
+        frms_mask(all_points.gps_time < ops_frames.properties.start_gps_time(frm+1)) = 1;
+      end
+    elseif frm < length(ops_frames.properties.start_gps_time)
+      frms_mask(all_points.gps_time >= ops_frames.properties.start_gps_time(frm)...
+        & all_points.gps_time < ops_frames.properties.start_gps_time(frm+1)) = 1;
+    else
+      frms_mask(all_points.gps_time >= ops_frames.properties.start_gps_time(frm)) = 1;
+    end
   end
   
 else
   for frm = param.cmd.frms
-    if frm < length(frames.frame_idxs)
+    if frm == 1
+      if frm == length(frames.frame_idxs)
+        frms_mask(:) = 1;
+      else
+        frms_mask(all_points.gps_time < records.gps_time(frames.frame_idxs(frm+1))) = 1;
+      end
+    elseif frm < length(frames.frame_idxs)
       frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))...
         & all_points.gps_time < records.gps_time(frames.frame_idxs(frm+1))) = 1;
     else
-      frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))...
-        & all_points.gps_time <= records.gps_time(end)) = 1;
+      frms_mask(all_points.gps_time >= records.gps_time(frames.frame_idxs(frm))) = 1;
     end
   end
 end
