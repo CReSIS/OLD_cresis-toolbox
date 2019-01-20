@@ -157,7 +157,7 @@ records = load(records_fn);
 
 % Quick look radar echogram output directory
 out_fn_dir = ct_filename_out(param, param.qlook.out_path);
-tmp_out_fn_dir = ct_filename_out(param, param.qlook.out_path,'qlook_tmp');
+tmp_out_fn_dir_dir = ct_filename_out(param, param.qlook.out_path,'qlook_tmp');
 
 %% Setup cluster
 % =====================================================================
@@ -232,7 +232,7 @@ for frm_idx = 1:length(param.cmd.frms)
   % Create output directory name
   sub_apt_shift_idx = 1;
   sub_band_idx = 1;
-  tmp_out_fn_dir = fullfile(tmp_out_fn_dir, ...
+  tmp_out_fn_dir = fullfile(tmp_out_fn_dir_dir, ...
     sprintf('ql_data_%03d_%02d_%02d',frm,sub_apt_shift_idx,sub_band_idx));
 
   % recs: Determine the records for this frame

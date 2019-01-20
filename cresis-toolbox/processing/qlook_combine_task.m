@@ -208,9 +208,31 @@ for frm_idx = 1:length(param.cmd.frms);
         img, param.day_seg, frm));
     end
     fprintf('  Writing output to %s\n', out_fn);
-    if length(param.qlook.imgs) == 1 || img == 1
-      % This is the combined file and it is not done yet so mark it deleted
-      % until the last step is complete.
+    
+    if ~exist(out_dir,'dir')
+      mkdir(out_dir);
+    end
+    
+    if (length(param.qlook.imgs) == 1 || (img == 1 && isempty(param.qlook.img_comb))) ...
+      && (param.qlook.surf.en || ~(Time(1) > 0 && strcmpi(radar_type,'deramp')))
+      % Criteria 1: One of the following is true
+      % 1. length(param.qlook.imgs) == 1: This is the combined file
+      %   Data_YYYYMMDD_SS_FFF which will contain the surface and be time
+      %   trimmed if these are enabled.
+      %
+      % 2. img == 1 && isempty(param.qlook.img_comb): This is the
+      %    Data_img_01_YYYYMMDD_SS_FFF file which will contain the surface and
+      %    be time trimmed if these are enabled.
+      %
+      % Criteria 2: This is not a deramp file for which no time trimming
+      % needs to be done OR it is a deramp file for which no time trimming
+      % needs to be done, but the surface still needs to be updated. Note
+      % that non-deramp systems ALWAYS have time trimming done.
+      
+      % If Criteria 1 and 2 are satisfied, then this file will be written
+      % to later and we should mark it incomplete by putting a "D" in the
+      % file_version. The file_version will be updated when the final file
+      % is created.
       file_version = '1D';
     elseif param.ct_file_lock
       file_version = '1L';
@@ -267,7 +289,8 @@ for frm_idx = 1:length(param.cmd.frms);
   else
     file_version = '1';
   end
-  if num_imgs == 1 && Time(1) > 0 && strcmpi(radar_type,'deramp')
+  if isempty(param.qlook.img_comb) && Time(1) > 0 && strcmpi(radar_type,'deramp')
+    % There is no image combining and no time trim is necessary
     if param.qlook.surf.en
       % No images were combined, no img_comb_trim needs to be done,
       % therefore the data will remain unchanged and we can just update the
@@ -276,8 +299,8 @@ for frm_idx = 1:length(param.cmd.frms);
     end
     
   else
-    % Combine images into a single image (also trim invalid times with
-    % img_comb_trim)
+    % Combine images into a single image and/or trim invalid times with
+    % img_comb_trim
     [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
     
     if isempty(custom)

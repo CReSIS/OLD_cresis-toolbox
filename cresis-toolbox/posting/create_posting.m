@@ -57,14 +57,14 @@ physical_constants;
 
 % layer_path_in: where the layer information will come from
 if ~isempty(param.post.layer_dir) && param.post.ops.en == 0
-  layer_path_in = ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.layer_dir), param.day_seg);
+  layer_path_in = fullfile(ct_filename_out(param, ...
+    fullfile(param.post.in_path,param.post.layer_dir)));
   use_data_files_for_layer = false;
 else
   % An empty layer directory makes the program assume that there are no
   % layer files and it uses the data files instead
   layer_path_in = ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.data_dirs{1}), param.day_seg);
+    fullfile(param.post.in_path,param.post.data_dirs{1}));
   use_data_files_for_layer = true;
 
   % We also need to authenticate the OPS user
@@ -74,7 +74,7 @@ else
 end
 
 % post_path: the directory where outputs will be created
-post_path = ct_filename_out(param,param.post.out_path,'CSARP_post',1);
+post_path = ct_filename_out(param,param.post.out_path,[],1);
 
 % Do some conversions on the boolean post fields: if the field is empty,
 % assign it to false
@@ -239,7 +239,7 @@ end
 for data_dir_idx = 1:length(param.post.data_dirs)
   % Get a data directory
   data_path_in = ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.data_dirs{data_dir_idx}), param.day_seg);
+    fullfile(param.post.in_path,param.post.data_dirs{data_dir_idx}));
   if ~exist(data_path_in,'dir')
     continue;
   end

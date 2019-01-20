@@ -625,8 +625,8 @@ if print_mode == 2
         fid = fopen(fn);
         result = fread(fid,inf,'char=>char').';
         fclose(fid);
-        % Memory requested in megabytes
         try
+          % Memory requested in megabytes
           idx = regexp(result,'Max Mem:');
           tmp_result = result(idx:end);
           idx = find(tmp_result==':',1);
@@ -635,6 +635,20 @@ if print_mode == 2
           tmp_result = tmp_result(1:idx);
           [mem,~,~,idx] = sscanf(tmp_result,'%d');
           info(id_idx).mem_actual = mem/1e3;
+          
+          if isempty(info(id_idx).exec_node)
+            % Exec host
+            idx = regexp(result,'hostname:');
+            tmp_result = result(idx:end);
+            idx = find(tmp_result==':',1);
+            tmp_result = tmp_result(idx+2:end);
+            idx = find(tmp_result==' ');
+            tmp_result = tmp_result(1:idx-1);
+            info(id_idx).exec_node = tmp_result;
+            if length(tmp_result) > exec_node_max_len
+              exec_node_max_len = length(tmp_result);
+            end
+          end
         end
       end
     end
