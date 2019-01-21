@@ -121,7 +121,7 @@ for ctrl_idx = 1:length(ctrls)
     if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       
       % For each job in the batch, delete the job
-      stopped_job_id_list = -1;
+      stopped_job_id_list = [];
       for task_id = 1:length(ctrl.job_id_list)
         if any(ctrl.job_id_list(task_id) == stopped_job_id_list)
           continue
@@ -141,10 +141,18 @@ for ctrl_idx = 1:length(ctrls)
       end
      
       if strcmpi(ctrl.cluster.type,'torque')
-        cmd = sprintf('qdel -W 60 -a %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        if isempty(ctrl.cluster.ssh_hostname)
+          cmd = sprintf('qdel -W 60 %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        else
+          cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "qdel -W 60 %s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, sprintf('%d ',stopped_job_id_list));
+        end
         try; [status,result] = system(cmd); end
       elseif strcmpi(ctrl.cluster.type,'slurm')
-        cmd = sprintf('scancel %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        if isempty(ctrl.cluster.ssh_hostname)
+          cmd = sprintf('scancel %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        else
+          cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "scancel %s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, sprintf('%d ',stopped_job_id_list));
+        end
         try; [status,result] = system(cmd); end
       end
 
