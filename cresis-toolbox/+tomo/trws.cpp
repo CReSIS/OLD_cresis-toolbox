@@ -7,11 +7,12 @@
 //  Correlation based mu/sigma, addition of smoothness, surface repulsion increased, input arg checks,
 //    merge with extract.cpp, bounds, init and edge conditions updated: John Paden 2017
 //  Minor style changes to comply with new C++ standards: Victor Berger 2018
-//  Change to cost function (shifted exponential decay): Victor Berger and John Paden 2018
+//  Changes to cost function (shifted exponential decay): Victor Berger and John Paden 2018
+//  Changes to cost function (geostatistical analysis): Victor Berger and John Paden 2019
 //
 // See also: trws.h
 //
-// mex -v -largeArrayDims refine.cpp
+// mex -v -largeArrayDims trws.cpp
 
 #include <iostream>
 #include <cmath>
@@ -52,7 +53,7 @@ void set_msg(size_t dir, size_t disp, double val) {
 }
 };
 
-class Refine {
+class TRWS {
 public:
     // Rows of one slice
     size_t depth;
@@ -92,25 +93,32 @@ public:
     // 4-element vector containing start/stop index limits of the rows and
     // columns to run the algorithm on
     const ptrdiff_t *bounds;
-    // Cost function parameters
-    const double CF_sensory_distance;
-    const double CF_max_cost;
-    const double CF_lambda;
+    // Distance to ice-margin matrix
+    const double *mask_dist;
+    // Distance to ice-margin cost matrix
+    const double *costmatrix;
+    const int costmatrix_X;
+    const int costmatrix_Y;
+    // Mean and variance for transition model
+    const double *transition_mu;
+    const double *transition_sigma;
     
     // Temporary messages
     vector<double> incomes[5];
     // Result
     double *result;
 
-    Refine(const double *_image, const size_t *dim_image, const double *_sgt, const double *_bgt,
-        const double *_egt, const int _egt_size, const double *_ice_mask, const double *_mu, const double *_sigma,
-        const int _ms, const double *_smooth_weight, const double _smooth_var, const double *_smooth_slope,
-        const double *_edge, const int _max_loop, const ptrdiff_t *_bounds, const double _CF_sensory_distance, 
-        const double _CF_max_cost, const double _CF_lambda, double *_result)
+    TRWS(const double *_image, const size_t *dim_image, const double *_sgt, const double *_bgt, 
+         const double *_egt, const int _egt_size, const double *_ice_mask, const double *_mu, 
+         const double *_sigma, const int _ms, const double *_smooth_weight, const double _smooth_var, 
+         const double *_smooth_slope, const double *_edge, const int _max_loop, const ptrdiff_t *_bounds, 
+         const double *_mask_dist, const double *_costmatrix, const int _costmatrix_X, const int _costmatrix_Y,
+         const double *_transition_mu, const double *_transition_sigma, double *_result)
         : image(_image), sgt(_sgt), bgt(_bgt), egt(_egt), egt_size(_egt_size), ice_mask(_ice_mask), mu(_mu),
             sigma(_sigma), ms(_ms), smooth_weight(_smooth_weight), smooth_var(_smooth_var), smooth_slope(_smooth_slope),
-            edge(_edge), max_loop(_max_loop), bounds(_bounds), CF_sensory_distance(_CF_sensory_distance), 
-            CF_max_cost(_CF_max_cost), CF_lambda(_CF_lambda), result(_result) {
+            edge(_edge), max_loop(_max_loop), bounds(_bounds), mask_dist(_mask_dist), costmatrix(_costmatrix), 
+            costmatrix_X(_costmatrix_X), costmatrix_Y(_costmatrix_Y), transition_mu(_transition_mu), 
+            transition_sigma(_transition_sigma), result(_result) {
             // Set dimensions
             depth      = dim_image[0];
             height     = dim_image[1];
@@ -121,7 +129,7 @@ public:
 
             // Set matrix
             for (size_t i = 0; i < height*width; i++) {
-            matrix.push_back(new TRWSNode(max_disp));
+                matrix.push_back(new TRWSNode(max_disp));
             }
 
             // Allocate incomes
@@ -132,7 +140,7 @@ public:
             incomes[dir_all] = vector<double>(max_disp);
     }
 
-    ~Refine() {
+    ~TRWS() {
         for(size_t i = 0; i < matrix.size(); i++) {
             delete matrix[i];
         }
@@ -154,8 +162,17 @@ public:
     void surface_extracting();
 };
 
-double Refine::unary_cost(size_t d, size_t h, size_t w) {
-    size_t center = encode(h,w);
+double TRWS::unary_cost(size_t d, size_t h, size_t w) {
+    size_t center = encode(h, w);
+    
+    // Ice mask
+    if (ice_mask[center] == 0 && sgt[center] > t) {
+        if(d+t == sgt[center]){
+            return 0.0;
+        } else {
+            return LARGE;
+        }
+    }
     
     // Set cost to large if bottom is above surface
     if (d+t+1 < sgt[center]) {
@@ -175,25 +192,12 @@ double Refine::unary_cost(size_t d, size_t h, size_t w) {
             cost += 10*sqr(abs((int)(egt[3*i+2]) - (int)(d+t))/(1.0 + 0.5*abs(w - egt[3*i])));
         }
     }
-
-    // Ice mask
-    if (!std::isinf(ice_mask[center]) && sgt[center] > t) {
-        if (abs(d+t - sgt[center]) <= ice_mask[center]) {
-            if (ice_mask[center] == 0.0) {
-                return 0.0;
-            }
-        } 
-        else {
-            return LARGE;
-        }
-    } 
-    
-    // Shifted exponential decay
-    else {
-         if (fabs((int)(d+t) - (int)sgt[center]) < CF_sensory_distance && sgt[center] > t) {
-             cost += (CF_max_cost * exp(-CF_lambda * ((int)(d+t) - (int)(sgt[center]))))
-             - (CF_max_cost * exp(-CF_LAMBDA * CF_SENSORY_DISTANCE));
-         }
+   
+    if (mask_dist && costmatrix) {
+        // Distance from nearest ice-mask
+        // Probabilistic measurement
+        int DIM = (std::isinf(mask_dist[center]) || mask_dist[center] >=  costmatrix_Y) ? costmatrix_Y - 1 : mask_dist[center];
+        cost += costmatrix[costmatrix_X*DIM + d + t  + 1 - (int)sgt[center]];
     }
 
     // Image magnitude correlation
@@ -205,16 +209,15 @@ double Refine::unary_cost(size_t d, size_t h, size_t w) {
     return cost;
 }
 
-
-size_t Refine::encode(size_t h, size_t w) {
+size_t TRWS::encode(size_t h, size_t w) {
     return h + w*height;
 }
 
-size_t Refine::encode(size_t d, size_t h, size_t w) {
+size_t TRWS::encode(size_t d, size_t h, size_t w) {
     return d + h*depth + w*depth*height;
 }
 
-void Refine::set_prior() {
+void TRWS::set_prior() {
     for (size_t w = 0, cp = 0; w < width; w++) {
         for (size_t h = 0; h < height; h++, cp++) {
             for (size_t d = 0; d < max_disp; d++) {
@@ -248,7 +251,7 @@ void Refine::set_prior() {
     }
 }
 
-double Refine::set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t beg2, double beta, size_t h) {
+double TRWS::set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t beg2, double beta, size_t h) {
     double message_in[max_disp];
     double message_out[max_disp];
     double path[max_disp];
@@ -280,7 +283,7 @@ double Refine::set_message(TRWSNode *nd_me, size_t dir_me, size_t beg1, size_t b
     return min_val;
 }
 
-void Refine::set_result() {
+void TRWS::set_result() {
     double temp = 0.0;
     double min_val = INFINITY;
     size_t best_result;
@@ -326,7 +329,7 @@ void Refine::set_result() {
     }
 }
 
-void Refine::surface_extracting() { 
+void TRWS::surface_extracting() { 
     // Propagate h/height from the midpoint out (mid_height) and let it be
     // biased by the current loop's results. This means the starting point
     // can have a large affect on the result because propagation away from
@@ -446,7 +449,13 @@ void Refine::surface_extracting() {
                 size_t beg1 = max(1.0,sgt[center]-t);
                 size_t beg2;
 
-                beta = norm_pdf((double)h, (double)mid_height, smooth_var, smooth_weight[0]);
+                if (!transition_mu || !transition_sigma) {
+                    beta = norm_pdf((double)h, (double)mid_height, smooth_var, smooth_weight[0]);
+                }
+                else {
+                    beta = norm_pdf((double)h, transition_mu[w], transition_sigma[w], smooth_weight[0]);
+                }
+                    
                 if (w < width-1) {
                     // Right
                     beg2 = max(1.0,sgt[encode(h,w+1)]-t);
@@ -460,6 +469,7 @@ void Refine::surface_extracting() {
                 }
 
                 beta = norm_pdf((double)h, (double)mid_height, smooth_var, smooth_weight[1]);
+                    
                 if (h < height-1) {
                     // Down
                     beg2 = max(1.0,sgt[encode(h+1,w)]-t);
@@ -473,17 +483,15 @@ void Refine::surface_extracting() {
                 }
             }
         }
-
         loop++;
     }
-
     set_result();
 }
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
-    if ((nrhs < 9 && nrhs > 16) || nlhs != 1) {
-        mexErrMsgTxt("Usage: surf = extract(image, sgt, bgt, egt, mask, mean, variance, smooth_weight, smooth_var, [smooth_slope], [edge], [max_loop], [bounds], [CF_sensory_distance], [CF_max_cost], [CF_lambda])");
+    if ((nrhs < 9 && nrhs > 17) || nlhs != 1) {
+        mexErrMsgTxt("Usage: labels = trws(image, sgt, bgt, egt, mask, mean, variance, smooth_weight, smooth_var, [smooth_slope], [edge], [max_loop], [bounds], [mask_dist], [costmatrix], [transition_mu], [transition_sigma])");
     }
 
     // image ==============================================================
@@ -534,7 +542,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         }
     }
     double *egt = mxGetPr(prhs[3]);
-    // dim_image[0]: 3 rows (column, x, and y for each ground truth
+    // dim_image[0]: 3 rows (column, x, and y for each ground truth)
     // dim_image[1]: cols of extra ground truth
 
     // mask ===============================================================
@@ -621,7 +629,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         edge = NULL;
     }
 
-    // max_loop =============================================================
+    // max_loop ===========================================================
     double max_loop;
     if (nrhs >= 12 && mxGetNumberOfElements(prhs[11])) {
         if (!mxIsDouble(prhs[11])) {
@@ -636,7 +644,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         max_loop = MAX_LOOP;
     }
 
-    // bounds ===============================================================
+    // bounds =============================================================
     ptrdiff_t bounds[4];
     if (nrhs >= 13 && mxGetNumberOfElements(prhs[12])) {
         if (!mxIsInt64(prhs[12])) {
@@ -689,42 +697,70 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         bounds[3] = dim_image[2]-1;
     }
 
-    // Cost Function parameters (sensory distance, maximum cost, and lambda)
-    // sensory_distance =====================================================
-    if (!mxIsDouble(prhs[13])) {
-        mexErrMsgTxt("usage: CF_sensory_distance must be type double");
+    // mask_dist ==========================================================
+    const double *mask_dist;
+    if (nrhs >= 14 && mxGetNumberOfElements(prhs[13])) {
+        if (!mxIsDouble(prhs[13])) {
+            mexErrMsgTxt("usage: mask_dist must be type double");
+        }
+        const size_t *dim_mask_dist = mxGetDimensions(prhs[13]);
+        if (dim_mask_dist[0] != dim_image[1] || dim_mask_dist[1] != dim_image[2]) {
+            mexErrMsgTxt("usage: mask_dist must have size(mask_dist,1)=size(image,2) and size(mask_dist,2)=size(image,3)");
+        }
+        mask_dist = mxGetPr(prhs[13]);
     }
-    if (mxGetNumberOfElements(prhs[13]) != 1) {
-        mexErrMsgTxt("usage: CF_sensory_distance must be a scalar");
-    }
-    double CF_sensory_distance = floor(mxGetPr(prhs[13])[0]);
-    if (CF_sensory_distance < 0) {
-        CF_sensory_distance = CF_SENSORY_DISTANCE;
-    }
-    
-    // maximum_cost =========================================================
-    if (!mxIsDouble(prhs[14])) {
-        mexErrMsgTxt("usage: CF_max_cost must be type double");
-    }
-    if (mxGetNumberOfElements(prhs[14]) != 1) {
-        mexErrMsgTxt("usage: CF_max_cost must be a scalar");
-    }
-    double CF_max_cost = floor(mxGetPr(prhs[14])[0]);
-    if (CF_max_cost < 0) {
-        CF_max_cost = CF_MAX_COST;
+    else {
+        mask_dist = NULL;
     }
     
-    // lambda ===============================================================
-    if (!mxIsDouble(prhs[15])) {
-        mexErrMsgTxt("usage: CF_lambda must be type double");
+    // costmatrix =========================================================
+    const double *costmatrix;
+    int costmatrix_X, costmatrix_Y;
+    if (nrhs >= 15 && mxGetNumberOfElements(prhs[14])) {
+        if (!mxIsDouble(prhs[14])) {
+            mexErrMsgTxt("usage: costmatrix must be type double");
+        }
+        costmatrix = mxGetPr(prhs[14]);
+        costmatrix_X = mxGetM(prhs[14]);
+        costmatrix_Y = mxGetN(prhs[14]);
     }
-    if (mxGetNumberOfElements(prhs[15]) != 1) {
-        mexErrMsgTxt("usage: CF_lambda must be a scalar");
+    else {
+        costmatrix = NULL;
+        costmatrix_X = -1;
+        costmatrix_Y = -1;
     }
-    double CF_lambda = mxGetPr(prhs[15])[0];
-    if (CF_lambda < 0) {
-        CF_lambda = CF_LAMBDA;
+    
+    // transition_mu ======================================================
+    const double *transition_mu;
+    if (nrhs >= 16 && mxGetNumberOfElements(prhs[15])) {
+        if (!mxIsDouble(prhs[15])) {
+            mexErrMsgTxt("usage: transition_mu must be type double");
+        }
+        if (mxGetNumberOfElements(prhs[15]) != dim_image[1]) {
+            mexErrMsgTxt("usage: transition_mu must have size(transition_mu,1)=size(image,1)");
+        }   
+        transition_mu = mxGetPr(prhs[15]);
     }
+    else {
+        transition_mu = NULL;
+    }
+    
+    // transition_sigma ===================================================
+    const double *transition_sigma;
+    if (nrhs >= 17 && mxGetNumberOfElements(prhs[16])) {
+        if (!mxIsDouble(prhs[16])) {
+            mexErrMsgTxt("usage: transition_sigma must be type double");
+        }
+        if (mxGetNumberOfElements(prhs[16]) != dim_image[1]) {
+            mexErrMsgTxt("usage: transition_sigma must have size(transition_sigma,1)=size(image,1)");
+        }   
+        transition_sigma = mxGetPr(prhs[16]);
+    }
+    else {
+        transition_sigma = NULL;
+    }
+    
+    // ====================================================================
     
     // Convert sgt coordinate to integer
     for (size_t i = 0; i < dim_image[1]*dim_image[2]; i++) {
@@ -753,8 +789,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     double *result = mxGetPr(plhs[0]);
 
     // Run TRWS algorithm
-    Refine refine(image, dim_image, sgt, bgt, egt, egt_size, mask, mean, var, ms, smooth_weight, smooth_var[0], smooth_slope, edge, max_loop, bounds, CF_sensory_distance, CF_max_cost, CF_lambda, result);
-    refine.set_prior();
-    refine.surface_extracting();
+    TRWS obj(image, dim_image, sgt, bgt, egt, egt_size, mask, mean, var, ms, smooth_weight, 
+              smooth_var[0], smooth_slope, edge, max_loop, bounds, mask_dist, costmatrix, 
+              costmatrix_X, costmatrix_Y, transition_mu, transition_sigma, result);
 
+    obj.set_prior();
+    obj.surface_extracting();
 }

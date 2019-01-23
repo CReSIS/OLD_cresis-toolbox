@@ -8,19 +8,25 @@
 //           2017-2018
 //          Adapted from original code by Mingze Xu and David Crandall
 //
-// Change to cost function (shifted exponential decay): Victor Berger and John Paden 2018
+// Changes to cost function (shifted exponential decay): Victor Berger and John Paden 2018
+// Changes to cost function (geostatistical analysis): Victor Berger and John Paden 2019
 //
 // See also: viterbi.h
 //
 // mex -v -largeArrayDims viterbi.cpp
 
 #include "viterbi.h"
-int _nlhs = 0;
 
 //  Used to define unary cost of target at position x, y
-double viterbi::unary_cost(int x, int y) {
+double viterbi::unary_cost(int x, int y) { 
+    
+    // Merge layers when no ice exists
+    if (f_mask[x] == 0 && f_sgt[x] > t && y + t != f_sgt[x]) {
+        return LARGE;
+    }
+
     // Set cost to large if bottom is above surface
-    if (y+t+1 < f_sgt[x]) {
+    if (y + t + 1 < f_sgt[x]) {
         return LARGE;
     }
 
@@ -28,36 +34,21 @@ double viterbi::unary_cost(int x, int y) {
     if ((f_bgt != -1) && (x == f_mid) && (y + t < f_bgt - 20 || y + t > f_bgt + 20)) {
         return LARGE;
     }
-    
+
     double cost = 0;
     
     // Increase cost if far from extra ground truth
     for (int f = 0; f < (f_num_extra_tr / 2); ++f) {
-        if (f_egt_x[f] == x && x) {
+        if (f_egt_x[f] == x) {
             cost += f_weight_points[x] * 10 * sqr(((int)f_egt_y[f] - (int)(t + y)) / f_egt_weight);
             break;
         }
     }
 
-    // Ice mask
-    if (!std::isinf(f_mask[x]) && f_sgt[x] > t) {
-        if (fabs(y + t - f_sgt[x]) <= f_mask[x]) {
-            if (f_mask[x] == 0) {
-                return 0;
-            }
-        } 
-        else {
-            return LARGE;
-        }
-    } 
-    
-    // Shifted exponential decay
-    else {
-         if (fabs(y + t - f_sgt[x]) < f_CF_sensory_distance && f_sgt[x] > t) {
-                cost += (f_CF_max_cost * exp(-f_CF_lambda * fabs(y + t - f_sgt[x]))) 
-                - (f_CF_max_cost * exp(-f_CF_lambda * f_CF_sensory_distance));
-         }
-    }
+    // Distance from nearest ice-mask
+    // Probabilistic measurement
+    int DIM = (std::isinf(f_mask_dist[x]) || f_mask_dist[x] >=  f_costmatrix_Y) ? f_costmatrix_Y - 1 : f_mask_dist[x];
+    cost += f_costmatrix[f_costmatrix_X * DIM + y + t + 1 - f_sgt[x]];
 
     // Image magnitude correlation
     double tmp_cost = 0;
@@ -65,20 +56,11 @@ double viterbi::unary_cost(int x, int y) {
         cost -= f_image[encode(x, y + i)] * f_mu[i] / f_sigma[i];
     }
     
-    // Mass conservation 
-    if(f_mc[x] != -1) {
-        if(f_mc[x] == y) {
-            cost -= MC_WEIGHT;
-        }
-        else {
-            cost -= MC_WEIGHT * (1/fabs(f_mc[x] - y));
-        }
-    }
     return cost;
 }
 
 // Returns Viterbi solution of optimal path
-double* viterbi::find_path(void) {
+double* viterbi::find_path(void) { 
     start_col   = f_bounds[0];
     end_col     = f_bounds[1];
     t           = (f_ms - 1) / 2;
@@ -90,10 +72,6 @@ double* viterbi::find_path(void) {
     
     for (int k = 0; k < f_col; ++k)
         f_result[k] = 0;
-
-    if (_nlhs > 1)
-        for (int k = 0; k < f_col; ++k)
-            f_cost[k] = 0;
 
     for (int k = 0; k < depth * (num_col_vis + 2); ++k) {
         path[k] = 0;
@@ -117,8 +95,6 @@ double* viterbi::find_path(void) {
         encode = vic_encode(viterbi_index, num_col_vis + start_col - k);
         viterbi_index = path[encode];
         f_result[idx - 2] = viterbi_index + t; 
-        if (_nlhs > 1)
-            f_cost[idx - 2]   = unary_cost(idx-2, viterbi_index+t);
         --idx;
         if (encode < 0 || idx < 2) {
             break;
@@ -148,12 +124,17 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
     bool next = 0;
     double norm = 0;
     for (int col = start_col; col <= end_col + 1; ++col) {   
-        if (idx >= depth * (num_col_vis + 2) ||col >= f_col || col < 0) {
+        if (idx >= depth * (num_col_vis + 2) || col >= f_col || col < 0) {
             continue;
         }
         
-        norm = norm_pdf(col, (double)f_mid, f_smooth_var, f_smooth_weight);
-        
+        if (f_transition_mu[col] < 0 || f_transition_sigma[col] < 0) {
+            norm = norm_pdf(col, (double)f_mid, f_smooth_var, f_smooth_weight);
+        }
+        else {
+            norm = norm_pdf(col, f_transition_mu[col], f_transition_sigma[col], f_smooth_weight);
+        }
+
         if (!next) {
             dt_1d(path_prob, norm, path_prob_next, index, 0, depth, f_smooth_slope[col-1]);
         }
@@ -161,43 +142,25 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
             dt_1d(path_prob_next, norm, path_prob, index, 0, depth, f_smooth_slope[col-1]);
         }
         
-        if (f_mask[col] == 0 && f_sgt[col] > t) {
-            for (int row = 0; row < depth; ++row) {
-                path[idx] = index[row];
-                if (row + t != f_sgt[col]) {
-                    if (!next) {
-                        path_prob_next[row] += LARGE;
-                    }
-                    else {
-                        path_prob[row] += LARGE;
-                    }
-                }
-                ++idx;
+        for (int row = 0; row < depth; ++row) {
+            path[idx] = index[row];
+            if(!next) {
+                path_prob_next[row] += unary_cost(col, row);
             }
-        }
-        else {
-            for (int row = 0; row < depth; ++row) {
-                path[idx] = index[row];
-                if (!next) {
-                    path_prob_next[row] += unary_cost(col, row); 
-                }
-                else {
-                    path_prob[row] += unary_cost(col, row); 
-                }
-                ++idx;
+            else {
+                path_prob[row] += unary_cost(col, row);
             }
+            ++idx;
         }
         next = !next;
     }
 }
 
 // MATLAB FUNCTION START
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {  
-    if (nrhs != 20 || nlhs < 1 || nlhs > 2) {
-        mexErrMsgTxt("Usage: [labels, [cost]] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mc, mc_weight, CF_sensory_distance, CF_max_cost, CF_lambda)\n"); 
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {    
+    if (nrhs != 19 || nlhs != 1) {
+        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr,  CF_sensory_distance, CF_max_cost, CF_lambda)\n"); 
     }
-    
-    _nlhs = nlhs;
     
     // Input checking
     // input image ========================================================
@@ -264,7 +227,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     if (_ms != mxGetNumberOfElements(prhs[6])) {
         mexErrMsgTxt("usage: variance must have numel=numel(variance)");
     }
-    const double *_sigma          = mxGetPr(prhs[6]); 
+    const double *_sigma = mxGetPr(prhs[6]); 
     
     // extra ground truth weight ==========================================
     if (!mxIsDouble(prhs[7])) {
@@ -367,64 +330,44 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     }    
     const double *t_ice_bin_thr = mxGetPr(prhs[14]);
     const double _ice_bin_thr = t_ice_bin_thr[0] < 0 ? ICE_BIN_THR : t_ice_bin_thr[0];
-    
-    // mc =================================================================
+        
+    // mask_dist ==========================================================
     if (!mxIsDouble(prhs[15])) {
-        mexErrMsgTxt("usage: mc must be type double");
+        mexErrMsgTxt("usage: mask_dist must be type double");
     }
     if (mxGetNumberOfElements(prhs[15]) != _col) {
-        mexErrMsgTxt("usage: mc must have size(mc,1)=size(image,2)");
-    }
-    const double *_mc = mxGetPr(prhs[15]);
+        mexErrMsgTxt("usage: mask_dist must have size(mask,1)=size(image,2)");
+    }   
+    const double *_mask_dist = mxGetPr(prhs[15]);
     
-    // mc_weight ==========================================================
+    // costmatrix =========================================================
     if (!mxIsDouble(prhs[16])) {
-        mexErrMsgTxt("usage: mc_weight must be type double");
-    }
-    if (mxGetNumberOfElements(prhs[16]) != 1) {
-        mexErrMsgTxt("usage: mc_weight must be a scalar");  
-    }    
-    const double *t_mc_weight = mxGetPr(prhs[16]);
-    const double _mc_weight = t_mc_weight[0] < 0 ? MC_WEIGHT : t_mc_weight[0];
+        mexErrMsgTxt("usage: costmatrix must be type double");
+    } 
+    const double *_costmatrix = mxGetPr(prhs[16]);
+    const int _costmatrix_X = mxGetM(prhs[16]);
+    const int _costmatrix_Y = mxGetN(prhs[16]);
     
-    // Cost Function parameters (sensory distance, maximum cost, and lambda)
-    // sensory_distance =====================================================
+    // transition_mu ======================================================
     if (!mxIsDouble(prhs[17])) {
-        mexErrMsgTxt("usage: CF_sensory_distance must be type double");
+        mexErrMsgTxt("usage: transition_mu must be type double");
     }
-    if (mxGetNumberOfElements(prhs[17]) != 1) {
-        mexErrMsgTxt("usage: CF_sensory_distance must be a scalar");
-    }
-    double _CF_sensory_distance = floor(mxGetPr(prhs[17])[0]);
-    if (_CF_sensory_distance < 0) {
-        _CF_sensory_distance = CF_SENSORY_DISTANCE;
-    }
+    if (mxGetNumberOfElements(prhs[17]) != _col) {
+        mexErrMsgTxt("usage: transition_mu must have size(mask,1)=size(image,2)");
+    }   
+    const double *_transition_mu = mxGetPr(prhs[17]);
     
-    // maximum_cost =========================================================
+    // transition_sigma ===================================================
     if (!mxIsDouble(prhs[18])) {
-        mexErrMsgTxt("usage: CF_max_cost must be type double");
+        mexErrMsgTxt("usage: transition_sigma must be type double");
     }
-    if (mxGetNumberOfElements(prhs[18]) != 1) {
-        mexErrMsgTxt("usage: CF_max_cost must be a scalar");
-    }
-    double _CF_max_cost = floor(mxGetPr(prhs[18])[0]);
-    if (_CF_max_cost < 0) {
-        _CF_max_cost = CF_MAX_COST;
-    }
-    
-    // lambda ===============================================================
-    if (!mxIsDouble(prhs[19])) {
-        mexErrMsgTxt("usage: CF_lambda must be type double");
-    }
-    if (mxGetNumberOfElements(prhs[19]) != 1) {
-        mexErrMsgTxt("usage: CF_lambda must be a scalar");
-    }
-    double _CF_lambda = mxGetPr(prhs[19])[0];
-    if (_CF_lambda < 0) {
-        _CF_lambda = CF_LAMBDA;
-    }
+    if (mxGetNumberOfElements(prhs[18]) != _col) {
+        mexErrMsgTxt("usage: transition_sigma must have size(mask,1)=size(image,2)");
+    }   
+    const double *_transition_sigma = mxGetPr(prhs[18]);
     
     // ====================================================================
+    
     // Initialize surface layer array
     int _sgt[_col];
     for (int k = 0; k < _col; ++k) {
@@ -441,27 +384,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         _egt_y[p] = t_egt[(p * 2) + 1];
     }
     
-    // Allocate output
-    if (nlhs == 1) // No cost output
-    {
-        plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
-        double *_result = mxGetPr(plhs[0]); 
-        viterbi obj(_row, _col, _image, _sgt, _bgt, _mask, _mu, _sigma, _mid, 
-                _egt_weight, _smooth_weight, _smooth_var, _smooth_slope,
-                _bounds, _ms, _num_extra_tr, _egt_x, _egt_y, _weight_points, 
-                _repulsion, _ice_bin_thr, _mc, _mc_weight, _CF_sensory_distance, 
-                _CF_max_cost, _CF_lambda, _result); 
-    }
-    else if (nlhs == 2) // Second vector is unary cost output
-    {
-        plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
-        plhs[1] = mxCreateDoubleMatrix(1, _col, mxREAL);
-        double *_result = mxGetPr(plhs[0]);
-        double *_cost   = mxGetPr(plhs[1]); 
-        viterbi obj(_row, _col, _image, _sgt, _bgt, _mask, _mu, _sigma, _mid, 
-                _egt_weight, _smooth_weight, _smooth_var, _smooth_slope,
-                _bounds, _ms, _num_extra_tr, _egt_x, _egt_y, _weight_points, 
-                _repulsion, _ice_bin_thr, _mc, _mc_weight, _CF_sensory_distance, 
-                _CF_max_cost, _CF_lambda, _result, _cost); 
-    }
+    // Allocate output    
+    plhs[0] = mxCreateDoubleMatrix(1, _col, mxREAL);
+    double *_result = mxGetPr(plhs[0]); 
+    viterbi obj(_row, _col, _image, _sgt, _bgt, _mask, _mu, _sigma, _mid, 
+        _egt_weight, _smooth_weight, _smooth_var, _smooth_slope, _bounds, 
+        _ms, _num_extra_tr, _egt_x, _egt_y, _weight_points, _repulsion, 
+        _ice_bin_thr, _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y,
+        _transition_mu, _transition_sigma, _result); 
 }
