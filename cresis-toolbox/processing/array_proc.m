@@ -265,6 +265,9 @@ if ischar(param.array.method)
       error('Invalid method %s', param.array.method);
   end
 end
+if ~any(param.array.method == [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD])
+  error('Invalid method %d', param.array.method);
+end
 
 % .line_rng:
 %   Range of range-lines to use for snapshots, default is -5:5. line_rng is
@@ -345,6 +348,12 @@ end
 %   grid/alternating projection initialization methods and in the
 %   alternating projection optimization method.
 
+% .sv_fh
+%   Steering vector function handle. Defaults to array_proc_sv.m and should
+%   generally not be changed.
+if ~isfield(param.array,'sv_fh') || isempty(param.array.sv_fh)
+  param.array.sv_fh = @array_proc_sv;
+end
 %   Steering vectors align with these spatial frequencies:
 %     ifftshift(-floor(Nsv/2):floor((Nsv-1)/2))
 if isfield(param.array,'theta') && ~isempty(param.array.theta)
@@ -364,13 +373,6 @@ end
 %   Should be a positive integer.
 if ~isfield(param.array,'Nsubband') || isempty(param.array.Nsubband)
   param.array.Nsubband = 1;
-end
-
-% .sv_fh
-%   Steering vector function handle. Defaults to array_proc_sv.m and should
-%   generally not be changed.
-if ~isfield(param.array,'sv_fh') || isempty(param.array.sv_fh)
-  param.array.sv_fh = @array_proc_sv;
 end
 
 % .theta_rng

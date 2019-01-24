@@ -1,5 +1,5 @@
-function ctrl_chain = cluster_run(ctrl_chain,block)
-% ctrl_chain = cluster_run(ctrl_chain,block)
+function ctrl_chain = cluster_run(ctrl_chain,cluster_run_mode)
+% ctrl_chain = cluster_run(ctrl_chain,cluster_run_mode)
 %
 % Submits jobs in a list of batch chains. Each chain in the list runs in
 % parallel. Batches within a chain are run in series.
@@ -8,9 +8,17 @@ function ctrl_chain = cluster_run(ctrl_chain,block)
 % ctrl_chain: cell array of chains that can be run in parallel
 %  ctrl_chain{chain}: cell array of batches that must be run in series (stages)
 %   ctrl_chain{chain}{stage}: control structure for a batch
-% block: logical (if true, this function will block until all jobs are
-%   completed). If false, this function just passes through all chains one
-%   time (so that cluster status can be polled).
+% cluster_run_mode: integer specifying the mode to run tasks. Possible
+%   modes are:
+%   0: Non-blocking mode. Use this mode when the ctrl_chain structure
+%     properly represents which tasks have completed successfully.
+%   1: Blocking mode. Same as 0 except continuously polls tasks until all
+%     chains are finished. Default mode.
+%   2: Non-block mode. Use this mode when the ctrl_chain structure does not
+%     represent which tasks have completed successfully. cluster_run will
+%     check every task in a chain before starting to run the chain.
+%   3: Block mode. Same as 2 except continuously polls tasks until all
+%     chains are finished.
 %
 % Outputs:
 % ctrl_chain: updated list of batch chains that was passed in
@@ -38,8 +46,8 @@ end
 
 if iscell(ctrl_chain)
   %% Input checking
-  if ~exist('block','var') || isempty(block)
-    block = true;
+  if ~exist('cluster_run_mode','var') || isempty(cluster_run_mode)
+    cluster_run_mode = 1;
   end
   
   %% Traverse chain list
@@ -59,7 +67,11 @@ if iscell(ctrl_chain)
         % 2. If this is the first loop of cluster_run, force a complete
         %   update of the job status information.
         if first_run(chain)
-          ctrl = cluster_get_batch(ctrl);
+          if cluster_run_mode < 2
+            ctrl = cluster_get_batch(ctrl,[],2);
+          else
+            ctrl = cluster_get_batch(ctrl);
+          end
           first_run(chain) = false;
         else
           ctrl = cluster_update_batch(ctrl);
@@ -92,12 +104,12 @@ if iscell(ctrl_chain)
         
         % 6. Check to see if a hold has been placed on this batch
         if exist(ctrl.hold_fn,'file')
-          fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "block=false" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
+          fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
           keyboard
         end
       end
     end
-    if ~block
+    if cluster_run_mode == 0 || cluster_run_mode == 2
       break;
     end
   end
@@ -168,7 +180,7 @@ elseif isstruct(ctrl_chain)
     
     % Check to see if a hold has been placed on this batch
     if exist(ctrl.hold_fn,'file')
-      fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "block=false" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
+      fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
       keyboard
     end
     

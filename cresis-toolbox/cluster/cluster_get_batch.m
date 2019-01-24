@@ -9,8 +9,9 @@ function ctrl = cluster_get_batch(ctrl,force_check,update_mode)
 % force_check: default to true, forces cluster_update_task to be run on all
 %   tasks
 % update_mode: Scalar integer indicating mode of operation:
-%   0: Only getting task information, but do not updating tasks.
+%   0: Only getting task information, but do not update tasks.
 %   1: Get task information AND update/print tasks as required (default)
+%   2: Same as 1 except also assumes that "ctrl" is already fully populated
 %
 % Outputs:
 % ctrl = ctrl structure for the specified batch_id
@@ -129,34 +130,36 @@ else
   end
 end
 
-[fid,msg] = fopen(ctrl.job_id_fn,'r');
-if fid < 1
-  warning ('Could not open job id list file %s\n', ctrl.job_id_fn);
-  ctrl.job_id_list = [];
-  ctrl.error_mask = [];
-  ctrl.job_status = [];
-  return;
+if update_mode ~= 2
+  [fid,msg] = fopen(ctrl.job_id_fn,'r');
+  if fid < 1
+    warning ('Could not open job id list file %s\n', ctrl.job_id_fn);
+    ctrl.job_id_list = [];
+    ctrl.error_mask = [];
+    ctrl.job_status = [];
+    return;
+  end
+  ctrl.job_id_list = textscan(fid,'%f');
+  fclose(fid);
+  ctrl.job_id_list = ctrl.job_id_list{1};
+  ctrl.task_id = length(ctrl.job_id_list);
+  
+  % Start by assuming that all jobs are in the to be submitted queue
+  ctrl.submission_queue = 1:numel(ctrl.job_id_list);
+  ctrl.job_status = char('T'*ones(1,numel(ctrl.job_id_list)));
+  
+  % Start by assuming that there are no errors in any tasks
+  ctrl.error_mask = zeros(size(ctrl.job_status));
+  
+  % Start by assuming no retries yet
+  ctrl.retries = zeros(size(ctrl.job_status));
+  
+  % Start by assuming zero cpu time and memory requirements
+  ctrl.cpu_time = zeros(size(ctrl.job_status));
+  ctrl.mem = zeros(size(ctrl.job_status));
 end
-ctrl.job_id_list = textscan(fid,'%f');
-fclose(fid);
-ctrl.job_id_list = ctrl.job_id_list{1};
-ctrl.task_id = length(ctrl.job_id_list);
 
-% Start by assuming that all jobs are in the to be submitted queue
-ctrl.submission_queue = 1:numel(ctrl.job_id_list);
-ctrl.job_status = char('T'*ones(1,numel(ctrl.job_id_list)));
-
-% Start by assuming that there are no errors in any tasks
-ctrl.error_mask = zeros(size(ctrl.job_status));
-
-% Start by assuming no retries yet
-ctrl.retries = zeros(size(ctrl.job_status));
-
-% Start by assuming zero cpu time and memory requirements
-ctrl.cpu_time = zeros(size(ctrl.job_status));
-ctrl.mem = zeros(size(ctrl.job_status));
-
-job_status_found = zeros(size(ctrl.job_status));
+task_status_found = zeros(size(ctrl.job_status));
 
 %% Update task status for each task using cluster interface
 ctrl.active_jobs = 0;
@@ -259,7 +262,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       while ~isempty(task_ids)
         task_id = task_ids(1);
         task_ids = task_ids(2:end);
-        job_status_found(task_id) = 1;
+        task_status_found(task_id) = 1;
         if qstat_res{5}{idx} ~= ctrl.job_status(task_id)
           if ctrl.job_status(task_id) ~= 'C'
             % Only update job if it is not complete
@@ -269,11 +272,33 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
               fprintf(' Task %d:%d (%d) status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
             end
             ctrl.job_status(task_id) = new_job_status;
+            if update_mode == 2 && any(ctrl.job_status(task_id) == 'C')
+              % Get the output information
+              ctrl = cluster_update_task(ctrl,task_id);
+            end
           end
         end
       end
     end
   end
+  
+  %% Handle all jobs that were not found in the usual job query mechanism
+  if update_mode == 2 && any(task_status_found==0)
+    lost_tasks = find(~task_status_found);
+    for task_id = lost_tasks
+      if ctrl.job_status(task_id) ~= 'C' && ctrl.job_status(task_id) ~= 'T'
+        % Since the job has been queued (status is not equal to 'T') and
+        % the job is no longer in the cluster scheduler, we assume the job
+        % has completed and was removed from the cluster cache.
+        ctrl.job_status(task_id) = 'C';
+        ctrl = cluster_update_task(ctrl,task_id);
+      end
+    end
+  end
+end
+
+if update_mode == 2
+  return;
 end
 
 if ~force_check

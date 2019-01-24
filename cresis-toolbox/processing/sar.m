@@ -82,7 +82,7 @@ if ~isfield(param.sar.mocomp,'filter')
 end
 
 if ~isfield(param.sar,'out_path') || isempty(param.sar.out_path)
-  param.sar.out_path = 'out';
+  param.sar.out_path = 'sar';
 end
 if ~isfield(param.sar,'coord_path') || isempty(param.sar.coord_path)
   param.sar.coord_path = param.sar.out_path;

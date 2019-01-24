@@ -28,8 +28,8 @@ in_fn_dir = fullfile(ct_filename_out(param, param.array.in_path), ...
   sprintf('%s_data_%03d_01_01', sar_type, param.load.frm));
 
 % Temporary output directory for uncombined array processed images
-array_tmp_dir = fullfile(ct_filename_out(param, param.array.array_path), ...
-  sprintf('%s_%03d', param.array.method, param.load.frm));
+array_tmp_dir = fullfile(ct_filename_out(param, param.array.out_path, 'array_tmp'), ...
+  sprintf('array_%03d', param.load.frm));
 
 %% Load surface layer
 % =========================================================================

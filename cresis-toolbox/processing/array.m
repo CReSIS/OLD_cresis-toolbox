@@ -97,10 +97,7 @@ if ~isfield(param.array,'frm_types') || isempty(param.array.frm_types)
 end
 
 if ~isfield(param.array,'in_path') || isempty(param.array.in_path)
-  param.array.in_path = 'out';
-end
-if ~isfield(param.array,'array_path') || isempty(param.array.array_path)
-  param.array.array_path = param.array.in_path;
+  param.array.in_path = 'sar';
 end
 
 if ~isfield(param.array,'out_path') || isempty(param.array.out_path)
@@ -158,7 +155,7 @@ param.array.surf_layer.existence_check = false;
 
 % param.array.* fields used by array_proc.m
 % -------------------------------------------------------------------------
-param.array = array_proc(param.array);
+param = array_proc(param);
 
 %% Setup processing
 % =====================================================================
@@ -230,22 +227,15 @@ else
   
 end
 
-if any(strcmpi(param.array.method,{'standard','period'}))
-elseif strcmpi(param.array.method,'mvdr')
-  cpu_time_mult = cpu_time_mult*4;
-elseif strcmpi(param.array.method,'music')
-  cpu_time_mult = cpu_time_mult*4;
-% elseif strcmpi(param.array.method,'eig')
-% elseif strcmpi(param.array.method,'risr')
-% elseif strcmpi(param.array.method,'geonull')
-% elseif strcmpi(param.array.method,'robust2')
-elseif strcmpi(param.array.method,'mle')
-  cpu_time_mult = cpu_time_mult*480;
-% elseif strcmpi(param.array.method,'wbdcm')
-elseif strcmpi(param.array.method,'wbmle')
-  cpu_time_mult = cpu_time_mult*480;
-else
-  error('Invalid method %s', param.array.method);
+array_proc_methods; % This script assigns the integer values for each method
+switch (param.array.method)
+  case STANDARD_METHOD
+  case MVDR_METHOD
+    cpu_time_mult = cpu_time_mult*4;
+  case MUSIC_METHOD
+    cpu_time_mult = cpu_time_mult*4;
+  case MLE_METHOD
+    cpu_time_mult = cpu_time_mult*480;
 end
 
 %% Loop through all the frame directories and process the SAR chunks
@@ -285,8 +275,8 @@ for frm_idx = 1:length(param.cmd.frms);
   end
   
   % Temporary output directory
-  array_tmp_dir = fullfile(ct_filename_out(param, param.array.array_path), ...
-    sprintf('%s_%03d', param.array.method, frm));
+  array_tmp_dir = fullfile(ct_filename_out(param, param.array.out_path, 'array_tmp'), ...
+    sprintf('array_%03d', frm));
   
   % Current frame goes from the start record specified in the frames file
   % to the record just before the start record of the next frame.  For
