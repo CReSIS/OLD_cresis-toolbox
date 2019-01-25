@@ -51,6 +51,19 @@ else
   gps = fn;
 end
 
+fprintf('Start: %s GPS\n', datestr(epoch_to_datenum(gps.gps_time(1))));
+fprintf('Stop: %s GPS\n', datestr(epoch_to_datenum(gps.gps_time(end))));
+
+leap_sec = utc_leap_seconds(gps.gps_time(1));
+fprintf('Start: %s UTC\n', datestr(epoch_to_datenum(gps.gps_time(1) - leap_sec)));
+fprintf('Stop: %s UTC\n', datestr(epoch_to_datenum(gps.gps_time(end) - leap_sec)));
+
+% Get the GPS seconds of day to sync to radar
+gps_time_datenum = epoch_to_datenum(gps.gps_time);
+[year month day hour minute sec] = datevec(gps_time_datenum);
+
+GPS_sod = (day-day(1))*86400+hour*3600+minute*60+sec;  % GPS seconds of day
+
 figure(1);
 if clear_figures
   clf;
@@ -60,6 +73,8 @@ end
 plot(gps.lon, gps.lat, [plot_color '.']);
 xlabel('Longitude, E (deg)');
 ylabel('Latitude, N (deg)');
+grid on;
+set(1,'Name','Trajectory');
 
 figure(2);
 if clear_figures
@@ -67,14 +82,18 @@ if clear_figures
 else
   hold on;
 end
-plot(gps.gps_time,gps.elev,plot_color);
-xlabel('Index');
+plot(GPS_sod,gps.elev,plot_color);
+xlabel('GPS\_sod');
 ylabel('Elevation (m)');
+grid on;
+set(2,'Name','Elevation');
 
 figure(3); clf;
 plot(diff(gps.gps_time));
 xlabel('Index');
 ylabel('Time step (sec)');
+grid on;
+set(3,'Name','Diff GPS_time');
 
 med_sample_rate = median(diff(gps.gps_time));
 
@@ -92,19 +111,6 @@ hold on;
 plot(gps.lon(repeat_idxs), gps.lat(repeat_idxs), 'go');
 hold off;
 
-fprintf('Start: %s GPS\n', datestr(epoch_to_datenum(gps.gps_time(1))));
-fprintf('Stop: %s GPS\n', datestr(epoch_to_datenum(gps.gps_time(end))));
-
-leap_sec = utc_leap_seconds(gps.gps_time(1));
-fprintf('Start: %s UTC\n', datestr(epoch_to_datenum(gps.gps_time(1) - leap_sec)));
-fprintf('Stop: %s UTC\n', datestr(epoch_to_datenum(gps.gps_time(end) - leap_sec)));
-
-% Get the GPS seconds of day to sync to radar
-gps_time_datenum = epoch_to_datenum(gps.gps_time);
-[year month day hour minute sec] = datevec(gps_time_datenum);
-
-GPS_sod = (day-day(1))*86400+hour*3600+minute*60+sec;  % GPS seconds of day
-
 figure(4);
 if clear_figures
   clf;
@@ -115,6 +121,7 @@ plot(GPS_sod,gps.roll*180/pi,plot_color);
 xlabel('GPS sec of day (sec)');
 ylabel('Roll (deg)');
 grid on;
+set(4,'Name','Roll');
 
 figure(5);
 if clear_figures
@@ -126,6 +133,7 @@ plot(GPS_sod,gps.pitch*180/pi,plot_color);
 xlabel('GPS sec of day (sec)');
 ylabel('Pitch (deg)');
 grid on;
+set(5,'Name','Pitch');
 
 figure(6);
 if clear_figures
@@ -137,6 +145,7 @@ plot(GPS_sod,gps.heading*180/pi,[plot_color '.']);
 xlabel('GPS sec of day (sec)');
 ylabel('True heading (deg)');
 grid on;
+set(6,'Name','Heading');
 
 figure(7);
 if clear_figures
@@ -150,6 +159,7 @@ xlabel('GPS sec of day (sec)');
 ylabel('Speed (m/s)');
 grid on;
 title('Should not be zero in flight, should be a very smooth function, need to filter if not')
+set(7,'Name','Speed');
 
 if plot_est_heading
   tic;
