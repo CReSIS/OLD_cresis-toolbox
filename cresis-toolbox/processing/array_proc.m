@@ -150,7 +150,7 @@ param.array.bin_rng = -max(param.array.bin_rng):max(param.array.bin_rng);
 %   Number of range-bins to decimate by on output, default is
 %   round((length(param.array.bin_rng)-1)/2). This is without subbanding.
 if ~isfield(param.array,'dbin') || isempty(param.array.dbin)
-  param.array.dbin = round((length(param.array.bin_rng)-1)/2);
+  param.array.dbin = round(length(param.array.bin_rng)/2);
 end
 
 % .dline:
