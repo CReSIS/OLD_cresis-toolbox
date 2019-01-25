@@ -607,7 +607,7 @@ for line_idx = 1:1:Nx_out
       z_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(3,rline);
     end
     % Determine Steering Vector
-    [~,sv{ml_idx}] = cfg.sv_fh(sv_fh_arg1,cfg.fc,y_pos{ml_idx},z_pos{ml_idx});
+    [~,sv{ml_idx}] = cfg.sv_fh(sv_fh_arg1,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
   end
   
   if 0
@@ -700,7 +700,7 @@ for line_idx = 1:1:Nx_out
     
     switch cfg.method
       case STANDARD_METHOD
-        %% Array: Standard
+        %% Array: Standard/Periodogram
         dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
         Sarray(:,bin_idx) = mean(abs(sv{1}(:,:)'*dataSample.').^2,2);
@@ -791,7 +791,6 @@ for line_idx = 1:1:Nx_out
         dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
         
-        if strcmp(cfg.method_mode,'beamformer')
           if isempty(sv)
             Sarray(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,Nsv);
           else
@@ -843,90 +842,7 @@ for line_idx = 1:1:Nx_out
           else
             Sarray(:,bin_idx) = 0.5 ./ (Sarray(:,bin_idx) / length(din));
           end
-        end
         
-        % This section is used when MUSIC work as an estimator
-        % -----------------------------------------------------
-        if strcmp(cfg.method_mode,'estimator')
-          array_data  = dataSample.';
-          Rxx = 1/size(array_data,2) * (array_data * array_data');
-          doa_param.Rxx = Rxx;
-          if 1
-            if isfield(cfg,'Nsig_true') && ~isempty(cfg.Nsig_true)
-              if cfg.Nsig_true(bin_idx,line_idx) > 2
-                cfg.Nsrc = 2;
-              else
-                cfg.Nsrc = cfg.Nsig_true(bin_idx,line_idx);
-              end
-            end
-            if cfg.Nsrc == 0
-              dout.doa(bin_idx,:,line_idx)     = NaN;
-              dout.cost(bin_idx,line_idx)      = NaN;
-              dout.hessian(bin_idx,:,line_idx) = NaN;
-              dout.power(bin_idx,:,line_idx)   = NaN;
-              continue
-            end
-            doa_param.Nsrc = cfg.Nsrc;
-          end
-          
-          % Initialization
-          doa_param.fs              = cfg.wfs.fs;
-          doa_param.fc              = cfg.fc;
-          doa_param.Nsrc            = cfg.Nsrc;
-          doa_param.doa_constraints = cfg.doa_constraints;
-          doa_param.theta_guard     = cfg.doa_theta_guard/180*pi;
-          doa_param.search_type     = cfg.doa_init;
-          doa_param.options         = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
-          
-          for src_idx = 1:cfg.Nsrc
-            doa_param.src_limits{src_idx} = doa_param.doa_constraints(src_idx).init_src_limits/180*pi;
-            %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
-          end
-          
-          theta0 = music_initialization(Rxx,doa_param);
-          
-          % Lower/upper bounds
-          for src_idx = 1:cfg.Nsrc
-            doa_param.src_limits{src_idx} = doa_param.doa_constraints(src_idx).src_limits/180*pi;
-            %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
-            LB(src_idx) = doa_param.src_limits{src_idx}(1);
-            UB(src_idx) = doa_param.src_limits{src_idx}(2);
-          end
-          
-          % Run the optimizer
-          doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
-          
-          [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
-            fmincon(@(theta_hat) music_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
-          
-          
-          % Apply pseudoinverse and estimate power for each source
-          Nsv2{1} = 'theta';
-          Nsv2{2} = doa(:)';
-          [~,A] = cfg.sv_fh(Nsv2,doa_param.fc,doa_param.y_pc,doa_param.z_pc);
-          Weights = (A'*A)\A';
-          S_hat   = Weights*dataSample.';
-          P_hat   = mean(abs(S_hat).^2,2);
-          
-          [doa,sort_idxs] = sort(doa,'ascend');
-          for sig_i = 1:length(doa)
-            % Negative/positive DOAs are on the left/right side of the surface
-            if doa(sig_i)<0
-              sig_idx = 1;
-            elseif doa(sig_i)>=0
-              sig_idx = 2;
-            end
-            dout.doa(bin_idx,sig_idx,line_idx)     = doa(sig_i);
-            dout.hessian(bin_idx,sig_idx,line_idx) = HESSIAN(sort_idxs(sig_i) + length(sort_idxs)*(sort_idxs(sig_i)-1));
-            dout.power(bin_idx,sig_idx,line_idx)   = P_hat(sig_i);
-          end
-          dout.cost(bin_idx,line_idx) = Jval;
-          %
-          %           dout.doa(bin_idx,:,line_idx)     = doa;
-          %           dout.cost(bin_idx,line_idx)      = Jval;
-          %           dout.hessian(bin_idx,:,line_idx) = diag(HESSIAN);
-          %           dout.power(bin_idx,:,line_idx)   = P_hat;
-        end
         
       case EIG_METHOD
         %% Array: EIG
@@ -1050,6 +966,96 @@ for line_idx = 1:1:Nx_out
           end
           Sarray(freqIdx,bin_idx) = Sarray(freqIdx,bin_idx) / size(sv{1},2);
         end
+        
+        
+      case MUSIC_DOA_METHOD
+        %% Array: MUSIC
+        %  The music algorithm fIdxs the eigenvectors of the correlation
+        %  matrix. The inverse of the incoherent average of the magnitude
+        %  squared spectrums of the smallest eigenvectors are used.
+        % This section is used when MUSIC work as an estimator
+        
+        dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
+        dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+        
+        array_data  = dataSample.';
+        Rxx = 1/size(array_data,2) * (array_data * array_data');
+        doa_param.Rxx = Rxx;
+        if 1
+          if isfield(cfg,'Nsig_true') && ~isempty(cfg.Nsig_true)
+            if cfg.Nsig_true(bin_idx,line_idx) > 2
+              cfg.Nsrc = 2;
+            else
+              cfg.Nsrc = cfg.Nsig_true(bin_idx,line_idx);
+            end
+          end
+          if cfg.Nsrc == 0
+            dout.doa(bin_idx,:,line_idx)     = NaN;
+            dout.cost(bin_idx,line_idx)      = NaN;
+            dout.hessian(bin_idx,:,line_idx) = NaN;
+            dout.power(bin_idx,:,line_idx)   = NaN;
+            continue
+          end
+          doa_param.Nsrc = cfg.Nsrc;
+        end
+        
+        % Initialization
+        doa_param.fs              = cfg.wfs.fs;
+        doa_param.fc              = cfg.fc;
+        doa_param.Nsrc            = cfg.Nsrc;
+        doa_param.doa_constraints = cfg.doa_constraints;
+        doa_param.theta_guard     = cfg.doa_theta_guard/180*pi;
+        doa_param.search_type     = cfg.doa_init;
+        doa_param.options         = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+        
+        for src_idx = 1:cfg.Nsrc
+          doa_param.src_limits{src_idx} = doa_param.doa_constraints(src_idx).init_src_limits/180*pi;
+          %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
+        end
+        
+        theta0 = music_initialization(Rxx,doa_param);
+        
+        % Lower/upper bounds
+        for src_idx = 1:cfg.Nsrc
+          doa_param.src_limits{src_idx} = doa_param.doa_constraints(src_idx).src_limits/180*pi;
+          %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
+          LB(src_idx) = doa_param.src_limits{src_idx}(1);
+          UB(src_idx) = doa_param.src_limits{src_idx}(2);
+        end
+        
+        % Run the optimizer
+        doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
+        
+        [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
+          fmincon(@(theta_hat) music_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
+        
+        
+        % Apply pseudoinverse and estimate power for each source
+        Nsv2{1} = 'theta';
+        Nsv2{2} = doa(:)';
+        [~,A] = cfg.sv_fh(Nsv2,doa_param.fc,doa_param.y_pc,doa_param.z_pc);
+        Weights = (A'*A)\A';
+        S_hat   = Weights*dataSample.';
+        P_hat   = mean(abs(S_hat).^2,2);
+        
+        [doa,sort_idxs] = sort(doa,'ascend');
+        for sig_i = 1:length(doa)
+          % Negative/positive DOAs are on the left/right side of the surface
+          if doa(sig_i)<0
+            sig_idx = 1;
+          elseif doa(sig_i)>=0
+            sig_idx = 2;
+          end
+          dout.doa(bin_idx,sig_idx,line_idx)     = doa(sig_i);
+          dout.hessian(bin_idx,sig_idx,line_idx) = HESSIAN(sort_idxs(sig_i) + length(sort_idxs)*(sort_idxs(sig_i)-1));
+          dout.power(bin_idx,sig_idx,line_idx)   = P_hat(sig_i);
+        end
+        dout.cost(bin_idx,line_idx) = Jval;
+        %
+        %           dout.doa(bin_idx,:,line_idx)     = doa;
+        %           dout.cost(bin_idx,line_idx)      = Jval;
+        %           dout.hessian(bin_idx,:,line_idx) = diag(HESSIAN);
+        %           dout.power(bin_idx,:,line_idx)   = P_hat;
         
       case MLE_METHOD
         %% Array: MLE
@@ -2056,5 +2062,6 @@ for line_idx = 1:1:Nx_out
     
     keyboard
   end
+  Sarray = reshape(Sarray,Nsv,Nt_out);
   
 end

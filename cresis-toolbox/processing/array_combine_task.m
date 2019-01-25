@@ -65,8 +65,8 @@ for frm_idx = 1:length(param.cmd.frms);
   end
   
   % Temporary output directory for uncombined array processed images
-  array_fn_dir = fullfile(ct_filename_out(param, param.array.array_path), ...
-    sprintf('%s_%03d', param.array.method, frm));
+  array_fn_dir = fullfile(ct_filename_out(param, param.array.out_path, 'array_tmp'), ...
+    sprintf('array_%03d', frm));
 
   % Current frame goes from the start record specified in the frames file
   % to the record just before the start record of the next frame.  For
@@ -116,16 +116,16 @@ for frm_idx = 1:length(param.cmd.frms);
       param_sar = tmp.param_sar;
       if chunk_idx == 1
         param_array = tmp.param_array;
-        param_array.array_param.fcs{1}{1}.x = tmp.param_array.array_param.fcs{1}{1}.x(:,tmp.param_array.array_param.lines);
-        param_array.array_param.fcs{1}{1}.y = tmp.param_array.array_param.fcs{1}{1}.y(:,tmp.param_array.array_param.lines);
-        param_array.array_param.fcs{1}{1}.z = tmp.param_array.array_param.fcs{1}{1}.z(:,tmp.param_array.array_param.lines);
-        param_array.array_param.fcs{1}{1}.origin = tmp.param_array.array_param.fcs{1}{1}.origin(:,tmp.param_array.array_param.lines);
+        param_array.array_proc.fcs{1}{1}.x = tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs{1}{1}.y = tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs{1}{1}.z = tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs{1}{1}.origin = tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines);
       else
         % Concatenate the fcs field
-        param_array.array_param.fcs{1}{1}.x = [param_array.array_param.fcs{1}{1}.x tmp.param_array.array_param.fcs{1}{1}.x(:,tmp.param_array.array_param.lines)];
-        param_array.array_param.fcs{1}{1}.y = [param_array.array_param.fcs{1}{1}.y tmp.param_array.array_param.fcs{1}{1}.y(:,tmp.param_array.array_param.lines)];
-        param_array.array_param.fcs{1}{1}.z = [param_array.array_param.fcs{1}{1}.z tmp.param_array.array_param.fcs{1}{1}.z(:,tmp.param_array.array_param.lines)];
-        param_array.array_param.fcs{1}{1}.origin = [param_array.array_param.fcs{1}{1}.origin tmp.param_array.array_param.fcs{1}{1}.origin(:,tmp.param_array.array_param.lines)];
+        param_array.array_proc.fcs{1}{1}.x = [param_array.array_proc.fcs{1}{1}.x tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs{1}{1}.y = [param_array.array_proc.fcs{1}{1}.y tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs{1}{1}.z = [param_array.array_proc.fcs{1}{1}.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs{1}{1}.origin = [param_array.array_proc.fcs{1}{1}.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
       end
       if isfield(tmp,'Topography')
         %         3D-surface is present so concatenate it too

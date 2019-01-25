@@ -54,6 +54,7 @@ if iscell(ctrl_chain)
   active_stage = ones(numel(ctrl_chain),1);
   first_run = ones(numel(ctrl_chain),1);
   while any(isfinite(active_stage))
+    active_stage_update = false;
     for chain = 1:numel(ctrl_chain)
       if isempty(ctrl_chain{chain})
         % No batches in this chain
@@ -90,11 +91,15 @@ if iscell(ctrl_chain)
         %    If errors and out of retries, stop chain
         if all(ctrl.job_status=='C')
           if ~any(ctrl.error_mask)
+            % Advance to the next stage
             active_stage(chain) = active_stage(chain) + 1;
             first_run(chain) = true;
             if active_stage(chain) > numel(ctrl_chain{chain})
-              % Chain is complete
+              % Chain is complete (no more stages/batches to complete)
               active_stage(chain) = inf;
+            else
+              % Chain is not complete
+              active_stage_update = true;
             end
           elseif all(ctrl.retries >= ctrl.cluster.max_retries | ~ctrl.error_mask)
             % Stop chain
@@ -109,7 +114,10 @@ if iscell(ctrl_chain)
         end
       end
     end
-    if cluster_run_mode == 0 || cluster_run_mode == 2
+    % Check if in a block mode or not. If a stage finished and still has
+    % more stages to complete, then do not exit yet since we should start
+    % the next stage running first.
+    if ~active_stage_update && (cluster_run_mode == 0 || cluster_run_mode == 2)
       break;
     end
   end

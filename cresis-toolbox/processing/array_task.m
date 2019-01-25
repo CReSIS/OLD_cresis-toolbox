@@ -488,7 +488,9 @@ for img = 1:length(param.array.imgs)
       param.array_proc.bin_restriction.stop_bin = interp1(sar_data.wfs(wf).time, ...
         1:length(sar_data.wfs(wf).time), param.array_proc.bin_restriction.stop_bin);
       % Ensure there is a value everywhere
-      param.array_proc.bin_restriction.stop_bin = interp_finite(param.array.bin_restriction.stop_bin);    
+      param.array_proc.bin_restriction.stop_bin = interp_finite(param.array.bin_restriction.stop_bin);
+    else
+      param.array_proc.bin_restriction = [];
     end
     
     if ~isempty(param.array.doa_constraints)
@@ -525,21 +527,18 @@ for img = 1:length(param.array.imgs)
     first_rline = find(~mod(sar_out_rlines-1,param.array.dline),1);
     rlines = num_prev_chunk_rlines + (first_rline : param.array.dline : length(sar_out_rlines));
     param.array_proc.lines = rlines([1 end]);
-    rlines = param.array_proc.rlines(1): param.array_proc.dline ...
-    : min(param.array_proc.rlines(2),size(data{1},2)-max(param.array_proc.line_rng));
   
     % Process: Update surface values
     if isempty(surf_layer.gps_time)
-      param.array_proc.surface = zeros(size(param.array_proc.lines));
+      param.array_proc.surface = zeros(size(rlines));
     elseif length(surf_layer.gps_time) == 1;
-      param.array_proc.surface = surf_layer.twtt*ones(size(param.array_proc.lines));
+      param.array_proc.surface = surf_layer.twtt*ones(size(rlines));
     else
       param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
-        surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
+        surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
     end
     
     % Array Processing Function Call
-    param.array_proc.lines = param.array_proc.lines([1 end]);
     [param,dout] = array_proc(param,data);
   end
   
