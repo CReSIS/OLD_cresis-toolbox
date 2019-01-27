@@ -164,11 +164,13 @@ default.qlook.inc_dec = 10;
 default.qlook.surf.en = 1;
 default.qlook.surf.min_bin = 2e-6;
 default.qlook.surf.method = 'threshold';
-default.qlook.surf.threshold = 17;
-default.qlook.surf.filter_len = 7;
-default.qlook.surf.sidelobe = 17;
-default.qlook.surf.noise_rng = [0 -50 10];
-default.qlook.surf.search_rng = [0:2];
+default.qlook.surf.threshold = 15;
+default.qlook.surf.threshold_rng = 5;
+default.qlook.surf.threshold_noise_rng = [0 -1e-6 -0.4e-6];
+default.qlook.surf.threshold_rel_max = -9;
+default.qlook.surf.filter = [3 3];
+default.qlook.surf.max_rng = [0 0.1e-6];
+default.qlook.surf.min_bin = 2e-6;
 
 %% SAR worksheet
 default.sar.out_path = '';
