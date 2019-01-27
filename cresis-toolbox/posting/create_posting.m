@@ -21,9 +21,8 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-if ~isfield(param.post,'ops') || isempty(param.post.ops) ...
-    || ~isfield(param.post.ops,'en') || isempty(param.post.ops.en)
-  param.post.ops.en = 0;
+if ~isfield(param.post,'echo') || isempty(param.post.echo)
+  param.post.echo = [];
 end
 
 if ~isfield(param.post,'frm_types') || isempty(param.post.frm_types)
@@ -44,8 +43,13 @@ if ~isfield(param.post,'img') || isempty(param.post.img)
   param.post.img = 0;
 end
 
-if ~isfield(param.post,'echo') || isempty(param.post.echo)
-  param.post.echo = [];
+if ~isfield(param.post,'ops') || isempty(param.post.ops) ...
+    || ~isfield(param.post.ops,'en') || isempty(param.post.ops.en)
+  param.post.ops.en = 0;
+end
+
+if ~isfield(param.post,'out_path') || isempty(param.post.out_path)
+  param.post.out_path = 'post';
 end
 
 if ~isfield(param.post.echo,'plot_params') || isempty(param.post.echo.plot_params)

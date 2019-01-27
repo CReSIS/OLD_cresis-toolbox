@@ -58,7 +58,7 @@ if concatenate_csv_kml
   if ~isempty(param.post.out_path)
     post_path = ct_filename_out(param,param.post.out_path,'',1);
   else
-    post_path = ct_filename_out(param,param.post.out_path,'CSARP_post',1);
+    post_path = ct_filename_out(param,'post','',1);
   end
   % Create concatenated and browse files for all data
   csv_base_dir = fullfile(post_path,'csv');

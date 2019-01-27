@@ -35,7 +35,8 @@ in_base_path = fullfile(data_support_path,'2018_Antarctica_TObas');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
-gps_source_to_use = 'arena';
+% gps_source_to_use = 'arena';
+gps_source_to_use = 'arena_cpu_time';
 % gps_source_to_use = 'bas';
 
 if strcmpi(gps_source_to_use,'arena')
@@ -77,10 +78,24 @@ if strcmpi(gps_source_to_use,'arena')
   sync_file_type{file_idx} = 'arena';
   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'format',3,'time_reference','utc');
 
-end
+elseif strcmpi(gps_source_to_use,'arena_cpu_time')
+  %% Arena used computer time with no GPS inputs
 
-if strcmpi(gps_source_to_use,'bas')
-%% BAS
+  year = 2019; month = 1; day = 27;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'GPS_FILE_20190127.gps');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'nmea';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+  gps_source{file_idx} = 'arena-field';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
+  sync_file_type{file_idx} = 'arena_cpu_time';
+  sync_params{file_idx} = struct('time_reference','utc', ...
+    'cpu_time_fn',fullfile(in_base_path,sprintf('cpu_time_%04d%02d%02d.csv',year,month,day)));
+
+elseif strcmpi(gps_source_to_use,'bas')
+  %% BAS
 
 end
 
