@@ -188,10 +188,10 @@ for img = 1:num_imgs
     max_good_time = length(Time)*ones(1,size(Data,2));
     
     % First row of img_bins indicates the start of the blend-region
-      img_bins = round(interp1(newTime, 1:length(newTime), ...
-        max(min(Surface * param.(param_mode).img_comb_mult, ...
-        Surface + param.(param_mode).img_comb((img-2)*3 + 1)), ...
-        param.(param_mode).img_comb((img-2)*3 + 2)), 'linear', 'extrap'));
+    img_bins = round(interp1(newTime, 1:length(newTime), ...
+      max(min(Surface * param.(param_mode).img_comb_mult, ...
+      Surface + param.(param_mode).img_comb((img-2)*3 + 1)), ...
+      param.(param_mode).img_comb((img-2)*3 + 2)), 'linear', 'extrap'));
     
     % Check to make sure requested time is inside window and just
     % force the combination bin to occur at the second to last bin
@@ -201,9 +201,11 @@ for img = 1:num_imgs
     invalid_rlines = find(isnan(img_bins) ...
       | img_bins > max_good_time-guard_bins-blend_bins);
     img_bins(invalid_rlines) = max_good_time(invalid_rlines)-guard_bins-blend_bins;
+    img_bins(img_bins<1) = 1;
     
     % Second row of img_bins indicates the end of the blend-region
     img_bins(2,:) = img_bins(1,:) + 1 + blend_bins;
+    img_bins(2,img_bins(2,:)>length(newTime)) = length(newTime);
     
     % Estimate difference
     if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')

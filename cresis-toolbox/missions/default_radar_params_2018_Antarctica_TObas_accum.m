@@ -305,6 +305,26 @@ default.config_regexp = '.*deconv.*';
 default.name = 'Deconv Mode 600-900 MHz';
 defaults{end+1} = default;
 
+% Noise Mode
+default.records.data_map = {[2 0 1 1],[2 0 2 1]};
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.radar.ref_fn = '';
+for wf = 1:2
+  default.radar.wfs(wf).Tsys = Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).tx_paths = [1];
+end
+
+default.config_regexp = '.*noise.*';
+default.name = 'Noise Mode 600-900 MHz';
+defaults{end+1} = default;
+
 % Loopback Mode
 default.records.data_map = {[2 0 1 1],[2 0 2 1]};
 default.qlook.img_comb = [];
