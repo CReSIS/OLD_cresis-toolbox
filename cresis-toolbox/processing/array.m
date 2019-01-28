@@ -153,7 +153,7 @@ end
 % Never check for the existence of layers
 param.array.surf_layer.existence_check = false;
 
-% param.array.* fields used by array_proc.m
+% Input check param.array.* fields used by array_proc.m
 % -------------------------------------------------------------------------
 param = array_proc(param);
 
@@ -196,7 +196,7 @@ cluster_compile({'array_task.m','array_combine_task.m'},ctrl.cluster.hidden_depe
 
 total_num_sam = zeros(size(param.array.imgs));
 total_num_sam_combine = zeros(size(param.array.imgs));
-if param.array.three_dim.en
+if param.array.tomo_en
   Nsv = param.array.Nsv;
 else
   Nsv = 1;

@@ -55,7 +55,7 @@ if strcmpi(ctrl.cluster.type,'debug')
   force_check = true;
 end
 
-task_status_found = char(zeros(size(ctrl.job_status)));
+task_status_found = zeros(size(ctrl.job_status));
 
 %% Update task status for each task using cluster interface
 ctrl.active_jobs = 0;

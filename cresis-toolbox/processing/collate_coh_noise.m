@@ -229,10 +229,12 @@ for img = param.collate_coh_noise.imgs
           error('If param.collate_coh_noise.threshold_eval is specified, there must be a cell entry for each waveform that is used. Waveform %d cannot be found since numel(param.collate_coh_noise.threshold_eval)=%d',wf,numel(param.collate_coh_noise.threshold_eval));
         end
         
-        Tpd_bin  = round(param.radar.wfs(wf).Tpd/noise.dt) - start_bin;
+        time = start_bin*noise.dt + noise.dt*(0:Nt-1).';
+        Tpd = param.radar.wfs(wf).Tpd;
         %figure(100); plot(threshold); hold on;
         % Example:
-        %param.collate_coh_noise.threshold_eval{wf} = 'tmp=threshold(max(1,round(1.1*Tpd_bin)+60):end); tmp(tmp>-110)=-110; threshold(max(1,round(1.1*Tpd_bin)+60):end)=tmp; threshold=threshold+10;';
+        % param.collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;'
+        % param.collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -110; threshold(time<=Tpd+2.3e-6) = threshold(time<=Tpd+2.3e-6)+20;';
         eval(param.collate_coh_noise.threshold_eval{wf});
       end
     end
