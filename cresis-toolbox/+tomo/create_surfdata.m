@@ -45,7 +45,7 @@ function create_surfdata(param,mdata)
 %     Usually trimming a few rows off the top/bottom is a good idea if
 %     these represent angles out to +/- 90 deg.
 %
-% mdata: 3D data file struct (Data_YYYYMMDD_SS_FFF.mat with Topography
+% mdata: 3D data file struct (Data_YYYYMMDD_SS_FFF.mat with Tomo
 %   field)
 %
 % Outputs:
@@ -87,11 +87,11 @@ end
 Surface = layers(1).twtt_ref;
 Bottom = layers(2).twtt_ref;
 
-if length(Bottom)~=size(mdata.Topography.img,3)
+if length(Bottom)~=size(mdata.Tomo.img,3)
   error('This should not happen.');
   Bottom = mdata.Bottom;
 end
-if length(Surface)~=size(mdata.Topography.img,3)
+if length(Surface)~=size(mdata.Tomo.img,3)
   error('This should not happen.');
   Surface = mdata.Surface;
 end
@@ -106,7 +106,7 @@ end
 Bottom_bin(isnan(Bottom_bin)) = -1;
 
 %% Surface tracking prep: Convert img to double and log-scale
-data = 10*log10(double(mdata.Topography.img));
+data = 10*log10(double(mdata.Tomo.img));
 
 %% Surface tracking prep
 % 1. Convert from twtt to bins
@@ -124,6 +124,7 @@ if ~isdir(out_dir)
 end
 out_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
 out_fn = fullfile(out_dir,out_fn_name);
+fprintf('  Updating %s\n', out_fn);
 if any(strcmpi(param.tomo_collate.surfData_mode,{'append','fillgaps'}))
   if ~exist(out_fn,'file')
     warning('%s mode selected, but output file does not exist. Switching to "overwrite" mode.',param.tomo_collate.surfData_mode);
@@ -150,15 +151,15 @@ if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
   sd.day_seg = mdata.param_array.day_seg;
   sd.frm = mdata.param_array.load.frm;
   sd.gps_time = mdata.GPS_time;
-  sd.theta = mdata.theta(:); % Make a column vector
+  sd.theta = mdata.Tomo.theta(:,1);
   sd.time = mdata.Time(:); % Make a column vector
-  sd.FCS.origin = mdata.param_array.array_param.fcs{1}{1}.origin;
-  sd.FCS.x = mdata.param_array.array_param.fcs{1}{1}.x;
-  sd.FCS.y = mdata.param_array.array_param.fcs{1}{1}.y;
-  sd.FCS.z = mdata.param_array.array_param.fcs{1}{1}.z;
+  sd.FCS.origin = mdata.param_array.array_proc.fcs{1}{1}.origin;
+  sd.FCS.x = mdata.param_array.array_proc.fcs{1}{1}.x;
+  sd.FCS.y = mdata.param_array.array_proc.fcs{1}{1}.y;
+  sd.FCS.z = mdata.param_array.array_proc.fcs{1}{1}.z;
 end
 
-Nsv = size(mdata.Topography.img,2);
+Nsv = size(mdata.Tomo.img,2);
 
 try
   surf = sd.get_surf('top');
@@ -304,9 +305,9 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       data_threshold = 13.5;
     end
     
-    for rline = 1:size(mdata.Topography.img,3)
+    for rline = 1:size(mdata.Tomo.img,3)
       if ~mod(rline-1,100)
-        fprintf('  Training %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
+        fprintf('  Training %d of %d (%s)\n', rline, size(mdata.Tomo.img,3), datestr(now));
       end
       thresh_data = data(:,:,rline);
       thresh_data(thresh_data>data_threshold) = data_threshold;
@@ -315,10 +316,10 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       mu(:,rline) = m;
       sigma(:,rline) = s;
     end
-    %   mu = repmat([11.6734184113247 11.8357634315107 11.7477015213467 11.5642270542054 11.3655718245298 11.2178010788707 11.11172116154 11.0442549382899 10.9800832668574 10.9047999009164 10.8000063888223],size(mdata.Topography.img,3),1);
-    %   sigma = repmat([17.9297614680615 18.5178215941504 17.1485050463076 15.8106528912151 14.7936777080171 14.146975962117 13.9673485950864 13.9574519525412 13.5837122364561 13.0310380580007 12.2855990897649],size(mdata.Topography.img,3),1);
-    mdata.Topography.mu = mu;
-    mdata.Topography.sigma = sigma;
+    %   mu = repmat([11.6734184113247 11.8357634315107 11.7477015213467 11.5642270542054 11.3655718245298 11.2178010788707 11.11172116154 11.0442549382899 10.9800832668574 10.9047999009164 10.8000063888223],size(mdata.Tomo.img,3),1);
+    %   sigma = repmat([17.9297614680615 18.5178215941504 17.1485050463076 15.8106528912151 14.7936777080171 14.146975962117 13.9673485950864 13.9574519525412 13.5837122364561 13.0310380580007 12.2855990897649],size(mdata.Tomo.img,3),1);
+    mdata.Tomo.mu = mu;
+    mdata.Tomo.sigma = sigma;
     
     % in_dir: Directory where 3D image files are at
     in_dir = ct_filename_out(param,param.tomo_collate.in_dir);
@@ -326,8 +327,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     % combined_fn: Filename with 3D data
     combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm));
     
-    Topography = mdata.Topography;
-    save(combined_fn,'-append','Topography');
+    Tomo = mdata.Tomo;
+    save(combined_fn,'-append','Tomo');
   end
   
   if strcmpi(cmd,'detect')
@@ -340,13 +341,13 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       data_threshold = 13.5;
     end
     
-    detect_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
-    mu            = mdata.Topography.mu;
-    sigma         = mdata.Topography.sigma;
+    detect_surface = zeros(size(mdata.Tomo.img,2),size(mdata.Tomo.img,3));
+    mu            = mdata.Tomo.mu;
+    sigma         = mdata.Tomo.sigma;
     
-    for rline = 1:size(mdata.Topography.img,3)
+    for rline = 1:size(mdata.Tomo.img,3)
       if ~mod(rline-1,500)
-        fprintf('  Detect %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
+        fprintf('  Detect %d of %d (%s)\n', rline, size(mdata.Tomo.img,3), datestr(now));
       end
       
       % data_threshold: log scale data will be clipped to this threshold
@@ -413,7 +414,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     top_idx = sd.get_index('top');
     
-    theta = mdata.param_array.array_param.theta;
+    theta = mdata.Tomo.theta(:,1);
     if isfield(param.tomo_collate,'sv_cal_fn') && ~isempty(param.tomo_collate.sv_cal_fn)
       theta_cal = load(param.tomo_collate.sv_cal_fn);
       theta = theta_cal.theta;
@@ -421,10 +422,10 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
 
     % Loop to create dem_surface from DEM one range line at a time
-    dem_surface = NaN*zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
-    for rline = 1:size(mdata.Topography.img,3)
+    dem_surface = NaN*zeros(size(mdata.Tomo.img,2),size(mdata.Tomo.img,3));
+    for rline = 1:size(mdata.Tomo.img,3)
       if ~mod(rline-1,500)
-        fprintf('  DEM %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
+        fprintf('  DEM %d of %d (%s)\n', rline, size(mdata.Tomo.img,3), datestr(now));
       end
       
       DEM_mask = DEM_x_mesh > mdata.x(rline)-dem_guard & DEM_x_mesh < mdata.x(rline)+dem_guard ...
@@ -449,12 +450,12 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       physical_constants;
       [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
       
-      origin = mdata.param_array.array_param.fcs{1}{1}.origin(:,rline);
+      origin = mdata.param_array.array_proc.fcs{1}{1}.origin(:,rline);
       
       % Convert from ECEF to FCS/SAR
-      Tfcs_ecef = [mdata.param_array.array_param.fcs{1}{1}.x(:,rline), ...
-        mdata.param_array.array_param.fcs{1}{1}.y(:,rline), ...
-        mdata.param_array.array_param.fcs{1}{1}.z(:,rline)];
+      Tfcs_ecef = [mdata.param_array.array_proc.fcs{1}{1}.x(:,rline), ...
+        mdata.param_array.array_proc.fcs{1}{1}.y(:,rline), ...
+        mdata.param_array.array_proc.fcs{1}{1}.z(:,rline)];
       Tecef_fcs = inv(Tfcs_ecef);
       
       tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];
@@ -475,7 +476,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         vert2 = vertices(faces(:,2),:);
         vert3 = vertices(faces(:,3),:);
         
-        twtt = NaN*zeros(size(mdata.Topography.img,2),1);
+        twtt = NaN*zeros(size(mdata.Tomo.img,2),1);
         for theta_idx = 1:length(theta)
           % Find the point on the top surface
           top_twtt = interp1(1:length(mdata.Time),mdata.Time,sd.surf(top_idx).y(theta_idx,rline));
@@ -536,8 +537,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       data_threshold = 13.5;
     end
     
-    mu            = mdata.Topography.mu;
-    sigma         = mdata.Topography.sigma;
+    mu            = mdata.Tomo.mu;
+    sigma         = mdata.Tomo.sigma;
     
     % data_threshold: log scale data will be clipped to this threshold
     thresh_data = data;
@@ -548,7 +549,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     extract_surface = tomo.extract(double(thresh_data), double(twtt_bin), double(Bottom_bin), ...
       double(Extra_bin), double(ice_mask), double(mean(mu,2)), double(mean(sigma,2)));
     
-    extract_surface = reshape(extract_surface,size(mdata.Topography.img,2),size(mdata.Topography.img,3));
+    extract_surface = reshape(extract_surface,size(mdata.Tomo.img,2),size(mdata.Tomo.img,3));
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
@@ -575,7 +576,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
   elseif strcmpi(cmd,'viterbi')
     %% Run Viterbi
-    viterbi_surface = zeros(size(mdata.Topography.img,2),size(mdata.Topography.img,3));
+    viterbi_surface = zeros(size(mdata.Tomo.img,2),size(mdata.Tomo.img,3));
     bounds = [param.tomo_collate.bounds_relative(1) size(data,2)-1-param.tomo_collate.bounds_relative(2)];
     
     % Check for smoothness weight
@@ -656,9 +657,9 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       CF.lambda = 0.075;
     end
     
-    for rline = 1:size(mdata.Topography.img,3)
+    for rline = 1:size(mdata.Tomo.img,3)
       if ~mod(rline-1,500)
-        fprintf('  Viterbi %d of %d (%s)\n', rline, size(mdata.Topography.img,3), datestr(now));
+        fprintf('  Viterbi %d of %d (%s)\n', rline, size(mdata.Tomo.img,3), datestr(now));
       end
       
       detect_data    = data(:,:,rline);
@@ -788,8 +789,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       smooth_weight, smooth_var, double(smooth_slope), [], ...
       double(max_loops), int64(bounds), CF.sensory_distance, CF.max_cost, CF.lambda);
     
-    trws_surface = reshape(trws_surface,size(mdata.Topography.img,2), ...
-      size(mdata.Topography.img,3));
+    trws_surface = reshape(trws_surface,size(mdata.Tomo.img,2), ...
+      size(mdata.Tomo.img,3));
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};

@@ -82,16 +82,16 @@ function [param,dout] = array_proc(param,din)
 
 % dout is structure with array processed output data
 %  BEAMFORMER METHOD:
-%   .val: Nt_out by Nx_out output image. The largest value in the Nsv dimension
-%   .theta: Same size as .val. The direction of arrival (deg) corresponding to the largest
+%   .img: Nt_out by Nx_out output image. The largest value in the Nsv dimension
+%   .theta: Same size as .img. The direction of arrival (deg) corresponding to the largest
 %       value in the Nsv range.
 %  DOA METHOD:
-%   .val: Nt_out by Nx_out output image. The value of the largest source in the Nsrc dimension (i.e. tomo.val first entry)
-%   .theta: direction of arrival (deg) to the largest theta (i.e. tomo.val first entry)
+%   .img: Nt_out by Nx_out output image. The value of the largest source in the Nsrc dimension (i.e. tomo.img first entry)
+%   .theta: direction of arrival (deg) to the largest theta (i.e. tomo.img first entry)
 %  TOMOGRAPHY ENABLED
 %   .tomo: tomography structure (only present if param.tomo_en is true)
 %    DOA method:
-%     .val: Nt_out by Nsrc by Nx_out : Signal voltage or power for each
+%     .img: Nt_out by Nsrc by Nx_out : Signal voltage or power for each
 %       source in a range-bin, NaN for no source when MOE enable. Order in
 %       this and following matrix will always be largest to smallest theta
 %       with NaN/no source at the end.
@@ -102,16 +102,16 @@ function [param,dout] = array_proc(param,din)
 %       maximum (if MOE enabled, a smaller subset of the Nsrc
 %       diagonal elements will be filled and the remainder will be NaN)
 %    BEAMFORMER method
-%     .val: Nt_out by Nsv by Nx_out: Signal voltage or power for each
+%     .img: Nt_out by Nsv by Nx_out: Signal voltage or power for each
 %       source in a range-bin, NaN for no source
 %     .theta: Nt_out by Nsv by Nx_out: Direction of arrival of each source
 %      in a range-bin (deg), NaN for no source
 %
-% The units of the val fields depend on the multilooking. If no
+% The units of the img fields depend on the multilooking. If no
 % multilooking is enabled, then the param.complex field may be set to true,
 % in which case the output is complex float32. If multilooking is enabled
 % and the param.complex field is set to false, then the output is
-% real-valued float32 linear power. In the case of MUSIC_METHOD, the val
+% real-valued float32 linear power. In the case of MUSIC_METHOD, the img
 % field is the cepstrum (inverted noise eigen space spectrum).
 %
 % See also: run_master.m, master.m, run_array.m, array.m, load_sar_data.m,
@@ -364,7 +364,7 @@ else
     param.array.Nsv = 1;
   end
   Nsv = param.array.Nsv;
-  theta = param.array.sv_fh(Nsv, 0);
+  theta = fftshift(param.array.sv_fh(Nsv, 1));
 end
 
 % .Nsubband:
@@ -377,7 +377,7 @@ end
 
 % .theta_rng
 %   Two element vector containing the theta range that will be used to
-%   form the dout.val matrix. Each dout.val pixel represents the maximum
+%   form the dout.img matrix. Each dout.img pixel represents the maximum
 %   value between theta_rng(1) and theta_rng(2) for that pixel.
 if ~isfield(param.array,'theta_rng') || isempty(param.array.theta_rng)
   param.array.theta_rng = [0 0];
@@ -471,13 +471,13 @@ cfg = merge_structs(param.array,param.array_proc);
 
 %% Preallocate Outputs
 % =====================================================================
-dout.val ...
+dout.img ...
   = nan(Nt_out, Nx_out,'single');
 Sarray = zeros(Nsv,Nt_out);
 if cfg.tomo_en
   if cfg.method >= DOA_METHOD_THRESHOLD
     % Direction of Arrival Method
-    dout.tomo.val = ...
+    dout.tomo.img = ...
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
     dout.tomo.theta = ...
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
@@ -487,9 +487,9 @@ if cfg.tomo_en
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
   else
     % Beam Forming Method
-    dout.tomo.val = ...
+    dout.tomo.img = ...
       nan(Nt_out,cfg.Nsv,Nx_out,'single');
-    dout.tomo.theta = theta;
+    dout.tomo.theta = theta(:); % Ensure a column vector on output
   end
 end
 if cfg.moe_simulator_en
@@ -527,13 +527,13 @@ physical_constants; % c: speed of light
 % DOA Setup
 % -------------------------------------------------------------------------
 if cfg.method >= DOA_METHOD_THRESHOLD
-  doa_param.fc              = cfg.fc;
+  doa_param.fc              = cfg.wfs.fc;
   doa_param.Nsrc            = cfg.Nsrc;
   doa_param.options         = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
   doa_param.doa_constraints = cfg.doa_constraints;
   doa_param.theta_guard     = cfg.doa_theta_guard/180*pi;
   doa_param.search_type     = cfg.doa_init;
-  doa_param.theta           = fftshift(theta);
+  doa_param.theta           = theta;
   doa_param.seq             = cfg.doa_seq;
   % Setup cfgeterization for DCM
   if cfg.method == DCM_METHOD
@@ -552,12 +552,11 @@ end
 % dout_val_sv_idxs
 % -------------------------------------------------------------------------
 % The steering vector indices will be used in the max operation that is
-% used to determine dout.val.
+% used to determine dout.img.
 if cfg.method < DOA_METHOD_THRESHOLD
-  theta_fftshift = fftshift(theta);
-  dout_val_sv_idxs = find(theta_fftshift >= cfg.theta_rng(1) & theta_fftshift <= cfg.theta_rng(2));
+  dout_val_sv_idxs = find(theta >= cfg.theta_rng(1) & theta <= cfg.theta_rng(2));
   if isempty(dout_val_sv_idxs)
-    [tmp dout_val_sv_idxs] = min(abs(theta_fftshift-mean(cfg.theta_rng)));
+    [tmp dout_val_sv_idxs] = min(abs(theta-mean(cfg.theta_rng)));
   end
 end
 
@@ -632,10 +631,10 @@ for line_idx = 1:1:Nx_out
   if 0
     % Debug: Plot steering vector correlation matrix
     ml_idx = 1;
-    [theta,sv{ml_idx}] = cfg.sv_fh(cfg.Nsv,cfg.fc,y_pos{ml_idx},z_pos{ml_idx});
+    [theta_plot,sv{ml_idx}] = cfg.sv_fh(cfg.Nsv,cfg.fc,y_pos{ml_idx},z_pos{ml_idx});
     
     sv_table = fftshift(sv{ml_idx}.',1);
-    theta = fftshift(theta);
+    theta_plot = fftshift(theta_plot);
     
     Rsv = sv_table * sv_table';
     h_fig = figure; clf;
@@ -646,9 +645,9 @@ for line_idx = 1:1:Nx_out
     for idx=1:length(ticks)
       tick_labels{idx} = sprintf('%.0f',ticks(idx));
     end
-    set(gca, 'XTick', interp1(theta*180/pi,1:size(Rsv,1),ticks) );
+    set(gca, 'XTick', interp1(theta_plot*180/pi,1:size(Rsv,1),ticks) );
     set(gca, 'XTickLabel',tick_labels);
-    set(gca, 'YTick', interp1(theta*180/pi,1:size(Rsv,1),ticks) );
+    set(gca, 'YTick', interp1(theta_plot*180/pi,1:size(Rsv,1),ticks) );
     set(gca, 'YTickLabel',tick_labels);
     xlabel('Direction of arrival (deg)');
     ylabel('Direction of arrival (deg)');
@@ -791,6 +790,39 @@ for line_idx = 1:1:Nx_out
         dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
         
+        if isempty(sv)
+          Sarray(:,bin_idx) = fftshift(pmusic(dataSample,cfg.Nsrc,Nsv));
+        else
+          Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
+          [V,D] = eig(Rxx);
+          eigenVals = diag(D);
+          [eigenVals noiseIdxs] = sort(eigenVals);
+          
+          % DEBUG CODE TO SLOWLY BUILD UP MUSIC SOLUTION, ONE EIGEN VECTOR
+          % AT A TIME
+          %           if 0
+          %             if bin_idx >162
+          %               figure(1); clf;
+          %               acc = 0;
+          %               Nsrc
+          %               keyboard
+          %               for sig_idx = 1:size(V,2)
+          %                 acc = acc + abs(sv(:,:,line_idx)'*V(:,sig_idx)).^2;
+          %                 plot(fftshift(lp(1./acc)),'r')
+          %                 plot(fftshift(lp(1./acc)))
+          %                 hold on
+          %               end
+          %             end
+          %             SmusicEV(:,bin_idx) = eigenVals;
+          %           end
+          
+          noiseIdxs = noiseIdxs(1:end-cfg.Nsrc);
+          Sarray(:,bin_idx) = mean(abs(sv{1}(:,:).'*V(:,noiseIdxs)).^2,2);
+        end
+        for ml_idx = 2:length(din)
+          dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
+          dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+          
           if isempty(sv)
             Sarray(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,Nsv);
           else
@@ -799,49 +831,16 @@ for line_idx = 1:1:Nx_out
             eigenVals = diag(D);
             [eigenVals noiseIdxs] = sort(eigenVals);
             
-            % DEBUG CODE TO SLOWLY BUILD UP MUSIC SOLUTION, ONE EIGEN VECTOR
-            % AT A TIME
-            %           if 0
-            %             if bin_idx >162
-            %               figure(1); clf;
-            %               acc = 0;
-            %               Nsrc
-            %               keyboard
-            %               for sig_idx = 1:size(V,2)
-            %                 acc = acc + abs(sv(:,:,line_idx)'*V(:,sig_idx)).^2;
-            %                 plot(fftshift(lp(1./acc)),'r')
-            %                 plot(fftshift(lp(1./acc)))
-            %                 hold on
-            %               end
-            %             end
-            %             SmusicEV(:,bin_idx) = eigenVals;
-            %           end
-            
             noiseIdxs = noiseIdxs(1:end-cfg.Nsrc);
-            Sarray(:,bin_idx) = mean(abs(sv{1}(:,:).'*V(:,noiseIdxs)).^2,2);
+            Sarray(:,bin_idx) = Sarray(:,bin_idx) ...
+              + mean(abs(sv{ml_idx}(:,:).'*V(:,noiseIdxs)).^2,2);
           end
-          for ml_idx = 2:length(din)
-            dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
-            dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-            
-            if isempty(sv)
-              Sarray(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,Nsv);
-            else
-              Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
-              [V,D] = eig(Rxx);
-              eigenVals = diag(D);
-              [eigenVals noiseIdxs] = sort(eigenVals);
-              
-              noiseIdxs = noiseIdxs(1:end-cfg.Nsrc);
-              Sarray(:,bin_idx) = Sarray(:,bin_idx) ...
-                + mean(abs(sv{ml_idx}(:,:).'*V(:,noiseIdxs)).^2,2);
-            end
-          end
-          if isempty(sv)
-            Sarray(:,bin_idx) = Sarray(:,bin_idx) / length(din);
-          else
-            Sarray(:,bin_idx) = 0.5 ./ (Sarray(:,bin_idx) / length(din));
-          end
+        end
+        if isempty(sv)
+          Sarray(:,bin_idx) = Sarray(:,bin_idx) / length(din);
+        else
+          Sarray(:,bin_idx) = 0.5 ./ (Sarray(:,bin_idx) / length(din));
+        end
         
         
       case EIG_METHOD
@@ -1091,7 +1090,7 @@ for line_idx = 1:1:Nx_out
           dout.tomo.theta(bin_idx,:,line_idx) = NaN;
           dout.tomo.cost(bin_idx,line_idx) = NaN;
           dout.tomo.hessian(bin_idx,:,line_idx) = NaN;
-          dout.tomo.val(bin_idx,:,line_idx) = NaN;
+          dout.tomo.img(bin_idx,:,line_idx) = NaN;
           continue
         end
         %           doa_param.Nsrc = cfg.Nsig_new;
@@ -1535,7 +1534,7 @@ for line_idx = 1:1:Nx_out
             end
             dout.tomo.theta(bin_idx,sig_idx,line_idx)     = doa(sig_i);
             dout.tomo.hessian(bin_idx,sig_idx,line_idx) = HESSIAN(sort_idxs(sig_i) + length(sort_idxs)*(sort_idxs(sig_i)-1));
-            dout.tomo.val(bin_idx,sig_idx,line_idx)   = P_hat(sig_i);
+            dout.tomo.img(bin_idx,sig_idx,line_idx)   = P_hat(sig_i);
           end
           dout.tomo.cost(bin_idx,line_idx) = Jval;
         end
@@ -1815,7 +1814,7 @@ for line_idx = 1:1:Nx_out
         dout.tomo.theta(bin_idx,:,line_idx)      = doa;
         dout.tomo.cost(bin_idx,line_idx)       = Jval;
         dout.tomo.hessian(bin_idx,:,line_idx)  = diag(HESSIAN); % Not available with fminsearch
-        dout.tomo.val(bin_idx,:,line_idx)    = P_hat;
+        dout.tomo.img(bin_idx,:,line_idx)    = P_hat;
         
         if 0
           %% DEBUG code for bin restriction
@@ -1986,7 +1985,7 @@ for line_idx = 1:1:Nx_out
           S_hat   = Weights*array_data.';
           P_hat   = P_hat + mean(abs(S_hat).^2,2);
         end
-        dout.tomo.val(bin_idx,:,line_idx)  = P_hat;
+        dout.tomo.img(bin_idx,:,line_idx)  = P_hat;
     end
   end
   
@@ -2010,54 +2009,54 @@ for line_idx = 1:1:Nx_out
   % Reformat output for this range-line into a single slice of a 3D echogram
   if cfg.method < DOA_METHOD_THRESHOLD
     % Beamforming Methods
-    Sarray = fftshift(Sarray.',2);
+    Sarray = Sarray.';
     % Find bin/DOA with maximum value
-    % The echogram fields .val and .theta are filled with this value.
-    dout.val(:,line_idx) = max(Sarray(:,dout_val_sv_idxs),[],2);
+    % The echogram fields .img and .theta are filled with this value.
+    dout.img(:,line_idx) = max(Sarray(:,dout_val_sv_idxs),[],2);
     % Reformat output to store full 3-D image (if enabled)
     if cfg.tomo_en
-      dout.tomo.val(:,:,line_idx) = Sarray;
+      dout.tomo.img(:,:,line_idx) = Sarray;
     end
   else
     % DOA Methods
-    dout.val(:,line_idx) = max(dout.tomo.val .* ...
+    dout.img(:,line_idx) = max(dout.tomo.img .* ...
       (dout.tomo.theta >= cfg.theta_rng(1) & dout.tomo.theta >= cfg.theta_rng(2)),[],2);
   end
   
-  if 0 && (~mod(line_idx,size(dout.val,2)) || line_idx == 1)
+  if 0 && (~mod(line_idx,size(dout.img,2)) || line_idx == 1)
     %% Array: DEBUG
     % change 0&& to 1&& on line above to run it
     if cfg.method < DOA_METHOD_THRESHOLD
       figure(1); clf;
       imagesc(10*log10(Sarray));
-
+      
     else
-        figure(1); clf;
-        plot(dout.tomo.theta(:,:,line_idx)*180/pi,'.')
-        hold on;
-        surf = interp1(cfg.time,1:length(cfg.time), ...
-          cfg.surface);
-        surf = interp1(cfg.bins, 1:Nt_out, surf);
-        plot(surf(rline)*ones(1,2),[-90 90],'k')
-        ylim([-90 90])
-        surf_curve = acosd(cfg.surface(rline) ./ cfg.time(cfg.bins));
-        bad_mask = cfg.time(cfg.bins) < cfg.surface(rline);
-        surf_curve(bad_mask) = NaN;
-        plot(surf_curve,'r')
-        hold on
-        plot(-1.*surf_curve,'r')
-        
-        if isfield(cfg.doa_constraints,'layer')
-          table_doa = [0:89.75]/180*pi;
-          table_delay = cfg.surface(rline) ./ cos(table_doa) ...
-            + (cfg.doa_constraints(2).layer.twtt(rline)-cfg.surface(rline)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-          plot(interp1(cfg.time(cfg.bins), 1:length(cfg.time(cfg.bins)), ...
-            table_delay), table_doa*180/pi, 'k');
-          plot(interp1(cfg.time(cfg.bins), 1:length(cfg.time(cfg.bins)), ...
-            table_delay), table_doa*180/pi+doa_param.doa_constraints(1).src_limits(1), 'k');
-          plot(interp1(cfg.time(cfg.bins), 1:length(cfg.time(cfg.bins)), ...
-            table_delay), table_doa*180/pi+doa_param.doa_constraints(1).src_limits(2), 'k');
-        end
+      figure(1); clf;
+      plot(dout.tomo.theta(:,:,line_idx)*180/pi,'.')
+      hold on;
+      surf = interp1(cfg.time,1:length(cfg.time), ...
+        cfg.surface);
+      surf = interp1(cfg.bins, 1:Nt_out, surf);
+      plot(surf(rline)*ones(1,2),[-90 90],'k')
+      ylim([-90 90])
+      surf_curve = acosd(cfg.surface(rline) ./ cfg.time(cfg.bins));
+      bad_mask = cfg.time(cfg.bins) < cfg.surface(rline);
+      surf_curve(bad_mask) = NaN;
+      plot(surf_curve,'r')
+      hold on
+      plot(-1.*surf_curve,'r')
+      
+      if isfield(cfg.doa_constraints,'layer')
+        table_doa = [0:89.75]/180*pi;
+        table_delay = cfg.surface(rline) ./ cos(table_doa) ...
+          + (cfg.doa_constraints(2).layer.twtt(rline)-cfg.surface(rline)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+        plot(interp1(cfg.time(cfg.bins), 1:length(cfg.time(cfg.bins)), ...
+          table_delay), table_doa*180/pi, 'k');
+        plot(interp1(cfg.time(cfg.bins), 1:length(cfg.time(cfg.bins)), ...
+          table_delay), table_doa*180/pi+doa_param.doa_constraints(1).src_limits(1), 'k');
+        plot(interp1(cfg.time(cfg.bins), 1:length(cfg.time(cfg.bins)), ...
+          table_delay), table_doa*180/pi+doa_param.doa_constraints(1).src_limits(2), 'k');
+      end
     end
     
     keyboard

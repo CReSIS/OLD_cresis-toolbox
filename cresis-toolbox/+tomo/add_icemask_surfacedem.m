@@ -13,7 +13,7 @@ function mdata = add_icemask_surfacedem(param, mdata)
 %   mdata: 3D data file struct
 %     .Latitude
 %     .Longitude
-%     .Topography
+%     .Tomo
 %
 % Outputs:
 %   NONE
@@ -97,7 +97,7 @@ DEM_y_mesh= repmat(DEM_y,[1 size(DEM,2)]);
 %% First slice
 Nx = length(mdata.GPS_time);
 
-theta = mdata.param_array.array_param.theta;
+theta = mdata.Tomo.theta(:,1); % Theta is constant in each column
 if ~isempty(sv_cal_fn)
   theta_cal = load(sv_cal_fn);
   theta = interp1(theta_cal.theta_original, theta_cal.theta, theta, 'linear', 'extrap');
@@ -142,12 +142,12 @@ for rline = 1:Nx
   physical_constants;
   [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
   
-  origin = mdata.param_array.array_param.fcs{1}{1}.origin(:,rline);
+  origin = mdata.param_array.array_proc.fcs{1}{1}.origin(:,rline);
   
   % Convert from ECEF to FCS/SAR
-  Tfcs_ecef = [mdata.param_array.array_param.fcs{1}{1}.x(:,rline), ...
-    mdata.param_array.array_param.fcs{1}{1}.y(:,rline), ...
-    mdata.param_array.array_param.fcs{1}{1}.z(:,rline)];
+  Tfcs_ecef = [mdata.param_array.array_proc.fcs{1}{1}.x(:,rline), ...
+    mdata.param_array.array_proc.fcs{1}{1}.y(:,rline), ...
+    mdata.param_array.array_proc.fcs{1}{1}.z(:,rline)];
   Tecef_fcs = inv(Tfcs_ecef);
   
   tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];
@@ -238,7 +238,7 @@ for rline = 1:Nx
   
   if 0
     figure(1); clf;
-    imagesc([],mdata.Time,lp(mdata.Topography.img(:,:,rline)))
+    imagesc([],mdata.Time,lp(mdata.Tomo.img(:,:,rline)))
     hold on
     plot(twtt(:,rline),'k')
     hold off

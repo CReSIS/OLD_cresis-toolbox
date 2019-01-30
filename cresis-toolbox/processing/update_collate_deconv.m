@@ -32,6 +32,10 @@ if ~isfield(param.update_collate_deconv,'debug_plots')
   param.update_collate_deconv.debug_plots = {'final'};
 end
 
+if ~isfield(param.update_collate_deconv,'delete_existing') || isempty(param.update_collate_deconv.delete_existing)
+  param.update_collate_deconv.delete_existing = false;
+end
+
 if ~isfield(param.update_collate_deconv,'gps_time_penalty') || isempty(param.update_collate_deconv.gps_time_penalty)
   param.update_collate_deconv.gps_time_penalty = 1/(10*24*3600);
 end
@@ -104,6 +108,9 @@ for img = param.update_collate_deconv.imgs
     fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('\n==============================================================\n');
     fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
+    if param.update_collate_deconv.delete_existing
+      delete(fn);
+    end
     if exist(fn,'file')
       deconv = load(fn,'param_collate_deconv','param_analysis','param_records');
       if ~isfield(deconv,'param_collate_deconv') || isempty(deconv.param_collate_deconv) ...

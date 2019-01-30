@@ -97,7 +97,7 @@ for frm_idx = 1:length(param.cmd.frms);
     Surface = [];
     Bottom = [];
     Data = [];
-    Topography = [];
+    Tomo = [];
     for chunk_idx = 1:num_chunks
       array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
       tmp = load(array_fn);
@@ -127,20 +127,20 @@ for frm_idx = 1:length(param.cmd.frms);
         param_array.array_proc.fcs{1}{1}.z = [param_array.array_proc.fcs{1}{1}.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs{1}{1}.origin = [param_array.array_proc.fcs{1}{1}.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
       end
-      if isfield(tmp,'Topography')
+      if isfield(tmp,'Tomo')
         %         3D-surface is present so concatenate it too
-        %         Topography = cat(3,Topography,tmp.Topography);
-        %         Concatenate all the fields under struct Topography: valR, bins, val, freq
+        %         Tomo = cat(3,Tomo,tmp.Tomo);
+        %         Concatenate all the fields under struct Tomo: valR, bins, val, freq
         %         and img.
-        fields = fieldnames(tmp.Topography);
+        fields = fieldnames(tmp.Tomo);
         if chunk_idx == 1
           for field_idx = 1:length(fields)
-            Topography.(fields{field_idx}) = tmp.Topography.(fields{field_idx});
+            Tomo.(fields{field_idx}) = tmp.Tomo.(fields{field_idx});
           end
         else
           for field_idx = 1:length(fields)
-            max_dim = length(size(tmp.Topography.(fields{field_idx})));
-            Topography.(fields{field_idx}) = cat(max_dim,Topography.(fields{field_idx}),tmp.Topography.(fields{field_idx}));
+            max_dim = length(size(tmp.Tomo.(fields{field_idx})));
+            Tomo.(fields{field_idx}) = cat(max_dim,Tomo.(fields{field_idx}),tmp.Tomo.(fields{field_idx}));
           end
         end
         
@@ -163,7 +163,7 @@ for frm_idx = 1:length(param.cmd.frms);
       file_version = '1';
     end
     Data = single(Data);
-    if isempty(Topography)
+    if isempty(Tomo)
       % Do not save 3D surface
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','GPS_time','Data','Surface','Bottom', ...
@@ -171,7 +171,7 @@ for frm_idx = 1:length(param.cmd.frms);
         'Roll', 'Pitch', 'Heading','file_version');
     else
       % Save 3D surface
-      save('-v7.3',out_fn,'Topography','Time','Latitude', ...
+      save('-v7.3',out_fn,'Tomo','Time','Latitude', ...
         'Longitude','Elevation','GPS_time','Data','Surface','Bottom', ...
         'param_array','param_records','param_sar', ...
         'Roll', 'Pitch', 'Heading','file_version');
@@ -180,19 +180,19 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Delete temporary files now that all combined files are created
   if 0 % HACK: NEED TO REMOVE THE "if 0"
-  for img = 1:length(param.array.imgs)
-    % Determine where breaks in processing blocks are going to occur
-    for chunk_idx = 1:num_chunks
-      array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
-      delete(array_fn);
+    for img = 1:length(param.array.imgs)
+      % Determine where breaks in processing blocks are going to occur
+      for chunk_idx = 1:num_chunks
+        array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
+        delete(array_fn);
+      end
+    end
+    % Attempt to remove METHOD_FFF directory since it is no longer
+    % needed.
+    try
+      rmdir(array_fn_dir);
     end
   end
-  % Attempt to remove METHOD_FFF directory since it is no longer
-  % needed.
-  try
-    rmdir(array_fn_dir);
-  end
-  end  
   
   %% Combine images
   if isempty(param.array.img_comb)
@@ -223,6 +223,8 @@ for frm_idx = 1:length(param.cmd.frms);
       img, param.day_seg, frm));
   end
   fprintf('  Writing output to %s\n', out_fn);
+  % Note that image combining here never includes "Tomo" variable. Use
+  % tomo.run_collate.m to create the combined image with the "Tomo" variable.
   save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
     'Elevation','GPS_time','Data','Surface','Bottom', ...
     'param_array','param_records','param_sar', ...

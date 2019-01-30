@@ -458,9 +458,9 @@ for img = 1:length(param.array.imgs)
     % Perform incoherent averaging
     Hfilter2 = ones(length(param.array.bin_rng),length(param.array.line_rng));
     Hfilter2 = Hfilter2 / numel(Hfilter2);
-    dout.val = filter2(Hfilter2, abs(data{1}).^2);
+    dout.img = filter2(Hfilter2, abs(data{1}).^2);
     
-    dout.val = dout.val(param.array_proc.bins,param.array_proc.lines);
+    dout.img = dout.img(param.array_proc.bins,param.array_proc.lines);
     
   else
     % Regular array processing operation
@@ -552,8 +552,8 @@ for img = 1:length(param.array.imgs)
     colorbar
     grid on;
     figure(2); clf;
-    %imagesc(10*log10(dout.val));
-    imagesc(10*log10(local_detrend(dout.val,[20 50],[5 2],3)));
+    %imagesc(10*log10(dout.img));
+    imagesc(10*log10(local_detrend(dout.img,[20 50],[5 2],3)));
     title(sprintf('Waveform %d: Tomography', wf));
     colorbar
     grid on;
@@ -578,7 +578,7 @@ for img = 1:length(param.array.imgs)
   Roll = fcs{1}{1}.roll(param.array_proc.lines);
   Pitch = fcs{1}{1}.pitch(param.array_proc.lines);
   Heading = fcs{1}{1}.heading(param.array_proc.lines);
-  Data = dout.val;
+  Data = dout.img;
   Time = sar_data.wfs(wf_base).time(param.array_proc.bins);
   param_records = sar_data.param_records;
   param_sar = sar_data.param_sar;
