@@ -44,7 +44,7 @@ for task_idx = 1:length(task_ids)
   
   if run_mode == 1
     cluster_task_start_time = tic;
-    fprintf('  %s: batch %d task %d (%d of %d) (%s)\n', mfilename, ctrl.batch_id, task_id, task_idx, length(task_ids), datestr(now));
+    fprintf('  %s: batch:task %d:%d (%d of %d) (%s)\n', mfilename, ctrl.batch_id, task_id, task_idx, length(task_ids), datestr(now));
 
     % Create output filename
     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));

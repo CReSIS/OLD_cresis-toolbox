@@ -122,6 +122,14 @@ function [param,dout] = array_proc(param,din)
 
 %% param.array Input Checks
 % =========================================================================
+
+% .Nsrc:
+%   Maximum number of sources per range bin. Only used with methods that
+%   are based on parametric models.
+if ~isfield(param.array,'Nsrc') || isempty(param.array.Nsrc)
+  param.array.Nsrc = 1;
+end
+
 % .bin_restriction:
 %   Two element struct array for opsLoadLayers that loads two layers which
 %   represent the start and stop bins for processing. Default is to leave

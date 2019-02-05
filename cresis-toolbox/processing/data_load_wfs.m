@@ -405,9 +405,13 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).bit_shifts = 0*ones(size(adcs));
   end
-  wfs(wf).quantization_to_V_dynamic = false;
-  if any(param.records.file.version == [3 5 7 8 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
-    wfs(wf).quantization_to_V_dynamic = true;
+  if ~isfield(param.radar.wfs(wf),'quantization_to_V_dynamic') || isempty(param.radar.wfs(wf).quantization_to_V_dynamic)
+    wfs(wf).quantization_to_V_dynamic = false;
+    if any(param.records.file.version == [3 5 7 8 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
+      wfs(wf).quantization_to_V_dynamic = true;
+    end
+  else
+    wfs(wf).quantization_to_V_dynamic = param.radar.wfs(wf).quantization_to_V_dynamic;
   end
   wfs(wf).quantization_to_V ...
     = param.radar.Vpp_scale * 2.^wfs(wf).bit_shifts ...

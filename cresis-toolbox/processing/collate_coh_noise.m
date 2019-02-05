@@ -209,7 +209,7 @@ for img = param.collate_coh_noise.imgs
           noise.coh_noise(bin_idx,:) = nan_fir_dec(coh_bin,B,dx);
         end
         %noise.coh_noise(bin_idx,isnan(noise.coh_noise(bin_idx,:))) = 0;
-        noise_est = interp_finite(interp1(noise.coh_noise_gps_time,noise.coh_noise(bin_idx,:),noise.gps_time));
+        noise_est = interp_finite(interp1(noise.coh_noise_gps_time,noise.coh_noise(bin_idx,:),noise.gps_time),0);
         coh_bin = coh_bin - noise_est;
       end
       if enable_cn_plots

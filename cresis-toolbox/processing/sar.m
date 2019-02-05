@@ -52,6 +52,10 @@ if ~isfield(param.sar,'combine_rx') || isempty(param.sar.combine_rx)
   param.sar.combine_rx = false;
 end
 
+if ~isfield(param.sar,'imgs') || isempty(param.sar.imgs)
+  param.sar.imgs = {[1 1]};
+end
+
 if ~isfield(param.sar,'wf_adc_pair_task_group_method') || isempty(param.sar.wf_adc_pair_task_group_method)
   % 'one': One wf_adc pair per task, least memory and maximum
   %   parallelization at the cost of increased disk IO
@@ -103,6 +107,23 @@ if ~isfield(param.sar,'start_eps') || isempty(param.sar.start_eps)
   param.sar.start_eps = er_ice;
 end
 
+if ~isfield(param.sar,'time_start') || isempty(param.sar.time_start)
+  param.sar.time_start = [];
+end
+
+if ~isfield(param.sar,'time_stop') || isempty(param.sar.time_stop)
+  param.sar.time_stop = [];
+end
+
+if ~isfield(param.sar,'st_wind') || isempty(param.sar.st_wind)
+  param.sar.st_wind = @hanning;
+end
+
+if ~isfield(param.sar,'sub_aperture_steering') || isempty(param.sar.sub_aperture_steering)
+  % Single aperture which points broadside to SAR is default
+  param.sar.sub_aperture_steering = [0];
+end
+
 if ~isfield(param.sar,'surf_filt_dist') || isempty(param.sar.surf_filt_dist)
   param.sar.surf_filt_dist = 3e3;
   warning('Surface filtering is not set. Using default value: %.0f m.',param.sar.surf_filt_dist);
@@ -123,7 +144,7 @@ end
 % =====================================================================
 
 % Get the standard radar name
-[~,~,radar_name] = ct_output_dir(param.radar_name);
+[~,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');
@@ -334,7 +355,7 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
     end
   end
   cpu_time_mult = 8e-8;
-  mem_mult = 64;
+  mem_mult = [64 64];
   
 else
   error('radar_name %s not supported yet.', radar_name);
@@ -416,7 +437,14 @@ for frm_idx = 1:length(param.cmd.frms)
       
       chunk_overlap_est = [];
       for img = 1:length(dparam.argsin{1}.load.imgs)
-        max_time = min(wfs(wf).time(end),param.sar.time_of_full_support);
+        if strcmp(radar_type,'deramp')
+          if ~isfinite(param.sar.time_of_full_support)
+            error('param.sar.time_of_full_support must be finite for deramp radars.');
+          end
+          max_time = param.sar.time_of_full_support;
+        else
+          max_time = min(wfs(wf).time(end),param.sar.time_of_full_support);
+        end
         % wavelength (m)
         wf = param.sar.imgs{img}(1,1);
         lambda = c/wfs(wf).fc;

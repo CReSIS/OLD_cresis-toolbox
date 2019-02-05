@@ -48,6 +48,10 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
+if ~isfield(param.array,'imgs') || isempty(param.array.imgs)
+  param.array.imgs = {[1 1]};
+end
+
 % Remove frames that do not exist from param.cmd.frms list
 load(ct_filename_support(param,'','frames')); % Load "frames" variable
 if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
@@ -77,6 +81,9 @@ end
 if ~isfield(param,'sar') || isempty(param.sar)
   param.sar = [];
 end
+if ~isfield(param.sar,'imgs') || isempty(param.sar.imgs)
+  param.sar.imgs = {[1 1]};
+end
 if ~isfield(param.sar,'sigma_x') || isempty(param.sar.sigma_x)
   error('The param.sar.sigma_x field must be set to calculate cpu time and memory requirements.');
 end
@@ -94,6 +101,10 @@ end
 
 if ~isfield(param.array,'frm_types') || isempty(param.array.frm_types)
   param.array.frm_types = {-1,-1,-1,-1,-1};
+end
+
+if ~isfield(param.array,'img_comb') || isempty(param.array.img_comb)
+  param.array.img_comb = [];
 end
 
 if ~isfield(param.array,'in_path') || isempty(param.array.in_path)

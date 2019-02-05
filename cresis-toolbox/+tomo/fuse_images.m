@@ -61,6 +61,19 @@ for v_img = 1:length(param.tomo_collate.imgs)
     fns{h_img} = fullfile(in_dir,sprintf('Data_img_%02.0f_%s_%03.0f.mat',img, ...
       param.day_seg,param.load.frm));
     hdata{h_img} = load(fns{h_img});
+    if 1
+      % HACK TO UPGRADE FILES
+      if isfield(hdata{h_img},'Topography')
+        hdata{h_img}.Tomo = hdata{h_img}.Topography;
+        hdata{h_img}.Tomo.theta = hdata{h_img}.param_array.array_param.theta(:);
+        hdata{h_img}.param_array.array_proc = hdata{h_img}.param_array.array_param;
+        hdata{h_img} = rmfield(hdata{h_img},'Topography');
+        hdata{h_img}.param_array = rmfield(hdata{h_img}.param_array,'array_param');
+        tmp_data = hdata{h_img};
+        fprintf('  Updating %s\n', fns{h_img});
+        save(fns{h_img},'-v7.3','-struct','tmp_data');
+      end
+    end
   end
   Nx = size(hdata{1}.Tomo.img,3);
   

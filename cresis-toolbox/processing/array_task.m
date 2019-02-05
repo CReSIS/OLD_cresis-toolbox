@@ -72,8 +72,12 @@ for img = 1:length(param.array.imgs)
   next_chunk_failed_flag = false;
   % num_prev_chunk_rlines: number of range lines to load from the previous chunk
   num_prev_chunk_rlines = round(max(-param.array.line_rng));
-  % num_next_chunk_rlines: number of range lines to load from the next chunk
-  num_next_chunk_rlines = round(max(param.array.line_rng));
+  % prev_time: previous chunk time-axis (empty until some previous time
+  % data are loaded
+  prev_time = [];
+  % num_next_chunk_rlines: number of range lines to load from the next
+  % chunk; this will get updated when the next chunk successfully loads
+  num_next_chunk_rlines = 0;
   % out_rlines: output range lines from SAR processor for the current chunk
   sar_out_rlines = [];
   for ml_idx = 1:length(ml_list)
@@ -85,6 +89,31 @@ for img = 1:length(param.array.imgs)
         for subbnd = param.array.subbnds{img}{ml_idx}
           in_fn_dir(end-4:end-3) = sprintf('%02d',subap);
           in_fn_dir(end-1:end) = sprintf('%02d',subbnd);
+          
+          if ml_idx == 1 && subap == param.array.subaps{img}{ml_idx}(1) ...
+              && subbnd == param.array.subbnds{img}{ml_idx}(1)
+            % Load current chunk metadata
+            % =============================================================
+            load_frm = param.load.frm;
+            load_chunk_idx = param.load.chunk_idx;
+            in_fn_dir(end-8:end-6) = sprintf('%03d',load_frm);
+            if strcmpi(param.array.method,'combine_rx')
+              [sar_type_fn,status] = get_filenames(in_fn_dir, ...
+                sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx),'','.mat');
+            else
+              [sar_type_fn,status] = get_filenames(in_fn_dir, ...
+                sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx),'','.mat');
+            end
+            sar_data = load(sar_type_fn{1},'wfs','param_records','param_sar');
+            % Time: fast-time axis can be different for each chunk so we
+            % need to force the previous and next chunks to align with the
+            % current chunks time axis
+            Time = sar_data.wfs(wf_base).time;
+            dt = Time(2)-Time(1);
+            % param_records,param_sar: Only needs to be loaded one time
+            param_records = sar_data.param_records;
+            param_sar = sar_data.param_sar;
+          end
           
           % Load previous chunk data
           % ===============================================================
@@ -129,6 +158,9 @@ for img = 1:length(param.array.imgs)
                 fcs{ml_idx}{wf_adc}.surface(rlines) = sar_data.fcs.surface(end-num_prev_chunk_rlines+1:end);
                 fcs{ml_idx}{wf_adc}.bottom(rlines) = sar_data.fcs.bottom(end-num_prev_chunk_rlines+1:end);
                 fcs{ml_idx}{wf_adc}.pos(:,rlines) = sar_data.fcs.pos(:,end-num_prev_chunk_rlines+1:end);
+                lat(rlines) = sar_data.lat(:,end-num_prev_chunk_rlines+1:end);
+                lon(rlines) = sar_data.lon(:,end-num_prev_chunk_rlines+1:end);
+                elev(rlines) = sar_data.elev(:,end-num_prev_chunk_rlines+1:end);
               end
 
               % Correct any changes in Tsys
@@ -141,11 +173,14 @@ for img = 1:length(param.array.imgs)
                 sar_data.(data_field_name) = ifft(fft(sar_data.(data_field_name)) .* exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys));
               end
               
-              % Concatenate data/positions
-              data{ml_idx}(:,rlines,subap,subbnd,wf_adc) = sar_data.(data_field_name)(:,end-num_prev_chunk_rlines+1:end);
-              lat(rlines) = sar_data.lat(:,end-num_prev_chunk_rlines+1:end);
-              lon(rlines) = sar_data.lon(:,end-num_prev_chunk_rlines+1:end);
-              elev(rlines) = sar_data.elev(:,end-num_prev_chunk_rlines+1:end);
+              % Concatenate data (resample in fast-time if needed since
+              % each chunk may have a different time-axis)
+              rbins = round((sar_data.wfs(wf_base).time - Time(1))/dt);
+              offset = max(0,-rbins(1));
+              len = length(rbins)-offset-max(rbins(end)-length(Time)+1,0);
+              data{ml_idx}(1:length(Time),rlines,subap,subbnd,wf_adc) = NaN;
+              data{ml_idx}(1+rbins(offset+(1:len)),rlines,subap,subbnd,wf_adc) ...
+                = sar_data.(data_field_name)(offset+(1:len),end-num_prev_chunk_rlines+1:end);
             else
               prev_chunk_failed_flag = true;
             end
@@ -186,6 +221,9 @@ for img = 1:length(param.array.imgs)
             fcs{ml_idx}{wf_adc}.bottom(rlines) = sar_data.fcs.bottom;
             fcs{ml_idx}{wf_adc}.pos(:,rlines) = sar_data.fcs.pos;
             fcs{ml_idx}{wf_adc}.squint = sar_data.fcs.squint;
+            lat(rlines) = sar_data.lat;
+            lon(rlines) = sar_data.lon;
+            elev(rlines) = sar_data.elev;
             if isfield(sar_data.fcs,'type')
               fcs{ml_idx}{wf_adc}.type = sar_data.fcs.type;
               fcs{ml_idx}{wf_adc}.filter = sar_data.fcs.filter;
@@ -213,11 +251,9 @@ for img = 1:length(param.array.imgs)
             sar_data.(data_field_name) = ifft(fft(sar_data.(data_field_name)) .* exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys));
           end
           
-          % Concatenate data/positions
+          % Concatenate data (handle situation of time axis of previous
+          % chunk not aligning with current chunk
           data{ml_idx}(:,rlines,subap,subbnd,wf_adc) = sar_data.(data_field_name);
-          lat(rlines) = sar_data.lat;
-          lon(rlines) = sar_data.lon;
-          elev(rlines) = sar_data.elev;
           
           % Load next chunk data
           % ===============================================================
@@ -233,7 +269,7 @@ for img = 1:length(param.array.imgs)
             load_frm = param.load.frm;
             load_chunk_idx = param.load.chunk_idx + 1;
           end
-
+          
           % Create the filename
           in_fn_dir(end-8:end-6) = sprintf('%03d',load_frm);
           if strcmpi(param.array.method,'combine_rx')
@@ -247,10 +283,15 @@ for img = 1:length(param.array.imgs)
           if ~next_chunk_failed_flag && ~isempty(sar_type_fn)
             % If file exists, then load it
             sar_data = load(sar_type_fn{1});
-            rlines = num_prev_chunk_rlines + num_rlines + (1:num_next_chunk_rlines);
             
             if size(sar_data.(data_field_name),2) >= num_next_chunk_rlines
               if subap == param.array.subaps{img}{ml_idx}(1) && subbnd == param.array.subbnds{img}{ml_idx}(1)
+                % num_next_chunk_rlines: number of range lines to load from
+                % the next chunk. Update with actual value now that we know
+                % the data are available.
+                num_next_chunk_rlines = round(max(param.array.line_rng));
+                rlines = num_prev_chunk_rlines + num_rlines + (1:num_next_chunk_rlines);
+                
                 fcs{ml_idx}{wf_adc}.origin(:,rlines) = sar_data.fcs.origin(:,1:num_next_chunk_rlines);
                 fcs{ml_idx}{wf_adc}.x(:,rlines) = sar_data.fcs.x(:,1:num_next_chunk_rlines);
                 fcs{ml_idx}{wf_adc}.y(:,rlines) = sar_data.fcs.y(:,1:num_next_chunk_rlines);
@@ -262,6 +303,9 @@ for img = 1:length(param.array.imgs)
                 fcs{ml_idx}{wf_adc}.surface(rlines) = sar_data.fcs.surface(1:num_next_chunk_rlines);
                 fcs{ml_idx}{wf_adc}.bottom(rlines) = sar_data.fcs.bottom(1:num_next_chunk_rlines);
                 fcs{ml_idx}{wf_adc}.pos(:,rlines) = sar_data.fcs.pos(:,1:num_next_chunk_rlines);
+                lat(rlines) = sar_data.lat(:,1:num_next_chunk_rlines);
+                lon(rlines) = sar_data.lon(:,1:num_next_chunk_rlines);
+                elev(rlines) = sar_data.elev(:,1:num_next_chunk_rlines);
               end
               
               % Correct any changes in Tsys
@@ -274,11 +318,14 @@ for img = 1:length(param.array.imgs)
                 sar_data.(data_field_name) = ifft(fft(sar_data.(data_field_name)) .* exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys));
               end
               
-              % Concatenate data/positions
-              data{ml_idx}(:,rlines,subap,subbnd,wf_adc) = sar_data.(data_field_name)(:,1:num_next_chunk_rlines);
-              lat(rlines) = sar_data.lat(:,1:num_next_chunk_rlines);
-              lon(rlines) = sar_data.lon(:,1:num_next_chunk_rlines);
-              elev(rlines) = sar_data.elev(:,1:num_next_chunk_rlines);
+              % Concatenate data (resample in fast-time if needed since
+              % each chunk may have a different time-axis)
+              rbins = round((sar_data.wfs(wf_base).time - Time(1))/dt);
+              offset = max(0,-rbins(1));
+              len = length(rbins)-offset-max(rbins(end)-length(Time)+1,0);
+              data{ml_idx}(1:length(Time),rlines,subap,subbnd,wf_adc) = NaN;
+              data{ml_idx}(1+rbins(offset+(1:len)),rlines,subap,subbnd,wf_adc) ...
+                = sar_data.(data_field_name)(offset+(1:len),1:num_next_chunk_rlines);
             else
               next_chunk_failed_flag = true;
             end
@@ -579,9 +626,7 @@ for img = 1:length(param.array.imgs)
   Pitch = fcs{1}{1}.pitch(param.array_proc.lines);
   Heading = fcs{1}{1}.heading(param.array_proc.lines);
   Data = dout.img;
-  Time = sar_data.wfs(wf_base).time(param.array_proc.bins);
-  param_records = sar_data.param_records;
-  param_sar = sar_data.param_sar;
+  Time = Time(param.array_proc.bins);
   param_array = param;
   if param.ct_file_lock
     file_version = '1L';
