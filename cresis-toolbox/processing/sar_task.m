@@ -216,7 +216,7 @@ end
 %% Load fast-time processing restriction layers
 % =========================================================================
 if isempty(param.sar.time_start)
-  param.sar.time_start = -inf;
+  time_start = -inf;
 else
   tmp_param = param;
   tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
@@ -230,7 +230,7 @@ else
   end
 end
 if isempty(param.sar.time_stop)
-  param.sar.time_stop = inf;
+  time_stop = inf;
 else
   tmp_param = param;
   tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
