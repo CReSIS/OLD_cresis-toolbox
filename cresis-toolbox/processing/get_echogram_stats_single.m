@@ -1,5 +1,5 @@
 function [layer_SNR] = get_echogram_stats_single(img,layer_row,noise_bin_rng)
-% [layer_SNR] = get_echogram_stats_single(img,layer_row,noise_bin_rng,noise_mode)
+% [layer_SNR] = get_echogram_stats_single(img,layer_row,noise_bin_rng)
 %
 % Returns signal to noise ratio for layer. Signal power is estimated by
 % taking the value at img(layer_row(col),col). Noise power is found by
@@ -72,7 +72,9 @@ if 0
   layer_row = interp1(mdata.Time,1:length(mdata.Time),lay.layerData{2}.value{2}.data);
   layer_row = round(interp1(lay.GPS_time,layer_row,mdata.GPS_time,'linear','extrap'));
   
-  noise_bin_rng = [401 500];
+  % For noise, use bins starting 400 bins after the layer and stopping 50
+  % bins from the end of each column.
+  noise_bin_rng = [400 50];
   
   % Calculate and plot SNR for the layer
   layer_SNR = get_echogram_stats_single(img,layer_row,noise_bin_rng);
@@ -80,7 +82,13 @@ if 0
   
 end
 
-% Setup
+%% Input Check
+if ~exist('noise_bin_rng','var') || isempty(noise_bin_rng)
+  % Default is to use all pixels below the layer
+  noise_bin_rng = [0 0];
+end
+
+%% Setup
 Nt = size(img,1);
 Nx = size(img,2);
 layer_SNR = zeros(1,Nx);
@@ -88,7 +96,7 @@ signal_bin_rng = 0;
 noise_bin_rng(end) = max(0,noise_bin_rng(end));
 noise_mask = false(size(img)); % memory inefficient, but easy
 
-% Check the signal and noise for each column (range line) of the img
+%% Check the signal and noise for each column (range line) of the img
 for rline = 1:Nx
   signal_rows = max(1,layer_row(rline) + signal_bin_rng(1)) : min(Nt,layer_row(rline) + signal_bin_rng(end));
   
@@ -105,6 +113,7 @@ for rline = 1:Nx
   noise_mask(noise_rows,rline) = true;
 end
 
+%% Final calculation of SNR
 if any(noise_mask(:))
   % Divide signal in layer_SNR by average noise power
   layer_SNR = layer_SNR - 10*log10(mean(10.^(img(noise_mask)/10)));
