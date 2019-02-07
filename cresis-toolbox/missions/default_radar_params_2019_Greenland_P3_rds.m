@@ -33,7 +33,7 @@ param.config.PRI_guard = 10e-6;
 param.config.PRI_guard_percentage = 1;
 param.config.tx_enable = [1 1 1 1 1 1 1 0];
 param.config.max_tx = [40000 40000 40000 40000 40000 40000 40000 0];
-param.config.max_tx_voltage = sqrt([250 250 250 250 250 250 250]*50)*10^(-2/20); % voltage at max_tx
+param.config.max_tx_voltage = sqrt([250 250 250 250 250 250 250 0]*50)*10^(-2/20); % voltage at max_tx % CHANGED FROM 1x7 to 1x8 vector
 
 %% CReSIS parameters
 param.config.cresis.clk = 1e9/9;
@@ -206,6 +206,16 @@ default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'survey_.*DECONVOLUTION.xml';
 default.name = 'Deconvolution Mode';
+defaults{end+1} = default;
+
+% noise mode
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.config_regexp = 'survey_.*NOISE.xml';
+default.name = 'Noise Mode';
 defaults{end+1} = default;
 
 % Other settings

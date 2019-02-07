@@ -74,9 +74,9 @@ classdef (HandleCompatible = true) create_frames < handle
       
       if ~isfield(obj.records,'lat') || isempty(obj.records.lat) || all(isnan(obj.records.lat))
         if exist(frames_fn,'file')
-          warning('No geographic data present in records file. Frames file already exists, just exiting.\n');
+          warning('No geographic data present in records file. Frames file already exists, just exiting.');
         else
-          warning('No geographic data present in records file. No frames file exists, creating single frame and exiting.\n');
+          warning('No geographic data present in records file. No frames file exists, creating single frame and exiting.');
           if param.ct_file_lock
             file_version = '1L';
           else
