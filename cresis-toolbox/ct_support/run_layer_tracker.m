@@ -43,40 +43,78 @@ track_override.min_bin = 0;
 track_override.manual = false;
 switch ct_output_dir(params(1).radar_name)
   case 'rds'
+    % RDS
     param_override.layer_tracker.debug_time_guard = 2e-6;
-    if 1
-      track_override.method = 'threshold';
-      track_override.threshold = 9;
-      track_override.threshold_rng = 5;
-      track_override.threshold_noise_rng = [0 -1e-6 -0.4e-6];
-      track_override.threshold_rel_max = -9;
-    elseif 0
-      track_override.method = 'snake';
-      track_override.snake_rng	= [-0.15e-6 0.15e-6];
-    end
-    track_override.min_bin = 1.8e-6;
-    %track_override.sidelobe_rows = int32(-15:-3);
-    %track_override.sidelobe_dB = 15*ones(size(track_override.sidelobe_rows));
-    track_override.filter = [3 3];
-    %track_override.filter_trim = [3 3];
-    track_override.max_rng	= [0 0.1e-6];
-    %track_override.detrend = '';
+    track_override.max_bin = inf;
     if 0
-      track_override.init.method	= '';
+      track_override.filter	= [3 3];
+      track_override.threshold = 10;
+      track_override.max_rng	= [0 2];
+    else
+      track_override.filter	= [1 5];
+      track_override.threshold = 10;
+      track_override.max_rng	= [0 1];
+    end
+    track_override.medfilt = 11;
+    track_override.medfilt_threshold = 30;
+    track_override.max_rng_units = 'bins';
+    
+    if 1
+      % run_get_echogram_stats output
+      sidelobe = load('/N/dcwan/projects/cresis/output/ct_tmp/echogram_stats/rds/2018_Greenland_P3/stats_20180421_01.mat','sidelobe_rows','sidelobe_dB','sidelobe_vals');
+      track_override.sidelobe_rows = [sidelobe.sidelobe_rows(75:98)];
+      track_override.sidelobe_dB = -(sidelobe.sidelobe_dB(75:98,1)-max(sidelobe.sidelobe_dB(:,1))+21);
+      track_override.sidelobe_dB(track_override.sidelobe_dB<9) = 9;
+      track_override.threshold_rel_max = -max(track_override.sidelobe_dB);
+      track_override.data_noise_en = true;
+    else
+      track_override.threshold_rel_max = -9;
+      track_override.data_noise_en = false;
+    end
+    
+    if 1
+      % run_get_echogram_stats output
+      feedthru = load('/N/dcwan/projects/cresis/output/ct_tmp/echogram_stats/rds/2018_Greenland_P3/stats_20180421_01.mat');
+      track_override.feedthru.time = feedthru.dt*feedthru.bins;
+      track_override.feedthru.power_dB = feedthru.min_means+20;
+      bin_mask = track_override.feedthru.time<2e-6;
+      track_override.feedthru.time = track_override.feedthru.time(bin_mask);
+      track_override.feedthru.power_dB = track_override.feedthru.power_dB(bin_mask);
+      track_override.feedthru.power_dB(end) = -inf;
+      track_override.min_bin = 0.5e-6;
+      track_override.data_noise_en = true;
+    else
+      track_override.min_bin = 1.6e-6;
+      track_override.data_noise_en = false;
+    end
+    
+    if 0
+      track_override.init.method	= 'max';
     elseif 0
       track_override.init.method	= 'dem';
-      track_override.init.dem_offset = 39e-9;
+      track_override.init.dem_offset = 0;
       track_override.init.dem_layer.name = 'surface';
       track_override.init.dem_layer.source = 'lidar';
       track_override.init.dem_layer.lidar_source = 'atm';
-      track_override.init.max_diff = 0.5e-6;
+      track_override.init.max_diff = 1e-6;
+    elseif 0
+      track_override.init.method	= 'snake';
+      track_override.init.snake_rng	= [-0.5e-6 0.5e-6];
+      track_override.init.max_diff	= 0.5e-6;
     elseif 1
       track_override.init.method	= 'medfilt';
       track_override.init.medfilt	= 11;
       track_override.init.max_diff = 0.5e-6;
     end
-    %track_override.medfilt = 1;
-    %track_override.medfilt_threshold = 100;
+    
+    if 1
+      track_override.method = 'threshold';
+      track_override.threshold_noise_rng = [0 -2e-6 -0.2e-6];
+      track_override.threshold_rng = 5;
+    elseif 0
+      track_override.method = 'snake';
+      track_override.snake_rng	= [-0.15e-6 0.15e-6];
+    end
     
   case 'accum'
     param_override.layer_tracker.debug_time_guard = 2e-6;

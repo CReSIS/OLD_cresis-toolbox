@@ -1,24 +1,35 @@
-function vals = interp_finite(vals,default_val,interp_method)
-% vals = interp_finite(vals,default_val,interp_method)
+function vals = interp_finite(vals,default_val,interp_method,interp_vals_fh)
+% vals = interp_finite(vals,default_val,interp_method,interp_vals_fh)
 %
 % vals: a vector of numbers
 % default_val: if all vals are ~isfinite, then the whole vector will
 %   be set to this value
-% interp_method: interpolation passed to interp1
+% interp_method: interpolation method passed to interp1 (default is
+%   'linear')
+% interp_vals_fh: function handle that returns true for values that will
+% not be interpolated. Default is @isfinite. Other common examples are:
+%   @isfinite       % interpolate NaN, inf, and -inf
+%   @(x) ~isnan(x)  % interpolate only NaN
+%   @(x) x~=inf     % interpolate only inf
+% 
 %
-% vals = all isfinite elements remain unchanged, all ~isfinite values will
-%   interpolated with from the isfinite values using this scheme:
+% vals = all isfinite elements remain unchanged, all ~isfinite values are
+%   interpolated from the isfinite values using this scheme:
 %   1. values on the end are interpolated using nearest neighbor
 %   2. values in the middle will be linearly interpolated
 %   3. if no isfinite values exist, the whole vector is set to default_val
 %
 % Author: John Paden
 
-if ~exist('interp_method','var')
+if ~exist('interp_method','var') || isempty(interp_method)
   interp_method = 'linear';
 end
 
-good_mask = isfinite(vals);
+if ~exist('interp_vals_fh','var') || isempty(interp_vals_fh)
+  interp_vals_fh = @isfinite;
+end
+
+good_mask = interp_vals_fh(vals);
 
 %% For bad values at the beginning and end, use nearest neighbor interpolation
 first_good = find(good_mask,1);

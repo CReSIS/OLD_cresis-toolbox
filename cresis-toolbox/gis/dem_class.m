@@ -15,6 +15,10 @@ classdef dem_class < handle
     dem_info
     % res: Resolution (m)
     res
+    % ocean_mask_mode: 'shapefile' (default) or 'landdem'
+    ocean_mask_mode
+    % ocean_mask_dec: default is 100, positive integer decimation rate
+    ocean_mask_dec
     % param: gRadar/parameter spreadsheet parameter structure
     param % only .gis_path used
     
@@ -64,6 +68,8 @@ classdef dem_class < handle
       else
         obj.res = res;
       end
+      obj.ocean_mask_mode = 'shapefile';
+      obj.ocean_mask_dec = 100;
       
       % Setup DEM List
       % ===================================================================
@@ -512,17 +518,19 @@ classdef dem_class < handle
         
         % Ocean Mask
         % -----------------------------------------------------------------
-%         min_x = min(obj.x);
-%         max_x = max(obj.x);
-%         min_y = min(obj.y);
-%         max_y = max(obj.y);
-%         
-%         min_lat = min(obj.lat(mask));
-%         max_lat = max(obj.lat(mask));
-%         % Handle longitude in a special way because it wraps around.
-%         mean_lon = angle(mean(exp(1i*obj.lon(mask)/180*pi)))*180/pi;
-%         max_lon = mean_lon + max(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
-%         min_lon = mean_lon + min(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
+        % Use shapefile to determine ocean mask
+        
+        %         min_x = min(obj.x);
+        %         max_x = max(obj.x);
+        %         min_y = min(obj.y);
+        %         max_y = max(obj.y);
+        %
+        %         min_lat = min(obj.lat(mask));
+        %         max_lat = max(obj.lat(mask));
+        %         % Handle longitude in a special way because it wraps around.
+        %         mean_lon = angle(mean(exp(1i*obj.lon(mask)/180*pi)))*180/pi;
+        %         max_lon = mean_lon + max(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
+        %         min_lon = mean_lon + min(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
         
         % Restrict ocean mask features to our dataset (i.e. mask all features
         % whose bounding boxes fall outside our limits.
@@ -557,10 +565,22 @@ classdef dem_class < handle
         % Create ocean mask to determine which points lie in the ocean
         mask_idxs = find(mask);
         for poly_idx = 1:length(poly_x)
+          % Decimate polygon except within the object's bounding box. This
+          % is done to speed up inpolygon
+          poly_mask = false(size(poly_x{poly_idx}));
+          poly_mask(1:obj.ocean_mask_dec:end) = true;
+          poly_mask(poly_x{poly_idx}<=obj.max_x&poly_x{poly_idx}>=obj.min_x ...
+            & poly_y{poly_idx}<=obj.max_y&poly_y{poly_idx}>=obj.min_y) = true;
           
           % Mask showing which DEM points are in polygon (on land)
-          land_mask_tmp = inpolygon(obj.x(mask),obj.y(mask),[poly_x{poly_idx}(1:100:end)],[poly_y{poly_idx}(1:100:end)]);
+          land_mask_tmp = inpolygon(obj.x(mask),obj.y(mask),[poly_x{poly_idx}(poly_mask)],[poly_y{poly_idx}(poly_mask)]);
           ocean_mask(mask_idxs(land_mask_tmp)) = false;
+        end
+        
+        if obj.ocean_mask_mode(1) == 'l'
+          % Also use land threshold to determine ocean mask
+          land_threshold = 5;
+          ocean_mask(land_dem-land_threshold > msl) = false;
         end
         
         % Debug
@@ -573,14 +593,14 @@ classdef dem_class < handle
           mask_dec_idxs = logical(interp1(1:length(obj.x(mask)), single(ocean_mask(mask)), dec_idxs, 'nearest', 'extrap'));
           along_track = geodetic_to_along_track(obj.lat(mask),obj.lon(mask));
           
-          figure(2); clf;
+          figure(2); clf; colormap(parula(256));
           scatter(along_track(dec_idxs),dem_out(dec_idxs),[],dem_out(dec_idxs));
           hold on;
           scatter(along_track(dec_idxs),msl(dec_idxs),[],msl(dec_idxs));
           plot(along_track(dec_idxs(mask_dec_idxs)),msl(dec_idxs(mask_dec_idxs)),'k.');
           caxis([min(obj.dem.dem{di}(:)) max(obj.dem.dem{di}(:))]);
           
-          figure(3); clf;
+          figure(3); clf; colormap(parula(256));
           scatter(x_out(dec_idxs),y_out(dec_idxs),[],dem_out(dec_idxs));
           hold on;
           plot(x_out(dec_idxs(mask_dec_idxs)),y_out(dec_idxs(mask_dec_idxs)),'k.');

@@ -3,9 +3,11 @@ function [surface,quality] = tracker_threshold(data,surf)
 %
 % data = Nt by Nx 2D matrix of nonnegative linear power values
 % surf = structure controlling operating of the tracker
-%  .threshold_noise_rng = [100 -700 -300];
-%    Specifies the region relative to the peak power to estimate the noise
-%    power from. It is a 1 by 3 integer array.
+%  .data_noise: matrix the same size as data, if specified, this matrix
+%    rather than data will be used to estimate the noise
+%  .threshold_noise_rng: [0 -inf -1];
+%    Specifies the region relative to the initial surface to estimate the
+%    noise power from. It is a 1 by 3 integer array.
 %    first element: All data points that are zero at the beginning of the
 %      record will be ignored in the noise calculation. This specifies a
 %      buffer beyond this in sample bins that will also be ignored.
@@ -37,14 +39,17 @@ function [surface,quality] = tracker_threshold(data,surf)
 if ~exist('surf','var')
   surf = struct();
 end
-if ~isfield(surf,'threshold_noise_rng') || isempty(surf.threshold_noise_rng)
-  surf.threshold_noise_rng = [0 -inf -1];
+if ~isfield(surf,'data_noise') || isempty(surf.data_noise)
+  surf.data_noise = data;
+end
+if ~isfield(surf,'threshold') || isempty(surf.threshold)
+  surf.threshold = 17;
 end
 if ~isfield(surf,'threshold_noise_dB') || isempty(surf.threshold_noise_dB)
   surf.threshold_noise_dB = [];
 end
-if ~isfield(surf,'threshold') || isempty(surf.threshold)
-  surf.threshold = 17;
+if ~isfield(surf,'threshold_noise_rng') || isempty(surf.threshold_noise_rng)
+  surf.threshold_noise_rng = [0 -inf -1];
 end
 if ~isfield(surf,'threshold_rel_max') || isempty(surf.threshold_rel_max)
   % Threshold for each range line is the maximum of 1. the threshold found
@@ -60,10 +65,10 @@ surf.dem = round(surf.dem);
 
 
 %% Determine the threshold value using range bins specified by noise_rng
-median_mdata = nan(1,size(data,2));
+median_data = nan(1,size(data,2));
 for rline=1:size(data,2)
-  % Remove range bins that are zero
-  good_mask = data(:,rline) ~= 0;
+  % Remove range bins that are zero (this should no longer 
+  good_mask = surf.data_noise(:,rline) ~= 0;
   % Remove range bins at start and end of record
   good_mask(1:min(length(good_mask),find(good_mask,1)-1+surf.threshold_noise_rng(1))) = 0;
   good_mask(max(1,find(good_mask,1,'last')+1-surf.threshold_noise_rng(1)):end) = 0;
@@ -71,24 +76,61 @@ for rline=1:size(data,2)
   good_mask(1:min(length(good_mask),max(0,surf.dem(rline)+surf.threshold_noise_rng(2)))) = 0;
   good_mask(max(1,surf.dem(rline)+surf.threshold_noise_rng(3)):end) = 0;
   if any(good_mask)
-    median_mdata(rline) = nanmedian(data(good_mask,rline));
+    median_data(rline) = nanmedian(surf.data_noise(good_mask,rline));
   end
 end
 
-% median_mdata: Noise estimate for each range line
+if 0
+  % Sample CFAR Detector Code
+  surf.threshold_noise_rng(2) = min(0,surf.threshold_noise_rng(2));
+  surf.threshold_noise_rng(3) = min(0,max(surf.threshold_noise_rng(2:3)));
+  B = ones(1,-surf.threshold_noise_rng(2));
+  B(surf.threshold_noise_rng(3)-surf.threshold_noise_rng(2)+1:end) = 0;
+  B = B./sum(B);
+  Bcenter = [B zeros(1,length(B)+1)];
+  data_cfar = 10*log10(nan_fir_dec(10.^(data/10).',Bcenter,1).');
+  for rline = 1:size(data,2)
+    mask = data(:,rline)-max(data(:,rline)) < surf.threshold_rel_max;
+    data(mask,rline) = nan;
+  end
+  
+  if 0
+    % Debug
+    figure(1); clf; colormap(1-gray(256));
+    imagesc(data);
+    h_axes = gca;
+    figure(2); clf; colormap(1-gray(256));
+    imagesc(data_cfar);
+    h_axes(end+1) = gca;
+    figure(3); clf; colormap(1-gray(256));
+    h_image = imagesc(data > data_cfar+surf.threshold);
+    h_axes(end+1) = gca;
+    linkaxes(h_axes);
+    if 0
+      for threshold = 5:30
+        surf.threshold = threshold;
+        threshold
+        set(h_image,'CData',data > data_cfar+surf.threshold);
+        pause
+      end
+    end
+  end
+end
+
+% median_data: Noise estimate for each range line
 % surf.threshold_noise_dB: Hard coded noise value
 % surf.threshold: Threshold in dB above the noise estimate
 % surf.threshold_rng: +/- range lines to use in the noise estimate for a
 %   particular range line (this is useful if the noise estimates are noisy)
 % surf.threshold_rel_max: Threshold in dB below the maximum value in the
 %   rbin range
-if ~isempty(surf.threshold_noise_dB) && all(isnan(median_mdata)) && surf.threshold_rel_max == -inf 
+if ~isempty(surf.threshold_noise_dB) && all(isnan(median_data)) && surf.threshold_rel_max == -inf 
   warning('Insufficient information to generate threshold since all values are zero.');
   surface = surf.dem;
   return
 end
 if surf.threshold_rng == inf
-  all_median_mdata = nanmedian(median_mdata);
+  all_median_data = nanmedian(median_data);
 end
 
 %% Perform thresholding
@@ -100,14 +142,18 @@ for rline=1:size(data,2)
   if ~isempty(surf.threshold_noise_dB)
     threshold_rline = surf.threshold_noise_dB;
   elseif surf.threshold_rng == inf
-    threshold_rline = all_median_mdata + surf.threshold;
+    threshold_rline = all_median_data + surf.threshold;
   else
     threshold_rline = surf.threshold + ...
-      nanmedian(median_mdata( max(1,rline-surf.threshold_rng) : min(length(median_mdata),rline+surf.threshold_rng) ));
+      nanmedian(median_data( max(1,rline-surf.threshold_rng) : min(length(median_data),rline+surf.threshold_rng) ));
   end
   threshold_rline = max(threshold_rline,max(data(rbins,rline))+surf.threshold_rel_max);
   
-  thresh_bin = find(data(rbins,rline) > threshold_rline,1);
+  if 1
+    thresh_bin = find(data(rbins,rline) > threshold_rline,1);
+  else
+    thresh_bin = find(data(rbins,rline) > data_cfar(rbins,rline)+surf.threshold,1);
+  end
   if ~isempty(thresh_bin)
     quality(rline) = 1;
     surface(rline) = rbins(1) - 1 + thresh_bin;
