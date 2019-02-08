@@ -516,8 +516,8 @@ for img = 1:length(param.load.imgs)
         end
         fk_data = fk_data_ml(:,:,subap);
         fprintf('  Saving %s (%s)\n', out_fn, datestr(now));
-        wfs.time = time;
-        wfs.freq = freq;
+        wfs(wf).time = time;
+        wfs(wf).freq = freq;
         save('-v7.3',out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
       end
       
