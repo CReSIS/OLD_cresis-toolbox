@@ -262,7 +262,5 @@ for param_idx = 1:length(params)
   copy_param.copy_method = insert_param.copy_method;
   copy_param.gaps_fill = insert_param.gaps_fill;
   
-  opsCopyLayers(param,copy_param);  
+  opsCopyLayers(param,copy_param);
 end
-
-return;

@@ -186,7 +186,7 @@ classdef selectionbox < handle
         end
         if ischar(val)
           % Search through string list for a match
-          match_idx = find(strcmp(string_list,val));
+          match_idx = find(strcmp(string_list,val),1);
         else
           % Assume val is index into string list
           match_idx = val;
