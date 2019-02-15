@@ -734,8 +734,7 @@ for img = 1:length(param.load.imgs)
           %% Pulse compress: FFT and Deskew
           
           % Window and DFT (raw deramped time to regular time)
-          wfs(wf).NCO_delay = -2.88e-6;
-          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
+          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
           tmp = fft(data{img}(H_idxs,rec,wf_adc) ...
              .* exp(1i*2*pi*hdr.DDC_freq{img}(rec)*NCO_time(1)) ...
              .* exp(1i*2*pi*DDC_freq_adjust*NCO_time) ...
