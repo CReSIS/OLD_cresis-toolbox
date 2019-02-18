@@ -245,6 +245,11 @@ for data_dir_idx = 1:length(param.post.data_dirs)
   data_path_in = ct_filename_out(param, ...
     fullfile(param.post.in_path,param.post.data_dirs{data_dir_idx}));
   if ~exist(data_path_in,'dir')
+    if data_dir_idx == 1
+      error('%s not found. This is the first (master) directory in param.post.in_path and must exist for create posting to work.', data_path_in);
+    else
+      warning('%s not found.', data_path_in);
+    end
     continue;
   end
   
