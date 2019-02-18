@@ -57,7 +57,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = 'C:\tmp\mdce_tmp\';
+  profile(pidx).tmp_file_path             = 'C:\tmp\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'C:\';
   profile(pidx).data_support_path         = 'C:\metadata\';
@@ -87,7 +87,7 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('%s/scratch/mdce_tmp/',getenv('HOME'));
+  profile(pidx).tmp_file_path             = sprintf('%s/scratch/ct_user_tmp/',getenv('HOME'));
 
   profile(pidx).data_path                 = sprintf('%s/scratch/',getenv('HOME'));
   profile(pidx).data_support_path         = sprintf('%s/scratch/metadata/',getenv('HOME'));
@@ -120,7 +120,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('/cresis/snfs1/scratch/%s/mdce_tmp/',getenv('USER'));
+  profile(pidx).tmp_file_path             = sprintf('/cresis/snfs1/scratch/%s/ct_user_tmp/',getenv('USER'));
   
   profile(pidx).data_path                 = '/cresis/snfs1/data/';
   profile(pidx).data_support_path         = '/cresis/snfs1/dataproducts/metadata/';
@@ -191,7 +191,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = 'C:\temp\mdce_tmp\';
+  profile(pidx).tmp_file_path             = 'C:\temp\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'V:/';
   profile(pidx).data_support_path         = 'X:/metadata/';
@@ -221,7 +221,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/mdce_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
+  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/ct_user_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
   profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
@@ -256,7 +256,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = 'F:\mdce_tmp\';
+  profile(pidx).tmp_file_path             = 'F:\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'D:\';
   profile(pidx).data_support_path         = 'F:\metadata\';
@@ -286,7 +286,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/mnt/Scratch/mdce_tmp/';
+  profile(pidx).tmp_file_path             = '/mnt/Scratch/ct_user_tmp/';
   
   profile(pidx).data_path                 = '/mnt/AWI_SSD0/';
   profile(pidx).data_support_path         = '/mnt/Scratch/metadata/';
@@ -320,7 +320,7 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('/work/ollie/%s/Scratch/mdce_tmp/',getenv('USER'));
+  profile(pidx).tmp_file_path             = sprintf('/work/ollie/%s/Scratch/ct_user_tmp/',getenv('USER'));
 
   profile(pidx).data_path                 = sprintf('/work/ollie/%s/Data/',getenv('USER'));
   profile(pidx).data_support_path         = sprintf('/work/ollie/%s/Scratch/metadata/',getenv('USER'));

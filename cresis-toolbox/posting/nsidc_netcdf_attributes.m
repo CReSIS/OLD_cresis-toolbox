@@ -31,19 +31,19 @@ sensor_type = ct_output_dir(param.radar_name);
 
 physical_constants;
 
-if isfield(data,'param_get_heights')
-  proc_param = data.param_get_heights;
+if isfield(data,'param_qlook')
+  proc_param = data.param_qlook;
 else
   proc_param = data.param_csarp;
   if ~isfield(proc_param,'sw_version')
     %% Legacy file format fix
     proc_param.sw_version = proc_param.csarp.sw_version;
   end
-  if ~isfield(data,'param_combine')
+  if ~isfield(data,'param_array')
     %% Legacy file format fix
-    data.param_combine.combine = data.param_combine_wf_chan;
-    data.param_combine.combine.rline_rng = data.param_combine_wf_chan.array.lineRng;
-    data.param_combine.combine.bin_rng = data.param_combine_wf_chan.array.binRng;
+    data.param_array.array = data.param_array_wf_chan;
+    data.param_array.array.rline_rng = data.param_array_wf_chan.array.lineRng;
+    data.param_array.array.bin_rng = data.param_array_wf_chan.array.binRng;
   end
 end
 
@@ -53,7 +53,11 @@ end
 parse_season_name = regexp(param.season_name, '_','split');
 
 if strcmpi(parse_season_name{3},'P3')
-  netcdf.putAtt(ncid,varid,'location','NASAP3');
+  if strcmpi(param.season_name,'2016_Greenland_P3')
+    netcdf.putAtt(ncid,varid,'location','NOAAP3');
+  else
+    netcdf.putAtt(ncid,varid,'location','NASAP3');
+  end
 elseif strcmpi(parse_season_name{3},'P3chile')
   netcdf.putAtt(ncid,varid,'location','CHILEP3');
 elseif strcmpi(parse_season_name{3},'DC8')
@@ -89,7 +93,7 @@ elseif any(strcmpi(param.season_name,{'2009_Greenland_P3','2009_Antarctica_DC8',
     '2012_Antarctica_DC8'}))
   netcdf.putAtt(ncid,varid,'investigators','C.Leuschen, C. Allen, R. Hale, J. Paden, F. Rodriguez');
 elseif any(strcmpi(param.season_name,{'2013_Greenland_P3', ...
-    '2013_Antarctica_P3','2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3'}))
+    '2013_Antarctica_P3','2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2017_Antarctica_Basler','2018_Greenland_P3','2018_Antarctica_DC8'}))
   netcdf.putAtt(ncid,varid,'investigators','C.Leuschen, R. Hale, J. Li, J. Paden, F. Rodriguez');
 else
   error('Unsupported season\n');
@@ -142,13 +146,8 @@ for wf = 1:length(proc_param.radar.wfs)
   if wf < length(proc_param.radar.wfs)
     rfparams_val = cat(2,rfparams_val, '; ');
   end
-  if any(strcmp(sensor_type,{'accum','rds'}))
-    pulse_time = pulse_time + param.records.settings.wfs(wf).presums * proc_param.radar.wfs(wf).Tpd;
-    total_presums = total_presums + param.records.settings.wfs(wf).presums;
-  elseif any(strcmp(sensor_type,{'kuband','snow'}))
-    pulse_time = pulse_time + param.records.settings.wfs(1).wfs.presums * proc_param.radar.wfs(wf).Tpd;
-    total_presums = total_presums + param.records.settings.wfs(1).wfs.presums;
-  end
+  pulse_time = pulse_time + param.records.settings.wfs(wf).presums * proc_param.radar.wfs(wf).Tpd;
+  total_presums = total_presums + param.records.settings.wfs(wf).presums;
 end
 rfparams_val = cat(2,rfparams_val, ...
   sprintf('\n'));
@@ -249,6 +248,9 @@ elseif strcmp(sensor_type,'snow')
   elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitter: Keysight M8195A AWG 65 GSPS, 0.1 W, 2-18 GHz\n'));
+  elseif any(strcmpi(param.season_name,{'2018_Greenland_P3','2018_Antarctica_DC8','2019_Greenland_P3','2019_Arctic_GV','2019_Antarctica_GV'}))
+    rfparams_val = cat(2,rfparams_val, ...
+      sprintf('Transmitter: Keysight M8195A AWG 65 GSPS, 1 W, 2-18 GHz\n'));
   else
     error('Unsupported season\n');
   end
@@ -258,7 +260,7 @@ rfparams_val = cat(2,rfparams_val, ...
   sprintf('Receiver path: '));
 for wf = 1:length(proc_param.radar.wfs)
   rfparams_val = cat(2,rfparams_val, ...
-    sprintf('wf %d: %.1f dB gain; ', wf, 20*log10(proc_param.radar.wfs(wf).adc_gains(1))));
+    sprintf('wf %d: %.1f dB gain; ', wf, proc_param.radar.wfs(wf).adc_gains_dB(1)));
 end
 rfparams_val = cat(2,rfparams_val, ...
   sprintf('\n'));
@@ -279,10 +281,10 @@ if strcmp(sensor_type,'accum')
     error('Unsupported season\n');
   end
 elseif strcmp(sensor_type,'rds')
-  if any(strcmpi(param.season_name,{'2010_Greenland_P3','2011_Greenland_P3','2012_Greenland_P3','2013_Antarctica_P3','2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3'}))
+  if any(strcmpi(param.season_name,{'2010_Greenland_P3','2011_Greenland_P3','2012_Greenland_P3','2013_Antarctica_P3','2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('TX/RX mode: Channels 1-7 are Tx/Rx (center elements), Channels 8-15 are Rx only (wing elements)\n'));
-  elseif any(strcmpi(param.season_name,{'2013_Greenland_P3'}))
+  elseif any(strcmpi(param.season_name,{'2013_Greenland_P3','2019_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('TX/RX mode: Channels 1-7 are Tx/Rx (center elements), Channels 8-15 not installed (wing elements)\n'));
   elseif any(strcmpi(param.season_name,{'2015_Greenland_C130'}))
@@ -294,7 +296,7 @@ elseif strcmp(sensor_type,'rds')
   elseif any(strcmpi(param.season_name,{'2009_Antarctica_DC8','2010_Greenland_DC8','2010_Antarctica_DC8','2011_Antarctica_DC8','2012_Antarctica_DC8'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('TX/RX mode: Channels 1-5 are Tx/Rx (center elements)\n'));
-  elseif any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8'}))
+  elseif any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8','2018_Antarctica_DC8'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('TX/RX mode: Channels 1-6 are Tx/Rx (center elements)\n'));
   else
@@ -305,13 +307,13 @@ elseif any(strcmp(sensor_type,{'kuband','snow'}))
       '2010_Greenland_DC8','2010_Antarctica_DC8', ...
       '2011_Antarctica_DC8', ...
       '2012_Antarctica_DC8', ...
-      '2014_Antarctica_DC8','2015_Greenland_C130','2016_Antarctica_DC8'}))
+      '2014_Antarctica_DC8','2015_Greenland_C130','2016_Antarctica_DC8','2018_Antarctica_DC8'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmit out of left antenna, receive from right antenna\n'));
   elseif any(strcmpi(param.season_name,{'2009_Greenland_P3','2010_Greenland_P3',...
       '2011_Greenland_P3','2012_Greenland_P3', ...
       '2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3'}))
+      '2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2019_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmit out of forward antenna, receive from aft antenna\n'));
   elseif any(strcmpi(param.season_name,{'2016_Greenland_P3'}))
@@ -428,13 +430,18 @@ elseif strcmp(sensor_type,'rds')
       sprintf('Digitizer manufacturer: Analog Devices and Custom'));
   elseif any(strcmpi(param.season_name,{'2011_Greenland_P3','2011_Antarctica_DC8','2012_Greenland_P3', ...
       '2012_Antarctica_DC8','2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2014_Antarctica_DC8','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3'}))
+      '2014_Greenland_P3','2014_Antarctica_DC8','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2019_Greenland_P3'}))
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
     digparams_val = cat(2,digparams_val, ...
       sprintf('Record rate: variable'));
-    digparams_val = cat(2,digparams_val, ...
-      sprintf('Channels: 15\n'));
+    if any(strcmpi(param.season_name,{'2013_Greenland_P3','2019_Greenland_P3'}))
+      digparams_val = cat(2,digparams_val, ...
+        sprintf('Channels: 7\n'));
+    else
+      digparams_val = cat(2,digparams_val, ...
+        sprintf('Channels: 15\n'));
+    end
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer: NI PXIe-5761 250 MSPS max\n'));
     digparams_val = cat(2,digparams_val, ...
@@ -492,7 +499,7 @@ elseif any(strcmp(sensor_type,{'kuband','snow'}))
       sprintf('Digitizer manufacturer: Analog Devices and Custom'));
   elseif any(strcmpi(param.season_name,{'2012_Greenland_P3', ...
       '2012_Antarctica_DC8','2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3'}))
+      '2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2018_Antarctica_DC8','2019_Greenland_P3'}))
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
     digparams_val = cat(2,digparams_val, ...
@@ -555,7 +562,7 @@ elseif strcmp(sensor_type,'rds')
       '2010_Greenland_P3', ...
       '2011_Greenland_P3','2012_Greenland_P3', ...
       '2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3'}))
+      '2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2019_Greenland_P3'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: Three loaded dipole arrays with 15 elements: 4 left wing, 7 center wing, 4 right wing\n'));
     antparams_val = cat(2,antparams_val, ...
@@ -586,7 +593,7 @@ elseif strcmp(sensor_type,'snow')
       '2010_Greenland_P3','2010_Antarctica_DC8', ...
       '2011_Greenland_P3','2011_Antarctica_DC8','2012_Greenland_P3', ...
       '2012_Antarctica_DC8','2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2014_Greenland_DC8','2014_Antarctica_DC8','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3'}))
+      '2014_Greenland_P3','2014_Greenland_DC8','2014_Antarctica_DC8','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2019_Greenland_P3'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: ETS Lindgren TEM horn antenna model ETS 3115\n'));
   elseif any(strcmpi(param.season_name,{'2009_Antarctica_DC8'}))
@@ -616,14 +623,14 @@ netcdf.putAtt(ncid,varid,'antenna',antparams_val);
 %% For processing paramters
 
 procparams_val = sprintf('PROCESSING PARAMETERS\n');
-if isfield(data,'param_get_heights')
+if isfield(data,'param_qlook')
   procparams_val = cat(2,procparams_val, ...
     sprintf('Mode name: qlook (unfocussed SAR/coherent averaging/stacking)\n'));
-  ft_wind = char(data.param_get_heights.get_heights.ft_wind);
+  ft_wind = char(data.param_qlook.radar.wfs(1).ft_wind);
 else
   procparams_val = cat(2,procparams_val, ...
     sprintf('Mode name: SAR\n'));
-  ft_wind = char(proc_param.csarp.ft_wind);
+  ft_wind = char(proc_param.radar.wfs(1).ft_wind);
 end
 procparams_val = cat(2,procparams_val, ...
   sprintf('Goal: -\n'));
@@ -640,19 +647,19 @@ elseif any(strcmp(sensor_type,{'kuband','snow'}))
     sprintf('Range compression gain: Standard FFT with "%s" freq-window\n', ft_wind));
 end
 
-if isfield(data,'param_get_heights')
+if isfield(data,'param_qlook')
   procparams_val = cat(2,procparams_val, ...
-    sprintf('Coherent stacking: Unfocused SAR %d lines\n', length(proc_param.get_heights.B_filter)));
+    sprintf('Coherent stacking: Unfocused SAR %d lines\n', length(proc_param.qlook.B_filter)));
   procparams_val = cat(2,procparams_val, ...
     sprintf('Incoherent averaging: %d\n', ...
-    data.param_get_heights.get_heights.inc_ave));
+    data.param_qlook.qlook.inc_dec));
 else
   procparams_val = cat(2,procparams_val, ...
     sprintf('Coherent stacking: SAR Processing\n'));
   procparams_val = cat(2,procparams_val, ...
     sprintf('Incoherent averaging: [%d %d]\n', ...
-    length(data.param_combine.combine.rline_rng), ...
-    length(data.param_combine.combine.bin_rng)));
+    length(data.param_array.array.rline_rng), ...
+    length(data.param_array.array.bin_rng)));
 end
 procparams_val = cat(2,procparams_val, ...
   sprintf('Final trace rate: %d\n'), mean(diff(data.GPS_time)));
@@ -741,7 +748,7 @@ netcdf.putAtt(ncid,varid,'references',sprintf('F. Rodriguez-Morales et al., Adva
 %                                      'Range compression:',char(10)',...
 %                                      'Range compression gain:',char(10)',...
 %                                      'Coherent stacking: SAR Processing',char(10)',...%%%
-%                                      'Incoherent averaging',char(10)',...% length(data.param_combine.combine.rline_rng)*length(data.param_combine.combine.bin_rng)
+%                                      'Incoherent averaging',char(10)',...% length(data.param_array.array.rline_rng)*length(data.param_array.array.bin_rng)
 %                                      'Final trace rate',char(10)',...% GPS_time
 %                                      'Typical trace spacing',char(10)',...% geodetic_to_along_track
 %                                      '']);
