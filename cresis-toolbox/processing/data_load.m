@@ -16,7 +16,6 @@ hdr = [];
 hdr.bad_rec = cell(size(param.load.imgs));
 for img = 1:length(param.load.imgs)
   wf = abs(param.load.imgs{img}(1,1));
-  Nt = wfs(wf).Nt_raw;
   Nc = size(param.load.imgs{img},1);
   % data{img}: may eventually be complex(zeros(Nt,Nx,Nc,'single')) after
   % the first record/range-line is written
@@ -29,14 +28,15 @@ for img = 1:length(param.load.imgs)
   hdr.Nt{img} = zeros(1,Nx,'double');
   hdr.t0_raw{img} = zeros(1,Nx,'double');
   hdr.t_ref{img} = zeros(1,Nx,'double');
+  
+  nyquist_zone_hw{img} = zeros(1,param.load.presums);
+  nyquist_zone_signal{img} = NaN;
+  DDC_dec{img} = ones(1,param.load.presums);
+  DDC_freq{img} = zeros(1,param.load.presums);
+  Nt{img} = zeros(1,param.load.presums);
+  t0{img} = zeros(1,param.load.presums);
+  t_ref{img} = zeros(1,param.load.presums);
 end
-nyquist_zone_hw = zeros(1,param.load.presums);
-nyquist_zone_signal = NaN;
-DDC_dec = ones(1,param.load.presums);
-DDC_freq = zeros(1,param.load.presums);
-Nt = zeros(1,param.load.presums);
-t0 = zeros(1,param.load.presums);
-t_ref = zeros(1,param.load.presums);
 
 %% Endian mode
 % ===================================================================
@@ -177,6 +177,7 @@ for state_idx = 1:length(states)
         for accum_idx = 1:length(state.wf)
           adc = state.adc(accum_idx);
           wf = state.wf(accum_idx);
+          img = state.img(accum_idx);
           mode_latch = state.mode(accum_idx);
           subchannel = state.subchannel(accum_idx);
           
@@ -215,8 +216,8 @@ for state_idx = 1:length(states)
                   start_idx = 2*double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = 2*double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
-                Nt(num_accum+1) = stop_idx - start_idx;
-                wfs(wf).Nt_raw = Nt(num_accum+1);
+                Nt{img}(num_accum+1) = stop_idx - start_idx;
+                wfs(wf).Nt_raw = Nt{img}(num_accum+1);
               else
                 if swap_bytes_en
                   start_idx = double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
@@ -225,43 +226,43 @@ for state_idx = 1:length(states)
                   start_idx = double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
-                DDC_dec(num_accum+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
+                DDC_dec{img}(num_accum+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
                 raw_or_DDC = file_data(wf_hdr_offset + 48);
                 if raw_or_DDC
-                  Nt(num_accum+1) = (stop_idx - start_idx);
+                  Nt{img}(num_accum+1) = (stop_idx - start_idx);
                   wfs(wf).complex = false;
                 else
-                  Nt(num_accum+1) = floor((stop_idx - start_idx) / DDC_dec(num_accum+1));
+                  Nt{img}(num_accum+1) = floor((stop_idx - start_idx) / DDC_dec{img}(num_accum+1));
                   wfs(wf).complex = true;
                 end
               end
               
               if tmp_wf == wf
-                start_idx = start_idx + DDC_dec(num_accum+1)*wfs(wf).time_raw_trim(1);
-                Nt(num_accum+1) = Nt(num_accum+1) - sum(wfs(wf).time_raw_trim);
+                start_idx = start_idx + DDC_dec{img}(num_accum+1)*wfs(wf).time_raw_trim(1);
+                Nt{img}(num_accum+1) = Nt{img}(num_accum+1) - sum(wfs(wf).time_raw_trim);
                 break;
               else
-                last_wf_size = wfs(wf).sample_size*(1+~raw_or_DDC)*wfs(wf).adc_per_board*Nt(num_accum+1) + WF_HEADER_SIZE;
+                last_wf_size = wfs(wf).sample_size*(1+~raw_or_DDC)*wfs(wf).adc_per_board*Nt{img}(num_accum+1) + WF_HEADER_SIZE;
               end
               
             end
-            wfs(wf).Nt_raw = Nt(num_accum+1);
+            wfs(wf).Nt_raw = Nt{img}(num_accum+1);
             
             % Number of fast-time samples Nt, and start time t0
             if param.records.file.version ~= 8
               % NCO frequency
               if swap_bytes_en
-                DDC_freq(num_accum+1) = double(swapbytes(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16')));
+                DDC_freq{img}(num_accum+1) = double(swapbytes(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16')));
               else
-                DDC_freq(num_accum+1) = double(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16'));
+                DDC_freq{img}(num_accum+1) = double(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16'));
               end
               if param.records.file.version == 3
-                DDC_freq(num_accum+1) = DDC_freq(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2 - 62.5e6;
+                DDC_freq{img}(num_accum+1) = DDC_freq{img}(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2 - 62.5e6;
               elseif any(param.records.file.version == [5 7])
-                DDC_freq(num_accum+1) = DDC_freq(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2;
+                DDC_freq{img}(num_accum+1) = DDC_freq{img}(num_accum+1) / 2^15 * wfs(wf).fs_raw * 2;
               end
             end
-            t0(num_accum+1) = start_idx/wfs(wf).fs_raw;
+            t0{img}(num_accum+1) = start_idx/wfs(wf).fs_raw;
             
             if param.records.file.version == 8
               % Debug: char(file_data(wf_hdr_offset+41:wf_hdr_offset+48).')
@@ -272,10 +273,10 @@ for state_idx = 1:length(states)
               if isempty(waveform_ID_map_idx)
                 error('%ld waveform_ID not found in waveform_ID_map.',waveform_ID);
               end
-              t_ref(num_accum+1) = wfs(wf).t_ref + waveform_ID_t_ref(waveform_ID_map_idx);
+              t_ref{img}(num_accum+1) = wfs(wf).t_ref + waveform_ID_t_ref(waveform_ID_map_idx);
             else
               % Reference deramp time delay, t_ref
-              t_ref(num_accum+1) = wfs(wf).t_ref;
+              t_ref{img}(num_accum+1) = wfs(wf).t_ref;
             end
             
             % Bit shifts
@@ -286,14 +287,14 @@ for state_idx = 1:length(states)
             
             % Nyquist zone
             if param.records.file.version == 8
-              nyquist_zone_hw(num_accum+1) = file_data(wf_hdr_offset+34);
+              nyquist_zone_hw{img}(num_accum+1) = file_data(wf_hdr_offset+34);
             elseif any(param.records.file.version == [3 5 7])
-              nyquist_zone_hw(num_accum+1) = file_data(wf_hdr_offset+45);
+              nyquist_zone_hw{img}(num_accum+1) = file_data(wf_hdr_offset+45);
             end
           end
-          nyquist_zone_signal = nyquist_zone_hw(1);
+          nyquist_zone_signal{img} = nyquist_zone_hw{img}(1);
           if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
-            nyquist_zone_signal = records.settings.nyquist_zone(rec);
+            nyquist_zone_signal{img} = records.settings.nyquist_zone(rec);
           end
           if size(data{state.img(accum_idx)},1) < wfs(wf).Nt_raw
             % Force data output to grow to the current record size
@@ -463,29 +464,30 @@ for state_idx = 1:length(states)
           end
 
           % Store to output
+          wf = state.wf(accum_idx);
+          img = state.img(accum_idx);
           if num_accum < num_presum_records*wfs(wf).presum_threshold ...
-              || any(nyquist_zone_hw ~= nyquist_zone_hw(1)) ...
-              || any(DDC_dec ~= DDC_dec(1)) ...
-              || any(DDC_freq ~= DDC_freq(1)) ...
-              || any(Nt ~= Nt(1)) ...
-              || any(t0 ~= t0(1)) ...
-              || any(t_ref ~= t_ref(1))
+              || any(nyquist_zone_hw{img} ~= nyquist_zone_hw{img}(1)) ...
+              || any(nyquist_zone_signal{img} ~= nyquist_zone_signal{img}(1)) ...
+              || any(DDC_dec{img} ~= DDC_dec{img}(1)) ...
+              || any(DDC_freq{img} ~= DDC_freq{img}(1)) ...
+              || any(Nt{img} ~= Nt{img}(1)) ...
+              || any(t0{img} ~= t0{img}(1)) ...
+              || any(t_ref{img} ~= t_ref{img}(1))
             % Too few presums, mark as bad record
             % Or a parameter changed within the presum block
             data{state.img(accum_idx)}(:,out_rec,state.wf_adc(accum_idx)) = 0;
             hdr.bad_rec{state.img(accum_idx)}(1,out_rec,state.wf_adc(accum_idx)) = 1;
           else
-            wf = state.wf(accum_idx);
-            img = state.img(accum_idx);
             data{img}(1:wfs(wf).Nt_raw,out_rec,state.wf_adc(accum_idx)) = state.data{accum_idx};
           
-            hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw(1);
-            hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal;
-            hdr.DDC_dec{img}(out_rec) = DDC_dec(1);
-            hdr.DDC_freq{img}(out_rec) = DDC_freq(1);
+            hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw{img}(1);
+            hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal{img};
+            hdr.DDC_dec{img}(out_rec) = DDC_dec{img}(1);
+            hdr.DDC_freq{img}(out_rec) = DDC_freq{img}(1);
             hdr.Nt{img}(out_rec) = wfs(wf).Nt_raw;
-            hdr.t0_raw{img}(out_rec) = t0(1);
-            hdr.t_ref{img}(out_rec) = t_ref(1);
+            hdr.t0_raw{img}(out_rec) = t0{img}(1);
+            hdr.t_ref{img}(out_rec) = t_ref{img}(1);
             
             if any(isfinite(wfs(wf).blank))
               % Blank data

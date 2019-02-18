@@ -52,8 +52,10 @@ for img = 1:length(param.load.imgs)
       
       if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
         coh_noise = noise.dft;
+        noise = rmfield(noise,'dft');
       elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
         coh_noise = noise.coh_noise;
+        noise = rmfield(noise,'coh_noise');
       end
       
       % Nt by Nx_dft matrix
@@ -160,15 +162,20 @@ for img = 1:length(param.load.imgs)
           plot(lp(coh_noise))
         end
         
-        cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
-        for dft_idx = 1:length(noise.dft_freqs)
-          % mf: matched filter
-          % coh_noise(bin,dft_idx): Coefficient for the matched filter
-          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
-          for bin = 1:size(coh_noise,1)
-            cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
+        if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
+          cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
+          for dft_idx = 1:length(noise.dft_freqs)
+            % mf: matched filter
+            % coh_noise(bin,dft_idx): Coefficient for the matched filter
+            mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+            for bin = 1:size(coh_noise,1)
+              cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
+            end
           end
+        elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
+          cn.data = interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
         end
+        clear coh_noise;
       end
     end
     
@@ -636,7 +643,7 @@ for img = 1:length(param.load.imgs)
               
               % Convert IF frequency to time delay and account for reference
               % deramp time offset, hdr.t_ref
-              cn.time = cn.freq_raw_unique/wfs(wf).chirp_rate + hdr.t_ref{img}(rec);
+              cn.time = cn.freq_raw_unique/abs(wfs(wf).chirp_rate) + hdr.t_ref{img}(rec);
               
               % Ensure that start time is a multiple of dt
               cn.dt = cn.time(2)-cn.time(1);
