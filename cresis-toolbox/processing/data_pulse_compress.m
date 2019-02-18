@@ -52,8 +52,10 @@ for img = 1:length(param.load.imgs)
       
       if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
         coh_noise = noise.dft;
+        noise = rmfield(noise,'dft');
       elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
         coh_noise = noise.coh_noise;
+        noise = rmfield(noise,'coh_noise');
       end
       
       % Nt by Nx_dft matrix
@@ -160,15 +162,20 @@ for img = 1:length(param.load.imgs)
           plot(lp(coh_noise))
         end
         
-        cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
-        for dft_idx = 1:length(noise.dft_freqs)
-          % mf: matched filter
-          % coh_noise(bin,dft_idx): Coefficient for the matched filter
-          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
-          for bin = 1:size(coh_noise,1)
-            cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
+        if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
+          cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
+          for dft_idx = 1:length(noise.dft_freqs)
+            % mf: matched filter
+            % coh_noise(bin,dft_idx): Coefficient for the matched filter
+            mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+            for bin = 1:size(coh_noise,1)
+              cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
+            end
           end
+        elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
+          cn.data = interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
         end
+        clear coh_noise;
       end
     end
     
@@ -392,6 +399,12 @@ for img = 1:length(param.load.imgs)
             hdr.t0{img}(rec) = NaN;
             continue;
           end
+          
+          fs_raw_dec = wfs(wf).fs_raw ./ hdr.DDC_dec{img}(rec);
+          Nt_raw_trim = round(fs_raw_dec/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window)/2)*2;
+          df_raw = wfs(wf).fs_raw/hdr.DDC_dec{img}(rec)/Nt_raw_trim;
+          DDC_freq_adjust = mod(hdr.DDC_freq{img}(rec),df_raw);
+          hdr.DDC_freq{img}(rec) = hdr.DDC_freq{img}(rec) - DDC_freq_adjust;
 
           % Check to see if axes has changed since last record
           if rec == 1 ...
@@ -437,8 +450,6 @@ for img = 1:length(param.load.imgs)
             % length, Nt_desired, we determine what resampling is required
             % and store this in p,q.
             Nt_desired = round(wfs(wf).fs_raw/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window)/2)*2;
-            fs_raw_dec = wfs(wf).fs_raw ./ hdr.DDC_dec{img}(rec);
-            Nt_raw_trim = round(fs_raw_dec/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window)/2)*2;
             if 0
               % Debug: Test how fast different data record lengths are
               for Nt_raw_trim_test=Nt_raw_trim+(0:10)
@@ -489,8 +500,6 @@ for img = 1:length(param.load.imgs)
               hdr.nyquist_zone_signal{img}(rec) = 1;
               hdr.DDC_freq{img}(rec) = 95e6;
             end
-            
-            df_raw = wfs(wf).fs_raw/hdr.DDC_dec{img}(rec)/Nt_raw_trim;
             
             % nz: Nyquist zone containing signal spectrum (just renaming
             %   variable for convenience). The assumption is that the
@@ -634,7 +643,7 @@ for img = 1:length(param.load.imgs)
               
               % Convert IF frequency to time delay and account for reference
               % deramp time offset, hdr.t_ref
-              cn.time = cn.freq_raw_unique/wfs(wf).chirp_rate + hdr.t_ref{img}(rec);
+              cn.time = cn.freq_raw_unique/abs(wfs(wf).chirp_rate) + hdr.t_ref{img}(rec);
               
               % Ensure that start time is a multiple of dt
               cn.dt = cn.time(2)-cn.time(1);
@@ -732,7 +741,11 @@ for img = 1:length(param.load.imgs)
           %% Pulse compress: FFT and Deskew
           
           % Window and DFT (raw deramped time to regular time)
-          tmp = fft(data{img}(H_idxs,rec,wf_adc) .* H_Nt);
+          NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
+          tmp = fft(data{img}(H_idxs,rec,wf_adc) ...
+             .* exp(1i*2*pi*hdr.DDC_freq{img}(rec)*NCO_time(1)) ...
+             .* exp(1i*2*pi*DDC_freq_adjust*NCO_time) ...
+             .* exp(1i*2*pi*0.5*hdr.DDC_freq{img}(rec)/df_raw) .* H_Nt);
           
           % Deskew of the residual video phase (not the standard because we
           % actually move the window to track the td)
