@@ -269,7 +269,7 @@ for img = 1:length(param.load.imgs)
             end
           end
         elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
-          cn.data = interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+          cn.data = -interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
         end
         clear coh_noise;
       end
@@ -897,9 +897,9 @@ for img = 1:length(param.load.imgs)
             tmp = tmp(cn.unique_idxs);
             tmp(cn.conjugate_unique) = conj(tmp(cn.conjugate_unique));
             if wfs(wf).f0 > wfs(wf).f1
-              tmp = ifftshift(fft(tmp));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
             else
-              tmp = ifftshift(fft(conj(tmp)));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
             end
             tmp = tmp .* cn.time_correction_freq;
             tmp = ifft(tmp);
@@ -942,11 +942,11 @@ for img = 1:length(param.load.imgs)
               % Undo tmp = tmp .* time_correction;
               tmp = tmp ./ cn.time_correction_freq;
               if wfs(wf).f0 > wfs(wf).f1
-                % Undo tmp = ifftshift(fft(tmp));
-                tmp = ifft(fftshift(tmp));
+                % Undo tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = ifft(tmp) .* exp(1i*2*pi*(fc-min(freq))*time);
               else
-                % Undo tmp = ifftshift(fft(conj(tmp)));
-                tmp = conj(ifft(fftshift(tmp)));
+                % Undo tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = conj(ifft(tmp)) .* exp(1i*2*pi*(fc-min(freq))*time);
               end
               % Undo tmp = tmp(unique_idxs);
               tmp = tmp(cn.return_idxs);
@@ -957,9 +957,9 @@ for img = 1:length(param.load.imgs)
               tmp = tmp(unique_idxs);
               tmp(conjugate_unique) = conj(tmp(conjugate_unique));
               if wfs(wf).f0 > wfs(wf).f1
-                tmp = ifftshift(fft(tmp));
+                tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
               else
-                tmp = ifftshift(fft(conj(tmp)));
+                tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
               end
               tmp = tmp .* time_correction_freq;
               tmp = ifft(tmp);

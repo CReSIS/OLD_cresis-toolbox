@@ -6,8 +6,10 @@ function Surface = layer_tracker(param,param_override)
 % track: Parameters used to control the tracker. Only general parameters
 %   used within update_surface_with_tracker are included here. For more
 %   details about tracker specific parameters, look at the help for:
-%   tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
-%   tracker_max, tracker_snake_simple
+%   tracker_snake_simple, tracker_threshold, tracker_max
+%
+% track structure fields:
+% -------------------------------------------------------------------------
 % .en: must be true for update_surface_with_tracker to run on a segment
 % .medfilt: scalar which specifies the length of a median filter to apply
 %   to the tracked data. Similar to medfilt1, but it handles edge
@@ -22,13 +24,10 @@ function Surface = layer_tracker(param,param_override)
 %     [track.feedthru.time,track.feedthru.power_dB] = ginput; % Press enter to end the input
 %   .time: N length vector of two way travel times
 %   .power_dB: N length vector of power in dB
-% .method: string containing the method to use for tracking as long as
-%   manual mode is not enabled. Options:
+% .method: string containing the method to use for tracking. Options:
 %    'threshold': runs tracker_threshold (generally the best for surface altimetry)
 %    'snake': runs tracker_snake_simple
 %    'max': tracker_max
-% .manual: Optional, default is false. If true, the manual version of
-%   tracker_snake_simple is run with tracker_snake_manual_gui.
 % .max_diff: used by tracker routines (optional, default is inf)
 % .min_bin: used by tracker routines
 % .max_bin: used by tracker routines (optional, default is not used)
@@ -41,8 +40,7 @@ function Surface = layer_tracker(param,param_override)
 % outputs will be saved.
 %
 % For more details about tracker specific parameters:
-% tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
-% tracker_max
+% tracker_snake_simple, tracker_threshold, tracker_max
 %
 % Example:
 %   See run_layer_tracker.m to run in regular mode.
@@ -74,46 +72,6 @@ if ~isfield(param.layer_tracker,'debug_level') || isempty(param.layer_tracker.de
 end
 debug_level = param.layer_tracker.debug_level;
 
-% profile: default is no profile, otherwise loads preset configuration
-if isfield(param.layer_tracker,'profile') && ~isempty(param.layer_tracker.profile)
-  if strcmpi(param.layer_tracker.profile,'snow_2019_01')
-    param.layer_tracker.layer_tracker.debug_time_guard = 50e-9;
-    param.layer_tracker.method = 'threshold';
-    param.layer_tracker.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
-    param.layer_tracker.threshold = 8;
-    
-    param.layer_tracker.min_bin = 0.4e-6;
-    param.layer_tracker.prefilter_trim = [0 0];
-    param.layer_tracker.filter = [5 3];
-    param.layer_tracker.filter_trim = [10 10];
-    param.layer_tracker.max_rng	= [0 0.5e-9];
-    
-    if 0
-      param.layer_tracker.init.method	= '';
-    elseif 0
-      param.layer_tracker.init.method	= 'dem';
-      param.layer_tracker.init.dem_offset = 0;
-      param.layer_tracker.init.dem_layer.name = 'surface';
-      param.layer_tracker.init.dem_layer.source = 'lidar';
-      param.layer_tracker.init.dem_layer.lidar_source = 'atm';
-      param.layer_tracker.init.max_diff = 0.3e-6;
-    elseif 1
-      param.layer_tracker.init.method	= 'medfilt';
-      param.layer_tracker.init.medfilt	= 51;
-      param.layer_tracker.init.max_diff = 0.3e-6;
-    end
-    param.layer_tracker.medfilt = 11;
-    param.layer_tracker.medfilt_threshold = 100;
-  end
-end
-
-
-% debug_time_guard: Vertical band around surface in debug plot
-if ~isfield(param.layer_tracker,'debug_time_guard') || isempty(param.layer_tracker.debug_time_guard)
-  param.layer_tracker.debug_time_guard = 50e-9;
-end
-debug_time_guard = param.layer_tracker.debug_time_guard;
-
 % echogram_img: To choose an image besides the base (0) image
 if ~isfield(param.layer_tracker,'echogram_img') || isempty(param.layer_tracker.echogram_img)
   param.layer_tracker.echogram_img = 0;
@@ -131,11 +89,27 @@ if ~isfield(param.layer_tracker,'layer_params') || isempty(param.layer_tracker.l
 end
 layer_params = param.layer_tracker.layer_params;
 
+%% Input Checks: track field
+% =====================================================================
+
 if ~isfield(param.layer_tracker,'track') || isempty(param.layer_tracker.track)
   param.layer_tracker.track = [];
 end
 track = merge_structs(param.qlook.surf,param.layer_tracker.track);
 
+% profile: default is no profile, otherwise loads preset configuration
+if ~isfield(param.layer_tracker.track,'profile') || isempty(param.layer_tracker.track.profile)
+  param.layer_tracker.track.profile = '';
+end
+default_track = layer_tracker_profile(param,param.layer_tracker.track.profile);
+
+track = merge_structs(layer_tracker_profile(param,param.layer_tracker.track.profile), track);
+
+if ~isfield(track,'en') || isempty(track.en)
+  % If true, tracking will be done on this segment. If false, then no
+  % tracking is done. Default is true.
+  track.en = true;
+end
 if ~track.en
   return;
 end
@@ -149,6 +123,12 @@ if ~isfield(track,'data_noise_en') || isempty(track.data_noise_en)
   % tracker_threshold makes use of data_noise.
   track.data_noise_en = false;
 end
+
+% debug_time_guard: Vertical band around layer in debug plot
+if ~isfield(track,'debug_time_guard') || isempty(track.debug_time_guard)
+  track.debug_time_guard = 50e-9;
+end
+debug_time_guard = track.debug_time_guard;
 
 if ~isfield(track,'detrend') || (isempty(track.detrend) && ~ischar(track.detrend))
   track.detrend = 0;
@@ -249,8 +229,8 @@ if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)
 end
 
 if ~isfield(track,'sidelobe_rows') || isempty(track.sidelobe_rows) || ~isfield(track,'sidelobe_dB') || isempty(track.sidelobe_dB)
-  track.sidelobe_rows = [];
   track.sidelobe_dB = [];
+  track.sidelobe_rows = [];
 end
 
 if ~isfield(track,'snake_rng') || isempty(track.snake_rng)
@@ -330,12 +310,10 @@ for frm_idx = 1:length(param.cmd.frms)
   if isstruct(echogram_source)
     % echogram_source is the data structure
     mdata = echogram_source;
+    data_fn_name = 'param.layer_tracker.echogram_source';
     
   else
     % echogram_source is a file path indicator
-    if ~exist('echogram_img','var')
-      echogram_img = 0;
-    end
     if echogram_img == 0
       data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
