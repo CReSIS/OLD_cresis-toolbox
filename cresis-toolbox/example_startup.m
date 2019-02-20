@@ -241,9 +241,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 2;
   profile(pidx).cluster.submit_pause          = 1;
   profile(pidx).cluster.stat_pause            = 10;
-  profile(pidx).cluster.file_check_pause      = 4;
-  profile(pidx).cluster.job_complete_pause    = 40;
-  
+  profile(pidx).cluster.file_check_pause      = 0;
+  profile(pidx).cluster.mem_to_ppn            = 0.9 * 34359738368 / 16;
+  profile(pidx).cluster.max_ppn               = 8;
+
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
   
   %% AWI Profile Field Windows (PROFILE 7)

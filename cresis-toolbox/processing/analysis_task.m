@@ -401,6 +401,14 @@ for img = 1:length(store_param.load.imgs)
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         data = data{1};
+
+        if 0
+          % Check data
+          figure(2); clf;
+          imagesc(lp(fir_dec(abs(fir_dec(bsxfun(@minus,data,nanmean(data,2)),4)).^2,ones(1,5)/5,3)));
+          grid on;
+          keyboard
+        end
         
         %% Coh Noise: Doppler and Data-Statistics
         % Implement memory efficient fft and statistics operations by doing

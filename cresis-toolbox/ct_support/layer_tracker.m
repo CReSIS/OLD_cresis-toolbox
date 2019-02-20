@@ -74,6 +74,40 @@ if ~isfield(param.layer_tracker,'debug_level') || isempty(param.layer_tracker.de
 end
 debug_level = param.layer_tracker.debug_level;
 
+% profile: default is no profile, otherwise loads preset configuration
+if isfield(param.layer_tracker,'profile') && ~isempty(param.layer_tracker.profile)
+  if strcmpi(param.layer_tracker.profile,'snow_2019_01')
+    param.layer_tracker.layer_tracker.debug_time_guard = 50e-9;
+    param.layer_tracker.method = 'threshold';
+    param.layer_tracker.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
+    param.layer_tracker.threshold = 8;
+    
+    param.layer_tracker.min_bin = 0.4e-6;
+    param.layer_tracker.prefilter_trim = [0 0];
+    param.layer_tracker.filter = [5 3];
+    param.layer_tracker.filter_trim = [10 10];
+    param.layer_tracker.max_rng	= [0 0.5e-9];
+    
+    if 0
+      param.layer_tracker.init.method	= '';
+    elseif 0
+      param.layer_tracker.init.method	= 'dem';
+      param.layer_tracker.init.dem_offset = 0;
+      param.layer_tracker.init.dem_layer.name = 'surface';
+      param.layer_tracker.init.dem_layer.source = 'lidar';
+      param.layer_tracker.init.dem_layer.lidar_source = 'atm';
+      param.layer_tracker.init.max_diff = 0.3e-6;
+    elseif 1
+      param.layer_tracker.init.method	= 'medfilt';
+      param.layer_tracker.init.medfilt	= 51;
+      param.layer_tracker.init.max_diff = 0.3e-6;
+    end
+    param.layer_tracker.medfilt = 11;
+    param.layer_tracker.medfilt_threshold = 100;
+  end
+end
+
+
 % debug_time_guard: Vertical band around surface in debug plot
 if ~isfield(param.layer_tracker,'debug_time_guard') || isempty(param.layer_tracker.debug_time_guard)
   param.layer_tracker.debug_time_guard = 50e-9;
