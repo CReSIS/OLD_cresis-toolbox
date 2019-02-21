@@ -451,8 +451,8 @@ for break_idx = 1:length(breaks)
   % Loading in the data: cpu_time and mem
   dparam.mem = 250e6;
   for img = 1:length(param.analysis.imgs)
-    dparam.cpu_time = dparam.cpu_time + 10 + length(param.analysis.imgs{img})*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
-    dparam.mem = dparam.mem + length(param.analysis.imgs{img})*Nx*total_num_sam(img)*mem_mult;
+    dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+    dparam.mem = dparam.mem + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult;
   end
   data_load_memory = dparam.mem;
   cmd_method_str = ''; % Used to store the first valid method for dparam.notes

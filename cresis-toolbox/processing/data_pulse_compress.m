@@ -26,6 +26,102 @@ for img = 1:length(param.load.imgs)
       if strcmpi(wfs(wf).prepulse_H.type,'filtfilt')
         data{img}(:,:,wf_adc) = single(filtfilt(wfs(wf).prepulse_H.B,1,double(data{img}(:,:,wf_adc))));
       end
+      
+      extra_delay = zeros(1,size(data{img},2));
+      if strcmpi(wfs(wf).prepulse_H.type,'NI_DDC_2019')
+        if 0
+          % Test code to find each DDC filter delay
+          idx0 = 1000;
+          Nx = 1500;
+          dd=data{img}(:,idx0+(1:Nx));
+          Nx = size(dd,2);
+          ee = zeros(1,Nx);
+          for col = 1:Nx
+            rec = idx0 + col;
+            if hdr.Nt{img}(rec) == 0
+              continue
+            end
+            freq_axis = ifftshift(-floor(hdr.Nt{img}(rec)/2):floor((hdr.Nt{img}(rec)-1)/2)).';
+            if hdr.DDC_dec{img}(rec) == 2
+            elseif hdr.DDC_dec{img}(rec) == 4
+              dd(1:hdr.Nt{img}(rec),col) = hdr.DDC_dec{img}(rec)*dd(1:hdr.Nt{img}(rec),col);
+              % Delay of 100/4 = 25 relative to DDC_dec==2
+              dd(1:hdr.Nt{img}(rec),col) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
+                .* exp(1i*2*pi*25*freq_axis/hdr.Nt{img}(rec)));
+            elseif hdr.DDC_dec{img}(rec) == 8
+              dd(1:hdr.Nt{img}(rec),col) = hdr.DDC_dec{img}(rec)*dd(1:hdr.Nt{img}(rec),col);
+              % Delay of (100+2*100)/8 = 37.5 relative to DDC_dec==2
+              dd(1:hdr.Nt{img}(rec),col) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
+                .* exp(1i*2*pi*37.5*freq_axis/hdr.Nt{img}(rec)));
+            elseif hdr.DDC_dec{img}(rec) == 16
+              % Delay of (100+2*100+4*100)/8 = 43.75 relative to DDC_dec==2
+              dd(1:hdr.Nt{img}(rec),col) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
+                .* exp(1i*2*pi*43.75*freq_axis/hdr.Nt{img}(rec)));
+            end
+            Mt = hdr.DDC_dec{img}(rec);
+            ee(1:hdr.Nt{img}(rec)*Mt,col) = single(resample(double(dd(1:hdr.Nt{img}(rec),col)),Mt,1));
+          end
+          ref2 = mean(ee(:,105:115),2);
+          ref4 = mean(ee(:,120:130),2);
+          ref8 = mean(ee(:,440:450),2);
+          [eex,lags] = xcorr(ref4,ref2);
+          plot(lags,lp(eex));
+          [mv,mi] = max(eex);
+          lags(mi)
+          
+          [eex,lags] = xcorr(ref8,ref2);
+          plot(lags,lp(eex));
+          [mv,mi] = max(eex);
+          lags(mi)
+          
+          ref2 = fft(ref2);
+          ref4 = fft(ref4);
+          ref8 = fft(ref8);
+          figure(1); clf;
+          plot(lp(ref2))
+          hold on
+          plot(lp(ref4))
+          plot(lp(ref8))
+          
+          figure(1); clf;
+          plot(angle(ref2))
+          hold on
+          plot(angle(ref4))
+          plot(angle(ref8))
+        end
+        
+        for rec = 1:size(data{img},2)
+          freq_axis = ifftshift(-floor(hdr.Nt{img}(rec)/2):floor((hdr.Nt{img}(rec)-1)/2)).';
+          if hdr.DDC_dec{img}(rec) == 2
+            % Scale output
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = hdr.DDC_dec{img}(rec) ...
+              * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
+          elseif hdr.DDC_dec{img}(rec) == 4
+            % Scale output
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = exp(1i*-pi/2)*hdr.DDC_dec{img}(rec) ...
+              * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
+            % Delay of 100/4 = 25 relative to DDC_dec==2
+            extra_delay(rec) = 25;
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
+              .* exp(1i*2*pi*25*freq_axis/hdr.Nt{img}(rec)));
+          elseif hdr.DDC_dec{img}(rec) == 8
+            % Scale output
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = exp(1i*-pi/2)*hdr.DDC_dec{img}(rec) ...
+              * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
+            % Delay of (100+2*100)/8 = 37.5 relative to DDC_dec==2
+            extra_delay(rec) = 37.5;
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
+              .* exp(1i*2*pi*37.5*freq_axis/hdr.Nt{img}(rec)));
+          elseif hdr.DDC_dec{img}(rec) == 16
+            % Scale output
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = hdr.DDC_dec{img}(rec) ...
+              * data{img}(1:hdr.Nt{img}(rec),rec,wf_adc);
+            % Delay of (100+2*100+4*100)/8 = 43.75 relative to DDC_dec==2
+            data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc)) ...
+              .* exp(1i*2*pi*43.75*freq_axis/hdr.Nt{img}(rec)));
+          end
+        end
+      end
     end
     
     %% Burst RFI removal
@@ -52,8 +148,10 @@ for img = 1:length(param.load.imgs)
       
       if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
         coh_noise = noise.dft;
+        noise = rmfield(noise,'dft');
       elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
         coh_noise = noise.coh_noise;
+        noise = rmfield(noise,'coh_noise');
       end
       
       % Nt by Nx_dft matrix
@@ -160,15 +258,20 @@ for img = 1:length(param.load.imgs)
           plot(lp(coh_noise))
         end
         
-        cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
-        for dft_idx = 1:length(noise.dft_freqs)
-          % mf: matched filter
-          % coh_noise(bin,dft_idx): Coefficient for the matched filter
-          mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
-          for bin = 1:size(coh_noise,1)
-            cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
+        if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
+          cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
+          for dft_idx = 1:length(noise.dft_freqs)
+            % mf: matched filter
+            % coh_noise(bin,dft_idx): Coefficient for the matched filter
+            mf = exp(1i*2*pi/noise.Nx*noise.dft_freqs(dft_idx) .* recs);
+            for bin = 1:size(coh_noise,1)
+              cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
+            end
           end
+        elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
+          cn.data = -interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
         end
+        clear coh_noise;
       end
     end
     
@@ -616,9 +719,14 @@ for img = 1:length(param.load.imgs)
             % deramp time offset, hdr.t_ref
             time = freq_raw_unique/abs(wfs(wf).chirp_rate) + hdr.t_ref{img}(rec);
             
-            % Ensure that start time is a multiple of dt
+            % Ensure that start time is a multiple of dt:
+            % 1. freq_raw_unique/abs(wfs(wf).chirp_rate) is always a
+            %    multiple of dt because of constraints on freq_raw_unique
+            % 2. Therefore we only need to consider hdr.t_ref{img}(rec).
+            %    This is done because of rounding errors that may occur if
+            %    mod(time(1),dt) was used.
             dt = time(2)-time(1);
-            time_correction = dt - mod(time(1),dt);
+            time_correction = dt - mod(hdr.t_ref{img}(rec),dt);
             time = time + time_correction;
             
             fc = sum(wfs(wf).BW_window)/2;
@@ -629,18 +737,23 @@ for img = 1:length(param.load.imgs)
             
             deskew = exp(-1i*pi*wfs(wf).chirp_rate*(time-wfs(wf).td_mean).^2);
             deskew_shift = 1i*2*pi*(0:Nt_raw_trim-1).'/Nt_raw_trim;
-            time_correction = exp(1i*2*pi*freq*time_correction);
+            time_correction_freq = exp(1i*2*pi*(freq-fc)*time_correction);
             
             %% Pulse compress: Time axis (Coh Noise)
             if strcmpi(wfs(wf).coh_noise_method,'analysis')
               
               % Convert IF frequency to time delay and account for reference
               % deramp time offset, hdr.t_ref
-              cn.time = cn.freq_raw_unique/wfs(wf).chirp_rate + hdr.t_ref{img}(rec);
+              cn.time = cn.freq_raw_unique/abs(wfs(wf).chirp_rate) + hdr.t_ref{img}(rec);
               
-              % Ensure that start time is a multiple of dt
+              % Ensure that start time is a multiple of dt:
+              % 1. freq_raw_unique/abs(wfs(wf).chirp_rate) is always a
+              %    multiple of dt because of constraints on freq_raw_unique
+              % 2. Therefore we only need to consider hdr.t_ref{img}(rec).
+              %    This is done because of rounding errors that may occur if
+              %    mod(time(1),dt) was used.
               cn.dt = cn.time(2)-cn.time(1);
-              cn.time_correction = cn.dt - mod(cn.time(1),cn.dt);
+              cn.time_correction = cn.dt - mod(hdr.t_ref{img}(rec),cn.dt);
               cn.time = cn.time + cn.time_correction;
               
               fc = sum(wfs(wf).BW_window)/2;
@@ -651,7 +764,7 @@ for img = 1:length(param.load.imgs)
               
               % cn.deskew: handled differently below
               % cn.deskew_shift: handled differently below
-              cn.time_correction = exp(1i*2*pi*cn.freq*cn.time_correction);
+              cn.time_correction_freq = exp(1i*2*pi*(cn.freq-fc)*cn.time_correction);
               
               
               % Handle changes between when the noise file was created and
@@ -735,11 +848,12 @@ for img = 1:length(param.load.imgs)
           
           % Window and DFT (raw deramped time to regular time)
           NCO_time = hdr.t0_raw{1}(rec) + wfs(wf).DDC_NCO_delay + (H_idxs(:)-1) /(wfs(wf).fs_raw/hdr.DDC_dec{img}(rec));
-          tmp = fft(data{img}(H_idxs,rec,wf_adc) ...
-             .* exp(1i*2*pi*hdr.DDC_freq{img}(rec)*NCO_time(1)) ...
-             .* exp(1i*2*pi*DDC_freq_adjust*NCO_time) ...
-             .* exp(1i*2*pi*0.5*hdr.DDC_freq{img}(rec)/df_raw) .* H_Nt);
           
+          tmp = fft(data{img}(H_idxs,rec,wf_adc) ...
+             .* exp(1i*2*pi*DDC_freq_adjust*NCO_time) ...
+             .* exp(1i*2*pi*hdr.DDC_freq{img}(rec)*NCO_time(1)) ...
+             .* H_Nt);
+           
           % Deskew of the residual video phase (not the standard because we
           % actually move the window to track the td)
           %tmp = tmp .* exp(deskew_shift*(window_start_idx_norm-window_start_idx));
@@ -758,7 +872,7 @@ for img = 1:length(param.load.imgs)
               else
                 cn.tmp = ifftshift(fft(conj(cn.tmp)));
               end
-              cn.tmp = cn.tmp .* cn.time_correction;
+              cn.tmp = cn.tmp .* cn.time_correction_freq;
               cn.tmp = ifft(cn.tmp);
               cn.tmp = -cn.tmp .* cn.deskew;
               cn.tmp(end) = 0;
@@ -783,11 +897,11 @@ for img = 1:length(param.load.imgs)
             tmp = tmp(cn.unique_idxs);
             tmp(cn.conjugate_unique) = conj(tmp(cn.conjugate_unique));
             if wfs(wf).f0 > wfs(wf).f1
-              tmp = ifftshift(fft(tmp));
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
             else
-              tmp = ifftshift(fft(conj(tmp)));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
             end
-            tmp = tmp .* cn.time_correction;
+            tmp = tmp .* cn.time_correction_freq;
             tmp = ifft(tmp);
             tmp = tmp .* cn.deskew;
             tmp(end) = 0;
@@ -826,13 +940,13 @@ for img = 1:length(param.load.imgs)
               % Undo tmp = ifft(tmp);
               tmp = fft(tmp);
               % Undo tmp = tmp .* time_correction;
-              tmp = tmp ./ cn.time_correction;
+              tmp = tmp ./ cn.time_correction_freq;
               if wfs(wf).f0 > wfs(wf).f1
-                % Undo tmp = ifftshift(fft(tmp));
-                tmp = ifft(fftshift(tmp));
+                % Undo tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = ifft(tmp) .* exp(1i*2*pi*(fc-min(freq))*time);
               else
-                % Undo tmp = ifftshift(fft(conj(tmp)));
-                tmp = conj(ifft(fftshift(tmp)));
+                % Undo tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
+                tmp = conj(ifft(tmp)) .* exp(1i*2*pi*(fc-min(freq))*time);
               end
               % Undo tmp = tmp(unique_idxs);
               tmp = tmp(cn.return_idxs);
@@ -843,11 +957,11 @@ for img = 1:length(param.load.imgs)
               tmp = tmp(unique_idxs);
               tmp(conjugate_unique) = conj(tmp(conjugate_unique));
               if wfs(wf).f0 > wfs(wf).f1
-                tmp = ifftshift(fft(tmp));
+                tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
               else
-                tmp = ifftshift(fft(conj(tmp)));
+                tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
               end
-              tmp = tmp .* time_correction;
+              tmp = tmp .* time_correction_freq;
               tmp = ifft(tmp);
               tmp = tmp .* deskew;
               % tmp(end) = 0; % Skip since it was not undone
@@ -883,8 +997,8 @@ for img = 1:length(param.load.imgs)
               %   exp(-j*2*pi*f0*(t_d-t_ref)).
               %
               % Therefore, only a circular shift is required to complex baseband
-              % the data (ifftshift used).
-              tmp = ifftshift(fft(tmp));
+              % the data.
+              tmp = fft(tmp .* exp(-1i*2*pi*(fc-min(freq))*time));
             else
               % Positive chirp: the initial DFT causes a frequency domain reversal
               % which flips the frqeuency domain so that the RF frequency mapping
@@ -895,7 +1009,7 @@ for img = 1:length(param.load.imgs)
               %
               % The frequency reversal and conjugation are fixed by conjugating the
               % signal before the FFT.
-              tmp = ifftshift(fft(conj(tmp)));
+              tmp = fft(conj(tmp) .* exp(-1i*2*pi*(fc-min(freq))*time));
             end
             
             % Modulate the raw data to adjust the start time to always be a
@@ -903,7 +1017,7 @@ for img = 1:length(param.load.imgs)
             % pure time shift and not introduce any phase shift in the other
             % domain, we make sure the phase is zero in the center of the
             % window: -time_raw(1+floor(Nt/2))
-            tmp = tmp .* time_correction;
+            tmp = tmp .* time_correction_freq;
             
             % Return to time domain
             tmp = ifft(tmp);

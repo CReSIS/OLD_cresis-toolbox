@@ -83,7 +83,7 @@ if isempty(fns)
 end
 
 % Remove segments with dates far from the desired GPS time dates
-keep_mask = logical(zeros(size(fns)));
+keep_mask = false(size(fns));
 db = search_params.days_before;
 da = search_params.days_after;
 for file_idx = 1:length(fns)
@@ -99,6 +99,11 @@ for file_idx = 1:length(fns)
   end
 end
 fns = fns(keep_mask);
+
+if isempty(fns)
+  error('No records file are within one day of the desired GPS time range: %s to %s.', ...
+    datestr(epoch_to_datenum(sort_gps_time(1))), datestr(epoch_to_datenum(sort_gps_time(end))));
+end
 
 % Load in first and last record from each records file
 first_gps_time = [];
@@ -123,7 +128,15 @@ for file_idx = 1:length(fns)
   last_gps_time(file_idx) = netcdf.getVar(ncid,var_idx,[0 num_recs-1]);
   netcdf.close(ncid);
 end
-  
+keep_mask = isfinite(first_gps_time) & isfinite(last_gps_time);
+fns = fns(keep_mask);
+first_gps_time = first_gps_time(keep_mask);
+last_gps_time = last_gps_time(keep_mask);
+
+if isempty(fns)
+  error('All records file within one day have some not finite gps times.');
+end
+
 %% Determine which segment each gps time belongs to
 fn_idx = 1;
 gps_fn_idxs = NaN*zeros(size(sort_gps_time));

@@ -252,10 +252,6 @@ if L1B_cmd
     
     echogram_fn = fullfile(ct_filename_out(param,'post','',1),'images', ...
       param.day_seg, sprintf('%s_%03d_1echo.jpg',param.day_seg,frm));
-    if strcmpi(param.radar_name,'snow8')
-      echogram_fn = fullfile(ct_filename_out(param,'post','',1),'images', ...
-        param.day_seg, sprintf('%s_%03d_1echo_snow.jpg',param.day_seg,frm));
-    end
     new_echogram_fn = fullfile(out_data_dir, ...
       sprintf('%s%s_%s_%03d_%s.jpg',radar_type,data_type,param.day_seg,frm,'Echogram'));
     
@@ -272,7 +268,7 @@ if L1B_cmd
       continue;
     end
     if ~exist(echogram_fn,'file')
-      warning('Skipping: missing map file %s', echogram_fn);
+      warning('Skipping: missing echogram file %s', echogram_fn);
       keyboard;
       continue;
     end

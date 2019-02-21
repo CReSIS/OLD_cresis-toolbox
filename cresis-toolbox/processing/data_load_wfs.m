@@ -216,7 +216,7 @@ for wf = 1:length(param.radar.wfs)
   if isfield(param.radar.wfs(wf),'DDC_NCO_delay') && ~isempty(param.radar.wfs(wf).DDC_NCO_delay)
     wfs(wf).DDC_NCO_delay   = param.radar.wfs(wf).DDC_NCO_delay;
   else
-    wfs(wf).DDC_NCO_delay   = -2.88e-6; % AWI NI 2017 snow radar system default delay
+    wfs(wf).DDC_NCO_delay   = 2.4e-6-2.88e-6; % AWI NI 2017 snow radar system default delay
   end
   if isfield(param.radar.wfs(wf),'presums') && ~isempty(param.radar.wfs(wf).presums)
     wfs(wf).presums = param.radar.wfs(wf).presums;
