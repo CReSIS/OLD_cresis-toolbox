@@ -10,7 +10,7 @@
 % =====================================================================
 
 % Load the parameter spreadsheet 
-params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'),'','post');
+params = read_param_xls(ct_filename_param('rds_param_2009_Antarctica_TO.xls'));
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20091224_01');
 params = ct_set_params(params,'cmd.frms',[16]);
