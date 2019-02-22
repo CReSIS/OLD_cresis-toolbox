@@ -269,7 +269,19 @@ for img = 1:length(param.load.imgs)
             end
           end
         elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
-          cn.data = -interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+          % Interpolate coherent noise onto current data's gps time
+          if all(hdr.gps_time>noise.coh_noise_gps_time(end))
+            % All current data's gps time is after the coherent noise
+            % estimates gps time
+            cn.data = -repmat(coh_noise(:,end),[1 length(hdr.gps_time)]);
+          elseif all(hdr.gps_time<noise.coh_noise_gps_time(1))
+            % All current data's gps time is before the coherent noise
+            % estimates gps time
+            cn.data = -repmat(coh_noise(:,1).',[1 length(hdr.gps_time)]);
+          else
+            % Current data gps time overlaps with coherent noise estimates
+            cn.data = -interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+          end
         end
         clear coh_noise;
       end
