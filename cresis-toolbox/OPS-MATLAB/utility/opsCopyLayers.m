@@ -300,6 +300,10 @@ else
   all_points.twtt = layer_dest.twtt;
   all_points.quality = layer_dest.quality;
 end
+% Check to make sure there are any points to copy
+if isempty(all_points.gps_time)
+  error('Destination has no GPS time points. No work to do. This might be an error caused by echogram destination source not finding any echograms.');
+end
 
 % Set invalid types to "auto" or 2
 layer_source.type(~isfinite(layer_source.type)) = 2;
@@ -363,7 +367,7 @@ elseif strcmpi(copy_param.gaps_fill.method,'interp_finite')
   all_points.type_interp = 2*ones(size(all_points.twtt_interp));
   % Overwrite manual points (type 1)
   manual_idxs = find(layer_source.type == 1);
-  manual_idxs_map = interp1(all_points.gps_time, 1:length(all_points.gps_time), ...
+  manual_idxs_map = interp1_robust(all_points.gps_time, 1:length(all_points.gps_time), ...
     layer_source.gps_time(manual_idxs),'nearest');
   manual_idxs = manual_idxs(~isnan(manual_idxs_map));
   manual_idxs_map = manual_idxs_map(~isnan(manual_idxs_map));
@@ -528,13 +532,13 @@ elseif strcmpi(copy_param.layer_dest.source,'layerdata')
     end
     
     % Manual points
-    layer_type_mask = interp1(all_points.gps_time,layer_type,lay.GPS_time,'nearest') == 1;
-    lay.layerData{lay_idx}.value{1}.data(layer_type_mask) = interp1(all_points.gps_time,surface,lay.GPS_time(layer_type_mask));
+    layer_type_mask = interp1_robust(all_points.gps_time,layer_type,lay.GPS_time,'nearest') == 1;
+    lay.layerData{lay_idx}.value{1}.data(layer_type_mask) = interp1_robust(all_points.gps_time,surface,lay.GPS_time(layer_type_mask));
     
     % Automated points
-    lay.layerData{lay_idx}.value{2}.data = interp1(all_points.gps_time,surface,lay.GPS_time);
+    lay.layerData{lay_idx}.value{2}.data = interp1_robust(all_points.gps_time,surface,lay.GPS_time);
     
-    lay.layerData{lay_idx}.quality = interp1(all_points.gps_time,quality,lay.GPS_time,'nearest');
+    lay.layerData{lay_idx}.quality = interp1_robust(all_points.gps_time,quality,lay.GPS_time,'nearest');
     
     % Append the new results back to the layerData file
     save(layer_fn,'-append','-struct','lay','layerData');
@@ -565,7 +569,6 @@ elseif strcmpi(copy_param.layer_dest.source,'echogram')
       echogram_layer_name = copy_param.layer_dest.name;
     end
     
-    
     % Load data
     warning off;
     echo = load(echo_fn,echogram_layer_name,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
@@ -574,7 +577,7 @@ elseif strcmpi(copy_param.layer_dest.source,'echogram')
     echo = uncompress_echogram(echo);
     
     % Interpolate layer to the echogram GPS time
-    echo.(echogram_layer_name) = interp1(all_points.gps_time,surface,echo.GPS_time);
+    echo.(echogram_layer_name) = interp1_robust(all_points.gps_time,surface,echo.GPS_time);
     
     % "Compress" the layer if it was compressed before
     if isfield(echo,'Elevation_Correction')
@@ -595,5 +598,3 @@ elseif strcmpi(copy_param.layer_dest.source,'records')
   create_records_aux_files(records_fn);
   
 end
-
-return;
