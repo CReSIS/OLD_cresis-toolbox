@@ -555,27 +555,39 @@ elseif strcmpi(copy_param.layer_dest.source,'echogram')
       warning('Echogram data file does not exist: %s\n', echo_fn);
       continue;
     end
-    
-    % Load echogram
-    echo = load(echo_fn,'GPS_time');
-    
-    % Create automated points:
-    % Surface
+      
+    % Convert layer name to echogram name
     if strcmpi(copy_param.layer_dest.name,'surface')
-      echo.Surface = interp1(all_points.gps_time,surface,echo.GPS_time);
-      % Append the new results back to the echogram file
-      save(echo_fn,'-append','-struct','echo','Surface'); 
-    % Bottom
+      echogram_layer_name = 'Surface';
     elseif strcmpi(copy_param.layer_dest.name,'bottom')
-      echo.Bottom = interp1(all_points.gps_time,surface,echo.GPS_time);
-      % Append the new results back to the echogram file
-      save(echo_fn,'-append','-struct','echo','Bottom');
+      echogram_layer_name = 'Bottom';
     else
-      echo.(copy_param.layer_dest.name) = interp1(all_points.gps_time,surface,echo.GPS_time);
-      % Append the new results back to the echogram file
-      save(echo_fn,'-append','-struct','echo',copy_param.layer_dest.name);
+      echogram_layer_name = copy_param.layer_dest.name;
     end
-  
+    
+    
+    % Load data
+    warning off;
+    echo = load(echo_fn,echogram_layer_name,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
+      'Elevation_Correction','Truncate_Bins','Time');
+    warning on;
+    echo = uncompress_echogram(echo);
+    
+    % Interpolate layer to the echogram GPS time
+    echo.(echogram_layer_name) = interp1(all_points.gps_time,surface,echo.GPS_time);
+    
+    % "Compress" the layer if it was compressed before
+    if isfield(echo,'Elevation_Correction')
+      if length(echo.Time)<2
+        dt = 1;
+      else
+        dt = echo.Time(2)-echo.Time(1);
+      end
+      echo.Surface = echo.Surface + echo.Elevation_Correction*dt;
+    end
+    
+    % Save the layer
+    save(echo_fn,'-append','-struct','echo',echogram_layer_name);
   end
   
 elseif strcmpi(copy_param.layer_dest.source,'records')

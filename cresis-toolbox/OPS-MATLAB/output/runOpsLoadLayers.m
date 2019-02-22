@@ -10,8 +10,10 @@
 %% User Settings
 % =====================================================================
 
-  params = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'),'','post');
-% params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'),'20150913_01','post');
+params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'));
+
+params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20161107_03');
 
 layer_params = [];
 idx = 0;
