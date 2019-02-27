@@ -11,7 +11,7 @@ physical_constants;
 
 %%   Mohanad: For 1D tutorial
 % =======================================================================
-if 0
+if 1
   %% Setup simulation parameters
   param = [];
   
@@ -41,16 +41,16 @@ if 0
   % One source fixed at 0 deg, another fixed at 20 deg
   % Snapshots fixed at 10
   DOA = [-10 10]; % Row vector
-  param.monte.SNR   = repmat(linspace(40,40,1).' - 10*log10(Nc), [1 length(DOA)]);
+  param.monte.SNR   = repmat(linspace(10,25,16).' - 10*log10(Nc), [1 length(DOA)]);
   num_tests = size(param.monte.SNR,1);
   param.monte.DOA   = repmat(DOA,[num_tests 1]);
   param.monte.Nsnap = repmat(101,[num_tests 1]);
-  param.monte.runs  = 500;
+  param.monte.runs  = 10;
   param.monte.random_seed_offset = 0;
   
   param.method.src_limits = [];
   for idx = 1:size(param.monte.DOA,2)
-    param.method.src_limits{idx}     = [-70  70]; 
+    param.method.src_limits{idx}     = [-70  70]*pi/180; 
   end
 
   %% Run the simulation
@@ -63,7 +63,7 @@ if 0
   RMSE = sim.doa_rmse(param,results); % Nmethods-by-Ntests-by-Nsrc
   
   figure(1); clf
-  plot(param.monte.SNR(:,2)+10*log10(3),RMSE(:,:,2).','xb','LineWidth',2);
+  plot(param.monte.SNR(:,2)+10*log10(Nc),RMSE(:,:,2).','xb','LineWidth',2);
   grid on
   xlabel('Source SNR (dB)')
   ylabel('RMS error ( \circ )')
