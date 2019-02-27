@@ -20,32 +20,32 @@ location = 'Greenland';
 
 if strcmpi(location,'Greenland')
   season_names = {};
-%   
-  season_names{end+1} = 'rds_param_1993_Greenland_P3';
-  season_names{end+1} = 'rds_param_1995_Greenland_P3';
-  season_names{end+1} = 'rds_param_1996_Greenland_P3';
-  season_names{end+1} = 'rds_param_1997_Greenland_P3';
-  season_names{end+1} = 'rds_param_1998_Greenland_P3';
-  season_names{end+1} = 'rds_param_1999_Greenland_P3';
-  season_names{end+1} = 'rds_param_2001_Greenland_P3';
-  season_names{end+1} = 'rds_param_2002_Greenland_P3';
-  season_names{end+1} = 'rds_param_2006_Greenland_TO';
-  season_names{end+1} = 'rds_param_2008_Greenland_Ground';
-  season_names{end+1} = 'rds_param_2008_Greenland_TO';
-  season_names{end+1} = 'rds_param_2009_Greenland_TO';
+  
+%   season_names{end+1} = 'rds_param_1993_Greenland_P3';
+%   season_names{end+1} = 'rds_param_1995_Greenland_P3';
+%   season_names{end+1} = 'rds_param_1996_Greenland_P3';
+%   season_names{end+1} = 'rds_param_1997_Greenland_P3';
+%   season_names{end+1} = 'rds_param_1998_Greenland_P3';
+%   season_names{end+1} = 'rds_param_1999_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2001_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2002_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2006_Greenland_TO';
+%   season_names{end+1} = 'rds_param_2008_Greenland_Ground';
+%   season_names{end+1} = 'rds_param_2008_Greenland_TO';
+%   season_names{end+1} = 'rds_param_2009_Greenland_TO';
   season_names{end+1} = 'rds_param_2010_Greenland_DC8';
-  season_names{end+1} = 'rds_param_2010_Greenland_P3';
-  season_names{end+1} = 'rds_param_2011_Greenland_P3';
-  season_names{end+1} = 'rds_param_2012_Greenland_P3';
-  season_names{end+1} = 'rds_param_2013_Greenland_P3';
-  season_names{end+1} = 'rds_param_2014_Greenland_P3';
-  season_names{end+1} = 'rds_param_2015_Greenland_C130';
-  season_names{end+1} = 'rds_param_2015_Greenland_Polar6';
-  season_names{end+1} = 'rds_param_2016_Greenland_G1XB';
-  season_names{end+1} = 'rds_param_2016_Greenland_P3';
-  season_names{end+1} = 'rds_param_2016_Greenland_Polar6';
-  season_names{end+1} = 'rds_param_2016_Greenland_TOdtu';
-  season_names{end+1} = 'rds_param_2017_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2010_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2011_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2012_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2013_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2014_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2015_Greenland_C130';
+%   season_names{end+1} = 'rds_param_2015_Greenland_Polar6';
+%   season_names{end+1} = 'rds_param_2016_Greenland_G1XB';
+%   season_names{end+1} = 'rds_param_2016_Greenland_P3';
+%   season_names{end+1} = 'rds_param_2016_Greenland_Polar6';
+%   season_names{end+1} = 'rds_param_2016_Greenland_TOdtu';
+%   season_names{end+1} = 'rds_param_2017_Greenland_P3';
 
   
 
@@ -90,7 +90,7 @@ user_variables.ext = ext;
 
 % --------- STEP 5: SELECT THE DESTINATION WHERE THE FIGURE IS TO BE SAVED AT ---------
 if user_variables.save_img == 1
-  out_dir = 'H:\rohan\coverage_maps_loader\';
+  out_dir = 'Y:\rohan\coverage_maps_loader\';
   
   if ~exist(out_dir,'dir')
     mkdir(out_dir);
@@ -149,7 +149,8 @@ layer_params = [];
 idx = 1;
 layer_params(idx).name = 'bottom';
 layer_params(idx).source = 'layerData';
-layer_params(idx).layerdata_source = 'CSARP_post/layerData';
+% layer_params(idx).layerdata_source = 'CSARP_post/layerData';
+layer_params(idx).layerdata_source = 'layerData';
 %Setting layer_params which is passed to opsLoadLayers from
 %make_coverage_maps.m
 % idx = idx + 1;
@@ -167,14 +168,14 @@ h_bad = plot(1,NaN,'r.');
 
 if strcmpi(user_variables.method, 'agg')
   mag = plot(1,NaN,'m.');
-  legend([mag h_good h_mod h_bad], 'NaN', 'Good','Moderate','Bad','Location','Best');
+  legend([mag h_good h_mod h_bad], 'Bad', 'Good','Moderate','No data','Location','Best');
 else
   legend([h_good h_mod h_bad], 'Good','Moderate','Bad','Location','Best');
 end
 
 set(figure_handle,'UserData',season_names);
 h_children = get(1,'Children');
-debug_test = get(h_children(2),'Children');
+%debug_test = get(h_children(2),'Children');
 h_geotiff = h_children(end);
 
 

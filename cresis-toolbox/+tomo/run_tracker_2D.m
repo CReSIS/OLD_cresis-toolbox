@@ -14,21 +14,27 @@ fprintf('=====================================================================\n
 
 %% General User Settings
 % Tracking algorithms: 'viterbi', 'mcmc', 'lsm'
-% algorithms = {'viterbi', 'mcmc', 'lsm'};
-algorithms = {'viterbi'};
+algorithms = {'viterbi', 'mcmc', 'lsm'};
 
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
-params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_05');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_06');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_07');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
-% params = ct_set_params(params,'cmd.frms',1);
+%   params = ct_set_params(params,'cmd.generic',0);
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20140325_05|20140325_06|20140325_07|20140401_03|20140506_01');
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
+%   params = ct_set_params(params,'cmd.frms',[]);
 
 options.name       = 'CSARP_post/mvdr';
 options.debug      = true;
 options.ops_write  = false;
+
+%% OPS/layerData writing options
+% Only effective if options.ops_write == true
+
+% Usually 'layerdata' or 'ops'
+options.layer_dest_source = 'layerdata';
+
+% If using 'layerdata':
+options.layer_dest_layerdata_source = 'example_layerData'; % layerData file will be save in this location
+options.layer_dest_echogram_source  = 'CSARP_post/mvdr';   % Only required if layerData files do not exist and need to be created
 
 %% Ice mask options
 if 0 % If using GeoTIFF file for ice mask
@@ -57,6 +63,9 @@ end
 options.viterbi.crossoverload  = true;
 options.viterbi.layername      = 'viterbi_bottom';
 options.viterbi.framecat       = false;
+options.viterbi.detrending     = true;
+options.viterbi.top_sup        = false;
+options.viterbi.mult_sup       = true;
 
 options.viterbi.bottom_bin     = -1;
 options.viterbi.egt_weight     = -1;
@@ -68,14 +77,11 @@ options.viterbi.mu             = options.viterbi.mu - mean(options.viterbi.mu);
 options.viterbi.sigma          = sum(abs(options.viterbi.mu))/10*ones(1,options.viterbi.mu_size);
 options.viterbi.smooth_var     = inf;
 options.viterbi.repulsion      = 150000;
-options.viterbi.smooth_weight  = 40;
+options.viterbi.smooth_weight  = 4;
 options.viterbi.ice_bin_thr    = 10;
-options.viterbi.CF.sensorydist = 200;
-options.viterbi.CF.max_cost    = 50;
-options.viterbi.CF.lambda      = 0.075;
 
 %% MCMC User Settings
-options.mcmc.alg           = 'HMM'; % 'MCMC' or 'HMM'
+options.mcmc.alg           = 'MCMC'; % 'MCMC' or 'HMM'
 options.mcmc.lyrtop        = 'mcmc_top';
 options.mcmc.lyrbot        = 'mcmc_bot';
 
@@ -89,8 +95,8 @@ options.mcmc.repulsion     = 10;
 options.lsm.lyrtop        = 'lsm_top';
 options.lsm.lyrbot        = 'lsm_bot';
 
-options.lsm.numOuterIter  = 175;
-options.lsm.maxOuterIter  = 250;
+options.lsm.numOuterIter  = 400;
+options.lsm.maxOuterIter  = 50;
 
 %% Automated section
 global gRadar;
@@ -145,7 +151,7 @@ end
 
 % Display results overlaid on echogram
 if 0
-  frame = '20170322_05_001';
+  frame = '20140401_03_010';
   figure; imagesc(lp(data_struct.(sprintf('data_%s', frame)).Data));
   colormap(1-gray(256)); hold on;
   if any(strcmp(algorithms, 'viterbi'))
@@ -163,8 +169,5 @@ if 0
     if 0
       plot(lsm_layers.(sprintf('layer_%s', frame)).top);
     end
-  end
-  
+  end 
 end
-
-keyboard

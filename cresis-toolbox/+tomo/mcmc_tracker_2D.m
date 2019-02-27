@@ -81,96 +81,58 @@ for param_idx = 1:length(params)
   for frm = param.cmd.frms
     
     mcmc_tic = tic;
+
+    fprintf('\nMCMC: Running frame %s_%03d (%s)\n',param.day_seg, frm, datestr(now,'HH:MM:SS'));
     
-    if options.debug
-      fprintf('\nMCMC: Running frame %s_%03d (%s)',param.day_seg, frm, datestr(now,'HH:MM:SS'));
+    try
+      big_matrix = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
+    catch ME
+      fprintf('\nProblem with frame %s_%03d, verify.\n' ,param.day_seg,frm);
+      continue;
     end
     
-    big_matrix      = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
     big_matrix.Data = lp(big_matrix.Data);
     big_matrix.Data = 255  * ((big_matrix.Data - min(big_matrix.Data(:))) ...
       ./ (max(big_matrix.Data(:) - min(big_matrix.Data(:)))));
     big_matrix.Data = uint8(repmat(big_matrix.Data, [1 1 3]));
-    pts1            = [];
-    pts2            = [];
-    
-    %% Ice mask calculation from geotiff
-    if isempty(options.geotiff_fn)
-      mask = inf * ones([1 Nx]);
-    else
-      [mask,R,~] = geotiffread(options.geotiff_fn);
-      proj = geotiffinfo(options.geotiff_fn);
-      [points.x, points.y] = projfwd(proj, big_matrix.Latitude, big_matrix.Longitude);
-      X = R(3,1) + R(2,1)*(1:size(mask,2));
-      Y = R(3,2) + R(1,2)*(1:size(mask,1));
-      if 0
-        figure;
-        imagesc(X,Y,mask);
-        hold on;
-        plot(points.x,points.y)
-      end
-      [X,Y] = meshgrid(X,Y);
-      fl_mask = round(interp2(X, Y, double(mask), points.x, points.y));
-      mask = fl_mask;
-      mask(isnan(mask)) = 1;
-      
-      % Useful for Antarctica seasons:
-      if 0
-        [mask,R,~] = geotiffread(options.geotiff_fn);
-        [mask2, ~, ~] = geotiffread(options.geotiff2_fn);
-        proj = geotiffinfo(options.geotiff_fn);
-        [points.x, points.y] = projfwd(proj, big_matrix.Latitude, big_matrix.Longitude);
-        X = R(3,1) + R(2,1)*(1:size(mask,2));
-        Y = R(3,2) + R(1,2)*(1:size(mask,1));
-        if 0
-          figure;
-          imagesc(X,Y,mask);
-          hold on;
-          plot(points.x,points.y)
-        end
-        [X,Y] = meshgrid(X,Y);
-        fl_mask = interp2(X, Y, double(mask), points.x, points.y);
-        fl_mask = round(interp2(X, Y, double(mask), points.x, points.y));
-        mask = fl_mask;
-        mask(isnan(mask)) = 1;
-        fl_mask2 = interp2(X, Y, double(mask2), points.x, points.y);
-        fl_mask2 = round(interp2(X, Y, double(mask2), points.x, points.y));
-        mask2 = fl_mask2;
-        mask2(isnan(mask2)) = 1;
-        f_mask = zeros(size(mask));
-        for i = 1:length(f_mask)
-          if ((mask(1, i) == 0 || mask(1, i) == 1) && (mask2(1, i) == 127))
-            f_mask(1, i) = 1;
-          end
-        end
-        mask = f_mask;
-        if max(max(mask)) > 100
-          tmp_mask = zeros(size(mask));
-          tmp_mask(mask == 0) = 1;
-          mask = tmp_mask;
-        end
-      end
-    end
-    
+
     if strcmp(options.mcmc.alg, 'MCMC')
-      if(numel(pts1) + numel(pts2) > 0 )
-        [big_matrix.Labels, big_matrix.lower, big_matrix.upper] = ...
-          tomo.RJ_MCMC(double(big_matrix.Data(:,:,1)), pts1, pts2);
-      else
+      try
         tic
         [big_matrix.Labels, big_matrix.lower, big_matrix.upper] = ...
           tomo.RJ_MCMC(double(big_matrix.Data(:,:,1)));
         toc
+      catch ME
+        try
+          mex -largeArrayDims RJ_MCMC.cpp
+          tic
+          [big_matrix.Labels, big_matrix.lower, big_matrix.upper] = ...
+            tomo.RJ_MCMC(double(big_matrix.Data(:,:,1)));
+          toc
+        catch ME
+          fprintf('\nProblem executing RJ_MCMC.cpp file. Verify.\n');
+          keyboard
+        end
       end
     elseif strcmp(options.mcmc.alg, 'HMM')
       opts = [top_smooth bottom_smooth top_peak bottom_peak repulsion];
-      if(numel(pts1) + numel(pts2) > 0 )
-        [~, big_matrix.Labels] = tomo.stereo(1, double(big_matrix.Data(:,:,1)), opts, pts1, pts2);
-      else
+      try
+        tic
         [~, big_matrix.Labels] = tomo.stereo(1, double(big_matrix.Data(:,:,1)), opts);
+        toc
+      catch ME
+        try
+          mex -largeArrayDims stereo.cpp
+          tic
+          [~, big_matrix.Labels] = tomo.stereo(1, double(big_matrix.Data(:,:,1)), opts);
+          toc
+        catch ME
+          fprintf('\nProblem executing stereo.cpp file. Verify.\n');
+          keyboard
+        end
       end
     else
-      fprintf('\nUnrecognized algorithm (MCMC or HMM)');
+      fprintf('\nUnrecognized algorithm (must be ''MCMC'' or ''HMM'')');
       keyboard
     end
     
@@ -184,70 +146,54 @@ for param_idx = 1:length(params)
     end
     
     if options.ops_write
-      %% %% Write surface layer
-      % Interpolate from row number to TWTT
-      big_matrix.TWTT = interp1(1:length(big_matrix.Time), big_matrix.Time, big_matrix.Labels(1,:));
-      big_matrix.TWTT(~mask) = big_matrix.Surface(~mask);
-      big_matrix.TWTT(isnan(mask)) = NaN;
-      
-      %% Load labels into OPS using opsCopyLayers
+      warning('off');
+      %% Set write options
+      % Load labels into OPS using opsCopyLayers
       copy_param = [];
       copy_param.layer_source.existence_check = false;
       copy_param.layer_dest.existence_check = false;
       
       % Set the source
       copy_param.layer_source.source = 'custom';
+      copy_param.layer_dest.source = options.layer_dest_source;
+      
+      if strcmp(copy_param.layer_dest.source, 'layerdata')
+        copy_param.layer_dest.layerdata_source = options.layer_dest_layerdata_source;
+        copy_param.layer_dest.echogram_source = options.layer_dest_echogram_source;
+      end
+      
+      copy_param.copy_method = 'fillgaps';
+      
+      copy_param.gaps_fill.method = 'preserve_gaps';
+      copy_param.gaps_fill.method_args = [40 20];
+      
+      param = merge_structs(param,gRadar);
+
+      %% Write surface layer
+      % Interpolate from row number to TWTT
+      big_matrix.TWTT = interp1(1:length(big_matrix.Time), big_matrix.Time, big_matrix.Labels(1,:));
       copy_param.layer_source.gps_time = big_matrix.GPS_time;
       copy_param.layer_source.twtt = big_matrix.TWTT;
       
-      copy_param.layer_dest.name = options.mcmc.layername;
-      copy_param.layer_dest.source = 'ops';
-      
-      copy_param.copy_method = 'overwrite';
-      
-      if strcmpi(copy_param.layer_dest.name,'surface')
-        copy_param.gaps_fill.method = 'interp_finite';
-      else
-        copy_param.gaps_fill.method = 'preserve_gaps';
-        copy_param.gaps_fill.method_args = [40 20];
-      end
-      
-      param = merge_structs(param,gRadar);
-      fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
+      % Load labels into OPS using opsCopyLayers
+      copy_param.layer_dest.name = options.mcmc.lyrtop;
+      fprintf('\nopsCopyLayers %s (%s) [TOP]', param.day_seg, datestr(now));
       opsCopyLayers(param,copy_param);
+      fprintf('\n  Complete (%s)\n', datestr(now));
       
       %% Write bottom layer
       % Interpolate from row number to TWTT
       big_matrix.TWTT = interp1(1:length(big_matrix.Time), big_matrix.Time, big_matrix.Labels(2,:));
-      big_matrix.TWTT(~mask) = big_matrix.Surface(~mask);
-      big_matrix.TWTT(isnan(mask)) = NaN;
-      
-      %% Load labels into OPS using opsCopyLayers
-      copy_param = [];
-      copy_param.layer_source.existence_check = false;
-      copy_param.layer_dest.existence_check = false;
-      
-      % Set the source
-      copy_param.layer_source.source = 'custom';
       copy_param.layer_source.gps_time = big_matrix.GPS_time;
       copy_param.layer_source.twtt = big_matrix.TWTT;
       
-      copy_param.layer_dest.name = options.mcmc.layername;
-      copy_param.layer_dest.source = 'ops';
-      
-      copy_param.copy_method = 'overwrite';
-      
-      if strcmpi(copy_param.layer_dest.name,'surface')
-        copy_param.gaps_fill.method = 'interp_finite';
-      else
-        copy_param.gaps_fill.method = 'preserve_gaps';
-        copy_param.gaps_fill.method_args = [40 20];
-      end
-      
-      param = merge_structs(param,gRadar);
-      fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
+      % Load labels into OPS using opsCopyLayers
+      copy_param.layer_dest.name = options.mcmc.lyrbot;
+      fprintf('\nopsCopyLayers %s (%s) [BOTTOM]', param.day_seg, datestr(now)); 
       opsCopyLayers(param,copy_param);
-      fprintf('  Complete (%s)\n', datestr(now));
+      
+      fprintf('\n  Complete (%s)\n', datestr(now));
+      warning('on');
     end
     
     labels.(sprintf('layer_%s_%03d',param.day_seg,frm)).top = ...

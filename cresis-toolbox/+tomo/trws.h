@@ -1,4 +1,4 @@
-// instances.h: Some very helpful variables and functions.
+// trws.h: Some very helpful variables and functions.
 // By Mingze Xu, November 2016
 //
 // Minor style changes to comply with new C++ standards: Victor Berger 2018
@@ -19,22 +19,22 @@ const int dir_left  = 2;
 const int dir_right = 3;
 const int dir_all   = 4;
 
-// Default mu (mean) of smooth
+// Default mu (mean) of smoothness
 #define MID 32
-// Default sigma (variance) of smooth (input argument: smooth_var)
+// Default sigma (variance) of smoothness (input argument: smooth_var)
 #define SIGMA 24
-// Default scale of smooth (input argument: smooth_weight)
+// Default scale of smoothness (input argument: smooth_weight)
 #define SCALE 5
-// CF: sensory distance (input argument: sensory_distance)
-#define CF_SENSORY_DISTANCE 50
-// CF: maximum cost (input argument: max_cost)
-#define CF_MAX_COST 200
-// CF: lambda (input argument: lambda)
-#define CF_LAMBDA 0.075
+// CF: sensory distance 
+#define CF_SENSORY_DISTANCE 100
+// CF: sensory thinkness
+#define CF_SENSORY_THICKNESS 1200
 // TRWS: large cost
 #define LARGE 1000000000
 // TRWS: max_loops (input argument: num_loops)
-#define MAX_LOOP 50 
+#define MAX_LOOP 50
+
+
 typedef vector< pair<size_t, size_t> > CoordType;
 typedef vector< tuple<size_t, size_t, size_t> > PointType;
 typedef vector< vector<size_t> > LayerType;
