@@ -216,6 +216,10 @@ elseif param.elev_comp == 3
   
   % Filter surface
   lay.Surface_Filled = interp_finite(lay.Surface,0); % Need surface points everywhere for filtering operation
+  if all(isnan(lay.Surface))
+    warning('All surface layer points are NaN. Plotting blank echogram.');
+    mdata.Data(:) = NaN;
+  end
   if ~isfield(param,'surf_filt_en') || param.surf_filt_en
     Nx = length(lay.Surface_Filled);
     if 30/Nx >= 0.5

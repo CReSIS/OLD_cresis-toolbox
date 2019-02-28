@@ -360,7 +360,6 @@ for frm_idx = 1:length(param.cmd.frms)
       track.dem = (mdata.Elevation - track.dem) / (c/2);
       track.dem = interp1(mdata.Time,1:length(mdata.Time),track.dem + track.init.dem_offset,'linear','extrap');
       track.dem = interp_finite(track.dem,1);
-      track.dem(track.dem>length(mdata.Time)) = length(mdata.Time);
     end
     
     %% Track: Prefilter trim
@@ -600,7 +599,7 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     %% Track: Convert bins to twtt
-    Surface = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1);
+    Surface = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1,'linear','extrap');
     
   end
   
