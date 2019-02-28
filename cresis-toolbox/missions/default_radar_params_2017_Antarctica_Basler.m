@@ -280,7 +280,7 @@ default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0 0];
 default.radar.wfs(1).chan_equal_Tsys = [0.21	-0.11	0.02	0.00	-0.10	0.06	-0.32	0.00]/1e9;
 default.radar.wfs(1).chan_equal_dB = [0.4	0.2	0.6	0.0	0.1	0.5	0.2	0.1];
 default.radar.wfs(1).chan_equal_deg = [9.6	-11.2	6.6	0.0	-6.9	18.3	-5.0	0.5];
-default.radar.ft_dec = [37,40];
+default.radar.ft_dec = [3,4];
 
  % survey mode
 default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
