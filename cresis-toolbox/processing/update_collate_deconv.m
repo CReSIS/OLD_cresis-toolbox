@@ -22,6 +22,9 @@ physical_constants;
 %% Input checks
 % =====================================================================
 
+if ~isfield(param.update_collate_deconv,'cmd_idx') || isempty(param.update_collate_deconv.cmd_idx)
+  param.update_collate_deconv.cmd_idx = 1;
+end
 cmd = param.analysis.cmd{param.update_collate_deconv.cmd_idx};
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
@@ -40,6 +43,9 @@ if ~isfield(param.update_collate_deconv,'gps_time_penalty') || isempty(param.upd
   param.update_collate_deconv.gps_time_penalty = 1/(10*24*3600);
 end
 
+if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
+  param.analysis.imgs = {[1 1]};
+end
 if ~isfield(param.update_collate_deconv,'imgs') || isempty(param.update_collate_deconv.imgs)
   param.update_collate_deconv.imgs = 1:length(param.analysis.imgs);
 end

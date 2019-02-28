@@ -50,10 +50,15 @@ function gps = read_gps_general_ascii(fn,param)
 %
 % % Example 4: University of Alaska Fairbanks, Chris Larsen, LIDAR CSV
 %
+%   TimeOfDay(UTC) PosLat(deg) PosLon(deg) PosHeight(m) AngleRoll(deg) AnglePitch(deg) Heading(deg)
+%   73652.044 59.51011043 -139.66689705 18.065 -0.853 8.523 206.700
+%   OR 
+%   73667.680 59.50971898 -139.66655443 17.868 -0.618 8.647 125.636 0.026  0.020 0.035 
+%
 % fn = '/cresis/snfs1/dataproducts/metadata/2017_Antarctica_Basler/20171216/171215_190034.pos';
 % param = [];
-% param.format_str = '%f%f%f%f%f%f%f';
-% param.types = {'sec','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg'};
+% param.format_str = '%f%f%f%f%f%f%f%f%f%f';
+% param.types = {'sec','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3'};
 % param.textscan = {};
 % param.headerlines = 1;
 % param.time_reference = 'utc';

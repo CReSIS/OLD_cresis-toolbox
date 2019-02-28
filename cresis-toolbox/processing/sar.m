@@ -149,6 +149,15 @@ end
 % Load records file
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+if any(isnan(records.gps_time)) ...
+    || any(isnan(records.lat)) ...
+    || any(isnan(records.lon)) ...
+    || any(isnan(records.elev)) ...
+    || any(isnan(records.roll)) ...
+    || any(isnan(records.pitch)) ...
+    || any(isnan(records.heading))
+  error('NaN in records gps_time, trajectory, or attitude is not allowed for SAR processing.');
+end
 % Apply presumming
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);
@@ -202,7 +211,7 @@ if ~exist(sar_fn,'file') ...
   
   ctrl = cluster_new_batch(param);
   
-  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
     cpu_time_mult = 6e-3;
     mem_mult = 64;
     
@@ -237,7 +246,15 @@ else
   %% SAR coordinates file exists and only needs surface updated
   surf_idxs = get_equal_alongtrack_spacing_idxs(fcs.along_track,param.sar.sigma_x);
   if surf_idxs(end) ~= length(fcs.along_track)
-    surf_idxs(end+1) = length(fcs.along_track);
+    if fcs.along_track(end) == fcs.along_track(surf_idxs(end))
+      % Overwrite last index if it is in the same location as the last
+      % record. This happens if the platform is stationary at the end.
+      surf_idxs(end) = length(fcs.along_track);
+    else
+      % Normally, the last record is a little further along than the last
+      % surf_idxs and so we append the last record to the end
+      surf_idxs(end+1) = length(fcs.along_track);
+    end
   end
   
   % Load surface from layerdata
@@ -337,7 +354,7 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'sar_task.m','sar_coord_task'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = {};
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));

@@ -294,7 +294,9 @@ for img = 1:length(param.load.imgs)
           
           % Pulse compression
           %   Apply matched filter and transform back to time domain
-          tmp_data = circshift(ifft(bsxfun(@times,fft(data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc), wfs(wf).Nt_pc),wfs(wf).ref{adc})),wfs(wf).pad_length,1);
+          tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
+          tmp_data(~isfinite(tmp_data)) = 0;
+          tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc),wfs(wf).ref{adc})),wfs(wf).pad_length,1);
           
           % Decimation
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));

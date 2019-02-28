@@ -344,6 +344,8 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause              = 10;
   profile(pidx).cluster.file_check_pause        = 4;
   profile(pidx).cluster.job_complete_pause      = 30;
+  profile(pidx).cluster.mem_to_ppn              = 0.9 * 64e9 / 36;
+  profile(pidx).cluster.max_ppn                 = 18;
 
   profile(pidx).cluster.mcc                     = 'eval';
 

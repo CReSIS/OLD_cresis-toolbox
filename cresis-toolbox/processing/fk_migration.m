@@ -16,7 +16,9 @@ data = data.*repmat(exp(-1i*w*time(1)),[1 size(data,2)]);
 v_p     = c/sqrt(eps_r(1));
 dz      = v_p*time(1)/2;
 k       = 2*w/v_p; % rad/m
-z_shift = exp(1i*dz*sqrt((repmat(k,1,size(data,2))).^2-(repmat(kx,size(data,1),1)).^2));
+z_shift = (repmat(k,1,size(data,2))).^2-(repmat(kx,size(data,1),1)).^2;
+z_shift(z_shift<0) = 0;
+z_shift = exp(1i*dz*sqrt(z_shift));
 
 data = data.*z_shift;
 

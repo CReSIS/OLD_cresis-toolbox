@@ -85,7 +85,15 @@ output_along_track = along_track(1) : param.sar.sigma_x : along_track(end);
 
 surf_idxs = get_equal_alongtrack_spacing_idxs(along_track,param.sar.sigma_x);
 if surf_idxs(end) ~= length(along_track)
-  surf_idxs(end+1) = length(along_track);
+  if along_track(end) == along_track(surf_idxs(end))
+    % Overwrite last index if it is in the same location as the last
+    % record. This happens if the platform is stationary at the end.
+    surf_idxs(end) = length(along_track);
+  else
+    % Normally, the last record is a little further along than the last
+    % surf_idxs and so we append the last record to the end
+    surf_idxs(end+1) = length(along_track);
+  end
 end
 
 surf = sgolayfilt(records.surface(surf_idxs),3,round(param.sar.surf_filt_dist / median(diff(along_track(surf_idxs)))/2)*2+1);

@@ -56,6 +56,9 @@ if ~isfield(param.collate_coh_noise,'firdec_fcutoff') || isempty(param.collate_c
   param.collate_coh_noise.firdec_fcutoff = 0;
 end
 
+if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
+  param.analysis.imgs = {[1 1]};
+end
 if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
   param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
 end

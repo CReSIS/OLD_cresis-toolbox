@@ -51,6 +51,8 @@ elseif any(param.records.file.version == [410])
   ext = '.raw';
 elseif any(param.records.file.version == [405 406 409])
   ext = '';
+elseif any(param.records.file.version == [413])
+  ext = '.mat';
 else 
   error('Unsupported file version\n');
 end

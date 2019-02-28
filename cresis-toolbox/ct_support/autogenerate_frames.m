@@ -16,6 +16,10 @@ fprintf('=====================================================================\n
 %% Setup creation of frames
 % =====================================================================
 
+if ~isfield(param,'records') || isempty(param.records)
+  param.records = [];
+end
+
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 if any(strcmpi(output_dir,'rds'))
