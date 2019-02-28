@@ -53,10 +53,6 @@ function Surface = layer_tracker(param,param_override)
 % =====================================================================
 param = merge_structs(param, param_override);
 
-fprintf('=====================================================================\n');
-fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
-fprintf('=====================================================================\n');
-
 %% Input Checks
 % =====================================================================
 
@@ -89,6 +85,17 @@ if ~isfield(param.layer_tracker,'layer_params') || isempty(param.layer_tracker.l
 end
 layer_params = param.layer_tracker.layer_params;
 
+%% General Setup Continued
+% =====================================================================
+
+if isstruct(echogram_source)
+  fprintf('  %s: %s (%s)\n', mfilename, 'param.layer_tracker.echogram_source', datestr(now));
+else
+  fprintf('=====================================================================\n');
+  fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+  fprintf('=====================================================================\n');
+end
+
 %% Input Checks: track field
 % =====================================================================
 
@@ -98,12 +105,10 @@ end
 track = merge_structs(param.qlook.surf,param.layer_tracker.track);
 
 % profile: default is no profile, otherwise loads preset configuration
-if ~isfield(param.layer_tracker.track,'profile') || isempty(param.layer_tracker.track.profile)
-  param.layer_tracker.track.profile = '';
+if ~isfield(track,'profile') || isempty(track.profile)
+  track.profile = '';
 end
-default_track = layer_tracker_profile(param,param.layer_tracker.track.profile);
-
-track = merge_structs(layer_tracker_profile(param,param.layer_tracker.track.profile), track);
+track = merge_structs(layer_tracker_profile(param,track.profile), track);
 
 if ~isfield(track,'en') || isempty(track.en)
   % If true, tracking will be done on this segment. If false, then no
