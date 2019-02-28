@@ -12,7 +12,7 @@
 %   'atm': Insert the ATM layer into database (requires path)
 %   'both': Executes 'path' and 'layer'
 %   'all': Executes 'path', 'layer', and 'atm'
-settings.process_type = 'both';
+settings.process_type = 'layer';
 
 % SET the layer name filter
 %   undefined or empty --> All layers
@@ -23,7 +23,7 @@ settings.process_type = 'both';
 settings.layer_filter = inline('~isempty(regexp(x,''(^surface$|^bottom$)''))');
 
 % SET the absolute path with filename to the param spreadsheet
-settings.param_fn = ct_filename_param('rds_param_2009_Greenland_TO.xls');
+settings.param_fn = ct_filename_param('rds_param_2017_Antarctica_Basler.xls');
 
 % SET the absolute path for logs
 settings.log_base_path = gRadar.tmp_path;
@@ -35,7 +35,7 @@ settings.sys_name = 'rds';
 settings.path_decimation_spacing = 100;
 
 % SET the location (arctic, antarctic)
-settings.location = 'arctic';
+settings.location = 'antarctic';
 
 % SET the layer post directory:
 %   'layerData' for normal location

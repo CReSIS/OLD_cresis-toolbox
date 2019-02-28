@@ -117,9 +117,9 @@ for img = 1:num_imgs
     end
     
     % Report auto difference to stdout
-    if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')
-      fprintf('%.0f\t%.1f\n', img, lp(difference));
-    end
+%     if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')
+%       fprintf('%.0f\t%.1f\n', img, lp(difference));
+%     end
     
   else
     append             = load(img_fn,'Time','Data');

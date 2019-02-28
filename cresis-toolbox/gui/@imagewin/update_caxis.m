@@ -31,25 +31,13 @@ else
   if isempty(X)
     return;
   end
-  xbins = sort(interp1(X([1 end]), [1 size(C,2)], xlims));
-  xbins(1) = floor(xbins(1));
-  xbins(2) = ceil(xbins(2));
-  if isnan(xbins(1))
-    xbins(1) = 1;
-  end
-  if isnan(xbins(2))
-    xbins(2) = size(C,2);
-  end
+  xbins = sort(interp1(X([1 end]), [1 size(C,2)], xlims, 'linear', 'extrap'));
+  xbins(1) = max(1,floor(xbins(1)));
+  xbins(2) = min(size(C,2),ceil(xbins(2)));
   
-  ybins = sort(interp1(Y([1 end]), [1 size(C,1)], ylims));
-  ybins(1) = floor(ybins(1));
-  ybins(2) = ceil(ybins(2));
-  if isnan(ybins(1))
-    ybins(1) = 1;
-  end
-  if isnan(ybins(2))
-    ybins(2) = size(C,1);
-  end
+  ybins = sort(interp1(Y([1 end]), [1 size(C,1)], ylims, 'linear', 'extrap'));
+  ybins(1) = max(1,floor(ybins(1)));
+  ybins(2) = min(size(C,1),ceil(ybins(2)));
 
   clims = [finitemin(finitemin(C(ybins(1):ybins(end),xbins(1):xbins(end)))) finitemax(finitemax(C(ybins(1):ybins(end),xbins(1):xbins(end))))];
   

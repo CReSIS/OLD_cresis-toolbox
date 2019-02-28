@@ -124,11 +124,14 @@ for state_idx = 1:length(states)
           wf = state.wf(accum_idx);
           
           % Read in headers for this waveform
+          % ---------------------------------------------------------------
           
-          if param.records.file_version == 407
-            % Bit shifts
-            bit_shifts = -typecast(file_data(rec_offset + wfs(wf).offset - 4),'int8');
-            quantization_to_V_adjustment = 2^(bit_shifts - wfs(wf).bit_shifts);
+          if wfs(wf).quantization_to_V_dynamic
+            if param.records.file_version == 407
+              bit_shifts = -typecast(file_data(rec_offset + wfs(wf).offset - 4),'int8');
+              % Apply dynamic bit shifts
+              quantization_to_V_adjustment = 2^(bit_shifts - wfs(wf).bit_shifts);
+            end
           else
             quantization_to_V_adjustment = 1;
           end
@@ -169,8 +172,10 @@ for state_idx = 1:length(states)
             t_ref(num_accum+1) = wfs(wf).t_ref;
             
             % Bit shifts
-            bit_shifts = double(-typecast(file_data(rec_offset+36),'int8'));
-            quantization_to_V_adjustment = 2^(bit_shifts - wfs(wf).bit_shifts);
+            if wfs(wf).quantization_to_V_dynamic
+              bit_shifts = double(-typecast(file_data(rec_offset+36),'int8'));
+              quantization_to_V_adjustment = 2^(bit_shifts - wfs(wf).bit_shifts);
+            end
             
             % Nyquist zone
             if param.records.file_version == 8
@@ -314,7 +319,7 @@ for img = 1:length(param.load.imgs)
     % receiver gain compensation
     chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
       .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-    mult_factor = single(wfs(wf).quantization_to_V/param.load.presums/wfs(wf).adc_gains(adc)/chan_equal);
+    mult_factor = single(wfs(wf).quantization_to_V(adc)/param.load.presums/wfs(wf).adc_gains(adc)/chan_equal);
     data{img}(:,:,wf_adc_idx) = mult_factor * data{img}(:,:,wf_adc_idx);
     
     % Compensate for receiver gain applied before ADC quantized the signal

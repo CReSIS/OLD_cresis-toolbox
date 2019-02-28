@@ -20,15 +20,6 @@ fprintf('=====================================================================\n
 % =========================================================================
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
-if strcmpi(param.radar_name,'snow8')
-    if isempty(param.radar.wfs.rbw_f0) && isempty(param.radar.wfs.rbw_f1)
-        output_dir = 'snow uwb'
-    elseif param.radar.wfs.rbw_f0 == 2e9 && param.radar.wfs.rbw_f1 == 8e9
-        output_dir = 'snow';
-    elseif param.radar.wfs.rbw_f0 == 12e9 && param.radar.wfs.rbw_f1 == 18e9
-        output_dir = 'kuband';
-    end
-end
 
 if ~isfield(param.post,'ops')|| isempty(param.post.ops) ...
     || isempty(param.post.ops.en)
@@ -317,6 +308,7 @@ if param.post.maps_en
   map_param.day = str2double(param.day_seg(7:8));
   
   map_info = publish_map('setup',map_param);
+  map_param.fig_hand = map_info.fig_hand;
 
   % =========================================================================
   % For each day segment, find the [x,y] extent by looking at all the frames
@@ -551,7 +543,7 @@ for frm_idx = 1:length(frms)
     hour = hour + 24*days_offset;
     stop_time_str = sprintf('%02d:%02d:%04.1f', hour, minute, sec);
     
-    echo_info.h_title = title(sprintf('%s %s: "%s"  %s: %s to %s GPS', output_dir, param.season_name, ...
+    echo_info.h_title = title(echo_info.ah_echo,sprintf('%s %s: "%s"  %s: %s to %s GPS', output_dir, param.season_name, ...
       param.cmd.mission_names, frms{frm_idx}.frm_id, start_time_str, ...
       stop_time_str),'Interpreter','none','FontWeight','normal','FontSize',9);
     

@@ -9,7 +9,7 @@ physical_constants;
 
 if 0
   % Create reference waveform
-  E:\tmp\HFSounder\malaspina\stacked_combined_5.mat
+  % E:\tmp\HFSounder\malaspina\stacked_combined_5.mat
   sig = data(300:700,227);
   save('malaspina_sig.mat','sig')
 end

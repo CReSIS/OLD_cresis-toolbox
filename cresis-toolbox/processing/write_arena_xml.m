@@ -165,7 +165,7 @@ if strcmpi(node,'dac-ad9129_0014')
         grandchild.appendChild(doc.createTextNode('0.000000'));
         grandchild = doc.createElement('config'); child.appendChild(grandchild);
         if arena.wfs(wf).enabled(dac+1)
-          grandchild.appendChild(doc.createTextNode(sprintf('waveformCh%d_%dus_%.0f',dac,Tpd,zeropimods(1+mod(mode,length(zeropimods))) )));
+          grandchild.appendChild(doc.createTextNode(sprintf('waveformCh%d_%s_%dus_%.0f',dac,arena.wfs(wf).name,Tpd,zeropimods(1+mod(mode,length(zeropimods))) )));
         else
           grandchild.appendChild(doc.createTextNode('No_Tx'));
         end
@@ -247,7 +247,7 @@ if strcmpi(node,'dac-ad9129_0014_waveform')
       dac = arena.dacs(dac_idx);
       fs = arena.dacs_sampFreq(dac_idx);
       for zeropimod = arena.wfs(wf).zeropimods(:).'
-        new_waveform_name = sprintf('waveformCh%d_%.0fus_%.0f',dac,Tpd*1e6,zeropimod);
+        new_waveform_name = sprintf('waveformCh%d_%s_%.0fus_%.0f',dac,arena.wfs(wf).name,Tpd*1e6,zeropimod);
         if any(strcmpi(new_waveform_name,waveform_names))
           continue;
         end

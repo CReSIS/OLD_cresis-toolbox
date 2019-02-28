@@ -177,6 +177,9 @@ for file_idx = 1:length(in_fns)
   gps.pitch = gps.pitch(good_mask);
   gps.heading = gps.heading(good_mask);
   gps.gps_source = gps_source{file_idx};
+
+  %% Check/make the GPS data monotonic in time in case it is not
+  gps = make_gps_monotonic(gps);
   
   %% Fabricating a heading now
   along_track = geodetic_to_along_track(gps.lat,gps.lon,gps.elev);
@@ -368,8 +371,8 @@ for file_idx = 1:length(in_fns)
     gps.gps_source = gps_source{file_idx};
   end
 
-  %% Check that GPS time is monotonically increasing
-  make_gps_monotonic(gps);
+  %% Now that INS data may have been added, check/make the GPS data monotonic in time in case it is not
+  gps = make_gps_monotonic(gps);
   
   %% Fabricate a heading from the trajectory if it is all zeros
   if all(gps.heading == 0)

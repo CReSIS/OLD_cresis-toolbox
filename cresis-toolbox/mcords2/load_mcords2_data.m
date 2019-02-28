@@ -433,11 +433,14 @@ for board_idx = 1:length(boards)
           end
           
           % Read bit shifts field
-          bit_shifts = double(rec_data(cur_hdr_size/2 - WF_HEADER_SIZE/2 + wfs(wf).offset/2 + 2));
-          bit_shifts(bit_shifts<0) = 2^16+bit_shifts(bit_shifts<0); % Convert from int16 to uint16
-          bit_shifts = mod(bit_shifts,2^8); % Isolate the lower 8-bits
-          bit_shifts(bit_shifts>128) = 2^8-bit_shifts(bit_shifts>128); % Convert from uint8 to int8 and then negate
-          quantization_to_V_adjustment = 2^(bit_shifts - param.load.wfs(wf).bit_shifts);
+          if wfs(wf).quantization_to_V_dynamic
+            % Read bit shifts field
+            bit_shifts = double(rec_data(cur_hdr_size/2 - WF_HEADER_SIZE/2 + wfs(wf).offset/2 + 2));
+            bit_shifts(bit_shifts<0) = 2^16+bit_shifts(bit_shifts<0); % Convert from int16 to uint16
+            bit_shifts = mod(bit_shifts,2^8); % Isolate the lower 8-bits
+            bit_shifts(bit_shifts>128) = 2^8-bit_shifts(bit_shifts>128); % Convert from uint8 to int8 and then negate
+            quantization_to_V_adjustment = 2^(bit_shifts - param.load.wfs(wf).bit_shifts);
+          end
           
         elseif param.load.file_version == 408
           % New offset video sampling
@@ -465,7 +468,7 @@ for board_idx = 1:length(boards)
           % Convert to volts, remove DC-bias, and apply trim
           mean_tmp = wfs(wf).DC_adjust(adc);
           tmp([1:param.proc.trim_vals(1) end-param.proc.trim_vals(2)+1:end]) = mean_tmp;
-          tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V * quantization_to_V_adjustment;
+          tmp = (tmp-mean_tmp) * wfs(wf).quantization_to_V(adc) * quantization_to_V_adjustment;
           
           if isfield(wfs(wf),'gain')
             tmp = tmp .* interp1(wfs(wf).gain.Time, wfs(wf).gain.Gain, wfs(wf).time_raw(1:wfs(wf).Nt_raw));
@@ -560,9 +563,9 @@ for board_idx = 1:length(boards)
           if ~param.load.wf_adc_comb.en
             %% Regular loader (wf-adc pairs are only summed)
             if param.proc.combine_rx
-              g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(board+1).data{accum_idx} / param.proc.presums / size(param.load.imgs{img_idx},1);
+              g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(board+1).data{accum_idx}(1:size(g_data{img_idx},1)) / param.proc.presums / size(param.load.imgs{img_idx},1);
             else
-              g_data{img_idx}(:,out_idx,wf_adc_idx) = accum(board+1).data{accum_idx} / param.proc.presums;
+              g_data{img_idx}(:,out_idx,wf_adc_idx) = accum(board+1).data{accum_idx}(1:size(g_data{img_idx},1)) / param.proc.presums;
             end
           else
             %% Splice in fast-time multiple wf-adc pairs into a single wf-adc pair

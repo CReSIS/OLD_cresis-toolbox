@@ -193,6 +193,7 @@ for param_idx = 1:length(params)
           %  - Tsys is subtracted away
           %  - Tadc_adjust is added on
           delta_offset = delta_offset_Tsys - delta_offset_Tadc_adjust;
+%           delta_offset = delta_offset - 5e-6;
           
           mdata.Time = mdata.Time - delta_offset;
           if isfield(mdata,'Surface')

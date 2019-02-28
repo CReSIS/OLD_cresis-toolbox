@@ -30,4 +30,4 @@ param.load.recs_keep = dynamic_param.frms.(['frm',num2str(frm)]).breaks.(['break
 param.load.imgs = param.get_heights.imgs;
 clear frm break_id;
 
-[success surfTimes] = get_heights_task(param);
+[success] = get_heights_task(param);

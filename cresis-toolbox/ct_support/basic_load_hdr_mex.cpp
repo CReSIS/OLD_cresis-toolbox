@@ -26,7 +26,7 @@ printUsage(int line_number)
   mexPrintf(" fn = string containing filename to load\n");
   mexPrintf(" frame_sync = One of the following frame sync values:\n");
   mexPrintf("    hex2dec('DEADBEEF'), hex2dec('1ACFFC1D'), hex2dec('BADA55E5')\n");
-  mexPrintf(" field_offsets = row vector containing the offsets to each 32 bit sized header\n");
+  mexPrintf(" field_offsets = int32 row vector containing the offsets to each 32 bit sized header\n");
   mexPrintf("    field that will be returned. Size of varargout is equal to the length of\n");
   mexPrintf("    this vector.  For example, [1 2 3], would return the 3 32 bit values\n");
   mexPrintf("    preceding each frame sync.\n");
@@ -90,7 +90,7 @@ mexFunction( int nlhs,
   if ( (!mxIsChar(prhs[0])) ||
        (!mxIsClass(prhs[1], "uint32")) ||
        mxGetM(prhs[1]) != 1 || mxGetN(prhs[1]) != 1 ||
-       (!mxIsClass(prhs[2], "uint32")) ||
+       (!mxIsClass(prhs[2], "int32")) ||
        (!mxIsClass(prhs[3], "cell")) ||
        (!mxIsClass(prhs[4], "char")) ) {
     // Usage of function incorrect
@@ -242,19 +242,20 @@ mexFunction( int nlhs,
   // ======================================================================
   // Try to keep the last record in the file unless it is too short to include
   // all the header information needed by this function. To do this, we simply
-  // avoid using these last "min_complete_record_size" bytes.  A "complete"
+  // avoid using these last "end_complete_record_size" bytes.  A "complete"
   // record for this function is one that contains all the dynamic output
   // variables that are requested (i.e. not all the data in the record...
   // just the outputs we need right now).
-  ptrdiff_t min_complete_record_size = 4; // 4 for the frame sync
+  ptrdiff_t end_complete_record_size = 4; // 4 for the frame sync
+  ptrdiff_t start_complete_record_size = 0;
   
   // Get dynamic output variable offsets and sizes, update 
-  // min_complete_record_size if needed
+  // end_complete_record_size if needed
   for (ptrdiff_t out_idx = 0; out_idx < num_outputs; out_idx++)
   {
     mxArray *class_type = mxGetCell(prhs[3], out_idx);
     mxClassID class_type_ID = mxGetClassID(class_type);
-    ptrdiff_t field_offset = ((unsigned int *)mxGetPr(prhs[2]))[out_idx];
+    ptrdiff_t field_offset = ((int *)mxGetPr(prhs[2]))[out_idx];
 
     ptrdiff_t field_offset_and_size;
 
@@ -291,13 +292,19 @@ mexFunction( int nlhs,
         break;
     }
     
-    if (4+field_offset_and_size > min_complete_record_size)
+    if (field_offset < start_complete_record_size)
+    {
+      // Dynamic variable requires sooner start of record
+      start_complete_record_size = field_offset;
+    }
+    
+    if (4+field_offset_and_size > end_complete_record_size)
     {
       // Dynamic variable requires bigger minimum complete record size
-      min_complete_record_size = 4+field_offset_and_size;
+      end_complete_record_size = 4+field_offset_and_size;
     }
   }
-  // mexPrintf("min_complete_record_size = %d\n", min_complete_record_size); // DEBUG
+  // mexPrintf("end_complete_record_size = %d\n", end_complete_record_size); // DEBUG
   
   // ======================================================================
   // Open the data file and read all the contents
@@ -352,7 +359,7 @@ mexFunction( int nlhs,
   //mexPrintf("%x %x %x %x\n", fs1, fs2, fs3, fs4); // DEBUG
   mwSize offset_idx = 0;
 
-  for (ptrdiff_t idx = 0; idx < file_size-min_complete_record_size; idx++)
+  for (ptrdiff_t idx = -start_complete_record_size; idx < file_size-end_complete_record_size; idx++)
   {
     if (data[idx] == fs1 && data[idx+1] == fs2 && data[idx+2] == fs3 && data[idx+3] == fs4)
     {
@@ -410,7 +417,7 @@ mexFunction( int nlhs,
         outvar = mxMalloc(num_records*sizeof(double));
         break;
     }
-    ptrdiff_t field_offset = ((unsigned int *)mxGetPr(prhs[2]))[out_idx];
+    ptrdiff_t field_offset = ((int *)mxGetPr(prhs[2]))[out_idx];
 
     if (swap_bytes)
     {

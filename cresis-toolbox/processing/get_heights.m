@@ -213,8 +213,10 @@ end
 
 %% Create and setup the cluster batch
 % =====================================================================
-ctrl = cluster_new_batch(param);
-cluster_compile({'get_heights_task.m','get_heights_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
+if ~strcmp(param.cluster.type,'ollie')
+  ctrl = cluster_new_batch(param);
+  cluster_compile({'get_heights_task.m','get_heights_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);    
+end
 
 total_num_sam = [];
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))

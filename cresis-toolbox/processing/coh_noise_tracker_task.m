@@ -422,6 +422,9 @@ for img = 1:length(param.load.imgs)
     load_param.season_name = param.season_name;
     load_param.day_seg = param.day_seg;
     load_param.out_path = param.out_path;
+    if isfield(param.records,'nohack')
+        load_param.records.nohack = param.records.nohack;
+    end
     [img_time,img_valid_rng,img_deconv_filter_idx,img_freq,img_Mt,img_nyquist_zone] = load_fmcw_data(load_param,out_records);
     % Coherent noise tracker only loads one image at a time, so img_time{1}
     for wf = 1:length(wfs)
@@ -676,7 +679,11 @@ for img = 1:length(param.load.imgs)
         param.analysis.specular.min_bin = wfs(wf).Tpd;
       end
       min_bin_idxs = find(wfs(wf).time >= param.analysis.specular.min_bin,1);
-      [max_value,max_idx_unfilt] = max(g_data(min_bin_idxs:end,:,wf_adc));
+      if strcmpi(param.season_name,'2018_Alaska_SO') % tmp solution!
+          [max_value,max_idx_unfilt] = max(g_data(min_bin_idxs:14000,:,wf_adc));
+      else
+          [max_value,max_idx_unfilt] = max(g_data(min_bin_idxs:end,:,wf_adc));
+      end
       max_idx_unfilt = max_idx_unfilt + min_bin_idxs(1) - 1;
       
       % Perform STFT (short time Fourier transform) (i.e. overlapping short FFTs in slow-time)
@@ -924,7 +931,7 @@ for img = 1:length(param.load.imgs)
       else
         %% Regular method for collecting good_samples
         good_samples = lp(bsxfun(@minus,g_data(:,rlines),mu)) < param.analysis.coh_ave.power_threshold;
-        good_samples(:,max(lp(g_data(:,rlines)))>66) = 0; % PADEN HACK for snow 2016
+%         good_samples(:,max(lp(g_data(:,rlines)))>66) = 0; % PADEN HACK for snow 2016
       end
       
       %% Debug Plots for determining coh_ave.power_threshold
