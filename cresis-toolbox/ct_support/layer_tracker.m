@@ -603,6 +603,10 @@ for frm_idx = 1:length(param.cmd.frms)
     
   end
   
+  % Some layer sources may not be "double", but we require that Surface be
+  % double:
+  Surface = double(Surface);
+  
   %% Track: Debug plot
   if debug_level > 0
     figure(1); clf;
@@ -661,7 +665,7 @@ for frm_idx = 1:length(param.cmd.frms)
         lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
         lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
-        lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data);
+        lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
         
         lay.layerData{2}.quality = ones(size(lay.GPS_time));
         lay.layerData{2}.value{1}.data = nan(size(lay.GPS_time));

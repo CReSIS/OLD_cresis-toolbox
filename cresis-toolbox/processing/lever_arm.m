@@ -123,7 +123,7 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'ar
 end
 
 
-if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(gps_source,'nmea'))
+if (strcmpi(param.season_name,'2018_Alaska_SO') && any(strcmpi(gps_source,{'nmea','ualidar'})))
   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
   gps.y = 0;
@@ -959,6 +959,26 @@ end
 % =========================================================================
 %% Radar Depth Sounder
 % =========================================================================
+
+if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'rds'))
+  % HF antenna
+  LArx(1,:)   =0 - gps.x; % m
+  LArx(2,:)   = 0 - gps.y; % m
+  LArx(3,:)   = 0 - gps.z; % m
+  
+  LAtx(1,:)   = 0 - gps.x; % m
+  LAtx(2,:)   = 0 - gps.y; % m
+  LAtx(3,:)   = 0 - gps.z; % m
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'rds'))
   % Accumulation antenna

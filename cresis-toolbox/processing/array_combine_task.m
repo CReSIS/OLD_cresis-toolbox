@@ -24,7 +24,6 @@ function success = array_combine_task(param)
 % See also: run_master.m, master.m, run_array.m, array.m, load_sar_data.m,
 % array_proc.m, array_task.m, array_combine_task.m
 
-
 %% Setup processing
 % =====================================================================
 
@@ -195,16 +194,13 @@ for frm_idx = 1:length(param.cmd.frms);
   end
   
   %% Combine images
-  if isempty(param.array.img_comb)
-    % No image combining is required
+  [output_dir,radar_type] = ct_output_dir(param.radar_name);
+  if isempty(param.qlook.img_comb) && strcmpi(radar_type,'deramp')
     continue;
   end
-  
-  if length(param.array.img_comb) ~= 3*(length(param.array.imgs)-1)
-    warning('param.array.img_comb not the right length. There should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
-    keyboard
-  end
-  
+
+  % Combine images into a single image and/or trim invalid times with
+  % img_comb_trim
   img_combine_param = param;
   img_combine_param.load.frm = frm;
   surf_layer.gps_time = GPS_time;

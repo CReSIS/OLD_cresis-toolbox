@@ -48,6 +48,9 @@ physical_constants;
 %% Input checks
 % =====================================================================
 
+if ~isfield(param.collate_deconv,'cmd_idx') || isempty(param.collate_deconv.cmd_idx)
+  param.collate_deconv.cmd_idx = 1;
+end
 cmd = param.analysis.cmd{param.collate_deconv.cmd_idx};
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
@@ -142,6 +145,13 @@ end
 if ~isfield(cmd,'f1') || isempty(cmd.f1)
   % Default is no limits on upper frequency
   cmd.f1 = inf;
+end
+
+if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
+  param.analysis.imgs = {[1 1]};
+end
+if ~isfield(param.collate_deconv,'imgs') || isempty(param.collate_deconv.imgs)
+  param.collate_deconv.imgs = 1:length(param.analysis.imgs);
 end
 
 if ~isfield(cmd,'gps_times') || isempty(cmd.gps_times)

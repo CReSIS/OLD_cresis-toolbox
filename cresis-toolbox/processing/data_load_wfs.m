@@ -204,7 +204,7 @@ for wf = 1:length(param.radar.wfs)
     if strcmpi(radar_type,'deramp')
       wfs(wf).ft_dec = [1 1];
     else
-      [numerator denominator] = rat((wfs(wf).f1 - wfs(wf).f0) / wfs(wf).fs_raw);
+      [numerator denominator] = rat(abs(wfs(wf).f1 - wfs(wf).f0) / wfs(wf).fs_raw);
       wfs(wf).ft_dec = [numerator denominator];
     end
   end

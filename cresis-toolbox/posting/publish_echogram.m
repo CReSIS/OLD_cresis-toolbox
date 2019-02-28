@@ -307,9 +307,10 @@ end
 % Limit depths according to input param.depth
 if param.elev_comp == 3
   DSurface = mdata.Elevation - lay.Surface*c/2;
+  lay.Bottom(~isfinite(lay.Bottom)) = NaN;
   DBottom = mdata.Elevation - lay.Surface*c/2 - (lay.Bottom-lay.Surface)*c/2/sqrt(param.er_ice);
   Surface_Elev = DSurface;
-  Bbad = sum(isnan(DBottom)) / numel(DBottom);
+  Bbad = sum(~isfinite(DBottom)) / numel(DBottom);
   % Example: param.depth = '[min(Surface_Elev) - 15 max(Surface_Elev)+3]';
   % Example: param.depth = '[100 120]';
   % Example: param.depth = '[publish_echogram_switch(Bbad,0.25,Surface_Elev,-1600,DBottom,-100),max(Surface_Elev+50)]';

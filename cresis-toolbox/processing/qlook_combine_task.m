@@ -15,19 +15,6 @@ function success = qlook_combine_task(param)
 % See also: run_master.m, master.m, run_qlook.m, qlook.m,
 %   qlook_task.m
 
-%% Input Checks
-% =====================================================================
-
-% Check img_comb
-if numel(param.qlook.imgs) == 1 || isempty(param.qlook.img_comb)
-  num_imgs = 1;
-else
-  num_imgs = length(param.qlook.imgs);
-  if length(param.qlook.img_comb) ~= 3*(num_imgs-1)
-    error('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
-  end
-end
-
 %% Setup Processing
 % =====================================================================
 

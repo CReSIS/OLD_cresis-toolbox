@@ -93,7 +93,32 @@ for state_idx = 1:length(states)
   file_idxs = relative_rec_num_to_file_idx_vector( ...
     param.load.recs+[0 size(records.offset,2)-(1+diff(param.load.recs))],records.relative_rec_num{board_idx});
   
-  rec = 1;
+  if param.records.file.version == 413
+    fn_name = records.relative_filename{1}{1};
+    [fn_dir] = get_segment_file_list(param,1);
+    fn = fullfile(fn_dir,fn_name);
+    load(fn); % Loads "block" structure
+    
+    total_rec = param.load.recs(end)-param.load.recs(1)+1;
+    
+    wf = 1;
+    img = 1;
+    wfs(wf).Nt_raw = size(block.ch0,1);
+    data{img} = block.ch0(:,param.load.recs(1):param.load.recs(end));
+    
+    hdr.nyquist_zone_hw{img} = zeros(1,total_rec);
+    hdr.nyquist_zone_signal{img} = zeros(1,total_rec);
+    hdr.DDC_dec{img} = ones(1,total_rec);
+    hdr.DDC_freq{img} = zeros(1,total_rec);
+    hdr.Nt{img} = wfs(wf).Nt_raw * ones(1,total_rec);
+    hdr.t0_raw{img} = block.twtt(1) * ones(1,total_rec);
+    hdr.t_ref{img} = zeros(1,total_rec);
+    
+    rec = total_rec+1;
+  else
+    rec = 1;
+  end
+  
   while rec <= total_rec
     
     %% Load in a file

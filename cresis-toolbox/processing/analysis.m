@@ -43,7 +43,7 @@ if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
 end
 
 if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
-  error('param.analysis.imgs must be specified');
+  param.analysis.imgs = {[1 1]};
 end
 
 if ~isfield(param.analysis,'presums') || isempty(param.analysis.presums)
@@ -304,7 +304,7 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'analysis_task.m','analysis_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 [wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.analysis.imgs})),records);
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
   for img = 1:length(param.analysis.imgs)
     wf = abs(param.analysis.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
@@ -578,7 +578,7 @@ ctrl_chain{end+1} = ctrl;
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
   cpu_time_mult = 6e-6;
   mem_mult = 8;
   

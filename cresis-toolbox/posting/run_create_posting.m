@@ -76,5 +76,3 @@ if concatenate_csv_kml
   end
   run_concatenate_thickness_files(csv_base_dir,kml_base_dir,param);
 end
-
-return;
