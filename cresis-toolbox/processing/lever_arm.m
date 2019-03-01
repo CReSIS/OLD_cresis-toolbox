@@ -79,7 +79,14 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'a
   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Platform: Ground based sled
   %
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
 
+if (strcmpi(param.season_name,'2018_Alaska_SO') && (strcmpi(gps_source,'nmea') || strcmpi(gps_source,'lidar')))
+% The snow radar shared the same GPS antenna with the lidar of the univ. of Fairbanks
+% Emily measured the positions of the snow radar rx and tx antennas relative to the GPS antenna
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
@@ -294,7 +301,7 @@ if (strcmpi(param.season_name,'2013_Antarctica_Basler') && strcmpi(gps_source,'c
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2017_Antarctica_Basler') && strcmpi(gps_source,'cresis'))
+if (strcmpi(param.season_name,'2017_Antarctica_Basler') && (strcmpi(gps_source,'cresis') || strcmpi(gps_source,NMEA')))
   warning('This file needs to be updated with actual values for 2017.');
   gps.x = 0;
   gps.y = 0;
@@ -429,7 +436,7 @@ if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8'})) && (strcmpi(gps_sour
   gps.z = -100.5*0.0254;
 end
 
-if (any(strcmpi(param.season_name,{'2016_Antarctica_DC8'})) && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'DMS') || strcmpi(gps_source,'NMEA'))) 
+if (any(strcmpi(param.season_name,{'2016_Antarctica_DC8','2018_Antarctica_DC8'})) && (strcmpi(gps_source,'ATM') || strcmpi(gps_source,'DMS') || strcmpi(gps_source,'NMEA'))) 
   % Absolute position of ATM antenna
   %  Matt L. 20141005: The measured new antenna position is 8.75" (0.222m) forward of the GPS antenna used in 2012.
   %
@@ -1283,7 +1290,7 @@ if (strcmpi(param.season_name,'2009_Antarctica_DC8') && strcmpi(radar_name,'rds'
   end
 end
 
-if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8'})) && strcmpi(radar_name,'rds'))
+if (any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8','2018_Antarctica_DC8'})) && strcmpi(radar_name,'rds'))
   % NOTE: These come from Ali Mahmood's http://svn.cresis.ku.edu/cresis-toolbox/documents/Antenna Lever Arm GPS Report Support Files/2014_Antarctica_DC8_array_Schematic.pptx
   
   LArx(1,:)   = [-30.71368  -30.71368  -30.71368 -30.24632  -30.24632  -30.24632] - gps.x; % m
@@ -1560,15 +1567,14 @@ end
 % =========================================================================
 
 if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'snow'))
-  % X,Y,Z are in aircraft coordinates, not IMU
-  warning('ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
-  LArx(1,1) = 0*2.54/100;
-  LArx(2,1) = 0*2.54/100;
-  LArx(3,1) = 0*2.54/100;
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,1) = -0.288;
+  LArx(2,1) = -0.094;
+  LArx(3,1) = 1.289;
   
-  LAtx(1,1) = 0*2.54/100;
-  LAtx(2,1) = 0*2.54/100;
-  LAtx(3,1) = 0*2.54/100;
+  LAtx(1,1) = 4.991;
+  LAtx(2,1) = -0.094;
+  LAtx(3,1) = 1.815;
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;

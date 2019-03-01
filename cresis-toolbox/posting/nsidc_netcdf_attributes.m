@@ -68,6 +68,10 @@ elseif strcmpi(parse_season_name{3},'TOnrl')
   netcdf.putAtt(ncid,varid,'location','NRLTO');
 elseif strcmpi(parse_season_name{3},'C130')
   netcdf.putAtt(ncid,varid,'location','NASAC130');
+elseif strcmpi(parse_season_name{3},'Basler')
+  netcdf.putAtt(ncid,varid,'location','NASABasler');
+elseif strcmpi(parse_season_name{3},'SO')
+  netcdf.putAtt(ncid,varid,'location','UltraThuleSO');
 else
   error('Platform not supported');
 end
@@ -93,7 +97,7 @@ elseif any(strcmpi(param.season_name,{'2009_Greenland_P3','2009_Antarctica_DC8',
     '2012_Antarctica_DC8'}))
   netcdf.putAtt(ncid,varid,'investigators','C.Leuschen, C. Allen, R. Hale, J. Paden, F. Rodriguez');
 elseif any(strcmpi(param.season_name,{'2013_Greenland_P3', ...
-    '2013_Antarctica_P3','2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2017_Antarctica_Basler','2018_Greenland_P3','2018_Antarctica_DC8'}))
+    '2013_Antarctica_P3','2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2017_Antarctica_Basler','2018_Greenland_P3','2018_Alaska_SO','2018_Antarctica_DC8','2019_Greenland_P3'}))
   netcdf.putAtt(ncid,varid,'investigators','C.Leuschen, R. Hale, J. Li, J. Paden, F. Rodriguez');
 else
   error('Unsupported season\n');
@@ -231,6 +235,9 @@ elseif strcmp(sensor_type,'rds')
   elseif any(strcmpi(param.season_name,{'2017_Greenland_P3','2017_Antarctica_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitters: 7-channel DDS with phase/amplitude control, 500W SSPA per channel\n'));
+  elseif any(strcmpi(param.season_name,{'2017_Antarctica_Basler'}))
+    rfparams_val = cat(2,rfparams_val, ...
+      sprintf('Transmitters: 8-channel DDS with phase/amplitude control, 225W SSPA per channel\n'));
   else
     error('Unsupported season\n');
   end
@@ -251,6 +258,9 @@ elseif strcmp(sensor_type,'snow')
   elseif any(strcmpi(param.season_name,{'2018_Greenland_P3','2018_Antarctica_DC8','2019_Greenland_P3','2019_Arctic_GV','2019_Antarctica_GV'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmitter: Keysight M8195A AWG 65 GSPS, 1 W, 2-18 GHz\n'));
+  elseif any(strcmpi(param.season_name,{'2018_Alaska_SO'}))
+    rfparams_val = cat(2,rfparams_val, ...
+      sprintf('Transmitter: DDS with 20x frequency multiplier, 1 W\n'));
   else
     error('Unsupported season\n');
   end
@@ -299,6 +309,9 @@ elseif strcmp(sensor_type,'rds')
   elseif any(strcmpi(param.season_name,{'2014_Antarctica_DC8','2016_Antarctica_DC8','2018_Antarctica_DC8'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('TX/RX mode: Channels 1-6 are Tx/Rx (center elements)\n'));
+  elseif any(strcmpi(param.season_name,{'2017_Antarctica_Basler'}))
+    rfparams_val = cat(2,rfparams_val, ...
+      sprintf('TX/RX mode: Channels 1-8 are Tx/Rx (installed under fuselage)\n'));
   else
     error('Unsupported season\n');
   end
@@ -313,7 +326,7 @@ elseif any(strcmp(sensor_type,{'kuband','snow'}))
   elseif any(strcmpi(param.season_name,{'2009_Greenland_P3','2010_Greenland_P3',...
       '2011_Greenland_P3','2012_Greenland_P3', ...
       '2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2019_Greenland_P3'}))
+      '2014_Greenland_P3','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2018_Alaska_SO','2019_Greenland_P3'}))
     rfparams_val = cat(2,rfparams_val, ...
       sprintf('Transmit out of forward antenna, receive from aft antenna\n'));
   elseif any(strcmpi(param.season_name,{'2016_Greenland_P3'}))
@@ -473,6 +486,25 @@ elseif strcmp(sensor_type,'rds')
       sprintf('Digitizer platform: NI PXIe Windows PC running LabView\n'));
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer manufacturer: National Instruments'));
+  elseif any(strcmpi(param.season_name,{'2017_Antarctica_Basler'}))
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Record rate: variable'));
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Channels: 8\n'));
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Digitizer: NI 5772 1600 MSPS max\n'));
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Digitization: 12 bits, stacked into 16 bit register (lowest bits dropped)\n'));
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Data rate: variable\n'));
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Digitization dynamic range perchannel (as power): 96.3 dB\n'));
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Digitizer platform: NI PXIe Windows PC running LabView\n'));
+    digparams_val = cat(2,digparams_val, ...
+      sprintf('Digitizer manufacturer: National Instruments'));
   else
     error('Unsupported season\n');
   end
@@ -499,7 +531,7 @@ elseif any(strcmp(sensor_type,{'kuband','snow'}))
       sprintf('Digitizer manufacturer: Analog Devices and Custom'));
   elseif any(strcmpi(param.season_name,{'2012_Greenland_P3', ...
       '2012_Antarctica_DC8','2013_Greenland_P3', '2013_Antarctica_P3', ...
-      '2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2018_Antarctica_DC8','2019_Greenland_P3'}))
+      '2014_Greenland_P3','2014_Antarctica_DC8','2015_Greenland_C130','2016_Greenland_P3','2016_Antarctica_DC8','2017_Greenland_P3','2017_Antarctica_P3','2018_Greenland_P3','2018_Alaska_SO','2018_Antarctica_DC8','2019_Greenland_P3'}))
     digparams_val = cat(2,digparams_val, ...
       sprintf('Digitizer maximum range: 2 volt peak to peak; 10 dBm max power'));
     digparams_val = cat(2,digparams_val, ...
@@ -585,6 +617,11 @@ elseif strcmp(sensor_type,'rds')
       sprintf('Antennas: Two custom CReSIS Vivaldi atennas\n'));
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: \n'));
+  elseif any(strcmpi(param.season_name,{'2017_Antarctica_Basler'}))
+    antparams_val = cat(2,antparams_val, ...
+      sprintf('Antennas: Eight custom CReSIS dipole antennas\n'));
+    antparams_val = cat(2,antparams_val, ...
+      sprintf('Antennas: Custom built 150-600 MHz antenna with matching network\n'));
   else
     error('Unsupported season\n');
   end
@@ -605,6 +642,9 @@ elseif strcmp(sensor_type,'snow')
   elseif any(strcmpi(param.season_name,{'2015_Greenland_C130'}))
     antparams_val = cat(2,antparams_val, ...
       sprintf('Antennas: Custom CReSIS Vivaldi Antenna fed with 12:1 power divider, only inner 8 elements used\n'));
+  elseif any(strcmpi(param.season_name,{'2018_Alaska_SO'}))
+    antparams_val = cat(2,antparams_val, ...
+      sprintf('Antennas: Q-Par Angus WBH2-18 (TX) and Steatite Q-Par QWH-SL--2-18-S-HG-R (RX)\n'));
   else
     error('Unsupported season\n');
   end

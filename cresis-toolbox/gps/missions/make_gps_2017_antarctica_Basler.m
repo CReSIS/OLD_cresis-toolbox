@@ -31,6 +31,7 @@ end
 debug_level = 1;
 
 in_base_path = fullfile(data_support_path,'2017_Antarctica_Basler');
+in_base_path = '/cresis/snfs1/scratch/jliwestc/2017_Antarctica_Basler/gps';
 
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_fns = {}; sync_params = {};
@@ -51,16 +52,36 @@ end
 
 if strcmpi(gps_source_to_use,'cresis')
   
+%   file_idx = file_idx + 1;
+%   year = 2017; month = 12; day = 15;
+%   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
+%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_diff_%s.txt',date_string));
+% %   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_ppp_%s.txt',date_string));
+%   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
+%   file_type{file_idx} = 'cresis';
+%   params{file_idx} = struct();
+%   gps_source{file_idx} = 'cresis-field';
+%   sync_flag{file_idx} = 0;
+
   file_idx = file_idx + 1;
-  year = 2017; month = 12; day = 15;
+  year = 2017; month = 12; day = 18;
   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
-  in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_diff_%s.txt',date_string));
-%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_ppp_%s.txt',date_string));
+  in_fns{file_idx} = fullfile(in_base_path,sprintf('rover_diff_%s.txt',date_string));
   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
   file_type{file_idx} = 'cresis';
   params{file_idx} = struct();
   gps_source{file_idx} = 'cresis-field';
   sync_flag{file_idx} = 0;
+  
+%   file_idx = file_idx + 1;
+%   year = 2017; month = 12; day = 18;
+%   date_string = sprintf('%04.0f%02.0f%02.0f',year,month,day);
+%   in_fns{file_idx} = fullfile(in_base_path,date_string,sprintf('rover_ppp_%s.txt',date_string));
+%   out_fns{file_idx} = sprintf('gps_%s.mat',date_string);
+%   file_type{file_idx} = 'cresis';
+%   params{file_idx} = struct();
+%   gps_source{file_idx} = 'cresis-field';
+%   sync_flag{file_idx} = 0;
 
 end
 

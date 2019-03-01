@@ -31,8 +31,6 @@ else
   param_override = gRadar;
 end
 
-% warning('off','all');
-
 %% Check parameters and set to default if needed
 if isfield(options.viterbi, 'bottom_bin')
   bottom_bin = options.viterbi.bottom_bin;
@@ -96,22 +94,71 @@ else
   ice_bin_thr = 10;
 end
 
-if isfield(options.viterbi.CF, 'sensorydist')
-  CF.sensorydist = options.viterbi.CF.sensorydist;
-else
-  CF.sensorydist = 200;
+%% Distance-to-Ice-Margin model
+% Obtained from geostatistical analysis of 2014 Greenland P3
+prob.DIM_means = [    16.0582   27.3381   34.0492   40.5714...
+  46.9463   52.3826   58.4664   63.7750   70.5143   76.3140...
+  81.3519   86.9523   92.2285   98.1430   102.8310  107.0558...
+  112.4538  116.3923  121.0109  125.1486  128.7611  133.3286...
+  136.3500  139.5058  142.3812  146.1565  148.3781  151.1398...
+  153.5642  155.2606  157.4824  159.8529  161.0239  163.1799...
+  164.2849  166.1013  166.0728  167.3132  168.1448  169.1323...
+  169.7559  170.3869  171.4264  171.8926  171.5201  171.8870...
+  171.6407  172.3505  171.3533  171.6161];
+
+prob.DIM_vars  = [     20.5619   24.9082   28.0037   32.0840...
+  35.6021   38.9544    42.4034   45.3588   48.9714   52.1360...
+  55.0826   57.5144    60.3847   63.1485   65.1199   67.3734...
+  69.3662   71.2849    72.9471   74.3759   75.5521   76.9737...
+  77.9961   79.3596    79.9999   81.0342   81.6340   82.2424...
+  82.9658   83.4794    84.1632   84.4168   85.0014   85.3065...
+  85.7757   86.1880    86.3563   86.5577   86.7289   87.0748...
+  87.1360   87.2473    87.2828   86.6350   86.5453   86.2989...
+  86.4736   86.7318   87.1606   87.6966];
+
+costm = ones(1201, 101);
+fd = 18 * fir_dec(1:101, ones(1,5)/3.7.');
+
+for t = 1:1200
+  for i = 1:101
+    costm(t,i) = 200 * exp(-0.075 .* t) - 200 * exp(-0.075 * 50);
+    if t > fd(i)
+      costm(t,i) = 200;
+    end
+  end
 end
 
-if isfield(options.viterbi.CF, 'max_cost')
-  CF.max_cost = options.viterbi.CF.max_cost;
-else
-  CF.max_cost = 50;
+prob.DIM_means = [prob.DIM_means prob.DIM_means(end)* ones(1,50)];
+prob.DIM_vars  = [prob.DIM_vars  prob.DIM_vars(end) * ones(1,50)];
+
+DIM_costmatrix = ones(1200, 100);
+for DIM = 1 : 100
+  for T = 1 : 1200
+    var = DIM * 0.05 * prob.DIM_vars(end);
+    cost = 0.1 ./ normpdf(T, prob.DIM_means(DIM), var);
+    cost(cost > 800) = 800;
+    DIM_costmatrix(T, DIM) = cost;
+  end
 end
 
-if isfield(options.viterbi.CF, 'lambda')
-  CF.lambda = options.viterbi.CF.lambda;
-else
-  CF.lambda = 0.075;
+for k = 1:100
+  DIM_costmatrix(1:50, k) = DIM_costmatrix(1:50, k) + 0.06 * k * costm(1:50, k);
+end
+
+DIM_costmatrix(DIM_costmatrix < 0) = 0;
+DIM_costmatrix(DIM_costmatrix > 800) = 800;
+
+DIM_costmatrix = DIM_costmatrix(3:end, :);
+DIM_costmatrix(end+1, :) = DIM_costmatrix(end,:);
+DIM_costmatrix(end+1, :) = DIM_costmatrix(end,:);
+DIM_costmatrix = DIM_costmatrix ./ 4;
+
+% Visualization of DIM_costmatrix
+if 0
+  figure; (imagesc(DIM_costmatrix)); colorbar; hold on;
+  xlabel('Distance to nearest ice-margin [m]');
+  ylabel('Ice thickness distribution [range-bin]')
+  title('Added cost');
 end
 
 labels = {};
@@ -206,10 +253,11 @@ for param_idx = 1:length(params)
     fprintf('\nDone: image combine (%s)', datestr(now,'HH:MM:SS'));
   end
   
-
   clear Surface;
+  layer_params.name   = 'surface';
+  layer_params.source = 'ops';
   try
-    Surface = opsLoadLayers(param,options.surf_layer);
+    Surface = opsLoadLayers(param,layer_params);
   catch ME
     warning(ME.getReport);
     continue;
@@ -217,9 +265,7 @@ for param_idx = 1:length(params)
   
   % Catch error with layer not having correctly loaded from OPS
   if(isempty(Surface.gps_time) || any(isnan(Surface.gps_time)) || any(isnan(Surface.twtt)))
-    warning('on', 'all');
-    warning('PROBLEM PROCESSING FRAME %s', param.day_seg);
-    warning('off', 'all');
+    fprintf('\nProblem processing frame %s', param.day_seg);
     continue;
   end
   
@@ -228,6 +274,22 @@ for param_idx = 1:length(params)
   end
   
   %%
+  opsAuthenticate(param,false);
+  layer_name                   = 'bottom';
+  sys                          = ct_output_dir(param.radar_name);
+  ops_param                    = struct('properties',[]);
+  ops_param.properties.season  = param.season_name;
+  ops_param.properties.segment = param.day_seg;
+  [~,ops_frames]               = opsGetSegmentInfo(sys,ops_param);
+  
+  ops_param = struct('properties',[]);
+  ops_param.properties.location = param.post.ops.location;
+  ops_param.properties.season = param.season_name;
+  ops_param.properties.start_gps_time = ops_frames.properties.start_gps_time(1);
+  ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
+  ops_param.properties.nativeGeom = true;
+  [~,ops_data] = opsGetPath(sys,ops_param);
+  
   big_matrix.Surface = interp_finite(interp1(Surface.gps_time,Surface.twtt,big_matrix.GPS_time));
   
   if options.debug
@@ -238,44 +300,46 @@ for param_idx = 1:length(params)
   surf_bins = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), big_matrix.Surface));
   
   %% Top suppression
-  topbuffer = 10;
-  botbuffer = 30;
-  filtvalue = 50;
-  for rline = 1 : size(big_matrix.Data, 2)
-    column_chunk = big_matrix.Data(round(surf_bins(rline) - topbuffer) : ...
-      round(surf_bins(rline) + botbuffer), rline);
-    big_matrix.Data(round(surf_bins(rline) - topbuffer) : ...
-      round(surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
-  end
-  
-  if options.debug
-    fprintf('\nDone: top suppression (%s)', datestr(now,'HH:MM:SS'));
-  end
-  
-  %% Multiple suppression
-  topbuffer = 10;
-  botbuffer = 5;
-  filtvalue = 100;
-  for rline = 1 : size(big_matrix.Data, 2)
-    try
-      column_chunk = big_matrix.Data(round(2*surf_bins(rline) - topbuffer) : ...
-        round(2*surf_bins(rline) + botbuffer), rline);
-      big_matrix.Data(round(2*surf_bins(rline) - topbuffer) : ...
-        round(2*surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
-    catch ME
-      continue;
+  if options.viterbi.top_sup
+    topbuffer = 10;
+    botbuffer = 30;
+    filtvalue = 50;
+    for rline = 1 : size(big_matrix.Data, 2)
+      column_chunk = big_matrix.Data(round(surf_bins(rline) - topbuffer) : ...
+        round(surf_bins(rline) + botbuffer), rline);
+      big_matrix.Data(round(surf_bins(rline) - topbuffer) : ...
+        round(surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
+    end
+    
+    if options.debug
+      fprintf('\nDone: top suppression (%s)', datestr(now,'HH:MM:SS'));
     end
   end
   
-  if options.debug
-    fprintf('\nDone: multiple suppression (%s)', datestr(now,'HH:MM:SS'));
+  %% Multiple suppression
+  if options.viterbi.mult_sup
+    topbuffer = 10;
+    botbuffer = 5;
+    filtvalue = 100;
+    for rline = 1 : size(big_matrix.Data, 2)
+      try
+        column_chunk = big_matrix.Data(round(2*surf_bins(rline) - topbuffer) : ...
+          round(2*surf_bins(rline) + botbuffer), rline);
+        big_matrix.Data(round(2*surf_bins(rline) - topbuffer) : ...
+          round(2*surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
+      catch ME
+        continue;
+      end
+    end
+    
+    if options.debug
+      fprintf('\nDone: multiple suppression (%s)', datestr(now,'HH:MM:SS'));
+    end
   end
   
   Nx             = size(big_matrix.Data, 2);
   slope          = round(diff(big_matrix.Surface));
   viterbi_weight = ones([1 Nx]);
-  mc             = -1 * ones(1, Nx);
-  mc_weight      = 0;
   
   %% Ice mask calculation
   if isempty(options.icemask_fn)
@@ -362,6 +426,7 @@ for param_idx = 1:length(params)
       
       ice_mask.mask = round(interp2(ice_mask.X, ice_mask.Y, double(ice_mask.mask), points.x, points.y));
       ice_mask.mask(isnan(ice_mask.mask)) = 1;
+      ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
     end
   end
   
@@ -371,22 +436,6 @@ for param_idx = 1:length(params)
   
   %% Crossover loading
   if options.viterbi.crossoverload
-    opsAuthenticate(param,false);
-    layer_name                   = 'bottom';
-    sys                          = ct_output_dir(param.radar_name);
-    ops_param                    = struct('properties',[]);
-    ops_param.properties.season  = param.season_name;
-    ops_param.properties.segment = param.day_seg;
-    [~,ops_frames]               = opsGetSegmentInfo(sys,ops_param);
-    
-    ops_param = struct('properties',[]);
-    ops_param.properties.location = param.post.ops.location;
-    ops_param.properties.season = param.season_name;
-    ops_param.properties.start_gps_time = ops_frames.properties.start_gps_time(1);
-    ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
-    ops_param.properties.nativeGeom = true;
-    [~,ops_data] = opsGetPath(sys,ops_param);
-    
     query = sprintf('SELECT rds_segments.id FROM rds_seasons,rds_segments where rds_seasons.name=''%s'' and rds_seasons.id=rds_segments.season_id and rds_segments.name=''%s''',param.season_name,param.day_seg);
     [~,tables] = opsQuery(query);
     segment_id = tables{1};
@@ -437,9 +486,11 @@ for param_idx = 1:length(params)
   ice_mask.mask_dist = round(bwdist(ice_mask.mask == 0));
   ice_mask.mask   = 90*fir_dec(double(ice_mask.mask), ones(1,5)/3.7);
   ice_mask.mask(ice_mask.mask>=90) = Inf;
+  transition_mu = -1 * ones(1, size(big_matrix.Data, 2));
+  transition_sigma = -1 * ones(1, size(big_matrix.Data, 2));
   
   %% Detrending routine
-  if 1
+  if options.viterbi.detrending
     detect_data = big_matrix.Data;
     % Along track filtering
     detect_data = fir_dec(detect_data,ones(1,5)/5,1);
@@ -463,14 +514,14 @@ for param_idx = 1:length(params)
   if options.debug
     fprintf('\nProceeding with Viterbi call... ');
   end
-  
+ 
   labels_wholeseg = tomo.viterbi(double(big_matrix.Data), double(surf_bins), ...
     double(bottom_bin), double(gt), double(ice_mask.mask), double(mu), ...
     double(sigma), double(egt_weight), double(smooth_weight), ...
     double(smooth_var), double(slope), int64(bounds), ...
     double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-    double(mc), double(mc_weight), ...
-    double(CF.sensorydist), double(CF.max_cost), double(CF.lambda));
+    double(ice_mask.mask_dist), double(DIM_costmatrix), ...
+    double(transition_mu), double(transition_sigma));
   
   viterbi_toc = toc(viterbi_tic);
   if options.debug
@@ -486,6 +537,7 @@ for param_idx = 1:length(params)
   end
   
   if options.ops_write
+    warning('off');
     % Interpolate from row number to TWTT
     big_matrix.TWTT = interp1(1:length(big_matrix.Time), big_matrix.Time, labels_wholeseg);
     big_matrix.TWTT(~ice_mask.mask) = big_matrix.Surface(~ice_mask.mask);
@@ -493,7 +545,6 @@ for param_idx = 1:length(params)
     
     %% Load labels into OPS using opsCopyLayers
     copy_param = [];
-    copy_param.layer_dest = options.viterbi.layer_dest;
     copy_param.layer_source.existence_check = false;
     copy_param.layer_dest.existence_check = false;
     
@@ -501,8 +552,16 @@ for param_idx = 1:length(params)
     copy_param.layer_source.source = 'custom';
     copy_param.layer_source.gps_time = big_matrix.GPS_time;
     copy_param.layer_source.twtt = big_matrix.TWTT;
-
-    % Copy parameters
+    
+    % Set the destination
+    copy_param.layer_dest.name = options.viterbi.layername;
+    copy_param.layer_dest.source = options.layer_dest_source;
+    
+    if strcmp(copy_param.layer_dest.source, 'layerdata')
+      copy_param.layer_dest.layerdata_source = options.layer_dest_layerdata_source;
+      copy_param.layer_dest.echogram_source = options.layer_dest_echogram_source;
+    end
+    
     copy_param.copy_method = 'overwrite';
     
     if strcmpi(copy_param.layer_dest.name,'surface')
@@ -516,6 +575,7 @@ for param_idx = 1:length(params)
     fprintf('opsCopyLayers %s (%s)\n', param.day_seg, datestr(now));
     opsCopyLayers(param,copy_param);
     fprintf('  Complete (%s)\n', datestr(now));
+    warning('on');
   end
   
   %% Generate labels struct with separate frame results
@@ -532,5 +592,3 @@ for param_idx = 1:length(params)
     end
   end
 end
-
-warning('on','all');

@@ -33,11 +33,17 @@ physical_constants
 
 [V,D]                   = eig(Rxx);
 eigenVals               = diag(D);
-[eigenVals, noiseIdxs]  = sort(eigenVals);
-noiseIdxs               = noiseIdxs(1:end - param.Nsig);
+[eigenVals, eigenValIdxs]  = sort(real(eigenVals),'descend');
+V                       = V(:,eigenValIdxs);
+noiseIdxs = param.Nsig+1:length(eigenVals);
+% noiseIdxs               = noiseIdxs(1:end - param.Nsig);
 Qn                      = V(:,noiseIdxs);
 S                       = mean(abs(param.SV(:,:)' * Qn).^2,2);
 
+if 0
+  % Debug: plot MUSIC pseudospectrum
+  figure;plot(param.theta*180/pi,1./S,'-*')
+end
 % Search for first peak in first range (if none, then choose max point)
 % Then search for first peak in second range, if same peak as first range
 % or violates guard then keep searching for peak. If don't find another peak,

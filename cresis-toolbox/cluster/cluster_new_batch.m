@@ -63,7 +63,7 @@ if ~isfield(ctrl.cluster,'dbstop_if_error') || isempty(ctrl.cluster.dbstop_if_er
 end
 
 if ~isfield(ctrl.cluster,'desired_time_per_job') || isempty(ctrl.cluster.desired_time_per_job)
-  ctrl.cluster.max_time_per_job = 0;
+  ctrl.cluster.desired_time_per_job = 0;
 end
 
 if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)

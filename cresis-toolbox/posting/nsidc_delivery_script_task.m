@@ -49,6 +49,8 @@ if strcmpi(location,'Greenland')
   location = 'GR';
 elseif strcmpi(location,'Antarctica')
   location = 'AN';
+elseif strcmpi(location,'Alaska')
+  location = 'AL';
 else
   error('Unsupported location %s\n', location);
 end
@@ -71,6 +73,12 @@ elseif strcmpi(platform,'DC8')
 elseif strcmpi(platform,'C130')
   premet_param.nsidc_platform_short_name = 'C-130';
   premet_param.nsidc_aircraft_id = 'N439NA';
+elseif strcmpi(platform,'Basler')
+  premet_param.nsidc_platform_short_name = 'BT-67';
+  premet_param.nsidc_aircraft_id = 'N167BT';
+elseif strcmpi(platform,'SO')
+  premet_param.nsidc_platform_short_name = 'DHC-3';
+  premet_param.nsidc_aircraft_id = 'N226UT';
 else
   error('Unsupported platform %s\n', platform);
 end
@@ -401,23 +409,25 @@ if L1B_supplement_cmd
     fprintf('   nc: %s\n', out_fn_netcdf);
     
     netcdf_from_mat(out_fn_netcdf,supplement,supplement_netcdf_param);
-    for extra_idx = 1:size(L1B_supplement_name_extra,1)
-      out_fn_netcdf = fullfile(ct_filename_out(param,USER_SPECIFIED_DIRECTORY,'',1), ...
-        sprintf('%s%s_Files', radar_type, data_type),data_files_dir, ...
-        sprintf('%s%s_%s_%03d_%s_%s.nc',radar_type, data_type, param.day_seg, frm,L1B_supplement_name_extra{extra_idx}, L1B_supplement_name));
-      frames.quality = frames.(sprintf('quality_%s',L1B_supplement_name_extra{extra_idx}));
-      supplement = [];
-      supplement.coh_noise_removal_artifact = uint8(mod(floor(frames.quality(frm)/2^0),2));
-      supplement.deconvolution_artifact = uint8(mod(floor(frames.quality(frm)/2^1),2));
-      supplement.vertical_stripes_artifact = uint8(mod(floor(frames.quality(frm)/2^2),2));
-      supplement.missing_data = uint8(mod(floor(frames.quality(frm)/2^3),2));
-      supplement.no_good_data = uint8(mod(floor(frames.quality(frm)/2^4),2));
-      supplement.low_SNR = uint8(mod(floor(frames.quality(frm)/2^5),2));
-      supplement.unclassified_artifact = uint8(mod(floor(frames.quality(frm)/2^6),2));
-      supplement.land_ice = uint8(mod(floor(frames.quality(frm)/2^7),2)); 
-      fprintf('   extra nc: %s\n', out_fn_netcdf);
-      netcdf_from_mat(out_fn_netcdf,supplement,supplement_netcdf_param);
-    end  
+    if exist('L1B_supplement_name_extra','var') || ~isempty(L1B_supplement_name_extra)
+        for extra_idx = 1:size(L1B_supplement_name_extra,1)
+            out_fn_netcdf = fullfile(ct_filename_out(param,USER_SPECIFIED_DIRECTORY,'',1), ...
+                sprintf('%s%s_Files', radar_type, data_type),data_files_dir, ...
+                sprintf('%s%s_%s_%03d_%s_%s.nc',radar_type, data_type, param.day_seg, frm,L1B_supplement_name_extra{extra_idx}, L1B_supplement_name));
+            frames.quality = frames.(sprintf('quality_%s',L1B_supplement_name_extra{extra_idx}));
+            supplement = [];
+            supplement.coh_noise_removal_artifact = uint8(mod(floor(frames.quality(frm)/2^0),2));
+            supplement.deconvolution_artifact = uint8(mod(floor(frames.quality(frm)/2^1),2));
+            supplement.vertical_stripes_artifact = uint8(mod(floor(frames.quality(frm)/2^2),2));
+            supplement.missing_data = uint8(mod(floor(frames.quality(frm)/2^3),2));
+            supplement.no_good_data = uint8(mod(floor(frames.quality(frm)/2^4),2));
+            supplement.low_SNR = uint8(mod(floor(frames.quality(frm)/2^5),2));
+            supplement.unclassified_artifact = uint8(mod(floor(frames.quality(frm)/2^6),2));
+            supplement.land_ice = uint8(mod(floor(frames.quality(frm)/2^7),2));
+            fprintf('   extra nc: %s\n', out_fn_netcdf);
+            netcdf_from_mat(out_fn_netcdf,supplement,supplement_netcdf_param);
+        end
+    end
   end
 end
 

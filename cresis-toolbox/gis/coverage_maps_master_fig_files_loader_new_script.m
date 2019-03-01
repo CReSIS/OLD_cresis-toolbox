@@ -2,10 +2,10 @@
 %
 % Class which creates a GUI for editing the master fig file
 %
-% obj = coverage_maps_master_fig_files_loader('C:\tmp\coverage_maps\Greenland_All_Seasons.fig');
+% obj = coverage_maps_master_fig_files_loader_new_script('C:\tmp\coverage_maps\Greenland_All_Seasons.fig');
 % obj = coverage_maps_master_fig_files_loader(1);
 
-classdef (HandleCompatible = true) coverage_maps_master_fig_files_loader < handle
+classdef (HandleCompatible = true) coverage_maps_master_fig_files_loader_new_script < handle
   properties
     h_fig % Figure handle
     h_ctrl % Control figure handle
@@ -18,7 +18,7 @@ classdef (HandleCompatible = true) coverage_maps_master_fig_files_loader < handl
   end
   
   methods
-    function obj = coverage_maps_master_fig_files_loader(master_fig)
+    function obj = coverage_maps_master_fig_files_loader_new_script(master_fig)
 
       obj.delete_figure_on_obj_delete = false;
       if ischar(master_fig)
@@ -110,10 +110,14 @@ classdef (HandleCompatible = true) coverage_maps_master_fig_files_loader < handl
       % Delete the ctrl figure handle
       try
         delete(obj.h_ctrl);
+      catch ME
+        disp(ME)
       end
       if obj.delete_figure_on_obj_delete
         try
           delete(obj.h_fig);
+        catch ME
+          disp(ME)
         end
       end
     end
@@ -135,56 +139,86 @@ classdef (HandleCompatible = true) coverage_maps_master_fig_files_loader < handl
       view_selected = get(obj.h_gui.viewPM,'Value');
       selected_mask = logical(zeros(size(obj.season_names)));
       selected_mask(seasons_selected) = 1;
-%       menu_string{1} = 'Green';
-%       menu_string{2} = 'Yellow';
-%       menu_string{3} = 'Red';
-%       menu_string{4} = 'Magenta';
-%       menu_string{5} = 'All';
-      if view_selected == 1
-        set(obj.h_children(1,selected_mask),'Visible','on');
-        set(obj.h_children(1,~selected_mask),'Visible','off');
-%         set(obj.h_children(2:3,:),'Visible','off');
-      elseif view_selected == 2
-        set(obj.h_children(2,selected_mask),'Visible','on');
-        set(obj.h_children(2,~selected_mask),'Visible','off');
-%         set(obj.h_children(3,:),'Visible','off');
-      elseif view_selected == 3
-        set(obj.h_children(3,selected_mask),'Visible','on');
-        set(obj.h_children(3,~selected_mask),'Visible','off');
-%         set(obj.h_children(1:2,:),'Visible','off');
-      elseif view_selected == 4
-        set(obj.h_children(4,selected_mask),'Visible','on');
-        set(obj.h_children(4,~selected_mask),'Visible','off');
-%         set(obj.h_children(1:3,~selected_mask),'Visible','off');
-      elseif view_selected == 5
-        set(obj.h_children(1:4,selected_mask),'Visible','on');
-%         set(obj.h_children(4,~selected_mask),'Visible','off');
-      elseif view_selected == 6
-%         set(obj.h_children(4,selected_mask),'Visible','on');
-        set(obj.h_children(1:4, selected_mask),'Visible','off');
-      elseif view_selected == 7
-        %         set(obj.h_children(4,selected_mask),'Visible','on');
-        selected_mask(1:length(selected_mask)) = 1;
-        set(obj.h_children(1:4, selected_mask),'Visible','off');
+      %       menu_string{1} = 'Green';
+      %       menu_string{2} = 'Yellow';
+      %       menu_string{3} = 'Red';
+      %       menu_string{4} = 'Magenta';
+      %       menu_string{5} = 'All';
+      % RED
+      %       if view_selected == 1
+      %         temp = (obj.h_children(1,selected_mask));
+      %         flag = 1;
+      %         for i=1:length(temp)
+      %           if((strcmp(temp(i).('Visible'),'off'))==1)
+      %             set(obj.h_children(1,selected_mask),'Visible','on');
+      %             flag = 0;
+      %             break;
+      %           end
+      %         end
+      %         if(flag)
+      %           set(obj.h_children(1,selected_mask),'Visible','off');
+      %         end
+      if( view_selected <= 4)
+        
+        temp = (obj.h_children(view_selected,selected_mask));
+        set(obj.h_children(view_selected,selected_mask),'Visible','on');
+        set(obj.h_children(view_selected,~selected_mask),'Visible','off');
+        %
+        %         temp2 = (obj.h_children(view_selected,~selected_mask));
+         
+        %Find out how many seasons are already switched on for that color
+%         all_masks = selected_mask + ~selected_mask;
+%         temp_view_selected = (obj.h_children(view_selected,all_masks));
+%         counter = 0;
+%         for i=1:length(temp_view_selected)
+%           if((strcmp(temp_view_selected(i).('Visible'),'on'))==1)
+%             counter = counter+1;
+%           end
+%         end
+%         
+%         flag = 1;
+%         for i=1:length(temp)
+%           if((strcmp(temp(i).('Visible'),'off'))==1)
+%             set(obj.h_children(view_selected,selected_mask),'Visible','on');
+%             set(obj.h_children(view_selected,~selected_mask),'Visible','off');
+% 
+%             flag = 0;
+%             break;
+%           end
+%         end
+%         if (flag && counter == length(all_masks))
+%             set(obj.h_children(view_selected,selected_mask),'Visible','on');
+%             set(obj.h_children(view_selected,~selected_mask),'Visible','off');
+%         elseif (flag && length(temp)>1)
+%             set(obj.h_children(view_selected,selected_mask),'Visible','on');
+%             set(obj.h_children(view_selected,~selected_mask),'Visible','off');
+%         end
+%         if(flag && length(temp)>1)
+%           set(obj.h_children(view_selected,selected_mask),'Visible','off');
+% %         elseif (flag && length(temp)>1 && length(temp)>sum(selected_mask(:)==1))
+% %           set(obj.h_children(view_selected,~selected_mask),'Visible','off');
+%         elseif (flag && length(temp)==1)
+%           if(flag)
+%             set(obj.h_children(view_selected,selected_mask),'Visible','off');
+%           end
+%         end
+
+        
+      else
+        if view_selected == 5
+          set(obj.h_children(1:4,selected_mask),'Visible','on');
+                  set(obj.h_children(1:4,~selected_mask),'Visible','off');
+        elseif view_selected == 6
+                  set(obj.h_children(4,selected_mask),'Visible','on');
+          set(obj.h_children(1:4, selected_mask),'Visible','off');
+        elseif view_selected == 7
+          %         set(obj.h_children(4,selected_mask),'Visible','on');
+          selected_mask(1:length(selected_mask)) = 1;
+          set(obj.h_children(1:4, selected_mask),'Visible','off');
+        end
       end
 
-      
-      if 0
-        %% Examples of how to use
-        
-        % Print the list of season names matched to index in h_children
-        season_names
-        % Turn first 10 seasons off
-        set(obj.h_children(:,1:10),'Visible','off');
-        % Turn good data off
-        set(obj.h_children(1,:),'Visible','off');
-        % Turn bad data off
-        set(obj.h_children(3,:),'Visible','off');
-        % Turn everything on
-        set(obj.h_children,'Visible','on');
-        % Change color of one season to all black
-        set(obj.h_children(:,1),'Color','k');
-      end
+     
     end
   end
   

@@ -1,4 +1,4 @@
-// viterbi_lib.h
+// viterbi.h
 //
 // Layer-tracking program based on the Viterbi algorithm
 //  for MUSIC-processed 2D and 3D data
@@ -15,9 +15,9 @@
 #include <cmath>
 #include <limits>
 
-// Default mu (mean) of smooth
+// Default mu (mean) of smoothness
 const int    MID   	     = 33;
-// Default sigma (variance) of smooth (input argument: smooth_var)
+// Default sigma (variance) of smoothness
 const double SIGMA 		 = 24; 
 // Scaling for smoothness constraint
 const double SCALE 		 = 12;
@@ -31,12 +31,6 @@ const double REPULSION   = 150000;
 const double MC_WEIGHT   = 10; 
 // Large cost
 const double LARGE       = 1000000000; 
-// CF: sensory distance (input argument: sensory_distance)
-const double CF_SENSORY_DISTANCE = 50;
-// CF: maximum cost (input argument: max_cost)
-const double CF_MAX_COST         = 200;
-// CF: lambda (input argument: lambda)
-const double CF_LAMBDA           = 0.075;
 
 class viterbi {
 public:
@@ -61,72 +55,12 @@ public:
              const double *d_weight_points,
 		     const double d_repulsion,      
              const double d_ice_bin_thr,
-             const double *d_mc,            
-             const double d_mc_weight, 
-             const double d_CF_sensory_distance, 
-             const double d_CF_max_cost, 
-             const double d_CF_lambda,
-             double *d_result,
-             double *d_cost
-	) : 
-	f_row(d_row),                   
-	f_col(d_col),
-	f_image(d_image),
-	f_sgt(d_sgt),
-	f_bgt(d_bgt),
-	f_mask(d_mask),
-	f_mu(d_mu),
-	f_sigma(d_sigma),
-	f_mid(d_mid),    
-	f_egt_weight(d_egt_weight),
-	f_smooth_weight(d_smooth_weight),
-	f_smooth_var(d_smooth_var),
-	f_smooth_slope(d_smooth_slope), 
-	f_bounds(d_bounds),
-	f_ms(d_ms),         
-	f_num_extra_tr(d_num_extra_tr),
-	f_egt_x(d_egt_x),        
-	f_egt_y(d_egt_y),
-	f_weight_points(d_weight_points),
-	f_repulsion(d_repulsion),    
-	f_ice_bin_thr(d_ice_bin_thr), 
-    f_mc(d_mc),               
-    f_mc_weight(d_mc_weight),
-    f_CF_sensory_distance(d_CF_sensory_distance), 
-    f_CF_max_cost(d_CF_max_cost),
-    f_CF_lambda(d_CF_lambda),
-    f_result(d_result),
-    f_cost(d_cost)
-	{  
-		find_path();
-	}
-	
-    viterbi( const int d_row,          
-             const int d_col,
-             const double *d_image,         
-             const int *d_sgt,
-             const int d_bgt,               
-             const double *d_mask,
-		     const double *d_mu,            
-             const double *d_sigma,
-		     const int d_mid,              
-             const double d_egt_weight,
-		     const double d_smooth_weight,  
-             const double d_smooth_var,
-		     const double *d_smooth_slope, 
-             const ptrdiff_t *d_bounds,
-		     const size_t d_ms,             
-             const int d_num_extra_tr,
-		     const double *d_egt_x,         
-             const double *d_egt_y,
-             const double *d_weight_points,
-		     const double d_repulsion,      
-             const double d_ice_bin_thr,
-             const double *d_mc,            
-             const double d_mc_weight, 
-             const double d_CF_sensory_distance, 
-             const double d_CF_max_cost, 
-             const double d_CF_lambda,
+             const double *d_mask_dist,
+             const double *d_costmatrix,
+             const int d_costmatrix_X,
+             const int d_costmatrix_Y,
+             const double *d_transition_mu, 
+             const double *d_transition_sigma, 
              double *d_result
 	) : 
 	f_row(d_row),                   
@@ -150,21 +84,23 @@ public:
 	f_weight_points(d_weight_points),
 	f_repulsion(d_repulsion),    
 	f_ice_bin_thr(d_ice_bin_thr), 
-    f_mc(d_mc),               
-    f_mc_weight(d_mc_weight),
-    f_CF_sensory_distance(d_CF_sensory_distance), 
-    f_CF_max_cost(d_CF_max_cost),
-    f_CF_lambda(d_CF_lambda),
+    f_mask_dist(d_mask_dist),
+    f_costmatrix(d_costmatrix),
+    f_costmatrix_X(d_costmatrix_X),
+    f_costmatrix_Y(d_costmatrix_Y),
+    f_transition_mu(d_transition_mu),
+    f_transition_sigma(d_transition_sigma),
     f_result(d_result)
-	{
+	{  
 		find_path();
 	}
+
 	// VARIABLES
-	const int f_row, f_col, f_mid, f_bgt, *f_sgt, f_num_extra_tr;
+	const int f_row, f_col, f_mid, f_bgt, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y;
 	const double *f_image, *f_mask, *f_mu, *f_sigma, f_egt_weight, *f_smooth_slope,
                  *f_egt_x, *f_egt_y, *f_weight_points, f_smooth_weight,
-                 f_smooth_var, f_repulsion, f_ice_bin_thr, *f_mc, f_mc_weight,
-                 f_CF_sensory_distance, f_CF_max_cost, f_CF_lambda;
+                 f_smooth_var, f_repulsion, f_ice_bin_thr, *f_mask_dist,  
+                 *f_costmatrix, *f_transition_mu, *f_transition_sigma;
 	const ptrdiff_t *f_bounds;
 	const size_t f_ms;
 	double *f_result, *f_cost;
@@ -177,7 +113,8 @@ public:
 	void viterbi_right(int *path, double *path_prob, double *path_prob_next, double *index);
 
     // Dynamic smoothness
-	double norm_pdf(int x, double mu = MID, double sigma = SIGMA, double scale = SCALE) {
+	double norm_pdf(int x, double mu = MID, double sigma = SIGMA, double scale = SCALE) 
+    {
         if(sigma != std::numeric_limits<double>::infinity()) {
 			return scale * (1.0/(sigma*sqrt(2*M_PI))) * exp(-0.5*sqr((x-mu)/sigma));
         }
@@ -197,7 +134,8 @@ public:
     // -- dst will contain the minimum value for that destination
     // -- dst_ind will contain the minimum source index for that destination
     void dt(const double *src, double *dst, double *dst_ind, int s1, int s2,
-            int d1, int d2, double scale, int off = 0) {
+            int d1, int d2, double scale, int off = 0) 
+    {
         
         int d = (d1 + d2) >> 1, s = s1; // Find the midpoint of the destination
         for (int p = s1; p <= s2; p++) { // Search through all the sources and find the minimum

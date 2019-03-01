@@ -176,16 +176,19 @@ elseif strcmpi(example_setup,'horizontal')
   % surfdata_cmds: surfdata commands to run
   tomo_collate.surfdata_cmds = [];
   
-  tomo_collate.surfdata_cmds(end+1).cmd = 'detect';
-  tomo_collate.surfdata_cmds(end).surf_names = 'bottom detect';
-  tomo_collate.surfdata_cmds(end).visible = false;
-  tomo_collate.surfdata_cmds(end).data_threshold = 13.5;
+  % Detect (old Viterbi algorithm)
+  %   tomo_collate.surfdata_cmds(end+1).cmd = 'detect';
+  %   tomo_collate.surfdata_cmds(end).surf_names = 'bottom detect';
+  %   tomo_collate.surfdata_cmds(end).visible = false;
+  %   tomo_collate.surfdata_cmds(end).data_threshold = 13.5;
   
-  tomo_collate.surfdata_cmds(end+1).cmd = 'extract';
-  tomo_collate.surfdata_cmds(end).surf_names = 'bottom extract';
-  tomo_collate.surfdata_cmds(end).visible = false;
-  tomo_collate.surfdata_cmds(end).data_threshold = 13.5;
+  % Extract (old TRW-S algorithm)
+  %   tomo_collate.surfdata_cmds(end+1).cmd = 'extract';
+  %   tomo_collate.surfdata_cmds(end).surf_names = 'bottom extract';
+  %   tomo_collate.surfdata_cmds(end).visible = false;
+  %   tomo_collate.surfdata_cmds(end).data_threshold = 13.5;
   
+  % Viterbi
   tomo_collate.surfdata_cmds(end+1).cmd = 'viterbi';
   tomo_collate.surfdata_cmds(end).surf_names = 'bottom viterbi';
   tomo_collate.surfdata_cmds(end).visible = false;
@@ -194,32 +197,27 @@ elseif strcmpi(example_setup,'horizontal')
   tomo_collate.surfdata_cmds(end).repulsion = 150; % schu
   tomo_collate.surfdata_cmds(end).egt_weight = 10; 
   tomo_collate.surfdata_cmds(end).ice_bin_thr = 3;
-  tomo_collate.surfdata_cmds(end).CF_sensory_distance = 50;
-  tomo_collate.surfdata_cmds(end).CF_max_cost = 200;
-  tomo_collate.surfdata_cmds(end).CF_lambda = 0.075;
   
+  % TRW-S (Tree Reweighted Sequential algorithm)
   tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
   tomo_collate.surfdata_cmds(end).surf_names = {'bottom trws','bottom'};
   tomo_collate.surfdata_cmds(end).visible = true;
   tomo_collate.surfdata_cmds(end).smooth_weight = [22 22];
   tomo_collate.surfdata_cmds(end).smooth_var = 32;
   tomo_collate.surfdata_cmds(end).max_loops = 50;
-  tomo_collate.surfdata_cmds(end).CF_sensory_distance = 50;
-  tomo_collate.surfdata_cmds(end).CF_max_cost = 200;
-  tomo_collate.surfdata_cmds(end).CF_lambda = 0.075;
   
+  % C3D/RNN (3D convolutional and recurrent neural network)
+  tomo_collate.surfdata_cmds(end+1).cmd = 'c3d_rnn';
+  tomo_collate.surfdata_cmds(end).surf_names = {'c3d_rnn_surface', 'c3d_rnn_bottom'};
+  tomo_collate.surfdata_cmds(end).visible = true;  
+  tomo_collate.surfdata_cmds(end).surface_threshold = true;
+  
+  % DEM (Digital Elevation Model)
 %   tomo_collate.surfdata_cmds(end+1).cmd = 'dem';
 %   tomo_collate.surfdata_cmds(end).surf_names = 'bottom dem';
 %   tomo_collate.surfdata_cmds(end).visible = false;
 %   tomo_collate.surfdata_cmds(end).plot_name_values = {'color','red','marker','^'};
 %   tomo_collate.surfdata_cmds(end).dem_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_nofilt/20140401_03/20140401_03_007_bottom.tif';
-%   tomo_collate.surfdata_cmds(end).dem_bad_value = -32767;
-%   
-%   tomo_collate.surfdata_cmds(end+1).cmd = 'dem';
-%   tomo_collate.surfdata_cmds(end).surf_names = 'bottom dem';
-%   tomo_collate.surfdata_cmds(end).visible = false;
-%   tomo_collate.surfdata_cmds(end).plot_name_values = {'color','black','marker','^'};
-%   tomo_collate.surfdata_cmds(end).dem_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_nofilt/20140401_03/20140401_03_033_bottom.tif';
 %   tomo_collate.surfdata_cmds(end).dem_bad_value = -32767;
   
   % .fuse_images_flag: runs fuse_images.m when true

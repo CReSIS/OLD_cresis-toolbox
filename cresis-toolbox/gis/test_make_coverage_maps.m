@@ -1,4 +1,4 @@
-% script make_coverage_maps.m
+ % script make_coverage_maps.m
 % 
 % Author: Rohan Choudhari
 
@@ -236,7 +236,7 @@ elseif strcmp(user_variables.data_source,'layer')
     
     
     %Looping through seasons
-    for season_idx = 1:length(params)
+    for season_idx = length(params):-1:1
       
       %Reinitializing for each season
       x_red = [];
@@ -257,6 +257,12 @@ elseif strcmp(user_variables.data_source,'layer')
         fprintf('Param %d \n', param_idx);
         param = params{season_idx}(param_idx);
         param = merge_structs(param,gRadar);
+        
+        if(strcmp(param.day_seg(1:end-3), '20100402'))
+          disp('Found');
+        else
+          continue;
+        end
         
         %Reading layerData
         try
@@ -286,37 +292,48 @@ elseif strcmp(user_variables.data_source,'layer')
           for idx = 1:(length(idxs)-1)
             
             %Aggregating points between indexes
+            %bottom_sec: logical vector, true if points exists
             bottom_sec = isfinite(layer(layer_idx).twtt(idxs(idx):idxs(idx+1)-1));
             quality_sec = layer(layer_idx).quality(idxs(idx):idxs(idx+1)-1);
+            % If point does not exist, then set its quality to NaN
+            quality_sec(~bottom_sec) = NaN;
+            % Assume good quality for all points that exist, but have NaN
+            % quality.
+            quality_sec(bottom_sec & isnan(quality_sec)) = 1;
             [x_sec,y_sec] = projfwd(user_variables.proj,layer(layer_idx).lat(idxs(idx):idxs(idx+1)-1),layer(layer_idx).lon(idxs(idx):idxs(idx+1)-1));
             x_sec = x_sec/1e3;
             y_sec = y_sec/1e3;
             
-            %Quality of data
-            red = isnan(quality_sec);
-            magenta = quality_sec==3;
-            yellow = bottom_sec==1 & (quality_sec==1 | quality_sec==2);
-            green = bottom_sec==1 & quality_sec==1;
-            
             %If the vector satisfies any condition, the middle point is
             %selected to be plotted.
-            if(all(green==1))
-              x_green = cat(2, x_green,x_sec(round(length(green)/2)));
-              y_green = cat(2, y_green,y_sec(round(length(green)/2)));
-            elseif(all(yellow==1))
-              x_yellow = cat(2, x_yellow,x_sec(round(length(yellow)/2)));
-              y_yellow = cat(2, y_yellow,y_sec(round(length(yellow)/2)));
-            elseif(all(red==1))
-              x_red = cat(2, x_red,x_sec(round(length(red)/2)));
-              y_red = cat(2, y_red,y_sec(round(length(red)/2)));
-            end
-            if(any(magenta==1))
-              x_magenta = cat(2, x_magenta,x_sec(round(length(magenta)/2)));
-              y_magenta = cat(2, y_magenta,y_sec(round(length(magenta)/2)));
+            %if(all(green==1))
+            if all(quality_sec==1)
+              x_green(end+1) = mean(x_sec);
+              y_green(end+1) = mean(y_sec);
+            %elseif(all(yellow==1))
+            elseif all(quality_sec==1 | quality_sec==2)
+              x_yellow(end+1) = mean(x_sec);
+              y_yellow(end+1) = mean(y_sec);
+%               x_yellow = cat(2, x_yellow,x_sec(round(length(yellow)/2)));
+%               y_yellow = cat(2, y_yellow,y_sec(round(length(yellow)/2)));
+            %elseif(all(red==1))
+            elseif all(isnan(quality_sec))
+              x_red(end+1) = mean(x_sec);
+              y_red(end+1) = mean(y_sec);
+%               x_red = cat(2, x_red,x_sec(round(length(red)/2)));
+%               y_red = cat(2, y_red,y_sec(round(length(red)/2)));
+            else
+              %if(any(magenta==1))
+              x_magenta(end+1) = mean(x_sec);
+              y_magenta(end+1) = mean(y_sec);
+%               x_magenta = cat(2, x_magenta,x_sec(round(length(magenta)/2)));
+%               y_magenta = cat(2, y_magenta,y_sec(round(length(magenta)/2)));
             end
             
           end
         end
+       
+      
       end
       
       %Plotting
@@ -433,7 +450,7 @@ elseif strcmp(user_variables.data_source,'layer')
 
 %           image_fn_name = sprintf('aggregate_greenland_master_coverage_map_%s', date);
           
-          image_fn_name = sprintf('test_%s', date);  
+          image_fn_name = sprintf('modified201617test_%s', date);  
           image_fn = fullfile(user_variables.out_dir,image_fn_name);
           savefig(figure(1), image_fn, 'compact');
 
