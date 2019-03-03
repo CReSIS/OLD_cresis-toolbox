@@ -130,19 +130,29 @@ elseif strcmpi(ctrl.cluster.type,'slurm')
   if ~isempty(match_idxs)
     error('Using deprecated ''%%d'' inside cluster.slurm_submit_arguments. Switch to %%m for memory and %%t for time. For example ''-N 1 -n 1 --mem=%m --time=%t''. Current value is ''%s''.', submit_arguments);
   end
+  if ~isempty(ctrl.cluster.mem_to_ppn)
+    % If ppn should be used to limit memory OR if memory requirements are
+    % high enough that we might as well ask for more nodes too to prevent
+    % nodes from sitting idle.
+    num_proc = max(1,ceil(job_mem/ctrl.cluster.mem_to_ppn));
+    num_proc = min(ctrl.cluster.max_ppn,num_proc);
+  else
+    num_proc = 1;
+  end
   % Insert memory
   submit_arguments = regexprep(submit_arguments,'%m',sprintf('%.0f',ceil(job_mem/1e6)));
   % Insert CPU time
   submit_arguments = regexprep(submit_arguments,'%t',sprintf('%.0f',ceil(job_cpu_time/60)));  
+  % Insert number of processors
+  submit_arguments = regexprep(submit_arguments,'%p',sprintf('%.0f',num_proc));  
   
-  
-    if isempty(ctrl.cluster.ssh_hostname)
-      cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",JOB_COMPLETE_PAUSE="%d" %s </dev/null', ...
-        submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, ctrl.cluster.job_complete_pause, worker);
-    else
-      cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "sbatch %s -e %s -o %s --export=INPUT_PATH=\"%s\",OUTPUT_PATH=\"%s\",TASK_LIST=\"%s\",MATLAB_CLUSTER_PATH=\"%s\",MATLAB_MCR_PATH=\"%s\",JOB_COMPLETE_PAUSE=\"%d\" %s </dev/null"', ...
-        ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, ctrl.cluster.job_complete_pause, worker);
-    end
+  if isempty(ctrl.cluster.ssh_hostname)
+    cmd = sprintf('sbatch %s -e %s -o %s --export=INPUT_PATH="%s",OUTPUT_PATH="%s",TASK_LIST="%s",MATLAB_CLUSTER_PATH="%s",MATLAB_MCR_PATH="%s",JOB_COMPLETE_PAUSE="%d" %s </dev/null', ...
+      submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, ctrl.cluster.job_complete_pause, worker);
+  else
+    cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "sbatch %s -e %s -o %s --export=INPUT_PATH=\"%s\",OUTPUT_PATH=\"%s\",TASK_LIST=\"%s\",MATLAB_CLUSTER_PATH=\"%s\",MATLAB_MCR_PATH=\"%s\",JOB_COMPLETE_PAUSE=\"%d\" %s </dev/null"', ...
+      ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, submit_arguments, error_fn, stdout_fn, in_fn, out_fn, task_list_str, cluster_job_fn_dir, ctrl.cluster.matlab_mcr_path, ctrl.cluster.job_complete_pause, worker);
+  end
   
   [status,result] = robust_system(cmd);
   
