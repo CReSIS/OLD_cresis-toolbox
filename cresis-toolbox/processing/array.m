@@ -215,10 +215,10 @@ end
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
-    total_num_sam_combine(img) = total_num_sam_combine(img) + wfs(wf).Nt_pc/param.array.dbin*Nsv;
+    total_num_sam_combine(img) = total_num_sam_combine(img) + wfs(wf).Nt/param.array.dbin*Nsv;
     for ml_idx = 1:length(param.array.imgs{img})
       wf = param.array.imgs{img}{ml_idx}(1,1);
-      total_num_sam(img) = total_num_sam(img) + wfs(wf).Nt_pc/param.array.dbin ...
+      total_num_sam(img) = total_num_sam(img) + wfs(wf).Nt/param.array.dbin ...
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
@@ -412,7 +412,7 @@ for frm = param.cmd.frms
 end
 % Account for averaging
 for img = 1:length(param.array.imgs)
-  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_combine(img)*cpu_time_mult) * (1 + (Nsv-1)*0.2);
+  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_combine(img)/Nsv*cpu_time_mult) * (1 + (Nsv-1)*0.2);
   if isempty(param.array.img_comb)
     % Individual images, so need enough memory to hold the largest image
     sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam_combine(img)*mem_mult);

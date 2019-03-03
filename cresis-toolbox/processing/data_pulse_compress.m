@@ -1211,8 +1211,20 @@ for img = 1:length(param.load.imgs)
           end
           
         elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
-          data{img}(1:size(coh_noise,1),:,wf_adc) = data{img}(1:size(coh_noise,1),:,wf_adc) ...
-            - interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+          if hdr.gps_time(1) > noise.coh_noise_gps_time(end)
+            % Raw data are all after the last coherent noise sample
+            data{img}(1:size(coh_noise,1),:,wf_adc) = bsxfun(@minus, ...
+              data{img}(1:size(coh_noise,1),:,wf_adc), coh_noise(:,end));
+          elseif hdr.gps_time(end) < noise.coh_noise_gps_time(1)
+            % Raw data are all before the first coherent noise sample
+            data{img}(1:size(coh_noise,1),:,wf_adc) = bsxfun(@minus, ...
+              data{img}(1:size(coh_noise,1),:,wf_adc), coh_noise(:,1));
+          else
+            % At least one raw data point exists within the coherent noise
+            % gps time sampling range
+            data{img}(1:size(coh_noise,1),:,wf_adc) = data{img}(1:size(coh_noise,1),:,wf_adc) ...
+              - interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+          end
         end
       end
     end

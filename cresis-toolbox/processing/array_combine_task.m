@@ -100,13 +100,6 @@ for frm_idx = 1:length(param.cmd.frms);
     for chunk_idx = 1:num_chunks
       array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
       tmp = load(array_fn);
-      fprintf('chunk_idx %d\n', chunk_idx);
-      store{chunk_idx} = tmp;
-      size(tmp.Time)
-      tmp.Time([1 end])
-      size(tmp.Data)
-      dt = tmp.Time(2)-tmp.Time(1)
-      tmp.Time(1)/dt
       
       if length(tmp.Time) == 1
         % Force length==1 in fast time to just be empty to simplify data
