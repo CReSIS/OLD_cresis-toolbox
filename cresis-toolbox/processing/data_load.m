@@ -33,7 +33,7 @@ for img = 1:length(param.load.imgs)
   nyquist_zone_signal{img} = NaN;
   DDC_dec{img} = ones(1,param.load.presums);
   DDC_freq{img} = zeros(1,param.load.presums);
-  Nt{img} = zeros(1,param.load.presums);
+  Nt{img} = wfs(wf).Nt_raw*ones(1,param.load.presums); % pulsed systems know ahead of time, deramp systems determine this during loading
   t0{img} = zeros(1,param.load.presums);
   t_ref{img} = zeros(1,param.load.presums);
 end

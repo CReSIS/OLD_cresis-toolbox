@@ -226,12 +226,18 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   mem_mult = 16;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  estimated_num_sam = 32000;
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
-    total_num_sam(img) = 32000;
+    total_num_sam_combine(img) = total_num_sam_combine(img) + estimated_num_sam/param.array.dbin*Nsv;
+    for ml_idx = 1:length(param.array.imgs{img})
+      wf = param.array.imgs{img}{ml_idx}(1,1);
+      total_num_sam(img) = total_num_sam(img) + estimated_num_sam/param.array.dbin ...
+        * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
+    end
   end
-  cpu_time_mult = 8e-8;
-  mem_mult = 64;
+  cpu_time_mult = 4e-6;
+  mem_mult = 32;
   
 else
   error('radar_name %s not supported yet.', radar_name);
@@ -377,8 +383,8 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   mem_mult = 8;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  cpu_time_mult = 100e-8;
-  mem_mult = 24;
+  cpu_time_mult = 1e-6;
+  mem_mult = 32;
 end
 
 sparam = [];

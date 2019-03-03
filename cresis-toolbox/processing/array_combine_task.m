@@ -100,7 +100,49 @@ for frm_idx = 1:length(param.cmd.frms);
     for chunk_idx = 1:num_chunks
       array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
       tmp = load(array_fn);
-      Time = tmp.Time;
+      fprintf('chunk_idx %d\n', chunk_idx);
+      store{chunk_idx} = tmp;
+      size(tmp.Time)
+      tmp.Time([1 end])
+      size(tmp.Data)
+      dt = tmp.Time(2)-tmp.Time(1)
+      tmp.Time(1)/dt
+      
+      if length(tmp.Time) == 1
+        % Force length==1 in fast time to just be empty to simplify data
+        % handling later. The idea is that a length 1 range line is useless
+        % anyway so we might as well simplify things by making it zero length.
+        tmp.Time = [];
+        tmp.Data = tmp.Data([],:);
+      end
+      time_vector_changed = false;
+      if chunk_idx == 1
+        Time = tmp.Time;
+      elseif any(size(Time) ~= size(tmp.Time)) || any(Time ~= tmp.Time)
+        % Determine the new time axis
+        %   Note that even though time axis is aligned with multiples of
+        %   dt, there will be rounding errors which need to be dealt with
+        %   here.
+        time_vector_changed = true;
+        if isempty(Time)
+          Time = tmp.Time;
+          start_time_diff = size(Time,1);
+          end_time_diff = 0;
+        elseif isempty(tmp.Time)
+          start_time_diff = -size(Time,1);
+          end_time_diff = 0;
+        else
+          dt = Time(2) - Time(1);
+          start_time_diff = round((Time(1) - tmp.Time(1))/dt);
+          end_time_diff = round((tmp.Time(end) - Time(end))/dt);
+          if start_time_diff > 0
+            Time = [Time(1)+dt*(-start_time_diff:-1)'; Time];
+          end
+          if end_time_diff > 0
+            Time = [Time; Time(end)+dt*(1:end_time_diff)'];
+          end
+        end
+      end
       Latitude = [Latitude double(tmp.Latitude)];
       Longitude = [Longitude double(tmp.Longitude)];
       Elevation = [Elevation double(tmp.Elevation)];
@@ -110,7 +152,12 @@ for frm_idx = 1:length(param.cmd.frms);
       GPS_time = [GPS_time tmp.GPS_time];
       Surface = [Surface double(tmp.Surface)];
       Bottom = [Bottom double(tmp.Bottom)];
-      Data = [Data tmp.Data];
+      if time_vector_changed
+        Data = [[zeros(start_time_diff,size(Data,2)); Data; zeros(end_time_diff,size(Data,2))], ...
+          [zeros(-start_time_diff,size(tmp.Data,2)); tmp.Data; zeros(-end_time_diff,size(tmp.Data,2))]];
+      else
+        Data = [Data tmp.Data];
+      end
       param_records = tmp.param_records;
       param_sar = tmp.param_sar;
       if chunk_idx == 1
@@ -131,6 +178,9 @@ for frm_idx = 1:length(param.cmd.frms);
         %         Tomo = cat(3,Tomo,tmp.Tomo);
         %         Concatenate all the fields under struct Tomo: valR, bins, val, freq
         %         and img.
+        if time_vector_changed
+          error('Support for chunks with different time vectors not added yet.');
+        end
         fields = fieldnames(tmp.Tomo);
         if chunk_idx == 1
           for field_idx = 1:length(fields)
@@ -195,7 +245,7 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Combine images
   [output_dir,radar_type] = ct_output_dir(param.radar_name);
-  if isempty(param.qlook.img_comb) && strcmpi(radar_type,'deramp')
+  if isempty(param.array.img_comb) && strcmpi(radar_type,'deramp')
     continue;
   end
 

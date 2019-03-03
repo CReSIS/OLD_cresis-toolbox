@@ -347,7 +347,9 @@ for img = 1:length(param.load.imgs)
       dt = time(2)-time(1);
       freq = hdr.freq{img}(1) + 1/(Nt*dt) * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
       
-      fk_data = fft(data{img}(time_bins,:,wf_adc),[],1);
+      fk_data = data{img}(time_bins,:,wf_adc);
+      fk_data(~isfinite(fk_data)) = 0;
+      fk_data = fft(fk_data,[],1);
       
       fcs.squint = [0 0 -1].';
       %fcs.squint = fcs.squint ./ sqrt(dot(fcs.squint,fcs.squint));

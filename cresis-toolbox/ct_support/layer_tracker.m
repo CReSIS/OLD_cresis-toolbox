@@ -62,11 +62,13 @@ if ~isfield(param,'layer_tracker') || isempty(param.layer_tracker)
   param.layer_tracker = [];
 end
 
-% debug_level: set to 1 to enable a debug plot
-if ~isfield(param.layer_tracker,'debug_level') || isempty(param.layer_tracker.debug_level)
-  param.layer_tracker.debug_level = 0;
+if ~isfield(param.layer_tracker,'debug_plots') || isempty(param.layer_tracker.debug_plots)
+  param.layer_tracker.debug_plots = {};
 end
-debug_level = param.layer_tracker.debug_level;
+if ~isempty(param.layer_tracker.debug_plots)
+  h_fig = get_figures(1,true);
+end
+enable_debug_plot = any(strcmp('debug',param.layer_tracker.debug_plots));
 
 % echogram_img: To choose an image besides the base (0) image
 if ~isfield(param.layer_tracker,'echogram_img') || isempty(param.layer_tracker.echogram_img)
@@ -334,7 +336,7 @@ for frm_idx = 1:length(param.cmd.frms)
       continue;
     end
     
-    if strcmpi(track.method,'') && debug_level == 0
+    if strcmpi(track.method,'') && ~enable_debug_plot
       mdata = load_L1B(data_fn,'GPS_time','Latitude','Longitude','Elevation','Time');
     else
       mdata = load_L1B(data_fn);
@@ -608,28 +610,30 @@ for frm_idx = 1:length(param.cmd.frms)
   Surface = double(Surface);
   
   %% Track: Debug plot
-  if debug_level > 0
-    figure(1); clf;
-    imagesc([],mdata.Time,lp(mdata.Data));
-    colormap(1-gray(256));
-    hold on;
-    plot(find(new_quality==1),Surface(new_quality==1),'g.');
-    plot(find(new_quality==3),Surface(new_quality==3),'r.');
+  if enable_debug_plot
+    clf(h_fig(1));
+    set(h_fig(1),'name',sprintf('layer_tracker %s',data_fn_name));
+    h_axes(1) = axes('parent',h_fig(1));
+    imagesc([],mdata.Time,lp(mdata.Data), 'parent', h_axes(1));
+    colormap(h_axes(1), 1-gray(256));
+    hold(h_axes(1),'on');
+    plot(h_axes(1),find(new_quality==1),Surface(new_quality==1),'g.');
+    plot(h_axes(1),find(new_quality==3),Surface(new_quality==3),'r.');
     if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
-      plot(interp1(1:length(mdata.Time),mdata.Time,track.dem+track.min_bin-1),'m--')
-      plot(interp1(1:length(mdata.Time),mdata.Time, ...
+      plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time,track.dem+track.min_bin-1),'m--')
+      plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
         track.dem+track.min_bin-1-track.init.max_diff),'r--')
-      plot(interp1(1:length(mdata.Time),mdata.Time, ...
+      plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
         track.dem+track.min_bin-1+track.init.max_diff),'b--')
     end
-    hold off;
+    hold(h_axes(1),'off');
     if ~isempty(mdata.Time)
       ylims = [max(mdata.Time(1),min(Surface)-debug_time_guard) min(mdata.Time(end),max(Surface)+debug_time_guard)];
       if ylims(end)>ylims(1)
-        ylim(ylims);
+        ylim(h_axes(1),ylims);
       end
     end
-    title(sprintf('%s',regexprep(data_fn_name,'_','\\_')));
+    title(h_axes(1),sprintf('%s',regexprep(data_fn_name,'_','\\_')));
     keyboard
   end
   

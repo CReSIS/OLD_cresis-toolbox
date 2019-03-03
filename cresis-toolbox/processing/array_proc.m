@@ -458,7 +458,10 @@ end
 % .bins: Output range bins. Defaults to starting at the first range-bin
 % that would have full support and stopping at the last range bin with full
 % support.
-param.array_proc.bins = (1+(param.array.Nsubband-1)/2-min(param.array.bin_rng)*param.array.Nsubband : param.array.dbin ...
+% bin_dt_align_offset: number of bins to offset the output in order to
+%   ensure that output bins are multiple of dt after decimation
+bin_dt_align_offset = round(mod(param.array_proc.bin0+(param.array.Nsubband-1)/2-min(param.array.bin_rng)*param.array.Nsubband,param.array.dbin));
+param.array_proc.bins = (bin_dt_align_offset+1+(param.array.Nsubband-1)/2-min(param.array.bin_rng)*param.array.Nsubband : param.array.dbin ...
   : Nt-max(param.array.bin_rng)*param.array.Nsubband-(param.array.Nsubband-1)/2).';
 Nt_out = length(param.array_proc.bins);
 

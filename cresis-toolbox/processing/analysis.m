@@ -34,6 +34,10 @@ if ~isempty(param.cmd.frms)
   param.cmd.frms = []; % All frames
 end
 
+if ~isfield(param,'analysis') || isempty(param.analysis)
+  error('The analysis field (worksheet) is missing.');
+end
+
 if ~isfield(param.analysis,'out_path') || isempty(param.analysis.out_path)
   param.analysis.out_path = 'analysis';
 end

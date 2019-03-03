@@ -489,8 +489,9 @@ for img = 1:length(param.array.imgs)
     % Number of along-track range lines
     Nx = size(data{1},2);
     
-    param.array_proc.bins = 1-param.bin_rng(1) : param.dbin : Nt-param.bin_rng(end);
-    param.array_proc.lines = 1-param.line_rng(1) : param.dline : Nx-param.line_rng(end);
+    % Ensure that range bins are still multiples of dt after decimation
+    param.array_proc.bins = 1-param.array.bin_rng(1)+mod(Time(1-param.array.bin_rng(1))/dt,param.array.dbin) : param.array.dbin : Nt-param.array.bin_rng(end);
+    param.array_proc.lines = 1-param.array.line_rng(1) : param.array.dline : Nx-param.array.line_rng(end);
     
     % Process: Update surface values
     if isempty(surf_layer.gps_time)
@@ -574,6 +575,10 @@ for img = 1:length(param.array.imgs)
     first_rline = find(~mod(sar_out_rlines-1,param.array.dline),1);
     rlines = num_prev_chunk_rlines + (first_rline : param.array.dline : length(sar_out_rlines));
     param.array_proc.lines = rlines([1 end]);
+    
+    % Pass in time bin offset so that array_proc can ensure output time
+    % bins are multiples of the final dt after dbin decimation
+    param.array_proc.bin0 = Time(1)/dt;
   
     % Process: Update surface values
     if isempty(surf_layer.gps_time)

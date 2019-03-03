@@ -15,7 +15,7 @@ params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20170330_01');
 params = ct_set_params(params,'cmd.frms',[1]); % Specify specific frames (or leave empty/undefined to do all frames)
 
-param_override.layer_tracker.debug_level = 1;
+param_override.layer_tracker.debug_plots = {'debug'};
 
 param_override.layer_tracker.echogram_img = 0; % To choose an image besides the base (0) image
 % echogram_source: location of echogram data used for tracking

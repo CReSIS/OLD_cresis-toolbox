@@ -155,6 +155,8 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).f1 = records.settings.wfs(1).wfs(wf).f1(1);
   end
   wfs(wf).f1 = wfs(wf).f1*wfs(wf).fmult + wfs(wf).fLO;
+  wfs(wf).fmult = 1; % f0/f1 have been multiplied, so set the multiplier to 1
+  wfs(wf).fLO = 0; % fLO has been added, so set to 0
   if isfield(param.radar.wfs(wf),'time_raw_trim') && ~isempty(param.radar.wfs(wf).time_raw_trim)
     wfs(wf).time_raw_trim   = param.radar.wfs(wf).time_raw_trim;
   else

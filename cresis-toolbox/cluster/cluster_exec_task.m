@@ -42,6 +42,11 @@ dparam = load(dynamic_in_fn);
 for task_idx = 1:length(task_ids)
   task_id = task_ids(task_idx);
   
+  if task_id > ctrl.task_id
+    warning('Task %d does not exist. There are only %d tasks.', task_id, ctrl.task_id);
+    continue;
+  end
+  
   if run_mode == 1
     cluster_task_start_time = tic;
     fprintf('  %s: batch:task %d:%d (%d of %d) (%s)\n', mfilename, ctrl.batch_id, task_id, task_idx, length(task_ids), datestr(now));
