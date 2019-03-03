@@ -151,7 +151,7 @@ if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm
   % -cpus-per-task: specifies the number of cpus per task
   % --mincpus: specifies the number of cpus per node
   % -n, --ntasks: number of tasks
-  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%m --time=%t';
+  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --cpus-per-task=%p --mem=%m --time=%t';
 end
 
 if ~isfield(ctrl.cluster,'ssh_hostname') || isempty(ctrl.cluster.ssh_hostname)
