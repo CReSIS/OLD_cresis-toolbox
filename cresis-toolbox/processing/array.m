@@ -222,8 +222,8 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
-  cpu_time_mult = 3e-6;
-  mem_mult = 16;
+  cpu_time_mult = 6e-6;
+  mem_mult = 32;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
   estimated_num_sam = 32000;
@@ -250,7 +250,7 @@ switch (param.array.method)
   case MVDR_METHOD
     cpu_time_mult = cpu_time_mult*4;
   case MUSIC_METHOD
-    cpu_time_mult = cpu_time_mult*4;
+    cpu_time_mult = cpu_time_mult*6;
   case MLE_METHOD
     cpu_time_mult = cpu_time_mult*480;
 end

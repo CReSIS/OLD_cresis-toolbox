@@ -313,7 +313,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
     wf = abs(param.analysis.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult =35e-9;
+  cpu_time_mult = 35e-9;
   mem_mult = 11;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
@@ -526,8 +526,13 @@ for break_idx = 1:length(breaks)
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
-            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
-            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isfield(param.radar.wfs(wf),'coh_noise_method') && strcmpi(param.radar.wfs(wf).coh_noise_method,'analysis')
+              dparam.cpu_time = dparam.cpu_time + 10 + 2*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+              dparam.mem = max(dparam.mem,data_load_memory + 2*Nx*total_num_sam(img)*mem_mult);
+            else
+              dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            end
             if isempty(cmd_method_str)
               cmd_method_str = '_stats';
             end
@@ -542,8 +547,13 @@ for break_idx = 1:length(breaks)
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
-            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isfield(param.radar.wfs(wf),'coh_noise_method') && strcmpi(param.radar.wfs(wf).coh_noise_method,'analysis')
+              dparam.cpu_time = dparam.cpu_time + 10 + 2*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+              dparam.mem = max(dparam.mem,data_load_memory + 2*Nx*total_num_sam(img)*mem_mult);
+            else
+              dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            end
             if isempty(cmd_method_str)
               cmd_method_str = '_waveform';
             end
