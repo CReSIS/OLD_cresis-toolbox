@@ -78,6 +78,8 @@ walltime_exceeded_error = 256;
 success_eval_error = 512;
 file_success_error = 1024;
 file_success_corrupt_error = 2048;
+max_mem_exceeded_error = 4096;
+insufficient_mcr_space = 8192;
 
 error_mask = 0;
 
@@ -92,13 +94,14 @@ job_id = ctrl.job_id_list(task_id);
 % Get the task ID that the job ID is writing to
 task_id_out = find(ctrl.job_id_list == job_id,1,'last');
 
+hostname = '';
+attempt = -1;
+max_attempts = -1;
+max_mem = -1;
+last_task_id = -1;
 if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
-  hostname = '';
-  attempt = -1;
-  max_attempts = -1;
   % Extract information from stdout
   stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
-  last_task_id = -1;
   if exist(stdout_fn,'file')
     stdout_file_str = '';
     try
@@ -117,7 +120,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
     
     % Find the number of attempts to start the job
     try
-      idx = regexp(stdout_file_str,'attempt:');
+      idx = regexp(stdout_file_str,'Attempt ');
       attempt = sscanf(stdout_file_str(idx+8:end),'%d');
     end
     if isempty(attempt)
@@ -145,6 +148,28 @@ if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
   end
   if isempty(last_task_id)
     last_task_id = -1;
+  end
+  
+  % Find the maximum memory used
+  try
+    idxs = regexp(stdout_file_str,'Max Mem (KB):');
+    if ~isempty(idxs)
+      max_mem = sscanf(stdout_file_str(idxs(end)+13:end),'%d') * 1024;
+      if max_mem > 0.9*ctrl.mem(task_id)
+        error_mask = bitor(error_mask,max_mem_exceeded_error);
+      end
+    end
+  end
+  if isempty(max_mem)
+    max_mem = -1;
+  end
+  
+  % Check to see if there is insufficient space
+  try
+    idx = regexp(stdout_file_str,'Insufficient space on MCR_CACHE_ROOT:');
+    if ~isempty(idx)
+      error_mask = bitor(error_mask,insufficient_mcr_space);
+    end
   end
   
   % If the last task started is the task that is getting updated, then
@@ -261,6 +286,18 @@ else
   
 end
 
+if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error)
+  fprintf('  Max memory potentially exceeded\n');
+  fprintf('    Job max_mem is %.1f GB\n', max_mem/1e9);
+  fprintf('    Task id %d:%d\n', ctrl.batch_id, task_id);
+  fprintf('    Task memory %.1f GB\n', ctrl.mem(task_id)/1e9);
+  fprintf('    Job''s last executed task id %d\n', last_task_id);
+  if ctrl.error_mask(task_id) == max_mem_exceeded_error
+    fprintf('    Since no other error occured besides exceeding 90%% of memory request, setting error mask to 0.\n');
+    ctrl.error_mask(task_id) = 0;
+  end
+end
+
 if update_mode && ctrl.error_mask(task_id)
   warning(' Job Error %d:%d/%d (lead task %d)\n', ctrl.batch_id, task_id, job_id, task_id_out);
   if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
@@ -287,6 +324,29 @@ if update_mode && ctrl.error_mask(task_id)
     if ctrl.cluster.stop_on_error
       keyboard
     end
+  end
+  if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id
+    fprintf('  Task max memory exceeded.\n');
+    if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'debug'))
+      ctrl.cluster.max_mem_mode
+      fprintf('  task memory (%.1f GB) exceeded the maximum memory requested (%.1f GB):\n', max_mem/1e9, ctrl.mem(task_id)*ctrl.cluster.mem_mult/1e9);
+      fprintf('%s\n',ones(1,80)*'=');
+      fprintf('Options:\n');
+      fprintf('  1. Increase ctrl.mem(task_id) or ctrl.cluster.mem_mult\n');
+      fprintf('  2. Run job locally by running cluster_exec_task(ctrl,task_id);\n');
+      fprintf('     Be sure to run ctrl.error_mask(task_id) = 0 after successfully\n');
+      fprintf('     running task.\n');
+      fprintf('  3. Set ctrl.cluster.max_mem_mode = ''auto'';\n');
+      fprintf('After making changes, run dbcont to continue.\n');
+      keyboard
+    end
+    if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'auto'))
+      fprintf('    Automatically doubling memory request for this task.\n');
+      ctrl.mem(task_id) = ctrl.mem(task_id)*2;
+    end
+  end
+  if bitand(ctrl.error_mask(task_id),insufficient_mcr_space)
+    fprintf('  Insufficient space in MCR_CACHE_ROOT\n');
   end
   if bitand(ctrl.error_mask(task_id),success_error)
     fprintf('  Task did not pass success criteria\n');

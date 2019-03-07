@@ -31,29 +31,37 @@ then
   # If not defined, use default
   MCR_CACHE_ROOT=/tmp/`whoami`
 fi
-# Make sure the directory is created to ensure df will run successfully
-mkdir -p $MCR_CACHE_ROOT
-if (( $? == 0 ))
-then
-  # Get the space available in kilobytes (-P prevents line wrap in the
-  # middle of a printout when the file system name is too long).
-  tmp_avail=`df -P $MCR_CACHE_ROOT | tail -1 | awk '{print $4}'`
-else
-  # Cannot even create the directory
-  tmp_avail=0
-fi
-echo Space available on MCR_CACHE_ROOT=$MCR_CACHE_ROOT is $tmp_avail kB
-if (( tmp_avail < 5000 ))
-then
-   echo "Less than 5 MB of space on drive pointed to by MCR_CACHE_ROOT."
-   if [ -n "$MCR_CACHE_ROOT2" ]
-   then
-     echo "Using backup MCR_CACHE_ROOT2=$MCR_CACHE_ROOT2"
-     MCR_CACHE_ROOT=$MCR_CACHE_ROOT2
-   else
-     echo "You may want to define MCR_CACHE_ROOT2 as a backup in your .bashrc."
-   fi
-fi
+tmp_avail=-1
+while (( $tmp_avail < 0 ))
+do
+  # Make sure the directory is created to ensure df will run successfully
+  mkdir -p $MCR_CACHE_ROOT
+  if (( $? == 0 ))
+  then
+    # Get the space available in kilobytes (-P prevents line wrap in the
+    # middle of a printout when the file system name is too long).
+    tmp_avail=`df -P $MCR_CACHE_ROOT | tail -1 | awk '{print $4}'`
+  else
+    # Cannot even create the directory
+    tmp_avail=0
+  fi
+  echo Space available on MCR_CACHE_ROOT=$MCR_CACHE_ROOT is $tmp_avail kB
+  if (( tmp_avail < 256000 ))
+  then
+    if [ -n "$MCR_CACHE_ROOT2" ] && [ "$MCR_CACHE_ROOT" != "$MCR_CACHE_ROOT2" ]
+    then
+      echo "Using backup MCR_CACHE_ROOT2=$MCR_CACHE_ROOT2"
+      MCR_CACHE_ROOT=$MCR_CACHE_ROOT2
+      tmp_avail=-1
+    else
+      echo "Insufficient space on MCR_CACHE_ROOT: Less than 256 MB."
+      if [ "$MCR_CACHE_ROOT" != "$MCR_CACHE_ROOT2" ]
+      then
+        echo "You may want to define MCR_CACHE_ROOT2 as a backup in your .bashrc."
+      fi
+    fi
+  fi
+done
 
 # =========================================================================
 # ATTEMPT TO RUN CLUSTER_JOB.M UP TO MAX_ATTEMPTS TIMES
@@ -97,8 +105,8 @@ do
     child_proc=`ps -eo ppid,pid | sed -n "/^\s*$parent_pid\s*$child_pid/p" | awk '{print $2}'`
     sleep 0.5
   done
-  echo Max Mem: $max_mem
-  echo Max CPU: $max_cpu
+  echo "Max Mem (KB):" $max_mem
+  echo "Max CPU (MM:SS):" $max_cpu
 
   # Get return value from child process
   wait $child_pid
