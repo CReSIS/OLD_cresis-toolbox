@@ -1172,7 +1172,7 @@ if any(param.config.file.version == [403 404 407 408])
       % ADC Gains
       atten = double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_1(1)) ...
         + double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_2(1));
-      oparams{end}.radar.wfs(wf).adc_gains = 10.^((param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths)))/20);
+      oparams{end}.radar.wfs(wf).adc_gains_dB = param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths));
       
       % DDC mode and frequency
       if isfield(settings(set_idx), 'DDC_Ctrl')
