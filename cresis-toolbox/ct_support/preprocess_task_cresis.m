@@ -702,6 +702,10 @@ for board_idx = 1:num_board_to_load
 end
 
 % Save concatenated temporary file
+fn_board_hdrs_dir = fileparts(fn_board_hdrs);
+if ~exist(fn_board_hdrs_dir,'dir')
+  mkdir(fn_board_hdrs_dir);
+end
 save(fn_board_hdrs,'-v7.3','board_hdrs','fns_list','failed_load');
 
 %% List bad files
