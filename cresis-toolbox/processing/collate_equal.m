@@ -30,6 +30,7 @@ cmd = param.analysis.cmd{param.collate_equal.cmd_idx};
 if ~isfield(param.collate_equal,'debug_plots')
   param.collate_equal.debug_plots = {'before_comp','after_comp','surf','final','visible','comp_image'};
 end
+enable_visible_plot = any(strcmp('visible',param.collate_equal.debug_plots));
 
 if ~isfield(param.collate_equal,'delay') || isempty(param.collate_equal.delay)
   param.collate_equal.delay = [];
@@ -65,8 +66,16 @@ if ~isfield(param.collate_equal,'out_dir') || isempty(param.collate_equal.out_di
   param.collate_equal.out_dir = 'analysis';
 end
 
+if ~isfield(param.collate_equal,'ref') || isempty(param.collate_equal.ref)
+  param.collate_equal.ref = 1;
+end
+
 if ~isfield(param.collate_equal,'retrack_en') || isempty(param.collate_equal.retrack_en)
   param.collate_equal.retrack_en = true;
+end
+
+if ~isfield(param.collate_equal,'rlines') || isempty(param.collate_equal.rlines)
+  param.collate_equal.rlines = [];
 end
 
 if ~isfield(param.collate_equal,'wf_adcs') || isempty(param.collate_equal.wf_adcs)
@@ -82,7 +91,7 @@ end
 physical_constants;
 
 if ~isempty(param.collate_equal.debug_plots)
-  h_fig = get_figures(3,any(strcmp('visible',param.collate_equal.debug_plots)));
+  h_fig = get_figures(3,enable_visible_plot);
 end
 
 for img_lists_idx = 1:length(param.collate_equal.img_lists)
@@ -169,13 +178,12 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   time = waveform.time_rng(1) + dt*(0:Nt-1);
   
   % Determine which range lines will be used for processing
-  rlines = param.collate_equal.rlines;
-  if isempty(rlines)
+  if isempty(param.collate_equal.rlines)
     % If user passes in empty rlines, then do all rlines
     rlines = 1:size(wf_data,2);
   else
     % Do rlines that user specified; throw out invalid lines using intersect
-    rlines = intersect(rlines,1:size(wf_data,2));
+    rlines = intersect(param.collate_equal.rlines,1:size(wf_data,2));
   end
   
   %% Plot phase/roll of raw data
@@ -276,6 +284,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     saveas(h_fig(3),fig_fn);
     
     set(h_fig(1),'Position',pos);
+    
+    if enable_visible_plot
+      keyboard
+    end
   end
   
   %% Retrack surface
@@ -287,8 +299,9 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     surf_param.cmd.frms = 1;
     surf_param.qlook.surf.min_bin = time(1);
     surf_param.qlook.surf.threshold_noise_rng = [0 (time(1)-time(zero_surf_bin))*2/3 (time(1)-time(zero_surf_bin))*1/3];
-    surf_param.qlook.surf.threshold_rel_max = true;
+    surf_param.qlook.surf.threshold_rel_max = -9;
     surf_param.qlook.surf.max_rng = [0 0];
+    surf_param.qlook.surf.en = true;
     surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time,'Latitude',lat,'Longitude',lon,'Elevation',elev);
     surf_bin = layer_tracker(surf_param,[]);
     surf_bin = round(interp1(time,1:length(time),surf_bin));
@@ -316,10 +329,9 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     
     if param.collate_equal.retrack_en
       % Check to make sure surface is flat
-      ml_data = lp(fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1));
       clf(h_fig(2));
       h_axes(2) = axes('parent',h_fig(2));
-      imagesc(ml_data,'parent',h_axes(2));
+      imagesc(lp(fir_dec(abs(wf_data(:,:,ref_wf_adc_idx)).^2,ones(1,5)/5,1)),'parent',h_axes(2));
       colormap(h_axes(2),1-gray(256));
       
       linkaxes(h_axes);
@@ -336,6 +348,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_track2_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
     saveas(h_fig(2),fig_fn);
+    
+    if enable_visible_plot
+      keyboard
+    end
   end
   
   %% Setup for estimating equalization coefficients
@@ -553,17 +569,21 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     saveas(h_fig(3),fig_fn);
     
     set(h_fig(1),'Position',pos);
+    
+    if enable_visible_plot
+      keyboard
+    end
   end
   
   %% Estimate time delay and amplitude and phase
   % =========================================================================
   peak_offset = NaN*zeros(Nc,Nx);
   peak_val = NaN*zeros(Nc,Nx);
-  for rline_idx = 1:Nx
-    if ~mod(rline_idx-1,10^floor(log10(Nx)-1))
-      fprintf('  Estimating rline index %d of %d (%s)\n', rline_idx, Nx, datestr(now));
-    end
+  for rline_idx = 1:length(rlines)
     rline = rlines(rline_idx);
+    if ~mod(rline_idx-1,10^floor(log10(length(rlines))-1))
+      fprintf('  Estimating rline index %d of %d (rline %d of %d) (%s)\n', rline_idx, length(rlines), rline, Nx, datestr(now));
+    end
     for wf_adc = 1:Nc
       if delay_method == 2
         % Time delay: cross correlation method with complex data
@@ -624,6 +644,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   if any(strcmp('final',param.collate_equal.debug_plots))
     
     clf(h_fig(1));
+    set(h_fig(1),'Name','Final Power');
     h_axes = axes('parent',h_fig(1));
     h_plot = zeros(1,Nc);
     legend_str = cell(1,Nc);
@@ -635,12 +656,14 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       hold(h_axes, 'on');
       legend_str{wf_adc} = sprintf('%d-%d', wf_adc_list(wf_adc,1), wf_adc_list(wf_adc,2));
     end
+    title(h_axes, 'Comparison of amplitudes relative to ref');
     grid(h_axes, 'on');
     legend(h_plot,legend_str,'location','NorthEastOutside');
     ylabel(h_axes, 'Relative power (dB)');
     xlabel(h_axes, 'Range line');
     
     clf(h_fig(2));
+    set(h_fig(2),'Name','Final Phase');
     h_axes(2) = axes('parent',h_fig(2));
     h_plot = zeros(1,Nc);
     legend_str = cell(1,Nc);
@@ -652,12 +675,14 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       hold(h_axes(2), 'on');
       legend_str{wf_adc} = sprintf('%d-%d', wf_adc_list(wf_adc,1), wf_adc_list(wf_adc,2));
     end
+    title(h_axes(2), 'Comparison of phases relative to ref');
     grid(h_axes(2), 'on');
     legend(h_plot,legend_str,'location','NorthEastOutside');
     ylabel(h_axes(2), 'Relative angle (deg)');
     xlabel(h_axes(2), 'Range line');
     
     clf(h_fig(3));
+    set(h_fig(3),'Name','Final Time Offset');
     h_axes(3) = axes('parent',h_fig(3));
     h_plot = zeros(1,Nc);
     legend_str = cell(1,Nc);
@@ -669,6 +694,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
       hold(h_axes(3), 'on');
       legend_str{wf_adc} = sprintf('%d-%d', wf_adc_list(wf_adc,1), wf_adc_list(wf_adc,2));
     end
+    title(h_axes(3), 'Comparison of time offsets relative to ref');
     grid(h_axes(3), 'on');
     legend(h_plot,legend_str,'location','NorthEastOutside');
     ylabel(h_axes(3), 'Relative time (ns)');
@@ -714,6 +740,10 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     set(h_fig(1),'Position',pos{1});
     set(h_fig(2),'Position',pos{2});
     set(h_fig(3),'Position',pos{3});
+    
+    if enable_visible_plot
+      keyboard
+    end
   end
   
   %% Create outputs
