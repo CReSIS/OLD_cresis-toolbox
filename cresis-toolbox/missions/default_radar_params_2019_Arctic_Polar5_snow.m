@@ -1,7 +1,7 @@
-function param = default_radar_params_2017_Arctic_Polar5_snow
-% param = default_radar_params_2017_Arctic_Polar5_snow
+function param = default_radar_params_2019_Arctic_Polar5_snow
+% param = default_radar_params_2019_Arctic_Polar5_snow
 %
-% Snow: 2017_Arctic_Polar5
+% Snow: 2019_Arctic_Polar5
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -9,7 +9,7 @@ function param = default_radar_params_2017_Arctic_Polar5_snow
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2017_Arctic_Polar5';
+param.season_name = '2019_Arctic_Polar5';
 param.radar_name = 'snow5';
 
 param.config.file.version = 7;
@@ -22,11 +22,12 @@ param.config.daq_type = 'cresis';
 param.config.wg_type = 'cresis';
 param.config.header_load_func = @basic_load_fmcw5;
 param.config.board_map = {'chan1','chan2'};
-param.config.tx_map = {'',''};
+param.config.board_map = {'chan1'};
+param.config.tx_map = {''};
 
 param.config.daq.xml_version = -1; % No XML file available
 
-param.config.tx_enable = [1 1];
+param.config.tx_enable = [1];
 
 %% CReSIS parameters
 param.config.cresis.clk = 125e6;
@@ -46,6 +47,7 @@ default.records.gps.time_offset = 1;
 %% Qlook worksheet
 default.qlook.img_comb = [];
 default.qlook.imgs = {[2 1],[1 1],[1 2],[2 2]};
+default.qlook.imgs = {[2 1],[1 1]};
 default.qlook.out_path = '';
 default.qlook.block_size = 2000;
 default.qlook.motion_comp = 0;
@@ -65,7 +67,7 @@ default.qlook.surf.search_rng = [0:9];
 default.sar.out_path = '';
 default.sar.imgs = default.qlook.imgs;
 default.sar.frm_types = {0,[0 1],0,0,-1};
-default.sar.chunk_len = 2000;
+default.sar.chunk_len = 500;
 default.sar.frm_overlap = 0;
 default.sar.coh_noise_removal = 0;
 default.sar.combine_rx = 0;
@@ -87,7 +89,7 @@ default.sar.sar_type = 'fk';
 default.sar.sigma_x = 1;
 default.sar.sub_aperture_steering = 0;
 default.sar.st_wind = @hanning;
-default.sar.start_eps = 3.15;
+default.sar.start_eps = 1.53;
 
 %% Array worksheet
 default.array.in_path = '';
@@ -98,9 +100,9 @@ default.array.img_comb = default.qlook.img_comb;
 default.array.method = 'standard';
 default.array.window = @hanning;
 default.array.bin_rng = 0;
-default.array.line_rng = -5:5;
+default.array.line_rng = -2:2;
 default.array.dbin = 1;
-default.array.dline = 6;
+default.array.dline = 5;
 default.array.DCM = [];
 default.array.three_dim.en = 0;
 default.array.three_dim.layer_fn = '';
