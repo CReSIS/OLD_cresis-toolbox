@@ -150,6 +150,29 @@ if ischar(track.detrend)
   detrend.time = detrend.dt*detrend.bins;
 end
 
+if ~isfield(track,'feedthru') || isempty(track.feedthru)
+  track.feedthru = [];
+end
+
+if ~isfield(track,'filter') || isempty(track.filter)
+  track.filter = [1 1];
+end
+if length(track.filter) == 1
+  warning('Deprecated surf.filter format. Should specify 2 element vector that specifies the multilooks in [cross-track along-track].');
+  track.filter = [1 track.filter(1)];
+end
+if any(mod(track.filter,2) == 0)
+  error('Surface filter lengths must be odd. layer_tracker.track.filter = [%d %d].', layer_tracker.track.filter);
+end
+
+if ~isfield(track,'filter_trim') || isempty(track.filter_trim)
+  track.filter_trim = [0 0];
+end
+
+if ~isfield(track,'fixed_value') || isempty(track.fixed_value)
+  track.fixed_value = 0;
+end
+
 if ~isfield(track,'init') || isempty(track.init)
   track.init = [];
 end
@@ -183,29 +206,6 @@ if ~any(strcmpi(track.init.max_diff_method,{'merge_vectors','interp_finite'}))
   error('Unsupported max diff method %s. Options are merge_vectors, interp_finite. The default is interp_finite unless a dem or reference layer is provided.', track.init.max_diff_method);
 end
 
-if ~isfield(track,'filter') || isempty(track.filter)
-  track.filter = [1 1];
-end
-if length(track.filter) == 1
-  warning('Deprecated surf.filter format. Should specify 2 element vector that specifies the multilooks in [cross-track along-track].');
-  track.filter = [1 track.filter(1)];
-end
-if any(mod(track.filter,2) == 0)
-  error('Surface filter lengths must be odd. layer_tracker.track.filter = [%d %d].', layer_tracker.track.filter);
-end
-
-if ~isfield(track,'filter_trim') || isempty(track.filter_trim)
-  track.filter_trim = [0 0];
-end
-
-if ~isfield(track,'fixed_value') || isempty(track.fixed_value)
-  track.fixed_value = 0;
-end
-
-if ~isfield(track,'min_bin') || isempty(track.min_bin)
-  track.min_bin = 0;
-end
-
 if ~isfield(track,'max_bin') || isempty(track.max_bin)
   track.max_bin = inf;
 end
@@ -229,6 +229,14 @@ if ~isfield(track,'medfilt_threshold') || isempty(track.medfilt_threshold)
   %   0 makes medfilt act like medfilt1
   %   inf effectively disables the medfilt operation
   track.medfilt_threshold = 0;
+end
+
+if ~isfield(track,'method') || isempty(track.method)
+  track.method = '';
+end
+
+if ~isfield(track,'min_bin') || isempty(track.min_bin)
+  track.min_bin = 0;
 end
 
 if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)
@@ -384,8 +392,7 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     %% Track: Feed through removal
-    if isfield(track,'feedthru')
-      
+    if ~isempty(track.feedthru)
       % Interpolate feed through power levels on to data time axis
       feedthru_threshold = interp1(track.feedthru.time,track.feedthru.power_dB,mdata.Time);
       feedthru_threshold = interp_finite(feedthru_threshold,-inf,[],@(x) ~isnan(x));
