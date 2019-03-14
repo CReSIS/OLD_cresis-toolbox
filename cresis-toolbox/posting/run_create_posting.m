@@ -8,32 +8,20 @@
 % See also: create_posting.m
 
 %% User Settings
-% params = read_param_xls(ct_filename_param('accum_param_2018_Greenland_P3.xls'),[],'post');
-params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('snow_param_2018_Greenland_P3.xls'),[],'post');
+param_override = [];
 
-% Syntax for running a specific segment and frame by overriding parameter spreadsheet values
-%params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
+params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
+% params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'));
+
+% Example to run a specific segment and frame by overriding parameter spreadsheet values
 % params = ct_set_params(params,'cmd.generic',0);
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20180315_10');
-% params = ct_set_params(params,'cmd.frms',[1]);
-
-params = ct_set_params(params,'post.ops.en',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20181015_04');
+% params = ct_set_params(params,'cmd.frms',6);
 
 %% Automated Section
 % =====================================================================
-% Create param structure array
-% =====================================================================
-tic;
-global gRadar;
-
-clear('param_override');
-
 % Input checking
-if ~exist('params','var')
-  error('Use run_master: A struct array of parameters must be passed in\n');
-end
+global gRadar;
 if exist('param_override','var')
   param_override = merge_structs(gRadar,param_override);
 else
@@ -50,7 +38,7 @@ for param_idx = 1:length(params)
   create_posting(param,param_override);
 end
 
-%% Create by-season concatenated and browse files (CSV and KML)
+%% Create season-wide concatenated and browse files (CSV and KML)
 % =====================================================================
 concatenate_csv_kml = false;
 for param_idx = 1:length(params)
@@ -70,7 +58,7 @@ if concatenate_csv_kml
   if ~isempty(param.post.out_path)
     post_path = ct_filename_out(param,param.post.out_path,'',1);
   else
-    post_path = ct_filename_out(param,param.post.out_path,'CSARP_post',1);
+    post_path = ct_filename_out(param,'post','',1);
   end
   % Create concatenated and browse files for all data
   csv_base_dir = fullfile(post_path,'csv');
@@ -88,5 +76,3 @@ if concatenate_csv_kml
   end
   run_concatenate_thickness_files(csv_base_dir,kml_base_dir,param);
 end
-
-return;

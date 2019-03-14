@@ -91,13 +91,21 @@ if ~isfield(param.load_data,'motion_comp') || isempty(param.load_data.motion_com
   param.load_data.motion_comp = false;
 end
 
+if ~isfield(param.load_data,'combine_rx') || isempty(param.load_data.combine_rx)
+  param.load_data.combine_rx = false;
+end
+
+if ~isfield(param.load_data,'trim') || isempty(param.load_data.trim)
+  param.load_data.trim = [0 0];
+end
+
 %% Setup processing
 % =========================================================================
 
 physical_constants;
 
 param.load.recs(1) = param.load_data.recs(1);
-param.load.recs(2) = param.load_data.recs(2);
+param.load.recs(2) = param.load_data.recs(end);
 param.load.imgs = param.load_data.imgs;
 
 %% Load records file
@@ -117,16 +125,22 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 % =====================================================================
 param.load.raw_data = param.load_data.raw_data;
 param.load.presums = param.load_data.presums;
-[hdr,data] = data_load(param,records,wfs,states);
+[hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = param.load_data.pulse_comp;
-[hdr,data] = data_pulse_compress(param,hdr,wfs,data);
+[hdr,data] = data_pulse_compress(param,hdr,data);
 
+param.load.motion_comp = param.load_data.motion_comp;
+param.load.combine_rx = param.load_data.combine_rx;
 [hdr,data] = data_merge_combine(param,hdr,data);
 
 %% Resample
 % ===================================================================
 [hdr,data] = data_resample(hdr,data,param.load_data.resample);
+
+%% Trim
+% ===================================================================
+[hdr,data] = data_trim(hdr,data,param.load_data.trim);
 
 %% Complete hdr (header)
 % =====================================================================

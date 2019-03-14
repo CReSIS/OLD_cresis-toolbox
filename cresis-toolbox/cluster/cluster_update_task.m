@@ -59,6 +59,12 @@ if ctrl.mem(task_id) == 0
   ctrl.mem(task_id) = param.mem;
 end
 ctrl.success{task_id} = param.success;
+% HACK
+if ~isfield(param,'file_success')
+  param.file_success = {};
+end
+% END HACK
+ctrl.file_success{task_id} = param.file_success;
 
 out_fn_exist_error = 1;
 out_fn_load_error = 2;
@@ -70,6 +76,8 @@ success_error = 64;
 cluster_killed_error = 128;
 walltime_exceeded_error = 256;
 success_eval_error = 512;
+file_success_error = 1024;
+file_success_corrupt_error = 2048;
 
 error_mask = 0;
 
@@ -85,58 +93,53 @@ job_id = ctrl.job_id_list(task_id);
 task_id_out = find(ctrl.job_id_list == job_id,1,'last');
 
 if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
+  hostname = '';
+  attempt = -1;
+  max_attempts = -1;
   % Extract information from stdout
   stdout_fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',task_id_out));
   last_task_id = -1;
   if exist(stdout_fn,'file')
-    if exist(stdout_fn,'file')
-      stdout_file_str = '';
-      try
-        fid = fopen(stdout_fn);
-        stdout_file_str = fread(fid,inf,'char=>char');
-        stdout_file_str = stdout_file_str(:).';
-        fclose(fid);
-      end
-
-      % Find the hostname of the execution node
-      try
-        idx = regexp(stdout_file_str,'hostname:');
-        end_idx = idx+9 + find(stdout_file_str(idx+9:end)==' ',1)-1;
-        hostname = stdout_file_str(idx+9:end_idx-1);
-      catch
-        hostname = '';
-      end
-      
-      % Find the number of attempts to start the job
-      try
-        idx = regexp(stdout_file_str,'attempt:');
-        attempt = sscanf(stdout_file_str(idx+8:end),'%d');
-      catch
-        attempt = -1;
-      end
-      if isempty(attempt)
-        attempt = -1;
-      end
-      
-      % Find the allowed maximum number of attempts to start the job
-      try
-        idx = regexp(stdout_file_str,'max_attempts:');
-        max_attempts = sscanf(stdout_file_str(idx+13:end),'%d');
-      catch
-        max_attempts = -1;
-      end
-      if isempty(max_attempts)
-        max_attempts = -1;
-      end
-      
-      % Find the last task that this job started
-      try
-        search_str = 'cluster_job: Load task ';
-        idxs = regexp(stdout_file_str,search_str);
-        if ~isempty(idxs)
-          % Look at the task ID from the last start message
-          last_task_id = sscanf(stdout_file_str(idxs(end)+length(search_str):end),'%d');
-        end
+    stdout_file_str = '';
+    try
+      fid = fopen(stdout_fn);
+      stdout_file_str = fread(fid,inf,'char=>char');
+      stdout_file_str = stdout_file_str(:).';
+      fclose(fid);
+    end
+    
+    % Find the hostname of the execution node
+    try
+      idx = regexp(stdout_file_str,'hostname:');
+      end_idx = idx+9 + find(stdout_file_str(idx+9:end)==' ',1)-1;
+      hostname = stdout_file_str(idx+9:end_idx-1);
+    end
+    
+    % Find the number of attempts to start the job
+    try
+      idx = regexp(stdout_file_str,'attempt:');
+      attempt = sscanf(stdout_file_str(idx+8:end),'%d');
+    end
+    if isempty(attempt)
+      attempt = -1;
+    end
+    
+    % Find the allowed maximum number of attempts to start the job
+    try
+      idx = regexp(stdout_file_str,'max_attempts:');
+      max_attempts = sscanf(stdout_file_str(idx+13:end),'%d');
+    end
+    if isempty(max_attempts)
+      max_attempts = -1;
+    end
+    
+    % Find the last task that this job started
+    try
+      search_str = 'cluster_job: Load task ';
+      idxs = regexp(stdout_file_str,search_str);
+      if ~isempty(idxs)
+        % Look at the task ID from the last start message
+        last_task_id = sscanf(stdout_file_str(idxs(end)+length(search_str):end),'%d');
       end
     end
   end
@@ -169,14 +172,18 @@ if update_mode && strcmpi(ctrl.cluster.type,'matlab') && ctrl.job_status(task_id
   
   if ~exist(error_fn,'file')
     fid = fopen(error_fn,'w');
-    str = evalc(sprintf('ctrl.cluster.jm.Jobs(%d).Tasks(1)',job_id));
-    fwrite(fid,str,'char');
+    try
+      str = evalc(sprintf('ctrl.cluster.jm.Jobs.findobj(''ID'',%d).Tasks(1)',job_id));
+      fwrite(fid,str,'char');
+    end
     fclose(fid);
   end
   
   if ~exist(stdout_fn,'file')
     fid = fopen(stdout_fn,'w');
-    fwrite(fid,ctrl.cluster.jm.Jobs(job_id).Tasks(1).Diary,'char');
+    try
+      fwrite(fid,ctrl.cluster.jm.Jobs.findobj('ID',job_id).Tasks(1).Diary,'char');
+    end
     fclose(fid);
   end
 end
@@ -214,11 +221,15 @@ else
   ctrl.cpu_time_actual(task_id) = -1;
 end
 
+% Check success criteria
 try
   eval(param.success); % Runs some form of "error_mask = bitor(error_mask,success_error);" on failure
 catch success_eval_ME
   error_mask = bitor(error_mask,success_eval_error);
 end
+
+% Check that all output files are successfully generated
+error_mask = bitor(error_mask,cluster_file_success(param.file_success));
 
 ctrl.error_mask(task_id) = 0;
 if ctrl.job_status(task_id) == 'T'
@@ -289,14 +300,20 @@ if update_mode && ctrl.error_mask(task_id)
   if bitand(ctrl.error_mask(task_id),walltime_exceeded_error)
     fprintf('  Cluster killed this job due to wall time\n');
   end
+  if bitand(ctrl.error_mask(task_id),file_success_error)
+    fprintf('  File success check failed (missing files)\n');
+  end
+  if bitand(ctrl.error_mask(task_id),file_success_corrupt_error)
+    fprintf('  File success check failed (corrupt files)\n');
+  end
 end
 
 if update_mode
   if ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9 < ctrl.cpu_time_actual(task_id)
     warning(' %d:%d/%d: CPU time actual (%.0f sec) is more than 90%% of estimated time (%.0f sec). Consider revising estimates.', ...
       ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id));
-  elseif ctrl.cpu_time_actual(task_id)>0 && ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.3 > ctrl.cpu_time_actual(task_id)
-    warning(' %d:%d/%d: CPU time actual (%.0f sec) is less than 30%% of estimated time (%.0f sec). Consider revising estimates.', ...
+  elseif ctrl.cpu_time_actual(task_id)>0 && ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.2 > ctrl.cpu_time_actual(task_id)
+    warning(' %d:%d/%d: CPU time actual (%.0f sec) is less than 20%% of estimated time (%.0f sec). Consider revising estimates.', ...
       ctrl.batch_id, task_id, job_id, ctrl.cpu_time_actual(task_id), ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id));
   end
 end

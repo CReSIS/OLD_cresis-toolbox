@@ -10,7 +10,7 @@ obj.eg.source_fns_existence = logical(zeros(length(obj.eg.frame_names),length(ob
 
 found_at_least_one_good_file = false;
 for source_idx = 1:length(obj.eg.sources)
-  fn_dir = ct_filename_out(obj.eg.cur_sel,'',obj.eg.sources{source_idx},0);
+  fn_dir = ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx});
   fns = get_filenames(fn_dir, 'Data_','','.mat');
 
   for fn_idx = 1:length(fns)

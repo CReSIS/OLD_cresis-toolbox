@@ -43,11 +43,12 @@ log_func = -2*(-Nsnap*p*(log((sum_term)./p)))  ;
 %of the optimal case for q=0 and 30 dB SNR matches the suboptimal.
 %We can then use the regular algorithms like AIC, MDL, etc. on the optimal results.)
 
-if param_MOE.norm_allign_zero ==1
+  % Only for NT method
+  if param_MOE.norm_allign_zero ==1
     log_func = log_func + param_MOE.norm_term_optimal;
-else
+  else
     log_func = log_func + param_MOE.opt_norm_term;
-end
+  end
 
 switch model_order_method
     case 0

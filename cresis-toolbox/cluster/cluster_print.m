@@ -70,6 +70,17 @@ ctrl.job_id_list = ctrl.job_id_list{1};
 
 id_out_of_bounds_warning_sent = false;
 
+if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
+  if ~isfield(ctrl.cluster,'user_name') || isempty(ctrl.cluster.user_name)
+    [~,ctrl.cluster.user_name] = system('whoami </dev/null');
+    ctrl.cluster.user_name = ctrl.cluster.user_name(1:end-1);
+  end
+  if ~isfield(ctrl.cluster,'ssh_user_name') || isempty(ctrl.cluster.ssh_user_name)
+    [~,ctrl.cluster.ssh_user_name] = system('whoami </dev/null');
+    ctrl.cluster.ssh_user_name = ctrl.cluster.ssh_user_name(1:end-1);
+  end
+end
+
 %% Just return in,out from each task and print nothing except errors
 if print_mode == 0
   % Create in/out filenames
@@ -187,7 +198,7 @@ if print_mode == 1
     else
       % cluster job ID (e.g. torque job ID)
       job_id = id;
-      task_id = ctrl.job_id_list(ctrl.job_id_list == id);
+      task_id = find(ctrl.job_id_list == id);
     end
     if ctrl.job_id_list(task_id) == -1
       lead_task_id = task_id;
@@ -203,7 +214,11 @@ if print_mode == 1
     
     if job_id ~= -1
       if strcmpi(ctrl.cluster.type,'torque')
-        cmd = sprintf('qstat -f %d  </dev/null', job_id);
+        if isempty(ctrl.cluster.ssh_hostname)
+          cmd = sprintf('qstat -f %d </dev/null', job_id);
+        else
+          cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "qstat -f %d </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, job_id);
+        end
         try; [status,result] = system(cmd); end;
         
       elseif strcmpi(ctrl.cluster.type,'matlab')
@@ -212,7 +227,11 @@ if print_mode == 1
         
       elseif strcmpi(ctrl.cluster.type,'slurm')
         %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
-        cmd = sprintf('scontrol show job %d </dev/null', job_id);
+        if isempty(ctrl.cluster.ssh_hostname)
+          cmd = sprintf('scontrol show job %d </dev/null', job_id);
+        else
+          cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "scontrol show job %d </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, job_id);
+        end
         try; [status,result] = system(cmd); end;
         
       elseif strcmpi(ctrl.cluster.type,'debug')
@@ -395,7 +414,10 @@ if print_mode == 2
     else
       % cluster job ID (e.g. torque job ID)
       job_id = id;
-      task_id = ctrl.job_id_list(ctrl.job_id_list == id);
+      task_id = find(ctrl.job_id_list == id);
+      if isempty(task_id)
+        error('Job %d no longer exists in batch file list.', id);
+      end
     end
     lead_task_id = find(ctrl.job_id_list==ctrl.job_id_list(task_id),1,'last');
     num_tasks = sum(ctrl.job_id_list==ctrl.job_id_list(task_id));
@@ -403,6 +425,7 @@ if print_mode == 2
     info(id_idx).task_id = uint32(task_id);
     info(id_idx).job_id = int32(job_id);
     
+    info(id_idx).job_state = '-';
     info(id_idx).exec_node = '';
     info(id_idx).task_est = NaN;
     info(id_idx).task = NaN;
@@ -415,7 +438,11 @@ if print_mode == 2
       if strcmpi(ctrl.cluster.type,'torque')
         cluster_result_idx = find(cluster_job_id == job_id);
         if isempty(cluster_result_idx)
-          cmd = sprintf('qstat -f %d </dev/null', job_id);
+          if isempty(ctrl.cluster.ssh_hostname)
+            cmd = sprintf('qstat -f %d </dev/null', job_id);
+          else
+            cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "qstat -f %d </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, job_id);
+          end
           try; [status,result] = system(cmd); end;
           cluster_job_id(end+1) = job_id;
           cluster_status(end+1) = status;
@@ -426,6 +453,20 @@ if print_mode == 2
         end
         
         if status == 0
+          
+          % Job State
+          try
+            idx = regexp(result,'job_state');
+            tmp_result = result(idx:end);
+            idx = find(tmp_result=='=',1);
+            tmp_result = tmp_result(idx+2:end);
+            idx = find(tmp_result==10|tmp_result==13,1);
+            tmp_result = tmp_result(1:idx);
+            tmp_result(tmp_result==10 | tmp_result==13) = 0;
+            info(id_idx).job_state = tmp_result(1);
+          end
+
+          % Execution host
           try
             idx = regexp(result,'exec_host');
             tmp_result = result(idx:end);
@@ -465,13 +506,13 @@ if print_mode == 2
             tmp_result = tmp_result(idx:end);
             mem_units = sscanf(tmp_result,'%s');
             if strcmpi(mem_units,'mb')
-              info(id_idx).mem_actual = uint32(mem);
+              info(id_idx).mem_actual = mem;
             elseif strcmpi(mem_units,'kb')
-              info(id_idx).mem_actual = uint32(mem/1e3);
+              info(id_idx).mem_actual = mem/1e3;
             elseif strcmpi(mem_units,'gb')
-              info(id_idx).mem_actual = uint32(mem*1e3);
+              info(id_idx).mem_actual = mem*1e3;
             else
-              info(id_idx).mem_actual = uint32(mem/1e6);
+              info(id_idx).mem_actual = mem/1e6;
             end
           end
           
@@ -515,7 +556,11 @@ if print_mode == 2
         cluster_result_idx = find(cluster_job_id == job_id);
         if isempty(cluster_result_idx)
           %cmd = sprintf('sstat --format=AveCPU,AvePages,AveRSS,AveVMSize,JobID -j %d --allsteps', job_id);
-          cmd = sprintf('scontrol show job %d </dev/null', job_id);
+          if isempty(ctrl.cluster.ssh_hostname)
+            cmd = sprintf('scontrol show job %d </dev/null', job_id);
+          else
+            cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "scontrol show job %d </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, job_id);
+          end
           try; [status,result] = system(cmd); end;
           cluster_job_id(end+1) = job_id;
           cluster_status(end+1) = status;
@@ -585,7 +630,7 @@ if print_mode == 2
     else
     end
 
-    task_in = merge_structs(sparam.static_param,dparam.dparam{id});
+    task_in = merge_structs(sparam.static_param,dparam.dparam{task_id});
     if isnan(info(id_idx).mem)
       info(id_idx).mem = task_in.mem/1e6;
     end
@@ -625,8 +670,8 @@ if print_mode == 2
         fid = fopen(fn);
         result = fread(fid,inf,'char=>char').';
         fclose(fid);
-        % Memory requested in megabytes
         try
+          % Memory requested in megabytes
           idx = regexp(result,'Max Mem:');
           tmp_result = result(idx:end);
           idx = find(tmp_result==':',1);
@@ -634,7 +679,21 @@ if print_mode == 2
           idx = find(tmp_result==10|tmp_result==13,1);
           tmp_result = tmp_result(1:idx);
           [mem,~,~,idx] = sscanf(tmp_result,'%d');
-          info(id_idx).mem_actual = uint32(mem/1e3);
+          info(id_idx).mem_actual = mem/1e3;
+          
+          if isempty(info(id_idx).exec_node)
+            % Exec host
+            idx = regexp(result,'hostname:');
+            tmp_result = result(idx:end);
+            idx = find(tmp_result==':',1);
+            tmp_result = tmp_result(idx+2:end);
+            idx = find(tmp_result==' ');
+            tmp_result = tmp_result(1:idx-1);
+            info(id_idx).exec_node = tmp_result;
+            if length(tmp_result) > exec_node_max_len
+              exec_node_max_len = length(tmp_result);
+            end
+          end
         end
       end
     end

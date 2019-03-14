@@ -92,7 +92,7 @@ end
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 for wf = 1:length(param.radar.wfs)
   if ~isfield(param.radar.wfs(wf),'adcs') || isempty(param.radar.wfs(wf).adcs)
-    adcs = 1;
+    adcs = find(~isnan(param.radar.wfs(wf).rx_paths));
   else
     adcs = param.radar.wfs(wf).adcs;
   end
@@ -155,6 +155,8 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).f1 = records.settings.wfs(1).wfs(wf).f1(1);
   end
   wfs(wf).f1 = wfs(wf).f1*wfs(wf).fmult + wfs(wf).fLO;
+  wfs(wf).fmult = 1; % f0/f1 have been multiplied, so set the multiplier to 1
+  wfs(wf).fLO = 0; % fLO has been added, so set to 0
   if isfield(param.radar.wfs(wf),'time_raw_trim') && ~isempty(param.radar.wfs(wf).time_raw_trim)
     wfs(wf).time_raw_trim   = param.radar.wfs(wf).time_raw_trim;
   else
@@ -204,7 +206,7 @@ for wf = 1:length(param.radar.wfs)
     if strcmpi(radar_type,'deramp')
       wfs(wf).ft_dec = [1 1];
     else
-      [numerator denominator] = rat((wfs(wf).f1 - wfs(wf).f0) / wfs(wf).fs_raw);
+      [numerator denominator] = rat(abs(wfs(wf).f1 - wfs(wf).f0) / wfs(wf).fs_raw);
       wfs(wf).ft_dec = [numerator denominator];
     end
   end
@@ -213,9 +215,14 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).DDC_freq   = 0;
   end
+  if isfield(param.radar.wfs(wf),'DDC_NCO_delay') && ~isempty(param.radar.wfs(wf).DDC_NCO_delay)
+    wfs(wf).DDC_NCO_delay   = param.radar.wfs(wf).DDC_NCO_delay;
+  else
+    wfs(wf).DDC_NCO_delay   = 2.4e-6-2.88e-6; % AWI NI 2017 snow radar system default delay
+  end
   if isfield(param.radar.wfs(wf),'presums') && ~isempty(param.radar.wfs(wf).presums)
     wfs(wf).presums = param.radar.wfs(wf).presums;
-  elseif any(param.records.file.version == [1:8 405 406 410]) % [acords mcords]
+  elseif any(param.records.file.version == [405 406 410]) % [acords mcrds]
     wfs(wf).presums = records.settings.wfs(1).wfs(wf).presums(1);
   else
     wfs(wf).presums = records.settings.wfs(wf).presums;
@@ -258,16 +265,6 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).tukey   = 0;
   end
-  if isfield(param.radar.wfs(wf),'DC_adjust') && ~isempty(param.radar.wfs(wf).DC_adjust)
-    tmp = load(fullfile(ct_filename_out(param,'noise','',1), ...
-      param.radar.wfs(wf).DC_adjust),'DC_adjust');
-    for adc_idx = 1:length(adcs)
-      adc = adcs(adc_idx);
-      wfs(wf).DC_adjust(adc_idx) = tmp.DC_adjust(adc);
-    end
-  else
-    wfs(wf).DC_adjust   = zeros(size(adcs));
-  end
   if isfield(param.radar.wfs(wf),'gain_fn') && ~isempty(param.radar.wfs(wf).gain_fn)
     for adc = adcs
       gain_fn_name = char(param.radar.wfs(wf).gain_fn);
@@ -287,6 +284,11 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).nyquist_zone    = param.radar.wfs(wf).nyquist_zone;
   else
     wfs(wf).nyquist_zone    = [];
+  end
+  if isfield(param.radar.wfs(wf),'nz_trim') && ~isempty(param.radar.wfs(wf).nz_trim)
+    wfs(wf).nz_trim   = param.radar.wfs(wf).nz_trim;
+  else
+    wfs(wf).nz_trim   = {};
   end
   if ~isfield(param.radar.wfs(wf),'prepulse_H') || isempty(param.radar.wfs(wf).prepulse_H)
     param.radar.wfs(wf).prepulse_H = [];
@@ -333,9 +335,17 @@ for wf = 1:length(param.radar.wfs)
   if isfield(param.radar.wfs(wf),'deconv') && ~isempty(param.radar.wfs(wf).deconv)
     wfs(wf).deconv    = param.radar.wfs(wf).deconv;
   else
-    wfs(wf).deconv    = struct('en',false);
+    wfs(wf).deconv    = [];
+    param.radar.wfs(wf).deconv = [];
   end
-  if ~isfield(param.radar.wfs(wf).deconv,'fn') || isempty(param.radar.wfs(wf).deconv.fn)
+  if isfield(param.radar.wfs(wf).deconv,'en') && ~isempty(param.radar.wfs(wf).deconv.en)
+    wfs(wf).deconv.en = param.radar.wfs(wf).deconv.en;
+  else
+    wfs(wf).deconv.en = false;
+  end
+  if isfield(param.radar.wfs(wf).deconv,'fn') && ~isempty(param.radar.wfs(wf).deconv.fn)
+    wfs(wf).deconv.fn = param.radar.wfs(wf).deconv.fn;
+  else
     wfs(wf).deconv.fn = 'analysis';
   end
   % Per wf-adc pair amplitude equalization
@@ -394,21 +404,25 @@ for wf = 1:length(param.radar.wfs)
   if isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts)
     wfs(wf).bit_shifts   = param.radar.wfs(wf).bit_shifts;
   elseif any(param.records.file.version == [405 406]) % acords
-    wfs(wf).bit_shifts = records.settings.wfs(1).wfs(wf).bit_shifts(1)*ones(size(adcs));
+    wfs(wf).bit_shifts = records.settings.wfs(1).wfs(wf).bit_shifts(1)*ones(1,max(adcs));
   elseif param.records.file.version == 410 % mcords
-    wfs(wf).bit_shifts = max(0,ceil(log(wfs(wf).presums)/log(2)) - 4)*ones(size(adcs));
+    wfs(wf).bit_shifts = max(0,ceil(log(wfs(wf).presums)/log(2)) - 4)*ones(1,max(adcs));
   elseif isfield(records.settings.wfs(wf),'bit_shifts')
-    wfs(wf).bit_shifts = records.settings.wfs(wf).bit_shifts*ones(size(adcs));
+    wfs(wf).bit_shifts = records.settings.wfs(wf).bit_shifts*ones(1,max(adcs));
   else
-    wfs(wf).bit_shifts = 0*ones(size(adcs));
+    wfs(wf).bit_shifts = 0*ones(1,max(adcs));
   end
-  wfs(wf).quantization_to_V_dynamic = false;
-  if any(param.records.file.version == [3 5 7 8 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
-    wfs(wf).quantization_to_V_dynamic = true;
+  if ~isfield(param.radar.wfs(wf),'quantization_to_V_dynamic') || isempty(param.radar.wfs(wf).quantization_to_V_dynamic)
+    wfs(wf).quantization_to_V_dynamic = false;
+    if any(param.records.file.version == [3 5 7 8 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
+      wfs(wf).quantization_to_V_dynamic = true;
+    end
+  else
+    wfs(wf).quantization_to_V_dynamic = param.radar.wfs(wf).quantization_to_V_dynamic;
   end
   wfs(wf).quantization_to_V ...
     = param.radar.Vpp_scale * 2.^wfs(wf).bit_shifts ...
-    / (2^param.radar.adc_bits*wfs(wf).presums) * ones(size(adcs));
+    / (2^param.radar.adc_bits*wfs(wf).presums);
   
   if strcmpi(radar_type,'deramp')
     %% FMCW: Create time and frequency axis information
@@ -605,9 +619,9 @@ end
 for wf = 1:length(param.radar.wfs)
   
   switch param.records.file.version
-    case {8}
-      HEADER_SIZE = 48;
-      WF_HEADER_SIZE = 0;
+    case {7,8}
+      HEADER_SIZE = 0;
+      WF_HEADER_SIZE = 48;
       wfs(wf).record_mode = 0;
       wfs(wf).complex = 0;
       wfs(wf).sample_size = 2;
@@ -616,9 +630,9 @@ for wf = 1:length(param.radar.wfs)
       if wf == 1
         wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
       else
-        wfs(wf).offset = wfs(wf-1).offset ...
+        wfs(wf).offset = wfs(wf-1).offset + ...
           + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
-          + WF_HEADER_SIZE;
+          + HEADER_SIZE + WF_HEADER_SIZE;
       end
       
     case {9,10,103,412}

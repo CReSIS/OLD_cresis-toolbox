@@ -7,7 +7,7 @@ function [Data, Time] = img_combine(param, param_mode, layers)
 %
 % param: parameter structure usually loaded from parameter spreadsheet with
 %   read_param_xls.m. The parameter structure will either look at the
-%   get_heights or combine field depending on the param_mode parameter.
+%   get_heights or array field depending on the param_mode parameter.
 %  .day_seg: segment name to load
 %  .load.frm: specifies the frame to load
 %  .(param_mode): structure that defines the img_combine parameters
@@ -36,8 +36,13 @@ function [Data, Time] = img_combine(param, param_mode, layers)
 %   .img_comb_layer_params: opsLoadLayers input parameters to load a layer
 %     to use for the surface (if "layers" input argument is specified, then
 %     this argument is ignored)
-%   .trim_time: if true, negative time samples will be removed/trimmed
-% param_mode: 'get_heights' or 'combine'
+%   .img_comb_trim: 4-element vector, first two elements give the relative
+%     amount to trim from the start and end of fast-time and the second two
+%     elements give the absolute time to trim to at the start and end of
+%     fast-time. Default for deramp is [0 0 0 inf]. Default for other
+%     radars is [-Tpd/2 Tpd/2 0 inf] because there is roll-off from the
+%     pulse compression.
+% param_mode: 'qlook' or 'array'
 % layers: struct defining the two way travel time to the ice top for each
 %   range line, must contain finite values
 %  .gps_time: N element vector of GPS time's for the layer (ANSI C
@@ -51,17 +56,45 @@ function [Data, Time] = img_combine(param, param_mode, layers)
 %% Input checks
 % =========================================================================
 
-if ~isfield(param.(param_mode), 'img_comb_weights')
+[~,radar_type,~] = ct_output_dir(param.radar_name);
+
+if ~isfield(param.(param_mode), 'img_comb_weights') || isempty(param.(param_mode).img_comb_weights)
   param.(param_mode).img_comb_weights = [];
 end
-if ~isfield(param.(param_mode), 'img_comb_mult')
+if ~isfield(param.(param_mode), 'img_comb_mult') || isempty(param.(param_mode).img_comb_mult)
   param.(param_mode).img_comb_mult = inf;
 end
-if ~isfield(param.(param_mode), 'img_comb_bins')
+if ~isfield(param.(param_mode), 'img_comb_bins') || isempty(param.(param_mode).img_comb_bins)
   param.(param_mode).img_comb_bins = 0;
 end
-if ~isfield(param.(param_mode), 'img_comb_weights_mode')
+if ~isfield(param.(param_mode), 'img_comb_weights_mode') || isempty(param.(param_mode).img_comb_weights_mode)
   param.(param_mode).img_comb_weights_mode = '';
+end
+if ~isfield(param.(param_mode), 'img_comb_trim') || isempty(param.(param_mode).img_comb_trim)
+  if strcmpi(radar_type,'deramp')
+    param.(param_mode).img_comb_trim = [0 0 0 inf];
+  else
+    % Set relative trim to be 50% support level or higher for pulse compression
+    % Set absolute trim to be >= 0 time
+    if iscell(param.(param_mode).imgs{1})
+      % Multilook format (param_mode is 'array')
+      wf_adc_list = param.(param_mode).imgs{1}{1};
+    else
+      wf_adc_list = param.(param_mode).imgs{1};
+    end
+    wf_first = wf_adc_list(1,1);
+    if iscell(param.(param_mode).imgs{end})
+      % Multilook format (param_mode is 'array')
+      wf_adc_list = param.(param_mode).imgs{end}{1};
+    else
+      wf_adc_list = param.(param_mode).imgs{end};
+    end
+    wf_last = wf_adc_list(1,1);
+    param.(param_mode).img_comb_trim = [param.radar.wfs(wf_first).Tpd/2 -param.radar.wfs(wf_last).Tpd/2 0 inf];
+  end
+end
+if ~isfield(param.(param_mode),'img_comb_layer_params') || isempty(param.(param_mode).img_comb_layer_params)
+  param.(param_mode).img_comb_layer_params = [];
 end
 
 %% Setup processing
@@ -69,7 +102,7 @@ end
 % Output path
 img_fn_dir = ct_filename_out(param,param.(param_mode).out_path,'');
 
-if isempty(layers) && isfield(param.(param_mode),'img_comb_layer_params') && ~isempty(param.(param_mode).img_comb_layer_params)
+if isempty(layers) && ~isempty(param.(param_mode).img_comb_layer_params)
   param_load_layers = param;
   param_load_layers.cmd.frms = param.load.frm;
   layers = opsLoadLayers(param_load_layers,param.(param_mode).img_comb_layer_params);
@@ -103,11 +136,22 @@ for img = 1:num_imgs
     if ~isempty(param.(param_mode).img_comb_weights)
       Data = Data*10.^(param.(param_mode).img_comb_weights(img)/10);
     end
-    if isfield(param.(param_mode), 'trim_time') && param.(param_mode).trim_time
-      first_idx = find(Time >= 0,1,'first');
-      if ~isempty(first_idx)
-        Time = Time(first_idx:end);
-        Data = Data(first_idx:end,:);
+    first_idx = find(Time >= Time(1)+param.(param_mode).img_comb_trim(1) ...
+      & Time >= param.(param_mode).img_comb_trim(3),1,'first');
+    if ~isempty(first_idx)
+      Time = Time(first_idx:end);
+      Data = Data(first_idx:end,:);
+    else
+      error('Zero range bin length images not supported.');
+    end
+    if img == num_imgs
+      last_idx = find(Time <= Time(end)+param.(param_mode).img_comb_trim(2) ...
+        & Time <= param.(param_mode).img_comb_trim(4),1,'last');
+      if ~isempty(last_idx)
+        Time = Time(1:last_idx);
+        Data = Data(1:last_idx,:);
+      else
+        error('Zero range bin length images not supported.');
       end
     end
     Surface = zeros(size(GPS_time));
@@ -118,13 +162,19 @@ for img = 1:num_imgs
       Surface = interp_finite(Surface,0);
     end
     
-    % Report auto difference to stdout
-    if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')
-      fprintf('%.0f\t%.1f\n', img, lp(difference));
-    end
-    
   else
-    append             = load(img_fn,'Time','Data');
+    append = load(img_fn,'Time','Data');
+    
+    if img == num_imgs
+      last_idx = find(append.Time <= append.Time(end)+param.(param_mode).img_comb_trim(2) ...
+        & append.Time <= param.(param_mode).img_comb_trim(4),1,'last');
+      if ~isempty(last_idx)
+        append.Time = append.Time(1:last_idx);
+        append.Data = append.Data(1:last_idx,:);
+      else
+        error('Zero range bin length images not supported.');
+      end
+    end
     
     % Interpolate image N onto already loaded data (assumption is that image
     % N-1 always comes before image N)
@@ -138,14 +188,10 @@ for img = 1:num_imgs
     max_good_time = length(Time)*ones(1,size(Data,2));
     
     % First row of img_bins indicates the start of the blend-region
-    if ~(Surface == 0)
-      img_bins = round(interp1(newTime, 1:length(newTime), ...
-        max(min(Surface * param.(param_mode).img_comb_mult, ...
-        Surface + param.(param_mode).img_comb((img-2)*3 + 1)), ...
-        param.(param_mode).img_comb((img-2)*3 + 2)), 'linear', 'extrap'));
-    else
-      img_bins = max_good_time-guard_bins;
-    end
+    img_bins = round(interp1(newTime, 1:length(newTime), ...
+      max(min(max(0,Surface) * param.(param_mode).img_comb_mult, ...
+      Surface + param.(param_mode).img_comb((img-2)*3 + 1)), ...
+      param.(param_mode).img_comb((img-2)*3 + 2)), 'linear', 'extrap'));
     
     % Check to make sure requested time is inside window and just
     % force the combination bin to occur at the second to last bin
@@ -155,9 +201,11 @@ for img = 1:num_imgs
     invalid_rlines = find(isnan(img_bins) ...
       | img_bins > max_good_time-guard_bins-blend_bins);
     img_bins(invalid_rlines) = max_good_time(invalid_rlines)-guard_bins-blend_bins;
+    img_bins(img_bins<1) = 1;
     
     % Second row of img_bins indicates the end of the blend-region
     img_bins(2,:) = img_bins(1,:) + 1 + blend_bins;
+    img_bins(2,img_bins(2,:)>length(newTime)) = length(newTime);
     
     % Estimate difference
     if strcmpi(param.(param_mode).img_comb_weights_mode,'auto')

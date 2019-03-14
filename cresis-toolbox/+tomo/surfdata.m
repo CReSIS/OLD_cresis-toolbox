@@ -447,6 +447,38 @@ classdef surfdata < handle
       obj.surf = [obj.surf(1:match_idx-1) obj.surf(match_idx+1:end)];
     end
     
+    %% adjust_surf
+    function adjust_surf(obj, dbin, surface_name_string)
+      % obj.adjust_surf(dbin)
+      %
+      % Input:  
+      %   dbin: Number of bins to offset the surface
+      %
+      %   surface_name_string: A cell array of strings that match the name
+      %   of the surface in the surf struct array of the object. If empty
+      %   or undefined, all surfaces will be updated.
+      % 
+      % Result: 
+      %   1. surf struct .y field will be adjusted by dbin
+
+      if ~exist('surface_name_string','var')
+        surface_name_string = [];
+      end
+      for surf_idx = 1:length(obj.surf)
+        if isempty(surface_name_string) ...
+            || ((ischar(surface_name_string) || iscell(surface_name_string)) ...
+            && any(strcmpi(obj.surf(surf_idx).name,surface_name_string)))
+          imagesc(obj.surf(surf_idx).y)
+          colorbar;
+          obj.surf(surf_idx).name
+          obj.surf(surf_idx).y(1)
+          keyboard
+%           obj.surf(surf_idx).y = obj.surf(surf_idx).y + dbin;
+        end
+      end
+      
+    end
+    
     %% save
     function [] = save_surfdata(obj, fn)
       % obj.save_surfdata(fn)
@@ -480,9 +512,9 @@ classdef surfdata < handle
       if ~exist(fn_dir,'dir')
         mkdir(fn_dir);
       end
-      
+      file_version = '1L';
       save(fn, 'surf', 'version', 'gps_time', 'theta', 'time', 'FCS', ...
-        'radar_name', 'season_name', 'day_seg', 'frm', '-v7.3');
+        'radar_name', 'season_name', 'day_seg', 'frm', 'file_version', '-v7.3');
     end
 
     %% get_names

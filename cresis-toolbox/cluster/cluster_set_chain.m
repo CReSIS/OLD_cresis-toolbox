@@ -35,8 +35,3 @@ elseif isstruct(ctrl_chain)
   % Update output
   ctrl_chain = ctrl;
 end
-
-return
-
-
-end

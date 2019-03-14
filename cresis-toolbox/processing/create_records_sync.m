@@ -55,8 +55,8 @@ radar_time_notes = '';
 epri_notes = '';
 clock_notes = '';
 
-%% Correct GPS time using EPRI
-% ======================================================================
+% Initialize records.settings
+records.settings = [];
 
 %% Align all boards using EPRI
 % ======================================================================
@@ -152,7 +152,100 @@ if any(param.records.file.version == [9 10 103 412])
   %   + double(records.raw.pps_ftime_cntr_latch)/param.records.file.clk;
   radar_time = double(records.raw.rel_time_cntr_latch)/param.records.file.clk;
   comp_time = [];
+
 else
+  %% Align/CReSIS: Create output EPRI vector
+  min_epri = inf;
+  max_epri = -inf;
+  epri_list = [];
+  for board_idx = 1:length(boards)
+    % Cluster EPRI values
+    
+    epri_raw = double(board_hdrs{board_idx}.epri);
+    
+    [A,B] = sort(epri_raw);
+    med = median(A);
+    [~,med_idx] = min(abs(A-med));
+    A = A-med;
+    dA = diff(A);
+    bad_mask = zeros(size(B));
+    bad_start_idx = find(dA(med_idx:end) > param.records.epri_jump_threshold,1);
+    if ~isempty(bad_start_idx)
+      bad_mask(med_idx+bad_start_idx:end) = true;
+    end
+    bad_start_idx = find(dA(med_idx-1:-1:1) > param.records.epri_jump_threshold,1);
+    if ~isempty(bad_start_idx)
+      bad_mask(med_idx-bad_start_idx:-1:1) = true;
+    end
+    back_idxs = 1:length(B);
+    back_idxs = back_idxs(B);
+    if sum(bad_mask) > 0
+      warning('%d of %d records show bad out of range EPRI values. max jump is %d, param.records.epri_jump_threshold is %d', sum(bad_mask), length(epri_raw), max(dA), param.records.epri_jump_threshold);
+    end
+    epri_raw = epri_raw(back_idxs(logical(~bad_mask)));
+    
+    % Remove isolated EPRI values
+    min_epri = min(min_epri,min(epri_raw));
+    max_epri = max(max_epri,max(epri_raw));
+    epri_list(end+(1:length(epri_raw))) = epri_raw;
+    diff_epri_raw = diff(epri_raw);
+    diff_epri(board_idx) = median(diff_epri_raw);
+    min_score = inf;
+    for offset = 0:diff_epri(board_idx)
+      score = sum(mod((epri_raw - offset)/diff_epri(board_idx),1) ~= 0);
+      if score < min_score
+        min_score = score;
+      end
+    end
+    if min_score > 0
+      warning('%d of %d records show slipped EPRI values.', min_score, length(epri_raw));
+    end
+  end
+  master_epri = mode(epri_list);
+  if any(diff_epri ~= diff_epri(1))
+    error('Inconsistent EPRI step size between boards. Should all be the same: %s', mat2str_generic(diff_epri));
+  end
+  epri = [fliplr(master_epri:-diff_epri(1):min_epri), master_epri+diff_epri:diff_epri:max_epri];
+
+  %% Align/CReSIS: Fill in missing records from each board
+  records.raw.epri = nan(size(epri));
+  records.raw.seconds = nan(size(epri));
+  records.raw.fraction = nan(size(epri));
+  if param.records.file.version == 8
+    records.settings.nyquist_zone = nan(size(epri));
+    records.settings.waveform_ID = nan(size(epri));
+  end
+  for board_idx = 1:length(boards)
+    [~,out_idxs,in_idxs] = intersect(epri,board_hdrs{board_idx}.epri);
+    fprintf('Board %d is missing %d of %d records.\n', board_idx, length(epri)-length(out_idxs), length(epri));
+    
+    % offset: Missing records filled in with -2^31
+    offset = zeros(size(epri),'int32');
+    offset(:) = -2^31;
+    offset(out_idxs) = board_hdrs{board_idx}.offset(in_idxs);
+    board_hdrs{board_idx}.offset = offset;
+    
+    % file_idx: Missing records filled in with NaN
+    file_idx = nan(size(epri));
+    file_idx(out_idxs) = board_hdrs{board_idx}.file_idx(in_idxs);
+    board_hdrs{board_idx}.file_idx = interp_finite(file_idx,[],'nearest');
+    
+    % Time stamps are assumed to be the same from each board so each board
+    % just writes all of its time stamps to the output records fields.
+    records.raw.epri(out_idxs) = board_hdrs{board_idx}.epri(in_idxs);
+    records.raw.seconds(out_idxs) = board_hdrs{board_idx}.seconds(in_idxs) ...
+      + max(param.records.gps.time_offset) - param.records.gps.time_offset(board_idx);
+    records.raw.fraction(out_idxs) = board_hdrs{board_idx}.fraction(in_idxs);
+    if param.records.file.version == 8
+      records.settings.nyquist_zone(out_idxs) = board_hdrs{board_idx}.nyquist_zone(in_idxs);
+      records.settings.waveform_ID(out_idxs) = board_hdrs{board_idx}.waveform_ID(in_idxs);
+    end
+  end
+  records.raw.epri = interp_finite(records.raw.epri);
+  records.raw.seconds = interp_finite(records.raw.seconds);
+  records.raw.fraction = interp_finite(records.raw.fraction);
+
+  utc_time_sod = double(records.raw.seconds) + double(records.raw.fraction) / param.records.file.clk;
   comp_time = [];
 end
 
@@ -184,6 +277,87 @@ if any(param.records.file.version == [9 10 103 412])
   end
   
   radar_time(bad_idxs) = epri_time(bad_idxs);
+  
+elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
+ 
+  if 0
+    % Test sequences
+    utc_time_sod = [0 1 2 3 10000 5 6 7 8 9 10 11 12 13 24 25 26 27 28 19 20 21 22 19 20 21 22]
+    utc_time_sod = utc_time_sod + 0.0001*randn(size(utc_time_sod))
+    epri = 100 + [1:23, 20:23]
+    epri(15) = 5000;
+  end
+  
+  % Estimate the pulse repetition interval, PRI
+  PRI = median(diff(utc_time_sod));
+  
+  % Create an EPRI sequence from the time record
+  time_epri = utc_time_sod / PRI;
+  [~,good_time_idx] = min(abs(utc_time_sod - median(utc_time_sod)));
+  time_epri = time_epri - time_epri(good_time_idx);
+  
+  % Find the difference of the time-generated epri and the recorded epri
+  dtime_epri = diff(time_epri);
+  depri = diff(epri);
+  
+  % Find good/bad differences. Mask values are:
+  %  0: both differences are bad
+  %  1: EPRI good
+  %  2: Time-generated EPRI good
+  %  3: EPRI and time-generated EPRI good
+  dtime_epri_threshold = 0.1; % Allow for 10% PRI error
+  mask = (depri == 1) + (2*(abs(dtime_epri-1) < dtime_epri_threshold));
+  % If the EPRI's both indicate the same number of skipped records,
+  % consider it a good difference.
+  mask(mask ~= 3 & depri == round(dtime_epri)) = 3;
+  
+  % Fix differenced time-generated EPRIs using differenced EPRIs
+  dtime_epri(mask==1) = depri(mask==1);
+  % Fix differenced EPRIs using differenced time-generated EPRIs
+  depri(mask==2) = round(dtime_epri(mask==2));
+  
+  % Find sequences of good records (where mask > 0) and deal with each
+  % segment separately.
+  good_out_mask = false(size(utc_time_sod));
+  start_idx = find(mask ~= 0,1);
+  while ~isempty(start_idx)
+    stop_idx = start_idx-1 + find(mask(start_idx+1:end) == 0,1);
+    if isempty(stop_idx)
+      stop_idx = numel(mask);
+    end
+    
+    % Find a median point in each segment and assume this value is good
+    [~,good_time_idx] = min(abs(utc_time_sod(start_idx:stop_idx+1) - median(utc_time_sod(start_idx:stop_idx+1))));
+    [~,good_epri_idx] = min(abs(epri(start_idx:stop_idx+1) - median(epri(start_idx:stop_idx+1))));
+    
+    % Reconstruct epri
+    tmp = [0 cumsum(depri(start_idx:stop_idx))];
+    tmp = tmp - tmp(good_epri_idx) + epri(start_idx-1+good_epri_idx);
+    epri_new(start_idx:stop_idx+1) = tmp;
+    
+    % Reconstruct time from time-generated EPRIs
+    tmp = [0 cumsum(dtime_epri(start_idx:stop_idx))*PRI];
+    tmp = tmp - tmp(good_time_idx) + utc_time_sod(start_idx-1+good_time_idx);
+    utc_time_sod_new(start_idx:stop_idx+1) = tmp;
+    
+    % Mark these records as good outputs
+    good_out_mask(start_idx:stop_idx+1) = true;
+    
+    % Find the next sequence
+    start_idx = stop_idx + find(mask(stop_idx+1:end) ~= 0,1);
+  end
+  
+  utc_time_sod = utc_time_sod_new;
+  
+  % Check for day wraps in the UTC time seconds of day
+  day_wrap_idxs = find(diff(utc_time_sod) < -50000);
+  day_wrap_offset = zeros(size(utc_time_sod));
+  for day_wrap_idx = day_wrap_idxs
+    day_wrap_offset(day_wrap_idx+1:end) = day_wrap_offset(day_wrap_idx+1:end) + 86400;
+  end
+  utc_time_sod = utc_time_sod + day_wrap_offset;
+  
+  radar_time = utc_time_sod;
 end
 
 %% Correlate GPS with radar data
@@ -244,8 +418,6 @@ if param.ct_file_lock
 else
   records.file_version = '1';
 end
-
-records.settings = [];
 
 % Create the first entry in the records.settings field
 records.settings.wfs_records = 1;

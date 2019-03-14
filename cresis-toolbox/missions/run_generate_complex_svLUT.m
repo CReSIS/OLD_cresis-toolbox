@@ -7,8 +7,23 @@
 if 1
   %% 2018_Greenland_P3
   % fn = output from coh_noise surf tracker
-  fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/surf_20180315_09_img_01.mat';
+  param = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'20180315_09',{'analysis_equal' 'analysis'});
   output_fn = '/scratch/rds/2018_Greenland_P3/CSARP_analysis/sv_table_2018_Greenland_P3.mat';
+  
+  param.collate_equal.in_dir = 'analysis';
+  param.collate_equal.motion_comp_en = true;
+  param.collate_equal.cmd_idx = 1;
+  param.collate_equal.chan_eq_en = true;
+  param.collate_equal.zero_surf_bin = [];
+  param.collate_equal.rlines = [];
+  
+  param.collate_equal.imgs = {[1]};
+  param.collate_equal.wf_adc_idxs = {{[1:7]}};
+  for wf = 1:8
+    params = ct_set_params(params,sprintf('radar.wfs(%d).Tsys',wf),[0.46 -4.66 0.14 -1.77 0 -2.63 -3.38 -69.66 -75.57 -75.45 -80.42 -80.49 -75.71 -77.69 -70.53]/1e9);
+    params = ct_set_params(params,sprintf('radar.wfs(%d).chan_equal_dB',wf),[6.8 -0.6 3 0.1 0 3.5 3.9 7 3.3 4.8 6.1 6.2 4.6 3.1 6.2]);
+    params = ct_set_params(params,sprintf('radar.wfs(%d).chan_equal_deg',wf),[-166.2 -142.7 177 -95.9 0 -25.9 -86.5 -27.4 128.1 41.6 -46.8 43 90.7 121.3 31.6]);
+  end
   
   % Transmit windowing
   Hchan = boxcar(7).';

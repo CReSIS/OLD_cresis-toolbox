@@ -50,16 +50,36 @@ function gps = read_gps_general_ascii(fn,param)
 %
 % % Example 4: University of Alaska Fairbanks, Chris Larsen, LIDAR CSV
 %
+%   TimeOfDay(UTC) PosLat(deg) PosLon(deg) PosHeight(m) AngleRoll(deg) AnglePitch(deg) Heading(deg)
+%   73652.044 59.51011043 -139.66689705 18.065 -0.853 8.523 206.700
+%   OR 
+%   73667.680 59.50971898 -139.66655443 17.868 -0.618 8.647 125.636 0.026  0.020 0.035 
+%
 % fn = '/cresis/snfs1/dataproducts/metadata/2017_Antarctica_Basler/20171216/171215_190034.pos';
 % param = [];
-% param.format_str = '%f%f%f%f%f%f%f';
-% param.types = {'sec','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg'};
+% param.format_str = '%f%f%f%f%f%f%f%f%f%f';
+% param.types = {'sec','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3'};
 % param.textscan = {};
 % param.headerlines = 1;
 % param.time_reference = 'utc';
 % param.year = 2017;
 % param.month = 12;
 % param.day = 15;
+% gps = read_gps_general_ascii(fn,param);
+%
+% % Example 5: BAS GPS (Tom Jordan)
+%
+%  Date Time      Lat_deg       Lon_deg   Hght_GRS80 rel_N rel_E rel_H  Roll Pitch Heading FAA Grav_Ap Grav_absolute Grav_normal
+% #----------------------------------------------------------------------------------------------------------------------------------------
+%  2019/01/29 11:54:55.000496  -74.858580645   -71.574839701  1357.8338     3.025     3.565     1.638  -1.06777  1.4354  15.4238       19.0985       -0.0000   982463.7213 982444.6228  
+%
+% fn = 'E:\tmp\deleteThis\Thw_GPS_18_19\03.txt';
+% param = [];
+% param.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
+% param.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
+% param.textscan = {};
+% param.headerlines = 5;
+% param.time_reference = 'utc';
 % gps = read_gps_general_ascii(fn,param);
 %
 % Author: John Paden

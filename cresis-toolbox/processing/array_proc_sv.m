@@ -1,7 +1,7 @@
 function [theta,sv] = array_proc_sv(Nsv, fc, yAnt, zAnt, roll, LUT, rx_paths)
 % [theta,sv] = array_proc_sv(Nsv, fc, yAnt, zAnt, roll, LUT, rx_paths)
 %
-% Function used in sv column of combine_chan_wf worksheet of param
+% Function specified in sv_fh column of array worksheet of param
 % spreadsheet for use with array_proc.
 %
 % Nsv = number of steering vectors to create

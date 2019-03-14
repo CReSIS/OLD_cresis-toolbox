@@ -39,7 +39,7 @@ end
 jsonStruct = struct('type','Feature','geometry',struct('type','LineString','coordinates',param.geometry.coordinates'),...
     'properties',param.properties);
 
-% CONVERT THE JSON STRUCUTRE TO A JSON STRING
+% CONVERT THE JSON STRUCTURE TO A JSON STRING
 try
     jsonStr = tojson(jsonStruct);
 catch ME

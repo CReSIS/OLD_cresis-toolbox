@@ -13,7 +13,7 @@ function mdata = add_icemask_surfacedem(param, mdata)
 %   mdata: 3D data file struct
 %     .Latitude
 %     .Longitude
-%     .Topography
+%     .Tomo
 %
 % Outputs:
 %   NONE
@@ -24,38 +24,49 @@ function mdata = add_icemask_surfacedem(param, mdata)
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
 %% Load Geotiff and Ice Mask
-
-% Load Geotiff projection information
-proj = geotiffinfo(param.tomo_collate.geotiff_fn);
-
-% Load Geotiff raster
-[DEM, R, ~] = geotiffread(param.tomo_collate.geotiff_fn);
+dem_res = 10;
+global gdem;
+if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
+  gdem = dem_class(param,dem_res);
+end
+gdem.set_res(dem_res);
 
 % Load ice mask
 if isfield(param.tomo_collate,'ice_mask_fn') && ~isempty(param.tomo_collate.ice_mask_fn)
-  ice_mask_all = load(param.tomo_collate.ice_mask_fn);
+  ice_mask_fn = ct_filename_gis(param,param.tomo_collate.ice_mask_fn);
+  [~,ice_mask_fn_name,ice_mask_fn_ext] = fileparts(ice_mask_fn);
+  if strcmpi(ice_mask_fn_ext,'.tif')
+    ice_mask_all.proj = geotiffinfo(ice_mask_fn);
+    [ice_mask_all.mask, R, ~] = geotiffread(ice_mask_fn);
+    ice_mask_all.X = R(3,1) + R(2,1)*(1:size(ice_mask_all.mask,2));
+    ice_mask_all.Y = R(3,2) + R(1,2)*(1:size(ice_mask_all.mask,1));
+  else
+    ice_mask_all = load(ice_mask_fn);
+  end
+else
+  ice_mask_all = [];
 end
 
 % sv_cal_fn: steering vector calibration filename
-sv_cal_fn = [];
-if isfield(param.tomo_collate,'sv_cal_fn')
-  sv_cal_fn = param.tomo_collate.sv_cal_fn;
+sv_cal_fn = [ct_filename_ct_tmp(param,'','tomo_collate','theta_cal') '.mat'];
+if ~exist(sv_cal_fn,'file')
+  sv_cal_fn = [];
 end
 
-%% Remove unused DEM data
-DEM_x = R(3,1) + R(2,1)*(0:size(DEM,2)-1);
-DEM_y = R(3,2) + R(1,2)*(0:size(DEM,1)-1);
+%% Create DEM
+Nx = length(mdata.GPS_time);
+dec_idxs = round(linspace(1,Nx,min(Nx,200)));
+physical_constants;
+[latb,lonb] = bufferm(mdata.Latitude(dec_idxs),mdata.Longitude(dec_idxs),param.tomo_collate.dem_guard/WGS84.semimajor*180/pi);
+gdem_str = sprintf('%s:%s:%s_%03d',param.radar_name,param.season_name,param.day_seg,param.load.frm);
+if ~strcmpi(gdem_str,gdem.name)
+  gdem.set_vector(latb,lonb,gdem_str);
+end
 
+gdem.set_vector(latb,lonb,gdem_str);
+[DEM,msl,ocean_mask,proj,DEM_x,DEM_y] = gdem.get_vector_mosaic(100);
+DEM(ocean_mask) = msl(ocean_mask);
 [mdata.x,mdata.y] = projfwd(proj,mdata.Latitude,mdata.Longitude);
-
-DEM_threshold = param.tomo_collate.dem_guard;
-DEM = DEM(DEM_y > min(mdata.y)-DEM_threshold & DEM_y < max(mdata.y)+DEM_threshold , ...
-  (DEM_x > min(mdata.x)-DEM_threshold & DEM_x < max(mdata.x)+DEM_threshold));
-DEM_x = DEM_x(DEM_x > min(mdata.x)-DEM_threshold & DEM_x < max(mdata.x)+DEM_threshold);
-DEM_y = DEM_y(DEM_y > min(mdata.y)-DEM_threshold & DEM_y < max(mdata.y)+DEM_threshold);
-
-%% Identify all bad values in the DEM
-DEM(DEM == param.tomo_collate.geotiff_bad_value) = NaN;
 
 %% Interpolate at all the bad value locations using the good data
 bad_idxs = find(isnan(DEM));
@@ -81,126 +92,15 @@ if 0
 end
 
 DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
-DEM_y_mesh= repmat(DEM_y',[1 size(DEM,2)]);
-
-%% Update ocean values with mean sea surface if ocean mask shapefile provided
-if any(any(isnan(DEM))) && ~isempty(param.tomo_collate.ocean_mask_fn)
-
-  % Convert border points of DEM to geodetic coordinates
-  DEM_lat = cell(4,1);
-  DEM_lon = cell(4,1);
-  [DEM_lat{1},DEM_lon{1}] = projinv(proj,DEM_x,DEM_y(1)*ones(1,length(DEM_x)));
-  [DEM_lat{2},DEM_lon{2}] = projinv(proj,DEM_x,DEM_y(end)*ones(1,length(DEM_x)));
-  [DEM_lat{3},DEM_lon{3}] = projinv(proj,DEM_x(1)*ones(1,length(DEM_y)),DEM_y);
-  [DEM_lat{4},DEM_lon{4}] = projinv(proj,DEM_x(end)*ones(1,length(DEM_y)),DEM_y);
-  % Find geodetic bounding box of DEM from border points
-  DEM_lims = [min([DEM_lat{:}]),min([DEM_lon{:}]);max([DEM_lat{:}]),max([DEM_lon{:}])];
-  
-  % Load ocean mask shape file
-  ocean_shp = shaperead(param.tomo_collate.ocean_mask_fn);
-  
-  % Mask of polygons within DEM geodetic bounding box
-  OC_bb_geo = [ocean_shp(:).BoundingBox];
-  bb_mask = ~(OC_bb_geo(1,2:2:end)>DEM_lims(2,1) | OC_bb_geo(2,2:2:end)<DEM_lims(1,1) ...
-    | OC_bb_geo(1,1:2:end)>DEM_lims(2,2) | OC_bb_geo(2,1:2:end)<DEM_lims(1,2));
-  
-  % If any polygons are in the DEM limits
-  if any(bb_mask)    
-    % Further restrict the polygons by checking for bounding box overlap in
-    % projected coordinates
-    ocean_shp = ocean_shp(bb_mask);
-    poly_x = cell(0);
-    poly_y = cell(0);
-    for shp_idx = 1:length(ocean_shp)
-      % convert polygon to projected coordinates
-      [x,y] = projfwd(proj,ocean_shp(shp_idx).Y,ocean_shp(shp_idx).X);
-      % if polygon is within projected bounding box
-      if min(x)<max(DEM_x) && max(x)>min(DEM_x) ...
-          && min(y)<max(DEM_y) && max(y)>min(DEM_y)
-        % add polygon
-        poly_x{end+1} = [x,nan];
-        poly_y{end+1} = [y,nan];
-      end
-    end
-    
-    % Create ocean mask to determine which points like in the ocean
-    if 1
-      ocean_mask = true(size(DEM));
-    else
-      % Only update NaN points
-      ocean_mask = isnan(DEM);
-    end
-    for poly_idx = 1:length(poly_x)
-      % find bounding box of polygon
-      poly_bb = [min([poly_x{poly_idx}]),min([poly_y{poly_idx}]);max([poly_x{poly_idx}]),max([poly_y{poly_idx}])];
-      
-      % Mask showing which DEM points are within the polygon bounding box
-      if 1
-        DEM_bb_mask = find((~(DEM_x_mesh<poly_bb(1,1) | DEM_x_mesh>poly_bb(2,1) ...
-          | DEM_y_mesh<poly_bb(1,2) | DEM_y_mesh>poly_bb(2,2))));
-      else
-        % Only update NaN points
-        DEM_bb_mask = find((~(DEM_x_mesh<poly_bb(1,1) | DEM_x_mesh>poly_bb(2,1) ...
-          | DEM_y_mesh<poly_bb(1,2) | DEM_y_mesh>poly_bb(2,2))) & isnan(DEM));
-      end
-      
-      % Mask showing which DEM points are in polygon (on land)
-      land_mask_tmp = inpolygon(DEM_x_mesh(DEM_bb_mask),DEM_y_mesh(DEM_bb_mask),[poly_x{poly_idx}],[poly_y{poly_idx}]);
-      ocean_mask(DEM_bb_mask(land_mask_tmp)) = false;
-    end
-    
-    % If any points lie in the ocean, update these points with mean sea
-    % level.
-    if any(ocean_mask(:))
-      % Load global sea surface
-      sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
-      sea_surface.lat = ncread(sea_surface.fn,'lat');
-      sea_surface.lon = ncread(sea_surface.fn,'lon');
-      sea_surface.elev = ncread(sea_surface.fn,'mss').';
-      
-      % Convert DEM coordinates to geodetic coordinates
-      [DEM_lat_mesh,DEM_lon_mesh] = projinv(proj,DEM_x_mesh,DEM_y_mesh);
-      % Interpolate sea elevation to ocean NaN points
-      sea_elev = interp2(sea_surface.lat,sea_surface.lon-180,sea_surface.elev.',DEM_lat_mesh(ocean_mask),DEM_lon_mesh(ocean_mask));
-      % Replace NaN values in DEM with mean sea surface values
-      DEM(ocean_mask) = sea_elev;
-    end
-    
-    % Debug plots
-    if 0
-      figure; clf;
-      imagesc(DEM_x,DEM_y,DEM);
-      hold on;
-      for idx = 1:length(poly_x)
-        plot(poly_x{idx},poly_y{idx},'r');
-      end
-      plot(mdata.x,mdata.y,'k');
-      set(gca,'YDir','normal');
-      keyboard
-    end
-  end
-  
-end
-
-%% Create a point cloud from the DEM
-if 0
-  figure(1); clf;
-  h_img = imagesc(DEM_x,DEM_y, DEM);
-  set(gca,'YDir','normal');
-  hold on;
-  plot(mdata.x,mdata.y,'k.','LineWidth',2);
-  plot(mdata.x(1),mdata.y(1),'ro','LineWidth',2);
-  imagesc(OM_x,OM_y,max(max(DEM))*ones(length(OM_y),length(OM_x)));
-  hold off;
-end
+DEM_y_mesh= repmat(DEM_y,[1 size(DEM,2)]);
 
 %% First slice
 Nx = length(mdata.GPS_time);
 
-theta = mdata.param_combine.array_param.theta;
+theta = mdata.Tomo.theta(:,1); % Theta is constant in each column
 if ~isempty(sv_cal_fn)
   theta_cal = load(sv_cal_fn);
-  theta = theta_cal.theta;
+  theta = interp1(theta_cal.theta_original, theta_cal.theta, theta, 'linear', 'extrap');
   theta_cal = theta;
 end
 
@@ -216,8 +116,8 @@ end
   
 DEM_coverage_warning = false;
 for rline = 1:Nx
-  if ~mod(rline-1,500)
-    fprintf('  Ice-DEM-Mask %d of %d (%s)\n', rline, Nx, datestr(now));
+  if ~mod(rline-1,10^floor(log10(Nx)-1))
+    fprintf('  %s %d of %d (%s)\n', mfilename, rline, Nx, datestr(now));
   end
   
   dem_guard = param.tomo_collate.dem_guard;
@@ -242,12 +142,12 @@ for rline = 1:Nx
   physical_constants;
   [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
   
-  origin = mdata.param_combine.array_param.fcs{1}{1}.origin(:,rline);
+  origin = mdata.param_array.array_proc.fcs{1}{1}.origin(:,rline);
   
   % Convert from ECEF to FCS/SAR
-  Tfcs_ecef = [mdata.param_combine.array_param.fcs{1}{1}.x(:,rline), ...
-    mdata.param_combine.array_param.fcs{1}{1}.y(:,rline), ...
-    mdata.param_combine.array_param.fcs{1}{1}.z(:,rline)];
+  Tfcs_ecef = [mdata.param_array.array_proc.fcs{1}{1}.x(:,rline), ...
+    mdata.param_array.array_proc.fcs{1}{1}.y(:,rline), ...
+    mdata.param_array.array_proc.fcs{1}{1}.z(:,rline)];
   Tecef_fcs = inv(Tfcs_ecef);
   
   tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];
@@ -272,7 +172,7 @@ for rline = 1:Nx
   y = DEM_fcs_y(slice_mask);
   z = DEM_fcs_z(slice_mask);
   
-  if(numel(x)>=3)
+  if (numel(x)>=3)
     faces = delaunay(double(x),double(y));
     vertices = [double(x).' double(y).' double(z).'];  % vertices stored as Nx3 matrix
     vert1 = vertices(faces(:,1),:);
@@ -337,11 +237,12 @@ for rline = 1:Nx
   end
   
   if 0
-    imagesc([],mdata.Time,lp(mdata.Topography.img(:,:,rline)))
+    figure(1); clf;
+    imagesc([],mdata.Time,lp(mdata.Tomo.img(:,:,rline)))
     hold on
-    plot(twtt,'k')
+    plot(twtt(:,rline),'k')
     hold off
-    pause
+    keyboard
   end
   
 end
@@ -355,19 +256,24 @@ end
 %% Add DEM ground truth and ice mask to the echogram files
 
 % in_dir: Directory where 3D image files are at
-in_dir = ct_filename_out(param,param.tomo_collate.in_dir);
+in_dir = ct_filename_out(param,param.tomo_collate.in_path);
     
 % combined_fn: Filename with 3D data
-combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.proc.frm));
+combined_fn = fullfile(in_dir,sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm));
 
 ice_mask = logical(ice_mask);
-save(combined_fn,'-append','twtt','ice_mask','theta');
+if param.ct_file_lock
+  file_version = '1L';
+else
+  file_version = '1';
+end
+save(combined_fn,'-append','twtt','ice_mask','theta','file_version');
 
 if exist('theta_cal','var')
-  save(combined_fn,'-v7.3','-append','theta_cal');
+  save(combined_fn,'-append','theta_cal');
 else
   theta_cal = theta;
-  save(combined_fn,'-v7.3','-append','theta_cal');
+  save(combined_fn,'-append','theta_cal');
 end
 
 mdata.theta = theta;

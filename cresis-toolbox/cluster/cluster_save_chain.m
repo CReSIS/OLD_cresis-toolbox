@@ -27,7 +27,14 @@ function [chain_fn,chain_id] = cluster_save_chain(ctrl_chain,chain_id,print_mode
 %   cluster_update_batch, cluster_update_task
 
 %% Input Checks
-if isempty(ctrl_chain)
+good_chain_idx = [];
+for chain_idx = 1:length(ctrl_chain)
+  if ~isempty(ctrl_chain{chain_idx})
+    good_chain_idx = chain_idx;
+    break;
+  end
+end
+if isempty(ctrl_chain) || isempty(good_chain_idx)
   fprintf('ctrl_chain is empty. Nothing to save.\n');
   chain_fn = '';
   chain_id = [];
@@ -39,7 +46,7 @@ if nargin < 3 || isempty(print_mode)
 end
 
 %% Determine the new chain ID and chain filename
-data_location = ctrl_chain{1}{1}.cluster.data_location;
+data_location = ctrl_chain{good_chain_idx}{1}.cluster.data_location;
 
 chain_fns = get_filenames(data_location,'chain_','','',struct('type','f'));
 
@@ -93,24 +100,24 @@ if ~exist(chain_fn_dir,'dir')
   mkdir(chain_fn_dir)
 end
 
+% Build directory dependency list
+file_deps = {chain_fn};
+for chain=1:numel(ctrl_chain)
+  for stage=1:numel(ctrl_chain{chain})
+    file_deps{end+1} = ctrl_chain{chain}{stage}.batch_dir;
+  end
+end
+
 % Save the chain
-save(chain_fn,'ctrl_chain');
+save(chain_fn,'ctrl_chain','file_deps');
 
 % Return the new chain ID
 chain_id = new_chain_id;
 
 % Print information to load and run
 if print_mode
-  fprintf('Saving chain %d. Files/directories required:\n', chain_id);
-  fprintf('%s', chain_fn);
-  for chain=1:numel(ctrl_chain)
-    for stage=1:numel(ctrl_chain{chain})
-      fprintf(' %s', ctrl_chain{chain}{stage}.batch_dir);
-    end
-  end
-  fprintf('\n\n');
-  
-  fprintf('%% Commands to load and run:\n');
+  fprintf('Saving chain %d to %s\n\n\n', chain_id, chain_fn);
+  fprintf('%% Commands to load and run from any computer (chain file contains list of file dependencies):\n');
   fprintf('[ctrl_chain,chain_fn] = cluster_load_chain(%d);\n', chain_id);
   fprintf('ctrl_chain = cluster_run(ctrl_chain);\n\n');
 end

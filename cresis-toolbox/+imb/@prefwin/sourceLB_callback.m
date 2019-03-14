@@ -34,10 +34,10 @@ if isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Remo
   
 elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Add')
   
-  prompt = {'Enter new sources (E.g. CSARP_standard):'};
+  prompt = {'Enter new sources (E.g. standard):'};
   dlg_title = 'Input new sources';
   num_lines = 1;
-  def = {'CSARP_'};
+  def = {''};
   answer = inputdlg(prompt,dlg_title,num_lines,def);
   
   if ~isempty(answer) && ~isempty(answer{1}) && ischar(answer{1})

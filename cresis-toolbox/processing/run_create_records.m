@@ -14,13 +14,9 @@ param_override = [];
 params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
 % params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'));
 
-% Syntax for running a specific segment and frame by overriding parameter spreadsheet values
-%params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'20161024_05');
+% Example to run a specific segment and frame by overriding parameter spreadsheet values
 % params = ct_set_params(params,'cmd.records',0);
 % params = ct_set_params(params,'cmd.records',1,'day_seg','20180817_01');
-% params = ct_set_params(params,'cmd.frms',[1]);
-
-param_override.ct_file_lock = 1;
 
 dbstop if error;
 

@@ -99,6 +99,7 @@ use_builtin_fdep = str2double(matlab_ver.Version) >= 8.6;
 
 cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
 cluster_job_fn = fullfile(cluster_job_fn_dir,'cluster_job.m');
+cluster_job_bin_fn = fullfile(cluster_job_fn_dir,'cluster_job');
 cluster_job_fn_compiled = fullfile(cluster_job_fn_dir,'run_cluster_job.sh');
 
 if ~force_compile
@@ -173,9 +174,9 @@ end
 
 if force_compile
   if ctrl.cluster.mem_to_ppn
-    cmd = sprintf('mcc -m -d %s -R ''-nodisplay'' %s', cluster_job_fn_dir, cluster_job_fn);
+    cmd = sprintf('mcc -m -d %s %s', cluster_job_fn_dir, cluster_job_fn);
   else
-    cmd = sprintf('mcc -m -d %s -R ''-singleCompThread,-nodisplay'' %s', cluster_job_fn_dir, cluster_job_fn);
+    cmd = sprintf('mcc -m -d %s -R ''-singleCompThread'' %s', cluster_job_fn_dir, cluster_job_fn);
   end
   
   for dep_idx = 1:length(hidden_depend_funs)
@@ -193,6 +194,7 @@ if force_compile
   end
   
   fprintf('Start Compiling %s\n\n', datestr(now));
+  %delete(cluster_job_bin_fn);
   fprintf('  %s\n', cmd);
   if strcmpi(ctrl.cluster.mcc,'system')
     status = system(cmd);

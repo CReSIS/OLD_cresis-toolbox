@@ -1,7 +1,7 @@
 % script generate_complex_svLUT.m
 %
 % Generates complex steering vector lookup table using roll data collected
-% with an array system. First run analysis.surf (coh_noise_tracker) on the
+% with an array system. First run collate_equal (coh_noise_tracker) on the
 % dataset and then run this function. Transmit equalization mode should be
 % used (one transmitter at a time).
 %
@@ -16,46 +16,87 @@ physical_constants;
 % Only supports a single image right now
 img = 1;
 
-%% Load and prepare data
-
-% Load data
-data = load(fn);
-
-% Load param file
-param_fn = ct_filename_param(sprintf('%s_param_%s.xls', ...
-  ct_output_dir(data.param_analysis.radar_name),data.param_analysis.season_name));
-param = read_param_xls(param_fn,data.param_analysis.day_seg);
-param.analysis = analysis;
-param.analysis.surf.wf_adc_list = tx_ant;
-
-% Select the wf-adc pairs that will be used
-if ~isfield(param.analysis.surf,'wf_adc_list')
-  param.analysis.surf.wf_adc_list = 1:size(data.param_analysis.analysis.imgs{img},1);
+%% Load waveform data
+% =====================================================================
+img = param.collate_equal.imgs{imgs_idx}(1);
+wf_adcs = [];
+for sub_img_idx = 1:length(param.collate_equal.imgs{imgs_idx})
+  sub_img = param.collate_equal.imgs{imgs_idx}(sub_img_idx);
+  
+  if isempty(param.collate_equal.wf_adc_idxs)
+    wf_adc_idxs = 1:size(param.analysis.imgs{sub_img},1);
+  else
+    wf_adc_idxs = param.collate_equal.wf_adc_idxs{imgs_idx}{sub_img_idx};
+  end
+  for wf_adc_idx = wf_adc_idxs
+    wf = param.analysis.imgs{sub_img}(wf_adc_idx,1);
+    adc = param.analysis.imgs{sub_img}(wf_adc_idx,2);
+    wf_adcs = [wf_adcs; [wf adc]];
+    
+    % Load the waveform file
+    fn_dir = fileparts(ct_filename_out(param,param.collate_equal.in_dir));
+    fn = fullfile(fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+    fprintf('Loading %s (%s)\n', fn, datestr(now));
+    waveform = load(fn);
+    if wf_adc_idx == wf_adc_idxs(1)
+      gps_time = waveform.gps_time;
+      lat = waveform.lat;
+      lon = waveform.lon;
+      elev = waveform.elev;
+      roll = waveform.roll;
+      pitch = waveform.pitch;
+      heading = waveform.heading;
+      time_rng = waveform.time_rng;
+      wf_data = waveform.wf_data;
+    else
+      gps_time(end+1,:) = waveform.gps_time;
+      lat(end+1,:) = waveform.lat;
+      lon(end+1,:) = waveform.lon;
+      elev(end+1,:) = waveform.elev;
+      roll(end+1,:) = waveform.roll;
+      pitch(end+1,:) = waveform.pitch;
+      heading(end+1,:) = waveform.heading;
+      time_rng(:,:,end+1) = waveform.time_rng;
+      wf_data(:,:,end+1) = waveform.wf_data;
+    end
+  end
 end
-data.gps_time = data.gps_time(param.analysis.surf.wf_adc_list,:);
-data.lat = data.lat(param.analysis.surf.wf_adc_list,:);
-data.lon = data.lon(param.analysis.surf.wf_adc_list,:);
-data.elev = data.elev(param.analysis.surf.wf_adc_list,:);
-data.roll = data.roll(param.analysis.surf.wf_adc_list,:);
-data.pitch = data.pitch(param.analysis.surf.wf_adc_list,:);
-data.heading = data.heading(param.analysis.surf.wf_adc_list,:);
-data.surf_vals = data.surf_vals(:,:,param.analysis.surf.wf_adc_list);
+dt = waveform.dt;
+fc = waveform.fc;
+param.gps_source = waveform.param_records.gps_source;
+
+% Taper off end of record to reduce circular convolution effects that may
+% show up during time delay compensation.
+wrap_around_window = hanning(10);
+wrap_around_window = [wrap_around_window(6:10); 0];
+wf_data(end-5:end,:,:) = bsxfun(@times,wf_data(end-5:end,:,:), ...
+  wrap_around_window);
+
+% Determine the zero_surf_binwhere the surface (or desired calibration
+% target) return should be.
+if ~isempty(param.collate_equal.zero_surf_bin);
+  % Hard coded zero surf bin
+  zero_surf_bin = param.collate_equal.zero_surf_bin;
+else
+  if isnumeric(cmd.start_time)
+    error('You must specify param.collate_equal.zero_surf_bin because a hard coded cmd.start_time was used.');
+  elseif isstruct(cmd.start_time)
+    s = 0;
+    eval(cmd.start_time.eval.cmd);
+  elseif ischar(cmd.start_time)
+    s = 0;
+    eval(cmd.start_time);
+  end
+  zero_surf_bin = round(1-s/dt);
+end
 
 % Dimensions
-Nt = size(data.surf_vals,1);
-Nx = size(data.surf_vals,2);
-Nc = size(data.surf_vals,3);
-
-wf = data.param_analysis.analysis.imgs{1}(param.analysis.surf.wf_adc_list(1),1);
-source = 0;
-eval(data.param_analysis.analysis.surf.layer_params.eval.cmd);
-zero_surf_bin = round(1-source/data.wfs(wf).dt);
-if exist('zero_surf_bin_override','var') && ~isempty(zero_surf_bin_override)
-  zero_surf_bin = zero_surf_bin_override;
-end
+Nt = size(wf_data,1);
+Nx = size(wf_data,2);
+Nc = size(wf_data,3);
 
 % Determine which range lines will be used
-rlines = param.analysis.surf.rlines;
+rlines = param.collate_equal.rlines;
 all_rlines = 1:Nx;
 if isempty(rlines)
   rlines = all_rlines;
@@ -65,26 +106,25 @@ end
 
 % Undo any transmit windowing that was applied
 for wf_adc_idx = 1:Nc
-  data.surf_vals(:,:,wf_adc_idx) = data.surf_vals(:,:,wf_adc_idx) ./ Hchan(wf_adc_idx);
+  wf_data(:,:,wf_adc_idx) = wf_data(:,:,wf_adc_idx) ./ Hchan(wf_adc_idx);
 end
 
 if 0
-  close all
-  %% DEBUG
+  % DEBUG
   surf_bins = zero_surf_bin;
   figure(1); clf;
   subplot(3,1,1);
-  plot(lp(data.surf_vals(surf_bins,:,1)),'.')
+  plot(lp(wf_data(surf_bins,:,1)),'.')
   a1 = gca;
   subplot(3,1,2);
-  plot(angle(data.surf_vals(surf_bins,:,1) .* conj(data.surf_vals(surf_bins,:,5)) ),'.')
+  plot(angle(wf_data(surf_bins,:,1) .* conj(wf_data(surf_bins,:,5)) ),'.')
   a2 = gca;
   subplot(3,1,3);
-  plot(data.roll.'*180/pi);
+  plot(roll.'*180/pi);
   a3 = gca;
   linkaxes([a1 a2 a3],'x');
   figure(2); clf;
-  imagesc(lp(data.surf_vals(:,:,1)));
+  imagesc(lp(wf_data(:,:,1)));
   return;
 end
 
@@ -92,57 +132,58 @@ end
 % =========================================================================
 
 %% 1. Create the wf-adc to receiver path mapping
-rx_paths = zeros(size(param.analysis.surf.wf_adc_list));
+rx_paths = zeros(1,size(wf_adcs,1));
 for wf_adc_idx = 1:Nc
-  wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),1);
-  adc = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(wf_adc_idx),2);
+  wf = wf_adcs(wf_adc_idx,1);
+  adc = wf_adcs(wf_adc_idx,2);
   rx_paths(wf_adc_idx) = param.radar.wfs(wf).rx_paths(adc);
 end
 
 %% 2. Determine time delay and phase correction for position and channel equalization
 % drange: increased range is positive
 % dtime: increased range is positive
-dtime = zeros(size(data.elev));
-if param.analysis.surf.motion_comp.en
-  if isempty(data.param_analysis.get_heights.lever_arm_fh)
-    error('No leverarm was used during analysis surf, cannot enable motion_comp');
+% Determine time delay and phase correction for position and channel equalization
+dtime = zeros(size(elev));
+if param.collate_equal.motion_comp_en
+  if isempty(waveform.param_analysis.radar.lever_arm_fh)
+    error('No leverarm was used during analysis waveform, cannot enable motion_comp');
   end
-  drange = bsxfun(@minus,data.elev,data.elev(ref_ant,:));
+  drange = bsxfun(@minus,elev,mean(elev));
   dtime = dtime + drange/(c/2);
 end
-if param.analysis.surf.chan_eq.en
+if param.collate_equal.chan_eq_en
   if isfield(param.radar.wfs(wf),'Tadc_adjust')
     new_Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
   else
     new_Tadc_adjust = 0;
   end
-  if isfield(data.param_analysis.radar.wfs(wf),'Tadc_adjust')
-    old_Tadc_adjust = data.param_analysis.radar.wfs(wf).Tadc_adjust;
+  if isfield(waveform.param_analysis.radar.wfs(wf),'Tadc_adjust')
+    old_Tadc_adjust = waveform.param_analysis.radar.wfs(wf).Tadc_adjust;
   else
     old_Tadc_adjust = 0;
   end
-  Tsys = param.radar.wfs(wf).Tsys(rx_paths) - data.param_analysis.radar.wfs(wf).Tsys(rx_paths) ...
+  Tsys = param.radar.wfs(wf).Tsys(rx_paths) - waveform.param_analysis.radar.wfs(wf).Tsys(rx_paths) ...
     - (new_Tadc_adjust - old_Tadc_adjust);
   dtime = bsxfun(@plus, dtime, Tsys.');
   
   Tsys = param.radar.wfs(wf).Tsys(rx_paths);
 else
-  Tsys = data.param_analysis.radar.wfs(wf).Tsys(rx_paths);
+  Tsys = waveform.param_analysis.radar.wfs(wf).Tsys(rx_paths);
 end
 dtime = permute(dtime,[3 2 1]);
 
 if 0
   fig_offset = 10;
   chan_mapping = [1:Nc];
-  rbin = zero_surf_bin; % Surface bin (look at imagesc(lp(data.surf_vals(:,:,1))))
+  rbin = zero_surf_bin; % Surface bin (look at imagesc(lp(wf_data(:,:,1))))
   figure(1); clf;
-  imagesc(squeeze(angle(exp(-1i*2*pi*bsxfun(@times,data.wfs(wf).fc,dtime)))).');
+  imagesc(squeeze(angle(exp(-1i*2*pi*bsxfun(@times,fc,dtime)))).');
   h_axes = gca;
   title('Correction');
   
   figure(fig_offset+2); clf;
-  myref = data.surf_vals(rbin,:,chan_mapping(ref_ant));
-  dd=(fir_dec(squeeze(bsxfun(@times,data.surf_vals(rbin,:,chan_mapping),conj(myref))).',hanning(5).',1) );
+  myref = wf_data(rbin,:,chan_mapping(ref_ant));
+  dd=(fir_dec(squeeze(bsxfun(@times,wf_data(rbin,:,chan_mapping),conj(myref))).',hanning(5).',1) );
   dd = bsxfun(@times,dd, exp(-j*angle(mean(dd,2))));
   var(angle(dd).')
   imagesc(angle(dd));
@@ -151,9 +192,9 @@ if 0
   linkaxes(h_axes,'xy');
   
   figure(4); clf;
-  plot(data.roll(1,:).'*180/pi);
+  plot(roll(1,:).'*180/pi);
   hold on;
-  plot(data.pitch(1,:).'*180/pi);
+  plot(pitch(1,:).'*180/pi);
   legend('Roll','Pitch');
 
   % Re-arrange correction terms
@@ -161,45 +202,32 @@ if 0
 end
 
 %% 3. Apply time delay, phase, and amplitude correction
-df = 1/(Nt*data.wfs(wf).dt);
-freq = data.wfs(wf).fc + df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
-data.surf_vals = ifft(fft(data.surf_vals) .* exp(1i*2*pi*bsxfun(@times,freq,dtime)));
+df = 1/(Nt*dt);
+freq = fc + df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
+wf_data = ifft(fft(wf_data) .* exp(1i*2*pi*bsxfun(@times,freq,dtime)));
 
-if 0
-  %% DEBUG CODE
-  figure(fig_offset+3); clf;
-  myref = data.surf_vals(zero_surf_bin,:,5);
-  dd=(fir_dec(squeeze(bsxfun(@times,data.surf_vals(zero_surf_bin,:,:),conj(myref))).',hanning(5).',1) );
-  dd = bsxfun(@times,dd, exp(-j*angle(mean(dd,2))));
-  var(angle(dd(:,1:340)).')
-  imagesc(angle(dd));
-  title('Angle Estimate After Correction');
-  
-  return;
-end
-
-if param.analysis.surf.chan_eq.en
+if param.collate_equal.chan_eq_en
   % Only apply the relative offset between what has already been applied
   % during analysis surf and the new coefficients
   chan_equal_deg = param.radar.wfs(wf).chan_equal_deg(rx_paths) ...
-    - data.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths);
+    - waveform.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths);
   chan_equal_dB = param.radar.wfs(wf).chan_equal_dB(rx_paths) ...
-    - data.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
-  data.surf_vals = bsxfun(@times, data.surf_vals, ...
+    - waveform.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
+  wf_data = bsxfun(@times, wf_data, ...
     permute(exp(-1i*chan_equal_deg/180*pi) ./ 10.^(chan_equal_dB/20),[1 3 2]));
   
   chan_equal_deg = param.radar.wfs(wf).chan_equal_deg(rx_paths);
   chan_equal_dB = param.radar.wfs(wf).chan_equal_dB(rx_paths);
 else
-  chan_equal_deg = data.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths);
-  chan_equal_dB = data.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
+  chan_equal_deg = waveform.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths);
+  chan_equal_dB = waveform.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
 end
 
 %% Retrack surface and circshift data so that surface lies in range bin 6
 % =========================================================================
 ref_bin = 6;
 surf_bin = NaN*zeros(1,Nx);
-ml_data = lp(fir_dec(abs(mean(data.surf_vals,3)).^2,ones(1,5)/5,1));
+ml_data = lp(fir_dec(abs(mean(wf_data,3)).^2,ones(1,5)/5,1));
 for rline = 1:Nx
   cur_threshold = max([ml_data(1,rline)+7; ml_data(:,rline)-13]);
   tmp = find(ml_data(:,rline) > cur_threshold,1);
@@ -220,18 +248,18 @@ if debug_level == 2
   title('Multilooked data with surface tracker');
   h_axes = gca;
   figure(3); clf;
-  plot(data.roll(1,:)*180/pi)
+  plot(roll(1,:)*180/pi)
   linkaxes([h_axes gca],'x');
 end
 
 for rline = 1:Nx
   if ~isnan(surf_bin(rline))
-    data.surf_vals(:,rline,:) = circshift(data.surf_vals(:,rline,:),[ref_bin-surf_bin(rline) 0 0]);
+    wf_data(:,rline,:) = circshift(wf_data(:,rline,:),[ref_bin-surf_bin(rline) 0 0]);
   end
 end
 
 if debug_level >= 1
-  ml_data = lp(fir_dec(abs(mean(data.surf_vals,3)).^2,ones(1,5)/5,1));
+  ml_data = lp(fir_dec(abs(mean(wf_data,3)).^2,ones(1,5)/5,1));
   number_h_fig = 1; figure(number_h_fig); clf;
   imagesc(ml_data);
   xlabel('Range line');
@@ -247,7 +275,7 @@ end
 % =========================================================================
 % Bin all the roll measurements into 1 degree large bins
 % Determine the roll angle bins that we will put each measurement into
-[roll_binned,~,roll_idxs] = unique(round((data.roll(1,rlines))*180/pi));
+[roll_binned,~,roll_idxs] = unique(round((roll(1,rlines))*180/pi));
 
 figure(2); clf;
 hist(roll_binned(roll_idxs), -90:90);
@@ -262,12 +290,9 @@ sv_table = zeros(Nc, length(roll_binned));
 power_table = zeros(size(sv_table));
 
 for ant = 1:Nc
-  % Eventually need to deal with channels that are not EPRI synchronized
-  %[epri rlines] = intersect(data.epri{ant_idx}, epri);
-  
-  powers = max(abs(double(data.surf_vals(ref_bin+(-1:3),rlines,ant))).^2,[],1);
-  complex_vals = mean(data.surf_vals(ref_bin+[0:0],rlines,ant) ...
-    .* exp(-1i*angle(data.surf_vals(ref_bin+[0:0],rlines,ref_ant))),1);
+  powers = max(abs(double(wf_data(ref_bin+(-1:3),rlines,ant))).^2,[],1);
+  complex_vals = mean(wf_data(ref_bin+[0:0],rlines,ant) ...
+    .* exp(-1i*angle(wf_data(ref_bin+[0:0],rlines,ref_ant))),1);
   
   % Average all the data falling within each angle/roll bin
   for roll_idx = 1:length(roll_binned)
@@ -286,7 +311,7 @@ if 0
   imagesc(roll_binned,[],angle(sv_table));
   colorbar;
   figure(30); clf;
-  imagesc(lp(data.surf_vals(:,:,1) ))
+  imagesc(lp(wf_data(:,:,1) ))
   return;
 end
 sv_table = sqrt(power_table) .* exp(1i*angle(sv_table));
@@ -398,13 +423,13 @@ end
 physical_constants;
 clear phase_centers;
 for ant = 1:Nc
-  wf = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(ant),1);
-  adc = data.param_analysis.analysis.imgs{img}(param.analysis.surf.wf_adc_list(ant),2);
+  wf = wf_adcs(ant,1);
+  adc = wf_adcs(ant,2);
   tx_weights = param.radar.wfs(wf).tx_weights;
   rx_chan = param.radar.wfs(wf).rx_paths(adc);
-  phase_centers(:,ant) = lever_arm(data.param_analysis, tx_weights, rx_chan);
+  phase_centers(:,ant) = lever_arm(param, tx_weights, rx_chan);
 end
-[theta,sv_ideal] = array_proc_sv({'theta' roll_binned/180*pi}, data.wfs(wf).fc, phase_centers(2,:).', phase_centers(3,:).');
+[theta,sv_ideal] = array_proc_sv({'theta' roll_binned/180*pi}, fc, phase_centers(2,:).', phase_centers(3,:).');
 sv_ideal = bsxfun(@(x,y) x./y, sv_ideal, sv_ideal(ref_ant,:));
 rx_equalization = sv_ideal(:,nadir_idx);
 sv_ideal = bsxfun(@(x,y) x./y, sv_ideal, rx_equalization);

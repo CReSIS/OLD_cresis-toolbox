@@ -8,8 +8,8 @@
 % See also picker.m
 
 clear param;
-param.radar_name = 'snow';
-param.season_name = '2014_Greenland_P3';
+param.radar_name = 'accum3';
+param.season_name = '2018_Antarctica_TObas';
 
 
 % Set to empty if not in the post directory, otherwise set to 'CSARP_post'
@@ -22,7 +22,7 @@ source_data{end+1} = fullfile(ct_filename_out(param,'','',1),post_dir,'CSARP_mvd
 source_data{end+1} = fullfile(ct_filename_out(param,'','',1),post_dir,'CSARP_qlook');
 
 % param.source_data_mask = {'20110406'};
-param.day_seg_mask = '20140326*';
+param.day_seg_mask = '*';
 
 layer_data = fullfile(ct_filename_out(param,'','',1),post_dir,'CSARP_layerData');
 

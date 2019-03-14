@@ -66,10 +66,10 @@ surface = zeros(1,size(data,2));
 if isfield(surf,'dem') && any(isfinite(surf.dem))
   dem_low = round(surf.dem - surf.max_diff);
   dem_low(dem_low < 1) = 1;
-  dem_low(dem_low > size(data,1)) = 1;
+  dem_low(dem_low > size(data,1)) = size(data,1);
   dem_high = round(surf.dem + surf.max_diff);
   dem_high(dem_high < 1) = 1;
-  dem_high(dem_high > size(data,1)) = 1;
+  dem_high(dem_high > size(data,1)) = size(data,1);
   for idx=1:length(start_idxs)
     rline = start_idxs(idx);
     [tmp surfBins_init(idx)] = max(data(dem_low(rline):dem_high(rline),rline));

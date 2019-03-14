@@ -173,12 +173,13 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 % =========================================================================
 param.load.raw_data = false;
 param.load.presums = param.qlook.presums;
-[hdr,data] = data_load(param,records,wfs,states);
+[hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
-[hdr,data] = data_pulse_compress(param,hdr,wfs,data);
+[hdr,data] = data_pulse_compress(param,hdr,data);
 
 param.load.motion_comp = param.qlook.motion_comp;
+param.load.combine_rx = true;
 [hdr,data] = data_merge_combine(param,hdr,data);
 
 %% Unfocussed SAR processing (stacking only)
@@ -197,15 +198,70 @@ hdr.surface = fir_dec(hdr.surface, param.qlook.B_filter, ...
 
 for img = 1:length(param.load.imgs)
   
-  if param.qlook.motion_comp
-    phase_weights = exp(-1i * hdr.records{img}.elev * 4*pi*hdr.freq{img}(1)/c);
-    data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
-      param.qlook.dec, rline0, Nidxs, true, phase_weights);
-  else
-    data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
-      param.qlook.dec, rline0, Nidxs);
+  % Remove elevation variations
+  if param.load.motion_comp && ~isempty(hdr.freq{img})
+    % Reference time delay
+    ref_td = max(hdr.ref.elev) / (c/2);
+    % Relative time delay to reference time delay
+    relative_td = hdr.records{img}.elev / (c/2) - ref_td;
+    % Add zero padding (NaNs)
+    dt = hdr.time{img}(2) - hdr.time{img}(1);
+    zero_pad = max(ceil(abs(relative_td / dt)));
+    data{img} = [data{img}; nan(zero_pad,size(data{img},2))];
+    Nt = size(data{img},1);
+    df = 1/(Nt*dt);
+    freq = hdr.freq{img}(1) + df*ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
+    % Apply time delay
+    nanmask = isnan(data{img});
+    data{img}(nanmask) = 0;
+    data{img} = fft(data{img},[],1);
+    for wf_adc = 1:size(param.load.imgs{img},1)
+      data{img} = data{img} .* exp(1j*2*pi*freq*relative_td);
+    end
+    data{img} = ifft(data{img},[],1);
+    
+    % Relative time delay to reference time delay in time bin units
+    relative_bins = round( relative_td / dt);
+    % Apply circular shift
+    for rline = 1:size(data{img},2)
+      nanmask(:,rline) = circshift(nanmask(:,rline),[-relative_bins(rline) 0]);
+    end
+    data{img}(nanmask) = NaN;
   end
   
+  % OLD phase only motion_comp:
+  % phase_weights = exp(-1i * hdr.records{img}.elev * 4*pi*hdr.freq{img}(1)/c);
+  % data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
+  %   param.qlook.dec, rline0, Nidxs, [], phase_weights);
+  
+  data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
+    param.qlook.dec, rline0, Nidxs);
+  
+  % Reapply elevation variations
+  if param.load.motion_comp && ~isempty(hdr.freq{img})
+    % Remove time delay
+    relative_td = fir_dec(relative_td, param.qlook.B_filter, ...
+      param.qlook.dec, rline0, Nidxs);
+    nanmask = isnan(data{img});
+    data{img}(nanmask) = 0;
+    data{img} = fft(data{img},[],1);
+    for wf_adc = 1:size(param.load.imgs{img},1)
+      data{img} = data{img} .* exp(-1j*2*pi*freq*relative_td);
+    end
+    data{img} = ifft(data{img},[],1);
+    
+    % Relative time delay to reference time delay in time bin units
+    relative_bins = round( relative_td / dt);
+    % Apply circular shift
+    for rline = 1:size(data{img},2)
+      nanmask(:,rline) = circshift(nanmask(:,rline),[relative_bins(rline) 0]);
+    end    
+    data{img}(nanmask) = NaN;
+    
+    % Remove zero padding
+    data{img} = data{img}(1:end-zero_pad,:);
+  end
+
   hdr.records{img}.lat = fir_dec(hdr.records{img}.lat, param.qlook.B_filter, ...
     param.qlook.dec, rline0, Nidxs);
   hdr.records{img}.lon = fir_dec(hdr.records{img}.lon, param.qlook.B_filter, ...
@@ -224,6 +280,10 @@ end
 % ===================================================================
 [hdr,data] = data_resample(hdr,data,param.qlook.resample);
 
+%% Trim
+% ===================================================================
+[hdr,data] = data_trim(hdr,data,param.qlook.trim);
+
 %% Multilook the data (incoherent averaging with decimation)
 % =========================================================================
 % param.qlook.inc_dec == 0: saves voltage data
@@ -237,11 +297,35 @@ if param.qlook.inc_dec >= 1
     param.qlook.inc_dec, rline0, Nidxs);
   hdr.surface = fir_dec(hdr.surface, param.qlook.inc_B_filter, ...
     param.qlook.inc_dec, rline0, Nidxs);
-  
+
   for img = 1:length(param.load.imgs)
+    
+    % Remove elevation variations
+    if param.load.motion_comp
+      % Relative time delay to reference time delay in time bin units
+      relative_bins = round( relative_td / dt);
+      % Add zero padding (NaNs)
+      data{img} = [data{img}; nan(zero_pad,size(data{img},2))];
+      % Apply circular shift
+      for rline = 1:size(data{img},2)
+        data{img}(:,rline) = circshift(data{img}(:,rline),[-relative_bins(rline) 0]);
+      end
+    end
     
     data{img} = fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
       param.qlook.inc_dec, rline0, Nidxs);
+    
+    % Reapply elevation variations
+    if param.load.motion_comp
+      % Apply circular shift
+      relative_bins = round(fir_dec(relative_bins, param.qlook.inc_B_filter, ...
+      param.qlook.inc_dec, rline0, Nidxs));
+      for rline = 1:size(data{img},2)
+        data{img}(:,rline) = circshift(data{img}(:,rline),[relative_bins(rline) 0]);
+      end
+      % Remove zero padding
+      data{img} = data{img}(1:end-zero_pad,:);
+    end
     
     hdr.records{img}.lat = fir_dec(hdr.records{img}.lat, param.qlook.inc_B_filter, ...
       param.qlook.inc_dec, rline0, Nidxs);
@@ -256,6 +340,7 @@ if param.qlook.inc_dec >= 1
     hdr.records{img}.heading = fir_dec(hdr.records{img}.heading, param.qlook.inc_B_filter, ...
       param.qlook.inc_dec, rline0, Nidxs);
   end
+
 end
 
 %% Save quick look results
@@ -277,18 +362,23 @@ for img = 1:length(param.load.imgs)
   out_fn_name = sprintf('qlook_img_%02d_%d_%d.mat',img,task_recs(1),task_recs(end));
   % Output directory name (_01_01 refer to subaperture and subband which are
   % hardcoded to 1 for now)
-  out_fn_dir = fullfile(ct_filename_out(param, ...
-    param.qlook.out_path, 'CSARP_qlook'), ...
+  tmp_out_fn_dir = fullfile(ct_filename_out(param, ...
+    param.qlook.out_path, 'qlook_tmp'), ...
     sprintf('ql_data_%03d_01_01',param.load.frm));
-  out_fn = fullfile(out_fn_dir,out_fn_name);
+  out_fn = fullfile(tmp_out_fn_dir,out_fn_name);
   fprintf('  Save %s\n', out_fn);
-  if ~exist(out_fn_dir,'dir')
-    mkdir(out_fn_dir);
+  if ~exist(tmp_out_fn_dir,'dir')
+    mkdir(tmp_out_fn_dir);
   end
   param_qlook = param;
   custom = hdr.custom;
+  if param.ct_file_lock
+    file_version = '1L';
+  else
+    file_version = '1';
+  end
   save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
-    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'custom');
+    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'custom','file_version');
 end
 
 %% Done

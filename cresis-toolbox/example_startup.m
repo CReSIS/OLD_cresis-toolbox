@@ -57,7 +57,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = 'C:\tmp\mdce_tmp\';
+  profile(pidx).tmp_file_path             = 'C:\tmp\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'C:\';
   profile(pidx).data_support_path         = 'C:\metadata\';
@@ -87,7 +87,7 @@ if ~(~ismcc && isdeployed)
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('%s/scratch/mdce_tmp/',getenv('HOME'));
+  profile(pidx).tmp_file_path             = sprintf('%s/scratch/ct_user_tmp/',getenv('HOME'));
 
   profile(pidx).data_path                 = sprintf('%s/scratch/',getenv('HOME'));
   profile(pidx).data_support_path         = sprintf('%s/scratch/metadata/',getenv('HOME'));
@@ -120,7 +120,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('/cresis/snfs1/scratch/%s/mdce_tmp/',getenv('USER'));
+  profile(pidx).tmp_file_path             = sprintf('/cresis/snfs1/scratch/%s/ct_user_tmp/',getenv('USER'));
   
   profile(pidx).data_path                 = '/cresis/snfs1/data/';
   profile(pidx).data_support_path         = '/cresis/snfs1/dataproducts/metadata/';
@@ -141,6 +141,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0.2;
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
+  profile(pidx).cluster.job_complete_pause    = 60;
  
   %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
@@ -175,6 +176,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 131754468000 / 46;
   profile(pidx).cluster.max_ppn               = 4;
+  profile(pidx).cluster.job_complete_pause    = 5;
   
   
   %% KU Desktop Profile Windows (PROFILE 5)
@@ -189,7 +191,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = 'C:\temp\mdce_tmp\';
+  profile(pidx).tmp_file_path             = 'C:\temp\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'V:/';
   profile(pidx).data_support_path         = 'X:/metadata/';
@@ -219,7 +221,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/mdce_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
+  profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/ct_user_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
   profile(pidx).data_support_path         = '/N/dcwan/projects/cresis/metadata/';
@@ -239,8 +241,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 2;
   profile(pidx).cluster.submit_pause          = 1;
   profile(pidx).cluster.stat_pause            = 10;
-  profile(pidx).cluster.file_check_pause      = 4;
-  
+  profile(pidx).cluster.file_check_pause      = 0;
+  profile(pidx).cluster.mem_to_ppn            = 0.9 * 34359738368 / 16;
+  profile(pidx).cluster.max_ppn               = 8;
+
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
   
   %% AWI Profile Field Windows (PROFILE 7)
@@ -253,7 +257,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = 'F:\mdce_tmp\';
+  profile(pidx).tmp_file_path             = 'F:\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'D:\';
   profile(pidx).data_support_path         = 'F:\metadata\';
@@ -283,7 +287,7 @@ if ~(~ismcc && isdeployed)
   
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = '/mnt/Scratch/mdce_tmp/';
+  profile(pidx).tmp_file_path             = '/mnt/Scratch/ct_user_tmp/';
   
   profile(pidx).data_path                 = '/mnt/AWI_SSD0/';
   profile(pidx).data_support_path         = '/mnt/Scratch/metadata/';
@@ -304,25 +308,26 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 0.2;
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
+  profile(pidx).cluster.job_complete_pause    = 5;
 
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
   profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
-  profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
-  profile(pidx).slurm_jobs_path           = sprintf('%s/jobs/',getenv('HOME'));
+  profile(pidx).personal_path             = sprintf('/work/ollie/%s/scripts/matlab/',getenv('USER'));
+  profile(pidx).ct_path                   = sprintf('/work/ollie/%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USER'));
+  profile(pidx).param_path                = sprintf('/work/ollie/%s/scripts/ct_params/',getenv('USER'));
+  profile(pidx).slurm_jobs_path           = sprintf('/work/ollie/%s/jobs/',getenv('USER'));
 
   profile(pidx).code_path                 = profile(pidx).ct_path;
   profile(pidx).code_path_override        = profile(pidx).personal_path;
-  profile(pidx).tmp_file_path             = sprintf('%s/Scratch/mdce_tmp/',getenv('HOME'));
+  profile(pidx).tmp_file_path             = sprintf('/work/ollie/%s/Scratch/ct_user_tmp/',getenv('USER'));
 
-  profile(pidx).data_path                 = sprintf('%s/Data/',getenv('HOME'));
-  profile(pidx).data_support_path         = sprintf('%s/Scratch/metadata/',getenv('HOME'));
-  profile(pidx).support_path              = sprintf('%s/Scratch/csarp_support/',getenv('HOME'));
-  profile(pidx).out_path                  = sprintf('%s/Scratch/',getenv('HOME'));
-  profile(pidx).gis_path                  = sprintf('%s/GIS_data/',getenv('HOME'));
+  profile(pidx).data_path                 = sprintf('/work/ollie/%s/Data/',getenv('USER'));
+  profile(pidx).data_support_path         = sprintf('/work/ollie/%s/Scratch/metadata/',getenv('USER'));
+  profile(pidx).support_path              = sprintf('/work/ollie/%s/Scratch/csarp_support/',getenv('USER'));
+  profile(pidx).out_path                  = sprintf('/work/ollie/%s/Scratch/',getenv('USER'));
+  profile(pidx).gis_path                  = sprintf('/work/ollie/%s/GIS_data/',getenv('USER'));
   profile(pidx).ct_tmp_file_path          = fullfile(profile(pidx).out_path,'ct_tmp');
  
   profile(pidx).cluster.data_location       = fullfile(profile(pidx).tmp_file_path,'cluster-temp');
@@ -338,6 +343,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause            = 1;
   profile(pidx).cluster.stat_pause              = 10;
   profile(pidx).cluster.file_check_pause        = 4;
+  profile(pidx).cluster.job_complete_pause      = 30;
+  profile(pidx).cluster.mem_to_ppn              = 0.9 * 64e9 / 36;
+  profile(pidx).cluster.max_ppn                 = 18;
 
   profile(pidx).cluster.mcc                     = 'eval';
 
@@ -409,30 +417,18 @@ if ~(~ismcc && isdeployed)
   %        by torque_compile)
   gRadar.cluster.hidden_depend_funs = {};
   gRadar.cluster.hidden_depend_funs{end+1} = {'tomo_collate_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'create_records_accum2_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'create_records_acords_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'create_records_mcords_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'basic_load_fmcw.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'basic_load_fmcw2.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_combine_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'coh_noise_tracker_combine_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'radiometric_calibration_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task_stats_max.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'analysis_task_stats_kx.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'qlook_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'qlook_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'sar_coord_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'sar_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'array_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'array_combine_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'get_heights_combine_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'csarp_sar_coord_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'csarp_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'combine_wf_chan_combine_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'nsidc_delivery_script_task.m' 2};
-  gRadar.cluster.hidden_depend_funs{end+1} = {'arena_packet_strip_task.m' 2};
+  gRadar.cluster.hidden_depend_funs{end+1} = {'preprocess_task.m' 2};
   gRadar.cluster.hidden_depend_funs{end+1} = {'hanning.m' 0};
   gRadar.cluster.hidden_depend_funs{end+1} = {'hamming.m' 0};
   gRadar.cluster.hidden_depend_funs{end+1} = {'blackman.m' 0};

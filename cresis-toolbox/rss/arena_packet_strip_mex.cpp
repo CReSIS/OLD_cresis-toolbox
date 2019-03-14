@@ -2,6 +2,7 @@
 //   -v: verbose
 //   -largeArrayDims: required for 64 bit
 //   Note: Matlab automatically deallocates memory from mx*alloc
+//   Note: Usually you need to cd into the directory containing the .cpp file before compiling
 //
 // Strips data out of network packet headers from Remote Sensing Solutions
 // Arena ADC/DAQ files and stores data records into separate output file.

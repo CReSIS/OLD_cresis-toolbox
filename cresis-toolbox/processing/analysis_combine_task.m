@@ -13,6 +13,8 @@ function [success] = analysis_combine_task(param)
 %
 % See also analysis.m
 
+%% Setup
+
 % Load records file
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
@@ -40,13 +42,22 @@ if length(records.gps_time)-blocks(end) < param.analysis.block_size/2 ...
   blocks = blocks(1:end-1);
 end
 
-%% Loop through all given commands from 'analysis'
+%% Loop through all commands
 for cmd_idx = 1:length(param.analysis.cmd)
   cmd = param.analysis.cmd{cmd_idx};
   if ~cmd.en
     continue;
   end
   
+  % Create temporary output directory string
+  tmp_out_fn_dir = ct_filename_out(param, cmd.out_path, 'analysis_tmp');
+  % Create combined output directory
+  out_fn_dir = ct_filename_out(param, cmd.out_path);
+  out_segment_fn_dir = fileparts(out_fn_dir);
+  if ~exist(out_segment_fn_dir,'dir')
+    mkdir(out_segment_fn_dir);
+  end
+
   if strcmpi(cmd.method,{'saturation'})
     %% Saturation
     % ===================================================================
@@ -68,15 +79,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
           rec_load_stop = rec_load_start+param.analysis.block_size-1;
         end
         
-        % =====================================================================
-        % Prepare task inputs
-        % =====================================================================
         cur_recs = [rec_load_start rec_load_stop];
         actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
           cur_recs(end)*param.analysis.presums];
         
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-          sprintf('saturation_img_%02d_%d_%d.mat',img,actual_cur_recs));
+        out_fn = fullfile(tmp_out_fn_dir, ...
+          sprintf('saturation_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
         
         satur = load(out_fn);
         
@@ -94,8 +102,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         satur.max_val_gps_time = max_val_gps_time;
         satur.max_val_gps_time_adc = max_val_gps_time_adc;
         
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('saturation_%s_img_%02d.mat', param.day_seg, img));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','satur');
@@ -109,8 +115,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
     % ===================================================================
     for img = 1:length(param.analysis.imgs)
       for wf_adc = 1:size(param.analysis.imgs{img},1)
-        wf = param.analysis.imgs{1}(wf_adc,1);
-        adc = param.analysis.imgs{1}(wf_adc,2);
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
         
         spec = [];
         spec.deconv_fc = [];
@@ -146,7 +152,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
             cur_recs(end)*param.analysis.presums];
           
-          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+          out_fn = fullfile(tmp_out_fn_dir, ...
             sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
 
           fprintf('  Load %s (%s)\n', out_fn, datestr(now));
@@ -184,8 +190,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         else
           spec.file_version = '1';
         end
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','spec');
@@ -200,8 +204,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
     for img = 1:length(param.analysis.imgs)
       
       for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.analysis.imgs{1}(wf_adc,1);
-        adc = param.analysis.imgs{1}(wf_adc,2);
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
         
         %% Coh Noise: Loop through all the coherent noise tracker files and combine
         % =====================================================================
@@ -215,7 +219,9 @@ for cmd_idx = 1:length(param.analysis.cmd)
         pitch = [];
         heading = [];
         surface = [];
+        nyquist_zone = [];
         coh_ave = {};
+        coh_ave_mag = {};
         coh_ave_samples = {};
         doppler_concat = single([]);
         for block_idx = 1:length(blocks)
@@ -233,7 +239,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
             cur_recs(end)*param.analysis.presums];
           
-          out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+          out_fn = fullfile(tmp_out_fn_dir, ...
             sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
           
           noise = load(out_fn);
@@ -249,10 +255,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
           pitch(end+(1:length(noise.pitch))) = noise.pitch;
           heading(end+(1:length(noise.heading))) = noise.heading;
           surface(end+(1:length(noise.surface))) = noise.surface;
+          nyquist_zone(end+(1:length(noise.nyquist_zone))) = noise.nyquist_zone;
           
           % coh_ave and coh_ave_samples may be different lengths, so we
           % just concatenate in cell arrays
           coh_ave{block_idx} = noise.coh_ave;
+          coh_ave_mag{block_idx} = noise.coh_ave_mag;
           coh_ave_samples{block_idx} = noise.coh_ave_samples;
           
           noise.doppler = reshape(noise.doppler,[numel(noise.doppler) 1]);
@@ -284,8 +292,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
         noise.pitch = pitch;
         noise.heading = heading;
         noise.surface = surface;
+        noise.nyquist_zone = nyquist_zone;
         
         noise.coh_ave = coh_ave;
+        noise.coh_ave_mag = coh_ave_mag;
         noise.coh_ave_samples = coh_ave_samples;
         
         noise.doppler = doppler_concat;
@@ -296,8 +306,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
           noise.file_version = '1';
         end
         
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','noise'); % Use HDF because of the large file size
@@ -309,66 +317,69 @@ for cmd_idx = 1:length(param.analysis.cmd)
     %% Waveform extraction
     % ===================================================================
     % ===================================================================
-    
-    %% Waveform: Loop through all the surface tracker files and combine
-    % =====================================================================
     for img = 1:length(param.analysis.imgs)
-      gps_time = [];
-      lat = [];
-      lon = [];
-      elev = [];
-      roll = [];
-      pitch = [];
-      heading = [];
-      surf_vals = [];
-      surf_bins = [];
-      for block_idx = 1:length(blocks)
-        rec_load_start = blocks(block_idx);
+      for wf_adc = cmd.wf_adcs{img}(:).'
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
         
-        if block_idx == length(blocks)
-          rec_load_stop = length(records.gps_time);
-        else
-          rec_load_stop = rec_load_start+param.analysis.block_size-1;
+        %% Waveform: Loop through all the surface tracker files and combine
+        % =====================================================================
+        gps_time = [];
+        lat = [];
+        lon = [];
+        elev = [];
+        roll = [];
+        pitch = [];
+        heading = [];
+        wf_data = [];
+        time_rng = [];
+        for block_idx = 1:length(blocks)
+          rec_load_start = blocks(block_idx);
+          
+          if block_idx == length(blocks)
+            rec_load_stop = length(records.gps_time);
+          else
+            rec_load_stop = rec_load_start+param.analysis.block_size-1;
+          end
+          
+          cur_recs = [rec_load_start rec_load_stop];
+          actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
+            cur_recs(end)*param.analysis.presums];
+          
+          out_fn = fullfile(tmp_out_fn_dir, ...
+            sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          
+          waveform = load(out_fn);
+          
+          gps_time = cat(2,gps_time,waveform.gps_time);
+          lat = cat(2,lat,waveform.lat);
+          lon = cat(2,lon,waveform.lon);
+          elev = cat(2,elev,waveform.elev);
+          roll = cat(2,roll,waveform.roll);
+          pitch = cat(2,pitch,waveform.pitch);
+          heading = cat(2,heading,waveform.heading);
+          wf_data = cat(2,wf_data,waveform.wf_data);
+          time_rng = cat(2,time_rng,waveform.time_rng);
         end
         
-        % =====================================================================
-        % Prepare task inputs
-        % =====================================================================
-        cur_recs = [rec_load_start rec_load_stop];
-        actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
-          cur_recs(end)*param.analysis.presums];    
+        % Constant waveform fields carried over from last file loaded:
+        %   param_analysis, param_records
         
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-          sprintf('surf_img_%02d_%d_%d.mat',img,actual_cur_recs));
+        % Overwrite concatenated dynamic fields for the whole segment:
+        waveform.gps_time = gps_time;
+        waveform.lat = lat;
+        waveform.lon = lon;
+        waveform.elev = elev;
+        waveform.roll = roll;
+        waveform.pitch = pitch;
+        waveform.heading = heading;
+        waveform.wf_data = wf_data;
+        waveform.time_rng = time_rng;
         
-        surf = load(out_fn);
-        
-        gps_time = cat(2,gps_time,surf.gps_time);
-        lat = cat(2,lat,surf.lat);
-        lon = cat(2,lon,surf.lon);
-        elev = cat(2,elev,surf.elev);
-        roll = cat(2,roll,surf.roll);
-        pitch = cat(2,pitch,surf.pitch);
-        heading = cat(2,heading,surf.heading);
-        surf_vals = cat(2,surf_vals,surf.surf_vals);
-        surf_bins = cat(2,surf_bins,surf.surf_bins);
+        out_segment_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
+        save(out_segment_fn,'-v7.3','-struct','waveform'); % Use HDF because of the large file size
       end
-      
-      surf.gps_time = gps_time;
-      surf.lat = lat;
-      surf.lon = lon;
-      surf.elev = elev;
-      surf.roll = roll;
-      surf.pitch = pitch;
-      surf.heading = heading;
-      surf.surf_vals = surf_vals;
-      surf.surf_bins = surf_bins;
-      
-      out_fn_dir = fileparts(out_fn);
-      out_segment_fn_dir = fileparts(out_fn_dir);
-      out_segment_fn = fullfile(out_segment_fn_dir,sprintf('surf_%s_img_%02d.mat', param.day_seg, img));
-      fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
-      save(out_segment_fn,'-v7.3','-struct','surf');
     end
     
     
@@ -379,8 +390,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
     for img = 1:length(param.analysis.imgs)
       
       for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.analysis.imgs{1}(wf_adc,1);
-        adc = param.analysis.imgs{1}(wf_adc,2);
+        wf = param.analysis.imgs{img}(wf_adc,1);
+        adc = param.analysis.imgs{img}(wf_adc,2);
         
         %% Statistics: Loop through all the stats files and combine
         % =====================================================================
@@ -411,7 +422,7 @@ for cmd_idx = 1:length(param.analysis.cmd)
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
             cur_recs(end)*param.analysis.presums];
           
-          out_fn = fullfile(ct_filename_out(param, cmd.out_path), ...
+          out_fn = fullfile(tmp_out_fn_dir, ...
             sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
           
           stats = load(out_fn);
@@ -458,14 +469,55 @@ for cmd_idx = 1:length(param.analysis.cmd)
           stats.file_version = '1';
         end
         
-        out_fn_dir = fileparts(out_fn);
-        out_segment_fn_dir = fileparts(out_fn_dir);
         out_segment_fn = fullfile(out_segment_fn_dir,sprintf('stats_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','stats'); % Use HDF because of the large file size
       end
     end
     
+  end
+end
+
+%% Delete temporary files
+if 0 % HACK: DISABLE TO NOT DELETE TEMPORARY FILES
+  for cmd_idx = 1:length(param.analysis.cmd)
+    cmd = param.analysis.cmd{cmd_idx};
+    if ~cmd.en
+      continue;
+    end
+    
+    tmp_out_fn_dir = ct_filename_out(param, cmd.out_path, 'analysis_tmp');
+    if strcmpi(cmd.method,{'saturation'})
+      delete(fullfile(tmp_out_fn_dir,'saturation_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    elseif strcmpi(cmd.method,{'specular'})
+      delete(fullfile(tmp_out_fn_dir,'specular_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    elseif strcmpi(cmd.method,{'coh_noise'})
+      delete(fullfile(tmp_out_fn_dir,'coh_noise_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    elseif strcmpi(cmd.method,{'waveform'})
+      delete(fullfile(tmp_out_fn_dir,'surf_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    elseif strcmpi(cmd.method,{'statistics'})
+      delete(fullfile(tmp_out_fn_dir,'stats_*'));
+      try
+        rmdir(tmp_out_fn_dir); % Only deletes if empty
+      end
+      
+    end
   end
 end
 

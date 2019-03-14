@@ -46,7 +46,7 @@ doa_nb_1d_param.y_pc        = param.src.y_pc;
 doa_nb_1d_param.z_pc        = param.src.z_pc;
 doa_nb_1d_param.theta       = param.method.OneD_theta;
 doa_nb_1d_param.SV          = param.method.OneD_SV;
-doa_nb_1d_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+doa_nb_1d_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 
 % Setup parameterization structure for narrowband N-D search
 % methods (e.g. MLE)
@@ -59,7 +59,7 @@ doa_nb_nd_param.y_pc        = param.src.y_pc;
 doa_nb_nd_param.z_pc        = param.src.z_pc;
 doa_nb_nd_param.theta       = param.method.theta;
 doa_nb_nd_param.SV          = param.method.SV;
-doa_nb_nd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+doa_nb_nd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 doa_nb_nd_param.search_type = param.method.nb_nd.init;
 
 % Setup wideband parameterization structure for wideband time domain
@@ -73,7 +73,7 @@ doa_wb_td_param.y_pc        = param.src.y_pc;
 doa_wb_td_param.z_pc        = param.src.z_pc;
 doa_wb_td_param.theta       = param.method.theta;
 doa_wb_td_param.SV          = param.method.SV;
-doa_wb_td_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+doa_wb_td_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 doa_wb_td_param.search_type = param.method.wb_td.init;
 
 % Setup wideband parameterization structure for wideband frequency domain
@@ -87,7 +87,7 @@ doa_wb_fd_param.y_pc        = param.src.y_pc;
 doa_wb_fd_param.z_pc        = param.src.z_pc;
 doa_wb_fd_param.theta       = param.method.theta;
 doa_wb_fd_param.SV          = param.method.SV;
-doa_wb_fd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+doa_wb_fd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 doa_wb_fd_param.search_type = param.method.wb_fd.init;
 doa_wb_fd_param.nb_filter_banks = param.method.wb_fd.filter_banks;
 

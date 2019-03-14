@@ -36,11 +36,6 @@ if numel(dataPnts) > 0
       layer(1:end) = dataPnts(ind).row;
       return;
     end
-    if row < 1-search_range(1)
-      row = 1-search_range(1);
-    elseif row > size(A,1)-search_range(end)
-      row = size(A,1)-search_range(end);
-    end
     startCol = dataPnts(ind).col - offset_abs;
     if startCol < 1
       startCol = 1;
@@ -69,28 +64,25 @@ if numel(dataPnts) > 0
     for ind = 1:length(dataPnts)
       col = dataPnts(ind).col+offset_abs;
       if col >= 1 && col <= size(A,2) && layer(col) == 0
+        search_rows = layer(col-1)+search_range;
+        search_rows = search_rows(search_rows>=1 & search_rows <= size(A,1));
         if dataPnts(ind).method == 's'
-          [val row] = max(A(layer(col-1)+search_range,col));
-          row = layer(col-1)+search_range(1) - 1 + row;
+          [val row] = max(A(search_rows,col));
+          row = search_rows(row);
         elseif dataPnts(ind).method == 't'
-          row = track_layer_threshold(A(layer(col-1)+search_range,col), ...
+          row = track_layer_threshold(A(search_rows,col), ...
             dataPnts(ind).thresh.value, dataPnts(ind).thresh.num_lower);
           if isempty(row)
             % Keep old value
             row = layer(col-1);
           else
-            row = layer(col-1)+search_range(1) - 1 + row;
+            row = search_rows(row);
           end
           %           row = find(A(layer(col-1)+search_range,col) > dataPnts(ind).thresh.value,1);
           %           if isempty(row)
           %             [val row] = max(A(layer(col-1)+search_range,col));
           %           end
           %           row = layer(col-1)+search_range(1) - 1 + row
-        end
-        if row < 1-search_range(1)
-          row = 1-search_range(1);
-        elseif row > size(A,1)-search_range(end)
-          row = size(A,1)-search_range(end);
         end
         layer(col) = row;
         method(col) = dataPnts(ind).method;
@@ -100,23 +92,20 @@ if numel(dataPnts) > 0
     for ind = 1:length(dataPnts)
       col = dataPnts(ind).col-offset_abs;
       if col >= 1 && col <= size(A,2) && layer(col) == 0
+        search_rows = layer(col+1)+search_range;
+        search_rows = search_rows(search_rows>=1 & search_rows <= size(A,1));
         if dataPnts(ind).method == 's'
-          [val row] = max(A(layer(col+1)+search_range,col));
-          row = layer(col+1)+search_range(1) - 1 + row;
+          [val row] = max(A(search_rows,col));
+          row = search_rows(row);
         elseif dataPnts(ind).method == 't'
-          row = track_layer_threshold(A(layer(col+1)+search_range,col), ...
+          row = track_layer_threshold(A(search_rows,col), ...
             dataPnts(ind).thresh.value, dataPnts(ind).thresh.num_lower);
           if isempty(row)
             % Keep old value
             row = layer(col+1);
           else
-            row = layer(col+1)+search_range(1) - 1 + row;
+            row = search_rows(row);
           end
-        end
-        if row < 1-search_range(1)
-          row = 1-search_range(1);
-        elseif row > size(A,1)-search_range(end)
-          row = size(A,1)-search_range(end);
         end
         layer(col) = row;
         method(col) = dataPnts(ind).method;

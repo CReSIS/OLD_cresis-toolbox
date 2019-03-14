@@ -115,4 +115,6 @@ for task_idx = 1:length(task_ids)
   end
 end
 
-return;
+if isdeployed
+  quit
+end

@@ -3,10 +3,18 @@ function gps = read_gps_arena(fn, param)
 %
 % Reads in Arena GPS files that include NMEA and radar time.
 %
-% nmea:$GPGGA,144752.011,3857.134780,N,09515.862427,W,1,12,0.76,317.502,M,-29.504,M,,*5D
-% relTimeCntr:15345172719345668
-% profileCntr:2968
-% ppsCntr:1534517272
+% Ignores NMEA strings besides GPRMC and GPGGA which show up in the file as
+% the following. GPGGA is required. GPRMC is optional and is used to
+% estimate the date and heading.
+%
+% relTimeCntr:15393734057677147
+% profileCntr:7678
+% ppsCntr:1539373405
+% nmea:$GPRMC,194325.010,A,3857.135037,N,09515.861757,W,0.000,0.00,121018,,,A*46
+% relTimeCntr:15393734057677147
+% profileCntr:7678
+% ppsCntr:1539373405
+% nmea:$GPGGA,194325.010,3857.135037,N,09515.861757,W,1,9,0.88,311.412,M,-29.504,M,,*65
 %
 % Input Args:
 %   fn = string containing input Arena GPS filename
@@ -44,7 +52,7 @@ function gps = read_gps_arena(fn, param)
 % Author: John Paden
 %
 % See also read_gps_applanix, read_gps_atm, read_gps_csv, read_gps_litton,
-%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj, 
+%   read_gps_nmea, read_gps_novatel, read_gps_reveal, read_gps_traj,
 %   read_gps_txt, plot_gps
 
 if ~exist('param','var') || isempty(param)
@@ -53,31 +61,112 @@ end
 if ~isfield(param,'clk') || isempty(param.clk)
   param.clk = 10e6;
 end
-  
+
 [fid,msg] = fopen(fn,'r');
 if fid < 0
   error('Error opening %s: %s', fn, msg);
 end
 
-format_str = '%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s';
+UTC_time_file = [];
+latitude = [];
+N_S = [];
+longitude = [];
+E_W = [];
+altitude = [];
+relTimeCntr = [];
+profileCntr = [];
+ppsCntr = [];
+gps_date = [];
+heading = [];
+
+format_str_GPRMC = '%s%f%s%f%c%f%c%f%f%f%f%s%s';
+format_str_GPGGA = '%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s';
 nmea_idx = 1;
+relTimeCntrTmp = NaN;
+profileCntrTmp = NaN;
+ppsCntrTmp = NaN;
+gps_date_tmp = NaN;
+heading_tmp = NaN;
+line_num = 0;
 while ~feof(fid)
   str = fgets(fid);
+  line_num = line_num + 1;
   [token,remain] = strtok(str,':');
   if strcmpi(token,'nmea')
-    C = textscan(remain(2:end),format_str,'delimiter',', ','emptyvalue',NaN);
-    [tag,UTC_time_file(nmea_idx),latitude(nmea_idx),N_S(nmea_idx),longitude(nmea_idx),E_W(nmea_idx),fix,NoSatelite,dilution,...
-      altitude(nmea_idx),alt_unit,geode_ref,geode_unit,dgps,checksum] = deal(C{:});
-    nmea_idx = nmea_idx + 1;
+    if numel(str)>=11 && strcmp(str(7:11),'GPGGA')
+      GPGGA_str = remain(2:end);
+      C = textscan(GPGGA_str,format_str_GPGGA,'delimiter',', ','emptyvalue',NaN);
+      [tag,UTC_time_file_tmp,latitude_tmp,N_S_tmp,longitude_tmp,E_W_tmp,fix,NoSatelite,dilution,...
+        altitude_tmp,alt_unit,geode_ref,geode_unit,dgps,checksum] = deal(C{:});
+      
+      if ~isnan(relTimeCntrTmp) && ~isnan(profileCntrTmp) && ~isnan(ppsCntrTmp)
+        if nmea_idx > 1
+          if UTC_time_file_tmp <= UTC_time_file(nmea_idx-1)
+            fprintf(2, '    GPS NOT MONOTONIC LINE %d: %.14g  <= %.14g\n', line_num, UTC_time_file_tmp, UTC_time_file(nmea_idx-1));
+          end
+          if relTimeCntrTmp == relTimeCntr(nmea_idx-1)
+            fprintf(2, '    RADAR REPEAT LINE %d: %.0f\n', line_num, relTimeCntrTmp);
+          end
+          if relTimeCntrTmp < relTimeCntr(nmea_idx-1)
+            warning(2, 'Radar time is not monotonic on line %d: %.0f  <= %.0f\n', line_num, relTimeCntrTmp, relTimeCntr(nmea_idx-1));
+          end
+        end
+        
+        if length(UTC_time_file_tmp) == 1 ...
+            && length(latitude_tmp) == 1 ...
+            && length(N_S_tmp) == 1 && any(N_S_tmp == 'SN') ...
+            && length(longitude_tmp) == 1 ...
+            && length(E_W_tmp) == 1 && any(E_W_tmp == 'EW') ...
+            && length(altitude_tmp) == 1
+          UTC_time_file(nmea_idx) = UTC_time_file_tmp;
+          latitude(nmea_idx) = latitude_tmp;
+          N_S(nmea_idx) = N_S_tmp;
+          longitude(nmea_idx) = longitude_tmp;
+          E_W(nmea_idx) = E_W_tmp;
+          altitude(nmea_idx) = altitude_tmp;
+          relTimeCntr(nmea_idx) = relTimeCntrTmp;
+          profileCntr(nmea_idx) = profileCntrTmp;
+          ppsCntr(nmea_idx) = ppsCntrTmp;
+          gps_date(nmea_idx) = gps_date_tmp;
+          heading(nmea_idx) = heading_tmp;
+          nmea_idx = nmea_idx + 1;
+          relTimeCntrTmp = NaN;
+          profileCntrTmp = NaN;
+          ppsCntrTmp = NaN;
+          gps_date_tmp = NaN;
+          heading_tmp = NaN;
+        else
+          fprintf(2, '    BAD LINE %d: %s\n', line_num, GPGGA_str(GPGGA_str ~= 10));
+        end
+      end
+    elseif numel(str)>=11 && strcmp(str(7:11),'GPRMC')
+      C = textscan(remain(2:end),format_str_GPRMC,'delimiter',', ','emptyvalue',NaN);
+      [tag,UTC_time_file_tmp,nav_rx_warning,latitude_tmp,N_S_tmp,longitude_tmp,E_W_tmp,speed,heading_tmp,...
+        gps_date_tmp,mag_Var,mag_var_E_W,checksum] = deal(C{:});
+    end
   elseif strcmpi(token,'relTimeCntr')
-    relTimeCntr(nmea_idx) = str2double(remain(2:end));
+    relTimeCntrTmp = str2double(remain(2:end));
   elseif strcmpi(token,'profileCntr')
-    profileCntr(nmea_idx) = str2double(remain(2:end));
+    profileCntrTmp = str2double(remain(2:end));
   elseif strcmpi(token,'ppsCntr')
-    ppsCntr(nmea_idx) = str2double(remain(2:end));
+    ppsCntrTmp = str2double(remain(2:end));
   end
 end
 fclose(fid);
+
+if nmea_idx < 2
+  gps.gps_time = [];
+  gps.lat = [];
+  gps.lon = [];
+  gps.elev = [];
+  gps.roll = [];
+  gps.pitch = [];
+  gps.heading = [];
+  gps.radar_time = [];
+  gps.profileCntr = [];
+  gps.comp_time = [];
+  return;
+end
 
 %   CONVERT LATITUDE AND LONGITUDE TO [DD.DDD] FROM [DDDMM.MMM]
 lat_MM = mod(latitude,100);
@@ -95,10 +184,36 @@ lon(E_W == 'W') = -1 * lon(E_W == 'W');
 elev = altitude;
 
 % Convert HHMMSS format to ANSI-C standard, seconds since Jan 1 1970
+  % gps_date = HHMMSS format
 sec = mod(UTC_time_file,100);
-min = mod([UTC_time_file-sec]./100,100);
-hour = [[UTC_time_file-sec]./100 - min]./100;
-UTC_time = datenum_to_epoch(datenum(param.year,param.month,param.day,hour,min,sec));
+minute = mod((UTC_time_file-sec)./100,100);
+hour = ((UTC_time_file-sec)./100 - minute)./100;
+if ~all(isnan(gps_date))
+  % gps_date = DDMMYY format
+  gps_date = interp_finite(gps_date);
+  year = mod(gps_date,100);
+  month = mod((gps_date-year)./100,100);
+  day = ((gps_date-year)./100 - month)./100;
+  year = year+2000; % Add in century information
+  if isfield(param,'year')
+    year(:) = param.year(:);
+  else
+    param.year = year;
+  end
+  if isfield(param,'month')
+    month(:) = param.month;
+  else
+    param.month = month;
+  end
+  if isfield(param,'day')
+    day(:) = param.day;
+  else
+    param.day = day;
+  end
+  UTC_time = datenum_to_epoch(datenum(year,month,day,hour,minute,sec));
+else
+  UTC_time = datenum_to_epoch(datenum(param.year,param.month,param.day,hour,minute,sec));
+end
 
 % ENSURE ALL VECTORS IN 1xN FORMAT
 UTC_time = reshape(UTC_time,[1 length(UTC_time)]);
@@ -112,12 +227,14 @@ lat = lat(goodIdxs);
 lon = lon(goodIdxs);
 elev = elev(goodIdxs);
 
-% ===================================================================
-% Find jumps in the GPS time that are probably due to day interval
-% 86400 seconds.
-day_jumps = find(diff(UTC_time) < -60000);
-for jump_idx = day_jumps
-  UTC_time(jump_idx+1:end) = UTC_time(jump_idx+1:end) + 86400;
+if all(isnan(gps_date))
+  % ===================================================================
+  % Find jumps in the GPS time that are probably due to day interval
+  % 86400 seconds.
+  day_jumps = find(diff(UTC_time) < -60000);
+  for jump_idx = day_jumps
+    UTC_time(jump_idx+1:end) = UTC_time(jump_idx+1:end) + 86400;
+  end
 end
 
 % ===================================================================
@@ -141,21 +258,93 @@ gps.elev = elev;
 
 gps.roll = zeros(size(gps.lat));
 gps.pitch = zeros(size(gps.lat));
-gps.heading = zeros(size(gps.lat));
+gps.heading = interp_finite(heading,0);
 
 gps.radar_time = relTimeCntr/param.clk;
 gps.profileCntr = profileCntr;
 gps.comp_time = ppsCntr;
 
-[comp_time_year,comp_time_month,comp_time_day] = datevec(epoch_to_datenum(gps.comp_time));
-if comp_time_year ~= param.year
-  warning('comp_time year is %d and does not match param.year %d.', comp_time_year, param.year);
-end
-if comp_time_month ~= param.month
-  warning('comp_time month is %d and does not match param.month %d.', comp_time_month, param.month);
-end
-if comp_time_day ~= param.day
-  warning('comp_time day is %d and does not match param.day %d.', comp_time_day, param.day);
+% If GPS is bad, NMEA may be constant, return empty arrays in this case
+if all(gps.lat(1)==gps.lat)
+  warning('GPS data is constant. This generally means invalid data so not loading this file.');
+  gps.gps_time = [];
+  gps.lat = [];
+  gps.lon = [];
+  gps.elev = [];
+  gps.roll = [];
+  gps.pitch = [];
+  gps.heading = [];
+  gps.radar_time = [];
+  gps.profileCntr = [];
+  gps.comp_time = [];
+  return;
 end
 
-return;
+if all(gps.radar_time(1)==gps.radar_time)
+  warning('gps.radar_time is constant. GPS 1 PPS may not have been received. Radar synchronization to GPS will not be possible with this file.');
+end
+
+if all(gps.comp_time(1)==gps.comp_time)
+  warning('gps.comp_time is constant. GPS 1 PPS may not have been received.');
+  
+else
+  [comp_time_year,comp_time_month,comp_time_day] = datevec(epoch_to_datenum(gps.comp_time));
+  if any(comp_time_year ~= param.year)
+    warning('comp_time year values are %s and does not always match values param.year %s.', ...
+      mat2str_generic(unique(comp_time_year)), mat2str_generic(unique(param.year)));
+  end
+  if any(comp_time_month ~= param.month)
+    warning('comp_time month values are %s and does not always match values param.month %s.', ...
+      mat2str_generic(unique(comp_time_month)), mat2str_generic(unique(param.month)));
+  end
+  if any(comp_time_day ~= param.day)
+    warning('comp_time day values are %s and does not always match values param.day %s.', ...
+      mat2str_generic(unique(comp_time_day)), mat2str_generic(unique(param.day)));
+  end
+end
+
+if 0
+  % DEBUG CODE
+  
+  dd = diff(gps.profileCntr);
+  ll = diff(gps.lat);
+  bad_mask = dd ~= 25000 | abs(ll)>1e-3;
+  bad_mask = fir_dec(bad_mask,[1 1 1 1 1],1);
+  bad_mask(bad_mask~=0) = 1;
+  bad_mask = logical(bad_mask);
+  bad_mask = ~bad_mask;
+  gps.gps_time = gps.gps_time(bad_mask);
+  gps.lat = gps.lat(bad_mask);
+  gps.lon = gps.lon(bad_mask);
+  gps.elev = gps.elev(bad_mask);
+  gps.roll = gps.roll(bad_mask);
+  gps.pitch = gps.pitch(bad_mask);
+  gps.heading = gps.heading(bad_mask);
+  gps.radar_time = gps.radar_time(bad_mask);
+  gps.profileCntr = gps.profileCntr(bad_mask);
+  gps.comp_time = gps.comp_time(bad_mask);
+  
+  figure(2); clf;
+  dd = diff(gps.profileCntr);
+  plot(dd);
+  bad_mask = mod(dd,25000);
+  bad_mask = fir_dec(bad_mask,[1 1 1],1);
+  bad_mask(bad_mask~=0) = 1;
+  bad_mask = logical(bad_mask);
+  hold on;
+  plot(dd(~bad_mask),'.');
+  idxs = find(~bad_mask);
+  
+  figure(1); clf;
+  ee = diff(gps.radar_time);
+  plot(ee);
+  hold on;
+  plot(idxs,ee(idxs),'.');
+  
+  figure(3); clf;
+  ee = diff(gps.gps_time);
+  plot(ee);
+  hold on;
+  plot(idxs,ee(idxs),'.');
+  keyboard
+end

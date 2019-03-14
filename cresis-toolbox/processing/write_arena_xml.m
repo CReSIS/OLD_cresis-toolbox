@@ -175,6 +175,60 @@ for wf = 1:length(wfs)
 end
 
 
+%% param.records.data_map
+num_psc = 0;
+total_data_map = [];
+for wf = 1:length(wfs)
+  
+  out_adc_idx = [];
+  for adc_idx = 1:numel(arena.adc)
+    adc = arena.adc(adc_idx);
+    if adc.adcMode == 0 || adc.adcMode == 1
+      num_subchannel = 1;
+    elseif adc.adcMode == 2
+      num_subchannel = 2;
+    end
+    
+    board_idx = find(strcmpi(adc.name,param.board_map));
+    
+    mode_latch = wfs(wf).modes(end);
+    
+    for subchannel_id = 0:num_subchannel-1
+      wf_set = 1;
+      if isfield(adc,'wf_set') && ~isempty(adc.wf_set)
+        wf_set = adc.wf_set;
+      end
+      if numel(out_adc_idx) < wf_set
+        out_adc_idx(wf_set) = 1;
+      else
+        out_adc_idx(wf_set) = out_adc_idx(wf_set) + 1;
+      end
+      total_data_map(end+1,1:5) = [board_idx mode_latch subchannel_id (wf_set-1)*numel(wfs)+wf out_adc_idx(wf_set)];
+    end
+    
+  end
+end
+
+if 0
+  for board_idx = 1:length(param.board_map)
+    mask = total_data_map(:,1) == board_idx;
+    fprintf('board_idx %d\n', board_idx);
+    data_map = total_data_map(mask,2:5)
+  end
+end
+
+fprintf('  param.records.data_map = {');
+for board_idx = 1:length(param.board_map)
+  mask = total_data_map(:,1) == board_idx;
+  data_map = total_data_map(mask,2:5);
+  if board_idx > 1
+    fprintf(',');
+  end
+  fprintf('%s',mat2str_generic(data_map));
+end
+fprintf('}\n');
+
+
 %% ADC: adc-ad9680_0017
 adc_idxs = find(strcmpi('adc-ad9680_0017',{arena.adc.type}));
 param.data_rate = 0;
@@ -249,7 +303,6 @@ for adc_idx = adc_idxs
   
   subchannels = doc.createElement('subChannels'); config.appendChild(subchannels);
 
-  total_Nt = 0;
   for subchannel_idx = 1:num_subchannel
     
     subchannel = doc.createElement('subChannel'); subchannels.appendChild(subchannel);
@@ -303,12 +356,26 @@ for adc_idx = adc_idxs
       child = doc.createElement('numInt'); integrator.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d',wfs(wf).presums)));
       
-      start_bin = round( (wfs(wf).Tstart+arena.param.PA_setup_time+arena.param.ADC_time_delay) *fs/8)*8;
-      if start_bin < 0
-        error('Start bin (%d) is less than zero. Increase start time wfs(%d).Tstart, %g.', start_bin, wf, wfs(wf).Tstart);
+      found = false;
+      board_idx = find(strcmpi(adc.name,param.board_map));
+      for map_idx=1:size(total_data_map,1)
+        if isequal(total_data_map(map_idx,1:3), [board_idx mode_latch subchannel_idx-1])
+          found = true;
+          break;
+        end
       end
-      Nt = round((wfs(wf).Tend-wfs(wf).Tstart)*fs/8)*8;
-      total_Nt = total_Nt + Nt*param.eprf;
+      if ~found
+        error('Could not find map in param.records.data_map for this data stream: [board_idx mode subchannel] = [%d %d %d].', [board_idx mode_latch subchannel_idx-1]);
+      end
+      wf_set = 1 + floor(( total_data_map(map_idx,4) - 1) / numel(wfs));
+      Tstart = wfs(wf).Tstart{wf_set};
+      Tend = wfs(wf).Tend{wf_set};
+      clear found map_idx;
+      start_bin = round( (Tstart+arena.param.PA_setup_time+arena.param.ADC_time_delay) *fs/8)*8;
+      if start_bin < 0
+        error('Start bin (%d) is less than zero. Increase start time wfs(%d).Tstart, %g.', start_bin, wf, Tstart);
+      end
+      Nt = round((Tend-Tstart)*fs/8)*8;
       stop_bin = start_bin + Nt-1;
       child = doc.createElement('rg'); integrator.appendChild(child);
       child.appendChild(doc.createTextNode(sprintf('%d:%d',start_bin,stop_bin)));
@@ -318,20 +385,19 @@ for adc_idx = adc_idxs
         
         % Field used to determine how many right shifts to apply (16 LSB after
         % shift are saved).
-        shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) - max(0,16 - param.radar.adc_bits);
-        %shiftLSB = ceil(log2(max(cell2mat({wfs.presums})))) + 1;
+        shiftLSB = ceil(log2(max(cell2mat({wfs.presums}))));
         child = doc.createElement('shiftLSB'); integrator.appendChild(child);
         child.appendChild(doc.createTextNode( sprintf('%d', shiftLSB) ));
         child = doc.createElement('outputSelect'); integrator.appendChild(child);
         child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
-        param.data_rate = param.data_rate + total_Nt*4;
+        param.data_rate = param.data_rate + Nt*4*param.eprf;
       elseif adc.outputSelect == 0
         % Field not used for 32 bit IQ records
         child = doc.createElement('shiftLSB'); integrator.appendChild(child);
         child.appendChild(doc.createTextNode( '0' ));
         child = doc.createElement('outputSelect'); integrator.appendChild(child);
         child.appendChild(doc.createTextNode( sprintf('%d', adc.outputSelect) ));
-        param.data_rate = param.data_rate + total_Nt*8;
+        param.data_rate = param.data_rate + Nt*8*param.eprf;
       else
         error('Invalid adc.outputSelect (%d)', adc.outputSelect);
       end
@@ -416,7 +482,7 @@ if strcmpi(arena.ctu.type,'ctu_001D')
       end
       
       child = doc.createElement('numSegments'); mode_xml.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('%d',2)));
+      child.appendChild(doc.createTextNode(sprintf('%d',length(arena.ctu.out.time_cmd))));
       
       segmentTimes_str = '';
       segmentStates_str = '';
@@ -1249,57 +1315,3 @@ for subsystem_idx = 1:length(arena.subsystem)
     
   end
 end
-
-%% param.records.data_map
-num_psc = 0;
-total_data_map = [];
-for wf = 1:length(wfs)
-  
-  out_adc_idx = [];
-  for adc_idx = 1:numel(arena.adc)
-    adc = arena.adc(adc_idx);
-    if adc.adcMode == 0 || adc.adcMode == 1
-      num_subchannel = 1;
-    elseif adc.adcMode == 2
-      num_subchannel = 2;
-    end
-    
-    board_idx = find(strcmpi(adc.name,param.board_map));
-    
-    mode_latch = wfs(wf).modes(end);
-    
-    for subchannel_id = 0:num_subchannel-1
-      wf_set = 0;
-      if isfield(adc,'wf_set') && ~isempty(adc.wf_set)
-        wf_set = adc.wf_set;
-      end
-      if numel(out_adc_idx) < wf_set+1
-        out_adc_idx(wf_set+1) = 1;
-      else
-        out_adc_idx(wf_set+1) = out_adc_idx(wf_set+1) + 1;
-      end
-      total_data_map(end+1,1:5) = [board_idx mode_latch subchannel_id wf_set*numel(wfs)+wf out_adc_idx(wf_set+1)];
-    end
-    
-  end
-end
-
-if 0
-  for board_idx = 1:length(param.board_map)
-    mask = total_data_map(:,1) == board_idx;
-    fprintf('board_idx %d\n', board_idx);
-    data_map = total_data_map(mask,2:5)
-  end
-end
-
-fprintf('  param.records.data_map = {');
-for board_idx = 1:length(param.board_map)
-  mask = total_data_map(:,1) == board_idx;
-  data_map = total_data_map(mask,2:5);
-  if board_idx > 1
-    fprintf(',');
-  end
-  fprintf('%s',mat2str_generic(data_map));
-end
-fprintf('}\n');
-

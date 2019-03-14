@@ -40,6 +40,11 @@ if nargin == 0 || isempty(ctrl_chain)
   for idx = 1:length(chain_fns)
     delete(chain_fns{idx});
   end
+
+  if strcmpi(gRadar.cluster.type,'matlab')
+    jm = parcluster;
+    delete(jm.Jobs);
+  end
 end
 
 %% Get a list of all batches
@@ -107,7 +112,7 @@ ctrls = ctrls(ctrls_mask);
 %% Stop jobs in each batch and remove files
 for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
-  fprintf('Removing batch %d\n', ctrl.batch_id);
+  fprintf('Removing batch %d (%s)\n', ctrl.batch_id, datestr(now));
   try
     ctrl = cluster_get_batch(ctrl,false,0);
     if strcmpi(ctrl.cluster.type,'matlab') && ~isfield(ctrl.cluster,'jm')
@@ -116,7 +121,7 @@ for ctrl_idx = 1:length(ctrls)
     if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
       
       % For each job in the batch, delete the job
-      stopped_job_id_list = -1;
+      stopped_job_id_list = [];
       for task_id = 1:length(ctrl.job_id_list)
         if any(ctrl.job_id_list(task_id) == stopped_job_id_list)
           continue
@@ -124,25 +129,33 @@ for ctrl_idx = 1:length(ctrls)
         if ctrl.job_status(task_id) ~= 'C'
           % Only delete jobs that have not been completed (completed jobs
           % are effectively deleted already)
-          if strcmpi(ctrl.cluster.type,'torque')
-            cmd = sprintf('qdel -W 60 -a %i </dev/null', ctrl.job_id_list(task_id));
-            try; [status,result] = system(cmd); end
-            
-          elseif strcmpi(ctrl.cluster.type,'matlab')
+          if strcmpi(ctrl.cluster.type,'matlab')
             for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
-              if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(task_id))
+              if ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(task_id)
                 try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
               end
             end
-            
-          elseif strcmpi(ctrl.cluster.type,'slurm')
-            cmd = sprintf('scancel %i </dev/null', ctrl.job_id_list(task_id));
-            try; [status,result] = system(cmd); end
-            
           end
           stopped_job_id_list(end+1) = ctrl.job_id_list(task_id);
         end
       end
+     
+      if strcmpi(ctrl.cluster.type,'torque')
+        if isempty(ctrl.cluster.ssh_hostname)
+          cmd = sprintf('qdel -W 60 %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        else
+          cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "qdel -W 60 %s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, sprintf('%d ',stopped_job_id_list));
+        end
+        try; [status,result] = system(cmd); end
+      elseif strcmpi(ctrl.cluster.type,'slurm')
+        if isempty(ctrl.cluster.ssh_hostname)
+          cmd = sprintf('scancel %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        else
+          cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "scancel %s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, sprintf('%d ',stopped_job_id_list));
+        end
+        try; [status,result] = system(cmd); end
+      end
+
     end
   catch ME
     warning(ME.getReport);

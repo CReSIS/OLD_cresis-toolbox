@@ -25,15 +25,15 @@ if strcmpi(location,'Arctic')
   
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2008_Greenland_TO.xls'));
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2009_Greenland_TO.xls'));
-  params{end+1} = read_param_xls(ct_filename_param('rds_param_2010_Greenland_DC8.xls'));
+%   params{end+1} = read_param_xls(ct_filename_param('rds_param_2010_Greenland_DC8.xls'));
 %   params{end+1} = read_param_xls(ct_filename_param('rds_param_2010_Greenland_P3.xls'));
-  %params{end+1} = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
+%   params{end+1} = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2011_Greenland_TO.xls'));
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2012_Greenland_P3.xls'));
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2013_Greenland_P3.xls'));
-  %params{end+1} = read_param_xls(ct_filename_param('rds_param_2015_Greenland_C130.xls'));
+  params{end+1} = read_param_xls(ct_filename_param('rds_param_2015_Greenland_C130.xls'));
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2015_Greenland_Polar6.xls'));
-  %params{end+1} = read_param_xls(ct_filename_param('rds_param_2016_Greenland_P3.xls'));
+%   params{end+1} = read_param_xls(ct_filename_param('rds_param_2016_Greenland_P3.xls'));
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'));
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2017_Greenland_P3.xls'));
   %params{end+1} = read_param_xls(ct_filename_param('rds_param_2018_Greenland_Polar6.xls'));

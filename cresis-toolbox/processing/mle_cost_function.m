@@ -4,10 +4,10 @@ function val = mle_cost_function(theta, param)
 % Function that computes the cost of a given solution vector theta,
 %
 % Inputs:
-%   theta = Nsig x 1 vector of DOAs in radians
+%   theta = Nsrc x 1 vector of DOAs in radians
 %
 %   param     = control structure containing the following fields:
-%     .Nsig   = number of signals,
+%     .Nsrc   = number of signals,
 %     .Rxx    = data covariance matrix,
 %     .y_pc   = column vector of y coordinates of each phase center in SAR
 %               flight coordinate system,
@@ -17,7 +17,7 @@ function val = mle_cost_function(theta, param)
 %     .proj_mtx_update = 1x1 boolean field that enables the projection
 %     matrix update when the alternating projection algorithm is used to
 %     search for the solution.
-%     .theta_fixed = (Nsig-1)x1 vector of given solutions used in
+%     .theta_fixed = (Nsrc-1)x1 vector of given solutions used in
 %                   alternating projection, as defined in eqn 16.b of
 %                   Ziskind and Wax.
 % Outputs:
@@ -46,7 +46,7 @@ if param.proj_mtx_update
   ky    = k*sin(theta_eval).';
   kz    = k*cos(theta_eval).';
   SVs   = (1/sqrt(length(param.y_pc)))*exp(1i*(param.y_pc*ky - param.z_pc*kz));
-  A     = SVs(:,1:numel(param.theta_fixed)); % Nc x (Nsig - 1)
+  A     = SVs(:,1:numel(param.theta_fixed)); % Nc x (Nsrc - 1)
   C     = SVs(:,numel(param.theta_fixed)+1:end); % Nc x 1 (always)
   Pa    = A* inv(A' * A) * A'; % Nc x Nc
   Cb    = (eye(size(Pa,1))- Pa)*C; % Nc x 1

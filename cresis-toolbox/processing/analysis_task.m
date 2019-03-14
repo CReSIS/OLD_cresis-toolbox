@@ -1,6 +1,8 @@
 function [success] = analysis_task(param)
 % [success] = analysis_task(param)
 %
+% Cluster support function for analysis.m
+%
 % https://ops.cresis.ku.edu/wiki/index.php/Analysis
 %
 % Author: John Paden
@@ -55,18 +57,19 @@ if isempty(surf_layer.gps_time)
 elseif length(surf_layer.gps_time) == 1;
   records.surface(:) = surf_layer.twtt;
 else
-  records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time));
+  records.surface = interp_finite(interp1(surf_layer.gps_time,surf_layer.twtt,records.gps_time),0);
 end
 
 %% Load and process each image separately
 % =====================================================================
 store_param = param;
-for img = 1:length(param.load.imgs)
+for img = 1:length(store_param.load.imgs)
 
   param = store_param;
   param.load.raw_data = false;
   param.load.presums = param.analysis.presums;
   param.load.imgs = param.load.imgs(img);
+  cmd_img = img;
   img = 1;
   
   %% Collect waveform information into one structure
@@ -76,12 +79,18 @@ for img = 1:length(param.load.imgs)
   
   %% Load data
   % =========================================================================
-  [hdr,raw_data] = data_load(param,records,wfs,states);
+  [hdr,raw_data] = data_load(param,records,states);
   
   for cmd_idx = 1:length(param.analysis.cmd)
     cmd = param.analysis.cmd{cmd_idx};
     if ~cmd.en
       continue;
+    end
+    
+    % Create temporary output directory
+    tmp_out_fn_dir = ct_filename_out(param, cmd.out_path,'analysis_tmp');
+    if ~exist(tmp_out_fn_dir,'dir')
+      mkdir(tmp_out_fn_dir);
     end
     
     if strcmpi(cmd.method,{'saturation'})
@@ -128,17 +137,17 @@ for img = 1:length(param.load.imgs)
         gps_time = records.gps_time;
         max_val_gps_time = gps_time(:,max_rline);
       end
-      out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+      out_fn = fullfile(tmp_out_fn_dir, ...
         sprintf('saturation_img_%02d_%d_%d.mat',img,task_recs));
-      [out_fn_dir] = fileparts(out_fn);
-      if ~exist(out_fn_dir,'dir')
-        mkdir(out_fn_dir);
-      end
       param_analysis = param;
-      param_analysis.gps_source = records.gps_source;
       fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+      if param.ct_file_lock
+        file_version = '1L';
+      else
+        file_version = '1';
+      end
       save(out_fn,'-v7.3', 'max_rline', 'max_waveform', 'gps_time',...
-        'max_val_gps_time', 'max_val_gps_time_adc');
+        'max_val_gps_time', 'max_val_gps_time_adc', 'file_version');
       
       
     elseif strcmpi(cmd.method,{'specular'})
@@ -149,12 +158,15 @@ for img = 1:length(param.load.imgs)
       tmp_param = param;
       tmp_param.load.pulse_comp = true;
       tmp_param.load.motion_comp = true;
+      tmp_param.load.combine_rx = false;
+      tmp_param.load.trim = cmd.trim;
       tmp_hdr = hdr;
-      tmp_wfs = wfs;
       
-      for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = param.analysis.imgs{1}(wf_adc,1);
-        adc = param.analysis.imgs{1}(wf_adc,2);
+      for wf_adc = cmd.wf_adcs{cmd_img}(:).'
+        tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
+        tmp_hdr.records = {hdr.records{1,wf_adc}};
+        wf = tmp_param.load.imgs{1}(1,1);
+        adc = tmp_param.load.imgs{1}(1,2);
         
         coh_ave_samples = [];
         coh_ave = [];
@@ -169,22 +181,21 @@ for img = 1:length(param.load.imgs)
         heading = [];
         
         % Pulse compression
-        tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
-        tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
-        tmp_wfs(wf).deconv.en = false;
-        
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
+        tmp_param.radar.wfs(wf).deconv.en = false;
+        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         
+        [tmp_hdr,data] = data_trim(tmp_hdr,data,tmp_param.load.trim);
+
         data = data{1};
         
         
         % Correct all the data to a constant elevation (no zero padding is
         % applied so wrap around could be an issue for DDC data)
         for rline = 1:size(data,2)
-          elev_dt = (tmp_hdr.records{1,wf_adc}.elev(rline) - tmp_hdr.records{1,wf_adc}.elev(1)) / (c/2);
-          data(:,rline,wf_adc) = ifft(fft(data(:,rline,wf_adc)) .* exp(1i*2*pi*tmp_hdr.freq{1,wf_adc}*elev_dt));
+          elev_dt = (tmp_hdr.records{1,1}.elev(rline) - tmp_hdr.records{1,1}.elev(1)) / (c/2);
+          data(:,rline,1) = ifft(fft(data(:,rline,1)) .* exp(1i*2*pi*tmp_hdr.freq{1,1}*elev_dt));
         end
         
         %% Specular: Coherence (STFT) Estimation
@@ -197,8 +208,8 @@ for img = 1:length(param.load.imgs)
             cmd.min_bin = wfs(wf).Tpd;
           end
         end
-        min_bin_idxs = find(tmp_hdr.time{1,wf_adc} >= cmd.min_bin,1);
-        [max_value,max_idx_unfilt] = max(data(min_bin_idxs:end,:,wf_adc));
+        min_bin_idxs = find(tmp_hdr.time{1,1} >= cmd.min_bin,1);
+        [max_value,max_idx_unfilt] = max(data(min_bin_idxs:end,:,1));
         max_idx_unfilt = max_idx_unfilt + min_bin_idxs(1) - 1;
         
         % Perform STFT (short time Fourier transform) (i.e. overlapping short FFTs in slow-time)
@@ -213,7 +224,7 @@ for img = 1:length(param.load.imgs)
         
         if 0
           figure(1); clf;
-          imagesc(lp(data(:,:,wf_adc)))
+          imagesc(lp(data(:,:,1)))
           figure(2); clf;
           plot(peakiness)
           keyboard
@@ -238,12 +249,12 @@ for img = 1:length(param.load.imgs)
         % Prepare outputs for file
         peakiness_rlines = round((1:length(peakiness)+0.5)*cmd.rlines/2);
         gps_time = tmp_hdr.gps_time(peakiness_rlines);
-        lat = tmp_hdr.records{1,wf_adc}.lat(peakiness_rlines);
-        lon = tmp_hdr.records{1,wf_adc}.lon(peakiness_rlines);
-        elev = tmp_hdr.records{1,wf_adc}.elev(peakiness_rlines);
-        roll = tmp_hdr.records{1,wf_adc}.roll(peakiness_rlines);
-        pitch = tmp_hdr.records{1,wf_adc}.pitch(peakiness_rlines);
-        heading = tmp_hdr.records{1,wf_adc}.heading(peakiness_rlines);
+        lat = tmp_hdr.records{1,1}.lat(peakiness_rlines);
+        lon = tmp_hdr.records{1,1}.lon(peakiness_rlines);
+        elev = tmp_hdr.records{1,1}.elev(peakiness_rlines);
+        roll = tmp_hdr.records{1,1}.roll(peakiness_rlines);
+        pitch = tmp_hdr.records{1,1}.pitch(peakiness_rlines);
+        heading = tmp_hdr.records{1,1}.heading(peakiness_rlines);
         surface = tmp_hdr.surface(peakiness_rlines);
         
         %% Specular: Forced GPS Check
@@ -315,37 +326,38 @@ for img = 1:length(param.load.imgs)
           % in the peak value
           
           % Apply true time delay shift to flatten surface
-          dt = diff(tmp_hdr.time{1,wf_adc}(1:2));
-          Nt = tmp_hdr.Nt{1,wf_adc}(rline);
-          comp_data = ifft(fft(data(:,center_rline+STFT_rlines,wf_adc)) .* exp(1i*2*pi*tmp_hdr.freq{1,wf_adc}*max_idx*dt) );
+          dt = diff(tmp_hdr.time{1,1}(1:2));
+          Nt = size(data,1);
+          comp_data = ifft(fft(data(:,center_rline+STFT_rlines,1)) .* exp(1i*2*pi*tmp_hdr.freq{1,1}*max_idx*dt) );
           % Apply amplitude correction
-          comp_data = max(abs(max_value)) * comp_data .* repmat(1./abs(max_value), [Nt 1]);
+          %comp_data = max(abs(max_value)) * comp_data .* repmat(1./abs(max_value), [Nt 1]);
           % Apply phase correction (compensating for phase from time delay shift)
-          comp_data = comp_data .* repmat(exp(-1i*(phase_corr + 2*pi*tmp_hdr.freq{1,wf_adc}(1)*max_idx*dt)), [Nt 1]);
+          comp_data = comp_data .* repmat(exp(-1i*(phase_corr + 2*pi*tmp_hdr.freq{1,1}(1)*max_idx*dt)), [Nt 1]);
           
           deconv_gps_time(end+1) = tmp_hdr.gps_time(center_rline);
           deconv_mean{end+1} = mean(comp_data,2);
           deconv_std{end+1} = std(comp_data,[],2);
-          deconv_sample{end+1} = data(:,center_rline+1+cmd.rlines/4,wf_adc);
-          deconv_twtt(:,end+1) = tmp_hdr.time{1,wf_adc}(round(mean(max_idx)));
+          deconv_sample{end+1} = data(:,center_rline+1+cmd.rlines/4,1);
+          deconv_twtt(:,end+1) = tmp_hdr.time{1,1}(round(mean(max_idx)));
         end
         
-        deconv_fc = tmp_hdr.freq{1,wf_adc}(1) * ones(size(deconv_gps_time));
-        deconv_t0 = tmp_hdr.time{1,wf_adc}(1) * ones(size(deconv_gps_time));
-        dt = tmp_hdr.time{1,wf_adc}(2)-tmp_hdr.time{1,wf_adc}(1);
+        deconv_fc = tmp_hdr.freq{1,1}(1) * ones(size(deconv_gps_time));
+        deconv_t0 = tmp_hdr.time{1,1}(1) * ones(size(deconv_gps_time));
+        dt = tmp_hdr.time{1,1}(2)-tmp_hdr.time{1,1}(1);
         
         %% Specular: Save Results
-        out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
+        out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        [out_fn_dir] = fileparts(out_fn);
-        if ~exist(out_fn_dir,'dir')
-          mkdir(out_fn_dir);
-        end
         param_analysis = param;
-      fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        if param.ct_file_lock
+          file_version = '1L';
+        else
+          file_version = '1';
+        end
         save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
           'deconv_forced','peakiness', 'deconv_fc', 'deconv_t0', 'dt', 'gps_time', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records','file_version');
       end
       
       
@@ -355,17 +367,20 @@ for img = 1:length(param.load.imgs)
       % ===================================================================
       
       tmp_param = param;
-      tmp_param.load.pulse_comp = true;
+      tmp_param.load.pulse_comp = cmd.pulse_comp;
       tmp_param.load.motion_comp = false;
+      tmp_param.load.combine_rx = false;
       tmp_hdr = hdr;
-      tmp_wfs = wfs;
       
-      for wf_adc = cmd.wf_adcs{img}(:).'
-        wf = tmp_param.analysis.imgs{1}(wf_adc,1);
-        adc = tmp_param.analysis.imgs{1}(wf_adc,2);
+      for wf_adc = cmd.wf_adcs{cmd_img}(:).'
+        tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
+        tmp_hdr.records = {hdr.records{1,wf_adc}};
+        wf = tmp_param.load.imgs{1}(1,1);
+        adc = tmp_param.load.imgs{1}(1,2);
         
         coh_ave_samples = single([]);
         coh_ave = single([]);
+        coh_ave_mag = single([]);
         nyquist_zone = [];
         gps_time = [];
         surface = [];
@@ -377,16 +392,23 @@ for img = 1:length(param.load.imgs)
         heading = [];
         
         % Pulse compression
-        tmp_wfs(wf).coh_noise_method = '';
-        tmp_wfs(wf).deconv.en = false;
-        tmp_param.load.imgs = {tmp_param.load.imgs{1}(wf_adc,:)};
-        tmp_hdr.records = {tmp_hdr.records{1,wf_adc}};
-        
+        tmp_param.radar.wfs(wf).coh_noise_method = '';
+        tmp_param.radar.wfs(wf).deconv.en = false;
+        tmp_param.radar.wfs(wf).nz_trim = {};
+
         tmp_hdr.nyquist_zone_signal{img} = double(tmp_hdr.nyquist_zone_hw{img});
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
+        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         data = data{1};
+
+        if 0
+          % Check data
+          figure(2); clf;
+          imagesc(lp(fir_dec(abs(fir_dec(bsxfun(@minus,data,nanmean(data,2)),4)).^2,ones(1,5)/5,3)));
+          grid on;
+          keyboard
+        end
         
         %% Coh Noise: Doppler and Data-Statistics
         % Implement memory efficient fft and statistics operations by doing
@@ -409,6 +431,17 @@ for img = 1:length(param.load.imgs)
         
         %% Coh Noise: Block Analysis
         
+        if ischar(cmd.threshold)
+          % threshold is a vector loaded from a coh_noise_simp file
+          noise_fn_dir = fileparts(ct_filename_out(param,cmd.threshold, ''));
+          noise_fn = fullfile(noise_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+          fprintf('  Loading coh_noise threshold: %s\n', noise_fn);
+          load(noise_fn,'threshold');
+        else
+          % threshold is a scalar constant
+          threshold = cmd.threshold;
+        end
+        
         % Do averaging
         rline0_list = 1:cmd.block_ave:size(data,2);
         for rline0_idx = 1:length(rline0_list)
@@ -417,9 +450,14 @@ for img = 1:length(param.load.imgs)
           
           % Regular method for collecting good_samples
           % ===============================================================
-          good_samples = lp(bsxfun(@minus,data(:,rlines),mu)) < cmd.power_threshold;
+          % threshold may be a scalar or a vector so bsxfun is used
+          if cmd.threshold_removeDC
+            good_samples = bsxfun(@lt, lp(bsxfun(@minus,data(:,rlines),mu)), threshold);
+          else
+            good_samples = bsxfun(@lt, lp(data(:,rlines)), threshold);
+          end
           
-          %% Coh Noise: Debug coh_ave.power_threshold
+          %% Coh Noise: Debug coh_ave.threshold
           if 0
             figure(1); clf;
             imagesc(lp(data(:,rlines)));
@@ -440,6 +478,11 @@ for img = 1:length(param.load.imgs)
           %% Coh Noise: Concatenate Info
           coh_ave_samples(:,rline0_idx) = sum(good_samples,2);
           coh_ave(:,rline0_idx) = sum(data(:,rlines) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+          if cmd.mag_en
+            coh_ave_mag(:,rline0_idx) = sum(abs(data(:,rlines)) .* good_samples,2) ./ coh_ave_samples(:,rline0_idx);
+          else
+            coh_ave_mag = [];
+          end          
           
           if strcmpi(radar_type,'deramp')
             % Nyquist_zone: bit mask for which nyquist zones are used in this
@@ -471,16 +514,17 @@ for img = 1:length(param.load.imgs)
         t0 = tmp_hdr.time{1}(1);
         dt = tmp_hdr.time{1}(2)-tmp_hdr.time{1}(1);
         
-        out_fn = fullfile(ct_filename_out(tmp_param, cmd.out_path), ...
+        out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('coh_noise_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        [out_fn_dir] = fileparts(out_fn);
-        if ~exist(out_fn_dir,'dir')
-          mkdir(out_fn_dir);
-        end
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
-        save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone');
+        if param.ct_file_lock
+          file_version = '1L';
+        else
+          file_version = '1';
+        end
+        save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'coh_ave_mag', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone','file_version');
       end
       
     elseif strcmpi(cmd.method,{'waveform'})
@@ -488,37 +532,102 @@ for img = 1:length(param.load.imgs)
       % ===================================================================
       % ===================================================================
       
-      %% Waveform: Load layer
-      layers = opsLoadLayers(param,param.analysis.surf.layer_params);
+      tmp_param = param;
+      tmp_param.load.pulse_comp = cmd.pulse_comp;
+      tmp_param.load.motion_comp = cmd.motion_comp;
+      tmp_param.load.combine_rx = cmd.combine_rx;
+      tmp_hdr = hdr;
       
-      %% Waveform: Extract surface values according to bin_rng
-      layers(1).twtt = interp1(layers(1).gps_time, layers(1).twtt, gps_time(1,:));
-      layers(1).twtt = interp_finite(layers(1).twtt,0);
-      zero_bin = round(interp1(wfs(wf).time, 1:length(wfs(wf).time), layers(1).twtt,'linear','extrap'));
-      start_bin = zero_bin;
-      stop_bin = param.analysis.surf.Nt-1 + zero_bin;
-      surf_vals = zeros(param.analysis.surf.Nt, size(data,2), size(data,3));
-      for rline = 1:size(data,2)
-        start_bin0 = max(1,start_bin(rline));
-        stop_bin0 = min(size(data,1),stop_bin(rline));
-        out_bin0 = 1 + start_bin0-start_bin(rline);
-        out_bin1 = size(surf_vals,1) - (stop_bin(rline)-stop_bin0);
-        surf_vals(out_bin0:out_bin1,rline,:) = data(start_bin0:stop_bin0,rline,:);
-        surf_bins(1:2,rline) = [start_bin0, stop_bin0];
+      for wf_adc = cmd.wf_adcs{cmd_img}(:).'
+        tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
+        tmp_hdr.records = {hdr.records{1,wf_adc}};
+        wf = tmp_param.load.imgs{1}(1,1);
+        adc = tmp_param.load.imgs{1}(1,2);
+        
+        % Pulse compression
+        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
+        
+        [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
+        
+        data = data{1};
+        freq = tmp_hdr.freq{1};
+        time = tmp_hdr.time{1};
+        
+        % Averaging
+        % =========================================================================
+        gps_time = fir_dec(tmp_hdr.gps_time, cmd.B_filter, cmd.dec);
+        surface = fir_dec(tmp_hdr.surface, cmd.B_filter, cmd.dec);
+        data = fir_dec(data, cmd.B_filter, cmd.dec);
+        
+        lat = fir_dec(tmp_hdr.records{1,1}.lat, cmd.B_filter, cmd.dec);
+        lon = fir_dec(tmp_hdr.records{1,1}.lon, cmd.B_filter, cmd.dec);
+        elev = fir_dec(tmp_hdr.records{1,1}.elev, cmd.B_filter, cmd.dec);
+        roll = fir_dec(tmp_hdr.records{1,1}.roll, cmd.B_filter, cmd.dec);
+        pitch = fir_dec(tmp_hdr.records{1,1}.pitch, cmd.B_filter, cmd.dec);
+        heading = fir_dec(tmp_hdr.records{1,1}.heading, cmd.B_filter, cmd.dec);
+        
+        %% Waveform: Load start and stop times
+        % =========================================================================
+        dt = time(2)-time(1);
+        t0 = time(1);
+        fc = freq(1);
+        Tpd = tmp_param.radar.wfs(wf).Tpd;
+        if isnumeric(cmd.start_time)
+          start_bin = find(time>=cmd.start_time,1)*ones(1,size(data,2));
+          if isempty(start_bin)
+            error('No time (%g-%g) is >= cmd.start_time (%g).', time(1), time(end), cmd.start_time);
+          end
+        elseif isstruct(cmd.start_time)
+          cmd.start_time.eval.Tpd = Tpd;
+          cmd.start_time.eval.dt = dt;
+          cmd.start_time.eval.Tstart = time(1);
+          cmd.start_time.eval.Tend = time(end);
+          layers = opsLoadLayers(param,cmd.start_time);
+          layers.twtt = interp1(layers.gps_time, layers.twtt, gps_time);
+          layers.twtt = interp_finite(layers.twtt,0);
+          start_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
+          start_bin = min(max(1,start_bin),size(data,1));
+        elseif ischar(cmd.start_time)
+          es = [];
+          es.Tpd = Tpd;
+          es.dt = dt;
+          es.Tstart = time(1);
+          es.Tend = time(end);
+          s = 0;
+          eval(cmd.start_time);
+          start_bin = find(time>=s,1)*ones(1,size(data,2));
+          if isempty(start_bin)
+            error('No time (%g-%g) is >= cmd.start_time (%g).', time(1), time(end), cmd.start_time);
+          end
+        end
+        
+        stop_bin = start_bin + cmd.Nt - 1;
+        
+        %% Waveform: Extract waveform values according to bin_rng
+        wf_data = zeros(cmd.Nt, size(data,2), size(data,3),'single');
+        time_rng = zeros(2, size(data,2), size(data,3),'single');
+        for rline = 1:size(data,2)
+          start_bin0 = max(1,start_bin(rline));
+          stop_bin0 = min(size(data,1),stop_bin(rline));
+          out_bin0 = 1 + start_bin0-start_bin(rline);
+          out_bin1 = size(wf_data,1) - (stop_bin(rline)-stop_bin0);
+          wf_data(out_bin0:out_bin1,rline,:) = data(start_bin0:stop_bin0,rline,:);
+          time_rng(1:2,rline) = t0+dt*([start_bin0, stop_bin0]-1);
+        end
+        
+        %% Waveform: Save
+        out_fn = fullfile(tmp_out_fn_dir, ...
+          sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
+        param_analysis = tmp_param;
+        fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        if param.ct_file_lock
+          file_version = '1L';
+        else
+          file_version = '1';
+        end
+        save(out_fn,'-v7.3', 'wf_data','time_rng', 'gps_time', 'lat', ...
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'dt', 'fc', 'param_analysis', 'param_records','file_version');
       end
-      
-      %% Waveform: Save
-      out_fn = fullfile(ct_filename_out(param, param.analysis.out_path), ...
-        sprintf('surf_img_%02d_%d_%d.mat',img,task_recs));
-      [out_fn_dir] = fileparts(out_fn);
-      if ~exist(out_fn_dir,'dir')
-        mkdir(out_fn_dir);
-      end
-      param_analysis = param;
-      param_analysis.gps_source = records.gps_source;
-      fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
-      save(out_fn,'-v7.3', 'surf_vals','surf_bins', 'wfs', 'gps_time', 'lat', ...
-        'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
       
       
     elseif strcmpi(cmd.method,{'statistics'})
@@ -527,20 +636,19 @@ for img = 1:length(param.load.imgs)
       % ===================================================================
       
       tmp_param = param;
-      tmp_param.load.pulse_comp = true;
-      tmp_param.load.motion_comp = true;
+      tmp_param.load.pulse_comp = cmd.pulse_comp;
+      tmp_param.load.motion_comp = cmd.motion_comp;
+      tmp_param.load.combine_rx = cmd.combine_rx;
       tmp_hdr = hdr;
-      tmp_wfs = wfs;
       
-      for wf_adc = cmd.wf_adcs{img}(:).'        
-        wf = tmp_param.analysis.imgs{1}(wf_adc,1);
-        adc = tmp_param.analysis.imgs{1}(wf_adc,2);
-        
-        % Pulse compression
+      for wf_adc = cmd.wf_adcs{cmd_img}(:).'        
         tmp_param.load.imgs = {param.load.imgs{1}(wf_adc,:)};
         tmp_hdr.records = {hdr.records{1,wf_adc}};
+        wf = tmp_param.load.imgs{1}(1,1);
+        adc = tmp_param.load.imgs{1}(1,2);
         
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,tmp_wfs,{raw_data{1}(:,:,wf_adc)});
+        % Pulse compression
+        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         
@@ -550,7 +658,7 @@ for img = 1:length(param.load.imgs)
         
         %% Statistics: Load start and stop times
         dt = time(2)-time(1);
-        Tpd = tmp_wfs(wf).Tpd;
+        Tpd = tmp_param.radar.wfs(wf).Tpd;
         if isnumeric(cmd.start_time)
           start_bin = find(time>=cmd.start_time,1)*ones(1,size(data,2));
           if isempty(start_bin)
@@ -559,11 +667,25 @@ for img = 1:length(param.load.imgs)
         elseif isstruct(cmd.start_time)
           cmd.start_time.eval.Tpd = Tpd;
           cmd.start_time.eval.dt = dt;
+          cmd.start_time.eval.Tstart = time(1);
+          cmd.start_time.eval.Tend = time(end);
           layers = opsLoadLayers(param,cmd.start_time);
           layers.twtt = interp1(layers.gps_time, layers.twtt, hdr.gps_time(1,:));
           layers.twtt = interp_finite(layers.twtt,0);
           start_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
           start_bin = min(max(1,start_bin),size(data,1));
+        elseif ischar(cmd.start_time)
+          es = [];
+          es.Tpd = Tpd;
+          es.dt = dt;
+          es.Tstart = time(1);
+          es.Tend = time(end);
+          s = 0;
+          eval(cmd.start_time);
+          start_bin = find(time>=s,1)*ones(1,size(data,2));
+          if isempty(start_bin)
+            error('No time (%g-%g) is >= cmd.start_time (%g).', time(1), time(end), cmd.start_time);
+          end
         end
         if isnumeric(cmd.stop_time)
           stop_bin = find(time<=cmd.stop_time,1,'last')*ones(1,size(data,2));
@@ -578,6 +700,18 @@ for img = 1:length(param.load.imgs)
           layers.twtt = interp_finite(layers.twtt,0);
           stop_bin = round(interp1(time, 1:length(time), layers.twtt,'linear','extrap'));
           stop_bin = min(max(1,stop_bin),size(data,1));
+        elseif ischar(cmd.stop_time)
+          es = [];
+          es.Tpd = Tpd;
+          es.dt = dt;
+          es.Tstart = time(1);
+          es.Tend = time(end);
+          s = 0;
+          eval(cmd.stop_time);
+          stop_bin = find(time<=s,1,'last')*ones(1,size(data,2));
+          if isempty(stop_bin)
+            error('No time (%g-%g) is >= cmd.stop_time (%g).', time(1), time(end), cmd.stop_time);
+          end
         end
         Nt = max(floor(stop_bin - start_bin + 1));
         
@@ -645,9 +779,9 @@ for img = 1:length(param.load.imgs)
               vals(:,rlines_idx) = data(start_bin:stop_bin,rlines(rlines_idx));
             end
             for stat_idx = 1:numel(cmd.stats)
-              if ischar(cmd.stats)
+              if ischar(cmd.stats{stat_idx})
                 % Function handle string
-                fh = str2func(cmd.stats);
+                fh = str2func(cmd.stats{stat_idx});
                 tmp = fh(param,cmd,vals,start_bin,stop_bin);
                 stats{stat_idx}(:,end+(1:size(tmp,2))) = tmp;
               else
@@ -670,16 +804,17 @@ for img = 1:length(param.load.imgs)
         
         %% Statistics: Save results
         
-        out_fn = fullfile(ct_filename_out(tmp_param, cmd.out_path), ...
+        out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('stats_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        [out_fn_dir] = fileparts(out_fn);
-        if ~exist(out_fn_dir,'dir')
-          mkdir(out_fn_dir);
-        end
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
+        if param.ct_file_lock
+          file_version = '1L';
+        else
+          file_version = '1';
+        end
         save(out_fn,'-v7.3', 'stats', 'freq', 'time', 'start_bin', 'gps_time', 'surface', 'lat', ...
-          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records');
+          'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','file_version');
       end
       
     end

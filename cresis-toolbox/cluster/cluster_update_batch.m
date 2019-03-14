@@ -1,5 +1,5 @@
-function ctrl = cluster_batch_update(ctrl,force_check)
-% ctrl = cluster_batch_update(ctrl,force_check)
+function ctrl = cluster_update_batch(ctrl,force_check)
+% ctrl = cluster_update_batch(ctrl,force_check)
 %
 % Updates task status information from the cluster. Also prints
 % out status information when job changes status. Generally this function
@@ -55,17 +55,31 @@ if strcmpi(ctrl.cluster.type,'debug')
   force_check = true;
 end
 
-task_status_found = char(zeros(size(ctrl.job_status)));
+task_status_found = zeros(size(ctrl.job_status));
 
 %% Update task status for each task using cluster interface
 ctrl.active_jobs = 0;
 if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
+
+  if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
+    if ~isfield(ctrl.cluster,'user_name') || isempty(ctrl.cluster.user_name)
+      [~,ctrl.cluster.user_name] = system('whoami </dev/null');
+      ctrl.cluster.user_name = ctrl.cluster.user_name(1:end-1);
+    end
+    if ~isfield(ctrl.cluster,'ssh_user_name') || isempty(ctrl.cluster.ssh_user_name)
+      [~,ctrl.cluster.ssh_user_name] = system('whoami </dev/null');
+      ctrl.cluster.ssh_user_name = ctrl.cluster.ssh_user_name(1:end-1);
+    end
+  end
+  
   if strcmpi(ctrl.cluster.type,'torque')
     % Runs qstat command
     % ---------------------------------------------------------------------
-    [system,user_name] = robust_system('whoami');
-    user_name = user_name(1:end-1);
-    cmd = sprintf('qstat -u %s </dev/null', user_name);
+    if isempty(ctrl.cluster.ssh_hostname)
+      cmd = sprintf('qstat -u %s </dev/null', ctrl.cluster.user_name);
+    else
+      cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "qstat -u %s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, ctrl.cluster.ssh_user_name);
+    end
     [status,result] = robust_system(cmd);
     
   elseif strcmpi(ctrl.cluster.type,'matlab')
@@ -75,9 +89,11 @@ if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
   elseif strcmpi(ctrl.cluster.type,'slurm')
     % Runs squeue command
     % ---------------------------------------------------------------------
-    [system,user_name] = robust_system('whoami');
-    user_name = user_name(1:end-1);
-    cmd = sprintf('squeue --users=%s </dev/null', user_name);
+    if isempty(ctrl.cluster.ssh_hostname)
+      cmd = sprintf('squeue --users=%s </dev/null', ctrl.cluster.user_name);
+    else
+      cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "squeue --users=%s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, ctrl.cluster.ssh_user_name);
+    end
     [status,result] = robust_system(cmd);
   end
   
@@ -107,6 +123,9 @@ if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
         qstat_res{7}(job_idx,1) = IDs(job_idx);
         if any(strcmpi(States(job_idx),{'finished','failed'}))
           qstat_res{5}{job_idx,1} = 'C';
+        elseif any(strcmpi(States(job_idx),{'running'}))
+          ctrl.active_jobs = ctrl.active_jobs + 1;
+          qstat_res{5}{job_idx,1} = 'R';
         else
           ctrl.active_jobs = ctrl.active_jobs + 1;
           qstat_res{5}{job_idx,1} = 'Q';
@@ -115,13 +134,18 @@ if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
       
       
     elseif strcmpi(ctrl.cluster.type,'slurm')
-      qstat_res = textscan(result,'%s %s %s %s %s %s %s %s','Headerlines',1,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
-      for idx = 1:size(qstat_res{1},1)
-        qstat_res{1}{idx} = str2double(qstat_res{1}{idx});
-        qstat_res{5}{idx} = qstat_res{5}{idx}(1);
-        if qstat_res{5}{idx} ~= 'C'
-          ctrl.active_jobs = ctrl.active_jobs + 1;
+      qstat_res = textscan(result,'%s %s %s %s %s %s %s %*[^\n]','Headerlines',1,'Delimiter',sprintf(' \t'),'MultipleDelimsAsOne',1);
+      try
+        for idx = 1:size(qstat_res{1},1)
+          qstat_res{1}{idx} = str2double(qstat_res{1}{idx});
+          qstat_res{5}{idx} = qstat_res{5}{idx}(1);
+          if qstat_res{5}{idx} ~= 'C'
+            ctrl.active_jobs = ctrl.active_jobs + 1;
+          end
         end
+      catch ME
+        ME.getReport
+        keyboard
       end
       qstat_res{7} = cell2mat(qstat_res{1});
       
@@ -141,7 +165,7 @@ if any(strcmpi(ctrl.cluster.type,{'matlab','slurm','torque'}))
           if ctrl.job_status(task_id) ~= 'C'
             new_job_status = qstat_res{5}{idx};
             % Debug: Print a message for all changes besides running and exiting
-            fprintf(' QJob %d:%d/%d status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
+            fprintf(' Task %d:%d (%d) status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
             ctrl.job_status(task_id) = new_job_status;
             if any(ctrl.job_status(task_id) == 'C')
               % Get the output information

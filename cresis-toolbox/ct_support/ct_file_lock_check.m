@@ -31,7 +31,12 @@ end
 
 global gRadar;
 if isfield(gRadar,'ct_file_lock_check') && ~gRadar.ct_file_lock_check
-  check_mode = 0;
+  no_stdio = true;
+  if check_mode ~= 3 && check_mode ~= 4
+    check_mode = 0;
+  end
+else
+  no_stdio = false;
 end
 
 if ischar(fns)
@@ -47,7 +52,12 @@ if ischar(fns)
       end
     else
       warning off;
-      tmp = load(fn,'file_version');
+      try
+        tmp = load(fn,'file_version');
+      catch
+        % Corrupt file so consider it to not be locked
+        return;
+      end
       warning on;
     end
     if isfield(tmp,'file_version')
@@ -70,13 +80,19 @@ if ischar(fns)
       case {2,3}
         if any(file_version=='L')
           % Check with user
-          fprintf('<strong>File is locked: %s</strong>\nChoose one of these options:\n  1: Remove lock on this file\n  2: Disable gRadar.ct_file_lock_check (which disabled file lock checking globally)\n  3: Stop execution\n', fn);
-          uinput = [];
-          while isempty(uinput) || ~isnumeric(uinput)
-            uinput = input('? ');
+          if no_stdio
+            uinput = 1;
+          else
+            fprintf('<strong>File is locked: %s</strong>\nChoose one of these options:\n  1: Remove lock on this file\n  2: Disable gRadar.ct_file_lock_check (which disabled file lock checking globally)\n  3: Stop execution\n', fn);
+            uinput = [];
+            while isempty(uinput) || ~isnumeric(uinput)
+              uinput = input('? ');
+            end
           end
           if uinput==1
-            fprintf('  Removing lock\n');
+            if ~no_stdio
+              fprintf('  Removing lock\n');
+            end
             if check_mode == 2
               % Remove lock
               ct_file_lock(fn,0);
@@ -97,6 +113,10 @@ if ischar(fns)
           else
             error('File %s is locked.', fn);
           end
+        elseif check_mode == 3 && ~any(file_version=='D')
+          % File is not locked and not marked for deletion: we mark it for
+          % deletion without asking the user
+          ct_file_lock(fn,2);
         end
 
       case 4

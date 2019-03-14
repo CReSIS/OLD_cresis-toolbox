@@ -57,10 +57,14 @@ for file_idx = 1:length(in_fns)
   if ischar(in_fn)
     in_fn = {in_fn};
   end
-  if ~exist('sync_fns','var')
+  if ~exist('sync_flag','var') || ~sync_flag{file_idx}
     sync_fn = {};
   else
-    sync_fn = sync_fns{file_idx};
+    if ~exist('sync_fns','var') || file_idx > length(sync_fns)
+      error('sync_flag is true, but no files specified in sync_fns for this date.');
+    else
+      sync_fn = sync_fns{file_idx};
+    end
   end
   if ischar(sync_fn)
     sync_fn = {sync_fn};
@@ -69,48 +73,77 @@ for file_idx = 1:length(in_fns)
   if isempty(in_fn)
     error('No input GPS files found in in_fns{%d} variable. Usually this is because the file path is not setup.\n', file_idx);
   end
-  fprintf('Sync files (%.1f sec)\n', toc);
-  for in_fn_idx = 1:length(in_fn)
-    fprintf('  %s\n', in_fn{in_fn_idx});
-  end
-  fprintf('Input files (%.1f sec)\n', toc);
-  for in_fn_idx = 1:length(in_fn)
-    fprintf('  %s\n', in_fn{in_fn_idx});
-  end
-  fprintf('  Output file %s\n', out_fn);
+  
+  fprintf('=====================================================================\n');
+  fprintf('%s: %s (%s)\n', mfilename, out_fn, datestr(now));
+  fprintf('=====================================================================\n');
   
   %% Load Radar Sync GPS files (mcrds, accum2, arena)
-  if isstruct(sync_params{file_idx})
-    sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
-  end
-  clear sync_gps;
-  for sync_fn_idx = 1:length(sync_fn)
-    if iscell(sync_file_type{file_idx})
-      cur_file_type = sync_file_type{file_idx}{sync_fn_idx};
-    else
-      cur_file_type = sync_file_type{file_idx};
+  if exist('sync_flag','var') && sync_flag{file_idx}
+    if isstruct(sync_params{file_idx})
+      sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
     end
-    gps_fh = make_gps_fh(cur_file_type);
-    gps_tmp = gps_fh(sync_fn{sync_fn_idx},sync_params{file_idx}{sync_fn_idx});
+    clear sync_gps;
+    fprintf('Sync files (%.1f sec)\n', toc);
+    for sync_fn_idx = 1:length(sync_fn)
+      if iscell(sync_file_type{file_idx})
+        cur_file_type = sync_file_type{file_idx}{sync_fn_idx};
+      else
+        cur_file_type = sync_file_type{file_idx};
+      end
+      gps_fh = make_gps_fh(cur_file_type);
+      fprintf('  %s\n', sync_fn{sync_fn_idx});
+      gps_tmp = gps_fh(sync_fn{sync_fn_idx},sync_params{file_idx}{sync_fn_idx});
+      
+      if sync_fn_idx == 1
+        sync_gps = gps_tmp;
+      else
+        sync_gps.gps_time = [sync_gps.gps_time, gps_tmp.gps_time];
+        sync_gps.lat = [sync_gps.lat, gps_tmp.lat];
+        sync_gps.lon = [sync_gps.lon, gps_tmp.lon];
+        sync_gps.elev = [sync_gps.elev, gps_tmp.elev];
+        sync_gps.roll = [sync_gps.roll, gps_tmp.roll];
+        sync_gps.pitch = [sync_gps.pitch, gps_tmp.pitch];
+        sync_gps.heading = [sync_gps.heading, gps_tmp.heading];
+        sync_gps.comp_time = [sync_gps.comp_time, gps_tmp.comp_time];
+        if isfield(sync_gps,'radar_time')
+          sync_gps.radar_time = [sync_gps.radar_time, gps_tmp.radar_time];
+        end
+        if isfield(sync_gps,'profileCntr')
+          sync_gps.profileCntr = [sync_gps.profileCntr, gps_tmp.profileCntr];
+        end
+      end
+    end
     
-    if sync_fn_idx == 1
-      sync_gps = gps_tmp;
+    %% Remove records with NaN
+    if isfield(sync_gps,'radar_time')
+      good_mask = ~(isnan(sync_gps.gps_time) | isnan(sync_gps.radar_time));
+      sync_gps.radar_time = sync_gps.radar_time(good_mask);
     else
-      sync_gps.gps_time = [sync_gps.gps_time, gps_tmp.gps_time];
-      sync_gps.lat = [sync_gps.lat, gps_tmp.lat];
-      sync_gps.lon = [sync_gps.lon, gps_tmp.lon];
-      sync_gps.elev = [sync_gps.elev, gps_tmp.elev];
-      sync_gps.roll = [sync_gps.roll, gps_tmp.roll];
-      sync_gps.pitch = [sync_gps.pitch, gps_tmp.pitch];
-      sync_gps.heading = [sync_gps.heading, gps_tmp.heading];
-      sync_gps.comp_time = [sync_gps.comp_time, gps_tmp.comp_time];
-      if isfield(sync_gps,'radar_time')
-        sync_gps.radar_time = [sync_gps.radar_time, sync_gps_tmp.radar_time];
-      end
-      if isfield(sync_gps,'profileCntr')
-        sync_gps.profileCntr = [sync_gps.profileCntr, sync_gps_tmp.profileCntr];
-      end
+      good_mask = ~(isnan(sync_gps.gps_time) | isnan(sync_gps.comp_time));
     end
+    sync_gps.gps_time = sync_gps.gps_time(good_mask);
+    sync_gps.comp_time = sync_gps.comp_time(good_mask);
+    sync_gps.lat = sync_gps.lat(good_mask);
+    sync_gps.lon = sync_gps.lon(good_mask);
+    sync_gps.elev = sync_gps.elev(good_mask);
+    sync_gps.roll = sync_gps.roll(good_mask);
+    sync_gps.pitch = sync_gps.pitch(good_mask);
+    sync_gps.heading = sync_gps.heading(good_mask);
+    
+    %% Check for day wraps
+    % Find jumps in the GPS time that are probably due to day interval
+    % 86400 seconds.
+    day_jumps = find(diff(sync_gps.gps_time) < -60000);
+    if ~isempty(day_jumps)
+      warning('Found a day wrap in sync gps... correcting');
+    end
+    for jump_idx = day_jumps
+      sync_gps.gps_time(jump_idx+1:end) = sync_gps.gps_time(jump_idx+1:end) + 86400;
+    end
+    
+    %% Check/make the sync GPS data monotonic in time in case it is not
+    sync_gps = make_gps_monotonic(sync_gps);
   end
   
   %% Load GPS files
@@ -122,6 +155,7 @@ for file_idx = 1:length(in_fns)
   end
   clear gps;
   separate_ins_data_flag = false;
+  fprintf('Input files (%.1f sec)\n', toc);
   for in_fn_idx = 1:length(in_fn)
     if iscell(file_type{file_idx})
       cur_file_type = file_type{file_idx}{in_fn_idx};
@@ -143,10 +177,19 @@ for file_idx = 1:length(in_fns)
       end
     end
     gps_fh = make_gps_fh(cur_file_type);
+    fprintf('  %s\n', in_fn{in_fn_idx});
     gps_tmp = gps_fh(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     
+    gps_tmp = rmfield(gps_tmp,'radar_time');
+    
     if in_fn_idx == 1
-      gps = gps_tmp;
+      gps.gps_time = gps_tmp.gps_time;
+      gps.lat = gps_tmp.lat;
+      gps.lon = gps_tmp.lon;
+      gps.elev = gps_tmp.elev;
+      gps.roll = gps_tmp.roll;
+      gps.pitch = gps_tmp.pitch;
+      gps.heading = gps_tmp.heading;
     else
       gps.gps_time = [gps.gps_time, gps_tmp.gps_time];
       gps.lat = [gps.lat, gps_tmp.lat];
@@ -158,8 +201,12 @@ for file_idx = 1:length(in_fns)
     end
   end
   
+  if isempty(gps.gps_time)
+    error('No GPS data loaded, isempty(gps.gps_time) == true.\n');
+  end
+  
   %% Remove records with NaN
-  good_mask = ~(isnan(gps.gps_time(1:length(gps.gps_time))) | isnan(gps.lat) ...
+  good_mask = ~(isnan(gps.gps_time) | isnan(gps.lat) ...
     | isnan(gps.lon) | isnan(gps.elev) ...
     | isnan(gps.roll) | isnan(gps.pitch) | isnan(gps.heading));
   gps.gps_time = gps.gps_time(good_mask);
@@ -180,15 +227,6 @@ for file_idx = 1:length(in_fns)
   end
   for jump_idx = day_jumps
     gps.gps_time(jump_idx+1:end) = gps.gps_time(jump_idx+1:end) + 86400;
-  end
-  if exist('sync_flag','var') && sync_flag{file_idx}
-    day_jumps = find(diff(sync_gps.gps_time) < -60000);
-    if ~isempty(day_jumps)
-      warning('Found a day wrap in sync gps... correcting');
-    end
-    for jump_idx = day_jumps
-      sync_gps.gps_time(jump_idx+1:end) = sync_gps.gps_time(jump_idx+1:end) + 86400;
-    end
   end
 
   %% Check/make the GPS data monotonic in time in case it is not
@@ -389,15 +427,19 @@ for file_idx = 1:length(in_fns)
   
   %% Fabricate a heading from the trajectory if it is all zeros
   if all(gps.heading == 0)
-    warning('This file has heading(:) == 0. Using the estimated heading.');
+    warning('These input files have heading(:) == 0. Using the estimated heading.');
     gps.heading = est_heading;
   end
   
   %% Add software revision information
   gps.sw_version = current_software_version;
 
-  %% Add the Radar Synchronization variables for mcrds, accum2, acords
+  %% Save output file
+  fprintf('Output file %s\n', out_fn);
   if exist('sync_flag','var') && sync_flag{file_idx}
+    % Add the Radar Synchronization variables for mcrds, accum2, acords,
+    % arena
+    
     % Synchronize computer time and radar time from NMEA file to gps time
     gps.sync_gps_time = sync_gps.gps_time;
     gps.sync_lat = sync_gps.lat;
@@ -408,45 +450,10 @@ for file_idx = 1:length(in_fns)
       gps.radar_time = sync_gps.radar_time;
     end
 
-    %% Fabricating a heading for sync GPS data
-    along_track = geodetic_to_along_track(gps.sync_lat,gps.sync_lon,gps.sync_elev);
-    rlines = get_equal_alongtrack_spacing_idxs(along_track,10);
-    physical_constants;
-    est_heading = size(gps.sync_lat);
-    clear origin heading east north;
-    for rline_idx = 1:length(rlines)
-      rline = rlines(rline_idx);
-      if rline_idx < length(rlines)
-        rline_end = rlines(rline_idx+1);
-      else
-        rline_end = length(along_track);
-      end
-      [origin(1),origin(2),origin(3)] = geodetic2ecef(gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
-      [heading(1),heading(2),heading(3)] = geodetic2ecef(gps.sync_lat(rline_end)/180*pi,gps.sync_lon(rline_end)/180*pi,gps.sync_elev(rline_end),WGS84.ellipsoid);
-      heading = heading - origin;
-      % Determine east vector
-      [east(1) east(2) east(3)] = lv2ecef(1,0,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
-      east = east - origin;
-      % Determine north vector
-      [north(1) north(2) north(3)] = lv2ecef(0,1,0,gps.sync_lat(rline)/180*pi,gps.sync_lon(rline)/180*pi,gps.sync_elev(rline),WGS84.ellipsoid);
-      north = north - origin;
-      % Determine heading
-      est_heading(rline:rline_end) = atan2(dot(east,heading),dot(north,heading));
-    end
-    gps.sync_heading = est_heading;
-    
-    
-     % If sync gps data vectors are longer than gps vectors or sync_gps_time
-    % extends beyond gps_time, merge the two data sets. Check for longitude
-    % 360 deg offset and elevation differences.
-    if gps.gps_time(end) < gps.sync_gps_time(end) || gps.gps_time(1) > gps.sync_gps_time(1)
-      gps = merge_sync_gps(gps,2);
-    end
-
     if isfield(gps,'radar_time')
-      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','radar_time','sw_version');
+      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version');
     else
-      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','sync_heading','comp_time','sw_version');
+      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version');
     end
   else
     save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');

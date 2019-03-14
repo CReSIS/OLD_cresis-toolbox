@@ -126,11 +126,15 @@ if strcmpi(cmd,'setup')
      
   elseif strcmpi(param.location,'Alaska')
   hemisphere = 'north';
-  geotiff_fn = fullfile(ct_filename_gis(param,'alaska'),'','Alaska_Landsat7_polarstereo_90m.tif');
   cmap = gray(256);
-  map_axis = [-5000 -1500 -1500 2500];
+%   geotiff_fn = fullfile(ct_filename_gis(param,'alaska'),'','Alaska_Landsat7_polarstereo_90m.tif');
+%   map_axis = [-5000 -1500 -1500 2500];
+%   contour_position = [0.12 0.72 0.3 0.25];
+%   map_sub_title = 'Polar Stereograph 70N/-45E';
+  geotiff_fn = fullfile(ct_filename_gis(param,'alaska'),'Landsat-7','Alaska_90m.tif');
+  map_axis = [-17000 -15000 8000 9500];
   contour_position = [0.12 0.72 0.3 0.25];
-  map_sub_title = 'Polar Stereograph 70N/-45E';
+  map_sub_title = 'Mercator';
   
   else
     % If this is not one of the standard locations, this must be a geotiff

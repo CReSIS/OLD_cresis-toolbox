@@ -1,29 +1,16 @@
-function [data] = nan_fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en)
-% [data] = nan_fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en)
+function [data] = nan_fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en, phase_weights, nan_normalize_threshold)
+% [data] = nan_fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en, phase_weights, nan_normalize_threshold)
 %
-% Applies a finite impulse response filter to the data and then decimates.
-% The FIR only operates on the second dimension of 2D datasets.
-% Same as fir_dec, except NaN are ignored and means are renormalized
-% to account for NaN using nanmean.
+% See fir_dec for description. This function using nansum when doing sum.
+% Also the nan_normalize_threshold parameter can be used to exclude pixels
+% that only have partial support.
 %
-% With 2 input arguments, it does simple coherent averaging (also known as
-% stacking or presumming).
-%
-% data = 1D row or column vector or 2D array
-%
-% If only 2 arguments and second argument is a scalar:
-%  Bfilter = scalar, amount to presum (boxcar window and then decimate)
-%    boxcar window is normalized so that it is a mean (as opposed to sum)
-%    If Bfilter (the amount to presum) is less than one, then nothing
-%    happens.
-%
-% If 3 or more arguments:
-%  Bfilter = FIR filter coefficients (row vector), must be even order
-%    (i.e. odd length)
-%  dec_factor = Decimation factor to apply to the data (default is 1)
-%  start_idx = first output corresponds to this input index (default is 1)
-%  Nidxs = number of outputs (default is the max supported by the input)
-%  renormalize_en = renormalize edge effects, default is true
+% nan_normalize_threshold: Scalar. Default is inf. The threshold is the
+%   amount the nansum has to be normalized (increased) to make up for
+%   missing NaN values in the data. Common values:
+%   inf: output pixels are good as long as they have any ~isnan support
+%   <1: output pixels are good only if they have no isnan support
+%   2: output pixels are good as long as the have over 50% ~isnan support
 %
 % Authors: John Paden
 %
@@ -50,7 +37,6 @@ if nargin == 2 && length(Bfilter) == 1
   end
   
 else
-  warning('Non-simple nan_fir_dec not tested');
   if ~exist('start_idx','var') || isempty(start_idx)
     start_idx = 1;
   end
@@ -66,6 +52,14 @@ else
   if ~exist('renormalize_en','var') || isempty(renormalize_en)
     renormalize_en = true;
   end
+    
+  if ~exist('phase_weights','var') || isempty(phase_weights)
+    phase_weights = [];
+  end
+    
+  if ~exist('nan_normalize_threshold','var') || isempty(nan_normalize_threshold)
+    nan_normalize_threshold = inf;
+  end
   
   if size(Bfilter,1) ~= 1
     error('Bfilter must be a row vector');
@@ -80,8 +74,6 @@ else
   if size(data,2) == 1
     data = data.';
   end
-  
-  Bfilter = repmat(Bfilter, [size(data,1) 1]);
   
   out_data = zeros(size(data,1), Nidxs, class(data));
   
@@ -107,16 +99,29 @@ else
     end
     
     if ~renormalize
-      out_data(:,out_idx) = nansum(data(:,idx_rng(1):idx_rng(2)) .* Bfilter,2);
-      nan_normalize = sum(Bfilter,2) ./ sum(Bfilter .* ~isnan(data(:,idx_rng(1):idx_rng(2))),2);
-      nan_normalize(~isfinite(nan_normalize)) = NaN;
+      if isempty(phase_weights)
+        out_data(:,out_idx) = nansum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), Bfilter),2);
+      else
+        dphase = phase_weights(idx_rng(1):idx_rng(2));
+        dphase = conj(dphase./exp(1i * angle(mean(dphase))));
+        out_data(:,out_idx) = nansum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), Bfilter.*dphase),2);
+      end
+      nan_normalize = sum(Bfilter,2) ./ sum(bsxfun(@times,Bfilter,~isnan(data(:,idx_rng(1):idx_rng(2)))),2);
+      nan_normalize(~isfinite(nan_normalize) | nan_normalize>=nan_normalize_threshold) = NaN;
       out_data(:,out_idx) = out_data(:,out_idx) .* nan_normalize;
     else
-      Bfilter_tmp = Bfilter(:,filter_rng(1):filter_rng(2));
-      out_data(:,out_idx) = nansumsum(data(:,idx_rng(1):idx_rng(2)) ...
-        .* Bfilter_tmp, 2);
-      nan_normalize = sum(Bfilter_tmp,2) ./ sum(Bfilter_tmp .* ~isnan(data(:,idx_rng(1):idx_rng(2))),2);
-      nan_normalize(~isfinite(nan_normalize)) = NaN;
+      Bfilter_tmp = Bfilter(filter_rng(1):filter_rng(2));
+      if isempty(phase_weights)
+        out_data(:,out_idx) = nansum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), ...
+          Bfilter_tmp), 2);
+      else
+        dphase = phase_weights(idx_rng(1):idx_rng(2));
+        dphase = conj(dphase./exp(1i * angle(mean(dphase))));
+        out_data(:,out_idx) = nansum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), ...
+          Bfilter_tmp.*dphase), 2);
+      end
+      nan_normalize = sum(Bfilter_tmp,2) ./ sum(bsxfun(@times,Bfilter_tmp,~isnan(data(:,idx_rng(1):idx_rng(2)))),2);
+      nan_normalize(~isfinite(nan_normalize) | nan_normalize>=nan_normalize_threshold) = NaN;
       out_data(:,out_idx) = out_data(:,out_idx) .* nan_normalize;
       
       if renormalize_en

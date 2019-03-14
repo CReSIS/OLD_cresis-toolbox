@@ -21,9 +21,8 @@ fprintf('=====================================================================\n
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-if ~isfield(param.post,'ops')|| isempty(param.post.ops) ...
-    || isempty(param.post.ops.en)
-  param.post.ops.en = 0;
+if ~isfield(param.post,'echo') || isempty(param.post.echo)
+  param.post.echo = [];
 end
 
 if ~isfield(param.post,'frm_types') || isempty(param.post.frm_types)
@@ -44,8 +43,13 @@ if ~isfield(param.post,'img') || isempty(param.post.img)
   param.post.img = 0;
 end
 
-if ~isfield(param.post,'echo') || isempty(param.post.echo)
-  param.post.echo = [];
+if ~isfield(param.post,'ops') || isempty(param.post.ops) ...
+    || ~isfield(param.post.ops,'en') || isempty(param.post.ops.en)
+  param.post.ops.en = 0;
+end
+
+if ~isfield(param.post,'out_path') || isempty(param.post.out_path)
+  param.post.out_path = 'post';
 end
 
 if ~isfield(param.post.echo,'plot_params') || isempty(param.post.echo.plot_params)
@@ -57,14 +61,14 @@ physical_constants;
 
 % layer_path_in: where the layer information will come from
 if ~isempty(param.post.layer_dir) && param.post.ops.en == 0
-  layer_path_in = ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.layer_dir), param.day_seg);
+  layer_path_in = fullfile(ct_filename_out(param, ...
+    fullfile(param.post.in_path,param.post.layer_dir)));
   use_data_files_for_layer = false;
 else
   % An empty layer directory makes the program assume that there are no
   % layer files and it uses the data files instead
   layer_path_in = ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.data_dirs{1}), param.day_seg);
+    fullfile(param.post.in_path,param.post.data_dirs{1}));
   use_data_files_for_layer = true;
 
   % We also need to authenticate the OPS user
@@ -74,7 +78,7 @@ else
 end
 
 % post_path: the directory where outputs will be created
-post_path = ct_filename_out(param,param.post.out_path,'CSARP_post',1);
+post_path = ct_filename_out(param,param.post.out_path,[],1);
 
 % Do some conversions on the boolean post fields: if the field is empty,
 % assign it to false
@@ -185,6 +189,11 @@ if length(valid_frms) ~= length(param.cmd.frms)
   param.cmd.frms = valid_frms;
 end
 
+if isempty(param.cmd.frms)
+  % No valid frames specified to post
+  return;
+end
+
 % Build a list of frame information and eliminate frames that have
 % proc_mode set to not post.
 frm_idx = 0;
@@ -234,8 +243,13 @@ end
 for data_dir_idx = 1:length(param.post.data_dirs)
   % Get a data directory
   data_path_in = ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.data_dirs{data_dir_idx}), param.day_seg);
+    fullfile(param.post.in_path,param.post.data_dirs{data_dir_idx}));
   if ~exist(data_path_in,'dir')
+    if data_dir_idx == 1
+      error('%s not found. This is the first (master) directory in param.post.in_path and must exist for create posting to work.', data_path_in);
+    else
+      warning('%s not found.', data_path_in);
+    end
     continue;
   end
   
@@ -559,8 +573,9 @@ for frm_idx = 1:length(frms)
     echo_param.ops.en = true;
     
     echo_info = publish_echogram(echo_param,mdata,lay);
-    set(echo_info.h_surf,'Visible','off')
-    set(echo_info.h_bot,'Visible','off')
+    set(echo_info.h_surf,'Visible','off');
+    set(echo_info.h_bot,'Visible','off');
+    set(echo_info.fig_hand(1),'Name',param.post.data_dirs{1});
     
     % Update title (handle segment wrapping from one day to the next)
     seg_year = str2double(param.day_seg(1:4));
