@@ -92,7 +92,7 @@ end
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 for wf = 1:length(param.radar.wfs)
   if ~isfield(param.radar.wfs(wf),'adcs') || isempty(param.radar.wfs(wf).adcs)
-    adcs = 1:length(param.radar.wfs(wf).rx_paths);
+    adcs = find(~isnan(param.radar.wfs(wf).rx_paths));
   else
     adcs = param.radar.wfs(wf).adcs;
   end
@@ -404,13 +404,13 @@ for wf = 1:length(param.radar.wfs)
   if isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts)
     wfs(wf).bit_shifts   = param.radar.wfs(wf).bit_shifts;
   elseif any(param.records.file.version == [405 406]) % acords
-    wfs(wf).bit_shifts = records.settings.wfs(1).wfs(wf).bit_shifts(1)*ones(size(adcs));
+    wfs(wf).bit_shifts = records.settings.wfs(1).wfs(wf).bit_shifts(1)*ones(1,max(adcs));
   elseif param.records.file.version == 410 % mcords
-    wfs(wf).bit_shifts = max(0,ceil(log(wfs(wf).presums)/log(2)) - 4)*ones(size(adcs));
+    wfs(wf).bit_shifts = max(0,ceil(log(wfs(wf).presums)/log(2)) - 4)*ones(1,max(adcs));
   elseif isfield(records.settings.wfs(wf),'bit_shifts')
-    wfs(wf).bit_shifts = records.settings.wfs(wf).bit_shifts*ones(size(adcs));
+    wfs(wf).bit_shifts = records.settings.wfs(wf).bit_shifts*ones(1,max(adcs));
   else
-    wfs(wf).bit_shifts = 0*ones(size(adcs));
+    wfs(wf).bit_shifts = 0*ones(1,max(adcs));
   end
   if ~isfield(param.radar.wfs(wf),'quantization_to_V_dynamic') || isempty(param.radar.wfs(wf).quantization_to_V_dynamic)
     wfs(wf).quantization_to_V_dynamic = false;

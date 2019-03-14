@@ -92,9 +92,7 @@ if (strcmpi(param.season_name,'2018_Alaska_SO') && (strcmpi(gps_source,'nmea') |
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena')) ...
-    || (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'bas'))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
   % Aircraft: British Antarctic Survey (BAS) VP-FBL
   %
   % Carl Robinson at BAS Aug 2018: Though we do have measurements for
@@ -121,13 +119,33 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'ar
   % 	GPS antenna is not on center line (it is offset to the port side slightly)
   %     1.0625" port of center line
   %     1.25" aft of second to last rib in main cabin
-  %     Rib is at 308" FS (althought this may be wrong)
-
+  %     Rib is at 308" FS (although this may be wrong)
+  %
+  % 
 
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
 end
+
+if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'bas'))
+  % See (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
+  %
+  % 2018 Antarctica TObas (Jan-Feb 2019) GPS data are processed to the IMAR
+  % gravimeter.
+  %
+  % From Tom Jordan at BAS:
+  % My best solution is that the IMAR solution to the GPS above the radar is as follows (all in m):
+  % X (positive forward) -2.9369
+  % Y (Positive port)  0.1116
+  % Z (Positive up) 1.4762
+
+  gps.x = -2.9369;
+  gps.y = -0.1116;
+  gps.z = -1.4762;
+end
+
+
 
 
 if (strcmpi(param.season_name,'2018_Alaska_SO') && any(strcmpi(gps_source,{'nmea','ualidar'})))
@@ -570,16 +588,20 @@ end
 % =========================================================================
 
 if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'accum'))
+  % See GPS section for 2018_Antarctica_TObas for details
+  
   % Accumulation antenna
-  LArx(1,:)   = (-302.625*0.0254 + [0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = (0.75 + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
-  LArx(3,:)   = (5*0.0254 + [0 0 0 0]) - gps.z; % m
+  LArx = [];
+  LArx(1,:)   = ( (-(3+5/8) + 6) + [0 0 0 0])*0.0254 - gps.x; % m
+  LArx(2,:)   = ( (+(9+15/16) - 8.5) + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
+  LArx(3,:)   = ( (-(64+1/16) - 8) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LArx = mean(LArx,2); % Combine all 4 elements into a single element
   
-  LAtx(1,:)   = (-302.625*0.0254 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = (0.75 + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
-  LAtx(3,:)   = (5*0.0254 + [0 0 0 0]) - gps.z; % m
+  LAtx = [];
+  LAtx(1,:)   = ( (-(3+5/8) + 6) + [0 0 0 0])*0.0254 - gps.x; % m
+  LAtx(2,:)   = ( (+(9+15/16) - 8.5) + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
+  LAtx(3,:)   = ( (-(64+1/16) - 8) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LAtx = mean(LAtx,2); % Combine all 4 elements into a single element
   
