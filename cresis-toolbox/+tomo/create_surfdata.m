@@ -810,8 +810,6 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       169.7559  170.3869  171.4264  171.8926  171.5201  171.8870...
       171.6407  172.3505  171.3533  171.6161];
     
-    trws_surface = reshape(trws_surface,size(mdata.Tomo.img,2), ...
-      size(mdata.Tomo.img,3));
     prob.DIM_vars  = [     20.5619   24.9082   28.0037   32.0840...
       35.6021   38.9544    42.4034   45.3588   48.9714   52.1360...
       55.0826   57.5144    60.3847   63.1485   65.1199   67.3734...
@@ -894,8 +892,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       double(transition_mu), double(transition_sigma));
     toc;
     
-    trws_surface = reshape(trws_surface,size(mdata.Topography.img,2), ...
-      size(mdata.Topography.img,3));
+    trws_surface = reshape(trws_surface,size(mdata.Tomo.img,2), ...
+      size(mdata.Tomo.img,3));
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
@@ -931,7 +929,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     % Down-sample data and save file for each and every slice
     for rline = 1 : size(data, 3)
-      fusion = db(mdata.Topography.img(:, :, rline));
+      fusion = db(mdata.Tomo.img(:, :, rline));
       fusion(fusion>27) = 27;
       fusion = imresize(fusion, [64, 64]);
       fusion = mat2gray(fusion);
@@ -993,8 +991,8 @@ end
     end
     fprintf('\nFinished executing Python scripts for %s_%03.0f.\n\n',param.day_seg,param.proc.frm);
     
-    c3d_rnn.result_surface = ones(size(mdata.Topography.img,2), size(mdata.Topography.img,3));
-    c3d_rnn.result_bottom  = ones(size(mdata.Topography.img,2), size(mdata.Topography.img,3));
+    c3d_rnn.result_surface = ones(size(mdata.Tomo.img,2), size(mdata.Tomo.img,3));
+    c3d_rnn.result_bottom  = ones(size(mdata.Tomo.img,2), size(mdata.Tomo.img,3));
     
     sl_idx = 1;
     %% Get surface and bottom vectors from generated text file
