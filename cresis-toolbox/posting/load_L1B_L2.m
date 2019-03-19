@@ -23,7 +23,8 @@ function mdata = load_L1B_L2(echo_fn,lay_fn)
 % lay_fn = '/cresis/snfs1/dataproducts/ct_data/snow/2012_Greenland_P3/CSARP_layerData/20120330_04/Data_20120330_04_100.mat';
 % mdata = load_L1B_L2(echo_fn,lay_fn);
 % figure; clf;
-% imagesc(10*log10(mdata.Data))
+% imagesc(10*log10(mdata.Data));
+% colormap(1-gray(256));
 % hold on;
 % plot(mdata.lay.');
 %
@@ -32,6 +33,7 @@ function mdata = load_L1B_L2(echo_fn,lay_fn)
 %% Setup
 ref_bin = 50;
 max_time = 200e-9;
+detrend_poly_order = 4;
 B = tukeywin(51,0.2).';
 B = B / sum(B);
 
@@ -65,7 +67,11 @@ mdata.Data = fir_dec(mdata.Data,B,1);
 
 % Truncate data
 Nt_truncate = round(max_time/dt) + 50;
-mdata.Data = mdata.Data(1:Nt_truncate,:);
+if Nt_truncate > size(mdata.Data,1)
+  mdata.Data = mdata.Data(1:end,:);
+else
+  mdata.Data = mdata.Data(1:Nt_truncate,:);
+end
 
 % Convert layers to rows/bins and flatten with smoothed surface
 mdata.lay = [];
@@ -77,6 +83,25 @@ end
 mdata.dt = dt;
 mdata.t0 = t0 + surf_twtt_bin*dt;
 
+%% Detrend Data
+if detrend_poly_order > 0
+  % Find the along-track mean of the power detected data
+  mean_data = log(mean(mdata.Data,2));
+  
+  % Create a mask of good points to use in polynomial fitting of the data
+  mask = false(size(mdata.Data,1),1);
+  mask(ref_bin:size(mdata.Data,1)) = true;
+  mask(~isfinite(mean_data)) = false;
+  
+  % Fit a polynomial to the trend of the data and remove this trend
+  p = polyfit(find(mask),mean_data(mask),detrend_poly_order);
+  trend = polyval(p,(1:size(mdata.Data)).');
+  trend(~mask) = NaN;
+  trend = interp_finite(trend,0);
+  mdata.Data = bsxfun(@rdivide,mdata.Data,exp(trend));
+end
+
+%% Debug Plots
 if 0
   figure(1); clf;
   imagesc(10*log10(mdata.Data));
