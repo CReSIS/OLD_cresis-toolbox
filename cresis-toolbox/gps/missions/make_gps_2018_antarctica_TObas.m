@@ -86,7 +86,7 @@ elseif strcmpi(gps_source_to_use,'arena_cpu_time')
   in_fns{file_idx} = fullfile(in_base_path,'GPS_FILE_20190127.gps');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'nmea';
-  params{file_idx} = struct('year',year,'month',month,'day',day,,'time_reference','utc');
+  params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
   gps_source{file_idx} = 'arena-field';
   sync_flag{file_idx} = 1;
   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');

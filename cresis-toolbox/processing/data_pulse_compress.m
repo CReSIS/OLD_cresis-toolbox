@@ -7,8 +7,6 @@ if param.load.raw_data && param.load.pulse_comp
   error('Pulse compression (param.load.pulse_comp) cannot be enabled with raw data loading (param.load.raw_data).');
 end
 
-hdr.custom = [];
-
 physical_constants;
 
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
@@ -135,6 +133,9 @@ for img = 1:length(param.load.imgs)
       
       fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
       noise = load(noise_fn);
+      param.collate_coh_noise.param_collate = noise.param_collate_coh_noise;
+      param.collate_coh_noise.param_analysis = noise.param_analysis;
+      param.collate_coh_noise.param_records = noise.param_records;
       if ~isfield(noise.param_collate.collate_coh_noise,'method') || isempty(noise.param_collate.collate_coh_noise.method)
         fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
         noise.param_collate.collate_coh_noise.method = 'dft';
@@ -143,7 +144,6 @@ for img = 1:length(param.load.imgs)
       
       cmd = noise.param_analysis.analysis.cmd{noise.param_collate.collate_coh_noise.cmd_idx};
       
-      hdr.custom.coh_noise(1:length(noise.datestr),1,img,wf_adc) = noise.datestr;
       noise.Nx = length(noise.gps_time);
       
       if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
@@ -1260,8 +1260,10 @@ for img = 1:length(param.load.imgs)
         sprintf('deconv_%s_wf_%d_adc_%d.mat',param.day_seg, wf, adc));
       fprintf('  Loading deconvolution: %s (%s)\n', deconv_fn, datestr(now));
       deconv = load(deconv_fn);
-      deconv_date_str = deconv.param_collate_deconv_final.sw_version.cur_date_time;
-      hdr.custom.deconv(1:length(deconv_date_str),1,img,wf_adc) = deconv_date_str;
+      param.collate_deconv.param_collate_deconv_final = deconv.param_collate_deconv_final;
+      param.collate_deconv.param_collate_deconv = deconv.param_collate_deconv;
+      param.collate_deconv.param_analysis = deconv.param_analysis;
+      param.collate_deconv.param_records = deconv.param_records;
       
       deconv_map_idxs = interp1(deconv.map_gps_time,deconv.map_idxs,hdr.gps_time,'nearest','extrap');
       max_score = interp1(deconv.map_gps_time,deconv.max_score,hdr.gps_time,'nearest','extrap');

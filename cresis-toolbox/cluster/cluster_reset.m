@@ -26,7 +26,7 @@ elseif isstruct(ctrl_chain)
   error_task_ids = find(ctrl.error_mask);
   ctrl.error_mask(error_task_ids) = 0;
   ctrl.retries(error_task_ids) = 0;
-  ctrl.status(error_task_ids) = 'T';
+  ctrl.job_status(error_task_ids) = 'T';
   ctrl.submission_queue(end+(1:length(error_task_ids))) = error_task_ids;
   
   % Update output

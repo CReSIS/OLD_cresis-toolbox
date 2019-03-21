@@ -80,44 +80,55 @@ classdef dem_class < handle
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/10m/11_41/11_41_10m_v3.0.tar.gz
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/2m/48_63/48_63_1_1_2m_v3.0.tar.gz
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/2m/48_63/48_63_2_2_2m_v3.0.tar.gz
-      di = 1;
-      obj.dem_info(di).url = 'http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/';
-      obj.dem_info(di).res = [2 10 32 100 500 1000];
-      obj.dem_info(di).res_str = {'2m' '10m' '32m' '100m' '500m' '1km'};
-      obj.dem_info(di).tile_en = [1 1 1 0 0 0];
-      obj.dem_info(di).subtile_en = [1 0 0 0 0 0];
-      obj.dem_info(di).mosaic_fn_fh = @(res_str) sprintf('%s/arcticdem_mosaic_%s_v3.0.tif',res_str,res_str);
-      obj.dem_info(di).tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,res_str);
-      obj.dem_info(di).subtile_fn_fh = @(x,y,x_sub,y_sub,res_str) sprintf('%s/%d_%d/%d_%d_%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,y_sub,x_sub,res_str);
-      obj.dem_info(di).acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Polar Geospatial Center under NSF-OPP awards 1043681, 1559691, and 1542736.';
-      obj.dem_info(di).citation = 'Porter, Claire; Morin, Paul; Howat, Ian; Noh, Myoung-Jon; Bates, Brian; Peterman, Kenneth; Keesey, Scott; Schlenk, Matthew; Gardiner, Judith; Tomko, Karen; Willis, Michael; Kelleher, Cole; Cloutier, Michael; Husby, Eric; Foga, Steven; Nakamura, Hitomi; Platson, Melisa; Wethington, Michael, Jr.; Williamson, Cathleen; Bauer, Gregory; Enos, Jeremy; Arnold, Galen; Kramer, William; Becker, Peter; Doshi, Abhijit; D?Souza, Cristelle; Cummens, Pat; Laurier, Fabien; Bojesen, Mikkel, 2018, "ArcticDEM", https://doi.org/10.7910/DVN/OHHUKH, Harvard Dataverse, V1, [Date Accessed]';
-      obj.dem_info(di).y_tile_origin = 41;
-      obj.dem_info(di).x_tile_origin = 41;
-      obj.dem_info(di).y_tile_size = 100e3;
-      obj.dem_info(di).x_tile_size = 100e3;
-      obj.dem_info(di).y_subtile_size = 50e3;
-      obj.dem_info(di).x_subtile_size = 50e3;
-      obj.dem_info(di).no_data = -9999;
-      obj.dem_info(di).proj = geotiffinfo(ct_filename_gis(obj.param,'greenland/DEM/GIMP/gimpdem_90m.tif'));
-      obj.dem_info(di).out_path = ct_filename_gis(obj.param,'arctic/ArcticDEM/');
+      try
+        new_dem_info.url = 'http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/';
+        new_dem_info.res = [2 10 32 100 500 1000];
+        new_dem_info.res_str = {'2m' '10m' '32m' '100m' '500m' '1km'};
+        new_dem_info.tile_en = [1 1 1 0 0 0];
+        new_dem_info.subtile_en = [1 0 0 0 0 0];
+        new_dem_info.mosaic_fn_fh = @(res_str) sprintf('%s/arcticdem_mosaic_%s_v3.0.tif',res_str,res_str);
+        new_dem_info.tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,res_str);
+        new_dem_info.subtile_fn_fh = @(x,y,x_sub,y_sub,res_str) sprintf('%s/%d_%d/%d_%d_%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,y_sub,x_sub,res_str);
+        new_dem_info.acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Polar Geospatial Center under NSF-OPP awards 1043681, 1559691, and 1542736.';
+        new_dem_info.citation = 'Porter, Claire; Morin, Paul; Howat, Ian; Noh, Myoung-Jon; Bates, Brian; Peterman, Kenneth; Keesey, Scott; Schlenk, Matthew; Gardiner, Judith; Tomko, Karen; Willis, Michael; Kelleher, Cole; Cloutier, Michael; Husby, Eric; Foga, Steven; Nakamura, Hitomi; Platson, Melisa; Wethington, Michael, Jr.; Williamson, Cathleen; Bauer, Gregory; Enos, Jeremy; Arnold, Galen; Kramer, William; Becker, Peter; Doshi, Abhijit; D?Souza, Cristelle; Cummens, Pat; Laurier, Fabien; Bojesen, Mikkel, 2018, "ArcticDEM", https://doi.org/10.7910/DVN/OHHUKH, Harvard Dataverse, V1, [Date Accessed]';
+        new_dem_info.y_tile_origin = 41;
+        new_dem_info.x_tile_origin = 41;
+        new_dem_info.y_tile_size = 100e3;
+        new_dem_info.x_tile_size = 100e3;
+        new_dem_info.y_subtile_size = 50e3;
+        new_dem_info.x_subtile_size = 50e3;
+        new_dem_info.no_data = -9999;
+        new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('greenland','DEM','GIMP','gimpdem_90m.tif')));
+        new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('arctic','ArcticDEM'));
+        obj.dem_info(end+1) = new_dem_info;
+      catch ME
+        warning(ME.getReport);
+      end
       
       % REMA
       % -------------------------------------------------------------------
       % http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/8m/09_38/09_38_8m.tar.gz
-      di = 2;
-      obj.dem_info(di).url = 'http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/';
-      obj.dem_info(di).res = [8 100 200 1000];
-      obj.dem_info(di).res_str = {'8m' '100m' '200m' '1000m'};
-      obj.dem_info(di).subtile_en = [0 0 0 0];
-      obj.dem_info(di).tile_fn_fh = @(north,east,res_str) sprintf('%s/%d_%d/%d_%d_%s_v3.0.tar.gz',res_str,north,east,north,east,res_str);
-      obj.dem_info(di).acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Byrd Polar and Climate Research Center and the Polar Geospatial Center under NSF-OPP awards 1543501, 1810976, 1542736, 1559691, 1043681, 1541332, 0753663, 1548562, 1238993 and NASA award NNX10AN61G. Computer time provided through a Blue Waters Innovation Initiative. DEMs produced using data from DigitalGlobe, Inc.';
-      obj.dem_info(di).citation = 'Howat, Ian; Morin, Paul; Porter, Claire; Noh, Myong-Jong, 2018, "The Reference Elevation Model of Antarctica", https://doi.org/10.7910/DVN/SAIK8B, Harvard Dataverse, V1';
-      obj.dem_info(di).y_tile_origin = 31;
-      obj.dem_info(di).x_tile_origin = 31;
-      obj.dem_info(di).y_tile_size = 100e3;
-      obj.dem_info(di).x_tile_size = 100e3;
-      obj.dem_info(di).no_data = -9999;
-      obj.dem_info(di).proj = geotiffinfo(ct_filename_gis(obj.param,'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif'));
+      try
+        new_dem_info.url = 'http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/';
+        new_dem_info.res = [8 100 200 1000];
+        new_dem_info.res_str = {'8m' '100m' '200m' '1km'};
+        new_dem_info.tile_en = [1 1 1 1];
+        new_dem_info.subtile_en = [0 0 0 0];
+        new_dem_info.mosaic_fn_fh = @(res_str) sprintf('%s/REMA_%s_dem.tif',res_str,res_str);
+        new_dem_info.tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s.tar.gz',res_str,y,x,y,x,res_str);
+        new_dem_info.acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Byrd Polar and Climate Research Center and the Polar Geospatial Center under NSF-OPP awards 1543501, 1810976, 1542736, 1559691, 1043681, 1541332, 0753663, 1548562, 1238993 and NASA award NNX10AN61G. Computer time provided through a Blue Waters Innovation Initiative. DEMs produced using data from DigitalGlobe, Inc.';
+        new_dem_info.citation = 'Howat, Ian; Morin, Paul; Porter, Claire; Noh, Myong-Jong, 2018, "The Reference Elevation Model of Antarctica", https://doi.org/10.7910/DVN/SAIK8B, Harvard Dataverse, V1';
+        new_dem_info.y_tile_origin = 31;
+        new_dem_info.x_tile_origin = 31;
+        new_dem_info.y_tile_size = 100e3;
+        new_dem_info.x_tile_size = 100e3;
+        new_dem_info.no_data = -9999;
+        new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('antarctica','DEM','BEDMAP2','original_data','bedmap2_tiff','bedmap2_surface.tif')));
+        new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('antarctica','DEM','REMA'));
+        obj.dem_info(end+1) = new_dem_info;
+      catch ME
+        warning(ME.getReport);
+      end
       
       % Prepare DEM fields
       % -------------------------------------------------------------------
@@ -203,7 +214,7 @@ classdef dem_class < handle
       % -------------------------------------------------------------------
       if 0
         % EGM-96
-        obj.msl.fn = ct_filename_gis(obj.param,'world\egm96_geoid\WW15MGH.DAC');
+        obj.msl.fn = ct_filename_gis(obj.param,fullfile('world','egm96_geoid','WW15MGH.DAC'));
         points = [];
         [obj.msl.lat,obj.msl.lon,obj.msl.elev] = egm96_loader(obj.msl.fn);
         obj.msl.lon = [obj.msl.lon 360];

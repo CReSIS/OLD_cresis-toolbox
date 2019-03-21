@@ -35,6 +35,9 @@ function [hdr,data] = basic_load(fn,param)
 %   fn = 'D:\tmp\AWI_Snow\awi_snow\chan1\snow5_01_20150801_115752_00_0000.bin';
 %   [hdr,data] = basic_load(fn,struct('clk',1e9/8));
 %
+%   fn = '/cresis/snfs1/projects/MiniSnow_Test_Data/2channelsUpdated/snow_00_20190320_172125_0003.bin';
+%   [hdr,data] = basic_load(fn,struct('clk',125e6,'sync','BADA55E5'));
+%
 % Authors: John Paden
 %
 % See also basic_load*.m
@@ -60,6 +63,10 @@ end
 if ~isfield(param,'recs');
   param.recs = [0 inf];
 end
+if ~isfield(param,'sync') || isempty(param.sync)
+  param.sync = '1ACFFC1D'; % File type 0, before 2019 used BADA55E5
+end
+
 
 % Reset/clear hdr struct
 hdr = [];
@@ -80,7 +87,7 @@ hdr = [];
 % ===============================================================
 % Get first record position
 % ===============================================================
-hdr.finfo.syncs = get_first10_sync_mfile(fn,0,struct('sync','1ACFFC1D'));
+hdr.finfo.syncs = get_first10_sync_mfile(fn,0,struct('sync',param.sync));
 
 % ===============================================================
 % Open file big-endian for reading
@@ -100,9 +107,18 @@ fseek(fid, hdr.finfo.syncs(1) + 24, -1);
 hdr.file_version = fread(fid, 1, 'uint16');
 
 switch hdr.file_version
+  case 0
+    % snow8 radar (e.g. 2017 Greenland P3)
+    param.file_version = 8;
+    load_func = @basic_load_support_fmcw0;
   case 7
-    % snow5 radar (e.g. 2015 Greenland Polar6)
-    load_func = @basic_load_support_fmcw5;
+    % AWI snow5 radar (e.g. 2015 Greenland Polar6)
+    param.file_version = 7;
+    load_func = @basic_load_support_fmcw7;
+  case 11
+    % data_v11 radar (e.g. 2019 Greenland TO kuband, 2019 Greenland TO kaband, 2019 Alaska SO)
+    param.file_version = 11;
+    load_func = @basic_load_support_fmcw0;
   otherwise
     fclose(fid);
     error('Unsupported file type %d', hdr.file_version);
@@ -117,8 +133,204 @@ fclose(fid);
 
 end
 
-function [hdr,data] = basic_load_support_fmcw5(fid,param,hdr)
-% [hdr,data] = basic_load_support_fmcw5(fid,param,hdr)
+%% basic_load_support_fmcw0
+% ===================================================================
+function [hdr,data] = basic_load_support_fmcw0(fid,param,hdr)
+% [hdr,data] = basic_load_support_fmcw0(fid,param,hdr)
+%
+% See FMCW5 file format.docx in toolbox documents for file format
+
+% ===================================================================
+% Data Format
+% ===================================================================
+% -- 64 bit block 0
+% 32-bit header
+% 32-bit EPRI
+% -- 64 bit block 1
+% 32-bit seconds in DCB (0 0 H H M M S S)
+% 32-bit fraction: Counter at system clock, resets on 1 PPS
+% -- 64 bit block 2
+% 64-bit counter: Free running counter at system clock
+% -- 64 bit block 3
+% 16-bit file type: 0 or 11
+% 8-bit zero/reserved
+% 8-bit number of waveforms: 0 or 1 both mean 1 waveform
+% 32-bit zero/reserved
+% -- 64 bit block 4
+% 8-bit zero/reserved
+% 8-bit muliple fields:
+%   LSB 1:0: Nyquist zone (b'00 means 0 to fs/2, b'01 means fs/2 to fs,
+%            etc.)
+%   3:2: Number of adc channels (b'00 means 1 ADC, b'01 means 2 ADCs, etc.)
+%   4: Real data (0) or complex IQ data (1)
+%   MSB: 7:5: zero/reserved
+% 8-bit presums: one less than the actual number of presums
+% 8-bit bit shift: int8, -1 means divide by 2, sign is negated by this
+%   function during loading so the field will be 1 when returned
+% 16-bit start: time gate start bin divided by 2 (start bin recorded)
+% 16-bit stop: time gate stop bin divided by 2 (stop bin not recorded)
+% -- 64 bit block 5
+% file type 0 (param.file_version == 8):
+%   64-bit Keysight waveform generator waveform ID
+% file type 11 (param.file_version == 11):
+%   64-bit zero/reserved
+% DATA: depending on settings
+%   REAL INT16:
+%     ADC samples interleaved (see number of adc channels field)
+%     2*(stop-start) is number of samples
+%
+HEADER_SIZE = 48;
+SAMPLE_SIZE = 2;
+
+fseek(fid, 0, 1);
+eof_pos = ftell(fid);
+
+% ===============================================================
+% Read in waveform information + record size
+% ===============================================================
+
+if nargout < 2
+  % Seek to first record
+  fseek(fid, hdr.finfo.syncs(1), -1);
+  hdr.frame_sync = fread(fid,1,'uint32');
+  hdr.epri = fread(fid,1,'uint32');
+  hdr.seconds = fread(fid,1,'uint32').'; % From NMEA string converted to DCB
+  hdr.seconds = BCD_to_seconds(hdr.seconds);
+  hdr.fraction = fread(fid,1,'uint32');
+  hdr.utc_time_sod = hdr.seconds + hdr.fraction / param.clk*2;
+  hdr.counter = fread(fid,1,'uint64');
+  hdr.file_type = fread(fid,1,'uint16');
+  fseek(fid,1,0);
+  hdr.num_waveforms = fread(fid,1,'uint8');
+  fseek(fid,5,0);
+  hdr.file_type = fread(fid,1,'uint16');
+  tmp = fread(fid,1,'uint8');
+  hdr.num_adc = bitor(bitshift(tmp,-2),3);
+  hdr.nyquist_zone = bitor(tmp,3);
+  hdr.presums = fread(fid, 1, 'uint8')+1; % presums are 0-indexed (+1)
+  hdr.bit_shifts = -fread(fid, 1, 'int8');
+  hdr.start_idx = fread(fid, 1, 'uint16');
+  hdr.Tadc = hdr.start_idx / param.clk*2 - 10.8e-6;
+  hdr.stop_idx = fread(fid, 1, 'uint16');
+  if hdr.file_type == 0
+%     hdr.waveform_ID = char(fread(fid,8,'uint8')).';
+  end
+  
+  return;
+end
+
+% Seek to first record
+fseek(fid, hdr.finfo.syncs(1), -1);
+
+rline = 0;
+hdr.finfo.rec_size = [];
+FRAME_SYNC = hex2dec('BADA55E5');
+
+% Preallocate data to make data loading faster
+Nx = 1 + ceil(eof_pos/median(diff(hdr.finfo.syncs)));
+data = zeros([0 Nx 0],'single');
+
+while ftell(fid) <= eof_pos-HEADER_SIZE
+  rline = rline + 1;
+  hdr.frame_sync(rline) = fread(fid,1,'uint32');
+  if hdr.frame_sync(rline) == FRAME_SYNC
+    hdr.finfo.syncs(rline) = ftell(fid)-4;
+  else
+    % Search for next frame sync
+%     keyboard
+    found = false;
+    while ~feof(fid)
+      test = fread(fid,1,'uint32');
+      if test == FRAME_SYNC
+        found = true;
+        break;
+      end
+    end
+    if ~found
+      rline = rline - 1;
+      break;
+    end
+    hdr.finfo.syncs(rline) = ftell(fid)-4;
+  end
+  if ftell(fid) > eof_pos-HEADER_SIZE
+    rline = rline - 1;
+    break;
+  end
+  hdr.epri(rline) = fread(fid,1,'uint32');
+  
+  hdr.seconds(rline) = fread(fid,1,'uint32').'; % From NMEA string converted to DCB
+  hdr.fraction(rline) = fread(fid,1,'uint32');
+  
+  hdr.counter(rline) = fread(fid,1,'uint64');
+  
+  hdr.file_type(rline) = fread(fid,1,'uint16');
+  fseek(fid,1,0);
+  hdr.num_waveforms(rline) = fread(fid,1,'uint8');
+  
+  fseek(fid,5,0);
+  tmp = fread(fid,1,'uint8');
+  hdr.num_adc(rline) = 1 + bitand(bitshift(tmp,-2),3);
+  hdr.nyquist_zone(rline) = bitand(tmp,3);
+  hdr.presums(rline) = fread(fid, 1, 'uint8')+1; % presums are 0-indexed (+1)
+  hdr.bit_shifts(rline) = -fread(fid, 1, 'int8');
+  hdr.start_idx(rline) = fread(fid, 1, 'uint16');
+  hdr.stop_idx(rline) = fread(fid, 1, 'uint16');
+  
+  if hdr.file_type == 0
+    hdr.waveform_ID = char(fread(fid,8,'uint8')).';
+  elseif hdr.file_type == 11
+    fseek(fid,8,0);
+  end
+  
+  % Raw data
+  hdr.num_sam(rline) = 2*(hdr.stop_idx(rline) - hdr.start_idx(rline));
+
+  % Check to see if last record is complete
+  if ftell(fid) > eof_pos - hdr.num_sam(rline)*hdr.num_adc(rline)*SAMPLE_SIZE
+    rline = rline - 1;
+    break;
+  end
+  
+  % Force allocation of more record space in data if we have run out of
+  % space (by allocating many blocks at a time, this speeds up loading)
+  if rline > Nx
+    Nx = ceil(rline*1.5);
+    data(1,Nx,1) = 0;
+  end
+  
+  % Read in real int16 data (multiple ADCs will have samples interleaved)
+  tmp = fread(fid,hdr.num_sam(rline)*hdr.num_adc(rline),'int16=>single');
+  for adc = 1:hdr.num_adc(rline)
+    data(1:hdr.num_sam(rline),rline,adc) = tmp(adc:hdr.num_adc(rline):end);
+  end
+end
+
+hdr.finfo.syncs = hdr.finfo.syncs(1:rline);
+hdr.frame_sync = hdr.frame_sync(1:rline);
+hdr.epri = hdr.epri(1:rline);
+hdr.seconds = hdr.seconds(1:rline);
+hdr.fraction = hdr.fraction(1:rline);
+hdr.counter = hdr.counter(1:rline);
+hdr.file_type = hdr.file_type(1:rline);
+hdr.num_waveforms = hdr.num_waveforms(1:rline);
+hdr.num_adc = hdr.num_adc(1:rline);
+hdr.nyquist_zone = hdr.nyquist_zone(1:rline);
+hdr.presums = hdr.presums(1:rline);
+hdr.bit_shifts = hdr.bit_shifts(1:rline);
+hdr.start_idx = hdr.start_idx(1:rline);
+hdr.stop_idx = hdr.stop_idx(1:rline);
+hdr.num_sam = hdr.num_sam(1:rline);
+
+hdr.seconds = BCD_to_seconds(hdr.seconds);
+hdr.utc_time_sod = hdr.seconds + hdr.fraction / param.clk*2;
+hdr.Tadc = hdr.start_idx / param.clk*2 - 10.8e-6;
+
+data = data(:,1:rline,:);
+
+end
+
+function [hdr,data] = basic_load_support_fmcw7(fid,param,hdr)
+% [hdr,data] = basic_load_support_fmcw7(fid,param,hdr)
 %
 % See FMCW5 file format.docx in toolbox documents for file format
 
