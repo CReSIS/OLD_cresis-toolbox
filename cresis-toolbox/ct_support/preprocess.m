@@ -56,6 +56,11 @@ for config_idx = 1:numel(param.config.default)
     end
   end
   
+  if ~isfield(cparam.config,'date_strs') || isempty(cparam.config.date_strs)
+    % Segment ID is created from the date of the config folder unless this
+    % cell array is set.
+    cparam.config.date_strs = {};
+  end
   if ~isfield(cparam.config,'file') || isempty(cparam.config.file)
     cparam.config.file = [];
   end
@@ -71,13 +76,9 @@ for config_idx = 1:numel(param.config.default)
   if ~isfield(cparam.config.file,'regexp') || isempty(cparam.config.file.regexp)
     cparam.config.file.regexp = '';
   end
-  if ~isfield(cparam.config,'online_mode') || isempty(cparam.config.online_mode)
-    cparam.config.online_mode = 0;
-    % 0: not online mode
-    % 1: online mode (process all files)
-    % 2: online mode (process only the most recent file)
+  if ~isfield(cparam.config,'mat_or_bin_hdr_output') || isempty(cparam.config.mat_or_bin_hdr_output)
+    cparam.config.mat_or_bin_hdr_output = '.mat';
   end
-  
   if ~isfield(cparam.config,'max_time_gap') || isempty(cparam.config.max_time_gap)
     % Maximum time in seconds between two data records before forcing a segment break
     cparam.config.max_time_gap = 10;
@@ -87,28 +88,26 @@ for config_idx = 1:numel(param.config.default)
     % discarded)
     cparam.config.min_seg_size = 2;
   end
-  if ~isfield(cparam.config,'skip_files_start') || isempty(cparam.config.skip_files_start)
-    % Number of files to ignore at the beginning of the segment
-    cparam.config.skip_files_start = 0;
+  if ~isfield(cparam.config,'online_mode') || isempty(cparam.config.online_mode)
+    cparam.config.online_mode = 0;
+    % 0: not online mode
+    % 1: online mode (process all files)
+    % 2: online mode (process only the most recent file)
+  end
+  if ~isfield(cparam.config,'param_fn') || isempty(cparam.config.param_fn)
+    cparam.config.param_fn ...
+      = ct_filename_param(sprintf('%s_param_%s.xls',ct_output_dir(cparam.radar_name),cparam.season_name));
+  end
+  if ~isfield(cparam.config,'reuse_tmp_files') || isempty(cparam.config.reuse_tmp_files)
+    cparam.config.reuse_tmp_files = true;
   end
   if ~isfield(cparam.config,'skip_files_end') || isempty(cparam.config.skip_files_end)
     % Number of files to ignore at the end of the segment
     cparam.config.skip_files_end = 0;
   end
-  if ~isfield(cparam.config,'date_strs') || isempty(cparam.config.date_strs)
-    % Segment ID is created from the date of the config folder unless this
-    % cell array is set.
-    cparam.config.date_strs = {};
-  end
-  if ~isfield(cparam.config,'reuse_tmp_files') || isempty(cparam.config.reuse_tmp_files)
-    cparam.config.reuse_tmp_files = true;
-  end
-  if ~isfield(cparam.config,'mat_or_bin_hdr_output') || isempty(cparam.config.mat_or_bin_hdr_output)
-    cparam.config.mat_or_bin_hdr_output = '.mat';
-  end
-  if ~isfield(cparam.config,'param_fn') || isempty(cparam.config.param_fn)
-    cparam.config.param_fn ...
-      = ct_filename_param(sprintf('%s_param_%s.xls',ct_output_dir(cparam.radar_name),cparam.season_name));
+  if ~isfield(cparam.config,'skip_files_start') || isempty(cparam.config.skip_files_start)
+    % Number of files to ignore at the beginning of the segment
+    cparam.config.skip_files_start = 0;
   end
 
   %% Setup preprocess task

@@ -140,9 +140,9 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'ba
   % Y (Positive port)  0.1116
   % Z (Positive up) 1.4762
 
-  gps.x = -2.9369;
-  gps.y = -0.1116;
-  gps.z = -1.4762;
+  gps.x = 2.9369; % Gravimeter was in front of GPS antenna
+  gps.y = 0.1116; % Gravimeter was on the right side of the plane/GPS
+  gps.z = 1.4762; % Gravimeter was below (down is positive-z) the GPS
 end
 
 
@@ -589,19 +589,28 @@ end
 
 if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'accum'))
   % See GPS section for 2018_Antarctica_TObas for details
-  
+  %
+  % The measurements (in inches) are:
+  % Element 1 (starboard): (x,y,z) = (4.25, 0.0625, 7.75). The thickness of each antenna element is 0.125 in.
+  % Element 2 (next to starboard): (x,y,z) = (4.25, 4.8125, 7.75)
+  % Element 3 (next to port): (x,y,z) = (4.25, 9.5625, 7.75)
+  % Element 4 (port): (x,y,z) = (4.25, 14.3125, 7.75)
+  %
+  % The bars were 0.75 in. thick. This increases the z-position of all
+  % elements by 0.75 in.
+
   % Accumulation antenna
   LArx = [];
-  LArx(1,:)   = ( (-(3+5/8) + 6) + [0 0 0 0])*0.0254 - gps.x; % m
+  LArx(1,:)   = ( (-(3+5/8) + 4.25) + [0 0 0 0])*0.0254 - gps.x; % m
   LArx(2,:)   = ( (+(9+15/16) - 8.5) + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
-  LArx(3,:)   = ( (-(64+1/16) - 8) + [0 0 0 0])*0.0254 - gps.z; % m
+  LArx(3,:)   = ( (+(64+1/16) + 0.75 - 8) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LArx = mean(LArx,2); % Combine all 4 elements into a single element
   
   LAtx = [];
   LAtx(1,:)   = ( (-(3+5/8) + 6) + [0 0 0 0])*0.0254 - gps.x; % m
   LAtx(2,:)   = ( (+(9+15/16) - 8.5) + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
-  LAtx(3,:)   = ( (-(64+1/16) - 8) + [0 0 0 0])*0.0254 - gps.z; % m
+  LAtx(3,:)   = ( (+(64+1/16) + 0.75 - 8) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LAtx = mean(LAtx,2); % Combine all 4 elements into a single element
   
