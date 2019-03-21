@@ -152,12 +152,13 @@ if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
   
   % Find the maximum memory used
   try
-    idxs = regexp(stdout_file_str,'Max Mem (KB):');
-    if ~isempty(idxs)
-      max_mem = sscanf(stdout_file_str(idxs(end)+13:end),'%d') * 1024;
-      if max_mem > 0.9*ctrl.mem(task_id)
-        error_mask = bitor(error_mask,max_mem_exceeded_error);
-      end
+    idxs = regexp(stdout_file_str,'Max Mem \(KB\):');
+    while ~isempty(idxs)
+      max_mem = max(max_mem,sscanf(stdout_file_str(idxs(1)+13:end),'%d') * 1024);
+      idxs = idxs(2:end);
+    end
+    if max_mem > 0.9*ctrl.mem(task_id)*ctrl.cluster.mem_mult
+      error_mask = bitor(error_mask,max_mem_exceeded_error);
     end
   end
   if isempty(max_mem)
@@ -342,7 +343,7 @@ if update_mode && ctrl.error_mask(task_id)
     end
     if ~isempty(regexpi(ctrl.cluster.max_mem_mode,'auto'))
       fprintf('    Automatically doubling memory request for this task.\n');
-      ctrl.mem(task_id) = ctrl.mem(task_id)*2;
+      ctrl.mem(task_id) = max_mem*1.5/ctrl.cluster.mem_mult;
     end
   end
   if bitand(ctrl.error_mask(task_id),insufficient_mcr_space)
@@ -407,13 +408,20 @@ if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
     ctrl.job_id_list(task_id) = new_job_id;
     ctrl.job_status(task_id) = new_job_status;
     ctrl.error_mask(task_id) = 0;
-    ctrl.retries(task_id) = ctrl.retries(task_id) + 1;
     
     % Update job IDs in job ID file
     fid = fopen(ctrl.job_id_fn,'r+');
     fseek(fid, 21*(task_id-1), -1);
     fprintf(fid,'%-20d\n', new_job_id);
     fclose(fid);
+    
+    if any(strcmpi(ctrl.cluster.type,{'torque','slurm'})) ...
+        && last_task_id ~= -1 && task_id ~= last_task_id && ~exist(out_fn,'file')
+      % Job failed but last_task_id (the task that the job failed on) is
+      % not this task and so
+    else
+      ctrl.retries(task_id) = ctrl.retries(task_id) + 1;
+    end
     
     % If there are no more tasks using the output files, then delete them
     % so that the new retry files start with a blank file.

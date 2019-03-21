@@ -62,6 +62,7 @@ do
     fi
   fi
 done
+MCR_CACHE_ROOT=$MCR_CACHE_ROOT/`hostname`
 
 # =========================================================================
 # ATTEMPT TO RUN CLUSTER_JOB.M UP TO MAX_ATTEMPTS TIMES
@@ -76,6 +77,7 @@ do
 
   # Start child process
   # Run run_cluster_job.sh (runs Matlab compiled cluster_job.m)
+  chmod a+x $MATLAB_CLUSTER_PATH/run_cluster_job.sh
   $MATLAB_CLUSTER_PATH/run_cluster_job.sh $MATLAB_MCR_PATH &
 
   child_pid=$!
