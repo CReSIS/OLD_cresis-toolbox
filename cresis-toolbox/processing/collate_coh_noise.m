@@ -372,7 +372,7 @@ for img = param.collate_coh_noise.imgs
     if enable_threshold
       noise_simp.threshold = threshold;
     end
-    noise_simp.param_collate = param;
+    noise_simp.param_collate_coh_noise = param;
     noise_simp.datestr = datestr(now);
     noise_simp.recs = noise.param_analysis.analysis.block_size/2 + noise.param_analysis.analysis.block_size * (0:Nx-1);
     if param.ct_file_lock

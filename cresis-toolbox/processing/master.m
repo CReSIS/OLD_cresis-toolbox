@@ -24,84 +24,122 @@ function ctrl_chain = master(params,param_override)
 %
 % See also: run_master
 
-%error('Copy this script locally, remove this line, and then run.\n');
+%% Input checks
+% =====================================================================
 
-% =====================================================================
-% Create param structure array
-% =====================================================================
-tic;
 global gRadar;
-fprintf('\n\n========================================================\n\n');
-
-% Input checking
-if ~exist('params','var')
-  error('Use run_master: A struct array of parameters must be passed in\n');
-end
 if exist('param_override','var')
   param_override = merge_structs(gRadar,param_override);
 else
   param_override = gRadar;
 end
 
-% =====================================================================
-% =====================================================================
-% Process each of the days
-% =====================================================================
+% Process each of the segments
+ctrl_chain = {};
+for param_idx = 1:length(params)
+  param = params(param_idx);
+  if param.cmd.qlook
+    ctrl_chain{end+1} = qlook(param,param_override);
+  end
+end
+
+%% Create chains for each segment
 % =====================================================================
 ctrl_chain = {};
 for param_idx = 1:length(params)
   param = params(param_idx);
-  cmd = param.cmd;
-  [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
+  
+  %% Segment: Input checks
+  % =====================================================================
+  
+  if ~isfield(param.cmd,'records') || isempty(param.cmd.records)
+    param.cmd.records = 0;
+  end
+  
+  if ~isfield(param.cmd,'qlook') || isempty(param.cmd.qlook)
+    param.cmd.qlook = 0;
+  end
+  
+  if ~isfield(param.cmd,'sar') || isempty(param.cmd.sar)
+    param.cmd.sar = 0;
+  end
+  
+  if ~isfield(param.cmd,'array') || isempty(param.cmd.array)
+    param.cmd.array = 0;
+  end
+  
+  if ~isfield(param.cmd,'generic') || isempty(param.cmd.generic)
+    param.cmd.generic = 0;
+  end
+
+  %% Segment: Populate chain of batch (ctrl) jobs
+  % =====================================================================
   new_chain = {};
   
-  if isfield(cmd,'create_records') && cmd.create_records
+  if param.cmd.records
+    % Remaining commands cannot run without records and frames files so
+    % this function is run now.
     create_records(param,param_override);
+    tmp_param = merge_structs(param, param_override);
+    try
+      % If manual frame mode specified, then wait until the user chooses
+      % the frames before continuing
+      if tmp_param.records.frames.mode == 1
+        warning('Since manual frame mode is being used and some commands (e.g. qlook, sar, and array) require framing information to be known before the command chains can be created, please finish creating frames for this segment and then run "dbcont" at the command prompt.');
+        keyboard
+      end
+    end
   end
-  if isfield(cmd,'qlook') && cmd.qlook
+  if param.cmd.qlook
     chain = qlook(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
-  if isfield(cmd,'sar') && cmd.sar
+  if param.cmd.sar
     chain = sar(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
-  if isfield(cmd,'array') && cmd.array
+  if param.cmd.array
     chain = array(param,param_override);
     new_chain = cat(2,new_chain,chain);
   end
   
-  if isfield(cmd,'generic') && (ischar(cmd.generic) || iscell(cmd.generic))
-    % This supports all kinds of permutations for running custom commands
-    if ischar(cmd.generic)
+  if isfield(param.cmd,'generic') && (ischar(param.cmd.generic) || iscell(param.cmd.generic))
+    % This supports different permutations for running custom commands
+    if ischar(param.cmd.generic)
       % If generic column is string, then enclose in cell
-      cmd.generic = {cmd.generic};
+      param.cmd.generic = {param.cmd.generic};
     end
-    for generic_idx = 1:length(cmd.generic)
-      if iscell(cmd.generic{generic_idx})
+    for generic_idx = 1:length(param.cmd.generic)
+      if iscell(param.cmd.generic{generic_idx})
         % Type 1: Cell Array with rename
         %   Field 1: command to run
         %   Field 2: {worksheets to load, what to rename the worksheet to}
         % Type 2: cell array
         %   field 1: command to run
         %   field 2: worksheet to load
-        param = read_param_xls(param.fn,param.day_seg,cmd.generic{generic_idx}{2});
-        generic_fh = str2func(cmd.generic{generic_idx}{1});
+        param = read_param_xls(param.fn,param.day_seg,param.cmd.generic{generic_idx}{2});
+        generic_func = param.cmd.generic{generic_idx}{1};
       else
         % Type 3: String
         %   String contains command to run
-        generic_fh = str2func(cmd.generic{generic_idx});
+        generic_func = param.cmd.generic{generic_idx};
       end
-      chain = generic_fh(param,param_override);
-      new_chain = cat(2,new_chain,chain);
+      generic_fh = str2func(generic_func);
+      if strcmp(generic_func,'analysis')
+        % Generic functions that produce batch chains
+        chain = generic_fh(param,param_override);
+        new_chain = cat(2,new_chain,chain);
+      else
+        % Everything else is assumed to just run rather than produce a
+        % batch chain.
+        generic_fh(param,param_override);
+      end
     end
   end
   
+  %% Segment: Add chain to list of chains
+  % =====================================================================
   if ~isempty(new_chain)
     ctrl_chain{end+1} = new_chain;
   end
 end
-
-cluster_print_chain(ctrl_chain);
-
-[chain_fn,chain_id] = cluster_save_chain(ctrl_chain);
