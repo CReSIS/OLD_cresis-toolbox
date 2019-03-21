@@ -16,28 +16,23 @@ params = read_param_xls(ct_filename_param('snow_param_2017_Arctic_Polar5.xls'),'
 params = ct_set_params(params,'cmd.generic',0);
 params = ct_set_params(params,'cmd.generic',1,'day_seg','20170330_01');
 
-
 if 1
   param_override.collate_coh_noise.method = 'firdec';
   param_override.collate_coh_noise.firdec_fs = 1/7.5;
-  param_override.collate_coh_noise.firdec_fcutoff = @(t) 1/30*(t<30e-6);
+  param_override.collate_coh_noise.firdec_fcutoff = @(t) 1/30;
 else
   param_override.collate_coh_noise.method = 'dft';
   param_override.collate_coh_noise.dft_corr_length = inf;
 end
-param_override.collate_coh_noise.imgs = [];
-param_override.collate_coh_noise.wf_adcs = [];
 param_override.collate_coh_noise.in_dir = 'analysis';
 param_override.collate_coh_noise.out_dir = 'analysis';
 
-param_override.collate_coh_noise.cmd_idx = 1;
+param_override.collate_coh_noise.min_samples = 1500;
+param_override.collate_coh_noise.threshold_en = true;
 
-param_override.analysis.cmd{1}.min_samples = 1500;
-
-param_override.collate_coh_noise.file_lock = false;
 % param_override.collate_coh_noise.debug_plots = {};
-param_override.collate_coh_noise.debug_plots = {'visible','cn','debug','threshold','threshold_plot'};
-% param_override.collate_coh_noise.debug_plots = {'cn'};
+param_override.collate_coh_noise.debug_plots = {'visible','cn_plot','threshold_plot'};
+% param_override.collate_coh_noise.debug_plots = {'cn_plot'};
 
 %% Automated Section
 % =====================================================================

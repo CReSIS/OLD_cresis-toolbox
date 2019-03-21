@@ -102,6 +102,10 @@ if ~isfield(ctrl.cluster,'max_mem_per_job') || isempty(ctrl.cluster.max_mem_per_
   ctrl.cluster.max_mem_per_job = inf;
 end
 
+if ~isfield(ctrl.cluster,'max_mem_mode') || isempty(ctrl.cluster.max_mem_mode)
+  ctrl.cluster.max_mem_mode = 'debug';
+end
+
 if ~isfield(ctrl.cluster,'max_time_per_job') || isempty(ctrl.cluster.max_time_per_job)
   ctrl.cluster.max_time_per_job = 86400;
 end

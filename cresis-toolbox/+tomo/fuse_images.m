@@ -143,6 +143,7 @@ for v_img = 1:length(param.tomo_collate.imgs)
     Time = mdata{v_img}.Time;
     Data = mdata{v_img}.Data;
     Tomo.img = mdata{v_img}.Tomo.img;
+    Tomo.theta = mdata{v_img}.Tomo.theta;
     first_idx = find(Time >= Time(1)+param.tomo_collate.img_comb_trim(1) ...
       & Time >= param.tomo_collate.img_comb_trim(3),1,'first');
     if ~isempty(first_idx)
@@ -263,3 +264,4 @@ mdata = mdata{1};
 mdata.Time = Time;
 mdata.Data = Data;
 mdata.Tomo.img = Tomo.img;
+mdata.Tomo.theta = Tomo.theta;

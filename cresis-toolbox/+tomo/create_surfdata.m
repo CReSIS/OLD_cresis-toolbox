@@ -404,10 +404,10 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
     DEM_y_mesh= repmat(DEM_y',[1 size(DEM,2)]);
-
+    
     % Project flight line to DEM coordinates
     [mdata.x,mdata.y] = projfwd(proj,mdata.Latitude,mdata.Longitude);
-
+    
     % Process inputs
     dem_guard = param.tomo_collate.surfdata_cmds(cmd_idx).dem_guard;
     dem_per_slice_guard = param.tomo_collate.surfdata_cmds(cmd_idx).dem_per_slice_guard;
@@ -420,7 +420,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       theta = theta_cal.theta;
       theta_cal = theta;
     end
-
+    
     % Loop to create dem_surface from DEM one range line at a time
     dem_surface = NaN*zeros(size(mdata.Tomo.img,2),size(mdata.Tomo.img,3));
     for rline = 1:size(mdata.Tomo.img,3)
@@ -654,8 +654,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         costm(t,i) = 200 * exp(-0.075 .* t) - 200 * exp(-0.075 * 50);
         if t > fd(i)
           costm(t,i) = 200;
-    end
-    end
+        end
+      end
     end
     
     prob.DIM_means = [prob.DIM_means prob.DIM_means(end)* ones(1,50)];
@@ -668,7 +668,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         cost = 0.1 ./ normpdf(T, prob.DIM_means(DIM), var);
         cost(cost > 800) = 800;
         DIM_costmatrix(T, DIM) = cost;
-    end
+      end
     end
     
     for k = 1:100
@@ -722,16 +722,16 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         viterbi_weight = ones([1 size(data,2)]);
         viterbi_weight(gt(1, :)) = 2;
       end
-
+      
       threshold = 13.5;
       detect_data(detect_data>threshold) = threshold;
       detect_data = fir_dec(detect_data.',hanning(3).'/3,1).';
       
       mask = ice_mask(:,rline);
       mask_dist = round(bwdist(mask == 0));
-
+      
       bounds = [1 length(surf_bins)];
-
+      
       %% Call viterbi.cpp
       labels = tomo.viterbi(double(detect_data), double(surf_bins), ...
         double(bottom_bin), double(gt), double(mask), double(mu), ...
@@ -743,7 +743,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       
       viterbi_surface(:,rline) = labels;
     end
-
+    
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
       try
@@ -800,50 +800,25 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     mask_dist      = round(bwdist(ice_mask == 0));
     %% Obtained from geostatistical analysis of 2014 Greenland P3
-    prob.DIM_means = [    16.0582   27.3381   34.0492   40.5714...
-      46.9463   52.3826   58.4664   63.7750   70.5143   76.3140...
-      81.3519   86.9523   92.2285   98.1430   102.8310  107.0558...
-      112.4538  116.3923  121.0109  125.1486  128.7611  133.3286...
-      136.3500  139.5058  142.3812  146.1565  148.3781  151.1398...
-      153.5642  155.2606  157.4824  159.8529  161.0239  163.1799...
-      164.2849  166.1013  166.0728  167.3132  168.1448  169.1323...
-      169.7559  170.3869  171.4264  171.8926  171.5201  171.8870...
-      171.6407  172.3505  171.3533  171.6161];
+    means_hundred = [12.861203 22.956235 29.897437 37.052508 44.175811 49.784445 56.248995 61.613525 68.490186 74.457236 79.442165 85.081652 90.295292 96.088683 100.736490 104.918824 110.281543 114.152908 118.781347 122.904480 126.727655 131.171227 134.172306 137.539400 140.474558 144.397876 146.730052 149.520233 152.214456 153.768279 156.094439 158.462378 159.742767 162.006091 163.085801 164.955071 165.029069 166.293755 167.136282 168.068110 168.737825 169.311389 170.443511 170.829823 170.504806 171.000078 170.564304 171.198167 170.171599 170.370160 169.432600 168.964282 168.981321 168.683236 168.274138 168.058508 167.418852 166.778112 165.092841 164.920536 162.849143 161.327178 160.320951 159.286352 158.589887 157.981930 155.673471 154.951856 153.392993 151.953355 150.245295 147.714789 145.212549 143.293698 139.579848 138.773140 137.754153 135.610329 135.657135 133.950455 133.746132 133.888530 133.222973 132.731247 131.907776 131.242118 130.067354 130.593951 129.387547 128.602901 127.790378 127.773674 127.259172 128.076995 128.269459 127.804383 127.973478 130.094769 129.513271 130.159364];
+    sigma_hundred = [19.032807 25.055615 28.640839 32.753438 36.144273 39.329838 42.688930 45.511082 49.036818 52.177650 55.028380 57.516627 60.519048 63.217206 65.211203 67.459337 69.609678 71.543557 73.182822 74.615772 75.628159 77.127086 78.155483 79.447090 80.011376 81.108576 81.618789 82.287856 82.979740 83.561585 84.281769 84.648076 85.290095 85.566969 86.052342 86.487424 86.675812 86.959733 87.181337 87.641261 87.674246 87.947628 87.895269 87.286380 87.202972 86.878606 87.151259 87.477659 88.049960 88.587946 88.515276 89.070799 88.756636 88.345201 87.754785 87.689382 87.240118 86.800999 86.164340 86.085916 85.803664 85.356194 85.831974 85.264038 85.222428 84.898093 84.652262 84.332790 84.249144 83.871931 83.552786 83.233334 82.842279 82.658637 82.008042 81.694151 81.421515 80.901673 80.885452 81.070003 80.524210 80.776716 80.320438 80.445820 80.085639 79.751146 79.557559 78.923447 78.522063 77.525973 77.426494 76.624448 76.855826 77.277564 76.777165 76.716292 75.970217 77.149291 76.900846 76.890210];
     
-    trws_surface = reshape(trws_surface,size(mdata.Tomo.img,2), ...
-      size(mdata.Tomo.img,3));
-    prob.DIM_vars  = [     20.5619   24.9082   28.0037   32.0840...
-      35.6021   38.9544    42.4034   45.3588   48.9714   52.1360...
-      55.0826   57.5144    60.3847   63.1485   65.1199   67.3734...
-      69.3662   71.2849    72.9471   74.3759   75.5521   76.9737...
-      77.9961   79.3596    79.9999   81.0342   81.6340   82.2424...
-      82.9658   83.4794    84.1632   84.4168   85.0014   85.3065...
-      85.7757   86.1880    86.3563   86.5577   86.7289   87.0748...
-      87.1360   87.2473    87.2828   86.6350   86.5453   86.2989...
-      86.4736   86.7318   87.1606   87.6966];
+    gauss = @(x, mean, var)((1 / (sqrt(2 * pi * (var.^2)))) * (exp(-((x - mean).^2)/(2 * var.^ 2))));
     
-    costm = ones(1201, 101);
-    fd = 18 * fir_dec(1:101, ones(1,5)/3.7.');
-    
-    for t = 1:1200
-      for i = 1:101
-        costm(t,i) = 200 * exp(-0.075 .* t) - 200 * exp(-0.075 * 50);
-        if t > fd(i)
-          costm(t,i) = 200;
-        end
+    for t = 1:50
+      for i = 1:100
+        costm(t,i) = 100 * exp(-0.01 .* t) - 100 * exp(-0.01 * 50);
       end
     end
     
-    prob.DIM_means = [prob.DIM_means prob.DIM_means(end)* ones(1,50)];
-    prob.DIM_vars  = [prob.DIM_vars  prob.DIM_vars(end) * ones(1,50)];
-    
-    DIM_costmatrix = ones(1200, 100);
-    for DIM = 1 : 100
-      for T = 1 : 1200
-        var = DIM * 0.05 * prob.DIM_vars(end);
-        cost = 0.1 ./ normpdf(T, prob.DIM_means(DIM), var);
-        cost(cost > 800) = 800;
-        DIM_costmatrix(T, DIM) = cost;
+    DIM_costmatrix = ones(1000, 100);
+    for DIM = 1 : 100;
+      for T = 1 : 1000
+        if 0.025 / gauss(T, means_hundred(DIM), DIM * 0.05 * sigma_hundred(end)) >= 200
+          DIM_costmatrix(T, DIM) = 200;
+        else
+          DIM_costmatrix(T, DIM) = 0.025 / gauss(T, means_hundred(DIM), DIM * 0.05 * sigma_hundred(end));
+        end
       end
     end
     
@@ -851,26 +826,13 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       DIM_costmatrix(1:50, k) = DIM_costmatrix(1:50, k) + 0.06 * k * costm(1:50, k);
     end
     
-    DIM_costmatrix(DIM_costmatrix < 0) = 0;
-    DIM_costmatrix(DIM_costmatrix > 800) = 800;
-    
-    DIM_costmatrix = DIM_costmatrix(3:end, :);
-    DIM_costmatrix(end+1, :) = DIM_costmatrix(end,:);
-    DIM_costmatrix(end+1, :) = DIM_costmatrix(end,:);
-    DIM_costmatrix = DIM_costmatrix ./ 4;
-    
-    % Visualization of DIM_costmatrix
-    if 0
-      figure; (imagesc(DIM_costmatrix)); colorbar; hold on;
-      xlabel('Distance to nearest ice-margin [m]');
-      ylabel('Ice thickness distribution [range-bin]')
-      title('Added cost');
-    end
-    
+    x = DIM_costmatrix - min(DIM_costmatrix(:));
+    x = 200 .* (x ./ max(DIM_costmatrix(:)));
+    DIM_costmatrix = x;
     %% DoA-to-DoA transition model
     % Obtained from geostatistical analysis of 2014 Greenland P3
-    transition_mu = [0.000000, 0.000000, 2.590611, 3.544282, 4.569263, 5.536577, 6.476430, 7.416807, 8.404554, 9.457255, 10.442658, 11.413710, 12.354409, 13.332689, 14.364614, 15.381671, 16.428969, 17.398906, 18.418794, 19.402757, 20.383026, 21.391834, 22.399259, 23.359765, 24.369957, 25.344982, 26.301805, 27.307530, 28.274756, 28.947572, 29.691010, 32.977387, 34.203212, 34.897994, 35.667128, 36.579019, 37.558978, 38.548659, 39.540715, 40.550138, 41.534781, 42.547407, 43.552700, 44.537758, 45.553618, 46.561057, 47.547331, 48.530976, 49.516588, 50.536075, 51.562886, 52.574938, 53.552979, 54.554206, 55.559657, 56.574029, 57.591999, 58.552986, 59.562937, 60.551616, 61.549909, 62.551092, 63.045791, 63.540490];
-    transition_sigma = [0.457749, 0.805132, 1.152514, 1.213803, 1.290648, 1.370986, 1.586141, 1.626730, 1.785789, 1.791043, 1.782936, 1.727153, 1.770210, 1.714973, 1.687484, 1.663294, 1.633185, 1.647318, 1.619522, 1.626555, 1.649593, 1.628138, 1.699512, 1.749184, 1.809822, 1.946782, 2.126822, 2.237959, 2.313358, 2.280555, 1.419753, 1.112363, 1.426246, 2.159619, 2.140899, 2.083267, 1.687420, 1.574745, 1.480296, 1.443887, 1.415708, 1.356100, 1.401891, 1.398477, 1.365730, 1.418647, 1.407810, 1.430151, 1.391357, 1.403471, 1.454194, 1.470535, 1.417235, 1.455086, 1.436509, 1.378037, 1.415834, 1.333177, 1.298108, 1.277559, 1.358260, 1.483521, 1.674642, 1.865764];
+    transition_mu = [2.0436 2.3331 2.5009 3.3719 4.6784 5.6978 6.5621 7.5174 8.5156 9.5651 10.5363 11.5323 12.5066 13.5002 14.4998 15.5585 16.5564 17.5435 18.5288 19.5175 20.5071 21.5108 22.5106 23.4993   24.4847 25.4574 26.4393 27.4864 28.4248 29.1076 29.7335 32.9690 34.1460 34.6690 35.4782 36.4208 37.4689 38.4754 39.4688 40.4474 41.4559 42.4452 43.4168 44.4374 45.4158 46.4087 47.4159 48.4306 49.4311 50.4148 51.4397 52.4642 53.4303 54.4758 55.4716 56.4896 57.5388 58.5285 59.4507 60.4436 61.4986 62.5633 62.6210 62.6788];
+    transition_sigma = [1.9131 1.3669 1.5377 1.7085 1.7066 1.8079 1.8992 2.0351 2.0593 2.0194 1.9234 1.9222 1.9576 1.8838 1.9062 1.8439 1.7892 1.7756 1.7726 1.8337 1.7814 1.8196 1.9341 1.9805 2.1382 2.2869 2.4564 2.4599 2.4413 2.3801 1.4076 1.0751 1.3504 1.8570 2.0304 2.1111 1.8376 1.6472 1.5613 1.5116 1.4367 1.4435 1.4491 1.4410 1.4299 1.4022 1.4598 1.4219 1.4193 1.4158 1.4456 1.4779 1.4647 1.5021 1.4541 1.4040 1.4053 1.2808 1.2195 1.1342 1.3246 1.2063 1.6347 2.0632];
     
     % Visualization of mean and variance vectors
     if 0
@@ -879,9 +841,9 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       legend('Mean', 'Variance', 'Location', 'northwest');
       xlabel('DoA bins');
     end
-    
-    gt = ones(3, length(Bottom_bin));
-    gt(1, :) = 0 : length(Bottom_bin) - 1;
+    smooth_weight = 0.08 .* smooth_weight;
+    gt = zeros(3, length(Bottom_bin));
+    gt(1, :) = 1 : length(Bottom_bin);
     gt(2, :) = 32 * ones(1, length(Bottom_bin));
     gt(3, :) = Bottom_bin(:) + 0.5;
     
@@ -894,8 +856,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       double(transition_mu), double(transition_sigma));
     toc;
     
-    trws_surface = reshape(trws_surface,size(mdata.Topography.img,2), ...
-      size(mdata.Topography.img,3));
+    trws_surface = reshape(trws_surface,size(mdata.Tomo.img,2), ...
+      size(mdata.Tomo.img,3));
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
@@ -921,6 +883,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
     
   elseif strcmpi(cmd,'c3d_rnn')
+    fprintf('  C3D/RNN (%s)\n', datestr(now));
+    
     c3d_rnn.dwnsammat_dir = fullfile(ct_filename_out(param, 'C3D_RNN_temporary_resources'), '');
     c3d_rnn.dwnsamnpy_dir = fullfile(ct_filename_out(param, 'C3D_RNN_temporary_resources'), '');
     temp_str              = strfind(c3d_rnn.dwnsammat_dir, filesep);
@@ -931,7 +895,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     % Down-sample data and save file for each and every slice
     for rline = 1 : size(data, 3)
-      fusion = db(mdata.Topography.img(:, :, rline));
+      fusion = db(mdata.Tomo.img(:, :, rline));
       fusion(fusion>27) = 27;
       fusion = imresize(fusion, [64, 64]);
       fusion = mat2gray(fusion);
@@ -948,11 +912,11 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         catch ME
           fprintf('\nProblem saving temporary MAT file, verify.\n');
           keyboard
-  end
-end
+        end
+      end
     end
     fprintf('\nFinished down-sampling and saving MAT files for %s_%03.0f.\nPath: %s\n\n',param.day_seg,param.proc.frm, out_dir);
-
+    
     %% Search for pre-trained model files (c3d.pth and rnn.pth)
     c3d_rnn.pth_path     = fullfile(param.path, '+tomo', 'c3d_rnn_models');
     c3d_rnn.c3d_pth_path = fullfile(c3d_rnn.pth_path, 'c3d.pth');
@@ -986,15 +950,15 @@ end
         sprintf('Data_%s_%03.0f',param.day_seg,param.proc.frm)];
       tic;
       system(sh_cmd);
-      toc;      
+      toc;
     catch ME
       fprintf('\nProblem during execution of Python scripts, verify.\n');
       keyboard
     end
     fprintf('\nFinished executing Python scripts for %s_%03.0f.\n\n',param.day_seg,param.proc.frm);
     
-    c3d_rnn.result_surface = ones(size(mdata.Topography.img,2), size(mdata.Topography.img,3));
-    c3d_rnn.result_bottom  = ones(size(mdata.Topography.img,2), size(mdata.Topography.img,3));
+    c3d_rnn.result_surface = ones(size(mdata.Tomo.img,2), size(mdata.Tomo.img,3));
+    c3d_rnn.result_bottom  = ones(size(mdata.Tomo.img,2), size(mdata.Tomo.img,3));
     
     sl_idx = 1;
     %% Get surface and bottom vectors from generated text file

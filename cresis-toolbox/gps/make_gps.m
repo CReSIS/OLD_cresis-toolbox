@@ -180,7 +180,9 @@ for file_idx = 1:length(in_fns)
     fprintf('  %s\n', in_fn{in_fn_idx});
     gps_tmp = gps_fh(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     
-    gps_tmp = rmfield(gps_tmp,'radar_time');
+    try
+      gps_tmp = rmfield(gps_tmp,'radar_time');
+    end
     
     if in_fn_idx == 1
       gps.gps_time = gps_tmp.gps_time;

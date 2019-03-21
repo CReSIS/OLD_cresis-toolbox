@@ -89,9 +89,12 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
   fprintf('  Done loading data (%s)\n', datestr(now));
 end
 
+if ~exist('surfdata_source','var') || isempty(surfdata_source)
+  surfdata_source = 'surfData';
+end
 sb_param = [];
-sb_param.surfdata_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-if ~exist(sb_param.surfdata_fn)
+sb_param.surfdata_fn = fullfile(ct_filename_out(param,surfdata_source,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+if ~exist(sb_param.surfdata_fn,'file')
   sb_param.surfdata_fn = '';
 end
 sb_param.bounds_relative = bounds_relative;

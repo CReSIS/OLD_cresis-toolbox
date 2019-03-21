@@ -142,7 +142,11 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.job_complete_pause    = 60;
- 
+  profile(pidx).cluster.mem_to_ppn            = 0.9 * 16e9 / 8;
+  profile(pidx).cluster.max_ppn               = 4;
+  profile(pidx).cluster.max_mem_per_job       = 15e9;
+  profile(pidx).cluster.max_mem_mode          = 'debug';
+
   %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
   pidx = 4; % profile index
@@ -175,8 +179,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 131754468000 / 46;
-  profile(pidx).cluster.max_ppn               = 4;
+  profile(pidx).cluster.max_ppn               = 6;
   profile(pidx).cluster.job_complete_pause    = 5;
+  profile(pidx).cluster.max_mem_per_job       = 126e9;
+  profile(pidx).cluster.max_mem_mode          = 'debug';
   
   
   %% KU Desktop Profile Windows (PROFILE 5)
@@ -235,6 +241,19 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
+  if 1
+    profile(pidx).cluster.ssh_hostname          = 'karst.uits.iu.edu';
+    profile(pidx).cluster.mem_to_ppn            = 0.9 * 32e9 / 16;
+    profile(pidx).cluster.max_ppn               = 8;
+    profile(pidx).cluster.max_mem_per_job       = 30e9;
+    profile(pidx).cluster.max_mem_mode          = 'debug';
+  else
+    %profile(pidx).cluster.ssh_hostname          = 'carbonate.uits.iu.edu';
+    profile(pidx).cluster.mem_to_ppn            = 0.9 * 256e9 / 24;
+    profile(pidx).cluster.max_ppn               = 12;
+    profile(pidx).cluster.max_mem_per_job       = 250e9;
+    profile(pidx).cluster.max_mem_mode          = 'debug';
+  end
   profile(pidx).cluster.max_jobs_active       = 128;
   profile(pidx).cluster.max_time_per_job      = 4*86400;
   profile(pidx).cluster.desired_time_per_job  = 8*3600;
@@ -242,8 +261,6 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 1;
   profile(pidx).cluster.stat_pause            = 10;
   profile(pidx).cluster.file_check_pause      = 0;
-  profile(pidx).cluster.mem_to_ppn            = 0.9 * 34359738368 / 16;
-  profile(pidx).cluster.max_ppn               = 8;
 
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
   
@@ -309,6 +326,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.job_complete_pause    = 5;
+  profile(pidx).cluster.mem_to_ppn            = 0.9 * 64e9 / 8;
+  profile(pidx).cluster.max_ppn               = 4;
+  profile(pidx).cluster.max_mem_per_job       = 62e9;
+  profile(pidx).cluster.max_mem_mode          = 'debug';
 
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
@@ -346,6 +367,8 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.job_complete_pause      = 30;
   profile(pidx).cluster.mem_to_ppn              = 0.9 * 64e9 / 36;
   profile(pidx).cluster.max_ppn                 = 18;
+  profile(pidx).cluster.max_mem_per_job         = 62e9;
+  profile(pidx).cluster.max_mem_mode            = 'debug';
 
   profile(pidx).cluster.mcc                     = 'eval';
 

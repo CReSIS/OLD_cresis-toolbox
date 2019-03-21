@@ -665,7 +665,7 @@ for img = 1:length(param.analysis.imgs)
           Nt = cmd.Nt;
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
         end
         

@@ -34,15 +34,13 @@ if ~isfield(param.collate_coh_noise,'debug_plots') || isempty(param.collate_coh_
 end
 enable_visible_plot = any(strcmp('visible',param.collate_coh_noise.debug_plots));
 enable_threshold_plot = any(strcmp('threshold_plot',param.collate_coh_noise.debug_plots));
-enable_cn_plots = any(strcmp('cn',param.collate_coh_noise.debug_plots));
-enable_debug_plot = any(strcmp('debug',param.collate_coh_noise.debug_plots));
-enable_threshold = enable_threshold_plot || any(strcmp('threshold',param.collate_coh_noise.debug_plots));
+enable_cn_plot = any(strcmp('cn_plot',param.collate_coh_noise.debug_plots));
 if ~isempty(param.collate_coh_noise.debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
 end
 
 if ~isfield(param.collate_coh_noise,'dft_corr_length') || isempty(param.collate_coh_noise.dft_corr_length)
-  param.collate_coh_noise.dft_corr_length = 1e6;
+  param.collate_coh_noise.dft_corr_length = inf;
 end
 
 if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
@@ -64,6 +62,10 @@ if ~isfield(param.collate_coh_noise,'in_dir') || isempty(param.collate_coh_noise
   param.collate_coh_noise.in_dir = 'analysis';
 end
 
+if ~isfield(param.collate_coh_noise,'method') || isempty(param.collate_coh_noise.method)
+  param.collate_coh_noise.method = 'dft';
+end
+
 if ~isfield(cmd,'min_samples') || isempty(cmd.min_samples)
   cmd.min_samples = 0.5*cmd.block_ave;
 end
@@ -71,6 +73,15 @@ end
 if ~isfield(param.collate_coh_noise,'out_dir') || isempty(param.collate_coh_noise.out_dir)
   param.collate_coh_noise.out_dir = 'analysis';
 end
+
+if ~isfield(param.collate_coh_noise,'threshold_en') || isempty(param.collate_coh_noise.threshold_en)
+  param.collate_coh_noise.threshold_en = false;
+end
+% Enable threshold if threshold_plot is enabled
+if enable_threshold_plot
+  param.collate_coh_noise.threshold_en = true;
+end
+enable_threshold = param.collate_coh_noise.threshold_en;
 
 if ~isfield(param.collate_coh_noise,'threshold_eval') || isempty(param.collate_coh_noise.threshold_eval)
   % Default is no evaluation
@@ -143,7 +154,7 @@ for img = param.collate_coh_noise.imgs
       cn_before_mag = zeros(Nx,Nt);
     end
     
-    if enable_cn_plots
+    if enable_cn_plot
       % Transposed to speed up writes
       cn_before = zeros(Nx,Nt);
       cn_after = zeros(Nx,Nt);
@@ -177,7 +188,7 @@ for img = param.collate_coh_noise.imgs
         figure(2); clf;
         plot(imag(coh_bin)); title(sprintf('%d',bin));
       end
-      if enable_cn_plots
+      if enable_cn_plot
         cn_before(:,bin_idx) = coh_bin;
       end
       if enable_threshold
@@ -212,7 +223,7 @@ for img = param.collate_coh_noise.imgs
         noise_est = interp_finite(interp1(noise.coh_noise_gps_time,noise.coh_noise(bin_idx,:),noise.gps_time),0);
         coh_bin = coh_bin - noise_est;
       end
-      if enable_cn_plots
+      if enable_cn_plot
         cn_after(:,bin_idx) = coh_bin;
       end
       if 0
@@ -239,7 +250,7 @@ for img = param.collate_coh_noise.imgs
       end
     end
     
-    if enable_cn_plots
+    if enable_cn_plot
       cn_before = cn_before.';
       cn_after = cn_after.';
       
@@ -252,6 +263,7 @@ for img = param.collate_coh_noise.imgs
       cn_before(mask) = 0;
       
       clf(h_fig(1));
+      set(h_fig(1), 'name', 'collate_coh_noise FFT');
       h_axes(1) = axes('parent',h_fig(1));
       imagesc(fx, [], fftshift(lp( fft(cn_before,[],2) ),2), 'parent', h_axes(1));
       cn_before(mask) = NaN;
@@ -274,10 +286,11 @@ for img = param.collate_coh_noise.imgs
       
       %cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
       clf(h_fig(2));
+      set(h_fig(2), 'name', 'collate_coh_noise Before');
       h_axes(2) = axes('parent',h_fig(2));
       imagesc(lp(cn_before),'parent',h_axes(2));
       cc=caxis(h_axes(2));
-      title(h_axes(2), sprintf('Before %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      title(h_axes(2), sprintf('Before coherent noise removal %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(2), 'Range bin');
       xlabel(h_axes(2), 'Block');
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
@@ -291,9 +304,10 @@ for img = param.collate_coh_noise.imgs
       
       %cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
       clf(h_fig(3));
+      set(h_fig(3), 'name', 'collate_coh_noise Before Phase');
       h_axes(3) = axes('parent',h_fig(3));
       imagesc(angle(cn_before),'parent',h_axes(3));
-      title(h_axes(3), sprintf('Before %s wf %d adc %d (phase)',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      title(h_axes(3), sprintf('Before coherent noise removal %s wf %d adc %d (phase)',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(3), 'Range bin');
       xlabel(h_axes(3), 'Block');
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
@@ -306,10 +320,11 @@ for img = param.collate_coh_noise.imgs
       end
       
       clf(h_fig(4));
+      set(h_fig(4), 'name', 'collate_coh_noise After');
       h_axes(4) = axes('parent',h_fig(4));
       imagesc(lp(cn_after),'parent',h_axes(4));
       caxis(h_axes(4), cc);
-      title(h_axes(4), sprintf('After %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      title(h_axes(4), sprintf('After coherent noise removal %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       xlabel(h_axes(4), 'Block');
       ylabel(h_axes(4), 'Range bin');
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
@@ -326,6 +341,7 @@ for img = param.collate_coh_noise.imgs
     
     if enable_threshold_plot
       clf(h_fig(5));
+      set(h_fig(5), 'name', 'Threshold');
       h_axes(5) = axes('parent',h_fig(5));
       plot(h_axes(5), orig_threshold)
       hold(h_axes(5), 'on');
@@ -346,7 +362,7 @@ for img = param.collate_coh_noise.imgs
       saveas(h_fig(5),fig_fn);
     end
     
-    if enable_debug_plot
+    if enable_visible_plot
       % Bring plots to front
       for h_fig_idx = 1:length(h_fig)
         figure(h_fig(h_fig_idx));
@@ -444,7 +460,7 @@ for img = param.collate_coh_noise.imgs
   end
 end
 
-if ~isempty(param.collate_coh_noise.debug_plots)
+if ~enable_visible_plot
   try
     delete(h_fig);
   end

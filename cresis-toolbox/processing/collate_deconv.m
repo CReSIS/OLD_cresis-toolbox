@@ -57,6 +57,14 @@ cmd = param.analysis.cmd{param.collate_deconv.cmd_idx};
 % param.collate_deconv structure
 % =========================================================================
 
+if ~isfield(param.collate_deconv,'abs_metric') || isempty(param.collate_deconv.abs_metric)
+  error('The "abs_metric" field must be set in param.collate_deconv.');
+end
+
+if ~isfield(param.collate_deconv,'bad_gps_times') || isempty(param.collate_deconv.bad_gps_times)
+  param.collate_deconv.bad_gps_times = [];
+end
+
 if ~isfield(param.collate_deconv,'debug_plots')
   param.collate_deconv.debug_plots = {'metric','final','visible'};
   %param.collate_deconv.debug_plots = {'rbins','deconv','metric','final','visible'};
@@ -67,12 +75,26 @@ if ~isfield(param.collate_deconv,'debug_rlines') || isempty(param.collate_deconv
 end
 
 if ~isfield(param.collate_deconv,'debug_ylim') || isempty(param.collate_deconv.debug_ylim)
-  param.collate_deconv.debug_ylim = 50;
+  param.collate_deconv.debug_ylim = 120;
 end
 debug_ylim = param.collate_deconv.debug_ylim;
 
+if ~isfield(param.collate_deconv,'f0') || isempty(param.collate_deconv.f0)
+  % Default is no limits on lower frequency
+  param.collate_deconv.f0 = -inf;
+end
+
+if ~isfield(param.collate_deconv,'f1') || isempty(param.collate_deconv.f1)
+  % Default is no limits on upper frequency
+  param.collate_deconv.f1 = inf;
+end
+
 if ~isfield(param.collate_deconv,'gps_time_penalty') || isempty(param.collate_deconv.gps_time_penalty)
   param.collate_deconv.gps_time_penalty = 1/(10*24*3600);
+end
+
+if ~isfield(param.collate_deconv,'gps_times') || isempty(param.collate_deconv.gps_times)
+  param.collate_deconv.gps_times = [];
 end
 
 if ~isfield(param.collate_deconv,'imgs') || isempty(param.collate_deconv.imgs)
@@ -83,8 +105,20 @@ if ~isfield(param.collate_deconv,'in_dir') || isempty(param.collate_deconv.in_di
   param.collate_deconv.in_dir = 'analysis';
 end
 
+if ~isfield(param.collate_deconv,'interp_rbins') || isempty(param.collate_deconv.interp_rbins)
+  param.collate_deconv.interp_rbins = [];
+end
+
+if ~isfield(param.collate_deconv,'metric_weights') || isempty(param.collate_deconv.metric_weights)
+  param.collate_deconv.metric_weights = [0.5 0 3 5 0 0];
+end
+
 if ~isfield(param.collate_deconv,'min_score') || isempty(param.collate_deconv.min_score)
   param.collate_deconv.min_score = -10;
+end
+
+if ~isfield(param.collate_deconv,'ML_threshold') || isempty(param.collate_deconv.ML_threshold)
+  param.collate_deconv.ML_threshold = 15;
 end
 
 if ~isfield(param.collate_deconv,'Mt') || isempty(param.collate_deconv.Mt)
@@ -98,6 +132,18 @@ end
 
 if ~isfield(param.collate_deconv,'preserve_old') || isempty(param.collate_deconv.preserve_old)
   param.collate_deconv.preserve_old = false;
+end
+
+if param.collate_deconv.stage_one_en && (~isfield(param.collate_deconv,'rbins') || isempty(param.collate_deconv.rbins))
+  error('The "rbins" field must be set in the param.collate_deconv to a range of indices about the peak to use in the deconvolution waveform, e.g. param.collate_deconv.rbins = {[-110 40]} to use 110 bins before the peak and 40 bins after the peak for image 1. rbins should be a cell array with each element corresponding to the param.collate_deconv.imgs array.');
+end
+if ~iscell(param.collate_deconv.rbins) && numel(param.collate_deconv.imgs) == 1
+  % Support legacy format (no cell array)
+  param.collate_deconv.rbins = {param.collate_deconv.rbins};
+end
+
+if ~isfield(param.collate_deconv,'SL_guard_bins') || isempty(param.collate_deconv.SL_guard_bins)
+  param.collate_deconv.SL_guard_bins = 3;
 end
 
 if ~isfield(param.collate_deconv,'stage_one_en') || isempty(param.collate_deconv.stage_one_en)
@@ -123,28 +169,10 @@ end
 
 % cmd structure
 % =========================================================================
-if ~isfield(cmd,'abs_metric') || isempty(cmd.abs_metric)
-  error('The "abs_metric" field must be set in the cmd.');
-end
-
-if ~isfield(cmd,'bad_gps_times') || isempty(cmd.bad_gps_times)
-  cmd.bad_gps_times = [];
-end
 
 if ~isfield(cmd,'day_segs') || isempty(cmd.day_segs)
   % Default is to use this day_seg only to find deconvolution waveforms
   cmd.day_segs = {param.day_seg};
-end
-
-
-if ~isfield(cmd,'f0') || isempty(cmd.f0)
-  % Default is no limits on lower frequency
-  cmd.f0 = -inf;
-end
-
-if ~isfield(cmd,'f1') || isempty(cmd.f1)
-  % Default is no limits on upper frequency
-  cmd.f1 = inf;
 end
 
 if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
@@ -152,34 +180,6 @@ if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
 end
 if ~isfield(param.collate_deconv,'imgs') || isempty(param.collate_deconv.imgs)
   param.collate_deconv.imgs = 1:length(param.analysis.imgs);
-end
-
-if ~isfield(cmd,'gps_times') || isempty(cmd.gps_times)
-  cmd.gps_times = [];
-end
-
-if ~isfield(cmd,'interp_rbins') || isempty(cmd.interp_rbins)
-  cmd.interp_rbins = [];
-end
-
-if ~isfield(cmd,'metric_weights') || isempty(cmd.metric_weights)
-  cmd.metric_weights = [0.5 0 3 5 0 0];
-end
-
-if ~isfield(cmd,'ML_threshold') || isempty(cmd.ML_threshold)
-  cmd.ML_threshold = 15;
-end
-
-if param.collate_deconv.stage_one_en && (~isfield(cmd,'rbins') || isempty(cmd.rbins))
-  error('The "rbins" field must be set in the cmd to a range of indices about the peak to use in the deconvolution waveform, e.g. cmd.rbins = {[-110 40]} to use 110 bins before the peak and 40 bins after the peak for image 1. rbins should be a cell array with each element corresponding to the param.collate_deconv.imgs array.');
-end
-if ~iscell(cmd.rbins) && numel(param.collate_deconv.imgs) == 1
-  % Support legacy format (no cell array)
-  cmd.rbins = {cmd.rbins};
-end
-
-if ~isfield(cmd,'SL_guard_bins') || isempty(cmd.SL_guard_bins)
-  cmd.SL_guard_bins = 3;
 end
 
 % Other Setup

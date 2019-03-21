@@ -884,3 +884,9 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
 end
 
 fprintf('  Done (%s)\n', datestr(now));
+
+if ~enable_visible_plot
+  try
+    delete(h_fig);
+  end
+end
