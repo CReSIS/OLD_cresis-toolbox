@@ -39,6 +39,10 @@ if ~isfield(param.make_layer_files,'post_dir')
   param.make_layer_files.post_dir = '';
 end
 
+if ~isfield(param.make_layer_files,'echogram_img')
+  param.make_layer_files.echogram_img = 0;
+end
+
 if ~isfield(param.make_layer_files,'frm_types') || isempty(param.make_layer_files.frm_types)
   param.make_layer_files.frm_types = {-1,0,-1,-1,-1};
 end
@@ -81,8 +85,13 @@ for frm_idx = 1:length(param.cmd.frms)
     continue;
   end
   
-  in_fn = fullfile(in_fn_dir, sprintf('Data_%s_%03d.mat', ...
-    param.day_seg, frm));
+  if param.make_layer_files.echogram_img == 0
+    in_fn = fullfile(in_fn_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+  else
+    in_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+      param.make_layer_files.echogram_img, param.day_seg, frm));
+  end
   
   out_fn = fullfile(out_fn_dir, sprintf('Data_%s_%03d.mat', ...
     param.day_seg, frm));
