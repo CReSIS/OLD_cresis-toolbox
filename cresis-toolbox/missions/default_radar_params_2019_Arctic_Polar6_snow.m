@@ -1,7 +1,7 @@
-function param = default_radar_params_2019_Arctic_Polar5_snow
-% param = default_radar_params_2019_Arctic_Polar5_snow
+function param = default_radar_params_2019_Arctic_Polar6_snow
+% param = default_radar_params_2019_Arctic_Polar6_snow
 %
-% Snow: 2019_Arctic_Polar5
+% Snow: 2019_Arctic_Polar6
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -9,7 +9,7 @@ function param = default_radar_params_2019_Arctic_Polar5_snow
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2019_Arctic_Polar5';
+param.season_name = '2019_Arctic_Polar6';
 param.radar_name = 'snow5';
 
 param.config.file.version = 7;
