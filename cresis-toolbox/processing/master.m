@@ -34,15 +34,6 @@ else
   param_override = gRadar;
 end
 
-% Process each of the segments
-ctrl_chain = {};
-for param_idx = 1:length(params)
-  param = params(param_idx);
-  if param.cmd.qlook
-    ctrl_chain{end+1} = qlook(param,param_override);
-  end
-end
-
 %% Create chains for each segment
 % =====================================================================
 ctrl_chain = {};

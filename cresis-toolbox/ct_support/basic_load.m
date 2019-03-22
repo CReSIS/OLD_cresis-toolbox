@@ -103,12 +103,9 @@ hdr = [];
 %
 % The file version determine the rest of the format of the record.
 
-% ===============================================================
 % Get first record position
-% ===============================================================
 hdr.finfo.syncs = get_first10_sync_mfile(fn,0,struct('sync',param.sync));
 
-% ===============================================================
 % Open file big-endian for reading
 % ===============================================================
 [fid,msg] = fopen(fn,'r','ieee-be');
@@ -120,6 +117,12 @@ end
 % Get file size
 fseek(fid, 0, 1);
 hdr.finfo.file_size = ftell(fid);
+
+if isempty(hdr.finfo.syncs)
+  warning('No frame syncs (hex sequence %s) found in this file.', param.sync);
+  data = [];
+  return;
+end
 
 % Get file version
 fseek(fid, hdr.finfo.syncs(1) + 24, -1);

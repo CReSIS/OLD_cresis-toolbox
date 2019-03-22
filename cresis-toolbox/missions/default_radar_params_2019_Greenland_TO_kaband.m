@@ -1,7 +1,7 @@
 function param = default_radar_params_2019_Greenland_TO_kaband
 % param = default_radar_params_2019_Greenland_TO_kaband
 %
-% Snow: 2019_Alaska_SO
+% Snow: 2019_Greenland_TO
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -9,11 +9,11 @@ function param = default_radar_params_2019_Greenland_TO_kaband
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2019_Alaska_SO';
+param.season_name = '2019_Greenland_TO';
 param.radar_name = 'kaband';
 
 param.config.file.version = 11;
-param.config.file.prefix = param.radar_name;
+param.config.file.prefix = 'data_v11';
 param.config.file.suffix = '.bin';
 param.config.max_time_gap = 10;
 param.config.min_seg_size = 2;
@@ -30,6 +30,7 @@ param.config.tx_enable = [1];
 
 %% CReSIS parameters
 param.config.cresis.clk = 125e6;
+param.config.cresis.expected_rec_sizes = [125648];
 
 %% Command worksheet
 default.cmd.records = 1;
@@ -38,14 +39,14 @@ default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.file.boards = [1];
-default.records.frames.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m.tif';
+default.records.frames.geotiff_fn = fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif');
 default.records.frames.mode = 2;
 default.records.gps.en = 1;
 default.records.gps.time_offset = 1;
 
 %% Qlook worksheet
 default.qlook.img_comb = [];
-default.qlook.imgs = {[1 1]};
+default.qlook.imgs = {[2 1]};
 default.qlook.out_path = '';
 default.qlook.block_size = 2000;
 default.qlook.motion_comp = 0;
@@ -86,7 +87,7 @@ default.array.dbin = 1;
 default.array.dline = 5;
 
 %% Radar worksheet
-default.radar.prf = 2500;
+default.radar.prf = 2000;
 default.radar.fs = 125e6;
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2; % Digital receiver gain is 5, full scale Vpp is 2
@@ -103,7 +104,7 @@ for wf = 1
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
-  default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).adcs = [2];
   default.radar.wfs(wf).nz_trim = {[0 0],[0 0],[0 0],[0 0]};
   default.radar.wfs(wf).nz_valid = [0 1];
 end
@@ -118,7 +119,7 @@ default.post.data_en = 0;
 default.post.csv_en = 1;
 default.post.concat_en = 1;
 default.post.pdf_en = 1;
-default.post.map.location = 'Greenland';
+default.post.map.location = 'Arctic';
 default.post.map.type = 'combined';
 default.post.echo.elev_comp = 2;
 default.post.echo.depth = '[min(Surface_Depth)-2 max(Surface_Depth)+25]';
@@ -135,8 +136,8 @@ defaults = {};
 default.radar.wfs(1).f0 = 32e9;
 default.radar.wfs(1).f1 = 38e9;
 default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [32e9 37.75e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [32.1e9 37.75e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 32-38 GHz';

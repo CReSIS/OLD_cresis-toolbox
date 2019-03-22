@@ -46,7 +46,7 @@ fprintf('=====================================================================\n
 % boards: List of subdirectories containing the files for each board (a
 % board is a data stream stored to disk and often contains the data stream
 % from multiple ADCs)
-if any(param.records.file.version == [1:5 8 101:102 405:406 409:411])
+if any(param.records.file.version == [1:5 8 11 101:102 405:406 409:411])
   if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
     % Assume a single channel system
     param.records.file.boards = {''};
@@ -231,7 +231,7 @@ for board_idx = 1:length(boards)
       board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.seconds)) = file_num;
       board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.seconds)) = int32(hdr_tmp.offset);
       
-      if any(param.records.file.version == [1:8 102 401:404 407:408])
+      if any(param.records.file.version == [1:8 11 102 401:404 407:408])
         % Ledford, Rink and NI systems have EPRI field
         board_hdrs{board_idx}.epri(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.epri;
       end
@@ -262,7 +262,7 @@ for board_idx = 1:length(boards)
         % Drop the last record of the last file since it is generally not a
         % complete record and there is no additional file to load which
         % contains the remainder of the record.
-        if any(param.records.file.version == [1:8 102 401:404 407:408])
+        if any(param.records.file.version == [1:8 11 102 401:404 407:408])
           board_hdrs{board_idx}.epri = board_hdrs{board_idx}.epri(1:end-1);
         end
         if param.records.file.version == 8

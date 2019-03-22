@@ -174,7 +174,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   cpu_time_mult = 12e-8;
   mem_mult = 14;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.qlook.imgs));
   cpu_time_mult = 8e-8;
   mem_mult = 64;
@@ -377,7 +377,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   cpu_time_mult = 12e-7;
   mem_mult = 12;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   cpu_time_mult = 100e-8;
   mem_mult = 24;
 end

@@ -220,7 +220,7 @@ for state_idx = 1:length(states)
           end
 
           % Read in headers for this record
-          if any(param.records.file.version == [3 5 7 8])
+          if any(param.records.file.version == [3 5 7 8 11])
 
             HEADER_SIZE = 0;
             WF_HEADER_SIZE = 48;
@@ -233,13 +233,15 @@ for state_idx = 1:length(states)
                 wfs(wf).offset = wfs(wf-1).offset + last_wf_size;
               end
               
-              if param.records.file.version == 8
+              if any(param.records.file.version == [8 11])
                 if swap_bytes_en
+%                   start_idx = param.radar.fs/param.records.file.clk*double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
+%                   stop_idx = param.radar.fs/param.records.file.clk*double(swapbytes(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16')));
                   start_idx = 2*double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
                   stop_idx = 2*double(swapbytes(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16')));
                 else
-                  start_idx = 2*double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
-                  stop_idx = 2*double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
+                  start_idx = param.radar.fs/param.records.file.clk*double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
+                  stop_idx = param.radar.fs/param.records.file.clk*double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
                 Nt{img}(num_accum+1) = stop_idx - start_idx;
                 wfs(wf).Nt_raw = Nt{img}(num_accum+1);
@@ -311,8 +313,10 @@ for state_idx = 1:length(states)
             end
             
             % Nyquist zone
-            if param.records.file.version == 8
-              nyquist_zone_hw{img}(num_accum+1) = file_data(wf_hdr_offset+34);
+            if any(param.records.file.version == [8 11])
+              % bitand(bitshift(file_data(wf_hdr_offset+34),-4),1); % Complex data flag
+              wfs(wf).adc_per_board = double(1+bitand(bitshift(file_data(wf_hdr_offset+34),-2),3));
+              nyquist_zone_hw{img}(num_accum+1) = bitand(file_data(wf_hdr_offset+34),3);
             elseif any(param.records.file.version == [3 5 7])
               nyquist_zone_hw{img}(num_accum+1) = file_data(wf_hdr_offset+45);
             end

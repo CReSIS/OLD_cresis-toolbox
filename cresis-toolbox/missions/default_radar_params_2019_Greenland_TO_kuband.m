@@ -1,7 +1,7 @@
 function param = default_radar_params_2019_Greenland_TO_kuband
 % param = default_radar_params_2019_Greenland_TO_kuband
 %
-% Snow: 2019_Alaska_SO
+% Snow: 2019_Greenland_TO
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -9,11 +9,11 @@ function param = default_radar_params_2019_Greenland_TO_kuband
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2019_Alaska_SO';
+param.season_name = '2019_Greenland_TO';
 param.radar_name = 'kuband';
 
 param.config.file.version = 11;
-param.config.file.prefix = param.radar_name;
+param.config.file.prefix = 'data_v11';
 param.config.file.suffix = '.bin';
 param.config.max_time_gap = 10;
 param.config.min_seg_size = 2;
@@ -30,6 +30,7 @@ param.config.tx_enable = [1];
 
 %% CReSIS parameters
 param.config.cresis.clk = 125e6;
+param.config.cresis.expected_rec_sizes = [125648];
 
 %% Command worksheet
 default.cmd.records = 1;
@@ -38,7 +39,7 @@ default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.file.boards = [1];
-default.records.frames.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m.tif';
+default.records.frames.geotiff_fn = fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif');
 default.records.frames.mode = 2;
 default.records.gps.en = 1;
 default.records.gps.time_offset = 1;
@@ -86,7 +87,7 @@ default.array.dbin = 1;
 default.array.dline = 5;
 
 %% Radar worksheet
-default.radar.prf = 2500;
+default.radar.prf = 2000;
 default.radar.fs = 125e6;
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2; % Digital receiver gain is 5, full scale Vpp is 2
@@ -118,7 +119,7 @@ default.post.data_en = 0;
 default.post.csv_en = 1;
 default.post.concat_en = 1;
 default.post.pdf_en = 1;
-default.post.map.location = 'Greenland';
+default.post.map.location = 'Arctic';
 default.post.map.type = 'combined';
 default.post.echo.elev_comp = 2;
 default.post.echo.depth = '[min(Surface_Depth)-2 max(Surface_Depth)+25]';
@@ -135,8 +136,8 @@ defaults = {};
 default.radar.wfs(1).f0 = 12e9;
 default.radar.wfs(1).f1 = 18e9;
 default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [12e9 17.75e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [12.1e9 17.75e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 12-18 GHz';

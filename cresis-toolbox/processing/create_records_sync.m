@@ -278,7 +278,7 @@ if any(param.records.file.version == [9 10 103 412])
   
   radar_time(bad_idxs) = epri_time(bad_idxs);
   
-elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
+elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 407 408])
  
   if 0
     % Test sequences

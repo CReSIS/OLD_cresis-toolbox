@@ -10,17 +10,17 @@ function param = default_radar_params_2019_Alaska_SO_snow
 
 %% Preprocess parameters
 param.season_name = '2019_Alaska_SO';
-param.radar_name = 'snow3';
+param.radar_name = 'snow';
 
-param.config.file.version = 5;
-param.config.file.prefix = param.radar_name;
+param.config.file.version = 11;
+param.config.file.prefix = 'data_v11';
 param.config.file.suffix = '.bin';
 param.config.max_time_gap = 10;
 param.config.min_seg_size = 2;
 
 param.config.daq_type = 'cresis';
 param.config.wg_type = 'cresis';
-param.config.header_load_func = @basic_load_fmcw3;
+param.config.header_load_func = @basic_load;
 param.config.board_map = {''};
 param.config.tx_map = {''};
 
@@ -30,6 +30,7 @@ param.config.tx_enable = [1];
 
 %% CReSIS parameters
 param.config.cresis.clk = 125e6;
+param.config.cresis.expected_rec_sizes = [125648];
 
 %% Command worksheet
 default.cmd.records = 1;
@@ -38,7 +39,7 @@ default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.file.boards = [1];
-default.records.frames.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m.tif';
+default.records.frames.geotiff_fn = fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif');
 default.records.frames.mode = 2;
 default.records.gps.en = 1;
 default.records.gps.time_offset = 1;
@@ -86,8 +87,8 @@ default.array.dbin = 1;
 default.array.dline = 5;
 
 %% Radar worksheet
-default.radar.prf = 1/256e-6;
-default.radar.fs = 250e6;
+default.radar.prf = 2000;
+default.radar.fs = 125e6;
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = []; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
@@ -95,7 +96,7 @@ default.radar.lever_arm_fh = @lever_arm;
 chan_equal_Tsys = [0]/1e9;
 chan_equal_dB = [0];
 chan_equal_deg = [0];
-for wf = 1:1
+for wf = 1
   default.radar.wfs(wf).tx_weights = 1; % Watts
   default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
@@ -104,7 +105,7 @@ for wf = 1:1
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).nz_trim = {[0 0],[0 2],[0 0],[0 0]};
+  default.radar.wfs(wf).nz_trim = {[0 0],[0 0],[0 0],[0 0]};
   default.radar.wfs(wf).nz_valid = [0 1 2 3];
 end
 
@@ -118,7 +119,7 @@ default.post.data_en = 0;
 default.post.csv_en = 1;
 default.post.concat_en = 1;
 default.post.pdf_en = 1;
-default.post.map.location = 'Greenland';
+default.post.map.location = 'Arctic';
 default.post.map.type = 'combined';
 default.post.echo.elev_comp = 2;
 default.post.echo.depth = '[min(Surface_Depth)-2 max(Surface_Depth)+25]';
@@ -135,8 +136,8 @@ defaults = {};
 default.radar.wfs(1).f0 = 2e9;
 default.radar.wfs(1).f1 = 8e9;
 default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [2e9 7.75e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [2.1e9 7.75e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode';

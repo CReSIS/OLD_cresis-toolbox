@@ -215,7 +215,7 @@ if ~exist(sar_fn,'file') ...
     cpu_time_mult = 6e-3;
     mem_mult = 64;
     
-  elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+  elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
     cpu_time_mult = 100e-8;
     mem_mult = 64;
   end
@@ -364,7 +364,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   cpu_time_mult = 65e-10;
   mem_mult = [1.3 1.3];
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));
