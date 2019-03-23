@@ -43,6 +43,8 @@ default.records.frames.geotiff_fn = fullfile('arctic','NaturalEarth_Data','Arcti
 default.records.frames.mode = 2;
 default.records.gps.en = 1;
 default.records.gps.time_offset = 1;
+default.records.data_map = {[1 1 1 1; 1 2 1 2]};
+default.records.file.boards = {''};
 
 %% Qlook worksheet
 default.qlook.img_comb = [];
@@ -133,8 +135,8 @@ default.post.ops.location = 'arctic';
 defaults = {};
 
 % Survey Mode 12-18 GHz
-default.radar.wfs(1).f0 = 12e9;
-default.radar.wfs(1).f1 = 18e9;
+default.radar.wfs(1).f0 = 18e9;
+default.radar.wfs(1).f1 = 12e9;
 default.radar.wfs(1).Tpd = 240e-6;
 default.radar.wfs(1).BW_window = [12.1e9 17.75e9];
 default.radar.wfs(1).t_ref = 0;

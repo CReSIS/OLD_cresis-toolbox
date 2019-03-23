@@ -108,22 +108,26 @@ for param_idx = 1:length(params)
         % Type 2: cell array
         %   field 1: command to run
         %   field 2: worksheet to load
-        param = read_param_xls(param.fn,param.day_seg,param.cmd.generic{generic_idx}{2});
         generic_func = param.cmd.generic{generic_idx}{1};
-      else
+        read_param = struct('update_existing_only',true);
+        tmp_param = read_param_xls_generic(param.fn,param.cmd.generic{generic_idx}{2},param,read_param);
+      elseif ischar(param.cmd.generic{generic_idx})
         % Type 3: String
         %   String contains command to run
         generic_func = param.cmd.generic{generic_idx};
+        tmp_param = param;
+      else
+        error('%s param.cmd.generic{%d} must be cell or string.', param.day_seg, generic_idx);
       end
       generic_fh = str2func(generic_func);
       if strcmp(generic_func,'analysis')
         % Generic functions that produce batch chains
-        chain = generic_fh(param,param_override);
+        chain = generic_fh(tmp_param,param_override);
         new_chain = cat(2,new_chain,chain);
       else
         % Everything else is assumed to just run rather than produce a
         % batch chain.
-        generic_fh(param,param_override);
+        generic_fh(tmp_param,param_override);
       end
     end
   end

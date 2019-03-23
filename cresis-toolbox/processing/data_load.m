@@ -235,10 +235,8 @@ for state_idx = 1:length(states)
               
               if any(param.records.file.version == [8 11])
                 if swap_bytes_en
-%                   start_idx = param.radar.fs/param.records.file.clk*double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
-%                   stop_idx = param.radar.fs/param.records.file.clk*double(swapbytes(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16')));
-                  start_idx = 2*double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
-                  stop_idx = 2*double(swapbytes(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16')));
+                  start_idx = param.radar.fs/param.records.file.clk*double(swapbytes(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16')));
+                  stop_idx = param.radar.fs/param.records.file.clk*double(swapbytes(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16')));
                 else
                   start_idx = param.radar.fs/param.records.file.clk*double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = param.radar.fs/param.records.file.clk*double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));

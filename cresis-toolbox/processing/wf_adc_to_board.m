@@ -46,8 +46,8 @@ elseif any(param.records.file.version == [9 10 103 412])
     found = false;
     for board_idx = 1:length(param.records.data_map)
       for profile_idx = 1:size(param.records.data_map{board_idx},1)
-        wf = param.records.data_map{board_idx}(profile_idx,3);
-        adc = param.records.data_map{board_idx}(profile_idx,4);
+        wf = param.records.data_map{board_idx}(profile_idx,3); % processing wf
+        adc = param.records.data_map{board_idx}(profile_idx,4); % processing adc
         if wf_adc_list(wf_adc,1) == wf && wf_adc_list(wf_adc,2) == adc
           board(wf_adc) = board_idx;
           profile(wf_adc,1) = param.records.data_map{board_idx}(profile_idx,1); % mode
@@ -57,7 +57,7 @@ elseif any(param.records.file.version == [9 10 103 412])
       end
     end
     if ~found
-      error('Did not find wf-adc pair (%d,%d).', wf_adc_list(wf_adc,1), wf_adc_list(wf_adc,2));
+      error('Did not find requested wf-adc pair (%d,%d) in param.records.data_map.', wf_adc_list(wf_adc,1), wf_adc_list(wf_adc,2));
     end
   end
   board = unique(board);
@@ -65,28 +65,34 @@ elseif any(param.records.file.version == [9 10 103 412])
   
 elseif any(param.records.file.version == [8 11])
   % NI system
-  board = zeros(1,size(wf_adc_list,1));
-  profile = zeros(size(wf_adc_list,1),2);
-  for wf_adc = 1:size(wf_adc_list,1)
-    found = false;
-    for board_idx = 1:length(param.records.data_map)
-      for profile_idx = 1:size(param.records.data_map{board_idx},1)
-        wf = param.records.data_map{board_idx}(profile_idx,3); % processing wf
-        adc = param.records.data_map{board_idx}(profile_idx,4); % processing adc
-        if wf_adc_list(wf_adc,1) == wf && wf_adc_list(wf_adc,2) == adc
-          board(wf_adc) = board_idx;
-          profile(wf_adc,1) = param.records.data_map{board_idx}(profile_idx,1); % hardware wf
-          profile(wf_adc,2) = param.records.data_map{board_idx}(profile_idx,2); % hardware adc
-          found = true;
+  if isfield(param.records,'data_map') && ~isempty(param.records.data_map)
+    board = zeros(1,size(wf_adc_list,1));
+    profile = zeros(size(wf_adc_list,1),2);
+    for wf_adc = 1:size(wf_adc_list,1)
+      found = false;
+      for board_idx = 1:length(param.records.data_map)
+        for profile_idx = 1:size(param.records.data_map{board_idx},1)
+          wf = param.records.data_map{board_idx}(profile_idx,3); % processing wf
+          adc = param.records.data_map{board_idx}(profile_idx,4); % processing adc
+          if wf_adc_list(wf_adc,1) == wf && wf_adc_list(wf_adc,2) == adc
+            board(wf_adc) = board_idx;
+            profile(wf_adc,1) = param.records.data_map{board_idx}(profile_idx,1); % hardware wf
+            profile(wf_adc,2) = param.records.data_map{board_idx}(profile_idx,2); % hardware adc
+            found = true;
+          end
         end
       end
+      if ~found
+        error('Did not find requested wf-adc pair (%d,%d) in param.records.data_map.', wf_adc_list(wf_adc,1), wf_adc_list(wf_adc,2));
+      end
     end
-    if ~found
-      error('Did not find wf-adc pair (%d,%d).', wf_adc_list(wf_adc,1), wf_adc_list(wf_adc,2));
-    end
+    board = unique(board);
+    board_idx = board;
+  else
+    board = unique(wf_adc_list(:,2).');
+    board_idx = board;
+    profile = [];
   end
-  board = unique(board);
-  board_idx = board;
     
 else
   % All other systems

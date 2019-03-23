@@ -32,10 +32,8 @@ function [hdr,data] = basic_load(fn,param)
 %    end of the file and only work with single header loading)
 %    Default is [0 inf] which loads the whole file.
 %  .sync: 8-character string representing a hexidecimal number, the default
-%    is '1ACFFC1D'. The only exception to this is snow8 2017 Greenland P3,
-%    2017 Antarctica P3, 2018 Greenland P3, and 2018 Antarctica DC8 which
-%    used 'BADA55E5'. For these seasons, the sync must be set to this to
-%    override the default.
+%    is '1ACFFC1D'. The only exception to this is snow8 uses 'BADA55E5'.
+%    For this radar, the sync must be set to this to override the default.
 %
 % hdr: file header for each record (unless "data" output is not used
 %   in which case only the first hdr is returned)
@@ -84,7 +82,7 @@ if ~isfield(param,'recs');
   param.recs = [0 inf];
 end
 if ~isfield(param,'sync') || isempty(param.sync)
-  param.sync = '1ACFFC1D'; % File type 0, before 2019 used BADA55E5
+  param.sync = '1ACFFC1D'; % File type 0 uses BADA55E5
 end
 
 % Reset/clear hdr struct
@@ -119,7 +117,7 @@ fseek(fid, 0, 1);
 hdr.finfo.file_size = ftell(fid);
 
 if isempty(hdr.finfo.syncs)
-  warning('No frame syncs (hex sequence %s) found in this file.', param.sync);
+  warning('No frame syncs (hex sequence %s) found in this file. This may be a bad file or the input param.sync needs to be set correctly.', param.sync);
   data = [];
   return;
 end
@@ -227,14 +225,8 @@ if nargout < 2
   hdr.nyquist_zone = bitand(tmp,3);
   hdr.wfs(1).presums = fread(fid, 1, 'uint8')+1; % presums are 0-indexed (+1)
   hdr.bit_shifts = -fread(fid, 1, 'int8');
-  if 0
-    hdr.start_idx = fread(fid, 1, 'uint16') * param.fs/param.clk;
-    hdr.stop_idx = fread(fid, 1, 'uint16') * param.fs/param.clk;
-  else
-    % HACK
-    hdr.start_idx = fread(fid, 1, 'uint16') * 2;
-    hdr.stop_idx = fread(fid, 1, 'uint16') * 2;
-  end
+  hdr.start_idx = fread(fid, 1, 'uint16') * param.fs/param.clk;
+  hdr.stop_idx = fread(fid, 1, 'uint16') * param.fs/param.clk;
   if hdr.file_version == 0
     %     hdr.wfs(1).waveform_ID = char(fread(fid,8,'uint8')).';
   end
@@ -324,14 +316,8 @@ while ftell(fid) <= hdr.finfo.file_size-HEADER_SIZE && rline_out < param.recs(2)
     hdr.nyquist_zone(rline) = bitand(tmp,3);
     hdr.wfs(1).presums(rline) = fread(fid, 1, 'uint8')+1; % presums are 0-indexed (+1)
     hdr.bit_shifts(rline) = -fread(fid, 1, 'int8');
-    if 0
-      hdr.start_idx(rline) = fread(fid, 1, 'uint16') * param.fs/param.clk;
-      hdr.stop_idx(rline) = fread(fid, 1, 'uint16') * param.fs/param.clk;
-    else
-      % HACK
-      hdr.start_idx(rline) = fread(fid, 1, 'uint16') * 2;
-      hdr.stop_idx(rline) = fread(fid, 1, 'uint16') * 2;
-    end
+    hdr.start_idx(rline) = fread(fid, 1, 'uint16') * param.fs/param.clk;
+    hdr.stop_idx(rline) = fread(fid, 1, 'uint16') * param.fs/param.clk;
     
     if hdr.file_version == 0
       hdr.waveform_ID = char(fread(fid,8,'uint8')).';

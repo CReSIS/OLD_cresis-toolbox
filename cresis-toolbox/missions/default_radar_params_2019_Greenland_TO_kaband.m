@@ -43,10 +43,12 @@ default.records.frames.geotiff_fn = fullfile('arctic','NaturalEarth_Data','Arcti
 default.records.frames.mode = 2;
 default.records.gps.en = 1;
 default.records.gps.time_offset = 1;
+default.records.data_map = {[1 1 1 1; 1 2 1 2]};
+default.records.file.boards = {''};
 
 %% Qlook worksheet
 default.qlook.img_comb = [];
-default.qlook.imgs = {[2 1]};
+default.qlook.imgs = {[1 2]};
 default.qlook.out_path = '';
 default.qlook.block_size = 2000;
 default.qlook.motion_comp = 0;
@@ -98,8 +100,8 @@ chan_equal_dB = [0];
 chan_equal_deg = [0];
 for wf = 1
   default.radar.wfs(wf).tx_weights = 1; % Watts
-  default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
-  default.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
+  default.radar.wfs(wf).adc_gains_dB = [95.8 95.8]; % Radiometric calibration to 1/R^2
+  default.radar.wfs(wf).rx_paths = [1 2]; % ADC to rx path mapping
   default.radar.wfs(wf).ref_fn = '';
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
@@ -133,8 +135,8 @@ default.post.ops.location = 'arctic';
 defaults = {};
 
 % Survey Mode 32-38 GHz
-default.radar.wfs(1).f0 = 32e9;
-default.radar.wfs(1).f1 = 38e9;
+default.radar.wfs(1).f0 = 38e9;
+default.radar.wfs(1).f1 = 32e9;
 default.radar.wfs(1).Tpd = 240e-6;
 default.radar.wfs(1).BW_window = [32.1e9 37.75e9];
 default.radar.wfs(1).t_ref = 0;
