@@ -205,8 +205,8 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 ctrl = cluster_new_batch(param);
 cluster_compile({'array_task.m','array_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
-total_num_sam = zeros(size(param.array.imgs));
-total_num_sam_combine = zeros(size(param.array.imgs));
+total_num_sam_input = zeros(size(param.array.imgs));
+total_num_sam_output = zeros(size(param.array.imgs));
 if param.array.tomo_en
   Nsv = param.array.Nsv;
 else
@@ -215,24 +215,26 @@ end
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
-    total_num_sam_combine(img) = total_num_sam_combine(img) + wfs(wf).Nt/param.array.dbin*Nsv;
+    % Fast time sample/dbin * # steering vectors
+    total_num_sam_output(img) = total_num_sam_output(img) + wfs(wf).Nt/param.array.dbin*Nsv;
     for ml_idx = 1:length(param.array.imgs{img})
       wf = param.array.imgs{img}{ml_idx}(1,1);
-      total_num_sam(img) = total_num_sam(img) + wfs(wf).Nt/param.array.dbin ...
+      % Fast time sample * # wf-adc pairs in multilook * # subapertures
+      total_num_sam_input(img) = total_num_sam_input(img) + wfs(wf).Nt ...
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
   cpu_time_mult = 6e-6;
   mem_mult = 32;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   estimated_num_sam = 32000;
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
-    total_num_sam_combine(img) = total_num_sam_combine(img) + estimated_num_sam/param.array.dbin*Nsv;
+    total_num_sam_output(img) = total_num_sam_output(img) + estimated_num_sam/param.array.dbin*Nsv;
     for ml_idx = 1:length(param.array.imgs{img})
       wf = param.array.imgs{img}{ml_idx}(1,1);
-      total_num_sam(img) = total_num_sam(img) + estimated_num_sam/param.array.dbin ...
+      total_num_sam_input(img) = total_num_sam_input(img) + estimated_num_sam ...
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
@@ -353,15 +355,15 @@ for frm_idx = 1:length(param.cmd.frms);
     % =================================================================
     
     % CPU Time and Memory estimates:
-    %  Nx*total_num_sam*K where K is some manually determined multiplier.
+    %  Nx*total_num_sam_input*K where K is some manually determined multiplier.
     Nx = round(frm_dist / num_chunks / param.sar.sigma_x);
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.array.imgs)
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*cpu_time_mult;
       % Take the max of the input data size and the output data size
-      dparam.mem = max(dparam.mem,250e6 + max( Nx*total_num_sam(img)*mem_mult, ...
-        Nx/param.array.dline*total_num_sam_combine(img)*mem_mult ));
+      dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam_input(img)*mem_mult ...
+        + Nx/param.array.dline*total_num_sam_output(img)*mem_mult );
     end
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
@@ -382,7 +384,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   cpu_time_mult = 1e-6;
   mem_mult = 8;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   cpu_time_mult = 1e-6;
   mem_mult = 32;
 end
@@ -412,13 +414,13 @@ for frm = param.cmd.frms
 end
 % Account for averaging
 for img = 1:length(param.array.imgs)
-  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_combine(img)/Nsv*cpu_time_mult) * (1 + (Nsv-1)*0.2);
+  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_output(img)/Nsv*cpu_time_mult) * (1 + (Nsv-1)*0.2);
   if isempty(param.array.img_comb)
     % Individual images, so need enough memory to hold the largest image
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam_combine(img)*mem_mult);
+    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam_output(img)*mem_mult);
   else
     % Images combined into one so need enough memory to hold all images
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*sum(total_num_sam_combine)*mem_mult);
+    sparam.mem = max(sparam.mem,250e6 + Nx_max*sum(total_num_sam_output)*mem_mult);
   end
 end
 sparam.notes = sprintf('%s:%s:%s %s combine frames', ...

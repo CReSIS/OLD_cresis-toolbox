@@ -48,7 +48,7 @@ default.cmd.generic = 1;
 %% Records worksheet
 default.records.gps.time_offset = 1;
 default.records.frames.mode = 1;
-default.records.frames.geotiff_fn = 'greenland\Landsat-7\mzl7geo_90m_lzw.tif';
+default.records.frames.geotiff_fn = fullfile('greenland','Landsat-7','Greenland_natural_150m.tif');
 default.records.presum_bug_fixed = 0;
 
 %% Qlook worksheet
@@ -58,14 +58,7 @@ default.qlook.block_size = 10000;
 default.qlook.dec = 50;
 default.qlook.inc_dec = 10;
 default.qlook.surf.en = 1;
-default.qlook.surf.method = 'threshold';
-default.qlook.surf.noise_rng = [0 -50 10];
-default.qlook.surf.min_bin = 1.8e-6;
-default.qlook.surf.max_bin = [];
-default.qlook.surf.threshold = 15;
-default.qlook.surf.sidelobe = 15;
-default.qlook.surf.medfilt = 3;
-default.qlook.surf.search_rng = [0:2];
+default.qlook.surf.profile = 'RDS_OIB';
 
 %% SAR worksheet
 default.sar.out_path = '';
@@ -73,7 +66,6 @@ default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:
 default.sar.frm_types = {0,[0 1],0,0,-1};
 default.sar.chunk_len = 5000;
 default.sar.combine_rx = 0;
-default.sar.time_of_full_support = 3.5e-5;
 default.sar.trim_vals = [];
 default.sar.pulse_comp = 1;
 default.sar.ft_dec = 1;
@@ -100,13 +92,13 @@ default.array.rline_rng = -5:5;
 default.array.dbin = 1;
 default.array.dline = 6;
 default.array.DCM = [];
-default.array.three_dim.en = 0;
-default.array.three_dim.layer_fn = '';
+default.array.tomo.en = 0;
+default.array.tomo.layer_fn = '';
 default.array.Nsv = 1;
 default.array.theta_rng = [0 0];
 default.array.sv_fh = @array_proc_sv;
 default.array.diag_load = 0;
-default.array.Nsig = 2;
+default.array.Nsrc = 2;
 
 %% Radar worksheet
 default.radar.fs = 1e9/9;

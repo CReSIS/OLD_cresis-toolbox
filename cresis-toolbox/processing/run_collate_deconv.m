@@ -7,92 +7,22 @@
 %% USER SETTINGS
 % =========================================================================
 
-% params = read_param_xls(ct_filename_param('kuband_param_2009_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2009_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2010_Greenland_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2010_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2010_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2011_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2011_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2012_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2012_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2014_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2015_Greenland_C130.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2016_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('kuband_param_2016_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-
-% params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_Polar6.xls'),'',{'analysis_spec' 'analysis'});
-
-% params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2014_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2014_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_C130.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2016_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = read_param_xls(ct_filename_param('snow_param_2016_Antarctica_DC8.xls'),'',{'analysis_spec' 'analysis'});
 params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
-% params = ct_set_params(params,'cmd.generic',0);
-% 
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170311_03');
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170419_04');
+% params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 
-% 2-8 GHz: 20170410_01, 20170323_0[23]
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170410_01');
-% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170323_0[23]');
 
-% 2018: [-40 5 -30 -40 inf inf]
+% params = ct_set_params(params,'cmd.generic',1);
+% params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 
-% 2-18 GHz Deconvolution Settings (3 sets)
-% params = ct_set_params(params,'analysis.cmd{1}.f0',2.85e9);
-% params = ct_set_params(params,'analysis.cmd{1}.f1',14e9);
-% params = ct_set_params(params,'analysis.cmd{1}.abs_metric',[58 4.5 -25 -35 inf inf]);
-% params = ct_set_params(params,'analysis.cmd{1}.SL_guard_bins',6);
-% param_override.collate_deconv.out_dir = 'analysis_uwb';
+params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20170410_01');
 
-% params = ct_set_params(params,'analysis.cmd{1}.f0',2.85e9);
-% params = ct_set_params(params,'analysis.cmd{1}.f1',7.5e9);
-% params = ct_set_params(params,'analysis.cmd{1}.abs_metric',[58 9.8 -25 -35 inf inf]);
-% params = ct_set_params(params,'analysis.cmd{1}.SL_guard_bins',10);
-% param_override.collate_deconv.out_dir = 'analysis';
+params = ct_set_params(params,'collate_deconv.f0',2.85e9);
+params = ct_set_params(params,'collate_deconv.f1',7.5e9);
+params = ct_set_params(params,'collate_deconv.abs_metric',[58 9.8 -25 -35 inf inf]);
+params = ct_set_params(params,'collate_deconv.SL_guard_bins',10);
+param_override.collate_deconv.out_dir = 'analysis';
 
-params = ct_set_params(params,'analysis.cmd{1}.f0',12e9);
-params = ct_set_params(params,'analysis.cmd{1}.f1',14e9);
-params = ct_set_params(params,'analysis.cmd{1}.abs_metric',[58 24 -25 -28 inf inf]);
-params = ct_set_params(params,'analysis.cmd{1}.SL_guard_bins',20);
-param_override.collate_deconv.out_dir = 'analysis_kuband';
-
-% 2-8 GHz Deconvolution Settings
-% params = ct_set_params(params,'analysis.cmd{1}.f0',2.85e9);
-% params = ct_set_params(params,'analysis.cmd{1}.f1',7.5e9);
-% params = ct_set_params(params,'analysis.cmd{1}.abs_metric',[65 4.5 -25 -35 inf inf]);
-% params = ct_set_params(params,'analysis.cmd{1}.SL_guard_bins',6);
-% param_override.collate_deconv.out_dir = 'analysis';
-
-param_override.collate_deconv.gps_time_penalty = 1/(10*24*3600);
-
-param_override.collate_deconv.cmd_idx = 1;
-% debug_level:
-% 1. Set to 3 the very first time this is run to set Nt_shorten
-% 2. Set to 4 the very first time this is run to set rbins
-% 3. Set to 1 the first time for each segment to make sure good waveforms exist
-% 4. Set to 0 for routine operation/re-running
-param_override.collate_deconv.debug_level = 1;
-param_override.collate_deconv.imgs = 1;
-param_override.collate_deconv.wf_adcs = [];
-param_override.collate_deconv.stage_one_en = true;
-param_override.collate_deconv.stage_two_en = true;
-param.collate_deconv.Mt = 10; % Oversampling amount for peak measurements (Mt=10 recommended)
-
-param_override.collate_deconv.preserve_old = false;
-param_override.collate_deconv.file_lock = false;
 
 %% Automated Section
 % =====================================================================

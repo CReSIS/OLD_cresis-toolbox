@@ -17,7 +17,7 @@
 %
 % Step 2
 %  Modify one of the profiles below and set cur_profile
-%  - Probably just need to update personal_path and tmp_file_path
+%  - Probably just need to update path_override and tmp_file_path
 %
 % Step 3
 %  Restart matlab making suring the this startup script runs.
@@ -50,13 +50,10 @@ if ~(~ismcc && isdeployed)
   %% Profile Windows (PROFILE 1)
   % ----------------------------------------------------------------------
   pidx = 1; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/My Documents/scripts/matlab/',getenv('USERPROFILE'));
-  profile(pidx).ct_path                   = sprintf('%s/My Documents/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
-  profile(pidx).param_path                = sprintf('%s/My Documents/scripts/ct_params/',getenv('USERPROFILE'));
+  profile(pidx).path_override             = fullfile(getenv('USERPROFILE'),'My Documents','scripts','matlab');
+  profile(pidx).path                      = fullfile(getenv('USERPROFILE'),'My Documents','scripts','cresis-toolbox','cresis-toolbox');
+  profile(pidx).param_path                = fullfile(getenv('USERPROFILE'),'My Documents','scripts','ct_params');
   
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = 'C:\tmp\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'C:\';
@@ -80,13 +77,10 @@ if ~(~ismcc && isdeployed)
   %% Profile Linux/Mac (PROFILE 2)
   % ----------------------------------------------------------------------
   pidx = 2; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
+  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',getenv('HOME'));
+  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
   profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
 
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = sprintf('%s/scratch/ct_user_tmp/',getenv('HOME'));
 
   profile(pidx).data_path                 = sprintf('%s/scratch/',getenv('HOME'));
@@ -113,13 +107,10 @@ if ~(~ismcc && isdeployed)
   %% KU Profile Linux (PROFILE 3)
   % ----------------------------------------------------------------------
   pidx = 3; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
+  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',getenv('HOME'));
+  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
   profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
   
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = sprintf('/cresis/snfs1/scratch/%s/ct_user_tmp/',getenv('USER'));
   
   profile(pidx).data_path                 = '/cresis/snfs1/data/';
@@ -142,17 +133,18 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.job_complete_pause    = 60;
- 
+  profile(pidx).cluster.mem_to_ppn            = 0.9 * 16e9 / 8;
+  profile(pidx).cluster.max_ppn               = 4;
+  profile(pidx).cluster.max_mem_per_job       = 15e9;
+  profile(pidx).cluster.max_mem_mode          = 'debug';
+
   %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
   pidx = 4; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/scratch/scripts/matlab/';
-  profile(pidx).ct_path                   = '/scratch/scripts/cresis-toolbox/cresis-toolbox/';
+  profile(pidx).path_override             = '/scratch/scripts/matlab/';
+  profile(pidx).path                      = '/scratch/scripts/cresis-toolbox/cresis-toolbox/';
   profile(pidx).param_path                = '/scratch/scripts/ct_params/';
   
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = '/scratch/tmp/';
   
   profile(pidx).data_path                 = '/scratch/';
@@ -175,8 +167,10 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.mem_to_ppn            = 0.9 * 131754468000 / 46;
-  profile(pidx).cluster.max_ppn               = 4;
+  profile(pidx).cluster.max_ppn               = 6;
   profile(pidx).cluster.job_complete_pause    = 5;
+  profile(pidx).cluster.max_mem_per_job       = 126e9;
+  profile(pidx).cluster.max_mem_mode          = 'debug';
   
   
   %% KU Desktop Profile Windows (PROFILE 5)
@@ -184,13 +178,10 @@ if ~(~ismcc && isdeployed)
   % V:\ --> \\cfs1.cresis.ku.edu\data\
   % X:\ --> \\cfs1.cresis.ku.edu\dataproducts\
   pidx = 5; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/My Documents/scripts/matlab/',getenv('USERPROFILE'));
-  profile(pidx).ct_path                   = sprintf('%s/My Documents/scripts/cresis-toolbox/cresis-toolbox/',getenv('USERPROFILE'));
-  profile(pidx).param_path                = sprintf('%s/My Documents/scripts/ct_params/',getenv('USERPROFILE'));
+  profile(pidx).path_override             = fullfile(getenv('USERPROFILE'),'My Documents','scripts','matlab');
+  profile(pidx).path                      = fullfile(getenv('USERPROFILE'),'My Documents','scripts','cresis-toolbox','cresis-toolbox');
+  profile(pidx).param_path                = fullfile(getenv('USERPROFILE'),'My Documents','scripts','ct_params');
   
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = 'C:\temp\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'V:/';
@@ -214,13 +205,10 @@ if ~(~ismcc && isdeployed)
   %% IU Profile Linux (PROFILE 6)
   % ----------------------------------------------------------------------
   pidx = 6; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('%s/scripts/matlab/',getenv('HOME'));
-  profile(pidx).ct_path                   = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
+  profile(pidx).path_override             = sprintf('%s/scripts/matlab/',getenv('HOME'));
+  profile(pidx).path                      = sprintf('%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('HOME'));
   profile(pidx).param_path                = sprintf('%s/scripts/ct_params/',getenv('HOME'));
   
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = sprintf('/N/dc2/scratch/%s/ct_user_tmp/',getenv('USER')); % scratch may be on dcwan or dc2
   
   profile(pidx).data_path                 = '/N/dcwan/projects/cresis/';
@@ -235,6 +223,19 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.type                  = 'torque';
   %profile(pidx).cluster.type                  = 'matlab';
   %profile(pidx).cluster.type                  = 'debug';
+  if 1
+    profile(pidx).cluster.ssh_hostname          = 'karst.uits.iu.edu';
+    profile(pidx).cluster.mem_to_ppn            = 0.9 * 32e9 / 16;
+    profile(pidx).cluster.max_ppn               = 8;
+    profile(pidx).cluster.max_mem_per_job       = 30e9;
+    profile(pidx).cluster.max_mem_mode          = 'debug';
+  else
+    %profile(pidx).cluster.ssh_hostname          = 'carbonate.uits.iu.edu';
+    profile(pidx).cluster.mem_to_ppn            = 0.9 * 256e9 / 24;
+    profile(pidx).cluster.max_ppn               = 12;
+    profile(pidx).cluster.max_mem_per_job       = 250e9;
+    profile(pidx).cluster.max_mem_mode          = 'debug';
+  end
   profile(pidx).cluster.max_jobs_active       = 128;
   profile(pidx).cluster.max_time_per_job      = 4*86400;
   profile(pidx).cluster.desired_time_per_job  = 8*3600;
@@ -242,21 +243,16 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause          = 1;
   profile(pidx).cluster.stat_pause            = 10;
   profile(pidx).cluster.file_check_pause      = 0;
-  profile(pidx).cluster.mem_to_ppn            = 0.9 * 34359738368 / 16;
-  profile(pidx).cluster.max_ppn               = 8;
 
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
   
   %% AWI Profile Field Windows (PROFILE 7)
   % ----------------------------------------------------------------------
   pidx = 7; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = 'C:\tmp\scripts\matlab\';
-  profile(pidx).ct_path                   = 'C:\tmp\scripts\cresis-toolbox\cresis-toolbox\';
+  profile(pidx).path_override             = 'C:\tmp\scripts\matlab\';
+  profile(pidx).path                      = 'C:\tmp\scripts\cresis-toolbox\cresis-toolbox\';
   profile(pidx).param_path                = 'C:\tmp\scripts\ct_params\';
   
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = 'F:\ct_user_tmp\';
   
   profile(pidx).data_path                 = 'D:\';
@@ -280,13 +276,10 @@ if ~(~ismcc && isdeployed)
   %% AWI Profile Field Linux (PROFILE 8)
   % ----------------------------------------------------------------------
   pidx = 8; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = '/mnt/Scratch/scripts/matlab/';
-  profile(pidx).ct_path                   = '/mnt/Scratch/scripts/cresis-toolbox/cresis-toolbox/';
+  profile(pidx).path_override             = '/mnt/Scratch/scripts/matlab/';
+  profile(pidx).path                      = '/mnt/Scratch/scripts/cresis-toolbox/cresis-toolbox/';
   profile(pidx).param_path                = '/mnt/Scratch/scripts/ct_params/';
   
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = '/mnt/Scratch/ct_user_tmp/';
   
   profile(pidx).data_path                 = '/mnt/AWI_SSD0/';
@@ -309,18 +302,19 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.stat_pause            = 2;
   profile(pidx).cluster.file_check_pause      = 4;
   profile(pidx).cluster.job_complete_pause    = 5;
+  profile(pidx).cluster.mem_to_ppn            = 0.9 * 64e9 / 8;
+  profile(pidx).cluster.max_ppn               = 4;
+  profile(pidx).cluster.max_mem_per_job       = 62e9;
+  profile(pidx).cluster.max_mem_mode          = 'debug';
 
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
   pidx = 9; % profile index
-  profile(pidx).debug_level               = 1;
-  profile(pidx).personal_path             = sprintf('/work/ollie/%s/scripts/matlab/',getenv('USER'));
-  profile(pidx).ct_path                   = sprintf('/work/ollie/%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USER'));
+  profile(pidx).path_override             = sprintf('/work/ollie/%s/scripts/matlab/',getenv('USER'));
+  profile(pidx).path                      = sprintf('/work/ollie/%s/scripts/cresis-toolbox/cresis-toolbox/',getenv('USER'));
   profile(pidx).param_path                = sprintf('/work/ollie/%s/scripts/ct_params/',getenv('USER'));
   profile(pidx).slurm_jobs_path           = sprintf('/work/ollie/%s/jobs/',getenv('USER'));
 
-  profile(pidx).code_path                 = profile(pidx).ct_path;
-  profile(pidx).code_path_override        = profile(pidx).personal_path;
   profile(pidx).tmp_file_path             = sprintf('/work/ollie/%s/Scratch/ct_user_tmp/',getenv('USER'));
 
   profile(pidx).data_path                 = sprintf('/work/ollie/%s/Data/',getenv('USER'));
@@ -346,6 +340,8 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.job_complete_pause      = 30;
   profile(pidx).cluster.mem_to_ppn              = 0.9 * 64e9 / 36;
   profile(pidx).cluster.max_ppn                 = 18;
+  profile(pidx).cluster.max_mem_per_job         = 62e9;
+  profile(pidx).cluster.max_mem_mode            = 'debug';
 
   profile(pidx).cluster.mcc                     = 'eval';
 
@@ -356,18 +352,18 @@ if ~(~ismcc && isdeployed)
   path(pathdef);
   AdditionalPaths = {};
   
-  if ~exist(profile(cur_profile).ct_path,'dir')
-    fprintf('Cresis toolbox not found: %s\n', profile(cur_profile).ct_path);
+  if ~exist(profile(cur_profile).path,'dir')
+    fprintf('Cresis toolbox not found: %s\n', profile(cur_profile).path);
   else
-    fprintf('  Adding cresis path: %s\n',profile(cur_profile).ct_path);
+    fprintf('  Adding cresis path: %s\n',profile(cur_profile).path);
     % Add get_filenames to the path
-    addpath(fullfile(profile(cur_profile).ct_path));
-    addpath(fullfile(profile(cur_profile).ct_path,'utility'));
+    addpath(fullfile(profile(cur_profile).path));
+    addpath(fullfile(profile(cur_profile).path,'utility'));
     % Add each directory which is not an svn support directory to the path
-    fns = get_filenames(profile(cur_profile).ct_path,'','','',struct('type','d','recursive',1));
+    fns = get_filenames(profile(cur_profile).path,'','','',struct('type','d','recursive',1));
     if ispc
-      addpath(profile(cur_profile).ct_path);
-      AdditionalPaths{end+1} = profile(cur_profile).ct_path;
+      addpath(profile(cur_profile).path);
+      AdditionalPaths{end+1} = profile(cur_profile).path;
     end
     for fn_idx = 1:length(fns)
       [fn_dir fn_name] = fileparts(fns{fn_idx});
@@ -380,14 +376,14 @@ if ~(~ismcc && isdeployed)
     end
   end
   
-  if ~exist(profile(cur_profile).personal_path,'dir')
-    fprintf('Personal toolbox not found: %s\n', profile(cur_profile).personal_path);
+  if ~exist(profile(cur_profile).path_override,'dir')
+    fprintf('Personal toolbox not found: %s\n', profile(cur_profile).path_override);
   else
     % Add personal path after cresis-toolbox so that it overrides cresis-toolbox
-    fprintf('  Adding personal path: %s\n',profile(cur_profile).personal_path);
-    fns = get_filenames(profile(cur_profile).personal_path,'','','',struct('type','d','recursive',1));
-    addpath(profile(cur_profile).personal_path);
-    AdditionalPaths{end+1} = profile(cur_profile).personal_path;
+    fprintf('  Adding personal path: %s\n',profile(cur_profile).path_override);
+    fns = get_filenames(profile(cur_profile).path_override,'','','',struct('type','d','recursive',1));
+    addpath(profile(cur_profile).path_override);
+    AdditionalPaths{end+1} = profile(cur_profile).path_override;
     for fn_idx = 1:length(fns)
       [fn_dir fn_name] = fileparts(fns{fn_idx});
       if ~isempty(fn_name) && fn_name(1) ~= '@' && fn_name(1) ~= '+' ...
@@ -443,13 +439,13 @@ if ~(~ismcc && isdeployed)
   gRadar.cluster.hidden_depend_funs{end+1} = {'doa_nonlcon.m' 1};
 
   % .path = used by the scheduler to build the file dependency path
-  %   typically this is the same at .ct_path
-  gRadar.path = profile(cur_profile).code_path;
+  %   typically this is the same at .path
+  gRadar.path = profile(cur_profile).path;
   % .path_override = used by the scheduler to build the file dependency
   %   path, however only files that also exist in the .path directory
   %   will be overwritten so that if a file only exists in .path_override
   %   it will not be included in the file dependency list
-  gRadar.path_override = profile(cur_profile).code_path_override;
+  gRadar.path_override = profile(cur_profile).path_override;
   % .param_path = parameter spreadsheet folder
   gRadar.param_path = profile(cur_profile).param_path;
   % .tmp_path = this is where personal temporary files will be stored (e.g.

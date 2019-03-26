@@ -4,7 +4,7 @@ function [block] = tdms2block(tdms)
     % Converts TDMS files from radar to block files for picking in pickgui
     
     %% 1D data record -> 2D
-    [ch0_chirp,ch0_bark,ch1_chirp,ch1_bark] = slice_tdms(tdms);
+    [ch0_chirp,ch0_bark,ch1_chirp,ch1_bark] = utua_rds.slice_tdms(tdms);
     block.ch0 = ch0_chirp; %*tdms.radar.ch0.Props.NI_Scale_0__Linear_Slope + tdms.radar.ch0.Props.NI_Scale_0__Linear_Y_Intercept;
     block.clutter = zeros(size(block.ch0));
     block.ch1 = ch1_chirp; %*tdms.radar.ch1.Props.NI_Scale_0__Linear_Slope + tdms.radar.ch1.Props.NI_Scale_0__Linear_Y_Intercept;
@@ -95,7 +95,7 @@ function [block] = tdms2block(tdms)
     
     block.ch0_meta.atten = tdms.radar.ch0.Props.atten;
     block.ch1_meta.atten = tdms.radar.ch1.Props.atten;
-    block.amp = pcsynthetic(block);
+    block.amp = utua_rds.pcsynthetic(block);
     
     % Chop off non unique time values, again weird Aug 2017 bug
     if(length(block.time) ~= length(unique(block.time)))
@@ -118,7 +118,7 @@ function [block] = tdms2block(tdms)
     % Convert lat/lon to utm
     block.x = block.lat;
     block.y = block.lat;
-    [block.x,block.y] = wgs2utm(block.lat,block.lon,6,'N');
+    [block.x,block.y] = utua_rds.wgs2utm(block.lat,block.lon,6,'N');
     block.x = block.x/1000; % km for pickgui
     block.y = block.y/1000;
     

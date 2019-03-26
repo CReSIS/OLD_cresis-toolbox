@@ -28,7 +28,7 @@ end
 if any(strcmpi(radar_name,{'kuband','kuband2','kuband3'}))
   radar_type = 'deramp';
   output_dir = 'kuband';
-elseif any(strcmpi(radar_name,{'kaband3'}))
+elseif any(strcmpi(radar_name,{'kaband','kaband3'}))
   radar_type = 'deramp';
   output_dir = 'kaband';
 elseif any(strcmpi(radar_name,{'snow','snow2','snow3','snow5','snow8','snow9'}))

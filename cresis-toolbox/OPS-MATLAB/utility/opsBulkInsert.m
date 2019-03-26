@@ -55,7 +55,7 @@ for param_idx = 1:length(params)
   end
   recordsFn = ct_filename_support(param,'','records');
   framesFn = ct_filename_support(param,'','frames');
-  layerDir = ct_filename_out(param,settings.layerDataPath,param.day_seg);
+  layerDir = ct_filename_out(param,settings.layerDataPath,'');
   if ~exist(recordsFn,'file') && insertPathCmd
     error('  %s: missing %s\n', param.day_seg, recordsFn);
   elseif ~exist(framesFn,'file') && insertPathCmd

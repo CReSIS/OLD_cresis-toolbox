@@ -1,23 +1,48 @@
-function [params] = read_param_xls_generic(param_fn, generic_ws, params)
-% [params] = read_param_xls_generic(param_fn, generic_ws, params)
+function [params] = read_param_xls_generic(param_fn, generic_ws, params, read_param)
+% [params] = read_param_xls_generic(param_fn, generic_ws, params, read_param)
 %
 % Support function for read_param_xls, generic worksheet reader.
 %
 % param_fn: MS Excel .xls parameter spreadsheet to load in
 % generic_ws: worksheet name to load in
 % params: add new fields to this structure
+% read_param: structure containing read parameters
+%  .update_existing_only: logical, default false, if true this function
+%    only updates segments that already exist in params
 % 
 % Author: Theresa Stumpf, John Paden
 %
 % See also: read_param_xls
 
-% ======================================================================%
-% CREATING THE PARAM STRUCTURE ARRAY FROM PARAM_STARTER.XLS
-% ======================================================================%
-warning('off','MATLAB:xlsread:Mode');
-
+%% Input checks and setup
 % =======================================================================
-% Create Generic Parameters
+
+if ~exist('read_param','var') || isempty(read_param)
+  read_param = [];
+end
+if ~isfield(read_param,'update_existing_only') || isempty(read_param.update_existing_only)
+  read_param.update_existing_only = false;
+end
+
+  
+%% Cell input: Recurse to load a list of worksheets
+% =======================================================================
+if iscell(generic_ws)
+  warning('off','MATLAB:xlsread:Mode');
+  for idx = 1:size(generic_ws,1)
+    tmp = read_param_xls_generic(param_fn,generic_ws{idx,1},params,read_param);
+    if size(generic_ws,2) > 1
+      % Rename the worksheet variable
+      [params.(generic_ws{idx,2})] = tmp.(generic_ws{idx,1});
+    else
+      params = tmp;
+    end
+  end
+  warning('on','MATLAB:xlsread:Mode');
+  return;
+end
+
+%% Create Generic Parameters
 % =======================================================================
 sheet_name = generic_ws;
 fprintf('Reading sheet %s of xls file: %s\n', sheet_name, param_fn);
@@ -50,6 +75,7 @@ if ~isempty(missing_types)
 end
 
 %% Create an empty struct to assign parameters to
+% =======================================================================
 if ~isfield(params,'day_seg')
   params = struct('day_seg',[]);
 end
@@ -101,13 +127,25 @@ for col = 3:length(field_names)
 end
 
 %% Read in each day_seg row
+% =======================================================================
 for idx = 1:rows
   row = idx + num_header_rows;
   day_seg = sprintf('%08.0f_%02.0f',num(row,1),num(row,2));
   if strcmpi(generic_ws,'cmd')
     params(idx).day_seg = day_seg;
   elseif (idx > length(params) || ~strcmpi(params(idx).day_seg,day_seg))
-    error('The date segment order of sheets cmd and %s do not match at row %d in the excel spreadsheet. Each sheet must have the same date and segment list.',sheet_name,row);
+    if read_param.update_existing_only
+      % Try to find this segment in the existing list of segments
+      idx = strmatch(day_seg, {params.day_seg});
+      if isempty(idx)
+        % Not found, so we skip this row
+        continue;
+      elseif length(idx) > 1
+        error('xls row %d error: More than one matching segment to "%s" found in input params.', day_seg);
+      end
+    else
+      error('The date segment order of sheets cmd and %s do not match at row %d in the excel spreadsheet. Each sheet must have the same date and segment list.',sheet_name,row);
+    end
   end
   for col = 3:length(field_names)
     try
@@ -219,6 +257,3 @@ for idx = 1:rows
   end
   
 end
-
-return
-

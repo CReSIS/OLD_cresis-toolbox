@@ -17,10 +17,14 @@ DDC_select_list = [1]; % Which DDC mode to use
 cal_settings = [1];
 prf = 12000;
 
+%% Calculate the desired presums
 % presums: Ensure lambda/4 sampling (fudge factor allows difference) and an
 %   that presums are an even number.
-velocity = [125]; % m/s
-presums = round(c./abs(f1_list+f0_list)/2 ./ velocity * prf / 2)*2
+physical_constants; % c = speed of light
+velocity = [140]; % m/s
+quarter_wavelength = c./max(abs(f0_list),abs(f1_list)) / 4;
+presums = floor(quarter_wavelength ./ velocity * prf / 2) * 2;
+fprintf('For prf %g Hz, max presums for quarter wavelength (%g m) sampling is: %g presums\n', prf, quarter_wavelength, presums);
 
 final_DDS_phase = [];
 final_DDS_phase_no_time = [];
