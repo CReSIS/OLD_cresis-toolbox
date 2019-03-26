@@ -91,11 +91,11 @@ function [param,dout] = array_proc(param,din)
 %  TOMOGRAPHY ENABLED
 %   .tomo: tomography structure (only present if param.tomo_en is true)
 %    DOA method:
-%     .doa: Nt_out by Nsrc by Nx_out : Signal voltage or power for each
+%     .img: Nt_out by Nsrc by Nx_out : Signal voltage or power for each
 %       source in a range-bin, NaN for no source when MOE enable. Order in
 %       this and following matrix will always be largest to smallest theta
 %       with NaN/no source at the end.
-%     .doa_theta: Nt_out by Nsrc by Nx_out: Direction of arrival of each source
+%     .theta: Nt_out by Nsrc by Nx_out: Direction of arrival of each source
 %      in a range-bin (deg), NaN for no source when MOE enable
 %     .cost: Nt_out by Nx_out cost function at maximum
 %     .hessian: Nt_out by Nsrc by Nx_out cost function Hessian diagonal at
@@ -257,29 +257,39 @@ if ischar(param.array.method)
   method_integer = [];
   if regexpi(param.array.method,'standard|period')
     method_integer(end+1) = STANDARD_METHOD;
-  elseif regexpi(param.array.method,'mvdr')
+  end
+  if regexpi(param.array.method,'mvdr')
     method_integer(end+1) = MVDR_METHOD;
-  elseif regexpi(param.array.method,'mvdr_robust')
+  end
+  if regexpi(param.array.method,'mvdr_robust')
     method_integer(end+1) = MVDR_ROBUST_METHOD;
-  elseif regexpi(param.array.method,'eig')
+  end
+  if regexpi(param.array.method,'eig')
     method_integer(end+1) = EIG_METHOD;
-  elseif regexpi(param.array.method,'risr')
+  end
+  if regexpi(param.array.method,'risr')
     method_integer(end+1) = RISR_METHOD;
-  elseif regexpi(param.array.method,'geonull')
+  end
+  if regexpi(param.array.method,'geonull')
     method_integer(end+1) = GEONULL_METHOD;
   end
   if regexpi(param.array.method,'music_doa')
     method_integer(end+1) = MUSIC_DOA_METHOD;
-  elseif regexpi(param.array.method,'mle')
+  end
+  if regexpi(param.array.method,'mle')
     method_integer(end+1) = MLE_METHOD;
-  elseif regexpi(param.array.method,'dcm')
+  end
+  if regexpi(param.array.method,'dcm')
     method_integer(end+1) = DCM_METHOD;
     if ~isfield(param.array,'Nsrc') || isempty(param.array.Nsrc)
       param.array.Nsrc = 1;
     end
   end
+  param.array.method = method_integer;
 end
-param.array.method = intersect(param.array.method,[STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD]);
+param.array.method = intersect(param.array.method, ...
+  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD], ...
+  'stable');
 if isempty(param.array.method)
   error('No valid method selected in param.array.method');
 end
@@ -480,25 +490,31 @@ cfg = merge_structs(param.array,param.array_proc);
 
 %% Preallocate Outputs
 % =====================================================================
-dout.img ...
-  = nan(Nt_out, Nx_out,'single');
-Sarray = zeros(Nsv,Nt_out);
-if cfg.tomo_en
-  if cfg.method >= DOA_METHOD_THRESHOLD
+for idx = 1:length(cfg.method)
+  m = array_proc_method_str(cfg.method(idx));
+  tout.(m).img ...
+    = nan(Nt_out, Nx_out,'single');
+  tout.(m).theta ...
+    = nan(Nt_out, Nx_out,'single');
+  if cfg.method(idx) >= DOA_METHOD_THRESHOLD
     % Direction of Arrival Method
-    dout.tomo.img = ...
+    tout.(m).tomo.img = ...
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-    dout.tomo.theta = ...
+    tout.(m).tomo.theta = ...
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-    dout.tomo.cost = ...
+    tout.(m).tomo.cost = ...
       nan(Nt_out, Nx_out,'single');
-    dout.tomo.hessian = ...
+    tout.(m).tomo.hessian = ...
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
   else
     % Beam Forming Method
-    dout.tomo.img = ...
+    Sarray.(m) = zeros(cfg.Nsv,Nt_out);
+  end
+  if cfg.tomo_en && cfg.method(idx) < DOA_METHOD_THRESHOLD
+    % Tomography with Beam Forming Method
+    tout.(m).tomo.img = ...
       nan(Nt_out,cfg.Nsv,Nx_out,'single');
-    dout.tomo.theta = theta(:); % Ensure a column vector on output
+    tout.(m).tomo.theta = theta(:); % Ensure a column vector on output
   end
 end
 if cfg.moe_simulator_en
@@ -670,14 +686,6 @@ for line_idx = 1:1:Nx_out
     doa_param.SV    = fftshift(sv{1},2);
   end
   
-  if 0 && line_idx > 1
-    % DEBUG CODE FOR TESTING DOA CONSTRAINTS
-    warning off
-    hist_bins = dout.tomo_top(rline)+(150:700).';
-    hist_poly = polyfit(hist_bins,dout.doa(hist_bins,line_idx-1),2);
-    warning on;
-  end
-  
   % Reference DoA to decide on the left and right portions of the
   % surface. Should be passed  as a field in cfg
   ref_doa = 0;
@@ -705,16 +713,17 @@ for line_idx = 1:1:Nx_out
       %% Array: Standard/Periodogram
       dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
       dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
-      Sarray(:,bin_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+      Sarray.standard(:,bin_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
       for ml_idx = 2:length(din)
         dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-        Sarray(:,bin_idx) = Sarray(:,bin_idx) ...
+        Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) ...
           + mean(abs(sv{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
       end
-      Sarray(:,bin_idx) = Sarray(:,bin_idx) / length(din);
-      
-    elseif any(cfg.method == MVDR_METHOD)
+      Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) / length(din);
+    end
+    
+    if any(cfg.method == MVDR_METHOD)
       %% Array: MVDR
       if DCM_ML_match
         % The data covariance matrix creation uses the same set of snapshots/pixels
@@ -728,7 +737,7 @@ for line_idx = 1:1:Nx_out
         diagonal = sqrt(mean(mean(abs(Rxx).^2))) * diag(ones(Nc,1),0);
         Rxx_inv = inv(Rxx + cfg.diag_load*diagonal);
         for freqIdx = 1:size(sv{1},2)
-          Sarray(freqIdx,bin_idx) = single(real(sv{1}(:,freqIdx).' * Rxx_inv * conj(sv{1}(:,freqIdx))));
+          Sarray.mvdr(freqIdx,bin_idx) = single(real(sv{1}(:,freqIdx).' * Rxx_inv * conj(sv{1}(:,freqIdx))));
         end
         for ml_idx = 2:length(din)
           dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
@@ -739,11 +748,11 @@ for line_idx = 1:1:Nx_out
           diagonal = sqrt(mean(mean(abs(Rxx).^2))) * diag(ones(Nc,1),0);
           Rxx_inv = inv(Rxx + cfg.diag_load*diagonal);
           for freqIdx = 1:size(sv{ml_idx},2)
-            Sarray(freqIdx,bin_idx) = Sarray(freqIdx,bin_idx) ...
+            Sarray.mvdr(freqIdx,bin_idx) = Sarray.mvdr(freqIdx,bin_idx) ...
               + single(real(sv{ml_idx}(:,freqIdx).' * Rxx_inv * conj(sv{ml_idx}(:,freqIdx))));
           end
         end
-        Sarray(:,bin_idx) = 1 ./ (Sarray(:,bin_idx) / length(din));
+        Sarray.mvdr(:,bin_idx) = 1 ./ (Sarray.mvdr(:,bin_idx) / length(din));
         
       else
         % The data covariance matrix creation uses a different set of snapshots/pixels
@@ -761,8 +770,8 @@ for line_idx = 1:1:Nx_out
           dataSample = double(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
           dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]).';
           
-          Sarray(freqIdx,bin_idx) = mean(abs(w * dataSample).^2);
-          Sarray(freqIdx,bin_idx) = Sarray(freqIdx,bin_idx) / abs(w * sv{1}(:,freqIdx)).^2;
+          Sarray.mvdr(freqIdx,bin_idx) = mean(abs(w * dataSample).^2);
+          Sarray.mvdr(freqIdx,bin_idx) = Sarray.mvdr(freqIdx,bin_idx) / abs(w * sv{1}(:,freqIdx)).^2;
         end
         for ml_idx = 2:length(din)
           dataSample = double(din{ml_idx}(bin+DCM_bin_rng,rline+DCM_line_rng,:,:,:));
@@ -778,10 +787,10 @@ for line_idx = 1:1:Nx_out
             dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
             dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]).';
             
-            Sarray(freqIdx,bin_idx) = Sarray(freqIdx,bin_idx) ...
+            Sarray.mvdr(freqIdx,bin_idx) = Sarray.mvdr(freqIdx,bin_idx) ...
               + mean(abs(w * dataSample).^2) / abs(w * sv{ml_idx}(:,freqIdx)).^2;
           end
-          Sarray(freqIdx,bin_idx) = Sarray(freqIdx,bin_idx) / size(sv{1},2);
+          Sarray.mvdr(freqIdx,bin_idx) = Sarray.mvdr(freqIdx,bin_idx) / size(sv{1},2);
         end
       end
       
@@ -794,7 +803,7 @@ for line_idx = 1:1:Nx_out
       dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
       
       if isempty(sv)
-        Sarray(:,bin_idx) = fftshift(pmusic(dataSample,cfg.Nsrc,Nsv));
+        Sarray.music(:,bin_idx) = fftshift(pmusic(dataSample,cfg.Nsrc,Nsv));
       else
         Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
         [V,D] = eig(Rxx);
@@ -820,14 +829,14 @@ for line_idx = 1:1:Nx_out
         %           end
         
         noiseIdxs = noiseIdxs(1:end-cfg.Nsrc);
-        Sarray(:,bin_idx) = mean(abs(sv{1}(:,:).'*V(:,noiseIdxs)).^2,2);
+        Sarray.music(:,bin_idx) = mean(abs(sv{1}(:,:).'*V(:,noiseIdxs)).^2,2);
       end
       for ml_idx = 2:length(din)
         dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
         
         if isempty(sv)
-          Sarray(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,Nsv);
+          Sarray.music(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,Nsv);
         else
           Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
           [V,D] = eig(Rxx);
@@ -835,14 +844,14 @@ for line_idx = 1:1:Nx_out
           [eigenVals noiseIdxs] = sort(eigenVals);
           
           noiseIdxs = noiseIdxs(1:end-cfg.Nsrc);
-          Sarray(:,bin_idx) = Sarray(:,bin_idx) ...
+          Sarray.music(:,bin_idx) = Sarray.music(:,bin_idx) ...
             + mean(abs(sv{ml_idx}(:,:).'*V(:,noiseIdxs)).^2,2);
         end
       end
       if isempty(sv)
-        Sarray(:,bin_idx) = Sarray(:,bin_idx) / length(din);
+        Sarray.music(:,bin_idx) = Sarray.music(:,bin_idx) / length(din);
       else
-        Sarray(:,bin_idx) = 0.5 ./ (Sarray(:,bin_idx) / length(din));
+        Sarray.music(:,bin_idx) = 0.5 ./ (Sarray.music(:,bin_idx) / length(din));
       end
       
       
@@ -855,14 +864,14 @@ for line_idx = 1:1:Nx_out
       dataSample = din(bin+eigmeth.bin_rng,rline+line_rng,:,:,:);
       dataSample = reshape(dataSample,[length(eigmeth.bin_rng)*length(line_rng)*Na*Nb Nchan]);
       if uniformSampled
-        Sarray(:,Idx) = peig(dataSample,Nsrc,Ntheta);
+        Sarray.eig(:,Idx) = peig(dataSample,Nsrc,Ntheta);
       else
         Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
         [V,D] = eig(Rxx);
         eigenVals = diag(D).';
         [eigenVals noiseIdxs] = sort(eigenVals);
         noiseIdxs = noiseIdxs(1+Nsrc:end);
-        Sarray(:,Idx) = 1./mean(repmat(1./eigenVals,[size(sv,1) 1]).*abs(sv(:,:,line_idx)'*V(:,noiseIdxs)).^2,2);
+        Sarray.eig(:,Idx) = 1./mean(repmat(1./eigenVals,[size(sv,1) 1]).*abs(sv(:,:,line_idx)'*V(:,noiseIdxs)).^2,2);
       end
       
     elseif any(cfg.method == RISR_METHOD)
@@ -914,7 +923,7 @@ for line_idx = 1:1:Nx_out
         W = (AA + cfg.sigma_z*eye(N)*AA + cfg.alpha*cfg.R)^-1 * sv(:,:) * SPD;
       end
       sig_est = sqrt(diag(SPD));
-      Sarray(:,bin_idx) = sig_est;
+      Sarray.risr(:,bin_idx) = sig_est;
       
     elseif any(cfg.method == MVDR_ROBUST_METHOD)
       %% Array: Robust MVDR
@@ -963,10 +972,10 @@ for line_idx = 1:1:Nx_out
           dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
           dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]).';
           
-          Sarray(freqIdx,bin_idx) = Sarray(freqIdx,bin_idx) ...
+          Sarray.mvdr_robust(freqIdx,bin_idx) = Sarray.mvdr_robust(freqIdx,bin_idx) ...
             + mean(abs(w * dataSample).^2) / abs(w * sv{ml_idx}(:,freqIdx)).^2;
         end
-        Sarray(freqIdx,bin_idx) = Sarray(freqIdx,bin_idx) / size(sv{1},2);
+        Sarray.mvdr_robust(freqIdx,bin_idx) = Sarray.mvdr_robust(freqIdx,bin_idx) / size(sv{1},2);
       end
       
     end
@@ -2010,33 +2019,39 @@ for line_idx = 1:1:Nx_out
   
   %% Store outputs
   
-  % Reformat output for this range-line into a single slice of a 3D echogram
-  if cfg.method < DOA_METHOD_THRESHOLD
-    % Beamforming Methods
-    Sarray = Sarray.';
-    % Find bin/DOA with maximum value
-    % The echogram fields .img and .theta are filled with this value.
-    dout.img(:,line_idx) = max(Sarray(:,dout_val_sv_idxs),[],2);
-    % Reformat output to store full 3-D image (if enabled)
-    if cfg.tomo_en
-      dout.tomo.img(:,:,line_idx) = Sarray;
+  for idx = 1:length(cfg.method)
+    m = array_proc_method_str(cfg.method(idx));
+    % Reformat output for this range-line into a single slice of a 3D echogram
+    if cfg.method(idx) < DOA_METHOD_THRESHOLD
+      % Beamforming Methods
+      Sarray.(m) = Sarray.(m).';
+      % Find bin/DOA with maximum value
+      % The echogram fields .img and .theta are filled with this value.
+      [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(Sarray.(m)(:,dout_val_sv_idxs),[],2);
+      tout.(m).theta(:,line_idx) = theta(dout_val_sv_idxs(tout.(m).theta(:,line_idx)));
+      % Reformat output to store full 3-D image (if enabled)
+      if cfg.tomo_en
+        tout.(m).tomo.img(:,:,line_idx) = Sarray.(m);
+      end
+    else
+      % DOA Methods
+      [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(tout.(m).tomo.img .* ...
+        (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta >= cfg.theta_rng(2)),[],2);
+      tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
     end
-  else
-    % DOA Methods
-    dout.img(:,line_idx) = max(dout.tomo.img .* ...
-      (dout.tomo.theta >= cfg.theta_rng(1) & dout.tomo.theta >= cfg.theta_rng(2)),[],2);
   end
   
   if 0 && (~mod(line_idx,size(dout.img,2)) || line_idx == 1)
     %% DEBUG outputs
     % change 0&& to 1&& on line above to run it
+    m = array_proc_method_str(cfg.method(1));
     if cfg.method < DOA_METHOD_THRESHOLD
       figure(1); clf;
-      imagesc(10*log10(Sarray));
+      imagesc(10*log10(Sarray.(m)));
       
     else
       figure(1); clf;
-      plot(dout.tomo.theta(:,:,line_idx)*180/pi,'.')
+      plot(tout.(m).tomo.theta(:,:,line_idx)*180/pi,'.')
       hold on;
       surf = interp1(cfg.time,1:length(cfg.time), ...
         cfg.surface);
@@ -2061,10 +2076,15 @@ for line_idx = 1:1:Nx_out
         plot(interp1(cfg.time(cfg.bins), 1:length(cfg.time(cfg.bins)), ...
           table_delay), table_doa*180/pi+doa_param.doa_constraints(1).src_limits(2), 'k');
       end
+      keyboard
     end
-    
-    keyboard
   end
-  Sarray = reshape(Sarray,Nsv,Nt_out);
   
+  for idx = 1:length(cfg.method)
+    m = array_proc_method_str(cfg.method(idx));
+    Sarray.(m) = reshape(Sarray.(m),Nsv,Nt_out);
+  end
 end
+
+% Copy temporary outputs for first method to dout
+dout = tout.(array_proc_method_str(cfg.method(1)));
