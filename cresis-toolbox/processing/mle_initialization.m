@@ -41,6 +41,9 @@ function out = mle_initialization(DCM,param)
 % =========================================================================
 physical_constants
 
+if ~isfield(param,'sv_fh')
+  sv_fh = @array_proc_sv; 
+end
 k = 4*pi*param.fc/c;
 
 if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
@@ -48,9 +51,9 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
   
   % Allocate grid search results
   if param.Nsrc == 1
-    J = NaN*zeros(length(param.theta),1);
+    J = NaN(length(param.theta),1);
   else
-    J = NaN*zeros(length(param.theta)*ones(1,param.Nsrc));
+    J = NaN(length(param.theta)*ones(1,param.Nsrc));
   end
   % Allocate temporary variables
   theta_idxs = zeros(param.Nsrc,1);
@@ -85,9 +88,22 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
     
     if good
       % Evaluate cost function
-      A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta).' + param.y_pc*sin(theta).'));
+      Nsv2{1} = 'theta';
+      Nsv2{2} = theta.';
+      [~,A] = sv_fh(Nsv2,param.fc,param.y_pc,param.z_pc);
+%       A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta).' + param.y_pc*sin(theta).'));
       Pa  = A * inv(A'*A) * A';
       J(idx) = abs(sum(sum(Pa .* DCM.')));
+      
+      % Incorporate the a priori pdf if available
+      if  param.doa_seq && param.apriori.en
+        mean_doa = param.apriori.mean_doa;
+        var_doa  = param.apriori.var_doa;
+%         J_prior = (norm(theta - mean_doa))^2;
+%         J_prior = (theta - mean_doa).' * inv(diag(param.apriori.var_doa)) * (theta - mean_doa);
+        J_prior = (1./var_doa).' * (theta - mean_doa).^2;
+        J(idx) = log(J(idx)) - J_prior;
+      end
     end
     
   end

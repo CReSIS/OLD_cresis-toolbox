@@ -7,7 +7,7 @@ model_order_method = model_order_suboptimal_param.method;
 penalty_NT         = model_order_suboptimal_param.penalty_NT;
 param_MOE          = model_order_suboptimal_param.param_MOE;
 
-M = length(penalty_NT)-1;
+M = model_order_suboptimal_param.Nsrc;
 for k = 0:M
     geom_mean   = sum(log(eigval(k+1:end)));
     arithm_mean = (Nc-k)*(log(sum((eigval(k+1:end))/(Nc-k))));
