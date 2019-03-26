@@ -21,6 +21,8 @@ if strcmpi(param.config.daq_type,'arena')
   success = preprocess_task_arena(param);
 elseif strcmpi(param.config.daq_type,'cresis')
   success = preprocess_task_cresis(param);
+elseif strcmpi(param.config.daq_type,'utua')
+  success = preprocess_task_utua(param);
 else
   error('Invalid param.config.daq_type %s\n', param.config.daq_type);
 end

@@ -13,8 +13,8 @@ param.season_name = '2018_Alaska_SO';
 param.radar_name = 'rds';
 
 param.config.file.version = 413;
-param.config.file.prefix = param.radar_name;
-param.config.file.suffix = '.bin';
+param.config.file.prefix = '';
+param.config.file.suffix = '.tdms';
 param.config.max_time_gap = 10;
 param.config.min_seg_size = 1;
 

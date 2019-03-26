@@ -139,6 +139,20 @@ for config_idx = 1:numel(param.config.default)
       num_fns = num_fns + length(fns);
     end
     
+  elseif strcmpi(cparam.config.daq_type,'utua')
+    num_fns = 0;
+    for board_idx = 1:length(cparam.config.board_map)
+      board = cparam.config.board_map{board_idx};
+      board_folder_name = cparam.config.board_folder_names;
+      board_folder_name = regexprep(board_folder_name,'%b',board);
+      
+      get_filenames_param = struct('regexp',cparam.config.file.regexp);
+      fns = get_filenames(fullfile(cparam.config.base_dir,board_folder_name), ...
+        cparam.config.file.prefix, cparam.config.file.midfix, ...
+        cparam.config.file.suffix, get_filenames_param);
+      num_fns = num_fns + length(fns);
+    end
+    
   else
     error('cparam.config.daq_type = %s is not a supported type', cparam.config.daq_type);
     

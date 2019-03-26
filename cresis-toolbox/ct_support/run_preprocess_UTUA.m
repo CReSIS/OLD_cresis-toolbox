@@ -8,8 +8,8 @@ param.config.default = [];
 cur_idx = length(param.config.default)+1;
 param.config.default{cur_idx} = default_radar_params_2018_Alaska_SO_rds();
 param.config.base_dir{cur_idx} = 'E:\tmp\google_drive\radar';
-param.config.config_folder_names{cur_idx} = '';
-param.config.board_folder_names{cur_idx} = '';
+param.config.config_folder_names{cur_idx} = '20180523';
+param.config.board_folder_names{cur_idx} = '20180523';
 param.config.date_strs{cur_idx} = '20180523';
 
 return;
