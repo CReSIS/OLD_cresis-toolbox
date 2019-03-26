@@ -35,7 +35,7 @@ num_board_to_load = numel(param.config.board_map);
 board_hdrs = cell(1,num_board_to_load);
 failed_load = cell(1,num_board_to_load);
 fns_list = cell(1,num_board_to_load);
-if exist(fn_board_hdrs,'file')
+if param.config.reuse_tmp_files && exist(fn_board_hdrs,'file')
   try
     fprintf('Found %s\n  Trying to load...\n', fn_board_hdrs);
     load(fn_board_hdrs,'board_hdrs','fns_list','failed_load');
@@ -73,14 +73,8 @@ for board_idx = 1:num_board_to_load
   
   %% Read Headers: File Loop
   failed_load{board_idx} = false(size(fns));
-  board_hdrs{board_idx}.unknown = [];
-  board_hdrs{board_idx}.radar_time = [];
-  board_hdrs{board_idx}.radar_time_1pps = [];
-  board_hdrs{board_idx}.epri = [];
-  board_hdrs{board_idx}.seconds = [];
-  board_hdrs{board_idx}.fraction = [];
-  board_hdrs{board_idx}.waveform_ID = [];
-  board_hdrs{board_idx}.counter = [];
+  board_hdrs{board_idx}.gps_time = [];
+  board_hdrs{board_idx}.surface = [];
   board_hdrs{board_idx}.file_idxs = [];
   for fn_idx = 1:length(fns)
     
@@ -100,51 +94,50 @@ for board_idx = 1:num_board_to_load
       mkdir(tmp_hdr_fn_dir);
     end
     
-    keyboard
+    if param.config.online_mode == 0
+      fprintf('%d of %d: %s (%s)\n', fn_idx, length(fns), fn, datestr(now,'HH:MM:SS'));
+      if param.config.reuse_tmp_files && exist(tmp_hdr_fn,'file')
+        try
+          % Load and concatenate temporary file
+          hdr = load(tmp_hdr_fn,'gps_time','twtt_surf');
+          board_hdrs{board_idx}.surface ...
+            = cat(2,board_hdrs{board_idx}.surface,reshape(hdr.twtt_surf,[1 length(hdr.twtt_surf)]));
+          board_hdrs{board_idx}.gps_time ...
+            = cat(2,board_hdrs{board_idx}.gps_time,reshape(hdr.gps_time,[1 length(hdr.gps_time)]));
+          board_hdrs{board_idx}.file_idxs = cat(2,board_hdrs{board_idx}.file_idxs,fn_idx*ones([1 length(hdr.gps_time)]));
+          % Temp file loaded with no problems, so skip to the next one
+          continue;
+        catch ME
+          % Temp file loading failed, so delete and try to recreate
+          ME.getReport
+          delete(tmp_hdr_fn);
+        end
+      end
+    else
+      % ONLINE MODE:
+      % Repeatedly reading in files as new files are added, only print
+      % out the filename if it has not been processed yet
+      if param.config.reuse_tmp_files && exist(tmp_hdr_fn,'file')
+        continue;
+      else
+        fprintf('%d of %d: %s (%s)\n', fn_idx, length(fns), fn, datestr(now,'HH:MM:SS'));
+      end
+    end
+    
     try
-      block = utua_rds.tdms2block_loop(fn,tmp_hdr_fn);
+      utua_rds.tdms2block_loop(fn,tmp_hdr_fn);
     catch ME
       warning(ME.getReport);
       failed_load{board_idx}(fn_idx) = true;
     end
     
-    [file_size offset epri seconds fraction] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
-    
-    % Find bad records by checking their size (i.e. the distance between
-    % frame syncs which should be constant).
-    expected_rec_size = median(diff(offset));
-    meas_rec_size = diff(offset);
-    bad_mask = meas_rec_size ~= expected_rec_size;
-    bad_mask(end+1) = file_size < offset(end) + expected_rec_size;
-    
-    % Remove bad records (i.e. ones with sizes that are not expected
-    offset = double(offset(~bad_mask));
-    epri = double(epri(~bad_mask));
-    seconds = double(seconds(~bad_mask));
-    fraction = double(fraction(~bad_mask));
-    
-    save(tmp_hdr_fn,'offset','epri','seconds','fraction','wfs');
-    
-    
-    % Remove bad records (i.e. ones with sizes that are not expected
-    offset = double(offset(~bad_mask));
-    epri = double(epri(~bad_mask));
-    seconds = double(seconds(~bad_mask));
-    fraction = double(fraction(~bad_mask));
-    counter = double(counter(~bad_mask));
-    
-    save(tmp_hdr_fn,'offset','epri','seconds','fraction','counter','wfs');
-      
     % Load and concatenate temporary file
-    hdr = load(tmp_hdr_fn);
-    board_hdrs{board_idx}.unknown ...
-      = cat(2,board_hdrs{board_idx}.unknown,reshape(hdr.unknown,[1 length(hdr.unknown)]));
-    board_hdrs{board_idx}.seconds ...
-      = cat(2,board_hdrs{board_idx}.seconds,reshape(hdr.seconds,[1 length(hdr.seconds)]));
-    board_hdrs{board_idx}.fraction ...
-      = cat(2,board_hdrs{board_idx}.fraction,reshape(hdr.fraction,[1 length(hdr.fraction)]));
-    board_hdrs{board_idx}.file_idxs = cat(2,board_hdrs{board_idx}.file_idxs,fn_idx*ones([1 length(hdr.offset)]));
-    
+    hdr = load(tmp_hdr_fn,'gps_time','twtt_surf');
+    board_hdrs{board_idx}.surface ...
+      = cat(2,board_hdrs{board_idx}.surface,reshape(hdr.twtt_surf,[1 length(hdr.twtt_surf)]));
+    board_hdrs{board_idx}.gps_time ...
+      = cat(2,board_hdrs{board_idx}.gps_time,reshape(hdr.gps_time,[1 length(hdr.gps_time)]));
+    board_hdrs{board_idx}.file_idxs = cat(2,board_hdrs{board_idx}.file_idxs,fn_idx*ones([1 length(hdr.gps_time)]));
   end
 end
 
@@ -169,61 +162,73 @@ end
 %% Create Segments
 % =========================================================================
 
-%% Create Segments: Read XML settings
-% NI XML settings files available, break segments based on settings files
-% and header information
+% Break segments based on settings files and header information
+% Each temporary file is its own segment and contains full settings
+% information.
 
-xml_version = param.config.daq.xml_version;
-cresis_xml_mapping;
+% Assume only one board
+board_idx = 1;
+settings = {};
+for fn_idx = 1:length(fns_list{board_idx})
+  %% Read Headers: Filenames
+  board = param.config.board_map{board_idx};
+  board_folder_name = param.config.board_folder_name;
+  board_folder_name = regexprep(board_folder_name,'%b',board);
 
-settings_fn_dir = fullfile(param.config.base_dir,param.config.config_folder_name);
-fprintf('\nSettings Directory: %s\n\n', settings_fn_dir);
+  tmp_hdr_fn = ct_filename_ct_tmp(param,'','headers', ...
+    fullfile(board_folder_name, ''));
+  
+  % Create temporary filename to load the settings
+  fn = fns_list{board_idx}{fn_idx};
+  if any(param.config.file.version == [405 406])
+    [~,fn_name,ext] = fileparts(fn);
+    fn_name = [fn_name,ext];
+  else
+    [~,fn_name] = fileparts(fn);
+  end
+  tmp_hdr_fn = ct_filename_ct_tmp(param,'','headers', ...
+    fullfile(board_folder_name, [fn_name '.mat']));
+  settings{end+1} = load(tmp_hdr_fn);
+end
 
-% Read XML files in this directory
-[settings,settings_enc] = read_ni_xml_directory(settings_fn_dir,xml_file_prefix,false);
-
-% Get the date information out of the filename
+% Get the date information out of the filenames
 fn_datenums = {};
 for board_idx = 1:numel(param.config.board_map)
   fn_datenums{board_idx} = [];
   for data_fn_idx = 1:length(fns_list{board_idx})
-    fname = fname_info_mcords2(fns_list{board_idx}{data_fn_idx});
+    fname = utua_rds.fname_info_utua_rds(fns_list{board_idx}{data_fn_idx});
     fn_datenums{board_idx}(end+1) = fname.datenum;
   end
 end
 
 %% Create Segments: Print settings
+% =========================================================================
 oparams = {};
 for set_idx = 1:length(settings)
   % Print out settings
-  [~,settings_fn_name] = fileparts(settings(set_idx).fn);
+  [~,settings_fn_name] = fileparts(settings{set_idx}.fn);
   fprintf('===================== Setting %d =================\n', set_idx);
-  fprintf('%s: %d waveforms\n', settings_fn_name, length(settings(set_idx).(config_var).Waveforms));
-  if isfield(settings(set_idx),'XML_File_Path')
-    fprintf('  %s\n', settings(set_idx).XML_File_Path{1}.values{1});
-  end
-  fprintf('   PRF:'); fprintf(' %g', settings(set_idx).(config_var).(prf_var)); fprintf('\n');
-  fprintf('   Amp:'); fprintf(' %g', settings(set_idx).(config_var).(ram_amp_var)); fprintf('\n');
-  fprintf('   Tukey:'); fprintf(' %g', settings(set_idx).(config_var).RAM_Taper); fprintf('\n');
-  Tpd = double(settings(set_idx).(config_var).Waveforms(1).Len_Mult)*settings(set_idx).(config_var).Base_Len;
-  fprintf('   f0-f1:'); fprintf(' %g-%g MHz %g us', settings(set_idx).(config_var).Waveforms(1).Start_Freq(1)/1e6, ...
-    settings(set_idx).(config_var).Waveforms(1).Stop_Freq(1)/1e6, Tpd*1e6); fprintf('\n');
-  fprintf('   Tx Mask:'); fprintf(' %g', settings(set_idx).(config_var).Waveforms(1).TX_Mask); fprintf('\n');
-  for wf = 1:length(settings(set_idx).(config_var).Waveforms)
-    fprintf('    WF %d Atten:', wf); fprintf(' %g', settings(set_idx).(config_var).Waveforms(wf).Attenuator_2); fprintf('\n');
-    fprintf('    WF %d Len:', wf); fprintf(' %.1f us', 1e6*settings(set_idx).(config_var).Base_Len*settings(set_idx).(config_var).Waveforms(wf).Len_Mult); fprintf('\n');
+  fprintf('%s: %d waveforms\n', settings_fn_name, length(settings{set_idx}.wfs));
+  fprintf('  %s\n', settings{set_idx}.comment);
+  fprintf('   PRF:'); fprintf(' %g', settings{set_idx}.prf); fprintf('\n');
+  fprintf('   Range lines:'); fprintf(' %g', length(settings{set_idx}.gps_time)); fprintf('\n');
+  fprintf('   f0-f1:'); fprintf(' %g-%g MHz %g us', settings{set_idx}.wfs(1).f0(1)/1e6, ...
+    settings{set_idx}.wfs(1).f1(1)/1e6, settings{set_idx}.wfs(1).Tpd*1e6); fprintf('\n');
+  for wf = 1:length(settings{set_idx}.wfs)
+    fprintf('    WF %d Gain:', wf); fprintf(' %g', settings{set_idx}.ritec.gain); fprintf('\n');
+    fprintf('    WF %d Tpd:', wf); fprintf(' %.1f us', 1e6*settings{set_idx}.wfs(1).Tpd); fprintf('\n');
   end
   
   for board_idx = 1:numel(param.config.board_map)
     if set_idx < length(settings)
-      settings(set_idx).file_matches{board_idx} = find(fn_datenums{board_idx} >= settings(set_idx).datenum & fn_datenums{board_idx} < settings(set_idx+1).datenum);
+      settings{set_idx}.file_matches{board_idx} = find(fn_datenums{board_idx} >= settings{set_idx}.datenum & fn_datenums{board_idx} < settings(set_idx+1).datenum);
     else
-      settings(set_idx).file_matches{board_idx} = find(fn_datenums{board_idx} >= settings(set_idx).datenum);
+      settings{set_idx}.file_matches{board_idx} = find(fn_datenums{board_idx} >= settings{set_idx}.datenum);
     end
   end
   
   % Associate default parameters with each settings
-  default = default_radar_params_settings_match(param.config.defaults,settings(set_idx));
+  default = default_radar_params_settings_match(param.config.defaults,settings{set_idx});
   oparams{end+1} = default;
   oparams{end} = rmfield(oparams{end},'config_regexp');
   oparams{end} = rmfield(oparams{end},'name');
@@ -243,45 +248,27 @@ for set_idx = 1:length(settings)
   oparams{end}.records.file.boards = param.config.board_map;
   oparams{end}.records.file.version = param.config.file.version;
   oparams{end}.records.file.prefix = param.config.file.prefix;
-  oparams{end}.records.file.clk = param.config.cresis.clk;
-  oparams{end}.radar.prf = settings(set_idx).(config_var).(prf_var);
+  oparams{end}.radar.prf = settings{set_idx}.prf;
   
   % Usually the default.radar.wfs structure only has one waveform
   % entry which is to be copied to all the waveforms.
   if numel(oparams{end}.radar.wfs) == 1
-    oparams{end}.radar.wfs = repmat(oparams{end}.radar.wfs,[1 numel(settings(set_idx).(config_var).Waveforms)]);
+    oparams{end}.radar.wfs = repmat(oparams{end}.radar.wfs,[1 numel(settings{set_idx}.wfs)]);
   end
   
-  for wf = 1:numel(settings(set_idx).(config_var).Waveforms)
-    oparams{end}.radar.wfs(wf).Tpd = double(settings(set_idx).(config_var).Waveforms(wf).Len_Mult)*settings(set_idx).(config_var).Base_Len;
-    oparams{end}.radar.wfs(wf).f0 = settings(set_idx).(config_var).Waveforms(wf).Start_Freq(1);
-    oparams{end}.radar.wfs(wf).f1 = settings(set_idx).(config_var).Waveforms(wf).Stop_Freq(1);
-    oparams{end}.radar.wfs(wf).tukey = settings(set_idx).(config_var).RAM_Taper;
-    % Transmit weights
-    if any(param.config.file.version == [403 407 408])
-      tx_mask_inv = fliplr(~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0'));
-      tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv ./ param.config.max_tx.*param.config.max_tx_voltage;
-    else
-      tx_mask_inv = ~(dec2bin(double(settings(set_idx).(config_var).Waveforms(wf).TX_Mask),8) - '0');
-      tx_weights = double(settings(set_idx).(config_var).(ram_var)) .* tx_mask_inv ./ param.config.max_tx.*param.config.max_tx_voltage;
-    end
-    
-    tx_weights = tx_weights(logical(param.config.tx_enable));
-    oparams{end}.radar.wfs(wf).tx_weights = tx_weights;
+  for wf = 1:numel(settings{set_idx}.wfs)
+    oparams{end}.radar.wfs(wf).Tpd = settings{set_idx}.wfs(wf).Tpd;
+    oparams{end}.radar.wfs(wf).f0 = settings{set_idx}.wfs(wf).f0;
+    oparams{end}.radar.wfs(wf).f1 = settings{set_idx}.wfs(wf).f1;
+    oparams{end}.radar.wfs(wf).tukey = 1;
+    oparams{end}.radar.wfs(wf).tx_weights = 1;
     
     % ADC Gains
-    atten = double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_1(1)) ...
-      + double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_2(1));
-    oparams{end}.radar.wfs(wf).adc_gains_dB = param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths));
+    oparams{end}.radar.wfs(wf).adc_gains_dB = settings{set_idx}.ritec.gain;
     
     % DDC mode and frequency
-    if isfield(settings(set_idx), 'DDC_Ctrl')
-      oparams{end}.radar.wfs(wf).DDC_dec = 2^(2+settings(set_idx).DDC_Ctrl.DDC_sel.Val);
-      oparams{end}.radar.wfs(wf).DDC_freq = settings(set_idx).DDC_Ctrl.(NCO_freq)*1e6;
-    else
-      oparams{end}.radar.wfs(wf).DDC_dec = 1;
-      oparams{end}.radar.wfs(wf).DDC_freq = 0;
-    end
+    oparams{end}.radar.wfs(wf).DDC_dec = 1;
+    oparams{end}.radar.wfs(wf).DDC_freq = 0;
   end
   
   counters = {};
@@ -289,14 +276,14 @@ for set_idx = 1:length(settings)
   for board_idx = 1:numel(param.config.board_map)
     counters{board_idx} = double(board_hdrs{board_idx}.(param.config.field_time_gap));
     file_idxs{board_idx} = board_hdrs{board_idx}.file_idxs;
-    day_wrap_offset{board_idx} = board_hdrs{board_idx}.day_wrap_offset;
+    day_wrap_offset{board_idx} = zeros(size(board_hdrs{board_idx}.file_idxs));
     % Restrict to just these settings
-    if isempty(settings(set_idx).file_matches{board_idx})
+    if isempty(settings{set_idx}.file_matches{board_idx})
       counters{board_idx} = [];
       file_idxs{board_idx} = [];
     else
-      mask = file_idxs{board_idx} >= settings(set_idx).file_matches{board_idx}(1) ...
-        & file_idxs{board_idx} <= settings(set_idx).file_matches{board_idx}(end);
+      mask = file_idxs{board_idx} >= settings{set_idx}.file_matches{board_idx}(1) ...
+        & file_idxs{board_idx} <= settings{set_idx}.file_matches{board_idx}(end);
       counters{board_idx} = counters{board_idx}(mask);
       file_idxs{board_idx} = file_idxs{board_idx}(mask);
       day_wrap_offset{board_idx} = day_wrap_offset{board_idx}(mask);

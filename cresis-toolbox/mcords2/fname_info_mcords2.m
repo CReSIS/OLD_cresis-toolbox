@@ -44,5 +44,3 @@ fname.group = str2double(fname.group);
 
 [fname.file_idx fn] = strtok(fn(2:end),'.');
 fname.file_idx = str2double(fname.file_idx);
-
-return;

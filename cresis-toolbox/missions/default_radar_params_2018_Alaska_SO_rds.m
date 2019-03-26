@@ -12,6 +12,7 @@ function param = default_radar_params_2018_Alaska_SO_rds
 param.season_name = '2018_Alaska_SO';
 param.radar_name = 'rds';
 
+param.config.field_time_gap = 'gps_time';
 param.config.file.version = 413;
 param.config.file.prefix = '';
 param.config.file.suffix = '.tdms';
