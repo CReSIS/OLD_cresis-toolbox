@@ -162,11 +162,11 @@ for board_idx = 1:num_board_to_load
     hdr_param.field_offsets = int32([0 4]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1)};
     
-  elseif any(param.config.file.version == [7 407 408])
+  elseif any(param.config.file.version == [7 11 407 408])
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     
   else
-    error('Unsupported radar %s', param.radar_name);
+    error('Unsupported file version %d (%s)', param.config.file.version, param.radar_name);
   end
   
   %% Read Headers: File Loop
@@ -277,7 +277,7 @@ for board_idx = 1:num_board_to_load
       elseif any(param.config.file.version == [6])
         hdr = basic_load_fmcw4(fn, struct('file_version',param.config.file.version));
         wfs = struct('presums',hdr.presums);
-      elseif any(param.config.file.version == [7])
+      elseif any(param.config.file.version == [7 11])
         hdr = basic_load(fn);
         wfs = hdr.wfs;
         hdr_param.field_offsets = int32([4 8 12 16]); % epri seconds fractions counter
@@ -613,7 +613,7 @@ for board_idx = 1:num_board_to_load
       fractions = zeros(size(seconds));
       save(tmp_hdr_fn,'offset','seconds','hdr','hoffset','htime','wfs','raw_file_time');
       
-    elseif any(param.config.file.version == [7 407 408])
+    elseif any(param.config.file.version == [7 11 407 408])
       hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       seconds = BCD_to_seconds(seconds);
@@ -629,13 +629,13 @@ for board_idx = 1:num_board_to_load
         % the next file to see if the complete record is there)
         bad_mask(end+1) = false;
         
-      elseif any(param.config.file.version == [7])
+      elseif any(param.config.file.version == [7 11])
         % User must supply the valid record sizes
         if ~isfield(param.config.cresis,'expected_rec_sizes') || isempty(param.config.cresis.expected_rec_sizes)
           fprintf('Record sizes found in this file:\n');
           fprintf('  %d', unique(diff(offset)));
           fprintf('\n');
-          error('For file version 7 expected record sizes must be supplied in param.config.cresis.expected_rec_sizes. You can start by using the record sizes listed here, but there may be other valid record sizes and the output of this function should be monitored.');
+          error('For file version 7 expected record sizes must be supplied in param.config.cresis.expected_rec_sizes (usually set in default_radar_params_SEASON_RADAR). You can start by using the record sizes listed here, but there may be other valid record sizes and the output of this function should be monitored.');
         end
         expected_rec_size = param.config.cresis.expected_rec_sizes;
         meas_rec_size = diff(offset);
@@ -806,7 +806,7 @@ end
 % =========================================================================
 for board_idx = 1:numel(param.config.board_map)
   
-  if any(param.config.file.version == [1 2 3 4 5 6 7 8 101 403 404 407 408])
+  if any(param.config.file.version == [1 2 3 4 5 6 7 8 11 101 403 404 407 408])
     utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.config.cresis.clk;
     epri = double(board_hdrs{board_idx}.epri);
     

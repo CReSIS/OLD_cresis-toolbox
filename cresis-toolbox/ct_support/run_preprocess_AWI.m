@@ -15,7 +15,7 @@ param.config.default = [];
 
 %% SNOW8 SINGLE DAY
 cur_idx = length(param.config.default)+1;
-param.config.default{cur_idx} = default_radar_params_2019_Arctic_Polar5_snow();
+param.config.default{cur_idx} = default_radar_params_2019_Arctic_Polar6_snow();
 param.config.base_dir{cur_idx} = '/work/ollie/ajutila/Data/mnt/HDD5/';
 param.config.config_folder_names{cur_idx} = '1903080101/UWBM/';
 param.config.board_folder_names{cur_idx} = '1903080101/UWBM/%b';

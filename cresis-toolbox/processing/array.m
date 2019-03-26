@@ -227,7 +227,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   cpu_time_mult = 6e-6;
   mem_mult = 32;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   estimated_num_sam = 32000;
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
@@ -384,7 +384,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   cpu_time_mult = 1e-6;
   mem_mult = 8;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   cpu_time_mult = 1e-6;
   mem_mult = 32;
 end

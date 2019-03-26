@@ -1,4 +1,4 @@
-% script make_gps_2019_greenland_P3
+% script make_gps_2019_Greenland_P3
 %
 % Makes the GPS files for 2019_Greenland_P3 field season
 
@@ -39,6 +39,8 @@ gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'APX15';
 % gps_source_to_use = 'SPANSE';
 % gps_source_to_use = 'VectorNav';
+% gps_source_to_use = 'ATM-field';
+% gps_source_to_use = 'ATM';
 
 if strcmpi(gps_source_to_use,'NMEA')
 %% NMEA
@@ -52,8 +54,8 @@ if strcmpi(gps_source_to_use,'NMEA')
   gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 0;
 
-elseif strcmpi(gps_source_to_use,'wingport-field')
-  %% Wingport-field
+elseif strcmpi(gps_source_to_use,'APX15')
+  %% APX15
 
   year = 2019; month = 3; day = 15;
   file_idx = file_idx + 1;

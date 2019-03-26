@@ -414,7 +414,7 @@ for wf = 1:length(param.radar.wfs)
   end
   if ~isfield(param.radar.wfs(wf),'quantization_to_V_dynamic') || isempty(param.radar.wfs(wf).quantization_to_V_dynamic)
     wfs(wf).quantization_to_V_dynamic = false;
-    if any(param.records.file.version == [3 5 7 8 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
+    if any(param.records.file.version == [3 5 7 8 11 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
       wfs(wf).quantization_to_V_dynamic = true;
     end
   else
@@ -598,6 +598,7 @@ end
 % 8	snow8 (NI based, Keysight waveform generator). Some files start with snow4 from the test flight.
 % 9	snow9 (RSS based, Arena Snow Radar).
 % 10	snow10 (RSS based, Arena Helicopter Snow Radar).
+% 11	data_v11 (NI based, Mini-Snow Radar).
 % 101	accum (Leuschen/Ledford based)
 % 102	accum2 (Sundance, Paden/Rink based)
 % 401	mcords (Leuschen/Ledford based)
@@ -619,7 +620,7 @@ end
 for wf = 1:length(param.radar.wfs)
   
   switch param.records.file.version
-    case {7,8}
+    case {7,8,11}
       HEADER_SIZE = 0;
       WF_HEADER_SIZE = 48;
       wfs(wf).record_mode = 0;

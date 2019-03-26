@@ -84,9 +84,18 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'a
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2018_Alaska_SO') && (strcmpi(gps_source,'nmea') || strcmpi(gps_source,'lidar')))
-% The snow radar shared the same GPS antenna with the lidar of the univ. of Fairbanks
-% Emily measured the positions of the snow radar rx and tx antennas relative to the GPS antenna
+if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) ...
+    && any(strcmpi(gps_source,{'nmea'}))
+  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
+if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
+    && any(strcmpi(gps_source,{'nmea','ualidar'}))
+  % The snow radar shared the same GPS antenna with the lidar of the univ. of Fairbanks
+  % Emily measured the positions of the snow radar rx and tx antennas relative to the GPS antenna
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
@@ -143,16 +152,6 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'ba
   gps.x = 2.9369; % Gravimeter was in front of GPS antenna
   gps.y = 0.1116; % Gravimeter was on the right side of the plane/GPS
   gps.z = 1.4762; % Gravimeter was below (down is positive-z) the GPS
-end
-
-
-
-
-if (strcmpi(param.season_name,'2018_Alaska_SO') && any(strcmpi(gps_source,{'nmea','ualidar'})))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
-  gps.x = 0;
-  gps.y = 0;
-  gps.z = 0;
 end
 
 if (strcmpi(param.season_name,'2016_Greenland_TOdtu') && strcmpi(gps_source,'dtu'))
@@ -516,7 +515,7 @@ if (strcmpi(param.season_name,'2003_Greenland_P3')) ...
   
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2017_Antarctica_Polar6','2018_Greenland_Polar6','2019_Antarctica_Polar6'})) && any(strcmpi(gps_source,{'AWI','NMEA'})))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2017_Antarctica_Polar6','2018_Greenland_Polar6','2019_Antarctica_Polar6','2019_Arctic_Polar6'})) && any(strcmpi(gps_source,{'AWI','NMEA'})))
   % Measurements are from Richard Hale Aug 12, 2015 for RDS and Aug 15,
   % 2015 for Snow Radar. Measurements are made relative to the AWI Aft
   % Science GPS antenna known as ST5.
@@ -791,6 +790,28 @@ end
 %% Ka-band
 % =========================================================================
 
+if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) ...
+    && strcmpi(radar_name,'kaband')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,1:2) = [NaN 0];
+  LArx(2,1:2) = [NaN 0];
+  LArx(3,1:2) = [NaN 0];
+  
+  LAtx(1,1) = 0;
+  LAtx(2,1) = 0;
+  LAtx(3,1) = 0;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 2;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 2;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2015_Greenland_C130') && strcmpi(radar_name,'kaband'))
   % X,Y,Z are in aircraft coordinates, not IMU
   LArx(1,1) = -638.78*2.54/100;
@@ -815,6 +836,29 @@ end
 % =========================================================================
 %% Ku-band
 % =========================================================================
+
+if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) ...
+    && strcmpi(radar_name,'kuband')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,1) = 0;
+  LArx(2,1) = 0;
+  LArx(3,1) = 0;
+  
+  LAtx(1,1) = 0;
+  LAtx(2,1) = 0;
+  LAtx(3,1) = 0;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'kuband'))
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   LArx(1,1) = -180.5*2.54/100 -1.355;
@@ -1599,7 +1643,8 @@ end
 %% Snow Radar
 % =========================================================================
 
-if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'snow'))
+if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
+    && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   LArx(1,1) = -0.288;
   LArx(2,1) = -0.094;
@@ -1641,7 +1686,7 @@ if (strcmpi(param.season_name,'2016_Greenland_P3') && strcmpi(radar_name,'snow')
   end
 end
 
-if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2018_Greenland_Polar6'})) && strcmpi(radar_name,'snow'))
+if (any(strcmpi(param.season_name,{'2015_Greenland_Polar6','2016_Greenland_Polar6','2017_Arctic_Polar5','2018_Greenland_Polar6','2019_Arctic_Polar6'})) && strcmpi(radar_name,'snow'))
   % See notes in GPS section
   
   LArx(1,1:2) = -[95.5 95.5]*2.54/100;

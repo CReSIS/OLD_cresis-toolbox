@@ -897,8 +897,16 @@ if param.post.pdf_en
         fprintf('Try using gs version 9.02: you may need to download this\n');
       else
         % Remove temporary files
-        delete(in_search_str);
-        rmdir(pdf_dirs{dir_idx});
+        try
+          delete(in_search_str);
+        catch ME
+          warning(ME.getReport);
+        end
+        try
+          rmdir(pdf_dirs{dir_idx});
+        catch ME
+          warning(ME.getReport);
+        end
       end
     end
   end
