@@ -3,7 +3,7 @@ function method_str = array_proc_method_str(method_int)
 %
 % Support function for array_proc to convert array proc method integer into
 % method string
-
+array_proc_methods;
 switch (method_int)
   case STANDARD_METHOD
     method_str = 'standard';
@@ -25,6 +25,8 @@ switch (method_int)
     method_str = 'mle';
   case DCM_METHOD
     method_str = 'dcm';
+  case PF_METHOD
+    method_str = 'pf';
   otherwise
     error('Invalid method integer (%d)', method_int);
 end

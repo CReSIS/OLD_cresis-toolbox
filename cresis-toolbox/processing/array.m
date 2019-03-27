@@ -247,16 +247,22 @@ else
 end
 
 array_proc_methods; % This script assigns the integer values for each method
-switch (param.array.method)
-  case STANDARD_METHOD
-  case MVDR_METHOD
-    cpu_time_mult = cpu_time_mult*4;
-  case MUSIC_METHOD
-    cpu_time_mult = cpu_time_mult*6;
-  case MLE_METHOD
-    cpu_time_mult = cpu_time_mult*480;
+if ~isempty(intersect(param.array.method,[STANDARD_METHOD MVDR_METHOD MUSIC_METHOD MLE_METHOD],'stable'))
+  tmp_cpu_time_mult = [];
+  for method_idx = 1:length(param.array.method)
+    switch (param.array.method(method_idx))
+      case STANDARD_METHOD
+        tmp_cpu_time_mult(method_idx) = cpu_time_mult;
+      case MVDR_METHOD
+        tmp_cpu_time_mult(method_idx) = cpu_time_mult*4;
+      case MUSIC_METHOD
+        tmp_cpu_time_mult(method_idx) = cpu_time_mult*6;
+      case MLE_METHOD
+        tmp_cpu_time_mult(method_idx) = cpu_time_mult*480;
+    end
+  end
+  cpu_time_mult = max(tmp_cpu_time_mult);
 end
-
 %% Loop through all the frame directories and process the SAR chunks
 % =====================================================================
 sparam.argsin{1} = param; % Static parameters

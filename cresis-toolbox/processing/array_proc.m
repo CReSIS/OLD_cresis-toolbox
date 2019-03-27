@@ -264,6 +264,9 @@ if ischar(param.array.method)
   if regexpi(param.array.method,'mvdr_robust')
     method_integer(end+1) = MVDR_ROBUST_METHOD;
   end
+  if regexpi(param.array.method,'music')
+    method_integer(end+1) = MUSIC_METHOD;
+  end
   if regexpi(param.array.method,'eig')
     method_integer(end+1) = EIG_METHOD;
   end
@@ -285,10 +288,13 @@ if ischar(param.array.method)
       param.array.Nsrc = 1;
     end
   end
+  if regexpi(param.array.method,'pf')
+    method_integer(end+1) = PF_METHOD;
+  end
   param.array.method = method_integer;
 end
 param.array.method = intersect(param.array.method, ...
-  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD], ...
+  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD PF_METHOD], ...
   'stable');
 if isempty(param.array.method)
   error('No valid method selected in param.array.method');
@@ -396,7 +402,7 @@ end
 %   form the dout.img matrix. Each dout.img pixel represents the maximum
 %   value between theta_rng(1) and theta_rng(2) for that pixel.
 if ~isfield(param.array,'theta_rng') || isempty(param.array.theta_rng)
-  param.array.theta_rng = [0 0];
+  param.array.theta_rng = [-90 90]*pi/180;
 end
 
 % .tomo_en:
@@ -416,6 +422,24 @@ end
 %   STANDARD_METHOD
 if ~isfield(param.array,'window') || isempty(param.array.window)
   param.array.window = @hanning;
+end
+
+% .ignored_img_idx:
+%  Scalar integer that tells array_proc which image to not process. The
+%  default situation is to process all the images.
+if ~isfield(param.array,'ignored_img_idx')
+  param.array.ignored_img_idx = [];
+end
+
+% .ref_doa: Splits the furface into left and right portions
+if param.array.doa_seq && isfield(param.array,'ref_doa') && ~isempty(param.array.ref_doa)
+  ref_doa = param.array.ref_doa * pi/180;
+else
+  ref_doa = 0;
+end
+
+if ~isfield(param.array,'debug_plots') || isempty(param.array.debug_plots)
+  param.array.debug_plots = 0;
 end
 
 if nargin == 1
@@ -517,16 +541,71 @@ for idx = 1:length(cfg.method)
     tout.(m).tomo.theta = theta(:); % Ensure a column vector on output
   end
 end
+
+% MOE output: simulation (for comparing different MOE methods)
 if cfg.moe_simulator_en
-  dout.moe.NT.doa = nan(length(array_proc_bin_idxs),cfg.Nsrc,Nx);
-  dout.moe.AIC.doa = nan(length(array_proc_bin_idxs),cfg.Nsrc,Nx);
-  dout.moe.HQ.doa = nan(length(array_proc_bin_idxs),cfg.Nsrc,Nx);
-  dout.moe.MDL.doa = nan(length(array_proc_bin_idxs),cfg.Nsrc,Nx);
-  dout.moe.AICc.doa = nan(length(array_proc_bin_idxs),cfg.Nsrc,Nx);
-  dout.moe.KICvc.doa = nan(length(array_proc_bin_idxs),cfg.Nsrc,Nx);
-  dout.moe.WIC.doa = nan(length(array_proc_bin_idxs),cfg.Nsrc,Nx);
+  dout.moe.NT.doa = nan(Nt_out,cfg.Nsrc,Nx);
+  dout.moe.AIC.doa = nan(Nt_out,cfg.Nsrc,Nx);
+  dout.moe.HQ.doa = nan(Nt_out,cfg.Nsrc,Nx);
+  dout.moe.MDL.doa = nan(Nt_out,cfg.Nsrc,Nx);
+  dout.moe.AICc.doa = nan(Nt_out,cfg.Nsrc,Nx);
+  dout.moe.KICvc.doa = nan(Nt_out,cfg.Nsrc,Nx);
+  dout.moe.WIC.doa = nan(Nt_out,cfg.Nsrc,Nx);
+  
+  dout.moe.NT.Nest = nan(Nt_out,Nx);
+  dout.moe.AIC.Nest = nan(Nt_out,Nx);
+  dout.moe.HQ.Nest = nan(Nt_out,Nx);
+  dout.moe.MDL.Nest = nan(Nt_out,Nx);
+  dout.moe.AICc.Nest = nan(Nt_out,Nx);
+  dout.moe.KICvc.Nest = nan(Nt_out,Nx);
+  dout.moe.WIC.Nest = nan(Nt_out,Nx);
 end
 
+% MOE outpus: real data
+if cfg.moe_en && isfield(cfg,'testing') && cfg.testing
+  for model_order_method = cfg.moe_methods
+    switch model_order_method
+      case 0
+        dout.moe.NT.Nest    = nan(Nt_out,Nx);
+        dout.moe.NT.doa     = nan(Nt_out,cfg.Nsrc,Nx);
+      case 1
+        dout.moe.AIC.Nest   = nan(Nt_out,Nx);
+        dout.moe.AIC.doa    = nan(Nt_out,cfg.Nsrc,Nx);
+      case 2
+        dout.moe.HQ.Nest    = nan(Nt_out,Nx);
+        dout.moe.HQ.doa     = nan(Nt_out,cfg.Nsrc,Nx);
+      case 3
+        dout.moe.MDL.Nest   = nan(Nt_out,Nx);
+        dout.moe.MDL.doa    = nan(Nt_out,cfg.Nsrc,Nx);
+      case 4
+        dout.moe.AICc.Nest  = nan(Nt_out,Nx);
+        dout.moe.AICc.doa   = nan(Nt_out,cfg.Nsrc,Nx);
+      case 5
+        dout.moe.KICvc.Nest = nan(Nt_out,Nx);
+        dout.moe.KICvc.doa  = nan(Nt_out,cfg.Nsrc,Nx);
+      case 6
+        dout.moe.WIC.Nest   = nan(Nt_out,Nx);
+        dout.moe.WIC.doa    = nan(Nt_out,cfg.Nsrc,Nx);
+      otherwise
+        error('MOE method is not supported')
+    end
+  end
+end
+
+% MOE outputs: machine learning
+if cfg.moe_en && (isfield(cfg,'moe_ml') && cfg.moe_ml)
+  dout.moe.ML.Nest = nan(Nt_out,Nx);
+  dout.moe.ML.doa  = nan(Nt_out,cfg.Nsrc,Nx);
+  dout.moe.ML.prob = nan(Nt_out,Nx);
+end
+
+if cfg.doa_seq && cfg.debug_plots
+  % These are for debugging only
+  bounds_l = NaN(Nt_out,2);
+  bounds_r = NaN(Nt_out,2);
+  mean_l   = NaN(Nt_out,1);
+  mean_r   = NaN(Nt_out,1);
+end
 %% Channel Equalization
 % =====================================================================
 for ml_idx = 1:length(din)
@@ -546,7 +625,7 @@ physical_constants; % c: speed of light
 
 % DOA Setup
 % -------------------------------------------------------------------------
-if cfg.method >= DOA_METHOD_THRESHOLD
+if any(cfg.method(cfg.method >= DOA_METHOD_THRESHOLD))
   doa_param.fc              = cfg.wfs.fc;
   doa_param.Nsrc            = cfg.Nsrc;
   doa_param.options         = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
@@ -573,7 +652,7 @@ end
 % -------------------------------------------------------------------------
 % The steering vector indices will be used in the max operation that is
 % used to determine dout.img.
-if cfg.method < DOA_METHOD_THRESHOLD
+if any(cfg.method(cfg.method < DOA_METHOD_THRESHOLD))
   dout_val_sv_idxs = find(theta >= cfg.theta_rng(1) & theta <= cfg.theta_rng(2));
   if isempty(dout_val_sv_idxs)
     [tmp dout_val_sv_idxs] = min(abs(theta-mean(cfg.theta_rng)));
@@ -585,6 +664,14 @@ end
 % First argument to sv_fh
 sv_fh_arg1 = {'theta'};
 sv_fh_arg1{2} = theta;
+
+% Set the output of any ignored image to NaN
+% -------------------------------------------------------------------------
+if ~isempty(cfg.ignored_img_idx) && (cfg.ignored_img_idx == param.array_proc.imgs{1}(1,1))
+  % Copy temporary outputs for first method to dout
+  dout = tout.(array_proc_method_str(cfg.method(1)));
+  return;
+end
 
 %% Array Processing
 % =========================================================================
@@ -679,18 +766,25 @@ for line_idx = 1:1:Nx_out
     keyboard
   end
   
-  %% Array: DOA rangeline varying parameters
-  if cfg.method >= DOA_METHOD_THRESHOLD
+  %% Array: DOA range line varying parameters
+  if any(cfg.method(cfg.method >= DOA_METHOD_THRESHOLD))
     doa_param.y_pc  = y_pos{1};
     doa_param.z_pc  = z_pos{1};
     doa_param.SV    = fftshift(sv{1},2);
   end
   
-  % Reference DoA to decide on the left and right portions of the
-  % surface. Should be passed  as a field in cfg
-  ref_doa = 0;
-  prev_doa = [-0.1 ; +0.1]*pi/180;
+  %  .range: Range vector. It may have negative values. So, better to ignore
+  %   those negative ranges (this is the difference between 'Time' and
+  %   'time' variables).
+  if cfg.doa_seq
+    cfg.range = c*cfg.wfs.time/2;
+    negative_range_idxs = find(cfg.range<0);
+    if ~isempty(negative_range_idxs) && cfg.bin_restriction.start_bin(rline)<max(negative_range_idxs)
+      cfg.bin_restriction.start_bin(rline) = max(negative_range_idxs)+1;
+    end
+  end
   
+  max_Nsrc = cfg.Nsrc; % For S-MAP
   bin_idxs = find(cfg.bins >= cfg.bin_restriction.start_bin(rline) & cfg.bins <= cfg.bin_restriction.stop_bin(rline));
   for bin_idx = bin_idxs(:).'
     %% Array: Array Process Each Bin
@@ -1002,10 +1096,10 @@ for line_idx = 1:1:Nx_out
           end
         end
         if cfg.Nsrc == 0
-          dout.doa(bin_idx,:,line_idx)     = NaN;
-          dout.cost(bin_idx,line_idx)      = NaN;
-          dout.hessian(bin_idx,:,line_idx) = NaN;
-          dout.power(bin_idx,:,line_idx)   = NaN;
+          tout.music_doa.tomo.doa(bin_idx,:,line_idx)     = NaN;
+          tout.music_doa.tomo.cost(bin_idx,line_idx)      = NaN;
+          tout.music_doa.tomo.hessian(bin_idx,:,line_idx) = NaN;
+          tout.music_doa.tomo.power(bin_idx,:,line_idx)   = NaN;
           continue
         end
         doa_param.Nsrc = cfg.Nsrc;
@@ -1058,506 +1152,600 @@ for line_idx = 1:1:Nx_out
         elseif doa(sig_i)>=0
           sig_idx = 2;
         end
-        dout.doa(bin_idx,sig_idx,line_idx)     = doa(sig_i);
-        dout.hessian(bin_idx,sig_idx,line_idx) = HESSIAN(sort_idxs(sig_i) + length(sort_idxs)*(sort_idxs(sig_i)-1));
-        dout.power(bin_idx,sig_idx,line_idx)   = P_hat(sig_i);
+        tout.music_doa.tomo.doa(bin_idx,sig_idx,line_idx)     = doa(sig_i);
+        tout.music_doa.tomo.hessian(bin_idx,sig_idx,line_idx) = HESSIAN(sort_idxs(sig_i) + length(sort_idxs)*(sort_idxs(sig_i)-1));
+        tout.music_doa.tomo.power(bin_idx,sig_idx,line_idx)   = P_hat(sig_i);
       end
-      dout.cost(bin_idx,line_idx) = Jval;
+      tout.music_doa.tomo.cost(bin_idx,line_idx) = Jval;
       %
-      %           dout.doa(bin_idx,:,line_idx)     = doa;
-      %           dout.cost(bin_idx,line_idx)      = Jval;
-      %           dout.hessian(bin_idx,:,line_idx) = diag(HESSIAN);
-      %           dout.power(bin_idx,:,line_idx)   = P_hat;
+      %           tout.tomo.music_doa.doa(bin_idx,:,line_idx)     = doa;
+      %           tout.tomo.music_doa.cost(bin_idx,line_idx)      = Jval;
+      %           tout.tomo.music_doa.hessian(bin_idx,:,line_idx) = diag(HESSIAN);
+      %           tout.tomo.music_doa.power(bin_idx,:,line_idx)   = P_hat;
       
     elseif any(cfg.method == MLE_METHOD)
       %% Array: MLE
       % See Wax, Alternating projection maximum likelihood estimation for
       % direction of arrival, TSP 1983?
-      dataSample  = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
-      dataSample  = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-      array_data  = dataSample.';
-      Rxx         = (1/size(array_data,2)) * (array_data * array_data');
-      doa_param.Rxx = Rxx; % put Rxx in doa_param (to pass to fminsearch)
-      
-      if isfield(cfg,'testing') && ~isempty(cfg.testing) && cfg.testing==1 ...
-          && isfield(cfg,'optimal_test') && ~isempty(cfg.optimal_test) && cfg.optimal_test==1
-        % MOE simulations
-        cfg.Nsig_new = cfg.Nsrc;
-      else
+        dataSample  = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
+        dataSample  = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+        array_data  = dataSample.';
+        Rxx         = (1/size(array_data,2)) * (array_data * array_data');
+        doa_param.Rxx = Rxx; % put Rxx in doa_param (to pass to fminsearch)
+        
+        %         cfg.Nsig_true = [];
         if 1 && isfield(cfg,'Nsig_true') && ~isempty(cfg.Nsig_true)
-          if cfg.Nsig_true(bin_idx,line_idx) > 2
-            cfg.Nsig_new = 2;
-          else
-            cfg.Nsig_new = cfg.Nsig_true(bin_idx,line_idx);
-          end
-        else
-          if cfg.Nsrc > 2
+          if cfg.Nsig_true(bin,line) > 2
             cfg.Nsrc = 2;
+          else
+            doa_param.Nsig = cfg.Nsig_true(bin,rline);
           end
-          cfg.Nsig_new = cfg.Nsrc;
-        end
-        cfg.Nsig_new = cfg.Nsrc;
-      end
-      if (cfg.Nsrc == 0) || ...
-          (isfield(cfg,'Nsig_true') && ~isempty(cfg.Nsig_true) && cfg.Nsig_true(bin_idx,line_idx) == 0)
-        dout.tomo.theta(bin_idx,:,line_idx) = NaN;
-        dout.tomo.cost(bin_idx,line_idx) = NaN;
-        dout.tomo.hessian(bin_idx,:,line_idx) = NaN;
-        dout.tomo.img(bin_idx,:,line_idx) = NaN;
-        continue
-      end
-      %           doa_param.Nsrc = cfg.Nsig_new;
-      
-      clear sources_number
-      % Determine the possible number of DoAs
-      % --------------------------------------
-      if (isfield(cfg,'testing') && ~isempty(cfg.testing) && cfg.testing==1) ...
-          || (~isfield(cfg,'testing'))
-        % Model order estimation: optimal
-        % ------------------------------
-        if isfield(cfg,'optimal_test') && ~isempty(cfg.optimal_test) && cfg.optimal_test==1
-          possible_Nsig_opt = [1 : max(cfg.Nsrc)];
         end
         
-        % Model order estimation: suboptimal
-        % ---------------------------------
-        if isfield(cfg,'suboptimal_test') && ~isempty(cfg.suboptimal_test) && cfg.suboptimal_test==1
-          % Determine the eigenvalues of Rxx
-          eigval = eig(Rxx);
-          eigval = sort(real(eigval),'descend');
-          
-          model_order_suboptimal_cfg.Nc         = Nc;
-          model_order_suboptimal_cfg.Nsnap      = size(array_data,2);
-          model_order_suboptimal_cfg.eigval     = eigval;
-          model_order_suboptimal_cfg.penalty_NT = cfg.penalty_NT;
-          
-          cfg_MOE.norm_term_suboptimal = cfg.norm_term_suboptimal;
-          cfg_MOE.norm_allign_zero     = cfg.norm_allign_zero;
-          model_order_suboptimal_cfg.cfg_MOE = cfg_MOE;
-          
-          sources_number_all = [];
-          for model_order_method = cfg.moe_methods
-            model_order_suboptimal_cfg.method  = model_order_method;
-            sources_number = sim.model_order_suboptimal(model_order_suboptimal_cfg);
-            
-            switch model_order_method
-              case 0
-                model_order_results_suboptimal.NT.Nest(bin_idx,line_idx)    = sources_number;
-              case 1
-                model_order_results_suboptimal.AIC.Nest(bin_idx,line_idx)   = sources_number;
-              case 2
-                model_order_results_suboptimal.HQ.Nest(bin_idx,line_idx)    = sources_number;
-              case 3
-                model_order_results_suboptimal.MDL.Nest(bin_idx,line_idx)   = sources_number;
-              case 4
-                model_order_results_suboptimal.AICc.Nest(bin_idx,line_idx)  = sources_number;
-              case 5
-                model_order_results_suboptimal.KICvc.Nest(bin_idx,line_idx) = sources_number;
-              case 6
-                model_order_results_suboptimal.WIC.Nest(bin_idx,line_idx)   = sources_number;
-              otherwise
-                error('Not supported')
-            end
-            sources_number_all(model_order_method+1) = sources_number;
-          end
-          
-          possible_Nsig_subopt = max(sources_number_all);
-          if possible_Nsig_subopt > cfg.Nsrc
-            possible_Nsig_subopt = cfg.Nsrc;
-          end
-          
+        if cfg.Nsrc == 0
+          tout.mle.tomo.theta(bin_idx,:,line_idx) = NaN;
+          tout.mle.tomo.cost(bin_idx,line_idx) = NaN;
+          tout.mle.tomo.hessian(bin_idx,:,line_idx) = NaN;
+          tout.mle.tomo.img(bin_idx,:,line_idx) = NaN;
+          continue
         end
-      end
-      
-      if exist('possible_Nsig_opt','var')
-        possible_Nsig = possible_Nsig_opt;
-      elseif exist('possible_Nsig_subopt','var')
-        possible_Nsig = possible_Nsig_subopt;
-      else
-        possible_Nsig = cfg.Nsig_new;
-      end
-      
-      % Estimate DoA for all possible number of targets
-      % -----------------------------------------------
-      doa_mle = [];
-      if ~isempty(possible_Nsig) && max(possible_Nsig) ~= 0
-        % Don't process zero-targets case, which can happen, upto this
-        % point, in the case of suboptimal MOE.
-        for Nsrc_idx = possible_Nsig
-          % Setup DOA Constraints
-          for src_idx = 1:Nsrc_idx
-            % Determine src_limits for each constraint
-            doa_res = doa_param.doa_constraints(src_idx);
-            switch (doa_res.method)
-              case 'surfleft' % Incidence angle to surface clutter on left
-                mid_doa(src_idx) = acos(cfg.surface(rline) / cfg.time(bin));
-              case 'surfright'% Incidence angle to surface clutter on right
-                mid_doa(src_idx) = -acos(cfg.surface(rline) / cfg.time(bin));
-              case 'layerleft'
-                table_doa   = [0:89.75]/180*pi;
-                table_delay = cfg.surface(rline) ./ cos(table_doa) ...
-                  + (doa_res.layer.twtt(rline)-cfg.surface(rline)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-                doa_res.layer.twtt(rline) = max(doa_res.layer.twtt(rline),cfg.surface(rline));
-                if cfg.time(bin) <= doa_res.layer.twtt(rline)
-                  mid_doa(src_idx) = 0;
-                else
-                  mid_doa(src_idx) = interp1(table_delay, table_doa, cfg.time(bin));
-                end
-              case 'layerright'
-                table_doa = [0:89.75]/180*pi;
-                table_delay = cfg.surface(rline) ./ cos(table_doa) ...
-                  + (doa_res.layer.twtt(rline)-cfg.surface(rline)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
-                doa_res.layer.twtt(rline) = max(doa_res.layer.twtt(rline),cfg.surface(rline));
-                if cfg.time(bin) <= doa_res.layer.twtt(rline)
-                  mid_doa(src_idx) = 0;
-                else
-                  mid_doa(src_idx) = -interp1(table_delay, table_doa, cfg.time(bin));
-                end
-              otherwise % 'fixed'
-                mid_doa(src_idx) = 0;
-            end
+        
+        % This is for S-MLE, if used
+        if cfg.doa_seq && ~exist('first_rbin_idx','var')
+          first_rbin_idx = bin;
+        end
+        
+        clear sources_number
+        % Determine the possible number of DoAs
+        % --------------------------------------
+        if cfg.moe_en && ((isfield(cfg,'testing') && ~isempty(cfg.testing) && cfg.testing) ...
+            || (~isfield(cfg,'testing')))
+          % Model order estimation: optimal
+          % ------------------------------
+          if isfield(cfg,'optimal_test') && ~isempty(cfg.optimal_test) && cfg.optimal_test
+            possible_Nsig_opt = [1 : max(cfg.Nsrc)];
           end
           
-          % Sequential MLE (S-MLE) section
-          % -----------------------------------------------------------
-          % Calculate current and next DoAs using the flat
-          % earth approximation. If not calculated, it still
-          % work as MLE, but not sequential MLE
-          
-          if cfg.doa_seq
-            % Prepare current and next DoAs uisng flat earth approximation
-            if bin_idx == first_bin_idx
-              tmp_doa = prev_doa;
-              doa_flat_earth_curr = prev_doa;
-              for doa_idx = 1:length(tmp_doa)
-                doa_flat_earth_next(doa_idx,1) = sign(prev_doa(doa_idx))*acos((R_bins_values(bin_idx)/R_bins_values(bin_idx+1)) * cos(prev_doa(doa_idx)));
-                if tmp_doa(doa_idx) < ref_doa
-                  % Left DoA
-                  sign_doa(doa_idx) = -1;
-                elseif tmp_doa(doa_idx) >= ref_doa
-                  % Right DoA
-                  sign_doa(doa_idx) = +1;
-                end
+          % Model order estimation: suboptimal
+          % ---------------------------------
+          if isfield(cfg,'suboptimal_test') && ~isempty(cfg.suboptimal_test) && cfg.suboptimal_test
+            % Determine the eigenvalues of Rxx
+            eigval = eig(Rxx);
+            eigval = sort(real(eigval),'descend');
+            
+            model_order_suboptimal_cfg.Nc         = Nc;
+            model_order_suboptimal_cfg.Nsnap      = size(array_data,2);
+            model_order_suboptimal_cfg.eigval     = eigval;
+            model_order_suboptimal_cfg.penalty_NT = cfg.penalty_NT;
+            model_order_suboptimal_cfg.Nsrc       = cfg.Nsrc;
+            
+            cfg_MOE.norm_term_suboptimal = cfg.norm_term_suboptimal;
+            cfg_MOE.norm_allign_zero     = cfg.norm_allign_zero;
+            model_order_suboptimal_cfg.param_MOE = cfg_MOE;
+            
+            sources_number_all = [];
+            for model_order_method = cfg.moe_methods
+              model_order_suboptimal_cfg.method  = model_order_method;
+              sources_number = sim.model_order_suboptimal(model_order_suboptimal_cfg);
+              
+              % If S-MAP is used, then force the first range-bin to have 2 targets in case it has 1.
+              if cfg.doa_seq && exist('first_rbin_idx','var') && (first_rbin_idx == bin) && (sources_number>0)
+                sources_number = 2;
               end
               
-            elseif bin_idx > first_bin_idx && bin_idx < Nt
-              good_doa_idx = find(prev_doa(~isnan(prev_doa)));
-              
-              tmp_doa = doa_flat_earth_curr;
-              tmp_doa(good_doa_idx) = prev_doa(good_doa_idx);
-              tmp_doa = sort(tmp_doa,'ascend');
-              for doa_idx = 1:length(tmp_doa)
-                if tmp_doa(doa_idx) < ref_doa
-                  % Left DoA
-                  sign_doa(doa_idx) = -1;
-                elseif tmp_doa(doa_idx) >= ref_doa
-                  % Right DoA
-                  sign_doa(doa_idx) = +1;
-                end
-                
-                doa_flat_earth_curr(doa_idx,1) = sign_doa(doa_idx)*acos((R_bins_values(bin_idx-1)/R_bins_values(bin_idx)) * cos(tmp_doa(doa_idx)));
-                doa_flat_earth_next(doa_idx,1) = sign_doa(doa_idx)*acos((R_bins_values(bin_idx-1)/R_bins_values(bin_idx+1)) * cos(tmp_doa(doa_idx)));
+              switch model_order_method
+                case 0
+                  model_order_results_suboptimal.NT.Nest(bin_idx,line_idx)    = sources_number;
+                case 1
+                  model_order_results_suboptimal.AIC.Nest(bin_idx,line_idx)   = sources_number;
+                case 2
+                  model_order_results_suboptimal.HQ.Nest(bin_idx,line_idx)    = sources_number;
+                case 3
+                  model_order_results_suboptimal.MDL.Nest(bin_idx,line_idx)   = sources_number;
+                case 4
+                  model_order_results_suboptimal.AICc.Nest(bin_idx,line_idx)  = sources_number;
+                case 5
+                  model_order_results_suboptimal.KICvc.Nest(bin_idx,line_idx) = sources_number;
+                case 6
+                  model_order_results_suboptimal.WIC.Nest(bin_idx,line_idx)   = sources_number;
+                otherwise
+                  error('Not supported')
               end
-              
-            elseif bin_idx == Nt
-              for doa_idx = 1:length(tmp_doa)
-                if tmp_doa(doa_idx) < ref_doa
-                  % Left DoA
-                  sign_doa(doa_idx) = -1;
-                elseif tmp_doa(doa_idx) > ref_doa
-                  % Right DoA
-                  sign_doa(doa_idx) = +1;
-                end
-                doa_flat_earth_curr(doa_idx,1) = sign_doa(doa_idx)*acos((R_bins_values(bin_idx-1)/R_bins_values(bin_idx)) * cos(tmp_doa(doa_idx)));
-                doa_flat_earth_next(doa_idx,1) = doa_flat_earth_curr(doa_idx,1) + delta_doa(doa_idx,1);
-              end
-              
-              tmp_doa = sort(tmp_doa,'ascend');
+              sources_number_all(model_order_method+1) = sources_number;
             end
             
-            % Change in DoA from current range-bin to the next
-            delta_doa = doa_flat_earth_next-doa_flat_earth_curr;
-            
-            % Upper and lower DoA bounds and initial DoA
-            mul_const = 2;
-            for doa_idx = 1:length(tmp_doa)
-              if sign_doa(doa_idx) == -1
-                % Left DoA
-                if bin_idx ~= first_bin_idx
-                  UB(doa_idx,1) = tmp_doa(doa_idx) + sign_doa(doa_idx)*doa_param.theta_guard; %0.5*pi/180;
-                else
-                  UB(doa_idx,1) = tmp_doa(doa_idx);
-                end
-                
-                mean_doa(doa_idx,1) = UB(doa_idx,1) + delta_doa(doa_idx,1);
-                
-                if 1
-                  LB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const*delta_doa(doa_idx,1);
-                elseif 0
-                  if abs(delta_doa(doa_idx,1)) < 5*pi/180
-                    LB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const*delta_doa(doa_idx,1)*pi/180;
+            possible_Nsig_subopt = max(sources_number_all);
+            if possible_Nsig_subopt > cfg.Nsrc
+              possible_Nsig_subopt = cfg.Nsrc;
+            end
+          end
+        end
+        
+        % Model order estimation: machine learning
+        % ----------------------------------------
+        if cfg.moe_en && (isfield(cfg,'moe_ml') && cfg.moe_ml)
+          possible_Nsig_ml = [1 : max(cfg.Nsrc)];
+        end
+        
+        if exist('possible_Nsig_opt','var')
+          possible_Nsig = possible_Nsig_opt;
+        elseif exist('possible_Nsig_subopt','var')
+          possible_Nsig = possible_Nsig_subopt;
+        elseif exist('possible_Nsig_ml','var')
+          possible_Nsig = possible_Nsig_ml;
+        else
+          possible_Nsig = cfg.Nsrc;
+        end
+        
+        % In case of S-MLE, the first range-bin MUST have 2 targets, one
+        % on each side of the surface
+        if cfg.doa_seq && ...
+            (exist('first_rbin_idx','var') && ~isempty(first_rbin_idx) && (bin == first_rbin_idx)) && ...
+            ((length(possible_Nsig)>1) || (possible_Nsig ~= 2))
+          possible_Nsig = 2;
+        end
+        
+        % Estimate DoA for all possible number of targets
+        % -----------------------------------------------
+        doa_mle = [];
+        if ~isempty(possible_Nsig) && max(possible_Nsig) ~= 0
+          % Don't process zero-targets case, which can happen, upto this
+          % point, in the case of suboptimal MOE.
+          for Nsrc_idx = possible_Nsig
+            % Setup DOA Constraints
+            for src_idx = 1:Nsrc_idx
+              % Determine src_limits for each constraint
+              doa_res = doa_param.doa_constraints(src_idx);
+              switch (doa_res.method)
+                case 'surfleft' % Incidence angle to surface clutter on left
+                  mid_doa(src_idx) = acos(cfg.surface(rline) / cfg.time(bin));
+                case 'surfright'% Incidence angle to surface clutter on right
+                  mid_doa(src_idx) = -acos(cfg.surface(rline) / cfg.time(bin));
+                case 'layerleft'
+                  table_doa   = [0:89.75]/180*pi;
+                  table_delay = cfg.surface(rline) ./ cos(table_doa) ...
+                    + (doa_res.layer.twtt(rline)-cfg.surface(rline)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+                  doa_res.layer.twtt(rline) = max(doa_res.layer.twtt(rline),cfg.surface(rline));
+                  if cfg.time(bin) <= doa_res.layer.twtt(rline)
+                    mid_doa(src_idx) = 0;
                   else
-                    LB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const/2*delta_doa(doa_idx,1);
+                    mid_doa(src_idx) = interp1(table_delay, table_doa, cfg.time(bin));
                   end
+                case 'layerright'
+                  table_doa = [0:89.75]/180*pi;
+                  table_delay = cfg.surface(rline) ./ cos(table_doa) ...
+                    + (doa_res.layer.twtt(rline)-cfg.surface(rline)) ./ cos(asin(sin(table_doa)/sqrt(er_ice)));
+                  doa_res.layer.twtt(rline) = max(doa_res.layer.twtt(rline),cfg.surface(rline));
+                  if cfg.time(bin) <= doa_res.layer.twtt(rline)
+                    mid_doa(src_idx) = 0;
+                  else
+                    mid_doa(src_idx) = -interp1(table_delay, table_doa, cfg.time(bin));
+                  end
+                otherwise % 'fixed'
+                  mid_doa(src_idx) = 0;
+              end
+            end
+            
+            % Sequential MAP (or S-MAP) section
+            % -----------------------------------------------------------
+            % Calculate current and next DoAs using the flat
+            % earth approximation. If not calculated, it still
+            % work as MLE, but not sequential MAP
+            
+            if cfg.doa_seq && ...
+                ((isfield(cfg,'Nsig_true') && ~isempty(cfg.Nsig_true)) || (exist('first_rbin_idx','var') && ~isempty(first_rbin_idx)))
+              curr_rng = cfg.range(bin);
+              
+              % Determine the 'adaptive' DOA bounds
+              if bin == first_rbin_idx
+                prev_rbin = first_rbin_idx;
+                prev_rng = cfg.range(prev_rbin);
+%                 first_rng = cfg.range(first_rbin_idx);
+                
+                for doa_idx = 1:Nsrc_idx %cfg.Nsig
+                  LB(doa_idx) = (mid_doa(doa_idx) ...
+                    + doa_param.doa_constraints(doa_idx).init_src_limits(1))*pi/180;%doa_param.src_limits{doa_idx}(1);
+                  UB(doa_idx) = (mid_doa(doa_idx) ...
+                    + doa_param.doa_constraints(doa_idx).init_src_limits(2))*pi/180;%doa_param.src_limits{doa_idx}(2);
                 end
                 
-                if UB(doa_idx,1)>ref_doa
-                  UB(doa_idx,1) = ref_doa;
+                if UB(1)>ref_doa
+                  UB(1) = ref_doa-0.5*pi/180;
                 end
                 
-                if LB(doa_idx,1)>UB(doa_idx,1)
-                  warning('Lower bound is greater than upper bound .. Consider loosening your DoA bounds')
-                  keyboard;
-                  % UB(doa_idx,1) = LB(doa_idx,1);
+                if LB(2)<ref_doa
+                  LB(2) = ref_doa+0.5*pi/180;
+                end
+                
+                if cfg.doa_seq && cfg.debug_plots
+                  % Debug
+                  bounds_l(bin_idx,:) = [LB(1) UB(1)]*180/pi;
+                  bounds_r(bin_idx,:) = [LB(2) UB(2)]*180/pi;
+                end
+                
+              elseif bin > first_rbin_idx && bin < Nt
+                prev_rng = cfg.range(prev_rbin);
+                
+                % Change in DoA from previouse range-bin to the current
+%                 doa_step_size = array_param.delta_theta(bin_idx);
+                
+                % Determine the 'adaptive' DOA bounds
+%                 doa_param.theta_guard = doa_step_size/8;
+                mu_L  = -acos((prev_rng/curr_rng)*cos(prev_doa(1)));
+                mu_R  = +acos((prev_rng/curr_rng)*cos(prev_doa(2)));
+                
+                doa_step_L = abs(mu_L-prev_doa(1));
+                doa_step_R = abs(mu_R-prev_doa(2));
+                
+                std_doa = [doa_step_L  doa_step_R].';
+                
+                a1 = 0.1;  % Keep this very close to 0, but not 0
+                p = [-0.5569    0.7878    0.0071]; % These from fitting a curve into some reasonable points
+                
+                UB(1) = prev_doa(1) - a1*doa_step_L;
+                LB(1) = mu_L - (p(1)*doa_step_L^2+p(2)*doa_step_L+p(3));
+                
+                LB(2) = prev_doa(2) + a1*doa_step_R;
+                UB(2) = mu_R + (p(1)*doa_step_R^2+p(2)*doa_step_R+p(3));
+                
+                if cfg.doa_seq && cfg.debug_plots
+                  % Debug
+                  bounds_l(bin_idx,:) = [LB(1) UB(1)]*180/pi;
+                  bounds_r(bin_idx,:) = [LB(2) UB(2)]*180/pi;
+                  mean_l(bin_idx,:)   = mu_L*180/pi;
+                  mean_r(bin_idx,:)   = mu_R*180/pi;
+                end
+                
+                % Set the number of grid points based on LB, UB, and Nc
+                My = 4;
+                N_theta = 2*floor(My*Nc/2);
+                search_rng = max(abs(abs(UB)-abs(LB)));
+                if search_rng >= 10*pi/180
+                  N_theta = ceil(N_theta/1);
+                elseif (search_rng >= 5*pi/180) && (search_rng < 10*pi/180)
+                  N_theta = ceil(N_theta/2);
+                elseif (search_rng > 1*pi/180) && (search_rng < 5*pi/180)
+                  N_theta = 5;
+                else
+                  N_theta = 1;
+                end
+                doa_param.theta = fftshift(linspace(min([LB UB]),max([LB UB]),N_theta));
+                
+              elseif bin == Nt
+                % Nothing to be done at this point
+              end
+              
+              % Choose the prior pdf (pdf of the DOA before taking
+              % measurements). There are Uniform (large variance) and
+              % Gaussian (small variance) only at this point. In both
+              % case you should pass in the variance (mean can be the same
+              % for both distributions).
+              if bin == first_rbin_idx
+                % Uniform a priri pdf (for initial state only)
+                doa_param.apriori.en = 0;
+                doa_param.doa_seq = 0;
+                mean_doa = NaN(max_Nsrc,1);
+                var_doa  = NaN(max_Nsrc,1);
+              else
+                % Gaussian a priori pdf (for all other states)
+                doa_param.apriori.en = 1;
+                doa_param.doa_seq = 1;
+                mean_doa = [mu_L  mu_R].';
+                var_doa = std_doa.^2;
+              end
+              
+              % Estimate the initial DOA, theta0
+              doa_param.Nsrc = Nsrc_idx;
+              if (Nsrc_idx < max_Nsrc) %|| ~(isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true))
+                % Case of 1/2 DOAs to 1 DOA
+                theta0 = NaN(max_Nsrc,1);
+                doa_param.src_limits = [];
+                for sig_i = 1:max_Nsrc
+                  if ~exist('LB','var')
+                    keyboard;
+                  end
+                  doa_param.src_limits{1} = [LB(sig_i)  UB(sig_i)];
+                  doa_param.apriori.mean_doa = mean_doa(sig_i);
+                  doa_param.apriori.var_doa  = var_doa(sig_i);
+                  theta0(sig_i) = mle_initialization(Rxx,doa_param);
                 end
               else
-                % Right DoA
-                if bin_idx ~= first_bin_idx
-                  LB(doa_idx,1) = tmp_doa(doa_idx) + sign_doa(doa_idx)*doa_param.theta_guard;%0.5*pi/180;
-                else
-                  LB(doa_idx,1) = tmp_doa(doa_idx);
+                % Case of 1/2 DOAs to 2 DOA
+                for src_idx = 1:Nsrc_idx %cfg.Nsrc
+                  doa_param.src_limits{src_idx} = [LB(src_idx)  UB(src_idx)];
                 end
                 
-                mean_doa(doa_idx,1) = LB(doa_idx,1) + delta_doa(doa_idx,1);
-                
-                if 1
-                  UB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const*delta_doa(doa_idx,1);
-                elseif 0
-                  if abs(delta_doa(doa_idx,1)) < 5*pi/180
-                    UB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const*delta_doa(doa_idx,1)*pi/180;
-                  else
-                    UB(doa_idx,1) = mean_doa(doa_idx,1) + mul_const/2*delta_doa(doa_idx,1);
-                  end
-                end
-                
-                if LB(doa_idx,1)<ref_doa
-                  LB(doa_idx,1) = ref_doa;
-                end
-                
-                if LB(doa_idx,1)>UB(doa_idx,1)
-                  warning('Lower bound is greater than upper bound .. Consider loosening your DoA bounds')
-                  keyboard;
+                doa_param.apriori.mean_doa = mean_doa;
+                doa_param.apriori.var_doa  = var_doa;
+                theta0 = mle_initialization(Rxx,doa_param);
+              end
+              
+              % If theta0 is outside the bounds, which could happen due to
+              % the bad choice of the grid points, set theta0 equal to the
+              % center point between LB and UB
+              
+              for doa_idx = 1:length(theta0)
+                if theta0(doa_idx) < LB(doa_idx) || theta0(doa_idx) > UB(doa_idx)
+                  theta0(doa_idx) = (LB(doa_idx) + UB(doa_idx))/2;
                 end
               end
             end
             
-            if 0
-              theta0 = mean_doa;
-              %                  theta0 = (LB+UB)./2;
-            elseif 1
-              % This needs to be checked more. It may lead to the case of LB > UB.
+            if ~exist('theta0','var')
+              % MLE
+              % Initialize search
               for src_idx = 1:Nsrc_idx %cfg.Nsrc
-                doa_param.src_limits{src_idx} = [LB(src_idx)  UB(src_idx)];
+                doa_param.src_limits{src_idx} = mid_doa(src_idx) ...
+                  + doa_param.doa_constraints(src_idx).init_src_limits/180*pi;
+                %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
               end
-              % doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
+              
+              %               doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
               doa_param.Nsrc = Nsrc_idx;
+              doa_param.doa_seq = 0;
               theta0 = mle_initialization(Rxx,doa_param);
             end
             
-            % Choose the a priri pdf (pdf of the DOA before taking
-            % measurements). There is Uniform and Gaussian only
-            % at this point. In both case you should pass in variance
-            % (mean is the same for both distributions).
-            if 1
-              % Gaussian a priori pdf: variance is small
-              var_doa = delta_doa.^2;
-            elseif 0
-              % Uniform a priori pdf: variance if large (e.g. 5 or 10)
-              var_doa = 10;
+            % Minimization of wb_cost_function
+            % -------------------------------------------------------------
+            if cfg.doa_seq ...
+                && ((isfield(cfg,'Nsig_true') && ~isempty(cfg.Nsig_true)) || (exist('first_active_doa','var') && ~all(isnan(first_active_doa))))
+              % In S-MAP, theta_guard is already part of the filter
+              doa_nonlcon_fh = [];
+            else
+              doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
             end
             
-            doa_param.apriori.mean_doa = mean_doa;
-            doa_param.apriori.var_doa  = var_doa;
-          end
-          
-          if ~exist('theta0','var')
-            % Initialize search
+            % Set source limits
+            lower_lim = zeros(Nsrc_idx,1);
+            upper_lim = zeros(Nsrc_idx,1);
             for src_idx = 1:Nsrc_idx %cfg.Nsrc
               doa_param.src_limits{src_idx} = mid_doa(src_idx) ...
-                + doa_param.doa_constraints(src_idx).init_src_limits/180*pi;
+                + doa_param.doa_constraints(src_idx).src_limits/180*pi;
               %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
+              lower_lim(src_idx) = doa_param.src_limits{src_idx}(1);
+              upper_lim(src_idx) = doa_param.src_limits{src_idx}(2);
             end
             
-            %                             doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
-            doa_param.Nsrc = Nsrc_idx;
-            theta0 = mle_initialization(Rxx,doa_param);
-          end
-          
-          % Minimization of wb_cost_function
-          % -------------------------------------------------------------
-          doa_nonlcon_fh = eval(sprintf('@(x) doa_nonlcon(x,%f);', doa_param.theta_guard));
-          % Set source limits
-          lower_lim = zeros(Nsrc_idx,1);
-          upper_lim = zeros(Nsrc_idx,1);
-          for src_idx = 1:Nsrc_idx %cfg.Nsrc
-            doa_param.src_limits{src_idx} = mid_doa(src_idx) ...
-              + doa_param.doa_constraints(src_idx).src_limits/180*pi;
-            %doa_param.src_limits{src_idx} = [-pi/2 pi/2]; % DEBUG
-            lower_lim(src_idx) = doa_param.src_limits{src_idx}(1);
-            upper_lim(src_idx) = doa_param.src_limits{src_idx}(2);
-          end
-          
-          if ~exist('LB','var') && ~exist('UB','var')
-            LB = lower_lim;
-            UB = upper_lim;
-          end
-          
-          doa = [];
-          if max(theta0)>max(UB)
-            keyboard;
-          end
-          
-          warning off;
-          if max(UB)<=max(upper_lim) && min(LB)>=min(lower_lim)
-            if cfg.doa_seq && Nsrc_idx == 1
-              % S-MLE is setup to handle 2 DOAs at a time (left and right)
-              % So, if there is one DOA, then choose the one that his
-              % lower cost (or larger log-likelihood)
-              for tmp_doa_idx = 1:length(tmp_doa)
-                doa_param.apriori.mean_doa = mean_doa(tmp_doa_idx);
-                doa_param.apriori.var_doa  = var_doa(tmp_doa_idx);
-                [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
-                  fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB(tmp_doa_idx),UB(tmp_doa_idx),doa_nonlcon_fh,doa_param.options);
-                
-                tmp_DOA(tmp_doa_idx) = doa;
-                tmp_cost(tmp_doa_idx) = Jval;
-              end
-              [~, best_doa_idx] = nanmin(tmp_cost);
-              doa = tmp_DOA(best_doa_idx);
-            else
-              [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
-                fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
+            if ~exist('LB','var') && ~exist('UB','var')
+              LB = lower_lim;
+              UB = upper_lim;
             end
             
-            if 0
-              % Set any repeated DoAs to NaN. Repeated DoAs makes
-              % the projection matrix non-invertible (i.e. all NaN)
-              doa_tol = 0.5*pi/180;
-              for doa_idx = 1:length(doa)
-                doa_diff = abs(doa(doa_idx)-doa);
-                rep_doa_idx = find(doa_diff<=doa_tol);
-                if length(rep_doa_idx) > 1
-                  doa(rep_doa_idx(2:end)) = NaN;
+            doa = [];
+            if max(theta0)>max(UB)
+              keyboard;
+            end
+            
+            warning off;
+            if max(UB)<=max(upper_lim) && min(LB)>=min(lower_lim)
+              if cfg.doa_seq ...
+                  && ((isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true)) || (exist('first_active_doa','var') && ~all(isnan(first_active_doa))))
+                % S-MLE
+                if Nsrc_idx < max_Nsrc
+                  % Unknown model order
+                  % S-MLE is setup to handle 2 DOAs at a time (left and right)
+                  % So, if there is one DOA, then choose the one that has
+                  % lower cost (or larger log-likelihood)
+                  tmp_DOA = [];
+                  tmp_cost = [];
+                  for tmp_doa_idx = 1:max_Nsrc % length(mean_doa)
+                    doa_param.apriori.mean_doa = mean_doa(tmp_doa_idx);
+                    doa_param.apriori.var_doa  = var_doa(tmp_doa_idx);
+                    
+                    [tmp_doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
+                      fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0(tmp_doa_idx),[],[],[],[],LB(tmp_doa_idx),UB(tmp_doa_idx),doa_nonlcon_fh,doa_param.options);
+                    
+                    tmp_DOA(tmp_doa_idx) = tmp_doa;
+                    tmp_cost(tmp_doa_idx) = Jval;
+                  end
+                  [~, best_doa_idx] = nanmin(tmp_cost);
+                  doa = tmp_DOA(best_doa_idx);
+                else
+                  % Known model order
+                  [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
+                    fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
                 end
+              else
+                % MLE
+                [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
+                  fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
+              end
+            else
+              if cfg.doa_seq ...
+                  && ((isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true)) || (exist('first_active_doa','var') && ~all(isnan(first_active_doa))))
+                % S-MLE
+                return;
+              else
+                % MLE
+                doa = NaN(Nsrc_idx,1);
+                HESSIAN = NaN(Nsrc_idx);
+                Jval = NaN;
               end
             end
+            
+            clear theta0 LB UB
+            
+            [doa,sort_idxs] = sort(doa);
+            
+            doa_mle{Nsrc_idx} = doa;
+            tmp_Hessian{Nsrc_idx} = HESSIAN;
+            tmp_Jval{Nsrc_idx} = Jval;
+          end
+        end
+        
+        % Model order estimation: machine learning
+        % ----------------------------------------
+        % MOE: Machine learning ...estimates the model order, model_order,
+        % with probability prob.
+        if cfg.moe_en && (isfield(cfg,'moe_ml') && cfg.moe_ml)
+          eigval  = sort(real(eig(Rxx)),'descend');
+          % model_order: estimated Nsrc
+          [model_order, prob] = moe_ml_array_proc(eigval);
+          
+          % If S-MAP is used, then force the first range-bin to have 2 targets in case it has 1.
+          if cfg.doa_seq && exist('first_rbin_idx','var') && (first_rbin_idx == bin) && (model_order>0)
+            model_order = 2;
+          end
+          
+          sources_number = model_order;
+          if model_order > 0
+            doa = doa_mle{model_order};
           else
-            %                             keyboard
-            doa = NaN(Nsrc_idx,1);
-            HESSIAN = NaN(Nsrc_idx);
-            Jval = NaN;
+            doa = NaN(cfg.Nsrc,1);
           end
-          
-          clear theta0 LB UB
-          
-          [doa,sort_idxs] = sort(doa);
-          
-          doa_mle{Nsrc_idx} = doa;
-          
+          dout.moe.ML.Nest(bin_idx,line_idx)       = sources_number;
+          dout.moe.ML.doa(bin_idx,:,line_idx)      = doa;
+          dout.moe.ML.est_prob(bin_idx,:,line_idx) = prob;
         end
-      end
-      
-      % MOHANAD: Model order estimation: optimal
-      % ----------------------------------------
-      if ~isempty(doa_mle) && isfield(cfg,'testing') && ~isempty(cfg.testing) && cfg.testing==1 ...
-          && isfield(cfg,'optimal_test') && ~isempty(cfg.optimal_test) && cfg.optimal_test==1
-        % Determine the eigenvalues and eigenvectors of Rxx
-        [eigvec,eigval] = eig(Rxx);
-        [eigval,index]  = sort(real(diag(eigval)),'descend');
-        eigvec          = eigvec(:,index);
         
-        model_order_optimal_cfg.Nc         = Nc;
-        model_order_optimal_cfg.Nsnap      = size(array_data,2);
-        model_order_optimal_cfg.eigval     = eigval;
-        model_order_optimal_cfg.eigvec     = eigvec;
-        model_order_optimal_cfg.penalty_NT_opt = cfg.penalty_NT_opt;
-        
-        cfg_MOE.norm_term_optimal = cfg.norm_term_optimal;
-        cfg_MOE.opt_norm_term     = cfg.opt_norm_term;
-        cfg_MOE.norm_allign_zero  = cfg.norm_allign_zero;
-        model_order_optimal_cfg.cfg_MOE  = cfg_MOE;
-        model_order_optimal_cfg.doa_mle    = doa_mle;
-        
-        model_order_optimal_cfg.y_pc  = doa_param.y_pc;
-        model_order_optimal_cfg.z_pc  = doa_param.z_pc;
-        model_order_optimal_cfg.fc    = cfg.fc;
-        
-        for model_order_method = cfg.moe_methods
-          model_order_optimal_cfg.method  = model_order_method;
+        % Model order estimation: optimal
+        % --------------------------------
+        if cfg.moe_en && ((~isempty(doa_mle)) && isfield(cfg,'testing') && ~isempty(cfg.testing) && cfg.testing ...
+            && isfield(cfg,'optimal_test') && ~isempty(cfg.optimal_test) && cfg.optimal_test)
+          % Determine the eigenvalues and eigenvectors of Rxx
+          [eigvec,eigval] = eig(Rxx);
+          [eigval,index]  = sort(real(diag(eigval)),'descend');
+          eigvec          = eigvec(:,index);
           
-          [sources_number,doa] = sim.model_order_optimal(model_order_optimal_cfg);
+          model_order_optimal_cfg.Nc         = Nc;
+          model_order_optimal_cfg.Nsnap      = size(array_data,2);
+          model_order_optimal_cfg.eigval     = eigval;
+          model_order_optimal_cfg.eigvec     = eigvec;
+          model_order_optimal_cfg.penalty_NT_opt = cfg.penalty_NT_opt;
           
-          switch model_order_method
-            case 0
-              dout.moe.NT.Nest(bin_idx,line_idx)    = sources_number;
-              dout.moe.NT.doa(bin_idx,:,line_idx)     = doa;
-            case 1
-              dout.moe.AIC.Nest(bin_idx,line_idx)   = sources_number;
-              dout.moe.AIC.doa(bin_idx,:,line_idx)    = doa;
-            case 2
-              dout.moe.HQ.Nest(bin_idx,line_idx)    = sources_number;
-              dout.moe.HQ.doa(bin_idx,:,line_idx)     = doa;
-            case 3
-              dout.moe.MDL.Nest(bin_idx,line_idx)   = sources_number;
-              dout.moe.MDL.doa(bin_idx,:,line_idx)    = doa;
-            case 4
-              dout.moe.AICc.Nest(bin_idx,line_idx)  = sources_number;
-              dout.moe.AICc.doa(bin_idx,:,line_idx)   = doa;
-            case 5
-              dout.moe.KICvc.Nest(bin_idx,line_idx) = sources_number;
-              dout.moe.KICvc.doa(bin_idx,:,line_idx)  = doa;
-            case 6
-              dout.moe.WIC.Nest(bin_idx,line_idx)   = sources_number;
-              dout.moe.WIC.doa(bin_idx,:,line_idx)    = doa;
-            otherwise
-              error('Not supported')
+          cfg_MOE.norm_term_optimal = cfg.norm_term_optimal;
+          cfg_MOE.opt_norm_term     = cfg.opt_norm_term;
+          cfg_MOE.norm_allign_zero  = cfg.norm_allign_zero;
+          model_order_optimal_cfg.param_MOE  = cfg_MOE;
+          model_order_optimal_cfg.doa_mle    = doa_mle;
+          
+          model_order_optimal_cfg.y_pc  = doa_param.y_pc;
+          model_order_optimal_cfg.z_pc  = doa_param.z_pc;
+          model_order_optimal_cfg.fc    = doa_param.fc;
+          
+          for model_order_method = cfg.moe_methods
+            model_order_optimal_cfg.method  = model_order_method;
+            
+            [sources_number,doa] = sim.model_order_optimal(model_order_optimal_cfg);
+            
+            % If S-MAP is used, then force the first range-bin to have 2 targets in case it has 1.
+            if cfg.doa_seq && exist('first_rbin_idx','var') && (first_rbin_idx == bin) && (sources_number>0)
+              sources_number = 2;
+              doa = doa_mle{sources_number};
+            end
+            
+            switch model_order_method
+              case 0
+                dout.moe.NT.Nest(bin_idx,line_idx)    = sources_number;
+                dout.moe.NT.doa(bin_idx,:,line_idx)     = doa;
+              case 1
+                dout.moe.AIC.Nest(bin_idx,line_idx)   = sources_number;
+                dout.moe.AIC.doa(bin_idx,:,line_idx)    = doa;
+              case 2
+                dout.moe.HQ.Nest(bin_idx,line_idx)    = sources_number;
+                dout.moe.HQ.doa(bin_idx,:,line_idx)     = doa;
+              case 3
+                dout.moe.MDL.Nest(bin_idx,line_idx)   = sources_number;
+                dout.moe.MDL.doa(bin_idx,:,line_idx)    = doa;
+              case 4
+                dout.moe.AICc.Nest(bin_idx,line_idx)  = sources_number;
+                dout.moe.AICc.doa(bin_idx,:,line_idx)   = doa;
+              case 5
+                dout.moe.KICvc.Nest(bin_idx,line_idx) = sources_number;
+                dout.moe.KICvc.doa(bin_idx,:,line_idx)  = doa;
+              case 6
+                dout.moe.WIC.Nest(bin_idx,line_idx)   = sources_number;
+                dout.moe.WIC.doa(bin_idx,:,line_idx)    = doa;
+              otherwise
+                error('MOE method is not supported')
+            end
           end
         end
-      end
-      
-      % Store the DOAs of maximum possible targets
-      %          dout.all_DOAs(bin_idx,:,line_idx) = doa_mle{end};
-      
-      if ~exist('sources_number','var')
-        sources_number = length(doa_mle) ;%cfg.Nsrc;
-      end
-      
-      if ~isempty(sources_number) && (sources_number ~= 0)
-        doa = doa_mle{sources_number};
-        % Apply pseudoinverse and estimate power for each source
-        Nsv2{1} = 'theta';
-        Nsv2{2} = doa(:)';
-        [~,A] = cfg.sv_fh(Nsv2,doa_param.fc,doa_param.y_pc,doa_param.z_pc);
-        %            k       = 4*pi*doa_param.fc/c;
-        %            A       = sqrt(1/length(doa_param.y_pc))*exp(1i*k*(doa_param.y_pc*sin(doa(:)).' - doa_param.z_pc*cos(doa(:)).'));
-        Weights = (A'*A)\A';
-        %         Weights         = inv(A'*A)*A';
-        S_hat           = Weights*array_data;
-        P_hat           = mean(abs(S_hat).^2,2);
-        warning on;
         
-        % This loop is to handle the case where Nsrc<Nsig_max
-        % (cfg.Nsrc)
-        for sig_i = 1:sources_number
-          % Negative/positive DOAs are on the left/right side of the surface
-          if doa(sig_i)<0
-            sig_idx = 1;
-          elseif doa(sig_i)>=0
-            sig_idx = 2;
-          end
-          dout.tomo.theta(bin_idx,sig_idx,line_idx)     = doa(sig_i);
-          dout.tomo.hessian(bin_idx,sig_idx,line_idx) = HESSIAN(sort_idxs(sig_i) + length(sort_idxs)*(sort_idxs(sig_i)-1));
-          dout.tomo.img(bin_idx,sig_idx,line_idx)   = P_hat(sig_i);
+        % Store the DOAs of maximum possible targets
+        %         dout.all_DOAs(bin_idx,:,line_idx) = doa_mle{end};
+        
+        if ~exist('sources_number','var')
+          sources_number = length(doa_mle) ;%cfg.Nsrc;
         end
-        dout.tomo.cost(bin_idx,line_idx) = Jval;
-      end
-      
-      if cfg.moe_en && all(~isnan(dout.moe.NT.doa(bin_idx,:,line_idx)))
-        prev_doa = dout.moe.NT.doa(bin_idx,:,line_idx);
-        prev_doa = sort(prev_doa(~isnan(prev_doa)),'ascend');
-      else
-        prev_doa = doa;
-      end
+        
+        if ~isempty(sources_number) && (sources_number ~= 0)
+          doa = doa_mle{sources_number};
+          HESSIAN = tmp_Hessian{sources_number};
+          Jval = tmp_Jval{sources_number};
+          % Apply pseudoinverse and estimate power for each source
+          Nsv2{1} = 'theta';
+          Nsv2{2} = doa(:)';
+          [~,A] = cfg.sv_fh(Nsv2,doa_param.fc,doa_param.y_pc,doa_param.z_pc);
+          %            k       = 4*pi*doa_param.fc/c;
+          %            A       = sqrt(1/length(doa_param.y_pc))*exp(1i*k*(doa_param.y_pc*sin(doa(:)).' - doa_param.z_pc*cos(doa(:)).'));
+          Weights = (A'*A)\A';
+          %           Weights         = inv(A'*A)*A';
+          S_hat           = Weights*array_data;
+          P_hat           = mean(abs(S_hat).^2,2);
+          warning on;
+          
+          if sources_number == 1
+            if doa <=0
+              sig_idx = 1;
+            else
+              sig_idx = 2;
+            end
+            tout.mle.tomo.theta(bin_idx,sig_idx,line_idx)   = doa;
+            tout.mle.tomo.hessian(bin_idx,sig_idx,line_idx) = HESSIAN;
+            tout.mle.tomo.img(bin_idx,sig_idx,line_idx)     = P_hat;
+            tout.mle.tomo.cost(bin_idx,line_idx)            = Jval;
+            
+          else
+            tout.mle.tomo.theta(bin_idx,:,line_idx)     = doa;
+            tout.mle.tomo.hessian(bin_idx,:,line_idx) = diag(HESSIAN);
+            tout.mle.tomo.img(bin_idx,:,line_idx)   = P_hat;
+            tout.mle.tomo.cost(bin_idx,line_idx)      = Jval;
+          end
+        end
+        
+        % These are for S-MLE, if used
+        prev_doa = double(tout.mle.tomo.theta(bin_idx,:,line_idx));
+        
+        % Reset if no DOAs were found in the first range-bin
+        if exist('first_rbin_idx','var') && (first_rbin_idx == bin) && all(isnan(prev_doa))
+          clear first_rbin_idx;
+        end
+        
+        if cfg.doa_seq && (sources_number > 0) ...
+            && ~(exist('first_active_doa','var') && ~all(isnan(first_active_doa)))
+          first_rbin_idx = bin; % For MOE
+          first_active_doa = double(tout.mle.tomo.theta(bin_idx,:,line_idx));
+          prev_active_doa = first_active_doa;
+          if sources_number == 1
+            first_active_doa(isnan(first_active_doa)) = -first_active_doa(~isnan(first_active_doa));
+          end
+          prev_active_rbin = bin;
+        end
+        
+        % For S-MAP:Update the previous DoA based on either the DoA of the
+        % previous state (if available) or approximate flat surface assumption.
+        if cfg.doa_seq && ...
+            ((isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true)) || (exist('first_active_doa','var') && ~all(isnan(first_active_doa)))) && ...
+            (bin > first_rbin_idx && bin < Nt )
+          prev_active_rng = cfg.range(prev_active_rbin);
+          if all(isnan(prev_doa))
+            % Both NaN
+            prev_doa(1) = -acos(prev_active_rng/curr_rng * cos(prev_active_doa(1)));
+            prev_doa(2) = +acos(prev_active_rng/curr_rng * cos(prev_active_doa(2)));
+          elseif isnan(prev_doa(1))
+            % No left DOA
+            prev_doa(1) = -acos(prev_active_rng/curr_rng * cos(prev_active_doa(1)));
+          elseif isnan(prev_doa(2))
+            % No right DOA
+            prev_doa(2) = +acos(prev_active_rng/curr_rng * cos(prev_active_doa(2)));
+          end
+          prev_active_doa = prev_doa;
+          prev_active_rbin = bin;
+        end
+        
+        prev_rbin = bin;
       
       if 0
         %% Array MLE: DEBUG code to plot cost function
@@ -1601,15 +1789,15 @@ for line_idx = 1:1:Nx_out
       if 0
         %% Array MLE: DEBUG code for bin restriction
         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
-        hist_poly = polyfit(hist_bins,dout.tomo.theta(hist_bins,line_idx-1),2);
-        plot(hist_bins,dout.tomo.theta(hist_bins,line_idx-1),'.');
+        hist_poly = polyfit(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),2);
+        plot(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),'.');
         hist_val = polyval(hist_poly,hist_bins);
         hold on;
         plot(hist_bins, hist_val,'r');
         hold off;
         
         hist_bins = dout.bin_restriction.start_bin(rline)+(150:1700).';
-        hist3([ hist_bins, dout.tomo.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
+        hist3([ hist_bins, tout.tomo.mle.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
         set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
       end
       
@@ -1825,23 +2013,23 @@ for line_idx = 1:1:Nx_out
       P_hat = mean(abs(S_hat).^2,2);
       
       % Collect outputs
-      dout.tomo.theta(bin_idx,:,line_idx)      = doa;
-      dout.tomo.cost(bin_idx,line_idx)       = Jval;
-      dout.tomo.hessian(bin_idx,:,line_idx)  = diag(HESSIAN); % Not available with fminsearch
-      dout.tomo.img(bin_idx,:,line_idx)    = P_hat;
+      tout.dcm.tomo.theta(bin_idx,:,line_idx)      = doa;
+      tout.dcm.tomo.cost(bin_idx,line_idx)       = Jval;
+      tout.dcm.tomo.hessian(bin_idx,:,line_idx)  = diag(HESSIAN); % Not available with fminsearch
+      tout.dcm.tomo.img(bin_idx,:,line_idx)    = P_hat;
       
       if 0
         %% Array DCM: DEBUG code for bin restriction
         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
-        hist_poly = polyfit(hist_bins,dout.tomo.theta(hist_bins,line_idx-1),2);
-        plot(hist_bins,dout.tomo.theta(hist_bins,line_idx-1),'.');
+        hist_poly = polyfit(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),2);
+        plot(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),'.');
         hist_val = polyval(hist_poly,hist_bins);
         hold on;
         plot(hist_bins, hist_val,'r');
         hold off;
         
         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:1700).';
-        hist3([ hist_bins, dout.tomo.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
+        hist3([ hist_bins, tout.tomo.dcm.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
         set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
       end
       
@@ -1984,10 +2172,10 @@ for line_idx = 1:1:Nx_out
         fmincon(@(theta_hat) wbmle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,[],doa_param.options);
       
       % Collect outputs
-      dout.tomo.theta(bin_idx,:,line_idx)  = doa;
-      dout.tomo.cost(bin_idx,line_idx)   = Jval;
+      tout.tomo.dcm.theta(bin_idx,:,line_idx)  = doa;
+      tout.tomo.dcm.cost(bin_idx,line_idx)   = Jval;
       %dout.func_counts(bin_idx,line_idx)  = OUTPUT.funcCount;
-      dout.tomo.hessian(bin_idx,:,line_idx)  = diag(HESSIAN);
+      tout.tomo.dcm.hessian(bin_idx,:,line_idx)  = diag(HESSIAN);
       
       % Apply pseudoinverse and estimate power for each source
       P_hat = 0;
@@ -1998,7 +2186,7 @@ for line_idx = 1:1:Nx_out
         S_hat   = Weights*array_data.';
         P_hat   = P_hat + mean(abs(S_hat).^2,2);
       end
-      dout.tomo.img(bin_idx,:,line_idx)  = P_hat;
+      tout.tomo.dcm.img(bin_idx,:,line_idx)  = P_hat;
     end
   end
   
@@ -2035,8 +2223,9 @@ for line_idx = 1:1:Nx_out
       end
     else
       % DOA Methods
-      [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(tout.(m).tomo.img .* ...
-        (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta >= cfg.theta_rng(2)),[],2);
+      dout_img = tout.(m).tomo.img .* ...
+        (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
+      [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
       tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
     end
   end
@@ -2081,10 +2270,73 @@ for line_idx = 1:1:Nx_out
   end
   
   for idx = 1:length(cfg.method)
-    m = array_proc_method_str(cfg.method(idx));
-    Sarray.(m) = reshape(Sarray.(m),Nsv,Nt_out);
+    if cfg.method(idx) < DOA_METHOD_THRESHOLD
+      m = array_proc_method_str(cfg.method(idx));
+      Sarray.(m) = reshape(Sarray.(m),Nsv,Nt_out);
+    end
+  end
+  
+  if 0 && any(cfg.method(cfg.method == MUSIC_METHOD)) && any(cfg.method(cfg.method == MLE_METHOD))
+    % Debug: plot MUSIC and MLE results 
+    figure(999);clf;
+    imagesc(tout.music.tomo.theta*180/pi,1:size(tout.music.tomo.img,1),10*log10(abs(tout.music.tomo.img(:,:,1))))
+    hold on
+    plot(tout.mle.tomo.theta(:,1,1)*180/pi,1:size(tout.mle.tomo.theta,1),'*y')
+    plot(tout.mle.tomo.theta(:,2,1)*180/pi,1:size(tout.mle.tomo.theta,1),'*r')
+    
+    xlabel('Est. DOA (degrees)')
+    ylabel('Range-bin')
+%     title(sprintf('MUSIC beamformer vs MLE estimator'))
+    title(sprintf('MUSIC beamformer vs MLE estimator (No MOE)'))
+    legend('MLE: DOA 1','MLE: DOA 2')
   end
 end
 
 % Copy temporary outputs for first method to dout
 dout = tout.(array_proc_method_str(cfg.method(1)));
+
+% Save: for simulation 
+if cfg.moe_simulator_en
+  cfg.theta = theta;
+  
+  if isfield(cfg,'testing') && ~isempty(cfg.testing) && cfg.testing ...
+      && isfield(cfg,'optimal_test') && ~isempty(cfg.optimal_test) && cfg.optimal_test
+    % Already saved
+    %       dout.moe = dout.moe;
+  else
+    dout.moe.NT.Nest    = -999*ones(bin_idx,line_idx);
+    dout.moe.AIC.Nest   = -999*ones(bin_idx,line_idx);
+    dout.moe.HQ.Nest    = -999*ones(bin_idx,line_idx);
+    dout.moe.MDL.Nest   = -999*ones(bin_idx,line_idx);
+    dout.moe.AICc.Nest  = -999*ones(bin_idx,line_idx);
+    dout.moe.KICvc.Nest = -999*ones(bin_idx,line_idx);
+    dout.moe.WIC.Nest   = -999*ones(bin_idx,line_idx);
+  end
+  dout.moe.optimal = dout.moe;
+  
+  if isfield(cfg,'testing') && ~isempty(cfg.testing) && cfg.testing ...
+      && isfield(cfg,'suboptimal_test') && ~isempty(cfg.suboptimal_test) && cfg.suboptimal_test
+    % Already saved
+    %       dout.model_order_results_suboptimal = model_order_results_suboptimal;
+  else
+    model_order_results_suboptimal.NT.Nest    = -999*ones(bin_idx,line_idx);
+    model_order_results_suboptimal.AIC.Nest   = -999*ones(bin_idx,line_idx);
+    model_order_results_suboptimal.HQ.Nest    = -999*ones(bin_idx,line_idx);
+    model_order_results_suboptimal.MDL.Nest   = -999*ones(bin_idx,line_idx);
+    model_order_results_suboptimal.AICc.Nest  = -999*ones(bin_idx,line_idx);
+    model_order_results_suboptimal.KICvc.Nest = -999*ones(bin_idx,line_idx);
+    model_order_results_suboptimal.WIC.Nest   = -999*ones(bin_idx,line_idx);
+  end
+  dout.moe.suboptimal = model_order_results_suboptimal;
+end
+
+if 0
+% Debug plots for S-MAP
+figure
+plot(tout.mle.tomo.theta(:,1,line_idx)*180/pi,1:size(tout.mle.tomo.theta(:,1,line_idx),1),'-*b')
+hold on
+plot(tout.mle.tomo.theta(:,2,line_idx)*180/pi,1:size(tout.mle.tomo.theta(:,2,line_idx),1),'-*r')
+set(gca,'YDir','reverse')
+grid on
+end
+
