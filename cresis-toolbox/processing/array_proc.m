@@ -227,6 +227,11 @@ if ~isfield(param.array,'doa_theta_guard') || isempty(param.array.doa_theta_guar
   param.array.doa_theta_guard = 1.5;
 end
 
+% doa_theta_guard is needed only in the first range-bin if S-MAP is used.
+if param.array.doa_seq && param.array.doa_theta_guard > 0.5
+  param.array.doa_theta_guard = 1;
+end
+
 % .method
 %   String or integer array containing each method to run. Note that only
 %   one beam forming and one DOA method can be output so enabling multiple
@@ -784,6 +789,7 @@ for line_idx = 1:1:Nx_out
     end
   end
   
+  clear first_rbin_idx
   max_Nsrc = cfg.Nsrc; % For S-MAP
   bin_idxs = find(cfg.bins >= cfg.bin_restriction.start_bin(rline) & cfg.bins <= cfg.bin_restriction.stop_bin(rline));
   for bin_idx = bin_idxs(:).'
