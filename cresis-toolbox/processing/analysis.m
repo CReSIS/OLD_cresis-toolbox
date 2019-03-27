@@ -141,6 +141,8 @@ for cmd_idx = 1:length(param.analysis.cmd)
   end
   cmd.method = lower(cmd.method);
   switch cmd.method
+    case {'burst_noise'}
+      %
     case {'coh_noise'}
       % Set defaults for coherent noise analysis method
       
@@ -181,8 +183,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.threshold_removeDC = false;
       end
       
-    case {'burst_noise'}
-      %
     case {'qlook'}
       %
     case {'saturation'}

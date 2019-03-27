@@ -27,7 +27,6 @@ fprintf('=====================================================================\n
 if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
   param.collate_coh_noise.cmd_idx = 1;
 end
-cmd = param.analysis.cmd{param.collate_coh_noise.cmd_idx};
 
 if ~isfield(param.collate_coh_noise,'debug_plots') || isempty(param.collate_coh_noise.debug_plots)
   param.collate_coh_noise.debug_plots = {};
@@ -64,10 +63,6 @@ end
 
 if ~isfield(param.collate_coh_noise,'method') || isempty(param.collate_coh_noise.method)
   param.collate_coh_noise.method = 'dft';
-end
-
-if ~isfield(cmd,'min_samples') || isempty(cmd.min_samples)
-  cmd.min_samples = 0.5*cmd.block_ave;
 end
 
 if ~isfield(param.collate_coh_noise,'out_dir') || isempty(param.collate_coh_noise.out_dir)
@@ -111,6 +106,11 @@ for img = param.collate_coh_noise.imgs
     fn = fullfile(fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Loading %s (%s)\n', fn, datestr(now));
     noise = load(fn);
+    
+    cmd = noise.param_analysis.analysis.cmd{param.collate_coh_noise.cmd_idx};
+    if ~isfield(cmd,'min_samples') || isempty(cmd.min_samples)
+      cmd.min_samples = 0.5*cmd.block_ave;
+    end
     
     % Each processed block has a constant start and stop bin, but between
     % blocks the start/stop range bin may change.
@@ -356,6 +356,10 @@ for img = param.collate_coh_noise.imgs
       ylim(h_axes(5),param.collate_coh_noise.threshold_ylims);
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
+      fig_fn_dir = fileparts(fig_fn);
+      if ~exist(fig_fn_dir,'dir')
+        mkdir(fig_fn_dir);
+      end
       saveas(h_fig(5),fig_fn);
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
