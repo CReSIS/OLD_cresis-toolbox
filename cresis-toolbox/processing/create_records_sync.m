@@ -153,6 +153,9 @@ if any(param.records.file.version == [9 10 103 412])
   radar_time = double(records.raw.rel_time_cntr_latch)/param.records.file.clk;
   comp_time = [];
 
+elseif any(param.records.file.version == [413])
+  %% Align/UTUA RDS: Nothing required
+  
 else
   %% Align/CReSIS: Create output EPRI vector
   min_epri = inf;
@@ -252,6 +255,7 @@ end
 %% Correct radar time with EPRI
 % ===================================================================
 if any(param.records.file.version == [9 10 103 412])
+  %% Radar time: Arena
   epri_time = epri/param.radar.prf;
   radar_time_error = epri_time - radar_time;
   epri_time = epri_time - median(radar_time_error);
@@ -278,7 +282,15 @@ if any(param.records.file.version == [9 10 103 412])
   
   radar_time(bad_idxs) = epri_time(bad_idxs);
   
+elseif any(param.records.file.version == [413])
+  %% Radar time: UTUA RDS
+  % Nothing to be done
+  board_idx = 1;
+  radar_time = board_hdrs{board_idx}.gps_time;
+  comp_time = [];
+  
 elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 407 408])
+  %% Radar time: CReSIS
  
   if 0
     % Test sequences

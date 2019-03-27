@@ -12,8 +12,8 @@ function param = default_radar_params_2018_Alaska_SO_rds
 param.season_name = '2018_Alaska_SO';
 param.radar_name = 'rds';
 
+param.config.field_time_gap = 'gps_time';
 param.config.file.version = 413;
-param.config.file.prefix = '';
 param.config.file.suffix = '.tdms';
 param.config.max_time_gap = 10;
 param.config.min_seg_size = 1;
@@ -43,10 +43,10 @@ default.cmd.qlook = 1;
 default.cmd.generic = 1;
 
 %% Records worksheet
-default.records.gps.time_offset = 1;
+default.records.gps.time_offset = 0;
 default.records.file.adcs = [1 2];
 default.records.frames.mode = 1;
-default.records.frames.geotiff_fn = fullfile('alaska','Landsat-7','Alaska_90m.tif');
+default.records.frames.geotiff_fn = 'alaska/Landsat-7/Alaska_90m.tif';
 
 %% Qlook worksheet
 default.qlook.out_path = '';

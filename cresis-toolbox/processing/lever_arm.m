@@ -342,6 +342,36 @@ if (strcmpi(param.season_name,'2019_Greenland_P3') && any(strcmpi(gps_source,{'A
   %  Matt Linkswiler 20130923: Just to clarify, the position information (lat, lon, alt) is referenced to the GPS antenna.  The intertial measurements (pitch, roll, heading) are measured at the IMU sensor (directly attached to our T3 lidar below the floorboard, approximately 1m aft and 3m below the GPS antenna).
   %  Matt Linkswiler 20140306: Personal conversation verified that antenna position is not changing.
   %  Kyle Krabill 20180606: Email confirming antenna position not changed. IMU is from T6, near the middle of the aircraft, not the aft port
+  %
+  % For 2019 Greenland P3 only we have 3 other GPS/IMU units available. The
+  % GPS antenna is the same, but the IMU lever arm from the GPS antenna to
+  % each of the 3 IMU's is:
+  % 
+  % Linkswiler, Matthew A. <matthew.a.linkswiler@nasa.gov> Notes:
+  % We measured from the bottom of the ATM GPS antenna connector to the top
+  % of the floorboard (at the X marked on top of the floorboard) to be
+  % 238cm.
+  % We have also estimated the phase center of the GPS antenna (as
+  % installed on the P3) to be 3.63cm above the bottom of the GPS antenna
+  % connector, if you want to incorporate that as well.  We will be making
+  % more measurements to repeat this measurement tomorrow, but probably
+  % won’t have those results for a month or so…this estimate is probably
+  % close enough.
+  %
+  % John Paden notes:
+  % Lever arm offset from GPS antenna to the reference point on the GPS/IMU
+  % plate:
+  % Vertical offset: IMUs are 2.38+0.0363 - (11+8.5/16)*0.0254 = 2.1234 under GPS
+  % Cross-track offset: IMUs are (15+15/16 - 2.5)*0.0254 = 0.3413 right/starboard of GPS
+  % Along-track offset: IMUs are (75+13/16 - 10)*0.0254 = 1.6716 foreward of GPS
+  %
+  % Aaron Paden notes:
+  % Lever arm offsets from the reference point on the GPS/IMU plate to each
+  % of the individual IMUs:
+  % Novatel IMU-CPT:
+  % Applanix APX-15:
+  % Vector Nav:
+
   gps.x = -752.75*0.0254;
   gps.y = 0*0.0254;
   gps.z = -217.4*0.0254;
