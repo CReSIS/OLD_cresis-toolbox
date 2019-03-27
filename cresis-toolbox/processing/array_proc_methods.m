@@ -2,6 +2,7 @@
 %
 % Script with the integer equivalents of each method
 
+% Beamformer Methods
 STANDARD_METHOD = 0;
 MVDR_METHOD = 1;
 MVDR_ROBUST_METHOD = 2;
@@ -9,15 +10,10 @@ MUSIC_METHOD = 3;
 EIG_METHOD = 4;
 RISR_METHOD = 5;
 GEONULL_METHOD = 6;
-<<<<<<< HEAD
-DOA_METHOD_THRESHOLD = 1000;
-MUSIC_DOA_METHOD = 1003;
-MLE_METHOD = 1007;
-DCM_METHOD = 1008;
-PF_METHOD = 1009;
-=======
+
+% DOA Methods
 DOA_METHOD_THRESHOLD = 2^16;
 MUSIC_DOA_METHOD = 2^16 + 3;
 MLE_METHOD = 2^16 + 7;
 DCM_METHOD = 2^16 + 8;
->>>>>>> aaf9eacbaee3424cbb050682e32bcfce101b42bd
+PF_METHOD = 2^16 + 9;
