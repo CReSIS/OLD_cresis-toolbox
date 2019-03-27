@@ -402,7 +402,7 @@ end
 %   form the dout.img matrix. Each dout.img pixel represents the maximum
 %   value between theta_rng(1) and theta_rng(2) for that pixel.
 if ~isfield(param.array,'theta_rng') || isempty(param.array.theta_rng)
-  param.array.theta_rng = [-90 90]*pi/180;
+  param.array.theta_rng = [0 0];
 end
 
 % .tomo_en:
@@ -625,7 +625,7 @@ physical_constants; % c: speed of light
 
 % DOA Setup
 % -------------------------------------------------------------------------
-if any(cfg.method(cfg.method >= DOA_METHOD_THRESHOLD))
+if any(cfg.method >= DOA_METHOD_THRESHOLD)
   doa_param.fc              = cfg.wfs.fc;
   doa_param.Nsrc            = cfg.Nsrc;
   doa_param.options         = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
@@ -652,7 +652,7 @@ end
 % -------------------------------------------------------------------------
 % The steering vector indices will be used in the max operation that is
 % used to determine dout.img.
-if any(cfg.method(cfg.method < DOA_METHOD_THRESHOLD))
+if any(cfg.method < DOA_METHOD_THRESHOLD)
   dout_val_sv_idxs = find(theta >= cfg.theta_rng(1) & theta <= cfg.theta_rng(2));
   if isempty(dout_val_sv_idxs)
     [tmp dout_val_sv_idxs] = min(abs(theta-mean(cfg.theta_rng)));
@@ -767,7 +767,7 @@ for line_idx = 1:1:Nx_out
   end
   
   %% Array: DOA range line varying parameters
-  if any(cfg.method(cfg.method >= DOA_METHOD_THRESHOLD))
+  if any(cfg.method >= DOA_METHOD_THRESHOLD)
     doa_param.y_pc  = y_pos{1};
     doa_param.z_pc  = z_pos{1};
     doa_param.SV    = fftshift(sv{1},2);
@@ -1157,11 +1157,6 @@ for line_idx = 1:1:Nx_out
         tout.music_doa.tomo.power(bin_idx,sig_idx,line_idx)   = P_hat(sig_i);
       end
       tout.music_doa.tomo.cost(bin_idx,line_idx) = Jval;
-      %
-      %           tout.tomo.music_doa.doa(bin_idx,:,line_idx)     = doa;
-      %           tout.tomo.music_doa.cost(bin_idx,line_idx)      = Jval;
-      %           tout.tomo.music_doa.hessian(bin_idx,:,line_idx) = diag(HESSIAN);
-      %           tout.tomo.music_doa.power(bin_idx,:,line_idx)   = P_hat;
       
     elseif any(cfg.method == MLE_METHOD)
       %% Array: MLE
@@ -2331,12 +2326,12 @@ if cfg.moe_simulator_en
 end
 
 if 0
-% Debug plots for S-MAP
-figure
-plot(tout.mle.tomo.theta(:,1,line_idx)*180/pi,1:size(tout.mle.tomo.theta(:,1,line_idx),1),'-*b')
-hold on
-plot(tout.mle.tomo.theta(:,2,line_idx)*180/pi,1:size(tout.mle.tomo.theta(:,2,line_idx),1),'-*r')
-set(gca,'YDir','reverse')
-grid on
+  % Debug plots for S-MAP
+  figure
+  plot(tout.mle.tomo.theta(:,1,line_idx)*180/pi,1:size(tout.mle.tomo.theta(:,1,line_idx),1),'-*b')
+  hold on
+  plot(tout.mle.tomo.theta(:,2,line_idx)*180/pi,1:size(tout.mle.tomo.theta(:,2,line_idx),1),'-*r')
+  set(gca,'YDir','reverse')
+  grid on
 end
 
