@@ -39,11 +39,14 @@ if ~strcmpi(obj.cur_map_pref_settings.mapzone,obj.map_pref.settings.mapzone)
 else
   mapzone_changed = false;
 end
-
-if ~system_changed && ~seasons_changed && ~mapname_changed && ~mapzone_changed && ~flightlines_changed
+if ~system_changed && ~seasons_changed && ~mapname_changed && ~mapzone_changed && ~flightlines_changed 
   % get_map only needs to update source and layers potentially
   obj.cur_map_pref_settings.sources = obj.map_pref.settings.sources;
   obj.cur_map_pref_settings.layers = obj.map_pref.settings.layers;
+  %
+  obj.cur_map_pref_settings.LayerSource = obj.map_pref.settings.LayerSource;
+  obj.cur_map_pref_settings.layerDataSource = obj.map_pref.settings.layerDataSource;
+  %
   return;
 end
 

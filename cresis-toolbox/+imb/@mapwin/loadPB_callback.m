@@ -76,21 +76,27 @@ else
   obj.echowin_maps(echo_idx).h_text = text(0, 0, '', 'parent', obj.map_panel.h_axes);
 end
 
-% Draw the echo class in the selected echowin
+%  Draw the echo class in the selected echowin
 param.sources = obj.cur_map_pref_settings.sources;
 param.layers = obj.cur_map_pref_settings.layers;
+ix = strfind(obj.cur_sel.frame_name,'_');
+obj.cur_sel.day_seg = obj.cur_sel.frame_name(1:ix(2)-1);
 param.cur_sel = obj.cur_sel;
 param.cur_sel.location = obj.cur_map_pref_settings.mapzone;
 param.cur_sel.radar_name = obj.cur_map_pref_settings.system;  % hack for ct_filename_out to work
 param.system = obj.cur_map_pref_settings.system;
-try
-  obj.echowin_list(echo_idx).draw(param);
-catch ME
-  % Draw failed... close echo window and report error
-  obj.close_echowin(obj.echowin_list(echo_idx));
-  set(obj.h_fig,'Pointer','Arrow');
-  rethrow(ME);
-end
+% %
+param.LayerSource = obj.cur_map_pref_settings.LayerSource;
+param.layerDataSource = obj.cur_map_pref_settings.layerDataSource;
+% %
+% try
+%   obj.echowin_list(echo_idx).draw(param);
+% catch ME
+%   % Draw failed... close echo window and report error
+%   obj.close_echowin(obj.echowin_list(echo_idx));
+%   set(obj.h_fig,'Pointer','Arrow');
+%   rethrow(ME);
+% end
 
 %-------------------------------------------------------------------------
 %% Create link between the echowin and undo_stack list
@@ -107,10 +113,43 @@ for stack_idx = 1:length(obj.undo_stack_list)
     break;
   end
 end
+  frames_fn = ct_filename_support(param.cur_sel,'','frames');
+  load(frames_fn); % loads "frames" variable
+  num_frm = length(frames.frame_idxs);
+  param.layer = [];
+  param.frame = [];
+  param.gps_time = [];
+  param.twtt = [];
+  param.frame_idxes = [];
+  %param.layer_id = 
+  %len = 0;
+  for idx = 1:num_frm
+    id=[];
+    ids = [];
+    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layerDataSource,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,idx));
+    lay = load(layer_fn);
+    param.layer = cat(2, param.layer, lay);
+    param.gps_time = cat(2,param.gps_time,lay.GPS_time);
+    for val = 1:length(lay.GPS_time)
+      id(val) = idx; 
+    end
+    param.frame = cat(2, param.frame, id);
+    for inc = 1:length(lay.GPS_time)
+      ids(inc)=inc;
+    end
+    param.frame_idxes = cat(2,param.frame_idxes,ids);
+  end
+ 
+% idx = 0;
+% for x = 1:num_frm
+%   idx = idx+length(lay.GPS_time);
+% end
+% param.point_path_id = [1:idx];
 
 if isempty(match_idx)
   % An undo stack does not exist for this system-segment pair, so create a
   % new undo stack
+ 
   param.id = {obj.cur_map_pref_settings.system obj.cur_sel.segment_id};
   obj.undo_stack_list(end+1) = imb.undo_stack(param);
   match_idx = length(obj.undo_stack_list);
@@ -118,6 +157,21 @@ end
 
 % Attach echowin to the undo stack
 obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(match_idx));
+obj.undo_stack_list(match_idx).user_data.layer_info=param.layer;
+obj.undo_stack_list(match_idx).user_data.frame = param.frame;
+obj.undo_stack_list(match_idx).user_data.layerSource = param.LayerSource;
+obj.undo_stack_list(match_idx).user_data.layerDataSource = param.layerDataSource;
+obj.undo_stack_list(match_idx).user_data.gps_time=param.gps_time;
+obj.undo_stack_list(match_idx).user_data.frame_idxs = param.frame_idxes;
+
+try
+  obj.echowin_list(echo_idx).draw(param);
+catch ME
+  % Draw failed... close echo window and report error
+  obj.close_echowin(obj.echowin_list(echo_idx));
+  set(obj.h_fig,'Pointer','Arrow');
+  rethrow(ME);
+end
 
 %% Cleanup
 set(obj.h_fig,'Pointer','Arrow');

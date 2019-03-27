@@ -247,6 +247,10 @@ default_params.prefwin.layer_names = {'surface'};
 default_params.prefwin.system = 'rds';
 default_params.prefwin.map_name = '';
 default_params.prefwin.flightlines = 'Regular Flightlines';
+%
+default_params.prefwin.LayerSource = 'layerdata';
+default_params.prefwin.layerDataSource = 'layerData';
+%
 default_params.prefwin.x = tmp.pref_x;
 default_params.prefwin.y = tmp.pref_y;
 default_params.prefwin.w = tmp.pref_w;

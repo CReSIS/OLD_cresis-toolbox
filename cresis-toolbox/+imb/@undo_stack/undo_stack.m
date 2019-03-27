@@ -56,6 +56,9 @@ classdef (HandleCompatible = true) undo_stack < handle
     % pointer: location in the stack that represents the current state of
     % the documents (required since we allow "redo" operation)
     pointer
+    %
+    user_data
+    %
   end
   
   properties (SetAccess = private, GetAccess = private)
@@ -82,6 +85,7 @@ classdef (HandleCompatible = true) undo_stack < handle
       obj.stack = {};
       obj.pointer = 0;
       obj.last_pointer = NaN;
+      obj.user_data = {};
     end
     
     % Attach document to undo stack and return the set of commands that

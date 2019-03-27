@@ -63,6 +63,7 @@ for cur_layer = unique_layers
   cur_cmd_idxs = cmd_idxs(cur_layer_cmds);
   cur_sub_idxs = sub_idxs(cur_layer_cmds);
   
+  if strcmpi(undo_stack.user_data.layerSource,'OPS')
   % Loop through commands. If multiple inserts are done, these are
   % combined into a single insert
   cur_layer_cmd_idx = 1;
@@ -115,12 +116,100 @@ for cur_layer = unique_layers
       cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
       fprintf(' Delete commit\n');
       opsDeleteLayerPoints(undo_stack.unique_id{1},param);
-    end
-  end
-end
+    end %end of if insert or delete
+  end %while cur_layer_cmds end
   
+  elseif strcmpi(undo_stack.user_data.layerSource,'layerdata')
+   cur_layer_cmd_idx = 1;
+  while cur_layer_cmd_idx <= length(cur_layer_cmds)
+    cmd_idx = cur_cmd_idxs(cur_layer_cmd_idx);
+     sub_idx = cur_sub_idxs(cur_layer_cmd_idx);
+     if cur_cmd_type(cur_layer_cmd_idx) == 'i'
+         point_idxs = [];
+         point_mask = logical(zeros(size(undo_stack.user_data.frame)));
+         mask = logical(zeros(size(cmds_list{cmd_idx}(sub_idx).redo_args{2})));
+         for point_path_idx = 1:length(cmds_list{cmd_idx}(sub_idx).redo_args{2});
+           point_id = cmds_list{cmd_idx}(sub_idx).redo_args{2}(point_path_idx);
+           point = find(point_id == undo_stack.user_data.point_path_id);
+           if(~isempty(point))
+             point_mask(point_id)=true;
+             mask(point_path_idx)=true;
+             point_idxs(end+1) = point;
+           end
+         end
+         undo_stack.user_data.twtt{cur_layer}(point_idxs) = cmds_list{cmd_idx}(sub_idx).redo_args{3}(mask);
+         undo_stack.user_data.type{cur_layer}(point_idxs) = cmds_list{cmd_idx}(sub_idx).redo_args{4}(mask);
+         undo_stack.user_data.qual{cur_layer}(point_idxs) = cmds_list{cmd_idx}(sub_idx).redo_args{5}(mask);
+         frames_changed = undo_stack.user_data.frame(point_mask);% giving all frames changed
+         frms_changed = unique(frames_changed);
+         
+         for frm = 1:length(frms_changed)
+             found_frm = find(undo_stack.user_data.frame == frms_changed(frm));
+             changed_mask = point_mask(found_frm);
+             found_frm_idx = undo_stack.user_data.frame_idxs(found_frm);
+             found_twtt = undo_stack.user_data.twtt{cur_layer}(changed_mask);
+             changed_frm_idx = found_frm_idx(changed_mask);
+             
+%             %changed_twtt = found_twtt(changed_mask);
+%             %for i = 1:length(changed_frm_idx)
+                 undo_stack.user_data.layer_info(frms_changed(frm)).layerData{cur_layer}.value{2}.data(changed_frm_idx) = found_twtt;
+%             %end
+         end
+         cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
+      else
+          start_point_path_id = cmds_list{cmd_idx}(sub_idx).redo_args{3}(1);
+          stop_point_path_id = cmds_list{cmd_idx}(sub_idx).redo_args{3}(2);
+          min_twtt = cmds_list{cmd_idx}(sub_idx).redo_args{2}(3);
+          max_twtt = cmds_list{cmd_idx}(sub_idx).redo_args{2}(4);
+          point_mask = logical(zeros(size(undo_stack.user_data.frame)));
+          point_idxs = find(undo_stack.user_data.point_path_id >= start_point_path_id & undo_stack.user_data.point_path_id <= stop_point_path_id ...
+            & undo_stack.user_data.twtt{cur_layer} > min_twtt & undo_stack.user_data.twtt{cur_layer} < max_twtt);
+          
+          point = undo_stack.user_data.point_path_id(point_idxs);
+          point_mask(point)=true;
+          
+          undo_stack.user_data.twtt{cur_layer}(point_idxs) = NaN;
+          undo_stack.user_data.type{cur_layer}(point_idxs) = 1;
+          undo_stack.user_data.qual{cur_layer}(point_idxs) = 1;
+          frames_changed = undo_stack.user_data.frame(point_mask);% giving all frames changed
+          frms_changed = unique(frames_changed);
+          
+          for frm = 1:length(frms_changed)
+             found_frm = find(undo_stack.user_data.frame == frms_changed(frm));
+             changed_mask = point_mask(found_frm);
+             found_frm_idx = undo_stack.user_data.frame_idxs(found_frm);
+             %found_twtt = undo_stack.user_data.twtt{cur_layer}(found_frm);
+             found_twtt = undo_stack.user_data.twtt{cur_layer}(changed_mask);
+             changed_frm_idx = found_frm_idx(changed_mask);
+             %changed_twtt = found_twtt(changed_mask);
+%             %changed_twtt = found_twtt(changed_mask);
+%             %for i = 1:length(changed_frm_idx)
+                 undo_stack.user_data.layer_info(frms_changed(frm)).layerData{cur_layer}.value{2}.data(changed_frm_idx) = found_twtt;
+%             %end
+         end
+%         frames_changed = undo_stack.user_data.frame(point_mask);% giving all frames changed
+%         frms_changed = unique(frames_changed);
+%         for frm = 1:length(frms_changed)
+%             found_frm = find(undo_stack.user_data.frame == frms_changed(frm));
+%             changed_mask = point_mask(found_frm);
+%             found_frm_idx = undo_stack.user_data.frame_idxs(found_frm);
+%             found_twtt = undo_stack.user_data.twtt{cur_layer}(changed_mask);
+%             changed_frm_idx = found_frm_idx(changed_mask);
+%             %changed_twtt = found_twtt(changed_mask);
+%             %for i = 1:length(changed_frm_idx)
+%                 undo_stack.user_data.layer_info(frms_changed(frm)).layerData{cur_layer}.value{2}.data(changed_frm_idx) = found_twtt;
+%             %end
+%         end
+%           % end
+% 
+          cur_layer_cmd_idx = cur_layer_cmd_idx + 1;
+     end% if-else end
+   end%(while loop)
+  end% layer_data end
+end% end for loop
 %% Notify all the other echo windows using this stack that a save has been
 % done.
+%save(FILENAME,'-append','-struct','LAYER_STRUCT_NAME','FIELD_NAME')
 undo_stack.save();
 
 

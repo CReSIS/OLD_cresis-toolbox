@@ -125,6 +125,26 @@ set(obj.h_gui.flightlinesPM,'HorizontalAlignment','Center');
 set(obj.h_gui.flightlinesPM,'FontName','fixed');
 set(obj.h_gui.flightlinesPM,'TooltipString','Available flightlines.');
 
+% LayerSource pop up menu (populate later from preference window)%%
+obj.h_gui.LayerSourcePM = uicontrol('Parent',obj.h_fig);
+set(obj.h_gui.LayerSourcePM,'String',{'layerdata','OPS'});
+set(obj.h_gui.LayerSourcePM,'Value',1);
+set(obj.h_gui.LayerSourcePM,'Style','popupmenu');
+set(obj.h_gui.LayerSourcePM,'HorizontalAlignment','Center');
+set(obj.h_gui.LayerSourcePM,'FontName','fixed');
+set(obj.h_gui.LayerSourcePM,'TooltipString','Available layer sources (select one)');
+set(obj.h_gui.LayerSourcePM,'Callback',@obj.LayerSourcePM_callback);
+%V = get(obj.h_gui.LayerSourcePM,'Value');
+
+% layerdata sources pop up menu (populate later from preference window)%%
+obj.h_gui.layerDataSourcePM = uicontrol('Parent',obj.h_fig);
+set(obj.h_gui.layerDataSourcePM,'String',{'layerData','CSARP_post/layerData','CSARP_layerdata'});
+set(obj.h_gui.layerDataSourcePM,'Value',1);
+set(obj.h_gui.layerDataSourcePM,'Style','popupmenu');
+set(obj.h_gui.layerDataSourcePM,'HorizontalAlignment','Center');
+set(obj.h_gui.layerDataSourcePM,'FontName','fixed');
+set(obj.h_gui.layerDataSourcePM,'TooltipString','Available layerdata sources (select one)');
+
 % Okay Button
 obj.h_gui.okPB = uicontrol('Parent',obj.h_fig);
 set(obj.h_gui.okPB,'Style','PushButton');
@@ -235,6 +255,20 @@ obj.h_gui.table.height(row,col)    = 22;
 obj.h_gui.table.width_margin(row,col) = 1;
 obj.h_gui.table.height_margin(row,col) = 1;
 
+row = row + 1; col = 1;%%
+obj.h_gui.table.handles{row,col}   = obj.h_gui.LayerSourcePM;
+obj.h_gui.table.width(row,col)     = inf;
+obj.h_gui.table.height(row,col)    = 25;
+obj.h_gui.table.width_margin(row,col) = 1;
+obj.h_gui.table.height_margin(row,col) = 1;
+
+col =2;%%
+obj.h_gui.table.handles{row,col}   = obj.h_gui.layerDataSourcePM;
+obj.h_gui.table.width(row,col)     = inf;
+obj.h_gui.table.height(row,col)    = 25;
+obj.h_gui.table.width_margin(row,col) = 1;
+obj.h_gui.table.height_margin(row,col) = 1;
+
 row = row + 1; col = 1;
 obj.h_gui.table.width(row,col)     = inf;
 obj.h_gui.table.height(row,col)    = 25;
@@ -297,6 +331,46 @@ end
 %% Set default echogram sources
 if isfield(obj.default_params,'sources')
   set(obj.h_gui.sourceLB,'String',obj.default_params.sources);
+end
+
+%% Set default layer source
+if isfield(obj.default_params,'LayerSource') && ischar(obj.default_params.LayerSource)
+  match_idx = find(strcmp(obj.default_params.LayerSource,get(obj.h_gui.LayerSourcePM,'String')));
+else
+  match_idx = [];
+end
+if isempty(match_idx)
+  set(obj.h_gui.LayerSourcePM,'Value',1);
+else
+  set(obj.h_gui.LayerSourcePM,'Value',match_idx);
+end
+
+%% Set default layerdata source
+if isfield(obj.default_params,'layerDataSource') && ischar(obj.default_params.layerDataSource)
+  match_idx = find(strcmp(obj.default_params.layerDataSource,get(obj.h_gui.layerDataSourcePM,'String')));
+else
+  match_idx = [];
+end
+if isempty(match_idx)
+  temp = get(obj.h_gui.LayerSourcePM,'String');
+  LayerSource = temp{get(obj.h_gui.LayerSourcePM,'Value')};
+  if strcmpi(LayerSource,'OPS')
+    set(obj.h_gui.layerDataSourcePM,'Enable','off');
+    set(obj.h_gui.layerDataSourcePM,'Value',1);
+  elseif strcmpi(LayerSource,'layerdata')
+    set(obj.h_gui.layerDataSourcePM,'Enable','on');
+    set(obj.h_gui.layerDataSourcePM,'Value',1);
+  end
+else
+  temp = get(obj.h_gui.LayerSourcePM,'String');
+  LayerSource = temp{get(obj.h_gui.LayerSourcePM,'Value')};
+  if strcmpi(LayerSource,'OPS')
+    set(obj.h_gui.layerDataSourcePM,'Enable','off');
+    set(obj.h_gui.layerDataSourcePM,'Value',match_idx);
+  elseif strcmpi(LayerSource,'layerdata')
+    set(obj.h_gui.layerDataSourcePM,'Enable','on');
+    set(obj.h_gui.layerDataSourcePM,'Value',match_idx);
+  end
 end
 
 return
