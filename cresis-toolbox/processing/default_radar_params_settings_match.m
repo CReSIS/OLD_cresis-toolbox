@@ -32,5 +32,3 @@ while ~found
     end
   end
 end
-
-return

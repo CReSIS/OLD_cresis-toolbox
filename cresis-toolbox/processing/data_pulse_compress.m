@@ -133,23 +133,34 @@ for img = 1:length(param.load.imgs)
       
       fprintf('  Load coh_noise: %s (%s)\n', noise_fn, datestr(now));
       noise = load(noise_fn);
+      if ~isfield(noise,'param_collate_coh_noise') || isempty(noise.param_collate_coh_noise)
+        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
+        noise.param_collate_coh_noise = noise.param_collate;
+        noise = rmfield(noise,'param_collate');
+        save(noise_fn,'-struct','noise')
+      end
       param.collate_coh_noise.param_collate = noise.param_collate_coh_noise;
       param.collate_coh_noise.param_analysis = noise.param_analysis;
-      param.collate_coh_noise.param_records = noise.param_records;
-      if ~isfield(noise.param_collate.collate_coh_noise,'method') || isempty(noise.param_collate.collate_coh_noise.method)
+      if ~isfield(noise,'param_records') || isempty(noise.param_records)
         fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
-        noise.param_collate.collate_coh_noise.method = 'dft';
+        noise.param_records = param;
+        save(noise_fn,'-struct','noise')
+      end
+      param.collate_coh_noise.param_records = noise.param_records;
+      if ~isfield(noise.param_collate_coh_noise.collate_coh_noise,'method') || isempty(noise.param_collate_coh_noise.collate_coh_noise.method)
+        fprintf('\n\nTHIS IS A HACK... THIS NOISE FILE SHOULD BE UPDATED.\n\n');
+        noise.param_collate_coh_noise.collate_coh_noise.method = 'dft';
         save(noise_fn,'-struct','noise')
       end
       
-      cmd = noise.param_analysis.analysis.cmd{noise.param_collate.collate_coh_noise.cmd_idx};
+      cmd = noise.param_analysis.analysis.cmd{noise.param_collate_coh_noise.collate_coh_noise.cmd_idx};
       
       noise.Nx = length(noise.gps_time);
       
-      if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
+      if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
         coh_noise = noise.dft;
         noise = rmfield(noise,'dft');
-      elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
+      elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
         coh_noise = noise.coh_noise;
         noise = rmfield(noise,'coh_noise');
       end
@@ -258,7 +269,7 @@ for img = 1:length(param.load.imgs)
           plot(lp(coh_noise))
         end
         
-        if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
+        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
           cn.data = zeros([size(coh_noise,1) numel(recs)],'single');
           for dft_idx = 1:length(noise.dft_freqs)
             % mf: matched filter
@@ -268,7 +279,7 @@ for img = 1:length(param.load.imgs)
               cn.data(bin,:) = cn.data(bin,:)-coh_noise(bin,dft_idx) * mf;
             end
           end
-        elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
+        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
           % Interpolate coherent noise onto current data's gps time
           if all(hdr.gps_time>noise.coh_noise_gps_time(end))
             % All current data's gps time is after the coherent noise
@@ -1200,7 +1211,7 @@ for img = 1:length(param.load.imgs)
     end
     if strcmpi(radar_type,'pulsed')
       if strcmpi(wfs(wf).coh_noise_method,'analysis')
-        if strcmpi(noise.param_collate.collate_coh_noise.method,'dft')
+        if strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'dft')
           for dft_idx = 1:length(noise.dft_freqs)
             % mf: matched filter
             % coh_noise(bin,dft_idx): Coefficient for the matched filter
@@ -1210,7 +1221,7 @@ for img = 1:length(param.load.imgs)
             end
           end
           
-        elseif strcmpi(noise.param_collate.collate_coh_noise.method,'firdec')
+        elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
           if hdr.gps_time(1) > noise.coh_noise_gps_time(end)
             % Raw data are all after the last coherent noise sample
             data{img}(1:size(coh_noise,1),:,wf_adc) = bsxfun(@minus, ...

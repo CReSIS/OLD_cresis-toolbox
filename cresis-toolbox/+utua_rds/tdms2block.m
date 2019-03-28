@@ -72,8 +72,8 @@ function [block] = tdms2block(tdms)
     st = datetime(st,'ConvertFrom','datenum');
     
     %Display start time and number of traces
-    disp(st)
-    disp(length(tdms.meta.time.data));
+    %disp(st)
+    %disp(length(tdms.meta.time.data));
     
     for i=1:length(tdms.meta.time.data)
        t = st + ((tdms.meta.time.data(i) - tdms.meta.time.data(1))/86400);

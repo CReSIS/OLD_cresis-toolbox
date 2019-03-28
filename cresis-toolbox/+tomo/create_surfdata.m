@@ -833,7 +833,19 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     % Obtained from geostatistical analysis of 2014 Greenland P3
     transition_mu = [2.0436 2.3331 2.5009 3.3719 4.6784 5.6978 6.5621 7.5174 8.5156 9.5651 10.5363 11.5323 12.5066 13.5002 14.4998 15.5585 16.5564 17.5435 18.5288 19.5175 20.5071 21.5108 22.5106 23.4993   24.4847 25.4574 26.4393 27.4864 28.4248 29.1076 29.7335 32.9690 34.1460 34.6690 35.4782 36.4208 37.4689 38.4754 39.4688 40.4474 41.4559 42.4452 43.4168 44.4374 45.4158 46.4087 47.4159 48.4306 49.4311 50.4148 51.4397 52.4642 53.4303 54.4758 55.4716 56.4896 57.5388 58.5285 59.4507 60.4436 61.4986 62.5633 62.6210 62.6788];
     transition_sigma = [1.9131 1.3669 1.5377 1.7085 1.7066 1.8079 1.8992 2.0351 2.0593 2.0194 1.9234 1.9222 1.9576 1.8838 1.9062 1.8439 1.7892 1.7756 1.7726 1.8337 1.7814 1.8196 1.9341 1.9805 2.1382 2.2869 2.4564 2.4599 2.4413 2.3801 1.4076 1.0751 1.3504 1.8570 2.0304 2.1111 1.8376 1.6472 1.5613 1.5116 1.4367 1.4435 1.4491 1.4410 1.4299 1.4022 1.4598 1.4219 1.4193 1.4158 1.4456 1.4779 1.4647 1.5021 1.4541 1.4040 1.4053 1.2808 1.2195 1.1342 1.3246 1.2063 1.6347 2.0632];
+    RLINE_transition_sigma = [733.371814 77.126528 39.263353 12.295813 4.374837 6.958925 5.930228 2.258107 1.428613 1.388027 0.752566 0.979279 0.619339 0.763956 0.617092 0.627093 0.535119 0.488883 0.466207 0.452399 0.449242 0.448823 0.436793 0.434663 0.423571 0.446478 0.438191 0.429951 0.423105 0.403451 0.391212 0.375924 0.386908 0.385439 0.395184 0.401038 0.402252 0.409454 0.411048 0.414927 0.415572 0.421242 0.438985 0.455439 0.473058 0.490692 0.512094 0.544576 0.593388 0.629358 0.624657 0.648194 0.696526 0.754032 0.842585 0.960767 1.158873 1.759647 2.576886 5.313411 8.513457 18.789263 45.256746 82.139656];
     
+    if length(transition_mu) ~= Nsv
+      transition_mu = imresize(transition_mu, [1 Nsv]);
+    end
+    
+    if length(transition_sigma) ~= Nsv
+      transition_sigma = imresize(transition_sigma, [1 Nsv]);
+    end
+    
+    if length(RLINE_transition_sigma) ~= Nsv
+      RLINE_transition_sigma = imresize(RLINE_transition_sigma, [1 Nsv]);
+    end
     % Visualization of mean and variance vectors
     if 0
       figure; (plot(transition_mu)); hold on;
@@ -844,7 +856,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     smooth_weight = 0.08 .* smooth_weight;
     gt = zeros(3, length(Bottom_bin));
     gt(1, :) = 1 : length(Bottom_bin);
-    gt(2, :) = 32 * ones(1, length(Bottom_bin));
+    gt(2, :) = round(Nsv ./ 2) * ones(1, length(Bottom_bin));
     gt(3, :) = Bottom_bin(:) + 0.5;
     
     tic;
@@ -853,7 +865,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
       double(mu), double(sigma), double(smooth_weight), double(smooth_var), ...
       double(smooth_slope), double([]), double(max_loops), int64(bounds), ...
       double(mask_dist), double(DIM_costmatrix), ...
-      double(transition_mu), double(transition_sigma));
+      double(transition_mu), double(transition_sigma), ...
+      double(RLINE_transition_sigma));
     toc;
     
     trws_surface = reshape(trws_surface,size(mdata.Tomo.img,2), ...
