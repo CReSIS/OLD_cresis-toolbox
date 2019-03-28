@@ -30,7 +30,7 @@ final_DDS_phase = [];
 final_DDS_phase_no_time = [];
 final_DDS_amp = [];
 final_DDS_time = [];
-if 1
+if 0
   % Initial conditions (usually all zeros phase/time with max amplitude)
   for idx = 1:length(f0_list)
     final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
@@ -38,6 +38,7 @@ if 1
     final_DDS_amp{idx} = [40000 40000 40000 40000 40000 40000 40000 0];
     final_DDS_time{idx} =  [0 0 0 0 0 0 0 0];
   end
+  
   % final_tx_mask: Listed backwards antenna 8 to 1
   final_tx_mask = [1 0 0 0 0 0 0 0]; 
 else
@@ -46,10 +47,14 @@ else
   
   % Tx chan equalization txequal_mcords3_20170307_163925_00.xml
   idx = 1;
-  final_DDS_phase{idx} = [131.5	-35.1	0.0	-158.4	113.8	-73.0	139.6	0.0];
-  final_DDS_phase_no_time{idx} = [18.6	-8.6	0.0	97.1	-70.1	13.7	56.8	0.0]; % not used usually
-  final_DDS_amp{idx} = [21000   25000   32500   40000   30000   27000   25000  0];
-  final_DDS_time{idx} =  [-8.42	-0.16	0.00	1.38	-3.50	-0.75	-3.72	0.00];
+%   final_DDS_phase{idx} = [131.5	-35.1	0.0	-158.4	113.8	-73.0	139.6	0.0];
+%   final_DDS_phase_no_time{idx} = [18.6	-8.6	0.0	97.1	-70.1	13.7	56.8	0.0]; % not used usually
+%   final_DDS_amp{idx} = [21000   25000   32500   40000   30000   27000   25000  0];
+%   final_DDS_time{idx} =  [-8.42	-0.16	0.00	1.38	-3.50	-0.75	-3.72	0.00];
+  final_DDS_phase{idx} = [310.21416064334818 204.90959222174129 0.00000000000000 283.39419622940392 333.27047770008301 178.90654018286861 107.13559148614161 0.00000000000000];
+  final_DDS_phase_no_time{idx} = [0 0 0 0 0 0 0 0]; % not used usually
+  final_DDS_amp{idx} = [40000 40000 40000 40000 40000 40000 40000 0];
+  final_DDS_time{idx} =  [-6.19645710740131 3.25638432846956 0.00000000000000 8.40052942008706 -6.29366312880517 2.50504674022834 0.82913908354129 0.00000000000000];
   
   % final_tx_mask: Listed backwards antenna 8 to 1
   final_tx_mask = [1 0 0 0 0 0 0 0]; 
@@ -203,21 +208,22 @@ param = struct('radar_name','mcords3','num_chan',15,'aux_dac',[255 255 255 255 2
 param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 12.18e-6; param.final_tx_mask = final_tx_mask;
 param.max_duty_cycle = 0.12;
 param.create_IQ = false;
-param.tg.altitude_guard = 750*12*2.54/100;
-param.tg.staged_recording = [1 1 2 2 3 3];
-param.tg.Haltitude = 1250*12*2.54/100;
-param.tg.Hice_thick = 3500;
+param.tg.altitude_guard = 5000*12*2.54/100;
+param.tg.staged_recording = 0;
+param.tg.Haltitude = 15000*12*2.54/100;
+param.tg.Hice_thick = 0;
 param.fn = fullfile(base_dir,'image_mode_10us_6wf_3500mthick.xml');
 param.prf = 12000;
-param.presums = [3 3 3 3 13 13];
-param.wfs(1).atten = 26;
-param.wfs(2).atten = 26;
-param.wfs(3).atten = 0;
-param.wfs(4).atten = 0;
-param.wfs(5).atten = 0;
-param.wfs(6).atten = 0;
-DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [hanning(7).', 0] ./ Hwindow_orig;
-DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [0 0 hanning(5).', 0] ./ Hwindow_orig; % Antenna 2 bad
+param.presums = [9 9 9 9 9 9];
+param.wfs(1).atten = 20;
+param.wfs(2).atten = 20;
+param.wfs(3).atten = 20;
+param.wfs(4).atten = 20;
+param.wfs(5).atten = 20;
+param.wfs(6).atten = 20;
+% DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [hanning(7).', 0] ./ Hwindow_orig;
+DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [1 1 1 0 1 1 1 0] ./ Hwindow_orig;
+% DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [0 0 hanning(5).', 0] ./ Hwindow_orig; % Antenna 2 bad
 param.tx_weights = DDS_amp;
 param.tukey = 0.2;
 param.wfs(1).Tpd = 1e-6;
@@ -239,10 +245,15 @@ for wf = 1:length(param.tg.look_angle_deg)
   beam_delay = beam_delay / c - nadir_delay; % Only include delay relative to nadir
   beam_delay = [beam_delay - mean(beam_delay) 0];
   param.wfs(wf).delay = (final_DDS_time{cal_settings(freq_idx)}/1e9 - beam_delay)*1e9;
+  if param.tg.look_angle_deg(wf) > 0
+    param.wfs(wf).tx_mask = [1 1 1 0 0 0 0 0];
+  else
+    param.wfs(wf).tx_mask = [0 0 0 0 1 1 1 0];
+  end
 end
 param.f0 = f0_list(freq_idx);
 param.f1 = f1_list(freq_idx);
-[param.wfs(:).tx_mask] = deal(final_tx_mask);
+% [param.wfs(:).tx_mask] = deal(final_tx_mask);
 write_cresis_xml(param);
 
 %% Image Mode Thin Ice
