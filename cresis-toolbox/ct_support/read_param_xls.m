@@ -38,7 +38,7 @@ end
 
 %% Load the generic worksheets if specified
 if exist('generic_ws','var') && ~isempty(generic_ws)
-  params = read_param_xls_generic(param_fn, params, generic_ws);
+  params = read_param_xls_generic(param_fn, generic_ws, params);
 end
 warning('on','MATLAB:xlsread:Mode');
 
