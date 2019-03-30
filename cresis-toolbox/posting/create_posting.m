@@ -106,6 +106,29 @@ end
 if ~isfield(param.post,'ops') || isempty(param.post.ops.en)
   param.post.ops.en = 0;
 end
+% Add default layers
+if ~isfield(param.post, 'layers')
+  param.post.layers = [struct('name', 'surface', 'source', 'layerData') ...
+                      struct('name', 'bottom', 'source', 'layerData')];
+else
+  % Force surface and bottom to be first two in struct array
+  % TODO[reece]: Remove bottom from default layers if unnecessary
+  param.post.layers = [struct('name', 'surface', 'source', 'layerData') ...
+                      struct('name', 'bottom', 'source', 'layerData') ...
+                      param.post.layers(1:end)];
+  % Remove duplicates ... almost certainly a better way to do this 
+  unique_layer_names = {};
+  unique_layers = struct('name', {}, 'source', {});
+  for layer = param.post.layers
+    if ~ismember(layer.name, unique_layer_names)
+      unique_layers(end + 1) = layer;
+      unique_layer_names(end + 1) = {layer.name};
+    end
+  end
+  param.post.layers = unique_layers;
+  clear uniques_layer_names
+  clear uniques_layers
+end
 
 if strcmp(param.post.img_type,'jpg')
   print_device = '-djpeg';
