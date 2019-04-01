@@ -70,11 +70,13 @@ if exist('lat','var') && ~isempty(lat)
   [X,Y] = projfwd(proj,lat,lon);
   X = X/1e3;
   Y = Y/1e3;
-  cur_hold = hold(h_axes);
+  cur_hold = ishold(h_axes);
   hold(h_axes,'on');
   plot(h_axes,X,Y,varargin{:});
   plot(h_axes,X(1),Y(1),'bo');
-  hold(h_axes,cur_hold);
+  if ~cur_hold
+    hold(h_axes,'off');
+  end
 end
 
 return;
