@@ -32,7 +32,7 @@ gps_input_type = 'file_mcords'; % file_accum, or serial
 %serial_dev = '/dev/ttyUSB1';
 % You may have to run from bash shell: "chmod a+rwx /dev/ttyS0" as root
 serial_dev = '/dev/ttyS0';
-gps_input_fn_dir = 'X:\';
+gps_input_fn_dir = 'E:\';
 gps_input_fn_start = 'GPS';
 % gps_input_fn_dir = '\\172.18.1.33\accum\';
 % gps_input_fn_dir = '/net/field1/landing/mcords/mcords5/';
@@ -142,8 +142,7 @@ if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
         fid = fopen(gps_in_fn,'r');
         while ~feof(fid)
           line_input = fgets(fid);
-          if isa(line_input,'double')
-            % Returned -1 double, so EOF
+          if feof(fid)
             break;
           end
           A = textscan(line_input,'%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s%f%f%f%f','delimiter',', ','emptyvalue',NaN);

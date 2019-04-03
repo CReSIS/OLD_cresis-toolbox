@@ -244,9 +244,9 @@ for wf = 1:length(param.tg.look_angle_deg)
   beam_delay = [beam_delay - mean(beam_delay) 0];
   param.wfs(wf).delay = (final_DDS_time{cal_settings(freq_idx)}/1e9 - beam_delay)*1e9;
   if param.tg.look_angle_deg(wf) > 0
-    param.wfs(wf).tx_mask = [1 1 1 0 0 0 0 0];
+    param.wfs(wf).tx_mask = [1 0 0 0 1 1 1 1];
   else
-    param.wfs(wf).tx_mask = [0 0 0 0 1 1 1 0];
+    param.wfs(wf).tx_mask = [1 1 1 1 1 0 0 0];
   end
 end
 param.f0 = f0_list(freq_idx);
@@ -305,9 +305,9 @@ for wf = 1:length(param.tg.look_angle_deg)
   beam_delay = [beam_delay - mean(beam_delay) 0];
   param.wfs(wf).delay = (final_DDS_time{cal_settings(freq_idx)}/1e9 - beam_delay)*1e9;
   if param.tg.look_angle_deg(wf) > 0
-    param.wfs(wf).tx_mask = [1 1 1 0 0 0 0 0];
+    param.wfs(wf).tx_mask = [1 0 0 0 1 1 1 1];
   else
-    param.wfs(wf).tx_mask = [0 0 0 0 1 1 1 0];
+    param.wfs(wf).tx_mask = [1 1 1 1 1 0 0 0];
   end
 end
 param.f0 = f0_list(freq_idx);
