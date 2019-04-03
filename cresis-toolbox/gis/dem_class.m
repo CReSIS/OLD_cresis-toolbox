@@ -11,7 +11,7 @@
 
 classdef dem_class < handle
   properties
-    % dem_info: Struct array of DEMs
+    % dem_info: Cell array of dem_info structures that each describe a DEM
     dem_info
     % res: Resolution (m)
     res
@@ -73,7 +73,7 @@ classdef dem_class < handle
       
       % Setup DEM List
       % ===================================================================
-      obj.dem_info = [];
+      obj.dem_info = {};
       
       % Arctic DEM
       % -------------------------------------------------------------------
@@ -100,7 +100,7 @@ classdef dem_class < handle
         new_dem_info.no_data = -9999;
         new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('greenland','DEM','GIMP','gimpdem_90m.tif')));
         new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('arctic','ArcticDEM'));
-        obj.dem_info(end+1) = new_dem_info;
+        obj.dem_info{end+1} = new_dem_info;
       catch ME
         warning(ME.getReport);
       end
@@ -125,7 +125,7 @@ classdef dem_class < handle
         new_dem_info.no_data = -9999;
         new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('antarctica','DEM','BEDMAP2','original_data','bedmap2_tiff','bedmap2_surface.tif')));
         new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('antarctica','DEM','REMA'));
-        obj.dem_info(end+1) = new_dem_info;
+        obj.dem_info{end+1} = new_dem_info;
       catch ME
         warning(ME.getReport);
       end
@@ -165,7 +165,7 @@ classdef dem_class < handle
         
         for di = unique(obj.di)
           mask = obj.di == di;
-          [obj.x(mask),obj.y(mask)] = projfwd(obj.dem_info(di).proj,lat(mask),lon(mask));
+          [obj.x(mask),obj.y(mask)] = projfwd(obj.dem_info{di}.proj,lat(mask),lon(mask));
         end
       end
       
@@ -315,7 +315,7 @@ classdef dem_class < handle
         end
         ri = obj.get_ri(di);
         
-        if ~obj.dem_info(di).tile_en(ri)
+        if ~obj.dem_info{di}.tile_en(ri)
           if ~isempty(obj.dem.x{di}) ...
               && obj.min_x >= min(obj.dem.x{di}) && obj.max_x <= max(obj.dem.x{di}) ...
               && obj.min_y >= min(obj.dem.y{di}) && obj.max_y <= max(obj.dem.y{di})
@@ -324,12 +324,12 @@ classdef dem_class < handle
           
           % Single large DEM file
           % ---------------------------------------------------------------
-          url = [obj.dem_info(di).url, obj.dem_info(di).mosaic_fn_fh(obj.dem_info(di).res_str{ri})];
+          url = [obj.dem_info{di}.url, obj.dem_info{di}.mosaic_fn_fh(obj.dem_info{di}.res_str{ri})];
           [~,url_name,url_ext] = fileparts(url);
-          tif_fn = fullfile(obj.dem_info(di).out_path, [url_name,url_ext]);
+          tif_fn = fullfile(obj.dem_info{di}.out_path, [url_name,url_ext]);
           
           if ~exist(tif_fn,'file')
-            cmd = sprintf('wget -P %s %s', obj.dem_info(di).out_path, url);
+            cmd = sprintf('wget -P %s %s', obj.dem_info{di}.out_path, url);
             fprintf('  %s\n', cmd);
             system(cmd);
             if ~exist(tif_fn,'file')
@@ -370,7 +370,7 @@ classdef dem_class < handle
           y_mask = obj.y_all{di} >= obj.min_y-2*dy & obj.y_all{di} <= obj.max_y+2*dy;
           
           obj.dem.dem{di} = obj.dem_all{di}(y_mask,x_mask);
-          obj.dem.dem{di}(obj.dem.dem{di}==obj.dem_info(di).no_data) = NaN;
+          obj.dem.dem{di}(obj.dem.dem{di}==obj.dem_info{di}.no_data) = NaN;
           obj.dem.x{di} = obj.x_all{di}(x_mask);
           obj.dem.y{di} = obj.y_all{di}(y_mask);
           
@@ -408,7 +408,7 @@ classdef dem_class < handle
         % DEM
         % -----------------------------------------------------------------
         ri = obj.get_ri(di);
-        if ~obj.dem_info(di).tile_en(ri)
+        if ~obj.dem_info{di}.tile_en(ri)
           % Single DEM file
           land_dem(mask) = interp2(obj.dem.x{di},obj.dem.y{di},obj.dem.dem{di},obj.x(mask),obj.y(mask));
           
@@ -417,8 +417,8 @@ classdef dem_class < handle
           land_dem = nan(size(obj.x));
           
           % Determine which tiles are needed
-          tile_x = obj.dem_info(di).x_tile_origin + obj.x/obj.dem_info(di).x_tile_size;
-          tile_y = obj.dem_info(di).y_tile_origin + obj.y/obj.dem_info(di).y_tile_size;
+          tile_x = obj.dem_info{di}.x_tile_origin + obj.x/obj.dem_info{di}.x_tile_size;
+          tile_y = obj.dem_info{di}.y_tile_origin + obj.y/obj.dem_info{di}.y_tile_size;
           tiles = unique(floor([tile_x(:), tile_y(:)]),'rows');
           
           % Download and untar files
@@ -427,29 +427,29 @@ classdef dem_class < handle
             url_list = {};
             xi_list = [];
             yi_list = [];
-            if obj.dem_info(di).subtile_en(ri)
+            if obj.dem_info{di}.subtile_en(ri)
               for sub_x_idx = 1:2
                 for sub_y_idx = 1:2
                   if any(tile_x >= tiles(tiles_idx,1) & tile_x <= tiles(tiles_idx,1)+1 ...
                       & tile_y >= tiles(tiles_idx,2) & tile_y <= tiles(tiles_idx,2)+1)
-                    url_list{end+1} = [obj.dem_info(di).url,obj.dem_info(di).subtile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),sub_x_idx,sub_y_idx,obj.dem_info(di).res_str{ri})];
+                    url_list{end+1} = [obj.dem_info{di}.url,obj.dem_info{di}.subtile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),sub_x_idx,sub_y_idx,obj.dem_info{di}.res_str{ri})];
                     xi_list(end+1) = 2*tiles(tiles_idx,1) + sub_x_idx - 2;
                     yi_list(end+1) = 2*tiles(tiles_idx,2) + sub_y_idx - 2;
-                    x_tile_size = obj.dem_info(di).x_subtile_size;
-                    y_tile_size = obj.dem_info(di).y_subtile_size;
-                    x_tile_origin = obj.dem_info(di).x_tile_origin - 1;
-                    y_tile_origin = obj.dem_info(di).y_tile_origin - 1;
+                    x_tile_size = obj.dem_info{di}.x_subtile_size;
+                    y_tile_size = obj.dem_info{di}.y_subtile_size;
+                    x_tile_origin = obj.dem_info{di}.x_tile_origin - 1;
+                    y_tile_origin = obj.dem_info{di}.y_tile_origin - 1;
                   end
                 end
               end
             else
-              url_list{end+1} = [obj.dem_info(di).url,obj.dem_info(di).tile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),obj.dem_info(di).res_str{ri})];
+              url_list{end+1} = [obj.dem_info{di}.url,obj.dem_info{di}.tile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),obj.dem_info{di}.res_str{ri})];
               xi_list(end+1) = tiles(tiles_idx,1);
               yi_list(end+1) = tiles(tiles_idx,2);
-              x_tile_size = obj.dem_info(di).x_tile_size;
-              y_tile_size = obj.dem_info(di).y_tile_size;
-              x_tile_origin = obj.dem_info(di).x_tile_origin;
-              y_tile_origin = obj.dem_info(di).y_tile_origin;
+              x_tile_size = obj.dem_info{di}.x_tile_size;
+              y_tile_size = obj.dem_info{di}.y_tile_size;
+              x_tile_origin = obj.dem_info{di}.x_tile_origin;
+              y_tile_origin = obj.dem_info{di}.y_tile_origin;
             end
             
             for url_idx = 1:length(url_list)
@@ -460,11 +460,11 @@ classdef dem_class < handle
               
               [~,url_name,url_ext1] = fileparts(url);
               [~,url_name,url_ext2] = fileparts(url_name);
-              fn = fullfile(obj.dem_info(di).out_path,[url_name,url_ext2,url_ext1]);
-              tif_fn = fullfile(obj.dem_info(di).out_path,[url_name '_reg_dem.tif']);
+              fn = fullfile(obj.dem_info{di}.out_path,[url_name,url_ext2,url_ext1]);
+              tif_fn = fullfile(obj.dem_info{di}.out_path,[url_name '_reg_dem.tif']);
               
               if ~exist(fn,'file') && ~exist(tif_fn,'file')
-                cmd = sprintf('wget -P %s %s', obj.dem_info(di).out_path, url);
+                cmd = sprintf('wget -P %s %s', obj.dem_info{di}.out_path, url);
                 fprintf('  %s\n', cmd);
                 system(cmd);
                 if ~exist(fn,'file')
@@ -474,8 +474,8 @@ classdef dem_class < handle
               end
               
               if ~exist(tif_fn,'file')
-                fprintf('Untar %s\n  %s\n', fn, obj.dem_info(di).out_path);
-                untar(fn, obj.dem_info(di).out_path);
+                fprintf('Untar %s\n  %s\n', fn, obj.dem_info{di}.out_path);
+                untar(fn, obj.dem_info{di}.out_path);
                 if ~exist(tif_fn,'file')
                   error('Failed to untar file or file not found in tar archive.');
                 end
@@ -505,7 +505,7 @@ classdef dem_class < handle
                 obj.dem_all{di}{xi,yi} = imread(tif_fn);
                 
                 % Set bad values to NaN
-                obj.dem_all{di}{xi,yi}(obj.dem_all{di}{xi,yi}==obj.dem_info(di).no_data) = NaN;
+                obj.dem_all{di}{xi,yi}(obj.dem_all{di}{xi,yi}==obj.dem_info{di}.no_data) = NaN;
                 
                 % Flip upside down if necessary
                 if GeoKeys.Orientation
@@ -563,7 +563,7 @@ classdef dem_class < handle
         poly_y = cell(0);
         for shp_idx = 1:length(ocean_shp)
           % convert polygon to projected coordinates
-          [x,y] = projfwd(obj.dem_info(di).proj,ocean_shp(shp_idx).Y,ocean_shp(shp_idx).X);
+          [x,y] = projfwd(obj.dem_info{di}.proj,ocean_shp(shp_idx).Y,ocean_shp(shp_idx).X);
           % if polygon is within projected bounding box
           if min(x) < obj.max_x && max(x) > obj.min_x ...
               && min(y) < obj.max_y && max(y)>obj.min_y
@@ -629,7 +629,7 @@ classdef dem_class < handle
       
       % Find the first valid dem_info and use this dem's projection to
       % define the proj, x, and y
-      proj = obj.dem_info(obj.di(1)).proj;
+      proj = obj.dem_info{obj.di(1)}.proj;
       
       % Determine bounds of region of interest
       min_x = round(min(obj.x)/res)*res;
@@ -669,7 +669,7 @@ classdef dem_class < handle
           end
           ri = obj.get_ri(di);
           
-          if obj.dem_info(di).tile_en(ri)
+          if obj.dem_info{di}.tile_en(ri)
             % Tiles were used, so clear all loaded DEMs since it is likely that
             % they will not be reused
             obj.clear();
@@ -707,9 +707,9 @@ classdef dem_class < handle
     %% get_ri: Get resolution index
     % =====================================================================
     function ri = get_ri(obj,di)
-      ri = find(obj.dem_info(di).res <= obj.res,1,'last');
+      ri = find(obj.dem_info{di}.res <= obj.res,1,'last');
       if isempty(ri)
-        warning('All resolutions are coarser obj.dem_info(di).res = %g m than the desired obj.param_dem_class.res = %g m. Downloading the finest resolution available.', obj.dem_info(ri).res(1), obj.param_dem_class.res);
+        warning('All resolutions are coarser obj.dem_info{di}.res = %g m than the desired obj.param_dem_class.res = %g m. Downloading the finest resolution available.', obj.dem_info{ri}.res(1), obj.param_dem_class.res);
         ri = 1;
       end
     end
