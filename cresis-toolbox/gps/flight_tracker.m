@@ -32,7 +32,7 @@ gps_input_type = 'file_mcords'; % file_accum, or serial
 %serial_dev = '/dev/ttyUSB1';
 % You may have to run from bash shell: "chmod a+rwx /dev/ttyS0" as root
 serial_dev = '/dev/ttyS0';
-gps_input_fn_dir = 'E:\';
+gps_input_fn_dir = 'X:\';
 gps_input_fn_start = 'GPS';
 % gps_input_fn_dir = '\\172.18.1.33\accum\';
 % gps_input_fn_dir = '/net/field1/landing/mcords/mcords5/';
@@ -42,6 +42,7 @@ gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
 
 % For OIB, get kmz file from John Sonntag, then unzip the kmz file and use the "doc.kml" that is inside
 kml_fn = 'C:\Users\administrator\Desktop\doc.kml';
+% kml_fn = ''; % Set this to empty if the file is not available
 kml_mission_name = '';
 
 enable_gps_record = false;
@@ -74,12 +75,19 @@ else
       kml_mission_idx = input('Enter mission number: ');
     else
       kml_mission_idx = find(strcmpi(kml_mission_name,{kml_pos.name}),1);
+      if isempty(kml_mission_idx)
+        warning('Could not find mission "%s" in kml_pos.name .',kml_mission_name);
+      end
     end
     if isempty(kml_mission_idx)
-      error('Could not find mission %s in kml_pos.name.',kml_mission_name);
+      kml_mission_name = '';
+      kml_fn = '';
+      kml_lon = [];
+      kml_lat = [];
+    else
+      kml_lon = kml_pos(kml_mission_idx).X;
+      kml_lat = kml_pos(kml_mission_idx).Y;
     end
-    kml_lon = kml_pos(kml_mission_idx).X;
-    kml_lat = kml_pos(kml_mission_idx).Y;
   end
 end
 
