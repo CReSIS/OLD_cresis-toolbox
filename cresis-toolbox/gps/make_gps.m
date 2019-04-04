@@ -57,7 +57,10 @@ for file_idx = 1:length(in_fns)
   if ischar(in_fn)
     in_fn = {in_fn};
   end
-  if ~exist('sync_flag','var') || ~sync_flag{file_idx}
+  if ~exist('sync_flag','var') || numel(sync_flag) < file_idx
+    sync_flag{file_idx} = 0;
+  end
+  if ~sync_flag{file_idx}
     sync_fn = {};
   else
     if ~exist('sync_fns','var') || file_idx > length(sync_fns)
@@ -79,7 +82,7 @@ for file_idx = 1:length(in_fns)
   fprintf('=====================================================================\n');
   
   %% Load Radar Sync GPS files (mcrds, accum2, arena)
-  if exist('sync_flag','var') && sync_flag{file_idx}
+  if sync_flag{file_idx}
     if isstruct(sync_params{file_idx})
       sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
     end
@@ -438,7 +441,7 @@ for file_idx = 1:length(in_fns)
 
   %% Save output file
   fprintf('Output file %s\n', out_fn);
-  if exist('sync_flag','var') && sync_flag{file_idx}
+  if sync_flag{file_idx}
     % Add the Radar Synchronization variables for mcrds, accum2, acords,
     % arena
     
