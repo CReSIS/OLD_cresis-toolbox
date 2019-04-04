@@ -73,7 +73,7 @@ if ~exist('param','var') || isempty(param)
   param = [];
 end
 if ~isfield(param,'clk');
-  param.clk = 125e6;
+  param.clk = 1;
 end
 if ~isfield(param,'fs');
   param.fs = param.clk;
