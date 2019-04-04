@@ -1,14 +1,20 @@
 % function [hdr,data] = basic_load_cresis(fn,fparam)
 
 tic;
-hdr = [];
-data = [];
-
-fn = 'mcords3_0_20190328_161057_00_0081.bin';
-fparam.file_version = 403;
-fparam.clk = 1e9/9;
-fparam.recs = [0 inf];
-fparam.first_byte = 0;
+% fn = '/process3/20190403/mcords/board0/mcords3_0_20190403_113130_00_0002.bin';
+% param = [];
+% param.file_version = 403;
+% param.clk = 1e9/9;
+% param.recs = [0 inf];
+% param.first_byte = 0;
+fn = '/process3/20190403/fmcw/snow/snow8_00_20190403_183422_0035.bin';
+param = [];
+param.file_version = 8;
+param.clk = 125e6;
+param.fs = 250e6;
+param.samples_per_index = 2;
+param.recs = [0 inf];
+param.first_byte = 0;
 
 %% Input checks
 % =========================================================================
@@ -72,10 +78,8 @@ if any(param.file_version == [1 401])
   fparam.fh_data_type = @uint16;
   fparam.endian = 'ieee-be';
   fparam.sync = 'DEADBEEF';
-  fparam.last_samples = param.last_samples;
-end
-
-if any(param.file_version == [2 3 4 5 6 7 8 11 402 403 404 407 408])
+  fparam.last_record = param.last_record;
+elseif any(param.file_version == [2 3 4 5 6 7 8 11 402 403 404 407 408])
   fparam.file_version = param.file_version;
   fparam.data_type = 'int16';
   fparam.fread_data_type = 'int16=>int16';
@@ -86,18 +90,20 @@ if any(param.file_version == [2 3 4 5 6 7 8 11 402 403 404 407 408])
   else
     fparam.sync = 'BADA55E5';
   end
-  fparam.last_samples = param.last_samples;
+  fparam.last_record = param.last_record;
 end
 
 if ~isempty(param.sync)
   fparam.sync = param.sync;
 end
-if ~isempty(fparam.sync)
+if isempty(fparam.sync)
   fparam.sync = '1ACFFC1D';
 end
 
 %% Header
 % =========================================================================
+hdr = [];
+data = [];
 hdr.finfo = dir(fn);
 if any(fparam.file_version == [405 406 410])
   % 405 (acords v1), 406 (acords v2), 410 (mcrds)
@@ -108,7 +114,7 @@ else
   fparam.sync2 = typecast(uint16(hex2dec(fparam.sync([5:8]))), fparam.data_type);
 end
 
-syncs_check = get_first10_sync_mfile(fn,fparam.first_byte,struct('sync',fparam.sync)); % DEBUG
+syncs_check = get_first10_sync_mfile(fn,0,struct('sync',fparam.sync)); % DEBUG
 
 % Open file
 [fid,msg] = fopen(fn,'rb',fparam.endian);
@@ -295,37 +301,37 @@ if any(fparam.file_version == [1])
 
   wf = 1;
   hdr.wfs(wf).Nt = repmat(Nt,[1 Nx]);
-  data{wf} = zeros(Nt,Nx,'single');
+  data{1} = zeros(Nt,Nx,'single');
   for rec = 1:Nx
-    data{wf}(:,rec) = raw_file_data(hdr.offsets(rec)+wf_offset + (0:Nt-1));
+    data{1}(:,rec) = raw_file_data(hdr.offsets(rec)+16 + (0:Nt-1));
   end
   presums = 4;
   bit_shifts = 0;
-  data{wf} = single(data{wf}) - 2^13*presums/2^bit_shifts;
+  data{1} = single(data{wf}) - 2^13*presums/2^bit_shifts;
   
 elseif any(fparam.file_version == [2 3 4 5 6])
   %% Read waveforms 2 3 4 5 6
   % =======================================================================
   Nx = length(hdr.offsets);
   
-  hdr.wfs.presums = bitand(uint16(255),bitshift(typecast(raw_file_data(hdr.offsets+17+wf_offset),'uint16'),-8));
-  hdr.wfs.bit_shifts = typecast(bitand(uint16(255),typecast(raw_file_data(hdr.offsets+17+wf_offset),'uint16')),'int8');
+  hdr.wfs.presums = bitand(uint16(255),bitshift(typecast(raw_file_data(hdr.offsets+17),'uint16'),-8));
+  hdr.wfs.bit_shifts = typecast(bitand(uint16(255),typecast(raw_file_data(hdr.offsets+17),'uint16')),'int8');
   hdr.wfs.bit_shifts = hdr.wfs.bit_shifts(1:2:end);
-  hdr.wfs.start_idx = typecast(raw_file_data(hdr.offsets+18+wf_offset),'uint16');
-  stop_idx = typecast(raw_file_data(hdr.offsets+19+wf_offset),'uint16');
+  hdr.wfs.start_idx = typecast(raw_file_data(hdr.offsets+18),'uint16');
+  stop_idx = typecast(raw_file_data(hdr.offsets+19),'uint16');
   
   if any(fparam.file_version == [3 5 6])
     % Read in DDC fields
     hdr.wfs.DC_offset = typecast(raw_file_data(hdr.offsets+20),'uint16');
     hdr.wfs.DDC_freq = typecast(raw_file_data(hdr.offsets+21),'uint16');
     if file_version == 6
-      hdr.wfs.switch = bitand(uint16(255),bitshift(typecast(raw_file_data(hdr.offsets+22+wf_offset),'uint16'),-8));
+      hdr.wfs.switch = bitand(uint16(255),bitshift(typecast(raw_file_data(hdr.offsets+22),'uint16'),-8));
     else
-      hdr.wfs.nyquist_zone = bitand(uint16(255),bitshift(typecast(raw_file_data(hdr.offsets+22+wf_offset),'uint16'),-8));
+      hdr.wfs.nyquist_zone = bitand(uint16(255),bitshift(typecast(raw_file_data(hdr.offsets+22),'uint16'),-8));
     end
-    hdr.wfs.DDC_dec = typecast(bitand(uint16(255),typecast(raw_file_data(hdr.offsets+22+wf_offset),'uint16')),'int8');
+    hdr.wfs.DDC_dec = typecast(bitand(uint16(255),typecast(raw_file_data(hdr.offsets+22),'uint16')),'int8');
     hdr.wfs.DDC_dec = 2.^hdr.wfs.DDC_dec(1:2:end);
-    hdr.wfs.complex = typecast(bitand(uint16(255),typecast(raw_file_data(hdr.offsets+23+wf_offset),'uint16')),'int8');
+    hdr.wfs.complex = typecast(bitand(uint16(255),typecast(raw_file_data(hdr.offsets+23),'uint16')),'int8');
     hdr.wfs.complex = ~hdr.wfs.complex(1:2:end);
     % Override decimation if not enabled
     hdr.wfs.DDC_dec(~hdr.wfs.complex) = 1;
@@ -338,10 +344,10 @@ elseif any(fparam.file_version == [2 3 4 5 6])
     for rec = 1:Nx
       if hdr.wfs.complex(rec)
         data{1}(1:hdr.wfs.Nt(rec),rec) = raw_file_data(hdr.offsets(rec)+24 + (0:2:2*Nt-1)) ...
-          + 1i*raw_file_data(hdr.offsets(rec)+24+wf_offset + (1:2:2*Nt-1));
+          + 1i*raw_file_data(hdr.offsets(rec)+24 + (1:2:2*Nt-1));
       else
         data{1}(:,rec) = reshape([raw_file_data(hdr.offsets(rec)+24 + (1:2:Nt-1)); ...
-          raw_file_data(hdr.offsets(rec)+24+wf_offset + (0:2:Nt-1))], [Nt 1]);
+          raw_file_data(hdr.offsets(rec)+24 + (0:2:Nt-1))], [Nt 1]);
       end
     end
 
@@ -360,13 +366,13 @@ elseif any(fparam.file_version == [7 8 11])
   %% Read waveforms 7, 8, 11
   % =======================================================================
   num_wfs = typecast(bitand(uint16(255),typecast(raw_file_data(hdr.offsets+13),'uint16')),'int8');
-  num_wfs = median(num_wfs(1:2:end));
+  num_wfs = 1+median(num_wfs(1:2:end));
   Nx = length(hdr.offsets);
   
   % Get the file version from the file
   file_version = typecast(raw_file_data(hdr.offsets+12),'uint16');
   file_version = median(file_version);
-  if  all(file_version ~= [7 8 11])
+  if isempty(param.file_version) && all(file_version ~= [7 8 11])
     error('param.file_version must be set. It cannot be read from this file because the file''s file version field (%d) has an invalid value.', file_version);
   end
   fparam.file_version = file_version;
@@ -397,7 +403,7 @@ elseif any(fparam.file_version == [7 8 11])
       multifield = bitand(uint16(255),bitshift(typecast(raw_file_data(hdr.offsets+16+wf_offset),'uint16'),-8));
       multifield = multifield(1:2:end);
       Nc = bitand(3,bitshift(multifield,-2));
-      Nc = median(Nc);
+      Nc = 1+median(Nc);
       hdr.wfs(wf).nyquist_zone = bitand(3,multifield);
       if fparam.file_version == 8
         % Read in waveform ID
@@ -410,20 +416,16 @@ elseif any(fparam.file_version == [7 8 11])
     if fparam.file_version == 7
       hdr.wfs(wf).Nt = (stop_idx - hdr.wfs(wf).start_idx);
       Nt = double(median(hdr.wfs(wf).Nt));
-      hdr.wfs(wf).Nt = floor(Nt ./ hdr.wfs(wf).DDC_dec));
+      hdr.wfs(wf).Nt = floor(Nt ./ hdr.wfs(wf).DDC_dec);
       Nt = max(hdr.wfs(wf).Nt);
       data{wf} = zeros(Nt,Nx,'int16');
-      if hdr.complex(rline_out)
-        % Complex data
-        for rec = 1:Nx
-          data{wf}(1:hdr.wfs(wf).Nt,rec) = raw_file_data(hdr.offsets(rec)+24+wf_offset + (0:2:Nt-1)) ...
-            + 1i*raw_file_data(hdr.offsets(rec)+24+wf_offset + (1:2:Nt-1));
-        end
-      else
-        % Real data
-        for rec = 1:Nx
-          data{wf}(:,rec) = reshape([raw_file_data(hdr.offsets(rec)+24+wf_offset + (1:2:Nt-1)); ...
-             raw_file_data(hdr.offsets(rec)+24+wf_offset + (0:2:Nt-1))], [Nt 1]);
+      for rec = 1:Nx
+        if hdr.wfs.complex(rec)
+          data{1}(1:hdr.wfs.Nt(rec),rec) = raw_file_data(hdr.offsets(rec)+24 + (0:2:2*Nt-1)) ...
+            + 1i*raw_file_data(hdr.offsets(rec)+24 + (1:2:2*Nt-1));
+        else
+          data{1}(:,rec) = reshape([raw_file_data(hdr.offsets(rec)+24 + (1:2:Nt-1)); ...
+            raw_file_data(hdr.offsets(rec)+24 + (0:2:Nt-1))], [Nt 1]);
         end
       end
       wf_offset = wf_offset + 24 + Nt;
@@ -431,13 +433,13 @@ elseif any(fparam.file_version == [7 8 11])
       data{wf} = single(data{wf});
       
     else
-      hdr.wfs(wf).Nt = stop_idx - hdr.wfs(wf).start_idx;
+      hdr.wfs(wf).Nt = param.samples_per_index*(stop_idx - hdr.wfs(wf).start_idx);
       Nt = double(median(hdr.wfs(wf).Nt));
-      wf_offset = wf_offset + 24 + Nc*Nt;
       data{wf} = zeros(Nt,Nx,Nc,'int16');
       for rec = 1:Nx
         data{wf}(:,rec,:) = reshape(raw_file_data(hdr.offsets(rec)+24+wf_offset + (0:Nc*Nt-1)), [Nc Nt]).';
       end
+      wf_offset = wf_offset + 24 + Nc*Nt;
       hdr.wfs(wf).Nt(:) = Nt;
       data{wf} = single(data{wf});
     end
@@ -494,11 +496,11 @@ elseif any(fparam.file_version == [402 403])
     hdr.wfs(wf).Nt = stop_idx - hdr.wfs(wf).start_idx;
     Nt = double(median(hdr.wfs(wf).Nt));
     hdr.wfs(wf).Nt(:) = Nt;
-    wf_offset = wf_offset + 4 + Nc*Nt;
     data{wf} = zeros(Nt,Nx,Nc,'int16');
     for rec = 1:Nx
       data{wf}(:,rec,:) = reshape(raw_file_data(hdr.offsets(rec)+20+wf_offset + (0:Nc*Nt-1)), [Nc Nt]).';
     end
+    wf_offset = wf_offset + 4 + Nc*Nt;
     data{wf} = single(data{wf});
   end
   
@@ -539,11 +541,11 @@ elseif any(fparam.file_version == [404 407 408])
       end
     end
     Nt = double(median(hdr.wfs(wf).Nt));
-    wf_offset = wf_offset + 4 + Nt;
     data{wf} = zeros(Nt,Nx,'int16');
     for rec = 1:Nx
       data{wf}(:,rec) = raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (0:Nt-1));
     end
+    wf_offset = wf_offset + 4 + Nt;
     hdr.wfs(wf).Nt(:) = Nt;
     data{wf} = single(data{wf});
   end
