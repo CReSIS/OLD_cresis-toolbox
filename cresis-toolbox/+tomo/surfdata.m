@@ -91,11 +91,16 @@ classdef surfdata < handle
         obj.time = [];
         obj.FCS = [];
         
-      % one argument => load file and create struct array accordingly
+        % one argument => load file and create struct array accordingly
       else
+        if ~exist('param','var') || ~isfield(param,'doa_method_flag')
+          doa_method_flag = false;
+        else
+          doa_method_flag = param.doa_method_flag;
+        end
         try
           obj.surf = [];
-          obj.load_surfdata(fn);
+          obj.load_surfdata(fn,doa_method_flag);
           
         catch ME
           error('Failed to load filename (%s):\n %s', fn, ME.getReport());
@@ -104,7 +109,7 @@ classdef surfdata < handle
     end
     
     %% load_surf
-    function load_surfdata(obj, fn)
+    function load_surfdata(obj, fn,doa_method_flag)
       % obj.load_surfdata(fn)
       %
       % Loads a new surf struct into the object. If fn is a filename,
@@ -114,6 +119,10 @@ classdef surfdata < handle
       % Input:
       %   fn: The file path OR a new struct array with all the fields in a
       %   surfData file.
+      
+      if ~exist('doa_method_flag','var')
+        doa_method_flag = false;
+      end
       
       if ischar(fn)
         if obj.version(fn) < obj.current_version
@@ -131,10 +140,10 @@ classdef surfdata < handle
         obj.surf = tmp.surf;
         
         for surf_idx = 1:length(obj.surf)
-          obj.valid_surf(obj.surf(surf_idx));
+          obj.valid_surf(obj.surf(surf_idx),doa_method_flag);
         end
         
-        obj.set_metadata(tmp);
+        obj.set_metadata(tmp,doa_method_flag);
         
       catch ME
         obj.surf = old_surf;
@@ -146,7 +155,7 @@ classdef surfdata < handle
       end
     end
     
-    function set_metadata(obj, md)
+    function set_metadata(obj, md,doa_method_flag)
       % obj.set_metadata(md)
       % 
       % Function for validating all the metadata fields
@@ -154,7 +163,7 @@ classdef surfdata < handle
       % md: struct containing gps_time, theta, FCS, radar_name,
       %   season_name, day_seg, and frm.
       
-      obj.valid_metadata(md);
+      obj.valid_metadata(md,doa_method_flag);
       
       obj.radar_name = md.radar_name;
       obj.season_name = md.season_name;
@@ -166,7 +175,7 @@ classdef surfdata < handle
       obj.FCS = md.FCS;
     end
     
-    function valid_metadata(obj, md)
+    function valid_metadata(obj, md,doa_method_flag)
       % obj.valid_metadata(md)
       % 
       % Function for validating all the metadata fields
@@ -196,18 +205,20 @@ classdef surfdata < handle
         error('gps_time must be a row vector.');
       end
       
-      if ~isempty(obj.surf) && size(obj.surf(1).x,2) ~= Nx
-        error('gps_time must have same number of columns as surf.x');
-      end
-      
-      Nsv = size(md.theta,1);
-      
-      if size(md.theta,2) ~= 1
-        error('theta must be a column vector.');
-      end
-      
-      if ~isempty(obj.surf) && size(obj.surf(1).x,1) ~= Nsv
-        error('theta must have same number of rows as surf.x');
+      if ~doa_method_flag
+        if ~isempty(obj.surf) && size(obj.surf(1).x,2) ~= Nx
+          error('gps_time must have same number of columns as surf.x');
+        end
+        
+        Nsv = size(md.theta,1);
+        
+        if size(md.theta,2) ~= 1
+          error('theta must be a column vector.');
+        end
+        
+        if ~isempty(obj.surf) && size(obj.surf(1).x,1) ~= Nsv
+          error('theta must have same number of rows as surf.x');
+        end
       end
       
       if size(md.time,2) ~= 1
@@ -253,7 +264,7 @@ classdef surfdata < handle
     end
 
     %% insert_surf
-    function insert_surf(obj, surf_struct)
+    function insert_surf(obj, surf_struct,doa_method_flag)
       %  obj.insert_surf(surf_struct)
       %
       %  Input: 
@@ -266,8 +277,11 @@ classdef surfdata < handle
       %
       % See also: surfdata.clear_references
       
+      if ~exist('doa_method_flag','var')
+        doa_method_flag = false;
+      end
       % check if it is a valid surf structure
-      obj.valid_surf(surf_struct);
+      obj.valid_surf(surf_struct,doa_method_flag);
       
       % check if name of the surface already existed in the class
       if isempty(obj.surf)
@@ -480,7 +494,7 @@ classdef surfdata < handle
     end
     
     %% save
-    function [] = save_surfdata(obj, fn)
+    function [] = save_surfdata(obj, fn,doa_method_flag)
       % obj.save_surfdata(fn)
       %
       % Input: 
@@ -491,14 +505,14 @@ classdef surfdata < handle
       %   as a .mat file. Creates directories as needed.
       
       for surf_idx = 1:length(obj.surf)
-        obj.valid_surf(obj.surf(surf_idx));
+        obj.valid_surf(obj.surf(surf_idx),doa_method_flag);
       end
       surf = obj.surf;
       version = obj.current_version;
       try
         surf = rmfield(surf,'h_plot');
       end
-      valid_metadata(obj,obj);
+      valid_metadata(obj,obj,doa_method_flag);
       radar_name = obj.radar_name;
       season_name = obj.season_name;
       day_seg = obj.day_seg;
@@ -583,7 +597,7 @@ classdef surfdata < handle
    
     
     %% valid_surf
-    function [] = valid_surf(obj, surf_struct)
+    function [] = valid_surf(obj, surf_struct,doa_method_flag)
       % obj.valid_surf(surf_struct)
       %
       % Input: A surf structure.
@@ -599,22 +613,22 @@ classdef surfdata < handle
       end      
       
       % check if all the fields exist
-      if  ~isfield(surf_struct, {'x', 'y', 'plot_name_values', ...
+        if ~isfield(surf_struct, {'x', 'y', 'plot_name_values', ...
                           'name', 'top', 'active', ...
                           'mask', 'gt', ...
                           'quality','visible'})
-        error('Struct missing field(s) that are necessary for a surface struct.');
-      end
+           error('Struct missing field(s) that are necessary for a surface struct.');
+        end
       
       % type check
-      if ~isa(surf_struct.x, 'double')
-        error('Invalid field type for the field x (Should be type double)');
-      end
-      
-      if ~isa(surf_struct.y, 'double') && (~isa(surf_struct.y, 'logical'))
-        error('Invalid field type for the field y (Should be type double or logical)');
-      end
-      
+        if ~isa(surf_struct.x, 'double')
+          error('Invalid field type for the field x (Should be type double)');
+        end
+        
+        if ~isa(surf_struct.y, 'double') && (~isa(surf_struct.y, 'logical'))
+          error('Invalid field type for the field y (Should be type double or logical)');
+        end
+
       if ~isa(surf_struct.plot_name_values, 'cell')
         error('Invalid field type for the field plot_name_values (Should be type cell).');
       end
@@ -648,19 +662,17 @@ classdef surfdata < handle
       end
             
       % Check that size of x and y match each other
-      if ~isequal(size(surf_struct.x), size(surf_struct.y))
-        error('Size of the field x and field y do not match each other.');
-      end
-      
+        if ~isequal(size(surf_struct.x), size(surf_struct.y))
+          error('Size of the field x and field y do not match each other.');
+        end
       % check if all the surface_struct in the object has the same dimension in x and y
       if ~isempty(obj.surf) && ...
           ~all(arrayfun(@(arr) isequal(size(surf_struct.x), size(arr.x)), obj.surf))
-          % we only check x because x and y must have the same dimension
-          % from the previous check.
-          error('Field x and y sizes do not match this surfdata''s surf x and y sizes.');
+        % we only check x because x and y must have the same dimension
+        % from the previous check.
+        error('Field x and y sizes do not match this surfdata''s surf x and y sizes.');
       end
-      
-      % Check that surface indices point to valid surface indices:      
+      % Check that surface indices point to valid surface indices:
       if ~isempty(surf_struct.top) ...
           && ~(surf_struct.top > 0 || surf_struct.top < length(obj.surf))
         error('top index out of range.');
@@ -757,9 +769,12 @@ classdef surfdata < handle
       % tomo.surfdata.empty_surf(fn)
       %
       % Returns an empty surf structure
-      
-      surf.x = [];
-      surf.y = [];
+      if exist('fn','var') && islogical(fn) && fn
+        surf.theta = [];
+      else
+        surf.x = [];
+        surf.y = [];
+      end
       surf.plot_name_values = {'color','blue','marker','^'};
       surf.name = '';
       surf.top = [];

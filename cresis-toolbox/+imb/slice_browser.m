@@ -28,7 +28,7 @@ classdef slice_browser < handle
     surfdata_fn
     surf_idx % Active surface
     bounds_relative
-
+    
     % Slice GUI handles
     h_fig
     h_axes
@@ -68,6 +68,9 @@ classdef slice_browser < handle
     plot_visibility
     undo_stack
     save_callback
+    
+    % DOA/beamforming method
+    doa_method_flag
   end
   
   events
@@ -89,8 +92,21 @@ classdef slice_browser < handle
       if ~isfield(param,'fh_button_motion')
         param.fh_button_motion = [];
       end
+      if ~isfield(param,'fh_key_press')
+        param.fh_key_press = [];
+      end
       if ~isfield(param,'bounds_relative')
         param.bounds_relative = [0 0 0 0];
+      end
+      if ~isfield(param,'doa_method_flag')
+        param.doa_method_flag = false;
+      end
+      obj.doa_method_flag = param.doa_method_flag;
+      if param.doa_method_flag && ~isfield(param,'doa_limits')
+        param.doa_limits = [-90 90];
+      end
+      if param.doa_method_flag && ~isfield(param,'nadir_doa_lim')
+        param.nadir_doa_lim = [-2 2];
       end
       undo_param.id = [];
       obj.undo_stack = imb.undo_stack(undo_param);
@@ -110,10 +126,10 @@ classdef slice_browser < handle
       
       % Load surface data
       if isfield(param,'surfdata_fn') && ~isempty(param.surfdata_fn)
-        obj.sd = tomo.surfdata(param.surfdata_fn);
+        obj.sd = tomo.surfdata(param.surfdata_fn,param);
         obj.surfdata_fn = param.surfdata_fn;
       else
-        obj.sd = tomo.surfdata();
+        obj.sd = tomo.surfdata(param);
         obj.surfdata_fn = '';
       end
       
@@ -125,11 +141,27 @@ classdef slice_browser < handle
       else
         obj.h_control_is_child = true;
         obj.h_control_fig = figure;
-        obj.h_control_axes = axes('Parent',obj.h_control_fig);
-        obj.h_control_image = imagesc(squeeze(obj.data(:,floor(size(data,2)/2)+1,:)),'Parent',obj.h_control_axes);
-        colormap(obj.h_control_axes,parula(256));
-        xlabel(obj.h_control_axes,'Along-track range line');
-        ylabel(obj.h_control_axes,'Range bin');
+        obj.h_control_axes = axes('Parent',obj.h_control_fig,'YDir','reverse');
+        hold(obj.h_control_axes,'on');
+        if ~param.doa_method_flag
+          obj.h_control_image = imagesc(squeeze(obj.data(:,floor(size(data,2)/2)+1,:)),'Parent',obj.h_control_axes);
+          colormap(obj.h_control_axes,parula(256));
+          xlabel(obj.h_control_axes,'Along-track range line');
+          ylabel(obj.h_control_axes,'Range bin');
+        else
+          % Find nadir DOAs
+          nadir_theta_val = squeeze(nanmin(abs(obj.data - 0),[],2)); % Nx*Nt matrix
+          nadir_theta_val(nadir_theta_val<param.nadir_doa_lim(1) | nadir_theta_val>param.nadir_doa_lim(2)) = NaN;
+          [nadir_r nadir_c] = find(~isnan(nadir_theta_val));
+          for theta_idx = 1:length(nadir_r)
+            obj.h_control_image = scatter(nadir_c(theta_idx),nadir_r(theta_idx),25,nadir_theta_val(nadir_r(theta_idx),nadir_c(theta_idx)),'filled');%,'Parent',obj.h_control_axes);
+          end
+          obj.h_control_axes.XLim = [1 size(obj.data,3)];
+          obj.h_control_axes.YLim = [1 size(obj.data,1)];
+          xlabel(obj.h_control_axes,'Along-track range line');
+          ylabel(obj.h_control_axes,'Range bin');
+          grid(obj.h_control_axes,'on');
+        end
       end
       obj.fh_button_up = param.fh_button_up;
       obj.fh_key_press = param.fh_key_press;
@@ -140,9 +172,9 @@ classdef slice_browser < handle
       pos(3) = 750;
       pos(4) = 500;
       set(obj.h_fig,'Position',pos);
-
+      
       obj.h_surf_axes = axes('Parent',obj.h_surf_fig,'YDir','reverse');
-      obj.h_surf_image = imagesc(NaN*zeros(size(obj.data,2),size(obj.data,3)),'parent',obj.h_surf_axes);
+      obj.h_surf_image = imagesc(NaN*zeros(size(obj.data,2),size(obj.data,3)),'parent',obj.h_surf_axes);  
       colormap(obj.h_surf_axes, parula(256));
       xlabel(obj.h_surf_axes,'Along-track range line');
       ylabel(obj.h_surf_axes,'Cross-track');
@@ -150,7 +182,7 @@ classdef slice_browser < handle
       obj.h_surf_plot = plot(NaN,NaN,'parent',obj.h_surf_axes,'Marker','x','Color','black','LineWidth',2,'MarkerSize',10);
       
       obj.h_fig = figure;
-
+      
       pos = get(obj.h_fig,'Position');
       pos(3) = 750;
       pos(4) = 500;
@@ -160,17 +192,43 @@ classdef slice_browser < handle
       obj.gui.right_panel = uipanel('parent',obj.h_fig);
       obj.h_axes = axes('Parent',obj.gui.right_panel,'YDir','reverse');
       hold(obj.h_axes,'on');
-      colormap(obj.h_axes, parula(256));
-      xlabel(obj.h_axes,'Cross-track');
-      ylabel(obj.h_axes,'Range bin');
+      if ~param.doa_method_flag
+        colormap(obj.h_axes, parula(256));
+        xlabel(obj.h_axes,'Cross-track');
+        ylabel(obj.h_axes,'Range bin');
+      else
+        obj.h_axes.XLim = [param.doa_limits(1) param.doa_limits(2)];
+        obj.h_axes.YLim = [1 size(obj.data,1)];
+        xlabel(obj.h_axes,'Elevation angle (deg)');
+        ylabel(obj.h_axes,'Range bin');
+        grid(obj.h_axes,'on');
+      end
       
-      obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
-      for surf_idx = 1:numel(obj.sd.surf)
+      if ~param.doa_method_flag
+        obj.h_image = imagesc(obj.data(:,:,obj.slice),'parent',obj.h_axes);
+        for surf_idx = 1:numel(obj.sd.surf)
           obj.sd.surf(surf_idx).h_plot ...
             = plot(obj.sd.surf(surf_idx).x(:,obj.slice), ...
             obj.sd.surf(surf_idx).y(:,obj.slice), ...
             'parent',obj.h_axes,'color','black', ...
             obj.sd.surf(surf_idx).plot_name_values{:});
+        end
+      else
+        % Use good data points to interpolate over bad data points
+        for theta_idx = 1:size(obj.data,2)
+          good_theta_idx = find(~isnan(obj.data(:,theta_idx,obj.slice)));
+          if ~isempty(good_theta_idx)
+            obj.data(good_theta_idx(1):good_theta_idx(end),theta_idx,obj.slice) = interp1(good_theta_idx,obj.data(good_theta_idx,theta_idx,obj.slice),[good_theta_idx(1):good_theta_idx(end)].');
+          end
+        end
+        
+        for surf_idx = 1:numel(obj.sd.surf)
+          obj.sd.surf(surf_idx).h_plot ...
+            = plot(obj.sd.surf(surf_idx).x(:,obj.slice), ...
+            obj.sd.surf(surf_idx).y(:,obj.slice), ...
+            'parent',obj.h_axes,'color','black', ...
+            obj.sd.surf(surf_idx).plot_name_values{:});
+        end
       end
       
       addlistener(obj.undo_stack,'synchronize_event',@obj.undo_sync);
@@ -180,35 +238,42 @@ classdef slice_browser < handle
       hold(obj.h_control_axes,'on');
       obj.h_control_plot = plot(NaN,NaN,'parent',obj.h_control_axes,'Marker','x','Color','black','LineWidth',2,'MarkerSize',10);
       obj.h_control_surf = plot(NaN,NaN,'parent',obj.h_control_axes,'Marker','.','Color','red');
-
+      
       % Set up figure callbacks and zoom
-      zoom_figure_setup(obj.h_fig,'slice');
-      obj.zoom_mode = true;
-      set(obj.h_fig,'pointer','custom');
+      if ~obj.doa_method_flag
+        zoom_figure_setup(obj.h_fig,'slice');
+        obj.zoom_mode = true;
+        set(obj.h_fig,'pointer','custom');
+      
       set(obj.h_fig,'WindowButtonUpFcn',@obj.button_up);
       set(obj.h_fig,'WindowButtonDownFcn',@obj.button_down);
+      end
       set(obj.h_fig,'WindowButtonMotionFcn',@obj.button_motion);
       set(obj.h_fig,'WindowScrollWheelFcn',@obj.button_scroll);
       set(obj.h_fig,'WindowKeyPressFcn',@obj.key_press);
       set(obj.h_fig,'WindowKeyReleaseFcn',@obj.key_release);
       set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
       
-      zoom_figure_setup(obj.h_surf_fig,'surface');
-      set(obj.h_surf_fig,'pointer','custom');
+      if ~obj.doa_method_flag
+        zoom_figure_setup(obj.h_surf_fig,'surface');
+        set(obj.h_surf_fig,'pointer','custom');
+      end
       set(obj.h_surf_fig,'WindowButtonUpFcn',@obj.surf_button_up);
       set(obj.h_surf_fig,'WindowButtonDownFcn',@obj.surf_button_down);
-%       set(obj.h_surf_fig,'WindowButtonMotionFcn',@obj.button_motion);
+      %       set(obj.h_surf_fig,'WindowButtonMotionFcn',@obj.button_motion);
       set(obj.h_surf_fig,'WindowScrollWheelFcn',@obj.surf_button_scroll);
       set(obj.h_surf_fig,'WindowKeyPressFcn',@obj.key_press);
       set(obj.h_surf_fig,'WindowKeyReleaseFcn',@obj.key_release);
       set(obj.h_surf_fig,'CloseRequestFcn',[]);
       
       if obj.h_control_is_child
-        zoom_figure_setup(obj.h_control_fig,'echogram');
-        set(obj.h_control_fig,'pointer','custom');
+        if ~obj.doa_method_flag
+          zoom_figure_setup(obj.h_control_fig,'echogram');
+          set(obj.h_control_fig,'pointer','custom');
+        end
         set(obj.h_control_fig,'WindowButtonUpFcn',@obj.control_button_up);
         set(obj.h_control_fig,'WindowButtonDownFcn',@obj.control_button_down);
-%         set(obj.h_control_fig,'WindowButtonMotionFcn',@obj.button_motion);
+        %         set(obj.h_control_fig,'WindowButtonMotionFcn',@obj.button_motion);
         set(obj.h_control_fig,'WindowScrollWheelFcn',@obj.control_button_scroll);
         set(obj.h_control_fig,'WindowKeyPressFcn',@obj.key_press);
         set(obj.h_control_fig,'WindowKeyReleaseFcn',@obj.key_release);
@@ -243,8 +308,13 @@ classdef slice_browser < handle
       table_draw(obj.gui.table);
       
       % Set limits to size of data
-      xlim(obj.h_axes, [1 size(obj.data(:,:,obj.slice),2)]);
-      ylim(obj.h_axes, [1 size(obj.data(:,:,obj.slice),1)]);
+      if ~param.doa_method_flag
+        xlim(obj.h_axes, [1 size(obj.data(:,:,obj.slice),2)]);
+        ylim(obj.h_axes, [1 size(obj.data(:,:,obj.slice),1)]);
+      else
+        xlim(obj.h_axes, [param.doa_limits(1) param.doa_limits(2)]);
+        ylim(obj.h_axes, [1 size(obj.data(:,:,obj.slice),1)]);
+      end
       
       obj.gui.nextPB = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.nextPB,'style','pushbutton')
@@ -269,42 +339,46 @@ classdef slice_browser < handle
       set(obj.gui.next10PB,'string','>>')
       set(obj.gui.next10PB,'Callback',@obj.next10_button_callback)
       set(obj.gui.next10PB,'TooltipString','Move forward ten slices (>)');
+      if ~obj.doa_method_flag
+        obj.gui.savePB = uicontrol('parent',obj.gui.left_panel);
+        set(obj.gui.savePB,'style','pushbutton')
+        set(obj.gui.savePB,'string','(S)ave')
+        set(obj.gui.savePB,'Callback',@obj.save_button_callback)
+        set(obj.gui.savePB,'TooltipString','(S)ave surfaces to file');
+        
+        obj.gui.helpPB = uicontrol('parent',obj.gui.left_panel);
+        set(obj.gui.helpPB,'style','pushbutton')
+        set(obj.gui.helpPB,'string','Help (F1)')
+        set(obj.gui.helpPB,'Callback',@obj.help_button_callback)
+        set(obj.gui.helpPB,'TooltipString','Print help to stdout (F1)');
+      end
       
-      obj.gui.savePB = uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.savePB,'style','pushbutton')
-      set(obj.gui.savePB,'string','(S)ave')
-      set(obj.gui.savePB,'Callback',@obj.save_button_callback)
-      set(obj.gui.savePB,'TooltipString','(S)ave surfaces to file');
-      
-      obj.gui.helpPB = uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.helpPB,'style','pushbutton')
-      set(obj.gui.helpPB,'string','Help (F1)')
-      set(obj.gui.helpPB,'Callback',@obj.help_button_callback)
-      set(obj.gui.helpPB,'TooltipString','Print help to stdout (F1)');
-      
-      obj.gui.surfaceTXT = uicontrol('Style','text','string','Surface');
-      obj.gui.surfaceLB = uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.surfaceLB,'style','listbox')
-      set(obj.gui.surfaceLB,'string',obj.sd.get_names());
-      set(obj.gui.surfaceLB,'Callback',@obj.surfaceLB_callback)
-      set(obj.gui.surfaceLB,'TooltipString','Select active surface (#)');
-      obj.gui.surfaceCM = uicontextmenu('Parent',obj.h_fig);
-      % Define the context menu items and install their callbacks
-      obj.gui.surfaceCM_visible = uimenu(obj.gui.surfaceCM, 'Label', 'Toggle Visible', 'Callback', @obj.surfaceLB_visibility_toggle);
-      set(obj.gui.surfaceLB,'UIContextMenu',obj.gui.surfaceCM);
-      
-      obj.gui.applyPB= uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.applyPB,'style','pushbutton')
-      set(obj.gui.applyPB,'string','Apply')
-      set(obj.gui.applyPB,'Callback',@obj.applyPB_callback)
-      set(obj.gui.applyPB,'TooltipString','Apply selected tool');
-
-      obj.gui.optionsPB = uicontrol('parent',obj.gui.left_panel);
-      set(obj.gui.optionsPB,'style','pushbutton');
-      set(obj.gui.optionsPB,'string','Options');
-      set(obj.gui.optionsPB,'Callback',@obj.optionsPB_callback);
-      set(obj.gui.optionsPB,'TooltipString','Open tool options window');
-      
+        obj.gui.surfaceTXT = uicontrol('Style','text','string','Surface');
+        obj.gui.surfaceLB = uicontrol('parent',obj.gui.left_panel);
+        set(obj.gui.surfaceLB,'style','listbox')
+        set(obj.gui.surfaceLB,'string',obj.sd.get_names());
+        set(obj.gui.surfaceLB,'Callback',@obj.surfaceLB_callback)
+        set(obj.gui.surfaceLB,'TooltipString','Select active surface (#)');
+        obj.gui.surfaceCM = uicontextmenu('Parent',obj.h_fig);
+        % Define the context menu items and install their callbacks
+        obj.gui.surfaceCM_visible = uimenu(obj.gui.surfaceCM, 'Label', 'Toggle Visible', 'Callback', @obj.surfaceLB_visibility_toggle);
+        set(obj.gui.surfaceLB,'UIContextMenu',obj.gui.surfaceCM);
+        
+        if ~obj.doa_method_flag
+          % 'Apply' and 'Options' buttons are not supported for 'doa' method
+          % at this point.
+          obj.gui.applyPB= uicontrol('parent',obj.gui.left_panel);
+          set(obj.gui.applyPB,'style','pushbutton')
+          set(obj.gui.applyPB,'string','Apply')
+          set(obj.gui.applyPB,'Callback',@obj.applyPB_callback)
+          set(obj.gui.applyPB,'TooltipString','Apply selected tool');
+          
+          obj.gui.optionsPB = uicontrol('parent',obj.gui.left_panel);
+          set(obj.gui.optionsPB,'style','pushbutton');
+          set(obj.gui.optionsPB,'string','Options');
+          set(obj.gui.optionsPB,'Callback',@obj.optionsPB_callback);
+          set(obj.gui.optionsPB,'TooltipString','Open tool options window');
+        end
       obj.gui.toolPM = uicontrol('parent',obj.gui.left_panel);
       set(obj.gui.toolPM,'style','popup');
       set(obj.gui.toolPM,'string',{''});
@@ -353,14 +427,18 @@ classdef slice_browser < handle
       col = 0;
       row = row + 1;
       col = col + 1;
-      obj.gui.left_table.handles{row,col}   = obj.gui.savePB;
+      if ~obj.doa_method_flag
+        obj.gui.left_table.handles{row,col}   = obj.gui.savePB;
+      end
       obj.gui.left_table.width(row,col)     = inf;
       obj.gui.left_table.height(row,col)    = 20;
       obj.gui.left_table.width_margin(row,col) = 1;
       obj.gui.left_table.height_margin(row,col) = 1;
       
       col = col + 1;
-      obj.gui.left_table.handles{row,col}   = obj.gui.helpPB;
+      if ~obj.doa_method_flag
+        obj.gui.left_table.handles{row,col}   = obj.gui.helpPB;
+      end
       obj.gui.left_table.width(row,col)     = inf;
       obj.gui.left_table.height(row,col)    = 20;
       obj.gui.left_table.width_margin(row,col) = 1;
@@ -393,26 +471,29 @@ classdef slice_browser < handle
       obj.gui.left_table.width_margin(row,col) = 1;
       obj.gui.left_table.height_margin(row,col) = 1;
       
-      col = 0;
-      row = row + 1;
-      col = col + 1;
-      obj.gui.left_table.handles{row,col}   = obj.gui.applyPB;
-      obj.gui.left_table.width(row,col)     = inf;
-      obj.gui.left_table.height(row,col)    = 20;
-      obj.gui.left_table.width_margin(row,col) = 1;
-      obj.gui.left_table.height_margin(row,col) = 1;
-      
-      col = col + 1;
-      obj.gui.left_table.handles{row,col}   = obj.gui.optionsPB;
-      obj.gui.left_table.width(row,col)     = inf;
-      obj.gui.left_table.height(row,col)    = 20;
-      obj.gui.left_table.width_margin(row,col) = 1;
-      obj.gui.left_table.height_margin(row,col) = 1;
-      
+      if ~obj.doa_method_flag
+        % 'Apply' and 'Options' are not supported for 'doa' method at this
+        % point.
+        col = 0;
+        row = row + 1;
+        col = col + 1;
+        obj.gui.left_table.handles{row,col}   = obj.gui.applyPB;
+        obj.gui.left_table.width(row,col)     = inf;
+        obj.gui.left_table.height(row,col)    = 20;
+        obj.gui.left_table.width_margin(row,col) = 1;
+        obj.gui.left_table.height_margin(row,col) = 1;
+        
+        col = col + 1;
+        obj.gui.left_table.handles{row,col}   = obj.gui.optionsPB;
+        obj.gui.left_table.width(row,col)     = inf;
+        obj.gui.left_table.height(row,col)    = 20;
+        obj.gui.left_table.width_margin(row,col) = 1;
+        obj.gui.left_table.height_margin(row,col) = 1;
+      end
       clear row col
       table_draw(obj.gui.left_table);
       
-      obj.update_slice();
+      obj.update_slice(param);
     end
     
     %% destructor/delete
@@ -423,7 +504,7 @@ classdef slice_browser < handle
         try; delete(obj.slice_tool.list{tool_idx}); end;
       end
       try; delete(obj.slice_tool.timer); end;
-
+      
       % Control figure destructor
       try; set(obj.h_control_fig, 'WindowButtonUpFcn', []); end;
       if obj.h_control_is_child
@@ -504,8 +585,8 @@ classdef slice_browser < handle
         end
       end
       obj.change_slice(new_slice,true);
-
-    end  
+      
+    end
     
     %% button_down
     function button_down(obj,h_obj,event)
@@ -577,7 +658,7 @@ classdef slice_browser < handle
             else
               surf_y = obj.sd.surf(surf_idx).y(:,obj.slice);
             end
-
+            
             obj.select_mask = obj.select_mask | (obj.sd.surf(surf_idx).x(:,obj.slice) >= min(x,obj.x) ...
               & obj.sd.surf(surf_idx).x(:,obj.slice) <= max(x,obj.x) ...
               & surf_y >= min(y,obj.y) ...
@@ -631,7 +712,7 @@ classdef slice_browser < handle
         if obj.surf_x == x
           xlims = xlim(obj.h_surf_axes);
           ylims = ylim(obj.h_surf_axes);
-          if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end) 
+          if x >= xlims(1) && x <= xlims(end) && y >= ylims(1) && y <= ylims(end)
             obj.change_slice(round(x),false);
           end
         else
@@ -666,7 +747,7 @@ classdef slice_browser < handle
         end
       end
     end
-
+    
     
     %% button_motion
     function button_motion(obj,h_obj,event)
@@ -688,7 +769,7 @@ classdef slice_browser < handle
       elseif obj.zoom_mode
         set(obj.h_fig,'Pointer','custom');
       end
-
+      
       [x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
       set(obj.h_control_plot,'XData',obj.slice,'YData',y);
       set(obj.h_surf_plot,'XData',obj.slice,'YData',x);
@@ -839,7 +920,7 @@ classdef slice_browser < handle
             
             cmd{1}.undo.x = find(obj.select_mask);
             cmd{1}.undo.y = obj.sd.surf(surf_idx).y(obj.select_mask,obj.slice);
-
+            
             cmd{1}.type = 'standard';
             obj.push(cmd);
             
@@ -941,29 +1022,45 @@ classdef slice_browser < handle
     end
     
     %% Update slice
-    function update_slice(obj)
-      set(obj.h_image,'CData',obj.data(:,:,obj.slice));
-      
-      title(sprintf('Slice:%d',obj.slice),'parent',obj.h_axes)
-
-      % Update surface plots
-      for surf_idx = 1:numel(obj.sd.surf)
-        if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask'))
-          tmp_y = obj.sd.surf(obj.sd.surf(surf_idx).top).y(:,obj.slice);
-          tmp_y(~obj.sd.surf(surf_idx).y(:,obj.slice)) = NaN;
-        elseif ~isempty(regexp(obj.sd.surf(surf_idx).name, 'quality'))
-          tmp_y = obj.sd.surf(obj.sd.surf(surf_idx).active).y(:,obj.slice);
-          tmp_y(obj.sd.surf(surf_idx).y(:,obj.slice) == 1) = NaN;
-        else
-          tmp_y = obj.sd.surf(surf_idx).y(:,obj.slice);
-        end
-        tmp_y(1:obj.bounds_relative(1),:) = NaN;
-        tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
-        set(obj.sd.surf(surf_idx).h_plot, ...
-          'XData', obj.sd.surf(surf_idx).x(:,obj.slice), ...
-          'YData', tmp_y);
+    function update_slice(obj,param)
+      if ~obj.doa_method_flag
+        set(obj.h_image,'CData',obj.data(:,:,obj.slice));
       end
       
+      title(sprintf('Slice:%d',obj.slice),'parent',obj.h_axes)
+      
+      % Update surface plots
+      for surf_idx = 1:numel(obj.sd.surf)
+        if ~obj.doa_method_flag
+          if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask'))
+            tmp_y = obj.sd.surf(obj.sd.surf(surf_idx).top).y(:,obj.slice);
+            tmp_y(~obj.sd.surf(surf_idx).y(:,obj.slice)) = NaN;
+          elseif ~isempty(regexp(obj.sd.surf(surf_idx).name, 'quality'))
+            tmp_y = obj.sd.surf(obj.sd.surf(surf_idx).active).y(:,obj.slice);
+            tmp_y(obj.sd.surf(surf_idx).y(:,obj.slice) == 1) = NaN;
+          else
+            tmp_y = obj.sd.surf(surf_idx).y(:,obj.slice);
+          end
+          tmp_y(1:obj.bounds_relative(1),:) = NaN;
+          tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
+          set(obj.sd.surf(surf_idx).h_plot, ...
+            'XData', obj.sd.surf(surf_idx).x(:,obj.slice), ...
+            'YData', tmp_y);
+        else
+          if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask'))
+            tmp_y = obj.sd.surf(obj.sd.surf(surf_idx).top).y(:,obj.slice);
+            tmp_y(~obj.sd.surf(surf_idx).y(:,obj.slice)) = NaN;
+          elseif ~isempty(regexp(obj.sd.surf(surf_idx).name, 'quality'))
+            tmp_y = obj.sd.surf(obj.sd.surf(surf_idx).active).y(:,obj.slice);
+            tmp_y(obj.sd.surf(surf_idx).y(:,obj.slice) == 1) = NaN;
+          else
+            tmp_y = obj.sd.surf(surf_idx).y(:,obj.slice);
+          end
+          set(obj.sd.surf(surf_idx).h_plot, ...
+            'XData', obj.sd.surf(surf_idx).x(:,obj.slice), ...
+            'YData', tmp_y);
+        end
+      end
       if ~isempty(get(obj.gui.surfaceLB,'String'))
         % Update surface selection related plots
         surf_idx = get(obj.gui.surfaceLB,'value');
@@ -979,8 +1076,10 @@ classdef slice_browser < handle
           'YData',y_select(obj.select_mask),'Marker','o','LineWidth',2);
         tmp_y = double(obj.sd.surf(surf_idx).y);
         % Hide data outside bounds
-        tmp_y(1:obj.bounds_relative(1),:) = NaN;
-        tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
+        if ~obj.doa_method_flag
+          tmp_y(1:obj.bounds_relative(1),:) = NaN;
+          tmp_y(end-obj.bounds_relative(2)+1:end,:) = NaN;
+        end
         % Hide bad quality data when active surface shown and quality surface
         % visible
         if ~isempty(obj.sd.surf(surf_idx).quality) ...
@@ -1009,23 +1108,74 @@ classdef slice_browser < handle
         end
         
         % Update control figure plots
+        if obj.doa_method_flag &&(~exist('param','var') || ~isfield(param,'nadir_doa_lim'))
+          param.nadir_doa_lim = [-2 2];
+        end
         surf_idx = get(obj.gui.surfaceLB,'value');
         if ~isempty(regexp(obj.sd.surf(surf_idx).name, 'quality'))
           active_idx = obj.sd.surf(surf_idx).active;
           if ~isempty(active_idx)
-            new_y = obj.sd.surf(active_idx).y(ceil(size(obj.data,2)/2)+1,:);
-            new_y(2 == obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
-            set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
+            if ~obj.doa_method_flag
+              new_y = obj.sd.surf(active_idx).y(ceil(size(obj.data,2)/2)+1,:);
+              new_y(2 == obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
+              set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
+            else
+              % Find nadir DOA. The assumption is that it is the first
+              % value in the search limits (nadir_doa_lim)
+              for rline_idx = 1:size(obj.data,3)
+                nadir_theta_val = squeeze(nanmin(abs(obj.sd.surf(active_idx).y(:,rline_idx) - 0),[],2)); % Nx*Nt matrix
+                nadir_theta_val(nadir_theta_val<param.nadir_doa_lim(1) | nadir_theta_val>param.nadir_doa_lim(2)) = NaN;
+                nadir_r = find(~isnan(nadir_theta_val));
+                if ~isempty(nadir_r)
+                  new_y(rline_idx,1) = obj.sd.surf(active_idx).y(nadir_r(1),rline_idx);
+                  new_y(2 == obj.sd.surf(surf_idx).y(nadir_r(1)),rline_idx) = NaN;
+                else
+                  new_y(rline_idx,1) = NaN;
+                end
+              end
+              set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
+            end
           end
         elseif ~isempty(regexp(obj.sd.surf(surf_idx).name, 'mask'))
           surf_idx = obj.sd.surf(surf_idx).top;
           if ~isempty(surf_idx)
-            new_y = obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:);
-            new_y(~obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
-            set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
+            if ~obj.doa_method_flag
+              new_y = obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:);
+              new_y(~obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:)) = NaN;
+              set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
+            else
+              % Find nadir DOA. The assumption is that it is the first
+              % value in the search limits (nadir_doa_lim)
+              for rline_idx = 1:size(obj.data,3)
+                nadir_theta_val = squeeze(nanmin(abs(obj.sd.surf(surf_idx).y(:,rline_idx) - 0),[],2)); % Nx*Nt matrix
+                nadir_theta_val(nadir_theta_val<param.nadir_doa_lim(1) | nadir_theta_val>param.nadir_doa_lim(2)) = NaN;
+                nadir_r = find(~isnan(nadir_theta_val));
+                if ~isempty(nadir_r)
+                  new_y(rline_idx,1) = obj.sd.surf(surf_idx).y(nadir_r(1),rline_idx);
+                  new_y(2 == obj.sd.surf(surf_idx).y(nadir_r(1)),rline_idx) = NaN;
+                else
+                  new_y(rline_idx,1) = NaN;
+                end
+              end
+              set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
+            end
           end
         else
+          if ~obj.doa_method_flag
           set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',obj.sd.surf(surf_idx).y(ceil(size(obj.data,2)/2)+1,:));
+          else
+            for rline_idx = 1:size(obj.data,3)
+              nadir_theta_val = squeeze(nanmin(abs(obj.sd.surf(surf_idx).y(:,rline_idx) - 0),[],2)); % Nx*Nt matrix
+              nadir_theta_val(nadir_theta_val<param.nadir_doa_lim(1) | nadir_theta_val>param.nadir_doa_lim(2)) = NaN;
+              nadir_r = find(~isnan(nadir_theta_val));
+              if ~isempty(nadir_r)
+                new_y(rline_idx,1) = obj.sd.surf(surf_idx).y(nadir_r(1),rline_idx);
+              else
+                new_y(rline_idx,1) = NaN;
+              end
+            end
+            set(obj.h_control_surf,'XData',1:size(obj.data,3),'YData',new_y);
+          end
         end
       end
     end
@@ -1050,7 +1200,7 @@ classdef slice_browser < handle
     
     %% timer_callback
     function timer_callback(obj,src,event)
-%      fprintf('Timer\n');
+      %      fprintf('Timer\n');
     end
     
     %% applyPB_callback Tool
@@ -1097,7 +1247,7 @@ classdef slice_browser < handle
       fprintf('\nAll Modes\n');
       fprintf('scroll: zoom in/out at point\n');
       fprintf('delete: deletes selected points (or toggles logical values)\n');
-
+      
       if ~isempty(obj.slice_tool.list)
         fprintf('\nInstalled tools:\n');
         for tool_idx = 1:length(obj.slice_tool.list)
@@ -1110,22 +1260,22 @@ classdef slice_browser < handle
     
     %% getEventData
     function getEventData(obj,src,~)
-      cmd = src.cmd;     
+      cmd = src.cmd;
       obj.undo_stack.push(cmd);
     end
     
     %% add_listener
     function add_listener(obj,src)
-       evnts = src.get_events();
-       
-       if ~isempty(evnts)
-         for i = 1:numel(evnts);
-           addlistener(evnts.src,evnts.evnts{i},@obj.getEventData);
-         end
-       end
-       
+      evnts = src.get_events();
+      
+      if ~isempty(evnts)
+        for i = 1:numel(evnts);
+          addlistener(evnts.src,evnts.evnts{i},@obj.getEventData);
+        end
+      end
+      
     end
-     
+    
     %% push
     function push(obj,cmd)
       obj.surf_idx = get(obj.gui.surfaceLB,'Value');
@@ -1142,7 +1292,7 @@ classdef slice_browser < handle
       fprintf('  Done\n');
       for tool_idx = 1:length(obj.slice_tool.list)
         if ~isempty(obj.slice_tool.list{tool_idx}.save_callback) && ...
-          isa(obj.slice_tool.list{tool_idx}.save_callback,'function_handle')
+            isa(obj.slice_tool.list{tool_idx}.save_callback,'function_handle')
           obj.slice_tool.list{tool_idx}.save_callback();
         end
       end

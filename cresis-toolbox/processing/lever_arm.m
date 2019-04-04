@@ -369,8 +369,57 @@ if (strcmpi(param.season_name,'2019_Greenland_P3') && any(strcmpi(gps_source,{'A
   % Lever arm offsets from the reference point on the GPS/IMU plate to each
   % of the individual IMUs:
   % Novatel IMU-CPT:
+  %   Vertical offset: (1.65)*0.0254
+  %   Cross-track offset: (-3.863995 - 6.66/2 + 4.55)*0.0254
+  %   Along-track offset: (-23.392336 + 6/2 - 3.39 )*0.0254
   % Applanix APX-15:
+  %   Vertical offset: (-13.231097)*0.0254
+  %   Cross-track offset: (-4.407455)*0.0254
+  %   Along-track offset: (0.451)*0.0254
   % Vector Nav:
+  %   Vertical offset: 0*0.0254
+  %   Cross-track offset: -4.123767*0.0254
+  %   Along-track offset: -9.383399*0.0254
+  
+  if 0
+    % APX-15 lever arm
+    x = -1.6716 + -13.231097*0.0254
+    y = -0.3413 + -4.407455*0.0254
+    z = -2.1234 + 0.451*0.0254
+  end
+  
+  if 0
+    % Vector Nav lever arm
+    x = -1.6716 + -9.383399*0.0254
+    y = -0.3413 + -4.123767*0.0254
+    z = -2.1234 + 0*0.0254
+  end
+  
+  if 0
+    % Novatel lever arm. Default coordinate system is different:
+    %  X points to the right
+    %  Y points forwards
+    %  Z points up
+    y = -1.6716 + (-23.392336 + 6/2 - 3.39 )*0.0254
+    x = -0.3413 + (-3.863995 - 6.66/2 + 4.55)*0.0254
+    z = +2.1234 + -(1.65)*0.0254
+    % # DDV12350020 on IMU
+    % 	FIX NONE 0 0 0
+    % 	SETIMUTYPE IMU_KVH_COTS
+    % # Set IMU Orientation, Z points up (default)
+    % 	INSCOMMAND enable
+    % 	SETIMUORIENTATION 5
+    % # Set Vehicle to Body Rotation
+    % 	VEHICLEBODYROTATION 0.000000 0.000000 0.000000 0.000000 0.000000 0.000000
+    % 	APPLYVEHICLEBODYROTATION disable
+    % # Set Lever Arm Offset
+    % 	SETIMUTOANTOFFSET -0.408500 -2.275700 2.081500 0.010000 0.010000 0.010000
+    % 	SETINSOFFSET 0.000000 0.000000 0.000000
+    % # Stationary Alignment
+    % 	ALIGNMENTMODE UNAIDED
+    % # Save configuration
+    % 	SAVECONFIG
+  end
 
   gps.x = -752.75*0.0254;
   gps.y = 0*0.0254;

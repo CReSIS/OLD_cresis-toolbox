@@ -35,11 +35,11 @@ in_base_path = fullfile(data_support_path,'2019_Greenland_P3');
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
-gps_source_to_use = 'NMEA';
+% gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'APX15';
 % gps_source_to_use = 'SPANSE';
 % gps_source_to_use = 'VectorNav';
-% gps_source_to_use = 'ATM-field';
+gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM';
 
 if strcmpi(gps_source_to_use,'NMEA')
@@ -78,7 +78,7 @@ elseif strcmpi(gps_source_to_use,'APX15')
 elseif strcmpi(gps_source_to_use,'ATM-field')
   %% ATM-field
   
-  year = 2019; month = 3; day = 15;
+  year = 2019; month = 3; day = 28;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);

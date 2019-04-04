@@ -55,8 +55,8 @@ default.records.presum_bug_fixed = 0;
 default.qlook.out_path = '';
 default.qlook.en = 1;
 default.qlook.block_size = 10000;
-default.qlook.dec = 50;
-default.qlook.inc_dec = 10;
+default.qlook.dec = 20;
+default.qlook.inc_dec = 5;
 default.qlook.surf.en = 1;
 default.qlook.surf.profile = 'RDS_OIB';
 
@@ -67,10 +67,6 @@ default.sar.frm_types = {0,[0 1],0,0,-1};
 default.sar.chunk_len = 5000;
 default.sar.combine_rx = 0;
 default.sar.trim_vals = [];
-default.sar.pulse_comp = 1;
-default.sar.ft_dec = 1;
-default.sar.ft_wind = @hanning;
-default.sar.ft_wind_time = 0;
 default.sar.mocomp.en = 1;
 default.sar.mocomp.type = 2;
 default.sar.mocomp.filter = {@butter  [2]  [0.1000]};
@@ -88,7 +84,7 @@ default.array.out_path = '';
 default.array.method = 'standard';
 default.array.window = @hanning;
 default.array.bin_rng = 0;
-default.array.rline_rng = -5:5;
+default.array.line_rng = -5:5;
 default.array.dbin = 1;
 default.array.dline = 6;
 default.array.DCM = [];
@@ -105,10 +101,15 @@ default.radar.fs = 1e9/9;
 default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2;
+default.radar.lever_arm_fh = @lever_arm;
 
 default.radar.wfs.rx_paths = [1 2 3 4 5 6 7 NaN];
 default.radar.wfs.noise_figure = 2;
 default.radar.wfs.Tadc_adjust = -1.4455e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+
+default.radar.wfs(1).Tsys = [0 0 0 0 0 0 0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0];
+default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0];
 
 %% Post worksheet
 default.post.data_dirs = {'qlook'};
@@ -133,10 +134,6 @@ default.post.ops.gaps_dist = [300 60];
 
 %% Radar Settings
 defaults = {};
-
-default.radar.wfs(1).Tsys = [0 0 0 0 0 0 0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0];
 
 % survey mode
 default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
