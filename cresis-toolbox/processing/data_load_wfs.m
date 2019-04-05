@@ -656,7 +656,7 @@ for wf = 1:length(param.radar.wfs)
       end
       
     case 404
-      HEADER_SIZE = 32;
+      HEADER_SIZE = 40;
       WF_HEADER_SIZE = 8;
       wfs(wf).record_mode = 0;
       wfs(wf).complex = 0;

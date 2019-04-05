@@ -300,13 +300,13 @@ if any(fparam.file_version == [1])
   %% Read waveforms 1
   % =======================================================================
   Nx = length(hdr.offsets);
-  Nt = hdr.finfo.rec_size/2 - 16;
+  num_sam = hdr.finfo.rec_size/2 - 16;
 
   wf = 1;
-  hdr.wfs(wf).Nt = repmat(Nt,[1 Nx]);
-  data{1} = zeros(Nt,Nx,'single');
+  hdr.wfs(wf).num_sam = repmat(num_sam,[1 Nx]);
+  data{1} = zeros(num_sam,Nx,'single');
   for rec = 1:Nx
-    data{1}(:,rec) = raw_file_data(hdr.offsets(rec)+16 + (0:Nt-1));
+    data{1}(:,rec) = raw_file_data(hdr.offsets(rec)+16 + (0:num_sam-1));
   end
   presums = 4;
   bit_shifts = 0;
@@ -339,29 +339,29 @@ elseif any(fparam.file_version == [2 3 4 5 6])
     % Override decimation if not enabled
     hdr.wfs.DDC_dec(~hdr.wfs.complex) = 1;
     
-    hdr.wfs.Nt = (stop_idx - hdr.wfs.start_idx);
-    Nt = double(median(hdr.wfs.Nt));
-    hdr.wfs.Nt = floor(Nt ./ hdr.wfs.DDC_dec);
-    Nt = max(hdr.wfs.Nt);
-    data{1} = zeros(Nt,Nx,'int16');
+    hdr.wfs.num_sam = (stop_idx - hdr.wfs.start_idx);
+    num_sam = double(median(hdr.wfs.num_sam));
+    hdr.wfs.num_sam = floor(num_sam ./ hdr.wfs.DDC_dec);
+    num_sam = max(hdr.wfs.num_sam);
+    data{1} = zeros(num_sam,Nx,'int16');
     for rec = 1:Nx
       if hdr.wfs.complex(rec)
-        data{1}(1:hdr.wfs.Nt(rec),rec) = raw_file_data(hdr.offsets(rec)+24 + (0:2:2*Nt-1)) ...
-          + 1i*raw_file_data(hdr.offsets(rec)+24 + (1:2:2*Nt-1));
+        data{1}(1:hdr.wfs.num_sam(rec),rec) = raw_file_data(hdr.offsets(rec)+24 + (0:2:2*num_sam-1)) ...
+          + 1i*raw_file_data(hdr.offsets(rec)+24 + (1:2:2*num_sam-1));
       else
-        data{1}(:,rec) = reshape([raw_file_data(hdr.offsets(rec)+24 + (1:2:Nt-1)); ...
-          raw_file_data(hdr.offsets(rec)+24 + (0:2:Nt-1))], [Nt 1]);
+        data{1}(:,rec) = reshape([raw_file_data(hdr.offsets(rec)+24 + (1:2:num_sam-1)); ...
+          raw_file_data(hdr.offsets(rec)+24 + (0:2:num_sam-1))], [num_sam 1]);
       end
     end
 
   else % file_version == 2 4
-    hdr.wfs.Nt = stop_idx - hdr.wfs.start_idx;
-    Nt = double(median(hdr.wfs.Nt));
-    data{1} = zeros(Nt,Nx,'int16');
+    hdr.wfs.num_sam = stop_idx - hdr.wfs.start_idx;
+    num_sam = double(median(hdr.wfs.num_sam));
+    data{1} = zeros(num_sam,Nx,'int16');
     for rec = 1:Nx
-      data{1}(:,rec,:) = raw_file_data(hdr.offsets(rec)+20 + (0:Nt-1));
+      data{1}(:,rec,:) = raw_file_data(hdr.offsets(rec)+20 + (0:num_sam-1));
     end
-    hdr.wfs.Nt(:) = Nt;
+    hdr.wfs.num_sam(:) = num_sam;
   end
   data{1} = single(data{1});
   
@@ -424,33 +424,33 @@ elseif any(fparam.file_version == [7 8 11])
       end
     end
     if fparam.file_version == 7
-      hdr.wfs(wf).Nt = (stop_idx - hdr.wfs(wf).start_idx);
-      Nt = double(median(hdr.wfs(wf).Nt));
-      hdr.wfs(wf).Nt = floor(Nt ./ hdr.wfs(wf).DDC_dec);
-      Nt = max(hdr.wfs(wf).Nt);
-      data{wf} = zeros(Nt,Nx,'int16');
+      hdr.wfs(wf).num_sam = (stop_idx - hdr.wfs(wf).start_idx);
+      num_sam = double(median(hdr.wfs(wf).num_sam));
+      hdr.wfs(wf).num_sam = floor(num_sam ./ hdr.wfs(wf).DDC_dec);
+      num_sam = max(hdr.wfs(wf).num_sam);
+      data{wf} = zeros(num_sam,Nx,'int16');
       for rec = 1:Nx
         if hdr.wfs.complex(rec)
-          data{1}(1:hdr.wfs.Nt(rec),rec) = raw_file_data(hdr.offsets(rec)+24 + (0:2:2*Nt-1)) ...
-            + 1i*raw_file_data(hdr.offsets(rec)+24 + (1:2:2*Nt-1));
+          data{1}(1:hdr.wfs.num_sam(rec),rec) = raw_file_data(hdr.offsets(rec)+24 + (0:2:2*num_sam-1)) ...
+            + 1i*raw_file_data(hdr.offsets(rec)+24 + (1:2:2*num_sam-1));
         else
-          data{1}(:,rec) = reshape([raw_file_data(hdr.offsets(rec)+24 + (1:2:Nt-1)); ...
-            raw_file_data(hdr.offsets(rec)+24 + (0:2:Nt-1))], [Nt 1]);
+          data{1}(:,rec) = reshape([raw_file_data(hdr.offsets(rec)+24 + (1:2:num_sam-1)); ...
+            raw_file_data(hdr.offsets(rec)+24 + (0:2:num_sam-1))], [num_sam 1]);
         end
       end
-      wf_offset = wf_offset + 24 + Nt;
-      hdr.wfs(wf).Nt(:) = Nt;
+      wf_offset = wf_offset + 24 + num_sam;
+      hdr.wfs(wf).num_sam(:) = num_sam;
       data{wf} = single(data{wf});
       
     else
-      hdr.wfs(wf).Nt = param.samples_per_index*(stop_idx - hdr.wfs(wf).start_idx);
-      Nt = double(median(hdr.wfs(wf).Nt));
-      data{wf} = zeros(Nt,Nx,Nc,'int16');
+      hdr.wfs(wf).num_sam = param.samples_per_index*(stop_idx - hdr.wfs(wf).start_idx);
+      num_sam = double(median(hdr.wfs(wf).num_sam));
+      data{wf} = zeros(num_sam,Nx,Nc,'int16');
       for rec = 1:Nx
-        data{wf}(:,rec,:) = reshape(raw_file_data(hdr.offsets(rec)+24+wf_offset + (0:Nc*Nt-1)), [Nc Nt]).';
+        data{wf}(:,rec,:) = reshape(raw_file_data(hdr.offsets(rec)+24+wf_offset + (0:Nc*num_sam-1)), [Nc num_sam]).';
       end
-      wf_offset = wf_offset + 24 + Nc*Nt;
-      hdr.wfs(wf).Nt(:) = Nt;
+      wf_offset = wf_offset + 24 + Nc*num_sam;
+      hdr.wfs(wf).num_sam(:) = num_sam;
       data{wf} = single(data{wf});
     end
   end
@@ -465,7 +465,7 @@ elseif any(fparam.file_version == [401])
   % Read in header for each waveform
   wf_offset = 16;
   for wf = 1:num_wfs
-    hdr.wfs(wf).Nt = uint32(raw_file_data(hdr.offsets+wf_offset+0))*2^16 ...
+    hdr.wfs(wf).num_sam = uint32(raw_file_data(hdr.offsets+wf_offset+0))*2^16 ...
       + uint32(raw_file_data(hdr.offsets+wf_offset+1));
     multifield = uint32(raw_file_data(hdr.offsets+wf_offset+2))*2^16 ...
       + uint32(raw_file_data(hdr.offsets+wf_offset+3));
@@ -478,14 +478,14 @@ elseif any(fparam.file_version == [401])
   % Read in data for each waveform
   wf_offset = 80;
   for wf = 1:num_wfs
-    Nt = double(median(hdr.wfs(wf).Nt));
-    hdr.wfs(wf).Nt(:) = Nt;
-    data{wf} = zeros(Nt,Nx,'int16');
+    num_sam = double(median(hdr.wfs(wf).num_sam));
+    hdr.wfs(wf).num_sam(:) = num_sam;
+    data{wf} = zeros(num_sam,Nx,'int16');
     for rec = 1:Nx
-      data{wf}(:,rec) = raw_file_data(hdr.offsets(rec)+wf_offset + (0:Nt-1));
+      data{wf}(:,rec) = raw_file_data(hdr.offsets(rec)+wf_offset + (0:num_sam-1));
     end
     data{wf} = single(data{wf}) - 2^13*hdr.wfs(wf).presums/2^hdr.wfs(wf).bit_shifts;
-    wf_offset = wf_offset + Nt;
+    wf_offset = wf_offset + num_sam;
   end
   
 elseif any(fparam.file_version == [402 403])
@@ -503,14 +503,14 @@ elseif any(fparam.file_version == [402 403])
     hdr.wfs(wf).bit_shifts = -hdr.wfs(wf).bit_shifts(1:2:end);
     hdr.wfs(wf).start_idx = typecast(raw_file_data(hdr.offsets+1+wf_offset),'uint16');
     stop_idx = typecast(raw_file_data(hdr.offsets+2+wf_offset),'uint16');
-    hdr.wfs(wf).Nt = stop_idx - hdr.wfs(wf).start_idx;
-    Nt = double(median(hdr.wfs(wf).Nt));
-    hdr.wfs(wf).Nt(:) = Nt;
-    data{wf} = zeros(Nt,Nx,Nc,'int16');
+    hdr.wfs(wf).num_sam = stop_idx - hdr.wfs(wf).start_idx;
+    num_sam = double(median(hdr.wfs(wf).num_sam));
+    hdr.wfs(wf).num_sam(:) = num_sam;
+    data{wf} = zeros(num_sam,Nx,Nc,'int16');
     for rec = 1:Nx
-      data{wf}(:,rec,:) = reshape(raw_file_data(hdr.offsets(rec)+20+wf_offset + (0:Nc*Nt-1)), [Nc Nt]).';
+      data{wf}(:,rec,:) = reshape(raw_file_data(hdr.offsets(rec)+20+wf_offset + (0:Nc*num_sam-1)), [Nc num_sam]).';
     end
-    wf_offset = wf_offset + 4 + Nc*Nt;
+    wf_offset = wf_offset + 4 + Nc*num_sam;
     data{wf} = single(data{wf});
   end
   
@@ -536,22 +536,22 @@ elseif any(fparam.file_version == [404 407 408])
       hdr.wfs(wf).bit_shifts = -hdr.wfs(wf).bit_shifts(1:2:end);
       hdr.wfs(wf).start_idx = typecast(raw_file_data(hdr.offsets+1+wf_offset),'uint16');
       stop_idx = typecast(raw_file_data(hdr.offsets+2+wf_offset),'uint16');
-      hdr.wfs(wf).Nt = 8 * (stop_idx - hdr.wfs(wf).start_idx);
+      hdr.wfs(wf).num_sam = 8 * (stop_idx - hdr.wfs(wf).start_idx);
       
-      Nt = double(median(hdr.wfs(wf).Nt));
-      data{wf} = zeros(Nt,Nx,'single');
+      num_sam = double(median(hdr.wfs(wf).num_sam));
+      data{wf} = zeros(num_sam,Nx,'single');
       for rec = 1:Nx
-        data{wf}(1:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (1:8:Nt),:));
-        data{wf}(2:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (5:8:Nt),:));
-        data{wf}(3:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (2:8:Nt),:));
-        data{wf}(4:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (6:8:Nt),:));
-        data{wf}(5:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (3:8:Nt),:));
-        data{wf}(6:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (7:8:Nt),:));
-        data{wf}(7:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (4:8:Nt),:));
-        data{wf}(8:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (8:8:Nt),:));
+        data{wf}(1:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (1:8:num_sam),:));
+        data{wf}(2:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (5:8:num_sam),:));
+        data{wf}(3:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (2:8:num_sam),:));
+        data{wf}(4:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (6:8:num_sam),:));
+        data{wf}(5:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (3:8:num_sam),:));
+        data{wf}(6:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (7:8:num_sam),:));
+        data{wf}(7:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (4:8:num_sam),:));
+        data{wf}(8:8:end,:) = single(raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (8:8:num_sam),:));
       end
-      wf_offset = wf_offset + 4 + Nt;
-      hdr.wfs(wf).Nt(:) = Nt;
+      wf_offset = wf_offset + 4 + num_sam;
+      hdr.wfs(wf).num_sam(:) = num_sam;
       
     else % file_version == 404, 407
       hdr.wfs(wf).presums = 1+bitand(uint16(255),bitshift(typecast(raw_file_data(hdr.offsets+wf_offset),'uint16'),-8));
@@ -561,26 +561,26 @@ elseif any(fparam.file_version == [404 407 408])
       stop_idx = typecast(raw_file_data(hdr.offsets+2+wf_offset),'uint16');
       if fparam.file_version == 407
         hdr.wfs(wf).DDC_dec = 2.^(typecast(raw_file_data(hdr.offsets+5),'uint16')+1);
-        hdr.wfs(wf).Nt = 16/hdr.wfs(wf).DDC_dec * (stop_idx - hdr.wfs(wf).start_idx);
-        Nt = double(median(hdr.wfs(wf).Nt));
-        data{wf} = zeros(Nt,Nx,'int16');
+        hdr.wfs(wf).num_sam = 16/hdr.wfs(wf).DDC_dec * (stop_idx - hdr.wfs(wf).start_idx);
+        num_sam = double(median(hdr.wfs(wf).num_sam));
+        data{wf} = zeros(num_sam,Nx,'int16');
         for rec = 1:Nx
-          data{wf}(:,rec) = raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (0:Nt-1)) ...
-            + 1i*raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (0:Nt-1));
+          data{wf}(:,rec) = raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (0:num_sam-1)) ...
+            + 1i*raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (0:num_sam-1));
         end
-        wf_offset = wf_offset + 4 + Nt;
-        hdr.wfs(wf).Nt(:) = Nt;
+        wf_offset = wf_offset + 4 + num_sam;
+        hdr.wfs(wf).num_sam(:) = num_sam;
         data{wf} = single(data{wf});
         
       else % file_version == version 404
-        hdr.wfs(wf).Nt = 4 * (stop_idx - hdr.wfs(wf).start_idx);
-        Nt = double(median(hdr.wfs(wf).Nt));
-        data{wf} = zeros(Nt,Nx,'int16');
+        hdr.wfs(wf).num_sam = 4 * (stop_idx - hdr.wfs(wf).start_idx);
+        num_sam = double(median(hdr.wfs(wf).num_sam));
+        data{wf} = zeros(num_sam,Nx,'int16');
         for rec = 1:Nx
-          data{wf}(:,rec) = raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (0:Nt-1));
+          data{wf}(:,rec) = raw_file_data(hdr.offsets(rec)+data_offset+wf_offset + (0:num_sam-1));
         end
-        wf_offset = wf_offset + 4 + Nt;
-        hdr.wfs(wf).Nt(:) = Nt;
+        wf_offset = wf_offset + 4 + num_sam;
+        hdr.wfs(wf).num_sam(:) = num_sam;
         data{wf} = single(data{wf});
       end
     end
