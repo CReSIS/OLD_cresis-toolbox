@@ -1,17 +1,23 @@
 % function [hdr,data] = basic_load_cresis(fn,fparam)
 
 tic;
+fn = '/cresis/snfs1/data/MCoRDS/2013_Antarctica_Basler/20131216/chan1/FILE_0010.bin'; % FILL IN WITH REAL FILENAME
+param = [];
+param.file_version = 404;
+param.clk = 125e6;
+param.fs = 500e6;
+param.recs = [0 inf];
 % fn = '/process3/20190403/mcords/board0/mcords3_0_20190403_113130_00_0002.bin';
 % param = [];
 % param.file_version = 403;
 % param.clk = 1e9/9;
 % param.recs = [0 inf];
-fn = '/process3/20190403/fmcw/snow/snow8_00_20190403_183422_0035.bin';
-param = [];
-param.file_version = 8;
-param.clk = 125e6;
-param.fs = 250e6;
-param.recs = [0 inf];
+% fn = '/process3/20190403/fmcw/snow/snow8_00_20190403_183422_0035.bin';
+% param = [];
+% param.file_version = 8;
+% param.clk = 125e6;
+% param.fs = 250e6;
+% param.recs = [0 inf];
 
 %% Input checks
 % =========================================================================
