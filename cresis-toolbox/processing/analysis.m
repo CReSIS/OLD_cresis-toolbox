@@ -43,7 +43,7 @@ if ~isfield(param.analysis,'out_path') || isempty(param.analysis.out_path)
 end
 
 if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
-  error('param.analysis.block_size must be specified');
+  param.analysis.block_size = 6000;
 end
 
 if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
