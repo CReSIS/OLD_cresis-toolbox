@@ -134,7 +134,10 @@ day = [];
 hour = [];
 minute = [];
 sec = [];
+
 if isfield(tmp_gps,'date_MDY')
+  % Handles all the standard date formats including:
+  %   yyyy/mm/dd, mm/dd/yyyy
   datenums = zeros(size(tmp_gps.date_MDY));
   for row=1:length(tmp_gps.date_MDY)
     try
@@ -147,6 +150,8 @@ if isfield(tmp_gps,'date_MDY')
   [year,month,day] = datevec(datenums);
 end
 if isfield(tmp_gps,'time_HMS')
+  % Handles all the standard time formats including:
+  %   HH:MM:SS, HH:MM:SS.FFF
   datenums = zeros(size(tmp_gps.time_HMS));
   for row=1:length(tmp_gps.time_HMS)
     try

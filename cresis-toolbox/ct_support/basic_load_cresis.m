@@ -88,7 +88,7 @@ elseif any(param.file_version == [2 3 4 5 6 7 8 11 402 403 404 407 408])
   fparam.fread_data_type = 'int16=>int16';
   fparam.fh_data_type = @int16;
   fparam.endian = 'ieee-be';
-  if any(param.file_version == [7 11 407 408])
+  if any(param.file_version == [7 11 404 407 408])
     fparam.sync = '1ACFFC1D';
   else
     fparam.sync = 'BADA55E5';
