@@ -1,19 +1,26 @@
 % function [hdr,data] = basic_load_cresis(fn,fparam)
 
 tic;
-fn = '/cresis/snfs1/data/MCoRDS/2013_Antarctica_Basler/20131216/chan1/FILE_0010.bin'; % FILL IN WITH REAL FILENAME
-param = [];
-param.file_version = 404;
-param.clk = 125e6;
-param.fs = 500e6;
-param.recs = [0 inf];
+% fn = '/cresis/snfs1/data/MCoRDS/2013_Antarctica_Basler/20131216/chan1/FILE_0010.bin'; % FILL IN WITH REAL FILENAME
+% param = [];
+% param.file_version = 404;
+% param.clk = 125e6;
+% param.fs = 500e6;
+% param.recs = [0 inf];
 % fn = '/process3/20190403/mcords/board0/mcords3_0_20190403_113130_00_0002.bin';
 % param = [];
 % param.file_version = 403;
 % param.clk = 1e9/9;
 % param.recs = [0 inf];
-% fn = '/process3/20190403/fmcw/snow/snow8_00_20190403_183422_0035.bin';
+fn = '/process3/20190403/fmcw/snow/snow8_00_20190403_183422_0035.bin';
+param = [];
+param.file_version = 8;
+param.clk = 125e6;
+param.fs = 250e6;
+param.recs = [0 inf];
+% fn = '/process3/20190403/fmcw/snow/snow8_00_20190403_183427_0036.bin';
 % param = [];
+% param.last_record = hdr.last_record;
 % param.file_version = 8;
 % param.clk = 125e6;
 % param.fs = 250e6;
@@ -126,7 +133,7 @@ end
 
 % Read entire file in (appending it to the last samples read from the last
 % file if any)
-raw_file_data = [fparam.last_record fread(fid,inf,fparam.fread_data_type)];
+raw_file_data = [fparam.last_record(:); fread(fid,inf,fparam.fread_data_type)];
 
 % Close file
 fclose(fid);
@@ -423,10 +430,12 @@ elseif any(fparam.file_version == [7 8 11])
       hdr.wfs(wf).nyquist_zone = bitand(3,multifield);
       if fparam.file_version == 8
         % Read in waveform ID
-        hdr.wfs(wf).waveform_ID = uint64(typecast(raw_file_data(hdr.offsets+20),'uint16'))*2^48 ...
-          + uint64(typecast(raw_file_data(hdr.offsets+21),'uint16'))*2^32 ...
-          + uint64(typecast(raw_file_data(hdr.offsets+22),'uint16'))*2^16 ...
-          + uint64(typecast(raw_file_data(hdr.offsets+23),'uint16'));
+        hdr.wfs(wf).waveform_ID = reshape(typecast(reshape([raw_file_data(hdr.offsets+20).'; ...
+          raw_file_data(hdr.offsets+21).'; ...
+          raw_file_data(hdr.offsets+22).'; ...
+          raw_file_data(hdr.offsets+23).'; ...
+          ],[4*Nx 1]), 'uint8'), [8 Nx]);
+        hdr.wfs(wf).waveform_ID = hdr.wfs(wf).waveform_ID([2 1 4 3 6 5 8 7],:);
       end
     end
     if fparam.file_version == 7
