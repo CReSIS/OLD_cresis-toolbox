@@ -183,7 +183,7 @@ default.qlook.imgs = {[1*ones(7,1),(1:7).']};
 default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).']};
 default.array.imgs = {[[1*ones(7,1),(1:7).'];[2*ones(7,1),(1:7).']]};
 default.array.img_comb = default.qlook.img_comb;
-default.config_regexp = 'survey_.*high_altitude.xml';
+default.config_regexp = 'image_.*high_altitude.xml';
 default.name = 'High Altitude Mode';
 defaults{end+1} = default;
 

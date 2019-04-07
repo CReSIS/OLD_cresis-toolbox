@@ -1167,9 +1167,9 @@ for img = 1:length(param.load.imgs)
           
         elseif strcmpi(radar_type,'deramp')
           % Time axis is not valid if DDC or time offset changes
-          hdr.time{img} = hdr.t0{img}(1) + 1/wfs(wf).fs_raw*(0:hdr.Nt{img}-1).';
+          hdr.time{img} = hdr.t0_raw{img}(1) + 1/wfs(wf).fs_raw*(0:hdr.Nt{img}-1).';
           % Frequency is not valid
-          df = wfs(wf).fs_raw / hdr.Nt{img};
+          df = wfs(wf).fs_raw / hdr.Nt{img}(1);
           hdr.freq{img} = df*(0:hdr.Nt{img}-1).';
           
         elseif strcmpi(radar_type,'stepped')
