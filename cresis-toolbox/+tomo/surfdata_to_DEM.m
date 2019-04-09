@@ -13,7 +13,7 @@ function surfdata_to_DEM(param,param_override)
 %   that should be processed
 % param.dem.grid_spacing: scalar in meters (e.g. 25)
 % param.dem.DOA_trim: how many DOA resolution cells to trim off on the
-%   edges of the swath
+%   edges of the swath. Set DOA_trim=0 if DOA method is used.
 % param.dem.med_filt: median2 filter arguments, 2-element double vector.
 %   This is the [M N] vector in "B = medfilt2(A,[M N])"
 % param.dem.figure_dots_per_km: scalar containing dots per km in the
@@ -138,8 +138,10 @@ for frm_idx = 1:length(param.cmd.frms)
   end
   
   DOA_trim = 0;
-  if isfield(param.dem,'DOA_trim')
-    DOA_trim = param.dem.DOA_trim;
+  if ~doa_method_flag
+    if isfield(param.dem,'DOA_trim')
+      DOA_trim = param.dem.DOA_trim;
+    end
   end
   
   % Convert top from range bins to twtt (the top is needed with each
@@ -495,7 +497,12 @@ for frm_idx = 1:length(param.cmd.frms)
       F = TriScatteredInterp(dt,pnts(3,:).');
       warning on;
       DEM = F(xmesh,ymesh);
-      
+      if 0
+        % Debug
+        figure;imagesc(DEM)
+        h = colorbar;
+        h.Label.String = 'Elevation (m)';
+      end
       % Interpolate to find gridded 3D image
       if ~doa_method_flag
         % Beamforming method
@@ -510,15 +517,15 @@ for frm_idx = 1:length(param.cmd.frms)
         img_3D = NaN(size(sd.surf(surface_idx).y));
         for rline = 1:size(mdata.Tomo.theta,3)
           tmp_theta = mdata.Tomo.theta(:,:,rline);
-          if ~all(isnan(tmp_theta(:)));
+          tmp_theta = sort(tmp_theta(~isnan(tmp_theta)),'ascend');
+%           if ~all(isnan(tmp_theta(:)))
             % Interpolate the bad (NaN) points in between the good points
-            for theta_idx = 1:size(mdata.Tomo.theta,2)
-              good_theta_idx = find(~isnan(tmp_theta(:,theta_idx)));
-              tmp_theta(good_theta_idx(1):good_theta_idx(end),theta_idx) = interp1(good_theta_idx,tmp_theta(good_theta_idx,theta_idx),[good_theta_idx(1):good_theta_idx(end)].');
-            end
-            tmp_theta = tmp_theta(~isnan(tmp_theta));
+%             for theta_idx = 1:size(mdata.Tomo.theta,2)
+%               good_theta_idx = find(~isnan(tmp_theta(:,theta_idx)));
+%               tmp_theta(good_theta_idx(1):good_theta_idx(end),theta_idx) = interp1(good_theta_idx,tmp_theta(good_theta_idx,theta_idx),[good_theta_idx(1):good_theta_idx(end)].');
+%             end
             img_3D(1:length(tmp_theta),rline) = sort(tmp_theta,'ascend');
-          end
+%           end
         end
         img_3D(img_3D<doa_limits(1) | img_3D>doa_limits(2)) = NaN;
       end
@@ -532,7 +539,6 @@ for frm_idx = 1:length(param.cmd.frms)
       bad_mask = ~inpolygon(xmesh(idxs_to_check),ymesh(idxs_to_check),px,py);
       DEM(idxs_to_check(bad_mask)) = NaN;
       IMG_3D(idxs_to_check(bad_mask)) = NaN;
-      
     end
     
     %% Create DEM scatter plot over geotiff
