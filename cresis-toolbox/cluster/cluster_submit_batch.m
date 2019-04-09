@@ -63,15 +63,15 @@ for tmp = 1:repeat_task
   ctrl = cluster_new_task(ctrl,param,[]);
 end
 
-fprintf('Submitting %s\n', ctrl.batch_dir);
-
-ctrl_chain = {{ctrl}};
-
 if block
+  % Blocking, submit and wait
+  fprintf('Submitting %s\n', ctrl.batch_dir);
+  ctrl_chain = {{ctrl}};
   ctrl_chain = cluster_run(ctrl_chain,block);
   [in,out] = cluster_print(ctrl_chain{1}{1}.batch_id,1,0);
   cluster_cleanup(ctrl);
 else
+  % Non-blocking, do not submit
   out = ctrl;
   
 end
