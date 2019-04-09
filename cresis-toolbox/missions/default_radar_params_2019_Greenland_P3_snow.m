@@ -104,7 +104,8 @@ for wf = 1:1
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).nz_trim = {[0 0],[0 2],[0 0],[0 0]};
+  default.radar.wfs(wf).coh_noise_method = 'analysis';
+  default.radar.wfs(wf).nz_trim = {[0 0],[0 0],[0 0],[0 0]};
   default.radar.wfs(wf).nz_valid = [0 1 2 3];
 end
 
