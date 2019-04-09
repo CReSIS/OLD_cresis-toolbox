@@ -229,6 +229,7 @@ classdef slice_browser < handle
             'parent',obj.h_axes,'color','black', ...
             obj.sd.surf(surf_idx).plot_name_values{:});
         end
+        legend('Ice-top','Ice-bottom')
       end
       
       addlistener(obj.undo_stack,'synchronize_event',@obj.undo_sync);
