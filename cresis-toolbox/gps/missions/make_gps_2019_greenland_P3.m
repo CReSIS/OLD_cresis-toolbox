@@ -37,15 +37,51 @@ sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 % gps_source_to_use = 'NMEA';
 % gps_source_to_use = 'APX15';
-% gps_source_to_use = 'SPANSE';
+gps_source_to_use = 'Novatel';
 % gps_source_to_use = 'VectorNav';
-gps_source_to_use = 'ATM-field';
+% gps_source_to_use = 'ATM-field';
 % gps_source_to_use = 'ATM';
 
 if strcmpi(gps_source_to_use,'NMEA')
 %% NMEA
   
-  year = 2019; month = 3; day = 15;
+%   year = 2019; month = 3; day = 28;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+%   
+%   year = 2019; month = 4; day = 3;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+  
+%   year = 2019; month = 4; day = 5;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+%   
+%   year = 2019; month = 4; day = 6;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+  
+  year = 2019; month = 4; day = 8;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -53,7 +89,20 @@ if strcmpi(gps_source_to_use,'NMEA')
   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
   gps_source{file_idx} = 'nmea-field';
   sync_flag{file_idx} = 0;
-
+  
+elseif strcmpi(gps_source_to_use,'Novatel')
+  %% Novatel SPAN-SE + IMU-CPT
+  
+  year = 2019; month = 4; day = 6;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filename(fullfile(in_base_path,'novatel',datestr(datenum(year,month,day),'yyyymmdd')),sprintf('IE_%s.txt',datestr(datenum(year,month,day),'yyyymmdd')),'','');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  file_type{file_idx} = 'General_ASCII';
+  params{file_idx} = struct('time_reference','gps','headerlines',17,'format_str','%s%s%f%f%f%f%f%f%f%f%f');
+  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','f1','f2','f3'};
+  params{file_idx}.textscan = {};
+  gps_source{file_idx} = 'novatel-field';
+  
 elseif strcmpi(gps_source_to_use,'APX15')
   %% APX15
 

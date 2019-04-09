@@ -97,14 +97,15 @@ chan_equal_deg = [0];
 for wf = 1:1
   default.radar.wfs(wf).tx_weights = 1; % Watts
   default.radar.wfs(wf).Tadc_adjust = []; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
-  default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
+  default.radar.wfs(wf).adc_gains_dB = 105.8; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
   default.radar.wfs(wf).ref_fn = '';
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).nz_trim = {[0 0],[0 2],[0 0],[0 0]};
+  default.radar.wfs(wf).coh_noise_method = 'analysis';
+  default.radar.wfs(wf).nz_trim = {[0 0],[0 0],[0 0],[0 0]};
   default.radar.wfs(wf).nz_valid = [0 1 2 3];
 end
 
