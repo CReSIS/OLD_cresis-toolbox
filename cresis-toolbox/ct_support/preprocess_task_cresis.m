@@ -890,6 +890,8 @@ for board_idx = 1:numel(param.config.board_map)
     h_fig = get_figures(3,param.config.plots_visible,mfilename);
     
     clf(h_fig(1)); h_axes = axes('parent',h_fig(1));
+    set(h_fig(1),'NumberTitle','off');
+    set(h_fig(1),'Name',sprintf('%d: UTC Time',h_fig(1).Number));
     plot(h_axes,utc_time_sod);
     hold(h_axes,'on');
     plot(h_axes,utc_time_sod_new,'r');
@@ -901,6 +903,8 @@ for board_idx = 1:numel(param.config.board_map)
     
     UTC_MAX_ERROR = 0.1;
     clf(h_fig(2)); h_axes = axes('parent',h_fig(2));
+    set(h_fig(2),'NumberTitle','off');
+    set(h_fig(2),'Name',sprintf('%d: Time Correction',h_fig(1).Number));
     plot(h_axes,utc_time_sod - utc_time_sod_new);
     xlabel(h_axes,'Record number');
     ylabel(h_axes,'Time correction (sec)');
@@ -908,6 +912,8 @@ for board_idx = 1:numel(param.config.board_map)
     title(h_axes,sprintf('%s: Time correction should be within limits\nexcept for a few outliers.',param.config.date_str),'fontsize',10);
     
     clf(h_fig(3)); h_axes = axes('parent',h_fig(3));
+    set(h_fig(3),'NumberTitle','off');
+    set(h_fig(3),'Name',sprintf('%d: Diff EPRI',h_fig(1).Number));
     h_axes = subplot(2,1,1);
     plot(h_axes,diff(epri),'.');
     ylabel(h_axes,'Diff EPRI');
