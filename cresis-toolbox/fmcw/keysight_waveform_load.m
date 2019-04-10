@@ -6,6 +6,8 @@
 % 0.0000000000,0.0000000000,0,0
 
 fn = '/process3/20190409/fmcw/snow/fmcw_1ch_64GSPS_2to18GHz_240us_4khz_taper0.85.csv';
+fn = 'E:\tmp\deleteThis\fmcw_1ch_64GSPS_2to8GHz_240us_4khz_taper0.85.csv';
+
 plot_color = 'b-';
 
 fid = fopen(fn,'r');
@@ -33,6 +35,8 @@ hold on;
 
 
 fn = '/process3/20190409/fmcw/snow/fmcw_1ch_64GSPS_2to8GHz_240us_4khz_taper0.85.csv';
+fn = 'E:\tmp\deleteThis\fmcw_1ch_64GSPS_2to8GHz_240us_4khz_taper0.85_2019Gr.csv';
+
 plot_color = 'r-';
 
 fid = fopen(fn,'r');
