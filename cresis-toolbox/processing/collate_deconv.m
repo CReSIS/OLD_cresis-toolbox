@@ -134,8 +134,9 @@ if ~isfield(param.collate_deconv,'preserve_old') || isempty(param.collate_deconv
   param.collate_deconv.preserve_old = false;
 end
 
-if param.collate_deconv.stage_one_en && (~isfield(param.collate_deconv,'rbins') || isempty(param.collate_deconv.rbins))
-  error('The "rbins" field must be set in the param.collate_deconv to a range of indices about the peak to use in the deconvolution waveform, e.g. param.collate_deconv.rbins = {[-110 40]} to use 110 bins before the peak and 40 bins after the peak for image 1. rbins should be a cell array with each element corresponding to the param.collate_deconv.imgs array.');
+if  ~isfield(param.collate_deconv,'rbins') || isempty(param.collate_deconv.rbins)
+  warning('The "rbins" field should be set in the param.collate_deconv to a range of indices about the peak to use in the deconvolution waveform, e.g. param.collate_deconv.rbins = {[-110 40]} to use 110 bins before the peak and 40 bins after the peak for image 1. rbins should be a cell array with each element corresponding to the param.collate_deconv.imgs array. Using default settings now which may not work for this radar data.');
+  param.collate_deconv.rbins = {[-200 150]}
 end
 if ~iscell(param.collate_deconv.rbins) && numel(param.collate_deconv.imgs) == 1
   % Support legacy format (no cell array)
@@ -302,13 +303,13 @@ if param.collate_deconv.stage_one_en
         SNR = lp(abs(h).^2 ./ spec.deconv_std{rline}.^2 * cmd.rlines,1);
         
         % Time gate signal according to cmd.rlines
-        Ntg = cmd.rbins{img}(end)-cmd.rbins{img}(1)+1;
-        Htg = tukeywin(cmd.rbins{img}(end)*2+1,0.2);
-        h_nonnegative = h(1:1+cmd.rbins{img}(end)) .* Htg(end-cmd.rbins{img}(end):end);
-        Htg = tukeywin(-cmd.rbins{img}(1)*2,0.2);
-        h_negative = h(end+1+cmd.rbins{img}(1):end) .* Htg(1:-cmd.rbins{img}(1));
+        Ntg = param.collate_deconv.rbins{img}(end)-param.collate_deconv.rbins{img}(1)+1;
+        Htg = tukeywin(param.collate_deconv.rbins{img}(end)*2+1,0.2);
+        h_nonnegative = h(1:1+param.collate_deconv.rbins{img}(end)) .* Htg(end-param.collate_deconv.rbins{img}(end):end);
+        Htg = tukeywin(-param.collate_deconv.rbins{img}(1)*2,0.2);
+        h_negative = h(end+1+param.collate_deconv.rbins{img}(1):end) .* Htg(1:-param.collate_deconv.rbins{img}(1));
         
-        %% Stage 1: Plot cmd.rlines and cmd.rbins{img}
+        %% Stage 1: Plot cmd.rlines and param.collate_deconv.rbins{img}
         if any(strcmp('rbins',param.collate_deconv.debug_plots)) ...
             && (isempty(param.collate_deconv.debug_rlines) || any(rline==param.collate_deconv.debug_rlines))
           figure(h_fig(1)); clf(h_fig(1));
@@ -325,7 +326,7 @@ if param.collate_deconv.stage_one_en
           ylabel(h_axes(1), 'Relative power (dB)');
           title(h_axes(1), 'Impulse response falling edge');
           legend(h_axes(1), 'mean','sample','std','h','location','best');
-          xlim(h_axes(1), [1 2*cmd.rbins{img}(2)]);
+          xlim(h_axes(1), [1 2*param.collate_deconv.rbins{img}(2)]);
           ylim(h_axes(1), [-debug_ylim 0]);
           grid(h_axes(1), 'on');
           
@@ -344,7 +345,7 @@ if param.collate_deconv.stage_one_en
           title(h_axes(2), 'Impulse response rising edge');
           legend(h_axes(2), 'mean','sample','std','h','location','best');
           Nt = length(spec.deconv_mean{rline});
-          xlim(h_axes(2), [Nt+2*cmd.rbins{img}(1) Nt]);
+          xlim(h_axes(2), [Nt+2*param.collate_deconv.rbins{img}(1) Nt]);
           ylim(h_axes(2), [-debug_ylim 0]);
           grid(h_axes(2), 'on');
           
@@ -353,7 +354,7 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(3),SNR)
           hold(h_axes(3),'on');
           plot(h_axes(3),[1 length(SNR)], 20*[1 1],'k--');
-          plot(h_axes(3),cmd.rbins{img}(2)*[1 1], [0 debug_ylim],'k--');
+          plot(h_axes(3),param.collate_deconv.rbins{img}(2)*[1 1], [0 debug_ylim],'k--');
           title(h_axes(3),'SNR falling edge');
           xlabel(h_axes(3),'Range bin');
           ylabel(h_axes(3),'SNR (dB)');
@@ -365,7 +366,7 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(4),SNR)
           hold(h_axes(4),'on');
           plot(h_axes(4),[1 length(SNR)], 20*[1 1],'k--');
-          plot(h_axes(4),(Nt+cmd.rbins{img}(1))*[1 1], [0 debug_ylim],'k--');
+          plot(h_axes(4),(Nt+param.collate_deconv.rbins{img}(1))*[1 1], [0 debug_ylim],'k--');
           title(h_axes(4),'SNR rising edge');
           xlabel(h_axes(4),'Range bin');
           ylabel(h_axes(4),'SNR (dB)');
@@ -409,8 +410,8 @@ if param.collate_deconv.stage_one_en
         df = 1/(Nt*dt);
         freq = spec.deconv_fc(rline) + df * ifftshift(-floor(Nt/2) : floor((Nt-1)/2)).';
         freq = fftshift(freq);
-        Nt_shorten = find(cmd.f0 <= freq,1);
-        Nt_shorten(2) = length(freq) - find(cmd.f1 >= freq,1,'last');
+        Nt_shorten = find(param.collate_deconv.f0 <= freq,1);
+        Nt_shorten(2) = length(freq) - find(param.collate_deconv.f1 >= freq,1,'last');
         Nt_Hwind = Nt - sum(Nt_shorten);
         Hwind = deconv.ref_window(Nt_Hwind);
         Hwind_filled = ifftshift([zeros(Nt_shorten(1),1); Hwind; zeros(Nt_shorten(end),1)]);
@@ -443,8 +444,8 @@ if param.collate_deconv.stage_one_en
         if any(strcmp('deconv',param.collate_deconv.debug_plots)) ...
             && (isempty(param.collate_deconv.debug_rlines) || any(rline==param.collate_deconv.debug_rlines))
           
-          comp_bins = cmd.rbins{img}(2)+1:2*cmd.rbins{img}(2);
-          comp_bins = Nt+2*cmd.rbins{img}(1) : Nt+cmd.rbins{img};
+          comp_bins = param.collate_deconv.rbins{img}(2)+1:2*param.collate_deconv.rbins{img}(2);
+          comp_bins = Nt+2*param.collate_deconv.rbins{img}(1) : Nt+param.collate_deconv.rbins{img};
           dnoise = lp(mean(abs(h_sample(comp_bins)).^2) ./ mean(abs(h_deconvolved(comp_bins)).^2));
           dsignal = lp(max(abs(h_sample).^2) ./ max(abs(h_deconvolved).^2));
           dSNR = dsignal - dnoise;
@@ -462,12 +463,12 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(1), bins_Mt, circshift(lp(h_sample) - max_val,[-max_idx 1]))
           hold(h_axes(1),'on');
           plot(h_axes(1), bins_Mt, circshift(lp(h_deconvolved) - max_val + dsignal,[-max_idx 1]))
-          plot(h_axes(1), cmd.SL_guard_bins*[1 1], [-debug_ylim 0], 'k--');
+          plot(h_axes(1), param.collate_deconv.SL_guard_bins*[1 1], [-debug_ylim 0], 'k--');
           xlabel(h_axes(1), 'Range bin');
           ylabel(h_axes(1), 'Relative power (dB)');
           title(h_axes(1), 'Impulse response falling edge');
           legend(h_axes(1), 'sample','deconvolved','location','best');
-          xlim(h_axes(1), [0 2*cmd.rbins{img}(2)]);
+          xlim(h_axes(1), [0 2*param.collate_deconv.rbins{img}(2)]);
           ylim(h_axes(1), [-debug_ylim 0]);
           grid(h_axes(1), 'on');
           
@@ -477,12 +478,12 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(2), fliplr(bins_Mt+1), circshift(lp(h_sample) - max_val,[-max_idx 1]))
           hold(h_axes(2),'on');
           plot(h_axes(2), fliplr(bins_Mt+1), circshift(lp(h_deconvolved) - max_val + dsignal,[-max_idx 1]))
-          plot(h_axes(2), (1+cmd.SL_guard_bins)*[1 1], [-debug_ylim 0], 'k--');
+          plot(h_axes(2), (1+param.collate_deconv.SL_guard_bins)*[1 1], [-debug_ylim 0], 'k--');
           xlabel(h_axes(2), 'Range bin');
           ylabel(h_axes(2), 'Relative power (dB)');
           title(h_axes(2), 'Impulse response rising edge');
           legend(h_axes(2), 'sample','deconvolved','location','best');
-          xlim(h_axes(2), [0 -2*cmd.rbins{img}(1)]);
+          xlim(h_axes(2), [0 -2*param.collate_deconv.rbins{img}(1)]);
           ylim(h_axes(2), [-debug_ylim 0]);
           grid(h_axes(2), 'on');
           
@@ -512,14 +513,14 @@ if param.collate_deconv.stage_one_en
         
         % Compute main lobe width
         main_lobe = 2;
-        for bin = 2:cmd.rbins{img}(2)*Mt
-          if lp(h_metric(bin),1) < lp(max_val,1)-cmd.ML_threshold
+        for bin = 2:param.collate_deconv.rbins{img}(2)*Mt
+          if lp(h_metric(bin),1) < lp(max_val,1)-param.collate_deconv.ML_threshold
             break;
           end
           main_lobe = main_lobe + 1;
         end
-        for bin = 0:-cmd.rbins{img}(1)*Mt
-          if lp(h_metric(end-bin),1) < lp(max_val,1)-cmd.ML_threshold
+        for bin = 0:-param.collate_deconv.rbins{img}(1)*Mt
+          if lp(h_metric(end-bin),1) < lp(max_val,1)-param.collate_deconv.ML_threshold
             break;
           end
           main_lobe = main_lobe + 1;
@@ -528,7 +529,7 @@ if param.collate_deconv.stage_one_en
         
         % Compute falling edge peak sidelobe
         peak_sidelobe_falling_edge = -inf;
-        for bin = round(cmd.SL_guard_bins*Mt) : cmd.rbins{img}(2)*Mt
+        for bin = round(param.collate_deconv.SL_guard_bins*Mt) : param.collate_deconv.rbins{img}(2)*Mt
           if lp(h_metric(bin),1) > peak_sidelobe_falling_edge
             peak_sidelobe_falling_edge = lp(h_metric(bin),1);
           end
@@ -537,7 +538,7 @@ if param.collate_deconv.stage_one_en
         
         % Compute rising edge peak sidelobe
         peak_sidelobe_rising_edge = -inf;
-        for bin = round(cmd.SL_guard_bins*Mt)-1:-cmd.rbins{img}(1)*Mt
+        for bin = round(param.collate_deconv.SL_guard_bins*Mt)-1:-param.collate_deconv.rbins{img}(1)*Mt
           if lp(h_metric(end-bin),1) > peak_sidelobe_rising_edge
             peak_sidelobe_rising_edge = lp(h_metric(end-bin),1);
           end
@@ -545,13 +546,13 @@ if param.collate_deconv.stage_one_en
         peak_sidelobe_rising_edge = peak_sidelobe_rising_edge + peak;
         
         % Compute falling edge integrated sidelobe
-        bins = round(cmd.SL_guard_bins*Mt) : cmd.rbins{img}(2)*Mt;
+        bins = round(param.collate_deconv.SL_guard_bins*Mt) : param.collate_deconv.rbins{img}(2)*Mt;
         integrated_sidelobe_falling_edge = sum(h_metric(bins))/Mt;
         integrated_sidelobe_falling_edge = lp(integrated_sidelobe_falling_edge,1);
         integrated_sidelobe_falling_edge = integrated_sidelobe_falling_edge + peak;
         
         % Compute falling edge integrated sidelobe
-        bins = round(cmd.SL_guard_bins*Mt)-1 : -cmd.rbins{img}(1)*Mt;
+        bins = round(param.collate_deconv.SL_guard_bins*Mt)-1 : -param.collate_deconv.rbins{img}(1)*Mt;
         integrated_sidelobe_rising_edge = sum(h_metric(end-bins))/Mt;
         integrated_sidelobe_rising_edge = lp(integrated_sidelobe_rising_edge,1);
         integrated_sidelobe_rising_edge = integrated_sidelobe_rising_edge + peak;
@@ -581,9 +582,9 @@ if param.collate_deconv.stage_one_en
       %% Stage 1: Plot metric
       if any(strcmp('metric',param.collate_deconv.debug_plots))
         % Compare results to metric
-        pass = bsxfun(@lt,deconv.metric,cmd.abs_metric(:));
+        pass = bsxfun(@lt,deconv.metric,param.collate_deconv.abs_metric(:));
         
-        score = nansum(bsxfun(@times, cmd.metric_weights(:), bsxfun(@minus, cmd.abs_metric(:), deconv.metric)));
+        score = nansum(bsxfun(@times, param.collate_deconv.metric_weights(:), bsxfun(@minus, param.collate_deconv.abs_metric(:), deconv.metric)));
         score(:,any(isnan(deconv.metric))) = -inf;
         
         % Find the highest score in each bin
@@ -684,7 +685,7 @@ if param.collate_deconv.stage_one_en
           if fid == 1; fid_error = 2; else fid_error = fid; end;
           fprintf(fid,'Metric Threshold (Must be below this to pass)\n');
           fprintf(fid,'Peak\tML\tPSL FE\tPSL RE\tISL FE\tISL RE\n');
-          fprintf(fid,'%.1f\t', cmd.abs_metric); fprintf('\n');
+          fprintf(fid,'%.1f\t', param.collate_deconv.abs_metric); fprintf('\n');
           fprintf(fid,'Metric ( '); fprintf(fid_error,'Red Failed '); fprintf(fid,')\n');
           fprintf(fid,'INDEX\tFRM\tREC\tPeak\tML\tPSL FE\tPSL RE\tISL FE\tISL RE\tPASS\tSCORE\tTWTT\n');
           for rline = 1:length(deconv.gps_time)
@@ -833,8 +834,8 @@ if param.collate_deconv.stage_two_en
       layer.elev = layer.elev(decim_idxs);
       
       %% Stage 2: 5. Compare results to metric
-      pass = bsxfun(@lt,deconv_lib.metric,cmd.abs_metric(:));
-      score = nansum(bsxfun(@times, cmd.metric_weights(:), bsxfun(@minus, cmd.abs_metric(:), deconv_lib.metric)));
+      pass = bsxfun(@lt,deconv_lib.metric,param.collate_deconv.abs_metric(:));
+      score = nansum(bsxfun(@times, param.collate_deconv.metric_weights(:), bsxfun(@minus, param.collate_deconv.abs_metric(:), deconv_lib.metric)));
       score(:,any(isnan(deconv_lib.metric))) = nan;
       
       %% Stage 2: 6. Find best scores for each record

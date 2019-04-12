@@ -61,10 +61,28 @@ for board_idx = 1:num_board_to_load
   end
   fns_list{board_idx} = fns;
   
+  % Copy Log Files
+  if board_idx == 1 && ~isempty(param.config.cresis.gps_file_mask)
+    log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.cresis.gps_file_mask);
+    out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.date_str);
+    try
+      if ~exist(out_log_dir,'dir')
+        mkdir(out_log_dir)
+      end
+      fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
+      copyfile(log_files, out_log_dir);
+    catch ME
+      warning('Error while copying log files:\n%s\n', ME.getReport);
+    end
+  end
+  
   if isempty(fns)
-    error('No files found matching %s*%s*%s', ...
+    warning('No files found matching %s*%s*%s', ...
       fullfile(param.config.base_dir,board_folder_name,param.config.file.prefix), ...
       param.config.file.midfix, param.config.file.suffix);
+    fprintf('%s done %s\n', mfilename, datestr(now));
+    success = true;
+    return
   end
   
   % Assumption is that fns is in chronological order. Most radar systems
@@ -85,21 +103,6 @@ for board_idx = 1:num_board_to_load
     end
     [new_fns,sorted_idxs] = sort(new_fns);
     fns = fns(sorted_idxs);
-  end
-  
-  % Copy Log Files
-  if board_idx == 1 && ~isempty(param.config.cresis.gps_file_mask)
-    log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.cresis.gps_file_mask);
-    out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.date_str);
-    try
-      if ~exist(out_log_dir,'dir')
-        mkdir(out_log_dir)
-      end
-      fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
-      copyfile(log_files, out_log_dir);
-    catch ME
-      warning('Error while copying log files:\n%s\n', ME.getReport);
-    end
   end
   
   %% Read Headers: Header Info
