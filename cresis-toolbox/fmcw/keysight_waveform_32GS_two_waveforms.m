@@ -5,7 +5,7 @@ fs = 32e9; % NOTE: 256 samples equals one sample at 125MHz (the clock rate of th
 taper_ratio=0.85; %changed from 1.25 to 0.8 on 20181027
 f0 = 2e9;
 bw = 6e9;
-tukey_alpha = 0.002;
+tukey_alpha = 0.005;
 if_bw = 125e6;
 tau = 240e-6; %pulse length
 max_del = 10e-6; %dead time,  PRI = tau+max_del
