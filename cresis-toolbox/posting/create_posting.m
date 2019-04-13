@@ -106,28 +106,12 @@ end
 if ~isfield(param.post,'ops') || isempty(param.post.ops.en)
   param.post.ops.en = 0;
 end
-% Add default layers
-if ~isfield(param.post, 'layers')
+if ~isfield(param.post, 'layers') || isempty(param.post.layers)
   param.post.layers = [struct('name', 'surface', 'source', 'layerData') ...
                       struct('name', 'bottom', 'source', 'layerData')];
-else
-  % Force surface and bottom to be first two in struct array
-  % TODO[reece]: Remove bottom from default layers if unnecessary
-  param.post.layers = [struct('name', 'surface', 'source', 'layerData') ...
-                      struct('name', 'bottom', 'source', 'layerData') ...
-                      param.post.layers(1:end)];
-  % Remove duplicates ... almost certainly a better way to do this 
-  unique_layer_names = {};
-  unique_layers = struct('name', {}, 'source', {});
-  for layer = param.post.layers
-    if ~ismember(layer.name, unique_layer_names)
-      unique_layers(end + 1) = layer;
-      unique_layer_names(end + 1) = {layer.name};
-    end
-  end
-  param.post.layers = unique_layers;
-  clear uniques_layer_names
-  clear uniques_layers
+end
+if ~isfield(param.post, 'surface_source')
+  param.post.surface_source = struct('name', 'surface', 'source', 'layerData');
 end
 
 if strcmp(param.post.img_type,'jpg')
@@ -148,56 +132,6 @@ fprintf('Catalog layer and data files %s (%s)\n', param.day_seg, datestr(now));
 % Load the frames file
 frames_fn = ct_filename_support(param, '', 'frames');
 load(frames_fn);
-
-% % Get a list of all the layer files
-% layer_fns = get_filenames(layer_path_in,'Data_','','.mat',struct('recursive',1));
-% % Layer files are named:
-% %   Data_YYYYMMDD_SS_FFF.mat
-% % Extract out:
-% %  1. the layer file name
-% %  2. frame ID
-% %  3. day_seg
-% % Also eliminate frames that are not in param.cmd.frms or that have
-% % proc_mode set to not post.
-% frm_idx = 0;
-% frms = {};
-% day_segs = {};
-% for fn_idx = 1:length(layer_fns)
-%   layer_fn = layer_fns{fn_idx};
-%   [tmp layer_name] = fileparts(layer_fn);
-%   if layer_name(6) == 'i'
-%     % We don't process files with "_img_II" in their name
-%     continue;
-%   else
-%     frm_id = layer_name(6:end);
-%   end
-%   frm = str2double(frm_id(end-2:end));
-%   
-%   if ~isempty(param.cmd.frms)
-%     % Do just frames specified in the command worksheet (if the field
-%     % is left empty we do them all)
-%     if all(frm ~= param.cmd.frms)
-%       continue;
-%     end
-%   end
-%   if mod(floor(frames.proc_mode(frm)/10),10) ~= 0
-%     % UUUUUUUURRRR
-%     %           ^
-%     %    This is the digit we want for controlling posting
-%     % R must be zero to post.
-%     continue;
-%   end
-%     
-%   % Add frame to list
-%   frm_idx = frm_idx + 1;
-%   frms{frm_idx}.layer_fn = layer_fn;
-%   frms{frm_idx}.layer_name = layer_name;
-%   day_segs{frm_idx} = param.day_seg;
-%   frms{frm_idx}.frm_id = frm_id;
-%   frms{frm_idx}.data_fns = {};
-%   frms{frm_idx}.data_dirs = {};
-% end
-% clear('layer_fns');
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
@@ -391,31 +325,13 @@ if param.post.maps_en
   end
 end
 
-%% OPS Setup
-if param.post.ops.en
-  %% HACK
-  if length(param.post.ops.layers) == 2
-    param.post.ops.layers = {'surface' 'bottom'};
-  elseif length(param.post.ops.layers) == 1
-    param.post.ops.layers = {'surface'};
-  else
-    error('length(param.post.ops.layers) must be 1 or 2');
-  end
-  
-  %% Get the layer data for this segment
-  ops_sys = output_dir;
-  ops_param = [];
-  ops_param.properties.location = param.post.ops.location;
-  ops_param.properties.season = param.season_name;
-  ops_param.properties.segment = param.day_seg;
-  ops_param.properties.return_geom = 'geog';
-  ops_layer = {};
-  for layer_idx = 1:length(param.post.ops.layers)
-    ops_param.properties.lyr_name = param.post.ops.layers{layer_idx};
-    [~,ops_layer{layer_idx}] = opsGetLayerPoints(ops_sys,ops_param);
-    ops_layer{layer_idx} = ops_layer{layer_idx}.properties;
-  end
+layers = opsLoadLayers(param, param.post.layers);
+
+layers_to_post = {};
+for layer = layers
+  layers_to_post{end + 1} = layer;
 end
+clear layers;
 
 %% Main post loop
 % =========================================================================
@@ -431,34 +347,19 @@ for frm_idx = 1:length(frms)
   fprintf('  Posting frame %s, %d of %d (%s)\n', ...
     frms{frm_idx}.frm_id, frm_idx, length(frms), datestr(now));
   
-  if param.post.ops.en
-    %% Interpolate each layer for this segment onto the master layer's gps time
-    
-    lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation');
-    
-    lay = opsInterpLayersToMasterGPSTime(lay,ops_layer,param.post.ops.gaps_dist);
-    
-    lay.Surface = lay.layerData{1}.value{2}.data;
-    if length(param.post.ops.layers) == 2
-      lay.Bottom = lay.layerData{2}.value{2}.data;
-    elseif length(param.post.ops.layers) == 1
-      lay.Bottom = NaN*zeros(size(lay.Surface));
-    end
-    
-  else
-    % Load GPS_time, Latitude, Longitude, and layerData from layer file
-    if ~isempty(param.post.layer_dir)
-      lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation','layerData');
-    else
-      % An empty layer directory makes the program assume that there are no
-      % layer files and it uses the data files instead
-      fprintf('    %s\n', frms{frm_idx}.layer_fn);
-      warning off;
-      lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom');
-      warning on;
-    end
-  end
+  %% Interpolate each layer for this segment onto the master layer's gps time
   
+  lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation');
+  
+  lay = opsInterpLayersToMasterGPSTime(lay,layers_to_post,param.post.ops.gaps_dist);
+  
+  lay.Surface = lay.layerData{1}.value{2}.data;
+  if length(param.post.ops.layers) == 2
+    lay.Bottom = lay.layerData{2}.value{2}.data;
+  elseif length(param.post.ops.layers) == 1
+    lay.Bottom = NaN*zeros(size(lay.Surface));
+  end
+    
   if isnan(lay.GPS_time)
     time_stamp_str = sprintf('000000',frms{frm_idx}.frm_id);
   else
