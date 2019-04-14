@@ -346,8 +346,13 @@ for cmd_idx = 1:length(param.analysis.cmd)
           actual_cur_recs = [(cur_recs(1)-1)*param.analysis.presums+1, ...
             cur_recs(end)*param.analysis.presums];
           
-          out_fn = fullfile(tmp_out_fn_dir, ...
-            sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          if ~param.radar.wfs(wf).gain_en
+            out_fn = fullfile(tmp_out_fn_dir, ...
+              sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          else
+            out_fn = fullfile(tmp_out_fn_dir, ...
+              sprintf('waveform2_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+          end
           
           waveform = load(out_fn);
           
@@ -376,7 +381,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
         waveform.wf_data = wf_data;
         waveform.time_rng = time_rng;
         
-        out_segment_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        if ~param.radar.wfs(wf).gain_en
+          out_segment_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        else
+          out_segment_fn = fullfile(out_segment_fn_dir,sprintf('waveform2_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
+        end
         fprintf('Saving output %s (%s)\n', out_segment_fn, datestr(now));
         save(out_segment_fn,'-v7.3','-struct','waveform'); % Use HDF because of the large file size
       end
