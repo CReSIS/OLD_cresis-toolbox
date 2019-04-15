@@ -279,7 +279,6 @@ for wf = 1:length(param.radar.wfs)
   end
   if ~isfield(param.radar.wfs(wf),'gain_en') || isempty(param.radar.wfs(wf).gain_en)
     wfs(wf).gain_en = 0;
-    fprintf('data_load_wfs: Asigned gain_en to zero for %d\n',wf);
   end
   if isfield(records.settings,'nyquist_zone')
     wfs(wf).nyquist_zone    = records.settings.nyquist_zone;
