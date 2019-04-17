@@ -403,7 +403,11 @@ for img = 1:length(param.analysis.imgs)
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           wf = param.analysis.imgs{img}(wf_adc,1);
           adc = param.analysis.imgs{img}(wf_adc,2);
-          out_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          if ~param.radar.wfs(wf).gain_en
+            out_fn = fullfile(out_segment_fn_dir,sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          else
+            out_fn = fullfile(out_segment_fn_dir,sprintf('waveform2_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc));
+          end
           combine_file_success{end+1} = out_fn;
           if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
             ct_file_lock_check(out_fn,3);
@@ -557,7 +561,11 @@ for break_idx = 1:length(breaks)
           for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
             wf = param.analysis.imgs{img}(wf_adc,1);
             adc = param.analysis.imgs{img}(wf_adc,2);
-            out_fn = fullfile(tmp_out_fn_dir,sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            if ~param.radar.wfs(wf).gain_en
+              out_fn = fullfile(tmp_out_fn_dir,sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            else
+              out_fn = fullfile(tmp_out_fn_dir,sprintf('waveform2_wf_%d_adc_%d_%d_%d.mat',wf,adc,actual_cur_recs));
+            end
             dparam.file_success{end+1} = out_fn;
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
@@ -680,7 +688,7 @@ for img = 1:length(param.analysis.imgs)
           Nt = cmd.Nt;
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
         end
         
