@@ -206,6 +206,7 @@ for img = param.collate_coh_noise.imgs
           coh_bin = coh_bin - noise.dft(bin_idx,dft_idx) * mf;
         end
       elseif strcmpi(param.collate_coh_noise.method,'firdec')
+        noise.dft(bin_idx,1) = nanmean(coh_bin);
         fcutoff = param.collate_coh_noise.firdec_fcutoff(noise.dt*bin);
         if fcutoff == 0
           % Zero cutoff frequency: Take mean over all values
@@ -233,6 +234,8 @@ for img = param.collate_coh_noise.imgs
       end
     end
     
+    time = start_bin*noise.dt + noise.dt*(0:Nt-1).';
+    Tpd = param.radar.wfs(wf).Tpd;
     if enable_threshold
       orig_threshold = threshold;
       if ~isempty(param.collate_coh_noise.threshold_eval)
@@ -240,8 +243,6 @@ for img = param.collate_coh_noise.imgs
           error('If param.collate_coh_noise.threshold_eval is specified, there must be a cell entry for each waveform that is used. Waveform %d cannot be found since numel(param.collate_coh_noise.threshold_eval)=%d',wf,numel(param.collate_coh_noise.threshold_eval));
         end
         
-        time = start_bin*noise.dt + noise.dt*(0:Nt-1).';
-        Tpd = param.radar.wfs(wf).Tpd;
         %figure(100); plot(threshold); hold on;
         % Example:
         % param.collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;'

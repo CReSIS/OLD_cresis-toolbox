@@ -86,9 +86,10 @@ function [param,dout] = array_proc(param,din)
 %   .theta: Same size as .img. The direction of arrival (deg) corresponding to the largest
 %       value in the Nsv range.
 %  DOA METHOD:
-%   .img: Nt_out by Nx_out output image. The value of the largest source in the Nsrc dimension (i.e. tomo.img first entry)
-%   .theta: direction of arrival (deg) to the largest theta (i.e. tomo.img first entry)
-%  TOMOGRAPHY ENABLED
+%   .img: Nt_out by Nx_out output image. The value of the largest source in theta_rng (mode 1) OR 
+%         the source closest to the center of the theta_rng (mode 2) in the Nsrc dimension (i.e. tomo.img first entry)
+%   .theta: direction of arrival (deg) to the source returned in .img.
+%  TOMOGRAPHY (.tomo_en) ENABLED
 %   .tomo: tomography structure (only present if param.tomo_en is true)
 %    DOA method:
 %     .img: Nt_out by Nsrc by Nx_out : Signal voltage or power for each
@@ -447,6 +448,14 @@ if ~isfield(param.array,'debug_plots') || isempty(param.array.debug_plots)
   param.array.debug_plots = 0;
 end
 
+if ~isfield(param.array,'layerData_folder') || isempty(param.array.layerData_folder)
+  param.array.layerData_folder = '';
+end
+
+if ~isfield(param.array,'layer_name') || isempty(param.array.layer_name)
+  param.array.layer_name = '';
+end
+
 if nargin == 1
   % No input data provided so just checking input arguments
   return;
@@ -678,6 +687,42 @@ if ~isempty(cfg.ignored_img_idx) && (cfg.ignored_img_idx == param.array_proc.img
   return;
 end
 
+  %% Load layerData: used to define the first range-bin and to skip bad-data range-line (those that have NAN/Inf in their layerData entry)
+  if ~isempty(param.array.layerData_folder) && ~isempty(param.array.layer_name)
+    layerData_fn = fullfile(ct_filename_out(param, param.array.layerData_folder), ...
+      sprintf('Data_%s_%03d', param.day_seg, param.load.frm));
+    layer_name = param.array.layer_name;
+    if strcmpi(layer_name,'surface')
+      layer_name = 'top';
+    end
+    if strcmpi(layer_name,'top') || strcmpi(layer_name,'bottom')
+      if strcmpi(layer_name,'top')
+        layer_idx = 1;
+      elseif strcmpi(layer_name,'bottom')
+        layer_idx = 2;
+      end
+      
+      % Load twtt to the ice-surface/bottom at the nadir DOA bin for each
+      % range-line
+      load(layerData_fn,'layerData');
+      layerData = layerData{layer_idx}.value{2}.data;
+    else
+      warning('Invalid layer name')
+    end
+  end
+
+  % Time: twtt that containts all possible time samples within the
+  % range gate for the current data chunk (each chunk od data is processed 
+  % separately, then all chunks are combined using array_combine_task). 
+  % This is fixed for all range-lines.
+  Time = cfg.wfs.time;
+%   dt = Time(2)-Time(1);
+
+% Layer range-bin at naid DOA bin. layerData_rline = length(cfg.lines)
+if exist('layerData','var') && ~isempty('layerData')
+  layerData_rline = round(interp1(Time,1:length(Time),layerData));
+end
+ 
 %% Array Processing
 % =========================================================================
 % Loop through each output range line and then through each output range
@@ -690,6 +735,16 @@ for line_idx = 1:1:Nx_out
       Nx_out, datestr(now));
   end
   
+  % Bring the range-bin index stored in layerData vector (at the nadir DOA bin)
+  if exist('layerData','var') && ~isempty('layerData')
+    % Skip this range-line if there is NaN/Inf in its layerData entry
+    if ~isfinite(layerData_rline(line_idx))
+      warning('No data ... Skipping range-line %0.f',rline)
+      continue;
+    else
+      cfg.bin_restriction.start_bin(rline) = layerData_rline(line_idx) + max(cfg.bin_rng)- 3;
+    end
+  end
   %% Array: Edge Conditions
   % At the beginning and end of the data, we may need to restrict the range
   % lines that are used for DCM or ML.
@@ -779,19 +834,20 @@ for line_idx = 1:1:Nx_out
   end
   
   %  .range: Range vector. It may have negative values. So, better to ignore
-  %   those negative ranges (this is the difference between 'Time' and
-  %   'time' variables).
+  %   those negative ranges.
   if cfg.doa_seq
-    cfg.range = c*cfg.wfs.time/2;
+    cfg.range = c*Time/2;
     negative_range_idxs = find(cfg.range<0);
     if ~isempty(negative_range_idxs) && cfg.bin_restriction.start_bin(rline)<max(negative_range_idxs)
       cfg.bin_restriction.start_bin(rline) = max(negative_range_idxs)+1;
+      param.array_proc.bin_restriction.start_bin(rline) = cfg.bin_restriction.start_bin(rline);
     end
   end
   
   clear first_rbin_idx
   max_Nsrc = cfg.Nsrc; % For S-MAP
-  bin_idxs = find(cfg.bins >= cfg.bin_restriction.start_bin(rline) & cfg.bins <= cfg.bin_restriction.stop_bin(rline));
+  bin_idxs = find(cfg.bins >= cfg.bin_restriction.start_bin(rline) & cfg.bins <= cfg.bin_restriction.stop_bin(rline)); % [1495:2400]
+  early_stop = false;
   for bin_idx = bin_idxs(:).'
     %% Array: Array Process Each Bin
     bin = cfg.bins(bin_idx);
@@ -1167,7 +1223,15 @@ for line_idx = 1:1:Nx_out
     elseif any(cfg.method == MLE_METHOD)
       %% Array: MLE
       % See Wax, Alternating projection maximum likelihood estimation for
-      % direction of arrival, TSP 1983?
+      % direction of arrival, TSP 1983?.
+      
+      % If S-MAP is used with layerData pointing to the first range-bin, 
+      % then S-MAP should find the ice-layer soon. Otherwise, the tracked 
+      % layer will appear way bellow the actual layer location.  
+        if cfg.doa_seq && (exist('layerData','var') && ~isempty('layerData')) ...
+            && all(isnan(tout.mle.tomo.theta(:))) && (bin_idx == bin_idxs(10))
+          break;
+        end
         dataSample  = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample  = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
         array_data  = dataSample.';
@@ -1329,10 +1393,8 @@ for line_idx = 1:1:Nx_out
             
             % Sequential MAP (or S-MAP) section
             % -----------------------------------------------------------
-            % Calculate current and next DoAs using the flat
-            % earth approximation. If not calculated, it still
-            % work as MLE, but not sequential MAP
-            
+            % Calculate current and next DoAs using the flat earth approximation.
+            %  If not calculated, it still work as MLE, but not sequential MAP            
             if cfg.doa_seq && ...
                 ((isfield(cfg,'Nsig_true') && ~isempty(cfg.Nsig_true)) || (exist('first_rbin_idx','var') && ~isempty(first_rbin_idx)))
               curr_rng = cfg.range(bin);
@@ -1377,18 +1439,31 @@ for line_idx = 1:1:Nx_out
                 
                 doa_step_L = abs(mu_L-prev_doa(1));
                 doa_step_R = abs(mu_R-prev_doa(2));
+                % DOA bounds tend to be too tight off to the side, which
+                % makes the resulting slices look like a flat surface
+                % always. So, here we loosen those bounds a little bit.
+                if 1
+                  if doa_step_L <= 0.5*pi/180
+%                     doa_step_L = 2*pi/180;
+                    doa_step_L = 2*doa_step_L;
+                  end
+                  if doa_step_R <= 0.5*pi/180
+%                     doa_step_R = 2*pi/180;
+                    doa_step_R = 2*doa_step_R;
+                  end
+                end
                 
                 std_doa = [doa_step_L  doa_step_R].';
                 
                 a1 = 0.1;  % Keep this very close to 0, but not 0
                 p = [-0.5569    0.7878    0.0071]; % These from fitting a curve into some reasonable points
-                
+
                 UB(1) = prev_doa(1) - a1*doa_step_L;
                 LB(1) = mu_L - (p(1)*doa_step_L^2+p(2)*doa_step_L+p(3));
                 
                 LB(2) = prev_doa(2) + a1*doa_step_R;
                 UB(2) = mu_R + (p(1)*doa_step_R^2+p(2)*doa_step_R+p(3));
-                
+
                 if cfg.doa_seq && cfg.debug_plots
                   % Debug
                   bounds_l(bin_idx,:) = [LB(1) UB(1)]*180/pi;
@@ -1556,7 +1631,9 @@ for line_idx = 1:1:Nx_out
               if cfg.doa_seq ...
                   && ((isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true)) || (exist('first_active_doa','var') && ~all(isnan(first_active_doa))))
                 % S-MLE
-                return;
+                early_stop = true;
+                break;
+%                 return;
               else
                 % MLE
                 doa = NaN(Nsrc_idx,1);
@@ -1573,6 +1650,9 @@ for line_idx = 1:1:Nx_out
             tmp_Hessian{Nsrc_idx} = HESSIAN;
             tmp_Jval{Nsrc_idx} = Jval;
           end
+        end
+        if early_stop
+          break;
         end
         
         % Model order estimation: machine learning
@@ -2224,10 +2304,22 @@ for line_idx = 1:1:Nx_out
       end
     else
       % DOA Methods
-      dout_img = tout.(m).tomo.img .* ...
+      
+      if 1
+        % Mode 1: The value of the largest source in theta_rng in the Nsrc dimension
+        dout_img = tout.(m).tomo.img .* ...
         (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
-      [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
-      tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
+        [tout.(m).img(:,line_idx) max_img_idx] = max(dout_img(:,:,line_idx),[],2);
+        tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(max_img_idx);
+        %         [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
+        %         tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
+      else
+        % Mode 2: the value of the source closest to the center of theta_rng in the Nsrc dimension
+        dout_img = tout.(m).tomo.theta .* ...
+        (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
+        [tout.(m).theta(:,line_idx) nearest_theta_idx] = min(abs(dout_img(:,:,line_idx)),[],2);
+        tout.(m).img(:,line_idx) = tout.(m).tomo.img(nearest_theta_idx);
+      end
     end
   end
   
@@ -2280,11 +2372,11 @@ for line_idx = 1:1:Nx_out
   if 0 && any(cfg.method(cfg.method == MUSIC_METHOD)) && any(cfg.method(cfg.method == MLE_METHOD))
     % Debug: plot MUSIC and MLE results 
     figure(999);clf;
-    imagesc(tout.music.tomo.theta*180/pi,1:size(tout.music.tomo.img,1),10*log10(abs(tout.music.tomo.img(:,:,1))))
+    imagesc(tout.music.tomo.theta*180/pi,1:size(tout.music.tomo.img,1),10*log10(abs(tout.music.tomo.img(:,:,line_idx))))
     hold on
-    plot(tout.mle.tomo.theta(:,1,1)*180/pi,1:size(tout.mle.tomo.theta,1),'*y')
-    plot(tout.mle.tomo.theta(:,2,1)*180/pi,1:size(tout.mle.tomo.theta,1),'*r')
-    
+    plot(tout.mle.tomo.theta(:,1,line_idx)*180/pi,1:size(tout.mle.tomo.theta,1),'*b')
+    plot(tout.mle.tomo.theta(:,2,line_idx)*180/pi,1:size(tout.mle.tomo.theta,1),'ok')
+    set(gca,'YDir','reverse')
     xlabel('Est. DOA (degrees)')
     ylabel('Range-bin')
 %     title(sprintf('MUSIC beamformer vs MLE estimator'))

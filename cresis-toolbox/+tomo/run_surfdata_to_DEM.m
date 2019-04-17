@@ -67,8 +67,8 @@ if 1
   
   % surface_names: cell array of strings containing surface names that output
   % data products will be generated for
-  dem.surface_names = {'top','bottom'};
-%   dem.surface_names = {'bottom'};
+%   dem.surface_names = {'top','bottom'};
+  dem.surface_names = {'top'};
   
   % quality_surface_names: cell array of strings containing surface names
   % for the quality surface that corresponds to each entry in
@@ -111,10 +111,10 @@ elseif 0
 
   % DOA_trim: remove this many direction of arrival bins on each side of the
   %   image
-  dem.DOA_trim = 5;
+  dem.DOA_trim = 0%;5; % Set this to 0 for DOA methods
   
   % med_filt: medfilt2 arguments for spatial filtering (leave blank for no filtering)
-  dem.med_filt = [5 17];
+  dem.med_filt = [];%[5 17];
   
   % figure_dots_per_km: scalar representing the number of pixels per km in
   %   the figures
@@ -201,8 +201,8 @@ elseif 0
   
   % surface_names: cell array of strings containing surface names that output
   % data products will be generated for
-  dem.surface_names = {'top','bottom'};
-%   dem.surface_names = {'bottom'};
+%   dem.surface_names = {'top','bottom'};
+  dem.surface_names = {'bottom'};
   
   % quality_surface_names: cell array of strings containing surface names
   % for the quality surface that corresponds to each entry in
