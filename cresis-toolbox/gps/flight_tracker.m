@@ -350,8 +350,8 @@ try
       day_start = datenum(year,month,day,0,0,0);
       utc_sod = (utc_time - day_start)*86400;
       
-      title(sprintf('UTC %02d:%02d:%05.2f, %.2f SOD',hour,minute,sec, ...
-        utc_sod));
+      title(sprintf('UTC %02d:%02d:%05.2f, %.2f SOD, %.0f m/%.0f ft',hour,minute,sec, ...
+        utc_sod, elev, elev*100/2.54/12));
       
       if isempty(lat)
         lat = NaN;
