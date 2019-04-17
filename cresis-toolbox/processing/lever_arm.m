@@ -325,7 +325,7 @@ if (strcmpi(param.season_name,'2017_Antarctica_Basler') && (strcmpi(gps_source,'
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2019_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
+if (strcmpi(param.season_name,'2019_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS','novatel'}))) ...
     || (strcmpi(param.season_name,'2018_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
     || (strcmpi(param.season_name,'2017_Antarctica_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
     || (strcmpi(param.season_name,'2017_Greenland_P3') && any(strcmpi(gps_source,{'ATM','NMEA','DMS'}))) ...
@@ -355,7 +355,7 @@ if (strcmpi(param.season_name,'2019_Greenland_P3') && any(strcmpi(gps_source,{'A
   % installed on the P3) to be 3.63cm above the bottom of the GPS antenna
   % connector, if you want to incorporate that as well.  We will be making
   % more measurements to repeat this measurement tomorrow, but probably
-  % won’t have those results for a month or so…this estimate is probably
+  % will not have those results for a month or so this estimate is probably
   % close enough.
   %
   % John Paden notes:
