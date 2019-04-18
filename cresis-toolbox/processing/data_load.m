@@ -311,7 +311,11 @@ for state_idx = 1:length(states)
             end
             
             % Nyquist zone
-            if any(param.records.file.version == [8 11])
+            if any(param.records.file.version == [8])
+              % bitand(bitshift(file_data(wf_hdr_offset+34),-4),1); % Complex data flag
+              wfs(wf).adc_per_board = 1;
+              nyquist_zone_hw{img}(num_accum+1) = bitand(file_data(wf_hdr_offset+34),3);
+            elseif any(param.records.file.version == [11])
               % bitand(bitshift(file_data(wf_hdr_offset+34),-4),1); % Complex data flag
               wfs(wf).adc_per_board = double(1+bitand(bitshift(file_data(wf_hdr_offset+34),-2),3));
               nyquist_zone_hw{img}(num_accum+1) = bitand(file_data(wf_hdr_offset+34),3);
@@ -560,6 +564,25 @@ if ~param.load.raw_data
       % Apply fast-time varying gain if defined
       if ~isempty(wfs(wf).gain)
         data{img}(:,:,wf_adc) = bsxfun(@times,data{img}(:,:,wf_adc),interp1(wfs(wf).gain.Time, wfs(wf).gain.Gain, wfs(wf).time_raw(1:wfs(wf).Nt_raw)));
+      end
+      
+      if wfs(wf).gain_en
+        ftg_fn = fullfile(param.radar.ftg_dir,sprintf('gain_wf_%d_adc_%d.mat',wf,adc));
+        if exist(ftg_fn, 'file')
+          dd = load(ftg_fn);
+          fprintf('Applying ftg compensation %d-%d\n',wf,adc);          
+          corr_Time = dd.param_analysis.radar.wfs(wf).time... % Actual Time axis
+            + (dd.param_analysis.radar.wfs(wf).Tadc_adjust - 1*param.radar.wfs(wf).Tadc_adjust)... % Difference in Tadc_adjust
+            -1*dd.param_analysis.radar.wfs(wf).time_correction; %
+%             +-dd.param_analysis.radar.wfs(wf).time(1);
+%           plot(wfs(wf).time_raw(1:wfs(wf).Nt_raw)/1e-6,data{img}(:,1,wf_adc));
+%           temp_data = bsxfun(@times,data{img}(:,:,wf_adc),interp1(corr_Time, 1./dd.Gain_raw, wfs(wf).time_raw(1:wfs(wf).Nt_raw), 'linear','extrap'));
+%           hold on; plot(wfs(wf).time_raw(1:wfs(wf).Nt_raw)/1e-6,temp_data(:,1),'--');
+          data{img}(:,:,wf_adc) = bsxfun(@times,data{img}(:,:,wf_adc),interp1(corr_Time, 1./dd.Gain_raw, wfs(wf).time_raw(1:wfs(wf).Nt_raw), 'linear','extrap'));
+%           hold on; plot(wfs(wf).time_raw(1:wfs(wf).Nt_raw)/1e-6,data{img}(:,1,wf_adc))
+        else
+          fprintf('Fast-time Gain compensation file not found.\n%s\nPlease run_collate_ftg \n',ftg_fn);
+        end
       end
       
       % Apply time varying channel compensation

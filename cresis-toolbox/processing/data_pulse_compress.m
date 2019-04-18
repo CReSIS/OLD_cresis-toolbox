@@ -585,6 +585,33 @@ for img = 1:length(param.load.imgs)
             t0 = hdr.t0_raw{img}(rec) + wfs(wf).Tadc_adjust;
             dt_raw = 1/fs_raw_dec;
             time_raw_no_trim = (t0:dt_raw:t0+dt_raw*(hdr.Nt{img}(rec)-1)).';
+            if 0
+              % Debug code to estimate wfs(wf).Tadc_adjust
+              test_wf = fft(data{1}(:,rec));
+              [max_val,max_idx] = max(lp(test_wf));
+              mask = false(size(test_wf));
+              mask(lp(test_wf) > max_val-10) = true;
+              mask(find(mask,1,'first') + [-450:500]) = true;
+              mask(find(mask,1,'last') + [-500:450]) = true;
+              plot(mask);
+              figure(1); clf;
+              plot(lp(test_wf));
+              hold on;
+              plot(find(mask), lp(test_wf(mask)),'.');
+              test_wf(~mask) = 0;
+              test_wf = ifft(test_wf);
+              figure(1); clf;
+              plot(time_raw_no_trim*1e6, abs(test_wf))
+              hold on;
+              grid on;
+              xlabel('Time (us)');
+              ylabel('Magnitude voltage (V)');
+              plot(1.713 + [12 12],ylim,'k-','LineWidth',2);
+              plot(240-[12 12],ylim,'k-','LineWidth',2);
+              plot(1.713 + [0 0],ylim,'r-','LineWidth',2);
+              plot(240-[0 0],ylim,'r-','LineWidth',2);
+              saveas(1,'keysight_raw_data.jpg');
+            end
             % Create RF frequency axis for minimum delay to surface
             % expected
             % td_mean: t_rf (RF time of arrival) relative to the t_ref (REF

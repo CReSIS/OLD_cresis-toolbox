@@ -18,6 +18,10 @@ fprintf('=====================================================================\n
 %% Input checks
 % =====================================================================
 
+if ~isfield(param,'collate_equal') || isempty(param.collate_equal)
+  param.collate_equal = [];
+end
+
 if ~isfield(param.collate_equal,'chan_eq_en') || isempty(param.collate_equal.chan_eq_en)
   param.collate_equal.chan_eq_en = true;
 end
@@ -400,7 +404,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if isempty(waveform.param_analysis.radar.lever_arm_fh)
       error('No leverarm was used during analysis waveform, cannot enable motion_comp');
     end
-    drange = bsxfun(@minus,elev,mean(elev));
+    drange = bsxfun(@minus,elev,elev(ref_wf_adc_idx,:));
     dtime = dtime + drange/(c/2);
   end
   if param.collate_equal.chan_eq_en

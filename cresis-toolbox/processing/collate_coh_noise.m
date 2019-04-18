@@ -389,6 +389,7 @@ for img = param.collate_coh_noise.imgs
       noise_simp.coh_noise_gps_time = noise.coh_noise_gps_time;
       noise_simp.coh_noise = noise.coh_noise;
     end
+    noise_simp.param_records = noise.param_records;
     noise_simp.param_analysis = noise.param_analysis;
     if enable_threshold
       noise_simp.threshold = threshold;
