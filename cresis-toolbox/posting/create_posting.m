@@ -43,11 +43,6 @@ if ~isfield(param.post,'img') || isempty(param.post.img)
   param.post.img = 0;
 end
 
-if ~isfield(param.post,'ops') || isempty(param.post.ops) ...
-    || ~isfield(param.post.ops,'en') || isempty(param.post.ops.en)
-  param.post.ops.en = 0;
-end
-
 if ~isfield(param.post,'out_path') || isempty(param.post.out_path)
   param.post.out_path = 'post';
 end
@@ -60,22 +55,11 @@ end
 physical_constants;
 
 % layer_path_in: where the layer information will come from
-if ~isempty(param.post.layer_dir) && param.post.ops.en == 0
-  layer_path_in = fullfile(ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.layer_dir)));
-  use_data_files_for_layer = false;
-else
-  % An empty layer directory makes the program assume that there are no
-  % layer files and it uses the data files instead
-  layer_path_in = ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.data_dirs{1}));
-  use_data_files_for_layer = true;
-
-  % We also need to authenticate the OPS user
-  if param.post.ops.en
-    opsAuthenticate([]);
-  end
-end
+% An empty layer directory makes the program assume that there are no
+% layer files and it uses the data files instead
+layer_path_in = ct_filename_out(param, ...
+  fullfile(param.post.in_path,param.post.data_dirs{1}));
+use_data_files_for_layer = true;
 
 % post_path: the directory where outputs will be created
 post_path = ct_filename_out(param,param.post.out_path,[],1);
@@ -102,9 +86,6 @@ if isempty(param.post.concat_en)
 end
 if isempty(param.post.pdf_en)
   param.post.pdf_en = 0;
-end
-if ~isfield(param.post,'ops') || isempty(param.post.ops.en)
-  param.post.ops.en = 0;
 end
 if ~isfield(param.post, 'layers') || isempty(param.post.layers)
   param.post.layers = [struct('name', 'surface', 'source', 'layerData') ...
@@ -352,7 +333,8 @@ for frm_idx = 1:length(frms)
   lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation');
   
   lay = opsInterpLayersToMasterGPSTime(lay,layers_to_post,param.post.ops.gaps_dist);
-  
+
+  % TODO: Refactor
   lay.Surface = lay.layerData{1}.value{2}.data;
   if length(param.post.ops.layers) == 2
     lay.Bottom = lay.layerData{2}.value{2}.data;
@@ -425,31 +407,6 @@ for frm_idx = 1:length(frms)
   end
   
   % =======================================================================
-  % Create Surface and Bottom Variables
-  % =======================================================================
-  if ~param.post.ops.en
-    if ~isempty(param.post.layer_dir)
-      lay.Bottom  = lay.layerData{2}.value{2}.data;
-      lay.Surface = lay.layerData{1}.value{2}.data;
-    else
-      % An empty layer directory makes the program assume that there are no
-      % layer files and it uses the data files instead
-      lay.Bottom = NaN*zeros(size(lay.Surface));
-      lay.layerData{1}.value{2}.data = lay.Surface;
-      lay.layerData{2}.value{2}.data = lay.Bottom;
-      lay.layerData{1}.quality = zeros(size(lay.Surface));
-      lay.layerData{2}.quality = zeros(size(lay.Surface));
-    end
-    lay.Thickness = lay.Bottom-lay.Surface;
-    neg_idxs = find(lay.Thickness < 0 & isfinite(lay.Thickness));
-    if ~isempty(neg_idxs)
-      sprintf('  Negative thickness detected');
-      lay.Bottom(neg_idxs) = lay.Surface(neg_idxs);
-    end
-    lay.Thickness = lay.Bottom-lay.Surface;
-  end
-  
-  % =======================================================================
   % Plot Echogram and Echogram w/ Layers
   % =======================================================================
   if param.post.echo_en
@@ -493,8 +450,6 @@ for frm_idx = 1:length(frms)
     echo_param.num_x_tics = 6;
 
     echo_param.frm_id = frms{frm_idx}.frm_id;
-    
-    echo_param.ops.en = true;
     
     echo_info = publish_echogram(echo_param,mdata,lay);
     set(echo_info.h_surf,'Visible','off');
@@ -675,28 +630,19 @@ for frm_idx = 1:length(frms)
   
   % Create layer files (or copy if not using OPS)
   if param.post.layers_en
+    % Copy layer file
+    layer_fn = frms{frm_idx}.layer_fn;
+    [tmp layer_name] = fileparts(layer_fn);
+    %     layer_dir = sprintf('CSARP_%s', param.post.layer_dir);
+    layer_out_dir = fullfile(post_path,sprintf('CSARP_layerData'),day_segs{frm_idx});
+    if ~exist(layer_out_dir,'dir')
+      mkdir(layer_out_dir)
+    end
+    layer_out_fn = fullfile(layer_out_dir,[layer_name '.mat']);
+
     if param.post.ops.en
-      %% Create layer data file
-      % Copy layer file
-      layer_fn = frms{frm_idx}.layer_fn;
-      [tmp layer_name] = fileparts(layer_fn);
-      %     layer_dir = sprintf('CSARP_%s', param.post.layer_dir);
-      layer_out_dir = fullfile(post_path,sprintf('CSARP_layerData'),day_segs{frm_idx});
-      if ~exist(layer_out_dir,'dir')
-        mkdir(layer_out_dir)
-      end
-      layer_out_fn = fullfile(layer_out_dir,[layer_name '.mat']);
       save(layer_out_fn,'-struct','lay','GPS_time','Latitude','Longitude','Elevation','layerData');
     else
-      % Copy layer file
-      layer_fn = frms{frm_idx}.layer_fn;
-      [tmp layer_name] = fileparts(layer_fn);
-      %     layer_dir = sprintf('CSARP_%s', param.post.layer_dir);
-      layer_out_dir = fullfile(post_path,sprintf('CSARP_layerData'),day_segs{frm_idx});
-      if ~exist(layer_out_dir,'dir')
-        mkdir(layer_out_dir)
-      end
-      layer_out_fn = fullfile(layer_out_dir,[layer_name '.mat']);
       copyfile(layer_fn, layer_out_fn);
     end
   end
