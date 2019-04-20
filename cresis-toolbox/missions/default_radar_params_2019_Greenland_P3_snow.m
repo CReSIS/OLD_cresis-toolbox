@@ -104,7 +104,7 @@ for wf = 1:1
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).coh_noise_method = 'analysis';
+  default.radar.wfs(wf).coh_noise_method = 'estimated';
   default.radar.wfs(wf).nz_trim = {[0 0],[0 0],[0 0],[0 0]};
   default.radar.wfs(wf).nz_valid = [0 1 2 3];
 end
@@ -136,8 +136,8 @@ defaults = {};
 default.radar.wfs(1).f0 = 2e9;
 default.radar.wfs(1).f1 = 18e9;
 default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [2.7e9 17.5e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [2.4e9 17.0e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 2-18 GHz';
@@ -145,10 +145,10 @@ defaults{end+1} = default;
 
 % Survey Mode 2-8 GHz
 default.radar.wfs(1).f0 = 2e9;
-default.radar.wfs(1).f1 = 18e9;
+default.radar.wfs(1).f1 = 8e9;
 default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [2.7e9 17.5e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [2.4e9 7.1e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 2-8 GHz';
@@ -158,8 +158,8 @@ defaults{end+1} = default;
 default.radar.wfs(1).f0 = 2e9;
 default.radar.wfs(1).f1 = 14e9;
 default.radar.wfs(1).Tpd = 200e-6;
-default.radar.wfs(1).BW_window = [2.7e9 13.5e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [2.4e9 13.1e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 2-14 GHz Dual Waveform';

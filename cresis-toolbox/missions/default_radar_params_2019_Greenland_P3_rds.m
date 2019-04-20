@@ -47,7 +47,7 @@ default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.gps.time_offset = 1;
-default.records.frames.mode = 1;
+default.records.frames.mode = 2;
 default.records.frames.geotiff_fn = fullfile('greenland','Landsat-7','Greenland_natural_150m.tif');
 default.records.presum_bug_fixed = 0;
 

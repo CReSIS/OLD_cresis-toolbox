@@ -311,7 +311,11 @@ for state_idx = 1:length(states)
             end
             
             % Nyquist zone
-            if any(param.records.file.version == [8 11])
+            if any(param.records.file.version == [8])
+              % bitand(bitshift(file_data(wf_hdr_offset+34),-4),1); % Complex data flag
+              wfs(wf).adc_per_board = 1;
+              nyquist_zone_hw{img}(num_accum+1) = bitand(file_data(wf_hdr_offset+34),3);
+            elseif any(param.records.file.version == [11])
               % bitand(bitshift(file_data(wf_hdr_offset+34),-4),1); % Complex data flag
               wfs(wf).adc_per_board = double(1+bitand(bitshift(file_data(wf_hdr_offset+34),-2),3));
               nyquist_zone_hw{img}(num_accum+1) = bitand(file_data(wf_hdr_offset+34),3);
