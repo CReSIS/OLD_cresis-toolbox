@@ -621,13 +621,8 @@ for img = 1:length(store_param.load.imgs)
         end
         
         %% Waveform: Save
-        if ~param.radar.wfs(wf).gain_en
-          out_fn = fullfile(tmp_out_fn_dir, ...
-            sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        else
-          out_fn = fullfile(tmp_out_fn_dir, ...
-            sprintf('waveform2_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        end
+        out_fn = fullfile(tmp_out_fn_dir, ...
+          sprintf('waveform_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
         param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         if param.ct_file_lock
