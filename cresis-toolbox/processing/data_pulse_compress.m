@@ -30,7 +30,7 @@ for img = 1:length(param.load.imgs)
         if ~isfield(param.radar.wfs(wf).prepulse_H,'Hfilt_dir') || isempty(param.radar.wfs(wf).prepulse_H.Hfilt_dir)
           param.radar.wfs(wf).prepulse_H.Hfilt_dir = ct_filename_out(param,'analysis','',1);
         end
-        % Runs inverse filter for each record (or range line)
+        % Apply inverse filter on each record (or range line)
         for rec_idx = 1:size(data{img},2)
           rx = param.radar.wfs(wf).rx_paths(adc);
           nz_prev = NaN;
