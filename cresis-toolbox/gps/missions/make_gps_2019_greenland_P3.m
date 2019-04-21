@@ -126,7 +126,43 @@ if strcmpi(gps_source_to_use,'NMEA')
 %   gps_source{file_idx} = 'nmea-field';
 %   sync_flag{file_idx} = 0;
   
-  year = 2019; month = 4; day = 16;
+%   year = 2019; month = 4; day = 16;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2019; month = 4; day = 17;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+
+%   year = 2019; month = 4; day = 18;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2019; month = 4; day = 19;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'NMEA';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   gps_source{file_idx} = 'nmea-field';
+%   sync_flag{file_idx} = 0;
+
+  year = 2019; month = 4; day = 20;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'GPS','','.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
