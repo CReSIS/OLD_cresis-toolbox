@@ -307,6 +307,7 @@ if param.post.maps_en
 end
 
 layers = opsLoadLayers(param, param.post.layers);
+surface_layer = {opsLoadLayers(param, param.post.surface_source)};
 
 layers_to_post = {};
 for layer = layers
@@ -333,12 +334,13 @@ for frm_idx = 1:length(frms)
   lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation');
   
   lay = opsInterpLayersToMasterGPSTime(lay,layers_to_post,param.post.ops.gaps_dist);
+  surface_lay = opsInterpLayersToMasterGPSTime(lay,surface_layer,param.post.ops.gaps_dist);
 
-  % TODO: Refactor
-  lay.Surface = lay.layerData{1}.value{2}.data;
-  if length(param.post.ops.layers) == 2
-    lay.Bottom = lay.layerData{2}.value{2}.data;
-  elseif length(param.post.ops.layers) == 1
+  lay.Surface = surface_lay.layerData{1}.value{2}.data;
+  if length(lay.layerData) > 1
+    % TODO[reece]: Find layer with max twtt to use as bottom
+    lay.Bottom = lay.layerData{end}.value{2}.data;
+  else
     lay.Bottom = NaN*zeros(size(lay.Surface));
   end
     
@@ -640,11 +642,7 @@ for frm_idx = 1:length(frms)
     end
     layer_out_fn = fullfile(layer_out_dir,[layer_name '.mat']);
 
-    if param.post.ops.en
-      save(layer_out_fn,'-struct','lay','GPS_time','Latitude','Longitude','Elevation','layerData');
-    else
-      copyfile(layer_fn, layer_out_fn);
-    end
+    save(layer_out_fn,'-struct','lay','GPS_time','Latitude','Longitude','Elevation','layerData');
   end
     
   % Copy data files
