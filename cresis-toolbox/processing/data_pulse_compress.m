@@ -26,95 +26,47 @@ for img = 1:length(param.load.imgs)
       end
       
       if strcmpi(wfs(wf).prepulse_H.type,'inverse_filter')
-        % Check and load measured filter response for corresponding Nyquist Zone
-        if ~isfield(param.radar.wfs(wf).prepulse_H,'Hfilt_dir') || isempty(param.radar.wfs(wf).prepulse_H.Hfilt_dir)
-          param.radar.wfs(wf).prepulse_H.Hfilt_dir = ct_filename_out(param,'analysis','',1);
-        end
         % Apply inverse filter on each record (or range line)
-        for rec_idx = 1:size(data{img},2)
+        nz_prev = NaN;
+        nz_signal_prev = NaN;
+        for rec = 1:size(data{img},2)
           rx = param.radar.wfs(wf).rx_paths(adc);
-          nz_prev = NaN;
-          nz = double(hdr.nyquist_zone_hw{img}(rec_idx));
+          nz = double(hdr.nyquist_zone_hw{img}(rec));
+          % Check and load measured filter response for corresponding Nyquist Zone
           if ~(nz==nz_prev)
-            temp = load(fullfile(param.radar.wfs(wf).prepulse_H.Hfilt_dir,...
-              sprintf('%s_rx_%d_nz_%d.mat', param.radar.wfs(wf).prepulse_H.fn, rx, nz)));
+            prepulse_fn = fullfile(ct_filename_out(param,'analysis','',1),...
+              sprintf('%s_rx_%d_nz_%d.mat', param.radar.wfs(wf).prepulse_H.fn, rx, nz));
+            prepulse = load(prepulse_fn);
+            nz_signal_prev = NaN;
           end
-
-          %Create a baseband frequency axis
-          df = param.radar.fs/hdr.Nt{img}(rec_idx);
-          freq_axis = df .* ifftshift(-floor(hdr.Nt{img}(rec_idx)/2):floor((hdr.Nt{img}(rec_idx)-1)/2)).';
-
-          %Create current frequency axis
-          freq = freq_nz(freq_alias(freq_axis+hdr.DDC_freq{img}(rec_idx),param.radar.fs),param.radar.fs,nz);
-
-          %Interpolate the inverse filter, H, for this axis
-          m = freq>=0;
-          H(m) = interp1(temp.freq, temp.H, freq(m));
-          m= freq<0;
-          H(m) = interp1(-temp.freq, conj(temp.H), freq(m));
+          nz_prev = nz;
           
-          if 0
-          figure(2999);clf(2999);
-          subplot(211)
-          plot(freq_axis/1e6); hold on;
-          plot(freq/1e6)
-          subplot(212)
-          plot(freq/1e6,lp(1./H,2)); grid on;
-          figure(3000); clf(3000);
-          plot(freq/1e6,lp(H,2));grid on;
-          xlabel('Frequency, MHz')
-          ylabel('H (dB)');
+          nz_signal = double(hdr.nyquist_zone_signal{img}(rec));
+          if ~(nz_signal==nz_signal_prev)
+            %Create a baseband frequency axis
+            df = param.radar.fs/hdr.Nt{img}(rec);
+            freq_axis = df .* ifftshift(-floor(hdr.Nt{img}(rec)/2):floor((hdr.Nt{img}(rec)-1)/2)).';
+            
+            %Create current frequency axis
+            freq = freq_nz(freq_alias(freq_axis+hdr.DDC_freq{img}(rec),param.radar.fs),param.radar.fs,nz_signal);
+            
+            %Interpolate the inverse filter, H, for this axis
+            H = zeros(hdr.Nt{img}(rec),1);
+            mask = freq>=0;
+            H(mask) = interp1(prepulse.freq, prepulse.H, freq(mask));
+            mask = freq<0;
+            H(mask) = interp1(-prepulse.freq, conj(prepulse.H), freq(mask));
           end
+          nz_signal_prev = nz_signal;
           
           %Frequency domain data multiplied with inverse hardware filter
-          temp_data_f = fftshift( fft(data{img}(:,rec_idx,wf_adc),[],1) );
-          temp_data_f_filt = bsxfun(@times,temp_data_f,fftshift(H'));
+          data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc),[],1);
+          data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = bsxfun(@times,data{img}(1:hdr.Nt{img}(rec),rec,wf_adc),H);
 
-          if 0
-          figure(3333);clf(3333);
-          subplot(121)
-          x_axis = freq;
-          plot(x_axis/1e6,lp(abs(temp_data_f),2)); hold on;
-          plot(x_axis/1e6,lp(abs(temp_data_f_filt),2));
-          plot(x_axis/1e6,lp(fftshift(H),2));
-          xlabel('Frequency, MHz');
-          ylabel('lp(abs(fft(data)),2)');
-          title('Original [BLUE] vs Inverse Filtered [ORANGE] vs Filter[YELLOW]'); grid on;
-          subplot(122)
-          x_axis = freq_axis;
-          plot(x_axis/1e6,lp(abs(temp_data_f),2)); hold on;
-          plot(x_axis/1e6,lp(abs(temp_data_f_filt),2));
-          plot(x_axis/1e6,lp(fftshift(H),2));
-          xlabel('Frequency, MHz');
-          ylabel('lp(abs(fft(data)),2)');
-          title('Original [BLUE] vs Inverse Filtered [ORANGE] vs Filter[YELLOW]'); grid on;
-
-          figure(3334);clf(3334);
-          plot(freq,lp(abs((temp_data_f)),2)); hold on;
-          plot(freq,lp(abs((temp_data_f_filt)),2));
-          plot(freq,lp(fftshift(H),2));
-          xlabel('Nt');
-          ylabel('lp(abs(fft(data)),2)');
-          title('Original [BLUE] vs Inverse Filtered [ORANGE] vs Filter[YELLOW]'); grid on;
-          end
-          
            % Convert back to time domain
-          temp_data = ifft(ifftshift(temp_data_f_filt));
+          data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc));          
           
-          if 0
-          figure(1112); clf(1112)
-          plot(data{img}(:,rec_idx,wf_adc)); hold on;
-          plot(single(real(temp_data)));
-          xlabel('Fast Time Nt');
-          ylabel('Time domain signal, V');
-          title('Original [BLUE] vs Inverse Filtered [ORANGE]'); grid on;
-          end
-          
-          % The final handover of inverse filtered data 
-          data{img}(:,rec_idx,wf_adc) = single(real(temp_data));
-          
-          clear m H 
-        end % rec_idx loop
+        end % rec loop
       end % INVERSE FILTER if strcmpi ends here
       
       extra_delay = zeros(1,size(data{img},2));
