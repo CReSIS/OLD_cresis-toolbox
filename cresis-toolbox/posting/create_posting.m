@@ -337,8 +337,7 @@ for frm_idx = 1:length(frms)
   surface_lay = opsInterpLayersToMasterGPSTime(lay,surface_layer,param.post.ops.gaps_dist);
 
   lay.Surface = surface_lay.layerData{1}.value{2}.data;
-  if length(lay.layerData) > 1
-    % TODO[reece]: Find layer with max twtt to use as bottom
+  if length(lay.layerData) >= 1
     lay.Bottom = lay.layerData{end}.value{2}.data;
   else
     lay.Bottom = NaN*zeros(size(lay.Surface));
@@ -545,6 +544,7 @@ for frm_idx = 1:length(frms)
   end
   
   % Create .csv files
+  % TODO[reece]: refactor this section to be layer-agnostic?
   if param.post.csv_en
     csv_dir = fullfile(post_path,'csv',day_segs{frm_idx});
     if ~exist(csv_dir,'dir')
@@ -580,7 +580,8 @@ for frm_idx = 1:length(frms)
     % Quality of thickness is the lowest/worst confidence level of the surface
     % and bottom picks which each have their own quality level
     % (higher quality numbers mean lower confidence, so we take the max)
-    Quality = max(lay.layerData{1}.quality,lay.layerData{2}.quality(1));
+    % TODO[reece]: Is the second param here meant to be a scalar?
+    Quality = max(surface_lay.layerData{1}.quality,lay.layerData{end}.quality(1));
 
     % Compute seconds of day relative to the data frame ID
     UTC_time = lay.GPS_time - utc_leap_seconds(lay.GPS_time(1));
