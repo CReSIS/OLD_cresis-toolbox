@@ -1,4 +1,4 @@
-function echo_info = publish_echogram(param,mdata,lay)
+function echo_info = publish_echogram(param,mdata,lay,surface_layer)
 % echo_info = publish_echogram(param,mdata,lay)
 %
 % param: structure controlling the plotting of the echogram
@@ -53,7 +53,7 @@ if ~isfield(param,'time_offset') || isempty(param.time_offset)
   param.time_offset = 0;
 end
 if ~isfield(param,'plot_quality') || isempty(param.plot_quality) 
-  if isfield(lay.layerData{1},'quality')
+  if isfield(surface_layer,'quality')
     % Color of layer plots will represent the quality level
     param.plot_quality = true;
   else
@@ -66,29 +66,39 @@ if ~isreal(mdata.Data)
 end
 
 % =======================================================================
-% Create Surface and Bottom Variables
+% Move layer data and quality data to lay.layers and lay.qualities
 % =======================================================================
-lay.Bottom  = lay.layerData{2}.value{2}.data;
-lay.Surface = lay.layerData{1}.value{2}.data;
-lay.Thickness = lay.Bottom-lay.Surface;
+lay.layers = {};
+lay.qualities = {};
+lay.layers{1} = surface_layer.value{2}.data;
 if param.plot_quality
-  lay.Surface_Quality = lay.layerData{1}.quality;
-  lay.Bottom_Quality = lay.layerData{2}.quality;
+  lay.qualities{1} = surface_layer.quality;
 end
+for layer_idx = 1:length(lay.layerData)
+  lay.layers{end + 1} = lay.layerData{layer_idx}.value{2}.data;
+  if param.plot_quality
+    lay.qualities{end + 1} = lay.layerData{layer_idx}.quality;
+  end
+end
+
+lay.Thickness = lay.layers{end}-lay.layers{1};
 neg_idxs = find(lay.Thickness < 0 & isfinite(lay.Thickness));
 if ~isempty(neg_idxs)
   warning('  Negative thickness detected');
-  lay.Bottom(neg_idxs) = lay.Surface(neg_idxs);
+  lay.layers{end}(neg_idxs) = lay.layers{1}(neg_idxs);
 end
 
 % Interpolate layer onto GPS times of echogram
 warning('off','MATLAB:interp1:NaNinY');
 if param.plot_quality
-  lay.Surface_Quality = interp1(lay.GPS_time,lay.Surface_Quality,mdata.GPS_time,'linear','extrap');
-  lay.Bottom_Quality = interp1(lay.GPS_time,lay.Bottom_Quality,mdata.GPS_time,'linear','extrap');
+  for quality_idx = 1:length(lay.qualities)
+    lay.qualities{quality_idx} = interp1(lay.GPS_time,lay.qualities{quality_idx},mdata.GPS_time,'linear','extrap');
+  end
 end
-lay.Surface = interp1(lay.GPS_time,lay.Surface,mdata.GPS_time,'linear','extrap');
-lay.Bottom = interp1(lay.GPS_time,lay.Bottom,mdata.GPS_time,'linear','extrap');
+
+for layer_idx = 1:length(lay.layers)
+  lay.layers{layer_idx} = interp1(lay.GPS_time,lay.layers{layer_idx},mdata.GPS_time,'linear','extrap');
+end
 warning('on','MATLAB:interp1:NaNinY');
 
 % Create fast-time correction vector
@@ -138,8 +148,9 @@ if param.elev_comp == 1
   for rline = 1:size(mdata.Data,2)   
     mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(:,rline), mdata.Time - dtime(rline), 'linear',0);
     mdata.Elevation(rline) = mdata.Elevation(rline) + dRange(rline);
-    lay.Surface(rline) = lay.Surface(rline) + dtime(rline);
-    lay.Bottom(rline) = lay.Bottom(rline) + dtime(rline);
+    for layer_idx = 1:length(lay.layers)
+      lay.layers{layer_idx}(rline) = lay.layers{layer_idx}(rline) + dtime(rline);
+    end
   end
   warning on;
 elseif param.elev_comp == 2
@@ -147,7 +158,7 @@ elseif param.elev_comp == 2
   % version of surface)
   
   % Filter out high frequencies from surface layer
-  lay.Surface_Filled = interp_finite(lay.Surface,0); % Need surface points everywhere for filtering operation
+  lay.Surface_Filled = interp_finite(lay.layers{1},0); % Need surface points everywhere for filtering operation
   if ~isfield(param,'surf_filt_en') || isempty(param.surf_filt_en) || param.surf_filt_en
     if length(lay.Surface_Filled) >= 100
       [Bfilt,Afilt] = butter(2,0.02);
@@ -163,7 +174,7 @@ elseif param.elev_comp == 2
     surf_filt = lay.Surface_Filled;
   end
 
-  lay.Surface = surf_filt;
+  lay.layers{1} = surf_filt;
   mdata.Elevation = mean(mdata.Elevation) + (surf_filt - mean(surf_filt)) * c/2;  
   
 
@@ -204,8 +215,10 @@ elseif param.elev_comp == 2
   mdata.Data(mdata.Data == 0) = NaN;
   for rline = 1:size(mdata.Data,2)
     newData(:,rline) = interp1(mdata.Time, mdata.Data(:,rline), ...
-      lay.Surface(rline) + depth_time);
-    lay.Bottom(:) = lay.Bottom(rline) - lay.Surface(rline);
+      lay.layers{1}(rline) + depth_time);
+    for layer_idx = 2:length(lay.layers)
+      lay.layers{layer_idx}(:) = lay.layers{layer_idx}(rline) - lay.layers{1}(rline);
+    end
   end
   mdata.Data = newData;
   mdata.Data(isnan(mdata.Data)) = 0;
@@ -215,8 +228,8 @@ elseif param.elev_comp == 3
   %% Elevation compensate to WGS-84 y-axis
   
   % Filter surface
-  lay.Surface_Filled = interp_finite(lay.Surface,0); % Need surface points everywhere for filtering operation
-  if all(isnan(lay.Surface))
+  lay.Surface_Filled = interp_finite(lay.layers{1},0); % Need surface points everywhere for filtering operation
+  if all(isnan(lay.layers{1}))
     warning('All surface layer points are NaN. Plotting blank echogram.');
     mdata.Data(:) = NaN;
   end
@@ -285,19 +298,20 @@ elseif param.elev_comp == 3
       mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(1:length(mdata.Time),rline), new_time, 'linear',0);
     end
     mdata.Elevation(rline) = mdata.Elevation(rline) + dRange(rline);
-    lay.Surface(rline) = lay.Surface(rline) + dtime(rline);
-    lay.Bottom(rline) = lay.Bottom(rline) + dtime(rline);
+    for layer_idx = 2:length(lay.layers)
+      lay.layers{layer_idx}(rline) = lay.layers{layer_idx}(rline) + dtime(rline);
+    end
   end
   warning on
 
 end
 
 % Create depth axis
-if all(isnan(lay.Surface))
+if all(isnan(lay.layers{1}))
   warning('No surface points defined. Setting to zero.');
-  lay.Surface(:) = 0;
+  lay.layers{1}(:) = 0;
 end
-good_surface_vals = lay.Surface + fast_time_correction;
+good_surface_vals = lay.layers{1} + fast_time_correction;
 good_surface_vals = good_surface_vals(isfinite(good_surface_vals));
 mean_surface_time = mean(good_surface_vals);
 if ~isfinite(mean_surface_time)
@@ -306,9 +320,9 @@ end
 
 % Limit depths according to input param.depth
 if param.elev_comp == 3
-  DSurface = mdata.Elevation - lay.Surface*c/2;
-  lay.Bottom(~isfinite(lay.Bottom)) = NaN;
-  DBottom = mdata.Elevation - lay.Surface*c/2 - (lay.Bottom-lay.Surface)*c/2/sqrt(param.er_ice);
+  DSurface = mdata.Elevation - lay.layers{1}*c/2;
+  lay.layers{end}(~isfinite(lay.layers{end})) = NaN;
+  DBottom = mdata.Elevation - lay.layers{1}*c/2 - (lay.layers{end}-lay.layers{1})*c/2/sqrt(param.er_ice);
   Surface_Elev = DSurface;
   Bbad = sum(~isfinite(DBottom)) / numel(DBottom);
   % Example: param.depth = '[min(Surface_Elev) - 15 max(Surface_Elev)+3]';
@@ -324,8 +338,8 @@ if param.elev_comp == 3
   end
 elseif param.elev_comp == 2
   Depth = depth;
-  DSurface = lay.Surface; % All zero
-  DBottom = interp1(depth_time,depth,lay.Bottom);
+  DSurface = lay.layers{1}; % All zero
+  DBottom = interp1(depth_time,depth,lay.layers{end});
   Surface_Depth = DSurface;
   Bbad = sum(isnan(DBottom)) / numel(DBottom);
   
@@ -338,9 +352,9 @@ elseif param.elev_comp == 2
 else
   Depth = (mdata.Time-mean_surface_time)*c/2/sqrt(param.er_ice);
   
-  DBottom = lay.Bottom - mean_surface_time + fast_time_correction;
+  DBottom = lay.layers{end} - mean_surface_time + fast_time_correction;
   DBottom = DBottom*c/2/sqrt(param.er_ice);
-  DSurface = lay.Surface - mean_surface_time + fast_time_correction;
+  DSurface = lay.layers{1} - mean_surface_time + fast_time_correction;
   DSurface = DSurface*c/2/sqrt(param.er_ice);
   Surface_Depth = DSurface;
   Bbad = sum(isnan(DBottom)) / numel(DBottom);
@@ -488,11 +502,11 @@ elseif param.elev_comp == 2
   if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'tonemap')
     echo_info.image = imagesc([],Depth(depth_good_idxs)+param.depth_offset, ...
       detrend_tonemap,'Parent',ah_echo);
-    axis(ah_echo_time,[0.5 size(detrend_tonemap,2)+0.5 (mean(lay.Surface) + depth_time([1 end]) + param.time_offset)*1e6]);
+    axis(ah_echo_time,[0.5 size(detrend_tonemap,2)+0.5 (mean(lay.layers{1}) + depth_time([1 end]) + param.time_offset)*1e6]);
   else
     echo_info.image = imagesc([],Depth(depth_good_idxs)+param.depth_offset, ...
       echogram_vals,'Parent',ah_echo);
-    axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 (mean(lay.Surface) + depth_time([1 end]) + param.time_offset)*1e6]);
+    axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 (mean(lay.layers{1}) + depth_time([1 end]) + param.time_offset)*1e6]);
   end
   if length(param.er_ice) == 1;
     ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
@@ -674,9 +688,9 @@ hold(ah_echo,'on');
 if param.plot_quality
   
   % Surface
-  moderate_mask = lay.Surface_Quality~=2;
-  derived_mask = lay.Surface_Quality~=3;
-  good_mask = lay.Surface_Quality==2 | lay.Surface_Quality==3;
+  moderate_mask = lay.qualities{1}~=2;
+  derived_mask = lay.qualities{1}~=3;
+  good_mask = lay.qualities{1}==2 | lay.qualities{1}==3;
   
   tmp_layer = DSurface;
   tmp_layer(good_mask) = NaN;
@@ -691,9 +705,9 @@ if param.plot_quality
   echo_info.h_surf(3) = plot(ah_echo,tmp_layer,'r--');
   
   % Bottom
-  moderate_mask = lay.Bottom_Quality~=2;
-  derived_mask = lay.Bottom_Quality~=3;
-  good_mask = lay.Bottom_Quality==2 | lay.Bottom_Quality==3;
+  moderate_mask = lay.qualities{end}~=2;
+  derived_mask = lay.qualities{end}~=3;
+  good_mask = lay.qualities{end}==2 | lay.qualities{end}==3;
   
   tmp_layer = DBottom;
   tmp_layer(good_mask) = NaN;

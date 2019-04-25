@@ -341,6 +341,7 @@ for frm_idx = 1:length(frms)
     lay.Bottom = lay.layerData{end}.value{2}.data;
   else
     lay.Bottom = NaN*zeros(size(lay.Surface));
+    lay.layers{end + 1} = lay.Bottom;
   end
     
   if isnan(lay.GPS_time)
@@ -452,7 +453,7 @@ for frm_idx = 1:length(frms)
 
     echo_param.frm_id = frms{frm_idx}.frm_id;
     
-    echo_info = publish_echogram(echo_param,mdata,lay);
+    echo_info = publish_echogram(echo_param,mdata,lay, surface_lay.layerData{1});
     set(echo_info.h_surf,'Visible','off');
     set(echo_info.h_bot,'Visible','off');
     set(echo_info.fig_hand(1),'Name',param.post.data_dirs{1});
