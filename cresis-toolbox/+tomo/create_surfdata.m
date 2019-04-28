@@ -199,7 +199,7 @@ if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
   sd.FCS.z = mdata.param_array.array_proc.fcs{1}{1}.z;
 end
 
-        
+
 if ~doa_method_flag
   Nsv = size(mdata.Tomo.img,2);
 else
@@ -250,9 +250,9 @@ else
     % Sort DOA min to max (and, accordingly, range-bins). But surf.y is
     % already sorted inside add_icemask_surfacedem
     [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
-%     for rline_idx = 1:Nx
-%       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
-%     end
+    %     for rline_idx = 1:Nx
+    %       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
+    %     end
     
     surf.plot_name_values = {'color','black','marker','*'}; % 'x'
     surf.name = 'top';
@@ -275,7 +275,7 @@ if ~doa_method_flag
     surf = tomo.surfdata.empty_surf();
     surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
     surf.y = NaN(size(twtt_bin));
-    surf.plot_name_values = {'color','blue','marker','^'}; 
+    surf.plot_name_values = {'color','blue','marker','^'};
     surf.name = 'bottom';
     sd.insert_surf(surf);
   end
@@ -303,10 +303,10 @@ else
     for rline_idx = 1:Nx
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
-  % Ensure non-negative ice thickness
-  if exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
-    surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
-  end
+    % Ensure non-negative ice thickness
+    if exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
+      surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
+    end
     
     surf.plot_name_values = {'color','blue','marker','o'}; % '^'
     surf.name = 'bottom';
@@ -349,14 +349,14 @@ else
         surf.x(1:length(theta_rline),rline_idx) = theta_rline;
       end
     end
-        surf.y = mdata.ice_mask;
-        % Sort DOA min to max (and, accordingly, range-bins). But surf.y is
-        % already sorted inside add_icemask_surfacedem
-        [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
-%     for rline_idx = 1:Nx
-%       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
-%     end
-%     surf.plot_name_values = {'color','white','marker','x'};
+    surf.y = mdata.ice_mask;
+    % Sort DOA min to max (and, accordingly, range-bins). But surf.y is
+    % already sorted inside add_icemask_surfacedem
+    [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
+    %     for rline_idx = 1:Nx
+    %       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
+    %     end
+    %     surf.plot_name_values = {'color','white','marker','x'};
     surf.plot_name_values = {'color',[0 0 0.5],'marker','x'};
     surf.name = 'ice mask';
     sd.insert_surf(surf);
@@ -407,7 +407,7 @@ else
     for rline_idx = 1:Nx
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
-  
+    
     surf.plot_name_values = {'color','magenta','marker','+'};
     surf.name = 'bottom gt';
     sd.insert_surf(surf);
@@ -457,7 +457,7 @@ else
     for rline_idx = 1:Nx
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
-  
+    
     surf.plot_name_values = {'color','magenta','marker','^'};
     surf.name = 'top gt';
     sd.insert_surf(surf);
@@ -485,7 +485,7 @@ else
     surf = sd.get_surf('top quality');
     if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
       surf.y = NaN(size(twtt_bin));
-%       surf.y = ones(size(twtt_bin));
+      %       surf.y = ones(size(twtt_bin));
       sd.set_surf(surf);
     end
   catch ME
@@ -498,14 +498,14 @@ else
         surf.x(1:length(theta_rline),rline_idx) = theta_rline;
       end
     end
-%     surf.y = NaN(size(twtt_bin));
+    %     surf.y = NaN(size(twtt_bin));
     surf.y = ones(size(twtt_bin));
     % Sort DOA min to max (and, accordingly, range-bins)
     [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
     for rline_idx = 1:Nx
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
-  
+    
     surf.plot_name_values = {'color','red','marker','x'};
     surf.name = 'top quality';
     sd.insert_surf(surf);
@@ -545,8 +545,8 @@ else
         surf.x(1:length(theta_rline),rline_idx) = theta_rline;
       end
     end
-%     surf.y = NaN(size(twtt_bin));
-     surf.y = ones(size(twtt_bin));
+    %     surf.y = NaN(size(twtt_bin));
+    surf.y = ones(size(twtt_bin));
     % Sort DOA min to max (and, accordingly, range-bins)
     [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
     for rline_idx = 1:Nx
@@ -1120,6 +1120,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     x = DIM_costmatrix - min(DIM_costmatrix(:));
     x = 200 .* (x ./ max(DIM_costmatrix(:)));
     DIM_costmatrix = x;
+    
     %% DoA-to-DoA transition model
     % Obtained from geostatistical analysis of 2014 Greenland P3
     transition_mu = [2.0436 2.3331 2.5009 3.3719 4.6784 5.6978 6.5621 7.5174 8.5156 9.5651 10.5363 11.5323 12.5066 13.5002 14.4998 15.5585 16.5564 17.5435 18.5288 19.5175 20.5071 21.5108 22.5106 23.4993   24.4847 25.4574 26.4393 27.4864 28.4248 29.1076 29.7335 32.9690 34.1460 34.6690 35.4782 36.4208 37.4689 38.4754 39.4688 40.4474 41.4559 42.4452 43.4168 44.4374 45.4158 46.4087 47.4159 48.4306 49.4311 50.4148 51.4397 52.4642 53.4303 54.4758 55.4716 56.4896 57.5388 58.5285 59.4507 60.4436 61.4986 62.5633 62.6210 62.6788];
@@ -1187,8 +1188,6 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
     
   elseif strcmpi(cmd,'c3d_rnn')
-    fprintf('  C3D/RNN (%s)\n', datestr(now));
-    
     c3d_rnn.dwnsammat_dir = fullfile(ct_filename_out(param, 'C3D_RNN_temporary_resources'), '');
     c3d_rnn.dwnsamnpy_dir = fullfile(ct_filename_out(param, 'C3D_RNN_temporary_resources'), '');
     temp_str              = strfind(c3d_rnn.dwnsammat_dir, filesep);
@@ -1199,7 +1198,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     % Down-sample data and save file for each and every slice
     for rline = 1 : size(data, 3)
-      fusion = db(mdata.Tomo.img(:, :, rline));
+      fusion = db(mdata.Topography.img(:, :, rline));
       fusion(fusion>27) = 27;
       fusion = imresize(fusion, [64, 64]);
       fusion = mat2gray(fusion);
@@ -1261,8 +1260,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
     fprintf('\nFinished executing Python scripts for %s_%03.0f.\n\n',param.day_seg,param.proc.frm);
     
-    c3d_rnn.result_surface = ones(size(mdata.Tomo.img,2), size(mdata.Tomo.img,3));
-    c3d_rnn.result_bottom  = ones(size(mdata.Tomo.img,2), size(mdata.Tomo.img,3));
+    c3d_rnn.result_surface = ones(size(mdata.Topography.img,2), size(mdata.Topography.img,3));
+    c3d_rnn.result_bottom  = ones(size(mdata.Topography.img,2), size(mdata.Topography.img,3));
     
     sl_idx = 1;
     %% Get surface and bottom vectors from generated text file
@@ -1329,17 +1328,17 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         [theta_rline_r theta_rline_c] = find(~isnan(theta_rline));
         theta_rline = theta_rline(~isnan(theta_rline));
         % Sort DOA min to max (and, accordingly, range-bins)
-%         doa_surface.x(1:length(theta_rline),rline_idx) = theta_rline;
+        %         doa_surface.x(1:length(theta_rline),rline_idx) = theta_rline;
         [doa_surface.x(1:length(theta_rline),rline_idx), x_idx] = sort(theta_rline*180/pi,'ascend');
         doa_surface.y(x_idx,rline_idx) = theta_rline_r;
       end
     end
     
     % Sort DOA min to max (and, accordingly, range-bins)
-%     [doa_surface.x x_idx] = sort(doa_surface.x*180/pi,1,'ascend');
-%     for rline_idx = 1:Nx
-%       doa_surface.y(:,rline_idx) = doa_surface.y(x_idx(:,rline_idx),rline_idx);
-%     end
+    %     [doa_surface.x x_idx] = sort(doa_surface.x*180/pi,1,'ascend');
+    %     for rline_idx = 1:Nx
+    %       doa_surface.y(:,rline_idx) = doa_surface.y(x_idx(:,rline_idx),rline_idx);
+    %     end
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
