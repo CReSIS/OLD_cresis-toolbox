@@ -135,8 +135,8 @@ if ~isfield(param.collate_deconv,'preserve_old') || isempty(param.collate_deconv
 end
 
 if  ~isfield(param.collate_deconv,'rbins') || isempty(param.collate_deconv.rbins)
-  warning('The "rbins" field should be set in the param.collate_deconv to a range of indices about the peak to use in the deconvolution waveform, e.g. param.collate_deconv.rbins = {[-110 40]} to use 110 bins before the peak and 40 bins after the peak for image 1. rbins should be a cell array with each element corresponding to the param.collate_deconv.imgs array. Using default settings now which may not work for this radar data.');
-  param.collate_deconv.rbins = {[-200 150]}
+  warning('The "rbins" field should be set in the param.collate_deconv to a range of indices about the peak to use in the deconvolution waveform, e.g. param.collate_deconv.rbins = {[-200 150]} to use 200 bins before the peak and 150 bins after the peak for image 1. rbins should be a cell array with each element corresponding to the param.collate_deconv.imgs array. Using default settings [-200 150] now which may not work for this radar data.');
+  param.collate_deconv.rbins = {[-200 150]};
 end
 if ~iscell(param.collate_deconv.rbins) && numel(param.collate_deconv.imgs) == 1
   % Support legacy format (no cell array)
@@ -733,6 +733,27 @@ if param.collate_deconv.stage_one_en
       out_fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
       ct_file_lock_check(out_fn,2);
+      if 0
+        good_mask = true(size(deconv.gps_time));
+        good_mask(1:7) = false;
+        deconv.gps_time = deconv.gps_time(good_mask);
+        deconv.lat = deconv.lat(good_mask);
+        deconv.lon = deconv.lon(good_mask);
+        deconv.elev = deconv.elev(good_mask);
+        deconv.roll = deconv.roll(good_mask);
+        deconv.pitch = deconv.pitch(good_mask);
+        deconv.heading = deconv.heading(good_mask);
+        deconv.frm = deconv.frm(good_mask);
+        deconv.rec = deconv.rec(good_mask);
+        deconv.ref_nonnegative = deconv.ref_nonnegative(good_mask);
+        deconv.ref_negative = deconv.ref_negative(good_mask);
+        deconv.ref_mult_factor = deconv.ref_mult_factor(good_mask);
+        deconv.impulse_response = deconv.impulse_response(good_mask);
+        deconv.metric = deconv.metric(:,good_mask);
+        deconv.peakiness = deconv.peakiness(good_mask);
+        deconv.fc = deconv.fc(good_mask);
+        deconv.twtt = deconv.twtt(good_mask);
+      end
       save(out_fn,'-v7.3','-struct','deconv');
       
     end

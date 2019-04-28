@@ -271,21 +271,21 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_single_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_surface_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_all_img_%02d',param.collate_equal.out_dir,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_all_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     
     set(h_fig(1),'Position',pos);
     
@@ -347,11 +347,11 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_track2_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     
     if enable_visible_plot
       keyboard
@@ -573,21 +573,21 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_single_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_surface_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_all_img_%02d',param.collate_equal.out_dir,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_all_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     
     set(h_fig(1),'Position',pos);
     
@@ -739,24 +739,24 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_amp_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_phase_img_%02d',param.collate_equal.out_dir,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_phase_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_time_img_%02d',param.collate_equal.out_dir,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_time_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     
     set(h_fig(1),'Position',pos{1});
     set(h_fig(2),'Position',pos{2});
