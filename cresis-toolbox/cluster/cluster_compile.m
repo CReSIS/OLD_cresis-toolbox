@@ -59,6 +59,10 @@ if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
 end
 
+if ~isfield(ctrl.cluster,'mcc_delete_output') || isempty(ctrl.cluster.mcc_delete_output)
+  ctrl.cluster.mcc_delete_output = false;
+end
+
 if ~isfield(ctrl.cluster,'cluster_job_fn') || isempty(ctrl.cluster.cluster_job_fn)
   ctrl.cluster.cluster_job_fn = fullfile(gRadar.path,'cluster','cluster_job.sh');
 end
@@ -194,7 +198,9 @@ if force_compile
   end
   
   fprintf('Start Compiling %s\n\n', datestr(now));
-  %delete(cluster_job_bin_fn);
+  if ctrl.cluster.mcc_delete_output
+    system(sprintf('rm -f %s', cluster_job_bin_fn));
+  end
   fprintf('  %s\n', cmd);
   if strcmpi(ctrl.cluster.mcc,'system')
     status = system(cmd);

@@ -22,14 +22,18 @@ physical_constants;
 %% Input checks
 % =====================================================================
 
-if ~isfield(param.update_collate_deconv,'cmd_idx') || isempty(param.update_collate_deconv.cmd_idx)
-  param.update_collate_deconv.cmd_idx = 1;
-end
-cmd = param.analysis.cmd{param.update_collate_deconv.cmd_idx};
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 % param.update_collate_deconv structure
 % =========================================================================
+
+if ~isfield(param.update_collate_deconv,'abs_metric') || isempty(param.update_collate_deconv.abs_metric)
+  error('The "abs_metric" field must be set in the param.update_collate_deconv.');
+end
+
+if ~isfield(param.update_collate_deconv,'metric_weights') || isempty(param.update_collate_deconv.metric_weights)
+  param.update_collate_deconv.metric_weights = [0.5 0 3 5 0 0];
+end
 
 if ~isfield(param.update_collate_deconv,'debug_plots')
   param.update_collate_deconv.debug_plots = {'final'};
@@ -80,17 +84,6 @@ end
 
 if ~isempty(param.update_collate_deconv.debug_plots)
   h_fig = get_figures(3,any(strcmp('visible',param.update_collate_deconv.debug_plots)),'collate_deconv');
-end
-
-% cmd structure
-% =========================================================================
-
-if ~isfield(cmd,'abs_metric') || isempty(cmd.abs_metric)
-  error('The "abs_metric" field must be set in the cmd.');
-end
-
-if ~isfield(cmd,'metric_weights') || isempty(cmd.metric_weights)
-  cmd.metric_weights = [0.5 0 3 5 0 0];
 end
 
 %% Process commands
@@ -296,8 +289,8 @@ for img = param.update_collate_deconv.imgs
     layer.elev = layer.elev(decim_idxs);
     
     % 4. Compare results to metric
-    pass = bsxfun(@lt,deconv_lib.metric,cmd.abs_metric(:));
-    score = nansum(bsxfun(@times, cmd.metric_weights(:), bsxfun(@minus, cmd.abs_metric(:), deconv_lib.metric)));
+    pass = bsxfun(@lt,deconv_lib.metric,param.update_collate_deconv.abs_metric(:));
+    score = nansum(bsxfun(@times, param.update_collate_deconv.metric_weights(:), bsxfun(@minus, param.update_collate_deconv.abs_metric(:), deconv_lib.metric)));
     score(:,any(isnan(deconv_lib.metric))) = nan;
     
     % 5. Find best score at each point along the flight track

@@ -224,6 +224,7 @@ for rline = 1:Nx
     else
       theta_rline = theta(:,:,rline);
       theta_rline = theta_rline(~isnan(theta_rline));
+      theta_rline = sort(theta_rline,'ascend');
     end
     intersection = zeros(3,Nsv);
     
