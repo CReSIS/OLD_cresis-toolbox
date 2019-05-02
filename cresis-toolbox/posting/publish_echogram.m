@@ -298,7 +298,7 @@ elseif param.elev_comp == 3
       mdata.Data(:,rline) = interp1(mdata.Time, mdata.Data(1:length(mdata.Time),rline), new_time, 'linear',0);
     end
     mdata.Elevation(rline) = mdata.Elevation(rline) + dRange(rline);
-    for layer_idx = 2:length(lay.layers)
+    for layer_idx = 1:length(lay.layers)
       lay.layers{layer_idx}(rline) = lay.layers{layer_idx}(rline) + dtime(rline);
     end
   end
