@@ -328,7 +328,7 @@ if param.elev_comp == 3
   for layer_idx = 2:length(lay.layers)
     DLayers{end + 1} = mdata.Elevation - lay.layers{1}*c/2 - (lay.layers{layer_idx}-lay.layers{1})*c/2/sqrt(param.er_ice);
   end
-  DBottom = DLayers{end};  % TODO[reece]: Replace with component-wise max
+  DBottom = max(DLayers{:});  % TODO: Add surface ?
   Bbad = sum(~isfinite(DBottom)) / numel(DBottom);
   % Example: param.depth = '[min(Surface_Elev) - 15 max(Surface_Elev)+3]';
   % Example: param.depth = '[100 120]';
