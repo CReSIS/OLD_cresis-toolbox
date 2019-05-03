@@ -318,12 +318,17 @@ if ~isfinite(mean_surface_time)
   mean_surface_time = 0;
 end
 
+DLayers = {}
+
 % Limit depths according to input param.depth
 if param.elev_comp == 3
   DSurface = mdata.Elevation - lay.layers{1}*c/2;
-  lay.layers{end}(~isfinite(lay.layers{end})) = NaN;
-  DBottom = mdata.Elevation - lay.layers{1}*c/2 - (lay.layers{end}-lay.layers{1})*c/2/sqrt(param.er_ice);
   Surface_Elev = DSurface;
+  lay.layers{end}(~isfinite(lay.layers{end})) = NaN;
+  for layer_idx = 2:length(lay.layers)
+    DLayers{end + 1} = mdata.Elevation - lay.layers{1}*c/2 - (lay.layers{layer_idx}-lay.layers{1})*c/2/sqrt(param.er_ice);
+  end
+  DBottom = DLayers{end};  % TODO[reece]: Replace with component-wise max
   Bbad = sum(~isfinite(DBottom)) / numel(DBottom);
   % Example: param.depth = '[min(Surface_Elev) - 15 max(Surface_Elev)+3]';
   % Example: param.depth = '[100 120]';
@@ -339,8 +344,11 @@ if param.elev_comp == 3
 elseif param.elev_comp == 2
   Depth = depth;
   DSurface = lay.layers{1}; % All zero
-  DBottom = interp1(depth_time,depth,lay.layers{end});
   Surface_Depth = DSurface;
+  for layer_idx = 2:length(lay.layers)
+    DLayers{end + 1} = interp1(depth_time,depth,lay.layers{layer_idx});
+  end
+  DBottom = DLayers{end};  % TODO[reece]: Replace with component-wise max
   Bbad = sum(isnan(DBottom)) / numel(DBottom);
   
   depth_good_idxs = 1:length(Depth);
@@ -352,8 +360,11 @@ elseif param.elev_comp == 2
 else
   Depth = (mdata.Time-mean_surface_time)*c/2/sqrt(param.er_ice);
   
-  DBottom = lay.layers{end} - mean_surface_time + fast_time_correction;
-  DBottom = DBottom*c/2/sqrt(param.er_ice);
+  for layer_idx = 2:length(lay.layers)
+    DLayers{end + 1} = lay.layers{layer_idx} - mean_surface_time + fast_time_correction;
+    DLayers{end} = DLayers{end}*c/2/sqrt(param.er_ice);
+  end
+  DBottom = DLayers{end};  % TODO[reece]: Replace with component-wise max
   DSurface = lay.layers{1} - mean_surface_time + fast_time_correction;
   DSurface = DSurface*c/2/sqrt(param.er_ice);
   Surface_Depth = DSurface;
@@ -704,25 +715,31 @@ if param.plot_quality
   tmp_layer(derived_mask) = NaN;
   echo_info.h_surf(3) = plot(ah_echo,tmp_layer,'r--');
   
-  % Bottom
-  moderate_mask = lay.qualities{end}~=2;
-  derived_mask = lay.qualities{end}~=3;
-  good_mask = lay.qualities{end}==2 | lay.qualities{end}==3;
-  
-  tmp_layer = DBottom;
-  tmp_layer(good_mask) = NaN;
-  echo_info.h_bot(1) = plot(ah_echo,tmp_layer,'g--');
-  
-  tmp_layer = DBottom;
-  tmp_layer(moderate_mask) = NaN;
-  echo_info.h_bot(2) = plot(ah_echo,tmp_layer,'y--');
-  
-  tmp_layer = DBottom;
-  tmp_layer(derived_mask) = NaN;
-  echo_info.h_bot(3) = plot(ah_echo,tmp_layer,'r--');
+  % NOTE[reece]: I should probably go ahead and add DSurface to DLayers since plotting is identical
+  for layer_idx = 1:length(DLayers)
+    % Others
+    quality_idx = layer_idx + 1  % First quality index is for surface layer
+    moderate_mask = lay.qualities{quality_idx}~=2;
+    derived_mask = lay.qualities{quality_idx}~=3;
+    good_mask = lay.qualities{quality_idx}==2 | lay.qualities{quality_idx}==3;
+    
+    tmp_layer = DLayers{layer_idx};
+    tmp_layer(good_mask) = NaN;
+    echo_info.h_bot(1) = plot(ah_echo,tmp_layer,'g--');
+    
+    tmp_layer = DLayers{layer_idx};
+    tmp_layer(moderate_mask) = NaN;
+    echo_info.h_bot(2) = plot(ah_echo,tmp_layer,'y--');
+    
+    tmp_layer = DLayers{layer_idx};
+    tmp_layer(derived_mask) = NaN;
+    echo_info.h_bot(3) = plot(ah_echo,tmp_layer,'r--');
+  end
 else
   echo_info.h_surf = plot(ah_echo,DSurface,'--m');
-  echo_info.h_bot = plot(ah_echo,DBottom,'--r');
+  for layer_idx = 1:length(DLayers)
+    echo_info.h_bot = plot(ah_echo,DLayers{layer_idx},'--r');
+  end
 end
 hold(ah_echo,'off');
 
