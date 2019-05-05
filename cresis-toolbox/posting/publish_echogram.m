@@ -318,22 +318,30 @@ if ~isfinite(mean_surface_time)
   mean_surface_time = 0;
 end
 
-DLayers = {}
+DLayers = {};
 
 % Limit depths according to input param.depth
 if param.elev_comp == 3
   DSurface = mdata.Elevation - lay.layers{1}*c/2;
   Surface_Elev = DSurface;
   lay.layers{end}(~isfinite(lay.layers{end})) = NaN;
+  % Do not add first layer which is always surface
   for layer_idx = 2:length(lay.layers)
     DLayers{end + 1} = mdata.Elevation - lay.layers{1}*c/2 - (lay.layers{layer_idx}-lay.layers{1})*c/2/sqrt(param.er_ice);
   end
-  DBottom = max(DLayers{:});  % TODO: Add surface ?
-  Bbad = sum(~isfinite(DBottom)) / numel(DBottom);
   % Example: param.depth = '[min(Surface_Elev) - 15 max(Surface_Elev)+3]';
   % Example: param.depth = '[100 120]';
   % Example: param.depth = '[publish_echogram_switch(Bbad,0.25,Surface_Elev,-1600,DBottom,-100),max(Surface_Elev+50)]';
+  
+  max_components = DLayers{1};
+  for dlayer_idx = 2:length(DLayers)
+    max_components = max(max_components, DLayers{dlayer_idx});
+  end
 
+  DBottom = max_components;
+
+  Bbad = sum(~isfinite(DBottom)) / numel(DBottom);
+  
   depth_range = eval(param.depth);
   depth_good_idxs = find(elev_axis >= depth_range(1) & elev_axis <= depth_range(end));
   if isfield(param,'detrend') && ~isempty(param.detrend) && strcmpi(param.detrend.mode,'polynomial')
@@ -348,7 +356,14 @@ elseif param.elev_comp == 2
   for layer_idx = 2:length(lay.layers)
     DLayers{end + 1} = interp1(depth_time,depth,lay.layers{layer_idx});
   end
-  DBottom = DLayers{end};  % TODO[reece]: Replace with component-wise max
+
+  max_components = DLayers{1};
+  for dlayer_idx = 2:length(DLayers)
+    max_components = max(max_components, DLayers{dlayer_idx});
+  end
+
+  DBottom = max_components;
+
   Bbad = sum(isnan(DBottom)) / numel(DBottom);
   
   depth_good_idxs = 1:length(Depth);
@@ -364,10 +379,17 @@ else
     DLayers{end + 1} = lay.layers{layer_idx} - mean_surface_time + fast_time_correction;
     DLayers{end} = DLayers{end}*c/2/sqrt(param.er_ice);
   end
-  DBottom = DLayers{end};  % TODO[reece]: Replace with component-wise max
   DSurface = lay.layers{1} - mean_surface_time + fast_time_correction;
   DSurface = DSurface*c/2/sqrt(param.er_ice);
   Surface_Depth = DSurface;
+
+  max_components = DLayers{1};
+  for dlayer_idx = 2:length(DLayers)
+    max_components = max(max_components, DLayers{dlayer_idx});
+  end
+
+  DBottom = max_components;
+
   Bbad = sum(isnan(DBottom)) / numel(DBottom);
   
   depth_range = eval(param.depth);
@@ -715,10 +737,9 @@ if param.plot_quality
   tmp_layer(derived_mask) = NaN;
   echo_info.h_surf(3) = plot(ah_echo,tmp_layer,'r--');
   
-  % NOTE[reece]: I should probably go ahead and add DSurface to DLayers since plotting is identical
   for layer_idx = 1:length(DLayers)
     % Others
-    quality_idx = layer_idx + 1  % First quality index is for surface layer
+    quality_idx = layer_idx + 1;  % First quality index is for surface layer
     moderate_mask = lay.qualities{quality_idx}~=2;
     derived_mask = lay.qualities{quality_idx}~=3;
     good_mask = lay.qualities{quality_idx}==2 | lay.qualities{quality_idx}==3;
