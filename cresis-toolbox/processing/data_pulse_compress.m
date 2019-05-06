@@ -1,5 +1,5 @@
-function [hdr,data] = data_pulse_compress(param,hdr,data)
-% [hdr,data] = data_pulse_compress(param,hdr,data)
+function [hdr,data,param] = data_pulse_compress(param,hdr,data)
+% [hdr,data,param] = data_pulse_compress(param,hdr,data)
 
 wfs = param.radar.wfs;
 
@@ -24,6 +24,50 @@ for img = 1:length(param.load.imgs)
       if strcmpi(wfs(wf).prepulse_H.type,'filtfilt')
         data{img}(:,:,wf_adc) = single(filtfilt(wfs(wf).prepulse_H.B,1,double(data{img}(:,:,wf_adc))));
       end
+      
+      if strcmpi(wfs(wf).prepulse_H.type,'inverse_filter')
+        % Apply inverse filter on each record (or range line)
+        nz_prev = NaN;
+        nz_signal_prev = NaN;
+        for rec = 1:size(data{img},2)
+          rx = param.radar.wfs(wf).rx_paths(adc);
+          nz = double(hdr.nyquist_zone_hw{img}(rec));
+          % Check and load measured filter response for corresponding Nyquist Zone
+          if ~(nz==nz_prev)
+            prepulse_fn = fullfile(ct_filename_out(param,'analysis','',1),...
+              sprintf('%s_rx_%d_nz_%d.mat', param.radar.wfs(wf).prepulse_H.fn, rx, nz));
+            prepulse = load(prepulse_fn);
+            nz_signal_prev = NaN;
+          end
+          nz_prev = nz;
+          
+          nz_signal = double(hdr.nyquist_zone_signal{img}(rec));
+          if ~(nz_signal==nz_signal_prev)
+            %Create a baseband frequency axis
+            df = param.radar.fs/hdr.Nt{img}(rec);
+            freq_axis = df .* ifftshift(-floor(hdr.Nt{img}(rec)/2):floor((hdr.Nt{img}(rec)-1)/2)).';
+            
+            %Create current frequency axis
+            freq = freq_nz(freq_alias(freq_axis+hdr.DDC_freq{img}(rec),param.radar.fs),param.radar.fs,nz_signal);
+            
+            %Interpolate the inverse filter, H, for this axis
+            H = zeros(hdr.Nt{img}(rec),1);
+            mask = freq>=0;
+            H(mask) = interp1(prepulse.freq, prepulse.H, freq(mask));
+            mask = freq<0;
+            H(mask) = interp1(-prepulse.freq, conj(prepulse.H), freq(mask));
+          end
+          nz_signal_prev = nz_signal;
+          
+          %Frequency domain data multiplied with inverse hardware filter
+          data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = fft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc),[],1);
+          data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = bsxfun(@times,data{img}(1:hdr.Nt{img}(rec),rec,wf_adc),H);
+
+           % Convert back to time domain
+          data{img}(1:hdr.Nt{img}(rec),rec,wf_adc) = ifft(data{img}(1:hdr.Nt{img}(rec),rec,wf_adc));          
+          
+        end % rec loop
+      end % INVERSE FILTER if strcmpi ends here
       
       extra_delay = zeros(1,size(data{img},2));
       if strcmpi(wfs(wf).prepulse_H.type,'NI_DDC_2019')
@@ -1308,16 +1352,17 @@ for img = 1:length(param.load.imgs)
       
       unique_idxs = unique(deconv_map_idxs);
       
-      cmd = deconv.param_collate_deconv.analysis.cmd{deconv.param_collate_deconv.collate_deconv.cmd_idx};
-      if wf_adc > 1 && abs(deconv_fc - (cmd.f0+cmd.f1)/2)/deconv_fc > 1e-6
-        error('Deconvolution center frequency must be the same for all wf-adc pairs in the image. Was %g and is now %g.', deconv_fc, (cmd.f0+cmd.f1)/2);
+      f0 = param.collate_deconv.param_collate_deconv.collate_deconv.f0;
+      f1 = param.collate_deconv.param_collate_deconv.collate_deconv.f1;
+      if wf_adc > 1 && abs(deconv_fc - (f0+f1)/2)/deconv_fc > 1e-6
+        error('Deconvolution center frequency must be the same for all wf-adc pairs in the image. Was %g and is now %g.', deconv_fc, (f0+f1)/2);
       end
       % Prepare variables
       fc = hdr.freq{img}(1);
       
       % Prepare variables to baseband data to new center frequency (in
       % case the deconvolution filter subbands)
-      deconv_fc = (cmd.f0+cmd.f1)/2;
+      deconv_fc = (f0+f1)/2;
       df = hdr.freq{img}(2)-hdr.freq{img}(1);
       BW = df * wfs(wf).Nt;
       deconv_dfc = deconv_fc - fc;
@@ -1367,8 +1412,8 @@ for img = 1:length(param.load.imgs)
         h_filled = fft(h_filled);
         
         % Create inverse filter relative to window
-        Nt_shorten = find(cmd.f0 <= deconv_freq,1);
-        Nt_shorten(2) = deconv_Nt - find(cmd.f1 >= deconv_freq,1,'last');
+        Nt_shorten = find(f0 <= deconv_freq,1);
+        Nt_shorten(2) = deconv_Nt - find(f1 >= deconv_freq,1,'last');
         Nt_Hwind = deconv_Nt - sum(Nt_shorten);
         Hwind = deconv.ref_window(Nt_Hwind);
         Hwind_filled = ifftshift([zeros(Nt_shorten(1),1); Hwind; zeros(Nt_shorten(end),1)]);

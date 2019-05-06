@@ -128,7 +128,7 @@ param.load.presums = param.load_data.presums;
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = param.load_data.pulse_comp;
-[hdr,data] = data_pulse_compress(param,hdr,data);
+[hdr,data,param] = data_pulse_compress(param,hdr,data);
 
 param.load.motion_comp = param.load_data.motion_comp;
 param.load.combine_rx = param.load_data.combine_rx;

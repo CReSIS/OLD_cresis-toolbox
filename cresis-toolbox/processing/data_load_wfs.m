@@ -277,8 +277,10 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).gain = [];
   end
-  if ~isfield(param.radar.wfs(wf),'gain_en') || isempty(param.radar.wfs(wf).gain_en)
-    wfs(wf).gain_en = 0;
+  if isfield(param.radar.wfs(wf),'gain_en') && ~isempty(param.radar.wfs(wf).gain_en)
+    wfs(wf).gain_en   = param.radar.wfs(wf).gain_en;
+  else
+    wfs(wf).gain_en   = false;
   end
   if isfield(records.settings,'nyquist_zone')
     wfs(wf).nyquist_zone    = records.settings.nyquist_zone;
@@ -301,6 +303,16 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).prepulse_H.type   = param.radar.wfs(wf).prepulse_H.type;
   else
     wfs(wf).prepulse_H.type   = '';
+  end
+  if isfield(param.radar.wfs(wf).prepulse_H,'dir') && ~isempty(param.radar.wfs(wf).prepulse_H.dir)
+    wfs(wf).prepulse_H.dir   = param.radar.wfs(wf).prepulse_H.dir;
+  else
+    wfs(wf).prepulse_H.dir   = 'analysis';
+  end
+  if isfield(param.radar.wfs(wf).prepulse_H,'fn') && ~isempty(param.radar.wfs(wf).prepulse_H.fn)
+    wfs(wf).prepulse_H.fn   = param.radar.wfs(wf).prepulse_H.fn;
+  else
+    wfs(wf).prepulse_H.fn   = 'prepulse_H';
   end
   if isfield(param.radar.wfs(wf),'coh_noise_method') && ~isempty(param.radar.wfs(wf).coh_noise_method)
     wfs(wf).coh_noise_method   = param.radar.wfs(wf).coh_noise_method;

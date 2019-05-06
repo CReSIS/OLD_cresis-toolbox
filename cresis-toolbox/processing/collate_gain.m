@@ -80,11 +80,7 @@ for img = 1:length(param.analysis.imgs)
     fig_idx = fig_idx +1;
     %% Load the waveform file
     % =====================================================================
-    if ~param.radar.wfs(wf).gain_en
-      dd = load(fullfile(wf_dir, sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc)));
-    else
-      dd = load(fullfile(wf_dir, sprintf('waveform2_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc)));
-    end
+    dd = load(fullfile(wf_dir, sprintf('waveform_%s_wf_%d_adc_%d.mat',param.day_seg,wf,adc)));
     % Initialization
     Nt = size(dd.wf_data,1);
     r_lines = size(dd.wf_data,2);

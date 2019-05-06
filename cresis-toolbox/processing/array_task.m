@@ -248,7 +248,7 @@ for img = 1:length(param.array.imgs)
           if dTsys ~= 0
             % Positive dTsys means Tsys > Tsys_old and we should reduce the
             % time delay to all targets by dTsys.
-            sar_data.(data_field_name) = ifft(fft(sar_data.(data_field_name)) .* exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys));
+            sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name)),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)));
           end
           
           % Concatenate data (handle situation of time axis of previous

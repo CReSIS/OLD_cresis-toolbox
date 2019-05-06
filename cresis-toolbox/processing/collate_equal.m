@@ -271,21 +271,21 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_single_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_surface_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_all_img_%02d',param.collate_equal.out_dir,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_before_all_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     
     set(h_fig(1),'Position',pos);
     
@@ -347,11 +347,11 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_track2_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     
     if enable_visible_plot
       keyboard
@@ -390,12 +390,22 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   % =========================================================================
   
   %% Compensate: 1. Create wf-adc to rx map
-  rx_paths = zeros(1,size(wf_adc_list,1));
+  wfs = zeros(1,size(wf_adc_list,1));
+  rx_paths = {};
+  wfs_wf_adc = {};
+  for wf_adc = 1:Nc
+    wf = wf_adc_list(wf_adc,1);
+    wfs(wf_adc) = wf;
+    wfs_wf_adc{wf} = [];
+    rx_paths{wf} = [];
+  end
   for wf_adc = 1:Nc
     wf = wf_adc_list(wf_adc,1);
     adc = wf_adc_list(wf_adc,2);
-    rx_paths(wf_adc) = param.radar.wfs(wf).rx_paths(adc);
+    wfs_wf_adc{wf}(end+1) = wf_adc;
+    rx_paths{wf}(end+1) = param.radar.wfs(wf).rx_paths(adc);
   end
+  wfs_unique = unique(wfs);
   
   %% Compensate: 2. Determine motion/channel compensation
   % Determine time delay and phase correction for position and channel equalization
@@ -407,24 +417,27 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     drange = bsxfun(@minus,elev,elev(ref_wf_adc_idx,:));
     dtime = dtime + drange/(c/2);
   end
+  Tsys = {};
   if param.collate_equal.chan_eq_en
-    if isfield(param.radar.wfs(wf),'Tadc_adjust')
-      new_Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
-    else
-      new_Tadc_adjust = 0;
+    for wf = wfs_unique
+      if isfield(param.radar.wfs(wf),'Tadc_adjust')
+        new_Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
+      else
+        new_Tadc_adjust = 0;
+      end
+      if isfield(waveform.param_analysis.radar.wfs(wf),'Tadc_adjust')
+        old_Tadc_adjust = waveform.param_analysis.radar.wfs(wf).Tadc_adjust;
+      else
+        old_Tadc_adjust = 0;
+      end
+      Tsys{wf} = param.radar.wfs(wf).Tsys(rx_paths{wf}) - waveform.param_analysis.radar.wfs(wf).Tsys(rx_paths{wf}) ...
+        - (new_Tadc_adjust - old_Tadc_adjust);
+      dtime(wfs_wf_adc{wf},:) = bsxfun(@plus, dtime(wfs_wf_adc{wf},:), Tsys{wf}.');
+      
+      Tsys{wf} = param.radar.wfs(wf).Tsys(rx_paths{wf});
     end
-    if isfield(waveform.param_analysis.radar.wfs(wf),'Tadc_adjust')
-      old_Tadc_adjust = waveform.param_analysis.radar.wfs(wf).Tadc_adjust;
-    else
-      old_Tadc_adjust = 0;
-    end
-    Tsys = param.radar.wfs(wf).Tsys(rx_paths) - waveform.param_analysis.radar.wfs(wf).Tsys(rx_paths) ...
-      - (new_Tadc_adjust - old_Tadc_adjust);
-    dtime = bsxfun(@plus, dtime, Tsys.');
-    
-    Tsys = param.radar.wfs(wf).Tsys(rx_paths);
   else
-    Tsys = waveform.param_analysis.radar.wfs(wf).Tsys(rx_paths);
+    Tsys{wf} = waveform.param_analysis.radar.wfs(wf).Tsys(rx_paths{wf});
   end
   dtime = permute(dtime,[3 2 1]);
   
@@ -434,20 +447,24 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   wf_data = ifft(fft(wf_data) .* exp(1i*2*pi*bsxfun(@times,freq,dtime)));
   
   if param.collate_equal.chan_eq_en
-    % Only apply the relative offset between what has already been applied
-    % during analysis surf and the new coefficients
-    chan_equal_deg = param.radar.wfs(wf).chan_equal_deg(rx_paths) ...
-      - waveform.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths);
-    chan_equal_dB = param.radar.wfs(wf).chan_equal_dB(rx_paths) ...
-      - waveform.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
-    wf_data = bsxfun(@times, wf_data, ...
-      permute(exp(-1i*chan_equal_deg/180*pi) ./ 10.^(chan_equal_dB/20),[1 3 2]));
-    
-    chan_equal_deg = param.radar.wfs(wf).chan_equal_deg(rx_paths);
-    chan_equal_dB = param.radar.wfs(wf).chan_equal_dB(rx_paths);
+    chan_equal_deg = {};
+    chan_equal_dB = {};
+    for wf = wfs_unique
+      % Only apply the relative offset between what has already been applied
+      % during analysis surf and the new coefficients
+      chan_equal_deg{wf} = param.radar.wfs(wf).chan_equal_deg(rx_paths{wf}) ...
+        - waveform.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths{wf});
+      chan_equal_dB{wf} = param.radar.wfs(wf).chan_equal_dB(rx_paths{wf}) ...
+        - waveform.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths{wf});
+      wf_data(:,:,wfs_wf_adc{wf}) = bsxfun(@times, wf_data(:,:,wfs_wf_adc{wf}), ...
+        permute(exp(-1i*chan_equal_deg{wf}/180*pi) ./ 10.^(chan_equal_dB{wf}/20),[1 3 2]));
+      
+      chan_equal_deg{wf} = param.radar.wfs(wf).chan_equal_deg(rx_paths{wf});
+      chan_equal_dB{wf} = param.radar.wfs(wf).chan_equal_dB(rx_paths{wf});
+    end
   else
-    chan_equal_deg = waveform.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths);
-    chan_equal_dB = waveform.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths);
+    chan_equal_deg{wf} = waveform.param_analysis.radar.wfs(wf).chan_equal_deg(rx_paths{wf});
+    chan_equal_dB{wf} = waveform.param_analysis.radar.wfs(wf).chan_equal_dB(rx_paths{wf});
   end
   
   if any(strcmp('comp_image',param.collate_equal.debug_plots))
@@ -556,21 +573,21 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_single_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_surface_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_all_img_%02d',param.collate_equal.out_dir,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_after_all_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     
     set(h_fig(1),'Position',pos);
     
@@ -673,7 +690,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     legend_str = cell(1,Nc);
     plot_mode = [0 0 0; hsv(7)];
     for wf_adc = 1:Nc
-      h_plot(wf_adc) = plot(h_axes(2),angle(ct_smooth(peak_val(wf_adc,:),0.01)), ...
+      h_plot(wf_adc) = plot(h_axes(2),180/pi*angle(ct_smooth(peak_val(wf_adc,:),0.01)), ...
         'Color', plot_mode(mod(wf_adc-1,length(plot_mode))+1,:), ...
         'LineStyle','none','Marker', '.');
       hold(h_axes(2), 'on');
@@ -722,24 +739,24 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     if ~exist(fig_fn_dir,'dir')
       mkdir(fig_fn_dir);
     end
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_amp_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(1),fig_fn);
+    ct_saveas(h_fig(1),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_phase_img_%02d',param.collate_equal.out_dir,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_phase_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(2),fig_fn);
+    ct_saveas(h_fig(2),fig_fn);
     
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_time_img_%02d',param.collate_equal.out_dir,img)) '.fig'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     fig_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_time_img_%02d',param.collate_equal.out_dir,img)) '.jpg'];
     fprintf('Saving %s\n', fig_fn);
-    saveas(h_fig(3),fig_fn);
+    ct_saveas(h_fig(3),fig_fn);
     
     set(h_fig(1),'Position',pos{1});
     set(h_fig(2),'Position',pos{2});
@@ -752,124 +769,144 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   
   %% Create outputs
   % =========================================================================
-  
-  % Sort results according to rx_paths since this is how they must be
-  % entered into the parameter spreadsheet/structure.
-  [rx_paths,rx_path_idxs] = sort(rx_paths);
-  peak_offset = peak_offset(rx_path_idxs,:);
-  peak_val = peak_val(rx_path_idxs,:);
-  wf_adc_list = wf_adc_list(rx_path_idxs,:);
-  Tsys = Tsys(rx_path_idxs);
-  chan_equal_deg = chan_equal_deg(rx_path_idxs);
-  chan_equal_dB = chan_equal_dB(rx_path_idxs);
-  ref_wf_adc_idx = find(ref_wf_adc_idx == rx_path_idxs);
-  
-  rx_paths_all = 1:max(rx_paths);
-  rx_paths_missing = setdiff(rx_paths_all,rx_paths);
-  
-  peak_offset(rx_paths,:) = peak_offset;
-  peak_val(rx_paths,:) = peak_val;
-  wf_adc_list(rx_paths,:) = wf_adc_list;
-  Tsys(rx_paths) = Tsys;
-  chan_equal_deg(rx_paths) = chan_equal_deg;
-  chan_equal_dB(rx_paths) = chan_equal_dB;
-  
-  peak_offset(rx_paths_missing,:) = NaN;
-  peak_val(rx_paths_missing,:) = NaN;
-  wf_adc_list(rx_paths_missing,:) = NaN;
-  Tsys(rx_paths_missing) = NaN;
-  chan_equal_deg(rx_paths_missing) = NaN;
-  chan_equal_dB(rx_paths_missing) = NaN;
-  
-  equal.peak_offset = peak_offset;
-  equal.peak_val = peak_val;
-  
-  equal.Tsys_offset = nanmean(peak_offset(:,rlines),2)*dt;
-  equal.chan_equal_deg_offset = angle(nanmean(peak_val(:,rlines),2)) * 180/pi;
-  equal.chan_equal_dB_offset = lp(nanmean(abs(peak_val(:,rlines)).^2,2),1);
-  
-  equal.Tsys_offset_std = nanstd(peak_offset(:,rlines),[],2)*dt;
-  equal.chan_equal_deg_offset_std = angle(nanstd(peak_val(:,rlines),[],2)) * 180/pi;
-  equal.chan_equal_dB_offset_std = lp(nanstd(abs(peak_val(:,rlines)).^2,[],2),1);
-  
-  equal.Tsys_offset = reshape(equal.Tsys_offset,[1 Nc]);
-  equal.chan_equal_deg_offset = reshape(equal.chan_equal_deg_offset,[1 Nc]);
-  equal.chan_equal_dB_offset = reshape(equal.chan_equal_dB_offset,[1 Nc]);
-  
-  equal.Tsys_offset_std = reshape(equal.Tsys_offset_std,[1 Nc]);
-  equal.chan_equal_deg_offset_std = reshape(equal.chan_equal_deg_offset_std,[1 Nc]);
-  equal.chan_equal_dB_offset_std = reshape(equal.chan_equal_dB_offset_std,[1 Nc]);
-  
-  equal.Tsys = Tsys + equal.Tsys_offset;
-  equal.chan_equal_deg = chan_equal_deg + equal.chan_equal_deg_offset;
-  equal.chan_equal_dB = chan_equal_dB + equal.chan_equal_dB_offset;
-  
-  equal.chan_equal_deg = equal.chan_equal_deg - equal.chan_equal_deg(ref_wf_adc_idx);
-  equal.chan_equal_deg = angle(exp(1i*equal.chan_equal_deg/180*pi))*180/pi;
-  equal.chan_equal_dB = equal.chan_equal_dB - equal.chan_equal_dB(ref_wf_adc_idx);
-  
-  equal.old_Tsys_str = [mat2str(round(Tsys*1e9*100)/100), '/1e9'];
-  equal.Tsys_str = [mat2str(round(equal.Tsys*1e9*100)/100), '/1e9'];
-  
-  equal.chan_equal_dB_str = mat2str(round(equal.chan_equal_dB*10)/10);
-  
-  equal.chan_equal_deg_str = mat2str(round(angle(exp(1i*equal.chan_equal_deg*pi/180))*180/pi*10)/10);
-  
-  % If rounded Tsys are inserted, this accounts for the phase shift expected
-  % by doing this.
-  equal.chan_equal_deg_with_Tsys = chan_equal_deg + equal.chan_equal_deg_offset + 360*fc*round((equal.Tsys-Tsys)*1e10)/1e10;
-  
-  equal.chan_equal_deg_with_Tsys_str = mat2str(round(angle(exp(1i*equal.chan_equal_deg_with_Tsys*pi/180))*180/pi*10)/10);
-  
-  %% Print Results
-  % =========================================================================
-  if any(strcmp('final',param.collate_equal.debug_plots))
-    sw_version = current_software_version;
-    
-    diary_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_table_img_%02d',param.collate_equal.out_dir,img)) '.txt'];
-    fid = fopen(diary_fn,'wb');
-    for fid = [1 fid]
-      if fid == 1; fid_error = 2; else fid_error = fid; end;
-      fprintf(fid,'%s rec:%d-%d ref_wf_adc_idx:%d git-hash:%s (%s)\n', param.day_seg, ...
-        rlines(1), rlines(end), ref_wf_adc_idx, sw_version.rev, sw_version.cur_date_time);
-      
-      for wf_adc = rx_paths_all
-        wf = wf_adc_list(wf_adc,1);
-        adc = wf_adc_list(wf_adc,2);
-        fprintf(fid,'rx %d\t', rx_paths_all(wf_adc));
-      end
-      fprintf(fid,'\n');
-      for wf_adc = rx_paths_all
-        wf = wf_adc_list(wf_adc,1);
-        adc = wf_adc_list(wf_adc,2);
-        fprintf(fid,'wf-adc\t', wf, adc);
-      end
-      fprintf(fid,'\n');
-      for wf_adc = rx_paths_all
-        wf = wf_adc_list(wf_adc,1);
-        adc = wf_adc_list(wf_adc,2);
-        fprintf(fid,'%2.0f-%3.0f\t', wf, adc);
-      end
-      fprintf(fid,'\n');
-      fprintf(fid,'Offsets from Old Coefficients (rows: equal_dB, equal_deg, Tsys_ns)\n');
-      fprintf(fid,'%.1f\t', equal.chan_equal_dB_offset); fprintf(fid,'\n');
-      fprintf(fid,'%.1f\t', equal.chan_equal_deg_offset); fprintf(fid,'\n');
-      fprintf(fid,'%.2f\t', 1e9*equal.Tsys_offset); fprintf(fid,'\n');
-      fprintf(fid,'New Coefficients\n');
-      fprintf(fid,'%.1f\t', equal.chan_equal_dB); fprintf(fid,'\n');
-      fprintf(fid,'%.1f\t', equal.chan_equal_deg); fprintf(fid,'\n');
-      fprintf(fid,'%.2f\t', 1e9*equal.Tsys); fprintf(fid,'\n');
-      fprintf(fid,'New Coefficients if using the old Tsys (in spreadsheet format)\n');
-      fprintf(fid,'%s\n',equal.chan_equal_dB_str);
-      fprintf(fid,'%s\n',equal.chan_equal_deg_str);
-      fprintf(fid,'%s\n',equal.old_Tsys_str);
-      fprintf(fid,'New Coefficients if updating with this Tsys (in spreadsheet format)\n');
-      fprintf(fid,'%s\n',equal.chan_equal_dB_str);
-      fprintf(fid,'%s\n',equal.chan_equal_deg_with_Tsys_str);
-      fprintf(fid,'%s\n',equal.Tsys_str);
+  all_rx_paths = rx_paths;
+  all_peak_offset = peak_offset;
+  all_peak_val = peak_val;
+  all_wf_adc_list = wf_adc_list;
+  all_Tsys = Tsys;
+  all_chan_equal_deg = chan_equal_deg;
+  all_chan_equal_dB = chan_equal_dB;
+  % Make the reference waveform first since we need the reference wf-adc
+  % for all waveforms
+  ref_wf = all_wf_adc_list(ref_wf_adc_idx,1);
+  wfs_unique = [ref_wf setdiff(wfs_unique,ref_wf)];
+  equal = [];
+  for wf = wfs_unique
+    % Sort results according to rx_paths since this is how they must be
+    % entered into the parameter spreadsheet/structure.
+    [rx_paths,rx_path_idxs] = sort(all_rx_paths{wf});
+    peak_offset = all_peak_offset(wfs_wf_adc{wf}(rx_path_idxs),:);
+    peak_val = all_peak_val(wfs_wf_adc{wf}(rx_path_idxs),:);
+    wf_adc_list = all_wf_adc_list(wfs_wf_adc{wf}(rx_path_idxs),:);
+    Tsys = all_Tsys{wf}(rx_path_idxs);
+    chan_equal_deg = all_chan_equal_deg{wf}(rx_path_idxs);
+    chan_equal_dB = all_chan_equal_dB{wf}(rx_path_idxs);
+    if wf == ref_wf
+      ref_wf_adc_idx = find(ref_wf_adc_idx == wfs_wf_adc{wf}(rx_path_idxs));
     end
-    fclose(fid);
-    fprintf('Metric table: %s\n', diary_fn);
+    Nc = length(rx_paths);
+    
+    rx_paths_all = 1:max(rx_paths);
+    rx_paths_missing = setdiff(rx_paths_all,rx_paths);
+    
+    peak_offset(rx_paths,:) = peak_offset;
+    peak_val(rx_paths,:) = peak_val;
+    wf_adc_list(rx_paths,:) = wf_adc_list;
+    Tsys(rx_paths) = Tsys;
+    chan_equal_deg(rx_paths) = chan_equal_deg;
+    chan_equal_dB(rx_paths) = chan_equal_dB;
+    
+    peak_offset(rx_paths_missing,:) = NaN;
+    peak_val(rx_paths_missing,:) = NaN;
+    wf_adc_list(rx_paths_missing,:) = NaN;
+    Tsys(rx_paths_missing) = NaN;
+    chan_equal_deg(rx_paths_missing) = NaN;
+    chan_equal_dB(rx_paths_missing) = NaN;
+    
+    equal.peak_offset{wf} = peak_offset;
+    equal.peak_val{wf} = peak_val;
+    
+    equal.Tsys_offset{wf} = nanmean(peak_offset(:,rlines),2)*dt;
+    equal.chan_equal_deg_offset{wf} = angle(nanmean(peak_val(:,rlines),2)) * 180/pi;
+    equal.chan_equal_dB_offset{wf} = lp(nanmean(abs(peak_val(:,rlines)).^2,2),1);
+    
+    equal.Tsys_offset_std{wf} = nanstd(peak_offset(:,rlines),[],2)*dt;
+    equal.chan_equal_deg_offset_std{wf} = angle(nanstd(peak_val(:,rlines),[],2)) * 180/pi;
+    equal.chan_equal_dB_offset_std{wf} = lp(nanstd(abs(peak_val(:,rlines)).^2,[],2),1);
+    
+    equal.Tsys_offset{wf} = reshape(equal.Tsys_offset{wf},[1 Nc]);
+    equal.chan_equal_deg_offset{wf} = reshape(equal.chan_equal_deg_offset{wf},[1 Nc]);
+    equal.chan_equal_dB_offset{wf} = reshape(equal.chan_equal_dB_offset{wf},[1 Nc]);
+    
+    equal.Tsys_offset_std{wf} = reshape(equal.Tsys_offset_std{wf},[1 Nc]);
+    equal.chan_equal_deg_offset_std{wf} = reshape(equal.chan_equal_deg_offset_std{wf},[1 Nc]);
+    equal.chan_equal_dB_offset_std{wf} = reshape(equal.chan_equal_dB_offset_std{wf},[1 Nc]);
+    
+    equal.Tsys{wf} = Tsys + equal.Tsys_offset{wf};
+    equal.chan_equal_deg{wf} = chan_equal_deg + equal.chan_equal_deg_offset{wf};
+    equal.chan_equal_dB{wf} = chan_equal_dB + equal.chan_equal_dB_offset{wf};
+    
+    if wf == ref_wf
+      ref_chan_equal_deg = equal.chan_equal_deg{wf}(ref_wf_adc_idx);
+      ref_chan_equal_dB = equal.chan_equal_dB{wf}(ref_wf_adc_idx);
+    end
+    equal.chan_equal_deg{wf} = equal.chan_equal_deg{wf} - ref_chan_equal_deg;
+    equal.chan_equal_deg{wf} = angle(exp(1i*equal.chan_equal_deg{wf}/180*pi))*180/pi;
+    equal.chan_equal_dB{wf} = equal.chan_equal_dB{wf} - ref_chan_equal_dB;
+    
+    equal.old_Tsys_str{wf} = [mat2str(round(Tsys*1e9*100)/100), '/1e9'];
+    equal.Tsys_str{wf} = [mat2str(round(equal.Tsys{wf}*1e9*100)/100), '/1e9'];
+    
+    equal.chan_equal_dB_str{wf} = mat2str(round(equal.chan_equal_dB{wf}*10)/10);
+    
+    equal.chan_equal_deg_str{wf} = mat2str(round(angle(exp(1i*equal.chan_equal_deg{wf}*pi/180))*180/pi*10)/10);
+    
+    % If rounded Tsys are inserted, this accounts for the phase shift expected
+    % by doing this.
+    equal.chan_equal_deg_with_Tsys{wf} = chan_equal_deg + equal.chan_equal_deg_offset{wf} + 360*fc*round((equal.Tsys{wf}-Tsys)*1e10)/1e10;
+    
+    equal.chan_equal_deg_with_Tsys_str{wf} = mat2str(round(angle(exp(1i*equal.chan_equal_deg_with_Tsys{wf}*pi/180))*180/pi*10)/10);
+    
+    %% Print Results
+    % =========================================================================
+    if any(strcmp('final',param.collate_equal.debug_plots))
+      sw_version = current_software_version;
+      
+      diary_fn = [ct_filename_ct_tmp(param,'','collate_equal',sprintf('%s_table_img_%02d',param.collate_equal.out_dir,img)) '.txt'];
+      fid = fopen(diary_fn,'wb');
+      for fid = [1 fid]
+        if fid == 1; fid_error = 2; else fid_error = fid; end;
+        fprintf(fid,'%s rec:%d-%d ref_wf_adc_idx:%d git-hash:%s (%s)\n', param.day_seg, ...
+          rlines(1), rlines(end), ref_wf_adc_idx, sw_version.rev, sw_version.cur_date_time);
+        
+        for wf_adc = rx_paths_all
+          wf = wf_adc_list(wf_adc,1);
+          adc = wf_adc_list(wf_adc,2);
+          fprintf(fid,'rx %d\t', rx_paths_all(wf_adc));
+        end
+        fprintf(fid,'\n');
+        for wf_adc = rx_paths_all
+          wf = wf_adc_list(wf_adc,1);
+          adc = wf_adc_list(wf_adc,2);
+          fprintf(fid,'wf-adc\t', wf, adc);
+        end
+        fprintf(fid,'\n');
+        for wf_adc = rx_paths_all
+          wf = wf_adc_list(wf_adc,1);
+          adc = wf_adc_list(wf_adc,2);
+          fprintf(fid,'%2.0f-%3.0f\t', wf, adc);
+        end
+        fprintf(fid,'\n');
+        fprintf(fid,'Offsets from Old Coefficients (rows: equal_dB, equal_deg, Tsys_ns)\n');
+        fprintf(fid,'%.1f\t', equal.chan_equal_dB_offset{wf}); fprintf(fid,'\n');
+        fprintf(fid,'%.1f\t', equal.chan_equal_deg_offset{wf}); fprintf(fid,'\n');
+        fprintf(fid,'%.2f\t', 1e9*equal.Tsys_offset{wf}); fprintf(fid,'\n');
+        fprintf(fid,'New Coefficients\n');
+        fprintf(fid,'%.1f\t', equal.chan_equal_dB{wf}); fprintf(fid,'\n');
+        fprintf(fid,'%.1f\t', equal.chan_equal_deg{wf}); fprintf(fid,'\n');
+        fprintf(fid,'%.2f\t', 1e9*equal.Tsys{wf}); fprintf(fid,'\n');
+        fprintf(fid,'New Coefficients if using the old Tsys (in spreadsheet format)\n');
+        fprintf(fid,'%s\n',equal.chan_equal_dB_str{wf});
+        fprintf(fid,'%s\n',equal.chan_equal_deg_str{wf});
+        fprintf(fid,'%s\n',equal.old_Tsys_str{wf});
+        fprintf(fid,'New Coefficients if updating with this Tsys (in spreadsheet format)\n');
+        fprintf(fid,'%s\n',equal.chan_equal_dB_str{wf});
+        fprintf(fid,'%s\n',equal.chan_equal_deg_with_Tsys_str{wf});
+        fprintf(fid,'%s\n',equal.Tsys_str{wf});
+      end
+      fclose(fid);
+      fprintf('Metric table: %s\n', diary_fn);
+    end
   end
   
   %% Save Results
