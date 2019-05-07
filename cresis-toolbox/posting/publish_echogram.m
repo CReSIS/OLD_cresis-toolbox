@@ -217,7 +217,7 @@ elseif param.elev_comp == 2
     newData(:,rline) = interp1(mdata.Time, mdata.Data(:,rline), ...
       lay.layers{1}(rline) + depth_time);
     for layer_idx = 2:length(lay.layers)
-      lay.layers{layer_idx}(:) = lay.layers{layer_idx}(rline) - lay.layers{1}(rline);
+      lay.layers{layer_idx}(rline) = lay.layers{layer_idx}(rline) - lay.layers{1}(rline);
     end
   end
   mdata.Data = newData;
