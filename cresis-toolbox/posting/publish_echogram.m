@@ -751,7 +751,7 @@ if param.plot_quality
 
   end
 else
-  echo_info.h_surf = plot(ah_echo,DSurface,'--m');
+  echo_info.h_surf = plot(ah_echo,DLayers{1},'--m');
   for layer_idx = 2:length(DLayers)
     echo_info.h_bot = plot(ah_echo,DLayers{layer_idx},'--r');
   end
