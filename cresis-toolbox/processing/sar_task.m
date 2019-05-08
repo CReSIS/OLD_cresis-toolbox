@@ -195,6 +195,9 @@ end
 % Store the parameters that were used to create the records file
 param_records = records.param_records;
 
+% Store the current GPS source
+param_records.gps_source = records.gps_source;
+
 %% Load surface layer
 % =========================================================================
 frames_fn = ct_filename_support(param,'','frames');
@@ -252,7 +255,7 @@ param.load.presums = param.sar.presums;
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
-[hdr,data] = data_pulse_compress(param,hdr,data);
+[hdr,data,param] = data_pulse_compress(param,hdr,data);
 
 param.load.motion_comp = false;
 param.load.combine_rx = param.sar.combine_rx;

@@ -97,14 +97,15 @@ chan_equal_deg = [0];
 for wf = 1:1
   default.radar.wfs(wf).tx_weights = 1; % Watts
   default.radar.wfs(wf).Tadc_adjust = []; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
-  default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
+  default.radar.wfs(wf).adc_gains_dB = 105.8; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1]; % ADC to rx path mapping
   default.radar.wfs(wf).ref_fn = '';
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1];
-  default.radar.wfs(wf).nz_trim = {[0 0],[0 2],[0 0],[0 0]};
+  default.radar.wfs(wf).coh_noise_method = 'estimated';
+  default.radar.wfs(wf).nz_trim = {[0 0],[0 0],[0 0],[0 0]};
   default.radar.wfs(wf).nz_valid = [0 1 2 3];
 end
 
@@ -115,9 +116,9 @@ default.post.maps_en = 1;
 default.post.echo_en = 1;
 default.post.layers_en = 0;
 default.post.data_en = 0;
-default.post.csv_en = 1;
-default.post.concat_en = 1;
-default.post.pdf_en = 1;
+default.post.csv_en = 0;
+default.post.concat_en = 0;
+default.post.pdf_en = 0;
 default.post.map.location = 'Greenland';
 default.post.map.type = 'combined';
 default.post.echo.elev_comp = 2;
@@ -135,8 +136,8 @@ defaults = {};
 default.radar.wfs(1).f0 = 2e9;
 default.radar.wfs(1).f1 = 18e9;
 default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [2.7e9 17.5e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [2.4e9 17.0e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 2-18 GHz';
@@ -144,10 +145,10 @@ defaults{end+1} = default;
 
 % Survey Mode 2-8 GHz
 default.radar.wfs(1).f0 = 2e9;
-default.radar.wfs(1).f1 = 18e9;
+default.radar.wfs(1).f1 = 8e9;
 default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [2.7e9 17.5e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [2.4e9 7.1e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 2-8 GHz';
@@ -157,8 +158,8 @@ defaults{end+1} = default;
 default.radar.wfs(1).f0 = 2e9;
 default.radar.wfs(1).f1 = 14e9;
 default.radar.wfs(1).Tpd = 200e-6;
-default.radar.wfs(1).BW_window = [2.7e9 13.5e9];
-default.radar.wfs(1).t_ref = -0.000000040063;
+default.radar.wfs(1).BW_window = [2.4e9 13.1e9];
+default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode 2-14 GHz Dual Waveform';

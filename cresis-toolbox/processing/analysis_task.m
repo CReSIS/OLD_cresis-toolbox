@@ -182,7 +182,7 @@ for img = 1:length(store_param.load.imgs)
         
         % Pulse compression
         tmp_param.radar.wfs(wf).deconv.en = false;
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
+        [tmp_hdr,data,tmp_param] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         
@@ -348,7 +348,7 @@ for img = 1:length(store_param.load.imgs)
         %% Specular: Save Results
         out_fn = fullfile(tmp_out_fn_dir, ...
           sprintf('specular_wf_%d_adc_%d_%d_%d.mat',wf,adc,task_recs));
-        param_analysis = param;
+        param_analysis = tmp_param;
         fprintf('  Saving outputs %s (%s)\n', out_fn, datestr(now));
         if param.ct_file_lock
           file_version = '1L';
@@ -397,7 +397,7 @@ for img = 1:length(store_param.load.imgs)
         tmp_param.radar.wfs(wf).nz_trim = {};
 
         tmp_hdr.nyquist_zone_signal{img} = double(tmp_hdr.nyquist_zone_hw{img});
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
+        [tmp_hdr,data,tmp_param] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         data = data{1};
@@ -545,7 +545,7 @@ for img = 1:length(store_param.load.imgs)
         adc = tmp_param.load.imgs{1}(1,2);
         
         % Pulse compression
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
+        [tmp_hdr,data,tmp_param] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         
@@ -601,7 +601,12 @@ for img = 1:length(store_param.load.imgs)
           end
         end
         
-        stop_bin = start_bin + cmd.Nt - 1;
+        if isfinite(cmd.Nt)
+          stop_bin = start_bin + cmd.Nt - 1;
+        else
+          stop_bin = length(time)*ones(1,size(data,2));
+          cmd.Nt = max(stop_bin-start_bin+1);
+        end
         
         %% Waveform: Extract waveform values according to bin_rng
         wf_data = zeros(cmd.Nt, size(data,2), size(data,3),'single');
@@ -648,7 +653,7 @@ for img = 1:length(store_param.load.imgs)
         adc = tmp_param.load.imgs{1}(1,2);
         
         % Pulse compression
-        [tmp_hdr,data] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
+        [tmp_hdr,data,tmp_param] = data_pulse_compress(tmp_param,tmp_hdr,{raw_data{1}(:,:,wf_adc)});
         
         [tmp_hdr,data] = data_merge_combine(tmp_param,tmp_hdr,data);
         

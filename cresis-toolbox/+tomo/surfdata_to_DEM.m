@@ -13,7 +13,7 @@ function surfdata_to_DEM(param,param_override)
 %   that should be processed
 % param.dem.grid_spacing: scalar in meters (e.g. 25)
 % param.dem.DOA_trim: how many DOA resolution cells to trim off on the
-%   edges of the swath
+%   edges of the swath. Set DOA_trim=0 if DOA method is used.
 % param.dem.med_filt: median2 filter arguments, 2-element double vector.
 %   This is the [M N] vector in "B = medfilt2(A,[M N])"
 % param.dem.figure_dots_per_km: scalar containing dots per km in the
@@ -45,6 +45,19 @@ if ~isstruct(param)
   param();
 end
 param = merge_structs(param, param_override);
+
+if ~isfield(param.dem,'doa_method_flag') || isempty(param.dem.doa_method_flag)
+  doa_method_flag = false;
+else
+  doa_method_flag = param.dem.doa_method_flag;
+end
+
+if ~isfield(param.dem,'doa_limits') || isempty(param.dem.doa_limits)
+  doa_limits = [-90 90]*pi/180;
+else
+  doa_limits = param.dem.doa_limits*pi/180;
+end
+
 
 dbstack_info = dbstack;
 fprintf('=====================================================================\n');
@@ -92,7 +105,12 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % Load surface data (usually top and bottom)
   fprintf('  %s\n', surfdata_fn);
+  if ~doa_method_flag
   sd = tomo.surfdata(surfdata_fn);
+  else
+    sd_param.doa_method_flag = doa_method_flag;
+    sd = tomo.surfdata(surfdata_fn,sd_param);
+  end
   
   % Find the index to the ice top
   ice_top_idx = sd.get_index(param.dem.ice_top);
@@ -113,10 +131,17 @@ for frm_idx = 1:length(param.cmd.frms)
   
   % FCS: flight coordinate system (aka SAR coordinate system)
   Nx = length(mdata.GPS_time);
-  theta = reshape(mdata.theta,[length(mdata.theta) 1]);
+  if ~doa_method_flag
+    theta = reshape(mdata.theta,[length(mdata.theta) 1]);
+  else
+    theta = mdata.Tomo.theta;
+  end
+  
   DOA_trim = 0;
-  if isfield(param.dem,'DOA_trim')
-    DOA_trim = param.dem.DOA_trim;
+  if ~doa_method_flag
+    if isfield(param.dem,'DOA_trim')
+      DOA_trim = param.dem.DOA_trim;
+    end
   end
   
   % Convert top from range bins to twtt (the top is needed with each
@@ -153,24 +178,29 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     % Convert from doa,twtt to radar FCS
-    [y_active,z_active] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]), ...
-      theta(DOA_trim+1:end-DOA_trim),ice_top(DOA_trim+1:end-DOA_trim,:), ...
-      3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
+    if ~doa_method_flag
+      [y_active,z_active] = tomo.twtt_doa_to_yz(repmat(theta(DOA_trim+1:end-DOA_trim),[1 Nx]), ...
+        theta(DOA_trim+1:end-DOA_trim),ice_top(DOA_trim+1:end-DOA_trim,:), ...
+        3.15,surface_twtt(DOA_trim+1:end-DOA_trim,:));
+    else
+      [y_active,z_active] = tomo.twtt_doa_to_yz(theta, ...
+        [],ice_top,3.15,surface_twtt,doa_method_flag,doa_limits);
+    end
     
     % Convert from radar FCS to ECEF
     x_plane = zeros(size(y_active));
     y_plane = zeros(size(y_active));
     z_plane = zeros(size(y_active));
     for rline = 1:size(y_active,2)
-      x_plane(:,rline) = mdata.param_array.array_param.fcs{1}{1}.origin(1,rline) ...
-        + mdata.param_array.array_param.fcs{1}{1}.y(1,rline) * y_active(:,rline) ...
-        + mdata.param_array.array_param.fcs{1}{1}.z(1,rline) * z_active(:,rline);
-      y_plane(:,rline) = mdata.param_array.array_param.fcs{1}{1}.origin(2,rline) ...
-        + mdata.param_array.array_param.fcs{1}{1}.y(2,rline) * y_active(:,rline) ...
-        + mdata.param_array.array_param.fcs{1}{1}.z(2,rline) * z_active(:,rline);
-      z_plane(:,rline) = mdata.param_array.array_param.fcs{1}{1}.origin(3,rline) ...
-        + mdata.param_array.array_param.fcs{1}{1}.y(3,rline) * y_active(:,rline) ...
-        + mdata.param_array.array_param.fcs{1}{1}.z(3,rline) * z_active(:,rline);
+      x_plane(:,rline) = mdata.param_array.array_proc.fcs{1}{1}.origin(1,rline) ...
+        + mdata.param_array.array_proc.fcs{1}{1}.y(1,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_proc.fcs{1}{1}.z(1,rline) * z_active(:,rline);
+      y_plane(:,rline) = mdata.param_array.array_proc.fcs{1}{1}.origin(2,rline) ...
+        + mdata.param_array.array_proc.fcs{1}{1}.y(2,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_proc.fcs{1}{1}.z(2,rline) * z_active(:,rline);
+      z_plane(:,rline) = mdata.param_array.array_proc.fcs{1}{1}.origin(3,rline) ...
+        + mdata.param_array.array_proc.fcs{1}{1}.y(3,rline) * y_active(:,rline) ...
+        + mdata.param_array.array_proc.fcs{1}{1}.z(3,rline) * z_active(:,rline);
     end
     
     % Convert from ECEF to geodetic
@@ -337,9 +367,9 @@ for frm_idx = 1:length(param.cmd.frms)
         DEM = F(xmesh,ymesh);
         
         % Interpolate to find gridded 3D image
-        img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
+        img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
         img_3D = NaN*zeros(size(img_3D_idxs));
-        img_3D(~isnan(img_3D_idxs)) = mdata.Topography.img(img_3D_idxs(~isnan(img_3D_idxs)));
+        img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
         img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
         img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
         warning off;
@@ -467,13 +497,38 @@ for frm_idx = 1:length(param.cmd.frms)
       F = TriScatteredInterp(dt,pnts(3,:).');
       warning on;
       DEM = F(xmesh,ymesh);
-      
+      if 0
+        % Debug
+        figure;imagesc(DEM)
+        h = colorbar;
+        h.Label.String = 'Elevation (m)';
+      end
       % Interpolate to find gridded 3D image
-      img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Topography.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
-      img_3D = NaN*zeros(size(img_3D_idxs));
-      img_3D(~isnan(img_3D_idxs)) = mdata.Topography.img(img_3D_idxs(~isnan(img_3D_idxs)));
-      img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
-      img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
+      if ~doa_method_flag
+        % Beamforming method
+        img_3D_idxs = round(sd.surf(surface_idx).y(:)) + size(mdata.Tomo.img,1)*(0:numel(sd.surf(surface_idx).y)-1).';
+        img_3D = NaN(size(img_3D_idxs));
+        img_3D(~isnan(img_3D_idxs)) = mdata.Tomo.img(img_3D_idxs(~isnan(img_3D_idxs)));
+        img_3D = double(reshape(img_3D, size(sd.surf(surface_idx).y)));
+        img_3D = img_3D(DOA_trim+1:end-DOA_trim,:);
+      else
+        % DOA method: 3D points are the estmated DOAs, which are usually
+        % different for each range-line.
+        img_3D = NaN(size(sd.surf(surface_idx).y));
+        for rline = 1:size(mdata.Tomo.theta,3)
+          tmp_theta = mdata.Tomo.theta(:,:,rline);
+          tmp_theta = sort(tmp_theta(~isnan(tmp_theta)),'ascend');
+%           if ~all(isnan(tmp_theta(:)))
+            % Interpolate the bad (NaN) points in between the good points
+%             for theta_idx = 1:size(mdata.Tomo.theta,2)
+%               good_theta_idx = find(~isnan(tmp_theta(:,theta_idx)));
+%               tmp_theta(good_theta_idx(1):good_theta_idx(end),theta_idx) = interp1(good_theta_idx,tmp_theta(good_theta_idx,theta_idx),[good_theta_idx(1):good_theta_idx(end)].');
+%             end
+            img_3D(1:length(tmp_theta),rline) = sort(tmp_theta,'ascend');
+%           end
+        end
+        img_3D(img_3D<doa_limits(1) | img_3D>doa_limits(2)) = NaN;
+      end
       warning off;
       F = TriScatteredInterp(dt,img_3D(good_idxs));
       warning on;
@@ -484,7 +539,6 @@ for frm_idx = 1:length(param.cmd.frms)
       bad_mask = ~inpolygon(xmesh(idxs_to_check),ymesh(idxs_to_check),px,py);
       DEM(idxs_to_check(bad_mask)) = NaN;
       IMG_3D(idxs_to_check(bad_mask)) = NaN;
-      
     end
     
     %% Create DEM scatter plot over geotiff
@@ -510,9 +564,9 @@ for frm_idx = 1:length(param.cmd.frms)
     
     % Plot flightline
     [fline.lat,fline.lon,fline.elev] = ecef2geodetic( ...
-      mdata.param_array.array_param.fcs{1}{1}.origin(1,:), ...
-      mdata.param_array.array_param.fcs{1}{1}.origin(2,:), ...
-      mdata.param_array.array_param.fcs{1}{1}.origin(3,:),WGS84.ellipsoid);
+      mdata.param_array.array_proc.fcs{1}{1}.origin(1,:), ...
+      mdata.param_array.array_proc.fcs{1}{1}.origin(2,:), ...
+      mdata.param_array.array_proc.fcs{1}{1}.origin(3,:),WGS84.ellipsoid);
     fline.lat = fline.lat*180/pi;
     fline.lon = fline.lon*180/pi;
     [fline.x,fline.y] = projfwd(proj,fline.lat,fline.lon);

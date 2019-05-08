@@ -124,7 +124,7 @@ if any(strcmpi(param.radar_name,{'accum2','mcrds'}))
   records.gps_source = gps.gps_source;
 else
   % Determine time offset delta and apply to radar time
-  delta_offset = param.records.gps.time_offset - records.param_records.records.gps.time_offset;
+  delta_offset = max(param.records.gps.time_offset) - max(records.param_records.records.gps.time_offset);
   records.param_records.records.gps.time_offset = param.records.gps.time_offset;
   records.gps_time = records.gps_time + delta_offset;
   

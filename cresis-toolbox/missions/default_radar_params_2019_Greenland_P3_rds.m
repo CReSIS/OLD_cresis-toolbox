@@ -47,7 +47,7 @@ default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.gps.time_offset = 1;
-default.records.frames.mode = 1;
+default.records.frames.mode = 2;
 default.records.frames.geotiff_fn = fullfile('greenland','Landsat-7','Greenland_natural_150m.tif');
 default.records.presum_bug_fixed = 0;
 
@@ -138,62 +138,72 @@ defaults = {};
 % survey mode
 default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
+default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).']};
+default.array.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).']};
 default.array.img_comb = default.qlook.img_comb;
 default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
 default.config_regexp = '(survey_.*thick.xml';
-default.name = 'Survey Mode';
+default.name = 'Nadir Thick Ice Mode';
 defaults{end+1} = default;
 
 % survey mode
 default.qlook.img_comb = [3e-06 -inf 1e-06];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
+default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).']};
+default.array.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).']};
 default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'survey_.*thin_ice.xml';
-default.name = 'Thin Ice Mode';
+default.name = 'Nadir Thin Ice Mode';
 defaults{end+1} = default;
 
 % image mode
 default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).'],[5*ones(4,1),(1:4).']};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
+default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).'],[4*ones(7,1),(1:7).'],[5*ones(7,1),(1:7).'],[6*ones(7,1),(1:7).']};
+default.array.imgs = {[[1*ones(7,1),(1:7).'];[2*ones(7,1),(1:7).']],[[3*ones(7,1),(1:7).'];[4*ones(7,1),(1:7).']],[[5*ones(7,1),(1:7).'];[6*ones(7,1),(1:7).']]};
 default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'image_.*thick.xml';
-default.name = 'Image Mode';
+default.name = 'Image Thick Ice Mode';
 defaults{end+1} = default;
 
 % image mode
 default.qlook.img_comb = [3e-06 -inf 1e-06];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
+default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).'],[4*ones(7,1),(1:7).']};
+default.array.imgs = {[[1*ones(7,1),(1:7).'];[2*ones(7,1),(1:7).']],[[3*ones(7,1),(1:7).'];[4*ones(7,1),(1:7).']]};
 default.array.img_comb = default.qlook.img_comb;
-default.config_regexp = 'image_.*thin_ice.xml';
-default.name = 'Image Mode Thin Ice';
+default.config_regexp = 'image_.*thin.xml';
+default.name = 'Image Thin Ice Mode';
 defaults{end+1} = default;
 
 % high altitude mode
-default.qlook.img_comb = [1e-05 -inf 3e-06];
-default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
-default.sar.imgs = default.qlook.imgs;
-default.array.imgs = default.qlook.imgs;
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(7,1),(1:7).']};
+default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).']};
+default.array.imgs = {[[1*ones(7,1),(1:7).'];[2*ones(7,1),(1:7).']]};
 default.array.img_comb = default.qlook.img_comb;
-default.config_regexp = 'survey_.*high_altitude.xml';
+default.config_regexp = 'image_.*high_altitude.xml';
 default.name = 'High Altitude Mode';
 defaults{end+1} = default;
 
-% deconvolution mode
+% survey mode deconvolution
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).'],[5*ones(4,1),(1:4).']};
+default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).'],[4*ones(7,1),(1:7).'],[5*ones(7,1),(1:7).'],[6*ones(7,1),(1:7).']};
+default.array.imgs = {[[1*ones(7,1),(1:7).'];[2*ones(7,1),(1:7).']],[[3*ones(7,1),(1:7).'];[4*ones(7,1),(1:7).']],[[5*ones(7,1),(1:7).'];[6*ones(7,1),(1:7).']]};
+default.array.img_comb = default.qlook.img_comb;
+default.config_regexp = 'survey_.*DECONVOLUTION.xml';
+default.name = 'Deconvolution Mode';
+defaults{end+1} = default;
+
+% image mode deconvolution
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
-default.config_regexp = 'survey_.*DECONVOLUTION.xml';
+default.config_regexp = 'image_.*DECONVOLUTION.xml';
 default.name = 'Deconvolution Mode';
 defaults{end+1} = default;
 

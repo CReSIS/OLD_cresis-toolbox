@@ -141,6 +141,10 @@ if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
 end
 
+if ~isfield(ctrl.cluster,'mcc_delete_output') || isempty(ctrl.cluster.mcc_delete_output)
+  ctrl.cluster.mcc_delete_output = false;
+end
+
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
   % -m n: no mail
   % -l nodes=1:ppn=%p: 1 compute node and %p core/processors on the node.

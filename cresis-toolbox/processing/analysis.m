@@ -38,16 +38,21 @@ if ~isfield(param,'analysis') || isempty(param.analysis)
   error('The analysis field (worksheet) is missing.');
 end
 
-if ~isfield(param.analysis,'out_path') || isempty(param.analysis.out_path)
-  param.analysis.out_path = 'analysis';
+if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
+  param.analysis.block_size = 6000;
 end
 
-if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
-  error('param.analysis.block_size must be specified');
+if ~isfield(param.analysis,'cmd') || isempty(param.analysis.cmd)
+  ctrl_chain = {};
+  return;
 end
 
 if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
   param.analysis.imgs = {[1 1]};
+end
+
+if ~isfield(param.analysis,'out_path') || isempty(param.analysis.out_path)
+  param.analysis.out_path = 'analysis';
 end
 
 if ~isfield(param.analysis,'presums') || isempty(param.analysis.presums)
@@ -62,12 +67,17 @@ end
 param.analysis.surf_layer.existence_check = false;
 
 % For each command in the list, set its default settings
+enabled_cmds = 0;
 for cmd_idx = 1:length(param.analysis.cmd)
   cmd = param.analysis.cmd{cmd_idx};
   
   if ~isfield(cmd,'en') || isempty(cmd.en)
     cmd.en = true;
   end
+  if ~cmd.en
+    continue;
+  end
+  enabled_cmds = enabled_cmds + 1;
   
   if ~isfield(cmd,'out_path') || isempty(cmd.out_path)
     cmd.out_path = param.analysis.out_path;
@@ -271,6 +281,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
   
   % Update the command structure
   param.analysis.cmd{cmd_idx} = cmd;
+end
+
+if enabled_cmds == 0
+  ctrl_chain = {};
+  return;
 end
 
 %% Setup processing
@@ -665,7 +680,7 @@ for img = 1:length(param.analysis.imgs)
           Nt = cmd.Nt;
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*cpu_time_mult;
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
           sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
         end
         
