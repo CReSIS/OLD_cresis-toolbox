@@ -326,7 +326,6 @@ if param.elev_comp == 3
   Surface_Elev = DSurface;
   lay.layers{end}(~isfinite(lay.layers{end})) = NaN;
   % Do not add first layer which is always surface
-  DLayers{1} = DSurface;
   for layer_idx = 2:length(lay.layers)
     DLayers{end + 1} = mdata.Elevation - lay.layers{1}*c/2 - (lay.layers{layer_idx}-lay.layers{1})*c/2/sqrt(param.er_ice);
   end
@@ -334,8 +333,8 @@ if param.elev_comp == 3
   % Example: param.depth = '[100 120]';
   % Example: param.depth = '[publish_echogram_switch(Bbad,0.25,Surface_Elev,-1600,DBottom,-100),max(Surface_Elev+50)]';
   
-  max_components = DLayers{2};
-  for dlayer_idx = 3:length(DLayers)
+  max_components = DLayers{1};
+  for dlayer_idx = 2:length(DLayers)
     max_components = max(max_components, DLayers{dlayer_idx});
   end
 
@@ -354,13 +353,12 @@ elseif param.elev_comp == 2
   Depth = depth;
   DSurface = lay.layers{1}; % All zero
   Surface_Depth = DSurface;
-  DLayers{1} = DSurface;
   for layer_idx = 2:length(lay.layers)
     DLayers{end + 1} = interp1(depth_time,depth,lay.layers{layer_idx});
   end
 
-  max_components = DLayers{2};
-  for dlayer_idx = 3:length(DLayers)
+  max_components = DLayers{1};
+  for dlayer_idx = 2:length(DLayers)
     max_components = max(max_components, DLayers{dlayer_idx});
   end
 
@@ -380,15 +378,13 @@ else
   DSurface = DSurface*c/2/sqrt(param.er_ice);
   Surface_Depth = DSurface;
 
-  DLayers{1} = DSurface;
   for layer_idx = 2:length(lay.layers)
     DLayers{end + 1} = lay.layers{layer_idx} - mean_surface_time + fast_time_correction;
     DLayers{end} = DLayers{end}*c/2/sqrt(param.er_ice);
   end
 
-  % NOTE[reece]: Unsure whether to include surface -- tentatively not
-  max_components = DLayers{2};
-  for dlayer_idx = 3:length(DLayers)
+  max_components = DLayers{1};
+  for dlayer_idx = 2:length(DLayers)
     max_components = max(max_components, DLayers{dlayer_idx});
   end
 
@@ -719,41 +715,37 @@ if ~isempty(param.caxis)
 end
 
 echo_info.h_title = title(ah_echo,sprintf('Data Frame ID: %s', param.frm_id),'Interpreter','none','FontWeight','normal');
+echo_info.h_layers = {};
 
-% Plot surface and bottom layer
+% Plot layers
 hold(ah_echo,'on');
 if param.plot_quality
 
   for layer_idx = 1:length(DLayers)
-    % Others
     moderate_mask = lay.qualities{quality_idx}~=2;
     derived_mask = lay.qualities{quality_idx}~=3;
     good_mask = lay.qualities{quality_idx}==2 | lay.qualities{quality_idx}==3;
     
     tmp_layer = DLayers{layer_idx};
     tmp_layer(good_mask) = NaN;
-    good_layer = plot(ah_echo,tmp_layer,'g--');
+    good_handle = plot(ah_echo,tmp_layer,'g--');
     
     tmp_layer = DLayers{layer_idx};
     tmp_layer(moderate_mask) = NaN;
-    moderate_layer = plot(ah_echo,tmp_layer,'y--');
+    moderate_handle = plot(ah_echo,tmp_layer,'y--');
     
     tmp_layer = DLayers{layer_idx};
     tmp_layer(derived_mask) = NaN;
-    derived_layer = plot(ah_echo,tmp_layer,'r--');
+    derived_handle = plot(ah_echo,tmp_layer,'r--');
 
-    all_masks = [good_layer, moderate_layer, derived_layer];
-    if layer_idx == 1
-      echo_info.h_surf = all_masks;
-    else
-      echo_info.h_bot = all_masks;
-    end
+    plot_handles = [good_handle, moderate_handle, derived_handle];
+    echo_info.h_layers{end + 1} = plot_handles;
 
   end
 else
-  echo_info.h_surf = plot(ah_echo,DLayers{1},'--m');
+  echo_info.h_layers{1} = plot(ah_echo,DLayers{1},'--m');
   for layer_idx = 2:length(DLayers)
-    echo_info.h_bot = plot(ah_echo,DLayers{layer_idx},'--r');
+    echo_info.h_layers{end + 1} = plot(ah_echo,DLayers{layer_idx},'--r');
   end
 end
 hold(ah_echo,'off');

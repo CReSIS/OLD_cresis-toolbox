@@ -454,8 +454,9 @@ for frm_idx = 1:length(frms)
     echo_param.frm_id = frms{frm_idx}.frm_id;
     
     echo_info = publish_echogram(echo_param,mdata,lay, surface_lay.layerData{1});
-    set(echo_info.h_surf,'Visible','off');
-    set(echo_info.h_bot,'Visible','off');
+    for handle_idx = 1:length(echo_info.h_layers)
+      set(echo_info.h_layers{handle_idx},'Visible','off');
+    end
     set(echo_info.fig_hand(1),'Name',param.post.data_dirs{1});
     
     % Update title (handle segment wrapping from one day to the next)
@@ -513,8 +514,9 @@ for frm_idx = 1:length(frms)
     % =====================================================================
     % Plot echogram w/ layers
     if param.post.layers_en
-      set(echo_info.h_surf,'Visible','on')
-      set(echo_info.h_bot,'Visible','on')
+      for handle_idx = 1:length(echo_info.h_layers)
+        set(echo_info.h_layers{handle_idx},'Visible','on');
+      end
       
       % Remove current file
       echo_fn = sprintf('%s*_2echo_picks.%s',frms{frm_idx}.frm_id,param.post.img_type);
