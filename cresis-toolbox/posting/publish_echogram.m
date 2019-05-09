@@ -726,6 +726,7 @@ hold(ah_echo,'on');
 if param.plot_quality
 
   for layer_idx = 1:length(DLayers)
+    quality_idx = layer_idx + 1;  % First quality layer is surface
     moderate_mask = lay.qualities{quality_idx}~=2;
     derived_mask = lay.qualities{quality_idx}~=3;
     good_mask = lay.qualities{quality_idx}==2 | lay.qualities{quality_idx}==3;
