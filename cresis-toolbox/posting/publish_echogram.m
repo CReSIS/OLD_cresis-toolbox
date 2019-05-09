@@ -19,11 +19,15 @@ function echo_info = publish_echogram(param,mdata,lay,surface_layer)
 %     loaded from physical_constants.
 %  .plot_quality: boolean scalar, default is false, if true, plots each
 %     layer with colors corresponding to the layers quality
+% lay: structure containing layerData for layers to plot
+%   .layerData: structure containing picking data for each layer to be 
+%       plotted
+% surface_layer: the layerData for the surface layer
+%   .value: the manual and automatic picks for the surface layer
 % echo_info: structure with handles to plots/axes
 %  .ah_echo_time: time axis handle
 %  .ah_echo: depth axis handle
-%  .h_surf: surface plot handle
-%  .h_bot: bottom plot handle
+%  .h_layers: plot handles for each layer
 %
 % Example: see run_publish_echogram
 %
