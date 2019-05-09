@@ -583,7 +583,6 @@ for frm_idx = 1:length(frms)
     % Quality of thickness is the lowest/worst confidence level of the surface
     % and bottom picks which each have their own quality level
     % (higher quality numbers mean lower confidence, so we take the max)
-    % TODO[reece]: Is the second param here meant to be a scalar?
     Quality = max(surface_lay.layerData{1}.quality,lay.layerData{end}.quality(1));
 
     % Compute seconds of day relative to the data frame ID
