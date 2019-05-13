@@ -20,14 +20,14 @@ if 1
   params = ct_set_params(params,'cmd.frms',[1]);
   
   % surfdata_source: input surfData directory (ct_filename_out)
-  dem.surfdata_source = 'test_surfData_scratch';
+  dem.surfdata_source = 'test_surfData_doa';
 %   dem.surfdata_source = 'surfData_englacial';
   
   % input_dir_name: input radar 3D image directory (ct_filename_out)
   dem.input_dir_name = 'test_music3D_mle';
   
   % output_dir_name: string containing output directory (ct_filename_out)
-  dem.output_dir_name = 'DEM_test';
+  dem.output_dir_name = 'test_DEM_doa';
 %   dem.output_dir_name = 'DEM_englacial';
   
   % geotiff_fn: the projection information is taken from this file and this
@@ -39,7 +39,7 @@ if 1
 %   dem.DOA_trim = 5;
 
   % DOA limits for slice browsing (outside this limits will not be displayed)
-  dem.doa_limits = [-60 60]; 
+  dem.doa_limits = [-25 25]; 
   
   % med_filt: medfilt2 arguments for spatial filtering (leave blank for no filtering)
   dem.med_filt = [];
@@ -67,8 +67,8 @@ if 1
   
   % surface_names: cell array of strings containing surface names that output
   % data products will be generated for
-%   dem.surface_names = {'top','bottom'};
-  dem.surface_names = {'top'};
+  dem.surface_names = {'top','bottom'};
+%   dem.surface_names = {'top'};
   
   % quality_surface_names: cell array of strings containing surface names
   % for the quality surface that corresponds to each entry in

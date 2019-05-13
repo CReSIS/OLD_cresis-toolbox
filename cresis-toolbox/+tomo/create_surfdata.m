@@ -86,6 +86,12 @@ else
   doa_method_flag = false;
 end
 
+if doa_method_flag && (~isfield(param.tomo_collate,'merge_bottom_above_top') ...
+    ||isempty(param.tomo_collate.merge_bottom_above_top))
+  merge_bottom_above_top = 1;
+else
+  merge_bottom_above_top = param.tomo_collate.merge_bottom_above_top;
+end
 %% Load surface and bottom information
 param_load_layers = param;
 param_load_layers.cmd.frms = round([-1,0,1] + param.load.frm);
@@ -198,8 +204,7 @@ if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
   sd.FCS.y = mdata.param_array.array_proc.fcs{1}{1}.y;
   sd.FCS.z = mdata.param_array.array_proc.fcs{1}{1}.z;
 end
-
-        
+      
 if ~doa_method_flag
   Nsv = size(mdata.Tomo.img,2);
 else
@@ -304,7 +309,7 @@ else
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
   % Ensure non-negative ice thickness
-  if exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
+  if merge_bottom_above_top && exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
     surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
   end
     
@@ -1348,7 +1353,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
           surf.y = doa_surface.y;
           % Ensure non-negative ice thickness
-          if exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
+          if merge_bottom_above_top && exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
             surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
           end
           surf.plot_name_values = plot_name_values;
@@ -1360,7 +1365,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         surf.x = doa_surface.x;
         surf.y = doa_surface.y;
         % Ensure non-negative ice thickness
-        if exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
+        if merge_bottom_above_top && exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
           surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
         end
         surf.name = surf_name;
