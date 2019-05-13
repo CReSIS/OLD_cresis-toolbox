@@ -1125,6 +1125,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     x = DIM_costmatrix - min(DIM_costmatrix(:));
     x = 200 .* (x ./ max(DIM_costmatrix(:)));
     DIM_costmatrix = x;
+    
     %% DoA-to-DoA transition model
     % Obtained from geostatistical analysis of 2014 Greenland P3
     transition_mu = [2.0436 2.3331 2.5009 3.3719 4.6784 5.6978 6.5621 7.5174 8.5156 9.5651 10.5363 11.5323 12.5066 13.5002 14.4998 15.5585 16.5564 17.5435 18.5288 19.5175 20.5071 21.5108 22.5106 23.4993   24.4847 25.4574 26.4393 27.4864 28.4248 29.1076 29.7335 32.9690 34.1460 34.6690 35.4782 36.4208 37.4689 38.4754 39.4688 40.4474 41.4559 42.4452 43.4168 44.4374 45.4158 46.4087 47.4159 48.4306 49.4311 50.4148 51.4397 52.4642 53.4303 54.4758 55.4716 56.4896 57.5388 58.5285 59.4507 60.4436 61.4986 62.5633 62.6210 62.6788];
@@ -1192,8 +1193,6 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
     
   elseif strcmpi(cmd,'c3d_rnn')
-    fprintf('  C3D/RNN (%s)\n', datestr(now));
-    
     c3d_rnn.dwnsammat_dir = fullfile(ct_filename_out(param, 'C3D_RNN_temporary_resources'), '');
     c3d_rnn.dwnsamnpy_dir = fullfile(ct_filename_out(param, 'C3D_RNN_temporary_resources'), '');
     temp_str              = strfind(c3d_rnn.dwnsammat_dir, filesep);
@@ -1204,7 +1203,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     
     % Down-sample data and save file for each and every slice
     for rline = 1 : size(data, 3)
-      fusion = db(mdata.Tomo.img(:, :, rline));
+      fusion = db(mdata.Topography.img(:, :, rline));
       fusion(fusion>27) = 27;
       fusion = imresize(fusion, [64, 64]);
       fusion = mat2gray(fusion);
@@ -1266,8 +1265,8 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     end
     fprintf('\nFinished executing Python scripts for %s_%03.0f.\n\n',param.day_seg,param.proc.frm);
     
-    c3d_rnn.result_surface = ones(size(mdata.Tomo.img,2), size(mdata.Tomo.img,3));
-    c3d_rnn.result_bottom  = ones(size(mdata.Tomo.img,2), size(mdata.Tomo.img,3));
+    c3d_rnn.result_surface = ones(size(mdata.Topography.img,2), size(mdata.Topography.img,3));
+    c3d_rnn.result_bottom  = ones(size(mdata.Topography.img,2), size(mdata.Topography.img,3));
     
     sl_idx = 1;
     %% Get surface and bottom vectors from generated text file

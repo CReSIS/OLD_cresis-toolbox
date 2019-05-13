@@ -73,7 +73,7 @@ for tx_chan = 1:7
   tx_weights(tx_chan) = 1;
   phase_centers(:,tx_chan) = lever_arm(param, tx_weights, tx_chan);
 end
-
+phase_centers = phase_centers(:,[1 2 3 5 4 6 7]); %% IMPORTANT!!!! Apr 16 and later: realized tx/rx chan 4 and 5 were switched
 % Create waveforms directories if they do not exist
 if ~exist(base_dir,'dir')
   mkdir(base_dir);
@@ -183,6 +183,7 @@ param.max_duty_cycle = 0.12;
 param.create_IQ = false;
 param.tg.altitude_guard = 750*12*2.54/100;
 param.tg.staged_recording = true;
+param.tg.rg_stop_offset = [500 500 0 0];
 param.tg.Haltitude = 1250*12*2.54/100;
 param.tg.Hice_thick = 2500;
 param.fn = fullfile(base_dir,sprintf('survey_mode_3us_2wf_%.0fmthick_thin_ice.xml',param.tg.Hice_thick));
@@ -202,6 +203,50 @@ param.f1 = f1_list(freq_idx);
 [param.wfs(:).tx_mask] = deal(final_tx_mask);
 write_cresis_xml(param);
 
+%% Image Mode High Altitude
+% All Ice <3500 m, 500 +/- 250 m AGL
+param = struct('radar_name','mcords3','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
+param.max_tx = [40000 40000 40000 40000 40000 40000 40000 0]; param.max_data_rate = 150; param.flight_hours = 7; param.sys_delay = 12.18e-6; param.final_tx_mask = final_tx_mask;
+param.max_duty_cycle = 0.12;
+param.create_IQ = false;
+param.tg.altitude_guard = 3000*12*2.54/100;
+param.tg.staged_recording = [0 0];
+param.tg.rg_stop_offset = [0 0];
+param.tg.Haltitude = 9000*12*2.54/100;
+param.tg.Hice_thick = 3500;
+param.fn = fullfile(base_dir,'image_mode_10us_6wf_3500mhigh_altitude.xml');
+param.prf = 10000;
+param.presums = [15 15];
+param.wfs(1).atten = 0;
+param.wfs(2).atten = 0;
+DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [1 1 1 1 0 1 1 0] ./ Hwindow_orig;
+param.tx_weights = DDS_amp;
+param.tukey = 0.2;
+param.wfs(1).Tpd = 10e-6;
+param.wfs(2).Tpd = 10e-6;
+param.phase = final_DDS_phase{cal_settings(freq_idx)};
+param.tg.look_angle_deg = [-18 18];
+for wf = 1:length(param.tg.look_angle_deg)
+  nadir_vec = [0 0 1];
+  beam_vec = [0 sind(param.tg.look_angle_deg(wf)) cosd(param.tg.look_angle_deg(wf))];
+  nadir_delay = -nadir_vec * phase_centers;
+  beam_delay = -beam_vec * phase_centers;
+  nadir_delay = nadir_delay - nadir_delay(4);
+  beam_delay = beam_delay - beam_delay(4);
+  nadir_delay = nadir_delay / c;
+  beam_delay = beam_delay / c - nadir_delay; % Only include delay relative to nadir
+  beam_delay = [beam_delay - mean(beam_delay) 0];
+  param.wfs(wf).delay = (final_DDS_time{cal_settings(freq_idx)}/1e9 - beam_delay)*1e9;
+  if param.tg.look_angle_deg(wf) > 0
+    param.wfs(wf).tx_mask = [1 0 0 1 0 1 1 1];
+  else
+    param.wfs(wf).tx_mask = [1 1 1 1 1 0 0 0];
+  end
+end
+param.f0 = f0_list(freq_idx);
+param.f1 = f1_list(freq_idx);
+write_cresis_xml(param);
+
 %% Image Mode Thick Ice
 % All Ice <3500 m, 500 +/- 250 m AGL
 param = struct('radar_name','mcords3','num_chan',8,'aux_dac',[255 255 255 255 255 255 255 255],'version','10.0','TTL_prog_delay',650,'fs',1e9/9,'fs_sync',1e9/18,'fs_dds',1e9,'TTL_clock',1e9/18,'TTL_mode',[3e-6 290e-9 -1060e-9],'xml_version',2.0,'DDC_freq',0,'DDC_select',0);
@@ -210,7 +255,7 @@ param.max_duty_cycle = 0.12;
 param.create_IQ = false;
 param.tg.altitude_guard = 750*12*2.54/100;
 param.tg.staged_recording = [1 1 2 2 3 3];
-param.tg.rg_stop_offset = [500 500 500 500 0 0];
+param.tg.rg_stop_offset = [800 800 500 500 0 0];
 param.tg.Haltitude = 1250*12*2.54/100;
 param.tg.Hice_thick = 3500;
 param.fn = fullfile(base_dir,'image_mode_10us_6wf_3500mthick.xml');
@@ -222,7 +267,7 @@ param.wfs(3).atten = 0;
 param.wfs(4).atten = 0;
 param.wfs(5).atten = 0;
 param.wfs(6).atten = 0;
-DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [1 1 1 0 1 1 1 0] ./ Hwindow_orig;
+DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [1 1 1 1 0 1 1 0] ./ Hwindow_orig;
 param.tx_weights = DDS_amp;
 param.tukey = 0.2;
 param.wfs(1).Tpd = 1e-6;
@@ -245,7 +290,7 @@ for wf = 1:length(param.tg.look_angle_deg)
   beam_delay = [beam_delay - mean(beam_delay) 0];
   param.wfs(wf).delay = (final_DDS_time{cal_settings(freq_idx)}/1e9 - beam_delay)*1e9;
   if param.tg.look_angle_deg(wf) > 0
-    param.wfs(wf).tx_mask = [1 0 0 0 1 1 1 1];
+    param.wfs(wf).tx_mask = [1 0 0 1 0 1 1 1];
   else
     param.wfs(wf).tx_mask = [1 1 1 1 1 0 0 0];
   end
@@ -279,14 +324,14 @@ param.tg.staged_recording = [1 1 2 2];
 param.tg.rg_stop_offset = [1000 1000 0 0];
 param.tg.Haltitude = 1250*12*2.54/100;
 param.tg.Hice_thick = 2500;
-param.fn = fullfile(base_dir,'image_mode_10us_4wf_2000mthin.xml');
+param.fn = fullfile(base_dir,sprintf('image_mode_3us_4wf_%.0fmthin.xml', param.tg.Hice_thick));
 param.prf = 12000;
 param.presums = [3 3 13 13];
 param.wfs(1).atten = 26;
 param.wfs(2).atten = 26;
 param.wfs(3).atten = 0;
 param.wfs(4).atten = 0;
-DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [1 1 1 0 1 1 1 0] ./ Hwindow_orig;
+DDS_amp = final_DDS_amp{cal_settings(freq_idx)} .* [1 1 1 1 0 1 1 0] ./ Hwindow_orig;
 param.tx_weights = DDS_amp;
 param.tukey = 0.2;
 param.wfs(1).Tpd = 1e-6;
@@ -307,7 +352,7 @@ for wf = 1:length(param.tg.look_angle_deg)
   beam_delay = [beam_delay - mean(beam_delay) 0];
   param.wfs(wf).delay = (final_DDS_time{cal_settings(freq_idx)}/1e9 - beam_delay)*1e9;
   if param.tg.look_angle_deg(wf) > 0
-    param.wfs(wf).tx_mask = [1 0 0 0 1 1 1 1];
+    param.wfs(wf).tx_mask = [1 0 0 1 0 1 1 1];
   else
     param.wfs(wf).tx_mask = [1 1 1 1 1 0 0 0];
   end

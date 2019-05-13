@@ -8,6 +8,8 @@ function gps = read_gps_traj(in_fn, param)
 %  11   81   43875.00   76.53513100  291.27909300   108.733    2.4    0.0
 % 2002 Format:
 %   2  144   36120.00   78.24448929   15.49499684    64.135    2.9    2.6 29   0.49 10  2  0.0   0.64
+% 2018 Format:
+%    18  283   62620.00  -78.14931235  323.66596746  5033.078    1.9    1.8 17 23 40.0
 %
 % Input Args:
 %   in_fn (string) input .traj filename
@@ -17,6 +19,7 @@ function gps = read_gps_traj(in_fn, param)
 %     .delimiter_type = default is ' ', this is passed to textscan
 %     .input_format = string of char values, default '%f%f%f%f%f%f%f%f'
 %        other used value is '%f%f%f%f%f%f%f%f%f%f%f%f%f%f'
+%        or '%f%f%f%f%f%f%f%f%f%f%f%f%f%f'
 %     .year = year of data collection (since year is 2-digits in file, it could
 %        be ambiguous)
 %
@@ -41,6 +44,12 @@ function gps = read_gps_traj(in_fn, param)
 % % Read 2011 NASA .traj data:
 % traj_fin = '/cresis/data1/NASA/2011_Greenland_P3/110316.traj';
 % traj_param.time_reference = 'utc'; % Maybe gps?
+% gps = read_gps_traj(traj_fin,traj_param);
+% plot_gps(gps)
+%
+% % Read 2018 NASA .traj data:
+% traj_fin = '/cresis/snfs1/dataproducts/metadata/2018_Antarctica_DC8/Trajectory/181010_aa_l12_cfm_itrf14_29oct18_roth_amu2';
+% traj_param.time_reference = 'gps'; 
 % gps = read_gps_traj(traj_fin,traj_param);
 % plot_gps(gps)
 %
