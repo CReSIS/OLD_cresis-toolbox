@@ -547,7 +547,6 @@ for frm_idx = 1:length(frms)
   end
   
   % Create .csv files
-  % TODO[reece]: refactor this section to be layer-agnostic?
   if param.post.csv_en
     csv_dir = fullfile(post_path,'csv',day_segs{frm_idx});
     if ~exist(csv_dir,'dir')
