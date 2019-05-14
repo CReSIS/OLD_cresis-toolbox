@@ -45,6 +45,7 @@ if ~isfield(param,'sv_fh')
   sv_fh = @array_proc_sv; 
 end
 k = 4*pi*param.fc/c;
+M = param.M;
 
 if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
   %% Perform N-dimensional grid search
@@ -93,16 +94,32 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
       [~,A] = sv_fh(Nsv2,param.fc,param.y_pc,param.z_pc);
 %       A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta).' + param.y_pc*sin(theta).'));
       Pa  = A * inv(A'*A) * A';
-      J(idx) = abs(sum(sum(Pa .* DCM.')));
+      if  param.doa_seq && param.apriori.en
+        J(idx) = -(M*size(A,1)) * log(abs(sum(sum((eye(size(Pa))-Pa) .* DCM.'))));
+      else
+        J(idx) = abs(sum(sum(Pa .* DCM.')));
+      end
       
       % Incorporate the a priori pdf if available
       if  param.doa_seq && param.apriori.en
-        mean_doa = param.apriori.mean_doa;
-        var_doa  = param.apriori.var_doa;
-%         J_prior = (norm(theta - mean_doa))^2;
-%         J_prior = (theta - mean_doa).' * inv(diag(param.apriori.var_doa)) * (theta - mean_doa);
-        J_prior = (1./var_doa).' * (theta - mean_doa).^2;
-        J(idx) = log(J(idx)) - J_prior;
+        if 1
+          mean_doa = param.apriori.mean_doa;
+          var_doa  = param.apriori.var_doa;
+          J_prior = -1/2*(1./var_doa).' * (theta - mean_doa).^2;
+        else
+          % DON'T USE IT ..NOT FINALIZED YET
+          f_prior = log(param.apriori.f_prior);
+          theta_range = param.apriori.theta_range;
+          for doa_i = 1:length(theta)
+            [~,match_i(doa_i)] = min(abs(theta_range(:) - theta(doa_i)));
+          end
+          J_prior = prod(f_prior(match_i));
+        end
+        J(idx) =  J(idx) + J_prior;
+        
+        if isinf(J(idx))
+          J(idx) = 99999;
+        end
       end
     end
     
