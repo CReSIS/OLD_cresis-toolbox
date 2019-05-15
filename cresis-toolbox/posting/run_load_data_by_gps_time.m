@@ -23,7 +23,7 @@ clear param echo_param;
 %   picker: Loads a GPS date range from cursor information from imb.picker
 %   arbitrary: Allows a specific GPS date range to be specified
 %   file: Loads a data frame and plots the whole data frame
-data_load_method = 'picker'; % <== CHANGE HERE
+data_load_method = 'file'; % <== CHANGE HERE
 
 if strcmpi(data_load_method,'picker')
   
@@ -57,7 +57,7 @@ elseif strcmpi(data_load_method,'arbitrary')
   
 elseif strcmpi(data_load_method,'file')
   % Load data associated with a frame
-  load('/cresis/snfs1/dataproducts/ct_data/snow/2017_Greenland_P3/CSARP_post/CSARP_qlook/20170309_01/Data_20170309_01_150.mat','GPS_time') % <== CHANGE HERE
+  load('X:/ct_data/rds/2016_Greenland_Polar6/CSARP_post/CSARP_layerData/20160512_02/Data_20160512_02_001.mat','GPS_time') % <== CHANGE HERE
   param.start.gps_time = GPS_time(1);
   param.stop.gps_time = GPS_time(end);
   
@@ -68,14 +68,14 @@ end
 % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
 param.radar_name = 'rds'; % <== CHANGE HERE
 
-param.season_name = '1993_Greenland_P3'; % <== CHANGE HERE
+param.season_name = '2016_Greenland_Polar6'; % <== CHANGE HERE
 
 % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
 echo_param.elev_comp = 3; % <== CHANGE HERE
 
 % param.out: output data product to use. For example:
 %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-param.out = 'qlook'; % <== CHANGE HERE
+param.out = 'test'; % <== CHANGE HERE
 
 % param.img_name: output data product image. For example:
 %   '': combined product, 'img_01_', , 'img_02_'
@@ -143,12 +143,12 @@ echo_params = echo_param;
 % Enable by changing to "1". Copy and paste this section to compare many
 % images. These images will all be interpolated onto the first image.
 
-if 0
+if 1
   % data_load_method: string containing "file" or "arbitrary"
   %   picker: Loads a GPS date range from cursor information from imb.picker
   %   arbitrary: Allows a specific GPS date range to be specified
   %   file: Loads a data frame and plots the whole data frame
-  data_load_method = 'picker'; % <== CHANGE HERE
+  data_load_method = 'file'; % <== CHANGE HERE
   
   if strcmpi(data_load_method,'picker')
     
@@ -183,7 +183,7 @@ if 0
     
   elseif strcmpi(data_load_method,'file')
     % Load data associated with a frame
-    load('/cresis/snfs1/dataproducts/ct_data/snow/2016_Greenland_P3/CSARP_post/CSARP_qlook/20160503_02/Data_20160503_02_191.mat','GPS_time') % <== CHANGE HERE
+    load('X:/ct_data/rds/2016_Greenland_Polar6/CSARP_post/CSARP_layerData/20160512_02/Data_20160512_02_001.mat','GPS_time') % <== CHANGE HERE
     param.start.gps_time = GPS_time(1);
     param.stop.gps_time = GPS_time(end);
     
@@ -194,14 +194,14 @@ if 0
   % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
   param.radar_name = 'rds'; % <== CHANGE HERE
   
-  param.season_name = '1993_Greenland_P3'; % <== CHANGE HERE
+  param.season_name = '2016_Greenland_Polar6'; % <== CHANGE HERE
   
   % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
   echo_param.elev_comp = 3; % <== CHANGE HERE
   
   % param.out: output data product to use. For example:
   %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-  param.out = 'qlook'; % <== CHANGE HERE
+  param.out = 'test'; % <== CHANGE HERE
   
   % param.img_name: output data product image. For example:
   %   '': combined product, 'img_01_', , 'img_02_'
