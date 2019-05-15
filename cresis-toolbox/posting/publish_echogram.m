@@ -337,9 +337,13 @@ if param.elev_comp == 3
   % Example: param.depth = '[100 120]';
   % Example: param.depth = '[publish_echogram_switch(Bbad,0.25,Surface_Elev,-1600,DBottom,-100),max(Surface_Elev+50)]';
   
-  max_components = DLayers{1};
-  for dlayer_idx = 2:length(DLayers)
-    max_components = max(max_components, DLayers{dlayer_idx});
+  if ~isempty(DLayers)
+    max_components = DLayers{1};
+    for dlayer_idx = 2:length(DLayers)
+      max_components = max(max_components, DLayers{dlayer_idx});
+    end
+  else
+    max_components = lay.Bottom;
   end
 
   DBottom = max_components;
@@ -361,9 +365,13 @@ elseif param.elev_comp == 2
     DLayers{end + 1} = interp1(depth_time,depth,lay.layers{layer_idx});
   end
 
-  max_components = DLayers{1};
-  for dlayer_idx = 2:length(DLayers)
-    max_components = max(max_components, DLayers{dlayer_idx});
+  if ~isempty(DLayers)
+    max_components = DLayers{1};
+    for dlayer_idx = 2:length(DLayers)
+      max_components = max(max_components, DLayers{dlayer_idx});
+    end
+  else
+    max_components = lay.Bottom;
   end
 
   DBottom = max_components;
@@ -387,9 +395,13 @@ else
     DLayers{end} = DLayers{end}*c/2/sqrt(param.er_ice);
   end
 
-  max_components = DLayers{1};
-  for dlayer_idx = 2:length(DLayers)
-    max_components = max(max_components, DLayers{dlayer_idx});
+  if ~isempty(DLayers)
+    max_components = DLayers{1};
+    for dlayer_idx = 2:length(DLayers)
+      max_components = max(max_components, DLayers{dlayer_idx});
+    end
+  else
+    max_components = lay.Bottom;
   end
 
   DBottom = max_components;

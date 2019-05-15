@@ -87,9 +87,12 @@ end
 if isempty(param.post.pdf_en)
   param.post.pdf_en = 0;
 end
-if ~isfield(param.post, 'layers') || isempty(param.post.layers)
+if ~isfield(param.post, 'layers')
+  param.post.layers = [];
+end
+if param.post.layers_en && isempty(param.post.layers)
   param.post.layers = [struct('name', 'surface', 'source', 'layerData') ...
-                      struct('name', 'bottom', 'source', 'layerData')];
+                       struct('name', 'bottom', 'source', 'layerData')];
 end
 if ~isfield(param.post, 'surface_source')
   param.post.surface_source = struct('name', 'surface', 'source', 'layerData');
@@ -306,7 +309,10 @@ if param.post.maps_en
   end
 end
 
-layers = opsLoadLayers(param, param.post.layers);
+layers = [];
+if param.post.layers_en
+  layers = opsLoadLayers(param, param.post.layers);
+end
 surface_layer = {opsLoadLayers(param, param.post.surface_source)};
 
 layers_to_post = {};
@@ -334,6 +340,11 @@ for frm_idx = 1:length(frms)
   lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation');
   
   lay = opsInterpLayersToMasterGPSTime(lay,layers_to_post,param.post.ops.gaps_dist);
+  
+  if ~param.post.layers_en
+    lay.layerData = {};
+  end
+  
   surface_lay = opsInterpLayersToMasterGPSTime(lay,surface_layer,param.post.ops.gaps_dist);
 
   lay.Surface = surface_lay.layerData{1}.value{2}.data;
@@ -341,7 +352,6 @@ for frm_idx = 1:length(frms)
     lay.Bottom = lay.layerData{end}.value{2}.data;
   else
     lay.Bottom = NaN*zeros(size(lay.Surface));
-    lay.layers{end + 1} = lay.Bottom;
   end
     
   if isnan(lay.GPS_time)
@@ -582,7 +592,12 @@ for frm_idx = 1:length(frms)
     % Quality of thickness is the lowest/worst confidence level of the surface
     % and bottom picks which each have their own quality level
     % (higher quality numbers mean lower confidence, so we take the max)
-    Quality = max(surface_lay.layerData{1}.quality,lay.layerData{end}.quality(1));
+    if param.post.layers_en
+      bottom_quality = lay.layerData{end}.quality(1);
+    else
+      bottom_quality = lay.Bottom;  % Should be NaN array size of Surface
+    end
+    Quality = max(surface_lay.layerData{1}.quality,bottom_quality);
 
     % Compute seconds of day relative to the data frame ID
     UTC_time = lay.GPS_time - utc_leap_seconds(lay.GPS_time(1));
