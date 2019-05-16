@@ -73,6 +73,8 @@ param.season_name = '2016_Greenland_Polar6'; % <== CHANGE HERE
 % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
 echo_param.elev_comp = 3; % <== CHANGE HERE
 
+echo_param.plot_quality = true; % <== CHANGE HERE
+
 % param.out: output data product to use. For example:
 %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
 param.out = 'test'; % <== CHANGE HERE
@@ -124,7 +126,7 @@ param.use_master_surf = 0;
 
 % param.layer_params: set to plot layers on echograms
 layer_params = []; idx = 0;
-if 0 % Enable to plot layers on echograms
+if 1 % Enable to plot layers on echograms
   idx = idx+1;
   layer_params(idx).name = 'surface';
   layer_params(idx).source = 'layerData';
@@ -202,6 +204,8 @@ if 1
   % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
   echo_param.elev_comp = 3; % <== CHANGE HERE
   
+  echo_param.plot_quality = true; % <== CHANGE HERE
+
   % param.out: output data product to use. For example:
   %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
   param.out = 'test'; % <== CHANGE HERE
@@ -253,7 +257,7 @@ if 1
 
   % param.layer_params: set to plot layers on echograms
   layer_params = []; idx = 0;
-  if 0 % Enable to plot layers on echograms
+  if 1 % Enable to plot layers on echograms
     idx = idx+1;
     layer_params(idx).name = 'surface';
     layer_params(idx).source = 'layerData';
