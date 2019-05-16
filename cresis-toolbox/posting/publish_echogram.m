@@ -56,13 +56,8 @@ if ~isfield(param,'time_offset') || isempty(param.time_offset)
   % Adds an offset to the two way travel time tics (in seconds)
   param.time_offset = 0;
 end
-if ~isfield(param,'plot_quality') || isempty(param.plot_quality) 
-  if isfield(surface_layer,'quality')
-    % Color of layer plots will represent the quality level
-    param.plot_quality = true;
-  else
-    param.plot_quality = false;
-  end
+if ~isfield(param,'plot_quality')
+  param.plot_quality = false;
 end
 if ~isreal(mdata.Data)
   warning('Input data are complex. Taking the abs()^2 of the data.');
@@ -75,9 +70,6 @@ end
 lay.layers = {};
 lay.qualities = {};
 lay.layers{1} = surface_layer.value{2}.data;
-if param.plot_quality
-  lay.qualities{1} = surface_layer.quality;
-end
 for layer_idx = 1:length(lay.layerData)
   lay.layers{end + 1} = lay.layerData{layer_idx}.value{2}.data;
   if param.plot_quality
@@ -738,10 +730,9 @@ hold(ah_echo,'on');
 if param.plot_quality
 
   for layer_idx = 1:length(DLayers)
-    quality_idx = layer_idx + 1;  % First quality layer is surface
-    moderate_mask = lay.qualities{quality_idx}~=2;
-    derived_mask = lay.qualities{quality_idx}~=3;
-    good_mask = lay.qualities{quality_idx}==2 | lay.qualities{quality_idx}==3;
+    moderate_mask = lay.qualities{layer_idx}~=2;
+    derived_mask = lay.qualities{layer_idx}~=3;
+    good_mask = lay.qualities{layer_idx}==2 | lay.qualities{layer_idx}==3;
     
     tmp_layer = DLayers{layer_idx};
     tmp_layer(good_mask) = NaN;
