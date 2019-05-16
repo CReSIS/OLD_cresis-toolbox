@@ -29,9 +29,9 @@ function echo_info = publish_echogram(param,mdata,lay,surface_layer)
 %  .ah_echo: depth axis handle
 %  .h_layers: plot handles for each layer
 %
-% Example: see run_publish_echogram
+% Example: see run_load_data_by_gps_time
 %
-% Author: John Paden
+% Authors: John Paden, Reece Mathews
 %
 % See also: publish_map, run_publish_echogram
 

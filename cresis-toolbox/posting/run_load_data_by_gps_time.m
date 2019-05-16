@@ -13,7 +13,7 @@
 % the command is run. Therefore, it is best to size the figure window to
 % the size you want and then run this command.
 %
-% Author: John Paden
+% Authors: John Paden, Reece Mathews
 
 %% User Settings
 % ====================================================================

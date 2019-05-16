@@ -4,7 +4,7 @@ function create_posting(param, param_override)
 % Generalized function for posting data. Should be called from
 % run_create_posting.
 %
-% Author: Shashanka Jagarlapudi, John Paden, Logan Smith, Theresa Stumpf
+% Authors: Shashanka Jagarlapudi, John Paden, Logan Smith, Theresa Stumpf, Reece Mathews
 %
 % See also make_layer_files, run_make_layer_files, run_picker, picker
 
