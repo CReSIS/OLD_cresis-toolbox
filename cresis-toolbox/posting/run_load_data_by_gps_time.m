@@ -17,7 +17,7 @@
 
 %% User Settings
 % ====================================================================
-clear param echo_param;
+clear param echo_param lay ds;
 
 % data_load_method: string containing "file" or "arbitrary"
 %   picker: Loads a GPS date range from cursor information from imb.picker
@@ -78,6 +78,8 @@ echo_param.plot_quality = true; % <== CHANGE HERE
 % param.out: output data product to use. For example:
 %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
 param.out = 'test'; % <== CHANGE HERE
+
+surface_source = struct('name','surface','source','layerData', 'layerdata_source', 'layerData'); % <== CHANGE HERE
 
 % param.img_name: output data product image. For example:
 %   '': combined product, 'img_01_', , 'img_02_'
@@ -505,7 +507,32 @@ for param_idx = 1:length(params)
   
   lay.GPS_time = ds.GPS_time;
   lay.Elevation = ds.Elevation;
-  lay.layerData{1}.value{1}.data = NaN*zeros(size(ds.Surface));
+      
+  master = [];
+  master.GPS_time = ds.GPS_time;
+  master.Latitude = ds.Latitude;
+  master.Longitude = ds.Longitude;
+  master.Elevation = ds.Elevation;
+
+  if ds.Latitude<0
+    ds.param_records.post.location = 'antarctic';
+  else
+    ds.param_records.post.location = 'arctic';
+  end
+  
+  global gRadar;
+  param = merge_structs(param,gRadar);
+  param.day_seg = ds.frm_id(1:11);
+  param.cmd.frms = ds.start_frame:ds.stop_frame;
+  param.post.ops.location = ds.param_records.post.location;
+
+  surface_layer = {opsLoadLayers(param, surface_source)};
+  
+  surface_lay = opsInterpLayersToMasterGPSTime(master,surface_layer,[300 60]);
+  surface_data = surface_lay.layerData{1}.value{2}.data;
+
+  lay.layerData{1}.value{1}.data = NaN*zeros(size(surface_data));
+
   if param.use_master_surf
     % Use master surface (useful when comparing multiple radar outputs
     % which each have their own surface variable and a common surface should be used
@@ -517,42 +544,25 @@ for param_idx = 1:length(params)
         keyboard
       end
     else
-      master_surf_filt = ds.Surface;
+      master_surf_filt = surface_data;
       master_surf_gps_time = lay.GPS_time;
-      lay.layerData{1}.value{2}.data = ds.Surface;
+      lay.layerData{1}.value{2}.data = surface_data;
     end
   else
-    lay.layerData{1}.value{2}.data = ds.Surface;
+    lay.layerData{1}.value{2}.data = surface_data;
   end
   
   layer_params = param.layer_params;
-
-  if ds.Latitude<0
-    ds.param_records.post.location = 'antarctic';
-  else
-    ds.param_records.post.location = 'arctic';
-  end
   
   if isempty(layer_params)
-    lay.layerData{2}.value{1}.data = NaN*zeros(size(ds.Surface));
-    lay.layerData{2}.value{2}.data = NaN*zeros(size(ds.Surface));
+    lay.layerData{2}.value{1}.data = NaN*zeros(size(surface_data));
+    lay.layerData{2}.value{2}.data = NaN*zeros(size(surface_data));
     
   else
     %% Load bottom layer
-    global gRadar;
-    param = merge_structs(param,gRadar);
-    param.day_seg = ds.frm_id(1:11);
-    param.cmd.frms = ds.start_frame:ds.stop_frame;
-    param.post.ops.location = ds.param_records.post.location;
     
     layers = opsLoadLayers(param,layer_params);
     
-    master = [];
-    master.GPS_time = ds.GPS_time;
-    master.Latitude = ds.Latitude;
-    master.Longitude = ds.Longitude;
-    master.Elevation = ds.Elevation;
-
     % Interpolate all layers onto a common master reference
     for lay_idx = 1:length(layers)
       ops_layer = [];
