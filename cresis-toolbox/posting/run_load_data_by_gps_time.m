@@ -57,7 +57,7 @@ elseif strcmpi(data_load_method,'arbitrary')
   
 elseif strcmpi(data_load_method,'file')
   % Load data associated with a frame
-  load('X:/ct_data/rds/2016_Greenland_Polar6/CSARP_post/CSARP_layerData/20160512_02/Data_20160512_02_001.mat','GPS_time') % <== CHANGE HERE
+  load('X:/ct_data/snow/2012_Greenland_P3/CSARP_post/CSARP_qlook/20120330_04/Data_20120330_04_063.mat','GPS_time') % <== CHANGE HERE
   param.start.gps_time = GPS_time(1);
   param.stop.gps_time = GPS_time(end);
   
@@ -66,20 +66,22 @@ else
 end
 
 % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
-param.radar_name = 'rds'; % <== CHANGE HERE
+param.radar_name = 'snow'; % <== CHANGE HERE
 
-param.season_name = '2016_Greenland_Polar6'; % <== CHANGE HERE
+param.season_name = '2012_Greenland_P3'; % <== CHANGE HERE
 
 % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
-echo_param.elev_comp = 3; % <== CHANGE HERE
+echo_param.elev_comp = 2; % <== CHANGE HERE
 
-echo_param.plot_quality = true; % <== CHANGE HERE
+echo_param.plot_quality = false; % <== CHANGE HERE
 
 % param.out: output data product to use. For example:
 %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-param.out = 'test'; % <== CHANGE HERE
+param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
 
-surface_source = struct('name','surface','source','layerData', 'layerdata_source', 'layerData'); % <== CHANGE HERE
+gaps_dist = [100 30];
+
+surface_source = struct('name','surface','source','layerData', 'layerdata_source','layerData_koenig'); % <== CHANGE HERE
 
 % param.img_name: output data product image. For example:
 %   '': combined product, 'img_01_', , 'img_02_'
@@ -89,7 +91,7 @@ if echo_param.elev_comp == 3
   echo_param.depth = '[min(Surface_Elev)-3500 max(Surface_Elev)+200]'; % <== CHANGE HERE
   %echo_param.depth = '[1594.9 1635.1]';
 else
-  echo_param.depth = '[min(Surface_Depth)-20 max(Surface_Depth)+200]'; % <== CHANGE HERE
+  echo_param.depth = '[min(Surface_Depth)-2 max(Surface_Depth) +20]'; % <== CHANGE HERE
   %echo_param.depth = '[-5 120]';
 end
 echo_param.depth_offset = 0;
@@ -129,15 +131,10 @@ param.use_master_surf = 0;
 % param.layer_params: set to plot layers on echograms
 layer_params = []; idx = 0;
 if 1 % Enable to plot layers on echograms
-  idx = idx+1;
-  layer_params(idx).name = 'surface';
-  layer_params(idx).source = 'layerData';
-  idx = idx+1;
-  layer_params(idx).name = 'jordan';
-  layer_params(idx).source = 'ops';
-  idx = idx+1;
-  layer_params(idx).name = 'bottom';
-  layer_params(idx).source = 'layerData';
+  layer_params = struct('name','surface','source','layerData','layerdata_source','layerData_koenig');
+  for idx = 2:30
+    layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerData','layerdata_source','layerData_koenig');
+  end
 end
 param.layer_params = layer_params;
 
@@ -190,7 +187,7 @@ if 1
     
   elseif strcmpi(data_load_method,'file')
     % Load data associated with a frame
-    load('X:/ct_data/rds/2016_Greenland_Polar6/CSARP_post/CSARP_layerData/20160512_02/Data_20160512_02_001.mat','GPS_time') % <== CHANGE HERE
+    load('X:/ct_data/snow/2012_Greenland_P3/CSARP_post/CSARP_qlook/20120330_04/Data_20120330_04_063.mat','GPS_time') % <== CHANGE HERE
     param.start.gps_time = GPS_time(1);
     param.stop.gps_time = GPS_time(end);
     
@@ -199,18 +196,18 @@ if 1
   end
   
   % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
-  param.radar_name = 'rds'; % <== CHANGE HERE
+  param.radar_name = 'snow'; % <== CHANGE HERE
   
-  param.season_name = '2016_Greenland_Polar6'; % <== CHANGE HERE
+  param.season_name = '2012_Greenland_P3'; % <== CHANGE HERE
   
   % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
-  echo_param.elev_comp = 3; % <== CHANGE HERE
+  echo_param.elev_comp = 2; % <== CHANGE HERE
   
-  echo_param.plot_quality = true; % <== CHANGE HERE
+  echo_param.plot_quality = false; % <== CHANGE HERE
 
   % param.out: output data product to use. For example:
   %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-  param.out = 'test'; % <== CHANGE HERE
+  param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
   
   % param.img_name: output data product image. For example:
   %   '': combined product, 'img_01_', , 'img_02_'
@@ -220,7 +217,7 @@ if 1
     echo_param.depth = '[min(Surface_Elev)-3500 max(Surface_Elev)+200]'; % <== CHANGE HERE
     %echo_param.depth = '[1594.9 1635.1]';
   else
-    echo_param.depth = '[min(Surface_Depth)-20 max(Surface_Depth)+200]'; % <== CHANGE HERE
+    echo_param.depth = '[min(Surface_Depth)-2 max(Surface_Depth) +20]'; % <== CHANGE HERE
     %echo_param.depth = '[-5 120]';
   end
   echo_param.depth_offset = 0;
@@ -260,15 +257,10 @@ if 1
   % param.layer_params: set to plot layers on echograms
   layer_params = []; idx = 0;
   if 1 % Enable to plot layers on echograms
-    idx = idx+1;
-    layer_params(idx).name = 'surface';
-    layer_params(idx).source = 'layerData';
-    idx = idx+1;
-    layer_params(idx).name = 'jordan';
-    layer_params(idx).source = 'ops';
-    idx = idx+1;
-    layer_params(idx).name = 'bottom';
-    layer_params(idx).source = 'layerData';
+    layer_params = struct('name','surface','source','layerData','layerdata_source','layerData_koenig');
+    for idx = 2:30
+      layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerData','layerdata_source','layerData_koenig');
+    end
   end
   param.layer_params = layer_params;
   
@@ -528,7 +520,7 @@ for param_idx = 1:length(params)
 
   surface_layer = {opsLoadLayers(param, surface_source)};
   
-  surface_lay = opsInterpLayersToMasterGPSTime(master,surface_layer,[300 60]);
+  surface_lay = opsInterpLayersToMasterGPSTime(master,surface_layer,gaps_dist);
   surface_data = surface_lay.layerData{1}.value{2}.data;
 
   lay.layerData{1}.value{1}.data = NaN*zeros(size(surface_data));
@@ -573,7 +565,7 @@ for param_idx = 1:length(params)
       ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
       ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
       
-      load_lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
+      load_lay = opsInterpLayersToMasterGPSTime(master,ops_layer,gaps_dist);
       
       lay.layerData{end+1} = load_lay.layerData{1};
 
