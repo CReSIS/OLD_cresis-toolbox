@@ -127,10 +127,13 @@ layer_params = []; idx = 0;
 if 0 % Enable to plot layers on echograms
   idx = idx+1;
   layer_params(idx).name = 'surface';
+  layer_params(idx).source = 'layerData';
+  idx = idx+1;
+  layer_params(idx).name = 'jordan';
   layer_params(idx).source = 'ops';
   idx = idx+1;
   layer_params(idx).name = 'bottom';
-  layer_params(idx).source = 'ops';
+  layer_params(idx).source = 'layerData';
 end
 param.layer_params = layer_params;
 
@@ -253,10 +256,13 @@ if 1
   if 0 % Enable to plot layers on echograms
     idx = idx+1;
     layer_params(idx).name = 'surface';
+    layer_params(idx).source = 'layerData';
+    idx = idx+1;
+    layer_params(idx).name = 'jordan';
     layer_params(idx).source = 'ops';
     idx = idx+1;
     layer_params(idx).name = 'bottom';
-    layer_params(idx).source = 'ops';
+    layer_params(idx).source = 'layerData';
   end
   param.layer_params = layer_params;
   
@@ -555,30 +561,24 @@ for param_idx = 1:length(params)
       
       load_lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
       
-      if strcmpi(layer_params(lay_idx).name,'surface')
-        lay.layerData{1}.value{1}.data = load_lay.layerData{1}.value{1}.data;
-        lay.layerData{1}.value{2}.data = load_lay.layerData{1}.value{2}.data;
-      elseif strcmpi(layer_params(lay_idx).name,'bottom')
-        lay.layerData{2}.value{1}.data = load_lay.layerData{1}.value{1}.data;
-        lay.layerData{2}.value{2}.data = load_lay.layerData{1}.value{2}.data;
-      end
+      lay.layerData{end+1} = load_lay.layerData{1};
+
     end
   end
   
-  echo_info = publish_echogram(echo_param,ds,lay);
+  % Use first layerData as surface layer for publish_echogram
+  surface_layer = lay.layerData{1};
+  layers_to_plot = lay;
+  % Use remaining layerDatas as layers to be plotted in publish_echogram
+  layers_to_plot.layerData = layers_to_plot.layerData(2:end);
+
+  echo_info = publish_echogram(echo_param,ds,layers_to_plot,surface_layer);
   season_name = param.season_name;
   season_name(season_name=='_') = ' ';
   title(sprintf('%s %s %s to %s', param.radar_name, season_name, ...
     datestr(epoch_to_datenum(param.start.gps_time)), datestr(epoch_to_datenum(param.stop.gps_time),'HH:MM:SS')));
   % set(echo_info.echo_title,'Visible', 'off');
-  if isempty(layer_params)
-    set(echo_info.h_surf,'Visible','off');
-    set(echo_info.h_bot,'Visible','off');
-  else
-    set(echo_info.h_surf,'Visible','on');
-    set(echo_info.h_bot,'Visible','on');
-  end
-  
+
   %% Save echogram file
   if param.save_files
     out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s.jpg',start_time_stamp_str, ...
