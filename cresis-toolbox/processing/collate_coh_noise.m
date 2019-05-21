@@ -85,6 +85,10 @@ if ~isfield(param.collate_coh_noise,'threshold_eval') || isempty(param.collate_c
   param.collate_coh_noise.threshold_eval = {};
 end
 
+if ~isfield(param.collate_coh_noise,'threshold_ylims') || isempty(param.collate_coh_noise.threshold_ylims)
+  param.collate_coh_noise.threshold_ylims = [];
+end
+
 if ~isfield(param.collate_coh_noise,'wf_adcs') || isempty(param.collate_coh_noise.wf_adcs)
   param.collate_coh_noise.wf_adcs = [];
 end
@@ -353,8 +357,9 @@ for img = param.collate_coh_noise.imgs
       xlabel(h_axes(5), 'Range bin');
       ylabel(h_axes(5), 'Relative power (dB)');
       title(h_axes(5), sprintf('Threshold %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
-      param.collate_coh_noise.threshold_ylims = [-180 -20];
-      ylim(h_axes(5),param.collate_coh_noise.threshold_ylims);
+      if ~isempty(param.collate_coh_noise.threshold_ylims)
+        ylim(h_axes(5),param.collate_coh_noise.threshold_ylims);
+      end
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       fig_fn_dir = fileparts(fig_fn);
