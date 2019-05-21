@@ -4,7 +4,7 @@ function create_posting(param, param_override)
 % Generalized function for posting data. Should be called from
 % run_create_posting.
 %
-% Author: Shashanka Jagarlapudi, John Paden, Logan Smith, Theresa Stumpf
+% Authors: Shashanka Jagarlapudi, John Paden, Logan Smith, Theresa Stumpf, Reece Mathews
 %
 % See also make_layer_files, run_make_layer_files, run_picker, picker
 
@@ -43,11 +43,6 @@ if ~isfield(param.post,'img') || isempty(param.post.img)
   param.post.img = 0;
 end
 
-if ~isfield(param.post,'ops') || isempty(param.post.ops) ...
-    || ~isfield(param.post.ops,'en') || isempty(param.post.ops.en)
-  param.post.ops.en = 0;
-end
-
 if ~isfield(param.post,'out_path') || isempty(param.post.out_path)
   param.post.out_path = 'post';
 end
@@ -60,22 +55,11 @@ end
 physical_constants;
 
 % layer_path_in: where the layer information will come from
-if ~isempty(param.post.layer_dir) && param.post.ops.en == 0
-  layer_path_in = fullfile(ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.layer_dir)));
-  use_data_files_for_layer = false;
-else
-  % An empty layer directory makes the program assume that there are no
-  % layer files and it uses the data files instead
-  layer_path_in = ct_filename_out(param, ...
-    fullfile(param.post.in_path,param.post.data_dirs{1}));
-  use_data_files_for_layer = true;
-
-  % We also need to authenticate the OPS user
-  if param.post.ops.en
-    opsAuthenticate([]);
-  end
-end
+% An empty layer directory makes the program assume that there are no
+% layer files and it uses the data files instead
+layer_path_in = ct_filename_out(param, ...
+  fullfile(param.post.in_path,param.post.data_dirs{1}));
+use_data_files_for_layer = true;
 
 % post_path: the directory where outputs will be created
 post_path = ct_filename_out(param,param.post.out_path,[],1);
@@ -103,8 +87,15 @@ end
 if isempty(param.post.pdf_en)
   param.post.pdf_en = 0;
 end
-if ~isfield(param.post,'ops') || isempty(param.post.ops.en)
-  param.post.ops.en = 0;
+if ~isfield(param.post, 'layers')
+  param.post.layers = [];
+end
+if param.post.layers_en && isempty(param.post.layers)
+  param.post.layers = [struct('name', 'surface', 'source', 'layerData') ...
+                       struct('name', 'bottom', 'source', 'layerData')];
+end
+if ~isfield(param.post, 'surface_source')
+  param.post.surface_source = struct('name', 'surface', 'source', 'layerData');
 end
 
 if strcmp(param.post.img_type,'jpg')
@@ -125,56 +116,6 @@ fprintf('Catalog layer and data files %s (%s)\n', param.day_seg, datestr(now));
 % Load the frames file
 frames_fn = ct_filename_support(param, '', 'frames');
 load(frames_fn);
-
-% % Get a list of all the layer files
-% layer_fns = get_filenames(layer_path_in,'Data_','','.mat',struct('recursive',1));
-% % Layer files are named:
-% %   Data_YYYYMMDD_SS_FFF.mat
-% % Extract out:
-% %  1. the layer file name
-% %  2. frame ID
-% %  3. day_seg
-% % Also eliminate frames that are not in param.cmd.frms or that have
-% % proc_mode set to not post.
-% frm_idx = 0;
-% frms = {};
-% day_segs = {};
-% for fn_idx = 1:length(layer_fns)
-%   layer_fn = layer_fns{fn_idx};
-%   [tmp layer_name] = fileparts(layer_fn);
-%   if layer_name(6) == 'i'
-%     % We don't process files with "_img_II" in their name
-%     continue;
-%   else
-%     frm_id = layer_name(6:end);
-%   end
-%   frm = str2double(frm_id(end-2:end));
-%   
-%   if ~isempty(param.cmd.frms)
-%     % Do just frames specified in the command worksheet (if the field
-%     % is left empty we do them all)
-%     if all(frm ~= param.cmd.frms)
-%       continue;
-%     end
-%   end
-%   if mod(floor(frames.proc_mode(frm)/10),10) ~= 0
-%     % UUUUUUUURRRR
-%     %           ^
-%     %    This is the digit we want for controlling posting
-%     % R must be zero to post.
-%     continue;
-%   end
-%     
-%   % Add frame to list
-%   frm_idx = frm_idx + 1;
-%   frms{frm_idx}.layer_fn = layer_fn;
-%   frms{frm_idx}.layer_name = layer_name;
-%   day_segs{frm_idx} = param.day_seg;
-%   frms{frm_idx}.frm_id = frm_id;
-%   frms{frm_idx}.data_fns = {};
-%   frms{frm_idx}.data_dirs = {};
-% end
-% clear('layer_fns');
 
 if isempty(param.cmd.frms)
   param.cmd.frms = 1:length(frames.frame_idxs);
@@ -368,31 +309,17 @@ if param.post.maps_en
   end
 end
 
-%% OPS Setup
-if param.post.ops.en
-  %% HACK
-  if length(param.post.ops.layers) == 2
-    param.post.ops.layers = {'surface' 'bottom'};
-  elseif length(param.post.ops.layers) == 1
-    param.post.ops.layers = {'surface'};
-  else
-    error('length(param.post.ops.layers) must be 1 or 2');
-  end
-  
-  %% Get the layer data for this segment
-  ops_sys = output_dir;
-  ops_param = [];
-  ops_param.properties.location = param.post.ops.location;
-  ops_param.properties.season = param.season_name;
-  ops_param.properties.segment = param.day_seg;
-  ops_param.properties.return_geom = 'geog';
-  ops_layer = {};
-  for layer_idx = 1:length(param.post.ops.layers)
-    ops_param.properties.lyr_name = param.post.ops.layers{layer_idx};
-    [~,ops_layer{layer_idx}] = opsGetLayerPoints(ops_sys,ops_param);
-    ops_layer{layer_idx} = ops_layer{layer_idx}.properties;
-  end
+layers = [];
+if param.post.layers_en
+  layers = opsLoadLayers(param, param.post.layers);
 end
+surface_layer = {opsLoadLayers(param, param.post.surface_source)};
+
+layers_to_post = {};
+for layer = layers
+  layers_to_post{end + 1} = layer;
+end
+clear layers;
 
 %% Main post loop
 % =========================================================================
@@ -408,34 +335,25 @@ for frm_idx = 1:length(frms)
   fprintf('  Posting frame %s, %d of %d (%s)\n', ...
     frms{frm_idx}.frm_id, frm_idx, length(frms), datestr(now));
   
-  if param.post.ops.en
-    %% Interpolate each layer for this segment onto the master layer's gps time
-    
-    lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation');
-    
-    lay = opsInterpLayersToMasterGPSTime(lay,ops_layer,param.post.ops.gaps_dist);
-    
-    lay.Surface = lay.layerData{1}.value{2}.data;
-    if length(param.post.ops.layers) == 2
-      lay.Bottom = lay.layerData{2}.value{2}.data;
-    elseif length(param.post.ops.layers) == 1
-      lay.Bottom = NaN*zeros(size(lay.Surface));
-    end
-    
-  else
-    % Load GPS_time, Latitude, Longitude, and layerData from layer file
-    if ~isempty(param.post.layer_dir)
-      lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation','layerData');
-    else
-      % An empty layer directory makes the program assume that there are no
-      % layer files and it uses the data files instead
-      fprintf('    %s\n', frms{frm_idx}.layer_fn);
-      warning off;
-      lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom');
-      warning on;
-    end
+  %% Interpolate each layer for this segment onto the master layer's gps time
+  
+  lay = load(frms{frm_idx}.layer_fn,'GPS_time','Latitude','Longitude','Elevation');
+  
+  lay = opsInterpLayersToMasterGPSTime(lay,layers_to_post,param.post.ops.gaps_dist);
+  
+  if ~param.post.layers_en
+    lay.layerData = {};
   end
   
+  surface_lay = opsInterpLayersToMasterGPSTime(lay,surface_layer,param.post.ops.gaps_dist);
+
+  lay.Surface = surface_lay.layerData{1}.value{2}.data;
+  if length(lay.layerData) >= 1
+    lay.Bottom = lay.layerData{end}.value{2}.data;
+  else
+    lay.Bottom = NaN*zeros(size(lay.Surface));
+  end
+    
   if isnan(lay.GPS_time)
     time_stamp_str = sprintf('000000',frms{frm_idx}.frm_id);
   else
@@ -501,31 +419,6 @@ for frm_idx = 1:length(frms)
   end
   
   % =======================================================================
-  % Create Surface and Bottom Variables
-  % =======================================================================
-  if ~param.post.ops.en
-    if ~isempty(param.post.layer_dir)
-      lay.Bottom  = lay.layerData{2}.value{2}.data;
-      lay.Surface = lay.layerData{1}.value{2}.data;
-    else
-      % An empty layer directory makes the program assume that there are no
-      % layer files and it uses the data files instead
-      lay.Bottom = NaN*zeros(size(lay.Surface));
-      lay.layerData{1}.value{2}.data = lay.Surface;
-      lay.layerData{2}.value{2}.data = lay.Bottom;
-      lay.layerData{1}.quality = zeros(size(lay.Surface));
-      lay.layerData{2}.quality = zeros(size(lay.Surface));
-    end
-    lay.Thickness = lay.Bottom-lay.Surface;
-    neg_idxs = find(lay.Thickness < 0 & isfinite(lay.Thickness));
-    if ~isempty(neg_idxs)
-      sprintf('  Negative thickness detected');
-      lay.Bottom(neg_idxs) = lay.Surface(neg_idxs);
-    end
-    lay.Thickness = lay.Bottom-lay.Surface;
-  end
-  
-  % =======================================================================
   % Plot Echogram and Echogram w/ Layers
   % =======================================================================
   if param.post.echo_en
@@ -570,11 +463,10 @@ for frm_idx = 1:length(frms)
 
     echo_param.frm_id = frms{frm_idx}.frm_id;
     
-    echo_param.ops.en = true;
-    
-    echo_info = publish_echogram(echo_param,mdata,lay);
-    set(echo_info.h_surf,'Visible','off');
-    set(echo_info.h_bot,'Visible','off');
+    echo_info = publish_echogram(echo_param,mdata,lay, surface_lay.layerData{1});
+    for handle_idx = 1:length(echo_info.h_layers)
+      set(echo_info.h_layers{handle_idx},'Visible','off');
+    end
     set(echo_info.fig_hand(1),'Name',param.post.data_dirs{1});
     
     % Update title (handle segment wrapping from one day to the next)
@@ -632,8 +524,9 @@ for frm_idx = 1:length(frms)
     % =====================================================================
     % Plot echogram w/ layers
     if param.post.layers_en
-      set(echo_info.h_surf,'Visible','on')
-      set(echo_info.h_bot,'Visible','on')
+      for handle_idx = 1:length(echo_info.h_layers)
+        set(echo_info.h_layers{handle_idx},'Visible','on');
+      end
       
       % Remove current file
       echo_fn = sprintf('%s*_2echo_picks.%s',frms{frm_idx}.frm_id,param.post.img_type);
@@ -699,7 +592,12 @@ for frm_idx = 1:length(frms)
     % Quality of thickness is the lowest/worst confidence level of the surface
     % and bottom picks which each have their own quality level
     % (higher quality numbers mean lower confidence, so we take the max)
-    Quality = max(lay.layerData{1}.quality,lay.layerData{2}.quality(1));
+    if param.post.layers_en
+      bottom_quality = lay.layerData{end}.quality(1);
+    else
+      bottom_quality = lay.Bottom;  % Should be NaN array size of Surface
+    end
+    Quality = max(surface_lay.layerData{1}.quality,bottom_quality);
 
     % Compute seconds of day relative to the data frame ID
     UTC_time = lay.GPS_time - utc_leap_seconds(lay.GPS_time(1));
@@ -751,30 +649,17 @@ for frm_idx = 1:length(frms)
   
   % Create layer files (or copy if not using OPS)
   if param.post.layers_en
-    if param.post.ops.en
-      %% Create layer data file
-      % Copy layer file
-      layer_fn = frms{frm_idx}.layer_fn;
-      [tmp layer_name] = fileparts(layer_fn);
-      %     layer_dir = sprintf('CSARP_%s', param.post.layer_dir);
-      layer_out_dir = fullfile(post_path,sprintf('CSARP_layerData'),day_segs{frm_idx});
-      if ~exist(layer_out_dir,'dir')
-        mkdir(layer_out_dir)
-      end
-      layer_out_fn = fullfile(layer_out_dir,[layer_name '.mat']);
-      save(layer_out_fn,'-struct','lay','GPS_time','Latitude','Longitude','Elevation','layerData');
-    else
-      % Copy layer file
-      layer_fn = frms{frm_idx}.layer_fn;
-      [tmp layer_name] = fileparts(layer_fn);
-      %     layer_dir = sprintf('CSARP_%s', param.post.layer_dir);
-      layer_out_dir = fullfile(post_path,sprintf('CSARP_layerData'),day_segs{frm_idx});
-      if ~exist(layer_out_dir,'dir')
-        mkdir(layer_out_dir)
-      end
-      layer_out_fn = fullfile(layer_out_dir,[layer_name '.mat']);
-      copyfile(layer_fn, layer_out_fn);
+    % Copy layer file
+    layer_fn = frms{frm_idx}.layer_fn;
+    [tmp layer_name] = fileparts(layer_fn);
+    %     layer_dir = sprintf('CSARP_%s', param.post.layer_dir);
+    layer_out_dir = fullfile(post_path,sprintf('CSARP_layerData'),day_segs{frm_idx});
+    if ~exist(layer_out_dir,'dir')
+      mkdir(layer_out_dir)
     end
+    layer_out_fn = fullfile(layer_out_dir,[layer_name '.mat']);
+
+    save(layer_out_fn,'-struct','lay','GPS_time','Latitude','Longitude','Elevation','layerData');
   end
     
   % Copy data files

@@ -114,11 +114,11 @@ else
       tmp_theta = tmp_doa;
       
       tmp_surface = surface(:,rline);
-      tmp_surface = tmp_surface(~isnan(tmp_surface));
+      tmp_surface = tmp_surface(~isnan(tmp_doa));
 %       tmp_surface = tmp_surface(tmp_doa_idx);
       
       tmp_twtt = twtt(:,rline);
-      tmp_twtt = tmp_twtt(~isnan(tmp_twtt));
+      tmp_twtt = tmp_twtt(~isnan(tmp_doa));
 %       tmp_twtt = tmp_twtt(tmp_doa_idx);
       
 %       Nsig = length(tmp_twtt);

@@ -86,6 +86,12 @@ else
   doa_method_flag = false;
 end
 
+if doa_method_flag && (~isfield(param.tomo_collate,'merge_bottom_above_top') ...
+    ||isempty(param.tomo_collate.merge_bottom_above_top))
+  merge_bottom_above_top = 1;
+else
+  merge_bottom_above_top = param.tomo_collate.merge_bottom_above_top;
+end
 %% Load surface and bottom information
 param_load_layers = param;
 param_load_layers.cmd.frms = round([-1,0,1] + param.load.frm);
@@ -198,8 +204,7 @@ if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
   sd.FCS.y = mdata.param_array.array_proc.fcs{1}{1}.y;
   sd.FCS.z = mdata.param_array.array_proc.fcs{1}{1}.z;
 end
-
-
+      
 if ~doa_method_flag
   Nsv = size(mdata.Tomo.img,2);
 else
@@ -250,9 +255,9 @@ else
     % Sort DOA min to max (and, accordingly, range-bins). But surf.y is
     % already sorted inside add_icemask_surfacedem
     [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
-    %     for rline_idx = 1:Nx
-    %       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
-    %     end
+%     for rline_idx = 1:Nx
+%       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
+%     end
     
     surf.plot_name_values = {'color','black','marker','*'}; % 'x'
     surf.name = 'top';
@@ -275,7 +280,7 @@ if ~doa_method_flag
     surf = tomo.surfdata.empty_surf();
     surf.x = repmat((1:Nsv).',[1 size(mdata.twtt,2)]);
     surf.y = NaN(size(twtt_bin));
-    surf.plot_name_values = {'color','blue','marker','^'};
+    surf.plot_name_values = {'color','blue','marker','^'}; 
     surf.name = 'bottom';
     sd.insert_surf(surf);
   end
@@ -303,10 +308,10 @@ else
     for rline_idx = 1:Nx
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
-    % Ensure non-negative ice thickness
-    if exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
-      surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
-    end
+  % Ensure non-negative ice thickness
+  if merge_bottom_above_top && exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
+    surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
+  end
     
     surf.plot_name_values = {'color','blue','marker','o'}; % '^'
     surf.name = 'bottom';
@@ -349,14 +354,14 @@ else
         surf.x(1:length(theta_rline),rline_idx) = theta_rline;
       end
     end
-    surf.y = mdata.ice_mask;
-    % Sort DOA min to max (and, accordingly, range-bins). But surf.y is
-    % already sorted inside add_icemask_surfacedem
-    [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
-    %     for rline_idx = 1:Nx
-    %       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
-    %     end
-    %     surf.plot_name_values = {'color','white','marker','x'};
+        surf.y = mdata.ice_mask;
+        % Sort DOA min to max (and, accordingly, range-bins). But surf.y is
+        % already sorted inside add_icemask_surfacedem
+        [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
+%     for rline_idx = 1:Nx
+%       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
+%     end
+%     surf.plot_name_values = {'color','white','marker','x'};
     surf.plot_name_values = {'color',[0 0 0.5],'marker','x'};
     surf.name = 'ice mask';
     sd.insert_surf(surf);
@@ -407,7 +412,7 @@ else
     for rline_idx = 1:Nx
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
-    
+  
     surf.plot_name_values = {'color','magenta','marker','+'};
     surf.name = 'bottom gt';
     sd.insert_surf(surf);
@@ -457,7 +462,7 @@ else
     for rline_idx = 1:Nx
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
-    
+  
     surf.plot_name_values = {'color','magenta','marker','^'};
     surf.name = 'top gt';
     sd.insert_surf(surf);
@@ -485,7 +490,7 @@ else
     surf = sd.get_surf('top quality');
     if strcmpi(param.tomo_collate.surfData_mode,'overwrite')
       surf.y = NaN(size(twtt_bin));
-      %       surf.y = ones(size(twtt_bin));
+%       surf.y = ones(size(twtt_bin));
       sd.set_surf(surf);
     end
   catch ME
@@ -498,14 +503,14 @@ else
         surf.x(1:length(theta_rline),rline_idx) = theta_rline;
       end
     end
-    %     surf.y = NaN(size(twtt_bin));
+%     surf.y = NaN(size(twtt_bin));
     surf.y = ones(size(twtt_bin));
     % Sort DOA min to max (and, accordingly, range-bins)
     [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
     for rline_idx = 1:Nx
       surf.y(:,rline_idx) = surf.y(x_idx(:,rline_idx),rline_idx);
     end
-    
+  
     surf.plot_name_values = {'color','red','marker','x'};
     surf.name = 'top quality';
     sd.insert_surf(surf);
@@ -545,8 +550,8 @@ else
         surf.x(1:length(theta_rline),rline_idx) = theta_rline;
       end
     end
-    %     surf.y = NaN(size(twtt_bin));
-    surf.y = ones(size(twtt_bin));
+%     surf.y = NaN(size(twtt_bin));
+     surf.y = ones(size(twtt_bin));
     % Sort DOA min to max (and, accordingly, range-bins)
     [surf.x x_idx] = sort(surf.x*180/pi,1,'ascend');
     for rline_idx = 1:Nx
@@ -1328,17 +1333,17 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         [theta_rline_r theta_rline_c] = find(~isnan(theta_rline));
         theta_rline = theta_rline(~isnan(theta_rline));
         % Sort DOA min to max (and, accordingly, range-bins)
-        %         doa_surface.x(1:length(theta_rline),rline_idx) = theta_rline;
+%         doa_surface.x(1:length(theta_rline),rline_idx) = theta_rline;
         [doa_surface.x(1:length(theta_rline),rline_idx), x_idx] = sort(theta_rline*180/pi,'ascend');
         doa_surface.y(x_idx,rline_idx) = theta_rline_r;
       end
     end
     
     % Sort DOA min to max (and, accordingly, range-bins)
-    %     [doa_surface.x x_idx] = sort(doa_surface.x*180/pi,1,'ascend');
-    %     for rline_idx = 1:Nx
-    %       doa_surface.y(:,rline_idx) = doa_surface.y(x_idx(:,rline_idx),rline_idx);
-    %     end
+%     [doa_surface.x x_idx] = sort(doa_surface.x*180/pi,1,'ascend');
+%     for rline_idx = 1:Nx
+%       doa_surface.y(:,rline_idx) = doa_surface.y(x_idx(:,rline_idx),rline_idx);
+%     end
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};
@@ -1347,7 +1352,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         if ~strcmpi(param.tomo_collate.surfData_mode,'fillgaps')
           surf.y = doa_surface.y;
           % Ensure non-negative ice thickness
-          if exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
+          if merge_bottom_above_top && exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
             surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
           end
           surf.plot_name_values = plot_name_values;
@@ -1359,7 +1364,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
         surf.x = doa_surface.x;
         surf.y = doa_surface.y;
         % Ensure non-negative ice thickness
-        if exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
+        if merge_bottom_above_top && exist('ice_top','var') && isfield(ice_top,'y') && ~isempty(ice_top.y)
           surf.y(surf.y<ice_top.y) = ice_top.y(surf.y<ice_top.y);
         end
         surf.name = surf_name;

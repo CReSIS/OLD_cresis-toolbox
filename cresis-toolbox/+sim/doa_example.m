@@ -11,7 +11,7 @@ physical_constants;
 
 %%   Mohanad: For 1D tutorial
 % =======================================================================
-if 1
+if 0
   %% Setup simulation parameters
   param = [];
   

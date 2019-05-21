@@ -270,7 +270,227 @@ elseif strcmpi(gps_source_to_use,'ATM-field')
   sync_flag{file_idx} = 0;
   
 elseif strcmpi(gps_source_to_use,'ATM')
-  year = 2018; month = 10; day = 10;
+%   year = 2018; month = 10; day = 10;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+%   
+%   year = 2018; month = 10; day = 11;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+  
+%   year = 2018; month = 10; day = 12;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 10; day = 13;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+%   
+%   year = 2018; month = 10; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 10; day = 16;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 10; day = 18;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 10; day = 19;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 10; day = 20;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 10; day = 22;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 10; day = 27;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 10; day = 30;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+
+%   year = 2018; month = 10; day = 31;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+
+%   year = 2018; month = 11; day = 03;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+
+%   year = 2018; month = 11; day = 04;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% % 
+%   year = 2018; month = 11; day = 05;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 11; day = 07;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 11; day = 09;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 11; day = 10;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+% 
+%   year = 2018; month = 11; day = 11;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+
+  year = 2018; month = 11; day = 12;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
   file_type{file_idx} = 'traj+applanix';
@@ -278,8 +498,42 @@ elseif strcmpi(gps_source_to_use,'ATM')
   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  gps_source{file_idx} = 'atm-final_20181010';
+  gps_source{file_idx} = 'atm-final_20190205';
   sync_flag{file_idx} = 0;
+
+%   year = 2018; month = 11; day = 14;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+
+%   year = 2018; month = 11; day = 15;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+%   file_type{file_idx} = 'traj+applanix';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+%   in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+%   params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   gps_source{file_idx} = 'atm-final_20190205';
+%   sync_flag{file_idx} = 0;
+
+  year = 2018; month = 11; day = 16;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filename(sync_path,datestr(datenum(year,month,day),'yymmdd'),'amu2','');
+  file_type{file_idx} = 'traj+applanix';
+  params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','gps','input_format', '%f%f%f%f%f%f%f%f%f%f%f');
+  in_fns_ins{file_idx} = get_filename(in_base_path,'BD982_',datestr(datenum(year,month,day),'ddmmmyy'),'GNSSK*.out');
+  params_ins{file_idx} = struct('year',year,'month',month,'day',day,'format',1,'time_reference','utc');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+  gps_source{file_idx} = 'atm-final_20190205';
+  sync_flag{file_idx} = 0;
+
 end
 
 
