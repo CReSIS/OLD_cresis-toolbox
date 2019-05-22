@@ -38,8 +38,8 @@ if ~isempty(param.collate_coh_noise.debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
 end
 
-if ~isfield(param.collate_coh_noise,'dft_corr_length') || isempty(param.collate_coh_noise.dft_corr_length)
-  param.collate_coh_noise.dft_corr_length = inf;
+if ~isfield(param.collate_coh_noise,'dft_corr_time') || isempty(param.collate_coh_noise.dft_corr_time)
+  param.collate_coh_noise.dft_corr_time = inf;
 end
 
 if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
@@ -140,7 +140,7 @@ for img = param.collate_coh_noise.imgs
     % =====================================================================
     Nx = length(noise.gps_time);
     
-    Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_length);
+    Nx_dft = round(Nx / param.collate_coh_noise.dft_corr_time);
     if Nx_dft<1
       Nx_dft = 1;
     end

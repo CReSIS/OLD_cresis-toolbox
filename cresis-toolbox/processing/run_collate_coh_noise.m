@@ -22,17 +22,17 @@ if 1
   param_override.collate_coh_noise.firdec_fcutoff = @(t) 1/30;
 else
   param_override.collate_coh_noise.method = 'dft';
-  param_override.collate_coh_noise.dft_corr_length = inf;
+  param_override.collate_coh_noise.dft_corr_time = inf;
 end
-param_override.collate_coh_noise.in_dir = 'analysis';
-param_override.collate_coh_noise.out_dir = 'analysis';
+param_override.collate_coh_noise.in_path = 'analysis';
+param_override.collate_coh_noise.out_path = 'analysis';
 
 param_override.collate_coh_noise.min_samples = 1500;
 param_override.collate_coh_noise.threshold_en = true;
 
 % param_override.collate_coh_noise.debug_plots = {};
 param_override.collate_coh_noise.debug_plots = {'visible','cn_plot','threshold_plot'};
-% param_override.collate_coh_noise.debug_plots = {'cn_plot'};
+% param_override.collate_coh_noise.debug_plots = {'cn_plot','threshold_plot'};
 
 %% Automated Section
 % =====================================================================
