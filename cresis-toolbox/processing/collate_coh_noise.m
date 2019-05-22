@@ -38,6 +38,9 @@ if ~isempty(param.collate_coh_noise.debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
 end
 
+if isfield(param.collate_coh_noise,'dft_corr_length')
+  error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time.');
+end
 if ~isfield(param.collate_coh_noise,'dft_corr_time') || isempty(param.collate_coh_noise.dft_corr_time)
   param.collate_coh_noise.dft_corr_time = inf;
 end
