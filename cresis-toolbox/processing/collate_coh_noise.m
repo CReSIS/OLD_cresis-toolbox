@@ -273,6 +273,7 @@ for img = param.collate_coh_noise.imgs
       imagesc(fx, [], fftshift(lp( fft(cn_before,[],2) ),2), 'parent', h_axes(1));
       cn_before(mask) = NaN;
       title(h_axes(1), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
+      xlabel(h_axes(1), 'Frequency (1/m)');
       ylabel(h_axes(1), 'Range bin');
       
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
