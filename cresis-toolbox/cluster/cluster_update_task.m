@@ -66,20 +66,7 @@ end
 % END HACK
 ctrl.file_success{task_id} = param.file_success;
 
-out_fn_exist_error = 1;
-out_fn_load_error = 2;
-argsout_exist_error = 4;
-argsout_length_error = 8;
-errorstruct_exist_error = 16;
-errorstruct_contains_error = 32;
-success_error = 64;
-cluster_killed_error = 128;
-walltime_exceeded_error = 256;
-success_eval_error = 512;
-file_success_error = 1024;
-file_success_corrupt_error = 2048;
-max_mem_exceeded_error = 4096;
-insufficient_mcr_space = 8192;
+cluster_error_mask; % Loads all the error masks
 
 error_mask = 0;
 
