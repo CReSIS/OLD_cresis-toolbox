@@ -57,16 +57,16 @@ if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.i
   param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
 end
 
-if ~isfield(param.collate_coh_noise,'in_dir') || isempty(param.collate_coh_noise.in_dir)
-  param.collate_coh_noise.in_dir = 'analysis';
+if ~isfield(param.collate_coh_noise,'in_path') || isempty(param.collate_coh_noise.in_path)
+  param.collate_coh_noise.in_path = 'analysis';
 end
 
 if ~isfield(param.collate_coh_noise,'method') || isempty(param.collate_coh_noise.method)
   param.collate_coh_noise.method = 'dft';
 end
 
-if ~isfield(param.collate_coh_noise,'out_dir') || isempty(param.collate_coh_noise.out_dir)
-  param.collate_coh_noise.out_dir = 'analysis';
+if ~isfield(param.collate_coh_noise,'out_path') || isempty(param.collate_coh_noise.out_path)
+  param.collate_coh_noise.out_path = 'analysis';
 end
 
 if ~isfield(param.collate_coh_noise,'threshold_en') || isempty(param.collate_coh_noise.threshold_en)
@@ -92,13 +92,16 @@ end
 if ~isfield(param.collate_coh_noise,'wf_adcs') || isempty(param.collate_coh_noise.wf_adcs)
   param.collate_coh_noise.wf_adcs = [];
 end
+if ~isempty(param.collate_coh_noise.wf_adcs) && ~iscell(param.collate_coh_noise,'wf_adcs')
+  param.collate_coh_noise.wf_adcs = {param.collate_coh_noise.wf_adcs};
+end
 
 for img = param.collate_coh_noise.imgs
   
   if isempty(param.collate_coh_noise.wf_adcs)
     wf_adcs = 1:size(param.analysis.imgs{img},1);
   else
-    wf_adcs = param.collate_coh_noise.wf_adcs;
+    wf_adcs = param.collate_coh_noise.wf_adcs{img};
   end
   for wf_adc = wf_adcs
     wf = param.analysis.imgs{img}(wf_adc,1);
@@ -106,7 +109,7 @@ for img = param.collate_coh_noise.imgs
     
     %% Load the coherent noise file
     % =====================================================================
-    fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.in_dir));
+    fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.in_path));
     fn = fullfile(fn_dir,sprintf('coh_noise_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Loading %s (%s)\n', fn, datestr(now));
     noise = load(fn);
@@ -411,7 +414,7 @@ for img = param.collate_coh_noise.imgs
     
     %% Save the result
     % =====================================================================
-    out_fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.out_dir, ''));
+    out_fn_dir = fileparts(ct_filename_out(param,param.collate_coh_noise.out_path, ''));
     out_fn = fullfile(out_fn_dir,sprintf('coh_noise_simp_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Saving %s (%s)\n', out_fn, datestr(now));
     save(out_fn,'-v7.3','-struct','noise_simp');
