@@ -667,29 +667,38 @@ end
 % =========================================================================
 
 if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'accum'))
-  % See GPS section for 2018_Antarctica_TObas for details
+  % See GPS section for 2018_Antarctica_TObas for details:
+  % 	3+5/8" from back of antenna box
+  % 	9+15/16" from right/starboard side of lid (used edge of lid)
+  % 	64+1/16" below to the lid of the antenna
   %
-  % The measurements (in inches) are:
-  % Element 1 (starboard): (x,y,z) = (4.25, 0.0625, 7.75). The thickness of each antenna element is 0.125 in.
-  % Element 2 (next to starboard): (x,y,z) = (4.25, 4.8125, 7.75)
-  % Element 3 (next to port): (x,y,z) = (4.25, 9.5625, 7.75)
-  % Element 4 (port): (x,y,z) = (4.25, 14.3125, 7.75)
+  % The offset from the outer back right top corner of the box to the
+  % center of the aperture of each of the antennas is:
+  %   (reference is aft, starboard, top)
   %
-  % The bars were 0.75 in. thick. This increases the z-position of all
+  % With the box (outer surfaces) as reference, the measurements (in
+  % inches) are the following:
+  % Element 1 (starboard): (x,y,z) = (6.8125, 1.69885,10.04).
+  % Element 2 (next to starboard): (x,y,z) = (6.8125, 6.44885, 10.04)
+  % Element 3 (next to port): (x,y,z) = (6.8125,11.19885, 10.04)
+  % Element 4 (port): (x,y,z) = (6.8125, 15.94885, 10.04)
+  % The thickness of each antenna element is 0.125 in.
+  %
+  % The bars were 0.75 in. thick. This decreases the z-position of all
   % elements by 0.75 in.
 
   % Accumulation antenna
   LArx = [];
-  LArx(1,:)   = ( (-(3+5/8) + 4.25) + [0 0 0 0])*0.0254 - gps.x; % m
-  LArx(2,:)   = ( (+(9+15/16) - 8.5) + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
-  LArx(3,:)   = ( (+(64+1/16) + 0.75 - 8) + [0 0 0 0])*0.0254 - gps.z; % m
+  LArx(1,:)   = ( (-(3+5/8) + 6.8125) + [0 0 0 0])*0.0254 - gps.x; % m
+  LArx(2,:)   = ( (+(9+15/16) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
+  LArx(3,:)   = ( (+(64+1/16) - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LArx = mean(LArx,2); % Combine all 4 elements into a single element
   
   LAtx = [];
-  LAtx(1,:)   = ( (-(3+5/8) + 6) + [0 0 0 0])*0.0254 - gps.x; % m
-  LAtx(2,:)   = ( (+(9+15/16) - 8.5) + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
-  LAtx(3,:)   = ( (+(64+1/16) + 0.75 - 8) + [0 0 0 0])*0.0254 - gps.z; % m
+  LAtx(1,:)   = ( (-(3+5/8) + 6.8125) + [0 0 0 0])*0.0254 - gps.x; % m
+  LAtx(2,:)   = ( (+(9+15/16) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
+  LAtx(3,:)   = ( (+(64+1/16) - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LAtx = mean(LAtx,2); % Combine all 4 elements into a single element
   
