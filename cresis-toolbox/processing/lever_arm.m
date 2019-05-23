@@ -690,14 +690,14 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'ac
   % Accumulation antenna
   LArx = [];
   LArx(1,:)   = ( (-(3+5/8) + 6.8125) + [0 0 0 0])*0.0254 - gps.x; % m
-  LArx(2,:)   = ( (+(9+15/16) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
+  LArx(2,:)   = ( (+(9+15/16)) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
   LArx(3,:)   = ( (+(64+1/16) - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LArx = mean(LArx,2); % Combine all 4 elements into a single element
   
   LAtx = [];
   LAtx(1,:)   = ( (-(3+5/8) + 6.8125) + [0 0 0 0])*0.0254 - gps.x; % m
-  LAtx(2,:)   = ( (+(9+15/16) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
+  LAtx(2,:)   = ( (+(9+15/16)) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
   LAtx(3,:)   = ( (+(64+1/16) - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LAtx = mean(LAtx,2); % Combine all 4 elements into a single element
