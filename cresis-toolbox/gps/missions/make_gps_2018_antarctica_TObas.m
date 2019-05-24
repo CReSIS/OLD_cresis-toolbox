@@ -29,8 +29,32 @@ end
 % User Settings
 % ======================================================================
 debug_level = 1;
+singleday = true;
+mergegps = true;
+baddatevecs = {[2019, 2, 4], [2019, 2, 6]}; %only used when mergegps=true
 
+
+if singleday %Single day
+  year = 2019; month = 2; day = 04;
+  datevecs = {[year, month, day]};
+else %Multiple days
+  %Each vec has format [YYYY, MM, DD] and it is iterated upon later
+  datevecs = {[2019, 1, 22], [2018, 9, 27] , [2018, 9, 29], [2018, 10, 4], ...
+   [2019, 1, 23], [2019, 1, 26], [2019, 1, 29],...
+  [2019, 1, 30], [2019, 1, 31], [2019, 2, 1], [2019, 2, 3],...
+  [2019, 2, 4], [2019, 2, 5], [2019, 2, 6], [2019, 2, 7]};
+end
+
+%Check that the bad dates are in the datevecs variable
+if singleday && mergegps
+  datevecs = baddatevecs;
+end
+  
+
+%Find all of the subdirectories in the base path for comparison to dates
 in_base_path = fullfile(data_support_path,'2018_Antarctica_TObas');
+in_base = dir(in_base_path);
+in_base_dirs = {in_base(:).name};
 
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
 sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
@@ -39,49 +63,66 @@ sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 % gps_source_to_use = 'arena_cpu_time';
 gps_source_to_use = 'bas';
 
-if strcmpi(gps_source_to_use,'arena')
-%% ARENA
-
-%   year = 2018; month = 9; day = 27;
-%   file_idx = file_idx + 1;
-%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-%   file_type{file_idx} = 'arena';
-%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-%   gps_source{file_idx} = 'arena-field';
-%   sync_flag{file_idx} = 1;
-%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-%   sync_file_type{file_idx} = 'arena';
-%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-%   
-%   year = 2018; month = 9; day = 29;
-%   file_idx = file_idx + 1;
-%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-%   file_type{file_idx} = 'arena';
-%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-%   gps_source{file_idx} = 'arena-field';
-%   sync_flag{file_idx} = 1;
-%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-%   sync_file_type{file_idx} = 'arena';
-%   sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+%Load days with "bad data" to be processed with arena settings
+for date_idx = 1:length(baddatevecs)
+    %Get the date and make it a string
+    year = baddatevecs{date_idx}(1); month = baddatevecs{date_idx}(2); day = baddatevecs{date_idx}(3);
+    date_str = sprintf('%04d%02d%02d',year,month,day);
+    %Get folder names that match the date in question (looking for daya,
+    %dayb, etc.)
+      %Compare the dirs in the base path to the current date string
+      compcells = strfind(in_base_dirs,date_str);
+      %Extract the dirs that match the string
+      match_dirs = {in_base_dirs{cellfun(@(x) ~isempty(x),compcells)}};
+    %Iterate over the directories that match the date string
+    for match_idx = 1:length(match_dirs)
+      dir_str = match_dirs{match_idx};
+      file_idx = file_idx + 1;
+      in_fns{file_idx} = get_filenames(fullfile(in_base_path,dir_str),'','','gps.txt');
+      out_fns{file_idx} = sprintf('gps_%s_arena.mat', date_str);
+      file_type{file_idx} = 'arena';
+      params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+      gps_source{file_idx} = 'arena-field';
+      sync_flag{file_idx} = 1;
+      sync_fns{file_idx} = get_filenames(fullfile(in_base_path,dir_str),'','','gps.txt');
+      sync_file_type{file_idx} = 'arena';
+      sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+    end
+end
   
-  year = 2018; month = 10; day = 4;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'arena';
-  params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  gps_source{file_idx} = 'arena-field';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+if strcmpi(gps_source_to_use,'arena')
+%% ARENA  
+%   year = 2019; month = 1; day = 26;
+  for date_idx = 1:length(datevecs)
+    %Get the date and make it a string
+    year = datevecs{date_idx}(1); month = datevecs{date_idx}(2); day = datevecs{date_idx}(3);
+    date_str = sprintf('%04d%02d%02d',year,month,day);
+    %Get folder names that match the date in question (looking for daya,
+    %dayb, etc.)
+      %Compare the dirs in the base path to the current date string
+      compcells = strfind(in_base_dirs,date_str);
+      %Extract the dirs that match the string
+      match_dirs = {in_base_dirs{cellfun(@(x) ~isempty(x),compcells)}};
+    %Iterate over the directories that match the date string
+    for match_idx = 1:length(match_dirs)
+      dir_str = match_dirs{match_idx};
+      file_idx = file_idx + 1;
+      in_fns{file_idx} = get_filenames(fullfile(in_base_path,dir_str),'','','gps.txt');
+      out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+      file_type{file_idx} = 'arena';
+      params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+      gps_source{file_idx} = 'arena-field';
+      sync_flag{file_idx} = 1;
+      sync_fns{file_idx} = get_filenames(fullfile(in_base_path,dir_str),'','','gps.txt');
+      sync_file_type{file_idx} = 'arena';
+      sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+    end
+  end
 
 elseif strcmpi(gps_source_to_use,'arena_cpu_time')
   %% Arena used computer time with no GPS inputs
 
-  year = 2019; month = 1; day = 27;
+%   year = 2019; month = 1; day = 27;
   file_idx = file_idx + 1;
   in_fns{file_idx} = fullfile(in_base_path,'GPS_FILE_20190127.gps');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -96,160 +137,56 @@ elseif strcmpi(gps_source_to_use,'arena_cpu_time')
 
 elseif strcmpi(gps_source_to_use,'bas')
   %% BAS
-
-  year = 2019; month = 1; day = 29;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'03.txt'); fullfile(in_base_path,'04.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  
-  year = 2019; month = 1; day = 30;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'05.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  
-  year = 2019; month = 1; day = 31;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'06.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');  
-  
-  year = 2019; month = 2; day = 1;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'07.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  
-  year = 2019; month = 2; day = 3;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'08.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  
-  year = 2019; month = 2; day = 4;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'09.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-  
-  year = 2019; month = 2; day = 5;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'11.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-
-  
-  year = 2019; month = 2; day = 6;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'12.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+  for date_idx = 1:length(datevecs)
+    %Get the date and make it a string
+    year = datevecs{date_idx}(1); month = datevecs{date_idx}(2); day = datevecs{date_idx}(3);
+    date_str = sprintf('%04d%02d%02d',year,month,day);
     
-  year = 2019; month = 2; day = 7;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = {fullfile(in_base_path,'14.txt')}
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','utc');
-  params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
-  params{file_idx}.textscan = {};
-  params{file_idx}.headerlines = 5;
-  params{file_idx}.time_reference = 'utc';
-  gps_source{file_idx} = 'bas-final20190313';
-  sync_flag{file_idx} = 1;
-  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
-  sync_file_type{file_idx} = 'arena';
-  sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+    %Select the correct input files
+    switch date_str
+      case '20190129'
+        incase_fns = {fullfile(in_base_path,'03.txt'); fullfile(in_base_path,'04.txt')};
+      case '20190130'
+        incase_fns = {fullfile(in_base_path,'05.txt')};
+      case '20190131'
+        incase_fns =  {fullfile(in_base_path,'06.txt')};
+      case '20190201'
+        incase_fns = {fullfile(in_base_path,'07.txt')};
+      case '20190203'
+        incase_fns = {fullfile(in_base_path,'08.txt')};
+      case '20190204'
+        incase_fns = {fullfile(in_base_path,'09.txt')};
+      case '20190205'
+        incase_fns = {fullfile(in_base_path,'11.txt')};
+      case '20190206'
+        incase_fns = {fullfile(in_base_path,'12.txt')};
+      case '20190207'
+        incase_fns = {fullfile(in_base_path,'14.txt')};        
+      otherwise
+        return
+    end
+    %Increase file id
+    file_idx = file_idx + 1;
+    
+    %Load the structures
+    in_fns{file_idx} = incase_fns;
+    out_fns{file_idx} = sprintf('gps_%s.mat', date_str);
+    file_type{file_idx} = 'General_ASCII';
+    params{file_idx} = struct('time_reference','utc');
+    params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
+    params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg',...
+      'elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4',...
+      'f5','f6','f7'};
+    params{file_idx}.textscan = {};
+    params{file_idx}.headerlines = 5;
+    params{file_idx}.time_reference = 'utc';
+    gps_source{file_idx} = 'bas-final20190313';
+    sync_flag{file_idx} = 1;
+    sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%s',date_str)),'','','gps.txt');
+    sync_file_type{file_idx} = 'arena';
+    sync_params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+  end
+
 
 end
 
@@ -257,8 +194,31 @@ end
 % Read and translate files according to user settings
 % ======================================================================
 make_gps;
+%Merge the structures for the "bad data" dates
+for id_bd = 1:length(baddatevecs)
+  %Get the date
+  year = baddatevecs{id_bd}(1); month = baddatevecs{id_bd}(2); day = baddatevecs{id_bd}(3);
+  date_str = sprintf('%04d%02d%02d',year,month,day);
+  %Get the output file names
+  out_fn_arena = fullfile(gps_path,sprintf('gps_%s_arena',date_str));
+  out_fn_bas = fullfile(gps_path,sprintf('gps_%s',date_str));
+  %Load the files
+  gps_arena = load(out_fn_arena);
+  gps_bas = load(out_fn_bas);
+  %Append data to gps_bas
+  gps = gps_bas;
+  fappend = {'elev','heading','lat','lon','pitch','roll','gps_time'}; %Fields to append data
+  applogicvec = [gps_arena.gps_time>=gps_bas.gps_time(end)];
+  for fid = 1:length(fappend)
+    basf = gps_bas.(fappend{fid});
+    appf = gps_arena.(fappend{fid});
+    gps.(fappend{fid}) = [basf, appf(applogicvec)];
+  end
+  %Save the merged data
+  save(out_fn_bas,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
+end
 
-for idx = 1:length(file_type)
+for idx = 1+length(baddatevecs):length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
   
   gps = load(out_fn,'gps_source');
@@ -297,4 +257,3 @@ for idx = 1:length(file_type)
   end
   
 end
-
