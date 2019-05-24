@@ -131,7 +131,7 @@ elseif any(param.records.file.version == [409])
     radar_gps_time=radar_gps_time(find(radar_gps_time<=gps.gps_time(end)));
   end
   
-elseif any(param.records.file.version == [413])
+elseif any(param.records.file.version == [413 414])
   % UTUA RDS based systems
   radar_gps_time = radar_time + max(param.records.gps.time_offset);
   

@@ -153,8 +153,9 @@ if any(param.records.file.version == [9 10 103 412])
   radar_time = double(records.raw.rel_time_cntr_latch)/param.records.file.clk;
   comp_time = [];
 
-elseif any(param.records.file.version == [413])
+elseif any(param.records.file.version == [413 414])
   %% Align/UTUA RDS: Nothing required
+  %% Align/BAS RDS: Nothing required
   
 else
   %% Align/CReSIS: Create output EPRI vector
@@ -282,7 +283,7 @@ if any(param.records.file.version == [9 10 103 412])
   
   radar_time(bad_idxs) = epri_time(bad_idxs);
   
-elseif any(param.records.file.version == [413])
+elseif any(param.records.file.version == [413 414])
   %% Radar time: UTUA RDS
   % Nothing to be done
   board_idx = 1;

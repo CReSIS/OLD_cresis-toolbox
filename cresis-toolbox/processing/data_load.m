@@ -37,6 +37,10 @@ for img = 1:length(param.load.imgs)
   t0{img} = zeros(1,param.load.presums);
   t_ref{img} = zeros(1,param.load.presums);
 end
+if any(param.records.file.version==[414])
+  wf_tmp_fn = {};
+  wf_tmp_data = {};
+end
 
 %% Endian mode
 % ===================================================================
@@ -115,6 +119,7 @@ for state_idx = 1:length(states)
     hdr.t_ref{img} = zeros(1,total_rec);
     
     rec = total_rec+1;
+    
   else
     rec = 1;
   end
@@ -122,7 +127,8 @@ for state_idx = 1:length(states)
   while rec <= total_rec
     
     %% Load in a file
-    if records.offset(board_idx,rec) ~= -2^31
+    if param.records.file.version == 414
+    elseif records.offset(board_idx,rec) ~= -2^31
       % Determine which file has the current record
       file_idx = file_idxs(rec);
       if ~isempty(file_data_last_file)
@@ -167,7 +173,80 @@ for state_idx = 1:length(states)
 
     %% Pull out records from this file
     while rec <= total_rec
-      if records.offset(board_idx,rec) ~= -2^31
+      if param.records.file.version == 414
+        % Process all adc-wf pairs in this record
+        for accum_idx = 1:length(state.wf)
+          adc = state.adc(accum_idx);
+          wf = state.wf(accum_idx);
+          img = state.img(accum_idx);
+          mode_latch = state.mode(accum_idx);
+          wf_adc_sum = state.wf_adc_sum(accum_idx);
+          subchannel = state.subchannel(accum_idx);
+          
+          % Determine which file has the current record
+          file_idx = file_idxs(rec);
+          
+          % Get the file's name
+          BW = (param.radar.wfs(wf).f1-param.radar.wfs(wf).f0)/1e6;
+          Tpd = param.radar.wfs(wf).Tpd*1e6;
+          fn_name = records.relative_filename{board_idx}{file_idx};
+          [fn_dir] = get_segment_file_list(param,board_idx);
+          
+          fname = fname_info_bas(fn_name);
+          if adc<5
+            subarray = 'Port';
+            rx = sprintf('P%X',adc);
+          elseif adc<9
+            subarray = 'Belly';
+            rx = sprintf('B%X',adc);
+          else
+            subarray = 'Star';
+            rx = sprintf('S%X',adc);
+          end
+          
+          if all(param.radar.wfs(wf).tx_weights == [2000 2000 2000 2000 0 0 0 0 0 0 0 0])
+            tx = 'P1234';
+          else
+            tx = 'S9ABC';
+          end
+          
+          if wf_adc_sum == 1
+            zeropimod = 'C';
+          else
+            zeropimod = 'J';
+          end
+          
+          fn_subdir = sprintf('%s%s_new',fname.name,subarray);
+          fn_name = sprintf('%s%s_%s_Tx%s_Rx%s_%s%02.0fL%.0f_T01_%04.0f.mat', ...
+            fname.name, subarray, datestr(fname.datenum,'YYYYmmDDHHMMSS'), tx, rx, zeropimod, ...
+            BW, Tpd, fname.file_idx);
+          
+          fn = fullfile(fn_dir,fn_subdir,fn_name);
+          
+          % Open the file
+          if size(wf_tmp_fn,1)<wf || size(wf_tmp_fn,2)<adc || ~strcmpi(fn,wf_tmp_fn{wf,adc})
+            fprintf('  Load %s (%s)\n', fn, datestr(now));
+            wf_tmp_fn{wf,adc} = fn;
+            %wf_tmp_data{wf,adc} = matfile(fn); % Might be better if files saved in -v7.3
+            wf_tmp_data{wf,adc} = load(fn);
+          end
+          
+          % Select specific records
+          tmp_data_rec = 1 + param.load.recs(1) + rec - 1 - records.relative_rec_num{board_idx}(file_idx);
+          tmp_data = wf_tmp_data{wf,adc}.s(:,tmp_data_rec);
+          Nt{img}(num_accum+1) = length(tmp_data);
+          wfs(wf).Nt_raw = length(tmp_data);
+          
+          % Accumulate (presum)
+          if num_accum == 0
+            state.data{accum_idx} = single(tmp_data);
+          else
+            state.data{accum_idx} = state.data{accum_idx} + single(tmp_data);
+          end
+        end
+        num_accum = num_accum + 1;
+                
+      elseif records.offset(board_idx,rec) ~= -2^31
         if records.offset(board_idx,rec) < 0
           if isempty(file_data_last_file)
             % Record offset is negative and so represents a record that
@@ -483,11 +562,11 @@ for state_idx = 1:length(states)
                 state.data{accum_idx} = state.wf_adc_sum(accum_idx)*state.data{accum_idx};
                 continue;
               case 1
-                state.data{accum_idx} = state.data{accum_idx} ...
+                state.data{accum_idx} = state.data{accum_idx-1} ...
                   + state.wf_adc_sum(accum_idx)*state.data{accum_idx};
                 continue;
               case 2
-                state.data{accum_idx} = state.data{accum_idx} ...
+                state.data{accum_idx} = state.data{accum_idx-1} ...
                   + state.wf_adc_sum(accum_idx)*state.data{accum_idx};
               case 3
                 state.data{accum_idx} = state.wf_adc_sum(accum_idx)*state.data{accum_idx};
@@ -499,7 +578,7 @@ for state_idx = 1:length(states)
           img = state.img(accum_idx);
           if num_accum < num_presum_records*wfs(wf).presum_threshold ...
               || any(nyquist_zone_hw{img} ~= nyquist_zone_hw{img}(1)) ...
-              || any(nyquist_zone_signal{img} ~= nyquist_zone_signal{img}(1)) ...
+              || any(~isequaln(nyquist_zone_signal{img},nyquist_zone_signal{img}(1))) ...
               || any(DDC_dec{img} ~= DDC_dec{img}(1)) ...
               || any(DDC_freq{img} ~= DDC_freq{img}(1)) ...
               || Nt{img}(1) <= 0 ...

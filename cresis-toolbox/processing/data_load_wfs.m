@@ -170,12 +170,17 @@ for wf = 1:length(param.radar.wfs)
   if isfield(param.radar.wfs(wf),'Tadc') && ~isempty(param.radar.wfs(wf).Tadc)
     wfs(wf).t0_raw    = param.radar.wfs(wf).Tadc + wfs(wf).Tadc_adjust ...
       + wfs(wf).time_raw_trim(1)/wfs(wf).fs_raw;
-  elseif any(param.records.file.version == [405 406 410]) % [acords mcords]
+  elseif any(param.records.file.version == [405 406 410]) % acords and mcrds
     wfs(wf).t0_raw    = records.settings.wfs(1).wfs(wf).t0(1) + wfs(wf).Tadc_adjust ...
       + wfs(wf).time_raw_trim(1)/wfs(wf).fs_raw;
-  elseif isfield(records.settings.wfs(wf),'t0')
-    wfs(wf).t0_raw    = records.settings.wfs(wf).t0 + wfs(wf).Tadc_adjust ...
-      + wfs(wf).time_raw_trim(1)/wfs(wf).fs_raw;
+  elseif isfield(records.settings.wfs,'t0')
+    if numel(records.settings.wfs) >= wf
+      wfs(wf).t0_raw    = records.settings.wfs(wf).t0 + wfs(wf).Tadc_adjust ...
+        + wfs(wf).time_raw_trim(1)/wfs(wf).fs_raw;
+    else
+      wfs(wf).t0_raw    = records.settings.wfs(1).t0 + wfs(wf).Tadc_adjust ...
+        + wfs(wf).time_raw_trim(1)/wfs(wf).fs_raw;
+    end
   else
     wfs(wf).t0_raw    = 0 + wfs(wf).Tadc_adjust ...
       + wfs(wf).time_raw_trim(1)/wfs(wf).fs_raw;
@@ -237,10 +242,14 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).BW_window = [min(abs([wfs(wf).f0,wfs(wf).f1])) max(abs([wfs(wf).f0,wfs(wf).f1]))];
   end
-  if any(param.records.file.version == [405 406 410]) % [acords mcords]
+  if any(param.records.file.version == [405 406 410]) % acords and mcrds
     wfs(wf).Nt_raw = records.settings.wfs(1).wfs(wf).num_sam(1) - sum(wfs(wf).time_raw_trim);
-  elseif isfield(records.settings.wfs(wf),'num_sam')
-    wfs(wf).Nt_raw = records.settings.wfs(wf).num_sam(1) - sum(wfs(wf).time_raw_trim);
+  elseif isfield(records.settings.wfs,'num_sam')
+    if numel(records.settings.wfs) >= wf
+      wfs(wf).Nt_raw = records.settings.wfs(wf).num_sam(1) - sum(wfs(wf).time_raw_trim);
+    else
+      wfs(wf).Nt_raw = records.settings.wfs(1).num_sam(1) - sum(wfs(wf).time_raw_trim);
+    end
   else
     % Will be determined later in data_load.m
     wfs(wf).Nt_raw = 0;
@@ -422,8 +431,12 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).bit_shifts = records.settings.wfs(1).wfs(wf).bit_shifts(1)*ones(1,max(adcs));
   elseif param.records.file.version == 410 % mcords
     wfs(wf).bit_shifts = max(0,ceil(log(wfs(wf).presums)/log(2)) - 4)*ones(1,max(adcs));
-  elseif isfield(records.settings.wfs(wf),'bit_shifts')
-    wfs(wf).bit_shifts = records.settings.wfs(wf).bit_shifts*ones(1,max(adcs));
+  elseif isfield(records.settings.wfs,'bit_shifts')
+    if numel(records.settings.wfs) >= wf
+      wfs(wf).bit_shifts = records.settings.wfs(wf).bit_shifts*ones(1,max(adcs));
+    else
+      wfs(wf).bit_shifts = records.settings.wfs(1).bit_shifts*ones(1,max(adcs));
+    end
   else
     wfs(wf).bit_shifts = 0*ones(1,max(adcs));
   end
