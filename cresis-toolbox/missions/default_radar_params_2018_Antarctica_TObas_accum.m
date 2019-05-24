@@ -162,15 +162,7 @@ default.qlook.motion_comp = 0;
 default.qlook.dec = 20;
 default.qlook.inc_dec = 10;
 default.qlook.surf.en = 1;
-default.qlook.surf.min_bin = 2e-6;
-default.qlook.surf.method = 'threshold';
-default.qlook.surf.threshold = 15;
-default.qlook.surf.threshold_rng = 5;
-default.qlook.surf.threshold_noise_rng = [0 -1e-6 -0.4e-6];
-default.qlook.surf.threshold_rel_max = -9;
-default.qlook.surf.filter = [3 3];
-default.qlook.surf.max_rng = [0 0.1e-6];
-default.qlook.surf.min_bin = 2e-6;
+default.qlook.surf.profile = 'ACCUM';
 
 %% SAR worksheet
 default.sar.out_path = '';
