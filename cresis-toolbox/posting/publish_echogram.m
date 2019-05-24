@@ -751,7 +751,9 @@ if param.plot_quality
 
   end
 else
-  echo_info.h_layers{1} = plot(ah_echo,DLayers{1},'--m');
+  if ~isempty(DLayers) 
+    echo_info.h_layers{1} = plot(ah_echo,DLayers{1},'--m');
+  end
   for layer_idx = 2:length(DLayers)
     echo_info.h_layers{end + 1} = plot(ah_echo,DLayers{layer_idx},'--r');
   end

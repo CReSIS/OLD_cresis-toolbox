@@ -166,73 +166,15 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       mu = sinc(linspace(-1.5,1.5,mu_size));
       sigma = sum(mu)/20*ones(1,mu_size);
       mask_dist      = round(bwdist(mask == 0));
-      bounds = [sb.bounds_relative(1) size(trws_data,2)-sb.bounds_relative(2)-1 -1 -1];
+      bounds = [sb.bounds_relative(1) size(trws_data,2)-sb.bounds_relative(2)-1 -1 -1];  
+      mask_dist = round(mask_dist .* 9);
+      
+      clear DIM DIM_costmatrix;
+      global gRadar;
+      DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
+      DIM_costmatrix = DIM.Layer_tracking_3D_parameters;
+      DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
 
-      %% Obtained from geostatistical analysis of 2014 Greenland P3
-        prob.DIM_means = [    16.0582   27.3381   34.0492   40.5714...
-          46.9463   52.3826   58.4664   63.7750   70.5143   76.3140...
-          81.3519   86.9523   92.2285   98.1430   102.8310  107.0558...
-          112.4538  116.3923  121.0109  125.1486  128.7611  133.3286...
-          136.3500  139.5058  142.3812  146.1565  148.3781  151.1398...
-          153.5642  155.2606  157.4824  159.8529  161.0239  163.1799...
-          164.2849  166.1013  166.0728  167.3132  168.1448  169.1323...
-          169.7559  170.3869  171.4264  171.8926  171.5201  171.8870...
-          171.6407  172.3505  171.3533  171.6161];
-        
-        prob.DIM_vars  = [     20.5619   24.9082   28.0037   32.0840...
-          35.6021   38.9544    42.4034   45.3588   48.9714   52.1360...
-          55.0826   57.5144    60.3847   63.1485   65.1199   67.3734...
-          69.3662   71.2849    72.9471   74.3759   75.5521   76.9737...
-          77.9961   79.3596    79.9999   81.0342   81.6340   82.2424...
-          82.9658   83.4794    84.1632   84.4168   85.0014   85.3065...
-          85.7757   86.1880    86.3563   86.5577   86.7289   87.0748...
-          87.1360   87.2473    87.2828   86.6350   86.5453   86.2989...
-          86.4736   86.7318   87.1606   87.6966];
-      
-      costm = ones(1201, 101);
-      fd = 18 * fir_dec(1:101, ones(1,5)/3.7.');
-      
-      for t = 1:1200
-        for i = 1:101
-          costm(t,i) = 200 * exp(-0.075 .* t) - 200 * exp(-0.075 * 50);
-          if t > fd(i)
-            costm(t,i) = 200;
-          end
-        end
-      end
-      
-      prob.DIM_means = [prob.DIM_means prob.DIM_means(end)* ones(1,50)];
-      prob.DIM_vars  = [prob.DIM_vars  prob.DIM_vars(end) * ones(1,50)];
-      
-      DIM_costmatrix = ones(1200, 100);
-      for DIM = 1 : 100
-        for T = 1 : 1200
-          var = DIM * 0.05 * prob.DIM_vars(end);
-          cost = 0.1 ./ normpdf(T, prob.DIM_means(DIM), var);
-          cost(cost > 800) = 800;
-          DIM_costmatrix(T, DIM) = cost;
-        end
-      end
-      
-      for k = 1:100
-        DIM_costmatrix(1:50, k) = DIM_costmatrix(1:50, k) + 0.06 * k * costm(1:50, k);
-      end
-      
-      DIM_costmatrix(DIM_costmatrix < 0) = 0;
-      DIM_costmatrix(DIM_costmatrix > 800) = 800;
-      
-      DIM_costmatrix = DIM_costmatrix(3:end, :);
-      DIM_costmatrix(end+1, :) = DIM_costmatrix(end,:);
-      DIM_costmatrix(end+1, :) = DIM_costmatrix(end,:);
-      DIM_costmatrix = DIM_costmatrix ./ 4;
-      
-      % Visualization of DIM_costmatrix
-      if 0
-        figure; (imagesc(DIM_costmatrix)); colorbar; hold on;
-        xlabel('Distance to nearest ice-margin [m]');
-        ylabel('Ice thickness distribution [range-bin]')
-        title('Added cost');
-      end
       
       %% DoA-to-DoA transition model
       % Obtained from geostatistical analysis of 2014 Greenland P3
@@ -245,14 +187,6 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       
       if length(transition_sigma) ~= size(sb.data, 2)
         transition_sigma = imresize(transition_sigma, [1 size(sb.data, 2)]);
-      end
-      
-      % Visualization of mean and variance vectors
-      if 0
-        figure; (plot(transition_mu)); hold on;
-        plot(transition_sigma); xlim([1 64])
-        legend('Mean', 'Variance', 'Location', 'northwest');
-        xlabel('DoA bins');
       end
       
       if top_edge_en && ~isempty(cols) && cols(1) > bounds(1)+1
