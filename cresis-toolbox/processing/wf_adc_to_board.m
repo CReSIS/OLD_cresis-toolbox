@@ -94,6 +94,12 @@ elseif any(param.records.file.version == [8 11])
     profile = [];
   end
     
+elseif any(param.records.file.version == [413 414])
+  % UTUA HFRDS, BAS Matlab RDS
+  board = 1;
+  board_idx = board;
+  profile = [];
+  
 else
   % All other systems
   board = unique(wf_adc_list(:,2).');

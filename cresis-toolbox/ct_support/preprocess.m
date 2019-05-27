@@ -41,6 +41,9 @@ for config_idx = 1:numel(param.config.default)
   cparam.config.config_folder_names = param.config.config_folder_names{config_idx};
   cparam.config.board_folder_names = param.config.board_folder_names{config_idx};
   cparam.config.date_str = param.config.date_strs{config_idx};
+  if isfield(param.config,'regexp')
+    cparam.config.file.regexp = param.config.regexp{config_idx};
+  end
   cparam.config = rmfield(cparam.config,'date_strs');
   cparam.config = rmfield(cparam.config,'default');
   
@@ -152,6 +155,19 @@ for config_idx = 1:numel(param.config.default)
         cparam.config.file.suffix, get_filenames_param);
       num_fns = num_fns + length(fns);
     end
+    
+  elseif strcmpi(cparam.config.daq_type,'bas')
+    num_fns = 0;
+    board_idx = 1;
+    board = cparam.config.board_map{board_idx};
+    board_folder_name = cparam.config.board_folder_names;
+    board_folder_name = regexprep(board_folder_name,'%b',board);
+    
+    get_filenames_param = struct('regexp',cparam.config.file.regexp,'recursive',true);
+    fns = get_filenames(fullfile(cparam.config.base_dir,board_folder_name), ...
+      cparam.config.file.prefix, cparam.config.file.midfix, ...
+      cparam.config.file.suffix, get_filenames_param);
+    num_fns = num_fns + length(fns);
     
   else
     error('cparam.config.daq_type = %s is not a supported type', cparam.config.daq_type);

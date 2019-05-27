@@ -62,11 +62,8 @@ default.qlook.surf.profile = 'RDS_OIB';
 
 %% SAR worksheet
 default.sar.out_path = '';
-default.sar.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).']};
-default.sar.frm_types = {0,[0 1],0,0,-1};
 default.sar.chunk_len = 5000;
 default.sar.combine_rx = 0;
-default.sar.trim_vals = [];
 default.sar.mocomp.en = 1;
 default.sar.mocomp.type = 2;
 default.sar.mocomp.filter = {@butter  [2]  [0.1000]};

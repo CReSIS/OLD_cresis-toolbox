@@ -137,6 +137,14 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'ar
   gps.z = 0;
 end
 
+if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(gps_source,'bas'))
+  % Paden: Just an estimate
+  warning('Correct lever arms need to be entered.');
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 1300;
+end
+
 if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'bas'))
   % See (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
   %
@@ -667,29 +675,38 @@ end
 % =========================================================================
 
 if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'accum'))
-  % See GPS section for 2018_Antarctica_TObas for details
+  % See GPS section for 2018_Antarctica_TObas for details:
+  % 	3+5/8" from back of antenna box
+  % 	9+15/16" from right/starboard side of lid (used edge of lid)
+  % 	64+1/16" below to the lid of the antenna
   %
-  % The measurements (in inches) are:
-  % Element 1 (starboard): (x,y,z) = (4.25, 0.0625, 7.75). The thickness of each antenna element is 0.125 in.
-  % Element 2 (next to starboard): (x,y,z) = (4.25, 4.8125, 7.75)
-  % Element 3 (next to port): (x,y,z) = (4.25, 9.5625, 7.75)
-  % Element 4 (port): (x,y,z) = (4.25, 14.3125, 7.75)
+  % The offset from the outer back right top corner of the box to the
+  % center of the aperture of each of the antennas is:
+  %   (reference is aft, starboard, top)
   %
-  % The bars were 0.75 in. thick. This increases the z-position of all
+  % With the box (outer surfaces) as reference, the measurements (in
+  % inches) are the following:
+  % Element 1 (starboard): (x,y,z) = (6.8125, 1.69885,10.04).
+  % Element 2 (next to starboard): (x,y,z) = (6.8125, 6.44885, 10.04)
+  % Element 3 (next to port): (x,y,z) = (6.8125,11.19885, 10.04)
+  % Element 4 (port): (x,y,z) = (6.8125, 15.94885, 10.04)
+  % The thickness of each antenna element is 0.125 in.
+  %
+  % The bars were 0.75 in. thick. This decreases the z-position of all
   % elements by 0.75 in.
 
   % Accumulation antenna
   LArx = [];
-  LArx(1,:)   = ( (-(3+5/8) + 4.25) + [0 0 0 0])*0.0254 - gps.x; % m
-  LArx(2,:)   = ( (+(9+15/16) - 8.5) + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
-  LArx(3,:)   = ( (+(64+1/16) + 0.75 - 8) + [0 0 0 0])*0.0254 - gps.z; % m
+  LArx(1,:)   = ( (-(3+5/8) + 6.8125) + [0 0 0 0])*0.0254 - gps.x; % m
+  LArx(2,:)   = ( (+(9+15/16)) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
+  LArx(3,:)   = ( (+(64+1/16) - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LArx = mean(LArx,2); % Combine all 4 elements into a single element
   
   LAtx = [];
-  LAtx(1,:)   = ( (-(3+5/8) + 6) + [0 0 0 0])*0.0254 - gps.x; % m
-  LAtx(2,:)   = ( (+(9+15/16) - 8.5) + [-7.5 -3.75 3.75 7.5])*0.0254 - gps.y; % m
-  LAtx(3,:)   = ( (+(64+1/16) + 0.75 - 8) + [0 0 0 0])*0.0254 - gps.z; % m
+  LAtx(1,:)   = ( (-(3+5/8) + 6.8125) + [0 0 0 0])*0.0254 - gps.x; % m
+  LAtx(2,:)   = ( (+(9+15/16)) - [15.9489   11.1989    6.4489    1.6988])*0.0254 - gps.y; % m
+  LAtx(3,:)   = ( (+(64+1/16) - 0.75 + 10.04) + [0 0 0 0])*0.0254 - gps.z; % m
   
   LAtx = mean(LAtx,2); % Combine all 4 elements into a single element
   
@@ -1122,9 +1139,52 @@ end
 %% Radar Depth Sounder
 % =========================================================================
 
+if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(radar_name,'rds'))
+  % Port - Belly - Starboard
+  % mm
+  % /cresis/snfs1/dataproducts/metadata/2018_Antarctica_TObas/Measurements of antenna locations on BL.pdf
+  % Arenas Pingarron, Alvaro <alvaro.pingarron.15@ucl.ac.uk>
+  %
+  % (X,Y) x is pointing out right wing, y is pointing forward
+  % 1: (-8375,10)
+  % 2: (-6765,-10)
+  % 3: (-5165,3)
+  % 4: (-3540,0)
+  % 5: (-1469,-2915)
+  % 6: (-500,-2915)
+  % 7: (505,-2915)
+  % 8: (1469,-2915)
+  % 9: (3510,0)
+  % A: (5129,-5)
+  % B: (6740,-3)
+  % C: (8369, 5)
+  % 
+  % Height of aerials above ground - assumes ground was flat and port and starboard are the same.
+  % Polaris pod: 650
+  % P1 and SC: 2614
+  % P2 and SB: 2548
+  % P3 and SA: 2454
+  % P4 and S9: 2356
+  
+  LArx(1,:)   = [10 -10 3 0 -2915 -2915 -2915 -2915 0 -5 -3 5]/1000 - gps.x; % m
+  LArx(2,:)   = [-8375 -6765 -5165 -3540 -1469 -500 505 1469 3510 5129 6740 8369]/1000 - gps.y; % m
+  LArx(3,:)   = [2614 2548 2454 2356 650 650 650 650 2356 2454 2548 2614]/1000 - gps.z; % m
+  
+  LAtx   = LArx; % m
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 3;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 3;
+    tx_weights = [1 1 1 1 0 0 0 0 0 0 0 0];
+  end
+end
+
 if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'rds'))
   % HF antenna
-  LArx(1,:)   =0 - gps.x; % m
+  LArx(1,:)   = 0 - gps.x; % m
   LArx(2,:)   = 0 - gps.y; % m
   LArx(3,:)   = 0 - gps.z; % m
   

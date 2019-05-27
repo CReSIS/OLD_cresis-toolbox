@@ -82,6 +82,31 @@ function gps = read_gps_general_ascii(fn,param)
 % param.time_reference = 'utc';
 % gps = read_gps_general_ascii(fn,param);
 %
+% % Example 6: BAS GPS for RDS (Alvaro Arenas Pingarron)
+%
+%  1:             Timestamp in UTC, given as datenum. The leap second change on Jan 1st 2017 was taken into account (difference GPS-UTC was 17 sec before, and 18 seconds after Jan1st 2017).
+%  2:             Latitude in degrees
+%  3:             Longitude in degrees
+%  4:             Ellipsoidal Height (WGS84) in metres
+%  5:             Roll angle in Degrees (positive is right wing down)
+%  6:             Pitch angle in Degrees (positive is nose up)
+%  7:             Heading angle in Degrees (North is 0°, East is 90°)
+%  8:             Roll angle standard deviation (arc seconds)
+%  9:             Pitch angle standard deviation (arc seconds)
+% 10:             Heading standard deviation (arc seconds)
+% 11:             Ellipsoidal Height standard deviation (metres)
+%
+% 736717.810247656,-67.566868057,-68.126429289,  13.3328,  -0.06588,   0.15115,-162.80282, 11.8, 11.6,106.6,0.010
+%
+% fn = '/cresis/snfs1/dataproducts/metadata/2017_Antarctica_TObas/F31.ASC';
+% param = [];
+% param.format_str = '%f%f%f%f%f%f%f%f%f%f%f';
+% param.types = {'date_datenum','lat_deg','lon_deg','elev_m','roll_deg','pitch_deg','heading_deg','f4','f5','f6','f7'};
+% param.textscan = {'delimiter',','};
+% param.headerlines = 0;
+% param.time_reference = 'utc';
+% gps = read_gps_general_ascii(fn,param);
+%
 % Author: John Paden
 
 [fid,msg] = fopen(fn,'r');
@@ -148,6 +173,10 @@ if isfield(tmp_gps,'date_MDY')
     end
   end
   [year,month,day] = datevec(datenums);
+end
+if isfield(tmp_gps,'date_datenum')
+  % Handles Matlab datenum format (days since year 0000)
+  [year,month,day,hour,minute,sec] = datevec(tmp_gps.date_datenum);
 end
 if isfield(tmp_gps,'time_HMS')
   % Handles all the standard time formats including:

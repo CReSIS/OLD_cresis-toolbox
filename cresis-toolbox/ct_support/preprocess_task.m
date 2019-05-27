@@ -23,6 +23,8 @@ elseif strcmpi(param.config.daq_type,'cresis')
   success = preprocess_task_cresis(param);
 elseif strcmpi(param.config.daq_type,'utua')
   success = preprocess_task_utua(param);
+elseif strcmpi(param.config.daq_type,'bas')
+  success = preprocess_task_bas(param);
 else
   error('Invalid param.config.daq_type %s\n', param.config.daq_type);
 end
