@@ -60,6 +60,7 @@ function layers = opsLoadLayers(param, layer_params)
 %  .type (not available for all sources, set to NaN if not available)
 %  .twtt
 %  .point_path_id database key (only filled if source is ops)
+%  .frm: numeric vector of frame ids (1 to 999)
 %
 % Authors: John Paden
 %
@@ -551,4 +552,40 @@ for layer_idx = 1:length(layer_params)
   end
 end
 
-return;
+%% Add the frame field
+for layer_idx = 1:length(layer_params)
+  if strcmp(layer_param.source,'ops')
+    layers(layer_idx).frm = zeros(size(layers(layer_idx).gps_time));
+    for frm = 1:length(ops_seg_data.properties.start_gps_time)
+      if frm == 1
+        start_gps_time = 0;
+      else
+        start_gps_time = ops_seg_data.properties.start_gps_time(frm);
+      end
+      if frm == length(ops_seg_data.properties.start_gps_time)
+        stop_gps_time = inf;
+      else
+        stop_gps_time = ops_seg_data.properties.start_gps_time(frm+1);
+      end
+      layers(layer_idx).frm(layers(layer_idx).gps_time >= start_gps_time ...
+        & layers(layer_idx).gps_time < stop_gps_time) = frm;
+    end
+  else
+    layers(layer_idx).frm = zeros(size(layers(layer_idx).gps_time));
+    for frm = 1:length(frames.frame_idxs)
+      if frm == 1
+        start_gps_time = 0;
+      else
+        start_gps_time = records.gps_time(frames.frame_idxs(frm));
+      end
+      if frm == length(frames.frame_idxs)
+        stop_gps_time = inf;
+      else
+        stop_gps_time = records.gps_time(frames.frame_idxs(frm+1));
+      end
+      layers(layer_idx).frm(layers(layer_idx).gps_time >= start_gps_time ...
+        & layers(layer_idx).gps_time < stop_gps_time) = frm;
+    end
+  end
+end
+
