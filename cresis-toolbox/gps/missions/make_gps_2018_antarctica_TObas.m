@@ -31,7 +31,7 @@ end
 debug_level = 1;
 singleday = true;
 mergegps = true;
-baddatevecs = {[2019, 2, 4], [2019, 2, 6]}; %only used when mergegps=true
+baddatevecs = {[2019, 2, 4], [2019, 2, 6], [2019, 2, 7]}; %only used when mergegps=true
 
 
 if singleday %Single day
@@ -82,7 +82,8 @@ for date_idx = 1:length(baddatevecs)
       out_fns{file_idx} = sprintf('gps_%s_arena.mat', date_str);
       file_type{file_idx} = 'arena';
       params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
-      gps_source{file_idx} = 'arena-field';
+%       gps_source{file_idx} = 'arena-field';
+      gps_source{file_idx} = 'arena';
       sync_flag{file_idx} = 1;
       sync_fns{file_idx} = get_filenames(fullfile(in_base_path,dir_str),'','','gps.txt');
       sync_file_type{file_idx} = 'arena';
@@ -194,31 +195,8 @@ end
 % Read and translate files according to user settings
 % ======================================================================
 make_gps;
-%Merge the structures for the "bad data" dates
-for id_bd = 1:length(baddatevecs)
-  %Get the date
-  year = baddatevecs{id_bd}(1); month = baddatevecs{id_bd}(2); day = baddatevecs{id_bd}(3);
-  date_str = sprintf('%04d%02d%02d',year,month,day);
-  %Get the output file names
-  out_fn_arena = fullfile(gps_path,sprintf('gps_%s_arena',date_str));
-  out_fn_bas = fullfile(gps_path,sprintf('gps_%s',date_str));
-  %Load the files
-  gps_arena = load(out_fn_arena);
-  gps_bas = load(out_fn_bas);
-  %Append data to gps_bas
-  gps = gps_bas;
-  fappend = {'elev','heading','lat','lon','pitch','roll','gps_time'}; %Fields to append data
-  applogicvec = [gps_arena.gps_time>=gps_bas.gps_time(end)];
-  for fid = 1:length(fappend)
-    basf = gps_bas.(fappend{fid});
-    appf = gps_arena.(fappend{fid});
-    gps.(fappend{fid}) = [basf, appf(applogicvec)];
-  end
-  %Save the merged data
-  save(out_fn_bas,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
-end
 
-for idx = 1+length(baddatevecs):length(file_type)
+for idx = 1:length(file_type)
   out_fn = fullfile(gps_path,out_fns{idx});
   
   gps = load(out_fn,'gps_source');
@@ -256,4 +234,28 @@ for idx = 1+length(baddatevecs):length(file_type)
     save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
   end
   
+end
+
+%Merge the structures for the "bad data" dates
+for id_bd = 1:length(baddatevecs)
+  %Get the date
+  year = baddatevecs{id_bd}(1); month = baddatevecs{id_bd}(2); day = baddatevecs{id_bd}(3);
+  date_str = sprintf('%04d%02d%02d',year,month,day);
+  %Get the output file names
+  out_fn_arena = fullfile(gps_path,sprintf('gps_%s_arena',date_str));
+  out_fn_bas = fullfile(gps_path,sprintf('gps_%s',date_str));
+  %Load the files
+  gps_arena = load(out_fn_arena);
+  gps_bas = load(out_fn_bas);
+  %Append data to gps_bas
+  gps = gps_bas;
+  fappend = {'elev','heading','lat','lon','pitch','roll','gps_time'}; %Fields to append data
+  applogicvec = [gps_arena.gps_time>=gps_bas.gps_time(end)];
+  for fid = 1:length(fappend)
+    basf = gps_bas.(fappend{fid});
+    appf = gps_arena.(fappend{fid});
+    gps.(fappend{fid}) = [basf, appf(applogicvec)];
+  end
+  %Save the merged data
+  save(out_fn_bas,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
 end
