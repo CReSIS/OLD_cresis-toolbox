@@ -30,12 +30,12 @@ end
 % ======================================================================
 debug_level = 1;
 singleday = true;
-mergegps = true;
+mergegps = false;
 baddatevecs = {[2019, 2, 4], [2019, 2, 6], [2019, 2, 7]}; %only used when mergegps=true
 
 
 if singleday %Single day
-  year = 2019; month = 2; day = 04;
+  year = 2019; month = 1; day = 30;
   datevecs = {[year, month, day]};
 else %Multiple days
   %Each vec has format [YYYY, MM, DD] and it is iterated upon later
@@ -48,6 +48,8 @@ end
 %Check that the bad dates are in the datevecs variable
 if singleday && mergegps
   datevecs = baddatevecs;
+else
+  baddatevecs = {};
 end
   
 
@@ -180,7 +182,7 @@ elseif strcmpi(gps_source_to_use,'bas')
       'f5','f6','f7'};
     params{file_idx}.textscan = {};
     params{file_idx}.headerlines = 5;
-    params{file_idx}.time_reference = 'utc';
+    params{file_idx}.time_reference = 'gps';
     gps_source{file_idx} = 'bas-final20190313';
     sync_flag{file_idx} = 1;
     sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%s',date_str)),'','','gps.txt');

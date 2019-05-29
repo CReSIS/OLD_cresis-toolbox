@@ -112,7 +112,7 @@ classdef dem_class < handle
         new_dem_info.url = 'http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/';
         new_dem_info.res = [8 100 200 1000];
         new_dem_info.res_str = {'8m' '100m' '200m' '1km'};
-        new_dem_info.tile_en = [1 1 1 1];
+        new_dem_info.tile_en = [1 0 0 0];
         new_dem_info.subtile_en = [0 0 0 0];
         new_dem_info.mosaic_fn_fh = @(res_str) sprintf('%s/REMA_%s_dem.tif',res_str,res_str);
         new_dem_info.tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s.tar.gz',res_str,y,x,y,x,res_str);
