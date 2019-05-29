@@ -532,11 +532,13 @@ end
 % =====================================================================
 wf = 1;
 if strcmpi(radar_type,'deramp')
+  % Find the new t_ref value
   BW = diff(param.radar.wfs(wf).BW_window);
   dt = 1/BW;
-  t_ref_new = param.check_surface.radar_twtt_offset + param.radar.wfs(wf).t_ref + round(nanmedian(twtt_error)/dt)*dt;
+  t_ref_new = param.radar.wfs(wf).t_ref - param.check_surface.radar_twtt_offset - round(nanmedian(twtt_error)/dt)*dt;
 else
-  t_ref_new = param.check_surface.radar_twtt_offset + param.radar.wfs(wf).Tadc_adjust + round(nanmedian(twtt_error)*1e10)/1e10;
+  % Find the new Tadc_adjust (called t_ref_new to match deramp) value
+  t_ref_new = param.radar.wfs(wf).Tadc_adjust + param.check_surface.radar_twtt_offset + round(nanmedian(twtt_error)*1e10)/1e10;
 end
 
 txt_headers_fn = fullfile(fn_dir,'time_00000000_00.txt');
