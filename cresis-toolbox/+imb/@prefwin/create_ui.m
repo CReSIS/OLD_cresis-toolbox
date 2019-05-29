@@ -23,6 +23,8 @@ wms_layers = wms_capabilities.Layer;
 % Create a list of all layers excluding "*line_paths*",
 % "*data_quality*","*data_coverage*", "*crossover_errors*","*data_elevation*"
 obj.wms_maps = {};
+obj.wms_maps{end+1} = 'arctic:Google';
+obj.wms_maps{end+1} = 'antarctic:Google';
 for idx = 1:length(wms_layers)
   match1_idx = strfind(wms_layers(idx).LayerName,'line_paths');
   match2_idx = strfind(wms_layers(idx).LayerName,'crossover_errors');

@@ -91,19 +91,24 @@ if ~isempty(event.Key)
           
           %break;
         else
-          new_yaxis = [yaxis(1) - y_extent*0.4, yaxis(end) - y_extent*0.4];
-          
-          if new_yaxis(1) < obj.full_yaxis(1)
-            new_yaxis(1) = obj.full_yaxis(1);
-            new_yaxis(end) = new_yaxis(1) + y_extent;
+          if obj.isGoogle
+            obj.googleObj.pan = 3;
+            obj.redraw_google_map(xaxis(1), xaxis(2), yaxis(1), yaxis(2));
+          else
+            new_yaxis = [yaxis(1) - y_extent*0.4, yaxis(end) - y_extent*0.4];
+
+            if new_yaxis(1) < obj.full_yaxis(1)
+              new_yaxis(1) = obj.full_yaxis(1);
+              new_yaxis(end) = new_yaxis(1) + y_extent;
+            end
+
+            % get a new map for these limits
+            new_yaxis = sort(new_yaxis);
+            % don't change the x limits in this case
+            new_xaxis = obj.cur_request.XLim/1e3;
+            obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
+              new_yaxis(1),new_yaxis(end));
           end
-          
-          % get a new map for these limits
-          new_yaxis = sort(new_yaxis);
-          % don't change the x limits in this case
-          new_xaxis = obj.cur_request.XLim/1e3;
-          obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
-            new_yaxis(1),new_yaxis(end));
         end
         
       case 'uparrow' % Up-arrow
@@ -116,18 +121,23 @@ if ~isempty(event.Key)
         if check_limits(obj,xaxis,yaxis,'u')
           
         else
-          new_yaxis = [yaxis(1) + y_extent*0.4, yaxis(end) + y_extent*0.4];
-          if new_yaxis(end) > obj.full_yaxis(end)
-            new_yaxis(end) = obj.full_yaxis(end);
-            new_yaxis(1) = new_yaxis(end) - y_extent;
+          if obj.isGoogle
+            obj.googleObj.pan = 1;
+            obj.redraw_google_map(xaxis(1), xaxis(2), yaxis(1), yaxis(2));
+          else
+            new_yaxis = [yaxis(1) + y_extent*0.4, yaxis(end) + y_extent*0.4];
+            if new_yaxis(end) > obj.full_yaxis(end)
+              new_yaxis(end) = obj.full_yaxis(end);
+              new_yaxis(1) = new_yaxis(end) - y_extent;
+            end
+            
+            % get a new map for these limits
+            new_yaxis = sort(new_yaxis);
+            % don't change the x limits in this case
+            new_xaxis = obj.cur_request.XLim/1e3;
+            obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
+              new_yaxis(1),new_yaxis(end));
           end
-          
-          % get a new map for these limits
-          new_yaxis = sort(new_yaxis);
-          % don't change the x limits in this case
-          new_xaxis = obj.cur_request.XLim/1e3;
-          obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
-            new_yaxis(1),new_yaxis(end));
         end
         
       case 'rightarrow' % Right arrow
@@ -137,18 +147,23 @@ if ~isempty(event.Key)
         % break if already at the limit
         if check_limits(obj,xaxis,yaxis,'r')          %break;
         else
-          new_xaxis = [xaxis(1) + x_extent*0.4, xaxis(end) + x_extent*0.4];
-          if new_xaxis(end) > obj.full_xaxis(end)
-            new_xaxis(end) = obj.full_xaxis(end);
-            new_xaxis(1) = new_xaxis(end) - x_extent;
+          if obj.isGoogle
+            obj.googleObj.pan = 2;
+            obj.redraw_google_map(xaxis(1), xaxis(2), yaxis(1), yaxis(2));
+          else
+            new_xaxis = [xaxis(1) + x_extent*0.4, xaxis(end) + x_extent*0.4];
+            if new_xaxis(end) > obj.full_xaxis(end)
+              new_xaxis(end) = obj.full_xaxis(end);
+              new_xaxis(1) = new_xaxis(end) - x_extent;
+            end
+
+            % get a new map for these limits
+            new_xaxis = sort(new_xaxis);
+            % don't change the y limits in this case
+            new_yaxis = obj.cur_request.YLim/1e3;
+            obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
+              new_yaxis(1),new_yaxis(end));
           end
-          
-          % get a new map for these limits
-          new_xaxis = sort(new_xaxis);
-          % don't change the y limits in this case
-          new_yaxis = obj.cur_request.YLim/1e3;
-          obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
-            new_yaxis(1),new_yaxis(end));
         end
         
       case 'leftarrow' % Left arrow
@@ -161,18 +176,23 @@ if ~isempty(event.Key)
         if check_limits(obj,xaxis,yaxis,'l')
           %break;
         else
-          new_xaxis = [xaxis(1) - x_extent*0.4, xaxis(end) - x_extent*0.4];
-          if new_xaxis(1) < obj.full_xaxis(1)
-            new_xaxis(1) = obj.full_xaxis(1);
-            new_xaxis(end) = new_xaxis(1) + x_extent;
+          if obj.isGoogle
+            obj.googleObj.pan = 4;
+            obj.redraw_google_map(xaxis(1), xaxis(2), yaxis(1), yaxis(2));
+          else
+            new_xaxis = [xaxis(1) - x_extent*0.4, xaxis(end) - x_extent*0.4];
+            if new_xaxis(1) < obj.full_xaxis(1)
+              new_xaxis(1) = obj.full_xaxis(1);
+              new_xaxis(end) = new_xaxis(1) + x_extent;
+            end
+
+            % get a new map for these limits
+            new_xaxis = sort(new_xaxis);
+            % don't change the y limits in this case
+            new_yaxis = obj.cur_request.YLim/1e3;
+            obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
+              new_yaxis(1),new_yaxis(end));
           end
-          
-          % get a new map for these limits
-          new_xaxis = sort(new_xaxis);
-          % don't change the y limits in this case
-          new_yaxis = obj.cur_request.YLim/1e3;
-          obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
-            new_yaxis(1),new_yaxis(end));
         end
         
       case 'z'
