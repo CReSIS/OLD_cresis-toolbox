@@ -175,14 +175,13 @@ elseif strcmpi(gps_source_to_use,'bas')
     in_fns{file_idx} = incase_fns;
     out_fns{file_idx} = sprintf('gps_%s.mat', date_str);
     file_type{file_idx} = 'General_ASCII';
-    params{file_idx} = struct('time_reference','utc');
+    params{file_idx} = struct('time_reference','gps');
     params{file_idx}.format_str = '%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f';
     params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg',...
       'elev_m','f1','f2','f3','roll_deg','pitch_deg','heading_deg','f4',...
       'f5','f6','f7'};
     params{file_idx}.textscan = {};
     params{file_idx}.headerlines = 5;
-    params{file_idx}.time_reference = 'gps';
     gps_source{file_idx} = 'bas-final20190313';
     sync_flag{file_idx} = 1;
     sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%s',date_str)),'','','gps.txt');

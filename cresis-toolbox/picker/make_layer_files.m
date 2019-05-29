@@ -177,7 +177,7 @@ for frm_idx = 1:length(param.cmd.frms)
         for rline = 1:length(old_lyr.layerData{layer_idx}.value{1}.data)
           if old_lyr.layerData{layer_idx}.value{1}.data(rline) ~= inf
             [min_val min_idx] = min(abs(old_lyr.GPS_time(rline) - lyr.GPS_time));
-            lyr.layerData{layer_idx}.value{1}.data(min_idx) = old_lyr.layerData{lyr.layer_idx}.value{1}.data(rline) + fast_time_correction(min_idx);
+            lyr.layerData{layer_idx}.value{1}.data(min_idx) = old_lyr.layerData{layer_idx}.value{1}.data(rline) + fast_time_correction(min_idx);
           end
         end
         % Linear interpolation for automated points
