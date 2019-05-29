@@ -38,13 +38,34 @@ fprintf('=====================================================================\n
 % =====================================================================
 
 physical_constants();
+[~,radar_type] = ct_output_dir(param.radar_name);
 
+%% Input Checks: radar
+if ~isfield(param,'radar') || isempty(param.radar)
+  param.radar = [];
+end
+
+if ~isfield(param.radar,'wfs') || isempty(param.radar.wfs)
+  param.radar.wfs = [];
+end
+
+wf = 1;
+if ~isfield(param.radar.wfs,'Tadc_adjust') || isempty(param.radar.wfs(wf).Tadc_adjust)
+  param.radar.wfs(wf).Tadc_adjust = 0;
+end
+
+if strcmpi(radar_type,'deramp') && (~isfield(param.radar,'nz_valid') || isempty(param.radar.nz_valid))
+  warning('Default Nyquist zones not specified in param.radar.nz_valid. Setting to [0,1,2,3] which may not be correct.');
+  param.radar.nz_valid = [0 1 2 3];
+end
+
+%% Input Checks: check_surface
 if ~isfield(param,'check_surface') || isempty(param.check_surface)
   param.check_surface = [];
 end
 
 if ~isfield(param.check_surface,'debug_plots') || isempty(param.check_surface.debug_plots)
-  param.check_surface.debug_plots = {};
+  param.check_surface.debug_plots = {'visible','twtt','gps','nz'};
 end
 enable_visible_plot = any(strcmp('visible',param.check_surface.debug_plots));
 enable_twtt_plot = any(strcmp('twtt',param.check_surface.debug_plots));
@@ -53,13 +74,26 @@ enable_nz_plot = any(strcmp('nz',param.check_surface.debug_plots));
 if ~isempty(param.check_surface.debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
 end
-
-if ~isfield(param.check_surface,'lidar_interp_gaps_dist') || isempty(param.check_surface.lidar_interp_gaps_dist)
-  param.check_surface.lidar_interp_gaps_dist = [150 75];
+fn = ct_filename_ct_tmp(param,'','check_surface','');
+fn_dir = fileparts(fn);
+if ~exist(fn_dir,'dir')
+  mkdir(fn_dir);
 end
 
 if ~isfield(param.check_surface,'max_twtt_diff') || isempty(param.check_surface.max_twtt_diff)
   param.check_surface.max_twtt_diff = 200e-9;
+end
+
+if ~isfield(param.check_surface,'radar_gps_max_lag') || isempty(param.check_surface.radar_gps_max_lag)
+  % Default 40 seconds: this is the maximum number of seconds for the GPS time lag
+  % search
+  param.check_surface.radar_gps_max_lag = 40.0;
+end
+
+if ~isfield(param.check_surface,'radar_gps_time_offset') || isempty(param.check_surface.radar_gps_time_offset)
+  % Default 0 seconds: this gps time offset will be added in the layer
+  % interpolation. Used to test GPS offsets.
+  param.check_surface.radar_gps_time_offset = 0.0;
 end
 
 if ~isfield(param.check_surface,'radar_layer_params') || isempty(param.check_surface.radar_layer_params)
@@ -69,7 +103,7 @@ end
 
 if ~isfield(param.check_surface,'radar_twtt_offset') || isempty(param.check_surface.radar_twtt_offset)
   % Default zero: this value will be added to the radar twtt. Used to test
-  % offsets.
+  % twtt offsets.
   param.check_surface.radar_twtt_offset = 0.0;
 end
 
@@ -78,6 +112,16 @@ if ~isfield(param.check_surface,'radar_twtt_ratio') || isempty(param.check_surfa
   % test incorrect sampling frequency (e.g. deramp on receive with wrong
   % f0/f1/Tpd parameters).
   param.check_surface.radar_twtt_ratio = 1.0;
+end
+
+if ~isfield(param.check_surface,'records_threshold') || isempty(param.check_surface.records_threshold)
+  % Default 1000: minimum number of records to use for comparison before
+  % trying to add more data from land DEM or mean sea level.
+  param.check_surface.records_threshold = 1000;
+end
+
+if ~isfield(param.check_surface,'ref_interp_gaps_dist') || isempty(param.check_surface.ref_interp_gaps_dist)
+  param.check_surface.ref_interp_gaps_dist = [150 75];
 end
 
 if ~isfield(param.check_surface,'ref_layer_params') || isempty(param.check_surface.ref_layer_params)
@@ -93,10 +137,6 @@ end
 
 if ~isfield(param.check_surface,'save_records_en') || isempty(param.check_surface.save_records_en)
   param.check_surface.save_records_en = false;
-end
-
-if ~isfield(param.check_surface,'use_lidar_data') || isempty(param.check_surface.use_lidar_data)
-  param.check_surface.use_lidar_data = true;
 end
 
 % =========================================================================
@@ -155,6 +195,13 @@ end
 % Throw out low quality radar data
 layers(radar_idx).twtt(layers(radar_idx).quality==3) = NaN;
 
+% Add GPS offset in
+new_gps_time = layers(radar_idx).gps_time - param.check_surface.radar_gps_time_offset;
+layers(radar_idx).lat = interp1(layers(radar_idx).gps_time,layers(radar_idx).lat,new_gps_time,'linear','extrap');
+layers(radar_idx).lon = interp1(layers(radar_idx).gps_time,layers(radar_idx).lon,new_gps_time,'linear','extrap');
+layers(radar_idx).elev = interp1(layers(radar_idx).gps_time,layers(radar_idx).elev,new_gps_time,'linear','extrap');
+layers(radar_idx).gps_time = new_gps_time;
+
 % Interpolate ref layer to radar gps time
 master = [];
 master.GPS_time = layers(radar_idx).gps_time;
@@ -169,7 +216,7 @@ ops_layer{1}.quality = layers(ref_idx).quality;
 ops_layer{1}.twtt = layers(ref_idx).twtt;
 ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
 ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
-lay = opsInterpLayersToMasterGPSTime(master,ops_layer,param.check_surface.lidar_interp_gaps_dist);
+lay = opsInterpLayersToMasterGPSTime(master,ops_layer,param.check_surface.ref_interp_gaps_dist);
 layers(ref_idx).twtt_ref = lay.layerData{1}.value{2}.data;
 
 % Stretch and offset the twtt
@@ -220,8 +267,8 @@ if enable_twtt_plot
   xlabel(h_axes(1),sprintf('Relative GPS time (sec from %s)', datestr(epoch_to_datenum(origin))));
   ylabel(h_axes(1),'TWTT error (ns)');
   grid(h_axes(1),'on');
-  if max(twtt_error)>min(twtt_error)
-    ylim(h_axes(1),[min(twtt_error) max(twtt_error)]*1e9);
+  if max(twtt_error_all)>min(twtt_error_all)
+    ylim(h_axes(1),[min(twtt_error_all) max(twtt_error_all)]*1e9);
   end
   legend(h_axes(1), 'All','Thresholded','location','best')
   
@@ -257,7 +304,7 @@ else
 end
 dem_source = 'lidar';
 % 2. Try LIDAR+Land next
-if length(recs)<1000
+if length(recs)<param.check_surface.records_threshold
   mask = ~isnan(twtt_error) & ~isnan(mdata.land_dem);
   mask_length = zeros(size(mask));
   mask_length(1) = mask(1);
@@ -275,7 +322,7 @@ if length(recs)<1000
   dem_source = 'land';
 end
 % 3. Try LIDAR+Land+Sea next
-if length(recs)<1000
+if length(recs)<param.check_surface.records_threshold
   mask = ~isnan(twtt_error);
   mask_length = zeros(size(mask));
   mask_length(1) = mask(1);
@@ -398,7 +445,7 @@ else
   if 0
     [ref_corr,lags] = xcorr(radar_layer,ref_layer);
   else
-    max_lag = round(10/dt);
+    max_lag = round(param.check_surface.radar_gps_max_lag/dt);
     lags = -max_lag:max_lag;
     ref_corr = zeros(1,length(lags));
     for lag_idx = 1:length(lags)
@@ -430,7 +477,6 @@ saveas(h_fig(4),[fig_fn '.jpg']);
 % =====================================================================
 %% Check surface: Nyquist Zone
 % =====================================================================
-[~,radar_type] = ct_output_dir(param.radar_name);
 if strcmpi(radar_type,'deramp')
   
   param.load.imgs = {[1 1]};
@@ -484,14 +530,26 @@ end
 % =====================================================================
 %% Check surface: Text file
 % =====================================================================
+wf = 1;
 if strcmpi(radar_type,'deramp')
-  wf = 1;
   BW = diff(param.radar.wfs(wf).BW_window);
   dt = 1/BW;
-  t_ref_new = param.radar.wfs(wf).t_ref + round(nanmedian(twtt_error)/dt)*dt;
+  t_ref_new = param.check_surface.radar_twtt_offset + param.radar.wfs(wf).t_ref + round(nanmedian(twtt_error)/dt)*dt;
 else
-  t_ref_new = 0;
+  t_ref_new = param.check_surface.radar_twtt_offset + param.radar.wfs(wf).Tadc_adjust + round(nanmedian(twtt_error)*1e10)/1e10;
 end
+
+txt_headers_fn = fullfile(fn_dir,'time_00000000_00.txt');
+fprintf('Saving headers %s\n', txt_headers_fn);
+fid = fopen(txt_headers_fn,'wb');
+fprintf(fid,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+  'Segment', 'Mean error', ...
+  'Median error', ...
+  'Std error', ...
+  'Max error', ...
+  'Mean error all', ...
+  'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref', 'DEM');
+fclose(fid);
 
 txt_fn = [ct_filename_ct_tmp(param,'','check_surface','time') '.txt'];
 fprintf('Saving %s\n', txt_fn);
@@ -502,15 +560,24 @@ fprintf(fid,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n
   1e9*nanstd(twtt_error), ...
   1e9*nanmax(abs(twtt_error-mean_offset)), ...
   1e9*nanmean(twtt_error_all), ...
-  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, t_ref_new, dem_source);
+  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, 1e9*t_ref_new, dem_source);
+fclose(fid);
+
+fprintf(1,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+  'Segment', 'Mean error', ...
+  'Median error', ...
+  'Std error', ...
+  'Max error', ...
+  'Mean error all', ...
+  'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref', 'DEM');
 fprintf(1,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n', ...
   param.day_seg, 1e9*mean_offset, ...
   1e9*nanmedian(twtt_error), ...
   1e9*nanstd(twtt_error), ...
   1e9*nanmax(abs(twtt_error-mean_offset)), ...
   1e9*nanmean(twtt_error_all), ...
-  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, t_ref_new, dem_source);
-fclose(fid);
+  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, 1e9*t_ref_new, dem_source);
+fprintf('All twtt times are in ns\n');
 
 % =====================================================================
 %% Check surface: Tsys Refinement

@@ -845,14 +845,15 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     extract_surface = tomo.extract(double(thresh_data), double(twtt_bin), double(Bottom_bin), ...
       double(Extra_bin), double(ice_mask), double(mean(mu,2)), double(mean(sigma,2)));
     
-    extract_surface = reshape(extra    
+    extract_surface = reshape(extract_surface,size(mdata.Tomo.img,2),size(mdata.Tomo.img,3));   
     % Visualization of mean and variance vectors
     if 0
       figure; (plot(transition_mu)); hold on;
       plot(transition_sigma); xlim([1 64])
       legend('Mean', 'Variance', 'Location', 'northwest');
       xlabel('DoA bins');
-    endct_surface,size(mdata.Tomo.img,2),size(mdata.Tomo.img,3));
+    end
+    
     
     for surf_name_idx = 1:length(surf_names)
       surf_name = surf_names{surf_name_idx};

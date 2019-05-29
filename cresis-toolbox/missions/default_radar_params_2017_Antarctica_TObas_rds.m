@@ -106,8 +106,8 @@ default.radar.wfs(3).Tpd = 4e-6;
 default.radar.wfs(4).Tpd = 4e-6;
 default.radar.wfs(5).Tpd = 4e-6;
 for adc = 1:12
-  default.radar.wfs(2).wf_adc_sum{adc} = [2 adc 1; 3 adc -1];
-  default.radar.wfs(4).wf_adc_sum{adc} = [4 adc 1; 5 adc -1];
+  default.radar.wfs(2).wf_adc_sum{adc} = [2 adc 0.5; 3 adc -0.5];
+  default.radar.wfs(4).wf_adc_sum{adc} = [4 adc 0.5; 5 adc -0.5];
 end
 default.radar.wfs(1).adc_gains_dB = 27*ones(1,12); % Gain from the first LNA to the ADC
 default.radar.wfs(2).adc_gains_dB = 45*ones(1,12); % Gain from the first LNA to the ADC
