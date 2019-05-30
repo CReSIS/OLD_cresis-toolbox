@@ -51,7 +51,7 @@ unique_layers = unique(cmd_layers);
 if isempty(unique_layers)
   unique_layers = [];
 end
-
+frames = [];
 for cur_layer = unique_layers
   % Commit the commands for each layer, one layer at a time
   fprintf('Saving layer %d\n', cur_layer);
@@ -120,6 +120,8 @@ for cur_layer = unique_layers
   end %while cur_layer_cmds end
   
   elseif strcmpi(undo_stack.user_data.layerSource,'layerdata')
+    frames_insert=[];
+    frames_delete=[];
    cur_layer_cmd_idx = 1;
   while cur_layer_cmd_idx <= length(cur_layer_cmds)
     cmd_idx = cur_cmd_idxs(cur_layer_cmd_idx);
@@ -142,6 +144,7 @@ for cur_layer = unique_layers
          undo_stack.user_data.qual{cur_layer}(point_idxs) = cmds_list{cmd_idx}(sub_idx).redo_args{5}(mask);
          frames_changed = undo_stack.user_data.frame(point_mask);% giving all frames changed
          frms_changed = unique(frames_changed);
+         frames_insert = cat(2,frames_insert,frms_changed);
          
          for frm = 1:length(frms_changed)
              found_frm = find(undo_stack.user_data.frame == frms_changed(frm));
@@ -173,6 +176,7 @@ for cur_layer = unique_layers
           undo_stack.user_data.qual{cur_layer}(point_idxs) = 1;
           frames_changed = undo_stack.user_data.frame(point_mask);% giving all frames changed
           frms_changed = unique(frames_changed);
+          frames_delete = cat(2,frames_delete,frms_changed);
           
           for frm = 1:length(frms_changed)
              found_frm = find(undo_stack.user_data.frame == frms_changed(frm));
@@ -180,11 +184,13 @@ for cur_layer = unique_layers
              found_frm_idx = undo_stack.user_data.frame_idxs(found_frm);
              %found_twtt = undo_stack.user_data.twtt{cur_layer}(found_frm);
              found_twtt = undo_stack.user_data.twtt{cur_layer}(changed_mask);
+             found_qual = undo_stack.user_data.qual{cur_layer}(changed_mask);
              changed_frm_idx = found_frm_idx(changed_mask);
              %changed_twtt = found_twtt(changed_mask);
 %             %changed_twtt = found_twtt(changed_mask);
 %             %for i = 1:length(changed_frm_idx)
                  undo_stack.user_data.layer_info(frms_changed(frm)).layerData{cur_layer}.value{2}.data(changed_frm_idx) = found_twtt;
+                 undo_stack.user_data.layer_info(frms_changed(frm)).layerData{cur_layer}.quality(changed_frm_idx) = found_qual;
 %             %end
          end
 %         frames_changed = undo_stack.user_data.frame(point_mask);% giving all frames changed
@@ -210,7 +216,27 @@ end% end for loop
 %% Notify all the other echo windows using this stack that a save has been
 % done.
 %save(FILENAME,'-append','-struct','LAYER_STRUCT_NAME','FIELD_NAME')
+% getting the filename with correct frame number and updating the appended
+% information in the file. Save file name from the mapwin
 undo_stack.save();
-
-
+if strcmpi(undo_stack.user_data.layerSource,'layerdata')
+  unique_frms_insert = unique(frames_insert);
+  unique_frms_delete = unique(frames_delete);
+ if ~isempty(unique_frms_insert)
+  for idx = 1:length(unique_frms_insert)
+   layerData = undo_stack.user_data.layer_info(unique_frms_insert(idx)).layerData;
+   filename_insert = undo_stack.user_data.filename{unique_frms_insert(idx)};
+   save(filename_insert,'-append','layerData')
+  end
+ end
+ if ~isempty(unique_frms_delete)
+  for idx = 1:length(unique_frms_delete)
+   layerData = undo_stack.user_data.layer_info(unique_frms_delete(idx)).layerData;
+   filename_delete = undo_stack.user_data.filename{unique_frms_delete(idx)};
+   save(filename_delete,'-append','layerData')
+  end
+ end
+end
+%layerData = undo_stack.user_data.layer_info(frms_changed(frm)).layerData;
+%save(FILENAME,'-append','-struct','layerData')
 end

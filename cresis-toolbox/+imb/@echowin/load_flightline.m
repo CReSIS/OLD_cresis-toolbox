@@ -28,7 +28,7 @@ if strcmpi(obj.undo_stack.user_data.layerSource,'layerdata')
     points = (k(1):k(end));
     LDpoint_path_id = cat(2,LDpoint_path_id,points);
   end
-obj.undo_stack.user_data.point_path_id = LDpoint_path_id;
+obj.undo_stack.user_data.point_path_id = LDpoint_path_id; %contains the unquie point path ids.
 end
 
 return;
