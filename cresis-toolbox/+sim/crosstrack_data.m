@@ -1,5 +1,5 @@
-function [sim_data] = crosstrack_data(param,target_model)
-% sim_data = sim.crosstrack_data(param,target_model)
+function [sim_data,time] = crosstrack_data(param,target_model)
+% [sim_data,time] = sim.crosstrack_data(param,target_model)
 %
 % Creates 2-D simulated radar data specifically for testing array
 % processing algorithms. This is equivalent to SAR-processed
@@ -165,21 +165,9 @@ for snapshot = 1:Nx
       tx_weight = comp_tx_weight(target);
       
       % Add this target's energy to the simulated data matrix 
-      if 1
-        % Use this for comparisons of DOA estimation methods. The idea here
-        % is that all targets have the same SNR for the purpose of
-        % comparison.
-        target_sim_data = amp *tx_weight*pg_error*exp(-1i*2*pi*param.src.fc*td) ...
-          * exp(-1i*2*pi*freq*(td-tref)) .* ref;
-        target_sim_data = sqrt((10^(param.snr_db/10))/2)*target_sim_data./(norm(target_sim_data));
-        %       sim_data_norm(target) = norm(target_sim_data);
-        sim_data(:,chan,snapshot) = sim_data(:,chan,snapshot) + target_sim_data;
-      else
-        % Use this for normal 2D simulations
-        sim_data(:,chan,snapshot) = sim_data(:,chan,snapshot) ...
-          + amp *tx_weight*pg_error*exp(-1i*2*pi*param.src.fc*td) ...
-          * exp(-1i*2*pi*freq*(td-tref)) .* ref;
-      end
+      sim_data(:,chan,snapshot) = sim_data(:,chan,snapshot) ...
+        + amp *tx_weight*pg_error*exp(-1i*2*pi*param.src.fc*td) ...
+        * exp(-1i*2*pi*freq*(td-tref)) .* ref;
       
       if isfield(param,'MP_params')
         % Incorporate MPCs associated with this target, if any

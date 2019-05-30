@@ -43,6 +43,9 @@ function [load_info,gps_time,recs] = get_raw_files(param,frm_id,out_dir,rec_rang
 %   load_info = get_raw_files(struct('radar_name','mcrds','season_name','2008_Greenland_TO'),'20080627_06_001','/tmp/)
 %
 % Author: John Paden
+%
+% See also: get_frame_id, get_raw_files.m, get_segment_file_list.m,
+%   run_get_segment_file_list.m
 
 if ischar(param)
   param_fn = param;

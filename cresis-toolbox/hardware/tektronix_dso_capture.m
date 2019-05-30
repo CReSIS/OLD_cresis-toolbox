@@ -16,9 +16,22 @@ function [instrument,time,data] = tektronix_dso_capture(param)
 % param.channels = {'CH1','CH2','CH3','CH4'};
 % % 500 MHz, 2.5 GSPS DSO (see Utility->IO->USB Computer->USBTMC for address)
 % param.visa_address = 'USB0::0x0699::0x0401::C000466::0::INSTR';
+% param.visa_address = 'TCPIP::10.0.0.130::INSTR';
 % % 1 GHz, 5 GSPS DSO (see Utility->IO->USB Computer->USBTMC for address)
 % % param.visa_address = 'USB0::0x0699::0x0401::C021536::0::INSTR';
 % param.time_out_sec = 60;
+% [instrument,time,data] = tektronix_dso_capture(param);
+%
+% Install Tektronix OpenChoise Desktop and then use OpenChoice VISA64 Conflict Manager to activate the DSO
+% param = [];
+% param.num_ave = 16;
+% param.num_pnts = 100000;
+% param.fs = 5.0e9;
+% param.trigger = 'CH4';
+% param.channels = {'CH3','CH4'};
+% % 1 GHz, 5 GSPS DSO (see Utility->IO->USB Computer->USBTMC for address)
+% param.visa_address = 'TCPIP::10.0.0.130::INSTR';
+% param.time_out_sec = 10;
 % [instrument,time,data] = tektronix_dso_capture(param);
 %
 % Authors: John Paden, Haiji Wang

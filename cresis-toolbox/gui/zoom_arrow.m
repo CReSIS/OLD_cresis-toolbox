@@ -8,8 +8,8 @@ function zoom_arrow(event,param)
 %  .h_axes = axes handle that we are zooming with
 %  .h_fig = figure handle that we are zooming in
 %
-% See also: zoom_arrow.m, zoom_button_up.m zoom_button_scroll.m,
-%   zoom_setup.m, zoom_figure_setup.m
+% See also: zoom_arrow.m, zoom_button_motion.m, zoom_button_scroll.m,
+%   zoom_button_up.m, zoom_figure_setup.m, zoom_setup.m
 
 if any(strcmp('ctrl',event.Modifier))
   ctrl_pressed = true;

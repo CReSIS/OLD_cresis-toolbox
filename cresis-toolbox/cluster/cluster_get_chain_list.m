@@ -35,17 +35,23 @@ for chain_idx = chain_sorted_idxs(:).'
   load(chain_fns{chain_idx});
   fprintf('  %s: %d chain(s) with batches: ', datestr(time_stamps(chain_idx)), length(ctrl_chain));
   first_batch = true;
+  notes_str = '';
   for ctrl_chain_idx = 1:length(ctrl_chain)
     for batch_idx = 1:length(ctrl_chain{ctrl_chain_idx})
       if first_batch
         first_batch = false;
         fprintf('%d', ctrl_chain{ctrl_chain_idx}{batch_idx}.batch_id);
+        if numel(ctrl_chain{ctrl_chain_idx}{batch_idx}.notes) >= 1
+          notes_str = ctrl_chain{ctrl_chain_idx}{batch_idx}.notes{1};
+        end
       else
         fprintf(', %d', ctrl_chain{ctrl_chain_idx}{batch_idx}.batch_id);
       end
     end
   end
   fprintf('\n');
+  fprintf('  %s\n', notes_str);
+  
 end
 
 

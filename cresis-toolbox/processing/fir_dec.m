@@ -1,5 +1,5 @@
-function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en)
-% [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en)
+function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en, phase_weights)
+% [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormalize_en, phase_weights)
 %
 % Applies a finite impulse response filter to the data and then decimates.
 % The FIR only operates on the second dimension of 2D datasets.
@@ -7,27 +7,41 @@ function [data] = fir_dec(data, Bfilter, dec_factor, start_idx, Nidxs, renormali
 % With 2 input arguments, it does simple coherent averaging (also known as
 % stacking or presumming).
 %
-% data = 1D row or column vector or 2D array
-%
-% If only 2 arguments and second argument is a scalar:
-%  Bfilter = scalar, amount to presum (boxcar window and then decimate)
+% data: 1D row or column vector (Nx length) or 2D array (Nt by Nx)
+% Bfilter: scalar, amount to presum (boxcar window and then decimate)
 %    boxcar window is normalized so that it is a mean (as opposed to sum)
 %    If Bfilter (the amount to presum) is less than one, then nothing
 %    happens.
 %
 % If 3 or more arguments:
-%  Bfilter = FIR filter coefficients (row vector), must be even order
+%  Bfilter: FIR filter coefficients (row vector), must be even order
 %    (i.e. odd length)
-%  dec_factor = Decimation factor to apply to the data (default is 1)
-%  start_idx = first output corresponds to this input index (default is 1)
-%  Nidxs = number of outputs (default is the max supported by the input)
-%  renormalize_en = renormalize edge effects, default is true
+%  dec_factor: Decimation factor to apply to the data (default is 1)
+%  start_idx: first output corresponds to this input index (default is 1)
+%  Nidxs: number of outputs (default is the max supported by the input)
+%  renormalize_en: renormalize edge effects, default is true
+%  phase_weights: must be a vector with Nx elements. If not empty, each
+%    output will have its inputs multiplied by the conjugate of the
+%    corresponding phase_weights with the average phase of each weight
+%    removed. This is useful for doing a simple narrow-band elevation
+%    compensation. The weights in this case can be the
+%    exp(-j*4*pi/lambda*elevation).
 %
 % Authors: John Paden
 %
 % See also: decimate, resample, downsample
 
-if nargin == 2 && length(Bfilter) == 1
+if nargin == 3 && length(Bfilter)==dec_factor && all(Bfilter(1)==Bfilter) ...
+    && abs(sum(Bfilter)-1) < 1e4*eps
+  simple_fir_dec = true;
+  Bfilter = dec_factor;
+elseif nargin == 2 && length(Bfilter) == 1
+  simple_fir_dec = true;
+else
+  simple_fir_dec = false;
+end
+
+if simple_fir_dec
   coh_avgs = Bfilter;
   if coh_avgs >= 1
     siz = size(data);
@@ -64,6 +78,10 @@ else
     renormalize_en = true;
   end
   
+  if ~exist('phase_weights','var') || isempty(phase_weights)
+    phase_weights = [];
+  end
+  
   if size(Bfilter,1) ~= 1
     error('Bfilter must be a row vector');
   end
@@ -77,8 +95,6 @@ else
   if size(data,2) == 1
     data = data.';
   end
-  
-  Bfilter = repmat(Bfilter, [size(data,1) 1]);
   
   out_data = zeros(size(data,1), Nidxs, class(data));
   
@@ -104,10 +120,24 @@ else
     end
     
     if ~renormalize
-      out_data(:,out_idx) = sum(data(:,idx_rng(1):idx_rng(2)) .* Bfilter,2);
+      if isempty(phase_weights)
+        out_data(:,out_idx) = sum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), Bfilter),2);
+      else
+        dphase = phase_weights(idx_rng(1):idx_rng(2));
+        dphase = conj(dphase./exp(1i * angle(mean(dphase))));
+        out_data(:,out_idx) = sum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), Bfilter .* dphase),2);
+      end
+
     else
-      out_data(:,out_idx) = sum(data(:,idx_rng(1):idx_rng(2)) ...
-        .* Bfilter(:,filter_rng(1):filter_rng(2)), 2);
+      if isempty(phase_weights)
+        out_data(:,out_idx) = sum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), ...
+          Bfilter(:,filter_rng(1):filter_rng(2))), 2);
+      else
+        dphase = phase_weights(idx_rng(1):idx_rng(2));
+        dphase = conj(dphase./exp(1i * angle(mean(dphase))));
+        out_data(:,out_idx) = sum(bsxfun(@times, data(:,idx_rng(1):idx_rng(2)), ...
+          Bfilter(:,filter_rng(1):filter_rng(2)) .* dphase), 2);
+      end
       
       if renormalize_en
         renormalization_factor ...

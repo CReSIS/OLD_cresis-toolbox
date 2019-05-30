@@ -28,7 +28,7 @@ end
 if any(strcmpi(radar_name,{'kuband','kuband2','kuband3'}))
   radar_type = 'deramp';
   output_dir = 'kuband';
-elseif any(strcmpi(radar_name,{'kaband3'}))
+elseif any(strcmpi(radar_name,{'kaband','kaband3'}))
   radar_type = 'deramp';
   output_dir = 'kaband';
 elseif any(strcmpi(radar_name,{'snow','snow2','snow3','snow5','snow8','snow9'}))
@@ -40,10 +40,10 @@ elseif any(strcmpi(radar_name,{'accum0'}))
 elseif any(strcmpi(radar_name,{'accum'}))
   radar_type = 'stepped';
   output_dir = 'accum';
-elseif any(strcmpi(radar_name,{'accum2'}))
+elseif any(strcmpi(radar_name,{'accum2','accum3'}))
   radar_type = 'pulsed';
   output_dir = 'accum';
-elseif any(strcmpi(radar_name,{'rds','cords','acords','hfrds','hfrds2','icards','mcrds','mcords','mcords2','mcords3','mcords4','mcords5','wise'}))  radar_type = 'pulsed';
+elseif any(strcmpi(radar_name,{'rds','cords','acords','hfrds','hfrds2','icards','mcrds','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','wise'}))  radar_type = 'pulsed';
   output_dir = 'rds';
 else
   error('Invalid radar type %s\n', radar_name);

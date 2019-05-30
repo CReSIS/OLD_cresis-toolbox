@@ -11,15 +11,9 @@
 
 %% User Settings
 
-% params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_P3.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'),[],'post');
-params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'),[],'post');
-% params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'),[],'post');
+params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'));
+params = ct_set_params(params,'cmd.generic',1);
+params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
 
 % point_spacing: specifies the spacing between geographic points in the CSV
 % and KML files

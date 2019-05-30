@@ -14,18 +14,34 @@ function run_master
 
 %error('Copy this script locally, comment this line, and then run.\n');
 
+%% User Settings
 % =====================================================================
-% User Settings
-% =====================================================================
-%clear; % Optional
-%close all; % Optional
-
-params = read_param_xls(ct_filename_param('replace_this_filename.xls'));
-% Syntax for running a specific segment and frame by overriding parameter spreadsheet values
-%params = read_param_xls(ct_filename_param('replace_this_filename.xls'),'YYYYMMDD_SS');
-% params = ct_set_params(params,'cmd.csarp',0);
-% params = ct_set_params(params,'cmd.csarp',1,'day_seg','YYYYMMDD_SS');
 
 param_override = [];
 
+params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'));
+% params = read_param_xls(ct_filename_param('rds_param_2018_Antarctica_Ground.xls'));
+
+% Example to run specific segments and frames by overriding parameter spreadsheet values
+% params = ct_set_params(params,'cmd.generic',0);
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20181015_01');
+% params = ct_set_params(params,'cmd.frms',[]);
+
+% dbstop if error;
+% param_override.cluster.type = 'torque';
+% param_override.cluster.type = 'matlab';
+param_override.cluster.type = 'debug';
+% param_override.cluster.type = 'slurm';
+% param_override.cluster.rerun_only = true;
+% param_override.cluster.desired_time_per_job  = 240*60;
+% param_override.cluster.cpu_time_mult  = 2;
+% param_override.cluster.mem_mult  = 2;
+
+%% Automated Section
+% =====================================================================
+
 ctrl_chain = master(params,param_override);
+
+cluster_print_chain(ctrl_chain);
+
+[chain_fn,chain_id] = cluster_save_chain(ctrl_chain);

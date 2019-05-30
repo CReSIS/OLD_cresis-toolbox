@@ -10,8 +10,8 @@ function zoom_button_scroll(event,param)
 %  .axes = optional, string which specifies which axes can zoom ('xy' is
 %  default, 'x' is x only, 'y' is y only)
 %
-% See also: zoom_arrow.m, zoom_button_up.m zoom_button_scroll.m,
-%   zoom_setup.m, zoom_figure_setup.m
+% See also: zoom_arrow.m, zoom_button_motion.m, zoom_button_scroll.m,
+%   zoom_button_up.m, zoom_figure_setup.m, zoom_setup.m
 
 if ~isfield(param,'axes') || isempty(param.axes)
   param.axes = 'xy';
@@ -48,10 +48,10 @@ if ~isempty(param.ylims)
     ylims(2) = param.ylims(2);
   end
 end
-if any(param.axes=='x')
+if any(param.axes=='x') && xlims(2) > xlims(1)
   xlim(param.h_axes,xlims);
 end
-if any(param.axes=='y')
+if any(param.axes=='y') && ylims(2) > ylims(1)
   ylim(param.h_axes,ylims);
 end
 end

@@ -42,6 +42,7 @@ gps_input_fn_skip = false; % Enables skipping reading old data, sometimes
 
 % For OIB, get kmz file from John Sonntag, then unzip the kmz file and use the "doc.kml" that is inside
 kml_fn = 'C:\Users\administrator\Desktop\doc.kml';
+% kml_fn = ''; % Set this to empty if the file is not available
 kml_mission_name = '';
 
 enable_gps_record = false;
@@ -74,12 +75,19 @@ else
       kml_mission_idx = input('Enter mission number: ');
     else
       kml_mission_idx = find(strcmpi(kml_mission_name,{kml_pos.name}),1);
+      if isempty(kml_mission_idx)
+        warning('Could not find mission "%s" in kml_pos.name .',kml_mission_name);
+      end
     end
     if isempty(kml_mission_idx)
-      error('Could not find mission %s in kml_pos.name.',kml_mission_name);
+      kml_mission_name = '';
+      kml_fn = '';
+      kml_lon = [];
+      kml_lat = [];
+    else
+      kml_lon = kml_pos(kml_mission_idx).X;
+      kml_lat = kml_pos(kml_mission_idx).Y;
     end
-    kml_lon = kml_pos(kml_mission_idx).X;
-    kml_lat = kml_pos(kml_mission_idx).Y;
   end
 end
 
@@ -134,8 +142,7 @@ if any(strcmpi(gps_input_type,{'file_accum','file_mcords'}))
         fid = fopen(gps_in_fn,'r');
         while ~feof(fid)
           line_input = fgets(fid);
-          if isa(line_input,'double')
-            % Returned -1 double, so EOF
+          if feof(fid)
             break;
           end
           A = textscan(line_input,'%s%f%f%c%f%c%u%u%f%f%c%f%c%s%s%f%f%f%f','delimiter',', ','emptyvalue',NaN);
@@ -343,8 +350,8 @@ try
       day_start = datenum(year,month,day,0,0,0);
       utc_sod = (utc_time - day_start)*86400;
       
-      title(sprintf('UTC %02d:%02d:%05.2f, %.2f SOD',hour,minute,sec, ...
-        utc_sod));
+      title(sprintf('UTC %02d:%02d:%05.2f, %.2f SOD, %.0f m/%.0f ft',hour,minute,sec, ...
+        utc_sod, elev, elev*100/2.54/12));
       
       if isempty(lat)
         lat = NaN;

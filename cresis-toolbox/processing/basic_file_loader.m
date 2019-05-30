@@ -165,13 +165,13 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
   
   if strcmpi(param.file_search_mode,'last_file')
     global g_basic_file_loader_selection;
-    adc_folder_name = defaults{1}.adc_folder_name;
+    board_folder_name = defaults{1}.board_folder_name;
     adc = defaults{1}.records.file.adcs(1);
     board = adc_to_board(param.radar_name,adc);
-    adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
-    adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
-    adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
-    fns = get_filenames(fullfile(base_dir,adc_folder_name),'','','.bin',struct('recursive',true));
+    board_folder_name = regexprep(board_folder_name,'%02d',sprintf('%02.0f',adc));
+    board_folder_name = regexprep(board_folder_name,'%d',sprintf('%.0f',adc));
+    board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
+    fns = get_filenames(fullfile(base_dir,board_folder_name),'','','.bin',struct('recursive',true));
     if isempty(fns)
       error('No data files in: %s\n', base_dir);
     end
@@ -202,13 +202,13 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
     g_basic_file_loader_selection = fn_idx;
     
   elseif strcmpi(param.file_search_mode,'specific')
-    adc_folder_name = defaults{1}.adc_folder_name;
+    board_folder_name = defaults{1}.board_folder_name;
     adc = defaults{1}.records.file.adcs(1);
     board = adc_to_board(param.radar_name,adc);
-    adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
-    adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
-    adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
-    adc_dir = fullfile(base_dir,adc_folder_name);
+    board_folder_name = regexprep(board_folder_name,'%02d',sprintf('%02.0f',adc));
+    board_folder_name = regexprep(board_folder_name,'%d',sprintf('%.0f',adc));
+    board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
+    adc_dir = fullfile(base_dir,board_folder_name);
     
     fn = '';
     fprintf('\n');
@@ -226,51 +226,112 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
     end
     
   elseif strcmpi(param.file_search_mode,'segment')
-    % Prepare inputs
-    xml_version = defaults{1}.xml_version;
-    cresis_xml_mapping;
     
-    % Read XML files in this directory
-    [settings,settings_enc] = read_ni_xml_directory(base_dir,xml_file_prefix,false);
+    if any(defaults{1}.records.file.version == [9 10 103 412])
+      % Arena based systems
+      system_xml_fns = get_filenames(fullfile(base_dir),'','','system.xml',struct('recursive',true));
+      clear settings;
+      for xml_idx = 1:length(system_xml_fns)
+        xml_fn = system_xml_fns{xml_idx};
+        
+        settings(xml_idx) = read_arena_xml(xml_fn);
+      end
+      
+    else
+      % NI based systems
+      % Prepare inputs
+      xml_version = defaults{1}.xml_version;
+      cresis_xml_mapping;
+      [settings,settings_enc] = read_ni_xml_directory(base_dir,xml_file_prefix,false);
+    end
     
-    % Get raw data files associated with this directory
-    adc_folder_name = defaults{1}.adc_folder_name;
-    adc = defaults{1}.records.file.adcs(1);
-    board = adc_to_board(param.radar_name,adc);
-    adc_folder_name = regexprep(adc_folder_name,'%02d',sprintf('%02.0f',adc));
-    adc_folder_name = regexprep(adc_folder_name,'%d',sprintf('%.0f',adc));
-    adc_folder_name = regexprep(adc_folder_name,'%b',sprintf('%.0f',board));
-    data_fns = get_filenames(fullfile(base_dir,adc_folder_name),defaults{1}.data_file_prefix,'','.bin');
-    fn_datenums = [];
-    
+    % Get the files that match the first wf-adc pair requested
+    if any(defaults{1}.records.file.version == [9 10 103 412])
+      % Arena based systems
+      wf = param.img(1,1);
+      adc = param.img(1,2);
+      found = false;
+      for board_idx = 1:length(defaults{1}.records.arena.data_map)
+        for profile_idx = 1:size(defaults{1}.records.arena.data_map{board_idx},1)
+          if defaults{1}.records.arena.data_map{board_idx}(profile_idx,3) == wf ...
+              && defaults{1}.records.arena.data_map{board_idx}(profile_idx,4) == adc
+            board_idx = board_idx;
+            board = defaults{1}.records.file.boards(board_idx);
+            mode_latch = defaults{1}.records.arena.data_map{board_idx}(profile_idx,1);
+            subchannel = defaults{1}.records.arena.data_map{board_idx}(profile_idx,2);
+            found = true;
+            break;
+          end
+        end
+        if found == true
+          break;
+        end
+      end
+      if ~found
+        error('wf-adc pair (%d,%d) was not found in defaults{1}.records.arena.data_map. Update default_radar_params_*.m or param.img.', wf, adc);
+      end
+      % Get raw data files associated with this directory
+      board_folder_name = defaults{1}.records.file.board_folder_name;
+      board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
+      fn_datenums = [];
+      
+      data_fns = get_filenames(fullfile(base_dir,board_folder_name),'','','.dat',struct('recursive',true,'regexp','[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'));
+      fn_datenums = zeros(size(data_fns));
+      for fn_idx = 1:length(data_fns)
+        fname = fname_info_arena(data_fns{fn_idx});
+        fn_datenums(fn_idx) = fname.datenum;
+      end
+      
+      for xml_idx = 1:length(system_xml_fns)
+        fns_mask = settings(xml_idx).xml_fname.datenum == fn_datenums;
+        settings(xml_idx).fns{board_idx} = data_fns(fns_mask);
+      end
+      
+    else
+      % NI based systems
+      board_folder_name = defaults{1}.board_folder_name;
+      adc = defaults{1}.records.file.adcs(1);
+      board = adc_to_board(param.radar_name,adc);
+      board_folder_name = regexprep(board_folder_name,'%02d',sprintf('%02.0f',adc));
+      board_folder_name = regexprep(board_folder_name,'%d',sprintf('%.0f',adc));
+      board_folder_name = regexprep(board_folder_name,'%b',sprintf('%.0f',board));
+      data_fns = get_filenames(fullfile(base_dir,board_folder_name),defaults{1}.data_file_prefix,'','.bin');
     % Get the date information out of the filename
-    for data_fn_idx = 1:length(data_fns)
-      fname = fname_info_mcords2(data_fns{data_fn_idx});
-      fn_datenums(end+1) = fname.datenum;
+      fn_datenums = [];
+      for data_fn_idx = 1:length(data_fns)
+        fname = fname_info_mcords2(data_fns{data_fn_idx});
+        fn_datenums(end+1) = fname.datenum;
+      end
     end
     
     % Print out settings for each segment (XML file)
     fprintf('\nData segments:\n');
     for set_idx = 1:length(settings)
-      if set_idx < length(settings)
-        num_files = sum(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
+      if any(defaults{1}.records.file.version == [9 10 103 412])
+        fprintf(' %d: %s (%d seq, %d files)\n', set_idx, ...
+          settings(set_idx).psc_config_name, length(settings(set_idx).psc.mode), length(settings(set_idx).fns{board_idx}));
+        
       else
-        num_files = sum(fn_datenums >= settings(set_idx).datenum);
-      end
-    
-      % Print out settings
-      [~,settings_fn_name] = fileparts(settings(set_idx).fn);
-      if isfield(settings(set_idx),'XML_File_Path')
-        fprintf(' %d: %s (%d wfs, %d files)\n', set_idx, ...
-          settings(set_idx).XML_File_Path{1}.values{1}, settings(set_idx).DDS_Setup.Wave, num_files);
-      else
-        fprintf(' %d: (%d wfs, %d files)\n', set_idx, ...
-          settings(set_idx).DDS_Setup.Wave, num_files);
-      end
-      if set_idx < length(settings)
-        settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
-      else
-        settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum);
+        if set_idx < length(settings)
+          num_files = sum(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
+        else
+          num_files = sum(fn_datenums >= settings(set_idx).datenum);
+        end
+        
+        % Print out settings
+        [~,settings_fn_name] = fileparts(settings(set_idx).fn);
+        if isfield(settings(set_idx),'XML_File_Path')
+          fprintf(' %d: %s (%d wfs, %d files)\n', set_idx, ...
+            settings(set_idx).XML_File_Path{1}.values{1}, settings(set_idx).DDS_Setup.Wave, num_files);
+        else
+          fprintf(' %d: (%d wfs, %d files)\n', set_idx, ...
+            settings(set_idx).DDS_Setup.Wave, num_files);
+        end
+        if set_idx < length(settings)
+          settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
+        else
+          settings(set_idx).match_idxs = find(fn_datenums >= settings(set_idx).datenum);
+        end
       end
     end
     set_idx = [];
@@ -286,10 +347,14 @@ if ~strncmpi(param.file_search_mode,'default',length('default'))
       end
     end
     
-    if set_idx < length(settings)
-      data_fns = data_fns(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
+    if any(defaults{1}.records.file.version == [9 10 103 412])
+      data_fns = settings(set_idx).fns{board_idx};
     else
-      data_fns = data_fns(fn_datenums >= settings(set_idx).datenum);
+      if set_idx < length(settings)
+        data_fns = data_fns(fn_datenums >= settings(set_idx).datenum & fn_datenums < settings(set_idx+1).datenum);
+      else
+        data_fns = data_fns(fn_datenums >= settings(set_idx).datenum);
+      end
     end
     
     % List files in the selected segment
@@ -376,7 +441,10 @@ tstart = tic;
 % Load the data (disable if you have already loaded)
 clear data;
 clear num_rec;
-if strcmpi(radar_name,'mcords')
+if any(defaults{1}.records.file.version == [9 10 103 412])
+  error('Not supported yet.');
+  
+elseif strcmpi(radar_name,'mcords')
   for adc_idx = 1:length(param.adcs)
     adc = param.adcs(adc_idx);
 

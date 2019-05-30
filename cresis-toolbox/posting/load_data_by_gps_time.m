@@ -254,8 +254,8 @@ else
   frames_fn = ct_filename_support(param, '', 'frames');
   load(frames_fn);
   
-  records_ver = load(records_fn,'ver');
-  if isfield(records_ver,'ver')
+  records_ver = load(records_fn,'ver','file_version');
+  if isfield(records_ver,'ver') || isfield(records_ver,'file_version')
     records = load(records_fn);
   else
     load(records_fn, 'records');

@@ -59,8 +59,20 @@ if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
 end
 
+if ~isfield(ctrl.cluster,'mcc_delete_output') || isempty(ctrl.cluster.mcc_delete_output)
+  ctrl.cluster.mcc_delete_output = false;
+end
+
 if ~isfield(ctrl.cluster,'cluster_job_fn') || isempty(ctrl.cluster.cluster_job_fn)
   ctrl.cluster.cluster_job_fn = fullfile(gRadar.path,'cluster','cluster_job.sh');
+end
+
+if ~isfield(ctrl.cluster,'mem_to_ppn') || isempty(ctrl.cluster.mem_to_ppn)
+  if isfield(gRadar.cluster,'mem_to_ppn')
+    ctrl.cluster.mem_to_ppn = gRadar.cluster.mem_to_ppn;
+  else
+    ctrl.cluster.mem_to_ppn = [];
+  end
 end
 
 if ~exist('fun','var')
@@ -91,6 +103,7 @@ use_builtin_fdep = str2double(matlab_ver.Version) >= 8.6;
 
 cluster_job_fn_dir = fileparts(ctrl.cluster.cluster_job_fn);
 cluster_job_fn = fullfile(cluster_job_fn_dir,'cluster_job.m');
+cluster_job_bin_fn = fullfile(cluster_job_fn_dir,'cluster_job');
 cluster_job_fn_compiled = fullfile(cluster_job_fn_dir,'run_cluster_job.sh');
 
 if ~force_compile
@@ -164,7 +177,11 @@ if ~force_compile
 end
 
 if force_compile
-  cmd = sprintf('mcc -m -d %s -R ''-singleCompThread,-nodisplay'' %s', cluster_job_fn_dir, cluster_job_fn);
+  if ctrl.cluster.mem_to_ppn
+    cmd = sprintf('mcc -m -d %s %s', cluster_job_fn_dir, cluster_job_fn);
+  else
+    cmd = sprintf('mcc -m -d %s -R ''-singleCompThread'' %s', cluster_job_fn_dir, cluster_job_fn);
+  end
   
   for dep_idx = 1:length(hidden_depend_funs)
     cmd = [cmd ' ' hidden_depend_funs{dep_idx}{1}];
@@ -181,9 +198,15 @@ if force_compile
   end
   
   fprintf('Start Compiling %s\n\n', datestr(now));
+  if ctrl.cluster.mcc_delete_output
+    system(sprintf('rm -f %s', cluster_job_bin_fn));
+  end
   fprintf('  %s\n', cmd);
   if strcmpi(ctrl.cluster.mcc,'system')
-    system(cmd);
+    status = system(cmd);
+    if status ~= 0
+      error('mcc failed to compile.');
+    end
   else
     eval(cmd);
   end

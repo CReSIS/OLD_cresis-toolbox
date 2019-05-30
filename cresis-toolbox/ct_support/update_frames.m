@@ -197,7 +197,9 @@ while ~quit_cmd
           set(h_plot(img),'XData',1:size(echo.Data,2));
           set(h_plot(img),'YData',echo.Surface);
           set(h_axes(img),'YDir','reverse');
-          if fmcw_img_debug_mode
+          if ~fmcw_img_debug_mode
+            colormap(h_axes(img),1-gray(256));
+          else
             for rline=1:size(echo.Data,2)
               echo.Data(lp(echo.Data(:,rline))<max(lp(echo.Data(:,rline)))+img_sidelobe,rline) = 0;
             end
@@ -266,7 +268,9 @@ while ~quit_cmd
     end
   end
   if all_files_mat
-    ylim([min(echo.Surface)-10e-9 max(echo.Surface)+10e-9]);
+    if fmcw_img_debug_mode == 1
+      ylim([min(echo.Surface)-10e-9 max(echo.Surface)+10e-9]);
+    end
     zoom('reset');
   end
   
@@ -286,7 +290,7 @@ while ~quit_cmd
   if strcmpi(img_type,'mat')
     if isnan(frames.nyquist_zone(frm))
       val = input(sprintf('F(%03i:%s:%01iD): ', frm, ...
-        update_field_str, echo.param_get_heights.radar.wfs(1).nyquist_zone),'s');
+        update_field_str, echo.param_qlook.radar.wfs(1).nyquist_zone),'s');
     else
       val = input(sprintf('F(%03i:%s:%01i): ', frm, ...
         update_field_str, frames.nyquist_zone(frm)),'s');
@@ -323,12 +327,16 @@ while ~quit_cmd
           old_frames.nyquist_zone(cur_frm), frames.nyquist_zone(cur_frm));
       end
       
-    elseif strcmpi(val,'i')
+    elseif strcmp(val,'i')
       if strcmpi(param.img_type,img_type)
         img_type = 'mat';
       else
         img_type = param.img_type;
       end
+      
+    elseif strcmp(val,'I')
+      fmcw_img_debug_mode = ~fmcw_img_debug_mode;
+      fprintf(' Toggled false color and y-limits (currently %d)\n', fmcw_img_debug_mode);
       
     elseif ~isempty(strfind(upper(val),'J'))
       try
@@ -392,7 +400,8 @@ while ~quit_cmd
       fprintf(' <enter>: go to next frame\n');
       fprintf(' p: previous frame\n');
       fprintf(' n#: set nyquist zone to # (e.g. "n3")\n');
-      fprintf(' i: swap image type between mat and %s\n', param.img_type);
+      fprintf(' i: swap image type between mat and %s (currently %s)\n', param.img_type, img_type);
+      fprintf(' I: toggle false color and y-limits (currently %d)\n', fmcw_img_debug_mode);
       fprintf(' d: print out changes to frames so far\n');
       fprintf(' j: jump to frame\n');
       fprintf(' c or k: enter matlab command\n');

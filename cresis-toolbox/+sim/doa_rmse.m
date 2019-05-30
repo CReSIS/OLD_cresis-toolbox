@@ -17,9 +17,9 @@ for method_idx = 1:length(param.method.list)
   method = param.method.list(method_idx);
   for test_idx = 1:size(results.theta_est{method},2)
     for src_idx = 1:size(results.theta_est{method},3)
-      Err = results.theta_est{method}(:,test_idx,src_idx)*180/pi - param.monte.DOA(test_idx,src_idx);
-%       sigma = std(Err);
-%       Err(Err > 3*sigma) = [];
+      Err = abs(results.theta_est{method}(:,test_idx,src_idx)*180/pi - param.monte.DOA(test_idx,src_idx));
+      sigma = std(Err(~isnan(Err)));
+      Err(Err > inf*sigma) = 0;
       RMSE(method_idx,test_idx,src_idx) = sqrt(mean(abs(Err).^2));
     end
   end

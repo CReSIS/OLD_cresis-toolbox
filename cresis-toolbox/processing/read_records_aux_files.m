@@ -41,13 +41,16 @@ records.heading = ncread(cdf_fn,'heading',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.gps_time = ncread(cdf_fn,'gps_time',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.surface = ncread(cdf_fn,'surface',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 try
-  records.settings.nyquist_zone = ncread(cdf_fn,'settings(1).nyquist_zone',[recs(1), 1],[recs(2)-recs(1)+1, 6]);
-end
-try
-  records.settings.loopback_mode = ncread(cdf_fn,'settings(1).loopback_mode',[recs(1), 1],[recs(2)-recs(1)+1, 6]);
+  records.settings.nyquist_zone = ncread(cdf_fn,'settings(1).nyquist_zone',[1, recs(1)],[1, recs(2)-recs(1)+1]);
 end
 
+% Get one more record for the offset field (this is helpful when loading
+% records with an unknown size).
+if recs(2) < num_recs;
+  recs(2) = recs(2) + 1;
+end
 records.offset = ncread(cdf_fn,'offset',[1 recs(1)],[inf recs(2)-recs(1)+1]);
+
 tmp = netcdf_to_mat(cdf_fn,[],'^gps_source$');
 records.gps_source = tmp.gps_source;
 records.settings(1).wfs_records = ncread(cdf_fn,'settings(1).wfs_records');

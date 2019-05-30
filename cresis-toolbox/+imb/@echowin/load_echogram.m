@@ -118,7 +118,7 @@ for frame_idx = 1:length(loading_frame_idxs)
   cur_frame = loading_frame_idxs(frame_idx);
   
   % load EG
-  fn = fullfile(ct_filename_out(obj.eg.cur_sel,'',obj.eg.sources{source_idx},0),sprintf('Data_%s%s.mat',fn_img_str,obj.eg.frame_names{cur_frame}));
+  fn = fullfile(ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx},'',0),sprintf('Data_%s%s.mat',fn_img_str,obj.eg.frame_names{cur_frame}));
   fprintf('  %s\n', fn);
   if ~exist(fn,'file')
     warning('File %s not found', fn);

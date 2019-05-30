@@ -24,6 +24,9 @@ layer.echogram_input = 'standard';
 % layer.echogram_input = 'CSARP_post/qlook';
 % layer.echogram_input = 'CSARP_post/standard';
 
+% 0: Data_YYYYMMDD_SS_FFF.mat file, I: Data_II_YYYYMMDD_SS_FFF.mat file
+layer.echogram_img = 1;
+
 layer.layer_output = 'layerData';
 % layer.layer_output = 'CSARP_post/layerData';
 

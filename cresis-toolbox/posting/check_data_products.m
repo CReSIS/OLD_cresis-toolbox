@@ -1,7 +1,7 @@
 % script check_data_products
 %
-% Script for checking non-RDS data products (needs to be modified to fully
-% support RDS data products).  Lists missing and extra files.
+% Script for checking data products.  Lists missing and extra files.
+% Optionally deletes extra files.
 %
 % Example:
 %   See run_check_data_products.m for how to run.
@@ -11,6 +11,13 @@
 %% Automated Section
 
 %% Check that only good files are present in each directory
+
+command_window_out_fn = ct_filename_ct_tmp(rmfield(params(1),'day_seg'),'','check_data_products', sprintf('console_%s.txt',datestr(now,'YYYYmmDD_HHMMSS')));
+command_window_out_fn_dir = fileparts(command_window_out_fn);
+if ~exist(command_window_out_fn_dir,'dir')
+  mkdir(command_window_out_fn_dir);
+end
+diary(command_window_out_fn);
 
 if check_for_bad_files
   % Check support (gps, frames, records) directories
@@ -75,7 +82,7 @@ if check_for_bad_files
   % 2. Go through each echogram output directory type to find bad segment
   %    directories
   for output_idx = 1:length(outputs)
-    out_dir = fullfile(ct_filename_out(first_param,'','',1),outputs_post_dir, ...
+    out_dir = fullfile(ct_filename_out(first_param,'','',1),['CSARP_' outputs_post_dir], ...
       outputs{output_idx},first_param.day_seg);
     out_dir_dir = fileparts(out_dir);
 
@@ -206,8 +213,8 @@ for param_idx = 1:length(params)
       for output_idx = 1:length(outputs)
         frames_fn = ct_filename_support(param,'','frames');
         load(frames_fn);
-        out_dir = fullfile(ct_filename_out(param,'','',1),outputs_post_dir, ...
-          outputs{output_idx},param.day_seg);
+        out_dir = fullfile(ct_filename_out(param,'','',1),['CSARP_' outputs_post_dir], ...
+          ['CSARP_' outputs{output_idx}],param.day_seg);
         fprintf('  Output %s\n', out_dir);
         frms = find(ct_proc_frame(frames.proc_mode,frm_types));
         found_mask = zeros(1,length(frms));
@@ -307,9 +314,11 @@ for param_idx = 1:length(params)
       end
       
       %% Check for expected image files
+      frames_fn = ct_filename_support(param,'','frames');
+      load(frames_fn);
       for image_idx = 1:length(images)
         image_dir = fullfile(ct_filename_out(param, ...
-          param.post.out_path, 'CSARP_post', true),'images',param.day_seg);
+          outputs_post_dir,'', true),'images',param.day_seg);
         fprintf('  Images %s in %s\n', images{image_idx}, image_dir);
         frms = find(ct_proc_frame(frames.proc_mode,frm_types));
         if length(unique(frms)) ~= length(frms)
@@ -372,7 +381,7 @@ for param_idx = 1:length(params)
       %% Check for expected pdf files
       if pdf_en
         pdf_dir = fullfile(ct_filename_out(param, ...
-          '', 'CSARP_post', true),'pdf');
+          'post', '', true),'pdf');
         fprintf('  PDF in %s\n', pdf_dir);
         pdf_fn = get_filenames(pdf_dir,'',params(param_idx).day_seg,'.pdf');
         if isempty(pdf_fn)
@@ -386,7 +395,7 @@ for param_idx = 1:length(params)
       if csv_en
         for csv_out_idx = 1:length(csv_outputs)
           csv_dir = fullfile(ct_filename_out(param, ...
-            '', 'CSARP_post', true),csv_outputs{csv_out_idx});
+            'post', '', true),csv_outputs{csv_out_idx});
           fprintf('  %s in %s\n', csv_outputs{csv_out_idx}, csv_dir);
           if ~isempty(strfind(upper(csv_outputs{csv_out_idx}),'CSV'))
             csv_fn = fullfile(csv_dir,sprintf('Data_%s.csv',params(param_idx).day_seg));
@@ -406,3 +415,5 @@ for param_idx = 1:length(params)
   end
 end
 
+diary off;
+fprintf('Console output: %s\n', command_window_out_fn);

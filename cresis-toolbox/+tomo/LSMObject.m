@@ -95,6 +95,7 @@ classdef LSMObject <handle
     
     function [flag, top, bot] = runLSM(this)
       h = figure('Visible', 'off');
+
       % Read the image
       [img_orig,~,~] = readImage(this.imds{1});
       img = imresize(img_orig, this.resizeRate);
@@ -112,19 +113,29 @@ classdef LSMObject <handle
         end
       end
       this.contours{1,end}= getLSF(this.phi, 1/this.resizeRate);
-      c = dispc(h, img, this.phi, this.imds{1},  [num2str(this.lsmArgs.innerIter*n) '_final']);
-      s = tomo.contourdata(c);
+      c = contour(this.phi, [0,0], 'r');
+      s = tomo.contourdata(c); 
       flag = 1;
       close(h);
       if length(s) ~= 2
         flag = 0;
       end
       
-      top.x = (1 / this.resizeRate) * imresize(s(1).xdata, [size(img_orig, 2) 1]);
-      top.y = (1 / this.resizeRate) * imresize(s(1).ydata, [size(img_orig, 2) 1]);
-      
-      bot.x = (1 / this.resizeRate) * imresize(s(2).xdata, [size(img_orig, 2) 1]);
-      bot.y = (1 / this.resizeRate) * imresize(s(2).ydata, [size(img_orig, 2) 1]);
+      try
+        top.x = (1 / this.resizeRate) * imresize(s(1).xdata, [size(img_orig, 2) 1]);
+        top.y = (1 / this.resizeRate) * imresize(s(1).ydata, [size(img_orig, 2) 1]);
+        bot.x = (1 / this.resizeRate) * imresize(s(2).xdata, [size(img_orig, 2) 1]);
+        bot.y = (1 / this.resizeRate) * imresize(s(2).ydata, [size(img_orig, 2) 1]);
+      catch ME
+        try
+          top.x = (1 / this.resizeRate) * imresize(s(1).xdata, [size(img_orig, 2) 1]);
+          top.y = (1 / this.resizeRate) * imresize(s(1).ydata, [size(img_orig, 2) 1]);
+          bot.x = top.x;
+          bot.y = top.y;
+        catch ME
+          keyboard
+        end
+      end
     end
   end
 end
@@ -171,9 +182,8 @@ g=1./(1+f);  % edge indicator function.
 end
 %% show progress
 
-function c = dispc(h,image, phi, filepath,  strtitle) %display image and contours
+function c = dispc(h,phi) %display image and contours
 figure(h);
-[fname,ftype]=getFileName(filepath);
 hold on;
 c  = contour(phi, [0,0], 'r');
 end

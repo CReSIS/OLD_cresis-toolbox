@@ -9,9 +9,9 @@
 
 physical_constants;
 
-if 0
+if 1
   %% Mohanad: 2D tutorial
-   fprintf('=======================================================================\n');
+  fprintf('=======================================================================\n');
   fprintf('Running sim.crosstrack_example example #2\n');
   fprintf('  Narrowband radar depth sounder simulation\n');
   fprintf('  Linear array in y-dimension\n');
@@ -44,7 +44,8 @@ if 0
   param.src.noise_power             = 10*log10(BoltzmannConst*290*abs(param.src.f0-param.src.f1)) + 2*ones(1,Nc);
   
   % DOA method parameters
-  param.method.list                   = [7];
+  array_proc_methods;
+  param.method.list                   = [MLE_METHOD];
 %   param.method.method_mode = 'estimator';
   
   %% Simulation Runs Setup
@@ -108,7 +109,7 @@ if 0
   ky = dky * ifftshift(-floor(My*Nc/2) : floor((My*Nc-1)/2));
   % theta: theta values associated with ky axis
   theta = fftshift(asin(ky/k));
-  array_param.Nsv = {'theta', asin(ky/k)};
+  array_param.theta = asin(ky/k);
   
   array_param.sv_fh = @array_proc_sv;
   
@@ -116,21 +117,21 @@ if 0
   array_param.dline = 1;
   
   array_param.bin_rng = 0;
-  array_param.rline_rng = -10:10;
+  array_param.line_rng = -10:10;
   
-  array_param.Nsig = 2;
+  array_param.Nsrc = 2;
   
   array_param.init = 'ap';
-  array_param.theta_guard = 1.5 * pi/180;
-%   array_param.theta_guard = (max(theta)-min(theta))/(4*Nc);
+  array_param.doa_theta_guard = 1.5 * pi/180;
+%   array_param.doa_theta_guard = (max(theta)-min(theta))/(4*Nc);
   
-  array_param.W = 1;
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   BW = abs(param.src.f1 - param.src.f0);
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:array_param.Nsig
+  for idx = 1:array_param.Nsrc
     array_param.doa_constraints(idx).method = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits = [min(theta) max(theta)]*180/pi;
@@ -152,8 +153,7 @@ if 0
   end
   
   %% Run the simulation
-%   results = sim.crosstrack(param);
-  results = crosstrack(param);
+  results = sim.crosstrack(param);
   
   %% To plot Slice model
   
@@ -324,7 +324,7 @@ if 0
   ky = dky * ifftshift(-floor(My*Nc/2) : floor((My*Nc-1)/2));
   % theta: theta values associated with ky axis
   theta = fftshift(asin(ky/k));
-  array_param.Nsv = {'theta', asin(ky/k)};
+  array_param.theta = asin(ky/k)*180/pi;
   
   array_param.sv_fh = @array_proc_sv;
   
@@ -332,20 +332,20 @@ if 0
   array_param.dline = 1;
   
   array_param.bin_rng = -1:1;
-  array_param.rline_rng = -10:10;
+  array_param.line_rng = -10:10;
   
-  array_param.Nsig = 2;
+  array_param.Nsrc = 2;
   
   array_param.init = 'ap';
-  array_param.theta_guard = (max(theta)-min(theta))/length(ky);
+  array_param.doa_theta_guard = (max(theta)-min(theta))/length(ky);
   
-  array_param.W = 1;
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   BW = abs(param.src.f1 - param.src.f0);
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:array_param.Nsig
+  for idx = 1:array_param.Nsrc
     array_param.doa_constraints(idx).method = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits = [min(theta) max(theta)]*180/pi;
@@ -510,20 +510,20 @@ if 0
   array_param.dline = 1;
   
   array_param.bin_rng = 0;
-  array_param.rline_rng = -10:10;
+  array_param.line_rng = -10:10;
   
-  array_param.Nsig = 2;
+  array_param.Nsrc = 2;
   
   array_param.init = 'ap';
-  array_param.theta_guard = (max(theta)-min(theta))/(4*Nc);
+  array_param.doa_theta_guard = (max(theta)-min(theta))/(4*Nc);
   
-  array_param.W = 1;
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   BW = abs(param.src.f1 - param.src.f0);
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:array_param.Nsig
+  for idx = 1:array_param.Nsrc
     array_param.doa_constraints(idx).method = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits = [min(theta) max(theta)]*180/pi;
@@ -859,21 +859,21 @@ if 0
   array_param.dline = 1;
   
   array_param.bin_rng = 0;
-  array_param.rline_rng = -50:50;
+  array_param.line_rng = -50:50;
   
-  array_param.Nsig = 2;
-  Nsig = array_param.Nsig;
+  array_param.Nsrc = 2;
+  Nsrc = array_param.Nsrc;
   
   array_param.init = 'ap';
-  array_param.theta_guard = 2*pi/180; %(max(theta)-min(theta))/(4*Nc);
+  array_param.doa_theta_guard = 2*pi/180; %(max(theta)-min(theta))/(4*Nc);
   
-  array_param.W = 1;
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   BW = abs(param.src.f1 - param.src.f0);
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:array_param.Nsig
+  for idx = 1:array_param.Nsrc
     array_param.doa_constraints(idx).method = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits = [min(theta) max(theta)]*180/pi;
@@ -923,20 +923,20 @@ if 0
   actual_doa_cell = results.actual_doa;
   array_param     = results.array_param;
   
-  % Convert actual_doa from cell array into a matrix (maximum Nsig targets
+  % Convert actual_doa from cell array into a matrix (maximum Nsrc targets
   % per range-bin).
-  actual_doa = NaN(length(array_param.bins),Nsig,length(array_param.lines));
+  actual_doa = NaN(length(array_param.bins),Nsrc,length(array_param.lines));
   for lineIdx = 1:length(array_param.lines)
     for binIdx = 1:length(array_param.bins)
       if ~isempty(actual_doa_cell{binIdx,lineIdx})
         doa_tmp = actual_doa_cell{binIdx,lineIdx};
-        if length(doa_tmp)<Nsig
-          doa = NaN(Nsig,1);
+        if length(doa_tmp)<Nsrc
+          doa = NaN(Nsrc,1);
           doa(1:length(doa_tmp)) = doa_tmp;
         else
-          doa = doa_tmp(1:Nsig);
+          doa = doa_tmp(1:Nsrc);
         end
-        actual_doa(binIdx,1:Nsig,lineIdx) = actual_doa_cell{binIdx,lineIdx}; % Nt*Nsig*Nx
+        actual_doa(binIdx,1:Nsrc,lineIdx) = actual_doa_cell{binIdx,lineIdx}; % Nt*Nsrc*Nx
       end
     end
   end
@@ -968,7 +968,7 @@ if 0
     range_bin_idxs = rqd_rbin + [0];
     for binIdx_idx = 1:length(range_bin_idxs)
       bin_idx = range_bin_idxs(binIdx_idx);
-      sample_data = squeeze(sim_data(bin_idx,line_idx+array_param.rline_rng,:)).';
+      sample_data = squeeze(sim_data(bin_idx,line_idx+array_param.line_rng,:)).';
       
       if 0
         % FB averaging and spatial smoothing
@@ -1346,21 +1346,21 @@ if 0
   array_param.dline = 1;
   
   array_param.bin_rng = 0;
-  array_param.rline_rng = -50:50;
+  array_param.line_rng = -50:50;
   
-  array_param.Nsig = 2;
-  Nsig = array_param.Nsig;
+  array_param.Nsrc = 2;
+  Nsrc = array_param.Nsrc;
   
   array_param.init = 'ap';
-  array_param.theta_guard = 2*pi/180; %(max(theta)-min(theta))/(4*Nc);
+  array_param.doa_theta_guard = 2*pi/180; %(max(theta)-min(theta))/(4*Nc);
   
-  array_param.W = 1;
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   BW = abs(param.src.f1 - param.src.f0);
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:array_param.Nsig
+  for idx = 1:array_param.Nsrc
     array_param.doa_constraints(idx).method = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits = [min(theta) max(theta)]*180/pi;
@@ -1389,20 +1389,20 @@ if 0
   actual_doa_cell = results.actual_doa;
   array_param     = results.array_param;
   
-  % Convert actual_doa from cell array into a matrix (maximum Nsig targets
+  % Convert actual_doa from cell array into a matrix (maximum Nsrc targets
   % per range-bin).
-  actual_doa = NaN(length(array_param.bins),Nsig,length(array_param.lines));
+  actual_doa = NaN(length(array_param.bins),Nsrc,length(array_param.lines));
   for lineIdx = 1:length(array_param.lines)
     for binIdx = 1:length(array_param.bins)
       if ~isempty(actual_doa_cell{binIdx,lineIdx})
         doa_tmp = actual_doa_cell{binIdx,lineIdx};
-        if length(doa_tmp)<Nsig
-          doa = NaN(Nsig,1);
+        if length(doa_tmp)<Nsrc
+          doa = NaN(Nsrc,1);
           doa(1:length(doa_tmp)) = doa_tmp;
         else
-          doa = doa_tmp(1:Nsig);
+          doa = doa_tmp(1:Nsrc);
         end
-        actual_doa(binIdx,1:Nsig,lineIdx) = actual_doa_cell{binIdx,lineIdx}; % Nt*Nsig*Nx
+        actual_doa(binIdx,1:Nsrc,lineIdx) = actual_doa_cell{binIdx,lineIdx}; % Nt*Nsrc*Nx
       end
     end
   end
@@ -1419,7 +1419,7 @@ if 0
     range_bin_idxs = rqd_rbin + [0];
     for binIdx_idx = 1:length(range_bin_idxs)
       bin_idx = range_bin_idxs(binIdx_idx);
-      sample_data = squeeze(sim_data(bin_idx,line_idx+array_param.rline_rng,:)).';
+      sample_data = squeeze(sim_data(bin_idx,line_idx+array_param.line_rng,:)).';
       
       if 0
         % FB averaging and spatial smoothing
@@ -1769,21 +1769,21 @@ targets_doa = [-1.0291 -0.9742 -0.9075 -0.8366 -0.7684 -0.6867 -0.6303 -0.5606 -
   array_param.dline = 1;
   
   array_param.bin_rng = 0;
-  array_param.rline_rng = -50:50;
+  array_param.line_rng = -50:50;
   
-  Nsig = 2;
-  array_param.Nsig = Nsig;
+  Nsrc = 2;
+  array_param.Nsrc = Nsrc;
   
   array_param.init = 'ap';
-  array_param.theta_guard = (max(theta)-min(theta))/(4*Nc);
+  array_param.doa_theta_guard = (max(theta)-min(theta))/(4*Nc);
   
-  array_param.W = 1;
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   BW = abs(param.src.f1 - param.src.f0);
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:array_param.Nsig
+  for idx = 1:array_param.Nsrc
     array_param.doa_constraints(idx).method = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [-90 90];%[min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits = [-90 90];%[min(theta) max(theta)]*180/pi;
@@ -1793,7 +1793,7 @@ targets_doa = [-1.0291 -0.9742 -0.9075 -0.8366 -0.7684 -0.6867 -0.6303 -0.5606 -
   
   N_skipped_rlines = 1;
   N_reqd_rlines    = 1;
-  surf_param.x = [-750:N_skipped_rlines:-750+N_skipped_rlines*(N_reqd_rlines+2*max(array_param.rline_rng))-1];
+  surf_param.x = [-750:N_skipped_rlines:-750+N_skipped_rlines*(N_reqd_rlines+2*max(array_param.line_rng))-1];
   param.monte.target_param{1} = surf_param;
   
 %   clear array_param;
@@ -1880,9 +1880,9 @@ targets_doa = [-1.0291 -0.9742 -0.9075 -0.8366 -0.7684 -0.6867 -0.6303 -0.5606 -
   Nt = size(sim_data,1); %length(array_param.bins);
   Nx = size(sim_data,2); %length(array_param.lines);
   
-  % Convert actual_doa from cell array into a matrix (maximum Nsig targets
+  % Convert actual_doa from cell array into a matrix (maximum Nsrc targets
   % per range-bin).
-  actual_doa = NaN(Nt,Nsig,Nx);
+  actual_doa = NaN(Nt,Nsrc,Nx);
   lines = array_param.lines(1):array_param.dline:array_param.lines(end);
   bins = array_param.bins(1):array_param.dbin:array_param.bins(end);
   for lineIdx = 1:length(lines) %length(array_param.lines)
@@ -1891,17 +1891,17 @@ targets_doa = [-1.0291 -0.9742 -0.9075 -0.8366 -0.7684 -0.6867 -0.6303 -0.5606 -
           binIdx_idx = bins(binIdx);
       if ~isempty(actual_doa_cell{binIdx,lineIdx})
         doa_tmp = actual_doa_cell{binIdx,lineIdx};
-        if length(doa_tmp)<Nsig
-          doa = NaN(Nsig,1);
+        if length(doa_tmp)<Nsrc
+          doa = NaN(Nsrc,1);
           if sign(doa_tmp) <= 0
             doa(1:length(doa_tmp)) = doa_tmp;
           else
             doa(length(doa_tmp)+1:end) = doa_tmp;
           end
         else
-          doa = doa_tmp(1:Nsig);
+          doa = doa_tmp(1:Nsrc);
         end
-        actual_doa(binIdx_idx,1:Nsig,lineIdx_idx) = doa; % Nt*Nsig*Nx
+        actual_doa(binIdx_idx,1:Nsrc,lineIdx_idx) = doa; % Nt*Nsrc*Nx
       end
     end
   end
@@ -2560,21 +2560,21 @@ flight_height  = 1500;
   array_param.dline = 1;
   
   array_param.bin_rng = 0;
-  array_param.rline_rng = -10:10;
+  array_param.line_rng = -10:10;
   
-  Nsig = 2;
-  array_param.Nsig = Nsig;
+  Nsrc = 2;
+  array_param.Nsrc = Nsrc;
   
   array_param.init = 'ap';
-  array_param.theta_guard = (max(theta)-min(theta))/(4*Nc);
+  array_param.doa_theta_guard = (max(theta)-min(theta))/(4*Nc);
   
-  array_param.W = 1;
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   BW = abs(param.src.f1 - param.src.f0);
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:array_param.Nsig
+  for idx = 1:array_param.Nsrc
     array_param.doa_constraints(idx).method = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [-90 90];%[min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits = [-90 90];%[min(theta) max(theta)]*180/pi;
@@ -2584,7 +2584,7 @@ flight_height  = 1500;
   
   N_skipped_rlines = 1;
   N_reqd_rlines    = 1;
-  surf_param.x = [-750:N_skipped_rlines:-750+N_skipped_rlines*(N_reqd_rlines+2*max(array_param.rline_rng))-1];
+  surf_param.x = [-750:N_skipped_rlines:-750+N_skipped_rlines*(N_reqd_rlines+2*max(array_param.line_rng))-1];
 %   param.monte.target_param{1} = surf_param;
   
 %   clear array_param;
@@ -3308,7 +3308,7 @@ error_bounds = [-inf  inf; -inf  inf; 0  0 ...
       title('After calib.')
       grid on
       grid minor
-      suptitle(sprintf('Eigenvectors pattern: Nsig=%2d',N))
+      suptitle(sprintf('Eigenvectors pattern: Nsrc=%2d',N))
 
       figure(9997);clf
       subplot(121)
@@ -3328,7 +3328,7 @@ error_bounds = [-inf  inf; -inf  inf; 0  0 ...
       title('After calib.&FB')
       grid on
       grid minor
-      suptitle(sprintf('Eigenvectors pattern: Nsig=%2d',N))
+      suptitle(sprintf('Eigenvectors pattern: Nsrc=%2d',N))
     end
     
     % return
@@ -3750,25 +3750,25 @@ if 1
   array_param.dline = 1;
   
   array_param.bin_rng   = 0;
-  array_param.rline_rng = [-10:10];
-  Nsnap = length(array_param.bin_rng)*length(array_param.rline_rng);
+  array_param.line_rng = [-10:10];
+  Nsnap = length(array_param.bin_rng)*length(array_param.line_rng);
   
   N_skipped_rlines = 1;
   N_reqd_rlines    = 1;
-  surf_param.x = [-750:N_skipped_rlines:-750+N_skipped_rlines*(N_reqd_rlines+2*max(array_param.rline_rng))-1];
+  surf_param.x = [-750:N_skipped_rlines:-750+N_skipped_rlines*(N_reqd_rlines+2*max(array_param.line_rng))-1];
 
   param.monte.target_param{1} = surf_param;
   
   %SRAVYA
-  array_param.Nsig  = 1:M;
+  array_param.Nsrc  = 1:M;
   array_param.init = 'ap';
-  array_param.theta_guard = 2/180*pi;%(max(theta)-min(theta))/(4*Nc);
-  array_param.W = 1;
+  array_param.doa_theta_guard = 2/180*pi;%(max(theta)-min(theta))/(4*Nc);
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:max(array_param.Nsig)
+  for idx = 1:max(array_param.Nsrc)
     array_param.doa_constraints(idx).method          = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits      = [min(theta) max(theta)]*180/pi;
@@ -3814,15 +3814,15 @@ if 1
     if param.opt_norm ==1
       opt_norm_term = norm_coeff.opt_norm_term;
     else
-      opt_norm_term = zeros(1,max(param.array_param.Nsig )+1);
+      opt_norm_term = zeros(1,max(param.array_param.Nsrc )+1);
     end
     
     if param.norm_allign_zero ==1
       norm_term_suboptimal = norm_coeff.norm_term_suboptimal;
       norm_term_optimal    = norm_coeff.norm_term_optimal;
     else
-      norm_term_suboptimal =  zeros(1,max(param.array_param.Nsig )+1);
-      norm_term_optimal    = zeros(1,max(param.array_param.Nsig )+1);
+      norm_term_suboptimal =  zeros(1,max(param.array_param.Nsrc )+1);
+      norm_term_optimal    = zeros(1,max(param.array_param.Nsrc )+1);
     end
   else
     % Load the normalization parameters if you already have them.
@@ -3863,9 +3863,9 @@ if 1
     N_bins_Q = N_bins_Q(:);
     N_bins_Q =[N_bins_Q; zeros((Nt-numel(N_bins_Q)),1)];
     
-    doa_bins = NaN*ones(Nt,max(param.array_param.Nsig)*dist_target_factor);
-    y_bin    = NaN*ones(Nt,max(param.array_param.Nsig)*dist_target_factor);
-    z_bin    = NaN*ones(Nt,max(param.array_param.Nsig)*dist_target_factor);
+    doa_bins = NaN*ones(Nt,max(param.array_param.Nsrc)*dist_target_factor);
+    y_bin    = NaN*ones(Nt,max(param.array_param.Nsrc)*dist_target_factor);
+    z_bin    = NaN*ones(Nt,max(param.array_param.Nsrc)*dist_target_factor);
     
     % ORTHOGONAL SV
     p = Nc;
@@ -4017,7 +4017,7 @@ if 1
       
       optimizer_NT_param.Nsnap           = Nsnap;
       optimizer_NT_param.SNR_db          = param.SNR_db;
-      optimizer_NT_param.Nsig            = M;
+      optimizer_NT_param.Nsrc            = M;
       optimizer_NT_param.Nc              = Nc;
       optimizer_NT_param.P_md_coeff      = P_md_coeff;
       optimizer_NT_param.P_fa_coeff      = P_fa_coeff;
@@ -4105,7 +4105,7 @@ if 1
     surf_param.x_range = [-2500 2500];
     %     N_skipped_rlines = 5; % Same as for training
     %     N_reqd_rlines    = 1; % Same as for training
-    surf_param.x = [-750:N_skipped_rlines:-750+N_skipped_rlines*(N_reqd_rlines+2*max(param.array_param.rline_rng))-1];
+    surf_param.x = [-750:N_skipped_rlines:-750+N_skipped_rlines*(N_reqd_rlines+2*max(param.array_param.line_rng))-1];
     
     param.SNR_db = SNR_testing; % SNR TRAINING cases
     
@@ -4184,7 +4184,7 @@ if 1
           Nx = size(q_actual,2);
           for line_idx = 1:Nx
             q_actual_rline = q_actual(:,line_idx);
-            % Find the indices of the range-bins where Nsig>0.
+            % Find the indices of the range-bins where Nsrc>0.
             idx = find(q_actual_rline>0);
             idx = idx(idx>decimation_factor & idx <= (Nt-decimation_factor));
             % Set the numbe of targets in decimation_factor neighboring
@@ -4208,7 +4208,7 @@ if 1
             LL_opt_tmp_rline(isnan(q_actual_rline),:) = [];
             LL_opt_tmp_rline_all = [LL_opt_tmp_rline_all;LL_opt_tmp_rline];
             
-            % Set estimated Nsig of affected range-bins to NaN (will
+            % Set estimated Nsrc of affected range-bins to NaN (will
             % be ignored later)
             for method_idx = 0:6
               switch method_idx
@@ -4238,7 +4238,7 @@ if 1
               end
             end
             
-            % Set actual Nsig of affected range-bins to NaN (will
+            % Set actual Nsrc of affected range-bins to NaN (will
             % be ignored later)
             actual_num_targets{run_idx}{snr_idx}(isnan(q_actual_rline),line_idx) = NaN;
           end
@@ -4492,16 +4492,16 @@ if 1
             percentage_correct_subopt(k_idx+1) = NaN;
             percentage_correct_opt(k_idx+1)    = NaN;
           else
-            actual_Nsig_idxs = find(actual_num_targets_tmp == k_idx);
+            actual_Nsrc_idxs = find(actual_num_targets_tmp == k_idx);
             
-            Nest_subopt_subset = Nest_subopt(actual_Nsig_idxs);
-            Nest_opt_subset    = Nest_opt(actual_Nsig_idxs);
+            Nest_subopt_subset = Nest_subopt(actual_Nsrc_idxs);
+            Nest_opt_subset    = Nest_opt(actual_Nsrc_idxs);
             
             Nest_subopt_good = Nest_subopt_subset(Nest_subopt_subset==k_idx);
             Nest_opt_good    = Nest_opt_subset(Nest_opt_subset==k_idx);
             
-            percentage_correct_subopt(k_idx+1) =  numel(Nest_subopt_good)/numel(actual_num_targets_tmp(actual_Nsig_idxs)) * 100;
-            percentage_correct_opt(k_idx+1) =  numel(Nest_opt_good)/numel(actual_num_targets_tmp(actual_Nsig_idxs)) * 100;
+            percentage_correct_subopt(k_idx+1) =  numel(Nest_subopt_good)/numel(actual_num_targets_tmp(actual_Nsrc_idxs)) * 100;
+            percentage_correct_opt(k_idx+1) =  numel(Nest_opt_good)/numel(actual_num_targets_tmp(actual_Nsrc_idxs)) * 100;
           end
         end
         
@@ -4857,8 +4857,8 @@ if 0
   fprintf('Running Particle filter simulation\n');
   fprintf('=======================================================================\n');
   
-rline_rng =[-10:10];% round([-1*linspace(1,125,51).' , linspace(1,125,51).']);   % Ntests by 2 (start and end of range-lins range)
-Ntests = size(rline_rng,1);
+line_rng =[-10:10];% round([-1*linspace(1,125,51).' , linspace(1,125,51).']);   % Ntests by 2 (start and end of range-lins range)
+Ntests = size(line_rng,1);
 
 % Bf = [1e-4:0.2:10].';
 % Ntests = length(Bf);
@@ -4976,26 +4976,26 @@ ang = [-[17 15 13 11 9 7 5 3], [0 3 5 7 9 11 13 15 17]]'*pi/180;
   array_param.dline = 1;
   
   array_param.bin_rng = 0;
-%   array_param.rline_rng = -10:10;
-array_param.rline_rng = round([rline_rng(test_idx,1) : rline_rng(test_idx,2)]);
+%   array_param.line_rng = -10:10;
+array_param.line_rng = round([line_rng(test_idx,1) : line_rng(test_idx,2)]);
   
   N_skipped_rlines = 1;  
   N_reqd_rlines    = 1;  
-  surf_param.x = [-2000:N_skipped_rlines:-2000+N_skipped_rlines*(N_reqd_rlines+2*max(array_param.rline_rng))-1];
+  surf_param.x = [-2000:N_skipped_rlines:-2000+N_skipped_rlines*(N_reqd_rlines+2*max(array_param.line_rng))-1];
   param.monte.target_param{1} = surf_param;
-  % In the PF contest, Nsig is the maximum number of targets.  
-  array_param.Nsig = 2;
+  % In the PF contest, Nsrc is the maximum number of targets.  
+  array_param.Nsrc = 2;
   
 %   array_param.init = 'ap';
-  array_param.theta_guard = (max(theta)-min(theta))/(4*Nc);
+  array_param.doa_theta_guard = (max(theta)-min(theta))/(4*Nc);
   
-  array_param.W = 1;
+  array_param.Nsubband = 1;
   dt = 1/fs;
-  array_param.imp_resp.time_vec = -3*array_param.W*dt : dt/8 : 3*array_param.W*dt;
+  array_param.imp_resp.time_vec = -3*array_param.Nsubband*dt : dt/8 : 3*array_param.Nsubband*dt;
   BW = abs(param.src.f1 - param.src.f0);
   array_param.imp_resp.vals = tukeywin_cont(array_param.imp_resp.time_vec / BW);
   
-  for idx = 1:array_param.Nsig
+  for idx = 1:array_param.Nsrc
     array_param.doa_constraints(idx).method = 'fixed';
     array_param.doa_constraints(idx).init_src_limits = [min(theta) max(theta)]*180/pi;
     array_param.doa_constraints(idx).src_limits = [min(theta) max(theta)]*180/pi;
@@ -5024,7 +5024,7 @@ param.BW                 = BW;
 % Sampling frequency
 param.fs                 = BW;
 % Maximum number of targets. Currently it is always 2
-param.Nsig               = array_param.Nsig;
+param.Nsrc               = array_param.Nsrc;
 % Number of sensors
 param.Nc                 = Nc;
 % Maximum number of particles to start with. Set=Np_fixed for now untill it
@@ -5110,7 +5110,7 @@ param.src.tx_weights = comp_tx_weight;
 % Number of fast-time snapshots
 Nt_snaps = length(array_param.bin_rng);  
 % Number of azimuth snapshots
-Nx_snaps = length(array_param.rline_rng); 
+Nx_snaps = length(array_param.line_rng); 
 % Total number of snapshots
 param.M  = Nt_snaps*Nx_snaps;      
 
@@ -5200,8 +5200,8 @@ param.Nt_st = good_R_idx(1)-max(array_param.bin_rng);
 param.Nt_end = param.Nt - max(array_param.bin_rng);
 
 % First/last range-line index with targets. 
-param.Nx_st = 1 + max(array_param.rline_rng);
-param.Nx_end = length(surf_param.x) - max(array_param.rline_rng);
+param.Nx_st = 1 + max(array_param.line_rng);
+param.Nx_end = length(surf_param.x) - max(array_param.line_rng);
 
 param.rbins  = [param.Nt_st:array_param.dbin:param.Nt_end]; 
 param.rlines = [param.Nx_st:array_param.dline:param.Nx_end];
@@ -5211,7 +5211,7 @@ param.Nt = length(param.rbins);
 
 % clear array_param;
 param.bin_rng = array_param.bin_rng;
-param.line_rng = array_param.rline_rng;
+param.line_rng = array_param.line_rng;
 
 %% Recursion
 param.Ntrials = 5; % =1 for real data
@@ -5241,13 +5241,13 @@ for trial_idx = 1:param.Ntrials
     for binIdx = 1:param.Nt
       if ~isempty(actual_doa_cell{param.rbins(binIdx),lineIdx})
         doa_tmp = sort(actual_doa_cell{param.rbins(binIdx),lineIdx},'ascend');
-        if length(doa_tmp)<array_param.Nsig
-          doa = NaN(array_param.Nsig,1);
+        if length(doa_tmp)<array_param.Nsrc
+          doa = NaN(array_param.Nsrc,1);
           doa(1:length(doa_tmp)) = doa_tmp;
         else
-          doa = doa_tmp(1:array_param.Nsig);
+          doa = doa_tmp(1:array_param.Nsrc);
         end
-        actual_doa{binIdx,lineIdx} = doa; % Nt*Nsig*Nx
+        actual_doa{binIdx,lineIdx} = doa; % Nt*Nsrc*Nx
       end
     end
   end
@@ -5256,10 +5256,10 @@ for trial_idx = 1:param.Ntrials
     param.actual_doa = actual_doa_cell; 
   end
   
-  est_doa          = NaN(size(actual_doa_cell,1),size(actual_doa_cell,2),param.Nsig);
-  smoothed_est_doa = NaN(size(actual_doa_cell,1),size(actual_doa_cell,2),param.Nsig);
-  actual_doa_tmp   = NaN(size(actual_doa_cell,1),size(actual_doa_cell,2),param.Nsig);
-  est_doa_pwr      = NaN(size(actual_doa_cell,1),size(actual_doa_cell,2),param.Nsig);
+  est_doa          = NaN(size(actual_doa_cell,1),size(actual_doa_cell,2),param.Nsrc);
+  smoothed_est_doa = NaN(size(actual_doa_cell,1),size(actual_doa_cell,2),param.Nsrc);
+  actual_doa_tmp   = NaN(size(actual_doa_cell,1),size(actual_doa_cell,2),param.Nsrc);
+  est_doa_pwr      = NaN(size(actual_doa_cell,1),size(actual_doa_cell,2),param.Nsrc);
   
   rline_idx = 0;
   for rline =  param.rlines
@@ -5288,7 +5288,7 @@ for trial_idx = 1:param.Ntrials
       % Initial DoA
       param.st_doa = [st_doa_L;st_doa_R];                     
     elseif 1
-      param.st_doa  = 0*ones(param.Nsig,1);
+      param.st_doa  = 0*ones(param.Nsrc,1);
     end
     param.init_ref_doa = mean(param.st_doa);
     

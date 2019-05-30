@@ -5,6 +5,9 @@ function lidar = read_lidar_atm(atm_fns, param)
 % to know if time reference is GPS or UTC.
 % Currently function only grabs the nadir track (track 0).
 %
+% Command to download data. URL may need to be updated by browsing to the ILATM2.002 (L2 version 2) data at NSIDC via a web client:
+% wget --load-cookies ~/.urs_cookies --save-cookies ~/.urs_cookies --keep-session-cookies --no-check-certificate --auth-no-challenge=on -r --reject "index.html*" -np --cut-dirs=2 -nH -e robots=off -A "ILATM2_2017*.csv" https://n5eil01u.ecs.nsidc.org/ICEBRIDGE/ILATM2.002/
+%
 % atm_fns = filename(s) of ATM output
 % param = struct that controls reading of file(s)
 %   THIS STRUCTURE IS NOT NECESSARY WITH CONFORMING FILENAMES.

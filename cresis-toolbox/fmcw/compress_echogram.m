@@ -1,4 +1,5 @@
-% script compress_echogram
+function compress_echogram(param, param_override)
+% compress_echogram(param, param_override)
 %
 % Compresses echogram files (CSARP_*). This involves three steps:
 % 1. Elevation compensation
@@ -10,67 +11,158 @@
 % which segments and frames are compressed (using the generic field).
 % The posting worksheet is also used.
 %
+% Settings for NSIDC:
+% compress_type = '';
+% truncate_data = true;
+% guard_depth_rng = [0 0];
+% min_depth_rng = [-8 5];
+% elev_comp = true;
+% param_post_echo_depth_override_sea = '[min(Surface_Depth)-4 max(Surface_Depth)+5]'; % Sea Ice Segments Only
+% param_post_echo_depth_override_land = '[min(Surface_Depth)-10 max(Surface_Depth)+80]'; % Land Ice Segments Only
+% frm_types = {-1,0,-1,-1,-1}; % Which types of frames to compress (usual is {-1,0,-1,-1,-1})
+%
+% Examples:
 % See run_compress_echogram.m for how to run.
 %
 % Author: John Paden
 
-% ====================================================================
-% Automated Section
-% ====================================================================
+%% General Setup
+% =========================================================================
+param = merge_structs(param, param_override);
 
-fprintf('============================================================\n');
-fprintf('Compressing echograms %s\n', echogram_dir);
-fprintf('============================================================\n');
+fprintf('=====================================================================\n');
+fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+fprintf('=====================================================================\n');
 
-physical_constants;
+%% Input check
+% =========================================================================
 
-% Read in radar processing parameters spreadsheet
-params = read_param_xls(param_fn,'','post');
-day_segs = {};
-for param_idx = 1:length(params)
-  day_segs{end+1} = params(param_idx).day_seg;
+if ~isfield(param.compress_echogram,'compress_type') ...
+    || isempty(param.compress_echogram.compress_type)
+  param.compress_echogram.compress_type = '';
 end
-
+compress_type = param.compress_echogram.compress_type;
 if ~isempty(compress_type)
   compress_func = str2func(sprintf('@%s', compress_type));
 end
 
-for param_idx = 1:length(params)
-  param = params(param_idx);
-  if ~param.cmd.generic
-    continue;
-  end
-  fprintf('Compress echogram %s (%s)\n', param.day_seg, datestr(now,'HH:MM:SS'));
-  
-  % Determine if segment is sea or land ice
-  if ~isempty(regexpi(param.cmd.mission_names,'Sea'))
-    param_post_echo_depth_override = param_post_echo_depth_override_sea;
-  else
-    param_post_echo_depth_override = param_post_echo_depth_override_land;
-  end
-  
-  % Load the frames file
-  frames_fn = ct_filename_support(param,'','frames');
-  load(frames_fn);
-  
-  if isempty(param.cmd.frms)
-    param.cmd.frms = 1:length(frames.frame_idxs);
-  end
-  % Remove frames that do not exist from param.cmd.frms list
-  [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
-  if length(valid_frms) ~= length(param.cmd.frms)
-    bad_mask = ones(size(param.cmd.frms));
-    bad_mask(keep_idxs) = 0;
-    warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
-      param.cmd.frms(find(bad_mask,1)));
-    param.cmd.frms = valid_frms;
-  end
+if ~isfield(param.compress_echogram,'echogram_dir') ...
+    || isempty(param.compress_echogram.echogram_dir)
+  param.compress_echogram.echogram_dir = 'qlook';
+end
+echogram_dir = ct_filename_out(param,param.compress_echogram.echogram_dir,'');
 
-  % Compress each frame in the list
-  for frm = param.cmd.frms
-    % Get the filename
-    fn = fullfile(echogram_dir,param.day_seg,sprintf('Data_%s_%03d.mat', ...
-      param.day_seg, frm));
+if ~isfield(param.compress_echogram,'elev_comp') ...
+    || isempty(param.compress_echogram.elev_comp)
+  param.compress_echogram.elev_comp = true;
+end
+elev_comp = param.compress_echogram.elev_comp;
+
+if ~isfield(param.compress_echogram,'guard_depth_rng') ...
+    || isempty(param.compress_echogram.guard_depth_rng)
+  param.compress_echogram.guard_depth_rng = [0 0];
+end
+guard_depth_rng = param.compress_echogram.guard_depth_rng;
+
+if ~isfield(param.compress_echogram,'frm_types') ...
+    || isempty(param.compress_echogram.frm_types)
+  param.compress_echogram.frm_types = {-1,0,-1,-1,-1};
+end
+frm_types = param.compress_echogram.frm_types;
+
+if ~isfield(param.compress_echogram,'imgs') ...
+    || isempty(param.compress_echogram.imgs)
+  param.compress_echogram.imgs = 0;
+end
+
+if ~isfield(param.compress_echogram,'layer_params') ...
+    || isempty(param.compress_echogram.layer_params)
+  param.compress_echogram.layer_params = [];
+end
+if ~isfield(param.compress_echogram.layer_params,'name') ...
+    || isempty(param.compress_echogram.layer_params.name)
+  param.compress_echogram.layer_params.name = 'surface';
+end
+if ~isfield(param.compress_echogram.layer_params,'source') ...
+    || isempty(param.compress_echogram.layer_params.source)
+  param.compress_echogram.layer_params.source = 'layerData';
+end
+
+if ~isfield(param.compress_echogram,'min_depth_rng') ...
+    || isempty(param.compress_echogram.min_depth_rng)
+  param.compress_echogram.min_depth_rng = [-8 5];
+end
+min_depth_rng = param.compress_echogram.min_depth_rng;
+
+if ~isfield(param.compress_echogram,'out_dir') ...
+    || isempty(param.compress_echogram.out_dir)
+  param.compress_echogram.out_dir = 'CSARP_post/qlook';
+end
+out_dir = ct_filename_out(param,param.compress_echogram.out_dir,'');
+
+% Default for sea ice segments ("sea" in mission name)
+if ~isfield(param.compress_echogram,'param_post_echo_depth_override_sea') ...
+    || isempty(param.compress_echogram.param_post_echo_depth_override_sea)
+  param.compress_echogram.param_post_echo_depth_override_sea ...
+    = '[min(Surface_Depth)-4 max(Surface_Depth)+5]';
+end
+param_post_echo_depth_override_sea = param.compress_echogram.param_post_echo_depth_override_sea;
+% Default for land segments (no "sea" in mission name)
+if ~isfield(param.compress_echogram,'param_post_echo_depth_override_land') ...
+    || isempty(param.compress_echogram.param_post_echo_depth_override_land)
+  param.compress_echogram.param_post_echo_depth_override_land ...
+    = '[min(Surface_Depth)-10 max(Surface_Depth)+80]';
+end
+param_post_echo_depth_override_land = param.compress_echogram.param_post_echo_depth_override_land;
+% Determine if segment is sea or land ice
+if ~isempty(regexpi(param.cmd.mission_names,'Sea'))
+  param_post_echo_depth_override = param_post_echo_depth_override_sea;
+else
+  param_post_echo_depth_override = param_post_echo_depth_override_land;
+end
+
+if ~isfield(param.compress_echogram,'truncate_data') ...
+    || isempty(param.compress_echogram.truncate_data)
+  param.compress_echogram.truncate_data = true;
+end
+truncate_data = param.compress_echogram.truncate_data;
+
+% Load the frames file
+frames_fn = ct_filename_support(param,'','frames');
+load(frames_fn);
+
+if isempty(param.cmd.frms)
+  param.cmd.frms = 1:length(frames.frame_idxs);
+end
+% Remove frames that do not exist from param.cmd.frms list
+[valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+if length(valid_frms) ~= length(param.cmd.frms)
+  bad_mask = ones(size(param.cmd.frms));
+  bad_mask(keep_idxs) = 0;
+  warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
+    param.cmd.frms(find(bad_mask,1)));
+  param.cmd.frms = valid_frms;
+end
+
+%% Setup
+% =========================================================================
+
+physical_constants;
+
+layers = opsLoadLayers(param,param.compress_echogram.layer_params);
+
+%% Compress each frame in the list
+% =========================================================================
+for frm = param.cmd.frms
+  % Get the filename
+  for img = param.compress_echogram.imgs
+    if img == 0
+      fn = fullfile(echogram_dir,sprintf('Data_%s_%03d.mat', ...
+        param.day_seg, frm));
+    else
+      fn = fullfile(echogram_dir,sprintf('Data_img_%02d_%s_%03d.mat', ...
+        img, param.day_seg, frm));
+    end
     
     if ct_proc_frame(frames.proc_mode(frm),frm_types)
       fprintf(' Input %s (%s)\n', fn, datestr(now));
@@ -86,6 +178,10 @@ for param_idx = 1:length(params)
     
     clear minData;
     tmp = load(fn);
+    tmp.Surface = interp_finite(interp1(layers.gps_time,layers.twtt,tmp.GPS_time),NaN);
+    if all(~isfinite(tmp.Surface))
+      warning('No surface data.');
+    end
     if ~isfield(tmp,'minData')
       orig_size = 4*numel(tmp.Data);
       
@@ -93,11 +189,18 @@ for param_idx = 1:length(params)
       if elev_comp
         max_elev = max(tmp.Elevation);
         dRange = max_elev - tmp.Elevation;
-        dt = tmp.Time(2)-tmp.Time(1);
-        dBins = round(dRange / (c/2) / dt);
+        if length(tmp.Time)<2
+          dt = 1;
+          dBins = zeros(size(dRange));
+        else
+          dt = tmp.Time(2)-tmp.Time(1);
+          dBins = round(dRange / (c/2) / dt);
+        end
         zero_pad_len = max(abs(dBins));
         tmp.Data = cat(1,tmp.Data,zeros(zero_pad_len,size(tmp.Data,2)));
-        tmp.Time = tmp.Time(1) + (tmp.Time(2)-tmp.Time(1)) * (0:size(tmp.Data,1)-1).';
+        if ~isempty(tmp.Time)
+          tmp.Time = tmp.Time(1) + dt * (0:size(tmp.Data,1)-1).';
+        end
         for rline = 1:size(tmp.Data,2)
           if dBins(rline) > 0
             tmp.Data(1+dBins(rline):end,rline) = tmp.Data(1:end-dBins(rline),rline);
@@ -144,11 +247,13 @@ for param_idx = 1:length(params)
         %    These will have a NaN for a range line when no valid bins were
         %    truncated for that range line.  Zero padded bins from elevation
         %    compensation are not valid.
-        for rline = 1:size(tmp.Data,2)
-          if 1+dBins(rline) < good_bins(1)
-            tmp.Truncate_Median(rline) = median(tmp.Data(1+dBins(rline):good_bins(1),rline));
-            tmp.Truncate_Mean(rline) = mean(tmp.Data(1+dBins(rline):good_bins(1),rline));
-            tmp.Truncate_Std_Dev(rline) = std(tmp.Data(1+dBins(rline):good_bins(1),rline));
+        if ~isempty(good_bins)
+          for rline = 1:size(tmp.Data,2)
+            if 1+dBins(rline) < good_bins(1)
+              tmp.Truncate_Median(rline) = median(tmp.Data(1+dBins(rline):good_bins(1),rline));
+              tmp.Truncate_Mean(rline) = mean(tmp.Data(1+dBins(rline):good_bins(1),rline));
+              tmp.Truncate_Std_Dev(rline) = std(tmp.Data(1+dBins(rline):good_bins(1),rline));
+            end
           end
         end
         tmp.Data = tmp.Data(good_bins,:);
@@ -160,10 +265,15 @@ for param_idx = 1:length(params)
         % created in this process and Data becomes compressed
         tmp.Data = 10*log10(tmp.Data);
         tmp.minData = max(min(tmp.Data(isfinite(tmp.Data))), median(tmp.Data(isfinite(tmp.Data))) - 20);
-        tmp.Data = tmp.Data - tmp.minData;
+        if ~isempty(tmp.Data)
+          tmp.Data = tmp.Data - tmp.minData;
+        end
         tmp.maxData = min(max(tmp.Data(isfinite(tmp.Data))), median(tmp.Data(isfinite(tmp.Data))) + 60);
-        
-        tmp.Data = compress_func(round(tmp.Data*double(intmax(compress_type))/tmp.maxData));
+        if ~isempty(tmp.Data)
+          tmp.Data = compress_func(round(tmp.Data*double(intmax(compress_type))/tmp.maxData));
+        else
+          tmp.Data = compress_func(tmp.Data);
+        end
       end
       
       if 0
@@ -176,16 +286,15 @@ for param_idx = 1:length(params)
         pause;
       end
       
-      out_fn = fullfile(out_dir,fn(1+length(echogram_dir):end));
+      [~,fn_name,fn_ext] = fileparts(fn);
+      out_fn = [fullfile(out_dir,fn_name) fn_ext];
       out_fn_dir = fileparts(out_fn);
       if ~exist(out_fn_dir,'dir')
         mkdir(out_fn_dir);
       end
       fprintf('  Output %s\n', out_fn);
       tmp = rmfield(tmp,'Depth');
-      save('-v6',out_fn,'-struct','tmp');
+      save('-v7.3',out_fn,'-struct','tmp');
     end
   end
 end
-
-return;

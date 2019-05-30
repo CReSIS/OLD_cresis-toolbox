@@ -39,6 +39,14 @@ if ischar(awi_fns)
   awi_fns = {awi_fns};
 end
 
+if isempty(awi_fns)
+  lidar.gps_time = [];
+  lidar.surface = [];
+  lidar.lat = [];
+  lidar.lon = [];
+  return;
+end
+
 for file_idx = 1:length(awi_fns)
   awi_fn = awi_fns{file_idx};
 

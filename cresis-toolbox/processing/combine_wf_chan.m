@@ -407,12 +407,36 @@ sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
 success_error = 64;
 sparam.success = '';
 for frm = param.cmd.frms
-  out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
-  out_fn = fullfile(combine_out_dir,out_fn_name);
-  sparam.success = cat(2,sparam.success, ...
-    sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
-  if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
-    delete(out_fn);
+  if numel(param.combine.imgs) > 1
+    % More than one image: Check for individual image files
+    for img = 1:length(param.combine.imgs)
+      out_fn_name = sprintf('Data_img_%02d_%s_%03d.mat',img,param.day_seg,frm);
+      out_fn = fullfile(combine_out_dir,out_fn_name);
+      sparam.success = cat(2,sparam.success, ...
+        sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+      if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+        delete(out_fn);
+      end
+    end
+    % If combining set, then check for combined file
+    if ~isempty(param.combine.img_comb)
+      out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
+      out_fn = fullfile(combine_out_dir,out_fn_name);
+      sparam.success = cat(2,sparam.success, ...
+        sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+      if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+        delete(out_fn);
+      end
+    end
+  else
+    % Only one image: Check for combined file
+    out_fn_name = sprintf('Data_%s_%03d.mat',param.day_seg,frm);
+    out_fn = fullfile(combine_out_dir,out_fn_name);
+    sparam.success = cat(2,sparam.success, ...
+      sprintf('  error_mask = bitor(error_mask,%d*~exist(''%s'',''file''));\n', success_error, out_fn));
+    if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
+      delete(out_fn);
+    end
   end
 end
 

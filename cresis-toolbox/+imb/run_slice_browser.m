@@ -10,6 +10,40 @@
 % =========================================================================
 
 if 1
+  % DOA methods
+  param.doa_method_flag = true;
+  day_seg = '20110317_03';
+  param.radar_name = 'rds';
+  param.season_name = '2011_Greenland_P3';
+  out_type = 'test_music3D_mle';
+  surfdata_source = 'test_surfData_scratch';
+  param.day_seg = day_seg;
+  frm = 1;
+  geotiff_fn = ct_filename_gis(param,fullfile('greenland','Landsat-7','Greenland_natural_90m.tif'));
+%   ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.bin'));
+  ice_mask_fn = '';
+  doa_limits = [-60 60]; % DOA limits for slice browsing (outside this limits will not be displayed)
+  nadir_doa_lim = [-2 2]; % DOA range overwhich an estimated DOA is considered as nadir. This is usually the initial DOA limits of S-MAP.
+elseif 0
+  param.radar_name = 'rds';
+  param.season_name = '2018_Greenland_P3';
+  out_type = 'music_imgs4_Nsig2';
+  surfdata_source = 'surfData';
+%   surfdata_source = 'surfData_englacial';
+  param.day_seg = '20180404_02';
+  frm = 1;
+  param.day_seg = '20180406_01';
+  frm = 1;
+%   param.day_seg = '20180418_06';
+%   frm = 13;
+%   param.day_seg = '20180405_01';
+%   frm = 56;
+  geotiff_fn = ct_filename_gis(param,fullfile('greenland','Landsat-7','Greenland_natural_90m.tif'));
+  ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.bin'));
+  ice_mask_fn = '';
+  bounds_relative = [3 2 0 0];
+  
+elseif 0
   param.radar_name = 'rds';
   param.season_name = '2014_Greenland_P3';
   out_type = 'music3D';
@@ -70,41 +104,56 @@ if ~exist('run_slice_browser_fn','var') || ~strcmp(run_slice_browser_fn,fn)
   fprintf('  Done loading data (%s)\n', datestr(now));
 end
 
+if ~exist('surfdata_source','var') || isempty(surfdata_source)
+  surfdata_source = 'surfData';
+end
 sb_param = [];
-sb_param.surfdata_fn = fullfile(ct_filename_out(param,surfdata_source,'CSARP_surfData'),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-if ~exist(sb_param.surfdata_fn)
+sb_param.surfdata_fn = fullfile(ct_filename_out(param,surfdata_source,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+if ~exist(sb_param.surfdata_fn,'file')
   sb_param.surfdata_fn = '';
 end
-sb_param.bounds_relative = bounds_relative;
+
+if ~isfield(param,'doa_method_flag') || isempty(param.doa_method_flag)
+  sb_param.doa_method_flag = false;
+  sb_param.bounds_relative = bounds_relative;
+else
+  sb_param.doa_method_flag = param.doa_method_flag;
+  sb_param.doa_limits = doa_limits;
+  sb_param.nadir_doa_lim = nadir_doa_lim;
+end
 
 %% Call slice_browser
 try; delete(obj); end;
-obj = imb.slice_browser(10*log10(mdata.Topography.img),[],sb_param);
-
-try; delete(viterbi_tool); end;
-viterbi_tool = imb.slicetool_viterbi();
-obj.insert_tool(viterbi_tool);
-
-try; delete(trws_tool); end;
-trws_tool = imb.slicetool_trws();
-obj.insert_tool(trws_tool);
-
-try; delete(max_tool); end;
-max_tool = imb.slicetool_max();
-obj.insert_tool(max_tool);
-
-try; delete(quality_tool); end;
-quality_tool = imb.slicetool_quality();
-obj.insert_tool(quality_tool);
-
-try; delete(delete_tool); end;
-delete_tool = imb.slicetool_delete();
-obj.insert_tool(delete_tool);
-
-try; delete(threshold_tool); end;
-threshold_tool = imb.slicetool_threshold();
-obj.insert_tool(threshold_tool);
-
+if sb_param.doa_method_flag
+  % DOA method (DOA is passed in degrees)
+  obj = imb.slice_browser(mdata.Tomo.theta * 180/pi,[],sb_param);
+else
+  % Beamforming method
+  obj = imb.slice_browser(10*log10(mdata.Topography.img),[],sb_param);
+  try; delete(viterbi_tool); end;
+  viterbi_tool = imb.slicetool_viterbi();
+  obj.insert_tool(viterbi_tool);
+  
+  try; delete(trws_tool); end;
+  trws_tool = imb.slicetool_trws();
+  obj.insert_tool(trws_tool);
+  
+  try; delete(max_tool); end;
+  max_tool = imb.slicetool_max();
+  obj.insert_tool(max_tool);
+  
+  try; delete(quality_tool); end;
+  quality_tool = imb.slicetool_quality();
+  obj.insert_tool(quality_tool);
+  
+  try; delete(delete_tool); end;
+  delete_tool = imb.slicetool_delete();
+  obj.insert_tool(delete_tool);
+  
+  try; delete(threshold_tool); end;
+  threshold_tool = imb.slicetool_threshold();
+  obj.insert_tool(threshold_tool);
+end
 if ~isempty(ice_mask_fn)
   [ice_mask_fn_dir ice_mask_fn_name] = fileparts(ice_mask_fn);
   ice_mask_mat_fn = fullfile(ice_mask_fn_dir,[ice_mask_fn_name '.mat']);

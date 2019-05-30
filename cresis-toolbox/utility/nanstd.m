@@ -22,7 +22,7 @@ Astd = zeros(sizeAstd,class(A));
 
 for n = 1:prod(sizeA(2:end))
   vals = A(:,n);
-  Astd(1,n) = std(vals(isnan(vals)));
+  Astd(1,n) = std(vals(~isnan(vals)));
 end
 
 Astd = permute(Astd,[2:dim 1 dim+1:ndims(A)]);

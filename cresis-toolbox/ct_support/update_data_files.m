@@ -24,9 +24,10 @@
 % Parameters spreadsheet to use for updating
 %   1. Segment and frame list are taken from the parameter sheet
 %   2. For GPS update, GPS time offsets are pulled from the parameter sheet
-param.param_fn = ct_filename_param('kuband_param_2015_Greenland_LC130.xls');
+% param.param_fn = ct_filename_param('kuband_param_2015_Greenland_LC130.xls');
 % param.param_fn = ct_filename_param('rds_param_2015_Greenland_LC130.xls');
 % param.param_fn = ct_filename_param('snow_param_2015_Greenland_LC130.xls');
+param.param_fn = ct_filename_param('snow_param_2017_Greenland_P3.xls');
 
 % param.skip_phrase: All segments will be skipped with this phrase in their
 %   verification field. "do not process" is the standard. Leave this field
@@ -61,6 +62,9 @@ if strcmpi(param.update_mode,'gps')
   
   % params: structure of parameters for each segment
   params = read_param_xls(param.param_fn);
+  params = ct_set_params(params,'cmd.generic',0);
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20170426_02');
+%   params = ct_set_params(params,'cmd.frms',[1:5]);
   
   param.radar_name = params(1).radar_name;
   param.season_name = params(1).season_name;
@@ -81,7 +85,7 @@ if strcmpi(param.update_mode,'gps')
     for type_idx = 1:length(param.types)
       
       data_dir = ct_filename_out(param,param.types{type_idx});
-     
+      
       if ~exist(data_dir,'dir')
         continue;
       end
@@ -111,140 +115,131 @@ if strcmpi(param.update_mode,'gps')
         fprintf('    File %d of %d %s (%.1f sec)\n', data_idx, length(data_fns), ...
           data_fns{data_idx}, toc(update_data_files_tstart));
         clear param_records;
-        clear param_vectors;
         if param.debug_level > 1
           tmp = load(data_fns{data_idx});
         end
         warning off;
-        clear GPS_time param_records param_qlook param_get_heights param_combine param_combine_wf_chan Elevation_Correction Time;
-        load(data_fns{data_idx},'GPS_time','param_records','param_qlook','param_get_heights','param_combine','param_combine_wf_chan','param_csarp','Elevation_Correction','Time');
+        clear GPS_time param_records param_qlook param_array Elevation_Correction Time;
+        load(data_fns{data_idx},'GPS_time','param_records','param_qlook','param_array','param_sar','Elevation_Correction','Time');
         warning on;
-        if exist('param_records','var')
-          % RDS format and NEW non-RDS format
-          records_based = true;
-          if isfield(param_records,'vectors')
-            % NEW all systems format
-            GPS_time = GPS_time - param_records.vectors.gps.time_offset + params(param_idx).vectors.gps.time_offset;
-            param_records.vectors.gps.time_offset = params(param_idx).vectors.gps.time_offset;
-            param_records.gps_source = gps.gps_source;
-          else
-            % OLD RDS format
-            GPS_time = GPS_time - param_records.gps.time_offset + params(param_idx).vectors.gps.time_offset;
-            param_records.gps.time_offset = params(param_idx).vectors.gps.time_offset;
-            param_records.gps_source = gps.gps_source;
-            if ~exist('param_get_heights','var')
-              param_combine.combine.imgs = param_combine_wf_chan.array.imgs;
-            end
-          end
+        if isfield(param_records,'vectors')
+          warning('Old parameter format with "vectors" field found in records file. Updating format.');
+          param_records.records.file.start_idx = param_records.vectors.file.start_idx;
+          param_records.records.file.stop_idx = param_records.vectors.file.stop_idx;
+          param_records.records.file.base_dir = param_records.vectors.file.base_dir;
+          param_records.records.file.board_folder_name = param_records.vectors.file.adc_folder_name;
+          param_records.records.file.prefix = param_records.vectors.file.file_prefix;
+          param_records.records.gps = param_records.vectors.gps;
           
-          if exist('param_get_heights','var')
-            get_heights_based = true;
-            param_get_heights.get_heights.lever_arm_fh = params(param_idx).get_heights.lever_arm_fh;
-            if isempty(params(param_idx).get_heights.lever_arm_fh)
-              lever_arm_available = false;
-            else
-              lever_arm_available = true;
-              % Default values to use
-              wf = abs(param_get_heights.load.imgs{img_idx}(1,1));
-              adc = abs(param_get_heights.load.imgs{img_idx}(1,2));
-              lever_arm_fh = param_get_heights.get_heights.lever_arm_fh;
-              trajectory_param = struct('rx_path', param_get_heights.radar.wfs(wf).rx_paths(adc), ...
-                'tx_weights', param_get_heights.radar.wfs(wf).tx_weights, 'lever_arm_fh', lever_arm_fh);
-              for tmp_wf_adc_idx = 2:size(param_get_heights.load.imgs{img_idx},1)
-                tmp_wf = abs(param_get_heights.load.imgs{img_idx}(tmp_wf_adc_idx,1));
-                tmp_adc = abs(param_get_heights.load.imgs{img_idx}(tmp_wf_adc_idx,2));
-                trajectory_param.rx_path(tmp_wf_adc_idx) = param_get_heights.radar.wfs(tmp_wf).rx_paths(tmp_adc);
-              end
-            end
-          elseif exist('param_csarp','var')
-            get_heights_based = false;
-            param_csarp.csarp.lever_arm_fh = params(param_idx).csarp.lever_arm_fh;
-            if isempty(params(param_idx).csarp.lever_arm_fh)
-              lever_arm_available = false;
-            else
-              lever_arm_available = true;
-              
-              % Default values to use
-              wf = abs(param_combine.combine.imgs{img_idx}(1,1));
-              adc = abs(param_combine.combine.imgs{img_idx}(1,2));
-              if ischar(param_csarp.csarp.lever_arm_fh)
-                % Legacy file
-                lever_arm_fh = str2func(param_csarp.csarp.lever_arm_fh);
-              else
-                lever_arm_fh = param_csarp.csarp.lever_arm_fh;
-              end
-              trajectory_param = struct('rx_path', param_csarp.radar.wfs(wf).rx_paths(adc), ...
-                'tx_weights', param_csarp.radar.wfs(wf).tx_weights, 'lever_arm_fh', lever_arm_fh);
-              for tmp_wf_adc_idx = 2:size(param_combine.combine.imgs{img_idx},1)
-                tmp_wf = abs(param_combine.combine.imgs{img_idx}(tmp_wf_adc_idx,1));
-                tmp_adc = abs(param_combine.combine.imgs{img_idx}(tmp_wf_adc_idx,2));
-                trajectory_param.rx_path(tmp_wf_adc_idx) = param_csarp.radar.wfs(tmp_wf).rx_paths(tmp_adc);
-              end
-            end
-          else
-            error('Correct parameters do not exist in data file for lever arm');
+          param_records.records.file.version = param_records.records.file_version;
+          param_records.records.frames.geotiff_fn = param_records.records.geotiff_fn;
+          param_records.records.frames.mode = param_records.records.frame_mode;
+          param_records = rmfield(param_records,'vectors');
+          try
+            param_records.records.file = rmfield(param_records.records.file,'adcs');
           end
-          new_gps.lat = interp1(gps.gps_time, gps.lat, GPS_time);
-          new_gps.lon = interp1(gps.gps_time, gps.lon, GPS_time);
-          new_gps.elev = interp1(gps.gps_time, gps.elev, GPS_time);
-          new_gps.roll = interp1(gps.gps_time, gps.roll, GPS_time);
-          new_gps.pitch = interp1(gps.gps_time, gps.pitch, GPS_time);
-          new_gps.heading = interp1(gps.gps_time, gps.heading, GPS_time);
-          new_gps.gps_source = gps.gps_source;
-          if lever_arm_available
-            trajectory_param.gps_source = new_gps.gps_source;
-            trajectory_param.radar_name = params(param_idx).radar_name;
-            trajectory_param.season_name = params(param_idx).season_name;
-            new_gps = trajectory_with_leverarm(new_gps,trajectory_param);
+          try
+            param_records.records.file = rmfield(param_records.records.file,'adc_headers');
           end
-          Latitude = new_gps.lat;
-          Longitude = new_gps.lon;
-          if exist('Elevation_Correction','var')
-            dt = Time(2)-Time(1);
-            Elevation = new_gps.elev + Elevation_Correction*dt*c/2;
-          else
-            Elevation = new_gps.elev;
+          try
+            param_records.records.gps = rmfield(param_records.records.gps,'verification');
           end
-          Roll = new_gps.roll;
-          Pitch = new_gps.pitch;
-          Heading = new_gps.heading;
-        elseif exist('param_qlook','var')
-          % OLD Non-RDS format
-          records_based = false;
-          GPS_time = GPS_time - param_qlook.vectors.gps.time_offset + params(param_idx).vectors.gps.time_offset;
-          param_qlook.vectors.gps.time_offset = params(param_idx).vectors.gps.time_offset;
-          param_qlook.vectors.gps.gps_source = gps.gps_source;
-          
-          if isempty(params(param_idx).qlook.lever_arm_fh)
-            error('Mode without lever arm not supported');
-          else
-            trajectory_param = struct('rx_path', 1, ...
-              'tx_weights', 1, 'lever_arm_fh', params(param_idx).qlook.lever_arm_fh);
-            new_gps.lat = interp1(gps.gps_time, gps.lat, GPS_time);
-            new_gps.lon = interp1(gps.gps_time, gps.lon, GPS_time);
-            new_gps.elev = interp1(gps.gps_time, gps.elev, GPS_time);
-            new_gps.roll = interp1(gps.gps_time, gps.roll, GPS_time);
-            new_gps.pitch = interp1(gps.gps_time, gps.pitch, GPS_time);
-            new_gps.heading = interp1(gps.gps_time, gps.heading, GPS_time);
-            new_gps = trajectory_with_leverarm(new_gps,trajectory_param);
-            Latitude = new_gps.lat;
-            Longitude = new_gps.lon;
-            if exist('Elevation_Correction','var')
-              dt = Time(2)-Time(1);
-              Elevation = new_gps.elev + Elevation_Correction*dt*c/2;
-            else
-              Elevation = new_gps.elev;
-            end
-            Roll = new_gps.roll;
-            Pitch = new_gps.pitch;
-            Heading = new_gps.heading;
+          try
+            param_records.records.gps = rmfield(param_records.records.gps,'fn');
           end
-        else
-          % Other or bad file
-          warning('Not supported, maybe a corrupt file, recommend dbquit');
-          keyboard
-          continue;
+          if isfield(param_records.records.gps,'utc_time_halved') && isempty(param_records.records.gps.utc_time_halved)
+            param_records.records.gps = rmfield(param_records.records.gps,'utc_time_halved');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'records_fn');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'force_all');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'frames_fn');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'geotiff_fn');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'frame_mode');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'debug_level');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'file_version');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'tmp_fn_uses_adc_folder_name');
+          end
+          try
+            param_records.records = rmfield(param_records.records,'manual_time_correct');
+          end
         end
+        
+        % Desired minus the old
+        delta_offset = params(param_idx).records.gps.time_offset - param_records.records.gps.time_offset;
+        if delta_offset ~= 0
+          fprintf('    Delta GPS time offset is %.1f sec\n', delta_offset);
+        end
+        GPS_time = GPS_time + delta_offset;
+        param_records.records.gps.time_offset = params(param_idx).records.gps.time_offset;
+        param_records.gps_source = gps.gps_source;
+        
+        if exist('param_qlook','var')
+          qlook_based = true;
+          new_param = param_qlook;
+        elseif exist('param_sar','var')
+          qlook_based = false;
+          new_param = param_sar;
+        else
+          error('Could not find param_qlook or param_sar in file.');
+        end
+        
+        new_param.radar.lever_arm_fh = params(param_idx).radar.lever_arm_fh;
+        if isempty(params(param_idx).radar.lever_arm_fh)
+          lever_arm_available = false;
+        else
+          lever_arm_available = true;
+          % Default values to use
+          wf = abs(new_param.load.imgs{img_idx}(1,1));
+          adc = abs(new_param.load.imgs{img_idx}(1,2));
+          lever_arm_fh = new_param.radar.lever_arm_fh;
+          trajectory_param = struct('rx_path', new_param.radar.wfs(wf).rx_paths(adc), ...
+            'tx_weights', new_param.radar.wfs(wf).tx_weights, 'lever_arm_fh', lever_arm_fh);
+          for tmp_wf_adc_idx = 2:size(new_param.load.imgs{img_idx},1)
+            tmp_wf = abs(new_param.load.imgs{img_idx}(tmp_wf_adc_idx,1));
+            tmp_adc = abs(new_param.load.imgs{img_idx}(tmp_wf_adc_idx,2));
+            trajectory_param.rx_path(tmp_wf_adc_idx) = new_param.radar.wfs(tmp_wf).rx_paths(tmp_adc);
+          end
+        end
+        
+        new_gps.lat = interp1(gps.gps_time, gps.lat, GPS_time);
+        new_gps.lon = interp1(gps.gps_time, gps.lon, GPS_time);
+        new_gps.elev = interp1(gps.gps_time, gps.elev, GPS_time);
+        new_gps.roll = interp1(gps.gps_time, gps.roll, GPS_time);
+        new_gps.pitch = interp1(gps.gps_time, gps.pitch, GPS_time);
+        new_gps.heading = interp1(gps.gps_time, gps.heading, GPS_time);
+        new_gps.gps_source = gps.gps_source;
+        if lever_arm_available
+          trajectory_param.gps_source = new_gps.gps_source;
+          trajectory_param.radar_name = params(param_idx).radar_name;
+          trajectory_param.season_name = params(param_idx).season_name;
+          new_gps = trajectory_with_leverarm(new_gps,trajectory_param);
+        end
+        Latitude = new_gps.lat;
+        Longitude = new_gps.lon;
+        if exist('Elevation_Correction','var')
+          dt = Time(2)-Time(1);
+          Elevation = new_gps.elev + Elevation_Correction*dt*c/2;
+        else
+          Elevation = new_gps.elev;
+        end
+        Roll = new_gps.roll;
+        Pitch = new_gps.pitch;
+        Heading = new_gps.heading;
         
         if param.debug_level > 1
           [x,y,z] = geodetic2ecef(Latitude/180*pi,Longitude/180*pi,Elevation,WGS84.ellipsoid);
@@ -266,16 +261,17 @@ if strcmpi(param.update_mode,'gps')
           hold on;
           plot(tmp.Elevation,'r');
           hold off;
+          figure(5); clf;
+          imagesc(lp(tmp.Data));
+          keyboard
         end
         if param.save_en
-          if records_based
-            if get_heights_based
-              save(data_fns{data_idx},'-v6','GPS_time','Latitude','Longitude','Elevation','Roll','Pitch','Heading','param_records','param_get_heights','-APPEND');
-            else
-              save(data_fns{data_idx},'-v6','GPS_time','Latitude','Longitude','Elevation','Roll','Pitch','Heading','param_records','param_csarp','-APPEND');
-            end
+          if qlook_based % Quick look (qlook) or SAR file
+            param_qlook = new_param;
+            save(data_fns{data_idx},'GPS_time','Latitude','Longitude','Elevation','Roll','Pitch','Heading','param_records','param_qlook','-APPEND');
           else
-            save(data_fns{data_idx},'-v6','GPS_time','Latitude','Longitude','Elevation','Roll','Pitch','Heading','param_qlook','-APPEND');
+            param_sar = new_param;
+            save(data_fns{data_idx},'GPS_time','Latitude','Longitude','Elevation','Roll','Pitch','Heading','param_records','param_sar','-APPEND');
           end
         else
           fprintf('      Not saving information (TEST MODE)\n');
@@ -322,7 +318,7 @@ elseif strcmpi(param.update_mode,'layer')
   bottom = bottom(sorting_idxs);
   elev = elev(sorting_idxs);
   
-  reset_val_param_combine_wf_chan = [];
+  reset_val_param_array_wf_chan = [];
   for file_idx = 1:length(fns)
     fn = fns{file_idx};
     
@@ -345,7 +341,7 @@ elseif strcmpi(param.update_mode,'layer')
     fprintf('Loading data file %s\n', fn);
     
     if param.gps.update_en
-      param_combine_wf_chan = reset_val_param_combine_wf_chan;
+      param_array_wf_chan = reset_val_param_array_wf_chan;
       clear param_records;
       clear param_vectors;
       clear Bottom;
@@ -372,15 +368,15 @@ elseif strcmpi(param.update_mode,'layer')
           param_records.gps.time_offset = new_time_offset;
         else
           fprintf('  Old time %.2f sec to new time %.2f\n', ...
-            param_vectors.gps.time_offset, new_time_offset);
-          delta_offset = new_time_offset - param_vectors.gps.time_offset;
-          param_vectors.gps.time_offset = new_time_offset;
+            param_records.gps.time_offset, new_time_offset);
+          delta_offset = new_time_offset - param_records.gps.time_offset;
+          param_records.gps.time_offset = new_time_offset;
         end
         
         GPS_time = GPS_time + delta_offset;
         Latitude = interp1(gps.gps_time, gps.lat, GPS_time);
         Longitude = interp1(gps.gps_time, gps.lon, GPS_time);
-        if ~exist('param_combine_wf_chan','var') || isempty(param_combine_wf_chan)
+        if ~exist('param_array_wf_chan','var') || isempty(param_array_wf_chan)
           fprintf('Old or qlook data files, does not contain elevation compensation info\n');
           fprintf('Qlook data files do not have elevation compensation\n');
           figure;
@@ -388,12 +384,12 @@ elseif strcmpi(param.update_mode,'layer')
           title('Elevation Compensation Applied???');
           fprintf('Look at elevation plot\n');
           fprintf('Set elevation comp variables to correct values and then dbcont:\n');
-          fprintf('  reset_val_param_combine_wf_chan.elev_comp.en = 1\n');
-          fprintf('  reset_val_param_combine_wf_chan.elev_comp.en = 0\n');
+          fprintf('  reset_val_param_array_wf_chan.elev_comp.en = 1\n');
+          fprintf('  reset_val_param_array_wf_chan.elev_comp.en = 0\n');
           keyboard
-          param_combine_wf_chan = reset_val_param_combine_wf_chan;
+          param_array_wf_chan = reset_val_param_array_wf_chan;
         end
-        if param_combine_wf_chan.elev_comp.en
+        if param_array_wf_chan.elev_comp.en
           % Re-compensate for elevations changes with this new information
           Wrong_Elevation = interp1(gps.gps_time, gps.elev, GPS_time - delta_offset);
           Correct_Elevation = interp1(gps.gps_time, gps.elev, GPS_time);

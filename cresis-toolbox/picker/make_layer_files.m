@@ -39,6 +39,10 @@ if ~isfield(param.make_layer_files,'post_dir')
   param.make_layer_files.post_dir = '';
 end
 
+if ~isfield(param.make_layer_files,'echogram_img')
+  param.make_layer_files.echogram_img = 0;
+end
+
 if ~isfield(param.make_layer_files,'frm_types') || isempty(param.make_layer_files.frm_types)
   param.make_layer_files.frm_types = {-1,0,-1,-1,-1};
 end
@@ -68,7 +72,7 @@ end
 % old and new layer files. This is useful when timing offsets are
 % present, but the data themselves don't have an offset.
 if ~isfield(param.make_layer_files,'adjust_gps_time') || isempty(param.make_layer_files.adjust_gps_time)
-  param.make_layer_files.adjust_gps_time = true;
+  param.make_layer_files.adjust_gps_time = false;
 end
 
 in_fn_dir = ct_filename_out(param,param.make_layer_files.echogram_input,'');
@@ -81,8 +85,13 @@ for frm_idx = 1:length(param.cmd.frms)
     continue;
   end
   
-  in_fn = fullfile(in_fn_dir, sprintf('Data_%s_%03d.mat', ...
-    param.day_seg, frm));
+  if param.make_layer_files.echogram_img == 0
+    in_fn = fullfile(in_fn_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+  else
+    in_fn = fullfile(in_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+      param.make_layer_files.echogram_img, param.day_seg, frm));
+  end
   
   out_fn = fullfile(out_fn_dir, sprintf('Data_%s_%03d.mat', ...
     param.day_seg, frm));
@@ -168,11 +177,11 @@ for frm_idx = 1:length(param.cmd.frms)
         for rline = 1:length(old_lyr.layerData{layer_idx}.value{1}.data)
           if old_lyr.layerData{layer_idx}.value{1}.data(rline) ~= inf
             [min_val min_idx] = min(abs(old_lyr.GPS_time(rline) - lyr.GPS_time));
-            lyr.layerData{layer_idx}.value{1}.data(min_idx) = old_lyr.layerData{lyr.layer_idx}.value{1}.data(rline) + fast_time_correction(min_idx);
+            lyr.layerData{layer_idx}.value{1}.data(min_idx) = old_lyr.layerData{layer_idx}.value{1}.data(rline) + fast_time_correction(min_idx);
           end
         end
         % Linear interpolation for automated points
-        layerData{lyr.layer_idx}.value{2}.data = interp1(old_lyr.GPS_time, ...
+        lyr.layerData{layer_idx}.value{2}.data = interp1(old_lyr.GPS_time, ...
           old_lyr.layerData{layer_idx}.value{2}.data, lyr.GPS_time, 'linear', 'extrap')  + fast_time_correction;
         % Nearest neighbor interpolation for quality data
         lyr.layerData{layer_idx}.quality = interp1(old_lyr.GPS_time, ...
@@ -181,7 +190,7 @@ for frm_idx = 1:length(param.cmd.frms)
       
       if param.make_layer_files.save_changes
         fprintf('    Update: %s\n', out_fn);
-        save(out_fn,'-v6','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
+        save(out_fn,'-v7.3','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
       else
         fprintf('  Not saving information (TEST MODE)\n');
       end
@@ -191,7 +200,7 @@ for frm_idx = 1:length(param.cmd.frms)
   else
     if param.make_layer_files.save_changes
       fprintf('    New: %s\n', out_fn);
-      save(out_fn,'-v6','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
+      save(out_fn,'-v7.3','-struct','lyr','layerData','Latitude','Longitude','Elevation','GPS_time');
     else
       fprintf('  Not saving information (TEST MODE)\n');
     end

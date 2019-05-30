@@ -1,5 +1,5 @@
-function [ctrl_chain,stats] = cluster_print_chain(ctrl_chain)
-% [ctrl_chain,stats] = cluster_print_chain(ctrl_chain)
+function [ctrl_chain,stats] = cluster_print_chain(ctrl_chain, force_check)
+% [ctrl_chain,stats] = cluster_print_chain(ctrl_chain, force_check)
 %
 % Prints information about a list of batch chains. Also returns the
 % information.
@@ -8,6 +8,8 @@ function [ctrl_chain,stats] = cluster_print_chain(ctrl_chain)
 % ctrl_chain: cell array of chains that can be run in parallel
 %  ctrl_chain{chain}: cell array of batches that must be run in series (stages)
 %   ctrl_chain{chain}{stage}: control structure for a batch
+% force_check: default to false, forces cluster_update_task to be run on all
+%   tasks (very slow)
 %
 % Outputs:
 % ctrl_chain: updated list of batch chains that was passed in
@@ -24,6 +26,10 @@ function [ctrl_chain,stats] = cluster_print_chain(ctrl_chain)
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task
 
+if ~exist('force_check','var') || isempty(force_check)
+  force_check = false;
+end
+
 if iscell(ctrl_chain)
   %% Traverse chain list
   stats.cpu_time = [];
@@ -35,8 +41,12 @@ if iscell(ctrl_chain)
   for chain = 1:numel(ctrl_chain)
     stats.str = [stats.str sprintf('Chain %d\n', chain)];
     for stage=1:numel(ctrl_chain{chain})
+      if isnumeric(ctrl_chain{chain}{stage})
+        % If numeric and not a batch struct, then get the batch struct
+        ctrl_chain{chain}{stage} = cluster_get_batch(ctrl_chain{chain}{stage},force_check,0);
+      end
       stats.str = [stats.str sprintf('  Stage %d (Batch %d)\n', stage, ctrl_chain{chain}{stage}.batch_id)];
-      [ctrl_chain{chain}{stage},ctrl_stats] = cluster_print_chain(ctrl_chain{chain}{stage});
+      [ctrl_chain{chain}{stage},ctrl_stats] = cluster_print_chain(ctrl_chain{chain}{stage},force_check);
       stats.cpu_time = cat(2,stats.cpu_time,ctrl_stats.cpu_time);
       stats.mem = cat(2,stats.mem,ctrl_stats.mem);
       stats.error_mask = cat(2,stats.error_mask,ctrl_stats.error_mask);
@@ -57,7 +67,7 @@ if iscell(ctrl_chain)
 elseif isstruct(ctrl_chain)
   ctrl = ctrl_chain;
   
-  ctrl = cluster_get_batch(ctrl,true,0);
+  ctrl = cluster_get_batch(ctrl,force_check,0);
   
   stats.cpu_time = ctrl.cpu_time;
   stats.mem = ctrl.mem;
@@ -72,9 +82,12 @@ elseif isstruct(ctrl_chain)
   else
     % Create in/out filenames
     static_in_fn = fullfile(ctrl.in_fn_dir,'static.mat');
+    dynamic_in_fn = fullfile(ctrl.in_fn_dir,'dynamic.mat');
     
     % Read input
     sparam = load(static_in_fn);
+    tmp = load(dynamic_in_fn);
+    ctrl.dparam = tmp.dparam;
     if ~isempty(ctrl.dparam)
       param = merge_structs(sparam.static_param,ctrl.dparam{1});
       stats.str = [stats.str sprintf('    task_function: %s\n', param.task_function)];
@@ -100,7 +113,7 @@ elseif isstruct(ctrl_chain)
   
 elseif isnumeric(ctrl_chain)
   ctrl_chain = cluster_load_chain(ctrl_chain);
-  ctrl_chain = cluster_print_chain(ctrl_chain);
+  ctrl_chain = cluster_print_chain(ctrl_chain,force_check);
   
 end
 

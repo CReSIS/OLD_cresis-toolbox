@@ -43,11 +43,12 @@ ctrls_mask = logical(zeros(size(ctrls)));
 %% Determine which batches
 if isstruct(ctrl_chain)
   % This is an array of batch control structures
-  for batch_idx = 1:length(ctrl_chain)
-    batch_id = ctrl_chain(batch_idx).batch_id;
+  for batch_idx2 = 1:length(ctrl_chain)
+    batch_id = ctrl_chain(batch_idx2).batch_id;
     for batch_idx = 1:length(ctrls)
       if ctrls{batch_idx}.batch_id == batch_id
         ctrls_mask(batch_idx) = true;
+        ctrls{batch_idx} = merge_structs(ctrls{batch_idx},ctrl_chain(batch_idx2));
       end
     end
   end
@@ -60,11 +61,12 @@ elseif iscell(ctrl_chain)
       % This is a list of control chains
       chain = ctrl_chain{chain_idx};
     end
-    for batch_idx = 1:length(chain)
-      batch_id = chain{batch_idx}.batch_id;
+    for batch_idx2 = 1:length(chain)
+      batch_id = chain{batch_idx2}.batch_id;
       for batch_idx = 1:length(ctrls)
         if ctrls{batch_idx}.batch_id == batch_id
           ctrls_mask(batch_idx) = true;
+          ctrls{batch_idx} = merge_structs(ctrls{batch_idx},chain{batch_idx2});
         end
       end
     end
@@ -101,43 +103,61 @@ ctrls = ctrls(ctrls_mask);
 for ctrl_idx = 1:length(ctrls)
   ctrl = ctrls{ctrl_idx};
   fprintf('Stopping batch %d\n', ctrl.batch_id);
-  ctrl = cluster_get_batch(ctrl,false,0);
-  cluster_hold(ctrl,1);
-  if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
-    
-    % For each job in the batch, delete the job
-    stopped_job_id_list = -1;
-    for task_id = 1:length(ctrl.job_id_list)
-      if any(ctrl.job_id_list(task_id) == stopped_job_id_list)
-        continue
-      end
-      if ctrl.job_status(task_id) ~= 'C'
-        % Only delete jobs that have not been completed (completed jobs
-        % are effectively deleted already)
-        if strcmpi(ctrl.cluster.type,'torque')
-          cmd = sprintf('qdel -W 60 -a %i </dev/null', ctrl.job_id_list(task_id));
-          try; [status,result] = system(cmd); end
-          
-        elseif strcmpi(ctrl.cluster.type,'matlab')
-          for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
-            if ~isempty(ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(task_id))
-              try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
+  try
+    ctrl = cluster_get_batch(ctrl,false,0);
+    if strcmpi(ctrl.cluster.type,'matlab') && ~isfield(ctrl.cluster,'jm')
+      ctrl.cluster.jm = parcluster;
+    end
+    cluster_hold(ctrl,1);
+    if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
+      
+      % Create a list of each job in the batch (for matlab cluster, also
+      % delete the job)
+      stopped_job_id_list = [];
+      for task_id = 1:length(ctrl.job_id_list)
+        if any(ctrl.job_id_list(task_id) == stopped_job_id_list)
+          continue
+        end
+        if ctrl.job_status(task_id) ~= 'C'
+          % Only delete jobs that have not been completed (completed jobs
+          % are effectively deleted already)
+          if strcmpi(ctrl.cluster.type,'matlab')
+            for job_idx = length(ctrl.cluster.jm.Jobs):-1:1
+              if ctrl.cluster.jm.Jobs(job_idx).ID == ctrl.job_id_list(task_id)
+                try; delete(ctrl.cluster.jm.Jobs(job_idx)); end;
+              end
             end
           end
-          
-        elseif strcmpi(ctrl.cluster.type,'slurm')
-          cmd = sprintf('scancel %i </dev/null', ctrl.job_id_list(task_id));
-          try; [status,result] = system(cmd); end
-          
+          stopped_job_id_list(end+1) = ctrl.job_id_list(task_id);
         end
-        stopped_job_id_list(end+1) = ctrl.job_id_list(task_id);
       end
+     
+      % For torque and slurm, kill the jobs in the created list
+      if strcmpi(ctrl.cluster.type,'torque')
+        if isempty(ctrl.cluster.ssh_hostname)
+          cmd = sprintf('qdel -W 60 %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        else
+          cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "qdel -W 60 %s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, sprintf('%d ',stopped_job_id_list));
+        end
+        try; [status,result] = system(cmd); end
+      elseif strcmpi(ctrl.cluster.type,'slurm')
+        if isempty(ctrl.cluster.ssh_hostname)
+          cmd = sprintf('scancel %s </dev/null', sprintf('%d ',stopped_job_id_list));
+        else
+          cmd = sprintf('ssh -p %d -o LogLevel=QUIET -t %s@%s "scancel %s </dev/null"', ctrl.cluster.ssh_port, ctrl.cluster.ssh_user_name, ctrl.cluster.ssh_hostname, sprintf('%d ',stopped_job_id_list));
+        end
+        try; [status,result] = system(cmd); end
+      end
+
+      % Update the job's kill status by setting the id to -1
+      fid = fopen(ctrl.job_id_fn,'r+');
+      for task_id = 1:length(ctrl.job_id_list)
+        fseek(fid, 21*(task_id-1), -1);
+        fprintf(fid,'%-20d\n', -1);
+      end
+      fclose(fid);
     end
-    fid = fopen(ctrl.job_id_fn,'r+');
-    for task_id = 1:length(ctrl.job_id_list)
-      fseek(fid, 21*(task_id-1), -1);
-      fprintf(fid,'%-20d\n', -1);
-    end
-    fclose(fid);
+  catch ME
+    warning(ME.getReport);
   end
 end

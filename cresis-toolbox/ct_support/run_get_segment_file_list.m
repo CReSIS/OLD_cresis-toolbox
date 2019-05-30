@@ -1,8 +1,13 @@
-% Get all the files for a whole season.
+% script run_get_segment_file_list
+%
+% Runs get_segment_file_list which is usually called from create_records.m
+% This script shows how all the raw data files for a whole season can be
+% listed.
 %
 % Author: John Paden
 %
-% See also get_segment_file_list.m
+% See also: get_frame_id, get_raw_files.m, get_segment_file_list.m,
+%   run_get_segment_file_list.m
 
 params = read_param_xls('H:/scripts/ct_params/rds_param_2016_Greenland_TOdtu.xls');
 

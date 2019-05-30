@@ -365,7 +365,7 @@ for board_idx = 1:length(boards)
             + (0 : rec_size/bin_size-1 ));
           last_record = zeros([0 0],sample_type);
           idx = 0;
-          header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5);
+          header = 2^32*(rec_data(idx+5)<0) + rec_data(idx+5); % Convert from signed to unsigned
           mode = bitand(255,header);
           subchannel = bitand(255,bitshift(header,-8));
           profile_idx = find(mode == param.records.profiles{board}(:,1) & subchannel == param.records.profiles{board}(:,2));
@@ -563,7 +563,8 @@ for board_idx = 1:length(boards)
           if ~param.load.wf_adc_comb.en
             %% Regular loader (wf-adc pairs are only summed)
             if param.proc.combine_rx
-              g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) + accum(board+1).data{accum_idx}(1:size(g_data{img_idx},1)) / param.proc.presums / size(param.load.imgs{img_idx},1);
+              g_data{img_idx}(:,out_idx) = g_data{img_idx}(:,out_idx) ...
+                + accum(board+1).data{accum_idx}(1:size(g_data{img_idx},1)) / param.proc.presums / size(param.load.imgs{img_idx},1);
             else
               g_data{img_idx}(:,out_idx,wf_adc_idx) = accum(board+1).data{accum_idx}(1:size(g_data{img_idx},1)) / param.proc.presums;
             end
