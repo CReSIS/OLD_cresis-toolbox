@@ -485,7 +485,7 @@ if strcmpi(radar_type,'deramp')
   % Calculate Nyquist zone based on above ground level (AGL) altitude
   wf = 1;
   adc = 1;
-  nz_twtt = param.radar.fs/2 / wfs(wf).chirp_rate;
+  nz_twtt = param.radar.fs/2 / abs(wfs(wf).chirp_rate);
   
   nz = floor((surf.dem_twtt+wfs(wf).Tsys(wfs(wf).rx_paths(adc))-wfs(wf).t_ref) / nz_twtt);
   interp_nz = isnan(nz);
