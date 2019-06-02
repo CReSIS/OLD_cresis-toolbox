@@ -9,8 +9,8 @@ function A = get_google_map(obj)
     zoom = 3;
   else
     % Antarctica
-    c_lat = -60.061978;
-    c_lon = -5.820322;
+    c_lat = -73.381418;
+    c_lon = -67.900671;
     zoom = 3;
   end
   
