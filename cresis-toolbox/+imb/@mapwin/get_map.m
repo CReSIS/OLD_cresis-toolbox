@@ -1,3 +1,4 @@
+
 function get_map(obj,hObj,event)
 % get_map(obj,hObj,event)
 %
@@ -270,6 +271,7 @@ else
   % Get the Google map
   A = get_google_map(obj);
   A = flipud(A);
+  figure(obj.h_fig);
   obj.full_xaxis = [obj.googleObj.bottom_left_wc_x obj.googleObj.bottom_right_wc_x];
   obj.full_yaxis = [obj.googleObj.bottom_left_wc_y obj.googleObj.top_left_wc_y];
   xaxis = obj.full_xaxis;
@@ -300,9 +302,16 @@ if(obj.isGoogle == 1)
 
 %   load(char(strcat(obj.cur_map_pref_settings.system,'_param_', obj.cur_map_pref_settings.seasons{1},'.mat')));
   flightline_plot = get(gca,'Children');
-  delete(flightline_plot(1));
-  [wc_xs, wc_ys] = get_world_coordinates(obj);
-  flightline_plot(1) = plot(wc_xs,wc_ys, 'color', 'b');
+  for graphics_obj_idx = 1:length(flightline_plot)
+    if(isgraphics(flightline_plot(graphics_obj_idx), 'line'))
+      delete(flightline_plot(graphics_obj_idx));
+    end
+  end
+  [wc_xs, wc_ys, frms] = get_world_coordinates(obj);
+  flightline_plot(1) = plot(0,0, '.', 'color', 'r');
+  set(flightline_plot(1), 'Tag', 'seg');
+  flightline_plot(2) = plot(wc_xs,wc_ys, '-', 'color', 'b');
+  set(flightline_plot(2), 'Tag', 'plot');
 else
   set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
   'Ylim', sort(yaxis([1 end])), ...

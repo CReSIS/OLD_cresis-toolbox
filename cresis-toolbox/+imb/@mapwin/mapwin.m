@@ -166,7 +166,7 @@ classdef (HandleCompatible = true) mapwin < handle
     outside_limits = check_limits(obj,xaxis,yaxis,dir); % Support function for key_press.m pan functions, checks to see if current request is in the map limits
     set_default_params(obj,picker_param_fn); % Set the default parameters loaded from the default preferences file
     [changed,pos] = compute_new_map_limits(obj,new_xdata,new_ydata); % Compute new map axis limits based on new data that must be in view
-    [wc_xs, wc_ys] = get_world_coordinates(obj); % Gets world coordinates from the season layerdata files
+    [wc_xs, wc_ys, frms] = get_world_coordinates(obj); % Gets world coordinates from the season layerdata files
     
     % Callback Functions
     button_up(obj,src,event);
