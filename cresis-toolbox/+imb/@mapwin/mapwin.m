@@ -45,8 +45,9 @@ classdef (HandleCompatible = true) mapwin < handle
     curFrame
     param
     
-    isGoogle
-    googleObj
+    % Google map
+    isGoogle % Checks if Google map is selected
+    googleObj % Stores imp info about the google map obj
 
     % Status information for mouse/key board callbacks
     control_pressed
