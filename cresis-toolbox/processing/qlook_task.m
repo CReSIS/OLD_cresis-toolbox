@@ -312,8 +312,13 @@ if param.qlook.inc_dec >= 1
       end
     end
     
-    data{img} = fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
-      param.qlook.inc_dec, rline0, Nidxs);
+    if param.qlook.nan_fir_dec
+      data{img} = nan_fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
+        param.qlook.inc_dec, rline0, Nidxs);
+    else
+      data{img} = fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
+        param.qlook.inc_dec, rline0, Nidxs);
+    end
     
     % Reapply elevation variations
     if param.load.motion_comp
@@ -376,7 +381,7 @@ for img = 1:length(param.load.imgs)
   else
     file_version = '1';
   end
-  save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
+  ct_save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
     'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'file_version');
 end
 

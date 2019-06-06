@@ -523,7 +523,7 @@ for img = 1:length(param.load.imgs)
         fprintf('  Saving %s (%s)\n', out_fn, datestr(now));
         wfs(wf).time = time;
         wfs(wf).freq = freq;
-        save('-v7.3',out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
+        ct_save('-v7.3',out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
       end
       
     elseif strcmpi(param.sar.sar_type,'tdbp_old')
@@ -651,7 +651,7 @@ for img = 1:length(param.load.imgs)
         param_sar = param;
         param_sar.tdbp = tdbp_param;
         tdbp_data = tdbp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
+        ct_save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
       end
     elseif strcmpi(param.sar.sar_type,'mltdp')
       fcs.squint = [0 0 -1].';
@@ -716,7 +716,7 @@ for img = 1:length(param.load.imgs)
         fprintf('  Saving output %s\n', out_full_fn);
         param_sar = param;
         mltdp_data = mltdp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'mltdp_data','fcs','lat','lon','elev','wfs','param_sar','param_records');
+        ct_save('-v7.3',out_full_fn,'mltdp_data','fcs','lat','lon','elev','wfs','param_sar','param_records');
       end
     elseif strcmpi(param.sar.sar_type,'tdbp')
     %% Time Domain Processor
@@ -977,7 +977,7 @@ for img = 1:length(param.load.imgs)
         param_sar = param;
         param_sar.tdbp = tdbp_param;
         tdbp_data = tdbp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
+        ct_save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
       end
     end
   end

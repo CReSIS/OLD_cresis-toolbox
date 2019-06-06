@@ -443,7 +443,7 @@ records.param_records = param;
 
 fprintf('Saving records file %s (%s)\n',records_fn,datestr(now));
 ct_file_lock_check(records_fn,3);
-save(records_fn,'-v7.3','-struct','records');
+ct_save(records_fn,'-v7.3','-struct','records');
 
 %% Create record aux files for faster loading times
 % =====================================================================

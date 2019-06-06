@@ -27,7 +27,7 @@ fprintf('=====================================================================\n
 fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
 fprintf('=====================================================================\n');
 
-%% Input Checks
+%% Input Checks: cmd
 % =====================================================================
 
 % Remove frames that do not exist from param.cmd.frms list
@@ -44,39 +44,25 @@ if length(valid_frms) ~= length(param.cmd.frms)
   param.cmd.frms = valid_frms;
 end
 
-if ~isfield(param.qlook,'frm_types') || isempty(param.qlook.frm_types)
-  param.qlook.frm_types = {-1,-1,-1,-1,-1};
+%% Input Checks: records
+% =====================================================================
+
+if ~isfield(param.records,'gps') || isempty(param.records.gps)
+  param.records.gps = [];
+end
+if ~isfield(param.records.gps,'en') || isempty(param.records.gps.en)
+  % Assume that GPS synchronization is enabled
+  param.records.gps.en = true;
 end
 
-if ~isfield(param.qlook,'out_path') || isempty(param.qlook.out_path)
-  param.qlook.out_path = 'qlook';
-end
+%% Input Checks: qlook
+% =====================================================================
 
 if ~isfield(param.qlook,'block_size') || isempty(param.qlook.block_size)
   error('param.qlook.block_size must be specified. This is the number of range lines or records to process at a time.');
 end
 
-if ~isfield(param.qlook,'presums') || isempty(param.qlook.presums)
-  param.qlook.presums = 1;
-end
-
-if ~isfield(param.qlook,'imgs') || isempty(param.qlook.imgs)
-  param.qlook.imgs = {[1 1]};
-end
-
-if ~isfield(param.qlook,'img_comb') || isempty(param.qlook.img_comb)
-  param.qlook.img_comb = [];
-end
-
-% Check img_comb length
-if ~isempty(param.qlook.img_comb) && length(param.qlook.img_comb) ~= 3*(length(param.qlook.imgs)-1)
-  error('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical).');
-end
-
-if ~isfield(param.qlook,'motion_comp') || isempty(param.qlook.motion_comp)
-  param.qlook.motion_comp = false;
-end
-
+% Decimation (dec, B_filter) input check
 if ~isfield(param.qlook,'dec') || isempty(param.qlook.dec)
   param.qlook.dec = 1;
 end
@@ -95,6 +81,27 @@ if abs(sum(param.qlook.B_filter)-1) > 1e4*eps
   param.qlook.B_filter = param.qlook.B_filter / sum(param.qlook.B_filter);
 end
 
+if ~isfield(param.qlook,'frm_types') || isempty(param.qlook.frm_types)
+  param.qlook.frm_types = {-1,-1,-1,-1,-1};
+end
+
+if ~isfield(param.qlook,'imgs') || isempty(param.qlook.imgs)
+  param.qlook.imgs = {[1 1]};
+end
+
+if ~isfield(param.qlook,'img_comb') || isempty(param.qlook.img_comb)
+  param.qlook.img_comb = [];
+end
+
+% Check img_comb length
+if ~isempty(param.qlook.img_comb) && length(param.qlook.img_comb) ~= 3*(length(param.qlook.imgs)-1)
+  error('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical).');
+end
+
+% Incoherent decimation (inc_dec, inc_B_filter) input check
+% Setting inc_dec = 0: returns coherent data
+% Setting inc_dec = 1: returns power detected data with no decimation
+% Setting inc_dec > 1: decimates at the rate specified by inc_dec
 if ~isfield(param.qlook,'inc_dec') || isempty(param.qlook.inc_dec)
   param.qlook.inc_dec = 1;
 end
@@ -113,6 +120,25 @@ if abs(sum(param.qlook.inc_B_filter)-1) > 1e4*eps
   param.qlook.inc_B_filter = param.qlook.inc_B_filter / sum(param.qlook.inc_B_filter);
 end
 
+if ~isfield(param.qlook,'motion_comp') || isempty(param.qlook.motion_comp)
+  param.qlook.motion_comp = false;
+end
+
+if ~isfield(param.qlook,'out_path') || isempty(param.qlook.out_path)
+  param.qlook.out_path = 'qlook';
+end
+[~,out_path_dir] = fileparts(param.qlook.out_path);
+
+% nan_fir_dec: if true, function uses the slower nan_fir_dec function on
+% the data instead of fir_dec for the dec and inc_dec functions.
+if ~isfield(param.qlook,'nan_dec') || isempty(param.qlook.nan_dec)
+  param.qlook.nan_dec = false;
+end
+
+if ~isfield(param.qlook,'presums') || isempty(param.qlook.presums)
+  param.qlook.presums = 1;
+end
+
 if ~isfield(param.qlook,'resample') || isempty(param.qlook.resample)
   param.qlook.resample = [1 1; 1 1];
 end
@@ -128,19 +154,9 @@ end
 % Never check for the existence of layers
 param.qlook.surf_layer.existence_check = false;
 
-if ~isfield(param.records,'gps') || isempty(param.records.gps)
-  param.records.gps = [];
-end
-if ~isfield(param.records.gps,'en') || isempty(param.records.gps.en)
-  % Assume that GPS synchronization is enabled
-  param.records.gps.en = true;
-end
-
 if ~isfield(param.qlook,'trim') || isempty(param.qlook.trim)
   param.qlook.trim = [0 0];
 end
-
-[~,out_path_dir] = fileparts(param.qlook.out_path);
 
 %% Setup Processing
 % =====================================================================

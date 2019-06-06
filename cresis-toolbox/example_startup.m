@@ -38,9 +38,9 @@ if ~(~ismcc && isdeployed)
   % AWI Profile Field Linux (PROFILE 8)
   % AWI Profile Ollie (PROFILE 9)
   if ispc
-    cur_profile = 1; % Windows
+    cur_profile = 1; % Put your default Windows profile here
   else
-    cur_profile = 2; % Linux/Mac
+    cur_profile = 2; % Put your default Linux/Mac profile here
   end
   
   fprintf('Startup Script Running\n');

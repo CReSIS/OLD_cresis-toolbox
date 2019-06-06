@@ -8,12 +8,35 @@ function [wfs,states] = data_load_wfs(param, records)
 %% Build raw data loading "states" structure
 % =========================================================================
 
-% Create list of wf-adc pairs to determine which boards to load
+% Create list of unique boards to load
 board_list = [];
 board_idxs = [];
 for img = 1:length(param.load.imgs)
   for wf_adc = 1:size(param.load.imgs{img},1)
     [board_list(end+1),board_idxs(end+1)] = wf_adc_to_board(param,param.load.imgs{img}(wf_adc,:));
+    
+    % Follow wfs(wf).next field links for additional wf-adc pairsboards to load
+    wf = param.load.imgs{img}(wf_adc,1);
+    adc = param.load.imgs{img}(wf_adc,2);
+    if ~isfield(param.radar.wfs(wf),'next') || length(param.radar.wfs(wf).next) < adc
+      % if next is not specified, then this wf-adc pair is the last to be
+      % loaded in the next chain.
+      param.radar.wfs(wf).next{adc} = [];
+    end
+    next = param.radar.wfs(wf).next{adc};
+    while ~isempty(next)
+      wf = next(1);
+      adc = next(2);
+      if ~isfield(param.radar.wfs(wf),'next') || length(param.radar.wfs(wf).next) < adc
+        % if next is not specified, then this wf-adc pair is the last to be
+        % loaded in the next chain.
+        param.radar.wfs(wf).next{adc} = [];
+      end
+      % Determine which board this wf-adc pair comes from
+      [board_list(end+1),board_idxs(end+1)] = wf_adc_to_board(param,[wf adc]);
+      % Follow the wfs(wf).next field link
+      next = param.radar.wfs(wf).next{adc};
+    end
   end
 end
 [boards,unique_idxs] = unique(board_list);
@@ -22,16 +45,19 @@ board_idxs = board_idxs(unique_idxs);
 % Populate states structure
 states = [];
 for state_idx = 1:length(boards)
-  states(state_idx).board = boards(state_idx);
-  states(state_idx).board_idx = board_idxs(state_idx);
-  states(state_idx).adc = [];
-  states(state_idx).wf = [];
-  states(state_idx).mode = [];
-  states(state_idx).subchannel = [];
-  states(state_idx).wf_adc = [];
-  states(state_idx).img = [];
-  states(state_idx).wf_adc_sum = [];
-  states(state_idx).wf_adc_sum_cmd = [];
+  if state_idx > length(states) || ~isfield(states(state_idx),'board') ...
+      || isempty(states(state_idx).board)
+    states(state_idx).board = boards(state_idx);
+    states(state_idx).board_idx = board_idxs(state_idx);
+    states(state_idx).adc = [];
+    states(state_idx).wf = [];
+    states(state_idx).mode = [];
+    states(state_idx).subchannel = [];
+    states(state_idx).wf_adc = [];
+    states(state_idx).img = [];
+    states(state_idx).weight = [];
+    states(state_idx).next = [];
+  end
   for img = 1:length(param.load.imgs) % For each image img
     for wf_adc = 1:size(param.load.imgs{img},1) % For ach wf-adc pair
       wf = param.load.imgs{img}(wf_adc,1);
@@ -50,38 +76,54 @@ for state_idx = 1:length(boards)
         subchannel = 0;
       end
       
-      if ~isfield(param.radar.wfs(wf),'wf_adc_sum') || isempty(param.radar.wfs(wf).wf_adc_sum)
-        % if wf_adc_sum not specied, then this wf-adc pair is the only
-        % one to load
-        wf_adc_sum = [wf adc 1];
-      else
-        % if wf_adc_sum is specified, then extract the list out, each
-        % row specifies a wf-adc pair and a complex weight
-        % For zero-pi mod with two wf-adc pairs, the weight should be -0.5 or 0.5
-        % For IQ mod with two wf-adc pairs, the weights should be 1, j, -j, or -1
-        %   [wf adc weight]
-        wf_adc_sum = param.radar.wfs(wf).wf_adc_sum{adc};
+      if ~isfield(param.radar.wfs(wf),'weight') || length(param.radar.wfs(wf).weight) < adc
+        % if weight is not specified, then this wf-adc pair is loaded with a
+        % weight of one
+        param.radar.wfs(wf).weight(adc) = 1;
       end
-      for wf_adc_sum_idx = 1:size(wf_adc_sum,1)
-        wf = wf_adc_sum(wf_adc_sum_idx,1);
-        adc = wf_adc_sum(wf_adc_sum_idx,2);
-        % Add wf-adc pair to states list
-        states(state_idx).adc(end+1) = adc;
-        states(state_idx).wf(end+1) = wf;
-        states(state_idx).mode(end+1) = mode_latch;
-        states(state_idx).subchannel(end+1) = subchannel;
-        states(state_idx).wf_adc(end+1) = wf_adc;
-        states(state_idx).img(end+1) = img;
-        states(state_idx).wf_adc_sum(end+1) = wf_adc_sum(wf_adc_sum_idx,3);
-        if size(wf_adc_sum,1) == 1
-          states(state_idx).wf_adc_sum_cmd(end+1) = 3;
-        elseif wf_adc_sum_idx == 1
-          states(state_idx).wf_adc_sum_cmd(end+1) = 0;
-        elseif wf_adc_sum_idx < size(wf_adc_sum,1)
-          states(state_idx).wf_adc_sum_cmd(end+1) = 1;
-        else
-          states(state_idx).wf_adc_sum_cmd(end+1) = 2;
+      % Create wf_adc_sum list from weight/next commands
+      states(state_idx).adc(end+1) = adc;
+      states(state_idx).wf(end+1) = wf;
+      states(state_idx).mode(end+1) = mode_latch;
+      states(state_idx).subchannel(end+1) = subchannel;
+      states(state_idx).wf_adc(end+1) = wf_adc;
+      states(state_idx).img(end+1) = img;
+      states(state_idx).weight(end+1) = param.radar.wfs(wf).weight(adc);
+      next = param.radar.wfs(wf).next{adc};
+      while ~isempty(next)
+        wf = next(1);
+        adc = next(2);
+        if ~isfield(param.radar.wfs(wf),'weight') || length(param.radar.wfs(wf).weight) < adc
+          % if weight is not specified, then this wf-adc pair is loaded with a
+          % weight of one
+          param.radar.wfs(wf).weight(adc) = 1;
         end
+        % Determine which board this wf-adc pair comes from
+        [board,~,profile] = wf_adc_to_board(param,[wf adc]);
+        next_state_idx = find(boards == board,1);
+        % Add wf-adc pair to states list
+        if next_state_idx > length(states) || ~isfield(states(next_state_idx),'board') ...
+            || isempty(states(state_idx).board)
+          % Create new state if not already created.
+          states(next_state_idx).board = boards(next_state_idx);
+          states(next_state_idx).board_idx = board_idxs(next_state_idx);
+          states(next_state_idx).adc = [];
+          states(next_state_idx).wf = [];
+          states(next_state_idx).mode = [];
+          states(next_state_idx).subchannel = [];
+          states(next_state_idx).wf_adc = [];
+          states(next_state_idx).img = [];
+          states(next_state_idx).weight = [];
+          states(next_state_idx).next = [];
+        end
+        states(next_state_idx).adc(end+1) = adc;
+        states(next_state_idx).wf(end+1) = wf;
+        states(next_state_idx).mode(end+1) = mode_latch;
+        states(next_state_idx).subchannel(end+1) = subchannel;
+        states(next_state_idx).wf_adc(end+1) = wf_adc;
+        states(next_state_idx).img(end+1) = img;
+        states(next_state_idx).weight(end+1) = param.radar.wfs(wf).weight(adc);
+        next = param.radar.wfs(wf).next{adc};
       end
     end
   end
@@ -99,6 +141,12 @@ for wf = 1:length(param.radar.wfs)
   
   %% Input checks
   % =======================================================================
+  if isfield(param.radar.wfs(wf),'bad_value') && ~isempty(param.radar.wfs(wf).bad_value)
+    wfs(wf).bad_value   = param.radar.wfs(wf).bad_value;
+  else
+    wfs(wf).bad_value   = 0;
+  end
+  
   if isfield(param.radar.wfs(wf),'DDC_dec') && ~isempty(param.radar.wfs(wf).DDC_dec)
     wfs(wf).DDC_dec   = param.radar.wfs(wf).DDC_dec;
   else
@@ -274,22 +322,15 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).tukey   = 0;
   end
-  if isfield(param.radar.wfs(wf),'gain_fn') && ~isempty(param.radar.wfs(wf).gain_fn)
-    for adc = adcs
-      gain_fn_name = char(param.radar.wfs(wf).gain_fn);
-      gain_fn_name = regexprep(gain_fn_name,'%w',sprintf('%.0f',wf));
-      gain_fn_name = regexprep(gain_fn_name,'%a',sprintf('%.0f',adc));
-      gain_fn = fullfile(ct_filename_out(param,'noise','',1), [gain_fn_name '.mat']);
-      
-      wfs(wf).gain(adc) = load(gain_fn);
-    end
-  else
-    wfs(wf).gain = [];
-  end
   if isfield(param.radar.wfs(wf),'gain_en') && ~isempty(param.radar.wfs(wf).gain_en)
     wfs(wf).gain_en   = param.radar.wfs(wf).gain_en;
   else
     wfs(wf).gain_en   = false;
+  end
+  if isfield(param.radar.wfs(wf),'gain_dir') && ~isempty(param.radar.wfs(wf).gain_dir)
+    wfs(wf).gain_dir   = param.radar.wfs(wf).gain_dir;
+  else
+    wfs(wf).gain_dir = '';
   end
   if isfield(records.settings,'nyquist_zone')
     wfs(wf).nyquist_zone    = records.settings.nyquist_zone;
