@@ -234,8 +234,13 @@ for img = 1:length(param.load.imgs)
   % data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
   %   param.qlook.dec, rline0, Nidxs, [], phase_weights);
   
-  data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
-    param.qlook.dec, rline0, Nidxs);
+  if param.qlook.nan_dec
+    data{img} = nan_fir_dec(data{img}, param.qlook.B_filter, ...
+      param.qlook.dec, rline0, Nidxs);
+  else
+    data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
+      param.qlook.dec, rline0, Nidxs);
+  end
   
   % Reapply elevation variations
   if param.load.motion_comp && ~isempty(hdr.freq{img})
@@ -312,7 +317,7 @@ if param.qlook.inc_dec >= 1
       end
     end
     
-    if param.qlook.nan_fir_dec
+    if param.qlook.nan_dec
       data{img} = nan_fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
         param.qlook.inc_dec, rline0, Nidxs);
     else

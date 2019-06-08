@@ -9,8 +9,11 @@ end
 
 free = get_disk_space(fn);
 
-if free < min_disk_space
+% Assume free == 0 is an error in get_disk_space and so ignore it because
+% the save will fail anyway if this is the case.
+if free > 0 && free < min_disk_space
   error('Insufficient disk space (%g MB free, minimum allowed % MB).', free/1e6, min_disk_space/1e6);
 end
 
-save(fn,varargin{:});
+cmd = sprintf('save(''%s''%s)',fn,sprintf(',''%s''',varargin{:}));
+evalin('caller',cmd);

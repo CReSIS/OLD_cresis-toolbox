@@ -141,6 +141,11 @@ for wf = 1:length(param.radar.wfs)
   
   %% Input checks
   % =======================================================================
+  % bad_value: Value to use for bad records (is also the value used to fill
+  % in unused parts of the data matrix when the number of range bins is
+  % allowed to vary on a range line to range line basis). The default value
+  % is 0. Typical values are 0 or NaN. If NaN, consider using "nan_dec"
+  % option in qlook.
   if isfield(param.radar.wfs(wf),'bad_value') && ~isempty(param.radar.wfs(wf).bad_value)
     wfs(wf).bad_value   = param.radar.wfs(wf).bad_value;
   else
