@@ -1,4 +1,3 @@
-
 function get_map(obj,hObj,event)
 % get_map(obj,hObj,event)
 %
@@ -10,7 +9,7 @@ obj.isGoogle = false;
 if strcmpi('Google', obj.map_pref.settings.mapname)
   obj.isGoogle = true;
 end
- 
+
 wasGoogle = false;
 if strcmpi('Google', obj.cur_map_pref_settings.mapname)
   wasGoogle = true;
@@ -56,6 +55,10 @@ if ~system_changed && ~seasons_changed && ~mapname_changed && ~mapzone_changed &
   % get_map only needs to update source and layers potentially
   obj.cur_map_pref_settings.sources = obj.map_pref.settings.sources;
   obj.cur_map_pref_settings.layers = obj.map_pref.settings.layers;
+  %
+  %   obj.cur_map_pref_settings.LayerSource = obj.map_pref.settings.LayerSource;
+  %   obj.cur_map_pref_settings.layerDataSource = obj.map_pref.settings.layerDataSource;
+  %
   return;
 end
 
@@ -257,26 +260,34 @@ if (obj.isGoogle == 0)
   A = wms.getMap(modrequest);
   R = request.RasterRef;
   R = R/1e3;
-
+  
   xaxis = R(3,1) + [0 size(A,2)*R(2,1)];
   yaxis = R(3,2) + [0 size(A,1)*R(1,2)];
   
   xlabel(obj.map_panel.h_axes,'X (km)');
   ylabel(obj.map_panel.h_axes,'Y (km)');
-
+  
 else
   
   %% If Google map is selected
   
   % Get the Google map
   A = get_google_map(obj);
+  
+  % Flip the array. In Google Maps, the axes start out from the top left
+  % corner so the y axis is actually flipped along the x axis.
   A = flipud(A);
+  
+  % Bring the figure into focus
   figure(obj.h_fig);
+  
+  % Set the end points of the axis
   obj.full_xaxis = [obj.googleObj.bottom_left_wc_x obj.googleObj.bottom_right_wc_x];
   obj.full_yaxis = [obj.googleObj.bottom_left_wc_y obj.googleObj.top_left_wc_y];
   xaxis = obj.full_xaxis;
   yaxis = obj.full_yaxis;
   
+  % Update label
   xlabel(obj.map_panel.h_axes,'X (World Coordinates)');
   ylabel(obj.map_panel.h_axes,'Y (World Coordinates)');
 end
@@ -286,7 +297,6 @@ set(obj.map_panel.h_axes,'Units','pixels')
 PixelBounds = round(get(obj.map_panel.h_axes,'Position'));
 set(obj.map_panel.h_axes,'Position',PixelBounds);
 set(obj.map_panel.h_axes,'units',old_u);
-%% Bring the map into focus
 figure(obj.h_fig);
 
 set(obj.map_panel.h_image,'XData', xaxis, ...
@@ -295,28 +305,38 @@ set(obj.map_panel.h_image,'XData', xaxis, ...
   'Visible', 'on');
 
 if(obj.isGoogle == 1)
+  
+  % Load map in the figure
   set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
-  'Ylim', sort(yaxis([1 end])), ...
-  'YDir', 'reverse', ...
-  'Visible', 'on');
-
-%   load(char(strcat(obj.cur_map_pref_settings.system,'_param_', obj.cur_map_pref_settings.seasons{1},'.mat')));
+    'Ylim', sort(yaxis([1 end])), ...
+    'YDir', 'reverse', ...
+    'Visible', 'on');
+  
+  %% Plot flightlines
+  
+  % Get children
   flightline_plot = get(gca,'Children');
+  
+  % Delete existing lines
   for graphics_obj_idx = 1:length(flightline_plot)
     if(isgraphics(flightline_plot(graphics_obj_idx), 'line'))
       delete(flightline_plot(graphics_obj_idx));
     end
   end
+  
+  % Load world coordinates of points 
   [wc_xs, wc_ys, frms] = get_world_coordinates(obj);
+  
+  % Plot line and set tag
   flightline_plot(1) = plot(0,0, '.', 'color', 'r');
   set(flightline_plot(1), 'Tag', 'seg');
   flightline_plot(2) = plot(wc_xs,wc_ys, '-', 'color', 'b');
   set(flightline_plot(2), 'Tag', 'plot');
 else
   set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
-  'Ylim', sort(yaxis([1 end])), ...
-  'YDir', 'normal', ...
-  'Visible', 'on');  
+    'Ylim', sort(yaxis([1 end])), ...
+    'YDir', 'normal', ...
+    'Visible', 'on');
 end
 
 zoom on; zoom off;

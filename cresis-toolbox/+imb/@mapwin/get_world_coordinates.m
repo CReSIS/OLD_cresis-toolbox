@@ -1,4 +1,4 @@
-% Loading world coordinates from season layerdata files for the selected
+% Load world coordinates from season layerdata files for the selected
 % seasons
 
 function [wc_xs, wc_ys, frms] = get_world_coordinates(obj)
