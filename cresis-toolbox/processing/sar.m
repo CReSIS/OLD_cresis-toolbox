@@ -84,6 +84,16 @@ end
 if ~isfield(param.sar.mocomp,'filter')
   param.sar.mocomp.filter = '';
 end
+% Tukey window to apply when undoing motion compensation after
+% fk-migration, default is 0.05. A value of 0 disables the window.
+if ~isfield(param.sar.mocomp,'tukey') || isempty(param.sar.mocomp.tukey)
+  param.sar.mocomp.tukey = 0.05;
+end
+% Masks bad records based on the data_load hdr.bad_recs field. Masked
+% records are not included in the sinc interpolation.
+if ~isfield(param.sar.mocomp,'param.sar.mocomp.uniform_mask_en') || isempty(param.sar.mocomp.uniform_mask_en)
+  param.sar.mocomp.uniform_mask_en = false;
+end
 
 if ~isfield(param.sar,'out_path') || isempty(param.sar.out_path)
   param.sar.out_path = 'sar';
