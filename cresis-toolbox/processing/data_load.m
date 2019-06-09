@@ -142,6 +142,7 @@ for state_idx = 1:length(states)
     
     %% Load in a file
     if param.records.file.version == 414
+      file_idx = file_idxs(rec);
     elseif records.offset(board_idx,rec) ~= -2^31
       % Determine which file has the current record
       file_idx = file_idxs(rec);
@@ -188,6 +189,12 @@ for state_idx = 1:length(states)
     %% Pull out records from this file
     while rec <= total_rec
       if param.records.file.version == 414
+        % If the current record is in the next file, break out of loop
+        if file_idxs(rec) > file_idx
+          % Force the file to be loaded when the next record is loaded
+          wf_adc_tmp_state_idx = -1;
+          break;
+        end
         % Process all wf-adc pairs in this record
         % ai: num_accum index (1 to length(state.wf))
         for ai = 1:length(state.wf)
@@ -280,6 +287,7 @@ for state_idx = 1:length(states)
             file_data_last_file = [];
           end
         end
+        % If the current record is in the next file, break out of loop
         if file_idxs(rec) > file_idx
           break;
         end

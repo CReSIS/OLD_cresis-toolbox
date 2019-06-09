@@ -233,7 +233,7 @@ for board_idx = 1:length(boards)
     elseif any(param.records.file.version == [413 414])
       board_hdrs{board_idx}.gps_time(end+1:end+length(hdr_tmp.gps_time)) = hdr_tmp.gps_time;
       board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.gps_time)) = file_num;
-      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.gps_time)) = 0;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.gps_time)) = 1:length(hdr_tmp.gps_time);
       wfs = hdr_tmp.wfs;
       
     else

@@ -139,7 +139,7 @@ end
 
 if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(gps_source,'bas'))
   % Paden: Just an estimate
-  warning('Correct lever arms need to be entered.');
+  %warning('Correct lever arms need to be entered.');
   gps.x = 0;
   gps.y = 0;
   gps.z = 1300;
