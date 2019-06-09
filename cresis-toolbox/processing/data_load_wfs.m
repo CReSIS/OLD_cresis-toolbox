@@ -18,24 +18,24 @@ for img = 1:length(param.load.imgs)
     % Follow wfs(wf).next field links for additional wf-adc pairsboards to load
     wf = param.load.imgs{img}(wf_adc,1);
     adc = param.load.imgs{img}(wf_adc,2);
-    if ~isfield(param.radar.wfs(wf),'next') || length(param.radar.wfs(wf).next) < adc
+    if ~isfield(param.radar.wfs(wf),'next') || size(param.radar.wfs(wf).next,1) < adc || isnan(param.radar.wfs(wf).next(adc,1))
       % if next is not specified, then this wf-adc pair is the last to be
       % loaded in the next chain.
-      param.radar.wfs(wf).next{adc} = [];
+      param.radar.wfs(wf).next(adc,1:2) = [NaN NaN];
     end
-    next = param.radar.wfs(wf).next{adc};
-    while ~isempty(next)
+    next = param.radar.wfs(wf).next(adc,1:2);
+    while ~isnan(next)
       wf = next(1);
       adc = next(2);
-      if ~isfield(param.radar.wfs(wf),'next') || length(param.radar.wfs(wf).next) < adc
+      if ~isfield(param.radar.wfs(wf),'next') || size(param.radar.wfs(wf).next,1) < adc || isnan(param.radar.wfs(wf).next(adc,1))
         % if next is not specified, then this wf-adc pair is the last to be
         % loaded in the next chain.
-        param.radar.wfs(wf).next{adc} = [];
+        param.radar.wfs(wf).next(adc,1:2) = [NaN NaN];
       end
       % Determine which board this wf-adc pair comes from
       [board_list(end+1),board_idxs(end+1)] = wf_adc_to_board(param,[wf adc]);
       % Follow the wfs(wf).next field link
-      next = param.radar.wfs(wf).next{adc};
+      next = param.radar.wfs(wf).next(adc,1:2);
     end
   end
 end
@@ -89,8 +89,8 @@ for state_idx = 1:length(boards)
       states(state_idx).wf_adc(end+1) = wf_adc;
       states(state_idx).img(end+1) = img;
       states(state_idx).weight(end+1) = param.radar.wfs(wf).weight(adc);
-      next = param.radar.wfs(wf).next{adc};
-      while ~isempty(next)
+      next = param.radar.wfs(wf).next(adc,1:2);
+      while ~isnan(next(1))
         wf = next(1);
         adc = next(2);
         if ~isfield(param.radar.wfs(wf),'weight') || length(param.radar.wfs(wf).weight) < adc
@@ -123,7 +123,7 @@ for state_idx = 1:length(boards)
         states(next_state_idx).wf_adc(end+1) = wf_adc;
         states(next_state_idx).img(end+1) = img;
         states(next_state_idx).weight(end+1) = param.radar.wfs(wf).weight(adc);
-        next = param.radar.wfs(wf).next{adc};
+        next = param.radar.wfs(wf).next(adc,1:2);
       end
     end
   end
