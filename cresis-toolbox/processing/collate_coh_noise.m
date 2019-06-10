@@ -24,12 +24,16 @@ fprintf('=====================================================================\n
 %% Input checks
 % =====================================================================
 
+if ~isfield(param,'collate_coh_noise') || isempty(param.collate_coh_noise)
+  param.collate_coh_noise = [];
+end
+
 if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
   param.collate_coh_noise.cmd_idx = 1;
 end
 
 if ~isfield(param.collate_coh_noise,'debug_plots') || isempty(param.collate_coh_noise.debug_plots)
-  param.collate_coh_noise.debug_plots = {};
+  param.collate_coh_noise.debug_plots = {'cn_plot','threshold_plot'};
 end
 enable_visible_plot = any(strcmp('visible',param.collate_coh_noise.debug_plots));
 enable_threshold_plot = any(strcmp('threshold_plot',param.collate_coh_noise.debug_plots));
