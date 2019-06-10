@@ -672,7 +672,7 @@ if print_mode == 2
         fclose(fid);
         try
           % Memory requested in megabytes
-          idx = regexp(result,'Max Mem:');
+          idx = regexp(result,'Max Mem');
           tmp_result = result(idx:end);
           idx = find(tmp_result==':',1);
           tmp_result = tmp_result(idx+2:end);
