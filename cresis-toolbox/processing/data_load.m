@@ -321,9 +321,9 @@ for state_idx = 1:length(states)
           
           if wfs(wf).quantization_to_V_dynamic
             if param.records.file.version == 407
-              bit_shifts = -typecast(file_data(rec_offset + wfs(wf).offset - 4),'int8');
+              bit_shifts = double(-typecast(file_data(rec_offset + wfs(wf).offset - 4),'int8'));
               % Apply dynamic bit shifts
-              quantization_to_V_adjustment = 2^(bit_shifts - wfs(wf).bit_shifts(adc));
+              quantization_to_V_adjustment = 2^(bit_shifts - double(wfs(wf).bit_shifts(adc)));
             end
           else
             quantization_to_V_adjustment = 1;
@@ -415,7 +415,7 @@ for state_idx = 1:length(states)
             % Bit shifts
             if wfs(wf).quantization_to_V_dynamic
               bit_shifts = double(-typecast(file_data(wf_hdr_offset+36),'int8'));
-              quantization_to_V_adjustment = 2^(bit_shifts - wfs(wf).bit_shifts(adc));
+              quantization_to_V_adjustment = 2^(bit_shifts - double(wfs(wf).bit_shifts(adc)));
             end
             
             % Nyquist zone

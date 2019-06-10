@@ -307,10 +307,11 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).Nt_raw = records.settings.wfs(1).wfs(wf).num_sam(1) - sum(wfs(wf).time_raw_trim);
   elseif isfield(records.settings.wfs,'num_sam')
     if numel(records.settings.wfs) >= wf
-      wfs(wf).Nt_raw = records.settings.wfs(wf).num_sam(1) - sum(wfs(wf).time_raw_trim);
+      wfs(wf).Nt_raw = records.settings.wfs(wf).num_sam(1);
     else
-      wfs(wf).Nt_raw = records.settings.wfs(1).num_sam(1) - sum(wfs(wf).time_raw_trim);
+      wfs(wf).Nt_raw = records.settings.wfs(1).num_sam(1);
     end
+    wfs(wf).Nt_raw = wfs(wf).Nt_raw - sum(wfs(wf).time_raw_trim);
   else
     % Will be determined later in data_load.m
     wfs(wf).Nt_raw = 0;
@@ -751,14 +752,14 @@ for wf = 1:length(param.radar.wfs)
       WF_HEADER_SIZE = 8;
       wfs(wf).record_mode = 0;
       wfs(wf).complex = 1;
-      wfs(wf).sample_size = 4;
+      wfs(wf).sample_size = 2;
       wfs(wf).adc_per_board = 1;
       wfs(wf).sample_type = 'int16';
       if wf == 1
         wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
       else
         wfs(wf).offset = wfs(wf-1).offset ...
-          + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
+          + (1+wfs(wf).complex)*wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
           + WF_HEADER_SIZE;
       end
       
