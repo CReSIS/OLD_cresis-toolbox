@@ -223,11 +223,11 @@ if ~exist(sar_fn,'file') ...
   
   if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
     cpu_time_mult = 6e-3;
-    mem_mult = 64;
+    mem_mult = 64*2.5;
     
   elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
     cpu_time_mult = 100e-8;
-    mem_mult = 64;
+    mem_mult = 64*2.5;
   end
   
   sparam = [];
