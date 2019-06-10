@@ -222,12 +222,12 @@ if ~exist(sar_fn,'file') ...
   ctrl = cluster_new_batch(param);
   
   if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
-    cpu_time_mult = 6e-3;
-    mem_mult = 64*2.5;
+    cpu_time_mult = 5e-4;
+    mem_mult = 5;
     
   elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
-    cpu_time_mult = 100e-8;
-    mem_mult = 64*2.5;
+    cpu_time_mult = 5e-4;
+    mem_mult = 5;
   end
   
   sparam = [];
@@ -236,7 +236,8 @@ if ~exist(sar_fn,'file') ...
   sparam.num_args_out = 1;
   Nx = numel(records.gps_time);
   sparam.cpu_time = 60 + Nx*cpu_time_mult;
-  sparam.mem = 250e6 + Nx*mem_mult;
+  records_var = whos('records');
+  sparam.mem = 250e6 + records_var.bytes*mem_mult;
   sparam.notes = sprintf('%s:%s:%s %s', ...
     sparam.task_function, param.radar_name, param.season_name, param.day_seg);
     
