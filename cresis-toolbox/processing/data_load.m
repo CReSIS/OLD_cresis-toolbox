@@ -429,6 +429,9 @@ for state_idx = 1:length(states)
               nyquist_zone_hw{img}(num_accum(ai)+1) = bitand(file_data(wf_hdr_offset+34),3);
             elseif any(param.records.file.version == [3 5 7])
               nyquist_zone_hw{img}(num_accum(ai)+1) = file_data(wf_hdr_offset+45);
+%             else
+%               % nyquist_zone_hw remains zero for all other file versions
+%               nyquist_zone_hw{img}(num_accum(ai)+1) = 0
             end
           end
           nyquist_zone_signal{img} = nyquist_zone_hw{img}(1);

@@ -167,6 +167,12 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).DDC_dec_max   = wfs(wf).DDC_dec; % No decimation variation
   end
   
+  if ~isfield(param.radar,'adc_bits') || isempty(param.radar.adc_bits)
+    param.radar.adc_bits = 0;
+  end
+  if ~isfield(param.radar,'Vpp_scale') || isempty(param.radar.Vpp_scale)
+    param.radar.Vpp_scale = 1;
+  end
   if ~isfield(param.radar,'fs') || isempty(param.radar.fs)
     if param.records.file.version == 410 % mcords
       param.radar.fs = records_wfs.wfs(1).wfs(1).fs;
@@ -282,8 +288,10 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).presums = param.radar.wfs(wf).presums;
   elseif any(param.records.file.version == [405 406 410]) % [acords mcrds]
     wfs(wf).presums = records.settings.wfs(1).wfs(wf).presums(1);
-  else
+  elseif isfield(records.settings.wfs,'presums')
     wfs(wf).presums = records.settings.wfs(wf).presums;
+  else
+    wfs(wf).presums = 1;
   end
   if isfield(param.radar.wfs(wf),'presum_threshold') && ~isempty(param.radar.wfs(wf).presum_threshold)
     wfs(wf).presum_threshold = param.radar.wfs(wf).presum_threshold;
@@ -336,14 +344,6 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).gain_dir   = param.radar.wfs(wf).gain_dir;
   else
     wfs(wf).gain_dir = '';
-  end
-  if isfield(records.settings,'nyquist_zone')
-    wfs(wf).nyquist_zone    = records.settings.nyquist_zone;
-  elseif isfield(param.radar.wfs(wf),'nyquist_zone') && ~isempty(param.radar.wfs(wf).nyquist_zone)
-    % Override nyquist zone
-    wfs(wf).nyquist_zone    = param.radar.wfs(wf).nyquist_zone;
-  else
-    wfs(wf).nyquist_zone    = [];
   end
   if isfield(param.radar.wfs(wf),'nz_trim') && ~isempty(param.radar.wfs(wf).nz_trim)
     wfs(wf).nz_trim   = param.radar.wfs(wf).nz_trim;
