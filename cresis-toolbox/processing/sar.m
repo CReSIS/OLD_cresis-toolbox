@@ -222,11 +222,11 @@ if ~exist(sar_fn,'file') ...
   ctrl = cluster_new_batch(param);
   
   if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
-    cpu_time_mult = 5e-4;
+    cpu_time_mult = 2e-3;
     mem_mult = 5;
     
   elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
-    cpu_time_mult = 5e-4;
+    cpu_time_mult = 2e-3;
     mem_mult = 5;
   end
   
@@ -537,7 +537,7 @@ for frm_idx = 1:length(param.cmd.frms)
       % CPU Time and Memory estimates:
       %  Nx*total_num_sam*K where K is some manually determined multiplier.
       dparam.cpu_time = 0;
-      dparam.mem = 250e6;
+      dparam.mem = 400e6;
       mem_biggest = 0;
       for img = 1:length(dparam.argsin{1}.load.imgs)
         Nx = diff(dparam.argsin{1}.load.recs) + 2*chunk_overlap_est(img)/dx_approx;
@@ -577,7 +577,7 @@ for frm_idx = 1:length(param.cmd.frms)
             dparam.argsin{1}.load.recs(2)*param.sar.presums);
           
           tmp_dparam.cpu_time = 0;
-          tmp_dparam.mem = 250e6;
+          tmp_dparam.mem = 400e6;
           mem_biggest = 0;
           for img = 1:length(tmp_dparam.argsin{1}.load.imgs)
             Nx = diff(tmp_dparam.argsin{1}.load.recs) + 2*chunk_overlap_est(img)/dx_approx;
