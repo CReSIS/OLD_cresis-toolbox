@@ -54,14 +54,6 @@ end
 cmd = param.analysis.cmd{param.collate_deconv.cmd_idx};
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
-% cmd structure
-% =========================================================================
-
-if ~isfield(cmd,'day_segs') || isempty(cmd.day_segs)
-  % Default is to use this day_seg only to find deconvolution waveforms
-  cmd.day_segs = {param.day_seg};
-end
-
 % analysis structure
 % =========================================================================
 
@@ -81,6 +73,11 @@ end
 
 if ~isfield(param.collate_deconv,'bad_gps_times') || isempty(param.collate_deconv.bad_gps_times)
   param.collate_deconv.bad_gps_times = [];
+end
+
+if ~isfield(param.collate_deconv,'day_segs') || isempty(param.collate_deconv.day_segs)
+  % Default is to use this day_seg only to find deconvolution waveforms
+  param.collate_deconv.day_segs = {param.day_seg};
 end
 
 if ~isfield(param.collate_deconv,'debug_plots')
@@ -277,7 +274,8 @@ if param.collate_deconv.stage_one_en
       deconv.fc = [];
       deconv.dt = spec.dt;
       deconv.twtt = spec.deconv_twtt;
-      param.analysis.cmd{param.collate_deconv.cmd_idx} = cmd;
+      %param.analysis.cmd{param.collate_deconv.cmd_idx} = cmd;
+      cmd = spec.param_analysis.analysis.cmd{param.collate_deconv.cmd_idx};
       deconv.param_collate_deconv = param;
       deconv.param_analysis = spec.param_analysis;
       deconv.param_records = spec.param_records;
@@ -795,8 +793,8 @@ if param.collate_deconv.stage_two_en
       %% Stage 2: 2. Load all segments that are specified
       %  (default is to load just the current segment's deconv file)
       deconv_lib = [];
-      for day_seg_idx = 1:length(cmd.day_segs)
-        day_seg = cmd.day_segs{day_seg_idx};
+      for day_seg_idx = 1:length(param.collate_deconv.day_segs)
+        day_seg = param.collate_deconv.day_segs{day_seg_idx};
         fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
         fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', day_seg, wf, adc));
         if exist(fn,'file')
