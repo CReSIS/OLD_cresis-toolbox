@@ -54,6 +54,24 @@ end
 cmd = param.analysis.cmd{param.collate_deconv.cmd_idx};
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
+% cmd structure
+% =========================================================================
+
+if ~isfield(cmd,'day_segs') || isempty(cmd.day_segs)
+  % Default is to use this day_seg only to find deconvolution waveforms
+  cmd.day_segs = {param.day_seg};
+end
+
+% analysis structure
+% =========================================================================
+
+if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
+  param.analysis.imgs = {[1 1]};
+end
+if ~isfield(param.collate_deconv,'imgs') || isempty(param.collate_deconv.imgs)
+  param.collate_deconv.imgs = 1:length(param.analysis.imgs);
+end
+
 % param.collate_deconv structure
 % =========================================================================
 
@@ -136,11 +154,12 @@ end
 
 if  ~isfield(param.collate_deconv,'rbins') || isempty(param.collate_deconv.rbins)
   warning('The "rbins" field should be set in the param.collate_deconv to a range of indices about the peak to use in the deconvolution waveform, e.g. param.collate_deconv.rbins = {[-200 150]} to use 200 bins before the peak and 150 bins after the peak for image 1. rbins should be a cell array with each element corresponding to the param.collate_deconv.imgs array. Using default settings [-200 150] now which may not work for this radar data.');
-  param.collate_deconv.rbins = {[-200 150]};
+  for img = 1:length(param.analysis.imgs)
+    param.collate_deconv.rbins{img} = [-200 150];
+  end
 end
-if ~iscell(param.collate_deconv.rbins) && numel(param.collate_deconv.imgs) == 1
-  % Support legacy format (no cell array)
-  param.collate_deconv.rbins = {param.collate_deconv.rbins};
+if ~iscell(param.collate_deconv.rbins)
+  error('collate_deconv.rbins should be a cell array with an entry for each image. E.g. {[-200 150],[-200 150]}.');
 end
 
 if ~isfield(param.collate_deconv,'SL_guard_bins') || isempty(param.collate_deconv.SL_guard_bins)
@@ -166,21 +185,6 @@ end
 
 if ~isfield(param.collate_deconv,'wf_adcs') || isempty(param.collate_deconv.wf_adcs)
   param.collate_deconv.wf_adcs = [];
-end
-
-% cmd structure
-% =========================================================================
-
-if ~isfield(cmd,'day_segs') || isempty(cmd.day_segs)
-  % Default is to use this day_seg only to find deconvolution waveforms
-  cmd.day_segs = {param.day_seg};
-end
-
-if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
-  param.analysis.imgs = {[1 1]};
-end
-if ~isfield(param.collate_deconv,'imgs') || isempty(param.collate_deconv.imgs)
-  param.collate_deconv.imgs = 1:length(param.analysis.imgs);
 end
 
 % Other Setup

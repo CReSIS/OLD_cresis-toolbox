@@ -208,12 +208,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.max_rlines = 10;
       end
       
-      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
-        cmd.noise_doppler_bins = [12:cmd.rlines-11];
-      end
-      
       if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
         cmd.rlines = 128;
+      end
+      
+      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
+        cmd.noise_doppler_bins = [12:cmd.rlines-11];
       end
       
       if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
@@ -526,7 +526,11 @@ for break_idx = 1:length(breaks)
               delete(out_fn);
             end
             dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if strcmp(param.radar.wfs(wf).coh_noise_method,'analysis')
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*(mem_mult+20));
+            else
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            end
             if isempty(cmd_method_str)
               cmd_method_str = '_specular';
             end
