@@ -208,12 +208,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.max_rlines = 10;
       end
       
-      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
-        cmd.noise_doppler_bins = [12:cmd.rlines-11];
-      end
-      
       if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
         cmd.rlines = 128;
+      end
+      
+      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
+        cmd.noise_doppler_bins = [12:cmd.rlines-11];
       end
       
       if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
@@ -526,7 +526,11 @@ for break_idx = 1:length(breaks)
               delete(out_fn);
             end
             dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if strcmp(param.radar.wfs(wf).coh_noise_method,'analysis')
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*(mem_mult+20));
+            else
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            end
             if isempty(cmd_method_str)
               cmd_method_str = '_specular';
             end
@@ -627,6 +631,7 @@ sparam.cpu_time = 60;
 sparam.mem = 0;
 % Add up all records being processed and find the most records in a block
 Nx = length(records.gps_time);
+records_var = whos('records');
 for img = 1:length(param.analysis.imgs)
   Nt = total_num_sam(img);
   
@@ -644,7 +649,7 @@ for img = 1:length(param.analysis.imgs)
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*total_num_sam(img)*mem_mult);
         end
         
       case {'qlook'}
@@ -657,7 +662,7 @@ for img = 1:length(param.analysis.imgs)
         Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult*1.5);
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*total_num_sam(img)*mem_mult*1.5);
         end
         
       case {'statistics'}
@@ -667,10 +672,10 @@ for img = 1:length(param.analysis.imgs)
             % HACK: Assume that if no block averaging is done, that the data size
             % is small. Really need to get a user "hint" here.
             sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)/128*log2(Nx_cmd)*cpu_time_mult;
-            sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
+            sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*total_num_sam(img)*mem_mult);
           else
             sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-            sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
+            sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*total_num_sam(img)*mem_mult);
           end
         end
         
@@ -681,7 +686,7 @@ for img = 1:length(param.analysis.imgs)
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*Nt*mem_mult);
         end
         
     end

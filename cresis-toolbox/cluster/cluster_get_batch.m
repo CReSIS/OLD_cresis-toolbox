@@ -9,7 +9,8 @@ function ctrl = cluster_get_batch(ctrl,force_check,update_mode)
 % force_check: default to true, forces cluster_update_task to be run on all
 %   tasks
 % update_mode: Scalar integer indicating mode of operation:
-%   0: Only getting task information, but do not update tasks.
+%   -1: Only getting task information, but do not update tasks.
+%   0: Only getting task information and do minimal updates to tasks.
 %   1: Get task information AND update/print tasks as required (default)
 %   2: Same as 1 except also assumes that "ctrl" is already fully populated
 %
@@ -268,7 +269,7 @@ if any(strcmpi(ctrl.cluster.type,{'torque','matlab','slurm'}))
             % Only update job if it is not complete
             new_job_status = qstat_res{5}{idx};
             % Debug print
-            if update_mode
+            if update_mode > 0
               fprintf(' Task %d:%d (%d) status changed to %s (%s)\n', ctrl.batch_id, task_id, ctrl.job_id_list(task_id), new_job_status, datestr(now))
             end
             ctrl.job_status(task_id) = new_job_status;

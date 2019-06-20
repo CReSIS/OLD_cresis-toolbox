@@ -70,7 +70,10 @@ cluster_error_mask; % Loads all the error masks
 
 error_mask = 0;
 
-if update_mode && exist(ctrl.hold_fn,'file')
+if update_mode < 0
+  return;
+end
+if update_mode > 0 && exist(ctrl.hold_fn,'file')
   fprintf('This batch has a hold. Run <strong>cluster_hold(ctrl)</strong> to remove. Either way, run <strong>dbcont</strong> to continue.\n');
   keyboard
 end

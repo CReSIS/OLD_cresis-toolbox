@@ -109,7 +109,7 @@ if iscell(ctrl_chain)
         
         % 6. Check to see if a hold has been placed on this batch
         if exist(ctrl.hold_fn,'file')
-          fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
+          warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
           keyboard
         end
       end
@@ -214,8 +214,11 @@ elseif isstruct(ctrl_chain)
     
     % Check to see if a hold has been placed on this batch
     if exist(ctrl.hold_fn,'file')
-      fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
+      warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
       keyboard
+      if ~cluster_run_mode
+        break;
+      end
     end
     
   end

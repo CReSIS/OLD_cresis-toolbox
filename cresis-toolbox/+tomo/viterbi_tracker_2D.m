@@ -21,31 +21,37 @@ param = merge_structs(param,gRadar);
 physical_constants;
 
 %% Check parameters and set to default if needed
-if isfield(options.viterbi, 'bottom_bin')
+if isfield(options.viterbi, 'bottom_bin') && ~isempty(options.viterbi.bottom_bin)
   bottom_bin = options.viterbi.bottom_bin;
 else
   bottom_bin = -1;
 end
 
-if isfield(options.viterbi, 'egt_weight')
+if isfield(options.viterbi, 'egt_weight') && ~isempty(options.viterbi.egt_weight)
   egt_weight = options.viterbi.egt_weight;
 else
   egt_weight = -1;
 end
 
-if isfield(options.viterbi, 'mu_size')
+if isfield(options.viterbi, 'ice_bin_thr') && ~isempty(options.viterbi.ice_bin_thr)
+  ice_bin_thr = options.viterbi.ice_bin_thr;
+else
+  ice_bin_thr = 10;
+end
+
+if isfield(options.viterbi, 'mu_size') && ~isempty(options.viterbi.mu_size)
   mu_size = options.viterbi.mu_size;
 else
   mu_size = 31;
 end
 
-if isfield(options.viterbi, 'mu_thr')
+if isfield(options.viterbi, 'mu_thr') && ~isempty(options.viterbi.mu_thr)
   mu_thr = options.viterbi.mu_thr;
 else
   mu_thr = -30;
 end
 
-if isfield(options.viterbi, 'mu')
+if isfield(options.viterbi, 'mu') && ~isempty(options.viterbi.mu)
   mu = options.viterbi.mu;
 else
   mu = log10(exp(-(-(mu_size-1)/2 : (mu_size-1)/2).^4/1));
@@ -53,34 +59,38 @@ else
   mu              = mu - mean(mu);
 end
 
-if isfield(options.viterbi, 'sigma')
-  sigma = options.viterbi.sigma;
-else
-  sigma = sum(abs(mu))/10*ones(1, mu_size);
-end
-
-if isfield(options.viterbi, 'smooth_var')
-  smooth_var = options.viterbi.smooth_var;
-else
-  smooth_var = Inf;
-end
-
-if isfield(options.viterbi, 'repulsion')
+if isfield(options.viterbi, 'repulsion') && ~isempty(options.viterbi.repulsion)
   repulsion = options.viterbi.repulsion;
 else
   repulsion = 150000;
 end
 
-if isfield(options.viterbi, 'smooth_weight')
+if isfield(options.viterbi, 'sigma') && ~isempty(options.viterbi.sigma)
+  sigma = options.viterbi.sigma;
+else
+  sigma = sum(abs(mu))/10*ones(1, mu_size);
+end
+
+if isfield(options.viterbi, 'smooth_var') && ~isempty(options.viterbi.smooth_var)
+  smooth_var = options.viterbi.smooth_var;
+else
+  smooth_var = Inf;
+end
+
+if isfield(options.viterbi, 'smooth_weight') && ~isempty(options.viterbi.smooth_weight)
   smooth_weight = options.viterbi.smooth_weight;
 else
   smooth_weight = 5;
 end
 
-if isfield(options.viterbi, 'ice_bin_thr')
-  ice_bin_thr = options.viterbi.ice_bin_thr;
+if isfield(options.viterbi, 'surf_layer_params') && ~isempty(options.viterbi.surf_layer_params)
+  surf_layer_params = options.viterbi.surf_layer_params;
 else
-  ice_bin_thr = 10;
+  surf_layer_params = [];
+end
+
+if ~isfield(surf_layer_params, 'name') || ~isempty(surf_layer_params.name)
+  surf_layer_params.name = 'surface';
 end
 
 %% Distance-to-Ice-Margin model
@@ -128,11 +138,8 @@ big_matrix.Lat      = [];
 big_matrix.Lon      = [];
 good_frms           = param.cmd.frms;
 
-clear Surface;
-layer_params.name   = 'surface';
-layer_params.source = 'ops';
 try
-  Surface = opsLoadLayers(param,layer_params);
+  Surface = opsLoadLayers(param,surf_layer_params);
 catch ME
   warning(ME.getReport);
   keyboard
@@ -192,21 +199,6 @@ if options.debug
 end
 
 %%
-opsAuthenticate(param,false);
-layer_name                   = 'bottom';
-sys                          = ct_output_dir(param.radar_name);
-ops_param                    = struct('properties',[]);
-ops_param.properties.season  = param.season_name;
-ops_param.properties.segment = param.day_seg;
-[~,ops_frames]               = opsGetSegmentInfo(sys,ops_param);
-
-ops_param = struct('properties',[]);
-ops_param.properties.location = param.post.ops.location;
-ops_param.properties.season = param.season_name;
-ops_param.properties.start_gps_time = ops_frames.properties.start_gps_time(1);
-ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
-ops_param.properties.nativeGeom = true;
-[~,ops_data] = opsGetPath(sys,ops_param);
 
 big_matrix.Surface = interp_finite(interp1(Surface.gps_time,Surface.twtt,big_matrix.GPS_time));
 
@@ -245,7 +237,7 @@ if options.viterbi.mult_sup
   surf_mult_bins = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), surf_mult_twtt));
   
   % Step two: Filter the whole image
-  filt_img = imgaussfilt(big_matrix.Data, filtvalue);
+  filt_img = fir_dec(fir_dec(big_matrix.Data,ones(1,31),1).',ones(1,31),1).';
   
   % Step three: replace the surface multiple bins with the filtered image
   for rline = 1 : size(big_matrix.Data, 2)
@@ -291,6 +283,22 @@ end
 
 %% Crossover loading
 if options.viterbi.crossoverload
+  opsAuthenticate(param,false);
+  layer_name                   = 'bottom';
+  sys                          = ct_output_dir(param.radar_name);
+  ops_param                    = struct('properties',[]);
+  ops_param.properties.season  = param.season_name;
+  ops_param.properties.segment = param.day_seg;
+  [~,ops_frames]               = opsGetSegmentInfo(sys,ops_param);
+  
+  ops_param = struct('properties',[]);
+  ops_param.properties.location = param.post.ops.location;
+  ops_param.properties.season = param.season_name;
+  ops_param.properties.start_gps_time = ops_frames.properties.start_gps_time(1);
+  ops_param.properties.stop_gps_time = ops_frames.properties.stop_gps_time(end);
+  ops_param.properties.nativeGeom = true;
+  [~,ops_data] = opsGetPath(sys,ops_param);
+
   query = sprintf('SELECT rds_segments.id FROM rds_seasons,rds_segments where rds_seasons.name=''%s'' and rds_seasons.id=rds_segments.season_id and rds_segments.name=''%s''',param.season_name,param.day_seg);
   [~,tables] = opsQuery(query);
   segment_id = tables{1};
