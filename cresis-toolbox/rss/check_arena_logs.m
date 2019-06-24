@@ -106,6 +106,7 @@ for field_idx = 1:length(log_fieldnames)
         max_max = max(alignment{idx}(2,:));
         if abs(min_max-min_min) >= alignment_threshold ...
             || abs(max_max-max_min) >= alignment_threshold
+          fprintf(2,'Alignment range is more than alignment_threshold: %d\n', alignment_threshold);
           fprintf(2,'%s.%s: %d [%d to %d] : [%d to %d]\n', parent_str, fieldname, idx, ...
             min_min, min_max, ...
             max_min, max_max);
@@ -120,6 +121,7 @@ for field_idx = 1:length(log_fieldnames)
       min_val = min(logs.(fieldname));
       max_val = max(logs.(fieldname));
       if max_val-min_val >= link_error_threshold
+        fprintf(2,'There should not be more than %d link errors. There are %d.\n', link_error_threshold,max_val-min_val);
         fprintf(2,'%s.%s: min(%d) max(%d)\n', parent_str, fieldname, min_val, max_val);
       end
     end

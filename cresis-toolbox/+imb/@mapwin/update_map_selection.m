@@ -14,12 +14,12 @@ ops_param.properties.location = obj.cur_map_pref_settings.mapzone;
 ops_param.properties.season = obj.cur_map_pref_settings.seasons;
 
 % Query
-if obj.isGoogle
+if obj.map_source == 1
   ops_param.properties.x = param.x;
   ops_param.properties.y = param.y;
   
   % Get closest frame
-  [status,data] = imb.googleGetFrameClosest(obj.cur_map_pref_settings.system,ops_param);
+  [status,data] = obj.google_get_frame_closest(obj.cur_map_pref_settings.system,ops_param);
   
   % Update seg plot
   flightline_plot = get(gca,'Children');

@@ -94,13 +94,7 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
         x_min, x_max, y_min, y_max);
       
       % query the new map view area, then draw it
-      if obj.isGoogle
-        % zoom_in_out = 1 since it's zoom in
-        obj.googleObj.zoom_in_out = 1;
-        obj.redraw_google_map(x_min, x_max, y_min, y_max)
-      else
-        obj.query_redraw_map(x_min,x_max,y_min,y_max);
-      end
+      obj.query_redraw_map(x_min,x_max,y_min,y_max);
     elseif x == obj.click_x && y == obj.click_y && click_in_axis
       if ~obj.zoom_mode
         % ===================================================================
@@ -131,13 +125,7 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
         end
         
         % get a new map for these limits
-        if obj.isGoogle
-          % zoom_in_out = 1 since it's zoom in
-          obj.googleObj.zoom_in_out = 1;
-          obj.redraw_google_map(x, x, y, y);
-        else
-          obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
-        end
+        obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
       end
     end
     
@@ -169,13 +157,7 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
     end
     
     % get a new map for these limits
-    if obj.isGoogle
-      % zoom_in_out = -1 since it's zoom out
-      obj.googleObj.zoom_in_out = -1;
-      obj.redraw_google_map(x, x, y, y);
-    else
-      obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
-    end
+    obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
   elseif but == 4 && click_in_axis
     % ===================================================================
     % Double click: Zoom reset

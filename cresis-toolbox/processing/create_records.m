@@ -121,6 +121,12 @@ if ~exist(command_window_out_fn_dir,'dir')
 end
 diary(command_window_out_fn);
 
+
+if any(param.records.file.version == [9 10 103 412])
+  % Arena based systems
+  h_fig = get_figures(1,true);
+end
+
 %% Load headers from each board
 % =====================================================================
 clear board_hdrs;

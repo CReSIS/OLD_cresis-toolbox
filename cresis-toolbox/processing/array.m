@@ -212,7 +212,7 @@ if param.array.tomo_en
 else
   Nsv = 1;
 end
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
     % Fast time sample/dbin * # steering vectors
@@ -386,7 +386,7 @@ ctrl_chain = {ctrl};
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   cpu_time_mult = 1e-6;
   mem_mult = 16;
   

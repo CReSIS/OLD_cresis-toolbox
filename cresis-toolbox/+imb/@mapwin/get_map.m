@@ -5,14 +5,13 @@ function get_map(obj,hObj,event)
 % window "OK" button is pressed and the prefwin "StateChange" event occurs.
 
 %% Check if Google Map is/was selected
-obj.isGoogle = false;
-if strcmpi('Google', obj.map_pref.settings.mapname)
-  obj.isGoogle = true;
-end
-
-wasGoogle = false;
-if strcmpi('Google', obj.cur_map_pref_settings.mapname)
-  wasGoogle = true;
+old_map_source = obj.map_source;
+if ~strcmpi('Google', obj.map_pref.settings.mapname)
+  obj.map_source = 0;
+  obj.map_scale = 1e3;
+else
+  obj.map_source = 1;
+  obj.map_scale = 1;
 end
 
 %% Check which settings have changed
@@ -74,7 +73,8 @@ fprintf('Loading and plotting map %s (%s)\n', map_name, datestr(now,'HH:MM:SS'))
 
 opsCmd;
 
-if (obj.isGoogle == 0)
+if (obj.map_source == 0)
+  %% Get Map: OPS
   
   % CONNECT TO THE WMS SERVER AND GET A LAYER OBJECT
   wms = WebMapServer(sprintf('%s%s/wms/',gOps.geoServerUrl,map_zone));
@@ -165,7 +165,7 @@ if (obj.isGoogle == 0)
   if mapzone_changed
     request.XLim = obj.full_xaxis*1e3;
     request.YLim = obj.full_yaxis*1e3;
-  elseif (~mapzone_changed && wasGoogle)
+  elseif old_map_source ~= obj.map_source
     request.XLim = obj.full_xaxis*1e3;
     request.YLim = obj.full_yaxis*1e3;
   else
@@ -268,24 +268,25 @@ if (obj.isGoogle == 0)
   ylabel(obj.map_panel.h_axes,'Y (km)');
   
 else
-  
-  %% If Google map is selected
+  %% Get Map: Google
   
   % Get the Google map
-  A = get_google_map(obj);
-  
-  % Flip the array. In Google Maps, the axes start out from the top left
-  % corner so the y axis is actually flipped along the x axis.
+  if isempty(obj.google_map)
+    obj.google_map = google_map();
+  end
+  if strcmpi('arctic', obj.map_pref.settings.mapzone)
+    [A,xaxis,yaxis] = obj.google_map.greenland();
+  else
+    [A,xaxis,yaxis] = obj.google_map.antarctica();
+  end
   A = flipud(A);
   
-  % Bring the figure into focus
-  figure(obj.h_fig);
+  % Flip the google y-coordinates so that y points upward
+  yaxis = sort(256-yaxis);
   
   % Set the end points of the axis
-  obj.full_xaxis = [obj.googleObj.bottom_left_wc_x obj.googleObj.bottom_right_wc_x];
-  obj.full_yaxis = [obj.googleObj.bottom_left_wc_y obj.googleObj.top_left_wc_y];
-  xaxis = obj.full_xaxis;
-  yaxis = obj.full_yaxis;
+  obj.full_xaxis = xaxis([1 end]);
+  obj.full_yaxis = yaxis([1 end]);
   
   % Update label
   xlabel(obj.map_panel.h_axes,'X (World Coordinates)');
@@ -304,15 +305,13 @@ set(obj.map_panel.h_image,'XData', xaxis, ...
   'CData', A, ...
   'Visible', 'on');
 
-if(obj.isGoogle == 1)
-  
-  % Load map in the figure
-  set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
-    'Ylim', sort(yaxis([1 end])), ...
-    'YDir', 'reverse', ...
-    'Visible', 'on');
-  
-  %% Plot flightlines
+set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
+  'Ylim', sort(yaxis([1 end])), ...
+  'YDir', 'normal', ...
+  'Visible', 'on');
+
+if(obj.map_source == 1)
+  %% Plot flightlines (Google only)
   
   % Get children
   flightline_plot = get(gca,'Children');
@@ -324,19 +323,31 @@ if(obj.isGoogle == 1)
     end
   end
   
-  % Load world coordinates of points 
-  [wc_xs, wc_ys, frms] = get_world_coordinates(obj);
+  obj.google_fline_x = [];
+  obj.google_fline_y = [];
+  obj.google_fline_frms = [];
+  obj.google_fline_season = [];
+  
+  % Looping through the seasons
+  for season_idx = 1:length(obj.cur_map_pref_settings.seasons)
+    %Loading the season layerdata files
+    ct_filename_param = struct('radar_name',obj.cur_map_pref_settings.system);
+    fn = fullfile(ct_filename_support(ct_filename_param,'season_layerdata_files',''), ...
+      sprintf('%s_param_%s_layerdata.mat',obj.cur_map_pref_settings.system, ...
+      obj.cur_map_pref_settings.seasons{season_idx}));
+    S = load(fn);
+    [wc_x, wc_y] = google_map.latlon_to_world(S.lat, S.lon);
+    obj.google_fline_x = [obj.google_fline_x wc_x];
+    obj.google_fline_y = [obj.google_fline_y 256-wc_y];
+    obj.google_fline_frms = [obj.google_fline_frms S.frm];
+    obj.google_fline_season = [obj.google_fline_season season_idx*ones(size(wc_x))];
+  end
   
   % Plot line and set tag
   flightline_plot(1) = plot(0,0, '.', 'color', 'r');
   set(flightline_plot(1), 'Tag', 'seg');
-  flightline_plot(2) = plot(wc_xs,wc_ys, '-', 'color', 'b');
+  flightline_plot(2) = plot(obj.google_fline_x,obj.google_fline_y, '-', 'color', 'b');
   set(flightline_plot(2), 'Tag', 'plot');
-else
-  set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
-    'Ylim', sort(yaxis([1 end])), ...
-    'YDir', 'normal', ...
-    'Visible', 'on');
 end
 
 zoom on; zoom off;
@@ -344,6 +355,4 @@ zoom on; zoom off;
 % Redraw table to ensure everything is the right size
 table_draw(obj.table);
 
-fprintf('  Done (%s)\n', datestr(now,'HH:MM:SS'));
-
-return;
+fprintf('  Done (%s)\n', datestr(now));

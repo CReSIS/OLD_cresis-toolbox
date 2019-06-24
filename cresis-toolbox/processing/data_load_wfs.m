@@ -317,9 +317,9 @@ for wf = 1:length(param.radar.wfs)
     wfs(wf).Nt_raw = 0;
   end
   if isfield(param.radar.wfs(wf),'conjugate') && ~isempty(param.radar.wfs(wf).conjugate)
-    wfs(wf).conjugate   = param.radar.wfs(wf).conjugate;
+    wfs(wf).conjugate_on_load   = param.radar.wfs(wf).conjugate;
   else
-    wfs(wf).conjugate   = 0;
+    wfs(wf).conjugate_on_load   = 0;
   end
   if isfield(param.radar.wfs(wf),'ft_wind_time') && ~isempty(param.radar.wfs(wf).ft_wind_time)
     wfs(wf).ft_wind_time   = param.radar.wfs(wf).ft_wind_time;
@@ -548,7 +548,7 @@ for wf = 1:length(param.radar.wfs)
         % Note: This is only a valid scenario for real data sampling
         % (referring to the original sampling before the DDC) since complex
         % data sampled in the wrong Nyquist zone never makes sense.
-        wfs(wf).conjugate = ~wfs(wf).conjugate;
+        wfs(wf).conjugate_on_load = ~wfs(wf).conjugate_on_load;
         wfs(wf).freq_raw = wfs(wf).freq_raw - floor((wfs(wf).freq_raw - (wfs(wf).fc-wfs(wf).fs_raw/2))/wfs(wf).fs_raw)*wfs(wf).fs_raw;
       else
         % Even number nyquist zone offset: frequency axis is shifted
