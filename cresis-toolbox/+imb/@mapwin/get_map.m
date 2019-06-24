@@ -275,10 +275,11 @@ else
     obj.google_map = google_map();
   end
   if strcmpi('arctic', obj.map_pref.settings.mapzone)
-    [A,xaxis,yaxis] = obj.google_map.greenland();
+    [wc_x_min,wc_x_max,wc_y_min,wc_y_max] = google_map.greenland();
   else
-    [A,xaxis,yaxis] = obj.google_map.antarctica();
+    [wc_x_min,wc_x_max,wc_y_min,wc_y_max] = google_map.antarctica();
   end
+  [A,xaxis,yaxis] = obj.google_map.request_google_map(wc_x_min, wc_x_max, wc_y_min, wc_y_max);
   A = flipud(A);
   
   % Flip the google y-coordinates so that y points upward
@@ -310,19 +311,15 @@ set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
   'YDir', 'normal', ...
   'Visible', 'on');
 
+% Resize map to ensure 1:1 aspect ratio
+new_yaxis(1) = obj.full_yaxis(1);
+new_yaxis(2) = obj.full_yaxis(end);
+new_xaxis(1) = obj.full_xaxis(1);
+new_xaxis(2) = obj.full_xaxis(end);
+obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
+
 if(obj.map_source == 1)
   %% Plot flightlines (Google only)
-  
-  % Get children
-  flightline_plot = get(gca,'Children');
-  
-  % Delete existing lines
-  for graphics_obj_idx = 1:length(flightline_plot)
-    if(isgraphics(flightline_plot(graphics_obj_idx), 'line'))
-      delete(flightline_plot(graphics_obj_idx));
-    end
-  end
-  
   obj.google_fline_x = [];
   obj.google_fline_y = [];
   obj.google_fline_frms = [];
@@ -343,11 +340,8 @@ if(obj.map_source == 1)
     obj.google_fline_season = [obj.google_fline_season season_idx*ones(size(wc_x))];
   end
   
-  % Plot line and set tag
-  flightline_plot(1) = plot(0,0, '.', 'color', 'r');
-  set(flightline_plot(1), 'Tag', 'seg');
-  flightline_plot(2) = plot(obj.google_fline_x,obj.google_fline_y, '-', 'color', 'b');
-  set(flightline_plot(2), 'Tag', 'plot');
+  % Plot flight lines
+  set(obj.map_panel.h_flightline,'XData',obj.google_fline_x,'YData',obj.google_fline_y);
 end
 
 zoom on; zoom off;

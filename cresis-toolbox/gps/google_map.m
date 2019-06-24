@@ -120,66 +120,26 @@ classdef google_map
         c_lat, c_lon, zoom, obj.scale, obj.w, obj.h, obj.key);
       A = obj.wms_obj.getMap(url);
     end
-    
-    %% greenland
-    function [A,x_axis,y_axis] = greenland(obj)
-      obj.c_lat = 73.82177;
-      obj.c_lon = -40.333279;
-      obj.zoom = 3;
-      
-      % Determine the center coordinate
-      [c_wc_x, c_wc_y] = google_map.latlon_to_world(obj.c_lat, obj.c_lon);
-      
-      % Correct the center coordinate for what Google will really return.
-      % (All requested center coordinates are rounded to the nearest pixel
-      % at the specified zoom level.)
-      dwc = 1/2^obj.zoom;
-      c_wc_x = round(c_wc_x/dwc)*dwc;
-      c_wc_y = round(c_wc_y/dwc)*dwc;
-      
-      % Find the lat,lon for the center coordinate
-      [obj.c_lat,obj.c_lon] = google_map.world_to_latlon(c_wc_x,c_wc_y);
-      
-      % Get Google map image (A is obj.h x obj.w x 3 RGB image)
-      A = request_google_mapc(obj, obj.c_lat, obj.c_lon, obj.zoom);
-      
-      % Create the corresponding x and y axes for the image A
-      dwc = 1/2^obj.zoom/obj.scale;
-      x_axis = c_wc_x + (-obj.w/2:obj.w/2-1)*dwc;
-      y_axis = c_wc_y + (-obj.h/2:obj.h/2-1).'*dwc;
-    end
-    
-    %% antarctica
-    function [A,x_axis,y_axis] = antarctica(obj)
-      obj.c_lat = -73.381418;
-      obj.c_lon = -67.900671;
-      obj.zoom = 3;
-      
-      % Determine the center coordinate
-      [c_wc_x, c_wc_y] = google_map.latlon_to_world(obj.c_lat, obj.c_lon);
-      
-      % Correct the center coordinate for what Google will really return.
-      % (All requested center coordinates are rounded to the nearest pixel
-      % at the specified zoom level.)
-      dwc = 1/2^obj.zoom;
-      c_wc_x = round(c_wc_x/dwc)*dwc;
-      c_wc_y = round(c_wc_y/dwc)*dwc;
-      
-      % Find the lat,lon for the center coordinate
-      [obj.c_lat,obj.c_lon] = google_map.world_to_latlon(c_wc_x,c_wc_y);
-      
-      % Get Google map image (A is obj.h x obj.w x 3 RGB image)
-      A = request_google_mapc(obj, obj.c_lat, obj.c_lon, obj.zoom);
-      
-      % Create the corresponding x and y axes for the image A
-      dwc = 1/2^obj.zoom/obj.scale;
-      x_axis = c_wc_x + (-obj.w/2:obj.w/2-1)*dwc;
-      y_axis = c_wc_y + (-obj.h/2:obj.h/2-1).'*dwc;
-    end
      
   end
   
   methods(Static)
+    
+    %% greenland
+    function [wc_x_min,wc_x_max,wc_y_min,wc_y_max] = greenland()
+      wc_x_min = 48.75;
+      wc_x_max = 150;
+      wc_y_min = 256-247.5;
+      wc_y_max = 256-167.75;
+    end
+    
+    %% antarctica
+    function [wc_x_min,wc_x_max,wc_y_min,wc_y_max] = antarctica()
+      wc_x_min = 29.25;
+      wc_x_max = 130.25;
+      wc_y_min = 256-89.5;
+      wc_y_max = 256-9.75;
+    end
    
     %% latlon_to_world
     function [wc_x, wc_y] = latlon_to_world(lat, lon)
