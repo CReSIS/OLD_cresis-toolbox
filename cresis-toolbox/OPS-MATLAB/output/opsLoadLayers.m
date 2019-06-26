@@ -364,11 +364,32 @@ for frm_idx = 1:length(param.cmd.frms)
               continue;
             end
           end
+          % Load and uncompress echogram file
           warning off;
           lay = load(echogram_fn,'GPS_time','Latitude','Longitude','Elevation','Surface','Bottom', ...
             'Elevation_Correction','Truncate_Bins','Time');
           warning on;
           lay = uncompress_echogram(lay);
+          
+          % In case an old echogram file which has overlap, we remove this
+          % overlap region.
+          if frm == 1
+            start_gps_time = -inf;
+          else
+            start_gps_time = records.gps_time(frames.frame_idxs(frm));
+          end
+          if frm == length(frames.frame_idxs)
+            stop_gps_time = inf;
+          else
+            stop_gps_time = records.gps_time(frames.frame_idxs(frm+1));
+          end
+          good_mask = lay.GPS_time >= start_gps_time & lay.GPS_time < stop_gps_time;
+          lay.GPS_time = lay.GPS_time(good_mask);
+          lay.Latitude = lay.Latitude(good_mask);
+          lay.Longitude = lay.Longitude(good_mask);
+          lay.Elevation = lay.Elevation(good_mask);
+          lay.Surface = lay.Surface(good_mask);
+          lay.Bottom = lay.Bottom(good_mask);
           Nx = length(lay.GPS_time);
 
           % Create the layer structure
