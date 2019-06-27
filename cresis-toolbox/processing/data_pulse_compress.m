@@ -363,7 +363,7 @@ for img = 1:length(param.load.imgs)
           %   Apply matched filter and transform back to time domain
           tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
           tmp_data(~isfinite(tmp_data)) = 0;
-          tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc),wfs(wf).ref{adc})),wfs(wf).pad_length,1);
+          tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc,1),wfs(wf).ref{adc}),[],1),wfs(wf).pad_length,1);
           
           % Decimation
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));
@@ -1302,10 +1302,17 @@ for img = 1:length(param.load.imgs)
             data{img}(1:size(coh_noise,1),:,wf_adc) = bsxfun(@minus, ...
               data{img}(1:size(coh_noise,1),:,wf_adc), coh_noise(:,1));
           else
-            % At least one raw data point exists within the coherent noise
-            % gps time sampling range
-            data{img}(1:size(coh_noise,1),:,wf_adc) = data{img}(1:size(coh_noise,1),:,wf_adc) ...
-              - interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+            blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
+            rel_gps_time = single(noise.coh_noise_gps_time - noise.coh_noise_gps_time(1));
+            rel_gps_time_interp = single(hdr.gps_time - noise.coh_noise_gps_time(1));
+            for block = 1:length(blocks)-1
+              rlines = blocks(block) : blocks(block+1)-1;
+              
+              % At least one raw data point exists within the coherent noise
+              % gps time sampling range
+              data{img}(1:size(coh_noise,1),rlines,wf_adc) = data{img}(1:size(coh_noise,1),rlines,wf_adc) ...
+                - interp_finite(interp1(rel_gps_time, single(coh_noise.'), rel_gps_time_interp(rlines))).';
+            end
           end
         end
       end

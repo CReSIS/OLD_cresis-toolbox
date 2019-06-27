@@ -11,22 +11,26 @@ function update_map_selection(obj,param)
 % Setup query
 ops_param = struct('properties',[]);
 ops_param.properties.location = obj.cur_map_pref_settings.mapzone;
-ops_param.properties.x = param.x*1e3;
-ops_param.properties.y = param.y*1e3;
 ops_param.properties.season = obj.cur_map_pref_settings.seasons;
 
 % Query
-[status,data] = opsGetFrameClosest(obj.cur_map_pref_settings.system,ops_param);
+ops_param.properties.x = param.x*obj.map_scale;
+ops_param.properties.y = param.y*obj.map_scale;
+if obj.map_source == 1
+  % Get closest frame
+  [status,data] = obj.google_get_frame_closest(obj.cur_map_pref_settings.system,ops_param);
+else
+  [status,data] = opsGetFrameClosest(obj.cur_map_pref_settings.system,ops_param);
+end
+
+% Update map selection plot
+set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X/obj.map_scale,data.properties.Y/obj.map_scale});
 
 % Record current frame selection
 obj.cur_sel.frame_name = data.properties.frame;
 obj.cur_sel.season_name = data.properties.season;
 obj.cur_sel.segment_id = data.properties.segment_id;
 
-% Update map selection plot
-set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X/1e3,data.properties.Y/1e3});
 
 % Change map title to the currently selected frame
 set(obj.top_panel.flightLabel,'String',obj.cur_sel.frame_name);
-
-return;

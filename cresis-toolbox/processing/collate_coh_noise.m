@@ -24,12 +24,16 @@ fprintf('=====================================================================\n
 %% Input checks
 % =====================================================================
 
+if ~isfield(param,'collate_coh_noise') || isempty(param.collate_coh_noise)
+  param.collate_coh_noise = [];
+end
+
 if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
   param.collate_coh_noise.cmd_idx = 1;
 end
 
 if ~isfield(param.collate_coh_noise,'debug_plots') || isempty(param.collate_coh_noise.debug_plots)
-  param.collate_coh_noise.debug_plots = {};
+  param.collate_coh_noise.debug_plots = {'cn_plot','threshold_plot'};
 end
 enable_visible_plot = any(strcmp('visible',param.collate_coh_noise.debug_plots));
 enable_threshold_plot = any(strcmp('threshold_plot',param.collate_coh_noise.debug_plots));
@@ -288,12 +292,12 @@ for img = param.collate_coh_noise.imgs
       if ~exist(fig_fn_dir,'dir')
         mkdir(fig_fn_dir);
       end
-      saveas(h_fig(1),fig_fn);
+      ct_saveas(h_fig(1),fig_fn);
       size_fig = whos('cn_before');
       if size_fig.bytes < 1e9
         fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(1),fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
       end
       
       %cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
@@ -307,11 +311,11 @@ for img = param.collate_coh_noise.imgs
       xlabel(h_axes(2), 'Block');
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(2),fig_fn);
+      ct_saveas(h_fig(2),fig_fn);
       if size_fig.bytes < 1e9
         fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(2),fig_fn);
+        ct_saveas(h_fig(2),fig_fn);
       end
       
       %cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
@@ -324,11 +328,11 @@ for img = param.collate_coh_noise.imgs
       xlabel(h_axes(3), 'Block');
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(3),fig_fn);
+      ct_saveas(h_fig(3),fig_fn);
       if size_fig.bytes < 1e9
         fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(3),fig_fn);
+        ct_saveas(h_fig(3),fig_fn);
       end
       
       clf(h_fig(4));
@@ -341,11 +345,11 @@ for img = param.collate_coh_noise.imgs
       ylabel(h_axes(4), 'Range bin');
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(4),fig_fn);
+      ct_saveas(h_fig(4),fig_fn);
       if size_fig.bytes < 1e9
         fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(4),fig_fn);
+        ct_saveas(h_fig(4),fig_fn);
       end
       
       linkaxes(h_axes(2:4));
@@ -373,10 +377,10 @@ for img = param.collate_coh_noise.imgs
       if ~exist(fig_fn_dir,'dir')
         mkdir(fig_fn_dir);
       end
-      saveas(h_fig(5),fig_fn);
+      ct_saveas(h_fig(5),fig_fn);
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(5),fig_fn);
+      ct_saveas(h_fig(5),fig_fn);
     end
     
     if enable_visible_plot

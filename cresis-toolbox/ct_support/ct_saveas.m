@@ -1,9 +1,13 @@
 function ct_saveas(fig,fn,varargin)
+% ct_saveas(fig,fn,varargin)
+%
+% Function calls saveas, but adds a creation function callback to force the
+% "Visible" property to "on" when the figure is opened. This is useful when
+% creating invisible figures and saving them.
 
-saveas(fig,fn,varargin{:});
-
+% Set the create creation function to force the visibility to on when
+% opening.
 try
-  load(fn,'-mat','hgS_070000');
-  hgS_070000.properties.Visible = 'on';
-  save(fn,'-append','hgS_070000');
+  set(fig, 'CreateFcn', 'set(gcbo,''Visible'',''on'')');
 end
+saveas(fig,fn,varargin{:});

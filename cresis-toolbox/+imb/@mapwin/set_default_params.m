@@ -241,7 +241,7 @@ elseif isunix
 end
 
 %% Setup param variable
-default_params.prefwin.sources = sort({'CSARP_standard','CSARP_qlook','CSARP_mvdr'});
+default_params.prefwin.sources = sort({'standard','qlook','mvdr','CSARP_post/standard','CSARP_post/mvdr','CSARP_post/qlook'});
 default_params.prefwin.season_names = {};
 default_params.prefwin.layer_names = {'surface'};
 default_params.prefwin.system = 'rds';

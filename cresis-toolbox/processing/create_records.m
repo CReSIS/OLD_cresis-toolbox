@@ -121,6 +121,12 @@ if ~exist(command_window_out_fn_dir,'dir')
 end
 diary(command_window_out_fn);
 
+
+if any(param.records.file.version == [9 10 103 412])
+  % Arena based systems
+  h_fig = get_figures(1,true);
+end
+
 %% Load headers from each board
 % =====================================================================
 clear board_hdrs;
@@ -233,7 +239,7 @@ for board_idx = 1:length(boards)
     elseif any(param.records.file.version == [413 414])
       board_hdrs{board_idx}.gps_time(end+1:end+length(hdr_tmp.gps_time)) = hdr_tmp.gps_time;
       board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.gps_time)) = file_num;
-      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.gps_time)) = 0;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.gps_time)) = 1:length(hdr_tmp.gps_time);
       wfs = hdr_tmp.wfs;
       
     else

@@ -20,10 +20,10 @@ param.config.min_seg_size = 2;
 
 param.config.daq_type = 'cresis';
 param.config.wg_type = 'cresis';
-param.config.header_load_func = @basic_load_fmcw5;
+param.config.header_load_func = @basic_load;
 param.config.board_map = {'chan1','chan2'};
-param.config.board_map = {'chan1'};
-param.config.tx_map = {''};
+% param.config.board_map = {'chan1'};
+param.config.tx_map = {'',''};
 
 param.config.daq.xml_version = -1; % No XML file available
 
@@ -47,7 +47,7 @@ default.records.gps.time_offset = 1;
 %% Qlook worksheet
 default.qlook.img_comb = [];
 default.qlook.imgs = {[2 1],[1 1],[1 2],[2 2]};
-default.qlook.imgs = {[2 1],[1 1]};
+% default.qlook.imgs = {[2 1],[1 1]};
 default.qlook.out_path = '';
 default.qlook.block_size = 2000;
 default.qlook.motion_comp = 0;

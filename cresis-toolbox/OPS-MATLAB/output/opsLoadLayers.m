@@ -81,6 +81,16 @@ for layer_idx = 1:length(layer_params)
     % Default is a combined file Data_YYYYMMDD_SS.mat
     layer_params(layer_idx).echogram_source_img = 0;
   end
+  if ~isfield(layer_params,'name') || isempty(layer_params(layer_idx).name)
+    % Default is layerdata
+    warning('No name specified for layer %d, using surface.', layer_idx);
+    layer_params(layer_idx).name = 'surface';
+  end
+  if ~isfield(layer_params,'source') || isempty(layer_params(layer_idx).source)
+    % Default is layerdata
+    warning('No source specified for layer %d, using layerdata.', layer_idx);
+    layer_params(layer_idx).source = 'layerdata';
+  end
 end
 
 physical_constants;

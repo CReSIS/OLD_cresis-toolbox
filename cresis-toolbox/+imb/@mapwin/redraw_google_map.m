@@ -65,6 +65,9 @@ function redraw_google_map(obj, x_min, x_max, y_min, y_max)
     elseif obj.googleObj.pan == 4
       new_c_lat = obj.googleObj.c_lat;
       new_c_lon = obj.googleObj.c_lon-1;
+    else
+      new_c_lat = obj.googleObj.c_lat;
+      new_c_lon = obj.googleObj.c_lon;
     end
   end
   

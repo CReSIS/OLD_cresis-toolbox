@@ -14,11 +14,11 @@
 
 gOps.profileCmd = false; % THE OPS PROFILER WILL RUN AND RETURN PROFILING LOGS
 
-% gOps.sysUrl = 'https://ops.cresis.ku.edu/';
- gOps.sysUrl = 'http://ops3.cresis.ku.edu/';
- %gOps.sysUrl = 'http://192.168.111.222/';
+% gOps.sysUrl = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+gOps.sysUrl = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+% gOps.sysUrl = 'http://192.168.111.222/'; % Virtual box setup
 
-%% AUTOMATED SECTION (DONT MODFIY)
+%% AUTOMATED SECTION (DO NOT MODIFY)
 
 gOps.dbUser = '';
 gOps.dbPswd = '';

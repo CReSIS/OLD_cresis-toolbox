@@ -733,15 +733,15 @@ end
 % =========================================================================
 % Loop through each output range line and then through each output range
 % bin for that range line.
+last_fprintf_time = -inf;
 for line_idx = 1:1:Nx_out
   %% Array: Setup
   rline = cfg.lines(line_idx);
-%   if ~mod(line_idx-1,10^floor(log10(Nx_out)-1))
-%     fprintf('    Record %.0f (%.0f of %.0f) (%s)\n', rline, line_idx, ...
-%       Nx_out, datestr(now));
-%   end
-  fprintf('    Record %.0f (%.0f of %.0f) (%s)\n', rline, line_idx, ...
+  if last_fprintf_time > now+60/86400
+    fprintf('    Record %.0f (%.0f of %.0f) (%s)\n', rline, line_idx, ...
       Nx_out, datestr(now));
+    last_fprintf_time = now;
+  end
     
   % Bring the range-bin index stored in layerData vector (at the nadir DOA bin)
   nn = 15; % Number of range-bins before the initial that S-MAP starts from

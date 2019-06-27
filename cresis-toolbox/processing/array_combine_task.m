@@ -57,7 +57,7 @@ for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
   if ct_proc_frame(frames.proc_mode(frm),param.array.frm_types)
-    fprintf('array_combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    fprintf('array_combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
@@ -255,19 +255,27 @@ for frm_idx = 1:length(param.cmd.frms);
     % A combined file should be created
     out_fn = fullfile(array_out_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));
+    fprintf('  Writing output to %s\n', out_fn);
+    % Note that image combining here never includes "Tomo" variable. Use
+    % tomo.run_collate.m to create the combined image with the "Tomo" variable.
+    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      'Elevation','GPS_time','Data','Surface','Bottom', ...
+      'param_array','param_records','param_sar', ...
+      'Roll', 'Pitch', 'Heading','file_version');
   else
     % Store the result in img 1 since a combined file is not created
     img = 1;
     out_fn = fullfile(array_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
       img, param.day_seg, frm));
+    fprintf('  Writing output to %s\n', out_fn);
+    if isempty(Tomo)
+    else
+    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      'Elevation','GPS_time','Data','Surface','Bottom', ...
+      'param_array','param_records','param_sar', ...
+      'Roll', 'Pitch', 'Heading','file_version');
+    end
   end
-  fprintf('  Writing output to %s\n', out_fn);
-  % Note that image combining here never includes "Tomo" variable. Use
-  % tomo.run_collate.m to create the combined image with the "Tomo" variable.
-  save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-    'Elevation','GPS_time','Data','Surface','Bottom', ...
-    'param_array','param_records','param_sar', ...
-    'Roll', 'Pitch', 'Heading','file_version');
 end
 
 fprintf('%s done %s\n', mfilename, datestr(now));
