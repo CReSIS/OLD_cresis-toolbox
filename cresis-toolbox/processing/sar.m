@@ -221,7 +221,7 @@ if ~exist(sar_fn,'file') ...
   
   ctrl = cluster_new_batch(param);
   
-  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
+  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
     cpu_time_mult = 2e-3;
     mem_mult = 5;
     
@@ -330,7 +330,7 @@ else
         [board,board_idx,profile] = wf_adc_to_board(param,[wf adc]);
         
         if length(imgs_list) < board_idx
-          imgs_list{board_idx} = [];
+          imgs_list{board_idx} = {};
         end
         if length(imgs_list{board_idx}) < img
           imgs_list{board_idx}{img} = [];
@@ -341,6 +341,10 @@ else
     % Remove empty imgs
     mask = ~cellfun(@isempty,imgs_list);
     imgs_list = imgs_list(mask);
+    for imgs_list_idx = 1:length(imgs_list)
+      mask = ~cellfun(@isempty,imgs_list{imgs_list_idx});
+      imgs_list{imgs_list_idx} = imgs_list{imgs_list_idx}(mask);
+    end
     
     if strcmpi(param.sar.wf_adc_pair_task_group_method,'img')
       % All SAR images from the same image per task, but also breaks at
@@ -365,7 +369,7 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'sar_task.m','sar_coord_task'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 total_num_sam = {};
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));

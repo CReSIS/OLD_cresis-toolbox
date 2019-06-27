@@ -29,26 +29,32 @@ end
 % User Settings
 % ======================================================================
 debug_level = 1;
-singleday = false;
-mergegps = false;
-baddatevecs = {[2019, 2, 7]}; %only used when mergegps=true
-dbstop if warning
+mergegps = true; % Set to true for days that require combining Arena and BAS GPS
 
-if singleday %Single day
-  year = 2019; month = 1; day = 29;
+if mergegps
+  % Merge Arena and BAS GPS
+  % Only one day can be enabled at once
+  year = 2019; month = 2; day = 4;
+%   year = 2019; month = 2; day = 7;
   datevecs = {[year, month, day]};
-else %Multiple days
-  %Each vec has format [YYYY, MM, DD] and it is iterated upon later[2019, 1, 29],
-  datevecs = { [2019, 1, 29]};
-end
-
-%Check that the bad dates are in the datevecs variable
-if singleday && mergegps
-  datevecs = baddatevecs;
-else
-  baddatevecs = {};
-end
   
+  baddatevecs = datevecs;
+else
+  % Multiple days (BAS GPS)
+  % Each vec has format [YYYY, MM, DD] and it is iterated upon later[2019, 1, 29]
+  % Uncomment which days you want to make
+  
+  datevecs = {};
+%   datevecs{end+1} = [2019, 1, 29];
+%   datevecs{end+1} = [2019, 1, 30];
+%   datevecs{end+1} = [2019, 1, 31];
+%   datevecs{end+1} = [2019, 2, 1];
+%   datevecs{end+1} = [2019, 2, 3];
+%   datevecs{end+1} = [2019, 2, 5];
+%   datevecs{end+1} = [2019, 2, 6];
+
+  baddatevecs = {};
+end  
 
 %Find all of the subdirectories in the base path for comparison to dates
 in_base_path = fullfile(data_support_path,'2018_Antarctica_TObas');

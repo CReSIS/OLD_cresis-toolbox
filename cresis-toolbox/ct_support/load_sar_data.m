@@ -21,17 +21,14 @@ function [data,metadata] = load_sar_data(param)
 %
 % Also used in: run_load_sar_data.m
 
-% The base path for all the data
-base_path = ct_filename_out(param,param.load_sar_data.fn,'CSARP_out');
-
 % Path to the input data
 year = str2double(param.day_seg(1:4));
 month = str2double(param.day_seg(5:6));
 day = str2double(param.day_seg(7:8));
 seg = str2double(param.day_seg(10:11));
 
+%% Check input arguments
 % =====================================================================
-% Check input arguments
 if ~isfield(param.load_sar_data,'debug_level')
   param.load_sar_data.debug_level = 1;
 end
@@ -53,6 +50,11 @@ end
 if ~isfield(param.load_sar_data.detrend,'B_sig')
   param.load_sar_data.detrend.B_sig = [10 20];
 end
+if ~isfield(param.load_sar_data,'fn') || isempty(param.load_sar_data.fn)
+  param.load_sar_data.fn = 'sar';
+end
+% The base path for all the data
+base_path = ct_filename_out(param,param.load_sar_data.fn,'');
 if ~isfield(param.load_sar_data.detrend,'minVal')
   param.load_sar_data.detrend.minVal = -inf;
 end
@@ -233,7 +235,7 @@ end
 metadata.fcs = fcs;
 metadata.wfs = sar_data.wfs;
 metadata.param_records = sar_data.param_records;
-metadata.param_csarp = sar_data.param_csarp;
+metadata.param_sar = sar_data.param_sar;
 
 if param.load_sar_data.combine_channels && param.load_sar_data.incoherent ...
     && param.load_sar_data.combine_waveforms

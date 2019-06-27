@@ -8,17 +8,17 @@
 
 %% User Setup
 % =====================================================================
-params = read_param_xls(ct_filename_param('rds_param_2016_Antarctica_DC8.xls'),'');
+params = read_param_xls(ct_filename_param('accum_param_2018_Antarctica_TObas.xls'),'');
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20161024_05');
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20190201_01');
 
 
-mode = 'get_heights'; % <== OFTEN CHANGED (get_heights or combine)
+mode = 'qlook'; % <== OFTEN CHANGED (qlook or array)
 
 update_img_combine_param.out_path = 'qlook';
 update_img_combine_param.img_comb_mult = inf; % <== OFTEN CHANGED (inf default)
 update_img_combine_param.img_comb_bins = 1; % <== OFTEN CHANGED (1 default)
-update_img_combine_param.img_comb_layer_params = struct('name','surface','source','layerdata','layerdata_source','CSARP_post/layerData');% <== OFTEN CHANGED
+update_img_combine_param.img_comb_layer_params = struct('name','surface','source','layerdata','layerdata_source','layerData');% <== OFTEN CHANGED
 
 %% Automated Section
 % =====================================================================

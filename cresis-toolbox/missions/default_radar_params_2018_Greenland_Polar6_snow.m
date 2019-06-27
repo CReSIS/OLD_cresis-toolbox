@@ -1,7 +1,7 @@
 function param = default_radar_params_2018_Greenland_Polar6_snow
 % param = default_radar_params_2018_Greenland_Polar6_snow
 %
-% Snow: 2019_Arctic_Polar6
+% Snow: 2018_Greenland_Polar6
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting

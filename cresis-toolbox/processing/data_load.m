@@ -454,7 +454,7 @@ for state_idx = 1:length(states)
                 tmp = single(typecast(file_data(start_bin : stop_bin), wfs(wf).sample_type));
               end
               if wfs(wf).complex
-                if wfs(wf).conjugate
+                if wfs(wf).conjugate_on_load
                   tmp = tmp(1:2:end) - 1i*tmp(2:2:end);
                 else
                   tmp = tmp(1:2:end) + 1i*tmp(2:2:end);
@@ -533,7 +533,7 @@ for state_idx = 1:length(states)
                       end
                     end
                     if is_IQ
-                      if wfs(wf).conjugate
+                      if wfs(wf).conjugate_on_load
                         tmp_data{adc,wf} = tmp_data{adc,wf}(1:2:end) - 1i*tmp_data{adc,wf}(2:2:end);
                       else
                         tmp_data{adc,wf} = tmp_data{adc,wf}(1:2:end) + 1i*tmp_data{adc,wf}(2:2:end);
