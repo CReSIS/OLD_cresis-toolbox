@@ -174,6 +174,20 @@ obj.h_gui.table.height(row,col)    = 20;
 obj.h_gui.table.width_margin(row,col) = 1;
 obj.h_gui.table.height_margin(row,col) = 1;
 
+row = row + 1; col = 1;%%
+obj.h_gui.table.handles{row,col}   = obj.h_gui.LayerSourcePM;
+obj.h_gui.table.width(row,col)     = inf;
+obj.h_gui.table.height(row,col)    = 25;
+obj.h_gui.table.width_margin(row,col) = 1;
+obj.h_gui.table.height_margin(row,col) = 1;
+
+col =2;%%
+obj.h_gui.table.handles{row,col}   = obj.h_gui.layerDataSourcePM;
+obj.h_gui.table.width(row,col)     = inf;
+obj.h_gui.table.height(row,col)    = 25;
+obj.h_gui.table.width_margin(row,col) = 1;
+obj.h_gui.table.height_margin(row,col) = 1;
+
 row = row + 1; col = 1;
 obj.h_gui.table.handles{row,col}   = obj.h_gui.layers.h_list_available;
 obj.h_gui.table.width(row,col)     = inf;
@@ -254,20 +268,6 @@ col = 2;
 obj.h_gui.table.handles{row,col}   = obj.h_gui.flightlinesPM;
 obj.h_gui.table.width(row,col)     = inf;
 obj.h_gui.table.height(row,col)    = 22;
-obj.h_gui.table.width_margin(row,col) = 1;
-obj.h_gui.table.height_margin(row,col) = 1;
-
-row = row + 1; col = 1;%%
-obj.h_gui.table.handles{row,col}   = obj.h_gui.LayerSourcePM;
-obj.h_gui.table.width(row,col)     = inf;
-obj.h_gui.table.height(row,col)    = 25;
-obj.h_gui.table.width_margin(row,col) = 1;
-obj.h_gui.table.height_margin(row,col) = 1;
-
-col =2;%%
-obj.h_gui.table.handles{row,col}   = obj.h_gui.layerDataSourcePM;
-obj.h_gui.table.width(row,col)     = inf;
-obj.h_gui.table.height(row,col)    = 25;
 obj.h_gui.table.width_margin(row,col) = 1;
 obj.h_gui.table.height_margin(row,col) = 1;
 
