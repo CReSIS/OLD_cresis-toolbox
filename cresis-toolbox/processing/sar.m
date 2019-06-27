@@ -52,6 +52,10 @@ if ~isfield(param.sar,'combine_rx') || isempty(param.sar.combine_rx)
   param.sar.combine_rx = false;
 end
 
+if ~isfield(param.sar,'chunk_len') || isempty(param.sar.chunk_len)
+  param.sar.chunk_len = 2500;
+end
+
 if ~isfield(param.sar,'imgs') || isempty(param.sar.imgs)
   param.sar.imgs = {[1 1]};
 end
@@ -71,28 +75,40 @@ if ~isfield(param.sar,'frm_types') || isempty(param.sar.frm_types)
   param.sar.frm_types = {-1,-1,-1,-1,-1};
 end
 
-if ~isfield(param.sar,'Lsar')
+if ~isfield(param.sar,'Lsar') || isempty(param.sar.Lsar)
   param.sar.Lsar = [];
 end
-if ~isfield(param.sar.Lsar,'agl')
+if ~isfield(param.sar.Lsar,'agl') || isempty(param.sar.Lsar.agl)
   param.sar.Lsar.agl = 500;
 end
-if ~isfield(param.sar.Lsar,'thick')
+if ~isfield(param.sar.Lsar,'thick') || isempty(param.sar.Lsar.thick)
   param.sar.Lsar.thick = 1000;
 end
 
-if ~isfield(param.sar.mocomp,'filter')
-  param.sar.mocomp.filter = '';
+if ~isfield(param.sar,'mocomp') || isempty(param.sar.mocomp)
+  param.sar.mocomp = [];
+end
+if ~isfield(param.sar.mocomp,'en') || isempty(param.sar.mocomp.en)
+  param.sar.mocomp.en = false;
+end
+if ~isfield(param.sar.mocomp,'filter') || isempty(param.sar.mocomp.filter)
+  param.sar.mocomp.filter = {@butter,2,0.1};
 end
 % Tukey window to apply when undoing motion compensation after
 % fk-migration, default is 0.05. A value of 0 disables the window.
 if ~isfield(param.sar.mocomp,'tukey') || isempty(param.sar.mocomp.tukey)
   param.sar.mocomp.tukey = 0.05;
 end
+if ~isfield(param.sar.mocomp,'type') || isempty(param.sar.mocomp.type)
+  param.sar.mocomp.type = 2;
+end
+if ~isfield(param.sar.mocomp,'uniform_en') || isempty(param.sar.mocomp.uniform_en)
+  param.sar.mocomp.uniform_en = true;
+end
 % Masks bad records based on the data_load hdr.bad_recs field. Masked
 % records are not included in the sinc interpolation.
 if ~isfield(param.sar.mocomp,'param.sar.mocomp.uniform_mask_en') || isempty(param.sar.mocomp.uniform_mask_en)
-  param.sar.mocomp.uniform_mask_en = false;
+  param.sar.mocomp.uniform_mask_en = true;
 end
 
 if ~isfield(param.sar,'out_path') || isempty(param.sar.out_path)
@@ -102,7 +118,7 @@ if ~isfield(param.sar,'coord_path') || isempty(param.sar.coord_path)
   param.sar.coord_path = param.sar.out_path;
 end
 
-if ~isfield(param.sar,'presums')
+if ~isfield(param.sar,'presums') || isempty(param.sar.presums)
   param.sar.presums = 1;
 end
 
