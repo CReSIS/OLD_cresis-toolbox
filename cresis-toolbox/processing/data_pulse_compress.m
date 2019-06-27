@@ -1302,10 +1302,17 @@ for img = 1:length(param.load.imgs)
             data{img}(1:size(coh_noise,1),:,wf_adc) = bsxfun(@minus, ...
               data{img}(1:size(coh_noise,1),:,wf_adc), coh_noise(:,1));
           else
-            % At least one raw data point exists within the coherent noise
-            % gps time sampling range
-            data{img}(1:size(coh_noise,1),:,wf_adc) = data{img}(1:size(coh_noise,1),:,wf_adc) ...
-              - interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
+            blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
+            rel_gps_time = single(noise.coh_noise_gps_time - noise.coh_noise_gps_time(1));
+            rel_gps_time_interp = single(hdr.gps_time - noise.coh_noise_gps_time(1));
+            for block = 1:length(blocks)-1
+              rlines = blocks(block) : blocks(block+1)-1;
+              
+              % At least one raw data point exists within the coherent noise
+              % gps time sampling range
+              data{img}(1:size(coh_noise,1),rlines,wf_adc) = data{img}(1:size(coh_noise,1),rlines,wf_adc) ...
+                - interp_finite(interp1(rel_gps_time, single(coh_noise.'), rel_gps_time_interp(rlines))).';
+            end
           end
         end
       end

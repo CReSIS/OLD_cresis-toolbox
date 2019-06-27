@@ -368,12 +368,19 @@ end
 ctrl = cluster_new_batch(param);
 cluster_compile({'sar_task.m','sar_coord_task'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
-total_num_sam = {};
+total_raw_num_sam = {};
+total_pc_num_sam = {};
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));
-      total_num_sam{imgs_idx}{img} = wfs(wf).Nt_raw;
+      total_raw_num_sam{imgs_idx}{img} = wfs(wf).Nt_raw;
+    end
+  end
+  for imgs_idx = 1:length(imgs_list)
+    for img = 1:length(imgs_list{imgs_idx})
+      wf = abs(imgs_list{imgs_idx}{img}(1,1));
+      total_pc_num_sam{imgs_idx}{img} = wfs(wf).Nt;
     end
   end
   cpu_time_mult = 65e-10;
@@ -383,7 +390,13 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));
-      total_num_sam{imgs_idx}{img} = 32000;
+      total_raw_num_sam{imgs_idx}{img} = 32000;
+    end
+  end
+  for imgs_idx = 1:length(imgs_list)
+    for img = 1:length(imgs_list{imgs_idx})
+      wf = abs(imgs_list{imgs_idx}{img}(1,1));
+      total_pc_num_sam{imgs_idx}{img} = 32000;
     end
   end
   cpu_time_mult = 8e-8;
@@ -539,28 +552,59 @@ for frm_idx = 1:length(param.cmd.frms)
       % =================================================================
       
       % CPU Time and Memory estimates:
-      %  Nx*total_num_sam*K where K is some manually determined multiplier.
+      %  1. Raw data for all images stored (gets replaced during pulse
+      %     compression)
+      %  2. Pulse compressed data for all images (gets replaced during
+      %     motion compensation IF there is a single wf-adc pair, otherwise it
+      %     must be stored in memory the whole time)
+      %  3. Motion compensated data 
+      %  Nx*total_num_sam*mem_mult where K is some manually determined multiplier.
       dparam.cpu_time = 0;
-      dparam.mem = 400e6;
-      mem_biggest = 0;
+      dparam.mem = 500e6;
+      mem_raw = [];
+      mem_pulse_compress = [];
       for img = 1:length(dparam.argsin{1}.load.imgs)
         Nx = diff(dparam.argsin{1}.load.recs) + 2*chunk_overlap_est(img)/dx_approx;
         if strcmpi(param.sar.sar_type,'fk')
-          dparam.cpu_time = dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img} ...
-            *(10+2*log2(total_num_sam{imgs_idx}{img}))*size(dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
+          
+          dparam.cpu_time = dparam.cpu_time + 10 + Nx*log2(Nx)*total_pc_num_sam{imgs_idx}{img} ...
+            *(10+2*log2(total_pc_num_sam{imgs_idx}{img}))*size(dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
+          
           % Raw Data and Pulse Compression Memory Requirements:
-          mem_biggest = max(mem_biggest,Nx*total_num_sam{imgs_idx}{img}*16);
-          mem_pulse_compress = Nx*total_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*8*mem_mult(1);
-          % SAR Memory Requirements:
-          % NOTE: Need to consider number of SAR subapertures, length(param.sar.sub_aperture_steering)
-          mem_sar = 0;
-          dparam.mem = dparam.mem + max(mem_pulse_compress);
+          
+          % Nx: Number of along-track samples
+          % total_raw_num_sam{imgs_idx}{img}: Number of fast-time raw samples
+          % size(dparam.argsin{1}.load.imgs{img},1): Number of wf-adc pair data streams to load
+          % 4: size of a complex number
+          % (1+wfs(wf).complex): accounts for complex data
+          % 2x: To hold two copies of the data during matrix operations
+          mem_raw(img) = Nx*total_raw_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*4*(1+wfs(wf).complex)*2;
+          
+          % total_pc_num_sam{imgs_idx}{img}: Number of fast-time pulse compressed samples
+          % size(dparam.argsin{1}.load.imgs{img},1): Number of wf-adc pair data streams to load
+          % 8: size of a complex single
+          % 2: To hold two copies of the data during matrix operations
+          % (+1): If coherent noise enabled
+          mem_pulse_compress(img) = Nx*total_pc_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*8*2;
+          if strcmpi(wfs(wf).coh_noise_method,'analysis')
+            mem_pulse_compress(img) = 2*mem_pulse_compress(img);
+          end
+          
+          % Only one channel is SAR processed at a time 
+          mem_sar = Nx*total_pc_num_sam{imgs_idx}{img}*8*2;
+
+          % Pulse compressed data overwritten during SAR processing when
+          % there is only one wf-adc channel in the image
+          if size(dparam.argsin{1}.load.imgs{img},1) == 1
+            mem_pulse_compress(img) = max(mem_pulse_compress(img),mem_sar);
+          else
+            mem_pulse_compress(img) = mem_pulse_compress(img) + mem_sar;
+          end
         elseif strcmpi(param.sar.sar_type,'tdbp')
           dparam.cpu_time = ctrl.cluster.max_time_per_job - 40;
         end
       end
-      % Two copies of 256 MB file or Double, two copies, divided into 8 blocks
-      dparam.mem = dparam.mem + max(1e9/2,2*2*mem_biggest/8)*mem_mult(2);
+      dparam.mem = sum(max(mem_raw,mem_pulse_compress));
       
       if dparam.mem > ctrl.cluster.max_mem_per_job
         if strcmpi(param.sar.wf_adc_pair_task_group_method,'board')

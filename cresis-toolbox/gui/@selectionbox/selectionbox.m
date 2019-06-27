@@ -50,12 +50,12 @@ classdef selectionbox < handle
       set(obj.h_list_selected,'Max',1e9);
       set(obj.h_list_selected,'Callback',@obj.list_callback);
 
-      obj.h_list_availableCM = uicontextmenu;
+      obj.h_list_availableCM = uicontextmenu('Parent',parent);
       % Define the context menu items and install their callbacks
       uimenu(obj.h_list_availableCM, 'Label', 'Add', 'Callback', @obj.add_callback);
       set(obj.h_list_available,'uicontextmenu',obj.h_list_availableCM)
       
-      obj.h_list_selectedCM = uicontextmenu;
+      obj.h_list_selectedCM = uicontextmenu('Parent',parent);
       % Define the context menu items and install their callbacks
       uimenu(obj.h_list_selectedCM, 'Label', 'Remove', 'Callback', @obj.remove_callback);
       set(obj.h_list_selected,'uicontextmenu',obj.h_list_selectedCM)

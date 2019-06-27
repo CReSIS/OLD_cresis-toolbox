@@ -504,6 +504,20 @@ for wf = 1:length(param.radar.wfs)
     % =====================================================================
     wfs(wf).Nt = 0;
     
+    % This field may be overwritten during data loading, but this is a
+    % default value which is used to estimate memory requirements for
+    % cluster processing
+    if isfield(param.radar.wfs(wf),'complex') && ~isempty(param.radar.wfs(wf).complex)
+      wfs(wf).complex   = param.radar.wfs(wf).complex;
+    else
+      if wfs(wf).DDC_dec > 1 || wfs(wf).DDC_freq ~= 0
+        % Assume complex data if DDC_dec > 1 or DDC_freq is non-zero
+        wfs(wf).complex   = true;
+      else
+        wfs(wf).complex   = false;
+      end
+    end
+    
   elseif strcmpi(radar_type,'pulsed')
     %% Pulsed: Create time and frequency axis information
     % =====================================================================
@@ -517,8 +531,25 @@ for wf = 1:length(param.radar.wfs)
     nz1 = floor((wfs(wf).f1-wfs(wf).DDC_freq)/wfs(wf).fs_raw*2);
     
     df = wfs(wf).fs_raw/wfs(wf).Nt_raw;
-    if nz0 == nz1 && wfs(wf).DDC_dec == 1
-      % Assume real sampling since signal does not cross Nyquist boundary
+    
+    % wfs(wf).complex: This field may be overwritten during data loading,
+    % but this is a default value which is used to estimate memory
+    % requirements for cluster processing before data loading happens.
+    if isfield(param.radar.wfs(wf),'complex') ...
+        && ~isempty(param.radar.wfs(wf).complex)
+        wfs(wf).complex   = param.radar.wfs(wf).complex;
+    else
+      if nz0 == nz1 && wfs(wf).DDC_dec == 1 && wfs(wf).DDC_freq == 0
+        % Assume real sampling since signal does not cross Nyquist boundary
+        % and DDC does not seem to be in operation.
+        wfs(wf).complex   = false;
+      else
+        % Assume complex sampling since signal crosses Nyquist boundary
+        wfs(wf).complex   = true;
+      end
+    end
+
+    if ~wfs(wf).complex
       if mod(nz0,2)
         % Negative frequencies first since this is an odd Nyquist zone
         wfs(wf).freq_raw = floor(nz0/2)*wfs(wf).fs_raw + df*(0:wfs(wf).Nt_raw-1).';
@@ -530,8 +561,8 @@ for wf = 1:length(param.radar.wfs)
         wfs(wf).freq_raw(end-floor(wfs(wf).Nt_raw/2)+1:end) ...
           = wfs(wf).freq_raw(end-floor(wfs(wf).Nt_raw/2)+1:end) - (nz0/2+1)*wfs(wf).fs_raw - nz0/2*wfs(wf).fs_raw;
       end
+      
     else
-      % Assume complex sampling since signal crosses Nyquist boundary
       wfs(wf).freq_raw = wfs(wf).DDC_freq ...
         + ifftshift( -floor(wfs(wf).Nt_raw/2)*df : df : floor((wfs(wf).Nt_raw-1)/2)*df ).';
       
