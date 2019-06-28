@@ -143,7 +143,12 @@ fprintf('  Delta GPS time offset is %.1f sec\n', delta_offset);
 if save_changes
   % Save outputs
   fprintf('  Saving records %s\n', records_fn);
-  save(records_fn,'-struct','records');
+  if param.ct_file_lock
+    records.file_version = '1L';
+  else
+    records.file_version = '1';
+  end
+  ct_save(records_fn,'-v7.3','-struct','records');
   create_records_aux_files(records_fn);
 else
   fprintf('  Not saving information (TEST MODE)\n');

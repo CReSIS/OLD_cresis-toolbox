@@ -41,7 +41,7 @@ records_fn = ct_filename_support(param,'','records');
 frames_fn = ct_filename_support(param,'','frames');
 
 if ~exist(records_fn,'file')
-  warning('  Skipping, records file does not exist %s', records_fn);
+  warning('  Skipping: records file does not exist %s', records_fn);
   return;
 end
 
@@ -79,4 +79,4 @@ else
   file_version = '1';
 end
 ct_file_lock_check(frames_fn,3);
-save(frames_fn,'-v7.3','frames','file_version');
+ct_save(frames_fn,'-v7.3','frames','file_version');
