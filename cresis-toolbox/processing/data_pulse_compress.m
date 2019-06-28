@@ -1293,21 +1293,21 @@ for img = 1:length(param.load.imgs)
           end
           
         elseif strcmpi(noise.param_collate_coh_noise.collate_coh_noise.method,'firdec')
-          if hdr.gps_time(1) > noise.coh_noise_gps_time(end)
-            % Raw data are all after the last coherent noise sample
-            data{img}(1:size(coh_noise,1),:,wf_adc) = bsxfun(@minus, ...
-              data{img}(1:size(coh_noise,1),:,wf_adc), coh_noise(:,end));
-          elseif hdr.gps_time(end) < noise.coh_noise_gps_time(1)
-            % Raw data are all before the first coherent noise sample
-            data{img}(1:size(coh_noise,1),:,wf_adc) = bsxfun(@minus, ...
-              data{img}(1:size(coh_noise,1),:,wf_adc), coh_noise(:,1));
-          else
-            blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
-            rel_gps_time = single(noise.coh_noise_gps_time - noise.coh_noise_gps_time(1));
-            rel_gps_time_interp = single(hdr.gps_time - noise.coh_noise_gps_time(1));
-            for block = 1:length(blocks)-1
-              rlines = blocks(block) : blocks(block+1)-1;
-              
+          blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
+          rel_gps_time = single(noise.coh_noise_gps_time - noise.coh_noise_gps_time(1));
+          rel_gps_time_interp = single(hdr.gps_time - noise.coh_noise_gps_time(1));
+          for block = 1:length(blocks)-1
+            rlines = blocks(block) : blocks(block+1)-1;
+            
+            if rel_gps_time_interp(rlines(1)) > rel_gps_time(end)
+              % Raw data are all after the last coherent noise sample
+              data{img}(1:size(coh_noise,1),rlines,wf_adc) = bsxfun(@minus, ...
+                data{img}(1:size(coh_noise,1),rlines,wf_adc), coh_noise(:,end));
+            elseif rel_gps_time_interp(rlines(end)) < rel_gps_time(1)
+              % Raw data are all before the first coherent noise sample
+              data{img}(1:size(coh_noise,1),rlines,wf_adc) = bsxfun(@minus, ...
+                data{img}(1:size(coh_noise,1),rlines,wf_adc), coh_noise(:,1));
+            else
               % At least one raw data point exists within the coherent noise
               % gps time sampling range
               data{img}(1:size(coh_noise,1),rlines,wf_adc) = data{img}(1:size(coh_noise,1),rlines,wf_adc) ...
