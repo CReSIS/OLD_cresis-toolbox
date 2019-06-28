@@ -1311,7 +1311,7 @@ for img = 1:length(param.load.imgs)
               % At least one raw data point exists within the coherent noise
               % gps time sampling range
               data{img}(1:size(coh_noise,1),rlines,wf_adc) = data{img}(1:size(coh_noise,1),rlines,wf_adc) ...
-                - interp_finite(interp1(rel_gps_time, single(coh_noise.'), rel_gps_time_interp(rlines))).';
+                - interp_finite(interp1(rel_gps_time, single(coh_noise.'), rel_gps_time_interp(rlines)),0).';
             end
           end
         end
