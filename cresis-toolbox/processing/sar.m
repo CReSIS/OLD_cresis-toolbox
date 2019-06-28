@@ -575,8 +575,7 @@ for frm_idx = 1:length(param.cmd.frms)
       %     must be stored in memory the whole time)
       %  3. Motion compensated data 
       %  Nx*total_num_sam*mem_mult where K is some manually determined multiplier.
-      dparam.cpu_time = 0;
-      dparam.mem = 500e6;
+      dparam.cpu_time = 60;
       mem_raw = [];
       mem_pulse_compress = [];
       for img = 1:length(dparam.argsin{1}.load.imgs)
@@ -620,7 +619,7 @@ for frm_idx = 1:length(param.cmd.frms)
           dparam.cpu_time = ctrl.cluster.max_time_per_job - 40;
         end
       end
-      dparam.mem = sum(max(mem_raw,mem_pulse_compress));
+      dparam.mem = 1e9 + sum(max(mem_raw,mem_pulse_compress));
       
       if dparam.mem > ctrl.cluster.max_mem_per_job
         if strcmpi(param.sar.wf_adc_pair_task_group_method,'board')
