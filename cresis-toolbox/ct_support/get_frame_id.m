@@ -26,6 +26,8 @@ function [day_seg,frm_id,recs,num_recs] = get_frame_id(param,gps_time,search_par
 %   recs will be 1.5.  A record number < 1 or more than the corresponding
 %   entry in num_recs means that the gps time lies before or after the segment
 %   respectively.
+% num_recs: number of records in the segment (this can be used to see if
+%   entries in recs are beyond the end of the segment).
 %
 % Examples:
 %   param = struct('season_name','2011_Greenland_P3','radar_name','snow')

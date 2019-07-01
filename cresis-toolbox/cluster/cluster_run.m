@@ -40,16 +40,19 @@ function ctrl_chain = cluster_run(ctrl_chain,cluster_run_mode)
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task
 
+%% Input checking
+if ~exist('cluster_run_mode','var') || isempty(cluster_run_mode)
+  cluster_run_mode = 1;
+end
+if cluster_run_mode < 0
+  return;
+end
+
 if isnumeric(ctrl_chain)
   ctrl_chain = cluster_load_chain(ctrl_chain);
 end
 
 if iscell(ctrl_chain)
-  %% Input checking
-  if ~exist('cluster_run_mode','var') || isempty(cluster_run_mode)
-    cluster_run_mode = 1;
-  end
-  
   %% Traverse chain list
   active_stage = ones(numel(ctrl_chain),1);
   first_run = ones(numel(ctrl_chain),1);
@@ -81,7 +84,7 @@ if iscell(ctrl_chain)
         
         % 3. Submit jobs from the active stage for each parallel control structure
         %   ctrl.max_active_jobs.
-        ctrl = cluster_run(ctrl);
+        ctrl = cluster_run(ctrl,cluster_run_mode);
         
         % 4. Update ctrl_chain
         ctrl_chain{chain}{active_stage(chain)} = ctrl;
@@ -108,8 +111,8 @@ if iscell(ctrl_chain)
         end
         
         % 6. Check to see if a hold has been placed on this batch
-        if exist(ctrl.hold_fn,'file')
-          warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
+        if cluster_run_mode >= 0 && exist(ctrl.hold_fn,'file')
+          warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=-1" to stop cluster_run.m now in a clean way. Either way, run dbcont to continue.\n');
           keyboard
         end
       end
@@ -117,7 +120,7 @@ if iscell(ctrl_chain)
     % Check if in a block mode or not. If a stage finished and still has
     % more stages to complete, then do not exit yet since we should start
     % the next stage running first.
-    if ~active_stage_update && (cluster_run_mode == 0 || cluster_run_mode == 2)
+    if ~active_stage_update && (cluster_run_mode <= 0 || cluster_run_mode == 2)
       break;
     end
   end
@@ -214,10 +217,12 @@ elseif isstruct(ctrl_chain)
     
     % Check to see if a hold has been placed on this batch
     if exist(ctrl.hold_fn,'file')
-      warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
-      keyboard
-      if ~cluster_run_mode
-        break;
+      warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=-1" to stop cluster_run.m now in a clean way. Either way, run dbcont to continue.\n');
+      if cluster_run_mode < 0
+        % Clean up and exit function
+        ctrl_chain = ctrl;
+        ctrl.submission_queue = cat(2,job_tasks,ctrl.submission_queue);
+        return;
       end
     end
     
