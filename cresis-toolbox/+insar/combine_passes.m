@@ -1,6 +1,44 @@
 %% User Settings
-frms = {};
+passes = struct('frm',{},'wf_adc',{});
+
 if 1
+  %% OIB P3 Greenland: North Line
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  pass_name='rds_thule';
+  % Found using check_region
+  wf = 2;
+%   passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf 2]);
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc]);
+  end
+%   passes(end+1) = struct('frm','20140514_01_004','wf_adc',[wf 2]);
+%   passes(end+1) = struct('frm','20140514_01_066','wf_adc',[wf 2]);
+%   passes(end+1) = struct('frm','20140515_02_004','wf_adc',[wf 2]);
+%   passes(end+1) = struct('frm','20140515_02_069','wf_adc',[wf 2]);
+%   passes(end+1) = struct('frm','20140521_02_033','wf_adc',[wf 2]);
+
+%   frms{end+1} = '20140429_01_005';
+%   frms{end+1} = '20140429_01_067';
+%   %   frms{end+1} = '20140429_01_004'; %sar processed stop is far
+%   %   frms{end+1} = '20140429_01_066'; %outside of window
+%   %   frms{end+1} = '20140501_01_044'; %sar processed %outside of window
+%   %   frms{end+1} = '20140501_01_045'; %sar processed %Large baseline
+%   %   frms{end+1} = '20140502_01_060'; %High altitude flight
+%   %   frms{end+1} = '20140507_01_068'; %outside of window
+%   frms{end+1} = '20140514_01_004';
+%   frms{end+1} = '20140514_01_066';
+%   frms{end+1} = '20140515_02_004';
+%   frms{end+1} = '20140515_02_069';
+%   %   frms{end+1} = '20140521_01_003'; %Lots of random noise
+%   frms{end+1} = '20140521_02_033';
+  %Found using check_region
+  start = struct('lat', 77.10,'lon', -62.3);
+  stop = struct('lat', 77.13, 'lon', -61.9);
+  %Set dist min
+  dist_min = 300;
+elseif 0
+  %% TO DTU Greenland: North Line
+  param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
   frms{end+1} = '20161107_02_003';
   frms{end+1} = '20161107_02_006';
   frms{end+1} = '20161107_03_003';
@@ -22,6 +60,8 @@ if 1
   stop.lon = -48.906555;
   dist_min = 2000;
 elseif 0
+  %% TO DTU Greenland: Middle Line
+  param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
   % frms{end+1} = '20161107_02_001'; % 11.7 km short of stop point
   frms{end+1} = '20161107_02_004';
   frms{end+1} = '20161107_03_001';
@@ -53,6 +93,8 @@ elseif 0
   stop.lon = -48.888;
   dist_min = 2500;
 elseif 0
+  %% TO DTU Greenland: South Line
+  param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
   frms{end+1} = '20161107_02_002';
   frms{end+1} = '20161107_02_005';
   frms{end+1} = '20161107_03_002';
@@ -74,6 +116,8 @@ elseif 0
   stop.lon = -48.846;
   dist_min = 2000;
 elseif 0
+  %% TO DTU Iceland: South Line
+  param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
   frms{end+1} = '20161101_03_004';
   frms{end+1} = '20161101_01_002';
   frms{end+1} = '20161101_02_002';
@@ -85,6 +129,8 @@ elseif 0
   stop.lon = -19.105;
   dist_min = 2000;
 elseif 1
+  %% TO DTU Iceland: North Line
+  param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
   frms{end+1} = '20161101_01_003';
   frms{end+1} = '20161101_02_001';
   frms{end+1} = '20161101_02_003';
@@ -97,6 +143,8 @@ elseif 1
   stop.lon = -18.909;
   dist_min = 2000;  
 elseif 0
+  %% G1XB Russell Glacier: Good Quality Line
+  param_fn = 'rds_param_2016_Greenland_G1XB.xls';
   frms{end+1} = '20160413_01_001';
   frms{end+1} = '20160413_01_002';
   frms{end+1} = '20160413_02_001';
@@ -110,6 +158,8 @@ elseif 0
   stop.lon = -50.054023;
   dist_min = 100;
 elseif 0
+  %% G1XB Russell Glacier: Medium Quality Line
+  param_fn = 'rds_param_2016_Greenland_G1XB.xls';
   frms{end+1} = '20160416_01_002';
   frms{end+1} = '20160416_01_003';
   frms{end+1} = '20160416_01_004';
@@ -125,6 +175,8 @@ elseif 0
   stop.lon = -50.047311;
   dist_min = 100;
 else
+  %% G1XB Russell Glacier: Bad Quality Line
+  param_fn = 'rds_param_2016_Greenland_G1XB.xls';
   frms{end+1} = '20160417_01_001';
   % frms{end+1} = '20160417_01_002'; GPS BAD
   frms{end+1} = '20160417_02_002';
@@ -144,31 +196,35 @@ else
 end
 
 %% Automated
+for passes_idx = 1:length(passes)
+  if ~isfield(passes(passes_idx),'wf_adc') || isempty(passes(passes_idx).wf_adc)
+    passes(passes_idx).wf_adc = [1 1];
+  end
+end
 
 if 1
   % Load SAR data
   metadata = [];
   data = [];
-  for frm_idx = 1:length(frms)
+  for passes_idx = 1:length(passes)
     param = [];
-    param.day_seg = frms{frm_idx}(1:11);
-%     param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_G1XB.xls'),param.day_seg);
-    param = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),param.day_seg);
+    param.day_seg = passes(passes_idx).frm(1:11);
+    param = read_param_xls(ct_filename_param(param_fn),param.day_seg);
     
-    param.load_sar_data.fn = 'out_final'; % Leave empty for default
+    param.load_sar_data.fn = ''; % Leave empty for default
     
     % Start and stop chunk to load (inf for second element loads to the end)
     param.load_sar_data.chunk = [1 inf];
     
     param.load_sar_data.sar_type = 'fk';
     
-    frm = str2double(frms{frm_idx}(13:end));
+    frm = str2double(passes(passes_idx).frm(13:end));
     param.load_sar_data.frame = frm;
     
     param.load_sar_data.subap = 1;
     
     % (wf,adc) pairs to load
-    param.load_sar_data.imgs = {[1 1]};
+    param.load_sar_data.imgs = {passes(passes_idx).wf_adc};
     
     % Combine waveforms parameters
     param.load_sar_data.wf_comb = 10e-6;
@@ -191,9 +247,9 @@ if 1
     param.load_sar_data.detrend.B_sig = [1 10];
     param.load_sar_data.detrend.minVal = -inf;
     
-    [data{frm_idx},metadata{frm_idx}] = load_sar_data(param);
+    [data{passes_idx},metadata{passes_idx}] = load_sar_data(param);
     
-    metadata{frm_idx}.frm = frm;
+    metadata{passes_idx}.frm = frm;
   end
 end
 
@@ -207,13 +263,13 @@ pass = [];
 %% Go through each frame and extract the pass(es) from that frame
 % NOTE: This code looks for every pass in the frame (i.e. a frame may
 % contain multiple passes and this code should find each).
-for frm_idx = 1:length(frms)
+for passes_idx = 1:length(passes)
   % Find the distance to the start
   start_ecef = [start.x;start.y;start.z];
   stop_ecef = [stop.x;stop.y;stop.z];
   radar_ecef = [];
-  [radar_ecef.x,radar_ecef.y,radar_ecef.z] = geodetic2ecef(metadata{frm_idx}.lat/180*pi, ...
-    metadata{frm_idx}.lon/180*pi,0*metadata{frm_idx}.elev, ...
+  [radar_ecef.x,radar_ecef.y,radar_ecef.z] = geodetic2ecef(metadata{passes_idx}.lat/180*pi, ...
+    metadata{passes_idx}.lon/180*pi,0*metadata{passes_idx}.elev, ...
     WGS84.ellipsoid);
   radar_ecef = [radar_ecef.x; radar_ecef.y; radar_ecef.z];
   
@@ -273,7 +329,7 @@ for frm_idx = 1:length(frms)
     pause;
   end
   
-  %% Extract the data out of each
+  %% Extract the data out of each pass in this frame
   idxs = [start_idxs stop_idxs]; % Concatenate into one long 1 by N array
   [idxs,sort_idxs] = sort(idxs); % Sort the array
   start_mask = [ones(size(start_idxs)) zeros(size(stop_idxs))]; % Create another 1 by N array that indicates which indices are start_idxs
@@ -286,7 +342,7 @@ for frm_idx = 1:length(frms)
       stop_idx = idxs(pass_idx);% Get the last index of this pass
       no_passes_flag = false;
       
-      frm_id = sprintf('%s_%03d', metadata{frm_idx}.param_csarp.day_seg, metadata{frm_idx}.frm);
+      frm_id = sprintf('%s_%03d', metadata{passes_idx}.param_sar.day_seg, metadata{passes_idx}.frm);
       
       fprintf('New Segment: %s %d to %d\n', frm_id, start_idx, stop_idx);
   
@@ -299,30 +355,34 @@ for frm_idx = 1:length(frms)
         pass(end+1).direction = -1;
       end
       
-      pass(end).data = data{frm_idx}{1}(:,rlines);
+      pass(end).frm = passes(passes_idx).frm;
+      pass(end).wf = passes(passes_idx).wf_adc(1);
+      pass(end).adc = passes(passes_idx).wf_adc(2);
+      pass(end).data = data{passes_idx}{1}(:,rlines);
       
-      pass(end).gps_time = metadata{frm_idx}.fcs{1}{1}.gps_time(rlines);
-      pass(end).lat = metadata{frm_idx}.lat(rlines);
-      pass(end).lon = metadata{frm_idx}.lon(rlines);
-      pass(end).elev = metadata{frm_idx}.elev(rlines);
-      pass(end).roll = metadata{frm_idx}.fcs{1}{1}.roll(rlines);
-      pass(end).pitch = metadata{frm_idx}.fcs{1}{1}.pitch(rlines);
-      pass(end).heading = metadata{frm_idx}.fcs{1}{1}.heading(rlines);
+      pass(end).gps_time = metadata{passes_idx}.fcs{1}{1}.gps_time(rlines);
+      pass(end).lat = metadata{passes_idx}.lat(rlines);
+      pass(end).lon = metadata{passes_idx}.lon(rlines);
+      pass(end).elev = metadata{passes_idx}.elev(rlines);
+      pass(end).roll = metadata{passes_idx}.fcs{1}{1}.roll(rlines);
+      pass(end).pitch = metadata{passes_idx}.fcs{1}{1}.pitch(rlines);
+      pass(end).heading = metadata{passes_idx}.fcs{1}{1}.heading(rlines);
       
-      pass(end).Lsar = metadata{frm_idx}.fcs{1}{1}.Lsar;
-      pass(end).wfs = metadata{frm_idx}.wfs;
-      pass(end).param_csarp = metadata{frm_idx}.param_csarp;
-      pass(end).surface = metadata{frm_idx}.fcs{1}{1}.surface(:,rlines);
+      pass(end).Lsar = metadata{passes_idx}.fcs{1}{1}.Lsar;
+      pass(end).wfs = metadata{passes_idx}.wfs;
+      pass(end).param_records = metadata{passes_idx}.param_records;
+      pass(end).param_sar = metadata{passes_idx}.param_sar;
+      pass(end).surface = metadata{passes_idx}.fcs{1}{1}.surface(:,rlines);
       
-      pass(end).x = metadata{frm_idx}.fcs{1}{1}.x(:,rlines);
-      pass(end).y = metadata{frm_idx}.fcs{1}{1}.y(:,rlines);
-      pass(end).z = metadata{frm_idx}.fcs{1}{1}.z(:,rlines);
-      pass(end).origin = metadata{frm_idx}.fcs{1}{1}.origin(:,rlines);
-      pass(end).pos = metadata{frm_idx}.fcs{1}{1}.pos(:,rlines);
+      pass(end).x = metadata{passes_idx}.fcs{1}{1}.x(:,rlines);
+      pass(end).y = metadata{passes_idx}.fcs{1}{1}.y(:,rlines);
+      pass(end).z = metadata{passes_idx}.fcs{1}{1}.z(:,rlines);
+      pass(end).origin = metadata{passes_idx}.fcs{1}{1}.origin(:,rlines);
+      pass(end).pos = metadata{passes_idx}.fcs{1}{1}.pos(:,rlines);
     end
   end
   if no_passes_flag
-    warning('Frame %s_%03d has no passes.', metadata{frm_idx}.param_csarp.day_seg, metadata{frm_idx}.frm);
+    warning('Frame %s_%03d has no passes.', metadata{passes_idx}.param_sar.day_seg, metadata{passes_idx}.frm);
   end
   
 end

@@ -43,6 +43,17 @@ if ~isfield(param.post,'img') || isempty(param.post.img)
   param.post.img = 0;
 end
 
+if ~isfield(param.post,'ops') || isempty(param.post.ops)
+  param.post.ops = [];
+end
+if ~isfield(param.post.ops,'gaps_dist') || isempty(param.post.ops.gaps_dist)
+  param.post.ops.gaps_dist = [300 60];
+end
+
+if ~isfield(param.post,'out_path') || isempty(param.post.out_path)
+  param.post.out_path = 'post';
+end
+
 if ~isfield(param.post,'out_path') || isempty(param.post.out_path)
   param.post.out_path = 'post';
 end

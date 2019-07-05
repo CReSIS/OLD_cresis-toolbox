@@ -1,5 +1,13 @@
 
-if 0
+if 1
+  if ispc
+    fn = 'X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule.mat';
+  else
+    fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule.mat';
+  end
+  master_idx = 8;
+  rbins = 280:420;
+elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/north.mat';
   else
@@ -70,13 +78,6 @@ proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenlan
 physical_constants;
 
 load(fn);
-if isfield(pass(1).param_csarp,'proc')
-  warning('OLD FILE BEING USED, has proc field instead of just load.');
-  for pass_idx = 1:length(pass)
-    pass(pass_idx).param_csarp.load = merge_structs(pass(pass_idx).param_csarp.load,pass(pass_idx).param_csarp.proc);
-    pass(pass_idx).direction = 0;
-  end
-end
 
 %% Plot Results
 % =========================================================================
@@ -97,6 +98,9 @@ h_data_axes = [];
 for pass_idx = 1:length(pass)
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
+  if isempty(rbins)
+    rbins = 1:size(pass(pass_idx).data,1);
+  end
   if 1
     imagesc(lp(pass(pass_idx).data(rbins,:)))
     colormap(1-gray(256));
@@ -112,6 +116,22 @@ for pass_idx = 1:length(pass)
     
   end
   h_data_axes(end+1) = gca;
+  
+  % Apply GPS time offset
+  if 0
+    pass_idx = 5;
+    time_offset = -5;
+    pass(pass_idx).ecef = interp1(pass(pass_idx).gps_time,pass(pass_idx).ecef.',pass(pass_idx).gps_time+time_offset,'linear','extrap').';
+    pass(pass_idx).x = interp1(pass(pass_idx).gps_time,pass(pass_idx).x.',pass(pass_idx).gps_time+time_offset,'linear','extrap').';
+  end
+  
+  pass(pass_idx).ecef = pass(pass_idx).origin;
+  for rline = 1:size(pass(pass_idx).origin,2)
+    pass(pass_idx).ecef(:,rline) = pass(pass_idx).ecef(:,rline) ...
+      + [pass(pass_idx).x(:,rline) pass(pass_idx).y(:,rline) pass(pass_idx).z(:,rline)]*pass(pass_idx).pos(:,rline);
+  end
+  [pass(pass_idx).lat,pass(pass_idx).lon,pass(pass_idx).elev] = ecef2geodetic(referenceEllipsoid('wgs84'), ...
+    pass(pass_idx).ecef(1,:), pass(pass_idx).ecef(2,:), pass(pass_idx).ecef(3,:));
   
   figure(h_fig_map);
   if 0
@@ -136,34 +156,18 @@ for pass_idx = 1:length(pass)
     h_plot_elev(end+1) = plot(pass(pass_idx).elev,'UserData',pass_idx);
   end
   h_legend_elev{end+1} = sprintf('%d',pass_idx');
-  
-  pass(pass_idx).ecef = [];
-  [pass(pass_idx).ecef(1,:),pass(pass_idx).ecef(2,:),pass(pass_idx).ecef(3,:)] ...
-    = geodetic2ecef(pass(pass_idx).lat/180*pi, pass(pass_idx).lon/180*pi, pass(pass_idx).elev, WGS84.ellipsoid);
 end
 linkaxes(h_data_axes,'xy');
 legend(h_plot_map,h_legend_map);
 
-
-%% Apply GPS time offset
-% =========================================================================
-
-if 0
-  pass_idx = 5;
-  time_offset = -5;
-  pass(pass_idx).ecef = interp1(pass(pass_idx).gps_time,pass(pass_idx).ecef.',pass(pass_idx).gps_time+time_offset,'linear','extrap').';
-  pass(pass_idx).x = interp1(pass(pass_idx).gps_time,pass(pass_idx).x.',pass(pass_idx).gps_time+time_offset,'linear','extrap').';
-end
-
 %% Co-Register Results
 % =========================================================================
 
-wf = 1; % HACK TO HARD CODE
 
 if 1
   % Option 1: Use a single pass as the reference.
   ref = pass(master_idx);
-  
+
 else
   % Option 2: Take a single pass as master and construct along track vectors relative
   % to it. Fit a polynomial to all the data using the along track vector
@@ -176,14 +180,13 @@ else
 end
 
 along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev);
-ref.surface_bin = interp1(ref.wfs(1).time, 1:length(ref.wfs(wf).time), ref.surface);
+ref.surface_bin = interp1(ref.wfs(ref.wf).time, 1:length(ref.wfs(ref.wf).time), ref.surface);
 
 if 0
   h_fig_ref_idx = figure(102); clf;
   hold on;
 end
 
-h_data_axes = [];
 data = [];
 for pass_idx = 1:length(pass)
     
@@ -214,8 +217,7 @@ for pass_idx = 1:length(pass)
 
     if 0
       % Compute the location of all pixels from this range line in ECEF
-      wf = 1; % HACK: param_insar.load_sar_data.imgs
-      pass(pass_idx).wfs(wf).time;
+      pass(pass_idx).wfs(pass(pass_idx).wf).time;
       time = pass(pass_idx).time(2)-pass(pass_idx).time(1);
       
       range = time * c/2;
@@ -257,18 +259,34 @@ for pass_idx = 1:length(pass)
   pass(pass_idx).ref_z = interp1(pass(pass_idx).along_track, ...
     pass(pass_idx).ref_z, along_track,'linear','extrap').';
 
-  if 1
+  if 0
     % Motion compensation of FCS z-motion
     for rline = 1:size(pass(pass_idx).ref_data,2)
       % Convert z-offset into time-offset assuming nadir DOA
       dt = pass(pass_idx).ref_z(rline)/(c/2);
       pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
-        .*exp(1i*2*pi*pass(pass_idx).wfs(wf).freq*dt) );
+        .*exp(1i*2*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq*dt) );
     end
+  elseif 1
+    % Co-register images using GPS and nadir squint angle assumption
+    %
+    % Motion compensation of FCS z-motion without center frequency so there
+    % is no phase shift.
+    freq = pass(pass_idx).wfs(pass(pass_idx).wf).freq;
+    freq = freq - freq(1); % Remove center frequency offset
+    for rline = 1:size(pass(pass_idx).ref_data,2)
+      % Convert z-offset into time-offset assuming nadir DOA
+      dt = pass(pass_idx).ref_z(rline)/(c/2);
+      pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
+        .*exp(1i*2*pi*freq*dt) );
+    end
+  elseif 0
+    % Co-register images using cross-correlation
+    keyboard
   end
 
   % Match time axis to master_idx
-  pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(wf).time, pass(pass_idx).ref_data, pass(master_idx).wfs(wf).time, 'linear', 0);
+  pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(master_idx).wfs(pass(master_idx).wf).time, 'linear', 0);
   
   if 0
     % Normalize surface phase
@@ -281,21 +299,34 @@ for pass_idx = 1:length(pass)
   
   % Concatenate data into a single matrix
   data = cat(3,data,pass(pass_idx).ref_data);
-  
+end
+
+% Apply equalization
+% -----------------------
+equalization = 10.^([2.0 1.1 -0.1 -3.1 -1.2 0.4 0.6 4.9 1.0 3.5 3.0 -1.5 -3.1 -5.3 -2.1]/20) .* exp(1i*[122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]/180*pi);
+equalization = 10.^(zeros(1,15)/20) .* exp(1i*[122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]/180*pi);
+equalization = reshape(equalization,[1 1 numel(equalization)]);
+data = bsxfun(@times,data,1./equalization);
+
+h_data_axes = [];
+new_equalization = [];
+for pass_idx = 1:length(pass)
   % Plot interferograms
   % -----------------------
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
   if 0
-    imagesc(lp(pass(pass_idx).ref_data(rbins,:)))
+    imagesc(lp(data(rbins,:,pass_idx)))
     colormap(1-gray(256));
     ylabel('Range bin');
     xlabel('Range line');
-    title(sprintf('%s_%03d %d',pass(pass_idx).param_csarp.day_seg,pass(pass_idx).param_csarp.load.frm,pass(pass_idx).direction),'interpreter','none')
+    title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).param_sar.load.frm,pass(pass_idx).direction),'interpreter','none')
     caxis([-90 8]);
   else
     % Form interferogram (couple options)
-    complex_data = fir_dec(pass(pass_idx).ref_data(rbins,:) .* conj(ref.data(rbins,:)),ones(1,11)/11,1);
+    complex_data = fir_dec(data(rbins,:,pass_idx) .* conj(data(rbins,:,master_idx)),ones(1,11)/11,1);
+    new_equalization(pass_idx) = mean(complex_data(:)); % equalization only valid when motion compensation with phase is used
+    %complex_data = complex_data ./ new_equalization(pass_idx);
     % Plot interferogram
     imagesc(hsv_plot(complex_data,-90));
     colormap(hsv(256))
@@ -304,10 +335,10 @@ for pass_idx = 1:length(pass)
     set(get(h_colorbar,'ylabel'),'string','angle (radians)');
     ylabel('Range bin');
     xlabel('Range line');
-    title(sprintf('%s_%03d %d',pass(pass_idx).param_csarp.day_seg,pass(pass_idx).param_csarp.load.frm,pass(pass_idx).direction),'interpreter','none')
+    title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).param_sar.load.frm,pass(pass_idx).direction),'interpreter','none')
     
     if 0
-      coherence = fir_dec(pass(pass_idx).ref_data(rbins,:) .* conj(ref.data(rbins,:)) ./ abs(pass(pass_idx).ref_data(rbins,:)) ./ abs(ref.data(rbins,:))  ,ones(1,11)/11,1);
+      coherence = fir_dec(data(rbins,:,pass_idx) .* conj(data(rbins,:,master_idx)) ./ abs(data(rbins,:,pass_idx)) ./ abs(data(rbins,:,master_idx))  ,ones(1,11)/11,1);
       imagesc(abs(coherence));
       colormap(1-gray(256))
       h_colorbar = colorbar;
@@ -315,15 +346,19 @@ for pass_idx = 1:length(pass)
       set(get(h_colorbar,'ylabel'),'string','Coherence');
       ylabel('Range bin');
       xlabel('Range line');
-      title(sprintf('%s_%03d %d',pass(pass_idx).param_csarp.day_seg,pass(pass_idx).param_csarp.load.frm,pass(pass_idx).direction),'interpreter','none')
+      title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).param_sar.load.frm,pass(pass_idx).direction),'interpreter','none')
     end
     
   end
   h_data_axes(end+1) = gca;
   
 end
+fprintf('%.1f ', lp(new_equalization)-mean(lp(new_equalization)));
+fprintf('\n');
+fprintf('%.1f ', angle(new_equalization)*180/pi)
+fprintf('\n');
 linkaxes(h_data_axes,'xy');
-% return
+return
 
 %% Array Processing
 
@@ -333,73 +368,76 @@ linkaxes(h_data_axes,'xy');
 % 3. Array processing parameters
 data = {permute(data,[1 2 4 5 3])};
 
-array_param = [];
-array_param.method = 1;
-array_param.Nsv = 64;
-array_param.Nsig = 2;
-array_param.bin_rng = [0];
-array_param.rline_rng = [-11:11];
-array_param.dbin = 1;
-array_param.dline = 6;
-array_param.freq_rng = 1;
+param.array = [];
+param.array.method = 1;
+param.array.Nsv = 128;
+param.array.Nsrc = 2;
+param.array.bin_rng = [0];
+param.array.line_rng = [-10:10];
+param.array.dbin = 1;
+param.array.dline = 6;
+param.array.freq_rng = 1;
 h_fig_baseline = figure(200); clf;
 h_plot_baseline = [];
 h_legend_baseline = {};
 for pass_idx = 1:length(pass)
-  array_param.fcs{1}{pass_idx}.pos = along_track;
-  array_param.fcs{1}{pass_idx}.pos(2,:) = pass(pass_idx).ref_y;
-  array_param.fcs{1}{pass_idx}.pos(3,:) = pass(pass_idx).ref_z;
-  array_param.fcs{1}{pass_idx}.base_line ...        
+  param.array.fcs{1}{pass_idx}.pos = along_track;
+  param.array.fcs{1}{pass_idx}.pos(2,:) = pass(pass_idx).ref_y;
+  param.array.fcs{1}{pass_idx}.pos(3,:) = pass(pass_idx).ref_z;
+  param.array.fcs{1}{pass_idx}.base_line ...        
     = sqrt( (pass(pass_idx).ref_z - pass(master_idx).ref_z).^2 ...
       + (pass(pass_idx).ref_y - pass(master_idx).ref_y).^2 );
     
-  h_plot_baseline(end+1) = plot(array_param.fcs{1}{pass_idx}.base_line);
+  h_plot_baseline(end+1) = plot(param.array.fcs{1}{pass_idx}.base_line);
   h_legend_baseline{end+1} = sprintf('%d',pass_idx);
   hold on;
 
-  array_param.fcs{1}{pass_idx}.surface = ref.surface;
+  param.array.fcs{1}{pass_idx}.surface = ref.surface;
 end
 xlabel('Range line');
 ylabel('Baseline (m)');
 grid on;
 legend(h_plot_baseline,h_legend_baseline);
 
-array_param.wfs.time = ref.wfs(1).time;
-array_param.sv_fh = @array_proc_sv;
-array_param.wfs.fc = pass(1).wfs(1).fc;
-array_param.imgs = {[ones(length(pass),1), (1:length(pass)).']};
-array_param.three_dim.en = true;
-
+param.array.wfs.time = ref.wfs(ref.wf).time;
+dt = param.array.wfs.time(2)-param.array.wfs.time(1);
+param.array_proc.bin0 = param.array.wfs.time/dt;
+param.array.sv_fh = @array_proc_sv;
+param.array.wfs.fc = ref.wfs(ref.wf).fc;
+param.array.imgs = {[ones(length(pass),1), (1:length(pass)).']};
+param.array.tomo_en = true;
 
 %%
-array_param.method = 0;
-[array_param0,result0] = array_proc(array_param,data);
-array_param.method = 1;
-[array_param1,result1] = array_proc(array_param,data);
-array_param.method = 2;
-[array_param2,result2] = array_proc(array_param,data);
+array_proc_methods;
+param = array_proc(param);
+param.array.method = STANDARD_METHOD;
+[param_array0,result0] = array_proc(param,data);
+% param.array.method = MVDR_METHOD;
+% [param_array1,result1] = array_proc(param,data);
+param.array.method = MUSIC_METHOD;
+[param_array2,result2] = array_proc(param,data);
 
 figure(101); clf;
-imagesc(lp(result0.val))
+imagesc(lp(result0.img))
 title('Periodogram')
 colormap(1-gray(256))
 h_axes = gca;
 
-figure(102); clf;
-imagesc(lp(result1.val))
-title('MVDR')
-colormap(1-gray(256))
-h_axes(end+1) = gca;
+% figure(102); clf;
+% imagesc(lp(result1.img))
+% title('MVDR')
+% colormap(1-gray(256))
+% h_axes(end+1) = gca;
 
 figure(103); clf;
-imagesc(lp(result2.val))
+imagesc(lp(result2.img))
 title('MUSIC')
 colormap(1-gray(256))
 h_axes(end+1) = gca;
 
 figure(104); clf;
-imagesc(lp(fir_dec(abs(data{1}(:,:,master_idx)).^2, ones(size(array_param.rline_rng)), 1, ...
-  1-array_param.rline_rng(1), size(data{1}(:,:,master_idx),2)-length(array_param.rline_rng)+1)))
+imagesc(lp(fir_dec(abs(data{1}(:,:,master_idx)).^2, ones(size(param.array.line_rng)), param.array.dline, ...
+  1-param.array.line_rng(1), size(data{1}(:,:,master_idx),2)-length(param.array.line_rng)+1)))
 title('Single Channel');
 colormap(1-gray(256))
 h_axes(end+1) = gca;
@@ -407,6 +445,48 @@ h_axes(end+1) = gca;
 linkaxes(h_axes,'xy');
 
 %% Save Results
+Tomo = result0.tomo;
+Data = result0.img;
+GPS_time = ref.gps_time(param_array0.array_proc.lines);
+Latitude = ref.lat(param_array0.array_proc.lines);
+Longitude = ref.lon(param_array0.array_proc.lines);
+Elevation = ref.elev(param_array0.array_proc.lines);
+Roll = ref.roll(param_array0.array_proc.lines);
+Pitch = ref.pitch(param_array0.array_proc.lines);
+Heading = ref.heading(param_array0.array_proc.lines);
+Surface = ref.surface(param_array0.array_proc.lines);
+Bottom = nan(size(Surface));
+param_sar = pass(master_idx).param_sar;
+param_records = pass(master_idx).param_records;
+param_array = param_array0;
+Time = param.array.wfs.time(param_array0.array_proc.bins);
+file_version = '1';
+fn_mat = fullfile(fn_dir,[fn_name '_standard.mat']);
+save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
+  'Surface','Bottom','Time','param_array','param_records', ...
+  'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
+
+Tomo = result2.tomo;
+Data = result2.img;
+GPS_time = ref.gps_time(param_array2.array_proc.lines);
+Latitude = ref.lat(param_array2.array_proc.lines);
+Longitude = ref.lon(param_array2.array_proc.lines);
+Elevation = ref.elev(param_array2.array_proc.lines);
+Roll = ref.roll(param_array2.array_proc.lines);
+Pitch = ref.pitch(param_array2.array_proc.lines);
+Heading = ref.heading(param_array2.array_proc.lines);
+Surface = ref.surface(param_array2.array_proc.lines);
+Bottom = nan(size(Surface));
+param_sar = pass(master_idx).param_sar;
+param_records = pass(master_idx).param_records;
+param_array = param_array2;
+Time = param.array.wfs.time(param_array2.array_proc.bins);
+file_version = '1';
+fn_mat = fullfile(fn_dir,[fn_name '_music.mat']);
+save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
+  'Surface','Bottom','Time','param_array','param_records', ...
+  'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
+
 [fn_dir,fn_name] = fileparts(fn);
 fn_map = fullfile(fn_dir,[fn_name '_map.fig']);
 saveas(h_fig_map,fn_map);
@@ -415,13 +495,13 @@ saveas(h_fig_elev,fn_elev);
 fn_baseline = fullfile(fn_dir,[fn_name '_baseline.fig']);
 saveas(h_fig_baseline,fn_baseline);
 fn_standard = fullfile(fn_dir,[fn_name '_standard.fig']);
-saveas(1,fn_standard);
-fn_mvdr = fullfile(fn_dir,[fn_name '_mvdr.fig']);
-saveas(2,fn_mvdr);
+saveas(101,fn_standard);
+% fn_mvdr = fullfile(fn_dir,[fn_name '_mvdr.fig']);
+% saveas(102,fn_mvdr);
 fn_music = fullfile(fn_dir,[fn_name '_music.fig']);
-saveas(3,fn_music);
+saveas(103,fn_music);
 fn_single = fullfile(fn_dir,[fn_name '_single.fig']);
-saveas(4,fn_single);
+saveas(104,fn_single);
 
 return
 

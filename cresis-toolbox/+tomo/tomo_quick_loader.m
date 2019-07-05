@@ -1,15 +1,32 @@
 function music_quick_loader
 
-fn = 'Data_img_03_20190416_01_052.mat';
+% 1. Specify filename in fn
+% 2. Specify start range bin to plot (rbin) and how many range bins(rbins) of
+% leave blank.
+
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_standard.mat';
+fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_music.mat';
+% rbin = 200;
+% rbins = 140;
+
+% fn = 'Data_img_03_20190416_01_052.mat';
 % fn = 'Data_img_03_20190416_01_053.mat';
+% mdata.rbin = 700;
+% mdata.rbins = 500;
 
 mdata = load(fn);
 
 mdata.Nt = size(mdata.Tomo.img,1);
 mdata.Nx = size(mdata.Tomo.img,3);
-mdata.rbin = 700;
-mdata.rbins = 500;
 mdata.rline = 1;
+if ~exist('rbin','var') || isempty(rbin)
+  rbin = 1;
+end
+mdata.rbin = rbin;
+if ~exist('rbins','var') || isempty(rbins)
+  rbins = mdata.Nt;
+end
+mdata.rbins = rbins;
 
 mdata.h_fig = figure;
 mdata.h_axes = axes('parent',mdata.h_fig);

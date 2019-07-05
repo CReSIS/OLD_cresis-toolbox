@@ -479,6 +479,10 @@ Nb = size(din{1},4);
 % Nc: Number of cross-track channels in the din
 Nc = size(din{1},5);
 
+if ~isfield(param,'array_proc') || isempty(param.array_proc)
+  param.array_proc = [];
+end
+
 % .bin_restriction:
 %   .start_bin: 1 by Nx vector of the start range-bin
 %   .stop_bin: 1 by Nx vector of the stop range-bin
