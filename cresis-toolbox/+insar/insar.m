@@ -1,12 +1,40 @@
 
 if 1
+  wf = 2;
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data
+  
+  equalization_rlines = [];
+
+  if wf == 1
+    rbins = [];
+    equalization = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
+  elseif wf == 2
+    rbins = 280:420;
+    equalization = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
+  elseif wf == 3
+    equalization = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
+    rbins = 420:500;
+  end
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_005_wf%d.mat',wf));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_005_wf%d.mat',wf));
+%   end
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
+%   end
   if ispc
-    fn = 'X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule.mat';
+    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+    equalization = [equalization equalization equalization equalization];
   else
-    fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule.mat';
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+    equalization = [equalization equalization equalization equalization];
   end
   master_idx = 8;
-  rbins = 280:420;
+  % For combined file
+
 elseif 0
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/north.mat';
@@ -259,7 +287,7 @@ for pass_idx = 1:length(pass)
   pass(pass_idx).ref_z = interp1(pass(pass_idx).along_track, ...
     pass(pass_idx).ref_z, along_track,'linear','extrap').';
 
-  if 0
+  if insar_mode == 1
     % Motion compensation of FCS z-motion
     for rline = 1:size(pass(pass_idx).ref_data,2)
       % Convert z-offset into time-offset assuming nadir DOA
@@ -267,7 +295,7 @@ for pass_idx = 1:length(pass)
       pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
         .*exp(1i*2*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq*dt) );
     end
-  elseif 1
+  elseif insar_mode == 2
     % Co-register images using GPS and nadir squint angle assumption
     %
     % Motion compensation of FCS z-motion without center frequency so there
@@ -303,10 +331,10 @@ end
 
 % Apply equalization
 % -----------------------
-equalization = 10.^([2.0 1.1 -0.1 -3.1 -1.2 0.4 0.6 4.9 1.0 3.5 3.0 -1.5 -3.1 -5.3 -2.1]/20) .* exp(1i*[122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]/180*pi);
-equalization = 10.^(zeros(1,15)/20) .* exp(1i*[122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]/180*pi);
-equalization = reshape(equalization,[1 1 numel(equalization)]);
-data = bsxfun(@times,data,1./equalization);
+if insar_mode == 2
+  equalization = reshape(equalization,[1 1 numel(equalization)]);
+  data = bsxfun(@times,data,1./equalization);
+end
 
 h_data_axes = [];
 new_equalization = [];
@@ -325,8 +353,14 @@ for pass_idx = 1:length(pass)
   else
     % Form interferogram (couple options)
     complex_data = fir_dec(data(rbins,:,pass_idx) .* conj(data(rbins,:,master_idx)),ones(1,11)/11,1);
-    new_equalization(pass_idx) = mean(complex_data(:)); % equalization only valid when motion compensation with phase is used
-    %complex_data = complex_data ./ new_equalization(pass_idx);
+    if isempty(equalization_rlines)
+      new_equalization(pass_idx) = mean(complex_data(:)); % equalization only valid when motion compensation with phase is used
+    else
+      new_equalization(pass_idx) = mean(mean(complex_data(:,equalization_rlines))); % equalization only valid when motion compensation with phase is used
+    end
+    if insar_mode == 1
+      complex_data = complex_data ./ new_equalization(pass_idx);
+    end
     % Plot interferogram
     imagesc(hsv_plot(complex_data,-90));
     colormap(hsv(256))
@@ -358,7 +392,9 @@ fprintf('\n');
 fprintf('%.1f ', angle(new_equalization)*180/pi)
 fprintf('\n');
 linkaxes(h_data_axes,'xy');
-return
+if insar_mode == 1
+  return
+end
 
 %% Array Processing
 
@@ -371,11 +407,14 @@ data = {permute(data,[1 2 4 5 3])};
 param.array = [];
 param.array.method = 1;
 param.array.Nsv = 128;
+% param.array = rmfield(param.array,'Nsv');
+param.array.theta = linspace(-3,3,128);
+% param.array.Nsv = {'theta',linspace(-10,10,256)/180*pi};
 param.array.Nsrc = 2;
-param.array.bin_rng = [0];
-param.array.line_rng = [-10:10];
+param.array.bin_rng = [-2:2];
+param.array.line_rng = [-20:20];
 param.array.dbin = 1;
-param.array.dline = 6;
+param.array.dline = 11;
 param.array.freq_rng = 1;
 h_fig_baseline = figure(200); clf;
 h_plot_baseline = [];
@@ -445,6 +484,8 @@ h_axes(end+1) = gca;
 linkaxes(h_axes,'xy');
 
 %% Save Results
+[fn_dir,fn_name] = fileparts(fn);
+
 Tomo = result0.tomo;
 Data = result0.img;
 GPS_time = ref.gps_time(param_array0.array_proc.lines);
@@ -487,7 +528,6 @@ save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time',
   'Surface','Bottom','Time','param_array','param_records', ...
   'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
 
-[fn_dir,fn_name] = fileparts(fn);
 fn_map = fullfile(fn_dir,[fn_name '_map.fig']);
 saveas(h_fig_map,fn_map);
 fn_elev = fullfile(fn_dir,[fn_name '_elev.fig']);

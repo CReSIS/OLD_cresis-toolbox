@@ -4,10 +4,11 @@ function music_quick_loader
 % 2. Specify start range bin to plot (rbin) and how many range bins(rbins) of
 % leave blank.
 
-% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_standard.mat';
-fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_music.mat';
-% rbin = 200;
-% rbins = 140;
+fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_005_wf2_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_067_wf2_music.mat';
+rbin = [];
+rbins = [];
 
 % fn = 'Data_img_03_20190416_01_052.mat';
 % fn = 'Data_img_03_20190416_01_053.mat';

@@ -4,13 +4,30 @@ passes = struct('frm',{},'wf_adc',{});
 if 1
   %% OIB P3 Greenland: North Line
   param_fn = 'rds_param_2014_Greenland_P3.xls';
-  pass_name='rds_thule';
-  % Found using check_region
   wf = 2;
-%   passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf 2]);
+  % Found using check_region
+%   pass_name = sprintf('rds_thule_20140429_01_005_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc]);
+%   end
+%   pass_name = sprintf('rds_thule_20140429_01_067_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc]);
+%   end
+  pass_name = sprintf('rds_thule_combine_wf%d',wf);
   for adc = 2:16
     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc]);
   end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc]);
+  end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140514_01_004','wf_adc',[wf adc]);
+  end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140514_01_066','wf_adc',[wf adc]);
+  end
+
 %   passes(end+1) = struct('frm','20140514_01_004','wf_adc',[wf 2]);
 %   passes(end+1) = struct('frm','20140514_01_066','wf_adc',[wf 2]);
 %   passes(end+1) = struct('frm','20140515_02_004','wf_adc',[wf 2]);
