@@ -24,8 +24,8 @@ fname = utua_rds.fname_info_utua_rds(fn);
 block.datenum = fname.datenum;
 
 block.gps_time = datenum_to_epoch(block.time);
-% Assume block.time is UTC so add leap seconds to get GPS time
-block.gps_time = block.gps_time + utc_leap_seconds(block.gps_time(1));
+% Assume block.time is TAI atomic time so subtract 19 leap seconds to get GPS time
+block.gps_time = block.gps_time - 19;
 
 wf = 1;
 block.wfs(wf).Tpd = abs(block.chirp.len);

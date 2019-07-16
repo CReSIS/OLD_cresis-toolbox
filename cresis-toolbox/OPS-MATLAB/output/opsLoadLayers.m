@@ -399,7 +399,11 @@ for frm_idx = 1:length(param.cmd.frms)
           lay.Longitude = lay.Longitude(good_mask);
           lay.Elevation = lay.Elevation(good_mask);
           lay.Surface = lay.Surface(good_mask);
-          lay.Bottom = lay.Bottom(good_mask);
+          if isfield(lay,'Bottom')
+            lay.Bottom = lay.Bottom(good_mask);
+          else
+            lay.Bottom = nan(size(lay.GPS_time));
+          end
           Nx = length(lay.GPS_time);
 
           % Create the layer structure
