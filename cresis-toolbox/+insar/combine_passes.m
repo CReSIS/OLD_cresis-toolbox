@@ -1,53 +1,172 @@
 %% User Settings
-passes = struct('frm',{},'wf_adc',{});
+passes = struct('frm',{},'wf_adc',{},'param_fn',{});
 
 if 1
   %% OIB P3 Greenland: North Line
+
+%   pass_name = sprintf('rds_thule_2011_2014_wf1');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   param_fn = 'rds_param_2011_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20110502_02_032','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   pass_name = sprintf('rds_thule_2011_2014_wf2');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 2;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   param_fn = 'rds_param_2011_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20110502_02_032','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   pass_name = sprintf('rds_thule_2011_2014_wf3');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 3;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   param_fn = 'rds_param_2011_Greenland_P3.xls';
+%   wf = 2;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20110502_02_032','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+  pass_name = sprintf('rds_thule_2012_2014_wf2');
   param_fn = 'rds_param_2014_Greenland_P3.xls';
   wf = 2;
-  % Found using check_region
-%   pass_name = sprintf('rds_thule_20140429_01_005_wf%d',wf);
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  param_fn = 'rds_param_2012_Greenland_P3.xls';
+  wf = 1;
+  for adc = 2:16
+    passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  
+%   pass_name = sprintf('rds_thule_2013_2014_wf2');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 2;
 %   for adc = 2:16
-%     passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc]);
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
+%   param_fn = 'rds_param_2013_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 1:7
+%     passes(end+1) = struct('frm','20130419_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   param_fn = 'rds_param_2011_Greenland_P3.xls';
+%   wf = 1;
+%   pass_name = sprintf('rds_thule_20110502_02_032_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20110502_02_032','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   param_fn = 'rds_param_2011_Greenland_P3.xls';
+%   wf = 1;
+%   pass_name = sprintf('rds_thule_20110506_01_004_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20110506_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   param_fn = 'rds_param_2011_Greenland_P3.xls';
+%   wf = 1;
+%   pass_name = sprintf('rds_thule_20110509_01_004_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20110509_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+% 
+%   param_fn = 'rds_param_2011_Greenland_P3.xls';
+%   wf = 1;
+%   pass_name = sprintf('rds_thule_20110509_02_034_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20110509_02_034','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   param_fn = 'rds_param_2012_Greenland_P3.xls';
+%   wf = 1;
+%   pass_name = sprintf('rds_thule_20120503_03_067_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20120503_03_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   param_fn = 'rds_param_2012_Greenland_P3.xls';
+%   wf = 1;
+%   pass_name = sprintf('rds_thule_20120516_01_089_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   param_fn = 'rds_param_2013_Greenland_P3.xls';
+%   wf = 1;
+%   pass_name = sprintf('rds_thule_20130419_01_004_wf%d',wf);
+%   for adc = 1:7
+%     passes(end+1) = struct('frm','20130419_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   param_fn = 'rds_param_2013_Greenland_P3.xls';
+%   wf = 1;
+%   pass_name = sprintf('rds_thule_20130426_01_004_wf%d',wf);
+%   for adc = 1:7
+%     passes(end+1) = struct('frm','20130426_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 2;
 %   pass_name = sprintf('rds_thule_20140429_01_067_wf%d',wf);
 %   for adc = 2:16
-%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc]);
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
-  pass_name = sprintf('rds_thule_combine_wf%d',wf);
-  for adc = 2:16
-    passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc]);
-  end
-  for adc = 2:16
-    passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc]);
-  end
-  for adc = 2:16
-    passes(end+1) = struct('frm','20140514_01_004','wf_adc',[wf adc]);
-  end
-  for adc = 2:16
-    passes(end+1) = struct('frm','20140514_01_066','wf_adc',[wf adc]);
-  end
+  
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 2;
+%   pass_name = sprintf('rds_thule_20140429_01_005_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
 
-%   passes(end+1) = struct('frm','20140514_01_004','wf_adc',[wf 2]);
-%   passes(end+1) = struct('frm','20140514_01_066','wf_adc',[wf 2]);
-%   passes(end+1) = struct('frm','20140515_02_004','wf_adc',[wf 2]);
-%   passes(end+1) = struct('frm','20140515_02_069','wf_adc',[wf 2]);
-%   passes(end+1) = struct('frm','20140521_02_033','wf_adc',[wf 2]);
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 2;
+%   pass_name = sprintf('rds_thule_combine_wf%d',wf);
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140514_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140514_01_066','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140515_02_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140515_02_069','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140521_02_033','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
 
-%   frms{end+1} = '20140429_01_005';
-%   frms{end+1} = '20140429_01_067';
 %   %   frms{end+1} = '20140429_01_004'; %sar processed stop is far
 %   %   frms{end+1} = '20140429_01_066'; %outside of window
 %   %   frms{end+1} = '20140501_01_044'; %sar processed %outside of window
 %   %   frms{end+1} = '20140501_01_045'; %sar processed %Large baseline
 %   %   frms{end+1} = '20140502_01_060'; %High altitude flight
 %   %   frms{end+1} = '20140507_01_068'; %outside of window
-%   frms{end+1} = '20140514_01_004';
-%   frms{end+1} = '20140514_01_066';
-%   frms{end+1} = '20140515_02_004';
-%   frms{end+1} = '20140515_02_069';
 %   %   frms{end+1} = '20140521_01_003'; %Lots of random noise
-%   frms{end+1} = '20140521_02_033';
+
   %Found using check_region
   start = struct('lat', 77.10,'lon', -62.3);
   stop = struct('lat', 77.13, 'lon', -61.9);
@@ -56,144 +175,143 @@ if 1
 elseif 0
   %% TO DTU Greenland: North Line
   param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
-  frms{end+1} = '20161107_02_003';
-  frms{end+1} = '20161107_02_006';
-  frms{end+1} = '20161107_03_003';
-  frms{end+1} = '20161107_03_006';
-  frms{end+1} = '20161107_07_003';
-  frms{end+1} = '20161108_01_003';
-  frms{end+1} = '20161108_01_006';
-  frms{end+1} = '20161108_01_009';
-  frms{end+1} = '20161108_02_002';
-  frms{end+1} = '20161110_01_003';
-  frms{end+1} = '20161110_01_006';
-  frms{end+1} = '20161110_01_009';
-  frms{end+1} = '20161110_02_003';
-  frms{end+1} = '20161110_03_001';
-  pass_name = 'north';
-  start.lat = 69.174061;
-  start.lon = -49.668096;
-  stop.lat = 69.196834;
-  stop.lon = -48.906555;
+  pass_name = sprintf('2016_Greenland_TOdtu_north');
+  passes(end+1) = struct('frm','20161107_02_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_02_006','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_03_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_03_006','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_07_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_006','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_009','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_02_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_01_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_01_006','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_01_009','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_02_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_03_001','wf_adc',[1 1],'param_fn',param_fn);
+  start = struct('lat',69.174061,'lon',-49.668096);
+  stop = struct('lat',69.196834,'lon',-48.906555);
   dist_min = 2000;
 elseif 0
   %% TO DTU Greenland: Middle Line
   param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
-  % frms{end+1} = '20161107_02_001'; % 11.7 km short of stop point
-  frms{end+1} = '20161107_02_004';
-  frms{end+1} = '20161107_03_001';
-  frms{end+1} = '20161107_03_004';
-  frms{end+1} = '20161107_07_001';
-  frms{end+1} = '20161108_01_001';
-  frms{end+1} = '20161108_01_004';
-  frms{end+1} = '20161108_01_007'; % Surface does not show up in interferogram
-  frms{end+1} = '20161108_01_010'; % Surface does not show up in interferogram
-  frms{end+1} = '20161110_01_001'; % Surface is faint
-  frms{end+1} = '20161110_01_004';
-  frms{end+1} = '20161110_01_007';
-  frms{end+1} = '20161110_02_001'; % 2 km short of stop point
-  frms{end+1} = '20161110_02_004';
-  frms{end+1} = '20161110_03_007';
-  frms{end+1} = '20161110_03_008';
-  frms{end+1} = '20161111_01_001'; % 460 m short of start point
-  frms{end+1} = '20161111_01_002';
-  frms{end+1} = '20161111_01_003';
-  frms{end+1} = '20161111_01_004';
-  frms{end+1} = '20161111_01_005';
-  frms{end+1} = '20161111_01_006';
-  frms{end+1} = '20161111_01_007';
-  frms{end+1} = '20161111_01_008';
-  pass_name = 'middle';
-  start.lat = 69.163;
-  start.lon = -49.675;
-  stop.lat = 69.176;
-  stop.lon = -48.888;
+  pass_name = sprintf('2016_Greenland_TOdtu_middle');
+  passes(end+1) = struct('frm','20161107_02_001','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_02_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_03_001','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_03_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_07_001','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_001','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_007','wf_adc',[1 1],'param_fn',param_fn); % Surface does not show up in interferogram
+  passes(end+1) = struct('frm','20161108_01_010','wf_adc',[1 1],'param_fn',param_fn); % Surface does not show up in interferogram
+  passes(end+1) = struct('frm','20161110_01_001','wf_adc',[1 1],'param_fn',param_fn); % Surface is faint
+  passes(end+1) = struct('frm','20161110_01_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_01_007','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_02_001','wf_adc',[1 1],'param_fn',param_fn); % 2 km short of stop point
+  passes(end+1) = struct('frm','20161110_02_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_03_007','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_03_008','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161111_01_001','wf_adc',[1 1],'param_fn',param_fn); % 460 m short of start point
+  passes(end+1) = struct('frm','20161111_01_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161111_01_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161111_01_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161111_01_005','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161111_01_006','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161111_01_007','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161111_01_008','wf_adc',[1 1],'param_fn',param_fn);
+  start = struct('lat',69.163,'lon',-49.675);
+  stop = struct('lat',69.176,'lon',-48.888);
   dist_min = 2500;
 elseif 0
   %% TO DTU Greenland: South Line
   param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
-  frms{end+1} = '20161107_02_002';
-  frms{end+1} = '20161107_02_005';
-  frms{end+1} = '20161107_03_002';
-  frms{end+1} = '20161107_03_005';
-  frms{end+1} = '20161107_07_002';
-  frms{end+1} = '20161108_01_002';
-  frms{end+1} = '20161108_01_005';
-  frms{end+1} = '20161108_01_008'; % Surface does not show up in interferogram
-  frms{end+1} = '20161108_02_001'; % Surface does not show up in interferogram
-  frms{end+1} = '20161110_01_002';
-  frms{end+1} = '20161110_01_005';
-  frms{end+1} = '20161110_01_008';
-  frms{end+1} = '20161110_02_002';
-  frms{end+1} = '20161110_02_005';
-  pass_name = 'south';
-  start.lat = 69.149;
-  start.lon = -49.666;
-  stop.lat = 69.162;
-  stop.lon = -48.846;
+  pass_name = sprintf('2016_Greenland_TOdtu_south');
+  passes(end+1) = struct('frm','20161107_02_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_02_005','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_03_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_03_005','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161107_07_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_005','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161108_01_008','wf_adc',[1 1],'param_fn',param_fn); % Surface does not show up in interferogram
+  passes(end+1) = struct('frm','20161108_02_001','wf_adc',[1 1],'param_fn',param_fn); % Surface does not show up in interferogram
+  passes(end+1) = struct('frm','20161110_01_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_01_005','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_01_008','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_02_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161110_02_005','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','','wf_adc',[1 1],'param_fn',param_fn);
+  start = struct('lat',69.149,'lon',-49.666);
+  stop = struct('lat',69.162,'lon',-48.846);
   dist_min = 2000;
 elseif 0
   %% TO DTU Iceland: South Line
   param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
-  frms{end+1} = '20161101_03_004';
-  frms{end+1} = '20161101_01_002';
-  frms{end+1} = '20161101_02_002';
-  frms{end+1} = '20161101_03_002';
-  pass_name = 'iceland_south';
-  start.lat = 64.802;
-  start.lon = -18.850;
-  stop.lat = 64.807;
-  stop.lon = -19.105;
+  pass_name = sprintf('2016_Greenland_TOdtu_iceland_south');
+  passes(end+1) = struct('frm','20161101_03_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161101_01_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161101_02_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161101_03_002','wf_adc',[1 1],'param_fn',param_fn);
+  start = struct('lat',64.802,'lon',-18.850);
+  stop = struct('lat',64.807,'lon',-19.105);
   dist_min = 2000;
 elseif 1
   %% TO DTU Iceland: North Line
   param_fn = 'rds_param_2016_Greenland_TOdtu.xls';
-  frms{end+1} = '20161101_01_003';
-  frms{end+1} = '20161101_02_001';
-  frms{end+1} = '20161101_02_003';
-  frms{end+1} = '20161101_03_003';
-  frms{end+1} = '20161101_04_001';
-  pass_name = 'iceland_north';
-  start.lat = 64.843;
-  start.lon = -19.203;
-  stop.lat = 64.804;
-  stop.lon = -18.909;
+  pass_name = sprintf('2016_Greenland_TOdtu_iceland_north');
+  passes(end+1) = struct('frm','20161101_01_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161101_02_001','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161101_02_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161101_03_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20161101_04_001','wf_adc',[1 1],'param_fn',param_fn);
+  start = struct('lat',64.843,'lon',-19.203);
+  stop = struct('lat',64.804,'lon',-18.909);
   dist_min = 2000;  
 elseif 0
   %% G1XB Russell Glacier: Good Quality Line
   param_fn = 'rds_param_2016_Greenland_G1XB.xls';
-  frms{end+1} = '20160413_01_001';
-  frms{end+1} = '20160413_01_002';
-  frms{end+1} = '20160413_02_001';
-  frms{end+1} = '20160413_02_002';
-  frms{end+1} = '20160413_02_003';
-  frms{end+1} = '20160413_02_004';
-  pass_name = 'good_line';
-  start.lat = 67.092809;
-  start.lon = -50.204091;
-  stop.lat = 67.096958;
-  stop.lon = -50.054023;
+  pass_name = sprintf('2016_Greenland_G1XB_good');
+  passes(end+1) = struct('frm','20160413_01_001','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160413_01_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160413_02_001','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160413_02_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160413_02_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160413_02_004','wf_adc',[1 1],'param_fn',param_fn);
+  start = struct('lat',67.092809,'lon',-50.204091);
+  stop = struct('lat',67.096958,'lon',-50.054023);
   dist_min = 100;
 elseif 0
   %% G1XB Russell Glacier: Medium Quality Line
   param_fn = 'rds_param_2016_Greenland_G1XB.xls';
-  frms{end+1} = '20160416_01_002';
-  frms{end+1} = '20160416_01_003';
-  frms{end+1} = '20160416_01_004';
-  frms{end+1} = '20160416_01_005';
-  % frms{end+1} = '20160417_04_002'; % LARGE BASELINE
-  % frms{end+1} = '20160417_04_003'; % LARGE BASELINE
-  frms{end+1} = '20160417_04_004';
-  frms{end+1} = '20160417_04_005';
-  pass_name = 'medium_line';
-  start.lat = 67.097188;
-  start.lon = -50.219048;
-  stop.lat = 67.101868;
-  stop.lon = -50.047311;
+  pass_name = sprintf('2016_Greenland_G1XB_medium');
+  passes(end+1) = struct('frm','20160416_01_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160416_01_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160416_01_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160416_01_005','wf_adc',[1 1],'param_fn',param_fn);
+  % passes(end+1) = struct('frm','20160417_04_002','wf_adc',[1 1],'param_fn',param_fn); % LARGE BASELINE
+  % passes(end+1) = struct('frm','20160417_04_003','wf_adc',[1 1],'param_fn',param_fn); % LARGE BASELINE
+  passes(end+1) = struct('frm','20160417_04_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160417_04_005','wf_adc',[1 1],'param_fn',param_fn);
+  start = struct('lat',67.097188,'lon',-50.219048);
+  stop = struct('lat',67.101868,'lon',-50.047311);
   dist_min = 100;
 else
   %% G1XB Russell Glacier: Bad Quality Line
   param_fn = 'rds_param_2016_Greenland_G1XB.xls';
+  pass_name = sprintf('2016_Greenland_G1XB_bad');
+  passes(end+1) = struct('frm','20160417_01_001','wf_adc',[1 1],'param_fn',param_fn);
+  % passes(end+1) = struct('frm','20160417_01_002','wf_adc',[1 1],'param_fn',param_fn); % GPS BAD
+  passes(end+1) = struct('frm','20160417_02_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160417_02_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160417_02_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160417_02_005','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160417_03_002','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160417_03_003','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160417_03_004','wf_adc',[1 1],'param_fn',param_fn);
+  passes(end+1) = struct('frm','20160417_03_005','wf_adc',[1 1],'param_fn',param_fn);
   frms{end+1} = '20160417_01_001';
   % frms{end+1} = '20160417_01_002'; GPS BAD
   frms{end+1} = '20160417_02_002';
@@ -204,11 +322,8 @@ else
   frms{end+1} = '20160417_03_003';
   frms{end+1} = '20160417_03_004';
   frms{end+1} = '20160417_03_005';
-  pass_name = 'bad_line';
-  start.lat = 67.102454;
-  start.lon = -50.192878;
-  stop.lat = 67.108618;
-  stop.lon = -49.968087;
+  start = struct('lat',67.102454,'lon',-50.192878);
+  stop = struct('lat',67.108618,'lon',-49.968087);
   dist_min = 100;
 end
 
@@ -219,14 +334,15 @@ for passes_idx = 1:length(passes)
   end
 end
 
-if 1
+enable_load_sar = true; % Set to false if debugging to avoid reloading
+if enable_load_sar
   % Load SAR data
   metadata = [];
   data = [];
   for passes_idx = 1:length(passes)
     param = [];
     param.day_seg = passes(passes_idx).frm(1:11);
-    param = read_param_xls(ct_filename_param(param_fn),param.day_seg);
+    param = read_param_xls(ct_filename_param(passes(passes_idx).param_fn),param.day_seg);
     
     param.load_sar_data.fn = ''; % Leave empty for default
     

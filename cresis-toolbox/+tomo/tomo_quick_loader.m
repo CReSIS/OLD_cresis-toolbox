@@ -4,12 +4,22 @@ function music_quick_loader
 % 2. Specify start range bin to plot (rbin) and how many range bins(rbins) of
 % leave blank.
 
-fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_music.mat';
+% Example of multipass datasets
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/rds_thule_20110502_02_032_wf1_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/rds_thule_20110506_01_004_wf1_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/rds_thule_20110509_01_004_wf1_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/rds_thule_20110509_02_034_wf1_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/rds_thule_20130419_01_004_wf1_music.mat';
+fn = '/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/rds_thule_20130426_01_004_wf1_music.mat';
 % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_005_wf2_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_067_wf1_music.mat';
 % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_067_wf2_music.mat';
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_067_wf3_music.mat';
 rbin = [];
 rbins = [];
 
+% Example at EGRIP
 % fn = 'Data_img_03_20190416_01_052.mat';
 % fn = 'Data_img_03_20190416_01_053.mat';
 % mdata.rbin = 700;

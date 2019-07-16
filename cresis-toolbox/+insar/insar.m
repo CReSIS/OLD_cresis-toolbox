@@ -1,12 +1,188 @@
 
-if 1
-  wf = 2;
-  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data
+if 0
+  %% 2011 and 2014 Comparison
+  insar_mode = 3;
   
-  equalization_rlines = [];
+  equalization_2011 = 10.^(zeros(1,15)/20) .* exp(1i*([-17.8 -14.4 -16.3 -15.2 -20.0 -19.4 -16.0 0.0 -10.4 -9.5 -12.2 -28.3 -31.6 -32.0 -19.4])/180*pi);
+  equalization_2014 = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
+  % Enable for waveform 1
+%   rbins = [];
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2011_2014_wf1'));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2011_2014_wf1'));
+%   end
+  % Enable for waveform 2
+  rbins = 220:420;
+  if ispc
+    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2011_2014'));
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2011_2014'));
+  end
+  % Enable for waveform 3
+%   rbins = [];
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2011_2014_wf3'));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2011_2014_wf3'));
+%   end
+  equalization = [equalization_2014 equalization_2011];
+  
+  master_idx = 8;
+
+elseif 0
+  %% 2012 and 2014 Comparison
+  insar_mode = 3;
+  
+  equalization_2012 = 10.^(zeros(1,15)/20) .* exp(1i*([-8.0 -7.3 0.0 -10.8 -0.2 -8.4 1.5 -22.7 -26.3 -21.8 -13.9 11.6 12.5 14.1 14.0])/180*pi);
+  equalization_2014 = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
+  % Enable for waveform 1
+%   rbins = [];
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2012_2014_wf1'));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2012_2014_wf1'));
+%   end
+  % Enable for waveform 2
+  rbins = 220:420;
+  if ispc
+    fn = fullfile('X:/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2012_2014_wf2'));
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2012_2014_wf2'));
+  end
+  % Enable for waveform 3
+%   rbins = [];
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2012_2014_wf3'));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2012_2014_wf3'));
+%   end
+  equalization = [equalization_2014 equalization_2012];
+  
+  master_idx = 8;
+
+elseif 1
+  %% 2013 and 2014 Comparison
+  insar_mode = 3;
+  
+  equalization_2013 = 10.^(zeros(1,7)/20) .* exp(1i*([-3.9 -5.0 0.0 -8.1 -0.5 -4.3 1.1])/180*pi);
+  equalization_2014 = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
+  % Enable for waveform 1
+%   rbins = [];
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2013_2014_wf1'));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2013_2014_wf1'));
+%   end
+  % Enable for waveform 2
+  rbins = 220:420;
+  if ispc
+    fn = fullfile('X:/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2013_2014_wf2'));
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2013_2014_wf2'));
+  end
+  % Enable for waveform 3
+%   rbins = [];
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2013_2014_wf3'));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2013_2014_wf3'));
+%   end
+  equalization = [equalization_2014 equalization_2013];
+  
+  master_idx = 8;
+
+elseif 0
+  %% 2011
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
+
+  wf = 1;
+  if wf == 1
+    rbins = [200:420];
+    equalization = 10.^(zeros(1,15)/20) .* exp(1i*([-17.8 -14.4 -16.3 -15.2 -20.0 -19.4 -16.0 0.0 -10.4 -9.5 -12.2 -28.3 -31.6 -32.0 -19.4])/180*pi);
+  end
+  
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110502_02_032_wf%d.mat',wf));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110502_02_032_wf%d.mat',wf));
+%   end
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110506_01_004_wf%d.mat',wf));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110506_01_004_wf%d.mat',wf));
+%   end
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_01_004_wf%d.mat',wf));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_01_004_wf%d.mat',wf));
+%   end
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_02_034_wf%d.mat',wf));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_02_034_wf%d.mat',wf));
+%   end
+
+  master_idx = 8;
+  
+elseif 1
+  %% 2012
+  wf = 1;
+  insar_mode = 1; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
 
   if wf == 1
-    rbins = [];
+%     rbins = [200:420];
+%     equalization = ones(1,15);
+    equalization = 10.^(zeros(1,15)/20) .* exp(1i*([-8.0 -7.3 0.0 -10.8 -0.2 -8.4 1.5 -22.7 -26.3 -21.8 -13.9 11.6 12.5 14.1 14.0])/180*pi);
+    % -11.6 -10.6 0.0 -14.0 0.5 -13.0 -4.2 -33.6 -36.4 -27.0 -23.3 6.6 5.9 6.9 7.2
+  end
+  
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20120503_03_067_wf%d.mat',wf));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20120503_03_067_wf%d.mat',wf));
+%   end
+  if ispc
+    fn = fullfile('X:/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20120516_01_089_wf%d.mat',wf));
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2012_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20120516_01_089_wf%d.mat',wf));
+  end
+
+  master_idx = 3;
+  % For combined file
+
+elseif 0
+  %% 2013
+  wf = 1;
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
+
+  if wf == 1
+%     rbins = [200:420];
+%     equalization = ones(1,7);
+    equalization = 10.^(zeros(1,7)/20) .* exp(1i*([-3.9 -5.0 0.0 -8.1 -0.5 -4.3 1.1])/180*pi);
+  end
+  
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130419_01_004_wf%d.mat',wf));
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130419_01_004_wf%d.mat',wf));
+%   end
+  if ispc
+    fn = fullfile('X:/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130426_01_004_wf%d.mat',wf));
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130426_01_004_wf%d.mat',wf));
+  end
+
+  master_idx = 3;
+  % For combined file
+    
+elseif 0
+  %% 2014
+  wf = 3;
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
+
+  if wf == 1
+    rbins = [130:220];
     equalization = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
   elseif wf == 2
     rbins = 280:420;
@@ -14,28 +190,29 @@ if 1
   elseif wf == 3
     equalization = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
     rbins = 420:500;
+    rbins = [];
   end
 %   if ispc
 %     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_005_wf%d.mat',wf));
 %   else
 %     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_005_wf%d.mat',wf));
 %   end
-%   if ispc
-%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
-%   else
-%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
-%   end
   if ispc
-    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
-    equalization = [equalization equalization equalization equalization];
+    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
   else
-    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
-    equalization = [equalization equalization equalization equalization];
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
   end
+%   if ispc
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+%     equalization = [equalization equalization equalization equalization];
+%   else
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+%     equalization = [equalization equalization equalization equalization];
+%   end
   master_idx = 8;
-  % For combined file
 
 elseif 0
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/north.mat';
   else
@@ -44,6 +221,7 @@ elseif 0
   master_idx = 1;
   rbins = 20:300;
 elseif 0
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/middle.mat';
   else
@@ -52,6 +230,7 @@ elseif 0
   master_idx = 10;
   rbins = 20:300;
 elseif 0
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/south.mat';
   else
@@ -60,6 +239,7 @@ elseif 0
   master_idx = 1;
   rbins = 20:300;
 elseif 0
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_south.mat';
   else
@@ -68,6 +248,7 @@ elseif 0
   master_idx = 1;
   rbins = 20:300;
 elseif 0
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_TOdtu/CSARP_insar/iceland_north.mat';
   else
@@ -76,6 +257,7 @@ elseif 0
   master_idx = 1;
   rbins = 20:300;
 elseif 1
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
   else
@@ -84,6 +266,7 @@ elseif 1
   master_idx = 1;
   rbins = 20:100;
 elseif 0
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/medium_line.mat';
   else
@@ -92,6 +275,7 @@ elseif 0
   master_idx = 2;
   rbins = 20:100;
 else
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/bad_line.mat';
   else
@@ -308,13 +492,54 @@ for pass_idx = 1:length(pass)
       pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
         .*exp(1i*2*pi*freq*dt) );
     end
+  elseif insar_mode == 3
+    % Motion compensation of FCS z-motion and slope compensation
+
+    % True time delay shift for z-offset
+    for rline = 1:size(pass(pass_idx).ref_data,2)
+      % Convert z-offset into time-offset assuming nadir DOA
+      dt = pass(pass_idx).ref_z(rline)/(c/2);
+      pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
+        .*exp(1i*2*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq*dt) );
+    end
+
+    % Phase only correction for slope
+    if 1
+      % Using file generated from this dataset
+      [fn_dir,fn_name] = fileparts(fn);
+      fn_slope = fullfile(fn_dir,[fn_name '_slope.mat']);
+      load(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
+      slope = interp1(GPS_time,slope.',pass(master_idx).gps_time).';
+      slope = interp_finite(slope.').';
+      slope = interp1(Time,slope,pass(pass_idx).wfs(pass(pass_idx).wf).time);
+      slope = interp_finite(slope);
+      
+      pass(pass_idx).ref_data = pass(pass_idx).ref_data .* exp(-1i*4*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq(1)/c *bsxfun(@times,sin(slope),pass(pass_idx).ref_y(:).'));
+      
+    elseif 1
+      % Using file generated from another dataset
+      fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_067_wf2_slope.mat';
+      
+      % TBD
+      
+    end
+    
   elseif 0
     % Co-register images using cross-correlation
     keyboard
   end
 
   % Match time axis to master_idx
-  pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(master_idx).wfs(pass(master_idx).wf).time, 'linear', 0);
+  if 0
+    pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(master_idx).wfs(pass(master_idx).wf).time, 'linear', 0);
+  else
+    Mt = 4;
+    Nt = length(pass(pass_idx).wfs(pass(pass_idx).wf).time);
+    pass(pass_idx).ref_data = interpft(pass(pass_idx).ref_data,Mt*Nt);
+    dt = pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1);
+    time_Mt = pass(pass_idx).wfs(pass(pass_idx).wf).time(1) + dt/Mt*(0:Mt*Nt-1);
+    pass(pass_idx).ref_data = interp1(time_Mt, pass(pass_idx).ref_data, pass(master_idx).wfs(pass(master_idx).wf).time, 'linear', 0);
+  end
   
   if 0
     % Normalize surface phase
@@ -331,7 +556,7 @@ end
 
 % Apply equalization
 % -----------------------
-if insar_mode == 2
+if insar_mode == 2 || insar_mode == 3
   equalization = reshape(equalization,[1 1 numel(equalization)]);
   data = bsxfun(@times,data,1./equalization);
 end
@@ -353,12 +578,12 @@ for pass_idx = 1:length(pass)
   else
     % Form interferogram (couple options)
     complex_data = fir_dec(data(rbins,:,pass_idx) .* conj(data(rbins,:,master_idx)),ones(1,11)/11,1);
-    if isempty(equalization_rlines)
+    if ~exist(equalization_rlines,'var') || isempty(equalization_rlines)
       new_equalization(pass_idx) = mean(complex_data(:)); % equalization only valid when motion compensation with phase is used
     else
       new_equalization(pass_idx) = mean(mean(complex_data(:,equalization_rlines))); % equalization only valid when motion compensation with phase is used
     end
-    if insar_mode == 1
+    if insar_mode == 1 || insar_mode == 3
       complex_data = complex_data ./ new_equalization(pass_idx);
     end
     % Plot interferogram
@@ -395,6 +620,14 @@ linkaxes(h_data_axes,'xy');
 if insar_mode == 1
   return
 end
+if insar_mode == 3
+  [fn_dir,fn_name] = fileparts(fn);
+  fn_insar = fullfile(fn_dir,[fn_name '_insar.mat']);
+  param_sar = pass(master_idx).param_sar;
+  param_records = pass(master_idx).param_records;
+  save(fn_insar,'-v7.3','data','ref','param_sar','param_records');
+  return
+end
 
 %% Array Processing
 
@@ -406,12 +639,13 @@ data = {permute(data,[1 2 4 5 3])};
 
 param.array = [];
 param.array.method = 1;
-param.array.Nsv = 128;
+param.array.Nsv = 256;
 % param.array = rmfield(param.array,'Nsv');
-param.array.theta = linspace(-3,3,128);
+param.array.theta = linspace(-20,20,256);
+% param.array.theta = linspace(-3,3,128);
 % param.array.Nsv = {'theta',linspace(-10,10,256)/180*pi};
 param.array.Nsrc = 2;
-param.array.bin_rng = [-2:2];
+param.array.bin_rng = [-4:4];
 param.array.line_rng = [-20:20];
 param.array.dbin = 1;
 param.array.dline = 11;
