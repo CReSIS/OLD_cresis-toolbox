@@ -1204,9 +1204,9 @@ for img = 1:length(param.load.imgs)
               cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
             end
             
-            reD(cur_idx_start : cur_idx_stop,rec,wf_adc) = reD(1:hdr.Nt{img}(rlines(rec)),rec,wf_adc);
-            reD(1:cur_idx_start-1,rec,wf_adc) = NaN;
-            reD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+            reD(cur_idx_start : cur_idx_stop,rec) = reD(1:hdr.Nt{img}(rlines(rec)),rec);
+            reD(1:cur_idx_start-1,rec) = NaN;
+            reD(cur_idx_stop+1 : wfs(wf).Nt,rec) = NaN;
           end
           for rec = 1:length(rlines)
             if isnan(hdr.t0{img}(rlines(rec)))
@@ -1218,9 +1218,9 @@ for img = 1:length(param.load.imgs)
               cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
             end
             
-            imD(cur_idx_start : cur_idx_stop,rec,wf_adc) = imD(1:hdr.Nt{img}(rlines(rec)),rec,wf_adc);
-            imD(1:cur_idx_start-1,rec,wf_adc) = NaN;
-            imD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+            imD(cur_idx_start : cur_idx_stop,rec) = imD(1:hdr.Nt{img}(rlines(rec)),rec);
+            imD(1:cur_idx_start-1,rec) = NaN;
+            imD(cur_idx_stop+1 : wfs(wf).Nt,rec) = NaN;
           end
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = reD(1:wfs(wf).Nt,:) + 1i*imD(1:wfs(wf).Nt,:);
         end

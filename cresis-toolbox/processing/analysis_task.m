@@ -86,6 +86,8 @@ for img = 1:length(store_param.load.imgs)
     if ~cmd.en
       continue;
     end
+    fprintf('%s\n', '='*ones(1,40));
+    fprintf('  Running method: %s\n', cmd.method);
     
     % Create temporary output directory
     tmp_out_fn_dir = ct_filename_out(param, cmd.out_path,'analysis_tmp');
