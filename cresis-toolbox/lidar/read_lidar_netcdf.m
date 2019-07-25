@@ -68,10 +68,10 @@ lidar = rmfield(lidar,'heading');
 lidar.surface = lidar.elev;
 lidar = rmfield(lidar,'elev');
 
-[~,new_idxs] = unique(lidar.gps_time);
+[new_vals,new_idxs] = unique(lidar.gps_time);
+% Remove NaN indices
+new_idxs = new_idxs(~isnan(new_vals));
 for fieldname = fieldnames(lidar).'
   fieldname = fieldname{1};
   lidar.(fieldname) = lidar.(fieldname)(new_idxs);
 end
-
-return;
