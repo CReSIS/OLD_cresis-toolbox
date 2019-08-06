@@ -192,9 +192,9 @@ for img = 1:length(store_param.load.imgs)
 
         data = data{1};
         
-        
         % Correct all the data to a constant elevation (no zero padding is
         % applied so wrap around could be an issue for DDC data)
+        data(isnan(data)) = 0; % NaN values will create problems in ifft(fft(data))
         for rline = 1:size(data,2)
           elev_dt = (tmp_hdr.records{1,1}.elev(rline) - tmp_hdr.records{1,1}.elev(1)) / (c/2);
           data(:,rline,1) = ifft(fft(data(:,rline,1)) .* exp(1i*2*pi*tmp_hdr.freq{1,1}*elev_dt));
