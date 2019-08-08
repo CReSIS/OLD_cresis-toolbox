@@ -1435,9 +1435,14 @@ for img = 1:length(param.load.imgs)
         for block = 1:length(blocks)-1
           rlines = deconv_mask_idxs(blocks(block) : blocks(block+1)-1);
           % Matched filter
-          data{img}(1:wfs(wf).Nt+h_ref_length,rlines,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,rlines,wf_adc),deconv_Nt), h_filled_inverse));
+          tmp = data{img}(1:wfs(wf).Nt,rlines,wf_adc);
+          tmp_nan_mask = isnan(tmp);
+          tmp(tmp_nan_mask) = 0;
+          tmp = ifft(bsxfun(@times, fft(tmp,deconv_Nt), h_filled_inverse));
           % Down conversion to new deconvolution center frequency
-          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = bsxfun(@times, data{img}(1:wfs(wf).Nt,rlines,wf_adc), deconv_LO);
+          tmp = bsxfun(@times, tmp(1:wfs(wf).Nt,:), deconv_LO);
+          tmp(tmp_nan_mask) = NaN;
+          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = tmp;
         end
         
       end
