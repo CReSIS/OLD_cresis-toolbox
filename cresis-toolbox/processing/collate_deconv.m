@@ -1,4 +1,4 @@
-%function collate_deconv(param,param_override)
+function collate_deconv(param,param_override)
 % collate_deconv(param,param_override)
 %
 % This scripts takes the results from analysis cmd spectral
@@ -81,8 +81,8 @@ if ~isfield(param.collate_deconv,'day_segs') || isempty(param.collate_deconv.day
 end
 
 if ~isfield(param.collate_deconv,'debug_plots')
-  param.collate_deconv.debug_plots = {'metric','final','visible'};
-  %param.collate_deconv.debug_plots = {'rbins','deconv','metric','final','visible'};
+  param.collate_deconv.debug_plots = {'peakiness','metric','final','visible'};
+  %param.collate_deconv.debug_plots = {'peakiness','rbins','deconv','metric','final','visible'};
 end
 
 if ~isfield(param.collate_deconv,'debug_rlines') || isempty(param.collate_deconv.debug_rlines)
@@ -158,6 +158,12 @@ if  ~isfield(param.collate_deconv,'rbins') || isempty(param.collate_deconv.rbins
 end
 if ~iscell(param.collate_deconv.rbins)
   error('collate_deconv.rbins should be a cell array with an entry for each image. E.g. {[-200 150],[-200 150]}.');
+end
+
+if ~isfield(param.collate_deconv,'rec_adjustments') || isempty(param.collate_deconv.rec_adjustments)
+  for img = 1:length(param.analysis.imgs)
+    param.collate_deconv.rec_adjustments{img} = [];
+  end
 end
 
 if ~isfield(param.collate_deconv,'SL_guard_bins') || isempty(param.collate_deconv.SL_guard_bins)
@@ -249,7 +255,38 @@ if param.collate_deconv.stage_one_en
       fn = fullfile(fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
       spec = load(fn);
+      [~,spec.frm,spec.rec] = get_frame_id(param,spec.gps_time);
       fprintf('  File contains %d waveforms\n', length(spec.deconv_gps_time));
+      
+      if any(strcmp('peakiness',param.collate_deconv.debug_plots))
+        % Plot peakiness
+        clf(h_fig(1));
+        set(h_fig(1),'Name',['Peakiness ' param.day_seg]);
+        h_axes = subplot(2,1,1,'parent',h_fig(1));
+        plot(h_axes(1), spec.frm, spec.peakiness,'x');
+        xlabel(h_axes(1), 'Frame');
+        ylabel(h_axes(1), 'Peakiness (higher is better)');
+        title(h_axes(1), regexprep(param.day_seg,'_','\\_'));
+        grid(h_axes(1), 'on');
+        
+        h_axes(2) = subplot(2,1,2,'parent',h_fig(1));
+        plot(h_axes(2), spec.rec, spec.peakiness,'x');
+        xlabel(h_axes(2), 'Record');
+        ylabel(h_axes(2), 'Peakiness (higher is better)');
+        grid(h_axes(2), 'on');
+        
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        fig_fn_dir = fileparts(fig_fn);
+        if ~exist(fig_fn_dir,'dir')
+          mkdir(fig_fn_dir);
+        end
+        ct_saveas(h_fig(1),fig_fn);
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
+      
       if isempty(spec.deconv_gps_time)
         warning('No specular waveforms found.');
         continue;
@@ -623,13 +660,25 @@ if param.collate_deconv.stage_one_en
         score = nansum(bsxfun(@times, param.collate_deconv.metric_weights(:), bsxfun(@minus, param.collate_deconv.abs_metric(:), deconv.metric)));
         score(:,any(isnan(deconv.metric))) = -inf;
         
+        % Make score adjustments for param.collate_deconv.rec_adjustments
+        for rec_idx = 1:size(param.collate_deconv.rec_adjustments{img},1)
+          [rec_offset,score_idx] = min(abs(deconv.rec-param.collate_deconv.rec_adjustments{img}(rec_idx,1)));
+          if rec_offset > cmd.rlines
+            warning('Record offset to closest waveform to rec_adjustments{%d}(%d,1) is larger than the STFT interval used in analysis spec. This may mean that the record in rec_adjustments{%d}(%d,1) is incorrect.',img,rec_idx,img,rec_idx);
+          else
+            score(score_idx) = score(score_idx) + param.collate_deconv.rec_adjustments{img}(rec_idx,2);
+          end
+        end
+        
         % Find the highest score in each bin
         twtts = unique(round(deconv.twtt*param.collate_deconv.twtt_penalty*10)/10/param.collate_deconv.twtt_penalty);
         
         max_score_rlines = zeros(size(twtts));
         for twtt_idx = 1:length(twtts)
           twtt = twtts(twtt_idx);
-          [~,max_score_rlines(twtt_idx)] = max(score(abs(deconv.twtt-twtt) < 1/param.collate_deconv.twtt_penalty/10*2));
+          twtt_idxs = find(abs(deconv.twtt-twtt) < 1/param.collate_deconv.twtt_penalty/10*2);
+          [~,max_score_rlines(twtt_idx)] = max(score(twtt_idxs));
+          max_score_rlines(twtt_idx) = twtt_idxs(max_score_rlines(twtt_idx));
         end
         
         % Plot metrics
@@ -739,12 +788,19 @@ if param.collate_deconv.stage_one_en
                 fprintf(fid_error,'%.1f\t', deconv.metric(metric,rline));
               end
             end
-            if all(pass(:,rline))
-              fprintf(fid,'*\t');
-            else
-              fprintf(fid,'\t');
-            end
+            
+            % Print "pass" field
             max_score_idx = find(rline == max_score_rlines);
+            pass_field = '';
+            if all(pass(:,rline))
+              pass_field(end+1) = '*';
+            end
+            if ~isempty(max_score_idx)
+              pass_field(end+1) = 'H';
+            end
+            fprintf(fid,'%s\t',pass_field);
+            
+            % Print "score" and "twtt" fields
             if ~isempty(max_score_idx)
               if fid == 1
                 fprintf(fid,'<strong>%.1f\t', score(rline));
@@ -757,6 +813,8 @@ if param.collate_deconv.stage_one_en
               end
             else
               fprintf(fid,'%.1f\t', score(rline));
+              [~,twtts_idx] = min(abs(deconv.twtt(rline)-twtts));
+              fprintf(fid,'%.3g ', twtts(twtts_idx));
             end
             fprintf(fid,'\n');
           end
@@ -898,6 +956,17 @@ if param.collate_deconv.stage_two_en
       pass = bsxfun(@lt,deconv_lib.metric,param.collate_deconv.abs_metric(:));
       score = nansum(bsxfun(@times, param.collate_deconv.metric_weights(:), bsxfun(@minus, param.collate_deconv.abs_metric(:), deconv_lib.metric)));
       score(:,any(isnan(deconv_lib.metric))) = nan;
+      
+      % Make score adjustments for param.collate_deconv.rec_adjustments
+      cmd = deconv_lib.param_analysis.analysis.cmd{param.collate_deconv.cmd_idx};
+      for rec_idx = 1:size(param.collate_deconv.rec_adjustments{img},1)
+        [rec_offset,score_idx] = min(abs(deconv_lib.rec-param.collate_deconv.rec_adjustments{img}(rec_idx,1)));
+        if rec_offset > cmd.rlines
+          warning('Record offset to closest waveform to rec_adjustments{%d}(%d,1) is larger than the STFT interval used in analysis spec. This may mean that the record in rec_adjustments{%d}(%d,1) is incorrect.',img,rec_idx,img,rec_idx);
+        else
+          score(score_idx) = score(score_idx) + param.collate_deconv.rec_adjustments{img}(rec_idx,2);
+        end
+      end
       
       %% Stage 2: 6. Find best scores for each record
       min_score = nanmin(score);
