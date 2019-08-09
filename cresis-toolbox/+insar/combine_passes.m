@@ -1,5 +1,6 @@
 %% User Settings
 passes = struct('frm',{},'wf_adc',{},'param_fn',{});
+master_pass = struct('frm','20140429_01_067','wf_adc',[2 9],'param_fn','rds_param_2014_Greenland_P3.xls');
 
 if 1
   %% OIB P3 Greenland: North Line
@@ -40,17 +41,17 @@ if 1
 %     passes(end+1) = struct('frm','20110502_02_032','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
 
-  pass_name = sprintf('rds_thule_2012_2014_wf2');
-  param_fn = 'rds_param_2014_Greenland_P3.xls';
-  wf = 2;
-  for adc = 2:16
-    passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
-  end
-  param_fn = 'rds_param_2012_Greenland_P3.xls';
-  wf = 1;
-  for adc = 2:16
-    passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
-  end
+%   pass_name = sprintf('rds_thule_2012_2014_wf2');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 2;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   param_fn = 'rds_param_2012_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
   
 %   pass_name = sprintf('rds_thule_2013_2014_wf2');
 %   param_fn = 'rds_param_2014_Greenland_P3.xls';
@@ -70,6 +71,7 @@ if 1
 %   for adc = 2:16
 %     passes(end+1) = struct('frm','20110502_02_032','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
+%   passes(end+1) = master_pass;
 
 %   param_fn = 'rds_param_2011_Greenland_P3.xls';
 %   wf = 1;
@@ -84,7 +86,7 @@ if 1
 %   for adc = 2:16
 %     passes(end+1) = struct('frm','20110509_01_004','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
-% 
+
 %   param_fn = 'rds_param_2011_Greenland_P3.xls';
 %   wf = 1;
 %   pass_name = sprintf('rds_thule_20110509_02_034_wf%d',wf);
@@ -119,6 +121,7 @@ if 1
 %   for adc = 1:7
 %     passes(end+1) = struct('frm','20130426_01_004','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
+%   passes(end+1) = master_pass;
 
 %   param_fn = 'rds_param_2014_Greenland_P3.xls';
 %   wf = 2;

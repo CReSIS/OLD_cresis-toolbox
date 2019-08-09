@@ -7,6 +7,8 @@
 %% USER SETTINGS
 % =========================================================================
 
+param_override = [];
+
 params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 
 params = ct_set_params(params,'cmd.generic',0);

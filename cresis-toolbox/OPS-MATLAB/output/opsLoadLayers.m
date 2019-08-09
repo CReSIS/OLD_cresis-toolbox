@@ -134,13 +134,18 @@ end
 
 if any(strcmpi('lidar',{layer_params.source}))
   %% Load LIDAR surface
+  lidar_source = {layer_params.lidar_source};
+  lidar_source = lidar_source(find(~cellfun(@isempty,lidar_source)));
+  if length(unique(lidar_source)) > 1
+    error('Only one lidar source may be specified at a time to opsLoadLayers.');
+  end
   if any(strcmpi('atm',{layer_params.lidar_source}))
     lidar_fns = get_filenames_atm(param.post.ops.location,param.day_seg(1:8),param.data_support_path);
     
     lidar = read_lidar_atm(lidar_fns);
     
   elseif any(strcmpi('awi',{layer_params.lidar_source}))
-    lidar_fns = get_filenames_lidar(param, layer_params.lidar_source, ...
+    lidar_fns = get_filenames_lidar(param, 'awi', ...
       records.gps_time([1 end]));
     
     lidar_param = struct('time_reference','utc');
@@ -151,9 +156,27 @@ if any(strcmpi('lidar',{layer_params.source}))
     lidar_param.custom_flag = [0 0 0 0 0 1];
     lidar_param.reshape_en = [1 1 1 1 1 1];
     lidar = read_lidar_netcdf(lidar_fns,lidar_param);
+    
+  elseif any(strcmpi('awi_L2B',{layer_params.lidar_source}))
+    lidar_fns = get_filenames_lidar(param, 'awi_L2B', ...
+      records.gps_time([1 end]));
+    
+    [year month day] = datevec(epoch_to_datenum(records.gps_time(1)));
+    lidar_param = struct('time_reference','utc');
+    lidar_param.nc_field = {'time','latitude','longitude','l1b_elevation'};
+    lidar_param.nc_type = {'v','v','v','v','v','v'};
+    lidar_param.types = {'sec','lat_deg','lon_deg','elev_m'};
+    lidar_param.scale = [1 1 1 1];
+    lidar_param.scale = [1 1 1 1];
+    lidar_param.custom_flag = [0 0 0 0];
+    lidar_param.reshape_en = [1 1 1 1];
+    lidar_param.year = year;
+    lidar_param.month = month;
+    lidar_param.day = day;
+    lidar = read_lidar_netcdf(lidar_fns,lidar_param);
   
   elseif any(strcmpi('dtu',{layer_params.lidar_source}))
-    lidar_fns = get_filenames_lidar(param, layer_params.lidar_source, ...
+    lidar_fns = get_filenames_lidar(param, 'dtu', ...
       records.gps_time([1 end]));
     
     lidar = read_lidar_dtu(lidar_fns,param);

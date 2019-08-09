@@ -1,7 +1,7 @@
-
+fn = '';
 if 0
   %% 2011 and 2014 Comparison
-  insar_mode = 3;
+  insar_mode = 3; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   
   equalization_2011 = 10.^(zeros(1,15)/20) .* exp(1i*([-17.8 -14.4 -16.3 -15.2 -20.0 -19.4 -16.0 0.0 -10.4 -9.5 -12.2 -28.3 -31.6 -32.0 -19.4])/180*pi);
   equalization_2014 = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
@@ -32,7 +32,7 @@ if 0
 
 elseif 0
   %% 2012 and 2014 Comparison
-  insar_mode = 3;
+  insar_mode = 3; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   
   equalization_2012 = 10.^(zeros(1,15)/20) .* exp(1i*([-8.0 -7.3 0.0 -10.8 -0.2 -8.4 1.5 -22.7 -26.3 -21.8 -13.9 11.6 12.5 14.1 14.0])/180*pi);
   equalization_2014 = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
@@ -63,8 +63,9 @@ elseif 0
 
 elseif 1
   %% 2013 and 2014 Comparison
-  insar_mode = 3;
+  insar_mode = 3; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   
+    coregistration_time_shift = [zeros(1,15) 1.43*ones(1,7)];
   equalization_2013 = 10.^(zeros(1,7)/20) .* exp(1i*([-3.9 -5.0 0.0 -8.1 -0.5 -4.3 1.1])/180*pi);
   equalization_2014 = 10.^(zeros(1,15)/20) .* exp(1i*([122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4]-[42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2)/180*pi);
   % Enable for waveform 1
@@ -75,7 +76,7 @@ elseif 1
 %     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2013_2014_wf1'));
 %   end
   % Enable for waveform 2
-  rbins = 220:420;
+    rbins = [200:420];
   if ispc
     fn = fullfile('X:/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_2013_2014_wf2'));
   else
@@ -90,7 +91,12 @@ elseif 1
 %   end
   equalization = [equalization_2014 equalization_2013];
   
+  baseline_master_idx = 8;
   master_idx = 8;
+  if 1
+    output_fn_midfix = '';
+    pass_en_mask = true(1,7+15);
+  end
 
 elseif 0
   %% 2011
@@ -102,30 +108,49 @@ elseif 0
     equalization = 10.^(zeros(1,15)/20) .* exp(1i*([-17.8 -14.4 -16.3 -15.2 -20.0 -19.4 -16.0 0.0 -10.4 -9.5 -12.2 -28.3 -31.6 -32.0 -19.4])/180*pi);
   end
   
+  if ispc
+    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110502_02_032_wf%d.mat',wf));
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110502_02_032_wf%d.mat',wf));
+  end
 %   if ispc
-%     fn = fullfile('X:/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110502_02_032_wf%d.mat',wf));
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110506_01_004_wf%d.mat',wf));
 %   else
-%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110502_02_032_wf%d.mat',wf));
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110506_01_004_wf%d.mat',wf));
 %   end
 %   if ispc
-%     fn = fullfile('X:/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110506_01_004_wf%d.mat',wf));
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_01_004_wf%d.mat',wf));
 %   else
-%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110506_01_004_wf%d.mat',wf));
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_01_004_wf%d.mat',wf));
 %   end
 %   if ispc
-%     fn = fullfile('X:/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_01_004_wf%d.mat',wf));
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_02_034_wf%d.mat',wf));
 %   else
-%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_01_004_wf%d.mat',wf));
-%   end
-%   if ispc
-%     fn = fullfile('X:/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_02_034_wf%d.mat',wf));
-%   else
-%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_02_034_wf%d.mat',wf));
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20110509_02_034_wf%d.mat',wf));
 %   end
 
+  baseline_master_idx = 16;
   master_idx = 8;
+  if 0
+    output_fn_midfix = '';
+    pass_en_mask = true(1,16);
+    pass_en_mask(16) = false; % Disable the 2014 pass
+  elseif 1
+    baseline_master_idx = 8;
+    output_fn_midfix = '_ref2011';
+    pass_en_mask = true(1,16);
+    pass_en_mask(16) = false; % Disable the 2014 pass
+  elseif 0
+    output_fn_midfix = '_master';
+    pass_en_mask = true(1,16);
+    pass_en_mask([1:7 9:15]) = false; % Disable all but the master indices
+  else
+    output_fn_midfix = '_center';
+    pass_en_mask = true(1,16);
+    pass_en_mask(8:16) = false; % Disable all but the center elements
+  end
   
-elseif 1
+elseif 0
   %% 2012
   wf = 1;
   insar_mode = 1; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
@@ -154,28 +179,44 @@ elseif 1
 elseif 0
   %% 2013
   wf = 1;
-  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
+  insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR, 4 to check coregistration
 
   if wf == 1
-%     rbins = [200:420];
+    rbins = [200:420];
 %     equalization = ones(1,7);
     equalization = 10.^(zeros(1,7)/20) .* exp(1i*([-3.9 -5.0 0.0 -8.1 -0.5 -4.3 1.1])/180*pi);
+    coregistration_time_shift = [1.43 1.43 1.43 1.43 1.43 1.43 1.43 0];
+%     coregistration_time_shift = zeros(1,8);
   end
   
 %   if ispc
-%     fn = fullfile('X:/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130419_01_004_wf%d.mat',wf));
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130419_01_004_wf%d.mat',wf));
 %   else
-%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130419_01_004_wf%d.mat',wf));
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130419_01_004_wf%d.mat',wf));
 %   end
   if ispc
-    fn = fullfile('X:/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130426_01_004_wf%d.mat',wf));
+    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130426_01_004_wf%d.mat',wf));
   else
-    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130426_01_004_wf%d.mat',wf));
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20130426_01_004_wf%d.mat',wf));
   end
 
+  baseline_master_idx = 8;
   master_idx = 3;
-  % For combined file
-    
+  if 1
+    output_fn_midfix = '';
+    pass_en_mask = true(1,8);
+    pass_en_mask(8) = false; % Disable the 2014 pass
+  elseif 0
+    baseline_master_idx = 3;
+    output_fn_midfix = '_ref2013';
+    pass_en_mask = true(1,8);
+    pass_en_mask(8) = false; % Disable the 2014 pass
+  elseif 0
+    output_fn_midfix = '_master';
+    pass_en_mask = true(1,8);
+    pass_en_mask([1:2 4:7]) = false; % Disable all but the master indices
+  end
+  
 elseif 0
   %% 2014
   wf = 3;
@@ -256,7 +297,7 @@ elseif 0
   end
   master_idx = 1;
   rbins = 20:300;
-elseif 1
+elseif 0
   insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/good_line.mat';
@@ -274,7 +315,7 @@ elseif 0
   end
   master_idx = 2;
   rbins = 20:100;
-else
+elseif 0
   insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   if ispc
     fn = 'X:/ct_data/rds/2016_Greenland_G1XB/CSARP_insar/bad_line.mat';
@@ -285,11 +326,47 @@ else
   rbins = 20:100;
 end
 
+%% Setup
+% =========================================================================
+
 proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenland_natural_90m.tif')));
 
 physical_constants;
 
 load(fn);
+
+% Input check
+% -----------------------
+if ~exist('pass_en_mask','var')
+  pass_en_mask = [];
+end
+% Assume any undefined passes are enabled
+pass_en_mask(end+1:length(pass)) = true;
+pass_en_idxs = find(pass_en_mask);
+
+if isempty(rbins)
+  rbins = 1:size(pass(pass_idx).data,1);
+end
+for pass_idx = 1:length(pass)
+  if pass_en_mask(pass_idx)
+    rbins = intersect(rbins,1:size(pass(pass_idx).data,1));
+  end
+end
+
+if ~exist('output_fn_midfix','var') || isempty(output_fn_midfix)
+  output_fn_midfix = '';
+end
+
+% For passes with undefined equalization, set to 1
+if ~exist('equalization','var') || isempty(equalization)
+  equalization = ones(1,length(pass));
+elseif numel(equalization) < length(pass)
+  equalization(end+1:length(pass)) = 1;
+end
+
+if ~exist('coregistration_time_shift','var') || isempty(coregistration_time_shift)
+  coregistration_time_shift = zeros(1,length(pass));;
+end
 
 %% Plot Results
 % =========================================================================
@@ -308,26 +385,13 @@ grid on;
 
 h_data_axes = [];
 for pass_idx = 1:length(pass)
-  figure(pass_idx); clf;
-  set(pass_idx,'WindowStyle','docked')
-  if isempty(rbins)
-    rbins = 1:size(pass(pass_idx).data,1);
-  end
-  if 1
+  if pass_en_mask(pass_idx)
+    figure(pass_idx); clf;
+    set(pass_idx,'WindowStyle','docked')
     imagesc(lp(pass(pass_idx).data(rbins,:)))
     colormap(1-gray(256));
-  else
-    % Form interferogram (couple options)
-    complex_data = pass(pass_idx).data(rbins,:);
-    % Plot interferogram
-    imagesc(hsv_plot(complex_data,-90));
-    colormap(hsv(256))
-    h_colorbar = colorbar;
-    caxis([-pi pi])
-    set(get(h_colorbar,'ylabel'),'string','angle (rad)')
-    
+    h_data_axes(end+1) = gca;
   end
-  h_data_axes(end+1) = gca;
   
   % Apply GPS time offset
   if 0
@@ -362,7 +426,7 @@ for pass_idx = 1:length(pass)
   end
   
   figure(h_fig_elev);
-  if master_idx == pass_idx
+  if baseline_master_idx == pass_idx
     h_plot_elev(end+1) = plot(pass(pass_idx).elev,'LineWidth',2,'UserData',pass_idx);
   else
     h_plot_elev(end+1) = plot(pass(pass_idx).elev,'UserData',pass_idx);
@@ -378,7 +442,7 @@ legend(h_plot_map,h_legend_map);
 
 if 1
   % Option 1: Use a single pass as the reference.
-  ref = pass(master_idx);
+  ref = pass(baseline_master_idx);
 
 else
   % Option 2: Take a single pass as master and construct along track vectors relative
@@ -445,10 +509,10 @@ for pass_idx = 1:length(pass)
     end
   end
   
-  pass(pass_idx).along_track_slave = geodetic_to_along_track(pass(pass_idx).lat,pass(pass_idx).lon,pass(pass_idx).elev);;
+  pass(pass_idx).along_track_slave = geodetic_to_along_track(pass(pass_idx).lat,pass(pass_idx).lon,pass(pass_idx).elev);
   
   if 0
-    %% Debug plot showing indexes for alignment of passes
+    % Debug plot showing indexes for alignment of passes
     figure(h_fig_ref_idx);
     plot(pass(pass_idx).ref_idx)
     drawnow;
@@ -471,6 +535,12 @@ for pass_idx = 1:length(pass)
   pass(pass_idx).ref_z = interp1(pass(pass_idx).along_track, ...
     pass(pass_idx).ref_z, along_track,'linear','extrap').';
 
+  % Apply fixed coregistration time shift
+  freq = pass(pass_idx).wfs(pass(pass_idx).wf).freq;
+  freq = freq - freq(1); % Remove center frequency offset
+  dt = coregistration_time_shift(pass_idx) * (pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1));
+  pass(pass_idx).ref_data = ifft(bsxfun(@times,fft(pass(pass_idx).ref_data),exp(-1i*2*pi*freq*dt)));
+  
   if insar_mode == 1
     % Motion compensation of FCS z-motion
     for rline = 1:size(pass(pass_idx).ref_data,2)
@@ -479,7 +549,7 @@ for pass_idx = 1:length(pass)
       pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
         .*exp(1i*2*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq*dt) );
     end
-  elseif insar_mode == 2
+  elseif insar_mode == 2 || insar_mode == 4
     % Co-register images using GPS and nadir squint angle assumption
     %
     % Motion compensation of FCS z-motion without center frequency so there
@@ -509,7 +579,7 @@ for pass_idx = 1:length(pass)
       [fn_dir,fn_name] = fileparts(fn);
       fn_slope = fullfile(fn_dir,[fn_name '_slope.mat']);
       load(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
-      slope = interp1(GPS_time,slope.',pass(master_idx).gps_time).';
+      slope = interp1(GPS_time,slope.',pass(baseline_master_idx).gps_time).';
       slope = interp_finite(slope.').';
       slope = interp1(Time,slope,pass(pass_idx).wfs(pass(pass_idx).wf).time);
       slope = interp_finite(slope);
@@ -529,23 +599,23 @@ for pass_idx = 1:length(pass)
     keyboard
   end
 
-  % Match time axis to master_idx
+  % Match time axis to baseline_master_idx
   if 0
-    pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(master_idx).wfs(pass(master_idx).wf).time, 'linear', 0);
+    pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
   else
     Mt = 4;
     Nt = length(pass(pass_idx).wfs(pass(pass_idx).wf).time);
     pass(pass_idx).ref_data = interpft(pass(pass_idx).ref_data,Mt*Nt);
     dt = pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1);
     time_Mt = pass(pass_idx).wfs(pass(pass_idx).wf).time(1) + dt/Mt*(0:Mt*Nt-1);
-    pass(pass_idx).ref_data = interp1(time_Mt, pass(pass_idx).ref_data, pass(master_idx).wfs(pass(master_idx).wf).time, 'linear', 0);
+    pass(pass_idx).ref_data = interp1(time_Mt, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
   end
   
   if 0
     % Normalize surface phase
     Nt = size(pass(pass_idx).ref_data,1);
     Nx = size(pass(pass_idx).ref_data,2);
-    H = pass(master_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt) .* conj(pass(pass_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt));
+    H = pass(baseline_master_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt) .* conj(pass(pass_idx).ref_data(round(ref.surface_bin)+(0:Nx-1)*Nt));
     H = exp(1i*angle(H));
     pass(pass_idx).ref_data = bsxfun(@times,pass(pass_idx).ref_data,H);
   end
@@ -554,18 +624,51 @@ for pass_idx = 1:length(pass)
   data = cat(3,data,pass(pass_idx).ref_data);
 end
 
-% Apply equalization
+%% Apply equalization
 % -----------------------
-if insar_mode == 2 || insar_mode == 3
+if insar_mode == 2 || insar_mode == 3 || insar_mode == 4
   equalization = reshape(equalization,[1 1 numel(equalization)]);
-  data = bsxfun(@times,data,1./equalization);
+  data(:,:,pass_en_idxs) = bsxfun(@times,data(:,:,pass_en_idxs),1./equalization(:,:,pass_en_idxs));
 end
 
+if 0
+  %% Coregister: Data Dependent method to estimate System Time Delay
+  % Apply fixed coregistration time shift
+  for pass_out_idx = 2%1:length(pass_en_idxs)
+    pass_idx = pass_en_idxs(pass_out_idx);
+    freq = pass(pass_idx).wfs(pass(pass_idx).wf).freq;
+    freq = freq - freq(1); % Remove center frequency offset
+    coregistration_time_shifts = -2:0.05:2;
+    coregistration_time_shifts = -1.6:0.01:-1.3;
+%     coregistration_time_shifts = -0.2:0.01:0.2;
+    coherence_sum = [];
+    for coregistration_time_shift_idx = 1:length(coregistration_time_shifts)
+      coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx);
+      dt = coregistration_time_shift * (pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1));
+      adjusted = ifft(bsxfun(@times,fft(data(:,:,pass_idx)),exp(-1i*2*pi*freq*dt)));
+      coherence = fir_dec(adjusted(rbins,:) .* conj(data(rbins,:,master_idx)) ./ abs(adjusted(rbins,:) .* data(rbins,:,master_idx)),ones(1,7)/7,1);
+      coherence = fir_dec(coherence.',ones(1,3)/3,1).';
+      coherence = abs(coherence);
+      %     coherence_sum(coregistration_time_shift_idx) = sum(coherence(coherence>0.5));
+      coherence_sum(coregistration_time_shift_idx) = sum(coherence(coherence>0));
+      %    TriangleRayIntersection fprintf('%g %.2f\n', coregistration_time_shift, coherence_sum(coregistration_time_shift_idx));
+      %     imagesc(coherence); colormap(1-gray(256));
+      %     pause
+    end
+  end
+  figure(1000); clf;
+  plot(coregistration_time_shifts,coherence_sum)
+  [~,coregistration_time_shift_idx] = max(coherence_sum);
+  coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx)
+  return
+end
+
+%% Plot interferograms
 h_data_axes = [];
 new_equalization = [];
-for pass_idx = 1:length(pass)
-  % Plot interferograms
-  % -----------------------
+for pass_out_idx = 1:length(pass_en_idxs)
+  pass_idx = pass_en_idxs(pass_out_idx);
+  
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
   if 0
@@ -578,26 +681,34 @@ for pass_idx = 1:length(pass)
   else
     % Form interferogram (couple options)
     complex_data = fir_dec(data(rbins,:,pass_idx) .* conj(data(rbins,:,master_idx)),ones(1,11)/11,1);
-    if ~exist(equalization_rlines,'var') || isempty(equalization_rlines)
+    if ~exist('equalization_rlines','var') || isempty(equalization_rlines)
       new_equalization(pass_idx) = mean(complex_data(:)); % equalization only valid when motion compensation with phase is used
     else
       new_equalization(pass_idx) = mean(mean(complex_data(:,equalization_rlines))); % equalization only valid when motion compensation with phase is used
     end
-    if insar_mode == 1 || insar_mode == 3
+    if insar_mode == 1
       complex_data = complex_data ./ new_equalization(pass_idx);
     end
     % Plot interferogram
-    imagesc(hsv_plot(complex_data,-90));
-    colormap(hsv(256))
-    h_colorbar = colorbar;
-    caxis([-pi pi])
-    set(get(h_colorbar,'ylabel'),'string','angle (radians)');
+    if insar_mode == 4
+      imagesc(lp(data(rbins,:,pass_idx)));
+      colormap(1-gray(256));
+      h_colorbar = colorbar;
+      set(get(h_colorbar,'ylabel'),'string','Relative power (dB)');
+    else
+      coherence = abs(fir_dec(data(rbins,:,pass_idx) .* conj(data(rbins,:,master_idx)) ./ abs(data(rbins,:,pass_idx) .* data(rbins,:,master_idx)),ones(1,11)/11,1)) ...
+        .* exp(1i*angle(complex_data));
+      imagesc(hsv_plot_coherence(coherence,[0 1]));
+      colormap(hsv(256))
+      h_colorbar = colorbar;
+      caxis([-pi pi])
+      set(get(h_colorbar,'ylabel'),'string','Angle (radians)');
+    end
     ylabel('Range bin');
     xlabel('Range line');
     title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).param_sar.load.frm,pass(pass_idx).direction),'interpreter','none')
     
     if 0
-      coherence = fir_dec(data(rbins,:,pass_idx) .* conj(data(rbins,:,master_idx)) ./ abs(data(rbins,:,pass_idx)) ./ abs(data(rbins,:,master_idx))  ,ones(1,11)/11,1);
       imagesc(abs(coherence));
       colormap(1-gray(256))
       h_colorbar = colorbar;
@@ -612,12 +723,15 @@ for pass_idx = 1:length(pass)
   h_data_axes(end+1) = gca;
   
 end
-fprintf('%.1f ', lp(new_equalization)-mean(lp(new_equalization)));
+fprintf('=============================================\n');
+fprintf('New equalization\n');
+fprintf('%.1f ', lp(new_equalization)-mean(lp(new_equalization(pass_en_idxs))));
 fprintf('\n');
 fprintf('%.1f ', angle(new_equalization)*180/pi)
 fprintf('\n');
+fprintf('=============================================\n');
 linkaxes(h_data_axes,'xy');
-if insar_mode == 1
+if insar_mode == 1 || insar_mode == 4
   return
 end
 if insar_mode == 3
@@ -639,11 +753,9 @@ data = {permute(data,[1 2 4 5 3])};
 
 param.array = [];
 param.array.method = 1;
-param.array.Nsv = 256;
-% param.array = rmfield(param.array,'Nsv');
-param.array.theta = linspace(-20,20,256);
-% param.array.theta = linspace(-3,3,128);
-% param.array.Nsv = {'theta',linspace(-10,10,256)/180*pi};
+% param.array.Nsv = 256; param.array = rmfield(param.array,'theta'); % Forces default theta
+% param.array.theta = linspace(-20,20,256);
+param.array.theta = linspace(-6,6,256);
 param.array.Nsrc = 2;
 param.array.bin_rng = [-4:4];
 param.array.line_rng = [-20:20];
@@ -653,19 +765,21 @@ param.array.freq_rng = 1;
 h_fig_baseline = figure(200); clf;
 h_plot_baseline = [];
 h_legend_baseline = {};
-for pass_idx = 1:length(pass)
-  param.array.fcs{1}{pass_idx}.pos = along_track;
-  param.array.fcs{1}{pass_idx}.pos(2,:) = pass(pass_idx).ref_y;
-  param.array.fcs{1}{pass_idx}.pos(3,:) = pass(pass_idx).ref_z;
-  param.array.fcs{1}{pass_idx}.base_line ...        
+for pass_out_idx = 1:length(pass_en_idxs)
+  pass_idx = pass_en_idxs(pass_out_idx);
+  
+  param.array.fcs{1}{pass_out_idx}.pos = along_track;
+  param.array.fcs{1}{pass_out_idx}.pos(2,:) = pass(pass_idx).ref_y;
+  param.array.fcs{1}{pass_out_idx}.pos(3,:) = pass(pass_idx).ref_z;
+  param.array.fcs{1}{pass_out_idx}.base_line ...        
     = sqrt( (pass(pass_idx).ref_z - pass(master_idx).ref_z).^2 ...
       + (pass(pass_idx).ref_y - pass(master_idx).ref_y).^2 );
     
-  h_plot_baseline(end+1) = plot(param.array.fcs{1}{pass_idx}.base_line);
+  h_plot_baseline(end+1) = plot(param.array.fcs{1}{pass_out_idx}.base_line);
   h_legend_baseline{end+1} = sprintf('%d',pass_idx);
   hold on;
 
-  param.array.fcs{1}{pass_idx}.surface = ref.surface;
+  param.array.fcs{1}{pass_out_idx}.surface = ref.surface;
 end
 xlabel('Range line');
 ylabel('Baseline (m)');
@@ -677,18 +791,18 @@ dt = param.array.wfs.time(2)-param.array.wfs.time(1);
 param.array_proc.bin0 = param.array.wfs.time/dt;
 param.array.sv_fh = @array_proc_sv;
 param.array.wfs.fc = ref.wfs(ref.wf).fc;
-param.array.imgs = {[ones(length(pass),1), (1:length(pass)).']};
+param.array.imgs = {[ones(length(pass_en_idxs),1), (1:length(pass_en_idxs)).']};
 param.array.tomo_en = true;
 
 %%
 array_proc_methods;
 param = array_proc(param);
 param.array.method = STANDARD_METHOD;
-[param_array0,result0] = array_proc(param,data);
+[param_array0,result0] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
 % param.array.method = MVDR_METHOD;
-% [param_array1,result1] = array_proc(param,data);
+% [param_array1,result1] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
 param.array.method = MUSIC_METHOD;
-[param_array2,result2] = array_proc(param,data);
+[param_array2,result2] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
 
 figure(101); clf;
 imagesc(lp(result0.img))
@@ -736,7 +850,7 @@ param_records = pass(master_idx).param_records;
 param_array = param_array0;
 Time = param.array.wfs.time(param_array0.array_proc.bins);
 file_version = '1';
-fn_mat = fullfile(fn_dir,[fn_name '_standard.mat']);
+fn_mat = fullfile(fn_dir,[fn_name output_fn_midfix '_standard.mat']);
 save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
   'Surface','Bottom','Time','param_array','param_records', ...
   'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
@@ -757,7 +871,7 @@ param_records = pass(master_idx).param_records;
 param_array = param_array2;
 Time = param.array.wfs.time(param_array2.array_proc.bins);
 file_version = '1';
-fn_mat = fullfile(fn_dir,[fn_name '_music.mat']);
+fn_mat = fullfile(fn_dir,[fn_name output_fn_midfix '_music.mat']);
 save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
   'Surface','Bottom','Time','param_array','param_records', ...
   'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');

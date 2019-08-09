@@ -43,6 +43,17 @@ if strcmpi(lidar_source,'awi')
     lidar_fns(end+(1:length(new_fns)),1) = new_fns;
   end
 
+elseif strcmpi(lidar_source,'awi_L2B')
+  [year month day] = datevec(epoch_to_datenum(gps_time(1)));
+  day_of_year_start = datenum(year,month,day) - datenum(year,0,0);
+  [year month day] = datevec(epoch_to_datenum(gps_time(end)));
+  day_of_year_end = datenum(year,month,day) - datenum(year,0,0);
+  lidar_fns = {};
+  for day_of_year = day_of_year_start:day_of_year_end
+    new_fns = get_filenames(in_base_path, sprintf('ALS_L2B_%sT',datestr(datenum(year,0,day_of_year),'YYYYmmDD')), '', '.nc');
+    lidar_fns(end+(1:length(new_fns)),1) = new_fns;
+  end
+
 else
   % dec.hour(UTC) latitude longitude  elevation  amplitude  #points/swath  GPS.h  range
   [year month day] = datevec(epoch_to_datenum(gps_time(1)));

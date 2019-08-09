@@ -81,8 +81,8 @@ if ~isfield(param.collate_deconv,'day_segs') || isempty(param.collate_deconv.day
 end
 
 if ~isfield(param.collate_deconv,'debug_plots')
-  param.collate_deconv.debug_plots = {'metric','final','visible'};
-  %param.collate_deconv.debug_plots = {'rbins','deconv','metric','final','visible'};
+  param.collate_deconv.debug_plots = {'peakiness','metric','final','visible'};
+  %param.collate_deconv.debug_plots = {'peakiness','rbins','deconv','metric','final','visible'};
 end
 
 if ~isfield(param.collate_deconv,'debug_rlines') || isempty(param.collate_deconv.debug_rlines)
@@ -255,7 +255,38 @@ if param.collate_deconv.stage_one_en
       fn = fullfile(fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
       spec = load(fn);
+      [~,spec.frm,spec.rec] = get_frame_id(param,spec.gps_time);
       fprintf('  File contains %d waveforms\n', length(spec.deconv_gps_time));
+      
+      if any(strcmp('peakiness',param.collate_deconv.debug_plots))
+        % Plot peakiness
+        clf(h_fig(1));
+        set(h_fig(1),'Name',['Peakiness ' param.day_seg]);
+        h_axes = subplot(2,1,1,'parent',h_fig(1));
+        plot(h_axes(1), spec.frm, spec.peakiness,'x');
+        xlabel(h_axes(1), 'Frame');
+        ylabel(h_axes(1), 'Peakiness (higher is better)');
+        title(h_axes(1), regexprep(param.day_seg,'_','\\_'));
+        grid(h_axes(1), 'on');
+        
+        h_axes(2) = subplot(2,1,2,'parent',h_fig(1));
+        plot(h_axes(2), spec.rec, spec.peakiness,'x');
+        xlabel(h_axes(2), 'Record');
+        ylabel(h_axes(2), 'Peakiness (higher is better)');
+        grid(h_axes(2), 'on');
+        
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        fig_fn_dir = fileparts(fig_fn);
+        if ~exist(fig_fn_dir,'dir')
+          mkdir(fig_fn_dir);
+        end
+        ct_saveas(h_fig(1),fig_fn);
+        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
+      
       if isempty(spec.deconv_gps_time)
         warning('No specular waveforms found.');
         continue;

@@ -4,13 +4,13 @@ if 0
   set2 = 16:30;
   title_str = '2011 to 2014';
   
-elseif 1
+elseif 0
   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2012_Greenland_P3/CSARP_insar/rds_thule_2012_2014_wf1_insar.mat';
   set1 = 1:15;
   set2 = 16:30;
   title_str = '2012 to 2014';
 elseif 1
-  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/rds_thule_2013_2014_wf1_insar.mat';
+  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/rds_thule_2013_2014_wf2_insar.mat';
   set1 = 1:15;
   set2 = 16:22;
   title_str = '2013 to 2014';
