@@ -75,6 +75,14 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
+if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) ...
+    && any(strcmpi(gps_source,{'nmea'}))
+  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'arena'))
   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Platform: Ground based sled
@@ -1845,6 +1853,28 @@ end
 % =========================================================================
 %% Snow Radar
 % =========================================================================
+
+if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) ...
+    && strcmpi(radar_name,'snow')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  LArx(1,1) = 0;
+  LArx(2,1) = 0;
+  LArx(3,1) = 0;
+  
+  LAtx(1,1) = 0;
+  LAtx(2,1) = 0;
+  LAtx(3,1) = 0;
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
 
 if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
     && strcmpi(radar_name,'snow')
