@@ -694,4 +694,8 @@ fprintf('Done %s (%s)\n', param.day_seg, datestr(now));
 if enable_visible_plot
   for idx=1:length(h_fig); figure(h_fig(idx)); end;
   keyboard
+else
+  try
+    delete(h_fig);
+  end
 end
