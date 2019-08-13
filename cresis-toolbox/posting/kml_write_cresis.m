@@ -49,6 +49,7 @@ out_fn_dir = fileparts(out_fn);
 if ~exist(out_fn_dir,'dir')
   mkdir(out_fn_dir);
 end
+fprintf('  Creating KML %s\n', out_fn);
 [fid,msg] = fopen(out_fn,'w');
 if fid < 1
   fprintf('Could not open file %s\n', out_fn);

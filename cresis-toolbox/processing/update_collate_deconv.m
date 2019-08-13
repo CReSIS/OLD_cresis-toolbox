@@ -513,3 +513,9 @@ for img = param.update_collate_deconv.imgs
     ct_save(out_fn,'-v7.3','-struct','final');
   end
 end
+
+if ~any(strcmp('visible',param.(mfilename).debug_plots))
+  try
+    delete(h_fig);
+  end
+end
