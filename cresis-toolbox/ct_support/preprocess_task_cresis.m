@@ -65,11 +65,11 @@ for board_idx = 1:num_board_to_load
   if board_idx == 1 && ~isempty(param.config.cresis.gps_file_mask)
     log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.cresis.gps_file_mask);
     out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.date_str);
+    fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
     try
       if ~exist(out_log_dir,'dir')
         mkdir(out_log_dir)
       end
-      fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
       copyfile(log_files, out_log_dir);
     catch ME
       warning('Error while copying log files:\n%s\n', ME.getReport);
@@ -204,6 +204,7 @@ for board_idx = 1:num_board_to_load
     if param.config.online_mode == 0
       % Reading in all files one time, print each out
       fprintf('%d of %d: %s (%s)\n', fn_idx, length(fns), fn, datestr(now,'HH:MM:SS'));
+      fprintf('  %s\n', tmp_hdr_fn);
       if param.config.reuse_tmp_files && exist(tmp_hdr_fn,'file')
         % Try to load temporary file
         try
