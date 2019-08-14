@@ -466,10 +466,24 @@ for frm_idx = 1:length(param.cmd.frms)
       end
     end
     if track.filter(2) ~= 1
+      % Apply motion compensation
+      if track.filter_mocomp
+        dt = mdata.Time(2)-mdata.Time(1);
+        dbin = round((mdata.Elevation - median(mdata.Elevation)) / (c/2) / dt);
+        for rline = 1:size(data,2)
+          data(:,rline) = circshift(data(:,rline),[-dbin(rline) 0]);
+        end
+      end
       % Multilooking in along-track
       data = lp(nan_fir_dec(10.^(data/10),ones(1,track.filter(2))/track.filter(2),1,[],[],[],[],2.0));
       if track.data_noise_en
         data_noise = lp(nan_fir_dec(10.^(data_noise/10),ones(1,track.filter(2))/track.filter(2),1,[],[],[],[],2.0));
+      end
+      % Remove motion compensation
+      if track.filter_mocomp
+        for rline = 1:size(data,2)
+          data(:,rline) = circshift(data(:,rline),[dbin(rline) 0]);
+        end
       end
     end
     
