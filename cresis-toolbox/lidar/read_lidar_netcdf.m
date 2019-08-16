@@ -16,17 +16,34 @@ function lidar = read_lidar_netcdf(awi_fns, param)
 %  .surface = WGS-84 surface elevation (m)
 %  .rms = roughness, generally root mean squared (m^2)
 %
-% Example: See bottom of file
-%  fn = '/cresis/snfs1/dataproducts/metadata/AWI_lidar/2015_Greenland_Polar6/ALS_L1B_20150911T134604_141010_cb.nc';
-%  param = struct('time_reference','utc');
-%  param.nc_field = {'TIME','LATITUDE','LONGITUDE','ELEVATION','MJD','FOOT_ROUGH'};
-%  param.nc_type = {'v','v','v','v','v','v'};
-%  param.types = {'sec','lat_deg','lon_deg','elev_m','mjd_18581117','rms'};
-%  param.scale = [1 1 1 1 1 1];
-%  param.custom_flag = [0 0 0 0 0 1];
-%  param.reshape_en = [1 1 1 1 1 1];
-%  lidar = read_lidar_netcdf(fn,param);
+% Examples:
 %
+% % AWI L1B
+% fn = '/cresis/snfs1/dataproducts/metadata/AWI_lidar/2015_Greenland_Polar6/ALS_L1B_20150911T134604_141010_cb.nc';
+% param = struct('time_reference','utc');
+% param.nc_field = {'TIME','LATITUDE','LONGITUDE','ELEVATION','MJD','FOOT_ROUGH'};
+% param.nc_type = {'v','v','v','v','v','v'};
+% param.types = {'sec','lat_deg','lon_deg','elev_m','mjd_18581117','rms'};
+% param.scale = [1 1 1 1 1 1];
+% param.custom_flag = [0 0 0 0 0 1];
+% param.reshape_en = [1 1 1 1 1 1];
+% lidar = read_lidar_netcdf(fn,param);
+%
+% % AWI L2
+% fn = '/work/ollie/ajutila/Scratch/metadata/LIDAR_AWI_L2B/2019_Arctic_Polar6/ALS_L2B_20190407T183457_184913.nc';
+% param = struct('time_reference','utc');
+% param.nc_field = {'time','latitude','longitude','l1b_elevation'};
+% param.nc_type = {'v','v','v','v','v','v'};
+% param.types = {'sec','lat_deg','lon_deg','elev_m'};
+% param.scale = [1 1 1 1];
+% param.scale = [1 1 1 1];
+% param.custom_flag = [0 0 0 0];
+% param.reshape_en = [1 1 1 1];
+% param.year = year;
+% param.month = month;
+% param.day = day;
+% lidar = read_lidar_netcdf(fn,param);
+%     
 % Author: John Paden
 %
 % See also get_filenames_atm.m, get_filenames_awi.m, plot_lidar.m, read_lidar_atm.m

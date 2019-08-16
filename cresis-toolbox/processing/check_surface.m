@@ -60,21 +60,25 @@ if strcmpi(radar_type,'deramp') && (~isfield(param.radar,'nz_valid') || isempty(
 end
 
 %% Input Checks: check_surface
-if ~isfield(param,'check_surface') || isempty(param.check_surface)
-  param.check_surface = [];
+if ~isfield(param,mfilename) || isempty(param.(mfilename))
+  param.(mfilename) = [];
 end
 
-if ~isfield(param.check_surface,'debug_plots') || isempty(param.check_surface.debug_plots)
-  param.check_surface.debug_plots = {'visible','twtt','gps','nz'};
+if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debug_out_dir)
+  param.(mfilename).debug_out_dir = mfilename;
+end
+
+if ~isfield(param.(mfilename),'debug_plots') || isempty(param.(mfilename).debug_plots)
+  param.(mfilename).debug_plots = {'visible','twtt','gps','nz'};
 end
 enable_visible_plot = any(strcmp('visible',param.check_surface.debug_plots));
 enable_twtt_plot = any(strcmp('twtt',param.check_surface.debug_plots));
 enable_gps_plots = any(strcmp('gps',param.check_surface.debug_plots));
 enable_nz_plot = any(strcmp('nz',param.check_surface.debug_plots));
-if ~isempty(param.check_surface.debug_plots)
+if ~isempty(param.(mfilename).debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
 end
-fn = ct_filename_ct_tmp(param,'','check_surface','');
+fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'');
 fn_dir = fileparts(fn);
 if ~exist(fn_dir,'dir')
   mkdir(fn_dir);
@@ -272,14 +276,14 @@ if enable_twtt_plot
   end
   legend(h_axes(1), 'All','Thresholded','location','best')
   
-  fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt_error');
+  fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'twtt_error');
   fprintf('Saving %s\n', fig_fn);
   fig_fn_dir = fileparts(fig_fn);
   if ~exist(fig_fn_dir,'dir')
     mkdir(fig_fn_dir);
   end
-  saveas(h_fig(1),[fig_fn '.fig']);
-  saveas(h_fig(1),[fig_fn '.jpg']);
+  ct_saveas(h_fig(1),[fig_fn '.fig']);
+  ct_saveas(h_fig(1),[fig_fn '.jpg']);
 end
 
 % =====================================================================
@@ -378,10 +382,10 @@ if enable_twtt_plot
   grid(h_axes(2),'on');
   xlabel(h_axes(2),'Frame');
   ylabel(h_axes(2),'TWTT (sec)');
-  fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt_frm');
+  fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'twtt_frm');
   fprintf('Saving %s\n', fig_fn);
-  saveas(h_fig(2),[fig_fn '.fig']);
-  saveas(h_fig(2),[fig_fn '.jpg']);
+  ct_saveas(h_fig(2),[fig_fn '.fig']);
+  ct_saveas(h_fig(2),[fig_fn '.jpg']);
   
   clf(h_fig(3));
   set(h_fig(3),'name',sprintf('TWTT vs GPS time %s',param.day_seg));
@@ -407,10 +411,10 @@ if enable_twtt_plot
   grid(h_axes(3),'on');
   xlabel(h_axes(3),sprintf('Relative GPS time (sec from %s)', datestr(epoch_to_datenum(origin))));
   ylabel(h_axes(3),'TWTT (sec)');
-  fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt');
+  fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'twtt');
   fprintf('Saving %s\n', fig_fn);
-  saveas(h_fig(3),[fig_fn '.fig']);
-  saveas(h_fig(3),[fig_fn '.jpg']);
+  ct_saveas(h_fig(3),[fig_fn '.fig']);
+  ct_saveas(h_fig(3),[fig_fn '.jpg']);
   
   if 0
     % Correlate to determine GPS offsets
@@ -468,10 +472,10 @@ plot(h_axes(4),-lags*dt,ref_corr)
 xlabel(h_axes(4),'GPS lag (sec)');
 ylabel(h_axes(4),'Cross correlation');
 grid(h_axes(4),'on');
-fig_fn = ct_filename_ct_tmp(param,'','check_surface','gps');
+fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'gps');
 fprintf('Saving %s\n', fig_fn);
-saveas(h_fig(4),[fig_fn '.fig']);
-saveas(h_fig(4),[fig_fn '.jpg']);
+ct_saveas(h_fig(4),[fig_fn '.fig']);
+ct_saveas(h_fig(4),[fig_fn '.jpg']);
 
 
 % =====================================================================
@@ -519,10 +523,10 @@ if strcmpi(radar_type,'deramp')
   title(h_axes(5),'Nyquist Zone');
   ylim(h_axes(5),[-0.1+min(param.radar.nz_valid), max(param.radar.nz_valid)+0.1]);
   
-  fig_fn = ct_filename_ct_tmp(param,'','check_surface','nz');
+  fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'nz');
   fprintf('Saving %s\n', fig_fn);
-  saveas(h_fig(5),[fig_fn '.fig']);
-  saveas(h_fig(5),[fig_fn '.jpg']);
+  ct_saveas(h_fig(5),[fig_fn '.fig']);
+  ct_saveas(h_fig(5),[fig_fn '.jpg']);
 else
   default_nz = NaN;
 end
@@ -543,7 +547,10 @@ end
 
 txt_headers_fn = fullfile(fn_dir,'time_00000000_00.txt');
 fprintf('Saving headers %s\n', txt_headers_fn);
-fid = fopen(txt_headers_fn,'wb');
+[fid,msg] = fopen(txt_headers_fn,'wb');
+if fid < 0
+  error('Could not open file:\n  %s\nError message: %s.', txt_headers_fn, msg);
+end
 fprintf(fid,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
   'Segment', 'Mean error', ...
   'Median error', ...
@@ -553,9 +560,12 @@ fprintf(fid,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
   'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref', 'DEM');
 fclose(fid);
 
-txt_fn = [ct_filename_ct_tmp(param,'','check_surface','time') '.txt'];
+txt_fn = [ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'time') '.txt'];
 fprintf('Saving %s\n', txt_fn);
-fid = fopen(txt_fn,'wb');
+[fid,msg] = fopen(txt_fn,'wb');
+if fid < 0
+  error('Could not open file:\n  %s\nError message: %s.', txt_fn, msg);
+end
 fprintf(fid,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n', ...
   param.day_seg, 1e9*mean_offset, ...
   1e9*nanmedian(twtt_error), ...
