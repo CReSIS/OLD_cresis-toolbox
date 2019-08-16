@@ -26,6 +26,7 @@ kml_write_cresis(season_fn, kml_out_fn, param.season_name,'mission',[50 0]);
 % Create CSV browse file for whole season
 [season_path season_name season_ext] = fileparts(season_fn);
 browse_season_fn = fullfile(season_path,['Browse_' season_name season_ext]);
+fprintf('  Creating CSV %s\n', season_fn);
 fid = fopen(season_fn);
 fid_browse = fopen(browse_season_fn,'w');
 buffer = fgets(fid);

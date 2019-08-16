@@ -80,6 +80,11 @@ if ~isfield(param.collate_deconv,'day_segs') || isempty(param.collate_deconv.day
   param.collate_deconv.day_segs = {param.day_seg};
 end
 
+if ~isfield(param.collate_deconv,'debug_out_dir') || isempty(param.collate_deconv.debug_out_dir)
+  param.collate_deconv.debug_out_dir = mfilename;
+end
+debug_out_dir = param.collate_deconv.debug_out_dir;
+
 if ~isfield(param.collate_deconv,'debug_plots')
   param.collate_deconv.debug_plots = {'peakiness','metric','final','visible'};
   %param.collate_deconv.debug_plots = {'peakiness','rbins','deconv','metric','final','visible'};
@@ -275,14 +280,14 @@ if param.collate_deconv.stage_one_en
         ylabel(h_axes(2), 'Peakiness (higher is better)');
         grid(h_axes(2), 'on');
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         fig_fn_dir = fileparts(fig_fn);
         if ~exist(fig_fn_dir,'dir')
           mkdir(fig_fn_dir);
         end
         ct_saveas(h_fig(1),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(1),fig_fn);
       end
@@ -721,14 +726,14 @@ if param.collate_deconv.stage_one_en
         legend(h_axes(2), 'P','ML','FSL','RSL','IFSL','IRSL','location','best');
         grid(h_axes(2), 'on');
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_metric_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_metric_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         fig_fn_dir = fileparts(fig_fn);
         if ~exist(fig_fn_dir,'dir')
           mkdir(fig_fn_dir);
         end
         ct_saveas(h_fig(2),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_metric_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_metric_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(2),fig_fn);
         
@@ -768,7 +773,7 @@ if param.collate_deconv.stage_one_en
         ylim(h_axes(4), [min(5,min(spec.surface * param.collate_deconv.twtt_penalty)) max(15,max(spec.surface * param.collate_deconv.twtt_penalty))]);
         
         % Print table
-        diary_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_table_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.txt'];
+        diary_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_table_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.txt'];
         fid = fopen(diary_fn,'wb');
         for fid = [1 fid]
           if fid == 1; fid_error = 2; else fid_error = fid; end;
@@ -779,7 +784,7 @@ if param.collate_deconv.stage_one_en
           fprintf(fid,'INDEX\tFRM\tREC\tPeak\tML\tPSL FE\tPSL RE\tISL FE\tISL RE\tPASS\tSCORE\tTWTT\n');
           for rline = 1:length(deconv.gps_time)
             fprintf(fid,'%d\t',rline);
-            fprintf(fid,'%d\t',deconv.frm(rline));
+            fprintf(fid,'%.02f\t',floor(deconv.frm(rline)*100)/100);
             fprintf(fid,'%d\t',deconv.rec(rline));
             for metric = 1:6
               if pass(metric,rline)
@@ -1057,14 +1062,14 @@ if param.collate_deconv.stage_two_en
         legend(h_axes(1), h_plot, legend_str,'location','best');
         grid(h_axes(1), 'on');
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         fig_fn_dir = fileparts(fig_fn);
         if ~exist(fig_fn_dir,'dir')
           mkdir(fig_fn_dir);
         end
         ct_saveas(h_fig(1),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(1),fig_fn);
         
@@ -1092,10 +1097,10 @@ if param.collate_deconv.stage_two_en
         legend(h_axes(2), h_plot, legend_str,'location','best');
         grid(h_axes(2), 'on');
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(2),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(2),fig_fn);
         
@@ -1162,10 +1167,10 @@ if param.collate_deconv.stage_two_en
         pos4 = get(h_axes(4),'Position');
         set(h_axes(4),'Position',[pos4(1:2) pos3(3) pos4(4)]);
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(3),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(3),fig_fn);
       end
@@ -1181,5 +1186,11 @@ if param.collate_deconv.stage_two_en
       ct_save(out_fn,'-v7.3','-struct','final');
       
     end
+  end
+end
+
+if ~any(strcmp('visible',param.(mfilename).debug_plots))
+  try
+    delete(h_fig);
   end
 end
