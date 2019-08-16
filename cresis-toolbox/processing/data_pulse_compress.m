@@ -566,7 +566,12 @@ for img = 1:length(param.load.imgs)
           end
           
           fs_raw_dec = wfs(wf).fs_raw ./ hdr.DDC_dec{img}(rec);
-          Nt_raw_trim = round(fs_raw_dec/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window)/2)*2;
+          
+          Nt_raw_trim = fs_raw_dec/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window);
+          if abs(Nt_raw_trim/2 - round(Nt_raw_trim/2)) > 1e-6
+            error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
+          end
+          
           df_raw = wfs(wf).fs_raw/hdr.DDC_dec{img}(rec)/Nt_raw_trim;
           DDC_freq_adjust = mod(hdr.DDC_freq{img}(rec),df_raw);
           hdr.DDC_freq{img}(rec) = hdr.DDC_freq{img}(rec) - DDC_freq_adjust;
