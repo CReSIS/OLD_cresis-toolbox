@@ -407,6 +407,8 @@ if options.debug
   no_ice_plot = 2 + (no_ice_plot ./ no_ice_plot);
   
   plot(ice_plot, 'w', 'LineWidth', 3); plot(no_ice_plot, 'k', 'LineWidth', 3);
+  
+  keyboard
 end
 
 %% Save image
