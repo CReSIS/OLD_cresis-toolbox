@@ -28,6 +28,13 @@ save_changes = true;
 %% Prep (load records and gps files)
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+if isfield(records,'settings') && isfield(records.settings,'wfs') && isfield(records.settings.wfs,'wfs')
+  warning('Old records.settings format with "settings.wfs.wfs" field found in records file. Updating format.');
+  records.settings.wfs = records.settings.wfs.wfs;
+  if isfield(records.settings,'wfs_records')
+    records.settings = rmfield(records.settings,'wfs_records');
+  end
+end
 if isfield(records.param_records,'vectors')
   warning('Old parameter format with "vectors" field found in records file. Updating format.');
   records.param_records.records.file.start_idx = records.param_records.vectors.file.start_idx;

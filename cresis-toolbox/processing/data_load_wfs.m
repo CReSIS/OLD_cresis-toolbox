@@ -133,8 +133,13 @@ end
 % =========================================================================
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 for wf = 1:length(param.radar.wfs)
+  if isfield(param.radar.wfs(wf),'rx_paths') && ~isempty(param.radar.wfs(wf).rx_paths)
+    wfs(wf).rx_paths   = param.radar.wfs(wf).rx_paths;
+  else
+    wfs(wf).rx_paths   = 1;
+  end
   if ~isfield(param.radar.wfs(wf),'adcs') || isempty(param.radar.wfs(wf).adcs)
-    adcs = find(~isnan(param.radar.wfs(wf).rx_paths));
+    adcs = find(~isnan(wfs(wf).rx_paths));
   else
     adcs = param.radar.wfs(wf).adcs;
   end
@@ -454,11 +459,6 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).tx_weights   = 1;
   end
-  if isfield(param.radar.wfs(wf),'rx_paths') && ~isempty(param.radar.wfs(wf).rx_paths)
-    wfs(wf).rx_paths   = param.radar.wfs(wf).rx_paths;
-  else
-    wfs(wf).rx_paths   = 1;
-  end
   if isfield(param.radar.wfs(wf),'adc_gains_dB') && ~isempty(param.radar.wfs(wf).adc_gains_dB)
     wfs(wf).adc_gains_dB   = param.radar.wfs(wf).adc_gains_dB;
   else
@@ -726,9 +726,15 @@ end
 for wf = 1:length(param.radar.wfs)
   
   switch param.records.file.version
-    case {7,8,11}
-      HEADER_SIZE = 0;
-      WF_HEADER_SIZE = 48;
+      
+    case {2,3,5,7,8,11}
+      if param.records.file.version == 2
+        HEADER_SIZE = 40;
+        WF_HEADER_SIZE = 0;
+      else
+        HEADER_SIZE = 0;
+        WF_HEADER_SIZE = 48;
+      end
       wfs(wf).record_mode = 0;
       wfs(wf).complex = 0;
       wfs(wf).sample_size = 2;
@@ -737,6 +743,10 @@ for wf = 1:length(param.radar.wfs)
       if wf == 1
         wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
       else
+        % Only some of the formats support multiple waveforms and some of
+        % the formats have a records.settings.wfs(wf-1).num_sam that
+        % can change from one record to the next and so is repopulated in
+        % data_load.m for wf>1.
         wfs(wf).offset = wfs(wf-1).offset + ...
           + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
           + HEADER_SIZE + WF_HEADER_SIZE;
