@@ -58,7 +58,7 @@ fprintf('=====================================================================\n
 % =====================================================================
 
 if ~isfield(param.load_data,'imgs') || isempty(param.load_data.imgs)
-  error('No images specified in param.load_data.imgs. Nothing to do.');
+  param.load_data.imgs = {[1 1]};
 end
 
 if ~isfield(param.load_data,'raw_data') || isempty(param.load_data.raw_data)
