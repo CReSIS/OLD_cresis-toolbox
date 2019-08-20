@@ -17,7 +17,9 @@ params = ct_set_params(params,'cmd.generic',1);
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_03');
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
 
-warning off
+params = ct_set_params(params,'radar.wfs.DDC_valid',1);
+
+warning off;
 
 %% Automated Section
 % =====================================================================

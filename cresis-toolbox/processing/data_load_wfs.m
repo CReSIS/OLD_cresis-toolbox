@@ -517,14 +517,16 @@ for wf = 1:length(param.radar.wfs)
         wfs(wf).complex   = false;
       end
     end
-    if ~isfield(param.radar.wfs,'nz_valid') || isempty(param.radar.wfs(wf).nz_valid)
+    if ~isfield(param.radar.wfs(wf),'nz_valid') || isempty(param.radar.wfs(wf).nz_valid)
       warning('Default Nyquist zones not specified in param.radar.wfs(%d).nz_valid. Setting to [0,1,2,3] which may not be correct.',wf);
-      wfs(wf).nz_valid = [0 1 2 3];
+      param.radar.wfs(wf).nz_valid = [0 1 2 3];
     end
-    if ~isfield(param.radar,'DDC_valid') || isempty(param.radar.DDC_valid)
+    wfs(wf).nz_valid = param.radar.wfs(wf).nz_valid;
+    if ~isfield(param.radar.wfs(wf),'DDC_valid') || isempty(param.radar.wfs(wf).DDC_valid)
       warning('Default DDC rates not specified in param.radar.wfs(%d).DDC_valid. Setting to [1,2,4,8,16] which may not be correct.',wf);
-      wfs(wf).DDC_valid = [1 2 4 8 16];
+      param.radar.wfs(wf).DDC_valid = [1 2 4 8 16];
     end
+    wfs(wf).DDC_valid = param.radar.wfs(wf).DDC_valid;
     
   elseif strcmpi(radar_type,'pulsed')
     %% Pulsed: Create time and frequency axis information
