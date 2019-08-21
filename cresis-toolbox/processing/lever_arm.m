@@ -1857,13 +1857,20 @@ end
 if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
-  LArx(1,1) = 0;
-  LArx(2,1) = 0;
-  LArx(3,1) = 0;
+  % From Rick Hale's student Pedro Toledo: Lever_arm_for_snow_antennas.msg
+  % x pointing aft, y pointing right, z pointing up so need to negate x and
+  % z to match the lever_arm.m standard which has x forward and z down.
+  LArx = mean([12.476	-0.474	-2.345
+    12.476	-0.467	-2.337
+    12.473	-0.470	-2.317
+    12.471	-0.470	-2.313]).';
+  LArx([1 3]) = -LArx([1 3]); % x and z are negated
   
-  LAtx(1,1) = 0;
-  LAtx(2,1) = 0;
-  LAtx(3,1) = 0;
+  LAtx = mean([12.481	0.458	-2.340
+    12.474	0.464	-2.343
+    12.473	0.466	-2.313
+    12.473	0.465	-2.313]).';
+  LAtx([1 3]) = -LAtx([1 3]); % x and z are negated
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 1;
