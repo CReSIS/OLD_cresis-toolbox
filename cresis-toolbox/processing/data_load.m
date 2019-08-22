@@ -360,7 +360,11 @@ for state_idx = 1:length(states)
                   start_idx = double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
-                DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
+                if param.records.file.version == 3
+                  DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+2);
+                else
+                  DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
+                end
                 raw_or_DDC = file_data(wf_hdr_offset + 48);
                 if raw_or_DDC
                   Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);

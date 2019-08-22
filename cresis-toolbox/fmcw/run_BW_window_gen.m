@@ -11,13 +11,16 @@
 
 param_override = [];
 
-params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
+% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
+% params = ct_set_params(params,'radar.wfs.DDC_valid',1);
+
+params = read_param_xls(ct_filename_param('snow_param_2013_Greenland_P3.xls'));
+params = ct_set_params(params,'radar.wfs.DDC_valid',[1 4 8 16 32]);
 
 params = ct_set_params(params,'cmd.generic',1);
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_03');
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
 
-params = ct_set_params(params,'radar.wfs.DDC_valid',1);
 
 warning off;
 
@@ -50,5 +53,3 @@ for param_idx = 1:length(params)
     fprintf('%s\t\n', param.day_seg);
   end
 end
-
-% Post process code (only include if necessary)
