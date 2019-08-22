@@ -15,5 +15,9 @@ if free > 0 && free < min_disk_space
   error('Insufficient disk space (%g MB free, minimum allowed % MB).', free/1e6, min_disk_space/1e6);
 end
 
+fn_dir = fileparts(fn);
+if ~exist(fn_dir,'dir')
+  mkdir(fn_dir);
+end
 cmd = sprintf('save(''%s''%s)',fn,sprintf(',''%s''',varargin{:}));
 evalin('caller',cmd);
