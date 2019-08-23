@@ -22,7 +22,7 @@
 #Content of $HOME/.ecmwfapirc	
 #{
 #    "url"   : "https://api.ecmwf.int/v1",
-#    "key"   : "ba4ae42cf04bdea0c1f21e4a11c52e37",
+#    "key"   : "0123456789abcdef0123456789abcdef",
 #    "email" : "paden@ku.edu"
 #}
 
