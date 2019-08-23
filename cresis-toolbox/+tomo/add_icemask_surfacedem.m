@@ -52,7 +52,7 @@ end
 %% Load Geotiff and Ice Mask
 dem_res = 10;
 global gdem;
-if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
+if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
   gdem = dem_class(param,dem_res);
 end
 gdem.set_res(dem_res);
