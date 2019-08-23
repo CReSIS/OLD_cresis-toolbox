@@ -7,7 +7,7 @@
 %% Typical Use
 % =========================================================================
 % Check to see if class already exists
-if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
+if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
   gdem = dem_class(gRadar);
 end
 
