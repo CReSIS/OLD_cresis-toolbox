@@ -1,7 +1,7 @@
-% script sim.doa_example
+% script sim.doa_example_array_calib
 %
-% Example setup scripts for the sim.doa function. To run, enable one
-% of the if {0|1} blocks below and then run the script.
+% Example setup scripts for the sim.doa function. This includes tutorial
+% examples that illustrate how to use the array calibration.
 %
 % Author: John Paden, Theresa Stumpf
 %

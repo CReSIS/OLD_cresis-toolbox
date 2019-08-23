@@ -10,7 +10,7 @@
 
 fig_to_plot = 2; % Choose figure 2, 3, 4, or 6
 
-%% Wax and Ziskind 1988 Fig 2
+%% Fig 2 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 2
   %% Fig 2: Simulation parameters
@@ -82,7 +82,7 @@ if fig_to_plot == 2
   ct_save(out_fn,'param','results');
 end
   
-%% Wax and Ziskind 1988 Fig 3
+%% Fig 3 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 3
   %% Fig 3: Setup simulation parameters
@@ -154,7 +154,7 @@ if fig_to_plot == 3
   ct_save(out_fn,'param','results');
 end
   
-%% Wax and Ziskind 1988 Fig 4
+%% Fig 4 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 4
   %% Fig 4: Setup simulation parameters
@@ -226,7 +226,7 @@ if fig_to_plot == 4
   ct_save(out_fn,'param','results');
 end
   
-%% Wax and Ziskind 1988 Fig 6
+%% Fig 6 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 6
   %% Fig 6: Setup simulation parameters
