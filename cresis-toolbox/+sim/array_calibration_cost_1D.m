@@ -34,7 +34,7 @@ if 1
   extra_error_params.error_g_offset = est_errors(:,6);
   
   sv_params.extra_error_params      = extra_error_params;
-  sv = @(theta) steering_mtx(theta,sv_params);
+  sv = @(theta) sim.steering_mtx(theta,sv_params);
   ac_cost = 0;
   for  t_idx = 0:ceil(length(actual_doa)/2)-1    
     doa = actual_doa([t_idx+1,end-t_idx]).';
