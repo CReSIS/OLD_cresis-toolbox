@@ -571,6 +571,8 @@ for img = 1:length(param.load.imgs)
           if abs(Nt_raw_trim/2 - round(Nt_raw_trim/2)) > 1e-6
             error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
           end
+          % Remove rounding errors
+          Nt_raw_trim = round(Nt_raw_trim);
           
           df_raw = wfs(wf).fs_raw/hdr.DDC_dec{img}(rec)/Nt_raw_trim;
           DDC_freq_adjust = mod(hdr.DDC_freq{img}(rec),df_raw);
@@ -619,7 +621,12 @@ for img = 1:length(param.load.imgs)
             % In case the decimation length does not align with the desired
             % length, Nt_desired, we determine what resampling is required
             % and store this in p,q.
-            Nt_desired = round(wfs(wf).fs_raw/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window)/2)*2;
+            Nt_desired = wfs(wf).fs_raw/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window);
+            if abs(Nt_desired/2 - round(Nt_desired/2)) > 1e-6
+              error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
+            end
+            % Remove rounding errors
+            Nt_desired = round(Nt_desired);
             if 0
               % Debug: Test how fast different data record lengths are
               for Nt_raw_trim_test=Nt_raw_trim+(0:10)

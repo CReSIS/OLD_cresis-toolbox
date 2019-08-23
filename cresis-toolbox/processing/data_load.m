@@ -332,17 +332,15 @@ for state_idx = 1:length(states)
           % Read in headers for this record
           if any(param.records.file.version == [3 5 7 8 11])
             
-            HEADER_SIZE = 0;
-            WF_HEADER_SIZE = 48;
             % Jump through the record one waveform at a time until we get
             % to the waveform we need to load.
             for tmp_wf = 1:wf
               if tmp_wf == 1
                 wf_hdr_offset = rec_offset;
-                wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
+                % wfs(wf-1).offset % Should already be set in data_load_wfs
               else
                 wf_hdr_offset = wf_hdr_offset + last_wf_size;
-                wfs(wf).offset = wfs(wf-1).offset + last_wf_size;
+                wfs(wf).offset = wfs(wf-1).offset + last_wf_size; % Update based on actual record size
               end
               
               if any(param.records.file.version == [8 11])
@@ -362,7 +360,11 @@ for state_idx = 1:length(states)
                   start_idx = double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
-                DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
+                if param.records.file.version == 3
+                  DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+2);
+                else
+                  DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
+                end
                 raw_or_DDC = file_data(wf_hdr_offset + 48);
                 if raw_or_DDC
                   Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);

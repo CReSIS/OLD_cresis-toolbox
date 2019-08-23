@@ -132,6 +132,7 @@ if ~isfield(param.check_surface,'ref_layer_params') || isempty(param.check_surfa
   param.check_surface.ref_layer_params.name = 'surface';
   param.check_surface.ref_layer_params.source = 'lidar';
   param.check_surface.ref_layer_params.lidar_source = 'atm';
+  param.check_surface.ref_layer_params.lever_arm_en = true;
 end
 layer_params = cat_structs(2,param.check_surface.ref_layer_params,param.check_surface.radar_layer_params);
 
@@ -427,7 +428,7 @@ end
 
 % Uniformly time sample the two signals
 dt = median(diff(layers(radar_idx).gps_time(recs)));
-if isempty(recs)
+if length(recs) <= 1
   ref_corr = NaN;
   lags = NaN;
   peak_idx = 1;

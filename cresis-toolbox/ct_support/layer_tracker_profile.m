@@ -94,6 +94,7 @@ elseif strcmpi(profile_str,'SNOW_AWI')
   track.debug_time_guard = 50e-9;
   track.min_bin = 0.1e-6;
   track.prefilter_trim = [0 0];
+  track.filter_mocomp = true;
   track.filter = [5 3];
   track.filter_trim = [10 10];
   track.init.method	= 'medfilt';

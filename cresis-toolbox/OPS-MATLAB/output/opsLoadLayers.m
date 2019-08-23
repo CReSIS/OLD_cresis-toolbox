@@ -91,6 +91,9 @@ for layer_idx = 1:length(layer_params)
     warning('No source specified for layer %d, using layerdata.', layer_idx);
     layer_params(layer_idx).source = 'layerdata';
   end
+  if ~isfield(layer_params,'lever_arm_en') || isempty(layer_params(layer_idx).lever_arm_en)
+    layer_params(layer_idx).lever_arm_en = false;
+  end
 end
 
 physical_constants;
@@ -129,15 +132,16 @@ if ~all(strcmpi('ops',{layer_params.source}))
   % All other sources use records file for
   % framing gps time info
   records_fn = ct_filename_support(param,'','records');
-  records = load(records_fn,'gps_time','surface','elev','lat','lon');
+  records = load(records_fn);
 end
 
-if any(strcmpi('lidar',{layer_params.source}))
+lidar_layer_idx = find(strcmpi('lidar',{layer_params.source}));
+if ~isempty(lidar_layer_idx)
   %% Load LIDAR surface
   lidar_source = {layer_params.lidar_source};
   lidar_source = lidar_source(find(~cellfun(@isempty,lidar_source)));
-  if length(unique(lidar_source)) > 1
-    error('Only one lidar source may be specified at a time to opsLoadLayers.');
+  if length(unique(lidar_source)) ~= 1
+    error('One and only one lidar source must be specified to opsLoadLayers when one of the sources to load is ''lidar''.');
   end
   if any(strcmpi('atm',{layer_params.lidar_source}))
     lidar_fns = get_filenames_atm(param.post.ops.location,param.day_seg(1:8),param.data_support_path);
@@ -198,8 +202,57 @@ if any(strcmpi('lidar',{layer_params.source}))
     lidar.lat = lidar.lat(good_lidar_idxs);
     lidar.lon = lidar.lon(good_lidar_idxs);
   end
-  lidar.elev = interp1(records.gps_time,records.elev,lidar.gps_time);
   
+  % Find reference trajectory
+  if ~layer_params(lidar_layer_idx).lever_arm_en
+    % Just use the records.elev for the radar phase center elevation. This
+    % will likely cause an error because the records elevation field is
+    % equal to the GPS data file elevation field which is often the GPS or
+    % IMU elevation and not the radar phase center elevation.
+    lidar.elev = interp1(records.gps_time,records.elev,lidar.gps_time);
+  else
+    % Create reference trajectory (rx_path == 0, tx_weights = []). Update
+    % the records field with this information.
+    trajectory_param = struct('gps_source',records.gps_source, ...
+      'season_name',param.season_name,'radar_name',param.radar_name,'rx_path', 0, ...
+      'tx_weights', [], 'lever_arm_fh', param.radar.lever_arm_fh);
+    records = trajectory_with_leverarm(records,trajectory_param);
+    
+    % Find the closest lidar point for each point along the reference
+    % trajectory. Set the lidar.gps_time and lidar.elev fields to match
+    % this reference point's gps_time and elev so that interpolation later
+    % with the gps_time fields will work properly.
+    % Convert coordinates to ECEF
+    [lidar_x,lidar_y,lidar_z] = geodetic2ecef(lidar.lat/180*pi,lidar.lon/180*pi,zeros(size(lidar.lat)),WGS84.ellipsoid);
+    [records_x,records_y,records_z] = geodetic2ecef(records.lat/180*pi,records.lon/180*pi,zeros(size(records.lat)),WGS84.ellipsoid);
+    start_idx = 1;
+    stop_idx = 1;
+    for lidar_idx = 1:length(lidar.lat)
+      while start_idx < length(records.gps_time) && records.gps_time(start_idx) < lidar.gps_time(lidar_idx)-10
+        start_idx = start_idx + 1;
+      end
+      while stop_idx < length(records.gps_time) && records.gps_time(stop_idx) < lidar.gps_time(lidar_idx)+10
+        stop_idx = stop_idx + 1;
+      end
+      if abs(records.gps_time(start_idx) - lidar.gps_time(lidar_idx)) < 10
+        recs = start_idx:stop_idx;
+        dist = abs(lidar_x(lidar_idx)-records_x(recs)).^2 + abs(lidar_y(lidar_idx)-records_y(recs)).^2 + abs(lidar_z(lidar_idx)-records_z(recs)).^2;
+        [min_dist,min_idx] = min(dist);
+        lidar.gps_time(lidar_idx) = records.gps_time(recs(min_idx));
+        lidar.elev(lidar_idx) = records.elev(recs(min_idx));
+      else
+        lidar.gps_time(lidar_idx) = NaN;
+        lidar.elev(lidar_idx) = NaN;
+      end
+    end
+    % Remove NAN's from LIDAR Data
+    good_lidar_idxs = ~isnan(lidar.gps_time);
+    lidar.gps_time = lidar.gps_time(good_lidar_idxs);
+    lidar.surface = lidar.surface(good_lidar_idxs);
+    lidar.lat = lidar.lat(good_lidar_idxs);
+    lidar.lon = lidar.lon(good_lidar_idxs);
+    lidar.elev = lidar.elev(good_lidar_idxs);
+  end
 end
 
 

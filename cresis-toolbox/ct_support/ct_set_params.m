@@ -54,7 +54,9 @@ for param_idx = 1:length(params)
     end
   end
   
-  if ~use_filter || ~isempty(regexpi(filter_value,filter_regexp))
+  if ~use_filter ...
+      || ischar(filter_value) && ischar(filter_regexp) && ~isempty(regexpi(filter_value,filter_regexp)) ...
+      || isnumeric(filter_value) && isnumeric(filter_regexp) && isequal(filter_value,filter_regexp)
     
     if 1
       cmd = sprintf('params(param_idx).%s = value;', field);

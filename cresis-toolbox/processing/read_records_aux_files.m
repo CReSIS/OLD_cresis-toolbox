@@ -53,7 +53,6 @@ records.offset = ncread(cdf_fn,'offset',[1 recs(1)],[inf recs(2)-recs(1)+1]);
 
 tmp = netcdf_to_mat(cdf_fn,[],'^gps_source$');
 records.gps_source = tmp.gps_source;
-records.settings(1).wfs_records = ncread(cdf_fn,'settings(1).wfs_records');
 
 tmp = netcdf_to_mat(cdf_fn,[],'^relative_rec_num');
 records.relative_rec_num = tmp.relative_rec_num;

@@ -133,8 +133,13 @@ end
 % =========================================================================
 [output_dir,radar_type,radar_name] = ct_output_dir(param.radar_name);
 for wf = 1:length(param.radar.wfs)
+  if isfield(param.radar.wfs(wf),'rx_paths') && ~isempty(param.radar.wfs(wf).rx_paths)
+    wfs(wf).rx_paths   = param.radar.wfs(wf).rx_paths;
+  else
+    wfs(wf).rx_paths   = 1;
+  end
   if ~isfield(param.radar.wfs(wf),'adcs') || isempty(param.radar.wfs(wf).adcs)
-    adcs = find(~isnan(param.radar.wfs(wf).rx_paths));
+    adcs = find(~isnan(wfs(wf).rx_paths));
   else
     adcs = param.radar.wfs(wf).adcs;
   end
@@ -454,11 +459,6 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).tx_weights   = 1;
   end
-  if isfield(param.radar.wfs(wf),'rx_paths') && ~isempty(param.radar.wfs(wf).rx_paths)
-    wfs(wf).rx_paths   = param.radar.wfs(wf).rx_paths;
-  else
-    wfs(wf).rx_paths   = 1;
-  end
   if isfield(param.radar.wfs(wf),'adc_gains_dB') && ~isempty(param.radar.wfs(wf).adc_gains_dB)
     wfs(wf).adc_gains_dB   = param.radar.wfs(wf).adc_gains_dB;
   else
@@ -517,6 +517,16 @@ for wf = 1:length(param.radar.wfs)
         wfs(wf).complex   = false;
       end
     end
+    if ~isfield(param.radar.wfs(wf),'nz_valid') || isempty(param.radar.wfs(wf).nz_valid)
+      warning('Default Nyquist zones not specified in param.radar.wfs(%d).nz_valid. Setting to [0,1,2,3] which may not be correct.',wf);
+      param.radar.wfs(wf).nz_valid = [0 1 2 3];
+    end
+    wfs(wf).nz_valid = param.radar.wfs(wf).nz_valid;
+    if ~isfield(param.radar.wfs(wf),'DDC_valid') || isempty(param.radar.wfs(wf).DDC_valid)
+      warning('Default DDC rates not specified in param.radar.wfs(%d).DDC_valid. Setting to [1,2,4,8,16] which may not be correct.',wf);
+      param.radar.wfs(wf).DDC_valid = [1 2 4 8 16];
+    end
+    wfs(wf).DDC_valid = param.radar.wfs(wf).DDC_valid;
     
   elseif strcmpi(radar_type,'pulsed')
     %% Pulsed: Create time and frequency axis information
@@ -726,9 +736,18 @@ end
 for wf = 1:length(param.radar.wfs)
   
   switch param.records.file.version
-    case {7,8,11}
-      HEADER_SIZE = 0;
-      WF_HEADER_SIZE = 48;
+      
+    case {1,2,3,5,7,8,11}
+      if param.records.file.version == 1
+        HEADER_SIZE = 32;
+        WF_HEADER_SIZE = 0;
+      elseif param.records.file.version == 2
+        HEADER_SIZE = 40;
+        WF_HEADER_SIZE = 0;
+      else
+        HEADER_SIZE = 0;
+        WF_HEADER_SIZE = 48;
+      end
       wfs(wf).record_mode = 0;
       wfs(wf).complex = 0;
       wfs(wf).sample_size = 2;
@@ -737,6 +756,10 @@ for wf = 1:length(param.radar.wfs)
       if wf == 1
         wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
       else
+        % Only some of the formats support multiple waveforms and some of
+        % the formats have a records.settings.wfs(wf-1).num_sam that
+        % can change from one record to the next and so is repopulated in
+        % data_load.m for wf>1.
         wfs(wf).offset = wfs(wf-1).offset + ...
           + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
           + HEADER_SIZE + WF_HEADER_SIZE;
