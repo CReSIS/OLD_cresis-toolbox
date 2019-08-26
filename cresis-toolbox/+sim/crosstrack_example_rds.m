@@ -28,12 +28,12 @@ if sim_number == 1
   param.debug_level = 3;
   
   %% Sim 1: Source parameters
-  fc = 360e9;
-  BW = 6000e6;
+  fc = 195e6;
+  BW = 30e6;
   param.src.f0                      = fc-BW/2;
   param.src.f1                      = fc+BW/2;
-  param.src.t0                      = 2*(500-5)/c;
-  param.src.t1                      = 2*(500+5)/c;
+  param.src.t0                      = 2*(1500-500)/c;
+  param.src.t1                      = 2*(1500+1000)/c;
   param.src.ft_func                 = @(t) tukeywin_cont(t * BW);
   param.src.ft_wind                 = @(N) hanning(N);
   param.src.lever_arm.fh            = @sim.lever_arm_example;
@@ -46,7 +46,8 @@ if sim_number == 1
   param.src.noise_power             = 10*log10(BoltzmannConst*290*abs(param.src.f0-param.src.f1)) + 2*ones(1,Nc);
   
   % DOA method parameters
-  param.method.list                   = [7];
+  array_proc_methods;
+  param.method.list                   = [MUSIC_METHOD];
   
   %% Sim 1: Simulation Runs Setup
   
@@ -206,7 +207,7 @@ if sim_number == 2
   
   %% Sim 2: Source parameters
   fc = 195e6;
-  BW = 10e6;
+  BW = 30e6;
   param.src.f0                      = fc-BW/2;
   param.src.f1                      = fc+BW/2;
   param.src.t0                      = 2*(1500-500)/c;
@@ -224,8 +225,9 @@ if sim_number == 2
   param.src.noise_power             = 10*log10(BoltzmannConst*290*abs(param.src.f0-param.src.f1)) + 2*ones(1,Nc);
   
   % DOA method parameters
-  param.method.list                   = [7];
-  
+  array_proc_methods;
+  param.method.list                   = [MLE_METHOD];
+
   %% Sim 2: Simulation Runs Setup
   
   % Cross track monte carlo setup

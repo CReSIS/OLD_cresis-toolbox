@@ -225,8 +225,10 @@ if norm_saved == 0
           end
           %% Model Order Estimators
           % Suboptimal Methods
+          model_order_suboptimal_param = [];
           model_order_suboptimal_param.Nc         = Nc;
           model_order_suboptimal_param.Nsnap      = param.monte.Nsnap;
+          model_order_suboptimal_param.Nsrc       = M;
           model_order_suboptimal_param.eigval     = eigvals;
           model_order_suboptimal_param.penalty_NT = zeros(1,M+1);
           model_order_suboptimal_param.param_MOE  = param_MOE;
@@ -235,12 +237,13 @@ if norm_saved == 0
           for model_order_method = 0%:6 <== For training, only method=0 is required
             clear sources_number doa
             model_order_suboptimal_param.method       = model_order_method;
-            [~, log_penalty_cost_subopt] = model_order_suboptimal(model_order_suboptimal_param);
+            [~, log_penalty_cost_subopt] = sim.model_order_suboptimal(model_order_suboptimal_param);
           end
           
           %Optimal Methods
           
           phase_center = param.src.lever_arm.fh(param.src.lever_arm.args{:});
+          model_order_optimal_param = [];
           model_order_optimal_param.y_pc       = phase_center(2,:).';
           model_order_optimal_param.z_pc       = phase_center(3,:).';
           model_order_optimal_param.fc         = fc;
@@ -257,7 +260,7 @@ if norm_saved == 0
           for model_order_method = 0;%:6 <== For training, only method=0 is required
             clear sources_number doa
             model_order_optimal_param.method = model_order_method;
-            [~,~,log_penalty_cost_opt] = model_order_optimal(model_order_optimal_param);
+            [~,~,log_penalty_cost_opt] = sim.model_order_optimal(model_order_optimal_param);
           end
           
           % For each run, collect the eigenvalues and
@@ -529,8 +532,10 @@ for SNR_testing_idx =1: length(SNR_testing)
         
         %  0 IF SUBOPTIMAL ESTIMATORS ARE NOT NEEDED
         if suboptimal_test
+          model_order_suboptimal_param = [];
           model_order_suboptimal_param.Nc         = Nc;
           model_order_suboptimal_param.Nsnap      = param.monte.Nsnap;
+          model_order_suboptimal_param.Nsrc       = M;
           model_order_suboptimal_param.eigval     = eigvals;
           model_order_suboptimal_param.penalty_NT = penalty_sravya;%zeros(1,M+1);
           model_order_suboptimal_param.param_MOE  = param_MOE;
@@ -540,7 +545,7 @@ for SNR_testing_idx =1: length(SNR_testing)
             clear sources_number doa
             
             model_order_suboptimal_param.method = model_order_method;
-            [sources_number, log_penalty_cost_subopt] = model_order_suboptimal(model_order_suboptimal_param);
+            [sources_number, log_penalty_cost_subopt] = sim.model_order_suboptimal(model_order_suboptimal_param);
             
             param_debug.eigval_all(Run_Idx,:,:) = eigvals; % Nruns*Nc*Nb
             param_debug.subopt{Run_Idx}(model_order_method+1,:) = log_penalty_cost_subopt;
@@ -590,6 +595,7 @@ for SNR_testing_idx =1: length(SNR_testing)
         if optimal_test ==1
           % Optimal Methods
           phase_center = param.src.lever_arm.fh(param.src.lever_arm.args{:});
+          model_order_optimal_param = [];
           model_order_optimal_param.y_pc       = phase_center(2,:).';
           model_order_optimal_param.z_pc       = phase_center(3,:).';
           model_order_optimal_param.fc         = fc;
@@ -610,7 +616,7 @@ for SNR_testing_idx =1: length(SNR_testing)
             
             % log_penalty_cost_opt is 3*M vector for each method.
             % That is,[log_func(1*M) penalty(1*M) cost(1*M)]
-            [sources_number,doa,log_penalty_cost_opt] = model_order_optimal(model_order_optimal_param);
+            [sources_number,doa,log_penalty_cost_opt] = sim.model_order_optimal(model_order_optimal_param);
             
             param_debug.opt{Run_Idx}(model_order_method+1,:) = log_penalty_cost_opt;
             
