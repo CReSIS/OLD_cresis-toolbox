@@ -18,8 +18,8 @@ algorithms = {'viterbi'};
 
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140401_03');
-params = ct_set_params(params,'cmd.frms',[1]);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140407_01');
+params = ct_set_params(params,'cmd.frms',[2]);
 
 options.name       = 'CSARP_post/mvdr';
 options.debug      = true;
@@ -68,9 +68,9 @@ end
 %% Viterbi User Settings
 options.viterbi.crossoverload  = true;
 options.viterbi.layername      = 'viterbi_bot';
-options.viterbi.detrending     = false;
+options.viterbi.detrending     = true;
 options.viterbi.top_sup        = false;
-options.viterbi.mult_sup       = true;
+options.viterbi.mult_sup       = false;
 options.viterbi.custom_combine = false;
 options.viterbi.DIM_matrix     = fullfile('+tomo', 'Layer_tracking_2D_parameters_Matrix.mat');
 
