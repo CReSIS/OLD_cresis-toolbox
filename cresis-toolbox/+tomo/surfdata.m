@@ -93,6 +93,8 @@ classdef surfdata < handle
         
         % one argument => load file and create struct array accordingly
       else
+        % Check to see if this is a direction of arrival method or a beam
+        % forming method file.
         if ~exist('param','var') || ~isfield(param,'doa_method_flag')
           doa_method_flag = false;
         else
@@ -117,8 +119,10 @@ classdef surfdata < handle
       % the existing surf struct array.
       %
       % Input:
-      %   fn: The file path OR a new struct array with all the fields in a
+      %  fn: The file path OR a new struct array with all the fields in a
       %   surfData file.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       
       if ~exist('doa_method_flag','var')
         doa_method_flag = false;
@@ -155,13 +159,15 @@ classdef surfdata < handle
       end
     end
     
-    function set_metadata(obj, md,doa_method_flag)
+    function set_metadata(obj, md, doa_method_flag)
       % obj.set_metadata(md)
       % 
       % Function for validating all the metadata fields
       %
       % md: struct containing gps_time, theta, FCS, radar_name,
       %   season_name, day_seg, and frm.
+      % doa_method_flag: logical that specifies is this file stores DOA
+      %  data or beam forming data. Default is false.
       
       obj.valid_metadata(md,doa_method_flag);
       
@@ -182,6 +188,8 @@ classdef surfdata < handle
       %
       % md: struct containing gps_time, theta, FCS, radar_name,
       %   season_name, day_seg, and frm.
+      % doa_method_flag: logical that specifies is this file stores DOA
+      %  data or beam forming data. Default is false.
       
       if ~ischar(md.radar_name)
         error('radar_name must be a string');
@@ -265,15 +273,16 @@ classdef surfdata < handle
 
     %% insert_surf
     function insert_surf(obj, surf_struct,doa_method_flag)
-      %  obj.insert_surf(surf_struct)
+      % obj.insert_surf(surf_struct)
       %
-      %  Input: 
-      %    surf_struct: A surf structure. Normally, the indexing fields
-      %    such as top, active, mask, gt, quality should be cleared.
+      % Input: 
+      %   surf_struct: A surf structure. Normally, the indexing fields
+      %   such as top, active, mask, gt, quality should be cleared.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       %
-      %  Result: 
-      %    Adds a surf structure, surf_A, into 
-      %    the surf array into the object
+      % Result: 
+      %   Adds a surf structure, surf_A, into the "surf" array of the object
       %
       % See also: surfdata.clear_references
       
@@ -498,12 +507,17 @@ classdef surfdata < handle
       % obj.save_surfdata(fn)
       %
       % Input: 
-      %   fn: A string that will be the name of the saved surfData file.
+      %  fn: A string that will be the name of the saved surfData file.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       %
       % Result:
       %   Saves the surf struct array in the object 
       %   as a .mat file. Creates directories as needed.
       
+      if ~exist('doa_method_flag','var')
+        doa_method_flag = false;
+      end
       for surf_idx = 1:length(obj.surf)
         obj.valid_surf(obj.surf(surf_idx),doa_method_flag);
       end
@@ -600,12 +614,19 @@ classdef surfdata < handle
     function [] = valid_surf(obj, surf_struct,doa_method_flag)
       % obj.valid_surf(surf_struct)
       %
-      % Input: A surf structure.
+      % Input:
+      %  surf_struct: A surf structure.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false. Field not used.
       %
       % Result: 
       % 1. Nothing, if the surf structure is valid.
       % 2. Throws an error if any of the condition 
       % is not satisfied.
+      
+      if ~exist('doa_method_flag','var')
+        doa_method_flag = false;
+      end
       
       % check if it's a structure
       if ~isstruct(surf_struct)

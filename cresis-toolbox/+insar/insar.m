@@ -788,7 +788,7 @@ legend(h_plot_baseline,h_legend_baseline);
 
 param.array.wfs.time = ref.wfs(ref.wf).time;
 dt = param.array.wfs.time(2)-param.array.wfs.time(1);
-param.array_proc.bin0 = param.array.wfs.time/dt;
+param.array_proc.bin0 = param.array.wfs.time(1)/dt;
 param.array.sv_fh = @array_proc_sv;
 param.array.wfs.fc = ref.wfs(ref.wf).fc;
 param.array.imgs = {[ones(length(pass_en_idxs),1), (1:length(pass_en_idxs)).']};
