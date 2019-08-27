@@ -49,11 +49,10 @@ options.save_add_f_path = '';
 %% Ice mask options
 if 0 % If using GeoTIFF file for ice mask
   options.binary_icemask = false;
-  options.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
-  options.icemask_fn = ct_filename_gis([], options.icemask_fn);
+  options.icemask_fn = ct_filename_gis([], 'greenland/IceMask/GimpIceMask_90m_v1.1.tif');
                        
   % Useful for Antarctica seasons:
-  % options.icemask_fn  = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';
+  options.icemask_fn  = ct_filename_gis([], 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif');
   % options.icemask2_fn = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif';
   %   if isfield(options, 'icemask2_fn') && ~isempty(options.icemask2_fn)
   %     options.icemask2_fn = ct_filename_gis([],options.icemask2_fn);
