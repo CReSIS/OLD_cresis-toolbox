@@ -258,9 +258,10 @@ for img = param.collate_coh_noise.imgs
         end
         
         %figure(100); plot(threshold); hold on;
-        % Example:
+        % Examples:
         % param.collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;'
         % param.collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -110; threshold(time<=Tpd+2.3e-6) = threshold(time<=Tpd+2.3e-6)+20;';
+        % param.collate_coh_noise.threshold_eval{wf} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(noise.dft(:,1)).^2)+6);';
         eval(param.collate_coh_noise.threshold_eval{wf});
       end
     end

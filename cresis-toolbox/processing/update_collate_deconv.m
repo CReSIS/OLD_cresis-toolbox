@@ -28,15 +28,12 @@ physical_constants;
 % =========================================================================
 
 if ~isfield(param.update_collate_deconv,'abs_metric') || isempty(param.update_collate_deconv.abs_metric)
-  error('The "abs_metric" field must be set in the param.update_collate_deconv.');
-end
-
-if ~isfield(param.update_collate_deconv,'metric_weights') || isempty(param.update_collate_deconv.metric_weights)
-  param.update_collate_deconv.metric_weights = [0.5 0 3 5 0 0];
+  param.update_collate_deconv.abs_metric = [58 5 -25 -35 inf inf];
 end
 
 if ~isfield(param.update_collate_deconv,'debug_plots')
   param.update_collate_deconv.debug_plots = {'final'};
+  % param.update_collate_deconv.debug_plots = {'final','visible'};
 end
 
 if ~isfield(param.update_collate_deconv,'delete_existing') || isempty(param.update_collate_deconv.delete_existing)
@@ -54,16 +51,25 @@ if ~isfield(param.update_collate_deconv,'imgs') || isempty(param.update_collate_
   param.update_collate_deconv.imgs = 1:length(param.analysis.imgs);
 end
 
-if ~isfield(param.update_collate_deconv,'in_dir') || isempty(param.update_collate_deconv.in_dir)
-  param.update_collate_deconv.in_dir = 'analysis';
+if ~isfield(param.update_collate_deconv,'in_path') || isempty(param.update_collate_deconv.in_path)
+  param.update_collate_deconv.in_path = 'analysis';
+end
+
+if ~isfield(param.update_collate_deconv,'metric_weights') || isempty(param.update_collate_deconv.metric_weights)
+  param.update_collate_deconv.metric_weights = [0.5 0 3 5 0 0];
+end
+error_mask = isinf(param.update_collate_deconv.abs_metric) & param.update_collate_deconv.metric_weights ~= 0;
+if any(error_mask)
+  warning('Fields set to inf in abs_metric must be set to 0 in metric_weights. Setting these to 0 now.');
+  param.update_collate_deconv.metric_weights(error_mask) = 0;
 end
 
 if ~isfield(param.update_collate_deconv,'min_score') || isempty(param.update_collate_deconv.min_score)
   param.update_collate_deconv.min_score = -10;
 end
 
-if ~isfield(param.update_collate_deconv,'out_dir') || isempty(param.update_collate_deconv.out_dir)
-  param.update_collate_deconv.out_dir = param.update_collate_deconv.in_dir;
+if ~isfield(param.update_collate_deconv,'out_path') || isempty(param.update_collate_deconv.out_path)
+  param.update_collate_deconv.out_path = param.update_collate_deconv.in_path;
 end
 
 if ~isfield(param.update_collate_deconv,'twtt_penalty') || isempty(param.update_collate_deconv.twtt_penalty)
@@ -103,7 +109,7 @@ for img = param.update_collate_deconv.imgs
     
     % Load input
     % ===================================================================
-    fn_dir = fileparts(ct_filename_out(param,param.update_collate_deconv.in_dir, ''));
+    fn_dir = fileparts(ct_filename_out(param,param.update_collate_deconv.in_path, ''));
     fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('\n==============================================================\n');
     fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
@@ -184,7 +190,7 @@ for img = param.update_collate_deconv.imgs
             end
             
             tmp_param.day_seg = param.update_collate_deconv.cmd{cmd_idx}.day_seg{seg_idx};
-            fn_dir = fileparts(ct_filename_out(tmp_param,param.update_collate_deconv.in_dir, ''));
+            fn_dir = fileparts(ct_filename_out(tmp_param,param.update_collate_deconv.in_path, ''));
             fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', tmp_param.day_seg, wf_map, adc_map));
             fprintf('  Loading %s img %d wf %d adc %d\n  %s\n', tmp_param.day_seg, img, wf_map, adc_map, fn);
             tmp_deconv{cmd_idx}{seg_idx} = load(fn);
@@ -362,6 +368,7 @@ for img = param.update_collate_deconv.imgs
       % TWTT Figure
       % ===================================================================
       clf(h_fig(1));
+      set(h_fig(1),'Name',['TWTT ' param.day_seg]);
       h_axes = axes('parent',h_fig(1));
       
       legend_str = {};
@@ -377,24 +384,25 @@ for img = param.update_collate_deconv.imgs
       
       xlabel(h_axes(1), 'Block');
       ylabel(h_axes(1), 'Two way travel time (\mus)');
-      title(h_axes(1), param.day_seg, 'interpreter', 'none');
+      title(h_axes(1), ['TWTT ' regexprep(param.day_seg,'_','\\_')]);
       legend(h_axes(1), h_plot, legend_str,'location','best');
       grid(h_axes(1), 'on');
       
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
       fig_fn_dir = fileparts(fig_fn);
       if ~exist(fig_fn_dir,'dir')
         mkdir(fig_fn_dir);
       end
-      saveas(h_fig(1),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.jpg'];
+      ct_saveas(h_fig(1),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(1),fig_fn);
+      ct_saveas(h_fig(1),fig_fn);
       
       % Score Figure
       % ===================================================================
       clf(h_fig(2));
+      set(h_fig(2),'Name',['Score ' param.day_seg]);
       h_axes(2) = axes('parent',h_fig(2));
       
       legend_str = {};
@@ -411,20 +419,21 @@ for img = param.update_collate_deconv.imgs
       
       xlabel(h_axes(2), 'Block');
       ylabel(h_axes(2), 'Score');
-      title(h_axes(2), param.day_seg, 'interpreter', 'none');
+      title(h_axes(2), ['Score ' regexprep(param.day_seg,'_','\\_')]);
       legend(h_axes(2), h_plot, legend_str,'location','best');
       grid(h_axes(2), 'on');
       
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(2),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.jpg'];
+      ct_saveas(h_fig(2),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(2),fig_fn);
+      ct_saveas(h_fig(2),fig_fn);
       
       % Transfer Function Figure
       % ===================================================================
       clf(h_fig(3));
+      set(h_fig(3),'Name',['Transfer function ' param.day_seg]);
       pos = get(h_fig(3),'Position');
       set(h_fig(3),'Position',[pos(1:2) 1000 600]);
       h_axes(3) = subplot(5,1,1:2,'parent',h_fig(3));
@@ -475,7 +484,7 @@ for img = param.update_collate_deconv.imgs
       end
       ylabel(h_axes(3), 'Relative power (dB)');
       ylabel(h_axes(4), 'Relative angle (deg)');
-      title(h_axes(3), sprintf('%s (Legend idx:frm:peak:twtt)', param.day_seg), 'interpreter', 'none');
+      title(h_axes(3), regexprep(sprintf('%s (Legend idx:frm:peak:twtt)', param.day_seg),'_','\\_'));
       grid(h_axes(3), 'on');
       grid(h_axes(4), 'on');
       h_legend = legend(h_axes(3), legend_str, 'location', 'northeastoutside', 'interpreter','none');
@@ -484,23 +493,29 @@ for img = param.update_collate_deconv.imgs
       pos4 = get(h_axes(4),'Position');
       set(h_axes(4),'Position',[pos4(1:2) pos3(3) pos4(4)]);
       
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(3),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.update_collate_deconv.out_dir,wf,adc)) '.jpg'];
+      ct_saveas(h_fig(3),fig_fn);
+      fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.update_collate_deconv.out_path,wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
-      saveas(h_fig(3),fig_fn);
+      ct_saveas(h_fig(3),fig_fn);
     end
     
     % Save outputs
     % ===================================================================
-    fn_dir = fileparts(ct_filename_out(param,param.update_collate_deconv.out_dir, ''));
+    fn_dir = fileparts(ct_filename_out(param,param.update_collate_deconv.out_path, ''));
     if ~exist(fn_dir,'dir')
       mkdir(fn_dir);
     end
     out_fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
     fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
     ct_file_lock_check(out_fn,2);
-    save(out_fn,'-v7.3','-struct','final');
+    ct_save(out_fn,'-v7.3','-struct','final');
+  end
+end
+
+if ~any(strcmp('visible',param.(mfilename).debug_plots))
+  try
+    delete(h_fig);
   end
 end

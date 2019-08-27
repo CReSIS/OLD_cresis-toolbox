@@ -21,12 +21,19 @@ if strcmpi(obj.eg.LayerSource,'OPS')
 %% LayerData: Loading flight path from layerData
 else
   fprintf(' Loading flight path from layerData(%s)\n', datestr(now,'HH:MM:SS'));
+  obj.eg.map_gps_time = [];
+  obj.eg.map_elev = [];
+  obj.eg.map_x = [];
+  obj.eg.map_y = [];
   for idx = 1:length(obj.eg.frame_idxs)
-    obj.eg.map_gps_time = double(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).GPS_time);
-    obj.eg.map_elev = double(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Elevation);
+    Nx = length(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).GPS_time);
+    obj.eg.map_gps_time(end+1:end+Nx) ...
+      = double(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).GPS_time);
+    obj.eg.map_elev(end+1:end+Nx) ...
+      = double(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Elevation);
     [X,Y] = projfwd(obj.eg.projmat,obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Latitude,obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Longitude);
-    obj.eg.map_x = double(X)/1e3;
-    obj.eg.map_y = double(Y)/1e3;
+    obj.eg.map_x(end+1:end+Nx) = double(X)/1e3;
+    obj.eg.map_y(end+1:end+Nx) = double(Y)/1e3;
   end
   
   % Get the unique point path ids for layerData and save it in the

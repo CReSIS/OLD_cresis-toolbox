@@ -566,7 +566,14 @@ for img = 1:length(param.load.imgs)
           end
           
           fs_raw_dec = wfs(wf).fs_raw ./ hdr.DDC_dec{img}(rec);
-          Nt_raw_trim = round(fs_raw_dec/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window)/2)*2;
+          
+          Nt_raw_trim = fs_raw_dec/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window);
+          if abs(Nt_raw_trim/2 - round(Nt_raw_trim/2)) > 1e-6
+            error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
+          end
+          % Remove rounding errors
+          Nt_raw_trim = round(Nt_raw_trim);
+          
           df_raw = wfs(wf).fs_raw/hdr.DDC_dec{img}(rec)/Nt_raw_trim;
           DDC_freq_adjust = mod(hdr.DDC_freq{img}(rec),df_raw);
           hdr.DDC_freq{img}(rec) = hdr.DDC_freq{img}(rec) - DDC_freq_adjust;
@@ -614,7 +621,12 @@ for img = 1:length(param.load.imgs)
             % In case the decimation length does not align with the desired
             % length, Nt_desired, we determine what resampling is required
             % and store this in p,q.
-            Nt_desired = round(wfs(wf).fs_raw/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window)/2)*2;
+            Nt_desired = wfs(wf).fs_raw/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window);
+            if abs(Nt_desired/2 - round(Nt_desired/2)) > 1e-6
+              error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
+            end
+            % Remove rounding errors
+            Nt_desired = round(Nt_desired);
             if 0
               % Debug: Test how fast different data record lengths are
               for Nt_raw_trim_test=Nt_raw_trim+(0:10)
@@ -1204,9 +1216,9 @@ for img = 1:length(param.load.imgs)
               cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
             end
             
-            reD(cur_idx_start : cur_idx_stop,rec,wf_adc) = reD(1:hdr.Nt{img}(rlines(rec)),rec,wf_adc);
-            reD(1:cur_idx_start-1,rec,wf_adc) = NaN;
-            reD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+            reD(cur_idx_start : cur_idx_stop,rec) = reD(1:hdr.Nt{img}(rlines(rec)),rec);
+            reD(1:cur_idx_start-1,rec) = NaN;
+            reD(cur_idx_stop+1 : wfs(wf).Nt,rec) = NaN;
           end
           for rec = 1:length(rlines)
             if isnan(hdr.t0{img}(rlines(rec)))
@@ -1218,9 +1230,9 @@ for img = 1:length(param.load.imgs)
               cur_idx_stop = round(hdr.t0{img}(rlines(rec))/dt) - idx_start + hdr.Nt{img}(rlines(rec));
             end
             
-            imD(cur_idx_start : cur_idx_stop,rec,wf_adc) = imD(1:hdr.Nt{img}(rlines(rec)),rec,wf_adc);
-            imD(1:cur_idx_start-1,rec,wf_adc) = NaN;
-            imD(cur_idx_stop+1 : wfs(wf).Nt,rec,wf_adc) = NaN;
+            imD(cur_idx_start : cur_idx_stop,rec) = imD(1:hdr.Nt{img}(rlines(rec)),rec);
+            imD(1:cur_idx_start-1,rec) = NaN;
+            imD(cur_idx_stop+1 : wfs(wf).Nt,rec) = NaN;
           end
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = reD(1:wfs(wf).Nt,:) + 1i*imD(1:wfs(wf).Nt,:);
         end
@@ -1435,9 +1447,14 @@ for img = 1:length(param.load.imgs)
         for block = 1:length(blocks)-1
           rlines = deconv_mask_idxs(blocks(block) : blocks(block+1)-1);
           % Matched filter
-          data{img}(1:wfs(wf).Nt+h_ref_length,rlines,wf_adc) = ifft(bsxfun(@times, fft(data{img}(1:wfs(wf).Nt,rlines,wf_adc),deconv_Nt), h_filled_inverse));
+          tmp = data{img}(1:wfs(wf).Nt,rlines,wf_adc);
+          tmp_nan_mask = isnan(tmp);
+          tmp(tmp_nan_mask) = 0;
+          tmp = ifft(bsxfun(@times, fft(tmp,deconv_Nt), h_filled_inverse));
           % Down conversion to new deconvolution center frequency
-          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = bsxfun(@times, data{img}(1:wfs(wf).Nt,rlines,wf_adc), deconv_LO);
+          tmp = bsxfun(@times, tmp(1:wfs(wf).Nt,:), deconv_LO);
+          tmp(tmp_nan_mask) = NaN;
+          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = tmp;
         end
         
       end

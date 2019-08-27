@@ -645,11 +645,11 @@ for frm_idx = 1:length(param.cmd.frms)
           for img = 1:length(tmp_dparam.argsin{1}.load.imgs)
             Nx = diff(tmp_dparam.argsin{1}.load.recs) + 2*chunk_overlap_est(img)/dx_approx;
             if strcmpi(param.sar.sar_type,'fk')
-              tmp_dparam.cpu_time = tmp_dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img} ...
-                *(10+2*log2(total_num_sam{imgs_idx}{img}))*size(tmp_dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
+              tmp_dparam.cpu_time = tmp_dparam.cpu_time + 10 + Nx*log2(Nx)*total_pc_num_sam{imgs_idx}{img} ...
+                *(10+2*log2(total_pc_num_sam{imgs_idx}{img}))*size(tmp_dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
               % Raw Data and Pulse Compression Memory Requirements:
-              mem_biggest = max(mem_biggest,Nx*total_num_sam{imgs_idx}{img}*16);
-              mem_pulse_compress = Nx*total_num_sam{imgs_idx}{img}*size(tmp_dparam.argsin{1}.load.imgs{img},1)*8*mem_mult(1);
+              mem_biggest = max(mem_biggest,Nx*total_pc_num_sam{imgs_idx}{img}*16);
+              mem_pulse_compress = Nx*total_pc_num_sam{imgs_idx}{img}*size(tmp_dparam.argsin{1}.load.imgs{img},1)*8*mem_mult(1);
               % SAR Memory Requirements:
               % NOTE: Need to consider number of SAR subapertures, length(param.sar.sub_aperture_steering)
               mem_sar = 0;

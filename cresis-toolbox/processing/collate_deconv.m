@@ -1,4 +1,4 @@
-%function collate_deconv(param,param_override)
+function collate_deconv(param,param_override)
 % collate_deconv(param,param_override)
 %
 % This scripts takes the results from analysis cmd spectral
@@ -68,7 +68,7 @@ end
 % =========================================================================
 
 if ~isfield(param.collate_deconv,'abs_metric') || isempty(param.collate_deconv.abs_metric)
-  error('The "abs_metric" field must be set in param.collate_deconv.');
+  param.collate_deconv.abs_metric = [58 5 -25 -35 inf inf];
 end
 
 if ~isfield(param.collate_deconv,'bad_gps_times') || isempty(param.collate_deconv.bad_gps_times)
@@ -80,9 +80,14 @@ if ~isfield(param.collate_deconv,'day_segs') || isempty(param.collate_deconv.day
   param.collate_deconv.day_segs = {param.day_seg};
 end
 
+if ~isfield(param.collate_deconv,'debug_out_dir') || isempty(param.collate_deconv.debug_out_dir)
+  param.collate_deconv.debug_out_dir = mfilename;
+end
+debug_out_dir = param.collate_deconv.debug_out_dir;
+
 if ~isfield(param.collate_deconv,'debug_plots')
-  param.collate_deconv.debug_plots = {'metric','final','visible'};
-  %param.collate_deconv.debug_plots = {'rbins','deconv','metric','final','visible'};
+  param.collate_deconv.debug_plots = {'peakiness','metric','final','visible'};
+  %param.collate_deconv.debug_plots = {'peakiness','rbins','deconv','metric','final','visible'};
 end
 
 if ~isfield(param.collate_deconv,'debug_rlines') || isempty(param.collate_deconv.debug_rlines)
@@ -116,16 +121,17 @@ if ~isfield(param.collate_deconv,'imgs') || isempty(param.collate_deconv.imgs)
   param.collate_deconv.imgs = 1:length(param.analysis.imgs);
 end
 
-if ~isfield(param.collate_deconv,'in_dir') || isempty(param.collate_deconv.in_dir)
-  param.collate_deconv.in_dir = 'analysis';
-end
-
-if ~isfield(param.collate_deconv,'interp_rbins') || isempty(param.collate_deconv.interp_rbins)
-  param.collate_deconv.interp_rbins = [];
+if ~isfield(param.collate_deconv,'in_path') || isempty(param.collate_deconv.in_path)
+  param.collate_deconv.in_path = 'analysis';
 end
 
 if ~isfield(param.collate_deconv,'metric_weights') || isempty(param.collate_deconv.metric_weights)
   param.collate_deconv.metric_weights = [0.5 0 3 5 0 0];
+end
+error_mask = isinf(param.collate_deconv.abs_metric) & param.collate_deconv.metric_weights ~= 0;
+if any(error_mask)
+  warning('Fields set to inf in abs_metric must be set to 0 in metric_weights. Setting these to 0 now.');
+  param.collate_deconv.metric_weights(error_mask) = 0;
 end
 
 if ~isfield(param.collate_deconv,'min_score') || isempty(param.collate_deconv.min_score)
@@ -141,8 +147,8 @@ if ~isfield(param.collate_deconv,'Mt') || isempty(param.collate_deconv.Mt)
 end
 Mt = param.collate_deconv.Mt;
 
-if ~isfield(param.collate_deconv,'out_dir') || isempty(param.collate_deconv.out_dir)
-  param.collate_deconv.out_dir = param.collate_deconv.in_dir;
+if ~isfield(param.collate_deconv,'out_path') || isempty(param.collate_deconv.out_path)
+  param.collate_deconv.out_path = param.collate_deconv.in_path;
 end
 
 if ~isfield(param.collate_deconv,'preserve_old') || isempty(param.collate_deconv.preserve_old)
@@ -159,6 +165,12 @@ if ~iscell(param.collate_deconv.rbins)
   error('collate_deconv.rbins should be a cell array with an entry for each image. E.g. {[-200 150],[-200 150]}.');
 end
 
+if ~isfield(param.collate_deconv,'rec_adjustments') || isempty(param.collate_deconv.rec_adjustments)
+  for img = 1:length(param.analysis.imgs)
+    param.collate_deconv.rec_adjustments{img} = [];
+  end
+end
+
 if ~isfield(param.collate_deconv,'SL_guard_bins') || isempty(param.collate_deconv.SL_guard_bins)
   param.collate_deconv.SL_guard_bins = 3;
 end
@@ -169,6 +181,10 @@ end
 
 if ~isfield(param.collate_deconv,'stage_two_en') || isempty(param.collate_deconv.stage_two_en)
   param.collate_deconv.stage_two_en = true;
+end
+
+if ~isfield(param.collate_deconv,'threshold') || isempty(param.collate_deconv.threshold)
+  param.collate_deconv.threshold = -inf;
 end
 
 if ~isfield(param.collate_deconv,'twtt_penalty') || isempty(param.collate_deconv.twtt_penalty)
@@ -240,10 +256,42 @@ if param.collate_deconv.stage_one_en
       wf = param.analysis.imgs{img}(wf_adc,1);
       adc = param.analysis.imgs{img}(wf_adc,2);
       
-      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.in_dir, ''));
+      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.in_path, ''));
       fn = fullfile(fn_dir,sprintf('specular_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
       spec = load(fn);
+      [~,spec.frm,spec.rec] = get_frame_id(param,spec.gps_time);
+      fprintf('  File contains %d waveforms\n', length(spec.deconv_gps_time));
+      
+      if any(strcmp('peakiness',param.collate_deconv.debug_plots))
+        % Plot peakiness
+        clf(h_fig(1));
+        set(h_fig(1),'Name',['Peakiness ' param.day_seg]);
+        h_axes = subplot(2,1,1,'parent',h_fig(1));
+        plot(h_axes(1), spec.frm, spec.peakiness,'x');
+        xlabel(h_axes(1), 'Frame');
+        ylabel(h_axes(1), 'Peakiness (higher is better)');
+        title(h_axes(1), regexprep(param.day_seg,'_','\\_'));
+        grid(h_axes(1), 'on');
+        
+        h_axes(2) = subplot(2,1,2,'parent',h_fig(1));
+        plot(h_axes(2), spec.rec, spec.peakiness,'x');
+        xlabel(h_axes(2), 'Record');
+        ylabel(h_axes(2), 'Peakiness (higher is better)');
+        grid(h_axes(2), 'on');
+        
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
+        fprintf('Saving %s\n', fig_fn);
+        fig_fn_dir = fileparts(fig_fn);
+        if ~exist(fig_fn_dir,'dir')
+          mkdir(fig_fn_dir);
+        end
+        ct_saveas(h_fig(1),fig_fn);
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_peakiness_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
+        fprintf('Saving %s\n', fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
+      end
+      
       if isempty(spec.deconv_gps_time)
         warning('No specular waveforms found.');
         continue;
@@ -298,6 +346,27 @@ if param.collate_deconv.stage_one_en
         
         %% Stage 1: Impulse response
         
+        if interp1(spec.gps_time,spec.peakiness,spec.deconv_gps_time(rline)) < param.collate_deconv.threshold
+          % Waveform peakiness is too low
+          deconv.metric(:,rline) = nan(6,1);
+          [~,match_idx] = min(abs(spec.gps_time - spec.deconv_gps_time(rline)));
+          deconv.gps_time(rline) = spec.gps_time(match_idx);
+          deconv.lat(rline) = spec.lat(match_idx);
+          deconv.lon(rline) = spec.lon(match_idx);
+          deconv.elev(rline) = spec.elev(match_idx);
+          deconv.roll(rline) = spec.roll(match_idx);
+          deconv.pitch(rline) = spec.pitch(match_idx);
+          deconv.heading(rline) = spec.heading(match_idx);
+          deconv.peakiness(rline) = spec.peakiness(match_idx);
+          deconv.fc(rline) = spec.deconv_fc(rline);
+          deconv.ref_nonnegative{rline} = [];
+          deconv.ref_negative{rline} = [];
+          deconv.ref_mult_factor(rline) = NaN;
+          deconv.impulse_response{rline} = [];
+
+          continue;
+        end
+        
         % h: impulse response
         h = spec.deconv_mean{rline};
         
@@ -315,6 +384,7 @@ if param.collate_deconv.stage_one_en
         if any(strcmp('rbins',param.collate_deconv.debug_plots)) ...
             && (isempty(param.collate_deconv.debug_rlines) || any(rline==param.collate_deconv.debug_rlines))
           figure(h_fig(1)); clf(h_fig(1));
+          set(h_fig(1),'Name','Impulse response falling edge');
           h_axes = axes('parent',h_fig(1));
           max_dm = max(lp(spec.deconv_mean{rline}));
           plot(h_axes(1), lp(spec.deconv_mean{rline}) - max_dm)
@@ -326,13 +396,14 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(1), lp(h_filled) - max_dm)
           xlabel(h_axes(1), 'Range bin');
           ylabel(h_axes(1), 'Relative power (dB)');
-          title(h_axes(1), 'Impulse response falling edge');
+          title(h_axes(1), sprintf('Impulse response falling edge (rline %d of %d)',rline, length(spec.deconv_gps_time)));
           legend(h_axes(1), 'mean','sample','std','h','location','best');
           xlim(h_axes(1), [1 2*param.collate_deconv.rbins{img}(2)]);
           ylim(h_axes(1), [-debug_ylim 0]);
           grid(h_axes(1), 'on');
           
           figure(h_fig(2)); clf(h_fig(2));
+          set(h_fig(2),'Name','Impulse response rising edge');
           h_axes(2) = axes('parent',h_fig(2));
           max_dm = max(lp(spec.deconv_mean{rline}));
           plot(h_axes(2), lp(spec.deconv_mean{rline}) - max_dm)
@@ -344,7 +415,7 @@ if param.collate_deconv.stage_one_en
           plot(h_axes(2), lp(h_filled) - max_dm)
           xlabel(h_axes(2), 'Range bin');
           ylabel(h_axes(2), 'Relative power (dB)');
-          title(h_axes(2), 'Impulse response rising edge');
+          title(h_axes(2), sprintf('Impulse response rising edge (rline %d of %d)',rline, length(spec.deconv_gps_time)));
           legend(h_axes(2), 'mean','sample','std','h','location','best');
           Nt = length(spec.deconv_mean{rline});
           xlim(h_axes(2), [Nt+2*param.collate_deconv.rbins{img}(1) Nt]);
@@ -352,25 +423,27 @@ if param.collate_deconv.stage_one_en
           grid(h_axes(2), 'on');
           
           figure(h_fig(3)); clf(h_fig(3));
+          set(h_fig(3),'Name','SNR falling edge');
           h_axes(3) = axes('parent',h_fig(3));
           plot(h_axes(3),SNR)
           hold(h_axes(3),'on');
           plot(h_axes(3),[1 length(SNR)], 20*[1 1],'k--');
           plot(h_axes(3),param.collate_deconv.rbins{img}(2)*[1 1], [0 debug_ylim],'k--');
-          title(h_axes(3),'SNR falling edge');
+          title(h_axes(3),sprintf('SNR falling edge (rline %d of %d)',rline, length(spec.deconv_gps_time)));
           xlabel(h_axes(3),'Range bin');
           ylabel(h_axes(3),'SNR (dB)');
           ylim(h_axes(3), [0 debug_ylim]);
           grid(h_axes(3), 'on');
           
           figure(h_fig(4)); clf(h_fig(4));
+          set(h_fig(4),'Name','SNR rising edge');
           h_axes(4) = axes('parent',h_fig(4));
           plot(h_axes(4),SNR)
           hold(h_axes(4),'on');
           plot(h_axes(4),[1 length(SNR)], 20*[1 1],'k--');
           plot(h_axes(4),(Nt+param.collate_deconv.rbins{img}(1))*[1 1], [0 debug_ylim],'k--');
-          title(h_axes(4),'SNR rising edge');
-          xlabel(h_axes(4),'Range bin');
+          title(h_axes(4),sprintf('SNR rising edge (rline %d of %d)',rline, length(spec.deconv_gps_time)));
+          xlabel(h_axes(4),'Range[-200 150] bin');
           ylabel(h_axes(4),'SNR (dB)');
           ylim(h_axes(4), [0 debug_ylim]);
           grid(h_axes(4), 'on');
@@ -460,6 +533,7 @@ if param.collate_deconv.stage_one_en
           bins_Mt = 0:1/Mt:Nt-1/Mt;
           
           figure(h_fig(1)); clf(h_fig(1));
+          set(h_fig(1),'Name','Impulse response falling edge');
           h_axes = axes('parent',h_fig(1));
           [max_val,max_idx] = max(lp(h_sample));
           plot(h_axes(1), bins_Mt, circshift(lp(h_sample) - max_val,[-max_idx 1]))
@@ -475,6 +549,7 @@ if param.collate_deconv.stage_one_en
           grid(h_axes(1), 'on');
           
           figure(h_fig(2)); clf(h_fig(2));
+          set(h_fig(2),'Name','Impulse response rising edge');
           h_axes(2) = axes('parent',h_fig(2));
           [max_val,max_idx] = max(lp(h_sample));
           plot(h_axes(2), fliplr(bins_Mt+1), circshift(lp(h_sample) - max_val,[-max_idx 1]))
@@ -490,6 +565,7 @@ if param.collate_deconv.stage_one_en
           grid(h_axes(2), 'on');
           
           figure(h_fig(3)); clf(h_fig(3));
+          set(h_fig(3),'Name','Transfer function');
           h_axes(3) = axes('parent',h_fig(3));
           plot(h_axes(3), lp(h_filled))
           hold(h_axes(3),'on');
@@ -589,18 +665,31 @@ if param.collate_deconv.stage_one_en
         score = nansum(bsxfun(@times, param.collate_deconv.metric_weights(:), bsxfun(@minus, param.collate_deconv.abs_metric(:), deconv.metric)));
         score(:,any(isnan(deconv.metric))) = -inf;
         
+        % Make score adjustments for param.collate_deconv.rec_adjustments
+        for rec_idx = 1:size(param.collate_deconv.rec_adjustments{img},1)
+          [rec_offset,score_idx] = min(abs(deconv.rec-param.collate_deconv.rec_adjustments{img}(rec_idx,1)));
+          if rec_offset > cmd.rlines
+            warning('Record offset to closest waveform to rec_adjustments{%d}(%d,1) is larger than the STFT interval used in analysis spec. This may mean that the record in rec_adjustments{%d}(%d,1) is incorrect.',img,rec_idx,img,rec_idx);
+          else
+            score(score_idx) = score(score_idx) + param.collate_deconv.rec_adjustments{img}(rec_idx,2);
+          end
+        end
+        
         % Find the highest score in each bin
         twtts = unique(round(deconv.twtt*param.collate_deconv.twtt_penalty*10)/10/param.collate_deconv.twtt_penalty);
         
         max_score_rlines = zeros(size(twtts));
         for twtt_idx = 1:length(twtts)
           twtt = twtts(twtt_idx);
-          [~,max_score_rlines(twtt_idx)] = max(score(abs(deconv.twtt-twtt) < 1/param.collate_deconv.twtt_penalty/10*2));
+          twtt_idxs = find(abs(deconv.twtt-twtt) < 1/param.collate_deconv.twtt_penalty/10*2);
+          [~,max_score_rlines(twtt_idx)] = max(score(twtt_idxs));
+          max_score_rlines(twtt_idx) = twtt_idxs(max_score_rlines(twtt_idx));
         end
         
         % Plot metrics
         
         clf(h_fig(1));
+        set(h_fig(1),'Name',['Passed Metric ' param.day_seg]);
         h_axes = axes('parent',h_fig(1));
         plot(h_axes(1), find(all(pass)), deconv.metric(1,all(pass)), '.-')
         hold(h_axes(1),'on');
@@ -611,11 +700,12 @@ if param.collate_deconv.stage_one_en
         plot(h_axes(1), find(all(pass)), deconv.metric(6,all(pass)), '.-')
         xlabel(h_axes(1), 'Deconv waveform index');
         ylabel(h_axes(1), 'Metric (lower is better)');
-        title(h_axes(1), sprintf('%s: pass', param.day_seg), 'interpreter', 'none');
+        title(h_axes(1), [regexprep(param.day_seg,'_','\\_') ': passed']);
         legend(h_axes(1), 'P','ML','FSL','RSL','IFSL','IRSL','location','best');
         grid(h_axes(1), 'on');
         
         clf(h_fig(2));
+        set(h_fig(2),'Name',['Metric ' param.day_seg]);
         h_axes(2) = axes('parent',h_fig(2));
         h_plot = plot(h_axes(2), deconv.metric(1,:));
         hold(h_axes(2),'on');
@@ -632,26 +722,27 @@ if param.collate_deconv.stage_one_en
         plot(h_axes(2), find(all(pass)), deconv.metric(6,all(pass)), '.','Color',get(h_plot(6),'Color'))
         xlabel(h_axes(2), 'Deconv waveform index');
         ylabel(h_axes(2), 'Metric (lower is better)');
-        title(h_axes(2), param.day_seg, 'interpreter', 'none');
+        title(h_axes(2), regexprep(param.day_seg,'_','\\_'));
         legend(h_axes(2), 'P','ML','FSL','RSL','IFSL','IRSL','location','best');
         grid(h_axes(2), 'on');
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_metric_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_metric_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         fig_fn_dir = fileparts(fig_fn);
         if ~exist(fig_fn_dir,'dir')
           mkdir(fig_fn_dir);
         end
-        saveas(h_fig(2),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_metric_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.jpg'];
+        ct_saveas(h_fig(2),fig_fn);
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_metric_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(2),fig_fn);
+        ct_saveas(h_fig(2),fig_fn);
         
         try; linkaxes(h_axes); end;
         
         twtt_bin = deconv.twtt * param.collate_deconv.twtt_penalty;
         
         clf(h_fig(3));
+        set(h_fig(3),'Name',['TWTT ' param.day_seg]);
         h_axes(3) = axes('parent',h_fig(3));
         plot(h_axes(3), twtt_bin)
         hold(h_axes(3),'on');
@@ -659,13 +750,14 @@ if param.collate_deconv.stage_one_en
         scatter(h_axes(3), find(all(pass)),twtt_bin(all(pass)), 200,score(all(pass)).','.')
         xlabel(h_axes(3), 'Deconv waveform index');
         ylabel(h_axes(3), 'TWTT bin');
-        title(h_axes(3), sprintf('%s', param.day_seg), 'interpreter', 'none');
+        title(h_axes(3), regexprep(param.day_seg,'_','\\_'));
         legend(h_axes(3), 'TWTT','Passed','location','best');
         grid(h_axes(3), 'on');
         h_colorbar = colorbar;
         set(get(h_colorbar,'YLabel'),'String','Score');
         
         clf(h_fig(4));
+        set(h_fig(4),'Name',['TWTT vs GPS Time ' param.day_seg]);
         h_axes(4) = axes('parent',h_fig(4));
         plot(h_axes(4), spec.gps_time, spec.surface * param.collate_deconv.twtt_penalty);
         hold(h_axes(4),'on');
@@ -675,13 +767,13 @@ if param.collate_deconv.stage_one_en
         set(get(h_colorbar,'YLabel'),'String','Score');
         xlabel(h_axes(4), 'GPS time (sec)');
         ylabel(h_axes(4), 'TWTT bin');
-        title(h_axes(4), sprintf('%s', param.day_seg), 'interpreter', 'none');
+        title(h_axes(4), regexprep(param.day_seg,'_','\\_'));
         grid(h_axes(4), 'on');
         xlim(h_axes(4), spec.gps_time([1 end]))
         ylim(h_axes(4), [min(5,min(spec.surface * param.collate_deconv.twtt_penalty)) max(15,max(spec.surface * param.collate_deconv.twtt_penalty))]);
         
         % Print table
-        diary_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_table_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.txt'];
+        diary_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_table_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.txt'];
         fid = fopen(diary_fn,'wb');
         for fid = [1 fid]
           if fid == 1; fid_error = 2; else fid_error = fid; end;
@@ -692,7 +784,7 @@ if param.collate_deconv.stage_one_en
           fprintf(fid,'INDEX\tFRM\tREC\tPeak\tML\tPSL FE\tPSL RE\tISL FE\tISL RE\tPASS\tSCORE\tTWTT\n');
           for rline = 1:length(deconv.gps_time)
             fprintf(fid,'%d\t',rline);
-            fprintf(fid,'%d\t',deconv.frm(rline));
+            fprintf(fid,'%.02f\t',floor(deconv.frm(rline)*100)/100);
             fprintf(fid,'%d\t',deconv.rec(rline));
             for metric = 1:6
               if pass(metric,rline)
@@ -701,12 +793,19 @@ if param.collate_deconv.stage_one_en
                 fprintf(fid_error,'%.1f\t', deconv.metric(metric,rline));
               end
             end
-            if all(pass(:,rline))
-              fprintf(fid,'*\t');
-            else
-              fprintf(fid,'\t');
-            end
+            
+            % Print "pass" field
             max_score_idx = find(rline == max_score_rlines);
+            pass_field = '';
+            if all(pass(:,rline))
+              pass_field(end+1) = '*';
+            end
+            if ~isempty(max_score_idx)
+              pass_field(end+1) = 'H';
+            end
+            fprintf(fid,'%s\t',pass_field);
+            
+            % Print "score" and "twtt" fields
             if ~isempty(max_score_idx)
               if fid == 1
                 fprintf(fid,'<strong>%.1f\t', score(rline));
@@ -719,6 +818,8 @@ if param.collate_deconv.stage_one_en
               end
             else
               fprintf(fid,'%.1f\t', score(rline));
+              [~,twtts_idx] = min(abs(deconv.twtt(rline)-twtts));
+              fprintf(fid,'%.3g ', twtts(twtts_idx));
             end
             fprintf(fid,'\n');
           end
@@ -728,7 +829,7 @@ if param.collate_deconv.stage_one_en
       end
       
       %% Stage 1: Save results
-      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
+      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_path, ''));
       if ~exist(fn_dir,'dir')
         mkdir(fn_dir);
       end
@@ -756,7 +857,7 @@ if param.collate_deconv.stage_one_en
         deconv.fc = deconv.fc(good_mask);
         deconv.twtt = deconv.twtt(good_mask);
       end
-      save(out_fn,'-v7.3','-struct','deconv');
+      ct_save(out_fn,'-v7.3','-struct','deconv');
       
     end
   end
@@ -779,7 +880,7 @@ if param.collate_deconv.stage_two_en
       % ===================================================================
       
       %% Stage 2: 1. Load deconv
-      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
+      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_path, ''));
       fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Loading %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, fn);
       if exist(fn)
@@ -795,7 +896,7 @@ if param.collate_deconv.stage_two_en
       deconv_lib = [];
       for day_seg_idx = 1:length(param.collate_deconv.day_segs)
         day_seg = param.collate_deconv.day_segs{day_seg_idx};
-        fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
+        fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_path, ''));
         fn = fullfile(fn_dir,sprintf('deconv_lib_%s_wf_%d_adc_%d.mat', day_seg, wf, adc));
         if exist(fn,'file')
           fprintf('Loading lib %s img %d wf %d adc %d\n  %s\n', day_seg, img, wf, adc, fn);
@@ -860,6 +961,17 @@ if param.collate_deconv.stage_two_en
       pass = bsxfun(@lt,deconv_lib.metric,param.collate_deconv.abs_metric(:));
       score = nansum(bsxfun(@times, param.collate_deconv.metric_weights(:), bsxfun(@minus, param.collate_deconv.abs_metric(:), deconv_lib.metric)));
       score(:,any(isnan(deconv_lib.metric))) = nan;
+      
+      % Make score adjustments for param.collate_deconv.rec_adjustments
+      cmd = deconv_lib.param_analysis.analysis.cmd{param.collate_deconv.cmd_idx};
+      for rec_idx = 1:size(param.collate_deconv.rec_adjustments{img},1)
+        [rec_offset,score_idx] = min(abs(deconv_lib.rec-param.collate_deconv.rec_adjustments{img}(rec_idx,1)));
+        if rec_offset > cmd.rlines
+          warning('Record offset to closest waveform to rec_adjustments{%d}(%d,1) is larger than the STFT interval used in analysis spec. This may mean that the record in rec_adjustments{%d}(%d,1) is incorrect.',img,rec_idx,img,rec_idx);
+        else
+          score(score_idx) = score(score_idx) + param.collate_deconv.rec_adjustments{img}(rec_idx,2);
+        end
+      end
       
       %% Stage 2: 6. Find best scores for each record
       min_score = nanmin(score);
@@ -930,6 +1042,7 @@ if param.collate_deconv.stage_two_en
         % TWTT Figure
         % ===================================================================
         clf(h_fig(1));
+        set(h_fig(1),'Name',['TWTT ' param.day_seg]);
         h_axes = axes('parent',h_fig(1));
         
         legend_str = {};
@@ -945,24 +1058,25 @@ if param.collate_deconv.stage_two_en
         
         xlabel(h_axes(1), 'Block');
         ylabel(h_axes(1), 'Two way travel time (\mus)');
-        title(h_axes(1), param.day_seg, 'interpreter', 'none');
+        title(h_axes(1), ['TWTT ' regexprep(param.day_seg,'_','\\_')]);
         legend(h_axes(1), h_plot, legend_str,'location','best');
         grid(h_axes(1), 'on');
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         fig_fn_dir = fileparts(fig_fn);
         if ~exist(fig_fn_dir,'dir')
           mkdir(fig_fn_dir);
         end
-        saveas(h_fig(1),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.jpg'];
+        ct_saveas(h_fig(1),fig_fn);
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_twtt_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(1),fig_fn);
+        ct_saveas(h_fig(1),fig_fn);
         
         % Score Figure
         % ===================================================================
         clf(h_fig(2));
+        set(h_fig(2),'Name',['Score ' param.day_seg]);
         h_axes(2) = axes('parent',h_fig(2));
         
         legend_str = {};
@@ -979,20 +1093,21 @@ if param.collate_deconv.stage_two_en
         
         xlabel(h_axes(2), 'Block');
         ylabel(h_axes(2), 'Score');
-        title(h_axes(2), param.day_seg, 'interpreter', 'none');
+        title(h_axes(2), ['Score ' regexprep(param.day_seg,'_','\\_')]);
         legend(h_axes(2), h_plot, legend_str,'location','best');
         grid(h_axes(2), 'on');
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(2),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.jpg'];
+        ct_saveas(h_fig(2),fig_fn);
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_score_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(2),fig_fn);
+        ct_saveas(h_fig(2),fig_fn);
         
         % Deconvolution Transfer Function Figure
         % ===================================================================
         clf(h_fig(3));
+        set(h_fig(3),'Name',['Transfer function ' param.day_seg]);
         pos = get(h_fig(3),'Position');
         set(h_fig(3),'Position',[pos(1:2) 1000 600]);
         h_axes(3) = subplot(5,1,1:2,'parent',h_fig(3));
@@ -1043,7 +1158,7 @@ if param.collate_deconv.stage_two_en
         end
         ylabel(h_axes(3), 'Relative power (dB)');
         ylabel(h_axes(4), 'Relative angle (deg)');
-        title(h_axes(3), sprintf('%s (Legend idx:frm:peak:twtt)', param.day_seg), 'interpreter', 'none');
+        title(h_axes(3), regexprep(sprintf('%s (Legend idx:frm:peak:twtt)', param.day_seg),'_','\\_'));
         grid(h_axes(3), 'on');
         grid(h_axes(4), 'on');
         h_legend = legend(h_axes(3), legend_str, 'location', 'northeastoutside', 'interpreter','none');
@@ -1052,24 +1167,30 @@ if param.collate_deconv.stage_two_en
         pos4 = get(h_axes(4),'Position');
         set(h_axes(4),'Position',[pos4(1:2) pos3(3) pos4(4)]);
         
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(3),fig_fn);
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_deconv',sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_dir,wf,adc)) '.jpg'];
+        ct_saveas(h_fig(3),fig_fn);
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('%s_transfer_func_wf_%02d_adc_%02d',param.collate_deconv.out_path,wf,adc)) '.jpg'];
         fprintf('Saving %s\n', fig_fn);
-        saveas(h_fig(3),fig_fn);
+        ct_saveas(h_fig(3),fig_fn);
       end
       
       %% Stage 2: 9. Store final output file
-      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_dir, ''));
+      fn_dir = fileparts(ct_filename_out(param,param.collate_deconv.out_path, ''));
       if ~exist(fn_dir,'dir')
         mkdir(fn_dir);
       end
       out_fn = fullfile(fn_dir,sprintf('deconv_%s_wf_%d_adc_%d.mat', param.day_seg, wf, adc));
       fprintf('Saving %s img %d wf %d adc %d\n  %s\n', param.day_seg, img, wf, adc, out_fn);
       ct_file_lock_check(out_fn,2);
-      save(out_fn,'-v7.3','-struct','final');
+      ct_save(out_fn,'-v7.3','-struct','final');
       
     end
+  end
+end
+
+if ~any(strcmp('visible',param.(mfilename).debug_plots))
+  try
+    delete(h_fig);
   end
 end

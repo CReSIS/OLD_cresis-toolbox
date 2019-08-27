@@ -1,7 +1,7 @@
 function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board_idx)
 % [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board_idx)
 %
-% Support function for create_vectors.m and create_records.m.
+% Support function for create_records.m.
 % Can also be used to get all the file information for every segment
 % using run_get_segment_file_list.m.
 %

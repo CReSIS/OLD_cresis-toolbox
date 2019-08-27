@@ -136,9 +136,9 @@ else
 %         return;
 %   end
 
-  if nargout < 2
-    return;
-  end
+end
+if nargout < 2
+  return;
 end
 
 % Take the outer product of the antenna positions with the trig(theta)

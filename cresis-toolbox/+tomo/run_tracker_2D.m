@@ -18,13 +18,13 @@ algorithms = {'viterbi'};
 
 params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'),'','post');
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20140408_01');
-params = ct_set_params(params,'cmd.frms',[31]);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20140407_01');
+params = ct_set_params(params,'cmd.frms',[2]);
 
 options.name       = 'CSARP_post/mvdr';
 options.debug      = true;
 options.ops_write  = false;
-options.save_img   = true;
+options.save_img   = false;
 options.save_add_f = false;
 
 %% Image saving options
@@ -47,37 +47,32 @@ options.layer_dest_echogram_source  = 'CSARP_post/mvdr';   % Only required if la
 options.save_add_f_path = '';
 
 %% Ice mask options
-if 0 % If using GeoTIFF file for ice mask
-  options.binary_icemask = false;
-  options.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
-  options.icemask_fn = ct_filename_gis([], options.icemask_fn);                    
-% Useful for Antarctica seasons:
-  % options.icemask_fn  = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';
-  % options.icemask2_fn = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif';
-  %   if isfield(options, 'icemask2_fn') && ~isempty(options.icemask2_fn)
-  %     options.icemask2_fn = ct_filename_gis([],options.icemask2_fn);
-  %   end
-elseif 0
-  options.binary_icemask = false;
-  options.icemask_fn  = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_icemask_grounded_and_shelves.tif';
-  options.icemask2_fn = 'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_rockmask.tif';
-    if isfield(options, 'icemask2_fn') && ~isempty(options.icemask2_fn)
-      options.icemask2_fn = ct_filename_gis([],options.icemask2_fn);
-    end
-    options.icemask_fn = ct_filename_gis([],options.icemask_fn);
-else
-  options.binary_icemask = true;
-  options.icemask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.bin';
-  [options.ice_mask_fn_dir,options.ice_mask_fn_name] = fileparts(options.icemask_fn);
-  options.ice_mask_mat_fn = fullfile(options.ice_mask_fn_dir,[options.ice_mask_fn_name '.mat']);
+if 1 % If using GeoTIFF file for ice mask
+  if strcmpi(param.post.ops.location,'arctic')
+    if 1
+      % Greenland
+      options.binary_icemask = false;
+      options.icemask_fn = 'greenland/IceMask/GimpIceMask_90m_v1.1.tif';
+      options.icemask_fn = ct_filename_gis([], options.icemask_fn);
+    else
+      % Canada
+      options.binary_icemask = true;
+      options.icemask_fn = '/cresis/snfs1/dataproducts/GIS_data/canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.bin';
+      [options.ice_mask_fn_dir,options.ice_mask_fn_name] = fileparts(options.icemask_fn);
+      options.ice_mask_mat_fn = fullfile(options.ice_mask_fn_dir,[options.ice_mask_fn_name '.mat']);
+  else
+    % Useful for Antarctica seasons:
+    options.icemask_fn = ct_filename_gis([], 'greenland/IceMask/GimpIceMask_90m_v1.1.tif');
+  end
+
 end
 
 %% Viterbi User Settings
 options.viterbi.crossoverload  = true;
 options.viterbi.layername      = 'viterbi_bot';
-options.viterbi.detrending     = false;
+options.viterbi.detrending     = true;
 options.viterbi.top_sup        = false;
-options.viterbi.mult_sup       = true;
+options.viterbi.mult_sup       = false;
 options.viterbi.custom_combine = false;
 options.viterbi.DIM_matrix     = fullfile('+tomo', 'Layer_tracking_2D_parameters_Matrix.mat');
 

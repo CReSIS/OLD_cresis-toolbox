@@ -26,6 +26,8 @@ function [day_seg,frm_id,recs,num_recs] = get_frame_id(param,gps_time,search_par
 %   recs will be 1.5.  A record number < 1 or more than the corresponding
 %   entry in num_recs means that the gps time lies before or after the segment
 %   respectively.
+% num_recs: number of records in the segment (this can be used to see if
+%   entries in recs are beyond the end of the segment).
 %
 % Examples:
 %   param = struct('season_name','2011_Greenland_P3','radar_name','snow')
@@ -176,10 +178,16 @@ for gps_idx = 1:numel(sort_gps_time)
       for offset_idx = cur_gps_idx:gps_idx-1
         new_frm_id = find(frames.frame_idxs <= recs(offset_idx),1,'last');
         if isempty(new_frm_id)
-          frm_id(offset_idx) = 1;
-        else
-          frm_id(offset_idx) = new_frm_id;
+          new_frm_id = 1;
         end
+        start_rec = frames.frame_idxs(new_frm_id);
+        if new_frm_id == length(frames.frame_idxs)
+          stop_rec = length(records.gps_time)+1;
+        else
+          stop_rec = frames.frame_idxs(new_frm_id+1);
+        end
+        frm_id(offset_idx) = new_frm_id ...
+          + (recs(offset_idx)-start_rec)/(stop_rec-start_rec);
       end
     end
     % Load frames and records files
@@ -202,10 +210,16 @@ if ~isnan(cur_fn_idx)
   for offset_idx = cur_gps_idx:gps_idx-1
     new_frm_id = find(frames.frame_idxs <= recs(offset_idx),1,'last');
     if isempty(new_frm_id)
-      frm_id(offset_idx) = 1;
-    else
-      frm_id(offset_idx) = new_frm_id;
+      new_frm_id = 1;
     end
+    start_rec = frames.frame_idxs(new_frm_id);
+    if new_frm_id == length(frames.frame_idxs)
+      stop_rec = length(records.gps_time)+1;
+    else
+      stop_rec = frames.frame_idxs(new_frm_id+1);
+    end
+    frm_id(offset_idx) = new_frm_id ...
+      + (recs(offset_idx)-start_rec)/(stop_rec-start_rec);
   end
 end
 
@@ -213,5 +227,3 @@ end
 day_seg(sort_idx) = day_seg;
 frm_id(sort_idx) = frm_id;
 recs(sort_idx) = recs;
-
-return;

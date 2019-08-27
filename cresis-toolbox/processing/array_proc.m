@@ -385,14 +385,13 @@ end
 %   Steering vectors align with these spatial frequencies:
 %     ifftshift(-floor(Nsv/2):floor((Nsv-1)/2))
 if isfield(param.array,'theta') && ~isempty(param.array.theta)
-  Nsv = length(param.array.theta);
+  param.array.Nsv = length(param.array.theta);
   theta = param.array.theta/180*pi; % Theta input in degrees
 else
   if ~isfield(param.array,'Nsv') || isempty(param.array.Nsv)
     param.array.Nsv = 1;
   end
-  Nsv = param.array.Nsv;
-  theta = fftshift(param.array.sv_fh(Nsv, 1));
+  theta = fftshift(param.array.sv_fh(param.array.Nsv, 1));
 end
 
 % .Nsubband:
@@ -478,6 +477,10 @@ Nb = size(din{1},4);
 
 % Nc: Number of cross-track channels in the din
 Nc = size(din{1},5);
+
+if ~isfield(param,'array_proc') || isempty(param.array_proc)
+  param.array_proc = [];
+end
 
 % .bin_restriction:
 %   .start_bin: 1 by Nx vector of the start range-bin
@@ -1017,7 +1020,7 @@ for line_idx = 1:1:Nx_out
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
         
         if isempty(sv)
-          Sarray.music(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,Nsv);
+          Sarray.music(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,param.array.Nsv);
         else
           Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
           [V,D] = eig(Rxx);
@@ -2741,7 +2744,7 @@ for line_idx = 1:1:Nx_out
   for idx = 1:length(cfg.method)
     if cfg.method(idx) < DOA_METHOD_THRESHOLD
       m = array_proc_method_str(cfg.method(idx));
-      Sarray.(m) = reshape(Sarray.(m),Nsv,Nt_out);
+      Sarray.(m) = reshape(Sarray.(m),param.array.Nsv,Nt_out);
     end
   end
   

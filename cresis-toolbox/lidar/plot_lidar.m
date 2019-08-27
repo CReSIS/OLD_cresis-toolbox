@@ -29,11 +29,11 @@ function plot_lidar(fn, record_fn, plot_color)
 %   make_gps_2009_antarctica_DC8_DGPSwINS.m,
 %   make_gps_2009_antarctica_DC8_GPS.m
 
-if ~exist('record_fn')
+if ~exist('record_fn','var')
   record_fn = [];
 end
 
-if ~exist('plot_color') || isempty(plot_color)
+if ~exist('plot_color','var') || isempty(plot_color)
   plot_color = 'b';
   clear_figures = true;
 else
