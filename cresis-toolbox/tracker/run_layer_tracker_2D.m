@@ -36,6 +36,8 @@ param_override.layer_tracker.layer_params(idx).echogram_source = 'CSARP_post/sta
 % param_override.layer_tracker.layer_params(idx).name = 'surface';
 % param_override.layer_tracker.layer_params(idx).source = 'ops';
 
+param_override.layer_tracker.N = 2; % no of frames to be loaded at a time
+
 track_override = [];
 track_override.name       = 'CSARP_post/standard';
 track_override.debug      = true;
@@ -145,7 +147,7 @@ switch ct_output_dir(params(1).radar_name)
     %% Viterbi
     if 0
       %% Viterbi User Settings
-      track_override.method = 'viterbi';
+      track_override.method                 = 'viterbi';
       track_override.viterbi.crossoverload  = true;
       track_override.viterbi.layername      = 'viterbi_bot';
       track_override.viterbi.detrending     = false;
@@ -171,15 +173,16 @@ switch ct_output_dir(params(1).radar_name)
     %% MCMC
     if 0
       %% MCMC User Settings
-      track_override.method = 'mcmc';
+      track_override.method      = 'mcmc';
       track_override.mcmc.lyrtop = 'mcmc_top';
       track_override.mcmc.lyrbot = 'mcmc_bot';
+      track_override.mcmc.alg    = 'MCMC';
     end
     
     %% LSM
     if 1
       %% LSM User Settings
-      track_override.method = 'lsm';
+      track_override.method           = 'lsm';
       track_override.lsm.lyrtop       = 'lsm_top';
       track_override.lsm.lyrbot       = 'lsm_bot';
       track_override.lsm.y            = 220; % = '' for y = mean(SURF)
@@ -191,7 +194,7 @@ switch ct_output_dir(params(1).radar_name)
     %% Stereo
     if 0
       %% Stereo User Settings
-      track_override.method = 'stereo';
+      track_override.method               = 'stereo';
       track_override.stereo.lyrtop        = 'stereo_top';
       track_override.stereo.lyrbot        = 'stereo_bot';
       track_override.stereo.surfaceload   = true;
@@ -201,6 +204,7 @@ switch ct_output_dir(params(1).radar_name)
       track_override.stereo.top_peak      = 0.5;
       track_override.stereo.bottom_peak   = 0.5;
       track_override.stereo.repulsion     = 10;
+      track_override.stereo.alg           = 'HMM';
     end
     
     

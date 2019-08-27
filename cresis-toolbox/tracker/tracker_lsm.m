@@ -15,7 +15,7 @@ global gRadar
   
   data_fn_dir = ct_filename_out(param, param.layer_tracker.track.name, '');
   
-  for frm = param.cmd.frms
+  for frm = param.frm_nums
     
     fprintf('\nLSM: Running frame %s_%03d (%s)\n',param.day_seg, frm, datestr(now,'HH:MM:SS'));
     
@@ -36,14 +36,14 @@ global gRadar
     
     [flag, Labels.top, Labels.bot] = obj.runLSM();
     
-    if flag == 0
-      warning('LSM failed to converge to two layers after %d inner iterations. Trying again with %d inner iterations...', 2*param.layer_tracker.track.lsm.numOuterIter, 2*param.layer_tracker.track.lsm.maxOuterIter);
-      obj = tomo.LSMObject(imds.Files);
-      obj.setLSMOptions('y', 240, 'dy', 10, 'outerIter', param.layer_tracker.track.lsm.maxOuterIter);
-      [flag, Labels.top, Labels.bot] = obj.runLSM();
-      fprintf('\nDone: second runLSM() call. ');
-    end
-    
+%     if flag == 0
+%       warning('LSM failed to converge to two layers after %d inner iterations. Trying again with %d inner iterations...', 2*param.layer_tracker.track.lsm.numOuterIter, 2*param.layer_tracker.track.lsm.maxOuterIter);
+%       obj = tomo.LSMObject(imds.Files);
+%       obj.setLSMOptions('y', 240, 'dy', 10, 'outerIter', param.layer_tracker.track.lsm.maxOuterIter);
+%       [flag, Labels.top, Labels.bot] = obj.runLSM();
+%       fprintf('\nDone: second runLSM() call. ');
+%     end
+%     
     Labels.top.y = interp1(Labels.top.x, Labels.top.y, 1:length(data.Bottom), 'linear', 'extrap');
     Labels.bot.y = interp1(Labels.bot.x, Labels.bot.y, 1:length(data.Bottom), 'linear', 'extrap')';
     

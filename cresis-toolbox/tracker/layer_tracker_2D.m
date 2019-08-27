@@ -295,7 +295,7 @@ records = load(records_fn);
 frames = load(frames_fn);
 
 if isempty(param.cmd.frms)
-   param.cmd.frms = 1:length(frames.frames.frame_idxs);
+  param.cmd.frms = 1:length(frames.frames.frame_idxs);
 end
 
 out_fn_dir = ct_filename_out(param,param.layer_tracker.echogram_source,'');
@@ -351,16 +351,12 @@ sparam.mem = 500e6;
 sparam.notes = '';
 
 Nx = 0;
-% time=[];
+dparam = [];
+dparam.file_success = {};
+dparam.argsin{1}.frm_nums = [];
 
-for frm_idx = 1:length(param.cmd.frms)
+for frm_idx = 1:param.layer_tracker.N
   frm = param.cmd.frms(frm_idx);
-%   start_rec = frames.frame_idxs(frm);
-%   if frm < length(frames.frame_idxs)
-%     stop_rec = frames.frame_idxs(frm + 1) - 1;
-%   else
-%     stop_rec = length(records.gps_time);
-%   end
   
   data_fn = fullfile(ct_filename_out(param,param.layer_tracker.echogram_source,''),sprintf('Data_%s_%03d.mat',param.day_seg,frm));
   data = load(data_fn, 'GPS_time','Time');
@@ -371,7 +367,7 @@ for frm_idx = 1:length(param.cmd.frms)
     if(max_time <= data.Time(end))
       max_time = data.Time(end);
     end
-    if(min_time>=data.Time(1))
+    if(min_time >= data.Time(1))
       min_time = data.Time(1);
     end
   end
@@ -381,47 +377,57 @@ end
 
 Nt = min_time:dt:max_time;
 
-for frm_idx = 1:length(param.cmd.frms)
-  % Determine length of the frame
-  dparam = [];
-  % dparam.argsin{1}.load.frm = frm;
-  
-  %% Create success condition
-  % ===============================================================
-  
-  dparam.file_success = {};
-  out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
-  dparam.notes = sprintf('%s:%s:%s:%s %s_%03d (%d of %d)',sparam.task_function,param.radar_name, param.season_name, out_fn_dir, param.day_seg, frm, frm_idx,length(param.cmd.frms));
-  dparam.file_success{end+1} = out_fn;
-  
-  switch param.layer_tracker.track.method
-    case 'viterbi'
-      cpu_time_mult = 100;
-      mem_mult = 500e6;
-      
-    case 'lsm'
-      cpu_time_mult = 150;
-      mem_mult = 64;
-  end
-  
-  dparam.cpu_time = 7000*3; %cpu_time_mult * Nx * length(Nt);
-  dparam.mem = 500e6*3; %mem_mult * Nx * length(Nt);
-  
-  %   if ~ctrl.cluster.rerun_only
-  %     % Mark file for deletion
-  %     ct_file_lock_check(out_fn,3);
-  %   end
-  
-  %% Rerun only mode: Test to see if we need to run this task
-  ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
+%% Create success condition
+% ===============================================================
+
+%   dparam.file_success = {};
+%   out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+%   dparam.file_success{end+1} = out_fn;
+
+switch param.layer_tracker.track.method
+  case 'viterbi'
+    cpu_time_mult = 100;
+    mem_mult = 500e6;
+    
+  case 'lsm'
+    cpu_time_mult = 150;
+    mem_mult = 64;
 end
- ctrl = cluster_save_dparam(ctrl);
- ctrl_chain{end+1} = ctrl;
- fprintf('Done %s\n',datestr(now));
 
+dparam.cpu_time = 7000*3; %cpu_time_mult * Nx * length(Nt);
+dparam.mem = 500e6*3; %mem_mult * Nx * length(Nt);
 
-
-
-% get the other arguments for sparam and dparam and call create_task for
-% creating cluster tasks. Having cpu time and memory fields to dparam so
-% that we can combine the sparam and dparam structs and send it to create new tasks.
+%   if ~ctrl.cluster.rerun_only
+%     % Mark file for deletion
+%     ct_file_lock_check(out_fn,3);
+%   end
+frm = 1;
+if (N == inf)
+  for frm = 1:length(param.cmd.frms)
+    out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+    dparam.file_success{end+1} = out_fn;
+    dparam.argsin{1}.frm_nums(end+1) = param.cmd.frms;
+    dparam.notes = sprintf('%s:%s:%s:%s %s_%03d (%d of %d)',sparam.task_function,param.radar_name, param.season_name, out_fn_dir, param.day_seg, frm, frm_idx,length(param.cmd.frms));
+  end
+  ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
+else
+  while frm <= length(frames.frames.frame_idxs)
+    for i = 1:param.layer_tracker.N
+      if(frm <= length(frames.frames.frame_idxs))
+        out_fn = fullfile(out_fn_dir,sprintf('Data_%s_%03d.mat',param.day_seg,frm));
+        dparam.notes = sprintf('%s:%s:%s:%s %s_%03d (%d of %d)',sparam.task_function,param.radar_name, param.season_name, out_fn_dir, param.day_seg, frm, frm_idx,length(param.cmd.frms));
+        dparam.file_success{end+1} = out_fn;
+        dparam.argsin{1}.frm_nums(end+1) = frm;
+      end
+      frm=frm+1;
+    end
+    ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
+    dparam.file_success = {};
+    dparam.argsin{1}.frm_nums = [];
+    
+  end
+end
+%% Rerun only mode: Test to see if we need to run this task
+ctrl = cluster_save_dparam(ctrl);
+ctrl_chain{end+1} = ctrl;
+fprintf('Done %s\n',datestr(now));

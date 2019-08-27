@@ -84,6 +84,7 @@ labels = {};
     
     try
       big_matrix = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
+      data = data_struct.(sprintf('data_%s_%03d',param.day_seg,frm));
     catch ME
       fprintf('\nProblem with frame %s_%03d, verify.\n' ,param.day_seg,frm);
       continue;
@@ -112,32 +113,19 @@ labels = {};
           keyboard
         end
       end
-    elseif strcmp(param.layer_tracker.track.mcmc.alg, 'HMM')
-      opts = [top_smooth bottom_smooth top_peak bottom_peak repulsion];
-      try
-        tic
-        [~, big_matrix.Labels] = tomo.stereo(1, double(big_matrix.Data(:,:,1)), opts);
-        toc
-      catch ME
-        try
-          mex -largeArrayDims stereo.cpp
-          tic
-          [~, big_matrix.Labels] = tomo.stereo(1, double(big_matrix.Data(:,:,1)), opts);
-          toc
-        catch ME
-          fprintf('\nProblem executing stereo.cpp file. Verify.\n');
-          keyboard
-        end
-      end
     else
-      fprintf('\nUnrecognized algorithm (must be ''MCMC'' or ''HMM'')');
+      fprintf('\nUnrecognized algorithm (must be ''MCMC'')');
       keyboard
     end
     
     mcmc_toc = toc(mcmc_tic);
     
     if param.layer_tracker.track.debug
-      figure; imshow(big_matrix.Data); hold on;
+%       figure; imshow(big_matrix.Data); hold on;
+%       plot(big_matrix.Labels(1, :), 'g'); plot(big_matrix.Labels(2, :), 'r');
+%       legend('Ice-surface', 'Ice-bottom');
+%       keyboard
+      figure; imagesc(lp(data.Data)); hold on;
       plot(big_matrix.Labels(1, :), 'g'); plot(big_matrix.Labels(2, :), 'r');
       legend('Ice-surface', 'Ice-bottom');
       keyboard
