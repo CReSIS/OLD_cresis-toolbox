@@ -2249,17 +2249,17 @@ for line_idx = 1:1:Nx_out
       
       if 0
         %% Array MLE: DEBUG code for bin restriction
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
-        hist_poly = polyfit(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),2);
-        plot(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),'.');
-        hist_val = polyval(hist_poly,hist_bins);
-        hold on;
-        plot(hist_bins, hist_val,'r');
-        hold off;
-        
-        hist_bins = dout.bin_restriction.start_bin(rline)+(150:1700).';
-        hist3([ hist_bins, tout.tomo.mle.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
-        set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
+%         hist_poly = polyfit(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),2);
+%         plot(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),'.');
+%         hist_val = polyval(hist_poly,hist_bins);
+%         hold on;
+%         plot(hist_bins, hist_val,'r');
+%         hold off;
+%         
+%         hist_bins = dout.bin_restriction.start_bin(rline)+(150:1700).';
+%         hist3([ hist_bins, tout.tomo.mle.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
+%         set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
       end
       
       
@@ -2481,17 +2481,17 @@ for line_idx = 1:1:Nx_out
       
       if 0
         %% Array DCM: DEBUG code for bin restriction
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
-        hist_poly = polyfit(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),2);
-        plot(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),'.');
-        hist_val = polyval(hist_poly,hist_bins);
-        hold on;
-        plot(hist_bins, hist_val,'r');
-        hold off;
-        
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:1700).';
-        hist3([ hist_bins, tout.tomo.dcm.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
-        set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
+%         hist_poly = polyfit(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),2);
+%         plot(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),'.');
+%         hist_val = polyval(hist_poly,hist_bins);
+%         hold on;
+%         plot(hist_bins, hist_val,'r');
+%         hold off;
+%         
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:1700).';
+%         hist3([ hist_bins, tout.tomo.dcm.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
+%         set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
       end
       
       if 0
@@ -2880,35 +2880,35 @@ end
 if 0
   % Plot uniform pdf: example for slice 520 ice-bottom
   % Gaussian
-  mu = [-8.6940    8.2419]*pi/180;
-  sigma = [3.2998    3.5102]*pi/180;
-  lb = [-15.2936    6.2552]*pi/180;
-  ub = [-6.8524   15.2624]*pi/180;
-  
-  % Uniform
-  mu = [-11.62  11.35]*pi/180;
-  sigma = [90  90]*pi/180;
-  lb = [-14.4  10.07]*pi/180;
-  ub = [-10.39  14.13]*pi/180;
-  
-  doa_i = 2;
-  theta_test = linspace(lb(doa_i),ub(doa_i),101);
-%   theta_test = linspace(-pi/2,pi/2,101);  
-  
-  [vv,i] = min(abs(theta_test-mu(doa_i)));
-
-  f_Gaussian = normpdf(theta_test,mu(doa_i),sigma(doa_i));
-%   f_Gaussian = 1/sqrt(2*pi*sigma(doa_i)^2) * exp( -1/2*((theta_test - mu(doa_i)).^2)./(sigma(doa_i)^2) );
-  f_Gaussian([1 end]) = 0;
-
-  figure;
-  plot([theta_test(1)-1*pi/180 theta_test theta_test(end)+1*pi/180]*180/pi,[0 f_Gaussian 0],'-b','LineWidth',1.5)
-  hold on
-  plot(mu(doa_i)*180/pi,f_Gaussian(i),'xr','LineWidth',2,'LineWidth',1.5)
-%   xlim([theta_test(1) theta_test(end)]*180/pi)
-  
-  grid on
-  xlabel('Elevation angle (deg)')
-  ylabel('f_{Gaussian}')
-  title('Ice-bottom - rbin#520 - Gaussian prior - Both DOAs')
+%   mu = [-8.6940    8.2419]*pi/180;
+%   sigma = [3.2998    3.5102]*pi/180;
+%   lb = [-15.2936    6.2552]*pi/180;
+%   ub = [-6.8524   15.2624]*pi/180;
+%   
+%   % Uniform
+%   mu = [-11.62  11.35]*pi/180;
+%   sigma = [90  90]*pi/180;
+%   lb = [-14.4  10.07]*pi/180;
+%   ub = [-10.39  14.13]*pi/180;
+%   
+%   doa_i = 2;
+%   theta_test = linspace(lb(doa_i),ub(doa_i),101);
+% %   theta_test = linspace(-pi/2,pi/2,101);  
+%   
+%   [vv,i] = min(abs(theta_test-mu(doa_i)));
+% 
+%   f_Gaussian = normpdf(theta_test,mu(doa_i),sigma(doa_i));
+% %   f_Gaussian = 1/sqrt(2*pi*sigma(doa_i)^2) * exp( -1/2*((theta_test - mu(doa_i)).^2)./(sigma(doa_i)^2) );
+%   f_Gaussian([1 end]) = 0;
+% 
+%   figure;
+%   plot([theta_test(1)-1*pi/180 theta_test theta_test(end)+1*pi/180]*180/pi,[0 f_Gaussian 0],'-b','LineWidth',1.5)
+%   hold on
+%   plot(mu(doa_i)*180/pi,f_Gaussian(i),'xr','LineWidth',2,'LineWidth',1.5)
+% %   xlim([theta_test(1) theta_test(end)]*180/pi)
+%   
+%   grid on
+%   xlabel('Elevation angle (deg)')
+%   ylabel('f_{Gaussian}')
+%   title('Ice-bottom - rbin#520 - Gaussian prior - Both DOAs')
 end
