@@ -106,7 +106,8 @@ task_recs = param.load.recs; % Store this for later when creating output fn
 load_recs_ps(1) = floor((param.load.recs(1)-1)/param.qlook.presums)+1;
 load_recs_ps(2) = floor(param.load.recs(2)/param.qlook.presums);
 
-dec = param.qlook.dec*param.qlook.inc_dec;
+% inc_dec == 0 is treated as inc_dec = 1 with no power detection at the end
+dec = param.qlook.dec*max(1,param.qlook.inc_dec);
 
 % output_recs_ps: the outputs of the whole qlook process
 output_recs_ps = 1:dec:load_recs_ps(2);

@@ -212,7 +212,7 @@ if param.array.tomo_en
 else
   Nsv = 1;
 end
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
     % Fast time sample/dbin * # steering vectors
@@ -386,9 +386,9 @@ ctrl_chain = {ctrl};
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   cpu_time_mult = 1e-6;
-  mem_mult = 8;
+  mem_mult = 16;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   cpu_time_mult = 1e-6;
@@ -419,14 +419,15 @@ for frm = param.cmd.frms
   Nx = Nx + Nx_frm;
 end
 % Account for averaging
+records_var = whos('records');
 for img = 1:length(param.array.imgs)
   sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_output(img)/Nsv*cpu_time_mult) * (1 + (Nsv-1)*0.2);
   if isempty(param.array.img_comb)
     % Individual images, so need enough memory to hold the largest image
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam_output(img)*mem_mult);
+    sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*total_num_sam_output(img)*mem_mult);
   else
     % Images combined into one so need enough memory to hold all images
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*sum(total_num_sam_output)*mem_mult);
+    sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*sum(total_num_sam_output)*mem_mult);
   end
 end
 sparam.notes = sprintf('%s:%s:%s %s combine frames', ...

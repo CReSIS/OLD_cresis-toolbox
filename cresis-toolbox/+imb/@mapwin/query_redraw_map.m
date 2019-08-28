@@ -12,8 +12,8 @@ function query_redraw_map(obj,x_min,x_max,y_min,y_max)
 %   (in km) to get
 
 %% Scale the requested limits to meters
-obj.cur_request.XLim = sort([x_min x_max]*1e3);
-obj.cur_request.YLim = sort([y_min y_max]*1e3);
+obj.cur_request.XLim = sort([x_min x_max]*obj.map_scale);
+obj.cur_request.YLim = sort([y_min y_max]*obj.map_scale);
 
 %% Force requested limits to maintain the aspect ratio of the figure
 old_u = get(obj.map_panel.h_axes,'units');
@@ -37,17 +37,26 @@ else
   obj.cur_request.XLim(2) = obj.cur_request.XLim(2) + growth/2;
 end
 
-%% Build the new WMS query, submit it and then retrieve the result
-obj.cur_request.ImageHeight =  height;
-obj.cur_request.ImageWidth  = width;
-modrequest = strcat(obj.cur_request.RequestURL,'&viewparams=',obj.seasons_modrequest,obj.season_group_ids_modrequest);
-A = obj.wms.getMap(modrequest);
-R = obj.cur_request.RasterRef;
-R = R/1e3;
+if obj.map_source == 0
+  %% Build the new WMS query, submit it and then retrieve the result
+  obj.cur_request.ImageHeight =  height;
+  obj.cur_request.ImageWidth  = width;
+  modrequest = strcat(obj.cur_request.RequestURL,'&viewparams=',obj.seasons_modrequest,obj.season_group_ids_modrequest);
+  A = obj.wms.getMap(modrequest);
+  R = obj.cur_request.RasterRef;
+  R = R/1e3;
+  
+  %% Redraw the map
+  x_data = R(3,1) + [0 size(A,2)*R(2,1)];
+  y_data = R(3,2) + [0 size(A,1)*R(1,2)];
+  
+else
+  [A,x_data,y_data] = obj.google_map.request_google_map(obj.cur_request.XLim(1), obj.cur_request.XLim(2), 256-obj.cur_request.YLim(1), 256-obj.cur_request.YLim(2));
+  A = flipud(A);
+  y_data = sort(256-y_data);
 
-%% Redraw the map
-x_data = R(3,1) + [0 size(A,2)*R(2,1)];
-y_data = R(3,2) + [0 size(A,1)*R(1,2)];
+end
+
 set(obj.map_panel.h_image,'XData',x_data);
 set(obj.map_panel.h_image,'YData',y_data);
 set(obj.map_panel.h_image,'CData',A);

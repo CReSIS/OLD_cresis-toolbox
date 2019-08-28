@@ -1,165 +1,178 @@
-function [param,defaults] = default_radar_params_2018_Greenland_Polar6_snow
-% [param,defaults] = default_radar_params_2018_Greenland_Polar6_snow
+function param = default_radar_params_2018_Greenland_Polar6_snow
+% param = default_radar_params_2018_Greenland_Polar6_snow
 %
-% SNOW5: 2018 Greenland Polar6
+% Snow: 2018_Greenland_Polar6
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
 %
 % Author: John Paden
 
+%% Preprocess parameters
 param.season_name = '2018_Greenland_Polar6';
 param.radar_name = 'snow5';
 
-%% Control parameters (not used in the parameter spreadsheet directly)
-default.xml_file_prefix = '';
-default.data_file_prefix = 'snow5';
-default.header_load_func = @basic_load;
-default.header_load_params = struct('clk',125e6);
-default.xml_version = [];
+param.config.file.version = 7;
+param.config.file.prefix = param.radar_name;
+param.config.file.suffix = '.bin';
+param.config.max_time_gap = 10;
+param.config.min_seg_size = 2;
 
-default.noise_50ohm = [0 0];
+param.config.daq_type = 'cresis';
+param.config.wg_type = 'cresis';
+param.config.header_load_func = @basic_load;
+param.config.board_map = {'chan1','chan2'};
+% param.config.board_map = {'chan1'};
+param.config.tx_map = {'',''};
 
-default.Pt = 0.1;
-default.Gt = 10;
-default.Ae = 0.01;
+param.config.daq.xml_version = -1; % No XML file available
 
-default.system_loss_dB = 10.^(0/10);
+param.config.tx_enable = [1];
 
-default.iq_mode = 0;
-default.tx_DDS_mask = [1];
+%% CReSIS parameters
+param.config.cresis.clk = 125e6;
+param.config.cresis.expected_rec_sizes = [30288 60480      120864      181296];
 
-default.radar_worksheet_headers = {'Tpd','Tadc','Tadc_adjust','f0','f1','ref_fn','tukey','tx_weights','rx_paths','adc_gains','chan_equal_dB','chan_equal_deg','Tsys','DC_adjust','DDC_mode','DDC_freq'};
-default.radar_worksheet_headers_type = {'r','r','r','r','r','r','r','r','r','r','r','r','r','r','r','r'};
+%% Command worksheet
+default.cmd.records = 1;
+default.cmd.qlook = 1;
+default.cmd.generic = 1;
 
-default.basic_surf_track_min_time = 2e-6;
-default.adc_folder_name = 'chan%d';
-
-%% Vectors worksheet in parameter spreadsheet
-default.vectors.gps.time_offset = 1;
-
-%% Records worksheet in parameter spreadsheet
-default.records.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m';
-default.records.file.adcs = [1:2];
-default.records.file.adc_headers = [1:2];
+%% Records worksheet
+default.records.frames.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m.tif';
+default.records.frames.mode = 2;
 default.records.gps.en = 1;
-default.records.frame_mode = 0;
-default.records.tmp_fn_uses_adc_folder_name = 1;
+default.records.gps.time_offset = 1;
 
-%% Get heights (quick-look) worksheet in parameter spreadsheet
-default.get_heights.qlook.out_path = '';
-default.get_heights.qlook.en = 1;
-default.get_heights.block_size = 5000;
-default.get_heights.frm_types = {0,[0 1],0,0,-1};
-default.get_heights.coh_noise_method = [];
-default.get_heights.coh_noise_arg = [];
-default.get_heights.ft_wind = @hanning;
-default.get_heights.ft_wind_time = false;
-default.get_heights.ft_dec = true;
-default.get_heights.pulse_comp = [];
-default.get_heights.pulse_rfi.en = [];
-default.get_heights.pulse_rfi.inc_ave= [];
-default.get_heights.pulse_rfi.thresh_scale = [];
-default.get_heights.roll_correction = 0;
-default.get_heights.lever_arm_fh = @lever_arm;
-default.get_heights.elev_correction = 0;
-default.get_heights.B_filter = ones(1,20)/20;
-default.get_heights.decimate_factor = 20;
-default.get_heights.inc_ave = 10;
-default.get_heights.surf.en = 1;
-default.get_heights.surf.method = 'threshold';
-default.get_heights.surf.noise_rng = [0 -50 10];
-default.get_heights.surf.min_bin = 2e-6;
-default.get_heights.surf.max_bin = [];
-default.get_heights.surf.threshold = 9;
-default.get_heights.surf.sidelobe = 15;
-default.get_heights.surf.medfilt = 3;
-default.get_heights.surf.search_rng = [0:2];
+%% Qlook worksheet
+default.qlook.img_comb = [];
+default.qlook.imgs = {[2 1],[1 1],[1 2],[2 2]};
+% default.qlook.imgs = {[2 1],[1 1]};
+default.qlook.out_path = '';
+default.qlook.block_size = 2000;
+default.qlook.motion_comp = 0;
+default.qlook.dec = 4;
+default.qlook.inc_dec = 5;
+default.qlook.surf.en = 1;
+default.qlook.surf.min_bin = 0;
+default.qlook.surf.method = 'threshold';
+default.qlook.surf.threshold = 17;
+default.qlook.surf.filter_len = [1 7];
+default.qlook.surf.sidelobe = 19;
+default.qlook.surf.max_diff = 1.2e-7;
+default.qlook.surf.noise_rng = [100 -700 -300];
+default.qlook.surf.search_rng = [0:9];
 
-%% CSARP worksheet in parameter spreadsheet
-default.csarp.out_path = '';
-default.csarp.imgs = {[1*ones(24,1),(1:24).'],[2*ones(24,1),(1:24).'],[3*ones(24,1),(1:24).']};
-default.csarp.frm_types = {0,[0 1],0,0,-1};
-default.csarp.chunk_len = 3500;
-default.csarp.chunk_overlap = 10;
-default.csarp.frm_overlap = 0;
-default.csarp.coh_noise_removal = 0;
-default.csarp.combine_rx = 0;
-default.csarp.time_of_full_support = 3.5e-5;
-default.csarp.pulse_rfi.en = [];
-default.csarp.pulse_rfi.inc_ave= [];
-default.csarp.pulse_rfi.thresh_scale = [];
-default.csarp.trim_vals = [];
-default.csarp.pulse_comp = 1;
-default.csarp.ft_dec = 1;
-default.csarp.ft_wind = @hanning;
-default.csarp.ft_wind_time = 0;
-default.csarp.lever_arm_fh = @lever_arm;
-default.csarp.mocomp.en = 1;
-default.csarp.mocomp.type = 2;
-default.csarp.mocomp.filter = {@butter  [2]  [0.1000]};
-default.csarp.mocomp.uniform_en = 1;
-default.csarp.sar_type = 'f-k';
-default.csarp.sigma_x = 2.5;
-default.csarp.sub_aperture_steering = 0;
-default.csarp.st_wind = @hanning;
-default.csarp.start_eps = 3.15;
+%% SAR worksheet
+default.sar.out_path = '';
+default.sar.imgs = default.qlook.imgs;
+default.sar.frm_types = {0,[0 1],0,0,-1};
+default.sar.chunk_len = 500;
+default.sar.frm_overlap = 0;
+default.sar.coh_noise_removal = 0;
+default.sar.combine_rx = 0;
+default.sar.time_of_full_support = inf;
+default.sar.pulse_rfi.en = [];
+default.sar.pulse_rfi.inc_ave= [];
+default.sar.pulse_rfi.thresh_scale = [];
+default.sar.trim_vals = [];
+default.sar.pulse_comp = 1;
+default.sar.ft_dec = 1;
+default.sar.ft_wind = @hanning;
+default.sar.ft_wind_time = 0;
+default.sar.lever_arm_fh = @lever_arm;
+default.sar.mocomp.en = 1;
+default.sar.mocomp.type = 2;
+default.sar.mocomp.filter = {@butter  [2]  [0.1000]};
+default.sar.mocomp.uniform_en = 1;
+default.sar.sar_type = 'fk';
+default.sar.sigma_x = 1;
+default.sar.sub_aperture_steering = 0;
+default.sar.st_wind = @hanning;
+default.sar.start_eps = 1.53;
 
-%% Combine worksheet in parameter spreadsheet
-default.combine.in_path = '';
-default.combine.array_path = '';
-default.combine.out_path = '';
-default.combine.method = 'standard';
-default.combine.window = @hanning;
-default.combine.bin_rng = 0;
-default.combine.rline_rng = -5:5;
-default.combine.dbin = 1;
-default.combine.dline = 6;
-default.combine.DCM = [];
-default.combine.three_dim.en = 0;
-default.combine.three_dim.layer_fn = '';
-default.combine.Nsv = 1;
-default.combine.theta_rng = [0 0];
-default.combine.sv_fh = @array_proc_sv;
-default.combine.diag_load = 0;
-default.combine.Nsig = 2;
+%% Array worksheet
+default.array.in_path = '';
+default.array.array_path = '';
+default.array.out_path = '';
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.array.method = 'standard';
+default.array.window = @hanning;
+default.array.bin_rng = 0;
+default.array.line_rng = -2:2;
+default.array.dbin = 1;
+default.array.dline = 5;
+default.array.DCM = [];
+default.array.three_dim.en = 0;
+default.array.three_dim.layer_fn = '';
+default.array.Nsv = 1;
+default.array.theta_rng = [0 0];
+default.array.sv_fh = @array_proc_sv;
+default.array.diag_load = 0;
+default.array.Nsig = 2;
 
-%% Radar worksheet in parameter spreadsheet
-default.radar.fs = 125000000;
-default.radar.prf = 3906.25;
+%% Radar worksheet
+default.radar.prf = 1/256e-6;
+default.radar.fs = 125e6;
 default.radar.adc_bits = 14;
-default.radar.Vpp_scale = 2;
-default.radar.wfs.f0 = 1500000000;
-default.radar.wfs.f1 = 1375000000;
-default.radar.wfs.fmult = 16;
-default.radar.wfs.fLO = -20000000000;
-default.radar.wfs.Tpd = 0.00024000000000000001;
-default.radar.wfs.Tadc = [];
-default.radar.wfs.record_start_idx = [];
-default.radar.wfs.presum_override = [];
-default.radar.wfs.loopback_mode = [];
-default.radar.wfs.nyquist_zone = [];
-default.radar.wfs.good_rbins = [];
-default.radar.wfs.tx_weights = [0.1 0.1];
-default.radar.wfs.rx_paths = [1 2];
-default.radar.wfs.adc_gains = [1 1];
-default.radar.wfs.chan_equal_dB = [0 0];
-default.radar.wfs.chan_equal_deg = [0 0];
-default.radar.wfs.Tsys = [3.7e-08 3.7e-08];
+default.radar.Vpp_scale = 2; % Digital receiver gain is 5, full scale Vpp is 2
+default.radar.Tadc_adjust = []; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.lever_arm_fh = @lever_arm;
+chan_equal_Tsys = [0]/1e9;
+chan_equal_dB = [0];
+chan_equal_deg = [0];
+default.radar.wfs(1).tx_weights = [0.1 0]; % Watts
+default.radar.wfs(2).tx_weights = [0 0.1]; % Watts
+for wf = 1:2
+  default.radar.wfs(wf).fmult = 16;
+  default.radar.wfs(wf).prepulse_H.type = 'NI_DDC_2019';
+  default.radar.wfs(wf).coh_noise_method = 'analysis';
+  default.radar.wfs(wf).fLO = -20e9;
+  default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
+  default.radar.wfs(wf).rx_paths = [1 2]; % ADC to rx path mapping
+  default.radar.wfs(wf).ref_fn = '';
+  default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+end
+
+%% Post worksheet
+default.post.data_dirs = {'qlook'};
+default.post.layer_dir = 'layerData';
+default.post.maps_en = 0;
+default.post.echo_en = 1;
+default.post.layers_en = 0;
+default.post.data_en = 0;
+default.post.csv_en = 0;
+default.post.concat_en = 0;
+default.post.pdf_en = 0;
+default.post.map.location = 'Arctic';
+default.post.map.type = 'contour';
+default.post.echo.elev_comp = 3;
+default.post.echo.depth = '[min(Surface_Elev)-2.5 max(Surface_Elev)+4]';
+% default.post.echo.elev_comp = 3;
+% default.post.echo.depth = '[min(Surface_Elev)-25 max(Surface_Elev)+2]';
+default.post.echo.er_ice = round((1+0.51*0.3)^3 * 100)/100;
+default.post.ops.location = 'arctic';
+  
+%% Radar Settings
 
 defaults = {};
 
-%% Wideband settings
-default.radar.wfs(1).chan_equal_Tsys = [0 0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0];
+% Survey Mode 2-18 GHz
+for wf = 1:2
+  default.radar.wfs(wf).f0 = 2.375e9;
+  default.radar.wfs(wf).f1 = 1.375e9;
+  default.radar.wfs(wf).Tpd = 240e-6;
+  default.radar.wfs(wf).BW_window = [2.5e9 17.493e9];
+  default.radar.wfs(wf).t_ref = -0.000000040063;
+end
 
-% survey mode
-default.get_heights.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
-default.get_heights.imgs = {[1 1; 1 2; 2 1; 2 2]};
-default.combine.imgs = default.get_heights.imgs;
-default.combine.img_comb = default.get_heights.qlook.img_comb;
+default.config_regexp = '.*';
 default.name = 'Survey Mode 2-18 GHz';
 defaults{end+1} = default;
 
-return;
+%% Add default settings
+
+param.config.defaults = defaults;

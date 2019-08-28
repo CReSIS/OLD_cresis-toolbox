@@ -80,10 +80,16 @@ frames_fn = ct_filename_support(param,'','frames');
 
 if exist(frames_fn,'file')
   fprintf('Loading frames file %s\n', frames_fn);
-  load(frames_fn);
-  if ~isfield(frames,'nyquist_zone')
-    frames.nyquist_zone = NaN*zeros(size(frames.frame_idxs));
+  frames = load(frames_fn);
+  if isfield(frames,'nyquist_zone')
+    warning('Detected old file format with nyquist_zone field. This field will be removed when frames file is saved.');
   end
+  if ~isfield(frames,'file_version')
+    warning('Detected old file format with no file_version field. This file will be updated to version ''1'' when frames file is saved.');
+    frames.file_version = '1';
+  end
+  file_version = frames.file_version;
+  frames = frames.frames;
   if ~isfield(frames,update_field)
     frames.(update_field) = NaN*zeros(size(frames.frame_idxs));
   end
@@ -159,7 +165,11 @@ while ~quit_cmd
   for img = 1:num_img
     try
       if strcmpi(img_type,'mat')
-        echo_fn{img} = get_filename(mat_fn_dir{img},'Data_',frm_id,'.mat');
+        if param.mat_out_img{img} == 0
+          echo_fn{img} = get_filename(mat_fn_dir{img},sprintf('Data_%s',frm_id),'','.mat');
+        else
+          echo_fn{img} = get_filename(mat_fn_dir{img},sprintf('Data_img_%02d_%s',param.mat_out_img{img},frm_id),'','.mat');
+        end
       else
         echo_fn{img} = get_filename(image_fn_dir{img},frm_id,'',img_type);
       end
@@ -176,6 +186,7 @@ while ~quit_cmd
       end
     end
     
+    mdata = [];
     try
       if isempty(echo_fn{img})
         set(img,'Name',sprintf('%d: File not found', img),'NumberTitle','off');
@@ -184,37 +195,38 @@ while ~quit_cmd
         set(img,'Name',sprintf('%d: %s', img, fullfile(tmp1,[tmp2 tmp3])),'NumberTitle','off');
         fprintf('  Loading output %s\n', echo_fn{img});
         if strcmpi(img_type,'mat')
-          echo = load(echo_fn{img});
-          set(h_image(img),'XData',1:size(echo.Data,2));
-          set(h_image(img),'YData',echo.Time);
-          set(h_image(img),'CData',lp(echo.Data));
-          clims = [min(lp(echo.Data(isfinite(lp(echo.Data(:)))))) max(lp(echo.Data(isfinite(lp(echo.Data(:))))))];
+          mdata = load(echo_fn{img});
+          mdata = uncompress_echogram(mdata);
+          set(h_image(img),'XData',1:size(mdata.Data,2));
+          set(h_image(img),'YData',mdata.Time);
+          set(h_image(img),'CData',lp(mdata.Data));
+          clims = [min(lp(mdata.Data(isfinite(lp(mdata.Data(:)))))) max(lp(mdata.Data(isfinite(lp(mdata.Data(:))))))];
           if length(clims) == 2
             caxis(h_axes(img),clims);
           end
-          xlim(h_axes(img),[1 size(echo.Data,2)]);
-          ylim(h_axes(img),[echo.Time([1 end])]);
-          set(h_plot(img),'XData',1:size(echo.Data,2));
-          set(h_plot(img),'YData',echo.Surface);
+          xlim(h_axes(img),[1 size(mdata.Data,2)]);
+          ylim(h_axes(img),[mdata.Time([1 end])]);
+          set(h_plot(img),'XData',1:size(mdata.Data,2));
+          set(h_plot(img),'YData',mdata.Surface);
           set(h_axes(img),'YDir','reverse');
           if ~fmcw_img_debug_mode
             colormap(h_axes(img),1-gray(256));
           else
-            for rline=1:size(echo.Data,2)
-              echo.Data(lp(echo.Data(:,rline))<max(lp(echo.Data(:,rline)))+img_sidelobe,rline) = 0;
+            for rline=1:size(mdata.Data,2)
+              mdata.Data(lp(mdata.Data(:,rline))<max(lp(mdata.Data(:,rline)))+img_sidelobe,rline) = 0;
             end
-            set(h_image(img),'CData',lp(echo.Data));
-            Nx = size(echo.Data,2);
+            set(h_image(img),'CData',lp(mdata.Data));
+            Nx = size(mdata.Data,2);
             max_noise = zeros(1,Nx);
-            dt = echo.Time(2)-echo.Time(1);
+            dt = mdata.Time(2)-mdata.Time(1);
             for idx = 1:Nx
-              surf_t = echo.Surface(1,idx);
-              surf_bin = (surf_t - echo.Time(1))/dt + 1;
+              surf_t = mdata.Surface(1,idx);
+              surf_bin = (surf_t - mdata.Time(1))/dt + 1;
               noise_surf = max(1, round(surf_bin - noise_time_buffer/dt)+1);
               noise_end = round(noise_surf + noise_time_duration/dt) + 1;
-              max_noise(idx) = max(echo.Data(noise_surf:noise_end,idx));
+              max_noise(idx) = max(mdata.Data(noise_surf:noise_end,idx));
             end
-            max_val = lp(max(echo.Data));
+            max_val = lp(max(mdata.Data));
             noise_threshold = median(max_noise)+noise_threshold_offset_dB;
             threshold = max(max_val+img_sidelobe,...
               noise_threshold*ones(size(max_noise)));
@@ -268,8 +280,8 @@ while ~quit_cmd
     end
   end
   if all_files_mat
-    if fmcw_img_debug_mode == 1
-      ylim([min(echo.Surface)-10e-9 max(echo.Surface)+10e-9]);
+    if fmcw_img_debug_mode == 1 && ~isempty(mdata)
+      ylim([min(mdata.Surface)-10e-9 max(mdata.Surface)+10e-9]);
     end
     zoom('reset');
   end
@@ -287,23 +299,7 @@ while ~quit_cmd
     beep;
   end
   
-  if strcmpi(img_type,'mat')
-    if isnan(frames.nyquist_zone(frm))
-      val = input(sprintf('F(%03i:%s:%01iD): ', frm, ...
-        update_field_str, echo.param_qlook.radar.wfs(1).nyquist_zone),'s');
-    else
-      val = input(sprintf('F(%03i:%s:%01i): ', frm, ...
-        update_field_str, frames.nyquist_zone(frm)),'s');
-    end
-  else
-    if isnan(frames.nyquist_zone(frm))
-      val = input(sprintf('F(%03i:%s:-D): ', frm, ...
-        update_field_str),'s');
-    else
-      val = input(sprintf('F(%03i:%s:%01i): ', frm, ...
-        update_field_str, frames.nyquist_zone(frm)),'s');
-    end
-  end
+  val = input(sprintf('F(%03i:%s): ', frm, update_field_str),'s');
   if all(isstrprop(val,'wspace'))
     % Go to next frame
     frm_idx = frm_idx + 1;
@@ -311,20 +307,19 @@ while ~quit_cmd
     num_val = str2double(val);
     
     if any(strcmpi(val,{'c','k'}))
-      fprintf('Variables are frames.%s and frames.nyquist_zone. dbcont when finished.\n', update_field);
+      fprintf('Variables are frames.%s. dbcont when finished.\n', update_field);
       if strcmpi(update_field_type,'mask')
         fprintf('  To update frames.%s, consider using bitor. E.g. bitor(frames.%s,bin2dec(''1000'')).\n',update_field,update_field);
       end
       keyboard
       
     elseif strcmpi(val,'d')
-        diff_frms = find((frames.(update_field)~=old_frames.(update_field) & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))) ...
-          | (frames.nyquist_zone~=old_frames.nyquist_zone & ~(isnan(frames.nyquist_zone) & isnan(old_frames.nyquist_zone))));
-        fprintf('%-5s\t%-7s\t%-7s\t%7s\t%7s\n', 'Frm', 'Old', 'New', 'Old NZ', 'New NZ');
+        diff_frms = find((frames.(update_field)~=old_frames.(update_field) ...
+          & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))));
+        fprintf('%-5s\t%-7s\t%-7s\t%7s\t%7s\n', 'Frm', 'Old', 'New');
         for cur_frm = diff_frms
-          fprintf('%03.0f  \t%04.0f   \t%04.0f   \t%7.0f\t%7.0f\n', cur_frm, ...
-            old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
-          old_frames.nyquist_zone(cur_frm), frames.nyquist_zone(cur_frm));
+          fprintf('%03.0f  \t%04.0f   \t%04.0f\n', cur_frm, ...
+            old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm));
       end
       
     elseif strcmp(val,'i')
@@ -371,14 +366,6 @@ while ~quit_cmd
       frames.(update_field)(frm) = num_val;
       frm_idx = frm_idx + 1;
       
-    elseif strncmpi(val,'n',1)
-      num_val = str2double(val(2:end));
-      fprintf('    Changing frames.nyquist_zone to %.0f\n', num_val);
-      frames.nyquist_zone(frm) = num_val;
-      if val(1) == 'N'
-        frm_idx = frm_idx + 1;
-      end
-      
     elseif strcmpi(val,'p')
       frm_idx = frm_idx - 1;
       
@@ -393,7 +380,7 @@ while ~quit_cmd
         mkdir(out_dir);
       end
       fprintf('  Saving frames file %s\n',frames_fn);
-      save(frames_fn,'-v6','frames');
+      ct_save(frames_fn,'-v7.3','frames','file_version');
       old_frames = frames;
       
     elseif strcmpi(val,'?')
@@ -421,14 +408,13 @@ while ~quit_cmd
 end
 
 %% Print out frames that changed
-diff_frms = find((frames.(update_field)~=old_frames.(update_field) & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))) ...
-  | (frames.nyquist_zone~=old_frames.nyquist_zone & ~(isnan(frames.nyquist_zone) & isnan(old_frames.nyquist_zone))));
+diff_frms = find((frames.(update_field)~=old_frames.(update_field) ...
+  & ~(isnan(frames.(update_field)) & isnan(old_frames.(update_field)))));
 if ~isempty(diff_frms)
-  fprintf('%-5s\t%-7s\t%-7s\t%7s\t%7s\n', 'Frm', 'Old', 'New', 'Old NZ', 'New NZ');
+  fprintf('%-5s\t%-7s\t%-7s\n', 'Frm', 'Old', 'New');
   for cur_frm = diff_frms
     fprintf('%03.0f  \t%04.0f   \t%04.0f   \t%7.0f\t%7.0f\n', cur_frm, ...
-        old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm), ...
-        old_frames.nyquist_zone(cur_frm), frames.nyquist_zone(cur_frm));
+        old_frames.(update_field)(cur_frm), frames.(update_field)(cur_frm));
   end
 end
 
@@ -441,7 +427,7 @@ if ~isempty(diff_frms)
       mkdir(out_dir);
     end
     fprintf('  Saving frames file %s\n',frames_fn);
-    save(frames_fn,'-v6','frames');
+    ct_save(frames_fn,'-v7.3','frames','file_version');
   else
     fprintf('  Not saving (can still manually save by pasting commands)\n');
   end

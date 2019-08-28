@@ -15,6 +15,9 @@ obj.eg.sources = param.sources;
 obj.eg.layers = param.layers;
 obj.eg.cur_sel = param.cur_sel;
 obj.eg.system = param.system;
+obj.eg.LayerSource = param.LayerSource;
+obj.eg.layerDataSource = param.layerDataSource;
+
 % get the projection matrix for the current location
 obj.eg.projmat = imb.get_proj_info(obj.eg.cur_sel.location);
 

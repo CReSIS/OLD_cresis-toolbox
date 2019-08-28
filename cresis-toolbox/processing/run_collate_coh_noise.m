@@ -9,30 +9,28 @@
 
 param_override = [];
 
-% params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),'','analysis');
-% params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
 params = read_param_xls(ct_filename_param('snow_param_2017_Arctic_Polar5.xls'),'',{'analysis_noise','analysis'});
 
+% Enable a specific segment
 params = ct_set_params(params,'cmd.generic',0);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20170330_01');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170330_01');
 
 if 1
+  % Near-DC removal
   param_override.collate_coh_noise.method = 'firdec';
-  param_override.collate_coh_noise.firdec_fs = 1/7.5;
-  param_override.collate_coh_noise.firdec_fcutoff = @(t) 1/30;
+  param_override.collate_coh_noise.firdec_fcutoff = @(t) 1/30; % Update coherent noise estimate every 30 seconds
+  param_override.collate_coh_noise.firdec_fs = 1/7.5; % Should update about 4 times as often as the estimate: 30/4 = 7.5
 else
+  % DC removal when dft_corr_time set to inf
   param_override.collate_coh_noise.method = 'dft';
   param_override.collate_coh_noise.dft_corr_time = inf;
 end
-param_override.collate_coh_noise.in_path = 'analysis';
-param_override.collate_coh_noise.out_path = 'analysis';
+% param_override.collate_coh_noise.in_path = 'analysis_threshold'; % Enable during second pass
+% param_override.collate_coh_noise.out_path = 'analysis_threshold'; % Enable during second pass
 
-param_override.collate_coh_noise.min_samples = 1500;
-param_override.collate_coh_noise.threshold_en = true;
-
-% param_override.collate_coh_noise.debug_plots = {};
-param_override.collate_coh_noise.debug_plots = {'visible','cn_plot','threshold_plot'};
-% param_override.collate_coh_noise.debug_plots = {'cn_plot','threshold_plot'};
+param_override.collate_coh_noise.debug_plots = {'visible','cn_plot','threshold_plot'}; % Debugging
+% param_override.collate_coh_noise.debug_plots = {'cn_plot','threshold_plot'}; % Typical setting when not debugging
+% param_override.collate_coh_noise.debug_plots = {}; % Necessary if plots are too large for memory
 
 %% Automated Section
 % =====================================================================

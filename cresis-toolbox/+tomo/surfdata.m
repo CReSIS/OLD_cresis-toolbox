@@ -93,6 +93,8 @@ classdef surfdata < handle
         
         % one argument => load file and create struct array accordingly
       else
+        % Check to see if this is a direction of arrival method or a beam
+        % forming method file.
         if ~exist('param','var') || ~isfield(param,'doa_method_flag')
           doa_method_flag = false;
         else
@@ -117,8 +119,10 @@ classdef surfdata < handle
       % the existing surf struct array.
       %
       % Input:
-      %   fn: The file path OR a new struct array with all the fields in a
+      %  fn: The file path OR a new struct array with all the fields in a
       %   surfData file.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       
       if ~exist('doa_method_flag','var')
         doa_method_flag = false;
@@ -155,13 +159,15 @@ classdef surfdata < handle
       end
     end
     
-    function set_metadata(obj, md,doa_method_flag)
+    function set_metadata(obj, md, doa_method_flag)
       % obj.set_metadata(md)
       % 
       % Function for validating all the metadata fields
       %
       % md: struct containing gps_time, theta, FCS, radar_name,
       %   season_name, day_seg, and frm.
+      % doa_method_flag: logical that specifies is this file stores DOA
+      %  data or beam forming data. Default is false.
       
       obj.valid_metadata(md,doa_method_flag);
       
@@ -182,6 +188,8 @@ classdef surfdata < handle
       %
       % md: struct containing gps_time, theta, FCS, radar_name,
       %   season_name, day_seg, and frm.
+      % doa_method_flag: logical that specifies is this file stores DOA
+      %  data or beam forming data. Default is false.
       
       if ~ischar(md.radar_name)
         error('radar_name must be a string');
@@ -265,15 +273,16 @@ classdef surfdata < handle
 
     %% insert_surf
     function insert_surf(obj, surf_struct,doa_method_flag)
-      %  obj.insert_surf(surf_struct)
+      % obj.insert_surf(surf_struct)
       %
-      %  Input: 
-      %    surf_struct: A surf structure. Normally, the indexing fields
-      %    such as top, active, mask, gt, quality should be cleared.
+      % Input: 
+      %   surf_struct: A surf structure. Normally, the indexing fields
+      %   such as top, active, mask, gt, quality should be cleared.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       %
-      %  Result: 
-      %    Adds a surf structure, surf_A, into 
-      %    the surf array into the object
+      % Result: 
+      %   Adds a surf structure, surf_A, into the "surf" array of the object
       %
       % See also: surfdata.clear_references
       
@@ -498,12 +507,17 @@ classdef surfdata < handle
       % obj.save_surfdata(fn)
       %
       % Input: 
-      %   fn: A string that will be the name of the saved surfData file.
+      %  fn: A string that will be the name of the saved surfData file.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       %
       % Result:
       %   Saves the surf struct array in the object 
       %   as a .mat file. Creates directories as needed.
       
+      if ~exist('doa_method_flag','var')
+        doa_method_flag = false;
+      end
       for surf_idx = 1:length(obj.surf)
         obj.valid_surf(obj.surf(surf_idx),doa_method_flag);
       end
@@ -600,12 +614,19 @@ classdef surfdata < handle
     function [] = valid_surf(obj, surf_struct,doa_method_flag)
       % obj.valid_surf(surf_struct)
       %
-      % Input: A surf structure.
+      % Input:
+      %  surf_struct: A surf structure.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false. Field not used.
       %
       % Result: 
       % 1. Nothing, if the surf structure is valid.
       % 2. Throws an error if any of the condition 
       % is not satisfied.
+      
+      if ~exist('doa_method_flag','var')
+        doa_method_flag = false;
+      end
       
       % check if it's a structure
       if ~isstruct(surf_struct)
@@ -872,6 +893,294 @@ classdef surfdata < handle
       
       surf = updated.surf;
       
+    end
+    
+    function [] = run_add_surf_from_dem()
+      % script run_add_surf_from_dem
+      %
+      % script for running tomo.surfdata.add_surf_from_dem
+      %
+      % Author:  Theresa Moore
+      %
+      % See also: tomo.surfdata
+      
+      
+      %% User Setup
+      % =========================================================================
+      param_override = [];
+      params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
+      params = ct_set_params(params,'cmd.generic',0);
+      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140521_01');
+      params = ct_set_params(params,'cmd.frms',[36 37]);
+      
+      %% Automated Section
+      % =========================================================================
+      % Input checking
+      global gRadar;
+      if exist('param_override','var')
+        param_override = merge_structs(gRadar,param_override);
+      else
+        param_override = gRadar;
+      end
+      
+      % Process each of the segments
+      ctrl_chain = {};
+      for param_idx = 1:length(params)
+        param = params(param_idx);
+        if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+          continue;
+        end
+        tomo.surfdata.add_surf_from_dem(param,param_override);
+      end
+    end
+    
+    function surf = add_surf_from_dem(param,param_override)
+      % tomo.add_surf_from_dem(param,param_override)
+      %
+      % param:  struct with processing parameters or function handle to
+      % script with processing parameters
+      %
+      % param_override: parameters in this struct override parameters in
+      % param.  This struct must also contain the gRdar fields.
+      % Typically global gRdadr; param_override = gRadar;
+      %
+      % Example:
+      %   See run_add_surf_from_dem for how to run this function
+      %   directly.  This function may be called from the run_master.m
+      %   script using the param spreadsheet and enabling the cmd.generic
+      %   column.
+      %
+      % Authors:  Theresa Moore, John Paden
+      %
+      % See also:  run_add_surf_from_dem
+      %
+      %
+      %% General Setup
+      % =================================================================
+      physical_constants
+      param = merge_structs(param,param_override);
+      
+      fprintf('==========================================================\n');
+      fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+      fprintf('==========================================================\n');
+      
+      %% Input Checks
+      % =================================================================
+      
+      % Load frames file
+      load(ct_filename_support(param, '', 'frames'));
+      
+      % If no frames specified, then do all frames
+      if isempty(param.cmd.frms)
+        param.cmd.frms = 1:length(frames.frame_idxs);
+      end
+      
+      % Remove frames that do not exist from param.cmd.frms list
+      [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+      if length(valid_frms) ~= length(param.cmd.frms)
+        bad_mask = ones(size(param.cmd.frms));
+        bad_mask(keep_idxs) = 0;
+        warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
+          param.cmd.frms(find(bad_mask,1)));
+        param.cmd.frms = valid_frms;
+      end
+      
+      
+      if ~isfield(param,'add_surf_from_dem')
+        param.add_surf_from_dem = [];
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'dem_res') || isemtpy(param.add_surf_from_dem.dem_res)
+        param.add_surf_from_dem.dem_res = 10;
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'theta_vec') || isemtpy(param.add_surf_from_dem.theta_vec)
+        param.add_surf_from_dem.theta_vec = -80:80;
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'dem_guard') || isemtpy(param.add_surf_from_dem.dem_guard)
+        param.add_surf_from_dem.dem_guard = 12e3;
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'ice_mask_fn') || isemtpy(param.add_surf_from_dem.ice_mask_fn)
+        param.add_surf_from_dem.ice_mask_fn = [];
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isemtpy(param.add_surf_from_dem.sv_cal_fn)
+        param.add_surf_from_dem.sv_cal_fn = [ct_filename_ct_tmp(param,'','add_surf_from_dem','theta_cal') '.mat'];
+      end
+      
+    
+      %% Setup processing
+      % =====================================================================
+      
+      % Load in sar coordinates file
+      % Currently supports default path only -- FIX THIS??
+      sar_coord_fn = fullfile(ct_filename_out(param,'sar',''),'sar_coord.mat');
+      sar_coord = load(sar_coord_fn);
+
+      % Load records file
+      records_fn = ct_filename_support(param,'','records');
+      records = load(records_fn);
+      
+      
+      % Loop over frames
+      for frm_idx = 1:length(param.cmd.frms)
+        frm = param.cmd.frms(frm_idx);
+        
+        fprintf('Creating surface data object for %s_%03d \n', param.day_seg,frm); 
+        
+        % recs: Determine the records for this frame
+        if frm < length(frames.frame_idxs)
+          recs = [frames.frame_idxs(frm), frames.frame_idxs(frm+1)-1];
+        else
+          recs = [frames.frame_idxs(frm), length(records.gps_time)];
+        end
+               
+        % Find gps at frame boundaries and use this to mask out FCS of a
+        % frame
+        frm_gps_start = records.gps_time(recs(1));
+        frm_gps_stop  = records.gps_time(recs(end));
+        
+        % Mask used to isolate FCS for a single frame
+        gps_mask = sar_coord.gps_time >= frm_gps_start & ... 
+          sar_coord.gps_time <= frm_gps_stop;
+        
+        % Create surfdata
+        sd = tomo.surfdata();
+        sd.radar_name = param.radar_name;
+        sd.season_name = param.season_name;
+        sd.day_seg = param.day_seg;
+        sd.frm = frm;
+        sd.gps_time = sar_coord.gps_time(gps_mask);       
+        sd.FCS.origin = sar_coord.origin(:,gps_mask);
+        sd.FCS.x = sar_coord.x(:,gps_mask);
+        sd.FCS.z = sar_coord.z(:,gps_mask);
+        sd.FCS.y = cross(sd.FCS.z, sd.FCS.x);
+        
+        %% Load Geotiff and Ice Mask
+
+        global gdem;
+        if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
+          gdem = dem_class(param,param.add_surf_from_dem.dem_res);
+        end
+        gdem.set_res(param.add_surf_from_dem.dem_res);
+        
+        % Load ice mask        
+        if isfield(param.add_surf_from_dem,'ice_mask_fn') && ~isempty(param.add_surf_from_dem.ice_mask_fn)
+          ice_mask_fn = ct_filename_gis(param,param.add_surf_from_dem.ice_mask_fn);
+          [~,ice_mask_fn_name,ice_mask_fn_ext] = fileparts(ice_mask_fn);
+          if strcmpi(ice_mask_fn_ext,'.tif')
+            ice_mask_all.proj = geotiffinfo(ice_mask_fn);
+            [ice_mask_all.mask, R, ~] = geotiffread(ice_mask_fn);
+            ice_mask_all.X = R(3,1) + R(2,1)*(1:size(ice_mask_all.mask,2));
+            ice_mask_all.Y = R(3,2) + R(1,2)*(1:size(ice_mask_all.mask,1));
+          else
+            ice_mask_all = load(ice_mask_fn);
+          end
+        else
+          ice_mask_all = [];
+        end
+        
+        % sv_cal_fn: steering vector calibration filename
+        sv_cal_fn = param.add_surf_from_dem.sv_cal_fn;
+        if ~exist(sv_cal_fn,'file')
+          sv_cal_fn = [];
+        end
+        
+        
+        %% Create DEM
+        % Convert decimated origin coordinates from ECEF to geodetic and
+        % use these to define boundaries of the dem
+        Nx = length(sd.FCS.x);
+        dec_idxs = round(linspace(1,Nx,min(Nx,200)));
+        [frm_lat, frm_lon, frm_elev] = ecef2geodetic(sd.FCS.origin(1,dec_idxs),sd.FCS.origin(2,dec_idxs), sd.FCS.origin(3,dec_idxs),WGS84.ellipsoid);
+        
+        [latb,lonb] = bufferm(frm_lat,frm_lon,param.add_surf_from_dem.dem_guard/WGS84.semimajor*180/pi);
+        gdem_str = sprintf('%s:%s:%s_%03d',param.radar_name,param.season_name,param.day_seg,frm);
+        
+        if ~strcmpi(gdem_str,gdem.name)
+          gdem.set_vector(latb,lonb,gdem_str);
+        end
+        
+        gdem.set_vector(latb,lonb,gdem_str);
+        [DEM,msl,ocean_mask,proj,DEM_x,DEM_y] = gdem.get_vector_mosaic(100);
+        DEM(ocean_mask) = msl(ocean_mask);
+        [frm_x,frm_y] = projfwd(proj,frm_lat,frm_lon);
+        
+        %% Interpolate at all of the bad value locations using the good data
+        bad_idxs = find(isnan(DEM));
+        good_idxs = find(~isnan(DEM));
+        x_idxs = repmat(1:size(DEM,2),[size(DEM,1) 1]);
+        y_idxs = repmat((1:size(DEM,1))',[1 size(DEM,2)]);
+        x_vals = x_idxs(good_idxs);
+        y_vals = y_idxs(good_idxs);
+        z_vals = DEM(good_idxs);
+        x_out = x_idxs(bad_idxs);
+        y_out = y_idxs(bad_idxs);
+        z_out = single(griddata(x_vals,y_vals,double(z_vals),x_out,y_out));
+        if ~isempty(z_out)
+          DEM(bad_idxs) = z_out;
+        end
+        
+        if 0
+          figure(1);clf;
+          imagesc(DEM_x,DEM_y,DEM);
+          hold on;
+          plot(frm_x,frm_y,'r');
+          keyboard;
+        end
+        
+        DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
+        DEM_y_mesh= repmat(DEM_y,[1 size(DEM,2)]);
+        
+        
+        
+        keyboard
+        
+        
+        
+        
+        
+      end
+      
+      
+      
+      
+      
+      keyboard
+      % Read in sar_coord.mat file and append with ranges to surface
+      % Where does the user specify options?  Like DOA grid and output
+      % directory?
+      %
+      % Why isn't DEM passed in?
+      %
+      % Where is the input path specified?
+      
+      % 0. Finish multiple segment code (non cluster)
+      % 1. Print out frame ids
+      %     Need these to create data files
+      %     a. load records gps time
+      %     
+      % 2. Create output filenames
+      %     ct_filename_out default = CSARP_surfdata_sar
+      %     param_override
+      % 3. Create and save empty surfdata object
+      % 4. Load sar coordinate file and make sure I can fill all of the
+      % relevant fields, i.e. sd.radar_name [-80,80]
+      % 5. TWTT for every ray (see add_icemask_surfacedem)
+      % 6. Insert surface and save
+      %
+      % Load sar data and get fcs
+      %   Create surface
+      %   Insert surface
+      %   Save
+      
+      % Loop over Nx
+      %   Loop over theta
+      
+      
+      keyboard
     end
     
   end

@@ -351,7 +351,11 @@ for img = 1:length(param.load.imgs)
       freq = hdr.freq{img}(1) + 1/(Nt*dt) * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
       
       good_mask = ~hdr.bad_rec{img}(1,:,wf_adc);
-      fk_data = data{img}(time_bins,:,wf_adc);
+
+      % To save memory, shift the data out one wf_adc at a time
+      fk_data = data{img}(time_bins,:,1);
+      data{img} = data{img}(:,:,2:end);
+
       fk_data(~isfinite(fk_data)) = 0;
       fk_data = fft(fk_data,[],1);
       

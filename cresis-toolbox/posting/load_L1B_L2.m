@@ -37,6 +37,20 @@ detrend_poly_order = 4;
 B = tukeywin(51,0.2).';
 B = B / sum(B);
 
+%% Input check
+if ~exist('echo_fn','var') || ~exist(echo_fn,'file')
+  error('echo_fn must contain a valid filepath.');
+end
+if ~exist('lay_fn','var') || isempty(lay_fn)
+  % No layer filename specified so create the default path relative to the
+  % current echogram filename path
+  [echo_fn_dir,echo_fn_name,echo_fn_ext] = fileparts(echo_fn);
+  [echo_fn_dir_dir,echo_fn_dir_name] = fileparts(echo_fn_dir);
+  [echo_fn_dir_dir_dir,echo_fn_dir_dir_name] = fileparts(echo_fn_dir_dir);
+  lay_fn = fullfile(echo_fn_dir_dir_dir,'CSARP_layerData',echo_fn_dir_name,[echo_fn_name,echo_fn_ext]);
+  warning(sprintf('lay_fn not specified, constructing from echo_fn as\n  %s.', lay_fn));
+end
+
 %% Load Data
 mdata = load_L1B(echo_fn);
 lay = load(lay_fn);

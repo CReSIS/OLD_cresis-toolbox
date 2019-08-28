@@ -31,6 +31,7 @@ track.init.snake_rng = [-2e-7 2e-7];
 track.init.dem_layer = '';
 track.init.max_diff = inf;
 track.init.max_diff_method = 'interp_finite';
+track.filter_mocomp = false;
 track.filter = [1 1];
 track.filter_trim = [0 0];
 track.fixed_value = 0;
@@ -93,6 +94,7 @@ elseif strcmpi(profile_str,'SNOW_AWI')
   track.debug_time_guard = 50e-9;
   track.min_bin = 0.1e-6;
   track.prefilter_trim = [0 0];
+  track.filter_mocomp = true;
   track.filter = [5 3];
   track.filter_trim = [10 10];
   track.init.method	= 'medfilt';
@@ -106,6 +108,20 @@ elseif strcmpi(profile_str,'SNOW_AWI')
   track.threshold = 8;
   track.threshold_noise_rng = [15e-9 -75e-9 -30e-9];
   track.threshold_rel_max = -9;
+  
+elseif strcmpi(profile_str,'DEM_LIDAR')
+  %% DEM profile
+  track.debug_time_guard = 100e-9;
+  track.min_bin = 0e-6;
+  track.init.method  = 'dem';
+  track.init.dem_offset = 6.5e-9;
+  track.init.dem_layer.name = 'surface';
+  track.init.dem_layer.source = 'lidar';
+  track.init.dem_layer.lidar_source = 'atm';
+  track.init.max_diff_method = 'merge_vectors';
+  track.init.max_diff = 0e-6; % Force output layer to equal DEM
+  track.max_rng	= [0 0];
+  track.method = ''; % No data dependent tracking
   
 else
   error('Invalid profile selected: %s\n', profile_str);
