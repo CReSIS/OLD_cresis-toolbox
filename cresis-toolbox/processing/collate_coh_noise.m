@@ -270,10 +270,10 @@ for img = param.collate_coh_noise.imgs
       cn_before = cn_before.';
       cn_after = cn_after.';
       
-      dxt = mean_without_outliers(diff(noise.gps_time));
-      Xt = Nx*dxt;
-      dfx = 1/Xt;
-      fx = dfx * (-floor(Nx/2) : floor((Nx-1)/2));
+      dxt = mean_without_outliers(diff(noise.gps_time)); % Determine slow-time step
+      Xt = Nx*dxt; % Determine extent of slow time axis
+      dxf = 1/Xt; % Determine "Doppler" frequency step size
+      doppler = dxf * (-floor(Nx/2) : floor((Nx-1)/2)); % "Doppler" frequency axis
       
       mask = isnan(cn_before);
       cn_before(mask) = 0;
@@ -281,10 +281,10 @@ for img = param.collate_coh_noise.imgs
       clf(h_fig(1));
       set(h_fig(1), 'name', 'collate_coh_noise FFT');
       h_axes(1) = axes('parent',h_fig(1));
-      imagesc(fx, [], fftshift(lp( fft(cn_before,[],2) ),2), 'parent', h_axes(1));
+      imagesc(doppler, [], fftshift(lp( fft(cn_before,[],2) ),2), 'parent', h_axes(1));
       cn_before(mask) = NaN;
       title(h_axes(1), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
-      xlabel(h_axes(1), 'Frequency (1/m)');
+      xlabel(h_axes(1), 'Doppler frequency (1/sec)');
       ylabel(h_axes(1), 'Range bin');
       
       fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
