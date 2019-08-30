@@ -889,8 +889,8 @@ classdef surfdata < handle
       param_override = [];
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
       params = ct_set_params(params,'cmd.generic',0);
-      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140521_01');
-      params = ct_set_params(params,'cmd.frms',[36 37]);
+      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140429_01');
+      params = ct_set_params(params,'cmd.frms',[22 23]);
       
       %% Automated Section
       % =========================================================================
@@ -974,7 +974,7 @@ classdef surfdata < handle
       end
       
       if ~isfield(param.add_surf_from_dem,'theta_vec') || isemtpy(param.add_surf_from_dem.theta_vec)
-        param.add_surf_from_dem.theta_vec = -80:80;
+        param.add_surf_from_dem.theta_vec = -60:60;
       end
       
       if ~isfield(param.add_surf_from_dem,'dem_guard') || isemtpy(param.add_surf_from_dem.dem_guard)
@@ -988,6 +988,28 @@ classdef surfdata < handle
       if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isemtpy(param.add_surf_from_dem.sv_cal_fn)
         param.add_surf_from_dem.sv_cal_fn = [ct_filename_ct_tmp(param,'','add_surf_from_dem','theta_cal') '.mat'];
       end
+      
+      % .dem_per_slice_guard: additional region in meters around each slice to search for DEM points
+      %   Setting too high slows the process down, setting too low will miss
+      %   DEM points needed to properly represent the surface.
+      if ~isfield(param.add_surf_from_dem,'dem_per_slice_guard') || isemtpy(param.add_surf_from_dem.dem_per_slice_guard)
+        param.add_surf_from_dem.dem_per_slice_guard = 240;
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'surfdata_mode') || isemtpy(param.add_surf_from_dem.surfdata_mode)
+        param.add_surf_from_dem.surfdata_mode.overwrite = true;
+      end
+      
+       
+      if ~isfield(param.add_surf_from_dem,'surf_out_path') || isemtpy(param.add_surf_from_dem.surf_out_path)
+        param.add_surf_from_dem.surf_out_path = '';
+      end
+      
+%         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.bin'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+        param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
+
+      % Set doa_method_flag to false (always)
+      doa_method_flag = false;
       
     
       %% Setup processing
@@ -1015,6 +1037,10 @@ classdef surfdata < handle
         else
           recs = [frames.frame_idxs(frm), length(records.gps_time)];
         end
+        
+        
+        % The following is for Debug only
+        % res(2) = recs(1) + 20000;
                
         % Find gps at frame boundaries and use this to mask out FCS of a
         % frame
@@ -1036,11 +1062,14 @@ classdef surfdata < handle
         sd.FCS.x = sar_coord.x(:,gps_mask);
         sd.FCS.z = sar_coord.z(:,gps_mask);
         sd.FCS.y = cross(sd.FCS.z, sd.FCS.x);
+        sd.theta = param.add_surf_from_dem.theta_vec(:);
+        sd.time = zeros(0,1);
         
         %% Load Geotiff and Ice Mask
+        % =================================================================
 
         global gdem;
-        if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
+        if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
           gdem = dem_class(param,param.add_surf_from_dem.dem_res);
         end
         gdem.set_res(param.add_surf_from_dem.dem_res);
@@ -1071,17 +1100,25 @@ classdef surfdata < handle
         %% Create DEM
         % Convert decimated origin coordinates from ECEF to geodetic and
         % use these to define boundaries of the dem
-        Nx = length(sd.FCS.x);
+        Nx = size(sd.FCS.x,2);
         dec_idxs = round(linspace(1,Nx,min(Nx,200)));
-        [frm_lat, frm_lon, frm_elev] = ecef2geodetic(sd.FCS.origin(1,dec_idxs),sd.FCS.origin(2,dec_idxs), sd.FCS.origin(3,dec_idxs),WGS84.ellipsoid);
+        [frm_lat_dec, frm_lon_dec, frm_elev_dec] = ecef2geodetic(sd.FCS.origin(1,dec_idxs),sd.FCS.origin(2,dec_idxs), sd.FCS.origin(3,dec_idxs),WGS84.ellipsoid);
+        frm_lat_dec = frm_lat_dec*180/pi;
+        frm_lon_dec = frm_lon_dec*180/pi;
         
-        [latb,lonb] = bufferm(frm_lat,frm_lon,param.add_surf_from_dem.dem_guard/WGS84.semimajor*180/pi);
+        [latb,lonb] = bufferm(frm_lat_dec,frm_lon_dec,param.add_surf_from_dem.dem_guard/WGS84.semimajor*180/pi);
         gdem_str = sprintf('%s:%s:%s_%03d',param.radar_name,param.season_name,param.day_seg,frm);
         
         if ~strcmpi(gdem_str,gdem.name)
           gdem.set_vector(latb,lonb,gdem_str);
         end
         
+        % Generated a non-decimated version of the lat,lon for the frame -
+        % used below
+        [frm_lat, frm_lon, frm_elev] = ecef2geodetic(sd.FCS.origin(1,:),sd.FCS.origin(2,:), sd.FCS.origin(3,:),WGS84.ellipsoid);
+        frm_lat = frm_lat * 180/pi;
+        frm_lon = frm_lon * 180/pi;
+
         gdem.set_vector(latb,lonb,gdem_str);
         [DEM,msl,ocean_mask,proj,DEM_x,DEM_y] = gdem.get_vector_mosaic(100);
         DEM(ocean_mask) = msl(ocean_mask);
@@ -1114,11 +1151,202 @@ classdef surfdata < handle
         DEM_y_mesh= repmat(DEM_y,[1 size(DEM,2)]);
         
         
+        %% For every position along the aperture, add theta dependent TWTT to DEM from origin of the FCS   
+        Nx    = size(sd.FCS.x,2);
+        Nsv   = length(param.add_surf_from_dem.theta_vec);
+        twtt  = zeros(Nsv,Nx);
+        ice_mask = NaN(Nsv,Nx);
         
-        keyboard
+        % Handle case where the DEM is all NaNs
+        if all(all(isnan(DEM)))
+          warning('Input DEM contains all NaN data for Frame %d.',param.proc.frm);
+          twtt(:,:) = NaN;
+          Nx = 0;
+        end
         
+        DEM_coverage_warning = false;
         
+        for rline = 1:Nx
+          if ~mod(rline-1,10^floor(log10(Nx)-1))
+            fprintf('  %s %d of %d (%s)\n', mfilename, rline, Nx, datestr(now));
+          end
+          
+          dem_guard = param.add_surf_from_dem.dem_guard;
+          
+          DEM_mask = DEM_x_mesh > frm_x(rline)-dem_guard & DEM_x_mesh < frm_x(rline)+dem_guard ...
+            & DEM_y_mesh > frm_y(rline)-dem_guard & DEM_y_mesh < frm_y(rline)+dem_guard ...
+            & ~isnan(DEM);
+          DEM_idxs = find(DEM_mask);
+          
+          if numel(DEM_idxs)==0
+            warning('Range Line %d of Frame %d is not spanned by DEM.',rline,frm);
+          end
+          
+          if 0
+            set(h_img,'AlphaData',DEM_mask);
+          end
+          
+          % Convert from projection to geodetic (lat,lon,elev)
+          [DEM_lat,DEM_lon] = projinv(proj,DEM_x_mesh(DEM_idxs),DEM_y_mesh(DEM_idxs));
+          DEM_elev = DEM(DEM_idxs);
+          
+          % Convert from geodetic (lat,lon,elev) to ECEF (x,y,z)
+          physical_constants;
+          [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
+          
+          origin = sd.FCS.origin(:,rline);
+          
+          % Define matrices to change coordinate systems from FCS to ECEF
+          % and vice versa
+          Tfcs_ecef = [sd.FCS.x(:,rline), sd.FCS.y(:,rline), sd.FCS.z(:,rline)];
+          Tecef_fcs = inv(Tfcs_ecef);
+          
+          % Convert DEM coordinates from ECEF to FCS
+          tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];
+          DEM_fcs_x = tmp(1,:);
+          DEM_fcs_y = tmp(2,:);
+          DEM_fcs_z = tmp(3,:);
+          
+          if 0
+            imagesc(reshape(DEM_fcs_x,[200 200]))
+            colorbar;
+            
+            imagesc(reshape(DEM_fcs_y,[200 200]))
+            colorbar;
+            
+            imagesc(reshape(DEM_fcs_z,[200 200]))
+            colorbar;
+          end
+          
+          slice_mask = DEM_fcs_x > -param.add_surf_from_dem.dem_per_slice_guard & DEM_fcs_x < param.add_surf_from_dem.dem_per_slice_guard;
+          
+          x = DEM_fcs_x(slice_mask);
+          y = DEM_fcs_y(slice_mask);
+          z = DEM_fcs_z(slice_mask);
+          
+          if (numel(x)>=3)
+            faces = delaunay(double(x),double(y));
+            vertices = [double(x).' double(y).' double(z).'];  % vertices stored as Nx3 matrix
+            vert1 = vertices(faces(:,1),:);
+            vert2 = vertices(faces(:,2),:);
+            vert3 = vertices(faces(:,3),:);
+            
+            orig = [0 0 0];
+            
+            theta_rline = param.add_surf_from_dem.theta_vec*(pi/180);
+         
+            intersection = zeros(3,Nsv);
+            
+            for theta_idx = 1:length(theta_rline)
+              dir = [0 sin(theta_rline(theta_idx)) -cos(theta_rline(theta_idx))];
+                            
+              [Intersect, t] = TriangleRayIntersection(orig, dir, vert1, vert2, vert3);
+              
+              intersect_idx = find(Intersect);
+              if isempty(intersect_idx)
+                twtt(theta_idx,rline) = NaN;
+                intersection(:,theta_idx) = NaN;
+              else
+                twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
+                intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
+              end
+              
+%               if 0
+%                 figure(999);clf
+%                 D = c*twtt(theta_idx,rline)/2;
+%                 Dvec = D*dir;
+%                 Dx = Dvec(1);
+%                 Dy = Dvec(2);
+%                 Dz = Dvec(3);
+%                 h = trisurf(faces,x,y,z, Intersect*1.0, 'FaceAlpha',0.9); 
+%                 set(h,'edgecolor','none')
+%                 hold on
+%                 line('XData',orig(1) + [0 Dx], 'YData',orig(2) + [0 Dy], 'ZData', orig(3) + [0 Dz], 'Color', 'r', 'LineWidth',3)
+%                 xlabel('X_F_C_S (m)')
+%                 ylabel('Y_F_C_S (m)')
+%                 zlabel('Z_F_C_S (m)')
+%                 
+%               end
+            end
+          else
+            if ~DEM_coverage_warning
+              DEM_coverage_warning = true;
+              warning('DEM dem_per_slice_guard too small.');
+            end
+            clear intersection;
+            twtt(:,rline) = NaN;
+          end
+          
+          
+          if exist('ice_mask_all','var') && ~isempty(ice_mask_all)
+            if exist('intersection','var')
+              % Convert from FCS/SAR to ECEF
+              intersection_ecef = Tfcs_ecef * intersection;
+              intersection_ecef_x = intersection_ecef(1,:).' + origin(1);
+              intersection_ecef_y = intersection_ecef(2,:).' + origin(2);
+              intersection_ecef_z = intersection_ecef(3,:).' + origin(3);
+              % Convert from ECEF to geodetic
+              [intersection_lat,intersection_lon,tri_h] = ecef2geodetic(intersection_ecef_x,intersection_ecef_y,intersection_ecef_z,WGS84.ellipsoid);
+              intersection_lat = intersection_lat*180/pi;
+              intersection_lon = intersection_lon*180/pi;
+              % Convert from geodetic to projection
+              [intersection_x,intersection_y] = projfwd(ice_mask_all.proj,intersection_lat,intersection_lon);
+              % Get mask coordinates nearest triangle center coordinates
+              intersection_x_idx = interp1(ice_mask_all.X,1:length(ice_mask_all.X),intersection_x,'nearest');
+              intersection_y_idx = interp1(ice_mask_all.Y,1:length(ice_mask_all.Y),intersection_y,'nearest');
+              % Find nan values and set to integer value
+              nidx = find(isnan(intersection_x_idx));
+              intersection_x_idx(nidx) = 1;
+              intersection_y_idx(nidx) = 1;
+              % Convert triangle mask coordinates to matrix indices
+              mask_idx = (intersection_x_idx-1)*length(ice_mask_all.Y) + intersection_y_idx;
+              % Find ice mask for triangle coordinates
+              ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
+              % Set previously nan valued coordinates to 0 mask
+              ice_mask(nidx,rline) = 0;
+            else
+              %         for ice_mask_idx = 1:length(mask_idx)
+              %           ice_mask(theta_rline_row_idx(ice_mask_idx),theta_rline_col_idx(ice_mask_idx),rline) = ice_mask_all.mask(mask_idx(ice_mask_idx));
+              %         end
+              %         % Set previously nan valued coordinates to 0 mask
+              %         ice_mask(theta_rline_row_idx(nidx),theta_rline_col_idx(nidx),rline) = 0;
+              %       end
+              
+            end
+          end
+          
+        end
         
+        %% Insert Surfaces
+        
+        % Insert TWTT of top surface
+        surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(twtt,2)]); % Nsv x Nx
+
+        surf.y = twtt;
+        surf.plot_name_values = {'color','black','marker','x'};
+        surf.name = 'top twtt';
+        sd.insert_surf(surf);
+        
+        % Insert icemask
+          surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(twtt,2)]); % Nsv x Nx
+        surf.y = ice_mask;
+        surf.plot_name_values = {'color','white','marker','x'};
+        surf.name = 'ice_mask';
+        sd.insert_surf(surf);
+        
+        %% Create output filename
+        out_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path,'surfData_sar')
+        
+        if ~isdir(out_dir)
+          mkdir(out_dir);
+        end
+        
+        out_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,frm);
+        out_fn = fullfile(out_dir,out_fn_name);
+        sd.save_surfdata(out_fn,doa_method_flag);
+        fprintf('Done (%s)\n', datestr(now));
         
         
       end
@@ -1126,40 +1354,7 @@ classdef surfdata < handle
       
       
       
-      
-      keyboard
-      % Read in sar_coord.mat file and append with ranges to surface
-      % Where does the user specify options?  Like DOA grid and output
-      % directory?
-      %
-      % Why isn't DEM passed in?
-      %
-      % Where is the input path specified?
-      
-      % 0. Finish multiple segment code (non cluster)
-      % 1. Print out frame ids
-      %     Need these to create data files
-      %     a. load records gps time
-      %     
-      % 2. Create output filenames
-      %     ct_filename_out default = CSARP_surfdata_sar
-      %     param_override
-      % 3. Create and save empty surfdata object
-      % 4. Load sar coordinate file and make sure I can fill all of the
-      % relevant fields, i.e. sd.radar_name [-80,80]
-      % 5. TWTT for every ray (see add_icemask_surfacedem)
-      % 6. Insert surface and save
-      %
-      % Load sar data and get fcs
-      %   Create surface
-      %   Insert surface
-      %   Save
-      
-      % Loop over Nx
-      %   Loop over theta
-      
-      
-      keyboard
+   
     end
     
   end
