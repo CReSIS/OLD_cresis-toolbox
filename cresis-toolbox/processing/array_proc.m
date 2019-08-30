@@ -306,6 +306,14 @@ if isempty(param.array.method)
   error('No valid method selected in param.array.method');
 end
 
+% .last_fprintf_time_delay
+%   The maximum amount of time in seconds since the last fprintf statement
+%   was made. This is used to print out the progress. The default is 60
+%   seconds.
+if ~isfield(param.array,'last_fprintf_time_delay') || isempty(param.array.last_fprintf_time_delay)
+  param.array.last_fprintf_time_delay = 60;
+end
+
 % .line_rng:
 %   Range of range-lines to use for snapshots, default is -5:5. line_rng is
 %   forced to be symmetrical about 0 and only contain integers.
@@ -737,13 +745,15 @@ end
 % Loop through each output range line and then through each output range
 % bin for that range line.
 last_fprintf_time = -inf;
+last_fprintf_time_bin = -inf;
 for line_idx = 1:1:Nx_out
   %% Array: Setup
   rline = cfg.lines(line_idx);
-  if last_fprintf_time > now+60/86400
-    fprintf('    Record %.0f (%.0f of %.0f) (%s)\n', rline, line_idx, ...
+  if now > last_fprintf_time+param.array.last_fprintf_time_delay/86400
+    fprintf('    Record %.0f (%.0f of %.0f) bin start (%s)\n', rline, line_idx, ...
       Nx_out, datestr(now));
     last_fprintf_time = now;
+    last_fprintf_time_bin = now;
   end
     
   % Bring the range-bin index stored in layerData vector (at the nadir DOA bin)
@@ -880,6 +890,11 @@ for line_idx = 1:1:Nx_out
   for bin_idx = bin_idxs(:).'
     %% Array: Array Process Each Bin
     bin = cfg.bins(bin_idx);
+    if now > last_fprintf_time_bin+2*param.array.last_fprintf_time_delay/86400
+      fprintf('      Record %.0f (%.0f of %.0f) bin %d of %d (%s)\n', rline, line_idx, ...
+        Nx_out, bin_idx, length(bin_idxs), datestr(now));
+      last_fprintf_time_bin = now;
+    end
     % Handle the case when the data covariance matrix support pixels and
     % pixel neighborhood multilooking do not match. Note that this is only
     % supported for MVDR.

@@ -32,7 +32,6 @@ function results = crosstrack(param)
 % Load standard physical constants like c = speed of light
 physical_constants;
 array_proc_methods;
-array_param = param.array_param;
 % fc: center frequency
 param.src.fc = (param.src.f0 + param.src.f1)/2;
 % fs: sampling frequency
@@ -155,20 +154,19 @@ for run_idx = 1:param.monte.runs
 %     param.src.z_pc   = phase_center(3,:).';
     %% Setup array processing input arguments
     sim_data = {permute(sim_data,[1 3 4 5 2])};
-    array_param = param.array_param;
-    array_param.tomo_en = true;
+    param.array.tomo_en = true;
     for wf_adc_idx = 1:length(param.src.y_pc)
-      array_param.fcs{1}{wf_adc_idx}.pos(2,:) = repmat(param.src.y_pc(wf_adc_idx), [1 size(sim_data{1},2)]);
-      array_param.fcs{1}{wf_adc_idx}.pos(3,:) = repmat(param.src.z_pc(wf_adc_idx), [1 size(sim_data{1},2)]);
+      param.array.fcs{1}{wf_adc_idx}.pos(2,:) = repmat(param.src.y_pc(wf_adc_idx), [1 size(sim_data{1},2)]);
+      param.array.fcs{1}{wf_adc_idx}.pos(3,:) = repmat(param.src.z_pc(wf_adc_idx), [1 size(sim_data{1},2)]);
      
-      if isfield(array_param,'surface') && ~isempty(array_param.surface)
+      if isfield(param.array,'surface') && ~isempty(param.array.surface)
         % For S-MLE DoA estimation
-        array_param.fcs{1}{wf_adc_idx}.surface = array_param.surface;
+        param.array.fcs{1}{wf_adc_idx}.surface = param.array.surface;
       end
     end
     
-    array_param.fc = (param.src.f1 + param.src.f0)/2;
-    array_param.time = sim_time;
+    param.array_proc.wfs.fc = (param.src.f1 + param.src.f0)/2;
+    param.array_proc.wfs.time = sim_time;
     
     if isfield(param,'optimal_test') || isfield(param,'suboptimal_test')
       % For model order estimation (MOE)
@@ -179,7 +177,7 @@ for run_idx = 1:param.monte.runs
     if isfield(param,'optimal_test') || isfield(param,'suboptimal_test')
       % For model order estimation (MOE)
       actual_doa_param.rlines       = 1:size(surf_model.z,2);
-      actual_doa_param.rbins        = 1:length(array_param.time)-1;
+      actual_doa_param.rbins        = 1:length(param.array_proc.wfs.time)-1;
       actual_doa_param.BW           = param.src.fs;
 %       actual_doa_param.phase_center = phase_center;
       actual_doa_param.src.y_pc     = param.src.y_pc;
@@ -188,8 +186,8 @@ for run_idx = 1:param.monte.runs
       actual_doa_param.surf_model   = surf_model;
       actual_doa_param.t0           = param.src.t0;
       actual_doa_param.fc           = param.src.fc;
-      actual_doa_param.line_rng    = array_param.line_rng;
-      actual_doa_param.dline        = array_param.dline;
+      actual_doa_param.line_rng    = param.array.line_rng;
+      actual_doa_param.dline        = param.array.dline;
       
       if isfield(param,'SS') && ~isempty(param.SS) && param.SS==0
         actual_doa_param.SS = param.SS;
@@ -214,8 +212,8 @@ for run_idx = 1:param.monte.runs
       clear sim_data actual_doa_len  actual_doa
     else
       % All simulations that don't use MOE
-      doa_param.rlines = abs(array_param.line_rng(1))+1:array_param.dline:length(surf_model.x)-abs(array_param.line_rng(end));
-      doa_param.rbins = abs(array_param.bin_rng(1))+1:array_param.dbin:Nt-abs(array_param.bin_rng(end));
+      doa_param.rlines = abs(param.array.line_rng(1))+1:param.array.dline:length(surf_model.x)-abs(param.array.line_rng(end));
+      doa_param.rbins = abs(param.array.bin_rng(1))+1:param.array.dbin:Nt-abs(param.array.bin_rng(end));
       doa_param.phase_center(2,:) = -param.src.y_pc;
       doa_param.phase_center(3,:) = -param.src.z_pc;
       %     doa_param.phase_center = -param.phase_center;
@@ -258,58 +256,58 @@ for run_idx = 1:param.monte.runs
     %% Loop through and run each array processing method
     for method_idx = 1:length(param.method.list)
       
-      fprintf('  Array processing method %d\n', param.method.list(method_idx));
+      fprintf('  Array processing method %s/%d\n', array_proc_method_str(param.method.list(method_idx)), param.method.list(method_idx));
       
       %% Run array processing
       % Some notes about the outputs
-      %  array_param.theta: radians, zero points toward -z_pc, increases toward positive y_pc
-      array_param.method = param.method.list(method_idx);
+      %  param.array.theta: radians, zero points toward -z_pc, increases toward positive y_pc
+      param.array.method = param.method.list(method_idx);
       if isfield(param.method,'method_mode') && ~isempty(param.method.method_mode)
-        array_param.method_mode = param.method.method_mode;
+        param.array.method_mode = param.method.method_mode;
       end
       if isfield(param,'optimal_test') || isfield(param,'suboptimal_test')
         %% For model order estimation (MOE)
         if isfield(param,'testing') && ~isempty(param.testing) && param.testing == 0
           % This section is used in the training phase of model order estimation
-          array_param.optimal_test    = param.optimal_test;
-          array_param.suboptimal_test = param.suboptimal_test;
+          param.array.optimal_test    = param.optimal_test;
+          param.array.suboptimal_test = param.suboptimal_test;
           
           if ~isfield(param,'opt_norm')
-            array_param.opt_norm = 0;
+            param.array.opt_norm = 0;
           else
-            array_param.opt_norm = param.opt_norm;
+            param.array.opt_norm = param.opt_norm;
           end
           
           if ~isfield(param,'optimizer')
-            array_param.optimizer = 0;
+            param.array.optimizer = 0;
           else
-            array_param.optimizer = param.optimizer;
+            param.array.optimizer = param.optimizer;
           end
           
           if ~isfield(param,'testing')
-            array_param.testing = 0;
+            param.array.testing = 0;
           else
-            array_param.testing = param.testing;
+            param.array.testing = param.testing;
           end
           
-          array_param.SNR_db = param.SNR_db;
-          array_param.norm_allign_zero = param.norm_allign_zero;
+          param.array.SNR_db = param.SNR_db;
+          param.array.norm_allign_zero = param.norm_allign_zero;
           
           % Determine the log-likelihoods for all SNRs and runs
-          loglikelihood_2D_param.array_param          = array_param;
+          loglikelihood_2D_param.array_param          = param.array;
           loglikelihood_2D_param.sim_data_SNR         = sim_data_SNR;
           loglikelihood_2D_param.y_pc                 = param.src.y_pc;
           loglikelihood_2D_param.z_pc                 = param.src.z_pc;
-          loglikelihood_2D_param.norm_allign_zero     = array_param.norm_allign_zero;
+          loglikelihood_2D_param.norm_allign_zero     = param.array.norm_allign_zero;
           
           if ~isfield(param,'opt_norm_term') || isempty(param.opt_norm_term)
-            param.opt_norm_term = zeros(1,max(array_param.Nsrc)+1);
+            param.opt_norm_term = zeros(1,max(param.array.Nsrc)+1);
           end
           if ~isfield(param,'norm_term_suboptimal') || isempty(param.norm_term_suboptimal)
-            param.norm_term_suboptimal = zeros(1,max(array_param.Nsrc)+1);
+            param.norm_term_suboptimal = zeros(1,max(param.array.Nsrc)+1);
           end
           if ~isfield(param,'norm_term_optimal') || isempty(param.norm_term_optimal)
-            param.norm_term_optimal = zeros(1,max(array_param.Nsrc)+1);
+            param.norm_term_optimal = zeros(1,max(param.array.Nsrc)+1);
           end
           
           loglikelihood_2D_param.opt_norm_term        = param.opt_norm_term;
@@ -328,7 +326,7 @@ for run_idx = 1:param.monte.runs
             % Debug: plot eigenvalues
             figure(999);clf
             clear rbin_idxs
-            Nloops = length(param.array_param.Nsrc)+1;
+            Nloops = length(param.param.array.Nsrc)+1;
             for q_idx = 1:Nloops %size(eivenvalues_all,3)
               bin_Idx = find(sources_true_all_SNR{1} == q_idx-1,1);
               rbin_idxs(q_idx) = bin_Idx;
@@ -339,7 +337,7 @@ for run_idx = 1:param.monte.runs
               eigenvalue_q = squeeze(sample_eigenvalues).';
               eigenvalue_q = 10*log10(eigenvalue_q);%./repmat(max(eigenvalue_q,[],1),[size(eigenvalue_q,1) 1]));
               
-              if length(param.array_param.Nsrc)+1 > 3
+              if length(param.param.array.Nsrc)+1 > 3
                 subplot(ceil(Nloops/2),2,q_idx)
               else
                  subplot(Nloops,1,q_idx)
@@ -370,73 +368,79 @@ for run_idx = 1:param.monte.runs
         else
           for test_idx = 1:size(param.SNR_db,2)
             if param.suboptimal_test==1
-              array_param.NT = param.NT;   % suboptimal
+              param.array.NT = param.NT;   % suboptimal
             end
             
             if param.optimal_test==1
-              array_param.NT_opt = param.NT_opt;   % Optimal
+              param.array.NT_opt = param.NT_opt;   % Optimal
             end
             
             sim_data = sim_data_SNR{test_idx};
-            array_param.Nsrc = max(array_param.Nsrc);
-            array_param.testing = param.testing;
-            array_param.suboptimal_test = param.suboptimal_test;
-            array_param.optimal_test = param.optimal_test;
+            param.array.Nsrc = max(param.array.Nsrc);
+            param.array.testing = param.testing;
+            param.array.suboptimal_test = param.suboptimal_test;
+            param.array.optimal_test = param.optimal_test;
             if param.suboptimal_test
-              array_param.penalty_NT = param.NT;
+              param.array.penalty_NT = param.NT;
               %             else
-              %               array_param.penalty_NT = zeros(max(array_param.Nsrc),1);
+              %               param.array.penalty_NT = zeros(max(param.array.Nsrc),1);
             end
             if param.optimal_test
-              array_param.penalty_NT_opt = param.NT_opt;
+              param.array.penalty_NT_opt = param.NT_opt;
               %             else
-              %               array_param.penalty_NT_opt = zeros(max(array_param.Nsrc),1);
+              %               param.array.penalty_NT_opt = zeros(max(param.array.Nsrc),1);
             end
-            array_param.norm_allign_zero = param.norm_allign_zero;
+            param.array.norm_allign_zero = param.norm_allign_zero;
             
-            array_param.opt_norm_term        = param.opt_norm_term;
-            array_param.norm_term_optimal    = param.norm_term_optimal;
-            array_param.norm_term_suboptimal = param.norm_term_suboptimal;
-            array_param.moe_methods      = param.moe_methods;
-            [array_param_tmp{run_idx}{test_idx},tomo_tmp{run_idx}{test_idx}] = array_proc(array_param, sim_data);
+            param.array.opt_norm_term        = param.opt_norm_term;
+            param.array.norm_term_optimal    = param.norm_term_optimal;
+            param.array.norm_term_suboptimal = param.norm_term_suboptimal;
+            param.array.moe_methods      = param.moe_methods;
+            [array_param_tmp{run_idx}{test_idx},tomo_tmp{run_idx}{test_idx}] = array_proc(param.array, sim_data);
           end
         end
         
       else
         %% All simulations that don't use MOE
-        array_param = struct('array',array_param);
-        array_param.array_proc.bin0 = array_param.array.time(1)/dt;
-        array_param.array_proc.wfs.time = array_param.array.time;
-        array_param.array_proc.wfs.fc = array_param.array.fc;
-        [array_param,tomo] = array_proc(array_param, sim_data);
+        param.array_proc.bin0 = param.array_proc.wfs.time(1)/dt;
+        [param,tomo] = array_proc(param, sim_data);
       end
       %% Debug Plots
       if exist('tomo','var')
         if param.debug_level >= 2
-          range = array_param.array_proc.wfs.time(array_param.array_proc.bins)*c/2;
+          range = param.array_proc.wfs.time(param.array_proc.bins)*c/2;
           
-          if array_param.array.method < DOA_METHOD_THRESHOLD
-            theta = array_param.array.theta;
+          if param.array.method < DOA_METHOD_THRESHOLD
+            [theta,theta_idxs] = sort(param.array.theta);
             
-            z = bsxfun(@times,-range,cos(theta));
-            y = bsxfun(@times,range,sin(theta));
-            y_axis = (min(y(:)):max(y(:))).';
-            z_axis = min(z(:)):0.05:max(z(:));
+            z = bsxfun(@times,-range,cosd(theta(theta_idxs)));
+            y = bsxfun(@times,range,sind(theta(theta_idxs)));
+            y_axis = (min(y(:)):min(diff(sort(y(1,:)))):max(y(:))).';
+            dz_axis = min(diff(range));
+            z_axis = min(z(:))-5*dz_axis:dz_axis:max(z(:))+5*dz_axis;
             
-            tomo.img_rect = griddata(y,z,double(tomo.tomo.img(:,:,1)),y_axis,z_axis);
+            slice = 1;
+            tomo.img_rect = griddata(y,z,double(tomo.tomo.img(:,:,slice)),y_axis,z_axis);
             
+            
+            slice = 11;
             figure(1); clf;
             subplot(2,1,1);
             plot_style = {'b-','r:'};
-            for layer = unique(surf_model.layer)
-              plot(surf_model.y(surf_model.layer == layer), ...
-                surf_model.z(surf_model.layer == layer,1)-param.monte.target_param{1}.z.mean, ...
+            for layer = unique(surf_model.layer(:)).'
+              if layer == 1
+                layer_z = surf_model.z(surf_model.layer == layer,slice);
+              else
+                layer_z = surf_model.z(surf_model.layer == layer,slice);
+              end
+              plot(surf_model.y(surf_model.layer == layer,1), ...
+                layer_z-param.monte.target_param{1}.z.mean, ...
                 plot_style{1+mod(layer-1,length(plot_style))});
               hold on;
             end
             hold off;
             ylabel('Elevation (m)');
-            h_axis = gca;
+            h_axes = gca;
             grid on;
             
             subplot(2,1,2);
@@ -444,13 +448,14 @@ for run_idx = 1:param.monte.runs
             set(gca,'YDir','normal');
             xlabel('Cross-track (m)');
             ylabel('Elevation (m)');
-            h_axis(2) = gca;
+            h_axes(2) = gca;
             
-            linkaxes(h_axis,'xy');
+            linkaxes(h_axes,'xy');
+            ylim(h_axes(1),ylim(h_axes(1)) + dz_axis*[-5 5]);
             
           else
-            z = bsxfun(@times,-range,cos(tomo.doa(:,:,1)));
-            y = bsxfun(@times,range,sin(tomo.doa(:,:,1)));
+            z = bsxfun(@times,-range,cos(tomo.tomo.theta(:,:,1)));
+            y = bsxfun(@times,range,sin(tomo.tomo.theta(:,:,1)));
             
             if 0
               figure(1); clf;
@@ -464,7 +469,7 @@ for run_idx = 1:param.monte.runs
               end
               hold off;
               ylabel('Elevation (m)');
-              h_axis = gca;
+              h_axes = gca;
               grid on;
               
               subplot(2,1,2);
@@ -472,16 +477,16 @@ for run_idx = 1:param.monte.runs
               set(gca,'YDir','normal');
               xlabel('Cross-track (m)');
               ylabel('Elevation (m)');
-              h_axis(2) = gca;
+              h_axes(2) = gca;
               grid on;
-              linkaxes(h_axis,'xy');
+              linkaxes(h_axes,'xy');
             end
             
             if 0
               figure(2); clf;
               imagesc(surf_model.x, surf_model.y, surf_model.z-param.monte.target_param{1}.z.mean);
               title('Ground truth');
-              h_axis = gca;
+              h_axes = gca;
               xlabel('Along-track (m)');
               ylabel('Cross-track (m)');
               cc = caxis;
@@ -489,17 +494,23 @@ for run_idx = 1:param.monte.runs
               set(get(h_cb,'YLabel'),'String','WGS-84 elevation (m)');
             end
             
-            z = bsxfun(@times,-range,cos(tomo.doa));
-            y = bsxfun(@times,range,sin(tomo.doa));
-            x = repmat(permute(surf_model.x(array_param.lines),[1 3 2]),[size(y,1) size(y,2) 1]);
+            z = bsxfun(@times,-range,cos(tomo.tomo.theta));
+            y = bsxfun(@times,range,sin(tomo.tomo.theta));
+            x = repmat(permute(surf_model.x(param.array_proc.lines),[1 3 2]),[size(y,1) size(y,2) 1]);
             
             z(isnan(z)) = -9999;
             y(isnan(y)) = -9999;
             x(isnan(x)) = -9999;
             
-            good_mask = zeros(size(tomo.doa));
-            good_mask = good_mask | db(tomo.power) > 10;
-            good_mask = good_mask | repmat(permute(tomo.cost,[1 3 2]),[1 size(good_mask,2) 1]) < -25;
+            good_mask = zeros(size(tomo.tomo.theta));
+            good_mask = good_mask | db(tomo.tomo.img) > 10;
+            good_mask = good_mask | repmat(permute(tomo.tomo.cost,[1 3 2]),[1 size(good_mask,2) 1]) < -25;
+            
+            % Choose layer to isolate in z_grid
+            layer = 1;
+            min_z = min(min(surf_model.z(surf_model.layer == layer,:)));
+            max_z = max(max(surf_model.z(surf_model.layer == layer,:)));
+            good_mask = good_mask & z >= min_z & z <= max_z;
             
             z_grid = griddata(double(x(good_mask)),double(y(good_mask)),double(z(good_mask)), ...
               surf_model.x,surf_model.y);
@@ -507,7 +518,7 @@ for run_idx = 1:param.monte.runs
               figure(3); clf;
               
               imagesc(surf_model.x, surf_model.y, z_grid-param.monte.target_param{1}.z.mean);
-              h_axis(2) = gca;
+              h_axes(2) = gca;
               title('Array processing with basic surface extraction');
               xlabel('Along-track (m)');
               ylabel('Cross-track (m)');
@@ -515,7 +526,7 @@ for run_idx = 1:param.monte.runs
               h_cb = colorbar;
               set(get(h_cb,'YLabel'),'String','WGS-84 elevation (m)');
               
-              linkaxes(h_axis,'xy');
+              linkaxes(h_axes,'xy');
             end
           end
         end
@@ -525,10 +536,9 @@ for run_idx = 1:param.monte.runs
         % Non MOE simulations
         if param.debug_level >= 3
           % End early for debug testing of outputs
-          if array_param.array.method ~= PF_METHOD
-            results.param = param;
+          if param.array.method ~= PF_METHOD
+            results.param_crosstrack = param;
             results.tomo = tomo;
-            results.array_param = array_param;
             results.sim_data = sim_data;
             results.surf_model = surf_model;
             results.actual_doa = actual_doa;
@@ -556,7 +566,7 @@ end
 
 if isfield(param,'optimal_test') || isfield(param,'suboptimal_test')
   % For model order estimation (MOE)
-  if isfield(array_param,'testing') && ~isempty(array_param.testing) && array_param.testing == 0
+  if isfield(param.array,'testing') && ~isempty(param.array.testing) && param.array.testing == 0
     % This section us used in the training phase of model order estimation
     results.LL_subopt          = LL_subopt;
     results.LL_opt             = LL_opt;
@@ -565,9 +575,8 @@ if isfield(param,'optimal_test') || isfield(param,'suboptimal_test')
   else
     if param.debug_level >= 3
       % End early for debug testing of outputs
-      results.param       = param;
+      results.param_crosstrack = param;
       results.tomo        = tomo_tmp;
-      results.array_param = array_param_tmp;
       results.surf_model  = surf_model;
       results.actual_num_targets = actual_num_targets;
     end
@@ -576,13 +585,9 @@ end
 
 if isempty(param.method.list) %~exist('results','var')
   % This is for cases where you don't need DOA estimation
-  results.param = param;
-  results.array_param = array_param;
+  results.param_crosstrack = param;
   results.sim_data = sim_data;
   results.surf_model = surf_model;
   results.actual_doa = actual_doa;
   results.Nsrc_true = Nsrc_true;
 end
-% Copy outputs into output argument structure
-
-return;
