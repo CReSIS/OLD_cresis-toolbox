@@ -31,6 +31,7 @@ function results = crosstrack(param)
 
 % Load standard physical constants like c = speed of light
 physical_constants;
+array_proc_methods;
 array_param = param.array_param;
 % fc: center frequency
 param.src.fc = (param.src.f0 + param.src.f1)/2;
@@ -89,7 +90,7 @@ for run_idx = 1:param.monte.runs
     surf_model.z = [];
     surf_model.rcs = [];
     surf_model.layer = [];
-    if 0 & param.debug_level >= 3
+    if 0 && param.debug_level >= 3
       % Plot surface model
       figure(11); clf;
     end
@@ -404,29 +405,25 @@ for run_idx = 1:param.monte.runs
       else
         %% All simulations that don't use MOE
         array_param = struct('array',array_param);
-        array_param.array_proc.fc = array_param.array.fc;
-        array_param.array_proc.fcs = array_param.array.fcs;
-        array_param.array_proc.time = array_param.array.time;
-        array_param.array = rmfield(array_param.array,'fc');
-        array_param.array = rmfield(array_param.array,'fcs');
-        array_param.array = rmfield(array_param.array,'time');
+        array_param.array_proc.bin0 = array_param.array.time(1)/dt;
+        array_param.array_proc.wfs.time = array_param.array.time;
+        array_param.array_proc.wfs.fc = array_param.array.fc;
         [array_param,tomo] = array_proc(array_param, sim_data);
       end
       %% Debug Plots
       if exist('tomo','var')
         if param.debug_level >= 2
-          range = array_param.time(array_param.bins)*c/2;
+          range = array_param.array_proc.wfs.time(array_param.array_proc.bins)*c/2;
           
-          if array_param.method < 7 ...
-              && (~isfield(array_param,'method_mode') || isempty(array_param.method_mode) || ~strcmp(array_param.method_mode,'estimator')) 
-            theta = array_param.theta;
+          if array_param.array.method < DOA_METHOD_THRESHOLD
+            theta = array_param.array.theta;
             
             z = bsxfun(@times,-range,cos(theta));
             y = bsxfun(@times,range,sin(theta));
             y_axis = (min(y(:)):max(y(:))).';
             z_axis = min(z(:)):0.05:max(z(:));
             
-            tomo.img_rect = griddata(y,z,double(tomo.img(:,:,1)),y_axis,z_axis);
+            tomo.img_rect = griddata(y,z,double(tomo.tomo.img(:,:,1)),y_axis,z_axis);
             
             figure(1); clf;
             subplot(2,1,1);
@@ -528,17 +525,19 @@ for run_idx = 1:param.monte.runs
         % Non MOE simulations
         if param.debug_level >= 3
           % End early for debug testing of outputs
-          if ~(array_param.method == 10)
-          results.param = param;
-          results.tomo = tomo;
-          results.array_param = array_param;
-          results.sim_data = sim_data;
-          results.surf_model = surf_model;
-          results.actual_doa = actual_doa;
-          results.Nsrc_true = Nsrc_true;
-          
-          % required for slice plots in crossstrack_example.m
-          results.z_grid = z_grid ;
+          if array_param.array.method ~= PF_METHOD
+            results.param = param;
+            results.tomo = tomo;
+            results.array_param = array_param;
+            results.sim_data = sim_data;
+            results.surf_model = surf_model;
+            results.actual_doa = actual_doa;
+            results.Nsrc_true = Nsrc_true;
+            
+            % required for slice plots in crosstrack_example.m
+            if exist('z_grid','var')
+              results.z_grid = z_grid ;
+            end
           else
             % Particle filter simulation
             results.sim_data = sim_data;

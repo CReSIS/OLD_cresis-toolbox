@@ -18,7 +18,8 @@ function sod = epoch_to_sod(time,ref_time)
 % Author: John Paden
 %
 % See also epoch_to_datenum.m, datenum_to_epoch.m, epoch_to_gps_sow.m,
-%   epoch_to_sod.m, gps_sow_to_epoch.m, utc_leap_seconds.m
+%   epoch_to_sod.m, sod_to_epoch.m, gps_sow_to_epoch.m, utc_leap_seconds.m,
+%   gps_to_utc.m, utc_to_gps.m
 
 % Convert epoch to datenum (datenum is days since Jan 1, 1900)
 time = epoch_to_datenum(time);

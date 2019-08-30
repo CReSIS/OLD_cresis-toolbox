@@ -1,15 +1,16 @@
-% script sim.doa_example
+% script sim.doa_example_wax
 %
-% Example setup scripts for the sim.doa function. To run, enable one
-% of the if {0|1} blocks below and then run the script.
+% Example setup scripts for the sim.doa function. This includes examples
+% that reproduce the Wax and Ziskind 1988 paper results (Fig 2, 3, 4, and
+% 6).
 %
 % Author: John Paden, Theresa Stumpf
 %
-% See also: doa.m
+% See also: sim.doa.m
 
 fig_to_plot = 2; % Choose figure 2, 3, 4, or 6
 
-%% Wax and Ziskind 1988 Fig 2
+%% Fig 2 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 2
   %% Fig 2: Simulation parameters
@@ -58,7 +59,7 @@ if fig_to_plot == 2
   grid on
   xlabel('Source SNR (dB)')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Figure 2 from Wax and Ziskind 1988')
   
   figure(2); clf
@@ -66,7 +67,7 @@ if fig_to_plot == 2
   grid on
   xlabel('Source SNR (dB)')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Complement to figure 2 from Wax and Ziskind (source 2)')
   
   % Save Outputs
@@ -81,7 +82,7 @@ if fig_to_plot == 2
   ct_save(out_fn,'param','results');
 end
   
-%% Wax and Ziskind 1988 Fig 3
+%% Fig 3 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 3
   %% Fig 3: Setup simulation parameters
@@ -130,7 +131,7 @@ if fig_to_plot == 3
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Figure 3 from Wax and Ziskind 1988')
   
   figure(2); clf
@@ -138,7 +139,7 @@ if fig_to_plot == 3
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Complement to figure 3 from Wax and Ziskind (source 2)')
   
   % Save Outputs
@@ -153,7 +154,7 @@ if fig_to_plot == 3
   ct_save(out_fn,'param','results');
 end
   
-%% Wax and Ziskind 1988 Fig 4
+%% Fig 4 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 4
   %% Fig 4: Setup simulation parameters
@@ -202,7 +203,7 @@ if fig_to_plot == 4
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Figure 4 from Wax and Ziskind 1988')
   
   figure(2); clf
@@ -210,7 +211,7 @@ if fig_to_plot == 4
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Complement to figure 4 from Wax and Ziskind (source 2)')
   
   % Save Outputs
@@ -225,7 +226,7 @@ if fig_to_plot == 4
   ct_save(out_fn,'param','results');
 end
   
-%% Wax and Ziskind 1988 Fig 6
+%% Fig 6 Wax and Ziskind 1988
 % =======================================================================
 if fig_to_plot == 6
   %% Fig 6: Setup simulation parameters
@@ -274,7 +275,7 @@ if fig_to_plot == 6
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Figure 6 from Wax and Ziskind 1988')
   
   figure(2); clf
@@ -282,7 +283,7 @@ if fig_to_plot == 6
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Complement to figure 6 from Wax and Ziskind (source 1)')
   
   figure(3); clf
@@ -290,7 +291,7 @@ if fig_to_plot == 6
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Complement to figure 6 from Wax and Ziskind (source 2)')
   
   figure(4); clf
@@ -298,7 +299,7 @@ if fig_to_plot == 6
   grid on
   xlabel('Snapshots')
   ylabel('RMS error ( \circ )')
-  legend({'MUSIC','MLE','WB','WBMLE'})
+  legend(array_proc_method_strs(param.method.list));
   title('Complement to figure 6 from Wax and Ziskind (source 4)')
   
   % Save Outputs

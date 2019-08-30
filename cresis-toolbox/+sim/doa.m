@@ -5,8 +5,16 @@ function [results, DCM_runs] = doa(param)
 %
 % Author: John Paden, Theresa Stumpf
 
+%% Input checks
+
+if ~isfield(param.src,'ft_wind') || isempty(param.src.ft_wind)
+  param.src.ft_wind = @boxcar;
+end
+
+%% Setup
+
 param.src.fc = (param.src.f0 + param.src.f1)/2;
-param.src.fs = param.src.f1 - param.src.f0;
+param.src.fs = abs(param.src.f1 - param.src.f0);
 
 % Get phase center positions of antenna array
 if isfield(param.src,'phase_center')
