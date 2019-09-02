@@ -42,6 +42,10 @@ if ~isempty(param.collate_coh_noise.debug_plots)
   h_fig = get_figures(5,enable_visible_plot);
 end
 
+if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debug_out_dir)
+  param.check_surface.debug_out_dir = mfilename;
+end
+
 if isfield(param.collate_coh_noise,'dft_corr_length')
   error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time.');
 end
@@ -287,7 +291,7 @@ for img = param.collate_coh_noise.imgs
       xlabel(h_axes(1), 'Doppler frequency (1/sec)');
       ylabel(h_axes(1), 'Range bin');
       
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       fig_fn_dir = fileparts(fig_fn);
       if ~exist(fig_fn_dir,'dir')
@@ -296,7 +300,7 @@ for img = param.collate_coh_noise.imgs
       ct_saveas(h_fig(1),fig_fn);
       size_fig = whos('cn_before');
       if size_fig.bytes < 1e9
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_fft_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(1),fig_fn);
       end
@@ -310,11 +314,11 @@ for img = param.collate_coh_noise.imgs
       title(h_axes(2), sprintf('Before coherent noise removal %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(2), 'Range bin');
       xlabel(h_axes(2), 'Block');
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(2),fig_fn);
       if size_fig.bytes < 1e9
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(2),fig_fn);
       end
@@ -327,11 +331,11 @@ for img = param.collate_coh_noise.imgs
       title(h_axes(3), sprintf('Before coherent noise removal %s wf %d adc %d (phase)',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(3), 'Range bin');
       xlabel(h_axes(3), 'Block');
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(3),fig_fn);
       if size_fig.bytes < 1e9
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_phase_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(3),fig_fn);
       end
@@ -344,11 +348,11 @@ for img = param.collate_coh_noise.imgs
       title(h_axes(4), sprintf('After coherent noise removal %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       xlabel(h_axes(4), 'Block');
       ylabel(h_axes(4), 'Range bin');
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(4),fig_fn);
       if size_fig.bytes < 1e9
-        fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+        fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('coh_after_wf_%02d_adc_%02d',wf,adc)) '.fig'];
         fprintf('Saving %s\n', fig_fn);
         ct_saveas(h_fig(4),fig_fn);
       end
@@ -372,14 +376,14 @@ for img = param.collate_coh_noise.imgs
       if ~isempty(param.collate_coh_noise.threshold_ylims)
         ylim(h_axes(5),param.collate_coh_noise.threshold_ylims);
       end
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
+      fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.jpg'];
       fprintf('Saving %s\n', fig_fn);
       fig_fn_dir = fileparts(fig_fn);
       if ~exist(fig_fn_dir,'dir')
         mkdir(fig_fn_dir);
       end
       ct_saveas(h_fig(5),fig_fn);
-      fig_fn = [ct_filename_ct_tmp(param,'','collate_coh_noise',sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
+      fig_fn = [ct_filename_ct_tmp(param,'',debug_out_dir,sprintf('threshold_wf_%02d_adc_%02d',wf,adc)) '.fig'];
       fprintf('Saving %s\n', fig_fn);
       ct_saveas(h_fig(5),fig_fn);
     end
