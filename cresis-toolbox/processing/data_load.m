@@ -376,7 +376,7 @@ for state_idx = 1:length(states)
               end
               
               if tmp_wf < wf
-                last_wf_size = wfs(wf).sample_size*(1+~raw_or_DDC)*wfs(wf).adc_per_board*Nt{img}(num_accum(ai)+1) + WF_HEADER_SIZE;
+                last_wf_size = wfs(wf).sample_size*(1+~raw_or_DDC)*wfs(wf).adc_per_board*Nt{img}(num_accum(ai)+1) + wfs(wf).wf_header_size;
               end
               
             end
