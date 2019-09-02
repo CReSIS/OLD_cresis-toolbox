@@ -748,6 +748,7 @@ for wf = 1:length(param.radar.wfs)
         HEADER_SIZE = 0;
         WF_HEADER_SIZE = 48;
       end
+      wfs(wf).wf_header_size = WF_HEADER_SIZE;
       wfs(wf).record_mode = 0;
       wfs(wf).complex = 0;
       wfs(wf).sample_size = 2;
