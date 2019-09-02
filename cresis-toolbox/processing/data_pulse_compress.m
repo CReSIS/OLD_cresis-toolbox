@@ -214,7 +214,7 @@ for img = 1:length(param.load.imgs)
       
       % Adjust coherent noise dft for changes in adc_gains relative to
       % when the coherent noise was loaded and estimated.
-      coh_noise = coh_noise * 10.^((wfs(wf).adc_gains_dB(adc)-noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc))/20);
+      coh_noise = coh_noise * 10.^((noise.param_analysis.radar.wfs(wf).adc_gains_dB(adc)-wfs(wf).adc_gains_dB(adc))/20);
       
       % Adjust the coherent noise Tsys, chan_equal_dB, chan_equal_deg for
       % changes relative to when the coherent noise was loaded and
