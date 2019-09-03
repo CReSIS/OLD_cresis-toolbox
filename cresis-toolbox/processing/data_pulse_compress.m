@@ -1415,17 +1415,17 @@ for img = 1:length(param.load.imgs)
           error('There is fast-time sample interval discrepancy between the current processing settings (%g) and those used to generate the deconvolution file (%g).', dt, deconv.dt);
         end
         
-        % Is fc different? Multiply time domain by exp(1i*2*pi*dfc*deconv_time)
-        dfc = fc - deconv.fc(deconv_map_idx);
-        if dfc/fc > 1e-6
-          deconv_time = t0 + dt*(0:Nt-1).';
-          h_filled = h_filled .* exp(1i*2*pi*dfc*deconv_time);
-        end
-        deconv_LO = exp(-1i*2*pi*(dfc+deconv_dfc) * hdr.time{img});
-        
         % Adjust length of FFT to avoid circular convolution
         deconv_Nt = wfs(wf).Nt + h_ref_length;
         deconv_freq = fftshift(fc + 1/(deconv_Nt*dt) * ifftshift(-floor(deconv_Nt/2) : floor((deconv_Nt-1)/2)).');
+        
+        % Is fc different? Multiply time domain by exp(1i*2*pi*dfc*deconv_time)
+        dfc = fc - deconv.fc(deconv_map_idx);
+        if dfc/fc > 1e-6
+          deconv_time = t0 + dt*(0:deconv_Nt-1).';
+          h_filled = h_filled .* exp(1i*2*pi*dfc*deconv_time);
+        end
+        deconv_LO = exp(-1i*2*pi*(dfc+deconv_dfc) * hdr.time{img});
         
         % Take FFT of deconvolution impulse response
         h_filled = fft(h_filled);
