@@ -43,8 +43,9 @@ if ~isempty(param.collate_coh_noise.debug_plots)
 end
 
 if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debug_out_dir)
-  param.check_surface.debug_out_dir = mfilename;
+  param.(mfilename).debug_out_dir = mfilename;
 end
+debug_out_dir = param.(mfilename).debug_out_dir;
 
 if isfield(param.collate_coh_noise,'dft_corr_length')
   error('Change field name param.collate_coh_noise.dft_corr_length to dft_corr_time.');
@@ -367,7 +368,7 @@ for img = param.collate_coh_noise.imgs
       plot(h_axes(5), orig_threshold)
       hold(h_axes(5), 'on');
       grid(h_axes(5), 'on');
-      plot(h_axes(5), threshold)
+      plot(h_axes(5), threshold, 'LineStyle', '--')
       plot(h_axes(5), lp(abs(noise.dft(:,1)).^2))
       legend(h_axes(5), 'Original', 'Modified', 'DC Noise', 'location', 'best')
       xlabel(h_axes(5), 'Range bin');
