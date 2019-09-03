@@ -5,6 +5,10 @@ function ctrl_chain = cluster_set_chain(ctrl_chain,varargin)
 % ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.type','debug');
 % ctrl_chain = cluster_set_chain(ctrl_chain,'cluster.desired_time_per_job',24*60*60);
 
+if isnumeric(ctrl_chain)
+  ctrl_chain = cluster_load_chain(ctrl_chain);
+end
+
 if iscell(ctrl_chain)
   %% Traverse chain lists
   for chain = 1:numel(ctrl_chain)
