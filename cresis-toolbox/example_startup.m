@@ -343,7 +343,7 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_mem_per_job         = 62e9;
   profile(pidx).cluster.max_mem_mode            = 'debug';
 
-  profile(pidx).cluster.mcc                     = 'eval';
+  profile(pidx).cluster.mcc                     = 'system_eval';
 
   %% Startup code (Automated Section)
   % =====================================================================

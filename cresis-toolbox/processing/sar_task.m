@@ -122,15 +122,16 @@ lambda = c/wfs(wf).fc;
 surf_time = ppval(sar.surf_pp, start_x); surf_time = min(max_time,surf_time);
 % effective in air max range (m)
 max_range = ((max_time-surf_time)/sqrt(param.sar.start_eps) + surf_time) * c/2;
-% chunk overlap (m)
-chunk_overlap_start = (max_range*lambda)/(2*param.sar.sigma_x) / 2;
+% chunk overlap (m), accounts for SAR aperture and arbitrary_resample.m aperture (16*param.sar.sigma_x)
+chunk_overlap_start = max(16*param.sar.sigma_x, (max_range*lambda)/(2*param.sar.sigma_x) / 2);
 % chunk_overlap_start = max_range/sqrt((2*param.sar.sigma_x/lambda)^2-1);
 
 % twtt to surface (sec)
 surf_time = ppval(sar.surf_pp, stop_x); surf_time = min(max_time,surf_time);
 % effective in air max range (m)
 max_range = ((max_time-surf_time)/sqrt(param.sar.start_eps) + surf_time) * c/2;
-chunk_overlap_stop = (max_range*lambda)/(2*param.sar.sigma_x) / 2;
+% chunk overlap (m), accounts for SAR aperture and arbitrary_resample.m aperture (16*param.sar.sigma_x)
+chunk_overlap_stop = max(16*param.sar.sigma_x, (max_range*lambda)/(2*param.sar.sigma_x) / 2);
 % chunk_overlap_stop = max_range/sqrt((2*param.sar.sigma_x/lambda)^2-1);
 
 % These are the records which will be used
