@@ -543,7 +543,7 @@ for img = 1:length(param.load.imgs)
         fprintf('  Saving %s (%s)\n', out_fn, datestr(now));
         wfs(wf).time = time;
         wfs(wf).freq = freq;
-        ct_save('-v7.3',out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
+        ct_save(out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
       end
       
     elseif strcmpi(param.sar.sar_type,'tdbp_old')
@@ -671,7 +671,7 @@ for img = 1:length(param.load.imgs)
         param_sar = param;
         param_sar.tdbp = tdbp_param;
         tdbp_data = tdbp_data0(:,:,subap);
-        ct_save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
+        ct_save(out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
       end
     elseif strcmpi(param.sar.sar_type,'mltdp')
       fcs.squint = [0 0 -1].';
