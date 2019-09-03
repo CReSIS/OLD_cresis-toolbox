@@ -97,6 +97,12 @@ if ~isfield(param.collate_coh_noise,'threshold_eval') || isempty(param.collate_c
   param.collate_coh_noise.threshold_eval = {};
 end
 
+% threshold_fir_dec: Amount of filtering (number of blocks to average) to apply when finding
+% the suggested threshold
+if ~isfield(param.collate_coh_noise,'threshold_fir_dec') || isempty(param.collate_coh_noise.threshold_fir_dec)
+  param.collate_coh_noise.threshold_fir_dec = 10;
+end
+
 if ~isfield(param.collate_coh_noise,'threshold_ylims') || isempty(param.collate_coh_noise.threshold_ylims)
   param.collate_coh_noise.threshold_ylims = [];
 end
@@ -212,10 +218,10 @@ for img = param.collate_coh_noise.imgs
       end
       if enable_threshold
         cn_before_mag(:,bin_idx) = coh_bin_mag;
-        if size(coh_bin_mag,2) < 10
+        if size(coh_bin_mag,2) < param.collate_coh_noise.threshold_fir_dec
           threshold(bin_idx) = lp(mean(abs(coh_bin_mag).^2,2));
         else
-          threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,10)),[],2);
+          threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,param.collate_coh_noise.threshold_fir_dec)),[],2);
         end
       end
       if strcmpi(param.collate_coh_noise.method,'dft')
