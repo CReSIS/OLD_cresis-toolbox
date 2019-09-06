@@ -12,12 +12,15 @@ function [in,out] = cluster_print(ctrl,ids,print_mode,ids_type)
 % print_mode = optional (default is 1)
 %   0: do not print status (just return output arguments)
 %   1: print detailed status
-%   2: print brief status
+%   2: print brief status in table format
 % ids_type: scalar integer indicating the type of the integers in the
 %   ids input argument. 0 for ids containing task ID and 1 for
 %   containing cluster side IDs (e.g. torque job ID). Default is 0.
 %
 % Author: John Paden
+%
+% ts = cluster_print(1,1:500,2); % Prints table
+% print_struct(ts,1) % Prints a tab-delimited array for spreadsheets
 %
 % See also: cluster_chain_stage, cluster_cleanup, cluster_compile
 %   cluster_exec_job, cluster_get_batch, cluster_get_batch_list,
