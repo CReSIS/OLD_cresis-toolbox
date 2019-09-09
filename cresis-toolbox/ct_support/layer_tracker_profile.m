@@ -73,18 +73,18 @@ elseif strcmpi(profile_str,'RDS_OIB')
 elseif strcmpi(profile_str,'ACCUM')
   %% ACCUM profile
   track.debug_time_guard = 2e-6;
-  track.filter	= [3 3];
-  track.filter_trim = [3 3];
+  track.filter	= [3 7];%[3 3];
+  track.filter_trim = [0 3];%[3 3];
   track.init.method	= 'medfilt';
   track.init.medfilt	= 11;
-  track.init.max_diff = 0.5e-6;
-  track.max_rng	= [0 2];
+  track.init.max_diff = 1e-6;%0.5e-6;
+  track.max_rng	= [0 1];%[0 2];
   track.max_rng_units = 'bins';
-  track.medfilt = 11;
-  track.medfilt_threshold = 30;
+  track.medfilt = 3;%11;
+  track.medfilt_threshold = 10;%30;
   track.method = 'threshold';
-  track.min_bin = 1.6e-6;
-  track.threshold = 10;
+  track.min_bin = 0;%1.6e-6;
+  track.threshold = 5;%10;
   track.threshold_noise_rng = [0 -1e-6 -0.3e-6];
   track.threshold_rel_max = -9;
   track.threshold_rng = 5;
