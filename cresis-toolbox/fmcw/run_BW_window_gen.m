@@ -17,9 +17,12 @@ param_override = [];
 % params = read_param_xls(ct_filename_param('snow_param_2013_Greenland_P3.xls'));
 % params = ct_set_params(params,'radar.wfs.DDC_valid',[1 4 8 16 32]);
 
-params = read_param_xls(ct_filename_param('snow_param_2019_Arctic_Polar6.xls'));
-params = ct_set_params(params,'radar.wfs(1).DDC_valid',[1 2 4 8 16]);
-params = ct_set_params(params,'radar.wfs(2).DDC_valid',[1 2 4 8 16]);
+params = read_param_xls(ct_filename_param('snow_param_2014_Greenland_P3.xls'));
+params = ct_set_params(params,'radar.wfs.DDC_valid',[1 2 4 8 16]);
+
+% params = read_param_xls(ct_filename_param('snow_param_2019_Arctic_Polar6.xls'));
+% params = ct_set_params(params,'radar.wfs(1).DDC_valid',[1 2 4 8 16]);
+% params = ct_set_params(params,'radar.wfs(2).DDC_valid',[1 2 4 8 16]);
 
 params = ct_set_params(params,'cmd.generic',1);
 % params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_03');

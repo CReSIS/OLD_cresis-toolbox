@@ -25,8 +25,22 @@ else
   param_override.collate_coh_noise.method = 'dft';
   param_override.collate_coh_noise.dft_corr_time = inf;
 end
-% param_override.collate_coh_noise.in_path = 'analysis_threshold'; % Enable during second pass
-% param_override.collate_coh_noise.out_path = 'analysis_threshold'; % Enable during second pass
+
+% Threshold: This example combines a -120 dB threshold, threshold
+% estimate+15dB guard, and a coherent noise mask for the feed through.
+%
+% for param_idx = 1:length(params)
+%   param = params(param_idx);
+%   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+%     continue;
+%   end
+%   for wf = 1:length(params(param_idx).radar.wfs)
+%     params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold = max(min(-120,threshold+15),10*log10(abs(noise.dft(:,1)).^2)+6-1e6*(time>(Tpd+1.2e-6)));';
+%   end
+% end
+
+% param_override.collate_coh_noise.in_path = 'analysis_threshold'; % Enable during second pass if threshold was used.
+% param_override.collate_coh_noise.out_path = 'analysis_threshold'; % Enable during second pass if threshold was used.
 
 param_override.collate_coh_noise.debug_plots = {'visible','cn_plot','threshold_plot'}; % Debugging
 % param_override.collate_coh_noise.debug_plots = {'cn_plot','threshold_plot'}; % Typical setting when not debugging
