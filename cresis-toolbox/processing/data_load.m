@@ -330,7 +330,7 @@ for state_idx = 1:length(states)
           end
           
           % Read in headers for this record
-          if any(param.records.file.version == [3 5 7 8 11])
+          if any(param.records.file.version == [2 3 5 7 8 11])
             
             % Jump through the record one waveform at a time until we get
             % to the waveform we need to load.
@@ -360,19 +360,30 @@ for state_idx = 1:length(states)
                   start_idx = double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
-                DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
-                raw_or_DDC = file_data(wf_hdr_offset + 48);
-                if raw_or_DDC
+                if any(param.records.file.version == [2])
+                  DDC_dec{img}(num_accum(ai)+1) = 1;
                   Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);
                   wfs(wf).complex = false;
+                  raw_or_DDC = 1; % Raw or real data/not complex
                 else
-                  Nt{img}(num_accum(ai)+1) = floor((stop_idx - start_idx) / DDC_dec{img}(num_accum(ai)+1));
-                  wfs(wf).complex = true;
+                  if param.records.file.version == 3
+                    DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+2);
+                  else
+                    DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
+                  end
+                  raw_or_DDC = file_data(wf_hdr_offset + 48); % 1 means "raw", 0 means "DDC/complex"
+                  if raw_or_DDC
+                    Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);
+                    wfs(wf).complex = false;
+                  else
+                    Nt{img}(num_accum(ai)+1) = floor((stop_idx - start_idx) / DDC_dec{img}(num_accum(ai)+1));
+                    wfs(wf).complex = true;
+                  end
                 end
               end
               
               if tmp_wf < wf
-                last_wf_size = wfs(wf).sample_size*(1+~raw_or_DDC)*wfs(wf).adc_per_board*Nt{img}(num_accum(ai)+1) + WF_HEADER_SIZE;
+                last_wf_size = wfs(wf).sample_size*(1+~raw_or_DDC)*wfs(wf).adc_per_board*Nt{img}(num_accum(ai)+1) + wfs(wf).wf_header_size;
               end
               
             end
@@ -380,7 +391,7 @@ for state_idx = 1:length(states)
             Nt{img}(num_accum(ai)+1) = Nt{img}(num_accum(ai)+1) - sum(wfs(wf).time_raw_trim);
             
             % Number of fast-time samples Nt, and start time t0
-            if param.records.file.version ~= 8
+            if all(param.records.file.version ~= [2 8])
               % NCO frequency
               if swap_bytes_en
                 DDC_freq{img}(num_accum(ai)+1) = double(swapbytes(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16')));
@@ -427,10 +438,15 @@ for state_idx = 1:length(states)
               nyquist_zone_hw{img}(num_accum(ai)+1) = bitand(file_data(wf_hdr_offset+34),3);
             elseif any(param.records.file.version == [3 5 7])
               nyquist_zone_hw{img}(num_accum(ai)+1) = file_data(wf_hdr_offset+45);
-%             else
-%               % nyquist_zone_hw remains zero for all other file versions
-%               nyquist_zone_hw{img}(num_accum(ai)+1) = 0
+            else
+              % nyquist_zone_hw defaults to 1 for all other file versions
+              % (ideally this is overridden by
+              % records.settings.nyquist_zone)
+              nyquist_zone_hw{img}(num_accum(ai)+1) = 1;
             end
+          end
+          if isfield(records.settings,'nyquist_zone_hw') && ~isnan(records.settings.nyquist_zone_hw(rec))
+            nyquist_zone_hw{img} = records.settings.nyquist_zone_hw(rec);
           end
           nyquist_zone_signal{img} = nyquist_zone_hw{img}(1);
           if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))

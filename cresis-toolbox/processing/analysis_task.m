@@ -747,7 +747,7 @@ for img = 1:length(store_param.load.imgs)
             else
               % Function handle
               if Nt == size(data,1)
-                stats{stat_idx} = cmd.stats(data);
+                stats{stat_idx} = cmd.stats{stat_idx}(data);
               else
                 vals = nan(Nt,size(data,2));
                 for rline = 1:size(data,2)

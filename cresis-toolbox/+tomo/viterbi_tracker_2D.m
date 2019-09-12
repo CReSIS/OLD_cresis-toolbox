@@ -407,6 +407,8 @@ if options.debug
   no_ice_plot = 2 + (no_ice_plot ./ no_ice_plot);
   
   plot(ice_plot, 'w', 'LineWidth', 3); plot(no_ice_plot, 'k', 'LineWidth', 3);
+  
+  keyboard
 end
 
 %% Save image
@@ -418,6 +420,7 @@ if options.save_img
     startpt = rbin_ctr; endpt = startpt + frm_size - 1; rbin_ctr = endpt+1;
     f = figure; imagesc(lp(data_struct.(sprintf('data_%s_%03d',param.day_seg,frm)).Data)); hold on;
     colormap(1-gray(256)); plot(labels_wholeseg(startpt:endpt), 'r');
+    keyboard
     title(sprintf('Viterbi -- %s_%03d -- Time elapsed: %.2f seconds', param.day_seg, frm, ...
       (viterbi_toc/length(param.cmd.frms))), 'Interpreter', 'none');
     path = [options.save_img_path, sprintf('%s_%03d',param.day_seg,frm)];

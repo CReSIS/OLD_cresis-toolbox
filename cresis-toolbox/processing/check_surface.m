@@ -428,7 +428,7 @@ end
 
 % Uniformly time sample the two signals
 dt = median(diff(layers(radar_idx).gps_time(recs)));
-if isempty(recs)
+if length(recs) <= 1
   ref_corr = NaN;
   lags = NaN;
   peak_idx = 1;

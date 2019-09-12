@@ -93,6 +93,8 @@ classdef surfdata < handle
         
         % one argument => load file and create struct array accordingly
       else
+        % Check to see if this is a direction of arrival method or a beam
+        % forming method file.
         if ~exist('param','var') || ~isfield(param,'doa_method_flag')
           doa_method_flag = false;
         else
@@ -117,8 +119,10 @@ classdef surfdata < handle
       % the existing surf struct array.
       %
       % Input:
-      %   fn: The file path OR a new struct array with all the fields in a
+      %  fn: The file path OR a new struct array with all the fields in a
       %   surfData file.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       
       if ~exist('doa_method_flag','var')
         doa_method_flag = false;
@@ -155,13 +159,15 @@ classdef surfdata < handle
       end
     end
     
-    function set_metadata(obj, md,doa_method_flag)
+    function set_metadata(obj, md, doa_method_flag)
       % obj.set_metadata(md)
       % 
       % Function for validating all the metadata fields
       %
       % md: struct containing gps_time, theta, FCS, radar_name,
       %   season_name, day_seg, and frm.
+      % doa_method_flag: logical that specifies is this file stores DOA
+      %  data or beam forming data. Default is false.
       
       obj.valid_metadata(md,doa_method_flag);
       
@@ -182,6 +188,8 @@ classdef surfdata < handle
       %
       % md: struct containing gps_time, theta, FCS, radar_name,
       %   season_name, day_seg, and frm.
+      % doa_method_flag: logical that specifies is this file stores DOA
+      %  data or beam forming data. Default is false.
       
       if ~ischar(md.radar_name)
         error('radar_name must be a string');
@@ -265,15 +273,16 @@ classdef surfdata < handle
 
     %% insert_surf
     function insert_surf(obj, surf_struct,doa_method_flag)
-      %  obj.insert_surf(surf_struct)
+      % obj.insert_surf(surf_struct)
       %
-      %  Input: 
-      %    surf_struct: A surf structure. Normally, the indexing fields
-      %    such as top, active, mask, gt, quality should be cleared.
+      % Input: 
+      %   surf_struct: A surf structure. Normally, the indexing fields
+      %   such as top, active, mask, gt, quality should be cleared.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       %
-      %  Result: 
-      %    Adds a surf structure, surf_A, into 
-      %    the surf array into the object
+      % Result: 
+      %   Adds a surf structure, surf_A, into the "surf" array of the object
       %
       % See also: surfdata.clear_references
       
@@ -498,12 +507,17 @@ classdef surfdata < handle
       % obj.save_surfdata(fn)
       %
       % Input: 
-      %   fn: A string that will be the name of the saved surfData file.
+      %  fn: A string that will be the name of the saved surfData file.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false.
       %
       % Result:
       %   Saves the surf struct array in the object 
       %   as a .mat file. Creates directories as needed.
       
+      if ~exist('doa_method_flag','var')
+        doa_method_flag = false;
+      end
       for surf_idx = 1:length(obj.surf)
         obj.valid_surf(obj.surf(surf_idx),doa_method_flag);
       end
@@ -600,12 +614,19 @@ classdef surfdata < handle
     function [] = valid_surf(obj, surf_struct,doa_method_flag)
       % obj.valid_surf(surf_struct)
       %
-      % Input: A surf structure.
+      % Input:
+      %  surf_struct: A surf structure.
+      %  doa_method_flag: logical that specifies is this file stores DOA
+      %   data or beam forming data. Default is false. Field not used.
       %
       % Result: 
       % 1. Nothing, if the surf structure is valid.
       % 2. Throws an error if any of the condition 
       % is not satisfied.
+      
+      if ~exist('doa_method_flag','var')
+        doa_method_flag = false;
+      end
       
       % check if it's a structure
       if ~isstruct(surf_struct)
@@ -872,6 +893,489 @@ classdef surfdata < handle
       
       surf = updated.surf;
       
+    end
+    
+    function [] = run_add_surf_from_dem()
+      % script run_add_surf_from_dem
+      %
+      % script for running tomo.surfdata.add_surf_from_dem
+      %
+      % Author:  Theresa Moore
+      %
+      % See also: tomo.surfdata
+      
+      
+      %% User Setup
+      % =========================================================================
+      param_override = [];
+      params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
+      params = ct_set_params(params,'cmd.generic',0);
+      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140429_01');
+      params = ct_set_params(params,'cmd.frms',[22 23]);
+      
+      %% Automated Section
+      % =========================================================================
+      % Input checking
+      global gRadar;
+      if exist('param_override','var')
+        param_override = merge_structs(gRadar,param_override);
+      else
+        param_override = gRadar;
+      end
+      
+      % Process each of the segments
+      ctrl_chain = {};
+      for param_idx = 1:length(params)
+        param = params(param_idx);
+        if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+          continue;
+        end
+        tomo.surfdata.add_surf_from_dem(param,param_override);
+      end
+    end
+    
+    function surf = add_surf_from_dem(param,param_override)
+      % tomo.add_surf_from_dem(param,param_override)
+      %
+      % param:  struct with processing parameters or function handle to
+      % script with processing parameters
+      %
+      % param_override: parameters in this struct override parameters in
+      % param.  This struct must also contain the gRdar fields.
+      % Typically global gRdadr; param_override = gRadar;
+      %
+      % Example:
+      %   See run_add_surf_from_dem for how to run this function
+      %   directly.  This function may be called from the run_master.m
+      %   script using the param spreadsheet and enabling the cmd.generic
+      %   column.
+      %
+      % Authors:  Theresa Moore, John Paden
+      %
+      % See also:  run_add_surf_from_dem
+      %
+      %
+      %% General Setup
+      % =================================================================
+      physical_constants
+      param = merge_structs(param,param_override);
+      
+      fprintf('==========================================================\n');
+      fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+      fprintf('==========================================================\n');
+      
+      %% Input Checks
+      % =================================================================
+      
+      % Load frames file
+      load(ct_filename_support(param, '', 'frames'));
+      
+      % If no frames specified, then do all frames
+      if isempty(param.cmd.frms)
+        param.cmd.frms = 1:length(frames.frame_idxs);
+      end
+      
+      % Remove frames that do not exist from param.cmd.frms list
+      [valid_frms,keep_idxs] = intersect(param.cmd.frms, 1:length(frames.frame_idxs));
+      if length(valid_frms) ~= length(param.cmd.frms)
+        bad_mask = ones(size(param.cmd.frms));
+        bad_mask(keep_idxs) = 0;
+        warning('Nonexistent frames specified in param.cmd.frms (e.g. frame "%g" is invalid), removing these', ...
+          param.cmd.frms(find(bad_mask,1)));
+        param.cmd.frms = valid_frms;
+      end
+      
+      
+      if ~isfield(param,'add_surf_from_dem')
+        param.add_surf_from_dem = [];
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'dem_res') || isemtpy(param.add_surf_from_dem.dem_res)
+        param.add_surf_from_dem.dem_res = 10;
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'theta_vec') || isemtpy(param.add_surf_from_dem.theta_vec)
+        param.add_surf_from_dem.theta_vec = -60:60;
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'dem_guard') || isemtpy(param.add_surf_from_dem.dem_guard)
+        param.add_surf_from_dem.dem_guard = 12e3;
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'ice_mask_fn') || isemtpy(param.add_surf_from_dem.ice_mask_fn)
+        param.add_surf_from_dem.ice_mask_fn = [];
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isemtpy(param.add_surf_from_dem.sv_cal_fn)
+        param.add_surf_from_dem.sv_cal_fn = [ct_filename_ct_tmp(param,'','add_surf_from_dem','theta_cal') '.mat'];
+      end
+      
+      % .dem_per_slice_guard: additional region in meters around each slice to search for DEM points
+      %   Setting too high slows the process down, setting too low will miss
+      %   DEM points needed to properly represent the surface.
+      if ~isfield(param.add_surf_from_dem,'dem_per_slice_guard') || isemtpy(param.add_surf_from_dem.dem_per_slice_guard)
+        param.add_surf_from_dem.dem_per_slice_guard = 240;
+      end
+      
+      if ~isfield(param.add_surf_from_dem,'surfdata_mode') || isemtpy(param.add_surf_from_dem.surfdata_mode)
+        param.add_surf_from_dem.surfdata_mode.overwrite = true;
+      end
+      
+       
+      if ~isfield(param.add_surf_from_dem,'surf_out_path') || isemtpy(param.add_surf_from_dem.surf_out_path)
+        param.add_surf_from_dem.surf_out_path = '';
+      end
+      
+%         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.bin'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+        param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
+
+      % Set doa_method_flag to false (always)
+      doa_method_flag = false;
+      
+    
+      %% Setup processing
+      % =====================================================================
+      
+      % Load in sar coordinates file
+      % Currently supports default path only -- FIX THIS??
+      sar_coord_fn = fullfile(ct_filename_out(param,'sar',''),'sar_coord.mat');
+      sar_coord = load(sar_coord_fn);
+
+      % Load records file
+      records_fn = ct_filename_support(param,'','records');
+      records = load(records_fn);
+      
+      
+      % Loop over frames
+      for frm_idx = 1:length(param.cmd.frms)
+        frm = param.cmd.frms(frm_idx);
+        
+        fprintf('Creating surface data object for %s_%03d \n', param.day_seg,frm); 
+        
+        % recs: Determine the records for this frame
+        if frm < length(frames.frame_idxs)
+          recs = [frames.frame_idxs(frm), frames.frame_idxs(frm+1)-1];
+        else
+          recs = [frames.frame_idxs(frm), length(records.gps_time)];
+        end
+        
+        
+        % The following is for Debug only
+        % res(2) = recs(1) + 20000;
+               
+        % Find gps at frame boundaries and use this to mask out FCS of a
+        % frame
+        frm_gps_start = records.gps_time(recs(1));
+        frm_gps_stop  = records.gps_time(recs(end));
+        
+        % Mask used to isolate FCS for a single frame
+        gps_mask = sar_coord.gps_time >= frm_gps_start & ... 
+          sar_coord.gps_time <= frm_gps_stop;
+        
+        % Create surfdata
+        sd = tomo.surfdata();
+        sd.radar_name = param.radar_name;
+        sd.season_name = param.season_name;
+        sd.day_seg = param.day_seg;
+        sd.frm = frm;
+        sd.gps_time = sar_coord.gps_time(gps_mask);       
+        sd.FCS.origin = sar_coord.origin(:,gps_mask);
+        sd.FCS.x = sar_coord.x(:,gps_mask);
+        sd.FCS.z = sar_coord.z(:,gps_mask);
+        sd.FCS.y = cross(sd.FCS.z, sd.FCS.x);
+        sd.theta = param.add_surf_from_dem.theta_vec(:);
+        sd.time = zeros(0,1);
+        
+        %% Load Geotiff and Ice Mask
+        % =================================================================
+
+        global gdem;
+        if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
+          gdem = dem_class(param,param.add_surf_from_dem.dem_res);
+        end
+        gdem.set_res(param.add_surf_from_dem.dem_res);
+        
+        % Load ice mask        
+        if isfield(param.add_surf_from_dem,'ice_mask_fn') && ~isempty(param.add_surf_from_dem.ice_mask_fn)
+          ice_mask_fn = ct_filename_gis(param,param.add_surf_from_dem.ice_mask_fn);
+          [~,ice_mask_fn_name,ice_mask_fn_ext] = fileparts(ice_mask_fn);
+          if strcmpi(ice_mask_fn_ext,'.tif')
+            ice_mask_all.proj = geotiffinfo(ice_mask_fn);
+            [ice_mask_all.mask, R, ~] = geotiffread(ice_mask_fn);
+            ice_mask_all.X = R(3,1) + R(2,1)*(1:size(ice_mask_all.mask,2));
+            ice_mask_all.Y = R(3,2) + R(1,2)*(1:size(ice_mask_all.mask,1));
+          else
+            ice_mask_all = load(ice_mask_fn);
+          end
+        else
+          ice_mask_all = [];
+        end
+        
+        % sv_cal_fn: steering vector calibration filename
+        sv_cal_fn = param.add_surf_from_dem.sv_cal_fn;
+        if ~exist(sv_cal_fn,'file')
+          sv_cal_fn = [];
+        end
+        
+        
+        %% Create DEM
+        % Convert decimated origin coordinates from ECEF to geodetic and
+        % use these to define boundaries of the dem
+        Nx = size(sd.FCS.x,2);
+        dec_idxs = round(linspace(1,Nx,min(Nx,200)));
+        [frm_lat_dec, frm_lon_dec, frm_elev_dec] = ecef2geodetic(sd.FCS.origin(1,dec_idxs),sd.FCS.origin(2,dec_idxs), sd.FCS.origin(3,dec_idxs),WGS84.ellipsoid);
+        frm_lat_dec = frm_lat_dec*180/pi;
+        frm_lon_dec = frm_lon_dec*180/pi;
+        
+        [latb,lonb] = bufferm(frm_lat_dec,frm_lon_dec,param.add_surf_from_dem.dem_guard/WGS84.semimajor*180/pi);
+        gdem_str = sprintf('%s:%s:%s_%03d',param.radar_name,param.season_name,param.day_seg,frm);
+        
+        if ~strcmpi(gdem_str,gdem.name)
+          gdem.set_vector(latb,lonb,gdem_str);
+        end
+        
+        % Generated a non-decimated version of the lat,lon for the frame -
+        % used below
+        [frm_lat, frm_lon, frm_elev] = ecef2geodetic(sd.FCS.origin(1,:),sd.FCS.origin(2,:), sd.FCS.origin(3,:),WGS84.ellipsoid);
+        frm_lat = frm_lat * 180/pi;
+        frm_lon = frm_lon * 180/pi;
+
+        gdem.set_vector(latb,lonb,gdem_str);
+        [DEM,msl,ocean_mask,proj,DEM_x,DEM_y] = gdem.get_vector_mosaic(100);
+        DEM(ocean_mask) = msl(ocean_mask);
+        [frm_x,frm_y] = projfwd(proj,frm_lat,frm_lon);
+        
+        %% Interpolate at all of the bad value locations using the good data
+        bad_idxs = find(isnan(DEM));
+        good_idxs = find(~isnan(DEM));
+        x_idxs = repmat(1:size(DEM,2),[size(DEM,1) 1]);
+        y_idxs = repmat((1:size(DEM,1))',[1 size(DEM,2)]);
+        x_vals = x_idxs(good_idxs);
+        y_vals = y_idxs(good_idxs);
+        z_vals = DEM(good_idxs);
+        x_out = x_idxs(bad_idxs);
+        y_out = y_idxs(bad_idxs);
+        z_out = single(griddata(x_vals,y_vals,double(z_vals),x_out,y_out));
+        if ~isempty(z_out)
+          DEM(bad_idxs) = z_out;
+        end
+        
+        if 0
+          figure(1);clf;
+          imagesc(DEM_x,DEM_y,DEM);
+          hold on;
+          plot(frm_x,frm_y,'r');
+          keyboard;
+        end
+        
+        DEM_x_mesh = repmat(DEM_x,[size(DEM,1) 1]);
+        DEM_y_mesh= repmat(DEM_y,[1 size(DEM,2)]);
+        
+        
+        %% For every position along the aperture, add theta dependent TWTT to DEM from origin of the FCS   
+        Nx    = size(sd.FCS.x,2);
+        Nsv   = length(param.add_surf_from_dem.theta_vec);
+        twtt  = zeros(Nsv,Nx);
+        ice_mask = NaN(Nsv,Nx);
+        
+        % Handle case where the DEM is all NaNs
+        if all(all(isnan(DEM)))
+          warning('Input DEM contains all NaN data for Frame %d.',param.proc.frm);
+          twtt(:,:) = NaN;
+          Nx = 0;
+        end
+        
+        DEM_coverage_warning = false;
+        
+        for rline = 1:Nx
+          if ~mod(rline-1,10^floor(log10(Nx)-1))
+            fprintf('  %s %d of %d (%s)\n', mfilename, rline, Nx, datestr(now));
+          end
+          
+          dem_guard = param.add_surf_from_dem.dem_guard;
+          
+          DEM_mask = DEM_x_mesh > frm_x(rline)-dem_guard & DEM_x_mesh < frm_x(rline)+dem_guard ...
+            & DEM_y_mesh > frm_y(rline)-dem_guard & DEM_y_mesh < frm_y(rline)+dem_guard ...
+            & ~isnan(DEM);
+          DEM_idxs = find(DEM_mask);
+          
+          if numel(DEM_idxs)==0
+            warning('Range Line %d of Frame %d is not spanned by DEM.',rline,frm);
+          end
+          
+          if 0
+            set(h_img,'AlphaData',DEM_mask);
+          end
+          
+          % Convert from projection to geodetic (lat,lon,elev)
+          [DEM_lat,DEM_lon] = projinv(proj,DEM_x_mesh(DEM_idxs),DEM_y_mesh(DEM_idxs));
+          DEM_elev = DEM(DEM_idxs);
+          
+          % Convert from geodetic (lat,lon,elev) to ECEF (x,y,z)
+          physical_constants;
+          [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
+          
+          origin = sd.FCS.origin(:,rline);
+          
+          % Define matrices to change coordinate systems from FCS to ECEF
+          % and vice versa
+          Tfcs_ecef = [sd.FCS.x(:,rline), sd.FCS.y(:,rline), sd.FCS.z(:,rline)];
+          Tecef_fcs = inv(Tfcs_ecef);
+          
+          % Convert DEM coordinates from ECEF to FCS
+          tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];
+          DEM_fcs_x = tmp(1,:);
+          DEM_fcs_y = tmp(2,:);
+          DEM_fcs_z = tmp(3,:);
+          
+          if 0
+            imagesc(reshape(DEM_fcs_x,[200 200]))
+            colorbar;
+            
+            imagesc(reshape(DEM_fcs_y,[200 200]))
+            colorbar;
+            
+            imagesc(reshape(DEM_fcs_z,[200 200]))
+            colorbar;
+          end
+          
+          slice_mask = DEM_fcs_x > -param.add_surf_from_dem.dem_per_slice_guard & DEM_fcs_x < param.add_surf_from_dem.dem_per_slice_guard;
+          
+          x = DEM_fcs_x(slice_mask);
+          y = DEM_fcs_y(slice_mask);
+          z = DEM_fcs_z(slice_mask);
+          
+          if (numel(x)>=3)
+            faces = delaunay(double(x),double(y));
+            vertices = [double(x).' double(y).' double(z).'];  % vertices stored as Nx3 matrix
+            vert1 = vertices(faces(:,1),:);
+            vert2 = vertices(faces(:,2),:);
+            vert3 = vertices(faces(:,3),:);
+            
+            orig = [0 0 0];
+            
+            theta_rline = param.add_surf_from_dem.theta_vec*(pi/180);
+         
+            intersection = zeros(3,Nsv);
+            
+            for theta_idx = 1:length(theta_rline)
+              dir = [0 sin(theta_rline(theta_idx)) -cos(theta_rline(theta_idx))];
+                            
+              [Intersect, t] = TriangleRayIntersection(orig, dir, vert1, vert2, vert3);
+              
+              intersect_idx = find(Intersect);
+              if isempty(intersect_idx)
+                twtt(theta_idx,rline) = NaN;
+                intersection(:,theta_idx) = NaN;
+              else
+                twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
+                intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
+              end
+              
+%               if 0
+%                 figure(999);clf
+%                 D = c*twtt(theta_idx,rline)/2;
+%                 Dvec = D*dir;
+%                 Dx = Dvec(1);
+%                 Dy = Dvec(2);
+%                 Dz = Dvec(3);
+%                 h = trisurf(faces,x,y,z, Intersect*1.0, 'FaceAlpha',0.9); 
+%                 set(h,'edgecolor','none')
+%                 hold on
+%                 line('XData',orig(1) + [0 Dx], 'YData',orig(2) + [0 Dy], 'ZData', orig(3) + [0 Dz], 'Color', 'r', 'LineWidth',3)
+%                 xlabel('X_F_C_S (m)')
+%                 ylabel('Y_F_C_S (m)')
+%                 zlabel('Z_F_C_S (m)')
+%                 
+%               end
+            end
+          else
+            if ~DEM_coverage_warning
+              DEM_coverage_warning = true;
+              warning('DEM dem_per_slice_guard too small.');
+            end
+            clear intersection;
+            twtt(:,rline) = NaN;
+          end
+          
+          
+          if exist('ice_mask_all','var') && ~isempty(ice_mask_all)
+            if exist('intersection','var')
+              % Convert from FCS/SAR to ECEF
+              intersection_ecef = Tfcs_ecef * intersection;
+              intersection_ecef_x = intersection_ecef(1,:).' + origin(1);
+              intersection_ecef_y = intersection_ecef(2,:).' + origin(2);
+              intersection_ecef_z = intersection_ecef(3,:).' + origin(3);
+              % Convert from ECEF to geodetic
+              [intersection_lat,intersection_lon,tri_h] = ecef2geodetic(intersection_ecef_x,intersection_ecef_y,intersection_ecef_z,WGS84.ellipsoid);
+              intersection_lat = intersection_lat*180/pi;
+              intersection_lon = intersection_lon*180/pi;
+              % Convert from geodetic to projection
+              [intersection_x,intersection_y] = projfwd(ice_mask_all.proj,intersection_lat,intersection_lon);
+              % Get mask coordinates nearest triangle center coordinates
+              intersection_x_idx = interp1(ice_mask_all.X,1:length(ice_mask_all.X),intersection_x,'nearest');
+              intersection_y_idx = interp1(ice_mask_all.Y,1:length(ice_mask_all.Y),intersection_y,'nearest');
+              % Find nan values and set to integer value
+              nidx = find(isnan(intersection_x_idx));
+              intersection_x_idx(nidx) = 1;
+              intersection_y_idx(nidx) = 1;
+              % Convert triangle mask coordinates to matrix indices
+              mask_idx = (intersection_x_idx-1)*length(ice_mask_all.Y) + intersection_y_idx;
+              % Find ice mask for triangle coordinates
+              ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
+              % Set previously nan valued coordinates to 0 mask
+              ice_mask(nidx,rline) = 0;
+            else
+              %         for ice_mask_idx = 1:length(mask_idx)
+              %           ice_mask(theta_rline_row_idx(ice_mask_idx),theta_rline_col_idx(ice_mask_idx),rline) = ice_mask_all.mask(mask_idx(ice_mask_idx));
+              %         end
+              %         % Set previously nan valued coordinates to 0 mask
+              %         ice_mask(theta_rline_row_idx(nidx),theta_rline_col_idx(nidx),rline) = 0;
+              %       end
+              
+            end
+          end
+          
+        end
+        
+        %% Insert Surfaces
+        
+        % Insert TWTT of top surface
+        surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(twtt,2)]); % Nsv x Nx
+
+        surf.y = twtt;
+        surf.plot_name_values = {'color','black','marker','x'};
+        surf.name = 'top twtt';
+        sd.insert_surf(surf);
+        
+        % Insert icemask
+          surf = tomo.surfdata.empty_surf();
+        surf.x = repmat((1:Nsv).',[1 size(twtt,2)]); % Nsv x Nx
+        surf.y = ice_mask;
+        surf.plot_name_values = {'color','white','marker','x'};
+        surf.name = 'ice_mask';
+        sd.insert_surf(surf);
+        
+        %% Create output filename
+        out_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path,'surfData_sar')
+        
+        if ~isdir(out_dir)
+          mkdir(out_dir);
+        end
+        
+        out_fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,frm);
+        out_fn = fullfile(out_dir,out_fn_name);
+        sd.save_surfdata(out_fn,doa_method_flag);
+        fprintf('Done (%s)\n', datestr(now));
+        
+        
+      end
+      
+      
+      
+      
+   
     end
     
   end

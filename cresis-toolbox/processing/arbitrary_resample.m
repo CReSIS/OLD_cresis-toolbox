@@ -31,7 +31,7 @@ if strcmpi(param.method,'sinc')
     while x(start_idx) < out_x(rline) - param.filt_len/2 && start_idx < size(data_in,2)
       start_idx = start_idx + 1;
     end
-    while stop_idx < size(data_in,2) && x(stop_idx) < out_x(rline) + param.filt_len/2
+    while stop_idx <= size(data_in,2) && x(stop_idx) < out_x(rline) + param.filt_len/2
       stop_idx = stop_idx + 1;
     end
     idxs = (start_idx:stop_idx-1).';
@@ -46,7 +46,7 @@ if strcmpi(param.method,'sinc')
       data(:,rline) = data_in(:,idxs);
     else
       Hwin = Hwin / param.dx * param.filt_len/length(idxs);
-      Hwin = Hwin .* [x_off(2)-x_off(1); (x_off(3:end)-x_off(1:end-2))/2; x_off(end)-x_off(1)];
+      Hwin = Hwin .* [x_off(2)-x_off(1); (x_off(3:end)-x_off(1:end-2))/2; x_off(end)-x_off(end-1)];
       Hwin = Hwin / sum(Hwin);
       data(:,rline) = data_in(:,idxs)*Hwin;
     end

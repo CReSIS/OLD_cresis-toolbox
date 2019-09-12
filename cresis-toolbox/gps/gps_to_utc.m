@@ -9,8 +9,10 @@ function utc_time = gps_to_utc(gps_time)
 %
 % Author: John Paden
 %
-% See also: gps_to_utc.m, utc_to_gps.m, utc_leap_seconds.m, epoch_to_datenum.m,
-% datenum_to_epoch.m
+% See also epoch_to_datenum.m, datenum_to_epoch.m, epoch_to_gps_sow.m,
+%   epoch_to_sod.m, sod_to_epoch.m, gps_sow_to_epoch.m, utc_leap_seconds.m,
+%   gps_to_utc.m, utc_to_gps.m
+
 
 if isempty(gps_time)
   utc_time = [];

@@ -5,6 +5,11 @@ function ct_saveas(fig,fn,varargin)
 % "Visible" property to "on" when the figure is opened. This is useful when
 % creating invisible figures and saving them.
 
+fn_dir = fileparts(fn);
+if ~exist(fn_dir,'dir')
+  mkdir(fn_dir);
+end
+
 % Set the create creation function to force the visibility to on when
 % opening.
 try

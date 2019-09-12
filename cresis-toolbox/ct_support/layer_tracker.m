@@ -687,11 +687,13 @@ for frm_idx = 1:length(param.cmd.frms)
         lay.Longitude = mdata.Longitude;
         lay.Elevation = mdata.Elevation;
         
+        lay.layerData{1}.name = 'surface';
         lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
         lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
         lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
         
+        lay.layerData{2}.name = 'bottom';
         lay.layerData{2}.quality = ones(size(lay.GPS_time));
         lay.layerData{2}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{2}.value{2}.data = nan(size(lay.GPS_time));
@@ -707,6 +709,7 @@ for frm_idx = 1:length(param.cmd.frms)
         lay = load(layer_fn);
         % Update the surface auto picks
         lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
+        lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
         lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
         % Append the new results back to the layerData file
