@@ -30,7 +30,7 @@ for img = 1:length(param.load.imgs)
   hdr.t_ref{img} = zeros(1,Nx,'double');
   
   nyquist_zone_hw{img} = zeros(1,param.load.presums);
-  nyquist_zone_signal{img} = NaN;
+  nyquist_zone_signal{img} = nan(1,param.load.presums);
   DDC_dec{img} = ones(1,param.load.presums);
   DDC_freq{img} = zeros(1,param.load.presums);
   % wfs.Nt_raw: stores the number of range bins IF the number of range bins
@@ -446,11 +446,11 @@ for state_idx = 1:length(states)
             end
           end
           if isfield(records.settings,'nyquist_zone_hw') && ~isnan(records.settings.nyquist_zone_hw(rec))
-            nyquist_zone_hw{img} = records.settings.nyquist_zone_hw(rec);
+            nyquist_zone_hw{img}(num_accum(ai)+1) = records.settings.nyquist_zone_hw(rec);
           end
-          nyquist_zone_signal{img} = nyquist_zone_hw{img}(1);
+          nyquist_zone_signal{img}(num_accum(ai)+1) = nyquist_zone_hw{img}(1);
           if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
-            nyquist_zone_signal{img} = records.settings.nyquist_zone(rec);
+            nyquist_zone_signal{img}(num_accum(ai)+1) = records.settings.nyquist_zone(rec);
           end
           
           % Extract waveform for this wf-adc pair
@@ -605,7 +605,7 @@ for state_idx = 1:length(states)
           wf_adc = state.wf_adc(ai);
           if num_accum(ai) < num_presum_records*wfs(wf).presum_threshold ...
               || any(nyquist_zone_hw{img}(1:num_accum(ai)) ~= nyquist_zone_hw{img}(1)) ...
-              || any(~isequaln(nyquist_zone_signal{img}(1:num_accum(ai)),nyquist_zone_signal{img}(1))) ...
+              || any(~isequaln(nyquist_zone_signal{img}(1:num_accum(ai)),nyquist_zone_signal{img}(1)*ones(1,num_accum(ai)))) ...
               || any(DDC_dec{img}(1:num_accum(ai)) ~= DDC_dec{img}(1)) ...
               || any(DDC_freq{img}(1:num_accum(ai)) ~= DDC_freq{img}(1)) ...
               || Nt{img}(1) <= 0 ...
@@ -627,7 +627,7 @@ for state_idx = 1:length(states)
             data{img}(Nt{img}(1)+1:end,out_rec,wf_adc) = wfs(wf).bad_value;
             
             hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw{img}(1);
-            hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal{img};
+            hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal{img}(1);
             hdr.DDC_dec{img}(out_rec) = DDC_dec{img}(1);
             hdr.DDC_freq{img}(out_rec) = DDC_freq{img}(1);
             hdr.Nt{img}(out_rec) = Nt{img}(1);
@@ -645,10 +645,10 @@ for state_idx = 1:length(states)
             end
           end
         end
+        % Reset counters
+        num_presum_records = 0; % Number of records in the presum interval
+        num_accum(:) = 0; % Number of good records in the presum interval
       end
-      % Reset counters
-      num_presum_records = 0;
-      num_accum(:) = 0;
       % Increment record counter
       rec = rec + 1;
     end
@@ -665,7 +665,7 @@ if ~param.load.raw_data
       % receiver gain compensation
       chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
         .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-      mult_factor = single(wfs(wf).quantization_to_V(adc)/param.load.presums/10.^(wfs(wf).adc_gains_dB(adc)/20)/chan_equal);
+      mult_factor = single(wfs(wf).quantization_to_V(adc)/10.^(wfs(wf).adc_gains_dB(adc)/20)/chan_equal);
       data{img}(:,:,wf_adc) = mult_factor * data{img}(:,:,wf_adc);
       
       % Compensate for receiver gain applied before ADC quantized the signal
