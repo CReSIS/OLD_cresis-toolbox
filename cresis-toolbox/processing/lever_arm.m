@@ -75,9 +75,9 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) ...
-    && any(strcmpi(gps_source,{'nmea'}))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) %...
+%     && any(strcmpi(gps_source,{'nmea'})) && any(strcmpi(gps_source,{'atm-field'}))
+%   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
