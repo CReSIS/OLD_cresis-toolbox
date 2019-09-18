@@ -106,9 +106,17 @@ arena.daq.type = 'daq_0001';
 
 arena.ctu.name = 'ctu';
 arena.ctu.type = 'ctu_001D';
-arena.ctu.nmea = 31;
-arena.ctu.pps = 10;
-arena.ctu.pps_polarity = 1;
+if 0
+  % External GPS
+  arena.ctu.nmea = 31;
+  arena.ctu.pps = 10;
+  arena.ctu.pps_polarity = 1;
+else
+  % Internal GPS
+  arena.ctu.nmea = 60;
+  arena.ctu.pps = 63;
+  arena.ctu.pps_polarity = 1;
+end
 idx = 0;
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'EPRI';
