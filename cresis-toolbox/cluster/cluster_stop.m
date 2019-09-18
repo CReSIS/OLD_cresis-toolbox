@@ -43,11 +43,12 @@ ctrls_mask = logical(zeros(size(ctrls)));
 %% Determine which batches
 if isstruct(ctrl_chain)
   % This is an array of batch control structures
-  for batch_idx = 1:length(ctrl_chain)
-    batch_id = ctrl_chain(batch_idx).batch_id;
+  for batch_idx2 = 1:length(ctrl_chain)
+    batch_id = ctrl_chain(batch_idx2).batch_id;
     for batch_idx = 1:length(ctrls)
       if ctrls{batch_idx}.batch_id == batch_id
         ctrls_mask(batch_idx) = true;
+        ctrls{batch_idx} = merge_structs(ctrls{batch_idx},ctrl_chain(batch_idx2));
       end
     end
   end
@@ -60,11 +61,12 @@ elseif iscell(ctrl_chain)
       % This is a list of control chains
       chain = ctrl_chain{chain_idx};
     end
-    for batch_idx = 1:length(chain)
-      batch_id = chain{batch_idx}.batch_id;
+    for batch_idx2 = 1:length(chain)
+      batch_id = chain{batch_idx2}.batch_id;
       for batch_idx = 1:length(ctrls)
         if ctrls{batch_idx}.batch_id == batch_id
           ctrls_mask(batch_idx) = true;
+          ctrls{batch_idx} = merge_structs(ctrls{batch_idx},chain{batch_idx2});
         end
       end
     end

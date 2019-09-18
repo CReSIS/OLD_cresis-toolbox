@@ -14,6 +14,7 @@ function concatenate_thickness_files(in_fns_dir,in_fns_name,out_fn,delim)
 
 fns = get_filenames(in_fns_dir,in_fns_name,'','');
 
+fprintf('  Creating CSV %s\n', out_fn);
 fid_out = fopen(out_fn,'w');
 for fn_idx = 1:length(fns)
   fn = fns{fn_idx};

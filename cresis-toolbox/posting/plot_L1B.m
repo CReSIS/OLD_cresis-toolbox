@@ -14,11 +14,14 @@
 %  fn = 'IRMCR1B_V01_20130408_01_020.nc';
 %  mdata = load_L1B(fn);
 
-fn = '/cresis/scratch2/mdce/cr1/snow/2014_Greenland_P3/CSARP_qlook/20140324_01/Data_20140324_01_010.mat';
+fn = '/cresis/snfs1/dataproducts/ct_data/snow/2014_Greenland_P3/CSARP_post/CSARP_qlook/20140324_01/Data_20140324_01_010.mat';
 mdata = load_L1B(fn);
-% fn = 'CSARP_layerData/20091112_01/Data_20091112_01_010.mat';
-% lay = load(fn);
-% mdata.Surface = interp1(lay.GPS_time,lay.layerData{1}.value{2}.data,mdata.GPS_time);
+if 0
+  % Replace L1B echogram surface with L2 surface from layer data file
+  fn = '/cresis/snfs1/dataproducts/ct_data/snow/2014_Greenland_P3/CSARP_post/CSARP_layerData/20140324_01/Data_20140324_01_010.mat';
+  lay = load(fn);
+  mdata.Surface = interp1(lay.GPS_time,lay.layerData{1}.value{2}.data,mdata.GPS_time);
+end
 
 %% Set which bins to plot
 param.ylims_bins = [-inf inf];

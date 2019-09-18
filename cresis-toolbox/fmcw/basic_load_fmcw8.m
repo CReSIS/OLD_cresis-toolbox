@@ -57,17 +57,20 @@ if ~exist('param','var') || isempty(param)
   param.recs = [];
   param.debug_level = 1;
 end
-if ~isfield(param,'clk');
+if ~isfield(param,'clk')
   param.clk = 1;
 end
-if ~isfield(param,'recs');
-  param.recs = [];
-end
-if ~isfield(param,'file_version');
+if ~isfield(param,'file_version')
   param.file_version = 8;
 end
-if ~isfield(param,'records');
+if ~isfield(param,'records')
   param.records.en = false;
+end
+if ~isfield(param,'recs')
+  param.recs = [];
+end
+if ~isfield(param,'sync') || isempty(param.sync)
+  param.sync = 'BADA55E5';
 end
 
 % Reset/clear hdr struct
@@ -99,9 +102,9 @@ SAMPLE_SIZE = 2;
 % Get first record position
 % ===============================================================
 if ~isempty(param.recs) && param.recs(1) < 0
-  hdr.finfo.syncs = get_first10_sync_mfile(fn,0,struct('sync','BADA55E5','last',true));
+  hdr.finfo.syncs = get_first10_sync_mfile(fn,0,struct('sync',param.sync,'last',true));
 else
-  hdr.finfo.syncs = get_first10_sync_mfile(fn,0,struct('sync','BADA55E5'));
+  hdr.finfo.syncs = get_first10_sync_mfile(fn,0,struct('sync',param.sync));
 end
 
 % ===============================================================

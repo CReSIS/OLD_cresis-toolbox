@@ -132,8 +132,8 @@ for var_idx=1:length(vars)
   if vars(var_idx).map_idx == 0
     % Only consider dimensions of variables that are not in map_var list
     if strcmp(vars(var_idx).class,'char') && length(vars(var_idx).size) == 2
-      if isnan(max_char_length) || max_char_length < vars(var_idx).size(2)
-        max_char_length = vars(var_idx).size(2);
+      if isnan(max_char_length) || max_char_length < prod(vars(var_idx).size)
+        max_char_length = prod(vars(var_idx).size);
       end
     else
       dims = cat(2,dims,vars(var_idx).size);
@@ -259,8 +259,8 @@ for var_idx = 1:length(vars)
     netcdf.putVar(ncid,vars(var_idx).id,M);
   elseif strcmp(vars(var_idx).class,'char')
     %% Repackage character string into fixed length string
-    eval(['M = mat.' vars(var_idx).name ';']);
-    if length(M) < max_char_length
+    eval(['M = mat.' vars(var_idx).name '(:);']);
+    if numel(M) < max_char_length
       M(max_char_length) = 0;
     end
     netcdf.putVar(ncid,vars(var_idx).id,M);

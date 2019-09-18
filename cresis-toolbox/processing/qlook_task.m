@@ -106,7 +106,8 @@ task_recs = param.load.recs; % Store this for later when creating output fn
 load_recs_ps(1) = floor((param.load.recs(1)-1)/param.qlook.presums)+1;
 load_recs_ps(2) = floor(param.load.recs(2)/param.qlook.presums);
 
-dec = param.qlook.dec*param.qlook.inc_dec;
+% inc_dec == 0 is treated as inc_dec = 1 with no power detection at the end
+dec = param.qlook.dec*max(1,param.qlook.inc_dec);
 
 % output_recs_ps: the outputs of the whole qlook process
 output_recs_ps = 1:dec:load_recs_ps(2);
@@ -176,7 +177,7 @@ param.load.presums = param.qlook.presums;
 [hdr,data] = data_load(param,records,states);
 
 param.load.pulse_comp = true;
-[hdr,data] = data_pulse_compress(param,hdr,data);
+[hdr,data,param] = data_pulse_compress(param,hdr,data);
 
 param.load.motion_comp = param.qlook.motion_comp;
 param.load.combine_rx = true;
@@ -198,15 +199,75 @@ hdr.surface = fir_dec(hdr.surface, param.qlook.B_filter, ...
 
 for img = 1:length(param.load.imgs)
   
-  if param.qlook.motion_comp && ~isempty(hdr.freq{img})
-    phase_weights = exp(-1i * hdr.records{img}.elev * 4*pi*hdr.freq{img}(1)/c);
-    data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
-      param.qlook.dec, rline0, Nidxs, [], phase_weights);
+  % Remove elevation variations
+  if param.load.motion_comp && ~isempty(hdr.freq{img})
+    % Reference time delay
+    ref_td = max(hdr.ref.elev) / (c/2);
+    % Relative time delay to reference time delay
+    relative_td = hdr.records{img}.elev / (c/2) - ref_td;
+    % Add zero padding (NaNs)
+    dt = hdr.time{img}(2) - hdr.time{img}(1);
+    zero_pad = max(ceil(abs(relative_td / dt)));
+    data{img} = [data{img}; nan(zero_pad,size(data{img},2))];
+    Nt = size(data{img},1);
+    df = 1/(Nt*dt);
+    freq = hdr.freq{img}(1) + df*ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
+    % Apply time delay
+    nanmask = isnan(data{img});
+    data{img}(nanmask) = 0;
+    data{img} = fft(data{img},[],1);
+    for wf_adc = 1:size(param.load.imgs{img},1)
+      data{img} = data{img} .* exp(1j*2*pi*freq*relative_td);
+    end
+    data{img} = ifft(data{img},[],1);
+    
+    % Relative time delay to reference time delay in time bin units
+    relative_bins = round( relative_td / dt);
+    % Apply circular shift
+    for rline = 1:size(data{img},2)
+      nanmask(:,rline) = circshift(nanmask(:,rline),[-relative_bins(rline) 0]);
+    end
+    data{img}(nanmask) = NaN;
+  end
+  
+  % OLD phase only motion_comp:
+  % phase_weights = exp(-1i * hdr.records{img}.elev * 4*pi*hdr.freq{img}(1)/c);
+  % data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
+  %   param.qlook.dec, rline0, Nidxs, [], phase_weights);
+  
+  if param.qlook.nan_dec
+    data{img} = nan_fir_dec(data{img}, param.qlook.B_filter, ...
+      param.qlook.dec, rline0, Nidxs);
   else
     data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
       param.qlook.dec, rline0, Nidxs);
   end
   
+  % Reapply elevation variations
+  if param.load.motion_comp && ~isempty(hdr.freq{img})
+    % Remove time delay
+    relative_td = fir_dec(relative_td, param.qlook.B_filter, ...
+      param.qlook.dec, rline0, Nidxs);
+    nanmask = isnan(data{img});
+    data{img}(nanmask) = 0;
+    data{img} = fft(data{img},[],1);
+    for wf_adc = 1:size(param.load.imgs{img},1)
+      data{img} = data{img} .* exp(-1j*2*pi*freq*relative_td);
+    end
+    data{img} = ifft(data{img},[],1);
+    
+    % Relative time delay to reference time delay in time bin units
+    relative_bins = round( relative_td / dt);
+    % Apply circular shift
+    for rline = 1:size(data{img},2)
+      nanmask(:,rline) = circshift(nanmask(:,rline),[relative_bins(rline) 0]);
+    end    
+    data{img}(nanmask) = NaN;
+    
+    % Remove zero padding
+    data{img} = data{img}(1:end-zero_pad,:);
+  end
+
   hdr.records{img}.lat = fir_dec(hdr.records{img}.lat, param.qlook.B_filter, ...
     param.qlook.dec, rline0, Nidxs);
   hdr.records{img}.lon = fir_dec(hdr.records{img}.lon, param.qlook.B_filter, ...
@@ -242,11 +303,40 @@ if param.qlook.inc_dec >= 1
     param.qlook.inc_dec, rline0, Nidxs);
   hdr.surface = fir_dec(hdr.surface, param.qlook.inc_B_filter, ...
     param.qlook.inc_dec, rline0, Nidxs);
-  
+
   for img = 1:length(param.load.imgs)
     
-    data{img} = fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
-      param.qlook.inc_dec, rline0, Nidxs);
+    % Remove elevation variations
+    if param.load.motion_comp
+      % Relative time delay to reference time delay in time bin units
+      relative_bins = round( relative_td / dt);
+      % Add zero padding (NaNs)
+      data{img} = [data{img}; nan(zero_pad,size(data{img},2))];
+      % Apply circular shift
+      for rline = 1:size(data{img},2)
+        data{img}(:,rline) = circshift(data{img}(:,rline),[-relative_bins(rline) 0]);
+      end
+    end
+    
+    if param.qlook.nan_dec
+      data{img} = nan_fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
+        param.qlook.inc_dec, rline0, Nidxs);
+    else
+      data{img} = fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
+        param.qlook.inc_dec, rline0, Nidxs);
+    end
+    
+    % Reapply elevation variations
+    if param.load.motion_comp
+      % Apply circular shift
+      relative_bins = round(fir_dec(relative_bins, param.qlook.inc_B_filter, ...
+      param.qlook.inc_dec, rline0, Nidxs));
+      for rline = 1:size(data{img},2)
+        data{img}(:,rline) = circshift(data{img}(:,rline),[relative_bins(rline) 0]);
+      end
+      % Remove zero padding
+      data{img} = data{img}(1:end-zero_pad,:);
+    end
     
     hdr.records{img}.lat = fir_dec(hdr.records{img}.lat, param.qlook.inc_B_filter, ...
       param.qlook.inc_dec, rline0, Nidxs);
@@ -261,6 +351,7 @@ if param.qlook.inc_dec >= 1
     hdr.records{img}.heading = fir_dec(hdr.records{img}.heading, param.qlook.inc_B_filter, ...
       param.qlook.inc_dec, rline0, Nidxs);
   end
+
 end
 
 %% Save quick look results
@@ -291,14 +382,13 @@ for img = 1:length(param.load.imgs)
     mkdir(tmp_out_fn_dir);
   end
   param_qlook = param;
-  custom = hdr.custom;
   if param.ct_file_lock
     file_version = '1L';
   else
     file_version = '1';
   end
-  save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
-    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'custom','file_version');
+  ct_save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
+    'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'file_version');
 end
 
 %% Done

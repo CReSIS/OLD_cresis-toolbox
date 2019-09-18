@@ -9,7 +9,7 @@ function success = preprocess_task_cresis(param)
 % Author: John Paden
 %
 % See also: run_preprocess.m, preprocess.m, preprocess_task.m,
-% preprocess_task_arena.m, preprocess_task_ni.m
+% preprocess_task_arena.m, preprocess_task_cresis.m
 
 % 1. Use what we already have
 % 2. Use file version instead of radar name
@@ -35,7 +35,7 @@ num_board_to_load = numel(param.config.board_map);
 board_hdrs = cell(1,num_board_to_load);
 failed_load = cell(1,num_board_to_load);
 fns_list = cell(1,num_board_to_load);
-if exist(fn_board_hdrs,'file')
+if param.config.reuse_tmp_files && exist(fn_board_hdrs,'file')
   try
     fprintf('Found %s\n  Trying to load...\n', fn_board_hdrs);
     load(fn_board_hdrs,'board_hdrs','fns_list','failed_load');
@@ -61,10 +61,28 @@ for board_idx = 1:num_board_to_load
   end
   fns_list{board_idx} = fns;
   
+  % Copy Log Files
+  if board_idx == 1 && ~isempty(param.config.cresis.gps_file_mask)
+    log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.cresis.gps_file_mask);
+    out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.date_str);
+    fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
+    try
+      if ~exist(out_log_dir,'dir')
+        mkdir(out_log_dir)
+      end
+      copyfile(log_files, out_log_dir);
+    catch ME
+      warning('Error while copying log files:\n%s\n', ME.getReport);
+    end
+  end
+  
   if isempty(fns)
-    error('No files found matching %s*%s*%s', ...
+    warning('No files found matching %s*%s*%s', ...
       fullfile(param.config.base_dir,board_folder_name,param.config.file.prefix), ...
       param.config.file.midfix, param.config.file.suffix);
+    fprintf('%s done %s\n', mfilename, datestr(now));
+    success = true;
+    return
   end
   
   % Assumption is that fns is in chronological order. Most radar systems
@@ -85,21 +103,6 @@ for board_idx = 1:num_board_to_load
     end
     [new_fns,sorted_idxs] = sort(new_fns);
     fns = fns(sorted_idxs);
-  end
-  
-  % Copy Log Files
-  if board_idx == 1 && ~isempty(param.config.cresis.gps_file_mask)
-    log_files = fullfile(param.config.base_dir,param.config.config_folder_name,param.config.cresis.gps_file_mask);
-    out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.date_str);
-    try
-      if ~exist(out_log_dir,'dir')
-        mkdir(out_log_dir)
-      end
-      fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
-      copyfile(log_files, out_log_dir);
-    catch ME
-      warning('Error while copying log files:\n%s\n', ME.getReport);
-    end
   end
   
   %% Read Headers: Header Info
@@ -162,11 +165,11 @@ for board_idx = 1:num_board_to_load
     hdr_param.field_offsets = int32([0 4]); % epri seconds fractions
     hdr_param.field_types = {uint32(1) uint32(1)};
     
-  elseif any(param.config.file.version == [7 407 408])
+  elseif any(param.config.file.version == [7 11 407 408])
     hdr_param.frame_sync = uint32(hex2dec('1ACFFC1D'));
     
   else
-    error('Unsupported radar %s', param.radar_name);
+    error('Unsupported file version %d (%s)', param.config.file.version, param.radar_name);
   end
   
   %% Read Headers: File Loop
@@ -201,6 +204,7 @@ for board_idx = 1:num_board_to_load
     if param.config.online_mode == 0
       % Reading in all files one time, print each out
       fprintf('%d of %d: %s (%s)\n', fn_idx, length(fns), fn, datestr(now,'HH:MM:SS'));
+      fprintf('  %s\n', tmp_hdr_fn);
       if param.config.reuse_tmp_files && exist(tmp_hdr_fn,'file')
         % Try to load temporary file
         try
@@ -277,7 +281,7 @@ for board_idx = 1:num_board_to_load
       elseif any(param.config.file.version == [6])
         hdr = basic_load_fmcw4(fn, struct('file_version',param.config.file.version));
         wfs = struct('presums',hdr.presums);
-      elseif any(param.config.file.version == [7])
+      elseif any(param.config.file.version == [7 11])
         hdr = basic_load(fn);
         wfs = hdr.wfs;
         hdr_param.field_offsets = int32([4 8 12 16]); % epri seconds fractions counter
@@ -613,7 +617,7 @@ for board_idx = 1:num_board_to_load
       fractions = zeros(size(seconds));
       save(tmp_hdr_fn,'offset','seconds','hdr','hoffset','htime','wfs','raw_file_time');
       
-    elseif any(param.config.file.version == [7 407 408])
+    elseif any(param.config.file.version == [7 11 407 408])
       hdr_param.field_types = {uint32(1) uint32(1) uint32(1) uint64(1)};
       [file_size offset epri seconds fraction counter] = basic_load_hdr_mex(fn,hdr_param.frame_sync,hdr_param.field_offsets,hdr_param.field_types,hdr_param.file_mode);
       seconds = BCD_to_seconds(seconds);
@@ -629,13 +633,13 @@ for board_idx = 1:num_board_to_load
         % the next file to see if the complete record is there)
         bad_mask(end+1) = false;
         
-      elseif any(param.config.file.version == [7])
+      elseif any(param.config.file.version == [7 11])
         % User must supply the valid record sizes
         if ~isfield(param.config.cresis,'expected_rec_sizes') || isempty(param.config.cresis.expected_rec_sizes)
           fprintf('Record sizes found in this file:\n');
           fprintf('  %d', unique(diff(offset)));
           fprintf('\n');
-          error('For file version 7 expected record sizes must be supplied in param.config.cresis.expected_rec_sizes. You can start by using the record sizes listed here, but there may be other valid record sizes and the output of this function should be monitored.');
+          error('For file version 7 expected record sizes must be supplied in param.config.cresis.expected_rec_sizes (usually set in default_radar_params_SEASON_RADAR). You can start by using the record sizes listed here, but there may be other valid record sizes and the output of this function should be monitored.');
         end
         expected_rec_size = param.config.cresis.expected_rec_sizes;
         meas_rec_size = diff(offset);
@@ -702,6 +706,10 @@ for board_idx = 1:num_board_to_load
 end
 
 % Save concatenated temporary file
+fn_board_hdrs_dir = fileparts(fn_board_hdrs);
+if ~exist(fn_board_hdrs_dir,'dir')
+  mkdir(fn_board_hdrs_dir);
+end
 save(fn_board_hdrs,'-v7.3','board_hdrs','fns_list','failed_load');
 
 %% List bad files
@@ -802,7 +810,7 @@ end
 % =========================================================================
 for board_idx = 1:numel(param.config.board_map)
   
-  if any(param.config.file.version == [1 2 3 4 5 6 7 8 101 403 404 407 408])
+  if any(param.config.file.version == [1 2 3 4 5 6 7 8 11 101 403 404 407 408])
     utc_time_sod = double(board_hdrs{board_idx}.seconds) + double(board_hdrs{board_idx}.fraction) / param.config.cresis.clk;
     epri = double(board_hdrs{board_idx}.epri);
     
@@ -886,6 +894,8 @@ for board_idx = 1:numel(param.config.board_map)
     h_fig = get_figures(3,param.config.plots_visible,mfilename);
     
     clf(h_fig(1)); h_axes = axes('parent',h_fig(1));
+    set(h_fig(1),'NumberTitle','off');
+    set(h_fig(1),'Name',sprintf('%d: UTC Time',h_fig(1).Number));
     plot(h_axes,utc_time_sod);
     hold(h_axes,'on');
     plot(h_axes,utc_time_sod_new,'r');
@@ -897,6 +907,8 @@ for board_idx = 1:numel(param.config.board_map)
     
     UTC_MAX_ERROR = 0.1;
     clf(h_fig(2)); h_axes = axes('parent',h_fig(2));
+    set(h_fig(2),'NumberTitle','off');
+    set(h_fig(2),'Name',sprintf('%d: Time Correction',h_fig(1).Number));
     plot(h_axes,utc_time_sod - utc_time_sod_new);
     xlabel(h_axes,'Record number');
     ylabel(h_axes,'Time correction (sec)');
@@ -904,6 +916,8 @@ for board_idx = 1:numel(param.config.board_map)
     title(h_axes,sprintf('%s: Time correction should be within limits\nexcept for a few outliers.',param.config.date_str),'fontsize',10);
     
     clf(h_fig(3)); h_axes = axes('parent',h_fig(3));
+    set(h_fig(3),'NumberTitle','off');
+    set(h_fig(3),'Name',sprintf('%d: Diff EPRI',h_fig(1).Number));
     h_axes = subplot(2,1,1);
     plot(h_axes,diff(epri),'.');
     ylabel(h_axes,'Diff EPRI');
@@ -1172,7 +1186,7 @@ if any(param.config.file.version == [403 404 407 408])
       % ADC Gains
       atten = double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_1(1)) ...
         + double(settings(set_idx).(config_var).Waveforms(wf).Attenuator_2(1));
-      oparams{end}.radar.wfs(wf).adc_gains = 10.^((param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths)))/20);
+      oparams{end}.radar.wfs(wf).adc_gains_dB = param.config.cresis.rx_gain_dB - atten(1)*ones(1,length(oparams{end}.radar.wfs(wf).rx_paths));
       
       % DDC mode and frequency
       if isfield(settings(set_idx), 'DDC_Ctrl')

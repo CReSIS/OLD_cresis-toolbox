@@ -12,7 +12,7 @@ function out = music_initialization(Rxx,param)
 %             SAR FCS (meters),
 %     .z_pc = Nc x 1 vector containing z coordinates of phase centers in
 %             SAR FCS (meters),
-%     .src_limits = 1 x param.Nsig cell containing bounds for the
+%     .src_limits = 1 x param.Nsrc cell containing bounds for the
 %               search, specified as DOAs in radians, of the form:
 %               param.src_limits{source index} = [lowerbound upperbound]
 %               Assumption is that sources are sorted from small to large
@@ -21,7 +21,7 @@ function out = music_initialization(Rxx,param)
 %               over,
 %     .
 % Outputs:
-%   out  = Nsig x 1 vector containing initial estimate of DOAs in
+%   out  = Nsrc x 1 vector containing initial estimate of DOAs in
 %             units that agree with those of param.theta.
 %
 % Author: Theresa Stumpf
@@ -33,11 +33,17 @@ physical_constants
 
 [V,D]                   = eig(Rxx);
 eigenVals               = diag(D);
-[eigenVals, noiseIdxs]  = sort(eigenVals);
-noiseIdxs               = noiseIdxs(1:end - param.Nsig);
+[eigenVals, eigenValIdxs]  = sort(real(eigenVals),'descend');
+V                       = V(:,eigenValIdxs);
+noiseIdxs = param.Nsrc+1:length(eigenVals);
+% noiseIdxs               = noiseIdxs(1:end - param.Nsrc);
 Qn                      = V(:,noiseIdxs);
 S                       = mean(abs(param.SV(:,:)' * Qn).^2,2);
 
+if 0
+  % Debug: plot MUSIC pseudospectrum
+  figure;plot(param.theta*180/pi,1./S,'-*')
+end
 % Search for first peak in first range (if none, then choose max point)
 % Then search for first peak in second range, if same peak as first range
 % or violates guard then keep searching for peak. If don't find another peak,
@@ -45,11 +51,11 @@ S                       = mean(abs(param.SV(:,:)' * Qn).^2,2);
 
 [vals,loc] = findpeaks(-S);
 [~,idxs]= sort(vals,1,'descend');
-loc = loc(idxs(1:min(param.Nsig,length(loc))));
+loc = loc(idxs(1:min(param.Nsrc,length(loc))));
 loc = sort(loc);
 
 theta_guard = 1.5/180*pi;
-for src_idx = 1:param.Nsig
+for src_idx = 1:param.Nsrc
   % Search for first peak in range
   potential_loc = 0;
   good_loc = 0;
@@ -89,7 +95,7 @@ end
 
 return
 
-for src_idx = 1:param.Nsig
+for src_idx = 1:param.Nsrc
   indexes = find(param.theta >= param.src_limits{src_idx}(1) ...
     & param.theta <= param.src_limits{src_idx}(end));
 

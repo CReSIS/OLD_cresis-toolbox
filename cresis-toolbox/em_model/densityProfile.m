@@ -38,12 +38,12 @@ return;
 % Examples
 % ------------------------------------------------------------------------------
 z = 0:70;
-density = densityProfile(0.28,0.3/100,-30+273.15,z);
+density = densityProfile(0.28,0.3,-30+273.15,z);
 plot(density,z);
 set(get(gcf,'CurrentAxes'),'ydir','reverse');
 
 
-z = 0:70;
+z = 0:200;
 density = densityProfile(0.5,0.35,-21.5+273.15,z);
 plot(density,z);
 set(get(gcf,'CurrentAxes'),'ydir','reverse');

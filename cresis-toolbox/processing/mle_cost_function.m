@@ -42,10 +42,13 @@ if param.proj_mtx_update
   % Setup steering vectors for the fixed
   theta_eval = [param.theta_fixed(:).',theta];
   theta_eval = theta_eval(:).';   % make theta have the right dimensions
-  k     = 4*pi*param.fc/c;
-  ky    = k*sin(theta_eval).';
-  kz    = k*cos(theta_eval).';
-  SVs   = (1/sqrt(length(param.y_pc)))*exp(1i*(param.y_pc*ky - param.z_pc*kz));
+  Nsv2{1} = 'theta';
+  Nsv2{2} = theta_eval;
+  [~,SVs] = array_proc_sv(Nsv2,param.fc,param.y_pc,param.z_pc);
+%   k     = 4*pi*param.fc/c;
+%   ky    = k*sin(theta_eval).';
+%   kz    = k*cos(theta_eval).';
+%   SVs   = (1/sqrt(length(param.y_pc)))*exp(1i*(param.y_pc*ky - param.z_pc*kz));
   A     = SVs(:,1:numel(param.theta_fixed)); % Nc x (Nsrc - 1)
   C     = SVs(:,numel(param.theta_fixed)+1:end); % Nc x 1 (always)
   Pa    = A* inv(A' * A) * A'; % Nc x Nc
@@ -55,13 +58,44 @@ if param.proj_mtx_update
   
 else
   DCM = param.Rxx;
-  k = 4*pi*param.fc/c;
-  
-  A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta) + param.y_pc*sin(theta)));
+  M = param.Nsrc;
+  Nsv2{1} = 'theta';
+  Nsv2{2} = theta;
+  [~,A] = array_proc_sv(Nsv2,param.fc,param.y_pc,param.z_pc);
+%   k = 4*pi*param.fc/c;
+%   A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta) + param.y_pc*sin(theta)));
   Pa  = A * inv(A'*A) * A';
-  L = abs(sum(sum(Pa .* DCM.')));
+  if param.doa_seq && param.apriori.en
+    L = -(M*size(A,1)) * log(abs(sum(sum((eye(size(Pa))-Pa) .* DCM.'))));
+  else
+    L = abs(sum(sum(Pa .* DCM.')));
+  end
+%   L = -abs(trace((eye(size(Pa))-Pa)*DCM)); % Mohanad
+%   L = abs(trace(Pa*DCM)); % Wax
 end
 
-val      = -10*log10(abs(L));
-
+if param.doa_seq && param.apriori.en
+  % Incorporate the prior pdf if available
+  if 1
+    mean_doa = param.apriori.mean_doa;
+    var_doa  = param.apriori.var_doa;
+    L_apriori = -1/2*(1./var_doa).' * (theta.' - mean_doa).^2;
+  else
+     % DON'T USE IT ..NOT FINALIZED YET
+    f_prior = log(param.apriori.f_prior);
+    theta_range = param.apriori.theta_range;
+    for doa_i = 1:length(theta)
+      [~,match_i(doa_i)] = min(abs(theta_range(:) - theta(doa_i)));
+    end
+    L_apriori = prod(f_prior(match_i));
+  end
+  
+  L = L + L_apriori;
+  val      = -L;
+  if isinf(val)
+    val = 99999;
+  end
+else
+  val      = -10*log10(abs(L));
+end
 end

@@ -62,11 +62,7 @@ if tool_idx == 1
       mu(mu<-30)     = -30;
       mu             = mu - mean(mu);
       sigma          = sum(abs(mu))/10*ones(1,mu_size);
-      mc             = -1 * ones(1, Nx);
-      mc_weight      = 0;
-      CF.sensory_distance = 200;
-      CF.max_cost = 50;
-      CF.lambda = 0.075;
+      mask_dist      = round(bwdist(mask == 0));
       
       try
         smooth_weight = str2double(obj.top_panel.smoothness_weight_TE.String);
@@ -112,8 +108,8 @@ if tool_idx == 1
         viterbi_data   = viterbi_data(:, auto_idxs);
         surf_bins      = surf_bins(:, auto_idxs);
         mask           = mask(:, auto_idxs);
+        mask_dist      = round(bwdist(mask == 0));
         viterbi_weight = viterbi_weight(:, auto_idxs);
-        mc             = mc(:, auto_idxs);
         slope          = round(diff(surf_bins));
       end
       
@@ -147,17 +143,27 @@ if tool_idx == 1
         fprintf('Multiple suppression took %.2f sec.\n', toc);
       end
       
-      %% Call viterbi.cpp
+      %% Distance-to-Ice-Margin model
+      clear DIM DIM_costmatrix;
+      global gRadar
+      DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_2D_parameters_Matrix.mat'));
+      DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
+      DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
+
+      transition_mu = -1 * ones(1, size(viterbi_data, 2));
+      transition_sigma = 0.3759 * ones(1, size(viterbi_data, 2));
+
       tic
-      [y_new, cost] = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
+      y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(bottom_bin), double(gt), double(mask), double(mu), ...
         double(sigma), double(egt_weight), double(smooth_weight), ...
         double(smooth_var), double(slope), int64(bounds), ...
         double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-        double(mc), double(mc_weight), ...
-        double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
+        double(mask_dist), double(DIM_costmatrix), ...
+        double(transition_mu), double(transition_sigma));
+      toc
       fprintf('Viterbi call took %.2f sec.\n', toc);
-
+      
       if obj.top_panel.column_restriction_cbox.Value
         y_new(end) = y_new(end-1);
       else
@@ -173,23 +179,23 @@ if tool_idx == 1
           thrs = str2double(obj.top_panel.quality_threshold_TE.String);
         catch ME
           thrs = -20;
-        end        
+        end
         quality = ones(size(cost));
         quality(cost < thrs) = 3;
         cmds(end).undo_args = {cur_layer, auto_idxs, ...
-        param.layer.y{cur_layer}(auto_idxs), ...
-        param.layer.type{cur_layer}(auto_idxs), quality};
+          param.layer.y{cur_layer}(auto_idxs), ...
+          param.layer.type{cur_layer}(auto_idxs), quality};
       else
         cmds(end).undo_args = {cur_layer, auto_idxs, ...
-        param.layer.y{cur_layer}(auto_idxs), ...
-        param.layer.type{cur_layer}(auto_idxs), ...
-        param.layer.qual{cur_layer}(auto_idxs)};
+          param.layer.y{cur_layer}(auto_idxs), ...
+          param.layer.type{cur_layer}(auto_idxs), ...
+          param.layer.qual{cur_layer}(auto_idxs)};
       end
-
+      
       cmds(end).redo_cmd = 'insert';
       if obj.top_panel.quality_output_cbox.Value
         cmds(end).redo_args = {cur_layer, auto_idxs, y_new, ...
-          2*ones(size(auto_idxs)), quality};        
+          2*ones(size(auto_idxs)), quality};
       else
         cmds(end).redo_args = {cur_layer, auto_idxs, y_new, ...
           2*ones(size(auto_idxs)), param.cur_quality*ones(size(auto_idxs))};

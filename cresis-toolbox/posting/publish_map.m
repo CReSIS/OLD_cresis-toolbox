@@ -66,7 +66,7 @@ if strcmpi(cmd,'setup')
   
   if strcmpi(param.location,'Greenland')
     hemisphere = 'north';
-    geotiff_fn = fullfile(ct_filename_gis(param,'greenland'),'Landsat-7','mzl7geo_90m_lzw.tif');
+    geotiff_fn = ct_filename_gis(param,fullfile('greenland','Landsat-7','mzl7geo_90m_lzw.tif'));
     cmap = gray(256);
     map_axis = [-1000 1000 -3500 -500];
     contour_position = [0.12 0.72 0.15 0.25];
@@ -83,7 +83,7 @@ if strcmpi(cmd,'setup')
       hemisphere = 'south';
       coastline = shaperead('landareas', 'UseGeoCoords', true,...
         'Selector',{@(name) strcmp(name,'Antarctica'), 'Name'});
-      geotiff_fn = fullfile(ct_filename_gis(param,'antarctica'),'Landsat-7','Antarctica_LIMA.tif');
+      geotiff_fn = ct_filename_gis(param,fullfile('antarctica','Landsat-7','Antarctica_LIMA.tif'));
       cmap = gray(256);
       map_axis = [-3000 3000 -2500 2500];
       contour_position = [0.12 0.72 0.3 0.25];
@@ -92,7 +92,7 @@ if strcmpi(cmd,'setup')
     
   elseif strcmpi(param.location,'Canada')
     hemisphere = 'north';
-    geotiff_fn = fullfile(ct_filename_gis(param,'canada'),'Landsat-7','Canada_150m.tif');
+    geotiff_fn = ct_filename_gis(param,fullfile('canada','Landsat-7','Canada_150m.tif'));
     cmap = gray(256);
     map_axis = [-3000 1000 -3499 -500];
     contour_position = [0.12 0.72 0.3 0.25];
@@ -115,7 +115,7 @@ if strcmpi(cmd,'setup')
       map_sub_title2 = sprintf('ASCAT \\sigma_0 at 40\\circ incidence for %02d/%02d/%04d', param.month, param.day, param.year);
      else
       hemisphere = 'north';
-      geotiff_fn = fullfile(ct_filename_gis(param,'arctic'),'NaturalEarth_Data','Arctic_NaturalEarth.tif');
+      geotiff_fn = ct_filename_gis(param,fullfile('arctic','NaturalEarth_Data','Arctic_NaturalEarth.tif'));
       cmap = jet(256);
       cmap(255,:) = [0.5 0.5 0.5];
       cmap(256,:) = [0.5 0.5 0.5];
@@ -125,13 +125,17 @@ if strcmpi(cmd,'setup')
      end
      
   elseif strcmpi(param.location,'Alaska')
-  hemisphere = 'north';
-  geotiff_fn = fullfile(ct_filename_gis(param,'alaska'),'','Alaska_Landsat7_polarstereo_90m.tif');
-  cmap = gray(256);
-  map_axis = [-5000 -1500 -1500 2500];
-  contour_position = [0.12 0.72 0.3 0.25];
-  map_sub_title = 'Polar Stereograph 70N/-45E';
-  
+    hemisphere = 'north';
+    cmap = gray(256);
+    % geotiff_fn = fullfile(ct_filename_gis(param,'alaska'),'','Alaska_Landsat7_polarstereo_90m.tif');
+    % map_axis = [-5000 -1500 -1500 2500];
+    % contour_position = [0.12 0.72 0.3 0.25];
+    % map_sub_title = 'Polar Stereograph 70N/-45E';
+    geotiff_fn = ct_filename_gis(param,fullfile('alaska','Landsat-7','Alaska_90m.tif'));
+    map_axis = [-17000 -15000 8000 9500];
+    contour_position = [0.12 0.72 0.3 0.25];
+    map_sub_title = 'Mercator';
+    
   else
     % If this is not one of the standard locations, this must be a geotiff
     % filename and the type must be geotiff... if not, it is an error.

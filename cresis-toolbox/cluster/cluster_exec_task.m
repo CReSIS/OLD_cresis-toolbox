@@ -12,9 +12,11 @@ function cluster_exec_task(ctrl,task_ids,run_mode)
 %  .out_fn_dir = output arguments directory
 % task_ids = vector of task IDs, to run
 % run_mode = optional scalar integer indicating how to run the job:
-%   1: Run job through uncompiled cluster_job.m function
-%   2: Run job through compiled cluster_job.m function
-%   3: Run job through cluster_job.sh function
+%   1: Run tasks through uncompiled cluster_job.m function
+%   2: Run tasks through compiled cluster_job.m function
+%   3: Run tasks through cluster_job.sh function
+%   4: Run tasks on the cluster with cluster_run using the batch settings
+%      passed in in argument 1
 %
 % Author: John Paden
 %
@@ -29,7 +31,11 @@ if ~exist('run_mode','var') || isempty(run_mode)
 end
 
 if isnumeric(ctrl)
-  ctrl = cluster_get_batch(ctrl,false,0);
+  if run_mode == 4
+    ctrl = cluster_get_batch(ctrl,true,0);
+  else
+    ctrl = cluster_get_batch(ctrl,false,0);
+  end
 end
 
 % Create input filenames
@@ -42,9 +48,14 @@ dparam = load(dynamic_in_fn);
 for task_idx = 1:length(task_ids)
   task_id = task_ids(task_idx);
   
+  if task_id > ctrl.task_id
+    warning('Task %d does not exist. There are only %d tasks.', task_id, ctrl.task_id);
+    continue;
+  end
+  
   if run_mode == 1
     cluster_task_start_time = tic;
-    fprintf('  %s: batch %d task %d (%d of %d) (%s)\n', mfilename, ctrl.batch_id, task_id, task_idx, length(task_ids), datestr(now));
+    fprintf('  %s: batch:task %d:%d (%d of %d) (%s)\n', mfilename, ctrl.batch_id, task_id, task_idx, length(task_ids), datestr(now));
 
     % Create output filename
     out_fn = fullfile(ctrl.out_fn_dir,sprintf('out_%d.mat',task_id));
@@ -138,6 +149,16 @@ for task_idx = 1:length(task_ids)
     setenv('MATLAB_CLUSTER_PATH',cluster_job_fn_dir);
     setenv('MATLAB_MCR_PATH',ctrl.cluster.matlab_mcr_path);
     system([ctrl.cluster.cluster_job_fn ' </dev/null']);
+    
+  elseif run_mode == 4
+    ctrl.job_id_list(task_id) = -1;;
+    ctrl.submission_queue = task_id;
+    ctrl.job_status(:) = 'C';
+    ctrl.job_status(task_id) = 'T';
+    ctrl.error_mask(task_id) = 0;
+    ctrl_chain = {{ctrl}};
+    ctrl_chain = cluster_run(ctrl_chain);
+    
   end
 end
 return;

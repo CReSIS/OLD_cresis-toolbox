@@ -17,8 +17,17 @@ function cluster_compile(fun,hidden_depend_funs,force_compile,ctrl)
 %    default is to use gRadar.cluster.hidden_depend_funs
 %    Each cell in the cell vector has two fields:
 %    {1}: filename
-%    {2}: data check level, 0: do not check, 1: check always, 2: only
-%          check when fun not specified
+%    {2}: numeric integer (0, 1, or 2) that specifies timestamp check level.
+%      These levels mean:
+%        0: do not check if file is newer
+%        1: always check if file is newer
+%        2: only check if file is newer when fun not specified.
+%      Typical settings:
+%        0: typical setting for builtin matlab functions that never change
+%        1: typical setting for functions that are passed in as function
+%          handles and so there dependence cannot be determined by Matlab
+%          (typical examples are tukeywin_trim, lever_arm_fh)
+%        2: typical setting for all other functions
 %  force_compile: force a compile even if dependent functions have not changed
 %    default is true if ctrl is undefined or if ctrl.cluster.type is 'slurm' or
 %    'torque'
@@ -57,6 +66,10 @@ end
 
 if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
+end
+
+if ~isfield(ctrl.cluster,'mcc_delete_output') || isempty(ctrl.cluster.mcc_delete_output)
+  ctrl.cluster.mcc_delete_output = false;
 end
 
 if ~isfield(ctrl.cluster,'cluster_job_fn') || isempty(ctrl.cluster.cluster_job_fn)
@@ -194,17 +207,28 @@ if force_compile
   end
   
   fprintf('Start Compiling %s\n\n', datestr(now));
-  %delete(cluster_job_bin_fn);
+  if ctrl.cluster.mcc_delete_output
+    system(sprintf('rm -f %s', cluster_job_bin_fn));
+  end
   fprintf('  %s\n', cmd);
   if strcmpi(ctrl.cluster.mcc,'system')
     status = system(cmd);
     if status ~= 0
       error('mcc failed to compile.');
     end
-  else
+  elseif strcmpi(ctrl.cluster.mcc,'system_eval')
+    % This uses an extra Matlab license, but allows the mcc license to be freed immediately after compiling
+    % Unfortunately, 
+    system_cmd = ['matlab -nodisplay -r "try;' cmd '; catch; fprintf(''FAILED\n''); end; exit;"'];
+    [status,result] = system(system_cmd,'-echo');
+    if status ~= 0 || ~isempty(regexpi(result,'FAILED'))
+      error('mcc failed to compile.');
+    end
+  elseif strcmpi(ctrl.cluster.mcc,'eval')
     eval(cmd);
+  else
+    error('Invalid ctrl.cluster.mcc setting (%s). Must be system, eval, or system_eval.', ctrl.cluster.mcc);
   end
   fprintf('\nDone Compiling %s\n', datestr(now));
 end
 
-return;

@@ -38,50 +38,78 @@ fprintf('=====================================================================\n
 % =====================================================================
 
 physical_constants();
+[~,radar_type] = ct_output_dir(param.radar_name);
 
-if ~isfield(param,'check_surface') || isempty(param.check_surface)
-  param.check_surface = [];
+%% Input Checks: radar
+if ~isfield(param,'radar') || isempty(param.radar)
+  param.radar = [];
 end
 
-if ~isfield(param.check_surface,'use_lidar_data') || isempty(param.check_surface.use_lidar_data)
-  param.check_surface.use_lidar_data = true;
+if ~isfield(param.radar,'wfs') || isempty(param.radar.wfs)
+  param.radar.wfs = [];
 end
-use_lidar_data = param.check_surface.use_lidar_data;
 
-if ~isfield(param.check_surface,'combine_elev_lidar_en') || isempty(param.check_surface.combine_elev_lidar_en)
-  param.check_surface.combine_elev_lidar_en = true;
+wf = 1;
+if ~isfield(param.radar.wfs,'Tadc_adjust') || isempty(param.radar.wfs(wf).Tadc_adjust)
+  param.radar.wfs(wf).Tadc_adjust = 0;
 end
-combine_elev_lidar_en = param.check_surface.combine_elev_lidar_en;
 
-if ~isfield(param.check_surface,'combine_surface_land_dems') || isempty(param.check_surface.combine_surface_land_dems)
-  param.check_surface.combine_surface_land_dems = true;
+if strcmpi(radar_type,'deramp') && (~isfield(param.radar,'nz_valid') || isempty(param.radar.nz_valid))
+  warning('Default Nyquist zones not specified in param.radar.nz_valid. Setting to [0,1,2,3] which may not be correct.');
+  param.radar.nz_valid = [0 1 2 3];
 end
-combine_surface_land_dems = param.check_surface.combine_surface_land_dems;
+
+%% Input Checks: check_surface
+if ~isfield(param,mfilename) || isempty(param.(mfilename))
+  param.(mfilename) = [];
+end
+
+if ~isfield(param.(mfilename),'debug_out_dir') || isempty(param.(mfilename).debug_out_dir)
+  param.(mfilename).debug_out_dir = mfilename;
+end
+
+if ~isfield(param.(mfilename),'debug_plots') || isempty(param.(mfilename).debug_plots)
+  param.(mfilename).debug_plots = {'visible','twtt','gps','nz'};
+end
+enable_visible_plot = any(strcmp('visible',param.check_surface.debug_plots));
+enable_twtt_plot = any(strcmp('twtt',param.check_surface.debug_plots));
+enable_gps_plots = any(strcmp('gps',param.check_surface.debug_plots));
+enable_nz_plot = any(strcmp('nz',param.check_surface.debug_plots));
+if ~isempty(param.(mfilename).debug_plots)
+  h_fig = get_figures(5,enable_visible_plot);
+end
+fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'');
+fn_dir = fileparts(fn);
+if ~exist(fn_dir,'dir')
+  mkdir(fn_dir);
+end
 
 if ~isfield(param.check_surface,'max_twtt_diff') || isempty(param.check_surface.max_twtt_diff)
   param.check_surface.max_twtt_diff = 200e-9;
 end
-max_twtt_diff = param.check_surface.max_twtt_diff;
 
-if ~isfield(param.check_surface,'debug_level') || isempty(param.check_surface.debug_level)
-  param.check_surface.debug_level = 0;
+if ~isfield(param.check_surface,'radar_gps_max_lag') || isempty(param.check_surface.radar_gps_max_lag)
+  % Default 40 seconds: this is the maximum number of seconds for the GPS time lag
+  % search
+  param.check_surface.radar_gps_max_lag = 40.0;
 end
-debug_level = param.check_surface.debug_level;
 
-if ~isfield(param.check_surface,'save_records_en') || isempty(param.check_surface.save_records_en)
-  param.check_surface.save_records_en = false;
+if ~isfield(param.check_surface,'radar_gps_time_offset') || isempty(param.check_surface.radar_gps_time_offset)
+  % Default 0 seconds: this gps time offset will be added in the layer
+  % interpolation. Used to test GPS offsets.
+  param.check_surface.radar_gps_time_offset = 0.0;
 end
-save_records_en = param.check_surface.save_records_en;
 
-if ~isfield(param.check_surface,'refine_Tsys_en') || isempty(param.check_surface.refine_Tsys_en)
-  param.check_surface.refine_Tsys_en = false;
+if ~isfield(param.check_surface,'radar_layer_params') || isempty(param.check_surface.radar_layer_params)
+  param.check_surface.radar_layer_params.name = 'surface';
+  param.check_surface.radar_layer_params.source = 'layerdata';
 end
-refine_Tsys_en = param.check_surface.refine_Tsys_en;
 
-if ~isfield(param.check_surface,'lidar_interp_gaps_dist') || isempty(param.check_surface.lidar_interp_gaps_dist)
-  param.check_surface.lidar_interp_gaps_dist = [150 75];
+if ~isfield(param.check_surface,'radar_twtt_offset') || isempty(param.check_surface.radar_twtt_offset)
+  % Default zero: this value will be added to the radar twtt. Used to test
+  % twtt offsets.
+  param.check_surface.radar_twtt_offset = 0.0;
 end
-lidar_interp_gaps_dist = param.check_surface.lidar_interp_gaps_dist;
 
 if ~isfield(param.check_surface,'radar_twtt_ratio') || isempty(param.check_surface.radar_twtt_ratio)
   % Default one: this value will be multiplied with the radar twtt. Used to
@@ -89,27 +117,36 @@ if ~isfield(param.check_surface,'radar_twtt_ratio') || isempty(param.check_surfa
   % f0/f1/Tpd parameters).
   param.check_surface.radar_twtt_ratio = 1.0;
 end
-radar_twtt_ratio = param.check_surface.radar_twtt_ratio;
 
-if ~isfield(param.check_surface,'radar_twtt_offset') || isempty(param.check_surface.radar_twtt_offset)
-  % Default zero: this value will be added to the radar twtt. Used to test
-  % offsets.
-  param.check_surface.radar_twtt_offset = 0.0;
+if ~isfield(param.check_surface,'records_threshold') || isempty(param.check_surface.records_threshold)
+  % Default 1000: minimum number of records to use for comparison before
+  % trying to add more data from land DEM or mean sea level.
+  param.check_surface.records_threshold = 1000;
 end
-radar_twtt_offset = param.check_surface.radar_twtt_offset;
 
-if ~isfield(param.check_surface,'radar_layer_params') || isempty(param.check_surface.radar_layer_params)
-  param.check_surface.radar_layer_params.name = 'surface';
-  param.check_surface.radar_layer_params.source = 'layerdata';
+if ~isfield(param.check_surface,'ref_interp_gaps_dist') || isempty(param.check_surface.ref_interp_gaps_dist)
+  param.check_surface.ref_interp_gaps_dist = [150 75];
 end
 
 if ~isfield(param.check_surface,'ref_layer_params') || isempty(param.check_surface.ref_layer_params)
   param.check_surface.ref_layer_params.name = 'surface';
   param.check_surface.ref_layer_params.source = 'lidar';
   param.check_surface.ref_layer_params.lidar_source = 'atm';
+  param.check_surface.ref_layer_params.lever_arm_en = true;
+end
+layer_params = cat_structs(2,param.check_surface.ref_layer_params,param.check_surface.radar_layer_params);
+
+if ~isfield(param.check_surface,'refine_Tsys_en') || isempty(param.check_surface.refine_Tsys_en)
+  param.check_surface.refine_Tsys_en = false;
 end
 
-layer_params = cat_structs(2,param.check_surface.ref_layer_params,param.check_surface.radar_layer_params);
+if ~isfield(param.check_surface,'save_records_en') || isempty(param.check_surface.save_records_en)
+  param.check_surface.save_records_en = false;
+end
+
+% =========================================================================
+%% Setup
+% =========================================================================
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');
@@ -122,170 +159,20 @@ load(frames_fn);
 % =========================================================================
 %% Load in ocean mask, land DEM, and sea surface DEM
 % =========================================================================
-global load_surface_land_dems_finished;
-global load_surface_land_dems_day_seg;
-global ocean_shp_all;
-global ocean_shp_bb;
-global ocean_shp_day_seg;
-global ocean_shp_bb_day_seg;
-global land_surface;
-global sea_surface;
-load_surface_land_dems = false;
-if isempty(load_surface_land_dems_finished) ...
-    || ~load_surface_land_dems_finished
-  load_surface_land_dems = true;
-  load_surface_land_dems_day_seg = '';
-end
 
-if load_surface_land_dems
-  % Load ocean mask shape file (-180 to +180 lon)
-  ocean_mask_fn = ct_filename_gis([],fullfile('world','land_mask','Land_Mask_IDL_jharbeck','GSHHS_f_L1.shp'));
-  warning off;
-  %ocean_shp_all = shaperead(ocean_mask_fn, 'BoundingBox', [min_lon min_lat; max_lon max_lat]);
-  ocean_shp_all = shaperead(ocean_mask_fn);
-  warning on;
-  % All bounding boxes of every shape
-  ocean_shp_bb = [ocean_shp_all(:).BoundingBox];
-  
-  % Load land DEM
-  if strcmpi(param.post.ops.location,'arctic')
-    if 1
-      land_surface.fn = ct_filename_gis([],'greenland/DEM/GIMP/gimpdem_90m.tif');
-      land_surface.bad_value = 32767;
-    else
-      % PADEN: Load Arctic DEM corresponding to this segment
-    end
-  elseif strcmpi(param.post.ops.location,'antarctic')
-    land_surface.fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
-    land_surface.bad_value = 32767;
-  end
-  [land_surface.dem_all, land_surface.R, tmp] = geotiffread(land_surface.fn);
-  land_surface.x_all = land_surface.R(3,1) + land_surface.R(2,1)*(0:size(land_surface.dem_all,2)-1);
-  land_surface.y_all = land_surface.R(3,2) + land_surface.R(1,2)*(0:size(land_surface.dem_all,1)-1);
-  land_surface.proj = geotiffinfo(land_surface.fn);
-  
-  load_surface_land_dems_finished = true;
+global gdem;
+if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
+  gdem = dem_class(param,500);
 end
+gdem.set_res(500);
+gdem.ocean_mask_mode = 'l';
 
-if ~strcmpi(param.day_seg,load_surface_land_dems_day_seg)
-  min_lat = min(records.lat);
-  max_lat = max(records.lat);
-  % Handle longitude in a special way because it wraps around.
-  mean_lon = angle(mean(exp(1i*records.lon/180*pi)))*180/pi;
-  max_lon = mean_lon + max(angle(exp(1i*(records.lon-mean_lon)/180*pi)))*180/pi;
-  min_lon = mean_lon + min(angle(exp(1i*(records.lon-mean_lon)/180*pi)))*180/pi;
-  
-  [records.x,records.y] = projfwd(land_surface.proj,records.lat,records.lon);
-  min_x = min(records.x);
-  max_x = max(records.x);
-  min_y = min(records.y);
-  max_y = max(records.y);
-  
-  % Get all ocean shapes within the data segment bounding box. Shape is
-  % not included if any of the following holds:
-  %  - Bottom of the shape is above the top of the segment, >max_lat
-  %  - Top of the shape is below the bottom of the segment, <min_lat
-  %  - Left side of the shape is to the right of the segment, >max_lon
-  %  - Right side of the shape is to the left of the segment, <min_lon
-  % Handle longitude in a special way because it wraps around.
-  if isempty(ocean_shp_bb)
-    ocean_shp_day_seg = [];
-  else
-    rel_min_lon = mean_lon + angle(exp(1i*(ocean_shp_bb(1,1:2:end) - mean_lon)/180*pi))*180/pi;
-    rel_max_lon = mean_lon + angle(exp(1i*(ocean_shp_bb(2,1:2:end) - mean_lon)/180*pi))*180/pi;
-    bb_good_mask = ~(ocean_shp_bb(1,2:2:end)>max_lat | ocean_shp_bb(2,2:2:end)<min_lat ...
-      | rel_min_lon>max_lon | rel_max_lon<min_lon);
-    ocean_shp_day_seg = ocean_shp_all(bb_good_mask);
-    % All bounding boxes of every shape
-    ocean_shp_bb_day_seg = [ocean_shp_day_seg(:).BoundingBox];
-  end
-  
-  if 0
-    % Debug code to check bounding box code
-    figure(1); clf;
-    for idx=1:length(ocean_shp_day_seg)
-      if length(ocean_shp_day_seg(idx).X) > 2000
-        plot(ocean_shp_day_seg(idx).X(1:5:end),ocean_shp_day_seg(idx).Y(1:5:end))
-      else
-        plot(ocean_shp_day_seg(idx).X,ocean_shp_day_seg(idx).Y)
-      end
-      hold on;
-    end
-    plot(records.lon(1:100:end),records.lat(1:100:end),'k.')
-  end
-  
-  % Load sea level data (0 to 360 lon data)
-  if 0
-    % EGM-96
-    sea_surface.fn = ct_filename_gis([],'world\egm96_geoid\WW15MGH.DAC');
-    points = [];
-    [sea_surface.lat,sea_surface.lon,sea_surface.elev] = egm96_loader(sea_surface.fn);
-    points.lon = [points.lon 360];
-    sea_surface.elev = [sea_surface.elev sea_surface.elev(:,1)];
-    [sea_surface.lon,sea_surface.lat] = meshgrid(sea_surface.lon,sea_surface.lat);
-  else
-    % Load DTU mean sea level
-    sea_surface.fn = ct_filename_gis([],fullfile('world','dtu_meansealevel','DTU10MSS_1min.nc'));
-    sea_surface.lat = ncread(sea_surface.fn,'lat');
-    sea_surface.lon = ncread(sea_surface.fn,'lon');
-    dlat = sea_surface.lat(2)-sea_surface.lat(1);
-    lat_idxs = find(sea_surface.lat >= min_lat-2*dlat & sea_surface.lat <= max_lat+2*dlat);
-    dlon = sea_surface.lon(2)-sea_surface.lon(1);
-    rel_lon = mean_lon + angle(exp(1i*(sea_surface.lon - mean_lon)/180*pi))*180/pi;
-    lon_idxs = find(rel_lon >= min_lon-2*dlon & rel_lon <= max_lon+2*dlon);
-    break_idx = find(diff(lon_idxs)~=1);
-    sea_surface.lat = sea_surface.lat(lat_idxs);
-    sea_surface.lon = rel_lon(lon_idxs);
-    % Transpose elev because "x" axis (which is longitude) must be on the
-    % column dimension for interp2.
-    % Convert to single because interp2 requires single or double type
-    % and single is smaller yet has enough precision.
-    if isempty(break_idx)
-      sea_surface.elev = single(ncread(sea_surface.fn,'mss', ...
-        [lon_idxs(1) lat_idxs(1)],[length(lon_idxs) length(lat_idxs)]).');
-    else
-      sea_surface.elev = single(ncread(sea_surface.fn,'mss', ...
-        [lon_idxs(break_idx+1) lat_idxs(1)],[length(lon_idxs)-break_idx length(lat_idxs)]).');
-      sea_surface.elev = [sea_surface.elev, single(ncread(sea_surface.fn,'mss', ...
-        [1 lat_idxs(1)],[break_idx length(lat_idxs)]).')];
-      sea_surface.lon = sea_surface.lon([break_idx+1:end,1:break_idx]);
-    end
-    [sea_surface.lon,unique_idxs] = unique(sea_surface.lon);
-    sea_surface.elev = sea_surface.elev(:,unique_idxs);
-  end
-  
-  % Load land DEM
-  if strcmpi(param.post.ops.location,'arctic')
-    dx = abs(land_surface.x_all(2)-land_surface.x_all(1));
-    x_idxs = find(land_surface.x_all >= min_x-2*dx & land_surface.x_all <= max_x+2*dx);
-    dy = abs(land_surface.y_all(2)-land_surface.y_all(1));
-    y_idxs = find(land_surface.y_all >= min_y-2*dy & land_surface.y_all <= max_y+2*dy);
-    land_surface.x = land_surface.x_all(x_idxs);
-    land_surface.y = land_surface.y_all(y_idxs);
-    land_surface.dem = single(land_surface.dem_all(y_idxs,x_idxs));
-    
-    if 0
-      % PADEN: Load Arctic DEM corresponding to this segment
-    end
-  elseif strcmpi(param.post.ops.location,'antarctic')
-    land_surface.fn = ct_filename_gis([],'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif');
-    [land_surface.dem, land_surface.R, tmp] = geotiffread(land_surface.fn);
-    land_surface.proj = geotiffinfo(land_surface.fn);
-  end
-  
-  load_surface_land_dems_day_seg = param.day_seg;
-  
-  if 0
-    % Debug Plot
-    figure(1); clf;
-    imagesc(land_surface.x,land_surface.y,land_surface.dem)
-    hold on;
-    plot(records.x,records.y,'r','LineWidth',2)
-    set(gca,'YDir','normal');
-    xlabel('X (m)');
-    ylabel('Y (m)');
-    legend('Flightline','location','best');
-  end
+gdem_str = sprintf('%s:%s:%s',param.radar_name,param.season_name,param.day_seg);
+if ~strcmpi(gdem_str,gdem.name)
+  % Load records file
+  records_fn = ct_filename_support(param,'','records');
+  records = load(records_fn);
+  gdem.set_vector(records.lat,records.lon,gdem_str);
 end
 
 % =====================================================================
@@ -313,6 +200,13 @@ end
 % Throw out low quality radar data
 layers(radar_idx).twtt(layers(radar_idx).quality==3) = NaN;
 
+% Add GPS offset in
+new_gps_time = layers(radar_idx).gps_time - param.check_surface.radar_gps_time_offset;
+layers(radar_idx).lat = interp1(layers(radar_idx).gps_time,layers(radar_idx).lat,new_gps_time,'linear','extrap');
+layers(radar_idx).lon = interp1(layers(radar_idx).gps_time,layers(radar_idx).lon,new_gps_time,'linear','extrap');
+layers(radar_idx).elev = interp1(layers(radar_idx).gps_time,layers(radar_idx).elev,new_gps_time,'linear','extrap');
+layers(radar_idx).gps_time = new_gps_time;
+
 % Interpolate ref layer to radar gps time
 master = [];
 master.GPS_time = layers(radar_idx).gps_time;
@@ -327,12 +221,12 @@ ops_layer{1}.quality = layers(ref_idx).quality;
 ops_layer{1}.twtt = layers(ref_idx).twtt;
 ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
 ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
-lay = opsInterpLayersToMasterGPSTime(master,ops_layer,lidar_interp_gaps_dist);
+lay = opsInterpLayersToMasterGPSTime(master,ops_layer,param.check_surface.ref_interp_gaps_dist);
 layers(ref_idx).twtt_ref = lay.layerData{1}.value{2}.data;
 
 % Stretch and offset the twtt
-layers(radar_idx).twtt = layers(radar_idx).twtt * radar_twtt_ratio;
-layers(radar_idx).twtt = layers(radar_idx).twtt + radar_twtt_offset;
+layers(radar_idx).twtt = layers(radar_idx).twtt * param.check_surface.radar_twtt_ratio;
+layers(radar_idx).twtt = layers(radar_idx).twtt + param.check_surface.radar_twtt_offset;
 
 % =====================================================================
 %% Merge sea-surface/land DEM and elevation information with layer info
@@ -342,65 +236,8 @@ mdata.Longitude = layers(radar_idx).lon;
 mdata.Latitude = layers(radar_idx).lat;
 mdata.Elevation = layers(radar_idx).elev;
 
-mdata.sea_dem = interp2(sea_surface.lon,sea_surface.lat,sea_surface.elev,mdata.Longitude,mdata.Latitude);
-[mdata.x,mdata.y] = projfwd(land_surface.proj,mdata.Latitude,mdata.Longitude);
-if length(land_surface.x) > 2 && length(land_surface.y) > 2
-  mdata.land_dem = interp2(land_surface.x,land_surface.y,land_surface.dem,mdata.x,mdata.y);
-  mdata.land_dem(mdata.land_dem==land_surface.bad_value) = NaN;
-else
-  mdata.land_dem = nan(size(layers(radar_idx).gps_time));
-end
-
-min_lat = min(mdata.Latitude);
-max_lat = max(mdata.Latitude);
-% Handle longitude in a special way because it wraps around.
-mean_lon = angle(mean(exp(1i*mdata.Longitude/180*pi)))*180/pi;
-max_lon = mean_lon + max(angle(exp(1i*(mdata.Longitude-mean_lon)/180*pi)))*180/pi;
-min_lon = mean_lon + min(angle(exp(1i*(mdata.Longitude-mean_lon)/180*pi)))*180/pi;
-min_x = min(mdata.x);
-max_x = max(mdata.x);
-min_y = min(mdata.y);
-max_y = max(mdata.y);
-
-% Restrict ocean mask features to our dataset (i.e. mask all features
-% whose bounding boxes fall outside our limits.
-if isempty(ocean_shp_day_seg)
-  ocean_shp = [];
-else
-  rel_min_lon = mean_lon + angle(exp(1i*(ocean_shp_bb_day_seg(1,1:2:end) - mean_lon)/180*pi))*180/pi;
-  rel_max_lon = mean_lon + angle(exp(1i*(ocean_shp_bb_day_seg(2,1:2:end) - mean_lon)/180*pi))*180/pi;
-  bb_good_mask = ~(ocean_shp_bb_day_seg(1,2:2:end)>max_lat | ocean_shp_bb_day_seg(2,2:2:end)<min_lat ...
-    | rel_min_lon>max_lon | rel_max_lon<min_lon);
-  ocean_shp = ocean_shp_day_seg(bb_good_mask);
-end
-
-% Create polygons, poly_x/poly_y, with all ocean shape features which
-% lie in the bounding box.
-% Further restrict the polygons by checking for bounding box overlap in
-% projected coordinates
-
-poly_x = cell(0);
-poly_y = cell(0);
-for shp_idx = 1:length(ocean_shp)
-  % convert polygon to projected coordinates
-  [x,y] = projfwd(land_surface.proj,ocean_shp(shp_idx).Y,ocean_shp(shp_idx).X);
-  % if polygon is within projected bounding box
-  if min(x) < max_x && max(x) > min_x ...
-      && min(y) < max_y && max(y)>min_y
-    % add polygon
-    poly_x{end+1} = [x,nan];
-    poly_y{end+1} = [y,nan];
-  end
-end
-
-% Create ocean mask to determine which points lie in the ocean
-ocean_mask = true(size(mdata.Latitude));
-for poly_idx = 1:length(poly_x)
-  
-  % Mask showing which DEM points are in polygon (on land)
-  land_mask_tmp = inpolygon(mdata.x,mdata.y,[poly_x{poly_idx}(1:100:end)],[poly_y{poly_idx}(1:100:end)]);
-  ocean_mask(land_mask_tmp) = false;
-end
+gdem.set_vector(mdata.Latitude,mdata.Longitude);
+[mdata.land_dem,mdata.sea_dem,ocean_mask] = gdem.get_vector_dem();
 
 % Merge land surface and sea surface DEMs
 surf.dem = mdata.land_dem;
@@ -420,31 +257,35 @@ mdata.sea_dem_twtt = (mdata.Elevation - mdata.sea_dem) / (c/2);
 lay_idx = 1;
 twtt_error_all = surf.dem_twtt - layers(radar_idx).twtt;
 twtt_error = twtt_error_all;
-twtt_error(abs(twtt_error) > max_twtt_diff) = NaN;
+twtt_error(abs(twtt_error) > param.check_surface.max_twtt_diff) = NaN;
 
 mean_offset = nanmean(twtt_error);
 origin = layers(radar_idx).gps_time(1);
 
-h_fig = figure(1); clf(h_fig);
-h_axes = axes('parent',h_fig);
-plot(h_axes,layers(radar_idx).gps_time - origin, twtt_error_all*1e9)
-hold(h_axes,'on');
-plot(h_axes,layers(radar_idx).gps_time - origin, twtt_error*1e9,'g.')
-xlabel(h_axes,sprintf('Relative GPS time (sec from %s)', datestr(epoch_to_datenum(origin))));
-ylabel(h_axes,'TWTT error (ns)');
-grid(h_axes,'on');
-if max(twtt_error)>min(twtt_error)
-  ylim([min(twtt_error) max(twtt_error)]*1e9);
+if enable_twtt_plot
+  figure(h_fig(1)); clf(h_fig(1));
+  set(h_fig(1),'name',sprintf('TWTT error %s',param.day_seg));
+  h_axes(1) = axes('parent',h_fig(1));
+  plot(h_axes(1),layers(radar_idx).gps_time - origin, twtt_error_all*1e9)
+  hold(h_axes(1),'on');
+  plot(h_axes(1),layers(radar_idx).gps_time - origin, twtt_error*1e9,'g.')
+  xlabel(h_axes(1),sprintf('Relative GPS time (sec from %s)', datestr(epoch_to_datenum(origin))));
+  ylabel(h_axes(1),'TWTT error (ns)');
+  grid(h_axes(1),'on');
+  if max(twtt_error_all)>min(twtt_error_all)
+    ylim(h_axes(1),[min(twtt_error_all) max(twtt_error_all)]*1e9);
+  end
+  legend(h_axes(1), 'All','Thresholded','location','best')
+  
+  fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'twtt_error');
+  fprintf('Saving %s\n', fig_fn);
+  fig_fn_dir = fileparts(fig_fn);
+  if ~exist(fig_fn_dir,'dir')
+    mkdir(fig_fn_dir);
+  end
+  ct_saveas(h_fig(1),[fig_fn '.fig']);
+  ct_saveas(h_fig(1),[fig_fn '.jpg']);
 end
-
-fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt_error');
-fprintf('Saving %s\n', fig_fn);
-fig_fn_dir = fileparts(fig_fn);
-if ~exist(fig_fn_dir,'dir')
-  mkdir(fig_fn_dir);
-end
-saveas(h_fig,[fig_fn '.fig']);
-saveas(h_fig,[fig_fn '.jpg']);
 
 % =====================================================================
 %% Check surface: GPS Offset
@@ -468,7 +309,7 @@ else
 end
 dem_source = 'lidar';
 % 2. Try LIDAR+Land next
-if length(recs)<1000
+if length(recs)<param.check_surface.records_threshold
   mask = ~isnan(twtt_error) & ~isnan(mdata.land_dem);
   mask_length = zeros(size(mask));
   mask_length(1) = mask(1);
@@ -486,7 +327,7 @@ if length(recs)<1000
   dem_source = 'land';
 end
 % 3. Try LIDAR+Land+Sea next
-if length(recs)<1000
+if length(recs)<param.check_surface.records_threshold
   mask = ~isnan(twtt_error);
   mask_length = zeros(size(mask));
   mask_length(1) = mask(1);
@@ -513,77 +354,81 @@ end
 if any(~isnan(layers(ref_idx).twtt_ref(recs)))
 end
 
-clf(h_fig);
-h_axes = axes('parent',h_fig);
-origin = layers(radar_idx).gps_time(1);
-h_plot = [];
-frms = interp1([records.gps_time(frames.frame_idxs), records.gps_time(end)+diff(records.gps_time(end-1:end))], ...
-  [1:length(frames.frame_idxs), length(frames.frame_idxs)+1], layers(radar_idx).gps_time);
-h_plot(end+1) = plot(h_axes,frms, mdata.land_dem_twtt);
-hold(h_axes,'on');
-h_plot(end+1) = plot(h_axes,frms, mdata.sea_dem_twtt);
-h_plot(end+1) = plot(h_axes,frms, layers(ref_idx).twtt_ref);
-h_plot(end+1) = plot(h_axes,frms, surf.dem_twtt);
-if ~isempty(recs)
-  h_plot(end+1) = plot(h_axes,frms(recs), mdata.land_dem_twtt(recs), 'x');
-  h_plot(end+1) = plot(h_axes,frms(recs), mdata.sea_dem_twtt(recs), 'o');
-  h_plot(end+1) = plot(h_axes,frms(recs), layers(ref_idx).twtt_ref(recs), '<');
-  h_plot(end+1) = plot(h_axes,frms(recs), surf.dem_twtt(recs), '.');
-  for idx=1:4
-    set(h_plot(idx+4),'Color',get(h_plot(idx),'Color'));
+if enable_twtt_plot
+  clf(h_fig(2));
+  set(h_fig(2),'name',sprintf('TWTT vs Frame %s',param.day_seg));
+  h_axes(2) = axes('parent',h_fig(2));
+  origin = layers(radar_idx).gps_time(1);
+  h_plot = [];
+  frms = interp1([records.gps_time(frames.frame_idxs), records.gps_time(end)+diff(records.gps_time(end-1:end))], ...
+    [1:length(frames.frame_idxs), length(frames.frame_idxs)+1], layers(radar_idx).gps_time);
+  h_plot(end+1) = plot(h_axes(2),frms, mdata.land_dem_twtt);
+  hold(h_axes(2),'on');
+  h_plot(end+1) = plot(h_axes(2),frms, mdata.sea_dem_twtt);
+  h_plot(end+1) = plot(h_axes(2),frms, layers(ref_idx).twtt_ref);
+  h_plot(end+1) = plot(h_axes(2),frms, surf.dem_twtt);
+  if ~isempty(recs)
+    h_plot(end+1) = plot(h_axes(2),frms(recs), mdata.land_dem_twtt(recs), 'x');
+    h_plot(end+1) = plot(h_axes(2),frms(recs), mdata.sea_dem_twtt(recs), 'o');
+    h_plot(end+1) = plot(h_axes(2),frms(recs), layers(ref_idx).twtt_ref(recs), '<');
+    h_plot(end+1) = plot(h_axes(2),frms(recs), surf.dem_twtt(recs), '.');
+    for idx=1:4
+      set(h_plot(idx+4),'Color',get(h_plot(idx),'Color'));
+    end
+  end
+  frms = interp1([records.gps_time(frames.frame_idxs), records.gps_time(end)+diff(records.gps_time(end-1:end))] + debug_gps_offset, ...
+    [1:length(frames.frame_idxs), length(frames.frame_idxs)+1], layers(radar_idx).gps_time);
+  h_plot(9) = plot(h_axes(2),frms, layers(radar_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
+  legend(h_axes(2),h_plot([1:4 9]),'Land','Sea','Ref','Combined','Radar','location','best');
+  grid(h_axes(2),'on');
+  xlabel(h_axes(2),'Frame');
+  ylabel(h_axes(2),'TWTT (sec)');
+  fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'twtt_frm');
+  fprintf('Saving %s\n', fig_fn);
+  ct_saveas(h_fig(2),[fig_fn '.fig']);
+  ct_saveas(h_fig(2),[fig_fn '.jpg']);
+  
+  clf(h_fig(3));
+  set(h_fig(3),'name',sprintf('TWTT vs GPS time %s',param.day_seg));
+  h_axes(3) = axes('parent',h_fig(3));
+  origin = layers(radar_idx).gps_time(1);
+  h_plot = [];
+  h_plot(end+1) = plot(h_axes(3),layers(radar_idx).gps_time - origin, mdata.land_dem_twtt);
+  hold(h_axes(3),'on');
+  h_plot(end+1) = plot(h_axes(3),layers(radar_idx).gps_time - origin, mdata.sea_dem_twtt);
+  h_plot(end+1) = plot(h_axes(3),layers(radar_idx).gps_time - origin, layers(ref_idx).twtt_ref);
+  h_plot(end+1) = plot(h_axes(3),layers(radar_idx).gps_time - origin, surf.dem_twtt);
+  if ~isempty(recs)
+    h_plot(end+1) = plot(h_axes(3),layers(radar_idx).gps_time(recs) - origin, mdata.land_dem_twtt(recs), 'x');
+    h_plot(end+1) = plot(h_axes(3),layers(radar_idx).gps_time(recs) - origin, mdata.sea_dem_twtt(recs), 'o');
+    h_plot(end+1) = plot(h_axes(3),layers(radar_idx).gps_time(recs) - origin, layers(ref_idx).twtt_ref(recs), '<');
+    h_plot(end+1) = plot(h_axes(3),layers(radar_idx).gps_time(recs) - origin, surf.dem_twtt(recs), '.');
+    for idx=1:4
+      set(h_plot(idx+4),'Color',get(h_plot(idx),'Color'));
+    end
+  end
+  h_plot(9) = plot(h_axes(3),layers(radar_idx).gps_time + debug_gps_offset - origin, layers(radar_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
+  legend(h_axes(3),h_plot([1:4 9]),'Land','Sea','Ref','Combined','Radar','location','best');
+  grid(h_axes(3),'on');
+  xlabel(h_axes(3),sprintf('Relative GPS time (sec from %s)', datestr(epoch_to_datenum(origin))));
+  ylabel(h_axes(3),'TWTT (sec)');
+  fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'twtt');
+  fprintf('Saving %s\n', fig_fn);
+  ct_saveas(h_fig(3),[fig_fn '.fig']);
+  ct_saveas(h_fig(3),[fig_fn '.jpg']);
+  
+  if 0
+    % Correlate to determine GPS offsets
+    fprintf('Pick two points on figure 1 to constrain the cross correlation to a section of lidar elevation and radar elevation that are correct (but possibly offset in radar.wfs.Tsys and gps.time_offset).\n');
+    fprintf('For each click hold mouse button still after click until cross hairs re-appear\n');
+    [gpstime_coords,tmp] = ginput(2);
   end
 end
-frms = interp1([records.gps_time(frames.frame_idxs), records.gps_time(end)+diff(records.gps_time(end-1:end))] + debug_gps_offset, ...
-  [1:length(frames.frame_idxs), length(frames.frame_idxs)+1], layers(radar_idx).gps_time);
-h_plot(9) = plot(h_axes,frms, layers(radar_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
-legend(h_axes,h_plot([1:4 9]),'Land','Sea','Ref','Combined','Radar','location','best');
-grid(h_axes,'on');
-xlabel(h_axes,'Frame');
-ylabel(h_axes,'TWTT (sec)');
-fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt_frm');
-fprintf('Saving %s\n', fig_fn);
-saveas(h_fig,[fig_fn '.fig']);
-saveas(h_fig,[fig_fn '.jpg']);
 
-clf(h_fig);
-h_axes = axes('parent',h_fig);
-origin = layers(radar_idx).gps_time(1);
-h_plot = [];
-h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time - origin, mdata.land_dem_twtt);
-hold(h_axes,'on');
-h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time - origin, mdata.sea_dem_twtt);
-h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time - origin, layers(ref_idx).twtt_ref);
-h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time - origin, surf.dem_twtt);
-if ~isempty(recs)
-  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, mdata.land_dem_twtt(recs), 'x');
-  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, mdata.sea_dem_twtt(recs), 'o');
-  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, layers(ref_idx).twtt_ref(recs), '<');
-  h_plot(end+1) = plot(h_axes,layers(radar_idx).gps_time(recs) - origin, surf.dem_twtt(recs), '.');
-  for idx=1:4
-    set(h_plot(idx+4),'Color',get(h_plot(idx),'Color'));
-  end
-end
-h_plot(9) = plot(h_axes,layers(radar_idx).gps_time + debug_gps_offset - origin, layers(radar_idx).twtt*debug_Tsys_ratio + debug_Tsys_offset,'k','LineWidth',2);
-legend(h_axes,h_plot([1:4 9]),'Land','Sea','Ref','Combined','Radar','location','best');
-grid(h_axes,'on');
-xlabel(h_axes,sprintf('Relative GPS time (sec from %s)', datestr(epoch_to_datenum(origin))));
-ylabel(h_axes,'TWTT (sec)');
-fig_fn = ct_filename_ct_tmp(param,'','check_surface','twtt');
-fprintf('Saving %s\n', fig_fn);
-saveas(h_fig,[fig_fn '.fig']);
-saveas(h_fig,[fig_fn '.jpg']);
-
-if 0
-  % Correlate to determine GPS offsets
-  figure(2);
-  fprintf('Pick two points on figure 1 to constrain the cross correlation to a section of lidar elevation and radar elevation that are correct (but possibly offset in radar.wfs.Tsys and gps.time_offset).\n');
-  fprintf('For each click hold mouse button still after click until cross hairs re-appear\n');
-  [gpstime_coords,tmp] = ginput(2);
-end
 
 % Uniformly time sample the two signals
 dt = median(diff(layers(radar_idx).gps_time(recs)));
-if isempty(recs)
+if length(recs) <= 1
   ref_corr = NaN;
   lags = NaN;
   peak_idx = 1;
@@ -605,7 +450,7 @@ else
   if 0
     [ref_corr,lags] = xcorr(radar_layer,ref_layer);
   else
-    max_lag = round(10/dt);
+    max_lag = round(param.check_surface.radar_gps_max_lag/dt);
     lags = -max_lag:max_lag;
     ref_corr = zeros(1,length(lags));
     for lag_idx = 1:length(lags)
@@ -621,22 +466,22 @@ else
     
 end
 
-clf(h_fig);
-h_axes = axes('parent',h_fig);
-plot(h_axes,-lags*dt,ref_corr)
-xlabel(h_axes,'GPS lag (sec)');
-ylabel(h_axes,'Cross correlation');
-grid(h_axes,'on');
-fig_fn = ct_filename_ct_tmp(param,'','check_surface','gps');
+clf(h_fig(4));
+set(h_fig(4),'name','GPS');
+h_axes(4) = axes('parent',h_fig(4));
+plot(h_axes(4),-lags*dt,ref_corr)
+xlabel(h_axes(4),'GPS lag (sec)');
+ylabel(h_axes(4),'Cross correlation');
+grid(h_axes(4),'on');
+fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'gps');
 fprintf('Saving %s\n', fig_fn);
-saveas(h_fig,[fig_fn '.fig']);
-saveas(h_fig,[fig_fn '.jpg']);
+ct_saveas(h_fig(4),[fig_fn '.fig']);
+ct_saveas(h_fig(4),[fig_fn '.jpg']);
 
 
 % =====================================================================
 %% Check surface: Nyquist Zone
 % =====================================================================
-[~,radar_type] = ct_output_dir(param.radar_name);
 if strcmpi(radar_type,'deramp')
   
   param.load.imgs = {[1 1]};
@@ -644,9 +489,10 @@ if strcmpi(radar_type,'deramp')
   
   % Calculate Nyquist zone based on above ground level (AGL) altitude
   wf = 1;
-  nz_twtt = param.radar.fs/2 / wfs(wf).chirp_rate;
+  adc = 1;
+  nz_twtt = param.radar.fs/2 / abs(wfs(wf).chirp_rate);
   
-  nz = floor((surf.dem_twtt+wfs(wf).Tsys-wfs(wf).t_ref) / nz_twtt);
+  nz = floor((surf.dem_twtt+wfs(wf).Tsys(wfs(wf).rx_paths(adc))-wfs(wf).t_ref) / nz_twtt);
   interp_nz = isnan(nz);
   nz = round(interp_finite(nz,NaN));
   
@@ -668,19 +514,20 @@ if strcmpi(radar_type,'deramp')
     create_records_aux_files(records_fn,false);
   end
   
-  clf(h_fig);
-  h_axes = axes('parent',h_fig);
-  plot(h_axes,layers(radar_idx).gps_time - origin, nz,'o');
-  hold(h_axes,'on');
+  clf(h_fig(5));
+  set(h_fig(5),'name','NZ');
+  h_axes(5) = axes('parent',h_fig(5));
+  plot(h_axes(5),layers(radar_idx).gps_time - origin, nz,'o');
+  hold(h_axes(5),'on');
   plot(layers(radar_idx).gps_time(~interp_nz) - origin, nz(~interp_nz), 'r.');
-  plot(h_axes,records.gps_time - origin, original_nz,'g-');
-  title(h_axes,'Nyquist Zone');
-  ylim(h_axes,[-0.1+min(param.radar.nz_valid), max(param.radar.nz_valid)+0.1]);
+  plot(h_axes(5),records.gps_time - origin, original_nz,'g-');
+  title(h_axes(5),'Nyquist Zone');
+  ylim(h_axes(5),[-0.1+min(param.radar.nz_valid), max(param.radar.nz_valid)+0.1]);
   
-  fig_fn = ct_filename_ct_tmp(param,'','check_surface','nz');
+  fig_fn = ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'nz');
   fprintf('Saving %s\n', fig_fn);
-  saveas(h_fig,[fig_fn '.fig']);
-  saveas(h_fig,[fig_fn '.jpg']);
+  ct_saveas(h_fig(5),[fig_fn '.fig']);
+  ct_saveas(h_fig(5),[fig_fn '.jpg']);
 else
   default_nz = NaN;
 end
@@ -688,38 +535,67 @@ end
 % =====================================================================
 %% Check surface: Text file
 % =====================================================================
+wf = 1;
 if strcmpi(radar_type,'deramp')
-  wf = 1;
+  % Find the new t_ref value
   BW = diff(param.radar.wfs(wf).BW_window);
   dt = 1/BW;
-  t_ref_new = param.radar.wfs(wf).t_ref + round(nanmedian(twtt_error)/dt)*dt;
+  t_ref_new = param.radar.wfs(wf).t_ref - param.check_surface.radar_twtt_offset - round(nanmedian(twtt_error)/dt)*dt;
 else
-  t_ref_new = 0;
+  % Find the new Tadc_adjust (called t_ref_new to match deramp) value
+  t_ref_new = param.radar.wfs(wf).Tadc_adjust + param.check_surface.radar_twtt_offset + round(nanmedian(twtt_error)*1e10)/1e10;
 end
 
-txt_fn = [ct_filename_ct_tmp(param,'','check_surface','time') '.txt'];
+txt_headers_fn = fullfile(fn_dir,'time_00000000_00.txt');
+fprintf('Saving headers %s\n', txt_headers_fn);
+[fid,msg] = fopen(txt_headers_fn,'wb');
+if fid < 0
+  error('Could not open file:\n  %s\nError message: %s.', txt_headers_fn, msg);
+end
+fprintf(fid,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+  'Segment', 'Mean error', ...
+  'Median error', ...
+  'Std error', ...
+  'Max error', ...
+  'Mean error all', ...
+  'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref', 'DEM');
+fclose(fid);
+
+txt_fn = [ct_filename_ct_tmp(param,'',param.(mfilename).debug_out_dir,'time') '.txt'];
 fprintf('Saving %s\n', txt_fn);
-fid = fopen(txt_fn,'wb');
+[fid,msg] = fopen(txt_fn,'wb');
+if fid < 0
+  error('Could not open file:\n  %s\nError message: %s.', txt_fn, msg);
+end
 fprintf(fid,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n', ...
   param.day_seg, 1e9*mean_offset, ...
   1e9*nanmedian(twtt_error), ...
   1e9*nanstd(twtt_error), ...
   1e9*nanmax(abs(twtt_error-mean_offset)), ...
   1e9*nanmean(twtt_error_all), ...
-  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, t_ref_new, dem_source);
+  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, 1e9*t_ref_new, dem_source);
+fclose(fid);
+
+fprintf(1,'%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n', ...
+  'Segment', 'Mean error', ...
+  'Median error', ...
+  'Std error', ...
+  'Max error', ...
+  'Mean error all', ...
+  'Median error all', '#records', 'GPS lag', 'Default NZ', 't_ref', 'DEM');
 fprintf(1,'%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%d\t%.1f\t%.0f\t%.12g\t%s\n', ...
   param.day_seg, 1e9*mean_offset, ...
   1e9*nanmedian(twtt_error), ...
   1e9*nanstd(twtt_error), ...
   1e9*nanmax(abs(twtt_error-mean_offset)), ...
   1e9*nanmean(twtt_error_all), ...
-  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, t_ref_new, dem_source);
-fclose(fid);
+  1e9*nanmedian(twtt_error_all), numel(recs), -lags(peak_idx)*dt, default_nz, 1e9*t_ref_new, dem_source);
+fprintf('All twtt times are in ns\n');
 
 % =====================================================================
 %% Check surface: Tsys Refinement
 % =====================================================================
-if refine_Tsys_en
+if param.check_surface.refine_Tsys_en
   % Uses specular leads to check Tsys
   deconv_fn = fullfile(ct_filename_out(param, 'noise', '', 1), sprintf('specular_%s.mat', param.day_seg));
   fprintf('Loading %s (%s)\n', deconv_fn, datestr(now))
@@ -788,7 +664,7 @@ if refine_Tsys_en
     spec_atm_slope(idx) = max(atm_times) - min(atm_times);
     spec_radar_slope(idx) = max(radar_times) - min(radar_times);
     
-    if debug_level > 0 && ~isnan(spec_atm(idx))
+    if enable_visible_plot && ~isnan(spec_atm(idx))
       fprintf('%d of %d (%s)\n', idx, length(spec_gps_time), datestr(now));
       spec_error = spec_atm(idx) - spec_radar_surf(idx)
       figure(1); clf;
@@ -826,6 +702,11 @@ end
 
 fprintf('Done %s (%s)\n', param.day_seg, datestr(now));
 
-if debug_level > 0
+if enable_visible_plot
+  for idx=1:length(h_fig); figure(h_fig(idx)); end;
   keyboard
+else
+  try
+    delete(h_fig);
+  end
 end

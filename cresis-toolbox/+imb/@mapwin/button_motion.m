@@ -35,8 +35,13 @@ elseif strcmpi(get(obj.map_panel.h_axes,'Visible'),'on')
   axis_pos = get(obj.map_panel.h_axes,'CurrentPoint');
   x = axis_pos(1,1);
   y = axis_pos(1,2);
-  [lat,lon] = projinv(obj.map.projmat,x*1e3,y*1e3);
-  set(obj.status_panel.mouseCoordText,'String',sprintf('%8.3fN %8.3fW; X=%8.3fkm Y=%8.3fkm  ',lat,lon,x,y));
+  if (obj.map_source == 1)
+    [lat, lon] = google_map.world_to_latlon(x, 256-y);
+    set(obj.status_panel.mouseCoordText,'String',sprintf('%8.3fN %8.3fW; X=%8.3f Y=%8.3f  ',lat,lon,x,y));
+  else
+    [lat,lon] = projinv(obj.map.projmat,x*1e3,y*1e3);
+    set(obj.status_panel.mouseCoordText,'String',sprintf('%8.3fN %8.3fW; X=%8.3fkm Y=%8.3fkm  ',lat,lon,x,y));
+  end
 end
 
 end

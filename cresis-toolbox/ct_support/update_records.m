@@ -28,6 +28,13 @@ save_changes = true;
 %% Prep (load records and gps files)
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+if isfield(records,'settings') && isfield(records.settings,'wfs') && isfield(records.settings.wfs,'wfs')
+  warning('Old records.settings format with "settings.wfs.wfs" field found in records file. Updating format.');
+  records.settings.wfs = records.settings.wfs.wfs;
+  if isfield(records.settings,'wfs_records')
+    records.settings = rmfield(records.settings,'wfs_records');
+  end
+end
 if isfield(records.param_records,'vectors')
   warning('Old parameter format with "vectors" field found in records file. Updating format.');
   records.param_records.records.file.start_idx = records.param_records.vectors.file.start_idx;
@@ -124,7 +131,7 @@ if any(strcmpi(param.radar_name,{'accum2','mcrds'}))
   records.gps_source = gps.gps_source;
 else
   % Determine time offset delta and apply to radar time
-  delta_offset = param.records.gps.time_offset - records.param_records.records.gps.time_offset;
+  delta_offset = max(param.records.gps.time_offset) - max(records.param_records.records.gps.time_offset);
   records.param_records.records.gps.time_offset = param.records.gps.time_offset;
   records.gps_time = records.gps_time + delta_offset;
   
@@ -143,7 +150,12 @@ fprintf('  Delta GPS time offset is %.1f sec\n', delta_offset);
 if save_changes
   % Save outputs
   fprintf('  Saving records %s\n', records_fn);
-  save(records_fn,'-struct','records');
+  if param.ct_file_lock
+    records.file_version = '1L';
+  else
+    records.file_version = '1';
+  end
+  ct_save(records_fn,'-v7.3','-struct','records');
   create_records_aux_files(records_fn);
 else
   fprintf('  Not saving information (TEST MODE)\n');

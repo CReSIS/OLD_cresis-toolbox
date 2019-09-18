@@ -52,6 +52,14 @@ if ~isfield(param.sar,'combine_rx') || isempty(param.sar.combine_rx)
   param.sar.combine_rx = false;
 end
 
+if ~isfield(param.sar,'chunk_len') || isempty(param.sar.chunk_len)
+  param.sar.chunk_len = 2500;
+end
+
+if ~isfield(param.sar,'imgs') || isempty(param.sar.imgs)
+  param.sar.imgs = {[1 1]};
+end
+
 if ~isfield(param.sar,'wf_adc_pair_task_group_method') || isempty(param.sar.wf_adc_pair_task_group_method)
   % 'one': One wf_adc pair per task, least memory and maximum
   %   parallelization at the cost of increased disk IO
@@ -67,18 +75,40 @@ if ~isfield(param.sar,'frm_types') || isempty(param.sar.frm_types)
   param.sar.frm_types = {-1,-1,-1,-1,-1};
 end
 
-if ~isfield(param.sar,'Lsar')
+if ~isfield(param.sar,'Lsar') || isempty(param.sar.Lsar)
   param.sar.Lsar = [];
 end
-if ~isfield(param.sar.Lsar,'agl')
+if ~isfield(param.sar.Lsar,'agl') || isempty(param.sar.Lsar.agl)
   param.sar.Lsar.agl = 500;
 end
-if ~isfield(param.sar.Lsar,'thick')
+if ~isfield(param.sar.Lsar,'thick') || isempty(param.sar.Lsar.thick)
   param.sar.Lsar.thick = 1000;
 end
 
-if ~isfield(param.sar.mocomp,'filter')
-  param.sar.mocomp.filter = '';
+if ~isfield(param.sar,'mocomp') || isempty(param.sar.mocomp)
+  param.sar.mocomp = [];
+end
+if ~isfield(param.sar.mocomp,'en') || isempty(param.sar.mocomp.en)
+  param.sar.mocomp.en = false;
+end
+if ~isfield(param.sar.mocomp,'filter') || isempty(param.sar.mocomp.filter)
+  param.sar.mocomp.filter = {@butter,2,0.1};
+end
+% Tukey window to apply when undoing motion compensation after
+% fk-migration, default is 0.05. A value of 0 disables the window.
+if ~isfield(param.sar.mocomp,'tukey') || isempty(param.sar.mocomp.tukey)
+  param.sar.mocomp.tukey = 0.05;
+end
+if ~isfield(param.sar.mocomp,'type') || isempty(param.sar.mocomp.type)
+  param.sar.mocomp.type = 2;
+end
+if ~isfield(param.sar.mocomp,'uniform_en') || isempty(param.sar.mocomp.uniform_en)
+  param.sar.mocomp.uniform_en = true;
+end
+% Masks bad records based on the data_load hdr.bad_recs field. Masked
+% records are not included in the sinc interpolation.
+if ~isfield(param.sar.mocomp,'param.sar.mocomp.uniform_mask_en') || isempty(param.sar.mocomp.uniform_mask_en)
+  param.sar.mocomp.uniform_mask_en = true;
 end
 
 if ~isfield(param.sar,'out_path') || isempty(param.sar.out_path)
@@ -88,7 +118,7 @@ if ~isfield(param.sar,'coord_path') || isempty(param.sar.coord_path)
   param.sar.coord_path = param.sar.out_path;
 end
 
-if ~isfield(param.sar,'presums')
+if ~isfield(param.sar,'presums') || isempty(param.sar.presums)
   param.sar.presums = 1;
 end
 
@@ -101,6 +131,23 @@ end
 
 if ~isfield(param.sar,'start_eps') || isempty(param.sar.start_eps)
   param.sar.start_eps = er_ice;
+end
+
+if ~isfield(param.sar,'time_start') || isempty(param.sar.time_start)
+  param.sar.time_start = [];
+end
+
+if ~isfield(param.sar,'time_stop') || isempty(param.sar.time_stop)
+  param.sar.time_stop = [];
+end
+
+if ~isfield(param.sar,'st_wind') || isempty(param.sar.st_wind)
+  param.sar.st_wind = @hanning;
+end
+
+if ~isfield(param.sar,'sub_aperture_steering') || isempty(param.sar.sub_aperture_steering)
+  % Single aperture which points broadside to SAR is default
+  param.sar.sub_aperture_steering = [0];
 end
 
 if ~isfield(param.sar,'surf_filt_dist') || isempty(param.sar.surf_filt_dist)
@@ -123,11 +170,20 @@ end
 % =====================================================================
 
 % Get the standard radar name
-[~,~,radar_name] = ct_output_dir(param.radar_name);
+[~,radar_type,radar_name] = ct_output_dir(param.radar_name);
 
 % Load records file
 records_fn = ct_filename_support(param,'','records');
 records = load(records_fn);
+if any(isnan(records.gps_time)) ...
+    || any(isnan(records.lat)) ...
+    || any(isnan(records.lon)) ...
+    || any(isnan(records.elev)) ...
+    || any(isnan(records.roll)) ...
+    || any(isnan(records.pitch)) ...
+    || any(isnan(records.heading))
+  error('NaN in records gps_time, trajectory, or attitude is not allowed for SAR processing.');
+end
 % Apply presumming
 if param.sar.presums > 1
   records.lat = fir_dec(records.lat,param.sar.presums);
@@ -181,13 +237,13 @@ if ~exist(sar_fn,'file') ...
   
   ctrl = cluster_new_batch(param);
   
-  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
-    cpu_time_mult = 6e-3;
-    mem_mult = 64;
+  if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
+    cpu_time_mult = 2e-3;
+    mem_mult = 5;
     
-  elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-    cpu_time_mult = 100e-8;
-    mem_mult = 64;
+  elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
+    cpu_time_mult = 2e-3;
+    mem_mult = 5;
   end
   
   sparam = [];
@@ -196,7 +252,8 @@ if ~exist(sar_fn,'file') ...
   sparam.num_args_out = 1;
   Nx = numel(records.gps_time);
   sparam.cpu_time = 60 + Nx*cpu_time_mult;
-  sparam.mem = 250e6 + Nx*mem_mult;
+  records_var = whos('records');
+  sparam.mem = 250e6 + records_var.bytes*mem_mult;
   sparam.notes = sprintf('%s:%s:%s %s', ...
     sparam.task_function, param.radar_name, param.season_name, param.day_seg);
     
@@ -216,7 +273,15 @@ else
   %% SAR coordinates file exists and only needs surface updated
   surf_idxs = get_equal_alongtrack_spacing_idxs(fcs.along_track,param.sar.sigma_x);
   if surf_idxs(end) ~= length(fcs.along_track)
-    surf_idxs(end+1) = length(fcs.along_track);
+    if fcs.along_track(end) == fcs.along_track(surf_idxs(end))
+      % Overwrite last index if it is in the same location as the last
+      % record. This happens if the platform is stationary at the end.
+      surf_idxs(end) = length(fcs.along_track);
+    else
+      % Normally, the last record is a little further along than the last
+      % surf_idxs and so we append the last record to the end
+      surf_idxs(end+1) = length(fcs.along_track);
+    end
   end
   
   % Load surface from layerdata
@@ -281,7 +346,7 @@ else
         [board,board_idx,profile] = wf_adc_to_board(param,[wf adc]);
         
         if length(imgs_list) < board_idx
-          imgs_list{board_idx} = [];
+          imgs_list{board_idx} = {};
         end
         if length(imgs_list{board_idx}) < img
           imgs_list{board_idx}{img} = [];
@@ -292,6 +357,10 @@ else
     % Remove empty imgs
     mask = ~cellfun(@isempty,imgs_list);
     imgs_list = imgs_list(mask);
+    for imgs_list_idx = 1:length(imgs_list)
+      mask = ~cellfun(@isempty,imgs_list{imgs_list_idx});
+      imgs_list{imgs_list_idx} = imgs_list{imgs_list_idx}(mask);
+    end
     
     if strcmpi(param.sar.wf_adc_pair_task_group_method,'img')
       % All SAR images from the same image per task, but also breaks at
@@ -315,26 +384,39 @@ end
 ctrl = cluster_new_batch(param);
 cluster_compile({'sar_task.m','sar_coord_task'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
-total_num_sam = {};
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+total_raw_num_sam = {};
+total_pc_num_sam = {};
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));
-      total_num_sam{imgs_idx}{img} = wfs(wf).Nt_raw;
+      total_raw_num_sam{imgs_idx}{img} = wfs(wf).Nt_raw;
+    end
+  end
+  for imgs_idx = 1:length(imgs_list)
+    for img = 1:length(imgs_list{imgs_idx})
+      wf = abs(imgs_list{imgs_idx}{img}(1,1));
+      total_pc_num_sam{imgs_idx}{img} = wfs(wf).Nt;
     end
   end
   cpu_time_mult = 65e-10;
   mem_mult = [1.3 1.3];
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   for imgs_idx = 1:length(imgs_list)
     for img = 1:length(imgs_list{imgs_idx})
       wf = abs(imgs_list{imgs_idx}{img}(1,1));
-      total_num_sam{imgs_idx}{img} = 32000;
+      total_raw_num_sam{imgs_idx}{img} = 32000;
+    end
+  end
+  for imgs_idx = 1:length(imgs_list)
+    for img = 1:length(imgs_list{imgs_idx})
+      wf = abs(imgs_list{imgs_idx}{img}(1,1));
+      total_pc_num_sam{imgs_idx}{img} = 32000;
     end
   end
   cpu_time_mult = 8e-8;
-  mem_mult = 64;
+  mem_mult = [64 64];
   
 else
   error('radar_name %s not supported yet.', radar_name);
@@ -416,7 +498,14 @@ for frm_idx = 1:length(param.cmd.frms)
       
       chunk_overlap_est = [];
       for img = 1:length(dparam.argsin{1}.load.imgs)
-        max_time = min(wfs(wf).time(end),param.sar.time_of_full_support);
+        if strcmp(radar_type,'deramp')
+          if ~isfinite(param.sar.time_of_full_support)
+            error('param.sar.time_of_full_support must be finite for deramp radars.');
+          end
+          max_time = param.sar.time_of_full_support;
+        else
+          max_time = min(wfs(wf).time(end),param.sar.time_of_full_support);
+        end
         % wavelength (m)
         wf = param.sar.imgs{img}(1,1);
         lambda = c/wfs(wf).fc;
@@ -479,28 +568,58 @@ for frm_idx = 1:length(param.cmd.frms)
       % =================================================================
       
       % CPU Time and Memory estimates:
-      %  Nx*total_num_sam*K where K is some manually determined multiplier.
-      dparam.cpu_time = 0;
-      dparam.mem = 250e6;
-      mem_biggest = 0;
+      %  1. Raw data for all images stored (gets replaced during pulse
+      %     compression)
+      %  2. Pulse compressed data for all images (gets replaced during
+      %     motion compensation IF there is a single wf-adc pair, otherwise it
+      %     must be stored in memory the whole time)
+      %  3. Motion compensated data 
+      %  Nx*total_num_sam*mem_mult where K is some manually determined multiplier.
+      dparam.cpu_time = 60;
+      mem_raw = [];
+      mem_pulse_compress = [];
       for img = 1:length(dparam.argsin{1}.load.imgs)
         Nx = diff(dparam.argsin{1}.load.recs) + 2*chunk_overlap_est(img)/dx_approx;
         if strcmpi(param.sar.sar_type,'fk')
-          dparam.cpu_time = dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img} ...
-            *(10+2*log2(total_num_sam{imgs_idx}{img}))*size(dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
+          
+          dparam.cpu_time = dparam.cpu_time + 10 + Nx*log2(Nx)*total_pc_num_sam{imgs_idx}{img} ...
+            *(10+2*log2(total_pc_num_sam{imgs_idx}{img}))*size(dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
+          
           % Raw Data and Pulse Compression Memory Requirements:
-          mem_biggest = max(mem_biggest,Nx*total_num_sam{imgs_idx}{img}*16);
-          mem_pulse_compress = Nx*total_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*8*mem_mult(1);
-          % SAR Memory Requirements:
-          % NOTE: Need to consider number of SAR subapertures, length(param.sar.sub_aperture_steering)
-          mem_sar = 0;
-          dparam.mem = dparam.mem + max(mem_pulse_compress);
+          
+          % Nx: Number of along-track samples
+          % total_raw_num_sam{imgs_idx}{img}: Number of fast-time raw samples
+          % size(dparam.argsin{1}.load.imgs{img},1): Number of wf-adc pair data streams to load
+          % 4: size of a complex number
+          % (1+wfs(wf).complex): accounts for complex data
+          % 2x: To hold two copies of the data during matrix operations
+          mem_raw(img) = Nx*total_raw_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*4*(1+wfs(wf).complex)*2;
+          
+          % total_pc_num_sam{imgs_idx}{img}: Number of fast-time pulse compressed samples
+          % size(dparam.argsin{1}.load.imgs{img},1): Number of wf-adc pair data streams to load
+          % 8: size of a complex single
+          % 2: To hold two copies of the data during matrix operations
+          % (+1): If coherent noise enabled
+          mem_pulse_compress(img) = Nx*total_pc_num_sam{imgs_idx}{img}*size(dparam.argsin{1}.load.imgs{img},1)*8*2;
+          if strcmpi(wfs(wf).coh_noise_method,'analysis')
+            mem_pulse_compress(img) = 2*mem_pulse_compress(img);
+          end
+          
+          % Only one channel is SAR processed at a time 
+          mem_sar = Nx*total_pc_num_sam{imgs_idx}{img}*8*2;
+
+          % Pulse compressed data overwritten during SAR processing when
+          % there is only one wf-adc channel in the image
+          if size(dparam.argsin{1}.load.imgs{img},1) == 1
+            mem_pulse_compress(img) = max(mem_pulse_compress(img),mem_sar);
+          else
+            mem_pulse_compress(img) = mem_pulse_compress(img) + mem_sar;
+          end
         elseif strcmpi(param.sar.sar_type,'tdbp')
           dparam.cpu_time = ctrl.cluster.max_time_per_job - 40;
         end
       end
-      % Two copies of 256 MB file or Double, two copies, divided into 8 blocks
-      dparam.mem = dparam.mem + max(1e9/2,2*2*mem_biggest/8)*mem_mult(2);
+      dparam.mem = 1e9 + sum(max(mem_raw,mem_pulse_compress));
       
       if dparam.mem > ctrl.cluster.max_mem_per_job
         if strcmpi(param.sar.wf_adc_pair_task_group_method,'board')
@@ -521,16 +640,16 @@ for frm_idx = 1:length(param.cmd.frms)
             dparam.argsin{1}.load.recs(2)*param.sar.presums);
           
           tmp_dparam.cpu_time = 0;
-          tmp_dparam.mem = 250e6;
+          tmp_dparam.mem = 400e6;
           mem_biggest = 0;
           for img = 1:length(tmp_dparam.argsin{1}.load.imgs)
             Nx = diff(tmp_dparam.argsin{1}.load.recs) + 2*chunk_overlap_est(img)/dx_approx;
             if strcmpi(param.sar.sar_type,'fk')
-              tmp_dparam.cpu_time = tmp_dparam.cpu_time + 10 + Nx*log2(Nx)*total_num_sam{imgs_idx}{img} ...
-                *(10+2*log2(total_num_sam{imgs_idx}{img}))*size(tmp_dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
+              tmp_dparam.cpu_time = tmp_dparam.cpu_time + 10 + Nx*log2(Nx)*total_pc_num_sam{imgs_idx}{img} ...
+                *(10+2*log2(total_pc_num_sam{imgs_idx}{img}))*size(tmp_dparam.argsin{1}.load.imgs{img},1)^1.6*cpu_time_mult;
               % Raw Data and Pulse Compression Memory Requirements:
-              mem_biggest = max(mem_biggest,Nx*total_num_sam{imgs_idx}{img}*16);
-              mem_pulse_compress = Nx*total_num_sam{imgs_idx}{img}*size(tmp_dparam.argsin{1}.load.imgs{img},1)*8*mem_mult(1);
+              mem_biggest = max(mem_biggest,Nx*total_pc_num_sam{imgs_idx}{img}*16);
+              mem_pulse_compress = Nx*total_pc_num_sam{imgs_idx}{img}*size(tmp_dparam.argsin{1}.load.imgs{img},1)*8*mem_mult(1);
               % SAR Memory Requirements:
               % NOTE: Need to consider number of SAR subapertures, length(param.sar.sub_aperture_steering)
               mem_sar = 0;

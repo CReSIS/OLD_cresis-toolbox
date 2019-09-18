@@ -6,8 +6,10 @@ function Surface = layer_tracker(param,param_override)
 % track: Parameters used to control the tracker. Only general parameters
 %   used within update_surface_with_tracker are included here. For more
 %   details about tracker specific parameters, look at the help for:
-%   tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
-%   tracker_max, tracker_snake_simple
+%   tracker_snake_simple, tracker_threshold, tracker_max
+%
+% track structure fields:
+% -------------------------------------------------------------------------
 % .en: must be true for update_surface_with_tracker to run on a segment
 % .medfilt: scalar which specifies the length of a median filter to apply
 %   to the tracked data. Similar to medfilt1, but it handles edge
@@ -22,13 +24,10 @@ function Surface = layer_tracker(param,param_override)
 %     [track.feedthru.time,track.feedthru.power_dB] = ginput; % Press enter to end the input
 %   .time: N length vector of two way travel times
 %   .power_dB: N length vector of power in dB
-% .method: string containing the method to use for tracking as long as
-%   manual mode is not enabled. Options:
+% .method: string containing the method to use for tracking. Options:
 %    'threshold': runs tracker_threshold (generally the best for surface altimetry)
 %    'snake': runs tracker_snake_simple
 %    'max': tracker_max
-% .manual: Optional, default is false. If true, the manual version of
-%   tracker_snake_simple is run with tracker_snake_manual_gui.
 % .max_diff: used by tracker routines (optional, default is inf)
 % .min_bin: used by tracker routines
 % .max_bin: used by tracker routines (optional, default is not used)
@@ -41,8 +40,7 @@ function Surface = layer_tracker(param,param_override)
 % outputs will be saved.
 %
 % For more details about tracker specific parameters:
-% tracker_snake_simple, tracker_snake_manual_gui, tracker_threshold,
-% tracker_max
+% tracker_snake_simple, tracker_threshold, tracker_max
 %
 % Example:
 %   See run_layer_tracker.m to run in regular mode.
@@ -55,10 +53,6 @@ function Surface = layer_tracker(param,param_override)
 % =====================================================================
 param = merge_structs(param, param_override);
 
-fprintf('=====================================================================\n');
-fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
-fprintf('=====================================================================\n');
-
 %% Input Checks
 % =====================================================================
 
@@ -68,17 +62,13 @@ if ~isfield(param,'layer_tracker') || isempty(param.layer_tracker)
   param.layer_tracker = [];
 end
 
-% debug_level: set to 1 to enable a debug plot
-if ~isfield(param.layer_tracker,'debug_level') || isempty(param.layer_tracker.debug_level)
-  param.layer_tracker.debug_level = 0;
+if ~isfield(param.layer_tracker,'debug_plots') || isempty(param.layer_tracker.debug_plots)
+  param.layer_tracker.debug_plots = {};
 end
-debug_level = param.layer_tracker.debug_level;
-
-% debug_time_guard: Vertical band around surface in debug plot
-if ~isfield(param.layer_tracker,'debug_time_guard') || isempty(param.layer_tracker.debug_time_guard)
-  param.layer_tracker.debug_time_guard = 50e-9;
+if ~isempty(param.layer_tracker.debug_plots)
+  h_fig = get_figures(1,true);
 end
-debug_time_guard = param.layer_tracker.debug_time_guard;
+enable_debug_plot = any(strcmp('debug',param.layer_tracker.debug_plots));
 
 % echogram_img: To choose an image besides the base (0) image
 if ~isfield(param.layer_tracker,'echogram_img') || isempty(param.layer_tracker.echogram_img)
@@ -97,20 +87,61 @@ if ~isfield(param.layer_tracker,'layer_params') || isempty(param.layer_tracker.l
 end
 layer_params = param.layer_tracker.layer_params;
 
+%% General Setup Continued
+% =====================================================================
+
+if isstruct(echogram_source)
+  fprintf('  %s: %s (%s)\n', mfilename, 'param.layer_tracker.echogram_source', datestr(now));
+else
+  fprintf('=====================================================================\n');
+  fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
+  fprintf('=====================================================================\n');
+end
+
+%% Input Checks: track field
+% =====================================================================
+
 if ~isfield(param.layer_tracker,'track') || isempty(param.layer_tracker.track)
   param.layer_tracker.track = [];
 end
 track = merge_structs(param.qlook.surf,param.layer_tracker.track);
 
+% profile: default is no profile, otherwise loads preset configuration
+if ~isfield(track,'profile') || isempty(track.profile)
+  track.profile = '';
+end
+track = merge_structs(layer_tracker_profile(param,track.profile), track);
+
+if ~isfield(track,'en') || isempty(track.en)
+  % If true, tracking will be done on this segment. If false, then no
+  % tracking is done. Default is true.
+  track.en = true;
+end
 if ~track.en
   return;
 end
+
+if ~isfield(track,'data_noise_en') || isempty(track.data_noise_en)
+  % If true, then a matrix data_noise will be created which will go through
+  % all the same operations as data except no "sidelobe" and no "feedthru"
+  % masking will be done. This is sometimes necessary to enable when
+  % sidelobe or feedthru remove too much data so that the noise estimatation
+  % process in the tracker does not function properly. Currently only
+  % tracker_threshold makes use of data_noise.
+  track.data_noise_en = false;
+end
+
+% debug_time_guard: Vertical band around layer in debug plot
+if ~isfield(track,'debug_time_guard') || isempty(track.debug_time_guard)
+  track.debug_time_guard = 50e-9;
+end
+debug_time_guard = track.debug_time_guard;
 
 if ~isfield(track,'detrend') || (isempty(track.detrend) && ~ischar(track.detrend))
   track.detrend = 0;
 end
 if ischar(track.detrend)
-  % Load detrend file generated by detrend
+  % Load detrend file generated by run_get_echogram_stats
   % e.g. ct_tmp/echogram_stats/snow/2011_Greenland_P3/stats_20110329_02.mat
   if isempty(track.detrend)
     track.detrend = [ct_filename_ct_tmp(param,'','echogram_stats','stats') '.mat'];
@@ -119,11 +150,37 @@ if ischar(track.detrend)
   detrend.time = detrend.dt*detrend.bins;
 end
 
+if ~isfield(track,'feedthru') || isempty(track.feedthru)
+  track.feedthru = [];
+end
+
+if ~isfield(track,'filter') || isempty(track.filter)
+  track.filter = [1 1];
+end
+if length(track.filter) == 1
+  warning('Deprecated surf.filter format. Should specify 2 element vector that specifies the multilooks in [cross-track along-track].');
+  track.filter = [1 track.filter(1)];
+end
+if any(mod(track.filter,2) == 0)
+  error('Surface filter lengths must be odd. layer_tracker.track.filter = [%d %d].', layer_tracker.track.filter);
+end
+
+if ~isfield(track,'filter_trim') || isempty(track.filter_trim)
+  track.filter_trim = [0 0];
+end
+
+if ~isfield(track,'fixed_value') || isempty(track.fixed_value)
+  track.fixed_value = 0;
+end
+
 if ~isfield(track,'init') || isempty(track.init)
   track.init = [];
 end
 if ~isfield(track.init,'method') || isempty(track.init.method)
   track.init.method = 'max';
+end
+if ~isfield(track.init,'snake_rng') || isempty(track.init.snake_rng)
+  track.init.snake_rng = [-2e-7 2e-7];
 end
 if ~isfield(track.init,'dem_layer') || isempty(track.init.dem_layer)
   track.init.dem_layer = '';
@@ -149,35 +206,16 @@ if ~any(strcmpi(track.init.max_diff_method,{'merge_vectors','interp_finite'}))
   error('Unsupported max diff method %s. Options are merge_vectors, interp_finite. The default is interp_finite unless a dem or reference layer is provided.', track.init.max_diff_method);
 end
 
-if ~isfield(track,'filter') || isempty(track.filter)
-  track.filter = [1 1];
-end
-if length(track.filter) == 1
-  warning('Deprecated surf.filter format. Should specify 2 element vector that specifies the multilooks in [cross-track along-track].');
-  track.filter = [1 track.filter(1)];
-end
-if any(mod(track.filter,2) == 0)
-  error('Surface filter lengths must be odd. layer_tracker.track.filter = [%d %d].', layer_tracker.track.filter);
-end
-
-if ~isfield(track,'filter_trim') || isempty(track.filter_trim)
-  track.filter_trim = [0 0];
-end
-
-if ~isfield(track,'fixed_value') || isempty(track.fixed_value)
-  track.fixed_value = 0;
-end
-
-if ~isfield(track,'min_bin') || isempty(track.min_bin)
-  track.min_bin = 0;
-end
-
 if ~isfield(track,'max_bin') || isempty(track.max_bin)
   track.max_bin = inf;
 end
 
 if ~isfield(track,'max_rng') || isempty(track.max_rng)
   track.max_rng = [0 0];
+end
+
+if ~isfield(track,'max_rng_units') || isempty(track.max_rng_units)
+  track.max_rng_units = 'time';
 end
 
 if ~isfield(track,'medfilt') || isempty(track.medfilt)
@@ -193,21 +231,29 @@ if ~isfield(track,'medfilt_threshold') || isempty(track.medfilt_threshold)
   track.medfilt_threshold = 0;
 end
 
+if ~isfield(track,'method') || isempty(track.method)
+  track.method = '';
+end
+
+if ~isfield(track,'min_bin') || isempty(track.min_bin)
+  track.min_bin = 0;
+end
+
 if ~isfield(track,'prefilter_trim') || isempty(track.prefilter_trim)
   track.prefilter_trim = [0 0];
 end
 
 if ~isfield(track,'sidelobe_rows') || isempty(track.sidelobe_rows) || ~isfield(track,'sidelobe_dB') || isempty(track.sidelobe_dB)
-  track.sidelobe_rows = [];
   track.sidelobe_dB = [];
+  track.sidelobe_rows = [];
 end
 
 if ~isfield(track,'snake_rng') || isempty(track.snake_rng)
   track.snake_rng = [-2e-7 2e-7];
 end
 
-if ~isfield(track,'threshold_dB') || isempty(track.threshold_dB)
-  track.threshold_dB = 15;
+if ~isfield(track,'threshold') || isempty(track.threshold)
+  track.threshold = 15;
 end
 
 if ~isfield(track,'threshold_noise_rng') || isempty(track.threshold_noise_rng)
@@ -217,10 +263,11 @@ end
 %% Load in ocean mask, land DEM, and sea surface DEM
 if isfield(track,'init') && strcmpi(track.init.method,'dem')
   global gdem;
-  if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
+  if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
     gdem = dem_class(param,500);
   end
   gdem.set_res(500);
+  gdem.ocean_mask_mode = 'l';
 
   gdem_str = sprintf('%s:%s:%s',param.radar_name,param.season_name,param.day_seg);
   if ~strcmpi(gdem_str,gdem.name)
@@ -278,12 +325,10 @@ for frm_idx = 1:length(param.cmd.frms)
   if isstruct(echogram_source)
     % echogram_source is the data structure
     mdata = echogram_source;
+    data_fn_name = 'param.layer_tracker.echogram_source';
     
   else
     % echogram_source is a file path indicator
-    if ~exist('echogram_img','var')
-      echogram_img = 0;
-    end
     if echogram_img == 0
       data_fn = fullfile(ct_filename_out(param,echogram_source,''), ...
         sprintf('Data_%s_%03d.mat', param.day_seg, frm));
@@ -299,7 +344,7 @@ for frm_idx = 1:length(param.cmd.frms)
       continue;
     end
     
-    if strcmpi(track.method,'') && debug_level == 0
+    if strcmpi(track.method,'') && ~enable_debug_plot
       mdata = load_L1B(data_fn,'GPS_time','Latitude','Longitude','Elevation','Time');
     else
       mdata = load_L1B(data_fn);
@@ -325,8 +370,6 @@ for frm_idx = 1:length(param.cmd.frms)
       track.dem = (mdata.Elevation - track.dem) / (c/2);
       track.dem = interp1(mdata.Time,1:length(mdata.Time),track.dem + track.init.dem_offset,'linear','extrap');
       track.dem = interp_finite(track.dem,1);
-      track.dem(track.dem<1) = 1;
-      track.dem(track.dem>length(mdata.Time)) = length(mdata.Time);
     end
     
     %% Track: Prefilter trim
@@ -344,12 +387,15 @@ for frm_idx = 1:length(param.cmd.frms)
       end
     end
     
+    if track.data_noise_en
+      data_noise = data;
+    end
+    
     %% Track: Feed through removal
-    if isfield(track,'feedthru')
-      
+    if ~isempty(track.feedthru)
       % Interpolate feed through power levels on to data time axis
       feedthru_threshold = interp1(track.feedthru.time,track.feedthru.power_dB,mdata.Time);
-      feedthru_threshold = interp_finite(feedthru_threshold,-inf);
+      feedthru_threshold = interp_finite(feedthru_threshold,-inf,[],@(x) ~isnan(x));
       
       % Set all data to zero that does not exceed the feed through
       % threshold power
@@ -360,6 +406,7 @@ for frm_idx = 1:length(param.cmd.frms)
     
     %% Track: Detrend
     if ischar(track.detrend)
+      % A detrend file was passed in
       detrend_curve = interp_finite(interp1(detrend.time,interp_finite(detrend.min_means),mdata.Time),NaN);
       if all(isnan(detrend_curve))
         error('Detrend curve is all NaN.');
@@ -376,6 +423,9 @@ for frm_idx = 1:length(param.cmd.frms)
         keyboard
       end
       data = bsxfun(@minus,data,detrend_curve);
+      if track.data_noise_en
+        data_noise = bsxfun(@minus,data_noise,detrend_curve);
+      end
       
     elseif track.detrend > 0
       poly_x = (-size(data,1)/2+(1:size(data,1))).';
@@ -396,6 +446,9 @@ for frm_idx = 1:length(param.cmd.frms)
         keyboard
       end
       data = bsxfun(@minus,data,detrend_curve);
+      if track.data_noise_en
+        data_noise = bsxfun(@minus,data_noise,detrend_curve);
+      end
     end
     
     %% Track: Sidelobe
@@ -408,10 +461,30 @@ for frm_idx = 1:length(param.cmd.frms)
     if track.filter(1) ~= 1
       % Multilooking in cross-track/fast-time
       data = lp(nan_fir_dec(10.^(data/10).',ones(1,track.filter(1))/track.filter(1),1,[],[],[],[],2.0).');
+      if track.data_noise_en
+        data_noise = lp(nan_fir_dec(10.^(data_noise/10).',ones(1,track.filter(1))/track.filter(1),1,[],[],[],[],2.0).');
+      end
     end
     if track.filter(2) ~= 1
+      % Apply motion compensation
+      if track.filter_mocomp
+        dt = mdata.Time(2)-mdata.Time(1);
+        dbin = round((mdata.Elevation - median(mdata.Elevation)) / (c/2) / dt);
+        for rline = 1:size(data,2)
+          data(:,rline) = circshift(data(:,rline),[-dbin(rline) 0]);
+        end
+      end
       % Multilooking in along-track
       data = lp(nan_fir_dec(10.^(data/10),ones(1,track.filter(2))/track.filter(2),1,[],[],[],[],2.0));
+      if track.data_noise_en
+        data_noise = lp(nan_fir_dec(10.^(data_noise/10),ones(1,track.filter(2))/track.filter(2),1,[],[],[],[],2.0));
+      end
+      % Remove motion compensation
+      if track.filter_mocomp
+        for rline = 1:size(data,2)
+          data(:,rline) = circshift(data(:,rline),[dbin(rline) 0]);
+        end
+      end
     end
     
     %% Track: Post-filter trim
@@ -420,11 +493,17 @@ for frm_idx = 1:length(param.cmd.frms)
       if ~isempty(start_bin)
         stop_bin = min(size(data,1), start_bin+track.filter_trim(1)-1);
         data(start_bin:stop_bin,rline) = NaN;
+        if track.data_noise_en
+          data_noise(start_bin:stop_bin,rline) = NaN;
+        end
       end
       stop_bin = find(isfinite(data(:,rline)),1,'last');
       if ~isempty(stop_bin)
         start_bin = max(1, stop_bin-track.filter_trim(2)+1);
         data(start_bin:stop_bin,rline) = NaN;
+        if track.data_noise_en
+          data_noise(start_bin:stop_bin,rline) = NaN;
+        end
       end
     end
     
@@ -434,14 +513,22 @@ for frm_idx = 1:length(param.cmd.frms)
     track.max_bin = find(mdata.Time <= orig_track.max_bin, 1, 'last');
     dt = mdata.Time(2) - mdata.Time(1);
     track.init.max_diff = orig_track.init.max_diff/dt;
-    track.max_rng = round(orig_track.max_rng(1)/dt) : round(orig_track.max_rng(end)/dt);
+    if strcmpi(track.max_rng_units,'bins')
+      track.max_rng = orig_track.max_rng(1) : orig_track.max_rng(end);
+    else
+      track.max_rng = round(orig_track.max_rng(1)/dt) : round(orig_track.max_rng(end)/dt);
+    end
     data = data(track.min_bin:track.max_bin,:);
+    if track.data_noise_en
+      data_noise = data_noise(track.min_bin:track.max_bin,:);
+    end
     
     %% Track: Create Initial Surface
     if strcmpi(track.init.method,'dem')
       % Correct for min_bin removal
       track.dem = track.dem - track.min_bin + 1;
     elseif strcmp(track.init.method,'snake')
+      track.init.search_rng = round(orig_track.init.snake_rng(1)/dt) : round(orig_track.init.snake_rng(2)/dt);
       track.dem = tracker_snake_simple(data,track.init);
     elseif strcmp(track.init.method,'nan')
       track.dem = nan(1,Nx);
@@ -473,6 +560,11 @@ for frm_idx = 1:length(param.cmd.frms)
     %% Track: Tracking
     if strcmpi(track.method,'threshold')
       track.threshold_noise_rng = round(orig_track.threshold_noise_rng/dt);
+      if track.data_noise_en
+        track.data_noise = data_noise;
+      else
+        track.data_noise = data;
+      end
       [new_layer,new_quality] = tracker_threshold(data,track);
     elseif strcmpi(track.method,'viterbi')
       new_layer = tracker_viterbi(data,track);
@@ -530,33 +622,39 @@ for frm_idx = 1:length(param.cmd.frms)
     end
     
     %% Track: Convert bins to twtt
-    Surface = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1);
+    Surface = interp1(1:length(mdata.Time), mdata.Time, new_layer + track.min_bin - 1,'linear','extrap');
     
   end
   
+  % Some layer sources may not be "double", but we require that Surface be
+  % double:
+  Surface = double(Surface);
+  
   %% Track: Debug plot
-  if debug_level > 0
-    figure(1); clf;
-    imagesc([],mdata.Time,lp(mdata.Data));
-    colormap(1-gray(256));
-    hold on;
-    plot(find(new_quality==1),Surface(new_quality==1),'g.');
-    plot(find(new_quality==3),Surface(new_quality==3),'r.');
+  if enable_debug_plot
+    clf(h_fig(1));
+    set(h_fig(1),'name',sprintf('layer_tracker %s',data_fn_name));
+    h_axes(1) = axes('parent',h_fig(1));
+    imagesc([],mdata.Time,lp(mdata.Data), 'parent', h_axes(1));
+    colormap(h_axes(1), 1-gray(256));
+    hold(h_axes(1),'on');
+    plot(h_axes(1),find(new_quality==1),Surface(new_quality==1),'g.');
+    plot(h_axes(1),find(new_quality==3),Surface(new_quality==3),'r.');
     if strcmpi(track.init.method,{'dem'}) || ~isempty(track.init.dem_layer)
-      plot(interp1(1:length(mdata.Time),mdata.Time,track.dem+track.min_bin-1),'m--')
-      plot(interp1(1:length(mdata.Time),mdata.Time, ...
+      plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time,track.dem+track.min_bin-1),'m--')
+      plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
         track.dem+track.min_bin-1-track.init.max_diff),'r--')
-      plot(interp1(1:length(mdata.Time),mdata.Time, ...
+      plot(h_axes(1),interp1(1:length(mdata.Time),mdata.Time, ...
         track.dem+track.min_bin-1+track.init.max_diff),'b--')
     end
-    hold off;
+    hold(h_axes(1),'off');
     if ~isempty(mdata.Time)
       ylims = [max(mdata.Time(1),min(Surface)-debug_time_guard) min(mdata.Time(end),max(Surface)+debug_time_guard)];
       if ylims(end)>ylims(1)
-        ylim(ylims);
+        ylim(h_axes(1),ylims);
       end
     end
-    title(sprintf('%s',regexprep(data_fn_name,'_','\\_')));
+    title(h_axes(1),sprintf('%s',regexprep(data_fn_name,'_','\\_')));
     keyboard
   end
   
@@ -589,11 +687,13 @@ for frm_idx = 1:length(param.cmd.frms)
         lay.Longitude = mdata.Longitude;
         lay.Elevation = mdata.Elevation;
         
+        lay.layerData{1}.name = 'surface';
         lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
         lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
-        lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data);
+        lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
         
+        lay.layerData{2}.name = 'bottom';
         lay.layerData{2}.quality = ones(size(lay.GPS_time));
         lay.layerData{2}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{2}.value{2}.data = nan(size(lay.GPS_time));
@@ -609,6 +709,7 @@ for frm_idx = 1:length(param.cmd.frms)
         lay = load(layer_fn);
         % Update the surface auto picks
         lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
+        lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
         lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
         % Append the new results back to the layerData file

@@ -63,7 +63,7 @@ if ~isfield(ctrl.cluster,'dbstop_if_error') || isempty(ctrl.cluster.dbstop_if_er
 end
 
 if ~isfield(ctrl.cluster,'desired_time_per_job') || isempty(ctrl.cluster.desired_time_per_job)
-  ctrl.cluster.max_time_per_job = 0;
+  ctrl.cluster.desired_time_per_job = 0;
 end
 
 if ~isfield(ctrl.cluster,'file_check_pause') || isempty(ctrl.cluster.file_check_pause)
@@ -102,6 +102,10 @@ if ~isfield(ctrl.cluster,'max_mem_per_job') || isempty(ctrl.cluster.max_mem_per_
   ctrl.cluster.max_mem_per_job = inf;
 end
 
+if ~isfield(ctrl.cluster,'max_mem_mode') || isempty(ctrl.cluster.max_mem_mode)
+  ctrl.cluster.max_mem_mode = 'debug';
+end
+
 if ~isfield(ctrl.cluster,'max_time_per_job') || isempty(ctrl.cluster.max_time_per_job)
   ctrl.cluster.max_time_per_job = 86400;
 end
@@ -137,6 +141,10 @@ if ~isfield(ctrl.cluster,'mcc') || isempty(ctrl.cluster.mcc)
   ctrl.cluster.mcc = 'system';
 end
 
+if ~isfield(ctrl.cluster,'mcc_delete_output') || isempty(ctrl.cluster.mcc_delete_output)
+  ctrl.cluster.mcc_delete_output = false;
+end
+
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
   % -m n: no mail
   % -l nodes=1:ppn=%p: 1 compute node and %p core/processors on the node.
@@ -151,7 +159,7 @@ if ~isfield(ctrl.cluster,'slurm_submit_arguments') || isempty(ctrl.cluster.slurm
   % -cpus-per-task: specifies the number of cpus per task
   % --mincpus: specifies the number of cpus per node
   % -n, --ntasks: number of tasks
-  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --mem=%m --time=%t';
+  ctrl.cluster.slurm_submit_arguments = '-N 1 -n 1 --cpus-per-task=%p --mem=%m --time=%t';
 end
 
 if ~isfield(ctrl.cluster,'ssh_hostname') || isempty(ctrl.cluster.ssh_hostname)
@@ -179,7 +187,7 @@ if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
 end
 if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
   % Ensure matlab compiled file has execute permissions
-  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'rwx','a');
+  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'+x','a');
 end
   
 %% Return if this ctrl already existed

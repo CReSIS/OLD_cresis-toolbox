@@ -31,11 +31,11 @@ settings = [];
 %   3: INSERT ATM LAYERS ONLY
 %   4: (1) AND (2)
 %   5: (1), (2), AND (3)
-settings.runType = 1;
+settings.runType = 4;
 
 % ----------------------------------------------------------------
 % paramFn: FILENAME.xls OF EXCEL CReSIS PARAMS SHEET
-settings.paramFn = 'accum_param_2013_Antarctica_Ground.xls';
+settings.paramFn = 'rds_param_2018_Antarctica_DC8.xls';
 
 % ----------------------------------------------------------------
 % location: LOCATION NAME ('arctic' OR 'antarctic')
@@ -44,7 +44,7 @@ settings.location = 'antarctic';
 
 % ----------------------------------------------------------------
 % sysName: SYSTEM NAME ('rds','snow','accum','kuband')
-settings.sysName = 'accum';
+settings.sysName = 'rds';
 
 % ----------------------------------------------------------------
 % layerDataPath: PATH TO LAYERDATA FILES
@@ -53,7 +53,7 @@ settings.sysName = 'accum';
 %   'fullfile('CSARP_post','layerData')': posted layerData path
 %   'fullfile('CSARP_post','qlook')': posted layerData qlook path
 settings.layerDataPath = 'layerData';
-% setting.layerDataPath = 'qlook';
+% settings.layerDataPath = 'standard';
 % settings.layerDataPath = fullfile('CSARP_post','layerData');
 % settings.layerDataPath = fullfile('CSARP_post','qlook');
 

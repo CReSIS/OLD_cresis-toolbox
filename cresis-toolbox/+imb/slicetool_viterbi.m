@@ -70,9 +70,11 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
       [~,slices_idxs] = intersect(slices,1:size(sb.data,3));
       slices = slices(sort(slices_idxs));
       if numel(slices)==1
-        fprintf('Apply %s to surface %d slice %d\n', obj.tool_name, active_idx, sb.slice);
+        fprintf('Apply %s to surface %d slice %d\n', obj.tool_name, ...
+          active_idx, sb.slice);
       else
-        fprintf('Apply %s to surface %d slices %d - %d\n', obj.tool_name, active_idx, slices(1), slices(end));
+        fprintf('Apply %s to surface %d slices %d - %d\n', ...
+          obj.tool_name, active_idx, slices(1), slices(end));
       end
       if get(obj.gui.previousCB,'Value')
         start_slice_idx = 2;
@@ -141,7 +143,6 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
           mask = sb.sd.surf(mask_idx).y(:,m_slices);
         end
         
-        
         %%
         if isempty(surf_idx)
           surf_bins = NaN*sb.sd.surf(active_idx).y(:,slice);
@@ -161,7 +162,7 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
         mu            = sinc(linspace(-1.5, 1.5, mu_size));
         sigma         = sum(mu)/20*ones(1,mu_size);
         smooth_var    = -1;
-        smooth_weight = 10;
+        smooth_weight = 1;
         repulsion     = 100;
         ice_bin_thr   = 3;
         mc            = -1 * ones(1, size(sb.data,2));
@@ -174,25 +175,33 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
           mex -largeArrayDims viterbi.cpp
           cd(tmp);
         end
-        %%%%
         
-        mask           = 90*fir_dec(fir_dec(double(shrink(mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
-        mask(mask>=90) = inf;
-        mask           = mask(:, slice_range+1);
+        %% Distance to ice-mask calculation
+        mask_dist = round(bwdist(mask == 0));
+        mask_dist = mask_dist(:, 4);
+        mask      = mask(:, slice_range+1);
         
-        CF.sensory_distance = 200;
-        CF.max_cost = 50;
-        CF.lambda = 0.075;
+        %% Distance-to-Ice-Margin model
+        clear DIM DIM_costmatrix;
+        global gRadar
+        DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
+        DIM_costmatrix = DIM.Layer_tracking_3D_parameters;
+        DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
         
-        % Call viterbi.cpp
+        %% DoA-to-DoA transition model
+        % Obtained from geostatistical analysis of 2014 Greenland P3
+        transition_mu = [0.000000, 0.000000, 2.590611, 3.544282, 4.569263, 5.536577, 6.476430, 7.416807, 8.404554, 9.457255, 10.442658, 11.413710, 12.354409, 13.332689, 14.364614, 15.381671, 16.428969, 17.398906, 18.418794, 19.402757, 20.383026, 21.391834, 22.399259, 23.359765, 24.369957, 25.344982, 26.301805, 27.307530, 28.274756, 28.947572, 29.691010, 32.977387, 34.203212, 34.897994, 35.667128, 36.579019, 37.558978, 38.548659, 39.540715, 40.550138, 41.534781, 42.547407, 43.552700, 44.537758, 45.553618, 46.561057, 47.547331, 48.530976, 49.516588, 50.536075, 51.562886, 52.574938, 53.552979, 54.554206, 55.559657, 56.574029, 57.591999, 58.552986, 59.562937, 60.551616, 61.549909, 62.551092, 63.045791, 63.540490];
+        transition_sigma = [0.457749, 0.805132, 1.152514, 1.213803, 1.290648, 1.370986, 1.586141, 1.626730, 1.785789, 1.791043, 1.782936, 1.727153, 1.770210, 1.714973, 1.687484, 1.663294, 1.633185, 1.647318, 1.619522, 1.626555, 1.649593, 1.628138, 1.699512, 1.749184, 1.809822, 1.946782, 2.126822, 2.237959, 2.313358, 2.280555, 1.419753, 1.112363, 1.426246, 2.159619, 2.140899, 2.083267, 1.687420, 1.574745, 1.480296, 1.443887, 1.415708, 1.356100, 1.401891, 1.398477, 1.365730, 1.418647, 1.407810, 1.430151, 1.391357, 1.403471, 1.454194, 1.470535, 1.417235, 1.455086, 1.436509, 1.378037, 1.415834, 1.333177, 1.298108, 1.277559, 1.358260, 1.483521, 1.674642, 1.865764];
+        
+        %% Call viterbi.cpp
         tic
         labels = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
           double(bottom_bin), double(gt), double(mask), double(mu), ...
           double(sigma), double(egt_weight), double(smooth_weight), ...
           double(smooth_var), double(slope), int64(bounds), ...
           double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-          double(mc), double(mc_weight), ...
-          double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
+          double(mask_dist), double(DIM_costmatrix), ...
+          double(transition_mu), double(transition_sigma));
         toc
         
         labels(surf_bins(:) > labels(:)) = surf_bins(surf_bins(:) > labels(:));
@@ -364,5 +373,3 @@ classdef (HandleCompatible = true) slicetool_viterbi < imb.slicetool
   end
   
 end
-
-

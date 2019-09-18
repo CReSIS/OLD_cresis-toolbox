@@ -134,7 +134,13 @@ td_min = inf;
 td_max = -inf;
 
 Num_targets = size(target_model.z,1);
+
+last_fprintf_time = -inf;
 for snapshot = 1:Nx
+  if now > last_fprintf_time+30/86400
+    fprintf('  Snapshot/record %.0f of %.0f (%s)\n', snapshot, Nx, datestr(now));
+    last_fprintf_time = now;
+  end
   %% Loop through each receiver
   for chan = 1:Nc
     %% Loop through each target

@@ -50,26 +50,50 @@ if isempty(layer_idx)
 end
 
 %% Convert point ID's to point indices
-point_idxs = [];
-point_id_mask = logical(zeros(size(args{2})));
-for point_id_idx = 1:length(args{2})
-  point_id = args{2}(point_id_idx);
-  new_point = find(point_id == obj.eg.map_id);
-  if ~isempty(new_point)
-    point_id_mask(point_id_idx) = true;
-    point_idxs(end+1) = new_point;
+  if strcmpi(obj.eg.LayerSource,'OPS')
+    point_idxs = [];
+    point_id_mask = logical(zeros(size(args{2})));
+    for point_id_idx = 1:length(args{2})
+      point_id = args{2}(point_id_idx);
+      new_point = find(point_id == obj.eg.map_id);
+      if ~isempty(new_point)
+        point_id_mask(point_id_idx) = true;
+        point_idxs(end+1) = new_point;
+      end
+    end
+    %% Apply insert
+    obj.eg.layer.y{layer_idx}(point_idxs) = args{3}(point_id_mask);
+    obj.eg.layer.type{layer_idx}(point_idxs) = args{4}(point_id_mask);
+    obj.eg.layer.qual{layer_idx}(point_idxs) = args{5}(point_id_mask);
+  else
+     point_idxs = [];
+     point_mask = logical(zeros(size(obj.undo_stack.user_data.frame)));
+     mask = logical(zeros(size(args{2})));
+     for point_path_idx = 1:length(args{2});
+       point_id = args{2}(point_path_idx);
+       point = find(point_id == obj.undo_stack.user_data.point_path_id);
+       if(~isempty(point))
+         point_mask(point_id)=true;
+         mask(point_path_idx)=true;
+         point_idxs(end+1) = point;
+       end
+     end
+     changed_frame = obj.undo_stack.user_data.frame(point_mask);
+     changed_frame_idx = obj.undo_stack.user_data.frame_idxs(point_mask);
+     %% Apply insert
+    obj.eg.layer.y{layer_idx}(changed_frame_idx) = args{3}(mask);
+    obj.eg.layer.type{layer_idx}(changed_frame_idx) = args{4}(mask);
+    obj.eg.layer.qual{layer_idx}(changed_frame_idx) = args{5}(mask);
   end
-end
-
-%% Apply insert
-obj.eg.layer.y{layer_idx}(point_idxs) = args{3}(point_id_mask);
-obj.eg.layer.type{layer_idx}(point_idxs) = args{4}(point_id_mask);
-obj.eg.layer.qual{layer_idx}(point_idxs) = args{5}(point_id_mask);
 
 %% Convert units from twtt to current units
 yaxis_choice = get(obj.left_panel.yaxisPM,'Value');
 if yaxis_choice == 1 % TWTT
-  obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = obj.eg.layer.y{layer_idx}(point_idxs) * 1e6;
+  if strcmpi(obj.eg.LayerSource,'OPS')
+    obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = obj.eg.layer.y{layer_idx}(point_idxs) * 1e6;
+  else
+    obj.eg.layer.y_curUnit{layer_idx}(changed_frame_idx) = obj.eg.layer.y{layer_idx}(changed_frame_idx) * 1e6;
+  end
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
   physical_constants;
@@ -136,12 +160,27 @@ if isempty(layer_idx)
 end
 
 %% Determine which point indices need to be updated
-point_idxs = find(obj.eg.layer.x{layer_idx} > args{2}(1) & obj.eg.layer.x{layer_idx} < args{2}(2) ...
-  & obj.eg.layer.y{layer_idx} > args{2}(3) & obj.eg.layer.y{layer_idx} < args{2}(4));
+if strcmpi(obj.eg.LayerSource,'OPS')
+  point_idxs = find(obj.eg.layer.x{layer_idx} > args{2}(1) & obj.eg.layer.x{layer_idx} < args{2}(2) ...
+    & obj.eg.layer.y{layer_idx} > args{2}(3) & obj.eg.layer.y{layer_idx} < args{2}(4));
 
-obj.eg.layer.y{layer_idx}(point_idxs) = NaN;
-obj.eg.layer.qual{layer_idx}(point_idxs) = 1;
-obj.eg.layer.type{layer_idx}(point_idxs) = 1;
-obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = NaN;
+  obj.eg.layer.y{layer_idx}(point_idxs) = NaN;
+  obj.eg.layer.qual{layer_idx}(point_idxs) = 1;
+  obj.eg.layer.type{layer_idx}(point_idxs) = 1;
+  obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = NaN;
+else
+  point_mask = logical(zeros(size(obj.undo_stack.user_data.frame)));
+  point_idxs = find(obj.undo_stack.user_data.point_path_id >= args{3}(1) & obj.undo_stack.user_data.point_path_id <= args{3}(2) ...
+    & obj.eg.layer.y{layer_idx} > args{2}(3) & obj.eg.layer.y{layer_idx} < args{2}(4));
+  point = obj.undo_stack.user_data.point_path_id(point_idxs);
+  point_mask(point)=true;
+  %frames_changed = undo_stack.user_data.frame(point_mask);
+  %frms_changed = unique(frames_changed);
+  changed_frame_idx = obj.undo_stack.user_data.frame_idxs(point_mask);
+  obj.eg.layer.y{layer_idx}(point_idxs) = NaN;
+  obj.eg.layer.qual{layer_idx}(point_idxs) = 1;
+  obj.eg.layer.type{layer_idx}(point_idxs) = 1;
+  obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = NaN;
+end
 
 end

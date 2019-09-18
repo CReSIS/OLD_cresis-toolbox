@@ -3,7 +3,7 @@
 % Loads the "post" worksheet from the parameter spreadsheet and then calls
 % create_posting with this information.
 %
-% Authors: Theresa Stumpf, John Paden
+% Authors: Theresa Stumpf, John Paden, Reece Mathews
 %
 % See also: create_posting.m
 
@@ -76,5 +76,3 @@ if concatenate_csv_kml
   end
   run_concatenate_thickness_files(csv_base_dir,kml_base_dir,param);
 end
-
-return;

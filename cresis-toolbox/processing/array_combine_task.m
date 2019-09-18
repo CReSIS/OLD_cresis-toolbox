@@ -24,7 +24,6 @@ function success = array_combine_task(param)
 % See also: run_master.m, master.m, run_array.m, array.m, load_sar_data.m,
 % array_proc.m, array_task.m, array_combine_task.m
 
-
 %% Setup processing
 % =====================================================================
 
@@ -58,7 +57,7 @@ for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
   if ct_proc_frame(frames.proc_mode(frm),param.array.frm_types)
-    fprintf('array_combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    fprintf('array_combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
@@ -97,11 +96,46 @@ for frm_idx = 1:length(param.cmd.frms);
     Surface = [];
     Bottom = [];
     Data = [];
-    Topography = [];
+    Tomo = [];
     for chunk_idx = 1:num_chunks
       array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
       tmp = load(array_fn);
-      Time = tmp.Time;
+      
+      if length(tmp.Time) == 1
+        % Force length==1 in fast time to just be empty to simplify data
+        % handling later. The idea is that a length 1 range line is useless
+        % anyway so we might as well simplify things by making it zero length.
+        tmp.Time = [];
+        tmp.Data = tmp.Data([],:);
+      end
+      time_vector_changed = false;
+      if chunk_idx == 1
+        Time = tmp.Time;
+      elseif any(size(Time) ~= size(tmp.Time)) || any(Time ~= tmp.Time)
+        % Determine the new time axis
+        %   Note that even though time axis is aligned with multiples of
+        %   dt, there will be rounding errors which need to be dealt with
+        %   here.
+        time_vector_changed = true;
+        if isempty(Time)
+          Time = tmp.Time;
+          start_time_diff = size(Time,1);
+          end_time_diff = 0;
+        elseif isempty(tmp.Time)
+          start_time_diff = -size(Time,1);
+          end_time_diff = 0;
+        else
+          dt = Time(2) - Time(1);
+          start_time_diff = round((Time(1) - tmp.Time(1))/dt);
+          end_time_diff = round((tmp.Time(end) - Time(end))/dt);
+          if start_time_diff > 0
+            Time = [Time(1)+dt*(-start_time_diff:-1)'; Time];
+          end
+          if end_time_diff > 0
+            Time = [Time; Time(end)+dt*(1:end_time_diff)'];
+          end
+        end
+      end
       Latitude = [Latitude double(tmp.Latitude)];
       Longitude = [Longitude double(tmp.Longitude)];
       Elevation = [Elevation double(tmp.Elevation)];
@@ -111,7 +145,12 @@ for frm_idx = 1:length(param.cmd.frms);
       GPS_time = [GPS_time tmp.GPS_time];
       Surface = [Surface double(tmp.Surface)];
       Bottom = [Bottom double(tmp.Bottom)];
-      Data = [Data tmp.Data];
+      if time_vector_changed
+        Data = [[zeros(start_time_diff,size(Data,2)); Data; zeros(end_time_diff,size(Data,2))], ...
+          [zeros(-start_time_diff,size(tmp.Data,2)); tmp.Data; zeros(-end_time_diff,size(tmp.Data,2))]];
+      else
+        Data = [Data tmp.Data];
+      end
       param_records = tmp.param_records;
       param_sar = tmp.param_sar;
       if chunk_idx == 1
@@ -127,20 +166,23 @@ for frm_idx = 1:length(param.cmd.frms);
         param_array.array_proc.fcs{1}{1}.z = [param_array.array_proc.fcs{1}{1}.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs{1}{1}.origin = [param_array.array_proc.fcs{1}{1}.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
       end
-      if isfield(tmp,'Topography')
+      if isfield(tmp,'Tomo')
         %         3D-surface is present so concatenate it too
-        %         Topography = cat(3,Topography,tmp.Topography);
-        %         Concatenate all the fields under struct Topography: valR, bins, val, freq
+        %         Tomo = cat(3,Tomo,tmp.Tomo);
+        %         Concatenate all the fields under struct Tomo: valR, bins, val, freq
         %         and img.
-        fields = fieldnames(tmp.Topography);
+        if time_vector_changed
+          error('Support for chunks with different time vectors not added yet.');
+        end
+        fields = fieldnames(tmp.Tomo);
         if chunk_idx == 1
           for field_idx = 1:length(fields)
-            Topography.(fields{field_idx}) = tmp.Topography.(fields{field_idx});
+            Tomo.(fields{field_idx}) = tmp.Tomo.(fields{field_idx});
           end
         else
           for field_idx = 1:length(fields)
-            max_dim = length(size(tmp.Topography.(fields{field_idx})));
-            Topography.(fields{field_idx}) = cat(max_dim,Topography.(fields{field_idx}),tmp.Topography.(fields{field_idx}));
+            max_dim = length(size(tmp.Tomo.(fields{field_idx})));
+            Tomo.(fields{field_idx}) = cat(max_dim,Tomo.(fields{field_idx}),tmp.Tomo.(fields{field_idx}));
           end
         end
         
@@ -163,7 +205,7 @@ for frm_idx = 1:length(param.cmd.frms);
       file_version = '1';
     end
     Data = single(Data);
-    if isempty(Topography)
+    if isempty(Tomo)
       % Do not save 3D surface
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','GPS_time','Data','Surface','Bottom', ...
@@ -171,7 +213,7 @@ for frm_idx = 1:length(param.cmd.frms);
         'Roll', 'Pitch', 'Heading','file_version');
     else
       % Save 3D surface
-      save('-v7.3',out_fn,'Topography','Time','Latitude', ...
+      save('-v7.3',out_fn,'Tomo','Time','Latitude', ...
         'Longitude','Elevation','GPS_time','Data','Surface','Bottom', ...
         'param_array','param_records','param_sar', ...
         'Roll', 'Pitch', 'Heading','file_version');
@@ -180,31 +222,28 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Delete temporary files now that all combined files are created
   if 0 % HACK: NEED TO REMOVE THE "if 0"
-  for img = 1:length(param.array.imgs)
-    % Determine where breaks in processing blocks are going to occur
-    for chunk_idx = 1:num_chunks
-      array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
-      delete(array_fn);
+    for img = 1:length(param.array.imgs)
+      % Determine where breaks in processing blocks are going to occur
+      for chunk_idx = 1:num_chunks
+        array_fn = fullfile(array_fn_dir, sprintf('img_%02d_chk_%03d.mat', img, chunk_idx));
+        delete(array_fn);
+      end
+    end
+    % Attempt to remove METHOD_FFF directory since it is no longer
+    % needed.
+    try
+      rmdir(array_fn_dir);
     end
   end
-  % Attempt to remove METHOD_FFF directory since it is no longer
-  % needed.
-  try
-    rmdir(array_fn_dir);
-  end
-  end  
   
   %% Combine images
-  if isempty(param.array.img_comb)
-    % No image combining is required
+  [output_dir,radar_type] = ct_output_dir(param.radar_name);
+  if isempty(param.array.img_comb) && strcmpi(radar_type,'deramp')
     continue;
   end
-  
-  if length(param.array.img_comb) ~= 3*(length(param.array.imgs)-1)
-    warning('param.array.img_comb not the right length. There should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
-    keyboard
-  end
-  
+
+  % Combine images into a single image and/or trim invalid times with
+  % img_comb_trim
   img_combine_param = param;
   img_combine_param.load.frm = frm;
   surf_layer.gps_time = GPS_time;
@@ -216,17 +255,27 @@ for frm_idx = 1:length(param.cmd.frms);
     % A combined file should be created
     out_fn = fullfile(array_out_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));
+    fprintf('  Writing output to %s\n', out_fn);
+    % Note that image combining here never includes "Tomo" variable. Use
+    % tomo.run_collate.m to create the combined image with the "Tomo" variable.
+    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      'Elevation','GPS_time','Data','Surface','Bottom', ...
+      'param_array','param_records','param_sar', ...
+      'Roll', 'Pitch', 'Heading','file_version');
   else
     % Store the result in img 1 since a combined file is not created
     img = 1;
     out_fn = fullfile(array_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
       img, param.day_seg, frm));
+    fprintf('  Writing output to %s\n', out_fn);
+    if isempty(Tomo)
+    else
+    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      'Elevation','GPS_time','Data','Surface','Bottom', ...
+      'param_array','param_records','param_sar', ...
+      'Roll', 'Pitch', 'Heading','file_version');
+    end
   end
-  fprintf('  Writing output to %s\n', out_fn);
-  save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-    'Elevation','GPS_time','Data','Surface','Bottom', ...
-    'param_array','param_records','param_sar', ...
-    'Roll', 'Pitch', 'Heading','file_version');
 end
 
 fprintf('%s done %s\n', mfilename, datestr(now));

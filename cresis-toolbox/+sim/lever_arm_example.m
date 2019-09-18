@@ -23,6 +23,29 @@ function [phase_center] = lever_arm_example(param, tx_weights, rx_paths, ds)
 %
 % Author: John Paden, Theresa Stumpf
 
+%% Input checks
+% =========================================================================
+
+if ~exist('param') || isempty(param)
+  param = [];
+end
+
+if ~isfield(param,'method') || isempty(param.method)
+  param.method = 'ula';
+end
+
+switch (param.method)
+  case 'ula'
+    
+  case 'lut'
+    
+  otherwise
+    error('Unsupported param.method.');
+end
+
+%% Uniform linear array of isotropic elements
+% =========================================================================
+
 % Specify array positions
 Nc = length(rx_paths);
 physical_constants;
@@ -35,7 +58,6 @@ LAtx(1,1:Nc_tx) = ds(1) * (-(Nc_tx-1)/2 : (Nc_tx-1)/2);
 LAtx(2,1:Nc_tx) = ds(2) * (-(Nc_tx-1)/2 : (Nc_tx-1)/2);
 LAtx(3,1:Nc_tx) = ds(3) * (-(Nc_tx-1)/2 : (Nc_tx-1)/2);
 
-% =========================================================================
 %% Compute Phase Centers
 % =========================================================================
 

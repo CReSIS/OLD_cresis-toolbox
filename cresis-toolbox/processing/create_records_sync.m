@@ -148,11 +148,57 @@ if any(param.records.file.version == [9 10 103 412])
   records.raw.profile_cntr_latch = interp_finite(records.raw.profile_cntr_latch);
   records.raw.rel_time_cntr_latch = interp_finite(records.raw.rel_time_cntr_latch);
 
+  rel_time_cntr_latch = records.raw.rel_time_cntr_latch;
+  clf(h_fig);
+  h_axes = axes('parent',h_fig);
+  h_plot = plot(h_axes, diff(rel_time_cntr_latch));
+  grid(h_axes,'on');
+  title(h_axes,sprintf('%s:\nAll values should be greater than 0.', [param.day_seg(1:8) '\' param.day_seg(9:end)]));
+  ylabel(h_axes,'diff(rel\_time\_cntr\_latch)');
+  xlabel(h_axes,'Record');
+  hold(h_axes,'on');
+  if any(diff(rel_time_cntr_latch) <= 0)
+    warning('rel_time_cntr_latch should be monotonically increasing, but there are some records that are not. Applying simple fix that may not be correct.');
+    % Initial point before decrease is often the problem, so remove this
+    % first
+    bad_mask = diff(rel_time_cntr_latch) < 0;
+    bas_mask(1) = false;
+    rel_time_cntr_latch(bad_mask) = NaN;
+    rel_time_cntr_latch = interp_finite(rel_time_cntr_latch,NaN);
+    % Now remove any remaining negative time jumps
+    last_idx = 1;
+    for idx = 2:length(rel_time_cntr_latch)
+      if rel_time_cntr_latch(idx) < rel_time_cntr_latch(last_idx)
+        rel_time_cntr_latch(idx) = NaN;
+      else
+        last_idx = idx;
+      end
+    end
+    rel_time_cntr_latch = interp_finite(rel_time_cntr_latch,NaN);
+    % Plot corrected time
+    h_plot(2) = plot(h_axes, diff(rel_time_cntr_latch));
+    legend(h_plot,{'Bad','Corrected'});
+  end
+  fig_fn = [ct_filename_ct_tmp(param,'','create_records','rel_time_cntr_latch') '.jpg'];
+  fprintf('Saving %s\n', fig_fn);
+  fig_fn_dir = fileparts(fig_fn);
+  if ~exist(fig_fn_dir,'dir')
+    mkdir(fig_fn_dir);
+  end
+  ct_saveas(h_fig(1),fig_fn);
+  fig_fn = [ct_filename_ct_tmp(param,'','create_records','rel_time_cntr_latch') '.fig'];
+  fprintf('Saving %s\n', fig_fn);
+  ct_saveas(h_fig(1),fig_fn);
+  
   % radar_time = double(records.raw.pps_cntr_latch) ...
   %   + double(records.raw.pps_ftime_cntr_latch)/param.records.file.clk;
-  radar_time = double(records.raw.rel_time_cntr_latch)/param.records.file.clk;
+  radar_time = double(rel_time_cntr_latch)/param.records.file.clk;
   comp_time = [];
 
+elseif any(param.records.file.version == [413 414])
+  %% Align/UTUA RDS: Nothing required
+  %% Align/BAS RDS: Nothing required
+  
 else
   %% Align/CReSIS: Create output EPRI vector
   min_epri = inf;
@@ -252,6 +298,7 @@ end
 %% Correct radar time with EPRI
 % ===================================================================
 if any(param.records.file.version == [9 10 103 412])
+  %% Radar time: Arena
   epri_time = epri/param.radar.prf;
   radar_time_error = epri_time - radar_time;
   epri_time = epri_time - median(radar_time_error);
@@ -278,7 +325,15 @@ if any(param.records.file.version == [9 10 103 412])
   
   radar_time(bad_idxs) = epri_time(bad_idxs);
   
-elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 101 403 407 408])
+elseif any(param.records.file.version == [413 414])
+  %% Radar time: UTUA RDS
+  % Nothing to be done
+  board_idx = 1;
+  radar_time = board_hdrs{board_idx}.gps_time;
+  comp_time = [];
+  
+elseif any(param.records.file.version == [1 2 3 4 5 6 7 8 11 101 403 407 408])
+  %% Radar time: CReSIS
  
   if 0
     % Test sequences
@@ -430,7 +485,7 @@ records.param_records = param;
 
 fprintf('Saving records file %s (%s)\n',records_fn,datestr(now));
 ct_file_lock_check(records_fn,3);
-save(records_fn,'-v7.3','-struct','records');
+ct_save(records_fn,'-v7.3','-struct','records');
 
 %% Create record aux files for faster loading times
 % =====================================================================

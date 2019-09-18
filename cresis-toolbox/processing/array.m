@@ -48,6 +48,10 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
+if ~isfield(param.array,'imgs') || isempty(param.array.imgs)
+  param.array.imgs = {[1 1]};
+end
+
 % Remove frames that do not exist from param.cmd.frms list
 load(ct_filename_support(param,'','frames')); % Load "frames" variable
 if ~isfield(param.cmd,'frms') || isempty(param.cmd.frms)
@@ -77,6 +81,9 @@ end
 if ~isfield(param,'sar') || isempty(param.sar)
   param.sar = [];
 end
+if ~isfield(param.sar,'imgs') || isempty(param.sar.imgs)
+  param.sar.imgs = {[1 1]};
+end
 if ~isfield(param.sar,'sigma_x') || isempty(param.sar.sigma_x)
   error('The param.sar.sigma_x field must be set to calculate cpu time and memory requirements.');
 end
@@ -94,6 +101,10 @@ end
 
 if ~isfield(param.array,'frm_types') || isempty(param.array.frm_types)
   param.array.frm_types = {-1,-1,-1,-1,-1};
+end
+
+if ~isfield(param.array,'img_comb') || isempty(param.array.img_comb)
+  param.array.img_comb = [];
 end
 
 if ~isfield(param.array,'in_path') || isempty(param.array.in_path)
@@ -153,7 +164,7 @@ end
 % Never check for the existence of layers
 param.array.surf_layer.existence_check = false;
 
-% param.array.* fields used by array_proc.m
+% Input check param.array.* fields used by array_proc.m
 % -------------------------------------------------------------------------
 param = array_proc(param);
 
@@ -194,33 +205,41 @@ param.radar.wfs = merge_structs(param.radar.wfs,wfs);
 ctrl = cluster_new_batch(param);
 cluster_compile({'array_task.m','array_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
-total_num_sam = zeros(size(param.array.imgs));
-total_num_sam_combine = zeros(size(param.array.imgs));
-if param.array.three_dim.en
+total_num_sam_input = zeros(size(param.array.imgs));
+total_num_sam_output = zeros(size(param.array.imgs));
+if param.array.tomo_en
   Nsv = param.array.Nsv;
 else
   Nsv = 1;
 end
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
-    total_num_sam_combine(img) = total_num_sam_combine(img) + wfs(wf).Nt_pc/param.array.dbin*Nsv;
+    % Fast time sample/dbin * # steering vectors
+    total_num_sam_output(img) = total_num_sam_output(img) + wfs(wf).Nt/param.array.dbin*Nsv;
     for ml_idx = 1:length(param.array.imgs{img})
       wf = param.array.imgs{img}{ml_idx}(1,1);
-      total_num_sam(img) = total_num_sam(img) + wfs(wf).Nt_pc/param.array.dbin ...
+      % Fast time sample * # wf-adc pairs in multilook * # subapertures
+      total_num_sam_input(img) = total_num_sam_input(img) + wfs(wf).Nt ...
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
-  cpu_time_mult = 3e-6;
-  mem_mult = 16;
+  cpu_time_mult = 6e-6;
+  mem_mult = 32;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
+  estimated_num_sam = 32000;
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
-    total_num_sam(img) = 32000;
+    total_num_sam_output(img) = total_num_sam_output(img) + estimated_num_sam/param.array.dbin*Nsv;
+    for ml_idx = 1:length(param.array.imgs{img})
+      wf = param.array.imgs{img}{ml_idx}(1,1);
+      total_num_sam_input(img) = total_num_sam_input(img) + estimated_num_sam ...
+        * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
+    end
   end
-  cpu_time_mult = 8e-8;
-  mem_mult = 64;
+  cpu_time_mult = 4e-6;
+  mem_mult = 32;
   
 else
   error('radar_name %s not supported yet.', radar_name);
@@ -228,16 +247,22 @@ else
 end
 
 array_proc_methods; % This script assigns the integer values for each method
-switch (param.array.method)
-  case STANDARD_METHOD
-  case MVDR_METHOD
-    cpu_time_mult = cpu_time_mult*4;
-  case MUSIC_METHOD
-    cpu_time_mult = cpu_time_mult*4;
-  case MLE_METHOD
-    cpu_time_mult = cpu_time_mult*480;
+cpu_time_method_mult = 0;
+for method_idx = 1:length(param.array.method)
+  switch (param.array.method(method_idx))
+    case STANDARD_METHOD
+      cpu_time_method_mult = cpu_time_method_mult + 1;
+    case MVDR_METHOD
+      cpu_time_method_mult = cpu_time_method_mult + 4;
+    case MUSIC_METHOD
+      cpu_time_method_mult = cpu_time_method_mult + 6;
+    case MLE_METHOD
+      cpu_time_method_mult = cpu_time_method_mult + 480;
+    otherwise
+      cpu_time_method_mult = cpu_time_method_mult + 1;
+  end
 end
-
+cpu_time_mult = cpu_time_mult * cpu_time_method_mult;
 %% Loop through all the frame directories and process the SAR chunks
 % =====================================================================
 sparam.argsin{1} = param; % Static parameters
@@ -336,15 +361,15 @@ for frm_idx = 1:length(param.cmd.frms);
     % =================================================================
     
     % CPU Time and Memory estimates:
-    %  Nx*total_num_sam*K where K is some manually determined multiplier.
+    %  Nx*total_num_sam_input*K where K is some manually determined multiplier.
     Nx = round(frm_dist / num_chunks / param.sar.sigma_x);
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.array.imgs)
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*cpu_time_mult;
       % Take the max of the input data size and the output data size
-      dparam.mem = max(dparam.mem,250e6 + max( Nx*total_num_sam(img)*mem_mult, ...
-        Nx/param.array.dline*total_num_sam_combine(img)*mem_mult ));
+      dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam_input(img)*mem_mult ...
+        + Nx/param.array.dline*total_num_sam_output(img)*mem_mult );
     end
     
     ctrl = cluster_new_task(ctrl,sparam,dparam,'dparam_save',0);
@@ -361,13 +386,13 @@ ctrl_chain = {ctrl};
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','seaice','accum2'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcrds','rds','seaice','accum2','accum3'}))
   cpu_time_mult = 1e-6;
-  mem_mult = 8;
+  mem_mult = 16;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
-  cpu_time_mult = 100e-8;
-  mem_mult = 24;
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
+  cpu_time_mult = 1e-6;
+  mem_mult = 32;
 end
 
 sparam = [];
@@ -394,14 +419,15 @@ for frm = param.cmd.frms
   Nx = Nx + Nx_frm;
 end
 % Account for averaging
+records_var = whos('records');
 for img = 1:length(param.array.imgs)
-  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_combine(img)*cpu_time_mult) * (1 + (Nsv-1)*0.2);
+  sparam.cpu_time = sparam.cpu_time + (Nx*total_num_sam_output(img)/Nsv*cpu_time_mult) * (1 + (Nsv-1)*0.2);
   if isempty(param.array.img_comb)
     % Individual images, so need enough memory to hold the largest image
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*total_num_sam_combine(img)*mem_mult);
+    sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*total_num_sam_output(img)*mem_mult);
   else
     % Images combined into one so need enough memory to hold all images
-    sparam.mem = max(sparam.mem,250e6 + Nx_max*sum(total_num_sam_combine)*mem_mult);
+    sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*sum(total_num_sam_output)*mem_mult);
   end
 end
 sparam.notes = sprintf('%s:%s:%s %s combine frames', ...

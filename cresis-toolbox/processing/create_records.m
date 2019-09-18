@@ -46,7 +46,7 @@ fprintf('=====================================================================\n
 % boards: List of subdirectories containing the files for each board (a
 % board is a data stream stored to disk and often contains the data stream
 % from multiple ADCs)
-if any(param.records.file.version == [1:5 8 101:102 405:406 409:411])
+if any(param.records.file.version == [1:5 8 11 101:102 405:406 409:411 413 414])
   if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
     % Assume a single channel system
     param.records.file.boards = {''};
@@ -77,6 +77,9 @@ end
 if ~isfield(param.records.gps,'en') || isempty(param.records.gps.en)
   % Assume that GPS synchronization is enabled
   param.records.gps.en = true;
+end
+if ~isfield(param.records.gps,'time_offset') || isempty(param.records.gps.time_offset)
+  param.records.gps.time_offset = 0;
 end
 
 if ~isfield(param.records,'presum_mode') || isempty(param.records.presum_mode)
@@ -118,6 +121,12 @@ if ~exist(command_window_out_fn_dir,'dir')
 end
 diary(command_window_out_fn);
 
+
+if any(param.records.file.version == [9 10 103 412])
+  % Arena based systems
+  h_fig = get_figures(1,true);
+end
+
 %% Load headers from each board
 % =====================================================================
 clear board_hdrs;
@@ -149,6 +158,11 @@ for board_idx = 1:length(boards)
     board_hdrs{board_idx}.profile_cntr_latch = zeros([0 0],'double'); % PRI counter
     board_hdrs{board_idx}.rel_time_cntr_latch = zeros([0 0],'double'); % 10 MHz counts counter
     cur_idx = 0;
+    
+  elseif any(param.records.file.version == [413 414])
+    board_hdrs{board_idx}.gps_time = zeros([0 0],'double');
+    board_hdrs{board_idx}.file_idx = zeros([0 0],'int32');
+    board_hdrs{board_idx}.offset = zeros([0 0],'int32');
     
   else
     % NI, Rink, Paden, Leuschen, and Ledford systems
@@ -193,7 +207,11 @@ for board_idx = 1:length(boards)
     % Load temporary files
     tmp_hdr_fn = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
       fullfile(adc_folder_name, [fn_name '.mat']));
-    hdr_tmp = load(tmp_hdr_fn);
+    if any(param.records.file.version == [413 414])
+      hdr_tmp = load(tmp_hdr_fn,'gps_time','wfs');
+    else
+      hdr_tmp = load(tmp_hdr_fn);
+    end
     
     %% Concatenate all the fields together
     %  - Note that all fields from the file should have the same hdr_tmp
@@ -218,6 +236,12 @@ for board_idx = 1:length(boards)
       
       cur_idx = cur_idx + length(hdr_tmp.mode_latch);
       
+    elseif any(param.records.file.version == [413 414])
+      board_hdrs{board_idx}.gps_time(end+1:end+length(hdr_tmp.gps_time)) = hdr_tmp.gps_time;
+      board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.gps_time)) = file_num;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.gps_time)) = 1:length(hdr_tmp.gps_time);
+      wfs = hdr_tmp.wfs;
+      
     else
       % NI, Rink, Paden, Leuschen, and Ledford systems
       if isempty(hdr_tmp.seconds)
@@ -231,7 +255,7 @@ for board_idx = 1:length(boards)
       board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.seconds)) = file_num;
       board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.seconds)) = int32(hdr_tmp.offset);
       
-      if any(param.records.file.version == [1:8 102 401:404 407:408])
+      if any(param.records.file.version == [1:8 11 102 401:404 407:408])
         % Ledford, Rink and NI systems have EPRI field
         board_hdrs{board_idx}.epri(end+1:end+length(hdr_tmp.seconds)) = hdr_tmp.epri;
       end
@@ -246,7 +270,6 @@ for board_idx = 1:length(boards)
       % Create records and file numbers
       records.relative_rec_num{board_idx}(file_idx+1) = length(hdr_tmp.seconds)+records.relative_rec_num{board_idx}(file_idx);
       [fn_dir fn_name fn_ext] = fileparts(fn);
-      records.relative_filename{board_idx}{file_idx} = [fn_name fn_ext];
       
       % Handle records that span two files
       if file_idx ~= length(file_idxs)
@@ -262,7 +285,7 @@ for board_idx = 1:length(boards)
         % Drop the last record of the last file since it is generally not a
         % complete record and there is no additional file to load which
         % contains the remainder of the record.
-        if any(param.records.file.version == [1:8 102 401:404 407:408])
+        if any(param.records.file.version == [1:8 11 102 401:404 407:408])
           board_hdrs{board_idx}.epri = board_hdrs{board_idx}.epri(1:end-1);
         end
         if param.records.file.version == 8
@@ -443,6 +466,10 @@ if any(param.records.file.version == [9 10 103 412])
     end
   end
 
+elseif any(param.records.file.version == [413 414])
+  % UTUA RDS systems
+  % BAS RDS systems
+  
 else
   % NI, Rink, Paden, Leuschen, and Ledford systems
 

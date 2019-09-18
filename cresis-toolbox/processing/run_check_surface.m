@@ -9,31 +9,15 @@
 %% User Settings
 param_override = [];
 
-% params = read_param_xls(ct_filename_param('snow_param_2009_Greenland_P3.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2009_Antarctica_DC8.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_DC8.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2010_Greenland_P3.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2010_Antarctica_DC8.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2011_Antarctica_DC8.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2011_Greenland_P3.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2012_Antarctica_DC8.xls'));
-% params = ct_set_params(params,'radar.wfs(1).nz_valid',[0 1]);
-
-% params = read_param_xls(ct_filename_param('snow_param_2012_Greenland_P3.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2015_Greenland_Polar6.xls'));
-% params = read_param_xls(ct_filename_param('snow_param_2016_Antarctica_DC8.xls'));
-params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'));
-params = ct_set_params(params,'radar.nz_valid',[0 1 2 3]);
+params = read_param_xls(ct_filename_param('snow_param_2017_Arctic_Polar5.xls'));
 
 % params.cmd.generic=1;
-params = ct_set_params(params,'cmd.generic',1);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20170324_02');
+params = ct_set_params(params,'cmd.generic',0);
+params = ct_set_params(params,'cmd.generic',1,'day_seg','20170410_01');
 % params = ct_set_params(params,'cmd.generic',1,'cmd.mission_names','^sea.*');
 % params = ct_set_params(params,'cmd.generic',1,'cmd.mission_names','(?(?!^sea.*)^.*)');
 % params = ct_set_params(params,'cmd.generic',1);
 % params = ct_set_params(params,'cmd.generic',0,'cmd.notes','Do not process');
-
-param_override.check_surface.save_records_en = false;
 
 %% Automated Section
 % =====================================================================

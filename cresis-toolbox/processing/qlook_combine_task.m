@@ -15,19 +15,6 @@ function success = qlook_combine_task(param)
 % See also: run_master.m, master.m, run_qlook.m, qlook.m,
 %   qlook_task.m
 
-%% Input Checks
-% =====================================================================
-
-% Check img_comb
-if numel(param.qlook.imgs) == 1 || isempty(param.qlook.img_comb)
-  num_imgs = 1;
-else
-  num_imgs = length(param.qlook.imgs);
-  if length(param.qlook.img_comb) ~= 3*(num_imgs-1)
-    error('param.qlook.img_comb not the right length. Since it is not empty, there should be 3 entries for each image combination interface ([Tpd second image for surface saturation, -inf for second image blank, Tpd first image to avoid roll off] is typical). Set correctly here and update param spreadsheet before dbcont.');
-  end
-end
-
 %% Setup Processing
 % =====================================================================
 
@@ -213,8 +200,17 @@ for frm_idx = 1:length(param.cmd.frms);
       mkdir(out_dir);
     end
     
+    % Truncate deramp data to nonnegative time if this is going to be the
+    % final combined file
     if (length(param.qlook.imgs) == 1 || (img == 1 && isempty(param.qlook.img_comb))) ...
-      && (param.qlook.surf.en || ~(Time(1) > 0 && strcmpi(radar_type,'deramp')))
+        && Time(1) < 0 && strcmpi(radar_type,'deramp')
+      good_bins = Time>=0;
+      Time = Time(good_bins);
+      Data = Data(good_bins,:);
+    end
+    
+    if (length(param.qlook.imgs) == 1 || (img == 1 && isempty(param.qlook.img_comb))) ...
+      && (param.qlook.surf.en || ~strcmpi(radar_type,'deramp'))
       % Criteria 1: One of the following is true
       % 1. length(param.qlook.imgs) == 1: This is the combined file
       %   Data_YYYYMMDD_SS_FFF which will contain the surface and be time
@@ -251,24 +247,19 @@ for frm_idx = 1:length(param.cmd.frms);
     end
   end
   
-  %% Combine image with previous
-  img_combine_param = param;
-  img_combine_param.load.frm = frm;
-  surf_layer.gps_time = GPS_time;
-  surf_layer.twtt = Surface;
-  [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
-  %% Temporary storage for surface tracker
-  Data_Surface = Data;
-  
+  %% Run ice top tracker to find ice surface
   if param.qlook.surf.en
-    %% Run ice top tracker to find ice surface
+    % Combine image with previous for surface tracking
+    img_combine_param = param;
+    img_combine_param.load.frm = frm;
+    surf_layer.gps_time = GPS_time;
+    surf_layer.twtt = Surface;
+    [Data_Surface, Time_Surface] = img_combine(img_combine_param, 'qlook', surf_layer);
+    
     surf_param = param;
     surf_param.cmd.frms = frm;
-    surf_param.layer_tracker.echogram_source = struct('Data',Data,'Time',Time,'GPS_time',GPS_time,'Latitude',Latitude,'Longitude',Longitude,'Elevation',Elevation);
+    surf_param.layer_tracker.echogram_source = struct('Data',Data_Surface,'Time',Time_Surface,'GPS_time',GPS_time,'Latitude',Latitude,'Longitude',Longitude,'Elevation',Elevation);
     Surface = layer_tracker(surf_param,[]);
-    
-    % Update surf_layer twtt for ice top layer
-    surf_layer.twtt = Surface;
   end
   
   %% Save combined image output
@@ -289,7 +280,7 @@ for frm_idx = 1:length(param.cmd.frms);
   else
     file_version = '1';
   end
-  if isempty(param.qlook.img_comb) && Time(1) > 0 && strcmpi(radar_type,'deramp')
+  if isempty(param.qlook.img_comb) && strcmpi(radar_type,'deramp')
     % There is no image combining and no time trim is necessary
     if param.qlook.surf.en
       % No images were combined, no img_comb_trim needs to be done,
@@ -301,6 +292,10 @@ for frm_idx = 1:length(param.cmd.frms);
   else
     % Combine images into a single image and/or trim invalid times with
     % img_comb_trim
+    img_combine_param = param;
+    img_combine_param.load.frm = frm;
+    surf_layer.gps_time = GPS_time;
+    surf_layer.twtt = Surface;
     [Data, Time] = img_combine(img_combine_param, 'qlook', surf_layer);
     
     if isempty(custom)

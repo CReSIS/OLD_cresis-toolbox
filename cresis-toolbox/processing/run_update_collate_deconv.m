@@ -7,6 +7,8 @@
 %% USER SETTINGS
 % =========================================================================
 
+param_override = [];
+
 params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_spec' 'analysis'});
 
 params = ct_set_params(params,'cmd.generic',0);
@@ -33,11 +35,8 @@ param_override.update_collate_deconv.cmd{end}.idxs = {[1]};
 params = ct_set_params(params,'analysis.cmd{1}.abs_metric',[65 4.5 -25 -35 inf inf]);
 param_override.update_collate_deconv.in_dir = 'analysis';
 
-param_override.update_collate_deconv.gps_time_penalty = 1/(10*24*3600);
-
-param_override.update_collate_deconv.cmd_idx = 1;
-param_override.update_collate_deconv.imgs = 1;
-param_override.update_collate_deconv.wf_adcs = [];
+% param_override.update_collate_deconv.debug_plots = {'final','visible'};
+param_override.update_collate_deconv.debug_plots = {'final'};
 
 %% Automated Section
 % =====================================================================

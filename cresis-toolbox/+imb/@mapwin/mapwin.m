@@ -44,6 +44,15 @@ classdef (HandleCompatible = true) mapwin < handle
     
     curFrame
     param
+    
+    % Google map
+    map_source % map_source: 0 for OPS, 1 for Google
+    map_scale % map_scale: 1e3 (km to meters for OPS), 1 for Google
+    google_map % Stores imp info about the google map obj
+    google_fline_x % Flightlines in world coordinates
+    google_fline_y % Flightlines in world coordinates
+    google_fline_frms % Flightline frame ids (as double)
+    google_fline_season % Flightline season index vector
 
     % Status information for mouse/key board callbacks
     control_pressed
@@ -159,6 +168,7 @@ classdef (HandleCompatible = true) mapwin < handle
     update_vector_layers(obj); % Draws/updates current selection, echowin flightlines, and cursors
     get_map(obj,hObj,event); % Makes original WMS query request
     update_map_selection(obj,param); % Updates the currect flight line selection (from mouse click)
+    [status,data] = google_get_frame_closest(obj, sys, param);
     outside_limits = check_limits(obj,xaxis,yaxis,dir); % Support function for key_press.m pan functions, checks to see if current request is in the map limits
     set_default_params(obj,picker_param_fn); % Set the default parameters loaded from the default preferences file
     [changed,pos] = compute_new_map_limits(obj,new_xdata,new_ydata); % Compute new map axis limits based on new data that must be in view

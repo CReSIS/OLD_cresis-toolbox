@@ -59,15 +59,22 @@ elseif yaxis_choice == 3 % Depth/Range
   end
   
 elseif yaxis_choice == 4 % Range bin
-  args{3} = interp1(obj.eg.image_yaxis,obj.eg.time,...
-    args{3},'linear');
-  
+  %if strcmpi(obj.eg.LayerSource,'OPS')
+    args{3} = interp1(obj.eg.image_yaxis,obj.eg.time,...
+      args{3},'linear');
+  %else
+   % args{3} = obj.undo_stack.user_data.twtt{1}(args{3});
+  %end
 end
 
 % Change layer idxs for layer ids
 args{1} = obj.eg.layers.lyr_id(args{1});
 % Change point idxs for point ids
-args{2} = obj.eg.map_id(args{2});
+if strcmpi(obj.eg.LayerSource,'OPS')
+  args{2} = obj.eg.map_id(args{2});
+else
+  args{2} = obj.undo_stack.user_data.point_path_id(args{2});
+end
 
 end
 
@@ -133,9 +140,16 @@ end
 args{1} = obj.eg.layers.lyr_id(args{1});
 
 % Convert x-axis range units
-args{2}(1:2) = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,args{2}(1:2),'linear','extrap');
+if strcmpi(obj.eg.LayerSource,'OPS')
+  args{2}(1:2) = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,args{2}(1:2),'linear','extrap');
+else
+   %args{2}(1:2) = obj.undo_stack.user_data.layGPS(args{2}(1:2));
+end
 
 % Change point idxs for point ids
-args{3} = obj.eg.map_id(args{3});
-
+if strcmpi(obj.eg.LayerSource,'OPS')
+  args{3} = obj.eg.map_id(args{3});
+else
+  args{3} = obj.undo_stack.user_data.point_path_id(args{3});
+end
 end

@@ -57,7 +57,10 @@ for file_idx = 1:length(in_fns)
   if ischar(in_fn)
     in_fn = {in_fn};
   end
-  if ~exist('sync_flag','var') || ~sync_flag{file_idx}
+  if ~exist('sync_flag','var') || numel(sync_flag) < file_idx
+    sync_flag{file_idx} = 0;
+  end
+  if ~sync_flag{file_idx}
     sync_fn = {};
   else
     if ~exist('sync_fns','var') || file_idx > length(sync_fns)
@@ -79,7 +82,7 @@ for file_idx = 1:length(in_fns)
   fprintf('=====================================================================\n');
   
   %% Load Radar Sync GPS files (mcrds, accum2, arena)
-  if exist('sync_flag','var') && sync_flag{file_idx}
+  if sync_flag{file_idx}
     if isstruct(sync_params{file_idx})
       sync_params{file_idx} = repmat({sync_params{file_idx}},size(sync_fn));
     end
@@ -180,7 +183,9 @@ for file_idx = 1:length(in_fns)
     fprintf('  %s\n', in_fn{in_fn_idx});
     gps_tmp = gps_fh(in_fn{in_fn_idx},params{file_idx}{in_fn_idx});
     
-    gps_tmp = rmfield(gps_tmp,'radar_time');
+    try
+      gps_tmp = rmfield(gps_tmp,'radar_time');
+    end
     
     if in_fn_idx == 1
       gps.gps_time = gps_tmp.gps_time;
@@ -278,7 +283,9 @@ for file_idx = 1:length(in_fns)
         cur_file_type = file_type_ins{file_idx};
       end
       fprintf('  INS file %s\n', in_fns_ins{file_idx}{in_fn_idx});
-      if strcmpi(cur_file_type,'Litton')
+      if strcmpi(cur_file_type,'applanix')
+        ins_tmp = read_gps_applanix(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
+      elseif strcmpi(cur_file_type,'Litton')
         ins_tmp = read_ins_litton(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
       elseif strcmpi(cur_file_type,'Litton_DGPS')
         ins_tmp = read_gps_litton(in_fns_ins{file_idx}{in_fn_idx},params_ins{file_idx}{in_fn_idx});
@@ -401,11 +408,17 @@ for file_idx = 1:length(in_fns)
     ins.roll = interp1(ins.gps_time,ins.roll,new_gps_time);
     ins.pitch = interp1(ins.gps_time,ins.pitch,new_gps_time);
     ins.heading = interp1(ins.gps_time,ins.heading,new_gps_time);
+    if any(gps.lon >180)                 % 2018_Antarctica_DC8 ATM trajectory files
+        gps.lon(gps.lon>180) = gps.lon(gps.lon>180) -360;
+    end
+    interp_idxs = find(ins.gps_time >= gps.gps_time(1) & ins.gps_time <= gps.gps_time(end));
+    ins.lat(interp_idxs) = interp1(gps.gps_time,gps.lat,ins.gps_time(interp_idxs));
+    ins.lon(interp_idxs) = interp1(gps.gps_time,gps.lon,ins.gps_time(interp_idxs));
+    ins.elev(interp_idxs) = interp1(gps.gps_time,gps.elev,ins.gps_time(interp_idxs));
+    ins.lat = interp1(ins.gps_time,ins.lat,new_gps_time);
+    ins.lon = interp1(ins.gps_time,ins.lon,new_gps_time);
+    ins.elev = interp1(ins.gps_time,ins.elev,new_gps_time);
     ins.gps_time = new_gps_time;
-    
-    ins.lat = interp1(gps.gps_time,gps.lat,ins.gps_time);
-    ins.lon = interp1(gps.gps_time,gps.lon,ins.gps_time);
-    ins.elev = interp1(gps.gps_time,gps.elev,ins.gps_time);
     gps = ins;
     
     %% Remove records with NaN
@@ -436,7 +449,8 @@ for file_idx = 1:length(in_fns)
 
   %% Save output file
   fprintf('Output file %s\n', out_fn);
-  if exist('sync_flag','var') && sync_flag{file_idx}
+  gps.file_version = '1';
+  if sync_flag{file_idx}
     % Add the Radar Synchronization variables for mcrds, accum2, acords,
     % arena
     
@@ -451,12 +465,12 @@ for file_idx = 1:length(in_fns)
     end
 
     if isfield(gps,'radar_time')
-      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version');
     else
-      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version');
     end
   else
-    save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');
+    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version');
   end
   
   if debug_level >= 2

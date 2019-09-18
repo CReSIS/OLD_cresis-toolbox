@@ -15,12 +15,15 @@ if param.load.motion_comp
   % delays between each of the elements so that they can be constructively
   % added together.
   for img = 1:length(param.load.imgs)
+    nanmask = isnan(data{img});
+    data{img}(nanmask) = 0;
     data{img} = fft(data{img},[],1);
     for wf_adc = 1:size(param.load.imgs{img},1)
       dtime = (hdr.records{img,wf_adc}.elev-hdr.ref.elev) / (c/2);
       data{img} = data{img} .* exp(1j*2*pi*hdr.freq{img}*dtime);
     end
     data{img} = ifft(data{img},[],1);
+    data{img}(nanmask) = NaN;
   end
 end
 

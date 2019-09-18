@@ -170,13 +170,7 @@ default.qlook.motion_comp = 0;
 default.qlook.dec = 20;
 default.qlook.inc_dec = 10;
 default.qlook.surf.en = 1;
-default.qlook.surf.min_bin = 2e-6;
-default.qlook.surf.method = 'threshold';
-default.qlook.surf.threshold = 17;
-default.qlook.surf.filter_len = 7;
-default.qlook.surf.sidelobe = 17;
-default.qlook.surf.noise_rng = [0 -50 10];
-default.qlook.surf.search_rng = [0:2];
+default.qlook.surf.profile = 'ACCUM';
 
 %% SAR worksheet
 default.sar.out_path = '';
@@ -231,8 +225,10 @@ default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 1.5; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
-default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
-default.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
+% default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
+% default.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
+default.radar.wfs(1).adc_gains_dB = 32.7; % After radiometric calibration
+default.radar.wfs(2).adc_gains_dB = 50.7; % After radiometric calibration
 default.radar.wfs(1).rx_paths = [1]; % ADC to rx path mapping for wf 1
 default.radar.wfs(2).rx_paths = [1]; % ADC to rx path mapping for wf 2
 Tsys = [0]/1e9;
@@ -311,6 +307,26 @@ end
 
 default.config_regexp = '.*deconv.*';
 default.name = 'Deconv Mode 600-900 MHz';
+defaults{end+1} = default;
+
+% Noise Mode
+default.records.data_map = {[2 0 1 1],[2 0 2 1]};
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(1,1),(1:1).'],[2*ones(1,1),(1:1).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.radar.ref_fn = '';
+for wf = 1:2
+  default.radar.wfs(wf).Tsys = Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).adcs = [1];
+  default.radar.wfs(wf).tx_paths = [1];
+end
+
+default.config_regexp = '.*noise.*';
+default.name = 'Noise Mode 600-900 MHz';
 defaults{end+1} = default;
 
 % Loopback Mode

@@ -9,28 +9,42 @@
 
 param_override = [];
 
-% params = read_param_xls(ct_filename_param('rds_param_2016_Greenland_TOdtu.xls'),'','analysis');
-params = read_param_xls(ct_filename_param('snow_param_2017_Greenland_P3.xls'),'',{'analysis_noise','analysis'});
+params = read_param_xls(ct_filename_param('snow_param_2017_Arctic_Polar5.xls'),'',{'analysis_noise','analysis'});
+
+% Enable a specific segment
 params = ct_set_params(params,'cmd.generic',0);
-% params = ct_set_params(params,'cmd.generic',1);
-params = ct_set_params(params,'cmd.generic',1,'day_seg','20170310_01');
-% params = ct_set_params(params,'cmd.generic',1,'cmd.notes','^((?!do not process).)*$');
-% params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+% params = ct_set_params(params,'cmd.generic',1,'day_seg','20170330_01');
 
-% params = ct_set_params(params,'analysis.cmd{1}.method','window');
-% params = ct_set_params(params,'analysis.cmd{1}.Wn',0.008);
+if 1
+  % Near-DC removal
+  param_override.collate_coh_noise.method = 'firdec';
+  param_override.collate_coh_noise.firdec_fcutoff = @(t) 1/30; % Update coherent noise estimate every 30 seconds
+  param_override.collate_coh_noise.firdec_fs = 1/7.5; % Should update about 4 times as often as the estimate: 30/4 = 7.5
+else
+  % DC removal when dft_corr_time set to inf
+  param_override.collate_coh_noise.method = 'dft';
+  param_override.collate_coh_noise.dft_corr_time = inf;
+end
 
-% params = ct_set_params(params,'analysis.cmd{1}.method','custom2');
-% params = ct_set_params(params,'analysis.cmd{1}.Wn',0.016);
+% Threshold: This example combines a -120 dB threshold, threshold
+% estimate+15dB guard, and a coherent noise mask for the feed through.
+%
+% for param_idx = 1:length(params)
+%   param = params(param_idx);
+%   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
+%     continue;
+%   end
+%   for wf = 1:length(params(param_idx).radar.wfs)
+%     params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold = max(min(-120,threshold+15),10*log10(abs(noise.dft(:,1)).^2)+6-1e6*(time>(Tpd+1.2e-6)));';
+%   end
+% end
 
-param_override.collate_coh_noise.in_dir = 'analysis';
-param_override.collate_coh_noise.out_dir = 'analysis';
-param_override.collate_coh_noise.cmd_idx = 1;
-param_override.collate_coh_noise.debug_level = 0; % Set to 1 to view threshold and minimum samples result, set to 2 to also view Doppler plots
-param_override.collate_coh_noise.imgs = 1;
-param_override.collate_coh_noise.wf_adcs = [];
+% param_override.collate_coh_noise.in_path = 'analysis_threshold'; % Enable during second pass if threshold was used.
+% param_override.collate_coh_noise.out_path = 'analysis_threshold'; % Enable during second pass if threshold was used.
 
-param_override.collate_coh_noise.file_lock = false;
+param_override.collate_coh_noise.debug_plots = {'visible','cn_plot','threshold_plot'}; % Debugging
+% param_override.collate_coh_noise.debug_plots = {'cn_plot','threshold_plot'}; % Typical setting when not debugging
+% param_override.collate_coh_noise.debug_plots = {}; % Necessary if plots are too large for memory
 
 %% Automated Section
 % =====================================================================

@@ -15,6 +15,12 @@ obj.default_params.map_name = map_names{get(obj.h_gui.mapsPM,'Value')};
 obj.default_params.flightlines = flightlines{get(obj.h_gui.flightlinesPM,'Value')};
 systems = get(obj.h_gui.systemsLB,'String');
 obj.default_params.system = systems{get(obj.h_gui.systemsLB,'Value')};
+%
+LayerSource = get(obj.h_gui.LayerSourcePM,'String');
+obj.default_params.LayerSource = LayerSource{get(obj.h_gui.LayerSourcePM,'Value')};
+layerDataSource = get(obj.h_gui.layerDataSourcePM,'String');
+obj.default_params.layerDataSource = layerDataSource{get(obj.h_gui.layerDataSourcePM,'Value')};
+%
 obj.default_params.season_names = obj.h_gui.seasons.get_selected_strings();
 obj.default_params.layer_names = obj.h_gui.layers.get_selected_strings();
 
@@ -73,7 +79,12 @@ if all(strcmp(locs{1},locs));
   
   flightlines = get(obj.h_gui.flightlinesPM,'String');
   flightline = flightlines{get(obj.h_gui.flightlinesPM,'Value')};
-  
+   %
+  layerDataSources = get(obj.h_gui.layerDataSourcePM,'String');
+  layerDataSource = layerDataSources{get(obj.h_gui.layerDataSourcePM,'Value')};
+  LayerSources = get(obj.h_gui.LayerSourcePM,'String');
+  LayerSource = LayerSources{get(obj.h_gui.LayerSourcePM,'Value')};
+  %
   % Parse map name from GUI into 'zone:map'
   [obj.settings.mapzone obj.settings.mapname] = strtok(map_name,':');
   obj.settings.mapname = obj.settings.mapname(2:end);
@@ -82,7 +93,10 @@ if all(strcmp(locs{1},locs));
   obj.settings.seasons = selected_seasons;
   obj.settings.layers = selected_layers;
   obj.settings.flightlines = flightline;
-  
+   %
+  obj.settings.layerDataSource = layerDataSource;
+  obj.settings.LayerSource = LayerSource;
+  %
   % Broadcast notice that StateChange event has occurred (plot map)
   notify(obj,'StateChange');
 else

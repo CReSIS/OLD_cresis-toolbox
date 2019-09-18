@@ -37,20 +37,8 @@ if isempty(params) || isempty(params(1).day_seg)
 end
 
 %% Load the generic worksheets if specified
-if exist('generic_ws','var')
-  if ischar(generic_ws)
-    % Legacy support to allow a string to be passed into generic_ws variable.
-    generic_ws = {generic_ws};
-  end
-  for idx = 1:size(generic_ws,1)
-    tmp = read_param_xls_generic(param_fn,generic_ws{idx,1},params);
-    if size(generic_ws,2) > 1
-      % Rename the worksheet variable
-      [params.(generic_ws{idx,2})] = tmp.(generic_ws{idx,1});
-    else
-      params = tmp;
-    end
-  end
+if exist('generic_ws','var') && ~isempty(generic_ws)
+  params = read_param_xls_generic(param_fn, generic_ws, params);
 end
 warning('on','MATLAB:xlsread:Mode');
 

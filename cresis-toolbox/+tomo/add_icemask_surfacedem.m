@@ -13,7 +13,7 @@ function mdata = add_icemask_surfacedem(param, mdata)
 %   mdata: 3D data file struct
 %     .Latitude
 %     .Longitude
-%     .Topography
+%     .Tomo
 %
 % Outputs:
 %   NONE
@@ -23,10 +23,36 @@ function mdata = add_icemask_surfacedem(param, mdata)
 %
 % Author: John Paden, Jordan Sprick, and Mingze Xu
 
+%% If DOA method is used, set doa_method_flag = true
+array_proc_methods; % This script assigns the integer values for each method
+if ischar(param.array.method)
+  % Convert array method string to integer
+  method_integer = [];
+  if regexpi(param.array.method,'music_doa')
+    method_integer(end+1) = MUSIC_DOA_METHOD;
+  end
+  if regexpi(param.array.method,'mle')
+    method_integer(end+1) = MLE_METHOD;
+  end
+  if regexpi(param.array.method,'dcm')
+    method_integer(end+1) = DCM_METHOD;
+  end
+%   if regexpi(param.array.method,'pf')
+%     method_integer(end+1) = PF_METHOD;
+%   end
+end
+method_integer = intersect(method_integer, ...
+  [MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD PF_METHOD], 'stable');
+if ~isempty(method_integer)
+  doa_method_flag = true;
+else
+  doa_method_flag = false;
+end
+
 %% Load Geotiff and Ice Mask
 dem_res = 10;
 global gdem;
-if isempty(gdem) || ~ishandle(gdem) || ~isvalid(gdem)
+if isempty(gdem) || ~isa(gdem,'dem_class') || ~isvalid(gdem)
   gdem = dem_class(param,dem_res);
 end
 gdem.set_res(dem_res);
@@ -97,16 +123,28 @@ DEM_y_mesh= repmat(DEM_y,[1 size(DEM,2)]);
 %% First slice
 Nx = length(mdata.GPS_time);
 
-theta = mdata.param_array.array_param.theta;
-if ~isempty(sv_cal_fn)
-  theta_cal = load(sv_cal_fn);
-  theta = interp1(theta_cal.theta_original, theta_cal.theta, theta, 'linear', 'extrap');
-  theta_cal = theta;
+if ~doa_method_flag
+  theta = mdata.Tomo.theta(:,1); % Theta is constant in each column
+  if ~isempty(sv_cal_fn)
+    theta_cal = load(sv_cal_fn);
+    theta = interp1(theta_cal.theta_original, theta_cal.theta, theta, 'linear', 'extrap');
+    theta_cal = theta;
+  end
+  Nsv = length(theta(:)); 
+  twtt = zeros(Nsv,Nx);
+  ice_mask = ones(Nsv,Nx);
+else 
+  theta = mdata.Tomo.theta;
+  max_Nsv = zeros(Nx,1);
+  for Nx_idx = 1:Nx
+    theta_tmp = theta(:,:,Nx_idx);
+    theta_tmp = theta_tmp(~isnan(theta_tmp));
+    max_Nsv(Nx_idx) = length(theta_tmp);
+  end
+  Nsv = max(max_Nsv); 
+  twtt = zeros(Nsv,Nx);
+  ice_mask = ones(Nsv,Nx);
 end
-
-Nsv = length(theta);
-twtt = zeros(Nsv,Nx);
-ice_mask = ones(Nsv,Nx);
 
 if all(all(isnan(DEM)))
   warning('Input DEM contains all NaN data for Frame %d.',param.proc.frm);
@@ -142,12 +180,12 @@ for rline = 1:Nx
   physical_constants;
   [DEM_ecef_x,DEM_ecef_y,DEM_ecef_z] = geodetic2ecef(single(DEM_lat)/180*pi,single(DEM_lon)/180*pi,single(DEM_elev),WGS84.ellipsoid);
   
-  origin = mdata.param_array.array_param.fcs{1}{1}.origin(:,rline);
+  origin = mdata.param_array.array_proc.fcs{1}{1}.origin(:,rline);
   
   % Convert from ECEF to FCS/SAR
-  Tfcs_ecef = [mdata.param_array.array_param.fcs{1}{1}.x(:,rline), ...
-    mdata.param_array.array_param.fcs{1}{1}.y(:,rline), ...
-    mdata.param_array.array_param.fcs{1}{1}.z(:,rline)];
+  Tfcs_ecef = [mdata.param_array.array_proc.fcs{1}{1}.x(:,rline), ...
+    mdata.param_array.array_proc.fcs{1}{1}.y(:,rline), ...
+    mdata.param_array.array_proc.fcs{1}{1}.z(:,rline)];
   Tecef_fcs = inv(Tfcs_ecef);
   
   tmp = Tecef_fcs * [DEM_ecef_x.'-origin(1); DEM_ecef_y.'-origin(2); DEM_ecef_z.'-origin(3)];
@@ -180,23 +218,28 @@ for rline = 1:Nx
     vert3 = vertices(faces(:,3),:);
   
     orig = [0 0 0];
-
+    
+    if ~doa_method_flag
+      theta_rline = theta;
+    else
+      theta_rline = theta(:,:,rline);
+      theta_rline = theta_rline(~isnan(theta_rline));
+      theta_rline = sort(theta_rline,'ascend');
+    end
     intersection = zeros(3,Nsv);
+    
+    for theta_idx = 1:length(theta_rline)
+      dir = [0 sin(theta_rline(theta_idx)) -cos(theta_rline(theta_idx))];
+      [Intersect, t] = TriangleRayIntersection(orig, dir, vert1, vert2, vert3);
 
-    for theta_idx = 1:length(theta)
-      dir = [0 sin(theta(theta_idx)) -cos(theta(theta_idx))];
-      [intersect, t] = TriangleRayIntersection(orig, dir, vert1, vert2, vert3);
-
-      intersect_idx = find(intersect);
-
-      if isempty(intersect_idx)
-        twtt(theta_idx,rline) = NaN;
-        intersection(:,theta_idx) = NaN;
-      else
-        twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
-        % finds coordinates in approximate center of triangles
-        intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
-      end
+      intersect_idx = find(Intersect);
+        if isempty(intersect_idx)
+          twtt(theta_idx,rline) = NaN;
+          intersection(:,theta_idx) = NaN;
+        else
+          twtt(theta_idx,rline) = t(intersect_idx(1))/(3e8/2);
+          intersection(:,theta_idx) = mean([vert1(intersect_idx(1),:);vert2(intersect_idx(1),:);vert3(intersect_idx(1),:)],1);
+        end
     end
   else
     if ~DEM_coverage_warning
@@ -204,7 +247,7 @@ for rline = 1:Nx
       warning('DEM dem_per_slice_guard too small.');
     end
     clear intersection;
-    twtt(:,rline) = NaN;
+      twtt(:,rline) = NaN;
   end
 
   if exist('ice_mask_all','var')
@@ -230,15 +273,23 @@ for rline = 1:Nx
       % Convert triangle mask coordinates to matrix indices
       mask_idx = (intersection_x_idx-1)*length(ice_mask_all.Y) + intersection_y_idx;
       % Find ice mask for triangle coordinates
-      ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
-      % Set previously nan valued coordinates to 0 mask
-      ice_mask(nidx,rline) = 0;
+        ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
+        % Set previously nan valued coordinates to 0 mask
+        ice_mask(nidx,rline) = 0;
+      else
+%         for ice_mask_idx = 1:length(mask_idx)
+%           ice_mask(theta_rline_row_idx(ice_mask_idx),theta_rline_col_idx(ice_mask_idx),rline) = ice_mask_all.mask(mask_idx(ice_mask_idx));
+%         end
+%         % Set previously nan valued coordinates to 0 mask
+%         ice_mask(theta_rline_row_idx(nidx),theta_rline_col_idx(nidx),rline) = 0;
+%       end
+      
     end
   end
   
   if 0
     figure(1); clf;
-    imagesc([],mdata.Time,lp(mdata.Topography.img(:,:,rline)))
+    imagesc([],mdata.Time,lp(mdata.Tomo.img(:,:,rline)))
     hold on
     plot(twtt(:,rline),'k')
     hold off
@@ -272,13 +323,15 @@ save(combined_fn,'-append','twtt','ice_mask','theta','file_version');
 if exist('theta_cal','var')
   save(combined_fn,'-append','theta_cal');
 else
-  theta_cal = theta;
+  if ~doa_method_flag
+    theta_cal = theta;
+  else
+    theta_cal = [];
+  end
   save(combined_fn,'-append','theta_cal');
 end
-
 mdata.theta = theta;
 mdata.theta_cal = theta_cal;
 mdata.twtt = twtt;
 mdata.ice_mask = ice_mask;
 
-end

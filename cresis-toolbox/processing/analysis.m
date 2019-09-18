@@ -34,16 +34,25 @@ if ~isempty(param.cmd.frms)
   param.cmd.frms = []; % All frames
 end
 
-if ~isfield(param.analysis,'out_path') || isempty(param.analysis.out_path)
-  param.analysis.out_path = 'analysis';
+if ~isfield(param,'analysis') || isempty(param.analysis)
+  error('The analysis field (worksheet) is missing.');
 end
 
 if ~isfield(param.analysis,'block_size') || isempty(param.analysis.block_size)
-  error('param.analysis.block_size must be specified');
+  param.analysis.block_size = 6000;
+end
+
+if ~isfield(param.analysis,'cmd') || isempty(param.analysis.cmd)
+  ctrl_chain = {};
+  return;
 end
 
 if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
-  error('param.analysis.imgs must be specified');
+  param.analysis.imgs = {[1 1]};
+end
+
+if ~isfield(param.analysis,'out_path') || isempty(param.analysis.out_path)
+  param.analysis.out_path = 'analysis';
 end
 
 if ~isfield(param.analysis,'presums') || isempty(param.analysis.presums)
@@ -58,12 +67,17 @@ end
 param.analysis.surf_layer.existence_check = false;
 
 % For each command in the list, set its default settings
+enabled_cmds = 0;
 for cmd_idx = 1:length(param.analysis.cmd)
   cmd = param.analysis.cmd{cmd_idx};
   
   if ~isfield(cmd,'en') || isempty(cmd.en)
     cmd.en = true;
   end
+  if ~cmd.en
+    continue;
+  end
+  enabled_cmds = enabled_cmds + 1;
   
   if ~isfield(cmd,'out_path') || isempty(cmd.out_path)
     cmd.out_path = param.analysis.out_path;
@@ -131,12 +145,18 @@ for cmd_idx = 1:length(param.analysis.cmd)
   if ~isfield(cmd,'trim') || isempty(cmd.trim)
     cmd.trim = [0 0];
   end
+        
+  if ~isfield(cmd,'num_sam_hint') || isempty(cmd.num_sam_hint)
+    cmd.num_sam_hint = [];
+  end
 
   if ~isfield(cmd,'method') || isempty(cmd.method)
     error('cmd.method must be defined in param.analysis.cmd cell array');
   end
   cmd.method = lower(cmd.method);
   switch cmd.method
+    case {'burst_noise'}
+      %
     case {'coh_noise'}
       % Set defaults for coherent noise analysis method
       
@@ -177,8 +197,6 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.threshold_removeDC = false;
       end
       
-    case {'burst_noise'}
-      %
     case {'qlook'}
       %
     case {'saturation'}
@@ -194,12 +212,12 @@ for cmd_idx = 1:length(param.analysis.cmd)
         cmd.max_rlines = 10;
       end
       
-      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
-        cmd.noise_doppler_bins = [12:cmd.rlines-11];
-      end
-      
       if ~isfield(cmd,'rlines') || isempty(cmd.rlines)
         cmd.rlines = 128;
+      end
+      
+      if ~isfield(cmd,'noise_doppler_bins') || isempty(cmd.noise_doppler_bins)
+        cmd.noise_doppler_bins = [12:cmd.rlines-11];
       end
       
       if ~isfield(cmd,'signal_doppler_bins') || isempty(cmd.signal_doppler_bins)
@@ -269,6 +287,11 @@ for cmd_idx = 1:length(param.analysis.cmd)
   param.analysis.cmd{cmd_idx} = cmd;
 end
 
+if enabled_cmds == 0
+  ctrl_chain = {};
+  return;
+end
+
 %% Setup processing
 % =====================================================================
 
@@ -304,15 +327,15 @@ ctrl = cluster_new_batch(param);
 cluster_compile({'analysis_task.m','analysis_combine_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.cluster.force_compile,ctrl);
 
 [wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.analysis.imgs})),records);
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
   for img = 1:length(param.analysis.imgs)
     wf = abs(param.analysis.imgs{img}(1,1));
     total_num_sam(img) = wfs(wf).Nt_raw;
   end
-  cpu_time_mult =35e-9;
+  cpu_time_mult = 35e-9;
   mem_mult = 11;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   total_num_sam = 32000 * ones(size(param.analysis.imgs));
   cpu_time_mult = 4e-8;
   mem_mult = 17;
@@ -451,8 +474,8 @@ for break_idx = 1:length(breaks)
   % Loading in the data: cpu_time and mem
   dparam.mem = 250e6;
   for img = 1:length(param.analysis.imgs)
-    dparam.cpu_time = dparam.cpu_time + 10 + length(param.analysis.imgs{img})*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
-    dparam.mem = dparam.mem + length(param.analysis.imgs{img})*Nx*total_num_sam(img)*mem_mult;
+    dparam.cpu_time = dparam.cpu_time + 10 + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+    dparam.mem = dparam.mem + size(param.analysis.imgs{img},1)*Nx*total_num_sam(img)*mem_mult;
   end
   data_load_memory = dparam.mem;
   cmd_method_str = ''; % Used to store the first valid method for dparam.notes
@@ -507,7 +530,11 @@ for break_idx = 1:length(breaks)
               delete(out_fn);
             end
             dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if strcmp(param.radar.wfs(wf).coh_noise_method,'analysis')
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*(mem_mult+20));
+            else
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            end
             if isempty(cmd_method_str)
               cmd_method_str = '_specular';
             end
@@ -522,8 +549,13 @@ for break_idx = 1:length(breaks)
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
-            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
-            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isfield(param.radar.wfs(wf),'coh_noise_method') && strcmpi(param.radar.wfs(wf).coh_noise_method,'analysis')
+              dparam.cpu_time = dparam.cpu_time + 10 + 2*Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+              dparam.mem = max(dparam.mem,data_load_memory + 2*Nx*total_num_sam(img)*mem_mult);
+            else
+              dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(Nx)*cpu_time_mult;
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            end
             if isempty(cmd_method_str)
               cmd_method_str = '_stats';
             end
@@ -538,8 +570,13 @@ for break_idx = 1:length(breaks)
             if ~ctrl.cluster.rerun_only && exist(out_fn,'file')
               delete(out_fn);
             end
-            dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
-            dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            if isfield(param.radar.wfs(wf),'coh_noise_method') && strcmpi(param.radar.wfs(wf).coh_noise_method,'analysis')
+              dparam.cpu_time = dparam.cpu_time + 10 + 2*Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+              dparam.mem = max(dparam.mem,data_load_memory + 2*Nx*total_num_sam(img)*mem_mult);
+            else
+              dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam(img)*log2(total_num_sam(img))*cpu_time_mult;
+              dparam.mem = max(dparam.mem,data_load_memory + Nx*total_num_sam(img)*mem_mult);
+            end
             if isempty(cmd_method_str)
               cmd_method_str = '_waveform';
             end
@@ -578,11 +615,11 @@ ctrl_chain{end+1} = ctrl;
 % =====================================================================
 ctrl = cluster_new_batch(param);
 
-if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
+if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','rds','seaice','accum2','accum3'}))
   cpu_time_mult = 6e-6;
   mem_mult = 8;
   
-elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband3','snow5','snow8'}))
+elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
   cpu_time_mult = 2.6e-7;
   mem_mult = 32;
 end
@@ -598,6 +635,7 @@ sparam.cpu_time = 60;
 sparam.mem = 0;
 % Add up all records being processed and find the most records in a block
 Nx = length(records.gps_time);
+records_var = whos('records');
 for img = 1:length(param.analysis.imgs)
   Nt = total_num_sam(img);
   
@@ -606,7 +644,16 @@ for img = 1:length(param.analysis.imgs)
     if ~cmd.en
       continue;
     end
-      
+    
+    num_sam_hint = total_num_sam(img);
+    if ~isempty(cmd.num_sam_hint)
+      if ~iscell(cmd.num_sam_hint)
+        num_sam_hint = cmd.num_sam_hint;
+      else
+        num_sam_hint = cmd.num_sam_hint{img};
+      end
+    end
+  
     switch cmd.method
       case {'burst_noise'}
         %
@@ -614,8 +661,8 @@ for img = 1:length(param.analysis.imgs)
       case {'coh_noise'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
         end
         
       case {'qlook'}
@@ -627,32 +674,27 @@ for img = 1:length(param.analysis.imgs)
       case {'specular'}
         Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult*1.5);
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult*1.5);
         end
         
       case {'statistics'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          if cmd.block_ave < 64
-            % HACK: Assume that if no block averaging is done, that the data size
-            % is small. Really need to get a user "hint" here.
-            sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)/128*log2(Nx_cmd)*cpu_time_mult;
-            sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
-          else
-            sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-            sparam.mem = max(sparam.mem,250e6 + Nx_cmd*total_num_sam(img)*mem_mult);
-          end
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
         end
         
       case {'waveform'}
         Nx_cmd = Nx / cmd.dec;
         if isfinite(cmd.Nt)
           Nt = cmd.Nt;
+        else
+          Nt = num_sam_hint;
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,250e6 + Nx_cmd*Nt*mem_mult);
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*Nt*mem_mult);
         end
         
     end

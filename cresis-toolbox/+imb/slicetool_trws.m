@@ -23,7 +23,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
     
     function cmd = apply_PB_callback(obj,sb,slices)
       % sb: slice browser object. Use the following fields to create
-      %     commands, cmd, that use sb.data to operate on sb.sd. You 
+      %     commands, cmd, that use sb.data to operate on sb.sd. You
       %     should not modify any fields of sb.
       %  .sd: surfdata .surf struct array containing surface information
       %  .data: 3D image
@@ -119,7 +119,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
         bottom_bin = NaN*zeros(1,length(slices));
       end
       
-      if isempty(surf_idx) 
+      if isempty(surf_idx)
         surf_bins = NaN*sb.sd.surf(active_idx).y(:,slices);
       else
         surf_bins = sb.sd.surf(surf_idx).y(:,slices);
@@ -165,12 +165,29 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       smooth_var = smooth(3);
       mu = sinc(linspace(-1.5,1.5,mu_size));
       sigma = sum(mu)/20*ones(1,mu_size);
-      mask = 90*fir_dec(fir_dec(double(shrink(mask,2)),ones(1,5)/3.7).',ones(1,5)/3.7).';
-      mask(mask>=90) = inf;
-      bounds = [sb.bounds_relative(1) size(trws_data,2)-sb.bounds_relative(2)-1 -1 -1];
-      CF.sensory_distance = 200;
-      CF.max_cost = 50;
-      CF.lambda = 0.075;
+      mask_dist      = round(bwdist(mask == 0));
+      bounds = [sb.bounds_relative(1) size(trws_data,2)-sb.bounds_relative(2)-1 -1 -1];  
+      mask_dist = round(mask_dist .* 9);
+      
+      clear DIM DIM_costmatrix;
+      global gRadar;
+      DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
+      DIM_costmatrix = DIM.Layer_tracking_3D_parameters;
+      DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
+
+      
+      %% DoA-to-DoA transition model
+      % Obtained from geostatistical analysis of 2014 Greenland P3
+      transition_mu = [0.000000, 0.000000, 2.590611, 3.544282, 4.569263, 5.536577, 6.476430, 7.416807, 8.404554, 9.457255, 10.442658, 11.413710, 12.354409, 13.332689, 14.364614, 15.381671, 16.428969, 17.398906, 18.418794, 19.402757, 20.383026, 21.391834, 22.399259, 23.359765, 24.369957, 25.344982, 26.301805, 27.307530, 28.274756, 28.947572, 29.691010, 32.977387, 34.203212, 34.897994, 35.667128, 36.579019, 37.558978, 38.548659, 39.540715, 40.550138, 41.534781, 42.547407, 43.552700, 44.537758, 45.553618, 46.561057, 47.547331, 48.530976, 49.516588, 50.536075, 51.562886, 52.574938, 53.552979, 54.554206, 55.559657, 56.574029, 57.591999, 58.552986, 59.562937, 60.551616, 61.549909, 62.551092, 63.045791, 63.540490];
+      transition_sigma = [0.457749, 0.805132, 1.152514, 1.213803, 1.290648, 1.370986, 1.586141, 1.626730, 1.785789, 1.791043, 1.782936, 1.727153, 1.770210, 1.714973, 1.687484, 1.663294, 1.633185, 1.647318, 1.619522, 1.626555, 1.649593, 1.628138, 1.699512, 1.749184, 1.809822, 1.946782, 2.126822, 2.237959, 2.313358, 2.280555, 1.419753, 1.112363, 1.426246, 2.159619, 2.140899, 2.083267, 1.687420, 1.574745, 1.480296, 1.443887, 1.415708, 1.356100, 1.401891, 1.398477, 1.365730, 1.418647, 1.407810, 1.430151, 1.391357, 1.403471, 1.454194, 1.470535, 1.417235, 1.455086, 1.436509, 1.378037, 1.415834, 1.333177, 1.298108, 1.277559, 1.358260, 1.483521, 1.674642, 1.865764];
+      
+      if length(transition_mu) ~= size(sb.data, 2)
+        transition_mu = imresize(transition_mu, [1 size(sb.data, 2)]);
+      end
+      
+      if length(transition_sigma) ~= size(sb.data, 2)
+        transition_sigma = imresize(transition_sigma, [1 size(sb.data, 2)]);
+      end
       
       if top_edge_en && ~isempty(cols) && cols(1) > bounds(1)+1
         % Add ground truth from top edge as long as top edge is bounded
@@ -198,32 +215,23 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
         bottom_bin = bottom_bin - rows(1) + 1;
         gt(3,:) = gt(3,:) - rows(1) + 1;
       end
-      
-      if 0
-        %% DEBUG: For running mex function in debug mode
-        save('/tmp/mex_inputs.mat','trws_data','surf_bins','bottom_bin','gt','mask','mu','sigma','smooth_weight','smooth_var','smooth_slope','edge','num_loops','bounds');
-        load('/tmp/mex_inputs.mat');
-        correct_surface = tomo.refine(double(trws_data), ...
-          double(surf_bins), double(bottom_bin), double(gt), double(mask), ...
-          double(mu), double(sigma), smooth_weight, smooth_var, ...
-          double(smooth_slope), double(edge), double(num_loops), int64(bounds));
-      end
 
-      tic;      
+      tic;
       correct_surface = tomo.trws(double(trws_data), ...
         double(surf_bins), double(bottom_bin), double(gt), double(mask), ...
         double(mu), double(sigma), double(smooth_weight), double(smooth_var), ...
         double(smooth_slope), double(edge), double(num_loops), int64(bounds), ...
-        double(CF.sensory_distance), double(CF.max_cost), double(CF.lambda));
+        double(mask_dist), double(DIM_costmatrix), ...
+        double(transition_mu), double(transition_sigma));
       toc;
       
       fprintf('  %.2f sec per slice\n', toc/size(trws_data,3));
-     
+      
       if ~isempty(rows)
         correct_surface = correct_surface + rows(1) - 1;
       end
       
-     % Create cmd for surface change
+      % Create cmd for surface change
       cmd = [];
       for idx = start_slice_idx:end_slice_idx
         slice = slices(idx);
@@ -343,7 +351,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       set(obj.gui.rightEdgeCB,'style','checkbox')
       set(obj.gui.rightEdgeCB,'string','R')
       set(obj.gui.rightEdgeCB,'value',1)
-      set(obj.gui.rightEdgeCB,'TooltipString','Check to force a right edge boundary condition.');   
+      set(obj.gui.rightEdgeCB,'TooltipString','Check to force a right edge boundary condition.');
       
       % Top edge
       obj.gui.topEdgeCB = uicontrol('parent',obj.h_fig);
@@ -406,7 +414,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       obj.gui.table.width(row,col)     = inf;
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;
-      obj.gui.table.height_margin(row,col) = 1;      
+      obj.gui.table.height_margin(row,col) = 1;
       row = row + 1;
       
       col = 1;
@@ -449,7 +457,7 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       obj.gui.table.height(row,col)    = 20;
       obj.gui.table.width_margin(row,col) = 1;
       obj.gui.table.height_margin(row,col) = 1;
-
+      
       row = row + 1;
       col = 1;
       obj.gui.table.handles{row,col}   = obj.gui.smoothTXT;
@@ -497,10 +505,10 @@ classdef (HandleCompatible = true) slicetool_trws < imb.slicetool
       obj.gui.table.height_margin(row,col) = 1;
       
       clear row col
-      table_draw(obj.gui.table);      
+      table_draw(obj.gui.table);
       
     end
-
+    
   end
   
 end

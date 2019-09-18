@@ -5,8 +5,16 @@ function [results, DCM_runs] = doa(param)
 %
 % Author: John Paden, Theresa Stumpf
 
+%% Input checks
+
+if ~isfield(param.src,'ft_wind') || isempty(param.src.ft_wind)
+  param.src.ft_wind = @boxcar;
+end
+
+%% Setup
+
 param.src.fc = (param.src.f0 + param.src.f1)/2;
-param.src.fs = param.src.f1 - param.src.f0;
+param.src.fs = abs(param.src.f1 - param.src.f0);
 
 % Get phase center positions of antenna array
 if isfield(param.src,'phase_center')
@@ -46,11 +54,12 @@ doa_nb_1d_param.y_pc        = param.src.y_pc;
 doa_nb_1d_param.z_pc        = param.src.z_pc;
 doa_nb_1d_param.theta       = param.method.OneD_theta;
 doa_nb_1d_param.SV          = param.method.OneD_SV;
-doa_nb_1d_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+doa_nb_1d_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 
 % Setup parameterization structure for narrowband N-D search
 % methods (e.g. MLE)
 doa_nb_nd_param = [];
+doa_nb_nd_param.doa_seq     = false;
 doa_nb_nd_param.fs          = param.src.fs;
 doa_nb_nd_param.fc          = param.src.fc;
 doa_nb_nd_param.src_limits  = param.method.src_limits;
@@ -59,7 +68,7 @@ doa_nb_nd_param.y_pc        = param.src.y_pc;
 doa_nb_nd_param.z_pc        = param.src.z_pc;
 doa_nb_nd_param.theta       = param.method.theta;
 doa_nb_nd_param.SV          = param.method.SV;
-doa_nb_nd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+doa_nb_nd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 doa_nb_nd_param.search_type = param.method.nb_nd.init;
 
 % Setup wideband parameterization structure for wideband time domain
@@ -73,12 +82,13 @@ doa_wb_td_param.y_pc        = param.src.y_pc;
 doa_wb_td_param.z_pc        = param.src.z_pc;
 doa_wb_td_param.theta       = param.method.theta;
 doa_wb_td_param.SV          = param.method.SV;
-doa_wb_td_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+doa_wb_td_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 doa_wb_td_param.search_type = param.method.wb_td.init;
 
 % Setup wideband parameterization structure for wideband frequency domain
 % search methods (e.g. MLEWB)
 doa_wb_fd_param= [];
+doa_wb_fd_param.doa_seq     = false;
 doa_wb_fd_param.fs          = param.src.fs;
 doa_wb_fd_param.fc          = param.src.fc;
 doa_wb_fd_param.src_limits  = param.method.src_limits;
@@ -87,7 +97,7 @@ doa_wb_fd_param.y_pc        = param.src.y_pc;
 doa_wb_fd_param.z_pc        = param.src.z_pc;
 doa_wb_fd_param.theta       = param.method.theta;
 doa_wb_fd_param.SV          = param.method.SV;
-doa_wb_fd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-3);
+doa_wb_fd_param.options     = optimoptions(@fmincon,'Display','off','Algorithm','sqp','TolX',1e-6);
 doa_wb_fd_param.search_type = param.method.wb_fd.init;
 doa_wb_fd_param.nb_filter_banks = param.method.wb_fd.filter_banks;
 
@@ -127,21 +137,21 @@ for test_idx = 1:size(param.monte.SNR,1)
   param.src.SNR    = param.monte.SNR(test_idx,:);
   param.src.Nsnap  = param.monte.Nsnap(test_idx);
   
-  % Set number of signals, Nsig, field
+  % Set number of signals, Nsrc, field
   if isfield(param,'Nsig_tmp') && ~isempty(param.Nsig_tmp)
       % For model order estimation simulation.
-      doa_nb_1d_param.Nsig = param.Nsig_tmp;
-      doa_nb_nd_param.Nsig = param.Nsig_tmp;
-      doa_wb_td_param.Nsig = param.Nsig_tmp;
-      doa_wb_fd_param.Nsig = param.Nsig_tmp;
+      doa_nb_1d_param.Nsrc = param.Nsig_tmp;
+      doa_nb_nd_param.Nsrc = param.Nsig_tmp;
+      doa_wb_td_param.Nsrc = param.Nsig_tmp;
+      doa_wb_fd_param.Nsrc = param.Nsig_tmp;
       
       LB = zeros(param.Nsig_tmp,1);
       UB = zeros(param.Nsig_tmp,1);
   else
-      doa_nb_1d_param.Nsig = size(param.src.SNR,2);
-      doa_nb_nd_param.Nsig = size(param.src.SNR,2);
-      doa_wb_td_param.Nsig = size(param.src.SNR,2);
-      doa_wb_fd_param.Nsig = size(param.src.SNR,2);
+      doa_nb_1d_param.Nsrc = size(param.src.SNR,2);
+      doa_nb_nd_param.Nsrc = size(param.src.SNR,2);
+      doa_wb_td_param.Nsrc = size(param.src.SNR,2);
+      doa_wb_fd_param.Nsrc = size(param.src.SNR,2);
       
       LB = zeros(length(param.src.DOAs),1);
       UB = zeros(length(param.src.DOAs),1);

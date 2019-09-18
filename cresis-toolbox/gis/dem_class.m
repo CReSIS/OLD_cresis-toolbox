@@ -11,10 +11,14 @@
 
 classdef dem_class < handle
   properties
-    % dem_info: Struct array of DEMs
+    % dem_info: Cell array of dem_info structures that each describe a DEM
     dem_info
     % res: Resolution (m)
     res
+    % ocean_mask_mode: 'shapefile' (default) or 'landdem'
+    ocean_mask_mode
+    % ocean_mask_dec: default is 100, positive integer decimation rate
+    ocean_mask_dec
     % param: gRadar/parameter spreadsheet parameter structure
     param % only .gis_path used
     
@@ -64,54 +68,67 @@ classdef dem_class < handle
       else
         obj.res = res;
       end
+      obj.ocean_mask_mode = 'shapefile';
+      obj.ocean_mask_dec = 100;
       
       % Setup DEM List
       % ===================================================================
-      obj.dem_info = [];
+      obj.dem_info = {};
       
       % Arctic DEM
       % -------------------------------------------------------------------
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/10m/11_41/11_41_10m_v3.0.tar.gz
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/2m/48_63/48_63_1_1_2m_v3.0.tar.gz
       % http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/2m/48_63/48_63_2_2_2m_v3.0.tar.gz
-      di = 1;
-      obj.dem_info(di).url = 'http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/';
-      obj.dem_info(di).res = [2 10 32 100 500 1000];
-      obj.dem_info(di).res_str = {'2m' '10m' '32m' '100m' '500m' '1km'};
-      obj.dem_info(di).tile_en = [1 1 1 0 0 0];
-      obj.dem_info(di).subtile_en = [1 0 0 0 0 0];
-      obj.dem_info(di).mosaic_fn_fh = @(res_str) sprintf('%s/arcticdem_mosaic_%s_v3.0.tif',res_str,res_str);
-      obj.dem_info(di).tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,res_str);
-      obj.dem_info(di).subtile_fn_fh = @(x,y,x_sub,y_sub,res_str) sprintf('%s/%d_%d/%d_%d_%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,y_sub,x_sub,res_str);
-      obj.dem_info(di).acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Polar Geospatial Center under NSF-OPP awards 1043681, 1559691, and 1542736.';
-      obj.dem_info(di).citation = 'Porter, Claire; Morin, Paul; Howat, Ian; Noh, Myoung-Jon; Bates, Brian; Peterman, Kenneth; Keesey, Scott; Schlenk, Matthew; Gardiner, Judith; Tomko, Karen; Willis, Michael; Kelleher, Cole; Cloutier, Michael; Husby, Eric; Foga, Steven; Nakamura, Hitomi; Platson, Melisa; Wethington, Michael, Jr.; Williamson, Cathleen; Bauer, Gregory; Enos, Jeremy; Arnold, Galen; Kramer, William; Becker, Peter; Doshi, Abhijit; D?Souza, Cristelle; Cummens, Pat; Laurier, Fabien; Bojesen, Mikkel, 2018, "ArcticDEM", https://doi.org/10.7910/DVN/OHHUKH, Harvard Dataverse, V1, [Date Accessed]';
-      obj.dem_info(di).y_tile_origin = 41;
-      obj.dem_info(di).x_tile_origin = 41;
-      obj.dem_info(di).y_tile_size = 100e3;
-      obj.dem_info(di).x_tile_size = 100e3;
-      obj.dem_info(di).y_subtile_size = 50e3;
-      obj.dem_info(di).x_subtile_size = 50e3;
-      obj.dem_info(di).no_data = -9999;
-      obj.dem_info(di).proj = geotiffinfo(ct_filename_gis(obj.param,'greenland/DEM/GIMP/gimpdem_90m.tif'));
-      obj.dem_info(di).out_path = ct_filename_gis(obj.param,'arctic/ArcticDEM/');
+      try
+        new_dem_info.url = 'http://data.pgc.umn.edu/elev/dem/setsm/ArcticDEM/mosaic/v3.0/';
+        new_dem_info.res = [2 10 32 100 500 1000];
+        new_dem_info.res_str = {'2m' '10m' '32m' '100m' '500m' '1km'};
+        new_dem_info.tile_en = [1 1 1 0 0 0];
+        new_dem_info.subtile_en = [1 0 0 0 0 0];
+        new_dem_info.mosaic_fn_fh = @(res_str) sprintf('%s/arcticdem_mosaic_%s_v3.0.tif',res_str,res_str);
+        new_dem_info.tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,res_str);
+        new_dem_info.subtile_fn_fh = @(x,y,x_sub,y_sub,res_str) sprintf('%s/%d_%d/%d_%d_%d_%d_%s_v3.0.tar.gz',res_str,y,x,y,x,y_sub,x_sub,res_str);
+        new_dem_info.acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Polar Geospatial Center under NSF-OPP awards 1043681, 1559691, and 1542736.';
+        new_dem_info.citation = 'Porter, Claire; Morin, Paul; Howat, Ian; Noh, Myoung-Jon; Bates, Brian; Peterman, Kenneth; Keesey, Scott; Schlenk, Matthew; Gardiner, Judith; Tomko, Karen; Willis, Michael; Kelleher, Cole; Cloutier, Michael; Husby, Eric; Foga, Steven; Nakamura, Hitomi; Platson, Melisa; Wethington, Michael, Jr.; Williamson, Cathleen; Bauer, Gregory; Enos, Jeremy; Arnold, Galen; Kramer, William; Becker, Peter; Doshi, Abhijit; D?Souza, Cristelle; Cummens, Pat; Laurier, Fabien; Bojesen, Mikkel, 2018, "ArcticDEM", https://doi.org/10.7910/DVN/OHHUKH, Harvard Dataverse, V1, [Date Accessed]';
+        new_dem_info.y_tile_origin = 41;
+        new_dem_info.x_tile_origin = 41;
+        new_dem_info.y_tile_size = 100e3;
+        new_dem_info.x_tile_size = 100e3;
+        new_dem_info.y_subtile_size = 50e3;
+        new_dem_info.x_subtile_size = 50e3;
+        new_dem_info.no_data = -9999;
+        new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('greenland','DEM','GIMP','gimpdem_90m.tif')));
+        new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('arctic','ArcticDEM'));
+        obj.dem_info{end+1} = new_dem_info;
+      catch ME
+        warning(ME.getReport);
+      end
       
       % REMA
       % -------------------------------------------------------------------
       % http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/8m/09_38/09_38_8m.tar.gz
-      di = 2;
-      obj.dem_info(di).url = 'http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/';
-      obj.dem_info(di).res = [8 100 200 1000];
-      obj.dem_info(di).res_str = {'8m' '100m' '200m' '1000m'};
-      obj.dem_info(di).subtile_en = [0 0 0 0];
-      obj.dem_info(di).tile_fn_fh = @(north,east,res_str) sprintf('%s/%d_%d/%d_%d_%s_v3.0.tar.gz',res_str,north,east,north,east,res_str);
-      obj.dem_info(di).acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Byrd Polar and Climate Research Center and the Polar Geospatial Center under NSF-OPP awards 1543501, 1810976, 1542736, 1559691, 1043681, 1541332, 0753663, 1548562, 1238993 and NASA award NNX10AN61G. Computer time provided through a Blue Waters Innovation Initiative. DEMs produced using data from DigitalGlobe, Inc.';
-      obj.dem_info(di).citation = 'Howat, Ian; Morin, Paul; Porter, Claire; Noh, Myong-Jong, 2018, "The Reference Elevation Model of Antarctica", https://doi.org/10.7910/DVN/SAIK8B, Harvard Dataverse, V1';
-      obj.dem_info(di).y_tile_origin = 31;
-      obj.dem_info(di).x_tile_origin = 31;
-      obj.dem_info(di).y_tile_size = 100e3;
-      obj.dem_info(di).x_tile_size = 100e3;
-      obj.dem_info(di).no_data = -9999;
-      obj.dem_info(di).proj = geotiffinfo(ct_filename_gis(obj.param,'antarctica/DEM/BEDMAP2/original_data/bedmap2_tiff/bedmap2_surface.tif'));
+      try
+        new_dem_info.url = 'http://data.pgc.umn.edu/elev/dem/setsm/REMA/mosaic/v1.1/';
+        new_dem_info.res = [8 100 200 1000];
+        new_dem_info.res_str = {'8m' '100m' '200m' '1km'};
+        new_dem_info.tile_en = [1 0 0 0];
+        new_dem_info.subtile_en = [0 0 0 0];
+        new_dem_info.mosaic_fn_fh = @(res_str) sprintf('%s/REMA_%s_dem.tif',res_str,res_str);
+        new_dem_info.tile_fn_fh = @(x,y,res_str) sprintf('%s/%d_%d/%d_%d_%s.tar.gz',res_str,y,x,y,x,res_str);
+        new_dem_info.acknowledge = 'Geospatial support for this work provided by the Polar Geospatial Center under NSF-OPP awards 1043681 and 1559691. DEMs provided by the Byrd Polar and Climate Research Center and the Polar Geospatial Center under NSF-OPP awards 1543501, 1810976, 1542736, 1559691, 1043681, 1541332, 0753663, 1548562, 1238993 and NASA award NNX10AN61G. Computer time provided through a Blue Waters Innovation Initiative. DEMs produced using data from DigitalGlobe, Inc.';
+        new_dem_info.citation = 'Howat, Ian; Morin, Paul; Porter, Claire; Noh, Myong-Jong, 2018, "The Reference Elevation Model of Antarctica", https://doi.org/10.7910/DVN/SAIK8B, Harvard Dataverse, V1';
+        new_dem_info.y_tile_origin = 31;
+        new_dem_info.x_tile_origin = 31;
+        new_dem_info.y_tile_size = 100e3;
+        new_dem_info.x_tile_size = 100e3;
+        new_dem_info.no_data = -9999;
+        new_dem_info.proj = geotiffinfo(ct_filename_gis(obj.param,fullfile('antarctica','DEM','BEDMAP2','original_data','bedmap2_tiff','bedmap2_surface.tif')));
+        new_dem_info.out_path = ct_filename_gis(obj.param,fullfile('antarctica','DEM','REMA'));
+        obj.dem_info{end+1} = new_dem_info;
+      catch ME
+        warning(ME.getReport);
+      end
       
       % Prepare DEM fields
       % -------------------------------------------------------------------
@@ -148,7 +165,7 @@ classdef dem_class < handle
         
         for di = unique(obj.di)
           mask = obj.di == di;
-          [obj.x(mask),obj.y(mask)] = projfwd(obj.dem_info(di).proj,lat(mask),lon(mask));
+          [obj.x(mask),obj.y(mask)] = projfwd(obj.dem_info{di}.proj,lat(mask),lon(mask));
         end
       end
       
@@ -197,7 +214,7 @@ classdef dem_class < handle
       % -------------------------------------------------------------------
       if 0
         % EGM-96
-        obj.msl.fn = ct_filename_gis(obj.param,'world\egm96_geoid\WW15MGH.DAC');
+        obj.msl.fn = ct_filename_gis(obj.param,fullfile('world','egm96_geoid','WW15MGH.DAC'));
         points = [];
         [obj.msl.lat,obj.msl.lon,obj.msl.elev] = egm96_loader(obj.msl.fn);
         obj.msl.lon = [obj.msl.lon 360];
@@ -298,7 +315,7 @@ classdef dem_class < handle
         end
         ri = obj.get_ri(di);
         
-        if ~obj.dem_info(di).tile_en(ri)
+        if ~obj.dem_info{di}.tile_en(ri)
           if ~isempty(obj.dem.x{di}) ...
               && obj.min_x >= min(obj.dem.x{di}) && obj.max_x <= max(obj.dem.x{di}) ...
               && obj.min_y >= min(obj.dem.y{di}) && obj.max_y <= max(obj.dem.y{di})
@@ -307,12 +324,12 @@ classdef dem_class < handle
           
           % Single large DEM file
           % ---------------------------------------------------------------
-          url = [obj.dem_info(di).url, obj.dem_info(di).mosaic_fn_fh(obj.dem_info(di).res_str{ri})];
+          url = [obj.dem_info{di}.url, obj.dem_info{di}.mosaic_fn_fh(obj.dem_info{di}.res_str{ri})];
           [~,url_name,url_ext] = fileparts(url);
-          tif_fn = fullfile(obj.dem_info(di).out_path, [url_name,url_ext]);
+          tif_fn = fullfile(obj.dem_info{di}.out_path, [url_name,url_ext]);
           
           if ~exist(tif_fn,'file')
-            cmd = sprintf('wget -P %s %s', obj.dem_info(di).out_path, url);
+            cmd = sprintf('wget -P %s %s', obj.dem_info{di}.out_path, url);
             fprintf('  %s\n', cmd);
             system(cmd);
             if ~exist(tif_fn,'file')
@@ -353,7 +370,7 @@ classdef dem_class < handle
           y_mask = obj.y_all{di} >= obj.min_y-2*dy & obj.y_all{di} <= obj.max_y+2*dy;
           
           obj.dem.dem{di} = obj.dem_all{di}(y_mask,x_mask);
-          obj.dem.dem{di}(obj.dem.dem{di}==obj.dem_info(di).no_data) = NaN;
+          obj.dem.dem{di}(obj.dem.dem{di}==obj.dem_info{di}.no_data) = NaN;
           obj.dem.x{di} = obj.x_all{di}(x_mask);
           obj.dem.y{di} = obj.y_all{di}(y_mask);
           
@@ -391,7 +408,7 @@ classdef dem_class < handle
         % DEM
         % -----------------------------------------------------------------
         ri = obj.get_ri(di);
-        if ~obj.dem_info(di).tile_en(ri)
+        if ~obj.dem_info{di}.tile_en(ri)
           % Single DEM file
           land_dem(mask) = interp2(obj.dem.x{di},obj.dem.y{di},obj.dem.dem{di},obj.x(mask),obj.y(mask));
           
@@ -400,8 +417,8 @@ classdef dem_class < handle
           land_dem = nan(size(obj.x));
           
           % Determine which tiles are needed
-          tile_x = obj.dem_info(di).x_tile_origin + obj.x/obj.dem_info(di).x_tile_size;
-          tile_y = obj.dem_info(di).y_tile_origin + obj.y/obj.dem_info(di).y_tile_size;
+          tile_x = obj.dem_info{di}.x_tile_origin + obj.x/obj.dem_info{di}.x_tile_size;
+          tile_y = obj.dem_info{di}.y_tile_origin + obj.y/obj.dem_info{di}.y_tile_size;
           tiles = unique(floor([tile_x(:), tile_y(:)]),'rows');
           
           % Download and untar files
@@ -410,29 +427,29 @@ classdef dem_class < handle
             url_list = {};
             xi_list = [];
             yi_list = [];
-            if obj.dem_info(di).subtile_en(ri)
+            if obj.dem_info{di}.subtile_en(ri)
               for sub_x_idx = 1:2
                 for sub_y_idx = 1:2
                   if any(tile_x >= tiles(tiles_idx,1) & tile_x <= tiles(tiles_idx,1)+1 ...
                       & tile_y >= tiles(tiles_idx,2) & tile_y <= tiles(tiles_idx,2)+1)
-                    url_list{end+1} = [obj.dem_info(di).url,obj.dem_info(di).subtile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),sub_x_idx,sub_y_idx,obj.dem_info(di).res_str{ri})];
+                    url_list{end+1} = [obj.dem_info{di}.url,obj.dem_info{di}.subtile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),sub_x_idx,sub_y_idx,obj.dem_info{di}.res_str{ri})];
                     xi_list(end+1) = 2*tiles(tiles_idx,1) + sub_x_idx - 2;
                     yi_list(end+1) = 2*tiles(tiles_idx,2) + sub_y_idx - 2;
-                    x_tile_size = obj.dem_info(di).x_subtile_size;
-                    y_tile_size = obj.dem_info(di).y_subtile_size;
-                    x_tile_origin = obj.dem_info(di).x_tile_origin - 1;
-                    y_tile_origin = obj.dem_info(di).y_tile_origin - 1;
+                    x_tile_size = obj.dem_info{di}.x_subtile_size;
+                    y_tile_size = obj.dem_info{di}.y_subtile_size;
+                    x_tile_origin = obj.dem_info{di}.x_tile_origin - 1;
+                    y_tile_origin = obj.dem_info{di}.y_tile_origin - 1;
                   end
                 end
               end
             else
-              url_list{end+1} = [obj.dem_info(di).url,obj.dem_info(di).tile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),obj.dem_info(di).res_str{ri})];
+              url_list{end+1} = [obj.dem_info{di}.url,obj.dem_info{di}.tile_fn_fh(tiles(tiles_idx,1),tiles(tiles_idx,2),obj.dem_info{di}.res_str{ri})];
               xi_list(end+1) = tiles(tiles_idx,1);
               yi_list(end+1) = tiles(tiles_idx,2);
-              x_tile_size = obj.dem_info(di).x_tile_size;
-              y_tile_size = obj.dem_info(di).y_tile_size;
-              x_tile_origin = obj.dem_info(di).x_tile_origin;
-              y_tile_origin = obj.dem_info(di).y_tile_origin;
+              x_tile_size = obj.dem_info{di}.x_tile_size;
+              y_tile_size = obj.dem_info{di}.y_tile_size;
+              x_tile_origin = obj.dem_info{di}.x_tile_origin;
+              y_tile_origin = obj.dem_info{di}.y_tile_origin;
             end
             
             for url_idx = 1:length(url_list)
@@ -443,11 +460,11 @@ classdef dem_class < handle
               
               [~,url_name,url_ext1] = fileparts(url);
               [~,url_name,url_ext2] = fileparts(url_name);
-              fn = fullfile(obj.dem_info(di).out_path,[url_name,url_ext2,url_ext1]);
-              tif_fn = fullfile(obj.dem_info(di).out_path,[url_name '_reg_dem.tif']);
+              fn = fullfile(obj.dem_info{di}.out_path,[url_name,url_ext2,url_ext1]);
+              tif_fn = fullfile(obj.dem_info{di}.out_path,[url_name '_reg_dem.tif']);
               
               if ~exist(fn,'file') && ~exist(tif_fn,'file')
-                cmd = sprintf('wget -P %s %s', obj.dem_info(di).out_path, url);
+                cmd = sprintf('wget -P %s %s', obj.dem_info{di}.out_path, url);
                 fprintf('  %s\n', cmd);
                 system(cmd);
                 if ~exist(fn,'file')
@@ -457,8 +474,8 @@ classdef dem_class < handle
               end
               
               if ~exist(tif_fn,'file')
-                fprintf('Untar %s\n  %s\n', fn, obj.dem_info(di).out_path);
-                untar(fn, obj.dem_info(di).out_path);
+                fprintf('Untar %s\n  %s\n', fn, obj.dem_info{di}.out_path);
+                untar(fn, obj.dem_info{di}.out_path);
                 if ~exist(tif_fn,'file')
                   error('Failed to untar file or file not found in tar archive.');
                 end
@@ -488,7 +505,7 @@ classdef dem_class < handle
                 obj.dem_all{di}{xi,yi} = imread(tif_fn);
                 
                 % Set bad values to NaN
-                obj.dem_all{di}{xi,yi}(obj.dem_all{di}{xi,yi}==obj.dem_info(di).no_data) = NaN;
+                obj.dem_all{di}{xi,yi}(obj.dem_all{di}{xi,yi}==obj.dem_info{di}.no_data) = NaN;
                 
                 % Flip upside down if necessary
                 if GeoKeys.Orientation
@@ -512,17 +529,19 @@ classdef dem_class < handle
         
         % Ocean Mask
         % -----------------------------------------------------------------
-%         min_x = min(obj.x);
-%         max_x = max(obj.x);
-%         min_y = min(obj.y);
-%         max_y = max(obj.y);
-%         
-%         min_lat = min(obj.lat(mask));
-%         max_lat = max(obj.lat(mask));
-%         % Handle longitude in a special way because it wraps around.
-%         mean_lon = angle(mean(exp(1i*obj.lon(mask)/180*pi)))*180/pi;
-%         max_lon = mean_lon + max(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
-%         min_lon = mean_lon + min(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
+        % Use shapefile to determine ocean mask
+        
+        %         min_x = min(obj.x);
+        %         max_x = max(obj.x);
+        %         min_y = min(obj.y);
+        %         max_y = max(obj.y);
+        %
+        %         min_lat = min(obj.lat(mask));
+        %         max_lat = max(obj.lat(mask));
+        %         % Handle longitude in a special way because it wraps around.
+        %         mean_lon = angle(mean(exp(1i*obj.lon(mask)/180*pi)))*180/pi;
+        %         max_lon = mean_lon + max(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
+        %         min_lon = mean_lon + min(angle(exp(1i*(obj.lon(mask)-mean_lon)/180*pi)))*180/pi;
         
         % Restrict ocean mask features to our dataset (i.e. mask all features
         % whose bounding boxes fall outside our limits.
@@ -544,7 +563,7 @@ classdef dem_class < handle
         poly_y = cell(0);
         for shp_idx = 1:length(ocean_shp)
           % convert polygon to projected coordinates
-          [x,y] = projfwd(obj.dem_info(di).proj,ocean_shp(shp_idx).Y,ocean_shp(shp_idx).X);
+          [x,y] = projfwd(obj.dem_info{di}.proj,ocean_shp(shp_idx).Y,ocean_shp(shp_idx).X);
           % if polygon is within projected bounding box
           if min(x) < obj.max_x && max(x) > obj.min_x ...
               && min(y) < obj.max_y && max(y)>obj.min_y
@@ -557,10 +576,22 @@ classdef dem_class < handle
         % Create ocean mask to determine which points lie in the ocean
         mask_idxs = find(mask);
         for poly_idx = 1:length(poly_x)
+          % Decimate polygon except within the object's bounding box. This
+          % is done to speed up inpolygon
+          poly_mask = false(size(poly_x{poly_idx}));
+          poly_mask(1:obj.ocean_mask_dec:end) = true;
+          poly_mask(poly_x{poly_idx}<=obj.max_x&poly_x{poly_idx}>=obj.min_x ...
+            & poly_y{poly_idx}<=obj.max_y&poly_y{poly_idx}>=obj.min_y) = true;
           
           % Mask showing which DEM points are in polygon (on land)
-          land_mask_tmp = inpolygon(obj.x(mask),obj.y(mask),[poly_x{poly_idx}(1:100:end)],[poly_y{poly_idx}(1:100:end)]);
+          land_mask_tmp = inpolygon(obj.x(mask),obj.y(mask),[poly_x{poly_idx}(poly_mask)],[poly_y{poly_idx}(poly_mask)]);
           ocean_mask(mask_idxs(land_mask_tmp)) = false;
+        end
+        
+        if obj.ocean_mask_mode(1) == 'l'
+          % Also use land threshold to determine ocean mask
+          land_threshold = 5;
+          ocean_mask(land_dem-land_threshold > msl) = false;
         end
         
         % Debug
@@ -573,14 +604,14 @@ classdef dem_class < handle
           mask_dec_idxs = logical(interp1(1:length(obj.x(mask)), single(ocean_mask(mask)), dec_idxs, 'nearest', 'extrap'));
           along_track = geodetic_to_along_track(obj.lat(mask),obj.lon(mask));
           
-          figure(2); clf;
+          figure(2); clf; colormap(parula(256));
           scatter(along_track(dec_idxs),dem_out(dec_idxs),[],dem_out(dec_idxs));
           hold on;
           scatter(along_track(dec_idxs),msl(dec_idxs),[],msl(dec_idxs));
           plot(along_track(dec_idxs(mask_dec_idxs)),msl(dec_idxs(mask_dec_idxs)),'k.');
           caxis([min(obj.dem.dem{di}(:)) max(obj.dem.dem{di}(:))]);
           
-          figure(3); clf;
+          figure(3); clf; colormap(parula(256));
           scatter(x_out(dec_idxs),y_out(dec_idxs),[],dem_out(dec_idxs));
           hold on;
           plot(x_out(dec_idxs(mask_dec_idxs)),y_out(dec_idxs(mask_dec_idxs)),'k.');
@@ -598,7 +629,7 @@ classdef dem_class < handle
       
       % Find the first valid dem_info and use this dem's projection to
       % define the proj, x, and y
-      proj = obj.dem_info(obj.di(1)).proj;
+      proj = obj.dem_info{obj.di(1)}.proj;
       
       % Determine bounds of region of interest
       min_x = round(min(obj.x)/res)*res;
@@ -638,7 +669,7 @@ classdef dem_class < handle
           end
           ri = obj.get_ri(di);
           
-          if obj.dem_info(di).tile_en(ri)
+          if obj.dem_info{di}.tile_en(ri)
             % Tiles were used, so clear all loaded DEMs since it is likely that
             % they will not be reused
             obj.clear();
@@ -676,9 +707,9 @@ classdef dem_class < handle
     %% get_ri: Get resolution index
     % =====================================================================
     function ri = get_ri(obj,di)
-      ri = find(obj.dem_info(di).res <= obj.res,1,'last');
+      ri = find(obj.dem_info{di}.res <= obj.res,1,'last');
       if isempty(ri)
-        warning('All resolutions are coarser obj.dem_info(di).res = %g m than the desired obj.param_dem_class.res = %g m. Downloading the finest resolution available.', obj.dem_info(ri).res(1), obj.param_dem_class.res);
+        warning('All resolutions are coarser obj.dem_info{di}.res = %g m than the desired obj.param_dem_class.res = %g m. Downloading the finest resolution available.', obj.dem_info{ri}.res(1), obj.param_dem_class.res);
         ri = 1;
       end
     end
