@@ -15,11 +15,13 @@ while status ~= 0
     warning('%s\n  FAILED %d %s', cmd, status, result);
     attempts = attempts + 1;
     delay_period = 3*2^(attempts-1);
-    fprintf('  Delaying %d seconds\n', delay_period)
+    if delay_period > 120
+      delay_period = 120;
+    end
+    fprintf('  Delaying %d seconds (%s)\n', delay_period, datestr(now));
     pause(delay_period);
     if attempts > 10
-      % There is potentially something wrong with the command if it
-      % fails this many times. Look into it before running "dbcont".
+      warning('There is potentially something wrong with the system command if it fails this many times. Look into it before running "dbcont". system command is:\n  %s', cmd);
       keyboard;
     end
   end

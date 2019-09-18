@@ -89,7 +89,7 @@ try
     end
   end
   if num_my_processors ~= 0
-    error('Insufficient processors available.');
+    error('Insufficient processors available. Need %d more processors.', num_my_processors);
   end
   
   % 4. Set this processes CPU affinity
