@@ -27,10 +27,13 @@ if ~exist('task_ids','var')
 end
 task_ids = regexp(task_ids, 'd', 'split');
 if ~exist('num_proc','var')
-  num_proc = getenv('NUM_PROC');
+  num_proc = str2num(getenv('NUM_PROC'));
 end
 if ~isempty(num_proc)
+  fprintf('Requesting %g processors with cpu affinity\n', num_proc);
   cluster_cpu_affinity(num_proc);
+else
+  fprintf('Not requesting any processors with cpu affinity\n');
 end
 
 fprintf('%s: Processing tasks %s', mfilename, task_ids{1});

@@ -669,8 +669,8 @@ if print_mode == 2
     
     if isnan(info(id_idx).mem_actual)
       fn = fullfile(ctrl.stdout_fn_dir,sprintf('stdout_%d.txt',lead_task_id));
-      if exist(fn,'file')
-        fid = fopen(fn);
+      [fid,msg] = fopen(fn);
+      if fid > 0
         result = fread(fid,inf,'char=>char').';
         fclose(fid);
         try
