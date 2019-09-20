@@ -59,7 +59,7 @@ frames = [];
 
 %% Mode 2: fixed along-track spacing
 % =====================================================================
-if param.records.frames.mode == 2
+if any(param.records.frames.mode == [1 2])
   % Create monotonically increasing along_track vector
   along_track = geodetic_to_along_track(records.lat,records.lon);
   

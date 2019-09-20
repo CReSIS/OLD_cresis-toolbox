@@ -98,6 +98,7 @@ arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -12;
 arena.adc(adc_idx).desiredAlignMax = 8;
+arena.adc(adc_idx).stream = 'tcp';
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
 arena.adc(adc_idx).gain_dB = [2.4 2.4];
@@ -108,6 +109,7 @@ arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -17;
 arena.adc(adc_idx).desiredAlignMax = 3;
+arena.adc(adc_idx).stream = 'tcp';
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
 arena.adc(adc_idx).gain_dB = [2.4 2.4];
@@ -118,6 +120,7 @@ arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -21;
 arena.adc(adc_idx).desiredAlignMax = -1;
+arena.adc(adc_idx).stream = 'tcp';
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
 arena.adc(adc_idx).gain_dB = [2.4 2.4];
@@ -128,6 +131,7 @@ arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 2;
 arena.adc(adc_idx).desiredAlignMin = -20;
 arena.adc(adc_idx).desiredAlignMax = 0;
+arena.adc(adc_idx).stream = 'tcp';
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 0;
 arena.adc(adc_idx).gain_dB = [2.4 2.4];
@@ -156,9 +160,19 @@ arena.daq.type = 'daq_0001';
 
 arena.ctu.name = 'ctu';
 arena.ctu.type = 'ctu_001D';
-arena.ctu.nmea = 31;
-arena.ctu.pps = 10;
-arena.ctu.pps_polarity = 1;
+if 0
+  % External GPS
+  arena.ctu.nmea = 31;
+  arena.ctu.nmea_baud = 9600;
+  arena.ctu.pps = 10;
+  arena.ctu.pps_polarity = 1;
+else
+  % Internal GPS
+  arena.ctu.nmea = 60;
+  arena.ctu.nmea_baud = 115200;
+  arena.ctu.pps = 63;
+  arena.ctu.pps_polarity = 1;
+end
 idx = 0;
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'EPRI';
@@ -287,7 +301,7 @@ default.post.ops.location = 'antarctic';
 
 %% Analysis worksheet
 default.analysis.block_size = 5000;
-default.analysis.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
+default.analysis.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 cmd_idx = 0;
 cmd_idx = cmd_idx + 1;
 default.analysis.cmd{cmd_idx}.method = 'statistics';
@@ -322,14 +336,14 @@ default.analysis.cmd{cmd_idx}.kx = 1000;
 defaults = {};
 
 % Noise Mode
-default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8]};
+default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2;8 0 3 1;8 1 3 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4;8 0 3 3;8 1 3 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6;8 0 3 5;8 1 3 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8;8 0 3 7;8 1 3 8]};
 default.qlook.img_comb = [];
-default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
+default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
-for wf = 1:2
+for wf = 1:3
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
@@ -344,14 +358,14 @@ default.name = 'Noise Mode 180-210 MHz';
 defaults{end+1} = default;
 
 % Survey Mode
-default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8]};
-default.qlook.img_comb = [10e-06 -inf 3e-06];
-default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
+default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2;8 0 3 1;8 1 3 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4;8 0 3 3;8 1 3 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6;8 0 3 5;8 1 3 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8;8 0 3 7;8 1 3 8]};
+default.qlook.img_comb = [3e-6 -inf 0.5e-6 10e-06 -inf 3e-06];
+default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
-for wf = 1:2
+for wf = 1:3
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
@@ -366,14 +380,14 @@ default.name = 'Survey Mode 180-210 MHz';
 defaults{end+1} = default;
 
 % Other settings
-default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8]};
+default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2;8 0 3 1;8 1 3 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4;8 0 3 3;8 1 3 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6;8 0 3 5;8 1 3 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8;8 0 3 7;8 1 3 8]};
 default.qlook.img_comb = [];
-default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).']};
+default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.radar.ref_fn = '';
-for wf = 1:2
+for wf = 1:3
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;

@@ -92,6 +92,15 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'a
   gps.z = 0;
 end
 
+if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(gps_source,'arena'))
+  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+  % Platform: Ground based sled
+  %
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
 if any(strcmpi(param.season_name,{'2019_Greenland_TO'})) ...
     && any(strcmpi(gps_source,{'nmea'}))
   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
@@ -1211,7 +1220,10 @@ if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'rds'))
 end
 
 if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'rds'))
-  % Accumulation antenna
+  % Japanese National Institute of Polar Research/Japanese Antarctic
+  % Research Expedition
+  %
+  % Log periodic antennas
   LArx(1,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.x; % m
   LArx(2,:)   = 0.75*[-3.5:3.5] - gps.y; % m
   LArx(3,:)   = (5*0.0254 + [0 0 0 0 0 0 0 0]) - gps.z; % m
@@ -1219,6 +1231,30 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'r
   LAtx(1,:)   = (0 + [0 0 0 0]) - gps.x; % m
   LAtx(2,:)   = 0.75*[-3.5:2:3.5] - gps.y; % m
   LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 4;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 4;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(radar_name,'rds'))
+  % Sled antennas
+  % Center elements left to right
+  LArx = [0	-64.4623	10.5
+    0	-46.0371	10.5
+    0 -27.6119	10.5
+    0 -9.1867	10.5
+    0 9.2337	10.5
+    0 27.6637	10.5
+    0 46.0889	10.5
+    0 64.5141	10.5].' * 2.54/100;
+  
+  LAtx = LArx(:,[1 2 7 8]);
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 4;
