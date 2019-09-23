@@ -57,8 +57,8 @@ dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg0';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = fs_dac;
-arena.dac(dac_idx).desiredAlignMin = -7;
-arena.dac(dac_idx).desiredAlignMax = 5;
+arena.dac(dac_idx).desiredAlignMin = -4;
+arena.dac(dac_idx).desiredAlignMax = 10;
 arena.dac(dac_idx).dcoPhase = 80;
 
 adc_idx = 0;
@@ -69,6 +69,7 @@ arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 1;
 arena.adc(adc_idx).desiredAlignMin = -15;
 arena.adc(adc_idx).desiredAlignMax = 0;
+arena.adc(adc_idx).stream = 'socket';
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 1;
@@ -78,8 +79,9 @@ arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 1;
-arena.adc(adc_idx).desiredAlignMin = -34;
-arena.adc(adc_idx).desiredAlignMax = -20;
+arena.adc(adc_idx).desiredAlignMin = -14;
+arena.adc(adc_idx).desiredAlignMax = -0;
+arena.adc(adc_idx).stream = 'socket';
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 2;
@@ -106,9 +108,19 @@ arena.daq.type = 'daq_0001';
 
 arena.ctu.name = 'ctu';
 arena.ctu.type = 'ctu_001D';
-arena.ctu.nmea = 31;
-arena.ctu.pps = 10;
-arena.ctu.pps_polarity = 1;
+if 0
+  % External GPS
+  arena.ctu.nmea = 31;
+  arena.ctu.nmea_baud = 9600;
+  arena.ctu.pps = 10;
+  arena.ctu.pps_polarity = 1;
+else
+  % Internal GPS
+  arena.ctu.nmea = 60;
+  arena.ctu.nmea_baud = 115200;
+  arena.ctu.pps = 63;
+  arena.ctu.pps_polarity = 1;
+end
 idx = 0;
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'EPRI';

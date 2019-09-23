@@ -312,6 +312,28 @@ for adc_idx = 1:adcList.getLength
   nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
   adc_cfg = nodeList.item(0);
   
+  % Get the datastream type
+  expression = xpath.compile('dataStream/@type');
+  nodeList = expression.evaluate(match,XPathConstants.NODESET);
+  datastream_config_type = nodeList.item(0).getTextContent.toCharArray;
+  datastream_config_type = datastream_config_type(:).';
+  configs.datastream_type = datastream_config_type;
+  if 0
+    expression = xpath.compile('dataStream/config');
+    nodeList = expression.evaluate(match,XPathConstants.NODESET);
+    datastream_config_name = nodeList.item(0).getTextContent.toCharArray;
+    datastream_config_name = datastream_config_name(:).';
+    
+    expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',['stream' datastream_config_type],datastream_config_name));
+    nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
+    datastream_cfg = nodeList.item(0);
+    
+    expression = xpath.compile('port');
+    nodeList = expression.evaluate(datastream_cfg,XPathConstants.NODESET);
+    port = nodeList.item(0).getTextContent.toCharArray;
+    port = port(:).';
+  end
+  
   % Load configs and find the longest possible record size which is used
   % by arena_packet_strip to prevent bad headers from causing major data
   % loss.

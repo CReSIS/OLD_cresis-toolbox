@@ -59,7 +59,7 @@ frames = [];
 
 %% Mode 2: fixed along-track spacing
 % =====================================================================
-if param.records.frames.mode == 2
+if any(param.records.frames.mode == [1 2])
   % Create monotonically increasing along_track vector
   along_track = geodetic_to_along_track(records.lat,records.lon);
   
@@ -92,7 +92,7 @@ end
 %% Mode 3: fixed number of records (for stationary data)
 % =====================================================================
 if param.records.frames.mode == 3
-  warning('This frame generation mode should only be used for stationary data (e.g. test data).');
+  warning('Frame generation mode %d should only be used for stationary data (e.g. test data).', param.records.frames.mode);
   
   frames.frame_idxs = 1:50000:length(records.gps_time)-50000/2;
   if isempty(frames.frame_idxs)
