@@ -118,7 +118,28 @@ if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
+if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(gps_source,'bas'))
+  % Paden: Just an estimate
+  %warning('Correct lever arms need to be entered.');
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 1300;
+end
+
+if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TObas'})) && any(strcmpi(gps_source,{'arena','bas'})))
+  % See (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
+  %
+  % 2018 Antarctica TObas (Jan-Feb 2019) GPS data are processed to the IMAR
+  % gravimeter.
+  %
+  % From Tom Jordan at BAS:
+  % My best solution is that the IMAR solution to the GPS above the radar is as follows (all in m):
+  % X (positive forward) -2.9369
+  % Y (Positive port)  0.1116
+  % Z (Positive up) 1.4762
+  %
+  %
+  % 
   % Aircraft: British Antarctic Survey (BAS) VP-FBL
   %
   % Carl Robinson at BAS Aug 2018: Though we do have measurements for
@@ -148,31 +169,6 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'ar
   %     Rib is at 308" FS (although this may be wrong)
   %
   % 
-
-  gps.x = 0;
-  gps.y = 0;
-  gps.z = 0;
-end
-
-if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(gps_source,'bas'))
-  % Paden: Just an estimate
-  %warning('Correct lever arms need to be entered.');
-  gps.x = 0;
-  gps.y = 0;
-  gps.z = 1300;
-end
-
-if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'bas'))
-  % See (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
-  %
-  % 2018 Antarctica TObas (Jan-Feb 2019) GPS data are processed to the IMAR
-  % gravimeter.
-  %
-  % From Tom Jordan at BAS:
-  % My best solution is that the IMAR solution to the GPS above the radar is as follows (all in m):
-  % X (positive forward) -2.9369
-  % Y (Positive port)  0.1116
-  % Z (Positive up) 1.4762
 
   gps.x = 2.9369; % Gravimeter was in front of GPS antenna
   gps.y = 0.1116; % Gravimeter was on the right side of the plane/GPS
@@ -691,7 +687,7 @@ end
 %% Accumulation Radar
 % =========================================================================
 
-if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'accum'))
+if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TObas'})) && strcmpi(radar_name,'accum'))
   % See GPS section for 2018_Antarctica_TObas for details:
   % 	3+5/8" from back of antenna box
   % 	9+15/16" from right/starboard side of lid (used edge of lid)
