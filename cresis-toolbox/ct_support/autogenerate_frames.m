@@ -92,7 +92,7 @@ end
 %% Mode 3: fixed number of records (for stationary data)
 % =====================================================================
 if param.records.frames.mode == 3
-  warning('This frame generation mode should only be used for stationary data (e.g. test data).');
+  warning('Frame generation mode %d should only be used for stationary data (e.g. test data).', param.records.frames.mode);
   
   frames.frame_idxs = 1:50000:length(records.gps_time)-50000/2;
   if isempty(frames.frame_idxs)

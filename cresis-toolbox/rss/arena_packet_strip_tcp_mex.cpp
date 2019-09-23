@@ -249,7 +249,7 @@ mexFunction( int nlhs,
     else
     {
       // Profile data format and length fields are in this file
-      expected_length_field_offset = 20+(*(int *)(radar_header_length_offset));
+      expected_length_field_offset = 20+(*(int *)(data+radar_header_length_offset));
     }
     if (*length_field_offset != expected_length_field_offset)
     {
@@ -269,8 +269,8 @@ mexFunction( int nlhs,
     else
     {
       // Profile data format and length fields are in this file
-      profile_data_format = (*(int *)(data_length_offset-4));
-      *num_expected = (*(int *)(data_length_offset));
+      profile_data_format = (*(int *)(data+data_length_offset-4));
+      *num_expected = (*(int *)(data+data_length_offset));
       data_length_offset += 4;
     }
     num_expected_original = *num_expected;
@@ -307,6 +307,7 @@ mexFunction( int nlhs,
       mexPrintf("%d: %d Bad Record Length %d\n", __LINE__, ((unsigned int *)(hdr+num_hdr*header_size))[0], *num_expected);
       *num_expected = *default_num_expected;
     }
+    *num_expected = *num_expected + *length_field_offset + 4- *last_bytes_len;
   }
   
   // ======================================================================
@@ -432,26 +433,32 @@ mexFunction( int nlhs,
     }
     else
     {
-      if (*num_expected != 0)
+      if (*num_expected != -1)
       {
         // Since num_expected != -1, we were locked and have now become unlocked
         mexPrintf("%d: Sync Lost LastSync(%d) ExpectedSync(%d) LastRecordSize(%d)\n",
                 __LINE__, last_record_offset, idx, num_expected_original);
         // Uncomment next seven lines for debugging
-//         mexPrintf("  %d %d\n", idx,((unsigned int *)(hdr+(num_hdr-1)*header_size))[0]);
-//         if (idx > 64)
-//         {
-//           for (int debug_idx=0; debug_idx<1; debug_idx++)
-//           {
-//             mexPrintf("  0x%016llx\n", ((unsigned long long *)(data+idx-64))[debug_idx]);
-//           }
-//         }
+        mexPrintf("Bytes around the expected location of the sync:\n");
+        for (int debug_idx=0; debug_idx<16; debug_idx++)
+        {
+          mexPrintf("  %d 0x%016llx\n", debug_idx-8, ((unsigned long long *)(data+idx-64))[debug_idx]);
+        }
         // Print out last header to help with debugging
         if (num_hdr > 0)
         {
+          mexPrintf("Last good header:\n");
           for (int header_idx=0; header_idx<*num_header_fields; header_idx++)
           {
             mexPrintf("  %d 0x%016llx\n", header_idx, ((unsigned long long int *)(hdr+(num_hdr-1)*header_size))[header_idx]);
+          }
+          if (num_hdr > 1)
+          {
+            mexPrintf("Good header before last good header:\n");
+            for (int header_idx=0; header_idx<*num_header_fields; header_idx++)
+            {
+              mexPrintf("  %d 0x%016llx\n", header_idx, ((unsigned long long int *)(hdr+(num_hdr-2)*header_size))[header_idx]);
+            }
           }
         }
         else
@@ -462,6 +469,11 @@ mexFunction( int nlhs,
       }
       idx += 8;
     }
+  }
+  
+  if (*num_expected > 0)
+  {
+    *num_expected = idx - file_size;
   }
   
   // Copy hdr to output
