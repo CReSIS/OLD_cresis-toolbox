@@ -354,11 +354,11 @@ for adc_idx = 1:adcList.getLength
         port = nodeList.item(0).getTextContent.toCharArray;
         port = port(:).';
       end
+    else
+      % No data stream found
+      warning('No data stream found in the configuration file.');
+      configs.datastream_type = 'socket';
     end
-  else
-    % No data stream found
-    warning('No data stream found in the configuration file.');
-    configs.datastream_type = 'socket';
   end
   
   % Load configs and find the longest possible record size which is used
