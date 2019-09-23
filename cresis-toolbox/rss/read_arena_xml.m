@@ -315,23 +315,50 @@ for adc_idx = 1:adcList.getLength
   % Get the datastream type
   expression = xpath.compile('dataStream/@type');
   nodeList = expression.evaluate(match,XPathConstants.NODESET);
-  datastream_config_type = nodeList.item(0).getTextContent.toCharArray;
-  datastream_config_type = datastream_config_type(:).';
-  configs.datastream_type = datastream_config_type;
-  if 0
-    expression = xpath.compile('dataStream/config');
+  if nodeList.getLength > 0
+    datastream_config_type = nodeList.item(0).getTextContent.toCharArray;
+    datastream_config_type = datastream_config_type(:).';
+    configs.datastream_type = datastream_config_type;
+    if 0
+      expression = xpath.compile('dataStream/config');
+      nodeList = expression.evaluate(match,XPathConstants.NODESET);
+      datastream_config_name = nodeList.item(0).getTextContent.toCharArray;
+      datastream_config_name = datastream_config_name(:).';
+      
+      expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',['stream' datastream_config_type],datastream_config_name));
+      nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
+      datastream_cfg = nodeList.item(0);
+      
+      expression = xpath.compile('port');
+      nodeList = expression.evaluate(datastream_cfg,XPathConstants.NODESET);
+      port = nodeList.item(0).getTextContent.toCharArray;
+      port = port(:).';
+    end
+  else
+    expression = xpath.compile('dataOutput');
     nodeList = expression.evaluate(match,XPathConstants.NODESET);
-    datastream_config_name = nodeList.item(0).getTextContent.toCharArray;
-    datastream_config_name = datastream_config_name(:).';
-    
-    expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]',['stream' datastream_config_type],datastream_config_name));
-    nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
-    datastream_cfg = nodeList.item(0);
-    
-    expression = xpath.compile('port');
-    nodeList = expression.evaluate(datastream_cfg,XPathConstants.NODESET);
-    port = nodeList.item(0).getTextContent.toCharArray;
-    port = port(:).';
+    if nodeList.getLength > 0
+      configs.datastream_type = 'socket';
+      if 0
+        expression = xpath.compile('dataOutput/config');
+        nodeList = expression.evaluate(match,XPathConstants.NODESET);
+        datastream_config_name = nodeList.item(0).getTextContent.toCharArray;
+        datastream_config_name = datastream_config_name(:).';
+        
+        expression = xpath.compile(sprintf('//configs/config[(@type="%s" and name="%s")]','socket',datastream_config_name));
+        nodeList = expression.evaluate(doc_cfg,XPathConstants.NODESET);
+        datastream_cfg = nodeList.item(0);
+        
+        expression = xpath.compile('port');
+        nodeList = expression.evaluate(datastream_cfg,XPathConstants.NODESET);
+        port = nodeList.item(0).getTextContent.toCharArray;
+        port = port(:).';
+      end
+    end
+  else
+    % No data stream found
+    warning('No data stream found in the configuration file.');
+    configs.datastream_type = 'socket';
   end
   
   % Load configs and find the longest possible record size which is used
