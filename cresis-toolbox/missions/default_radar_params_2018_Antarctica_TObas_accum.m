@@ -9,7 +9,7 @@ function param = default_radar_params_2018_Antarctica_TObas_accum
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2018_Antarctica_TObas';
+param.season_name = '2019_Antarctica_TObas';
 param.radar_name = 'accum3';
 
 param.config.daq_type = 'arena';
