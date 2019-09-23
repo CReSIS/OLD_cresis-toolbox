@@ -1055,7 +1055,11 @@ for daq_idx = daq_idxs
     child.appendChild(doc.createTextNode(adc.name));
     
     child = doc.createElement('dataSource'); recorder.appendChild(child);
-    child.appendChild(doc.createTextNode( sprintf('%s:%s:dataStream0',subsystem_name,adc.name) ));
+    if strcmpi(adc.stream,'socket')
+      child.appendChild(doc.createTextNode( sprintf('%s:%s',subsystem_name,adc.name) ));
+    else
+      child.appendChild(doc.createTextNode( sprintf('%s:%s:dataStream0',subsystem_name,adc.name) ));
+    end
     
     child = doc.createElement('fileName'); recorder.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%s_%s',daq.fileName,adc.name) ));
@@ -1172,20 +1176,27 @@ for adc_idx = 1:length(arena.adc)
   end
   
   child = doc.createElement('name'); config.appendChild(child);
-  child.appendChild(doc.createTextNode(sprintf('stream_%s',adc.name)));
+  if strcmpi(adc.stream,'socket')
+    child.appendChild(doc.createTextNode(sprintf('socket_%s',adc.name)));
+  else
+    child.appendChild(doc.createTextNode(sprintf('stream_%s',adc.name)));
+  end
   
   child = doc.createElement('description'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
-    
-  child = doc.createElement('port'); config.appendChild(child);
-  child.appendChild(doc.createTextNode(sprintf('%d',55000+adc_idx)));
   
-  if ~strcmpi(adc.stream,'tcp')
+  if strcmpi(adc.stream,'tcp')
+    child = doc.createElement('port'); config.appendChild(child);
+    child.appendChild(doc.createTextNode(sprintf('%d',55000+adc_idx)));
+  else
     child = doc.createElement('multiFlag'); config.appendChild(child);
-    child.appendChild(doc.createTextNode(''));
+    child.appendChild(doc.createTextNode('0'));
     
     child = doc.createElement('ip'); config.appendChild(child);
     child.appendChild(doc.createTextNode(adc.ip));
+    
+    child = doc.createElement('port'); config.appendChild(child);
+    child.appendChild(doc.createTextNode(sprintf('%d',55000+adc_idx)));
     
     child = doc.createElement('payloadSize'); config.appendChild(child);
     child.appendChild(doc.createTextNode('8192'));
@@ -1318,7 +1329,11 @@ for subsystem_idx = 1:length(arena.subsystem)
         dataOutput = doc.createElement('dataOutput'); mezz.appendChild(dataOutput);
         
         child = doc.createElement('config'); dataOutput.appendChild(child);
+        if strcmpi(adc.stream,'socket')
+        child.appendChild(doc.createTextNode(sprintf('socket_%s',adc.name)));
+        else
         child.appendChild(doc.createTextNode(sprintf('stream_%s',adc.name)));
+        end
         child.setAttribute('type','socket');
         
         child = doc.createElement('interface'); dataOutput.appendChild(child);
