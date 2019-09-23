@@ -193,11 +193,11 @@ for board_idx = 1:length(boards)
     % Get the temporary filename from the filename list
     file_num = file_idxs(file_idx);
     [~,fn_name] = fileparts(board_fns{board_idx}{file_num});
-    if any(param.records.file.version == [9 10 103 412])
-      % Update the filename to point to the packet stripped files
-      board_fns{board_idx}{file_num} = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
-        fullfile(adc_folder_name, [fn_name '.dat']));
-    end
+%     if any(param.records.file.version == [9 10 103 412])
+%       % Update the filename to point to the packet stripped files
+%       board_fns{board_idx}{file_num} = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
+%         fullfile(adc_folder_name, [fn_name '.dat']));
+%     end
     fn = board_fns{board_idx}{file_num};
     dir_info = dir(fn);
     
