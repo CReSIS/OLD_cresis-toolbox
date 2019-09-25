@@ -489,7 +489,7 @@ if param.records.frames.mode == 1
     autogenerate_frames(param,param_override);
   end
   obj = create_frames(param,param_override);
-elseif param.records.frames.mode == 2
+elseif param.records.frames.mode >= 2
   autogenerate_frames(param,param_override);
 end
 
