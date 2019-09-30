@@ -45,6 +45,22 @@ switch ct_output_dir(params(1).radar_name)
     % RDS
     track_override.profile = 'rds_OIB';
 
+    % Override default filter settings for low AGL
+    if 0
+      track_override.min_bin = 0.75e-6;
+    end
+
+    % Override default filter settings for broad bandwidth
+    if 0
+      track_override.max_rng	= [0 10];
+      track_override.max_rng_units = 'bins';
+    end
+    
+    % Override default filter settings for rapidly changing elevation
+    if 0
+      track_override.filter	= [5 1];
+    end
+
     % Override default filter settings
     if 0
       track_override.filter	= [3 3];
@@ -86,6 +102,7 @@ switch ct_output_dir(params(1).radar_name)
       track_override.init.dem_layer.source = 'lidar';
       track_override.init.dem_layer.lidar_source = 'atm';
       track_override.init.max_diff = 1e-6;
+      track_override.init.max_diff_method = 'merge_vectors';
     elseif 0
       track_override.init.method	= 'snake';
       track_override.init.snake_rng	= [-0.5e-6 0.5e-6];
@@ -110,6 +127,7 @@ switch ct_output_dir(params(1).radar_name)
       track_override.init.dem_layer.source = 'lidar';
       track_override.init.dem_layer.lidar_source = 'atm';
       track_override.init.max_diff = 0.3e-6;
+      track_override.init.max_diff_method = 'merge_vectors';
     end
     
     % Override default method
@@ -139,6 +157,7 @@ switch ct_output_dir(params(1).radar_name)
       track_override.init.dem_layer.source = 'lidar';
       track_override.init.dem_layer.lidar_source = 'atm';
       track_override.init.max_diff = 0.3e-6;
+      track_override.init.max_diff_method = 'merge_vectors';
     elseif 0
       track_override.init.method  = 'snake';
       track_override.init.snake_rng = [-15e-9 15e-9];

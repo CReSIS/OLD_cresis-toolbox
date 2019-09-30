@@ -30,7 +30,7 @@ for img = 1:length(param.load.imgs)
   hdr.t_ref{img} = zeros(1,Nx,'double');
   
   nyquist_zone_hw{img} = zeros(1,param.load.presums);
-  nyquist_zone_signal{img} = NaN;
+  nyquist_zone_signal{img} = nan(1,param.load.presums);
   DDC_dec{img} = ones(1,param.load.presums);
   DDC_freq{img} = zeros(1,param.load.presums);
   % wfs.Nt_raw: stores the number of range bins IF the number of range bins
@@ -330,7 +330,7 @@ for state_idx = 1:length(states)
           end
           
           % Read in headers for this record
-          if any(param.records.file.version == [3 5 7 8 11])
+          if any(param.records.file.version == [2 3 5 7 8 11])
             
             % Jump through the record one waveform at a time until we get
             % to the waveform we need to load.
@@ -360,18 +360,25 @@ for state_idx = 1:length(states)
                   start_idx = double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
-                if param.records.file.version == 3
-                  DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+2);
-                else
-                  DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
-                end
-                raw_or_DDC = file_data(wf_hdr_offset + 48);
-                if raw_or_DDC
+                if any(param.records.file.version == [2])
+                  DDC_dec{img}(num_accum(ai)+1) = 1;
                   Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);
                   wfs(wf).complex = false;
+                  raw_or_DDC = 1; % Raw or real data/not complex
                 else
-                  Nt{img}(num_accum(ai)+1) = floor((stop_idx - start_idx) / DDC_dec{img}(num_accum(ai)+1));
-                  wfs(wf).complex = true;
+                  if param.records.file.version == 3
+                    DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+2);
+                  else
+                    DDC_dec{img}(num_accum(ai)+1) = 2^(double(file_data(wf_hdr_offset+46))+1);
+                  end
+                  raw_or_DDC = file_data(wf_hdr_offset + 48); % 1 means "raw", 0 means "DDC/complex"
+                  if raw_or_DDC
+                    Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);
+                    wfs(wf).complex = false;
+                  else
+                    Nt{img}(num_accum(ai)+1) = floor((stop_idx - start_idx) / DDC_dec{img}(num_accum(ai)+1));
+                    wfs(wf).complex = true;
+                  end
                 end
               end
               
@@ -384,7 +391,7 @@ for state_idx = 1:length(states)
             Nt{img}(num_accum(ai)+1) = Nt{img}(num_accum(ai)+1) - sum(wfs(wf).time_raw_trim);
             
             % Number of fast-time samples Nt, and start time t0
-            if param.records.file.version ~= 8
+            if all(param.records.file.version ~= [2 8])
               % NCO frequency
               if swap_bytes_en
                 DDC_freq{img}(num_accum(ai)+1) = double(swapbytes(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16')));
@@ -431,14 +438,19 @@ for state_idx = 1:length(states)
               nyquist_zone_hw{img}(num_accum(ai)+1) = bitand(file_data(wf_hdr_offset+34),3);
             elseif any(param.records.file.version == [3 5 7])
               nyquist_zone_hw{img}(num_accum(ai)+1) = file_data(wf_hdr_offset+45);
-%             else
-%               % nyquist_zone_hw remains zero for all other file versions
-%               nyquist_zone_hw{img}(num_accum(ai)+1) = 0
+            else
+              % nyquist_zone_hw defaults to 1 for all other file versions
+              % (ideally this is overridden by
+              % records.settings.nyquist_zone)
+              nyquist_zone_hw{img}(num_accum(ai)+1) = 1;
             end
           end
-          nyquist_zone_signal{img} = nyquist_zone_hw{img}(1);
+          if isfield(records.settings,'nyquist_zone_hw') && ~isnan(records.settings.nyquist_zone_hw(rec))
+            nyquist_zone_hw{img}(num_accum(ai)+1) = records.settings.nyquist_zone_hw(rec);
+          end
+          nyquist_zone_signal{img}(num_accum(ai)+1) = nyquist_zone_hw{img}(1);
           if isfield(records.settings,'nyquist_zone') && ~isnan(records.settings.nyquist_zone(rec))
-            nyquist_zone_signal{img} = records.settings.nyquist_zone(rec);
+            nyquist_zone_signal{img}(num_accum(ai)+1) = records.settings.nyquist_zone(rec);
           end
           
           % Extract waveform for this wf-adc pair
@@ -593,7 +605,7 @@ for state_idx = 1:length(states)
           wf_adc = state.wf_adc(ai);
           if num_accum(ai) < num_presum_records*wfs(wf).presum_threshold ...
               || any(nyquist_zone_hw{img}(1:num_accum(ai)) ~= nyquist_zone_hw{img}(1)) ...
-              || any(~isequaln(nyquist_zone_signal{img}(1:num_accum(ai)),nyquist_zone_signal{img}(1))) ...
+              || any(~isequaln(nyquist_zone_signal{img}(1:num_accum(ai)),nyquist_zone_signal{img}(1)*ones(1,num_accum(ai)))) ...
               || any(DDC_dec{img}(1:num_accum(ai)) ~= DDC_dec{img}(1)) ...
               || any(DDC_freq{img}(1:num_accum(ai)) ~= DDC_freq{img}(1)) ...
               || Nt{img}(1) <= 0 ...
@@ -615,7 +627,7 @@ for state_idx = 1:length(states)
             data{img}(Nt{img}(1)+1:end,out_rec,wf_adc) = wfs(wf).bad_value;
             
             hdr.nyquist_zone_hw{img}(out_rec) = nyquist_zone_hw{img}(1);
-            hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal{img};
+            hdr.nyquist_zone_signal{img}(out_rec) = nyquist_zone_signal{img}(1);
             hdr.DDC_dec{img}(out_rec) = DDC_dec{img}(1);
             hdr.DDC_freq{img}(out_rec) = DDC_freq{img}(1);
             hdr.Nt{img}(out_rec) = Nt{img}(1);
@@ -633,10 +645,10 @@ for state_idx = 1:length(states)
             end
           end
         end
+        % Reset counters
+        num_presum_records = 0; % Number of records in the presum interval
+        num_accum(:) = 0; % Number of good records in the presum interval
       end
-      % Reset counters
-      num_presum_records = 0;
-      num_accum(:) = 0;
       % Increment record counter
       rec = rec + 1;
     end
@@ -653,7 +665,7 @@ if ~param.load.raw_data
       % receiver gain compensation
       chan_equal = 10.^(param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc))/20) ...
         .* exp(1i*param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc))/180*pi);
-      mult_factor = single(wfs(wf).quantization_to_V(adc)/param.load.presums/10.^(wfs(wf).adc_gains_dB(adc)/20)/chan_equal);
+      mult_factor = single(wfs(wf).quantization_to_V(adc)/10.^(wfs(wf).adc_gains_dB(adc)/20)/chan_equal);
       data{img}(:,:,wf_adc) = mult_factor * data{img}(:,:,wf_adc);
       
       % Compensate for receiver gain applied before ADC quantized the signal

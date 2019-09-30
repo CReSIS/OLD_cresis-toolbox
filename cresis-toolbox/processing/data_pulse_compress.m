@@ -351,6 +351,11 @@ for img = 1:length(param.load.imgs)
       if strcmpi(radar_type,'pulsed')
         % Digital down conversion
         
+        if 0
+          % Debug: print noise levels
+          fprintf('%d:%d %g\n', img, wf_adc, 10*log10(mean(mean(abs(data{img}(end+[-600:-401],:,wf_adc)).^2))));
+        end
+        
         blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
         for block = 1:length(blocks)-1
           rlines = blocks(block) : blocks(block+1)-1;
@@ -368,6 +373,12 @@ for img = 1:length(param.load.imgs)
           % Decimation
           data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));
           
+        end
+        
+        if 0
+          % Debug: print noise levels after pulse compression
+          offset = round(wfs(wf).Tpd*wfs(wf).fs);
+          fprintf('%d:%d PC %g\n', img, wf_adc, 10*log10(mean(mean(abs(data{img}(wfs(wf).Nt + -offset+[-199:0],:,wf_adc)).^2))));
         end
         
         if wf_adc == 1

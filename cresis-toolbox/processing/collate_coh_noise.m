@@ -97,6 +97,12 @@ if ~isfield(param.collate_coh_noise,'threshold_eval') || isempty(param.collate_c
   param.collate_coh_noise.threshold_eval = {};
 end
 
+% threshold_fir_dec: Amount of filtering (number of blocks to average) to apply when finding
+% the suggested threshold
+if ~isfield(param.collate_coh_noise,'threshold_fir_dec') || isempty(param.collate_coh_noise.threshold_fir_dec)
+  param.collate_coh_noise.threshold_fir_dec = 10;
+end
+
 if ~isfield(param.collate_coh_noise,'threshold_ylims') || isempty(param.collate_coh_noise.threshold_ylims)
   param.collate_coh_noise.threshold_ylims = [];
 end
@@ -212,10 +218,10 @@ for img = param.collate_coh_noise.imgs
       end
       if enable_threshold
         cn_before_mag(:,bin_idx) = coh_bin_mag;
-        if size(coh_bin_mag,2) < 10
-          threshold(bin_idx) = lp(mean(abs(coh_bin_mag).^2,2));
+        if size(coh_bin_mag,2) < param.collate_coh_noise.threshold_fir_dec
+          threshold(bin_idx) = lp(mean(abs(coh_bin_mag).^2,2),1);
         else
-          threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,10)),[],2);
+          threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,param.collate_coh_noise.threshold_fir_dec),1),[],2);
         end
       end
       if strcmpi(param.collate_coh_noise.method,'dft')
@@ -286,7 +292,7 @@ for img = param.collate_coh_noise.imgs
       clf(h_fig(1));
       set(h_fig(1), 'name', 'collate_coh_noise FFT');
       h_axes(1) = axes('parent',h_fig(1));
-      imagesc(doppler, [], fftshift(lp( fft(cn_before,[],2) ),2), 'parent', h_axes(1));
+      imagesc(doppler, [], fftshift(lp( fft(cn_before,[],2),2 ),2), 'parent', h_axes(1));
       cn_before(mask) = NaN;
       title(h_axes(1), sprintf('%s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       xlabel(h_axes(1), 'Doppler frequency (1/sec)');
@@ -306,11 +312,11 @@ for img = param.collate_coh_noise.imgs
         ct_saveas(h_fig(1),fig_fn);
       end
       
-      %cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
+      %cn_before(bsxfun(@gt,lp(cn_before,2),threshold)) = NaN;
       clf(h_fig(2));
       set(h_fig(2), 'name', 'collate_coh_noise Before');
       h_axes(2) = axes('parent',h_fig(2));
-      imagesc(lp(cn_before),'parent',h_axes(2));
+      imagesc(lp(cn_before,2),'parent',h_axes(2));
       cc=caxis(h_axes(2));
       title(h_axes(2), sprintf('Before coherent noise removal %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       ylabel(h_axes(2), 'Range bin');
@@ -324,7 +330,7 @@ for img = param.collate_coh_noise.imgs
         ct_saveas(h_fig(2),fig_fn);
       end
       
-      %cn_before(bsxfun(@gt,lp(cn_before),threshold)) = NaN;
+      %cn_before(bsxfun(@gt,lp(cn_before,2),threshold)) = NaN;
       clf(h_fig(3));
       set(h_fig(3), 'name', 'collate_coh_noise Before Phase');
       h_axes(3) = axes('parent',h_fig(3));
@@ -344,7 +350,7 @@ for img = param.collate_coh_noise.imgs
       clf(h_fig(4));
       set(h_fig(4), 'name', 'collate_coh_noise After');
       h_axes(4) = axes('parent',h_fig(4));
-      imagesc(lp(cn_after),'parent',h_axes(4));
+      imagesc(lp(cn_after,2),'parent',h_axes(4));
       caxis(h_axes(4), cc);
       title(h_axes(4), sprintf('After coherent noise removal %s wf %d adc %d',regexprep(param.day_seg,'_','\\_'), wf, adc));
       xlabel(h_axes(4), 'Block');
@@ -369,7 +375,7 @@ for img = param.collate_coh_noise.imgs
       hold(h_axes(5), 'on');
       grid(h_axes(5), 'on');
       plot(h_axes(5), threshold, 'LineStyle', '--')
-      plot(h_axes(5), lp(abs(noise.dft(:,1)).^2))
+      plot(h_axes(5), lp(abs(noise.dft(:,1)).^2,1))
       legend(h_axes(5), 'Original', 'Modified', 'DC Noise', 'location', 'best')
       xlabel(h_axes(5), 'Range bin');
       ylabel(h_axes(5), 'Relative power (dB)');
