@@ -238,7 +238,7 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Combine images
   [output_dir,radar_type] = ct_output_dir(param.radar_name);
-  if ~isempty(param.array.img_comb) || param.array.tomo_en || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp')))
+  if ~isempty(param.array.img_comb) || param.array.tomo_en || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp'))
     % Combine images into a single image and/or trim invalid times with
     % img_comb_trim
     img_combine_param = param;
@@ -248,18 +248,16 @@ for frm_idx = 1:length(param.cmd.frms);
     [Data, Time] = img_combine(img_combine_param, 'array', surf_layer);
     
     %% Save combined image output
-    if length(param.array.imgs) == 1 || ~isempty(param.array.img_comb)
-      % A combined file should be created
-      out_fn = fullfile(array_out_dir, sprintf('Data_%s_%03d.mat', ...
-        param.day_seg, frm));
-      fprintf('  Writing output to %s\n', out_fn);
-      % Note that image combining here never includes "Tomo" variable. Use
-      % tomo.run_collate.m to create the combined image with the "Tomo" variable.
-      save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-        'Elevation','GPS_time','Data','Surface','Bottom', ...
-        'param_array','param_records','param_sar', ...
-        'Roll', 'Pitch', 'Heading','file_version');
-    end
+    % A combined file should be created
+    out_fn = fullfile(array_out_dir, sprintf('Data_%s_%03d.mat', ...
+      param.day_seg, frm));
+    fprintf('  Writing output to %s\n', out_fn);
+    % Note that image combining here never includes "Tomo" variable. Use
+    % tomo.run_collate.m to create the combined image with the "Tomo" variable.
+    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      'Elevation','GPS_time','Data','Surface','Bottom', ...
+      'param_array','param_records','param_sar', ...
+      'Roll', 'Pitch', 'Heading','file_version');
   end
 end
 
