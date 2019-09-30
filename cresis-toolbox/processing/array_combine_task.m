@@ -166,7 +166,7 @@ for frm_idx = 1:length(param.cmd.frms);
         param_array.array_proc.fcs{1}{1}.z = [param_array.array_proc.fcs{1}{1}.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs{1}{1}.origin = [param_array.array_proc.fcs{1}{1}.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
       end
-      if isfield(tmp,'Tomo')
+      if param.array.tomo_en
         %         3D-surface is present so concatenate it too
         %         Tomo = cat(3,Tomo,tmp.Tomo);
         %         Concatenate all the fields under struct Tomo: valR, bins, val, freq
