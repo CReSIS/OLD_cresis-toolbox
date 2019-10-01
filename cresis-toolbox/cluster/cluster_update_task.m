@@ -354,7 +354,7 @@ if update_mode && ctrl.error_mask(task_id)
   end
 end
 
-if ~bitand(ctrl.error_mask(task_id),critical_error)
+if update_mode && ~bitand(ctrl.error_mask(task_id),critical_error)
   fprintf('    Since no critical errors occured, setting error mask to 0.\n');
   ctrl.error_mask(task_id) = 0;
 end
@@ -397,7 +397,6 @@ if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
     new_job_id = -1;
     ctrl.job_id_list(task_id) = new_job_id;
     ctrl.job_status(task_id) = new_job_status;
-    ctrl.error_mask(task_id) = 0;
     
     % Update job IDs in job ID file
     fid = fopen(ctrl.job_id_fn,'r+');
