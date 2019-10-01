@@ -96,7 +96,8 @@ if iscell(ctrl_chain)
         if all(ctrl.job_status=='C')
           if ~any(ctrl.error_mask)
             % Advance to the next stage
-            fprintf('Chain %d succeeded on stage %d.\n', chain, active_stage(chain));            active_stage(chain) = active_stage(chain) + 1;
+            fprintf('Chain %d succeeded on stage %d.\n', chain, active_stage(chain));
+            active_stage(chain) = active_stage(chain) + 1;
             first_run(chain) = true;
             if active_stage(chain) > numel(ctrl_chain{chain})
               % Chain is complete (no more stages/batches to complete)
@@ -118,11 +119,14 @@ if iscell(ctrl_chain)
           keyboard
         end
       end
+      if cluster_run_mode < 0
+        break;
+      end
     end
     % Check if in a block mode or not. If a stage finished and still has
     % more stages to complete, then do not exit yet since we should start
     % the next stage running first.
-    if ~active_stage_update && (cluster_run_mode <= 0 || cluster_run_mode == 2)
+    if cluster_run_mode < 0 || (~active_stage_update && (cluster_run_mode == 0 || cluster_run_mode == 2))
       break;
     end
   end
@@ -173,7 +177,7 @@ elseif isstruct(ctrl_chain)
     if ctrl.cluster.max_time_per_job < task_cpu_time
       warning('ctrl.cluster.max_time_per_job (%.0f sec) is less than task %d:%d''s requested time: %.0f sec. You may override "ctrl.cluster.max_time_per_job" or "task_cpu_time" and then run "dbcont" to continue submission.', ...
         ctrl.cluster.max_time_per_job, ctrl.batch_id, task_id, task_cpu_time);
-      pause;
+      keyboard;
     end
     if ctrl.cluster.max_mem_per_job < task_mem
       warning('ctrl.cluster.max_mem_per_job (%.1f GB) is less than task %d:%d''s requested mem: %.1f GB', ...
@@ -221,6 +225,7 @@ elseif isstruct(ctrl_chain)
     % Check to see if a hold has been placed on this batch
     if exist(ctrl.hold_fn,'file')
       warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=-1" to stop cluster_run.m now in a clean way. Either way, run dbcont to continue.\n');
+      keyboard;
       if cluster_run_mode < 0
         % Clean up and exit function
         ctrl_chain = ctrl;
