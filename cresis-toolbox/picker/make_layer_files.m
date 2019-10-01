@@ -72,7 +72,7 @@ end
 % old and new layer files. This is useful when timing offsets are
 % present, but the data themselves don't have an offset.
 if ~isfield(param.make_layer_files,'adjust_gps_time') || isempty(param.make_layer_files.adjust_gps_time)
-  param.make_layer_files.adjust_gps_time = true;
+  param.make_layer_files.adjust_gps_time = false;
 end
 
 in_fn_dir = ct_filename_out(param,param.make_layer_files.echogram_input,'');
@@ -177,11 +177,11 @@ for frm_idx = 1:length(param.cmd.frms)
         for rline = 1:length(old_lyr.layerData{layer_idx}.value{1}.data)
           if old_lyr.layerData{layer_idx}.value{1}.data(rline) ~= inf
             [min_val min_idx] = min(abs(old_lyr.GPS_time(rline) - lyr.GPS_time));
-            lyr.layerData{layer_idx}.value{1}.data(min_idx) = old_lyr.layerData{lyr.layer_idx}.value{1}.data(rline) + fast_time_correction(min_idx);
+            lyr.layerData{layer_idx}.value{1}.data(min_idx) = old_lyr.layerData{layer_idx}.value{1}.data(rline) + fast_time_correction(min_idx);
           end
         end
         % Linear interpolation for automated points
-        layerData{lyr.layer_idx}.value{2}.data = interp1(old_lyr.GPS_time, ...
+        lyr.layerData{layer_idx}.value{2}.data = interp1(old_lyr.GPS_time, ...
           old_lyr.layerData{layer_idx}.value{2}.data, lyr.GPS_time, 'linear', 'extrap')  + fast_time_correction;
         % Nearest neighbor interpolation for quality data
         lyr.layerData{layer_idx}.quality = interp1(old_lyr.GPS_time, ...

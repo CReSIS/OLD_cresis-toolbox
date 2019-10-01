@@ -66,24 +66,14 @@ end
 % END HACK
 ctrl.file_success{task_id} = param.file_success;
 
-out_fn_exist_error = 1;
-out_fn_load_error = 2;
-argsout_exist_error = 4;
-argsout_length_error = 8;
-errorstruct_exist_error = 16;
-errorstruct_contains_error = 32;
-success_error = 64;
-cluster_killed_error = 128;
-walltime_exceeded_error = 256;
-success_eval_error = 512;
-file_success_error = 1024;
-file_success_corrupt_error = 2048;
-max_mem_exceeded_error = 4096;
-insufficient_mcr_space = 8192;
+cluster_error_mask; % Loads all the error masks
 
 error_mask = 0;
 
-if update_mode && exist(ctrl.hold_fn,'file')
+if update_mode < 0
+  return;
+end
+if update_mode > 0 && exist(ctrl.hold_fn,'file')
   fprintf('This batch has a hold. Run <strong>cluster_hold(ctrl)</strong> to remove. Either way, run <strong>dbcont</strong> to continue.\n');
   keyboard
 end
@@ -287,18 +277,6 @@ else
   
 end
 
-if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error)
-  fprintf('  Max memory potentially exceeded\n');
-  fprintf('    Job max_mem is %.1f GB\n', max_mem/1e9);
-  fprintf('    Task id %d:%d\n', ctrl.batch_id, task_id);
-  fprintf('    Task memory %.1f GB\n', ctrl.mem(task_id)/1e9);
-  fprintf('    Job''s last executed task id %d\n', last_task_id);
-  if ctrl.error_mask(task_id) == max_mem_exceeded_error
-    fprintf('    Since no other error occured besides exceeding 90%% of memory request, setting error mask to 0.\n');
-    ctrl.error_mask(task_id) = 0;
-  end
-end
-
 if update_mode && ctrl.error_mask(task_id)
   warning(' Job Error %d:%d/%d (lead task %d)\n', ctrl.batch_id, task_id, job_id, task_id_out);
   if any(strcmpi(ctrl.cluster.type,{'torque','slurm'}))
@@ -325,6 +303,13 @@ if update_mode && ctrl.error_mask(task_id)
     if ctrl.cluster.stop_on_error
       keyboard
     end
+  end
+  if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error)
+    fprintf('  Max memory potentially exceeded\n');
+    fprintf('    Job max_mem is %.1f GB\n', max_mem/1e9);
+    fprintf('    Task id %d:%d\n', ctrl.batch_id, task_id);
+    fprintf('    Task memory %.1f GB\n', ctrl.mem(task_id)/1e9);
+    fprintf('    Job''s last executed task id %d\n', last_task_id);
   end
   if bitand(ctrl.error_mask(task_id),max_mem_exceeded_error) && task_id == last_task_id
     fprintf('  Task max memory exceeded.\n');
@@ -369,6 +354,11 @@ if update_mode && ctrl.error_mask(task_id)
   end
 end
 
+if update_mode && ~bitand(ctrl.error_mask(task_id),critical_error)
+  fprintf('    Since no critical errors occured, setting error mask to 0.\n');
+  ctrl.error_mask(task_id) = 0;
+end
+
 if update_mode
   if ctrl.cluster.cpu_time_mult*ctrl.cpu_time(task_id)*0.9 < ctrl.cpu_time_actual(task_id)
     warning(' %d:%d/%d: CPU time actual (%.0f sec) is more than 90%% of estimated time (%.0f sec). Consider revising estimates.', ...
@@ -407,7 +397,6 @@ if update_mode && ctrl.job_status(task_id) == 'C' && ctrl.error_mask(task_id)
     new_job_id = -1;
     ctrl.job_id_list(task_id) = new_job_id;
     ctrl.job_status(task_id) = new_job_status;
-    ctrl.error_mask(task_id) = 0;
     
     % Update job IDs in job ID file
     fid = fopen(ctrl.job_id_fn,'r+');

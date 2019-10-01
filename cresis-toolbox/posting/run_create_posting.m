@@ -3,7 +3,7 @@
 % Loads the "post" worksheet from the parameter spreadsheet and then calls
 % create_posting with this information.
 %
-% Authors: Theresa Stumpf, John Paden
+% Authors: Theresa Stumpf, John Paden, Reece Mathews
 %
 % See also: create_posting.m
 

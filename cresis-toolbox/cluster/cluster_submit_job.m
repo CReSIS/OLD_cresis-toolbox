@@ -155,6 +155,7 @@ elseif strcmpi(ctrl.cluster.type,'slurm')
   end
   
   [status,result] = robust_system(cmd);
+  ctrl.active_jobs = ctrl.active_jobs + 1;
   
   search_str = 'Submitted batch job ';
   job_id_str = regexp(result,search_str);

@@ -31,6 +31,9 @@ if recs(2) == inf || recs(2) > num_recs;
   % Determine number of records and set recs(1) to this
   recs(2) = num_recs;
 end
+if recs(2) < recs(1)
+  error('Requested records beyond the end of the records file or requested zero records: recs(1)=%d > recs(2)=%d. There are %d records in the records file: %s.', recs(1), recs(2), recs(2), records_fn);
+end
 
 records.lat = ncread(cdf_fn,'lat',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.lon = ncread(cdf_fn,'lon',[1 recs(1)],[1 recs(2)-recs(1)+1]);
@@ -53,7 +56,6 @@ records.offset = ncread(cdf_fn,'offset',[1 recs(1)],[inf recs(2)-recs(1)+1]);
 
 tmp = netcdf_to_mat(cdf_fn,[],'^gps_source$');
 records.gps_source = tmp.gps_source;
-records.settings(1).wfs_records = ncread(cdf_fn,'settings(1).wfs_records');
 
 tmp = netcdf_to_mat(cdf_fn,[],'^relative_rec_num');
 records.relative_rec_num = tmp.relative_rec_num;
@@ -65,8 +67,3 @@ records.param_records = tmp.param_records;
 
 tmp = netcdf_to_mat(cdf_fn,[],'^settings(1\).wfs(');
 records.settings.wfs = tmp.settings.wfs;
-
-return;
-
-
-

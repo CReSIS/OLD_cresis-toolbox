@@ -1,7 +1,7 @@
 function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board_idx)
 % [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(param,board_idx)
 %
-% Support function for create_vectors.m and create_records.m.
+% Support function for create_records.m.
 % Can also be used to get all the file information for every segment
 % using run_get_segment_file_list.m.
 %
@@ -23,8 +23,16 @@ function [base_dir,board_folder_name,fns,file_idxs] = get_segment_file_list(para
 % See also: get_frame_id, get_raw_files.m, get_segment_file_list.m,
 %   run_get_segment_file_list.m
 
-if ~isfield(param.records.file,'file_midfix')
+if ~isfield(param.records.file,'prefix') || isempty(param.records.file.prefix)
+  param.records.file.prefix = '';
+end
+
+if ~isfield(param.records.file,'midfix') || isempty(param.records.file.midfix)
   param.records.file.midfix = '';
+end
+
+if ~isfield(param.records.file,'suffix') || isempty(param.records.file.suffix)
+  param.records.file.suffix = '';
 end
 
 if ~isfield(param.records.file,'boards') || isempty(param.records.file.boards)
@@ -51,7 +59,7 @@ elseif any(param.records.file.version == [410])
   ext = '.raw';
 elseif any(param.records.file.version == [405 406 409])
   ext = '';
-elseif any(param.records.file.version == [413])
+elseif any(param.records.file.version == [413 414])
   ext = '.mat';
 else 
   error('Unsupported file version\n');
@@ -67,24 +75,51 @@ if nargout > 2
   if 0
     fprintf('Getting files for %s (%s)\n', base_dir, datestr(now));
   end
-  get_fns_param = struct('regexp',param.records.file.regexp);
-  if ~isfield(param.records.file,'file_suffix')
-    fns = get_filenames(base_dir,param.records.file.prefix,param.records.file.midfix,ext,get_fns_param);
-  else
-    fns = get_filenames(base_dir,param.records.file.prefix,param.records.file.midfix,param.records.file.suffix,get_fns_param);
-  end
   
-  % Sort ACORDS filenames because the extenions are not a standard length
-  if any(param.records.file.version == [405 406])
-    basenames = {};
-    file_idxs = [];
-    new_fns = {};
-    for fidx = 1:length(fns)
-      fname = fname_info_acords(fns{fidx},struct('hnum',1,'file_version',param.records.file.version));
-      new_fns{fidx} = [fname.basename sprintf('.%03d',fname.file_idx)];
+  if any(param.records.file.version == [414])
+    board = param.records.file.boards{board_idx};
+    board_folder_name = param.records.file.board_folder_name;
+    board_folder_name = regexprep(board_folder_name,'%b',board);
+    get_filenames_param = struct('regexp',param.records.file.regexp,'recursive',true);
+    fns_all = get_filenames(fullfile(param.records.file.base_dir,board_folder_name), ...
+      param.records.file.prefix, param.records.file.midfix, ...
+      param.records.file.suffix, get_filenames_param);
+    datenum_list = [];
+    fns = {};
+    for fn_idx = 1:length(fns_all)
+      fn = fns_all{fn_idx};
+      fname = fname_info_bas(fn);
+      if ~any(datenum_list == fname.datenum)
+        % File time stamp not added to list yet, so add it
+        datenum_list(end+1) = fname.datenum;
+        fns{end+1} = sprintf('%sPort_%s_Tx%s_Rx%s_%s%02.0fL%.0f_T01_%04.0f.mat', ...
+          fname.name, datestr(fname.datenum,'YYYYmmDDHHMMSS'), 'P1234', 'P1', 'C', ...
+          0, 0, fname.file_idx);
+      end
     end
-    [new_fns,sorted_idxs] = sort(new_fns);
-    fns = fns(sorted_idxs);
+    [datenum_list,sort_idxs] = sort(datenum_list);
+    fns = fns(sort_idxs);
+    
+  else
+    get_fns_param = struct('regexp',param.records.file.regexp);
+    if ~isfield(param.records.file,'file_suffix')
+      fns = get_filenames(base_dir,param.records.file.prefix,param.records.file.midfix,ext,get_fns_param);
+    else
+      fns = get_filenames(base_dir,param.records.file.prefix,param.records.file.midfix,param.records.file.suffix,get_fns_param);
+    end
+    
+    % Sort ACORDS filenames because the extenions are not a standard length
+    if any(param.records.file.version == [405 406])
+      basenames = {};
+      file_idxs = [];
+      new_fns = {};
+      for fidx = 1:length(fns)
+        fname = fname_info_acords(fns{fidx},struct('hnum',1,'file_version',param.records.file.version));
+        new_fns{fidx} = [fname.basename sprintf('.%03d',fname.file_idx)];
+      end
+      [new_fns,sorted_idxs] = sort(new_fns);
+      fns = fns(sorted_idxs);
+    end
   end
 
   if 0

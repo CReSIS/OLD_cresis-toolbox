@@ -408,8 +408,8 @@ for file_idx = 1:length(in_fns)
     ins.roll = interp1(ins.gps_time,ins.roll,new_gps_time);
     ins.pitch = interp1(ins.gps_time,ins.pitch,new_gps_time);
     ins.heading = interp1(ins.gps_time,ins.heading,new_gps_time);
-    if gps.lon >180                 % 2018_Antarctica_DC8 ATM trajectory files
-        gps.lon = gps.lon -360;
+    if any(gps.lon >180)                 % 2018_Antarctica_DC8 ATM trajectory files
+        gps.lon(gps.lon>180) = gps.lon(gps.lon>180) -360;
     end
     interp_idxs = find(ins.gps_time >= gps.gps_time(1) & ins.gps_time <= gps.gps_time(end));
     ins.lat(interp_idxs) = interp1(gps.gps_time,gps.lat,ins.gps_time(interp_idxs));
@@ -449,6 +449,7 @@ for file_idx = 1:length(in_fns)
 
   %% Save output file
   fprintf('Output file %s\n', out_fn);
+  gps.file_version = '1';
   if sync_flag{file_idx}
     % Add the Radar Synchronization variables for mcrds, accum2, acords,
     % arena
@@ -464,12 +465,12 @@ for file_idx = 1:length(in_fns)
     end
 
     if isfield(gps,'radar_time')
-      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version');
     else
-      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version');
     end
   else
-    save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');
+    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version');
   end
   
   if debug_level >= 2

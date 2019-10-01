@@ -33,17 +33,17 @@ physical_constants;
 % Nx: number of along track samples
 
 % range: range to target (Nt by 1 vector, units: seconds)
-range = results.array_param.wfs.time(results.array_param.bins)*c/2;
+range = results.param_crosstrack.array_proc.wfs.time(results.param_crosstrack.array_proc.bins)*c/2;
 
 % doa: direction of arrival to the target
 % power: scattering power of target (higher is better)
 % cost: cost function result (lower is better)
 % hessian: hessian of cost function (higher is better)
 %   (Nt by Nsig by Nx array, units: radians)
-doa = results.tomo.doa;
-power = results.tomo.power;
-cost = results.tomo.cost;
-hessian = results.tomo.hessian;
+doa = results.tomo.tomo.theta;
+power = results.tomo.tomo.img;
+cost = results.tomo.tomo.cost;
+hessian = results.tomo.tomo.hessian;
 
 % surf_model: the target surface grid
 surf_model = results.surf_model;

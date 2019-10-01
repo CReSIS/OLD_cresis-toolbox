@@ -306,6 +306,14 @@ if isempty(param.array.method)
   error('No valid method selected in param.array.method');
 end
 
+% .last_fprintf_time_delay
+%   The maximum amount of time in seconds since the last fprintf statement
+%   was made. This is used to print out the progress. The default is 60
+%   seconds.
+if ~isfield(param.array,'last_fprintf_time_delay') || isempty(param.array.last_fprintf_time_delay)
+  param.array.last_fprintf_time_delay = 60;
+end
+
 % .line_rng:
 %   Range of range-lines to use for snapshots, default is -5:5. line_rng is
 %   forced to be symmetrical about 0 and only contain integers.
@@ -385,14 +393,13 @@ end
 %   Steering vectors align with these spatial frequencies:
 %     ifftshift(-floor(Nsv/2):floor((Nsv-1)/2))
 if isfield(param.array,'theta') && ~isempty(param.array.theta)
-  Nsv = length(param.array.theta);
+  param.array.Nsv = length(param.array.theta);
   theta = param.array.theta/180*pi; % Theta input in degrees
 else
   if ~isfield(param.array,'Nsv') || isempty(param.array.Nsv)
     param.array.Nsv = 1;
   end
-  Nsv = param.array.Nsv;
-  theta = fftshift(param.array.sv_fh(Nsv, 1));
+  theta = fftshift(param.array.sv_fh(param.array.Nsv, 1));
 end
 
 % .Nsubband:
@@ -479,6 +486,10 @@ Nb = size(din{1},4);
 % Nc: Number of cross-track channels in the din
 Nc = size(din{1},5);
 
+if ~isfield(param,'array_proc') || isempty(param.array_proc)
+  param.array_proc = [];
+end
+
 % .bin_restriction:
 %   .start_bin: 1 by Nx vector of the start range-bin
 %   .stop_bin: 1 by Nx vector of the stop range-bin
@@ -546,7 +557,7 @@ for idx = 1:length(cfg.method)
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
   else
     % Beam Forming Method
-    Sarray.(m) = zeros(cfg.Nsv,Nt_out);
+    Sarray.(m) = zeros(cfg.Nsv,Nt_out); 
   end
   if cfg.tomo_en && cfg.method(idx) < DOA_METHOD_THRESHOLD
     % Tomography with Beam Forming Method
@@ -637,6 +648,11 @@ Hwindow = Hwindow(:) / sum(Hwindow);
 
 physical_constants; % c: speed of light
 
+% Change er_ice to 1 for ice top
+if ~isempty(param.array.layer_name) && (strcmpi(param.array.layer_name,'top') || strcmpi(param.array.layer_name,'surface'))
+  er_ice = 1;
+end
+
 % DOA Setup
 % -------------------------------------------------------------------------
 if any(cfg.method >= DOA_METHOD_THRESHOLD)
@@ -646,7 +662,8 @@ if any(cfg.method >= DOA_METHOD_THRESHOLD)
   doa_param.doa_constraints = cfg.doa_constraints;
   doa_param.theta_guard     = cfg.doa_theta_guard/180*pi;
   doa_param.search_type     = cfg.doa_init;
-  doa_param.theta           = theta;
+  doa_param.theta           = theta; % This changes inside S-MAP loop
+  theta_copy                = theta;
   doa_param.seq             = cfg.doa_seq;
   % Setup cfgeterization for DCM
   if cfg.method == DCM_METHOD
@@ -712,13 +729,13 @@ end
   end
 
   % Time: twtt that containts all possible time samples within the
-  % range gate for the current data chunk (each chunk od data is processed 
+  % range gate for the current data chunk (each chunk of data is processed 
   % separately, then all chunks are combined using array_combine_task). 
   % This is fixed for all range-lines.
   Time = cfg.wfs.time;
-%   dt = Time(2)-Time(1);
+%   dt = Time(2)-Time(1); % Range-bin time
 
-% Layer range-bin at naid DOA bin. layerData_rline = length(cfg.lines)
+% Layer range-bin at nair DOA bin.
 if exist('layerData','var') && ~isempty('layerData')
   layerData_rline = round(interp1(Time,1:length(Time),layerData));
 end
@@ -727,23 +744,33 @@ end
 % =========================================================================
 % Loop through each output range line and then through each output range
 % bin for that range line.
+last_fprintf_time = -inf;
+last_fprintf_time_bin = -inf;
 for line_idx = 1:1:Nx_out
   %% Array: Setup
   rline = cfg.lines(line_idx);
-  if ~mod(line_idx-1,10^floor(log10(Nx_out)-1))
-    fprintf('    Record %.0f (%.0f of %.0f) (%s)\n', rline, line_idx, ...
+  if now > last_fprintf_time+param.array.last_fprintf_time_delay/86400
+    fprintf('    Record %.0f (%.0f of %.0f) bin start (%s)\n', rline, line_idx, ...
       Nx_out, datestr(now));
+    last_fprintf_time = now;
+    last_fprintf_time_bin = now;
   end
-  
+    
   % Bring the range-bin index stored in layerData vector (at the nadir DOA bin)
+  nn = 15; % Number of range-bins before the initial that S-MAP starts from
   if exist('layerData','var') && ~isempty('layerData')
     % Skip this range-line if there is NaN/Inf in its layerData entry
     if ~isfinite(layerData_rline(line_idx))
       warning('No data ... Skipping range-line %0.f',rline)
       continue;
     else
-      cfg.bin_restriction.start_bin(rline) = layerData_rline(line_idx) + max(cfg.bin_rng)- 3;
+      cfg.bin_restriction.start_bin(rline) = layerData_rline(line_idx) + max(cfg.bin_rng)- nn;
     end
+  end
+  
+  % theta may change inside S-MAP for each range-bin. So, reset it here
+  if any(cfg.method >= DOA_METHOD_THRESHOLD)
+    doa_param.theta = theta_copy;
   end
   %% Array: Edge Conditions
   % At the beginning and end of the data, we may need to restrict the range
@@ -846,12 +873,28 @@ for line_idx = 1:1:Nx_out
   
   clear first_rbin_idx
   max_Nsrc = cfg.Nsrc; % For S-MAP
-  bin_idxs = find(cfg.bins >= cfg.bin_restriction.start_bin(rline) & cfg.bins <= cfg.bin_restriction.stop_bin(rline)); % [1495:2400]
+  bin_idxs = find(cfg.bins >= cfg.bin_restriction.start_bin(rline) & cfg.bins <= cfg.bin_restriction.stop_bin(rline));
   early_stop = false;
+
+  if any(param.array.method < DOA_METHOD_THRESHOLD)
+    % Beam Forming Method
+    m = array_proc_method_str(cfg.method(param.array.method < DOA_METHOD_THRESHOLD));
+    Sarray.(m) = zeros(cfg.Nsv,Nt_out);
+  end
+  clear prev_active_rbin first_rbin_idx first_active_doa prev_rbin sources_number% For S-MAP tracker only
+  % This is used with S-MAP, where the number of snapshots changes when the
+  % change of DOA over range crosses some threshold.
+  cfg.bin_rng = param.array.bin_rng;
+  std_doa_accum = []; % For S-MAP to track stdev using Kalman filter
+  std_doa_accum_new = [];
   for bin_idx = bin_idxs(:).'
     %% Array: Array Process Each Bin
     bin = cfg.bins(bin_idx);
-    
+    if now > last_fprintf_time_bin+2*param.array.last_fprintf_time_delay/86400
+      fprintf('      Record %.0f (%.0f of %.0f) bin %d of %d (%s)\n', rline, line_idx, ...
+        Nx_out, bin_idx, length(bin_idxs), datestr(now));
+      last_fprintf_time_bin = now;
+    end
     % Handle the case when the data covariance matrix support pixels and
     % pixel neighborhood multilooking do not match. Note that this is only
     % supported for MVDR.
@@ -992,7 +1035,7 @@ for line_idx = 1:1:Nx_out
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
         
         if isempty(sv)
-          Sarray.music(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,Nsv);
+          Sarray.music(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,param.array.Nsv);
         else
           Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
           [V,D] = eig(Rxx);
@@ -1224,7 +1267,6 @@ for line_idx = 1:1:Nx_out
       %% Array: MLE
       % See Wax, Alternating projection maximum likelihood estimation for
       % direction of arrival, TSP 1983?.
-      
       % If S-MAP is used with layerData pointing to the first range-bin, 
       % then S-MAP should find the ice-layer soon. Otherwise, the tracked 
       % layer will appear way bellow the actual layer location.  
@@ -1237,7 +1279,7 @@ for line_idx = 1:1:Nx_out
         array_data  = dataSample.';
         Rxx         = (1/size(array_data,2)) * (array_data * array_data');
         doa_param.Rxx = Rxx; % put Rxx in doa_param (to pass to fminsearch)
-        
+        doa_param.M = size(array_data,2);
         %         cfg.Nsig_true = [];
         if 1 && isfield(cfg,'Nsig_true') && ~isempty(cfg.Nsig_true)
           if cfg.Nsig_true(bin,line) > 2
@@ -1403,6 +1445,7 @@ for line_idx = 1:1:Nx_out
               if bin == first_rbin_idx
                 prev_rbin = first_rbin_idx;
                 prev_rng = cfg.range(prev_rbin);
+                H_air = prev_rng; % May be needed for bounding later
 %                 first_rng = cfg.range(first_rbin_idx);
                 
                 for doa_idx = 1:Nsrc_idx %cfg.Nsig
@@ -1420,50 +1463,335 @@ for line_idx = 1:1:Nx_out
                   LB(2) = ref_doa+0.5*pi/180;
                 end
                 
+                doa_param.theta = fftshift([linspace(LB(1),UB(1),5) , linspace(LB(2),UB(2),5)]);
+               
                 if cfg.doa_seq && cfg.debug_plots
                   % Debug
                   bounds_l(bin_idx,:) = [LB(1) UB(1)]*180/pi;
                   bounds_r(bin_idx,:) = [LB(2) UB(2)]*180/pi;
                 end
                 
+                % These are used to track the stdev of the prior using
+                % Kalman filter.
+                nPriorPoints = 5; % User defined. 
+                Rc = [];
+                a = [];
+                for i = 1: possible_Nsig
+                  Rc{i}(:,:,1) = 0.1*eye(nPriorPoints); % Initial Riccati update matrix.
+                  Rc{i}(:,:,2) = 0.1*eye(nPriorPoints);
+                  a{i} = zeros(nPriorPoints,2); % Initial weighting vector.
+                  a{i}(1,:) = 0.9;
+                end
               elseif bin > first_rbin_idx && bin < Nt
                 prev_rng = cfg.range(prev_rbin);
-                
-                % Change in DoA from previouse range-bin to the current
-%                 doa_step_size = array_param.delta_theta(bin_idx);
-                
-                % Determine the 'adaptive' DOA bounds
-%                 doa_param.theta_guard = doa_step_size/8;
+                                
+                % Determine the 'adaptive' DOA bounds: choose one of these modes
+                % -----------------------------------
                 mu_L  = -acos((prev_rng/curr_rng)*cos(prev_doa(1)));
                 mu_R  = +acos((prev_rng/curr_rng)*cos(prev_doa(2)));
                 
+                % doa_step may change based on the bounding model
                 doa_step_L = abs(mu_L-prev_doa(1));
                 doa_step_R = abs(mu_R-prev_doa(2));
-                % DOA bounds tend to be too tight off to the side, which
-                % makes the resulting slices look like a flat surface
-                % always. So, here we loosen those bounds a little bit.
-                if 1
-                  if doa_step_L <= 0.5*pi/180
-%                     doa_step_L = 2*pi/180;
-                    doa_step_L = 2*doa_step_L;
+                
+                kk_st = 1;  % bounds expansion factor for the first few rbins.
+                kk_end = kk_st; % Same, but for the remaining rbins
+                
+                kk_st_std = 1; % stdev expansion/compression factor 
+                kk_end_std = kk_st_std;
+
+                if 0
+                  % 1) The default setting: from the proposed transition model
+                  % :::: Gives ~ perfectly flat surface ::::
+%                   kk = kk_st; % Fixed here
+                  if bin <= first_rbin_idx + 10
+                    kk = kk_st;
+                    kk_std = kk_st_std;
+                  else
+                    kk = kk_end;
+                    kk_std = kk_end_std;
                   end
-                  if doa_step_R <= 0.5*pi/180
-%                     doa_step_R = 2*pi/180;
-                    doa_step_R = 2*doa_step_R;
+                  
+                    
+                  if strcmp(cfg.prior.pdf,'Gaussian')
+                    if 0
+                      % This is based on eduacted guess
+                      a1 = 0.1;
+                      UB(1) = prev_doa(1) - a1*doa_step_L;
+                      LB(2) = prev_doa(2) + a1*doa_step_R;
+                      
+                      p = [-0.5569    0.7878    0.0071]; % These from fitting a curve into some reasonable points
+                      LB(1) = mu_L - (p(1)*doa_step_L^2+p(2)*doa_step_L+p(3));
+                      UB(2) = mu_R + (p(1)*doa_step_R^2+p(2)*doa_step_R+p(3));
+                    else
+                      % Equal bound around the mean DOA
+                      UB(1) = mu_L + kk*doa_step_L;
+                      LB(2) = mu_R - kk*doa_step_R;
+                      
+                      LB(1) = mu_L - kk*doa_step_L;
+                      UB(2) = mu_R + kk*doa_step_R;
+                    end
+                  elseif strcmp(cfg.prior.pdf,'Uniform')
+                    if 0
+                      % This is based on eduacted guess
+                      a1 = 0.1;
+                      UB(1) = prev_doa(1) - a1*doa_step_L;
+                      LB(2) = prev_doa(2) + a1*doa_step_R;
+                      
+                      p = [-0.5569    0.7878    0.0071]; % These from fitting a curve into some reasonable points
+                      LB(1) = mu_L - (p(1)*doa_step_L^2+p(2)*doa_step_L+p(3));
+                      UB(2) = mu_R + (p(1)*doa_step_R^2+p(2)*doa_step_R+p(3));
+                    else
+                       % Equal bound around the mean DOA
+                      UB(1) = mu_L + kk*doa_step_L;
+                      LB(2) = mu_R - kk*doa_step_R;
+                      
+                      LB(1) = mu_L - kk*doa_step_L;
+                      UB(2) = mu_R + kk*doa_step_R;
+                    end
+                  end
+                  
+                  tmp_doa_step_L = kk_std * doa_step_L;
+                  tmp_doa_step_R = kk_std * doa_step_R;
+                  
+                  param.array.prior.model = 1;
+                  cfg.prior.model = 1;
+                elseif 0
+                  % 2) Fixed wide bounds
+                  % :::: May produce zigzagy curves ::::
+                  LB = [mu_L prev_doa(2)] - [5 5]*pi/180;
+                  UB = [prev_doa(1) mu_R] + [5 5]*pi/180;
+                  
+                  tmp_doa_step_L = 5*pi/pi;
+                  tmp_doa_step_R = 5*pi/180;
+                  
+                  param.array.prior.model = 2;
+                  cfg.prior.model = 2;
+                elseif 0
+                  % 3) Looser bounds when doa_step < certain threshold
+                  % :::: One of the best options to use::::
+                  a1 = 0.1;
+                  a2_L = 1;
+                  a2_R = 1;
+                  theta_threshold = 0.5 * pi/180;
+                  if doa_step_L <= theta_threshold
+                    a2_L = 3;
+                  end
+                  if doa_step_R <= theta_threshold
+                    a2_R = 3;
+                  end
+                  UB(1) = prev_doa(1) - a1*doa_step_L;
+                  LB(2) = prev_doa(2) + a1*doa_step_R;
+                  
+                  kk = kk_st; % Fixed here
+                  if strcmp(cfg.prior.pdf,'Gaussian')
+                    LB(1) = mu_L - kk*a2_L*doa_step_L;
+                    UB(2) = mu_R + kk*a2_R*doa_step_R;
+                  elseif strcmp(cfg.prior.pdf,'Uniform')
+                    LB(1) = mu_L - a2_L*doa_step_L;
+                    UB(2) = mu_R + a2_R*doa_step_R;
+                  end
+                  
+                  tmp_doa_step_L = a2_L*doa_step_L;
+                  tmp_doa_step_R = a2_R*doa_step_R;
+                  
+                  param.array.prior.model = 3;
+                  cfg.prior.model = 3;
+                elseif 0
+                  % 4) Continuous bounding replacemnt for 3) (John's idea 1)
+                  % :::: Similar to 3) ::::
+                  theta_threshold  = 0.5* pi/180;
+                  if (doa_step_L <= theta_threshold) || (doa_step_R <= theta_threshold)
+                    theta_transition_deg = 0.9;
+                    % C: compression factor
+                    C = 4;
+                    transition_speed = 3.5;
+                    % theta_change: change in DOA over range-bins
+                    theta_change_deg = linspace(0,2,101);
+                    theta_change_bound = theta_change_deg.*(1 + (C-1)./(1+exp((theta_change_deg-theta_transition_deg)*transition_speed)) );
+                    
+                    [~,i_l] = min(abs(theta_change_deg*pi/180 - doa_step_L));
+                    [~,i_r] = min(abs(theta_change_deg*pi/180 - doa_step_R));
+                    new_doa_step_L = theta_change_bound(i_l)*pi/180;
+                    new_doa_step_R = theta_change_bound(i_r)*pi/180;
+                    if 0
+                      % Debug plot
+                      figure; 
+                      plot(theta_change_deg,theta_change_bound,'b')
+                      hold on;
+                      plot(theta_change_deg(i_l),new_doa_step_L*180/pi,'xr')
+                      plot(theta_change_deg(i_l),doa_step_L*180/pi,'*r')
+                      plot(theta_change_deg(i_r),new_doa_step_R*180/pi,'xk')
+                      plot(theta_change_deg(i_r),doa_step_R*180/pi,'*k')
+                      grid on
+                      xlabel('\Delta\theta (deg)')
+                      ylabel('Upper bound (deg)')
+                    end
+                  end
+                  
+                  if doa_step_L <= theta_threshold
+                    % If DOA change drops below theta_transition
+                    doa_step_geom_L = new_doa_step_L;
+                  else
+                    % Default
+                    doa_step_geom_L = doa_step_L;
+                  end
+                  
+                  if doa_step_R <= theta_threshold
+                    doa_step_geom_R = new_doa_step_R;
+                  else
+                    doa_step_geom_R = doa_step_R;
+                  end
+                  
+                  a1 = 0.1;
+                  UB(1) = prev_doa(1) - a1*doa_step_geom_L;
+                  LB(2) = prev_doa(2) + a1*doa_step_geom_R;
+                  
+                  kk = kk_st; % Fixed here
+                  if strcmp(cfg.prior.pdf,'Gaussian')
+                    LB(1) = mu_L - kk*doa_step_geom_L;
+                    UB(2) = mu_R + kk*doa_step_geom_R;
+                  elseif strcmp(cfg.prior.pdf,'Uniform')
+                    LB(1) = mu_L - doa_step_geom_L;
+                    UB(2) = mu_R + doa_step_geom_R;
+                  end
+                  
+                  tmp_doa_step_L = doa_step_geom_L;
+                  tmp_doa_step_R = doa_step_geom_R;
+                  
+                  param.array.prior.model = 4;
+                  cfg.prior.model = 4;
+                elseif 1
+                  % 5) Geomtry-based bounding (John's idea 2)
+                  % Here, bounds are set as a function of DOA.
+                  % :::: Produces good results too ::::
+                  theta_range = linspace(0,89,101)/180*pi;
+                  h = 20; % Typical height deviation
+                  if er_ice == 1
+                    T = 0;
+                  else
+                    T = 2000; % ice thickness .. SHOULD USE A FORMULA HERE
+                  end
+                  theta_ice = asin(sin(theta_range)/sqrt(er_ice));
+                  R = H_air./cos(theta_range) + T./cos(theta_ice);
+                  bound = pi/2 - theta_ice - asin( (R-h./cos(theta_ice))./R.*sin(pi/2+theta_ice));
+                  
+                  [~ , i_l] = min(abs(theta_range-abs(mu_L)));
+                  [~ , i_r] = min(abs(theta_range-abs(mu_R)));
+                  doa_step_L = bound(i_l);
+                  doa_step_R = bound(i_r);
+                  
+                  if bin <= first_rbin_idx + 10
+                    kk = kk_st;
+                    kk_std = kk_st_std;
+                  else
+                    kk = kk_end;
+                    kk_std = kk_end_std;
+                  end
+                  
+                  if 1
+                    if strcmp(cfg.prior.pdf,'Gaussian')
+%                       a1 = 0.1;
+%                       UB(1) = prev_doa(1) - a1*doa_step_L;
+%                       LB(2) = prev_doa(2) + a1*doa_step_R;
+                      UB(1) = mu_L + kk*doa_step_L;
+                      LB(2) = mu_R - kk*doa_step_R;
+                      
+                      LB(1) = mu_L - kk*doa_step_L;
+                      UB(2) = mu_R + kk*doa_step_R;
+                    elseif strcmp(cfg.prior.pdf,'Uniform')
+%                       a1 = 0.1;
+%                       UB(1) = prev_doa(1) - a1*doa_step_L;
+%                       LB(2) = prev_doa(2) + a1*doa_step_R;
+                      UB(1) = mu_L + kk*doa_step_L;
+                      LB(2) = mu_R - kk*doa_step_R;
+                      
+                      LB(1) = mu_L - kk*doa_step_L;
+                      UB(2) = mu_R + kk*doa_step_R;
+                    end
+                  else
+                    UB(1) = mu_L + 5*pi/180;
+                    LB(2) = mu_R - 5*pi/180;
+                    
+                    LB(1) = mu_L - 5*pi/180;
+                    UB(2) = mu_R + 5*pi/180;
+                  end
+                  
+                  tmp_doa_step_L = kk_std * doa_step_L;
+                  tmp_doa_step_R = kk_std * doa_step_R;
+                  
+                  param.array.prior.model = 5;
+                  cfg.prior.model = 5;
+                  if 0
+                    figure;
+                    plot(theta_range*180/pi,bound*180/pi,'b')
+                    xlabel('Incidence angle (deg)');
+                    ylabel('Upper bound (deg)');
+                    grid on
+                    xlim([0 ceil(max(theta_range*180/pi))])
+                    ylim([0 ceil(max(bound*180/pi))])
                   end
                 end
                 
-                std_doa = [doa_step_L  doa_step_R].';
+                % Standard deviation of the prior pdf
+                % ------------------------------------
+                if strcmp(cfg.prior.pdf,'Gaussian')
+                  % 1) Gaussian prior pdf: from the proposed transition model
+                  std_doa = [tmp_doa_step_L  tmp_doa_step_R].';
+                  
+                  % Kalman filter to track the stdev.
+                  if 0
+                  std_doa_accum(end+1,:) = [tmp_doa_step_L  tmp_doa_step_R];
+                  for doa_i = 1:length(std_doa)
+                    KF_param.nPriorPoints = nPriorPoints;
+                      KF_param.Rc = Rc{Nsrc_idx}(:,:,doa_i);
+                      KF_param.a = a{Nsrc_idx}(:,doa_i);
+                    if nPriorPoints >= size(std_doa_accum,1)
+                      KF_param.s_prev = flipud(std_doa_accum(1:size(std_doa_accum,1),doa_i));
+                      KF_param.s_prev = [KF_param.s_prev ; zeros(nPriorPoints - length(KF_param.s_prev),1)];
+                    else
+                      KF_param.s_prev = flipud(std_doa_accum(size(std_doa_accum,1)-nPriorPoints+1:size(std_doa_accum,1),doa_i));
+                    end
+                    KF_param.s_curr = std_doa(doa_i);
+                   
+                    [a{Nsrc_idx}(:,doa_i) , Rc{Nsrc_idx}(:,:,doa_i)] = KF_track_stdev_for_SMAP(KF_param);
+                    
+                    % Update the stdev
+                    std_doa(doa_i,1) = KF_param.s_prev.' * a{Nsrc_idx}(:,doa_i);
+                  end
+                  end
+                elseif strcmp(cfg.prior.pdf,'Uniform')
+                  % 2) Uniform prior pdf
+                  std_doa = [90 90].'*pi/180;
+                end
                 
-                a1 = 0.1;  % Keep this very close to 0, but not 0
-                p = [-0.5569    0.7878    0.0071]; % These from fitting a curve into some reasonable points
-
-                UB(1) = prev_doa(1) - a1*doa_step_L;
-                LB(1) = mu_L - (p(1)*doa_step_L^2+p(2)*doa_step_L+p(3));
+%                 std_doa_accum_new(end+1,:) = std_doa; % For debug only
                 
-                LB(2) = prev_doa(2) + a1*doa_step_R;
-                UB(2) = mu_R + (p(1)*doa_step_R^2+p(2)*doa_step_R+p(3));
-
+                % This is used when Nsnaps change when the change in DOA
+                % becomes bellow some threshold -- THIS IS ONLY A TEST
+                if 0 && ((doa_step_L <= 0.5*pi/180) || (doa_step_R <= 0.5*pi/180))
+                  cfg.bin_rng = [-2:2];
+                  cfg.moe_methods = 6;
+                  cfg.norm_term_optimal = [-3.4672  269.5976  582.3269];
+                end
+                
+                % Force bounds to always be between ref_doa and src_limits
+                if UB(1)>ref_doa
+                  UB(1) = ref_doa-0.5*pi/180;
+                end
+                
+                if LB(2)<ref_doa
+                  LB(2) = ref_doa+0.5*pi/180;
+                end
+                
+                if LB(1)<doa_param.doa_constraints(1).src_limits(1)/180*pi
+                  LB(1) = doa_param.doa_constraints(1).src_limits(1)/180*pi;
+                end
+                
+                if LB(2)>doa_param.doa_constraints(2).src_limits(2)/180*pi
+                  LB(2) = doa_param.doa_constraints(2).src_limits(2)/180*pi;
+                end
+                
                 if cfg.doa_seq && cfg.debug_plots
                   % Debug
                   bounds_l(bin_idx,:) = [LB(1) UB(1)]*180/pi;
@@ -1473,6 +1801,7 @@ for line_idx = 1:1:Nx_out
                 end
                 
                 % Set the number of grid points based on LB, UB, and Nc
+                % -----------------------------------------------------
                 My = 4;
                 N_theta = 2*floor(My*Nc/2);
                 search_rng = max(abs(abs(UB)-abs(LB)));
@@ -1485,8 +1814,9 @@ for line_idx = 1:1:Nx_out
                 else
                   N_theta = 1;
                 end
-                doa_param.theta = fftshift(linspace(min([LB UB]),max([LB UB]),N_theta));
-                
+                doa_param.theta = fftshift([linspace(LB(1),UB(1),N_theta) , linspace(LB(2),UB(2),N_theta)]);
+%                 doa_param.theta = fftshift(linspace(min([LB UB]),max([LB UB]),N_theta));
+                clear N_theta
               elseif bin == Nt
                 % Nothing to be done at this point
               end
@@ -1494,7 +1824,7 @@ for line_idx = 1:1:Nx_out
               % Choose the prior pdf (pdf of the DOA before taking
               % measurements). There are Uniform (large variance) and
               % Gaussian (small variance) only at this point. In both
-              % case you should pass in the variance (mean can be the same
+              % cases you should pass in the variance (mean can be the same
               % for both distributions).
               if bin == first_rbin_idx
                 % Uniform a priri pdf (for initial state only)
@@ -1504,13 +1834,77 @@ for line_idx = 1:1:Nx_out
                 var_doa  = NaN(max_Nsrc,1);
               else
                 % Gaussian a priori pdf (for all other states)
-                doa_param.apriori.en = 1;
-                doa_param.doa_seq = 1;
-                mean_doa = [mu_L  mu_R].';
-                var_doa = std_doa.^2;
+                if 1
+                  doa_param.apriori.en = 1;
+                  doa_param.doa_seq = 1;
+                  mean_doa = [mu_L  mu_R].';
+                  var_doa = std_doa.^2;
+                else
+                   % DON'T USE IT .. NOT FINALIZED YET
+                  % Heuristic choice of the prior pdf (John's idea)
+                  % -----------------------------------------------
+                  % Range of DOA over which the prior pdf extends
+                  num_vals = 101;
+                  theta_range = repmat(linspace(-5,5,num_vals).',[1 2]);
+                  %                 theta_range = theta_range + [mu_L*ones(kk,1) mu_R*ones(kk,1)]*180/pi;
+                  % W: widening factor beyond the standard deviation
+                  W = 2;
+                  % C: compression factor for negative values
+                  C = 4;
+                  % f_prior: the prior pdf (not necessarily Gaussian
+                  f_prior = zeros(length(theta_range),2);
+                  
+                  % LEFT DOA
+                  % :::::::::
+                  doa_i = 1;
+                  theta_std = tmp_doa_step_L*180/pi;
+                  % mm: Logical mask
+                  mm = C*theta_range(:,doa_i)>=-3*theta_std & theta_range(:,doa_i)<0;
+                  f_prior(mm,doa_i) = exp(-(C*theta_range(mm,doa_i)).^2/(theta_std*W).^2);
+                  % mm: Logical mask
+                  mm = theta_range(:,doa_i) >= 0 & theta_range(:,doa_i)>-3*theta_std;
+                  f_prior(mm,doa_i) = exp(-theta_range(mm,doa_i).^2/(theta_std*W).^2);
+                  f_prior(theta_range(:,doa_i)>3*theta_std,doa_i) = 0;
+                  f_prior((theta_range(:,doa_i)+mu_L*180/pi) >= ref_doa,doa_i) = 0;
+                  
+                  % RIGHT DOA
+                  % ::::::::::
+                  doa_i = 2;
+                  theta_std = tmp_doa_step_R*180/pi;
+                  % mm: Logical mask
+                  mm = C*theta_range(:,doa_i)>=-3*theta_std & theta_range(:,doa_i)<0;
+                  f_prior(mm,doa_i) = exp(-(C*theta_range(mm,doa_i)).^2/(theta_std*W).^2);
+                  % mm: Logical mask
+                  mm = theta_range(:,doa_i) >= 0 & theta_range(:,doa_i)>-3*theta_std;
+                  f_prior(mm,doa_i) = exp(-theta_range(mm,doa_i).^2/(theta_std*W).^2);
+                  f_prior(theta_range(:,doa_i)>3*theta_std,doa_i) = 0;
+                  f_prior((theta_range(:,doa_i)+mu_R*180/pi) <= ref_doa,doa_i) = 0;
+                  
+                  doa_param.apriori.f_prior = f_prior;
+                  doa_param.apriori.theta_range = theta_range*pi/180 + [mu_L*ones(num_vals,1) mu_R*ones(num_vals,1)];
+                  
+                  if 0
+                    % Debug plot
+                    figure;clf
+                    [~,i_l] = min(abs((theta_range(:,1)+mu_L*180/pi) - mu_L*180/pi));
+                    [~,i_r] = min(abs((theta_range(:,2)+mu_R*180/pi) - mu_R*180/pi));
+                    
+                    plot(theta_range(:,1)+mu_L*180/pi,f_prior(:,1),'-b')
+                    hold on
+                    plot(theta_range(:,2)+mu_R*180/pi,f_prior(:,2),'-r')
+                    
+                    % Plot the mean DOA
+                    plot(theta_range(i_l,1)+mu_L*180/pi,f_prior(i_l,2),'*k')
+                    plot(theta_range(i_r,2)+mu_R*180/pi,f_prior(i_r,2),'*k')
+                    grid on
+                    xlabel('Incident angle (deg)')
+                    ylabel('f_{prior} (\theta)')
+                  end
+                end
               end
               
               % Estimate the initial DOA, theta0
+              % ---------------------------------
               doa_param.Nsrc = Nsrc_idx;
               if (Nsrc_idx < max_Nsrc) %|| ~(isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true))
                 % Case of 1/2 DOAs to 1 DOA
@@ -1592,23 +1986,22 @@ for line_idx = 1:1:Nx_out
             if max(theta0)>max(UB)
               keyboard;
             end
-            
+%             if (abs(min(UB-LB)) < 0.1*pi/180); keyboard;end
             warning off;
-            if max(UB)<=max(upper_lim) && min(LB)>=min(lower_lim)
+            if max(UB)<=max(upper_lim) && min(LB)>=min(lower_lim) && (abs(min(UB-LB)) >= 0.08*pi/180)
               if cfg.doa_seq ...
                   && ((isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true)) || (exist('first_active_doa','var') && ~all(isnan(first_active_doa))))
-                % S-MLE
+                % S-MAP
                 if Nsrc_idx < max_Nsrc
                   % Unknown model order
-                  % S-MLE is setup to handle 2 DOAs at a time (left and right)
+                  % S-MAP is setup to handle 2 DOAs at a time (left and right)
                   % So, if there is one DOA, then choose the one that has
-                  % lower cost (or larger log-likelihood)
+                  % the lowest cost (or larger log-likelihood)
                   tmp_DOA = [];
                   tmp_cost = [];
                   for tmp_doa_idx = 1:max_Nsrc % length(mean_doa)
                     doa_param.apriori.mean_doa = mean_doa(tmp_doa_idx);
                     doa_param.apriori.var_doa  = var_doa(tmp_doa_idx);
-                    
                     [tmp_doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
                       fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0(tmp_doa_idx),[],[],[],[],LB(tmp_doa_idx),UB(tmp_doa_idx),doa_nonlcon_fh,doa_param.options);
                     
@@ -1623,17 +2016,18 @@ for line_idx = 1:1:Nx_out
                     fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
                 end
               else
-                % MLE
+                
                 [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
                   fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_param), theta0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_param.options);
               end
             else
               if cfg.doa_seq ...
                   && ((isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true)) || (exist('first_active_doa','var') && ~all(isnan(first_active_doa))))
-                % S-MLE
+                % S-MAP
+                % Remember: if you run MUSIC with S-MAP and S-MAP exits at
+                % this point, then MUSIC will also exit.
                 early_stop = true;
                 break;
-%                 return;
               else
                 % MLE
                 doa = NaN(Nsrc_idx,1);
@@ -1641,7 +2035,6 @@ for line_idx = 1:1:Nx_out
                 Jval = NaN;
               end
             end
-            
             clear theta0 LB UB
             
             [doa,sort_idxs] = sort(doa);
@@ -1759,10 +2152,10 @@ for line_idx = 1:1:Nx_out
           Nsv2{1} = 'theta';
           Nsv2{2} = doa(:)';
           [~,A] = cfg.sv_fh(Nsv2,doa_param.fc,doa_param.y_pc,doa_param.z_pc);
-          %            k       = 4*pi*doa_param.fc/c;
-          %            A       = sqrt(1/length(doa_param.y_pc))*exp(1i*k*(doa_param.y_pc*sin(doa(:)).' - doa_param.z_pc*cos(doa(:)).'));
+%           k       = 4*pi*doa_param.fc/c;
+%           A       = sqrt(1/length(doa_param.y_pc))*exp(1i*k*(doa_param.y_pc*sin(doa(:)).' - doa_param.z_pc*cos(doa(:)).'));
           Weights = (A'*A)\A';
-          %           Weights         = inv(A'*A)*A';
+%           Weights         = inv(A'*A)*A';
           S_hat           = Weights*array_data;
           P_hat           = mean(abs(S_hat).^2,2);
           warning on;
@@ -1786,7 +2179,7 @@ for line_idx = 1:1:Nx_out
           end
         end
         
-        % These are for S-MLE, if used
+        % These are for S-MAP, if used
         prev_doa = double(tout.mle.tomo.theta(bin_idx,:,line_idx));
         
         % Reset if no DOAs were found in the first range-bin
@@ -1805,8 +2198,10 @@ for line_idx = 1:1:Nx_out
           prev_active_rbin = bin;
         end
         
-        % For S-MAP:Update the previous DoA based on either the DoA of the
-        % previous state (if available) or approximate flat surface assumption.
+        % For S-MAP:Update the previous DOA based on either the DOA of the
+        % previous state (if available) or approximate flat surface
+        % assumption. This prev_doa will not be stored, but we need to keep
+        % track of it to bound the DOAs of the next state (or range-bin).
         if cfg.doa_seq && ...
             ((isfield(cfg,'Nsrc_true') && ~isempty(cfg.Nsrc_true)) || (exist('first_active_doa','var') && ~all(isnan(first_active_doa)))) && ...
             (bin > first_rbin_idx && bin < Nt )
@@ -1869,17 +2264,17 @@ for line_idx = 1:1:Nx_out
       
       if 0
         %% Array MLE: DEBUG code for bin restriction
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
-        hist_poly = polyfit(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),2);
-        plot(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),'.');
-        hist_val = polyval(hist_poly,hist_bins);
-        hold on;
-        plot(hist_bins, hist_val,'r');
-        hold off;
-        
-        hist_bins = dout.bin_restriction.start_bin(rline)+(150:1700).';
-        hist3([ hist_bins, tout.tomo.mle.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
-        set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
+%         hist_poly = polyfit(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),2);
+%         plot(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),'.');
+%         hist_val = polyval(hist_poly,hist_bins);
+%         hold on;
+%         plot(hist_bins, hist_val,'r');
+%         hold off;
+%         
+%         hist_bins = dout.bin_restriction.start_bin(rline)+(150:1700).';
+%         hist3([ hist_bins, tout.tomo.mle.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
+%         set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
       end
       
       
@@ -2101,17 +2496,17 @@ for line_idx = 1:1:Nx_out
       
       if 0
         %% Array DCM: DEBUG code for bin restriction
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
-        hist_poly = polyfit(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),2);
-        plot(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),'.');
-        hist_val = polyval(hist_poly,hist_bins);
-        hold on;
-        plot(hist_bins, hist_val,'r');
-        hold off;
-        
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:1700).';
-        hist3([ hist_bins, tout.tomo.dcm.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
-        set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
+%         hist_poly = polyfit(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),2);
+%         plot(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),'.');
+%         hist_val = polyval(hist_poly,hist_bins);
+%         hold on;
+%         plot(hist_bins, hist_val,'r');
+%         hold off;
+%         
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:1700).';
+%         hist3([ hist_bins, tout.tomo.dcm.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
+%         set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
       end
       
       if 0
@@ -2361,21 +2756,23 @@ for line_idx = 1:1:Nx_out
       keyboard
     end
   end
-  
   for idx = 1:length(cfg.method)
     if cfg.method(idx) < DOA_METHOD_THRESHOLD
       m = array_proc_method_str(cfg.method(idx));
-      Sarray.(m) = reshape(Sarray.(m),Nsv,Nt_out);
+      Sarray.(m) = reshape(Sarray.(m),param.array.Nsv,Nt_out);
     end
   end
   
   if 0 && any(cfg.method(cfg.method == MUSIC_METHOD)) && any(cfg.method(cfg.method == MLE_METHOD))
     % Debug: plot MUSIC and MLE results 
     figure(999);clf;
-    imagesc(tout.music.tomo.theta*180/pi,1:size(tout.music.tomo.img,1),10*log10(abs(tout.music.tomo.img(:,:,line_idx))))
+    uniform_theta = linspace(-60,60,501);
+    img_plot = interp1(tout.music.tomo.theta*180/pi,tout.music.tomo.img(:,:,line_idx).',uniform_theta).';
+    imagesc(uniform_theta,1:size(tout.music.tomo.img,1),10*log10(abs(img_plot)))
     hold on
-    plot(tout.mle.tomo.theta(:,1,line_idx)*180/pi,1:size(tout.mle.tomo.theta,1),'*b')
-    plot(tout.mle.tomo.theta(:,2,line_idx)*180/pi,1:size(tout.mle.tomo.theta,1),'ok')
+    plot(tout.mle.tomo.theta(:,:,line_idx)*180/pi,1:size(tout.mle.tomo.theta,1),'-y','LineWidth',1.5)
+%     plot(tout.mle.tomo.theta(:,1,line_idx)*180/pi,1:size(tout.mle.tomo.theta,1),'*y')
+%     plot(tout.mle.tomo.theta(:,2,line_idx)*180/pi,1:size(tout.mle.tomo.theta,1),'*y')
     set(gca,'YDir','reverse')
     xlabel('Est. DOA (degrees)')
     ylabel('Range-bin')
@@ -2433,3 +2830,100 @@ if 0
   grid on
 end
 
+if 0
+% Degug (for S-MAP only): plot lower/upper bound and left/rignt mean
+figure();clf;
+uniform_theta = linspace(param.array.doa_constraints(1).src_limits(1),param.array.doa_constraints(1).src_limits(2),501);
+img_plot = interp1(tout.music.tomo.theta*180/pi,tout.music.tomo.img(:,:,line_idx).',uniform_theta).';
+imagesc(uniform_theta,1:size(tout.music.tomo.img,1),10*log10(abs(img_plot)))
+hold on
+
+theta_plot = tout.mle.tomo.theta(:,:,line_idx)*180/pi;
+
+first_NoNaN_rbin_l = find(~isnan(theta_plot(:,1)),1);
+first_NoNaN_rbin_r = find(~isnan(theta_plot(:,2)),1);
+first_NoNaN_rbin = min(first_NoNaN_rbin_l,first_NoNaN_rbin_r);
+
+last_NoNaN_rbin_l = find(~isnan(theta_plot(:,1)),1,'last');
+last_NoNaN_rbin_r = find(~isnan(theta_plot(:,2)),1,'last');
+last_NoNaN_rbin = max(last_NoNaN_rbin_l,last_NoNaN_rbin_r);
+
+% h1 = plot(actual_doa,1:size(actual_doa,1),'+b','LineWidth',n);
+
+% mean_l(isnan(theta_plot(:,1))) = NaN; 
+% mean_r(isnan(theta_plot(:,2))) = NaN; 
+% 
+% bounds_l((isnan(theta_plot(:,1))),1) = NaN; 
+% bounds_l((isnan(theta_plot(:,1))),2) = NaN;
+% bounds_r((isnan(theta_plot(:,2))),1) = NaN; 
+% bounds_r((isnan(theta_plot(:,2))),2) = NaN;
+
+h3 = plot([mean_l mean_r],1:length(mean_l),'--r','LineWidth',1.5);
+h4 = plot([bounds_l(:,1) bounds_r(:,1)],1:size(bounds_l,1),'-.m','LineWidth',1.5);
+h5 = plot([bounds_l(:,2) bounds_r(:,2)],1:size(bounds_l,1),'-.g','LineWidth',1.5);
+h2 = plot(theta_plot,1:size(theta_plot,1),'-y','LineWidth',1.5);
+
+xlim([param.array.doa_constraints(1).src_limits(1)  param.array.doa_constraints(1).src_limits(2)])
+ylim([first_NoNaN_rbin last_NoNaN_rbin] + [-5 +5])
+% ylim([first_NoNaN_rbin-5 3105])
+% ylim([first_NoNaN_rbin-5 1970])
+ylim([500 800])
+% set(gca,'YDir','reverse')
+xlabel('Elevation angle (deg)')
+ylabel('Range-bin')
+% desc = '+/-5 deg';
+% title(sprintf('SMAP-Opt. MOE: Slice# %d -- %s',line_idx,desc))
+title({'SMAP-Opt. MOE: Ice-top - Gaussian prior - Geometry based bounds'})
+% title('MLE-Opt. MOE: Ice-top')
+
+legend([h2(1) h3(1) h4(1) h5(1)],{'Est. DOA','Mean DOA','Lower bound','Upper bound'},'Location','south')
+
+% out_fn_name = 'SMAP_OptMOE_IceBottom_Uniform_Continuous3DeltaThetaBounds_BadExample'; % Figure name
+% out_fn_name = 'SMAP_OptMOE_IceTop_Gaussian_GeometryBasedBounds'; % Figure name
+% out_fn_name = 'SMAP_OptMOE_Gaussian_IceBottom_WideBounds_WideStdev'; % Figure name
+out_fn_name = 'SMAP_OptMOE_Uniform_IceBottom_WideBounds'; % Figure name
+
+out_fn_dir = '/users/mohanad/IceSheetProject/MLE tracker work/Sequential MLE/Results/testing bounds_S-MAP/tracked slices-GeometryBased';
+out_fn = fullfile(out_fn_dir,out_fn_name);
+% saveas(999,[out_fn '.fig']);
+
+saveas(8,[out_fn '.fig']);
+
+% title('Geometry-based: \pm 10^\circ, kk\_st\_std=1, kk\_end\_std=1/2 nn=15')
+end
+
+if 0
+  % Plot uniform pdf: example for slice 520 ice-bottom
+  % Gaussian
+%   mu = [-8.6940    8.2419]*pi/180;
+%   sigma = [3.2998    3.5102]*pi/180;
+%   lb = [-15.2936    6.2552]*pi/180;
+%   ub = [-6.8524   15.2624]*pi/180;
+%   
+%   % Uniform
+%   mu = [-11.62  11.35]*pi/180;
+%   sigma = [90  90]*pi/180;
+%   lb = [-14.4  10.07]*pi/180;
+%   ub = [-10.39  14.13]*pi/180;
+%   
+%   doa_i = 2;
+%   theta_test = linspace(lb(doa_i),ub(doa_i),101);
+% %   theta_test = linspace(-pi/2,pi/2,101);  
+%   
+%   [vv,i] = min(abs(theta_test-mu(doa_i)));
+% 
+%   f_Gaussian = normpdf(theta_test,mu(doa_i),sigma(doa_i));
+% %   f_Gaussian = 1/sqrt(2*pi*sigma(doa_i)^2) * exp( -1/2*((theta_test - mu(doa_i)).^2)./(sigma(doa_i)^2) );
+%   f_Gaussian([1 end]) = 0;
+% 
+%   figure;
+%   plot([theta_test(1)-1*pi/180 theta_test theta_test(end)+1*pi/180]*180/pi,[0 f_Gaussian 0],'-b','LineWidth',1.5)
+%   hold on
+%   plot(mu(doa_i)*180/pi,f_Gaussian(i),'xr','LineWidth',2,'LineWidth',1.5)
+% %   xlim([theta_test(1) theta_test(end)]*180/pi)
+%   
+%   grid on
+%   xlabel('Elevation angle (deg)')
+%   ylabel('f_{Gaussian}')
+%   title('Ice-bottom - rbin#520 - Gaussian prior - Both DOAs')
+end

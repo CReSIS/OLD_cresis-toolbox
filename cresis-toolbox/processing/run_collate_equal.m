@@ -26,5 +26,6 @@ for param_idx = 1:length(params)
     continue;
   end
   
-  collate_equal(param,param_override);
+  % collate_equal(param,param_override); % Execute as a function
+  collate_equal; % Execute as a script (easier debugging)
 end

@@ -90,6 +90,7 @@ classdef (HandleCompatible = true) prefwin < handle
     okPB_callback(obj,status,event);
     systemsLB_callback(obj,status,event);
     sourceLB_callback(obj,status,event);
+    LayerSourcePM_callback(obj,status,event);
     layers_callback(obj,status,event);
     layers_callback_new(obj,status,event);
     layers_callback_refresh(obj,status,event);

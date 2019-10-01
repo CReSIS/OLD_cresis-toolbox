@@ -100,9 +100,8 @@ public:
     const int costmatrix_X;
     const int costmatrix_Y;
     // Mean and variance for transition model
-    const double *DoA_transition_mu;
-    const double *DoA_transition_sigma;
-    const double *RLINE_transition_sigma;
+    const double *transition_mu;
+    const double *transition_sigma;
     
     // Temporary messages
     vector<double> incomes[5];
@@ -114,12 +113,12 @@ public:
          const double *_sigma, const int _ms, const double *_smooth_weight, const double _smooth_var, 
          const double *_smooth_slope, const double *_edge, const int _max_loop, const ptrdiff_t *_bounds, 
          const double *_mask_dist, const double *_costmatrix, const int _costmatrix_X, const int _costmatrix_Y,
-         const double *_DoA_transition_mu, const double *_DoA_transition_sigma, const double *_RLINE_transition_sigma, double *_result)
+         const double *_transition_mu, const double *_transition_sigma, double *_result)
         : image(_image), sgt(_sgt), bgt(_bgt), egt(_egt), egt_size(_egt_size), ice_mask(_ice_mask), mu(_mu),
             sigma(_sigma), ms(_ms), smooth_weight(_smooth_weight), smooth_var(_smooth_var), smooth_slope(_smooth_slope),
             edge(_edge), max_loop(_max_loop), bounds(_bounds), mask_dist(_mask_dist), costmatrix(_costmatrix), 
-            costmatrix_X(_costmatrix_X), costmatrix_Y(_costmatrix_Y), DoA_transition_mu(_DoA_transition_mu), 
-            DoA_transition_sigma(_DoA_transition_sigma), RLINE_transition_sigma(_RLINE_transition_sigma), result(_result) {
+            costmatrix_X(_costmatrix_X), costmatrix_Y(_costmatrix_Y), transition_mu(_transition_mu), 
+            transition_sigma(_transition_sigma), result(_result) {
             // Set dimensions
             depth      = dim_image[0];
             height     = dim_image[1];
@@ -450,12 +449,12 @@ void TRWS::surface_extracting() {
                 size_t beg1 = max(1.0,sgt[center]-t);
                 size_t beg2;
 
-                if (!DoA_transition_mu || !DoA_transition_sigma) {
+                if (!transition_mu || !transition_sigma) {
                     beta = norm_pdf((double)h, (double)mid_height, smooth_var, smooth_weight[0]);
                 }
                 else {
                     int idx = (h <= height - 1) ? h : height - 1;
-                    beta = norm_pdf((double)h, DoA_transition_mu[idx], DoA_transition_sigma[idx], smooth_weight[0]);
+                    beta = norm_pdf((double)h, transition_mu[idx], transition_sigma[idx], smooth_weight[0]);
                 }
             
                 if (w < width-1) {
@@ -470,8 +469,9 @@ void TRWS::surface_extracting() {
                     set_message(matrix[center], dir_left, beg1, beg2, beta, h);
                 }
 
+                double tr_arr[64] = {733.371814, 77.126528, 39.263353, 12.295813, 4.374837, 6.958925, 5.930228, 2.258107, 1.428613, 1.388027, 0.752566, 0.979279, 0.619339, 0.763956, 0.617092, 0.627093, 0.535119, 0.488883, 0.466207, 0.452399, 0.449242, 0.448823, 0.436793, 0.434663, 0.423571, 0.446478, 0.438191, 0.429951, 0.423105, 0.403451, 0.391212, 0.375924, 0.386908, 0.385439, 0.395184, 0.401038, 0.402252, 0.409454, 0.411048, 0.414927, 0.415572, 0.421242, 0.438985, 0.455439, 0.473058, 0.490692, 0.512094, 0.544576, 0.593388, 0.629358, 0.624657, 0.648194, 0.696526, 0.754032, 0.842585, 0.960767, 1.158873, 1.759647, 2.576886, 5.313411, 8.513457, 18.789263, 45.256746, 82.139656};
                 int idx = (h <= height - 1) ? h : height - 1;
-                beta = norm_pdf((double)h, idx, RLINE_transition_sigma[idx], smooth_weight[1]);
+                beta = norm_pdf((double)h, idx, tr_arr[idx], smooth_weight[1]);
 
                 if (h < height-1) {
                     // Down
@@ -492,9 +492,9 @@ void TRWS::surface_extracting() {
 }
 
 // MATLAB FUNCTION START
-void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) { mexPrintf("\nvictor may19,2019");
+void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) { 
     if ((nrhs < 9 && nrhs > 17) || nlhs != 1) {
-        mexErrMsgTxt("Usage: labels = trws(image, sgt, bgt, egt, mask, mean, variance, smooth_weight, smooth_var, [smooth_slope], [edge], [max_loop], [bounds], [mask_dist], [costmatrix], [DoA_transition_mu], [DoA_transition_sigma])");
+        mexErrMsgTxt("Usage: labels = trws(image, sgt, bgt, egt, mask, mean, variance, smooth_weight, smooth_var, [smooth_slope], [edge], [max_loop], [bounds], [mask_dist], [costmatrix], [transition_mu], [transition_sigma])");
     }
 
     // image ==============================================================
@@ -733,49 +733,34 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) { m
         costmatrix_Y = -1;
     }
     
-    // DoA_transition_mu ======================================================
-    const double *DoA_transition_mu;
+    // transition_mu ======================================================
+    const double *transition_mu;
     if (nrhs >= 16 && mxGetNumberOfElements(prhs[15])) {
         if (!mxIsDouble(prhs[15])) {
-            mexErrMsgTxt("usage: DoA_transition_mu must be type double");
+            mexErrMsgTxt("usage: transition_mu must be type double");
         }
         if (mxGetNumberOfElements(prhs[15]) != dim_image[1]) {
-            mexErrMsgTxt("usage: DoA_transition_mu must have size(DoA_transition_mu,1)=size(image,1)");
+            mexErrMsgTxt("usage: transition_mu must have size(transition_mu,1)=size(image,1)");
         }   
-        DoA_transition_mu = mxGetPr(prhs[15]);
+        transition_mu = mxGetPr(prhs[15]);
     }
     else {
-        DoA_transition_mu = NULL;
+        transition_mu = NULL;
     }
     
-    // DoA_transition_sigma ===================================================
-    const double *DoA_transition_sigma;
+    // transition_sigma ===================================================
+    const double *transition_sigma;
     if (nrhs >= 17 && mxGetNumberOfElements(prhs[16])) {
         if (!mxIsDouble(prhs[16])) {
-            mexErrMsgTxt("usage: DoA_transition_sigma must be type double");
+            mexErrMsgTxt("usage: transition_sigma must be type double");
         }
         if (mxGetNumberOfElements(prhs[16]) != dim_image[1]) {
-            mexErrMsgTxt("usage: DoA_transition_sigma must have size(DoA_transition_sigma,1)=size(image,1)");
+            mexErrMsgTxt("usage: transition_sigma must have size(transition_sigma,1)=size(image,1)");
         }   
-        DoA_transition_sigma = mxGetPr(prhs[16]);
+        transition_sigma = mxGetPr(prhs[16]);
     }
     else {
-        DoA_transition_sigma = NULL;
-    }
-    
-    // RLINE_transition_sigma ===================================================
-    const double *RLINE_transition_sigma;
-    if (nrhs >= 18 && mxGetNumberOfElements(prhs[17])) {
-        if (!mxIsDouble(prhs[17])) {
-            mexErrMsgTxt("usage: RLINE_transition_sigma must be type double");
-        }
-        if (mxGetNumberOfElements(prhs[17]) != dim_image[1]) {
-            mexErrMsgTxt("usage: RLINE_transition_sigma must have size(RLINE_transition_sigma,1)=size(image,1)");
-        }   
-        RLINE_transition_sigma = mxGetPr(prhs[17]);
-    }
-    else {
-        RLINE_transition_sigma = NULL;
+        transition_sigma = NULL;
     }
     
     // ====================================================================
@@ -809,7 +794,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) { m
     // Run TRWS algorithm
     TRWS obj(image, dim_image, sgt, bgt, egt, egt_size, mask, mean, var, ms, smooth_weight, 
               smooth_var[0], smooth_slope, edge, max_loop, bounds, mask_dist, costmatrix, 
-              costmatrix_X, costmatrix_Y, DoA_transition_mu, DoA_transition_sigma, RLINE_transition_sigma, result);
+              costmatrix_X, costmatrix_Y, transition_mu, transition_sigma, result);
 
     obj.set_prior();
     obj.surface_extracting();

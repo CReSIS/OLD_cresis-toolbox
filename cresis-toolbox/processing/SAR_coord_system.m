@@ -1,8 +1,10 @@
 function fcs = SAR_coord_system(param,gps,ref,along_track,output_along_track)
 % fcs = SAR_coord_system(param,gps,ref,along_track,output_along_track)
 %
-% Develops flight coordinate system (FCS) for SAR data. Also produces inputs
-% used for motion_comp.m.
+% Develops SAR coordinate system (aka flight coordinate system (FCS)) for
+% SAR data using the "ref" trajectory. The offsets ("fcs.pos") to the
+% reference for the "gps" trajectory are also computed. If gps == ref, then
+% the offset are all zero. Also produces inputs used for motion_comp.m.
 %
 % param
 %  .squint = vector in flight coordinate system, pointing from phase center
@@ -15,19 +17,20 @@ function fcs = SAR_coord_system(param,gps,ref,along_track,output_along_track)
 %    2. motion compensation to line fitted to reference
 %  .Lsar = length of SAR aperture (m), filter length to obtain
 %    heading estimate used to develop FCS
-% gps = struct with fields lat,lon,elev,roll,pitch,heading
+% gps = struct with fields lat,lon,elev,roll,pitch,heading (Relative to Reference)
 %    1 by Nx vectors
 %    Not required if param.mocomp_mode is 0 or 1
 %    lat,lon in degrees
 %    elev in meters
 %    roll, pitch, heading in radians
-% ref = struct with fields lat,lon,elev,roll,pitch,heading
+% ref = struct with fields lat,lon,elev,roll,pitch,heading (Reference)
 %    1 by Nx vectors
 %    Not required if param.mocomp_mode is 0 or 1
 %    lat,lon in degrees
 %    elev in meters
 %    roll, pitch, heading in radians
-% along_track = 1 by Nx along-track vector
+% along_track = 1 by Nx along-track vector. Usually from:
+%   along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev,Lsar);
 % output_along_track = 1 by No SAR output along-track vector positions
 %
 % fcs (flight-coordinate-system structure)

@@ -40,16 +40,19 @@ function ctrl_chain = cluster_run(ctrl_chain,cluster_run_mode)
 %   cluster_print, cluster_run, cluster_submit_batch, cluster_submit_task,
 %   cluster_update_batch, cluster_update_task
 
+%% Input checking
+if ~exist('cluster_run_mode','var') || isempty(cluster_run_mode)
+  cluster_run_mode = 1;
+end
+if cluster_run_mode < 0
+  return;
+end
+
 if isnumeric(ctrl_chain)
   ctrl_chain = cluster_load_chain(ctrl_chain);
 end
 
 if iscell(ctrl_chain)
-  %% Input checking
-  if ~exist('cluster_run_mode','var') || isempty(cluster_run_mode)
-    cluster_run_mode = 1;
-  end
-  
   %% Traverse chain list
   active_stage = ones(numel(ctrl_chain),1);
   first_run = ones(numel(ctrl_chain),1);
@@ -81,18 +84,19 @@ if iscell(ctrl_chain)
         
         % 3. Submit jobs from the active stage for each parallel control structure
         %   ctrl.max_active_jobs.
-        ctrl = cluster_run(ctrl);
+        ctrl = cluster_run(ctrl,cluster_run_mode);
         
         % 4. Update ctrl_chain
         ctrl_chain{chain}{active_stage(chain)} = ctrl;
         
         % 5. If all jobs completed in a batch and:
         %    If no errors, move to the next stage
-        %    If errors and out of retries, stop chain
+        %    If errors, stop chain
+        %    Note: cluster_update_task guarantees that a task that still has retries left will never have 'C' status if it had errors
         if all(ctrl.job_status=='C')
           if ~any(ctrl.error_mask)
             % Advance to the next stage
-            active_stage(chain) = active_stage(chain) + 1;
+            fprintf('Chain %d succeeded on stage %d.\n', chain, active_stage(chain));            active_stage(chain) = active_stage(chain) + 1;
             first_run(chain) = true;
             if active_stage(chain) > numel(ctrl_chain{chain})
               % Chain is complete (no more stages/batches to complete)
@@ -101,15 +105,16 @@ if iscell(ctrl_chain)
               % Chain is not complete
               active_stage_update = true;
             end
-          elseif all(ctrl.retries >= ctrl.cluster.max_retries | ~ctrl.error_mask)
+          else
             % Stop chain
+            warning('Chain %d failed on stage %d.', chain, active_stage(chain));
             active_stage(chain) = -inf;
           end
         end
         
         % 6. Check to see if a hold has been placed on this batch
-        if exist(ctrl.hold_fn,'file')
-          fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
+        if cluster_run_mode >= 0 && exist(ctrl.hold_fn,'file')
+          warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=-1" to stop cluster_run.m now in a clean way. Either way, run dbcont to continue.\n');
           keyboard
         end
       end
@@ -117,7 +122,7 @@ if iscell(ctrl_chain)
     % Check if in a block mode or not. If a stage finished and still has
     % more stages to complete, then do not exit yet since we should start
     % the next stage running first.
-    if ~active_stage_update && (cluster_run_mode == 0 || cluster_run_mode == 2)
+    if ~active_stage_update && (cluster_run_mode <= 0 || cluster_run_mode == 2)
       break;
     end
   end
@@ -166,8 +171,9 @@ elseif isstruct(ctrl_chain)
     task_mem = ctrl.cluster.mem_mult*ctrl.mem(task_id);
 
     if ctrl.cluster.max_time_per_job < task_cpu_time
-      error('ctrl.cluster.max_time_per_job (%.0f sec) is less than task %d:%d''s requested time: %.0f sec', ...
+      warning('ctrl.cluster.max_time_per_job (%.0f sec) is less than task %d:%d''s requested time: %.0f sec. You may override "ctrl.cluster.max_time_per_job" or "task_cpu_time" and then run "dbcont" to continue submission.', ...
         ctrl.cluster.max_time_per_job, ctrl.batch_id, task_id, task_cpu_time);
+      pause;
     end
     if ctrl.cluster.max_mem_per_job < task_mem
       warning('ctrl.cluster.max_mem_per_job (%.1f GB) is less than task %d:%d''s requested mem: %.1f GB', ...
@@ -214,8 +220,13 @@ elseif isstruct(ctrl_chain)
     
     % Check to see if a hold has been placed on this batch
     if exist(ctrl.hold_fn,'file')
-      fprintf('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=0" to exit cluster_run.m in a clean way. Either way, run dbcont to continue.\n');
-      keyboard
+      warning('This batch has a hold. Run cluster_hold(ctrl) to remove. Run "cluster_run_mode=-1" to stop cluster_run.m now in a clean way. Either way, run dbcont to continue.\n');
+      if cluster_run_mode < 0
+        % Clean up and exit function
+        ctrl_chain = ctrl;
+        ctrl.submission_queue = cat(2,job_tasks,ctrl.submission_queue);
+        return;
+      end
     end
     
   end

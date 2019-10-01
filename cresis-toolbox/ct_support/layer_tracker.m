@@ -466,10 +466,24 @@ for frm_idx = 1:length(param.cmd.frms)
       end
     end
     if track.filter(2) ~= 1
+      % Apply motion compensation
+      if track.filter_mocomp
+        dt = mdata.Time(2)-mdata.Time(1);
+        dbin = round((mdata.Elevation - median(mdata.Elevation)) / (c/2) / dt);
+        for rline = 1:size(data,2)
+          data(:,rline) = circshift(data(:,rline),[-dbin(rline) 0]);
+        end
+      end
       % Multilooking in along-track
       data = lp(nan_fir_dec(10.^(data/10),ones(1,track.filter(2))/track.filter(2),1,[],[],[],[],2.0));
       if track.data_noise_en
         data_noise = lp(nan_fir_dec(10.^(data_noise/10),ones(1,track.filter(2))/track.filter(2),1,[],[],[],[],2.0));
+      end
+      % Remove motion compensation
+      if track.filter_mocomp
+        for rline = 1:size(data,2)
+          data(:,rline) = circshift(data(:,rline),[dbin(rline) 0]);
+        end
       end
     end
     
@@ -673,11 +687,13 @@ for frm_idx = 1:length(param.cmd.frms)
         lay.Longitude = mdata.Longitude;
         lay.Elevation = mdata.Elevation;
         
+        lay.layerData{1}.name = 'surface';
         lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
         lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
         lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
         
+        lay.layerData{2}.name = 'bottom';
         lay.layerData{2}.quality = ones(size(lay.GPS_time));
         lay.layerData{2}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{2}.value{2}.data = nan(size(lay.GPS_time));
@@ -693,6 +709,7 @@ for frm_idx = 1:length(param.cmd.frms)
         lay = load(layer_fn);
         % Update the surface auto picks
         lay.layerData{1}.quality = interp1(mdata.GPS_time,new_quality,lay.GPS_time,'nearest');
+        lay.layerData{1}.value{1}.data = nan(size(lay.GPS_time));
         lay.layerData{1}.value{2}.data = interp1(mdata.GPS_time,Surface,lay.GPS_time);
         lay.layerData{1}.value{2}.data = interp_finite(lay.layerData{1}.value{2}.data,NaN);
         % Append the new results back to the layerData file

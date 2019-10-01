@@ -20,10 +20,10 @@ param.config.min_seg_size = 2;
 
 param.config.daq_type = 'cresis';
 param.config.wg_type = 'cresis';
-param.config.header_load_func = @basic_load_fmcw5;
+param.config.header_load_func = @basic_load;
 param.config.board_map = {'chan1','chan2'};
-param.config.board_map = {'chan1'};
-param.config.tx_map = {''};
+% param.config.board_map = {'chan1'};
+param.config.tx_map = {'',''};
 
 param.config.daq.xml_version = -1; % No XML file available
 
@@ -47,7 +47,7 @@ default.records.gps.time_offset = 1;
 %% Qlook worksheet
 default.qlook.img_comb = [];
 default.qlook.imgs = {[2 1],[1 1],[1 2],[2 2]};
-default.qlook.imgs = {[2 1],[1 1]};
+% default.qlook.imgs = {[2 1],[1 1]};
 default.qlook.out_path = '';
 default.qlook.block_size = 2000;
 default.qlook.motion_comp = 0;
@@ -129,7 +129,7 @@ for wf = 1:2
   default.radar.wfs(wf).prepulse_H.type = 'NI_DDC_2019';
   default.radar.wfs(wf).coh_noise_method = 'analysis';
   default.radar.wfs(wf).fLO = -20e9;
-  default.radar.wfs(wf).adc_gains_dB = 95.8; % Radiometric calibration to 1/R^2
+  default.radar.wfs(wf).adc_gains_dB = [95.8 95.8]; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1 2]; % ADC to rx path mapping
   default.radar.wfs(wf).ref_fn = '';
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
@@ -162,8 +162,8 @@ defaults = {};
 
 % Survey Mode 2-18 GHz
 for wf = 1:2
-  default.radar.wfs(wf).f0 = 2.375e9;
-  default.radar.wfs(wf).f1 = 1.375e9;
+  default.radar.wfs(wf).f1 = 2.375e9;
+  default.radar.wfs(wf).f0 = 1.375e9;
   default.radar.wfs(wf).Tpd = 240e-6;
   default.radar.wfs(wf).BW_window = [2.5e9 17.493e9];
   default.radar.wfs(wf).t_ref = -0.000000040063;

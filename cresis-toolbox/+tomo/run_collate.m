@@ -190,22 +190,22 @@ elseif strcmpi(example_setup,'horizontal')
   %   tomo_collate.surfdata_cmds(end).data_threshold = 13.5;
   
   % Viterbi
-  tomo_collate.surfdata_cmds(end+1).cmd = 'viterbi';
-  tomo_collate.surfdata_cmds(end).surf_names = 'bottom viterbi';
-  tomo_collate.surfdata_cmds(end).visible = false;
-  tomo_collate.surfdata_cmds(end).smooth_weight = 55; % schu
-  tomo_collate.surfdata_cmds(end).smooth_var = -1; 
-  tomo_collate.surfdata_cmds(end).repulsion = 150; % schu
-  tomo_collate.surfdata_cmds(end).egt_weight = 10; 
-  tomo_collate.surfdata_cmds(end).ice_bin_thr = 3;
+  %   tomo_collate.surfdata_cmds(end+1).cmd = 'viterbi';
+  %   tomo_collate.surfdata_cmds(end).surf_names = 'bottom viterbi';
+  %   tomo_collate.surfdata_cmds(end).visible = false;
+  %   tomo_collate.surfdata_cmds(end).smooth_weight = 55; % schu
+  %   tomo_collate.surfdata_cmds(end).smooth_var = -1; 
+  %   tomo_collate.surfdata_cmds(end).repulsion = 150; % schu
+  %   tomo_collate.surfdata_cmds(end).egt_weight = 10; 
+  %   tomo_collate.surfdata_cmds(end).ice_bin_thr = 3;
   
   % TRW-S (Tree Reweighted Sequential algorithm)
-  tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
-  tomo_collate.surfdata_cmds(end).surf_names = {'bottom trws','bottom'};
-  tomo_collate.surfdata_cmds(end).visible = true;
-  tomo_collate.surfdata_cmds(end).smooth_weight = [22 22];
-  tomo_collate.surfdata_cmds(end).smooth_var = 32;
-  tomo_collate.surfdata_cmds(end).max_loops = 50;
+    tomo_collate.surfdata_cmds(end+1).cmd = 'trws';
+    tomo_collate.surfdata_cmds(end).surf_names = {'bottom trws','bottom'};
+    tomo_collate.surfdata_cmds(end).visible = true;
+    tomo_collate.surfdata_cmds(end).smooth_weight = [22 22];
+    tomo_collate.surfdata_cmds(end).smooth_var = 32;
+    tomo_collate.surfdata_cmds(end).max_loops = 50;
   
   % C3D/RNN (3D convolutional and recurrent neural network)
   tomo_collate.surfdata_cmds(end+1).cmd = 'c3d_rnn';
@@ -214,41 +214,41 @@ elseif strcmpi(example_setup,'horizontal')
   tomo_collate.surfdata_cmds(end).surface_threshold = true;
   
   % DEM (Digital Elevation Model)
-%   tomo_collate.surfdata_cmds(end+1).cmd = 'dem';
-%   tomo_collate.surfdata_cmds(end).surf_names = 'bottom dem';
-%   tomo_collate.surfdata_cmds(end).visible = false;
-%   tomo_collate.surfdata_cmds(end).plot_name_values = {'color','red','marker','^'};
-%   tomo_collate.surfdata_cmds(end).dem_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_nofilt/20140401_03/20140401_03_007_bottom.tif';
-%   tomo_collate.surfdata_cmds(end).dem_bad_value = -32767;
+  %   tomo_collate.surfdata_cmds(end+1).cmd = 'dem';
+  %   tomo_collate.surfdata_cmds(end).surf_names = 'bottom dem';
+  %   tomo_collate.surfdata_cmds(end).visible = false;
+  %   tomo_collate.surfdata_cmds(end).plot_name_values = {'color','red','marker','^'};
+  %   tomo_collate.surfdata_cmds(end).dem_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_DEM_nofilt/20140401_03/20140401_03_007_bottom.tif';
+  %   tomo_collate.surfdata_cmds(end).dem_bad_value = -32767;
   
   % .fuse_images_flag: runs fuse_images.m when true
   tomo_collate.fuse_images_flag = true;
   
   % .add_icemask_surfacedem_flag: runs add_icemask_surfacedem.m when true
-  tomo_collate.add_icemask_surfacedem_flag = true;
+  tomo_collate.add_icemask_surfacedem_flag = false;
   
   % create_surfData_flag: runs create_surfData.m when true
-  tomo_collate.create_surfData_flag = true;
+  tomo_collate.create_surfData_flag = false;
 
   param_override.tomo_collate = tomo_collate;
   
 elseif strcmpi(example_setup,'grid')
   %% Grid multiwaveform fuse example
 %   params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'),'','post');
-  params = read_param_xls(ct_filename_param('rds_param_2011_Greenland_P3.xls'));
+  params = read_param_xls(ct_filename_param('rds_param_2018_Greenland_Polar6_paden.xls'));
   
-  params = ct_set_params(params,'cmd.generic',0);
-  params = ct_set_params(params,'cmd.generic',1,'day_seg','20110317_03');
-  params = ct_set_params(params,'cmd.frms',[1]);
-
-%   params = ct_set_params(params,'array.imgs',{[ones(15,1) (2:16)'],[2*ones(15,1) (2:16)']});
-  params = ct_set_params(params,'array.imgs',{[ones(7,1) (2:8)'],[2*ones(7,1) (2:8)']});
-  params = ct_set_params(params,'array.img_comb',[9e-6 -inf 1e-6]);
-%   params = ct_set_params(params,'array.Nsrc',4); % Nsrc=2 or 4 for MUSIC
-  params = ct_set_params(params,'array.Nsrc',2); % Nsrc=2 for MLE
-  params = ct_set_params(params,'array.Nsv',64); % For MLE, this is the number of search grid points I think.
-  params = ct_set_params(params,'array.tomo_en',1);
-  params = ct_set_params(params,'array.method','mle');
+%   params = ct_set_params(params,'cmd.generic',0);
+%   params = ct_set_params(params,'cmd.generic',1,'day_seg','20110317_03');
+%   params = ct_set_params(params,'cmd.frms',[1]);
+% 
+% %   params = ct_set_params(params,'array.imgs',{[ones(15,1) (2:16)'],[2*ones(15,1) (2:16)']});
+%   params = ct_set_params(params,'array.imgs',{[ones(7,1) (2:8)'],[2*ones(7,1) (2:8)']});
+%   params = ct_set_params(params,'array.img_comb',[9e-6 -inf 1e-6]);
+% %   params = ct_set_params(params,'array.Nsrc',4); % Nsrc=2 or 4 for MUSIC
+%   params = ct_set_params(params,'array.Nsrc',2); % Nsrc=2 for MLE
+%   params = ct_set_params(params,'array.Nsv',64); % For MLE, this is the number of search grid points I think.
+%   params = ct_set_params(params,'array.tomo_en',1);
+%   params = ct_set_params(params,'array.method','mle');
 
 % Each cell array represent one horizontal image, which may contain more than 
 % one vertical image. For example, {[1 2],[1]} means there are 2 horizontal 
@@ -256,7 +256,7 @@ elseif strcmpi(example_setup,'grid')
 % just 1 vertical image.
   tomo_collate.imgs = {[1],[2]}; % Vertical fusing
 %   tomo_collate.imgs = {[1 2]}; % Horizontal fusing
-  tomo_collate.img_comb = [9e-6 -inf 1e-6];
+  tomo_collate.img_comb = [3e-06 -Inf 1e-06 1e-05 -Inf 3e-06];
 
 %   for param_idx = 1:length(params)
 %     if params(param_idx).cmd.generic
@@ -288,12 +288,12 @@ elseif strcmpi(example_setup,'grid')
 %   tomo_collate.in_path = 'test_music3D';
 %   tomo_collate.in_path = 'test_music3D_Nsv128_Nc15';
 %   tomo_collate.in_path = 'test_music3D_Nsv64_Nc7';
-  tomo_collate.in_path = 'test_music3D_mle';
+  tomo_collate.in_path = 'music_lr';
 
   
   % .surf_out_path: ct_filename_out directory to use at output for surfData
 %   tomo_collate.surf_out_path = 'test_surfData_Nsv128_Nc15';
-  tomo_collate.surf_out_path = 'test_surfData_scratch';
+  tomo_collate.surf_out_path = 'surfData';
 
   % .imgs: list of images II to use from .in_path (Data_img_II*.mat). These
   %   should be listed from left most beam to right most beam for
@@ -316,7 +316,7 @@ elseif strcmpi(example_setup,'grid')
   % the horizontal dimension, the entry should be 2x2. If blending 2
   % images, the entry should be 2x1. If there is only one image for a
   % particular vertical index, then fuse_columns should be empty.
-  tomo_collate.fuse_columns = {[]};
+  tomo_collate.fuse_columns = {[], [], [32, 33]};
   
   % .sv_cal_fn: filename containing steering vector calibration, leave empty to not use
   tomo_collate.sv_cal_fn = '';
@@ -360,10 +360,10 @@ elseif strcmpi(example_setup,'grid')
 %   tomo_collate.surfdata_cmds(end).max_loops = 10;
   
   % .fuse_images_flag: runs fuse_images.m when true
-  tomo_collate.fuse_images_flag = ~true;
+  tomo_collate.fuse_images_flag = true;
   
   % .add_icemask_surfacedem_flag: runs add_icemask_surfacedem.m when true
-  tomo_collate.add_icemask_surfacedem_flag = ~true;
+  tomo_collate.add_icemask_surfacedem_flag = true;
   
   % create_surfData_flag: runs create_surfData.m when true
   tomo_collate.create_surfData_flag = true;

@@ -31,7 +31,11 @@ else
     
     % IF FROMJSON() FAILS REVERT TO LOADJSON()
     warning('fromjson() failed, loadjson() will be used.')
-    response = loadjson(jsonResponse);
+    if (regexp(jsonResponse,'[\{\}\]\[]','once'))
+      response = loadjson(jsonResponse);
+    else
+      error('No json string returned.');
+    end
     status = response.status;
     data = response.data;
     

@@ -13,17 +13,17 @@
 % the command is run. Therefore, it is best to size the figure window to
 % the size you want and then run this command.
 %
-% Author: John Paden
+% Authors: John Paden, Reece Mathews
 
 %% User Settings
 % ====================================================================
-clear param echo_param;
+clear param echo_param lay ds;
 
 % data_load_method: string containing "file" or "arbitrary"
 %   picker: Loads a GPS date range from cursor information from imb.picker
 %   arbitrary: Allows a specific GPS date range to be specified
 %   file: Loads a data frame and plots the whole data frame
-data_load_method = 'picker'; % <== CHANGE HERE
+data_load_method = 'file'; % <== CHANGE HERE
 
 if strcmpi(data_load_method,'picker')
   
@@ -57,7 +57,7 @@ elseif strcmpi(data_load_method,'arbitrary')
   
 elseif strcmpi(data_load_method,'file')
   % Load data associated with a frame
-  load('/cresis/snfs1/dataproducts/ct_data/snow/2017_Greenland_P3/CSARP_post/CSARP_qlook/20170309_01/Data_20170309_01_150.mat','GPS_time') % <== CHANGE HERE
+  load('X:/ct_data/snow/2012_Greenland_P3/CSARP_post/CSARP_qlook/20120330_04/Data_20120330_04_063.mat','GPS_time') % <== CHANGE HERE
   param.start.gps_time = GPS_time(1);
   param.stop.gps_time = GPS_time(end);
   
@@ -66,16 +66,22 @@ else
 end
 
 % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
-param.radar_name = 'rds'; % <== CHANGE HERE
+param.radar_name = 'snow'; % <== CHANGE HERE
 
-param.season_name = '1993_Greenland_P3'; % <== CHANGE HERE
+param.season_name = '2012_Greenland_P3'; % <== CHANGE HERE
 
 % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
-echo_param.elev_comp = 3; % <== CHANGE HERE
+echo_param.elev_comp = 2; % <== CHANGE HERE
+
+echo_param.plot_quality = false; % <== CHANGE HERE
 
 % param.out: output data product to use. For example:
 %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-param.out = 'qlook'; % <== CHANGE HERE
+param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
+
+gaps_dist = [100 30];
+
+surface_source = struct('name','surface','source','layerData', 'layerdata_source','layerData_koenig'); % <== CHANGE HERE
 
 % param.img_name: output data product image. For example:
 %   '': combined product, 'img_01_', , 'img_02_'
@@ -85,7 +91,7 @@ if echo_param.elev_comp == 3
   echo_param.depth = '[min(Surface_Elev)-3500 max(Surface_Elev)+200]'; % <== CHANGE HERE
   %echo_param.depth = '[1594.9 1635.1]';
 else
-  echo_param.depth = '[min(Surface_Depth)-20 max(Surface_Depth)+200]'; % <== CHANGE HERE
+  echo_param.depth = '[min(Surface_Depth)-2 max(Surface_Depth) +20]'; % <== CHANGE HERE
   %echo_param.depth = '[-5 120]';
 end
 echo_param.depth_offset = 0;
@@ -124,13 +130,11 @@ param.use_master_surf = 0;
 
 % param.layer_params: set to plot layers on echograms
 layer_params = []; idx = 0;
-if 0 % Enable to plot layers on echograms
-  idx = idx+1;
-  layer_params(idx).name = 'surface';
-  layer_params(idx).source = 'ops';
-  idx = idx+1;
-  layer_params(idx).name = 'bottom';
-  layer_params(idx).source = 'ops';
+if 1 % Enable to plot layers on echograms
+  layer_params = struct('name','surface','source','layerData','layerdata_source','layerData_koenig');
+  for idx = 2:30
+    layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerData','layerdata_source','layerData_koenig');
+  end
 end
 param.layer_params = layer_params;
 
@@ -143,12 +147,12 @@ echo_params = echo_param;
 % Enable by changing to "1". Copy and paste this section to compare many
 % images. These images will all be interpolated onto the first image.
 
-if 0
+if 1
   % data_load_method: string containing "file" or "arbitrary"
   %   picker: Loads a GPS date range from cursor information from imb.picker
   %   arbitrary: Allows a specific GPS date range to be specified
   %   file: Loads a data frame and plots the whole data frame
-  data_load_method = 'picker'; % <== CHANGE HERE
+  data_load_method = 'file'; % <== CHANGE HERE
   
   if strcmpi(data_load_method,'picker')
     
@@ -183,7 +187,7 @@ if 0
     
   elseif strcmpi(data_load_method,'file')
     % Load data associated with a frame
-    load('/cresis/snfs1/dataproducts/ct_data/snow/2016_Greenland_P3/CSARP_post/CSARP_qlook/20160503_02/Data_20160503_02_191.mat','GPS_time') % <== CHANGE HERE
+    load('X:/ct_data/snow/2012_Greenland_P3/CSARP_post/CSARP_qlook/20120330_04/Data_20120330_04_063.mat','GPS_time') % <== CHANGE HERE
     param.start.gps_time = GPS_time(1);
     param.stop.gps_time = GPS_time(end);
     
@@ -192,16 +196,18 @@ if 0
   end
   
   % param.radar_name: 'accum', 'kaband', 'kuband', 'rds', or 'snow'
-  param.radar_name = 'rds'; % <== CHANGE HERE
+  param.radar_name = 'snow'; % <== CHANGE HERE
   
-  param.season_name = '1993_Greenland_P3'; % <== CHANGE HERE
+  param.season_name = '2012_Greenland_P3'; % <== CHANGE HERE
   
   % echo_param.elev_comp: Elevation compensation 0=none, 1=relative, 2=surface flattened, 3=WGS-84
-  echo_param.elev_comp = 3; % <== CHANGE HERE
+  echo_param.elev_comp = 2; % <== CHANGE HERE
   
+  echo_param.plot_quality = false; % <== CHANGE HERE
+
   % param.out: output data product to use. For example:
   %   'qlook', 'standard', 'mvdr', 'CSARP_post/standard', 'CSARP_post/mvdr'
-  param.out = 'qlook'; % <== CHANGE HERE
+  param.out = 'CSARP_post/qlook'; % <== CHANGE HERE
   
   % param.img_name: output data product image. For example:
   %   '': combined product, 'img_01_', , 'img_02_'
@@ -211,7 +217,7 @@ if 0
     echo_param.depth = '[min(Surface_Elev)-3500 max(Surface_Elev)+200]'; % <== CHANGE HERE
     %echo_param.depth = '[1594.9 1635.1]';
   else
-    echo_param.depth = '[min(Surface_Depth)-20 max(Surface_Depth)+200]'; % <== CHANGE HERE
+    echo_param.depth = '[min(Surface_Depth)-2 max(Surface_Depth) +20]'; % <== CHANGE HERE
     %echo_param.depth = '[-5 120]';
   end
   echo_param.depth_offset = 0;
@@ -250,13 +256,11 @@ if 0
 
   % param.layer_params: set to plot layers on echograms
   layer_params = []; idx = 0;
-  if 0 % Enable to plot layers on echograms
-    idx = idx+1;
-    layer_params(idx).name = 'surface';
-    layer_params(idx).source = 'ops';
-    idx = idx+1;
-    layer_params(idx).name = 'bottom';
-    layer_params(idx).source = 'ops';
+  if 1 % Enable to plot layers on echograms
+    layer_params = struct('name','surface','source','layerData','layerdata_source','layerData_koenig');
+    for idx = 2:30
+      layer_params(end+1) = struct('name',sprintf('Koenig_%d',idx),'source','layerData','layerdata_source','layerData_koenig');
+    end
   end
   param.layer_params = layer_params;
   
@@ -495,7 +499,32 @@ for param_idx = 1:length(params)
   
   lay.GPS_time = ds.GPS_time;
   lay.Elevation = ds.Elevation;
-  lay.layerData{1}.value{1}.data = NaN*zeros(size(ds.Surface));
+      
+  master = [];
+  master.GPS_time = ds.GPS_time;
+  master.Latitude = ds.Latitude;
+  master.Longitude = ds.Longitude;
+  master.Elevation = ds.Elevation;
+
+  if ds.Latitude<0
+    ds.param_records.post.location = 'antarctic';
+  else
+    ds.param_records.post.location = 'arctic';
+  end
+  
+  global gRadar;
+  param = merge_structs(param,gRadar);
+  param.day_seg = ds.frm_id(1:11);
+  param.cmd.frms = ds.start_frame:ds.stop_frame;
+  param.post.ops.location = ds.param_records.post.location;
+
+  surface_layer = {opsLoadLayers(param, surface_source)};
+  
+  surface_lay = opsInterpLayersToMasterGPSTime(master,surface_layer,gaps_dist);
+  surface_data = surface_lay.layerData{1}.value{2}.data;
+
+  lay.layerData{1}.value{1}.data = NaN*zeros(size(surface_data));
+
   if param.use_master_surf
     % Use master surface (useful when comparing multiple radar outputs
     % which each have their own surface variable and a common surface should be used
@@ -507,42 +536,25 @@ for param_idx = 1:length(params)
         keyboard
       end
     else
-      master_surf_filt = ds.Surface;
+      master_surf_filt = surface_data;
       master_surf_gps_time = lay.GPS_time;
-      lay.layerData{1}.value{2}.data = ds.Surface;
+      lay.layerData{1}.value{2}.data = surface_data;
     end
   else
-    lay.layerData{1}.value{2}.data = ds.Surface;
+    lay.layerData{1}.value{2}.data = surface_data;
   end
   
   layer_params = param.layer_params;
-
-  if ds.Latitude<0
-    ds.param_records.post.location = 'antarctic';
-  else
-    ds.param_records.post.location = 'arctic';
-  end
   
   if isempty(layer_params)
-    lay.layerData{2}.value{1}.data = NaN*zeros(size(ds.Surface));
-    lay.layerData{2}.value{2}.data = NaN*zeros(size(ds.Surface));
+    lay.layerData{2}.value{1}.data = NaN*zeros(size(surface_data));
+    lay.layerData{2}.value{2}.data = NaN*zeros(size(surface_data));
     
   else
     %% Load bottom layer
-    global gRadar;
-    param = merge_structs(param,gRadar);
-    param.day_seg = ds.frm_id(1:11);
-    param.cmd.frms = ds.start_frame:ds.stop_frame;
-    param.post.ops.location = ds.param_records.post.location;
     
     layers = opsLoadLayers(param,layer_params);
     
-    master = [];
-    master.GPS_time = ds.GPS_time;
-    master.Latitude = ds.Latitude;
-    master.Longitude = ds.Longitude;
-    master.Elevation = ds.Elevation;
-
     % Interpolate all layers onto a common master reference
     for lay_idx = 1:length(layers)
       ops_layer = [];
@@ -553,32 +565,26 @@ for param_idx = 1:length(params)
       ops_layer{1}.type(isnan(ops_layer{1}.type)) = 2;
       ops_layer{1}.quality(isnan(ops_layer{1}.quality)) = 1;
       
-      load_lay = opsInterpLayersToMasterGPSTime(master,ops_layer,[300 60]);
+      load_lay = opsInterpLayersToMasterGPSTime(master,ops_layer,gaps_dist);
       
-      if strcmpi(layer_params(lay_idx).name,'surface')
-        lay.layerData{1}.value{1}.data = load_lay.layerData{1}.value{1}.data;
-        lay.layerData{1}.value{2}.data = load_lay.layerData{1}.value{2}.data;
-      elseif strcmpi(layer_params(lay_idx).name,'bottom')
-        lay.layerData{2}.value{1}.data = load_lay.layerData{1}.value{1}.data;
-        lay.layerData{2}.value{2}.data = load_lay.layerData{1}.value{2}.data;
-      end
+      lay.layerData{end+1} = load_lay.layerData{1};
+
     end
   end
   
-  echo_info = publish_echogram(echo_param,ds,lay);
+  % Use first layerData as surface layer for publish_echogram
+  surface_layer = lay.layerData{1};
+  layers_to_plot = lay;
+  % Use remaining layerDatas as layers to be plotted in publish_echogram
+  layers_to_plot.layerData = layers_to_plot.layerData(2:end);
+
+  echo_info = publish_echogram(echo_param,ds,layers_to_plot,surface_layer);
   season_name = param.season_name;
   season_name(season_name=='_') = ' ';
   title(sprintf('%s %s %s to %s', param.radar_name, season_name, ...
     datestr(epoch_to_datenum(param.start.gps_time)), datestr(epoch_to_datenum(param.stop.gps_time),'HH:MM:SS')));
   % set(echo_info.echo_title,'Visible', 'off');
-  if isempty(layer_params)
-    set(echo_info.h_surf,'Visible','off');
-    set(echo_info.h_bot,'Visible','off');
-  else
-    set(echo_info.h_surf,'Visible','on');
-    set(echo_info.h_bot,'Visible','on');
-  end
-  
+
   %% Save echogram file
   if param.save_files
     out_fn = fullfile(out_fn_dir, sprintf('%s_%s_%s.jpg',start_time_stamp_str, ...

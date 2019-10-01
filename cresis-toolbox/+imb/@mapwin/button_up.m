@@ -95,7 +95,6 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
       
       % query the new map view area, then draw it
       obj.query_redraw_map(x_min,x_max,y_min,y_max);
-      
     elseif x == obj.click_x && y == obj.click_y && click_in_axis
       if ~obj.zoom_mode
         % ===================================================================
@@ -127,7 +126,6 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
         
         % get a new map for these limits
         obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
-        
       end
     end
     
@@ -160,7 +158,6 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
     
     % get a new map for these limits
     obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
-    
   elseif but == 4 && click_in_axis
     % ===================================================================
     % Double click: Zoom reset

@@ -187,7 +187,7 @@ if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
 end
 if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
   % Ensure matlab compiled file has execute permissions
-  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'rwx','a');
+  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'+x','a');
 end
   
 %% Return if this ctrl already existed

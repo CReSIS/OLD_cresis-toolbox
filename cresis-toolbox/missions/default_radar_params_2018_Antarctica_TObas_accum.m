@@ -9,7 +9,7 @@ function param = default_radar_params_2018_Antarctica_TObas_accum
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2018_Antarctica_TObas';
+param.season_name = '2019_Antarctica_TObas';
 param.radar_name = 'accum3';
 
 param.config.daq_type = 'arena';
@@ -57,8 +57,8 @@ dac_idx = dac_idx + 1;
 arena.dac(dac_idx).name = 'awg0';
 arena.dac(dac_idx).type = 'dac-ad9129_0012';
 arena.dac(dac_idx).dacClk = fs_dac;
-arena.dac(dac_idx).desiredAlignMin = -7;
-arena.dac(dac_idx).desiredAlignMax = 5;
+arena.dac(dac_idx).desiredAlignMin = -4;
+arena.dac(dac_idx).desiredAlignMax = 10;
 arena.dac(dac_idx).dcoPhase = 80;
 
 adc_idx = 0;
@@ -69,6 +69,7 @@ arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 1;
 arena.adc(adc_idx).desiredAlignMin = -15;
 arena.adc(adc_idx).desiredAlignMax = 0;
+arena.adc(adc_idx).stream = 'socket';
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 1;
@@ -78,8 +79,9 @@ arena.adc(adc_idx).name = 'digrx1';
 arena.adc(adc_idx).type = 'adc-ad9680_0017';
 arena.adc(adc_idx).sampFreq = fs;
 arena.adc(adc_idx).adcMode = 1;
-arena.adc(adc_idx).desiredAlignMin = -34;
-arena.adc(adc_idx).desiredAlignMax = -20;
+arena.adc(adc_idx).desiredAlignMin = -14;
+arena.adc(adc_idx).desiredAlignMax = -0;
+arena.adc(adc_idx).stream = 'socket';
 arena.adc(adc_idx).ip = '10.0.0.100';
 arena.adc(adc_idx).outputSelect = 1;
 arena.adc(adc_idx).wf_set = 2;
@@ -106,9 +108,19 @@ arena.daq.type = 'daq_0001';
 
 arena.ctu.name = 'ctu';
 arena.ctu.type = 'ctu_001D';
-arena.ctu.nmea = 31;
-arena.ctu.pps = 10;
-arena.ctu.pps_polarity = 1;
+if 0
+  % External GPS
+  arena.ctu.nmea = 31;
+  arena.ctu.nmea_baud = 9600;
+  arena.ctu.pps = 10;
+  arena.ctu.pps_polarity = 1;
+else
+  % Internal GPS
+  arena.ctu.nmea = 60;
+  arena.ctu.nmea_baud = 115200;
+  arena.ctu.pps = 63;
+  arena.ctu.pps_polarity = 1;
+end
 idx = 0;
 idx = idx + 1;
 arena.ctu.out.bit_group(idx).name = 'EPRI';
@@ -162,15 +174,7 @@ default.qlook.motion_comp = 0;
 default.qlook.dec = 20;
 default.qlook.inc_dec = 10;
 default.qlook.surf.en = 1;
-default.qlook.surf.min_bin = 2e-6;
-default.qlook.surf.method = 'threshold';
-default.qlook.surf.threshold = 15;
-default.qlook.surf.threshold_rng = 5;
-default.qlook.surf.threshold_noise_rng = [0 -1e-6 -0.4e-6];
-default.qlook.surf.threshold_rel_max = -9;
-default.qlook.surf.filter = [3 3];
-default.qlook.surf.max_rng = [0 0.1e-6];
-default.qlook.surf.min_bin = 2e-6;
+default.qlook.surf.profile = 'ACCUM';
 
 %% SAR worksheet
 default.sar.out_path = '';
@@ -225,8 +229,10 @@ default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 1.5; % Digital receiver gain is 5, full scale Vpp is 2
 default.radar.Tadc_adjust = 8.3042e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 default.radar.lever_arm_fh = @lever_arm;
-default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
-default.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
+% default.radar.wfs(1).adc_gains_dB = 27; % Gain from the first LNA to the ADC
+% default.radar.wfs(2).adc_gains_dB = 45; % Gain from the first LNA to the ADC
+default.radar.wfs(1).adc_gains_dB = 32.7; % After radiometric calibration
+default.radar.wfs(2).adc_gains_dB = 50.7; % After radiometric calibration
 default.radar.wfs(1).rx_paths = [1]; % ADC to rx path mapping for wf 1
 default.radar.wfs(2).rx_paths = [1]; % ADC to rx path mapping for wf 2
 Tsys = [0]/1e9;

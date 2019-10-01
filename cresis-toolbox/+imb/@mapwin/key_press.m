@@ -83,7 +83,7 @@ if ~isempty(event.Key)
         % highlight the search box string
         uicontrol(obj.top_panel.searchTB);
         
-      case 'downarrow' % Down-arrow
+      case 'downarrow' % Down arrow
         % move plot down
         
         % break if already at the limit
@@ -101,12 +101,12 @@ if ~isempty(event.Key)
           % get a new map for these limits
           new_yaxis = sort(new_yaxis);
           % don't change the x limits in this case
-          new_xaxis = obj.cur_request.XLim/1e3;
+          new_xaxis = obj.cur_request.XLim/obj.map_scale;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         end
         
-      case 'uparrow' % Up-arrow
+      case 'uparrow' % Up arrow
         % move plot up
         %yaxis = get(gca,'YLim');
         % get updated y axis
@@ -114,7 +114,6 @@ if ~isempty(event.Key)
         
         % break if already at the limit
         if check_limits(obj,xaxis,yaxis,'u')
-          
         else
           new_yaxis = [yaxis(1) + y_extent*0.4, yaxis(end) + y_extent*0.4];
           if new_yaxis(end) > obj.full_yaxis(end)
@@ -125,7 +124,7 @@ if ~isempty(event.Key)
           % get a new map for these limits
           new_yaxis = sort(new_yaxis);
           % don't change the x limits in this case
-          new_xaxis = obj.cur_request.XLim/1e3;
+          new_xaxis = obj.cur_request.XLim/obj.map_scale;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         end
@@ -146,7 +145,7 @@ if ~isempty(event.Key)
           % get a new map for these limits
           new_xaxis = sort(new_xaxis);
           % don't change the y limits in this case
-          new_yaxis = obj.cur_request.YLim/1e3;
+          new_yaxis = obj.cur_request.YLim/obj.map_scale;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         end
@@ -170,7 +169,7 @@ if ~isempty(event.Key)
           % get a new map for these limits
           new_xaxis = sort(new_xaxis);
           % don't change the y limits in this case
-          new_yaxis = obj.cur_request.YLim/1e3;
+          new_yaxis = obj.cur_request.YLim/obj.map_scale;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         end

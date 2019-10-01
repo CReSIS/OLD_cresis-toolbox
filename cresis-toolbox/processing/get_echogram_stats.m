@@ -230,7 +230,9 @@ for idx = 1:length(SNR_bins)
 end
 xlabel(h_axes,'Range bin');
 ylabel(h_axes,'Relative power (dB)');
-caxis([SNR_bins(1) SNR_bins(end)])
+if length(SNR_bins)>1
+  caxis([SNR_bins(1) SNR_bins(end)])
+end
 h_color = colorbar(h_axes);
 set(get(h_color,'ylabel'),'string','SNR (dB)')
 grid(h_axes,'on');
