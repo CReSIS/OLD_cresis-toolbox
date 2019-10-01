@@ -169,8 +169,9 @@ elseif isstruct(ctrl_chain)
     task_mem = ctrl.cluster.mem_mult*ctrl.mem(task_id);
 
     if ctrl.cluster.max_time_per_job < task_cpu_time
-      error('ctrl.cluster.max_time_per_job (%.0f sec) is less than task %d:%d''s requested time: %.0f sec', ...
+      warning('ctrl.cluster.max_time_per_job (%.0f sec) is less than task %d:%d''s requested time: %.0f sec. You may override "ctrl.cluster.max_time_per_job" or "task_cpu_time" and then run "dbcont" to continue submission.', ...
         ctrl.cluster.max_time_per_job, ctrl.batch_id, task_id, task_cpu_time);
+      pause;
     end
     if ctrl.cluster.max_mem_per_job < task_mem
       warning('ctrl.cluster.max_mem_per_job (%.1f GB) is less than task %d:%d''s requested mem: %.1f GB', ...
