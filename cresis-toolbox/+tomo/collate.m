@@ -125,7 +125,7 @@ cluster_compile({'tomo_collate_task.m'},ctrl.cluster.hidden_depend_funs,ctrl.clu
 
 total_num_sam = 0;
 total_img = 0;
-if param.array.tomo.en
+if param.array.tomo_en
   if any(strcmpi(param.array.method,{'music'}))
     Nsv = param.array.Nsv;
   elseif any(strcmpi(param.array.method,{'mle'}))
@@ -134,7 +134,7 @@ if param.array.tomo.en
     error('Unsupported param.array.method %s\n', param.array.method);
   end
 else
-  error('param.array.tomo.en is false, tomography should be enabled when running tomo.collate.');
+  error('param.array.tomo_en is false, tomography should be enabled when running tomo.collate.');
 end
 [wfs,~] = data_load_wfs(setfield(param,'load',struct('imgs',{param.array.imgs})),records);
 if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3','mcords4','mcords5','mcords6','mcrds','seaice','accum2','accum3'}))
