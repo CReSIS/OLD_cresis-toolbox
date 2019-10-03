@@ -227,6 +227,7 @@ if ~isempty(lidar_layer_idx)
     [records_x,records_y,records_z] = geodetic2ecef(records.lat/180*pi,records.lon/180*pi,zeros(size(records.lat)),WGS84.ellipsoid);
     start_idx = 1;
     stop_idx = 1;
+    lidar.elev = zeros(size(lidar.lat));
     for lidar_idx = 1:length(lidar.lat)
       while start_idx < length(records.gps_time) && records.gps_time(start_idx) < lidar.gps_time(lidar_idx)-10
         start_idx = start_idx + 1;
