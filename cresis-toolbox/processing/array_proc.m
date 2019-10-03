@@ -158,17 +158,17 @@ end
 param.array.bin_rng = -max(param.array.bin_rng):max(param.array.bin_rng);
 
 % .dbin
-%   Number of range-bins to decimate by on output, default is
-%   round((length(param.array.bin_rng)-1)/2). This is without subbanding.
+%   Number of range-bins to decimate by on output, default is 1.
+%   This is without subbanding.
 if ~isfield(param.array,'dbin') || isempty(param.array.dbin)
-  param.array.dbin = round(length(param.array.bin_rng)/2);
+  param.array.dbin = 1;
 end
 
 % .dline:
 %   Number of range-lines to decimate by on output, default is
 %   round((length(param.array.line_rng)-1)/2)
 if ~isfield(param.array,'dline') || isempty(param.array.dline)
-  error('param.array.dline must be specified.')
+  param.array.dline = round(length(param.array.line_rng)/2);
 end
 
 % .diag_load:

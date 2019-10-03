@@ -938,7 +938,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     %% Distance-to-Ice-Margin model
     clear DIM DIM_costmatrix;
     
-    DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
+    DIM = load(fullfile(param.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
     DIM_costmatrix = DIM.Layer_tracking_3D_parameters;
     DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
 
@@ -1045,8 +1045,7 @@ for cmd_idx = 1:length(param.tomo_collate.surfdata_cmds)
     mask_dist = round(mask_dist .* 9);
     clear DIM DIM_costmatrix;
     
-    global gRadar;
-    DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
+    DIM = load(fullfile(param.path, '+tomo', 'Layer_tracking_3D_parameters_Matrix.mat'));
     DIM_costmatrix = DIM.Layer_tracking_3D_parameters;
     DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
 
