@@ -431,9 +431,9 @@ for Tpd = [10e-6]
   param.tg.Hice_thick = 0;
   param.fn = fullfile(base_dir,sprintf('equalization_%.0fus.xml', Tpd*1e6));
   param.prf = 8500;
-  param.presums = [9 9 9 9 9 9 9 9];
-  [param.wfs(1:8).atten] = deal(25);
-  param.wfs(8).atten = deal(33);
+  param.presums = [9 9 9 9 9];
+  [param.wfs(1:4).atten] = deal(25);
+  param.wfs(5).atten = deal(33);
   param.tx_weights = final_DDS_amp{cal_settings(freq_idx)};
   param.tukey = 0.2;
   param.Tpd = Tpd;
@@ -441,11 +441,11 @@ for Tpd = [10e-6]
   param.delay = final_DDS_time{cal_settings(freq_idx)};
   param.f0 = f0_list(freq_idx);
   param.f1 = f1_list(freq_idx);
-  for wf=1:7
+  for wf=1:4
     param.wfs(wf).tx_mask = ones(1,8);
     param.wfs(wf).tx_mask(9-wf) = 0;
   end
-  param.wfs(8).tx_mask = zeros(1,8);
+  param.wfs(5).tx_mask = zeros(1,8);
   write_cresis_xml(param);
 end
 
@@ -468,9 +468,9 @@ for Tpd = [1e-6]
   param.tg.Hice_thick = 0;
   param.fn = fullfile(base_dir,sprintf('equalization_%.0fus_%.0fft.xml', Tpd*1e6, param.tg.Haltitude*100/2.54/12));
   param.prf = 12000;
-  param.presums = [15 15 15 15 15 15 15 15];
-  [param.wfs(1:8).atten] = deal(30);
-  param.wfs(8).atten = deal(45);
+  param.presums = [15 15 15 15 15];
+  [param.wfs(1:4).atten] = deal(30);
+  param.wfs(5).atten = deal(45);
   param.tx_weights = final_DDS_amp{cal_settings(freq_idx)};
   param.tukey = 0.2;
   param.Tpd = Tpd;
@@ -478,11 +478,11 @@ for Tpd = [1e-6]
   param.delay = final_DDS_time{cal_settings(freq_idx)};
   param.f0 = f0_list(freq_idx);
   param.f1 = f1_list(freq_idx);
-  for wf=1:7
+  for wf=1:4
     param.wfs(wf).tx_mask = ones(1,8);
     param.wfs(wf).tx_mask(9-wf) = 0;
   end
-  param.wfs(8).tx_mask = zeros(1,8);
+  param.wfs(5).tx_mask = zeros(1,8);
   write_cresis_xml(param);
 end
 
@@ -502,9 +502,9 @@ for Tpd = 10e-6
   param.tg.Hice_thick = 0;
   param.fn = fullfile(calval_dir,sprintf('equalization_%.0fus_LOOPBACK.xml', Tpd*1e6));
   param.prf = 8500;
-  param.presums = [15 15 15 15 15 15 15 15];
-  [param.wfs(1:8).atten] = deal(5);
-  param.wfs(8).atten = deal(20);
+  param.presums = [15 15 15 15 15];
+  [param.wfs(1:4).atten] = deal(5);
+  param.wfs(5).atten = deal(20);
   param.tx_weights = final_DDS_amp{cal_settings(freq_idx)};
   param.tukey = 0.2;
   param.Tpd = Tpd;
@@ -512,10 +512,10 @@ for Tpd = 10e-6
   param.delay = final_DDS_time{cal_settings(freq_idx)};
   param.f0 = f0_list(freq_idx);
   param.f1 = f1_list(freq_idx);
-  for wf=1:7
+  for wf=1:4
     param.wfs(wf).tx_mask = ones(1,8);
     param.wfs(wf).tx_mask(9-wf) = 0;
   end
-  param.wfs(8).tx_mask = zeros(1,8);
+  param.wfs(5).tx_mask = zeros(1,8);
   write_cresis_xml(param);
 end
