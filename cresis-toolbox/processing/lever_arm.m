@@ -75,7 +75,7 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) %...
+if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctic_GV'})) %...
 %     && any(strcmpi(gps_source,{'nmea'})) && any(strcmpi(gps_source,{'atm-field'}))
 %   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
@@ -1152,6 +1152,35 @@ end
 %% Radar Depth Sounder
 % =========================================================================
 
+if any(strcmpi(param.season_name,{'2019_Antarctic_GV'})) ...
+    && strcmpi(radar_name,'rds')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  %
+  % NOTE: These values are a temporary placeholder until the actual values
+  % are entered.
+  LArx = [12.481	0.6	-2.340
+    12.474	0.2	-2.343
+    12.473	-0.2	-2.313
+    12.473	-0.6	-2.313].';
+  LArx([1 3]) = -LArx([1 3]); % x and z are negated
+  
+  LAtx = [12.481	0.6	-2.340
+    12.474	0.2	-2.343
+    12.473	-0.2	-2.313
+    12.473	-0.6	-2.313].';
+  LAtx([1 3]) = -LAtx([1 3]); % x and z are negated
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(radar_name,'rds'))
   % Port - Belly - Starboard
   % mm
@@ -1886,7 +1915,7 @@ end
 %% Snow Radar
 % =========================================================================
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) ...
+if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctic_GV'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   % From Rick Hale's student Pedro Toledo: Lever_arm_for_snow_antennas.msg
