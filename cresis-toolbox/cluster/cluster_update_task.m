@@ -354,7 +354,7 @@ if update_mode && ctrl.error_mask(task_id)
   end
 end
 
-if update_mode && ~bitand(ctrl.error_mask(task_id),critical_error)
+if update_mode && ctrl.error_mask(task_id) && ~bitand(ctrl.error_mask(task_id),critical_error)
   fprintf('    Since no critical errors occured, setting error mask to 0.\n');
   ctrl.error_mask(task_id) = 0;
 end
