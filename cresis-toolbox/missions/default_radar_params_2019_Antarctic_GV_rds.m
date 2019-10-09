@@ -141,7 +141,7 @@ default.array.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(
 default.array.img_comb = default.qlook.img_comb;
 default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
-default.config_regexp = '(survey_.*thick.xml';
+default.config_regexp = 'survey_.*thick.xml';
 default.name = 'Nadir Thick Ice Mode';
 defaults{end+1} = default;
 
