@@ -16,7 +16,7 @@ end
 % =========================================================================
 
 % Get the list of array processing methods
-array_proc_method;
+array_proc_methods;
 
 % param.src.fc: center frequency
 param.src.fc = (param.src.f0 + param.src.f1)/2;
