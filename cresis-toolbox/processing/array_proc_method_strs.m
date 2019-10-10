@@ -9,12 +9,17 @@ function method_strs = array_proc_method_strs(method_ints)
 % method_strs: if method_ints has one element then method_strs returns a
 % string, if method_ints has multiple elements, then method_strs returns a
 % cell array
+%
+% See also: array_proc.m, sim.doa.m, array_proc_methods.m,
+% array_proc_method_str.m, array_proc_method_strs.m
+%
+% Author: John Paden
 
 array_proc_methods;
 
 method_strs = cell(size(method_ints));
 for method_idx = 1:numel(method_ints)
-  method_int = method_ints{method_idx};
+  method_int = method_ints(method_idx);
   switch (method_int)
     case STANDARD_METHOD
       method_strs{method_idx} = 'standard';

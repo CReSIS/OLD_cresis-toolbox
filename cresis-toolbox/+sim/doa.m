@@ -15,6 +15,9 @@ end
 %% Setup
 % =========================================================================
 
+% Get the list of array processing methods
+array_proc_method;
+
 % param.src.fc: center frequency
 param.src.fc = (param.src.f0 + param.src.f1)/2;
 % param.src.fs: sampling frequency
@@ -227,28 +230,28 @@ for test_idx = 1:size(param.monte.SNR,1)
     for method = param.method.list
       %fprintf('test: %2d / run: %2d / method: %2d \n', test_idx, run_idx, method);
       switch method
-        case 2
+        case MUSIC_DOA_METHOD
           % MUSIC method: DOA initialization and estimation
           doa0 = sort(music_initialization(DCM_nb,doa_nb_1d_param));
           
           [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
             fmincon(@(theta_hat) music_cost_function(theta_hat,doa_nb_1d_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_nb_1d_param.options);
           
-        case 7
+        case MLE_METHOD
           % MLE method: DOA initialization and estimation
           doa0 = sort(mle_initialization(DCM_nb,doa_nb_nd_param));
           
           [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
             fmincon(@(theta_hat) mle_cost_function(theta_hat,doa_nb_nd_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_nb_nd_param.options);
           
-        case 8
+        case DCM_METHOD
           % WB DCM method: DOA initialization and estimation
           doa0 = sort(wb_initialization(DCM,doa_wb_td_param));
           
           [doa,Jval,exitflag,OUTPUT,~,~,HESSIAN] = ...
             fmincon(@(theta_hat) wb_cost_function(theta_hat,doa_wb_td_param), doa0,[],[],[],[],LB,UB,doa_nonlcon_fh,doa_wb_td_param.options);
           
-        case 9
+        case WBMLE_METHOD
           % WBMLE method: DOA initialization and estimation
           doa0 = sort(wbmle_initialization(DCM_fd,doa_wb_fd_param));
           
