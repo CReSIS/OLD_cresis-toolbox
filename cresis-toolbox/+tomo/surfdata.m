@@ -911,7 +911,7 @@ classdef surfdata < handle
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
       params = ct_set_params(params,'cmd.generic',0);
       params = ct_set_params(params,'cmd.generic',1,'day_seg','20140429_01');
-      params = ct_set_params(params,'cmd.frms',[22 23]);
+      params = ct_set_params(params,'cmd.frms',[4 5]);
       
       %% Automated Section
       % =========================================================================
@@ -995,7 +995,7 @@ classdef surfdata < handle
       end
       
       if ~isfield(param.add_surf_from_dem,'theta_vec') || isemtpy(param.add_surf_from_dem.theta_vec)
-        param.add_surf_from_dem.theta_vec = -60:60;
+        param.add_surf_from_dem.theta_vec = -85:85;
       end
       
       if ~isfield(param.add_surf_from_dem,'dem_guard') || isemtpy(param.add_surf_from_dem.dem_guard)
@@ -1026,8 +1026,8 @@ classdef surfdata < handle
         param.add_surf_from_dem.surf_out_path = '';
       end
       
-%         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.bin'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
-        param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
+        param.add_surf_from_dem.ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+%         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
 
       % Set doa_method_flag to false (always)
       doa_method_flag = false;
@@ -1072,19 +1072,31 @@ classdef surfdata < handle
         gps_mask = sar_coord.gps_time >= frm_gps_start & ... 
           sar_coord.gps_time <= frm_gps_stop;
         
+        % GPS time, origin, Xpos, Ypos, Zpos for the frame
+        frm_gps_time  = sar_coord.gps_time(gps_mask);
+        frm_origin    = sar_coord.origin(:,gps_mask);
+        frm_x         = sar_coord.x(:,gps_mask);
+        frm_z         = sar_coord.z(:,gps_mask);
+        frm_y         = cross(frm_z,frm_x);
+        
+        % Along track decimation factor
+        delta_at      = 10;
+        
         % Create surfdata
         sd = tomo.surfdata();
         sd.radar_name = param.radar_name;
         sd.season_name = param.season_name;
         sd.day_seg = param.day_seg;
         sd.frm = frm;
-        sd.gps_time = sar_coord.gps_time(gps_mask);       
-        sd.FCS.origin = sar_coord.origin(:,gps_mask);
-        sd.FCS.x = sar_coord.x(:,gps_mask);
-        sd.FCS.z = sar_coord.z(:,gps_mask);
-        sd.FCS.y = cross(sd.FCS.z, sd.FCS.x);
+        sd.gps_time = frm_gps_time(1:delta_at:end);       
+        sd.FCS.origin = frm_origin(:,1:delta_at:end);
+        sd.FCS.x = frm_x(:,1:delta_at:end);
+        sd.FCS.z = frm_z(:,1:delta_at:end);
+        sd.FCS.y = frm_y(:,1:delta_at:end);
         sd.theta = param.add_surf_from_dem.theta_vec(:);
         sd.time = zeros(0,1);
+        
+        clear frm_gps_time frm_origin frm_x frm_y frm_z
         
         %% Load Geotiff and Ice Mask
         % =================================================================
