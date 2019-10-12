@@ -990,39 +990,39 @@ classdef surfdata < handle
         param.add_surf_from_dem = [];
       end
       
-      if ~isfield(param.add_surf_from_dem,'dem_res') || isemtpy(param.add_surf_from_dem.dem_res)
+      if ~isfield(param.add_surf_from_dem,'dem_res') || isempty(param.add_surf_from_dem.dem_res)
         param.add_surf_from_dem.dem_res = 10;
       end
       
-      if ~isfield(param.add_surf_from_dem,'theta_vec') || isemtpy(param.add_surf_from_dem.theta_vec)
+      if ~isfield(param.add_surf_from_dem,'theta_vec') || isempty(param.add_surf_from_dem.theta_vec)
         param.add_surf_from_dem.theta_vec = -85:85;
       end
       
-      if ~isfield(param.add_surf_from_dem,'dem_guard') || isemtpy(param.add_surf_from_dem.dem_guard)
+      if ~isfield(param.add_surf_from_dem,'dem_guard') || isempty(param.add_surf_from_dem.dem_guard)
         param.add_surf_from_dem.dem_guard = 12e3;
       end
       
-      if ~isfield(param.add_surf_from_dem,'ice_mask_fn') || isemtpy(param.add_surf_from_dem.ice_mask_fn)
+      if ~isfield(param.add_surf_from_dem,'ice_mask_fn') || isempty(param.add_surf_from_dem.ice_mask_fn)
         param.add_surf_from_dem.ice_mask_fn = [];
       end
       
-      if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isemtpy(param.add_surf_from_dem.sv_cal_fn)
+      if ~isfield(param.add_surf_from_dem,'sv_cal_fn') || isempty(param.add_surf_from_dem.sv_cal_fn)
         param.add_surf_from_dem.sv_cal_fn = [ct_filename_ct_tmp(param,'','add_surf_from_dem','theta_cal') '.mat'];
       end
       
       % .dem_per_slice_guard: additional region in meters around each slice to search for DEM points
       %   Setting too high slows the process down, setting too low will miss
       %   DEM points needed to properly represent the surface.
-      if ~isfield(param.add_surf_from_dem,'dem_per_slice_guard') || isemtpy(param.add_surf_from_dem.dem_per_slice_guard)
+      if ~isfield(param.add_surf_from_dem,'dem_per_slice_guard') || isempty(param.add_surf_from_dem.dem_per_slice_guard)
         param.add_surf_from_dem.dem_per_slice_guard = 240;
       end
       
-      if ~isfield(param.add_surf_from_dem,'surfdata_mode') || isemtpy(param.add_surf_from_dem.surfdata_mode)
+      if ~isfield(param.add_surf_from_dem,'surfdata_mode') || isempty(param.add_surf_from_dem.surfdata_mode)
         param.add_surf_from_dem.surfdata_mode.overwrite = true;
       end
       
        
-      if ~isfield(param.add_surf_from_dem,'surf_out_path') || isemtpy(param.add_surf_from_dem.surf_out_path)
+      if ~isfield(param.add_surf_from_dem,'surf_out_path') || isempty(param.add_surf_from_dem.surf_out_path)
         param.add_surf_from_dem.surf_out_path = '';
       end
       
@@ -1370,7 +1370,7 @@ classdef surfdata < handle
         sd.insert_surf(surf);
         
         %% Create output filename
-        out_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path,'surfData_sar')
+        out_dir = ct_filename_out(param,param.add_surf_from_dem.surf_out_path,'surfData_sar');
         
         if ~isdir(out_dir)
           mkdir(out_dir);
