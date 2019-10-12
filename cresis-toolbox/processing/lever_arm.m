@@ -75,15 +75,24 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) ...
-    && any(strcmpi(gps_source,{'nmea'}))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctic_GV'})) %...
+%     && any(strcmpi(gps_source,{'nmea'})) && any(strcmpi(gps_source,{'atm-field'}))
+%   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
   gps.y = 0;
   gps.z = 0;
 end
 
 if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'arena'))
+  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+  % Platform: Ground based sled
+  %
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 0;
+end
+
+if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(gps_source,'arena'))
   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Platform: Ground based sled
   %
@@ -109,7 +118,28 @@ if any(strcmpi(param.season_name,{'2018_Alaska_SO','2019_Alaska_SO'})) ...
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
+if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(gps_source,'bas'))
+  % Paden: Just an estimate
+  %warning('Correct lever arms need to be entered.');
+  gps.x = 0;
+  gps.y = 0;
+  gps.z = 1300;
+end
+
+if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TObas'})) && any(strcmpi(gps_source,{'arena','bas'})))
+  % See (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
+  %
+  % 2018 Antarctica TObas (Jan-Feb 2019) GPS data are processed to the IMAR
+  % gravimeter.
+  %
+  % From Tom Jordan at BAS:
+  % My best solution is that the IMAR solution to the GPS above the radar is as follows (all in m):
+  % X (positive forward) -2.9369
+  % Y (Positive port)  0.1116
+  % Z (Positive up) 1.4762
+  %
+  %
+  % 
   % Aircraft: British Antarctic Survey (BAS) VP-FBL
   %
   % Carl Robinson at BAS Aug 2018: Though we do have measurements for
@@ -139,31 +169,6 @@ if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'ar
   %     Rib is at 308" FS (although this may be wrong)
   %
   % 
-
-  gps.x = 0;
-  gps.y = 0;
-  gps.z = 0;
-end
-
-if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(gps_source,'bas'))
-  % Paden: Just an estimate
-  %warning('Correct lever arms need to be entered.');
-  gps.x = 0;
-  gps.y = 0;
-  gps.z = 1300;
-end
-
-if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'bas'))
-  % See (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(gps_source,'arena'))
-  %
-  % 2018 Antarctica TObas (Jan-Feb 2019) GPS data are processed to the IMAR
-  % gravimeter.
-  %
-  % From Tom Jordan at BAS:
-  % My best solution is that the IMAR solution to the GPS above the radar is as follows (all in m):
-  % X (positive forward) -2.9369
-  % Y (Positive port)  0.1116
-  % Z (Positive up) 1.4762
 
   gps.x = 2.9369; % Gravimeter was in front of GPS antenna
   gps.y = 0.1116; % Gravimeter was on the right side of the plane/GPS
@@ -682,7 +687,7 @@ end
 %% Accumulation Radar
 % =========================================================================
 
-if (strcmpi(param.season_name,'2018_Antarctica_TObas') && strcmpi(radar_name,'accum'))
+if (any(strcmpi(param.season_name,{'2018_Antarctica_TObas','2019_Antarctica_TObas'})) && strcmpi(radar_name,'accum'))
   % See GPS section for 2018_Antarctica_TObas for details:
   % 	3+5/8" from back of antenna box
   % 	9+15/16" from right/starboard side of lid (used edge of lid)
@@ -1147,6 +1152,35 @@ end
 %% Radar Depth Sounder
 % =========================================================================
 
+if any(strcmpi(param.season_name,{'2019_Antarctic_GV'})) ...
+    && strcmpi(radar_name,'rds')
+  % X,Y,Z are in aircraft coordinates relative to GPS antenna
+  %
+  % NOTE: These values are a temporary placeholder until the actual values
+  % are entered.
+  LArx = [12.481	0.6	-2.340
+    12.474	0.2	-2.343
+    12.473	-0.2	-2.313
+    12.473	-0.6	-2.313].';
+  LArx([1 3]) = -LArx([1 3]); % x and z are negated
+  
+  LAtx = [12.481	0.6	-2.340
+    12.474	0.2	-2.343
+    12.473	-0.2	-2.313
+    12.473	-0.6	-2.313].';
+  LAtx([1 3]) = -LAtx([1 3]); % x and z are negated
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 1;
+  end
+  
+  % Amplitude (not power) weightings for transmit side.
+  if rxchannel == 0
+    rxchannel = 1;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
 if (strcmpi(param.season_name,'2017_Antarctica_TObas') && strcmpi(radar_name,'rds'))
   % Port - Belly - Starboard
   % mm
@@ -1211,7 +1245,10 @@ if (strcmpi(param.season_name,'2018_Alaska_SO') && strcmpi(radar_name,'rds'))
 end
 
 if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'rds'))
-  % Accumulation antenna
+  % Japanese National Institute of Polar Research/Japanese Antarctic
+  % Research Expedition
+  %
+  % Log periodic antennas
   LArx(1,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.x; % m
   LArx(2,:)   = 0.75*[-3.5:3.5] - gps.y; % m
   LArx(3,:)   = (5*0.0254 + [0 0 0 0 0 0 0 0]) - gps.z; % m
@@ -1219,6 +1256,30 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'r
   LAtx(1,:)   = (0 + [0 0 0 0]) - gps.x; % m
   LAtx(2,:)   = 0.75*[-3.5:2:3.5] - gps.y; % m
   LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
+  
+  if ~exist('rxchannel','var') || isempty(rxchannel)
+    rxchannel = 4;
+  end
+  
+  if rxchannel == 0
+    rxchannel = 4;
+    tx_weights = ones(1,size(LAtx,2));
+  end
+end
+
+if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(radar_name,'rds'))
+  % Sled antennas
+  % Center elements left to right
+  LArx = [0	-64.4623	10.5
+    0	-46.0371	10.5
+    0 -27.6119	10.5
+    0 -9.1867	10.5
+    0 9.2337	10.5
+    0 27.6637	10.5
+    0 46.0889	10.5
+    0 64.5141	10.5].' * 2.54/100;
+  
+  LAtx = LArx(:,[1 2 7 8]);
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 4;
@@ -1854,7 +1915,7 @@ end
 %% Snow Radar
 % =========================================================================
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV'})) ...
+if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctic_GV'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   % From Rick Hale's student Pedro Toledo: Lever_arm_for_snow_antennas.msg

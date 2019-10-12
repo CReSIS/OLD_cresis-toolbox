@@ -145,6 +145,10 @@ for cmd_idx = 1:length(param.analysis.cmd)
   if ~isfield(cmd,'trim') || isempty(cmd.trim)
     cmd.trim = [0 0];
   end
+        
+  if ~isfield(cmd,'num_sam_hint') || isempty(cmd.num_sam_hint)
+    cmd.num_sam_hint = [];
+  end
 
   if ~isfield(cmd,'method') || isempty(cmd.method)
     error('cmd.method must be defined in param.analysis.cmd cell array');
@@ -640,7 +644,16 @@ for img = 1:length(param.analysis.imgs)
     if ~cmd.en
       continue;
     end
-      
+    
+    num_sam_hint = total_num_sam(img);
+    if ~isempty(cmd.num_sam_hint)
+      if ~iscell(cmd.num_sam_hint)
+        num_sam_hint = cmd.num_sam_hint;
+      else
+        num_sam_hint = cmd.num_sam_hint{img};
+      end
+    end
+  
     switch cmd.method
       case {'burst_noise'}
         %
@@ -648,8 +661,8 @@ for img = 1:length(param.analysis.imgs)
       case {'coh_noise'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*total_num_sam(img)*mem_mult);
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
         end
         
       case {'qlook'}
@@ -661,28 +674,23 @@ for img = 1:length(param.analysis.imgs)
       case {'specular'}
         Nx_cmd = Nx / param.analysis.block_size * cmd.max_rlines;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*total_num_sam(img)*mem_mult*1.5);
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult*1.5);
         end
         
       case {'statistics'}
         Nx_cmd = Nx / cmd.block_ave;
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
-          if cmd.block_ave < 64
-            % HACK: Assume that if no block averaging is done, that the data size
-            % is small. Really need to get a user "hint" here.
-            sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)/128*log2(Nx_cmd)*cpu_time_mult;
-            sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*total_num_sam(img)*mem_mult);
-          else
-            sparam.cpu_time = sparam.cpu_time + Nx_cmd*total_num_sam(img)*log2(Nx_cmd)*cpu_time_mult;
-            sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*total_num_sam(img)*mem_mult);
-          end
+          sparam.cpu_time = sparam.cpu_time + Nx_cmd*num_sam_hint*log2(Nx_cmd)*cpu_time_mult;
+          sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_cmd*num_sam_hint*mem_mult);
         end
         
       case {'waveform'}
         Nx_cmd = Nx / cmd.dec;
         if isfinite(cmd.Nt)
           Nt = cmd.Nt;
+        else
+          Nt = num_sam_hint;
         end
         for wf_adc = param.analysis.cmd{cmd_idx}.wf_adcs{img}(:).'
           sparam.cpu_time = sparam.cpu_time + Nx_cmd*Nt*log2(Nx_cmd)*cpu_time_mult;
