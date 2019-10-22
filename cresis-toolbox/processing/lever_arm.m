@@ -75,7 +75,7 @@ gps = [];
 gps_source = param.gps_source(1:find(param.gps_source == '-',1)-1);
 radar_name = ct_output_dir(param.radar_name);
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctic_GV'})) %...
+if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) %...
 %     && any(strcmpi(gps_source,{'nmea'})) && any(strcmpi(gps_source,{'atm-field'}))
 %   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   gps.x = 0;
@@ -1152,7 +1152,7 @@ end
 %% Radar Depth Sounder
 % =========================================================================
 
-if any(strcmpi(param.season_name,{'2019_Antarctic_GV'})) ...
+if any(strcmpi(param.season_name,{'2019_Antarctica_GV'})) ...
     && strcmpi(radar_name,'rds')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   %
@@ -1915,7 +1915,7 @@ end
 %% Snow Radar
 % =========================================================================
 
-if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctic_GV'})) ...
+if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) ...
     && strcmpi(radar_name,'snow')
   % X,Y,Z are in aircraft coordinates relative to GPS antenna
   % From Rick Hale's student Pedro Toledo: Lever_arm_for_snow_antennas.msg

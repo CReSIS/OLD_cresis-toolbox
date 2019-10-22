@@ -1,4 +1,4 @@
-% script create_configs_2019_Greenland_P3
+% script create_configs_2019_Antarctica_GV
 %
 % Creates NI radar depth sounder settings
 
@@ -11,9 +11,9 @@ else
   base_dir = '/scratch/waveforms/';
 end
 
-%changed to 220-260
-f0_list = [220e6];
-f1_list = [260e6];
+%changed to 235-255 acc to inflight Snn measurements
+f0_list = [236e6];
+f1_list = [254e6];
 DDC_select_list = [1]; % Which DDC mode to use
 cal_settings = [1];
 prf = 12000;
@@ -61,7 +61,7 @@ Hwindow_orig = [1 1 1 1 0 0 0 0]; % Desired window created during transmit calib
 
 physical_constants;
 param = [];
-param.season_name = '2019_Antarctic_GV';
+param.season_name = '2019_Antarctica_GV';
 param.radar_name = 'rds';
 param.gps_source = 'atm';
 clear phase_centers;
