@@ -1,4 +1,4 @@
-function param = default_radar_params_2019_Antarctic_GV_snow
+function param = default_radar_params_2019_Antarctica_GV_snow
 % param = default_radar_params_2019_Antarctic_GV_snow
 %
 % Snow: 2019_Antarctic_GV
@@ -9,7 +9,7 @@ function param = default_radar_params_2019_Antarctic_GV_snow
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2019_Antarctic_GV';
+param.season_name = '2019_Antarctica_GV';
 param.radar_name = 'snow8';
 
 param.config.file.version = 8;
@@ -39,7 +39,7 @@ default.cmd.generic = 1;
 
 %% Records worksheet
 default.records.file.boards = [1];
-default.records.frames.geotiff_fn = fullfile('greenland','Landsat-7','Greenland_natural_150m.tif');
+default.records.frames.geotiff_fn = fullfile('antarctica','Landsat-7','Antarctica_LIMA.tif');
 default.records.frames.mode = 2;
 default.records.gps.en = 1;
 default.records.gps.time_offset = 1;
