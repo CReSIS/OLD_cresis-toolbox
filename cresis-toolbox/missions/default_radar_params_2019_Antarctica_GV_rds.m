@@ -36,7 +36,7 @@ param.config.max_tx = [32000 32000 32000 32000 0 0 0 0];
 param.config.max_tx_voltage = sqrt([250 250 250 250 250 250 250 0]*50)*10^(-2/20); % voltage at max_tx % CHANGED FROM 1x7 to 1x8 vector
 
 %% CReSIS parameters
-param.config.cresis.clk = 1e9/9;
+param.config.cresis.clk = 142857142.9;
 param.config.cresis.rx_gain_dB = 51.5;
 param.config.cresis.gps_file_mask = 'GPS*';
 
@@ -94,7 +94,7 @@ default.array.diag_load = 0;
 default.array.Nsrc = 2;
 
 %% Radar worksheet
-default.radar.fs = 1e9/9;
+default.radar.fs = 142857142.9;
 default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2;
@@ -102,7 +102,7 @@ default.radar.lever_arm_fh = @lever_arm;
 
 default.radar.wfs.rx_paths = [1 2 3 4];
 default.radar.wfs.noise_figure = 2;
-default.radar.wfs.Tadc_adjust = 0; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.wfs.Tadc_adjust = -1.8568e-6; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 default.radar.wfs(1).Tsys = [0 0 0 0]/1e9;
 default.radar.wfs(1).chan_equal_dB = [0 0 0 0];
