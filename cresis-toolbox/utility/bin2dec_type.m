@@ -1,5 +1,7 @@
 function x=bin2dec_type(s, type_fh)
-% FIX FOR MATLAB'S bin2dec TO WORK WITH uint64 and arbitrarily large
+% x=bin2dec_type(s, type_fh)
+%
+% Fix for Matlab's bin2dec to work with uint64 and arbitrarily large
 % numbers. Numbers larger than the type_fh will cause an overflow.
 % Modifications are noted in the code below.
 %
@@ -14,17 +16,17 @@ function x=bin2dec_type(s, type_fh)
 %   Copyright 1984-2006 The MathWorks, Inc.
 
 % handle input
-if iscellstr(s) 
-    s = char(s); 
+if iscellstr(s)
+  s = char(s);
 end
 
-if ~ischar(s) 
-    error(message('MATLAB:bin2dec:InvalidInputClass')); 
+if ~ischar(s)
+  error(message('MATLAB:bin2dec:InvalidInputClass'));
 end
 
 if isempty(s)
-    x = []; 
-    return, 
+  x = [];
+  return,
 end
 
 % MODIFICATION: Check for type argument
@@ -34,25 +36,25 @@ end
 
 % MODIFICATION: Remove size check
 % if size(s,2)>52
-%     error(message('MATLAB:bin2dec:InputOutOfRange')); 
+%     error(message('MATLAB:bin2dec:InputOutOfRange'));
 % end
 
 % remove significant spaces
 for i = 1:size(s,1)
-    spacesHere = (s(i,:)==' '|s(i,:)==0);
-    if any(spacesHere)
-        stmp = s(i,:);                                  % copy this row
-        nrOfZeros=sum(spacesHere);                      % number zeros to prepend        
-        stmp(spacesHere)='';                            % remove significant spaces
-        s(i,:) = [repmat('0',1,nrOfZeros) stmp];        % prepend '0' to pad this row
-    else
-        continue;
-    end
+  spacesHere = (s(i,:)==' '|s(i,:)==0);
+  if any(spacesHere)
+    stmp = s(i,:);                                  % copy this row
+    nrOfZeros=sum(spacesHere);                      % number zeros to prepend
+    stmp(spacesHere)='';                            % remove significant spaces
+    s(i,:) = [repmat('0',1,nrOfZeros) stmp];        % prepend '0' to pad this row
+  else
+    continue;
+  end
 end
 
 % check for illegal binary strings
 if any(any(~(s == '0' | s == '1')))
-    error(message('MATLAB:bin2dec:IllegalBinaryString'))
+  error(message('MATLAB:bin2dec:IllegalBinaryString'))
 end
 
 [m,n] = size(s);
@@ -61,8 +63,10 @@ end
 v = type_fh(s - '0');
 twos = type_fh(pow2(n-1:-1:0));
 x = zeros(m,1,func2str(type_fh));
-for s_idx=1:length(s)
-  if s(s_idx) == '1'
-    x = x + twos(ones(m,1),s_idx);
+for s_idx=1:size(s,2)
+  for r_idx = 1:size(s,1)
+    if s(r_idx,s_idx) == '1'
+      x(r_idx) = x(r_idx) + twos(1,s_idx);
+    end
   end
 end
