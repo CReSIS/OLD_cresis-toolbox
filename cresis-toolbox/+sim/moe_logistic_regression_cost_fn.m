@@ -1,4 +1,4 @@
-function [J] = moe_logistic_regresion_cost_fn(theta_q,param)
+function [J, grad] = moe_logistic_regression_cost_fn(theta_q,param)
 x_q = param.training_input;
 y_q = param.training_output;
 if isfield(param,'model') && ~isempty(param.model)
@@ -17,7 +17,7 @@ else
   lambda = 0e2;
 end
 
-reg_term = lambda * (1/(2*Nexamples) * sum(theta_q(1:end).^2)); 
+reg_term = lambda * (1/(2*Nexamples) * sum(theta_q(2:end).^2)); 
 
 % inf * 0 = NaN. So, to avoid having inf we can do something like setting
 % any inf values to a big number, such as 10e10; or set any value that is
@@ -49,12 +49,14 @@ reg_term = lambda * (1/(2*Nexamples) * sum(theta_q(1:end).^2));
   
 if 1
   % Set values of L=0 to 1e-20
-  L0 = I.' - h(theta_q,x_q);
-  L0(L0>=0 & L0<=1e-30) = 1e-30;
+  hh = h(theta_q,x_q);
+  hh(hh==1) = 1-1e-10;
+  L0 = I.' - hh;%h(theta_q,x_q);
+%   L0(L0>=0 & L0<=1e-30) = 1e-30;
   L0 = real(log(L0));
   
-  L1 = h(theta_q,x_q);
-  L1(L1>=0 & L1<=1e-30) = 1e-30;
+  L1 = hh;%h(theta_q,x_q);
+%   L1(L1>=0 & L1<=1e-30) = 1e-30;
   L1 = real(log(L1));
 elseif 0
   % Set values of L=-inf to -1e10
@@ -86,6 +88,14 @@ end
 
 J = -1/Nexamples * sum(y_q.' .* L1 + (I-y_q).' .* L0) + reg_term;
 
+x_q = x_q.';
+grad(1) = (1/Nexamples) * sum((hh.'-y_q).*x_q(:, 1));
+
+for idx = 2:length(theta_q)
+  grad(idx) = (1/Nexamples) * sum((hh.'-y_q).*x_q(:, idx)) + (lambda * theta_q(idx) / Nexamples);
+end
+
+grad = grad.';
 % if isnan(J)
 %   keyboard
 % end

@@ -3,14 +3,12 @@
 % Example setup scripts for the sim.doa function. This includes tutorial
 % examples that illustrate how to use the model order estimation.
 %
-% Author: John Paden, Theresa Stumpf
+% Author: John Paden, Theresa Stumpf , Sravya Athinarapu, and Mohanad Al-Ibadi
 %
 % See also: doa.m
 
 %%  Model Order Estimation
 % =========================================================================
-
-% Author: John Paden, Theresa Stumpf , Sravya Athinarapu, and Mohanad Al-Ibadi
 physical_constants;
 tic
 %%
@@ -98,7 +96,7 @@ param.method.Nsv                    = 3*Nc; % sampling grid for mle cost
 param.method.OneD_Nsv               = 128;
 %param.method.src_limits             = {[-20 40]/180*pi,[-20 40]/180*pi};
 %param.method.src_limits             =  repmat({[-20 40]/180*pi} , [1,Nc-1])
-param.method.src_limits             =  repmat({[-80 80]/180*pi} , [1,Nc-1]);
+param.method.src_limits             =  repmat({[-80 80]/180*pi} , [1,M]);
 
 % since it Avoid evaluating cost function around previous sources and
 % hence search range decreases and can't be able to evaluate doa of more
@@ -128,7 +126,7 @@ param.monte.runs  = 10000;      %% RUNS 10000 used in the CHEN paper
 
 % doa accessed using doa_axample , doa_axample_suboptimal using
 % this varable
-% set to 1 if the model order estimation done using doa_axample
+% set to 1 if the model order estimation done using doa_example
 % it is set to 0 if the model order estimation done using
 % doa_axample_suboptimal
 
@@ -819,7 +817,8 @@ if save_eigenvalues
   %    loglikelihood_runs_snr.opt    = param_debug_NT.opt;
   %    loglikelihood_runs_snr.subopt = param_debug_NT.subopt;
   sources_true = param_debug_NT.sources_true;
-  out_fn_dir = '/users/mohanad/IceSheetProject/MOE work/DCMandEigenvalues/';
+  %    out_fn_dir = 'H:\IceSheetProject\MOE work\DCMandEigenvalues';
+  out_fn_dir = '/users/mohanad/IceSheetProject/MOE work/NT results/1D MOE_WB_2DOAs_101snaps_100runs';
   out_fn_name = '1D';
   if ~exist(out_fn_dir,'dir')
     mkdir(out_fn_dir);
