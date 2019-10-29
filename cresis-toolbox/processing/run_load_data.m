@@ -104,7 +104,7 @@ elseif run_example == 2
   param.load_data.raw_data           = true;
   
   %% Load data
-  [data,hdr] = load_data(param);
+  [hdr,data] = load_data(param);
 
   %% Print out DC values and create DC adjust files
   if 0
@@ -195,7 +195,7 @@ elseif run_example == 3
   param.load_data.trim_vals          = [1 1];
   
   % Load data
-  [data,hdr] = load_data(param);
+  [hdr,data] = load_data(param);
   
   % Plot data
   sig_time = [17e-6 20e-6];
@@ -263,7 +263,7 @@ elseif run_example == 4
   param.load_data.trim_vals          = [0 0];
   
   % Load data
-  [data,hdr] = load_data(param);
+  [hdr,data] = load_data(param);
   data = data{1};
   
   old_param = param;
@@ -500,7 +500,7 @@ elseif run_example == 5
               param.load_data.raw_data          = true;
               
               % Load data
-              [data,hdr] = load_data(param);
+              [hdr,data] = load_data(param);
               data = data{1};
               
               out_dir = fullfile(base_dir,param.season_name,param.day_seg);
