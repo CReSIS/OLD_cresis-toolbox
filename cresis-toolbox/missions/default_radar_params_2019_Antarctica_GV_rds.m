@@ -31,8 +31,8 @@ param.config.max_duty_cycle = 0.12;
 param.config.prf_multiple = []; % Power supply sync signal that PRF must be a factor of these numbers
 param.config.PRI_guard = 10e-6;
 param.config.PRI_guard_percentage = 1;
-param.config.tx_enable = [1 1 1 1 0 0 0 0];
-param.config.max_tx = [40000 40000 40000 40000 0 0 0 0];
+param.config.tx_enable = [1 1 1 1 1 1 1 0];
+param.config.max_tx = [32000 32000 32000 32000 0 0 0 0];
 param.config.max_tx_voltage = sqrt([250 250 250 250 250 250 250 0]*50)*10^(-2/20); % voltage at max_tx % CHANGED FROM 1x7 to 1x8 vector
 
 %% CReSIS parameters
@@ -102,7 +102,7 @@ default.radar.lever_arm_fh = @lever_arm;
 
 default.radar.wfs.rx_paths = [1 2 3 4];
 default.radar.wfs.noise_figure = 2;
-default.radar.wfs.Tadc_adjust = 0; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.wfs.Tadc_adjust = 1.1988-6; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 default.radar.wfs(1).Tsys = [0 0 0 0]/1e9;
 default.radar.wfs(1).chan_equal_dB = [0 0 0 0];
