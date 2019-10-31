@@ -36,7 +36,7 @@ param.config.max_tx = [32000 32000 32000 32000 0 0 0 0];
 param.config.max_tx_voltage = sqrt([250 250 250 250 250 250 250 0]*50)*10^(-2/20); % voltage at max_tx % CHANGED FROM 1x7 to 1x8 vector
 
 %% CReSIS parameters
-param.config.cresis.clk = 142857142.9;
+param.config.cresis.clk = 1e9/7;
 param.config.cresis.rx_gain_dB = 51.5;
 param.config.cresis.gps_file_mask = 'GPS*';
 
@@ -48,7 +48,7 @@ default.cmd.generic = 1;
 %% Records worksheet
 default.records.gps.time_offset = 1;
 default.records.frames.mode = 2;
-default.records.frames.geotiff_fn = fullfile('antarctica','Landsat-7','Antarctica_LIMA.tif');
+default.records.frames.geotiff_fn = fullfile('antarctica','Landsat-7','Antarctica_LIMA_480m.tif');
 default.records.presum_bug_fixed = 0;
 
 %% Qlook worksheet
@@ -94,7 +94,7 @@ default.array.diag_load = 0;
 default.array.Nsrc = 2;
 
 %% Radar worksheet
-default.radar.fs = 142857142.9;
+default.radar.fs = 1e9/7;
 default.radar.Tadc = []; % normally leave empty to use value in file header
 default.radar.adc_bits = 14;
 default.radar.Vpp_scale = 2;
@@ -124,7 +124,7 @@ default.post.echo.elev_comp = 3;
 default.post.echo.depth = '[publish_echogram_switch(Bbad,0.25,Surface_Elev,-3500,DBottom,-100),max(Surface_Elev+100)]';
 default.post.echo.er_ice = 3.15;
 default.post.ops.en = 0;
-default.post.ops.location = 'arctic';
+default.post.ops.location = 'antarctic';
 default.post.ops.layers = {'bottom','surface'};
 default.post.ops.gaps_dist = [300 60];
 
@@ -133,6 +133,7 @@ default.post.ops.gaps_dist = [300 60];
 defaults = {};
 
 % survey mode
+default.records.frames.mode = 2;
 default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
 default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
@@ -140,11 +141,12 @@ default.array.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(
 default.array.img_comb = default.qlook.img_comb;
 default.radar.DC_adjust = {'','',''};
 default.radar.ref_fn = '';
-default.config_regexp = '(survey_.*thick.xml';
+default.config_regexp = 'survey_.*thick.xml';
 default.name = 'Nadir Thick Ice Mode';
 defaults{end+1} = default;
 
 % survey mode
+default.records.frames.mode = 2;
 default.qlook.img_comb = [3e-06 -inf 1e-06];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
 default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
@@ -155,6 +157,7 @@ default.name = 'Nadir Thin Ice Mode';
 defaults{end+1} = default;
 
 % image mode
+default.records.frames.mode = 2;
 default.qlook.img_comb = [3e-06 -inf 1e-06 1e-05 -inf 3e-06];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).'],[5*ones(4,1),(1:4).']};
 default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).'],[4*ones(4,1),(1:4).'],[5*ones(4,1),(1:4).'],[6*ones(4,1),(1:4).']};
@@ -165,6 +168,7 @@ default.name = 'Image Thick Ice Mode';
 defaults{end+1} = default;
 
 % image mode
+default.records.frames.mode = 2;
 default.qlook.img_comb = [3e-06 -inf 1e-06];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
 default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).'],[4*ones(4,1),(1:4).']};
@@ -175,6 +179,7 @@ default.name = 'Image Thin Ice Mode';
 defaults{end+1} = default;
 
 % high altitude mode
+default.records.frames.mode = 2;
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(4,1),(1:4).']};
 default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).']};
@@ -185,6 +190,7 @@ default.name = 'High Altitude Mode';
 defaults{end+1} = default;
 
 % survey mode deconvolution
+default.records.frames.mode = 2;
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).'],[5*ones(4,1),(1:4).']};
 default.sar.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).'],[4*ones(4,1),(1:4).'],[5*ones(4,1),(1:4).'],[6*ones(4,1),(1:4).']};
@@ -195,6 +201,7 @@ default.name = 'Deconvolution Mode';
 defaults{end+1} = default;
 
 % image mode deconvolution
+default.records.frames.mode = 2;
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
 default.sar.imgs = default.qlook.imgs;
@@ -204,7 +211,30 @@ default.config_regexp = 'image_.*DECONVOLUTION.xml';
 default.name = 'Deconvolution Mode';
 defaults{end+1} = default;
 
+% equalization mode
+default.records.frames.mode = 3;
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.config_regexp = 'equalization.*.xml';
+default.name = 'Tx Equalization Mode';
+defaults{end+1} = default;
+
+% loopback mode
+default.records.frames.mode = 3;
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.config_regexp = '.*LOOPBACK.xml';
+default.name = 'Loopback Mode';
+defaults{end+1} = default;
+
 % noise mode
+default.records.frames.mode = 3;
 default.qlook.img_comb = [];
 default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
 default.sar.imgs = default.qlook.imgs;
@@ -213,11 +243,11 @@ default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'survey_.*NOISE.xml';
 default.name = 'Noise Mode';
 defaults{end+1} = default;
-
 % Other settings
 
+default.records.frames.mode = 2;
 default.qlook.img_comb = [];
-default.qlook.imgs = [];
+default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
