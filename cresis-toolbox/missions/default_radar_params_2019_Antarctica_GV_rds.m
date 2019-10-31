@@ -102,7 +102,7 @@ default.radar.lever_arm_fh = @lever_arm;
 
 default.radar.wfs.rx_paths = [1 2 3 4];
 default.radar.wfs.noise_figure = 2;
-default.radar.wfs.Tadc_adjust = -1.8568e-6; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.wfs.Tadc_adjust = 1.1988e-6; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
 default.radar.wfs(1).Tsys = [0 0 0 0]/1e9;
 default.radar.wfs(1).chan_equal_dB = [0 0 0 0];
