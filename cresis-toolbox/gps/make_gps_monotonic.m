@@ -8,6 +8,10 @@ function [gps,error_flag] = make_gps_monotonic(gps)
 
 error_flag = false;
 
+if isempty(gps.gps_time)
+  return;
+end
+
 [~,sort_idxs] = sort(gps.gps_time);
 if any(sort_idxs ~= 1:length(sort_idxs))
   warning('GPS time is not monotonically increasing. Manual inspection is suggested. May need to run make_gps_monotonic.m in make_gps_SEASON.m for this particular file.');

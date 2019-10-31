@@ -1,7 +1,7 @@
-function param = default_radar_params_2019_Antarctic_GV_rds
-% param = default_radar_params_2019_Antarctic_GV_rds
+function param = default_radar_params_2019_Antarctica_GV_rds
+% param = default_radar_params_2019_Antarctica_GV_rds
 %
-% RDS: 2019_Antarctic_GV
+% RDS: 2019_Antarctica_GV
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -9,7 +9,7 @@ function param = default_radar_params_2019_Antarctic_GV_rds
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2019_Antarctic_GV';
+param.season_name = '2019_Antarctica_GV';
 param.radar_name = 'mcords3';
 
 param.config.file.version = 403;

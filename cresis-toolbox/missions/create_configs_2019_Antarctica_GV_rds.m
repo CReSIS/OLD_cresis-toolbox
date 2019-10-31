@@ -61,7 +61,7 @@ Hwindow_orig = [1 1 1 1 0 0 0 0]; % Desired window created during transmit calib
 
 physical_constants;
 param = [];
-param.season_name = '2019_Antarctic_GV';
+param.season_name = '2019_Antarctica_GV';
 param.radar_name = 'rds';
 param.gps_source = 'atm';
 clear phase_centers;

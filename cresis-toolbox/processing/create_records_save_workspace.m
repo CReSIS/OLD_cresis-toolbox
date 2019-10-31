@@ -12,7 +12,16 @@ if isfield(param,'tmp_path') && ~isempty(param.tmp_path)
     if ~exist(fn_path,'dir')
       mkdir(fn_path);
     end
-    save(fn);
+    
+    % Get a list of all variables
+    allvars = whos;
+    
+    % Identify the variables that ARE NOT graphics handles. This uses a regular
+    % expression on the class of each variable to check if it's a graphics object
+    tosave = cellfun(@isempty, regexp({allvars.class}, '^matlab\.(ui|graphics)\.'));
+    
+    % Pass these variable names to save
+    save(fn, allvars(tosave).name);
   catch
     fprintf('  Saving workspace failed\n');
   end
