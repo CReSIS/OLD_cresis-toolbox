@@ -134,11 +134,13 @@ if tool_idx == 1
         topbuffer = 10;
         botbuffer = 5;
         filtvalue = 50;
+
+        current_bin = 2*surf_bins(rline);
+        upper_bin = min(round(current_bin + botbuffer), size(viterbi_data, 1));
+        lower_bin = max(round(current_bin - topbuffer), 1);
         for rline = 1 : size(viterbi_data, 2)
-          column_chunk = viterbi_data(round(2*surf_bins(rline) - topbuffer) : ...
-            round(2*surf_bins(rline) + botbuffer), rline);
-          viterbi_data(round(2*surf_bins(rline) - topbuffer) : ...
-            round(2*surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
+          column_chunk = viterbi_data(lower_bin:upper_bin, rline);
+          viterbi_data(lower_bin:upper_bin, rline) = imgaussfilt(column_chunk, filtvalue);
         end
         fprintf('Multiple suppression took %.2f sec.\n', toc);
       end
