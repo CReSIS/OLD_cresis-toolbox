@@ -2218,7 +2218,7 @@ end
 
 
 % Amplitude (not power) weightings for transmit side.
-A = tx_weights;
+A = tx_weights(~isnan(tx_weights));
 magsum       = sum(A);
 if magsum == 0
   % A == 0 meaning transmitters are disabled, technically no transmit phase

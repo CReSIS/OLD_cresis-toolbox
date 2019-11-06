@@ -1,4 +1,4 @@
-% script create_configs_2019_Antarctica_GV
+% script create_configs_2019_Greenland_P3
 %
 % Creates NI radar depth sounder settings
 
@@ -48,10 +48,10 @@ else
   
   % Tx chan equalization txequal_mcords3_20170307_163925_00.xml
   idx = 1;
-  final_DDS_phase{idx} = [0 0 0 0 0 0 0 0];
+  final_DDS_phase{idx} = [28.04 0 218.17 68.91 0 0 0 0];
   final_DDS_phase_no_time{idx} = [0 0 0 0 0 0 0 0]; % not used usually
   final_DDS_amp{idx} = [32000 32000 32000 32000 0 0 0 0];
-  final_DDS_time{idx} =  [0 0 0 0 0 0 0 0];
+  final_DDS_time{idx} =  [-3.86 0 -1.48 -3.47 0 0 0 0];
   
   % final_tx_mask: Listed backwards antenna 8 to 1
   final_tx_mask = [1 1 1 1 0 0 0 0]; 

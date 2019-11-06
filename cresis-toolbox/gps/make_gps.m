@@ -207,7 +207,8 @@ for file_idx = 1:length(in_fns)
   end
   
   if isempty(gps.gps_time)
-    error('No GPS data loaded, isempty(gps.gps_time) == true.\n');
+    file_list_str = sprintf('  %s\n', in_fn{:});
+    error('No GPS data loaded, isempty(gps.gps_time) == true for files:\n%s', file_list_str);
   end
   
   %% Remove records with NaN

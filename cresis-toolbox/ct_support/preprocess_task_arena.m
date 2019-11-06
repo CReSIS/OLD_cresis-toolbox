@@ -34,11 +34,26 @@ if isempty(config_fns)
 end
 
 clear configs;
+bad_mask = false(size(config_fns)); % Keep track of bad config files
 for config_idx = 1:length(config_fns)
   config_fn = config_fns{config_idx};
-  
-  configs(config_idx) = read_arena_xml(config_fn,'',param.config.board_map,param.config.tx_map);
+
+  try
+    configs(config_idx) = read_arena_xml(config_fn,'',param.config.board_map,param.config.tx_map);
+  catch ME
+    % If the error is one that can be ignored, just mark this config file
+    % as bad and continue. Otherwise rethrow the error.
+    if strcmpi(ME.identifier,'READ_ARENA_XML:MISSING_SYSTEM_XML')
+      warning('%s\n', ME.getReport);
+      bad_mask(config_idx) = true;
+    else
+      rethrow(ME)
+    end
+  end
 end
+% Remove bad config files
+config_fns = config_fns(~bad_mask);
+configs = configs(~bad_mask);
 
 %% Process each segment of data
 % =========================================================================

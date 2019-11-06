@@ -1,7 +1,7 @@
 function param = default_radar_params_2019_Antarctica_GV_snow
-% param = default_radar_params_2019_Antarctic_GV_snow
+% param = default_radar_params_2019_Antarctica_GV_snow
 %
-% Snow: 2019_Antarctic_GV
+% Snow: 2019_Antarctica_GV
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
