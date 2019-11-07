@@ -1,7 +1,7 @@
 function update_map_selection_echowin(obj,src,event)
 % update_map_selection_echowin(obj,src,event)
 %
-% Updates the currently selected (cur_sel) frame for imb.mapwin class.
+% Updates the currently selected (obj.map.sel) frame for imb.mapwin class.
 % Called anytime an echowin "update_map_selection" event occurs.
 % This function is similar to update_map_selection.
 
@@ -11,7 +11,7 @@ frame_name = frames{get(obj.echowin_list(echowin_idx).left_panel.frameLB,'Value'
 
 ops_param.properties.search_str = frame_name;
 ops_param.properties.season = obj.echowin_list(echowin_idx).eg.cur_sel.season_name;
-ops_param.properties.location = obj.cur_map_pref_settings.mapzone;
+ops_param.properties.location = obj.cur_map_pref_settings.map_zone;
 
 [status,data] = opsGetFrameSearch(obj.cur_map_pref_settings.system,ops_param);
 if status==2 || ~status
@@ -20,15 +20,15 @@ if status==2 || ~status
 end
 
 % Record current frame selection
-obj.cur_sel.frame_name = data.properties.frame;
-obj.cur_sel.season_name = data.properties.season;
-obj.cur_sel.segment_id = data.properties.segment_id;
+obj.map.sel.frame_name = data.properties.frame;
+obj.map.sel.season_name = data.properties.season;
+obj.map.sel.segment_id = data.properties.segment_id;
 
 % Update map selection plot
 set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X/1e3,data.properties.Y/1e3});
 
 % Change map title to the currently selected frame
-set(obj.top_panel.flightLabel,'String',obj.cur_sel.frame_name);
+set(obj.top_panel.flightLabel,'String',obj.map.sel.frame_name);
 
 new_xdata = data.properties.X/1e3;
 new_ydata = data.properties.Y/1e3;

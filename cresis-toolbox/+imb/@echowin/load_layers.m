@@ -19,7 +19,7 @@ if obj.eg.frame_idxs(end) == length(obj.eg.stop_gps_time)
 end
 
 
-if strcmpi(obj.eg.LayerSource,'OPS')
+if strcmpi(obj.eg.layer_source,'OPS')
   %% OPS: Load layer points from database
   fprintf(' Loading layer points from database (%s)\n',datestr(now,'HH:MM:SS'));
   ops_param = struct('properties',[]);
@@ -66,7 +66,7 @@ if strcmpi(obj.eg.LayerSource,'OPS')
     obj.eg.surface = interp_finite(obj.eg.surface,0);
   end
   
-elseif strcmpi(obj.eg.LayerSource,'layerdata')
+elseif strcmpi(obj.eg.layer_source,'layerdata')
   %% LayerData: Load layer points from layerdata
   
   %% LayerData: Preallocate layer arrays

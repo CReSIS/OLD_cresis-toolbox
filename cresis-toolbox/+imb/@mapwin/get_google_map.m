@@ -1,9 +1,9 @@
-% get_google_map returns a Google Static Map depending on the mapzone
-% selected and centered at the default lat lon set for the mapzone
+% get_google_map returns a Google Static Map depending on the map_zone
+% selected and centered at the default lat lon set for the map_zone
 function A = get_google_map(obj)
 
-  %% Setting default lat lon depending on the mapzone
-  if strcmpi('arctic', obj.map_pref.settings.mapzone)
+  %% Setting default lat lon depending on the map_zone
+  if strcmpi('arctic', obj.map_pref.settings.map_zone)
     c_lat = 73.82177;
     c_lon = -40.333279;
     zoom = 3;

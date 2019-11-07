@@ -259,24 +259,29 @@ for img = param.collate_coh_noise.imgs
       end
     end
     
+    %% Threshold update
+    % =====================================================================
     time = start_bin*noise.dt + noise.dt*(0:Nt-1).';
     Tpd = param.radar.wfs(wf).Tpd;
     if enable_threshold
       orig_threshold = threshold;
       if ~isempty(param.collate_coh_noise.threshold_eval)
-        if numel(param.collate_coh_noise.threshold_eval) < wf
-          error('If param.collate_coh_noise.threshold_eval is specified, there must be a cell entry for each waveform that is used. Waveform %d cannot be found since numel(param.collate_coh_noise.threshold_eval)=%d',wf,numel(param.collate_coh_noise.threshold_eval));
+        if numel(param.collate_coh_noise.threshold_eval) < img
+          error('If param.collate_coh_noise.threshold_eval is specified, there must be a cell entry for each image. Image %d cannot be found since numel(param.collate_coh_noise.threshold_eval)=%d',img,numel(param.collate_coh_noise.threshold_eval));
         end
         
         %figure(100); plot(threshold); hold on;
         % Examples:
-        % param.collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;'
-        % param.collate_coh_noise.threshold_eval{wf} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -110; threshold(time<=Tpd+2.3e-6) = threshold(time<=Tpd+2.3e-6)+20;';
-        % param.collate_coh_noise.threshold_eval{wf} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(noise.dft(:,1)).^2)+6);';
-        eval(param.collate_coh_noise.threshold_eval{wf});
+        % param.collate_coh_noise.threshold_eval{img} = 'threshold(time>Tpd+0.85e-6 & threshold>-110) = -100; threshold(time<=Tpd+0.85e-6) = inf;'
+        % param.collate_coh_noise.threshold_eval{img} = 'threshold(time>Tpd+2.3e-6 & threshold>-130) = -110; threshold(time<=Tpd+2.3e-6) = threshold(time<=Tpd+2.3e-6)+20;';
+        % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(-100,threshold + 20),10*log10(abs(noise.dft(:,1)).^2)+6);';
+        % param.collate_coh_noise.threshold_eval{img} = 'threshold = max(min(nt,threshold+6),max_filt1(10*log10(abs(noise.dft(:,1)).^2)+15-1e6*(time>(Tpd+1.2e-6)),5));';
+        eval(param.collate_coh_noise.threshold_eval{img});
       end
     end
     
+    %% Plot
+    % =====================================================================
     if enable_cn_plot
       cn_before = cn_before.';
       cn_after = cn_after.';

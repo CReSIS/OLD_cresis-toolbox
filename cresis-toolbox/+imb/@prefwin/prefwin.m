@@ -3,27 +3,29 @@ classdef (HandleCompatible = true) prefwin < handle
   
   properties
     % GUI variables
-    h_gui
     h_fig
+    h_gui
 
     % default_params = Default parameters loaded from default parameters file
     %   These parameters are updated every time Ok button is pushed and
     %   will be written back to the default parameters file on exit by mapwin.
     default_params
     
-    % List of all the data available from the OPS database (these are Nx1 cell arrays
-    % containing a list of the N possible datasets to load):
-    %   systems{n}, seasons{n}, and locations{n} --> make up the nth
-    %   dataset
-    profile
-    systems
-    seasons
-    locations
-    layers
-    wms_maps; % Contains names of all available maps from OPS
-
+    unique_systems % Cell array of unique systems
+    systems % Cell array of systems
+    seasons % Cell array of seasons
+    locations % Cell array of locations
+    flightlines % Cell array of flightlines
+    
+    ops % OPS information
+    % ops.profile % Cell array of profiles
+    % ops.layers % Cell array of layers
+    % ops.wms; % WMS capabilities from OPS, read in during create_ui
+    % ops.wms_capabilities; % WMS capabilities from OPS, read in during create_ui
+    
     % Selections during most recent call to okPB_callback (these fields
-    % are set during the call to okPB_callback)
+    % are set during the call to okPB_callback). These represent the active
+    % settings mapwin is using.
     settings
 
   end
@@ -51,10 +53,10 @@ classdef (HandleCompatible = true) prefwin < handle
       obj.h_fig = h_fig;
       obj.default_params = default_params;
       obj.settings.flightlines = 'Regular Flightlines';
-      obj.settings.mapname = 'none';
-      obj.settings.mapzone = '';
+      obj.settings.map_name = [];
+      obj.settings.map_zone = [];
       obj.settings.sources = {};
-      obj.settings.system = '';
+      obj.settings.system = [];
       obj.settings.seasons = {};
       obj.settings.layers = {};
     
@@ -74,10 +76,10 @@ classdef (HandleCompatible = true) prefwin < handle
       end
       % Delete the GUI subclasses
       try
-        delete(obj.h_gui.layers);
+        delete(obj.h_gui.h_layers);
       end
       try
-        delete(obj.h_gui.seasons);
+        delete(obj.h_gui.h_seasons);
       end
     end
     
@@ -89,8 +91,11 @@ classdef (HandleCompatible = true) prefwin < handle
     removePB_callback(obj,status,event);
     okPB_callback(obj,status,event);
     systemsLB_callback(obj,status,event);
+    season_update(obj);
     sourceLB_callback(obj,status,event);
-    LayerSourcePM_callback(obj,status,event);
+    layerSourcePM_callback(obj,status,event);
+    mapsPM_callback(obj,status,event);
+    flightlinesPM_callback(obj,status,event);
     layers_callback(obj,status,event);
     layers_callback_new(obj,status,event);
     layers_callback_refresh(obj,status,event);

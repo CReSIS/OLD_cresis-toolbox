@@ -3,7 +3,7 @@ function load_flightline(obj)
 %
 % Load flightline from database
 %% OPS: Loading flight path from database
-if strcmpi(obj.eg.LayerSource,'OPS')
+if strcmpi(obj.eg.layer_source,'OPS')
   fprintf(' Loading flight path from database (%s)\n', datestr(now,'HH:MM:SS'));
   ops_param = struct('properties',[]);
   ops_param.properties.location = obj.eg.cur_sel.location;

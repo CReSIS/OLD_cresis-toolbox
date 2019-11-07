@@ -64,7 +64,7 @@ for cur_layer = unique_layers
   cur_sub_idxs = sub_idxs(cur_layer_cmds);
   
   %% OPS: Inserting and deleting points
-  if strcmpi(undo_stack.user_data.layerSource,'OPS')
+  if strcmpi(undo_stack.user_data.layer_source,'OPS')
     % Loop through commands. If multiple inserts are done, these are
     % combined into a single insert
     cur_layer_cmd_idx = 1;
@@ -121,7 +121,7 @@ for cur_layer = unique_layers
     end %while cur_layer_cmds end
     
     %% LayerData
-  elseif strcmpi(undo_stack.user_data.layerSource,'layerdata')
+  elseif strcmpi(undo_stack.user_data.layer_source,'layerdata')
     frames_insert=[];
     frames_delete=[];
     cur_layer_cmd_idx = 1;
@@ -226,7 +226,7 @@ end% end for loop
 % save(FILENAME,'-append','-struct','LAYER_STRUCT_NAME','FIELD_NAME')
 % getting the filename with correct frame number and updating the information in the file.
 undo_stack.save();
-if strcmpi(undo_stack.user_data.layerSource,'layerdata')
+if strcmpi(undo_stack.user_data.layer_source,'layerdata')
   unique_frms_insert = unique(frames_insert); %getting the frames in which points were inserted
   unique_frms_delete = unique(frames_delete); %getting the frames from which points were deleted
   if ~isempty(unique_frms_insert)

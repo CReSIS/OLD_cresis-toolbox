@@ -36,6 +36,27 @@ zoom_pointer = [NaN   NaN   NaN   NaN     1     1     1     1   NaN   NaN   NaN 
   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN     2     1     1     1     2
   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN     2     1     1     1
   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN   NaN     2     1     2];
+search_icon = [
+  0   0   0   0     1     1     1     1   0   0   0   0   0   0   0   0
+  0   0   1   1     0     0     0     1   1   1   0   0   0   0   0   0
+  0   1   1   0     0     0     0     0   0   0   1   0   0   0   0   0
+  0   1   0   0     0     0     0     0   0   2   1   0   0   0   0   0
+  1   0   0   0     0     0     0     0   0   0   2   1   0   0   0   0
+  1   2   0   0     0     0     0     0   0   0   0   1   0   0   0   0
+  1   0   0   0     0     0     0     0   0   0   2   1   0   0   0   0
+  0   1   2   0     0     0     0     0   0   0   1   0   0   0   0   0
+  0   1   0   0     0     0     0     0   0   2   1   0   0   0   0   0
+  0   1   0   0     0     0     0     0   0   2   1   2   0   0   0   0
+  0   0   1   1     2     0     2     0   1   1   1   1   2   0   0   0
+  0   0   0   0     1     1     1     1   0     2     1     1     1     2   0   0
+  0   0   0   0   0   0   0   0   0   0     2     1     1     1     2   0
+  0   0   0   0   0   0   0   0   0   0   0     2     1     1     1     2
+  0   0   0   0   0   0   0   0   0   0   0   0     2     1     1     1
+  0   0   0   0   0   0   0   0   0   0   0   0   0     2     1     2];
+search_icon(search_icon==0) = NaN;
+search_icon(search_icon==1) = 0;
+search_icon(search_icon==2) = 0.5;
+search_icon = repmat(double(search_icon),[1 1 3]);
 set(obj.h_fig,'PointerShapeCData',zoom_pointer);
 set(obj.h_fig,'PointerShapeHotSpot',[6 6])
 
@@ -116,9 +137,17 @@ set(obj.top_panel.searchTB,'TooltipString','Enter frame ID to search for here');
 %----search push buttion
 obj.top_panel.searchPB = uicontrol('Parent',obj.top_panel.handle);
 set(obj.top_panel.searchPB,'Style','PushButton');
-set(obj.top_panel.searchPB,'String','Search');
+set(obj.top_panel.searchPB,'String','');
+set(obj.top_panel.searchPB,'CData',search_icon);
 set(obj.top_panel.searchPB,'Callback',@obj.search_callback);
 set(obj.top_panel.searchPB,'TooltipString','Search database for frame ID');
+
+%----GIS push button
+obj.top_panel.gisPB = uicontrol('Parent',obj.top_panel.handle);
+set(obj.top_panel.gisPB,'Style','PushButton');
+set(obj.top_panel.gisPB,'String','GIS');
+set(obj.top_panel.gisPB,'Callback',@obj.gisPB_callback);
+set(obj.top_panel.gisPB,'TooltipString','Open GIS window to load raster and vector data');
 
 %----preference push button
 obj.top_panel.preferencePB = uicontrol('Parent',obj.top_panel.handle);
@@ -180,9 +209,16 @@ obj.top_panel.table.height_margin(row,col) = 0;
 
 row = 1; col = col+1;
 obj.top_panel.table.handles{row,col}   = obj.top_panel.searchPB;
-obj.top_panel.table.width(row,col)     = 38;
+obj.top_panel.table.width(row,col)     = 28;
 obj.top_panel.table.height(row,col)    = 20;
 obj.top_panel.table.width_margin(row,col) = 0;
+obj.top_panel.table.height_margin(row,col) = 0;
+
+row = 1; col = col+1;
+obj.top_panel.table.handles{row,col}   = obj.top_panel.gisPB;
+obj.top_panel.table.width(row,col)     = 28;
+obj.top_panel.table.height(row,col)    = 20;
+obj.top_panel.table.width_margin(row,col) = 3;
 obj.top_panel.table.height_margin(row,col) = 0;
 
 row = 1; col = col+1;
@@ -280,5 +316,3 @@ set(obj.h_fig,'WindowScrollWheelFcn',@obj.button_scroll);
 set(obj.h_fig,'WindowButtonMotionFcn',@obj.button_motion);
 set(obj.h_fig,'WindowKeyPressFcn',@obj.key_press);
 set(obj.h_fig,'WindowKeyReleaseFcn',@obj.key_release);
-
-return;

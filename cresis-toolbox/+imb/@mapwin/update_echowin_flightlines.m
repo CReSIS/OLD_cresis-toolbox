@@ -22,13 +22,13 @@ if isempty(valid_idxs)
   valid_idxs = length(src.eg.map_gps_time);
 end
 
-if obj.map_source==0
+if obj.map.source==0
   % OPS Map
   new_xdata = src.eg.map_x(valid_idxs);
   new_ydata = src.eg.map_y(valid_idxs);
 else
   % Google map in world coordinates
-  proj = imb.get_proj_info(obj.cur_map_pref_settings.mapzone);
+  proj = imb.get_proj_info(obj.cur_map_pref_settings.map_zone);
   [lat,lon] = projinv(proj, src.eg.map_x(valid_idxs)*1e3,src.eg.map_y(valid_idxs)*1e3);
   [new_xdata,new_ydata] = google_map.latlon_to_world(lat,lon);
   new_ydata = 256-new_ydata;
