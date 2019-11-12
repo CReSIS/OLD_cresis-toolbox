@@ -2,28 +2,30 @@ function loadPB_callback(obj,hObj,event)
 % mapwin.loadPB_callback(obj,hObj,event)
 %
 % "load" pushbutton callback which loads new echo windows, called when user
-% presses load button or double clicks a frame. Loads the "obj.cur_sel"
+% presses load button or double clicks a frame. Loads the "obj.map.sel"
 % frame.
 
 %% Setup
 
 % Check to make sure a frame has been selected before we load
-if isempty(obj.cur_sel.frame_name)
+if isempty(obj.map.sel.frame_name)
   uiwait(msgbox('No frame selected, select frames with ctrl+left-click','Error loading','modal'));
   return;
 end
 
-% Check to make sure the standard:surface layer is selected before we load
-found_surface = false;
-for idx=1:length(obj.cur_map_pref_settings.layers.lyr_name)
-  if strcmp(obj.cur_map_pref_settings.layers.lyr_name{idx},'surface') ...
-      && strcmp(obj.cur_map_pref_settings.layers.lyr_group_name{idx},'standard')
-    found_surface = true;
+if strcmpi(obj.cur_map_pref_settings.layer_source,'ops')
+  % Check to make sure the standard:surface layer is selected before we load
+  found_surface = false;
+  for idx=1:length(obj.cur_map_pref_settings.layers.lyr_name)
+    if strcmp(obj.cur_map_pref_settings.layers.lyr_name{idx},'surface') ...
+        && strcmp(obj.cur_map_pref_settings.layers.lyr_group_name{idx},'standard')
+      found_surface = true;
+    end
   end
-end
-if ~found_surface
-  uiwait(msgbox('standard:surface layer must be selected in mapwin prefs','Error loading','modal'));
-  return;
+  if ~found_surface
+    uiwait(msgbox('standard:surface layer must be selected in mapwin prefs','Error loading','modal'));
+    return;
+  end
 end
 
 % Change the pointer to a watch
@@ -79,14 +81,21 @@ end
 %  Draw the echo class in the selected echowin
 param.sources = obj.cur_map_pref_settings.sources;
 param.layers = obj.cur_map_pref_settings.layers;
-ix = strfind(obj.cur_sel.frame_name,'_');
-obj.cur_sel.day_seg = obj.cur_sel.frame_name(1:ix(2)-1); % to get the segment info
-param.cur_sel = obj.cur_sel;
-param.cur_sel.location = obj.cur_map_pref_settings.mapzone;
-param.cur_sel.radar_name = obj.cur_map_pref_settings.system;  % hack for ct_filename_out to work
-param.system = obj.cur_map_pref_settings.system;
-param.LayerSource = obj.cur_map_pref_settings.LayerSource;
-param.layerDataSource = obj.cur_map_pref_settings.layerDataSource;
+ix = strfind(obj.map.sel.frame_name,'_');
+obj.map.sel.day_seg = obj.map.sel.frame_name(1:ix(2)-1); % to get the segment info
+param.cur_sel = obj.map.sel;
+param.cur_sel.location = obj.cur_map_pref_settings.map_zone;
+if strcmp(obj.cur_map_pref_settings.system,'layerdata')
+  param.segment_id = obj.map.sel.segment_id;
+  param.system = param.cur_sel.season_name;
+  [param.cur_sel.radar_name,param.cur_sel.season_name] = strtok(param.cur_sel.season_name,'_');
+  param.cur_sel.season_name = param.cur_sel.season_name(2:end);
+else
+  param.system = obj.cur_map_pref_settings.system;
+  param.cur_sel.radar_name = obj.cur_map_pref_settings.system;
+end
+param.layer_source = obj.cur_map_pref_settings.layer_source;
+param.layer_data_source = obj.cur_map_pref_settings.layer_data_source;
 
 %-------------------------------------------------------------------------
 %% Create link between the echowin and undo_stack list
@@ -96,48 +105,104 @@ param.layerDataSource = obj.cur_map_pref_settings.layerDataSource;
 % combination
 match_idx = [];
 for stack_idx = 1:length(obj.undo_stack_list)
-  if strcmpi(obj.undo_stack_list(stack_idx).unique_id{1},obj.cur_map_pref_settings.system) ...
-      && obj.undo_stack_list(stack_idx).unique_id{2} == obj.cur_sel.segment_id
+  if strcmpi(obj.undo_stack_list(stack_idx).unique_id{1},param.system) ...
+      && obj.undo_stack_list(stack_idx).unique_id{2} == obj.map.sel.segment_id
     % An undo stack already exists for this system-segment pair
     match_idx = stack_idx;
     break;
   end
 end
+
+%% LayerData: Load layerdatainto undostack
+param.layer = [];
+param.frame = [];
+param.gps_time = [];
+param.twtt = [];
+param.frame_idxes = [];
+param.filename = [];
+param.map = obj.map;
+if strcmpi(param.layer_source,'layerdata')
+  
   frames_fn = ct_filename_support(param.cur_sel,'','frames');
   load(frames_fn); % loads "frames" variable
   num_frm = length(frames.frame_idxs);
-  param.layer = [];
-  param.frame = [];
-  param.gps_time = [];
-  param.twtt = [];
-  param.frame_idxes = [];
-  param.filename = [];
-  
-%% LayerData: Saves information of layerData of all the frames in a segment to specific fields in the undo_stack
-  if strcmpi(param.LayerSource,'layerdata')
-    for idx = 1:num_frm
-      id=[];
-      ids = [];
-      layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layerDataSource,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,idx));
-      lay = load(layer_fn);
-      param.filename{idx} = layer_fn; % stores the filename for all frames in the segment
-      param.layer = cat(2, param.layer,lay); % stores the layer information for all frames in the segment
-      param.gps_time = cat(2,param.gps_time,lay.GPS_time); % stores the GPS time for all the frames in the segment
-      for val = 1:length(lay.GPS_time)
-        id(val) = idx; 
+
+  layer_names = {};
+  for frm = 1:num_frm
+    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
+    lay = load(layer_fn);
+    for lay_idx = 1:length(lay.layerData)
+      if ~isfield(lay.layerData{lay_idx},'name')
+        if lay_idx == 1
+          lay.layerData{lay_idx}.name = 'surface';
+        elseif lay_idx == 2
+          lay.layerData{lay_idx}.name = 'bottom';
+        else
+          error('layerData files with unnamed layers for layers 3 and greater are not supported. Layer %d does not have a .name field.', lay_idx);
+        end
       end
-      param.frame = cat(2, param.frame, id); % stores the frame number for each point path id in each frame
-      for inc = 1:length(lay.GPS_time)
-        ids(inc)=inc;
+      if ~any(strcmp(lay.layerData{lay_idx}.name,layer_names))
+        layer_names{end+1} = lay.layerData{lay_idx}.name;
       end
-      param.frame_idxes = cat(2,param.frame_idxes,ids);  % contains the point number for each individual point in each frame
     end
+    param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
+    param.layer = cat(2, param.layer,lay); % stores the layer information for all frames in the segment
+    param.gps_time = cat(2,param.gps_time,lay.GPS_time); % stores the GPS time for all the frames in the segment
+    param.frame = cat(2, param.frame, frm*ones(size(lay.GPS_time))); % stores the frame number for each point path id in each frame
+    param.frame_idxes = cat(2,param.frame_idxes,1:length(lay.GPS_time));  % contains the point number for each individual point in each frame
   end
+  
+  param.layers.lyr_id = 1 : length(layer_names);
+  param.layers.lyr_name = layer_names;
+  param.layers.surface = 1;
+  
+  % Force all layerData files to use the same layer sequence: this ensures
+  % that all layerData files have the same layers and these layers are in
+  % the same order.
+  for frm = 1:num_frm
+    % Does frame conform to lyr_name list?
+    conforms = true;
+    for lay_idx = 1:length(param.layers.lyr_name)
+      if lay_idx > length(param.layer(frm).layerData) ...
+          || ~strcmpi(param.layers.lyr_name{lay_idx},param.layer(frm).layerData{lay_idx}.name)
+        conforms = false;
+      end
+    end
+    if ~conforms
+      layerData = cell(1,length(param.layers.lyr_name));
+      file_layer_names = cellfun(@(x) getfield(x,'name'),param.layer(frm).layerData,'UniformOutput',false);
+      for lay_idx = 1:length(param.layers.lyr_name)
+        layer_name = param.layers.lyr_name{lay_idx};
+        layerData{lay_idx}.name = layer_name;
+        match_idx = find(strcmp(layer_name,file_layer_names),1);
+        if isempty(match_idx)
+          layerData{lay_idx}.value{1}.data = NaN(size(param.layer(frm).GPS_time));
+          layerData{lay_idx}.value{2}.data = NaN(size(param.layer(frm).GPS_time));
+          layerData{lay_idx}.quality = ones(size(param.layer(frm).GPS_time));
+        else
+          layerData{lay_idx}.value{1}.data = param.layer(frm).layerData{match_idx}.value{1}.data;
+          layerData{lay_idx}.value{2}.data = param.layer(frm).layerData{match_idx}.value{2}.data;
+          layerData{lay_idx}.quality = param.layer(frm).layerData{match_idx}.quality;
+        end
+      end
+      param.layer(frm).layerData = layerData;
+    end
+    
+    param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
+    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
+    lay = load(layer_fn);
+  end
+  
+  records_fn = ct_filename_support(param.cur_sel,'','records');
+  records = load(records_fn,'gps_time'); % loads "records.gps_time" variable
+  param.start_gps_time = records.gps_time(frames.frame_idxs);
+  param.stop_gps_time = [param.start_gps_time(2:end) inf];
+end
 
 if isempty(match_idx)
   % An undo stack does not exist for this system-segment pair, so create a
   % new undo stack
-  param.id = {obj.cur_map_pref_settings.system obj.cur_sel.segment_id};
+  param.id = {param.system obj.map.sel.segment_id};
   obj.undo_stack_list(end+1) = imb.undo_stack(param);
   match_idx = length(obj.undo_stack_list);
 end
@@ -146,8 +211,8 @@ end
 obj.echowin_list(echo_idx).cmds_set_undo_stack(obj.undo_stack_list(match_idx));
 obj.undo_stack_list(match_idx).user_data.layer_info=param.layer; % contains the layer information
 obj.undo_stack_list(match_idx).user_data.frame = param.frame; % contains the frame number for each point path id
-obj.undo_stack_list(match_idx).user_data.layerSource = param.LayerSource; % contains the layer source
-obj.undo_stack_list(match_idx).user_data.layerDataSource = param.layerDataSource; % contains the layerData source
+obj.undo_stack_list(match_idx).user_data.layer_source = param.layer_source; % contains the layer source
+obj.undo_stack_list(match_idx).user_data.layer_data_source = param.layer_data_source; % contains the layerData source
 obj.undo_stack_list(match_idx).user_data.gps_time=param.gps_time; % contains the GPS time
 obj.undo_stack_list(match_idx).user_data.frame_idxs = param.frame_idxes; % contains the point number for each individual point in each frame
 obj.undo_stack_list(match_idx).user_data.filename = param.filename; % contains the filenames
@@ -164,6 +229,3 @@ end
 
 %% Cleanup
 set(obj.h_fig,'Pointer','Arrow');
-
-return
-
