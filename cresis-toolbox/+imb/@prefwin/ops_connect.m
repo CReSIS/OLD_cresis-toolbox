@@ -18,7 +18,7 @@ end
 % =========================================================================
 fprintf('  Querying WMS to get map list (%s)\n', datestr(now,'HH:MM:SS'));
 opsCmd; % Populate gOPS variable
-obj.h_gui.wms_maps = {};
+wms_maps = {};
 obj.ops.wms = WebMapServer(sprintf('%swms/',gOps.geoServerUrl));
 try
   obj.ops.wms_capabilities = obj.ops.wms.getCapabilities();
@@ -28,7 +28,7 @@ try
   for idx = 1:length(wms_layers)
     if isempty(regexpi(wms_layers(idx).LayerName,'line_paths|crossover_errors|data_quality|data_coverage|data_elevation'))
       % Did not match the above strings, so it should be a map layer
-      obj.h_gui.wms_maps{end+1} = wms_layers(idx).LayerName;
+      wms_maps{end+1} = wms_layers(idx).LayerName;
     end
   end
   clear wms_layers;
@@ -39,13 +39,12 @@ catch ME
   return;
 end
 % Add Blank and Google maps
-obj.h_gui.wms_maps = [{'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map'}; obj.h_gui.wms_maps(:)];
+wms_maps = [{'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map'}; wms_maps(:)];
 
-obj.flightlines = {'layerdata Flightlines','OPS Flightlines','OPS Quality Flightlines','OPS Coverage Flightlines', 'OPS Crossover Errors','OPS Bottom Elevation'};
+flightlines = {'layerdata Flightlines','OPS Flightlines','OPS Quality Flightlines','OPS Coverage Flightlines', 'OPS Crossover Errors','OPS Bottom Elevation'};
+set(obj.h_gui.flightlinesPM,'String',flightlines);
 
-set(obj.h_gui.flightlinesPM,'String',obj.flightlines);
-
-set(obj.h_gui.mapsPM,'String',obj.h_gui.wms_maps);
+set(obj.h_gui.mapsPM,'String',wms_maps);
 
 set(obj.h_gui.layerSourcePM,'String',{'layerdata','OPS'});
 

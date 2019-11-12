@@ -19,7 +19,7 @@ classdef popupmenu_edit < handle
     value
     list_values % cell array of strings to show in popup menu
     enable_mode % true to enable
-    style_mode % 'edit' or 'popupmenu'
+    style_mode % 0 for 'edit' or 1 for 'popupmenu'
   end
   
   properties (SetAccess = private, GetAccess = private)
@@ -190,7 +190,7 @@ classdef popupmenu_edit < handle
     end
     
     function val = get_value(obj)
-      val = obj.value;
+      val = get(obj.h_valuePM,'Value');
     end
     
     function set_value(obj, val)

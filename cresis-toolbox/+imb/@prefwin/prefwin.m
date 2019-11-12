@@ -28,23 +28,33 @@ classdef (HandleCompatible = true) prefwin < handle
     % default_params.w: width of pref window in pixels
     % default_params.h: height of pref window in pixels
     
-    unique_systems % Cell array of unique systems
-    systems % Cell array of systems
+    systems % Cell array of radar systems
     seasons % Cell array of seasons
     locations % Cell array of locations
-    flightlines % Cell array of flightlines
-    layer_sources % Cell array of layer sources
     
-    ops % OPS information
+    % ops: Struct with OPS information
+    ops
     % ops.profile % Cell array of profiles
     % ops.layers % Cell array of layers
     % ops.wms; % WMS capabilities from OPS, read in during create_ui
     % ops.wms_capabilities; % WMS capabilities from OPS, read in during create_ui
     
-    % Selections during most recent call to okPB_callback (these fields
-    % are set during the call to okPB_callback). These represent the active
-    % settings mapwin is using.
+    % settings: Struct with settings from most recent okPB_callback call
+    % These represent the desired settings for mapwin to use. They are used
+    % to compare against mapwin's current settings
+    % (mapwin.cur_map_pref_settings) in imb.mapwin.get_map to see which
+    % settings have changed.
     settings
+    % settings.layer_source: string containing the current layer source
+    % settings.layer_data_source: string containing the current layer layerData source
+    % settings.layers: cell array of currently selected layers (OPS layer source only)
+    % settings.seasons: cell array of currently selected seasons
+    % settings.system: string containing current system
+    % settings.sources: cell array of echogram sources
+    % settings.map_zone: string containing 'arctic' or 'antarctic'
+    % settings.map_name: string containing the map name
+    % settings.flightlines: string containing flightline setting
+    
 
   end
   
@@ -70,14 +80,17 @@ classdef (HandleCompatible = true) prefwin < handle
       fprintf('Creating preference window (%s)\n', datestr(now,'HH:MM:SS'));
       obj.h_fig = h_fig;
       obj.default_params = default_params;
-      obj.settings.flightlines = 'Regular Flightlines';
-      obj.settings.map_name = [];
-      obj.settings.map_zone = [];
-      obj.settings.sources = {};
-      obj.settings.system = [];
-      obj.settings.seasons = {};
+      
+      obj.settings.layer_source = [];
+      obj.settings.layer_data_source = [];
       obj.settings.layers = {};
-    
+      obj.settings.seasons = {};
+      obj.settings.system = '';
+      obj.settings.sources = {};
+      obj.settings.map_zone = [];
+      obj.settings.map_name = [];
+      obj.settings.flightlines = [];
+      
       try
         create_ui(obj);
       catch ME

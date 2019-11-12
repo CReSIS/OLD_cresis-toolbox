@@ -131,18 +131,18 @@ if strcmpi(param.layer_source,'layerdata')
   for frm = 1:num_frm
     layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
     lay = load(layer_fn);
-    for layer_idx = 1:length(lay.layerData)
-      if ~isfield(lay.layerData{layer_idx},'name')
-        if layer_idx == 1
-          lay.layerData{layer_idx}.name = 'surface';
-        elseif layer_idx == 2
-          lay.layerData{layer_idx}.name = 'bottom';
+    for lay_idx = 1:length(lay.layerData)
+      if ~isfield(lay.layerData{lay_idx},'name')
+        if lay_idx == 1
+          lay.layerData{lay_idx}.name = 'surface';
+        elseif lay_idx == 2
+          lay.layerData{lay_idx}.name = 'bottom';
         else
-          error('layerData files with unnamed layers for layers 3 and greater are not supported. Layer %d does not have a .name field.', layer_idx);
+          error('layerData files with unnamed layers for layers 3 and greater are not supported. Layer %d does not have a .name field.', lay_idx);
         end
       end
-      if ~any(strcmp(lay.layerData{layer_idx}.name,layer_names))
-        layer_names{end+1} = lay.layerData{layer_idx}.name;
+      if ~any(strcmp(lay.layerData{lay_idx}.name,layer_names))
+        layer_names{end+1} = lay.layerData{lay_idx}.name;
       end
     end
     param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
@@ -162,27 +162,27 @@ if strcmpi(param.layer_source,'layerdata')
   for frm = 1:num_frm
     % Does frame conform to lyr_name list?
     conforms = true;
-    for layer_idx = 1:length(param.layers.lyr_name)
-      if layer_idx > length(param.layer(frm).layerData) ...
-          || ~strcmpi(param.layers.lyr_name{layer_idx},param.layer(frm).layerData{layer_idx}.name)
+    for lay_idx = 1:length(param.layers.lyr_name)
+      if lay_idx > length(param.layer(frm).layerData) ...
+          || ~strcmpi(param.layers.lyr_name{lay_idx},param.layer(frm).layerData{lay_idx}.name)
         conforms = false;
       end
     end
     if ~conforms
       layerData = cell(1,length(param.layers.lyr_name));
       file_layer_names = cellfun(@(x) getfield(x,'name'),param.layer(frm).layerData,'UniformOutput',false);
-      for layer_idx = 1:length(param.layers.lyr_name)
-        layer_name = param.layers.lyr_name{layer_idx};
-        layerData{layer_idx}.name = layer_name;
+      for lay_idx = 1:length(param.layers.lyr_name)
+        layer_name = param.layers.lyr_name{lay_idx};
+        layerData{lay_idx}.name = layer_name;
         match_idx = find(strcmp(layer_name,file_layer_names),1);
         if isempty(match_idx)
-          layerData{layer_idx}.value{1}.data = NaN(size(param.layer(frm).GPS_time));
-          layerData{layer_idx}.value{2}.data = NaN(size(param.layer(frm).GPS_time));
-          layerData{layer_idx}.quality = ones(size(param.layer(frm).GPS_time));
+          layerData{lay_idx}.value{1}.data = NaN(size(param.layer(frm).GPS_time));
+          layerData{lay_idx}.value{2}.data = NaN(size(param.layer(frm).GPS_time));
+          layerData{lay_idx}.quality = ones(size(param.layer(frm).GPS_time));
         else
-          layerData{layer_idx}.value{1}.data = param.layer(frm).layerData{match_idx}.value{1}.data;
-          layerData{layer_idx}.value{2}.data = param.layer(frm).layerData{match_idx}.value{2}.data;
-          layerData{layer_idx}.quality = param.layer(frm).layerData{match_idx}.quality;
+          layerData{lay_idx}.value{1}.data = param.layer(frm).layerData{match_idx}.value{1}.data;
+          layerData{lay_idx}.value{2}.data = param.layer(frm).layerData{match_idx}.value{2}.data;
+          layerData{lay_idx}.quality = param.layer(frm).layerData{match_idx}.quality;
         end
       end
       param.layer(frm).layerData = layerData;

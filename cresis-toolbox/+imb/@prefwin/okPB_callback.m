@@ -1,5 +1,6 @@
 function okPB_callback(obj,hObj,event)
 
+%% Update default parameters
 cur_unit = get(obj.h_fig,'Units');
 set(obj.h_fig,'Units','pixels')
 prefwin_pos = get(obj.h_fig,'Position');

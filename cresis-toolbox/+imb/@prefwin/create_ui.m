@@ -9,13 +9,11 @@ obj.locations = {};
 obj.ops = [];
 obj.ops.profile = [];
 
-obj.layer_sources = {'layerdata','Connect to OPS'};
+layer_sources = {'layerdata','Connect to OPS'};
 
-obj.flightlines = {'layerdata Flightlines','Connect to OPS'};
+flightlines = {'layerdata Flightlines','Connect to OPS'};
 
-obj.h_gui.wms_maps = {};
-% Add Blank and Google maps
-obj.h_gui.wms_maps = [{'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map';'Connect to OPS'}; obj.h_gui.wms_maps(:)];
+wms_maps = {'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map';'Connect to OPS'};
 
 %% Get System Info from LayerData
 % =========================================================================
@@ -73,7 +71,7 @@ set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
 
 % layer_source pop up menu (populate later from preference window)%%
 obj.h_gui.layerSourcePM = uicontrol('Parent',obj.h_fig);
-set(obj.h_gui.layerSourcePM,'String',obj.layer_sources);
+set(obj.h_gui.layerSourcePM,'String',layer_sources);
 set(obj.h_gui.layerSourcePM,'Value',1);
 set(obj.h_gui.layerSourcePM,'Style','popupmenu');
 set(obj.h_gui.layerSourcePM,'HorizontalAlignment','Center');
@@ -142,7 +140,7 @@ set(obj.h_gui.sourceLB,'uicontextmenu',obj.h_gui.sourceCM)
 
 % Map Popup Menu (populate later from preference file)
 obj.h_gui.mapsPM = uicontrol('Parent',obj.h_fig);
-set(obj.h_gui.mapsPM,'String',obj.h_gui.wms_maps);
+set(obj.h_gui.mapsPM,'String',wms_maps);
 set(obj.h_gui.mapsPM,'Value',1);
 set(obj.h_gui.mapsPM,'Style','popupmenu');
 set(obj.h_gui.mapsPM,'HorizontalAlignment','Center');
@@ -152,7 +150,7 @@ set(obj.h_gui.mapsPM,'Callback',@obj.mapsPM_callback);
 
 % Map flightline/vectors Popup Menu (populate later from preference file)
 obj.h_gui.flightlinesPM = uicontrol('Parent',obj.h_fig);
-set(obj.h_gui.flightlinesPM,'String',obj.flightlines);
+set(obj.h_gui.flightlinesPM,'String',flightlines);
 set(obj.h_gui.flightlinesPM,'Value',1);
 set(obj.h_gui.flightlinesPM,'Style','popupmenu');
 set(obj.h_gui.flightlinesPM,'HorizontalAlignment','Center');
@@ -305,8 +303,18 @@ table_draw(obj.h_gui.table);
 % Default settings passed in by obj.default_params
 % =========================================================================
 
-% Update 
-obj.season_update();
+% Check to see if default parameters require OPS
+load_ops = false;
+if ~strcmp(obj.default_params.system,'layerdata')
+  load_ops = true;
+end
+if strcmp(obj.default_params.layer_source,'OPS')
+  load_ops = true;
+end
+if strcmp(obj.default_params.flightlines(1:3),'OPS')
+  load_ops = true;
+end
+obj.ops_connect();
 
 % Set default layer source
 % -------------------------------------------------------------------------
@@ -352,6 +360,20 @@ else
   end
 end
 
+% Set default flightlines
+% -------------------------------------------------------------------------
+if isfield(obj.default_params,'flightlines') && ischar(obj.default_params.flightlines)
+  match_idx = find(strcmp(obj.default_params.flightlines,get(obj.h_gui.flightlinesPM,'String')));
+else
+  match_idx = [];
+end
+if isempty(match_idx)
+  set(obj.h_gui.flightlinesPM,'Value',1);
+else
+  set(obj.h_gui.flightlinesPM,'Value',match_idx);
+end
+obj.season_update();
+
 % Set default system
 % -------------------------------------------------------------------------
 if isfield(obj.default_params,'system') && ischar(obj.default_params.system)
@@ -365,14 +387,6 @@ else
   set(obj.h_gui.systemsLB,'Value',match_idx);
 end
 
-% Select the default seasons
-% -------------------------------------------------------------------------
-obj.h_gui.h_seasons.set_selected(obj.default_params.season_names,true);
-
-% Select the default layers
-% -------------------------------------------------------------------------
-obj.h_gui.h_layers.set_selected(obj.default_params.layer_names,true);
-
 % Set default map
 % -------------------------------------------------------------------------
 if isfield(obj.default_params,'map_name') && ischar(obj.default_params.map_name)
@@ -385,19 +399,15 @@ if isempty(match_idx)
 else
   set(obj.h_gui.mapsPM,'Value',match_idx);
 end
+obj.season_update();
 
-% Set default flightlines
+% Select the default seasons
 % -------------------------------------------------------------------------
-if isfield(obj.default_params,'flightlines') && ischar(obj.default_params.flightlines)
-  match_idx = find(strcmp(obj.default_params.flightlines,get(obj.h_gui.flightlinesPM,'String')));
-else
-  match_idx = [];
-end
-if isempty(match_idx)
-  set(obj.h_gui.flightlinesPM,'Value',1);
-else
-  set(obj.h_gui.flightlinesPM,'Value',match_idx);
-end
+obj.h_gui.h_seasons.set_selected(obj.default_params.season_names,true);
+
+% Select the default layers
+% -------------------------------------------------------------------------
+obj.h_gui.h_layers.set_selected(obj.default_params.layer_names,true);
 
 % Set default echogram sources
 % -------------------------------------------------------------------------

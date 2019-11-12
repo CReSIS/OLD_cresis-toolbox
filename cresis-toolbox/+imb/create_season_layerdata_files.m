@@ -90,6 +90,7 @@ if 0
   layer_params(2).existence_check = false;
 else
   % HACK!!!
+  keyboard
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
   layer_params(1).layerdata_source = 'layerData_koenig';
@@ -126,6 +127,7 @@ for param_idx = 1:length(param_fns)
   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
   else
     % HACK!!!
+    keyboard
   params = ct_set_params(params,'cmd.generic',0);
   params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
   params = ct_set_params(params,'debug',1);

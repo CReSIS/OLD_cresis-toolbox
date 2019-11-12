@@ -13,18 +13,18 @@ else
 end
 
 if strcmp(flightlines{1}(1:3),'OPS')
-  obj.unique_systems = setdiff(unique(obj.systems),{'layerdata'});
-  set(obj.h_gui.systemsLB,'String',obj.unique_systems);
-  system_value = find(strcmp(system_name,obj.unique_systems),1);
+  unique_systems = setdiff(unique(obj.systems),{'layerdata'});
+  set(obj.h_gui.systemsLB,'String',unique_systems);
+  system_value = find(strcmp(system_name,unique_systems),1);
   if isempty(system_value)
     system_value = 1;
   end
-  if isempty(obj.unique_systems)
+  if isempty(unique_systems)
     set(obj.h_gui.systemsLB,'Value',1);
     system_name = [];
   else
     set(obj.h_gui.systemsLB,'Value',system_value);
-    system_name = obj.unique_systems{system_value};
+    system_name = unique_systems{system_value};
   end
 else
   system_name = 'layerdata';
@@ -45,9 +45,11 @@ systems_mask = strcmp(system_name,obj.systems);
 obj.h_gui.h_seasons.set_list(obj.seasons(zone_mask & systems_mask));
 
 %% Layers
-if strcmp(system_name,'layerdata')
+layer_sources = get(obj.h_gui.layerSourcePM,'String');
+layer_source = layer_sources{get(obj.h_gui.layerSourcePM,'Value')};
+if strcmp(layer_source,'layerdata')
   obj.h_gui.h_layers.set_enable(false);
-elseif ~isempty(system_name)
+else
   obj.h_gui.h_layers.set_enable(true);
 end
 obj.layers_callback_refresh();

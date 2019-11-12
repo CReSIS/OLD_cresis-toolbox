@@ -16,6 +16,9 @@ if obj.map.fline_source == 1
   [~,idx] = min((obj.layerdata.y-wc_y).^2+(obj.layerdata.x-wc_x).^2);
   frm_id = obj.layerdata.frms(idx);
   season_idx = obj.layerdata.season_idx(idx);
+  season_name = obj.cur_map_pref_settings.seasons{season_idx};
+  [sys,season_name] = strtok(season_name,'_');
+  season_name = season_name(2:end);
   
   % Get a logical mask indicating all indices that match the frame
   frm_mask = obj.layerdata.frms == frm_id;
@@ -41,18 +44,25 @@ if obj.map.fline_source == 1
   else
     % Get segment id from opsGetFrameSearch
     frame_search_param = struct('properties',[]);
-    frame_search_param.properties.frm_str = frm_str;
+    frame_search_param.properties.search_str = frm_str;
     frame_search_param.properties.location = param.properties.location;
+    frame_search_param.properties.season = season_name;
     [frm_status,frm_data] = opsGetFrameSearch(sys,frame_search_param);
     
-    % Set data properties
-    data = struct('properties',[]);
-    data.properties.frame = frm_str;
-    data.properties.season = frm_data.properties.season;
-    data.properties.segment_id = frm_data.properties.segment_id;
-    data.properties.X = obj.layerdata.x(frm_mask);
-    data.properties.Y = obj.layerdata.y(frm_mask);
-    status = frm_status;
+    if frm_status ~= 1
+      error_str = sprintf('Frame %s does not exist in OPS for %s:%s.', frm_str, sys, season_name);
+      uiwait(msgbox(error_str,'Search error','modal'));
+      error(error_str);
+    else
+      % Set data properties
+      data = struct('properties',[]);
+      data.properties.frame = frm_str;
+      data.properties.season = frm_data.properties.season;
+      data.properties.segment_id = frm_data.properties.segment_id;
+      data.properties.X = obj.layerdata.x(frm_mask);
+      data.properties.Y = obj.layerdata.y(frm_mask);
+      status = frm_status;
+    end
   end
   
 else

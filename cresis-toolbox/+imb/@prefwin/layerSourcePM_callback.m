@@ -16,6 +16,7 @@ if strcmpi(layer_source,'Connect to OPS')
 elseif strcmpi(layer_source,'OPS')
   set(obj.h_gui.layerDataSourcePM,'Enable','off');
   obj.h_gui.h_layers.set_enable(true);
+  obj.season_update();
 elseif strcmpi(layer_source,'layerdata')
   set(obj.h_gui.layerDataSourcePM,'Enable','on');
   obj.h_gui.h_layers.set_enable(false);
