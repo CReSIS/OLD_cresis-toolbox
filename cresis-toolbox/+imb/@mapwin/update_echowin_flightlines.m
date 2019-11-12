@@ -30,10 +30,6 @@ else
   % Google map in world coordinates
   new_xdata = src.eg.map_x(valid_idxs);
   new_ydata = src.eg.map_y(valid_idxs);
-%   proj = imb.get_proj_info(obj.cur_map_pref_settings.map_zone);
-%   [lat,lon] = projinv(proj, src.eg.map_x(valid_idxs)*1e3,src.eg.map_y(valid_idxs)*1e3);
-%   [new_xdata,new_ydata] = google_map.latlon_to_world(lat,lon);
-%   new_ydata = 256-new_ydata;
 end
 
 % Update the echowin's flightline graphics

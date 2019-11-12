@@ -24,6 +24,7 @@ function create_season_layerdata_files
 
 %% Select season parameter files
 param_fns = {};
+% param_fns{end+1} = 'accum_param_2018_Antarctica_TObas.xls';
 % param_fns{end+1} = 'rds_param_1993_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1995_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1996_Greenland_P3.xls';
@@ -75,17 +76,34 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
-param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
-param_fns{end+1} = 'accum_param_2018_Antarctica_TObas.xls';
+% param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
+param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
 
 %% Setup layer load parameters
-layer_params = struct('name','surface');
-layer_params.source = 'layerData';
-% layer_params(2).layerdata_source = 'CSARP_post/layerData';
-layer_params(2).name = 'bottom';
-layer_params(2).source = 'layerData';
-% layer_params(2).layerdata_source = 'CSARP_post/layerData';
-layer_params(2).existence_check = false;
+if 0
+  layer_params = struct('name','surface');
+  layer_params.source = 'layerdata';
+  % layer_params(2).layerdata_source = 'CSARP_post/layerData';
+  layer_params(2).name = 'bottom';
+  layer_params(2).source = 'layerdata';
+  % layer_params(2).layerdata_source = 'CSARP_post/layerData';
+  layer_params(2).existence_check = false;
+else
+  % HACK!!!
+  layer_params = struct('name','surface');
+  layer_params.source = 'layerdata';
+  layer_params(1).layerdata_source = 'layerData_koenig';
+  layer_params(2).name = 'bottom';
+  layer_params(2).source = 'layerdata';
+  layer_params(2).layerdata_source = 'layerData_koenig';
+  layer_params(2).existence_check = false;
+  for lay_idx=2:30
+    layer_params(lay_idx+1).name = sprintf('Koenig_%d',lay_idx);
+    layer_params(lay_idx+1).source = 'layerdata';
+    layer_params(lay_idx+1).layerdata_source = 'layerData_koenig';
+    layer_params(lay_idx+1).existence_check = false;
+  end
+end
 
 %% Loop to load each season
 global gRadar;
@@ -102,9 +120,16 @@ for param_idx = 1:length(param_fns)
   
   % Read in parameter spreadsheet
   param_fn = ct_filename_param(param_fns{param_idx});
-  params = read_param_xls(param_fn,'','post');
+  params = read_param_xls(param_fn,'');
+  if 0
   params = ct_set_params(params,'cmd.generic',1);
   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+  else
+    % HACK!!!
+  params = ct_set_params(params,'cmd.generic',0);
+  params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
+  params = ct_set_params(params,'debug',1);
+  end
   disp(param_fns{param_idx})
   
   %% Load each segment
@@ -164,7 +189,7 @@ for param_idx = 1:length(param_fns)
   
   %% Save output
   out_fn_dir = ct_filename_support(param,'layer','');
-  out_fn_name = sprintf('layer_%s_%s.mat', ct_output_dir(param.radar_name), param.season_name);
+  out_fn_name = sprintf('layer_%s_%s_%s.mat', param.post.ops.location, ct_output_dir(param.radar_name), param.season_name);
   out_fn = fullfile(out_fn_dir,out_fn_name);
   fprintf('  Saving %s\n\n', out_fn);
   if ~exist(out_fn_dir,'dir')

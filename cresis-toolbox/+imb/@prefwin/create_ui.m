@@ -324,19 +324,21 @@ end
 % Set default layerdata source
 % -------------------------------------------------------------------------
 if isfield(obj.default_params,'layer_data_source') && ischar(obj.default_params.layer_data_source)
-  match_idx = find(strcmp(obj.default_params.layer_data_source,get(obj.h_gui.layerDataSourcePM,'String')));
+  layer_data_sources = get(obj.h_gui.layerDataSourcePM,'String');
+  match_idx = find(strcmp(obj.default_params.layer_data_source,layer_data_sources));
 else
   match_idx = [];
 end
 if isempty(match_idx)
+  layer_data_sources{end+1} = obj.default_params.layer_data_source;
+  set(obj.h_gui.layerDataSourcePM,'String',layer_data_sources);
+  set(obj.h_gui.layerDataSourcePM,'Value',length(layer_data_sources));
   temp = get(obj.h_gui.layerSourcePM,'String');
   layer_source = temp{get(obj.h_gui.layerSourcePM,'Value')};
   if strcmpi(layer_source,'OPS')
     set(obj.h_gui.layerDataSourcePM,'Enable','off');
-    set(obj.h_gui.layerDataSourcePM,'Value',1);
   elseif strcmpi(layer_source,'layerdata')
     set(obj.h_gui.layerDataSourcePM,'Enable','on');
-    set(obj.h_gui.layerDataSourcePM,'Value',1);
   end
 else
   temp = get(obj.h_gui.layerSourcePM,'String');

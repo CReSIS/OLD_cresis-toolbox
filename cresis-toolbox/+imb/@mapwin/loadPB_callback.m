@@ -133,7 +133,7 @@ if strcmpi(param.layer_source,'layerdata')
     lay = load(layer_fn);
     for layer_idx = 3:length(lay.layerData)
       if isfield(lay.layerData{layer_idx},'name')
-        layer_names = union({lay.layerData.name},layer_names);
+        layer_names = union({lay.layerData{layer_idx}.name},layer_names);
       end
     end
     param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
@@ -143,8 +143,8 @@ if strcmpi(param.layer_source,'layerdata')
     param.frame_idxes = cat(2,param.frame_idxes,1:length(lay.GPS_time));  % contains the point number for each individual point in each frame
   end
   
-  param.layers.lyr_id = [1 2];
-  param.layers.lyr_name = {'surface','bottom'};
+  param.layers.lyr_id = 1 : length(layer_names)+2;
+  param.layers.lyr_name = {'surface','bottom',layer_names{:}};
   param.layers.surface = 1;
   
   records_fn = ct_filename_support(param.cur_sel,'','records');

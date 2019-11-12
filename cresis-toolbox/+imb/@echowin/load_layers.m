@@ -18,7 +18,6 @@ if obj.eg.frame_idxs(end) == length(obj.eg.stop_gps_time)
   max_gps_time = obj.eg.stop_gps_time(end)+dx;
 end
 
-
 if strcmpi(obj.eg.layer_source,'OPS')
   %% OPS: Load layer points from database
   fprintf(' Loading layer points from database (%s)\n',datestr(now,'HH:MM:SS'));
