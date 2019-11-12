@@ -118,10 +118,6 @@ classdef (HandleCompatible = true) prefwin < handle
     create_ui(obj,param);
     status = ops_connect(obj);
     
-    addPB_callback(obj,hObj,event);
-    seasonLB_callback(obj,hObj,event);
-    selectedLB_callback(obj,hObj,event);
-    removePB_callback(obj,status,event);
     okPB_callback(obj,status,event);
     systemsLB_callback(obj,status,event);
     season_update(obj);
