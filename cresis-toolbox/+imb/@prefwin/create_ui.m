@@ -1,53 +1,21 @@
 function create_ui(obj)
 
-%% Get System Info from OPS Database
+%% Reset preference and OPS fields
 % =========================================================================
-obj.unique_systems = {};
 obj.systems = {};
 obj.seasons = {};
 obj.locations = {};
-obj.ops = [];
-fprintf('  Querying database to get data list (%s)\n', datestr(now,'HH:MM:SS'));
-try
-  asdf
-  [status,data] = opsGetSystemInfo();
-  obj.unique_systems = unique(data.properties.systems);
-  obj.ops.profile = data.opsProfile;
-  obj.systems = data.properties.systems;
-  obj.seasons = data.properties.seasons;
-  obj.locations = data.properties.locations;
-  obj.flightlines = {'layerdata Flightlines','OPS Flightlines','OPS Quality Flightlines','OPS Coverage Flightlines', 'OPS Crossover Errors','OPS Bottom Elevation'};
-catch ME
-  warning('opsGetSystemInfo failed with error. Continuing without database. Error message: %s', ME.getReport);
-  obj.ops.profile = [];
-  obj.flightlines = {'layerdata Flightlines'};
-end
 
-%% Get Maps/Layers from OPS Geoserver
-% =========================================================================
-fprintf('  Querying WMS to get map list (%s)\n', datestr(now,'HH:MM:SS'));
+obj.ops = [];
+obj.ops.profile = [];
+
+obj.layer_sources = {'layerdata','Connect to OPS'};
+
+obj.flightlines = {'layerdata Flightlines','Connect to OPS'};
+
 obj.h_gui.wms_maps = {};
-opsCmd; % Populate gOPS variable
-obj.ops.wms = WebMapServer(sprintf('%swms/',gOps.geoServerUrl));
-try
-  asdf
-  obj.ops.wms_capabilities = wms.getCapabilities();
-  % Create a list of all layers excluding "*line_paths*",
-  % "*data_quality*","*data_coverage*", "*crossover_errors*","*data_elevation*"
-  wms_layers = obj.wms_capabilities.Layer;
-  for idx = 1:length(wms_layers)
-    if isempty(regexpi(wms_layers(idx).LayerName,'line_paths|crossover_errors|data_quality|data_coverage|data_elevation'))
-      % Did not match the above strings, so it should be a map layer
-      obj.h_gui.wms_maps{end+1} = wms_layers(idx).LayerName;
-    end
-  end
-  clear wms_layers;
-catch ME
-  warning('wms.getCapabilities failed with error. Continuing without no layers or maps. Error message: %s', ME.getReport);
-  obj.ops.wms_capabilities = [];
-end
 % Add Blank and Google maps
-obj.h_gui.wms_maps = [{'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map'}; obj.h_gui.wms_maps(:)];
+obj.h_gui.wms_maps = [{'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map';'Connect to OPS'}; obj.h_gui.wms_maps(:)];
 
 %% Get System Info from LayerData
 % =========================================================================
@@ -105,11 +73,7 @@ set(obj.h_fig,'CloseRequestFcn',@obj.close_win);
 
 % layer_source pop up menu (populate later from preference window)%%
 obj.h_gui.layerSourcePM = uicontrol('Parent',obj.h_fig);
-if isempty(obj.ops.profile)
-  set(obj.h_gui.layerSourcePM,'String',{'layerdata'});
-else
-  set(obj.h_gui.layerSourcePM,'String',{'layerdata','OPS'});
-end
+set(obj.h_gui.layerSourcePM,'String',obj.layer_sources);
 set(obj.h_gui.layerSourcePM,'Value',1);
 set(obj.h_gui.layerSourcePM,'Style','popupmenu');
 set(obj.h_gui.layerSourcePM,'HorizontalAlignment','Center');
@@ -341,6 +305,9 @@ table_draw(obj.h_gui.table);
 % Default settings passed in by obj.default_params
 % =========================================================================
 
+% Update 
+obj.season_update();
+
 % Set default layer source
 % -------------------------------------------------------------------------
 if isfield(obj.default_params,'layer_source') && ischar(obj.default_params.layer_source)
@@ -429,8 +396,6 @@ if isempty(match_idx)
 else
   set(obj.h_gui.flightlinesPM,'Value',match_idx);
 end
-
-obj.season_update();
 
 % Set default echogram sources
 % -------------------------------------------------------------------------

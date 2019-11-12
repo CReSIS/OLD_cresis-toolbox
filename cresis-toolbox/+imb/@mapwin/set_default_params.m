@@ -1,4 +1,8 @@
 function set_default_params(obj,picker_param_fn)
+% set_default_params(obj,picker_param_fn)
+%
+% Loads factory default preferences and then loads the user's default
+% preferences.
 
 %% Set each window's default widths and heights
 tmp.pref_w = 440;
@@ -240,21 +244,23 @@ elseif isunix
   end
 end
 
-%% Setup param variable
+%% Prefwin default parameters
 default_params.prefwin.sources = sort({'standard','qlook','mvdr','CSARP_post/standard','CSARP_post/mvdr','CSARP_post/qlook'});
 default_params.prefwin.season_names = {};
 default_params.prefwin.layer_names = {'surface'};
-default_params.prefwin.system = 'rds';
+default_params.prefwin.system = 'layerdata';
 default_params.prefwin.map_name = '';
-default_params.prefwin.flightlines = 'Regular Flightlines';
+default_params.prefwin.flightlines = 'layerdata Flightlines';
 %
 default_params.prefwin.layer_source = 'layerdata';
-default_params.prefwin.layer_data_ource = 'layerData';
+default_params.prefwin.layer_data_source = 'layerData';
 %
 default_params.prefwin.x = tmp.pref_x;
 default_params.prefwin.y = tmp.pref_y;
 default_params.prefwin.w = tmp.pref_w;
 default_params.prefwin.h = tmp.pref_h;
+
+%% Echowin default parameters
 default_params.echowin.max_frames = 2;
 default_params.echowin.x = tmp.echo_x;
 default_params.echowin.y = tmp.echo_y;
@@ -291,5 +297,3 @@ end
 
 %% Set mapwin's default parameters
 obj.default_params = default_params;
-
-return;

@@ -10,12 +10,30 @@ classdef (HandleCompatible = true) prefwin < handle
     %   These parameters are updated every time Ok button is pushed and
     %   will be written back to the default parameters file on exit by mapwin.
     default_params
+    % default_params.sources: cell array of echogram file sources
+    % default_params.season_names: cell array of selected season names
+    % default_params.layer_names: cell array of selected layers
+    % default_params.system: String containing system name
+    %   ('accum','kuband','rds', 'snow', 'layerdata')
+    % default_params.map_name: string containing map selection
+    % default_params.flightlines: string containing flightline selection
+    %   ('layerdata Flightlines','OPS Flightlines','OPS Quality
+    %   Flightlines','OPS Coverage Flightlines', 'OPS Crossover
+    %   Errors','OPS Bottom Elevation')
+    % default_params.layer_source: string containing layer source ('OPS' or
+    %   'layerdata')
+    % default_params.layer_data_source: string containing layer data source
+    % default_params.x: x-position of pref window in pixels
+    % default_params.y: y-position of pref window in pixels
+    % default_params.w: width of pref window in pixels
+    % default_params.h: height of pref window in pixels
     
     unique_systems % Cell array of unique systems
     systems % Cell array of systems
     seasons % Cell array of seasons
     locations % Cell array of locations
     flightlines % Cell array of flightlines
+    layer_sources % Cell array of layer sources
     
     ops % OPS information
     % ops.profile % Cell array of profiles
@@ -85,6 +103,8 @@ classdef (HandleCompatible = true) prefwin < handle
     
     close_win(obj,varargin);
     create_ui(obj,param);
+    status = ops_connect(obj);
+    
     addPB_callback(obj,hObj,event);
     seasonLB_callback(obj,hObj,event);
     selectedLB_callback(obj,hObj,event);

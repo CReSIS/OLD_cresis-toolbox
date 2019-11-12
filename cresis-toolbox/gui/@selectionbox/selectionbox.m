@@ -175,8 +175,8 @@ classdef selectionbox < handle
       
       selected_list = intersect(vals,selected_list);
       available_list = intersect(vals,available_list);
-      new_available_list = setdiff(vals,[available_list; selected_list]);
-      available_list = [available_list; new_available_list];
+      new_available_list = setdiff(vals,[available_list(:); selected_list(:)]);
+      available_list = [available_list(:); new_available_list(:)];
       available_list = sort(available_list);
       set(obj.h_list_available,'string',available_list);
       set(obj.h_list_selected,'string',selected_list);

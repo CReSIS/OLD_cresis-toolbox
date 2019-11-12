@@ -43,8 +43,8 @@ if obj.map.source == 0
   % Build the new WMS query, submit it and then retrieve the result
   obj.ops.request.ImageHeight =  height;
   obj.ops.request.ImageWidth  = width;
-  modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.seasons_modrequest,obj.season_group_ids_modrequest);
-  A = obj.wms.getMap(modrequest);
+  modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
+  A = obj.map_pref.ops.wms.getMap(modrequest);
   R = obj.ops.request.RasterRef;
   R = R/1e3;
   
@@ -73,10 +73,10 @@ elseif obj.map.source == 1
     
     obj.ops.request.ImageHeight =  size(A,1);
     obj.ops.request.ImageWidth  = size(A,2);
-    modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.seasons_modrequest,obj.season_group_ids_modrequest);
+    modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
     obj.ops.request.XLim = (obj.ops.request.XLim + 20037508.34) * 128/20037508.34;
     obj.ops.request.YLim = (obj.ops.request.YLim + 20037508.34) * 128/20037508.34;
-    A_flightlines = obj.wms.getMap(modrequest);
+    A_flightlines = obj.map_pref.ops.wms.getMap(modrequest);
     % Alpha/transparency merge of OPS flightlines and google map
     A_flightlines = double(flipud(A_flightlines))/255;
     alpha = rgb2hsv(A_flightlines);
@@ -93,8 +93,8 @@ elseif obj.map.source == 2
     % Build the new WMS query, submit it and then retrieve the result
     obj.ops.request.ImageHeight =  height;
     obj.ops.request.ImageWidth  = width;
-    modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.seasons_modrequest,obj.season_group_ids_modrequest);
-    A = obj.wms.getMap(modrequest);
+    modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
+    A = obj.map_pref.ops.wms.getMap(modrequest);
   end
   
   % Create axes

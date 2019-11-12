@@ -71,7 +71,7 @@ end
      mask = logical(zeros(size(args{2})));
      for point_path_idx = 1:length(args{2});
        point_id = args{2}(point_path_idx);
-       point = find(point_id == obj.undo_stack.user_data.point_path_id);
+       point = find(point_id == obj.eg.map_id);
        if(~isempty(point))
          point_mask(point_id)=true;
          mask(point_path_idx)=true;
@@ -170,9 +170,9 @@ if strcmpi(obj.eg.layer_source,'OPS')
   obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = NaN;
 else
   point_mask = logical(zeros(size(obj.undo_stack.user_data.frame)));
-  point_idxs = find(obj.undo_stack.user_data.point_path_id >= args{3}(1) & obj.undo_stack.user_data.point_path_id <= args{3}(2) ...
+  point_idxs = find(obj.eg.map_id >= args{3}(1) & obj.eg.map_id <= args{3}(2) ...
     & obj.eg.layer.y{layer_idx} > args{2}(3) & obj.eg.layer.y{layer_idx} < args{2}(4));
-  point = obj.undo_stack.user_data.point_path_id(point_idxs);
+  point = obj.eg.map_id(point_idxs);
   point_mask(point)=true;
   %frames_changed = undo_stack.user_data.frame(point_mask);
   %frms_changed = unique(frames_changed);

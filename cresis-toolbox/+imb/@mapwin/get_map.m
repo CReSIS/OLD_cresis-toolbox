@@ -8,7 +8,7 @@ function get_map(obj,hObj,event)
 if strcmp('google_map', obj.map_pref.settings.map_name)
   obj.map.source = 1;
   obj.map.scale = 1;
-elseif strcmp('blank', obj.map_pref.settings.map_name)
+elseif strcmp('blank_map', obj.map_pref.settings.map_name)
   % blank map selected
   obj.map.source = 2;
   obj.map.scale = 1e3;
@@ -63,7 +63,7 @@ if ~strcmpi(obj.cur_map_pref_settings.map_zone,obj.map_pref.settings.map_zone)
 else
   map_zone_changed = false;
 end
-map_name_changed = true; % HACK
+
 if ~system_changed && ~seasons_changed && ~map_name_changed && ~map_zone_changed && ~flightlines_changed
   % get_map at most only needs to update echogram sources, layers, layer
   % source, and/or layerdata source
@@ -71,6 +71,8 @@ if ~system_changed && ~seasons_changed && ~map_name_changed && ~map_zone_changed
   obj.cur_map_pref_settings.layers = obj.map_pref.settings.layers;
   obj.cur_map_pref_settings.layer_source = obj.map_pref.settings.layer_source;
   obj.cur_map_pref_settings.layer_data_source = obj.map_pref.settings.layer_data_source;
+  figure(obj.h_fig);
+  obj.save_default_params();
   return;
 end
 
@@ -86,11 +88,6 @@ fprintf('Loading and plotting map %s:%s (%s)\n', map_zone, map_name, datestr(now
 
 if obj.map.source == 0 || obj.map.fline_source == 0
   opsCmd;
-  
-  % Get request
-  if isempty(obj.ops.request)
-    obj.ops.request = WMSMapRequest(obj.map_pref.ops.wms_capabilities.Layer);
-  end
   
   %% Create season and group ID strings for OPS flightline requests
   
@@ -149,7 +146,7 @@ if obj.map.source == 0
   ylabel(obj.map_panel.h_axes,'Y (km)');
   
   % Rename to layer for readability
-  layer = obj.ops.wms_capabilities.Layer;
+  layer = obj.map_pref.ops.wms_capabilities.Layer;
   
   % Setup OPS map
   wms_map_layer = layer.refine(map_name,'matchType','exact');
@@ -158,17 +155,22 @@ if obj.map.source == 0
   wms_flightline_layer = [];
   if obj.map.fline_source == 0
     % Setup OPS flightlines
-    if strcmpi(flightlines,'OPS Regular Flightlines') && ~isempty(layer.refine('line_paths'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system));
+    if strcmpi(flightlines,'OPS Flightlines') && ~isempty(layer.refine('line_paths'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Quality Flightlines') && ~isempty(layer.refine('data_quality'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Coverage Flightlines') && ~isempty(layer.refine('data_coverage'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Crossover Errors') && ~isempty(layer.refine('crossover_errors'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Bed Elevation') && ~isempty(layer.refine('data_elevation'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     end
+    
+    % Get request
+    obj.ops.request = WMSMapRequest([wms_flightline_layer wms_map_layer]);
+  else
+    obj.ops.request = WMSMapRequest(wms_map_layer);
   end
   
   % Set projection code and default map bounds
@@ -196,19 +198,25 @@ elseif obj.map.source == 1
   
   wms_flightline_layer = [];
   if obj.map.fline_source == 0
+    % Rename to layer for readability
+    layer = obj.map_pref.ops.wms_capabilities.Layer;
     % Setup OPS flightlines
-    if strcmpi(flightlines,'OPS Regular Flightlines') && ~isempty(layer.refine('line_paths'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_google',map_zone,obj.cur_map_pref_settings.system));
+    if strcmpi(flightlines,'OPS Flightlines') && ~isempty(layer.refine('line_paths'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Quality Flightlines') && ~isempty(layer.refine('data_quality'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality_google',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Coverage Flightlines') && ~isempty(layer.refine('data_coverage'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage_google',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Crossover Errors') && ~isempty(layer.refine('crossover_errors'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors_google',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Bed Elevation') && ~isempty(layer.refine('data_elevation'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation_google',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     end
+    
+    % Get request
+    obj.ops.request = WMSMapRequest(wms_flightline_layer);
   end
+  
   
   % Set projection code
   obj.ops.request.CoordRefSysCode = 'EPSG:3857';
@@ -236,24 +244,26 @@ elseif obj.map.source == 2
   xlabel(obj.map_panel.h_axes,'X (km)');
   ylabel(obj.map_panel.h_axes,'Y (km)');
   
-  % Rename to layer for readability
-  layer = obj.ops.wms_capabilities.Layer;
-  
   % Setup OPS flightlines if enabled
   wms_flightline_layer = [];
   if obj.map.fline_source == 0
+    % Rename to layer for readability
+    layer = obj.map_pref.ops.wms_capabilities.Layer;
     % Setup OPS flightlines
-    if strcmpi(flightlines,'OPS Regular Flightlines') && ~isempty(layer.refine('line_paths'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system));
+    if strcmpi(flightlines,'OPS Flightlines') && ~isempty(layer.refine('line_paths'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Quality Flightlines') && ~isempty(layer.refine('data_quality'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Coverage Flightlines') && ~isempty(layer.refine('data_coverage'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Crossover Errors') && ~isempty(layer.refine('crossover_errors'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     elseif strcmpi(flightlines,'OPS Bed Elevation') && ~isempty(layer.refine('data_elevation'))
-      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation',map_zone,obj.cur_map_pref_settings.system));
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     end
+    
+    % Get request
+    obj.ops.request = WMSMapRequest(wms_flightline_layer);
   end
   
   % Set projection code and default map bounds
@@ -315,5 +325,9 @@ obj.query_redraw_map(obj.map.xaxis(1),obj.map.xaxis(end),obj.map.yaxis(1),obj.ma
 
 % Redraw table to ensure everything is the right size
 table_draw(obj.table);
+
+figure(obj.h_fig);
+
+obj.save_default_params();
 
 fprintf('  Done (%s)\n', datestr(now));

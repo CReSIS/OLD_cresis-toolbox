@@ -11,7 +11,7 @@ end
 if ~isempty(system_name) && ~strcmpi(system_name,'layerdata')
   % Find all the layers associated with this system
   [status,data] = opsGetLayers(system_name);
-  obj.layers = data.properties;
+  obj.ops.layers = data.properties;
   menuString = {};
   for idx = 1:length(data.properties.lyr_name)
     menuString{idx} = sprintf('%s:%s', data.properties.lyr_group_name{idx}, data.properties.lyr_name{idx});
@@ -26,8 +26,4 @@ if ~isempty(system_name) && ~strcmpi(system_name,'layerdata')
   % Select all the old layers that were selected (this function
   % automatically ignores layers that do not exist in the new list)
   obj.h_gui.h_layers.set_selected(selectedString,true);
-
-else
-  obj.ops.layers = [];
-  obj.ops.layers.lyr_name = [];
 end

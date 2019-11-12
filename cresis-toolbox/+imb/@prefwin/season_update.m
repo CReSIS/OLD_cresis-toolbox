@@ -13,6 +13,7 @@ else
 end
 
 if strcmp(flightlines{1}(1:3),'OPS')
+  obj.unique_systems = setdiff(unique(obj.systems),{'layerdata'});
   set(obj.h_gui.systemsLB,'String',obj.unique_systems);
   system_value = find(strcmp(system_name,obj.unique_systems),1);
   if isempty(system_value)

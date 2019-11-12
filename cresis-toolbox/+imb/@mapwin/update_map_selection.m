@@ -16,12 +16,8 @@ ops_param.properties.season = obj.cur_map_pref_settings.seasons;
 % Query
 ops_param.properties.x = param.x*obj.map.scale;
 ops_param.properties.y = param.y*obj.map.scale;
-if obj.map.source == 1
-  % Get closest frame
-  [status,data] = obj.google_get_frame_closest(obj.cur_map_pref_settings.system,ops_param);
-else
-  [status,data] = opsGetFrameClosest(obj.cur_map_pref_settings.system,ops_param);
-end
+% Get closest frame
+[status,data] = obj.get_closest_frame(obj.cur_map_pref_settings.system,ops_param);
 
 % Update map selection plot
 set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X/obj.map.scale,data.properties.Y/obj.map.scale});

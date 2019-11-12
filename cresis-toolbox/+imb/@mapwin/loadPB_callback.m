@@ -86,12 +86,14 @@ obj.map.sel.day_seg = obj.map.sel.frame_name(1:ix(2)-1); % to get the segment in
 param.cur_sel = obj.map.sel;
 param.cur_sel.location = obj.cur_map_pref_settings.map_zone;
 if strcmp(obj.cur_map_pref_settings.system,'layerdata')
+  param.segment_id = obj.map.sel.segment_id;
+  param.system = param.cur_sel.season_name;
   [param.cur_sel.radar_name,param.cur_sel.season_name] = strtok(param.cur_sel.season_name,'_');
   param.cur_sel.season_name = param.cur_sel.season_name(2:end);
 else
+  param.system = obj.cur_map_pref_settings.system;
   param.cur_sel.radar_name = obj.cur_map_pref_settings.system;
 end
-param.system = obj.cur_map_pref_settings.system;
 param.layer_source = obj.cur_map_pref_settings.layer_source;
 param.layer_data_source = obj.cur_map_pref_settings.layer_data_source;
 
@@ -103,7 +105,7 @@ param.layer_data_source = obj.cur_map_pref_settings.layer_data_source;
 % combination
 match_idx = [];
 for stack_idx = 1:length(obj.undo_stack_list)
-  if strcmpi(obj.undo_stack_list(stack_idx).unique_id{1},obj.cur_map_pref_settings.system) ...
+  if strcmpi(obj.undo_stack_list(stack_idx).unique_id{1},param.system) ...
       && obj.undo_stack_list(stack_idx).unique_id{2} == obj.map.sel.segment_id
     % An undo stack already exists for this system-segment pair
     match_idx = stack_idx;
@@ -111,42 +113,50 @@ for stack_idx = 1:length(obj.undo_stack_list)
   end
 end
 
-%% LayerData: Saves information of layerData of all the frames in a segment to specific fields in the undo_stack
+%% LayerData: Load layerdatainto undostack
+param.layer = [];
+param.frame = [];
+param.gps_time = [];
+param.twtt = [];
+param.frame_idxes = [];
+param.filename = [];
+param.map = obj.map;
 if strcmpi(param.layer_source,'layerdata')
   
   frames_fn = ct_filename_support(param.cur_sel,'','frames');
   load(frames_fn); % loads "frames" variable
   num_frm = length(frames.frame_idxs);
-  param.layer = [];
-  param.frame = [];
-  param.gps_time = [];
-  param.twtt = [];
-  param.frame_idxes = [];
-  param.filename = [];
 
-  for idx = 1:num_frm
-    id=[];
-    ids = [];
-    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,idx));
+  layer_names = {};
+  for frm = 1:num_frm
+    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
     lay = load(layer_fn);
-    param.filename{idx} = layer_fn; % stores the filename for all frames in the segment
+    for layer_idx = 3:length(lay.layerData)
+      if isfield(lay.layerData{layer_idx},'name')
+        layer_names = union({lay.layerData.name},layer_names);
+      end
+    end
+    param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
     param.layer = cat(2, param.layer,lay); % stores the layer information for all frames in the segment
     param.gps_time = cat(2,param.gps_time,lay.GPS_time); % stores the GPS time for all the frames in the segment
-    for val = 1:length(lay.GPS_time)
-      id(val) = idx;
-    end
-    param.frame = cat(2, param.frame, id); % stores the frame number for each point path id in each frame
-    for inc = 1:length(lay.GPS_time)
-      ids(inc)=inc;
-    end
-    param.frame_idxes = cat(2,param.frame_idxes,ids);  % contains the point number for each individual point in each frame
+    param.frame = cat(2, param.frame, frm*ones(size(lay.GPS_time))); % stores the frame number for each point path id in each frame
+    param.frame_idxes = cat(2,param.frame_idxes,1:length(lay.GPS_time));  % contains the point number for each individual point in each frame
   end
+  
+  param.layers.lyr_id = [1 2];
+  param.layers.lyr_name = {'surface','bottom'};
+  param.layers.surface = 1;
+  
+  records_fn = ct_filename_support(param.cur_sel,'','records');
+  records = load(records_fn,'gps_time'); % loads "records.gps_time" variable
+  param.start_gps_time = records.gps_time(frames.frame_idxs);
+  param.stop_gps_time = [param.start_gps_time(2:end) inf];
 end
 
 if isempty(match_idx)
   % An undo stack does not exist for this system-segment pair, so create a
   % new undo stack
-  param.id = {obj.cur_map_pref_settings.system obj.map.sel.segment_id};
+  param.id = {param.system obj.map.sel.segment_id};
   obj.undo_stack_list(end+1) = imb.undo_stack(param);
   match_idx = length(obj.undo_stack_list);
 end
@@ -173,6 +183,3 @@ end
 
 %% Cleanup
 set(obj.h_fig,'Pointer','Arrow');
-
-return
-

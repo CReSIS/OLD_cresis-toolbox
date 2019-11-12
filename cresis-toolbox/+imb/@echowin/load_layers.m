@@ -92,10 +92,6 @@ elseif strcmpi(obj.eg.layer_source,'layerdata')
       obj.eg.layer.type{obj.eg.layer_id(idx)} = cat(2,obj.eg.layer.type{obj.eg.layer_id(idx)},1 + ~isfinite(obj.undo_stack.user_data.layer_info(frm).layerData{idx}.value{1}.data)); % this is either 1 (manual) or 2 (auto)
     end
   end
-  obj.undo_stack.user_data.twtt = obj.eg.layer.y;
-  obj.undo_stack.user_data.qual = obj.eg.layer.qual;
-  obj.undo_stack.user_data.type = obj.eg.layer.type;
-  obj.undo_stack.user_data.layGPS = obj.eg.layer.x;
   
   %% LayerData: Update echogram surface if there are enough good points 
   % Find good surface points

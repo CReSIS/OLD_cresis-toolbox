@@ -59,22 +59,14 @@ elseif yaxis_choice == 3 % Depth/Range
   end
   
 elseif yaxis_choice == 4 % Range bin
-  %if strcmpi(obj.eg.layer_source,'OPS')
-    args{3} = interp1(obj.eg.image_yaxis,obj.eg.time,...
-      args{3},'linear');
-  %else
-   % args{3} = obj.undo_stack.user_data.twtt{1}(args{3});
-  %end
+  args{3} = interp1(obj.eg.image_yaxis,obj.eg.time,...
+    args{3},'linear');
 end
 
 % Change layer idxs for layer ids
 args{1} = obj.eg.layers.lyr_id(args{1});
 % Change point idxs for point ids
-if strcmpi(obj.eg.layer_source,'OPS')
-  args{2} = obj.eg.map_id(args{2});
-else
-  args{2} = obj.undo_stack.user_data.point_path_id(args{2});
-end
+args{2} = obj.eg.map_id(args{2});
 
 end
 
@@ -147,9 +139,5 @@ else
 end
 
 % Change point idxs for point ids
-if strcmpi(obj.eg.layer_source,'OPS')
-  args{3} = obj.eg.map_id(args{3});
-else
-  args{3} = obj.undo_stack.user_data.point_path_id(args{3});
-end
+args{3} = obj.eg.map_id(args{3});
 end

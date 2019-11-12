@@ -24,21 +24,6 @@ obj.default_params.layer_data_source = layer_data_source{get(obj.h_gui.layerData
 obj.default_params.season_names = obj.h_gui.h_seasons.get_selected_strings();
 obj.default_params.layer_names = obj.h_gui.h_layers.get_selected_strings();
 
-%% Filter layers
-selected_layer_names = obj.h_gui.h_layers.get_selected_strings().';
-selected_layers.lyr_name = {};
-selected_layers.lyr_group_name = {};
-selected_layers.lyr_id = [];
-for idx = 1:length(obj.ops.layers.lyr_name)
-  layer_name = sprintf('%s:%s', obj.ops.layers.lyr_group_name{idx}, obj.ops.layers.lyr_name{idx});
-  match_idx = strmatch(layer_name,selected_layer_names,'exact');
-  if ~isempty(match_idx)
-    selected_layers.lyr_name{end+1} = obj.ops.layers.lyr_name{idx};
-    selected_layers.lyr_group_name{end+1} = obj.ops.layers.lyr_group_name{idx};
-    selected_layers.lyr_id(end+1) = obj.ops.layers.lyr_id(idx);
-  end
-end
-
 %% Check if anything has been selected
 selected_seasons = obj.h_gui.h_seasons.get_selected_strings().';
 if isempty(selected_seasons)
@@ -49,14 +34,14 @@ end
 
 %% Filter available maps based on selected system and season
 systems = get(obj.h_gui.systemsLB,'string');
-system = systems{get(obj.h_gui.systemsLB,'value')};
+system_name = systems{get(obj.h_gui.systemsLB,'value')};
 selected_idxs = zeros(size(selected_seasons));
 for idx = 1:length(selected_seasons)
   % For each season selected, find its index in obj.seasons
   found = false;
   for search_idx = 1:length(obj.seasons)
     if strcmp(obj.seasons{search_idx},selected_seasons{idx}) ...
-        && strcmp(obj.systems{search_idx},system)
+        && strcmp(obj.systems{search_idx},system_name)
       selected_idxs(idx) = search_idx;
       found = true;
       break;
@@ -65,6 +50,23 @@ for idx = 1:length(selected_seasons)
   if ~found
     warning('This should never happen, selection was not found in the list');
     keyboard
+  end
+end
+
+%% Filter layers
+  selected_layer_names = obj.h_gui.h_layers.get_selected_strings().';
+selected_layers.lyr_name = {};
+selected_layers.lyr_group_name = {};
+selected_layers.lyr_id = [];
+if ~isempty(system_name) && ~strcmpi(system_name,'layerdata')
+  for idx = 1:length(obj.ops.layers.lyr_name)
+    layer_name = sprintf('%s:%s', obj.ops.layers.lyr_group_name{idx}, obj.ops.layers.lyr_name{idx});
+    match_idx = strmatch(layer_name,selected_layer_names,'exact');
+    if ~isempty(match_idx)
+      selected_layers.lyr_name{end+1} = obj.ops.layers.lyr_name{idx};
+      selected_layers.lyr_group_name{end+1} = obj.ops.layers.lyr_group_name{idx};
+      selected_layers.lyr_id(end+1) = obj.ops.layers.lyr_id(idx);
+    end
   end
 end
 
@@ -87,7 +89,7 @@ else
 end
 
 %% Pass information to map window
-% Give information on the season, location (arctic/antarctic) and system
+% Give information on the season, location (arctic/antarctic) and system_name
 % (rds accum etc.) to the map window
 
 % Copy settings to obj.settings

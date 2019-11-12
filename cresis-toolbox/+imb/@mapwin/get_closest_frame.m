@@ -1,4 +1,6 @@
-function [status, data] = google_get_frame_closest(obj, sys, param)
+function [status, data] = get_closest_frame(obj, sys, param)
+
+if obj.map.fline_source == 1
   
   min_diff = inf;
   min_frame = 0;
@@ -17,7 +19,7 @@ function [status, data] = google_get_frame_closest(obj, sys, param)
   
   % Get a logical mask indicating all indices that match the frame
   frm_mask = obj.layerdata.frms == frm_id;
-
+  
   % Generate frame string YYYYMMDD_SS_FFF
   frm_id = num2str(frm_id);
   day = frm_id(1:8);
@@ -32,7 +34,7 @@ function [status, data] = google_get_frame_closest(obj, sys, param)
     data = struct('properties',[]);
     data.properties.frame = frm_str;
     data.properties.season = obj.cur_map_pref_settings.seasons{season_idx};
-    data.properties.segment_id = [];
+    data.properties.segment_id = str2num(frm_id(1:10));
     data.properties.X = obj.layerdata.x(frm_mask);
     data.properties.Y = obj.layerdata.y(frm_mask);
     
@@ -51,5 +53,18 @@ function [status, data] = google_get_frame_closest(obj, sys, param)
     data.properties.X = obj.layerdata.x(frm_mask);
     data.properties.Y = obj.layerdata.y(frm_mask);
     status = frm_status;
+  end
+  
+else
+  % OPS Flightline
+  if obj.map.source == 1
+    [lat,lon] = google_map.world_to_latlon(param.properties.x,256-param.properties.y);
+    [param.properties.x,param.properties.y] = projfwd(obj.map.proj,lat,lon);
+    [status,data] = opsGetFrameClosest(obj.cur_map_pref_settings.system,param);
+    [lat,lon] = projinv(obj.map.proj,data.properties.X,data.properties.Y);
+    [data.properties.X,data.properties.Y] = google_map.latlon_to_world(lat,lon);
+    data.properties.Y = 256-data.properties.Y;
+  else
+    [status,data] = opsGetFrameClosest(obj.cur_map_pref_settings.system,param);
   end
 end
