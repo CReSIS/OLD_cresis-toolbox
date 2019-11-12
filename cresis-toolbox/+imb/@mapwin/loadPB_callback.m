@@ -131,9 +131,18 @@ if strcmpi(param.layer_source,'layerdata')
   for frm = 1:num_frm
     layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
     lay = load(layer_fn);
-    for layer_idx = 3:length(lay.layerData)
-      if isfield(lay.layerData{layer_idx},'name')
-        layer_names = union({lay.layerData{layer_idx}.name},layer_names);
+    for layer_idx = 1:length(lay.layerData)
+      if ~isfield(lay.layerData{layer_idx},'name')
+        if layer_idx == 1
+          lay.layerData{layer_idx}.name = 'surface';
+        elseif layer_idx == 2
+          lay.layerData{layer_idx}.name = 'bottom';
+        else
+          error('layerData files with unnamed layers for layers 3 and greater are not supported. Layer %d does not have a .name field.', layer_idx);
+        end
+      end
+      if ~any(strcmp(lay.layerData{layer_idx}.name,layer_names))
+        layer_names{end+1} = lay.layerData{layer_idx}.name;
       end
     end
     param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
@@ -143,9 +152,46 @@ if strcmpi(param.layer_source,'layerdata')
     param.frame_idxes = cat(2,param.frame_idxes,1:length(lay.GPS_time));  % contains the point number for each individual point in each frame
   end
   
-  param.layers.lyr_id = 1 : length(layer_names)+2;
-  param.layers.lyr_name = {'surface','bottom',layer_names{:}};
+  param.layers.lyr_id = 1 : length(layer_names);
+  param.layers.lyr_name = layer_names;
   param.layers.surface = 1;
+  
+  % Force all layerData files to use the same layer sequence: this ensures
+  % that all layerData files have the same layers and these layers are in
+  % the same order.
+  for frm = 1:num_frm
+    % Does frame conform to lyr_name list?
+    conforms = true;
+    for layer_idx = 1:length(param.layers.lyr_name)
+      if layer_idx > length(param.layer(frm).layerData) ...
+          || ~strcmpi(param.layers.lyr_name{layer_idx},param.layer(frm).layerData{layer_idx}.name)
+        conforms = false;
+      end
+    end
+    if ~conforms
+      layerData = cell(1,length(param.layers.lyr_name));
+      file_layer_names = cellfun(@(x) getfield(x,'name'),param.layer(frm).layerData,'UniformOutput',false);
+      for layer_idx = 1:length(param.layers.lyr_name)
+        layer_name = param.layers.lyr_name{layer_idx};
+        layerData{layer_idx}.name = layer_name;
+        match_idx = find(strcmp(layer_name,file_layer_names),1);
+        if isempty(match_idx)
+          layerData{layer_idx}.value{1}.data = NaN(size(param.layer(frm).GPS_time));
+          layerData{layer_idx}.value{2}.data = NaN(size(param.layer(frm).GPS_time));
+          layerData{layer_idx}.quality = ones(size(param.layer(frm).GPS_time));
+        else
+          layerData{layer_idx}.value{1}.data = param.layer(frm).layerData{match_idx}.value{1}.data;
+          layerData{layer_idx}.value{2}.data = param.layer(frm).layerData{match_idx}.value{2}.data;
+          layerData{layer_idx}.quality = param.layer(frm).layerData{match_idx}.quality;
+        end
+      end
+      param.layer(frm).layerData = layerData;
+    end
+    
+    param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
+    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
+    lay = load(layer_fn);
+  end
   
   records_fn = ct_filename_support(param.cur_sel,'','records');
   records = load(records_fn,'gps_time'); % loads "records.gps_time" variable
