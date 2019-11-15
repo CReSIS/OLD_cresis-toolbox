@@ -27,15 +27,17 @@ else
 end
 
 % Threshold: This example combines a -120 dB threshold, threshold
-% estimate+15dB guard, and a coherent noise mask for the feed through.
+% estimate+6dB guard, and a max filtered coherent noise mask for the feed
+% through.
 %
 % for param_idx = 1:length(params)
 %   param = params(param_idx);
 %   if ~isfield(param.cmd,'generic') || iscell(param.cmd.generic) || ischar(param.cmd.generic) || ~param.cmd.generic
 %     continue;
 %   end
-%   for wf = 1:length(params(param_idx).radar.wfs)
-%     params(param_idx).collate_coh_noise.threshold_eval{wf} = 'threshold = max(min(-120,threshold+15),10*log10(abs(noise.dft(:,1)).^2)+6-1e6*(time>(Tpd+1.2e-6)));';
+%   for img = 1:length(params(param_idx).analysis.imgs)
+%     nt = -120; % Specify noise floor (may need to make this img dependent)
+%     params(param_idx).collate_coh_noise.threshold_eval{img} = 'threshold = max(min(nt,threshold+6),max_filt1(10*log10(abs(noise.dft(:,1)).^2)+15-1e6*(time>(Tpd+1.2e-6)),5));';
 %   end
 % end
 

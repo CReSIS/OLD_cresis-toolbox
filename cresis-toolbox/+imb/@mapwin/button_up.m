@@ -111,17 +111,17 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
         new_xaxis = [obj.click_x - x_extent/4, obj.click_x + x_extent/4];
         new_yaxis = [obj.click_y - y_extent/4, obj.click_y + y_extent/4];
         
-        if new_yaxis(1) < obj.full_yaxis(1)
-          new_yaxis(1) = obj.full_yaxis(1);
+        if new_yaxis(1) < obj.map.yaxis_default(1)
+          new_yaxis(1) = obj.map.yaxis_default(1);
         end
-        if new_yaxis(end) > obj.full_yaxis(end)
-          new_yaxis(end) = obj.full_yaxis(end);
+        if new_yaxis(end) > obj.map.yaxis_default(end)
+          new_yaxis(end) = obj.map.yaxis_default(end);
         end
-        if new_xaxis(1) < obj.full_xaxis(1)
-          new_xaxis(1) = obj.full_xaxis(1);
+        if new_xaxis(1) < obj.map.xaxis_default(1)
+          new_xaxis(1) = obj.map.xaxis_default(1);
         end
-        if new_xaxis(end) > obj.full_xaxis(end)
-          new_xaxis(end) = obj.full_xaxis(end);
+        if new_xaxis(end) > obj.map.xaxis_default(end)
+          new_xaxis(end) = obj.map.xaxis_default(end);
         end
         
         % get a new map for these limits
@@ -143,17 +143,17 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
     new_xaxis = [obj.click_x - 1.0*x_extent, obj.click_x + 1.0*x_extent];
     new_yaxis = [obj.click_y - 1.0*y_extent, obj.click_y + 1.0*y_extent];
     
-    if new_yaxis(1) < obj.full_yaxis(1)
-      new_yaxis(1) = obj.full_yaxis(1);
+    if new_yaxis(1) < obj.map.yaxis_default(1)
+      new_yaxis(1) = obj.map.yaxis_default(1);
     end
-    if new_yaxis(end) > obj.full_yaxis(end)
-      new_yaxis(end) = obj.full_yaxis(end);
+    if new_yaxis(end) > obj.map.yaxis_default(end)
+      new_yaxis(end) = obj.map.yaxis_default(end);
     end
-    if new_xaxis(1) < obj.full_xaxis(1)
-      new_xaxis(1) = obj.full_xaxis(1);
+    if new_xaxis(1) < obj.map.xaxis_default(1)
+      new_xaxis(1) = obj.map.xaxis_default(1);
     end
-    if new_xaxis(end) > obj.full_xaxis(end)
-      new_xaxis(end) = obj.full_xaxis(end);
+    if new_xaxis(end) > obj.map.xaxis_default(end)
+      new_xaxis(end) = obj.map.xaxis_default(end);
     end
     
     % get a new map for these limits
@@ -163,10 +163,8 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
     % Double click: Zoom reset
     % Ctrl + double click: Select closest frame and load
     
-    new_yaxis(1) = obj.full_yaxis(1);
-    new_yaxis(2) = obj.full_yaxis(end);
-    new_xaxis(1) = obj.full_xaxis(1);
-    new_xaxis(2) = obj.full_xaxis(end);
+    new_yaxis = obj.map.yaxis_default;
+    new_xaxis = obj.map.xaxis_default;
     
     % get a new map for these limits
     obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));

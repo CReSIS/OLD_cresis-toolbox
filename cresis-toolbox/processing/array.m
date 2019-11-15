@@ -318,6 +318,10 @@ for frm_idx = 1:length(param.cmd.frms);
   
   % Determine number of chunks and range lines per chunk
   num_chunks = round(frm_dist / param.array.chunk_len);
+  if num_chunks == 0
+    warning('Frame %d length (%g m) is smaller than the param.array.chunk_len (%g m), there could be problems. Consider making the chunk length smaller for this frame. Possibly the frame is too small and should be combined with a neighboring frame.', frm_dist, param.array.chunk_len);
+    num_chunks = 1;
+  end
   
   %% Process each chunk (unless it is a skip frame)
   for chunk_idx = 1:num_chunks*~skip_frame
