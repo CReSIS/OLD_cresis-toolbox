@@ -61,6 +61,10 @@ elseif obj.map.source == 1
   
   [A,x_data,y_data] = obj.google.map.request_google_map(obj.ops.request.XLim(1), obj.ops.request.XLim(2), 256-obj.ops.request.YLim(1), 256-obj.ops.request.YLim(2));
   A = flipud(A);
+  if isempty(A)
+    % This should generally not occur since a switch to Google maps implies that the map projection has changed and the program should automatically go to the default bounds for the map.
+    error('Google map cannot be selected with the viewing area is completely outside the latitude bounds of google maps (+/-85 deg latitude).');
+  end
   y_data = sort(256-y_data);
   
   if obj.map.fline_source == 0
