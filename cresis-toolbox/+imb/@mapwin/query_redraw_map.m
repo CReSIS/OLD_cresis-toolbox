@@ -50,7 +50,7 @@ if obj.map.source == 0
   end
   A = obj.map_pref.ops.wms.getMap(modrequest);
   R = obj.ops.request.RasterRef;
-  R = R/1e3;
+  R = R/obj.map.scale;
   
   % Create axes
   x_data = R(3,1) + [0 size(A,2)*R(2,1)];
@@ -99,16 +99,20 @@ elseif obj.map.source == 2
     obj.ops.request.ImageWidth  = width;
     modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
     A = obj.map_pref.ops.wms.getMap(modrequest);
-  end
+    R = obj.ops.request.RasterRef;
+    R = R/obj.map.scale;
   
-  % Create axes
-  x_data = R(3,1) + [0 size(A,2)*R(2,1)];
-  y_data = R(3,2) + [0 size(A,1)*R(1,2)];
+    % Create axes
+    x_data = R(3,1) + [0 size(A,2)*R(2,1)];
+    y_data = R(3,2) + [0 size(A,1)*R(1,2)];
+  else
+    A = ones(1,1,3);
+    x_data = obj.ops.request.XLim/obj.map.scale;
+    y_data = obj.ops.request.YLim/obj.map.scale;
+  end
 end
 
-set(obj.map_panel.h_image,'XData',x_data);
-set(obj.map_panel.h_image,'YData',y_data);
-set(obj.map_panel.h_image,'CData',A);
+set(obj.map_panel.h_image,'XData',x_data,'YData',y_data,'CData',A);
 set(obj.map_panel.h_axes, {'XLim','YLim'}, {sort(x_data([1 end])) sort(y_data([1 end]))});
 
 obj.map.xaxis = x_data([1 end]);
