@@ -18,8 +18,7 @@ if obj.eg.frame_idxs(end) == length(obj.eg.stop_gps_time)
   max_gps_time = obj.eg.stop_gps_time(end)+dx;
 end
 
-
-if strcmpi(obj.eg.LayerSource,'OPS')
+if strcmpi(obj.eg.layer_source,'OPS')
   %% OPS: Load layer points from database
   fprintf(' Loading layer points from database (%s)\n',datestr(now,'HH:MM:SS'));
   ops_param = struct('properties',[]);
@@ -66,7 +65,7 @@ if strcmpi(obj.eg.LayerSource,'OPS')
     obj.eg.surface = interp_finite(obj.eg.surface,0);
   end
   
-elseif strcmpi(obj.eg.LayerSource,'layerdata')
+elseif strcmpi(obj.eg.layer_source,'layerdata')
   %% LayerData: Load layer points from layerdata
   
   %% LayerData: Preallocate layer arrays
@@ -92,10 +91,6 @@ elseif strcmpi(obj.eg.LayerSource,'layerdata')
       obj.eg.layer.type{obj.eg.layer_id(idx)} = cat(2,obj.eg.layer.type{obj.eg.layer_id(idx)},1 + ~isfinite(obj.undo_stack.user_data.layer_info(frm).layerData{idx}.value{1}.data)); % this is either 1 (manual) or 2 (auto)
     end
   end
-  obj.undo_stack.user_data.twtt = obj.eg.layer.y;
-  obj.undo_stack.user_data.qual = obj.eg.layer.qual;
-  obj.undo_stack.user_data.type = obj.eg.layer.type;
-  obj.undo_stack.user_data.layGPS = obj.eg.layer.x;
   
   %% LayerData: Update echogram surface if there are enough good points 
   % Find good surface points
