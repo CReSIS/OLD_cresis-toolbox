@@ -89,51 +89,53 @@ fprintf('Loading and plotting map %s:%s (%s)\n', map_zone, map_name, datestr(now
 if obj.map.source == 0 || obj.map.fline_source == 0
   opsCmd;
   
-  %% Create season and group ID strings for OPS flightline requests
-  
-  % 1. create seasons viewparam
-  if ~isempty(obj.cur_map_pref_settings.seasons)
-    season_names = obj.cur_map_pref_settings.seasons;
+  if obj.map.fline_source == 0
+    %% Create season and group ID strings for OPS flightline requests
     
-    % convert season_names to a string for concatenation
-    for sidx = 1:size(season_names,2)
-      if sidx < size(season_names,2) && size(season_names,2) ~= 1
-        season_names{sidx}=['''' season_names{sidx} '''%5C,'];
-      else
-        season_names{sidx}=['''' season_names{sidx} ''''];
+    % 1. create seasons viewparam
+    if ~isempty(obj.cur_map_pref_settings.seasons)
+      season_names = obj.cur_map_pref_settings.seasons;
+      
+      % convert season_names to a string for concatenation
+      for sidx = 1:size(season_names,2)
+        if sidx < size(season_names,2) && size(season_names,2) ~= 1
+          season_names{sidx}=['''' season_names{sidx} '''%5C,'];
+        else
+          season_names{sidx}=['''' season_names{sidx} ''''];
+        end
       end
-    end
-    season_names = cell2mat(season_names);
-    obj.ops.seasons_as_string = season_names;
-    obj.ops.seasons_modrequest = strcat('season_name:',season_names,';');
-  else
-    obj.ops.seasons_modrequest = '';
-    obj.ops.seasons_as_string = '';
-  end
-  
-  % 2. create season_group_ids viewparam
-  if ~isempty(obj.map_pref.ops.profile)
-    eval(sprintf('season_group_ids = obj.map_pref.ops.profile.%s_season_group_ids'';',obj.cur_map_pref_settings.system))
-    
-    if isempty(season_group_ids)
-      season_group_ids = {'1'};
+      season_names = cell2mat(season_names);
+      obj.ops.seasons_as_string = season_names;
+      obj.ops.seasons_modrequest = strcat('season_name:',season_names,';');
+    else
+      obj.ops.seasons_modrequest = '';
+      obj.ops.seasons_as_string = '';
     end
     
-    % convert season_group_ids to a string for concatenation
-    for sidx = 1:size(season_group_ids,2)
-      if sidx < size(season_group_ids,2) && size(season_group_ids,2) ~= 1
-        season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) '%5C,'];
-      else
-        season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) ''];
+    % 2. create season_group_ids viewparam
+    if ~isempty(obj.map_pref.ops.profile)
+      eval(sprintf('season_group_ids = obj.map_pref.ops.profile.%s_season_group_ids'';',obj.cur_map_pref_settings.system))
+      
+      if isempty(season_group_ids)
+        season_group_ids = {'1'};
       end
+      
+      % convert season_group_ids to a string for concatenation
+      for sidx = 1:size(season_group_ids,2)
+        if sidx < size(season_group_ids,2) && size(season_group_ids,2) ~= 1
+          season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) '%5C,'];
+        else
+          season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) ''];
+        end
+      end
+      season_group_ids = cell2mat(season_group_ids);
+      obj.ops.season_group_ids_as_string = season_group_ids;
+      obj.ops.season_group_ids_modrequest = strcat('season_group_ids:',season_group_ids);
+      
+    else
+      obj.ops.season_group_ids_modrequest = '';
+      obj.ops.season_group_ids_as_string = '1';
     end
-    season_group_ids = cell2mat(season_group_ids);
-    obj.ops.season_group_ids_as_string = season_group_ids;
-    obj.ops.season_group_ids_modrequest = strcat('season_group_ids:',season_group_ids);
-    
-  else
-    obj.ops.season_group_ids_modrequest = '';
-    obj.ops.season_group_ids_as_string = '1';
   end
   
 end
@@ -296,7 +298,7 @@ if obj.map.fline_source == 1
     if obj.map.source == 1
       [x,y] = google_map.latlon_to_world(S.lat, S.lon); y = 256-y;
     else
-      [x,y] = projfwd(map.proj, S.lat, S.lon);
+      [x,y] = projfwd(obj.map.proj, S.lat, S.lon);
     end
     x = x/obj.map.scale; y = y/obj.map.scale;
     obj.layerdata.x = [obj.layerdata.x x];

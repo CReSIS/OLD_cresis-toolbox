@@ -67,6 +67,8 @@ if obj.map.fline_source == 1
   
 else
   % OPS Flightline
+  param.properties.x = param.properties.x*obj.map.scale;
+  param.properties.y = param.properties.y*obj.map.scale;
   if obj.map.source == 1
     [lat,lon] = google_map.world_to_latlon(param.properties.x,256-param.properties.y);
     [param.properties.x,param.properties.y] = projfwd(obj.map.proj,lat,lon);
@@ -77,4 +79,6 @@ else
   else
     [status,data] = opsGetFrameClosest(obj.cur_map_pref_settings.system,param);
   end
+  data.properties.X = data.properties.X/obj.map.scale;
+  data.properties.Y = data.properties.Y/obj.map.scale;
 end

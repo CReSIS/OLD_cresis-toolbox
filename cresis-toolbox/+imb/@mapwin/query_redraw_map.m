@@ -43,7 +43,11 @@ if obj.map.source == 0
   % Build the new WMS query, submit it and then retrieve the result
   obj.ops.request.ImageHeight =  height;
   obj.ops.request.ImageWidth  = width;
-  modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
+  if obj.map.fline_source == 0
+    modrequest = strcat(obj.ops.request.RequestURL,'&viewparams=',obj.ops.seasons_modrequest,obj.ops.season_group_ids_modrequest);
+  else
+    modrequest = strcat(obj.ops.request.RequestURL);
+  end
   A = obj.map_pref.ops.wms.getMap(modrequest);
   R = obj.ops.request.RasterRef;
   R = R/1e3;
