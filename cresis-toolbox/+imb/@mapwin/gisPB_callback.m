@@ -5,3 +5,5 @@ function gisPB_callback(obj,src,event)
 
 % set(obj.map_gis.h_fig,'Visible','on');
 % figure(obj.map_gis.h_fig);
+
+warning('This button is not implemented yet.');

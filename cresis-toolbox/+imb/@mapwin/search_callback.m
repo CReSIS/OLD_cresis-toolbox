@@ -20,6 +20,14 @@ if obj.map.fline_source==1
   % Find the first frame that matches the search string
   frm_id = get(obj.top_panel.searchTB,'String');
   frm_id(regexp(frm_id,'_')) = [];
+  % Add default segment number
+  if length(frm_id) < 10
+    frm_id(9:10) = '01';
+  end
+  % Add default frame number
+  if length(frm_id) < 13
+    frm_id(11:13) = '001';
+  end
   frm_id = str2num(frm_id);
   
   % Get a logical mask indicating all indices that match the frame

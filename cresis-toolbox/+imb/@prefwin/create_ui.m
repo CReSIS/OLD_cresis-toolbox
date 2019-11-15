@@ -314,7 +314,9 @@ end
 if strcmp(obj.default_params.flightlines(1:3),'OPS')
   load_ops = true;
 end
-obj.ops_connect();
+if load_ops
+  obj.ops_connect();
+end
 
 % Set default layer source
 % -------------------------------------------------------------------------
