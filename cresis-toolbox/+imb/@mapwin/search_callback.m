@@ -49,7 +49,8 @@ if obj.map.fline_source==1
     data.properties.segment_id = str2num(frm_id(1:10));
     data.properties.X = obj.layerdata.x(frm_mask);
     data.properties.Y = obj.layerdata.y(frm_mask);
-    
+    new_xdata = data.properties.X;
+    new_ydata = data.properties.Y;    
   else
     % Get segment id from opsGetFrameSearch
     frame_search_param = struct('properties',[]);
@@ -65,15 +66,15 @@ if obj.map.fline_source==1
     data.properties.X = obj.layerdata.x(frm_mask);
     data.properties.Y = obj.layerdata.y(frm_mask);
     status = frm_status;
+    new_xdata = data.properties.X/obj.map.scale;
+    new_ydata = data.properties.Y/obj.map.scale;
   end
   
   obj.map.sel.frame_name = data.properties.frame;
   obj.map.sel.season_name = data.properties.season;
   obj.map.sel.segment_id = data.properties.segment_id;
   
-  set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X/obj.map.scale,data.properties.Y/obj.map.scale});
-  new_xdata = data.properties.X/obj.map.scale;
-  new_ydata = data.properties.Y/obj.map.scale;
+  set(obj.map_panel.h_cur_sel,{'XData','YData'},{new_xdata,new_ydata});
 
   % Update map limits if necessary
   [changed,pos] = obj.compute_new_map_limits(new_xdata,new_ydata);
