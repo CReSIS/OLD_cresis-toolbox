@@ -14,13 +14,13 @@ ops_param.properties.location = obj.cur_map_pref_settings.map_zone;
 ops_param.properties.season = obj.cur_map_pref_settings.seasons;
 
 % Query
-ops_param.properties.x = param.x*obj.map.scale;
-ops_param.properties.y = param.y*obj.map.scale;
+ops_param.properties.x = param.x;
+ops_param.properties.y = param.y;
 % Get closest frame
 [status,data] = obj.get_closest_frame(obj.cur_map_pref_settings.system,ops_param);
 
 % Update map selection plot
-set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X/obj.map.scale,data.properties.Y/obj.map.scale});
+set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X,data.properties.Y});
 
 % Record current frame selection
 obj.map.sel.frame_name = data.properties.frame;
