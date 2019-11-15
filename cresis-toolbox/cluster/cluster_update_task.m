@@ -301,7 +301,7 @@ if update_mode && ctrl.error_mask(task_id)
     fprintf('  errorstruct contains an error:\n');
     warning('%s',out.errorstruct.getReport);
     if ctrl.cluster.stop_on_error
-      fprintf('\nctrl.cluster.stop_on_error is enabled which causes the cluster running process to stop whenever there is a Matlab coding error. To disable this for this batch, you can run "ctrl.cluster.stop_on_error=false". Fix the coding bug printed above which might require running cluster_compile.m if you change cluster task code and then run "dbcont".');
+      fprintf('\nctrl.cluster.stop_on_error is enabled which causes the cluster running process to stop whenever there is a Matlab coding error. To disable this for this batch, you can run "ctrl.cluster.stop_on_error=false". Fix the coding bug printed above which might require running cluster_compile.m if you change cluster task code and then run "dbcont".\n');
       keyboard
     end
   end
