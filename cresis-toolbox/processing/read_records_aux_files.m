@@ -31,6 +31,9 @@ if recs(2) == inf || recs(2) > num_recs;
   % Determine number of records and set recs(1) to this
   recs(2) = num_recs;
 end
+if recs(2) < recs(1)
+  error('Requested records beyond the end of the records file or requested zero records: recs(1)=%d > recs(2)=%d. There are %d records in the records file: %s.', recs(1), recs(2), recs(2), records_fn);
+end
 
 records.lat = ncread(cdf_fn,'lat',[1 recs(1)],[1 recs(2)-recs(1)+1]);
 records.lon = ncread(cdf_fn,'lon',[1 recs(1)],[1 recs(2)-recs(1)+1]);
