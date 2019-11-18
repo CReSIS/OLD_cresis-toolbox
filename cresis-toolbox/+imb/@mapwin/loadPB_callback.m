@@ -187,10 +187,6 @@ if strcmpi(param.layer_source,'layerdata')
       end
       param.layer(frm).layerData = layerData;
     end
-    
-    param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
-    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
-    lay = load(layer_fn);
   end
   
   records_fn = ct_filename_support(param.cur_sel,'','records');
