@@ -60,4 +60,30 @@ end
 
 mdata = uncompress_echogram(mdata);
 
-return;
+if isfield(mdata,'param_get_heights')
+  mdata.param_qlook.qlook = mdata.param_get_heights;
+  mdata = rmfield(mdata,'param_get_heights');
+end
+
+if isfield(mdata,'param_csarp')
+  mdata.param_sar.sar = mdata.param_csarp;
+  mdata = rmfield(mdata,'param_csarp');
+end
+
+if isfield(mdata,'param_combine_wf_chan')
+  mdata.param_array.array = mdata.param_combine_wf_chan;
+  mdata = rmfield(mdata,'param_combine_wf_chan');
+end
+
+if ~isfield(mdata,'Roll') && isfield(mdata,'GPS_time')
+  mdata.Roll = zeros(size(mdata.GPS_time));
+end
+
+if ~isfield(mdata,'Pitch') && isfield(mdata,'GPS_time')
+  mdata.Pitch = zeros(size(mdata.GPS_time));
+end
+
+if ~isfield(mdata,'Heading') && isfield(mdata,'GPS_time')
+  mdata.Heading = zeros(size(mdata.GPS_time));
+end
+
