@@ -143,7 +143,7 @@ if ~isfield(param.post,'pdf_en') || isempty(param.post.pdf_en)
 end
 
 if ~isfield(param.post, 'surface_source')
-  param.post.surface_source = struct('name', 'surface', 'source', 'layerData');
+  param.post.surface_source = struct('name', 'surface', 'source', 'layerData', 'existence_check', false);
 end
 
 

@@ -11,7 +11,7 @@ function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam,varargin)
 %  .out_fn_dir: output arguments directory
 %  .stdout_fn_dir: standard output directory
 %  .error_fn_dir: error directory
-% sparam: Static arguments to task
+% sparam: Struct containing static arguments to task
 %  .task_function: function handle of job, this function handle tells
 %    cluster_job.m what to run
 %  .argsin: cell vector of input arguments (default is {})
@@ -24,7 +24,11 @@ function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam,varargin)
 %    task a success. If the file is a .mat file, then it must have the
 %    file_version variable and not be marked for deletion.
 % dparam: Dynamic arguments to task (will be merged with sparam when the
-%   task runs).
+%   task runs). This structure has all the same fields as sparam. After
+%   merging, sparam and dparam must have all the required fields. It does
+%   not matter where the field is set. For example, "task_function" could
+%   be set from dparam and "mem" could be set from sparam. Note that if a
+%   field is set in both structures, then dparam will overrule sparam.
 %
 % Outputs:
 % ctrl: updated ctrl structure with new job

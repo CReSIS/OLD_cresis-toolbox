@@ -205,7 +205,7 @@ if any(isnan(my_struct.gps_time))
   nan_detected = true;
 end
 if nan_detected
-  warning('NaN found in GPS data. Inspect gps.* and my_struct.* variables and fix my_struct GPS/Attitude fields (gps_time, lat, lon, elev, roll, pitch, heading) since NaN are not allowed in these fields. Usually the problem is with a max(param.records.gps.time_offset) problem or the GPS file not covering the time that the radar data were collected. In this case, fix the gps file or time_offset and rerun.');
+  warning('NaN found in GPS data for segment %s. Inspect gps.* and my_struct.* variables and fix my_struct GPS/Attitude fields (gps_time, lat, lon, elev, roll, pitch, heading) since NaN are not allowed in these fields. Usually the problem is with a max(param.records.gps.time_offset) problem or the GPS file not covering the time that the radar data were collected. In this case, fix the gps file or time_offset and rerun.', param.day_seg);
   if any(param.records.file.version == [102 405 406 410])
     % Accum2, ACORDS, MCRDS
     fprintf('GPS COMP TIME: %s to %s\n', datestr(epoch_to_datenum(gps.comp_time(1))), datestr(epoch_to_datenum(gps.comp_time(end))));

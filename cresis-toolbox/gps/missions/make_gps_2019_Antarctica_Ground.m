@@ -1,4 +1,4 @@
-% script make_gps_2019_antarctica_Ground
+% script make_gps_2019_Antarctica_Ground
 %
 % Makes the GPS files for 2019 Antarctica Ground field season
 
@@ -41,7 +41,7 @@ gps_source_to_use = 'arena';
 if strcmpi(gps_source_to_use,'arena')
   %% ARENA
   
-%   year = 2019; month = 9; day = 20;
+%   year = 2019; month = 9; day = 25;
 %   file_idx = file_idx + 1;
 %   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
 %   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
@@ -52,8 +52,10 @@ if strcmpi(gps_source_to_use,'arena')
 %   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
 %   sync_file_type{file_idx} = 'arena';
 %   sync_params{file_idx} = struct('time_reference','utc');
-  
-  year = 2019; month = 9; day = 22;
+
+  % NO GPS DATA FROM THE ANECHOIC CHAMBER TESTS (THE FOLLOWING SECTION
+  % FAILS TO RUN, JUST SKIP IT)
+  year = 2019; month = 9; day = 26;
   file_idx = file_idx + 1;
   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);

@@ -413,7 +413,22 @@ for state_idx = 1:length(states)
               waveform_ID = typecast(file_data(wf_hdr_offset+41:wf_hdr_offset+48), 'uint64');
               waveform_ID_map_idx = find(waveform_ID_map == waveform_ID,1);
               if isempty(waveform_ID_map_idx)
-                error('%ld waveform_ID not found in waveform_ID_map.',waveform_ID);
+                if param.radar.waveform_ID_best_match_en
+                  waveform_ID_binary = dec2bin(waveform_ID,64);
+                  waveform_ID_distance = zeros(size(waveform_ID_map));
+                  for id_idx = 1:length(waveform_ID_map)
+                    waveform_ID_map_binary = dec2bin(waveform_ID_map(id_idx),64);
+                    waveform_ID_distance(id_idx) = sum(abs(waveform_ID_map_binary-waveform_ID_binary));
+                  end
+                  [waveform_ID_distance,waveform_ID_map_idx] = min(waveform_ID_distance);
+                  warning('waveform_ID read from file is:\nuint64(%lu)\nbinary(%s)\nASCII(%s)\nIt was not found in waveform_ID_map list. param.radar.waveform_ID_best_match_en is enabled. Closest match is index %d:\nuint64(%lu)\nbinary(%s)\nASCII(%s)\nwith %d binary differences.', ...
+                    waveform_ID, dec2bin(waveform_ID,64), char(typecast(waveform_ID,'uint8')), ...
+                    waveform_ID_map_idx, ...
+                    waveform_ID_map(waveform_ID_map_idx), dec2bin(waveform_ID_map(waveform_ID_map_idx),64), char(typecast(waveform_ID_map(waveform_ID_map_idx),'uint8')), ...
+                    waveform_ID_distance);
+                else
+                  error('%lu (%s) waveform_ID not found in waveform_ID_map.',waveform_ID, dec2bin(waveform_ID,64));
+                end
               end
               t_ref{img}(num_accum(ai)+1) = wfs(wf).t_ref + waveform_ID_t_ref(waveform_ID_map_idx);
             else

@@ -3,6 +3,12 @@ function method_str = array_proc_method_str(method_int)
 %
 % Support function for array_proc to convert array proc method integer into
 % method string
+%
+% See also: array_proc.m, sim.doa.m, array_proc_methods.m,
+% array_proc_method_str.m, array_proc_method_strs.m
+%
+% Author: John Paden
+
 array_proc_methods;
 switch (method_int)
   case STANDARD_METHOD
