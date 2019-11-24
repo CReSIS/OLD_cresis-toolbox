@@ -413,7 +413,8 @@ for state_idx = 1:length(states)
               waveform_ID = typecast(file_data(wf_hdr_offset+41:wf_hdr_offset+48), 'uint64');
               waveform_ID_map_idx = find(waveform_ID_map == waveform_ID,1);
               if isempty(waveform_ID_map_idx)
-                if param.radar.waveform_ID_best_match_en
+                if wfs(wf).wf_ID_best
+                  % Waveform ID best match is enabled
                   waveform_ID_binary = dec2bin(waveform_ID,64);
                   waveform_ID_distance = zeros(size(waveform_ID_map));
                   for id_idx = 1:length(waveform_ID_map)

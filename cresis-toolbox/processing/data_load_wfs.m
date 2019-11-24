@@ -375,6 +375,11 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).prepulse_H.fn   = 'prepulse_H';
   end
+  if isfield(param.radar.wfs(wf),'wf_ID_best') && ~isempty(param.radar.wfs(wf).wf_ID_best)
+    wfs(wf).wf_ID_best   = param.radar.wfs(wf).wf_ID_best;
+  else
+    wfs(wf).wf_ID_best   = true;
+  end
   if isfield(param.radar.wfs(wf),'coh_noise_method') && ~isempty(param.radar.wfs(wf).coh_noise_method)
     wfs(wf).coh_noise_method   = param.radar.wfs(wf).coh_noise_method;
   else
