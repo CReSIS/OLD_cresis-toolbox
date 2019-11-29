@@ -1,5 +1,5 @@
-function [drange,dx] = csarp_motion_comp(fcs,gps,ref,along_track,output_along_track)
-% [drange,dx] = csarp_motion_comp(fcs,gps,ref,along_track,output_along_track)
+function [drange,dx] = sar_motion_comp(fcs,gps,ref,along_track,output_along_track)
+% [drange,dx] = sar_motion_comp(fcs,gps,ref,along_track,output_along_track)
 %
 % Returns drange and mean(dx) that provides motion compensation for Doppler
 % domain SAR processors for the positions in the gps structure relative
