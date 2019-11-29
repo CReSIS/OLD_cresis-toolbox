@@ -1,3 +1,20 @@
+% 1 to find equalization coefficients
+%   Motion compensation of FCS z-motion
+%   (Motion compensation with phase correction)
+%   Quits after computing equalization coefficients
+% 2 to do array processing on data, 4
+%   Co-register images using GPS and nadir squint angle assumption
+%   (Motion compensation without phase correction)
+%   Runs array processing
+% 3 to differential INSAR
+%   Co-register images using GPS and nadir squint angle assumption
+%   (Motion compensation with phase correction AND slope correction)
+%   Saves output for interferometry
+% 4 to plot results
+%   Co-register images using GPS and nadir squint angle assumption
+%   Quits after plotting results
+
+clear coregistration_time_shift;
 fn = '';
 if 0
   %% 2011 and 2014 Comparison
@@ -28,6 +45,7 @@ if 0
 %   end
   equalization = [equalization_2014 equalization_2011];
   
+  baseline_master_idx = 8;
   master_idx = 8;
 
 elseif 0
@@ -59,9 +77,10 @@ elseif 0
 %   end
   equalization = [equalization_2014 equalization_2012];
   
+  baseline_master_idx = 8;
   master_idx = 8;
 
-elseif 1
+elseif 0
   %% 2013 and 2014 Comparison
   insar_mode = 3; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   
@@ -217,9 +236,9 @@ elseif 0
     pass_en_mask([1:2 4:7]) = false; % Disable all but the master indices
   end
   
-elseif 0
+elseif 1
   %% 2014
-  wf = 3;
+  wf = 2;
   insar_mode = 2; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
 
   if wf == 1
@@ -238,18 +257,19 @@ elseif 0
 %   else
 %     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_005_wf%d.mat',wf));
 %   end
-  if ispc
-    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
-  else
-    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
-  end
 %   if ispc
-%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
-%     equalization = [equalization equalization equalization equalization];
+%     fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
 %   else
-%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
-%     equalization = [equalization equalization equalization equalization];
+%     fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
 %   end
+  if ispc
+    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+    equalization = [equalization equalization equalization equalization equalization equalization equalization];
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+    equalization = [equalization equalization equalization equalization equalization equalization equalization];
+  end
+  baseline_master_idx = 8;
   master_idx = 8;
 
 elseif 0
@@ -365,17 +385,17 @@ elseif numel(equalization) < length(pass)
 end
 
 if ~exist('coregistration_time_shift','var') || isempty(coregistration_time_shift)
-  coregistration_time_shift = zeros(1,length(pass));;
+  coregistration_time_shift = zeros(1,length(pass));
 end
 
 %% Plot Results
 % =========================================================================
-h_fig_map = figure(100); clf;
+h_fig_map = figure(1000); clf;
 h_plot_map = [];
 h_legend_map = {};
 hold on;
 axis('equal');
-h_fig_elev = figure(101); clf;
+h_fig_elev = figure(1001); clf;
 h_plot_elev = [];
 h_legend_elev = {};
 hold on;
@@ -459,7 +479,7 @@ along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev);
 ref.surface_bin = interp1(ref.wfs(ref.wf).time, 1:length(ref.wfs(ref.wf).time), ref.surface);
 
 if 0
-  h_fig_ref_idx = figure(102); clf;
+  h_fig_ref_idx = figure(1002); clf;
   hold on;
 end
 
@@ -656,7 +676,7 @@ if 0
       %     pause
     end
   end
-  figure(1000); clf;
+  figure(2000); clf;
   plot(coregistration_time_shifts,coherence_sum)
   [~,coregistration_time_shift_idx] = max(coherence_sum);
   coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx)
@@ -804,25 +824,25 @@ param.array.method = STANDARD_METHOD;
 param.array.method = MUSIC_METHOD;
 [param_array2,result2] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
 
-figure(101); clf;
+figure(1001); clf;
 imagesc(lp(result0.img))
 title('Periodogram')
 colormap(1-gray(256))
 h_axes = gca;
 
-% figure(102); clf;
+% figure(1002); clf;
 % imagesc(lp(result1.img))
 % title('MVDR')
 % colormap(1-gray(256))
 % h_axes(end+1) = gca;
 
-figure(103); clf;
+figure(1003); clf;
 imagesc(lp(result2.img))
 title('MUSIC')
 colormap(1-gray(256))
 h_axes(end+1) = gca;
 
-figure(104); clf;
+figure(1004); clf;
 imagesc(lp(fir_dec(abs(data{1}(:,:,master_idx)).^2, ones(size(param.array.line_rng)), param.array.dline, ...
   1-param.array.line_rng(1), size(data{1}(:,:,master_idx),2)-length(param.array.line_rng)+1)))
 title('Single Channel');
@@ -921,7 +941,7 @@ figure(h_fig_ref_idx); h_axes = gca;
 figure(h_fig_elev); h_axes(end+1) = gca;
 linkaxes(h_axes,'x');
 
-h_fig_combined = figure(103); clf;
+h_fig_combined = figure(1003); clf;
 imagesc(lp(mean(data(rbins,:,[1 6]),3)));
 colormap(1-gray(256));
 set(h_fig_combined,'WindowStyle','Docked');
@@ -935,7 +955,7 @@ for pass_idx = 1:length(pass)
   end
 end
 
-h_fig_angle = figure(104); clf;
+h_fig_angle = figure(1004); clf;
 complex_data = surf_data(6,:) .* conj(surf_data(1,:));
 complex_data(lp(complex_data) < -96) = NaN;
 plot(180/pi*angle(complex_data),'.')

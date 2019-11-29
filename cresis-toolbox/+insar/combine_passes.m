@@ -41,6 +41,18 @@ if 1
 %     passes(end+1) = struct('frm','20110502_02_032','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
 
+%   pass_name = sprintf('rds_thule_2012_2014_wf1');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   param_fn = 'rds_param_2012_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+  
 %   pass_name = sprintf('rds_thule_2012_2014_wf2');
 %   param_fn = 'rds_param_2014_Greenland_P3.xls';
 %   wf = 2;
@@ -53,6 +65,30 @@ if 1
 %     passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
   
+%   pass_name = sprintf('rds_thule_2012_2014_wf3');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 3;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   param_fn = 'rds_param_2012_Greenland_P3.xls';
+%   wf = 2;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20120516_01_089','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   
+%   pass_name = sprintf('rds_thule_2013_2014_wf1');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   param_fn = 'rds_param_2013_Greenland_P3.xls';
+%   wf = 1;
+%   for adc = 1:7
+%     passes(end+1) = struct('frm','20130419_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   
 %   pass_name = sprintf('rds_thule_2013_2014_wf2');
 %   param_fn = 'rds_param_2014_Greenland_P3.xls';
 %   wf = 2;
@@ -61,6 +97,18 @@ if 1
 %   end
 %   param_fn = 'rds_param_2013_Greenland_P3.xls';
 %   wf = 1;
+%   for adc = 1:7
+%     passes(end+1) = struct('frm','20130419_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   
+%   pass_name = sprintf('rds_thule_2013_2014_wf3');
+%   param_fn = 'rds_param_2014_Greenland_P3.xls';
+%   wf = 3;
+%   for adc = 2:16
+%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+%   end
+%   param_fn = 'rds_param_2013_Greenland_P3.xls';
+%   wf = 2;
 %   for adc = 1:7
 %     passes(end+1) = struct('frm','20130419_01_004','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
@@ -137,30 +185,30 @@ if 1
 %     passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc],'param_fn',param_fn);
 %   end
 
-%   param_fn = 'rds_param_2014_Greenland_P3.xls';
-%   wf = 2;
-%   pass_name = sprintf('rds_thule_combine_wf%d',wf);
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140514_01_004','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140514_01_066','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140515_02_004','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140515_02_069','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
-%   for adc = 2:16
-%     passes(end+1) = struct('frm','20140521_02_033','wf_adc',[wf adc],'param_fn',param_fn);
-%   end
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  wf = 2;
+  pass_name = sprintf('rds_thule_combine_wf%d',wf);
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140429_01_067','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140429_01_005','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140514_01_004','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140514_01_066','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140515_02_004','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140515_02_069','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140521_02_033','wf_adc',[wf adc],'param_fn',param_fn);
+  end
 
 %   %   frms{end+1} = '20140429_01_004'; %sar processed stop is far
 %   %   frms{end+1} = '20140429_01_066'; %outside of window

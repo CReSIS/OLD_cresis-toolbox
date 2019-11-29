@@ -72,7 +72,7 @@ else
   frame_search_param.properties.season = obj.cur_map_pref_settings.seasons;
   if obj.map.source == 1
     [lat,lon] = google_map.world_to_latlon(frame_search_param.properties.x,256-frame_search_param.properties.y);
-    [param.properties.x,param.properties.y] = projfwd(obj.map.proj,lat,lon);
+    [frame_search_param.properties.x,frame_search_param.properties.y] = projfwd(obj.map.proj,lat,lon);
     [status,data] = opsGetFrameClosest(obj.cur_map_pref_settings.system,frame_search_param);
     [lat,lon] = projinv(obj.map.proj,data.properties.X,data.properties.Y);
     [data.properties.X,data.properties.Y] = google_map.latlon_to_world(lat,lon);

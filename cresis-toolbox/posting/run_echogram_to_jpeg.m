@@ -3,11 +3,12 @@
 % Converts specified echogram image .mat files into small 8-bit jpegs after
 % truncation and decimation.
 %
-% Example:
+% Example to load datafiles:
 % 
+% mdata_orig = load('/cresis/snfs1/dataproducts/public/data/accum/2018_Antarctica_TObas/CSARP_standard/20190205_01/Data_20190205_01_010.mat');
 % mdata = load('/cresis/snfs1/dataproducts/public/data/accum/2018_Antarctica_TObas/CSARP_small_mat/20190205_01/Data_20190205_01_010.mat');
 % mdata.Data = imread('/cresis/snfs1/dataproducts/public/data/accum/2018_Antarctica_TObas/CSARP_small_jpg/20190205_01/Data_20190205_01_010.jpg');
-% mdata.Data = single(mdata.Data)*mdata.Data_Scale + mdata.Data_Offset;
+% mdata.Data = single(mdata.Data)/255*mdata.Data_Scale + mdata.Data_Offset;
 % 
 % figure(1); clf;
 % imagesc(mdata.Data);
@@ -16,6 +17,11 @@
 % plot(mdata.Surface);
 % plot(mdata.Bottom);
 % 
+% figure(2); clf;
+% plot(mdata_orig.Time, 10*log10(mdata_orig.Data(:,1)));
+% hold on;
+% plot(mdata.Time, mdata.Data(:,1));
+%
 % Author: John Paden
 %
 % See also: run_create_posting.m, create_posting.m, run_echogram_to_jpeg.m,
