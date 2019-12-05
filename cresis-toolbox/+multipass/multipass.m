@@ -61,7 +61,6 @@ output_fn_midfix = param.multipass.output_fn_midfix;
 if ~isfield(param.multipass,'units') || isempty(param.multipass.units)
   param.multipass.units = 'meters'; % 'meters' or 'bins'
 end
-master_idx = param.multipass.master_idx;
 
 % Load multipass.combine_passes file
 load(fn);
@@ -428,10 +427,40 @@ for pass_out_idx = 1:length(pass_en_idxs)
   figure(pass_idx); clf;
   set(pass_idx,'WindowStyle','docked')
   if 1
-    imagesc(lp(data(rbins,:,pass_idx)))
+    if strcmp(param.multipass.units,'meters')
+      img = lp(data(rbins,:,pass_idx));
+      
+      elevation = pass(master_idx).elev;
+      time = pass(master_idx).wfs(pass(pass_idx).wf).time;
+      surface = pass(master_idx).surface;
+      elev_max = max(elevation - time(1)*c/2);
+      elev_min = min(elevation - surface*c/2 - (time(end)-surface)*c/(sqrt(er_ice)*2));
+      dt = time(2) - time(1);
+      drange = dt * c/(sqrt(er_ice)*2);
+      elev_uniform = (elev_max:-drange:elev_min).';
+      % update image_data
+      Nt = size(img,1);
+      img = [img;...
+        zeros(length(elev_uniform)-Nt,size(img,2))];
+      warning('off','MATLAB:interp1:NaNinY')
+      for idx = 1:length(surface)
+        range = min(time,surface(idx)) * c/2 ...
+          + max(0,time-surface(idx)) * c/(sqrt(er_ice)*2);
+        elev = elevation(idx) - range;
+        img(:,idx) = interp1(elev,...
+          img(1:Nt,idx),elev_uniform,'linear');
+      end
+      warning('on','MATLAB:interp1:NaNinY')
+      imagesc(pass(master_idx).along_track/1e3, elev_uniform, img);
+      ylabel('Elevation (m, WGS-84)');
+      xlabel('Along-track (km)');
+      set(gca,'YDir','normal');
+    else
+      imagesc(lp(data(rbins,:,pass_idx)))
+      ylabel('Range bin');
+      xlabel('Range line');
+    end
     colormap(1-gray(256));
-    ylabel('Range bin');
-    xlabel('Range line');
     title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).frms(1),pass(pass_idx).direction),'interpreter','none')
     %caxis([-90 8]);
   else
