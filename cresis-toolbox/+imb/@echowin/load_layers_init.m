@@ -3,7 +3,7 @@ function load_layers_init(obj)
 %
 % Load layer information from database and update layer plot handles
  %% OPS: Preallocating layer arrays
-if strcmpi(obj.eg.LayerSource,'OPS')
+if strcmpi(obj.eg.layer_source,'OPS')
   for idx = 1:length(obj.eg.layer_id)
     obj.eg.layer.x{idx} = double(obj.eg.map_gps_time); % gps-time
     obj.eg.layer.y{idx} = NaN*zeros(size(obj.eg.map_id)); % twtt

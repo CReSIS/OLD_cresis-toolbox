@@ -16,5 +16,3 @@ obj.plot_cursors();
 
 str = obj.status_text_cursor();
 obj.status_text_set(str,'replace');
-
-return;

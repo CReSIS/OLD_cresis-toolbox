@@ -82,6 +82,10 @@ for frm_idx = 1:length(param.cmd.frms);
   
   % Determine number of chunks for this frame
   num_chunks = round(frm_dist / param.array.chunk_len);
+  if num_chunks == 0
+    warning('Frame %d length (%g m) is smaller than the param.array.chunk_len (%g m), there could be problems. Consider making the chunk length smaller for this frame. Possibly the frame is too small and should be combined with a neighboring frame.', frm_dist, param.array.chunk_len);
+    num_chunks = 1;
+  end
 
   %% Loop through all the images
   for img = 1:length(param.array.imgs)
@@ -155,16 +159,40 @@ for frm_idx = 1:length(param.cmd.frms);
       param_sar = tmp.param_sar;
       if chunk_idx == 1
         param_array = tmp.param_array;
-        param_array.array_proc.fcs{1}{1}.x = tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines);
-        param_array.array_proc.fcs{1}{1}.y = tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines);
-        param_array.array_proc.fcs{1}{1}.z = tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines);
-        param_array.array_proc.fcs{1}{1}.origin = tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs = [];
+        param_array.array_proc.fcs.Lsar = tmp.param_array.array_proc.fcs{1}{1}.Lsar;
+        param_array.array_proc.fcs.gps_source = tmp.param_array.array_proc.fcs{1}{1}.gps_source;
+        param_array.array_proc.fcs.squint = tmp.param_array.array_proc.fcs{1}{1}.squint;
+        param_array.array_proc.fcs.type = tmp.param_array.array_proc.fcs{1}{1}.type;
+        param_array.array_proc.fcs.filter = tmp.param_array.array_proc.fcs{1}{1}.filter;
+        param_array.array_proc.fcs.x = tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs.y = tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs.z = tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs.origin = tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines);
+        pos = zeros(3,length(tmp.param_array.array_proc.lines));
+        Nc = 0;
+        for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+          for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+            pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+            Nc = Nc + 1;
+          end
+        end
+        param_array.array_proc.fcs.pos = pos/Nc;
       else
         % Concatenate the fcs field
-        param_array.array_proc.fcs{1}{1}.x = [param_array.array_proc.fcs{1}{1}.x tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines)];
-        param_array.array_proc.fcs{1}{1}.y = [param_array.array_proc.fcs{1}{1}.y tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines)];
-        param_array.array_proc.fcs{1}{1}.z = [param_array.array_proc.fcs{1}{1}.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
-        param_array.array_proc.fcs{1}{1}.origin = [param_array.array_proc.fcs{1}{1}.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs.x = [param_array.array_proc.fcs.x tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs.y = [param_array.array_proc.fcs.y tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs.z = [param_array.array_proc.fcs.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs.origin = [param_array.array_proc.fcs.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
+        pos = zeros(3,length(tmp.param_array.array_proc.lines));
+        Nc = 0;
+        for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+          for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+            pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+            Nc = Nc + 1;
+          end
+        end
+        param_array.array_proc.fcs.pos = [param_array.array_proc.fcs.pos pos/Nc];
       end
       if param.array.tomo_en
         %         3D-surface is present so concatenate it too

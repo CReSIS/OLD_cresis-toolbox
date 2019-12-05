@@ -119,6 +119,12 @@ if length(valid_frms) ~= length(param.cmd.frms)
   param.cmd.frms = valid_frms;
 end
 
+% Nothing to do, return
+if isempty(layer_params)
+  layers = [];
+  return;
+end
+
 if any(strcmpi('ops',{layer_params.source}))
   %% Get all the frames for this segment
   opsAuthenticate(param,false);

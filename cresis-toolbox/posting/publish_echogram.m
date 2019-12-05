@@ -550,9 +550,9 @@ elseif param.elev_comp == 2
     axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 (mean(lay.layers{1}) + depth_time([1 end]) + param.time_offset)*1e6]);
   end
   if length(param.er_ice) == 1;
-    ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
+    ylabel(ah_echo,sprintf('Depth, e_r = %.2f (m)', param.er_ice));
   else
-    ylabel(ah_echo,sprintf('depth, e_r from profile (m)', param.er_ice));
+    ylabel(ah_echo,sprintf('Depth, e_r from profile (m)', param.er_ice));
   end
   
 else
@@ -569,9 +569,9 @@ else
     axis(ah_echo_time,[0.5 size(echogram_vals,2)+0.5 reshape(mdata.Time(depth_good_idxs([1 end]))*1e6 + param.time_offset*1e6,[1 2])])
   end
   if length(param.er_ice) == 1;
-    ylabel(ah_echo,sprintf('depth, e_r = %.2f (m)', param.er_ice));
+    ylabel(ah_echo,sprintf('Depth, e_r = %.2f (m)', param.er_ice));
   else
-    ylabel(ah_echo,sprintf('depth, e_r from profile (m)', param.er_ice));
+    ylabel(ah_echo,sprintf('Depth, e_r from profile (m)', param.er_ice));
   end
 end
 ylabel(ah_echo_time,'Propagation delay (us)');

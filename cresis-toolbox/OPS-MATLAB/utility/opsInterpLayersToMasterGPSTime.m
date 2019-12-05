@@ -53,6 +53,7 @@ lay.GPS_time = master.GPS_time;
 lay.Latitude = master.Latitude;
 lay.Longitude = master.Longitude;
 lay.Elevation = master.Elevation;
+lay.layerData = {};
 
 %% Interpolate each layer for this segment onto the master layer's gps time
 master_along_track = geodetic_to_along_track(lay.Latitude, ...

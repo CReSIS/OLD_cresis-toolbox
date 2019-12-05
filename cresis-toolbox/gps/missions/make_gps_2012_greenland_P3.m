@@ -25,8 +25,7 @@ if isempty(data_support_path)
   data_support_path = gRadar.data_support_path;
 end
 
-% ======================================================================
-% User Settings
+%% User Settings
 % ======================================================================
 debug_level = 1;
 
@@ -36,421 +35,426 @@ file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source
 sync_fns = {}; sync_params = {};
 
 gps_source_to_use = 'ATM';
-if strcmpi(gps_source_to_use,'ATM')
-%   
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_14Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120314.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',14,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120314';
-%     sync_flag{file_idx} = 0;
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_15Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120315.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',15,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120315';
 
-    
-    file_idx = file_idx + 1;
-    in_fns{file_idx} = fullfile(in_base_path,'BD960_16Mar12_PPPK_P13Jun12.out');
-    out_fns{file_idx} = 'gps_20120316.mat';
-    file_type{file_idx} = 'Applanix';
-    params{file_idx} = struct('year',2012,'month',03,'day',16,'time_reference','utc');
-    gps_source{file_idx} = 'ATM-final_20120316';
-    sync_flag{file_idx} = 1;
-    sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120316','','.gps');
-    sync_params{file_idx} = struct('year',2012,'month',03,'day',16,'time_reference','utc','format',3);
-    
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_17Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120317.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',17,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120317';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120317','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',03,'day',17,'time_reference','utc','format',3);
-    
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_21Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120321.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',21,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120321';
-%     sync_flag{file_idx} = 0;
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_22Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120322.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',22,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120322';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120322','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',03,'day',22,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_23Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120323.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',23,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120323';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120323','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',03,'day',23,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_26Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120326.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',26,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120326';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120326','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',03,'day',26,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_27Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120327.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',27,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120327';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120327','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',03,'day',27,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_28Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120328.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',28,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120328';
-%     sync_flag{file_idx} = 0;
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_29Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120329.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',29,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120329';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120329','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',03,'day',29,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_30Mar12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120330.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',03,'day',30,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120330';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120330','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',03,'day',30,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_02Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120402.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',02,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120402';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120402','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',02,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_04Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120404.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',04,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120404';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120404','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',04,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_10Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120410.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',10,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120410';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120410','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',10,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_11Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120411.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',11,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120411';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120411','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',11,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_12Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120412.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',12,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120412';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120412','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',12,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_13Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120413.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',13,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120413';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120413','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',13,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_14Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120414.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',14,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120414';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120414','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',14,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_16Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120416.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',16,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120416';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120416','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',16,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_17Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120417.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',17,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120417';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120417','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',17,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_18Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120418.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',18,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120418';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120418','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',18,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_19Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120419.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',19,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120419';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120419','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',19,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_20Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120420.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',20,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120420';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120420','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',20,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_21Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120421.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',21,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120421';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120421','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',21,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_23Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120423.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',23,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120423';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120423','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',23,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_25Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120425.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',25,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120425';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120425','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',25,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_28Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120428.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',28,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120428';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120428','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',28,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_29Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120429.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',29,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120429';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120429','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',29,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_30Apr12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120430.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',04,'day',30,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120430';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120430','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',04,'day',30,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_02May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120502.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',02,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120502';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120502','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',02,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_03May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120503.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',03,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120503';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120503','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',03,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_04May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120504.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',04,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120504';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120504','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',04,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_07May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120507.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',07,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120507';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120507','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',07,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_08May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120508.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',08,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120508';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120508','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',08,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_09May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120509.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',09,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120509';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120509','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',09,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_10May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120510.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',10,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120510';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120510','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',10,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_11May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120511.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',11,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120511';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120511','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',11,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_14May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120514.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',14,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120514';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120514','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',14,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_15May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120515.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',15,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120515';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120515','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',15,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_16May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120516.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',16,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120516';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120516','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',16,'time_reference','utc','format',3);
-%     
-%     file_idx = file_idx + 1;
-%     in_fns{file_idx} = fullfile(in_base_path,'BD960_17May12_PPPK_P13Jun12.out');
-%     out_fns{file_idx} = 'gps_20120517.mat';
-%     file_type{file_idx} = 'Applanix';
-%     params{file_idx} = struct('year',2012,'month',05,'day',17,'time_reference','utc');
-%     gps_source{file_idx} = 'ATM-final_20120517';
-%     sync_flag{file_idx} = 1;
-%     sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120517','','.gps');
-%     sync_params{file_idx} = struct('year',2012,'month',05,'day',17,'time_reference','utc','format',3);
-    
+if strcmpi(gps_source_to_use,'ATM')
+  %% ATM
+  % ======================================================================
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_14Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120314.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',14,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120314';
+  sync_flag{file_idx} = 0;
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_15Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120315.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',15,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120315';
+  
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_16Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120316.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',16,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120316';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120316','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',16,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_17Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120317.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',17,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120317';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120317','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',17,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_21Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120321.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',21,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120321';
+  sync_flag{file_idx} = 0;
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_22Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120322.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',22,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120322';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120322','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',22,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_23Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120323.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',23,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120323';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120323','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',23,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_26Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120326.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',26,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120326';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120326','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',26,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_27Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120327.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',27,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120327';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120327','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',27,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_28Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120328.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',28,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120328';
+  sync_flag{file_idx} = 0;
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_29Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120329.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',29,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120329';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120329','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',29,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_30Mar12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120330.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',03,'day',30,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120330';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120330','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',30,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_02Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120402.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',02,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120402';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120402','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',02,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_04Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120404.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',04,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120404';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120404','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',04,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_10Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120410.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',10,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120410';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120410','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',10,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_11Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120411.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',11,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120411';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120411','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',11,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_12Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120412.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',12,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120412';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120412','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',12,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_13Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120413.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',13,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120413';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120413','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',13,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_14Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120414.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',14,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120414';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120414','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',14,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_16Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120416.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',16,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120416';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120416','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',16,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_17Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120417.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',17,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120417';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120417','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',17,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_18Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120418.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',18,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120418';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120418','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',18,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_19Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120419.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',19,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120419';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120419','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',19,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_20Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120420.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',20,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120420';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120420','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',20,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_21Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120421.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',21,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120421';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120421','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',21,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_23Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120423.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',23,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120423';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120423','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',23,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_25Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120425.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',25,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120425';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120425','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',25,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_28Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120428.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',28,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120428';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120428','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',28,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_29Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120429.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',29,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120429';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120429','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',29,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_30Apr12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120430.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',04,'day',30,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120430';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120430','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',04,'day',30,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_02May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120502.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',02,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120502';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120502','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',02,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_03May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120503.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',03,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120503';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120503','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',03,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_04May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120504.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',04,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120504';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120504','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',04,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_07May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120507.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',07,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120507';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120507','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',07,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_08May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120508.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',08,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120508';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120508','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',08,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_09May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120509.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',09,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120509';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120509','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',09,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_10May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120510.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',10,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120510';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120510','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',10,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_11May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120511.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',11,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120511';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120511','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',11,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_14May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120514.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',14,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120514';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120514','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',14,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_15May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120515.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',15,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120515';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120515','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',15,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_16May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120516.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',16,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120516';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120516','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',16,'time_reference','utc','format',3);
+  
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'BD960_17May12_PPPK_P13Jun12.out');
+  out_fns{file_idx} = 'gps_20120517.mat';
+  file_type{file_idx} = 'Applanix';
+  params{file_idx} = struct('year',2012,'month',05,'day',17,'time_reference','utc');
+  gps_source{file_idx} = 'ATM-final_20120517';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120517','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',05,'day',17,'time_reference','utc','format',3);
+  
 elseif strcmpi(gps_source_to_use,'ATM_field')
+  %% ATM_field
+  % ======================================================================
   
   %   file_idx = file_idx + 1;
   %   in_fns{file_idx} = fullfile(in_base_path,'BD960_14Mar12_PPPK.out');
@@ -561,6 +565,9 @@ elseif strcmpi(gps_source_to_use,'ATM_field')
   %   sync_params{file_idx} = struct('year',2012,'month',03,'day',29,'time_reference','utc','format',3);
   
 elseif strcmpi(gps_source_to_use,'NMEA')
+  %% NMEA
+  % ======================================================================
+  
   %     file_idx = file_idx + 1;
   %     in_fns{file_idx} = fullfile(in_base_path,'20120314NMEA.TXT');
   %     out_fns{file_idx} = 'gps_20120314.mat';
@@ -575,15 +582,15 @@ elseif strcmpi(gps_source_to_use,'NMEA')
   %     params{file_idx} = struct('year',2012,'month',03,'day',15,'format',1,'time_reference','utc');
   %     gps_source{file_idx} = 'NMEA-field';
   
-    file_idx = file_idx + 1;
-    in_fns{file_idx} = fullfile(in_base_path,'20120317NMEA_GPGGA.txt');
-    out_fns{file_idx} = 'gps_20120317.mat';
-    file_type{file_idx} = 'NMEA';
-    params{file_idx} = struct('year',2012,'month',03,'day',17,'format',1,'time_reference','utc');
-    gps_source{file_idx} = 'nmea-field';
-    sync_flag{file_idx} = 1;
-    sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120317','','.gps');
-    sync_params{file_idx} = struct('year',2012,'month',03,'day',17,'time_reference','utc','format',3);
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = fullfile(in_base_path,'20120317NMEA_GPGGA.txt');
+  out_fns{file_idx} = 'gps_20120317.mat';
+  file_type{file_idx} = 'NMEA';
+  params{file_idx} = struct('year',2012,'month',03,'day',17,'format',1,'time_reference','utc');
+  gps_source{file_idx} = 'nmea-field';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120317','','.gps');
+  sync_params{file_idx} = struct('year',2012,'month',03,'day',17,'time_reference','utc','format',3);
   
   %     file_idx = file_idx + 1;
   %     in_fns{file_idx} = fullfile(in_base_path,'20120321NMEA_GPGGA.TXT');
@@ -903,17 +910,20 @@ elseif strcmpi(gps_source_to_use,'NMEA')
   %   sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120516','','.gps');
   %   sync_params{file_idx} = struct('year',2012,'month',05,'day',16,'time_reference','utc','format',3);
   %
-%   file_idx = file_idx + 1;
-%   in_fns{file_idx} = fullfile(in_base_path,'20120517NMEA_GPGGA.TXT');
-%   out_fns{file_idx} = 'gps_20120517.mat';
-%   file_type{file_idx} = 'MCRDS_NMEA';
-%   params{file_idx} = struct('year',2012,'month',05,'day',17,'format',1,'time_reference','utc');
-%   gps_source{file_idx} = 'nmea-field';
-%   sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120517','','.gps');
-%   sync_params{file_idx} = struct('year',2012,'month',05,'day',17,'time_reference','utc','format',3);
-%   
+  %   file_idx = file_idx + 1;
+  %   in_fns{file_idx} = fullfile(in_base_path,'20120517NMEA_GPGGA.TXT');
+  %   out_fns{file_idx} = 'gps_20120517.mat';
+  %   file_type{file_idx} = 'MCRDS_NMEA';
+  %   params{file_idx} = struct('year',2012,'month',05,'day',17,'format',1,'time_reference','utc');
+  %   gps_source{file_idx} = 'nmea-field';
+  %   sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120517','','.gps');
+  %   sync_params{file_idx} = struct('year',2012,'month',05,'day',17,'time_reference','utc','format',3);
+  %
   % %
 elseif strcmpi(gps_source_to_use,'DMS')
+  %% DMS
+  % ======================================================================
+  
   %   file_idx = file_idx + 1;
   %   in_fns{file_idx} = fullfile(in_base_path,'05March12_Real-time_Trajectory.csv');
   %   out_fns{file_idx} = 'gps_20120305.mat';
@@ -937,6 +947,9 @@ elseif strcmpi(gps_source_to_use,'DMS')
   sync_fns{file_idx} = get_filenames(in_base_path,'accum2_20120326','','.gps');
   sync_params{file_idx} = struct('year',2012,'month',03,'day',26,'time_reference','utc','format',3);
 elseif strcmpi(gps_source_to_use,'Gravimeter')
+  %% Gravimeter
+  % ======================================================================
+  
   %   file_idx = file_idx + 1;
   %   in_fns{file_idx} = fullfile(in_base_path,'AIRGrav_Attitude_Flight_200.xyz');
   %   out_fns{file_idx} = 'gps_20120312.mat';
@@ -1319,8 +1332,7 @@ elseif strcmpi(gps_source_to_use,'Gravimeter')
   
 end
 
-% ======================================================================
-% Read and translate files according to user settings
+%% make_gps
 % ======================================================================
 make_gps;
 
@@ -1337,6 +1349,24 @@ if ~isempty(hand_idx)
   save(out_fn,'-v6','-struct','gps');
 end
 
-
-
+% Smooth ATM INS data
+for idx = 1:length(file_type)
+  out_fn = fullfile(gps_path,out_fns{idx});
+  
+  gps = load(out_fn);
+  if regexpi(gps.gps_source,'atm')
+    
+    warning('Smoothing INS data: %s', out_fn);
+    
+    gps.roll = sgolayfilt(gps.roll,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.pitch = sgolayfilt(gps.pitch,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_x = cos(gps.heading);
+    heading_y = sin(gps.heading);
+    heading_x  = sgolayfilt(heading_x,2,101); % Adjust filter length as needed to remove high frequency noise
+    heading_y  = sgolayfilt(heading_y,2,101); % Adjust filter length as needed to remove high frequency noise
+    gps.heading = atan2(heading_y,heading_x);
+    
+    save(out_fn,'-append','-struct','gps','roll','pitch','heading');
+  end
+end
 
