@@ -192,6 +192,24 @@ if isfield(tmp_gps,'time_HMS')
   end
   [~,~,~,hour,minute,sec] = datevec(datenums);
 end
+if isfield(tmp_gps,'IWG1')
+    % Handles date-time in aircraft IWG1 string (2019_Antarctica_GV test flight on 20191017)
+    tmp_gps.year = size(tmp_gps.IWG1);
+    tmp_gps.month = size(tmp_gps.IWG1);
+    tmp_gps.day = size(tmp_gps.IWG1);
+    tmp_gps.hour = size(tmp_gps.IWG1);
+    tmp_gps.minute = size(tmp_gps.IWG1);
+    tmp_gps.sec = size(tmp_gps.IWG1);
+    for row=1:length(tmp_gps.IWG1)
+      tmp_gps.year(row) = str2num(tmp_gps.date_time_sec{row}(1:4));
+      tmp_gps.month(row) = str2num(tmp_gps.date_time_sec{row}(6:7));
+      tmp_gps.day(row) = str2num(tmp_gps.date_time_sec{row}(9:10));
+      tmp_gps.hour(row) = str2num(tmp_gps.date_time_sec{row}(12:13));
+      tmp_gps.minute(row) = str2num(tmp_gps.date_time_sec{row}(15:16));
+      tmp_gps.sec(row) = str2num(tmp_gps.date_time_sec{row}(18:23));
+      tmp_gps.sec(row) = str2num(tmp_gps.date_time_sec{row}(18:23));
+    end    
+end
 if isfield(tmp_gps,'year')
   year = tmp_gps.year;
 elseif isfield(param,'year')
