@@ -531,6 +531,8 @@ if strcmpi(arena.ctu.type,'ctu_001D')
   child.appendChild(doc.createTextNode(''));
   grandchild = doc.createElement('input'); child.appendChild(grandchild);
   grandchild.appendChild(doc.createTextNode( sprintf('%d',arena.ctu.nmea) ));
+  grandchild = doc.createElement('baudRate'); child.appendChild(grandchild);
+  grandchild.appendChild(doc.createTextNode( sprintf('%d',arena.ctu.nmea_baud) ));
   
   child = doc.createElement('pscIntr'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
@@ -1053,7 +1055,11 @@ for daq_idx = daq_idxs
     child.appendChild(doc.createTextNode(adc.name));
     
     child = doc.createElement('dataSource'); recorder.appendChild(child);
-    child.appendChild(doc.createTextNode( sprintf('%s:%s',subsystem_name,adc.name) ));
+    if strcmpi(adc.stream,'socket')
+      child.appendChild(doc.createTextNode( sprintf('%s:%s',subsystem_name,adc.name) ));
+    else
+      child.appendChild(doc.createTextNode( sprintf('%s:%s:dataStream0',subsystem_name,adc.name) ));
+    end
     
     child = doc.createElement('fileName'); recorder.appendChild(child);
     child.appendChild(doc.createTextNode( sprintf('%s_%s',daq.fileName,adc.name) ));
@@ -1161,25 +1167,41 @@ for adc_idx = 1:length(arena.adc)
   configs = system.getFirstChild;
   
   config = doc.createElement('config'); configs.appendChild(config);
-  config.setAttribute('type','socket');
+  if strcmpi(adc.stream,'udp')
+    config.setAttribute('type','streamudp');
+  elseif strcmpi(adc.stream,'socket')
+    config.setAttribute('type','socket');
+  elseif strcmpi(adc.stream,'tcp')
+    config.setAttribute('type','streamtcp');
+  end
   
   child = doc.createElement('name'); config.appendChild(child);
-  child.appendChild(doc.createTextNode(sprintf('socket_%s',adc.name)));
+  if strcmpi(adc.stream,'socket')
+    child.appendChild(doc.createTextNode(sprintf('socket_%s',adc.name)));
+  else
+    child.appendChild(doc.createTextNode(sprintf('stream_%s',adc.name)));
+  end
   
   child = doc.createElement('description'); config.appendChild(child);
   child.appendChild(doc.createTextNode(''));
   
-  child = doc.createElement('multiFlag'); config.appendChild(child);
-  child.appendChild(doc.createTextNode(''));
+  if strcmpi(adc.stream,'tcp')
+    child = doc.createElement('port'); config.appendChild(child);
+    child.appendChild(doc.createTextNode(sprintf('%d',55000+adc_idx)));
+  else
+    child = doc.createElement('multiFlag'); config.appendChild(child);
+    child.appendChild(doc.createTextNode('0'));
+    
+    child = doc.createElement('ip'); config.appendChild(child);
+    child.appendChild(doc.createTextNode(adc.ip));
+    
+    child = doc.createElement('port'); config.appendChild(child);
+    child.appendChild(doc.createTextNode(sprintf('%d',55000+adc_idx)));
+    
+    child = doc.createElement('payloadSize'); config.appendChild(child);
+    child.appendChild(doc.createTextNode('8192'));
+  end
   
-  child = doc.createElement('ip'); config.appendChild(child);
-  child.appendChild(doc.createTextNode(adc.ip));
-  
-  child = doc.createElement('port'); config.appendChild(child);
-  child.appendChild(doc.createTextNode(sprintf('%d',55000+adc_idx)));
-  
-  child = doc.createElement('payloadSize'); config.appendChild(child);
-  child.appendChild(doc.createTextNode('8192'));
 end
 
 %% SUBSYSTEM
@@ -1303,14 +1325,54 @@ for subsystem_idx = 1:length(arena.subsystem)
       child.appendChild(doc.createTextNode(mezz_name));
       child.setAttribute('type',config_type);
       
-      dataOutput = doc.createElement('dataOutput'); mezz.appendChild(dataOutput);
-      
-      child = doc.createElement('config'); dataOutput.appendChild(child);
-      child.appendChild(doc.createTextNode(sprintf('socket_%s',adc.name)));
-      child.setAttribute('type','socket');
-      child = doc.createElement('interface'); dataOutput.appendChild(child);
-      child.appendChild(doc.createTextNode('eth0'));
-      child.setAttribute('type','nic');
+      if strcmpi(adc.stream,'socket')
+        dataOutput = doc.createElement('dataOutput'); mezz.appendChild(dataOutput);
+        
+        child = doc.createElement('config'); dataOutput.appendChild(child);
+        if strcmpi(adc.stream,'socket')
+        child.appendChild(doc.createTextNode(sprintf('socket_%s',adc.name)));
+        else
+        child.appendChild(doc.createTextNode(sprintf('stream_%s',adc.name)));
+        end
+        child.setAttribute('type','socket');
+        
+        child = doc.createElement('interface'); dataOutput.appendChild(child);
+        child.appendChild(doc.createTextNode('eth0'));
+        child.setAttribute('type','nic');
+      else
+        % Only one datastream supported per ADC card
+        for stream_idx = 1
+          dataOutput = doc.createElement('dataStream'); mezz.appendChild(dataOutput);
+          dataOutput.setAttribute('type',adc.stream);
+          
+          child = doc.createElement('id'); dataOutput.appendChild(child);
+          child.appendChild(doc.createTextNode('0'));
+          
+          child = doc.createElement('name'); dataOutput.appendChild(child);
+          child.appendChild(doc.createTextNode('dataStream0'));
+          
+          if strcmpi(adc.stream,'udp')
+            % Only one udp substream supported per data stream
+            for substream_idx = 1
+              streamOutput = doc.createElement('stream'); dataOutput.appendChild(streamOutput);
+              
+              child = doc.createElement('interface'); streamOutput.appendChild(child);
+              child.appendChild(doc.createTextNode('eth0'));
+              child.setAttribute('type','nic');
+              child = doc.createElement('config'); streamOutput.appendChild(child);
+              child.appendChild(doc.createTextNode(sprintf('stream_%s',adc.name)));
+              child.setAttribute('type',sprintf('stream%s',adc.stream));
+            end
+          elseif strcmpi(adc.stream,'tcp')
+            child = doc.createElement('interface'); dataOutput.appendChild(child);
+            child.appendChild(doc.createTextNode('eth0'));
+            child.setAttribute('type','nic');
+            child = doc.createElement('config'); dataOutput.appendChild(child);
+            child.appendChild(doc.createTextNode(sprintf('stream_%s',adc.name)));
+            child.setAttribute('type',sprintf('stream%s',adc.stream));
+          end
+        end
+      end
     end
     
   end

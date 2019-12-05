@@ -86,6 +86,8 @@ for img = 1:length(store_param.load.imgs)
     if ~cmd.en
       continue;
     end
+    fprintf('%s\n', '='*ones(1,40));
+    fprintf('  Running method: %s\n', cmd.method);
     
     % Create temporary output directory
     tmp_out_fn_dir = ct_filename_out(param, cmd.out_path,'analysis_tmp');
@@ -146,7 +148,7 @@ for img = 1:length(store_param.load.imgs)
       else
         file_version = '1';
       end
-      save(out_fn,'-v7.3', 'max_rline', 'max_waveform', 'gps_time',...
+      ct_save(out_fn,'-v7.3', 'max_rline', 'max_waveform', 'gps_time',...
         'max_val_gps_time', 'max_val_gps_time_adc', 'file_version');
       
       
@@ -190,9 +192,9 @@ for img = 1:length(store_param.load.imgs)
 
         data = data{1};
         
-        
         % Correct all the data to a constant elevation (no zero padding is
         % applied so wrap around could be an issue for DDC data)
+        data(isnan(data)) = 0; % NaN values will create problems in ifft(fft(data))
         for rline = 1:size(data,2)
           elev_dt = (tmp_hdr.records{1,1}.elev(rline) - tmp_hdr.records{1,1}.elev(1)) / (c/2);
           data(:,rline,1) = ifft(fft(data(:,rline,1)) .* exp(1i*2*pi*tmp_hdr.freq{1,1}*elev_dt));
@@ -355,7 +357,7 @@ for img = 1:length(store_param.load.imgs)
         else
           file_version = '1';
         end
-        save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
+        ct_save(out_fn,'-v7.3', 'deconv_gps_time', 'deconv_mean', 'deconv_std','deconv_sample','deconv_twtt',...
           'deconv_forced','peakiness', 'deconv_fc', 'deconv_t0', 'dt', 'gps_time', 'lat', ...
           'lon', 'elev', 'roll', 'pitch', 'heading', 'surface', 'param_analysis', 'param_records','file_version');
       end
@@ -523,7 +525,7 @@ for img = 1:length(store_param.load.imgs)
         else
           file_version = '1';
         end
-        save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'coh_ave_mag', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
+        ct_save(out_fn,'-v7.3', 'coh_ave', 'coh_ave_samples', 'coh_ave_mag', 'doppler', 'Nt', 'fc', 't0', 'dt', 'gps_time', 'surface', 'lat', ...
           'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','nyquist_zone','file_version');
       end
       
@@ -630,7 +632,7 @@ for img = 1:length(store_param.load.imgs)
         else
           file_version = '1';
         end
-        save(out_fn,'-v7.3', 'wf_data','time_rng', 'gps_time', 'lat', ...
+        ct_save(out_fn,'-v7.3', 'wf_data','time_rng', 'gps_time', 'lat', ...
           'lon', 'elev', 'roll', 'pitch', 'heading', 'dt', 'fc', 'param_analysis', 'param_records','file_version');
       end
       
@@ -745,7 +747,7 @@ for img = 1:length(store_param.load.imgs)
             else
               % Function handle
               if Nt == size(data,1)
-                stats{stat_idx} = cmd.stats(data);
+                stats{stat_idx} = cmd.stats{stat_idx}(data);
               else
                 vals = nan(Nt,size(data,2));
                 for rline = 1:size(data,2)
@@ -818,7 +820,7 @@ for img = 1:length(store_param.load.imgs)
         else
           file_version = '1';
         end
-        save(out_fn,'-v7.3', 'stats', 'freq', 'time', 'start_bin', 'gps_time', 'surface', 'lat', ...
+        ct_save(out_fn,'-v7.3', 'stats', 'freq', 'time', 'start_bin', 'gps_time', 'surface', 'lat', ...
           'lon', 'elev', 'roll', 'pitch', 'heading', 'param_analysis', 'param_records','file_version');
       end
       

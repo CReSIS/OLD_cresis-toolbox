@@ -22,8 +22,15 @@ if isempty(valid_idxs)
   valid_idxs = length(src.eg.map_gps_time);
 end
 
-new_xdata = src.eg.map_x(valid_idxs);
-new_ydata = src.eg.map_y(valid_idxs);
+if obj.map.source==0
+  % OPS Map
+  new_xdata = src.eg.map_x(valid_idxs);
+  new_ydata = src.eg.map_y(valid_idxs);
+else
+  % Google map in world coordinates
+  new_xdata = src.eg.map_x(valid_idxs);
+  new_ydata = src.eg.map_y(valid_idxs);
+end
 
 % Update the echowin's flightline graphics
 echowin_idx = find(obj.echowin_list == src);

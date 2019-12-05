@@ -61,7 +61,6 @@ elseif yaxis_choice == 3 % Depth/Range
 elseif yaxis_choice == 4 % Range bin
   args{3} = interp1(obj.eg.image_yaxis,obj.eg.time,...
     args{3},'linear');
-  
 end
 
 % Change layer idxs for layer ids
@@ -137,5 +136,4 @@ args{2}(1:2) = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,args{2}(1:2),'li
 
 % Change point idxs for point ids
 args{3} = obj.eg.map_id(args{3});
-
 end

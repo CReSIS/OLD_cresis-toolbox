@@ -109,11 +109,11 @@ if strcmp(radar_type,'deramp')
   if ~isfinite(param.sar.time_of_full_support)
     error('param.sar.time_of_full_support must be finite for deramp radars.');
   end
-  times = param.sar.time_of_full_support;
+  times_of_full_support = param.sar.time_of_full_support;
 else
-  times = cell2mat({wfs.time}.');
+  times_of_full_support = cell2mat({wfs.time}.');
 end
-max_time = min(max(times),param.sar.time_of_full_support);
+max_time = min(max(times_of_full_support),param.sar.time_of_full_support);
 
 % wavelength (m)
 wf = abs(param.load.imgs{1}(1,1));
@@ -122,15 +122,16 @@ lambda = c/wfs(wf).fc;
 surf_time = ppval(sar.surf_pp, start_x); surf_time = min(max_time,surf_time);
 % effective in air max range (m)
 max_range = ((max_time-surf_time)/sqrt(param.sar.start_eps) + surf_time) * c/2;
-% chunk overlap (m)
-chunk_overlap_start = (max_range*lambda)/(2*param.sar.sigma_x) / 2;
+% chunk overlap (m), accounts for SAR aperture and arbitrary_resample.m aperture (16*param.sar.sigma_x)
+chunk_overlap_start = max(16*param.sar.sigma_x, (max_range*lambda)/(2*param.sar.sigma_x) / 2);
 % chunk_overlap_start = max_range/sqrt((2*param.sar.sigma_x/lambda)^2-1);
 
 % twtt to surface (sec)
 surf_time = ppval(sar.surf_pp, stop_x); surf_time = min(max_time,surf_time);
 % effective in air max range (m)
 max_range = ((max_time-surf_time)/sqrt(param.sar.start_eps) + surf_time) * c/2;
-chunk_overlap_stop = (max_range*lambda)/(2*param.sar.sigma_x) / 2;
+% chunk overlap (m), accounts for SAR aperture and arbitrary_resample.m aperture (16*param.sar.sigma_x)
+chunk_overlap_stop = max(16*param.sar.sigma_x, (max_range*lambda)/(2*param.sar.sigma_x) / 2);
 % chunk_overlap_stop = max_range/sqrt((2*param.sar.sigma_x/lambda)^2-1);
 
 % These are the records which will be used
@@ -350,7 +351,12 @@ for img = 1:length(param.load.imgs)
       dt = time(2)-time(1);
       freq = hdr.freq{img}(1) + 1/(Nt*dt) * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
       
-      fk_data = data{img}(time_bins,:,wf_adc);
+      good_mask = ~hdr.bad_rec{img}(1,:,wf_adc);
+
+      % To save memory, shift the data out one wf_adc at a time
+      fk_data = data{img}(time_bins,:,1);
+      data{img} = data{img}(:,:,2:end);
+
       fk_data(~isfinite(fk_data)) = 0;
       fk_data = fft(fk_data,[],1);
       
@@ -366,7 +372,7 @@ for img = 1:length(param.load.imgs)
         %  currently lags behind)
         fcs.type = param.sar.mocomp.type;
         fcs.filter = param.sar.mocomp.filter;
-        [drange,dx] = csarp_motion_comp(fcs,hdr.records{img,wf_adc},hdr.ref,along_track,output_along_track);
+        [drange,dx] = sar_motion_comp(fcs,hdr.records{img,wf_adc},hdr.ref,along_track,output_along_track);
         
         % Time shift data in the frequency domain
         dtime = 2*drange/c;
@@ -414,9 +420,17 @@ for img = 1:length(param.load.imgs)
       %% Uniform resampling and subaperture selection for fk migration
       if param.sar.mocomp.uniform_en
         % Uniformly resample data in slow-time onto output along-track
-        fk_data = arbitrary_resample(fk_data, ...
-          along_track_mc,proc_along_track, struct('filt_len', ...
-          proc_sigma_x*16,'dx',proc_sigma_x,'method','sinc'));
+        if param.sar.mocomp.uniform_mask_en
+          % Mask
+          fk_data = arbitrary_resample(fk_data(:,good_mask), ...
+            along_track_mc(good_mask),proc_along_track, struct('filt_len', ...
+            proc_sigma_x*16,'dx',proc_sigma_x,'method','sinc'));
+        else
+          % No mask
+          fk_data = arbitrary_resample(fk_data, ...
+            along_track_mc,proc_along_track, struct('filt_len', ...
+            proc_sigma_x*16,'dx',proc_sigma_x,'method','sinc'));
+        end
         fk_data = fft(fk_data,[],2);
         
       else
@@ -491,6 +505,13 @@ for img = 1:length(param.load.imgs)
         
         % Time shift data in the frequency domain
         fk_data_ml = fft(fk_data_ml,[],1);
+        if param.sar.mocomp.tukey > 0
+          % Tukey window because other steps (e.g. fk migration) may have
+          % shifted the frequency domain content so that it is not
+          % approximately zero on the edges of the frequenecy band which
+          % can lead to ringing.
+          fk_data_ml = bsxfun(@times,fk_data_ml,ifftshift(tukeywin(size(fk_data_ml,1),param.sar.mocomp.tukey)));
+        end
         fk_data_ml = fk_data_ml.*exp(1i*2*pi*repmat(freq, [1,size(fk_data_ml,2),size(fk_data_ml,3)]) ...
           .*repmat(dtime, [size(fk_data_ml,1),1,size(fk_data_ml,3)]));
         fk_data_ml = ifft(fk_data_ml,[],1);
@@ -523,7 +544,7 @@ for img = 1:length(param.load.imgs)
         fprintf('  Saving %s (%s)\n', out_fn, datestr(now));
         wfs(wf).time = time;
         wfs(wf).freq = freq;
-        save('-v7.3',out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
+        ct_save(out_fn,'fk_data','fcs','lat','lon','elev','out_rlines','wfs','param_sar','param_records','file_version');
       end
       
     elseif strcmpi(param.sar.sar_type,'tdbp_old')
@@ -651,7 +672,7 @@ for img = 1:length(param.load.imgs)
         param_sar = param;
         param_sar.tdbp = tdbp_param;
         tdbp_data = tdbp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
+        ct_save(out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
       end
     elseif strcmpi(param.sar.sar_type,'mltdp')
       fcs.squint = [0 0 -1].';
@@ -716,7 +737,7 @@ for img = 1:length(param.load.imgs)
         fprintf('  Saving output %s\n', out_full_fn);
         param_sar = param;
         mltdp_data = mltdp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'mltdp_data','fcs','lat','lon','elev','wfs','param_sar','param_records');
+        ct_save('-v7.3',out_full_fn,'mltdp_data','fcs','lat','lon','elev','wfs','param_sar','param_records');
       end
     elseif strcmpi(param.sar.sar_type,'tdbp')
     %% Time Domain Processor
@@ -977,7 +998,7 @@ for img = 1:length(param.load.imgs)
         param_sar = param;
         param_sar.tdbp = tdbp_param;
         tdbp_data = tdbp_data0(:,:,subap);
-        save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
+        ct_save('-v7.3',out_full_fn,'tdbp_data','fcs','lat','lon','elev','wfs','param_sar','param_records','tdbp_param');
       end
     end
   end

@@ -57,7 +57,7 @@ for frm_idx = 1:length(param.cmd.frms);
   frm = param.cmd.frms(frm_idx);
   
   if ct_proc_frame(frames.proc_mode(frm),param.array.frm_types)
-    fprintf('array_combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now,'HH:MM:SS'));
+    fprintf('array_combine %s_%03i (%i of %i) %s\n', param.day_seg, frm, frm_idx, length(param.cmd.frms), datestr(now));
   else
     fprintf('Skipping frame %s_%03i (no process frame)\n', param.day_seg, frm);
     continue;
@@ -82,6 +82,10 @@ for frm_idx = 1:length(param.cmd.frms);
   
   % Determine number of chunks for this frame
   num_chunks = round(frm_dist / param.array.chunk_len);
+  if num_chunks == 0
+    warning('Frame %d length (%g m) is smaller than the param.array.chunk_len (%g m), there could be problems. Consider making the chunk length smaller for this frame. Possibly the frame is too small and should be combined with a neighboring frame.', frm_dist, param.array.chunk_len);
+    num_chunks = 1;
+  end
 
   %% Loop through all the images
   for img = 1:length(param.array.imgs)
@@ -155,18 +159,42 @@ for frm_idx = 1:length(param.cmd.frms);
       param_sar = tmp.param_sar;
       if chunk_idx == 1
         param_array = tmp.param_array;
-        param_array.array_proc.fcs{1}{1}.x = tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines);
-        param_array.array_proc.fcs{1}{1}.y = tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines);
-        param_array.array_proc.fcs{1}{1}.z = tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines);
-        param_array.array_proc.fcs{1}{1}.origin = tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs = [];
+        param_array.array_proc.fcs.Lsar = tmp.param_array.array_proc.fcs{1}{1}.Lsar;
+        param_array.array_proc.fcs.gps_source = tmp.param_array.array_proc.fcs{1}{1}.gps_source;
+        param_array.array_proc.fcs.squint = tmp.param_array.array_proc.fcs{1}{1}.squint;
+        param_array.array_proc.fcs.type = tmp.param_array.array_proc.fcs{1}{1}.type;
+        param_array.array_proc.fcs.filter = tmp.param_array.array_proc.fcs{1}{1}.filter;
+        param_array.array_proc.fcs.x = tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs.y = tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs.z = tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines);
+        param_array.array_proc.fcs.origin = tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines);
+        pos = zeros(3,length(tmp.param_array.array_proc.lines));
+        Nc = 0;
+        for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+          for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+            pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+            Nc = Nc + 1;
+          end
+        end
+        param_array.array_proc.fcs.pos = pos/Nc;
       else
         % Concatenate the fcs field
-        param_array.array_proc.fcs{1}{1}.x = [param_array.array_proc.fcs{1}{1}.x tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines)];
-        param_array.array_proc.fcs{1}{1}.y = [param_array.array_proc.fcs{1}{1}.y tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines)];
-        param_array.array_proc.fcs{1}{1}.z = [param_array.array_proc.fcs{1}{1}.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
-        param_array.array_proc.fcs{1}{1}.origin = [param_array.array_proc.fcs{1}{1}.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs.x = [param_array.array_proc.fcs.x tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs.y = [param_array.array_proc.fcs.y tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs.z = [param_array.array_proc.fcs.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
+        param_array.array_proc.fcs.origin = [param_array.array_proc.fcs.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
+        pos = zeros(3,length(tmp.param_array.array_proc.lines));
+        Nc = 0;
+        for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+          for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+            pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+            Nc = Nc + 1;
+          end
+        end
+        param_array.array_proc.fcs.pos = [param_array.array_proc.fcs.pos pos/Nc];
       end
-      if isfield(tmp,'Tomo')
+      if param.array.tomo_en
         %         3D-surface is present so concatenate it too
         %         Tomo = cat(3,Tomo,tmp.Tomo);
         %         Concatenate all the fields under struct Tomo: valR, bins, val, freq
@@ -191,7 +219,7 @@ for frm_idx = 1:length(param.cmd.frms);
     
     % =====================================================================
     % Save output
-    if length(param.array.imgs) == 1
+    if length(param.array.imgs) == 1 && ~param.array.tomo_en
       out_fn = fullfile(array_out_dir, sprintf('Data_%s_%03d.mat', ...
         param.day_seg, frm));
     else
@@ -205,7 +233,7 @@ for frm_idx = 1:length(param.cmd.frms);
       file_version = '1';
     end
     Data = single(Data);
-    if isempty(Tomo)
+    if ~param.array.tomo_en
       % Do not save 3D surface
       save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
         'Elevation','GPS_time','Data','Surface','Bottom', ...
@@ -238,36 +266,27 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Combine images
   [output_dir,radar_type] = ct_output_dir(param.radar_name);
-  if isempty(param.array.img_comb) && strcmpi(radar_type,'deramp')
-    continue;
-  end
-
-  % Combine images into a single image and/or trim invalid times with
-  % img_comb_trim
-  img_combine_param = param;
-  img_combine_param.load.frm = frm;
-  surf_layer.gps_time = GPS_time;
-  surf_layer.twtt = Surface;
-  [Data, Time] = img_combine(img_combine_param, 'array', surf_layer);
-  
-  %% Save combined image output
-  if length(param.array.imgs) == 1 || ~isempty(param.array.img_comb)
+  if ~isempty(param.array.img_comb) || param.array.tomo_en || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp'))
+    % Combine images into a single image and/or trim invalid times with
+    % img_comb_trim
+    img_combine_param = param;
+    img_combine_param.load.frm = frm;
+    surf_layer.gps_time = GPS_time;
+    surf_layer.twtt = Surface;
+    [Data, Time] = img_combine(img_combine_param, 'array', surf_layer);
+    
+    %% Save combined image output
     % A combined file should be created
     out_fn = fullfile(array_out_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, frm));
-  else
-    % Store the result in img 1 since a combined file is not created
-    img = 1;
-    out_fn = fullfile(array_out_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
-      img, param.day_seg, frm));
+    fprintf('  Writing output to %s\n', out_fn);
+    % Note that image combining here never includes "Tomo" variable. Use
+    % tomo.run_collate.m to create the combined image with the "Tomo" variable.
+    save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
+      'Elevation','GPS_time','Data','Surface','Bottom', ...
+      'param_array','param_records','param_sar', ...
+      'Roll', 'Pitch', 'Heading','file_version');
   end
-  fprintf('  Writing output to %s\n', out_fn);
-  % Note that image combining here never includes "Tomo" variable. Use
-  % tomo.run_collate.m to create the combined image with the "Tomo" variable.
-  save('-v7.3',out_fn,'Time','Latitude','Longitude', ...
-    'Elevation','GPS_time','Data','Surface','Bottom', ...
-    'param_array','param_records','param_sar', ...
-    'Roll', 'Pitch', 'Heading','file_version');
 end
 
 fprintf('%s done %s\n', mfilename, datestr(now));

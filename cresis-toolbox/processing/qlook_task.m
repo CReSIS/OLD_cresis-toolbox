@@ -106,7 +106,8 @@ task_recs = param.load.recs; % Store this for later when creating output fn
 load_recs_ps(1) = floor((param.load.recs(1)-1)/param.qlook.presums)+1;
 load_recs_ps(2) = floor(param.load.recs(2)/param.qlook.presums);
 
-dec = param.qlook.dec*param.qlook.inc_dec;
+% inc_dec == 0 is treated as inc_dec = 1 with no power detection at the end
+dec = param.qlook.dec*max(1,param.qlook.inc_dec);
 
 % output_recs_ps: the outputs of the whole qlook process
 output_recs_ps = 1:dec:load_recs_ps(2);
@@ -234,8 +235,13 @@ for img = 1:length(param.load.imgs)
   % data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
   %   param.qlook.dec, rline0, Nidxs, [], phase_weights);
   
-  data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
-    param.qlook.dec, rline0, Nidxs);
+  if param.qlook.nan_dec
+    data{img} = nan_fir_dec(data{img}, param.qlook.B_filter, ...
+      param.qlook.dec, rline0, Nidxs);
+  else
+    data{img} = fir_dec(data{img}, param.qlook.B_filter, ...
+      param.qlook.dec, rline0, Nidxs);
+  end
   
   % Reapply elevation variations
   if param.load.motion_comp && ~isempty(hdr.freq{img})
@@ -312,8 +318,13 @@ if param.qlook.inc_dec >= 1
       end
     end
     
-    data{img} = fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
-      param.qlook.inc_dec, rline0, Nidxs);
+    if param.qlook.nan_dec
+      data{img} = nan_fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
+        param.qlook.inc_dec, rline0, Nidxs);
+    else
+      data{img} = fir_dec(abs(data{img}).^2, param.qlook.inc_B_filter, ...
+        param.qlook.inc_dec, rline0, Nidxs);
+    end
     
     % Reapply elevation variations
     if param.load.motion_comp
@@ -376,7 +387,7 @@ for img = 1:length(param.load.imgs)
   else
     file_version = '1';
   end
-  save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
+  ct_save(out_fn,'-v7.3', 'Data', 'Time', 'GPS_time', 'Latitude', ...
     'Longitude', 'Elevation', 'Roll', 'Pitch', 'Heading', 'Surface', 'param_qlook', 'param_records', 'file_version');
 end
 

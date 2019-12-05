@@ -34,11 +34,26 @@ if isempty(config_fns)
 end
 
 clear configs;
+bad_mask = false(size(config_fns)); % Keep track of bad config files
 for config_idx = 1:length(config_fns)
   config_fn = config_fns{config_idx};
-  
-  configs(config_idx) = read_arena_xml(config_fn,'',param.config.board_map,param.config.tx_map);
+
+  try
+    configs(config_idx) = read_arena_xml(config_fn,'',param.config.board_map,param.config.tx_map);
+  catch ME
+    % If the error is one that can be ignored, just mark this config file
+    % as bad and continue. Otherwise rethrow the error.
+    if strcmpi(ME.identifier,'READ_ARENA_XML:MISSING_SYSTEM_XML')
+      warning('%s\n', ME.getReport);
+      bad_mask(config_idx) = true;
+    else
+      rethrow(ME)
+    end
+  end
 end
+% Remove bad config files
+config_fns = config_fns(~bad_mask);
+configs = configs(~bad_mask);
 
 %% Process each segment of data
 % =========================================================================
@@ -185,10 +200,10 @@ for config_idx = 1:length(configs)
         log_files = fullfile(out_config_fn_dir,'logs/*');
         out_log_dir = fullfile(param.data_support_path, param.season_name, param.config.config_folder_name);
         try
+          fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
           if ~exist(out_log_dir,'dir')
             mkdir(out_log_dir)
           end
-          fprintf('Copy %s\n  %s\n', log_files, out_log_dir);
           copyfile(log_files, out_log_dir);
         catch ME
           warning('Error while copying log files:\n%s\n', ME.getReport);
@@ -196,14 +211,22 @@ for config_idx = 1:length(configs)
       end
       
       % Check to see if outputs already exist
-      if reuse_tmp_files && exist(out_fn,'file') && exist(out_hdr_fn,'file')
+      if reuse_tmp_files && exist(out_hdr_fn,'file') ...
+          && (strcmpi(configs(config_idx).datastream_type,'tcp') || exist(out_fn,'file'))
+        load(out_hdr_fn,'last_bytes','last_bytes_len','num_expected','pkt_counter');
         continue;
       end
       
       %% Read in headers from data file and create network packet stripped data file
-      [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_mex(fn,out_fn,last_bytes,last_bytes_len, ...
-        num_expected,pkt_counter,min_num_expected,max_num_expected, ...
-        default_num_expected,num_header_fields,length_field_offset);
+      if strcmpi(configs(config_idx).datastream_type,'tcp')
+        [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_tcp_mex(fn,out_fn,last_bytes,last_bytes_len, ...
+          num_expected,pkt_counter,min_num_expected,max_num_expected, ...
+          default_num_expected,num_header_fields,length_field_offset);
+      else
+        [hdr,last_bytes_len,num_expected,pkt_counter] = arena_packet_strip_mex(fn,out_fn,last_bytes,last_bytes_len, ...
+          num_expected,pkt_counter,min_num_expected,max_num_expected, ...
+          default_num_expected,num_header_fields,length_field_offset);
+      end
       
       %% Write header output file
       if strcmpi(mat_or_bin_hdr_output,'.mat')
@@ -218,7 +241,8 @@ for config_idx = 1:length(configs)
           pps_cntr_latch = double(hdr(8,:));
           
           save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
-            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch');
+            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
+            'last_bytes','last_bytes_len','num_expected','pkt_counter');
           
         elseif strcmpi(configs(config_idx).radar_name,'KUSnow')
           offset = mod(hdr(1,:),2^32);
@@ -231,7 +255,8 @@ for config_idx = 1:length(configs)
           pps_cntr_latch = double(hdr(8,:));
           
           save(out_hdr_fn, 'offset','mode_latch','subchannel','wg_delay_latch', ...
-            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch');
+            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
+            'last_bytes','last_bytes_len','num_expected','pkt_counter');
           
         elseif strcmpi(configs(config_idx).radar_name,'TOHFSounder')
           offset = mod(hdr(1,:),2^32);
@@ -244,7 +269,8 @@ for config_idx = 1:length(configs)
           pps_cntr_latch = double(hdr(8,:));
           
           save(out_hdr_fn, 'offset','mode_latch','subchannel','encoder', ...
-            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch');
+            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
+            'last_bytes','last_bytes_len','num_expected','pkt_counter');
           
         elseif strcmpi(configs(config_idx).radar_name,'DopplerScat')
           offset = mod(hdr(1,:),2^32);
@@ -258,7 +284,8 @@ for config_idx = 1:length(configs)
           pps_cntr_latch = double(hdr(8,:));
           
           save(out_hdr_fn, 'offset','mode_latch','decimation_ratio','num_pulses_burst','encoder', ...
-            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch');
+            'rel_time_cntr_latch','profile_cntr_latch','pps_ftime_cntr_latch','pps_cntr_latch', ...
+            'last_bytes','last_bytes_len','num_expected','pkt_counter');
         end
         
         if 0
@@ -358,7 +385,11 @@ for config_idx = 1:length(configs)
     oparams{end}.records.file.start_idx(board_idx) = 1;
     oparams{end}.records.file.stop_idx(board_idx) = length(configs(config_idx).fns{board_idx});
   end
-  oparams{end}.records.file.base_dir = ct_filename_ct_tmp(param,'','headers','');
+  if strcmpi(configs(config_idx).datastream_type,'tcp')
+    oparams{end}.records.file.base_dir = base_dir;
+  else
+    oparams{end}.records.file.base_dir = ct_filename_ct_tmp(param,'','headers','');
+  end
   oparams{end}.records.file.board_folder_name = param.config.board_folder_name;
   if ~isnan(str2double(oparams{end}.records.file.board_folder_name))
     oparams{end}.records.file.board_folder_name = ['/' oparams{end}.records.file.board_folder_name];

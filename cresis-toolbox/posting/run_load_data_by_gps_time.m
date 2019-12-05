@@ -497,6 +497,7 @@ for param_idx = 1:length(params)
   echo_param.num_x_tics = 4;
   echo_param.frm_id = '';
   
+  lay = [];
   lay.GPS_time = ds.GPS_time;
   lay.Elevation = ds.Elevation;
       

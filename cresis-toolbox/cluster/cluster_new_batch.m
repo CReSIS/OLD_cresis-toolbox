@@ -145,6 +145,10 @@ if ~isfield(ctrl.cluster,'mcc_delete_output') || isempty(ctrl.cluster.mcc_delete
   ctrl.cluster.mcc_delete_output = false;
 end
 
+if ~isfield(ctrl.cluster,'ppn_fixed') || isempty(ctrl.cluster.ppn_fixed)
+  ctrl.cluster.ppn_fixed = [];
+end
+
 if ~isfield(ctrl.cluster,'qsub_submit_arguments') || isempty(ctrl.cluster.qsub_submit_arguments)
   % -m n: no mail
   % -l nodes=1:ppn=%p: 1 compute node and %p core/processors on the node.
@@ -187,7 +191,7 @@ if ~isfield(ctrl.cluster,'type') || isempty(ctrl.cluster.type)
 end
 if any(strcmpi(ctrl.cluster.type,{'slurm','torque'}))
   % Ensure matlab compiled file has execute permissions
-  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'rwx','a');
+  [status,msg] = fileattrib(ctrl.cluster.cluster_job_fn,'+x','a');
 end
   
 %% Return if this ctrl already existed

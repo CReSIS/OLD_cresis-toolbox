@@ -7,6 +7,7 @@
 // Strips data out of network packet headers from Remote Sensing Solutions
 // Arena ADC/DAQ files and stores data records into separate output file.
 // Data record byte offset and headers are extracted and returned.
+// This program reads UDP data streams as opposed to TCP data streams.
 //
 // Assumptions:
 // 1. Files are <2^31 bytes so the 32 bit integer can be used for record offsets
@@ -255,7 +256,7 @@ mexFunction( int nlhs,
     if (*pkt_counter == -1)
     {
       // First time calling
-      mexPrintf("%d: Found sync (%d)\n", __LINE__, *pkt_counter, new_pkt_counter);
+      mexPrintf("%d: Found sync (%d)\n", __LINE__, new_pkt_counter);
       *num_expected = -1;
     }
     else if (new_pkt_counter != (*pkt_counter)+1)

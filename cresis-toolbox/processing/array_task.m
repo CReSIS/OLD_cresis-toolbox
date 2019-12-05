@@ -170,7 +170,7 @@ for img = 1:length(param.array.imgs)
               if dTsys ~= 0
                 % Positive dTsys means Tsys > Tsys_old and we should reduce the
                 % time delay to all targets by dTsys.
-                sar_data.(data_field_name) = ifft(fft(sar_data.(data_field_name)) .* exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys));
+                sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name)),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)));
               end
               
               % Concatenate data (resample in fast-time if needed since
@@ -315,7 +315,7 @@ for img = 1:length(param.array.imgs)
               if dTsys ~= 0
                 % Positive dTsys means Tsys > Tsys_old and we should reduce the
                 % time delay to all targets by dTsys.
-                sar_data.(data_field_name) = ifft(fft(sar_data.(data_field_name)) .* exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys));
+                sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name)),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)));
               end
               
               % Concatenate data (resample in fast-time if needed since
@@ -640,13 +640,13 @@ for img = 1:length(param.array.imgs)
   end
   if ~param.array.tomo_en
     % Do not save tomographic 3D-image
-    save('-v7.3',array_fn,'Data','Latitude','Longitude','Elevation','GPS_time', ...
+    ct_save('-v7.3',array_fn,'Data','Latitude','Longitude','Elevation','GPS_time', ...
       'Surface','Bottom','Time','param_array','param_records', ...
       'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
   else
     % Save tomographic 3D-image
     Tomo = dout.tomo;
-    save('-v7.3',array_fn,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
+    ct_save('-v7.3',array_fn,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
       'Surface','Bottom','Time','param_array','param_records', ...
       'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
   end

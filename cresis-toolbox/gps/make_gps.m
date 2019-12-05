@@ -207,7 +207,8 @@ for file_idx = 1:length(in_fns)
   end
   
   if isempty(gps.gps_time)
-    error('No GPS data loaded, isempty(gps.gps_time) == true.\n');
+    file_list_str = sprintf('  %s\n', in_fn{:});
+    error('No GPS data loaded, isempty(gps.gps_time) == true for files:\n%s', file_list_str);
   end
   
   %% Remove records with NaN
@@ -449,6 +450,7 @@ for file_idx = 1:length(in_fns)
 
   %% Save output file
   fprintf('Output file %s\n', out_fn);
+  gps.file_version = '1';
   if sync_flag{file_idx}
     % Add the Radar Synchronization variables for mcrds, accum2, acords,
     % arena
@@ -464,12 +466,12 @@ for file_idx = 1:length(in_fns)
     end
 
     if isfield(gps,'radar_time')
-      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','radar_time','sw_version','file_version');
     else
-      save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version');
+      ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sync_gps_time','sync_lat','sync_lon','sync_elev','comp_time','sw_version','file_version');
     end
   else
-    save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version');
+    ct_save(out_fn,'-v7.3','-STRUCT','gps','gps_time','lat','lon','elev','roll','pitch','heading','gps_source','sw_version','file_version');
   end
   
   if debug_level >= 2

@@ -19,7 +19,8 @@ function fn = ct_filename_support(param,fn,type,generic_data_flag)
 %   path)
 % type = string containing the type of data (e.g. vectors, gps, records,
 %   frames, radar_config)
-% generic_data_flag = if enabled, the radar name and segment are excluded
+% generic_data_flag = if enabled, the radar name and segment are excluded.
+%   This field is optional. Default is false.
 %
 % Author: John Paden
 %

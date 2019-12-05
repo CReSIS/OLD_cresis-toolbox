@@ -55,7 +55,8 @@ function leap_sec = utc_leap_seconds(time)
 % Author: John Paden
 %
 % See also epoch_to_datenum.m, datenum_to_epoch.m, epoch_to_gps_sow.m,
-%   epoch_to_sod.m, gps_sow_to_epoch.m, utc_leap_seconds.m
+%   epoch_to_sod.m, sod_to_epoch.m, gps_sow_to_epoch.m, utc_leap_seconds.m,
+%   gps_to_utc.m, utc_to_gps.m
 
 time = epoch_to_datenum(time);
 

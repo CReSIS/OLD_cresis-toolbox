@@ -87,7 +87,7 @@ classdef (HandleCompatible = true) create_frames < handle
           if ~exist(frames_fn_dir,'dir')
             mkdir(frames_fn_dir);
           end
-          save(frames_fn,'-v7.3','frames','file_version');
+          ct_save(frames_fn,'-v7.3','frames','file_version');
         end
         delete(obj);
         return;
@@ -550,7 +550,7 @@ classdef (HandleCompatible = true) create_frames < handle
       ct_file_lock_check(frames_fn,3);
       fprintf('Saving %s\n', frames_fn);
       frames = obj.frames;
-      save(frames_fn,'-v7.3','frames','file_version');
+      ct_save(frames_fn,'-v7.3','frames','file_version');
       
     end
     

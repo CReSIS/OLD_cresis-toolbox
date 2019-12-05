@@ -16,13 +16,13 @@ function [proj,h_fig] = plot_geotiff(geotiff_fn, lat, lon, h_fig, varargin)
 %  h_fig: figure handle
 %
 % Examples:
-%   geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/greenland/Landsat-7/mzl7geo_90m_lzw.tif';
+%   geotiff_fn = ct_filename_gis('greenland/Landsat-7/mzl7geo_90m_lzw.tif');
 %   plot_geotiff(geotiff_fn);
 %
-%   geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/greenland/surface_velocity/Joughin_Velocity_2011/mosaicOffsets_magnitude.tif';
+%   geotiff_fn = ct_filename_gis('world/NaturalEarth/NE2_HR_LC_SR_W_DR.tif');
 %   plot_geotiff(geotiff_fn);
 %
-%   geotiff_fn = '/cresis/snfs1/dataproducts/GIS_data/antarctica/Landsat-7/Antarctica_LIMA_480m.tif';
+%   geotiff_fn = ct_filename_gis('antarctica/Landsat-7/Antarctica_LIMA_480m.tif');
 %   plot_geotiff(geotiff_fn,Latitude,Longitude,'b-');
 %
 % Author: John Paden
@@ -31,14 +31,27 @@ function [proj,h_fig] = plot_geotiff(geotiff_fn, lat, lon, h_fig, varargin)
 proj = geotiffinfo(geotiff_fn);
 
 % Read the image
-[RGB, R, tmp] = geotiffread(geotiff_fn);
+switch lower(proj.ColorType)
+  case {'indexed'}
+    [X, CMAP, R] = geotiffread(geotiff_fn);
+    error('Not supported.');
+  otherwise
+    [RGB, R, tmp] = geotiffread(geotiff_fn);
+end
+switch lower(proj.ModelType)
+  case {'modeltypeprojected'}
+    R = R/1e3; % Convert to km
+  case {'modeltypegeographic'}
+    R = R; % lat/lon in degrees
+  otherwise
+    error('Not supported.');
+end
 if size(RGB,3) == 3 && strcmp(class(RGB),'uint16') && max(RGB(:)) <= 255
   RGB = uint8(RGB);
 end
 if strcmpi(class(RGB),'int16') || strcmpi(class(RGB),'single')
   RGB = double(RGB);
 end
-R = R/1e3;
 
 if ~exist('h_fig','var') || isempty(h_fig)
   h_fig = figure;
@@ -67,9 +80,15 @@ end
 set(h_axes,'YDir','normal');
 
 if exist('lat','var') && ~isempty(lat)
-  [X,Y] = projfwd(proj,lat,lon);
-  X = X/1e3;
-  Y = Y/1e3;
+  switch lower(proj.ModelType)
+    case {'ModelTypeProjected'}
+      [X,Y] = projfwd(proj,lat,lon);
+      X = X/1e3;
+      Y = Y/1e3;
+    case {'ModelTypeGeographic'}
+      X = lon;
+      Y = lat;
+  end
   cur_hold = ishold(h_axes);
   hold(h_axes,'on');
   plot(h_axes,X,Y,varargin{:});

@@ -60,7 +60,6 @@ for point_id_idx = 1:length(args{2})
     point_idxs(end+1) = new_point;
   end
 end
-
 %% Apply insert
 obj.eg.layer.y{layer_idx}(point_idxs) = args{3}(point_id_mask);
 obj.eg.layer.type{layer_idx}(point_idxs) = args{4}(point_id_mask);

@@ -51,16 +51,20 @@ else
     gps_t = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,x,'linear','extrap');
     % get x and y positions
     try
-      xpos = interp1(obj.eg.map_gps_time,obj.eg.map_x*1e3,gps_t,'linear','extrap');
-      ypos = interp1(obj.eg.map_gps_time,obj.eg.map_y*1e3,gps_t,'linear','extrap');
+      xpos = interp1(obj.eg.map_gps_time,obj.eg.map_x*obj.eg.map.scale,gps_t,'linear','extrap');
+      ypos = interp1(obj.eg.map_gps_time,obj.eg.map_y*obj.eg.map.scale,gps_t,'linear','extrap');
     catch ME
       warning(sprintf('Duplicate values in map''s GPS time, should be addressed (%s)',obj.eg.cur_sel.day_seg));
       [unique_gps unique_idxs] = unique(obj.eg.map_gps_time);
-      xpos = interp1(unique_gps,obj.eg.map_x(unique_idxs)*1e3,gps_t,'linear','extrap');
-      ypos = interp1(unique_gps,obj.eg.map_y(unique_idxs)*1e3,gps_t,'linear','extrap');
+      xpos = interp1(unique_gps,obj.eg.map_x(unique_idxs)*obj.eg.map.scale,gps_t,'linear','extrap');
+      ypos = interp1(unique_gps,obj.eg.map_y(unique_idxs)*obj.eg.map.scale,gps_t,'linear','extrap');
     end
     loc = obj.eg.cur_sel.location;
-    [lat,lon] = projinv(obj.eg.projmat,xpos,ypos);
+    if obj.eg.map.source == 1
+      [lat,lon] = google_map.world_to_latlon(xpos,256-ypos);
+    else
+      [lat,lon] = projinv(obj.eg.proj,xpos,ypos);
+    end
     yaxis_unit = get(obj.left_panel.yaxisPM,'Value');
     switch yaxis_unit
       case 1

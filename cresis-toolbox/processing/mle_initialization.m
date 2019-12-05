@@ -41,11 +41,8 @@ function out = mle_initialization(DCM,param)
 % =========================================================================
 physical_constants
 
-if ~isfield(param,'sv_fh')
-  sv_fh = @array_proc_sv; 
-end
 k = 4*pi*param.fc/c;
-M = param.M;
+M = param.Nsrc;
 
 if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
   %% Perform N-dimensional grid search
@@ -91,7 +88,7 @@ if isfield(param,'search_type') && strcmpi(param.search_type,'grid')
       % Evaluate cost function
       Nsv2{1} = 'theta';
       Nsv2{2} = theta.';
-      [~,A] = sv_fh(Nsv2,param.fc,param.y_pc,param.z_pc);
+      [~,A] = array_proc_sv(Nsv2,param.fc,param.y_pc,param.z_pc);
 %       A = sqrt(1/length(param.y_pc)) * exp(1i*k*(-param.z_pc*cos(theta).' + param.y_pc*sin(theta).'));
       Pa  = A * inv(A'*A) * A';
       if  param.doa_seq && param.apriori.en
@@ -203,7 +200,7 @@ else
           & param.theta <= out(old_src_idx,1)+param.theta_guard);
       end
       search_theta = param.theta(mask);
-      if isempty(search_theta) == 0
+      if isempty(search_theta)
         error('No valid search_theta, but looking for another source. Consider reducing the theta_guard, increasing src_limits, or reducing the model order.');
       end
       

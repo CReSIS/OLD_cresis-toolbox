@@ -47,7 +47,7 @@ if (obj.control_pressed || (but == 4 && ~obj.zoom_mode)) && click_in_axis % cont
   if but == 3
     % ===================================================================
     % Ctrl + Normal click: Select closest frame
-    obj.update_map_selection(struct('x',x,'y',y));
+    obj.get_closest_frame(struct('x',x,'y',y));
     
   elseif but == 4
     % ===================================================================
@@ -94,18 +94,12 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
         x_min, x_max, y_min, y_max);
       
       % query the new map view area, then draw it
-      if obj.isGoogle
-        % zoom_in_out = 1 since it's zoom in
-        obj.googleObj.zoom_in_out = 1;
-        obj.redraw_google_map(x_min, x_max, y_min, y_max)
-      else
-        obj.query_redraw_map(x_min,x_max,y_min,y_max);
-      end
+      obj.query_redraw_map(x_min,x_max,y_min,y_max);
     elseif x == obj.click_x && y == obj.click_y && click_in_axis
       if ~obj.zoom_mode
         % ===================================================================
         % Normal click: Select closest frame
-        obj.update_map_selection(struct('x',x,'y',y));
+        obj.get_closest_frame(struct('x',x,'y',y));
       else
         % zoom on click
         % get updated x and y axis
@@ -117,27 +111,21 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
         new_xaxis = [obj.click_x - x_extent/4, obj.click_x + x_extent/4];
         new_yaxis = [obj.click_y - y_extent/4, obj.click_y + y_extent/4];
         
-        if new_yaxis(1) < obj.full_yaxis(1)
-          new_yaxis(1) = obj.full_yaxis(1);
+        if new_yaxis(1) < obj.map.yaxis_default(1)
+          new_yaxis(1) = obj.map.yaxis_default(1);
         end
-        if new_yaxis(end) > obj.full_yaxis(end)
-          new_yaxis(end) = obj.full_yaxis(end);
+        if new_yaxis(end) > obj.map.yaxis_default(end)
+          new_yaxis(end) = obj.map.yaxis_default(end);
         end
-        if new_xaxis(1) < obj.full_xaxis(1)
-          new_xaxis(1) = obj.full_xaxis(1);
+        if new_xaxis(1) < obj.map.xaxis_default(1)
+          new_xaxis(1) = obj.map.xaxis_default(1);
         end
-        if new_xaxis(end) > obj.full_xaxis(end)
-          new_xaxis(end) = obj.full_xaxis(end);
+        if new_xaxis(end) > obj.map.xaxis_default(end)
+          new_xaxis(end) = obj.map.xaxis_default(end);
         end
         
         % get a new map for these limits
-        if obj.isGoogle
-          % zoom_in_out = 1 since it's zoom in
-          obj.googleObj.zoom_in_out = 1;
-          obj.redraw_google_map(x, x, y, y);
-        else
-          obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
-        end
+        obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
       end
     end
     
@@ -155,36 +143,28 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
     new_xaxis = [obj.click_x - 1.0*x_extent, obj.click_x + 1.0*x_extent];
     new_yaxis = [obj.click_y - 1.0*y_extent, obj.click_y + 1.0*y_extent];
     
-    if new_yaxis(1) < obj.full_yaxis(1)
-      new_yaxis(1) = obj.full_yaxis(1);
+    if new_yaxis(1) < obj.map.yaxis_default(1)
+      new_yaxis(1) = obj.map.yaxis_default(1);
     end
-    if new_yaxis(end) > obj.full_yaxis(end)
-      new_yaxis(end) = obj.full_yaxis(end);
+    if new_yaxis(end) > obj.map.yaxis_default(end)
+      new_yaxis(end) = obj.map.yaxis_default(end);
     end
-    if new_xaxis(1) < obj.full_xaxis(1)
-      new_xaxis(1) = obj.full_xaxis(1);
+    if new_xaxis(1) < obj.map.xaxis_default(1)
+      new_xaxis(1) = obj.map.xaxis_default(1);
     end
-    if new_xaxis(end) > obj.full_xaxis(end)
-      new_xaxis(end) = obj.full_xaxis(end);
+    if new_xaxis(end) > obj.map.xaxis_default(end)
+      new_xaxis(end) = obj.map.xaxis_default(end);
     end
     
     % get a new map for these limits
-    if obj.isGoogle
-      % zoom_in_out = -1 since it's zoom out
-      obj.googleObj.zoom_in_out = -1;
-      obj.redraw_google_map(x, x, y, y);
-    else
-      obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
-    end
+    obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));
   elseif but == 4 && click_in_axis
     % ===================================================================
     % Double click: Zoom reset
     % Ctrl + double click: Select closest frame and load
     
-    new_yaxis(1) = obj.full_yaxis(1);
-    new_yaxis(2) = obj.full_yaxis(end);
-    new_xaxis(1) = obj.full_xaxis(1);
-    new_xaxis(2) = obj.full_xaxis(end);
+    new_yaxis = obj.map.yaxis_default;
+    new_xaxis = obj.map.xaxis_default;
     
     % get a new map for these limits
     obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));

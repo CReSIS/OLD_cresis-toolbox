@@ -4,15 +4,28 @@ function get_map(obj,hObj,event)
 % This is the callback function which is called when the preference
 % window "OK" button is pressed and the prefwin "StateChange" event occurs.
 
-%% Check if Google Map is/was selected
-obj.isGoogle = false;
-if strcmpi('Google', obj.map_pref.settings.mapname)
-  obj.isGoogle = true;
+%% Determine map source
+if strcmp('google_map', obj.map_pref.settings.map_name)
+  obj.map.source = 1;
+  obj.map.scale = 1;
+elseif strcmp('blank_map', obj.map_pref.settings.map_name)
+  % blank map selected
+  obj.map.source = 2;
+  obj.map.scale = 1e3;
+else
+  % OPS map selected
+  obj.map.source = 0;
+  obj.map.scale = 1e3;
 end
+obj.map.proj = imb.get_proj_info(obj.map_pref.settings.map_zone);
 
-wasGoogle = false;
-if strcmpi('Google', obj.cur_map_pref_settings.mapname)
-  wasGoogle = true;
+%% Determine flight line source
+if strcmp('OPS',obj.map_pref.settings.flightlines(1:3))
+  % OPS flight line source
+  obj.map.fline_source = 0;
+else
+  % Season layer data source
+  obj.map.fline_source = 1;
 end
 
 %% Check which settings have changed
@@ -33,10 +46,10 @@ else
   end
 end
 
-if ~strcmpi(obj.cur_map_pref_settings.mapname,obj.map_pref.settings.mapname)
-  mapname_changed = true;
+if ~strcmpi(obj.cur_map_pref_settings.map_name,obj.map_pref.settings.map_name)
+  map_name_changed = true;
 else
-  mapname_changed = false;
+  map_name_changed = false;
 end
 
 if ~strcmpi(obj.cur_map_pref_settings.flightlines,obj.map_pref.settings.flightlines)
@@ -45,20 +58,21 @@ else
   flightlines_changed = false;
 end
 
-if ~strcmpi(obj.cur_map_pref_settings.mapzone,obj.map_pref.settings.mapzone)
-  mapzone_changed = true;
+if ~strcmpi(obj.cur_map_pref_settings.map_zone,obj.map_pref.settings.map_zone)
+  map_zone_changed = true;
 else
-  mapzone_changed = false;
+  map_zone_changed = false;
 end
 
-if ~system_changed && ~seasons_changed && ~mapname_changed && ~mapzone_changed && ~flightlines_changed
-  % get_map only needs to update source and layers potentially
+if ~system_changed && ~seasons_changed && ~map_name_changed && ~map_zone_changed && ~flightlines_changed
+  % get_map at most only needs to update echogram sources, layers, layer
+  % source, and/or layerdata source
   obj.cur_map_pref_settings.sources = obj.map_pref.settings.sources;
   obj.cur_map_pref_settings.layers = obj.map_pref.settings.layers;
-  %
-  %   obj.cur_map_pref_settings.LayerSource = obj.map_pref.settings.LayerSource;
-  %   obj.cur_map_pref_settings.layerDataSource = obj.map_pref.settings.layerDataSource;
-  %
+  obj.cur_map_pref_settings.layer_source = obj.map_pref.settings.layer_source;
+  obj.cur_map_pref_settings.layer_data_source = obj.map_pref.settings.layer_data_source;
+  figure(obj.h_fig);
+  obj.save_default_params();
   return;
 end
 
@@ -68,282 +82,260 @@ obj.cur_map_pref_settings = obj.map_pref.settings;
 %% Update map selection (also called at startup)
 % =================================================================
 flightlines = obj.cur_map_pref_settings.flightlines;
-map_name = obj.cur_map_pref_settings.mapname;
-map_zone = obj.cur_map_pref_settings.mapzone;
-fprintf('Loading and plotting map %s (%s)\n', map_name, datestr(now,'HH:MM:SS'));
+map_name = obj.cur_map_pref_settings.map_name;
+map_zone = obj.cur_map_pref_settings.map_zone;
+fprintf('Loading and plotting map %s:%s (%s)\n', map_zone, map_name, datestr(now,'HH:MM:SS'));
 
-opsCmd;
+if obj.map.source == 0 || obj.map.fline_source == 0
+  opsCmd;
+  
+  if obj.map.fline_source == 0
+    %% Create season and group ID strings for OPS flightline requests
+    
+    % 1. create seasons viewparam
+    if ~isempty(obj.cur_map_pref_settings.seasons)
+      season_names = obj.cur_map_pref_settings.seasons;
+      
+      % convert season_names to a string for concatenation
+      for sidx = 1:size(season_names,2)
+        if sidx < size(season_names,2) && size(season_names,2) ~= 1
+          season_names{sidx}=['''' season_names{sidx} '''%5C,'];
+        else
+          season_names{sidx}=['''' season_names{sidx} ''''];
+        end
+      end
+      season_names = cell2mat(season_names);
+      obj.ops.seasons_as_string = season_names;
+      obj.ops.seasons_modrequest = strcat('season_name:',season_names,';');
+    else
+      obj.ops.seasons_modrequest = '';
+      obj.ops.seasons_as_string = '';
+    end
+    
+    % 2. create season_group_ids viewparam
+    if ~isempty(obj.map_pref.ops.profile)
+      eval(sprintf('season_group_ids = obj.map_pref.ops.profile.%s_season_group_ids'';',obj.cur_map_pref_settings.system))
+      
+      if isempty(season_group_ids)
+        season_group_ids = {'1'};
+      end
+      
+      % convert season_group_ids to a string for concatenation
+      for sidx = 1:size(season_group_ids,2)
+        if sidx < size(season_group_ids,2) && size(season_group_ids,2) ~= 1
+          season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) '%5C,'];
+        else
+          season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) ''];
+        end
+      end
+      season_group_ids = cell2mat(season_group_ids);
+      obj.ops.season_group_ids_as_string = season_group_ids;
+      obj.ops.season_group_ids_modrequest = strcat('season_group_ids:',season_group_ids);
+      
+    else
+      obj.ops.season_group_ids_modrequest = '';
+      obj.ops.season_group_ids_as_string = '1';
+    end
+  end
+  
+end
 
-if (obj.isGoogle == 0)
+if obj.map.source == 0
+  %% Setup OPS map and flightlines for OPS maps
   
-  % CONNECT TO THE WMS SERVER AND GET A LAYER OBJECT
-  wms = WebMapServer(sprintf('%s%s/wms/',gOps.geoServerUrl,map_zone));
-  cpbs = wms.getCapabilities();
-  layer = cpbs.Layer;
-  
-  % REFINE THE LAYER BASED ON THE ACTIVE SELECTIONS
-  if strcmpi(flightlines,'Regular Flightlines') && ~isempty(layer.refine('line_paths'))
-    layers = [];
-    % ADD THE LINE PATH LAYER
-    layers = cat(2,layers,layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system)));
-    % ADD THE BACKGROUND LAYER
-    layers = cat(2,layers,layer.refine(map_name,'matchType','exact'));
-    layer = layers.';
-  elseif strcmpi(flightlines,'Quality Flightlines') && ~isempty(layer.refine('data_quality'))
-    layers = [];
-    % ADD THE QUALITY LAYER
-    layers = cat(2,layers,layer.refine(sprintf('%s_%s_data_quality',map_zone,obj.cur_map_pref_settings.system)));
-    % ADD THE BACKGROUND LAYER
-    layers = cat(2,layers,layer.refine(map_name,'matchType','exact'));
-    layer = layers.';
-  elseif strcmpi(flightlines,'Coverage Flightlines') && ~isempty(layer.refine('data_coverage'))
-    layers = [];
-    % ADD THE COVERAGE LAYER
-    layers = cat(2,layers,layer.refine(sprintf('%s_%s_data_coverage',map_zone,obj.cur_map_pref_settings.system)));
-    % ADD THE BACKGROUND LAYER
-    layers = cat(2,layers,layer.refine(map_name,'matchType','exact'));
-    layer = layers.';
-  elseif strcmpi(flightlines,'Crossover Errors') && ~isempty(layer.refine('crossover_errors'))
-    layers = [];
-    % ADD THE Crossr Errors LAYER
-    layers = cat(2,layers,layer.refine(sprintf('%s_%s_crossover_errors',map_zone,obj.cur_map_pref_settings.system)));
-    % ADD THE LINE PATH LAYER
-    layers = cat(2,layers,layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system)));
-    % ADD THE BACKGROUND LAYER
-    layers = cat(2,layers,layer.refine(map_name,'matchType','exact'));
-    layer = layers.';
-  elseif strcmpi(flightlines,'Bed Elevation') && ~isempty(layer.refine('data_elevation'))
-    layers = [];
-    % ADD THE Elevation LAYER
-    layers = cat(2,layers,layer.refine(sprintf('%s_%s_data_elevation',map_zone,obj.cur_map_pref_settings.system)));
-    % ADD THE BACKGROUND LAYER
-    layers = cat(2,layers,layer.refine(map_name,'matchType','exact'));
-    layer = layers.';
-  else
-    % JUST ADD THE BACKGROUND LAYER
-    layer = layer.refine(map_name,'matchType','exact').';
-  end
-  
-  request = WMSMapRequest(layer);
-  if strcmp(map_zone,'arctic')
-    request.CoordRefSysCode = 'EPSG:3413';
-    % SET THE START-UP DEFAULT BOUNDING BOX
-    bb_x = [-1500000 1500000];
-    bb_y = [-4000000 0];
-    obj.full_xaxis = bb_x/1e3;
-    obj.full_yaxis = bb_y/1e3;
-  else
-    request.CoordRefSysCode = 'EPSG:3031';
-    % SET THE START-UP DEFAULT BOUNDING BOX
-    bb_x = [-3400000 3400000];
-    bb_y = [-3400000 3400000];
-    obj.full_xaxis = bb_x/1e3;
-    obj.full_yaxis = bb_y/1e3;
-  end
-  
-  %% Get the bounding box
-  % BoundingBox contains xlim and ylim for all valid coordinate systems
-  % this loop finds the limits for only the relevant EPSG coordinate system
-  % and also ensures that both the map and the flightlines are fully
-  % displayed
-  % for idx1 = 1:length(layer)
-  %   for idx = 1:length(layer(idx1).Details.BoundingBox)
-  %     if strcmp(layer(idx1).Details.BoundingBox(idx).CoordRefSysCode,...
-  %         request.CoordRefSysCode)
-  %       sz(idx1,1:2) = layer(idx1).Details.BoundingBox(idx).XLim;
-  %       sz(idx1,3:4) = layer(idx1).Details.BoundingBox(idx).YLim;
-  %       break;
-  %     end
-  %   end
-  % end
-  % bb_x = [min(sz(:,1)) max(sz(:,2))];
-  % bb_y = [min(sz(:,3)) max(sz(:,4))];
-  % obj.full_xaxis = bb_x/1e3;
-  % obj.full_yaxis = bb_y/1e3;
-  
-  %% Set the limits for the new map
-  if mapzone_changed
-    request.XLim = obj.full_xaxis*1e3;
-    request.YLim = obj.full_yaxis*1e3;
-  elseif (~mapzone_changed && wasGoogle)
-    request.XLim = obj.full_xaxis*1e3;
-    request.YLim = obj.full_yaxis*1e3;
-  else
-    request.XLim = get(obj.map_panel.h_axes,'XLim')*1e3;
-    request.YLim = get(obj.map_panel.h_axes,'YLim')*1e3;
-  end
-  
-  %% Fix the aspect ratio of the limits to fit properly in our window
-  old_u = get(obj.map_panel.h_axes,'units');
-  set(obj.map_panel.h_axes,'Units','pixels')
-  PixelBounds = round(get(obj.map_panel.h_axes,'Position'));
-  set(obj.map_panel.h_axes,'Position',PixelBounds);
-  set(obj.map_panel.h_axes,'units',old_u);
-  
-  height = round((PixelBounds(4))*1 - 0);
-  width = round((PixelBounds(3))*1 - 0);
-  aspect_ratio = height/width;
-  
-  if aspect_ratio*diff(request.XLim) > diff(request.YLim)
-    growth = aspect_ratio*diff(request.XLim) - diff(request.YLim);
-    request.YLim(1) = request.YLim(1) - growth/2;
-    request.YLim(2) = request.YLim(2) + growth/2;
-  elseif aspect_ratio*diff(request.XLim) < diff(request.YLim)
-    growth = diff(request.YLim)/aspect_ratio - diff(request.XLim);
-    request.XLim(1) = request.XLim(1) - growth/2;
-    request.XLim(2) = request.XLim(2) + growth/2;
-  end
-  request.ImageHeight =  height;
-  request.ImageWidth  = width;
-  request.ImageFormat = 'image/jpeg';
-  
-  %% Store data about the request in class object for use in other functions
-  obj.proj = regexp(request.CoordRefSysCode,'\d+','match');
-  obj.proj = str2double(obj.proj{1});
-  obj.wms = wms;
-  obj.cur_request = request;
-  obj.map.projmat = imb.get_proj_info(map_zone);
-  
-  %% Make WMS Request
-  
-  modrequest = strcat(request.RequestURL,'&viewparams=');
-  
-  % create seasons viewparam
-  if ~isempty(obj.cur_map_pref_settings.seasons)
-    season_names = obj.cur_map_pref_settings.seasons;
-    
-    % convert season_names to a string for concatenation
-    for sidx = 1:size(season_names,2)
-      if sidx < size(season_names,2) && size(season_names,2) ~= 1
-        season_names{sidx}=['''' season_names{sidx} '''%5C,'];
-      else
-        season_names{sidx}=['''' season_names{sidx} ''''];
-      end
-    end
-    season_names = cell2mat(season_names);
-    obj.seasons_as_string = season_names;
-    obj.seasons_modrequest = strcat('season_name:',season_names,';');
-  else
-    obj.seasons_modrequest = '';
-    obj.seasons_as_string = '';
-  end
-  
-  % create season_group_ids viewparam
-  if ~isempty(obj.map_pref.profile)
-    eval(sprintf('season_group_ids = obj.map_pref.profile.%s_season_group_ids'';',obj.cur_map_pref_settings.system))
-    
-    if isempty(season_group_ids)
-      season_group_ids = {'1'};
-    end
-    
-    % convert season_group_ids to a string for concatenation
-    for sidx = 1:size(season_group_ids,2)
-      if sidx < size(season_group_ids,2) && size(season_group_ids,2) ~= 1
-        season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) '%5C,'];
-      else
-        season_group_ids{sidx}=['' int2str(season_group_ids{sidx}) ''];
-      end
-    end
-    season_group_ids = cell2mat(season_group_ids);
-    obj.season_group_ids_as_string = season_group_ids;
-    obj.season_group_ids_modrequest = strcat('season_group_ids:',season_group_ids);
-    
-  else
-    obj.season_group_ids_modrequest = '';
-    obj.season_group_ids_as_string = '1';
-  end
-  
-  % build modified request
-  modrequest = strcat(modrequest,obj.seasons_modrequest,obj.season_group_ids_modrequest);
-  
-  % make and post-process request
-  A = wms.getMap(modrequest);
-  R = request.RasterRef;
-  R = R/1e3;
-  
-  xaxis = R(3,1) + [0 size(A,2)*R(2,1)];
-  yaxis = R(3,2) + [0 size(A,1)*R(1,2)];
-  
+  % Update axes labels
   xlabel(obj.map_panel.h_axes,'X (km)');
   ylabel(obj.map_panel.h_axes,'Y (km)');
   
-else
+  % Rename to layer for readability
+  layer = obj.map_pref.ops.wms_capabilities.Layer;
   
-  %% If Google map is selected
+  % Setup OPS map
+  wms_map_layer = layer.refine(map_name,'matchType','exact');
   
-  % Get the Google map
-  A = get_google_map(obj);
-  
-  % Flip the array. In Google Maps, the axes start out from the top left
-  % corner so the y axis is actually flipped along the x axis.
-  A = flipud(A);
-  
-  % Bring the figure into focus
-  figure(obj.h_fig);
-  
-  % Set the end points of the axis
-  obj.full_xaxis = [obj.googleObj.bottom_left_wc_x obj.googleObj.bottom_right_wc_x];
-  obj.full_yaxis = [obj.googleObj.bottom_left_wc_y obj.googleObj.top_left_wc_y];
-  xaxis = obj.full_xaxis;
-  yaxis = obj.full_yaxis;
-  
-  % Update label
-  xlabel(obj.map_panel.h_axes,'X (World Coordinates)');
-  ylabel(obj.map_panel.h_axes,'Y (World Coordinates)');
-end
-
-old_u = get(obj.map_panel.h_axes,'units');
-set(obj.map_panel.h_axes,'Units','pixels')
-PixelBounds = round(get(obj.map_panel.h_axes,'Position'));
-set(obj.map_panel.h_axes,'Position',PixelBounds);
-set(obj.map_panel.h_axes,'units',old_u);
-figure(obj.h_fig);
-
-set(obj.map_panel.h_image,'XData', xaxis, ...
-  'YData', yaxis, ...
-  'CData', A, ...
-  'Visible', 'on');
-
-if(obj.isGoogle == 1)
-  
-  % Load map in the figure
-  set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
-    'Ylim', sort(yaxis([1 end])), ...
-    'YDir', 'reverse', ...
-    'Visible', 'on');
-  
-  %% Plot flightlines
-  
-  % Get children
-  flightline_plot = get(gca,'Children');
-  
-  % Delete existing lines
-  for graphics_obj_idx = 1:length(flightline_plot)
-    if(isgraphics(flightline_plot(graphics_obj_idx), 'line'))
-      delete(flightline_plot(graphics_obj_idx));
+  % Setup OPS flightlines if enabled
+  wms_flightline_layer = [];
+  if obj.map.fline_source == 0
+    % Setup OPS flightlines
+    if strcmpi(flightlines,'OPS Flightlines') && ~isempty(layer.refine('line_paths'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Quality Flightlines') && ~isempty(layer.refine('data_quality'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Coverage Flightlines') && ~isempty(layer.refine('data_coverage'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Crossover Errors') && ~isempty(layer.refine('crossover_errors'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Bed Elevation') && ~isempty(layer.refine('data_elevation'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
     end
+    
+    % Get request
+    obj.ops.request = WMSMapRequest([wms_flightline_layer wms_map_layer]);
+  else
+    obj.ops.request = WMSMapRequest(wms_map_layer);
   end
   
-  % Load world coordinates of points 
-  [wc_xs, wc_ys, frms] = get_world_coordinates(obj);
+  % Set projection code and default map bounds
+  if strcmp(map_zone,'arctic')
+    obj.ops.request.CoordRefSysCode = 'EPSG:3413';
+    obj.map.xaxis_default = [-1500000 1500000]/1e3;
+    obj.map.yaxis_default = [-4000000 0]/1e3;
+  else
+    obj.ops.request.CoordRefSysCode = 'EPSG:3031';
+    obj.map.xaxis_default = [-3400000 3400000]/1e3;
+    obj.map.yaxis_default = [-3400000 3400000]/1e3;
+  end
   
-  % Plot line and set tag
-  flightline_plot(1) = plot(0,0, '.', 'color', 'r');
-  set(flightline_plot(1), 'Tag', 'seg');
-  flightline_plot(2) = plot(wc_xs,wc_ys, '-', 'color', 'b');
-  set(flightline_plot(2), 'Tag', 'plot');
-else
-  set(obj.map_panel.h_axes, 'Xlim', sort(xaxis([1 end])), ...
-    'Ylim', sort(yaxis([1 end])), ...
-    'YDir', 'normal', ...
-    'Visible', 'on');
+elseif obj.map.source == 1
+  %% Get Map: Google
+  
+  % Setup the Google map
+  if isempty(obj.google.map)
+    obj.google.map = google_map();
+  end
+  
+  % Update axes labels
+  xlabel(obj.map_panel.h_axes,'Lon (deg)');
+  ylabel(obj.map_panel.h_axes,'Lat (approx. deg)');
+  
+  wms_flightline_layer = [];
+  if obj.map.fline_source == 0
+    % Rename to layer for readability
+    layer = obj.map_pref.ops.wms_capabilities.Layer;
+    % Setup OPS flightlines
+    if strcmpi(flightlines,'OPS Flightlines') && ~isempty(layer.refine('line_paths'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Quality Flightlines') && ~isempty(layer.refine('data_quality'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Coverage Flightlines') && ~isempty(layer.refine('data_coverage'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Crossover Errors') && ~isempty(layer.refine('crossover_errors'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Bed Elevation') && ~isempty(layer.refine('data_elevation'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation_google',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    end
+    
+    % Get request
+    obj.ops.request = WMSMapRequest(wms_flightline_layer);
+    % Set projection code
+  else
+    obj.ops.request = [];
+  end
+  
+  obj.ops.request.CoordRefSysCode = 'EPSG:3857';
+  % Set default map bounds
+  if strcmp(map_zone,'arctic')
+    obj.map.xaxis_default = [-1500000 1500000]/1e3;
+    obj.map.yaxis_default = [-4000000 0]/1e3;
+  else
+    obj.map.xaxis_default = [-3400000 3400000]/1e3;
+    obj.map.yaxis_default = [-3400000 3400000]/1e3;
+  end
+  if strcmp(map_zone,'arctic')
+    [obj.map.xaxis_default(1),obj.map.xaxis_default(2),obj.map.yaxis_default(1),obj.map.yaxis_default(2)] ...
+      = google_map.greenland();
+  else
+    [obj.map.xaxis_default(1),obj.map.xaxis_default(2),obj.map.yaxis_default(1),obj.map.yaxis_default(2)] ...
+      = google_map.antarctica();
+  end
+  obj.map.yaxis_default = sort(256-obj.map.yaxis_default);
+  
+elseif obj.map.source == 2
+  %% Setup blank map and flightlines for OPS maps
+  
+  % Update axes labels
+  xlabel(obj.map_panel.h_axes,'X (km)');
+  ylabel(obj.map_panel.h_axes,'Y (km)');
+  
+  % Setup OPS flightlines if enabled
+  wms_flightline_layer = [];
+  if obj.map.fline_source == 0
+    % Rename to layer for readability
+    layer = obj.map_pref.ops.wms_capabilities.Layer;
+    % Setup OPS flightlines
+    if strcmpi(flightlines,'OPS Flightlines') && ~isempty(layer.refine('line_paths'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_line_paths',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Quality Flightlines') && ~isempty(layer.refine('data_quality'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_quality',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Coverage Flightlines') && ~isempty(layer.refine('data_coverage'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_coverage',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Crossover Errors') && ~isempty(layer.refine('crossover_errors'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_crossover_errors',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    elseif strcmpi(flightlines,'OPS Bed Elevation') && ~isempty(layer.refine('data_elevation'))
+      wms_flightline_layer = layer.refine(sprintf('%s_%s_data_elevation',map_zone,obj.cur_map_pref_settings.system),'MatchType','exact');
+    end
+    
+    % Get request
+    obj.ops.request = WMSMapRequest(wms_flightline_layer);
+  else
+    obj.ops.request = [];
+  end
+  
+  % Set projection code and default map bounds
+  if strcmp(map_zone,'arctic')
+    obj.ops.request.CoordRefSysCode = 'EPSG:3413';
+    obj.map.xaxis_default = [-1500000 1500000]/1e3;
+    obj.map.yaxis_default = [-4000000 0]/1e3;
+  else
+    obj.ops.request.CoordRefSysCode = 'EPSG:3031';
+    obj.map.xaxis_default = [-3400000 3400000]/1e3;
+    obj.map.yaxis_default = [-3400000 3400000]/1e3;
+  end
 end
 
-zoom on; zoom off;
+if obj.map.fline_source == 1
+  
+  %% Plot flightlines
+  obj.layerdata.x = [];
+  obj.layerdata.y = [];
+  obj.layerdata.frms = [];
+  obj.layerdata.season_idx = [];
+  
+  % Looping through the seasons
+  layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer','');
+  for season_idx = 1:length(obj.cur_map_pref_settings.seasons)
+    %Loading the season layerdata files
+    layer_fn_name = sprintf('layer_%s_%s.mat', obj.cur_map_pref_settings.map_zone, obj.cur_map_pref_settings.seasons{season_idx});
+    layer_fn = fullfile(layer_fn_dir,layer_fn_name);
+    S = load(layer_fn);
+    if obj.map.source == 1
+      [x,y] = google_map.latlon_to_world(S.lat, S.lon); y = 256-y;
+    else
+      [x,y] = projfwd(obj.map.proj, S.lat, S.lon);
+    end
+    x = x/obj.map.scale; y = y/obj.map.scale;
+    obj.layerdata.x = [obj.layerdata.x x];
+    obj.layerdata.y = [obj.layerdata.y y];
+    obj.layerdata.frms = [obj.layerdata.frms S.frm];
+    obj.layerdata.season_idx = [obj.layerdata.season_idx season_idx*ones(size(obj.layerdata.x))];
+    
+    % Plot flight lines
+    set(obj.map_panel.h_flightline,'XData',obj.layerdata.x,'YData',obj.layerdata.y);
+  end
+  
+else
+    set(obj.map_panel.h_flightline,'XData',NaN,'YData',NaN);
+end
+
+% Turn map axes on if this is the first time a map is being loaded
+set(obj.map_panel.h_axes,'Visible', 'on');
+set(obj.map_panel.h_image,'Visible', 'on');
+
+% Set map bounds to default if this is the first time a map is being loaded
+% or if the projection changed
+if isempty(obj.map.xaxis) || ~strcmpi(obj.ops.request.CoordRefSysCode,obj.map.CoordRefSysCode)
+  obj.map.xaxis = obj.map.xaxis_default;
+  obj.map.yaxis = obj.map.yaxis_default;
+  obj.map.CoordRefSysCode = obj.ops.request.CoordRefSysCode;
+end
+
+obj.query_redraw_map(obj.map.xaxis(1),obj.map.xaxis(end),obj.map.yaxis(1),obj.map.yaxis(end));
 
 % Redraw table to ensure everything is the right size
 table_draw(obj.table);
 
-fprintf('  Done (%s)\n', datestr(now,'HH:MM:SS'));
+figure(obj.h_fig);
 
-return;
+obj.save_default_params();
+
+fprintf('  Done (%s)\n', datestr(now));

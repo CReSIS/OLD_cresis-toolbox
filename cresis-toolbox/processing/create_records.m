@@ -121,6 +121,12 @@ if ~exist(command_window_out_fn_dir,'dir')
 end
 diary(command_window_out_fn);
 
+
+if any(param.records.file.version == [9 10 103 412])
+  % Arena based systems
+  h_fig = get_figures(1,true);
+end
+
 %% Load headers from each board
 % =====================================================================
 clear board_hdrs;
@@ -187,11 +193,11 @@ for board_idx = 1:length(boards)
     % Get the temporary filename from the filename list
     file_num = file_idxs(file_idx);
     [~,fn_name] = fileparts(board_fns{board_idx}{file_num});
-    if any(param.records.file.version == [9 10 103 412])
-      % Update the filename to point to the packet stripped files
-      board_fns{board_idx}{file_num} = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
-        fullfile(adc_folder_name, [fn_name '.dat']));
-    end
+%     if any(param.records.file.version == [9 10 103 412])
+%       % Update the filename to point to the packet stripped files
+%       board_fns{board_idx}{file_num} = ct_filename_ct_tmp(rmfield(param,'day_seg'),'','headers', ...
+%         fullfile(adc_folder_name, [fn_name '.dat']));
+%     end
     fn = board_fns{board_idx}{file_num};
     dir_info = dir(fn);
     
@@ -233,7 +239,7 @@ for board_idx = 1:length(boards)
     elseif any(param.records.file.version == [413 414])
       board_hdrs{board_idx}.gps_time(end+1:end+length(hdr_tmp.gps_time)) = hdr_tmp.gps_time;
       board_hdrs{board_idx}.file_idx(end+1:end+length(hdr_tmp.gps_time)) = file_num;
-      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.gps_time)) = 0;
+      board_hdrs{board_idx}.offset(end+1:end+length(hdr_tmp.gps_time)) = 1:length(hdr_tmp.gps_time);
       wfs = hdr_tmp.wfs;
       
     else
@@ -483,7 +489,7 @@ if param.records.frames.mode == 1
     autogenerate_frames(param,param_override);
   end
   obj = create_frames(param,param_override);
-elseif param.records.frames.mode == 2
+elseif param.records.frames.mode >= 2
   autogenerate_frames(param,param_override);
 end
 

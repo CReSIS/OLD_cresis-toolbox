@@ -26,13 +26,14 @@ if nargin == 0
   assignin('caller','errorstruct_exist_error',16);
   assignin('caller','errorstruct_contains_error',32);
   assignin('caller','success_error',64);
-  assignin('caller','cluster_killed_error',128);
-  assignin('caller','walltime_exceeded_error',256);
+  assignin('caller','file_success_error',128);
+  assignin('caller','file_success_corrupt_error',256);
   assignin('caller','success_eval_error',512);
-  assignin('caller','file_success_error',1024);
-  assignin('caller','file_success_corrupt_error',2048);
+  assignin('caller','cluster_killed_error',1024);
+  assignin('caller','walltime_exceeded_error',2048);
   assignin('caller','max_mem_exceeded_error',4096);
   assignin('caller','insufficient_mcr_space',8192);
+  assignin('caller','critical_error',2^10-1);
   
 elseif error_mask == 0
   fprintf('No errors\n');

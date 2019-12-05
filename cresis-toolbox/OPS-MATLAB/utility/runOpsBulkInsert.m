@@ -35,7 +35,7 @@ settings.runType = 4;
 
 % ----------------------------------------------------------------
 % paramFn: FILENAME.xls OF EXCEL CReSIS PARAMS SHEET
-settings.paramFn = 'rds_param_2017_Antarctica_Basler.xls';
+settings.paramFn = 'rds_param_2018_Antarctica_DC8.xls';
 
 % ----------------------------------------------------------------
 % location: LOCATION NAME ('arctic' OR 'antarctic')

@@ -306,7 +306,7 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
     surf_param.qlook.surf.threshold_rel_max = -9;
     surf_param.qlook.surf.max_rng = [0 0];
     surf_param.qlook.surf.en = true;
-    surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time,'Latitude',lat,'Longitude',lon,'Elevation',elev);
+    surf_param.layer_tracker.echogram_source = struct('Data',ml_data,'Time',time,'GPS_time',gps_time(ref_wf_adc_idx,:),'Latitude',lat(ref_wf_adc_idx,:),'Longitude',lon(ref_wf_adc_idx,:),'Elevation',elev(ref_wf_adc_idx,:));
     surf_bin = layer_tracker(surf_param,[]);
     surf_bin = round(interp1(time,1:length(time),surf_bin));
     surf_bin = surf_bin + 1;
@@ -326,10 +326,11 @@ for img_lists_idx = 1:length(param.collate_equal.img_lists)
   if any(strcmp('surf',param.collate_equal.debug_plots))
     clf(h_fig(1));
     h_axes = axes('parent',h_fig(1));
-    imagesc(lp(ml_data),'parent',h_axes);
-    colormap(h_axes,1-gray(256));
-    hold(h_axes,'on');
-    plot(h_axes, surf_bin);
+    imagesc(lp(ml_data),'parent',h_axes(1));
+    colormap(h_axes(1),1-gray(256));
+    hold(h_axes(1),'on');
+    plot(h_axes(1), surf_bin);
+    title(h_axes(1), sprintf('Ensure surface is correct for rlines %d to %d', param.collate_equal.rlines([1 end])));
     
     if param.collate_equal.retrack_en
       % Check to make sure surface is flat

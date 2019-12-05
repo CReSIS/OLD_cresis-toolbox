@@ -2,14 +2,24 @@ function load_layers_init(obj)
 % echowin.load_layers_init(obj)
 %
 % Load layer information from database and update layer plot handles
-
-for idx = 1:length(obj.eg.layer_id)
-  obj.eg.layer.x{idx} = double(obj.eg.map_gps_time); % gps-time
-  obj.eg.layer.y{idx} = NaN*zeros(size(obj.eg.map_id)); % twtt
-  obj.eg.layer.qual{idx} = NaN*zeros(size(obj.eg.map_id)); % integer 1-3
-  obj.eg.layer.type{idx} = NaN*zeros(size(obj.eg.map_id)); % this is either 1 (manual) or 2 (auto)
+ %% OPS: Preallocating layer arrays
+if strcmpi(obj.eg.layer_source,'OPS')
+  for idx = 1:length(obj.eg.layer_id)
+    obj.eg.layer.x{idx} = double(obj.eg.map_gps_time); % gps-time
+    obj.eg.layer.y{idx} = NaN*zeros(size(obj.eg.map_id)); % twtt
+    obj.eg.layer.qual{idx} = NaN*zeros(size(obj.eg.map_id)); % integer 1-3
+    obj.eg.layer.type{idx} = NaN*zeros(size(obj.eg.map_id)); % this is either 1 (manual) or 2 (auto)
+  end
+  
+  %% LayerData: Preallocating layer arrays
+else
+  for idx = 1:length(obj.eg.layer_id)
+      obj.eg.layer.x{idx} = []; %gps time
+      obj.eg.layer.y{idx} = []; % twtt
+      obj.eg.layer.qual{idx} = []; % integer 1-3
+      obj.eg.layer.type{idx} = []; % this is either 1 (manual) or 2 (auto)
+  end
 end
-
 %% Plot layers
 delete(obj.layer_h);
 delete(obj.quality_h);

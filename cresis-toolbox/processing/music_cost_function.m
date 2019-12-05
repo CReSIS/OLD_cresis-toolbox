@@ -8,7 +8,7 @@ function S = music_cost_function(theta, param)
 %   theta = 1 x 1 scalar where pseudospectrum is to be evaluated
 % 
 %   param = control structure containing the following fields:
-%     .Nsig   = 1 x 1 scalar specifying dimensionality of signal subspace,
+%     .Nsrc   = 1 x 1 scalar specifying dimensionality of signal subspace,
 %     .Rxx    = Nc x Nc complex valued sample covariance matrix,
 %     .fc     = 1 x 1 scalar valued carrier frequency (Hz)
 %     .y_pc   = Nc x 1 vector containing y coordinates of phase centers
@@ -42,7 +42,7 @@ SV = sqrt(1/length(param.y_pc))*exp(1i*(-param.z_pc*kz + param.y_pc*ky));
 [V,D]     = eig(param.Rxx);
 eigenVals = diag(D);
 [eigenVals, noiseIdxs] = sort(eigenVals);
-noiseIdxs = noiseIdxs(1:end - param.Nsig);
+noiseIdxs = noiseIdxs(1:end - param.Nsrc);
 Qn        = V(:,noiseIdxs);
 S         = mean(abs(SV(:,:)' * Qn).^2,2);
 S         = sum(S);

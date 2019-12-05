@@ -15,6 +15,7 @@ classdef selectionbox < handle
     h_list_selectedCM
     fh_available
     fh_selected
+    enable_mode
   end
   
   properties (SetAccess = private, GetAccess = private)
@@ -26,11 +27,8 @@ classdef selectionbox < handle
   
   methods
     function obj = selectionbox(parent,name,list_values,init_value)
-      %%% Pre Initialization %%%
-      % Any code not using output argument (obj)
-      
-      %%% Post Initialization %%%
-      % Any code, including access to object
+      % List boxes start enabled by default
+      obj.enable_mode = true;
       
       obj.h_text = uicontrol('Parent',parent);
       set(obj.h_text,'Style','Text');
@@ -50,12 +48,12 @@ classdef selectionbox < handle
       set(obj.h_list_selected,'Max',1e9);
       set(obj.h_list_selected,'Callback',@obj.list_callback);
 
-      obj.h_list_availableCM = uicontextmenu;
+      obj.h_list_availableCM = uicontextmenu('Parent',parent);
       % Define the context menu items and install their callbacks
       uimenu(obj.h_list_availableCM, 'Label', 'Add', 'Callback', @obj.add_callback);
       set(obj.h_list_available,'uicontextmenu',obj.h_list_availableCM)
       
-      obj.h_list_selectedCM = uicontextmenu;
+      obj.h_list_selectedCM = uicontextmenu('Parent',parent);
       % Define the context menu items and install their callbacks
       uimenu(obj.h_list_selectedCM, 'Label', 'Remove', 'Callback', @obj.remove_callback);
       set(obj.h_list_selected,'uicontextmenu',obj.h_list_selectedCM)
@@ -150,6 +148,67 @@ classdef selectionbox < handle
       vals = get(obj.h_list_selected,'string');
     end
     
+    function set_list(obj, vals)
+      % val = cell vector of character strings
+      %
+      % If items in val already exist in either available or selected then
+      % they will stay in that listbox, items not in val are removed, new
+      % items from val are placed in available.
+      
+      vals = sort(vals);
+      
+      available_values = get(obj.h_list_available,'value');
+      available_list = get(obj.h_list_available,'string');
+      if ~isempty(available_list)
+        available_highlighted = available_list(available_values);
+      else
+        available_highlighted = {};
+      end
+      
+      selected_values = get(obj.h_list_selected,'value');
+      selected_list = get(obj.h_list_selected,'string');
+      if ~isempty(selected_list)
+        selected_highlighted = selected_list(selected_values);
+      else
+        selected_highlighted = {};
+      end
+      
+      selected_list = intersect(vals,selected_list);
+      available_list = intersect(vals,available_list);
+      new_available_list = setdiff(vals,[available_list(:); selected_list(:)]);
+      available_list = [available_list(:); new_available_list(:)];
+      available_list = sort(available_list);
+      set(obj.h_list_available,'string',available_list);
+      set(obj.h_list_selected,'string',selected_list);
+      
+      available_values = [];
+      available_highlighted_mask = false(size(available_highlighted));
+      for idx = 1:length(available_highlighted)
+        match_idx = find(strcmp(available_highlighted{idx},available_list),1);
+        if ~isempty(match_idx)
+          available_values(end+1) = match_idx;
+          available_highlighted_mask(idx) = true;
+        end
+      end
+      
+      selected_values = [];
+      selected_highlighted_mask = false(size(selected_highlighted));
+      for idx = 1:length(selected_highlighted)
+        match_idx = find(strcmp(selected_highlighted{idx},selected_list),1);
+        if ~isempty(match_idx)
+          selected_values(end+1) = match_idx;
+          selected_highlighted_mask(idx) = true;
+        end
+      end
+      
+      set(obj.h_list_available,'value',available_values);
+      set(obj.h_list_selected,'value',selected_values);
+      
+      if any(~available_highlighted_mask) || any(~selected_highlighted_mask)
+        notify(obj,'selection_changed');
+      end
+    end
+    
     function set_available(obj, vals)
       % val = cell vector of character strings (resets selectionbox)
       if ~isempty(vals)
@@ -218,6 +277,23 @@ classdef selectionbox < handle
       
       if selection_changed
         notify(obj,'selection_changed');
+      end
+    end
+    
+    function set_enable(obj,enable_mode)
+      if obj.enable_mode ~= enable_mode
+        obj.enable_mode = enable_mode;
+        if obj.enable_mode
+          set(obj.h_list_available,'Enable','on');
+          set(obj.h_list_selected,'Enable','on');
+          set(obj.h_list_available,'uicontextmenu',obj.h_list_availableCM);
+          set(obj.h_list_selected,'uicontextmenu',obj.h_list_selectedCM);
+        else
+          set(obj.h_list_available,'Enable','off');
+          set(obj.h_list_selected,'Enable','off');
+          set(obj.h_list_available,'uicontextmenu',[]);
+          set(obj.h_list_selected,'uicontextmenu',[]);
+        end
       end
     end
     

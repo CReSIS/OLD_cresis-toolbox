@@ -11,13 +11,13 @@ y_extent = diff(yaxis);
 
 switch dir
   case 'u'
-    outside_limits = abs(diff([yaxis(end) obj.full_yaxis(end)])) <= y_extent*0.05;
+    outside_limits = abs(diff([yaxis(end) obj.map.yaxis_default(end)])) <= y_extent*0.05;
   case 'd'
-    outside_limits = abs(diff([yaxis(1) obj.full_yaxis(1)])) <= y_extent*0.05;
+    outside_limits = abs(diff([yaxis(1) obj.map.yaxis_default(1)])) <= y_extent*0.05;
   case 'l'
-    outside_limits = abs(diff([xaxis(1) obj.full_xaxis(1)])) <= x_extent*0.05;
+    outside_limits = abs(diff([xaxis(1) obj.map.xaxis_default(1)])) <= x_extent*0.05;
   case 'r'
-    outside_limits = abs(diff([xaxis(end) obj.full_xaxis(end)])) <= x_extent*0.05;
+    outside_limits = abs(diff([xaxis(end) obj.map.xaxis_default(end)])) <= x_extent*0.05;
 end
 
 return;

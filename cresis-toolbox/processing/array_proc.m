@@ -158,17 +158,17 @@ end
 param.array.bin_rng = -max(param.array.bin_rng):max(param.array.bin_rng);
 
 % .dbin
-%   Number of range-bins to decimate by on output, default is
-%   round((length(param.array.bin_rng)-1)/2). This is without subbanding.
+%   Number of range-bins to decimate by on output, default is 1.
+%   This is without subbanding.
 if ~isfield(param.array,'dbin') || isempty(param.array.dbin)
-  param.array.dbin = round(length(param.array.bin_rng)/2);
+  param.array.dbin = 1;
 end
 
 % .dline:
 %   Number of range-lines to decimate by on output, default is
 %   round((length(param.array.line_rng)-1)/2)
 if ~isfield(param.array,'dline') || isempty(param.array.dline)
-  error('param.array.dline must be specified.')
+  param.array.dline = round(length(param.array.line_rng)/2);
 end
 
 % .diag_load:
@@ -306,6 +306,14 @@ if isempty(param.array.method)
   error('No valid method selected in param.array.method');
 end
 
+% .last_fprintf_time_delay
+%   The maximum amount of time in seconds since the last fprintf statement
+%   was made. This is used to print out the progress. The default is 60
+%   seconds.
+if ~isfield(param.array,'last_fprintf_time_delay') || isempty(param.array.last_fprintf_time_delay)
+  param.array.last_fprintf_time_delay = 60;
+end
+
 % .line_rng:
 %   Range of range-lines to use for snapshots, default is -5:5. line_rng is
 %   forced to be symmetrical about 0 and only contain integers.
@@ -385,14 +393,13 @@ end
 %   Steering vectors align with these spatial frequencies:
 %     ifftshift(-floor(Nsv/2):floor((Nsv-1)/2))
 if isfield(param.array,'theta') && ~isempty(param.array.theta)
-  Nsv = length(param.array.theta);
+  param.array.Nsv = length(param.array.theta);
   theta = param.array.theta/180*pi; % Theta input in degrees
 else
   if ~isfield(param.array,'Nsv') || isempty(param.array.Nsv)
     param.array.Nsv = 1;
   end
-  Nsv = param.array.Nsv;
-  theta = fftshift(param.array.sv_fh(Nsv, 1));
+  theta = fftshift(param.array.sv_fh(param.array.Nsv, 1));
 end
 
 % .Nsubband:
@@ -478,6 +485,10 @@ Nb = size(din{1},4);
 
 % Nc: Number of cross-track channels in the din
 Nc = size(din{1},5);
+
+if ~isfield(param,'array_proc') || isempty(param.array_proc)
+  param.array_proc = [];
+end
 
 % .bin_restriction:
 %   .start_bin: 1 by Nx vector of the start range-bin
@@ -733,15 +744,17 @@ end
 % =========================================================================
 % Loop through each output range line and then through each output range
 % bin for that range line.
+last_fprintf_time = -inf;
+last_fprintf_time_bin = -inf;
 for line_idx = 1:1:Nx_out
   %% Array: Setup
   rline = cfg.lines(line_idx);
-%   if ~mod(line_idx-1,10^floor(log10(Nx_out)-1))
-%     fprintf('    Record %.0f (%.0f of %.0f) (%s)\n', rline, line_idx, ...
-%       Nx_out, datestr(now));
-%   end
-  fprintf('    Record %.0f (%.0f of %.0f) (%s)\n', rline, line_idx, ...
+  if now > last_fprintf_time+param.array.last_fprintf_time_delay/86400
+    fprintf('    Record %.0f (%.0f of %.0f) bin start (%s)\n', rline, line_idx, ...
       Nx_out, datestr(now));
+    last_fprintf_time = now;
+    last_fprintf_time_bin = now;
+  end
     
   % Bring the range-bin index stored in layerData vector (at the nadir DOA bin)
   nn = 15; % Number of range-bins before the initial that S-MAP starts from
@@ -877,6 +890,11 @@ for line_idx = 1:1:Nx_out
   for bin_idx = bin_idxs(:).'
     %% Array: Array Process Each Bin
     bin = cfg.bins(bin_idx);
+    if now > last_fprintf_time_bin+2*param.array.last_fprintf_time_delay/86400
+      fprintf('      Record %.0f (%.0f of %.0f) bin %d of %d (%s)\n', rline, line_idx, ...
+        Nx_out, bin_idx, length(bin_idxs), datestr(now));
+      last_fprintf_time_bin = now;
+    end
     % Handle the case when the data covariance matrix support pixels and
     % pixel neighborhood multilooking do not match. Note that this is only
     % supported for MVDR.
@@ -1017,7 +1035,7 @@ for line_idx = 1:1:Nx_out
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
         
         if isempty(sv)
-          Sarray.music(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,Nsv);
+          Sarray.music(:,bin_idx) = pmusic(dataSample,cfg.Nsrc,param.array.Nsv);
         else
           Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
           [V,D] = eig(Rxx);
@@ -2246,17 +2264,17 @@ for line_idx = 1:1:Nx_out
       
       if 0
         %% Array MLE: DEBUG code for bin restriction
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
-        hist_poly = polyfit(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),2);
-        plot(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),'.');
-        hist_val = polyval(hist_poly,hist_bins);
-        hold on;
-        plot(hist_bins, hist_val,'r');
-        hold off;
-        
-        hist_bins = dout.bin_restriction.start_bin(rline)+(150:1700).';
-        hist3([ hist_bins, tout.tomo.mle.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
-        set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
+%         hist_poly = polyfit(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),2);
+%         plot(hist_bins,tout.tomo.mle.theta(hist_bins,line_idx-1),'.');
+%         hist_val = polyval(hist_poly,hist_bins);
+%         hold on;
+%         plot(hist_bins, hist_val,'r');
+%         hold off;
+%         
+%         hist_bins = dout.bin_restriction.start_bin(rline)+(150:1700).';
+%         hist3([ hist_bins, tout.tomo.mle.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
+%         set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
       end
       
       
@@ -2478,17 +2496,17 @@ for line_idx = 1:1:Nx_out
       
       if 0
         %% Array DCM: DEBUG code for bin restriction
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
-        hist_poly = polyfit(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),2);
-        plot(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),'.');
-        hist_val = polyval(hist_poly,hist_bins);
-        hold on;
-        plot(hist_bins, hist_val,'r');
-        hold off;
-        
-        hist_bins = cfg.bin_restriction.start_bin(rline)+(150:1700).';
-        hist3([ hist_bins, tout.tomo.dcm.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
-        set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:700).';
+%         hist_poly = polyfit(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),2);
+%         plot(hist_bins,tout.tomo.dcm.theta(hist_bins,line_idx-1),'.');
+%         hist_val = polyval(hist_poly,hist_bins);
+%         hold on;
+%         plot(hist_bins, hist_val,'r');
+%         hold off;
+%         
+%         hist_bins = cfg.bin_restriction.start_bin(rline)+(150:1700).';
+%         hist3([ hist_bins, tout.tomo.dcm.theta(hist_bins,line_idx-1)],[round(length(hist_bins)/20) 30])
+%         set(get(gca,'child'),'FaceColor','interp','CDataMode','auto');
       end
       
       if 0
@@ -2741,7 +2759,7 @@ for line_idx = 1:1:Nx_out
   for idx = 1:length(cfg.method)
     if cfg.method(idx) < DOA_METHOD_THRESHOLD
       m = array_proc_method_str(cfg.method(idx));
-      Sarray.(m) = reshape(Sarray.(m),Nsv,Nt_out);
+      Sarray.(m) = reshape(Sarray.(m),param.array.Nsv,Nt_out);
     end
   end
   
@@ -2877,35 +2895,35 @@ end
 if 0
   % Plot uniform pdf: example for slice 520 ice-bottom
   % Gaussian
-  mu = [-8.6940    8.2419]*pi/180;
-  sigma = [3.2998    3.5102]*pi/180;
-  lb = [-15.2936    6.2552]*pi/180;
-  ub = [-6.8524   15.2624]*pi/180;
-  
-  % Uniform
-  mu = [-11.62  11.35]*pi/180;
-  sigma = [90  90]*pi/180;
-  lb = [-14.4  10.07]*pi/180;
-  ub = [-10.39  14.13]*pi/180;
-  
-  doa_i = 2;
-  theta_test = linspace(lb(doa_i),ub(doa_i),101);
-%   theta_test = linspace(-pi/2,pi/2,101);  
-  
-  [vv,i] = min(abs(theta_test-mu(doa_i)));
-
-  f_Gaussian = normpdf(theta_test,mu(doa_i),sigma(doa_i));
-%   f_Gaussian = 1/sqrt(2*pi*sigma(doa_i)^2) * exp( -1/2*((theta_test - mu(doa_i)).^2)./(sigma(doa_i)^2) );
-  f_Gaussian([1 end]) = 0;
-
-  figure;
-  plot([theta_test(1)-1*pi/180 theta_test theta_test(end)+1*pi/180]*180/pi,[0 f_Gaussian 0],'-b','LineWidth',1.5)
-  hold on
-  plot(mu(doa_i)*180/pi,f_Gaussian(i),'xr','LineWidth',2,'LineWidth',1.5)
-%   xlim([theta_test(1) theta_test(end)]*180/pi)
-  
-  grid on
-  xlabel('Elevation angle (deg)')
-  ylabel('f_{Gaussian}')
-  title('Ice-bottom - rbin#520 - Gaussian prior - Both DOAs')
+%   mu = [-8.6940    8.2419]*pi/180;
+%   sigma = [3.2998    3.5102]*pi/180;
+%   lb = [-15.2936    6.2552]*pi/180;
+%   ub = [-6.8524   15.2624]*pi/180;
+%   
+%   % Uniform
+%   mu = [-11.62  11.35]*pi/180;
+%   sigma = [90  90]*pi/180;
+%   lb = [-14.4  10.07]*pi/180;
+%   ub = [-10.39  14.13]*pi/180;
+%   
+%   doa_i = 2;
+%   theta_test = linspace(lb(doa_i),ub(doa_i),101);
+% %   theta_test = linspace(-pi/2,pi/2,101);  
+%   
+%   [vv,i] = min(abs(theta_test-mu(doa_i)));
+% 
+%   f_Gaussian = normpdf(theta_test,mu(doa_i),sigma(doa_i));
+% %   f_Gaussian = 1/sqrt(2*pi*sigma(doa_i)^2) * exp( -1/2*((theta_test - mu(doa_i)).^2)./(sigma(doa_i)^2) );
+%   f_Gaussian([1 end]) = 0;
+% 
+%   figure;
+%   plot([theta_test(1)-1*pi/180 theta_test theta_test(end)+1*pi/180]*180/pi,[0 f_Gaussian 0],'-b','LineWidth',1.5)
+%   hold on
+%   plot(mu(doa_i)*180/pi,f_Gaussian(i),'xr','LineWidth',2,'LineWidth',1.5)
+% %   xlim([theta_test(1) theta_test(end)]*180/pi)
+%   
+%   grid on
+%   xlabel('Elevation angle (deg)')
+%   ylabel('f_{Gaussian}')
+%   title('Ice-bottom - rbin#520 - Gaussian prior - Both DOAs')
 end
