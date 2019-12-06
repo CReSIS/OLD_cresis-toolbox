@@ -32,12 +32,12 @@ metadata = [];
 data = [];
 for passes_idx = 1: length(passes)
    param_fn = ct_filename_param(passes(passes_idx).param_fn); %gets filename
-   tmp_param = read_param_xls(param_fn,passes(passes_idx).day_seg); %reads parameter sheet for given pass
+   param_multipass = read_param_xls(param_fn,passes(passes_idx).day_seg); %reads parameter sheet for given pass
    if passes_idx == master_pass_idx
-     param = merge_structs(tmp_param,param);
+     param = merge_structs(param_multipass,param);
    end
-   tmp_param = merge_structs(tmp_param, param_override); %merges tmp_param and param_override into one struct
-   echo_fn_dir{passes_idx} = ct_filename_out(tmp_param, passes(passes_idx).in_path); %creates directory for pass, from given data format
+   param_multipass = merge_structs(param_multipass, param_override); %merges param_multipass and param_override into one struct
+   echo_fn_dir{passes_idx} = ct_filename_out(param_multipass, passes(passes_idx).in_path); %creates directory for pass, from given data format
    for frm_idx = 1:length(passes(passes_idx).frms) %loop for individual frame loading
       echo_fn_name{passes_idx} = sprintf('Data_%s_%03d.mat',passes(passes_idx).day_seg,passes(passes_idx).frms(frm_idx));
       echo_fn{passes_idx} = fullfile(echo_fn_dir{passes_idx},echo_fn_name{passes_idx}); %develops path for rds data to then load
@@ -47,7 +47,8 @@ for passes_idx = 1: length(passes)
         metadata{passes_idx} = struct('day_seg',passes(passes_idx).day_seg,...
           'frms',passes(passes_idx).frms,'param_records', tmp_data.param_records,...
           'param_sar',tmp_data.param_sar,'param_array',tmp_data.param_array,...
-          'time',tmp_data.Time); %creates tmp struct with given fields
+          'time',tmp_data.Time,'param_multipass',param_multipass); %creates tmp struct with given fields
+        
         data{passes_idx} = [];
         metadata{passes_idx}.gps_time = [];
         metadata{passes_idx}.lat = [];
@@ -191,7 +192,6 @@ for passes_idx = 1:length(passes)
         pass(end+1).direction = -1;
       end
       
-      pass(end).frms = passes(passes_idx).frms;
       pass(end).wf = 1;
       pass(end).data = data{passes_idx}(:,rlines);
       
@@ -206,6 +206,8 @@ for passes_idx = 1:length(passes)
       pass(end).wfs.time = metadata{passes_idx}.time;
       pass(end).param_records = metadata{passes_idx}.param_records;
       pass(end).param_sar = metadata{passes_idx}.param_sar;
+      pass(end).param_multipass = metadata{passes_idx}.param_multipass;
+      pass(end).param_multipass.cmd.frms = passes(passes_idx).frms;
       pass(end).surface = metadata{passes_idx}.surface(:,rlines);
       
       pass(end).x = metadata{passes_idx}.fcs.x(:,rlines);
@@ -216,7 +218,7 @@ for passes_idx = 1:length(passes)
     end
   end
   if no_passes_flag
-    warning('Frame %s_%03d has no passes.', metadata{passes_idx}.param_sar.day_seg, metadata{passes_idx}.frm);
+    warning('Frame %s_%03d has no passes. Closest distance from start %.0f m. Closest distance from stop %.0f m.', metadata{passes_idx}.param_sar.day_seg, metadata{passes_idx}.frms(1), min(dist), min(stop_dist));
   end
   
 end
