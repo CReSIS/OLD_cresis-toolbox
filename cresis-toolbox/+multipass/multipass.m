@@ -1,6 +1,13 @@
 
 param = [];
 
+%% Petermann Line 1 2011
+% if ispc
+%   fn = fullfile('X:\ct_data\rds\2011_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011.mat'));
+% else
+%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011'));
+% end
+
 %% Petermann Line 1 2014
 % if ispc
 %   fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2014.mat'));
@@ -15,21 +22,51 @@ param = [];
 %   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2018_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2018'));
 % end
 
-%% Petermann Line 1 2014, 2018
+%% Petermann Line 1 2011, 2014, 2018
+% if ispc
+%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2018.mat'));
+% else
+%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2018'));
+% end
+% 
+% param.multipass.rbins = [];
+% 
+% param.multipass.baseline_master_idx = 2;
+% param.multipass.master_idx = 2;
+% 
+% param.multipass.pass_en_mask = [];
+% param.multipass.output_fn_midfix = [];
+% param.multipass.coregistration_time_shift = [0 0 -2];
+ %% Petermann Line 4 2010, 2011, 2013, 2014
+% if ispc
+%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014.mat'));
+% else
+%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014'));
+% end
+% 
+% param.multipass.rbins = [];
+% 
+% param.multipass.baseline_master_idx = 2;
+% param.multipass.master_idx = 2;
+% 
+% param.multipass.pass_en_mask = [];
+% param.multipass.output_fn_midfix = [];
+% param.multipass.coregistration_time_shift = [0 0 -2];
+%% 79N Line 1 2014, 2016, 2018
 if ispc
-  param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2014_2018.mat'));
+  param.multipass.fn = fullfile('X:\ct_data\rds\2018_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2014_2016_2018.mat'));
 else
-  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2014_2018'));
+  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2018_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2014_2016_2018'));
 end
 
 param.multipass.rbins = [];
 
-param.multipass.baseline_master_idx = 1;
-param.multipass.master_idx = 1;
+param.multipass.baseline_master_idx = 2;
+param.multipass.master_idx = 2;
 
 param.multipass.pass_en_mask = [];
 param.multipass.output_fn_midfix = [];
-param.multipass.coregistration_time_shift = [0 -2];
+param.multipass.coregistration_time_shift = [0 0];
 
 %% Setup
 % =========================================================================
@@ -47,6 +84,25 @@ if ~isfield(param.multipass,'baseline_master_idx') || isempty(param.multipass.ba
   param.multipass.baseline_master_idx = 1;
 end
 baseline_master_idx = param.multipass.baseline_master_idx;
+
+if ~isfield(param.multipass,'layer') || isempty(param.multipass.layer)
+  param.multipass.layer = struct();
+end
+if length(param.multipass.layer) < 2
+  param.multipass.layer(2) = struct();
+end
+if ~isfield(param.multipass.layer(1),'name') || isempty(param.multipass.layer(1).name)
+  param.multipass.layer(1).name = 'surface';
+end
+if ~isfield(param.multipass.layer(1),'source') || isempty(param.multipass.layer(1).source)
+  param.multipass.layer(1).source = 'layerData';
+end
+if ~isfield(param.multipass.layer(2),'name') || isempty(param.multipass.layer(2).name)
+  param.multipass.layer(2).name = 'bottom';
+end
+if ~isfield(param.multipass.layer(1),'source') || isempty(param.multipass.layer(2).source)
+  param.multipass.layer(2).source = 'layerData';
+end
 
 if ~isfield(param.multipass,'master_idx') || isempty(param.multipass.master_idx)
   param.multipass.master_idx = 1;
@@ -91,6 +147,9 @@ rbins = param.multipass.rbins;
 if ~isfield(param.multipass,'coregistration_time_shift') || isempty(param.multipass.coregistration_time_shift)
   param.multipass.coregistration_time_shift = zeros(1,length(pass));
 end
+if length(param.multipass.coregistration_time_shift) < length(pass)
+  param.multipass.coregistration_time_shift(length(pass)) = 0;
+end
 coregistration_time_shift = param.multipass.coregistration_time_shift;
 
 %% Plot Results
@@ -116,6 +175,20 @@ for pass_idx = 1:length(pass)
     imagesc(lp(pass(pass_idx).data(rbins,:)))
     colormap(1-gray(256));
     h_data_axes(end+1) = gca;
+  
+    %% Pass: load layers
+    pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_multipass,param.multipass.layer);
+    % Interpolate all layers onto a common reference (ref)
+    for lay_idx = 1:length(pass(pass_idx).layers)
+      pass(pass_idx).layers(lay_idx).twtt ...
+        = interp_finite(interp1(pass(pass_idx).layers(lay_idx).gps_time, ...
+        pass(pass_idx).layers(lay_idx).twtt, ...
+        pass(pass_idx).gps_time,'linear'));
+      hold on;
+      layer_bins = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time,1:length(pass(pass_idx).wfs(pass(pass_idx).wf).time),pass(pass_idx).layers(lay_idx).twtt);
+      layer_bins = layer_bins - rbins(1)+1;
+      plot(layer_bins)
+    end
   end
   
   % Apply GPS time offset
@@ -191,7 +264,6 @@ end
 %% Pass
 data = [];
 for pass_idx = 1:length(pass)
-  
   %% Pass: position in ref coordinate system
   pass(pass_idx).ref_idx = zeros(1,size(pass(pass_idx).origin,2));
   last_idx = 0;
@@ -265,6 +337,10 @@ for pass_idx = 1:length(pass)
     pass(pass_idx).ref_y, along_track,'linear','extrap').';
   pass(pass_idx).ref_z = interp1(pass(pass_idx).along_track, ...
     pass(pass_idx).ref_z, along_track,'linear','extrap').';
+  for lay_idx = 1:length(pass(pass_idx).layers)
+    pass(pass_idx).layers(lay_idx).twtt_ref = interp1(pass(pass_idx).along_track, ...
+      pass(pass_idx).layers(lay_idx).twtt, along_track,'linear','extrap').';
+  end
   
   %% Pass: Apply fixed coregistration time shift
   Nt = size(pass(pass_idx).ref_data,1);
@@ -279,6 +355,9 @@ for pass_idx = 1:length(pass)
   else
     pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(pass_idx).wfs(pass(pass_idx).wf).time+dt, 'linear');
     pass(pass_idx).ref_data = interp_finite(pass(pass_idx).ref_data);
+    for lay_idx = 1:length(pass(pass_idx).layers)
+      pass(pass_idx).layers(lay_idx).twtt_ref = pass(pass_idx).layers(lay_idx).twtt_ref - dt;
+    end
   end
   
   %% Pass: Motion/slope compensation
@@ -311,6 +390,9 @@ for pass_idx = 1:length(pass)
         dt = pass(pass_idx).ref_z(rline)/(c/2);
         pass(pass_idx).ref_data(:,rline) = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data(:,rline), pass(pass_idx).wfs(pass(pass_idx).wf).time+dt, 'linear');
         pass(pass_idx).ref_data(:,rline) = interp_finite(pass(pass_idx).ref_data(:,rline));
+        for lay_idx = 1:length(pass(pass_idx).layers)
+          pass(pass_idx).layers(lay_idx).twtt_ref(rline) = pass(pass_idx).layers(lay_idx).twtt_ref(rline) - dt;
+        end
       end
     end
   elseif insar_mode == 3
@@ -431,8 +513,9 @@ for pass_out_idx = 1:length(pass_en_idxs)
       img = lp(data(rbins,:,pass_idx));
       
       elevation = pass(master_idx).elev;
-      time = pass(master_idx).wfs(pass(pass_idx).wf).time;
-      surface = pass(master_idx).surface;
+      time = pass(master_idx).wfs(pass(pass_idx).wf).time(rbins);
+      surface = pass(pass_idx).layers(1).twtt_ref(:).';
+      %surface = pass(master_idx).surface;
       elev_max = max(elevation - time(1)*c/2);
       elev_min = min(elevation - surface*c/2 - (time(end)-surface)*c/(sqrt(er_ice)*2));
       dt = time(2) - time(1);
@@ -451,17 +534,36 @@ for pass_out_idx = 1:length(pass_en_idxs)
           img(1:Nt,idx),elev_uniform,'linear');
       end
       warning('on','MATLAB:interp1:NaNinY')
+      pass(pass_idx).data_elev = img;
+      pass(pass_idx).data_elev_yaxis = elev_uniform;
       imagesc(pass(master_idx).along_track/1e3, elev_uniform, img);
       ylabel('Elevation (m, WGS-84)');
       xlabel('Along-track (km)');
       set(gca,'YDir','normal');
+      
+      % Convert layerPnts_y from TWTT to WGS_84 Elevation
+      elevation = pass(master_idx).elev;
+      surface = pass(pass_idx).layers(1).twtt_ref;
+      for lay_idx = 1:length(pass(pass_idx).layers)
+        layer_y_curUnit = pass(pass_idx).layers(lay_idx).twtt_ref;
+        for pnt_idx = 1:length(layer_y_curUnit)
+          range = min(layer_y_curUnit(pnt_idx),surface(pnt_idx))*c/2 ...
+            +max(0,layer_y_curUnit(pnt_idx)-surface(pnt_idx)) * c/(sqrt(er_ice)*2);
+          layer_y_curUnit(pnt_idx) = elevation(pnt_idx) - range;
+        end
+        layer_y_curUnit(isnan(pass(pass_idx).layers(lay_idx).twtt_ref)) = NaN;
+        pass(pass_idx).layers(lay_idx).layer_elev = layer_y_curUnit;
+        hold on;
+        plot(pass(master_idx).along_track/1e3, pass(pass_idx).layers(lay_idx).layer_elev);
+      end
+  
     else
       imagesc(lp(data(rbins,:,pass_idx)))
       ylabel('Range bin');
       xlabel('Range line');
     end
     colormap(1-gray(256));
-    title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).frms(1),pass(pass_idx).direction),'interpreter','none')
+    title(sprintf('%s_%03d %d',pass(pass_idx).param_sar.day_seg,pass(pass_idx).param_multipass.cmd.frms(1),pass(pass_idx).direction),'interpreter','none')
     %caxis([-90 8]);
   else
     % Form interferogram (couple options)
