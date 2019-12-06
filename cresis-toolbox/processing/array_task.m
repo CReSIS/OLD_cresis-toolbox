@@ -37,7 +37,15 @@ frames_fn = ct_filename_support(param,'','frames');
 load(frames_fn);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
-surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
+
+if strcmpi(param.array.surf_layer.source, 'surfData')
+  surf_dir = ct_filename_out(param,'','surfData_sar');
+    fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
+    fn = fullfile(surf_dir,fn_name);
+    surf_layer = tomo.surfdata(fn,param);
+else
+  surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
+end
 
 %% Process
 % =========================================================================
@@ -499,10 +507,22 @@ for img = 1:length(param.array.imgs)
     elseif length(surf_layer.gps_time) == 1;
       param.array_proc.surface = surf_layer.twtt*ones(size(param.array_proc.lines));
     else
-      param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
-        surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
+      
+      if strcmpi(param.array.surf_layer.source, 'surfData')
+        % source = 'surfData'
+        surf_index = surf_layer.get_index('top twtt');
+        theta_frm = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
+        gps_frm  = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
+        theta_chunk  = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
+        gps_chunk    = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
+        param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
+      else
+        % source = 'layerData'
+         param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
+            surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
+      end
     end
-  
+    
     % Perform incoherent averaging
     Hfilter2 = ones(length(param.array.bin_rng),length(param.array.line_rng));
     Hfilter2 = Hfilter2 / numel(Hfilter2);
@@ -586,8 +606,21 @@ for img = 1:length(param.array.imgs)
     elseif length(surf_layer.gps_time) == 1;
       param.array_proc.surface = surf_layer.twtt*ones(size(rlines));
     else
-      param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
-        surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
+      
+      if strcmpi(param.array.surf_layer.source,'surfData')
+        surf_index = surf_layer.get_index('top twtt');
+        theta_frm = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
+        gps_frm  = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
+        theta_chunk  = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
+        gps_chunk    = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
+        param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
+        param.array_proc.surface_theta = surf_layer.theta;
+      else
+        param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
+          surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
+        param.array_proc.surface_theta = 0;
+      end
+      
     end
     
     % Array Processing Function Call
