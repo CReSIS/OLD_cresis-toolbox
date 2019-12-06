@@ -16,75 +16,106 @@ if strcmpi(get(obj.map_panel.h_axes,'Visible'),'off')
 end
 
 % Update map selection plot
-if obj.map_source==1
+if obj.map.fline_source==1
   % Find the first frame that matches the search string
   frm_id = get(obj.top_panel.searchTB,'String');
   frm_id(regexp(frm_id,'_')) = [];
+  % Add default segment number
+  if length(frm_id) < 10
+    frm_id(9:10) = '01';
+  end
+  % Add default frame number
+  if length(frm_id) < 13
+    frm_id(11:13) = '001';
+  end
   frm_id = str2num(frm_id);
   
   % Get a logical mask indicating all indices that match the frame
-  frm_mask = obj.google_fline_frms == frm_id;
-  if all(frm_mask==false)
+  frm_mask = obj.layerdata.frms == frm_id;
+  idx = find(frm_mask,1);
+  if isempty(idx)
     % No frames match, so just return
     return;
   end
+  frm_id = obj.layerdata.frms(idx);
+  season_idx = obj.layerdata.season_idx(idx);
+  season_name = obj.cur_map_pref_settings.seasons{season_idx};
+  [sys,season_name_short] = strtok(season_name,'_');
+  season_name_short = season_name_short(2:end);
 
   % Generate search string
   frm_id = num2str(frm_id);
   day = frm_id(1:8);
   seg = frm_id(9:10);
   frame = frm_id(11:13);
-  search_str = strcat(day,'_',seg,'_',frame);
-  
-  % Get segment id from opsGetFrameSearch
-  frame_search_param = struct('properties',[]);
-  frame_search_param.properties.search_str = search_str;
-  frame_search_param.properties.location = obj.cur_map_pref_settings.mapzone;
-  [a,b] = opsGetFrameSearch(obj.cur_map_pref_settings.system,frame_search_param);
-  
-  % Record current frame selection
-  obj.cur_sel.frame_name = b.properties.frame;
-  obj.cur_sel.season_name = b.properties.season;
-  obj.cur_sel.segment_id = b.properties.segment_id;
-  
-  set(obj.map_panel.h_cur_sel,{'XData','YData'},{obj.google_fline_x(frm_mask),obj.google_fline_y(frm_mask)});
-  new_xdata = obj.google_fline_x(frm_mask);
-  new_ydata = obj.google_fline_y(frm_mask);
+  frame_name = strcat(day,'_',seg,'_',frame);
 
-  % Update map limits if necessary
-  [changed,pos] = obj.compute_new_map_limits(new_xdata,new_ydata);
-  if changed
-      obj.query_redraw_map(pos(1),pos(2),pos(3),pos(4));
+  if strcmpi(obj.cur_map_pref_settings.layer_source,'layerdata')
+    % Set data properties
+    data = struct('properties',[]);
+    data.properties.frame = frame_name;
+    data.properties.season = season_name;
+    data.properties.segment_id = str2num(frm_id(1:10));
+    data.properties.X = obj.layerdata.x(frm_mask);
+    data.properties.Y = obj.layerdata.y(frm_mask);
+    new_xdata = data.properties.X;
+    new_ydata = data.properties.Y;    
+  else
+    % Get segment id from opsGetFrameSearch
+    frame_search_param = struct('properties',[]);
+    frame_search_param.properties.search_str = frame_name;
+    frame_search_param.properties.location = param.properties.location;
+    frame_search_param.properties.season = season_name_short;
+    [frm_status,frm_data] = opsGetFrameSearch(sys,frame_search_param);
+    if frm_status == 2 || ~frm_status
+      % result not found; warning already printed to console, so just exit
+      return;
+    end
+    
+    % Set data properties
+    data = struct('properties',[]);
+    data.properties.frame = frame_name;
+    data.properties.season = frm_data.properties.season;
+    data.properties.segment_id = frm_data.properties.segment_id;
+    data.properties.X = obj.layerdata.x(frm_mask);
+    data.properties.Y = obj.layerdata.y(frm_mask);
+    new_xdata = data.properties.X/obj.map.scale;
+    new_ydata = data.properties.Y/obj.map.scale;
   end
 
 else
   ops_param.properties.search_str = get(obj.top_panel.searchTB,'String');
-  ops_param.properties.season = obj.map_pref.settings.seasons;
-  ops_param.properties.location = obj.cur_map_pref_settings.mapzone;
+  ops_param.properties.season = obj.cur_map_pref_settings.seasons;
+  ops_param.properties.location = obj.cur_map_pref_settings.map_zone;
   
   [status,data] = opsGetFrameSearch(obj.cur_map_pref_settings.system,ops_param);
-  if status==2
+  if status == 2 || ~status
     % result not found; warning already printed to console, so just exit
     return;
   end
   
-  % Record current frame selection
-  obj.cur_sel.frame_name = data.properties.frame;
-  obj.cur_sel.season_name = data.properties.season;
-  obj.cur_sel.segment_id = data.properties.segment_id;
-  
-  set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X/1e3,data.properties.Y/1e3});
-  new_xdata = data.properties.X/1e3;
-  new_ydata = data.properties.Y/1e3;
-
-  % Update map limits if necessary
-  [changed,pos] = obj.compute_new_map_limits(new_xdata,new_ydata);
-  if changed
-      obj.query_redraw_map(pos(1),pos(2),pos(3),pos(4));
+  if obj.map.source == 1
+    [lat,lon] = projinv(obj.map.proj,data.properties.X,data.properties.Y);
+    [data.properties.X,data.properties.Y] = google_map.latlon_to_world(lat,lon);
+    data.properties.Y = 256-data.properties.Y;
   end
+  new_xdata = data.properties.X/obj.map.scale;
+  new_ydata = data.properties.Y/obj.map.scale;
 end
+  
+% Record current frame selection
+obj.map.sel.frame_name = data.properties.frame;
+obj.map.sel.season_name = data.properties.season;
+obj.map.sel.segment_id = data.properties.segment_id;
+
+% Update map selection plot
+set(obj.map_panel.h_cur_sel,{'XData','YData'},{new_xdata,new_ydata});
+
+% Update map limits if necessary
+[changed,pos] = obj.compute_new_map_limits(new_xdata,new_ydata);
+if changed
+  obj.query_redraw_map(pos(1),pos(2),pos(3),pos(4));
+end
+
 % Change map title to the currently selected frame
-set(obj.top_panel.flightLabel,'String',obj.cur_sel.frame_name);
-
-
-return;
+set(obj.top_panel.flightLabel,'String',obj.map.sel.frame_name);

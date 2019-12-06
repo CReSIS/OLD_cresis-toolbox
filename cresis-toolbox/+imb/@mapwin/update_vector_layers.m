@@ -3,7 +3,7 @@ function update_vector_layers(obj)
 %
 % Update vector graphics for mapwin map
 % 1. Draws red line for selected frame
-%   obj.cur_sel.X,obj.cur_sel.Y
+%   obj.map.sel.X,obj.map.sel.Y
 % 2. Draws green lines associated with each echowin window
 %    obj.draw_echowin_flightline()
 % 3. Draws cursors
@@ -15,7 +15,7 @@ selection_color = [1 0 0];
 
 %------------------------------------------------------------------------
 % Draw current selection
-set(obj.map_panel.h_cur_sel,{'XData','YData'},{obj.cur_sel.X,obj.cur_sel.Y});
+set(obj.map_panel.h_cur_sel,{'XData','YData'},{obj.map.sel.X,obj.map.sel.Y});
 
 %------------------------------------------------------------------------
 % Update echowin flightlines

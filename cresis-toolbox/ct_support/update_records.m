@@ -27,6 +27,10 @@ save_changes = true;
 
 %% Prep (load records and gps files)
 records_fn = ct_filename_support(param,'','records');
+if ~exist(records_fn,'file')
+  warning('Records file does not exist: %s (%s).\n', records_fn, datestr(now));
+  return;
+end
 records = load(records_fn);
 if isfield(records,'settings') && isfield(records.settings,'wfs') && isfield(records.settings.wfs,'wfs')
   warning('Old records.settings format with "settings.wfs.wfs" field found in records file. Updating format.');

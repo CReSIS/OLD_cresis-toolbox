@@ -18,7 +18,7 @@ end
 % just a modifier (e.g. shift, ctrl, alt)
 if ~isempty(event.Key)
   
-  if ~strcmpi(obj.cur_map_pref_settings.mapname,'none')
+  if ~isempty(obj.cur_map_pref_settings.map_name)
     
     yaxis = get(obj.map_panel.h_axes,'YLim');
     % get updated y axis
@@ -93,15 +93,15 @@ if ~isempty(event.Key)
         else
           new_yaxis = [yaxis(1) - y_extent*0.4, yaxis(end) - y_extent*0.4];
           
-          if new_yaxis(1) < obj.full_yaxis(1)
-            new_yaxis(1) = obj.full_yaxis(1);
+          if new_yaxis(1) < obj.map.yaxis_default(1)
+            new_yaxis(1) = obj.map.yaxis_default(1);
             new_yaxis(end) = new_yaxis(1) + y_extent;
           end
           
           % get a new map for these limits
           new_yaxis = sort(new_yaxis);
           % don't change the x limits in this case
-          new_xaxis = obj.cur_request.XLim/obj.map_scale;
+          new_xaxis = obj.ops.request.XLim/obj.map.scale;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         end
@@ -116,15 +116,15 @@ if ~isempty(event.Key)
         if check_limits(obj,xaxis,yaxis,'u')
         else
           new_yaxis = [yaxis(1) + y_extent*0.4, yaxis(end) + y_extent*0.4];
-          if new_yaxis(end) > obj.full_yaxis(end)
-            new_yaxis(end) = obj.full_yaxis(end);
+          if new_yaxis(end) > obj.map.yaxis_default(end)
+            new_yaxis(end) = obj.map.yaxis_default(end);
             new_yaxis(1) = new_yaxis(end) - y_extent;
           end
           
           % get a new map for these limits
           new_yaxis = sort(new_yaxis);
           % don't change the x limits in this case
-          new_xaxis = obj.cur_request.XLim/obj.map_scale;
+          new_xaxis = obj.ops.request.XLim/obj.map.scale;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         end
@@ -137,15 +137,15 @@ if ~isempty(event.Key)
         if check_limits(obj,xaxis,yaxis,'r')          %break;
         else
           new_xaxis = [xaxis(1) + x_extent*0.4, xaxis(end) + x_extent*0.4];
-          if new_xaxis(end) > obj.full_xaxis(end)
-            new_xaxis(end) = obj.full_xaxis(end);
+          if new_xaxis(end) > obj.map.xaxis_default(end)
+            new_xaxis(end) = obj.map.xaxis_default(end);
             new_xaxis(1) = new_xaxis(end) - x_extent;
           end
           
           % get a new map for these limits
           new_xaxis = sort(new_xaxis);
           % don't change the y limits in this case
-          new_yaxis = obj.cur_request.YLim/obj.map_scale;
+          new_yaxis = obj.ops.request.YLim/obj.map.scale;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         end
@@ -161,15 +161,15 @@ if ~isempty(event.Key)
           %break;
         else
           new_xaxis = [xaxis(1) - x_extent*0.4, xaxis(end) - x_extent*0.4];
-          if new_xaxis(1) < obj.full_xaxis(1)
-            new_xaxis(1) = obj.full_xaxis(1);
+          if new_xaxis(1) < obj.map.xaxis_default(1)
+            new_xaxis(1) = obj.map.xaxis_default(1);
             new_xaxis(end) = new_xaxis(1) + x_extent;
           end
           
           % get a new map for these limits
           new_xaxis = sort(new_xaxis);
           % don't change the y limits in this case
-          new_yaxis = obj.cur_request.YLim/obj.map_scale;
+          new_yaxis = obj.ops.request.YLim/obj.map.scale;
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),...
             new_yaxis(1),new_yaxis(end));
         end
@@ -181,10 +181,10 @@ if ~isempty(event.Key)
           % Double click: Zoom reset
           % Ctrl + double click: Select closest frame and load
           
-          new_yaxis(1) = obj.full_yaxis(1);
-          new_yaxis(2) = obj.full_yaxis(end);
-          new_xaxis(1) = obj.full_xaxis(1);
-          new_xaxis(2) = obj.full_xaxis(end);
+          new_yaxis(1) = obj.map.yaxis_default(1);
+          new_yaxis(2) = obj.map.yaxis_default(end);
+          new_xaxis(1) = obj.map.xaxis_default(1);
+          new_xaxis(2) = obj.map.yaxis_default(end);
           
           % get a new map for these limits
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));

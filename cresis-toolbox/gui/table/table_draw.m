@@ -130,10 +130,10 @@ for row = 1:table.rows
     if ~isempty(table.handles{row,col})
       % The width and height must be > 0
       if newPos(3) < 0
-        warning('Request width is %g than 0 for row %d col %d', newPos(3), row, col);
+        %warning('Request width is %g than 0 for row %d col %d', newPos(3), row, col);
         newPos(3) = 1;
       elseif newPos(4) < 0
-        warning('Request height is %g than 0 for row %d col %d', newPos(4), row, col);
+        %warning('Request height is %g than 0 for row %d col %d', newPos(4), row, col);
         newPos(4) = 1;
       end
     end

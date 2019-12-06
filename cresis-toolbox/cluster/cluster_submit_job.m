@@ -52,7 +52,10 @@ if strcmpi(ctrl.cluster.type,'torque')
   if ~isempty(match_idxs)
     error('Using deprecated ''%%d'' inside cluster.qsub_submit_arguments. Switch to %%m for memory, %%t for time, and %%p for number of processors. For example ''-m n -l nodes=1:ppn=%%p,pmem=%%m,walltime=%%t''. Current value is ''%s''.', submit_arguments);
   end
-  if ~isempty(ctrl.cluster.mem_to_ppn)
+  if ~isempty(ctrl.cluster.ppn_fixed)
+    % Option to give all jobs the same number of processors
+    num_proc = ctrl.cluster.ppn_fixed;
+  elseif ~isempty(ctrl.cluster.mem_to_ppn)
     % If ppn should be used to limit memory OR if memory requirements are
     % high enough that we might as well ask for more nodes too to prevent
     % nodes from sitting idle.
@@ -60,7 +63,7 @@ if strcmpi(ctrl.cluster.type,'torque')
     num_proc = min(ctrl.cluster.max_ppn,num_proc);
   else
     num_proc = 1;
-  end  
+  end
   % Insert memory
   submit_arguments = regexprep(submit_arguments,'%m',sprintf('%.0fmb',ceil(job_mem/num_proc/1e6)));
   % Insert CPU time
@@ -130,7 +133,10 @@ elseif strcmpi(ctrl.cluster.type,'slurm')
   if ~isempty(match_idxs)
     error('Using deprecated ''%%d'' inside cluster.slurm_submit_arguments. Switch to %%m for memory and %%t for time. For example ''-N 1 -n 1 --mem=%m --time=%t''. Current value is ''%s''.', submit_arguments);
   end
-  if ~isempty(ctrl.cluster.mem_to_ppn)
+  if ~isempty(ctrl.cluster.ppn_fixed)
+    % Option to give all jobs the same number of processors
+    num_proc = ctrl.cluster.ppn_fixed;
+  elseif ~isempty(ctrl.cluster.mem_to_ppn)
     % If ppn should be used to limit memory OR if memory requirements are
     % high enough that we might as well ask for more nodes too to prevent
     % nodes from sitting idle.
