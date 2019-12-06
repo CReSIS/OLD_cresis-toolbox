@@ -72,15 +72,15 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2017_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_DC8.xls';
-% param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
+param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
-param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
+% param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
 
 %% Setup layer load parameters
-if 0
+if 1
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
   % layer_params(2).layerdata_source = 'CSARP_post/layerData';
@@ -122,7 +122,7 @@ for param_idx = 1:length(param_fns)
   % Read in parameter spreadsheet
   param_fn = ct_filename_param(param_fns{param_idx});
   params = read_param_xls(param_fn,'');
-  if 0
+  if 1
   params = ct_set_params(params,'cmd.generic',1);
   params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
   else

@@ -70,6 +70,7 @@ obj.top_panel.handle = uipanel('Parent',obj.h_fig);
 %---- map panel
 obj.map_panel.handle = uipanel('Parent',obj.h_fig);
 obj.map_panel.h_axes = axes('Parent',obj.map_panel.handle,'Visible','off');
+colormap(obj.map_panel.h_axes,gray(256));
 hold(obj.map_panel.h_axes,'on');
 obj.map_panel.h_image = imagesc(0,'Parent',obj.map_panel.h_axes,'Visible','off');
 xlabel(obj.map_panel.h_axes,'X (km)');

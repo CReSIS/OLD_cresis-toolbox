@@ -1,4 +1,4 @@
-function y = medfilt1(x,n)
+function y = medfilt1(x,n,max_isnan)
 % y = medfilt1(x,n)
 %
 % Replacement of Matlab Signal Processing Toolbox medfilt1 function.
@@ -8,21 +8,25 @@ function y = medfilt1(x,n)
 % Only operates on first dimension, except for row vectors.
 % Only allows n to be odd.
 
+if nargin < 3 || isempty(max_isnan)
+  max_isnan = n-1;
+end
+
 size_x = size(x);
 
 y = zeros(size_x);
 
 if size(x,1) == 1
-  y = medfilt1_1D(x.',n).';
+  y = medfilt1_1D(x.',n,max_isnan).';
 else
   for col = 1:prod(size_x(2:end))
-    y(:,col) = medfilt1_1D(x(:,col),n);
+    y(:,col) = medfilt1_1D(x(:,col),n,max_isnan);
   end
 end
 
 end
 
-function x = medfilt1_1D(x,n)
+function x = medfilt1_1D(x,n,max_isnan)
 
 N = length(x);
 
@@ -43,7 +47,9 @@ for k=1:n
   num_isnan = num_isnan + isnan(xx(k,:));
 end
 xx = sort(xx);
-idxs = (n+1)/2 - round(num_isnan/2) + (0:N-1)*n;
+row_idxs = (n+1)/2 - round(num_isnan/2);
+row_idxs(num_isnan>max_isnan) = n;
+idxs = row_idxs + (0:N-1)*n;
 x(:) = xx(idxs);
 idxs = (n+1)/2 - round((num_isnan-0.5)/2) + (0:N-1)*n;
 x(:) = x(:) + xx(idxs).';

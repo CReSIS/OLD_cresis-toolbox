@@ -314,6 +314,9 @@ end
 if strcmp(obj.default_params.flightlines(1:3),'OPS')
   load_ops = true;
 end
+if all(~strcmp(obj.default_params.map_name,{'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map'}))
+  load_ops = true;
+end
 if load_ops
   obj.ops_connect();
 end

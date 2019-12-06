@@ -67,6 +67,7 @@ if ~isempty(system_name)
     
     % Get the current list of selected layers
     selectedString = obj.h_gui.h_layers.get_selected_strings();
+    selectedString = union({'standard:surface'},selectedString);
     
     % Create the new list of layers for the system that is selected
     obj.h_gui.h_layers.set_available(menuString);

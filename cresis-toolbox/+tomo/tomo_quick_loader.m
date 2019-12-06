@@ -18,8 +18,12 @@ function tomo_quick_loader
 % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_067_wf2_music.mat';
 % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_067_wf3_music.mat';
 
+% fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_music.mat';
+fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_singlepass_music.mat';
+
+
 % Example of Eqip datasets
-fn ='/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_music3D_Nsrc3_rbins3/20140414_02/Data_img_02_20140414_02_012.mat';
+% fn ='/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_music3D_Nsrc3_rbins3/20140414_02/Data_img_02_20140414_02_012.mat';
 % fn ='/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_music3D_Nsrc3_rbins3/20140414_02/Data_img_02_20140414_02_013.mat';
 % fn ='/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_music3D_Nsrc3_rbins3/20140414_02/Data_img_03_20140414_02_013.mat';
 % fn ='/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_music3D/20140414_02/Data_img_02_20140414_02_013.mat';
@@ -33,14 +37,13 @@ dd= load(fn);
 imagesc(lp(dd.Data))
 end
 
-rbin = [250]; % Start bin
-rbins = [200]; % Number of bins
+% Example multipass
+rbin = [200]; % Start bin
+rbins = [250]; % Number of bins
 
 % Example at EGRIP
-% fn = 'Data_img_03_20190416_01_052.mat';
-% fn = 'Data_img_03_20190416_01_053.mat';
-% mdata.rbin = 700;
-% mdata.rbins = 500;
+% rbin = [250]; % Start bin
+% rbins = [200]; % Number of bins
 
 mdata = load(fn);
 
