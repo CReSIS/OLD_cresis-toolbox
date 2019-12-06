@@ -59,6 +59,9 @@ configs.total_presums = [];
 configs.adc = {};
 configs.dac = {};
 
+if ~exist(system_fn,'file')
+  error('READ_ARENA_XML:MISSING_SYSTEM_XML','Missing system file %s for config file %s\n', system_fn, config_fn);
+end
 doc = xmlread(system_fn);
 %   sys = doc.getElementsByTagName('system'); sys = sys.item(0);
 

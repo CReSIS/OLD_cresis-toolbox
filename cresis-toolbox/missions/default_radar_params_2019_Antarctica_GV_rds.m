@@ -1,7 +1,7 @@
-function param = default_radar_params_2019_Antarctic_GV_rds
-% param = default_radar_params_2019_Antarctic_GV_rds
+function param = default_radar_params_2019_Antarctica_GV_rds
+% param = default_radar_params_2019_Antarctica_GV_rds
 %
-% RDS: 2019_Antarctic_GV
+% RDS: 2019_Antarctica_GV
 %
 % Creates base "param" struct
 % Creates defaults cell array for each type of radar setting
@@ -9,7 +9,7 @@ function param = default_radar_params_2019_Antarctic_GV_rds
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2019_Antarctic_GV';
+param.season_name = '2019_Antarctica_GV';
 param.radar_name = 'mcords3';
 
 param.config.file.version = 403;
@@ -21,7 +21,7 @@ param.config.min_seg_size = 2;
 param.config.daq_type = 'cresis';
 param.config.wg_type = 'cresis';
 param.config.header_load_func = @basic_load_mcords3;
-param.config.board_map = {'board1'};
+param.config.board_map = {'board0'};
 param.config.tx_map = {'','','','','','','',''};
 
 param.config.daq.xml_version = 2.0;
@@ -31,8 +31,8 @@ param.config.max_duty_cycle = 0.12;
 param.config.prf_multiple = []; % Power supply sync signal that PRF must be a factor of these numbers
 param.config.PRI_guard = 10e-6;
 param.config.PRI_guard_percentage = 1;
-param.config.tx_enable = [1 1 1 1 0 0 0 0];
-param.config.max_tx = [40000 40000 40000 40000 0 0 0 0];
+param.config.tx_enable = [1 1 1 1 1 1 1 0];
+param.config.max_tx = [32000 32000 32000 32000 0 0 0 0];
 param.config.max_tx_voltage = sqrt([250 250 250 250 250 250 250 0]*50)*10^(-2/20); % voltage at max_tx % CHANGED FROM 1x7 to 1x8 vector
 
 %% CReSIS parameters
@@ -102,11 +102,11 @@ default.radar.lever_arm_fh = @lever_arm;
 
 default.radar.wfs.rx_paths = [1 2 3 4];
 default.radar.wfs.noise_figure = 2;
-default.radar.wfs.Tadc_adjust = -1.4455e-06; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
+default.radar.wfs.Tadc_adjust = 1.1988e-6; % System time delay: leave this empty or set it to zero at first, determine this value later using data over surface with known height or from surface multiple
 
-default.radar.wfs(1).Tsys = [0 0 0 0 0 0 0]/1e9;
-default.radar.wfs(1).chan_equal_dB = [0 0 0 0 0 0 0];
-default.radar.wfs(1).chan_equal_deg = [0 0 0 0 0 0 0];
+default.radar.wfs(1).Tsys = [0 0 0 0]/1e9;
+default.radar.wfs(1).chan_equal_dB = [0 0 0 0];
+default.radar.wfs(1).chan_equal_deg = [0 0 0 0];
 
 %% Post worksheet
 default.post.data_dirs = {'qlook'};
@@ -209,6 +209,17 @@ default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
 default.config_regexp = 'image_.*DECONVOLUTION.xml';
 default.name = 'Deconvolution Mode';
+defaults{end+1} = default;
+
+% equalization mode
+default.records.frames.mode = 3;
+default.qlook.img_comb = [];
+default.qlook.imgs = {[1*ones(4,1),(1:4).'],[2*ones(4,1),(1:4).'],[3*ones(4,1),(1:4).']};
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+default.config_regexp = 'equalization.*.xml';
+default.name = 'Tx Equalization Mode';
 defaults{end+1} = default;
 
 % loopback mode

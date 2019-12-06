@@ -332,7 +332,7 @@ for img = 1:length(param.load.imgs)
           elseif all(hdr.gps_time<noise.coh_noise_gps_time(1))
             % All current data's gps time is before the coherent noise
             % estimates gps time
-            cn.data = -repmat(coh_noise(:,1).',[1 length(hdr.gps_time)]);
+            cn.data = -repmat(coh_noise(:,1),[1 length(hdr.gps_time)]);
           else
             % Current data gps time overlaps with coherent noise estimates
             cn.data = -interp_finite(interp1(noise.coh_noise_gps_time, coh_noise.', hdr.gps_time)).';
