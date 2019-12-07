@@ -87,6 +87,23 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % frms = 15:16;
 % passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 
+%% Petermann Line 2 2013, 2014
+% pass_name = sprintf('Petermann_line2_2013_2014');
+% dist_min = 500;
+% master_pass_idx = 2;
+% start = struct('lat',80.517191,'lon',-59.844969);
+% stop = struct('lat',80.903411,'lon',-61.332159);
+% 
+% param_fn = 'rds_param_2013_Greenland_P3.xls';
+% day_seg = '20130420_02';
+% frms = 4:5;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% 
+% param_fn = 'rds_param_2014_Greenland_P3.xls';
+% day_seg = '20140512_01';
+% frms = 16:17;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+
 %% Petermann Line 4 2011, 2014, 2018
 % pass_name = sprintf('Petermann_line4_2010_2011_2013_2014');
 % dist_min = 500;
@@ -94,7 +111,7 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % start = struct('lat',80.5295278,'lon',-59.567146);
 % stop = struct('lat',80.995874,'lon',-61.357055);
 % 
-% param_fn = 'rds_param_2011_Greenland_P3.xls';
+% param_fn = 'rds_param_2010_Greenland_DC8.xls';
 % day_seg = '20100324_01';
 % frms = 25:26;
 % passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
@@ -105,7 +122,7 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 % 
 % param_fn = 'rds_param_2013_Greenland_P3.xls';
-% day_seg = '20130420_021';
+% day_seg = '20130420_02';
 % frms = 7:8;
 % passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 % 
@@ -114,70 +131,32 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % frms = 13:14;
 % passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 
-%% 79N Line 1 2014, 2018
-pass_name = sprintf('79N_line1_2014_2016_2018');
-dist_min = 500;
+%% 79N Line 1 2010, 2014, 2016, 2018
+pass_name = sprintf('79N_line1_2010_2014_2016_2018');
+dist_min = 16000;
 master_pass_idx = 2;
 start = struct('lat',79.346109,'lon',-22.575643);
 stop = struct('lat',79.559002,'lon',-19.329911);
+
+param_fn = 'rds_param_2010_Greenland_P3.xls';
+day_seg = '20100525_04';
+frms = 11:13;
+passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 
 param_fn = 'rds_param_2014_Greenland_P3.xls';
 day_seg = '20140429_01';
 frms = 43:44;
 passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 
-% param_fn = 'rds_param_2016_Greenland_P3.xls';
-% day_seg = '20160509_10';
-% frms = 1:2;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+param_fn = 'rds_param_2016_Greenland_P3.xls';
+day_seg = '20160509_10';
+frms = 1;
+passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 
 param_fn = 'rds_param_2018_Greenland_P3.xls';
 day_seg = '20180418_05';
 frms = 1:2;
 passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-
-%% loading
-% fn_dir_2011 = 'X:\ct_data\rds\2011_Greenland_P3\CSARP_post\CSARP_csarp-combined\';
-% addpath(fn_dir_2011);
-% fn_dir_2014 = 'X:\ct_data\rds\2014_Greenland_P3\CSARP_post\CSARP_standard\';
-% addpath(fn_dir_2014);
-% fn_dir_2017 = 'X:\ct_data\rds\2017_Greenland_P3\CSARP_post\CSARP_standard\';
-% addpath(fn_dir_2017);
-
-%2011
-% for passes_idx = 1:length(param_fn)
-%   if passes.param_fn = 'rds_param_2011_Greenland_P3.xls'
-%     load(passes.frm)
-%   end 
-%   mdata = load(passes.frm(1:3));
-% end
-% 
-% %2011
-% for passes_ = 'rds_param_2011_Greenland_P3.xls'
-%   fn_dir_2011 = 'X:\ct_data\rds\2011_Greenland_P3\CSARP_post\CSARP_csarp-combined\';
-%   mdata = load(passes.frm(1:3));
-% end
-% 
-% %%
-% %2014
-% for passes_idx = 1:length(passes)
-%  mdata = load(passes.frm);
-% end
-% %2017
-% for passes_idx = 1:length(passes)
-% mdata = load(passes.frm);
-% 
-% mdata = load('passes.param_fn');
-% 
-%   mdata=load('Data_20170413_01_056')
-%   dist_min = 2000;
-% 
-%   mdata=load('Data_20170413_01_056')
-%  fcs = mdata.param_combine.combine.fcs{1}{1};
-% 
-% end
-% 
-% param.dist_min = dist_min;
 
 param.combine_passes.pass_name = pass_name;
 param.combine_passes.passes = passes;

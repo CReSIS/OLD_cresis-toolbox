@@ -1,25 +1,10 @@
-
 param = [];
-
-%% Petermann Line 1 2011
-% if ispc
-%   fn = fullfile('X:\ct_data\rds\2011_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011.mat'));
-% else
-%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011'));
-% end
 
 %% Petermann Line 1 2014
 % if ispc
 %   fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2014.mat'));
 % else
 %   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2014'));
-% end
-
-%% Petermann Line 1 2018
-% if ispc
-%   fn = fullfile('X:\ct_data\rds\2018_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2018.mat'));
-% else
-%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2018_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2018'));
 % end
 
 %% Petermann Line 1 2011, 2014, 2018
@@ -37,7 +22,27 @@ param = [];
 % param.multipass.pass_en_mask = [];
 % param.multipass.output_fn_midfix = [];
 % param.multipass.coregistration_time_shift = [0 0 -2];
- %% Petermann Line 4 2010, 2011, 2013, 2014
+% param.multipass.comp_mode = 2;
+
+
+%% Petermann Line 2 2013, 2014
+% if ispc
+%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line2_2013_2014.mat'));
+% else
+%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line2_2013_2014'));
+% end
+% 
+% param.multipass.rbins = [];
+% 
+% param.multipass.baseline_master_idx = 2;
+% param.multipass.master_idx = 2;
+% 
+% param.multipass.pass_en_mask = [];
+% param.multipass.output_fn_midfix = [];
+% param.multipass.coregistration_time_shift = [0 0];
+% param.multipass.comp_mode = 2;
+
+%% Petermann Line 4 2010, 2011, 2013, 2014
 % if ispc
 %   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014.mat'));
 % else
@@ -51,12 +56,14 @@ param = [];
 % 
 % param.multipass.pass_en_mask = [];
 % param.multipass.output_fn_midfix = [];
-% param.multipass.coregistration_time_shift = [0 0 -2];
-%% 79N Line 1 2014, 2016, 2018
+% param.multipass.coregistration_time_shift = [0 0 0 0];
+% param.multipass.comp_mode = 2;
+
+%% 79N Line 1 2010, 2014, 2016, 2018
 if ispc
-  param.multipass.fn = fullfile('X:\ct_data\rds\2018_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2014_2016_2018.mat'));
+  param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2016_2018.mat'));
 else
-  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2018_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2014_2016_2018'));
+  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2016_2018'));
 end
 
 param.multipass.rbins = [];
@@ -66,24 +73,40 @@ param.multipass.master_idx = 2;
 
 param.multipass.pass_en_mask = [];
 param.multipass.output_fn_midfix = [];
-param.multipass.coregistration_time_shift = [0 0];
+param.multipass.coregistration_time_shift = [1 0 0 -2];
+param.multipass.comp_mode = 2;
+param.multipass.time_gate = [2e-6 13e-6];
 
 %% Setup
 % =========================================================================
-
-proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenland_natural_90m.tif')));
-
 physical_constants;
 
 %% Input check
-% -----------------------
+% =========================================================================
 
+% Load multipass.combine_passes file
 fn = param.multipass.fn;
+load(fn);
 
+% All images are registered to the pass indicated by the baseline_master_idx
+% baseline_master_idx does not need to be enabled
 if ~isfield(param.multipass,'baseline_master_idx') || isempty(param.multipass.baseline_master_idx)
   param.multipass.baseline_master_idx = 1;
 end
 baseline_master_idx = param.multipass.baseline_master_idx;
+
+if ~isfield(param.multipass,'coregistration_time_shift') || isempty(param.multipass.coregistration_time_shift)
+  param.multipass.coregistration_time_shift = zeros(1,length(pass));
+end
+if length(param.multipass.coregistration_time_shift) < length(pass)
+  param.multipass.coregistration_time_shift(length(pass)) = 0;
+end
+coregistration_time_shift = param.multipass.coregistration_time_shift;
+
+if ~isfield(param.multipass,'debug_plots') || isempty(param.multipass.debug_plots)
+  param.multipass.debug_plots = {'debug'};
+end
+enable_debug_plot = any(strcmp('debug',param.multipass.debug_plots));
 
 if ~isfield(param.multipass,'layer') || isempty(param.multipass.layer)
   param.multipass.layer = struct();
@@ -104,94 +127,59 @@ if ~isfield(param.multipass.layer(1),'source') || isempty(param.multipass.layer(
   param.multipass.layer(2).source = 'layerData';
 end
 
+% All comparisons are done relative to the pass indicated by the master_idx
+% master_idx must be enabled
 if ~isfield(param.multipass,'master_idx') || isempty(param.multipass.master_idx)
   param.multipass.master_idx = 1;
 end
 master_idx = param.multipass.master_idx;
 
+% output_fn_midfix: string to add to output filenames (default is empty string)
 if ~isfield(param.multipass,'output_fn_midfix') || isempty(param.multipass.output_fn_midfix)
   param.multipass.output_fn_midfix = '';
 end
 output_fn_midfix = param.multipass.output_fn_midfix;
 
-if ~isfield(param.multipass,'units') || isempty(param.multipass.units)
-  param.multipass.units = 'meters'; % 'meters' or 'bins'
-end
-
-% Load multipass.combine_passes file
-load(fn);
-
+% pass_en_mask: logical mask for each pass (default is all true)
 if ~isfield(param.multipass,'pass_en_mask') || isempty(param.multipass.pass_en_mask)
   param.multipass.pass_en_mask = [];
 end
 % Assume any undefined passes are enabled
 param.multipass.pass_en_mask(end+1:length(pass)) = true;
 pass_en_mask = param.multipass.pass_en_mask;
-
+if ~pass_en_mask(master_idx)
+  error('The master index pass %d must be enabled in param.multipass.pass_en_mask.', master_idx);
+end
 pass_en_idxs = find(pass_en_mask);
 
-if ~isfield(param.multipass,'rbins') || isempty(param.multipass.rbins)
-  param.multipass.rbins = [];
+if strcmpi(pass(baseline_master_idx).param_multipass.post.ops.location,'arctic')
+  proj = arctic_proj;
+elseif strcmpi(pass(baseline_master_idx).param_multipass.post.ops.location,'antarctic')
+  proj = antarctic_proj;
+else
+  error('Unsupported location pass(%d).param_multipass.post.ops.location.', baseline_master_idx);
 end
-if isempty(param.multipass.rbins)
-  param.multipass.rbins = 1:size(pass(baseline_master_idx).data,1);
-end
-rbins = param.multipass.rbins;
-% HACK THAT NEEDS TO BE FIXED FOR MAKING ALL IMAGES SAME SIZE:
-% for pass_idx = 1:length(pass)
-%   if pass_en_mask(pass_idx)
-%     rbins = intersect(rbins,1:size(pass(pass_idx).data,1));
-%   end
-% end
 
-if ~isfield(param.multipass,'coregistration_time_shift') || isempty(param.multipass.coregistration_time_shift)
-  param.multipass.coregistration_time_shift = zeros(1,length(pass));
+if ~isfield(param.multipass,'time_gate') || isempty(param.multipass.time_gate)
+  param.multipass.time_gate = [-inf inf];
 end
-if length(param.multipass.coregistration_time_shift) < length(pass)
-  param.multipass.coregistration_time_shift(length(pass)) = 0;
-end
-coregistration_time_shift = param.multipass.coregistration_time_shift;
 
-%% Plot Results
+if ~isfield(param.multipass,'units') || isempty(param.multipass.units)
+  param.multipass.units = 'meters'; % 'meters' or 'bins'
+end
+
+%% Convert FCS to ECEF and Geodetic
 % =========================================================================
-h_fig_map = figure(100); clf;
-h_plot_map = [];
-h_legend_map = {};
-hold on;
-axis('equal');
-h_fig_elev = figure(101); clf;
-h_plot_elev = [];
-h_legend_elev = {};
-hold on;
-xlabel('Range line');
-ylabel('WGS-84 elevation (m)');
-grid on;
-
-h_data_axes = [];
+min_twtt = inf;
+max_twtt = -inf;
+max_rlines = -inf;
 for pass_idx = 1:length(pass)
-  if pass_en_mask(pass_idx)
-    figure(pass_idx); clf;
-    set(pass_idx,'WindowStyle','docked')
-    imagesc(lp(pass(pass_idx).data(rbins,:)))
-    colormap(1-gray(256));
-    h_data_axes(end+1) = gca;
-  
-    %% Pass: load layers
-    pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_multipass,param.multipass.layer);
-    % Interpolate all layers onto a common reference (ref)
-    for lay_idx = 1:length(pass(pass_idx).layers)
-      pass(pass_idx).layers(lay_idx).twtt ...
-        = interp_finite(interp1(pass(pass_idx).layers(lay_idx).gps_time, ...
-        pass(pass_idx).layers(lay_idx).twtt, ...
-        pass(pass_idx).gps_time,'linear'));
-      hold on;
-      layer_bins = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time,1:length(pass(pass_idx).wfs(pass(pass_idx).wf).time),pass(pass_idx).layers(lay_idx).twtt);
-      layer_bins = layer_bins - rbins(1)+1;
-      plot(layer_bins)
-    end
+  if ~pass_en_mask(pass_idx) && pass_idx ~= baseline_master_idx
+    pass(pass_idx).data = []; % Save some memory
+    continue;
   end
   
-  % Apply GPS time offset
+  % Debug: GPS offset
   if 0
     pass_idx = 5;
     time_offset = -5;
@@ -199,44 +187,131 @@ for pass_idx = 1:length(pass)
     pass(pass_idx).x = interp1(pass(pass_idx).gps_time,pass(pass_idx).x.',pass(pass_idx).gps_time+time_offset,'linear','extrap').';
   end
   
+  % Convert SAR coordinate system (aka flight coordinate system, FCS) to
+  % earth centered earth fixed (ECEF)
   pass(pass_idx).ecef = pass(pass_idx).origin;
   for rline = 1:size(pass(pass_idx).origin,2)
     pass(pass_idx).ecef(:,rline) = pass(pass_idx).ecef(:,rline) ...
       + [pass(pass_idx).x(:,rline) pass(pass_idx).y(:,rline) pass(pass_idx).z(:,rline)]*pass(pass_idx).pos(:,rline);
   end
+  
+  % Convert ECEF to Geodetic
   [pass(pass_idx).lat,pass(pass_idx).lon,pass(pass_idx).elev] = ecef2geodetic(referenceEllipsoid('wgs84'), ...
     pass(pass_idx).ecef(1,:), pass(pass_idx).ecef(2,:), pass(pass_idx).ecef(3,:));
   
-  figure(h_fig_map);
-  if 0
-    h_plot = plot(pass(pass_idx).lon, pass(pass_idx).lat,'.');
-    color = get(h_plot,'Color');
-    h_text = text(pass(pass_idx).lon(1), pass(pass_idx).lat(1), sprintf('%d', pass_idx), 'Color', color);
-  else
-    [pass(pass_idx).proj_x,pass(pass_idx).proj_y] = projfwd(proj,pass(pass_idx).lat,pass(pass_idx).lon);
-    h_plot_map(end+1) = plot(pass(pass_idx).proj_x/1e3, pass(pass_idx).proj_y/1e3,'.');
-    h_legend_map{end+1} = sprintf('%d',pass_idx);
-    color = get(h_plot_map(end),'Color');
-    h_text = text(pass(pass_idx).proj_x(1)/1e3, pass(pass_idx).proj_y(1)/1e3, sprintf('%d', pass_idx), 'Color', color);
-    xlabel('X (km)');
-    ylabel('Y (km)');
-    grid on;
+  % Convert Geodetic to projected coordinates
+  [pass(pass_idx).proj_x,pass(pass_idx).proj_y] = projfwd(proj,pass(pass_idx).lat,pass(pass_idx).lon);
+  
+  min_twtt = min(min_twtt,pass(pass_idx).wfs(pass(pass_idx).wf).time(1));
+  max_twtt = max(max_twtt,pass(pass_idx).wfs(pass(pass_idx).wf).time(end));
+  max_rlines = max(max_rlines,length(pass(pass_idx).gps_time));
+end
+param.multipass.time_gate(1) = max(param.multipass.time_gate(1),min_twtt);
+param.multipass.time_gate(2) = min(param.multipass.time_gate(2),max_twtt);
+
+%% Load layers
+% =========================================================================
+for pass_idx = 1:length(pass)
+  if ~pass_en_mask(pass_idx)
+    continue
   end
   
-  figure(h_fig_elev);
-  if baseline_master_idx == pass_idx
-    h_plot_elev(end+1) = plot(pass(pass_idx).elev,'LineWidth',2,'UserData',pass_idx);
-  else
-    h_plot_elev(end+1) = plot(pass(pass_idx).elev,'UserData',pass_idx);
+  % Load layers
+  pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_multipass,param.multipass.layer);
+
+  % Interpolate all layers onto a common reference (ref)
+  for lay_idx = 1:length(pass(pass_idx).layers)
+    pass(pass_idx).layers(lay_idx).twtt ...
+      = interp_finite(interp1(pass(pass_idx).layers(lay_idx).gps_time, ...
+      pass(pass_idx).layers(lay_idx).twtt, ...
+      pass(pass_idx).gps_time,'linear'));
   end
-  h_legend_elev{end+1} = sprintf('%d',pass_idx');
 end
-linkaxes(h_data_axes,'xy');
-legend(h_plot_map,h_legend_map);
 
-%% Co-Register Results
+%% Plot Raw Passes
 % =========================================================================
+if enable_debug_plot
+  h_fig_map = figure(1001); clf(h_fig_map);
+  h_plot_map = [];
+  h_legend_map = {};
+  h_axes_map = axes('parent',h_fig_map);
+  hold(h_axes_map,'on');
+  axis(h_axes_map, 'equal');
+  xlabel(h_axes_map, 'X (km)');
+  ylabel(h_axes_map, 'Y (km)');
+  grid(h_axes_map, 'on');
+  
+  h_fig_elev = figure(1002); clf(h_fig_elev);
+  h_plot_elev = [];
+  h_legend_elev = {};
+  h_axes_elev = axes('parent',h_fig_elev);
+  hold(h_axes_elev,'on');
+  xlabel(h_axes_elev, 'Range line');
+  ylabel(h_axes_elev, 'WGS-84 elevation (m)');
+  grid(h_axes_elev, 'on');
+  
+  clear h_axes_echo;
+  for pass_idx = 1:length(pass)
+    if ~pass_en_mask(pass_idx)
+      continue
+    end
+    
+    %% Plot: 1. plot echogram
+    h_fig_echo = figure(pass_idx); clf(h_fig_echo);
+    set(h_fig_echo,'WindowStyle','docked')
+    set(h_fig_echo,'NumberTitle','off')
+    set(h_fig_echo,'Name',num2str(pass_idx))
+    h_axes_echo(pass_idx) = axes('parent',h_fig_echo);
+    imagesc([],pass(pass_idx).wfs(pass(pass_idx).wf).time*1e6,lp(pass(pass_idx).data),'parent', h_axes_echo(pass_idx));
+    title_str = pass(pass_idx).param_multipass.day_seg;
+    title_str = regexprep(title_str,'_','\\_');
+    title(h_axes_echo(pass_idx),title_str);
+    colormap(h_axes_echo(pass_idx), 1-gray(256));
+    hold(h_axes_echo(pass_idx),'on');
+    if 1
+      xlabel(h_axes_echo(pass_idx), 'Range line');
+      ylabel(h_axes_echo(pass_idx), 'Two way travel time (\mus)');
+    else
+      [h_axes_echo_background,hp1,hp2] = plotyy(0:Nt-1,0:Nt-1,pass(pass_idx).wfs(pass(pass_idx).wf).time*1e6,pass(pass_idx).wfs(pass(pass_idx).wf).time*1e6,'parent',h_fig_echo);
+      ylim(h_axes_echo_background(1),[0 Nt-1]);
+      ylim(h_axes_echo_background(2),pass(pass_idx).wfs(pass(pass_idx).wf).time([1 end])*1e6);
+      xlabel(h_axes_echo_background(1), 'Range line');
+      ylabel(h_axes_echo_background(1), 'Range bin');
+      ylabel(h_axes_echo_background(2), 'Time (\mus)');
+      set(hp1,'XData',NaN,'YData',NaN);
+      set(hp2,'XData',NaN,'YData',NaN);
+      set(h_axes_echo_background(2),'YDir','reverse')
+    end
+    
+    %% Plot: 2. plot layers
+    Nx = size(pass(pass_idx).data,2);
+    for lay_idx = 1:length(pass(pass_idx).layers)
+      plot(1:Nx,pass(pass_idx).layers(lay_idx).twtt*1e6,'parent',h_axes_echo(pass_idx));
+    end
+    
+    %% Plot: 3. plot map
+    h_plot_map(end+1) = plot(pass(pass_idx).proj_x/1e3, pass(pass_idx).proj_y/1e3,'.','parent',h_axes_map);
+    h_legend_map{end+1} = sprintf('%d',pass_idx);
+    color = get(h_plot_map(end),'Color');
+    h_text = text(pass(pass_idx).proj_x(1)/1e3, pass(pass_idx).proj_y(1)/1e3, sprintf('%d', pass_idx), 'Color', color,'parent',h_axes_map);
+    
+    %% Plot: 4. plot elevation
+    if baseline_master_idx == pass_idx
+      h_plot_elev(end+1) = plot(pass(pass_idx).elev,'LineWidth',2,'UserData',pass_idx,'parent',h_axes_elev);
+    else
+      h_plot_elev(end+1) = plot(pass(pass_idx).elev,'UserData',pass_idx,'parent',h_axes_elev);
+    end
+    h_legend_elev{end+1} = sprintf('%d',pass_idx');
+  end
+  legend(h_plot_map,h_legend_map);
+  legend(h_plot_elev,h_legend_elev);
+  linkaxes(h_axes_echo);
+  xlim(h_axes_echo(1),[1 max_rlines]);
+  ylim(h_axes_echo(1),param.multipass.time_gate*1e6);
+end
 
+%% Define reference path
+% =========================================================================
 
 if 1
   % Option 1: Use a single pass as the reference.
@@ -252,19 +327,22 @@ else
   % not taken across Lsar, but instead each point is directly passed to the
   % output.
 end
-
 along_track = geodetic_to_along_track(ref.lat,ref.lon,ref.elev);
-ref.surface_bin = interp1(ref.wfs(ref.wf).time, 1:length(ref.wfs(ref.wf).time), ref.surface);
 
 if 0
   h_fig_ref_idx = figure(102); clf;
   hold on;
 end
 
-%% Pass
+%% Pass Processing
+% =========================================================================
 data = [];
+surf_flatten_en = false;
+if surf_flatten_en
+  ref.surface_bin = interp1(ref.wfs(ref.wf).time, 1:length(ref.wfs(ref.wf).time), ref.surface);
+end
 for pass_idx = 1:length(pass)
-  %% Pass: position in ref coordinate system
+  %% Pass: 1. Position in ref coordinate system
   pass(pass_idx).ref_idx = zeros(1,size(pass(pass_idx).origin,2));
   last_idx = 0;
   for rline = 1:size(pass(pass_idx).ecef,2)
@@ -316,7 +394,7 @@ for pass_idx = 1:length(pass)
     drawnow;
   end
   
-  %% Pass: Resample in along-track
+  %% Pass: 2. Resample in along-track
   % Resample images and position vectors onto a common along-track axes
   if 0
     % 1. Oversample slave data by 10x in along track
@@ -342,7 +420,7 @@ for pass_idx = 1:length(pass)
       pass(pass_idx).layers(lay_idx).twtt, along_track,'linear','extrap').';
   end
   
-  %% Pass: Apply fixed coregistration time shift
+  %% Pass: 3. Apply fixed coregistration time shift
   Nt = size(pass(pass_idx).ref_data,1);
   dt = pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1);
   time = dt*(0:Nt-1).';
@@ -360,9 +438,8 @@ for pass_idx = 1:length(pass)
     end
   end
   
-  %% Pass: Motion/slope compensation
-  insar_mode = 2; % HACK!!!
-  if insar_mode == 1
+  %% Pass: 4. Motion/slope compensation
+  if param.multipass.comp_mode == 1
     % Motion compensation of FCS z-motion
     for rline = 1:size(pass(pass_idx).ref_data,2)
       % Convert z-offset into time-offset assuming nadir DOA
@@ -370,7 +447,7 @@ for pass_idx = 1:length(pass)
       pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
         .*exp(1i*2*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq*dt) );
     end
-  elseif insar_mode == 2 || insar_mode == 4
+  elseif param.multipass.comp_mode == 2 || param.multipass.comp_mode == 4
     % Co-register images using GPS and nadir squint angle assumption
     %
     if 0
@@ -395,7 +472,7 @@ for pass_idx = 1:length(pass)
         end
       end
     end
-  elseif insar_mode == 3
+  elseif param.multipass.comp_mode == 3
     % Motion compensation of FCS z-motion and slope compensation
     
     % True time delay shift for z-offset
@@ -433,6 +510,7 @@ for pass_idx = 1:length(pass)
   end
   
   %% Pass: Match time axis to baseline_master_idx
+  % =========================================================================
   if 0
     pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
   else
@@ -448,7 +526,7 @@ for pass_idx = 1:length(pass)
     end
   end
   
-  if 0
+  if surf_flatten_en
     % Normalize surface phase
     Nt = size(pass(pass_idx).ref_data,1);
     Nx = size(pass(pass_idx).ref_data,2);
@@ -463,7 +541,7 @@ end
 
 %% Apply equalization
 % -----------------------
-% if insar_mode == 2 || insar_mode == 3 || insar_mode == 4
+% if param.multipass.comp_mode == 2 || param.multipass.comp_mode == 3 || param.multipass.comp_mode == 4
 %   equalization = reshape(equalization,[1 1 numel(equalization)]);
 %   data(:,:,pass_en_idxs) = bsxfun(@times,data(:,:,pass_en_idxs),1./equalization(:,:,pass_en_idxs));
 % end
@@ -493,7 +571,7 @@ if 0
       %     pause
     end
   end
-  figure(1000); clf;
+  figure(1003); clf;
   plot(coregistration_time_shifts,coherence_sum)
   [~,coregistration_time_shift_idx] = max(coherence_sum);
   coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx)
@@ -573,11 +651,11 @@ for pass_out_idx = 1:length(pass_en_idxs)
     else
       new_equalization(pass_idx) = mean(mean(complex_data(:,equalization_rlines))); % equalization only valid when motion compensation with phase is used
     end
-    if insar_mode == 1
+    if param.multipass.comp_mode == 1
       complex_data = complex_data ./ new_equalization(pass_idx);
     end
     % Plot interferogram
-    if insar_mode == 4
+    if param.multipass.comp_mode == 4
       imagesc(lp(data(rbins,:,pass_idx)));
       colormap(1-gray(256));
       h_colorbar = colorbar;
@@ -610,18 +688,14 @@ for pass_out_idx = 1:length(pass_en_idxs)
   h_data_axes(end+1) = gca;
   
 end
-% fprintf('=============================================\n');
-% fprintf('New equalization\n');
-% fprintf('%.1f ', lp(new_equalization)-mean(lp(new_equalization(pass_en_idxs))));
-% fprintf('\n');
-% fprintf('%.1f ', angle(new_equalization)*180/pi)
-% fprintf('\n');
-% fprintf('=============================================\n');
 linkaxes(h_data_axes,'xy');
-if insar_mode == 1 || insar_mode == 4
+
+%% Save Result
+% =========================================================================
+if param.multipass.comp_mode == 1 || param.multipass.comp_mode == 4
   return
 end
-if insar_mode == 2
+if param.multipass.comp_mode == 2
   [fn_dir,fn_name] = fileparts(fn);
   fn_multipass = fullfile(fn_dir,[fn_name '_multipass.mat']);
   param_sar = pass(master_idx).param_sar;
