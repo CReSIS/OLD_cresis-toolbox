@@ -39,31 +39,14 @@ param = [];
 % 
 % param.multipass.pass_en_mask = [];
 % param.multipass.output_fn_midfix = [];
-% param.multipass.coregistration_time_shift = [0 0];
+% param.multipass.coregistration_time_shift = [-0.5 0];
 % param.multipass.comp_mode = 2;
 
 %% Petermann Line 4 2010, 2011, 2013, 2014
-% if ispc
-%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014.mat'));
-% else
-%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014'));
-% end
-% 
-% param.multipass.rbins = [];
-% 
-% param.multipass.baseline_master_idx = 2;
-% param.multipass.master_idx = 2;
-% 
-% param.multipass.pass_en_mask = [];
-% param.multipass.output_fn_midfix = [];
-% param.multipass.coregistration_time_shift = [0 0 0 0];
-% param.multipass.comp_mode = 2;
-
-%% 79N Line 1 2010, 2014, 2016, 2018
 if ispc
-  param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2016_2018.mat'));
+  param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014.mat'));
 else
-  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2016_2018'));
+  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014'));
 end
 
 param.multipass.rbins = [];
@@ -73,9 +56,26 @@ param.multipass.master_idx = 2;
 
 param.multipass.pass_en_mask = [];
 param.multipass.output_fn_midfix = [];
-param.multipass.coregistration_time_shift = [1 0 0 -2];
+param.multipass.coregistration_time_shift = [0 -0.5 0 0];
 param.multipass.comp_mode = 2;
-param.multipass.time_gate = [2e-6 13e-6];
+
+%% 79N Line 1 2010, 2014, 2016, 2018
+% if ispc
+%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2016_2018.mat'));
+% else
+%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2016_2018'));
+% end
+% 
+% param.multipass.rbins = [];
+% 
+% param.multipass.baseline_master_idx = 2;
+% param.multipass.master_idx = 2;
+% 
+% param.multipass.pass_en_mask = [];
+% param.multipass.output_fn_midfix = [];
+% param.multipass.coregistration_time_shift = [1 0 0 -2];
+% param.multipass.comp_mode = 2;
+% param.multipass.time_gate = [2e-6 13e-6];
 
 %% Setup
 % =========================================================================
@@ -571,7 +571,7 @@ if 0
       %     pause
     end
   end
-  figure(1003); clf;
+  figure(1002); clf;
   plot(coregistration_time_shifts,coherence_sum)
   [~,coregistration_time_shift_idx] = max(coherence_sum);
   coregistration_time_shift = coregistration_time_shifts(coregistration_time_shift_idx)
@@ -581,6 +581,7 @@ end
 %% Plot interferograms
 h_data_axes = [];
 new_equalization = [];
+rbins = 1:size(data,1);
 for pass_out_idx = 1:length(pass_en_idxs)
   pass_idx = pass_en_idxs(pass_out_idx);
   
