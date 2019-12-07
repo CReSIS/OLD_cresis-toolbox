@@ -8,21 +8,21 @@ param = [];
 % end
 
 %% Petermann Line 1 2011, 2014, 2018
-% if ispc
-%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2018.mat'));
-% else
-%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2018'));
-% end
-% 
-% param.multipass.rbins = [];
-% 
-% param.multipass.baseline_master_idx = 2;
-% param.multipass.master_idx = 2;
-% 
-% param.multipass.pass_en_mask = [];
-% param.multipass.output_fn_midfix = [];
-% param.multipass.coregistration_time_shift = [0 0 -2];
-% param.multipass.comp_mode = 2;
+if ispc
+  param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2018.mat'));
+else
+  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2018'));
+end
+
+param.multipass.rbins = [];
+
+param.multipass.baseline_master_idx = 2;
+param.multipass.master_idx = 2;
+
+param.multipass.pass_en_mask = [];
+param.multipass.output_fn_midfix = [];
+param.multipass.coregistration_time_shift = [0 0 -2];
+param.multipass.comp_mode = 2;
 
 
 %% Petermann Line 2 2013, 2014
@@ -43,21 +43,21 @@ param = [];
 % param.multipass.comp_mode = 2;
 
 %% Petermann Line 4 2010, 2011, 2013, 2014
-if ispc
-  param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014.mat'));
-else
-  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014'));
-end
-
-param.multipass.rbins = [];
-
-param.multipass.baseline_master_idx = 2;
-param.multipass.master_idx = 2;
-
-param.multipass.pass_en_mask = [];
-param.multipass.output_fn_midfix = [];
-param.multipass.coregistration_time_shift = [0 -0.5 0 0];
-param.multipass.comp_mode = 2;
+% if ispc
+%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014.mat'));
+% else
+%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014'));
+% end
+% 
+% param.multipass.rbins = [];
+% 
+% param.multipass.baseline_master_idx = 2;
+% param.multipass.master_idx = 2;
+% 
+% param.multipass.pass_en_mask = [];
+% param.multipass.output_fn_midfix = [];
+% param.multipass.coregistration_time_shift = [0 -0.5 0 0];
+% param.multipass.comp_mode = 2;
 
 %% 79N Line 1 2010, 2014, 2016, 2018
 % if ispc
@@ -409,7 +409,7 @@ for pass_idx = 1:length(pass)
       data_oversample, along_track,'linear','extrap').';
   else
     pass(pass_idx).ref_data = interp1(pass(pass_idx).along_track, ...
-      pass(pass_idx).data.', along_track,'linear','extrap').';
+      pass(pass_idx).data.', along_track,'linear').';
   end
   pass(pass_idx).ref_y = interp1(pass(pass_idx).along_track, ...
     pass(pass_idx).ref_y, along_track,'linear','extrap').';
@@ -417,7 +417,7 @@ for pass_idx = 1:length(pass)
     pass(pass_idx).ref_z, along_track,'linear','extrap').';
   for lay_idx = 1:length(pass(pass_idx).layers)
     pass(pass_idx).layers(lay_idx).twtt_ref = interp1(pass(pass_idx).along_track, ...
-      pass(pass_idx).layers(lay_idx).twtt, along_track,'linear','extrap').';
+      pass(pass_idx).layers(lay_idx).twtt, along_track,'linear').';
   end
   
   %% Pass: 3. Apply fixed coregistration time shift
@@ -701,6 +701,12 @@ if param.multipass.comp_mode == 2
   fn_multipass = fullfile(fn_dir,[fn_name '_multipass.mat']);
   param_sar = pass(master_idx).param_sar;
   param_records = pass(master_idx).param_records;
-  save(fn_multipass,'-v7.3','data','ref','param_sar','param_records');
+ 
+  param_fn = ct_filename_param(param_combine_passes.combine_passes.passes(master_idx).param_fn); %gets filename
+  param_multipass = read_param_xls(param_fn,param_combine_passes.combine_passes.passes(master_idx).day_seg); %reads parameter sheet for given pass
+  param_multipass = merge_structs(param,param_multipass);
+  
+  fprintf('Saving %s (%s)\n', fn_multipass, datestr(now));
+  save(fn_multipass,'-v7.3','pass','data','ref','param_records','param_sar','param_combine_passes','param_multipass');
   return
 end
