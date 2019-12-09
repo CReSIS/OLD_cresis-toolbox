@@ -8,6 +8,8 @@ obj.locations = {};
 
 obj.ops = [];
 obj.ops.profile = [];
+obj.ops.layers = [];
+obj.ops.layers.lyr_name = {};
 
 layer_sources = {'layerdata','Connect to OPS'};
 

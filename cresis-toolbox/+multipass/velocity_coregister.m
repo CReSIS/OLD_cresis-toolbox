@@ -47,7 +47,7 @@ end
 
 vel_fn{1}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic500_2012_2013_vv_v02.1.tif';
 vel_mult{1} = [4];
-% vel_fn{2}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2014_2015_vv_v02.1.tif';% Missing
+% DO NOT USE; MISSING DATA:  vel_fn{2}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2014_2015_vv_v02.1.tif';
 vel_fn{2}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2015_2016_vv_v02.1.tif';
 vel_mult{2} = [2];
 vel_fn{3}{1} = '/cresis/snfs1/scratch/cbarnett/year_greenland_vv/greenland_vel_mosaic200_2016_2017_vv_v02.1.tif';
