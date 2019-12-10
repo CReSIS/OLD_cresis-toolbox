@@ -55,19 +55,17 @@ for idx = 1:length(selected_seasons)
 end
 
 %% Filter layers
-  selected_layer_names = obj.h_gui.h_layers.get_selected_strings().';
+selected_layer_names = obj.h_gui.h_layers.get_selected_strings().';
 selected_layers.lyr_name = {};
 selected_layers.lyr_group_name = {};
 selected_layers.lyr_id = [];
-if ~isempty(system_name) && ~strcmpi(system_name,'layerdata')
-  for idx = 1:length(obj.ops.layers.lyr_name)
-    layer_name = sprintf('%s:%s', obj.ops.layers.lyr_group_name{idx}, obj.ops.layers.lyr_name{idx});
-    match_idx = strmatch(layer_name,selected_layer_names,'exact');
-    if ~isempty(match_idx)
-      selected_layers.lyr_name{end+1} = obj.ops.layers.lyr_name{idx};
-      selected_layers.lyr_group_name{end+1} = obj.ops.layers.lyr_group_name{idx};
-      selected_layers.lyr_id(end+1) = obj.ops.layers.lyr_id(idx);
-    end
+for idx = 1:length(obj.ops.layers.lyr_name)
+  layer_name = sprintf('%s:%s', obj.ops.layers.lyr_group_name{idx}, obj.ops.layers.lyr_name{idx});
+  match_idx = strmatch(layer_name,selected_layer_names,'exact');
+  if ~isempty(match_idx)
+    selected_layers.lyr_name{end+1} = obj.ops.layers.lyr_name{idx};
+    selected_layers.lyr_group_name{end+1} = obj.ops.layers.lyr_group_name{idx};
+    selected_layers.lyr_id(end+1) = obj.ops.layers.lyr_id(idx);
   end
 end
 

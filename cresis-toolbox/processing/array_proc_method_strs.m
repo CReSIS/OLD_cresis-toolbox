@@ -35,6 +35,8 @@ for method_idx = 1:numel(method_ints)
       method_strs{method_idx} = 'risr';
     case GEONULL_METHOD
       method_strs{method_idx} = 'geonull';
+    case GSLC_METHOD
+      method_strs{method_idx} = 'gslc';
     case MUSIC_DOA_METHOD
       method_strs{method_idx} = 'music_doa';
     case MLE_METHOD

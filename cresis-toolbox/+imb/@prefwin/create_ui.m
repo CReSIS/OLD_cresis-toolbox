@@ -8,6 +8,8 @@ obj.locations = {};
 
 obj.ops = [];
 obj.ops.profile = [];
+obj.ops.layers = [];
+obj.ops.layers.lyr_name = {};
 
 layer_sources = {'layerdata','Connect to OPS'};
 
@@ -312,6 +314,9 @@ if strcmp(obj.default_params.layer_source,'OPS')
   load_ops = true;
 end
 if strcmp(obj.default_params.flightlines(1:3),'OPS')
+  load_ops = true;
+end
+if all(~strcmp(obj.default_params.map_name,{'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarctic:google_map'}))
   load_ops = true;
 end
 if load_ops

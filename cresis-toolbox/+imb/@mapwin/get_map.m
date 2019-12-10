@@ -307,7 +307,7 @@ if obj.map.fline_source == 1
     obj.layerdata.x = [obj.layerdata.x x];
     obj.layerdata.y = [obj.layerdata.y y];
     obj.layerdata.frms = [obj.layerdata.frms S.frm];
-    obj.layerdata.season_idx = [obj.layerdata.season_idx season_idx*ones(size(obj.layerdata.x))];
+    obj.layerdata.season_idx = [obj.layerdata.season_idx season_idx*ones(size(x))];
     
     % Plot flight lines
     set(obj.map_panel.h_flightline,'XData',obj.layerdata.x,'YData',obj.layerdata.y);
