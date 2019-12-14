@@ -17,6 +17,9 @@ end
 
 % Update map selection plot
 if obj.map.fline_source==1
+  % layerdata flineslines selected
+  % -----------------------------------------------------------------------
+  
   % Find the first frame that matches the search string
   frm_id = get(obj.top_panel.searchTB,'String');
   frm_id(regexp(frm_id,'_')) = [];
@@ -64,7 +67,7 @@ if obj.map.fline_source==1
     % Get segment id from opsGetFrameSearch
     frame_search_param = struct('properties',[]);
     frame_search_param.properties.search_str = frame_name;
-    frame_search_param.properties.location = param.properties.location;
+    frame_search_param.properties.location = obj.cur_map_pref_settings.map_zone;
     frame_search_param.properties.season = season_name_short;
     [frm_status,frm_data] = opsGetFrameSearch(sys,frame_search_param);
     if frm_status == 2 || ~frm_status
@@ -79,16 +82,19 @@ if obj.map.fline_source==1
     data.properties.segment_id = frm_data.properties.segment_id;
     data.properties.X = obj.layerdata.x(frm_mask);
     data.properties.Y = obj.layerdata.y(frm_mask);
-    new_xdata = data.properties.X/obj.map.scale;
-    new_ydata = data.properties.Y/obj.map.scale;
+    new_xdata = data.properties.X;
+    new_ydata = data.properties.Y;
   end
 
 else
+  % OPS flineslines selected
+  % -----------------------------------------------------------------------
+  sys = obj.cur_map_pref_settings.system;
   ops_param.properties.search_str = get(obj.top_panel.searchTB,'String');
   ops_param.properties.season = obj.cur_map_pref_settings.seasons;
   ops_param.properties.location = obj.cur_map_pref_settings.map_zone;
   
-  [status,data] = opsGetFrameSearch(obj.cur_map_pref_settings.system,ops_param);
+  [status,data] = opsGetFrameSearch(sys,ops_param);
   if status == 2 || ~status
     % result not found; warning already printed to console, so just exit
     return;
@@ -107,6 +113,7 @@ end
 obj.map.sel.frame_name = data.properties.frame;
 obj.map.sel.season_name = data.properties.season;
 obj.map.sel.segment_id = data.properties.segment_id;
+obj.map.sel.radar_name = sys;
 
 % Update map selection plot
 set(obj.map_panel.h_cur_sel,{'XData','YData'},{new_xdata,new_ydata});

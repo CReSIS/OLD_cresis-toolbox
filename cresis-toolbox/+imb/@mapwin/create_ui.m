@@ -75,11 +75,11 @@ hold(obj.map_panel.h_axes,'on');
 obj.map_panel.h_image = imagesc(0,'Parent',obj.map_panel.h_axes,'Visible','off');
 xlabel(obj.map_panel.h_axes,'X (km)');
 ylabel(obj.map_panel.h_axes,'Y (km)');
+obj.map_panel.h_flightline = plot(1,1,'Parent',obj.map_panel.h_axes,'Color','blue','LineWidth',1);
+set(obj.map_panel.h_flightline,'XData',[],'YData',[]);
 obj.map_panel.h_cur_sel = plot(1,1,'Parent',obj.map_panel.h_axes,'Color','red','LineWidth',4);
 set(obj.map_panel.h_cur_sel,'XData',[],'YData',[]);
 set(obj.map_panel.h_axes,'Visible','off');
-obj.map_panel.h_flightline = plot(1,1,'Parent',obj.map_panel.h_axes,'Color','blue','LineWidth',1);
-set(obj.map_panel.h_flightline,'XData',[],'YData',[]);
 
 %----status panel (status bar)
 obj.status_panel.handle = uipanel('Parent',obj.h_fig);

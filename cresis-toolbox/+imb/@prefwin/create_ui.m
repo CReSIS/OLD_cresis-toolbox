@@ -19,7 +19,7 @@ wms_maps = {'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarc
 
 %% Get System Info from LayerData
 % =========================================================================
-layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer','');
+layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer',''); % Setting radar_name to rds is arbitrary
 fprintf('Finding the season layerdata in %s\n', layer_fn_dir);
 layer_fns = get_filenames(layer_fn_dir,'layer','','.mat');
 valid_file_count = 0;
