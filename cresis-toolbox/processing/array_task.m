@@ -106,11 +106,16 @@ for img = 1:length(param.array.imgs)
             load_chunk_idx = param.load.chunk_idx;
             in_fn_dir(end-8:end-6) = sprintf('%03d',load_frm);
             if strcmpi(param.array.method,'combine_rx')
+              in_fn_name_pre = sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx);
               [sar_type_fn,status] = get_filenames(in_fn_dir, ...
-                sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx),'','.mat');
+                in_fn_name_pre,'','.mat');
             else
+              in_fn_name_pre = sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx);
               [sar_type_fn,status] = get_filenames(in_fn_dir, ...
-                sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx),'','.mat');
+                in_fn_name_pre,'','.mat');
+            end
+            if isempty(sar_type_fn)
+              error('No match for input sar file: %s*.mat', fullfile(in_fn_dir, in_fn_name_pre));
             end
             sar_data = load(sar_type_fn{1},'wfs','param_records','param_sar');
             % Time: fast-time axis can be different for each chunk so we
@@ -204,11 +209,16 @@ for img = 1:length(param.array.imgs)
           load_chunk_idx = param.load.chunk_idx;
           in_fn_dir(end-8:end-6) = sprintf('%03d',load_frm);
           if strcmpi(param.array.method,'combine_rx')
+            in_fn_name_pre = sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx);
             [sar_type_fn,status] = get_filenames(in_fn_dir, ...
-              sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx),'','.mat');
+              in_fn_name_pre,'','.mat');
           else
+            in_fn_name_pre = sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx);
             [sar_type_fn,status] = get_filenames(in_fn_dir, ...
-              sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx),'','.mat');
+              in_fn_name_pre,'','.mat');
+          end
+          if isempty(sar_type_fn)
+            error('No match for input sar file: %s*.mat', fullfile(in_fn_dir, in_fn_name_pre));
           end
           sar_data = load(sar_type_fn{1});
           num_rlines = size(sar_data.(data_field_name),2);
@@ -518,8 +528,8 @@ for img = 1:length(param.array.imgs)
         param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
       else
         % source = 'layerData'
-         param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
-            surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
+        param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
+          surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
       end
     end
     
@@ -617,7 +627,7 @@ for img = 1:length(param.array.imgs)
         param.array_proc.surface_theta = surf_layer.theta;
       else
         param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
-          surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
+          surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
         param.array_proc.surface_theta = 0;
       end
       
