@@ -12,6 +12,8 @@
 
 %% USER INPUT
 
+global gRadar;
+
 % THE OPS PROFILER WILL RUN AND RETURN PROFILING LOGS
 if isfield(gRadar,'ops') && isfield(gRadar.ops,'profileCmd') && ~isempty(gRadar.ops.profileCmd)
   gOps.profileCmd = gRadar.ops.profile_cmd;
