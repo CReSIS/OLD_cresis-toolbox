@@ -12,11 +12,20 @@
 
 %% USER INPUT
 
-gOps.profileCmd = false; % THE OPS PROFILER WILL RUN AND RETURN PROFILING LOGS
+% THE OPS PROFILER WILL RUN AND RETURN PROFILING LOGS
+if isfield(gRadar,'ops') && isfield(gRadar.ops,'profileCmd') && ~isempty(gRadar.ops.profileCmd)
+  gOps.profileCmd = gRadar.ops.profile_cmd;
+else
+  gOps.profileCmd = false;
+end
 
-% gOps.sysUrl = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
-gOps.sysUrl = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
-% gOps.sysUrl = 'http://192.168.111.222/'; % Virtual box setup
+if isfield(gRadar,'ops') && isfield(gRadar.ops,'url') && ~isempty(gRadar.ops.url)
+  gOps.sysUrl = gRadar.ops.url;
+else
+  gOps.sysUrl = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % gOps.sysUrl = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+  % gOps.sysUrl = 'http://192.168.111.222/'; % Virtual box setup
+end
 
 %% AUTOMATED SECTION (DO NOT MODIFY)
 
