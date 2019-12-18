@@ -57,7 +57,7 @@ if tool_idx == 1
       slope          = round(diff(surf_bins));
       bounds         = [];
       viterbi_weight = ones([1 Nx]);
-      mu_size        = 31;
+      mu_size        = 31;  % TODO: Hardcoded distance? What is mu here? Why is there a division by 1?
       mu             = log10(exp(-(-(mu_size-1)/2 : (mu_size-1)/2).^4/1));
       mu(mu<-30)     = -30;
       mu             = mu - mean(mu);
@@ -93,14 +93,14 @@ if tool_idx == 1
         % Along track filtering
         viterbi_data = fir_dec(viterbi_data,ones(1,5)/5,1);
         % Estimate noise level
-        noise_value = mean(mean(viterbi_data(end-80:end-60,:)));
+        noise_value = mean(mean(viterbi_data(end-80:end-60,:)));  % TODO: What are 80 and 60 here?
         % Estimate trend
         trend = mean(viterbi_data,2);
         trend(trend<noise_value) = noise_value;
         % Subtract trend
         viterbi_data = bsxfun(@minus,viterbi_data,trend);
         % Remove bad circular convolution wrap around at end of record
-        viterbi_data(end-70:end,:) = 0;
+        viterbi_data(end-70:end,:) = 0;  % TODO: And what is 70?
       end
       
       %% Column restriction between first and last selected GT points

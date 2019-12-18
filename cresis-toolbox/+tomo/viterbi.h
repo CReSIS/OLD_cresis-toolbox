@@ -143,6 +143,7 @@ public:
                 s = p;
             }
         }
+        // TODO: Binary cost added here
         dst[d] = src[s] + sqr(s-d-off) * scale; // Minimum value to the midpoint
         dst_ind[d] = s; // Minimum source index for the midpoint
         if(d2 >= d + 1) { // Recursive call, binary search (top half of destinations)
