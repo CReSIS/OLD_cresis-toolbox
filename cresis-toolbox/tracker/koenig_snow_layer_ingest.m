@@ -19,14 +19,20 @@
 % fns = get_filenames('E:\tmp\layers\Koenig_Snow_Radar\output_mapdata_2010_v32','mapdata','','.txt');
 
 % 2011: gps_time is good
-param_fn = ct_filename_param('snow_param_2011_Greenland_P3.xls');
-fns = get_filenames('E:\tmp\layers\Koenig_Snow_Radar\output_mapdata_2011_v32','mapdata','','.txt');
+% param_fn = ct_filename_param('snow_param_2011_Greenland_P3.xls');
+% fns = get_filenames('E:\tmp\layers\Koenig_Snow_Radar\output_mapdata_2011_v32','mapdata','','.txt');
 
 % 2012: gps_time is good
-% param_fn = ct_filename_param('snow_param_2012_Greenland_P3.xls');
-% fns = get_filenames('E:\tmp\layers\Koenig_Snow_Radar\output_mapdata_2012','mapdata','','.txt');
+param_fn = ct_filename_param('snow_param_2012_Greenland_P3.xls');
+if ispc
+  fns = get_filenames('E:\tmp\layers\Koenig_Snow_Radar\output_mapdata_2012','mapdata','','.txt');
+else
+  fns = get_filenames('/cresis/snfs1/dataproducts/metadata/koenig_snow_layers/output_mapdata_2012','mapdata','','.txt');
+end
 
 %%
+physical_constants;
+surf_filter_len = 51; % Range lines to average surf twtt (must be odd integer)
 num_layers = 30;
 layer_data = {};
 for fn_idx = 1:length(fns)
@@ -129,7 +135,7 @@ end
 
 %%
 params = read_param_xls(param_fn);
-for day_idx=9:9 %1:length(days)
+for day_idx=13:13 %1:length(days)
   
   fprintf('%s\n','='*ones(1,72));
   fprintf('%s\n', days{day_idx});
@@ -149,6 +155,11 @@ for day_idx=9:9 %1:length(days)
       layer_params.source = 'layerdata';
     end
     surf = opsLoadLayers(param,layer_params);
+    
+    % Filter surf data
+    surf.twtt_filtered = surf.twtt - surf.elev/(c/2);
+    surf.twtt_filtered = fir_dec(surf.twtt_filtered,ones(1,surf_filter_len)/surf_filter_len,1);
+    surf.twtt_filtered = surf.twtt_filtered + surf.elev/(c/2);
     
     % Align layers to layerData
     master = [];
@@ -187,7 +198,7 @@ for day_idx=9:9 %1:length(days)
       end
       if lay_idx > 1
         master.layerData{lay_idx+1}.value{1}.data = nan(size(master.GPS_time));
-        master.layerData{lay_idx+1}.value{2}.data = surf.twtt + new_layer_twtt - surf_ref;
+        master.layerData{lay_idx+1}.value{2}.data = surf.twtt_filtered + new_layer_twtt - surf_ref;
         master.layerData{lay_idx+1}.name = sprintf('Koenig_%d', lay_idx);
         master.layerData{lay_idx+1}.quality = ones(size(master.GPS_time));
       end
@@ -202,7 +213,7 @@ for day_idx=9:9 %1:length(days)
     
     % Write layer information into layerData files
     %   update opsCopyLayers to create new layerData files if they do not exist
-    for frm = 238:240%1:length(frames.frame_idxs)
+    for frm = 1:length(frames.frame_idxs)
       first_rec = frames.frame_idxs(frm);
       if frm == length(frames.frame_idxs)
         last_rec = length(records.gps_time);
@@ -255,6 +266,8 @@ for day_idx=9:9 %1:length(days)
     
   end
 end
+
+return
 
 mdata = load_L1B('X:\ct_data\snow\2011_Greenland_P3\CSARP_post\CSARP_qlook\20110329_01\Data_20110329_01_239.mat');
 lay = load('X:\ct_data\snow\2011_Greenland_P3\CSARP_layerData\20110329_01\Data_20110329_01_239.mat');

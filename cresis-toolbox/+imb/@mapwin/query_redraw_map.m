@@ -38,6 +38,7 @@ else
 end
 
 if obj.map.source == 0
+  %% OPS map
   obj.ops.request.ImageFormat = 'image/jpeg';
 
   % Build the new WMS query, submit it and then retrieve the result

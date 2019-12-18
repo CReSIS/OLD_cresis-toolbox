@@ -25,6 +25,8 @@ switch (method_int)
     method_str = 'risr';
   case GEONULL_METHOD
     method_str = 'geonull';
+  case GSLC_METHOD
+    method_str = 'gslc';
   case MUSIC_DOA_METHOD
     method_str = 'music_doa';
   case MLE_METHOD

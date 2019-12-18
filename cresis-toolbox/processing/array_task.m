@@ -37,7 +37,15 @@ frames_fn = ct_filename_support(param,'','frames');
 load(frames_fn);
 tmp_param = param;
 tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),param.load.frm+1);
-surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
+
+if strcmpi(param.array.surf_layer.source, 'surfData')
+  surf_dir = ct_filename_out(param,'','surfData_sar');
+    fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
+    fn = fullfile(surf_dir,fn_name);
+    surf_layer = tomo.surfdata(fn,param);
+else
+  surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
+end
 
 %% Process
 % =========================================================================
@@ -98,11 +106,16 @@ for img = 1:length(param.array.imgs)
             load_chunk_idx = param.load.chunk_idx;
             in_fn_dir(end-8:end-6) = sprintf('%03d',load_frm);
             if strcmpi(param.array.method,'combine_rx')
+              in_fn_name_pre = sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx);
               [sar_type_fn,status] = get_filenames(in_fn_dir, ...
-                sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx),'','.mat');
+                in_fn_name_pre,'','.mat');
             else
+              in_fn_name_pre = sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx);
               [sar_type_fn,status] = get_filenames(in_fn_dir, ...
-                sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx),'','.mat');
+                in_fn_name_pre,'','.mat');
+            end
+            if isempty(sar_type_fn)
+              error('No match for input sar file: %s*.mat', fullfile(in_fn_dir, in_fn_name_pre));
             end
             sar_data = load(sar_type_fn{1},'wfs','param_records','param_sar');
             % Time: fast-time axis can be different for each chunk so we
@@ -170,7 +183,7 @@ for img = 1:length(param.array.imgs)
               if dTsys ~= 0
                 % Positive dTsys means Tsys > Tsys_old and we should reduce the
                 % time delay to all targets by dTsys.
-                sar_data.(data_field_name) = ifft(fft(sar_data.(data_field_name)) .* exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys));
+                sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name)),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)));
               end
               
               % Concatenate data (resample in fast-time if needed since
@@ -196,11 +209,16 @@ for img = 1:length(param.array.imgs)
           load_chunk_idx = param.load.chunk_idx;
           in_fn_dir(end-8:end-6) = sprintf('%03d',load_frm);
           if strcmpi(param.array.method,'combine_rx')
+            in_fn_name_pre = sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx);
             [sar_type_fn,status] = get_filenames(in_fn_dir, ...
-              sprintf('img_%02.0f_chk_%03.0f', img, load_chunk_idx),'','.mat');
+              in_fn_name_pre,'','.mat');
           else
+            in_fn_name_pre = sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx);
             [sar_type_fn,status] = get_filenames(in_fn_dir, ...
-              sprintf('wf_%02.0f_adc_%02.0f_chk_%03.0f', wf, adc, load_chunk_idx),'','.mat');
+              in_fn_name_pre,'','.mat');
+          end
+          if isempty(sar_type_fn)
+            error('No match for input sar file: %s*.mat', fullfile(in_fn_dir, in_fn_name_pre));
           end
           sar_data = load(sar_type_fn{1});
           num_rlines = size(sar_data.(data_field_name),2);
@@ -315,7 +333,7 @@ for img = 1:length(param.array.imgs)
               if dTsys ~= 0
                 % Positive dTsys means Tsys > Tsys_old and we should reduce the
                 % time delay to all targets by dTsys.
-                sar_data.(data_field_name) = ifft(fft(sar_data.(data_field_name)) .* exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys));
+                sar_data.(data_field_name) = ifft(bsxfun(@times,fft(sar_data.(data_field_name)),exp(1i*2*pi*sar_data.wfs(wf).freq*dTsys)));
               end
               
               % Concatenate data (resample in fast-time if needed since
@@ -499,10 +517,22 @@ for img = 1:length(param.array.imgs)
     elseif length(surf_layer.gps_time) == 1;
       param.array_proc.surface = surf_layer.twtt*ones(size(param.array_proc.lines));
     else
-      param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
-        surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
+      
+      if strcmpi(param.array.surf_layer.source, 'surfData')
+        % source = 'surfData'
+        surf_index = surf_layer.get_index('top twtt');
+        theta_frm = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
+        gps_frm  = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
+        theta_chunk  = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
+        gps_chunk    = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
+        param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
+      else
+        % source = 'layerData'
+        param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
+          surf_layer.twtt,fcs{1}{1}.gps_time(param.array_proc.lines)),0);
+      end
     end
-  
+    
     % Perform incoherent averaging
     Hfilter2 = ones(length(param.array.bin_rng),length(param.array.line_rng));
     Hfilter2 = Hfilter2 / numel(Hfilter2);
@@ -586,8 +616,21 @@ for img = 1:length(param.array.imgs)
     elseif length(surf_layer.gps_time) == 1;
       param.array_proc.surface = surf_layer.twtt*ones(size(rlines));
     else
-      param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
-        surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
+      
+      if strcmpi(param.array.surf_layer.source,'surfData')
+        surf_index = surf_layer.get_index('top twtt');
+        theta_frm = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
+        gps_frm  = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
+        theta_chunk  = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
+        gps_chunk    = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
+        param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
+        param.array_proc.surface_theta = surf_layer.theta;
+      else
+        param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
+          surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
+        param.array_proc.surface_theta = 0;
+      end
+      
     end
     
     % Array Processing Function Call

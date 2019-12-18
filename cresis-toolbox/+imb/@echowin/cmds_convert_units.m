@@ -132,11 +132,7 @@ end
 args{1} = obj.eg.layers.lyr_id(args{1});
 
 % Convert x-axis range units
-if strcmpi(obj.eg.layer_source,'OPS')
-  args{2}(1:2) = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,args{2}(1:2),'linear','extrap');
-else
-   %args{2}(1:2) = obj.undo_stack.user_data.layGPS(args{2}(1:2));
-end
+args{2}(1:2) = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,args{2}(1:2),'linear','extrap');
 
 % Change point idxs for point ids
 args{3} = obj.eg.map_id(args{3});

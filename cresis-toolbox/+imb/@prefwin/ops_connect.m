@@ -26,7 +26,7 @@ try
   % "*data_quality*","*data_coverage*", "*crossover_errors*","*data_elevation*"
   wms_layers = obj.ops.wms_capabilities.Layer;
   for idx = 1:length(wms_layers)
-    if isempty(regexpi(wms_layers(idx).LayerName,'line_paths|crossover_errors|data_quality|data_coverage|data_elevation'))
+    if isempty(regexpi(wms_layers(idx).LayerName,'line_paths|crossover_errors|data_quality|data_coverage|data_elevation|google'))
       % Did not match the above strings, so it should be a map layer
       wms_maps{end+1} = wms_layers(idx).LayerName;
     end

@@ -28,6 +28,15 @@ if ~isfield(param,'collate_coh_noise') || isempty(param.collate_coh_noise)
   param.collate_coh_noise = [];
 end
 
+% param.collate_coh_noise.imgs: Check this first since other input checks
+%   are dependent on its value.
+if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
+  param.analysis.imgs = {[1 1]};
+end
+if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
+  param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
+end
+
 if ~isfield(param.collate_coh_noise,'cmd_idx') || isempty(param.collate_coh_noise.cmd_idx)
   param.collate_coh_noise.cmd_idx = 1;
 end
@@ -55,18 +64,15 @@ if ~isfield(param.collate_coh_noise,'dft_corr_time') || isempty(param.collate_co
 end
 
 if ~isfield(param.collate_coh_noise,'firdec_fs') || isempty(param.collate_coh_noise.firdec_fs)
-  param.collate_coh_noise.firdec_fs = 0;
+  for img = param.collate_coh_noise.imgs
+    param.collate_coh_noise.firdec_fs{img} = 0;
+  end
 end
 
 if ~isfield(param.collate_coh_noise,'firdec_fcutoff') || isempty(param.collate_coh_noise.firdec_fcutoff)
-  param.collate_coh_noise.firdec_fcutoff = 0;
-end
-
-if ~isfield(param.analysis,'imgs') || isempty(param.analysis.imgs)
-  param.analysis.imgs = {[1 1]};
-end
-if ~isfield(param.collate_coh_noise,'imgs') || isempty(param.collate_coh_noise.imgs)
-  param.collate_coh_noise.imgs = 1:length(param.analysis.imgs);
+  for img = param.collate_coh_noise.imgs
+    param.collate_coh_noise.firdec_fcutoff{img} = 0;
+  end
 end
 
 if ~isfield(param.collate_coh_noise,'in_path') || isempty(param.collate_coh_noise.in_path)
@@ -74,7 +80,9 @@ if ~isfield(param.collate_coh_noise,'in_path') || isempty(param.collate_coh_nois
 end
 
 if ~isfield(param.collate_coh_noise,'method') || isempty(param.collate_coh_noise.method)
-  param.collate_coh_noise.method = 'dft';
+  for img = param.collate_coh_noise.imgs
+    param.collate_coh_noise.method{img} = 'dft';
+  end
 end
 
 if ~isfield(param.collate_coh_noise,'out_path') || isempty(param.collate_coh_noise.out_path)
@@ -168,7 +176,7 @@ for img = param.collate_coh_noise.imgs
     noise.dft = zeros(Nt, Nx_dft, 'single');
     
     dgps_time = median(diff(noise.gps_time));
-    dx = max(1,round(1/(dgps_time * param.collate_coh_noise.firdec_fs)));
+    dx = max(1,round(1/(dgps_time * param.collate_coh_noise.firdec_fs{img})));
     dec_idxs = 1:dx:Nx;
     noise.coh_noise_gps_time = noise.gps_time(dec_idxs);
     Nx_coh_noise = length(dec_idxs);
@@ -184,6 +192,8 @@ for img = param.collate_coh_noise.imgs
       cn_before = zeros(Nx,Nt);
       cn_after = zeros(Nx,Nt);
     end
+    time = start_bin*noise.dt + noise.dt*(0:Nt-1).';
+    Tpd = param.radar.wfs(wf).Tpd;
     for bin = start_bin:stop_bin
       bin_idx = bin-start_bin+1;
       if ~mod(bin_idx-1,10^floor(log10(Nt)-1))
@@ -224,15 +234,15 @@ for img = param.collate_coh_noise.imgs
           threshold(bin_idx) = min(lp(fir_dec(abs(coh_bin_mag).^2,param.collate_coh_noise.threshold_fir_dec),1),[],2);
         end
       end
-      if strcmpi(param.collate_coh_noise.method,'dft')
+      if strcmpi(param.collate_coh_noise.method{img},'dft')
         for dft_idx = 1:length(dft_freqs)
           mf = exp(1i*2*pi/Nx * dft_freqs(dft_idx) .* (0:Nx-1));
           noise.dft(bin_idx,dft_idx) = nanmean(conj(mf).*coh_bin);
           coh_bin = coh_bin - noise.dft(bin_idx,dft_idx) * mf;
         end
-      elseif strcmpi(param.collate_coh_noise.method,'firdec')
+      elseif strcmpi(param.collate_coh_noise.method{img},'firdec')
         noise.dft(bin_idx,1) = nanmean(coh_bin);
-        fcutoff = param.collate_coh_noise.firdec_fcutoff(noise.dt*bin);
+        fcutoff = param.collate_coh_noise.firdec_fcutoff{img}(noise.dt*bin);
         if fcutoff == 0
           % Zero cutoff frequency: Take mean over all values
           noise.coh_noise(bin_idx,:) = nanmean(coh_bin);
@@ -415,10 +425,10 @@ for img = param.collate_coh_noise.imgs
     noise_simp.start_bin = start_bin;
     noise_simp.dt = noise.dt;
     noise_simp.fc = noise.fc;
-    if strcmpi(param.collate_coh_noise.method,'dft')
+    if strcmpi(param.collate_coh_noise.method{img},'dft')
       noise_simp.dft_freqs = dft_freqs;
       noise_simp.dft = noise.dft;
-    elseif strcmpi(param.collate_coh_noise.method,'firdec')
+    elseif strcmpi(param.collate_coh_noise.method{img},'firdec')
       noise_simp.coh_noise_gps_time = noise.coh_noise_gps_time;
       noise_simp.coh_noise = noise.coh_noise;
     end

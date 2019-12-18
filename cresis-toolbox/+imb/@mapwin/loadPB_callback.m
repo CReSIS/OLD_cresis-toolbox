@@ -87,9 +87,9 @@ param.cur_sel = obj.map.sel;
 param.cur_sel.location = obj.cur_map_pref_settings.map_zone;
 if strcmp(obj.cur_map_pref_settings.system,'layerdata')
   param.segment_id = obj.map.sel.segment_id;
-  param.system = param.cur_sel.season_name;
-  [param.cur_sel.radar_name,param.cur_sel.season_name] = strtok(param.cur_sel.season_name,'_');
-  param.cur_sel.season_name = param.cur_sel.season_name(2:end);
+  param.system = param.cur_sel.radar_name;
+  param.cur_sel.radar_name = param.cur_sel.radar_name;
+  param.cur_sel.season_name = param.cur_sel.season_name;
 else
   param.system = obj.cur_map_pref_settings.system;
   param.cur_sel.radar_name = obj.cur_map_pref_settings.system;
@@ -187,10 +187,6 @@ if strcmpi(param.layer_source,'layerdata')
       end
       param.layer(frm).layerData = layerData;
     end
-    
-    param.filename{frm} = layer_fn; % stores the filename for all frames in the segment
-    layer_fn=fullfile(ct_filename_out(param.cur_sel,param.layer_data_source,''),sprintf('Data_%s_%03d.mat',param.cur_sel.day_seg,frm));
-    lay = load(layer_fn);
   end
   
   records_fn = ct_filename_support(param.cur_sel,'','records');
