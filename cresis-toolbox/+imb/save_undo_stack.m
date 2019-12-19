@@ -52,6 +52,7 @@ if isempty(unique_layers)
   unique_layers = [];
 end
 frames = [];
+layerdata_frms = []; % List of frames that have been modified
 for cur_layer = unique_layers
   % Commit the commands for each layer, one layer at a time
   fprintf('Saving layer %d\n', cur_layer);
@@ -130,7 +131,6 @@ for cur_layer = unique_layers
     % 5: quality (1 for good, 2 for moderate, or 3 for bad)
     
     % Keep a list of all frames that are modified
-    layerdata_frms = [];
     cur_layer_cmd_idx = 1;
     while cur_layer_cmd_idx <= length(cur_layer_cmds)
       cmd_idx = cur_cmd_idxs(cur_layer_cmd_idx);

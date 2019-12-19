@@ -1,7 +1,7 @@
 function [proj] = get_proj_info(loc)
 % [proj] = get_proj_info(loc)
 
-physical_constants;
+standard_projections;
 
 switch loc
   case 'arctic'

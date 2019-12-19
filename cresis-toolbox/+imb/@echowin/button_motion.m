@@ -75,6 +75,8 @@ else
         y_unit = 'm';
       case 4
         y_unit = '';
+      case 5
+        y_unit = 'm';
     end
     set(obj.right_panel.status_panel.mouseCoordText,'String',sprintf('%8.3fN %8.3fW Y=%8.4f%s',lat,lon,y,y_unit));
   end
