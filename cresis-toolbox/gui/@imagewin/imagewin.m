@@ -137,6 +137,40 @@ classdef imagewin < handle
       obj.update_filter();
       obj.set_limits(false);
       obj.update_caxis();
+      
+      if ~ishandle(obj.img)
+        return;
+      end
+      C = get(obj.img,'CData');
+      if isempty(C)
+        return;
+      end
+      clims = [finitemin(C(:)) finitemax(C(:))];
+      
+      if numel(clims) == 2 && all(isfinite(clims))
+        if get(obj.h_gui.caxis_autoCB,'Value')
+          caxis(get(obj.img,'parent'),clims);
+          obj.h_gui.min_slider.set_value(clims(1));
+          obj.h_gui.max_slider.set_value(clims(end));
+        else
+          % Increase clims if necessary and keep slider values where they
+          % are at.
+          clims(1) = min(clims(1),obj.h_gui.min_slider.get_value());
+          clims(2) = max(clims(2),obj.h_gui.max_slider.get_value());
+        end
+        
+        obj.h_gui.min_slider.set_value_range(clims);
+        
+        cmap = get(obj.h_gui.colormapPM,'Value');
+        if cmap == 1
+          base_cmap = 1-gray(256);
+        else
+          base_cmap = jet(256);
+        end
+        hist_exp = obj.h_gui.hist_slider.get_value();
+        cmap = interp1(linspace(0,1,256).', base_cmap, linspace(0,1,256).^(10.^(hist_exp/10)));
+        colormap(get(obj.img,'parent'),cmap);
+      end
     end
    
     function clims = get_limits(obj)

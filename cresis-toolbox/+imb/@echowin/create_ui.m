@@ -230,7 +230,7 @@ set(obj.left_panel.imagePB,'TooltipString','Open image processing window');
 %--Y axis choice
 obj.left_panel.yaxisPM = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.yaxisPM,'Style','PopupMenu');
-set(obj.left_panel.yaxisPM,'String',{'TWTT','WGS84','Range','Range Bin'});
+set(obj.left_panel.yaxisPM,'String',{'TWTT','WGS84','Range','Range Bin','Surface Flat'});
 set(obj.left_panel.yaxisPM,'Value',1);
 set(obj.left_panel.yaxisPM,'Callback',@obj.yaxisPM_callback);
 set(obj.left_panel.yaxisPM,'TooltipString','Set the y-axis units');
@@ -461,8 +461,6 @@ set(obj.right_panel.status_panel.mouseCoordText,'String','');
 obj.right_panel.echoCM= uicontextmenu('parent',obj.h_fig);
 % Define the context menu items and install their callbacks
 obj.right_panel.echoCM_item1 = uimenu(obj.right_panel.echoCM, 'Label', 'Copy Cursor Info (Ctrl-C)', 'Callback',@obj.status_text_copy_callback);
-% attach context menu to axes (also attach it to h_image in
-% convert_data_to_image)
 set(obj.right_panel.status_panel.statusText,'uicontextmenu',obj.right_panel.echoCM);
 
 % create statusbar's table

@@ -50,11 +50,13 @@ end
 %% Convert the data along the y-axis according to the units
 % perform y-axis conversion (from twtt)
 yaxis_choice = get(obj.left_panel.yaxisPM,'Value');
+vel_air = c/2;
+vel_ice = c/(sqrt(er_ice)*2);
 if yaxis_choice == 1 % TWTT
   % update yaxis and yaxis_time
   obj.eg.image_yaxis = obj.eg.time*1e6;
   % update y label
-  obj.eg.y_label = 'Two-way Propagation (us)';
+  obj.eg.y_label = 'Two-way Propagation (\mus)';
   obj.eg.y_order = 'reverse';
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
@@ -64,10 +66,10 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,obj.eg.image_gps_time,'linear');
   physical_constants;
-  elev_max = max(elevation - time(1)*c/2);
-  elev_min = min(elevation - surface*c/2 - (time(end)-surface)*c/(sqrt(er_ice)*2));
+  elev_max = max(elevation - time(1)*vel_air);
+  elev_min = min(elevation - surface*vel_air - (time(end)-surface)*vel_ice);
   dt = time(2) - time(1);
-  drange = dt * c/(sqrt(er_ice)*2);
+  drange = dt * vel_ice;
   elev_uniform = (elev_max:-drange:elev_min).';
   % update image_data
   Nt = size(obj.eg.image_data,1);
@@ -75,8 +77,8 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
     zeros(length(elev_uniform)-Nt,size(obj.eg.image_data,2))];
   warning('off','MATLAB:interp1:NaNinY')
   for idx = 1:length(surface)
-    range = min(time,surface(idx)) * c/2 ...
-      + max(0,time-surface(idx)) * c/(sqrt(er_ice)*2);
+    range = min(time,surface(idx)) * vel_air ...
+      + max(0,time-surface(idx)) * vel_ice;
     elev = elevation(idx) - range;
     obj.eg.image_data(:,idx) = interp1(elev,...
       obj.eg.image_data(1:Nt,idx),elev_uniform,'linear');
@@ -92,25 +94,25 @@ elseif yaxis_choice == 3 % Range
   time = obj.eg.time;
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,obj.eg.image_gps_time,'linear');
-  range_min = time(1)*c/2;
-  range_max = max(surface*c/2 + (time(end)-surface)*c/(sqrt(er_ice)*2));
+  range_min = time(1)*vel_air;
+  range_max = max(surface*vel_air + (time(end)-surface)*vel_ice);
   dt = time(2) - time(1);
-  drange = dt * c/(sqrt(er_ice)*2);
+  drange = dt * vel_ice;
   range_uniform = (range_min:drange:range_max).';
   % update image_data
   Nt = size(obj.eg.image_data,1);
   obj.eg.image_data = [obj.eg.image_data;...
     zeros(length(range_uniform)-Nt,size(obj.eg.image_data,2))];
   for idx = 1:length(surface)
-    range = min(time,surface(idx)) * c/2 ...
-      + max(0,time-surface(idx)) * c/(sqrt(er_ice)*2);
+    range = min(time,surface(idx)) * vel_air ...
+      + max(0,time-surface(idx)) * vel_ice;
     obj.eg.image_data(:,idx) = interp1(range,...
       obj.eg.image_data(1:Nt,idx),range_uniform,'linear');
   end
   % update image_yaxis
   obj.eg.image_yaxis = range_uniform;
   % update y label
-  obj.eg.y_label = 'Range(m)';
+  obj.eg.y_label = 'Range (m)';
   obj.eg.y_order = 'reverse';
   
 elseif yaxis_choice == 4 % Range bin
@@ -119,6 +121,39 @@ elseif yaxis_choice == 4 % Range bin
   % update y label
   obj.eg.y_label = 'Range bin';
   obj.eg.y_order = 'reverse';
+  
+elseif yaxis_choice == 5 % Surface flat
+  time = obj.eg.time;
+  surface = interp1(obj.eg.gps_time,...
+    obj.eg.surface,obj.eg.image_gps_time,'linear');
+  % surface is always positive (or else we are flying inside the ice
+  % medium), but start time may be after the surface
+  %   
+  depth_min = min(min(0,time(1)-surface) * vel_air ...
+    + max(0,time(1)-surface) * vel_ice);
+  
+  depth_max = max(min(0,time(end)-surface) * vel_air ...
+    + max(0,time(end)-surface) * vel_ice);
+  
+  dt = time(2) - time(1); % time step size
+  d_depth = dt * c/(sqrt(er_ice)*2); % depth step size that we will interpolate onto
+  depth_uniform = (depth_min:d_depth:depth_max).'; % depth axis we will interpolate onto
+  % update image_data
+  Nt = size(obj.eg.image_data,1);
+  obj.eg.image_data = [obj.eg.image_data;...
+    zeros(length(depth_uniform)-Nt,size(obj.eg.image_data,2))];
+  for idx = 1:length(surface)
+    depth = min(0,time-surface(idx)) * vel_air ...
+      + max(0,time-surface(idx)) * vel_ice;
+    obj.eg.image_data(:,idx) = interp1(depth,...
+      obj.eg.image_data(1:Nt,idx),depth_uniform,'linear');
+  end
+  % update image_yaxis
+  obj.eg.image_yaxis = depth_uniform;
+  % update y label
+  obj.eg.y_label = 'Depth (m)';
+  obj.eg.y_order = 'reverse';
+  
 end
 
 % ======================================================================

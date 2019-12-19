@@ -19,8 +19,8 @@ if obj.map.fline_source == 1
   frm_id = obj.layerdata.frms(idx);
   season_idx = obj.layerdata.season_idx(idx);
   season_name = obj.cur_map_pref_settings.seasons{season_idx};
-  [sys,season_name_short] = strtok(season_name,'_');
-  season_name_short = season_name_short(2:end);
+  [sys,season_name] = strtok(season_name,'_');
+  season_name = season_name(2:end);
   
   % Get a logical mask indicating all indices that match the frame
   frm_mask = obj.layerdata.frms == frm_id;
@@ -48,11 +48,11 @@ if obj.map.fline_source == 1
     frame_search_param = struct('properties',[]);
     frame_search_param.properties.search_str = frame_name;
     frame_search_param.properties.location = obj.cur_map_pref_settings.map_zone;
-    frame_search_param.properties.season = season_name_short;
+    frame_search_param.properties.season = season_name;
     [frm_status,frm_data] = opsGetFrameSearch(sys,frame_search_param);
     
     if frm_status ~= 1
-      error_str = sprintf('Frame %s does not exist in OPS for %s:%s.', frame_name, sys, season_name_short);
+      error_str = sprintf('Frame %s does not exist in OPS for %s:%s.', frame_name, sys, season_name);
       uiwait(msgbox(error_str,'Search error','modal'));
       error(error_str);
     else
