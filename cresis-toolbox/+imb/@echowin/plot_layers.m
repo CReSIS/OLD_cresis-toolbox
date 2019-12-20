@@ -4,6 +4,9 @@ function plot_layers(obj)
 % Update layer plot handles
 
 physical_constants;
+vel_air = c/2;
+vel_ice = c/(sqrt(er_ice)*2);
+
 % ======================================================================
 %% Convert the data along the y-axis according to the units
 % perform y-axis conversion (from twtt)
@@ -25,11 +28,9 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
     obj.eg.surface,...
     obj.eg.layer.x{1},'linear','extrap');
   for idx = 1: length(layer_y_curUnit)
-    for pnt_idx = 1:length(layer_y_curUnit{idx})
-      range = min(layer_y_curUnit{idx}(pnt_idx),surface(pnt_idx))*c/2 ...
-        +max(0,layer_y_curUnit{idx}(pnt_idx)-surface(pnt_idx)) * c/(sqrt(er_ice)*2);
-      layer_y_curUnit{idx}(pnt_idx) = elevation(pnt_idx) - range;
-    end
+    range = min(layer_y_curUnit{idx},surface)*vel_air ...
+      +max(0,layer_y_curUnit{idx}-surface) * vel_ice;
+    layer_y_curUnit{idx} = elevation - range;
     layer_y_curUnit{idx}(isnan(obj.eg.layer.y{idx})) = NaN;
   end
   
@@ -40,21 +41,32 @@ elseif yaxis_choice == 3 % Depth/Range
     obj.eg.surface,...
     obj.eg.layer.x{1},'linear','extrap');
   for idx = 1:length(layer_y_curUnit)
-    for pnt_idx = 1:length(layer_y_curUnit{idx})
-      layer_y_curUnit{idx}(pnt_idx) = min(layer_y_curUnit{idx}(pnt_idx),surface(pnt_idx))*c/2 ...
-        +max(0,layer_y_curUnit{idx}(pnt_idx)-surface(pnt_idx)) * c/(sqrt(er_ice)*2);
-    end
+    layer_y_curUnit{idx} = min(layer_y_curUnit{idx},surface)*vel_air ...
+      +max(0,layer_y_curUnit{idx}-surface)*vel_ice;
     layer_y_curUnit{idx}(isnan(obj.eg.layer.y{idx})) = NaN;
   end
   
 elseif yaxis_choice == 4 % Range bin
-  % convert gCtrl layerPnts_y from TWTT to range bin
+  % convert layerPnts_y from TWTT to range bin
   layer_y_curUnit = obj.eg.layer.y;
   for idx = 1:length(layer_y_curUnit)
     layer_y_curUnit{idx} = interp1(obj.eg.time,...
       1:length(obj.eg.time),...
       layer_y_curUnit{idx},'linear','extrap');
   end
+  
+elseif yaxis_choice == 5 % Surface flat
+  % convert layerPnts_y from TWTT to depth
+  layer_y_curUnit = obj.eg.layer.y;
+  surface = interp1(obj.eg.gps_time,...
+    obj.eg.surface,...
+    obj.eg.layer.x{1},'linear','extrap');
+  for idx = 1:length(layer_y_curUnit)
+    layer_y_curUnit{idx} = min(0,(layer_y_curUnit{idx}-surface))*vel_air ...
+      +max(0,(layer_y_curUnit{idx}-surface))*vel_ice;
+    layer_y_curUnit{idx}(isnan(obj.eg.layer.y{idx})) = NaN;
+  end
+  
 end
 
 %% Plot layers

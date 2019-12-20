@@ -62,6 +62,14 @@ classdef slider < handle
       notify(obj,'slider_changed');
     end
     
+    function value_range = get_value_range(obj,value_range)
+      value_range = obj.value_range;
+    end
+    
+    function set_value_range(obj,value_range)
+      obj.value_range = value_range;
+    end
+    
     function val = get_value(obj)
       val = get(obj.h_slider,'Value');
     end

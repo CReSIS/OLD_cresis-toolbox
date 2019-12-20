@@ -6,12 +6,12 @@ classdef (HandleCompatible = true) echowin < handle
 %   Initializes obj.eg fields (eg = echogram)
 %   Calls "imb.echowin.create_ui" which creates the GUI objects
 % 2. Draw function is called
-%   Queries file system to get echograms
-%   Queries database to get layers
-%   Calls convert_data_to_image which converts layer and echogram data
-%     to the proper units and displays them in the right_panel
-%     imagesc and layer plots are created here. Note that ALL the data
-%     is plotted and xlim/ylim/caxis are used to control what is seen.
+%   Queries file system to get echograms obj.update_source_fns_existence();
+%   Calls load_flightline, load_layers_init, load_layers, load_crossovers
+%   Calls plot_echogram, plot_layers, plot_cursors
+%   Plot functions convert to the proper units and displays them in the
+%   right_panel imagesc and layer plots are created here. Note that ALL the
+%   data is plotted and xlim/ylim/caxis are used to control what is seen.
 % 3. If the user loads a new echogram from the map window, then the
 %    draw function is called again.
 % 4. If the user applies an operation, update_layer updates all the
@@ -19,9 +19,9 @@ classdef (HandleCompatible = true) echowin < handle
 % 5. If the user changes something redraw is called
 %    * If the x-axis or y-axis units change or user loads a different
 %    frame from within this echowin (either frameLB_callback or by
-%    using the left/right arrow keys) then redraw calls convert_data_to_image
+%    using the left/right arrow keys) then redraw calls 
 %    * If the user causes redraw to be called for some other reason
-%    and new data does not need to be loaded, then convert_data_to_image
+%    and new data does not need to be loaded, then plot_echogram
 %    is not called.
 % 6. Normal operation
 %    keyboard_down --> used to interpret hot keys and ctrl/shift/alt keys
@@ -34,9 +34,9 @@ classdef (HandleCompatible = true) echowin < handle
 %      no modifiers: apply point tool (call obj.left_click then obj.update_layers)
 %      right click: apply delete tool (call obj.right_click then obj.update_layers)
 %  7. set_visibility: this function sets the visibility for all the objects and
-%    is called by convert_data_to_image and update_layers. It is also
-%    called by a bunch of other places (like keyboard short cuts and
-%    special mouse button clicks) when object visibility might have changed).
+%    is called by redraw. It is also called by a bunch of other places
+%    (like keyboard short cuts and special mouse button clicks) when object
+%    visibility might have changed).
 
   properties
     %% GUI handles and UI related objects + Data
@@ -99,7 +99,7 @@ classdef (HandleCompatible = true) echowin < handle
   
   events
     close_window % Signalled when a user closes the window
-    update_echowin_flightline % Signalled when the x-axis changes (redraw, convert_data_to_image)
+    update_echowin_flightline % Signalled when the x-axis changes (draw and redraw)
     update_cursors % Signalled when a user changes the cursor (button_up)
     update_map_selection % Signalled when the frame selection changes (frameLB_callback)
     open_crossover_event % Signalled when user requests a cross over opened from the cross over window (open_crossover)
@@ -179,10 +179,10 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.h_image = [];          % handle to imagesc object
       obj.eg.image_data = [];       % data for 'imagesc' function
       obj.eg.image_xaxis = [];      % xaxis for 'imagesc' function
-      obj.eg.x_label = '';          % string for x-label (assigned in convert_data_to_image)
+      obj.eg.x_label = '';          % string for x-label (assigned in plot_echogram)
       obj.eg.image_gps_time = [];   % same size as 'image_xaxis'
       obj.eg.image_yaxis = [];      % yaxis for 'imagesc' function
-      obj.eg.y_label = '';          % string for x-label (assigned in convert_data_to_image)
+      obj.eg.y_label = '';          % string for x-label (assigned in plot_echogram)
       obj.eg.y_order = '';          % string for 'reverse' or 'normal'
       
       obj.eg.old_frame_idx = -1;
@@ -316,7 +316,6 @@ classdef (HandleCompatible = true) echowin < handle
     update_frame_and_sourceLB(obj,frm);
     
     set_visibility(obj,varargin); % Layer colors
-    convert_data_to_image(obj,x_min,x_max,y_min,y_max,param);
     change_dynamic_range(obj);
     change_display_c(obj);
     new_layerPB_OKbutton_callback(obj,hObj,event);
