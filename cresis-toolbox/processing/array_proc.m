@@ -1348,11 +1348,18 @@ for line_idx = 1:1:Nx_out
         grid on
         grid minor
         axis tight
+        [day, rem] = strtok(param.day_seg, '_');
+        seg = rem(2:end);
+        tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(line_idx));
+        titlestr = sprintf('%s %s CSARP surfData, %s',day,seg,datestr(tgps));
+        title(titlestr)
         ylims = ylim;
-        DOAclutter = surf_doas;
-        line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-        line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-        legend('Pseudoinverse','Clutter','Clutter')
+        if ~isempty(surf_doas)
+          DOAclutter = surf_doas;
+          line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+          line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+          legend('Pseudoinverse','Clutter','Clutter')
+        end
         keyboard
       end
       
@@ -1409,28 +1416,33 @@ for line_idx = 1:1:Nx_out
         
         % Find orthonormal basis for the orthogonal complement of C(A)
         % (nullspace of A transpose)
-        Beta_Aperp  = zeros(Nc,dim_Aperp);
+        Ca  = zeros(Nc,dim_Aperp);
         [U,S,V] = svd(A);
-        Beta_Aperp = U(:,end-(Nc-q)+1:end);
+        Ca = U(:,end-(Nc-q)+1:end);
+        % Alternatively we can use Ca = null(A') here.  
         
-        % Alternatively we can use Beta_Aperp = null(A') here.  
-        
-        % Quiescent vector
+        % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE NON
+        % ADAPTIVE MLE
         wq = A*inv(A'*A)*g;
         
         % GSLC quantities
-        R_tilda = Beta_Aperp'*Rxx*Beta_Aperp;
-        p_tilda = Beta_Aperp'*Rxx*wq;
-        wa      = inv(R_tilda)*p_tilda;
-        w_gslc  = wq - Beta_Aperp*wa;
+        R_tilda = Ca'*Rxx*Ca;
+        p_tilda = Ca'*Rxx*wq;
+        
+        % Compute the adaptive portion of the weight vector
+        wa      = Ca*inv(R_tilda)*p_tilda;
+        
+        w_gslc  = wq - wa;
+
         sv_gslc{ml_idx} = w_gslc;
         
         
         %% DEBUG GSLC ONLY
         % =================================================================
         % Plot GSLC and Nonadaptive MLE
-        debug = 1;
+        debug = 0;
         if ~isempty(surf_doas) && debug
+%         if debug
           
           % Determine weight vector for nonadaptive MLE
           g_geo                 = vertcat(1,zeros(q-1,1));  % Unity gain towards nadir, nulls in clutter directions
@@ -1442,9 +1454,7 @@ for line_idx = 1:1:Nx_out
           
           % Apply pseudoinverse to g (project orthogonally to interference)
           wgeo = Aint * inv(Aint'*Aint) *g_geo;
-%           wgeo = wgeo ./ sqrt(wgep'*wgeo);
-          
-          
+        
           theta_vec       = linspace(-pi/2,pi/2,256);
           sv_patt_arg     = sv_fh_arg_gslc;
           sv_patt_arg{2}  = [theta_vec];
@@ -1453,7 +1463,7 @@ for line_idx = 1:1:Nx_out
           % Constituent patterns of the sidelobe canceller
           Pattgslc          = w_gslc'*Amanifold;
           Pattq             = wq'*Amanifold;
-          Patta             = (Beta_Aperp*wa)'*Amanifold;
+          Patta             = (wa)'*Amanifold;
           Pattgeo           = wgeo'*Amanifold;
           
           figure(197);clf;plot(theta_vec*180/pi,20*log10(abs(Pattgslc)),'LineWidth',2)
@@ -1463,13 +1473,21 @@ for line_idx = 1:1:Nx_out
           axis tight
           plot(theta_vec*180/pi, 20*log10(abs(Pattq)),'LineWidth',2)
           plot(theta_vec*180/pi, 20*log10(abs(Patta)),'LineWidth',2)
+          [day, rem] = strtok(param.day_seg, '_');
+          seg = rem(2:end);
+          tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(line_idx));
+          titlestr = sprintf('%s %s CSARP surfData, %s',day,seg,datestr(tgps));
+          title(titlestr)
+          if ~isempty(surf_doas)
+            DOAclutter = surf_doas;
+            ylims = ylim;
+            line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+            line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+            legend('w_{gslc}','w_q','w_a','Clutter','Clutter')
+          else
+            legend('w_{gslc}','w_q','w_a')
+          end
 
-          DOAclutter = surf_doas;
-          ylims = ylim;
-          line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          legend('w_{gslc}','w_q','C_aw_q','Clutter','Clutter')
-          keyboard
           
           figure(198);clf;plot(theta_vec*180/pi,20*log10(abs(Pattgslc)),'LineWidth',2)
           hold on
@@ -1477,9 +1495,20 @@ for line_idx = 1:1:Nx_out
           grid minor
           plot(theta_vec*180/pi, 20*log10(abs(Pattgeo)),'LineWidth',2)
           ylims = ylim;
-          line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          legend('w_{gslc}','w_{geo}','Clutter','Clutter')          
+          [day, rem] = strtok(param.day_seg, '_');
+          seg = rem(2:end);
+          tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(line_idx));
+          titlestr = sprintf('%s %s CSARP surfData, %s',day,seg,datestr(tgps));
+          title(titlestr)
+          if ~isempty(surf_doas)
+            DOAclutter = surf_doas;
+            line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+            line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+            legend('w_{gslc}','w_{geo}','Clutter','Clutter')
+          else
+            legend('w_{gslc}','w_{geo}')
+          end
+          keyboard
         end
         
         
