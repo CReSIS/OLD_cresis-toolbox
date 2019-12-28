@@ -498,7 +498,7 @@ for wf = 1:length(param.radar.wfs)
   end
   if ~isfield(param.radar.wfs(wf),'quantization_to_V_dynamic') || isempty(param.radar.wfs(wf).quantization_to_V_dynamic)
     wfs(wf).quantization_to_V_dynamic = false;
-    if any(param.records.file.version == [3 5 7 8 11 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
+    if any(param.records.file.version == [3 4 5 7 8 11 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
       wfs(wf).quantization_to_V_dynamic = true;
     end
   else
@@ -746,13 +746,16 @@ for wf = 1:length(param.radar.wfs)
   
   switch param.records.file.version
       
-    case {1,2,3,5,7,8,11}
-      if param.records.file.version == 1
+    case {1,2,3,4,5,7,8,11}
+      if param.records.file.version == 1 
         HEADER_SIZE = 32;
         WF_HEADER_SIZE = 0;
       elseif param.records.file.version == 2
         HEADER_SIZE = 40;
         WF_HEADER_SIZE = 0;
+      elseif param.records.file.version == 4
+          HEADER_SIZE = 32;
+          WF_HEADER_SIZE = 4;        
       else
         HEADER_SIZE = 0;
         WF_HEADER_SIZE = 48;

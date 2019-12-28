@@ -657,8 +657,12 @@ if ~isempty(param.array.layer_name) && (strcmpi(param.array.layer_name,'top') ||
 end
 
 % Null Steering Setup - Check to avoid mainlobe nulling 
-if any(cfg.method == GEONULL_METHOD)
-  % For geonull method, define theta_guard to prevent mainlobe nulling.
+if any(cfg.method == GEONULL_METHOD) || any(cfg.method == GSLC_METHOD)
+  % NOTE:  ASSUMPTION IS THAT EITHER USER PASSES IN DOA_THETA_GUARD OR
+  % DOA_THETA_GAURD IS EMPTY
+  % For geonull method and the sidelobe canceller, we define theta_guard to 
+  % prevent mainlobe nulling.
+  % 
   % Use a back of the envelope approximation of the mainLOBE width assuming
   % uniform weighting and the ELECTRICAL length of the aperture Nc*dy 
   % (NOT [Nc-1]*dy!)
@@ -1299,10 +1303,15 @@ for line_idx = 1:1:Nx_out
       % nonzero coefficient is in the ith entry.  Assumes that the ith
       % column of A contains target steering vector.
       g = vertcat(1,zeros(qsurf,1));  % Unity gain towards nadir, nulls in clutter directions
-      
+         
+      % Important to note- theta is passed in as degrees and converted to
+      % radians at the top of array proc.  surf_doas are in degrees.  BE
+      % CAREFULL - array_proc_sv wants to see DOAS in radians.  If you
+      % don't have this right you'll likely self null
+      surf_doas_rad = surf_doas*pi/180;
       sv_fh_arg_geonull = {'theta'};
-      sv_fh_arg_geonull{2} = [theta, surf_doas(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
-      
+      sv_fh_arg_geonull{2} = [theta, surf_doas_rads(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
+            
       for ml_idx = 1:length(cfg.fcs)
         % Make column vectors of y and z-positions
         for wf_adc_idx = 1:length(cfg.fcs{ml_idx})
@@ -1340,7 +1349,7 @@ for line_idx = 1:1:Nx_out
         grid minor
         axis tight
         ylims = ylim;
-        DOAclutter = sv_fh_arg_geonull{2}(2:end);
+        DOAclutter = surf_doas;
         line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
         line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
         legend('Pseudoinverse','Clutter','Clutter')
@@ -1365,7 +1374,6 @@ for line_idx = 1:1:Nx_out
       else
         surf_doas   = surf_doas(:);
       end
-      
       qsurf     = numel(surf_doas);
       
       % Signal vector that we wish to invert of the form [1, 0, 0].
@@ -1382,8 +1390,10 @@ for line_idx = 1:1:Nx_out
       dim_Aperp = Nc - q;
             
       % Source DOAs
-      sv_fh_arg_gslc = {'theta'};
-      sv_fh_arg_gslc{2} = [theta, surf_doas(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
+      % ASSUMPTION IS THAT THETA HAS ALREADY BEEN CONVERTED TO RADIANS
+      surf_doas_rad     = surf_doas*pi/180;
+      sv_fh_arg_gslc    = {'theta'};
+      sv_fh_arg_gslc{2} = [theta, surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
       
       % Loop over wf/adc set
       for ml_idx = 1:length(cfg.fcs)
@@ -1396,12 +1406,14 @@ for line_idx = 1:1:Nx_out
         % Determine Steering Vectors for target and interference -
         % Equivalent to the constraint matrix C
         [~,A] = cfg.sv_fh(sv_fh_arg_gslc,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+        
         % Find orthonormal basis for the orthogonal complement of C(A)
         % (nullspace of A transpose)
         Beta_Aperp  = zeros(Nc,dim_Aperp);
         [U,S,V] = svd(A);
-        Beta_Aperp = V(:,end-(Nc-q)+1:end);
-        % Alternatively we can use Beta_Aperp = null(A) here
+        Beta_Aperp = U(:,end-(Nc-q)+1:end);
+        
+        % Alternatively we can use Beta_Aperp = null(A') here.  
         
         % Quiescent vector
         wq = A*inv(A'*A)*g;
@@ -1410,12 +1422,70 @@ for line_idx = 1:1:Nx_out
         R_tilda = Beta_Aperp'*Rxx*Beta_Aperp;
         p_tilda = Beta_Aperp'*Rxx*wq;
         wa      = inv(R_tilda)*p_tilda;
-        w_gslc  = wq - wa;
+        w_gslc  = wq - Beta_Aperp*wa;
         sv_gslc{ml_idx} = w_gslc;
+        
+        
+        %% DEBUG GSLC ONLY
+        % =================================================================
+        % Plot GSLC and Nonadaptive MLE
+        debug = 1;
+        if ~isempty(surf_doas) && debug
+          
+          % Determine weight vector for nonadaptive MLE
+          g_geo                 = vertcat(1,zeros(q-1,1));  % Unity gain towards nadir, nulls in clutter directions
+          sv_fh_arg_geonull     = {'theta'};
+          sv_fh_arg_geonull{2}  = [theta, surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
+          
+          % Determine Steering Vectors for target and interference
+          [~,Aint] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+          
+          % Apply pseudoinverse to g (project orthogonally to interference)
+          wgeo = Aint * inv(Aint'*Aint) *g_geo;
+%           wgeo = wgeo ./ sqrt(wgep'*wgeo);
+          
+          
+          theta_vec       = linspace(-pi/2,pi/2,256);
+          sv_patt_arg     = sv_fh_arg_gslc;
+          sv_patt_arg{2}  = [theta_vec];
+          [~,Amanifold]   = cfg.sv_fh(sv_patt_arg,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+          
+          % Constituent patterns of the sidelobe canceller
+          Pattgslc          = w_gslc'*Amanifold;
+          Pattq             = wq'*Amanifold;
+          Patta             = (Beta_Aperp*wa)'*Amanifold;
+          Pattgeo           = wgeo'*Amanifold;
+          
+          figure(197);clf;plot(theta_vec*180/pi,20*log10(abs(Pattgslc)),'LineWidth',2)
+          hold on
+          grid on
+          grid minor
+          axis tight
+          plot(theta_vec*180/pi, 20*log10(abs(Pattq)),'LineWidth',2)
+          plot(theta_vec*180/pi, 20*log10(abs(Patta)),'LineWidth',2)
+
+          DOAclutter = surf_doas;
+          ylims = ylim;
+          line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+          line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+          legend('w_{gslc}','w_q','C_aw_q','Clutter','Clutter')
+          keyboard
+          
+          figure(198);clf;plot(theta_vec*180/pi,20*log10(abs(Pattgslc)),'LineWidth',2)
+          hold on
+          grid on
+          grid minor
+          plot(theta_vec*180/pi, 20*log10(abs(Pattgeo)),'LineWidth',2)
+          ylims = ylim;
+          line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+          line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+          legend('w_{gslc}','w_{geo}','Clutter','Clutter')          
+        end
+        
         
       end
       
-      Hwindow = boxcar(Nc);      
+      Hwindow = boxcar(Nc);
       Sarray.gslc(:,bin_idx) = mean(abs(sv_gslc{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
       for ml_idx = 2:length(din)
         dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
@@ -1425,6 +1495,8 @@ for line_idx = 1:1:Nx_out
       end
       Sarray.gslc(:,bin_idx) =       Sarray.gslc(:,bin_idx) / length(din);
       
+      
+
 
     elseif any(cfg.method == MVDR_ROBUST_METHOD)
       %% Array: Robust MVDR
