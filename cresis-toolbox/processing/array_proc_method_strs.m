@@ -45,6 +45,8 @@ for method_idx = 1:numel(method_ints)
       method_strs{method_idx} = 'dcm';
     case PF_METHOD
       method_strs{method_idx} = 'pf';
+    case DOA_TAGGING_METHOD
+      method_strs{method_idx} = 'doa_tag';
     otherwise
       error('Invalid method integer (%d)', method_int);
   end

@@ -282,7 +282,7 @@ if ischar(param.array.method)
   if regexpi(param.array.method,'geonull')
     method_integer(end+1) = GEONULL_METHOD;
   end
-    if regexpi(param.array.method,'gslc')
+  if regexpi(param.array.method,'gslc')
     method_integer(end+1) = GSLC_METHOD;
   end
   if regexpi(param.array.method,'music_doa')
@@ -300,10 +300,13 @@ if ischar(param.array.method)
   if regexpi(param.array.method,'pf')
     method_integer(end+1) = PF_METHOD;
   end
+  if regexpi(param.array.method,'doa_tag')
+    method_integer(end+1) = DOA_TAGGING_METHOD;
+  end
   param.array.method = method_integer;
 end
 param.array.method = intersect(param.array.method, ...
-  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD GSLC_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD PF_METHOD], ...
+  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD GSLC_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD PF_METHOD DOA_TAGGING_METHOD], ...
   'stable');
 if isempty(param.array.method)
   error('No valid method selected in param.array.method');
@@ -567,6 +570,12 @@ for idx = 1:length(cfg.method)
     tout.(m).tomo.img = ...
       nan(Nt_out,cfg.Nsv,Nx_out,'single');
     tout.(m).tomo.theta = theta(:); % Ensure a column vector on output
+  end
+  if cfg.method(idx) == DOA_TAGGING_METHOD
+    tout.(m).tomo.img = ...
+      nan(Nt_out,Nc,Nx_out,'single');
+    tout.(m).tomo.theta = ...
+      nan(Nt_out,cfg.Nsrc,Nx_out,'single');    
   end
 end
 
@@ -1366,12 +1375,17 @@ for line_idx = 1:1:Nx_out
 
       
     elseif any(cfg.method == GSLC_METHOD)
-      %% Generalized Sidelobe Canceller
-      dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
-      dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
+      %% Array: Generalized Sidelobe Canceller
+%       dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
+%       dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
+      
+      dataSample = double(din{1}(bin+DCM_bin_rng,rline+DCM_line_rng,:,:,:));
+      dataSample = reshape(dataSample,[length(DCM_bin_rng)*length(DCM_line_rng)*Na*Nb Nc]).';
+      Rxx = 1/size(dataSample,2) * (dataSample * dataSample');
+      dataSample = dataSample.';
       
       % Data covariance matrix
-      Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
+%       Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
       
       % Mask out mainlobe clutter angles
       surf_doas   = cfg.surface_rline(bin).DOAs(~isnan(cfg.surface_rline(bin).DOAs));
@@ -3066,6 +3080,10 @@ for line_idx = 1:1:Nx_out
         P_hat   = P_hat + mean(abs(S_hat).^2,2);
       end
       tout.tomo.dcm.img(bin_idx,:,line_idx)  = P_hat;
+      
+    elseif any(cfg.method == 'DOA_TAGGING_METHOD')
+      keyboard
+        
     end
   end
   
