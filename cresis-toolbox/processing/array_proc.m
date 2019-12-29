@@ -302,6 +302,20 @@ if ischar(param.array.method)
   end
   if regexpi(param.array.method,'doa_tag')
     method_integer(end+1) = DOA_TAGGING_METHOD;
+    param.array.bin_rng   = 0;
+    param.array.line_rng  = 0;
+    param.array.Nsrc      = 3;
+    % DOA tagging keeps track for UP TO 3 sources (one nadir, 2 off-nadir).
+    % If there are less than 3, they will be assigned NaNs below.  This is
+    % just how we bookkeep.
+    %
+    % Populate constraints for 3 sources - DOA TAGGING never uses this but 
+    % it keeps the code for breaking in array_task
+    for src_idx = 1:param.array.Nsrc
+      param.array.doa_constraints(src_idx).method = 'fixed';
+      param.array.doa_constraints(src_idx).init_src_limits = [-90 90];
+      param.array.doa_constraints(src_idx).src_limits = [-90 90];
+    end
   end
   param.array.method = method_integer;
 end
@@ -552,15 +566,23 @@ for idx = 1:length(cfg.method)
   tout.(m).theta ...
     = nan(Nt_out, Nx_out,'single');
   if cfg.method(idx) >= DOA_METHOD_THRESHOLD
-    % Direction of Arrival Method
-    tout.(m).tomo.img = ...
-      nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-    tout.(m).tomo.theta = ...
-      nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-    tout.(m).tomo.cost = ...
-      nan(Nt_out, Nx_out,'single');
-    tout.(m).tomo.hessian = ...
-      nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+    if cfg.method(idx) == DOA_TAGGING_METHOD
+      % DOA tagging method (don't store hessian or cost)
+      tout.(m).tomo.img = ...
+        nan(Nt_out,Nc,Nx_out,'single');
+      tout.(m).tomo.theta = ...
+        nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+    else
+      % Direction of Arrival Method
+      tout.(m).tomo.img = ...
+        nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+      tout.(m).tomo.theta = ...
+        nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+      tout.(m).tomo.cost = ...
+        nan(Nt_out, Nx_out,'single');
+      tout.(m).tomo.hessian = ...
+        nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+    end
   else
     % Beam Forming Method
     Sarray.(m) = zeros(cfg.Nsv,Nt_out);
@@ -571,12 +593,12 @@ for idx = 1:length(cfg.method)
       nan(Nt_out,cfg.Nsv,Nx_out,'single');
     tout.(m).tomo.theta = theta(:); % Ensure a column vector on output
   end
-  if cfg.method(idx) == DOA_TAGGING_METHOD
-    tout.(m).tomo.img = ...
-      nan(Nt_out,Nc,Nx_out,'single');
-    tout.(m).tomo.theta = ...
-      nan(Nt_out,cfg.Nsrc,Nx_out,'single');    
-  end
+  %   if cfg.method(idx) == DOA_TAGGING_METHOD
+  %     tout.(m).tomo.img = ...
+  %       nan(Nt_out,Nc,Nx_out,'single');
+  %     tout.(m).tomo.theta = ...
+  %       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+  %   end
 end
 
 % MOE output: simulation (for comparing different MOE methods)
@@ -1454,7 +1476,7 @@ for line_idx = 1:1:Nx_out
         %% DEBUG GSLC ONLY
         % =================================================================
         % Plot GSLC and Nonadaptive MLE
-        debug = 0;
+        debug = 1;
         if ~isempty(surf_doas) && debug
 %         if debug
           
@@ -3081,9 +3103,25 @@ for line_idx = 1:1:Nx_out
       end
       tout.tomo.dcm.img(bin_idx,:,line_idx)  = P_hat;
       
-    elseif any(cfg.method == 'DOA_TAGGING_METHOD')
-      keyboard
+    elseif any(cfg.method == DOA_TAGGING_METHOD)
+      % Collect source DOAs for the range bin and along-track position
+      surf_doas   = cfg.surface_rline(bin).DOAs;
+      surf_doas   = surf_doas(:);
+      nan_doas    = [];
+      if numel(surf_doas) < cfg.Nsrc
+        Nsurf_doa = length(surf_doas);
+        Nnans     = cfg.Nsrc - (Nsurf_doa +1);
+        nan_doas  = nan(Nnans,1);
+      end
         
+      doa_vec = vertcat(theta,surf_doas,nan_doas);
+      tout.doa_tag.tomo.theta(bin_idx,:,line_idx) = doa_vec;
+      
+      % Snapshot
+      dataSample = squeeze(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+%       snapshot = squeeze(din{1}(bin,rline,:,:,:));
+      tout.doa_tag.tomo.img(bin_idx,:,line_idx) = dataSample;
+      
     end
   end
   
@@ -3119,22 +3157,26 @@ for line_idx = 1:1:Nx_out
         tout.(m).tomo.img(:,:,line_idx) = Sarray.(m);
       end
     else
-      % DOA Methods
       
-      if 1
-        % Mode 1: The value of the largest source in theta_rng in the Nsrc dimension
-        dout_img = tout.(m).tomo.img .* ...
-          (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
-        [tout.(m).img(:,line_idx) max_img_idx] = max(dout_img(:,:,line_idx),[],2);
-        tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(max_img_idx);
-        %         [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
-        %         tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
-      else
-        % Mode 2: the value of the source closest to the center of theta_rng in the Nsrc dimension
-        dout_img = tout.(m).tomo.theta .* ...
-          (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
-        [tout.(m).theta(:,line_idx) nearest_theta_idx] = min(abs(dout_img(:,:,line_idx)),[],2);
-        tout.(m).img(:,line_idx) = tout.(m).tomo.img(nearest_theta_idx);
+      
+      if cfg.method(idx) ~= DOA_TAGGING_METHOD
+        % DOA Methods
+        
+        if 1
+          % Mode 1: The value of the largest source in theta_rng in the Nsrc dimension
+          dout_img = tout.(m).tomo.img .* ...
+            (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
+          [tout.(m).img(:,line_idx) max_img_idx] = max(dout_img(:,:,line_idx),[],2);
+          tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(max_img_idx);
+          %         [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
+          %         tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
+        else
+          % Mode 2: the value of the source closest to the center of theta_rng in the Nsrc dimension
+          dout_img = tout.(m).tomo.theta .* ...
+            (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
+          [tout.(m).theta(:,line_idx) nearest_theta_idx] = min(abs(dout_img(:,:,line_idx)),[],2);
+          tout.(m).img(:,line_idx) = tout.(m).tomo.img(nearest_theta_idx);
+        end
       end
     end
   end
