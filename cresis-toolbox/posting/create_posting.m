@@ -134,12 +134,16 @@ end
 % post_path: the directory where outputs will be created
 post_path = ct_filename_out(param,param.post.out_path,[],1);
 
+if ~isfield(param.post,'pdf_en') || isempty(param.post.pdf_en)
+  param.post.pdf_en = false;
+end
+
 if ~isfield(param.post.echo,'plot_params') || isempty(param.post.echo.plot_params)
   param.post.echo.plot_params = {'PaperPosition',[0.25 2.5 8 6]};
 end
 
-if ~isfield(param.post,'pdf_en') || isempty(param.post.pdf_en)
-  param.post.pdf_en = false;
+if ~isfield(param.post.echo,'plot_quality') || isempty(param.post.echo.plot_quality)
+  param.post.echo.plot_quality = true;
 end
 
 if ~isfield(param.post, 'surface_source')
