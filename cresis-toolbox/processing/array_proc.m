@@ -286,7 +286,7 @@ if ischar(param.array.method)
   if regexpi(param.array.method,'geonull')
     method_integer(end+1) = GEONULL_METHOD;
   end
-    if regexpi(param.array.method,'gslc')
+  if regexpi(param.array.method,'gslc')
     method_integer(end+1) = GSLC_METHOD;
   end
   if regexpi(param.array.method,'music_doa')
@@ -304,10 +304,16 @@ if ischar(param.array.method)
   if regexpi(param.array.method,'pf')
     method_integer(end+1) = PF_METHOD;
   end
+  if regexpi(param.array.method,'snapshot')
+    method_integer(end+1) = SNAPSHOT_METHOD;
+    param.array.bin_rng   = 0;
+    param.array.line_rng  = 0;
+    param.array.Nsrc      = 1;
+  end
   param.array.method = method_integer;
 end
 param.array.method = intersect(param.array.method, ...
-  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD GSLC_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD PF_METHOD], ...
+  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD GSLC_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD PF_METHOD SNAPSHOT_METHOD], ...
   'stable');
 if isempty(param.array.method)
   error('No valid method selected in param.array.method');
@@ -552,16 +558,20 @@ for idx = 1:length(cfg.method)
     = nan(Nt_out, Nx_out,'single');
   tout.(m).theta ...
     = nan(Nt_out, Nx_out,'single');
-  if cfg.method(idx) >= DOA_METHOD_THRESHOLD
-    % Direction of Arrival Method
-    tout.(m).tomo.img = ...
-      nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+  if cfg.method(idx) >= DOA_METHOD_THRESHOLD && cfg.method(idx) < SNAPSHOT_METHOD_THRESHOLD
+    % DOA Methods
     tout.(m).tomo.theta = ...
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
     tout.(m).tomo.cost = ...
       nan(Nt_out, Nx_out,'single');
     tout.(m).tomo.hessian = ...
       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+    tout.(m).tomo.img = ...
+      nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+  elseif cfg.method(idx) >= SNAPSHOT_METHOD_THRESHOLD
+    % Snapshot method stores raw snapshots
+    tout.(m).tomo.img = ...
+      nan(Nt_out,Nc,Nx_out,'single');
   else
     % Beam Forming Method
     Sarray.(m) = zeros(cfg.Nsv,Nt_out);
@@ -571,6 +581,10 @@ for idx = 1:length(cfg.method)
     tout.(m).tomo.img = ...
       nan(Nt_out,cfg.Nsv,Nx_out,'single');
     tout.(m).tomo.theta = theta(:); % Ensure a column vector on output
+  end
+  if cfg.tomo_en
+    tout.(m).tomo.surftheta = ...
+      nan(Nt_out,1,Nx_out,'single');    
   end
 end
 
@@ -1042,11 +1056,12 @@ for line_idx = 1:1:Nx_out
       nan_vec     = num2cell(NaN(sum(empty_mask),1));
       [surf_interp(empty_mask).DOAs] = nan_vec{:};
       
-      % for lack of a better variable, temporarily called it this.
+      % Store surface DOAs in a 1xNt struct array
       cfg.surface_rline = surf_interp;
     end
     
   end
+  
   for bin_idx = bin_idxs(:).'
     %% Array: Array Process Each Bin
     bin = cfg.bins(bin_idx);
@@ -1352,23 +1367,35 @@ for line_idx = 1:1:Nx_out
         grid on
         grid minor
         axis tight
+        [day, rem] = strtok(param.day_seg, '_');
+        seg = rem(2:end);
+        tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(line_idx));
+        titlestr = sprintf('%s %s CSARP surfData, %s',day,seg,datestr(tgps));
+        title(titlestr)
         ylims = ylim;
-        DOAclutter = surf_doas;
-        line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-        line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-        legend('Pseudoinverse','Clutter','Clutter')
+        if ~isempty(surf_doas)
+          DOAclutter = surf_doas;
+          line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+          line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+          legend('Pseudoinverse','Clutter','Clutter')
+        end
         keyboard
       end
       
 
       
     elseif any(cfg.method == GSLC_METHOD)
-      %% Generalized Sidelobe Canceller
-      dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
-      dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
+      %% Array: Generalized Sidelobe Canceller
+%       dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
+%       dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
+      
+      dataSample = double(din{1}(bin+DCM_bin_rng,rline+DCM_line_rng,:,:,:));
+      dataSample = reshape(dataSample,[length(DCM_bin_rng)*length(DCM_line_rng)*Na*Nb Nc]).';
+      Rxx = 1/size(dataSample,2) * (dataSample * dataSample');
+      dataSample = dataSample.';
       
       % Data covariance matrix
-      Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
+%       Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
       
       % Mask out mainlobe clutter angles
       surf_doas   = cfg.surface_rline(bin).DOAs(~isnan(cfg.surface_rline(bin).DOAs));
@@ -1413,20 +1440,24 @@ for line_idx = 1:1:Nx_out
         
         % Find orthonormal basis for the orthogonal complement of C(A)
         % (nullspace of A transpose)
-        Beta_Aperp  = zeros(Nc,dim_Aperp);
+        Ca  = zeros(Nc,dim_Aperp);
         [U,S,V] = svd(A);
-        Beta_Aperp = U(:,end-(Nc-q)+1:end);
+        Ca = U(:,end-(Nc-q)+1:end);
+        % Alternatively we can use Ca = null(A') here.  
         
-        % Alternatively we can use Beta_Aperp = null(A') here.  
-        
-        % Quiescent vector
+        % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE NON
+        % ADAPTIVE MLE
         wq = A*inv(A'*A)*g;
         
         % GSLC quantities
-        R_tilda = Beta_Aperp'*Rxx*Beta_Aperp;
-        p_tilda = Beta_Aperp'*Rxx*wq;
-        wa      = inv(R_tilda)*p_tilda;
-        w_gslc  = wq - Beta_Aperp*wa;
+        R_tilda = Ca'*Rxx*Ca;
+        p_tilda = Ca'*Rxx*wq;
+        
+        % Compute the adaptive portion of the weight vector
+        wa      = Ca*inv(R_tilda)*p_tilda;
+        
+        w_gslc  = wq - wa;
+
         sv_gslc{ml_idx} = w_gslc;
         
         
@@ -1435,6 +1466,7 @@ for line_idx = 1:1:Nx_out
         % Plot GSLC and Nonadaptive MLE
         debug = 1;
         if ~isempty(surf_doas) && debug
+%         if debug
           
           % Determine weight vector for nonadaptive MLE
           g_geo                 = vertcat(1,zeros(q-1,1));  % Unity gain towards nadir, nulls in clutter directions
@@ -1446,9 +1478,7 @@ for line_idx = 1:1:Nx_out
           
           % Apply pseudoinverse to g (project orthogonally to interference)
           wgeo = Aint * inv(Aint'*Aint) *g_geo;
-%           wgeo = wgeo ./ sqrt(wgep'*wgeo);
-          
-          
+        
           theta_vec       = linspace(-pi/2,pi/2,256);
           sv_patt_arg     = sv_fh_arg_gslc;
           sv_patt_arg{2}  = [theta_vec];
@@ -1457,7 +1487,7 @@ for line_idx = 1:1:Nx_out
           % Constituent patterns of the sidelobe canceller
           Pattgslc          = w_gslc'*Amanifold;
           Pattq             = wq'*Amanifold;
-          Patta             = (Beta_Aperp*wa)'*Amanifold;
+          Patta             = (wa)'*Amanifold;
           Pattgeo           = wgeo'*Amanifold;
           
           figure(197);clf;plot(theta_vec*180/pi,20*log10(abs(Pattgslc)),'LineWidth',2)
@@ -1467,13 +1497,21 @@ for line_idx = 1:1:Nx_out
           axis tight
           plot(theta_vec*180/pi, 20*log10(abs(Pattq)),'LineWidth',2)
           plot(theta_vec*180/pi, 20*log10(abs(Patta)),'LineWidth',2)
+          [day, rem] = strtok(param.day_seg, '_');
+          seg = rem(2:end);
+          tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(line_idx));
+          titlestr = sprintf('%s %s CSARP surfData, %s',day,seg,datestr(tgps));
+          title(titlestr)
+          if ~isempty(surf_doas)
+            DOAclutter = surf_doas;
+            ylims = ylim;
+            line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+            line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+            legend('w_{gslc}','w_q','w_a','Clutter','Clutter')
+          else
+            legend('w_{gslc}','w_q','w_a')
+          end
 
-          DOAclutter = surf_doas;
-          ylims = ylim;
-          line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          legend('w_{gslc}','w_q','C_aw_q','Clutter','Clutter')
-          keyboard
           
           figure(198);clf;plot(theta_vec*180/pi,20*log10(abs(Pattgslc)),'LineWidth',2)
           hold on
@@ -1481,9 +1519,20 @@ for line_idx = 1:1:Nx_out
           grid minor
           plot(theta_vec*180/pi, 20*log10(abs(Pattgeo)),'LineWidth',2)
           ylims = ylim;
-          line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          legend('w_{gslc}','w_{geo}','Clutter','Clutter')          
+          [day, rem] = strtok(param.day_seg, '_');
+          seg = rem(2:end);
+          tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(line_idx));
+          titlestr = sprintf('%s %s CSARP surfData, %s',day,seg,datestr(tgps));
+          title(titlestr)
+          if ~isempty(surf_doas)
+            DOAclutter = surf_doas;
+            line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+            line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
+            legend('w_{gslc}','w_{geo}','Clutter','Clutter')
+          else
+            legend('w_{gslc}','w_{geo}')
+          end
+          keyboard
         end
         
         
@@ -3041,6 +3090,46 @@ for line_idx = 1:1:Nx_out
         P_hat   = P_hat + mean(abs(S_hat).^2,2);
       end
       tout.tomo.dcm.img(bin_idx,:,line_idx)  = P_hat;
+      
+    elseif any(cfg.method == SNAPSHOT_METHOD)
+      % cfg.Nsrc is an a priori assumption of the number of corrange
+      % targets.
+      %
+      % The surfdata output from a refined assumption of Nsrc stored in Q.
+      % Here we can think of Q as an "actual" number of sources
+      
+      % Collect source DOAs for the range bin and along-track position
+      surf_doas   = cfg.surface_rline(bin).DOAs;
+      surf_doas   = surf_doas(:);
+      Q           = length(surf_doas);
+      Nsrc        = size(tout.snapshot.tomo.surftheta,2);
+      
+      nan_doas    = [];
+      if Q < Nsrc
+        % If the number of constant range intersections is less than Nsrc, 
+        Nnans     = Nsrc - Q;
+        nan_doas  = nan(Nnans,1);
+        nan_doas  = nan_doas(:);
+      end
+        
+      % Append surf_doas with NaNs if necessary and store in doa_vec
+      doa_vec     = vertcat(surf_doas,nan_doas);
+      
+      % Allow dimension of tout.snapshot.tomo.theta to grow if the number of
+      % sources exceeds the dimension of the preallocated matrix
+      if Q > Nsrc
+        Nsrc_add = Q - Nsrc;  
+        theta_append = nan(Nt,Nsrc_add,Nx_out);
+        tout.snapshot.tomo.surftheta = cat(2,tout.snapshot.tomo.surftheta,theta_append);
+      end
+        
+      % Store the "actual" source doas (assuming sufficient backscatter)
+      tout.snapshot.tomo.surftheta(bin_idx,:,line_idx) = doa_vec;
+      
+      % Ca
+      dataSample = squeeze(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+      tout.snapshot.tomo.img(bin_idx,:,line_idx) = dataSample;
+      
     end
   end
   
@@ -3076,22 +3165,26 @@ for line_idx = 1:1:Nx_out
         tout.(m).tomo.img(:,:,line_idx) = Sarray.(m);
       end
     else
-      % DOA Methods
       
-      if 1
-        % Mode 1: The value of the largest source in theta_rng in the Nsrc dimension
-        dout_img = tout.(m).tomo.img .* ...
-          (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
-        [tout.(m).img(:,line_idx) max_img_idx] = max(dout_img(:,:,line_idx),[],2);
-        tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(max_img_idx);
-        %         [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
-        %         tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
-      else
-        % Mode 2: the value of the source closest to the center of theta_rng in the Nsrc dimension
-        dout_img = tout.(m).tomo.theta .* ...
-          (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
-        [tout.(m).theta(:,line_idx) nearest_theta_idx] = min(abs(dout_img(:,:,line_idx)),[],2);
-        tout.(m).img(:,line_idx) = tout.(m).tomo.img(nearest_theta_idx);
+      
+      if cfg.method(idx) ~= SNAPSHOT_METHOD
+        % DOA Methods
+        
+        if 1
+          % Mode 1: The value of the largest source in theta_rng in the Nsrc dimension
+          dout_img = tout.(m).tomo.img .* ...
+            (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
+          [tout.(m).img(:,line_idx) max_img_idx] = max(dout_img(:,:,line_idx),[],2);
+          tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(max_img_idx);
+          %         [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
+          %         tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
+        else
+          % Mode 2: the value of the source closest to the center of theta_rng in the Nsrc dimension
+          dout_img = tout.(m).tomo.theta .* ...
+            (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
+          [tout.(m).theta(:,line_idx) nearest_theta_idx] = min(abs(dout_img(:,:,line_idx)),[],2);
+          tout.(m).img(:,line_idx) = tout.(m).tomo.img(nearest_theta_idx);
+        end
       end
     end
   end
