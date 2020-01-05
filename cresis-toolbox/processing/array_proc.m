@@ -300,27 +300,16 @@ if ischar(param.array.method)
   if regexpi(param.array.method,'pf')
     method_integer(end+1) = PF_METHOD;
   end
-  if regexpi(param.array.method,'doa_tag')
-    method_integer(end+1) = DOA_TAGGING_METHOD;
+  if regexpi(param.array.method,'snapshot')
+    method_integer(end+1) = SNAPSHOT_METHOD;
     param.array.bin_rng   = 0;
     param.array.line_rng  = 0;
-    param.array.Nsrc      = 3;
-    % DOA tagging keeps track for UP TO 3 sources (one nadir, 2 off-nadir).
-    % If there are less than 3, they will be assigned NaNs below.  This is
-    % just how we bookkeep.
-    %
-    % Populate constraints for 3 sources - DOA TAGGING never uses this but 
-    % it keeps the code for breaking in array_task
-    for src_idx = 1:param.array.Nsrc
-      param.array.doa_constraints(src_idx).method = 'fixed';
-      param.array.doa_constraints(src_idx).init_src_limits = [-90 90];
-      param.array.doa_constraints(src_idx).src_limits = [-90 90];
-    end
+    param.array.Nsrc      = 1;
   end
   param.array.method = method_integer;
 end
 param.array.method = intersect(param.array.method, ...
-  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD GSLC_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD PF_METHOD DOA_TAGGING_METHOD], ...
+  [STANDARD_METHOD MVDR_METHOD MVDR_ROBUST_METHOD MUSIC_METHOD EIG_METHOD RISR_METHOD GEONULL_METHOD GSLC_METHOD MUSIC_DOA_METHOD MLE_METHOD DCM_METHOD PF_METHOD SNAPSHOT_METHOD], ...
   'stable');
 if isempty(param.array.method)
   error('No valid method selected in param.array.method');
@@ -565,24 +554,20 @@ for idx = 1:length(cfg.method)
     = nan(Nt_out, Nx_out,'single');
   tout.(m).theta ...
     = nan(Nt_out, Nx_out,'single');
-  if cfg.method(idx) >= DOA_METHOD_THRESHOLD
-    if cfg.method(idx) == DOA_TAGGING_METHOD
-      % DOA tagging method (don't store hessian or cost)
-      tout.(m).tomo.img = ...
-        nan(Nt_out,Nc,Nx_out,'single');
-      tout.(m).tomo.theta = ...
-        nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-    else
-      % Direction of Arrival Method
-      tout.(m).tomo.img = ...
-        nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-      tout.(m).tomo.theta = ...
-        nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-      tout.(m).tomo.cost = ...
-        nan(Nt_out, Nx_out,'single');
-      tout.(m).tomo.hessian = ...
-        nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-    end
+  if cfg.method(idx) >= DOA_METHOD_THRESHOLD && cfg.method(idx) < SNAPSHOT_METHOD_THRESHOLD
+    % DOA Methods
+    tout.(m).tomo.theta = ...
+      nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+    tout.(m).tomo.cost = ...
+      nan(Nt_out, Nx_out,'single');
+    tout.(m).tomo.hessian = ...
+      nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+    tout.(m).tomo.img = ...
+      nan(Nt_out,cfg.Nsrc,Nx_out,'single');
+  elseif cfg.method(idx) >= SNAPSHOT_METHOD_THRESHOLD
+    % Snapshot method stores raw snapshots
+    tout.(m).tomo.img = ...
+      nan(Nt_out,Nc,Nx_out,'single');
   else
     % Beam Forming Method
     Sarray.(m) = zeros(cfg.Nsv,Nt_out);
@@ -593,12 +578,10 @@ for idx = 1:length(cfg.method)
       nan(Nt_out,cfg.Nsv,Nx_out,'single');
     tout.(m).tomo.theta = theta(:); % Ensure a column vector on output
   end
-  %   if cfg.method(idx) == DOA_TAGGING_METHOD
-  %     tout.(m).tomo.img = ...
-  %       nan(Nt_out,Nc,Nx_out,'single');
-  %     tout.(m).tomo.theta = ...
-  %       nan(Nt_out,cfg.Nsrc,Nx_out,'single');
-  %   end
+  if cfg.tomo_en
+    tout.(m).tomo.surftheta = ...
+      nan(Nt_out,1,Nx_out,'single');    
+  end
 end
 
 % MOE output: simulation (for comparing different MOE methods)
@@ -1069,11 +1052,12 @@ for line_idx = 1:1:Nx_out
       nan_vec     = num2cell(NaN(sum(empty_mask),1));
       [surf_interp(empty_mask).DOAs] = nan_vec{:};
       
-      % for lack of a better variable, temporarily called it this.
+      % Store surface DOAs in a 1xNt struct array
       cfg.surface_rline = surf_interp;
     end
     
   end
+  
   for bin_idx = bin_idxs(:).'
     %% Array: Array Process Each Bin
     bin = cfg.bins(bin_idx);
@@ -3103,24 +3087,44 @@ for line_idx = 1:1:Nx_out
       end
       tout.tomo.dcm.img(bin_idx,:,line_idx)  = P_hat;
       
-    elseif any(cfg.method == DOA_TAGGING_METHOD)
+    elseif any(cfg.method == SNAPSHOT_METHOD)
+      % cfg.Nsrc is an a priori assumption of the number of corrange
+      % targets.
+      %
+      % The surfdata output from a refined assumption of Nsrc stored in Q.
+      % Here we can think of Q as an "actual" number of sources
+      
       % Collect source DOAs for the range bin and along-track position
       surf_doas   = cfg.surface_rline(bin).DOAs;
       surf_doas   = surf_doas(:);
+      Q           = length(surf_doas);
+      Nsrc        = size(tout.snapshot.tomo.surftheta,2);
+      
       nan_doas    = [];
-      if numel(surf_doas) < cfg.Nsrc
-        Nsurf_doa = length(surf_doas);
-        Nnans     = cfg.Nsrc - (Nsurf_doa +1);
+      if Q < Nsrc
+        % If the number of constant range intersections is less than Nsrc, 
+        Nnans     = Nsrc - Q;
         nan_doas  = nan(Nnans,1);
+        nan_doas  = nan_doas(:);
       end
         
-      doa_vec = vertcat(theta,surf_doas,nan_doas);
-      tout.doa_tag.tomo.theta(bin_idx,:,line_idx) = doa_vec;
+      % Append surf_doas with NaNs if necessary and store in doa_vec
+      doa_vec     = vertcat(surf_doas,nan_doas);
       
-      % Snapshot
+      % Allow dimension of tout.snapshot.tomo.theta to grow if the number of
+      % sources exceeds the dimension of the preallocated matrix
+      if Q > Nsrc
+        Nsrc_add = Q - Nsrc;  
+        theta_append = nan(Nt,Nsrc_add,Nx_out);
+        tout.snapshot.tomo.surftheta = cat(2,tout.snapshot.tomo.surftheta,theta_append);
+      end
+        
+      % Store the "actual" source doas (assuming sufficient backscatter)
+      tout.snapshot.tomo.surftheta(bin_idx,:,line_idx) = doa_vec;
+      
+      % Ca
       dataSample = squeeze(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
-%       snapshot = squeeze(din{1}(bin,rline,:,:,:));
-      tout.doa_tag.tomo.img(bin_idx,:,line_idx) = dataSample;
+      tout.snapshot.tomo.img(bin_idx,:,line_idx) = dataSample;
       
     end
   end
@@ -3159,7 +3163,7 @@ for line_idx = 1:1:Nx_out
     else
       
       
-      if cfg.method(idx) ~= DOA_TAGGING_METHOD
+      if cfg.method(idx) ~= SNAPSHOT_METHOD
         % DOA Methods
         
         if 1

@@ -51,6 +51,9 @@ if param.sar.presums > 1
 end
 along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
 
+% Array_proc_methods
+array_proc_methods;
+
 %% Combine chunks into each frame
 % =====================================================================
 for frm_idx = 1:length(param.cmd.frms);
@@ -210,6 +213,22 @@ for frm_idx = 1:length(param.cmd.frms);
         else
           for field_idx = 1:length(fields)
             max_dim = length(size(tmp.Tomo.(fields{field_idx})));
+            if strcmpi(fields{field_idx},'theta') && param.array.method == SNAPSHOT_METHOD
+              dim2_old = size(Tomo.(fields{field_idx}),2);
+              dim2_new = size(tmp.Tomo.(fields{field_idx}),2);
+              Nt = size(tmp.Tomo.(fields{field_idx}),1);
+              Nx_old = size(Tomo.(fields{field_idx}),3);
+              Nx_new = size(tmp.Tomo.(fields{field_idx}),3);
+              if dim2_new < dim2_old 
+                % Pad new with NaNs in dimension 2
+                Nnans   = dim2_old - dim2_new;
+                tmp.Tomo.(fields{field_idx}) = cat(2,tmp.Tomo.(fields{field_idx}), nan(Nt,Nnans,Nx_new));
+              elseif dim2_new > dim2_old
+                % Pad old with NaNs in dimension 2
+                Nnans   = dim2_new - dim2_old;
+                Tomo.(fields{field_idx}) = cat(2,Tomo.(fields{field_idx}), nan(Nt,Nnans,Nx_old));
+              end
+            end
             Tomo.(fields{field_idx}) = cat(max_dim,Tomo.(fields{field_idx}),tmp.Tomo.(fields{field_idx}));
           end
         end
@@ -266,7 +285,8 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Combine images
   [output_dir,radar_type] = ct_output_dir(param.radar_name);
-  if ~isempty(param.array.img_comb) || param.array.tomo_en || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp'))
+  param.array.img_comb = [];
+  if ~isempty(param.array.img_comb)
     % Combine images into a single image and/or trim invalid times with
     % img_comb_trim
     img_combine_param = param;
