@@ -91,6 +91,8 @@ function [param,dout] = array_proc(param,din)
 %   .theta: direction of arrival (deg) to the source returned in .img.
 %  TOMOGRAPHY (.tomo_en) ENABLED
 %   .tomo: tomography structure (only present if param.tomo_en is true)
+%    ALL methods:
+%     .surf_theta
 %    DOA method:
 %     .img: Nt_out by Nsrc by Nx_out : Signal voltage or power for each
 %       source in a range-bin, NaN for no source when MOE enable. Order in
@@ -107,6 +109,8 @@ function [param,dout] = array_proc(param,din)
 %       source in a range-bin, NaN for no source
 %     .theta: Nt_out by Nsv by Nx_out: Direction of arrival of each source
 %      in a range-bin (deg), NaN for no source
+%    SNAPSHOT method
+%     .snapshots: 
 %
 % The units of the img fields depend on the multilooking. If no
 % multilooking is enabled, then the param.complex field may be set to true,

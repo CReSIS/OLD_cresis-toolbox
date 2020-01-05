@@ -7,7 +7,9 @@ function leap_sec = utc_leap_seconds(time)
 %
 % GPS_TIME = UTC_TIME + utc_leap_seconds(UTC_TIME(1))
 %
+% Check the following server to see if there are new leap seconds:
 % http://maia.usno.navy.mil/ser7/tai-utc.dat
+%
 %  1961 JAN  1 =JD 2437300.5  TAI-UTC=   1.4228180 S + (MJD - 37300.) X 0.001296 S
 %  1961 AUG  1 =JD 2437512.5  TAI-UTC=   1.3728180 S + (MJD - 37300.) X 0.001296 S
 %  1962 JAN  1 =JD 2437665.5  TAI-UTC=   1.8458580 S + (MJD - 37665.) X 0.0011232S

@@ -169,30 +169,60 @@ for frm_idx = 1:length(param.cmd.frms);
         param_array.array_proc.fcs.y = tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines);
         param_array.array_proc.fcs.z = tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines);
         param_array.array_proc.fcs.origin = tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines);
-        pos = zeros(3,length(tmp.param_array.array_proc.lines));
-        Nc = 0;
-        for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
-          for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
-            pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
-            Nc = Nc + 1;
+        if param.array.fcs_pos_averaged
+          % Average the fcs position
+          pos = zeros(3,length(tmp.param_array.array_proc.lines));
+          Nc = 0;
+          for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+            for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+              pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+              Nc = Nc + 1;
+            end
           end
+          param_array.array_proc.fcs.pos = pos/Nc;
+        else
+          % Store all the fcs positions without averaging
+          pos = zeros(3,length(tmp.param_array.array_proc.lines),0);
+          Nc = 0;
+          for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+            for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+              Nc = Nc + 1;
+              pos(:,:,Nc) = tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+            end
+          end
+          param_array.array_proc.fcs.pos = pos;
         end
-        param_array.array_proc.fcs.pos = pos/Nc;
+        
       else
-        % Concatenate the fcs field
+        % Concatenate the fcs field to the previous chunk
         param_array.array_proc.fcs.x = [param_array.array_proc.fcs.x tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs.y = [param_array.array_proc.fcs.y tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs.z = [param_array.array_proc.fcs.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs.origin = [param_array.array_proc.fcs.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
-        pos = zeros(3,length(tmp.param_array.array_proc.lines));
-        Nc = 0;
-        for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
-          for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
-            pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
-            Nc = Nc + 1;
+        if param.array.fcs_pos_averaged
+          % Average the fcs position
+          pos = zeros(3,length(tmp.param_array.array_proc.lines));
+          Nc = 0;
+          for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+            for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+              pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+              Nc = Nc + 1;
+            end
           end
+          param_array.array_proc.fcs.pos = [param_array.array_proc.fcs.pos pos/Nc];
+        else
+          % Store all the fcs positions without averaging
+          pos = zeros(3,length(tmp.param_array.array_proc.lines),0);
+          Nc = 0;
+          for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+            for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+              Nc = Nc + 1;
+              pos(:,:,Nc) = tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+            end
+          end
+          param_array.array_proc.fcs.pos = [param_array.array_proc.fcs.pos pos];
         end
-        param_array.array_proc.fcs.pos = [param_array.array_proc.fcs.pos pos/Nc];
+        
       end
       if param.array.tomo_en
         %         3D-surface is present so concatenate it too
