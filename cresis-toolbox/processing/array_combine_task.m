@@ -315,8 +315,7 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Combine images
   [output_dir,radar_type] = ct_output_dir(param.radar_name);
-  param.array.img_comb = [];
-  if ~isempty(param.array.img_comb)
+  if ~param.array.tomo_en && (~isempty(param.array.img_comb) || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp')))
     % Combine images into a single image and/or trim invalid times with
     % img_comb_trim
     img_combine_param = param;
