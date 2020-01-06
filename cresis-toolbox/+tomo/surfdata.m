@@ -1339,7 +1339,7 @@ classdef surfdata < handle
               % Find ice mask for triangle coordinates
               ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
               % Set previously nan valued coordinates to 0 mask
-              ice_mask(nidx,rline) = 0;
+%               ice_mask(nidx,rline) = 0;
             else
               %         for ice_mask_idx = 1:length(mask_idx)
               %           ice_mask(theta_rline_row_idx(ice_mask_idx),theta_rline_col_idx(ice_mask_idx),rline) = ice_mask_all.mask(mask_idx(ice_mask_idx));

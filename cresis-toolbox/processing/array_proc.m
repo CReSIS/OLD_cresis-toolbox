@@ -582,9 +582,11 @@ for idx = 1:length(cfg.method)
       nan(Nt_out,cfg.Nsv,Nx_out,'single');
     tout.(m).tomo.theta = theta(:); % Ensure a column vector on output
   end
-  if cfg.tomo_en
-    tout.(m).tomo.surftheta = ...
-      nan(Nt_out,1,Nx_out,'single');    
+  if cfg.tomo_en 
+    tout.(m).tomo.surf_theta = ...
+      nan(Nt_out,0,Nx_out,'single');   
+    tout.(m).tomo.surf_ice_mask = ...
+      nan(Nt_out,0,Nx_out,'single');    
   end
 end
 
@@ -952,7 +954,6 @@ for line_idx = 1:1:Nx_out
     % TWTT of radar
     radar_twtt = cfg.wfs.time;
     
-    
     % Method 1
     % ---------------------------------------------------------------------
     %
@@ -981,7 +982,7 @@ for line_idx = 1:1:Nx_out
       theta1_i = (interp1(surf_twtt_theta1, theta1, radar_twtt));
       theta2_i = (interp1(surf_twtt_theta2, theta2,radar_twtt));
       
-      if 0
+      if cfg.debug_plots
         figure(1834);
         clf
         plot(surf_twtt*1e6,cfg.surface_theta,'x')
@@ -1002,7 +1003,6 @@ for line_idx = 1:1:Nx_out
         titlestr = sprintf('%s %s CSARP surfData, %s',day,seg,datestr(tgps));
         title(titlestr)
         legend('surfData','\theta_1^D^E^M','\theta_2^D^E^M','\theta_1^I','\theta_2^I')
-        
       end
     else
       % Loop over radar twtt and use intersections function to find the
@@ -1012,9 +1012,7 @@ for line_idx = 1:1:Nx_out
       x1 = cfg.surface_theta(:);
       y1 = cfg.surface(:,rline).';
       
-      plot_flag = 0;
-      
-      if plot_flag
+      if cfg.debug_plots
         figure(2001);clf
         plot(x1,y1,'co','MarkerSize',3,'MarkerFaceColor','k','LineWidth',2);
         hold on
@@ -1024,25 +1022,36 @@ for line_idx = 1:1:Nx_out
         ylabel('TWTT (s)','FontName','Arial','FontSize',12,'FontWeight','Demi')
       end
       
-      
       % Find the first radar fast time bin that intersects with the surface
       % propagation times
       % >> Should there be something here to handle case when the
       % sets don't intersect?
-      bin_offset = find(radar_twtt >= min(cfg.surface(:,rline)),1);
+%       bin_offset = find(radar_twtt >= min(cfg.surface(:,rline)),1);
       
       % Loop over fast time bins and find intersections
       % If the curves don't intersect, intersections returns NaNs
-      %
-      %
-      for rbin_idx = bin_offset:length(radar_twtt)
+      surf_theta = nan(Nt,0);
+      surf_ice_mask = nan(Nt,0);
+      for rbin_idx = 1:length(radar_twtt)
         x2 = x1;
         y2 = radar_twtt(rbin_idx).*ones(size(y1));
-        [x0,y0,~,~] = intersections(x1,y1,x2,y2);
-        surf_interp(rbin_idx).DOAs = x0;
+        [bin_theta,y0,~,~] = intersections(x1,y1,x2,y2);
+              
+        if length(bin_theta) > size(surf_theta,2)
+          surf_theta = [surf_theta nan(size(surf_theta,1),length(bin_theta)-size(surf_theta,2))];
+        end
+        surf_theta(rbin_idx,1:length(bin_theta)) = bin_theta;
         
-        if plot_flag
-          plot(x0,y0,'mp','MarkerSize',4,'MarkerFaceColor','g','LineWidth',2)
+        % Interpolate icemask given doas interpolated on radar twtt
+        bin_ice_mask   = interp1(cfg.surface_theta(:),cfg.ice_mask(:,rline),bin_theta,'nearest');
+        
+        if length(bin_ice_mask) > size(surf_ice_mask,2)
+          surf_ice_mask = [surf_ice_mask nan(size(surf_ice_mask,1),length(bin_ice_mask)-size(surf_ice_mask,2))];
+        end
+        surf_ice_mask(rbin_idx,1:length(bin_ice_mask)) = bin_ice_mask;
+
+        if cfg.debug_plots
+          plot(bin_theta,y0,'mp','MarkerSize',4,'MarkerFaceColor','g','LineWidth',2)
         end
         
       end
@@ -1051,13 +1060,31 @@ for line_idx = 1:1:Nx_out
       % associated with them are empty (for example the bins before the
       % nadir surface echo).
       
-      % find empty surf_interp.DOA fields and replace with NaNs
-      empty_mask = arrayfun(@(x) isempty(x.DOAs) ,surf_interp);
-      nan_vec     = num2cell(NaN(sum(empty_mask),1));
-      [surf_interp(empty_mask).DOAs] = nan_vec{:};
-      
-      % Store surface DOAs in a 1xNt struct array
-      cfg.surface_rline = surf_interp;
+%       % find empty surf_interp.DOA fields and replace with NaNs
+%       empty_mask = arrayfun(@(x) isempty(x.DOAs) ,surf_interp);
+%       nan_vec     = num2cell(NaN(sum(empty_mask),1));
+%       [surf_interp(empty_mask).DOAs] = nan_vec{:};
+%       
+%       count       = arrayfun(@(x) numel(x.DOAs), surf_interp);
+%       maxdim      = max(count);
+%       
+%       icemask_rline = nan(Nt,maxdim);
+%       surf_theta_rline = nan(Nt,maxdim);
+%       
+%       r_indexes   = 1:Nt;
+%       skip_mask   = arrayfun(@(x) all(isnan(x.DOAs)), surf_interp);
+%       good_bins   = r_indexes(~skip_mask);
+%       
+%       for rbin_idx = good_bins
+%         surf_doas   = surf_interp(rbin_idx).DOAs;
+%         surf_mask   = interp_finite(interp1(cfg.surface_theta(:),cfg.ice_mask(:,rline),surf_doas,'nearest'));
+%         icemask_rline(rbin_idx,:) = surf_mask;
+%         surf_theta_rline(rbin_idx,:) = surf_doas;
+%       end
+% %            
+%       % Store surface DOAs in a 1xNt struct array
+%       surf_theta = surf_theta_rline;
+%       cfg.surf_ice_mask     = icemask_rline;
     end
     
   end
@@ -1301,13 +1328,18 @@ for line_idx = 1:1:Nx_out
       
       
     elseif any(cfg.method == GEONULL_METHOD)
+      %% Array: GEONULL
       % The geonull method is a non-adaptive beamformer that  steers nulls
       % towards predicted clutter angles from the air-ice interfaces
       dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
       dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
       
-      surf_doas   = cfg.surface_rline(bin).DOAs(~isnan(cfg.surface_rline(bin).DOAs));
-      guard_mask  = logical(abs(cfg.surface_rline(bin).DOAs) < cfg.doa_theta_guard);
+%       surf_doas   = cfg.surf_theta_rline(bin).DOAs(~isnan(cfg.surf_theta_rline(bin).DOAs));
+      surf_doas   = surf_theta(bin,:);
+      surf_doas   = surf_doas(~isnan(surf_doas));
+      
+      guard_mask  = logical(abs(surf_doas < cfg.doa_theta_guard));
+      
       if ~isempty(surf_doas)
         surf_doas   = surf_doas(~guard_mask);
       else
@@ -1315,13 +1347,13 @@ for line_idx = 1:1:Nx_out
       end
       
       % Number of surface doas
-      qsurf     = numel(surf_doas);
+      Nsrc_surf     = numel(surf_doas);
       
       % Signal vector that we wish to invert of the form [1, 0, 0].
       % Signal is linear combination of target + interference.  Only
       % nonzero coefficient is in the ith entry.  Assumes that the ith
       % column of A contains target steering vector.
-      g = vertcat(1,zeros(qsurf,1));  % Unity gain towards nadir, nulls in clutter directions
+      g = vertcat(1,zeros(Nsrc_surf,1));  % Unity gain towards nadir, nulls in clutter directions
          
       % Important to note- theta is passed in as degrees and converted to
       % radians at the top of array proc.  surf_doas are in degrees.  BE
@@ -1355,7 +1387,7 @@ for line_idx = 1:1:Nx_out
       end
       Sarray.geonull(:,bin_idx) =       Sarray.geonull(:,bin_idx) / length(din);
       
-      if 0
+      if cfg.debug_plots
         theta_vec       = linspace(-pi/2,pi/2,256);
         sv_patt_arg     = sv_fh_arg_geonull;
         sv_patt_arg{2}  = [theta_vec];
@@ -1398,27 +1430,31 @@ for line_idx = 1:1:Nx_out
 %       Rxx = 1/size(dataSample,1) * (dataSample' * dataSample);
       
       % Mask out mainlobe clutter angles
-      surf_doas   = cfg.surface_rline(bin).DOAs(~isnan(cfg.surface_rline(bin).DOAs));
-      guard_mask  = logical(abs(cfg.surface_rline(bin).DOAs) < cfg.doa_theta_guard);
+      
+      surf_doas   = surf_theta(bin,:);
+      surf_doas   = surf_doas(~isnan(surf_doas));
+      guard_mask  = logical(abs(surf_doas < cfg.doa_theta_guard));
+%       surf_doas   = cfg.surf_theta_rline(bin).DOAs(~isnan(cfg.surf_theta_rline(bin).DOAs));
+%       guard_mask  = logical(abs(cfg.surf_theta_rline(bin).DOAs) < cfg.doa_theta_guard);
       if ~isempty(surf_doas)
         surf_doas   = surf_doas(~guard_mask);
       else
         surf_doas   = surf_doas(:);
       end
-      qsurf     = numel(surf_doas);
+      Nsrc_surf     = numel(surf_doas);
       
       % Signal vector that we wish to invert of the form [1, 0, 0].
       % Signal is linear combination of target + interference.  Only
       % nonzero coefficient is in the ith entry.  Assumes that the ith
       % column of A contains target steering vector.
-      g = vertcat(1,zeros(qsurf,1));  % Unity gain towards nadir, nulls in clutter directions
+      g = vertcat(1,zeros(Nsrc_surf,1));  % Unity gain towards nadir, nulls in clutter directions
       
       % Rank of A(doas) - matrix of steering vector (i.e. dimensionality of
       % Col(A) where A is as computed below.
-      q = length(g);
+      Nsrc = length(g);
       
       % Dimensionality of the orthogonal complement of C(A)
-      dim_Aperp = Nc - q;
+      dim_Aperp = Nc - Nsrc;
             
       % Source DOAs
       % ASSUMPTION IS THAT THETA HAS ALREADY BEEN CONVERTED TO RADIANS
@@ -1442,7 +1478,7 @@ for line_idx = 1:1:Nx_out
         % (nullspace of A transpose)
         Ca  = zeros(Nc,dim_Aperp);
         [U,S,V] = svd(A);
-        Ca = U(:,end-(Nc-q)+1:end);
+        Ca = U(:,end-(Nc-Nsrc)+1:end);
         % Alternatively we can use Ca = null(A') here.  
         
         % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE NON
@@ -1461,15 +1497,14 @@ for line_idx = 1:1:Nx_out
         sv_gslc{ml_idx} = w_gslc;
         
         
-        %% DEBUG GSLC ONLY
+        % DEBUG GSLC ONLY
         % =================================================================
         % Plot GSLC and Nonadaptive MLE
-        debug = 1;
-        if ~isempty(surf_doas) && debug
+        if ~isempty(surf_doas) && cfg.debug_plots
 %         if debug
           
           % Determine weight vector for nonadaptive MLE
-          g_geo                 = vertcat(1,zeros(q-1,1));  % Unity gain towards nadir, nulls in clutter directions
+          g_geo                 = vertcat(1,zeros(Nsrc-1,1));  % Unity gain towards nadir, nulls in clutter directions
           sv_fh_arg_geonull     = {'theta'};
           sv_fh_arg_geonull{2}  = [theta, surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
           
@@ -1512,7 +1547,6 @@ for line_idx = 1:1:Nx_out
             legend('w_{gslc}','w_q','w_a')
           end
 
-          
           figure(198);clf;plot(theta_vec*180/pi,20*log10(abs(Pattgslc)),'LineWidth',2)
           hold on
           grid on
@@ -1535,7 +1569,6 @@ for line_idx = 1:1:Nx_out
           keyboard
         end
         
-        
       end
       
       Hwindow = boxcar(Nc);
@@ -1547,9 +1580,6 @@ for line_idx = 1:1:Nx_out
           + mean(abs(sv_gslc{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
       end
       Sarray.gslc(:,bin_idx) =       Sarray.gslc(:,bin_idx) / length(din);
-      
-      
-
 
     elseif any(cfg.method == MVDR_ROBUST_METHOD)
       %% Array: Robust MVDR
@@ -3059,7 +3089,7 @@ for line_idx = 1:1:Nx_out
       end
       theta0 = wbmle_initialization(DCM_fd,doa_param);
       
-      %% Array MLE: Minimization of wb_cost_function
+      %% Array WBMLE: Minimization of wb_cost_function
       % Set source limits
       LB = zeros(cfg.Nsrc,1);
       UB = zeros(cfg.Nsrc,1);
@@ -3092,44 +3122,41 @@ for line_idx = 1:1:Nx_out
       tout.tomo.dcm.img(bin_idx,:,line_idx)  = P_hat;
       
     elseif any(cfg.method == SNAPSHOT_METHOD)
+      %% Array: SNAPSHOT
       % cfg.Nsrc is an a priori assumption of the number of corrange
       % targets.
       %
-      % The surfdata output from a refined assumption of Nsrc stored in Q.
-      % Here we can think of Q as an "actual" number of sources
       
-      % Collect source DOAs for the range bin and along-track position
-      surf_doas   = cfg.surface_rline(bin).DOAs;
-      surf_doas   = surf_doas(:);
-      Q           = length(surf_doas);
-      Nsrc        = size(tout.snapshot.tomo.surftheta,2);
-      
-      nan_doas    = [];
-      if Q < Nsrc
-        % If the number of constant range intersections is less than Nsrc, 
-        Nnans     = Nsrc - Q;
-        nan_doas  = nan(Nnans,1);
-        nan_doas  = nan_doas(:);
-      end
+      if cfg.tomo_en
+        % Collect source DOAs for the range bin and along-track position
+        % Allow tout.(m).tomo.surf_theta to grow in 2nd dimension
+        surf_doas   = surf_theta(bin_idx,:);
+        Nsrc_new    = length(surf_doas);
+        Nsrc_old    = size(tout.snapshot.tomo.surf_theta,2);
+        Ngrow       = Nsrc_new - Nsrc_old;
         
-      % Append surf_doas with NaNs if necessary and store in doa_vec
-      doa_vec     = vertcat(surf_doas,nan_doas);
-      
-      % Allow dimension of tout.snapshot.tomo.theta to grow if the number of
-      % sources exceeds the dimension of the preallocated matrix
-      if Q > Nsrc
-        Nsrc_add = Q - Nsrc;  
-        theta_append = nan(Nt,Nsrc_add,Nx_out);
-        tout.snapshot.tomo.surftheta = cat(2,tout.snapshot.tomo.surftheta,theta_append);
-      end
+        if Nsrc_old < Nsrc_new
+          Ngrow       = Nsrc_new - Nsrc_old;
+          tout.snapshot.tomo.surf_theta = cat(2,tout.snapshot.tomo.surf_theta,nan(size(tout.snapshot.tomo.surf_theta,1),Ngrow,size(tout.snapshot.tomo.surf_theta,3)));
+        end
+        tout.snapshot.tomo.surf_theta(bin_idx,1:length(surf_doas)) = surf_doas;
         
-      % Store the "actual" source doas (assuming sufficient backscatter)
-      tout.snapshot.tomo.surftheta(bin_idx,:,line_idx) = doa_vec;
-      
-      % Ca
+        surf_mask   = surf_ice_mask(bin_idx,:);
+        Nsrc_new    = length(surf_mask);
+        Nsrc_old    = size(tout.snapshot.tomo.surf_ice_mask,2);
+        Ngrow       = Nsrc_new - Nsrc_old;
+        
+        if Nsrc_old < Nsrc_new
+          Ngrow       = Nsrc_new - Nsrc_old;
+          tout.snapshot.tomo.surf_ice_mask = cat(2,tout.snapshot.tomo.surf_ice_mask,nan(size(tout.snapshot.tomo.surf_ice_mask,1),Ngrow,size(tout.snapshot.tomo.surf_ice_mask,3)));
+        end
+        tout.snapshot.tomo.surf_ice_mask(bin_idx,1:length(surf_mask)) = surf_mask;
+      end
+            
+      % Store the snapshot
       dataSample = squeeze(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
       tout.snapshot.tomo.img(bin_idx,:,line_idx) = dataSample;
-      
+  
     end
   end
   
@@ -3164,27 +3191,23 @@ for line_idx = 1:1:Nx_out
       if cfg.tomo_en
         tout.(m).tomo.img(:,:,line_idx) = Sarray.(m);
       end
-    else
+    elseif cfg.method(idx) < SNAPSHOT_METHOD_THRESHOLD
+      % DOA Methods
       
-      
-      if cfg.method(idx) ~= SNAPSHOT_METHOD
-        % DOA Methods
-        
-        if 1
-          % Mode 1: The value of the largest source in theta_rng in the Nsrc dimension
-          dout_img = tout.(m).tomo.img .* ...
-            (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
-          [tout.(m).img(:,line_idx) max_img_idx] = max(dout_img(:,:,line_idx),[],2);
-          tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(max_img_idx);
-          %         [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
-          %         tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
-        else
-          % Mode 2: the value of the source closest to the center of theta_rng in the Nsrc dimension
-          dout_img = tout.(m).tomo.theta .* ...
-            (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
-          [tout.(m).theta(:,line_idx) nearest_theta_idx] = min(abs(dout_img(:,:,line_idx)),[],2);
-          tout.(m).img(:,line_idx) = tout.(m).tomo.img(nearest_theta_idx);
-        end
+      if 1
+        % Mode 1: The value of the largest source in theta_rng in the Nsrc dimension
+        dout_img = tout.(m).tomo.img .* ...
+          (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
+        [tout.(m).img(:,line_idx) max_img_idx] = max(dout_img(:,:,line_idx),[],2);
+        tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(max_img_idx);
+        %         [tout.(m).img(:,line_idx) tout.(m).theta(:,line_idx)] = max(dout_img(:,:,line_idx),[],2);
+        %         tout.(m).theta(:,line_idx) = tout.(m).tomo.theta(tout.(m).theta(:,line_idx));
+      else
+        % Mode 2: the value of the source closest to the center of theta_rng in the Nsrc dimension
+        dout_img = tout.(m).tomo.theta .* ...
+          (tout.(m).tomo.theta >= cfg.theta_rng(1) & tout.(m).tomo.theta <= cfg.theta_rng(2));
+        [tout.(m).theta(:,line_idx) nearest_theta_idx] = min(abs(dout_img(:,:,line_idx)),[],2);
+        tout.(m).img(:,line_idx) = tout.(m).tomo.img(nearest_theta_idx);
       end
     end
   end
@@ -3252,7 +3275,6 @@ for line_idx = 1:1:Nx_out
     legend('MLE: DOA 1','MLE: DOA 2')
   end
 end
-
 % Copy temporary outputs for first method to dout
 dout = tout.(array_proc_method_str(cfg.method(1)));
 
