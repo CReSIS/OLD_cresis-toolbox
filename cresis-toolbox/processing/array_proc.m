@@ -966,6 +966,8 @@ for line_idx = 1:1:Nx_out
     % Define a mask for positive and negative DOAs and create two separate
     % functions of twtt
     if 0
+%       % Faster but doesn't handle layover and case where more than 2
+%       corange targets
       mask1 = cfg.surface_theta >= 0;
       mask2 = cfg.surface_theta < 0;
       
@@ -981,7 +983,7 @@ for line_idx = 1:1:Nx_out
       
       theta1_i = (interp1(surf_twtt_theta1, theta1, radar_twtt));
       theta2_i = (interp1(surf_twtt_theta2, theta2,radar_twtt));
-      
+
       if cfg.debug_plots
         figure(1834);
         clf
@@ -1049,13 +1051,13 @@ for line_idx = 1:1:Nx_out
           surf_ice_mask = [surf_ice_mask nan(size(surf_ice_mask,1),length(bin_ice_mask)-size(surf_ice_mask,2))];
         end
         surf_ice_mask(rbin_idx,1:length(bin_ice_mask)) = bin_ice_mask;
+        
 
         if cfg.debug_plots
           plot(bin_theta,y0,'mp','MarkerSize',4,'MarkerFaceColor','g','LineWidth',2)
         end
         
       end
-      
       % At this point, any rbins that do not have a clutter angle
       % associated with them are empty (for example the bins before the
       % nadir surface echo).
