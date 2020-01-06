@@ -199,8 +199,7 @@ classdef (HandleCompatible = true) mapwin < handle
     query_redraw_map(obj,x_min,x_max,y_min,y_max); % Called whenever map perspective changes
     update_vector_layers(obj); % Draws/updates current selection, echowin flightlines, and cursors
     get_map(obj,hObj,event); % Makes original WMS query request
-    update_map_selection(obj,param); % Updates the currect flight line selection (from mouse click)
-    [status,data] = get_closest_frame(obj, sys, param);
+    get_closest_frame(obj, param);
     outside_limits = check_limits(obj,xaxis,yaxis,dir); % Support function for key_press.m pan functions, checks to see if current request is in the map limits
     set_default_params(obj,picker_param_fn); % Set the default parameters loaded from the default preferences file
     save_default_params(obj);

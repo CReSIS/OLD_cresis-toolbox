@@ -48,6 +48,8 @@ fprintf('=====================================================================\n
 %% Input Checks
 % =====================================================================
 
+array_proc_methods; % This script assigns the integer values for each method
+
 if ~isfield(param.array,'imgs') || isempty(param.array.imgs)
   param.array.imgs = {[1 1]};
 end
@@ -115,6 +117,10 @@ if ~isfield(param.array,'out_path') || isempty(param.array.out_path)
   param.array.out_path = param.array.method;
 end
 
+if ~isfield(param.array,'fcs_pos_averaged') || isempty(param.array.fcs_pos_averaged)
+  param.array.fcs_pos_averaged = true;
+end
+
 if ~isfield(param.array,'presums') || isempty(param.array.presums)
   if ~isfield(param.sar,'presums') || isempty(param.sar.presums)
     param.sar.presums = 1;
@@ -167,6 +173,18 @@ param.array.surf_layer.existence_check = false;
 % Input check param.array.* fields used by array_proc.m
 % -------------------------------------------------------------------------
 param = array_proc(param);
+
+if ~isfield(param.array,'fcs_pos_averaged') || isempty(param.array.fcs_pos_averaged)
+  if any(param.array.method > SNAPSHOT_METHOD_THRESHOLD)
+    % Should usually be false for snapshot methods so that the position
+    % will be returned for each array element.
+    param.array.fcs_pos_averaged = false;
+  else
+    % Usually should be true for beamformer and DOA methods so that the
+    % output position is the average position of all the array elements.
+    param.array.fcs_pos_averaged = true;
+  end
+end
 
 %% Setup processing
 % =====================================================================
@@ -246,7 +264,6 @@ else
   
 end
 
-array_proc_methods; % This script assigns the integer values for each method
 cpu_time_method_mult = 0;
 for method_idx = 1:length(param.array.method)
   switch (param.array.method(method_idx))

@@ -47,7 +47,7 @@ if (obj.control_pressed || (but == 4 && ~obj.zoom_mode)) && click_in_axis % cont
   if but == 3
     % ===================================================================
     % Ctrl + Normal click: Select closest frame
-    obj.update_map_selection(struct('x',x,'y',y));
+    obj.get_closest_frame(struct('x',x,'y',y));
     
   elseif but == 4
     % ===================================================================
@@ -99,7 +99,7 @@ elseif ~obj.control_pressed && ~obj.shift_pressed % no modifiers
       if ~obj.zoom_mode
         % ===================================================================
         % Normal click: Select closest frame
-        obj.update_map_selection(struct('x',x,'y',y));
+        obj.get_closest_frame(struct('x',x,'y',y));
       else
         % zoom on click
         % get updated x and y axis

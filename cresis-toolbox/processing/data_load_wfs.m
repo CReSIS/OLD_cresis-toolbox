@@ -224,7 +224,11 @@ for wf = 1:length(param.radar.wfs)
   if isfield(param.radar.wfs(wf),'time_raw_trim') && ~isempty(param.radar.wfs(wf).time_raw_trim)
     wfs(wf).time_raw_trim   = param.radar.wfs(wf).time_raw_trim;
   else
-    wfs(wf).time_raw_trim   = [0 0];
+    if param.records.file.version == 402
+      wfs(wf).time_raw_trim   = [0 2];
+    else
+      wfs(wf).time_raw_trim   = [0 0];
+    end
   end
   if isfield(param.radar.wfs(wf),'Tadc_adjust') && ~isempty(param.radar.wfs(wf).Tadc_adjust)
     wfs(wf).Tadc_adjust = param.radar.wfs(wf).Tadc_adjust;
@@ -375,6 +379,11 @@ for wf = 1:length(param.radar.wfs)
   else
     wfs(wf).prepulse_H.fn   = 'prepulse_H';
   end
+  if isfield(param.radar.wfs(wf),'wf_ID_best') && ~isempty(param.radar.wfs(wf).wf_ID_best)
+    wfs(wf).wf_ID_best   = param.radar.wfs(wf).wf_ID_best;
+  else
+    wfs(wf).wf_ID_best   = true;
+  end
   if isfield(param.radar.wfs(wf),'coh_noise_method') && ~isempty(param.radar.wfs(wf).coh_noise_method)
     wfs(wf).coh_noise_method   = param.radar.wfs(wf).coh_noise_method;
   else
@@ -489,7 +498,7 @@ for wf = 1:length(param.radar.wfs)
   end
   if ~isfield(param.radar.wfs(wf),'quantization_to_V_dynamic') || isempty(param.radar.wfs(wf).quantization_to_V_dynamic)
     wfs(wf).quantization_to_V_dynamic = false;
-    if any(param.records.file.version == [3 5 7 8 11 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
+    if any(param.records.file.version == [3 4 5 7 8 11 407 408]) && ~(isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts))
       wfs(wf).quantization_to_V_dynamic = true;
     end
   else
@@ -737,13 +746,16 @@ for wf = 1:length(param.radar.wfs)
   
   switch param.records.file.version
       
-    case {1,2,3,5,7,8,11}
-      if param.records.file.version == 1
+    case {1,2,3,4,5,7,8,11}
+      if param.records.file.version == 1 
         HEADER_SIZE = 32;
         WF_HEADER_SIZE = 0;
       elseif param.records.file.version == 2
         HEADER_SIZE = 40;
         WF_HEADER_SIZE = 0;
+      elseif param.records.file.version == 4
+          HEADER_SIZE = 32;
+          WF_HEADER_SIZE = 4;        
       else
         HEADER_SIZE = 0;
         WF_HEADER_SIZE = 48;
@@ -768,6 +780,22 @@ for wf = 1:length(param.radar.wfs)
       
     case {9,10,103,412}
       wfs(wf).record_mode = 1;
+      
+    case {401}
+      HEADER_SIZE = 160;
+      WF_HEADER_SIZE = 0;
+      wfs(wf).record_mode = 0;
+      wfs(wf).complex = 0;
+      wfs(wf).sample_size = 2;
+      wfs(wf).adc_per_board = 1;
+      wfs(wf).sample_type = 'uint16';
+      if wf == 1
+        wfs(wf).offset = HEADER_SIZE + WF_HEADER_SIZE;
+      else
+        wfs(wf).offset = wfs(wf-1).offset ...
+          + wfs(wf).sample_size*wfs(wf).adc_per_board*records.settings.wfs(wf-1).num_sam ...
+          + WF_HEADER_SIZE;
+      end
       
     case {402,403}
       HEADER_SIZE = 32;

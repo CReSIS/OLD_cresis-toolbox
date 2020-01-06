@@ -330,7 +330,7 @@ for state_idx = 1:length(states)
           end
           
           % Read in headers for this record
-          if any(param.records.file.version == [2 3 5 7 8 11])
+          if any(param.records.file.version == [2 3 4 5 7 8 11])
             
             % Jump through the record one waveform at a time until we get
             % to the waveform we need to load.
@@ -360,7 +360,7 @@ for state_idx = 1:length(states)
                   start_idx = double(typecast(file_data(wf_hdr_offset+37:wf_hdr_offset+38), 'uint16'));
                   stop_idx = double(typecast(file_data(wf_hdr_offset+39:wf_hdr_offset+40), 'uint16'));
                 end
-                if any(param.records.file.version == [2])
+                if any(param.records.file.version == [2 4])
                   DDC_dec{img}(num_accum(ai)+1) = 1;
                   Nt{img}(num_accum(ai)+1) = (stop_idx - start_idx);
                   wfs(wf).complex = false;
@@ -391,7 +391,7 @@ for state_idx = 1:length(states)
             Nt{img}(num_accum(ai)+1) = Nt{img}(num_accum(ai)+1) - sum(wfs(wf).time_raw_trim);
             
             % Number of fast-time samples Nt, and start time t0
-            if all(param.records.file.version ~= [2 8])
+            if all(param.records.file.version ~= [2 4 8])
               % NCO frequency
               if swap_bytes_en
                 DDC_freq{img}(num_accum(ai)+1) = double(swapbytes(typecast(file_data(wf_hdr_offset+43:wf_hdr_offset+44),'uint16')));
@@ -413,7 +413,8 @@ for state_idx = 1:length(states)
               waveform_ID = typecast(file_data(wf_hdr_offset+41:wf_hdr_offset+48), 'uint64');
               waveform_ID_map_idx = find(waveform_ID_map == waveform_ID,1);
               if isempty(waveform_ID_map_idx)
-                if param.radar.waveform_ID_best_match_en
+                if wfs(wf).wf_ID_best
+                  % Waveform ID best match is enabled
                   waveform_ID_binary = dec2bin(waveform_ID,64);
                   waveform_ID_distance = zeros(size(waveform_ID_map));
                   for id_idx = 1:length(waveform_ID_map)

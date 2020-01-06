@@ -89,6 +89,11 @@ for file_idx = 1:length(in_fns)
     clear sync_gps;
     fprintf('Sync files (%.1f sec)\n', toc);
     for sync_fn_idx = 1:length(sync_fn)
+      if ~exist('sync_file_type','var') || length(sync_file_type) < file_idx || isempty(sync_file_type{file_idx})
+        % Assume nmea because of legacy support which did not require this field to be set
+        warning('Set sync_file_type{%d} since corresponding sync_flag{%d} is set to true. Assuming sync_file_type{%d} = ''nmea''.', file_idx, file_idx, file_idx);
+        sync_file_type{file_idx} = 'nmea';
+      end
       if iscell(sync_file_type{file_idx})
         cur_file_type = sync_file_type{file_idx}{sync_fn_idx};
       else

@@ -217,10 +217,11 @@ elseif obj.map.source == 1
     
     % Get request
     obj.ops.request = WMSMapRequest(wms_flightline_layer);
+    % Set projection code
+  else
+    obj.ops.request = [];
   end
   
-  
-  % Set projection code
   obj.ops.request.CoordRefSysCode = 'EPSG:3857';
   % Set default map bounds
   if strcmp(map_zone,'arctic')
@@ -266,6 +267,8 @@ elseif obj.map.source == 2
     
     % Get request
     obj.ops.request = WMSMapRequest(wms_flightline_layer);
+  else
+    obj.ops.request = [];
   end
   
   % Set projection code and default map bounds
@@ -304,11 +307,14 @@ if obj.map.fline_source == 1
     obj.layerdata.x = [obj.layerdata.x x];
     obj.layerdata.y = [obj.layerdata.y y];
     obj.layerdata.frms = [obj.layerdata.frms S.frm];
-    obj.layerdata.season_idx = [obj.layerdata.season_idx season_idx*ones(size(obj.layerdata.x))];
+    obj.layerdata.season_idx = [obj.layerdata.season_idx season_idx*ones(size(x))];
     
     % Plot flight lines
     set(obj.map_panel.h_flightline,'XData',obj.layerdata.x,'YData',obj.layerdata.y);
   end
+  
+else
+    set(obj.map_panel.h_flightline,'XData',NaN,'YData',NaN);
 end
 
 % Turn map axes on if this is the first time a map is being loaded

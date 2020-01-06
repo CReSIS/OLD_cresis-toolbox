@@ -84,8 +84,8 @@ if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) %...
 end
 
 if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'arena'))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
-  % Platform: Ground based sled
+  % Platform: Ground based tracked vehicles, GPS antenna on top of tracked
+  % vehicle
   %
   gps.x = 0;
   gps.y = 0;
@@ -93,7 +93,7 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'a
 end
 
 if (strcmpi(param.season_name,'2019_Antarctica_Ground') && strcmpi(gps_source,'arena'))
-  warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
+%   warning('ACTUAL LEVER ARM ACTUAL LEVER ARM NEEDS TO BE DETERMINED');
   % Platform: Ground based sled
   %
   gps.x = 0;
@@ -1245,14 +1245,30 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'r
   % Japanese National Institute of Polar Research/Japanese Antarctic
   % Research Expedition
   %
-  % Log periodic antennas
+  % Log periodic antennas: Four antennas mounted on the left side and four
+  % antennas mounted on the right side. The antennas were mounted from the
+  % roof of the tracked vehicle.
+  %
+  % What is the mapping between radar RF inputs/outputs and each of the
+  % eight log periodic antennas?
+  % AWG0 T/R Antenna #1
+  % AWG1 T/R Antenna #2
+  % AWG2 T/R Antenna #3
+  % AWG3 T/R Antenna #4
+  % Antenna #5
+  % Antenna #6
+  % Antenna #7
+  % Antenna #8
+  %
+  % What is the offset from the GPS antenna which was used to provide the
+  % PPP trajectories to each of the radar antenna phase centers?
   LArx(1,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = 0.75*[-3.5:3.5] - gps.y; % m
-  LArx(3,:)   = (5*0.0254 + [0 0 0 0 0 0 0 0]) - gps.z; % m
+  LArx(2,:)   = ([-1.5 + (-4:-1)*0.75, 1.5 + (1:4)*0.75]) - gps.y; % m
+  LArx(3,:)   = (-1 + [0 0 0 0 0 0 0 0]) - gps.z; % m
   
   LAtx(1,:)   = (0 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = 0.75*[-3.5:2:3.5] - gps.y; % m
-  LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
+  LAtx(2,:)   = (-1.5 + (-4:-1)*0.75) - gps.y; % m
+  LAtx(3,:)   = (-1 + [0 0 0 0]) - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
     rxchannel = 4;

@@ -1,5 +1,4 @@
 function layerLB_sync(obj,type,index)
-
 % layerLB_sync(obj,type,index)
 %
 % Synchronizes the listbox with the echogram when visibility/selections
@@ -34,6 +33,9 @@ elseif strcmp(type,'sel')
   % change the state variables
   val = 1; % sync always turns the layer on (never toggles)
   old_idx = find(obj.left_panel.layer_panel.selected_layers);
+  if isempty(old_idx)
+    old_idx = 1;
+  end
   if length(index) > 1
     % if length 2+ is passed in, select both (will be for layer groups)
     lyr_idxs = (1:length(obj.left_panel.layer_panel.selected_layers)).';

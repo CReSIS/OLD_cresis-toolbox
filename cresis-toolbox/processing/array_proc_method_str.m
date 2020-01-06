@@ -25,6 +25,8 @@ switch (method_int)
     method_str = 'risr';
   case GEONULL_METHOD
     method_str = 'geonull';
+  case GSLC_METHOD
+    method_str = 'gslc';
   case MUSIC_DOA_METHOD
     method_str = 'music_doa';
   case MLE_METHOD
@@ -33,6 +35,8 @@ switch (method_int)
     method_str = 'dcm';
   case PF_METHOD
     method_str = 'pf';
+  case SNAPSHOT_METHOD
+    method_str = 'snapshot';
   otherwise
     error('Invalid method integer (%d)', method_int);
 end

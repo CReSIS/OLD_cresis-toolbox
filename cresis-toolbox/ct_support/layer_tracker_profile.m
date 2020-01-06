@@ -29,6 +29,8 @@ track.init = [];
 track.init.method = 'max';
 track.init.snake_rng = [-2e-7 2e-7];
 track.init.dem_layer = '';
+track.init.dem_offset = 0;
+track.init.dem_layer_offset = 0;
 track.init.max_diff = inf;
 track.init.max_diff_method = 'interp_finite';
 track.filter_mocomp = true;
@@ -73,18 +75,18 @@ elseif strcmpi(profile_str,'RDS_OIB')
 elseif strcmpi(profile_str,'ACCUM')
   %% ACCUM profile
   track.debug_time_guard = 2e-6;
-  track.filter	= [3 3];
-  track.filter_trim = [3 3];
+  track.filter	= [3 7];%[3 3];
+  track.filter_trim = [0 3];%[3 3];
   track.init.method	= 'medfilt';
   track.init.medfilt	= 11;
-  track.init.max_diff = 0.5e-6;
-  track.max_rng	= [0 2];
+  track.init.max_diff = 1e-6;%0.5e-6;
+  track.max_rng	= [0 1];%[0 2];
   track.max_rng_units = 'bins';
-  track.medfilt = 11;
-  track.medfilt_threshold = 30;
+  track.medfilt = 3;%11;
+  track.medfilt_threshold = 10;%30;
   track.method = 'threshold';
-  track.min_bin = 1.6e-6;
-  track.threshold = 10;
+  track.min_bin = 0;%1.6e-6;
+  track.threshold = 5;%10;
   track.threshold_noise_rng = [0 -1e-6 -0.3e-6];
   track.threshold_rel_max = -9;
   track.threshold_rng = 5;
@@ -113,10 +115,10 @@ elseif strcmpi(profile_str,'DEM_LIDAR')
   track.debug_time_guard = 100e-9;
   track.min_bin = 0e-6;
   track.init.method  = 'dem';
-  track.init.dem_offset = 6.5e-9;
   track.init.dem_layer.name = 'surface';
   track.init.dem_layer.source = 'lidar';
   track.init.dem_layer.lidar_source = 'atm';
+  track.init.dem_layer.lever_arm_en = true;
   track.init.max_diff_method = 'merge_vectors';
   track.init.max_diff = 0e-6; % Force output layer to equal DEM
   track.max_rng	= [0 0];

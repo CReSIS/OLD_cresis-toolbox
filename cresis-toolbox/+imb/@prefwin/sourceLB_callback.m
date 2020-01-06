@@ -51,5 +51,33 @@ elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'
     set(obj.h_gui.sourceLB,'Value',selected_items);
   end
 
+elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Up')
+  selected_items = get(obj.h_gui.sourceLB,'Value');
+  items = get(obj.h_gui.sourceLB,'String');
+  if isempty(selected_items) || selected_items(1) < 2
+    return;
+  else
+    selected_items = selected_items(1);
+  end
+
+  items = items([1:selected_items-2 selected_items selected_items-1 selected_items+1:end]);
+  
+  set(obj.h_gui.sourceLB,'String',items);
+  set(obj.h_gui.sourceLB,'Value',selected_items-1);
+  
+elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Down')
+  selected_items = get(obj.h_gui.sourceLB,'Value');
+  items = get(obj.h_gui.sourceLB,'String');
+  if isempty(selected_items) || selected_items(1) >= length(items)
+    return;
+  else
+    selected_items = selected_items(1);
+  end
+
+  items = items([1:selected_items-1 selected_items+1 selected_items selected_items+2:end]);
+  
+  set(obj.h_gui.sourceLB,'String',items);
+  set(obj.h_gui.sourceLB,'Value',selected_items+1);
+  
 end
 return

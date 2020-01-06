@@ -40,6 +40,9 @@ if iscell(Nsv)
   if strcmpi(Nsv{1},'theta')
     theta = Nsv{2};
     
+    % shape doas into row vector
+    theta = theta(:).';
+    
     if ni == 4        % Ideal generation
       ky = k*sin(theta);
       kz = k*cos(theta);

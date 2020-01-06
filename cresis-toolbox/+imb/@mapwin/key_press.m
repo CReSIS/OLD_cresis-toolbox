@@ -181,10 +181,10 @@ if ~isempty(event.Key)
           % Double click: Zoom reset
           % Ctrl + double click: Select closest frame and load
           
-          new_yaxis(1) = obj.full_yaxis(1);
-          new_yaxis(2) = obj.full_yaxis(end);
-          new_xaxis(1) = obj.full_xaxis(1);
-          new_xaxis(2) = obj.full_xaxis(end);
+          new_yaxis(1) = obj.map.yaxis_default(1);
+          new_yaxis(2) = obj.map.yaxis_default(end);
+          new_xaxis(1) = obj.map.xaxis_default(1);
+          new_xaxis(2) = obj.map.yaxis_default(end);
           
           % get a new map for these limits
           obj.query_redraw_map(new_xaxis(1),new_xaxis(end),new_yaxis(1),new_yaxis(end));

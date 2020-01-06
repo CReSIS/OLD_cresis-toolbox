@@ -1,7 +1,7 @@
 function ctrl_chain = cluster_set_dparam(ctrl_chain,varargin)
 % ctrl_chain = cluster_set_dparam(ctrl_chain,varargin)
 %
-% cluster_set_dparam(ctrl_chain,'argsin{1}.cpu_time',100);
+% ctrl_chain = cluster_set_dparam(ctrl_chain,'argsin{1}.radar.wfs(1).DDC_dec',4);
 % cluster_set_dparam(ctrl,'argsin{1}',40);
 % cluster_set_dparam(ctrl,'cpu_time',100);
 %
