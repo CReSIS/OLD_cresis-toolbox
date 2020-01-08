@@ -1050,7 +1050,7 @@ for line_idx = 1:1:Nx_out
         if cfg.debug_plots
           plot(bin_theta,y0,'mp','MarkerSize',4,'MarkerFaceColor','g','LineWidth',2)
         end
-      end
+      end     
     end
     
   end
@@ -1311,13 +1311,14 @@ for line_idx = 1:1:Nx_out
       
       % Loop over pointing directions and beamform
       for des_idx = 1:length(theta_desired)
-        keep_surf_doas = surf_doas(abs(surf_doas - theta_desired(des_idx)) < cfg.doa_theta_guard);
+        keep_out_mask = abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard;
+        keep_surf_doas = theta_int(~keep_out_mask);
         keep_surf_doas = keep_surf_doas(:);
         g   = vertcat(1,zeros(size(keep_surf_doas)));
         
         surf_doas_rad = keep_surf_doas*pi/180;
         sv_fh_arg_geonull = {'theta'};
-        sv_fh_arg_geonull{2} = [theta(des_idx), surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
+        sv_fh_arg_geonull{2} = [theta_desired(des_idx), surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
         
         for ml_idx = 1:length(cfg.fcs)
           % Make column vectors of y and z-positions
@@ -1359,7 +1360,7 @@ for line_idx = 1:1:Nx_out
         axis tight
         [day, rem] = strtok(param.day_seg, '_');
         seg = rem(2:end);
-        tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(line_idx));
+        tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(rline));
         titlestr = sprintf('%s %s GEONULL PATTERN, %s',day,seg,datestr(tgps));
         title(titlestr)
         ylims = ylim;
@@ -1395,7 +1396,8 @@ for line_idx = 1:1:Nx_out
       
       % Loop over pointing directions and beamform
       for des_idx = 1:length(theta_desired)
-        keep_surf_doas = surf_doas(abs(surf_doas - theta_desired(des_idx)) < cfg.doa_theta_guard);
+         keep_out_mask = abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard;
+        keep_surf_doas = theta_int(~keep_out_mask);
         keep_surf_doas = keep_surf_doas(:);
         g   = vertcat(1,zeros(size(keep_surf_doas)));
         Nsrc = length(g);
@@ -1404,7 +1406,7 @@ for line_idx = 1:1:Nx_out
         
         surf_doas_rad = keep_surf_doas*pi/180;
         sv_fh_arg_gslc = {'theta'};
-        sv_fh_arg_gslc{2} = [theta(des_idx), surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
+        sv_fh_arg_gslc{2} = [theta_desired(des_idx), surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
         
         for ml_idx = 1:length(cfg.fcs)
           % Make column vectors of y and z-positions
@@ -1445,82 +1447,6 @@ for line_idx = 1:1:Nx_out
         Sarray.gslc(des_idx,bin_idx) =       Sarray.gslc(des_idx,bin_idx) / length(din);
       end
       
-%       surf_doas   = surf_theta(bin,:);
-%       surf_doas   = surf_doas(~isnan(surf_doas));
-%       guard_mask  = logical(abs(surf_doas < cfg.doa_theta_guard));
-% %       surf_doas   = cfg.surf_theta_rline(bin).DOAs(~isnan(cfg.surf_theta_rline(bin).DOAs));
-% %       guard_mask  = logical(abs(cfg.surf_theta_rline(bin).DOAs) < cfg.doa_theta_guard);
-%       if ~isempty(surf_doas)
-%         surf_doas   = surf_doas(~guard_mask);
-%       else
-%         surf_doas   = surf_doas(:);
-%       end
-%       Nsrc_surf     = numel(surf_doas);
-%       
-%       % Signal vector that we wish to invert of the form [1, 0, 0].
-%       % Signal is linear combination of target + interference.  Only
-%       % nonzero coefficient is in the ith entry.  Assumes that the ith
-%       % column of A contains target steering vector.
-%       g = vertcat(1,zeros(Nsrc_surf,1));  % Unity gain towards nadir, nulls in clutter directions
-%       
-%       % Rank of A(doas) - matrix of steering vector (i.e. dimensionality of
-%       % Col(A) where A is as computed below.
-%       Nsrc = length(g);
-%       
-%       % Dimensionality of the orthogonal complement of C(A)
-%       dim_Aperp = Nc - Nsrc;
-%             
-%       % Source DOAs
-%       % ASSUMPTION IS THAT THETA HAS ALREADY BEEN CONVERTED TO RADIANS
-%       surf_doas_rad     = surf_doas*pi/180;
-%       sv_fh_arg_gslc    = {'theta'};
-%       sv_fh_arg_gslc{2} = [theta, surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
-%       
-%       % Loop over wf/adc set
-%       for ml_idx = 1:length(cfg.fcs)
-%         % Make column vectors of y and z-positions
-%         for wf_adc_idx = 1:length(cfg.fcs{ml_idx})
-%           y_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(2,rline);
-%           z_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(3,rline);
-%         end
-%         
-%         % Determine Steering Vectors for target and interference -
-%         % Equivalent to the constraint matrix C
-%         [~,A] = cfg.sv_fh(sv_fh_arg_gslc,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
-%         
-%         % Find orthonormal basis for the orthogonal complement of C(A)
-%         % (nullspace of A transpose)
-%         Ca  = zeros(Nc,dim_Aperp);
-%         [U,S,V] = svd(A);
-%         Ca = U(:,end-(Nc-Nsrc)+1:end);
-%         % Alternatively we can use Ca = null(A') here.  
-%         
-%         % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE NON
-%         % ADAPTIVE MLE
-%         wq = A*inv(A'*A)*g;
-%         
-%         % GSLC quantities
-%         R_tilda = Ca'*Rxx*Ca;
-%         p_tilda = Ca'*Rxx*wq;
-%         
-%         % Compute the adaptive portion of the weight vector
-%         wa      = Ca*inv(R_tilda)*p_tilda;
-%         
-%         w_gslc  = wq - wa;
-%         
-%         sv_gslc{ml_idx} = w_gslc;
-%         
-%         Hwindow = boxcar(Nc);
-%         Sarray.gslc(:,bin_idx) = mean(abs(sv_gslc{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-%         for ml_idx = 2:length(din)
-%           dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
-%           dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-%           Sarray.gslc(:,bin_idx) =       Sarray.gslc(:,bin_idx) ...
-%             + mean(abs(sv_gslc{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-%         end
-%         Sarray.gslc(:,bin_idx) =       Sarray.gslc(:,bin_idx) / length(din);
-%         
-%         
         % DEBUG GSLC ONLY
         % =================================================================
         % Plot GSLC and Nonadaptive MLE
@@ -3135,17 +3061,72 @@ for line_idx = 1:1:Nx_out
       
     elseif any(cfg.method == SNAPSHOT_METHOD)
       %% Array: SNAPSHOT
-      % cfg.Nsrc is an a priori assumption of the number of corange
-      % targets.
-      %
       surf_doas   = surf_theta(bin_idx,:);
       Nsrc_new    = length(surf_doas);
+      
+      if size(tout.snapshot.tomo.power,2) < Nsrc_new
+        Ngrow       = Nsrc_new - size(tout.snapshot.tomo.power,2);
+        tout.snapshot.tomo.power = cat(2,tout.snapshot.tomo.power,nan(size(tout.snapshot.tomo.power,1),Ngrow,size(tout.snapshot.tomo.power,3)));
+      end
+      
+      surf_index = 1:length(surf_doas);
+      theta_desired = surf_doas;      
+      for des_idx = 1:length(theta_desired)
         
+        if isnan(theta_desired(des_idx))
+          surf_power(des_idx) = nan;
+        else
+          % Pull out doas not in desired direction
+          temp_theta_int = surf_doas(surf_index ~= des_idx);
+          % Only keep non-nan values
+          theta_int = temp_theta_int(~isnan(temp_theta_int));
+          % throw out doas in keepout zone
+          keep_out_mask = abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard;
+          keep_surf_doas = theta_int(~keep_out_mask);
+          keep_surf_doas = keep_surf_doas(:);
+          % Constraint vector
+          g   = vertcat(1,zeros(size(keep_surf_doas)));
+          % Convert to radians for array_proc_sv
+          surf_doas_rad = keep_surf_doas*pi/180;
+          sv_fh_arg = {'theta'};
+          sv_fh_arg{2} = [theta_desired(des_idx), surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
+          
+          % Estimate power
+          for ml_idx = 1:length(cfg.fcs)
+            % Make column vectors of y and z-positions
+            for wf_adc_idx = 1:length(cfg.fcs{ml_idx})
+              y_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(2,rline);
+              z_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(3,rline);
+            end
+            % Determine Steering Vectors for target and interference
+            [~,A] = cfg.sv_fh(sv_fh_arg,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+            % Apply pseudoinverse to g
+            w = A * inv(A'*A) *g;
+            w = w ./ sqrt(w'*w);
+            sv{ml_idx} = w;
+            
+          end
+          Hwindow = boxcar(Nc);
+          surf_power(des_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+          for ml_idx = 2:length(din)
+            dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+            dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+            surf_power(des_idx) =       surf_power(des_idx) ...
+              + mean(abs(sv_gn{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+          end
+          surf_power(des_idx) =       surf_power(des_idx) / length(din);
+        end
+      end
+      % Store the power estimated from each source
+      tout.snapshot.tomo.power(bin_idx,1:length(surf_power))=surf_power;
+      % Store the snapshot
+      dataSample = squeeze(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+      tout.snapshot.tomo.img(bin_idx,:,line_idx) = dataSample;
+      
       if cfg.tomo_en
         % Collect source DOAs for the range bin and along-track position
         % Allow tout.(m).tomo.surf_theta to grow in 2nd dimension
-
-
+        Nsrc_new    = length(surf_doas);
         Nsrc_old    = size(tout.snapshot.tomo.surf_theta,2);
         Ngrow       = Nsrc_new - Nsrc_old;
         
@@ -3166,61 +3147,7 @@ for line_idx = 1:1:Nx_out
         end
         tout.snapshot.tomo.surf_ice_mask(bin_idx,1:length(surf_mask)) = surf_mask;
       end
-            
-      % Store the snapshot
-      dataSample = squeeze(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
-      tout.snapshot.tomo.img(bin_idx,:,line_idx) = dataSample;
-      
-      % Estimate power from each direction
-      dataSample = double(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
-      dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
 
-      % Desired thetas and constraints
-      theta_desired   = theta;
-      theta_desired   = theta_desired(:);
-      
-      % Interference thetas and constraints
-      surf_doas       = surf_theta(bin,:);
-      surf_doas       = surf_doas(~isnan(surf_doas));
-      theta_int       = surf_doas;
-      
-      % Loop over pointing directions and beamform
-      for des_idx = 1:length(theta_desired)
-        keep_surf_doas = surf_doas(abs(surf_doas - theta_desired(des_idx)) < cfg.doa_theta_guard);
-        keep_surf_doas = keep_surf_doas(:);
-        g   = vertcat(1,ones(size(keep_surf_doas)));
-        
-        surf_doas_rad = keep_surf_doas*pi/180;
-        sv_fh_arg_geonull = {'theta'};
-        sv_fh_arg_geonull{2} = [theta(des_idx), surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
-        
-        for ml_idx = 1:length(cfg.fcs)
-          % Make column vectors of y and z-positions
-          for wf_adc_idx = 1:length(cfg.fcs{ml_idx})
-            y_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(2,rline);
-            z_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(3,rline);
-          end
-          % Determine Steering Vectors for target and interference
-          [~,A] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
-          % Apply pseudoinverse to g
-          w = A * inv(A'*A) *g;
-          w = w ./ sqrt(w'*w);
-          sv_gn{ml_idx} = w;
-          
-        end
-        Hwindow = boxcar(Nc);
-        Sarray.geonull(des_idx,bin_idx) = mean(abs(sv_gn{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-        for ml_idx = 2:length(din)
-          dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
-          dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-          Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) ...
-            + mean(abs(sv_gn{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-        end
-        Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) / length(din);
-        
-      end
-      
-  
     end
   end
   
