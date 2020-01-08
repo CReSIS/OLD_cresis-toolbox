@@ -118,8 +118,11 @@ end
 if ~isfield(param.collate_coh_noise,'wf_adcs') || isempty(param.collate_coh_noise.wf_adcs)
   param.collate_coh_noise.wf_adcs = [];
 end
-if ~isempty(param.collate_coh_noise.wf_adcs) && ~iscell(param.collate_coh_noise,'wf_adcs')
-  param.collate_coh_noise.wf_adcs = {param.collate_coh_noise.wf_adcs};
+if ~isempty(param.collate_coh_noise.wf_adcs) && ~iscell(param.collate_coh_noise.wf_adcs)
+  wf_adcs = param.collate_coh_noise.wf_adcs;
+  for img = 1:length(param.collate_coh_noise.imgs)
+    param.collate_coh_noise.wf_adcs{img} = wf_adcs;
+  end
 end
 
 for img = param.collate_coh_noise.imgs
