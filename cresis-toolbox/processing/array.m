@@ -273,6 +273,8 @@ for method_idx = 1:length(param.array.method)
       cpu_time_method_mult = cpu_time_method_mult + 4;
     case MUSIC_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 6;
+    case GEONULL_METHOD
+      cpu_time_method_mult = cpu_time_method_mult + 8;
     case MLE_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 480;
     otherwise
