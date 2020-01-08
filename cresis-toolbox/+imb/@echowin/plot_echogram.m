@@ -13,6 +13,20 @@ if xaxis_choice == 1 % rangeline
   obj.eg.image_gps_time = obj.eg.gps_time;
   % update image_data according to xaxis_gpstime
   obj.eg.image_data = obj.eg.data;
+
+  if isfield(obj.eg, 'viterbi_data')
+    v_start = obj.eg.viterbi_idxs(1);
+    v_stop = obj.eg.viterbi_idxs(end);
+    v = obj.eg.viterbi_data;
+    minv = min(v, [], [1 2]);
+    maxv = max(v, [], [1 2]);
+    maxi = max(obj.eg.image_data, [], [1 2]);
+    mini = min(obj.eg.image_data, [], [1 2]);
+%     viterbi_data = (maxi - mini) * (v - minv) / (maxv - minv) + mini;
+    viterbi_data = v ./ 1000;
+    obj.eg.image_data = [obj.eg.image_data(:, 1:(v_start-1)) viterbi_data obj.eg.image_data(:, (v_stop+1):end)];
+  end
+
   % update x label
   obj.eg.x_label = 'Range Line';
   

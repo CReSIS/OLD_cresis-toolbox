@@ -114,17 +114,22 @@ if tool_idx == 1
       end
       
       %% Top suppression
+      new_echo = imb.echowin();
+      param = load("D:/Documents/MATLAB/echo_param.mat", "param");
+      new_echo.draw(param.param);
+      new_echo.eg.viterbi_idxs = auto_idxs;
+      
       if obj.top_panel.top_sup_cbox.Value
         tic
         topbuffer = 10;
         botbuffer = 30;
         filtvalue = 50;
         for rline = 1 : size(viterbi_data, 2)
-          column_chunk = viterbi_data(round(surf_bins(rline) - topbuffer) : ...
-            round(surf_bins(rline) + botbuffer), rline);
-          viterbi_data(round(surf_bins(rline) - topbuffer) : ...
-            round(surf_bins(rline) + botbuffer), rline) = imgaussfilt(column_chunk, filtvalue);
-        end
+          rows = round(surf_bins(rline) - topbuffer) : round(surf_bins(rline) + botbuffer);
+          viterbi_data(rows, rline) = imgaussfilt(viterbi_data(rows, rline), filtvalue);
+        end                  
+        new_echo.eg.viterbi_data = viterbi_data;
+        new_echo.plot_echogram(-inf, inf, -inf, inf);
         fprintf('Top suppression took %.2f sec.\n', toc);
       end
       
@@ -134,14 +139,22 @@ if tool_idx == 1
         topbuffer = 10;
         botbuffer = 5;
         filtvalue = 50;
+        % TODO[reece]: How is only diff between top and mult suppression botbuffer and 2*surf_bins?
+        % TODO[reece]: How exactly do these suppressions work?
+        % TODO[reece]: What are surf_bins and is doubling the value there really what it's supposed to do?
+        % TODO[reece]: Top suppression seems to work quite well. 
+        % TODO[reece]: What does imgaussfilt do?
 
-        current_bin = 2*surf_bins(rline);
-        upper_bin = min(round(current_bin + botbuffer), size(viterbi_data, 1));
-        lower_bin = max(round(current_bin - topbuffer), 1);
         for rline = 1 : size(viterbi_data, 2)
-          column_chunk = viterbi_data(lower_bin:upper_bin, rline);
-          viterbi_data(lower_bin:upper_bin, rline) = imgaussfilt(column_chunk, filtvalue);
+          current_bin = 2*surf_bins(rline);
+          upper_bin = max(min(round(current_bin + botbuffer), size(viterbi_data, 1)), 1);
+          lower_bin = max(min(round(current_bin - topbuffer), size(viterbi_data, 1)), 1);
+          
+          column_chunk = viterbi_data(upper_bin:lower_bin, rline);
+          viterbi_data(upper_bin:lower_bin, rline) = imgaussfilt(column_chunk, filtvalue);
         end
+        new_echo.eg.viterbi_data = viterbi_data;
+        new_echo.plot_echogram(-inf, inf, -inf, inf);
         fprintf('Multiple suppression took %.2f sec.\n', toc);
       end
       
