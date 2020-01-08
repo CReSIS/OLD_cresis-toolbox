@@ -1368,7 +1368,7 @@ for line_idx = 1:1:Nx_out
           DOAclutter = surf_doas;
           line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
           line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          legend('Pseudoinverse','Clutter','Clutter')
+          legend('Geonull','Clutter','Clutter')
         end
         keyboard
       end
