@@ -44,13 +44,50 @@ elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'
     answer = answer{1};
     selected_items = get(obj.h_gui.sourceLB,'Value');
     items = get(obj.h_gui.sourceLB,'String');
+    if isempty(selected_items)
+      selected_items = length(items)+1;
+    end
+    selected_items = selected_items(1);
+    % Add new item
     items{end+1} = answer;
-    [items new_idxs] = unique(items);
+    items = items([1:selected_items-1 end selected_items:end-1]);
+    % Remove duplicates
+    [~,unique_idxs] = unique(items);
+    % Put items back in previous order
+    items = items(sort(unique_idxs));
+    % Set GUI fields
     set(obj.h_gui.sourceLB,'String',items);
-    selected_items = new_idxs(selected_items);
     set(obj.h_gui.sourceLB,'Value',selected_items);
   end
 
+elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Top')
+  selected_items = get(obj.h_gui.sourceLB,'Value');
+  items = get(obj.h_gui.sourceLB,'String');
+  if isempty(selected_items) || selected_items(1) < 2
+    return;
+  else
+    selected_items = selected_items(1);
+  end
+
+  items = items([selected_items 1:selected_items-1  selected_items+1:end]);
+  
+  set(obj.h_gui.sourceLB,'String',items);
+  set(obj.h_gui.sourceLB,'Value',1);
+  
+elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Bottom')
+  selected_items = get(obj.h_gui.sourceLB,'Value');
+  items = get(obj.h_gui.sourceLB,'String');
+  if isempty(selected_items) || selected_items(1) >= length(items)
+    return;
+  else
+    selected_items = selected_items(1);
+  end
+
+  items = items([1:selected_items-1 selected_items+1:end selected_items]);
+  
+  set(obj.h_gui.sourceLB,'String',items);
+  set(obj.h_gui.sourceLB,'Value',length(items));
+  
 elseif isfield(h_status,menu_field_name) && strcmp(get(status,menu_field_name),'Up')
   selected_items = get(obj.h_gui.sourceLB,'Value');
   items = get(obj.h_gui.sourceLB,'String');
