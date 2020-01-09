@@ -980,8 +980,8 @@ for line_idx = 1:1:Nx_out
       theta1_i = interp_finite(interp1(surf_twtt_theta1, theta1, radar_twtt));
       theta2_i = interp_finite(interp1(surf_twtt_theta2, theta2,radar_twtt));
       
-      theta1_i = (interp1(surf_twtt_theta1, theta1, radar_twtt));
-      theta2_i = (interp1(surf_twtt_theta2, theta2,radar_twtt));
+%       theta1_i = (interp1(surf_twtt_theta1, theta1, radar_twtt));
+%       theta2_i = (interp1(surf_twtt_theta2, theta2,radar_twtt));
 
       if cfg.debug_plots
         figure(1834);
@@ -1080,14 +1080,37 @@ for line_idx = 1:1:Nx_out
       %% Array: Standard/Periodogram
       dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
       dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
-      Sarray.standard(:,bin_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+      % Debug
+      Hwindow     = boxcar(Nc);
+      Hwindow     = Hwindow ./ sqrt(Hwindow'*Hwindow);
+      sv_standard = sv{1};
+      sv_standard = sv_standard ./ sqrt(sv_standard'*sv_standard);
+      w_standard  = sv_standard.*Hwindow;
+      w_standard  = w_standard ./ sqrt(w_standard'*w_standard);
+      w_standard  = w_standard ./ (length(w_standard));
+      Sarray.standard(:,bin_idx) = mean(abs(dataSample*conj(w_standard)).^2);
+      %       Sarray.standard(:,bin_idx) = mean(abs(bsxfun(@times,conj(w_standard),dataSample.')).^2,2);
       for ml_idx = 2:length(din)
         dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+        sv_standard = sv{ml_idx};
+        sv_standard = sv_standard ./ sqrt(sv_standard'*sv_standard);
+        w_standard = sv_standard.*Hwindow;
+        %       w_standard = sv{1}.*Hwindow;
+        w_standard = w_standard ./ sqrt(w_standard'*w_standard);
+        w_standard = w_standard ./ (length(w_standard));
         Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) ...
-          + mean(abs(sv{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+          + mean(abs(dataSample*conj(w_standard)).^2);
       end
-      Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) / length(din);
+      Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx);
+%       Sarray.standard(:,bin_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+%       for ml_idx = 2:length(din)
+%         dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
+%         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+%         Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) ...
+%           + mean(abs(sv{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+%       end
+%       Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) / length(din);
     end
     
     if any(cfg.method == MVDR_METHOD)
@@ -1309,6 +1332,12 @@ for line_idx = 1:1:Nx_out
       surf_doas       = surf_doas(~isnan(surf_doas));
       theta_int       = surf_doas;
       
+      % DEBUG ONLY
+      if 1
+        surf_doas = -51;
+        theta_int = -51;
+      end
+      
       % Loop over pointing directions and beamform
       for des_idx = 1:length(theta_desired)
         keep_out_mask = abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard;
@@ -1328,6 +1357,18 @@ for line_idx = 1:1:Nx_out
           end
           % Determine Steering Vectors for target and interference
           [~,A] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+          
+          % DEBUG ONLY
+          if 1
+            sv_fh_arg_geonull = {'theta'};
+            sv_fh_arg_geonull{2} = [theta_desired(des_idx)]; % array_proc_sv breaks if this is a column vector -- fix this!
+            [~,Atarget] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+            Atarget = Atarget ./ sqrt(Atarget'*Atarget);
+            Aint =  [0.2090 + 0.0000i, -0.2008 + 0.2626i, -0.2076 - 0.3079i, 0.4031 - 0.1203i, -0.0308 + 0.4104i, -0.3837 - 0.1338i, 0.3912 - 0.2112i];
+            Aint = (Aint(:));
+            A = [Atarget,Aint];
+          end
+          
           % Apply pseudoinverse to g
           w = A * inv(A'*A) *g;
           w = w ./ sqrt(w'*w);
@@ -1335,16 +1376,32 @@ for line_idx = 1:1:Nx_out
           
         end
         Hwindow = boxcar(Nc);
-        Sarray.geonull(des_idx,bin_idx) = mean(abs(sv_gn{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-        for ml_idx = 2:length(din)        
-          dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+        Hwindow = Hwindow ./ sqrt(Hwindow'*Hwindow);
+        wgeo    = sv_gn{1}.*Hwindow;
+        wgeo    = wgeo ./ sqrt(wgeo'*wgeo);
+        wgeo     = wgeo ./ length(wgeo);
+        Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(wgeo)).^2);
+        for ml_idx = 2:length(din)
+          dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
           dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-          Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) ...
-            + mean(abs(sv_gn{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+          wgeo = sv_gn{ml_idx}.*Hwindow;
+          wgeo = wgeo ./ sqrt(wgeo'*wgeo);
+          wgeo = wgeo ./ length(wgeo);          
+          Sarray.geonull(des_idx,bin_idx) = Sarray.geo(des_idx,bin_idx) ...
+            + mean(abs(dataSample*conj(wgeo)).^2);
         end
-        Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) / length(din);
-        
+             
       end
+%         Sarray.geonull(des_idx,bin_idx) = mean(abs(sv_gn{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+%         for ml_idx = 2:length(din)        
+%           dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+%           dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+%           Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) ...
+%             + mean(abs(sv_gn{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+%         end
+%         Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) / length(din);
+%         
+%       end
       
       if cfg.debug_plots
         theta_vec       = linspace(-pi/2,pi/2,256);
@@ -1422,8 +1479,8 @@ for line_idx = 1:1:Nx_out
           [U,S,V] = svd(A);
           Ca = U(:,end-(Nc-Nsrc)+1:end);
           % Alternatively we can use Ca = null(A') here.
-          % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE NON
-          % ADAPTIVE MLE
+          % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE 
+          % GEONULL WEIGHT VECTOR
           wq = A*inv(A'*A)*g;
           
           % GSLC quantities
@@ -1433,6 +1490,8 @@ for line_idx = 1:1:Nx_out
           % Compute the adaptive portion of the weight vector
           wa      = Ca*inv(R_tilda)*p_tilda;
           w_gslc  = wq - wa;
+          w_gslc  = w_gslc ./ sqrt(w_gslc'*w_gslc);
+          w_gslc  = w_gscl ./ length(w_gslc);
           sv_gslc{ml_idx} = w_gslc;
           
         end
