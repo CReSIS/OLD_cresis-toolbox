@@ -141,37 +141,34 @@ if tool_idx == 1
       if obj.top_panel.mult_sup_cbox.Value
         figure;
         title('multiple suppression');
-        topbuffer = 12;
-        botbuffer = 12;
-        filtvalue = 30;
-        
-        % Step one: Determine the bins associated with the surface multiple
-        surf_mult_twtt = 2*surf_bins;
-        surf_mult_bins = surf_bins;
-        
-        % Step two: Filter the whole image
-        filt_img = fir_dec(fir_dec(viterbi_data,ones(1,31),1).',ones(1,31),1).';
-        
-        % Step three: replace the surface multiple bins with the filtered image
+        tic
+        topbuffer = 10;
+        botbuffer = 5;
+        filtvalue = 50;
+        % TODO[reece]: How is only diff between top and mult suppression botbuffer and 2*surf_bins?
+        % TODO[reece]: How exactly do these suppressions work?
+        % TODO[reece]: What are surf_bins and is doubling the value there really what it's supposed to do?
+        % TODO[reece]: Top suppression seems to work quite well. 
+        % TODO[reece]: What does imgaussfilt do?
+
         for rline = 1 : size(viterbi_data, 2)
-          try
-            viterbi_data(round(surf_mult_bins(rline) - topbuffer) : ...
-              round(surf_mult_bins(rline) + botbuffer), rline) = ...
-              filt_img(round(surf_mult_bins(rline) - topbuffer) : ...
-              round(surf_mult_bins(rline) + botbuffer), rline);
-          catch ME
-            continue;
-          end
+          current_bin = 2*surf_bins(rline);
+          upper_bin = max(min(round(current_bin + botbuffer), size(viterbi_data, 1)), 1);
+          lower_bin = max(min(round(current_bin - topbuffer), size(viterbi_data, 1)), 1);
           
           image(viterbi_data);
           colormap(1-gray);
           hold on;
-          plot(rline, round(surf_mult_bins(rline) - topbuffer), 'go');
-          plot(rline, round(surf_mult_bins(rline) + botbuffer), 'ro');
+          plot(rline, upper_bin, 'go');
+          plot(rline, lower_bin, 'ro');
           hold off;
           pause(.01);
-          
+
+          column_chunk = viterbi_data(upper_bin:lower_bin, rline);
+          viterbi_data(upper_bin:lower_bin, rline) = imgaussfilt(column_chunk, filtvalue);
         end
+        fprintf('Multiple suppression took %.2f sec.\n', toc);
+          
       end
       
       %% Distance-to-Ice-Margin model
