@@ -141,36 +141,47 @@ if tool_idx == 1
       if obj.top_panel.mult_sup_cbox.Value
         figure;
         title('multiple suppression');
-        tic
-        topbuffer = 10;
-        botbuffer = 5;
-        filtvalue = 50;
-        % TODO[reece]: How is only diff between top and mult suppression botbuffer and 2*surf_bins?
-        % TODO[reece]: How exactly do these suppressions work?
-        % TODO[reece]: What are surf_bins and is doubling the value there really what it's supposed to do?
-        % TODO[reece]: Top suppression seems to work quite well. 
-        % TODO[reece]: What does imgaussfilt do?
-
-        for rline = 1 : size(viterbi_data, 2)
-          current_bin = 2*surf_bins(rline);
-          upper_bin = max(min(round(current_bin + botbuffer), size(viterbi_data, 1)), 1);
-          lower_bin = max(min(round(current_bin - topbuffer), size(viterbi_data, 1)), 1);
+        viterbi_data = lp(viterbi_data);
+        Tmultiple_offset = -200e-9;
+        threshold = -60;
+        surface_guard = 10;
+        % surf_bins = round(interp1(big_matrix.Time, 1:length(big_matrix.Time), surf_bins));
+        for rline = 1:size(viterbi_data,2)
+          % Threshold and shift the large values
+          mult = zeros(size(viterbi_data,1),1);
+          mult(viterbi_data(:,rline)>threshold) = viterbi_data(viterbi_data(:,rline)>threshold,rline) - threshold;
+          % Ignore time before the surface bin since no multiples can occur at these
+          % times and the feed through does occur and could create problems if we do not suppress it.
+          mult(1:surf_bins(rline)-surface_guard) = 0;
+          % Interpolate to the surface multiple time
+          % mult = interp1((big_matrix.Time+Tmultiple_offset)*2,mult,(big_matrix.Time+Tmultiple_offset));
+          
+          if size(mult) == size(viterbi_data(:,rline))
+            viterbi_data(:,rline) = viterbi_data(:,rline) - mult;
+          else
+            viterbi_data(:,rline) = viterbi_data(:,rline) - mult';
+          end
           
           image(viterbi_data);
           colormap(1-gray);
           hold on;
-          plot(rline, upper_bin, 'go');
-          plot(rline, lower_bin, 'ro');
+          prev_bin = -100;
+          for bin = 1:length(mult)
+            if mult(bin) > 0 && bin - prev_bin > 75
+              plot(rline, bin, 'bo');
+              prev_bin = bin;
+              pause(.001);
+            end
+          end
           hold off;
-          pause(.01);
 
-          column_chunk = viterbi_data(upper_bin:lower_bin, rline);
-          viterbi_data(upper_bin:lower_bin, rline) = imgaussfilt(column_chunk, filtvalue);
         end
-        fprintf('Multiple suppression took %.2f sec.\n', toc);
-          
       end
-      
+      figure;
+      title('multiple suppression 2');
+      image(viterbi_data);
+      colormap(1-gray);
+
       %% Distance-to-Ice-Margin model
       clear DIM DIM_costmatrix;
       global gRadar
