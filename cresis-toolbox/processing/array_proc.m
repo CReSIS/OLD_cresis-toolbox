@@ -1311,7 +1311,8 @@ for line_idx = 1:1:Nx_out
       
       % Loop over pointing directions and beamform
       for des_idx = 1:length(theta_desired)
-        keep_surf_doas = theta_int(abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard);
+        keep_out_mask = abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard;
+        keep_surf_doas = theta_int(~keep_out_mask);
         keep_surf_doas = keep_surf_doas(:);
         g   = vertcat(1,zeros(size(keep_surf_doas)));
         
@@ -1359,7 +1360,7 @@ for line_idx = 1:1:Nx_out
         axis tight
         [day, rem] = strtok(param.day_seg, '_');
         seg = rem(2:end);
-        tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(line_idx));
+        tgps = datetime(1970,01,01,00,00,00,00) + seconds(cfg.fcs{1}{1}.gps_time(rline));
         titlestr = sprintf('%s %s GEONULL PATTERN, %s',day,seg,datestr(tgps));
         title(titlestr)
         ylims = ylim;
@@ -1367,7 +1368,7 @@ for line_idx = 1:1:Nx_out
           DOAclutter = surf_doas;
           line([DOAclutter(1) DOAclutter(1)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
           line([DOAclutter(2) DOAclutter(2)],[min(ylims) max(ylims)],'LineStyle','--','Color',[0.3 0.3 0.3])
-          legend('Pseudoinverse','Clutter','Clutter')
+          legend('Geonull','Clutter','Clutter')
         end
         keyboard
       end
@@ -1395,7 +1396,8 @@ for line_idx = 1:1:Nx_out
       
       % Loop over pointing directions and beamform
       for des_idx = 1:length(theta_desired)
-        keep_surf_doas = surf_doas(abs(surf_doas - theta_desired(des_idx)) < cfg.doa_theta_guard);
+         keep_out_mask = abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard;
+        keep_surf_doas = theta_int(~keep_out_mask);
         keep_surf_doas = keep_surf_doas(:);
         g   = vertcat(1,zeros(size(keep_surf_doas)));
         Nsrc = length(g);
@@ -1445,82 +1447,6 @@ for line_idx = 1:1:Nx_out
         Sarray.gslc(des_idx,bin_idx) =       Sarray.gslc(des_idx,bin_idx) / length(din);
       end
       
-%       surf_doas   = surf_theta(bin,:);
-%       surf_doas   = surf_doas(~isnan(surf_doas));
-%       guard_mask  = logical(abs(surf_doas < cfg.doa_theta_guard));
-% %       surf_doas   = cfg.surf_theta_rline(bin).DOAs(~isnan(cfg.surf_theta_rline(bin).DOAs));
-% %       guard_mask  = logical(abs(cfg.surf_theta_rline(bin).DOAs) < cfg.doa_theta_guard);
-%       if ~isempty(surf_doas)
-%         surf_doas   = surf_doas(~guard_mask);
-%       else
-%         surf_doas   = surf_doas(:);
-%       end
-%       Nsrc_surf     = numel(surf_doas);
-%       
-%       % Signal vector that we wish to invert of the form [1, 0, 0].
-%       % Signal is linear combination of target + interference.  Only
-%       % nonzero coefficient is in the ith entry.  Assumes that the ith
-%       % column of A contains target steering vector.
-%       g = vertcat(1,zeros(Nsrc_surf,1));  % Unity gain towards nadir, nulls in clutter directions
-%       
-%       % Rank of A(doas) - matrix of steering vector (i.e. dimensionality of
-%       % Col(A) where A is as computed below.
-%       Nsrc = length(g);
-%       
-%       % Dimensionality of the orthogonal complement of C(A)
-%       dim_Aperp = Nc - Nsrc;
-%             
-%       % Source DOAs
-%       % ASSUMPTION IS THAT THETA HAS ALREADY BEEN CONVERTED TO RADIANS
-%       surf_doas_rad     = surf_doas*pi/180;
-%       sv_fh_arg_gslc    = {'theta'};
-%       sv_fh_arg_gslc{2} = [theta, surf_doas_rad(:)']; % array_proc_sv breaks if this is a column vector -- fix this!
-%       
-%       % Loop over wf/adc set
-%       for ml_idx = 1:length(cfg.fcs)
-%         % Make column vectors of y and z-positions
-%         for wf_adc_idx = 1:length(cfg.fcs{ml_idx})
-%           y_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(2,rline);
-%           z_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(3,rline);
-%         end
-%         
-%         % Determine Steering Vectors for target and interference -
-%         % Equivalent to the constraint matrix C
-%         [~,A] = cfg.sv_fh(sv_fh_arg_gslc,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
-%         
-%         % Find orthonormal basis for the orthogonal complement of C(A)
-%         % (nullspace of A transpose)
-%         Ca  = zeros(Nc,dim_Aperp);
-%         [U,S,V] = svd(A);
-%         Ca = U(:,end-(Nc-Nsrc)+1:end);
-%         % Alternatively we can use Ca = null(A') here.  
-%         
-%         % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE NON
-%         % ADAPTIVE MLE
-%         wq = A*inv(A'*A)*g;
-%         
-%         % GSLC quantities
-%         R_tilda = Ca'*Rxx*Ca;
-%         p_tilda = Ca'*Rxx*wq;
-%         
-%         % Compute the adaptive portion of the weight vector
-%         wa      = Ca*inv(R_tilda)*p_tilda;
-%         
-%         w_gslc  = wq - wa;
-%         
-%         sv_gslc{ml_idx} = w_gslc;
-%         
-%         Hwindow = boxcar(Nc);
-%         Sarray.gslc(:,bin_idx) = mean(abs(sv_gslc{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-%         for ml_idx = 2:length(din)
-%           dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
-%           dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-%           Sarray.gslc(:,bin_idx) =       Sarray.gslc(:,bin_idx) ...
-%             + mean(abs(sv_gslc{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-%         end
-%         Sarray.gslc(:,bin_idx) =       Sarray.gslc(:,bin_idx) / length(din);
-%         
-%         
         % DEBUG GSLC ONLY
         % =================================================================
         % Plot GSLC and Nonadaptive MLE
@@ -3155,7 +3081,8 @@ for line_idx = 1:1:Nx_out
           % Only keep non-nan values
           theta_int = temp_theta_int(~isnan(temp_theta_int));
           % throw out doas in keepout zone
-          keep_surf_doas = theta_int(abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard);
+          keep_out_mask = abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard;
+          keep_surf_doas = theta_int(~keep_out_mask);
           keep_surf_doas = keep_surf_doas(:);
           % Constraint vector
           g   = vertcat(1,zeros(size(keep_surf_doas)));
