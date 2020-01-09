@@ -160,6 +160,7 @@ classdef imagewin < handle
         end
         
         obj.h_gui.min_slider.set_value_range(clims);
+        obj.h_gui.max_slider.set_value_range(clims);
         
         cmap = get(obj.h_gui.colormapPM,'Value');
         if cmap == 1
