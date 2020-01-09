@@ -140,6 +140,8 @@ obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Add', 'Callback'
 obj.h_gui.sourceCM_item2 = uimenu(obj.h_gui.sourceCM, 'Label', 'Remove', 'Callback', @obj.sourceLB_callback);
 obj.h_gui.sourceCM_item3 = uimenu(obj.h_gui.sourceCM, 'Label', 'Up', 'Callback', @obj.sourceLB_callback);
 obj.h_gui.sourceCM_item4 = uimenu(obj.h_gui.sourceCM, 'Label', 'Down', 'Callback', @obj.sourceLB_callback);
+obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Top', 'Callback', @obj.sourceLB_callback);
+obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Bottom', 'Callback', @obj.sourceLB_callback);
 set(obj.h_gui.sourceLB,'uicontextmenu',obj.h_gui.sourceCM)
 
 % Map Popup Menu (populate later from preference file)

@@ -40,9 +40,9 @@ tmp_param.cmd.frms = max(1,param.load.frm-1) : min(length(frames.frame_idxs),par
 
 if strcmpi(param.array.surf_layer.source, 'surfData')
   surf_dir = ct_filename_out(param,'','surfData_sar');
-    fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
-    fn = fullfile(surf_dir,fn_name);
-    surf_layer = tomo.surfdata(fn,param);
+  fn_name = sprintf('Data_%s_%03.0f.mat',param.day_seg,param.load.frm);
+  fn = fullfile(surf_dir,fn_name);
+  surf_layer = tomo.surfdata(fn,param);
 else
   surf_layer = opsLoadLayers(tmp_param,param.array.surf_layer);
 end
@@ -142,7 +142,7 @@ for img = 1:length(param.array.imgs)
             load_frm = param.load.frm;
             load_chunk_idx = param.load.chunk_idx - 1;
           end
-
+          
           % Create the filename
           in_fn_dir(end-8:end-6) = sprintf('%03d',load_frm);
           if strcmpi(param.array.method,'combine_rx')
@@ -175,7 +175,7 @@ for img = 1:length(param.array.imgs)
                 lon(rlines) = sar_data.lon(:,end-num_prev_chunk_rlines+1:end);
                 elev(rlines) = sar_data.elev(:,end-num_prev_chunk_rlines+1:end);
               end
-
+              
               % Correct any changes in Tsys
               Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
               Tsys_old = sar_data.param_sar.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
@@ -250,15 +250,15 @@ for img = 1:length(param.array.imgs)
               fcs{ml_idx}{wf_adc}.filter = [];
             end
             sar_out_rlines = sar_data.out_rlines;
-          
+            
             chan_equal{ml_idx}(wf_adc) ...
-                     = 10.^((param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
+              = 10.^((param.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) ...
               - sar_data.param_sar.radar.wfs(wf).chan_equal_dB(param.radar.wfs(wf).rx_paths(adc)) )/20) ...
               .* exp(1i*( ...
-                             param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
+              param.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) ...
               - sar_data.param_sar.radar.wfs(wf).chan_equal_deg(param.radar.wfs(wf).rx_paths(adc)) )/180*pi);
           end
-            
+          
           % Correct any changes in Tsys
           Tsys = param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
           Tsys_old = sar_data.param_sar.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc));
@@ -405,7 +405,7 @@ for img = 1:length(param.array.imgs)
     end
     num_next_chunk_rlines = 0;
   end
-
+  
   %% Process: Fast-time oversampling
   % =======================================================================
   if isfield(param.array,'ft_over_sample') && ~isempty(param.array.ft_over_sample)
@@ -495,7 +495,7 @@ for img = 1:length(param.array.imgs)
     param.array_proc.imp_resp.time_vec ...
       = sar_data.wfs(wf).dt/Mt * (-Hwin_num_samp:Hwin_num_samp);
   end
-
+  
   %% Process: Array Processing
   % =======================================================================
   if strcmpi(param.array.method,'combine_rx')
@@ -519,13 +519,18 @@ for img = 1:length(param.array.imgs)
     else
       
       if strcmpi(param.array.surf_layer.source, 'surfData')
-        % source = 'surfData'
+        % If surf_layer source is surfData (twtt from DEM), just grab values
+        % for the chunk
         surf_index = surf_layer.get_index('top twtt');
-        theta_frm = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
-        gps_frm  = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
-        theta_chunk  = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
-        gps_chunk    = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
+        icemask_index = surf_layer.get_index('ice_mask');
+        theta_frm     = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
+        gps_frm       = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
+        theta_chunk   = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
+        gps_chunk     = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
         param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
+        param.array_proc.ice_mask = ...
+        interp_finite(interp2(gps_frm,theta_frm,surf_layer.surf(icemask_index).y,gps_chunk,theta_chunk,'nearest'));
+        param.array_proc.surface_theta = surf_layer.theta;
       else
         % source = 'layerData'
         param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
@@ -558,7 +563,7 @@ for img = 1:length(param.array.imgs)
         1:length(sar_data.wfs(wf).time), param.array_proc.bin_restriction.start_bin);
       % Ensure there is a value everywhere
       param.array_proc.bin_restriction.start_bin = interp_finite(param.array.bin_restriction.start_bin);
-
+      
       % Interpolate layers onto GPS time of loaded data
       param.array_proc.bin_restriction.stop_bin = interp1(bin_restriction_layers(1).gps_time, ...
         bin_restriction_layers(1).twtt, sar_data.fcs.gps_time);
@@ -609,29 +614,35 @@ for img = 1:length(param.array.imgs)
     % Pass in time bin offset so that array_proc can ensure output time
     % bins are multiples of the final dt after dbin decimation
     param.array_proc.bin0 = Time(1)/dt;
-  
+    
     % Process: Update surface values
     if isempty(surf_layer.gps_time)
+      % Handle special case 1: gps time is empty > surface twtt all zeros
       param.array_proc.surface = zeros(size(rlines));
     elseif length(surf_layer.gps_time) == 1;
+      % Handle special case 2: gps time is length 1, repeat twtt over rlines
       param.array_proc.surface = surf_layer.twtt*ones(size(rlines));
+    elseif strcmpi(param.array.surf_layer.source,'surfData')
+      % If surf_layer source is surfData (twtt from DEM), just grab values
+      % for the chunk
+      surf_index = surf_layer.get_index('top twtt');
+      icemask_index = surf_layer.get_index('ice_mask');
+      theta_frm     = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
+      gps_frm       = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
+      theta_chunk   = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
+      gps_chunk     = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
+      param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
+      param.array_proc.ice_mask = ...
+      interp_finite(interp2(gps_frm,theta_frm,surf_layer.surf(icemask_index).y,gps_chunk,theta_chunk,'nearest'));
+      param.array_proc.surface_theta = surf_layer.theta;
     else
-      
-      if strcmpi(param.array.surf_layer.source,'surfData')
-        surf_index = surf_layer.get_index('top twtt');
-        theta_frm = repmat(surf_layer.theta,1,numel(surf_layer.gps_time));
-        gps_frm  = repmat(surf_layer.gps_time,numel(surf_layer.theta),1);
-        theta_chunk  = repmat(surf_layer.theta,1,numel(fcs{1}{1}.gps_time));
-        gps_chunk    = repmat(fcs{1}{1}.gps_time,numel(surf_layer.theta),1);
-        param.array_proc.surface = interp_finite(interp2(gps_frm, theta_frm,surf_layer.surf(surf_index).y,gps_chunk,theta_chunk));
-        param.array_proc.surface_theta = surf_layer.theta;
-      else
-        param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
-          surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
-        param.array_proc.surface_theta = 0;
-      end
-      
+      % Path for layer
+      param.array_proc.surface = interp_finite(interp1(surf_layer.gps_time, ...
+        surf_layer.twtt,fcs{1}{1}.gps_time(rlines)),0);
+      param.array_proc.surface_theta = 0;
     end
+    
+    %     end
     
     % Array Processing Function Call
     [param,dout] = array_proc(param,data);
