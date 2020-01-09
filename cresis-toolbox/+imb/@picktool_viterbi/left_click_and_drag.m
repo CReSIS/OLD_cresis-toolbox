@@ -114,12 +114,9 @@ if tool_idx == 1
       end
       
       %% Top suppression
-      new_echo = imb.echowin();
-      param = load("D:/Documents/MATLAB/echo_param.mat", "param");
-      new_echo.draw(param.param);
-      new_echo.eg.viterbi_idxs = auto_idxs;
-      
       if obj.top_panel.top_sup_cbox.Value
+        figure;
+        title('top suppression');
         tic
         topbuffer = 10;
         botbuffer = 30;
@@ -127,17 +124,23 @@ if tool_idx == 1
         for rline = 1 : size(viterbi_data, 2)
           rows = round(surf_bins(rline) - topbuffer) : round(surf_bins(rline) + botbuffer);
           viterbi_data(rows, rline) = imgaussfilt(viterbi_data(rows, rline), filtvalue);
+
+          image(viterbi_data);
+          colormap(1-gray);
+          hold on;
+          plot(rline, rows(1), 'go');
+          plot(rline, rows(end), 'ro');
+          hold off;
+          pause(.01);
+
         end                  
-        new_echo.eg.viterbi_data = viterbi_data;
-        new_echo.plot_echogram(-inf, inf, -inf, inf);
         fprintf('Top suppression took %.2f sec.\n', toc);
       end
       
-      new_echo = imb.echowin();
-      new_echo.draw(param.param);
-      new_echo.eg.viterbi_idxs = auto_idxs;
       %% Multiple suppression
       if obj.top_panel.mult_sup_cbox.Value
+        figure;
+        title('multiple suppression');
         topbuffer = 12;
         botbuffer = 12;
         filtvalue = 30;
@@ -159,9 +162,16 @@ if tool_idx == 1
           catch ME
             continue;
           end
+          
+          image(viterbi_data);
+          colormap(1-gray);
+          hold on;
+          plot(rline, round(surf_mult_bins(rline) - topbuffer), 'go');
+          plot(rline, round(surf_mult_bins(rline) + botbuffer), 'ro');
+          hold off;
+          pause(.01);
+          
         end
-        new_echo.eg.viterbi_data = viterbi_data;
-        new_echo.plot_echogram(-inf, inf, -inf, inf);
       end
       
       %% Distance-to-Ice-Margin model
