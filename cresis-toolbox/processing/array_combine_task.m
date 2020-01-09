@@ -243,7 +243,7 @@ for frm_idx = 1:length(param.cmd.frms);
         else
           for field_idx = 1:length(fields)
             max_dim = length(size(tmp.Tomo.(fields{field_idx})));
-            if strcmpi(fields{field_idx},'surf_theta') || strcmpi(fields{field_idx},'surf_ice_mask') && param.array.method == SNAPSHOT_METHOD
+            if strcmpi(fields{field_idx},'surf_theta') || strcmpi(fields{field_idx},'surf_ice_mask') ||  strcmpi(fields{field_idx},'power') && param.array.method == SNAPSHOT_METHOD
               dim2_old = size(Tomo.(fields{field_idx}),2);
               dim2_new = size(tmp.Tomo.(fields{field_idx}),2);
               Nt = size(tmp.Tomo.(fields{field_idx}),1);
