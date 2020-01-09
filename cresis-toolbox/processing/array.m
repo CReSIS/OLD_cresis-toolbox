@@ -364,8 +364,8 @@ for frm_idx = 1:length(param.cmd.frms);
     
     % Rerun only mode: Test to see if we need to run this task
     % =================================================================
-    dparam.notes = sprintf('%s:%s:%s %s_%03d (%d of %d)/%d of %d', ...
-      sparam.task_function, param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
+    dparam.notes = sprintf('%s %s:%s:%s %s_%03d (%d of %d)/%d of %d', ...
+      sparam.task_function, array_proc_method_str(param.array.method(1)), param.radar_name, param.season_name, param.day_seg, frm, frm_idx, length(param.cmd.frms), ...
       chunk_idx, num_chunks);
     if ctrl.cluster.rerun_only
       % If we are in rerun only mode AND the array task file success
@@ -451,8 +451,8 @@ for img = 1:length(param.array.imgs)
     sparam.mem = max(sparam.mem,350e6 + records_var.bytes + Nx_max*sum(total_num_sam_output)*mem_mult);
   end
 end
-sparam.notes = sprintf('%s:%s:%s %s combine frames', ...
-  sparam.task_function, param.radar_name, param.season_name, param.day_seg);
+sparam.notes = sprintf('%s %s:%s:%s %s combine frames', ...
+  sparam.task_function, array_proc_method_str(param.array.method(1)), param.radar_name, param.season_name, param.day_seg);
 
 % Create success condition
 sparam.file_success = {};
