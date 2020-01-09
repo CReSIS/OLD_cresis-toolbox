@@ -176,6 +176,8 @@ else
   param.image_y = get(obj.left_panel.imagewin.img,'YData');
   param.image_c = get(obj.left_panel.imagewin.img,'CData');
   
+  param.echo_time = obj.eg.time;
+  
   %% Find proper param window position (for browse tool)
   if ~obj.tool_accessed
     param.keep_tool_pos = false;
