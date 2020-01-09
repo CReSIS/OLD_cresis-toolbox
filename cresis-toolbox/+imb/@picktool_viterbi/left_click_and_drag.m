@@ -113,62 +113,80 @@ if tool_idx == 1
         slope          = round(diff(surf_bins));
       end
       
-      %% Top suppression
-      if obj.top_panel.top_sup_cbox.Value
-        figure;
-        title('top suppression');
-        tic
-        topbuffer = 10;
-        botbuffer = 30;
-        filtvalue = 50;
-        for rline = 1 : size(viterbi_data, 2)
-          rows = round(surf_bins(rline) - topbuffer) : round(surf_bins(rline) + botbuffer);
-          viterbi_data(rows, rline) = imgaussfilt(viterbi_data(rows, rline), filtvalue);
-
-          image(viterbi_data);
-          colormap(1-gray);
-          hold on;
-          plot(rline, rows(1), 'go');
-          plot(rline, rows(end), 'ro');
-          hold off;
-          pause(.01);
-
-        end                  
-        fprintf('Top suppression took %.2f sec.\n', toc);
-      end
+      figure;
+      title('multiple suppression');
+      image(viterbi_data);
+      colormap(1-gray);
+      x_points = gt(1, :) - gt(1,1);
+      y_points = gt(2, :);
+      
+      hold on;
+      plot(surf_bins, 'b');
+      plot(x_points, y_points, 'gx');
+      hold off;
       
       %% Multiple suppression
       if obj.top_panel.mult_sup_cbox.Value
-        figure;
-        title('multiple suppression');
         tic
         topbuffer = 10;
-        botbuffer = 5;
+        botbuffer = 10;
         filtvalue = 50;
-        % TODO[reece]: How is only diff between top and mult suppression botbuffer and 2*surf_bins?
-        % TODO[reece]: How exactly do these suppressions work?
-        % TODO[reece]: What are surf_bins and is doubling the value there really what it's supposed to do?
-        % TODO[reece]: Top suppression seems to work quite well. 
-        % TODO[reece]: What does imgaussfilt do?
+        max_multiples = 20;
+        multiple_run_start = NaN;
+        similarity_threshold = .8;
+        segment_size = 5;
+       
+        for mult_num = 1:max_multiples
+          for rline = 1 : size(viterbi_data, 2)
+            current_bin = mult_num*surf_bins(rline);
+            if current_bin > size(viterbi_data, 1)
+              continue;  % Multiple out of window in this column
+            end
+            upper_bin = max(min(round(current_bin + botbuffer), size(viterbi_data, 1)), 1);
+            lower_bin = max(min(round(current_bin - topbuffer), size(viterbi_data, 1)), 1);
+            upper_bin_surf = max(min(round(surf_bins(rline) + botbuffer), size(viterbi_data, 1)), 1);
+            lower_bin_surf = max(min(round(surf_bins(rline) - topbuffer), size(viterbi_data, 1)), 1);
+            column_chunk = viterbi_data(lower_bin:upper_bin, rline);
+            column_chunk_surf = viterbi_data(lower_bin_surf:upper_bin_surf, rline);
+            
+            current_mean = mean(column_chunk);
+            surface_mean = mean(column_chunk_surf);
 
-        for rline = 1 : size(viterbi_data, 2)
-          current_bin = 2*surf_bins(rline);
-          upper_bin = max(min(round(current_bin + botbuffer), size(viterbi_data, 1)), 1);
-          lower_bin = max(min(round(current_bin - topbuffer), size(viterbi_data, 1)), 1);
-          
-          image(viterbi_data);
-          colormap(1-gray);
-          hold on;
-          plot(rline, upper_bin, 'go');
-          plot(rline, lower_bin, 'ro');
-          hold off;
-          pause(.01);
+            if current_mean >= surface_mean * similarity_threshold
+              hold on;
+              plot(rline, upper_bin, 'go');
+              plot(rline, lower_bin, 'ro');
+              hold off;
+              % Bright spot in expected multiple location
+              if isnan(multiple_run_start)
+                % Start of new run
+                multiple_run_start = rline;
+              elseif rline - multiple_run_start >= segment_size
+                % Segment of multiple found
+                for column = multiple_run_start:(rline-1)
+                  % Suppress segment
+                  viterbi_data(lower_bin:upper_bin, column) = imgaussfilt(viterbi_data(lower_bin:upper_bin, column), filtvalue);
+                end
+                multiple_run_start = rline;
+                image(viterbi_data);
+                hold on;
+                plot(surf_bins, 'b');
+                plot(x_points, y_points, 'gx');
+                hold off;
+              end
+            else
+              % Segment end
+              multiple_run_start = NaN;
+              image(viterbi_data);
+              hold on;
+              plot(surf_bins, 'b');
+              plot(x_points, y_points, 'gx');
+              hold off;
+            end
 
-          column_chunk = viterbi_data(upper_bin:lower_bin, rline);
-          viterbi_data(upper_bin:lower_bin, rline) = imgaussfilt(column_chunk, filtvalue);
+          end
+          fprintf('Multiple suppression took %.2f sec.\n', toc);
         end
-        fprintf('Multiple suppression took %.2f sec.\n', toc);
-          
       end
       
       %% Distance-to-Ice-Margin model
@@ -197,6 +215,10 @@ if tool_idx == 1
       else
         y_new = y_new(auto_idxs);
       end
+      
+      hold on;
+      plot(y_new, 'r');
+      hold off;
       
       % Interpolate layer to match image y-axis
       y_new  = interp1(1:length(image_y), image_y, y_new);
