@@ -678,7 +678,7 @@ if ~isempty(param.array.layer_name) && (strcmpi(param.array.layer_name,'top') ||
 end
 
 % Null Steering Setup - Check to avoid mainlobe nulling 
-if any(cfg.method == GEONULL_METHOD) || any(cfg.method == GSLC_METHOD)
+if any(cfg.method == GEONULL_METHOD) || any(cfg.method == GSLC_METHOD) || any(cfg.method == SNAPSHOT_METHOD)
   % NOTE:  ASSUMPTION IS THAT EITHER USER PASSES IN DOA_THETA_GUARD OR
   % DOA_THETA_GAURD IS EMPTY
   % For geonull method and the sidelobe canceller, we define theta_guard to 
@@ -3114,6 +3114,15 @@ for line_idx = 1:1:Nx_out
       
     elseif any(cfg.method == SNAPSHOT_METHOD)
       %% Array: SNAPSHOT
+      
+      % Store the snapshot
+      % -------------------------------------------------------------------
+      dataSample = double(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+      dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
+      tout.snapshot.tomo.img(bin_idx,1:Nc,line_idx) = dataSample;
+      
+      % Estimate power from each source
+      % -------------------------------------------------------------------
       surf_doas   = surf_theta(bin_idx,:);
       Nsrc_new    = length(surf_doas);
       
@@ -3123,7 +3132,8 @@ for line_idx = 1:1:Nx_out
       end
       
       surf_index = 1:length(surf_doas);
-      theta_desired = surf_doas;      
+      theta_desired = surf_doas;
+      surf_power = [];
       for des_idx = 1:length(theta_desired)
         
         if isnan(theta_desired(des_idx))
@@ -3156,25 +3166,36 @@ for line_idx = 1:1:Nx_out
             % Apply pseudoinverse to g
             w = A * inv(A'*A) *g;
             w = w ./ sqrt(w'*w);
-            sv{ml_idx} = w;
+            sv_gn{ml_idx} = w;
             
           end
+          
           Hwindow = boxcar(Nc);
-          surf_power(des_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+          Hwindow = Hwindow ./ sqrt(Hwindow'*Hwindow);
+          wgeo    = sv_gn{1}.*Hwindow;
+          wgeo    = wgeo ./ sqrt(wgeo'*wgeo);
+          wgeo     = wgeo ./ length(wgeo);
+          
+          surf_power(des_idx) = mean(abs(dataSample*conj(wgeo)).^2);
+          
           for ml_idx = 2:length(din)
             dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
             dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
             surf_power(des_idx) =       surf_power(des_idx) ...
               + mean(abs(sv_gn{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+            
+            wgeo = sv_gn{ml_idx}.*Hwindow;
+            wgeo = wgeo ./ sqrt(wgeo'*wgeo);
+            wgeo = wgeo ./ length(wgeo);
+            surf_power(des_idx) = surf_power(des_idx) ...
+              + mean(abs(dataSample*conj(wgeo)).^2);
           end
           surf_power(des_idx) =       surf_power(des_idx) / length(din);
         end
       end
       % Store the power estimated from each source
-      tout.snapshot.tomo.power(bin_idx,1:length(surf_power))=surf_power;
-      % Store the snapshot
-      dataSample = squeeze(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
-      tout.snapshot.tomo.img(bin_idx,:,line_idx) = dataSample;
+      tout.snapshot.tomo.power(bin_idx,1:length(surf_power),line_idx)=surf_power;
+      
       
       if cfg.tomo_en
         % Collect source DOAs for the range bin and along-track position
