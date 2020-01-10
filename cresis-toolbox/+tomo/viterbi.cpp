@@ -31,6 +31,8 @@ double viterbi::unary_cost(int x, int y) {
     }
 
     // Set cost to large if far from center ground truth (if present)
+    // TODO: 1: Distance is hardcoded here when comparing to ground truth
+    // TODO: Should be more locations. Where is distance from other points on path accounted for?
     if ((f_bgt != -1) && (x == f_mid) && (y + t < f_bgt - 20 || y + t > f_bgt + 20)) {
         return LARGE;
     }
@@ -128,10 +130,12 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
         if (idx >= depth * (num_col_vis + 2) || col >= f_col || col < 0) {
             continue;
         }
+        // TODO: remove norm, pass in scale directly
         if (f_transition_mu[col] < 0 && f_transition_sigma[col] < 0) {
             norm = norm_pdf(col, (double)f_mid, f_smooth_var, f_smooth_weight);
         }
         else if (f_transition_mu[col] < 0) {
+            // TODO: determine whether this is the only block ran for 2d
             norm = norm_pdf(col, path[col], f_transition_sigma[col], f_smooth_weight);
             norm = norm < f_smooth_weight ? f_smooth_weight : norm;
         }
