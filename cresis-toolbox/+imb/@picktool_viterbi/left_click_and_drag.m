@@ -123,21 +123,21 @@ if tool_idx == 1
         viterbi_weight = viterbi_weight(:, auto_idxs);
         slope          = round(diff(surf_bins));
       end
-      
-      figure;
-      title('multiple suppression');
-      image(viterbi_data);
-      colormap(1-gray);
-      x_points = gt(1, :) - gt(1,1);
-      y_points = gt(2, :);
-      
-      hold on;
-      plot(surf_bins, 'y');
-      plot(x_points, y_points, 'gx');
-      hold off;
-      
+     
       %% Multiple suppression
-      if obj.top_panel.mult_sup_cbox.Value
+      if false % obj.top_panel.mult_sup_cbox.Value  % TODO[reece]: Remove or reenable
+        figure;
+        title('multiple suppression');
+        image(viterbi_data);
+        colormap(1-gray);
+        x_points = gt(1, :) - gt(1,1);
+        y_points = gt(2, :);
+
+        hold on;
+        plot(surf_bins, 'y');
+        plot(x_points, y_points, 'gx');
+        hold off;
+        
         tic
         topbuffer = 10;
         botbuffer = 15;
@@ -218,10 +218,6 @@ if tool_idx == 1
         end
         fprintf('Multiple suppression took %.2f sec.\n', toc);
       end
-      figure;
-      title('multiple suppression 2');
-      image(viterbi_data);
-      colormap(1-gray);
 
       %% Distance-to-Ice-Margin model
       clear DIM DIM_costmatrix;
@@ -256,7 +252,7 @@ if tool_idx == 1
       
       % Interpolate layer to match image axes
       y_new = interp1(1:length(image_y), image_y, y_new);
-      y_new = interp1(y_new,1:1/scale:(length(y_new)+(1-1/scale)));  % TODO: reinterp ynew to entire echo.
+      y_new = interp1(y_new,1:1/scale:(length(y_new)+(1-1/scale)));
       auto_idxs = auto_idxs_initial;
       cmds(end+1).undo_cmd = 'insert';
       % Quality measurement from Viterbi algorithm result
