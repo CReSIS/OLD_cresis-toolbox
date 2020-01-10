@@ -447,7 +447,7 @@ end
 %   Window to apply in Nc dimension, defaults to @hanning, only used with
 %   STANDARD_METHOD
 if ~isfield(param.array,'window') || isempty(param.array.window)
-  param.array.window = @boxcar;
+  param.array.window = @hanning;
 end
 
 % .ignored_img_idx:
