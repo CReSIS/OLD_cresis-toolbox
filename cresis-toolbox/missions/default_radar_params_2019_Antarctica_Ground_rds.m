@@ -360,17 +360,16 @@ defaults{end+1} = default;
 % Survey Mode
 default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2;8 0 3 1;8 1 3 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4;8 0 3 3;8 1 3 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6;8 0 3 5;8 1 3 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8;8 0 3 7;8 1 3 8]};
 default.qlook.img_comb = [3e-6 -inf 0.5e-6 10e-06 -inf 3e-06];
-default.qlook.imgs = {[1*ones(8,1),(1:8).'],[2*ones(8,1),(1:8).'],[3*ones(8,1),(1:8).']};
+default.qlook.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[3*ones(7,1),(1:7).']}; % ADC 8 broken
 default.sar.imgs = default.qlook.imgs;
 default.array.imgs = default.qlook.imgs;
 default.array.img_comb = default.qlook.img_comb;
-default.radar.ref_fn = '';
 for wf = 1:3
   default.radar.wfs(wf).Tsys = Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
   default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
-  default.radar.wfs(wf).rx_paths = [2 4 1 3 5 6 7 8];
+  default.radar.wfs(wf).rx_paths = [7 8 1 2 3 4 5 6];
   default.radar.wfs(wf).tx_paths = [1 2 3 4];
   default.radar.wfs(wf).adc_gains_dB = [46 46 46 46 46 46 46 46]; % Gain from the first LNA to the ADC
 end
@@ -378,6 +377,27 @@ end
 default.config_regexp = '.*survey.*';
 default.name = 'Survey Mode 180-210 MHz';
 defaults{end+1} = default;
+
+% Ping Pong Mode
+default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2;8 0 3 1;8 1 3 2;11 0 4 1;11 1 4 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4;8 0 3 3;8 1 3 4;11 0 4 3;11 1 4 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6;8 0 3 5;8 1 3 6;11 0 4 5;11 1 4 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8;8 0 3 7;8 1 3 8;11 0 4 7;11 1 4 8]};
+default.qlook.img_comb = [3e-6 -inf 0.5e-6 10e-06 -inf 3e-06];
+default.qlook.imgs = {[1*ones(7,1),(1:7).'],[2*ones(7,1),(1:7).'],[[3*ones(7,1),(1:7).']; [4*ones(7,1),(1:7).']]}; % ADC 8 broken
+default.sar.imgs = default.qlook.imgs;
+default.array.imgs = default.qlook.imgs;
+default.array.img_comb = default.qlook.img_comb;
+for wf = 1:4
+  default.radar.wfs(wf).Tsys = Tsys;
+  default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
+  default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).adcs = [1 2 3 4 5 6 7 8];
+  default.radar.wfs(wf).rx_paths = [7 8 1 2 3 4 5 6];
+  default.radar.wfs(wf).tx_paths = [1 2 3 4];
+  default.radar.wfs(wf).adc_gains_dB = [46 46 46 46 46 46 46 46]; % Gain from the first LNA to the ADC
+end
+default.config_regexp = '.*pingpong.*';
+default.name = 'Ping Pong Mode 180-210 MHz';
+defaults{end+1} = default;
+
 
 % Other settings
 default.records.data_map = {[2 0 1 1;2 1 1 2;5 0 2 1;5 1 2 2;8 0 3 1;8 1 3 2],[2 0 1 3;2 1 1 4;5 0 2 3;5 1 2 4;8 0 3 3;8 1 3 4],[2 0 1 5;2 1 1 6;5 0 2 5;5 1 2 6;8 0 3 5;8 1 3 6],[2 0 1 7;2 1 1 8;5 0 2 7;5 1 2 8;8 0 3 7;8 1 3 8]};
