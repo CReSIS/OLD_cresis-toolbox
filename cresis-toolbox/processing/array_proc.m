@@ -1080,37 +1080,15 @@ for line_idx = 1:1:Nx_out
       %% Array: Standard/Periodogram
       dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
       dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
-      % Debug
-      Hwindow     = boxcar(Nc);
-      Hwindow     = Hwindow ./ sqrt(Hwindow'*Hwindow);
-      sv_standard = sv{1};
-      sv_standard = sv_standard ./ sqrt(sv_standard'*sv_standard);
-      w_standard  = sv_standard.*Hwindow;
-      w_standard  = w_standard ./ sqrt(w_standard'*w_standard);
-      w_standard  = w_standard ./ (length(w_standard));
-      Sarray.standard(:,bin_idx) = mean(abs(dataSample*conj(w_standard)).^2);
-      %       Sarray.standard(:,bin_idx) = mean(abs(bsxfun(@times,conj(w_standard),dataSample.')).^2,2);
+      Sarray.standard(:,bin_idx) = mean(abs(bsxfun(@times,conj(w_standard),dataSample.')).^2,2);
+      Sarray.standard(:,bin_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
       for ml_idx = 2:length(din)
         dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-        sv_standard = sv{ml_idx};
-        sv_standard = sv_standard ./ sqrt(sv_standard'*sv_standard);
-        w_standard = sv_standard.*Hwindow;
-        %       w_standard = sv{1}.*Hwindow;
-        w_standard = w_standard ./ sqrt(w_standard'*w_standard);
-        w_standard = w_standard ./ (length(w_standard));
         Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) ...
-          + mean(abs(dataSample*conj(w_standard)).^2);
+          + mean(abs(sv{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
       end
-      Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx);
-%       Sarray.standard(:,bin_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-%       for ml_idx = 2:length(din)
-%         dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
-%         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-%         Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) ...
-%           + mean(abs(sv{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-%       end
-%       Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) / length(din);
+      Sarray.standard(:,bin_idx) = Sarray.standard(:,bin_idx) / length(din);
     end
     
     if any(cfg.method == MVDR_METHOD)
