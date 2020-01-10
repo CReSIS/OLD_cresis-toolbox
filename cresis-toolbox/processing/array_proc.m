@@ -3187,7 +3187,7 @@ for line_idx = 1:1:Nx_out
           Ngrow       = Nsrc_new - Nsrc_old;
           tout.snapshot.tomo.surf_theta = cat(2,tout.snapshot.tomo.surf_theta,nan(size(tout.snapshot.tomo.surf_theta,1),Ngrow,size(tout.snapshot.tomo.surf_theta,3)));
         end
-        tout.snapshot.tomo.surf_theta(bin_idx,1:length(surf_doas)) = surf_doas;
+        tout.snapshot.tomo.surf_theta(bin_idx,1:length(surf_doas),line_idx) = surf_doas;
         
         surf_mask   = surf_ice_mask(bin_idx,:);
         Nsrc_new    = length(surf_mask);
@@ -3198,7 +3198,7 @@ for line_idx = 1:1:Nx_out
           Ngrow       = Nsrc_new - Nsrc_old;
           tout.snapshot.tomo.surf_ice_mask = cat(2,tout.snapshot.tomo.surf_ice_mask,nan(size(tout.snapshot.tomo.surf_ice_mask,1),Ngrow,size(tout.snapshot.tomo.surf_ice_mask,3)));
         end
-        tout.snapshot.tomo.surf_ice_mask(bin_idx,1:length(surf_mask)) = surf_mask;
+        tout.snapshot.tomo.surf_ice_mask(bin_idx,1:length(surf_mask),line_idx) = surf_mask;
       end
 
     end
