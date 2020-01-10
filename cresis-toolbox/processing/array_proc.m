@@ -1364,7 +1364,8 @@ for line_idx = 1:1:Nx_out
             sv_fh_arg_geonull{2} = [theta_desired(des_idx)]; % array_proc_sv breaks if this is a column vector -- fix this!
             [~,Atarget] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
             Atarget = Atarget ./ sqrt(Atarget'*Atarget);
-            Aint =  [0.2090 + 0.0000i, -0.2008 + 0.2626i, -0.2076 - 0.3079i, 0.4031 - 0.1203i, -0.0308 + 0.4104i, -0.3837 - 0.1338i, 0.3912 - 0.2112i];
+            Aint = [0.3075 + 0.0000i, -0.3686 + 0.0469i, 0.4972 - 0.1680i, -0.4738 - 0.1331i, 0.2880 + 0.2123i, -0.2115 - 0.1632i, 0.0480 + 0.2192i];
+%             Aint =  [0.2090 + 0.0000i, -0.2008 + 0.2626i, -0.2076 - 0.3079i, 0.4031 - 0.1203i, -0.0308 + 0.4104i, -0.3837 - 0.1338i, 0.3912 - 0.2112i];
             Aint = (Aint(:));
             A = [Atarget,Aint];
           end
@@ -1380,7 +1381,22 @@ for line_idx = 1:1:Nx_out
         wgeo    = sv_gn{1}.*Hwindow;
         wgeo    = wgeo ./ sqrt(wgeo'*wgeo);
         wgeo     = wgeo ./ length(wgeo);
+        
+%         Hwindow     = Hwindow ./ sqrt(Hwindow'*Hwindow);
+%         sv_standard = sv{1};
+%         sv_standard = sv_standard ./ sqrt(sv_standard'*sv_standard);
+%         w_standard  = sv_standard.*Hwindow;
+%         w_standard  = w_standard ./ sqrt(w_standard'*w_standard);
+%         w_standard  = w_standard ./ (length(w_standard));
+%         
+%         if line_idx == 217
+%           Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(w_standard)).^2);
+%         elseif line_idx == 218
+%           Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(wgeo)).^2);
+%         end
+        
         Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(wgeo)).^2);
+
         for ml_idx = 2:length(din)
           dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
           dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
@@ -3262,13 +3278,14 @@ for line_idx = 1:1:Nx_out
     end
   end
   
-  if 0 && (~mod(line_idx,size(dout.img,2)) || line_idx == 1)
+  if 1 && (~mod(line_idx,20) || line_idx == Nx_out || line_idx == 1)
     %% DEBUG outputs
     % change 0&& to 1&& on line above to run it
     m = array_proc_method_str(cfg.method(1));
     if cfg.method < DOA_METHOD_THRESHOLD
       figure(1); clf;
-      imagesc(10*log10(Sarray.(m)));
+      imagesc(10*log10(tout.(m).img));
+      keyboard;
       
     else
       figure(1); clf;
