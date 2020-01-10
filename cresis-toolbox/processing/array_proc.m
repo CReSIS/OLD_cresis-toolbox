@@ -3278,7 +3278,7 @@ for line_idx = 1:1:Nx_out
     end
   end
   
-  if 1 && (~mod(line_idx,20) || line_idx == Nx_out || line_idx == 1)
+  if 0 && (~mod(line_idx,20) || line_idx == Nx_out || line_idx == 1)
     %% DEBUG outputs
     % change 0&& to 1&& on line above to run it
     m = array_proc_method_str(cfg.method(1));
