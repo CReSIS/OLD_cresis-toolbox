@@ -896,6 +896,7 @@ classdef surfdata < handle
     end
     
     function [] = run_add_surf_from_dem()
+      %% run add surf from dem
       % script run_add_surf_from_dem
       %
       % script for running tomo.surfdata.add_surf_from_dem
@@ -905,15 +906,23 @@ classdef surfdata < handle
       % See also: tomo.surfdata
       
       
-      %% User Setup
+      % User Setup
       % =========================================================================
       param_override = [];
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
       params = ct_set_params(params,'cmd.generic',0);
-      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140429_01');
-      params = ct_set_params(params,'cmd.frms',[4 5]);
+      params = ct_set_params(params,'cmd.generic',1,'day_seg','20140506_01');
+      params = ct_set_params(params,'cmd.frms',[2 3 4]);
+%       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+      params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn','canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+%       params = ct_set_params(params,'add_surf_from_dem.ice_mask_fn',ct_filename_gis(params,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif')));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+%       param.add_surf_from_dem.ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
+%         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
+
+      params = ct_set_params(params, 'add_surf_from_dem.dem_guard', 30e3);
+%       params = ct_set_params(params, 'add_surf_from_dem.dem_per_slice_guard', 500e3);
       
-      %% Automated Section
+      % Automated Section
       % =========================================================================
       % Input checking
       global gRadar;
@@ -935,6 +944,7 @@ classdef surfdata < handle
     end
     
     function surf = add_surf_from_dem(param,param_override)
+      %% add surf from dem
       % tomo.add_surf_from_dem(param,param_override)
       %
       % param:  struct with processing parameters or function handle to
@@ -1025,10 +1035,7 @@ classdef surfdata < handle
       if ~isfield(param.add_surf_from_dem,'surf_out_path') || isempty(param.add_surf_from_dem.surf_out_path)
         param.add_surf_from_dem.surf_out_path = '';
       end
-      
-        param.add_surf_from_dem.ice_mask_fn = ct_filename_gis(param,fullfile('greenland','IceMask','GimpIceMask_90m_v1.1.tif'));%'antarctica\DEM\BEDMAP2\original_data\bedmap2_tiff\bedmap2_icemask_grounded_and_shelves.tif';
-%         param.add_surf_from_dem.ice_mask_fn = ct_filename_gis([],'canada/ice_mask/03_rgi50_ArcticCanadaNorth/03_rgi50_ArcticCanadaNorth.mat');
-
+        
       % Set doa_method_flag to false (always)
       doa_method_flag = false;
       
@@ -1336,7 +1343,7 @@ classdef surfdata < handle
               % Find ice mask for triangle coordinates
               ice_mask(:,rline) = ice_mask_all.mask(mask_idx);
               % Set previously nan valued coordinates to 0 mask
-              ice_mask(nidx,rline) = 0;
+%               ice_mask(nidx,rline) = 0;
             else
               %         for ice_mask_idx = 1:length(mask_idx)
               %           ice_mask(theta_rline_row_idx(ice_mask_idx),theta_rline_col_idx(ice_mask_idx),rline) = ice_mask_all.mask(mask_idx(ice_mask_idx));

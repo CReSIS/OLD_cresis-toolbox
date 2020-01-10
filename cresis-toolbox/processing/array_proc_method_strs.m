@@ -45,6 +45,8 @@ for method_idx = 1:numel(method_ints)
       method_strs{method_idx} = 'dcm';
     case PF_METHOD
       method_strs{method_idx} = 'pf';
+    case SNAPSHOT
+      method_strs{method_idx} = 'snapshot';
     otherwise
       error('Invalid method integer (%d)', method_int);
   end

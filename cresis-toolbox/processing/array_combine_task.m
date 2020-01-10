@@ -51,6 +51,9 @@ if param.sar.presums > 1
 end
 along_track_approx = geodetic_to_along_track(records.lat,records.lon,records.elev);
 
+% Array_proc_methods
+array_proc_methods;
+
 %% Combine chunks into each frame
 % =====================================================================
 for frm_idx = 1:length(param.cmd.frms);
@@ -169,30 +172,60 @@ for frm_idx = 1:length(param.cmd.frms);
         param_array.array_proc.fcs.y = tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines);
         param_array.array_proc.fcs.z = tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines);
         param_array.array_proc.fcs.origin = tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines);
-        pos = zeros(3,length(tmp.param_array.array_proc.lines));
-        Nc = 0;
-        for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
-          for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
-            pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
-            Nc = Nc + 1;
+        if param.array.fcs_pos_averaged
+          % Average the fcs position
+          pos = zeros(3,length(tmp.param_array.array_proc.lines));
+          Nc = 0;
+          for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+            for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+              pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+              Nc = Nc + 1;
+            end
           end
+          param_array.array_proc.fcs.pos = pos/Nc;
+        else
+          % Store all the fcs positions without averaging
+          pos = zeros(3,length(tmp.param_array.array_proc.lines),0);
+          Nc = 0;
+          for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+            for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+              Nc = Nc + 1;
+              pos(:,:,Nc) = tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+            end
+          end
+          param_array.array_proc.fcs.pos = pos;
         end
-        param_array.array_proc.fcs.pos = pos/Nc;
+        
       else
-        % Concatenate the fcs field
+        % Concatenate the fcs field to the previous chunk
         param_array.array_proc.fcs.x = [param_array.array_proc.fcs.x tmp.param_array.array_proc.fcs{1}{1}.x(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs.y = [param_array.array_proc.fcs.y tmp.param_array.array_proc.fcs{1}{1}.y(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs.z = [param_array.array_proc.fcs.z tmp.param_array.array_proc.fcs{1}{1}.z(:,tmp.param_array.array_proc.lines)];
         param_array.array_proc.fcs.origin = [param_array.array_proc.fcs.origin tmp.param_array.array_proc.fcs{1}{1}.origin(:,tmp.param_array.array_proc.lines)];
-        pos = zeros(3,length(tmp.param_array.array_proc.lines));
-        Nc = 0;
-        for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
-          for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
-            pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
-            Nc = Nc + 1;
+        if param.array.fcs_pos_averaged
+          % Average the fcs position
+          pos = zeros(3,length(tmp.param_array.array_proc.lines));
+          Nc = 0;
+          for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+            for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+              pos = pos + tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+              Nc = Nc + 1;
+            end
           end
+          param_array.array_proc.fcs.pos = [param_array.array_proc.fcs.pos pos/Nc];
+        else
+          % Store all the fcs positions without averaging
+          pos = zeros(3,length(tmp.param_array.array_proc.lines),0);
+          Nc = 0;
+          for ml_idx = 1:length(tmp.param_array.array_proc.fcs)
+            for wf_adc = 1:length(tmp.param_array.array_proc.fcs{ml_idx})
+              Nc = Nc + 1;
+              pos(:,:,Nc) = tmp.param_array.array_proc.fcs{ml_idx}{wf_adc}.pos(:,tmp.param_array.array_proc.lines);
+            end
+          end
+          param_array.array_proc.fcs.pos = [param_array.array_proc.fcs.pos pos];
         end
-        param_array.array_proc.fcs.pos = [param_array.array_proc.fcs.pos pos/Nc];
+        
       end
       if param.array.tomo_en
         %         3D-surface is present so concatenate it too
@@ -210,6 +243,22 @@ for frm_idx = 1:length(param.cmd.frms);
         else
           for field_idx = 1:length(fields)
             max_dim = length(size(tmp.Tomo.(fields{field_idx})));
+            if strcmpi(fields{field_idx},'surf_theta') || strcmpi(fields{field_idx},'surf_ice_mask') ||  strcmpi(fields{field_idx},'power') && param.array.method == SNAPSHOT_METHOD
+              dim2_old = size(Tomo.(fields{field_idx}),2);
+              dim2_new = size(tmp.Tomo.(fields{field_idx}),2);
+              Nt = size(tmp.Tomo.(fields{field_idx}),1);
+              Nx_old = size(Tomo.(fields{field_idx}),3);
+              Nx_new = size(tmp.Tomo.(fields{field_idx}),3);
+              if dim2_new < dim2_old 
+                % Pad new with NaNs in dimension 2
+                Nnans   = dim2_old - dim2_new;
+                tmp.Tomo.(fields{field_idx}) = cat(2,tmp.Tomo.(fields{field_idx}), nan(Nt,Nnans,Nx_new));
+              elseif dim2_new > dim2_old
+                % Pad old with NaNs in dimension 2
+                Nnans   = dim2_new - dim2_old;
+                Tomo.(fields{field_idx}) = cat(2,Tomo.(fields{field_idx}), nan(Nt,Nnans,Nx_old));
+              end
+            end
             Tomo.(fields{field_idx}) = cat(max_dim,Tomo.(fields{field_idx}),tmp.Tomo.(fields{field_idx}));
           end
         end
@@ -266,7 +315,7 @@ for frm_idx = 1:length(param.cmd.frms);
   
   %% Combine images
   [output_dir,radar_type] = ct_output_dir(param.radar_name);
-  if ~isempty(param.array.img_comb) || param.array.tomo_en || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp'))
+  if ~param.array.tomo_en && (~isempty(param.array.img_comb) || (length(param.array.imgs) == 1 && ~strcmpi(radar_type,'deramp')))
     % Combine images into a single image and/or trim invalid times with
     % img_comb_trim
     img_combine_param = param;

@@ -73,6 +73,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% Profile Linux/Mac (PROFILE 2)
   % ----------------------------------------------------------------------
@@ -103,6 +106,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.submit_pause            = 0.2;
   profile(pidx).cluster.stat_pause              = 2;
   profile(pidx).cluster.file_check_pause        = 4;
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% KU Profile Linux (PROFILE 3)
   % ----------------------------------------------------------------------
@@ -138,6 +144,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_mem_per_job       = 15e9;
   profile(pidx).cluster.max_mem_mode          = 'debug';
 
+  % profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
+
   %% KU Field Profile Linux (PROFILE 4)
   % ----------------------------------------------------------------------
   pidx = 4; % profile index
@@ -171,6 +180,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.job_complete_pause    = 5;
   profile(pidx).cluster.max_mem_per_job       = 126e9;
   profile(pidx).cluster.max_mem_mode          = 'debug';
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   
   %% KU Desktop Profile Windows (PROFILE 5)
@@ -201,6 +213,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
+
+  % profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% IU Profile Linux (PROFILE 6)
   % ----------------------------------------------------------------------
@@ -245,6 +260,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.file_check_pause      = 0;
 
   profile(pidx).cluster.qsub_submit_arguments = '-m n -l nodes=1:ppn=%p:dcwan:dc2,pmem=%m,walltime=%t';
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% AWI Profile Field Windows (PROFILE 7)
   % ----------------------------------------------------------------------
@@ -272,6 +290,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_retries           = 1;
   profile(pidx).cluster.submit_pause          = 0;
   profile(pidx).cluster.stat_pause            = 1;
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
   
   %% AWI Profile Field Linux (PROFILE 8)
   % ----------------------------------------------------------------------
@@ -306,6 +327,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_ppn               = 4;
   profile(pidx).cluster.max_mem_per_job       = 62e9;
   profile(pidx).cluster.max_mem_mode          = 'debug';
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
 
   %% AWI Profile Ollie (PROFILE 9)
   % ----------------------------------------------------------------------
@@ -344,6 +368,9 @@ if ~(~ismcc && isdeployed)
   profile(pidx).cluster.max_mem_mode            = 'debug';
 
   profile(pidx).cluster.mcc                     = 'system_eval';
+
+  profile(pidx).ops.url = 'https://ops.cresis.ku.edu/'; % Read-only for outside of CReSIS
+  % profile(pidx).ops.url = 'http://ops.cresis.ku.edu/'; % Use from within CReSIS
 
   %% Startup code (Automated Section)
   % =====================================================================
@@ -490,6 +517,10 @@ if ~(~ismcc && isdeployed)
     profile(cur_profile).slurm_jobs_path = '';
   end  
   gRadar.slurm_jobs_path = profile(cur_profile).slurm_jobs_path;  
+  % .ops: structure of open polar server specific parameters
+  if isfield(profile(cur_profile),'ops')
+    gRadar.ops = profile(cur_profile).ops;
+  end
   
   clear profile cur_profile fn_dir fn_idx fn_name fns pidx;
 

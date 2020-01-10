@@ -35,6 +35,8 @@ switch (method_int)
     method_str = 'dcm';
   case PF_METHOD
     method_str = 'pf';
+  case SNAPSHOT_METHOD
+    method_str = 'snapshot';
   otherwise
     error('Invalid method integer (%d)', method_int);
 end

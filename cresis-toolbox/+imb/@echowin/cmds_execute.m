@@ -41,6 +41,10 @@ function args = cmds_execute_insert(obj,args)
 % args{4} = layer type
 % args{5} = layer quality
 
+physical_constants;
+vel_air = c/2;
+vel_ice = c/(sqrt(er_ice)*2);
+
 %% Convert layer ID's to layer indices
 layer_idx = find(args{1} == obj.eg.layer_id);
 
@@ -71,7 +75,6 @@ if yaxis_choice == 1 % TWTT
   obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = obj.eg.layer.y{layer_idx}(point_idxs) * 1e6;
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
-  physical_constants;
   elevation = interp1(obj.eg.gps_time,...
     obj.eg.elevation,...
     obj.eg.layer.x{layer_idx},'linear');
@@ -82,14 +85,13 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
     if isnan(obj.eg.layer.y{layer_idx}(point_idx))
       obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
     else
-      range = min(obj.eg.layer.y{layer_idx}(point_idx),surface(point_idx))*c/2 ...
-        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * c/(sqrt(er_ice)*2);
+      range = min(obj.eg.layer.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
       obj.eg.layer.y_curUnit{layer_idx}(point_idx) = elevation(point_idx) - range;
     end
   end
   
 elseif yaxis_choice == 3 % Depth/Range
-  physical_constants;
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,...
     obj.eg.layer.x{layer_idx},'linear');
@@ -97,8 +99,8 @@ elseif yaxis_choice == 3 % Depth/Range
     if isnan(obj.eg.layer.y{layer_idx}(point_idx))
       obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
     else
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = min(obj.eg.layer.y{layer_idx}(point_idx),surface(point_idx))*c/2 ...
-        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * c/(sqrt(er_ice)*2);
+      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = min(obj.eg.layer.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
     end
   end
   
@@ -106,6 +108,20 @@ elseif yaxis_choice == 4 % Range bin
   obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = interp1(obj.eg.time,...
     1:length(obj.eg.time),...
     obj.eg.layer.y{layer_idx}(point_idxs),'linear');
+  
+elseif yaxis_choice == 5 % Surface flat
+  surface = interp1(obj.eg.gps_time,...
+    obj.eg.surface,...
+    obj.eg.layer.x{layer_idx},'linear');
+  for point_idx = point_idxs
+    if isnan(obj.eg.layer.y{layer_idx}(point_idx))
+      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
+    else
+      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = min(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
+    end
+  end
+  
 end
 
 end

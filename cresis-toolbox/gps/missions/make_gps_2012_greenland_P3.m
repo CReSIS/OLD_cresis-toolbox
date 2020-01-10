@@ -32,7 +32,7 @@ debug_level = 1;
 in_base_path = fullfile(data_support_path,'2012_Greenland_P3');
 
 file_idx = 0; in_fns = {}; out_fns = {}; file_type = {}; params = {}; gps_source = {};
-sync_fns = {}; sync_params = {};
+sync_fns = {}; sync_params = {}; sync_file_type = {};
 
 gps_source_to_use = 'ATM';
 

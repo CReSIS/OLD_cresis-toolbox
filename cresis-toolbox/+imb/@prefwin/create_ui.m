@@ -19,7 +19,7 @@ wms_maps = {'arctic:blank_map';'antarctic:blank_map';'arctic:google_map';'antarc
 
 %% Get System Info from LayerData
 % =========================================================================
-layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer','');
+layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer',''); % Setting radar_name to rds is arbitrary
 fprintf('Finding the season layerdata in %s\n', layer_fn_dir);
 layer_fns = get_filenames(layer_fn_dir,'layer','','.mat');
 valid_file_count = 0;
@@ -129,7 +129,7 @@ set(obj.h_gui.sourceLB,'HorizontalAlignment','Center');
 set(obj.h_gui.sourceLB,'FontName','fixed');
 set(obj.h_gui.sourceLB,'Callback',@obj.sourceLB_callback);
 set(obj.h_gui.sourceLB,'TooltipString',...
-  sprintf('List of echogram sources to load\n Left click to select\n Right click to add or remove'));
+  sprintf('List of echogram sources to load\n Left click to select\n Right click to add, remove, or adjust priority'));
 set(obj.h_gui.sourceLB,'Min',1); % One must always be selected
 set(obj.h_gui.sourceLB,'Max',1e9); % Allow multiple selections
 
@@ -138,6 +138,10 @@ obj.h_gui.sourceCM = uicontextmenu;
 % Define the context menu items and install their callbacks
 obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Add', 'Callback', @obj.sourceLB_callback);
 obj.h_gui.sourceCM_item2 = uimenu(obj.h_gui.sourceCM, 'Label', 'Remove', 'Callback', @obj.sourceLB_callback);
+obj.h_gui.sourceCM_item3 = uimenu(obj.h_gui.sourceCM, 'Label', 'Up', 'Callback', @obj.sourceLB_callback);
+obj.h_gui.sourceCM_item4 = uimenu(obj.h_gui.sourceCM, 'Label', 'Down', 'Callback', @obj.sourceLB_callback);
+obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Top', 'Callback', @obj.sourceLB_callback);
+obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Bottom', 'Callback', @obj.sourceLB_callback);
 set(obj.h_gui.sourceLB,'uicontextmenu',obj.h_gui.sourceCM)
 
 % Map Popup Menu (populate later from preference file)

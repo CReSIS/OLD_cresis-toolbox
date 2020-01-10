@@ -236,7 +236,8 @@ else
   fprintf(' DONE (%s)\n',datestr(now,'HH:MM:SS'));
 end
   
-% Plot new selection on flight path
+% Plot new selection on flight path (calls
+% mapwin.update_echowin_flightlines)
 notify(obj,'update_echowin_flightline');
 
 return;

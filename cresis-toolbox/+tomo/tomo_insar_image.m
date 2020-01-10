@@ -135,9 +135,15 @@ caxis([0 1]);
 fn_insar_phase = fullfile(fn_dir,[fn_name '_phase.fig']);
 fprintf('Saving %s (%s)\n', fn_insar_phase, datestr(now));
 saveas(3001,fn_insar_phase);
+fn_insar_phase = fullfile(fn_dir,[fn_name '_phase.png']);
+fprintf('Saving %s (%s)\n', fn_insar_phase, datestr(now));
+saveas(3001,fn_insar_phase);
 
 [fn_dir,fn_name] = fileparts(fn);
 fn_insar_coherence = fullfile(fn_dir,[fn_name '_coherence.fig']);
+fprintf('Saving %s (%s)\n', fn_insar_coherence, datestr(now));
+saveas(3000,fn_insar_coherence);
+fn_insar_coherence = fullfile(fn_dir,[fn_name '_coherence.png']);
 fprintf('Saving %s (%s)\n', fn_insar_coherence, datestr(now));
 saveas(3000,fn_insar_coherence);
 
