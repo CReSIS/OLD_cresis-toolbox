@@ -49,7 +49,7 @@ classdef slider < handle
         val = get(obj.h_slider,'Value');
         set(obj.h_LE,'String',sprintf('%g', val));
       elseif h_obj == obj.h_LE
-        val = str2double(get(obj.h_LE,'String'));
+        val = eval(get(obj.h_LE,'String'));
         if val < min(obj.value_range)
           val = min(obj.value_range);
           set(obj.h_LE,'String',sprintf('%g', val));
