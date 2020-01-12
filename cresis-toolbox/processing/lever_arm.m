@@ -1249,8 +1249,24 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'r
   % antennas mounted on the right side. The antennas were mounted from the
   % roof of the tracked vehicle.
   %
-  % What is the mapping between radar RF inputs/outputs and each of the
-  % eight log periodic antennas?
+  % See NDF_Field_Report_BVL_v012.docx for details
+  %
+  % Report is missing z-offset between Trimbal GPS antenna phase center and
+  % radar antenna phase centers.
+  % Report is missing the location of  the radar antenna phase centers on
+  % the antennas themselves. The model number of the antennas is not given.
+  % Assume here that the z-offset is zero.
+  %
+  % Report gives distance of antennas off the ground of 4.1 m.
+  %
+  % Report does not give the y-offset of the Trimbal antenna from the side
+  % of the vehicle. Assume here that the offset is 0.15 m.
+  %
+  % Distance from side of vehicle to first antenna is given as 250 cm and
+  % 262 cm. By measuring pixels in the picture, 250 cm seems correct on
+  % both sides of the vehicle.
+  %
+  % Labeled from left to right:
   % AWG0 T/R Antenna #1
   % AWG1 T/R Antenna #2
   % AWG2 T/R Antenna #3
@@ -1259,23 +1275,23 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'r
   % Antenna #6
   % Antenna #7
   % Antenna #8
-  %
-  % What is the offset from the GPS antenna which was used to provide the
-  % PPP trajectories to each of the radar antenna phase centers?
-  LArx(1,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = ([-1.5 + (-4:-1)*0.75, 1.5 + (1:4)*0.75]) - gps.y; % m
-  LArx(3,:)   = (-1 + [0 0 0 0 0 0 0 0]) - gps.z; % m
   
-  LAtx(1,:)   = (0 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = (-1.5 + (-4:-1)*0.75) - gps.y; % m
-  LAtx(3,:)   = (-1 + [0 0 0 0]) - gps.z; % m
+  % 8 7 6 5 4 3 2 1
+  
+  LArx(1,:)   = (2.25+.60+2.00-1.00 + [0 0 0 0 0 0 0 0]) - gps.x; % m
+  LArx(2,:)   = ([0.15+2.5 + [1 3 0 2]*1.05, 0.15-2.85-2.5 + (0:3)*-1.05]) - gps.y; % m
+  LArx(3,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.z; % m
+  
+  LAtx(1,:)   = (2.25+.60+2.00-1.00 + [0 0 0 0]) - gps.x; % m
+  LAtx(2,:)   = (0.15+2.5 + [1 3 0 2]*1.05) - gps.y; % m
+  LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
-    rxchannel = 4;
+    rxchannel = 5;
   end
   
   if rxchannel == 0
-    rxchannel = 4;
+    rxchannel = 5;
     tx_weights = ones(1,size(LAtx,2));
   end
 end
