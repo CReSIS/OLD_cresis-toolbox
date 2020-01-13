@@ -37,55 +37,101 @@ for passes_idx = 1: length(passes)
      param = merge_structs(param_multipass,param);
    end
    param_multipass = merge_structs(param_multipass, param_override); %merges param_multipass and param_override into one struct
-   echo_fn_dir{passes_idx} = ct_filename_out(param_multipass, passes(passes_idx).in_path); %creates directory for pass, from given data format
-   for frm_idx = 1:length(passes(passes_idx).frms) %loop for individual frame loading
-      echo_fn_name{passes_idx} = sprintf('Data_%s_%03d.mat',passes(passes_idx).day_seg,passes(passes_idx).frms(frm_idx));
-      echo_fn{passes_idx} = fullfile(echo_fn_dir{passes_idx},echo_fn_name{passes_idx}); %develops path for rds data to then load
-      fprintf('Loading %s (%s)\n', echo_fn{passes_idx}, datestr(now));
-      tmp_data = load_L1B(echo_fn{passes_idx}); %loads data into tmp_data file
-      if frm_idx == 1
-        metadata{passes_idx} = struct('day_seg',passes(passes_idx).day_seg,...
-          'frms',passes(passes_idx).frms,'param_records', tmp_data.param_records,...
-          'param_sar',tmp_data.param_sar,'param_array',tmp_data.param_array,...
-          'time',tmp_data.Time,'param_multipass',param_multipass); %creates tmp struct with given fields
-        
-        data{passes_idx} = [];
-        metadata{passes_idx}.gps_time = [];
-        metadata{passes_idx}.lat = [];
-        metadata{passes_idx}.lon = [];
-        metadata{passes_idx}.elev = [];
-        metadata{passes_idx}.roll = [];
-        metadata{passes_idx}.pitch = [];
-        metadata{passes_idx}.heading = [];
-        metadata{passes_idx}.surface = [];
-        metadata{passes_idx}.bottom = [];
-        metadata{passes_idx}.param_array =[];
-        metadata{passes_idx}.fcs.origin = [];
-        metadata{passes_idx}.fcs.x = [];
-        metadata{passes_idx}.fcs.y = [];
-        metadata{passes_idx}.fcs.z = [];
-        metadata{passes_idx}.fcs.pos = [];
+   if strcmp(passes(passes_idx).echo_sar,'echo') || isempty(passes(passes_idx).echo_sar)
+     echo_fn_dir{passes_idx} = ct_filename_out(param_multipass, passes(passes_idx).in_path); %creates directory for pass, from given data format
+     for frm_idx = 1:length(passes(passes_idx).frms) %loop for individual frame loading
+        echo_fn_name{passes_idx} = sprintf('Data_%s_%03d.mat',passes(passes_idx).day_seg,passes(passes_idx).frms(frm_idx));
+        echo_fn{passes_idx} = fullfile(echo_fn_dir{passes_idx},echo_fn_name{passes_idx}); %develops path for rds data to then load
+        fprintf('Loading %s (%s)\n', echo_fn{passes_idx}, datestr(now));
+        tmp_data = load_L1B(echo_fn{passes_idx}); %loads data into tmp_data file
+        if frm_idx == 1
+          metadata{passes_idx} = struct('day_seg',passes(passes_idx).day_seg,...
+            'frms',passes(passes_idx).frms,'param_records', tmp_data.param_records,...
+            'param_sar',tmp_data.param_sar,'param_array',tmp_data.param_array,...
+            'time',tmp_data.Time,'param_multipass',param_multipass); %creates tmp struct with given fields
+
+          data{passes_idx} = [];
+          metadata{passes_idx}.gps_time = [];
+          metadata{passes_idx}.lat = [];
+          metadata{passes_idx}.lon = [];
+          metadata{passes_idx}.elev = [];
+          metadata{passes_idx}.roll = [];
+          metadata{passes_idx}.pitch = [];
+          metadata{passes_idx}.heading = [];
+          metadata{passes_idx}.surface = [];
+          metadata{passes_idx}.bottom = [];
+          metadata{passes_idx}.param_array =[];
+          metadata{passes_idx}.fcs.origin = [];
+          metadata{passes_idx}.fcs.x = [];
+          metadata{passes_idx}.fcs.y = [];
+          metadata{passes_idx}.fcs.z = [];
+          metadata{passes_idx}.fcs.pos = [];
+        end
+        metadata{passes_idx}.gps_time = [metadata{passes_idx}.gps_time ,tmp_data.GPS_time];
+        metadata{passes_idx}.lat = [metadata{passes_idx}.lat ,tmp_data.Latitude];
+        metadata{passes_idx}.lon = [metadata{passes_idx}.lon ,tmp_data.Longitude];
+        metadata{passes_idx}.elev = [metadata{passes_idx}.elev ,tmp_data.Elevation];
+        metadata{passes_idx}.roll = [metadata{passes_idx}.roll ,tmp_data.Roll];
+        metadata{passes_idx}.pitch = [metadata{passes_idx}.pitch ,tmp_data.Pitch];
+        metadata{passes_idx}.heading = [metadata{passes_idx}.heading ,tmp_data.Heading];
+        metadata{passes_idx}.surface = [metadata{passes_idx}.surface ,tmp_data.Surface];
+        metadata{passes_idx}.bottom = [metadata{passes_idx}.bottom ,tmp_data.Bottom];
+        metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin ,tmp_data.param_array.array_proc.fcs.origin];
+        metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x ,tmp_data.param_array.array_proc.fcs.x];
+        metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y ,tmp_data.param_array.array_proc.fcs.y];
+        metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z ,tmp_data.param_array.array_proc.fcs.z];      
+        metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos ,tmp_data.param_array.array_proc.fcs.pos];
+        data{passes_idx} = [data{passes_idx} ,tmp_data.Data];
+  %       if passes_idx==1 && frm_idx==1 %condition to make first field in struct, if developed moves to else statement and adds to end
+  %         rds_data(passes_idx) = tmp_struct;
+  %       else
+  %         rds_data(end+1) = tmp_struct;
+  %       end
       end
-      metadata{passes_idx}.gps_time = [metadata{passes_idx}.gps_time ,tmp_data.GPS_time];
-      metadata{passes_idx}.lat = [metadata{passes_idx}.lat ,tmp_data.Latitude];
-      metadata{passes_idx}.lon = [metadata{passes_idx}.lon ,tmp_data.Longitude];
-      metadata{passes_idx}.elev = [metadata{passes_idx}.elev ,tmp_data.Elevation];
-      metadata{passes_idx}.roll = [metadata{passes_idx}.roll ,tmp_data.Roll];
-      metadata{passes_idx}.pitch = [metadata{passes_idx}.pitch ,tmp_data.Pitch];
-      metadata{passes_idx}.heading = [metadata{passes_idx}.heading ,tmp_data.Heading];
-      metadata{passes_idx}.surface = [metadata{passes_idx}.surface ,tmp_data.Surface];
-      metadata{passes_idx}.bottom = [metadata{passes_idx}.bottom ,tmp_data.Bottom];
-      metadata{passes_idx}.fcs.origin = [metadata{passes_idx}.fcs.origin ,tmp_data.param_array.array_proc.fcs.origin];
-      metadata{passes_idx}.fcs.x = [metadata{passes_idx}.fcs.x ,tmp_data.param_array.array_proc.fcs.x];
-      metadata{passes_idx}.fcs.y = [metadata{passes_idx}.fcs.y ,tmp_data.param_array.array_proc.fcs.y];
-      metadata{passes_idx}.fcs.z = [metadata{passes_idx}.fcs.z ,tmp_data.param_array.array_proc.fcs.z];      
-      metadata{passes_idx}.fcs.pos = [metadata{passes_idx}.fcs.pos ,tmp_data.param_array.array_proc.fcs.pos];
-      data{passes_idx} = [data{passes_idx} ,tmp_data.Data];
-%       if passes_idx==1 && frm_idx==1 %condition to make first field in struct, if developed moves to else statement and adds to end
-%         rds_data(passes_idx) = tmp_struct;
-%       else
-%         rds_data(end+1) = tmp_struct;
-%       end
+   elseif strcmp(passes(passes_idx).echo_sar,'sar')
+      param_sar = [];
+      param_sar.day_seg = passes(passes_idx).day_seg;
+      param_sar = read_param_xls(ct_filename_param(passes(passes_idx).param_fn),param_sar.day_seg);
+
+      param_sar.load_sar_data.fn = ''; % Leave empty for default
+
+      % Start and stop chunk to load (inf for second element loads to the end)
+      param_sar.load_sar_data.chunk = [1 inf];
+
+      param_sar.load_sar_data.sar_type = 'fk';
+      
+      param_sar.load_sar_data.frame = passes(passes_idx).frms;
+
+      param_sar.load_sar_data.subap = 1;
+
+      % (wf,adc) pairs to load
+      param_sar.load_sar_data.imgs = {passes(passes_idx).wf_adc};
+
+      % Combine waveforms parameters
+      param_sar.load_sar_data.wf_comb = 10e-6;
+
+      % Debug level (1 = default)
+      param_sar.load_sar_data.debug_level = 2;
+
+      % Combine receive channels
+      param_sar.load_sar_data.combine_channels = 0;
+
+      % Take abs()^2 of the data (only runs if combine_channels runs)
+      param_sar.load_sar_data.incoherent = 0;
+
+      % Combine waveforms (only runs if incoherent runs)
+      param_sar.load_sar_data.combine_waveforms = 0;
+
+      % Parameters for local_detrend (cmd == 5 disables, only runs if incoherent runs)
+      param_sar.load_sar_data.detrend.cmd = 3;
+      param_sar.load_sar_data.detrend.B_noise = [100 200];
+      param_sar.load_sar_data.detrend.B_sig = [1 10];
+      param_sar.load_sar_data.detrend.minVal = -inf;
+
+      [data{passes_idx},metadata{passes_idx}] = load_sar_data(param_sar);
+
+      metadata{passes_idx}.frms = passes(passes_idx).frms;
+      metadata{passes_idx}.param_multipass = param_multipass;
    end
 end 
 clear tmp_data tmp_fn frm_idx passes_idx
@@ -193,28 +239,49 @@ for passes_idx = 1:length(passes)
       end
       
       pass(end).wf = 1;
-      pass(end).data = data{passes_idx}(:,rlines);
+      if strcmp(passes(pass_idx).echo_sar,'echo') || isempty(passes(pass_idx).echo_sar)
+        pass(end).data = data{passes_idx}(:,rlines);
+        pass(end).wfs.time = metadata{passes_idx}.time;
+        
+        pass(end).gps_time = metadata{passes_idx}.gps_time(rlines);
+        pass(end).roll = metadata{passes_idx}.roll(rlines);
+        pass(end).pitch = metadata{passes_idx}.pitch(rlines);
+        pass(end).heading = metadata{passes_idx}.heading(rlines);
+        
+        pass(end).x = metadata{passes_idx}.fcs.x(:,rlines);
+        pass(end).y = metadata{passes_idx}.fcs.y(:,rlines);
+        pass(end).z = metadata{passes_idx}.fcs.z(:,rlines);
+        pass(end).origin = metadata{passes_idx}.fcs.origin(:,rlines);
+        pass(end).pos = metadata{passes_idx}.fcs.pos(:,rlines);
+        pass(end).surface = metadata{passes_idx}.surface(:,rlines);
+      elseif strcmp(passes(pass_idx).echo_sar,'sar')
+        pass(end).data = data{passes_idx}{1}(:,rlines);
+        pass(end).wfs = metadata{passes_idx}.wfs;
+        
+        pass(end).gps_time = metadata{passes_idx}.fcs{1}{1}.gps_time(rlines);
+        pass(end).roll = metadata{passes_idx}.fcs{1}{1}.roll(rlines);
+        pass(end).pitch = metadata{passes_idx}.fcs{1}{1}.pitch(rlines);
+        pass(end).heading = metadata{passes_idx}.fcs{1}{1}.heading(rlines);
+        
+        pass(end).x = metadata{passes_idx}.fcs{1}{1}.x(:,rlines);
+        pass(end).y = metadata{passes_idx}.fcs{1}{1}.y(:,rlines);
+        pass(end).z = metadata{passes_idx}.fcs{1}{1}.z(:,rlines);
+        pass(end).origin = metadata{passes_idx}.fcs{1}{1}.origin(:,rlines);
+        pass(end).pos = metadata{passes_idx}.fcs{1}{1}.pos(:,rlines);
+        pass(end).surface = metadata{passes_idx}.fcs{1}{1}.surface(:,rlines);
+      end
       
-      pass(end).gps_time = metadata{passes_idx}.gps_time(rlines);
       pass(end).lat = metadata{passes_idx}.lat(rlines);
       pass(end).lon = metadata{passes_idx}.lon(rlines);
       pass(end).elev = metadata{passes_idx}.elev(rlines);
-      pass(end).roll = metadata{passes_idx}.roll(rlines);
-      pass(end).pitch = metadata{passes_idx}.pitch(rlines);
-      pass(end).heading = metadata{passes_idx}.heading(rlines);
       
-      pass(end).wfs.time = metadata{passes_idx}.time;
       pass(end).param_records = metadata{passes_idx}.param_records;
       pass(end).param_sar = metadata{passes_idx}.param_sar;
       pass(end).param_multipass = metadata{passes_idx}.param_multipass;
       pass(end).param_multipass.cmd.frms = passes(passes_idx).frms;
-      pass(end).surface = metadata{passes_idx}.surface(:,rlines);
       
-      pass(end).x = metadata{passes_idx}.fcs.x(:,rlines);
-      pass(end).y = metadata{passes_idx}.fcs.y(:,rlines);
-      pass(end).z = metadata{passes_idx}.fcs.z(:,rlines);
-      pass(end).origin = metadata{passes_idx}.fcs.origin(:,rlines);
-      pass(end).pos = metadata{passes_idx}.fcs.pos(:,rlines);
+      
+      
     end
   end
   if no_passes_flag

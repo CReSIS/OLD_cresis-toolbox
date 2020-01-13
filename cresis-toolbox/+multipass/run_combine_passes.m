@@ -3,20 +3,20 @@
 
 param_override = [];
 param = [];
-passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
+passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'wf_adc',{},'echo_sar',{});
 
 % master_pass_idx = struct('day_seg','20140505_01','frms',17:18,'param_fn','rds_param_2014_Greenland_P3.xls','in_path','CSARP_post/standard');
 % master_pass_idx = struct('day_seg','20170331_01','frms',16:17,'param_fn','rds_param_2017_Greenland_P3.xls','in_path','CSARP_post/standard');
 
 %% Petermann Line 1 2002
 % pass_name = sprintf('Petermann_line1_2002');
-%dist)min = 500;
-%master_pass_idx = 1
-
+% dist_min = 500;
+% master_pass_idx = 1
+% 
 % param_fn = 'rds_param_2002_Greenland_P3.xls';
-%day_seg = '20020528_06';
-%frms = 5:6;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% day_seg = '20020528_06';
+% frms = 5:6;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 % start = struct('lat',80.492292,'lon',-59.975190); 
 % stop = struct('lat',81.116866,'lon',-62.041787); 
 
@@ -28,7 +28,7 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % param_fn = 'rds_param_2011_Greenland_P3.xls';
 % day_seg = '20110507_02';
 % frms = 9:11;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/csarp-combined');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/csarp-combined','wf_adc',[],'echo_sar',[]);
 % start = struct('lat',80.499370,'lon',-60.013440); 
 % stop = struct('lat',80.952663,'lon',-61.586491); 
 
@@ -42,13 +42,13 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % param_fn = 'rds_param_2014_Greenland_P3.xls';
 % day_seg = '20140505_01';
 % frms = 17:18;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 
 %% 2017
 % param_fn = 'rds_param_2017_Greenland_P3.xls';
 % day_seg = '20170331_01';
 % frms = 16:17;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','CSARP_post/standard','wf_adc',[],'echo_sar',[]);
 % start = struct('lat',80.504179,'lon',-60.037068);
 % stop = struct('lat',80.962162,'lon',-61.612482);
 % pass_name = sprintf('2017_Greenland_P3');
@@ -63,7 +63,7 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % param_fn = 'rds_param_2018_Greenland_P3.xls';
 % day_seg = '20180405_01';
 % frms = 15:16;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 
 %% Petermann Line 1 2011, 2014, 2018
 % pass_name = sprintf('Petermann_line1_2011_2014_2018');
@@ -75,34 +75,34 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % param_fn = 'rds_param_2011_Greenland_P3.xls';
 % day_seg = '20110507_02';
 % frms = 9:11;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 % 
 % param_fn = 'rds_param_2014_Greenland_P3.xls';
 % day_seg = '20140505_01';
 % frms = 17:18;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 % 
 % param_fn = 'rds_param_2018_Greenland_P3.xls';
 % day_seg = '20180405_01';
 % frms = 15:16;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 
 %% Petermann Line 2 2013, 2014
-% pass_name = sprintf('Petermann_line2_2013_2014');
-% dist_min = 500;
-% master_pass_idx = 2;
-% start = struct('lat',80.517191,'lon',-59.844969);
-% stop = struct('lat',80.903411,'lon',-61.332159);
-% 
-% param_fn = 'rds_param_2013_Greenland_P3.xls';
-% day_seg = '20130420_02';
-% frms = 4:5;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-% 
-% param_fn = 'rds_param_2014_Greenland_P3.xls';
-% day_seg = '20140512_01';
-% frms = 16:17;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+pass_name = sprintf('Petermann_line2_2013_2014');
+dist_min = 500;
+master_pass_idx = 2;
+start = struct('lat',80.517191,'lon',-59.844969);
+stop = struct('lat',80.903411,'lon',-61.332159);
+
+param_fn = 'rds_param_2013_Greenland_P3.xls';
+day_seg = '20130420_02';
+frms = 4:5;
+passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
+
+param_fn = 'rds_param_2014_Greenland_P3.xls';
+day_seg = '20140512_01';
+frms = 16:17;
+passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 
 %% Petermann Line 4 2011, 2014, 2018
 % pass_name = sprintf('Petermann_line4_2010_2011_2013_2014');
@@ -114,50 +114,88 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{});
 % param_fn = 'rds_param_2010_Greenland_DC8.xls';
 % day_seg = '20100324_01';
 % frms = 25:26;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 % 
 % param_fn = 'rds_param_2011_Greenland_P3.xls';
 % day_seg = '20110507_02';
 % frms = 13:15;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 % 
 % param_fn = 'rds_param_2013_Greenland_P3.xls';
 % day_seg = '20130420_02';
 % frms = 7:8;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 % 
 % param_fn = 'rds_param_2014_Greenland_P3.xls';
 % day_seg = '20140512_01';
 % frms = 13:14;
-% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 
 %% 79N Line 1 2010, 2014, 2016, 2018
-pass_name = sprintf('79N_line1_2010_2014_2016_2018');
-dist_min = 16000;
-master_pass_idx = 2;
-start = struct('lat',79.346109,'lon',-22.575643);
-stop = struct('lat',79.559002,'lon',-19.329911);
+% pass_name = sprintf('79N_line1_2010_2014_2016_2018');
+% dist_min = 16000;
+% master_pass_idx = 2;
+% start = struct('lat',79.346109,'lon',-22.575643);
+% stop = struct('lat',79.559002,'lon',-19.329911);
+% 
+% param_fn = 'rds_param_2010_Greenland_P3.xls';
+% day_seg = '20100525_04';
+% frms = 11:13;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
+% 
+% param_fn = 'rds_param_2014_Greenland_P3.xls';
+% day_seg = '20140429_01';
+% frms = 43:44;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
+% 
+% param_fn = 'rds_param_2016_Greenland_P3.xls';
+% day_seg = '20160509_10';
+% frms = 1;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
+% 
+% param_fn = 'rds_param_2018_Greenland_P3.xls';
+% day_seg = '20180418_05';
+% frms = 1:2;
+% passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard','wf_adc',[],'echo_sar',[]);
 
-param_fn = 'rds_param_2010_Greenland_P3.xls';
-day_seg = '20100525_04';
-frms = 11:13;
-passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
+%% 2014 Greenland P3 2 Week Difference
+% wf = 3;
+% pass_name = sprintf('rds_thule_2014_2Week_wf%d',wf);
+% start = struct('lat', 77.10,'lon', -62.3);
+% stop = struct('lat', 77.13, 'lon', -61.9);
+% dist_min = 300;
+% master_pass_idx = 8;
+% 
+% param_fn = 'rds_param_2014_Greenland_P3.xls';
+% 
+% for adc = 2:16
+%   passes(end+1) = struct('day_seg','20140429_01','frms',67,'param_fn',param_fn,'in_path','','wf_adc',[wf adc],'echo_sar','sar');
+% end
+% for adc = 2:16
+%   passes(end+1) = struct('day_seg','20140515_02','frms',4,'param_fn',param_fn,'in_path','','wf_adc',[wf adc],'echo_sar','sar');
+% end
 
-param_fn = 'rds_param_2014_Greenland_P3.xls';
-day_seg = '20140429_01';
-frms = 43:44;
-passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
 
-param_fn = 'rds_param_2016_Greenland_P3.xls';
-day_seg = '20160509_10';
-frms = 1;
-passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-
-param_fn = 'rds_param_2018_Greenland_P3.xls';
-day_seg = '20180418_05';
-frms = 1:2;
-passes(end+1) = struct('day_seg',day_seg,'frms',frms,'param_fn',param_fn,'in_path','standard');
-
+%% 2011 to 2012 Greenland P3
+% pass_name = sprintf('rds_thule_2011_2012_wf2');
+% start = struct('lat', 77.10,'lon', -62.3);
+% stop = struct('lat', 77.13, 'lon', -61.9);
+% dist_min = 300;
+% master_pass_idx = 8;
+% 
+% param_fn = 'rds_param_2012_Greenland_P3.xls';
+% wf = 2;
+% for adc = 2:16
+%   passes(end+1) = struct('day_seg','20120516_01','frms',89,'param_fn',param_fn,'in_path','','wf_adc',[wf adc],'echo_sar','sar');
+% end
+% param_fn = 'rds_param_2011_Greenland_P3.xls';
+% wf = 2;
+% for adc = 2:16
+%   passes(end+1) = struct('day_seg','20110502_02','frms',32,'param_fn',param_fn,'in_path','','wf_adc',[wf adc],'echo_sar','sar');
+% end
+%% Automated section
+% =========================================================================
+%Load param variable
 param.combine_passes.pass_name = pass_name;
 param.combine_passes.passes = passes;
 param.combine_passes.master_pass_idx = master_pass_idx;
@@ -165,9 +203,6 @@ param.combine_passes.start = start;
 param.combine_passes.stop = stop;
 param.combine_passes.dist_min = dist_min;
 param.day_seg = passes(master_pass_idx).day_seg;
-
-%% Automated section
-% =========================================================================
 
 %read radar names
 global gRadar;

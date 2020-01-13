@@ -447,7 +447,7 @@ end
 %   Window to apply in Nc dimension, defaults to @hanning, only used with
 %   STANDARD_METHOD
 if ~isfield(param.array,'window') || isempty(param.array.window)
-  param.array.window = @hanning;
+  param.array.window = @boxcar;
 end
 
 % .ignored_img_idx:
@@ -1080,7 +1080,7 @@ for line_idx = 1:1:Nx_out
       %% Array: Standard/Periodogram
       dataSample = din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
       dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
-      Sarray.standard(:,bin_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+      Sarray.standard(:,bin_idx) = mean(abs(bsxfun(@times,conj(w_standard),dataSample.')).^2,2);      Sarray.standard(:,bin_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
       for ml_idx = 2:length(din)
         dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
         dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
