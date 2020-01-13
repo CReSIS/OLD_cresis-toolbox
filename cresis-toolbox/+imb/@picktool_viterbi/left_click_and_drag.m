@@ -29,10 +29,14 @@ if tool_idx == 1
     
     [manual_idxs,auto_idxs,point_idxs] = find_matching_pnts(obj,param,cur_layer);
    
+    % Scale auto_idxs from scale of param.layer.x to scale of viterbi_data
     auto_idxs_initial = auto_idxs;
     scale = round(length(param.layer.x) / size(image_c, 2));
-    auto_idxs = round(auto_idxs./scale);  % TODO[reece]: verify: auto_idxs pulled from param.layer.x is always 2*size(viterbi_data, 2)
-    auto_idxs = auto_idxs(~mod(1:length(auto_idxs), scale));
+    auto_idxs = round(auto_idxs./scale);
+    half_idxs = logical(mod(1:length(auto_idxs), scale));
+    % Always include first and last index. A few extra doesn't affect much.
+    half_idxs([1 end]) = [1 1];
+    auto_idxs = auto_idxs(half_idxs);
     
     if length(manual_idxs) < 1
       warning('Insufficient points to track');
@@ -68,12 +72,6 @@ if tool_idx == 1
       mu             = mu - mean(mu);
       sigma          = sum(abs(mu))/10*ones(1,mu_size);
       mask_dist      = round(bwdist(mask == 0));
-      
-      % Auto_idxs created scaled to param.layer.x instead of viterbi_data
-%       auto_idxs_all = ones(1, length(param.layer.x))*NaN;
-%       auto_idxs_all(auto_idxs) = 1;
-%       auto_idxs = interp1(param.layer.x,auto_idxs_all,1:(size(viterbi_data, 2)+1));
-%       auto_idxs = find(~isnan(auto_idxs));
       
       try
         smooth_weight = str2double(obj.top_panel.smoothness_weight_TE.String);
@@ -125,7 +123,7 @@ if tool_idx == 1
       end
      
       %% Multiple suppression
-      if false % obj.top_panel.mult_sup_cbox.Value  % TODO[reece]: Remove or reenable
+      if obj.top_panel.mult_sup_cbox.Value
         figure;
         title('multiple suppression');
         image(viterbi_data);
@@ -252,6 +250,7 @@ if tool_idx == 1
       
       % Interpolate layer to match image axes
       y_new = interp1(1:length(image_y), image_y, y_new);
+      % Scale y_new from scale of viterbi_data to scale of param.layer.x
       y_new = interp1(y_new,1:1/scale:(length(y_new)+(1-1/scale)));
       auto_idxs = auto_idxs_initial;
       cmds(end+1).undo_cmd = 'insert';
