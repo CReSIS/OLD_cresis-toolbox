@@ -965,7 +965,7 @@ classdef surfdata < handle
       % See also:  run_add_surf_from_dem
       %
       %
-      %% General Setup
+      % General Setup
       % =================================================================
       physical_constants
       param = merge_structs(param,param_override);
@@ -974,7 +974,7 @@ classdef surfdata < handle
       fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
       fprintf('==========================================================\n');
       
-      %% Input Checks
+      % Input Checks
       % =================================================================
       
       % Load frames file
