@@ -1,3 +1,4 @@
+
 function [param,dout] = array_proc(param,din)
 % [param,dout] = array_proc(param,din)
 %
