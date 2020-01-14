@@ -132,8 +132,12 @@ else
 end
 
 % Apply a correction to the GPS time
-gps.gps_time = gps.gps_time ...
-  + polyval(param.cpu_time_correction.pp, gps.gps_time - param.cpu_time_correction.gps_time_origin);
+% - Use 
+correction = polyval(param.cpu_time_correction.pp, gps.gps_time - param.cpu_time_correction.gps_time_origin);
+% - Use nearest neighbor for extrapolation
+correction(gps.gps_time < param.cpu_time_correction.gps_time_min) = polyval(param.cpu_time_correction.pp, param.cpu_time_correction.gps_time_min - param.cpu_time_correction.gps_time_origin);
+correction(gps.gps_time > param.cpu_time_correction.gps_time_max) = polyval(param.cpu_time_correction.pp, param.cpu_time_correction.gps_time_max - param.cpu_time_correction.gps_time_origin);
+gps.gps_time = gps.gps_time + correction;
 
 % Fill in remaining fields with nan
 gps.lat = nan(size(gps.radar_time));

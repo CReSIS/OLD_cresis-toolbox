@@ -5,10 +5,12 @@ fns = get_filenames(fullfile(in_base_path,'CPU_TIME'),'cpu_time','','.csv',struc
 gps_time_origin = gps_time(round(end/2));
 pp = polyfit(gps_time-gps_time_origin, gps_time-cpu_time, 5);
 
+correction.gps_time_min = min(gps_time);
+correction.gps_time_max = max(gps_time);
 correction.gps_time_origin = gps_time_origin;
 correction.pp = pp;
 
-if 1
+if 0
   % Debug plots
   h_fig = figure;
   plot(gps_time-gps_time_origin, gps_time-cpu_time,'.');

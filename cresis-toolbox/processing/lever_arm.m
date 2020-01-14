@@ -83,7 +83,7 @@ if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) %...
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'arena'))
+if (strcmpi(param.season_name,'2018_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','brice'})))
   % Platform: Ground based tracked vehicles, GPS antenna on top of tracked
   % vehicle
   %
@@ -1266,24 +1266,35 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'r
   % 262 cm. By measuring pixels in the picture, 250 cm seems correct on
   % both sides of the vehicle.
   %
-  % Labeled from left to right:
-  % AWG0 T/R Antenna #1
-  % AWG1 T/R Antenna #2
-  % AWG2 T/R Antenna #3
-  % AWG3 T/R Antenna #4
-  % Antenna #5
-  % Antenna #6
-  % Antenna #7
-  % Antenna #8
-  
-  % 8 7 6 5 4 3 2 1
+  % rx_paths are labeled from left to right in order:
+  % rx_paths adc
+  %    1      8 Rx only Antenna #8 in figure
+  %    2      7 Rx only Antenna #7 in figure
+  %    3      6 Rx only Antenna #6 in figure
+  %    4      5 Rx only Antenna #5 in figure
+  %    5      3 AWG0 T/R Antenna #1 in figure
+  %    6      1 AWG1 T/R Antenna #2 in figure
+  %    7      4 AWG2 T/R Antenna #3 in figure
+  %    8      2 AWG3 T/R Antenna #4 in figure
+  %
+  % adc    rx_paths
+  %    1      6
+  %    2      8
+  %    3      5
+  %    4      7
+  %    5      4
+  %    6      3
+  %    7      2
+  %    8      1
+  %
+  % [6 8 5 7 4 3 2 1]
   
   LArx(1,:)   = (2.25+.60+2.00-1.00 + [0 0 0 0 0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = ([0.15+2.5 + [1 3 0 2]*1.05, 0.15-2.85-2.5 + (0:3)*-1.05]) - gps.y; % m
+  LArx(2,:)   = ([0.15-2.85-2.5 + (3:-1:0)*-1.05, 0.15+2.5 + [0:3]*1.05]) - gps.y; % m
   LArx(3,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.z; % m
   
   LAtx(1,:)   = (2.25+.60+2.00-1.00 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = (0.15+2.5 + [1 3 0 2]*1.05) - gps.y; % m
+  LAtx(2,:)   = (0.15+2.5 + [0:3]*1.05) - gps.y; % m
   LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)

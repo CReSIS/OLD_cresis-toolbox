@@ -356,23 +356,27 @@ for img = 1:length(param.load.imgs)
           fprintf('%d:%d %g\n', img, wf_adc, 10*log10(mean(mean(abs(data{img}(end+[-600:-401],:,wf_adc)).^2))));
         end
         
-        blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
-        for block = 1:length(blocks)-1
-          rlines = blocks(block) : blocks(block+1)-1;
           
-          % Digital down conversion
-          data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc) = bsxfun(@times,data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc), ...
-            exp(-1i*2*pi*(wfs(wf).fc-wfs(wf).DDC_freq)*wfs(wf).time_raw));
-          
-          % Pulse compression
-          %   Apply matched filter and transform back to time domain
-          tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
-          tmp_data(~isfinite(tmp_data)) = 0;
-          tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc,1),wfs(wf).ref{adc}),[],1),wfs(wf).pad_length,1);
-          
-          % Decimation
-          data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));
-          
+        % Check if any good records, skip processing if not
+        if any(~hdr.bad_rec{img}(1,:,wf_adc))
+          blocks = round(linspace(1,size(data{img},2)+1,8)); blocks = unique(blocks);
+          for block = 1:length(blocks)-1
+            rlines = blocks(block) : blocks(block+1)-1;
+            
+            % Digital down conversion
+            data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc) = bsxfun(@times,data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc), ...
+              exp(-1i*2*pi*(wfs(wf).fc-wfs(wf).DDC_freq)*wfs(wf).time_raw));
+            
+            % Pulse compression
+            %   Apply matched filter and transform back to time domain
+            tmp_data = data{img}(1:wfs(wf).Nt_raw,rlines,wf_adc);
+            tmp_data(~isfinite(tmp_data)) = 0;
+            tmp_data = circshift(ifft(bsxfun(@times,fft(tmp_data, wfs(wf).Nt_pc,1),wfs(wf).ref{adc}),[],1),wfs(wf).pad_length,1);
+            
+            % Decimation
+            data{img}(1:wfs(wf).Nt,rlines,wf_adc) = single(resample(double(tmp_data), wfs(wf).ft_dec(1), wfs(wf).ft_dec(2)));
+            
+          end
         end
         
         if 0
@@ -1475,6 +1479,9 @@ for img = 1:length(param.load.imgs)
   end
   
   if param.load.pulse_comp == 1
-    data{img} = data{img}(1:wfs(wf).Nt,:,:);
+    % Check if any good records, skip truncation if not
+    if any(~hdr.bad_rec{img}(1,:,wf_adc))
+      data{img} = data{img}(1:wfs(wf).Nt,:,:);
+    end
   end
 end
