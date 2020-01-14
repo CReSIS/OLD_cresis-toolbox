@@ -17,20 +17,46 @@ mastrow = 75; mastcol = 225; % These two define the maximum window size
 slavrow = mastrow; slavcol = mastcol;
 rowoverlap = 50; coloverlap = 25;
 %Set rlines
-rlines = 1:900;
-for fn_id = 1%:length(fns)
+% rlines = 1:900;
+for fn_id = 1:length(fns)
   %% Load the data
   if ~exist('tmp','var') || length(tmp)<fn_id
     tmp{fn_id} = load(fns{fn_id});
   end
   %Grab the two sets of data
-  slaveinsar = mean(tmp{fn_id}.data(rbins,rlines,set1{fn_id}),3);
-  masterinsar = mean(tmp{fn_id}.data(rbins,rlines,set2{fn_id}),3);
+  if exist('rlines','var')
+    slaveinsar = mean(tmp{fn_id}.data(rbins,rlines,set1{fn_id}),3);
+    masterinsar = mean(tmp{fn_id}.data(rbins,rlines,set2{fn_id}),3);
+  else
+    slaveinsar = mean(tmp{fn_id}.data(rbins,:,set1{fn_id}),3);
+    masterinsar = mean(tmp{fn_id}.data(rbins,:,set2{fn_id}),3);
+  end
   if 0 %Test slave with shifted master
     rowshift = 3; colshift = 100;
     fprintf('\n Slave to Master Comparison \n\tRowOff: %d\n\tColOff: %d\n',rowshift,colshift);
     slaveinsar = zeros(size(masterinsar));
     slaveinsar(rowshift+1:end,colshift+1:end)=masterinsar(1:end-rowshift,1:end-colshift);
+  end
+  if 0 %Test with slave shifted
+    rowshift = 0; colshift = -3;
+    fprintf('\n Slave Shift \n\tRowOff: %d\n\tColOff: %d\n',rowshift,colshift);
+    slzeros = zeros(size(slaveinsar));
+    if rowshift <0
+      slrout = 1:size(slaveinsar,1)+rowshift;
+      slrin = 1-rowshift:size(slaveinsar,1);
+    else
+      slrout = 1+rowshift:size(slaveinsar,1);
+      slrin = 1:size(slaveinsar,1)-rowshift;
+    end
+    if colshift <0
+      slcout = 1:size(slaveinsar,2)+colshift;
+      slcin = 1-colshift:size(slaveinsar,2);
+    else
+      slcout = 1+colshift:size(slaveinsar,2);
+      slcin = 1:size(slaveinsar,2)-colshift;
+    end
+    slzeros(slrout,slcout) = slaveinsar(slrin,slcin);
+    slaveinsar = slzeros;
   end
   
   if 1
@@ -79,7 +105,7 @@ for fn_id = 1%:length(fns)
       rowind_strsl = (min(rowinds_mast)+floor((mastrow-slavrow)/2));
       rowind_endsl = (max(rowinds_mast)-floor((mastrow-slavrow)/2));
       rowinds_slav = rowind_strsl:rowind_endsl;
-      if 1
+      if 0
         figure(1+fn_id)
         subplot(2,1,1)
         rowplot = [rowind_str, rowind_str, rowind_end, rowind_end, rowind_str];
@@ -147,7 +173,6 @@ for fn_id = 1%:length(fns)
       [peak_interp_row, peak_interp_col] = ind2sub(size(peak_region_interp),find(peak_region_interp==max(max(peak_region_interp)),1));
       col_offset = colq(peak_interp_row, peak_interp_col);
       row_offset = rowq(peak_interp_row, peak_interp_col);
-%       col_offset = peak_col; row_offset = peak_row;
       %% Plot the results
       if 0
         %Check the reverse fft result
@@ -199,8 +224,16 @@ for fn_id = 1%:length(fns)
       convout{rowidx+1,colidx+1}=insarconv;  convMARout(rowidx+1,colidx+1)=max(max(insarconv))/mean(mean(insarconv));
       rows = linspace(0,size(madata,1),size(insarconv,1));
       cols = linspace(0,size(madata,2),size(insarconv,2));
-      rowout(rowidx+1,colidx+1)=size(madata,1)-rows(round(row_offset)); 
-      colout(rowidx+1,colidx+1)=size(madata,2)-cols(round(col_offset));
+      if rows(round(row_offset))<size(madata,1)/2
+        rowout(rowidx+1,colidx+1) = -rows(round(row_offset));
+      else
+        rowout(rowidx+1,colidx+1)=size(madata,1)-rows(round(row_offset)); 
+      end
+      if cols(round(col_offset))<size(madata,2)/2
+        colout(rowidx+1,colidx+1)=-cols(round(col_offset));
+      else
+        colout(rowidx+1,colidx+1)=size(madata,2)-cols(round(col_offset));
+      end
       %Update start row
       rowidx = rowidx+1;
     end
@@ -209,15 +242,21 @@ for fn_id = 1%:length(fns)
   end
   %% Process the data
   %Remove results with low MAR (keeping results above some threshold)
-  thresh = 35;
-  logicvec = convMARout<=thresh;
+  thresh = 50;
+  logicvec = ones(size(convMARout));
+  while all(all(logicvec)) || numel(find(logicvec==1))<numel(convMARout)/10
+    logicvec = convMARout<=thresh;
+    thresh = thresh-2;
+  end
   colout(logicvec) = nan; rowout(logicvec) = nan;
   Out(fn_id).row = nanmean(nanmean(rowout)); Out(fn_id).col = nanmean(nanmean(colout));
+  Out(fn_id).thresh = thresh+2;
   
+  %Print results
+  [~,fname,~] = fileparts(fns{fn_id});
+  fprintf('\n Output for %s \n\tRowOff: %.2f\n\tColOff: %.2f\n',fname,Out(fn_id).row,Out(fn_id).col);
   keyboard
 end
-
-
 
 %% Use cross correlation to determine offset in x and y indices
 
