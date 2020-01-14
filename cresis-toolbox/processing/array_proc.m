@@ -1311,7 +1311,7 @@ for line_idx = 1:1:Nx_out
       theta_int       = surf_doas;
       
       % DEBUG ONLY
-      if 1
+      if 0
         surf_doas = -51;
         theta_int = -51;
       end
@@ -1336,8 +1336,8 @@ for line_idx = 1:1:Nx_out
           % Determine Steering Vectors for target and interference
           [~,A] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
           
-          % DEBUG ONLY
-          if 1
+          % DEBUG ONLY bin 501-502, line 1308
+          if 0
             sv_fh_arg_geonull = {'theta'};
             sv_fh_arg_geonull{2} = [theta_desired(des_idx)]; % array_proc_sv breaks if this is a column vector -- fix this!
             [~,Atarget] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
@@ -1359,19 +1359,6 @@ for line_idx = 1:1:Nx_out
         wgeo    = sv_gn{1}.*Hwindow;
         wgeo    = wgeo ./ sqrt(wgeo'*wgeo);
         wgeo     = wgeo ./ length(wgeo);
-        
-%         Hwindow     = Hwindow ./ sqrt(Hwindow'*Hwindow);
-%         sv_standard = sv{1};
-%         sv_standard = sv_standard ./ sqrt(sv_standard'*sv_standard);
-%         w_standard  = sv_standard.*Hwindow;
-%         w_standard  = w_standard ./ sqrt(w_standard'*w_standard);
-%         w_standard  = w_standard ./ (length(w_standard));
-%         
-%         if line_idx == 217
-%           Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(w_standard)).^2);
-%         elseif line_idx == 218
-%           Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(wgeo)).^2);
-%         end
         
         Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(wgeo)).^2);
 
