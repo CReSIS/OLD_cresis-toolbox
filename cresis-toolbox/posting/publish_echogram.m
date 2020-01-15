@@ -336,7 +336,7 @@ if param.elev_comp == 3
       max_components = max(max_components, DLayers{dlayer_idx});
     end
   else
-    max_components = lay.Bottom;
+    max_components = nan(size(DSurface));
   end
 
   DBottom = max_components;
@@ -364,7 +364,7 @@ elseif param.elev_comp == 2
       max_components = max(max_components, DLayers{dlayer_idx});
     end
   else
-    max_components = lay.Bottom;
+    max_components = nan(size(DSurface));
   end
 
   DBottom = max_components;
@@ -394,7 +394,7 @@ else
       max_components = max(max_components, DLayers{dlayer_idx});
     end
   else
-    max_components = lay.Bottom;
+    max_components = nan(size(DSurface));
   end
 
   DBottom = max_components;

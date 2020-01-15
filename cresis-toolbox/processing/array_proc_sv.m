@@ -53,11 +53,10 @@ if iscell(Nsv)
         theta_lut = theta - roll;
         sv_corr = (interp1(LUT.bins,LUT.sv_real,theta_lut,'linear','extrap') + 1i*interp1(LUT.bins,LUT.sv_imag,theta_lut,'linear','extrap')).';
         
-      ky = k*sin(theta);
-      kz = k*cos(theta);
-      sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
-      sv = sv .* sv_corr;
-
+        ky = k*sin(theta);
+        kz = k*cos(theta);
+        sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
+        sv = sv .* sv_corr;
         
       else
         theta = theta + roll;
@@ -160,5 +159,3 @@ end
 % to create 2D matrix. Normalize the steering vector lengths.
 sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
 % Equivalent: sv = sqrt(1/length(yAnt)) * exp(1i*k*(-zAnt*cos(theta) + yAnt*sin(theta)));
-
-return;
