@@ -483,6 +483,9 @@ for wf = 1:length(param.radar.wfs)
   % =======================================================================
   if isfield(param.radar.wfs(wf),'bit_shifts') && ~isempty(param.radar.wfs(wf).bit_shifts)
     wfs(wf).bit_shifts   = param.radar.wfs(wf).bit_shifts;
+    if length(wfs(wf).bit_shifts) == 1 && numel(wfs(wf).bit_shifts) < max(adcs);
+      wfs(wf).bit_shifts = wfs(wf).bit_shifts*ones(1,max(adcs));
+    end
   elseif any(param.records.file.version == [405 406]) % acords
     wfs(wf).bit_shifts = records.settings.wfs(1).wfs(wf).bit_shifts(1)*ones(1,max(adcs));
   elseif param.records.file.version == 410 % mcords

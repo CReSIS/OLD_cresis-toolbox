@@ -175,7 +175,7 @@ param.array.surf_layer.existence_check = false;
 param = array_proc(param);
 
 if ~isfield(param.array,'fcs_pos_averaged') || isempty(param.array.fcs_pos_averaged)
-  if any(param.array.method > SNAPSHOT_METHOD_THRESHOLD)
+  if any(param.array.method >= SNAPSHOT_METHOD_THRESHOLD)
     % Should usually be false for snapshot methods so that the position
     % will be returned for each array element.
     param.array.fcs_pos_averaged = false;

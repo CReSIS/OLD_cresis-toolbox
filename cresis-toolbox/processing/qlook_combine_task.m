@@ -182,7 +182,14 @@ for frm_idx = 1:length(param.cmd.frms);
         Data = [[zeros(start_time_diff,size(Data,2)); Data; zeros(end_time_diff,size(Data,2))], ...
           [zeros(-start_time_diff,size(tmp.Data,2)); tmp.Data; zeros(-end_time_diff,size(tmp.Data,2))]];
       else
-        Data = [Data tmp.Data];
+        if size(tmp.Data,1) == 0
+          % Check for no good records which results in size of fast-time
+          % (first) dimension being zero. Handle this, but filling with
+          % NaN.
+          Data = [Data nan(size(Data,1),size(tmp.Data,2))];
+        else
+          Data = [Data tmp.Data];
+        end
       end
     end
     

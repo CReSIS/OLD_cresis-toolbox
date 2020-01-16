@@ -11,7 +11,7 @@ function [theta,sv] = array_proc_sv(Nsv, fc, yAnt, zAnt, roll, LUT, rx_paths)
 %   phase centers because of two way propagation... i.e. k = 4*pi*fc/c)
 %   These are Ny by 1 vectors
 % roll = roll information (aircraft attitude)
-% LUT = measured steering vectors lookup table 
+% LUT = measured steering vectors lookup table
 % rx_paths = active receive adcs
 %
 % sv = steering vector of size Ny by Nsv
@@ -23,7 +23,7 @@ function [theta,sv] = array_proc_sv(Nsv, fc, yAnt, zAnt, roll, LUT, rx_paths)
 % A positive ky with a positive y (y points to the left) implies a positive
 % phase for the steering vector. This means the measurement is closer to
 % the target the bigger y gets (i.e. the more to the left you go)
-% and therefore positive ky implies a target from the left. Positive ky 
+% and therefore positive ky implies a target from the left. Positive ky
 % corresponds to positive theta.
 % kz is always positive. A positive z is always moving away from the target.
 %
@@ -46,55 +46,66 @@ if iscell(Nsv)
     if ni == 4        % Ideal generation
       ky = k*sin(theta);
       kz = k*cos(theta);
-
-    elseif ni > 4     % Measured generation
-      theta = theta + roll;
-      ky = k*sin(theta);
-      kz = k*cos(theta);
-      range = -45:1:45;   % Default sv correction table range
-      theta_deg = round(theta*180/pi);
-      sv = zeros(size(yAnt,1),length(theta_deg));
       
-      if length(theta_deg) > length(yAnt)     
-        angle_all = zeros(size(sv));
-%         angle_all(:,1) = -zAnt*kz(1) + yAnt*ky(1);
-%         angle_all(:,end) = -zAnt*kz(end) + yAnt*ky(end);        
-        sv(:,1) = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz(1) + yAnt*ky(1)));
-        sv(:,end) = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz(end) + yAnt*ky(end)));
+    elseif ni > 4     % Measured generation
+      
+      if 1
+        theta_lut = theta - roll;
+        sv_corr = (interp1(LUT.bins,LUT.sv_real,theta_lut,'linear','extrap') + 1i*interp1(LUT.bins,LUT.sv_imag,theta_lut,'linear','extrap')).';
         
-        idx1 = find(theta_deg >= range(1),1,'first');
-        idx2 = find(theta_deg <= range(end),1,'last');
+        ky = k*sin(theta);
+        kz = k*cos(theta);
+        sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
+        sv = sv .* sv_corr;
         
-        [~,~,roll_idx] = intersect(theta_deg(idx1:idx2),range);
-%         tmp = zeros(length(yAnt),length(roll_idx));
-        tmp = conj(LUT.sv_table(rx_paths,roll_idx));
-%         angle_all(:,idx1:idx2) = angle(conj(LUT.sv_table(rx_paths,roll_idx)));
-        sv(:,idx1:idx2) = sqrt(1/length(yAnt)) * abs(tmp) .* exp(1i * angle(tmp)); 
-
-%         for ant_idx = 1:length(yAnt)
+      else
+        theta = theta + roll;
+        ky = k*sin(theta);
+        kz = k*cos(theta);
+        range = -45:1:45;   % Default sv correction table range
+        theta_deg = round(theta*180/pi);
+        sv = zeros(size(yAnt,1),length(theta_deg));
+        if length(theta_deg) > length(yAnt)
+          angle_all = zeros(size(sv));
+          %         angle_all(:,1) = -zAnt*kz(1) + yAnt*ky(1);
+          %         angle_all(:,end) = -zAnt*kz(end) + yAnt*ky(end);
+          sv(:,1) = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz(1) + yAnt*ky(1)));
+          sv(:,end) = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz(end) + yAnt*ky(end)));
+          
+          idx1 = find(theta_deg >= range(1),1,'first');
+          idx2 = find(theta_deg <= range(end),1,'last');
+          
+          [~,~,roll_idx] = intersect(theta_deg(idx1:idx2),range);
+          %         tmp = zeros(length(yAnt),length(roll_idx));
+          tmp = conj(LUT.sv_table(rx_paths,roll_idx));
+          %         angle_all(:,idx1:idx2) = angle(conj(LUT.sv_table(rx_paths,roll_idx)));
+          sv(:,idx1:idx2) = sqrt(1/length(yAnt)) * abs(tmp) .* exp(1i * angle(tmp));
+          
+          %         for ant_idx = 1:length(yAnt)
           angle_all = interp1([theta_deg(1) range theta_deg(end)], [angle(sv(:,1)) angle(sv(:,idx1:idx2)) angle(sv(:,end))].', theta_deg(1):theta_deg(end)).';
-%           angle_all = interp1([theta_deg(1) range theta_deg(end)], [angle_all(:,1) angle_all(:,idx1:idx2) angle_all(:,end)].', theta_deg(1):theta_deg(end)).';
-%           mag_tmp = interp1([theta_deg(1) range theta_deg(end)], [abs(sv(ant_idx,1)) abs(sv(ant_idx,idx1:idx2)) abs(sv(ant_idx,end))], theta_deg(1):theta_deg(end));
+          %           angle_all = interp1([theta_deg(1) range theta_deg(end)], [angle_all(:,1) angle_all(:,idx1:idx2) angle_all(:,end)].', theta_deg(1):theta_deg(end)).';
+          %           mag_tmp = interp1([theta_deg(1) range theta_deg(end)], [abs(sv(ant_idx,1)) abs(sv(ant_idx,idx1:idx2)) abs(sv(ant_idx,end))], theta_deg(1):theta_deg(end));
           sv = sqrt(1/length(yAnt)) .* exp(1i * angle_all);
-%         end  
-        
-      else 
-        % Individual sv generation, no use in array_proc, just for
-        % integrity
-        for theta_idx = 1:length(theta_deg)
-          tmp = zeros(length(yAnt),1);
-          if (theta_deg(theta_idx) >= range(1) & theta_deg(theta_idx) <= range(end))
-            roll_idx = find(theta_deg(theta_idx) == range);
-            tmp = conj(LUT.sv_table(:,roll_idx));
-            sv(:,theta_idx) = sqrt(1/length(yAnt)) * abs(tmp) .* exp(1i * angle(tmp)); 
-          else 
-            sv(:,theta_idx) = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz(theta_idx) + yAnt*ky(theta_idx)));
+          %         end
+          
+        else
+          % Individual sv generation, no use in array_proc, just for
+          % integrity
+          for theta_idx = 1:length(theta_deg)
+            tmp = zeros(length(yAnt),1);
+            if (theta_deg(theta_idx) >= range(1) & theta_deg(theta_idx) <= range(end))
+              roll_idx = find(theta_deg(theta_idx) == range);
+              tmp = conj(LUT.sv_table(:,roll_idx));
+              sv(:,theta_idx) = sqrt(1/length(yAnt)) * abs(tmp) .* exp(1i * angle(tmp));
+            else
+              sv(:,theta_idx) = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz(theta_idx) + yAnt*ky(theta_idx)));
+            end
           end
+          
         end
-        
       end
       
-      return;  
+      return;
     end
   end
   
@@ -109,36 +120,36 @@ else
   
   % Calculate the angle of arrival for each ky
   theta = atan2(ky,kz);
-%   
-%   if ni > 4     % Measured generation
-%       [theta,sort_idx] = sort(theta,'ascend');
-%       theta = theta + roll;
-%       ky = k*sin(theta);
-%       kz = k*cos(theta);
-%       range = -45:1:45;   % Default sv correction table range
-%       theta_deg = round(theta*180/pi);
-%       sv = zeros(size(yAnt,1),length(theta_deg));
-% 
-%       angle_all = zeros(size(sv));
-%       angle_all(:,1) = -zAnt*kz(1) + yAnt*ky(1);
-%       angle_all(:,end) = -zAnt*kz(end) + yAnt*ky(end);
-%       idx1 = find(theta_deg >= range(1),1,'first');
-%       idx2 = find(theta_deg <= range(end),1,'last');
-% 
-%       [~,~,roll_idx] = intersect(theta_deg(idx1:idx2),range);
-% %         tmp = zeros(length(yAnt),length(roll_idx));
-% %         tmp = conj(LUT.sv_table(rx_paths,roll_idx));
-%       angle_all(:,idx1:idx2) = interp1(range, angle(conj(LUT.sv_table(rx_paths,roll_idx))).',theta_deg(idx1:idx2)).'
-% %       angle_all(:,idx1:idx2) = angle(conj(LUT.sv_table(rx_paths,roll_idx)));
-% %         sv(:,idx1:idx2) = sqrt(1/length(yAnt)) * abs(tmp) .* exp(1i * angle(tmp)); 
-% 
-% %         for ant_idx = 1:length(yAnt)
-%       angle_all = interp1([theta_deg(1) theta_deg(idx1:idx2) theta_deg(end)], [angle_all(:,1) angle_all(:,idx1:idx2) angle_all(:,end)].', theta_deg(1):theta_deg(end)).';
-% %           mag_tmp = interp1([theta_deg(1) range theta_deg(end)], [abs(sv(ant_idx,1)) abs(sv(ant_idx,idx1:idx2)) abs(sv(ant_idx,end))], theta_deg(1):theta_deg(end));
-%       sv = sqrt(1/length(yAnt)) .* exp(1i * angle_all);
-%         return;
-%   end
-
+  %
+  %   if ni > 4     % Measured generation
+  %       [theta,sort_idx] = sort(theta,'ascend');
+  %       theta = theta + roll;
+  %       ky = k*sin(theta);
+  %       kz = k*cos(theta);
+  %       range = -45:1:45;   % Default sv correction table range
+  %       theta_deg = round(theta*180/pi);
+  %       sv = zeros(size(yAnt,1),length(theta_deg));
+  %
+  %       angle_all = zeros(size(sv));
+  %       angle_all(:,1) = -zAnt*kz(1) + yAnt*ky(1);
+  %       angle_all(:,end) = -zAnt*kz(end) + yAnt*ky(end);
+  %       idx1 = find(theta_deg >= range(1),1,'first');
+  %       idx2 = find(theta_deg <= range(end),1,'last');
+  %
+  %       [~,~,roll_idx] = intersect(theta_deg(idx1:idx2),range);
+  % %         tmp = zeros(length(yAnt),length(roll_idx));
+  % %         tmp = conj(LUT.sv_table(rx_paths,roll_idx));
+  %       angle_all(:,idx1:idx2) = interp1(range, angle(conj(LUT.sv_table(rx_paths,roll_idx))).',theta_deg(idx1:idx2)).'
+  % %       angle_all(:,idx1:idx2) = angle(conj(LUT.sv_table(rx_paths,roll_idx)));
+  % %         sv(:,idx1:idx2) = sqrt(1/length(yAnt)) * abs(tmp) .* exp(1i * angle(tmp));
+  %
+  % %         for ant_idx = 1:length(yAnt)
+  %       angle_all = interp1([theta_deg(1) theta_deg(idx1:idx2) theta_deg(end)], [angle_all(:,1) angle_all(:,idx1:idx2) angle_all(:,end)].', theta_deg(1):theta_deg(end)).';
+  % %           mag_tmp = interp1([theta_deg(1) range theta_deg(end)], [abs(sv(ant_idx,1)) abs(sv(ant_idx,idx1:idx2)) abs(sv(ant_idx,end))], theta_deg(1):theta_deg(end));
+  %       sv = sqrt(1/length(yAnt)) .* exp(1i * angle_all);
+  %         return;
+  %   end
+  
 end
 if nargout < 2
   return;
@@ -148,5 +159,3 @@ end
 % to create 2D matrix. Normalize the steering vector lengths.
 sv = sqrt(1/length(yAnt)) * exp(1i*(-zAnt*kz + yAnt*ky));
 % Equivalent: sv = sqrt(1/length(yAnt)) * exp(1i*k*(-zAnt*cos(theta) + yAnt*sin(theta)));
-
-return;

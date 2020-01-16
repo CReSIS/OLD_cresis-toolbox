@@ -1,4 +1,3 @@
-
 function [param,dout] = array_proc(param,din)
 % [param,dout] = array_proc(param,din)
 %
@@ -803,6 +802,16 @@ end
 % bin for that range line.
 last_fprintf_time = -inf;
 last_fprintf_time_bin = -inf;
+
+if any(cfg.method == GEONULL_METHOD)
+  % HACK
+  LUT = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/sv_LUT.mat');
+  LUT.bins = LUT.bins.'/180*pi;
+  LUT.sv = (sqrt(LUT.power_SVmean) .* exp(1i*LUT.angle_SVmean)).';
+  LUT.sv_real = real(LUT.sv);
+  LUT.sv_imag = imag(LUT.sv);
+end
+
 for line_idx = 1:1:Nx_out
   %% Array: Setup
   rline = cfg.lines(line_idx);
@@ -1311,7 +1320,7 @@ for line_idx = 1:1:Nx_out
       theta_int       = surf_doas;
       
       % DEBUG ONLY
-      if 1
+      if 0
         surf_doas = -51;
         theta_int = -51;
       end
@@ -1334,10 +1343,14 @@ for line_idx = 1:1:Nx_out
             z_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(3,rline);
           end
           % Determine Steering Vectors for target and interference
-          [~,A] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+          %[~,A] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
           
-          % DEBUG ONLY
-          if 1
+          roll = param.array_proc.fcs{1}{1}.roll(rline);
+
+          [~,A] = cfg.sv_fh(sv_fh_arg_geonull, cfg.wfs.fc, y_pos{ml_idx}, z_pos{ml_idx}, roll, LUT, []);
+          
+          % DEBUG ONLY bin 501-502, line 1308
+          if 0
             sv_fh_arg_geonull = {'theta'};
             sv_fh_arg_geonull{2} = [theta_desired(des_idx)]; % array_proc_sv breaks if this is a column vector -- fix this!
             [~,Atarget] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
@@ -1359,19 +1372,6 @@ for line_idx = 1:1:Nx_out
         wgeo    = sv_gn{1}.*Hwindow;
         wgeo    = wgeo ./ sqrt(wgeo'*wgeo);
         wgeo     = wgeo ./ length(wgeo);
-        
-%         Hwindow     = Hwindow ./ sqrt(Hwindow'*Hwindow);
-%         sv_standard = sv{1};
-%         sv_standard = sv_standard ./ sqrt(sv_standard'*sv_standard);
-%         w_standard  = sv_standard.*Hwindow;
-%         w_standard  = w_standard ./ sqrt(w_standard'*w_standard);
-%         w_standard  = w_standard ./ (length(w_standard));
-%         
-%         if line_idx == 217
-%           Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(w_standard)).^2);
-%         elseif line_idx == 218
-%           Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(wgeo)).^2);
-%         end
         
         Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(wgeo)).^2);
 
