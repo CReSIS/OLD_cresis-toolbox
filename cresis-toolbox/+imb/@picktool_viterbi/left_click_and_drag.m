@@ -33,7 +33,7 @@ if tool_idx == 1
     auto_idxs_initial = auto_idxs;
     scale = round(length(param.layer.x) / size(image_c, 2));
     auto_idxs = round(auto_idxs./scale);
-    half_idxs = logical(mod(1:length(auto_idxs), scale));
+    half_idxs = ~mod(1:length(auto_idxs), scale);
     % Always include first and last index. A few extra doesn't affect much.
     half_idxs([1 end]) = [1 1];
     auto_idxs = auto_idxs(half_idxs);
@@ -56,8 +56,12 @@ if tool_idx == 1
       surf_bins = interp_finite(surf_bins);
       
       % Match GT points with axis coordinates
-      gt = [param.layer.x(manual_idxs); interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs))];
-      
+      gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs)); 
+            interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs))];
+      x_points = gt(1, :) - gt(1,1);
+      y_points = gt(2, :);
+      gt = [x_points; y_points];
+
       % Echogram Parameters
       viterbi_data   = image_c;
       bottom_bin     = -1;
@@ -66,7 +70,7 @@ if tool_idx == 1
       slope          = round(diff(surf_bins));
       bounds         = [];
       viterbi_weight = ones([1 Nx]);
-      mu_size        = 31;  % TODO: Hardcoded distance? What is mu here? Why is there a division by 1?
+      mu_size        = 31;  % TODO[reece]: Hardcoded distance? What is mu here? Why is there a division by 1?
       mu             = log10(exp(-(-(mu_size-1)/2 : (mu_size-1)/2).^4/1));
       mu(mu<-30)     = -30;
       mu             = mu - mean(mu);
@@ -102,14 +106,14 @@ if tool_idx == 1
         % Along track filtering
         viterbi_data = fir_dec(viterbi_data,ones(1,5)/5,1);
         % Estimate noise level
-        noise_value = mean(mean(viterbi_data(end-80:end-60,:)));  % TODO: What are 80 and 60 here?
+        noise_value = mean(mean(viterbi_data(end-80:end-60,:)));  % TODO[reece]: What are 80 and 60 here?
         % Estimate trend
         trend = mean(viterbi_data,2);
         trend(trend<noise_value) = noise_value;
         % Subtract trend
         viterbi_data = bsxfun(@minus,viterbi_data,trend);
         % Remove bad circular convolution wrap around at end of record
-        viterbi_data(end-70:end,:) = 0;  % TODO: And what is 70?
+        viterbi_data(end-70:end,:) = 0;  % TODO[reece]: And what is 70?
       end
       
       %% Column restriction between first and last selected GT points
@@ -122,100 +126,7 @@ if tool_idx == 1
         slope          = round(diff(surf_bins));
       end
      
-      %% Multiple suppression
-      if obj.top_panel.mult_sup_cbox.Value
-        figure;
-        title('multiple suppression');
-        image(viterbi_data);
-        colormap(1-gray);
-        x_points = gt(1, :) - gt(1,1);
-        y_points = gt(2, :);
-
-        hold on;
-        plot(surf_bins, 'y');
-        plot(x_points, y_points, 'gx');
-        hold off;
-        
-        tic
-        topbuffer = 10;
-        botbuffer = 15;
-        filtvalue = 50;
-        filtdropoff = 1.5;
-        max_multiples = 5;
-        multiple_run_start = NaN;
-        similarity_threshold = .9;
-        segment_size = 15;
-        
-        [~, top] = min(abs(param.echo_time));
-        
-        mults = NaN*ones(max_multiples, length(surf_bins));
-        suppressed = NaN*mults;
-       
-        for mult_num = 1:max_multiples
-          dropoff = filtdropoff*(mult_num-1);
-          if dropoff == 0
-            dropoff = 1;
-          end
-          current_bin = mult_num.*(surf_bins-top)+top;
-          mults(mult_num, :) = current_bin;
-          upper_bin = max(min(round(current_bin + botbuffer), size(viterbi_data, 1)), 1);
-          lower_bin = max(min(round(current_bin - topbuffer), size(viterbi_data, 1)), 1);
-          upper_bin_surf = max(min(round(surf_bins + botbuffer), size(viterbi_data, 1)), 1);
-          lower_bin_surf = max(min(round(surf_bins - topbuffer), size(viterbi_data, 1)), 1);
-          
-          for rline = 1 : size(viterbi_data, 2)
-            if current_bin(rline) > size(viterbi_data, 1)
-              continue;  % Multiple out of window in this column
-            end
-            
-            column_chunk = viterbi_data(lower_bin(rline):upper_bin(rline), rline);
-            column_chunk_surf = viterbi_data(lower_bin_surf(rline):upper_bin_surf(rline), rline);
-            
-            current_mean = mean(column_chunk);
-            surface_mean = mean(column_chunk_surf);
-
-            if surface_mean < 0
-              threshold = 2 - similarity_threshold;
-              % threshold should always move mean towards -inf, not zero
-            else
-              threshold = similarity_threshold;
-            end
-            
-            if (current_mean >= surface_mean * threshold) && (rline < size(viterbi_data, 2)) && current_bin(rline+1) <= size(viterbi_data, 1)
-              hold on;
-              plot(rline, upper_bin(rline), 'g.');
-              plot(rline, lower_bin(rline), 'r.');
-              hold off;
-              pause(.01);
-              % Bright spot in expected multiple location
-              if isnan(multiple_run_start)
-                % Start of new run
-                multiple_run_start = rline;
-              end
-            else
-              if ~isnan(multiple_run_start) && rline - multiple_run_start >= segment_size
-                % Segment of multiple found
-                for column = multiple_run_start:(rline-1)
-                  % Suppress segment
-                  viterbi_data(lower_bin(column):upper_bin(column), column) = imgaussfilt(viterbi_data(lower_bin(column):upper_bin(column), column), filtvalue/dropoff);
-                  suppressed(mult_num, column) = current_bin(column);
-                end
-              end
-              % Segment end
-              multiple_run_start = NaN;
-              image(viterbi_data);
-              hold on;
-              plot(surf_bins, 'y');
-              plot(x_points, y_points, 'gx');
-              plot(mults', 'r-');
-              plot(suppressed', 'b-');
-              hold off;
-            end
-
-          end
-        end
-        fprintf('Multiple suppression took %.2f sec.\n', toc);
-      end
+      [~, top] = min(abs(param.echo_time));
 
       %% Distance-to-Ice-Margin model
       clear DIM DIM_costmatrix;
@@ -234,7 +145,7 @@ if tool_idx == 1
         double(smooth_var), double(slope), int64(bounds), ...
         double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
         double(mask_dist), double(DIM_costmatrix), ...
-        double(transition_mu), double(transition_sigma));
+        double(transition_mu), double(transition_sigma), int64(top));
       toc
       fprintf('Viterbi call took %.2f sec.\n', toc);
       
@@ -243,10 +154,6 @@ if tool_idx == 1
       else
         y_new = y_new(auto_idxs);
       end
-      
-      hold on;
-      plot(y_new, 'g');
-      hold off;
       
       % Interpolate layer to match image axes
       y_new = interp1(1:length(image_y), image_y, y_new);

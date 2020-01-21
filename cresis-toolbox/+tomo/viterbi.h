@@ -22,9 +22,17 @@ const double SIGMA 		 = 24;
 // Scaling for smoothness constraint
 const double SCALE 		 = 12;
 // Relative weight of extra GT
-const double EGT_WEIGHT  = 10; 
+const double EGT_WEIGHT  = 10;  // TODO[reece]: is this supposed to be positive?
+                                //              appears to divide added cost for distance from egt
+                                //              Repulsion is positive and increases cost
+// Relative weight of intersection with expected surface multiple bin
+const double MULTIPLE_BIN_WEIGHT = 10;
+// Maximum multiple number which has any effect on cost
+const double MULTIPLE_MAX_NUM = 5;
+// Maximum travel time distance from closest multiple which has any effect on cost
+const double MULTIPLE_MAX_DIST = 10;
 // Icemask proximity scan threshold
-const double ICE_BIN_THR = 3;  
+const double ICE_BIN_THR = 3;
 // Repulsion from surface
 const double REPULSION   = 150000; 
 // Mass conservation weight
@@ -61,6 +69,7 @@ public:
              const int d_costmatrix_Y,
              const double *d_transition_mu, 
              const double *d_transition_sigma, 
+             const int d_plane_bin,
              double *d_result
 	) : 
 	f_row(d_row),                   
@@ -90,13 +99,14 @@ public:
     f_costmatrix_Y(d_costmatrix_Y),
     f_transition_mu(d_transition_mu),
     f_transition_sigma(d_transition_sigma),
+    f_plane_bin(d_plane_bin),
     f_result(d_result)
 	{  
 		find_path();
 	}
 
 	// VARIABLES
-	const int f_row, f_col, f_mid, f_bgt, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y;
+	const int f_row, f_col, f_mid, f_bgt, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y, f_plane_bin;
 	const double *f_image, *f_mask, *f_mu, *f_sigma, f_egt_weight, *f_smooth_slope,
                  *f_egt_x, *f_egt_y, *f_weight_points, f_smooth_weight,
                  f_smooth_var, f_repulsion, f_ice_bin_thr, *f_mask_dist,  
@@ -106,6 +116,7 @@ public:
 	double *f_result, *f_cost;
 
 	int depth, num_col_vis, t, start_col, end_col;
+  double multiple_cost_base;
 
 	// METHODS
 	int calculate_best(double *path_prob);
@@ -143,7 +154,6 @@ public:
                 s = p;
             }
         }
-        // TODO: Binary cost added here
         dst[d] = src[s] + sqr(s-d-off) * scale; // Minimum value to the midpoint
         dst_ind[d] = s; // Minimum source index for the midpoint
         if(d2 >= d + 1) { // Recursive call, binary search (top half of destinations)
