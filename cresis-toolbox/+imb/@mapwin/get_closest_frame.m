@@ -54,7 +54,8 @@ if obj.map.fline_source == 1
     if frm_status ~= 1
       error_str = sprintf('Frame %s does not exist in OPS for %s:%s.', frame_name, sys, season_name);
       uiwait(msgbox(error_str,'Search error','modal'));
-      error(error_str);
+      warning(error_str);
+      return;
     else
       % Set data properties
       data = struct('properties',[]);

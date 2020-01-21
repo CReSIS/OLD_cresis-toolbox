@@ -205,6 +205,9 @@ else
     obj.plot_cursors();
   end
   
+  % Change dynamic range
+  obj.left_panel.imagewin.update_caxis();
+  
   % Since we have reloaded the layers, we must resync to our undo stack
   % to re-execute any un-saved changes
   cmds_list = obj.undo_stack.get_save_cmds(false);
@@ -212,6 +215,7 @@ else
   
   %% Set layer and cross over visibility
   obj.set_visibility();
+
   
   %% Plot cursor (if valid)
   xlimits = xlim(obj.right_panel.axes.handle);

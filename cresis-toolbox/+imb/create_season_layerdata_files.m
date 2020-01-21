@@ -25,6 +25,7 @@ function create_season_layerdata_files
 %% Select season parameter files
 param_fns = {};
 % param_fns{end+1} = 'accum_param_2018_Antarctica_TObas.xls';
+param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
 % param_fns{end+1} = 'rds_param_1993_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1995_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1996_Greenland_P3.xls';
@@ -72,7 +73,7 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2017_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_DC8.xls';
-param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
+% param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
