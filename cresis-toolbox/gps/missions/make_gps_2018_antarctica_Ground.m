@@ -79,10 +79,24 @@ if strcmpi(gps_source_to_use,'arena')
   sync_params{file_idx} = struct('time_reference','utc');
   
 elseif strcmpi(gps_source_to_use,'arena_cpu_time')
+  correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
     
-  year = 2018; month = 12; day = 17;
+%   year = 2018; month = 12; day = 17;
+%   file_idx = file_idx + 1;
+%   in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('UA_%04d%02d%02d',year,month,day)),'','','gps.txt');
+%   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%   file_type{file_idx} = 'arena';
+%   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
+%   gps_source{file_idx} = 'arena-field';
+%   sync_flag{file_idx} = 1;
+%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
+%   sync_file_type{file_idx} = 'arena_cpu_time';
+%   sync_params{file_idx} = struct('time_reference','utc', ...
+%     'cpu_time_fn',fullfile(in_base_path,sprintf('cpu_time_%04d%02d%02d.csv',year,month,day)));
+    
+  year = 2018; month = 12; day = 20;
   file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('UA_%04d%02d%02d',year,month,day)),'','','gps.txt');
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,'UA_LOG',sprintf('UA_%04d%02d%02d',year,month,day)),'','','gps.txt');
   out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
   file_type{file_idx} = 'arena';
   params{file_idx} = struct('year',year,'month',month,'day',day,'time_reference','utc');
@@ -91,25 +105,62 @@ elseif strcmpi(gps_source_to_use,'arena_cpu_time')
   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
   sync_file_type{file_idx} = 'arena_cpu_time';
   sync_params{file_idx} = struct('time_reference','utc', ...
-    'cpu_time_fn',fullfile(in_base_path,sprintf('cpu_time_%04d%02d%02d.csv',year,month,day)));
+    'cpu_time_correction',correction);
 
 elseif strcmpi(gps_source_to_use,'trimble_cpu_time')
+  correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
 
-  year = 2018; month = 12; day = 16;
-  file_idx = file_idx + 1;
-  in_fns{file_idx} = get_filenames(in_base_path,'','','iceradar_SM111_areaABC.pos');
-  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-  file_type{file_idx} = 'General_ASCII';
-  params{file_idx} = struct('time_reference','gps','headerlines',17,'format_str','%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f');
-  params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10'}
-  params{file_idx}.textscan = {};
-  gps_source{file_idx} = 'brice-final20190404';
-%   sync_flag{file_idx} = 1;
-%   sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
-%   sync_file_type{file_idx} = 'arena_cpu_time';
-%   sync_params{file_idx} = struct('time_reference','utc', ...
-%     'cpu_time_fn',fullfile(in_base_path,sprintf('cpu_time_%04d%02d%02d.csv',year,month,day)));
-  
+%   year = 2018; month = 12;
+%   for day = [17 19 20 21 22 23 24 25 26 27 28 29]
+%     file_idx = file_idx + 1;
+%     in_fns{file_idx} = get_filenames(fullfile(in_base_path,'GNSS_SM111'),'','','iceradar_SM111_areaABC.pos');
+%     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%     file_type{file_idx} = 'General_ASCII';
+%     params{file_idx} = struct('time_reference','gps','headerlines',17,'format_str','%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f');
+%     params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10'};
+%     params{file_idx}.textscan = {};
+%     gps_source{file_idx} = 'brice-final20190404';
+%     sync_flag{file_idx} = 1;
+%     sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
+%     sync_file_type{file_idx} = 'arena_cpu_time';
+%     sync_params{file_idx} = struct('time_reference','utc', ...
+%       'cpu_time_correction',correction);
+%   end
+
+%   year = 2018; month = 12;
+%   for day = 31
+%     file_idx = file_idx + 1;
+%     in_fns{file_idx} = get_filenames(fullfile(in_base_path,'GNSS_SM111'),'','','iceradar_SM111_BC_ARP2.pos');
+%     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%     file_type{file_idx} = 'General_ASCII';
+%     params{file_idx} = struct('time_reference','gps','headerlines',17,'format_str','%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f');
+%     params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10'};
+%     params{file_idx}.textscan = {};
+%     gps_source{file_idx} = 'brice-final20190404';
+%     sync_flag{file_idx} = 1;
+%     sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
+%     sync_file_type{file_idx} = 'arena_cpu_time';
+%     sync_params{file_idx} = struct('time_reference','utc', ...
+%       'cpu_time_correction',correction);
+%   end
+
+  year = 2019; month = 1;
+  for day = 8%[2 3 4 5 6 7 8]
+    file_idx = file_idx + 1;
+    in_fns{file_idx} = get_filenames(fullfile(in_base_path,'GNSS_SM111'),'','','iceradar_SM111_BC_ARP2.pos');
+    out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+    file_type{file_idx} = 'General_ASCII';
+    params{file_idx} = struct('time_reference','gps','headerlines',17,'format_str','%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f');
+    params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10'};
+    params{file_idx}.textscan = {};
+    gps_source{file_idx} = 'brice-final20190404';
+    sync_flag{file_idx} = 1;
+    sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
+    sync_file_type{file_idx} = 'arena_cpu_time';
+    sync_params{file_idx} = struct('time_reference','utc', ...
+      'cpu_time_correction',correction);
+  end
+
 end
 
 % ======================================================================
@@ -139,6 +190,26 @@ for idx = 1:length(file_type)
       
       save(out_fn,'-append','-struct','gps','gps_time','lat','lon','elev','roll','pitch','heading');
     end
+  end
+  
+  if regexpi(gps.gps_source,'brice')
+    % Extrapolation is necessary because GPS data starts after/stops before
+    % the beginning/end of the radar data.
+    warning('Smoothing GPS and IMU data: %s', out_fn);
+    gps = load(out_fn);
+    
+    gps.lat = sgolayfilt(gps.lat,2,31); % Adjust filter length as needed to remove high frequency noise
+    gps.lon = sgolayfilt(gps.lon,2,31); % Adjust filter length as needed to remove high frequency noise
+    gps.elev = sgolayfilt(gps.elev,2,201); % Adjust filter length as needed to remove high frequency noise
+    
+    heading_x = cos(gps.heading);
+    heading_y = sin(gps.heading);
+    heading_x  = sgolayfilt(heading_x,2,31); % Adjust filter length as needed to remove high frequency noise
+    heading_y  = sgolayfilt(heading_y,2,31); % Adjust filter length as needed to remove high frequency noise
+    gps.heading = atan2(heading_y,heading_x);
+    
+    save(out_fn,'-append','-struct','gps','lat','lon','elev','heading');
+
   end
   
   if regexpi(out_fn,'201810XX')

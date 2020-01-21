@@ -678,7 +678,7 @@ if ~isempty(param.array.layer_name) && (strcmpi(param.array.layer_name,'top') ||
 end
 
 % Null Steering Setup - Check to avoid mainlobe nulling 
-if any(cfg.method == GEONULL_METHOD) || any(cfg.method == GSLC_METHOD)
+if any(cfg.method == GEONULL_METHOD) || any(cfg.method == GSLC_METHOD) || any(cfg.method == SNAPSHOT_METHOD)
   % NOTE:  ASSUMPTION IS THAT EITHER USER PASSES IN DOA_THETA_GUARD OR
   % DOA_THETA_GAURD IS EMPTY
   % For geonull method and the sidelobe canceller, we define theta_guard to 
@@ -802,6 +802,16 @@ end
 % bin for that range line.
 last_fprintf_time = -inf;
 last_fprintf_time_bin = -inf;
+
+if any(cfg.method == GEONULL_METHOD)
+  % HACK
+  LUT = load('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/sv_LUT.mat');
+  LUT.bins = LUT.bins.'/180*pi;
+  LUT.sv = (sqrt(LUT.power_SVmean) .* exp(1i*LUT.angle_SVmean)).';
+  LUT.sv_real = real(LUT.sv);
+  LUT.sv_imag = imag(LUT.sv);
+end
+
 for line_idx = 1:1:Nx_out
   %% Array: Setup
   rline = cfg.lines(line_idx);
@@ -980,8 +990,8 @@ for line_idx = 1:1:Nx_out
       theta1_i = interp_finite(interp1(surf_twtt_theta1, theta1, radar_twtt));
       theta2_i = interp_finite(interp1(surf_twtt_theta2, theta2,radar_twtt));
       
-      theta1_i = (interp1(surf_twtt_theta1, theta1, radar_twtt));
-      theta2_i = (interp1(surf_twtt_theta2, theta2,radar_twtt));
+%       theta1_i = (interp1(surf_twtt_theta1, theta1, radar_twtt));
+%       theta2_i = (interp1(surf_twtt_theta2, theta2,radar_twtt));
 
       if cfg.debug_plots
         figure(1834);
@@ -1309,6 +1319,12 @@ for line_idx = 1:1:Nx_out
       surf_doas       = surf_doas(~isnan(surf_doas));
       theta_int       = surf_doas;
       
+      % DEBUG ONLY
+      if 0
+        surf_doas = -51;
+        theta_int = -51;
+      end
+      
       % Loop over pointing directions and beamform
       for des_idx = 1:length(theta_desired)
         keep_out_mask = abs(theta_int - theta_desired(des_idx)) < cfg.doa_theta_guard;
@@ -1327,7 +1343,24 @@ for line_idx = 1:1:Nx_out
             z_pos{ml_idx}(wf_adc_idx,1) = cfg.fcs{ml_idx}{wf_adc_idx}.pos(3,rline);
           end
           % Determine Steering Vectors for target and interference
-          [~,A] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+          %[~,A] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+          
+          roll = param.array_proc.fcs{1}{1}.roll(rline);
+
+          [~,A] = cfg.sv_fh(sv_fh_arg_geonull, cfg.wfs.fc, y_pos{ml_idx}, z_pos{ml_idx}, roll, LUT, []);
+          
+          % DEBUG ONLY bin 501-502, line 1308
+          if 0
+            sv_fh_arg_geonull = {'theta'};
+            sv_fh_arg_geonull{2} = [theta_desired(des_idx)]; % array_proc_sv breaks if this is a column vector -- fix this!
+            [~,Atarget] = cfg.sv_fh(sv_fh_arg_geonull,cfg.wfs.fc,y_pos{ml_idx},z_pos{ml_idx});
+            Atarget = Atarget ./ sqrt(Atarget'*Atarget);
+            Aint = [0.3075 + 0.0000i, -0.3686 + 0.0469i, 0.4972 - 0.1680i, -0.4738 - 0.1331i, 0.2880 + 0.2123i, -0.2115 - 0.1632i, 0.0480 + 0.2192i];
+%             Aint =  [0.2090 + 0.0000i, -0.2008 + 0.2626i, -0.2076 - 0.3079i, 0.4031 - 0.1203i, -0.0308 + 0.4104i, -0.3837 - 0.1338i, 0.3912 - 0.2112i];
+            Aint = (Aint(:));
+            A = [Atarget,Aint];
+          end
+          
           % Apply pseudoinverse to g
           w = A * inv(A'*A) *g;
           w = w ./ sqrt(w'*w);
@@ -1335,16 +1368,34 @@ for line_idx = 1:1:Nx_out
           
         end
         Hwindow = boxcar(Nc);
-        Sarray.geonull(des_idx,bin_idx) = mean(abs(sv_gn{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-        for ml_idx = 2:length(din)        
-          dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
-          dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
-          Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) ...
-            + mean(abs(sv_gn{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
-        end
-        Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) / length(din);
+        Hwindow = Hwindow ./ sqrt(Hwindow'*Hwindow);
+        wgeo    = sv_gn{1}.*Hwindow;
+        wgeo    = wgeo ./ sqrt(wgeo'*wgeo);
+        wgeo     = wgeo ./ length(wgeo);
         
+        Sarray.geonull(des_idx,bin_idx) = mean(abs(dataSample*conj(wgeo)).^2);
+
+        for ml_idx = 2:length(din)
+          dataSample = din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:);
+          dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+          wgeo = sv_gn{ml_idx}.*Hwindow;
+          wgeo = wgeo ./ sqrt(wgeo'*wgeo);
+          wgeo = wgeo ./ length(wgeo);          
+          Sarray.geonull(des_idx,bin_idx) = Sarray.geo(des_idx,bin_idx) ...
+            + mean(abs(dataSample*conj(wgeo)).^2);
+        end
+             
       end
+%         Sarray.geonull(des_idx,bin_idx) = mean(abs(sv_gn{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+%         for ml_idx = 2:length(din)        
+%           dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+%           dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
+%           Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) ...
+%             + mean(abs(sv_gn{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+%         end
+%         Sarray.geonull(des_idx,bin_idx) =       Sarray.geonull(des_idx,bin_idx) / length(din);
+%         
+%       end
       
       if cfg.debug_plots
         theta_vec       = linspace(-pi/2,pi/2,256);
@@ -1422,8 +1473,8 @@ for line_idx = 1:1:Nx_out
           [U,S,V] = svd(A);
           Ca = U(:,end-(Nc-Nsrc)+1:end);
           % Alternatively we can use Ca = null(A') here.
-          % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE NON
-          % ADAPTIVE MLE
+          % Quiescent vector - THE QUIESCENT VECTOR IS THE SAME AS THE 
+          % GEONULL WEIGHT VECTOR
           wq = A*inv(A'*A)*g;
           
           % GSLC quantities
@@ -1433,6 +1484,8 @@ for line_idx = 1:1:Nx_out
           % Compute the adaptive portion of the weight vector
           wa      = Ca*inv(R_tilda)*p_tilda;
           w_gslc  = wq - wa;
+          w_gslc  = w_gslc ./ sqrt(w_gslc'*w_gslc);
+          w_gslc  = w_gscl ./ length(w_gslc);
           sv_gslc{ml_idx} = w_gslc;
           
         end
@@ -3061,6 +3114,15 @@ for line_idx = 1:1:Nx_out
       
     elseif any(cfg.method == SNAPSHOT_METHOD)
       %% Array: SNAPSHOT
+      
+      % Store the snapshot
+      % -------------------------------------------------------------------
+      dataSample = double(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
+      dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb, Nc]);
+      tout.snapshot.tomo.img(bin_idx,1:Nc,line_idx) = dataSample;
+      
+      % Estimate power from each source
+      % -------------------------------------------------------------------
       surf_doas   = surf_theta(bin_idx,:);
       Nsrc_new    = length(surf_doas);
       
@@ -3070,7 +3132,8 @@ for line_idx = 1:1:Nx_out
       end
       
       surf_index = 1:length(surf_doas);
-      theta_desired = surf_doas;      
+      theta_desired = surf_doas;
+      surf_power = [];
       for des_idx = 1:length(theta_desired)
         
         if isnan(theta_desired(des_idx))
@@ -3103,25 +3166,36 @@ for line_idx = 1:1:Nx_out
             % Apply pseudoinverse to g
             w = A * inv(A'*A) *g;
             w = w ./ sqrt(w'*w);
-            sv{ml_idx} = w;
+            sv_gn{ml_idx} = w;
             
           end
+          
           Hwindow = boxcar(Nc);
-          surf_power(des_idx) = mean(abs(sv{1}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+          Hwindow = Hwindow ./ sqrt(Hwindow'*Hwindow);
+          wgeo    = sv_gn{1}.*Hwindow;
+          wgeo    = wgeo ./ sqrt(wgeo'*wgeo);
+          wgeo     = wgeo ./ length(wgeo);
+          
+          surf_power(des_idx) = mean(abs(dataSample*conj(wgeo)).^2);
+          
           for ml_idx = 2:length(din)
             dataSample = double(din{ml_idx}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
             dataSample = reshape(dataSample,[length(cfg.bin_rng)*length(line_rng)*Na*Nb Nc]);
             surf_power(des_idx) =       surf_power(des_idx) ...
               + mean(abs(sv_gn{ml_idx}(:,:)'*bsxfun(@times,Hwindow,dataSample.')).^2,2);
+            
+            wgeo = sv_gn{ml_idx}.*Hwindow;
+            wgeo = wgeo ./ sqrt(wgeo'*wgeo);
+            wgeo = wgeo ./ length(wgeo);
+            surf_power(des_idx) = surf_power(des_idx) ...
+              + mean(abs(dataSample*conj(wgeo)).^2);
           end
           surf_power(des_idx) =       surf_power(des_idx) / length(din);
         end
       end
       % Store the power estimated from each source
-      tout.snapshot.tomo.power(bin_idx,1:length(surf_power))=surf_power;
-      % Store the snapshot
-      dataSample = squeeze(din{1}(bin+cfg.bin_rng,rline+line_rng,:,:,:));
-      tout.snapshot.tomo.img(bin_idx,:,line_idx) = dataSample;
+      tout.snapshot.tomo.power(bin_idx,1:length(surf_power),line_idx)=surf_power;
+      
       
       if cfg.tomo_en
         % Collect source DOAs for the range bin and along-track position
@@ -3134,7 +3208,7 @@ for line_idx = 1:1:Nx_out
           Ngrow       = Nsrc_new - Nsrc_old;
           tout.snapshot.tomo.surf_theta = cat(2,tout.snapshot.tomo.surf_theta,nan(size(tout.snapshot.tomo.surf_theta,1),Ngrow,size(tout.snapshot.tomo.surf_theta,3)));
         end
-        tout.snapshot.tomo.surf_theta(bin_idx,1:length(surf_doas)) = surf_doas;
+        tout.snapshot.tomo.surf_theta(bin_idx,1:length(surf_doas),line_idx) = surf_doas;
         
         surf_mask   = surf_ice_mask(bin_idx,:);
         Nsrc_new    = length(surf_mask);
@@ -3145,7 +3219,7 @@ for line_idx = 1:1:Nx_out
           Ngrow       = Nsrc_new - Nsrc_old;
           tout.snapshot.tomo.surf_ice_mask = cat(2,tout.snapshot.tomo.surf_ice_mask,nan(size(tout.snapshot.tomo.surf_ice_mask,1),Ngrow,size(tout.snapshot.tomo.surf_ice_mask,3)));
         end
-        tout.snapshot.tomo.surf_ice_mask(bin_idx,1:length(surf_mask)) = surf_mask;
+        tout.snapshot.tomo.surf_ice_mask(bin_idx,1:length(surf_mask),line_idx) = surf_mask;
       end
 
     end
@@ -3203,13 +3277,14 @@ for line_idx = 1:1:Nx_out
     end
   end
   
-  if 0 && (~mod(line_idx,size(dout.img,2)) || line_idx == 1)
+  if 0 && (~mod(line_idx,20) || line_idx == Nx_out || line_idx == 1)
     %% DEBUG outputs
     % change 0&& to 1&& on line above to run it
     m = array_proc_method_str(cfg.method(1));
     if cfg.method < DOA_METHOD_THRESHOLD
       figure(1); clf;
-      imagesc(10*log10(Sarray.(m)));
+      imagesc(10*log10(tout.(m).img));
+      keyboard;
       
     else
       figure(1); clf;

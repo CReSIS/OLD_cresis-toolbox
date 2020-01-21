@@ -896,6 +896,7 @@ classdef surfdata < handle
     end
     
     function [] = run_add_surf_from_dem()
+      %% run add surf from dem
       % script run_add_surf_from_dem
       %
       % script for running tomo.surfdata.add_surf_from_dem
@@ -905,7 +906,7 @@ classdef surfdata < handle
       % See also: tomo.surfdata
       
       
-      %% User Setup
+      % User Setup
       % =========================================================================
       param_override = [];
       params = read_param_xls(ct_filename_param('rds_param_2014_Greenland_P3.xls'));
@@ -921,7 +922,7 @@ classdef surfdata < handle
       params = ct_set_params(params, 'add_surf_from_dem.dem_guard', 30e3);
 %       params = ct_set_params(params, 'add_surf_from_dem.dem_per_slice_guard', 500e3);
       
-      %% Automated Section
+      % Automated Section
       % =========================================================================
       % Input checking
       global gRadar;
@@ -943,6 +944,7 @@ classdef surfdata < handle
     end
     
     function surf = add_surf_from_dem(param,param_override)
+      %% add surf from dem
       % tomo.add_surf_from_dem(param,param_override)
       %
       % param:  struct with processing parameters or function handle to
@@ -963,7 +965,7 @@ classdef surfdata < handle
       % See also:  run_add_surf_from_dem
       %
       %
-      %% General Setup
+      % General Setup
       % =================================================================
       physical_constants
       param = merge_structs(param,param_override);
@@ -972,7 +974,7 @@ classdef surfdata < handle
       fprintf('%s: %s (%s)\n', mfilename, param.day_seg, datestr(now));
       fprintf('==========================================================\n');
       
-      %% Input Checks
+      % Input Checks
       % =================================================================
       
       % Load frames file

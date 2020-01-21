@@ -83,7 +83,7 @@ if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) %...
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(gps_source,'arena'))
+if (strcmpi(param.season_name,'2018_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','brice'})))
   % Platform: Ground based tracked vehicles, GPS antenna on top of tracked
   % vehicle
   %
@@ -1249,33 +1249,60 @@ if (strcmpi(param.season_name,'2018_Antarctica_Ground') && strcmpi(radar_name,'r
   % antennas mounted on the right side. The antennas were mounted from the
   % roof of the tracked vehicle.
   %
-  % What is the mapping between radar RF inputs/outputs and each of the
-  % eight log periodic antennas?
-  % AWG0 T/R Antenna #1
-  % AWG1 T/R Antenna #2
-  % AWG2 T/R Antenna #3
-  % AWG3 T/R Antenna #4
-  % Antenna #5
-  % Antenna #6
-  % Antenna #7
-  % Antenna #8
+  % See NDF_Field_Report_BVL_v012.docx for details
   %
-  % What is the offset from the GPS antenna which was used to provide the
-  % PPP trajectories to each of the radar antenna phase centers?
-  LArx(1,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.x; % m
-  LArx(2,:)   = ([-1.5 + (-4:-1)*0.75, 1.5 + (1:4)*0.75]) - gps.y; % m
-  LArx(3,:)   = (-1 + [0 0 0 0 0 0 0 0]) - gps.z; % m
+  % Report is missing z-offset between Trimbal GPS antenna phase center and
+  % radar antenna phase centers.
+  % Report is missing the location of  the radar antenna phase centers on
+  % the antennas themselves. The model number of the antennas is not given.
+  % Assume here that the z-offset is zero.
+  %
+  % Report gives distance of antennas off the ground of 4.1 m.
+  %
+  % Report does not give the y-offset of the Trimbal antenna from the side
+  % of the vehicle. Assume here that the offset is 0.15 m.
+  %
+  % Distance from side of vehicle to first antenna is given as 250 cm and
+  % 262 cm. By measuring pixels in the picture, 250 cm seems correct on
+  % both sides of the vehicle.
+  %
+  % rx_paths are labeled from left to right in order:
+  % rx_paths adc
+  %    1      8 Rx only Antenna #8 in figure
+  %    2      7 Rx only Antenna #7 in figure
+  %    3      6 Rx only Antenna #6 in figure
+  %    4      5 Rx only Antenna #5 in figure
+  %    5      3 AWG0 T/R Antenna #1 in figure
+  %    6      1 AWG1 T/R Antenna #2 in figure
+  %    7      4 AWG2 T/R Antenna #3 in figure
+  %    8      2 AWG3 T/R Antenna #4 in figure
+  %
+  % adc    rx_paths
+  %    1      6
+  %    2      8
+  %    3      5
+  %    4      7
+  %    5      4
+  %    6      3
+  %    7      2
+  %    8      1
+  %
+  % [6 8 5 7 4 3 2 1]
   
-  LAtx(1,:)   = (0 + [0 0 0 0]) - gps.x; % m
-  LAtx(2,:)   = (-1.5 + (-4:-1)*0.75) - gps.y; % m
-  LAtx(3,:)   = (-1 + [0 0 0 0]) - gps.z; % m
+  LArx(1,:)   = (2.25+.60+2.00-1.00 + [0 0 0 0 0 0 0 0]) - gps.x; % m
+  LArx(2,:)   = ([0.15-2.85-2.5 + (3:-1:0)*-1.05, 0.15+2.5 + [0:3]*1.05]) - gps.y; % m
+  LArx(3,:)   = (0 + [0 0 0 0 0 0 0 0]) - gps.z; % m
+  
+  LAtx(1,:)   = (2.25+.60+2.00-1.00 + [0 0 0 0]) - gps.x; % m
+  LAtx(2,:)   = (0.15+2.5 + [0:3]*1.05) - gps.y; % m
+  LAtx(3,:)   = (0 + [0 0 0 0]) - gps.z; % m
   
   if ~exist('rxchannel','var') || isempty(rxchannel)
-    rxchannel = 4;
+    rxchannel = 5;
   end
   
   if rxchannel == 0
-    rxchannel = 4;
+    rxchannel = 5;
     tx_weights = ones(1,size(LAtx,2));
   end
 end

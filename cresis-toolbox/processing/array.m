@@ -175,7 +175,7 @@ param.array.surf_layer.existence_check = false;
 param = array_proc(param);
 
 if ~isfield(param.array,'fcs_pos_averaged') || isempty(param.array.fcs_pos_averaged)
-  if any(param.array.method > SNAPSHOT_METHOD_THRESHOLD)
+  if any(param.array.method >= SNAPSHOT_METHOD_THRESHOLD)
     % Should usually be false for snapshot methods so that the position
     % will be returned for each array element.
     param.array.fcs_pos_averaged = false;
@@ -234,7 +234,16 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
   for img = 1:length(param.array.imgs)
     wf = param.array.imgs{img}{1}(1,1);
     % Fast time sample/dbin * # steering vectors
-    total_num_sam_output(img) = total_num_sam_output(img) + wfs(wf).Nt/param.array.dbin*Nsv;
+    if any(param.array.method == SNAPSHOT_METHOD)
+      num_chan = 0;
+      for ml_idx = 1:length(param.array.imgs{img})
+        num_chan = num_chan + size(param.array.imgs{img}{ml_idx},1);
+      end
+      total_num_sam_output(img) = total_num_sam_output(img) + wfs(wf).Nt/param.array.dbin*num_chan;
+    else
+      total_num_sam_output(img) = total_num_sam_output(img) + wfs(wf).Nt/param.array.dbin*Nsv;
+    end
+    
     for ml_idx = 1:length(param.array.imgs{img})
       wf = param.array.imgs{img}{ml_idx}(1,1);
       % Fast time sample * # wf-adc pairs in multilook * # subapertures
@@ -242,7 +251,7 @@ if any(strcmpi(radar_name,{'acords','hfrds','hfrds2','mcords','mcords2','mcords3
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
-  cpu_time_mult = 6e-6;
+  cpu_time_mult = 6e-9;
   mem_mult = 32;
   
 elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband3','kaband','kaband3','snow5','snow8'}))
@@ -256,7 +265,7 @@ elseif any(strcmpi(radar_name,{'snow','kuband','snow2','kuband2','snow3','kuband
         * size(param.array.imgs{img}{ml_idx},1) * numel(param.array.subaps{img}{ml_idx});
     end
   end
-  cpu_time_mult = 4e-6;
+  cpu_time_mult = 4e-9;
   mem_mult = 32;
   
 else
@@ -278,7 +287,7 @@ for method_idx = 1:length(param.array.method)
     case GSLC_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 8;
     case SNAPSHOT_METHOD
-      cpu_time_method_mult = cpu_time_method_mult + 8;
+      cpu_time_method_mult = cpu_time_method_mult + 32;
     case MLE_METHOD
       cpu_time_method_mult = cpu_time_method_mult + 480;
     otherwise
@@ -393,7 +402,7 @@ for frm_idx = 1:length(param.cmd.frms);
     dparam.cpu_time = 0;
     dparam.mem = 0;
     for img = 1:length(param.array.imgs)
-      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*cpu_time_mult;
+      dparam.cpu_time = dparam.cpu_time + 10 + Nx*total_num_sam_input(img)*total_num_sam_output(img)*cpu_time_mult;
       % Take the max of the input data size and the output data size
       dparam.mem = max(dparam.mem,250e6 + Nx*total_num_sam_input(img)*mem_mult ...
         + Nx/param.array.dline*total_num_sam_output(img)*mem_mult );

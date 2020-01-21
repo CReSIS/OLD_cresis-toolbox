@@ -515,10 +515,20 @@ for state_idx = 1:length(states)
                 if swap_bytes_en
                   radar_header_type = mod(swapbytes(typecast(file_data(total_offset+(9:12)),'uint32')),2^31); % Ignore MSB
                   radar_header_len = double(swapbytes(typecast(file_data(total_offset+(13:16)),'uint32')));
+                  if radar_header_len ~= 48
+                    % Bad header length, skip this record
+                    missed_wf_adc = true;
+                    break;
+                  end
                   radar_profile_length = double(swapbytes(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32')));
                 else
                   radar_header_type = mod(typecast(file_data(total_offset+(9:12)),'uint32'),2^31); % Ignore MSB
                   radar_header_len = double(typecast(file_data(total_offset+(13:16)),'uint32'));
+                  if radar_header_len ~= 48
+                    % Bad header length, skip this record
+                    missed_wf_adc = true;
+                    break;
+                  end
                   radar_profile_length = double(typecast(file_data(total_offset+radar_header_len+(21:24)),'uint32'));
                 end
                 if any(radar_header_type == [5 16 23])
