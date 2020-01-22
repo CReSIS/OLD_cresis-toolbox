@@ -18,7 +18,40 @@ clear coregistration_time_shift;
 pass_en_mask = [];
 fn = '';
 output_fn_midfix = '';
+
 if 1
+  %% Summit Camp: 2012-2014
+  insar_mode = 1; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
+
+  % equalization = ones(1,30);
+%   equalization = 10.^([1.9 2.9 2.2 2.1 1.9 3.2 3.0 3.4 0.3 4.4 3.1 0.9 0.3 -0.5 1.0 -3.4 -3.3 -3.1 -3.0 -2.4 -3.4 -3.4 -2.6 -1.5 -2.5 -2.4 -2.4 -0.1 4.9 -1.5]) ...
+%     .* exp(1i*([7.9 22.5 19.7 22.7 29.9 14.9 22.3 0.0 1.5 5.4 13.4 19.2 17.1 17.8 22.7 167.4 166.3 177.1 164.3 -177.6 165.9 171.6 155.3 154.6 157.5 164.6 179.0 176.7 174.8 -129.8]/180/pi));
+  equalization = 10.^(zeros(1,30)) ...
+    .* exp(1i*([zeros(1,15) 167.4 166.3 177.1 164.3 -177.6 165.9 171.6 155.3 154.6 157.5 164.6 179.0 176.7 174.8 -129.8]/180/pi));
+
+  % Enable for waveform 2
+  rbins = 220:420;
+  if ispc
+    fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('summit_2012_2014_wf2.mat'));
+  else
+    fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('summit_2012_2014_wf2.mat'));
+  end
+  
+  if 0
+    baseline_master_idx = 8;
+    master_idx = 8;
+    output_fn_midfix = '';
+    pass_en_mask = false(1,31);
+    pass_en_mask(1:15) = true;
+  elseif 1
+    baseline_master_idx = 15+8;
+    master_idx = 15+8;
+    output_fn_midfix = '2012';
+    pass_en_mask = false(1,31);
+    pass_en_mask(16:30) = true;
+  end
+  
+elseif 0
   %% 2011 and 2014 Comparison
   insar_mode = 3; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
   
@@ -379,6 +412,7 @@ proj = geotiffinfo(ct_filename_gis([],fullfile('greenland','Landsat-7','Greenlan
 
 physical_constants;
 
+[fn_dir,fn_name] = fileparts(fn);
 load(fn);
 
 % Input check
@@ -629,7 +663,6 @@ for pass_out_idx = 1:length(pass_en_idxs)
     % Phase only correction for slope
     if 1
       % Using file generated from this dataset
-      [fn_dir,fn_name] = fileparts(fn);
       fn_slope = fullfile(fn_dir,[fn_name '_slope.mat']);
       load(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
       slope = interp1(GPS_time,slope.',pass(baseline_master_idx).gps_time).';
@@ -882,11 +915,11 @@ param.array.tomo_en = true;
 array_proc_methods;
 param = array_proc(param);
 param.array.method = STANDARD_METHOD;
-[param_array0,result0] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+[param_array0,result0] = array_proc(param,{data{1}(:,:,:,:,:)});
 % param.array.method = MVDR_METHOD;
-% [param_array1,result1] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+% [param_array1,result1] = array_proc(param,{data{1}(:,:,:,:,:)});
 param.array.method = MUSIC_METHOD;
-[param_array2,result2] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+[param_array2,result2] = array_proc(param,{data{1}(:,:,:,:,:)});
 
 figure(2001); clf;
 imagesc(lp(result0.img))
@@ -968,55 +1001,3 @@ fn_music = fullfile(fn_dir,[fn_name output_fn_midfix '_music.fig']);
 saveas(2003,fn_music);
 fn_single = fullfile(fn_dir,[fn_name output_fn_midfix '_single.fig']);
 saveas(2004,fn_single);
-
-return
-
-
-
-%% Other plots and plot setup
-
-
-figure(500); clf;
-for idx = 1800:-1:600%1:50:size(result1.img,3)
-  imagesc(lp(result0.img(20:120,:,idx)))
-  colormap(jet(256));
-  caxis([-80 -20])
-  idx
-  pause
-end
-
-%%
-
-figure; plot(array_param2.theta*180/pi,lp(result1.img(20+54-1,:,1291)))
-grid on
-xlim([-90 90])
-xlabel('Direction of arrival (deg)');
-ylabel('Relative power (dB)');
-title('Bad line, MVDR passes [2 4 6], rline 1291');
-
-figure(h_fig_ref_idx); h_axes = gca;
-%figure(h_fig_map); h_axes(end+1) = gca;
-figure(h_fig_elev); h_axes(end+1) = gca;
-linkaxes(h_axes,'x');
-
-h_fig_combined = figure(1003); clf;
-imagesc(lp(mean(data(rbins,:,[1 6]),3)));
-colormap(1-gray(256));
-set(h_fig_combined,'WindowStyle','Docked');
-hold on;
-plot(ref.surface_bin-rbins(1)+1);
-
-surf_data = zeros(length(pass),size(data,2));
-for pass_idx = 1:length(pass)
-  for rline = 1:size(data,2)
-    surf_data(pass_idx,rline) = data(round(ref.surface_bin(rline)),rline,pass_idx);
-  end
-end
-
-h_fig_angle = figure(1004); clf;
-complex_data = surf_data(6,:) .* conj(surf_data(1,:));
-complex_data(lp(complex_data) < -96) = NaN;
-plot(180/pi*angle(complex_data),'.')
-xlabel('Range line');
-ylabel('Angle (deg)');
-grid on;

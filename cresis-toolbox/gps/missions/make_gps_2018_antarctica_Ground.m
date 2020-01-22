@@ -37,7 +37,8 @@ sync_flag = {}; sync_fns = {}; sync_file_type = {}; sync_params = {};
 
 % gps_source_to_use = 'arena';
 % gps_source_to_use = 'arena_cpu_time';
-gps_source_to_use = 'trimble_cpu_time';
+% gps_source_to_use = 'trimble_cpu_time';
+gps_source_to_use = 'trimble_cpu_time2';
 
 if strcmpi(gps_source_to_use,'arena')
   %% ARENA
@@ -144,23 +145,96 @@ elseif strcmpi(gps_source_to_use,'trimble_cpu_time')
 %       'cpu_time_correction',correction);
 %   end
 
-  year = 2019; month = 1;
-  for day = 8%[2 3 4 5 6 7 8]
-    file_idx = file_idx + 1;
-    in_fns{file_idx} = get_filenames(fullfile(in_base_path,'GNSS_SM111'),'','','iceradar_SM111_BC_ARP2.pos');
-    out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
-    file_type{file_idx} = 'General_ASCII';
-    params{file_idx} = struct('time_reference','gps','headerlines',17,'format_str','%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f');
-    params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10'};
-    params{file_idx}.textscan = {};
-    gps_source{file_idx} = 'brice-final20190404';
-    sync_flag{file_idx} = 1;
-    sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
-    sync_file_type{file_idx} = 'arena_cpu_time';
-    sync_params{file_idx} = struct('time_reference','utc', ...
-      'cpu_time_correction',correction);
-  end
+%   year = 2019; month = 1;
+%   for day = [2 3 4 5 6 7 8]
+%     file_idx = file_idx + 1;
+%     in_fns{file_idx} = get_filenames(fullfile(in_base_path,'GNSS_SM111'),'','','iceradar_SM111_BC_ARP2.pos');
+%     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%     file_type{file_idx} = 'General_ASCII';
+%     params{file_idx} = struct('time_reference','gps','headerlines',17,'format_str','%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f');
+%     params{file_idx}.types = {'date_MDY','time_HMS','lat_deg','lon_deg','elev_m','f1','f2','f3','f4','f5','f6','f7','f8','f9','f10'};
+%     params{file_idx}.textscan = {};
+%     gps_source{file_idx} = 'brice-final20190404';
+%     sync_flag{file_idx} = 1;
+%     sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
+%     sync_file_type{file_idx} = 'arena_cpu_time';
+%     sync_params{file_idx} = struct('time_reference','utc', ...
+%       'cpu_time_correction',correction);
+%   end
+      
+elseif strcmpi(gps_source_to_use,'trimble_cpu_time2')
+  correction = make_gps_2018_antarctica_Ground_cpu_time(in_base_path);
+  
+  % HDR GRP CANADIAN GEODETIC SURVEY, SURVEYOR GENERAL BRANCH, NATURAL RESOURCES CANADA
+  % HDR ADR GOVERNMENT OF CANADA, 588 BOOTH STREET ROOM 334, OTTAWA ONTARIO K1A 0Y7
+  % HDR TEL 343-292-6617
+  % HDR EMA nrcan.geodeticinformation-informationgeodesique.rncan@canada.ca
+  % NOTE: Estimated positions are at the epoch of data
+  % NOTE: Positive northing indicates northern hemisphere, negative northing indicates southern hemisphere
+  % DIR FRAME  STN   DAYofYEAR YEAR-MM-DD HR:MN:SS.SS NSV GDOP RMSC(m) RMSP(m)       DLAT(m)       DLON(m)       DHGT(m)          CLK(ns)  TZD(m) SDLAT(95%) SDLON(95%) SDHGT(95%) SDCLK(95%) SDTZD(95%) LATDD LATMN    LATSS LONDD LONMN    LONSS     HGT(m) UTMZONE    UTM_EASTING   UTM_NORTHING UTM_SCLPNT UTM_SCLCBN
+  % BWD IGS14 1812  352.161215 2018-12-18 03:52:09.00   5  6.2   0.328  0.0011       -2.5820       35.4766        8.8807     1604085.1542  1.3879     1.0353     0.9430     3.1299     6.8905     0.0046   -77    44  7.88354    39     6 55.84620  3777.0632      37    502739.2062  -1371143.1844   0.999600   0.999010
 
+  year = 2018; month = 12; day = 18; day_radar = 17;
+  file_idx = file_idx + 1;
+  in_fns{file_idx} = get_filenames(fullfile(in_base_path,'Field_data_SM100',sprintf('%04d%02d%02d_PPP',year,month,day)),'','','0000.pos');
+  out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day_radar);
+  file_type{file_idx} = 'General_ASCII';
+    params{file_idx} = struct('time_reference','utc');
+    params{file_idx}.format_str = '%s%s%f%f%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
+    params{file_idx}.types = {'f01','f02','f03','f04','date_MDY','time_HMS','f05','f06','f07','f08','f09', ...
+      'f10','f11','f12','f13','f14','f15','f16','f17','f18','lat_deg','lat_min','lat_sec', ...
+      'lon_deg','lon_min','lon_sec','elev_m','f19','f20','f21','f22','f23'};
+    params{file_idx}.textscan = {};
+    params{file_idx}.headerlines = 7;
+  gps_source{file_idx} = 'trimble_final20200121';
+  sync_flag{file_idx} = 1;
+  sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day_radar)),'','','awg0.txt');
+  sync_file_type{file_idx} = 'arena_cpu_time';
+  sync_params{file_idx} = struct('time_reference','utc', ...
+    'cpu_time_correction',correction);
+
+%   year = 2018; month = 12;
+%   for day = [19 20 21 22 23 24 25 26 27 28 29]
+%     file_idx = file_idx + 1;
+%     in_fns{file_idx} = get_filenames(fullfile(in_base_path,'Field_data_SM100',sprintf('%04d%02d%02d_PPP',year,month,day)),'','','0000.pos');
+%     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%     file_type{file_idx} = 'General_ASCII';
+%     params{file_idx} = struct('time_reference','utc');
+%     params{file_idx}.format_str = '%s%s%f%f%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
+%     params{file_idx}.types = {'f01','f02','f03','f04','date_MDY','time_HMS','f05','f06','f07','f08','f09', ...
+%       'f10','f11','f12','f13','f14','f15','f16','f17','f18','lat_deg','lat_min','lat_sec', ...
+%       'lon_deg','lon_min','lon_sec','elev_m','f19','f20','f21','f22','f23'};
+%     params{file_idx}.textscan = {};
+%     params{file_idx}.headerlines = 7;
+%     gps_source{file_idx} = 'trimble_final20200121';
+%     sync_flag{file_idx} = 1;
+%     sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
+%     sync_file_type{file_idx} = 'arena_cpu_time';
+%     sync_params{file_idx} = struct('time_reference','utc', ...
+%       'cpu_time_correction',correction);
+%   end
+% 
+%   year = 2019; month = 1;
+%   for day = [2 3 4 5 6 7 8]
+%     file_idx = file_idx + 1;
+%     in_fns{file_idx} = get_filenames(fullfile(in_base_path,'Field_data_SM100',sprintf('%04d%02d%02d_PPP',year,month,day)),'','','0000.pos');
+%     out_fns{file_idx} = sprintf('gps_%04d%02d%02d.mat', year, month, day);
+%     file_type{file_idx} = 'General_ASCII';
+%     params{file_idx} = struct('time_reference','utc');
+%     params{file_idx}.format_str = '%s%s%f%f%s%s%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f%f';
+%     params{file_idx}.types = {'f01','f02','f03','f04','date_MDY','time_HMS','f05','f06','f07','f08','f09', ...
+%       'f10','f11','f12','f13','f14','f15','f16','f17','f18','lat_deg','lat_min','lat_sec', ...
+%       'lon_deg','lon_min','lon_sec','elev_m','f19','f20','f21','f22','f23'};
+%     params{file_idx}.textscan = {};
+%     params{file_idx}.headerlines = 7;
+%     gps_source{file_idx} = 'trimble_final20200121';
+%     sync_flag{file_idx} = 1;
+%     sync_fns{file_idx} = get_filenames(fullfile(in_base_path,sprintf('%04d%02d%02d',year,month,day)),'','','awg0.txt');
+%     sync_file_type{file_idx} = 'arena_cpu_time';
+%     sync_params{file_idx} = struct('time_reference','utc', ...
+%       'cpu_time_correction',correction);
+%   end
+  
 end
 
 % ======================================================================
@@ -193,8 +267,7 @@ for idx = 1:length(file_type)
   end
   
   if regexpi(gps.gps_source,'brice')
-    % Extrapolation is necessary because GPS data starts after/stops before
-    % the beginning/end of the radar data.
+    % Smoothing is necessary because data are poor quality
     warning('Smoothing GPS and IMU data: %s', out_fn);
     gps = load(out_fn);
     
