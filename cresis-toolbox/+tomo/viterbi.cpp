@@ -165,7 +165,10 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
         }
         // Have to add unary cost to first column before calculating best prev index for next column
         for (int row = 0; row < depth; ++row) {
-            path[idx] = index[row];
+            // TODO[reece]: Test whether not populating first col of path with 0s fixes anything
+            if (col > start_col) {
+                path[idx] = index[row];
+            }
             if(next) {
                 path_prob_next[row] += unary_cost(col, row);
             }

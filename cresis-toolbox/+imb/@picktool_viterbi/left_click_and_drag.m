@@ -70,7 +70,7 @@ if tool_idx == 1
       slope          = round(diff(surf_bins));
       bounds         = [];
       viterbi_weight = ones([1 Nx]);
-      mu_size        = 31;  % TODO[reece]: Hardcoded distance? What is mu here? Why is there a division by 1?
+      mu_size        = 31;
       mu             = log10(exp(-(-(mu_size-1)/2 : (mu_size-1)/2).^4/1));
       mu(mu<-30)     = -30;
       mu             = mu - mean(mu);
