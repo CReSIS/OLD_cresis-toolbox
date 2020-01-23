@@ -453,17 +453,17 @@ for pass_idx = 1:length(pass)
   %% Pass: Match time axis to baseline_master_idx
   % =========================================================================
   if 0
-    pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
+    pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(baseline_master_idx).time, 'linear', 0);
   elseif 1
     Mt = 4;
-    Nt = length(pass(pass_idx).wfs(pass(pass_idx).wf).time);
-    dt = pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1);
+    Nt = length(pass(pass_idx).time);
+    dt = pass(pass_idx).time(2)-pass(pass_idx).time(1);
     if strcmp('sar',param.multipass.echo_sar)
       pass(pass_idx).ref_data = interpft(pass(pass_idx).ref_data,Mt*Nt);
-      time_Mt = pass(pass_idx).wfs(pass(pass_idx).wf).time(1) + dt/Mt*(0:Mt*Nt-1);
-      pass(pass_idx).ref_data = interp1(time_Mt, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
+      time_Mt = pass(pass_idx).time(1) + dt/Mt*(0:Mt*Nt-1);
+      pass(pass_idx).ref_data = interp1(time_Mt, pass(pass_idx).ref_data, pass(baseline_master_idx).time, 'linear', 0);
     elseif strcmp('echo',param.multipass.echo_sar)
-      pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
+      pass(pass_idx).ref_data = interp1(pass(pass_idx).time, pass(pass_idx).ref_data, pass(baseline_master_idx).time, 'linear', 0);
     end
   end
   
@@ -533,7 +533,7 @@ for pass_out_idx = 1:length(pass_en_idxs)
       img = lp(data(rbins,:,pass_idx));
       
       elevation = pass(master_idx).elev;
-      time = pass(master_idx).wfs(pass(pass_idx).wf).time(rbins);
+      time = pass(master_idx).time(rbins);
       surface = pass(pass_idx).layers(1).twtt_ref(:).';
       %surface = pass(master_idx).surface;
       elev_max = max(elevation - time(1)*c/2);
@@ -714,11 +714,11 @@ param.array.tomo_en = true;
 array_proc_methods;
 param = array_proc(param);
 param.array.method = STANDARD_METHOD;
-[param_array0,result0] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+[param_array0,result0] = array_proc(param,{data{1}(:,:,:,:,:)});
 % param.array.method = MVDR_METHOD;
-% [param_array1,result1] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+% [param_array1,result1] = array_proc(param,{data{1}(:,:,:,:,:)});
 param.array.method = MUSIC_METHOD;
-[param_array2,result2] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+[param_array2,result2] = array_proc(param,{data{1}(:,:,:,:,:)});
 
 
 %% Save Results
