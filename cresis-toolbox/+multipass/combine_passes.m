@@ -18,6 +18,24 @@ passes = param.combine_passes.passes;
 start = param.combine_passes.start;
 stop = param.combine_passes.stop;
 
+if ~isfield(param.combine_passes,'layer') || isempty(param.combine_passes.layer)
+  param.combine_passes.layer = struct();
+end
+if length(param.combine_passes.layer) < 2
+  param.combine_passes.layer(2) = struct();
+end
+if ~isfield(param.combine_passes.layer(1),'name') || isempty(param.combine_passes.layer(1).name)
+  param.combine_passes.layer(1).name = 'surface';
+end
+if ~isfield(param.combine_passes.layer(1),'source') || isempty(param.combine_passes.layer(1).source)
+  param.combine_passes.layer(1).source = 'layerData';
+end
+if ~isfield(param.combine_passes.layer(2),'name') || isempty(param.combine_passes.layer(2).name)
+  param.combine_passes.layer(2).name = 'bottom';
+end
+if ~isfield(param.combine_passes.layer(1),'source') || isempty(param.combine_passes.layer(2).source)
+  param.combine_passes.layer(2).source = 'layerData';
+end
 
 %% Load echogram data
 %loads data for chosen seasons and frames listed in run_combine passes.
@@ -28,16 +46,34 @@ stop = param.combine_passes.stop;
 
 
 %loop for loading data
-metadata = [];
-data = [];
+layers = {}; Datacomb = {}; timecomb = {};
+metadata = {};
+data = {};
 for passes_idx = 1: length(passes)
+  %% Load param xls
    param_fn = ct_filename_param(passes(passes_idx).param_fn); %gets filename
-   param_multipass = read_param_xls(param_fn,passes(passes_idx).day_seg); %reads parameter sheet for given pass
+   if passes_idx == 1 || ~strcmp(passes(passes_idx).day_seg,passes(passes_idx-1).day_seg)
+     param_multipass = read_param_xls(param_fn,passes(passes_idx).day_seg); %reads parameter sheet for given pass
+   end
+   
    if passes_idx == master_pass_idx
      param = merge_structs(param_multipass,param);
    end
+     %% Load layers
+  % Load layers
+  layers{passes_idx} = opsLoadLayers(param_multipass,param.combine_passes.layer);
+
+%     % Interpolate all layers onto a common reference (ref)
+%     for lay_idx = 1:length(pass(pass_idx).layers)
+%       pass(pass_idx).layers(lay_idx).twtt ...
+%         = interp_finite(interp1(pass(pass_idx).layers(lay_idx).gps_time, ...
+%         pass(pass_idx).layers(lay_idx).twtt, ...
+%         pass(pass_idx).gps_time,'linear'));
+%     end
+   %% Format Data
    param_multipass = merge_structs(param_multipass, param_override); %merges param_multipass and param_override into one struct
-   if strcmp(passes(passes_idx).echo_sar,'echo') || isempty(passes(passes_idx).echo_sar)
+   
+   if strcmp(param.combine_passes.echo_sar,'echo') || isempty(param.combine_passes.echo_sar)
      echo_fn_dir{passes_idx} = ct_filename_out(param_multipass, passes(passes_idx).in_path); %creates directory for pass, from given data format
      for frm_idx = 1:length(passes(passes_idx).frms) %loop for individual frame loading
         echo_fn_name{passes_idx} = sprintf('Data_%s_%03d.mat',passes(passes_idx).day_seg,passes(passes_idx).frms(frm_idx));
@@ -88,10 +124,11 @@ for passes_idx = 1: length(passes)
   %         rds_data(end+1) = tmp_struct;
   %       end
       end
-   elseif strcmp(passes(passes_idx).echo_sar,'sar')
-      param_sar = [];
-      param_sar.day_seg = passes(passes_idx).day_seg;
-      param_sar = read_param_xls(ct_filename_param(passes(passes_idx).param_fn),param_sar.day_seg);
+   elseif strcmp(param.combine_passes.echo_sar,'sar')
+%       param_sar = [];
+%       param_sar.day_seg = passes(passes_idx).day_seg;
+%       param_sar = read_param_xls(ct_filename_param(passes(passes_idx).param_fn),param_sar.day_seg);
+      param_sar = param_multipass;
 
       param_sar.load_sar_data.fn = ''; % Leave empty for default
 
@@ -100,12 +137,13 @@ for passes_idx = 1: length(passes)
 
       param_sar.load_sar_data.sar_type = 'fk';
       
-      param_sar.load_sar_data.frame = passes(passes_idx).frms;
-
       param_sar.load_sar_data.subap = 1;
 
       % (wf,adc) pairs to load
-      param_sar.load_sar_data.imgs = {passes(passes_idx).wf_adc};
+      if ~iscell(passes(passes_idx).wf_adc)
+        passes(passes_idx).wf_adc = {passes(passes_idx).wf_adc};
+      end
+      param_sar.load_sar_data.imgs = passes(passes_idx).wf_adc;
 
       % Combine waveforms parameters
       param_sar.load_sar_data.wf_comb = 10e-6;
@@ -127,11 +165,61 @@ for passes_idx = 1: length(passes)
       param_sar.load_sar_data.detrend.B_noise = [100 200];
       param_sar.load_sar_data.detrend.B_sig = [1 10];
       param_sar.load_sar_data.detrend.minVal = -inf;
+      
+      for frm_idx = 1:length(passes(passes_idx).frms)
+        param_sar.load_sar_data.frame = passes(passes_idx).frms(frm_idx);
 
-      [data{passes_idx},metadata{passes_idx}] = load_sar_data(param_sar);
+        [data{end+1},metadata{end+1}] = load_sar_data(param_sar);
 
-      metadata{passes_idx}.frms = passes(passes_idx).frms;
-      metadata{passes_idx}.param_multipass = param_multipass;
+        metadata{end}.frms = passes(passes_idx).frms(frm_idx);
+        metadata{end}.param_multipass = param_multipass;
+        
+        %% Do waveform combination
+        param_mode = 'array';
+        param_img_combine = param_multipass;
+        param_img_combine.array.out_path = 'CSARP_post/standard';
+        param_img_combine.sar.out_path = 'sar';
+        param_img_combine.sar.img_comb = param_img_combine.array.img_comb;
+        param_img_combine.array.img_comb = param_multipass.array.img_comb(1:...
+          min([length(param_multipass.array.img_comb), 3*(length(passes(passes_idx).wf_adc)-1)]));
+        param_img_combine.array.imgs = passes(passes_idx).wf_adc;
+        if length(param_img_combine.array.img_comb)<3
+          param_img_combine.array.img_comb = [param_img_combine.array.img_comb(1) -inf param_img_combine.array.img_comb(2)];
+        end
+        param_img_combine.load.frm = metadata{end}.frms;
+        param_img_combine.day_seg = passes(passes_idx).day_seg;
+        
+        timevecs ={};
+        for wf_id = 1:length(passes(passes_idx).wf_adc)
+          timevecs{wf_id}= metadata{end}.wfs(wf_id).time;
+        end
+        data_in.Data =data{end};
+        data_in.Time = timevecs;
+        data_in.GPS_time = {metadata{end}.fcs{1}{1}.gps_time, metadata{end}.fcs{2}{1}.gps_time};
+        if length(data{end})>1 %Combine if using multiple waveforms
+          [data{end}, timecomb{end+1}] = img_combine(param_img_combine,param_mode,layers{end}(1),data_in);
+        else
+          data{end} = data{end}{1};
+        end
+        if 0
+          %Check image combine output
+          figure(1)
+          subplot(2,1,1)
+          imagesc(data_in.GPS_time{1},data_in.Time{1},lp(data_in.Data{1}))
+          xlabel('GPS Time')
+          ylabel('TWTT')
+          subplot(2,1,2)
+          imagesc(data_in.GPS_time{1},data_in.Time{1},lp(data_in.Data{2}))
+          xlabel('GPS Time')
+          ylabel('TWTT')
+
+          figure(2)
+          imagesc(data_in.GPS_time{1},timecomb{end},lp(data{end}))
+          xlabel('GPS Time')
+          ylabel('TWTT')
+          keyboard
+        end
+      end
    end
 end 
 clear tmp_data tmp_fn frm_idx passes_idx
@@ -239,9 +327,10 @@ for passes_idx = 1:length(passes)
       end
       
       pass(end).wf = 1;
-      if strcmp(passes(pass_idx).echo_sar,'echo') || isempty(passes(pass_idx).echo_sar)
+      if strcmp(param.combine_passes.echo_sar,'echo') || isempty(param.combine_passes.echo_sar)
         pass(end).data = data{passes_idx}(:,rlines);
         pass(end).wfs.time = metadata{passes_idx}.time;
+        pass(end).time = metadata{passes_idx}.time;
         
         pass(end).gps_time = metadata{passes_idx}.gps_time(rlines);
         pass(end).roll = metadata{passes_idx}.roll(rlines);
@@ -254,9 +343,10 @@ for passes_idx = 1:length(passes)
         pass(end).origin = metadata{passes_idx}.fcs.origin(:,rlines);
         pass(end).pos = metadata{passes_idx}.fcs.pos(:,rlines);
         pass(end).surface = metadata{passes_idx}.surface(:,rlines);
-      elseif strcmp(passes(pass_idx).echo_sar,'sar')
-        pass(end).data = data{passes_idx}{1}(:,rlines);
+      elseif strcmp(param.combine_passes.echo_sar,'sar')
+        pass(end).data = data{passes_idx}(:,rlines);
         pass(end).wfs = metadata{passes_idx}.wfs;
+        pass(end).time = timecomb{passes_idx};
         
         pass(end).gps_time = metadata{passes_idx}.fcs{1}{1}.gps_time(rlines);
         pass(end).roll = metadata{passes_idx}.fcs{1}{1}.roll(rlines);
@@ -279,6 +369,9 @@ for passes_idx = 1:length(passes)
       pass(end).param_sar = metadata{passes_idx}.param_sar;
       pass(end).param_multipass = metadata{passes_idx}.param_multipass;
       pass(end).param_multipass.cmd.frms = passes(passes_idx).frms;
+      pass(end).combine_passes = passes(passes_idx);
+      pass(end).echo_sar = param.combine_passes.echo_sar;
+      pass(end).layers = layers{passes_idx};
       
       
       

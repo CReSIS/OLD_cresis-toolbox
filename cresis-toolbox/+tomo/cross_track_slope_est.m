@@ -1,18 +1,18 @@
-% function cross_track_slope_est
+function cross_track_slope_est(fn)
 
-wf = 2;
+% wf = 2;
+% % if ispc
+% %   fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
+% % else
+% %   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
+% % end
+% % threshold = 22;
+% 
 % if ispc
-%   fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
 % else
-%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
+%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+%   out_fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
 % end
-% threshold = 22;
-
-if ispc
-else
-  fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
-  out_fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
-end
 threshold = 20;
 
 % if ispc
@@ -49,13 +49,13 @@ imagesc(slope);
 
 % slope = nan_fir_dec(slope,ones(1,11)/11,1);
 slope = nan_fir_dec(slope.',ones(1,11)/11,1).';
-slope = interp_finite(slope);
+slope = interp_finite(slope,0);
 slope = interp1(1:length(Tomo.theta),Tomo.theta,slope);
 imagesc(slope*180/pi)
 colorbar
 
-[fn_dir,fn_name] = fileparts(out_fn);
-fn_slope = fullfile(fn_dir,[fn_name '_slope.mat'])
+[fn_dir,fn_name] = fileparts(fn);
+fn_slope = fullfile(fn_dir,[fn_name '_slope.mat']);
 save(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
 
 % imagesc()
