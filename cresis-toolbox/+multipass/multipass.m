@@ -432,7 +432,7 @@ for pass_idx = 1:length(pass)
       load(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
       slope = interp1(GPS_time,slope.',pass(baseline_master_idx).gps_time).';
       slope = interp_finite(slope.',0).';
-      slope = interp1(Time,slope,pass(pass_idx).wfs(pass(pass_idx).wf).time);
+      slope = interp1(Time,slope,pass(pass_idx).time);
       slope = interp_finite(slope);
       
       pass(pass_idx).ref_data = pass(pass_idx).ref_data .* exp(-1i*4*pi*freq(1)/c *bsxfun(@times,sin(slope),pass(pass_idx).ref_y(:).'));

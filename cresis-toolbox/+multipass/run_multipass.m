@@ -126,11 +126,47 @@ if 1
 
   equalization1 = 10.^(zeros(1,15)/20) .* exp(1i*(eqvec1)/180*pi);
   equalization2 = 10.^(zeros(1,15)/20) .* exp(1i*(eqvec2)/180*pi);
-  equalization = [equalization1 equalization2];
+  param.multipass.equalization = [equalization1 equalization2];
+  
+  param.multipass.debug_plots = {'NA'};
+  
+  comp_mode = 1:4;
+end
+
+%% Summit Camp: 2012-2014
+if 0
+  radartype = 'rds';
+  passname = 'summit_2012_2014_allwf';
+  param.multipass.fn = fullfile(gRadar.out_path,radartype,'2014_Greenland_P3','CSARP_multipass',passname);
+  
+  param.multipass.rbins = [];
+  
+  param.multipass.baseline_master_idx = 8;
+  param.multipass.master_idx = 8;
+  
+  param.multipass.pass_en_mask = [];
+  param.multipass.output_fn_midfix = [];
+  param.multipass.coregistration_time_shift = [];
+  param.multipass.time_gate = [];
+  
+%   %Load equalization vector (sar specific)
+%   eqvec1 = [122.5 121.6 126.7 105.5 130.1 120.1 128.7 -0.0 -134.2 121.1 36.4 125.8 -171.5 -1.0 128.4];
+%   eqvec2 = eqvec1;
+%   neweq = [42.8 45.5 48.2 50.9 53.6 56.3 58.9 0.0 2.7 5.4 8.1 93.6 96.3 99.0 101.7]/2;
+%   neweq = [neweq neweq];
+% 
+%   if 1 && exist('neweq','var') && ~isempty(neweq)
+%     eqvec1 = eqvec1-neweq(1:length(eqvec1));
+%     eqvec2 = eqvec2-neweq(length(eqvec1)+1:end);
+%   end
+% 
+%   equalization1 = 10.^(zeros(1,15)/20) .* exp(1i*(eqvec1)/180*pi);
+%   equalization2 = 10.^(zeros(1,15)/20) .* exp(1i*(eqvec2)/180*pi);
+%   param.multipass.equalization = [equalization1 equalization2];
   
   param.multipass.debug_plots = {'debug'};
   
-  comp_mode = 2:4;
+  comp_mode = 1:4;
 end
 
 %% Automated section

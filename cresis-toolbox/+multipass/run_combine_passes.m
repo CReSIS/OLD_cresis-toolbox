@@ -239,8 +239,6 @@ for adc = 2:16
   passes(end).wf_adc = {[1 adc], [2 adc]};
 end
 
-img_comb = [];
-
 
 %% Automated section
 % =========================================================================

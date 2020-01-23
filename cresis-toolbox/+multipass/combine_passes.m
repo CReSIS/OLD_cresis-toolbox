@@ -61,7 +61,7 @@ for passes_idx = 1: length(passes)
    end
      %% Load layers
   % Load layers
-  layers{passes_idx} = opsLoadLayers(param_multipass,param.combine_passes.layer);
+  layers{end+1} = opsLoadLayers(param_multipass,param.combine_passes.layer);
 
 %     % Interpolate all layers onto a common reference (ref)
 %     for lay_idx = 1:length(pass(pass_idx).layers)
@@ -174,6 +174,9 @@ for passes_idx = 1: length(passes)
         metadata{end}.frms = passes(passes_idx).frms(frm_idx);
         metadata{end}.param_multipass = param_multipass;
         
+        %Reload layers
+        layers{end+frm_idx-1} = layers{end};
+        
         %% Do waveform combination
         param_mode = 'array';
         param_img_combine = param_multipass;
@@ -234,13 +237,13 @@ pass = [];
 %% Go through each frame and extract the pass(es) from that frame
 % NOTE: This code looks for every pass in the frame (i.e. a frame may
 % contain multiple passes and this code should find each).
-for passes_idx = 1:length(passes)
+for data_idx = 1:length(data)
   % Find the distance to the start
   start_ecef = [start.x;start.y;start.z];
   stop_ecef = [stop.x;stop.y;stop.z];
   radar_ecef = [];
-  [radar_ecef.x,radar_ecef.y,radar_ecef.z] = geodetic2ecef(metadata{passes_idx}.lat/180*pi, ...
-    metadata{passes_idx}.lon/180*pi,0*metadata{passes_idx}.elev, ...
+  [radar_ecef.x,radar_ecef.y,radar_ecef.z] = geodetic2ecef(metadata{data_idx}.lat/180*pi, ...
+    metadata{data_idx}.lon/180*pi,0*metadata{data_idx}.elev, ...
     WGS84.ellipsoid);
   radar_ecef = [radar_ecef.x; radar_ecef.y; radar_ecef.z];
   
@@ -313,7 +316,7 @@ for passes_idx = 1:length(passes)
       stop_idx = idxs(pass_idx);% Get the last index of this pass
       no_passes_flag = false;
       
-      frm_id = sprintf('%s_%03d', metadata{passes_idx}.param_records.day_seg, metadata{passes_idx}.frms(1));
+      frm_id = sprintf('%s_%03d', metadata{data_idx}.param_records.day_seg, metadata{data_idx}.frms(1));
       
       fprintf('New Segment: %s %d to %d\n', frm_id, start_idx, stop_idx);
   
@@ -328,57 +331,57 @@ for passes_idx = 1:length(passes)
       
       pass(end).wf = 1;
       if strcmp(param.combine_passes.echo_sar,'echo') || isempty(param.combine_passes.echo_sar)
-        pass(end).data = data{passes_idx}(:,rlines);
-        pass(end).wfs.time = metadata{passes_idx}.time;
-        pass(end).time = metadata{passes_idx}.time;
+        pass(end).data = data{data_idx}(:,rlines);
+        pass(end).wfs.time = metadata{data_idx}.time;
+        pass(end).time = metadata{data_idx}.time;
         
-        pass(end).gps_time = metadata{passes_idx}.gps_time(rlines);
-        pass(end).roll = metadata{passes_idx}.roll(rlines);
-        pass(end).pitch = metadata{passes_idx}.pitch(rlines);
-        pass(end).heading = metadata{passes_idx}.heading(rlines);
+        pass(end).gps_time = metadata{data_idx}.gps_time(rlines);
+        pass(end).roll = metadata{data_idx}.roll(rlines);
+        pass(end).pitch = metadata{data_idx}.pitch(rlines);
+        pass(end).heading = metadata{data_idx}.heading(rlines);
         
-        pass(end).x = metadata{passes_idx}.fcs.x(:,rlines);
-        pass(end).y = metadata{passes_idx}.fcs.y(:,rlines);
-        pass(end).z = metadata{passes_idx}.fcs.z(:,rlines);
-        pass(end).origin = metadata{passes_idx}.fcs.origin(:,rlines);
-        pass(end).pos = metadata{passes_idx}.fcs.pos(:,rlines);
-        pass(end).surface = metadata{passes_idx}.surface(:,rlines);
+        pass(end).x = metadata{data_idx}.fcs.x(:,rlines);
+        pass(end).y = metadata{data_idx}.fcs.y(:,rlines);
+        pass(end).z = metadata{data_idx}.fcs.z(:,rlines);
+        pass(end).origin = metadata{data_idx}.fcs.origin(:,rlines);
+        pass(end).pos = metadata{data_idx}.fcs.pos(:,rlines);
+        pass(end).surface = metadata{data_idx}.surface(:,rlines);
       elseif strcmp(param.combine_passes.echo_sar,'sar')
-        pass(end).data = data{passes_idx}(:,rlines);
-        pass(end).wfs = metadata{passes_idx}.wfs;
-        pass(end).time = timecomb{passes_idx};
+        pass(end).data = data{data_idx}(:,rlines);
+        pass(end).wfs = metadata{data_idx}.wfs;
+        pass(end).time = timecomb{data_idx};
         
-        pass(end).gps_time = metadata{passes_idx}.fcs{1}{1}.gps_time(rlines);
-        pass(end).roll = metadata{passes_idx}.fcs{1}{1}.roll(rlines);
-        pass(end).pitch = metadata{passes_idx}.fcs{1}{1}.pitch(rlines);
-        pass(end).heading = metadata{passes_idx}.fcs{1}{1}.heading(rlines);
+        pass(end).gps_time = metadata{data_idx}.fcs{1}{1}.gps_time(rlines);
+        pass(end).roll = metadata{data_idx}.fcs{1}{1}.roll(rlines);
+        pass(end).pitch = metadata{data_idx}.fcs{1}{1}.pitch(rlines);
+        pass(end).heading = metadata{data_idx}.fcs{1}{1}.heading(rlines);
         
-        pass(end).x = metadata{passes_idx}.fcs{1}{1}.x(:,rlines);
-        pass(end).y = metadata{passes_idx}.fcs{1}{1}.y(:,rlines);
-        pass(end).z = metadata{passes_idx}.fcs{1}{1}.z(:,rlines);
-        pass(end).origin = metadata{passes_idx}.fcs{1}{1}.origin(:,rlines);
-        pass(end).pos = metadata{passes_idx}.fcs{1}{1}.pos(:,rlines);
-        pass(end).surface = metadata{passes_idx}.fcs{1}{1}.surface(:,rlines);
+        pass(end).x = metadata{data_idx}.fcs{1}{1}.x(:,rlines);
+        pass(end).y = metadata{data_idx}.fcs{1}{1}.y(:,rlines);
+        pass(end).z = metadata{data_idx}.fcs{1}{1}.z(:,rlines);
+        pass(end).origin = metadata{data_idx}.fcs{1}{1}.origin(:,rlines);
+        pass(end).pos = metadata{data_idx}.fcs{1}{1}.pos(:,rlines);
+        pass(end).surface = metadata{data_idx}.fcs{1}{1}.surface(:,rlines);
       end
       
-      pass(end).lat = metadata{passes_idx}.lat(rlines);
-      pass(end).lon = metadata{passes_idx}.lon(rlines);
-      pass(end).elev = metadata{passes_idx}.elev(rlines);
+      pass(end).lat = metadata{data_idx}.lat(rlines);
+      pass(end).lon = metadata{data_idx}.lon(rlines);
+      pass(end).elev = metadata{data_idx}.elev(rlines);
       
-      pass(end).param_records = metadata{passes_idx}.param_records;
-      pass(end).param_sar = metadata{passes_idx}.param_sar;
-      pass(end).param_multipass = metadata{passes_idx}.param_multipass;
-      pass(end).param_multipass.cmd.frms = passes(passes_idx).frms;
-      pass(end).combine_passes = passes(passes_idx);
+      pass(end).param_records = metadata{data_idx}.param_records;
+      pass(end).param_sar = metadata{data_idx}.param_sar;
+      pass(end).param_multipass = metadata{data_idx}.param_multipass;
+      pass(end).param_multipass.cmd.frms = metadata{data_idx}.frms;
+      pass(end).combine_passes = metadata{data_idx};
       pass(end).echo_sar = param.combine_passes.echo_sar;
-      pass(end).layers = layers{passes_idx};
+      pass(end).layers = layers{data_idx};
       
       
       
     end
   end
   if no_passes_flag
-    warning('Frame %s_%03d has no passes. Closest distance from start %.0f m. Closest distance from stop %.0f m.', metadata{passes_idx}.param_sar.day_seg, metadata{passes_idx}.frms(1), min(dist), min(stop_dist));
+    warning('Frame %s_%03d has no passes. Closest distance from start %.0f m. Closest distance from stop %.0f m.', metadata{data_idx}.param_sar.day_seg, metadata{data_idx}.frms(1), min(dist), min(stop_dist));
   end
   
 end
