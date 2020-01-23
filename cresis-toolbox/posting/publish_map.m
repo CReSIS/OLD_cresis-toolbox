@@ -135,6 +135,14 @@ if strcmpi(cmd,'setup')
     map_axis = [-17000 -15000 8000 9500];
     contour_position = [0.12 0.72 0.3 0.25];
     map_sub_title = 'Mercator';
+
+  elseif strcmpi(param.location,'SouthDakota')
+    hemisphere = 'north';
+    cmap = gray(256);
+    geotiff_fn = ct_filename_gis(param,fullfile('SouthDakota','SouthDakota_50m.tif'));
+    map_axis = [-11650 -10550 5150 5800];
+    contour_position = [0.12 0.72 0.3 0.25];
+    map_sub_title = 'Mercator';
     
   else
     % If this is not one of the standard locations, this must be a geotiff
