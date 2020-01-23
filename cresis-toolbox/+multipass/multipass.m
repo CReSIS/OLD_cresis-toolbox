@@ -1,94 +1,34 @@
-param = [];
-
-%% Petermann Line 1 2014
-% if ispc
-%   fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2014.mat'));
-% else
-%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2014'));
-% end
-
-%% Petermann Line 1 2011, 2014, 2018
-if ispc
-  param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2011_2014_2018.mat'));
-else
-  param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line1_2011_2014_2018'));
-end
-
-param.multipass.rbins = [];
-
-param.multipass.baseline_master_idx = 2;
-param.multipass.master_idx = 2;
-
-param.multipass.pass_en_mask = [];
-param.multipass.output_fn_midfix = [];
-param.multipass.coregistration_time_shift = [0 0 -2];
-param.multipass.comp_mode = 2;
-
-
-%% Petermann Line 2 2013, 2014
-% if ispc
-%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line2_2013_2014.mat'));
-% else
-%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line2_2013_2014'));
-% end
-% 
-% param.multipass.rbins = [];
-% 
-% param.multipass.baseline_master_idx = 2;
-% param.multipass.master_idx = 2;
-% 
-% param.multipass.pass_en_mask = [];
-% param.multipass.output_fn_midfix = [];
-% param.multipass.coregistration_time_shift = [-0.5 0];
-% param.multipass.comp_mode = 2;
-
-%% Petermann Line 4 2010, 2011, 2013, 2014
-% if ispc
-%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line4_2010_2011_2013_2014.mat'));
-% else
-%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('Petermann_line4_2010_2011_2013_2014'));
-% end
-% 
-% param.multipass.rbins = [];
-% 
-% param.multipass.baseline_master_idx = 2;
-% param.multipass.master_idx = 2;
-% 
-% param.multipass.pass_en_mask = [];
-% param.multipass.output_fn_midfix = [];
-% param.multipass.coregistration_time_shift = [0 -0.5 0 0];
-% param.multipass.comp_mode = 2;
-
-%% 79N Line 1 2010, 2014, 2016, 2018
-% if ispc
-%   param.multipass.fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('79N_line1_2010_2014_2016_2018.mat'));
-% else
-%   param.multipass.fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/',sprintf('79N_line1_2010_2014_2016_2018'));
-% end
-% 
-% param.multipass.rbins = [];
-% 
-% param.multipass.baseline_master_idx = 2;
-% param.multipass.master_idx = 2;
-% 
-% param.multipass.pass_en_mask = [];
-% param.multipass.output_fn_midfix = [];
-% param.multipass.coregistration_time_shift = [1 0 0 -2];
-% param.multipass.comp_mode = 2;
-% param.multipass.time_gate = [2e-6 13e-6];
 
 %% Setup
 % =========================================================================
+fprintf('=====================================================================\n');
+fprintf('%s [Mode %d]: %s  (%s)\n', mfilename, param.multipass.comp_mode, ...
+  param.multipass.pass_name, datestr(now));
+fprintf('=====================================================================\n');
 physical_constants;
 standard_projections;
 
+%% Load multipass.combine_passes file
+fn = param.multipass.fn;
+
+load(fn);  
+
 %% Input check
 % =========================================================================
+% Confirm either SAR or echogram data
+if ~isfield(param.multipass,'echo_sar') 
+  if ~isfield(pass(1),'echo_sar')
+      param.multipass.echo_sar = 'echo'; 
+  else
+    param.multipass.echo_sar = pass(1).echo_sar;
+  end
+end
 
-% Load multipass.combine_passes file
-fn = param.multipass.fn;
-load(fn);
-
+% Make equalization
+if ~isfield(param.multipass, 'equalization')
+  param.multipass.equalization = exp(1i*(zeros(1,length(pass))/20)/180*pi);
+end
+equalization = param.multipass.equalization;
 % All images are registered to the pass indicated by the baseline_master_idx
 % baseline_master_idx does not need to be enabled
 if ~isfield(param.multipass,'baseline_master_idx') || isempty(param.multipass.baseline_master_idx)
@@ -216,9 +156,10 @@ for pass_idx = 1:length(pass)
   if ~pass_en_mask(pass_idx)
     continue
   end
-  
-  % Load layers
-  pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_multipass,param.multipass.layer);
+  if ~isfield(pass,'layers')
+    % Load layers
+    pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_multipass,param.multipass.layer);
+  end
 
   % Interpolate all layers onto a common reference (ref)
   for lay_idx = 1:length(pass(pass_idx).layers)
@@ -369,7 +310,7 @@ for pass_idx = 1:length(pass)
     pass(pass_idx).ref_y(rline) = offset(:,min_idx).'*ref.y(:,min_idx);
     pass(pass_idx).ref_z(rline) = offset(:,min_idx).'*ref.z(:,min_idx);
     
-    if 0
+    if 0 %strcmp('sar',param.multipass.echo_sar)
       % Compute the location of all pixels from this range line in ECEF
       pass(pass_idx).wfs(pass(pass_idx).wf).time;
       time = pass(pass_idx).time(2)-pass(pass_idx).time(1);
@@ -397,7 +338,7 @@ for pass_idx = 1:length(pass)
   
   %% Pass: 2. Resample in along-track
   % Resample images and position vectors onto a common along-track axes
-  if 0
+  if strcmp('sar',param.multipass.echo_sar)
     % 1. Oversample slave data by 10x in along track
     Mx = 10;
     Nx = size(pass(pass_idx).data,2);
@@ -408,30 +349,52 @@ for pass_idx = 1:length(pass)
     % 3. Interpolate oversampled slave data onto master along track axes
     pass(pass_idx).ref_data = interp1(along_track_oversample, ...
       data_oversample, along_track,'linear','extrap').';
-  else
+  elseif strcmp('echo',param.multipass.echo_sar)
     pass(pass_idx).ref_data = interp1(pass(pass_idx).along_track, ...
       pass(pass_idx).data.', along_track,'linear').';
   end
+  
   pass(pass_idx).ref_y = interp1(pass(pass_idx).along_track, ...
     pass(pass_idx).ref_y, along_track,'linear','extrap').';
   pass(pass_idx).ref_z = interp1(pass(pass_idx).along_track, ...
     pass(pass_idx).ref_z, along_track,'linear','extrap').';
+  
   for lay_idx = 1:length(pass(pass_idx).layers)
     pass(pass_idx).layers(lay_idx).twtt_ref = interp1(pass(pass_idx).along_track, ...
       pass(pass_idx).layers(lay_idx).twtt, along_track,'linear').';
   end
   
   %% Pass: 3. Apply fixed coregistration time shift
-  Nt = size(pass(pass_idx).ref_data,1);
-  dt = pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1);
-  time = dt*(0:Nt-1).';
-  df = 1/(dt*Nt);
-  freq = df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
-%   freq = freq - freq(1); % Remove center frequency offset
-  dt = coregistration_time_shift(pass_idx) * (pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1));
-  if 0
-    pass(pass_idx).ref_data = ifft(bsxfun(@times,fft(double(pass(pass_idx).ref_data)),exp(-1i*2*pi*freq*dt)));
-  else
+  if strcmp('echo',param.multipass.echo_sar)
+    Nt = size(pass(pass_idx).ref_data,1);
+    dt = pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1);
+    time = dt*(0:Nt-1).';
+    df = 1/(dt*Nt);
+    freq = df * ifftshift( -floor(Nt/2) : floor((Nt-1)/2) ).';
+  elseif strcmp('sar',param.multipass.echo_sar)
+    freq = []; time = [];
+    for wf_id = 1:length(pass(pass_idx).wfs)
+      freq = [freq pass(pass_idx).wfs(wf_id).freq'];
+      time = [time pass(pass_idx).wfs(wf_id).time'];
+    end
+    %Sort the time values to be monotonically increasing
+    [time, timesortind] =sort(time);
+    freq = freq(timesortind);
+    %Get rid of repeating values
+    [time, timeunqind] = unique(time);
+    freq = freq(timeunqind);
+    freq = interp1(time,freq,pass(pass_idx).time);
+    if param.multipass.comp_mode == 2
+      % Motion compensation of FCS z-motion without center frequency so there
+      freq = freq - freq(1); % Remove center frequency offset
+    end
+    dt = coregistration_time_shift(pass_idx) * (pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1));
+  end
+  
+  if strcmp('sar',param.multipass.echo_sar)
+%     pass(pass_idx).ref_data = ifft(bsxfun(@times,fft(double(pass(pass_idx).ref_data)),exp(-1i*2*pi*freq*dt)));
+    pass(pass_idx).ref_data = ifft(bsxfun(@times,fft(pass(pass_idx).ref_data),exp(-1i*2*pi*freq*dt)));
+  elseif strcmp('echo',param.multipass.echo_sar)
     pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(pass_idx).wfs(pass(pass_idx).wf).time+dt, 'linear');
     pass(pass_idx).ref_data = interp_finite(pass(pass_idx).ref_data);
     for lay_idx = 1:length(pass(pass_idx).layers)
@@ -440,50 +403,27 @@ for pass_idx = 1:length(pass)
   end
   
   %% Pass: 4. Motion/slope compensation
-  if param.multipass.comp_mode == 1
+  if strcmp('sar',param.multipass.echo_sar) || any(param.multipass.comp_mode==[1 3 4])
     % Motion compensation of FCS z-motion
     for rline = 1:size(pass(pass_idx).ref_data,2)
       % Convert z-offset into time-offset assuming nadir DOA
       dt = pass(pass_idx).ref_z(rline)/(c/2);
       pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
-        .*exp(1i*2*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq*dt) );
+        .*exp(1i*2*pi*freq*dt) );
     end
-  elseif param.multipass.comp_mode == 2 || param.multipass.comp_mode == 4
-    % Co-register images using GPS and nadir squint angle assumption
-    %
-    if 0
-      % Motion compensation of FCS z-motion without center frequency so there
-      % is no phase shift.
-      %     freq = pass(pass_idx).wfs(pass(pass_idx).wf).freq;
-      %     freq = freq - freq(1); % Remove center frequency offset
-      for rline = 1:size(pass(pass_idx).ref_data,2)
-        % Convert z-offset into time-offset assuming nadir DOA
-        dt = pass(pass_idx).ref_z(rline)/(c/2);
-        pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
-          .*exp(1i*2*pi*freq*dt) );
-      end
-    else
-      % Motion compensation of FCS z-motion using linear interpolation
-      for rline = 1:size(pass(pass_idx).ref_data,2)
-        dt = pass(pass_idx).ref_z(rline)/(c/2);
-        pass(pass_idx).ref_data(:,rline) = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data(:,rline), pass(pass_idx).wfs(pass(pass_idx).wf).time+dt, 'linear');
-        pass(pass_idx).ref_data(:,rline) = interp_finite(pass(pass_idx).ref_data(:,rline));
-        for lay_idx = 1:length(pass(pass_idx).layers)
-          pass(pass_idx).layers(lay_idx).twtt_ref(rline) = pass(pass_idx).layers(lay_idx).twtt_ref(rline) - dt;
-        end
-      end
-    end
-  elseif param.multipass.comp_mode == 3
-    % Motion compensation of FCS z-motion and slope compensation
-    
-    % True time delay shift for z-offset
+  elseif strcmp('echo',param.multipass.echo_sar) && param.multipass.comp_mode == 2
+    % Motion compensation of FCS z-motion using linear interpolation
     for rline = 1:size(pass(pass_idx).ref_data,2)
-      % Convert z-offset into time-offset assuming nadir DOA
       dt = pass(pass_idx).ref_z(rline)/(c/2);
-      pass(pass_idx).ref_data(:,rline) = ifft(fft(pass(pass_idx).ref_data(:,rline)) ...
-        .*exp(1i*2*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq*dt) );
+      pass(pass_idx).ref_data(:,rline) = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data(:,rline), pass(pass_idx).wfs(pass(pass_idx).wf).time+dt, 'linear');
+      pass(pass_idx).ref_data(:,rline) = interp_finite(pass(pass_idx).ref_data(:,rline));
+      for lay_idx = 1:length(pass(pass_idx).layers)
+        pass(pass_idx).layers(lay_idx).twtt_ref(rline) = pass(pass_idx).layers(lay_idx).twtt_ref(rline) - dt;
+      end
     end
-    
+  end
+  
+  if param.multipass.comp_mode == 3    
     % Phase only correction for slope
     if 1
       % Using file generated from this dataset
@@ -491,13 +431,13 @@ for pass_idx = 1:length(pass)
       fn_slope = fullfile(fn_dir,[fn_name '_slope.mat']);
       load(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
       slope = interp1(GPS_time,slope.',pass(baseline_master_idx).gps_time).';
-      slope = interp_finite(slope.').';
+      slope = interp_finite(slope.',0).';
       slope = interp1(Time,slope,pass(pass_idx).wfs(pass(pass_idx).wf).time);
       slope = interp_finite(slope);
       
-      pass(pass_idx).ref_data = pass(pass_idx).ref_data .* exp(-1i*4*pi*pass(pass_idx).wfs(pass(pass_idx).wf).freq(1)/c *bsxfun(@times,sin(slope),pass(pass_idx).ref_y(:).'));
+      pass(pass_idx).ref_data = pass(pass_idx).ref_data .* exp(-1i*4*pi*freq(1)/c *bsxfun(@times,sin(slope),pass(pass_idx).ref_y(:).'));
       
-    elseif 1
+    elseif 0
       % Using file generated from another dataset
       fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_20140429_01_067_wf2_slope.mat';
       
@@ -514,15 +454,15 @@ for pass_idx = 1:length(pass)
   % =========================================================================
   if 0
     pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
-  else
+  elseif 1
     Mt = 4;
     Nt = length(pass(pass_idx).wfs(pass(pass_idx).wf).time);
     dt = pass(pass_idx).wfs(pass(pass_idx).wf).time(2)-pass(pass_idx).wfs(pass(pass_idx).wf).time(1);
-    if 0
+    if strcmp('sar',param.multipass.echo_sar)
       pass(pass_idx).ref_data = interpft(pass(pass_idx).ref_data,Mt*Nt);
       time_Mt = pass(pass_idx).wfs(pass(pass_idx).wf).time(1) + dt/Mt*(0:Mt*Nt-1);
       pass(pass_idx).ref_data = interp1(time_Mt, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
-    else
+    elseif strcmp('echo',param.multipass.echo_sar)
       pass(pass_idx).ref_data = interp1(pass(pass_idx).wfs(pass(pass_idx).wf).time, pass(pass_idx).ref_data, pass(baseline_master_idx).wfs(pass(baseline_master_idx).wf).time, 'linear', 0);
     end
   end
@@ -542,10 +482,10 @@ end
 
 %% Apply equalization
 % -----------------------
-% if param.multipass.comp_mode == 2 || param.multipass.comp_mode == 3 || param.multipass.comp_mode == 4
-%   equalization = reshape(equalization,[1 1 numel(equalization)]);
-%   data(:,:,pass_en_idxs) = bsxfun(@times,data(:,:,pass_en_idxs),1./equalization(:,:,pass_en_idxs));
-% end
+if param.multipass.comp_mode ~= 1 && strcmp('sar',param.multipass.echo_sar)
+  equalization = reshape(equalization,[1 1 numel(equalization)]);
+  data(:,:,pass_en_idxs) = bsxfun(@times,data(:,:,pass_en_idxs),1./equalization(:,:,pass_en_idxs));
+end
 
 if 0
   %% Coregister: Data Dependent method to estimate System Time Delay
@@ -694,20 +634,139 @@ linkaxes(h_data_axes,'xy');
 
 %% Save Result
 % =========================================================================
-if param.multipass.comp_mode == 1 || param.multipass.comp_mode == 4
-  return
-end
-if param.multipass.comp_mode == 2
-  [fn_dir,fn_name] = fileparts(fn);
-  fn_multipass = fullfile(fn_dir,[fn_name '_multipass.mat']);
-  param_sar = pass(master_idx).param_sar;
-  param_records = pass(master_idx).param_records;
- 
-  param_fn = ct_filename_param(param_combine_passes.combine_passes.passes(master_idx).param_fn); %gets filename
+[fn_dir,fn_name] = fileparts(fn);
+fn_multipass = fullfile(fn_dir, sprintf('%s_multipass%02.0f.mat',fn_name, param.multipass.comp_mode));
+param_sar = pass(master_idx).param_sar;
+param_records = pass(master_idx).param_records;
+
+if ~isfield(pass,'param_multipass')
   param_multipass = read_param_xls(param_fn,param_combine_passes.combine_passes.passes(master_idx).day_seg); %reads parameter sheet for given pass
-  param_multipass = merge_structs(param,param_multipass);
-  
-  fprintf('Saving %s (%s)\n', fn_multipass, datestr(now));
-  save(fn_multipass,'-v7.3','pass','data','ref','param_records','param_sar','param_combine_passes','param_multipass');
+else
+  param_multipass = pass.param_multipass; %reads parameter sheet for given pass
+end
+param_multipass = merge_structs(param,param_multipass);
+
+fprintf('Saving %s (%s)\n', fn_multipass, datestr(now));
+save(fn_multipass,'-v7.3','pass','data','ref','param_records','param_sar','param_multipass');
+
+if param.multipass.comp_mode ~= 2 || strcmp('echo',param.multipass.echo_sar)
   return
 end
+
+%% Array Processing (comp_mode == 2)
+% Package data to call array_proc.m
+% 1. Data
+% 2. Trajectory and attitude
+% 3. Array processing parameters
+data = {permute(data,[1 2 4 5 3])};
+
+param.array = [];
+param.array.method = 1;
+% param.array.Nsv = 256; param.array = rmfield(param.array,'theta'); % Forces default theta
+% param.array.theta = linspace(-20,20,256);
+param.array.theta = linspace(-6,6,256);
+param.array.Nsrc = 2;
+param.array.bin_rng = [-4:4];
+param.array.line_rng = [-20:20];
+param.array.dbin = 1;
+param.array.dline = 11;
+param.array.freq_rng = 1;
+h_fig_baseline = figure(200); clf;
+h_plot_baseline = [];
+h_legend_baseline = {};
+wf_cells = {[],[],[]};
+for pass_out_idx = 1:length(pass_en_idxs)
+  pass_idx = pass_en_idxs(pass_out_idx);
+  
+  for wf_id = 1:length(pass(pass_out_idx).wfs)
+    wf_cells{wf_id} = [wf_cells{wf_id}; ...
+      wf_id, pass_out_idx];
+  end
+  
+  param.array.fcs{1}{pass_out_idx}.pos = along_track;
+  param.array.fcs{1}{pass_out_idx}.pos(2,:) = pass(pass_idx).ref_y;
+  param.array.fcs{1}{pass_out_idx}.pos(3,:) = pass(pass_idx).ref_z;
+  param.array.fcs{1}{pass_out_idx}.base_line ...        
+    = sqrt( (pass(pass_idx).ref_z - pass(baseline_master_idx).ref_z).^2 ...
+      + (pass(pass_idx).ref_y - pass(baseline_master_idx).ref_y).^2 );
+    
+  h_plot_baseline(end+1) = plot(param.array.fcs{1}{pass_out_idx}.base_line);
+  h_legend_baseline{end+1} = sprintf('%d',pass_idx);
+  hold on;
+
+  param.array.fcs{1}{pass_out_idx}.surface = ref.surface;
+end
+xlabel('Range line');
+ylabel('Baseline (m)');
+grid on;
+legend(h_plot_baseline,h_legend_baseline);
+
+param.array.wfs.time = ref.time;
+dt = param.array.wfs.time(2)-param.array.wfs.time(1);
+param.array_proc.bin0 = param.array.wfs.time(1)/dt;
+param.array.sv_fh = @array_proc_sv;
+param.array.wfs.fc = ref.wfs(ref.wf).fc;
+param.array.imgs = {[ones(length(pass_en_idxs),1), (1:length(pass_en_idxs)).']};
+% param.array.imgs = wf_cells;
+param.array.tomo_en = true;
+
+%%
+array_proc_methods;
+param = array_proc(param);
+param.array.method = STANDARD_METHOD;
+[param_array0,result0] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+% param.array.method = MVDR_METHOD;
+% [param_array1,result1] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+param.array.method = MUSIC_METHOD;
+[param_array2,result2] = array_proc(param,{data{1}(:,:,:,:,pass_en_idxs)});
+
+
+%% Save Results
+[fn_dir,fn_name] = fileparts(fn);
+
+Tomo = result0.tomo;
+Data = result0.img;
+GPS_time = ref.gps_time(param_array0.array_proc.lines);
+Latitude = ref.lat(param_array0.array_proc.lines);
+Longitude = ref.lon(param_array0.array_proc.lines);
+Elevation = ref.elev(param_array0.array_proc.lines);
+Roll = ref.roll(param_array0.array_proc.lines);
+Pitch = ref.pitch(param_array0.array_proc.lines);
+Heading = ref.heading(param_array0.array_proc.lines);
+Surface = ref.surface(param_array0.array_proc.lines);
+Bottom = nan(size(Surface));
+param_sar = pass(baseline_master_idx).param_sar;
+param_records = pass(baseline_master_idx).param_records;
+param_array = param_array0;
+Time = pass(master_idx).time(param_array2.array_proc.bins);
+file_version = '1';
+fn_mat = fullfile(fn_dir,[fn_name output_fn_midfix '_standard.mat']);
+save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
+  'Surface','Bottom','Time','param_array','param_records', ...
+  'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
+
+Tomo = result2.tomo;
+Data = result2.img;
+GPS_time = ref.gps_time(param_array2.array_proc.lines);
+Latitude = ref.lat(param_array2.array_proc.lines);
+Longitude = ref.lon(param_array2.array_proc.lines);
+Elevation = ref.elev(param_array2.array_proc.lines);
+Roll = ref.roll(param_array2.array_proc.lines);
+Pitch = ref.pitch(param_array2.array_proc.lines);
+Heading = ref.heading(param_array2.array_proc.lines);
+Surface = ref.surface(param_array2.array_proc.lines);
+Bottom = nan(size(Surface));
+param_sar = pass(baseline_master_idx).param_sar;
+param_records = pass(baseline_master_idx).param_records;
+param_array = param_array2;
+Time = pass(master_idx).time(param_array2.array_proc.bins);
+file_version = '1';
+fn_mat = fullfile(fn_dir,[fn_name output_fn_midfix '_music.mat']);
+save('-v7.3',fn_mat,'Tomo','Data','Latitude','Longitude','Elevation','GPS_time', ...
+  'Surface','Bottom','Time','param_array','param_records', ...
+  'param_sar', 'Roll', 'Pitch', 'Heading', 'file_version');
+
+
+
+return
+

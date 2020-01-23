@@ -957,7 +957,7 @@ for line_idx = 1:1:Nx_out
   
   % Interpolate twtt-dependant DOAs from the surfData onto the radar twtt
   % -----------------------------------------------------------------------
-  if strcmpi(cfg.surf_layer.source, 'surfData') && strcmpi(cfg.surf_layer.name,'top twtt')
+  if 0% strcmpi(cfg.surf_layer.source, 'surfData') && strcmpi(cfg.surf_layer.name,'top twtt')
     
     % TWTT of radar
     radar_twtt = cfg.wfs.time;
