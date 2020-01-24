@@ -21,14 +21,16 @@ output_fn_midfix = '';
 
 if 1
   %% Summit Camp: 2012-2014
-  insar_mode = 1; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
+  insar_mode = 3; % 1 to find equalization coefficients, 2 to process data, 3 to differential SAR
 
   % equalization = ones(1,30);
 %   equalization = 10.^([1.9 2.9 2.2 2.1 1.9 3.2 3.0 3.4 0.3 4.4 3.1 0.9 0.3 -0.5 1.0 -3.4 -3.3 -3.1 -3.0 -2.4 -3.4 -3.4 -2.6 -1.5 -2.5 -2.4 -2.4 -0.1 4.9 -1.5]) ...
-%     .* exp(1i*([7.9 22.5 19.7 22.7 29.9 14.9 22.3 0.0 1.5 5.4 13.4 19.2 17.1 17.8 22.7 167.4 166.3 177.1 164.3 -177.6 165.9 171.6 155.3 154.6 157.5 164.6 179.0 176.7 174.8 -129.8]/180/pi));
+%     .* exp(1i*([7.9 22.5 19.7 22.7 29.9 14.9 22.3 0.0 1.5 5.4 13.4 19.2 17.1 17.8 22.7 167.4 166.3 177.1 164.3 -177.6 165.9 171.6 155.3 154.6 157.5 164.6 179.0 176.7 174.8 -129.8]/180*pi));
+%   equalization = 10.^(zeros(1,30)) ...
+%     .* exp(1i*([[zeros(1,15)+[7.9 22.5 19.7 22.7 29.9 14.9 22.3 0.0 1.5 5.4 13.4 19.2 17.1 17.8 22.7]] [177.8 178.1 187.4 172.6 193.0 176.1 180.6 167.0 166.9 170.3 176.8 184.6 183.0 180.2 229.9]+[-3.0 -3.2 -3.3 -3.5 -3.6 -3.9 -4.2 0.0 -0.1 -0.3 -0.6 -6.2 -6.4 -6.5 -6.7 ]]/180*pi));
   equalization = 10.^(zeros(1,30)) ...
-    .* exp(1i*([zeros(1,15) 167.4 166.3 177.1 164.3 -177.6 165.9 171.6 155.3 154.6 157.5 164.6 179.0 176.7 174.8 -129.8]/180/pi));
-
+    .* exp(1i*([7.9 22.5 19.7 22.7 29.9 14.9 22.3 0.0 1.5 5.4 13.4 19.2 17.1 17.8 22.7 167.4 166.3 177.1 164.3 -177.6 165.9 171.6 155.3 154.6 157.5 164.6 179.0 176.7 174.8 -129.8]/180*pi));
+  
   % Enable for waveform 2
   rbins = 220:420;
   if ispc
@@ -40,13 +42,25 @@ if 1
   if 0
     baseline_master_idx = 8;
     master_idx = 8;
-    output_fn_midfix = '';
+    output_fn_midfix = '_2014';
     pass_en_mask = false(1,31);
     pass_en_mask(1:15) = true;
   elseif 1
+    baseline_master_idx = 8;
+    master_idx = 8;
+    output_fn_midfix = '';
+    pass_en_mask = false(1,31);
+    pass_en_mask(1:30) = true;
+  elseif 0
+    baseline_master_idx = 8;
+    master_idx = 15+8;
+    output_fn_midfix = '_2012';
+    pass_en_mask = false(1,31);
+    pass_en_mask(16:30) = true;
+  elseif 0
     baseline_master_idx = 15+8;
     master_idx = 15+8;
-    output_fn_midfix = '2012';
+    output_fn_midfix = '_2012master';
     pass_en_mask = false(1,31);
     pass_en_mask(16:30) = true;
   end
@@ -663,7 +677,8 @@ for pass_out_idx = 1:length(pass_en_idxs)
     % Phase only correction for slope
     if 1
       % Using file generated from this dataset
-      fn_slope = fullfile(fn_dir,[fn_name '_slope.mat']);
+      fn_slope = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/summit_2012_2014_wf2_slope.mat';
+      % fn_slope = fullfile(fn_dir,[fn_name '_slope.mat']);
       load(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
       slope = interp1(GPS_time,slope.',pass(baseline_master_idx).gps_time).';
       slope = interp_finite(slope.').';
@@ -940,8 +955,8 @@ colormap(1-gray(256))
 h_axes(end+1) = gca;
 
 figure(2004); clf;
-imagesc(lp(fir_dec(abs(data{1}(:,:,master_idx)).^2, ones(size(param.array.line_rng)), param.array.dline, ...
-  1-param.array.line_rng(1), size(data{1}(:,:,master_idx),2)-length(param.array.line_rng)+1)))
+imagesc(lp(fir_dec(abs(data{1}(:,:,master_out_idx)).^2, ones(size(param.array.line_rng)), param.array.dline, ...
+  1-param.array.line_rng(1), size(data{1}(:,:,master_out_idx),2)-length(param.array.line_rng)+1)))
 title('Single Channel');
 colormap(1-gray(256))
 h_axes(end+1) = gca;

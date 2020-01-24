@@ -1,6 +1,6 @@
 % function cross_track_slope_est
 
-wf = 2;
+% wf = 2;
 % if ispc
 %   fn = fullfile('X:/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_20140429_01_067_wf%d.mat',wf));
 % else
@@ -8,12 +8,12 @@ wf = 2;
 % end
 % threshold = 22;
 
-if ispc
-else
-  fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
-  out_fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
-end
-threshold = 20;
+% if ispc
+% else
+%   fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+%   out_fn = fullfile('/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/',sprintf('rds_thule_combine_wf%d.mat',wf));
+% end
+% threshold = 20;
 
 % if ispc
 % else
@@ -22,6 +22,16 @@ threshold = 20;
 % end
 % threshold = 22;
 
+if ispc
+else
+  % Summit
+  % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/summit_2012_2014_wf2.mat';
+  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/summit_2012_2014_wf2_2012.mat';
+  % fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/summit_2012_2014_wf2_2014.mat';
+  
+  out_fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/summit_2012_2014_wf2.mat';
+end
+threshold = 20;
 
 
 [fn_dir,fn_name] = fileparts(fn);

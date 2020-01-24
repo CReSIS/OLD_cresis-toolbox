@@ -83,7 +83,7 @@ if any(strcmpi(param.season_name,{'2019_Arctic_GV','2019_Antarctica_GV'})) %...
   gps.z = 0;
 end
 
-if (strcmpi(param.season_name,'2018_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','brice'})))
+if (strcmpi(param.season_name,'2018_Antarctica_Ground') && any(strcmpi(gps_source,{'arena','trimble'})))
   % Platform: Ground based tracked vehicles, GPS antenna on top of tracked
   % vehicle
   %

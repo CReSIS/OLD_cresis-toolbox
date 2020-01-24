@@ -19,6 +19,12 @@ elseif 0
   title_str = '2013 to 2014';
   time_year = 1;
 elseif 1
+  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/summit_2012_2014_wf2_insar.mat';
+  set1 = 1:15;
+  set2 = 16:30;
+  title_str = '2012 to 2014';
+  time_year = 2;
+elseif 0
   %   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_insar.mat';
   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_sameday_insar.mat';
   %   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_month_insar.mat';

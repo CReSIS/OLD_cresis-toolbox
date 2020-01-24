@@ -1,4 +1,4 @@
-function [Data, Time] = img_combine(param, param_mode, layers)
+function [Data, Time] = img_combine(param, param_mode, layers, data_in)
 % [Data, Time] = img_combine(param, param_mode, layers)
 %
 % Blends and combines together individual echogram image files
@@ -124,7 +124,7 @@ for img = 1:num_imgs
     img_fn = fullfile(img_fn_dir, sprintf('Data_%s_%03d.mat', ...
       param.day_seg, param.load.frm));
   else
-    img_fn = fullfile(img_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat', ...
+    img_fn = fullfile(img_fn_dir, sprintf('Data_img_%02d_%s_%03d.mat',...
       img, param.day_seg, param.load.frm));
   end
   
@@ -132,7 +132,13 @@ for img = 1:num_imgs
   % Data, Time => combined result
   % append.Data, append.Time => new data to append
   if img == 1
-    load(img_fn,'Data','Time','GPS_time');
+    if exist('data_in','var') %Overwrite data
+      Data = data_in.Data{img};
+      Time = data_in.Time{img};
+      GPS_time = data_in.GPS_time{img};
+    else
+      load(img_fn,'Data','Time','GPS_time');
+    end
     if ~isempty(param.(param_mode).img_comb_weights)
       Data = Data*10.^(param.(param_mode).img_comb_weights(img)/10);
     end
@@ -163,7 +169,12 @@ for img = 1:num_imgs
     end
     
   else
-    append = load(img_fn,'Time','Data');
+    if exist('data_in','var') %Overwrite data
+      append.Data = data_in.Data{img};
+      append.Time = data_in.Time{img};
+    else
+      append = load(img_fn,'Time','Data');
+    end
     
     if img == num_imgs
       last_idx = find(append.Time <= append.Time(end)+param.(param_mode).img_comb_trim(2) ...
