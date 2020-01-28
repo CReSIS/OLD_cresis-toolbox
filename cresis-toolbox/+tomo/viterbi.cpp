@@ -73,10 +73,6 @@ double viterbi::unary_cost(int x, int y) {
     // Distance from nearest ice-mask
     // Probabilistic measurement
     int DIM = (std::isinf(f_mask_dist[x]) || f_mask_dist[x] >=  f_costmatrix_Y) ? f_costmatrix_Y - 1 : f_mask_dist[x];
-    if (f_costmatrix[f_costmatrix_X * DIM + y + t + 1 - f_sgt[x]] < 0)
-    {
-      printf("here");
-    }
     cost += f_costmatrix[f_costmatrix_X * DIM + y + t + 1 - f_sgt[x]];
 
     // Image magnitude correlation
@@ -102,13 +98,13 @@ double* viterbi::find_path(void) {
     // Used in multiple cost calculation: Ensures correct range for outputs
     multiple_cost_base = sqrt(MULTIPLE_BIN_WEIGHT + .25) + .5;
 
-    int *path = new int[depth * (num_col_vis + 2)];
+    int *path = new int[depth * num_col_vis];
     double path_prob[depth], path_prob_next[depth], index[depth];
     
     for (int k = 0; k < f_col; ++k)
         f_result[k] = 0;
 
-    for (int k = 0; k < depth * (num_col_vis + 2); ++k) {
+    for (int k = 0; k < depth * num_col_vis; ++k) {
         path[k] = 0;
     }
     
@@ -160,15 +156,15 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
     double norm = 0;
     
     for (int col = start_col; col < end_col; ++col) {   
-        if (idx >= depth * (num_col_vis + 2) || col >= f_col || col < 0) {
+        if (idx >= depth * num_col_vis || col >= f_col || col < 0) {
             continue;
         }
         // Have to add unary cost to first column before calculating best prev index for next column
         for (int row = 0; row < depth; ++row) {
             // TODO[reece]: Test whether not populating first col of path with 0s fixes anything
-            if (col > start_col) {
+            // if (col > start_col) {
                 path[idx] = index[row];
-            }
+            // }
             if(next) {
                 path_prob_next[row] += unary_cost(col, row);
             }
