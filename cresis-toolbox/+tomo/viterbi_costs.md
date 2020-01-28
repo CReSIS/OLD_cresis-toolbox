@@ -35,14 +35,15 @@ Simplified steps taken in the Viterbi implementation.
     - returns `f_result`
 
 ## Cost Factors
+Upper and lower ends calculated
 
 Factor | Influence | Conditions | Implmentation | Notes | Upper end | Lower end
 ---|---|---|---|---|---|---
-No Ice | `LARGE` | | `return LARGE`;
-Above Surface | `LARGE` | | `return LARGE`;
-Far from Center GT | `LARGE` | | `return LARGE`;
-Far from Extra GT | Quadratic |
-Surface Multiple Bin | Exponential |
-Far from Ice Mask | Linear |
-Image Magnitude | Negative Linear | | | Decreases Cost
-Binary Cost (dt) | Quadratic |
+No Ice | `LARGE` | No ice and y not in surface bin | `return LARGE`;
+Above Surface | `LARGE` | `y + t + 1 < f_sgt[x]` | `return LARGE`;
+Far from Center GT | `LARGE` | Center GT exists, x is at center, and y is not within 20 bins of center GT | `return LARGE`;
+Far from Extra GT | Quadratic | extra GT present at x | `cost += f_weight_points[x] * 10 * sqr(((int)f_egt_y[f] - (int)(t + y)) / f_egt_weight)`
+Near Surface or  Multiple Bin | Exponential |  | ` cost += max(0, (BIN_WEIGHT+base) * base^(-dist/(MAX_DIST+1) - multiple_bin/(MAX_NUM+1)) - base)`| [Explanation of Formula](https://www.geogebra.org/3d/zy3f6mde)
+Far from Ice Mask | Linear | | `cost += f_costmatrix[f_costmatrix_X * DIM + y + t + 1 - f_sgt[x]]`
+Image Magnitude | Negative Quadratic | | `cost -= f_image[encode(x, y + i)] * f_mu[i] / f_sigma[i]` for  `0 <= i < f_ms` | Decreases Cost, mu is a flipped parabola
+Binary Cost (dt in [viterbi.h](viterbi.h)) | Quadratic | | `src[s] + sqr(s-d-off) * scale` | Added cost is just squared distance * scale

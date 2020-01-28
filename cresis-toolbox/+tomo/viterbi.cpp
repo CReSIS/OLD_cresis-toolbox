@@ -40,7 +40,7 @@ double viterbi::unary_cost(int x, int y) {
     double cost = 0;
 
     // TODO[reece]: Compare binary costs with unary costs/multiple bin costs. Adjust accordingly. Perhaps use constants for easy nudging.
-
+    // TODO[reece]: Should this not be large as with center GT? 
     // Increase cost if far from extra ground truth
     for (int f = 0; f < (f_num_extra_tr / 2); ++f) {
         if (f_egt_x[f] == x) {
@@ -51,7 +51,7 @@ double viterbi::unary_cost(int x, int y) {
 
     // TODO[reece]: Account for scaling.
     // TODO[reece]: Plane position assumed constant. However, it can change. Escpecially before mission start.
-
+    // TODO[reece]: Include t and/or mu in calculations as other cost calculations do? What exactly are t and mu?
     // Increase cost if near surface or surface multiple bin
     const int travel_time = f_sgt[x] - f_plane_bin;  // Between multiples
     int multiple_bin = (y - f_sgt[x]) / travel_time;
