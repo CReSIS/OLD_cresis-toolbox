@@ -36,7 +36,7 @@ Simplified steps taken in the Viterbi implementation.
 
 ## Cost Factors
 
-Upper and lower ends represent extreme costs calculated on tested frame `2011_Greenland_P3:20110331_02_019` from point (rangeline, rangebin) `(23.36, 425)` to point `(1624.88, 429)` in picker and reflect only cost added by the factor (except `LARGE` returns which do not add). The path returned by Viterbi for this input correctly covers almost none of the expected path.
+Upper and lower ends represent extreme costs calculated on tested frame `2011_Greenland_P3:20110331_02_019` from point (rangeline, rangebin) `(23.36, 425)` to point `(1624.88, 429)` in picker and reflect only cost added by the factor (except `LARGE` returns which do not add). The path returned by Viterbi for this input aligns fairly well with expected path.
 
 Factor | Influence | Conditions | Implementation | Notes | Upper end | Lower end | Average
 ---|---|---|---|---|---|---|---
