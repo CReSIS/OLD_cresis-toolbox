@@ -40,11 +40,11 @@ Upper and lower ends represent extreme costs calculated on tested frame `2011_Gr
 
 Factor | Influence | Conditions | Implementation | Notes | Upper end | Lower end | Average
 ---|---|---|---|---|---|---|---
-No Ice | `LARGE` | No ice and y not in surface bin | `return LARGE`; | Condition not met on tested frame. | `LARGE` | `0` | `0`
-Above Surface | `LARGE` | `y + t + 1 < f_sgt[x]` | `return LARGE`; | | `LARGE` | `0` | `0`
-Far from Center GT | `LARGE` | Center GT exists, x is at center, and y is not within 20 bins of center GT | `return LARGE`; | Condition not met on tested frame. | `LARGE` | `0` | `0`
+No Ice | Constant | No ice and y not in surface bin | `return LARGE`; | Condition not met on tested frame. | `LARGE` | `0` | `0`
+Above Surface | Constant | `y + t + 1 < f_sgt[x]` | `return LARGE`; | | `LARGE` | `0` | `0`
+Far from Center GT | Constant | Center GT exists, x is at center, and y is not within 20 bins of center GT | `return LARGE`; | Condition not met on tested frame. | `LARGE` | `0` | `0`
 Far from Extra GT | Quadratic | extra GT present at x | `cost += f_weight_points[x] * 10 * sqr(((int)f_egt_y[f] - (int)(t + y)) / f_egt_weight)` | | `187142.4` | `0` | `49166.21`
 Near Surface or  Multiple Bin | Exponential |  | `cost += max(0, (BIN_WEIGHT+base) * base^(-dist/(MAX_DIST+1) - multiple_bin/(MAX_NUM+1)) - base)`| [Explanation of Formula](https://www.geogebra.org/3d/zy3f6mde) | `10` | `0` | `.11823`
 Far from Ice Mask | Linear | | `cost += f_costmatrix[f_costmatrix_X * DIM + y + t + 1 - f_sgt[x]]` | | `3.33362` | `0.00099` | `1.24319`
-Image Magnitude | Negative Quadratic | | `cost += -f_image[encode(x, y)]` | Decreases Cost | `25.09595` | `-34.72310` | `-.00769`
+Image Magnitude | Linear | | `cost += -f_image[encode(x, y)]` | Able to decrease cost | `25.09595` | `-34.72310` | `-.00769`
 Binary Cost (dt in [viterbi.h](viterbi.h)) | Quadratic | | `src[s] + sqr(s-d-off) * scale` | `src[s]` represents cummulative cost as `cost` does above | `31212` | `0` | `378.72577`
