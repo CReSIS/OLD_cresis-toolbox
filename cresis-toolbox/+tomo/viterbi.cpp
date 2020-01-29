@@ -76,13 +76,8 @@ double viterbi::unary_cost(int x, int y) {
     cost += f_costmatrix[f_costmatrix_X * DIM + y + t + 1 - f_sgt[x]];
 
     // Image magnitude correlation
-    double tmp_cost = 0;
-    for (size_t i = 0; i < f_ms; i++) {
-        cost -= f_image[encode(x, y + i)] * f_mu[i] / f_sigma[i];
-    }
-    // TODO[reece]: Allow cost to be negative or make image mag corr only increase cost somehow
-    // TODO[reece]: Compare image mag corr to surf/mult suppression to tune suppression
-    cost = cost < 0 ? 0 : cost;
+    cost -= f_image[encode(x, y)];
+    // TODO[reece]: Make image mag corr only increase cost somehow
     
     return cost;
 }
@@ -161,10 +156,9 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
         }
         // Have to add unary cost to first column before calculating best prev index for next column
         for (int row = 0; row < depth; ++row) {
-            // TODO[reece]: Test whether not populating first col of path with 0s fixes anything
-            // if (col > start_col) {
+            if (col > start_col) {
                 path[idx] = index[row];
-            // }
+            }
             if(next) {
                 path_prob_next[row] += unary_cost(col, row);
             }
