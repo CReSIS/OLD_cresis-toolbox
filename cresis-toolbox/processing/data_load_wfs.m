@@ -101,6 +101,13 @@ for state_idx = 1:length(boards)
         % Determine which board this wf-adc pair comes from
         [board,~,profile] = wf_adc_to_board(param,[wf adc]);
         next_state_idx = find(boards == board,1);
+        if any(param.records.file.version == [9 10 103 412])
+          mode_latch = profile(1);
+          subchannel = profile(2);
+        else
+          mode_latch = 0;
+          subchannel = 0;
+        end
         % Add wf-adc pair to states list
         if next_state_idx > length(states) || ~isfield(states(next_state_idx),'board') ...
             || isempty(states(state_idx).board)
@@ -668,7 +675,7 @@ for wf = 1:length(param.radar.wfs)
       
       if isempty(ref_fn_name) || ~exist(ref_fn,'file')
         wfs(wf).ref{adc} = conj(fft(ref,wfs(wf).Nt_pc) ...
-          .* exp(-1i*2*pi*wfs(wf).freq_pc*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
+          .* exp(-1i*2*pi*wfs(wf).freq_pc*wfs(wf).Tsys(wfs(wf).rx_paths(adc))) );
         wfs(wf).ref_windowed(adc) = false;
         
       else
@@ -688,7 +695,7 @@ for wf = 1:length(param.radar.wfs)
         
         ref_from_file = ref_from_file ./ abs(max(ref_from_file));
         wfs(wf).ref{adc} = conj(fft(ref_from_file,Nt) ...
-          .* exp(-1i*2*pi*freq*param.radar.wfs(wf).Tsys(param.radar.wfs(wf).rx_paths(adc))) );
+          .* exp(-1i*2*pi*freq*wfs(wf).Tsys(wfs(wf).rx_paths(adc))) );
       end
       
       if ~wfs(wf).ref_windowed(adc)

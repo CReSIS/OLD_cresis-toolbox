@@ -1,8 +1,6 @@
 clearvars -except gRadar
 param = [];
 
-param = [];
-
 %% Petermann Line 1 2014
 % if ispc
 %   fn = fullfile('X:\ct_data\rds\2014_Greenland_P3\CSARP_multipass\',sprintf('Petermann_line1_2014.mat'));
@@ -141,15 +139,15 @@ if 1
   
   param.multipass.rbins = [];
   
-  
   if 0
     param.multipass.baseline_master_idx = 8;
     param.multipass.master_idx = 8;
     param.multipass.output_fn_midfix = '_2014';
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(1:15) = true;
-  elseif 0
-    comp_mode = 4;
+  elseif 1
+    comp_mode = 3;
+    param.multipass.slope_correction_en = true;
     param.multipass.baseline_master_idx = 8;
     param.multipass.master_idx = 8;
     param.multipass.output_fn_midfix = '';
@@ -193,9 +191,5 @@ end
 % Run multipass
 for mode_id = 1:length(comp_mode)
   param.multipass.comp_mode = comp_mode(mode_id);
-  if comp_mode(mode_id)==3 %&& ~exist(fullfile(fn_dir,[param.multipass.pass_name '_slope.mat']),'file')
-    %Check if slope file exists
-    tomo.cross_track_slope_est(param.multipass.fn)
-  end
-  multipass.multipass
+  multipass.multipass(param, param_override);
 end
