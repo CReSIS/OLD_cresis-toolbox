@@ -138,6 +138,10 @@ if ~isfield(param.post,'pdf_en') || isempty(param.post.pdf_en)
   param.post.pdf_en = false;
 end
 
+if ~isfield(param.post.echo,'num_x_tics') || isempty(param.post.echo.num_x_tics)
+  param.post.echo.num_x_tics = 6;
+end
+
 if ~isfield(param.post.echo,'plot_params') || isempty(param.post.echo.plot_params)
   param.post.echo.plot_params = {'PaperPosition',[0.25 2.5 8 6]};
 end
@@ -365,7 +369,6 @@ for frm_idx = 1:length(param.cmd.frms)
     else
       echo_param.fig_hand = [];
     end
-    echo_param.num_x_tics = 6;
     
     echo_param.frm_id = sprintf('%s_03d', param.day_seg, frm);
     
