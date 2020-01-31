@@ -33,7 +33,7 @@ standard_projections;
 %% Load multipass.combine_passes file
 fn = param.multipass.fn;
 [fn_dir,fn_name] = fileparts(fn);
-load(fn);  
+load(fn,'param_combine_passes','pass');
 
 %% Input check
 % =========================================================================
@@ -130,7 +130,7 @@ pass_en_idxs = find(pass_en_mask);
 if ~isfield(param.multipass,'slope_correction_en') || isempty(param.multipass.slope_correction_en)
   param.multipass.slope_correction_en = false;
 end
-if param.multipass.comp_mode ~= 3
+if param.multipass.comp_mode ~= 3 && param.multipass.slope_correction_en
   warning('Only param.multipass.comp_mode == 3 may have param.multipass.slope_correction_en == true.');
   param.multipass.slope_correction_en = false;
 end
@@ -148,12 +148,12 @@ if ~isfield(param.multipass,'units') || isempty(param.multipass.units)
 end
 
 % post.ops.location: Determine which projection to use
-if strcmpi(pass(baseline_master_idx).param_multipass.post.ops.location,'arctic')
+if strcmpi(param_combine_passes.post.ops.location,'arctic')
   proj = arctic_proj;
-elseif strcmpi(pass(baseline_master_idx).param_multipass.post.ops.location,'antarctic')
+elseif strcmpi(param_combine_passes.post.ops.location,'antarctic')
   proj = antarctic_proj;
 else
-  error('Unsupported location pass(%d).param_multipass.post.ops.location.', baseline_master_idx);
+  error('Unsupported location param_combine_passes.post.ops.location.', baseline_master_idx);
 end
 
 %% Convert FCS to ECEF and Geodetic
@@ -203,10 +203,9 @@ for pass_idx = 1:length(pass)
   if ~pass_en_mask(pass_idx)
     continue
   end
-  if ~isfield(pass,'layers')
-    % Load layers
-    pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_multipass,param.multipass.layer);
-  end
+  
+  % Load layers
+  pass(pass_idx).layers = opsLoadLayers(pass(pass_idx).param_pass,param.multipass.layer);
 
   % Interpolate all layers onto a common reference (ref)
   for lay_idx = 1:length(pass(pass_idx).layers)
@@ -462,13 +461,13 @@ for pass_out_idx = 1:length(pass_en_idxs)
     if param.multipass.slope_correction_en
       % Phase only correction for cross-track layer slope
       fn_slope = fullfile(fn_dir,[fn_name '_slope.mat']);
-      load(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
-      slope = interp1(GPS_time,slope.',pass(baseline_master_idx).gps_time).';
-      slope = interp_finite(slope.',0).';
-      slope = interp1(Time,slope,pass(pass_idx).time);
-      slope = interp_finite(slope);
+      slope = load(fn_slope,'slope','GPS_time','Latitude','Longitude','Elevation','Time','Surface');
+      slope.slope = interp1(slope.GPS_time,slope.slope.',pass(baseline_master_idx).gps_time).';
+      slope.slope = interp_finite(slope.slope.',0).';
+      slope.slope = interp1(slope.Time,slope.slope,pass(pass_idx).time);
+      slope.slope = interp_finite(slope.slope);
       
-      pass(pass_idx).ref_data = pass(pass_idx).ref_data .* exp(-1i*4*pi*pass(pass_idx).freq(1)/c *bsxfun(@times,sin(slope),pass(pass_idx).ref_y(:).'));
+      pass(pass_idx).ref_data = pass(pass_idx).ref_data .* exp(-1i*4*pi*pass(pass_idx).freq(1)/c *bsxfun(@times,sin(slope.slope),pass(pass_idx).ref_y(:).'));
     end
   elseif strcmp('echo',param.multipass.input_type)
     % Motion compensation of FCS z-motion using linear interpolation

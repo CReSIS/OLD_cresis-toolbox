@@ -140,12 +140,13 @@ if 1
   param.multipass.rbins = [];
   
   if 0
+    comp_mode = 2;
     param.multipass.baseline_master_idx = 8;
     param.multipass.master_idx = 8;
     param.multipass.output_fn_midfix = '_2014';
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(1:15) = true;
-  elseif 1
+  elseif 0
     comp_mode = 3;
     param.multipass.slope_correction_en = true;
     param.multipass.baseline_master_idx = 8;
@@ -161,13 +162,14 @@ if 1
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(16:30) = true;
   else 0
+    comp_mode = 2;
     param.multipass.baseline_master_idx = 15+8;
     param.multipass.master_idx = 15+8;
     param.multipass.output_fn_midfix = '_2012master';
     param.multipass.pass_en_mask = false(1,30);
     param.multipass.pass_en_mask(16:30) = true;
   end
-  
+    
   param.multipass.coregistration_time_shift = [];
   param.multipass.time_gate = [];
   
@@ -191,5 +193,6 @@ end
 % Run multipass
 for mode_id = 1:length(comp_mode)
   param.multipass.comp_mode = comp_mode(mode_id);
-  multipass.multipass(param, param_override);
+  %multipass.multipass(param, param_override);
+  multipass.multipass
 end

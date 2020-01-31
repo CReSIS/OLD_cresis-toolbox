@@ -14,9 +14,6 @@ param_override = [];
 param = [];
 passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
 
-% master_pass = struct('day_seg','20140505_01','frms',17:18,'param_fn','rds_param_2014_Greenland_P3.xls','in_path','CSARP_post/standard');
-% master_pass_idx = struct('day_seg','20170331_01','frms',16:17,'param_fn','rds_param_2017_Greenland_P3.xls','in_path','CSARP_post/standard');
-
 %% Petermann Line 1 2002
 % pass_name = sprintf('Petermann_line1_2002');
 % dist_min = 500;
@@ -228,43 +225,23 @@ passes = struct('day_seg',{},'frms',{},'param_fn',{},'in_path',{},'imgs',[]);
 % end
 
 %% Summit Camp: 2012-2014
-% pass_name = sprintf('summit_2012_2014_allwf');
-% start = struct('lat', 72.646,'lon', -37.898);
-% stop = struct('lat', 72.791, 'lon', -38.461);
-% dist_min = 300;
-% master_pass_idx = 8;
-% input_type = 'sar';
-% 
-% param_fn = 'rds_param_2014_Greenland_P3.xls';
-% for adc = 2:16
-%   passes(end+1) = struct('day_seg','20140502_01','frms',41,'param_fn',param_fn, ...
-%     'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
-% end
-% 
-% param_fn = 'rds_param_2012_Greenland_P3.xls';
-% for adc = 2:16
-%   passes(end+1) = struct('day_seg','20120330_03','frms',8,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
-% end
-
-%% Summit Camp: 2012-2014
-pass_name = sprintf('summit_2012_2014_test');
+pass_name = sprintf('summit_2012_2014_allwf');
 start = struct('lat', 72.646,'lon', -37.898);
 stop = struct('lat', 72.791, 'lon', -38.461);
 dist_min = 300;
-master_pass_idx = 1;
+master_pass_idx = 8;
 input_type = 'sar';
 
 param_fn = 'rds_param_2014_Greenland_P3.xls';
-for adc = 2:2
+for adc = 2:16
   passes(end+1) = struct('day_seg','20140502_01','frms',41,'param_fn',param_fn, ...
     'in_path','','imgs',{{[1 adc], [2 adc], [3 adc]}});
 end
 
 param_fn = 'rds_param_2012_Greenland_P3.xls';
-for adc = 2:2
+for adc = 2:16
   passes(end+1) = struct('day_seg','20120330_03','frms',8,'param_fn',param_fn,'in_path','','imgs',{{[1 adc], [2 adc]}});
 end
-
 
 %% Automated section
 % =========================================================================

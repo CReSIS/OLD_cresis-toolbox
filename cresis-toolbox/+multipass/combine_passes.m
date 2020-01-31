@@ -1,4 +1,4 @@
-function combine_passes(param,param_override)
+% function combine_passes(param,param_override)
 % combine_passes(param,param_override)
 %
 % Combines multiple passes (SAR focussed echograms from array processing or
@@ -413,7 +413,7 @@ for data_idx = 1:length(data)
       else
         pass(end).data = data{data_idx}(:,rlines);
         pass(end).wfs = metadata{data_idx}.wfs;
-        pass(end).time = metadata{end}.time;
+        pass(end).time = metadata{data_idx}.time;
         
         pass(end).gps_time = metadata{data_idx}.fcs{1}{1}.gps_time(rlines);
         pass(end).roll = metadata{data_idx}.fcs{1}{1}.roll(rlines);
