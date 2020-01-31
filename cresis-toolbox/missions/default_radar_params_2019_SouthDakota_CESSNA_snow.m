@@ -41,6 +41,7 @@ default.cmd.generic = 1;
 default.records.file.boards = [1];
 default.records.frames.geotiff_fn = fullfile('southdakota','','south_dakota.tif');
 default.records.frames.mode = 2;
+default.records.frames.length = 500;
 default.records.gps.en = 1;
 default.records.gps.time_offset = 1;
 
@@ -50,7 +51,7 @@ default.qlook.imgs = {[1 1]};
 default.qlook.out_path = '';
 default.qlook.block_size = 2000;
 default.qlook.motion_comp = 0;
-default.qlook.dec = 4;
+default.qlook.dec = 8;
 default.qlook.inc_dec = 5;
 default.qlook.surf.en = 1;
 default.qlook.surf.profile = 'SNOW_AWI';
@@ -71,7 +72,7 @@ default.sar.sar_type = 'fk';
 default.sar.sigma_x = 1;
 default.sar.sub_aperture_steering = 0;
 default.sar.st_wind = @hanning;
-default.sar.start_eps = 3.15;
+default.sar.start_eps = 1;
 
 %% Array worksheet
 default.array.in_path = '';
@@ -119,25 +120,34 @@ default.post.data_en = 0;
 default.post.csv_en = 1;
 default.post.concat_en = 1;
 default.post.pdf_en = 1;
-default.post.map.location = 'World';
-default.post.map.type = 'combined';
-default.post.echo.elev_comp = 2;
-default.post.echo.depth = '[min(Surface_Depth)-2 max(Surface_Depth)+25]';
-% default.post.echo.elev_comp = 3;
-% default.post.echo.depth = '[min(Surface_Elev)-25 max(Surface_Elev)+2]';
-default.post.echo.er_ice = round((1+0.51*0.3)^3 * 100)/100;
-default.post.ops.location = 'world';
+default.post.map.location = 'geotiff';
+default.post.map.type = 'geotiff';
+default.post.map.geotiff = {'southdakota/Model_Landsat_UTM.tif','Black Hills, South Dakota'};
+% default.post.echo.elev_comp = 2;
+% default.post.echo.depth = '[min(Surface_Depth)-2 max(Surface_Depth)+25]';
+default.post.echo.elev_comp = 3;
+default.post.echo.depth = '[min(Surface_Elev)-10 max(Surface_Elev)+5]';
+default.post.echo.er_ice = 1;
+default.post.echo.plot_params = {'PaperPosition',[0.25 2.5 3 6]};
+default.post.ops.location = 'arctic';
   
 %% Radar Settings
 
 defaults = {};
 
-% Survey Mode 2-18 GHz
-default.radar.wfs(1).f0 = 2e9;
+% Survey Mode 2.5-8 GHz
+default.radar.wfs(1).f0 = 2.5e9;
 default.radar.wfs(1).f1 = 8e9;
-default.radar.wfs(1).Tpd = 240e-6;
-default.radar.wfs(1).BW_window = [2.1e9 7.75e9];
+default.radar.wfs(1).Tpd = 250e-6;
+default.radar.wfs(1).BW_window = [2.5e9 7.72016e9];
 default.radar.wfs(1).t_ref = 0;
+
+% Survey Mode 2-18 GHz
+% default.radar.wfs(1).f0 = 2e9;
+% default.radar.wfs(1).f1 = 8e9;
+% default.radar.wfs(1).Tpd = 240e-6;
+% default.radar.wfs(1).BW_window = [2.1e9 7.75e9];
+% default.radar.wfs(1).t_ref = 0;
 
 default.config_regexp = '.*';
 default.name = 'Survey Mode';

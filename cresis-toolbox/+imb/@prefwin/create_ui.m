@@ -134,14 +134,14 @@ set(obj.h_gui.sourceLB,'Min',1); % One must always be selected
 set(obj.h_gui.sourceLB,'Max',1e9); % Allow multiple selections
 
 % Source list box context menu
-obj.h_gui.sourceCM = uicontextmenu;
+obj.h_gui.sourceCM = uicontextmenu('Parent',obj.h_fig);
 % Define the context menu items and install their callbacks
-obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Add', 'Callback', @obj.sourceLB_callback);
-obj.h_gui.sourceCM_item2 = uimenu(obj.h_gui.sourceCM, 'Label', 'Remove', 'Callback', @obj.sourceLB_callback);
-obj.h_gui.sourceCM_item3 = uimenu(obj.h_gui.sourceCM, 'Label', 'Up', 'Callback', @obj.sourceLB_callback);
-obj.h_gui.sourceCM_item4 = uimenu(obj.h_gui.sourceCM, 'Label', 'Down', 'Callback', @obj.sourceLB_callback);
-obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Top', 'Callback', @obj.sourceLB_callback);
-obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Bottom', 'Callback', @obj.sourceLB_callback);
+obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Add', 'Callback', @obj.sourceLB_callback,'Parent',obj.h_fig);
+obj.h_gui.sourceCM_item2 = uimenu(obj.h_gui.sourceCM, 'Label', 'Remove', 'Callback', @obj.sourceLB_callback,'Parent',obj.h_fig);
+obj.h_gui.sourceCM_item3 = uimenu(obj.h_gui.sourceCM, 'Label', 'Up', 'Callback', @obj.sourceLB_callback,'Parent',obj.h_fig);
+obj.h_gui.sourceCM_item4 = uimenu(obj.h_gui.sourceCM, 'Label', 'Down', 'Callback', @obj.sourceLB_callback,'Parent',obj.h_fig);
+obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Top', 'Callback', @obj.sourceLB_callback,'Parent',obj.h_fig);
+obj.h_gui.sourceCM_item1 = uimenu(obj.h_gui.sourceCM, 'Label', 'Bottom', 'Callback', @obj.sourceLB_callback,'Parent',obj.h_fig);
 set(obj.h_gui.sourceLB,'uicontextmenu',obj.h_gui.sourceCM)
 
 % Map Popup Menu (populate later from preference file)
