@@ -25,7 +25,7 @@ function create_season_layerdata_files
 %% Select season parameter files
 param_fns = {};
 % param_fns{end+1} = 'accum_param_2018_Antarctica_TObas.xls';
-param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
+% param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
 % param_fns{end+1} = 'rds_param_1993_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1995_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_1996_Greenland_P3.xls';
@@ -79,6 +79,7 @@ param_fns{end+1} = 'accum_param_2019_Antarctica_TObas.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
 % param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
+param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
 
 %% Setup layer load parameters
 if 1
@@ -124,14 +125,14 @@ for param_idx = 1:length(param_fns)
   param_fn = ct_filename_param(param_fns{param_idx});
   params = read_param_xls(param_fn,'');
   if 1
-  params = ct_set_params(params,'cmd.generic',1);
-  params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
+    params = ct_set_params(params,'cmd.generic',1);
+    params = ct_set_params(params,'cmd.generic',0,'cmd.notes','do not process');
   else
     % HACK!!!
     keyboard
-  params = ct_set_params(params,'cmd.generic',0);
-  params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
-  params = ct_set_params(params,'debug',1);
+    params = ct_set_params(params,'cmd.generic',0);
+    params = ct_set_params(params,'cmd.generic',1,'day_seg','20120330_04');
+    params = ct_set_params(params,'debug',1);
   end
   disp(param_fns{param_idx})
   
