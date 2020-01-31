@@ -1,3 +1,12 @@
+% script tomo_insar_image
+%
+% Script for creating insar figures and estimating the vertical velocity
+% field from multipass.multipass coregistered images output.
+%
+% Authors: John Paden
+
+%% User Settings
+rlines = [];
 if 0
   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/rds_thule_2011_2014_insar.mat';
   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2011_Greenland_P3/CSARP_insar/rds_thule_2011_2014_sameday_insar.mat';
@@ -5,20 +14,40 @@ if 0
   set2 = 16:30;
   title_str = '2011 to 2014';
   time_year = 3;
-  
+  rbins = [200:450];
+  rbins_baseline = [250:280]; % Bins to use to estimate phase error due to GPS errors
 elseif 0
   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2012_Greenland_P3/CSARP_insar/rds_thule_2012_2014_wf1_insar.mat';
   set1 = 1:15;
   set2 = 16:30;
   title_str = '2012 to 2014';
   time_year = 2;
+  rbins = [200:450];
+  rbins_baseline = [250:280]; % Bins to use to estimate phase error due to GPS errors
 elseif 0
   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2013_Greenland_P3/CSARP_insar/rds_thule_2013_2014_wf2_insar.mat';
   set1 = 1:15;
   set2 = 16:22;
   title_str = '2013 to 2014';
   time_year = 1;
+  rbins = [200:450];
+  rbins_baseline = [250:280]; % Bins to use to estimate phase error due to GPS errors
 elseif 1
+  fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_multipass/summit_2012_2014_allwf_multipass03.mat';
+  set1 = 1:15;
+  set2 = 16:30;
+  title_str = '2012 to 2014';
+  time_year = 2;
+  
+  rbins = [115:1055]; % Good range
+  rbins_baseline = [600:650]; % Bins to use to estimate phase error due to GPS errors
+  
+  rlines = 1500:9889; % Good range lines
+  %rlines = 1500:4296;
+  %rlines = 4297:7092;
+  %rlines = 7093:9888;
+  
+elseif 0
   %   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_insar.mat';
   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_sameday_insar.mat';
   %   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_month_insar.mat';
@@ -32,6 +61,8 @@ elseif 1
   %   set2 = 91:105; % Biggest (snow fall?)
   title_str = '2014 to 2014 (same day)';
   time_year = 1;
+  rbins = [200:450];
+  rbins_baseline = [250:280]; % Bins to use to estimate phase error due to GPS errors
 elseif 0
   %   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_insar.mat';
   %   fn = '/cresis/snfs1/dataproducts/ct_data/rds/2014_Greenland_P3/CSARP_insar/rds_thule_combine_wf2_sameday_insar.mat';
@@ -47,24 +78,35 @@ elseif 0
   title_str = '2014 to 2014 (1 month)';
   title_str = '2014 to 2014 (2 week)';
   time_year = 1;
+  rbins = [200:450];
+  rbins_baseline = [250:280]; % Bins to use to estimate phase error due to GPS errors
 end
-rbins = [240:420]; % Good range 
-% rbins = [160:440]; % Test range
 
-rbins_baseline = [320:350]; % Bins to use to estimate phase error due to GPS errors
+%% Automated Section
+
+physical_constants;
+
+% Make rbins_baseline relative to rbins(1)
 rbins_baseline = rbins_baseline - rbins(1);
 
+% Load data from multipass.multipass
 tmp = load(fn);
 
-%% Process data
+% By default, process all range lines
+if isempty(rlines)
+  rlines = 1:size(tmp.data,2);
+end
+
+%% Form interferogram
 insar1 = mean(tmp.data(rbins,:,set1),3);
 insar2 = mean(tmp.data(rbins,:,set2),3);
 
 insar_data = insar2 .* conj(insar1) ./ (abs(insar1).*abs(insar2));
 
-% Surface flattening
+%% Surface flattening
 % Remove surface variations by moving all bins down so that the surface
 % aligns for every range line and the surface bin is the max surface bin
+tmp.ref.surface_bin = round(interp1(tmp.ref.time,1:length(tmp.ref.time),tmp.ref.surface));
 max_surface_bin = ceil(max(tmp.ref.surface_bin));
 dbin = tmp.ref.surface_bin - max_surface_bin;
 Nt = size(insar_data,1);
@@ -77,16 +119,79 @@ max_dbin = ceil(max_dbin);
 insar_data = insar_data(1+max_dbin:end,:);
 rbins = rbins(1+max_dbin:end);
 
-% Baseline phase error estimation (caused by GPS position errors)
+%% Baseline GPS/phase error correction
 % baseline_correction = fir_dec(mean(insar_data(1:30,:),1),ones(1,51)/51,1);
-baseline_correction = fir_dec(mean(insar_data(80:110,:),1),ones(1,51)/51,1);
+baseline_correction = fir_dec(mean(insar_data(rbins_baseline,:),1),ones(1,51)/51,1);
 insar_data = bsxfun(@times,insar_data,exp(-1i*angle(baseline_correction)));
+
+%% Example plots for Summit, Greenland
+if 0
+  range = (tmp.ref.time(rbins) - tmp.ref.time(max_surface_bin)) * c/2 / sqrt(er_ice);
+  relative_velocity_offset = 324;
+  displacement = relative_velocity_offset+unwrap(angle(mean(insar_data(rbins,rlines),2))) * c/(4*pi*195e6) / 2 / 1.78 * 1000;
+  pp = polyfit(range,displacement,2);
+  
+  % displacement = fir_dec(displacement - polyval(pp,range),ones(1,5)/5,1);
+  
+  figure(5001);
+  displacement(240:287) = nan;
+  displacement_single = displacement;
+  % plot(displacement_single, thickness-range, '.','Color','red');
+  % hold on;
+  displacement(240:287) = nan;
+  displacement = polyval(pp,range(:).') + nan_fir_dec(displacement(:).' - polyval(pp,range(:).'),ones(1,51)/51,1);
+  displacement = displacement(:).';
+  range = range(:).';
+  thickness = nanmean(tmp.ref.layers(2).twtt-tmp.ref.layers(1).twtt)*3e8/2/1.78;
+  % displacement = displacement;
+  plot(displacement, thickness-range, 'LineWidth', 3, 'Color', 'blue');
+  hold on;
+  grid on;
+  xlim([-20 300])
+  ylim([0 3082]);
+  xlabel(sprintf('Vertical velocity\n(mm/year)'));
+  ylabel('Height above bed (m)');
+  
+  figure(6001);clf;
+  plot(thickness-range, displacement_single, '.','Color','red');
+  hold on;
+  plot(thickness-range, displacement, 'LineWidth', 2, 'Color', 'blue');
+  grid on;
+  ylim([-20 300])
+  xlim([0 3082]);
+  ylabel(sprintf('Vertical velocity\n(mm/year)'));
+  xlabel('Height above bed (m)');
+  plot([3082 3082], [-20 300],'Color',[0.5 0.5 0.5],'linewidth',3);
+  h=text(3082-100,50,'Surface','Rotation',90);
+  plot([0 0], [-20 300],'Color',[0.5 0.5 0.5],'linewidth',3);
+  text(100,50,'Bottom','Rotation',90);
+  legend('Measured','Smoothed','location','best')
+  
+  %
+  displacement(1:100) = nan;
+  displacement(235:292) = nan;
+  displacement(850:end) = nan;
+  strain_rate = nan_fir_dec(diff(displacement) ./ diff(range), ones(1,3)/3,1);
+  figure(6002); clf;
+  plot(-strain_rate/1000, thickness-range(2:end), '.','Color','red');
+  hold on
+  strain_rate = fir_dec(strain_rate,ones(1,101)/101,1);
+  plot(-strain_rate/1000, thickness-range(2:end), 'LineWidth', 3, 'Color', 'blue');
+  grid on;
+  xlabel(sprintf('Strain rate\n(m\\cdotm^{-1}\\cdota^{-1})'));
+  ylabel('Height above bed (m)');
+  ylim([0 3082]);
+  xlim([0 0.3]/1000);
+  
+  return;
+end
+
+%% Estimate vertical velocity
+range = (tmp.ref.time(rbins) - tmp.ref.time(max_surface_bin)) * c/2 / sqrt(er_ice);
 
 insar_data_filt = fir_dec(fir_dec(insar_data,ones(1,31)/31,1).',ones(1,3)/3).';
 
 meter_units = true;
-
-range = (tmp.ref.wfs(tmp.ref.wf).time(rbins) - tmp.ref.wfs(tmp.ref.wf).time(max_surface_bin)) * c/2 / sqrt(er_ice);
 
 along_track = geodetic_to_along_track(tmp.ref.lat,tmp.ref.lon);
 
@@ -156,8 +261,9 @@ figure(3003);
 Nt = size(insar_data_filt,1);
 Mt = 200;
 dd=abs(fftshift(fft(insar_data_filt,Mt*Nt),1)).^2;
-dd=fir_dec(dd,ones(1,501)/501,20);
-along_track_dec=fir_dec(along_track,ones(1,501)/501,20);
+along_track_filt = 501;
+dd=fir_dec(dd,ones(1,along_track_filt)/along_track_filt,20);
+along_track_dec=fir_dec(along_track,ones(1,along_track_filt)/along_track_filt,20);
 
 % imagesc(lp(dd));
 
@@ -167,7 +273,7 @@ along_track_dec=fir_dec(along_track,ones(1,501)/501,20);
 max_freq = 1 + dd_idx - Nt*Mt/2;
 
 lambda = 3e8/195e6;
-dt = tmp.ref.wfs(tmp.ref.wf).time(2)-tmp.ref.wfs(tmp.ref.wf).time(1);
+dt = tmp.ref.time(2)-tmp.ref.time(1);
 dr = dt*3e8/2;
 if meter_units
   xlabel('Along-track (km)');

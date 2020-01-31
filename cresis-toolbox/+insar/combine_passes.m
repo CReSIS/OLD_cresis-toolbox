@@ -1,8 +1,38 @@
 %% User Settings
 passes = struct('frm',{},'wf_adc',{},'param_fn',{});
-master_pass = struct('frm','20140429_01_067','wf_adc',[2 9],'param_fn','rds_param_2014_Greenland_P3.xls');
+% master_pass = struct('frm','20140429_01_067','wf_adc',[2 9],'param_fn','rds_param_2014_Greenland_P3.xls');
+master_pass = struct('frm','20140502_01_041','wf_adc',[2 9],'param_fn','rds_param_2014_Greenland_P3.xls');
 
 if 1
+  %% Summit Camp: 2012-2014
+
+    pass_name = sprintf('summit_2012_2014_wf2');
+  param_fn = 'rds_param_2014_Greenland_P3.xls';
+  wf = 2;
+  for adc = 2:16
+    passes(end+1) = struct('frm','20140502_01_041','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  param_fn = 'rds_param_2012_Greenland_P3.xls';
+  wf = 1;
+  for adc = 2:16
+    passes(end+1) = struct('frm','20120330_03_008','wf_adc',[wf adc],'param_fn',param_fn);
+  end
+  passes(end+1) = master_pass;
+
+%   % Start:
+%   20120330_03_008: 72.646053 N, -37.898030 E, X:234.152 km, Y:-1879.297 km, 2012-03-30 15:10:28.01, 3264.13 Elevation, 0.00 Depth
+%   20140502_01_041: 72.646347 N, -37.897234 E, X:234.171 km, Y:-1879.267 km, 2014-05-02 15:18:08.68, 3270.24 Elevation, 0.00 Depth
+%   % Stop:
+%   20120330_03_008: 72.791389 N, -38.461623 E, X:213.822 km, Y:-1865.521 km, 2012-03-30 15:13:28.49, 3239.21 Elevation, 0.00 Depth
+%   20140502_01_041: 72.791530 N, -38.461307 E, X:213.828 km, Y:-1865.510 km, 2014-05-02 15:21:13.16, 3243.05 Elevation, 0.00 Depth
+
+  %Found using check_region
+  start = struct('lat', 72.646,'lon', -37.898);
+  stop = struct('lat', 72.791, 'lon', -38.461);
+  %Set dist min
+  dist_min = 300;
+  
+elseif 0
   %% OIB P3 Greenland: 2011-2014
 
 %   pass_name = sprintf('rds_thule_2011_2014_wf1');

@@ -1,5 +1,5 @@
 function [Data, Time] = img_combine(param, param_mode, layers, data_in)
-% [Data, Time] = img_combine(param, param_mode, layers)
+% [Data, Time] = img_combine(param, param_mode, layers, data_in)
 %
 % Blends and combines together individual echogram image files
 % "Data_img_II_*" into a combined datafile "Data_*" according to the
@@ -7,11 +7,12 @@ function [Data, Time] = img_combine(param, param_mode, layers, data_in)
 %
 % param: parameter structure usually loaded from parameter spreadsheet with
 %   read_param_xls.m. The parameter structure will either look at the
-%   get_heights or array field depending on the param_mode parameter.
+%   qlook or array field depending on the param_mode parameter.
 %  .day_seg: segment name to load
 %  .load.frm: specifies the frame to load
 %  .(param_mode): structure that defines the img_combine parameters
-%   .out_path: output path to be updated
+%   .out_path: output path to be updated (unless data_in specified). Data
+%     are loaded as Nt by Nx matrices, one image at a time.
 %   .img_comb: 3x(length(imgs)-1) vector which describes combination. Each
 %     set of 3 numbers controls the merge for the corresponding two images:
 %     (1): time after surface return where combine will happen
@@ -45,9 +46,22 @@ function [Data, Time] = img_combine(param, param_mode, layers, data_in)
 % param_mode: 'qlook' or 'array'
 % layers: struct defining the two way travel time to the ice top for each
 %   range line, must contain finite values
-%  .gps_time: N element vector of GPS time's for the layer (ANSI C
-%    standard, seconds since 1970).
-%  .twtt: N element vector of two way travel time's for the layer (seconds)
+%  .gps_time: Nx element vector of GPS time's for the layer (ANSI C
+%    standard, seconds since 1970). gps_time does not need to be sampled at
+%    the same points as the image data. It will be interpolated.
+%  .twtt: Nx element vector of two way travel time's for the layer (seconds)
+% data_in: optional input data (if not specified, then function loads
+%   echograms based on the (param_mode).out_path field. The data is
+%   formatted as a structure with three fields:
+%  .Data: N element cell array of image data Each image is Nt by Nx
+%    elements where Nx must be the same for each image, but Nt may be
+%    different for each image.
+%  .Time: N element cell array of fast-time axes associated with
+%    corresponding entries in data_in.Data. Each cell entry must be Nt by 1
+%    where Nt matches the row dimension of the corresponding data_in.Data
+%    image.
+%  .GPS_time: GPS time (slow-time) axes. Vector containing GPS time that
+%    must be 1 by Nx to match the data_in.Data.
 %
 % Authors: John Paden, Victor Berger
 %
@@ -135,7 +149,7 @@ for img = 1:num_imgs
     if exist('data_in','var') %Overwrite data
       Data = data_in.Data{img};
       Time = data_in.Time{img};
-      GPS_time = data_in.GPS_time{img};
+      GPS_time = data_in.GPS_time;
     else
       load(img_fn,'Data','Time','GPS_time');
     end
