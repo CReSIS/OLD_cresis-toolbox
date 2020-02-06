@@ -288,8 +288,9 @@ if obj.map.fline_source == 1
   %% Plot flightlines
   obj.layerdata.x = [];
   obj.layerdata.y = [];
-  obj.layerdata.frms = [];
+  obj.layerdata.frm_id = [];
   obj.layerdata.season_idx = [];
+  obj.layerdata.frm_info = [];
   
   % Looping through the seasons
   layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer','');
