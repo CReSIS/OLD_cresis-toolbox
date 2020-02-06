@@ -27,21 +27,15 @@ if tool_idx == 1
   for layer_idx = 1:length(cur_layers)
     cur_layer = cur_layers(layer_idx);
     
-    [manual_idxs,auto_idxs,point_idxs] = find_matching_pnts(obj,param,cur_layer);
+    [manual_idxs,auto_idxs_initial,point_idxs] = find_matching_pnts(obj,param,cur_layer);
    
     % Scale auto_idxs from scale of param.layer.x to scale of viterbi_data
-    auto_idxs_initial = auto_idxs;
-    scale = round(length(param.layer.x) / size(image_c, 2));
-    auto_idxs = round(auto_idxs./scale);
-    half_idxs = ~mod(1:length(auto_idxs), scale);
-    % Always include first and last index. A few extra doesn't affect much.
-    half_idxs([1 end]) = [1 1];
-    auto_idxs = auto_idxs(half_idxs);
+    % TODO[reece]: Add example to find matching points
     
     if length(manual_idxs) < 1
       warning('Insufficient points to track');
       continue;
-    elseif ~isempty(auto_idxs)
+    elseif ~isempty(auto_idxs_initial)
       
       % Nx: number of along track records/range lines
       Nx = length(image_x);
@@ -56,11 +50,14 @@ if tool_idx == 1
       surf_bins = interp_finite(surf_bins);
       
       % Match GT points with axis coordinates
-      gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs)); 
-            interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs))];
-      x_points = gt(1, :) - gt(1,1);
+      gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest'); 
+            interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest')];
+      auto_idxs = gt(1, 1):gt(1, end);
+      x_points = gt(1, :) - gt(1,1) + 1;
       y_points = gt(2, :);
       gt = [x_points; y_points];
+      
+      layer_x_axis = param.layer.x(min(x) <= param.layer.x & param.layer.x <= max(x));
 
       % Echogram Parameters
       viterbi_data   = image_c;
@@ -135,17 +132,18 @@ if tool_idx == 1
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
 
-      transition_mu = -1 * ones(1, size(viterbi_data, 2));
-      transition_sigma = 0.3759 * ones(1, size(viterbi_data, 2));
-
+      scale = length(param.layer.y{cur_layer}) / length(image_y) * 100;
+      % TODO[reece]: Determine best scale
+      % TODO[reece]: Why do the paths ignore distance from egt more or
+      % less?
+      
       tic
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
         double(bottom_bin), double(gt), double(mask), double(mu), ...
         double(sigma), double(egt_weight), double(smooth_weight), ...
         double(smooth_var), double(slope), int64(bounds), ...
         double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
-        double(mask_dist), double(DIM_costmatrix), ...
-        double(transition_mu), double(transition_sigma), int64(top));
+        double(mask_dist), double(DIM_costmatrix), double(scale), int64(top));
       toc
       fprintf('Viterbi call took %.2f sec.\n', toc);
       
@@ -155,11 +153,18 @@ if tool_idx == 1
         y_new = y_new(auto_idxs);
       end
       
-      % Interpolate layer to match image axes
+      % Resample and interpolate y_new and auto_idxs to match layer axes
       y_new = interp1(1:length(image_y), image_y, y_new);
-      % Scale y_new from scale of viterbi_data to scale of param.layer.x
-      y_new = interp1(y_new,1:1/scale:(length(y_new)+(1-1/scale)));
-      auto_idxs = auto_idxs_initial;
+      auto_idxs_new = interp1(linspace(1, length(layer_x_axis), length(auto_idxs)), auto_idxs, 1:length(layer_x_axis));
+      y_new = interp1(auto_idxs, y_new, auto_idxs_new);
+      auto_idxs = interp1(1:length(image_x), linspace(1, length(param.layer.x), length(image_x)), auto_idxs_new);
+      auto_idxs = round(auto_idxs);
+      
+      % Remove manual points from y_new and auto_idxs
+      non_manual = ~ismember(auto_idxs, manual_idxs);
+      auto_idxs = auto_idxs(non_manual);
+      y_new = y_new(non_manual);
+      
       cmds(end+1).undo_cmd = 'insert';
       % Quality measurement from Viterbi algorithm result
       if obj.top_panel.quality_output_cbox.Value

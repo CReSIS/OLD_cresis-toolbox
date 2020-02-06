@@ -67,8 +67,7 @@ public:
              const double *d_costmatrix,
              const int d_costmatrix_X,
              const int d_costmatrix_Y,
-             const double *d_transition_mu, 
-             const double *d_transition_sigma, 
+             const double d_scale,
              const int d_plane_bin,
              double *d_result
 	) : 
@@ -97,8 +96,7 @@ public:
     f_costmatrix(d_costmatrix),
     f_costmatrix_X(d_costmatrix_X),
     f_costmatrix_Y(d_costmatrix_Y),
-    f_transition_mu(d_transition_mu),
-    f_transition_sigma(d_transition_sigma),
+    f_scale(d_scale),
     f_plane_bin(d_plane_bin),
     f_result(d_result)
 	{  
@@ -110,7 +108,7 @@ public:
 	const double *f_image, *f_mask, *f_mu, *f_sigma, f_egt_weight, *f_smooth_slope,
                  *f_egt_x, *f_egt_y, *f_weight_points, f_smooth_weight,
                  f_smooth_var, f_repulsion, f_ice_bin_thr, *f_mask_dist,  
-                 *f_costmatrix, *f_transition_mu, *f_transition_sigma;
+                 *f_costmatrix, f_scale;
 	const ptrdiff_t *f_bounds;
 	const size_t f_ms;
 	double *f_result, *f_cost;

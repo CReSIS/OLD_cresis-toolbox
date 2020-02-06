@@ -148,7 +148,6 @@ int viterbi::calculate_best(double *path_prob) {
 void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next, double *index) {
     int idx = 0;
     bool next = 0;
-    double norm = 0;
     
     for (int col = start_col; col < end_col; ++col) {   
         if (idx >= depth * num_col_vis || col >= f_col || col < 0) {
@@ -172,23 +171,12 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
           // add binary cost for next column since there are no more columns
           continue;
         }
-        // TODO[reece]: remove norm, pass in scale directly
-        if (f_transition_mu[col] < 0 && f_transition_sigma[col] < 0) {
-            norm = norm_pdf(col, (double)f_mid, f_smooth_var, f_smooth_weight);
-        }
-        else if (f_transition_mu[col] < 0) {
-            // TODO[reece]: determine whether this is the only block ran for 2d
-            norm = norm_pdf(col, path[col], f_transition_sigma[col], f_smooth_weight);
-            norm = norm < f_smooth_weight ? f_smooth_weight : norm;
-        }
-        else {
-            norm = norm_pdf(col, f_transition_mu[col], f_transition_sigma[col], f_smooth_weight);
-        }
+        
         if (!next) {
-            dt_1d(path_prob, norm, path_prob_next, index, 0, depth, f_smooth_slope[col-1]);
+            dt_1d(path_prob, f_scale, path_prob_next, index, 0, depth, f_smooth_slope[col-1]);
         }
         else {
-            dt_1d(path_prob_next, norm, path_prob, index, 0, depth, f_smooth_slope[col-1]);
+            dt_1d(path_prob_next, f_scale, path_prob, index, 0, depth, f_smooth_slope[col-1]);
         }
         next = !next;
     }
@@ -196,8 +184,8 @@ void viterbi::viterbi_right(int *path, double *path_prob, double *path_prob_next
 
 // MATLAB FUNCTION START
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {    
-    if (nrhs < 19 || nrhs > 20 ||  nlhs != 1) {
-        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mask_dist, costmatrix, transition_mu, transition_sigma, [plane_bin])\n"); 
+    if (nrhs < 18 || nrhs > 19 ||  nlhs != 1) {
+        mexErrMsgTxt("Usage: [labels] = viterbi(input_img, surface_gt, bottom_gt, extra_gt, ice_mask, mean, var, egt_weight, smooth_weight, smooth_var, smooth_slope, bounds, viterbi_weight, repulsion, ice_bin_thr, mask_dist, costmatrix, scale, [plane_bin])\n"); 
     }
     
     // Input checking
@@ -386,33 +374,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
     const int _costmatrix_X = mxGetM(prhs[16]);
     const int _costmatrix_Y = mxGetN(prhs[16]);
     
-    // transition_mu ======================================================
+    // scale ===================================================
     if (!mxIsDouble(prhs[17])) {
-        mexErrMsgTxt("usage: transition_mu must be type double");
+        mexErrMsgTxt("usage: scale must be type double");
     }
-    if (mxGetNumberOfElements(prhs[17]) != _col) {
-        mexErrMsgTxt("usage: transition_mu must have numel(transition_mu)=size(image,2)");
+    if (mxGetNumberOfElements(prhs[17]) != 1) {
+        mexErrMsgTxt("usage: scale must be scalar");
     }   
-    const double *_transition_mu = mxGetPr(prhs[17]);
-    
-    // transition_sigma ===================================================
-    if (!mxIsDouble(prhs[18])) {
-        mexErrMsgTxt("usage: transition_sigma must be type double");
-    }
-    if (mxGetNumberOfElements(prhs[18]) != _col) {
-        mexErrMsgTxt("usage: transition_sigma must have numel(transition_sigma)=size(image,2)");
-    }   
-    const double *_transition_sigma = mxGetPr(prhs[18]);
+    const double _scale = *(double *)mxGetPr(prhs[17]);
     
     // plane bin ===================================================
     int _plane_bin = 0;
-    if (nrhs >= 20) {
-      if (!mxIsInt64(prhs[19])) {
+    if (nrhs >= 19) {
+      if (!mxIsInt64(prhs[18])) {
           mexErrMsgTxt("usage: plane bin must be type int64");
       }
       // Doing this in one step (_plane_bin = (int)*mxGetPr(prhs[19])) always results in _plane_bin == 0
       // regardless of it's initial value. Do not know why.
-      int *_plane_bin_pr = (int *)mxGetPr(prhs[19]);
+      int *_plane_bin_pr = (int *)mxGetPr(prhs[18]);
       _plane_bin = (int)*_plane_bin_pr;
     }
     
@@ -441,5 +420,5 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         _egt_weight, _smooth_weight, _smooth_var, _smooth_slope, _bounds, 
         _ms, _num_extra_tr, _egt_x, _egt_y, _weight_points, _repulsion, 
         _ice_bin_thr, _mask_dist, _costmatrix, _costmatrix_X, _costmatrix_Y,
-        _transition_mu, _transition_sigma, _plane_bin, _result); 
+        _scale, _plane_bin, _result); 
 }
