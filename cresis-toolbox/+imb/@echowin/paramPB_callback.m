@@ -17,15 +17,4 @@ if ~isempty(obj.tool_list{get(obj.left_panel.toolPM,'Value')}.h_fig)
     figure(obj.tool_list{get(obj.left_panel.toolPM,'Value')}.h_fig);
     obj.tool_visible = true;
   end
-%   % Give focus to the tool param window
-%   try
-%     warning('off','MATLAB:HandleGraphics:ObsoletedProperty:JavaFrame');
-%     javaFrame = get(obj.tool_list{get(obj.left_panel.toolPM,'Value')}.h_fig,'JavaFrame');
-%     javaFrame.getAxisComponent.requestFocus;
-%   catch
-%     obj.status_text_set(sprintf('Focus error, click inside echogram window before using key shortcuts'),'replace');
-%   end
 end
-
-return
-

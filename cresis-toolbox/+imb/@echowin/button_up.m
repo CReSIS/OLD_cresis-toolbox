@@ -71,7 +71,12 @@ if obj.control_pressed
     end
   end
   [tmp min_idx] = min(distances);
-  obj.layerLB_sync('sel',min_idx);
+  
+  if ~obj.shift_pressed
+    obj.eg.layers.selected_layers(:) = false;
+  end
+  obj.eg.layers.selected_layers(min_idx) = true;
+  set(obj.left_panel.layerLB,'value',find(obj.eg.layers.selected_layers));
   
   % Select crossover
   distances = abs(obj.eg.crossovers.x_curUnit - x).^2 + abs(obj.eg.crossovers.y_curUnit - y).^2;
@@ -122,7 +127,7 @@ if obj.zoom_mode
     xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,[x_min x_max],'linear','extrap');
     
     % Redraw echogram imagesc with new axis
-    obj.redraw(xlims(1),xlims(2),y_min,y_max);
+    obj.redraw(xlims(1),xlims(2),y_min,y_max,struct('clipped',1,'ylim_force',true));
     
   elseif but == 1
     %% Left click: Zoom at point
@@ -141,7 +146,7 @@ if obj.zoom_mode
     
     % Draw data with new axis, but do not allow new data to be loaded (i.e.
     % clip new axis to limits of loaded data
-    obj.redraw(xlims(1),xlims(2),ylims(1),ylims(2),struct('clipped',true));
+    obj.redraw(xlims(1),xlims(2),ylims(1),ylims(2),struct('clipped',1,'ylim_force',true));
     
   elseif but == 3
     %% Right click: Zoom out at point
@@ -157,7 +162,7 @@ if obj.zoom_mode
     
     % Draw data with new axis, but do not allow new data to be loaded (i.e.
     % clip new axis to limits of loaded data
-    obj.redraw(xlims(1),xlims(2),ylims(1),ylims(2),struct('clipped',true));
+    obj.redraw(xlims(1),xlims(2),ylims(1),ylims(2),struct('clipped',1));
   end
 else
   %% Populate param structure
@@ -166,11 +171,11 @@ else
   % Current quality
   param.cur_quality = get(obj.left_panel.qualityPM,'Value');
   % Current layers
-  param.cur_layers = find(obj.left_panel.layer_panel.selected_layers).';
-  param.layer.x = obj.eg.layer.x_curUnit{1};
-  param.layer.y = obj.eg.layer.y_curUnit;
-  param.layer.type = obj.eg.layer.type;
-  param.layer.qual = obj.eg.layer.qual;
+  param.cur_layers = find(obj.eg.layers.selected_layers).';
+  param.layer.x = obj.eg.layers.x_curUnit{1};
+  param.layer.y = obj.eg.layers.y_curUnit;
+  param.layer.type = obj.eg.layers.type;
+  param.layer.qual = obj.eg.layers.qual;
   % Echogram and layer information
   param.image_x = get(obj.left_panel.imagewin.img,'XData');
   param.image_y = get(obj.left_panel.imagewin.img,'YData');

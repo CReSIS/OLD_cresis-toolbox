@@ -10,7 +10,7 @@ lon = interp1(obj.eg.gps_time,obj.eg.longitude,obj.cursor.gps_time,'linear','ext
 date_str = [datestr(epoch_to_datenum(obj.cursor.gps_time),'yyyy-mm-dd HH:MM:SS') sprintf('.%02.0f',mod(obj.cursor.gps_time,1)*100)];
 
 % Current layers
-cur_layers = find(obj.left_panel.layer_panel.selected_layers).';
+cur_layers = find(obj.eg.layers.selected_layers).';
 
 if isempty(cur_layers)
   status_str = sprintf('%.6f N, %.6f E, X:%.3f km, Y:%.3f km, %s',...
@@ -18,14 +18,14 @@ if isempty(cur_layers)
 else
   physical_constants;
   elev = interp1(obj.eg.gps_time,obj.eg.elevation,obj.cursor.gps_time,'linear','extrap');
-  [~,unique_idxs] = unique(obj.eg.layer.x{1});
+  [~,unique_idxs] = unique(obj.eg.layers.x{1});
   warning off;
-  surf_y = interp1(obj.eg.layer.x{1}(unique_idxs), ...
-    obj.eg.layer.y{1}(unique_idxs),obj.cursor.gps_time);
-  [~,unique_idxs] = unique(obj.eg.layer.x{cur_layers(1)});
+  surf_y = interp1(obj.eg.layers.x{1}(unique_idxs), ...
+    obj.eg.layers.y{1}(unique_idxs),obj.cursor.gps_time);
+  [~,unique_idxs] = unique(obj.eg.layers.x{cur_layers(1)});
   try
-    layer_y = interp1(obj.eg.layer.x{cur_layers(1)}(unique_idxs), ...
-      obj.eg.layer.y{cur_layers(1)}(unique_idxs),obj.cursor.gps_time);
+    layer_y = interp1(obj.eg.layers.x{cur_layers(1)}(unique_idxs), ...
+      obj.eg.layers.y{cur_layers(1)}(unique_idxs),obj.cursor.gps_time);
     if ~all(isfinite(layer_y))
       error('');
     end

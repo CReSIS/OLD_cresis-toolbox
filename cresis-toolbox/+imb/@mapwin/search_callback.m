@@ -34,13 +34,15 @@ if obj.map.fline_source==1
   frm_id = str2num(frm_id);
   
   % Get a logical mask indicating all indices that match the frame
-  frm_mask = obj.layerdata.frms == frm_id;
+  frm_mask = obj.layerdata.frm_id == frm_id;
+  % Find the first matching frame in the list
   idx = find(frm_mask,1);
   if isempty(idx)
     % No frames match, so just return
     return;
   end
-  frm_id = obj.layerdata.frms(idx);
+  % Extract out frame, system, and season name
+  frm_id = obj.layerdata.frm_id(idx);
   season_idx = obj.layerdata.season_idx(idx);
   season_name = obj.cur_map_pref_settings.seasons{season_idx};
   [sys,season_name] = strtok(season_name,'_');
@@ -115,7 +117,7 @@ obj.map.sel.season_name = data.properties.season;
 obj.map.sel.segment_id = data.properties.segment_id;
 obj.map.sel.radar_name = sys;
 
-% Update map selection plot
+% Update current frame selection map plot
 set(obj.map_panel.h_cur_sel,{'XData','YData'},{new_xdata,new_ydata});
 
 % Update map limits if necessary

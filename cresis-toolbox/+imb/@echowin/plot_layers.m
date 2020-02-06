@@ -13,42 +13,42 @@ vel_ice = c/(sqrt(er_ice)*2);
 yaxis_choice = get(obj.left_panel.yaxisPM,'Value');
 if yaxis_choice == 1 % TWTT
   % convert layerPnts_y from TWTT to current unit
-  layer_y_curUnit = cell(1,length(obj.eg.layer.y));
-  for idx = 1:length(obj.eg.layer.y)
-    layer_y_curUnit{idx} = obj.eg.layer.y{idx}*1e6;
+  layer_y_curUnit = cell(1,length(obj.eg.layers.y));
+  for idx = 1:length(obj.eg.layers.y)
+    layer_y_curUnit{idx} = obj.eg.layers.y{idx}*1e6;
   end
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
   % Convert layerPnts_y from TWTT to WGS_84 Elevation
-  layer_y_curUnit = obj.eg.layer.y;
+  layer_y_curUnit = obj.eg.layers.y;
   elevation = interp1(obj.eg.gps_time,...
     obj.eg.elevation,...
-    obj.eg.layer.x{1},'linear','extrap');
+    obj.eg.layers.x{1},'linear','extrap');
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,...
-    obj.eg.layer.x{1},'linear','extrap');
+    obj.eg.layers.x{1},'linear','extrap');
   for idx = 1: length(layer_y_curUnit)
     range = min(layer_y_curUnit{idx},surface)*vel_air ...
       +max(0,layer_y_curUnit{idx}-surface) * vel_ice;
     layer_y_curUnit{idx} = elevation - range;
-    layer_y_curUnit{idx}(isnan(obj.eg.layer.y{idx})) = NaN;
+    layer_y_curUnit{idx}(isnan(obj.eg.layers.y{idx})) = NaN;
   end
   
 elseif yaxis_choice == 3 % Depth/Range
   % convert layerPnts_y from TWTT to depth
-  layer_y_curUnit = obj.eg.layer.y;
+  layer_y_curUnit = obj.eg.layers.y;
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,...
-    obj.eg.layer.x{1},'linear','extrap');
+    obj.eg.layers.x{1},'linear','extrap');
   for idx = 1:length(layer_y_curUnit)
     layer_y_curUnit{idx} = min(layer_y_curUnit{idx},surface)*vel_air ...
       +max(0,layer_y_curUnit{idx}-surface)*vel_ice;
-    layer_y_curUnit{idx}(isnan(obj.eg.layer.y{idx})) = NaN;
+    layer_y_curUnit{idx}(isnan(obj.eg.layers.y{idx})) = NaN;
   end
   
 elseif yaxis_choice == 4 % Range bin
   % convert layerPnts_y from TWTT to range bin
-  layer_y_curUnit = obj.eg.layer.y;
+  layer_y_curUnit = obj.eg.layers.y;
   for idx = 1:length(layer_y_curUnit)
     layer_y_curUnit{idx} = interp1(obj.eg.time,...
       1:length(obj.eg.time),...
@@ -57,21 +57,21 @@ elseif yaxis_choice == 4 % Range bin
   
 elseif yaxis_choice == 5 % Surface flat
   % convert layerPnts_y from TWTT to depth
-  layer_y_curUnit = obj.eg.layer.y;
+  layer_y_curUnit = obj.eg.layers.y;
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,...
-    obj.eg.layer.x{1},'linear','extrap');
+    obj.eg.layers.x{1},'linear','extrap');
   for idx = 1:length(layer_y_curUnit)
     layer_y_curUnit{idx} = min(0,(layer_y_curUnit{idx}-surface))*vel_air ...
       +max(0,(layer_y_curUnit{idx}-surface))*vel_ice;
-    layer_y_curUnit{idx}(isnan(obj.eg.layer.y{idx})) = NaN;
+    layer_y_curUnit{idx}(isnan(obj.eg.layers.y{idx})) = NaN;
   end
   
 end
 
 %% Plot layers
 %% WARNING: DO NOT IMPLEMENT WITH SCATTER... TOO SLOW RENDERING
-layer_data_x = obj.eg.layer.x;
+layer_data_x = obj.eg.layers.x;
 for idx = 1:length(layer_data_x)
   % Convert x-axis units
   layer_x_curUnit = interp1(obj.eg.image_gps_time,...
@@ -79,7 +79,7 @@ for idx = 1:length(layer_data_x)
     layer_data_x{idx},'linear','extrap');
   
   % get manual/auto pts (use them for layer handles)
-  layer_manual = obj.eg.layer.type{idx} == 1;
+  layer_manual = obj.eg.layers.type{idx} == 1;
   
   % Manual points (plot this way to handle empty XData or YData
   set(obj.layer_h(2*(idx-1)+1),{'XData','YData'}, ...
@@ -88,9 +88,9 @@ for idx = 1:length(layer_data_x)
   set(obj.layer_h(2*(idx-1)+2),{'XData','YData'}, ...
     {layer_x_curUnit,layer_y_curUnit{idx}});
   
-  layer_good = obj.eg.layer.qual{idx} == 1;
-  layer_moderate = obj.eg.layer.qual{idx} == 2;
-  layer_derived = obj.eg.layer.qual{idx} == 3;
+  layer_good = obj.eg.layers.qual{idx} == 1;
+  layer_moderate = obj.eg.layers.qual{idx} == 2;
+  layer_derived = obj.eg.layers.qual{idx} == 3;
   layer_y_curUnit_good = layer_y_curUnit{idx};
   layer_y_curUnit_good(~layer_good) = NaN;
   layer_y_curUnit_moderate= layer_y_curUnit{idx};
@@ -123,8 +123,8 @@ for idx = 1:length(layer_data_x)
     {layer_x_curUnit,layer_y_curUnit_derived});
 
   %% Update obj.eg layers with current units
-  obj.eg.layer.x_curUnit{idx} = layer_x_curUnit;
-  obj.eg.layer.y_curUnit{idx} = layer_y_curUnit{idx};
+  obj.eg.layers.x_curUnit{idx} = layer_x_curUnit;
+  obj.eg.layers.y_curUnit{idx} = layer_y_curUnit{idx};
 end
 
 end

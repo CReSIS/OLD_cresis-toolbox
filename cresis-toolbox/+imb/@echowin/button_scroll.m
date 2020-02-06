@@ -32,6 +32,6 @@ xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,xlims,'linear','extrap'
 
 % Draw data with new axis, but do not allow new data to be loaded (i.e.
 % clip new axis to limits of loaded data
-obj.redraw(xlims(1),xlims(2),ylims(1),ylims(2),struct('clipped',true));
+obj.redraw(xlims(1),xlims(2),ylims(1),ylims(2),struct('clipped',true,'ylim_force',obj.shift_pressed));
 
 return

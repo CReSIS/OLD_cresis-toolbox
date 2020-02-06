@@ -24,30 +24,28 @@ if ~isfield(param,'clipped')
   %   Force a complete reload of the data
   param.clipped = 1;
 end
+if ~isfield(param,'ylim_force')
+  % param.ylim_force = 0 [default]
+  %   Will not go beyond the y-limits of the image
+  % param.ylim_force = 1
+  %   Will go beyond the y-limits of the image (useful when layer data is
+  %   outside of the visible image
+  param.ylim_force = 0;
+end
 
 %% Check x_min and x_max against segment boundaries
-if x_min == -inf
+if ~isfinite(x_min)
   x_min = obj.eg.start_gps_time(1);
 end
-if x_max == inf
+if ~isfinite(x_max)
   x_max = obj.eg.stop_gps_time(end);
 end
-% if x_min < obj.eg.start_gps_time(1)
-%   x_range = x_max - x_min;
-%   x_min = obj.eg.start_gps_time(1);
-%   x_max = x_min + x_range;
-% end
-% if x_max > obj.eg.stop_gps_time(end)
-%   x_range = x_max - x_min;
-%   x_max = obj.eg.stop_gps_time(end);
-%   x_min = max(obj.eg.start_gps_time(1), x_max - x_range);
-% end
-if y_min < min(obj.eg.image_yaxis([1 end]))
+if y_min < min(obj.eg.image_yaxis([1 end])) && ~param.ylim_force || ~isfinite(y_min)
   y_range = y_max - y_min;
   y_min = min(obj.eg.image_yaxis([1 end]));
   y_max = y_min + y_range;
 end
-if y_max > max(obj.eg.image_yaxis([1 end]))
+if y_max > max(obj.eg.image_yaxis([1 end])) && ~param.ylim_force || ~isfinite(y_max)
   y_range = y_max - y_min;
   y_max = max(obj.eg.image_yaxis([1 end]));
   y_min = max(min(obj.eg.image_yaxis([1 end])), y_max - y_range);
@@ -80,9 +78,6 @@ if param.clipped == 2
     load_new_data = load_new_data * -1;
   end
   % Try to use as much of the currently existing loaded data as possible
-  %     if load_new_data > 0 && load_new_data < 2*obj.default_params.max_frames-1
-  %       load_new_data = max(0,load_new_data - obj.default_params.max_frames + 1);
-  %     end
   if load_new_data
     desire_frame_idxs = frame_idx + (0:obj.default_params.max_frames-1);
     desire_frame_idxs = desire_frame_idxs(desire_frame_idxs >= 1 ...
@@ -184,11 +179,11 @@ else
     % No frames changed
     % Update echogram surface if there are enough good points from OPS
     % Find good surface points
-    good_mask = ~isnan(obj.eg.layer.y{obj.eg.layer_id==1});
+    good_mask = ~isnan(obj.eg.layers.y{obj.eg.layers.lyr_id==1});
     if sum(good_mask) > 2
       % There are surface layer points in the database, overwrite the surface
       % with these
-      obj.eg.surface = interp1(obj.eg.map_gps_time(good_mask),obj.eg.layer.y{obj.eg.layer_id==1}(good_mask),obj.eg.gps_time);
+      obj.eg.surface = interp1(obj.eg.map_gps_time(good_mask),obj.eg.layers.y{obj.eg.layers.lyr_id==1}(good_mask),obj.eg.gps_time);
       obj.eg.surface = interp_finite(obj.eg.surface,0);
     end
     obj.plot_echogram(x_min,x_max,y_min,y_max);

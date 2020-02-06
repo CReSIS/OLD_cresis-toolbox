@@ -9,7 +9,8 @@ function param = default_radar_params_2019_Arctic_Polar6_snow
 % Author: John Paden
 
 %% Preprocess parameters
-param.season_name = '2019_Arctic_Polar6';
+% param.season_name = '2019_Arctic_Polar6';
+param.season_name = '2020_Arctic_Polar6';
 param.radar_name = 'snow5';
 
 param.config.file.version = 7;
@@ -39,7 +40,7 @@ default.cmd.qlook = 1;
 default.cmd.generic = 1;
 
 %% Records worksheet
-default.records.frames.geotiff_fn = 'greenland/Landsat-7/Greenland_natural_150m.tif';
+default.records.frames.geotiff_fn = 'arctic/NaturalEarth_Data/Arctic_NaturalEarth.tif';
 default.records.frames.mode = 2;
 default.records.gps.en = 1;
 default.records.gps.time_offset = 1;
@@ -54,14 +55,7 @@ default.qlook.motion_comp = 0;
 default.qlook.dec = 4;
 default.qlook.inc_dec = 5;
 default.qlook.surf.en = 1;
-default.qlook.surf.min_bin = 0;
-default.qlook.surf.method = 'threshold';
-default.qlook.surf.threshold = 17;
-default.qlook.surf.filter_len = [1 7];
-default.qlook.surf.sidelobe = 19;
-default.qlook.surf.max_diff = 1.2e-7;
-default.qlook.surf.noise_rng = [100 -700 -300];
-default.qlook.surf.search_rng = [0:9];
+default.qlook.surf.profile = 'snow_AWI';
 
 %% SAR worksheet
 default.sar.out_path = '';
@@ -127,7 +121,9 @@ default.radar.wfs(2).tx_weights = [0 0.1]; % Watts
 for wf = 1:2
   default.radar.wfs(wf).fmult = 16;
   default.radar.wfs(wf).prepulse_H.type = 'NI_DDC_2019';
-  default.radar.wfs(wf).coh_noise_method = 'analysis';
+  %default.radar.wfs(wf).coh_noise_method = 'analysis'; % Post-processing
+  default.radar.wfs(wf).coh_noise_method = 'estimated'; % Field processing
+  %default.radar.wfs(wf).coh_noise_method = ''; % Lab data
   default.radar.wfs(wf).fLO = -20e9;
   default.radar.wfs(wf).adc_gains_dB = [95.8 95.8]; % Radiometric calibration to 1/R^2
   default.radar.wfs(wf).rx_paths = [1 2]; % ADC to rx path mapping
@@ -135,6 +131,7 @@ for wf = 1:2
   default.radar.wfs(wf).chan_equal_Tsys = chan_equal_Tsys;
   default.radar.wfs(wf).chan_equal_dB = chan_equal_dB;
   default.radar.wfs(wf).chan_equal_deg = chan_equal_deg;
+  default.radar.wfs(wf).nz_trim = {[100 100],[0 0],[0 0],[0 0]};
 end
 
 %% Post worksheet

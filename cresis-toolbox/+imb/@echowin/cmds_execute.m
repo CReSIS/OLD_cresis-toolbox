@@ -34,7 +34,7 @@ obj.update_layer_plots();
 end
 
 function args = cmds_execute_insert(obj,args)
-% Execute the insert command on obj.eg.layer
+% Execute the insert command on obj.eg.layers
 % args{1} = database layer IDs
 % args{2} = point IDs
 % args{3} = twtt
@@ -46,7 +46,7 @@ vel_air = c/2;
 vel_ice = c/(sqrt(er_ice)*2);
 
 %% Convert layer ID's to layer indices
-layer_idx = find(args{1} == obj.eg.layer_id);
+layer_idx = find(args{1} == obj.eg.layers.lyr_id);
 
 if isempty(layer_idx)
   % This echowin does not have this layer shown, so no updates required
@@ -65,60 +65,60 @@ for point_id_idx = 1:length(args{2})
   end
 end
 %% Apply insert
-obj.eg.layer.y{layer_idx}(point_idxs) = args{3}(point_id_mask);
-obj.eg.layer.type{layer_idx}(point_idxs) = args{4}(point_id_mask);
-obj.eg.layer.qual{layer_idx}(point_idxs) = args{5}(point_id_mask);
+obj.eg.layers.y{layer_idx}(point_idxs) = args{3}(point_id_mask);
+obj.eg.layers.type{layer_idx}(point_idxs) = args{4}(point_id_mask);
+obj.eg.layers.qual{layer_idx}(point_idxs) = args{5}(point_id_mask);
 
 %% Convert units from twtt to current units
 yaxis_choice = get(obj.left_panel.yaxisPM,'Value');
 if yaxis_choice == 1 % TWTT
-  obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = obj.eg.layer.y{layer_idx}(point_idxs) * 1e6;
+  obj.eg.layers.y_curUnit{layer_idx}(point_idxs) = obj.eg.layers.y{layer_idx}(point_idxs) * 1e6;
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
   elevation = interp1(obj.eg.gps_time,...
     obj.eg.elevation,...
-    obj.eg.layer.x{layer_idx},'linear');
+    obj.eg.layers.x{layer_idx},'linear');
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,...
-    obj.eg.layer.x{layer_idx},'linear');
+    obj.eg.layers.x{layer_idx},'linear');
   for point_idx = point_idxs
-    if isnan(obj.eg.layer.y{layer_idx}(point_idx))
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
+    if isnan(obj.eg.layers.y{layer_idx}(point_idx))
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = NaN;
     else
-      range = min(obj.eg.layer.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
-        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = elevation(point_idx) - range;
+      range = min(obj.eg.layers.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layers.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = elevation(point_idx) - range;
     end
   end
   
 elseif yaxis_choice == 3 % Depth/Range
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,...
-    obj.eg.layer.x{layer_idx},'linear');
+    obj.eg.layers.x{layer_idx},'linear');
   for point_idx = point_idxs
-    if isnan(obj.eg.layer.y{layer_idx}(point_idx))
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
+    if isnan(obj.eg.layers.y{layer_idx}(point_idx))
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = NaN;
     else
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = min(obj.eg.layer.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
-        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = min(obj.eg.layers.y{layer_idx}(point_idx),surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layers.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
     end
   end
   
 elseif yaxis_choice == 4 % Range bin
-  obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = interp1(obj.eg.time,...
+  obj.eg.layers.y_curUnit{layer_idx}(point_idxs) = interp1(obj.eg.time,...
     1:length(obj.eg.time),...
-    obj.eg.layer.y{layer_idx}(point_idxs),'linear');
+    obj.eg.layers.y{layer_idx}(point_idxs),'linear');
   
 elseif yaxis_choice == 5 % Surface flat
   surface = interp1(obj.eg.gps_time,...
     obj.eg.surface,...
-    obj.eg.layer.x{layer_idx},'linear');
+    obj.eg.layers.x{layer_idx},'linear');
   for point_idx = point_idxs
-    if isnan(obj.eg.layer.y{layer_idx}(point_idx))
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = NaN;
+    if isnan(obj.eg.layers.y{layer_idx}(point_idx))
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = NaN;
     else
-      obj.eg.layer.y_curUnit{layer_idx}(point_idx) = min(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx))*vel_air ...
-        +max(0,obj.eg.layer.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
+      obj.eg.layers.y_curUnit{layer_idx}(point_idx) = min(0,obj.eg.layers.y{layer_idx}(point_idx)-surface(point_idx))*vel_air ...
+        +max(0,obj.eg.layers.y{layer_idx}(point_idx)-surface(point_idx)) * vel_ice;
     end
   end
   
@@ -127,23 +127,23 @@ end
 end
 
 function args = cmds_execute_delete(obj,args)
-% Execute the delete command on obj.eg.layer and updates the layer handles
+% Execute the delete command on obj.eg.layers and updates the layer handles
 % obj.layer_h and obj.quality_h.
 %
 % args{1} = database layer IDs
 % args{2} = [x_min x_max y_min y_max] with x in gps-time and y in twtt
 %   units
 
-% obj.eg.layer.x{layer_idx} % gps-time
-% obj.eg.layer.y{layer_idx} % twtt
-% obj.eg.layer.qual{layer_idx} % integer 1-3
-% obj.eg.layer.type{layer_idx} % this is either 1 (manual) or 2 (auto)
-% obj.eg.layer.x_curUnit{layer_idx} % current x-axis units (e.g. along-track km)
-% obj.eg.layer.y_curUnit{layer_idx} % current y-axis units (e.g. WGS-84 m)
+% obj.eg.layers.x{layer_idx} % gps-time
+% obj.eg.layers.y{layer_idx} % twtt
+% obj.eg.layers.qual{layer_idx} % integer 1-3
+% obj.eg.layers.type{layer_idx} % this is either 1 (manual) or 2 (auto)
+% obj.eg.layers.x_curUnit{layer_idx} % current x-axis units (e.g. along-track km)
+% obj.eg.layers.y_curUnit{layer_idx} % current y-axis units (e.g. WGS-84 m)
 
 
 %% Convert layer ID's to layer indices
-layer_idx = find(args{1} == obj.eg.layer_id);
+layer_idx = find(args{1} == obj.eg.layers.lyr_id);
 
 if isempty(layer_idx)
   % This echowin does not have this layer shown, so no updates required
@@ -151,12 +151,12 @@ if isempty(layer_idx)
 end
 
 %% Determine which point indices need to be updated
-point_idxs = find(obj.eg.layer.x{layer_idx} > args{2}(1) & obj.eg.layer.x{layer_idx} < args{2}(2) ...
-  & obj.eg.layer.y{layer_idx} > args{2}(3) & obj.eg.layer.y{layer_idx} < args{2}(4));
+point_idxs = find(obj.eg.layers.x{layer_idx} > args{2}(1) & obj.eg.layers.x{layer_idx} < args{2}(2) ...
+  & obj.eg.layers.y{layer_idx} > args{2}(3) & obj.eg.layers.y{layer_idx} < args{2}(4));
 
-obj.eg.layer.y{layer_idx}(point_idxs) = NaN;
-obj.eg.layer.qual{layer_idx}(point_idxs) = 1;
-obj.eg.layer.type{layer_idx}(point_idxs) = 1;
-obj.eg.layer.y_curUnit{layer_idx}(point_idxs) = NaN;
+obj.eg.layers.y{layer_idx}(point_idxs) = NaN;
+obj.eg.layers.qual{layer_idx}(point_idxs) = 1;
+obj.eg.layers.type{layer_idx}(point_idxs) = 1;
+obj.eg.layers.y_curUnit{layer_idx}(point_idxs) = NaN;
 
 end

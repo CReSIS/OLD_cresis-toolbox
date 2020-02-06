@@ -5,9 +5,8 @@ function create_ui(obj)
 % echogram window
 %
 
-%--------------------------------------------------------------------------
-% Create pick window
-%--------------------------------------------------------------------------
+%% Echowin figure
+% =========================================================================
 set(obj.h_fig,'Position',[obj.default_params.x obj.default_params.y obj.default_params.w obj.default_params.h]);
 set(obj.h_fig,'DockControls','off')
 set(obj.h_fig,'NumberTitle','off');
@@ -39,8 +38,8 @@ zoom_pointer = [NaN   NaN   NaN   NaN     1     1     1     1   NaN   NaN   NaN 
 set(obj.h_fig,'PointerShapeCData',zoom_pointer);
 set(obj.h_fig,'PointerShapeHotSpot',[6 6])
 
-%==============================================================
-% figure (pick) table content
+%% Table
+% =========================================================================
 % ----left_panel
 obj.left_panel.handle = uipanel('Parent',obj.h_fig);
 %----right_panel
@@ -68,11 +67,8 @@ obj.table.height_margin(row,col)=0;
 clear row col
 table_draw(obj.table);
 
-%================================================================
-%================================================================
-%% Left_panel table contents
-%================================================================
-%================================================================
+%% left_panel.toolPM
+% =========================================================================
 
 obj.tool_list = {};
 
@@ -170,7 +166,7 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-%% Build tool popup menu
+% Build tool popup menu
 obj.left_panel.toolPM = uicontrol('Parent',obj.left_panel.handle);
 menuString = {};
 for idx = 1:length(obj.tool_list)
@@ -189,19 +185,21 @@ set(obj.left_panel.toolPM,'FontName','fixed');
 set(obj.left_panel.toolPM,'Callback',@obj.toolPM_callback);
 set(obj.left_panel.toolPM,'TooltipString','Select the active tool');
 
-%--Tool Params Window Pushbutton
+%% left_panel.paramPB
+% =========================================================================
 obj.left_panel.paramPB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.paramPB,'Style','PushButton');
 set(obj.left_panel.paramPB,'String','Tool Params');
 set(obj.left_panel.paramPB,'Callback',@obj.paramPB_callback);
 set(obj.left_panel.paramPB,'TooltipString','Open the tool parameters window');
 
-%--Quality Popup Menu
+%% left_panel.qualityPM
+% =========================================================================
 obj.left_panel.qualityPM = uicontrol('Parent',obj.left_panel.handle);
 menuString = {};
 menuString{1} = 'good';
-menuString{2} = 'moderate';
-menuString{3} = 'derived';
+menuString{2} = 'medium';
+menuString{3} = 'poor';
 set(obj.left_panel.qualityPM,'String',menuString);
 set(obj.left_panel.qualityPM,'Value',1);
 clear menuString;
@@ -211,7 +209,8 @@ set(obj.left_panel.qualityPM,'FontName','fixed');
 set(obj.left_panel.qualityPM,'callback',@obj.quality_menu_callback);
 set(obj.left_panel.qualityPM,'TooltipString','Set the active quality level');
 
-%--Image Processing Window Pushbutton
+%% left_panel.imagewin (Image Processing)
+% =========================================================================
 if strcmpi(class(obj.h_fig),'double')
   obj.left_panel.imagewin = imagewin(sprintf('%d: Image Params', obj.h_fig), -1, true);
 else
@@ -227,7 +226,8 @@ set(obj.left_panel.imagePB,'String','Image Params');
 set(obj.left_panel.imagePB,'Callback',@obj.toggle_imagewin_visibility);
 set(obj.left_panel.imagePB,'TooltipString','Open image processing window');
 
-%--Y axis choice
+%% left_panel.yaxisPM
+% =========================================================================
 obj.left_panel.yaxisPM = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.yaxisPM,'Style','PopupMenu');
 set(obj.left_panel.yaxisPM,'String',{'TWTT','WGS84','Range','Range Bin','Surface Flat'});
@@ -235,7 +235,8 @@ set(obj.left_panel.yaxisPM,'Value',1);
 set(obj.left_panel.yaxisPM,'Callback',@obj.yaxisPM_callback);
 set(obj.left_panel.yaxisPM,'TooltipString','Set the y-axis units');
 
-%--X axis choice
+%% left_panel.xaxisPM
+% =========================================================================
 obj.left_panel.xaxisPM = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.xaxisPM,'Style','PopupMenu');
 set(obj.left_panel.xaxisPM,'String',{'Range Line','Along Track','GPS Time'});
@@ -243,7 +244,8 @@ set(obj.left_panel.xaxisPM,'Value',1);
 set(obj.left_panel.xaxisPM,'Callback',@obj.xaxisPM_callback);
 set(obj.left_panel.xaxisPM,'TooltipString','Set the x-axis units');
 
-%--Max frames selection
+%% left_panel.framesPM
+% =========================================================================
 obj.left_panel.framesPM = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.framesPM,'Style','popupmenu');
 set(obj.left_panel.framesPM,'HorizontalAlignment','Center');
@@ -253,7 +255,8 @@ set(obj.left_panel.framesPM,'Value',obj.default_params.max_frames);
 set(obj.left_panel.framesPM,'Callback',@obj.framesPM_callback);
 set(obj.left_panel.framesPM,'TooltipString','Set the number of frames to load/buffer');
 
-%--Crossovers
+%% left_panel.crossoverPB
+% =========================================================================
 if strcmpi(class(obj.h_fig),'double')
   obj.eg.crossovers.gui = imb.crossover(sprintf('%d: Crossovers',obj.h_fig), true);
 else
@@ -269,14 +272,16 @@ set(obj.left_panel.crossoverPB,'String','Crossovers');
 set(obj.left_panel.crossoverPB,'Callback',@obj.crossoverPB_callback);
 set(obj.left_panel.crossoverPB,'TooltipString','Open flightline crossover browse window');
 
-%--save
+%% left_panel.savePB
+% =========================================================================
 obj.left_panel.savePB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.savePB,'Style','PushButton');
 set(obj.left_panel.savePB,'String','(S)ave Layer');
 set(obj.left_panel.savePB,'Callback',@obj.savePB_callback);
 set(obj.left_panel.savePB,'TooltipString','Save layers to database');
 
-% top part table
+%% left_panel.topTable
+% =========================================================================
 obj.left_panel.topTable.ui = []; % Parent is a table container
 obj.left_panel.topTable.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
 obj.left_panel.topTable.height_margin = NaN*zeros(30,30);
@@ -329,14 +334,34 @@ obj.left_panel.topTable.width(row,col)     = inf;
 obj.left_panel.topTable.height(row,col)    = 25;
 
 clear row col
-%-----------------------
 
-%---- layers list box
-obj.left_panel.layerLB_panel_handle = uipanel('Parent',obj.left_panel.handle);
-set(obj.left_panel.layerLB_panel_handle,'bordertype','none');
-obj.layerLB_init();
+%% left_panel.layerLB
+% =========================================================================
+obj.left_panel.layerLB = uicontrol('Parent',obj.left_panel.handle);
+set(obj.left_panel.layerLB,'Style','listbox');
+set(obj.left_panel.layerLB,'HorizontalAlignment','Center');
+set(obj.left_panel.layerLB,'Min',0);
+set(obj.left_panel.layerLB,'Max',1e9);
+set(obj.left_panel.layerLB,'FontName','fixed');
+set(obj.left_panel.layerLB,'Callback',@obj.layerLB_callback);
+set(obj.left_panel.layerLB,'TooltipString','Select layers to operate on, right click to open context menu to manipulate list of layers. Red font indicates layer visibility is off.');
+obj.left_panel.layerCM = uicontextmenu('Parent',obj.h_fig);
+% Define the context menu items and install their callbacks
+uimenu(obj.left_panel.layerCM, 'Label', '&Visible', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '&Hide', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '&New layer', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '&Edit layer', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '&Up', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '&Down', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '&Top', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '&Bottom', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
+uimenu(obj.left_panel.layerCM, 'Label', 'Delete layer', 'Callback', @obj.layerCM_callback);
+set(obj.left_panel.layerLB,'uicontextmenu',obj.left_panel.layerCM);
 
-%----frames list box
+%% left_panel.frameLB
+% =========================================================================
 obj.left_panel.frameLB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.frameLB,'Style','listbox');
 set(obj.left_panel.frameLB,'HorizontalAlignment','Center');
@@ -348,7 +373,8 @@ uimenu(obj.left_panel.frameCM, 'Label', 'Copy', 'Callback', @obj.frameCM_callbac
 set(obj.left_panel.frameLB,'UIContextMenu',obj.left_panel.frameCM);
 set(obj.left_panel.frameLB,'TooltipString','Load frame');
 
-%---- Source data Listbox
+%% left_panel.sourceLB
+% =========================================================================
 obj.left_panel.sourceLB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.sourceLB,'Style','listbox');
 set(obj.left_panel.sourceLB,'HorizontalAlignment','Center');
@@ -362,8 +388,8 @@ uimenu(obj.left_panel.sourceCM, 'Label', 'Remove', 'Callback', @obj.sourceCM_cal
 uimenu(obj.left_panel.sourceCM, 'Label', 'Refresh', 'Callback', @obj.sourceCM_callback);
 set(obj.left_panel.sourceLB,'uicontextmenu',obj.left_panel.sourceCM);
 
-%----------------------------------------------------------
-% set up left_panel table
+%% left_panel.table
+% =========================================================================
 obj.left_panel.table.ui = obj.left_panel.handle;
 obj.left_panel.table.width_margin = NaN*zeros(30,30); % Just make these bigger than they have to be
 obj.left_panel.table.height_margin = NaN*zeros(30,30);
@@ -379,7 +405,7 @@ obj.left_panel.table.width_margin(row,col) = 3;
 obj.left_panel.table.height_margin(row,col) = 3;
 
 row = 2; col = 1;
-obj.left_panel.table.handles{row,col}   = obj.left_panel.layerLB_panel_handle;
+obj.left_panel.table.handles{row,col}   = obj.left_panel.layerLB;
 obj.left_panel.table.width(row,col)     = inf;
 obj.left_panel.table.height(row,col)    = 71;
 obj.left_panel.table.width_margin(row,col) = 3;
@@ -403,9 +429,8 @@ clear row col
 % Draw table
 table_draw(obj.left_panel.table);
 
-
-%==========================================================
-% right_panel contents: echogram and statusbar panel
+%% right_panel.axes
+% =========================================================================
 
 % create axes panel and axes
 obj.right_panel.axes.panel_h = uipanel('parent',obj.right_panel.handle);
@@ -463,7 +488,8 @@ obj.right_panel.echoCM= uicontextmenu('parent',obj.h_fig);
 obj.right_panel.echoCM_item1 = uimenu(obj.right_panel.echoCM, 'Label', 'Copy Cursor Info (Ctrl-C)', 'Callback',@obj.status_text_copy_callback);
 set(obj.right_panel.status_panel.statusText,'uicontextmenu',obj.right_panel.echoCM);
 
-% create statusbar's table
+%% right_panel.status_panel
+% =========================================================================
 obj.right_panel.status_panel.table.ui = obj.right_panel.status_panel.handle;
 obj.right_panel.status_panel.table.offset = [0 2];
 row = 1; col = 1;
@@ -503,5 +529,3 @@ obj.right_panel.table.height_margin(row,col)=0;
 obj.right_panel.table.false_height(row,col)=0;
 clear row col
 table_draw(obj.right_panel.table);
-
-return;

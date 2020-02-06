@@ -10,10 +10,10 @@ function set_visibility(obj,varargin)
 % obj.tool.quality_en
 %  tells if quality is on or off
 %
-% obj.left_panel.layer_panel.selected_layers
+% obj.eg.layers.selected_layers
 %  tells if layer is selected for editing (Nx1 logical, N layers)
 %
-% obj.left_panel.layer_panel.visible_layers
+% obj.eg.layers.visible_layers
 %  tells if layer is visible (Nx1 logical, N layers)
 %
 % layer_h
@@ -40,8 +40,8 @@ if ~obj.tool.quality_en
   
   % 1. Set the visiblity for each layer
   % 2. Set the color for each layer and make selected layers on top
-  for idx = 1:length(obj.left_panel.layer_panel.visible_layers)
-    if obj.left_panel.layer_panel.visible_layers(idx)
+  for idx = 1:length(obj.eg.layers.visible_layers)
+    if obj.eg.layers.visible_layers(idx)
       % Show layer
       if obj.show_manual_pts
         set(obj.layer_h(2*(idx-1)+1),'Visible','on');  % manual
@@ -61,7 +61,7 @@ if ~obj.tool.quality_en
       % Hide layer
       set(obj.layer_h(2*(idx-1)+(1:2)),'Visible','off');
     end
-    if obj.left_panel.layer_panel.selected_layers(idx)
+    if obj.eg.layers.selected_layers(idx)
       % Selected layer
       set(obj.layer_h(2*(idx-1)+(1:2)),'Color',selected_color);
       uistack(obj.layer_h(2*(idx-1)+(1:2)),'top');
@@ -81,8 +81,8 @@ else
   
   % 1. Set the visiblity for each layer
   % 2. Set the linewidth for each layer and make selected layers on top
-  for idx = 1:length(obj.left_panel.layer_panel.visible_layers)
-    if obj.left_panel.layer_panel.visible_layers(idx)
+  for idx = 1:length(obj.eg.layers.visible_layers)
+    if obj.eg.layers.visible_layers(idx)
       % Show layer
       if obj.show_manual_pts
         set(obj.quality_h(6*(idx-1)+[1 3 5]),'Visible','on');  % manual
@@ -94,7 +94,7 @@ else
       % Hide layer
       set(obj.quality_h(6*(idx-1)+(1:6)),'Visible','off');
     end
-    if obj.left_panel.layer_panel.selected_layers(idx)
+    if obj.eg.layers.selected_layers(idx)
       % Selected layer
       set(obj.quality_h(6*(idx-1)+(1:6)),'LineWidth',selected_linewidth);
       set(obj.quality_h(6*(idx-1)+[1 3 5]),'MarkerSize',7);

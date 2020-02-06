@@ -36,7 +36,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       obj.switch_layers.accumulated_event_characters ...
         = [obj.switch_layers.accumulated_event_characters event.Key];
       desired_layer_num = str2double(obj.switch_layers.accumulated_event_characters);
-      if desired_layer_num > 0 && desired_layer_num <= length(obj.left_panel.layer_panel.layer_names)
+      if desired_layer_num > 0 && desired_layer_num <= length(obj.eg.layers.lyr_id)
         done = true;
       end
     end
@@ -45,13 +45,17 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       % in the last 0.5 seconds, then we start over.
       obj.switch_layers.accumulated_event_characters = event.Key;
       desired_layer_num = str2double(obj.switch_layers.accumulated_event_characters);
-      if desired_layer_num > 0 && desired_layer_num <= length(obj.left_panel.layer_panel.selected_layers)
+      if desired_layer_num > 0 && desired_layer_num <= length(obj.eg.layers.selected_layers)
         done = true;
       end
     end
     if done
       % If the number was valid, we update the selection
-      obj.layerLB_sync('sel',desired_layer_num);
+      if ~obj.shift_pressed
+        obj.eg.layers.selected_layers(:)=false;
+      end
+      obj.eg.layers.selected_layers(desired_layer_num)=true;
+      set(obj.left_panel.layerLB,'Value',find(obj.eg.layers.selected_layers));
       obj.set_visibility();
     end
     obj.switch_layers.old_time = cur_time;
@@ -164,12 +168,9 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       end
       
     case 'a'
-      if ~isnan(obj.left_panel.layer_panel.surface) && ~isnan(obj.left_panel.layer_panel.bottom)
-        obj.layerLB_sync('sel',[obj.left_panel.layer_panel.surface obj.left_panel.layer_panel.bottom]);
-        obj.set_visibility();
-      else
-        obj.status_text_set(sprintf('Surface and bottom layers do not both exist'),'replace');
-      end
+      obj.eg.layers.selected_layers = obj.eg.layers.visible_layers;
+      set(obj.left_panel.layerLB,'Value',find(obj.eg.layers.selected_layers));
+      obj.set_visibility();
       
     case 'b'
       set(obj.left_panel.toolPM,'Value',4);
@@ -309,41 +310,39 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       elseif obj.control_pressed
         % Toggle visibility between "currently visible layers on" and "all
         % layers on"
-        if ~all(obj.left_panel.layer_panel.visible_layers)
+        if ~all(obj.eg.layers.visible_layers)
           % Save this visibility state for later
-          obj.tool.old_visibility = obj.left_panel.layer_panel.visible_layers;
+          obj.tool.old_visibility = obj.eg.layers.visible_layers;
           % Since not all layers are on, turn them all on
-          obj.left_panel.layer_panel.visible_layers(:) = 1;
+          obj.eg.layers.visible_layers(:) = 1;
         else
           if isfield(obj.tool,'old_visibility') ...
-              && length(obj.tool.old_visibility) == length(obj.left_panel.layer_panel.visible_layers)
+              && length(obj.tool.old_visibility) == length(obj.eg.layers.visible_layers)
             % If an old state exists, then just turn these layers on
-            obj.left_panel.layer_panel.visible_layers = obj.tool.old_visibility;
+            obj.eg.layers.visible_layers = obj.tool.old_visibility;
           else
             % Otherwise... just turn them all off
-            obj.left_panel.layer_panel.visible_layers(:) = 0;
+            obj.eg.layers.visible_layers(:) = 0;
           end
         end
-        obj.layerLB_sync('vis',[]);
       else
         % Toggle visibility between "currently visible layers on" and "all
         % layers off"
-        if any(obj.left_panel.layer_panel.visible_layers)
+        if any(obj.eg.layers.visible_layers)
           % Save this visibility state for later
-          obj.tool.old_visibility = obj.left_panel.layer_panel.visible_layers;
+          obj.tool.old_visibility = obj.eg.layers.visible_layers;
           % Since some layers are on, turn them all off
-          obj.left_panel.layer_panel.visible_layers(:) = 0;
+          obj.eg.layers.visible_layers(:) = 0;
         else
           if isfield(obj.tool,'old_visibility') ...
-              && length(obj.tool.old_visibility) == length(obj.left_panel.layer_panel.visible_layers)
+              && length(obj.tool.old_visibility) == length(obj.eg.layers.visible_layers)
             % If an old state exists, then just turn these layers on
-            obj.left_panel.layer_panel.visible_layers = obj.tool.old_visibility;
+            obj.eg.layers.visible_layers = obj.tool.old_visibility;
           else
             % Otherwise... just turn them all back on
-            obj.left_panel.layer_panel.visible_layers(:) = 1;
+            obj.eg.layers.visible_layers(:) = 1;
           end
         end
-        obj.layerLB_sync('vis',[]);
       end
       obj.set_visibility();
       
@@ -351,45 +350,37 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       % check if echogram is selected
       cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
         get(obj.right_panel.axes.handle,'YLim')];
-      % Only redraw if not already at limit
-      if (strcmp(obj.eg.y_order,'reverse') && cur_axis(4) < max(obj.eg.image_yaxis([1 end]))) ...
-          || (strcmp(obj.eg.y_order,'normal') && cur_axis(3) > min(obj.eg.image_yaxis([1 end])))
-        y_extent = cur_axis(4) - cur_axis(3);
-        if strcmp(obj.eg.y_order,'reverse')
-          cur_axis(3:4) = cur_axis(3:4) + y_extent*0.25;
-        elseif strcmp(obj.eg.y_order,'normal')
-          cur_axis(3:4) = cur_axis(3:4) - y_extent*0.25;
-        end
-        
-        % Convert x_min, x_max to GPS time
-        xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
-        
-        % Draw data with new axis, but do not allow new data to be loaded (i.e.
-        % clip new axis to limits of loaded data
-        obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true));
+      y_extent = cur_axis(4) - cur_axis(3);
+      if strcmp(obj.eg.y_order,'reverse')
+        cur_axis(3:4) = cur_axis(3:4) + y_extent*0.25;
+      elseif strcmp(obj.eg.y_order,'normal')
+        cur_axis(3:4) = cur_axis(3:4) - y_extent*0.25;
       end
+      
+      % Convert x_min, x_max to GPS time
+      xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+      
+      % Draw data with new axis, but do not allow new data to be loaded (i.e.
+      % clip new axis to limits of loaded data
+      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
       
     case 'uparrow' % Up-arrow: Move Echogram Up
       % check if echogram is selected
       cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
         get(obj.right_panel.axes.handle,'YLim')];
-      % Only redraw if not already at limit
-      if (strcmp(obj.eg.y_order,'reverse') && cur_axis(3) > min(obj.eg.image_yaxis([1 end]))) ...
-          || (strcmp(obj.eg.y_order,'normal') && cur_axis(4) < max(obj.eg.image_yaxis([1 end])))
-        y_extent = cur_axis(4) - cur_axis(3);
-        if strcmp(obj.eg.y_order,'reverse')
-          cur_axis(3:4) = cur_axis(3:4) - y_extent*0.25;
-        elseif strcmp(obj.eg.y_order,'normal')
-          cur_axis(3:4) = cur_axis(3:4) + y_extent*0.25;
-        end
-        
-        % Convert x_min, x_max to GPS time
-        xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
-        
-        % Draw data with new axis, but do not allow new data to be loaded (i.e.
-        % clip new axis to limits of loaded data
-        obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true));
+      y_extent = cur_axis(4) - cur_axis(3);
+      if strcmp(obj.eg.y_order,'reverse')
+        cur_axis(3:4) = cur_axis(3:4) - y_extent*0.25;
+      elseif strcmp(obj.eg.y_order,'normal')
+        cur_axis(3:4) = cur_axis(3:4) + y_extent*0.25;
       end
+      
+      % Convert x_min, x_max to GPS time
+      xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
+      
+      % Draw data with new axis, but do not allow new data to be loaded (i.e.
+      % clip new axis to limits of loaded data
+      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',true,'ylim_force',obj.shift_pressed));
       
     case 'rightarrow' % Right arrow
       cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
@@ -402,7 +393,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
       
       % Draw data with new axis
-      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false));
+      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false,'ylim_force',obj.shift_pressed));
       
     case 'leftarrow' % Left arrow
       cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
@@ -415,7 +406,7 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
       xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');
       
       % Draw data with new axis
-      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false));
+      obj.redraw(xlims(1),xlims(2),cur_axis(3),cur_axis(4),struct('clipped',false,'ylim_force',obj.shift_pressed));
       
   end
   obj.shift_pressed = false;

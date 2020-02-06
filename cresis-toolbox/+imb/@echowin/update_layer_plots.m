@@ -4,13 +4,13 @@ function update_layer_plots(obj)
 % Updates the layer plot handles with the latest layer data. Called from
 % cmds_execute.
 
-layer_y_curUnit = obj.eg.layer.y_curUnit;
+layer_y_curUnit = obj.eg.layers.y_curUnit;
 
 for idx = 1:length(layer_y_curUnit)
-  layer_x_curUnit = obj.eg.layer.x_curUnit{idx};
+  layer_x_curUnit = obj.eg.layers.x_curUnit{idx};
   
   % get manual/auto pts (use them for layer handles)
-  layer_manual = obj.eg.layer.type{idx} == 1;
+  layer_manual = obj.eg.layers.type{idx} == 1;
   
   % Manual points (plot this way to handle empty XData or YData
   set(obj.layer_h(2*(idx-1)+1),{'XData','YData'}, ...
@@ -18,9 +18,9 @@ for idx = 1:length(layer_y_curUnit)
   % Auto and manual points
   set(obj.layer_h(2*(idx-1)+2),'YData',layer_y_curUnit{idx});
   
-  layer_good = obj.eg.layer.qual{idx} == 1;
-  layer_moderate = obj.eg.layer.qual{idx} == 2;
-  layer_derived = obj.eg.layer.qual{idx} == 3;
+  layer_good = obj.eg.layers.qual{idx} == 1;
+  layer_moderate = obj.eg.layers.qual{idx} == 2;
+  layer_derived = obj.eg.layers.qual{idx} == 3;
   layer_y_curUnit_good = layer_y_curUnit{idx};
   layer_y_curUnit_good(~layer_good) = NaN;
   layer_y_curUnit_moderate= layer_y_curUnit{idx};

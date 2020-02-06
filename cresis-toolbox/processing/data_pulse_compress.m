@@ -584,7 +584,9 @@ for img = 1:length(param.load.imgs)
           
           Nt_raw_trim = fs_raw_dec/abs(wfs(wf).chirp_rate)*diff(wfs(wf).BW_window);
           if abs(Nt_raw_trim/2 - round(Nt_raw_trim/2)) > 1e-6
-            error('wfs(%d).BW_window must be an integer multiple of two times the wfs(wf).chirp rate divided by sampling frequency.');
+            BW_window_step_size = 2*wfs(wf).chirp_rate / (wfs(wf).fs_raw/max(hdr.DDC_dec{img}));
+            BW_window_new = round(wfs(wf).BW_window/BW_window_step_size)*BW_window_step_size;
+            error('Bandwidth indicated by wfs(%d).BW_window must be an integer multiple of two times the chirp rate (wfs(%d).chirp_rate=%.14f) divided by the sampling frequency (wfs(%d).fs_raw/max(hdr.DDC_dec{%d})=%.14f). The maximum should be taken over the DDC_dec setting for every record in the segment; what is printed here is just the currently loaded block of data. Recommend [%.14f %.14f].', wf, wf, wfs(wf).chirp_rate, wf, img, BW_window_step_size, BW_window_new);
           end
           % Remove rounding errors
           Nt_raw_trim = round(Nt_raw_trim);

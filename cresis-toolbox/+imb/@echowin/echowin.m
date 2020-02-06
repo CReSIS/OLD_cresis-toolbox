@@ -50,6 +50,8 @@ classdef (HandleCompatible = true) echowin < handle
     quality_h % Layer quality plot handles (6 * # of layers)
     layer_h % Layer auto/manual plot handles (2 * # of layers)
     cursor % Cursor handle + state information (.h, .gps_time)
+    show_manual_pts % Show manual points in layer plots
+    show_dots_only % Show dots only in layer plots
     
     %% Keyboard and mouse function states
     alt_pressed
@@ -75,15 +77,13 @@ classdef (HandleCompatible = true) echowin < handle
     left_click % Current left click tool function handle
     left_click_and_drag % Current left click and drag tool function handle
     right_click_and_drag % Current right click and drag tool function handle
-                  
-    show_manual_pts
-    show_dots_only
-    layer_db_open
     
-    tool_accessed
-    tool_visible
-    old_tool_idx
-    crossovers_en
+    tool_accessed % True if any pick tool parameter window has been opened
+    tool_visible % Last selected tool with a parameter window before current tool
+    old_tool_idx % True if current pick tool parameter window should be visible
+    
+    % crossovers_en: logical scalar determining whether or not crossovers are loaded
+    crossovers_en 
 
     %% Undo stack properties
     undo_stack
@@ -160,9 +160,9 @@ classdef (HandleCompatible = true) echowin < handle
       obj.tool.layer_multiple = 1;
       obj.tool.layer_switch = false;
       
-      obj.tool_accessed = false;
-      obj.old_tool_idx = 1;         % enter tool by default, only updated when tool switched to has h_fig
-      obj.tool_visible = false;     % tool not visible by default
+      obj.tool_accessed = false; % True if any pick tool parameter window has been opened
+      obj.old_tool_idx = 1;      % Last selected tool with a parameter window before current tool
+      obj.tool_visible = false;  % True if current pick tool parameter window should be visible
       
       %% Echogram imagesc setup
       obj.eg.cur_sel.day_seg = '';
@@ -198,13 +198,12 @@ classdef (HandleCompatible = true) echowin < handle
       obj.eg.crossovers.y_curUnit = []; % y position of cross over in current image units
       
       % Layer setup
-      obj.eg.layer_id = [];         % contains layer ID(s) for currently loaded layers
-      obj.eg.layer.x = {};          % Nlayers x 1 cell array containing gps_time of all pnts
-      obj.eg.layer.y = {};          % Nlayers x 1 cell array containing twtt of all pnts
-      obj.eg.layer.x_curUnit = {};  % layer.x converted to current x-axis units
-      obj.eg.layer.y_curUnit = {};  % layer.y converted to current x-axis units
-      obj.eg.layer.qual = {};       % Nlayers x 1 cell array containing quality of each layer point
-      obj.eg.layer.type = {};       % Nlayers x 1 cell array containing type of each layer point
+      obj.eg.layers.x = {};          % Nlayers x 1 cell array containing gps_time of all pnts
+      obj.eg.layers.y = {};          % Nlayers x 1 cell array containing twtt of all pnts
+      obj.eg.layers.x_curUnit = {};  % layer.x converted to current x-axis units
+      obj.eg.layers.y_curUnit = {};  % layer.y converted to current x-axis units
+      obj.eg.layers.qual = {};       % Nlayers x 1 cell array containing quality of each layer point
+      obj.eg.layers.type = {};       % Nlayers x 1 cell array containing type of each layer point
       obj.eg.layerPB_h = [];
       
       obj.layer_h = [];
@@ -275,6 +274,7 @@ classdef (HandleCompatible = true) echowin < handle
     frameLB_callback(obj,hObj,event);
     frameCM_callback(obj,hObj,event);
     layerLB_callback(obj,hObj,event);
+    layerCM_callback(obj,source,event);
     new_layerPB_callback(obj,hObj,event);
     paramPB_callback(obj,hObj,event);
     sourceLB_callback(obj,hObj,event);
@@ -290,11 +290,6 @@ classdef (HandleCompatible = true) echowin < handle
     sourceCM_callback(obj,source,event);
     [fn,comment] = imagewin_fn_callback(obj,fn);
     imagewin_save_mat_callback(obj,h_obj,event);
-    layerLB_init(obj);
-    layerLB_setdata(obj,data);
-    layerLB_check_callback(obj,source,event);
-    layerLB_radio_callback(obj,source,event);
-    layerLB_slider_callback(obj,source,event);
     status_text_copy_callback(obj,source,event);
     status_text_print(obj,str,type);
     status_str = status_text_cursor(obj,param);

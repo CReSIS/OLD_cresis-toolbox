@@ -14,6 +14,7 @@ fprintf('START ECHOWIN DRAW (%s)\n',datestr(now,'HH:MM:SS'));
 obj.eg.sources = param.sources;
 obj.eg.layers = param.layers;
 obj.eg.cur_sel = param.cur_sel;
+obj.eg.cur_sel.day_seg = param.cur_sel.frame_name(1:11);
 obj.eg.system = param.system;
 obj.eg.layer_source = param.layer_source;
 obj.eg.layer_data_source = param.layer_data_source;
@@ -35,7 +36,6 @@ obj.eg.frame_idxs = [];
 if strcmp(obj.eg.layer_source,'layerdata')
   obj.eg.start_gps_time = param.start_gps_time;
   obj.eg.stop_gps_time = param.stop_gps_time;
-  obj.eg.cur_sel.day_seg = obj.eg.cur_sel.day_seg;
   obj.eg.frame_names = {};
   for frm = 1:length(obj.eg.start_gps_time)
     obj.eg.frame_names{frm} = sprintf('%s_%03d', obj.eg.cur_sel.day_seg, frm);
@@ -57,7 +57,6 @@ else
   [obj.eg.frame_names sorted_idxs] = sort(obj.eg.frame_names);
   obj.eg.start_gps_time = obj.eg.start_gps_time(sorted_idxs);
   obj.eg.stop_gps_time = obj.eg.stop_gps_time(sorted_idxs);
-  obj.eg.cur_sel.day_seg = data.properties.segment;
 end
 
 %% Update file listing of all source files
@@ -90,27 +89,16 @@ set(obj.left_panel.frameLB,'String',obj.eg.frame_names);
 
 %% Create variables for the layer list box
 % ===================================================================
-obj.eg.layer_id = obj.eg.layers.lyr_id;
-obj.eg.layer.layer_names = obj.eg.layers.lyr_name;
-
-obj.eg.layers.surface = NaN;
-layerLB_param.bottom = NaN;
-% find indices of surface and bottom layers
-for idx = 1:length(obj.eg.layers.lyr_name)
-  if strcmp(obj.eg.layers.lyr_name{idx},'surface')
-    obj.eg.layers.surface = idx;
-  elseif strcmp(obj.eg.layers.lyr_name{idx},'bottom')
-    layerLB_param.bottom = idx;
-  end
+LB_strings = cell(1,length(obj.eg.layers.lyr_id));
+for idx = 1:length(obj.eg.layers.lyr_id)
+  LB_strings{idx} = sprintf('(%d) %s:%s',idx,obj.eg.layers.lyr_group_name{idx},obj.eg.layers.lyr_name{idx});
 end
-layerLB_param.surface = obj.eg.layers.surface;
+set(obj.left_panel.layerLB,'String',LB_strings);
 
-layerLB_param.names = cell(1,length(obj.eg.layer_id));
-for idx = 1:length(obj.eg.layer_id)
-  layerLB_param.names{idx} = sprintf('(%d) %s',idx,obj.eg.layers.lyr_name{idx});
-end
-
-obj.layerLB_setdata(layerLB_param);
+% set up state variables of radio buttons (selected layer) and checkboxes
+% (visible layers)
+obj.eg.layers.selected_layers = false(size(obj.eg.layers.lyr_id));
+obj.eg.layers.visible_layers = true(size(obj.eg.layers.lyr_id));
 
 %% Load flightlines, layers, crossovers and place the cursor
 % ===================================================================

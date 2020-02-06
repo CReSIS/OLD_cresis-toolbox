@@ -29,6 +29,18 @@ classdef (HandleCompatible = true) mapwin < handle
     
     % Map properties
     cur_map_pref_settings % Struct containing currently loaded preference window settings (set in get_map)
+    % cur_map_pref_settings.layer_source: string, either 'layerdata' or 'ops'
+    % cur_map_pref_settings.layer_data_source: string, layerdata directory to use if 'layerdata' layer data selected 
+    % cur_map_pref_settings.layers: struct array of all selected layers if 'ops'layer data selected
+    % cur_map_pref_settings.layers.lyr_name: string, OPS layer name
+    % cur_map_pref_settings.layers.lyr_group_name: string, OPS group name
+    % cur_map_pref_settings.layers.lyr_id: OPS layer ID
+    % cur_map_pref_settings.seasons: cell array of strings containing seasons loaded (layerdata flightlines include system in the season name)
+    % cur_map_pref_settings.system: string, system name if OPS flight lines, otherwise 'layerdata'
+    % cur_map_pref_settings.sources: echogram sources to load
+    % cur_map_pref_settings.map_zone: string, 'antarctic' or 'arctic'
+    % cur_map_pref_settings.map_name: string, name of map
+    % cur_map_pref_settings.flightlines: string containing flight line type selection
     
     map
     % map.source % 0 for OPS map, 1 for blank, 2 for Google
@@ -41,6 +53,7 @@ classdef (HandleCompatible = true) mapwin < handle
     % map.yaxis % Current yaxis
     % map.sel % map selection (red line): .frame_name, .season_name, .segment_id
     % map.sel.frame_name
+    % map.sel.radar_name
     % map.sel.season_name
     % map.sel.segment_id
     % map.CoordRefSysCode % string containing EPSG:3413, EPSG:3031, or EPSG:3857
@@ -60,13 +73,16 @@ classdef (HandleCompatible = true) mapwin < handle
     layerdata
     % layerdata.x
     % layerdata.y
-    % layerdata.frms
+    % layerdata.frm_id
     % layerdata.season_idx
+    % layerdata.frm_info().frm_id
+    % layerdata.frm_info().start_gps_time
+    % layerdata.frm_info().stop_gps_time
+
     
   end
   
   properties (SetAccess = private, GetAccess = private)
-    priv_prop1
   end
   
   events
@@ -115,8 +131,9 @@ classdef (HandleCompatible = true) mapwin < handle
       obj.map.scale = []; % 1e3 (km to meters for OPS), 1 for Google
       % Currently selected flight line information
       obj.map.sel.frame_name = ''; % Current frame name
-      obj.map.sel.segment_id = []; % Current segment ID
+      obj.map.sel.segment_id = []; % Current segment ID (Database ID for OPS layer source, index into obj.cur_map_pref_settings.seasons for layerdata source)
       obj.map.sel.season_name = ''; % Current season name
+      obj.map.sel.radar_name = ''; % Current radar name
       obj.map.xaxis = [];
       obj.map.yaxis = [];
       obj.map.xaxis_default = [];
@@ -139,11 +156,15 @@ classdef (HandleCompatible = true) mapwin < handle
       % layerdata properties
       % -------------------------------------------------------------------
       obj.layerdata = [];
-      obj.layerdata.x = []; % Flightlines in world coordinates
-      obj.layerdata.y = []; % Flightlines in world coordinates
-      obj.layerdata.frms = []; % Flightline frame ids (as double)
-      obj.layerdata.season_idx = []; % Flightline season index vector
-      
+      obj.layerdata.x = []; % Nx length vector of flightlines in local map coordinates
+      obj.layerdata.y = []; % Nx length vector of flightlines in local map coordinates
+      obj.layerdata.frm_id = []; % Nx length vector of frame ids (as numeric)
+      obj.layerdata.season_idx = []; % Nx length vector of season indices into obj.cur_map_pref_settings.seasons
+      obj.layerdata.frm_info = []; % Frame information struct array (one struct per entry in obj.cur_map_pref_settings.seasons)
+      obj.layerdata.frm_info.frm_id = []; % Nf length vector of frames, frame id (numeric)
+      obj.layerdata.frm_info.start_gps_time = []; % Nf length vector, start GPS time of frame (ANSI-C seconds since Jan 1, 1970)
+      obj.layerdata.frm_info.stop_gps_time = []; % Nf length vector, stop GPS time of frame (ANSI-C seconds since Jan 1, 1970)
+
       % Set default parameters
       % -------------------------------------------------------------------
       if ~exist('param','var')
