@@ -26,7 +26,7 @@ const double EGT_WEIGHT  = 10;  // TODO[reece]: is this supposed to be positive?
                                 //              appears to divide added cost for distance from egt
                                 //              Repulsion is positive and increases cost
 // Relative weight of intersection with expected surface multiple bin
-const double MULTIPLE_BIN_WEIGHT = 10;
+const double MULTIPLE_BIN_WEIGHT = 100;
 // Maximum multiple number which has any effect on cost
 const double MULTIPLE_MAX_NUM = 5;
 // Maximum travel time distance from closest multiple which has any effect on cost

@@ -28,7 +28,7 @@ if tool_idx == 1
     cur_layer = cur_layers(layer_idx);
     
     [manual_idxs,auto_idxs_initial,point_idxs] = find_matching_pnts(obj,param,cur_layer);
-   
+    
     % Scale auto_idxs from scale of param.layer.x to scale of viterbi_data
     % TODO[reece]: Add example to find matching points
     
@@ -50,15 +50,15 @@ if tool_idx == 1
       surf_bins = interp_finite(surf_bins);
       
       % Match GT points with axis coordinates
-      gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest'); 
-            interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest')];
+      gt = [interp1(image_x, 1:length(image_x),param.layer.x(manual_idxs), 'nearest');
+        interp1(image_y, 1:length(image_y),param.layer.y{cur_layer}(manual_idxs), 'nearest')];
       auto_idxs = gt(1, 1):gt(1, end);
       x_points = gt(1, :) - gt(1,1) + 1;
       y_points = gt(2, :);
       gt = [x_points; y_points];
       
       layer_x_axis = param.layer.x(min(x) <= param.layer.x & param.layer.x <= max(x));
-
+      
       % Echogram Parameters
       viterbi_data   = image_c;
       bottom_bin     = -1;
@@ -122,20 +122,21 @@ if tool_idx == 1
         viterbi_weight = viterbi_weight(:, auto_idxs);
         slope          = round(diff(surf_bins));
       end
-     
+      
       [~, top] = min(abs(param.echo_time));
-
+      
       %% Distance-to-Ice-Margin model
       clear DIM DIM_costmatrix;
       global gRadar
       DIM = load(fullfile(gRadar.path, '+tomo', 'Layer_tracking_2D_parameters_Matrix.mat'));
       DIM_costmatrix = DIM.Layer_tracking_2D_parameters;
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
-
-      scale = length(param.layer.y{cur_layer}) / length(image_y) * 100;
+      
+      scale = length(param.layer.y{cur_layer}) / length(image_y) / 10;
       % TODO[reece]: Determine best scale
       % TODO[reece]: Why do the paths ignore distance from egt more or
       % less?
+      % TODO[reece]: Update wiki. Update markdown files.
       
       tic
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
@@ -148,26 +149,21 @@ if tool_idx == 1
       fprintf('Viterbi call took %.2f sec.\n', toc);
       
       if obj.top_panel.column_restriction_cbox.Value
-        y_new(end) = y_new(end-1);
+        %         y_new(end) = y_new(end-1);
       else
         y_new = y_new(auto_idxs);
       end
       
-      % Resample and interpolate y_new and auto_idxs to match layer axes
-      y_new = interp1(1:length(image_y), image_y, y_new);
-      auto_idxs_new = interp1(linspace(1, length(layer_x_axis), length(auto_idxs)), auto_idxs, 1:length(layer_x_axis));
-      y_new = interp1(auto_idxs, y_new, auto_idxs_new);
-      auto_idxs = interp1(1:length(image_x), linspace(1, length(param.layer.x), length(image_x)), auto_idxs_new);
-      auto_idxs = round(auto_idxs);
-      
-      % Remove manual points from y_new and auto_idxs
-      non_manual = ~ismember(auto_idxs, manual_idxs);
-      auto_idxs = auto_idxs(non_manual);
-      y_new = y_new(non_manual);
+      % Resample and interpolate y_new to match layer axes
+      y_new = interp1(1:length(image_y),...
+        image_y,y_new,'linear','extrap');
+      all_idxs = manual_idxs(1):manual_idxs(end);
+      y_new = interp1(image_x(auto_idxs),y_new,param.layer.x(all_idxs),'linear', 'extrap');
       
       cmds(end+1).undo_cmd = 'insert';
       % Quality measurement from Viterbi algorithm result
-      if obj.top_panel.quality_output_cbox.Value
+      if false % obj.top_panel.quality_output_cbox.Value
+        % quality calculation not implemented
         try
           thrs = str2double(obj.top_panel.quality_threshold_TE.String);
         catch ME
@@ -175,23 +171,25 @@ if tool_idx == 1
         end
         quality = ones(size(cost));
         quality(cost < thrs) = 3;
-        cmds(end).undo_args = {cur_layer, auto_idxs, ...
-          param.layer.y{cur_layer}(auto_idxs), ...
-          param.layer.type{cur_layer}(auto_idxs), quality};
+        cmds(end).undo_args = {cur_layer, all_idxs, ...
+          param.layer.y{cur_layer}(all_idxs), ...
+          param.layer.type{cur_layer}(all_idxs), quality};
       else
-        cmds(end).undo_args = {cur_layer, auto_idxs, ...
-          param.layer.y{cur_layer}(auto_idxs), ...
-          param.layer.type{cur_layer}(auto_idxs), ...
-          param.layer.qual{cur_layer}(auto_idxs)};
+        cmds(end).undo_args = {cur_layer, all_idxs, ...
+          param.layer.y{cur_layer}(all_idxs), ...
+          param.layer.type{cur_layer}(all_idxs), ...
+          param.layer.qual{cur_layer}(all_idxs)};
       end
       
       cmds(end).redo_cmd = 'insert';
-      if obj.top_panel.quality_output_cbox.Value
-        cmds(end).redo_args = {cur_layer, auto_idxs, y_new, ...
-          2*ones(size(auto_idxs)), quality};
+      if false % obj.top_panel.quality_output_cbox.Value
+        cmds(end).redo_args = {cur_layer, all_idxs, y_new, ...
+          2*ones(size(all_idxs)), quality};
       else
-        cmds(end).redo_args = {cur_layer, auto_idxs, y_new, ...
-          2*ones(size(auto_idxs)), param.cur_quality*ones(size(auto_idxs))};
+        type = 2*ones(size(all_idxs));
+        type(manual_idxs - manual_idxs(1) + 1) = 1;
+        cmds(end).redo_args = {cur_layer, all_idxs, y_new, ...
+          type, param.cur_quality*ones(size(all_idxs))};
       end
     end
   end
