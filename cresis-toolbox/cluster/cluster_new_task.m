@@ -29,6 +29,13 @@ function [ctrl,task_id] = cluster_new_task(ctrl,sparam,dparam,varargin)
 %   not matter where the field is set. For example, "task_function" could
 %   be set from dparam and "mem" could be set from sparam. Note that if a
 %   field is set in both structures, then dparam will overrule sparam.
+% varargin: List of name value pairs to set additional variables in the
+%   function. These include:
+%   'dparam_save': Logical scalar. Default is true. If set to false, this
+%     function does not save the dparam settings into the dparam input file
+%     and a call to cluster_save_dparam is required. This is useful when
+%     many tasks are being created because saving to the dparam file is
+%     slow and it is much better to do it all at once at the end.
 %
 % Outputs:
 % ctrl: updated ctrl structure with new job
@@ -83,8 +90,9 @@ if ~isfield(sparam,'file_success') || isempty(sparam.file_success)
   sparam.file_success = {};
 end
 sparam.file_version = ctrl.cluster.file_version;
-  
-dparam_save = 1;
+
+% Read in name-value pairs from user's varargin
+dparam_save = 1; % Default is true
 for param_idx = 1:2:length(varargin)
   eval(sprintf('%s = varargin{param_idx+1};', varargin{param_idx}));
 end

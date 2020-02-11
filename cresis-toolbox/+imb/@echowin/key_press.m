@@ -266,7 +266,10 @@ if ~isempty(event.Key) && ~strcmpi(event.Key,'shift') && ~strcmpi(event.Key,'alt
         print('-dpng',sprintf('-f%d',obj.h_fig),fn);
       elseif obj.shift_pressed && ~obj.alt_pressed && ~obj.control_pressed
         %% Save current layers
+        set(obj.h_fig,'Pointer','watch');
+        drawnow;
         obj.savePB_callback();
+        set(obj.h_fig,'Pointer','Arrow');
       end
       
     case 'v'

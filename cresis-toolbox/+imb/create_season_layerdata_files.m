@@ -79,12 +79,12 @@ param_fns = {};
 % param_fns{end+1} = 'rds_param_2017_Antarctica_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2017_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Antarctica_DC8.xls';
-param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
+% param_fns{end+1} = 'rds_param_2018_Antarctica_Ground.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2018_Greenland_Polar6.xls';
 % param_fns{end+1} = 'rds_param_2019_Greenland_P3.xls';
 % param_fns{end+1} = 'rds_param_2019_Antarctica_GV.xls';
-% param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
+param_fns{end+1} = 'snow_param_2012_Greenland_P3.xls';
 % param_fns{end+1} = 'snow_param_2019_SouthDakota_CESSNA.xls';
 
 %% Setup layer load parameters
@@ -92,6 +92,7 @@ if 1
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
   % layer_params(2).layerdata_source = 'CSARP_post/layerData';
+  layer_params.existence_check = true;
   layer_params(2).name = 'bottom';
   layer_params(2).source = 'layerdata';
   % layer_params(2).layerdata_source = 'CSARP_post/layerData';
@@ -102,15 +103,19 @@ else
   layer_params = struct('name','surface');
   layer_params.source = 'layerdata';
   layer_params(1).layerdata_source = 'layerData_koenig';
+  layer_params(2).existence_check = true;
+  layer_params(1).fix_broken_layerdata = true; % Found some bad files
   layer_params(2).name = 'bottom';
   layer_params(2).source = 'layerdata';
   layer_params(2).layerdata_source = 'layerData_koenig';
   layer_params(2).existence_check = false;
+  layer_params(2).fix_broken_layerdata = true; % Found some bad files
   for lay_idx=2:30
     layer_params(lay_idx+1).name = sprintf('Koenig_%d',lay_idx);
     layer_params(lay_idx+1).source = 'layerdata';
     layer_params(lay_idx+1).layerdata_source = 'layerData_koenig';
     layer_params(lay_idx+1).existence_check = false;
+    layer_params(lay_idx+1).fix_broken_layerdata = true; % Found some bad files
   end
 end
 

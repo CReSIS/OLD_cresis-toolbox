@@ -347,17 +347,18 @@ set(obj.left_panel.layerLB,'Callback',@obj.layerLB_callback);
 set(obj.left_panel.layerLB,'TooltipString','Select layers to operate on, right click to open context menu to manipulate list of layers. Red font indicates layer visibility is off.');
 obj.left_panel.layerCM = uicontextmenu('Parent',obj.h_fig);
 % Define the context menu items and install their callbacks
-uimenu(obj.left_panel.layerCM, 'Label', '&Visible', 'Callback', @obj.layerCM_callback);
-uimenu(obj.left_panel.layerCM, 'Label', '&Hide', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_visible = uimenu(obj.left_panel.layerCM, 'Label', '&Visible', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_hide = uimenu(obj.left_panel.layerCM, 'Label', '&Hide', 'Callback', @obj.layerCM_callback);
 uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
-uimenu(obj.left_panel.layerCM, 'Label', '&New layer', 'Callback', @obj.layerCM_callback);
-uimenu(obj.left_panel.layerCM, 'Label', '&Edit layer', 'Callback', @obj.layerCM_callback);
-uimenu(obj.left_panel.layerCM, 'Label', '&Up', 'Callback', @obj.layerCM_callback);
-uimenu(obj.left_panel.layerCM, 'Label', '&Down', 'Callback', @obj.layerCM_callback);
-uimenu(obj.left_panel.layerCM, 'Label', '&Top', 'Callback', @obj.layerCM_callback);
-uimenu(obj.left_panel.layerCM, 'Label', '&Bottom', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_new = uimenu(obj.left_panel.layerCM, 'Label', '&New layer', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_copy = uimenu(obj.left_panel.layerCM, 'Label', '&Copy layer', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_edit = uimenu(obj.left_panel.layerCM, 'Label', '&Edit layer', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_up = uimenu(obj.left_panel.layerCM, 'Label', '&Up', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_down= uimenu(obj.left_panel.layerCM, 'Label', '&Down', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_top = uimenu(obj.left_panel.layerCM, 'Label', '&Top', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_bottom = uimenu(obj.left_panel.layerCM, 'Label', '&Bottom', 'Callback', @obj.layerCM_callback);
 uimenu(obj.left_panel.layerCM, 'Label', '---', 'Callback', @obj.layerCM_callback);
-uimenu(obj.left_panel.layerCM, 'Label', 'Delete layer', 'Callback', @obj.layerCM_callback);
+obj.left_panel.layerCM_delete = uimenu(obj.left_panel.layerCM, 'Label', 'Delete layer', 'Callback', @obj.layerCM_callback);
 set(obj.left_panel.layerLB,'uicontextmenu',obj.left_panel.layerCM);
 
 %% left_panel.frameLB
@@ -485,7 +486,7 @@ set(obj.right_panel.status_panel.mouseCoordText,'String','');
 %----echogram context menu
 obj.right_panel.echoCM= uicontextmenu('parent',obj.h_fig);
 % Define the context menu items and install their callbacks
-obj.right_panel.echoCM_item1 = uimenu(obj.right_panel.echoCM, 'Label', 'Copy Cursor Info (Ctrl-C)', 'Callback',@obj.status_text_copy_callback);
+obj.right_panel.echoCM_copy = uimenu(obj.right_panel.echoCM, 'Label', 'Copy Cursor Info (Ctrl-C)', 'Callback',@obj.status_text_copy_callback);
 set(obj.right_panel.status_panel.statusText,'uicontextmenu',obj.right_panel.echoCM);
 
 %% right_panel.status_panel

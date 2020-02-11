@@ -30,6 +30,11 @@ function layers = opsLoadLayers(param, layer_params)
 %  .existence_check = boolean, default is true and causes an error to be
 %    thrown if the layer does not exist. If false, no data points are
 %    returned when the layer does not exist and only a warning is given.
+%  .fix_broken_layerdata: logical, default is false and causes any layerdata
+%    errors to be fixed while loading by setting the layer for the
+%    particular data frame that has the error to the default values (NaN
+%    for twtt, quality 1, and type 2). If true, an error is thrown if
+%    layerdata errors exist.
 %  .debug = default is false
 %  .eval: Optional structure for performing operations on the layer
 %    .cmd: Command string that will be passed to eval
@@ -288,6 +293,9 @@ for frm_idx = 1:length(param.cmd.frms)
     layer_param = layer_params(layer_idx);
     if ~isfield(layer_param,'existence_check') || isempty(layer_param.existence_check)
       layer_param.existence_check = true;
+    end
+    if ~isfield(layer_param,'fix_broken_layerdata') || isempty(layer_param.fix_broken_layerdata)
+      layer_param.fix_broken_layerdata = false;
     end
     
     %% Load LIDAR Data
@@ -558,40 +566,45 @@ for frm_idx = 1:length(param.cmd.frms)
         end
         if ~found
           if layer_param.existence_check
-            error('Reference layer %s not found\n', layer_param.name);
+            error('Reference layer %s not found. Set layer_params().existence_check to false to ignore this error.\n', layer_param.name);
           else
-            warning('Reference layer %s not found\n', layer_param.name);
+            warning('Reference layer %s not found. Set layer_param().existence_check to true to stop on this error.\n', layer_param.name);
           end
+        end
+      end
+      if found && length(frms_mask) ~= length(lay.layerData{lay_idx}.value{2}.data)
+        if ~layer_param.fix_broken_layerdata
+            error('Expected layer "%s" to have length of %d, but found %d instead. This layerData file needs to be fixed. Set layer_param().fix_broken_layerdata to true to ignore this error.', layer_param.name, length(frms_mask), length(lay.layerData{lay_idx}.value{2}.data));
+        else
+            warning('Expected layer "%s" to have length of %d, but found %d instead. This layerData file needs to be fixed. Set layer_param().fix_broken_layerdata to false to stop on this error.', layer_param.name, length(frms_mask), length(lay.layerData{lay_idx}.value{2}.data));
+            found = false;
         end
       end
       layers(layer_idx).gps_time = cat(2,layers(layer_idx).gps_time, ...
         lay.GPS_time(frms_mask));
+      layer_type = 2*ones(size(lay.GPS_time(frms_mask)));
       if ~found
         % Fill with NaN since layer does not exist
         layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
           NaN*zeros(size(lay.GPS_time(frms_mask))));
+        % Fill with 1's since layer does not exist
+        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
+          ones(size(lay.GPS_time(frms_mask))));
       else
         layers(layer_idx).twtt = cat(2,layers(layer_idx).twtt, ...
           lay.layerData{lay_idx}.value{2}.data(frms_mask));
+        layer_type(isfinite(lay.layerData{lay_idx}.value{1}.data(frms_mask))) = 1;
+        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
+          lay.layerData{lay_idx}.quality(frms_mask));
       end
+      layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
+        layer_type);
       layers(layer_idx).elev = cat(2,layers(layer_idx).elev, ...
         lay.Elevation(frms_mask));
       layers(layer_idx).lat = cat(2,layers(layer_idx).lat, ...
         lay.Latitude(frms_mask));
       layers(layer_idx).lon = cat(2,layers(layer_idx).lon, ...
         lay.Longitude(frms_mask));
-      layer_type = 2*ones(size(lay.GPS_time(frms_mask)));
-      layer_type(isfinite(lay.layerData{lay_idx}.value{1}.data(frms_mask))) = 1;
-      layers(layer_idx).type = cat(2,layers(layer_idx).type, ...
-        layer_type);
-      if ~found
-        % Fill with 1's since layer does not exist
-        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-          ones(size(lay.GPS_time(frms_mask))));
-      else
-        layers(layer_idx).quality = cat(2,layers(layer_idx).quality, ...
-          lay.layerData{lay_idx}.quality(frms_mask));
-      end
     end
     
     %% Load OPS Data

@@ -290,7 +290,7 @@ if obj.map.fline_source == 1
   obj.layerdata.y = [];
   obj.layerdata.frm_id = [];
   obj.layerdata.season_idx = [];
-  obj.layerdata.frm_info = [];
+  obj.layerdata.frm_info = struct('frm_id',{},'start_gps_time',{},'stop_gps_time',{});
   
   % Looping through the seasons
   layer_fn_dir = ct_filename_support(struct('radar_name','rds'),'layer','');
