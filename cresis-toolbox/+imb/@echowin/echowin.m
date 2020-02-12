@@ -1,221 +1,222 @@
 classdef (HandleCompatible = true) echowin < handle
-% Echogram Window for imb.picker
-%
-% General operation:
-% 1. Creator function is called
-%   Initializes obj.eg fields (eg = echogram)
-%   Calls "imb.echowin.create_ui" which creates the GUI objects
-% 2. Draw function is called
-%   Queries file system to get echograms obj.update_source_fns_existence();
-%   Calls load_flightline, load_layers_init, load_layers, load_crossovers
-%   Calls plot_echogram, plot_layers, plot_cursors
-%   Plot functions convert to the proper units and displays them in the
-%   right_panel imagesc and layer plots are created here. Note that ALL the
-%   data is plotted and xlim/ylim/caxis are used to control what is seen.
-% 3. If the user loads a new echogram from the map window, then the
-%    draw function is called again.
-% 4. If the user applies an operation, update_layer updates all the
-%    variables and modifies the layer plots
-% 5. If the user changes something redraw is called
-%    * If the x-axis or y-axis units change or user loads a different
-%    frame from within this echowin (either frameLB_callback or by
-%    using the left/right arrow keys) then redraw calls 
-%    * If the user causes redraw to be called for some other reason
-%    and new data does not need to be loaded, then plot_echogram
-%    is not called.
-% 6. Normal operation
-%    keyboard_down --> used to interpret hot keys and ctrl/shift/alt keys
-%    button_down --> sets things up for button_up
-%    button_up --> Various different modes of operation
-%      ctrl: select layer
-%      shift: set cursor
-%      zoom-mode: just zooms
-%      alt: apply region tool (call obj.left_click_and_drag then obj.update_layers)
-%      no modifiers: apply point tool (call obj.left_click then obj.update_layers)
-%      right click: apply delete tool (call obj.right_click then obj.update_layers)
-%  7. set_visibility: this function sets the visibility for all the objects and
-%    is called by redraw. It is also called by a bunch of other places
-%    (like keyboard short cuts and special mouse button clicks) when object
-%    visibility might have changed).
-
+  % Echogram Window for imb.picker
+  %
+  % General operation:
+  % 1. Creator function is called
+  %   Initializes obj.eg fields (eg = echogram)
+  %   Calls "imb.echowin.create_ui" which creates the GUI objects
+  % 2. Draw function is called
+  %   Queries file system to get echograms obj.update_source_fns_existence();
+  %   Calls load_flightline, load_layers_init, load_layers, load_crossovers
+  %   Calls plot_echogram, plot_layers, plot_cursors
+  %   Plot functions convert to the proper units and displays them in the
+  %   right_panel imagesc and layer plots are created here. Note that ALL the
+  %   data is plotted and xlim/ylim/caxis are used to control what is seen.
+  % 3. If the user loads a new echogram from the map window, then the
+  %    draw function is called again.
+  % 4. If the user applies an operation, update_layer updates all the
+  %    variables and modifies the layer plots
+  % 5. If the user changes something redraw is called
+  %    * If the x-axis or y-axis units change or user loads a different
+  %    frame from within this echowin (either frameLB_callback or by
+  %    using the left/right arrow keys) then redraw calls
+  %    * If the user causes redraw to be called for some other reason
+  %    and new data does not need to be loaded, then plot_echogram
+  %    is not called.
+  % 6. Normal operation
+  %    keyboard_down --> used to interpret hot keys and ctrl/shift/alt keys
+  %    button_down --> sets things up for button_up
+  %    button_up --> Various different modes of operation
+  %      ctrl: select layer
+  %      shift: set cursor
+  %      zoom-mode: just zooms
+  %      alt: apply region tool (call obj.tool.left_click_and_drag_fh then obj.update_layers)
+  %      no modifiers: apply point tool (call obj.tool.left_click_fh then obj.update_layers)
+  %      right click: apply delete tool (call obj.right_click then obj.update_layers)
+  %  7. set_visibility: this function sets the visibility for all the objects and
+  %    is called by redraw. It is also called by a bunch of other places
+  %    (like keyboard short cuts and special mouse button clicks) when object
+  %    visibility might have changed).
+  
   properties
-        h_fig
-    left_panel
-    right_panel
+    %% GUI Properties
+    h_fig % Main echowin figure handle
+    h_axes % Main axis handle
+    h_image % Image handle
+    h_quality % Layer quality plot handles (6 * # of layers)
+    h_layer % Layer auto/manual plot handles (2 * # of layers)
+    
+    left_panel % Structure with fields:
+    % handle
+    % toolPM
+    % paramPB
+    % qualityPM
+    % imagewin: imagewin class (controls filtering/colorbar)
+    % imagePB
+    % yaxisPM
+    % xaxisPM
+    % framesPM
+    % crossoverPB
+    % savePB
+    % topTable
+    % layerLB
+    % layerCM
+    % layerCM_visible
+    % layerCM_hide
+    % layerCM_new
+    % layerCM_copy
+    % layerCM_edit
+    % layerCM_up
+    % layerCM_down
+    % layerCM_top
+    % layerCM_bottom
+    % layerCM_delete
+    % frameLB
+    % frameCM
+    % sourceLB
+    % sourceCM
+    % table
+    right_panel % Structure with fields:
+    % handle
+    % axes_panel
+    % status_panel
+    %   handle
+    %   statusText
+    %   mouseCoordText
+    %   table
+    % echoCM
+    % echoCM_copy
+    % table
     table
-    
-    eg % eg = Struct with image information, crossover information, and
-       % echogram and layer information
-    quality_h % Layer quality plot handles (6 * # of layers)
-    layer_h % Layer auto/manual plot handles (2 * # of layers)
     cursor % Cursor handle + state information (.h, .gps_time)
+    % cursor.gps_time: GPS time of cursor location
+    % cursor.lat: latitude of cursor location
+    % cursor.lon: longitude of cursor location
+    % cursor.elev: elevation of cursor location
+    % cursor.surf_twtt: twtt to surface
+    % cursor.bottom_twtt: twtt to bottom
+    % cursor.lat: latitude of clutter locations
+    % cursor.lon: longitude of clutter locations
+    % cursor.h: Cursor plot handle
+    crossovers
+    % crossovers.en: logical scalar determining whether or not crossovers are loaded
+    % crossovers.gui: imb.crossover class
+    % crossovers.gps_time: gps time for each crossover
+    % crossovers.h: cross over plot handles
+    % crossovers.x_curUnit: x value for each crossover in current x-axis units
+    % crossovers.y_curUnit: y value for each crossover in current y-axis units
+    % crossovers.source_point_path_id: OPS database point path ID from the loaded echogram
+    % crossovers.cross_point_path_id: OPS database point path ID from the crossover echogram
+    % crossovers.source_elev: elevation of platform for each crossover
+    % crossovers.cross_elev: elevation of platform in crossover echogram for each crossover
+    % crossovers.layer_id: layer ID for each crossover
+    % crossovers.frame_name: frame string ID of crossover echogram
+    % crossovers.twtt: twtt of the layer in the crossover echogram
+    % crossovers.angle: crossover angle (0 deg means crossover echogram is
+    %   parallel to the currently loaded echogram)
+    % crossovers.abs_error: absolute difference between twtt to each layer
     
-    %% Keyboard and mouse function states
-    alt_pressed
-    control_pressed
-    shift_pressed
-    zoom_mode
-    busy_mode
-    click_x
-    click_y
+    %% Keyboard/Mouse Properties
+    alt_pressed % Logical indicating the state of the alt-key
+    control_pressed % Logical indicating the state of the ctrl-key
+    shift_pressed % Logical indicating the state of the shift-key
+    zoom_mode % Logical indicating the zoom mode
+    cursor_mode % Logical indicating the zoom mode for mouse pointer
+    busy_mode % Logical indicating the busy mode for mouse pointer
+    click_x % Last mouse click x-position
+    click_y % Last mouse click y-position
     switch_layers % struct with fields for key_press switching layers feature
-                  % .old_time % stores time since last key press
-                  % .accumulated_event_characters % accumulates consecutive key strokes
-
-    %% General properties
+    % switch_layers.time: stores time since last key press
+    % switch_layers.keys: accumulates consecutive key strokes
     
-    % default_params = Default parameters loaded from default parameters file
-    default_params
+    %% Tool Properties
+    tool % Struct with tool information
+    % tool.list: List of tool class objects
+    % tool.left_click_fh % Current: left click tool function handle
+    % tool.left_click_and_drag_fh: Current left click and drag tool function handle
+    % tool.right_click_and_drag_fh: Current right click and drag tool function handle
+    % tool.accessed % True if any pick tool parameter window has been opened
+    % tool.visible % True if tool parameter window is visible
+    % tool.old_idx % Index of last tool
+    % tool.layer_multiple: which layer multiple to track (the twtt of the mouse
+    %   click is automatically converted based on this value to allow
+    %   tracking of layers via their multiple)
     
-    % Tool state information
-    tool
-    tool_list
-    tool_param
-    left_click % Current left click tool function handle
-    left_click_and_drag % Current left click and drag tool function handle
-    right_click_and_drag % Current right click and drag tool function handle
-                  
-    show_manual_pts
-    show_dots_only
-    layer_db_open
+    %% Echogram Properties
+    % eg = Struct with image information, crossover information, and
+    % echogram and layer information
+    eg
+    % sources: cell array of echogram source file paths
+    % system: string containing accum, kaband, kuband, rds, or snow
+    % cur_sel
+    %  frm: frame corresponding to the left side of the echogram display
+    %    (this will be the active selection in the frameLB)
+    %  segment_id: 2.0120e+09
+    %  season_name: '2012_Greenland_P3'
+    %  radar_name: 'snow'
+    %  location: 'arctic'
+    %  day_seg: '20120330_04'
+    %  map_zone: string containing 'arctic' or 'antarctic'
+    %  map_mask: mask on lat/lon/elev for what is actually being shown in
+    %    the echogram window
+    %
+    % frms: frames that are actively loaded
+    % frm_strs: Nfrm length cell array of frame names
+    % old_frame_idx: last frame to be loaded (-1 default)
+    % start_gps_time: Nfrm length numeric vector of start GPS times for each frame
+    % stop_gps_time: Nfrm length numeric vector of stop GPS times for each frame
+    % source_fns_existence: logical array that is Nfrm by Nsrc where Nfrm
+    %   is the number of frames in this segment and Nsrc is the number of
+    %   echogram sources in eg.sources
     
-    tool_accessed
-    tool_visible
-    old_tool_idx
-    crossovers_en
-
-    %% Undo stack properties
+    % data: original Nt by Nx single data matrix (a copy must be kept in case operations
+    %   are done on the matrix)
+    % gps_time: GPS time of data matrix, represents seconds since Jan 1,
+    %   1970 (ANSI-C standard), 1 by Nx double vector
+    % elev: Elevation of data matrix in meters, 1 by Nx double vector
+    % lat: Latitude of data matrix, 1 by Nx double vector
+    % lon: Longitude of data matrix, 1 by Nx double vector
+    % surf_twtt: Surface of data matrix, 1 by Nx double vector
+    % time: Fast time of data matrix, Nt by 1 double vector
+    %
+    % image_data: modified (image processed/resampled) Nt_img by Nx_img single data matrix
+    % image_xaxis: Nx_img double vector for x-axis of image_data
+    % image_gps_time: Nx_img double vector for gps-axis of image_data
+    % image_yaxis: Nx_img double vector for y-axis of image_data
+    % x_label: string containing x-axis label
+    % y_label: string containing x-axis label
+    % y_order: string containing "normal" or "reverse" for obj.h_axes
+    %
+    % layers
+    %   show_manual_pts % Logical scalar, Show manual points in layer plots
+    %   show_dots_only % Logical scalar, Show dots only in layer plots
+    %   quality_en % Logical scalar, show quality layers if true
+    %   source: string containing "ops" or "layerdata"
+    %   layer_data_source: file path to layerdata if "layerdata" source being used
+    %   lyr_name: Nlayer length cell array of layer names
+    %   lyr_group_name: Nlayer length cell array of layer group names
+    %   lyr_id: Nlayer length numeric vector of layer IDs (OPS IDs or the
+    %     index into the layer structure of layer files
+    %   surf_id: surface ID
+    %   selected_layers: Nlayer length logical vector, true means layer is
+    %     selected (tools and operations will act on the layer)
+    %   visible_layers: Nlayer length logical vector, true means layer visible
+    %   x: 1 by Nx vector of x-values in GPS time
+    %   y: 1 by Nx vector of y-values in twtt
+    %   qual: 1 by Nx vector of quality values (1=good,2=medium,3=bad,NaN=unassigned)
+    %   type: 1 by Nx vector of type values (1=
+    %   x_curUnit: 1 by Nx vector of x-values in current x-axis units
+    %   y_curUnit: 1 by Nx vector of y-values in current y-axis units
+    
+    %% Undostack Properties
     undo_stack
     undo_stack_save_listener
     undo_stack_synchronize_listener
     
-%     %% GUI Properties
-%     h_fig
-%     left_panel % Structure with fields:
-%     % handle
-%     % toolPM
-%     % paramPB
-%     % qualityPM
-%     % imagewin
-%     % imagePB
-%     % yaxisPM
-%     % xaxisPM
-%     % framesPM
-%     % crossoverPB
-%     % savePB
-%     % topTable
-%     % layerLB
-%     % layerCM
-%     % frameLB
-%     % frameCM
-%     % sourceLB
-%     % sourceCM
-%     % table
-%     right_panel % Structure with fields:
-%     % handle
-%     % axes
-%     % status_panel
-%     % echoCM
-%     % echoCM_item1
-%     % table
-%     table
-%     cursor % Cursor handle + state information (.h, .gps_time)
-%     % gps_time: GPS time of cursor location
-%     % x: map x-position of cursor location
-%     % y: map y-position of cursor location
-%     % h: Cursor plot handle
-% 
-%     % Layer plotting information
-%     h_image % Image handle
-%     h_quality % Layer quality plot handles (6 * # of layers)
-%     h_layer % Layer auto/manual plot handles (2 * # of layers)
-% 
-%     %% Keyboard/Mouse Properties
-%     alt_pressed % Logical indicating the state of the alt-key
-%     control_pressed % Logical indicating the state of the ctrl-key
-%     shift_pressed % Logical indicating the state of the shift-key
-%     zoom_mode % Logical indicating the zoom mode
-%     busy_mode % Logical indicating the busy mode for mouse pointer
-%     click_x % Last mouse click x-position
-%     click_y % Last mouse click y-position
-%     switch_layers % struct with fields for key_press switching layers feature
-%                   % .old_time % stores time since last key press
-%                   % .accumulated_event_characters % accumulates consecutive key strokes
-%     
-%     %% Tool properties
-%     tool % Struct with tool information
-%     % list: List of tools
-%     % left_click_fh % Current: left click tool function handle
-%     % left_click_and_drag_fh: Current left click and drag tool function handle
-%     % right_click_and_drag_fh: Current right click and drag tool function handle
-%     % accessed % True if any pick tool parameter window has been opened
-%     % visible % True if tool parameter window is visible
-%     % old_idx % Index of last tool
-% 
-%     %% Echogram properties
-%     % eg = Struct with image information, crossover information, and
-%     % echogram and layer information
-%     eg 
-%     % sources: cell array of echogram source file paths
-%     % system: string containing accum, kaband, kuband, rds, or snow
-%     % cur_sel
-%     %  frame_name: '20120330_04_087'
-%     %  segment_id: 2.0120e+09
-%     %  season_name: '2012_Greenland_P3'
-%     %  radar_name: 'snow'
-%     %  location: 'arctic'
-%     %  day_seg: '20120330_04'
-%     %
-%     % frame_idxs: frames that are actively loaded
-%     % frame_names: Nfrm length cell array of frame names
-%     % old_frame_idx: last frame to be loaded (-1 default)
-%     % start_gps_time: Nfrm length numeric vector of start GPS times for each frame
-%     % stop_gps_time: Nfrm length numeric vector of stop GPS times for each frame
-%     %
-%     % source_fns_existence: logical array that is Nfrm by Nsrc where Nfrm
-%     %   is the number of frames in this segment and Nsrc is the number of
-%     %   echogram sources in eg.sources
-%     % data: original Nt by Nx single data matrix (a copy must be kept in case operations
-%     %   are done on the matrix)
-%     % gps_time: GPS time of data matrix, represents seconds since Jan 1,
-%     %   1970 (ANSI-C standard), 1 by Nx double vector
-%     % elevation: Elevation of data matrix in meters, 1 by Nx double vector
-%     % latitude: Latitude of data matrix, 1 by Nx double vector
-%     % longitude: Longitude of data matrix, 1 by Nx double vector
-%     % surface: Surface of data matrix, 1 by Nx double vector
-%     % time: Elevation of data matrix, Nt by 1 double vector
-%     %
-%     % image_data: modified Nt by Nx single data matrix
-%     % image_xaxis
-%     % image_gps_time
-%     % image_yaxis
-%     % x_label
-%     % y_label
-%     % y_order
-%     %
-%     % crossovers
-%     %   en: logical scalar determining whether or not crossovers are loaded
-%     % layers
-%     %   show_manual_pts % Logical scalar, Show manual points in layer plots
-%     %   show_dots_only % Logical scalar, Show dots only in layer plots
-%     % layer_source
-%     % layer_data_source
-%     %
-%     % map
-%     % proj
-%     % map_gps_time
-%     % map_elev
-%     % map_x
-%     % map_y
-%     % map_id
-% 
-%     %% Undo stack properties
-%     undo_stack
-%     undo_stack_save_listener
-%     undo_stack_synchronize_listener
-% 
-%     % default_params = Default parameters loaded from default parameters file
-%     default_params
+    %% default_params Properties
+    % default_params = Default parameters loaded from default parameters file
+    default_params
+    
   end
   
   properties (SetAccess = private, GetAccess = private)
@@ -263,85 +264,132 @@ classdef (HandleCompatible = true) echowin < handle
       if ~isfield(default_params,'h')
         default_params.h = echowin_pos(4);
       end
-
-      %% Constructor: General setup
-      obj.h_fig = h_fig;
-      obj.default_params = default_params;
-
-      %% Constructor: Keyboard and mouse input state control
-      obj.alt_pressed = false;
-      obj.control_pressed = false;
-      obj.shift_pressed = false;
-      obj.busy_mode = false;
-      obj.zoom_mode = true;
-      obj.switch_layers.old_time = [];
-      obj.switch_layers.accumulated_event_characters = [];
       
-      %% Constructor: Initialize tool settings
+      %% Constructor: Keyboard/Mouse
+      obj.alt_pressed = false; % Logical indicating the state of the alt-key
+      obj.control_pressed = false; % Logical indicating the state of the ctrl-key
+      obj.shift_pressed = false; % Logical indicating the state of the shift-key
+      obj.busy_mode = false; % Logical indicating the busy mode for mouse pointer
+      obj.zoom_mode = true; % Logical indicating the zoom mode for mouse pointer
+      obj.cursor_mode = false; % Logical indicating the marker mode (true causes cursor to constantly update with mouse motion)
+      obj.click_x; % Last mouse click x-position
+      obj.click_y; % Last mouse click y-position
+      obj.switch_layers = []; % struct with fields for key_press switching layers feature
+      obj.switch_layers.time = -inf; % stores time since last key press
+      obj.switch_layers.keys = ''; % accumulates consecutive key strokes
       
-      obj.tool.layer_multiple = 1;
+      %% Constructor: Tool
+      obj.tool = []; % Struct with tool information
+      obj.tool.list = []; % List of tool class objects
+      obj.tool.left_click_fh = []; % Current: left click tool function handle
+      obj.tool.left_click_and_drag_fh = []; % Current left click and drag tool function handle
+      obj.tool.right_click_and_drag_fh = []; % Current right click and drag tool function handle
+      obj.tool.accessed = false; % True if any pick tool parameter window has been opened
+      obj.tool.visible = false; % True if tool parameter window is visible
+      obj.tool.old_idx = 1; % Index of last tool
+      obj.tool.layer_multiple = 1; % Numeric scalar determining layer multiple to track (the twtt of the mouse click is automatically scaled by this value to allow tracking of layers via their multiple)
       
-      obj.tool_accessed = false; % True if any pick tool parameter window has been opened
-      obj.old_tool_idx = 1;      % Last selected tool with a parameter window before current tool
-      obj.tool_visible = false;  % True if current pick tool parameter window should be visible
+      %% Constructor: Echogram
+      % eg = Struct with image information, crossover information, and
+      % echogram and layer information
+      obj.eg = [];
+      obj.eg.sources = {}; % cell array of echogram source file paths
+      obj.eg.system = ''; % string containing accum, kaband, kuband, rds, or snow
+      obj.eg.cur_sel = []; % Current selection (originally comes from mapwin current selection)
+      obj.eg.cur_sel.frm = []; % frame corresponding to the left side of the echogram display (this will be the active selection in the frameLB)
+      obj.eg.cur_sel.segment_id = []; % 2.0120e+09
+      obj.eg.cur_sel.season_name = ''; % '2012_Greenland_P3'
+      obj.eg.cur_sel.radar_name = ''; % 'snow'
+      obj.eg.cur_sel.location = ''; % 'arctic'
+      obj.eg.cur_sel.day_seg = ''; % '20120330_04'
+      obj.eg.map_zone = ''; % string containing 'arctic' or 'antarctic'
+      obj.eg.map_mask = []; % mask on lat/lon/elev for what is actually being shown in the echogram window
+      obj.eg.frms = []; % frames that are actively loaded
+      obj.eg.frm_strs = {}; % Nfrm length cell array of frame names
+      obj.eg.old_frame_idx = []; % last frame to be loaded (-1 default)
+      obj.eg.start_gps_time = []; % Nfrm length numeric vector of start GPS times for each frame
+      obj.eg.stop_gps_time = []; % Nfrm length numeric vector of stop GPS times for each frame
+      obj.eg.source_fns_existence = logical([]); % logical array that is Nfrm by Nsrc where Nfrm is the number of frames in this segment and Nsrc is the number of echogram sources in eg.sources
       
-      %% Constructor: Echogram and data (eg) setup
-      obj.eg.cur_sel.day_seg = '';
-      obj.eg.frame_idxs = [];
+      obj.eg.data = []; % original Nt by Nx single data matrix (a copy must be kept in case operations are done on the matrix)
+      obj.eg.gps_time = []; % GPS time of data matrix, represents seconds since Jan 1, 1970 (ANSI-C standard), 1 by Nx double vector
+      obj.eg.elev = []; % Elevation of data matrix in meters, 1 by Nx double vector
+      obj.eg.lat = []; % Latitude of data matrix, 1 by Nx double vector
+      obj.eg.lon = []; % Longitude of data matrix, 1 by Nx double vector
+      obj.eg.surf_twtt = []; % Surface of data matrix, 1 by Nx double vector
+      obj.eg.time = []; % Fast time of data matrix, Nt by 1 double vector
       
-      obj.eg.data = [];             % echogram data for current frames
-      obj.eg.elevation = [];        % elevation of current frames
-      obj.eg.gps_time = [];         % gps_time of current frames
-      obj.eg.latitude = [];         % latitude of current frames
-      obj.eg.longitude = [];        % longitude of current frames
-      obj.eg.surface = [];          % surface of current frames
-      obj.eg.time = [];             % time of current frames
+      obj.eg.image_data = []; % modified (image processed/resampled) Nt_img by Nx_img single data matrix
+      obj.eg.image_xaxis = []; % Nx_img double vector for x-axis of image_data
+      obj.eg.image_gps_time = []; % Nx_img double vector for gps-axis of image_data
+      obj.eg.image_yaxis = []; % Nx_img double vector for y-axis of image_data
+      obj.eg.x_label = ''; % string containing x-axis label
+      obj.eg.y_label = ''; % string containing x-axis label
+      obj.eg.y_order = ''; % string containing "normal" or "reverse" for obj.h_axes
       
-      obj.eg.h_image = [];          % handle to imagesc object
-      obj.eg.image_data = [];       % data for 'imagesc' function
-      obj.eg.image_xaxis = [];      % xaxis for 'imagesc' function
-      obj.eg.x_label = '';          % string for x-label (assigned in plot_echogram)
-      obj.eg.image_gps_time = [];   % same size as 'image_xaxis'
-      obj.eg.image_yaxis = [];      % yaxis for 'imagesc' function
-      obj.eg.y_label = '';          % string for x-label (assigned in plot_echogram)
-      obj.eg.y_order = '';          % string for 'reverse' or 'normal'
+      obj.eg.layers = [];
+      obj.eg.layers.show_manual_pts = true; % Logical scalar, Show manual points in layer plots
+      obj.eg.layers.show_dots_only = false; % Logical scalar, Show dots only in layer plots
+      obj.eg.layers.quality_en = false; % Logical scalar, show quality layers if true
+      obj.eg.layers.source = ''; % string containing "ops" or "layerdata"
+      obj.eg.layers.layer_data_source = ''; % file path to layerdata if "layerdata" source being used
+      obj.eg.layers.lyr_name = {}; % Nlayer length cell array of layer names
+      obj.eg.layers.lyr_group_name = {}; % Nlayer length cell array of layer group names
+      obj.eg.layers.lyr_id = []; % Nlayer length numeric vector of layer IDs (OPS IDs or the index into the layer structure of layer files
+      obj.eg.layers.surf_id = []; % surface ID
+      obj.eg.layers.selected_layers = []; % Nlayer length logical vector, true means layer is selected (tools and operations will act on the layer)
+      obj.eg.layers.visible_layers = []; % Nlayer length logical vector, true means layer visible
+      obj.eg.layers.x = {}; % 1 by Nx vector of x-values in GPS time
+      obj.eg.layers.y = {}; % 1 by Nx vector of y-values in twtt
+      obj.eg.layers.qual = {}; % 1 by Nx vector of quality values (1=good,2=medium,3=bad,NaN=unassigned)
+      obj.eg.layers.type = {}; % 1 by Nx vector of type values (1=
+      obj.eg.layers.x_curUnit = {}; % 1 by Nx vector of x-values in current x-axis units
+      obj.eg.layers.y_curUnit = {}; % 1 by Nx vector of y-values in current y-axis units
       
-      obj.eg.old_frame_idx = -1;
-      
-      % Cross over information
-      obj.crossovers_en = false;
-      obj.eg.crossovers.gui = []; % Handle to crossovers class object
-      % obj.eg.crossovers.? % What ever properties are returned by
-                            % opsGetCrossovers
-      obj.eg.crossovers.gps_time = []; % gps-time of cross over in source frame
-      obj.eg.crossovers.h = []; % 2*N array of cross over plot handles
-      obj.eg.crossovers.x_curUnit = []; % x position of cross over in current image units
-      obj.eg.crossovers.y_curUnit = []; % y position of cross over in current image units
-      
-      % Layer setup
-      obj.eg.layers.x = {};          % Nlayers x 1 cell array containing gps_time of all pnts
-      obj.eg.layers.y = {};          % Nlayers x 1 cell array containing twtt of all pnts
-      obj.eg.layers.x_curUnit = {};  % layer.x converted to current x-axis units
-      obj.eg.layers.y_curUnit = {};  % layer.y converted to current x-axis units
-      obj.eg.layers.qual = {};       % Nlayers x 1 cell array containing quality of each layer point
-      obj.eg.layers.type = {};       % Nlayers x 1 cell array containing type of each layer point
-      
-      obj.layer_h = [];
-      obj.quality_h = [];
-      obj.show_manual_pts = true;
-      obj.show_dots_only = false;
-      obj.tool.quality_en = 0;      % quality view on
-
-      % Cursor setup
-      obj.cursor.gps_time = [];     % cursor location
-      obj.cursor.x = [];            % cursor location
-      obj.cursor.y = [];            % cursor location
-      obj.cursor.h = [];            % cursor handle
-
-      % Undo stack setup
+      %% Constructor: Undostack
       obj.undo_stack = [];
       obj.undo_stack_save_listener = [];
       obj.undo_stack_synchronize_listener = [];
+      
+      % default_params = Default parameters loaded from default parameters file
+      %% Constructor: default_params
+      obj.default_params = default_params;
+      
+      
+      %% Constructor: GUI
+      obj.h_fig = h_fig;
+      obj.h_axes = []; % Main axis handle
+      obj.h_image = []; % Image handle
+      obj.h_quality = [];% Layer quality plot handles (6 * # of layers)
+      obj.h_layer = []; % Layer auto/manual plot handles (2 * # of layers)
+      
+      obj.cursor = []; % Cursor handle + state information (.h, .gps_time)
+      obj.cursor.gps_time = []; % GPS time of cursor location
+      obj.cursor.lat = []; % latitude of cursor location
+      obj.cursor.lon = []; % longitude of cursor location
+      obj.cursor.elev = []; % elevation of cursor location
+      obj.cursor.surf_twtt = []; % twtt to surface
+      obj.cursor.bottom_twtt = []; % twtt to bottom
+      obj.cursor.lat = []; % latitude of clutter locations
+      obj.cursor.lon = []; % longitude of clutter locations
+      obj.cursor.h = []; % Cursor plot handle
+      
+      obj.crossovers = [];
+      obj.crossovers.en = false; % logical scalar determining whether or not crossovers are loaded
+      obj.crossovers.gui = []; % imb.crossover class
+      obj.crossovers.gps_time = []; % gps time for each crossover
+      obj.crossovers.h = []; % cross over plot handles
+      obj.crossovers.x_curUnit = []; % x value for each crossover in current x-axis units
+      obj.crossovers.y_curUnit = []; % y value for each crossover in current y-axis units
+      obj.crossovers.source_point_path_id = []; % OPS database point path ID from the loaded echogram
+      obj.crossovers.cross_point_path_id = []; % OPS database point path ID from the crossover echogram
+      obj.crossovers.source_elev = []; % elevation of platform for each crossover
+      obj.crossovers.cross_elev = []; % elevation of platform in crossover echogram for each crossover
+      obj.crossovers.layer_id = []; % layer ID for each crossover
+      obj.crossovers.frame_name = []; % frame string ID of crossover echogram
+      obj.crossovers.twtt = []; % twtt of the layer in the crossover echogram
+      obj.crossovers.angle = []; % crossover angle (0 deg means crossover echogram is parallel to the currently loaded echogram)
+      obj.crossovers.abs_error = []; % absolute difference between twtt to each layer
       
       create_ui(obj);
     end
@@ -354,9 +402,9 @@ classdef (HandleCompatible = true) echowin < handle
       
       % Delete the tools
       try
-        for idx = 1:length(obj.tool_list)
+        for idx = 1:length(obj.tool.list)
           try
-            delete(obj.tool_list{idx});
+            delete(obj.tool.list{idx});
           end
         end
       end
@@ -366,14 +414,14 @@ classdef (HandleCompatible = true) echowin < handle
       end
       
       try
-        delete(obj.eg.crossovers.gui);
+        delete(obj.crossovers.gui);
       end
       
       % Remove echowin from undo_stack
       obj.cmds_set_undo_stack([]);
     end
     
-    %% Button, key functions
+    %% Button, key Methods
     button_down(obj,src,event);
     button_motion(obj,src,event);
     button_up(obj,src,event);
@@ -381,7 +429,7 @@ classdef (HandleCompatible = true) echowin < handle
     key_release(obj,src,event);
     button_scroll(obj,src,event);
     
-    %% Echowin GUI callback functions
+    %% Echowin GUI callback Methods
     close_win(obj,varargin);
     delete_layerPB_callback(obj,hObj,event);
     display_modePM_callback(obj,hObj,event);
@@ -409,7 +457,7 @@ classdef (HandleCompatible = true) echowin < handle
     status_text_print(obj,str,type);
     status_str = status_text_cursor(obj,param);
     
-    %% Load and plot
+    %% Load and plot Methods
     create_ui(obj);
     draw(obj,param);  % Load EG data, frames, etc.
     [x_min,x_max,y_min,y_max] = load_echogram(obj,desire_frame_idxs,clipped,x_min,x_max,y_min,y_max);
@@ -435,7 +483,7 @@ classdef (HandleCompatible = true) echowin < handle
     toggle_imagewin_visibility(obj,h_obj,event);
     update_layer_plots(obj); % Update layer plots, called from cmds_execute
     
-    %% Commands/Undo stack
+    %% Commands/Undo stack Methods
     cmds_set_undo_stack(obj,undo_stack); % Attaches and detaches undo stack and listener
     cmds = cmds_convert_units(obj,cmds); % Converts tool commands from current units to gps-time and twtt
     cmds_execute(obj,cmds_list,cmds_direction); % Executes a set of commands on this echowin

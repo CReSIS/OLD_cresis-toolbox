@@ -7,18 +7,18 @@ function load_layers(obj)
 dx = obj.eg.gps_time(2)-obj.eg.gps_time(1);
 min_gps_time = obj.eg.gps_time(1);
 max_gps_time = obj.eg.gps_time(end);
-if obj.eg.frame_idxs(1) == 1
+if obj.eg.frms(1) == 1
   % First frame in segment so adjust beginning to make sure all layer points
   % will be displayed.
   min_gps_time = obj.eg.start_gps_time(1)-dx;
 end
-if obj.eg.frame_idxs(end) == length(obj.eg.stop_gps_time)
+if obj.eg.frms(end) == length(obj.eg.stop_gps_time)
   % Last frame of segment so adjust end to make sure all layer points will
   % be displayed.
   max_gps_time = obj.eg.stop_gps_time(end)+dx;
 end
 
-if strcmpi(obj.eg.layer_source,'OPS')
+if strcmpi(obj.eg.layers.source,'OPS')
   %% OPS: Load layer points from database
   fprintf(' Loading layer points from database (%s)\n',datestr(now,'HH:MM:SS'));
   ops_param = struct('properties',[]);
@@ -61,11 +61,11 @@ if strcmpi(obj.eg.layer_source,'OPS')
   if sum(good_mask) > 2
     % There are surface layer points in the database, overwrite the surface
     % with these
-    obj.eg.surface = interp1(obj.eg.map_gps_time(good_mask),obj.eg.layers.y{obj.eg.layers.lyr_id==1}(good_mask),obj.eg.gps_time);
-    obj.eg.surface = interp_finite(obj.eg.surface,0);
+    obj.eg.surf_twtt = interp1(obj.eg.map_gps_time(good_mask),obj.eg.layers.y{obj.eg.layers.lyr_id==1}(good_mask),obj.eg.gps_time);
+    obj.eg.surf_twtt = interp_finite(obj.eg.surf_twtt,0);
   end
   
-elseif strcmpi(obj.eg.layer_source,'layerdata')
+elseif strcmpi(obj.eg.layers.source,'layerdata')
   %% LayerData: Load layer points from layerdata
   
   %% LayerData: Preallocate layer arrays
@@ -78,7 +78,7 @@ elseif strcmpi(obj.eg.layer_source,'layerdata')
   end
   %% LayerData: Load GPS_time, quality, twtt and type of layers from undo_stack
   lGPS = [];
-  for frm = obj.eg.frame_idxs(1):obj.eg.frame_idxs(end);
+  for frm = obj.eg.frms(1):obj.eg.frms(end);
     GPS_time = obj.undo_stack.user_data.layer_info(frm).GPS_time;
     lGPS = cat(2,lGPS,GPS_time); % concatenates the layer GPS time
     
@@ -102,7 +102,7 @@ elseif strcmpi(obj.eg.layer_source,'layerdata')
   % when NaN.
   good_mask = ~isnan(obj.eg.layers.y{obj.eg.layers.lyr_id==1});
   if sum(good_mask) > 2
-    obj.eg.surface = interp1(lGPS(good_mask),obj.eg.layers.y{obj.eg.layers.lyr_id==1}(good_mask),obj.eg.gps_time);
-    obj.eg.surface = interp_finite(obj.eg.surface,0);
+    obj.eg.surf_twtt = interp1(lGPS(good_mask),obj.eg.layers.y{obj.eg.layers.lyr_id==1}(good_mask),obj.eg.gps_time);
+    obj.eg.surf_twtt = interp_finite(obj.eg.surf_twtt,0);
   end
 end

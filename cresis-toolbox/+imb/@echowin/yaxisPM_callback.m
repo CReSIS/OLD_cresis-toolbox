@@ -1,6 +1,6 @@
 function yaxisPM_callback(obj,hObj,event)
 
-cur_axis = axis(obj.right_panel.axes.handle);
+cur_axis = axis(obj.h_axes);
 
 % Replot image
 obj.plot_echogram(obj.eg.image_gps_time(1),obj.eg.image_gps_time(end),-inf,inf);

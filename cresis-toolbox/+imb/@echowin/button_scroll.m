@@ -4,10 +4,10 @@ function button_scroll(obj,src,event)
 % Called by mapwin when a mouse press is released. Handles zoom in/out,
 % frame selection, and marker updating.
 
-[x,y,but] = get_mouse_info(obj.h_fig,obj.right_panel.axes.handle);
+[x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
 
-cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
-  get(obj.right_panel.axes.handle,'YLim')];
+cur_axis = [get(obj.h_axes,'Xlim') ...
+  get(obj.h_axes,'YLim')];
 if y < cur_axis(3) || y > cur_axis(4) || x < cur_axis(1) || x > cur_axis(2)
   return;
 end
@@ -16,8 +16,8 @@ end
 
 zooms = -1 + (event.VerticalScrollCount/2);
 
-cur_axis = [get(obj.right_panel.axes.handle,'Xlim') ...
-  get(obj.right_panel.axes.handle,'YLim')];
+cur_axis = [get(obj.h_axes,'Xlim') ...
+  get(obj.h_axes,'YLim')];
 y_extent = cur_axis(4) - cur_axis(3);
 x_extent = cur_axis(2) - cur_axis(1);
 

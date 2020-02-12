@@ -89,10 +89,10 @@ if yaxis_choice == 1 % TWTT
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
   elevation = interp1(obj.eg.gps_time,...
-    obj.eg.elevation,...
+    obj.eg.elev,...
     obj.eg.layers.x{layer_idx},'linear','extrap');
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,...
+    obj.eg.surf_twtt,...
     obj.eg.layers.x{layer_idx},'linear','extrap');
   for point_idx = point_idxs
     if isnan(obj.eg.layers.y{layer_idx}(point_idx))
@@ -106,7 +106,7 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
   
 elseif yaxis_choice == 3 % Depth/Range
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,...
+    obj.eg.surf_twtt,...
     obj.eg.layers.x{layer_idx},'linear','extrap');
   for point_idx = point_idxs
     if isnan(obj.eg.layers.y{layer_idx}(point_idx))
@@ -124,7 +124,7 @@ elseif yaxis_choice == 4 % Range bin
   
 elseif yaxis_choice == 5 % Surface flat
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,...
+    obj.eg.surf_twtt,...
     obj.eg.layers.x{layer_idx},'linear','extrap');
   for point_idx = point_idxs
     if isnan(obj.eg.layers.y{layer_idx}(point_idx))
@@ -142,7 +142,7 @@ end
 %% cmds_execute_delete
 function args = cmds_execute_delete(obj,args)
 % Execute the delete command on obj.eg.layers and updates the layer handles
-% obj.layer_h and obj.quality_h.
+% obj.h_layer and obj.h_quality.
 %
 % args{1} = database layer IDs
 % args{2} = [x_min x_max y_min y_max] with x in gps-time and y in twtt
@@ -196,36 +196,36 @@ obj.eg.layers.type = [obj.eg.layers.type(1:val-1) {2*ones(size(obj.eg.layers.x{1
 obj.eg.layers.x_curUnit = [obj.eg.layers.x_curUnit(1:val-1) obj.eg.layers.x_curUnit(1) obj.eg.layers.x_curUnit(val:end)];
 obj.eg.layers.y_curUnit = [obj.eg.layers.y_curUnit(1:val-1) {nan(size(obj.eg.layers.x_curUnit{1}))} obj.eg.layers.y_curUnit(val:end)];
 
-obj.layer_h = [obj.layer_h(1:2*(val-1)) nan(1,2) obj.layer_h(2*val-1:end)];
-obj.quality_h = [obj.quality_h(1:6*(val-1)) nan(1,6) obj.quality_h(6*val-5:end)];
+obj.h_layer = [obj.h_layer(1:2*(val-1)) nan(1,2) obj.h_layer(2*val-1:end)];
+obj.h_quality = [obj.h_quality(1:6*(val-1)) nan(1,6) obj.h_quality(6*val-5:end)];
 
 idx = val;
 % Manual points (plot this way to handle empty XData or YData
-obj.layer_h(2*(idx-1)+1) = plot(obj.right_panel.axes.handle,NaN,NaN,'bx');
+obj.h_layer(2*(idx-1)+1) = plot(obj.h_axes,NaN,NaN,'bx');
 % Auto and manual points
-obj.layer_h(2*(idx-1)+2) = plot(obj.right_panel.axes.handle, ...
+obj.h_layer(2*(idx-1)+2) = plot(obj.h_axes, ...
   NaN,NaN,'b--');
 
 % Good manual points (plot this way to handle empty XData or YData
-obj.quality_h(6*(idx-1)+1) = plot(obj.right_panel.axes.handle,1,1,'gx');
+obj.h_quality(6*(idx-1)+1) = plot(obj.h_axes,1,1,'gx');
 
 % Good auto points (plot this way to handle empty XData or YData
-obj.quality_h(6*(idx-1)+2) = plot(obj.right_panel.axes.handle,1,1,'g--');
+obj.h_quality(6*(idx-1)+2) = plot(obj.h_axes,1,1,'g--');
 
 % Moderate manual points (plot this way to handle empty XData or YData
-obj.quality_h(6*(idx-1)+3) = plot(obj.right_panel.axes.handle,1,1,'yx');
+obj.h_quality(6*(idx-1)+3) = plot(obj.h_axes,1,1,'yx');
 
 % Moderate auto points (plot this way to handle empty XData or YData
-obj.quality_h(6*(idx-1)+4) = plot(obj.right_panel.axes.handle,1,1,'y--');
+obj.h_quality(6*(idx-1)+4) = plot(obj.h_axes,1,1,'y--');
 
 % Derived manual points (plot this way to handle empty XData or YData
-obj.quality_h(6*(idx-1)+5) = plot(obj.right_panel.axes.handle,1,1,'rx');
+obj.h_quality(6*(idx-1)+5) = plot(obj.h_axes,1,1,'rx');
 
 % Derived auto points (plot this way to handle empty XData or YData
-obj.quality_h(6*(idx-1)+6) = plot(obj.right_panel.axes.handle,1,1,'r--');
+obj.h_quality(6*(idx-1)+6) = plot(obj.h_axes,1,1,'r--');
 
-set(obj.quality_h(6*(idx-1)+(1:6)),'Visible','off');
-set(obj.layer_h(2*(idx-1)+1),'Visible','on');  % manual
+set(obj.h_quality(6*(idx-1)+(1:6)),'Visible','off');
+set(obj.h_layer(2*(idx-1)+1),'Visible','on');  % manual
 
 
 LB_strings = cell(1,length(obj.eg.layers.lyr_id));
@@ -257,10 +257,10 @@ obj.eg.layers.type = [obj.eg.layers.type(1:val-1) obj.eg.layers.type(val+1:end)]
 obj.eg.layers.x_curUnit = [obj.eg.layers.x_curUnit(1:val-1) obj.eg.layers.x_curUnit(val+1:end)];
 obj.eg.layers.y_curUnit = [obj.eg.layers.y_curUnit(1:val-1) obj.eg.layers.y_curUnit(val+1:end)];
 
-delete(obj.layer_h((val-1)*2+(1:2)));
-delete(obj.quality_h((val-1)*6+(1:6)));
-obj.layer_h = [obj.layer_h(1:2*(val-1)) obj.layer_h(2*(val+1)-1:end)];
-obj.quality_h = [obj.quality_h(1:6*(val-1)) obj.quality_h(6*(val+1)-5:end)];
+delete(obj.h_layer((val-1)*2+(1:2)));
+delete(obj.h_quality((val-1)*6+(1:6)));
+obj.h_layer = [obj.h_layer(1:2*(val-1)) obj.h_layer(2*(val+1)-1:end)];
+obj.h_quality = [obj.h_quality(1:6*(val-1)) obj.h_quality(6*(val+1)-5:end)];
 
 LB_strings = cell(1,length(obj.eg.layers.lyr_id));
 for idx = 1:length(obj.eg.layers.lyr_id)
@@ -301,8 +301,8 @@ if new_val ~= val
   obj.eg.layers.x_curUnit = obj.eg.layers.x_curUnit(new_order);
   obj.eg.layers.y_curUnit = obj.eg.layers.y_curUnit(new_order);
   
-  obj.layer_h = obj.layer_h(reshape(bsxfun(@plus,repmat(new_order,[2 1])*2,[-1:0].'),[1 Nlayers*2]));
-  obj.quality_h = obj.quality_h(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
+  obj.h_layer = obj.h_layer(reshape(bsxfun(@plus,repmat(new_order,[2 1])*2,[-1:0].'),[1 Nlayers*2]));
+  obj.h_quality = obj.h_quality(reshape(bsxfun(@plus,repmat(new_order,[6 1])*6,[-5:0].'),[1 Nlayers*6]));
 end
 
 LB_strings = cell(1,length(obj.eg.layers.lyr_id));

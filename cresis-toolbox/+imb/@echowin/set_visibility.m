@@ -7,7 +7,7 @@ function set_visibility(obj,varargin)
 % This function controls the visibility of objects (layers and cross
 % overs).
 %
-% obj.tool.quality_en
+% obj.eg.layers.quality_en
 %  tells if quality is on or off
 %
 % obj.eg.layers.selected_layers
@@ -30,44 +30,44 @@ deselected_color = [0,0,1];
 selected_linewidth = 2;
 deselected_linewidth = 1;
 
-if ~obj.tool.quality_en
+if ~obj.eg.layers.quality_en
   % ==================================================================
   %% Show Normal Layers
   % ==================================================================
   
   % Turn all quality layers off
-  set(obj.quality_h,'Visible','off')
+  set(obj.h_quality,'Visible','off')
   
   % 1. Set the visiblity for each layer
   % 2. Set the color for each layer and make selected layers on top
   for idx = 1:length(obj.eg.layers.visible_layers)
     if obj.eg.layers.visible_layers(idx)
       % Show layer
-      if obj.show_manual_pts
-        set(obj.layer_h(2*(idx-1)+1),'Visible','on');  % manual
-        set(obj.layer_h(2*(idx-1)+1),'LineWidth',selected_linewidth);  % manual
+      if obj.eg.layers.show_manual_pts
+        set(obj.h_layer(2*(idx-1)+1),'Visible','on');  % manual
+        set(obj.h_layer(2*(idx-1)+1),'LineWidth',selected_linewidth);  % manual
       else
-        set(obj.layer_h(2*(idx-1)+1),'Visible','off');  % manual
+        set(obj.h_layer(2*(idx-1)+1),'Visible','off');  % manual
       end
-      set(obj.layer_h(2*(idx-1)+2),'Visible','on');  % auto
+      set(obj.h_layer(2*(idx-1)+2),'Visible','on');  % auto
       
-      if obj.show_dots_only
-        set(obj.layer_h(2*(idx-1)+2),'Marker','.');
-        set(obj.layer_h(2*(idx-1)+2),'MarkerSize',20);
+      if obj.eg.layers.show_dots_only
+        set(obj.h_layer(2*(idx-1)+2),'Marker','.');
+        set(obj.h_layer(2*(idx-1)+2),'MarkerSize',20);
       else
-        set(obj.layer_h(2*(idx-1)+2),'Marker','none');
+        set(obj.h_layer(2*(idx-1)+2),'Marker','none');
       end
     else
       % Hide layer
-      set(obj.layer_h(2*(idx-1)+(1:2)),'Visible','off');
+      set(obj.h_layer(2*(idx-1)+(1:2)),'Visible','off');
     end
     if obj.eg.layers.selected_layers(idx)
       % Selected layer
-      set(obj.layer_h(2*(idx-1)+(1:2)),'Color',selected_color);
-      uistack(obj.layer_h(2*(idx-1)+(1:2)),'top');
+      set(obj.h_layer(2*(idx-1)+(1:2)),'Color',selected_color);
+      uistack(obj.h_layer(2*(idx-1)+(1:2)),'top');
     else
       % Deselected layer
-      set(obj.layer_h(2*(idx-1)+(1:2)),'Color',deselected_color);
+      set(obj.h_layer(2*(idx-1)+(1:2)),'Color',deselected_color);
     end
   end
   
@@ -77,43 +77,43 @@ else
   % ==================================================================
   
   % Turn all normal layers off
-  set(obj.layer_h,'Visible','off')
+  set(obj.h_layer,'Visible','off')
   
   % 1. Set the visiblity for each layer
   % 2. Set the linewidth for each layer and make selected layers on top
   for idx = 1:length(obj.eg.layers.visible_layers)
     if obj.eg.layers.visible_layers(idx)
       % Show layer
-      if obj.show_manual_pts
-        set(obj.quality_h(6*(idx-1)+[1 3 5]),'Visible','on');  % manual
+      if obj.eg.layers.show_manual_pts
+        set(obj.h_quality(6*(idx-1)+[1 3 5]),'Visible','on');  % manual
       else
-        set(obj.quality_h(6*(idx-1)+[1 3 5]),'Visible','off');  % manual
+        set(obj.h_quality(6*(idx-1)+[1 3 5]),'Visible','off');  % manual
       end
-      set(obj.quality_h(6*(idx-1)+[2 4 6]),'Visible','on');  % auto
+      set(obj.h_quality(6*(idx-1)+[2 4 6]),'Visible','on');  % auto
     else
       % Hide layer
-      set(obj.quality_h(6*(idx-1)+(1:6)),'Visible','off');
+      set(obj.h_quality(6*(idx-1)+(1:6)),'Visible','off');
     end
     if obj.eg.layers.selected_layers(idx)
       % Selected layer
-      set(obj.quality_h(6*(idx-1)+(1:6)),'LineWidth',selected_linewidth);
-      set(obj.quality_h(6*(idx-1)+[1 3 5]),'MarkerSize',7);
-      set(obj.quality_h(6*(idx-1)+[2 4 6]),'Marker','.');
-      if obj.show_dots_only
-        set(obj.quality_h(6*(idx-1)+[2 4 6]),'MarkerSize',20);
+      set(obj.h_quality(6*(idx-1)+(1:6)),'LineWidth',selected_linewidth);
+      set(obj.h_quality(6*(idx-1)+[1 3 5]),'MarkerSize',7);
+      set(obj.h_quality(6*(idx-1)+[2 4 6]),'Marker','.');
+      if obj.eg.layers.show_dots_only
+        set(obj.h_quality(6*(idx-1)+[2 4 6]),'MarkerSize',20);
       else
-        set(obj.quality_h(6*(idx-1)+[2 4 6]),'MarkerSize',10);
+        set(obj.h_quality(6*(idx-1)+[2 4 6]),'MarkerSize',10);
       end
-      uistack(obj.quality_h(6*(idx-1)+(1:6)),'top');
+      uistack(obj.h_quality(6*(idx-1)+(1:6)),'top');
     else
       % Deselected layer
-      set(obj.quality_h(6*(idx-1)+(1:6)),'LineWidth',deselected_linewidth);
-      set(obj.quality_h(6*(idx-1)+[1 3 5]),'MarkerSize',6);
-      if obj.show_dots_only
-        set(obj.quality_h(6*(idx-1)+[2 4 6]),'Marker','.');
-        set(obj.quality_h(6*(idx-1)+[2 4 6]),'MarkerSize',10);
+      set(obj.h_quality(6*(idx-1)+(1:6)),'LineWidth',deselected_linewidth);
+      set(obj.h_quality(6*(idx-1)+[1 3 5]),'MarkerSize',6);
+      if obj.eg.layers.show_dots_only
+        set(obj.h_quality(6*(idx-1)+[2 4 6]),'Marker','.');
+        set(obj.h_quality(6*(idx-1)+[2 4 6]),'MarkerSize',10);
       else
-        set(obj.quality_h(6*(idx-1)+[2 4 6]),'Marker','none');
+        set(obj.h_quality(6*(idx-1)+[2 4 6]),'Marker','none');
       end
     end
   end
@@ -121,14 +121,14 @@ else
 end
 
 %% Set visibility of crossovers
-[visibility,selected] = obj.eg.crossovers.gui.get_crossover_visibility();
+[visibility,selected] = obj.crossovers.gui.get_crossover_visibility();
 visibility = reshape(repmat(reshape(visibility,[1 numel(visibility)]),[2 1]),[1 2*numel(visibility)]);
 selected = reshape(repmat(reshape(selected,[1 numel(selected)]),[2 1]),[1 2*numel(selected)]);
-set(obj.eg.crossovers.h(visibility),'visible','on');
-set(obj.eg.crossovers.h(~visibility),'visible','off');
-set(obj.eg.crossovers.h(selected),'Color','red');
-set(obj.eg.crossovers.h(~selected),'Color','blue');
-uistack(obj.eg.crossovers.h,'top');
-uistack(obj.eg.crossovers.h(selected),'top');
+set(obj.crossovers.h(visibility),'visible','on');
+set(obj.crossovers.h(~visibility),'visible','off');
+set(obj.crossovers.h(selected),'Color','red');
+set(obj.crossovers.h(~selected),'Color','blue');
+uistack(obj.crossovers.h,'top');
+uistack(obj.crossovers.h(selected),'top');
 
 return;

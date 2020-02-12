@@ -16,7 +16,7 @@ if mouse_pos(1) < uipanel_pos(1)
   return
 end
 
-[x,y,but] = get_mouse_info(obj.h_fig,obj.right_panel.axes.handle);
+[x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
 %fprintf('Echo Button Down: x = %.3f, y = %.3f, but = %d\n', x, y, but);
 obj.click_x = x;
 obj.click_y = y;

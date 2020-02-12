@@ -24,10 +24,10 @@ else
   end
   if ~obj.busy_mode
     % print current mouse position to status bar
-    axis_pos = get(obj.right_panel.axes.handle,'CurrentPoint');
+    axis_pos = get(obj.h_axes,'CurrentPoint');
     axis_pos = axis_pos(1,:);
-    xlim = sort(get(obj.right_panel.axes.handle,'XLim'));
-    ylim = sort(get(obj.right_panel.axes.handle,'YLim'));
+    xlim = sort(get(obj.h_axes,'XLim'));
+    ylim = sort(get(obj.h_axes,'YLim'));
     below_x = axis_pos(1) < xlim(1);
     above_x = axis_pos(1) > xlim(2);
     below_y = axis_pos(2) < ylim(1);

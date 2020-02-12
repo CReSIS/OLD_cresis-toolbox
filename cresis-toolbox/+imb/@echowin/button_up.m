@@ -16,17 +16,17 @@ if mouse_pos(1) <= uipanel_pos(1)
   return
 end
 
-% Check to make sure mouse clicked inside of obj.right_panel.axes.panel_h
+% Check to make sure mouse clicked inside of obj.right_panel.axes_panel
 %   Since extends the full x-length of obj.right_panel.handle, just check 
 %   up of minimum y
-set(obj.right_panel.axes.panel_h,'Units','normalized');
-uipanel_pos = get(obj.right_panel.axes.panel_h,'Position');
-set(obj.right_panel.axes.panel_h,'Units','Points');
+set(obj.right_panel.axes_panel,'Units','normalized');
+uipanel_pos = get(obj.right_panel.axes_panel,'Position');
+set(obj.right_panel.axes_panel,'Units','Points');
 if mouse_pos(2) <= uipanel_pos(2)
   return
 end
 
-[x,y,but] = get_mouse_info(obj.h_fig,obj.right_panel.axes.handle);
+[x,y,but] = get_mouse_info(obj.h_fig,obj.h_axes);
 %fprintf('Echo Button Up: x = %.3f, y = %.3f, but = %d\n', x, y, but);
 
 if isempty(obj.click_x)
@@ -34,7 +34,7 @@ if isempty(obj.click_x)
   obj.click_y = y;
 end
 
-cur_axis = axis(obj.right_panel.axes.handle);
+cur_axis = axis(obj.h_axes);
 if y < cur_axis(3) || y > cur_axis(4)
   clicked_outside_axis = true;
 else
@@ -59,10 +59,10 @@ if obj.control_pressed
   %% Ctrl + any click: Select closest layer and crossover
 
   % Select Layer
-  distances = zeros(1,length(obj.layer_h)/2);
+  distances = zeros(1,length(obj.h_layer)/2);
   for idx = 1:length(distances)
-    layer_data_x = cat(2,get(obj.layer_h(2*idx-1),'Xdata'),get(obj.layer_h(2*idx),'Xdata'));
-    layer_data_y = cat(2,get(obj.layer_h(2*idx-1),'Ydata'),get(obj.layer_h(2*idx),'Ydata'));
+    layer_data_x = cat(2,get(obj.h_layer(2*idx-1),'Xdata'),get(obj.h_layer(2*idx),'Xdata'));
+    layer_data_y = cat(2,get(obj.h_layer(2*idx-1),'Ydata'),get(obj.h_layer(2*idx),'Ydata'));
     if ~isempty(layer_data_x)
       [tmp pnt_idx] = min(abs(layer_data_x-x));
       distances(idx) = sqrt((layer_data_y(pnt_idx)-y)^2+(layer_data_x(pnt_idx)-x)^2);
@@ -79,9 +79,9 @@ if obj.control_pressed
   set(obj.left_panel.layerLB,'value',find(obj.eg.layers.selected_layers));
   
   % Select crossover
-  distances = abs(obj.eg.crossovers.x_curUnit - x).^2 + abs(obj.eg.crossovers.y_curUnit - y).^2;
+  distances = abs(obj.crossovers.x_curUnit - x).^2 + abs(obj.crossovers.y_curUnit - y).^2;
   [tmp min_idx] = min(distances);
-  obj.eg.crossovers.gui.set_selected(min_idx);
+  obj.crossovers.gui.set_selected(min_idx);
   
   % Update the visibility of selected layers/crossovers
   obj.set_visibility();
@@ -113,8 +113,8 @@ if obj.zoom_mode
   elseif but == 1 && x~=obj.click_x && y~=obj.click_y
     %% Left click and drag: Zoom to region
     
-    xaxis = get(obj.right_panel.axes.handle,'XLim');
-    yaxis = get(obj.right_panel.axes.handle,'YLim');
+    xaxis = get(obj.h_axes,'XLim');
+    yaxis = get(obj.h_axes,'YLim');
     [x_min x_max y_min y_max] = imb.sort_clicks(xaxis,yaxis,obj.click_x,obj.click_y,x,y);
     
     % check if selection is valid(sort_clicks returns weird values if init/
@@ -135,7 +135,7 @@ if obj.zoom_mode
       return;
     end
     zooms = -1.5;
-    cur_axis = axis(obj.right_panel.axes.handle);
+    cur_axis = axis(obj.h_axes);
     y_extent = cur_axis(4) - cur_axis(3);
     x_extent = cur_axis(2) - cur_axis(1);
     xlims = [x - x_extent*2^zooms, x + x_extent*2^zooms];
@@ -151,7 +151,7 @@ if obj.zoom_mode
   elseif but == 3
     %% Right click: Zoom out at point
     zooms = -0.5;
-    cur_axis = axis(obj.right_panel.axes.handle);
+    cur_axis = axis(obj.h_axes);
     y_extent = cur_axis(4) - cur_axis(3);
     x_extent = cur_axis(2) - cur_axis(1);
     xlims = [x - x_extent*2^zooms, x + x_extent*2^zooms];
@@ -182,7 +182,7 @@ else
   param.image_c = get(obj.left_panel.imagewin.img,'CData');
   
   %% Find proper param window position (for browse tool)
-  if ~obj.tool_accessed
+  if ~obj.tool.accessed
     param.keep_tool_pos = false;
     set(obj.h_fig,'Units','Pixels');
     this_pos = get(obj.h_fig,'Position');
@@ -191,7 +191,7 @@ else
     % if browse tool is currently selected, set tool_accessed to be true
     tool_idx = get(obj.left_panel.toolPM,'Value');
     if tool_idx == 4
-      obj.tool_accessed = true;
+      obj.tool.accessed = true;
     end
   else
     param.keep_tool_pos = true;
@@ -203,7 +203,7 @@ else
       %% Alt + Left click and drag: Apply tool to a region
       param.x = sort([obj.click_x x]);
       param.y = sort([obj.click_y y]);
-      cmds = obj.left_click_and_drag(param);
+      cmds = obj.tool.left_click_and_drag_fh(param);
     else
       %% Left click: Apply tool to a point
       if clicked_outside_axis
@@ -211,7 +211,7 @@ else
       end
       param.x = x;
       param.y = y;
-      cmds = obj.left_click(param);
+      cmds = obj.tool.left_click_fh(param);
     end
     if ~isempty(cmds)
       % Push the new command(s) to the stack
@@ -224,7 +224,7 @@ else
       param.x = sort([obj.click_x x]);
       param.y = sort([obj.click_y y]);
       param.point_path_id = obj.eg.map_id;
-      cmds = obj.right_click_and_drag(param);
+      cmds = obj.tool.right_click_and_drag_fh(param);
       if ~isempty(cmds)
         % Push the new command(s) to the stack
         obj.undo_stack.push(obj.cmds_convert_units(cmds));

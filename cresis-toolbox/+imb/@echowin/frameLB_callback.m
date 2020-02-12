@@ -9,7 +9,7 @@ if strcmpi(get(obj.h_fig,'SelectionType'),'open')
   %  menuString = get(hui.pickfig(gcf).left_panel.frameLB,'String');
   frame_idx = get(obj.left_panel.frameLB,'Value');
   
-  cur_axis = axis(obj.right_panel.axes.handle);
+  cur_axis = axis(obj.h_axes);
   
   % Convert x_min, x_max to GPS time
   xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');

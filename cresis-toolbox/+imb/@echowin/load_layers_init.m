@@ -3,7 +3,7 @@ function load_layers_init(obj)
 %
 % Initializes layer structures and layer plot handles
 
-if strcmpi(obj.eg.layer_source,'OPS')
+if strcmpi(obj.eg.layers.source,'OPS')
   %% OPS: Preallocating layer arrays
   for idx = 1:length(obj.eg.layers.lyr_id)
     obj.eg.layers.x{idx} = double(obj.eg.map_gps_time); % gps-time
@@ -23,8 +23,8 @@ else
 end
 
 %% Plot layers
-delete(obj.layer_h);
-delete(obj.quality_h);
+delete(obj.h_layer);
+delete(obj.h_quality);
 
 % -------------------------------------------------------------------------
 % WARNING: DO NOT IMPLEMENT WITH SCATTER... TOO SLOW RENDERING
@@ -32,28 +32,28 @@ delete(obj.quality_h);
 layer_data_x = obj.eg.layers.x;
 for idx = 1:length(layer_data_x)
   % Manual points (plot this way to handle empty XData or YData
-  obj.layer_h(2*(idx-1)+1) = plot(obj.right_panel.axes.handle,NaN,NaN,'bx');
+  obj.h_layer(2*(idx-1)+1) = plot(obj.h_axes,NaN,NaN,'bx');
   % Auto and manual points
-  obj.layer_h(2*(idx-1)+2) = plot(obj.right_panel.axes.handle, ...
+  obj.h_layer(2*(idx-1)+2) = plot(obj.h_axes, ...
     NaN,NaN,'b--');
 
   % Good manual points (plot this way to handle empty XData or YData
-  obj.quality_h(6*(idx-1)+1) = plot(obj.right_panel.axes.handle,1,1,'gx');
+  obj.h_quality(6*(idx-1)+1) = plot(obj.h_axes,1,1,'gx');
   
   % Good auto points (plot this way to handle empty XData or YData
-  obj.quality_h(6*(idx-1)+2) = plot(obj.right_panel.axes.handle,1,1,'g--');
+  obj.h_quality(6*(idx-1)+2) = plot(obj.h_axes,1,1,'g--');
 
   % Moderate manual points (plot this way to handle empty XData or YData
-  obj.quality_h(6*(idx-1)+3) = plot(obj.right_panel.axes.handle,1,1,'yx');
+  obj.h_quality(6*(idx-1)+3) = plot(obj.h_axes,1,1,'yx');
   
   % Moderate auto points (plot this way to handle empty XData or YData
-  obj.quality_h(6*(idx-1)+4) = plot(obj.right_panel.axes.handle,1,1,'y--');
+  obj.h_quality(6*(idx-1)+4) = plot(obj.h_axes,1,1,'y--');
 
   % Derived manual points (plot this way to handle empty XData or YData
-  obj.quality_h(6*(idx-1)+5) = plot(obj.right_panel.axes.handle,1,1,'rx');
+  obj.h_quality(6*(idx-1)+5) = plot(obj.h_axes,1,1,'rx');
   
   % Derived auto points (plot this way to handle empty XData or YData
-  obj.quality_h(6*(idx-1)+6) = plot(obj.right_panel.axes.handle,1,1,'r--');
+  obj.h_quality(6*(idx-1)+6) = plot(obj.h_axes,1,1,'r--');
 end
 
 end

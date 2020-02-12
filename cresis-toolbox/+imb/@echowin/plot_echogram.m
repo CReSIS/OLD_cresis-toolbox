@@ -17,7 +17,7 @@ if xaxis_choice == 1 % rangeline
   obj.eg.x_label = 'Range Line';
   
 elseif xaxis_choice == 2 % Along track
-  along_track = geodetic_to_along_track(obj.eg.latitude, obj.eg.longitude, obj.eg.elevation);
+  along_track = geodetic_to_along_track(obj.eg.lat, obj.eg.lon, obj.eg.elev);
   % Set along track sampling, estimate best along-track pixel size, dx, from the data
   dx = median(diff(along_track));
   along_track_uniform = along_track(1): dx :along_track(end);
@@ -61,10 +61,10 @@ if yaxis_choice == 1 % TWTT
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
   elevation = interp1(obj.eg.gps_time,...
-    obj.eg.elevation,obj.eg.image_gps_time,'linear');
+    obj.eg.elev,obj.eg.image_gps_time,'linear');
   time = obj.eg.time;
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,obj.eg.image_gps_time,'linear');
+    obj.eg.surf_twtt,obj.eg.image_gps_time,'linear');
   physical_constants;
   elev_max = max(elevation - time(1)*vel_air);
   elev_min = min(elevation - surface*vel_air - (time(end)-surface)*vel_ice);
@@ -93,14 +93,14 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
 elseif yaxis_choice == 3 % Range
   time = obj.eg.time;
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,obj.eg.image_gps_time,'linear');
+    obj.eg.surf_twtt,obj.eg.image_gps_time,'linear');
   range_min = time(1)*vel_air;
   range_max = max(surface*vel_air + (time(end)-surface)*vel_ice);
   dt = time(2) - time(1);
   drange = dt * vel_ice;
-  range_uniform = (range_min:drange:range_max).';
-  % update image_data
   Nt = size(obj.eg.image_data,1);
+  range_uniform = (range_min:drange:max(range_min+drange*(Nt-1),range_max)).';
+  % update image_data
   obj.eg.image_data = [obj.eg.image_data;...
     zeros(length(range_uniform)-Nt,size(obj.eg.image_data,2))];
   for idx = 1:length(surface)
@@ -125,7 +125,7 @@ elseif yaxis_choice == 4 % Range bin
 elseif yaxis_choice == 5 % Surface flat
   time = obj.eg.time;
   surface = interp1(obj.eg.gps_time,...
-    obj.eg.surface,obj.eg.image_gps_time,'linear');
+    obj.eg.surf_twtt,obj.eg.image_gps_time,'linear');
   % surface is always positive (or else we are flying inside the ice
   % medium), but start time may be after the surface
   %   
@@ -159,28 +159,28 @@ end
 % ======================================================================
 %% We plot the whole data matrix and then use xlim and ylim to control the
 % limits of what is displayed
-set(obj.eg.h_image,'XData',obj.eg.image_xaxis,'YData',obj.eg.image_yaxis);
+set(obj.h_image,'XData',obj.eg.image_xaxis,'YData',obj.eg.image_yaxis);
 obj.left_panel.imagewin.set_cdata(obj.eg.image_data);
 zoom reset;
 
 %% Add labels, y-direction of axis, title, and set the colormap
-xlabel(obj.right_panel.axes.handle,obj.eg.x_label);
-ylabel(obj.right_panel.axes.handle,obj.eg.y_label);
-set(obj.right_panel.axes.handle,'YDir',obj.eg.y_order);
+xlabel(obj.h_axes,obj.eg.x_label);
+ylabel(obj.h_axes,obj.eg.y_label);
+set(obj.h_axes,'YDir',obj.eg.y_order);
 title_str = sprintf('%s %d to %d',obj.eg.cur_sel.day_seg, ...
-  obj.eg.frame_idxs(1), obj.eg.frame_idxs(end));
-title(title_str,'Interpreter','none','Parent',obj.right_panel.axes.handle);
+  obj.eg.frms(1), obj.eg.frms(end));
+title(title_str,'Interpreter','none','Parent',obj.h_axes);
 
 %% Set axis limits
 %  -- Handle edge of segment case
 dx = obj.eg.image_xaxis(2)-obj.eg.image_xaxis(1);
 image_xaxis_min = obj.eg.image_xaxis(1);
 image_xaxis_max = obj.eg.image_xaxis(end);
-if obj.eg.frame_idxs(1) == 1
+if obj.eg.frms(1) == 1
   % First frame in segment so adjust beginning to make sure all layer points
   % will be displayed.
   image_xaxis_min = interp1(obj.eg.image_gps_time,obj.eg.image_xaxis,obj.eg.start_gps_time(1),'linear','extrap')-dx;
-elseif obj.eg.frame_idxs(end) == length(obj.eg.stop_gps_time)
+elseif obj.eg.frms(end) == length(obj.eg.stop_gps_time)
   % Last frame of segment so adjust end to make sure all layer points will 
   % be displayed.
   image_xaxis_max = interp1(obj.eg.image_gps_time,obj.eg.image_xaxis,obj.eg.stop_gps_time(end),'linear','extrap')+dx;
@@ -188,14 +188,14 @@ end
 x_lims = interp1(obj.eg.image_gps_time,obj.eg.image_xaxis,[x_min x_max],'linear','extrap');
 x_lim_low = max([min(x_lims) image_xaxis_min]);
 x_lim_high = min([max(x_lims) image_xaxis_max]);
-xlim(obj.right_panel.axes.handle,[x_lim_low,x_lim_high]);
+xlim(obj.h_axes,[x_lim_low,x_lim_high]);
 if y_min == -inf
   y_min = min(obj.eg.image_yaxis([1 end]));
 end
 if y_max == inf
   y_max = max(obj.eg.image_yaxis([1 end]));
 end
-ylim(obj.right_panel.axes.handle,sort([y_min y_max]))
+ylim(obj.h_axes,sort([y_min y_max]))
 
 %% Apply the display mode
 obj.left_panel.imagewin.set_cdata(obj.eg.image_data);

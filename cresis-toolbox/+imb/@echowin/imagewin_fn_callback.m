@@ -9,7 +9,7 @@ function [fn,comment] = imagewin_fn_callback(obj,fn)
 fn_dir = fileparts(fn);
 
 fn = fullfile(fn_dir, sprintf('Data_%s_%03d_%03d.png', ...
-  obj.eg.cur_sel.day_seg, obj.eg.frame_idxs(1), obj.eg.frame_idxs(end)));
+  obj.eg.cur_sel.day_seg, obj.eg.frms(1), obj.eg.frms(end)));
 comment = '';
 
 return;

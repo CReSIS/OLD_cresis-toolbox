@@ -15,7 +15,7 @@ elseif source == obj.left_panel.layerCM_hide
   % Update plot based on selection
   obj.set_visibility();
 elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_copy
-  if strcmpi(obj.eg.layer_source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers. The new layer will be inserted
     % before the first of the currently selected layers or at the bottom
     % of the listbox.
@@ -64,7 +64,7 @@ elseif source == obj.left_panel.layerCM_new || source == obj.left_panel.layerCM_
   end
   
 elseif source == obj.left_panel.layerCM_edit
-  if strcmpi(obj.eg.layer_source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     val = val(val>2);
@@ -106,7 +106,7 @@ elseif source == obj.left_panel.layerCM_edit
   end
   
 elseif source == obj.left_panel.layerCM_up
-  if strcmpi(obj.eg.layer_source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     val = val(val>3);
@@ -132,7 +132,7 @@ elseif source == obj.left_panel.layerCM_up
   end
   
 elseif source == obj.left_panel.layerCM_down
-  if strcmpi(obj.eg.layer_source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     val = val(val>2 & val<length(obj.eg.layers.lyr_name));
@@ -158,7 +158,7 @@ elseif source == obj.left_panel.layerCM_down
   end
   
 elseif source == obj.left_panel.layerCM_top
-  if strcmpi(obj.eg.layer_source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     val = val(val>3);
@@ -184,7 +184,7 @@ elseif source == obj.left_panel.layerCM_top
   end
   
 elseif source == obj.left_panel.layerCM_bottom
-  if strcmpi(obj.eg.layer_source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     val = get(obj.left_panel.layerLB,'Value');
     val = val(val>2);
@@ -210,7 +210,7 @@ elseif source == obj.left_panel.layerCM_bottom
   end
   
 elseif source == obj.left_panel.layerCM_delete
-  if strcmpi(obj.eg.layer_source,'layerData')
+  if strcmpi(obj.eg.layers.source,'layerData')
     % Get the currently selected layers.
     vals = get(obj.left_panel.layerLB,'Value');
     vals = vals(vals>2);

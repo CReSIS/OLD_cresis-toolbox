@@ -10,7 +10,7 @@ if img >= 0
   set(sourceMenus,'Checked','off');
   set(sourceMenus(length(sourceMenus)-3-img),'Checked','on');
 
-  cur_axis = axis(obj.right_panel.axes.handle);
+  cur_axis = axis(obj.h_axes);
   
   % Convert x_min, x_max to GPS time
   xlims = interp1(obj.eg.image_xaxis,obj.eg.image_gps_time,cur_axis(1:2),'linear','extrap');

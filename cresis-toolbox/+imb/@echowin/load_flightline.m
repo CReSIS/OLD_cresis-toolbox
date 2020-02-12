@@ -3,13 +3,13 @@ function load_flightline(obj)
 %
 % Load flightline from database
 %% OPS: Loading flight path from database
-if strcmpi(obj.eg.layer_source,'OPS')
+if strcmpi(obj.eg.layers.source,'OPS')
   fprintf(' Loading flight path from database (%s)\n', datestr(now,'HH:MM:SS'));
   ops_param = struct('properties',[]);
   ops_param.properties.location = obj.eg.cur_sel.location;
   ops_param.properties.season = obj.eg.cur_sel.season_name;
-  ops_param.properties.start_gps_time = obj.eg.start_gps_time(obj.eg.frame_idxs(1));
-  ops_param.properties.stop_gps_time = obj.eg.stop_gps_time(obj.eg.frame_idxs(end));
+  ops_param.properties.start_gps_time = obj.eg.start_gps_time(obj.eg.frms(1));
+  ops_param.properties.stop_gps_time = obj.eg.stop_gps_time(obj.eg.frms(end));
   [status,data] = opsGetPath(obj.eg.system,ops_param);
   
   obj.eg.map_id = double(data.properties.id);
@@ -30,17 +30,17 @@ else
   obj.eg.map_elev = [];
   obj.eg.map_x = [];
   obj.eg.map_y = [];
-  for idx = 1:length(obj.eg.frame_idxs)
-    Nx = length(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).GPS_time);
+  for idx = 1:length(obj.eg.frms)
+    Nx = length(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).GPS_time);
     obj.eg.map_gps_time(end+1:end+Nx) ...
-      = double(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).GPS_time);
+      = double(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).GPS_time);
     obj.eg.map_elev(end+1:end+Nx) ...
-      = double(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Elevation);
+      = double(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Elevation);
     if obj.eg.map.source == 1
-      [X,Y] = google_map.latlon_to_world(obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Latitude,obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Longitude);
+      [X,Y] = google_map.latlon_to_world(obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Latitude,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Longitude);
       Y = 256-Y;
     else
-      [X,Y] = projfwd(obj.eg.proj,obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Latitude,obj.undo_stack.user_data.layer_info(obj.eg.frame_idxs(idx)).Longitude);
+      [X,Y] = projfwd(obj.eg.proj,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Latitude,obj.undo_stack.user_data.layer_info(obj.eg.frms(idx)).Longitude);
     end
     obj.eg.map_x(end+1:end+Nx) = double(X)/obj.eg.map.scale;
     obj.eg.map_y(end+1:end+Nx) = double(Y)/obj.eg.map.scale;
@@ -49,7 +49,7 @@ else
   % Get the unique point path ids for layerData and save it in the
   % point_path_id field of the undo_stack
   LDpoint_path_id=[];
-  for frm = obj.eg.frame_idxs(1):obj.eg.frame_idxs(end)
+  for frm = obj.eg.frms(1):obj.eg.frms(end)
     k = find(obj.undo_stack.user_data.frame==frm);
     points = (k(1):k(end));
     LDpoint_path_id = cat(2,LDpoint_path_id,points);

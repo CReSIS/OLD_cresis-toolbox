@@ -334,14 +334,14 @@ end
 obj.query_redraw_map(obj.map.xaxis(1),obj.map.xaxis(end),obj.map.yaxis(1),obj.map.yaxis(end));
 
 % Reset selection
-obj.map.sel.frame_name = ''; % Current frame name
-obj.map.sel.segment_id = []; % Current segment ID (Database ID for OPS layer source, index into obj.cur_map_pref_settings.seasons for layerdata source)
+obj.map.sel.frm_str = ''; % Current frame name
+obj.map.sel.seg_id = []; % Current segment ID (Database ID for OPS layer source, index into obj.cur_map_pref_settings.seasons for layerdata source)
 obj.map.sel.season_name = ''; % Current season name
 obj.map.sel.radar_name = ''; % Current radar name
 % Update current frame selection map plot
 set(obj.map_panel.h_cur_sel,{'XData','YData'},{[],[]});
 % Change map title to the currently selected frame
-set(obj.top_panel.flightLabel,'String',obj.map.sel.frame_name);
+set(obj.top_panel.flightLabel,'String',obj.map.sel.frm_str);
 
 % Redraw table to ensure everything is the right size
 table_draw(obj.table);

@@ -260,8 +260,6 @@ for cur_layer = unique_layers
         
         for frm = 1:length(undo_stack.user_data.layer_info)
           undo_stack.user_data.layer_info(frm).layerData{val}.name = name;
-          undo_stack.user_data.layer_info(frm).layerData{val}.name = group_name;
-          undo_stack.user_data.layer_info(frm).layerData{val}.name = desc;
           if new_val ~= val
             % Reorder layers
             Nlayers = length(undo_stack.user_data.layer_info(frm).layerData);

@@ -12,12 +12,22 @@ drawnow;
 fprintf('START ECHOWIN DRAW (%s)\n',datestr(now,'HH:MM:SS'));
 
 obj.eg.sources = param.sources;
-obj.eg.layers = param.layers;
-obj.eg.cur_sel = param.cur_sel;
-obj.eg.cur_sel.day_seg = param.cur_sel.frame_name(1:11);
+
+obj.eg.layers.lyr_name = param.layers.lyr_name;
+obj.eg.layers.lyr_group_name = param.layers.lyr_group_name;
+obj.eg.layers.lyr_id = param.layers.lyr_id;
+obj.eg.layers.surf_id = param.layers.surf_id;
+
+obj.eg.cur_sel.frm = param.cur_sel.frm;
+obj.eg.cur_sel.seg_id = param.cur_sel.seg_id;
+obj.eg.cur_sel.season_name = param.cur_sel.season_name;
+obj.eg.cur_sel.radar_name = param.cur_sel.radar_name;
+obj.eg.cur_sel.location = param.cur_sel.location;
+obj.eg.cur_sel.day_seg = param.cur_sel.day_seg;
+
 obj.eg.system = param.system;
-obj.eg.layer_source = param.layer_source;
-obj.eg.layer_data_source = param.layer_data_source;
+obj.eg.layers.source = param.layer_source;
+obj.eg.layers.data_source = param.layer_data_source;
 
 % Get the projection for the current location
 obj.eg.map = param.map;
@@ -26,35 +36,35 @@ obj.eg.proj = imb.get_proj_info(obj.eg.cur_sel.location);
 %% Drop all currently loaded data
 obj.eg.data = [];
 obj.eg.gps_time = [];
-obj.eg.latitude = [];
-obj.eg.longitude = [];
-obj.eg.elevation = [];
-obj.eg.surface = [];
-obj.eg.frame_idxs = [];
+obj.eg.lat = [];
+obj.eg.lon = [];
+obj.eg.elev = [];
+obj.eg.surf_twtt = [];
+obj.eg.frms = [];
 
 %% Get all the frames for this segment
-if strcmp(obj.eg.layer_source,'layerdata')
+if strcmp(obj.eg.layers.source,'layerdata')
   obj.eg.start_gps_time = param.start_gps_time;
   obj.eg.stop_gps_time = param.stop_gps_time;
-  obj.eg.frame_names = {};
+  obj.eg.frm_strs = {};
   for frm = 1:length(obj.eg.start_gps_time)
-    obj.eg.frame_names{frm} = sprintf('%s_%03d', obj.eg.cur_sel.day_seg, frm);
+    obj.eg.frm_strs{frm} = sprintf('%s_%03d', obj.eg.cur_sel.day_seg, frm);
   end
 else
   ops_param = struct('properties',[]);
   ops_param.properties.location = obj.eg.cur_sel.location;
   ops_param.properties.segment_id = obj.eg.cur_sel.segment_id;
   [status,data] = opsGetSegmentInfo(obj.eg.system,ops_param);
-  obj.eg.frame_names = {};
+  obj.eg.frm_strs = {};
   obj.eg.start_gps_time = [];
   obj.eg.stop_gps_time = [];
   for idx = 1:length(data.properties.frame)
-    obj.eg.frame_names{idx} = data.properties.frame{idx};
+    obj.eg.frm_strs{idx} = data.properties.frame{idx};
     obj.eg.start_gps_time(idx) = double(data.properties.start_gps_time(idx));
     obj.eg.stop_gps_time(idx) = double(data.properties.stop_gps_time(idx));
   end
   % Sort the list of frames in case database isn't sorted
-  [obj.eg.frame_names sorted_idxs] = sort(obj.eg.frame_names);
+  [obj.eg.frm_strs sorted_idxs] = sort(obj.eg.frm_strs);
   obj.eg.start_gps_time = obj.eg.start_gps_time(sorted_idxs);
   obj.eg.stop_gps_time = obj.eg.stop_gps_time(sorted_idxs);
 end
@@ -68,13 +78,12 @@ set(obj.left_panel.sourceLB,'Value',1);
 set(obj.left_panel.sourceLB,'String',obj.eg.sources);
 %set(obj.left_panel.sourceLB,'Value',find(strcmp(obj.eg.sources,existing_sources(first_idx))));
 
-frame_idxs = find(strcmp(obj.eg.cur_sel.frame_name,obj.eg.frame_names));
 % Set current listbox frame to this frame since it is the one that was
 % specifically asked for (load_echogram uses this value)
-set(obj.left_panel.frameLB,'Value',frame_idxs);
+set(obj.left_panel.frameLB,'Value',obj.eg.cur_sel.frm);
 % But load some other frames around this one for more responsive GUI behavior
-desire_frame_idxs = frame_idxs(1) ...
-  : min(frame_idxs(1)+obj.default_params.max_frames-1,length(obj.eg.frame_names));
+desire_frms = obj.eg.cur_sel.frm ...
+  : min(obj.eg.cur_sel.frm+obj.default_params.max_frames-1,length(obj.eg.frm_strs));
 clipped = 3;
 load_new_data = 1;
 x_min = -inf;
@@ -83,9 +92,9 @@ y_min = -inf;
 y_max = inf;
 
 % Update "Frames" listbox
-set(obj.left_panel.frameLB,'String',obj.eg.frame_names);
+set(obj.left_panel.frameLB,'String',obj.eg.frm_strs);
 
-[x_min,x_max,y_min,y_max] = obj.load_echogram(desire_frame_idxs,clipped,x_min,x_max,y_min,y_max);
+[x_min,x_max,y_min,y_max] = obj.load_echogram(desire_frms,clipped,x_min,x_max,y_min,y_max);
 
 %% Create variables for the layer list box
 % ===================================================================
@@ -107,7 +116,7 @@ obj.load_layers_init();
 obj.load_layers();
 obj.plot_echogram(x_min,x_max,y_min,y_max);
 obj.plot_layers();
-obj.crossovers_en = obj.eg.crossovers.gui.crossovers_en();
+obj.crossovers.en = obj.crossovers.gui.crossovers_en();
 obj.load_crossovers();
 obj.plot_cursors();
 
@@ -115,7 +124,7 @@ obj.plot_cursors();
 obj.set_visibility();
 
 %% Plot cursor (if valid)
-xlimits = xlim(obj.right_panel.axes.handle);
+xlimits = xlim(obj.h_axes);
 start_gps = obj.eg.image_gps_time(find(obj.eg.image_xaxis>=xlimits(1),1));
 stop_gps = obj.eg.image_gps_time(find(obj.eg.image_xaxis<=xlimits(2),1,'last'));
 
@@ -138,6 +147,14 @@ set(obj.h_fig,'WindowButtonUpFcn',@obj.button_up);
 set(obj.h_fig,'WindowKeyPressFcn',@obj.key_press);
 set(obj.h_fig,'WindowKeyReleaseFcn',@obj.key_release);
 set(obj.h_fig,'WindowScrollWheelFcn',@obj.button_scroll);
+
+if strcmpi(obj.eg.layers.source,'layerdata')
+  set(obj.left_panel.crossoverPB,'Enable','off')
+  obj.crossovers.en = false;
+  obj.crossovers.gui.visibility_toggle(false);
+else
+  set(obj.left_panel.crossoverPB,'Enable','on')
+end
 
 obj.busy_mode = false;
 if obj.zoom_mode

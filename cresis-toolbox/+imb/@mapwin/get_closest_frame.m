@@ -92,13 +92,13 @@ else
 end
 
 % Record current frame selection
-obj.map.sel.frame_name = data.properties.frame;
+obj.map.sel.frm_str = data.properties.frame;
 obj.map.sel.season_name = data.properties.season;
-obj.map.sel.segment_id = data.properties.segment_id;
+obj.map.sel.seg_id = data.properties.segment_id;
 obj.map.sel.radar_name = sys;
 
 % Update current frame selection map plot
 set(obj.map_panel.h_cur_sel,{'XData','YData'},{data.properties.X,data.properties.Y});
 
 % Change map title to the currently selected frame
-set(obj.top_panel.flightLabel,'String',obj.map.sel.frame_name);
+set(obj.top_panel.flightLabel,'String',obj.map.sel.frm_str);

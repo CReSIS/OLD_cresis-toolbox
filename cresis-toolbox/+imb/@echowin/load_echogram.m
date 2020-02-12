@@ -88,12 +88,12 @@ end
 frame_mask = zeros(size(desire_frame_idxs));
 for frame_idx = 1:length(desire_frame_idxs)
   cur_frame = desire_frame_idxs(frame_idx);
-  if any(cur_frame==obj.eg.frame_idxs) && clipped ~= 3
+  if any(cur_frame==obj.eg.frms) && clipped ~= 3
     frame_mask(frame_idx) = 1;
   end
 end
 
-obj.eg.frame_idxs = desire_frame_idxs;
+obj.eg.frms = desire_frame_idxs;
 
 %% Drop data that are no longer needed
 valid_mask = logical(zeros(size(obj.eg.gps_time)));
@@ -105,10 +105,10 @@ for frm_idx = desire_frame_idxs(frame_mask == 1)
 end
 obj.eg.data = obj.eg.data(:,valid_mask);
 obj.eg.gps_time = obj.eg.gps_time(valid_mask);
-obj.eg.latitude = obj.eg.latitude(valid_mask);
-obj.eg.longitude = obj.eg.longitude(valid_mask);
-obj.eg.elevation = obj.eg.elevation(valid_mask);
-obj.eg.surface = obj.eg.surface(valid_mask);
+obj.eg.lat = obj.eg.lat(valid_mask);
+obj.eg.lon = obj.eg.lon(valid_mask);
+obj.eg.elev = obj.eg.elev(valid_mask);
+obj.eg.surf_twtt = obj.eg.surf_twtt(valid_mask);
 
 %% Loading new data
 fprintf(' Loading echogram (%s)\n',datestr(now,'HH:MM:SS'));
@@ -118,7 +118,7 @@ for frame_idx = 1:length(loading_frame_idxs)
   cur_frame = loading_frame_idxs(frame_idx);
   
   % load EG
-  fn = fullfile(ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx},'',0),sprintf('Data_%s%s.mat',fn_img_str,obj.eg.frame_names{cur_frame}));
+  fn = fullfile(ct_filename_out(obj.eg.cur_sel,obj.eg.sources{source_idx},'',0),sprintf('Data_%s%s.mat',fn_img_str,obj.eg.frm_strs{cur_frame}));
   fprintf('  %s\n', fn);
   if ~exist(fn,'file')
     warning('File %s not found', fn);
@@ -175,24 +175,24 @@ for frame_idx = 1:length(loading_frame_idxs)
   splice_idx = find(obj.eg.gps_time > tmp.GPS_time(1),1);
   if isempty(splice_idx)
     % Append to end
-    obj.eg.latitude = cat(2,obj.eg.latitude,tmp.Latitude);
-    obj.eg.longitude = cat(2,obj.eg.longitude,tmp.Longitude);
-    obj.eg.elevation = cat(2,obj.eg.elevation,tmp.Elevation);
+    obj.eg.lat = cat(2,obj.eg.lat,tmp.Latitude);
+    obj.eg.lon = cat(2,obj.eg.lon,tmp.Longitude);
+    obj.eg.elev = cat(2,obj.eg.elev,tmp.Elevation);
     obj.eg.gps_time = cat(2,obj.eg.gps_time,tmp.GPS_time);
-    obj.eg.surface = cat(2,obj.eg.surface,tmp.Surface);
+    obj.eg.surf_twtt = cat(2,obj.eg.surf_twtt,tmp.Surface);
     obj.eg.data = cat(2,obj.eg.data,tmp.Data);
   else
     % Append to somewhere in the middle
-    obj.eg.latitude = cat(2,obj.eg.latitude(1:splice_idx-1),tmp.Latitude, ...
-      obj.eg.latitude(splice_idx:end));
-    obj.eg.longitude = cat(2,obj.eg.longitude(1:splice_idx-1),tmp.Longitude, ...
-      obj.eg.longitude(splice_idx:end));
-    obj.eg.elevation = cat(2,obj.eg.elevation(1:splice_idx-1),tmp.Elevation, ...
-      obj.eg.elevation(splice_idx:end));
+    obj.eg.lat = cat(2,obj.eg.lat(1:splice_idx-1),tmp.Latitude, ...
+      obj.eg.lat(splice_idx:end));
+    obj.eg.lon = cat(2,obj.eg.lon(1:splice_idx-1),tmp.Longitude, ...
+      obj.eg.lon(splice_idx:end));
+    obj.eg.elev = cat(2,obj.eg.elev(1:splice_idx-1),tmp.Elevation, ...
+      obj.eg.elev(splice_idx:end));
     obj.eg.gps_time = cat(2,obj.eg.gps_time(1:splice_idx-1),tmp.GPS_time, ...
       obj.eg.gps_time(splice_idx:end));
-    obj.eg.surface = cat(2,obj.eg.surface(1:splice_idx-1),tmp.Surface, ...
-      obj.eg.surface(splice_idx:end));
+    obj.eg.surf_twtt = cat(2,obj.eg.surf_twtt(1:splice_idx-1),tmp.Surface, ...
+      obj.eg.surf_twtt(splice_idx:end));
     obj.eg.data = cat(2,obj.eg.data(:,1:splice_idx-1),tmp.Data, ...
       obj.eg.data(:,splice_idx:end));
   end
@@ -204,11 +204,11 @@ fprintf('  Done loading EG (%s)\n',datestr(now,'HH:MM:SS'));
 dx = obj.eg.gps_time(2)-obj.eg.gps_time(1);
 min_gps_time = obj.eg.gps_time(1);
 max_gps_time = obj.eg.gps_time(end);
-if obj.eg.frame_idxs(1) == 1
+if obj.eg.frms(1) == 1
   % First frame in segment so adjust beginning to make sure all layer points
   % will be displayed.
   min_gps_time = obj.eg.start_gps_time(1)-dx;
-elseif obj.eg.frame_idxs(end) == length(obj.eg.stop_gps_time)
+elseif obj.eg.frms(end) == length(obj.eg.stop_gps_time)
   % Last frame of segment so adjust end to make sure all layer points will 
   % be displayed.
   max_gps_time = obj.eg.stop_gps_time(end)+dx;
@@ -225,6 +225,6 @@ if x_max > max_gps_time
   x_min = max(min_gps_time, x_max - x_range);
 end
 
-obj.update_frame_and_sourceLB(obj.eg.frame_idxs(1));
+obj.update_frame_and_sourceLB(obj.eg.frms(1));
 
 end

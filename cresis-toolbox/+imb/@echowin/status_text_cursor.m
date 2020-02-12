@@ -4,8 +4,8 @@ function [status_str] = status_text_cursor(obj)
 % Builds a string containing information about the current cursor position 
 % to be printed to the echogram window's status text bar. 
 
-lat = interp1(obj.eg.gps_time,obj.eg.latitude,obj.cursor.gps_time,'linear','extrap');
-lon = interp1(obj.eg.gps_time,obj.eg.longitude,obj.cursor.gps_time,'linear','extrap');
+lat = interp1(obj.eg.gps_time,obj.eg.lat,obj.cursor.gps_time,'linear','extrap');
+lon = interp1(obj.eg.gps_time,obj.eg.lon,obj.cursor.gps_time,'linear','extrap');
 
 date_str = [datestr(epoch_to_datenum(obj.cursor.gps_time),'yyyy-mm-dd HH:MM:SS') sprintf('.%02.0f',mod(obj.cursor.gps_time,1)*100)];
 
@@ -17,7 +17,7 @@ if isempty(cur_layers)
     lat,lon,obj.cursor.x,obj.cursor.y,date_str);
 else
   physical_constants;
-  elev = interp1(obj.eg.gps_time,obj.eg.elevation,obj.cursor.gps_time,'linear','extrap');
+  elev = interp1(obj.eg.gps_time,obj.eg.elev,obj.cursor.gps_time,'linear','extrap');
   [~,unique_idxs] = unique(obj.eg.layers.x{1});
   warning off;
   surf_y = interp1(obj.eg.layers.x{1}(unique_idxs), ...

@@ -70,10 +70,10 @@ table_draw(obj.table);
 %% left_panel.toolPM
 % =========================================================================
 
-obj.tool_list = {};
+obj.tool.list = {};
 
-obj.tool_list{end+1} = imb.picktool_interpolate;
-addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
+obj.tool.list{end+1} = imb.picktool_interpolate;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click: Enters a point based on parameters
 %   Find max in range (specify range line/bin extent to search)
 %   Find leading edge in range
@@ -89,8 +89,8 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool_list{end+1} = imb.picktool_quality;
-addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
+obj.tool.list{end+1} = imb.picktool_quality;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click: Nothing
 % Left click and drag: Sets all points contains in draw to the currently
 %   selected quality level
@@ -102,8 +102,8 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool_list{end+1} = imb.picktool_snake;
-addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
+obj.tool.list{end+1} = imb.picktool_snake;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click: Enters a point based on parameters
 %   Find max in range (specify range line/bin extent to search)
 %   Recomputes snake if point is within last range
@@ -118,8 +118,8 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool_list{end+1} = imb.picktool_browse;
-addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
+obj.tool.list{end+1} = imb.picktool_browse;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click: Open A-scope window
 % Left click and drag: Nothing
 % Right click: Set cursor point
@@ -130,8 +130,8 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool_list{end+1} = imb.picktool_convert;
-addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
+obj.tool.list{end+1} = imb.picktool_convert;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click and drag: Converts selected layers to the specified layer
 %   Deletes all previous points in range
 % Right click: Set cursor point
@@ -142,8 +142,8 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-obj.tool_list{end+1} = imb.picktool_viterbi;
-addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
+obj.tool.list{end+1} = imb.picktool_viterbi;
+addlistener(obj.tool.list{end},'hide_param',@obj.toolparam_close_callback);
 % Left click: Enters a manual point based on parameters
 %   Find max in range (specify range line/bin extent to search)
 % Left click and drag: Runs tomo.viterbi algorithm on selected data.
@@ -155,7 +155,7 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Any double click: Nothing
 % Ctrl + double click: Zoom reset
 
-% obj.tool_list{end+1} = imb.picktool_landmark;
+% obj.tool.list{end+1} = imb.picktool_landmark;
 % Left click: Create landmark point
 % Left click and drag: Create landmark region
 % Right click: Set cursor point
@@ -169,15 +169,15 @@ addlistener(obj.tool_list{end},'hide_param',@obj.toolparam_close_callback);
 % Build tool popup menu
 obj.left_panel.toolPM = uicontrol('Parent',obj.left_panel.handle);
 menuString = {};
-for idx = 1:length(obj.tool_list)
-  menuString{idx} = obj.tool_list{idx}.tool_name;
+for idx = 1:length(obj.tool.list)
+  menuString{idx} = obj.tool.list{idx}.tool_name;
 end
 set(obj.left_panel.toolPM,'String',menuString);
 clear menuString;
 set(obj.left_panel.toolPM,'Value',1);
-tmp = obj.tool_list{1}; obj.left_click = @tmp.left_click;
-tmp = obj.tool_list{1}; obj.left_click_and_drag = @tmp.left_click_and_drag;
-tmp = obj.tool_list{1}; obj.right_click_and_drag = @tmp.right_click_and_drag;
+tmp = obj.tool.list{1}; obj.tool.left_click_fh = @tmp.left_click;
+tmp = obj.tool.list{1}; obj.tool.left_click_and_drag_fh = @tmp.left_click_and_drag;
+tmp = obj.tool.list{1}; obj.tool.right_click_and_drag_fh = @tmp.right_click_and_drag;
 
 set(obj.left_panel.toolPM,'Style','popupmenu');
 set(obj.left_panel.toolPM,'HorizontalAlignment','Center');
@@ -258,17 +258,18 @@ set(obj.left_panel.framesPM,'TooltipString','Set the number of frames to load/bu
 %% left_panel.crossoverPB
 % =========================================================================
 if strcmpi(class(obj.h_fig),'double')
-  obj.eg.crossovers.gui = imb.crossover(sprintf('%d: Crossovers',obj.h_fig), true);
+  obj.crossovers.gui = imb.crossover(sprintf('%d: Crossovers',obj.h_fig), true);
 else
-  obj.eg.crossovers.gui = imb.crossover(sprintf('%d: Crossovers',obj.h_fig.Number), true);
+  obj.crossovers.gui = imb.crossover(sprintf('%d: Crossovers',obj.h_fig.Number), true);
 end
-addlistener(obj.eg.crossovers.gui,'update_event',@obj.set_visibility);
-addlistener(obj.eg.crossovers.gui,'open_crossover_event',@obj.open_crossover);
-addlistener(obj.eg.crossovers.gui,'update_cursor',@obj.cursor_crossover);
-addlistener(obj.eg.crossovers.gui,'refresh_crossovers_event',@obj.load_crossovers);
+addlistener(obj.crossovers.gui,'update_event',@obj.set_visibility);
+addlistener(obj.crossovers.gui,'open_crossover_event',@obj.open_crossover);
+addlistener(obj.crossovers.gui,'update_cursor',@obj.cursor_crossover);
+addlistener(obj.crossovers.gui,'refresh_crossovers_event',@obj.load_crossovers);
 obj.left_panel.crossoverPB = uicontrol('Parent',obj.left_panel.handle);
 set(obj.left_panel.crossoverPB,'Style','PushButton');
 set(obj.left_panel.crossoverPB,'String','Crossovers');
+set(obj.left_panel.crossoverPB,'Enable','off');
 set(obj.left_panel.crossoverPB,'Callback',@obj.crossoverPB_callback);
 set(obj.left_panel.crossoverPB,'TooltipString','Open flightline crossover browse window');
 
@@ -430,30 +431,30 @@ clear row col
 % Draw table
 table_draw(obj.left_panel.table);
 
-%% right_panel.axes
+%% right_panel.axes_panel
 % =========================================================================
 
 % create axes panel and axes
-obj.right_panel.axes.panel_h = uipanel('parent',obj.right_panel.handle);
-obj.right_panel.axes.handle = axes('parent',obj.right_panel.axes.panel_h);
-axis_pos = get(obj.right_panel.axes.handle,'Position');
+obj.right_panel.axes_panel = uipanel('parent',obj.right_panel.handle);
+obj.h_axes = axes('parent',obj.right_panel.axes_panel);
+axis_pos = get(obj.h_axes,'Position');
 % scale up the size of the axes (image part)
 % about 87% width of panel and 87% height of panel
 xy_diff = axis_pos(1)-axis_pos(2);
 x_delta = axis_pos(1)-0.08;
 y_delta = axis_pos(2)-0.10+xy_diff;
 new_pos = [axis_pos(1)-x_delta axis_pos(2)-y_delta axis_pos(3)+2*x_delta axis_pos(4)+2*y_delta];
-set(obj.right_panel.axes.handle,'Position',new_pos);
-set(obj.right_panel.axes.handle,'activepositionproperty','outerposition');
+set(obj.h_axes,'Position',new_pos);
+set(obj.h_axes,'activepositionproperty','outerposition');
 set(obj.h_fig,'Colormap',1-gray(256));
 
 % Create imagesc handle
-hold(obj.right_panel.axes.handle,'on');
-obj.eg.h_image = imagesc([],[],[],'parent',obj.right_panel.axes.handle);
-obj.left_panel.imagewin.set_img(obj.eg.h_image);
+hold(obj.h_axes,'on');
+obj.h_image = imagesc([],[],[],'parent',obj.h_axes);
+obj.left_panel.imagewin.set_img(obj.h_image);
 
 % Create cursor plot handle
-obj.cursor.h = plot(NaN,NaN,'k--','parent',obj.right_panel.axes.handle);
+obj.cursor.h = plot(NaN,NaN,'k--','parent',obj.h_axes);
 
 % create statusbar panel
 obj.right_panel.status_panel.handle = uipanel('Parent',obj.right_panel.handle);
@@ -516,7 +517,7 @@ obj.right_panel.table.false_width = NaN*zeros(30,30);
 obj.right_panel.table.false_height = NaN*zeros(30,30);
 obj.right_panel.table.offset = [0 0];
 row = 1; col = 1;
-obj.right_panel.table.handles{row,col}   = obj.right_panel.axes.panel_h;
+obj.right_panel.table.handles{row,col}   = obj.right_panel.axes_panel;
 obj.right_panel.table.width(row,col)     = inf;
 obj.right_panel.table.height(row,col)    = inf;
 obj.right_panel.table.width_margin(row,col)=0;

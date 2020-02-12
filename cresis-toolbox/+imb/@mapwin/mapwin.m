@@ -52,10 +52,10 @@ classdef (HandleCompatible = true) mapwin < handle
     % map.xaxis % Current xaxis
     % map.yaxis % Current yaxis
     % map.sel % map selection (red line): .frame_name, .season_name, .segment_id
-    % map.sel.frame_name
+    % map.sel.frm_str
     % map.sel.radar_name
     % map.sel.season_name
-    % map.sel.segment_id
+    % map.sel.seg_id
     % map.CoordRefSysCode % string containing EPSG:3413, EPSG:3031, or EPSG:3857
     
     % OPS
@@ -130,8 +130,8 @@ classdef (HandleCompatible = true) mapwin < handle
       obj.map.source = []; % 0 for OPS, 1 for Google
       obj.map.scale = []; % 1e3 (km to meters for OPS), 1 for Google
       % Currently selected flight line information
-      obj.map.sel.frame_name = ''; % Current frame name
-      obj.map.sel.segment_id = []; % Current segment ID (Database ID for OPS layer source, index into obj.cur_map_pref_settings.seasons for layerdata source)
+      obj.map.sel.frm_str = ''; % Current frame name
+      obj.map.sel.seg_id = []; % Current segment ID (Database ID for OPS layer source, index into obj.cur_map_pref_settings.seasons for layerdata source)
       obj.map.sel.season_name = ''; % Current season name
       obj.map.sel.radar_name = ''; % Current radar name
       obj.map.xaxis = [];

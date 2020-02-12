@@ -8,7 +8,7 @@ function loadPB_callback(obj,hObj,event)
 %% Setup
 
 % Check to make sure a frame has been selected before we load
-if isempty(obj.map.sel.frame_name)
+if isempty(obj.map.sel.frm_str)
   uiwait(msgbox('No frame selected, select frames with ctrl+left-click or using search','Error loading','modal'));
   return;
 end
@@ -82,10 +82,11 @@ end
 param.sources = obj.cur_map_pref_settings.sources;
 param.layers = obj.cur_map_pref_settings.layers;
 param.cur_sel = obj.map.sel;
+param.cur_sel.frm = str2num(param.cur_sel.frm_str(13:end));
 param.cur_sel.location = obj.cur_map_pref_settings.map_zone;
-param.cur_sel.day_seg = param.cur_sel.frame_name(1:11);
+param.cur_sel.day_seg = param.cur_sel.frm_str(1:11);
 if strcmp(obj.cur_map_pref_settings.system,'layerdata')
-  param.segment_id = obj.map.sel.segment_id;
+  param.segment_id = obj.map.sel.seg_id;
   param.system = param.cur_sel.radar_name;
   param.cur_sel.radar_name = param.cur_sel.radar_name;
   param.cur_sel.season_name = param.cur_sel.season_name;
@@ -111,7 +112,7 @@ param.layer_data_source = obj.cur_map_pref_settings.layer_data_source;
 match_idx = [];
 for stack_idx = 1:length(obj.undo_stack_list)
   if strcmpi(obj.undo_stack_list(stack_idx).unique_id{1},system_name_full) ...
-      && obj.undo_stack_list(stack_idx).unique_id{2} == obj.map.sel.segment_id
+      && obj.undo_stack_list(stack_idx).unique_id{2} == obj.map.sel.seg_id
     % An undo stack already exists for this system-segment pair
     match_idx = stack_idx;
     break;
@@ -130,7 +131,7 @@ if strcmpi(param.layer_source,'layerdata')
   % Find this season in the list of seasons
   season_idx = find(strcmp(system_name_full,obj.cur_map_pref_settings.seasons));
   % Create a mask that identifies the frames for the selected segment in this season
-  frm_idxs = find(param.cur_sel.segment_id == floor(obj.layerdata.frm_info(season_idx).frm_id/1000));
+  frm_idxs = find(param.cur_sel.seg_id == floor(obj.layerdata.frm_info(season_idx).frm_id/1000));
   num_frm = length(frm_idxs);
 
   layer_names = {};
@@ -204,7 +205,7 @@ end
 if isempty(match_idx)
   % An undo stack does not exist for this system-segment pair, so create a
   % new undo stack
-  param.id = {system_name_full obj.map.sel.segment_id};
+  param.id = {system_name_full obj.map.sel.seg_id};
   obj.undo_stack_list(end+1) = imb.undo_stack(param);
   match_idx = length(obj.undo_stack_list);
 end

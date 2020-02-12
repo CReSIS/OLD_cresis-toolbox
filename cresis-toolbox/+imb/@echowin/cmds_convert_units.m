@@ -41,8 +41,8 @@ if yaxis_choice == 1 % TWTT
   args{3} = args{3}/(1e6);
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
-  elevation = interp1(obj.eg.gps_time,obj.eg.elevation,obj.eg.map_gps_time(args{2}),'linear','extrap');
-  surface = interp1(obj.eg.gps_time,obj.eg.surface,obj.eg.map_gps_time(args{2}),'linear','extrap');
+  elevation = interp1(obj.eg.gps_time,obj.eg.elev,obj.eg.map_gps_time(args{2}),'linear','extrap');
+  surface = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.map_gps_time(args{2}),'linear','extrap');
   
   for idx = 1:length(args{3})
     if (elevation(idx) - args{3}(idx)) < surface(idx)*vel_air % above surface
@@ -53,7 +53,7 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
   end
   
 elseif yaxis_choice == 3 % Depth/Range
-  surface = interp1(obj.eg.gps_time,obj.eg.surface,obj.eg.map_gps_time(args{2}),'linear','extrap');
+  surface = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.map_gps_time(args{2}),'linear','extrap');
   for idx = 1:length(args{3})
     if args{3}(idx) < surface(idx)*vel_air % above surface
       args{3}(idx) = args{3}(idx)*slowness_air;
@@ -67,7 +67,7 @@ elseif yaxis_choice == 4 % Range bin
     args{3},'linear');
   
 elseif yaxis_choice == 5 % Surface flat
-  surface = interp1(obj.eg.gps_time,obj.eg.surface,obj.eg.map_gps_time(args{2}),'linear','extrap');
+  surface = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.map_gps_time(args{2}),'linear','extrap');
   
   below_ice_mask = args{3} > 0;
   args{3}(below_ice_mask) = surface(below_ice_mask)+args{3}(below_ice_mask)*slowness_ice; % Below ice
@@ -104,8 +104,8 @@ if yaxis_choice == 1 % TWTT
   args{2}(3:4) = args{2}(3:4)/(1e6);
   
 elseif yaxis_choice == 2 % WGS_84 Elevation
-  elevation = interp1(obj.eg.gps_time,obj.eg.elevation,obj.eg.map_gps_time(args{3}(1)),'linear','extrap');
-  surface = interp1(obj.eg.gps_time,obj.eg.surface,obj.eg.map_gps_time(args{3}(1)),'linear','extrap');
+  elevation = interp1(obj.eg.gps_time,obj.eg.elev,obj.eg.map_gps_time(args{3}(1)),'linear','extrap');
+  surface = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.map_gps_time(args{3}(1)),'linear','extrap');
   
   % We are given a rectangle to delete in WGS-84 coordinates. When we
   % translate this to twtt, in the general case we will end up with a
@@ -124,7 +124,7 @@ elseif yaxis_choice == 2 % WGS_84 Elevation
   args{2}(3:4) = sort(args{2}(3:4));
   
 elseif yaxis_choice == 3 % Range
-  surface = interp1(obj.eg.gps_time,obj.eg.surface,obj.eg.map_gps_time(args{3}(1)),'linear','extrap');
+  surface = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.map_gps_time(args{3}(1)),'linear','extrap');
   
   % We are given a rectangle to delete in Range coordinates. When we
   % translate this to twtt, in the general case we will end up with a
@@ -143,7 +143,7 @@ elseif yaxis_choice == 4 % Range bin
     args{2}(3:4),'linear');
   
 elseif yaxis_choice == 5 % Surface flat
-  surface = interp1(obj.eg.gps_time,obj.eg.surface,obj.eg.map_gps_time(args{3}(1)),'linear','extrap');
+  surface = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.map_gps_time(args{3}(1)),'linear','extrap');
   
   below_ice_mask = args{2} > 0;
   % Only modify indices 3,4:
