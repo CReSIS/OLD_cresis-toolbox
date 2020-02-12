@@ -123,7 +123,10 @@ if tool_idx == 1
         slope          = round(diff(surf_bins));
       end
       
-      [~, top] = min(abs(param.echo_time));
+      dt = param.echo_time(2) - param.echo_time(1);
+      top = -param.echo_time(1)/dt + 1;
+      % TODO[reece]: Should use +1?
+      [~, top1] = min(abs(param.echo_time));
       
       %% Distance-to-Ice-Margin model
       clear DIM DIM_costmatrix;
@@ -133,6 +136,10 @@ if tool_idx == 1
       DIM_costmatrix = DIM_costmatrix .* (200 ./ max(DIM_costmatrix(:)));
       
       scale = length(param.layer.y{cur_layer}) / length(image_y) / 10;
+      % TODO[reece]: Allow user to input scale and input num pixels for
+      % expected slope (Max variation) input based on twtt rather than resolution;
+      % - e.g. "don't allow slopes greater than 1% ..."
+      % - make into vector, for 2d, same value throughout (1x(Nx-1))
       % TODO[reece]: Determine best scale
       % TODO[reece]: Why do the paths ignore distance from egt more or
       % less?

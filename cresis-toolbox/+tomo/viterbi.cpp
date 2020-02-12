@@ -44,7 +44,7 @@ double viterbi::unary_cost(int x, int y) {
     // Increase cost if far from extra ground truth
     for (int f = 0; f < (f_num_extra_tr / 2); ++f) {
         if (f_egt_x[f] == x) {
-            cost += f_weight_points[x] * 10 * sqr(((int)f_egt_y[f] - (int)(t + y)) / f_egt_weight);
+            cost += f_weight_points[x] * 10 * sqr(((int)f_egt_y[f] - (int)(t + y)) * f_egt_weight);
             break;
         }
     }
@@ -72,12 +72,14 @@ double viterbi::unary_cost(int x, int y) {
 
     // Distance from nearest ice-mask
     // Probabilistic measurement
+    // TODO[reece]: Account for size of cost matrix -- don't allow out of bounds
+    //              Use min of dim - 1, y + ...
     int DIM = (std::isinf(f_mask_dist[x]) || f_mask_dist[x] >=  f_costmatrix_Y) ? f_costmatrix_Y - 1 : f_mask_dist[x];
     cost += f_costmatrix[f_costmatrix_X * DIM + y + t + 1 - f_sgt[x]];
 
-    // Image magnitude correlation
+    // Image magnitude
     cost -= f_image[encode(x, y)];
-    // TODO[reece]: Make image mag corr only increase cost somehow
+    // TODO[reece]: Add scaling term for image magnitude weight
     
     return cost;
 }
