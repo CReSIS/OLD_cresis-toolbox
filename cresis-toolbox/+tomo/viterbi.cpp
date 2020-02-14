@@ -40,7 +40,7 @@ double viterbi::unary_cost(int x, int y) {
     double cost = 0;
 
     // TODO[reece]: Compare binary costs with unary costs/multiple bin costs. Adjust accordingly. Perhaps use constants for easy nudging.
-    // TODO[reece]: Should this not be large as with center GT? 
+    // TODO[reece]: Weight such that manual points can be over-written by better points on occasion
     // Increase cost if far from extra ground truth
     for (int f = 0; f < (f_num_extra_tr / 2); ++f) {
         if (f_egt_x[f] == x) {
@@ -49,9 +49,8 @@ double viterbi::unary_cost(int x, int y) {
         }
     }
 
-    // TODO[reece]: Account for scaling.
-    // TODO[reece]: Plane position assumed constant. However, it can change. Escpecially before mission start.
-    // TODO[reece]: Include t and/or mu in calculations as other cost calculations do? What exactly are t and mu?
+    // TODO[reece]: Account for scaling? -- test if choosing right bin consistently
+    // TODO[reece]: Remove t and mu
     // Increase cost if near surface or surface multiple bin
     const int travel_time = f_sgt[x] - f_plane_bin;  // Between multiples
     int multiple_bin = (y - f_sgt[x]) / travel_time;
@@ -253,7 +252,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
         mexErrMsgTxt("usage: variance must be type double");
     }
     if (_ms != mxGetNumberOfElements(prhs[6])) {
-        mexErrMsgTxt("usage: variance must have numel=numel(variance)");
+        mexErrMsgTxt("usage: variance must have numel=numel(mu)");
     }
     const double *_sigma = mxGetPr(prhs[6]); 
     
@@ -391,10 +390,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
       if (!mxIsInt64(prhs[18])) {
           mexErrMsgTxt("usage: plane bin must be type int64");
       }
-      // Doing this in one step (_plane_bin = (int)*mxGetPr(prhs[19])) always results in _plane_bin == 0
-      // regardless of it's initial value. Do not know why.
-      int *_plane_bin_pr = (int *)mxGetPr(prhs[18]);
-      _plane_bin = (int)*_plane_bin_pr;
+      _plane_bin = *(int *)mxGetPr(prhs[18]);
     }
     
     // ====================================================================

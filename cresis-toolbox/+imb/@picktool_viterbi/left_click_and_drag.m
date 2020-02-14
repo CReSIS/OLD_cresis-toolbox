@@ -125,7 +125,7 @@ if tool_idx == 1
       
       dt = param.echo_time(2) - param.echo_time(1);
       top = -param.echo_time(1)/dt + 1;
-      % TODO[reece]: Should use +1?
+      % TODO[reece]: Should keep +1? compare top to top1 and then remove top1
       [~, top1] = min(abs(param.echo_time));
       
       %% Distance-to-Ice-Margin model
@@ -141,8 +141,7 @@ if tool_idx == 1
       % - e.g. "don't allow slopes greater than 1% ..."
       % - make into vector, for 2d, same value throughout (1x(Nx-1))
       % TODO[reece]: Determine best scale
-      % TODO[reece]: Why do the paths ignore distance from egt more or
-      % less?
+      % TODO[reece]: Why do the paths seem to ignore distance from egt more or less?
       % TODO[reece]: Update wiki. Update markdown files.
       
       tic
