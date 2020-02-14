@@ -66,7 +66,7 @@ if tool_idx == 1
       egt_weight     = -1;
       slope          = round(diff(surf_bins));
       bounds         = [];
-      viterbi_weight = ones([1 Nx]);
+      gt_weights = ones([1 Nx]);
       mu_size        = 0;
       mu             = log10(exp(-(-(mu_size-1)/2 : (mu_size-1)/2).^4/1));
       mu(mu<-30)     = -30;
@@ -119,7 +119,7 @@ if tool_idx == 1
         surf_bins      = surf_bins(:, auto_idxs);
         mask           = mask(:, auto_idxs);
         mask_dist      = round(bwdist(mask == 0));
-        viterbi_weight = viterbi_weight(:, auto_idxs);
+        gt_weights = gt_weights(:, auto_idxs);
         slope          = round(diff(surf_bins));
       end
       
@@ -146,10 +146,8 @@ if tool_idx == 1
       
       tic
       y_new = tomo.viterbi(double(viterbi_data), double(surf_bins), ...
-        double(bottom_bin), double(gt), double(mask), double(mu), ...
-        double(sigma), double(egt_weight), double(smooth_weight), ...
-        double(smooth_var), double(slope), int64(bounds), ...
-        double(viterbi_weight), double(repulsion), double(ice_bin_thr), ...
+        double(bottom_bin), double(gt), double(mask), double(1), double(egt_weight), ...
+        double(slope), int64(bounds), double(gt_weights), ...
         double(mask_dist), double(DIM_costmatrix), double(scale), int64(top));
       toc
       fprintf('Viterbi call took %.2f sec.\n', toc);

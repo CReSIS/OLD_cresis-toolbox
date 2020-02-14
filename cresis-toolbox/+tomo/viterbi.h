@@ -22,9 +22,7 @@ const double SIGMA 		 = 24;
 // Scaling for smoothness constraint
 const double SCALE 		 = 12;
 // Relative weight of extra GT
-const double EGT_WEIGHT  = 10;  // TODO[reece]: is this supposed to be positive?
-                                //              appears to divide added cost for distance from egt
-                                //              Repulsion is positive and increases cost
+const double EGT_WEIGHT  = 10;
 // Relative weight of intersection with expected surface multiple bin
 // TODO[reece]: Allow multiple bin params to be passed into viterbi
 const double MULTIPLE_BIN_WEIGHT = 100;
@@ -32,10 +30,6 @@ const double MULTIPLE_BIN_WEIGHT = 100;
 const double MULTIPLE_MAX_NUM = 5;
 // Maximum travel time distance from closest multiple which has any effect on cost
 const double MULTIPLE_MAX_DIST = 10;
-// Icemask proximity scan threshold
-const double ICE_BIN_THR = 3;
-// Repulsion from surface
-const double REPULSION   = 150000; 
 // Mass conservation weight
 const double MC_WEIGHT   = 10; 
 // Large cost
@@ -49,21 +43,15 @@ public:
              const int *d_sgt,
              const int d_bgt,               
              const double *d_mask,
-		     const double *d_mu,            
-             const double *d_sigma,
+		     const double d_img_mag_weight,            
 		     const int d_mid,              
              const double d_egt_weight,
-		     const double d_smooth_weight,  
-             const double d_smooth_var,
 		     const double *d_smooth_slope, 
              const ptrdiff_t *d_bounds,
-		     const size_t d_ms,             
              const int d_num_extra_tr,
 		     const double *d_egt_x,         
              const double *d_egt_y,
-             const double *d_weight_points,
-		     const double d_repulsion,      
-             const double d_ice_bin_thr,
+             const double *d_gt_weights,
              const double *d_mask_dist,
              const double *d_costmatrix,
              const int d_costmatrix_X,
@@ -78,21 +66,15 @@ public:
 	f_sgt(d_sgt),
 	f_bgt(d_bgt),
 	f_mask(d_mask),
-	f_mu(d_mu),
-	f_sigma(d_sigma),
+	f_img_mag_weight(d_img_mag_weight),
 	f_mid(d_mid),    
 	f_egt_weight(d_egt_weight),
-	f_smooth_weight(d_smooth_weight),
-	f_smooth_var(d_smooth_var),
 	f_smooth_slope(d_smooth_slope), 
 	f_bounds(d_bounds),
-	f_ms(d_ms),         
 	f_num_extra_tr(d_num_extra_tr),
 	f_egt_x(d_egt_x),        
 	f_egt_y(d_egt_y),
-	f_weight_points(d_weight_points),
-	f_repulsion(d_repulsion),    
-	f_ice_bin_thr(d_ice_bin_thr), 
+	f_gt_weights(d_gt_weights),
     f_mask_dist(d_mask_dist),
     f_costmatrix(d_costmatrix),
     f_costmatrix_X(d_costmatrix_X),
@@ -106,15 +88,13 @@ public:
 
 	// VARIABLES
 	const int f_row, f_col, f_mid, f_bgt, *f_sgt, f_num_extra_tr, f_costmatrix_X, f_costmatrix_Y, f_plane_bin;
-	const double *f_image, *f_mask, *f_mu, *f_sigma, f_egt_weight, *f_smooth_slope,
-                 *f_egt_x, *f_egt_y, *f_weight_points, f_smooth_weight,
-                 f_smooth_var, f_repulsion, f_ice_bin_thr, *f_mask_dist,  
+	const double *f_image, *f_mask, f_img_mag_weight, f_egt_weight, *f_smooth_slope,
+                 *f_egt_x, *f_egt_y, *f_gt_weights, *f_mask_dist,  
                  *f_costmatrix, f_scale;
 	const ptrdiff_t *f_bounds;
-	const size_t f_ms;
 	double *f_result, *f_cost;
 
-	int depth, num_col_vis, t, start_col, end_col;
+	int num_col_vis, start_col, end_col;
   double multiple_cost_base;
 
 	// METHODS
@@ -136,7 +116,7 @@ public:
     
 	int encode(int x, int y) { return x * f_row + y; }
 	 
-    int vic_encode(int row, int col) { return depth * col + row; }
+    int vic_encode(int row, int col) { return f_row * col + row; }
 
     // THE CODE BELOW THIS POINT WAS TAKEN FROM DAVID CRANDALL
     // Distance transform
