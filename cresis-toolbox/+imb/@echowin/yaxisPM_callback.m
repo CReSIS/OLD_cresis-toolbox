@@ -4,8 +4,6 @@ function yaxisPM_callback(obj,hObj,event)
 % uicontrol.
 uicontrol(obj.right_panel.status_panel.statusText);
 
-cur_axis = axis(obj.h_axes);
-
 % Replot image
 obj.plot_echogram(obj.eg.image_gps_time(1),obj.eg.image_gps_time(end),-inf,inf);
 obj.plot_layers();

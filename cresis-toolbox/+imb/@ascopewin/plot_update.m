@@ -10,10 +10,10 @@ set(obj.h_ascope(obj.ascope.visible),'Visible','on');
 set(obj.h_ascope(~obj.ascope.visible),'Visible','off');
 
 % Update list box entries
-LB_strings = cell(1,length(obj.ascope.sys));
+LB_strings = cell(1,length(obj.ascope.echowin));
 obj.xlims = [inf -inf];
 obj.ylims = [inf -inf];
-for idx = 1:length(obj.ascope.sys)
+for idx = 1:length(obj.ascope.echowin)
   if obj.ascope.visible(idx)
     LB_strings{idx} = sprintf('%s %s', ...
       obj.ascope.frm_str{idx},datestr(epoch_to_datenum(obj.ascope.gps_time(idx)),'HH:mm:SS'));
@@ -36,6 +36,16 @@ for idx = 1:length(obj.ascope.sys)
   end
 end
 set(obj.left_panel.ascopeLB,'String',LB_strings);
+
+obj.ylims = [floor(obj.ylims(1)) ceil(obj.ylims(2))];
+
+% Convert all x-limits to depth if needed
+val = get(obj.left_panel.xaxisPM,'Value');
+if val == 2
+  physical_constants;
+  obj.xlims(obj.xlims<0) = obj.xlims(obj.xlims<0)/1e6 * c/2;
+  obj.xlims(obj.xlims>0) = obj.xlims(obj.xlims>0)/1e6 * c/2/sqrt(er_ice);
+end
 
 notify(obj,'StateChange');
 

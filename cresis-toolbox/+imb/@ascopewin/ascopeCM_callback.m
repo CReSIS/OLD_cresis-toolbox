@@ -85,6 +85,7 @@ elseif source == obj.left_panel.ascopeCM_delete
   
   delete_mask = true(size(obj.ascope.echowin));
   delete_mask(vals) = false;
+  obj.h_ascope = obj.h_ascope(delete_mask);
   obj.ascope.echowin = obj.ascope.echowin(delete_mask);
   obj.ascope.sys = obj.ascope.sys(delete_mask);
   obj.ascope.season_name = obj.ascope.season_name(delete_mask);

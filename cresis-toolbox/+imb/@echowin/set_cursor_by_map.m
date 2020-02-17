@@ -4,7 +4,8 @@ function set_cursor_by_map(obj,lat,lon,type,elev)
 % Finds the closest point on the echowin's flightline to (lat,lon) and then
 % updates the cursor to that position.
 
-map_caused_call = strcmpi(type,'mapwin');
+map_caused_call = regexp(type,'mapwin');
+notify_en = strcmp(type,'mapwin_notify');
 
 if ~obj.busy_mode
   physical_constants;
@@ -48,5 +49,5 @@ if ~obj.busy_mode
     end
   end
   
-  obj.update_cursor(obj.eg.image_xaxis(rline),y,false);
+  obj.update_cursor(obj.eg.image_xaxis(rline),y,notify_en);
 end

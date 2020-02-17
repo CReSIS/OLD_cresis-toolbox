@@ -45,6 +45,7 @@ classdef (HandleCompatible = true) ascopewin < handle
     zoom_mode_y
     xlims
     ylims
+    cur_xaxis
     
     %% ascope Properties
     ascope % Structure with ascope information
@@ -54,7 +55,7 @@ classdef (HandleCompatible = true) ascopewin < handle
     % ascope.gps_time = []; % N_ascope length double vector of gps times
     % ascope.twtt = {}; % N_ascope length cell vector of twtt vectors
     % ascope.data = {}; % N_ascope length cell vector of a-scope waveforms
-    % ascope.surf_elev = []; % N_ascope length double vector of surface elevation
+    % ascope.surf_twtt = []; % N_ascope length double vector of surface twtt
     % ascope.lat = []; % N_ascope length double vector of platform latitudes
     % ascope.lon = []; % N_ascope length double vector of platform longitude
     % ascope.target_twtt = []; % N_ascope length double vector of target elevations
@@ -120,6 +121,7 @@ classdef (HandleCompatible = true) ascopewin < handle
       obj.h_ascope = []; % Ascope plot handles
       obj.h_cursor = []; % Cursor plot handle
       obj.zoom_mode = true;
+      obj.cur_xaxis = 1;
     
       obj.ascope = [];
       obj.ascope.echowin = []; % N_ascope length vector of echo window figure numbers
@@ -129,7 +131,7 @@ classdef (HandleCompatible = true) ascopewin < handle
       obj.ascope.gps_time = []; % N_ascope length double vector of gps times
       obj.ascope.twtt = {}; % N_ascope length cell vector of twtt vectors
       obj.ascope.data = {}; % N_ascope length cell vector of a-scope waveforms
-      obj.ascope.surf_elev = []; % N_ascope length double vector of surface twtt
+      obj.ascope.surf_twtt = []; % N_ascope length double vector of surface twtt
       obj.ascope.lat = []; % N_ascope length double vector of platform latitudes
       obj.ascope.lon = []; % N_ascope length double vector of platform longitude
       obj.ascope.target_twtt = []; % N_ascope length double vector of target twtt

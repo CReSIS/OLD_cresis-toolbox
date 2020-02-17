@@ -74,7 +74,7 @@ elseif obj.shift_pressed && click_in_axis % shift click
       % Update the echowin's cursor in the echogram (this finds the closest
       % point to the supplied x,y and that becomes the next cursor position
       % for this echowin)
-      obj.echowin_list(idx).set_cursor_by_map(lat,lon,'mapwin');
+      obj.echowin_list(idx).set_cursor_by_map(lat,lon,'mapwin_notify');
       % Update the echowin's cursor on the map
       if obj.map.source == 1
         [x,y] = google_map.latlon_to_world(obj.echowin_list(idx).cursor.lat, obj.echowin_list(idx).cursor.lon); y = 256-y;

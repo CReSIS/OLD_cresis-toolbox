@@ -63,8 +63,6 @@ if notify_en
     obj.cursor.target_twtt = obj.eg.time(1) + (y-1)*(obj.eg.time(2)-obj.eg.time(1));
     
   elseif yaxis_choice == 5 % Surface flat
-    surface = interp1(obj.eg.gps_time,obj.eg.surf_twtt,obj.eg.map_gps_time(args{2}),'linear','extrap');
-    
     if y > 0
       obj.cursor.target_twtt = obj.eg.image_surf_twtt(rline) + y*slowness_ice; % Below ice
     else
@@ -74,7 +72,7 @@ if notify_en
   
   obj.cursor.target_elev = obj.eg.image_elev(rline) ...
     - min(obj.eg.image_surf_twtt(rline), obj.cursor.target_twtt)*vel_air ...
-    - min(0, (obj.cursor.target_twtt-obj.eg.image_surf_twtt(rline)))*vel_ice;
+    - max(0, (obj.cursor.target_twtt-obj.eg.image_surf_twtt(rline)))*vel_ice;
   
   cross_track = sqrt((obj.cursor.target_twtt*vel_air).^2 - z_offset.^2);
   if ~isreal(cross_track)
@@ -90,4 +88,10 @@ if notify_en
   
   % Notify the map to redraw all cursors based on this cursor's location
   notify(obj,'update_cursors');
+else
+  obj.cursor.target_twtt = NaN;
+  obj.cursor.target_elev = NaN;
+  obj.cursor.clutter_lat = [];
+  obj.cursor.clutter_lon = [];
 end
+

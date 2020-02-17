@@ -10,7 +10,7 @@ function update_echowin_cursors(obj,src,event)
 
 % Update the source echowin's cursor and clutter on the map
 if obj.map.source == 1
-  [src_x,src_y] = google_map.latlon_to_world([src.cursor.lat src.cursor.clutter_lat], [src.cursor.lon src.cursor.clutter_lon]); y = 256-y;
+  [src_x,src_y] = google_map.latlon_to_world([src.cursor.lat src.cursor.clutter_lat], [src.cursor.lon src.cursor.clutter_lon]); src_y = 256-src_y;
 else
   [src_x,src_y] = projfwd(obj.map.proj, [src.cursor.lat src.cursor.clutter_lat], [src.cursor.lon src.cursor.clutter_lon]);
 end
